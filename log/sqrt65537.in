@@ -1,0 +1,6 @@
+1 9 var
+2 18 uext 1 9
+3 18 umul 2 2
+4 18 constd 65537
+5 1 eq 3 4
+6 1 root 5

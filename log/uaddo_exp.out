@@ -1,0 +1,8 @@
+3 1 const 0
+1 8 var
+4 9 concat 3 1
+2 8 var
+5 9 concat 3 2
+6 9 add 4 5
+7 1 slice 6 8 8
+8 1 root 7

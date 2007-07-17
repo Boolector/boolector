@@ -1,0 +1,12 @@
+1 8 var
+2 8 var
+5 8 add 1 2
+6 1 slice 5 7 7
+3 1 slice 1 7 7
+4 1 slice 2 7 7
+7 1 and 3 4
+8 1 and -6 7
+9 1 and -3 -4
+10 1 and 6 9
+11 1 and -8 -10
+12 1 root -11

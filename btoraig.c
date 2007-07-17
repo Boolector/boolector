@@ -1,0 +1,938 @@
+#include "btoraig.h"
+#include "btorsat.h"
+#include "btorutil.h"
+
+#include <assert.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+
+/*------------------------------------------------------------------------*/
+/* BEGIN OF DECLARATIONS                                                  */
+/*------------------------------------------------------------------------*/
+
+struct BtorAIGUniqueTable
+{
+  int size;
+  int num_elements;
+  BtorAIG **chains;
+};
+
+typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
+
+#define BTOR_INIT_AIG_UNIQUE_TABLE(mm, table)                          \
+  do                                                                   \
+  {                                                                    \
+    assert (mm != NULL);                                               \
+    (table).size         = 1;                                          \
+    (table).num_elements = 0;                                          \
+    (table).chains =                                                   \
+        (BtorAIG **) btor_calloc (mm, (size_t) 1, sizeof (BtorAIG *)); \
+  } while (0)
+
+#define BTOR_RELEASE_AIG_UNIQUE_TABLE(mm, table)                       \
+  do                                                                   \
+  {                                                                    \
+    assert (mm != NULL);                                               \
+    btor_free (mm, (table).chains, sizeof (BtorAIG *) * (table).size); \
+  } while (0)
+
+#define BTOR_AIG_UNIQUE_TABLE_LIMIT 30
+#define BTOR_AIG_UNIQUE_TABLE_PRIME 2000000137u
+
+struct BtorAIGMgr
+{
+  BtorMemMgr *mm;
+  BtorAIGUniqueTable table;
+  int id;
+  BtorCNFMgr *cmgr;
+};
+
+/*------------------------------------------------------------------------*/
+/* END OF DECLARATIONS                                                    */
+/*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+/* BEGIN OF IMPLEMENTATION                                                */
+/*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+/* BtorAIG                                                                */
+/*------------------------------------------------------------------------*/
+
+static BtorAIG *
+new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  BtorAIG *aig = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (left));
+  assert (!BTOR_IS_CONST_AIG (right));
+  aig = (BtorAIG *) btor_malloc (amgr->mm, sizeof (BtorAIG));
+  assert (!BTOR_IS_INVERTED_AIG (aig));
+  assert (amgr->id < INT_MAX);
+  aig->id                    = amgr->id++;
+  BTOR_LEFT_CHILD_AIG (aig)  = left;
+  BTOR_RIGHT_CHILD_AIG (aig) = right;
+  aig->refs                  = 1;
+  aig->mark                  = 0;
+  aig->cnf_id                = 0;
+  aig->first_clause_id       = 0;
+  aig->next                  = NULL;
+  return aig;
+}
+
+static void
+delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  if (!BTOR_IS_CONST_AIG (aig)) btor_free (amgr->mm, aig, sizeof (BtorAIG));
+}
+
+static unsigned int
+compute_aig_hash (BtorAIG *aig, int table_size)
+{
+  unsigned int hash = 0u;
+  assert (!BTOR_IS_INVERTED_AIG (aig));
+  assert (BTOR_IS_AND_AIG (aig));
+  assert (table_size > 0);
+  assert (btor_is_power_of_2_util (table_size));
+  hash = (unsigned int) BTOR_REAL_ADDR_AIG (BTOR_LEFT_CHILD_AIG (aig))->id
+         + (unsigned int) BTOR_REAL_ADDR_AIG (BTOR_RIGHT_CHILD_AIG (aig))->id;
+  hash = (hash * BTOR_AIG_UNIQUE_TABLE_PRIME) & (table_size - 1);
+  return hash;
+}
+
+static void
+delete_aig_unique_table_entry (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  unsigned int hash = 0u;
+  BtorAIG *cur      = NULL;
+  BtorAIG *prev     = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_INVERTED_AIG (aig));
+  assert (BTOR_IS_AND_AIG (aig));
+  hash = compute_aig_hash (aig, amgr->table.size);
+  cur  = amgr->table.chains[hash];
+  while (cur != aig && cur != NULL)
+  {
+    assert (!BTOR_IS_INVERTED_AIG (cur));
+    prev = cur;
+    cur  = cur->next;
+  }
+  assert (cur != NULL);
+  if (prev == NULL)
+    amgr->table.chains[hash] = cur->next;
+  else
+    prev->next = cur->next;
+  amgr->table.num_elements--;
+  delete_aig_node (amgr, cur);
+}
+
+static void
+inc_aig_ref_counter (BtorAIG *aig)
+{
+  if (!BTOR_IS_CONST_AIG (aig))
+  {
+    assert (BTOR_REAL_ADDR_AIG (aig)->refs < INT_MAX);
+    BTOR_REAL_ADDR_AIG (aig)->refs++;
+  }
+}
+
+static BtorAIG *
+inc_aig_ref_counter_and_return (BtorAIG *aig)
+{
+  inc_aig_ref_counter (aig);
+  return aig;
+}
+
+static BtorAIG **
+find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  BtorAIG **result  = NULL;
+  BtorAIG *cur      = NULL;
+  BtorAIG *temp     = NULL;
+  unsigned int hash = 0u;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (left));
+  assert (!BTOR_IS_CONST_AIG (right));
+  hash = (((unsigned int) BTOR_REAL_ADDR_AIG (left)->id
+           + (unsigned int) BTOR_REAL_ADDR_AIG (right)->id)
+          * BTOR_AIG_UNIQUE_TABLE_PRIME)
+         & (amgr->table.size - 1);
+  result = amgr->table.chains + hash;
+  cur    = *result;
+  if (BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
+  {
+    temp  = left;
+    left  = right;
+    right = temp;
+  }
+  while (cur != NULL)
+  {
+    assert (!BTOR_IS_INVERTED_AIG (cur));
+    assert (BTOR_IS_AND_AIG (cur));
+    if (BTOR_LEFT_CHILD_AIG (cur) == left
+        && BTOR_RIGHT_CHILD_AIG (cur) == right)
+    {
+      break;
+    }
+    else
+    {
+      result = &(cur->next);
+      cur    = *result;
+    }
+  }
+  return result;
+}
+
+static void
+enlarge_aig_unique_table (BtorAIGMgr *amgr)
+{
+  BtorAIG **new_chains = NULL;
+  int i                = 0;
+  int size             = 0;
+  int new_size         = 0;
+  unsigned int hash    = 0u;
+  BtorAIG *temp        = NULL;
+  BtorAIG *cur         = NULL;
+  assert (amgr != NULL);
+  size     = amgr->table.size;
+  new_size = size << 1;
+  assert (new_size / size == 2);
+  new_chains = (BtorAIG **) btor_calloc (
+      amgr->mm, (size_t) new_size, sizeof (BtorAIG *));
+  for (i = 0; i < size; i++)
+  {
+    cur = amgr->table.chains[i];
+    while (cur != NULL)
+    {
+      assert (!BTOR_IS_INVERTED_AIG (cur));
+      assert (BTOR_IS_AND_AIG (cur));
+      temp             = cur->next;
+      hash             = compute_aig_hash (cur, new_size);
+      cur->next        = new_chains[hash];
+      new_chains[hash] = cur;
+      cur              = temp;
+    }
+  }
+  btor_free (amgr->mm, amgr->table.chains, sizeof (BtorAIG *) * size);
+  amgr->table.size   = new_size;
+  amgr->table.chains = new_chains;
+}
+
+BtorAIG *
+btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  if (BTOR_IS_CONST_AIG (aig)) return aig;
+  return inc_aig_ref_counter_and_return (aig);
+}
+
+void
+btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark)
+{
+  BtorAIGPtrStack stack;
+  BtorAIG *cur = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (amgr->mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (cur->mark != new_mark)
+    {
+      cur->mark = new_mark;
+      if (BTOR_IS_AND_AIG (cur))
+      {
+        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (amgr->mm, stack);
+}
+
+void
+btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  BtorAIGPtrStack stack;
+  BtorAIG *cur = BTOR_REAL_ADDR_AIG (aig);
+  assert (amgr != NULL);
+  if (!BTOR_IS_CONST_AIG (aig))
+  {
+    assert (cur->refs > 0);
+    if (cur->refs > 1)
+    {
+      cur->refs--;
+    }
+    else
+    {
+      assert (cur->refs == 1);
+      BTOR_INIT_STACK (stack);
+      BTOR_PUSH_STACK (amgr->mm, stack, cur);
+      while (!BTOR_EMPTY_STACK (stack))
+      {
+        cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+        if (cur->refs > 1)
+        {
+          cur->refs--;
+        }
+        else
+        {
+          assert (cur->refs == 1);
+          if (BTOR_IS_VAR_AIG (cur))
+          {
+            delete_aig_node (amgr, cur);
+          }
+          else
+          {
+            assert (BTOR_IS_AND_AIG (cur));
+            BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+            BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+            delete_aig_unique_table_entry (amgr, cur);
+          }
+        }
+      }
+      BTOR_RELEASE_STACK (amgr->mm, stack);
+    }
+  }
+}
+
+BtorAIG *
+btor_var_aig (BtorAIGMgr *amgr)
+{
+  BtorAIG *aig = NULL;
+  assert (amgr != NULL);
+  aig = (BtorAIG *) btor_malloc (amgr->mm, sizeof (BtorAIG));
+  assert (amgr->id < INT_MAX);
+  aig->id                    = amgr->id++;
+  BTOR_LEFT_CHILD_AIG (aig)  = NULL;
+  BTOR_RIGHT_CHILD_AIG (aig) = NULL;
+  aig->refs                  = 1;
+  aig->mark                  = 0;
+  aig->cnf_id                = 0;
+  aig->first_clause_id       = 0;
+  aig->next                  = NULL;
+  return aig;
+}
+
+BtorAIG *
+btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  inc_aig_ref_counter (aig);
+  return BTOR_INVERT_AIG (aig);
+}
+
+BtorAIG *
+btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  BtorAIG **lookup    = NULL;
+  BtorAIG *real_left  = NULL;
+  BtorAIG *real_right = NULL;
+  assert (amgr != NULL);
+  if (left == BTOR_AIG_FALSE || right == BTOR_AIG_FALSE) return BTOR_AIG_FALSE;
+  if (left == BTOR_AIG_TRUE) return inc_aig_ref_counter_and_return (right);
+TRY_AGAIN:
+  if (right == BTOR_AIG_TRUE || (left == right))
+    return inc_aig_ref_counter_and_return (left);
+  if (left == BTOR_INVERT_AIG (right)) return BTOR_AIG_FALSE;
+  real_left  = BTOR_REAL_ADDR_AIG (left);
+  real_right = BTOR_REAL_ADDR_AIG (right);
+  /* 2 level minimization rules for AIGs */
+  /* first rule of contradiction */
+  if (BTOR_IS_AND_AIG (real_left) && !BTOR_IS_INVERTED_AIG (left))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left) == BTOR_INVERT_AIG (right)
+        || BTOR_RIGHT_CHILD_AIG (real_left) == BTOR_INVERT_AIG (right))
+      return BTOR_AIG_FALSE;
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_right) == BTOR_INVERT_AIG (left)
+        || BTOR_RIGHT_CHILD_AIG (real_right) == BTOR_INVERT_AIG (left))
+      return BTOR_AIG_FALSE;
+  }
+  /* second rule of contradiction */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && !BTOR_IS_INVERTED_AIG (left) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left)
+            == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+        || BTOR_LEFT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right))
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
+      return BTOR_AIG_FALSE;
+  }
+  /* first rule of subsumption */
+  if (BTOR_IS_AND_AIG (real_left) && BTOR_IS_INVERTED_AIG (left))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left) == BTOR_INVERT_AIG (right)
+        || BTOR_RIGHT_CHILD_AIG (real_left) == BTOR_INVERT_AIG (right))
+      return inc_aig_ref_counter_and_return (right);
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_right) == BTOR_INVERT_AIG (left)
+        || BTOR_RIGHT_CHILD_AIG (real_right) == BTOR_INVERT_AIG (left))
+      return inc_aig_ref_counter_and_return (left);
+  }
+  /* second rule of subsumption */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && BTOR_IS_INVERTED_AIG (left) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left)
+            == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+        || BTOR_LEFT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right))
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
+      return inc_aig_ref_counter_and_return (right);
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && !BTOR_IS_INVERTED_AIG (left) && BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left)
+            == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+        || BTOR_LEFT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right))
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
+      return inc_aig_ref_counter_and_return (left);
+  }
+  /* rule of resolution */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && BTOR_IS_INVERTED_AIG (left) && BTOR_IS_INVERTED_AIG (right))
+  {
+    if ((BTOR_LEFT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right)
+         && BTOR_RIGHT_CHILD_AIG (real_left)
+                == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)))
+        || (BTOR_LEFT_CHILD_AIG (real_left) == BTOR_RIGHT_CHILD_AIG (real_right)
+            && BTOR_RIGHT_CHILD_AIG (real_left)
+                   == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right))))
+      return inc_aig_ref_counter_and_return (
+          BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left)));
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && BTOR_IS_INVERTED_AIG (left) && BTOR_IS_INVERTED_AIG (right))
+  {
+    if ((BTOR_RIGHT_CHILD_AIG (real_right) == BTOR_RIGHT_CHILD_AIG (real_left)
+         && BTOR_LEFT_CHILD_AIG (real_right)
+                == BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left)))
+        || (BTOR_RIGHT_CHILD_AIG (real_right) == BTOR_LEFT_CHILD_AIG (real_left)
+            && BTOR_LEFT_CHILD_AIG (real_right)
+                   == BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left))))
+      return inc_aig_ref_counter_and_return (
+          BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right)));
+  }
+  /* asymmetric rule of idempotency */
+  if (BTOR_IS_AND_AIG (real_left) && !BTOR_IS_INVERTED_AIG (left))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left) == right
+        || BTOR_RIGHT_CHILD_AIG (real_left) == right)
+      return inc_aig_ref_counter_and_return (left);
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_right) == left
+        || BTOR_RIGHT_CHILD_AIG (real_right) == left)
+      return inc_aig_ref_counter_and_return (right);
+  }
+  /* symmetric rule of idempotency */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && !BTOR_IS_INVERTED_AIG (left) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right)
+        || BTOR_RIGHT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right))
+    {
+      right = BTOR_RIGHT_CHILD_AIG (real_right);
+      goto TRY_AGAIN;
+    }
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_AND_AIG (real_left)
+      && !BTOR_IS_INVERTED_AIG (left) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_left) == BTOR_RIGHT_CHILD_AIG (real_right)
+        || BTOR_RIGHT_CHILD_AIG (real_left)
+               == BTOR_RIGHT_CHILD_AIG (real_right))
+    {
+      right = BTOR_LEFT_CHILD_AIG (real_right);
+      goto TRY_AGAIN;
+    }
+  }
+  /* asymmetric rule of substitution */
+  if (BTOR_IS_AND_AIG (real_left) && BTOR_IS_INVERTED_AIG (left))
+  {
+    if (BTOR_RIGHT_CHILD_AIG (real_left) == right)
+    {
+      left = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left));
+      goto TRY_AGAIN;
+    }
+    if (BTOR_LEFT_CHILD_AIG (real_left) == right)
+    {
+      left = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left));
+      goto TRY_AGAIN;
+    }
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_INVERTED_AIG (right))
+  {
+    if (BTOR_LEFT_CHILD_AIG (real_right) == left)
+    {
+      right = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right));
+      goto TRY_AGAIN;
+    }
+    if (BTOR_RIGHT_CHILD_AIG (real_right) == left)
+    {
+      right = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right));
+      goto TRY_AGAIN;
+    }
+  }
+  /* symmetric rule of substitution */
+  if (BTOR_IS_AND_AIG (real_left) && BTOR_IS_INVERTED_AIG (left)
+      && BTOR_IS_AND_AIG (real_right) && !BTOR_IS_INVERTED_AIG (right))
+  {
+    if ((BTOR_RIGHT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right))
+        || (BTOR_RIGHT_CHILD_AIG (real_left)
+            == BTOR_RIGHT_CHILD_AIG (real_right)))
+    {
+      left = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left));
+      goto TRY_AGAIN;
+    }
+    if ((BTOR_LEFT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right))
+        || (BTOR_LEFT_CHILD_AIG (real_left)
+            == BTOR_RIGHT_CHILD_AIG (real_right)))
+    {
+      left = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left));
+      goto TRY_AGAIN;
+    }
+  }
+  /* use commutativity */
+  if (BTOR_IS_AND_AIG (real_right) && BTOR_IS_INVERTED_AIG (right)
+      && BTOR_IS_AND_AIG (real_left) && !BTOR_IS_INVERTED_AIG (left))
+  {
+    if ((BTOR_LEFT_CHILD_AIG (real_right) == BTOR_RIGHT_CHILD_AIG (real_left))
+        || (BTOR_LEFT_CHILD_AIG (real_right)
+            == BTOR_LEFT_CHILD_AIG (real_left)))
+    {
+      right = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right));
+      goto TRY_AGAIN;
+    }
+    if ((BTOR_RIGHT_CHILD_AIG (real_right) == BTOR_RIGHT_CHILD_AIG (real_left))
+        || (BTOR_RIGHT_CHILD_AIG (real_right)
+            == BTOR_LEFT_CHILD_AIG (real_left)))
+    {
+      right = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right));
+      goto TRY_AGAIN;
+    }
+  }
+  lookup = find_and_aig (amgr, left, right);
+  if (*lookup == NULL)
+  {
+    if (amgr->table.num_elements == amgr->table.size
+        && btor_log_2_util (amgr->table.size) < BTOR_AIG_UNIQUE_TABLE_LIMIT)
+    {
+      enlarge_aig_unique_table (amgr);
+      lookup = find_and_aig (amgr, left, right);
+    }
+    if (real_right->id < real_left->id)
+      *lookup = new_and_aig (amgr, right, left);
+    else
+      *lookup = new_and_aig (amgr, left, right);
+    inc_aig_ref_counter (left);
+    inc_aig_ref_counter (right);
+    assert (amgr->table.num_elements < INT_MAX);
+    amgr->table.num_elements++;
+  }
+  else
+  {
+    inc_aig_ref_counter (*lookup);
+  }
+  return *lookup;
+}
+
+BtorAIG *
+btor_or_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  assert (amgr != NULL);
+  return BTOR_INVERT_AIG (
+      btor_and_aig (amgr, BTOR_INVERT_AIG (left), BTOR_INVERT_AIG (right)));
+}
+
+BtorAIG *
+btor_eq_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  BtorAIG *eq       = NULL;
+  BtorAIG *eq_left  = NULL;
+  BtorAIG *eq_right = NULL;
+  assert (amgr != NULL);
+  eq_left =
+      BTOR_INVERT_AIG (btor_and_aig (amgr, left, BTOR_INVERT_AIG (right)));
+  eq_right =
+      BTOR_INVERT_AIG (btor_and_aig (amgr, BTOR_INVERT_AIG (left), right));
+  eq = btor_and_aig (amgr, eq_left, eq_right);
+  btor_release_aig (amgr, eq_left);
+  btor_release_aig (amgr, eq_right);
+  return eq;
+}
+
+BtorAIG *
+btor_xor_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
+{
+  assert (amgr != NULL);
+  return BTOR_INVERT_AIG (btor_eq_aig (amgr, left, right));
+}
+
+BtorAIG *
+btor_cond_aig (BtorAIGMgr *amgr,
+               BtorAIG *a_cond,
+               BtorAIG *a_if,
+               BtorAIG *a_else)
+{
+  BtorAIG *cond = NULL;
+  BtorAIG *and1 = NULL;
+  BtorAIG *and2 = NULL;
+  assert (amgr != NULL);
+  and1 = btor_and_aig (amgr, a_if, a_cond);
+  and2 = btor_and_aig (amgr, a_else, BTOR_INVERT_AIG (a_cond));
+  cond = btor_or_aig (amgr, and1, and2);
+  btor_release_aig (amgr, and1);
+  btor_release_aig (amgr, and2);
+  return cond;
+}
+
+static void
+analyze_aig (
+    BtorAIGMgr *amgr, BtorAIG *aig, int *max_id, int *num_inputs, int *num_ands)
+{
+  BtorAIGPtrStack stack;
+  BtorAIG *cur = NULL;
+  int max      = 0;
+  int inputs   = 0;
+  int ands     = 0;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  assert (max_id != NULL);
+  assert (num_inputs != NULL);
+  assert (num_ands != NULL);
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (amgr->mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      if (cur->id > max) max = cur->id;
+      if (BTOR_IS_AND_AIG (cur))
+      {
+        ands++;
+        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+      }
+      else
+      {
+        assert (BTOR_IS_VAR_AIG (cur));
+        inputs++;
+      }
+    }
+    else
+    {
+      assert (cur->mark == 1);
+    }
+  }
+  BTOR_RELEASE_STACK (amgr->mm, stack);
+  btor_mark_aig (amgr, aig, 0);
+  *max_id     = max;
+  *num_inputs = inputs;
+  *num_ands   = ands;
+}
+
+static unsigned int
+encode_unsigned_aig_id (int id)
+{
+  return (unsigned int) ((id < 0) ? 1 - 2 * id : 2 * id);
+}
+
+static void
+dump_aig_inputs (BtorAIGMgr *amgr, BtorAIG *aig, FILE *file)
+{
+  BtorAIGPtrStack stack;
+  BtorAIG *cur = NULL;
+  assert (amgr != NULL);
+  assert (file != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (amgr->mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      if (BTOR_IS_AND_AIG (cur))
+      {
+        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+      }
+      else
+      {
+        assert (BTOR_IS_VAR_AIG (cur));
+        fprintf (file, "%u\n", encode_unsigned_aig_id (cur->id));
+      }
+    }
+    else
+    {
+      assert (cur->mark == 1);
+    }
+  }
+  BTOR_RELEASE_STACK (amgr->mm, stack);
+  btor_mark_aig (amgr, aig, 0);
+}
+
+void
+btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig)
+{
+  BtorAIGPtrStack stack;
+  BtorAIG *cur   = NULL;
+  BtorAIG *left  = NULL;
+  BtorAIG *right = NULL;
+  int cur_id     = 0;
+  int left_id    = 0;
+  int right_id   = 0;
+  int max        = 0;
+  int inputs     = 0;
+  int ands       = 0;
+  assert (amgr != NULL);
+  assert (output != NULL);
+  if (aig == BTOR_AIG_TRUE)
+  {
+    fprintf (output, "aag 0 0 0 1 0\n1\n");
+  }
+  else if (aig == BTOR_AIG_FALSE)
+  {
+    fprintf (output, "aag 0 0 0 1 0\n0\n");
+  }
+  else if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
+  {
+    cur_id = BTOR_REAL_ADDR_AIG (aig)->id;
+    fprintf (output, "aag %d 1 0 1 0\n", cur_id);
+    cur_id <<= 1;
+    assert (BTOR_REAL_ADDR_AIG (aig)->id == cur_id / 2);
+    fprintf (output, "%d\n", cur_id);
+    assert (cur_id < INT_MAX);
+    if (BTOR_IS_INVERTED_AIG (aig))
+      fprintf (output, "%d\n", cur_id + 1);
+    else
+      fprintf (output, "%d\n", cur_id);
+  }
+  else
+  {
+    analyze_aig (amgr, aig, &max, &inputs, &ands);
+    cur = BTOR_REAL_ADDR_AIG (aig);
+    fprintf (output, "aag %d %d 0 1 %d\n", max, inputs, ands);
+    dump_aig_inputs (amgr, aig, output);
+    if (BTOR_IS_INVERTED_AIG (aig))
+      fprintf (output, "%u\n", encode_unsigned_aig_id (-cur->id));
+    else
+      fprintf (output, "%u\n", encode_unsigned_aig_id (cur->id));
+    BTOR_INIT_STACK (stack);
+    BTOR_PUSH_STACK (amgr->mm, stack, aig);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+      assert (BTOR_IS_AND_AIG (cur));
+      if (cur->mark == 0)
+      {
+        cur->mark = 1;
+        cur_id    = cur->id;
+        left      = BTOR_LEFT_CHILD_AIG (cur);
+        right     = BTOR_RIGHT_CHILD_AIG (cur);
+        if (BTOR_IS_INVERTED_AIG (left))
+          left_id = -BTOR_REAL_ADDR_AIG (left)->id;
+        else
+          left_id = left->id;
+        if (BTOR_IS_INVERTED_AIG (right))
+          right_id = -BTOR_REAL_ADDR_AIG (right)->id;
+        else
+          right_id = right->id;
+        fprintf (output,
+                 "%u %u %u\n",
+                 encode_unsigned_aig_id (cur_id),
+                 encode_unsigned_aig_id (left_id),
+                 encode_unsigned_aig_id (right_id));
+        if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
+          BTOR_PUSH_STACK (amgr->mm, stack, right);
+        if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (left)))
+          BTOR_PUSH_STACK (amgr->mm, stack, left);
+      }
+    }
+    BTOR_RELEASE_STACK (amgr->mm, stack);
+    btor_mark_aig (amgr, aig, 0);
+  }
+}
+
+BtorAIGMgr *
+btor_new_aig_mgr (BtorMemMgr *mm)
+{
+  BtorAIGMgr *amgr = NULL;
+  assert (mm != NULL);
+  amgr     = (BtorAIGMgr *) btor_malloc (mm, sizeof (BtorAIGMgr));
+  amgr->mm = mm;
+  BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
+  amgr->id   = 1;
+  amgr->cmgr = btor_new_cnf_mgr (mm);
+  return amgr;
+}
+
+void
+btor_delete_aig_mgr (BtorAIGMgr *amgr)
+{
+  assert (amgr != NULL);
+  assert (amgr->table.num_elements == 0);
+  BTOR_RELEASE_AIG_UNIQUE_TABLE (amgr->mm, amgr->table);
+  btor_delete_cnf_mgr (amgr->cmgr);
+  btor_free (amgr->mm, amgr, sizeof (BtorAIGMgr));
+}
+
+static void
+generate_cnf_ids (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  BtorAIGPtrStack stack;
+  BtorCNFMgr *cmgr = NULL;
+  BtorAIG *cur     = NULL;
+  BtorMemMgr *mm   = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  cmgr = amgr->cmgr;
+  mm   = amgr->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (cur->cnf_id == 0)
+    {
+      cur->cnf_id = btor_next_cnf_id_cnf_mgr (cmgr);
+      if (BTOR_IS_AND_AIG (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
+void
+btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  BtorAIGPtrStack stack;
+  BtorMemMgr *mm = NULL;
+  int x          = 0;
+  int y          = 0;
+  int z          = 0;
+  BtorAIG *cur   = NULL;
+  BtorAIG *left  = NULL;
+  BtorAIG *right = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  generate_cnf_ids (amgr, aig);
+  if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
+  {
+    if (BTOR_IS_INVERTED_AIG (aig))
+      btor_add_sat (-BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+    else
+      btor_add_sat (aig->cnf_id);
+    btor_add_sat (0);
+  }
+  else
+  {
+    mm = amgr->mm;
+    BTOR_INIT_STACK (stack);
+    BTOR_PUSH_STACK (mm, stack, aig);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+      assert (BTOR_IS_AND_AIG (cur));
+      if (cur->first_clause_id == 0)
+      {
+        left  = BTOR_LEFT_CHILD_AIG (cur);
+        right = BTOR_RIGHT_CHILD_AIG (cur);
+        x     = cur->cnf_id;
+        if (BTOR_IS_INVERTED_AIG (left))
+          y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
+        else
+          y = left->cnf_id;
+        if (BTOR_IS_INVERTED_AIG (right))
+          z = -BTOR_REAL_ADDR_AIG (right)->cnf_id;
+        else
+          z = right->cnf_id;
+        (void) btor_add_sat (-x);
+        (void) btor_add_sat (y);
+        /* TODO:
+           cur->first_clause_id = btor_add_sat (0);
+           instead of
+           cur->first_clause_id = 1;
+         */
+        cur->first_clause_id = 1;
+        (void) btor_add_sat (0);
+        (void) btor_add_sat (-x);
+        (void) btor_add_sat (z);
+        (void) btor_add_sat (0);
+        (void) btor_add_sat (-y);
+        (void) btor_add_sat (-z);
+        (void) btor_add_sat (x);
+        (void) btor_add_sat (0);
+        if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
+          BTOR_PUSH_STACK (mm, stack, right);
+        if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (left)))
+          BTOR_PUSH_STACK (mm, stack, left);
+      }
+    }
+    BTOR_RELEASE_STACK (mm, stack);
+  }
+  if (BTOR_IS_INVERTED_AIG (aig))
+    btor_assume_sat (-BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+  else
+    btor_assume_sat (aig->cnf_id);
+}
+
+int
+btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+  if (aig == BTOR_AIG_TRUE) return BTOR_SAT;
+  btor_aig_to_sat (amgr, aig);
+  return btor_sat_sat (INT_MAX);
+}
+
+int
+btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  assert (!BTOR_IS_INVERTED_AIG (aig));
+  assert (BTOR_IS_VAR_AIG (aig));
+  if (aig->cnf_id == 0) return 0;
+  return btor_deref_sat (aig->cnf_id);
+}
+
+/*------------------------------------------------------------------------*/
+/* END OF IMPLEMENTATION                                                  */
+/*------------------------------------------------------------------------*/

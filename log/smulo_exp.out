@@ -1,0 +1,47 @@
+2 3 var
+4 1 slice 2 2 2
+10 1 slice 4 0 0
+6 2 const 11
+5 2 const 00
+11 2 cond 10 6 5
+12 3 concat 11 4
+16 3 and -2 -12
+17 3 and 2 12
+18 3 and -16 -17
+19 1 slice 18 1 1
+1 3 var
+3 1 slice 1 2 2
+7 1 slice 3 0 0
+8 2 cond 7 6 5
+9 3 concat 8 3
+13 3 and -1 -9
+14 3 and 1 9
+15 3 and -13 -14
+20 1 slice 15 1 1
+21 1 and 19 20
+23 1 const 1
+22 1 const 0
+24 1 cond 3 23 22
+25 4 concat 24 1
+28 1 slice 25 3 3
+26 1 cond 4 23 22
+27 4 concat 26 2
+29 1 slice 27 3 3
+30 1 and -28 -29
+31 1 and 28 29
+32 1 and -30 -31
+33 4 const 0001
+34 4 add -25 33
+36 4 cond 28 34 25
+35 4 add -27 33
+37 4 cond 29 35 27
+38 4 umul 36 37
+39 4 add 33 -38
+40 4 cond 32 39 38
+41 1 slice 40 3 3
+42 1 slice 40 2 2
+43 1 and -41 -42
+44 1 and 41 42
+45 1 and -43 -44
+46 1 and -21 -45
+47 1 root -46

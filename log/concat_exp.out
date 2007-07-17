@@ -1,0 +1,4 @@
+1 32 var
+2 32 var
+3 64 concat 1 2
+4 64 root 3

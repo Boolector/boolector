@@ -1,0 +1,8 @@
+1 32 var
+2 5 var
+3 32 sll 1 2
+4 5 const 00001
+5 5 add -2 4
+6 32 srl 1 5
+7 32 and -3 -6
+8 32 root -7

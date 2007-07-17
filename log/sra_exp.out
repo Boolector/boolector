@@ -1,0 +1,7 @@
+1 32 var
+3 1 slice 1 31 31
+2 5 var
+5 32 srl -1 2
+4 32 srl 1 2
+6 32 cond 3 -5 4
+7 32 root 6

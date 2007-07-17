@@ -1,0 +1,5 @@
+1 4 var
+2 4 umul 1 1
+3 4 constd 13
+4 1 eq 2 3
+5 1 root 4

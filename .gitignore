@@ -1,0 +1,8 @@
+*.gcda
+*.gcno
+*.gcov
+*.tmp
+makefile
+boolector
+test
+dependencies

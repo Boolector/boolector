@@ -1,0 +1,71 @@
+#!/bin/sh
+
+debug=no
+cov=no
+o1=no
+o2=yes
+o3=no
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -g) debug=yes; cov=no; o1=no; o2=no; o3=no;;
+    -cov) debug=no; cov=yes; o1=no; o2=no; o3=no;;
+    -O1) debug=no; cov=no; o1=yes; o2=no; o3=no;;
+    -O2) debug=no; cov=no; o1=no; o2=yes; o3=no;;
+    -O3) debug=no; cov=no; o1=no; o2=no; o3=yes;;
+    -no-opt) o1=no; o2=no; o3=no;;
+    *) cat <<EOF
+*** usage: ./configure [-g][-cov][-O1][-O2][-O3][-no-opt]
+EOF
+exit 1
+;;
+  esac
+shift
+done
+
+echo "debug ... $debug"
+echo "coverage ... $cov"
+echo "O1 ... $o1"
+echo "O2 ... $o2"
+echo "O3 ... $o3"
+
+echo -n "cc ..."
+[ "X$CC" = X ] && CC=gcc
+echo " $CC"
+
+echo -n "cflags ..."
+if [ X"$CFLAGS" = X ]; then
+  CFLAGS=""
+  case X"$CC" in
+    Xgcc*)
+      CFLAGS="$CFLAGS -W -Wall -Wextra"
+      if [ $debug = yes ]; then
+        CFLAGS="$CFLAGS -g3 -ggdb"
+      else
+	CFLAGS="$CFLAGS -DNDEBUG"
+        if [ $cov = yes ]; then
+          CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+	elif [ $o3 = yes ]; then
+	  CFLAGS="$CFLAGS -O3"
+	elif [ $o2 = yes ]; then
+	  CFLAGS="$CFLAGS -O2"
+        elif [ $o1 = yes ]; then
+	  CFLAGS="$CFLAGS -O1"
+	fi
+      fi
+      ;;
+    *)
+      if [ $debug = yes ]; then
+        CFLAGS="$CFLAGS -g"
+      else
+        CFLAGS="$CFLAGS -O"
+      fi
+      ;;
+  esac
+fi
+echo " $CFLAGS"
+echo -n "makefile ..."
+rm -f makefile
+sed -e "s,@CC@,$CC," -e "s,@CFLAGS@,$CFLAGS," makefile.in > makefile
+echo " done"

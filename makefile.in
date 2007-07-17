@@ -1,0 +1,35 @@
+SHELL=/bin/sh
+VERSION=$(shell cat VERSION)
+LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c)))
+TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
+CC=@CC@
+CFLAGS=@CFLAGS@ -DBTOR_VERSION="\"$(VERSION)\"" 
+
+all: libboolector.a boolector test
+
+-include dependencies
+
+dependencies: *.c *.h
+	rm -f dependencies
+	$(CC) $(CFLAGS) -MM *.c > $@
+
+boolector: boolector.o libboolector.a ../picosat/picosat.o
+	$(CC) $(CFLAGS) -o boolector boolector.o ../picosat/picosat.o -L. -lboolector
+
+test: $(TESTOBJ) ../picosat/picosat.o libboolector.a 
+	$(CC) $(CFLAGS) -o test $(TESTOBJ) ../picosat/picosat.o -L. -lboolector
+
+libboolector.a: $(LIBOBJ)
+	ar rc $@ $(LIBOBJ)
+	ranlib $@
+
+clean:
+	rm -f test boolector
+	rm -f *.o *.a
+	rm -f *.gcda *.gcno *.gcov 
+	rm -f log/*.log
+	rm -f dependencies
+	rm -f *.tmp
+	rm -f makefile
+
+.PHONY: all clean
