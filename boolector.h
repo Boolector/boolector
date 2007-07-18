@@ -19,7 +19,9 @@ typedef struct BtorExpMgr BtorExpMgr;
 /* BtorExpMgr                                                             */
 /*------------------------------------------------------------------------*/
 
-BtorExpMgr *btor_new_exp_mgr (int rewrite_leve, int trace, FILE *trace_file);
+BtorExpMgr *btor_new_exp_mgr (int rewrite_leve,
+                              int dump_trace,
+                              FILE *trace_file);
 
 void btor_delete_exp_mgr (BtorExpMgr *emgr);
 

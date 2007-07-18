@@ -50,7 +50,7 @@ struct BtorExpMgr
   BtorAIGVecMgr *avmgr;
   int id;
   int rewrite_level;
-  int trace;
+  int dump_trace;
   FILE *trace_file;
 };
 
@@ -886,7 +886,7 @@ rewrite_exp (BtorExpMgr *emgr,
     assert (e1 == NULL);
     assert (e2 == NULL);
     assert (kind == BTOR_SLICE_EXP);
-    if (emgr->trace > 0)
+    if (emgr->dump_trace)
     {
       /* TODO */
     }
@@ -2344,13 +2344,12 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
 }
 
 BtorExpMgr *
-btor_new_exp_mgr (int rewrite_level, int trace, FILE *trace_file)
+btor_new_exp_mgr (int rewrite_level, int dump_trace, FILE *trace_file)
 {
   BtorMemMgr *mm   = btor_new_mem_mgr ();
   BtorExpMgr *emgr = NULL;
   assert (mm != NULL);
   assert (sizeof (int) == 4);
-  assert (trace >= 0);
   assert (rewrite_level >= 0);
   assert (rewrite_level <= 2);
   emgr     = btor_malloc (mm, sizeof (BtorExpMgr));
@@ -2362,7 +2361,7 @@ btor_new_exp_mgr (int rewrite_level, int trace, FILE *trace_file)
   emgr->avmgr         = btor_new_aigvec_mgr (emgr->mm);
   emgr->id            = 1;
   emgr->rewrite_level = rewrite_level;
-  emgr->trace         = trace;
+  emgr->dump_trace    = dump_trace;
   emgr->trace_file    = trace_file;
   return emgr;
 }
