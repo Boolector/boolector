@@ -63,6 +63,52 @@ print_msg_va_args (char *msg, ...)
   }
 }
 
+static void
+handle_dump_file (char **argv,
+                  int argc,
+                  int *i,
+                  int *err,
+                  int *dump_file,
+                  int *close_file,
+                  const char *file_kind,
+                  FILE **file)
+{
+  assert (argv != NULL);
+  assert (argc > 0);
+  assert (i != NULL);
+  assert (err != NULL);
+  assert (dump_file != NULL);
+  assert (close_file != NULL);
+  assert (file_kind != NULL);
+  assert (file != NULL);
+  *dump_file = 1;
+  if (*i < argc - 1)
+  {
+    if (*close_file)
+    {
+      assert (*file != NULL);
+      fclose (*file);
+      *close_file = 0;
+      print_msg_va_args ("boolector: multiple %s files\n", file_kind);
+      *err = 1;
+    }
+    else
+    {
+      (*i)++;
+      *file = fopen (argv[*i], "w");
+      if (*file == NULL)
+      {
+        print_msg_va_args ("boolector: can not create '%s'\n", argv[*i]);
+        *err = 1;
+      }
+      else
+      {
+        *close_file = 1;
+      }
+    }
+  }
+}
+
 int
 btor_main (int argc, char **argv)
 {
@@ -96,7 +142,7 @@ btor_main (int argc, char **argv)
   BtorAIG *aig                = NULL;
   BtorFtorResult ftor_res;
   BtorFtor *ftor    = NULL;
-  int trace         = 0;
+  int dump_trace    = 0;
   int rewrite_level = 2;
 
   g_quiet       = 0;
@@ -116,111 +162,35 @@ btor_main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-de") || !strcmp (argv[i], "--dump-exp"))
     {
-      dump_exp = 1;
-      if (i < argc - 1)
-      {
-        if (close_exp_file)
-        {
-          fclose (exp_file);
-          close_exp_file = 0;
-          print_msg_va_args ("boolector: multiple expression files\n");
-          err = 1;
-        }
-        else
-        {
-          exp_file = fopen (argv[++i], "w");
-          if (exp_file == NULL)
-          {
-            print_msg_va_args ("boolector: can not create '%s'\n", argv[i]);
-            err = 1;
-          }
-          else
-          {
-            close_exp_file = 1;
-          }
-        }
-      }
+      handle_dump_file (argv,
+                        argc,
+                        &i,
+                        &err,
+                        &dump_exp,
+                        &close_exp_file,
+                        "expression",
+                        &exp_file);
     }
     else if (!strcmp (argv[i], "-da") || !strcmp (argv[i], "--dump-aig"))
     {
-      dump_aig = 1;
-      if (i < argc - 1)
-      {
-        if (close_aig_file)
-        {
-          fclose (aig_file);
-          close_aig_file = 0;
-          print_msg_va_args ("boolector: multiple AIG files\n");
-          err = 1;
-        }
-        else
-        {
-          aig_file = fopen (argv[++i], "w");
-          if (aig_file == NULL)
-          {
-            print_msg_va_args ("boolector: can not create '%s'\n", argv[i]);
-            err = 1;
-          }
-          else
-          {
-            close_aig_file = 1;
-          }
-        }
-      }
+      handle_dump_file (
+          argv, argc, &i, &err, &dump_aig, &close_aig_file, "AIG", &aig_file);
     }
     else if (!strcmp (argv[i], "-dc") || !strcmp (argv[i], "--dump-cnf"))
     {
-      dump_cnf = 1;
-      if (i < argc - 1)
-      {
-        if (close_cnf_file)
-        {
-          fclose (cnf_file);
-          close_cnf_file = 0;
-          print_msg_va_args ("boolector: multiple CNF files\n");
-          err = 1;
-        }
-        else
-        {
-          cnf_file = fopen (argv[++i], "w");
-          if (cnf_file == NULL)
-          {
-            print_msg_va_args ("boolector: can not create '%s'\n", argv[i]);
-            err = 1;
-          }
-          else
-          {
-            close_cnf_file = 1;
-          }
-        }
-      }
+      handle_dump_file (
+          argv, argc, &i, &err, &dump_cnf, &close_cnf_file, "CNF", &cnf_file);
     }
     else if (!strcmp (argv[i], "-t") || !strcmp (argv[i], "--trace"))
     {
-      trace = 1;
-      if (i < argc - 1)
-      {
-        if (close_trace_file)
-        {
-          fclose (trace_file);
-          close_trace_file = 0;
-          print_msg_va_args ("boolector: multiple trace files\n");
-          err = 1;
-        }
-        else
-        {
-          trace_file = fopen (argv[++i], "w");
-          if (trace_file == NULL)
-          {
-            print_msg_va_args ("boolector: can not create '%s'\n", argv[i]);
-            err = 1;
-          }
-          else
-          {
-            close_trace_file = 1;
-          }
-        }
-      }
+      handle_dump_file (argv,
+                        argc,
+                        &i,
+                        &err,
+                        &dump_trace,
+                        &close_trace_file,
+                        "trace",
+                        &trace_file);
     }
     else if ((strstr (argv[i], "-rwl") == argv[i]
               && strlen (argv[i]) == strlen ("-rlw") + 1)
@@ -301,7 +271,7 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    emgr = btor_new_exp_mgr (rewrite_level, trace, trace_file);
+    emgr = btor_new_exp_mgr (rewrite_level, dump_trace, trace_file);
     ftor = btor_new_ftor (emgr);
 
     parse_error =
