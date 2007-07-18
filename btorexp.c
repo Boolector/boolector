@@ -823,23 +823,82 @@ btor_array_exp (BtorExpMgr *emgr,
 }
 
 static BtorExp *
-rewrite (
-    BtorExpMgr *emgr, BtorExp *original, BtorExp *e0, BtorExp *e1, BtorExp *e2)
+slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
 {
-  BtorExp *result  = NULL;
-  BtorExp *real_e0 = NULL;
-  BtorExp *real_e1 = NULL;
-  BtorExp *real_e2 = NULL;
-  char *char_const = NULL;
-  BtorExpKind kind;
+  BtorExp **lookup = NULL;
+  BtorExp *node    = NULL;
   assert (emgr != NULL);
-  kind = BTOR_REAL_ADDR_EXP (original)->kind;
+  assert (exp != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (lower >= 0);
+  assert (upper >= lower);
+  assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
+  lookup = find_slice_exp (emgr, exp, upper, lower);
+  if (*lookup == NULL)
+  {
+    if (emgr->table.num_elements == emgr->table.size
+        && btor_log_2_util (emgr->table.size) < BTOR_EXP_UNIQUE_TABLE_LIMIT)
+    {
+      enlarge_exp_unique_table (emgr);
+      lookup = find_slice_exp (emgr, exp, upper, lower);
+    }
+    *lookup = new_slice_exp_node (emgr, exp, upper, lower);
+    inc_exp_ref_counter (exp);
+    assert (emgr->table.num_elements < INT_MAX);
+    emgr->table.num_elements++;
+    node = *lookup;
+  }
+  else
+  {
+    inc_exp_ref_counter (*lookup);
+  }
+  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  return *lookup;
+}
+
+static BtorExp *
+rewrite (BtorExpMgr *emgr,
+         BtorExpKind kind,
+         BtorExp *e0,
+         BtorExp *e1,
+         BtorExp *e2,
+         int len,
+         int upper,
+         int lower)
+{
+  BtorExp *result   = NULL;
+  BtorExp *real_e0  = NULL;
+  BtorExp *real_e1  = NULL;
+  BtorExp *real_e2  = NULL;
+  BtorExp *original = NULL;
+  char *char_const  = NULL;
+  assert (emgr != NULL);
+  assert (len > 0);
+  assert (lower >= 0);
+  assert (lower <= upper);
   if (BTOR_IS_UNARY_EXP_KIND (kind))
   {
     assert (e0 != NULL);
     assert (e1 == NULL);
     assert (e2 == NULL);
-    real_e0 = BTOR_REAL_ADDR_EXP (e0);
+    assert (kind == BTOR_SLICE_EXP);
+    if (emgr->trace > 0)
+    {
+      /* TODO */
+    }
+    else
+    {
+      real_e0 = BTOR_REAL_ADDR_EXP (e0);
+      if (upper - lower + 1 == real_e0->len)
+      {
+        inc_exp_ref_counter (e0);
+        result = e0;
+      }
+      else
+      {
+        result = slice_exp (emgr, e0, upper, lower);
+      }
+    }
   }
   else if (BTOR_IS_BINARY_EXP_KIND (kind))
   {
@@ -972,35 +1031,14 @@ btor_redand_exp (BtorExpMgr *emgr, BtorExp *exp)
 BtorExp *
 btor_slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
 {
-  BtorExp **lookup = NULL;
-  BtorExp *node    = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (lower >= 0);
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
-  lookup = find_slice_exp (emgr, exp, upper, lower);
-  if (*lookup == NULL)
-  {
-    if (emgr->table.num_elements == emgr->table.size
-        && btor_log_2_util (emgr->table.size) < BTOR_EXP_UNIQUE_TABLE_LIMIT)
-    {
-      enlarge_exp_unique_table (emgr);
-      lookup = find_slice_exp (emgr, exp, upper, lower);
-    }
-    *lookup = new_slice_exp_node (emgr, exp, upper, lower);
-    inc_exp_ref_counter (exp);
-    assert (emgr->table.num_elements < INT_MAX);
-    emgr->table.num_elements++;
-    node = *lookup;
-  }
-  else
-  {
-    inc_exp_ref_counter (*lookup);
-  }
-  assert (!BTOR_IS_INVERTED_EXP (*lookup));
-  return *lookup;
+  return rewrite (
+      emgr, BTOR_SLICE_EXP, exp, NULL, NULL, upper - lower + 1, upper, lower);
 }
 
 BtorExp *
@@ -2303,6 +2341,7 @@ btor_new_exp_mgr (int trace)
   BtorExpMgr *emgr = NULL;
   assert (mm != NULL);
   assert (sizeof (int) == 4);
+  assert (trace >= 0);
   emgr     = btor_malloc (mm, sizeof (BtorExpMgr));
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
