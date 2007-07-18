@@ -3,6 +3,7 @@
 *.gcov
 *.tmp
 *.o
+*.a
 makefile
 boolector
 test
