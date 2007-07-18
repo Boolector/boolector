@@ -17,7 +17,7 @@ init_exp_tests (void)
 static void
 test_new_delete_exp_mgr (void)
 {
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   btor_delete_exp_mgr (emgr);
 }
 
@@ -25,7 +25,7 @@ static void
 test_const_exp (void)
 {
   FILE *fout       = fopen ("log/const_exp.log", "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_const_exp (emgr, "00010011");
   BtorExp *exp2    = btor_const_exp (emgr, "00010011");
   BtorExp *exp3    = btor_const_exp (emgr, "0000000000010011");
@@ -46,7 +46,7 @@ static void
 test_var_exp (void)
 {
   FILE *fout       = fopen ("log/var_exp.log", "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 8, "v1");
   BtorExp *exp2    = btor_copy_exp (emgr, exp1);
   assert (exp1 == exp2);
@@ -63,7 +63,7 @@ static void
 test_array_exp (void)
 {
   FILE *fout       = fopen ("log/array_exp.log", "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_array_exp (emgr, 32, 8, "a1");
   BtorExp *exp2    = btor_copy_exp (emgr, exp1);
   BtorExp *exp3    = btor_array_exp (emgr, 32, 8, "a2");
@@ -87,7 +87,7 @@ static void
 unary_exp_test (BtorExp *(*func) (BtorExpMgr *, BtorExp *), char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 8, "v1");
   BtorExp *exp2    = func (emgr, exp1);
   BtorExp *exp3    = func (emgr, exp1);
@@ -151,7 +151,7 @@ static void
 test_slice_exp (void)
 {
   FILE *fout       = fopen ("log/slice_exp.log", "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 32, "v1");
   BtorExp *exp2    = btor_slice_exp (emgr, exp1, 31, 30);
   BtorExp *exp3    = btor_slice_exp (emgr, exp1, 31, 30);
@@ -168,7 +168,7 @@ static void
 ext_exp_test (BtorExp *(*func) (BtorExpMgr *, BtorExp *, int), char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 32, "v1");
   BtorExp *exp2    = func (emgr, exp1, 32);
   BtorExp *exp3    = func (emgr, exp1, 32);
@@ -198,7 +198,7 @@ binary_commutative_exp_test (
     BtorExp *(*func) (BtorExpMgr *, BtorExp *, BtorExp *), char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 8, "v1");
   BtorExp *exp2    = btor_var_exp (emgr, 8, "v2");
   BtorExp *exp3    = func (emgr, exp1, exp2);
@@ -302,7 +302,7 @@ binary_non_commutative_exp_test (
     BtorExp *(*func) (BtorExpMgr *, BtorExp *, BtorExp *), char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 32, "v1");
   BtorExp *exp2    = btor_var_exp (emgr, 32, "v2");
   BtorExp *exp3    = func (emgr, exp1, exp2);
@@ -445,7 +445,7 @@ static void
 mulo_exp_test (BtorExp *(*func) (BtorExpMgr *, BtorExp *, BtorExp *), char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 3, "v1");
   BtorExp *exp2    = btor_var_exp (emgr, 3, "v2");
   BtorExp *exp3    = func (emgr, exp1, exp2);
@@ -487,7 +487,7 @@ shift_exp_test (BtorExp *(*func) (BtorExpMgr *, BtorExp *, BtorExp *),
                 char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 32, "v1");
   BtorExp *exp2    = btor_var_exp (emgr, 5, "v2");
   BtorExp *exp3    = func (emgr, exp1, exp2);
@@ -540,7 +540,7 @@ static void
 test_acc_exp (void)
 {
   FILE *fout       = fopen ("log/acc_exp.log", "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_array_exp (emgr, 32, 8, "a1");
   BtorExp *exp2    = btor_var_exp (emgr, 8, "v1");
   BtorExp *exp3    = btor_acc_exp (emgr, exp1, exp2);
@@ -564,7 +564,7 @@ static void
 test_cond_exp (void)
 {
   FILE *fout       = fopen ("log/cond_exp.log", "w");
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 1, "v1");
   BtorExp *exp2    = btor_var_exp (emgr, 32, "v2");
   BtorExp *exp3    = btor_const_exp (emgr, "00110111001101010001010100110100");
@@ -593,7 +593,7 @@ test_cond_exp (void)
 static void
 test_exp_to_aig (void)
 {
-  BtorExpMgr *emgr = btor_new_exp_mgr ();
+  BtorExpMgr *emgr = btor_new_exp_mgr (0);
   BtorExp *exp1    = btor_var_exp (emgr, 1, "v1");
   BtorExp *exp2    = btor_var_exp (emgr, 32, "v2");
   BtorExp *exp3    = btor_var_exp (emgr, 32, "v3");

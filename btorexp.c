@@ -49,6 +49,7 @@ struct BtorExpMgr
   BtorExpPtrStack arrays;
   BtorAIGVecMgr *avmgr;
   int id;
+  int trace;
 };
 
 /*------------------------------------------------------------------------*/
@@ -2296,7 +2297,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
 }
 
 BtorExpMgr *
-btor_new_exp_mgr (void)
+btor_new_exp_mgr (int trace)
 {
   BtorMemMgr *mm   = btor_new_mem_mgr ();
   BtorExpMgr *emgr = NULL;
@@ -2310,6 +2311,7 @@ btor_new_exp_mgr (void)
   BTOR_INIT_STACK (emgr->arrays);
   emgr->avmgr = btor_new_aigvec_mgr (emgr->mm);
   emgr->id    = 1;
+  emgr->trace = trace;
   return emgr;
 }
 

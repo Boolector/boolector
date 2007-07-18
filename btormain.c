@@ -96,6 +96,7 @@ btor_main (int argc, char **argv)
   BtorAIG *aig                 = NULL;
   BtorFtorResult ftor_res;
   BtorFtor *ftor = NULL;
+  int trace      = 0;
 
   g_quiet       = 0;
   g_output_file = stdout;
@@ -263,7 +264,7 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    emgr = btor_new_exp_mgr ();
+    emgr = btor_new_exp_mgr (trace);
     ftor = btor_new_ftor (emgr);
 
     parse_error =

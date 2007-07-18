@@ -19,7 +19,7 @@ typedef struct BtorExpMgr BtorExpMgr;
 /* BtorExpMgr                                                             */
 /*------------------------------------------------------------------------*/
 
-BtorExpMgr *btor_new_exp_mgr (void);
+BtorExpMgr *btor_new_exp_mgr (int trace);
 
 void btor_delete_exp_mgr (BtorExpMgr *emgr);
 
