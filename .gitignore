@@ -2,6 +2,7 @@
 *.gcno
 *.gcov
 *.tmp
+*.o
 makefile
 boolector
 test
