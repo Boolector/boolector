@@ -95,7 +95,7 @@ ones_string (BtorExpMgr *emgr, int len)
 /*------------------------------------------------------------------------*/
 
 static void
-connect_child (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
+connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 {
   BtorExp *real_parent   = NULL;
   BtorExp *real_child    = NULL;
@@ -137,7 +137,7 @@ connect_child (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   (BTOR_REAL_ADDR_EXP (exp)->prev_parent[BTOR_GET_TAG_EXP (exp)])
 
 static void
-disconnect_child (BtorExpMgr *emgr, BtorExp *parent, int pos)
+disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
 {
   BtorExp *real_parent       = NULL;
   BtorExp *first_parent      = NULL;
@@ -292,7 +292,7 @@ new_slice_exp_node (BtorExpMgr *emgr, BtorExp *e0, int upper, int lower)
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
-  connect_child (emgr, exp, e0, 0);
+  connect_child_exp (emgr, exp, e0, 0);
   return exp;
 }
 
@@ -312,8 +312,8 @@ new_binary_exp_node (
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
-  connect_child (emgr, exp, e0, 0);
-  connect_child (emgr, exp, e1, 1);
+  connect_child_exp (emgr, exp, e0, 0);
+  connect_child_exp (emgr, exp, e1, 1);
   return exp;
 }
 
@@ -338,9 +338,9 @@ new_ternary_exp_node (BtorExpMgr *emgr,
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
-  connect_child (emgr, exp, e0, 0);
-  connect_child (emgr, exp, e1, 1);
-  connect_child (emgr, exp, e2, 2);
+  connect_child_exp (emgr, exp, e0, 0);
+  connect_child_exp (emgr, exp, e1, 1);
+  connect_child_exp (emgr, exp, e2, 2);
   return exp;
 }
 
@@ -377,19 +377,19 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   }
   else if (BTOR_IS_UNARY_EXP (exp))
   {
-    disconnect_child (emgr, exp, 0);
+    disconnect_child_exp (emgr, exp, 0);
   }
   else if (BTOR_IS_BINARY_EXP (exp))
   {
-    disconnect_child (emgr, exp, 0);
-    disconnect_child (emgr, exp, 1);
+    disconnect_child_exp (emgr, exp, 0);
+    disconnect_child_exp (emgr, exp, 1);
   }
   else
   {
     assert (BTOR_IS_TERNARY_EXP (exp));
-    disconnect_child (emgr, exp, 0);
-    disconnect_child (emgr, exp, 1);
-    disconnect_child (emgr, exp, 2);
+    disconnect_child_exp (emgr, exp, 0);
+    disconnect_child_exp (emgr, exp, 1);
+    disconnect_child_exp (emgr, exp, 2);
   }
   if (exp->av != NULL)
   {
@@ -857,14 +857,14 @@ slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
 }
 
 static BtorExp *
-rewrite (BtorExpMgr *emgr,
-         BtorExpKind kind,
-         BtorExp *e0,
-         BtorExp *e1,
-         BtorExp *e2,
-         int len,
-         int upper,
-         int lower)
+rewrite_exp (BtorExpMgr *emgr,
+             BtorExpKind kind,
+             BtorExp *e0,
+             BtorExp *e1,
+             BtorExp *e2,
+             int len,
+             int upper,
+             int lower)
 {
   BtorExp *result   = NULL;
   BtorExp *real_e0  = NULL;
@@ -1037,7 +1037,7 @@ btor_slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
   assert (lower >= 0);
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
-  return rewrite (
+  return rewrite_exp (
       emgr, BTOR_SLICE_EXP, exp, NULL, NULL, upper - lower + 1, upper, lower);
 }
 
