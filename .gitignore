@@ -4,6 +4,7 @@
 *.tmp
 *.o
 *.a
+*.baf
 makefile
 boolector
 test
