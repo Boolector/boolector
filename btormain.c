@@ -15,15 +15,17 @@ static const char *g_usage =
     "\n"
     "where <option> is one of the following:"
     "\n"
-    "  -h|--help               print usage information and exit\n"
-    "  -v|--verbose            increase verbosity\n"
-    "  -V|--version            print version and exit\n"
-    "  -de|--dump-exp <file>   dump expression in BAF\n"
-    "  -da|--dump-aig <file>   dump AIG in AIGER\n"
-    "  -dc|--dump-cnf <file>   dump CNF in DIMACS\n"
-    "  -o <output>             set output file\n"
-    "  -q|--quiet              do not print any output\n"
-    "  -c|--credits            print credits\n";
+    "  -h|--help                     print usage information and exit\n"
+    "  -v|--verbose                  increase verbosity\n"
+    "  -V|--version                  print version and exit\n"
+    "  -de|--dump-exp <file>         dump expression in BAF\n"
+    "  -da|--dump-aig <file>         dump AIG in AIGER\n"
+    "  -dc|--dump-cnf <file>         dump CNF in DIMACS\n"
+    "  -o|--output <file>            set output file\n"
+    "  -q|--quiet                    do not print any output\n"
+    "  -c|--credits                  print credits\n"
+    "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
+    "  -t|--trace <file>             set trace file\n";
 
 static const char *g_credits =
     "**************************\n"
@@ -64,39 +66,38 @@ print_msg_va_args (char *msg, ...)
 int
 btor_main (int argc, char **argv)
 {
-  int sat_result               = 0;
-  int done                     = 0;
-  int err                      = 0;
-  int i                        = 0;
-  int j                        = 0;
-  int close_input_file         = 0;
-  int close_output_file        = 0;
-  int close_exp_file           = 0;
-  int close_aig_file           = 0;
-  int close_cnf_file           = 0;
-  int dump_exp                 = 0;
-  int dump_aig                 = 0;
-  int dump_cnf                 = 0;
-  int verbosity                = 0;
-  const char *input_file_name  = "<stdin>";
-  const char *output_file_name = "<stdout>";
-  const char *exp_file_name    = NULL;
-  const char *aig_file_name    = NULL;
-  const char *cnf_file_name    = NULL;
-  const char *parse_error      = NULL;
-  char *witness                = NULL;
-  FILE *file                   = NULL;
-  FILE *input_file             = stdin;
-  FILE *exp_file               = stdout;
-  FILE *aig_file               = stdout;
-  FILE *cnf_file               = stdout;
-  BtorExpMgr *emgr             = NULL;
-  BtorExp *cur_exp             = NULL;
-  BtorAIGMgr *amgr             = NULL;
-  BtorAIG *aig                 = NULL;
+  int sat_result              = 0;
+  int done                    = 0;
+  int err                     = 0;
+  int i                       = 0;
+  int j                       = 0;
+  int close_input_file        = 0;
+  int close_output_file       = 0;
+  int close_exp_file          = 0;
+  int close_aig_file          = 0;
+  int close_cnf_file          = 0;
+  int close_trace_file        = 0;
+  int dump_exp                = 0;
+  int dump_aig                = 0;
+  int dump_cnf                = 0;
+  int verbosity               = 0;
+  const char *input_file_name = "<stdin>";
+  const char *parse_error     = NULL;
+  char *witness               = NULL;
+  FILE *file                  = NULL;
+  FILE *input_file            = stdin;
+  FILE *exp_file              = stdout;
+  FILE *aig_file              = stdout;
+  FILE *cnf_file              = stdout;
+  FILE *trace_file            = stdout;
+  BtorExpMgr *emgr            = NULL;
+  BtorExp *cur_exp            = NULL;
+  BtorAIGMgr *amgr            = NULL;
+  BtorAIG *aig                = NULL;
   BtorFtorResult ftor_res;
-  BtorFtor *ftor = NULL;
-  int trace      = 0;
+  BtorFtor *ftor    = NULL;
+  int trace         = 0;
+  int rewrite_level = 2;
 
   g_quiet       = 0;
   g_output_file = stdout;
@@ -135,7 +136,6 @@ btor_main (int argc, char **argv)
           }
           else
           {
-            exp_file_name  = argv[i];
             close_exp_file = 1;
           }
         }
@@ -163,7 +163,6 @@ btor_main (int argc, char **argv)
           }
           else
           {
-            aig_file_name  = argv[i];
             close_aig_file = 1;
           }
         }
@@ -191,10 +190,49 @@ btor_main (int argc, char **argv)
           }
           else
           {
-            cnf_file_name  = argv[i];
             close_cnf_file = 1;
           }
         }
+      }
+    }
+    else if (!strcmp (argv[i], "-t") || !strcmp (argv[i], "--trace"))
+    {
+      trace = 1;
+      if (i < argc - 1)
+      {
+        if (close_trace_file)
+        {
+          fclose (trace_file);
+          close_trace_file = 0;
+          print_msg_va_args ("boolector: multiple trace files\n");
+          err = 1;
+        }
+        else
+        {
+          trace_file = fopen (argv[++i], "w");
+          if (trace_file == NULL)
+          {
+            print_msg_va_args ("boolector: can not create '%s'\n", argv[i]);
+            err = 1;
+          }
+          else
+          {
+            close_trace_file = 1;
+          }
+        }
+      }
+    }
+    else if ((strstr (argv[i], "-rwl") == argv[i]
+              && strlen (argv[i]) == strlen ("-rlw") + 1)
+             || (strstr (argv[i], "--rewrite-level") == argv[i]
+                 && strlen (argv[i]) == strlen ("--rewrite-level") + 1))
+    {
+      rewrite_level = (int) argv[i][strlen (argv[i]) - 1] - 48;
+      assert (rewrite_level >= 0);
+      if (rewrite_level > 2)
+      {
+        print_msg ("boolector: rewrite level has to be in [0,2]\n");
+        err = 1;
       }
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
@@ -210,7 +248,7 @@ btor_main (int argc, char **argv)
     {
       g_quiet = 1;
     }
-    else if (!strcmp (argv[i], "-o"))
+    else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
       if (i < argc - 1)
       {
@@ -233,7 +271,6 @@ btor_main (int argc, char **argv)
           }
           else
           {
-            output_file_name  = argv[i];
             close_output_file = 1;
           }
         }
@@ -264,7 +301,7 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    emgr = btor_new_exp_mgr (trace);
+    emgr = btor_new_exp_mgr (rewrite_level, trace, trace_file);
     ftor = btor_new_ftor (emgr);
 
     parse_error =
@@ -351,6 +388,7 @@ btor_main (int argc, char **argv)
   if (close_exp_file) fclose (exp_file);
   if (close_aig_file) fclose (aig_file);
   if (close_cnf_file) fclose (cnf_file);
+  if (close_trace_file) fclose (trace_file);
   if (err) return BTOR_ERR_EXIT;
   if (done) return BTOR_SUCC_EXIT;
   if (sat_result == BTOR_UNSAT) return BTOR_UNSAT_EXIT;

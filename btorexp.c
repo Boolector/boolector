@@ -49,7 +49,9 @@ struct BtorExpMgr
   BtorExpPtrStack arrays;
   BtorAIGVecMgr *avmgr;
   int id;
+  int rewrite_level;
   int trace;
+  FILE *trace_file;
 };
 
 /*------------------------------------------------------------------------*/
@@ -873,6 +875,8 @@ rewrite_exp (BtorExpMgr *emgr,
   BtorExp *original = NULL;
   char *char_const  = NULL;
   assert (emgr != NULL);
+  assert (emgr->rewrite_level > 0);
+  assert (emgr->rewrite_level <= 2);
   assert (len > 0);
   assert (lower >= 0);
   assert (lower <= upper);
@@ -1031,14 +1035,19 @@ btor_redand_exp (BtorExpMgr *emgr, BtorExp *exp)
 BtorExp *
 btor_slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
 {
+  BtorExp *result = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (lower >= 0);
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
-  return rewrite_exp (
-      emgr, BTOR_SLICE_EXP, exp, NULL, NULL, upper - lower + 1, upper, lower);
+  if (emgr->rewrite_level > 0)
+    result = rewrite_exp (
+        emgr, BTOR_SLICE_EXP, exp, NULL, NULL, upper - lower + 1, upper, lower);
+  else
+    result = slice_exp (emgr, exp, upper, lower);
+  return result;
 }
 
 BtorExp *
@@ -2335,22 +2344,26 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
 }
 
 BtorExpMgr *
-btor_new_exp_mgr (int trace)
+btor_new_exp_mgr (int rewrite_level, int trace, FILE *trace_file)
 {
   BtorMemMgr *mm   = btor_new_mem_mgr ();
   BtorExpMgr *emgr = NULL;
   assert (mm != NULL);
   assert (sizeof (int) == 4);
   assert (trace >= 0);
+  assert (rewrite_level >= 0);
+  assert (rewrite_level <= 2);
   emgr     = btor_malloc (mm, sizeof (BtorExpMgr));
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_INIT_STACK (emgr->assigned_exps);
   BTOR_INIT_STACK (emgr->vars);
   BTOR_INIT_STACK (emgr->arrays);
-  emgr->avmgr = btor_new_aigvec_mgr (emgr->mm);
-  emgr->id    = 1;
-  emgr->trace = trace;
+  emgr->avmgr         = btor_new_aigvec_mgr (emgr->mm);
+  emgr->id            = 1;
+  emgr->rewrite_level = rewrite_level;
+  emgr->trace         = trace;
+  emgr->trace_file    = trace_file;
   return emgr;
 }
 
