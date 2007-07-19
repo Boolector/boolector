@@ -1,4 +1,5 @@
 #include "btorconst.h"
+#include "btorutil.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -33,6 +34,18 @@ btor_int_to_bin (BtorMemMgr *mm, int x, int len)
     x >>= 1;
   }
   result[len] = '\0';
+  return result;
+}
+
+char *
+btor_copy_const (BtorMemMgr *mm, const char *c)
+{
+  char *result = NULL;
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert (valid_const (c));
+  result = (char *) btor_malloc (mm, sizeof (char) * (strlen (c) + 1));
+  strcpy (result, c);
   return result;
 }
 
@@ -647,6 +660,66 @@ btor_umod_const (BtorMemMgr *mm, const char *a, const char *b)
   udiv_umod_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, quotient);
   return remainder;
+}
+
+char *
+btor_sll_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *result = NULL;
+  char *temp   = NULL;
+  int i        = 0;
+  int len      = 0;
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) > 1);
+  assert (btor_is_power_of_2_util (strlen (a)));
+  assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  len = strlen (b);
+  if (b[len - 1] == '1')
+    result = sll_n_bits (mm, a, 1);
+  else
+    result = btor_copy_const (mm, a);
+  for (i = len - 2; i >= 0; i--)
+  {
+    temp = result;
+    if (b[i] == '1')
+      result = sll_n_bits (mm, temp, btor_pow_2_util (len - i - 1));
+    else
+      result = btor_copy_const (mm, temp);
+    btor_delete_const (mm, temp);
+  }
+  return result;
+}
+
+char *
+btor_srl_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *result = NULL;
+  char *temp   = NULL;
+  int i        = 0;
+  int len      = 0;
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) > 1);
+  assert (btor_is_power_of_2_util (strlen (a)));
+  assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  len = strlen (b);
+  if (b[len - 1] == '1')
+    result = srl_n_bits (mm, a, 1);
+  else
+    result = btor_copy_const (mm, a);
+  for (i = len - 2; i >= 0; i--)
+  {
+    temp = result;
+    if (b[i] == '1')
+      result = srl_n_bits (mm, temp, btor_pow_2_util (len - i - 1));
+    else
+      result = btor_copy_const (mm, temp);
+    btor_delete_const (mm, temp);
+  }
+  return result;
 }
 
 char *

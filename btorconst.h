@@ -47,6 +47,10 @@ char *btor_udiv_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_umod_const (BtorMemMgr *mm, const char *a, const char *b);
 
+char *btor_sll_const (BtorMemMgr *mm, const char *a, const char *b);
+
+char *btor_srl_const (BtorMemMgr *mm, const char *a, const char *b);
+
 char *btor_ult_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
@@ -59,6 +63,8 @@ char *btor_cond_const (BtorMemMgr *mm,
 /*------------------------------------------------------------------------*/
 /* Work for both fixed and unbounded bit width constants.
  */
+char *btor_copy_const (BtorMemMgr *mm, const char *c);
+
 void btor_delete_const (BtorMemMgr *mm, char *c);
 
 int btor_cmp_const (const char *a, const char *b);

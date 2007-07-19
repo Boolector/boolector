@@ -1,6 +1,7 @@
 #include "testconst.h"
 #include "btorconst.h"
 #include "btormem.h"
+#include "btorutil.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG
@@ -256,7 +257,7 @@ mul (int x, int y)
   return x * y;
 }
 
-/* This function assumes that the compiler uses two's complement */
+/* This test case assumes that the compiler uses two's complement */
 static int
 divide (int x, int y)
 {
@@ -419,6 +420,61 @@ test_concat_const (void)
 }
 
 static void
+shift_const_test (int (*int_func) (int, int),
+                  char *(*const_func) (BtorMemMgr *,
+                                       const char *,
+                                       const char *) )
+{
+  int i        = 0;
+  int j        = 0;
+  char *a      = NULL;
+  char *b      = NULL;
+  char *result = NULL;
+  assert (int_func != NULL);
+  assert (const_func != NULL);
+  assert (btor_is_power_of_2_util (BTOR_TEST_CONST_NUM_BITS));
+  for (i = 0; i < BTOR_TEST_CONST_MAX; i++)
+  {
+    a = btor_int_to_bin (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
+    for (j = 0; j < btor_log_2_util (BTOR_TEST_CONST_MAX); j++)
+    {
+      b = btor_int_to_bin (g_mm, j, btor_log_2_util (BTOR_TEST_CONST_NUM_BITS));
+      result = const_func (g_mm, a, b);
+      assert ((int) strlen (result) == BTOR_TEST_CONST_NUM_BITS);
+      assert ((int_func (i, j) & (BTOR_TEST_CONST_MAX - 1))
+              == (int) strtol (result, (char **) NULL, 2));
+      btor_delete_const (g_mm, b);
+      btor_delete_const (g_mm, result);
+    }
+    btor_delete_const (g_mm, a);
+  }
+}
+
+static int
+sll (int x, int y)
+{
+  return ((unsigned int) x) << ((unsigned int) y);
+}
+
+static int
+srl (int x, int y)
+{
+  return ((unsigned int) x) >> ((unsigned int) y);
+}
+
+static void
+test_sll_const (void)
+{
+  shift_const_test (sll, btor_sll_const);
+}
+
+static void
+test_srl_const (void)
+{
+  shift_const_test (srl, btor_srl_const);
+}
+
+static void
 test_cond_const (void)
 {
   int i        = 0;
@@ -470,6 +526,8 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (eq_const);
   BTOR_RUN_TEST (ult_const);
   BTOR_RUN_TEST (concat_const);
+  BTOR_RUN_TEST (sll_const);
+  BTOR_RUN_TEST (srl_const);
   BTOR_RUN_TEST (cond_const);
 }
 
