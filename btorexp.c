@@ -876,7 +876,6 @@ rewrite_exp (BtorExpMgr *emgr,
   char *bits_result = NULL;
   char *bits_e0     = NULL;
   char *bits_e1     = NULL;
-  char *bits_e2     = NULL;
   assert (emgr != NULL);
   assert (emgr->rewrite_level > 0);
   assert (emgr->rewrite_level <= 2);
@@ -895,11 +894,7 @@ rewrite_exp (BtorExpMgr *emgr,
     else
     {
       real_e0 = BTOR_REAL_ADDR_EXP (e0);
-      if (upper - lower + 1 == real_e0->len)
-      {
-        inc_exp_ref_counter (e0);
-        result = e0;
-      }
+      if (upper - lower + 1 == real_e0->len) result = btor_copy_exp (emgr, e0);
     }
   }
   else if (BTOR_IS_BINARY_EXP_KIND (kind))
@@ -972,9 +967,30 @@ rewrite_exp (BtorExpMgr *emgr,
     assert (e0 != NULL);
     assert (e1 != NULL);
     assert (e2 != NULL);
+    assert (kind == BTOR_COND_EXP);
     real_e0 = BTOR_REAL_ADDR_EXP (e0);
     real_e1 = BTOR_REAL_ADDR_EXP (e1);
     real_e2 = BTOR_REAL_ADDR_EXP (e2);
+    if (emgr->dump_trace)
+    {
+      /* TODO */
+    }
+    else
+    {
+      if (BTOR_IS_CONST_EXP (real_e0))
+      {
+        if ((!BTOR_IS_INVERTED_EXP (e0) && e0->bits[0] == '1')
+            || (BTOR_IS_INVERTED_EXP (e0) && e0->bits[0] == '0'))
+          result = btor_copy_exp (emgr, e1);
+        else
+          result = btor_copy_exp (emgr, e2);
+      }
+      else if (BTOR_IS_CONST_EXP (real_e1) && BTOR_IS_CONST_EXP (real_e2)
+               && strcmp (real_e1->bits, real_e2->bits) == 0)
+      {
+        result = btor_copy_exp (emgr, e1);
+      }
+    }
   }
   return result;
 }
@@ -2253,6 +2269,8 @@ btor_cond_exp (BtorExpMgr *emgr,
                BtorExp *e_if,
                BtorExp *e_else)
 {
+  BtorExp *result = NULL;
+  int len         = 0;
   assert (emgr != NULL);
   assert (e_cond != NULL);
   assert (e_if != NULL);
@@ -2263,12 +2281,12 @@ btor_cond_exp (BtorExpMgr *emgr,
   assert (BTOR_REAL_ADDR_EXP (e_cond)->len == 1);
   assert (BTOR_REAL_ADDR_EXP (e_if)->len == BTOR_REAL_ADDR_EXP (e_else)->len);
   assert (BTOR_REAL_ADDR_EXP (e_if)->len > 0);
-  return btor_ternary_exp (emgr,
-                           BTOR_COND_EXP,
-                           e_cond,
-                           e_if,
-                           e_else,
-                           BTOR_REAL_ADDR_EXP (e_if)->len);
+  len = BTOR_REAL_ADDR_EXP (e_if)->len;
+  if (emgr->rewrite_level > 0)
+    result = rewrite_exp (emgr, BTOR_COND_EXP, e_cond, e_if, e_else, 0, 0);
+  if (result == NULL)
+    result = btor_ternary_exp (emgr, BTOR_COND_EXP, e_cond, e_if, e_else, len);
+  return result;
 }
 
 int
