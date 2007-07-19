@@ -920,25 +920,13 @@ rewrite_exp (BtorExpMgr *emgr,
       if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
         if (BTOR_IS_INVERTED_EXP (e0))
-        {
           bits_e0 = btor_not_const (emgr->mm, real_e0->bits);
-        }
         else
-        {
-          bits_e0 = (char *) btor_malloc (
-              emgr->mm, sizeof (char) * (strlen (real_e0->bits) + 1));
-          strcpy (bits_e0, real_e0->bits);
-        }
+          bits_e0 = btor_copy_const (emgr->mm, real_e0->bits);
         if (BTOR_IS_INVERTED_EXP (e1))
-        {
           bits_e1 = btor_not_const (emgr->mm, real_e1->bits);
-        }
         else
-        {
-          bits_e1 = (char *) btor_malloc (
-              emgr->mm, sizeof (char) * (strlen (real_e1->bits) + 1));
-          strcpy (bits_e1, real_e1->bits);
-        }
+          bits_e1 = btor_copy_const (emgr->mm, real_e1->bits);
         switch (kind)
         {
           case BTOR_AND_EXP:
