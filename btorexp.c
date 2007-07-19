@@ -876,6 +876,10 @@ rewrite_exp (BtorExpMgr *emgr,
   char *bits_result = NULL;
   char *bits_e0     = NULL;
   char *bits_e1     = NULL;
+  int i             = 0;
+  int diff          = 0;
+  int len           = 0;
+  int counter       = 0;
   assert (emgr != NULL);
   assert (emgr->rewrite_level > 0);
   assert (emgr->rewrite_level <= 2);
@@ -894,7 +898,27 @@ rewrite_exp (BtorExpMgr *emgr,
     else
     {
       real_e0 = BTOR_REAL_ADDR_EXP (e0);
-      if (upper - lower + 1 == real_e0->len) result = btor_copy_exp (emgr, e0);
+      diff    = upper - lower;
+      if (diff + 1 == real_e0->len)
+      {
+        result = btor_copy_exp (emgr, e0);
+      }
+      else if (BTOR_IS_CONST_EXP (real_e0))
+      {
+        counter = 0;
+        len     = real_e0->len;
+        bits_result =
+            (char *) btor_malloc (emgr->mm, sizeof (char) * (diff + 2));
+        if (BTOR_IS_INVERTED_EXP (e0))
+          for (i = len - upper - 1; i <= len - upper - 1 + diff; i++)
+            bits_result[counter++] = real_e0->bits[i] == '0' ? '1' : '0';
+        else
+          for (i = len - upper - 1; i <= len - upper - 1 + diff; i++)
+            bits_result[counter++] = real_e0->bits[i];
+        bits_result[counter] = '\0';
+        result               = btor_const_exp (emgr, bits_result);
+        btor_delete_const (emgr->mm, bits_result);
+      }
     }
   }
   else if (BTOR_IS_BINARY_EXP_KIND (kind))
