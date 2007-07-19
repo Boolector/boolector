@@ -759,32 +759,3 @@ btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
   strcat (result, b);
   return result;
 }
-
-char *
-btor_cond_const (BtorMemMgr *mm,
-                 const char *const_cond,
-                 const char *const_if,
-                 const char *const_else)
-{
-  char *result = NULL;
-  int len      = 0;
-  int i        = 0;
-  assert (mm != NULL);
-  assert (const_cond != NULL);
-  assert (const_if != NULL);
-  assert (const_else != NULL);
-  assert (strlen (const_cond) == 1);
-  assert (strlen (const_if) == strlen (const_else));
-  assert (strlen (const_if) > 0);
-  assert (valid_const (const_cond));
-  assert (valid_const (const_if));
-  assert (valid_const (const_else));
-  len    = (int) strlen (const_if);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
-  if (const_cond[0] == '1')
-    for (i = 0; i < len; i++) result[i] = const_if[i];
-  else
-    for (i = 0; i < len; i++) result[i] = const_else[i];
-  result[len] = '\0';
-  return result;
-}

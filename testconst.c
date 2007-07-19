@@ -474,39 +474,6 @@ test_srl_const (void)
   shift_const_test (srl, btor_srl_const);
 }
 
-static void
-test_cond_const (void)
-{
-  int i        = 0;
-  int j        = 0;
-  int k        = 0;
-  char *a      = NULL;
-  char *b      = NULL;
-  char *c      = NULL;
-  char *result = NULL;
-  for (i = 0; i <= 1; i++)
-  {
-    a = btor_int_to_bin (g_mm, i, 1);
-    for (j = 0; j < BTOR_TEST_CONST_MAX; j++)
-    {
-      b = btor_int_to_bin (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
-      for (k = 0; k < BTOR_TEST_CONST_MAX; k++)
-      {
-        c      = btor_int_to_bin (g_mm, k, BTOR_TEST_CONST_NUM_BITS);
-        result = btor_cond_const (g_mm, a, b, c);
-        if (i == 1)
-          assert (strcmp (b, result) == 0);
-        else
-          assert (strcmp (c, result) == 0);
-        btor_delete_const (g_mm, c);
-        btor_delete_const (g_mm, result);
-      }
-      btor_delete_const (g_mm, b);
-    }
-    btor_delete_const (g_mm, a);
-  }
-}
-
 void
 run_const_tests (int argc, char **argv)
 {
@@ -528,7 +495,6 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (concat_const);
   BTOR_RUN_TEST (sll_const);
   BTOR_RUN_TEST (srl_const);
-  BTOR_RUN_TEST (cond_const);
 }
 
 void
