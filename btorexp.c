@@ -865,7 +865,6 @@ rewrite_exp (BtorExpMgr *emgr,
              BtorExp *e0,
              BtorExp *e1,
              BtorExp *e2,
-             int len,
              int upper,
              int lower)
 {
@@ -881,7 +880,6 @@ rewrite_exp (BtorExpMgr *emgr,
   assert (emgr != NULL);
   assert (emgr->rewrite_level > 0);
   assert (emgr->rewrite_level <= 2);
-  assert (len > 0);
   assert (lower >= 0);
   assert (lower <= upper);
   if (BTOR_IS_UNARY_EXP_KIND (kind))
@@ -950,7 +948,14 @@ rewrite_exp (BtorExpMgr *emgr,
           case BTOR_UMOD_EXP:
             bits_result = btor_umod_const (emgr->mm, bits_e0, bits_e1);
             break;
-          case BTOR_CONCAT_EXP:
+          case BTOR_SLL_EXP:
+            bits_result = btor_sll_const (emgr->mm, bits_e0, bits_e1);
+            break;
+          case BTOR_SRL_EXP:
+            bits_result = btor_srl_const (emgr->mm, bits_e0, bits_e1);
+            break;
+          default:
+            assert (kind == BTOR_CONCAT_EXP);
             bits_result = btor_concat_const (emgr->mm, bits_e0, bits_e1);
             break;
         }
@@ -1092,8 +1097,7 @@ btor_slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (
-        emgr, BTOR_SLICE_EXP, exp, NULL, NULL, upper - lower + 1, upper, lower);
+    result = rewrite_exp (emgr, BTOR_SLICE_EXP, exp, NULL, NULL, upper, lower);
   if (result == NULL) result = slice_exp (emgr, exp, upper, lower);
   return result;
 }
@@ -1256,7 +1260,7 @@ btor_and_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_AND_EXP, e0, e1, NULL, len, 0, 0);
+    result = rewrite_exp (emgr, BTOR_AND_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
     result = btor_binary_exp (emgr, BTOR_AND_EXP, e0, e1, len);
   return result;
@@ -1274,7 +1278,7 @@ btor_eq_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_EQ_EXP, e0, e1, NULL, 1, 0, 0);
+    result = rewrite_exp (emgr, BTOR_EQ_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL) result = btor_binary_exp (emgr, BTOR_EQ_EXP, e0, e1, 1);
   return result;
 }
@@ -1306,7 +1310,7 @@ btor_add_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_ADD_EXP, e0, e1, NULL, len, 0, 0);
+    result = rewrite_exp (emgr, BTOR_ADD_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
     result = btor_binary_exp (emgr, BTOR_ADD_EXP, e0, e1, len);
   return result;
@@ -1394,7 +1398,7 @@ btor_umul_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_UMUL_EXP, e0, e1, NULL, len, 0, 0);
+    result = rewrite_exp (emgr, BTOR_UMUL_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
     result = btor_binary_exp (emgr, BTOR_UMUL_EXP, e0, e1, len);
   return result;
@@ -1620,7 +1624,7 @@ btor_ult_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_ULT_EXP, e0, e1, NULL, 1, 0, 0);
+    result = rewrite_exp (emgr, BTOR_ULT_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL) result = btor_binary_exp (emgr, BTOR_ULT_EXP, e0, e1, 1);
   return result;
 }
@@ -1795,6 +1799,8 @@ btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_sll_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
+  BtorExp *result = NULL;
+  int len         = 0;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -1804,13 +1810,19 @@ btor_sll_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
           == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  return btor_binary_exp (
-      emgr, BTOR_SLL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  if (emgr->rewrite_level > 0)
+    result = rewrite_exp (emgr, BTOR_SLL_EXP, e0, e1, NULL, 0, 0);
+  if (result == NULL)
+    result = btor_binary_exp (emgr, BTOR_SLL_EXP, e0, e1, len);
+  return result;
 }
 
 BtorExp *
 btor_srl_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
+  BtorExp *result = NULL;
+  int len         = 0;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -1820,8 +1832,12 @@ btor_srl_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
           == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  return btor_binary_exp (
-      emgr, BTOR_SRL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  if (emgr->rewrite_level > 0)
+    result = rewrite_exp (emgr, BTOR_SRL_EXP, e0, e1, NULL, 0, 0);
+  if (result == NULL)
+    result = btor_binary_exp (emgr, BTOR_SRL_EXP, e0, e1, len);
+  return result;
 }
 
 BtorExp *
@@ -2010,7 +2026,7 @@ btor_udiv_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_UDIV_EXP, e0, e1, NULL, len, 0, 0);
+    result = rewrite_exp (emgr, BTOR_UDIV_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
     result = btor_binary_exp (emgr, BTOR_UDIV_EXP, e0, e1, len);
   return result;
@@ -2104,7 +2120,7 @@ btor_umod_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_UMOD_EXP, e0, e1, NULL, len, 0, 0);
+    result = rewrite_exp (emgr, BTOR_UMOD_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
     result = btor_binary_exp (emgr, BTOR_UMOD_EXP, e0, e1, len);
   return result;
@@ -2170,7 +2186,7 @@ btor_concat_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
           <= INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len);
   len = BTOR_REAL_ADDR_EXP (e0)->len + BTOR_REAL_ADDR_EXP (e1)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_CONCAT_EXP, e0, e1, NULL, len, 0, 0);
+    result = rewrite_exp (emgr, BTOR_CONCAT_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
     result = btor_binary_exp (emgr, BTOR_CONCAT_EXP, e0, e1, len);
   return result;
