@@ -964,40 +964,7 @@ rewrite_exp (BtorExpMgr *emgr,
     }
     else
     {
-      if (real_e0 == real_e1 && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
-      {
-        if (kind == BTOR_EQ_EXP)
-        {
-          if (e0 == e1)
-            result = one_exp (emgr, 1);
-          else
-            result = zeros_exp (emgr, 1);
-        }
-        else
-        {
-          assert (kind == BTOR_ADD_EXP);
-          /* replace x + x by x * 2 */
-          if (e0 == e1)
-          {
-            if (real_e0->len >= 2)
-            {
-              temp   = int_to_exp (emgr, 2, real_e0->len);
-              result = btor_umul_exp (emgr, e0, temp);
-              btor_release_exp (emgr, temp);
-            }
-          }
-          else
-          /* replace x + ~x by -1 */
-          {
-            result = ones_exp (emgr, real_e0->len);
-          }
-        }
-      }
-      else if (e0 == e1 && kind == BTOR_ULT_EXP)
-      {
-        result = zeros_exp (emgr, 1);
-      }
-      else if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
+      if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
         if (BTOR_IS_INVERTED_EXP (e0))
           bits_e0 = btor_not_const (emgr->mm, real_e0->bits);
@@ -1045,6 +1012,50 @@ rewrite_exp (BtorExpMgr *emgr,
         btor_delete_const (emgr->mm, bits_result);
         btor_delete_const (emgr->mm, bits_e1);
         btor_delete_const (emgr->mm, bits_e0);
+      }
+      else if (real_e0 == real_e1
+               && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
+      {
+        if (kind == BTOR_EQ_EXP)
+        {
+          if (e0 == e1)
+            result = one_exp (emgr, 1);
+          else
+            result = zeros_exp (emgr, 1);
+        }
+        else
+        {
+          assert (kind == BTOR_ADD_EXP);
+          /* replace x + x by x * 2 */
+          if (e0 == e1)
+          {
+            if (real_e0->len >= 2)
+            {
+              temp   = int_to_exp (emgr, 2, real_e0->len);
+              result = btor_umul_exp (emgr, e0, temp);
+              btor_release_exp (emgr, temp);
+            }
+          }
+          else
+          /* replace x + ~x by -1 */
+          {
+            result = ones_exp (emgr, real_e0->len);
+          }
+        }
+      }
+      else if (e0 == e1
+               && (kind == BTOR_ULT_EXP || kind == BTOR_UDIV_EXP
+                   || kind == BTOR_UMOD_EXP))
+      {
+        switch (kind)
+        {
+          case BTOR_ULT_EXP: result = zeros_exp (emgr, 1); break;
+          case BTOR_UDIV_EXP: result = one_exp (emgr, real_e0->len); break;
+          default:
+            assert (kind == BTOR_UMOD_EXP);
+            result = zeros_exp (emgr, real_e0->len);
+            break;
+        }
       }
     }
   }
