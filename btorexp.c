@@ -93,9 +93,95 @@ ones_string (BtorExpMgr *emgr, int len)
   return string;
 }
 
+static char *
+int_to_string (BtorExpMgr *emgr, int x, int len)
+{
+  int i        = 0;
+  char *string = NULL;
+  assert (emgr != NULL);
+  assert (x >= 0);
+  assert (len > 0);
+  string = (char *) btor_malloc (emgr->mm, sizeof (char) * (len + 1));
+  for (i = len - 1; i >= 0; i--)
+  {
+    string[i] = x % 2 == 0 ? '0' : '1';
+    x >>= 1;
+  }
+  string[len] = '\0';
+  return string;
+}
+
 /*------------------------------------------------------------------------*/
 /* BtorExp                                                                */
 /*------------------------------------------------------------------------*/
+
+static BtorExp *
+zeros_exp (BtorExpMgr *emgr, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 0);
+  string = zeros_string (emgr, len);
+  result = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
+
+static BtorExp *
+ones_exp (BtorExpMgr *emgr, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 0);
+  string = ones_string (emgr, len);
+  result = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
+
+static BtorExp *
+one_exp (BtorExpMgr *emgr, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 0);
+  string                      = zeros_string (emgr, len);
+  string[strlen (string) - 1] = '1';
+  result                      = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
+
+static BtorExp *
+int_min_exp (BtorExpMgr *emgr, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 1);
+  string    = zeros_string (emgr, len);
+  string[0] = '1';
+  result    = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
+
+static BtorExp *
+int_to_exp (BtorExpMgr *emgr, int x, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (x >= 0);
+  assert (len > 1);
+  string = int_to_string (emgr, x, len);
+  result = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
 
 static void
 connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
@@ -201,60 +287,6 @@ disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
   real_parent->next_parent[pos] = NULL;
   real_parent->prev_parent[pos] = NULL;
   real_parent->e[pos]           = NULL;
-}
-
-static BtorExp *
-zeros_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 0);
-  string = zeros_string (emgr, len);
-  result = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
-}
-
-static BtorExp *
-ones_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 0);
-  string = ones_string (emgr, len);
-  result = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
-}
-
-static BtorExp *
-one_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 0);
-  string                      = zeros_string (emgr, len);
-  string[strlen (string) - 1] = '1';
-  result                      = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
-}
-
-static BtorExp *
-int_min_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 1);
-  string    = zeros_string (emgr, len);
-  string[0] = '1';
-  result    = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
 }
 
 static BtorExp *
@@ -872,6 +904,7 @@ rewrite_exp (BtorExpMgr *emgr,
   BtorExp *real_e0  = NULL;
   BtorExp *real_e1  = NULL;
   BtorExp *real_e2  = NULL;
+  BtorExp *temp     = NULL;
   BtorExp *original = NULL;
   char *bits_result = NULL;
   char *bits_e0     = NULL;
@@ -931,16 +964,34 @@ rewrite_exp (BtorExpMgr *emgr,
     }
     else
     {
-      if (real_e0 == real_e1 && kind == BTOR_EQ_EXP)
+      if (real_e0 == real_e1 && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
       {
-        if (e0 == e1)
-          result = one_exp (emgr, 1);
+        if (kind == BTOR_EQ_EXP)
+        {
+          if (e0 == e1)
+            result = one_exp (emgr, 1);
+          else
+            result = zeros_exp (emgr, 1);
+        }
         else
-          result = zeros_exp (emgr, 1);
-      }
-      else if (BTOR_INVERT_EXP (e0) == e1 && kind == BTOR_ADD_EXP)
-      {
-        result = ones_exp (emgr, real_e0->len);
+        {
+          assert (kind == BTOR_ADD_EXP);
+          /* replace x + x by x * 2 */
+          if (e0 == e1)
+          {
+            if (real_e0->len >= 2)
+            {
+              temp   = int_to_exp (emgr, 2, real_e0->len);
+              result = btor_umul_exp (emgr, e0, temp);
+              btor_release_exp (emgr, temp);
+            }
+          }
+          else
+          /* replace x + ~x by -1 */
+          {
+            result = ones_exp (emgr, real_e0->len);
+          }
+        }
       }
       else if (e0 == e1 && kind == BTOR_ULT_EXP)
       {
