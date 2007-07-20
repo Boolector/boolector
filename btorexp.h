@@ -86,6 +86,8 @@ struct BtorExp
 
 #define BTOR_INVERT_EXP(exp) ((BtorExp *) (1ul ^ (unsigned long int) (exp)))
 #define BTOR_IS_INVERTED_EXP(exp) (1ul & (unsigned long int) (exp))
+#define BTOR_COND_INVERT_EXP(cond_exp, exp) \
+  ((BTOR_IS_INVERTED_EXP (cond_exp) ? BTOR_INVERT_EXP (exp) : exp))
 
 #define BTOR_TAG_EXP(exp, tag) \
   ((BtorExp *) ((unsigned long int) tag | (unsigned long int) (exp)))
