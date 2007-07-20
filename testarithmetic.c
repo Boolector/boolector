@@ -23,7 +23,7 @@
 
 static int g_argc     = 3;
 static char *g_argv[] = {
-    "./boolector", "-q", BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME};
+    "./boolector", "-q", BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME, ""};
 
 void
 init_arithmetic_tests (void)
@@ -282,8 +282,8 @@ test_smod_arithmetic (void)
       mod, "smod", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
 }
 
-void
-run_arithmetic_tests (int argc, char **argv)
+static void
+run_all_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (add_1_arithmetic);
   BTOR_RUN_TEST (sub_1_arithmetic);
@@ -295,6 +295,15 @@ run_arithmetic_tests (int argc, char **argv)
   BTOR_RUN_TEST (smul_arithmetic);
   BTOR_RUN_TEST (sdiv_arithmetic);
   BTOR_RUN_TEST (smod_arithmetic);
+}
+
+void
+run_arithmetic_tests (int argc, char **argv)
+{
+  run_all_tests (argc, argv);
+  g_argc    = 4;
+  g_argv[3] = "-rwl0";
+  run_all_tests (argc, argv);
 }
 
 void

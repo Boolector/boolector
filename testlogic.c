@@ -21,7 +21,8 @@
 #define BTOR_TEST_RED_LOGIC_HIGH 4
 
 static int g_argc     = 3;
-static char *g_argv[] = {"./boolector", "-q", BTOR_TEST_LOGIC_TEMP_FILE_NAME};
+static char *g_argv[] = {
+    "./boolector", "-q", BTOR_TEST_LOGIC_TEMP_FILE_NAME, ""};
 
 void
 init_logic_tests (void)
@@ -276,8 +277,8 @@ test_redxor_logic ()
       redxor, "redxor", BTOR_TEST_RED_LOGIC_LOW, BTOR_TEST_RED_LOGIC_HIGH);
 }
 
-void
-run_logic_tests (int argc, char **argv)
+static void
+run_all_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (not_logic);
   BTOR_RUN_TEST (and_logic);
@@ -287,6 +288,15 @@ run_logic_tests (int argc, char **argv)
   BTOR_RUN_TEST (redand_logic);
   BTOR_RUN_TEST (redor_logic);
   BTOR_RUN_TEST (redxor_logic);
+}
+
+void
+run_logic_tests (int argc, char **argv)
+{
+  run_all_tests (argc, argv);
+  g_argc    = 4;
+  g_argv[3] = "-rwl0";
+  run_all_tests (argc, argv);
 }
 
 void

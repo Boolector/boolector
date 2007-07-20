@@ -21,7 +21,8 @@
 #define BTOR_TEST_MISC_HIGH 4
 
 static int g_argc     = 3;
-static char *g_argv[] = {"./boolector", "-q", BTOR_TEST_MISC_TEMP_FILE_NAME};
+static char *g_argv[] = {
+    "./boolector", "-q", BTOR_TEST_MISC_TEMP_FILE_NAME, ""};
 
 static BtorMemMgr *g_mm;
 
@@ -347,8 +348,8 @@ test_acc_misc (void)
   acc_test_misc (BTOR_TEST_MISC_LOW, BTOR_TEST_MISC_HIGH);
 }
 
-void
-run_misc_tests (int argc, char **argv)
+static void
+run_all_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (slice_misc);
   BTOR_RUN_TEST (uext_misc);
@@ -356,6 +357,15 @@ run_misc_tests (int argc, char **argv)
   BTOR_RUN_TEST (concat_misc);
   BTOR_RUN_TEST (cond_misc);
   BTOR_RUN_TEST (acc_misc);
+}
+
+void
+run_misc_tests (int argc, char **argv)
+{
+  run_all_tests (argc, argv);
+  g_argc    = 4;
+  g_argv[3] = "-rwl0";
+  run_all_tests (argc, argv);
 }
 
 void

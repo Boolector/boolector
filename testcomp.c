@@ -21,7 +21,8 @@
 #define BTOR_TEST_COMP_S_HIGH 4
 
 static int g_argc     = 3;
-static char *g_argv[] = {"./boolector", "-q", BTOR_TEST_COMP_TEMP_FILE_NAME};
+static char *g_argv[] = {
+    "./boolector", "-q", BTOR_TEST_COMP_TEMP_FILE_NAME, ""};
 
 void
 init_comp_tests (void)
@@ -253,8 +254,8 @@ test_sgte_comp (void)
   s_comp_test (gte, "sgte", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
 }
 
-void
-run_comp_tests (int argc, char **argv)
+static void
+run_all_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (eq_1_comp);
   BTOR_RUN_TEST (ne_1_comp);
@@ -268,6 +269,15 @@ run_comp_tests (int argc, char **argv)
   BTOR_RUN_TEST (slte_comp);
   BTOR_RUN_TEST (sgt_comp);
   BTOR_RUN_TEST (sgte_comp);
+}
+
+void
+run_comp_tests (int argc, char **argv)
+{
+  run_all_tests (argc, argv);
+  g_argc    = 4;
+  g_argv[3] = "-rwl0";
+  run_all_tests (argc, argv);
 }
 
 void

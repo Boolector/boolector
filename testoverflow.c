@@ -23,7 +23,7 @@
 
 static int g_argc     = 3;
 static char *g_argv[] = {
-    "./boolector", "-q", BTOR_TEST_OVERFLOW_TEMP_FILE_NAME};
+    "./boolector", "-q", BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, ""};
 
 void
 init_overflow_tests (void)
@@ -288,8 +288,8 @@ test_sdivo_overflow (void)
       divide, "sdivo", 1, BTOR_TEST_OVERFLOW_S_LOW, BTOR_TEST_OVERFLOW_S_HIGH);
 }
 
-void
-run_overflow_tests (int argc, char **argv)
+static void
+run_all_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (uaddo_overflow);
   BTOR_RUN_TEST (usubo_overflow);
@@ -299,6 +299,15 @@ run_overflow_tests (int argc, char **argv)
   BTOR_RUN_TEST (ssubo_overflow);
   BTOR_RUN_TEST (smulo_overflow);
   BTOR_RUN_TEST (sdivo_overflow);
+}
+
+void
+run_overflow_tests (int argc, char **argv)
+{
+  run_all_tests (argc, argv);
+  g_argc    = 4;
+  g_argv[3] = "-rwl0";
+  run_all_tests (argc, argv);
 }
 
 void
