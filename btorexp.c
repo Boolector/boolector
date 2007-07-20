@@ -931,7 +931,22 @@ rewrite_exp (BtorExpMgr *emgr,
     }
     else
     {
-      if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
+      if (real_e0 == real_e1 && kind == BTOR_EQ_EXP)
+      {
+        if (e0 == e1)
+          result = one_exp (emgr, 1);
+        else
+          result = zeros_exp (emgr, 1);
+      }
+      else if (BTOR_INVERT_EXP (e0) == e1 && kind == BTOR_ADD_EXP)
+      {
+        result = ones_exp (emgr, real_e0->len);
+      }
+      else if (e0 == e1 && kind == BTOR_ULT_EXP)
+      {
+        result = zeros_exp (emgr, 1);
+      }
+      else if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
         if (BTOR_IS_INVERTED_EXP (e0))
           bits_e0 = btor_not_const (emgr->mm, real_e0->bits);
