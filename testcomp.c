@@ -15,10 +15,10 @@
 #define BTOR_TEST_COMP_TEMP_FILE_NAME "comp.tmp"
 
 #define BTOR_TEST_COMP_U_LOW 1
-#define BTOR_TEST_COMP_U_HIGH 8
+#define BTOR_TEST_COMP_U_HIGH 4
 
 #define BTOR_TEST_COMP_S_LOW 2
-#define BTOR_TEST_COMP_S_HIGH 8
+#define BTOR_TEST_COMP_S_HIGH 4
 
 static int g_argc     = 3;
 static char *g_argv[] = {"./boolector", "-q", BTOR_TEST_COMP_TEMP_FILE_NAME};

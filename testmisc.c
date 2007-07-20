@@ -18,7 +18,7 @@
 #define BTOR_TEST_MISC_TEMP_FILE_NAME "misc.tmp"
 
 #define BTOR_TEST_MISC_LOW 1
-#define BTOR_TEST_MISC_HIGH 8
+#define BTOR_TEST_MISC_HIGH 4
 
 static int g_argc     = 3;
 static char *g_argv[] = {"./boolector", "-q", BTOR_TEST_MISC_TEMP_FILE_NAME};
@@ -78,7 +78,7 @@ slice_test_misc (int low, int high)
   int j        = 0;
   char *result = 0;
   int num_bits = 0;
-  const int x  = 93;
+  const int x  = 11;
   assert (low > 0);
   assert (low <= high);
   BtorExitCode exit_code = 0;

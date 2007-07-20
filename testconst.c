@@ -13,7 +13,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BTOR_TEST_CONST_NUM_BITS 8
+#define BTOR_TEST_CONST_NUM_BITS 4
 #define BTOR_TEST_CONST_MAX (1 << BTOR_TEST_CONST_NUM_BITS)
 
 static BtorMemMgr *g_mm;

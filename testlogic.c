@@ -15,10 +15,10 @@
 #define BTOR_TEST_LOGIC_TEMP_FILE_NAME "logic.tmp"
 
 #define BTOR_TEST_LOGIC_LOW 1
-#define BTOR_TEST_LOGIC_HIGH 8
+#define BTOR_TEST_LOGIC_HIGH 4
 
 #define BTOR_TEST_RED_LOGIC_LOW 2
-#define BTOR_TEST_RED_LOGIC_HIGH 8
+#define BTOR_TEST_RED_LOGIC_HIGH 4
 
 static int g_argc     = 3;
 static char *g_argv[] = {"./boolector", "-q", BTOR_TEST_LOGIC_TEMP_FILE_NAME};
