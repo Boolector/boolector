@@ -905,7 +905,6 @@ rewrite_exp (BtorExpMgr *emgr,
   BtorExp *real_e1  = NULL;
   BtorExp *real_e2  = NULL;
   BtorExp *temp     = NULL;
-  BtorExp *original = NULL;
   char *bits_result = NULL;
   char *bits_e0     = NULL;
   char *bits_e1     = NULL;
@@ -1083,11 +1082,11 @@ rewrite_exp (BtorExpMgr *emgr,
         else
           result = btor_copy_exp (emgr, e2);
       }
-      else if (BTOR_IS_CONST_EXP (real_e1) && BTOR_IS_CONST_EXP (real_e2)
-               && strcmp (real_e1->bits, real_e2->bits) == 0)
+      else if (e1 == e2)
       {
         result = btor_copy_exp (emgr, e1);
       }
+      result = BTOR_COND_INVERT_EXP (e0, result);
     }
   }
   return result;
