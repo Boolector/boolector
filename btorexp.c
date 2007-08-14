@@ -111,6 +111,31 @@ int_to_string (BtorExpMgr *emgr, int x, int len)
   return string;
 }
 
+static int
+is_zero_string (BtorExpMgr *emgr, const char *string, int len)
+{
+  int i = 0;
+  assert (emgr != NULL);
+  assert (string != NULL);
+  assert (len > 0);
+  for (i = 0; i < len; i++)
+    if (string[i] != '0') return 0;
+  return 1;
+}
+
+static int
+is_one_string (BtorExpMgr *emgr, const char *string, int len)
+{
+  int i = 0;
+  assert (emgr != NULL);
+  assert (string != NULL);
+  assert (len > 0);
+  if (string[len - 1] != '1') return 0;
+  for (i = 0; i < len - 1; i++)
+    if (string[i] != '0') return 0;
+  return 1;
+}
+
 /*------------------------------------------------------------------------*/
 /* BtorExp                                                                */
 /*------------------------------------------------------------------------*/
@@ -912,6 +937,8 @@ rewrite_exp (BtorExpMgr *emgr,
   int diff          = 0;
   int len           = 0;
   int counter       = 0;
+  int is_zero       = 0;
+  int is_one        = 0;
   assert (emgr != NULL);
   assert (emgr->rewrite_level > 0);
   assert (emgr->rewrite_level <= 2);
@@ -1011,6 +1038,57 @@ rewrite_exp (BtorExpMgr *emgr,
         btor_delete_const (emgr->mm, bits_result);
         btor_delete_const (emgr->mm, bits_e1);
         btor_delete_const (emgr->mm, bits_e0);
+      }
+      else if (BTOR_IS_CONST_EXP (real_e0) && !BTOR_IS_CONST_EXP (real_e1))
+      {
+        if (BTOR_IS_INVERTED_EXP (e0))
+          bits_e0 = btor_not_const (emgr->mm, real_e0->bits);
+        else
+          bits_e0 = btor_copy_const (emgr->mm, real_e0->bits);
+        /* TODO: AND_EXP EQ_EXP */
+        is_zero = is_zero_string (emgr, bits_e0, real_e0->len);
+        is_one  = is_one_string (emgr, bits_e0, real_e0->len);
+        if (is_zero)
+        {
+          if (kind == BTOR_ADD_EXP)
+            result = btor_copy_exp (emgr, e1);
+          else if (kind == BTOR_UMUL_EXP || kind == BTOR_SLL_EXP
+                   || kind == BTOR_SRL_EXP || kind == BTOR_UDIV_EXP
+                   || kind == BTOR_UMOD_EXP)
+            result = zeros_exp (emgr, real_e0->len);
+        }
+        else if (is_one)
+        {
+          if (kind == BTOR_UMUL_EXP) result = btor_copy_exp (emgr, e1);
+        }
+        btor_delete_const (emgr->mm, bits_e0);
+      }
+      else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
+      {
+        if (BTOR_IS_INVERTED_EXP (e1))
+          bits_e1 = btor_not_const (emgr->mm, real_e1->bits);
+        else
+          bits_e1 = btor_copy_const (emgr->mm, real_e1->bits);
+        /* TODO: AND_EXP EQ_EXP */
+        is_zero = is_zero_string (emgr, bits_e1, real_e1->len);
+        is_one  = is_one_string (emgr, bits_e1, real_e1->len);
+        if (is_zero)
+        {
+          if (kind == BTOR_ADD_EXP)
+            result = btor_copy_exp (emgr, e0);
+          else if (kind == BTOR_UMUL_EXP || kind == BTOR_SLL_EXP
+                   || kind == BTOR_SRL_EXP)
+            result = zeros_exp (emgr, real_e0->len);
+          else if (kind == BTOR_UDIV_EXP)
+            result = ones_exp (emgr, real_e0->len);
+          else if (kind == BTOR_UMOD_EXP)
+            result = btor_copy_exp (emgr, e0);
+        }
+        else if (is_one)
+        {
+          if (kind == BTOR_UMUL_EXP) result = btor_copy_exp (emgr, e0);
+        }
+        btor_delete_const (emgr->mm, bits_e1);
       }
       else if (real_e0 == real_e1
                && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
