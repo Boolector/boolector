@@ -1,12 +1,12 @@
-1 65 constd 18446744073709551617
-2 33 var
-3 65 uext 2 32
-4 65 var
-5 65 umul 3 4
-6 1 eq 1 5
-7 1 umulo 3 4
-8 1 and 6 -7
-9 33 constd 1
-10 1 eq 2 9
-11 1 and 8 -10
-12 1 root 11
+1 constd 65 18446744073709551617
+2 var 33
+3 uext 65 2 32
+4 var 65
+5 umul 65 3 4
+6 eq 1 1 5
+7 umulo 1 3 4
+8 and 1 6 -7
+9 constd 33 1
+10 eq 1 2 9
+11 and 1 8 -10
+12 root 1 11

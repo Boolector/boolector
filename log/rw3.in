@@ -1,5 +1,5 @@
-1 8 constd 1  
-2 8 var
-3 8 umul 1 2 
-4 1 eq 2 3
-5 1 root 4 
+1 constd 8 1
+2 var 8
+3 umul 8 1 2
+4 eq 1 2 3
+5 root 1 4

@@ -1,6 +1,6 @@
-1 9 var
-2 18 uext 1 9
-3 18 umul 2 2
-4 18 constd 65537
-5 1 eq 3 4
-6 1 root 5
+1 var 9
+2 uext 18 1 9
+3 umul 18 2 2
+4 constd 18 65537
+5 eq 1 3 4
+6 root 1 5
