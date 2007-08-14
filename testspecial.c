@@ -120,7 +120,55 @@ test_sqrt4295098369_special ()
 static void
 test_sqrt18446744073709551617_special ()
 {
-  run_sat_test ("sqrt18446744073709551617.in");
+  run_unsat_test ("sqrt18446744073709551617.in");
+}
+
+static void
+test_factor2209_special ()
+{
+  run_sat_test ("factor2209.in");
+}
+
+static void
+test_factor4294967295_special ()
+{
+  run_sat_test ("factor4294967295.in");
+}
+
+static void
+test_factor4294967297_special ()
+{
+  run_sat_test ("factor4294967297.in");
+}
+
+static void
+test_factor18446744073709551617const_special ()
+{
+  run_sat_test ("factor18446744073709551617const.in");
+}
+
+static void
+test_factor18446744073709551617xconst_special ()
+{
+  run_sat_test ("factor18446744073709551617xconst.in");
+}
+
+static void
+test_factor18446744073709551617yconst_special ()
+{
+  run_sat_test ("factor18446744073709551617yconst.in");
+}
+
+static void
+test_factor18446744073709551617reduced_special ()
+{
+  run_sat_test ("factor18446744073709551617reduced.in");
+}
+
+static void
+test_factor18446744073709551617_special ()
+{
+  run_sat_test ("factor18446744073709551617.in");
 }
 
 void
@@ -140,6 +188,14 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (sqrt4294967297_special);
   BTOR_RUN_TEST (sqrt4295098369_special);
   BTOR_RUN_TEST (sqrt18446744073709551617_special);
+  BTOR_RUN_TEST (factor2209_special);
+  BTOR_RUN_TEST (factor4294967295_special);
+  BTOR_RUN_TEST (factor4294967297_special);
+  BTOR_RUN_TEST (factor18446744073709551617const_special);
+  BTOR_RUN_TEST (factor18446744073709551617xconst_special);
+  BTOR_RUN_TEST (factor18446744073709551617yconst_special);
+  BTOR_RUN_TEST (factor18446744073709551617reduced_special);
+  BTOR_RUN_TEST (factor18446744073709551617_special);
 }
 
 void
