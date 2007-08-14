@@ -63,22 +63,22 @@ u_arithmetic_test (int (*func) (int, int),
         {
           f = fopen (BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME, "w");
           assert (f != NULL);
-          fprintf (f, "1 %d constd %d\n", num_bits, i);
-          fprintf (f, "2 %d constd %d\n", num_bits, j);
-          fprintf (f, "3 %d %s 1 2\n", num_bits, func_name);
+          fprintf (f, "1 constd %d %d\n", num_bits, i);
+          fprintf (f, "2 constd %d %d\n", num_bits, j);
+          fprintf (f, "3 %s %d 1 2\n", func_name, num_bits);
           if (result >= 0)
           {
-            fprintf (f, "4 %d constd %d\n", num_bits, result);
+            fprintf (f, "4 constd %d %d\n", num_bits, result);
             const_id = 4;
           }
           else
           {
-            fprintf (f, "4 %d constd %d\n", num_bits, -result);
-            fprintf (f, "5 %d neg 4\n", num_bits);
+            fprintf (f, "4 constd %d %d\n", num_bits, -result);
+            fprintf (f, "5 neg %d 4\n", num_bits);
             const_id = 5;
           }
-          fprintf (f, "%d 1 eq 3 %d\n", const_id + 1, const_id);
-          fprintf (f, "%d 1 root %d\n", const_id + 2, const_id + 1);
+          fprintf (f, "%d eq 1 3 %d\n", const_id + 1, const_id);
+          fprintf (f, "%d root 1 %d\n", const_id + 2, const_id + 1);
           fclose (f);
           exit_code = btor_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT);
@@ -122,49 +122,49 @@ s_arithmetic_test (int (*func) (int, int),
           assert (f != NULL);
           if (i < 0)
           {
-            fprintf (f, "1 %d constd %d\n", num_bits, -i);
-            fprintf (f, "2 %d neg 1\n", num_bits);
+            fprintf (f, "1 constd %d %d\n", num_bits, -i);
+            fprintf (f, "2 neg %d 1\n", num_bits);
             const1_id = 2;
           }
           else
           {
-            fprintf (f, "1 %d constd %d\n", num_bits, i);
+            fprintf (f, "1 constd %d %d\n", num_bits, i);
             const1_id = 1;
           }
           if (j < 0)
           {
-            fprintf (f, "%d %d constd %d\n", const1_id + 1, num_bits, -j);
+            fprintf (f, "%d constd %d %d\n", const1_id + 1, num_bits, -j);
             fprintf (
-                f, "%d %d neg %d\n", const1_id + 2, num_bits, const1_id + 1);
+                f, "%d neg %d %d\n", const1_id + 2, num_bits, const1_id + 1);
             const2_id = const1_id + 2;
           }
           else
           {
-            fprintf (f, "%d %d constd %d\n", const1_id + 1, num_bits, j);
+            fprintf (f, "%d constd %d %d\n", const1_id + 1, num_bits, j);
             const2_id = const1_id + 1;
           }
           fprintf (f,
-                   "%d %d %s %d %d\n",
+                   "%d %s %d %d %d\n",
                    const2_id + 1,
-                   num_bits,
                    func_name,
+                   num_bits,
                    const1_id,
                    const2_id);
           if (result < 0)
           {
-            fprintf (f, "%d %d constd %d\n", const2_id + 2, num_bits, -result);
+            fprintf (f, "%d constd %d %d\n", const2_id + 2, num_bits, -result);
             fprintf (
-                f, "%d %d neg %d\n", const2_id + 3, num_bits, const2_id + 2);
+                f, "%d neg %d %d\n", const2_id + 3, num_bits, const2_id + 2);
             const3_id = const2_id + 3;
           }
           else
           {
-            fprintf (f, "%d %d constd %d\n", const2_id + 2, num_bits, result);
+            fprintf (f, "%d constd %d %d\n", const2_id + 2, num_bits, result);
             const3_id = const2_id + 2;
           }
           fprintf (
-              f, "%d 1 eq %d %d\n", const3_id + 1, const2_id + 1, const3_id);
-          fprintf (f, "%d 1 root %d\n", const3_id + 2, const3_id + 1);
+              f, "%d eq 1 %d %d\n", const3_id + 1, const2_id + 1, const3_id);
+          fprintf (f, "%d root 1 %d\n", const3_id + 2, const3_id + 1);
           fclose (f);
           exit_code = btor_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT);

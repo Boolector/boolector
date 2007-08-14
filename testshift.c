@@ -79,12 +79,12 @@ shift_test (char *(*func) (int, int, int),
         result = func (i, j, num_bits);
         f      = fopen (BTOR_TEST_SHIFT_TEMP_FILE_NAME, "w");
         assert (f != NULL);
-        fprintf (f, "1 %d constd %d\n", num_bits, i);
-        fprintf (f, "2 %d constd %d\n", btor_log_2_util (num_bits), j);
-        fprintf (f, "3 %d %s 1 2\n", num_bits, func_name);
-        fprintf (f, "4 %d const %s\n", num_bits, result);
-        fprintf (f, "5 1 eq 3 4\n");
-        fprintf (f, "6 1 root 5\n");
+        fprintf (f, "1 constd %d %d\n", num_bits, i);
+        fprintf (f, "2 constd %d %d\n", btor_log_2_util (num_bits), j);
+        fprintf (f, "3 %s %d 1 2\n", func_name, num_bits);
+        fprintf (f, "4 const %d %s\n", num_bits, result);
+        fprintf (f, "5 eq 1 3 4\n");
+        fprintf (f, "6 root 1 5\n");
         fclose (f);
         exit_code = btor_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);

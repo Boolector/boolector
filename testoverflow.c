@@ -65,10 +65,10 @@ u_overflow_test (int (*func) (int, int),
         if (result < 0 || result >= max) overflow_test = 1;
         f = fopen (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, "w");
         assert (f != NULL);
-        fprintf (f, "1 %d constd %d\n", num_bits, i);
-        fprintf (f, "2 %d constd %d\n", num_bits, j);
-        fprintf (f, "3 1 %s 1 2\n", func_name);
-        fprintf (f, "4 1 root 3\n");
+        fprintf (f, "1 constd %d %d\n", num_bits, i);
+        fprintf (f, "2 constd %d %d\n", num_bits, j);
+        fprintf (f, "3 %s 1 1 2\n", func_name);
+        fprintf (f, "4 root 1 3\n");
         fclose (f);
         exit_code = btor_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
@@ -107,17 +107,17 @@ neg_overflow_test (int low, int high)
       assert (f != NULL);
       if (i < 0)
       {
-        fprintf (f, "1 %d constd %d\n", num_bits, -i);
-        fprintf (f, "2 %d neg 1\n", num_bits);
+        fprintf (f, "1 constd %d %d\n", num_bits, -i);
+        fprintf (f, "2 neg %d 1\n", num_bits);
         const_id = 2;
       }
       else
       {
-        fprintf (f, "1 %d constd %d\n", num_bits, i);
+        fprintf (f, "1 constd %d %d\n", num_bits, i);
         const_id = 1;
       }
-      fprintf (f, "%d 1 nego %d\n", const_id + 1, const_id);
-      fprintf (f, "%d 1 root %d\n", const_id + 2, const_id + 1);
+      fprintf (f, "%d nego 1 %d\n", const_id + 1, const_id);
+      fprintf (f, "%d root 1 %d\n", const_id + 2, const_id + 1);
       fclose (f);
       exit_code = btor_main (g_argc, g_argv);
       assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
@@ -167,35 +167,35 @@ s_overflow_test (int (*func) (int, int),
           assert (f != NULL);
           if (i < 0)
           {
-            fprintf (f, "1 %d constd %d\n", num_bits, -i);
-            fprintf (f, "2 %d neg 1\n", num_bits);
+            fprintf (f, "1 constd %d %d\n", num_bits, -i);
+            fprintf (f, "2 neg %d 1\n", num_bits);
             const1_id = 2;
           }
           else
           {
-            fprintf (f, "1 %d constd %d\n", num_bits, i);
+            fprintf (f, "1 constd %d %d\n", num_bits, i);
             const1_id = 1;
           }
           if (j < 0)
           {
-            fprintf (f, "%d %d constd %d\n", const1_id + 1, num_bits, -j);
+            fprintf (f, "%d constd %d %d\n", const1_id + 1, num_bits, -j);
             fprintf (
-                f, "%d %d neg %d\n", const1_id + 2, num_bits, const1_id + 1);
+                f, "%d neg %d %d\n", const1_id + 2, num_bits, const1_id + 1);
             const2_id = const1_id + 2;
           }
           else
           {
-            fprintf (f, "%d %d constd %d\n", const1_id + 1, num_bits, j);
+            fprintf (f, "%d constd %d %d\n", const1_id + 1, num_bits, j);
             const2_id = const1_id + 1;
           }
 
           fprintf (f,
-                   "%d 1 %s %d %d\n",
+                   "%d %s 1 %d %d\n",
                    const2_id + 1,
                    func_name,
                    const1_id,
                    const2_id);
-          fprintf (f, "%d 1 root %d\n", const2_id + 2, const2_id + 1);
+          fprintf (f, "%d root 1 %d\n", const2_id + 2, const2_id + 1);
           fclose (f);
           exit_code = btor_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
