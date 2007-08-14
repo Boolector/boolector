@@ -1,0 +1,5 @@
+1 8 var
+2 1 const 0 
+3 1 ult 1 1
+4 1 eq 2 3
+5 1 root 4

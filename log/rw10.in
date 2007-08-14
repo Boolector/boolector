@@ -1,0 +1,6 @@
+1 8 var
+2 8 constd 2
+3 8 add 1 1
+4 8 umul 1 2
+5 1 eq 3 4
+6 1 root 5

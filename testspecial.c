@@ -40,6 +40,96 @@ run_unsat_test (char *name)
 }
 
 static void
+test_rw1_special ()
+{
+  run_sat_test ("rw1.in");
+}
+
+static void
+test_rw2_special ()
+{
+  run_sat_test ("rw2.in");
+}
+
+static void
+test_rw3_special ()
+{
+  run_sat_test ("rw3.in");
+}
+
+static void
+test_rw4_special ()
+{
+  run_sat_test ("rw4.in");
+}
+
+static void
+test_rw5_special ()
+{
+  run_sat_test ("rw5.in");
+}
+
+static void
+test_rw6_special ()
+{
+  run_sat_test ("rw6.in");
+}
+
+static void
+test_rw7_special ()
+{
+  run_sat_test ("rw7.in");
+}
+
+static void
+test_rw8_special ()
+{
+  run_sat_test ("rw8.in");
+}
+
+static void
+test_rw9_special ()
+{
+  run_sat_test ("rw9.in");
+}
+
+static void
+test_rw10_special ()
+{
+  run_sat_test ("rw10.in");
+}
+
+static void
+test_rw11_special ()
+{
+  run_sat_test ("rw11.in");
+}
+
+static void
+test_rw12_special ()
+{
+  run_sat_test ("rw12.in");
+}
+
+static void
+test_rw13_special ()
+{
+  run_sat_test ("rw13.in");
+}
+
+static void
+test_rw14_special ()
+{
+  run_sat_test ("rw14.in");
+}
+
+static void
+test_rw15_special ()
+{
+  run_sat_test ("rw15.in");
+}
+
+static void
 test_sqrt4_special ()
 {
   run_sat_test ("sqrt4.in");
@@ -174,6 +264,21 @@ test_factor18446744073709551617_special ()
 void
 run_special_tests (int argc, char **argv)
 {
+  BTOR_RUN_TEST (rw1_special);
+  BTOR_RUN_TEST (rw2_special);
+  BTOR_RUN_TEST (rw3_special);
+  BTOR_RUN_TEST (rw4_special);
+  BTOR_RUN_TEST (rw5_special);
+  BTOR_RUN_TEST (rw6_special);
+  BTOR_RUN_TEST (rw7_special);
+  BTOR_RUN_TEST (rw8_special);
+  BTOR_RUN_TEST (rw9_special);
+  BTOR_RUN_TEST (rw10_special);
+  BTOR_RUN_TEST (rw11_special);
+  BTOR_RUN_TEST (rw12_special);
+  BTOR_RUN_TEST (rw13_special);
+  BTOR_RUN_TEST (rw14_special);
+  BTOR_RUN_TEST (rw15_special);
   BTOR_RUN_TEST (sqrt4_special);
   BTOR_RUN_TEST (sqrt5_special);
   BTOR_RUN_TEST (sqrt7_special);
