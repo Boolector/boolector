@@ -1388,10 +1388,6 @@ NEXT:
 
   if (parse_space (ftor)) return ftor->error;
 
-  if (parse_positive_int (ftor, &len)) return ftor->error;
-
-  if (parse_space (ftor)) return ftor->error;
-
   assert (BTOR_EMPTY_STACK (ftor->op));
   while (!isspace (ch = nextch (ftor)) && ch != EOF)
     BTOR_PUSH_STACK (ftor->mm, ftor->op, ch);
@@ -1399,6 +1395,10 @@ NEXT:
   BTOR_PUSH_STACK (ftor->mm, ftor->op, 0);
   BTOR_RESET_STACK (ftor->op);
   savech (ftor, ch);
+
+  if (parse_space (ftor)) return ftor->error;
+
+  if (parse_positive_int (ftor, &len)) return ftor->error;
 
   if (!(parser = find_parser (ftor, ftor->op.start)))
     return parse_error (ftor, "invalid operator '%s'", ftor->op);
