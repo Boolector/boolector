@@ -11,6 +11,7 @@
 #include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
+#include "testspecial.h"
 #include "teststack.h"
 #include "testutil.h"
 
@@ -62,6 +63,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (overflow);
   BTOR_RUN_TESTS (shift);
   BTOR_RUN_TESTS (misc);
+  BTOR_RUN_TESTS (special);
   finish_tests ();
   return 0;
 }
