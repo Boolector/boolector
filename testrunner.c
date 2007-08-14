@@ -117,7 +117,8 @@ run_test_case (
   int skip           = 0;
   int i              = 0;
   int found_slow     = 0;
-  char *slow_tests[] = {"arithmetic", "overflow", "comp", "logic", "misc"};
+  char *slow_tests[] = {"factor18446744073709551617reduced_special",
+                        "factor18446744073709551617_special"};
   const int slow_tests_len =
       (int) (sizeof (slow_tests) / sizeof (slow_tests[0]));
   g_num_tests++;
