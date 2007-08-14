@@ -1,7 +1,7 @@
-1 17 var
-2 34 uext 1 17
-3 17 var
-4 34 uext 3 17
+1 23 var
+2 34 uext 1 11
+3 10 var
+4 34 uext 3 24 
 5 34 umul 2 4
 6 34 constd 4294967297
 7 1 eq 5 6
