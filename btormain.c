@@ -1,6 +1,8 @@
 #include "btormain.h"
+#include "btorconst.h"
 #include "btorexit.h"
 #include "btorftor.h"
+#include "btormem.h"
 #include "btorsat.h"
 #include "btorutil.h"
 
@@ -24,6 +26,7 @@ static const char *g_usage =
     "  -o|--output <file>            set output file\n"
     "  -q|--quiet                    do not print any output\n"
     "  -c|--credits                  print credits\n"
+    "  -x|--hex                      hexadecimal output\n"
     "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
     "  -t|--trace <file>             set trace file\n";
 
@@ -127,9 +130,11 @@ btor_main (int argc, char **argv)
   int dump_aig                = 0;
   int dump_cnf                = 0;
   int verbosity               = 0;
+  int hex                     = 0;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
+  char *pretty_witness        = NULL;
   FILE *file                  = NULL;
   FILE *input_file            = stdin;
   FILE *exp_file              = stdout;
@@ -142,6 +147,7 @@ btor_main (int argc, char **argv)
   BtorAIG *aig                = NULL;
   BtorFtorResult ftor_res;
   BtorFtor *ftor    = NULL;
+  BtorMemMgr *mem   = NULL;
   int dump_trace    = 0;
   int rewrite_level = 2;
 
@@ -218,6 +224,10 @@ btor_main (int argc, char **argv)
     {
       g_quiet = 1;
     }
+    else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
+    {
+      hex = 1;
+    }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
       if (i < argc - 1)
@@ -272,6 +282,7 @@ btor_main (int argc, char **argv)
   if (!done && !err)
   {
     emgr = btor_new_exp_mgr (rewrite_level, dump_trace, trace_file);
+    mem  = btor_get_mem_mgr_exp_mgr (emgr);
     ftor = btor_new_ftor (emgr);
 
     parse_error =
@@ -324,9 +335,19 @@ btor_main (int argc, char **argv)
         {
           cur_exp = ftor_res.vars[i];
           witness = btor_get_assignment_var_exp (emgr, cur_exp);
+
           if (witness != NULL)
-            print_msg_va_args (
-                "%s: %s\n", btor_get_symbol_exp (emgr, cur_exp), witness);
+          {
+            if (hex)
+              pretty_witness = btor_const_to_hex (mem, witness);
+            else
+              pretty_witness = witness;
+
+            print_msg_va_args ("%s: %s\n",
+                               btor_get_symbol_exp (emgr, cur_exp),
+                               pretty_witness);
+            if (hex) btor_freestr (mem, pretty_witness);
+          }
         }
         for (i = 0; i < ftor_res.narrays; i++)
         {
@@ -335,11 +356,20 @@ btor_main (int argc, char **argv)
           for (j = 0; j < btor_pow_2_util (cur_exp->index_len); j++)
           {
             witness = btor_get_assignment_array_exp (emgr, cur_exp, j);
+
             if (witness != NULL)
+            {
+              if (hex)
+                pretty_witness = btor_const_to_hex (mem, witness);
+              else
+                pretty_witness = witness;
+
               print_msg_va_args ("%s[%d]: %s\n",
                                  btor_get_symbol_exp (emgr, cur_exp),
                                  j,
-                                 witness);
+                                 pretty_witness);
+              if (hex) btor_freestr (mem, pretty_witness);
+            }
           }
         }
       }
