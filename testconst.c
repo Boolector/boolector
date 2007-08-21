@@ -210,6 +210,27 @@ test_udiv_unbounded_const (void)
 {
   FILE *fout = fopen ("log/udiv_unbounded_const.log", "w");
   test_udiv_unbounded_const_aux (fout, "", "1");
+  test_udiv_unbounded_const_aux (fout, "0", "1");
+  test_udiv_unbounded_const_aux (fout, "00", "00100");
+  test_udiv_unbounded_const_aux (fout, "1", "1");
+  test_udiv_unbounded_const_aux (fout, "10", "1");
+  test_udiv_unbounded_const_aux (fout, "10", "10");
+  test_udiv_unbounded_const_aux (fout, "10", "11");
+  test_udiv_unbounded_const_aux (fout, "11", "10");
+  test_udiv_unbounded_const_aux (fout, "11", "11");
+  test_udiv_unbounded_const_aux (fout, "11", "100");
+  test_udiv_unbounded_const_aux (fout, "100", "1");
+  test_udiv_unbounded_const_aux (fout, "100", "10");
+  test_udiv_unbounded_const_aux (fout, "100", "11");
+  test_udiv_unbounded_const_aux (fout, "100", "100");
+  test_udiv_unbounded_const_aux (fout, "101", "100");
+  test_udiv_unbounded_const_aux (fout, "110", "100");
+  test_udiv_unbounded_const_aux (fout, "111", "100");
+  test_udiv_unbounded_const_aux (fout, "100", "101");
+  test_udiv_unbounded_const_aux (fout, "101", "101");
+  test_udiv_unbounded_const_aux (fout, "110", "101");
+  test_udiv_unbounded_const_aux (fout, "111", "101");
+  test_udiv_unbounded_const_aux (fout, "00011110000", "01101");
   fclose (fout);
 }
 
