@@ -300,67 +300,6 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
 }
 
 char *
-btor_div_unbounded_const (BtorMemMgr *mem,
-                          const char *dividend,
-                          const char *divisor,
-                          char **rest_ptr)
-{
-  char *quotient, *rest, *r, *tmp;
-  const char *p, *q;
-  int len, qlen, rlen;
-
-  assert (valid_const (dividend));
-  assert (valid_const (divisor));
-
-  dividend = strip_zeroes (dividend);
-  divisor  = strip_zeroes (divisor);
-
-  for (p = dividend; *p && *p == '0'; p++)
-    ;
-
-  for (q = divisor; *q && *q == '0'; q++)
-    ;
-
-  assert (*q); /* in any case even if 'dividend == 0' */
-
-  if (!*p || btor_cmp_const (p, q) < 0) return btor_strdup (mem, "");
-
-  len  = strlen (p);
-  rlen = strlen (q);
-  assert (rlen > 0);
-  rlen--;
-  assert (len > rlen);
-  qlen = len - rlen;
-
-  assert (*p); /* see above */
-  assert (*q); /* see above */
-
-  r = quotient = btor_malloc (mem, qlen + 1);
-  rest         = btor_strdup (mem, p);
-
-  while (r < quotient + qlen)
-  {
-  }
-
-  assert (strlen (rest) <= (unsigned) rlen);
-  assert (btor_cmp_const (rest, divisor) < 0);
-#ifndef NDEBUG
-  {
-    char *tmp1 = btor_mult_unbounded_const (mem, quotient, divisor);
-    char *tmp2 = btor_add_unbounded_const (mem, tmp1, rest);
-    assert (!btor_cmp_const (dividend, tmp2));
-    btor_freestr (mem, tmp1);
-    btor_freestr (mem, tmp2);
-  }
-#endif
-  if (rest_ptr) *rest_ptr = btor_strdup (mem, strip_zeroes (rest));
-
-  btor_freestr (mem, rest);
-
-  return quotient;
-}
-
-char *
 btor_not_const (BtorMemMgr *mm, const char *a)
 {
   char *result = NULL;
@@ -758,4 +697,74 @@ btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
   strcpy (result, a);
   strcat (result, b);
   return result;
+}
+
+char *
+btor_udiv_unbounded_const (BtorMemMgr *mem,
+                           const char *dividend,
+                           const char *divisor,
+                           char **rest_ptr)
+{
+  char *quotient, *rest, *extended_divisor, *tmp;
+  int delta, plen, qlen;
+  const char *p, *q;
+
+  assert (valid_const (dividend));
+  assert (valid_const (divisor));
+
+  dividend = strip_zeroes (dividend);
+  divisor  = strip_zeroes (divisor);
+
+  for (p = dividend; *p && *p == '0'; p++)
+    ;
+
+  for (q = divisor; *q && *q == '0'; q++)
+    ;
+
+  assert (*q); /* in any case even if 'dividend == 0' */
+
+  if (!*p || btor_cmp_const (p, q) < 0)
+  {
+    if (rest_ptr) *rest_ptr = btor_strdup (mem, q);
+
+    return btor_strdup (mem, "");
+  }
+
+  plen  = strlen (p);
+  qlen  = strlen (q);
+  delta = plen - qlen;
+  assert (delta >= 0);
+
+  extended_divisor = btor_malloc (mem, plen + 1);
+  memset (extended_divisor, '0', delta);
+  strcpy (extended_divisor + delta, divisor);
+
+  udiv_umod_const (mem, dividend, extended_divisor, &quotient, &rest);
+
+  btor_delete_const (mem, extended_divisor);
+
+  tmp = btor_strdup (mem, strip_zeroes (quotient));
+  btor_delete_const (mem, quotient);
+  quotient = tmp;
+
+  tmp = btor_strdup (mem, strip_zeroes (rest));
+  btor_delete_const (mem, rest);
+  rest = tmp;
+
+  assert (btor_cmp_const (rest, divisor) < 0);
+#ifndef NDEBUG
+  {
+    char *tmp1 = btor_mult_unbounded_const (mem, quotient, divisor);
+    char *tmp2 = btor_add_unbounded_const (mem, tmp1, rest);
+    assert (!btor_cmp_const (dividend, tmp2));
+    btor_freestr (mem, tmp1);
+    btor_freestr (mem, tmp2);
+  }
+#endif
+  if (rest_ptr)
+    *rest_ptr = rest;
+  else
+    btor_delete_const (mem, rest);
+
+  return quotient;
 }

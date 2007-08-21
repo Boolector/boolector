@@ -161,12 +161,8 @@ test_sub_unbounded_const_aux (FILE *fout, const char *a, const char *b)
 {
   char *c = btor_sub_unbounded_const (g_mm, a, b);
   char fmt[80];
-  size_t len = strlen (a);
-  sprintf (fmt,
-           "  %%%ds\n- %%%ds\n= %%%ds\n\n",
-           (int) len + 1,
-           (int) len + 1,
-           (int) len + 1);
+  int len = strlen (a) + 1;
+  sprintf (fmt, "  %%%ds\n- %%%ds\n= %%%ds\n\n", len, len, len);
   fprintf (fout, fmt, a, b, c);
   btor_delete_const (g_mm, c);
 }
@@ -193,6 +189,27 @@ test_sub_unbounded_const (void)
   test_sub_unbounded_const_aux (fout, "100", "100");
   test_sub_unbounded_const_aux (fout, "101", "0");
   test_sub_unbounded_const_aux (fout, "101", "010");
+  fclose (fout);
+}
+
+static void
+test_udiv_unbounded_const_aux (FILE *fout, const char *a, const char *b)
+{
+  char *d, *c = btor_udiv_unbounded_const (g_mm, a, b, &d);
+  char fmt[80];
+  size_t len = strlen (a);
+  sprintf (
+      fmt, "  %%%ds\n/ %%%ds\n= %%%ds\n%%%% %%%ds\n\n", len, len, len, len);
+  fprintf (fout, fmt, a, b, c, d);
+  btor_delete_const (g_mm, c);
+  btor_delete_const (g_mm, d);
+}
+
+static void
+test_udiv_unbounded_const (void)
+{
+  FILE *fout = fopen ("log/udiv_unbounded_const.log", "w");
+  test_udiv_unbounded_const_aux (fout, "", "1");
   fclose (fout);
 }
 
@@ -482,6 +499,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (add_unbounded_const);
   BTOR_RUN_TEST_CHECK_LOG (mult_unbounded_const);
   BTOR_RUN_TEST_CHECK_LOG (sub_unbounded_const);
+  BTOR_RUN_TEST_CHECK_LOG (udiv_unbounded_const);
   BTOR_RUN_TEST (not_const);
   BTOR_RUN_TEST (neg_const);
   BTOR_RUN_TEST (and_const);

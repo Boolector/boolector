@@ -21,10 +21,10 @@ char *btor_sub_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
 /* If the rest_ptr is non zero, then the rest is written to this ptr.
  * TODO not fully implemented yet.
  */
-char *btor_div_unbounded_const (BtorMemMgr *mm,
-                                const char *a,
-                                const char *b,
-                                char **rest_ptr);
+char *btor_udiv_unbounded_const (BtorMemMgr *mm,
+                                 const char *a,
+                                 const char *b,
+                                 char **rest_ptr);
 
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
