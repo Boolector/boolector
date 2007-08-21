@@ -512,6 +512,43 @@ test_srl_const (void)
   shift_const_test (srl, btor_srl_const);
 }
 
+static void
+test_const_to_hex_aux (FILE *fout, const char *c)
+{
+  char *h = btor_const_to_hex (g_mm, c);
+  fprintf (fout, "2'%s = 16'%s\n", c, h);
+  btor_freestr (g_mm, h);
+}
+
+static void
+test_const_to_hex (void)
+{
+  FILE *fout = fopen ("log/const_to_hex.log", "w");
+  test_const_to_hex_aux (fout, "");
+  test_const_to_hex_aux (fout, "1");
+  test_const_to_hex_aux (fout, "10");
+  test_const_to_hex_aux (fout, "11");
+  test_const_to_hex_aux (fout, "100");
+  test_const_to_hex_aux (fout, "101");
+  test_const_to_hex_aux (fout, "110");
+  test_const_to_hex_aux (fout, "111");
+  test_const_to_hex_aux (fout, "1000");
+  test_const_to_hex_aux (fout, "1001");
+  test_const_to_hex_aux (fout, "1010");
+  test_const_to_hex_aux (fout, "1011");
+  test_const_to_hex_aux (fout, "1100");
+  test_const_to_hex_aux (fout, "1101");
+  test_const_to_hex_aux (fout, "1110");
+  test_const_to_hex_aux (fout, "1111");
+  test_const_to_hex_aux (fout, "10000");
+  test_const_to_hex_aux (fout, "10001");
+  test_const_to_hex_aux (fout, "1111111111111111");
+  test_const_to_hex_aux (fout, "11111111111111111");
+  test_const_to_hex_aux (fout, "00001111111111111111");
+  test_const_to_hex_aux (fout, "000011111111111111111");
+  fclose (fout);
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -534,6 +571,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (concat_const);
   BTOR_RUN_TEST (sll_const);
   BTOR_RUN_TEST (srl_const);
+  BTOR_RUN_TEST_CHECK_LOG (const_to_hex);
 }
 
 void

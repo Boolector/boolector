@@ -768,3 +768,45 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
 
   return quotient;
 }
+
+char *
+btor_const_to_hex (BtorMemMgr *mem, const char *c)
+{
+  int clen = strlen (c), rlen = (clen + 3) / 4, i, j, tmp;
+  char *res, ch;
+
+  if (rlen)
+  {
+    res = btor_malloc (mem, rlen + 1);
+
+    i = clen - 1;
+    j = rlen;
+
+    res[j--] = 0;
+
+    while (i >= 0)
+    {
+      tmp = (c[i--] == '1');
+      if (i >= 0)
+      {
+        tmp |= (c[i--] == '1') << 1;
+        if (i >= 0)
+        {
+          tmp |= (c[i--] == '1') << 2;
+          if (i >= 0) tmp |= (c[i--] == '1') << 3;
+        }
+      }
+
+      if (tmp < 10)
+        ch = '0' + tmp;
+      else
+        ch = 'a' + (tmp - 10);
+
+      res[j--] = ch;
+    }
+  }
+  else
+    res = btor_strdup (mem, "0");
+
+  return res;
+}

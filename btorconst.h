@@ -18,9 +18,6 @@ char *btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_sub_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
 
-/* If the rest_ptr is non zero, then the rest is written to this ptr.
- * TODO not fully implemented yet.
- */
 char *btor_udiv_unbounded_const (BtorMemMgr *mm,
                                  const char *a,
                                  const char *b,
@@ -67,5 +64,11 @@ int btor_cmp_const (const char *a, const char *b);
 char *btor_const2decimal (BtorMemMgr *mm, const char *c);
 
 char *btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower);
+
+/*------------------------------------------------------------------------*/
+/* Output functions.
+ */
+char *btor_const_to_hex (BtorMemMgr *mm, const char *c);
+char *btor_const_to_decimal (BtorMemMgr *mm, const char *c);
 
 #endif
