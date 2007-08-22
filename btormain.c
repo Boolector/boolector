@@ -325,6 +325,7 @@ btor_main (int argc, char **argv)
     else
     {
       btor_init_sat ();
+      if (verbosity >= 2) btor_enable_verbosity_sat ();
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
       if (sat_result == BTOR_UNSAT)
         print_msg ("UNSATISFIABLE\n");

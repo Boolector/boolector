@@ -59,10 +59,13 @@ void
 btor_init_sat (void)
 {
   picosat_init ();
-#if 0
+}
+
+void
+btor_enable_verbosity_sat (void)
+{
   picosat_enable_verbosity ();
   picosat_set_output (stderr);
-#endif
 }
 
 void
