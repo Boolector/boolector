@@ -17,6 +17,7 @@
 struct BtorAIGVecMgr
 {
   BtorMemMgr *mm;
+  int verbosity;
   BtorAIGMgr *amgr;
 };
 
@@ -807,13 +808,15 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_new_aigvec_mgr (BtorMemMgr *mm)
+btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
 {
   BtorAIGVecMgr *avmgr = NULL;
   assert (mm != NULL);
-  avmgr       = (BtorAIGVecMgr *) btor_malloc (mm, sizeof (BtorAIGVecMgr));
-  avmgr->mm   = mm;
-  avmgr->amgr = btor_new_aig_mgr (mm);
+  assert (verbosity >= 0);
+  avmgr            = (BtorAIGVecMgr *) btor_malloc (mm, sizeof (BtorAIGVecMgr));
+  avmgr->mm        = mm;
+  avmgr->verbosity = verbosity;
+  avmgr->amgr      = btor_new_aig_mgr (mm, verbosity);
   return avmgr;
 }
 

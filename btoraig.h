@@ -39,7 +39,7 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
 
-BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
+BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, int verbosity);
 
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 

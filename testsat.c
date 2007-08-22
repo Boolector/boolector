@@ -20,14 +20,14 @@ init_sat_tests (void)
 static void
 test_new_delete_cnf_mgr (void)
 {
-  BtorCNFMgr *cmgr = btor_new_cnf_mgr (g_mm);
+  BtorCNFMgr *cmgr = btor_new_cnf_mgr (g_mm, 0);
   btor_delete_cnf_mgr (cmgr);
 }
 
 static void
 test_next_cnf_id_cnf_mgr (void)
 {
-  BtorCNFMgr *cmgr = btor_new_cnf_mgr (g_mm);
+  BtorCNFMgr *cmgr = btor_new_cnf_mgr (g_mm, 0);
   assert (btor_next_cnf_id_cnf_mgr (cmgr) == 1);
   assert (btor_next_cnf_id_cnf_mgr (cmgr) == 2);
   assert (btor_next_cnf_id_cnf_mgr (cmgr) == 3);

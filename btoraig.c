@@ -45,6 +45,7 @@ struct BtorAIGMgr
   BtorMemMgr *mm;
   BtorAIGUniqueTable table;
   int id;
+  int verbosity;
   BtorCNFMgr *cmgr;
 };
 
@@ -787,15 +788,17 @@ btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig)
 }
 
 BtorAIGMgr *
-btor_new_aig_mgr (BtorMemMgr *mm)
+btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
 {
   BtorAIGMgr *amgr = NULL;
   assert (mm != NULL);
+  assert (verbosity >= 0);
   amgr     = (BtorAIGMgr *) btor_malloc (mm, sizeof (BtorAIGMgr));
   amgr->mm = mm;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
-  amgr->id   = 1;
-  amgr->cmgr = btor_new_cnf_mgr (mm);
+  amgr->id        = 1;
+  amgr->verbosity = verbosity;
+  amgr->cmgr      = btor_new_cnf_mgr (mm, verbosity);
   return amgr;
 }
 

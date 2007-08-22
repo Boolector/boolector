@@ -281,7 +281,7 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    emgr = btor_new_exp_mgr (rewrite_level, dump_trace, trace_file);
+    emgr = btor_new_exp_mgr (rewrite_level, dump_trace, verbosity, trace_file);
     mem  = btor_get_mem_mgr_exp_mgr (emgr);
     ftor = btor_new_ftor (emgr);
 

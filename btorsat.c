@@ -15,6 +15,7 @@
 struct BtorCNFMgr
 {
   int id;
+  int verbosity;
   BtorMemMgr *mm;
 };
 
@@ -27,13 +28,15 @@ struct BtorCNFMgr
 /*------------------------------------------------------------------------*/
 
 BtorCNFMgr *
-btor_new_cnf_mgr (BtorMemMgr *mm)
+btor_new_cnf_mgr (BtorMemMgr *mm, int verbosity)
 {
   BtorCNFMgr *cmgr = NULL;
   assert (mm != NULL);
-  cmgr     = (BtorCNFMgr *) btor_malloc (mm, sizeof (BtorCNFMgr));
-  cmgr->id = 1;
-  cmgr->mm = mm;
+  assert (verbosity >= 0);
+  cmgr            = (BtorCNFMgr *) btor_malloc (mm, sizeof (BtorCNFMgr));
+  cmgr->id        = 1;
+  cmgr->verbosity = verbosity;
+  cmgr->mm        = mm;
   return cmgr;
 }
 

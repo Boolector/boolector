@@ -18,7 +18,7 @@ typedef struct BtorAIGVec BtorAIGVec;
 
 typedef struct BtorAIGVecMgr BtorAIGVecMgr;
 
-BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm);
+BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity);
 
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
 

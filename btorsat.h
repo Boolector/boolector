@@ -14,7 +14,7 @@ typedef struct BtorCNFMgr BtorCNFMgr;
 #define BTOR_SAT 10
 #define BTOR_UNSAT 20
 
-BtorCNFMgr *btor_new_cnf_mgr (BtorMemMgr *mm);
+BtorCNFMgr *btor_new_cnf_mgr (BtorMemMgr *mm, int verbosity);
 
 int btor_next_cnf_id_cnf_mgr (BtorCNFMgr *cmgr);
 

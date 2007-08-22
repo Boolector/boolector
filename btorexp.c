@@ -52,6 +52,7 @@ struct BtorExpMgr
   int id;
   int rewrite_level;
   int dump_trace;
+  int verbosity;
   FILE *trace_file;
 };
 
@@ -2641,7 +2642,10 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
 }
 
 BtorExpMgr *
-btor_new_exp_mgr (int rewrite_level, int dump_trace, FILE *trace_file)
+btor_new_exp_mgr (int rewrite_level,
+                  int dump_trace,
+                  int verbosity,
+                  FILE *trace_file)
 {
   BtorMemMgr *mm   = btor_new_mem_mgr ();
   BtorExpMgr *emgr = NULL;
@@ -2649,16 +2653,18 @@ btor_new_exp_mgr (int rewrite_level, int dump_trace, FILE *trace_file)
   assert (sizeof (int) == 4);
   assert (rewrite_level >= 0);
   assert (rewrite_level <= 2);
+  assert (verbosity >= 0);
   emgr     = btor_malloc (mm, sizeof (BtorExpMgr));
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_INIT_STACK (emgr->assigned_exps);
   BTOR_INIT_STACK (emgr->vars);
   BTOR_INIT_STACK (emgr->arrays);
-  emgr->avmgr         = btor_new_aigvec_mgr (emgr->mm);
+  emgr->avmgr         = btor_new_aigvec_mgr (emgr->mm, verbosity);
   emgr->id            = 1;
   emgr->rewrite_level = rewrite_level;
   emgr->dump_trace    = dump_trace;
+  emgr->verbosity     = verbosity;
   emgr->trace_file    = trace_file;
   return emgr;
 }
