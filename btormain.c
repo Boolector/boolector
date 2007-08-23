@@ -161,7 +161,6 @@ btor_main (int argc, char **argv)
   int done                    = 0;
   int err                     = 0;
   int i                       = 0;
-  int j                       = 0;
   int close_input_file        = 0;
   int close_output_file       = 0;
   int close_exp_file          = 0;
@@ -395,33 +394,10 @@ btor_main (int argc, char **argv)
               else
                 pretty_witness = witness;
 
-              print_msg_va_args ("%s: %s\n",
+              print_msg_va_args ("%s %s\n",
                                  btor_get_symbol_exp (emgr, cur_exp),
                                  pretty_witness);
               if (hex) btor_freestr (mem, pretty_witness);
-            }
-          }
-          for (i = 0; i < ftor_res.narrays; i++)
-          {
-            cur_exp = ftor_res.arrays[i];
-            assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-            for (j = 0; j < btor_pow_2_util (cur_exp->index_len); j++)
-            {
-              witness = btor_get_assignment_array_exp (emgr, cur_exp, j);
-
-              if (witness != NULL)
-              {
-                if (hex)
-                  pretty_witness = btor_const_to_hex (mem, witness);
-                else
-                  pretty_witness = witness;
-
-                print_msg_va_args ("%s[%d]: %s\n",
-                                   btor_get_symbol_exp (emgr, cur_exp),
-                                   j,
-                                   pretty_witness);
-                if (hex) btor_freestr (mem, pretty_witness);
-              }
             }
           }
         }
