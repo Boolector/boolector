@@ -2393,7 +2393,7 @@ btor_concat_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 }
 
 BtorExp *
-btor_acc_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
+btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
 {
   assert (emgr != NULL);
   assert (e_array != NULL);
@@ -2405,7 +2405,7 @@ btor_acc_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (BTOR_REAL_ADDR_EXP (e_array)->index_len
           == BTOR_REAL_ADDR_EXP (e_index)->len);
   return btor_binary_exp (
-      emgr, BTOR_ACC_EXP, e_array, e_index, BTOR_REAL_ADDR_EXP (e_array)->len);
+      emgr, BTOR_READ_EXP, e_array, e_index, BTOR_REAL_ADDR_EXP (e_array)->len);
 }
 
 static BtorExp *
@@ -2597,7 +2597,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
             case BTOR_UMOD_EXP: fprintf (file, "umod"); break;
             case BTOR_CONCAT_EXP: fprintf (file, "concat"); break;
             default:
-              assert (cur->kind == BTOR_ACC_EXP);
+              assert (cur->kind == BTOR_READ_EXP);
               fprintf (file, "acc");
               break;
           }
@@ -2828,7 +2828,7 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
               cur->av = btor_concat_aigvec (avmgr, av0, av1);
               break;
             default:
-              assert (cur->kind == BTOR_ACC_EXP);
+              assert (cur->kind == BTOR_READ_EXP);
               cur->av = btor_acc_aigvec (avmgr, av0, av1);
               break;
           }

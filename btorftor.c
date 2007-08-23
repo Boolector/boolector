@@ -1098,7 +1098,7 @@ parse_slice (BtorFtor *ftor, int len)
 }
 
 static BtorExp *
-parse_acc (BtorFtor *ftor, int len)
+parse_read (BtorFtor *ftor, int len)
 {
   BtorExp *array, *idx, *res;
   int idxlen;
@@ -1120,7 +1120,7 @@ parse_acc (BtorFtor *ftor, int len)
   idxlen = btor_get_index_exp_len (ftor->btor, array);
   if (!(idx = parse_exp (ftor, idxlen))) goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
-  res = btor_acc_exp (ftor->btor, array, idx);
+  res = btor_read_exp (ftor->btor, array, idx);
   btor_release_exp (ftor->btor, idx);
   btor_release_exp (ftor->btor, array);
 
@@ -1259,7 +1259,7 @@ btor_new_ftor (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_const, "const");
   new_parser (res, parse_consth, "consth");
   new_parser (res, parse_constd, "constd");
-  new_parser (res, parse_acc, "acc");
+  new_parser (res, parse_read, "read");
   new_parser (res, parse_eq, "eq");
   new_parser (res, parse_ne, "ne");
   new_parser (res, parse_neg, "neg");

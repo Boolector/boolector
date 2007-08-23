@@ -26,7 +26,8 @@ enum BtorExpKind
   BTOR_UDIV_EXP,
   BTOR_UMOD_EXP,
   BTOR_CONCAT_EXP,
-  BTOR_ACC_EXP,
+  BTOR_READ_EXP,
+  BTOR_WRITE_EXP,
   BTOR_COND_EXP,
 };
 
@@ -72,7 +73,7 @@ struct BtorExp
 #define BTOR_IS_ARRAY_EXP_KIND(kind) ((kind) == BTOR_ARRAY_EXP)
 #define BTOR_IS_UNARY_EXP_KIND(kind) ((kind) == BTOR_SLICE_EXP)
 #define BTOR_IS_BINARY_EXP_KIND(kind) \
-  (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_ACC_EXP))
+  (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
 #define BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_UMUL_EXP))
 #define BTOR_IS_TERNARY_EXP_KIND(kind) ((kind) == BTOR_COND_EXP)

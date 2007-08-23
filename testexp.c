@@ -537,14 +537,14 @@ test_ror_exp (void)
 }
 
 static void
-test_acc_exp (void)
+test_read_exp (void)
 {
-  FILE *fout       = fopen ("log/acc_exp.log", "w");
+  FILE *fout       = fopen ("log/read_exp.log", "w");
   BtorExpMgr *emgr = btor_new_exp_mgr (0, 0, 0, stdout);
   BtorExp *exp1    = btor_array_exp (emgr, 32, 8, "a1");
   BtorExp *exp2    = btor_var_exp (emgr, 8, "v1");
-  BtorExp *exp3    = btor_acc_exp (emgr, exp1, exp2);
-  BtorExp *exp4    = btor_acc_exp (emgr, exp1, exp2);
+  BtorExp *exp3    = btor_read_exp (emgr, exp1, exp2);
+  BtorExp *exp4    = btor_read_exp (emgr, exp1, exp2);
   assert (exp4 == exp3);
   assert (btor_get_exp_len (emgr, exp1) == 32);
   assert (btor_get_index_exp_len (emgr, exp1) == 8);
@@ -665,7 +665,7 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (umod_exp);
   BTOR_RUN_TEST_CHECK_LOG (smod_exp);
   BTOR_RUN_TEST_CHECK_LOG (concat_exp);
-  BTOR_RUN_TEST_CHECK_LOG (acc_exp);
+  BTOR_RUN_TEST_CHECK_LOG (read_exp);
   BTOR_RUN_TEST_CHECK_LOG (cond_exp);
   BTOR_RUN_TEST (exp_to_aig);
 }
