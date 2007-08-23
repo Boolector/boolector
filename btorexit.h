@@ -6,7 +6,8 @@ enum BtorExitCode
   BTOR_SUCC_EXIT,
   BTOR_ERR_EXIT,
   BTOR_SAT_EXIT,
-  BTOR_UNSAT_EXIT
+  BTOR_UNSAT_EXIT,
+  BTOR_UNKNOWN_EXIT
 };
 
 typedef enum BtorExitCode BtorExitCode;
