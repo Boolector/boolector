@@ -12,6 +12,15 @@
 #include <stdlib.h>
 #include <string.h>
 
+/* BSD/Linux/SysV specific */
+#define BTOR_HAVE_GETRUSAGE /* do we have 'getrusage' ? */
+
+#ifdef BTOR_HAVE_GETRUSAGE
+#include <sys/resource.h>
+#include <sys/time.h>
+#include <sys/unistd.h>
+#endif
+
 static const char *g_usage =
     "usage: boolector [<option>...][<input>]\n"
     "\n"
@@ -45,6 +54,22 @@ static const char *g_credits =
 
 int g_quiet;
 FILE *g_output_file;
+
+#ifdef BTOR_HAVE_GETRUSAGE
+static double
+time_stamp (void)
+{
+  double res = -1;
+  struct rusage u;
+  res = 0;
+  if (!getrusage (RUSAGE_SELF, &u))
+  {
+    res += u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;
+    res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec;
+  }
+  return res;
+}
+#endif
 
 static void
 print_msg (char *msg)
@@ -115,6 +140,11 @@ handle_dump_file (char **argv,
 int
 btor_main (int argc, char **argv)
 {
+#ifdef BTOR_HAVE_GETRUSAGE
+  double start_time = time_stamp ();
+  double delta_time = 0.0;
+#endif
+  int return_val              = 0;
   int sat_result              = 0;
   int done                    = 0;
   int err                     = 0;
@@ -394,9 +424,22 @@ btor_main (int argc, char **argv)
   if (close_aig_file) fclose (aig_file);
   if (close_cnf_file) fclose (cnf_file);
   if (close_trace_file) fclose (trace_file);
-  if (err) return BTOR_ERR_EXIT;
-  if (done) return BTOR_SUCC_EXIT;
-  if (sat_result == BTOR_UNSAT) return BTOR_UNSAT_EXIT;
-  assert (sat_result == BTOR_SAT);
-  return BTOR_SAT_EXIT;
+  if (err)
+    return_val = BTOR_ERR_EXIT;
+  else if (done)
+    return_val = BTOR_SUCC_EXIT;
+  else if (sat_result == BTOR_UNSAT)
+    return_val = BTOR_UNSAT_EXIT;
+  else if (sat_result == BTOR_SAT)
+    return_val = BTOR_SAT_EXIT;
+  else
+  {
+    assert (sat_result == BTOR_SAT);
+    return_val = BTOR_UNKNOWN_EXIT;
+  }
+#ifdef BTOR_HAVE_GETRUSAGE
+  delta_time = time_stamp () - start_time;
+  print_msg_va_args ("%.1f seconds\n", delta_time);
+#endif
+  return return_val;
 }
