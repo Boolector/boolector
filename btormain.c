@@ -415,7 +415,7 @@ btor_main (int argc, char **argv)
               else
                 pretty_witness = witness;
 
-              print_msg_va_args ("%s: %s\n",
+              print_msg_va_args ("%s %s\n",
                                  btor_get_symbol_exp (emgr, cur_exp),
                                  pretty_witness);
               if (hex) btor_freestr (mem, pretty_witness);
