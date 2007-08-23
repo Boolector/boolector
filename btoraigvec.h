@@ -28,10 +28,6 @@ BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
 
 BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, int len);
 
-BtorAIGVec *btor_array_aigvec (BtorAIGVecMgr *avmgr,
-                               int elem_len,
-                               int index_len);
-
 BtorAIGVec *btor_not_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 BtorAIGVec *btor_slice_aigvec (BtorAIGVecMgr *avmgr,
@@ -78,10 +74,6 @@ BtorAIGVec *btor_umod_aigvec (BtorAIGVecMgr *avmgr,
 BtorAIGVec *btor_concat_aigvec (BtorAIGVecMgr *avmgr,
                                 BtorAIGVec *av1,
                                 BtorAIGVec *av2);
-
-BtorAIGVec *btor_read_aigvec (BtorAIGVecMgr *avmgr,
-                              BtorAIGVec *av_array,
-                              BtorAIGVec *av_index);
 
 BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av_cond,

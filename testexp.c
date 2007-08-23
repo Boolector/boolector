@@ -64,9 +64,9 @@ test_array_exp (void)
 {
   FILE *fout       = fopen ("log/array_exp.log", "w");
   BtorExpMgr *emgr = btor_new_exp_mgr (0, 0, 0, stdout);
-  BtorExp *exp1    = btor_array_exp (emgr, 32, 8, "a1");
+  BtorExp *exp1    = btor_array_exp (emgr, 32, 8);
   BtorExp *exp2    = btor_copy_exp (emgr, exp1);
-  BtorExp *exp3    = btor_array_exp (emgr, 32, 8, "a2");
+  BtorExp *exp3    = btor_array_exp (emgr, 32, 8);
   assert (exp1 == exp2);
   assert (exp1 != exp3);
   assert (btor_get_exp_len (emgr, exp1) == 32);
@@ -541,7 +541,7 @@ test_read_exp (void)
 {
   FILE *fout       = fopen ("log/read_exp.log", "w");
   BtorExpMgr *emgr = btor_new_exp_mgr (0, 0, 0, stdout);
-  BtorExp *exp1    = btor_array_exp (emgr, 32, 8, "a1");
+  BtorExp *exp1    = btor_array_exp (emgr, 32, 8);
   BtorExp *exp2    = btor_var_exp (emgr, 8, "v1");
   BtorExp *exp3    = btor_read_exp (emgr, exp1, exp2);
   BtorExp *exp4    = btor_read_exp (emgr, exp1, exp2);

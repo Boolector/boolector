@@ -37,10 +37,7 @@ BtorExp *btor_const_exp (BtorExpMgr *emgr, const char *bits);
 BtorExp *btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol);
 
 /* arrays are sticky and cannot be deleted */
-BtorExp *btor_array_exp (BtorExpMgr *emgr,
-                         int elem_len,
-                         int index_len,
-                         const char *symbol);
+BtorExp *btor_array_exp (BtorExpMgr *emgr, int elem_len, int index_len);
 
 BtorExp *btor_not_exp (BtorExpMgr *emgr, BtorExp *exp);
 
@@ -158,9 +155,5 @@ void btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp);
 int btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp);
 
 char *btor_get_assignment_var_exp (BtorExpMgr *emgr, BtorExp *exp);
-
-char *btor_get_assignment_array_exp (BtorExpMgr *emgr,
-                                     BtorExp *e_array,
-                                     int pos);
 
 #endif

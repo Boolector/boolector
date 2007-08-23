@@ -73,26 +73,6 @@ btor_var_aigvec (BtorAIGVecMgr *avmgr, int len)
 }
 
 BtorAIGVec *
-btor_array_aigvec (BtorAIGVecMgr *avmgr, int elem_len, int index_len)
-{
-  BtorAIGVec *result = NULL;
-  int i              = 0;
-  int len            = 0;
-  int pow2           = 0;
-  assert (avmgr != NULL);
-  assert (elem_len > 0);
-  assert (index_len > 0);
-  assert (index_len <= 30);
-  pow2 = btor_pow_2_util (index_len);
-  assert (pow2 > 0);
-  len = elem_len * btor_pow_2_util (index_len);
-  assert (len / elem_len == pow2);
-  result = new_aigvec (avmgr, len);
-  for (i = len - 1; i >= 0; i--) result->aigs[i] = btor_var_aig (avmgr->amgr);
-  return result;
-}
-
-BtorAIGVec *
 btor_not_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
   BtorAIGVec *result = NULL;
@@ -684,73 +664,6 @@ btor_concat_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
     result->aigs[pos++] = btor_copy_aig (avmgr->amgr, av1->aigs[i]);
   for (i = 0; i < len_av2; i++)
     result->aigs[pos++] = btor_copy_aig (avmgr->amgr, av2->aigs[i]);
-  return result;
-}
-
-BtorAIGVec *
-btor_read_aigvec (BtorAIGVecMgr *avmgr,
-                  BtorAIGVec *av_array,
-                  BtorAIGVec *av_index)
-{
-  BtorAIGVec *result   = NULL;
-  BtorAIGVec *and      = NULL;
-  BtorAIGVec *and_temp = NULL;
-  BtorAIG *cur         = NULL;
-  BtorAIG * or         = NULL;
-  int elem_len         = 0;
-  int i                = 0;
-  int j                = 0;
-  int k                = 0;
-  int pow2             = 0;
-  int pow2_index_len   = 0;
-  int invert           = 0;
-  assert (avmgr != NULL);
-  assert (av_array != NULL);
-  assert (av_index != NULL);
-#ifndef NDEBUG
-  for (i = 0; i < av_array->len; i++)
-  {
-    assert (!BTOR_IS_INVERTED_AIG (av_array->aigs[i]));
-    assert (BTOR_IS_VAR_AIG (av_array->aigs[i]));
-  }
-#endif
-  pow2_index_len = btor_pow_2_util (av_index->len);
-  assert (pow2_index_len > 0);
-  elem_len = av_array->len / pow2_index_len;
-  assert (av_array->len % pow2_index_len == 0);
-  and = btor_copy_aigvec (avmgr, av_array);
-  for (i = av_index->len - 1; i >= 0; i--)
-  {
-    pow2     = btor_pow_2_util (av_index->len - 1 - i);
-    invert   = 0;
-    and_temp = new_aigvec (avmgr, and->len);
-    for (j = 0; j < pow2_index_len; j += pow2)
-    {
-      if (invert)
-        cur = btor_not_aig (avmgr->amgr, av_index->aigs[i]);
-      else
-        cur = btor_copy_aig (avmgr->amgr, av_index->aigs[i]);
-      invert = !invert;
-      for (k = j * elem_len; k < j * elem_len + pow2 * elem_len; k++)
-        and_temp->aigs[k] = btor_and_aig (avmgr->amgr, and->aigs[k], cur);
-      btor_release_aig (avmgr->amgr, cur);
-    }
-    btor_release_delete_aigvec (avmgr, and);
-    and = and_temp;
-  }
-  result = new_aigvec (avmgr, elem_len);
-  for (i = 0; i < elem_len; i++)
-  {
-    result->aigs[i] = btor_copy_aig (avmgr->amgr, and->aigs[i]);
-    for (j = 1; j < pow2_index_len; j++)
-    {
-      or = btor_or_aig (
-             avmgr->amgr, result->aigs[i], and->aigs[j * elem_len + i]);
-      btor_release_aig (avmgr->amgr, result->aigs[i]);
-      result->aigs[i] = or ;
-    }
-  }
-  btor_release_delete_aigvec (avmgr, and);
   return result;
 }
 

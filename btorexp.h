@@ -43,9 +43,8 @@ struct BtorExp
       char *symbol; /* for variables and arrays */
       union
       {
-        int upper;          /* for slices only */
-        char *assignment;   /* for variables only */
-        char **assignments; /* for arrays only */
+        int upper;        /* for slices only */
+        char *assignment; /* for variables only */
       };
       union
       {

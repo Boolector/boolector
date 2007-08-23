@@ -416,8 +416,6 @@ new_ternary_exp_node (BtorExpMgr *emgr,
 static void
 delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
 {
-  int i            = 0;
-  int num_elements = 0;
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_INVERTED_EXP (exp));
@@ -430,20 +428,6 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
     btor_freestr (emgr->mm, exp->symbol);
     if (exp->assignment != NULL) btor_freestr (emgr->mm, exp->assignment);
   }
-  else if (BTOR_IS_ARRAY_EXP (exp))
-  {
-    btor_freestr (emgr->mm, exp->symbol);
-    if (exp->assignments != NULL)
-    {
-      num_elements = btor_pow_2_util (exp->index_len);
-      for (i = 0; i < num_elements; i++)
-      {
-        if (exp->assignments[i] != NULL)
-          btor_freestr (emgr->mm, exp->assignments[i]);
-      }
-      btor_free (emgr->mm, exp->assignments, sizeof (char **) * num_elements);
-    }
-  }
   else if (BTOR_IS_UNARY_EXP (exp))
   {
     disconnect_child_exp (emgr, exp, 0);
@@ -453,7 +437,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
     disconnect_child_exp (emgr, exp, 0);
     disconnect_child_exp (emgr, exp, 1);
   }
-  else
+  else if (!BTOR_IS_ARRAY_EXP (exp))
   {
     assert (BTOR_IS_TERNARY_EXP (exp));
     disconnect_child_exp (emgr, exp, 0);
@@ -866,22 +850,15 @@ btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol)
 }
 
 BtorExp *
-btor_array_exp (BtorExpMgr *emgr,
-                int elem_len,
-                int index_len,
-                const char *symbol)
+btor_array_exp (BtorExpMgr *emgr, int elem_len, int index_len)
 {
   BtorExp *exp = NULL;
   assert (emgr != NULL);
   assert (elem_len > 0);
   assert (index_len > 0);
   assert (index_len <= 30);
-  assert (symbol != NULL);
-  exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
-  exp->kind = BTOR_ARRAY_EXP;
-  exp->symbol =
-      (char *) btor_malloc (emgr->mm, sizeof (char) * (strlen (symbol) + 1));
-  strcpy (exp->symbol, symbol);
+  exp            = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  exp->kind      = BTOR_ARRAY_EXP;
   exp->index_len = index_len;
   exp->len       = elem_len;
   assert (emgr->id < INT_MAX);
@@ -2737,6 +2714,7 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
     assert (cur->mark >= 0);
     assert (cur->mark <= 1);
+    assert (!BTOR_IS_ARRAY_EXP (cur));
     if (cur->av == NULL)
     {
       if (cur->mark == 0)
@@ -2745,13 +2723,9 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
         {
           cur->av = btor_const_aigvec (avmgr, cur->bits);
         }
-        else if (BTOR_IS_VAR_EXP (cur))
+        else if (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP)
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
-        }
-        else if (BTOR_IS_ARRAY_EXP (cur))
-        {
-          cur->av = btor_array_aigvec (avmgr, cur->len, cur->index_len);
         }
         else
         {
@@ -2824,12 +2798,9 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
             case BTOR_UMOD_EXP:
               cur->av = btor_umod_aigvec (avmgr, av0, av1);
               break;
-            case BTOR_CONCAT_EXP:
-              cur->av = btor_concat_aigvec (avmgr, av0, av1);
-              break;
             default:
-              assert (cur->kind == BTOR_READ_EXP);
-              cur->av = btor_read_aigvec (avmgr, av0, av1);
+              assert (cur->kind == BTOR_CONCAT_EXP);
+              cur->av = btor_concat_aigvec (avmgr, av0, av1);
               break;
           }
           btor_release_delete_aigvec (avmgr, av0);
@@ -2873,36 +2844,17 @@ static void
 free_current_assignments (BtorExpMgr *emgr)
 {
   BtorExp *cur = NULL;
-  int num_elements;
-  int i = 0;
   assert (emgr != NULL);
   while (!BTOR_EMPTY_STACK (emgr->assigned_exps))
   {
     cur = BTOR_POP_STACK (emgr->assigned_exps);
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ARRAY_EXP (cur));
-    if (BTOR_IS_VAR_EXP (cur))
-    {
-      assert (cur->assignment != NULL);
-      btor_free (emgr->mm,
-                 cur->assignment,
-                 sizeof (char *) * (strlen (cur->assignment) + 1));
-      cur->assignment = NULL;
-    }
-    else
-    {
-      assert (BTOR_IS_ARRAY_EXP (cur));
-      assert (cur->assignments != NULL);
-      num_elements = btor_pow_2_util (cur->index_len);
-      for (i = 0; i < num_elements; i++)
-      {
-        if (cur->assignments[i] != NULL)
-          btor_free (emgr->mm,
-                     cur->assignments[i],
-                     sizeof (char *) * (strlen (cur->assignments[i]) * 1));
-      }
-      cur->assignments = NULL;
-    }
+    assert (BTOR_IS_VAR_EXP (cur));
+    assert (cur->assignment != NULL);
+    btor_free (emgr->mm,
+               cur->assignment,
+               sizeof (char *) * (strlen (cur->assignment) + 1));
+    cur->assignment = NULL;
   }
   BTOR_RESET_STACK (emgr->assigned_exps);
 }
@@ -2939,54 +2891,6 @@ btor_get_assignment_var_exp (BtorExpMgr *emgr, BtorExp *exp)
   exp->assignment = assignment;
   BTOR_PUSH_STACK (emgr->mm, emgr->assigned_exps, exp);
   return assignment;
-}
-
-char *
-btor_get_assignment_array_exp (BtorExpMgr *emgr, BtorExp *e_array, int pos)
-{
-  char *result     = NULL;
-  int len          = 0;
-  int num_elements = 0;
-  int num_bits     = 0;
-  int i            = 0;
-  int counter      = 0;
-  int cur          = 0;
-  assert (emgr != NULL);
-  assert (e_array != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (e_array));
-  assert (BTOR_IS_ARRAY_EXP (e_array));
-  assert (pos >= 0);
-  len          = e_array->len;
-  num_elements = btor_pow_2_util (e_array->index_len);
-  assert (pos < num_elements);
-  num_bits = num_elements * len;
-  if (e_array->av == NULL) return NULL;
-  if (e_array->assignments == NULL)
-  {
-    e_array->assignments =
-        (char **) btor_calloc (emgr->mm, num_elements, sizeof (char *));
-    BTOR_PUSH_STACK (emgr->mm, emgr->assigned_exps, e_array);
-  }
-  if (e_array->assignments[pos] != NULL) return e_array->assignments[pos];
-  result = (char *) btor_malloc (emgr->mm, sizeof (char) * (len + 1));
-  for (i = num_bits - (pos + 1) * len; i < num_bits - pos * len; i++)
-  {
-    assert (!BTOR_IS_INVERTED_AIG (e_array->av->aigs[i]));
-    assert (BTOR_IS_VAR_AIG (e_array->av->aigs[i]));
-    cur = btor_get_assignment_aig (
-        btor_get_aig_mgr_aigvec_mgr (btor_get_aigvec_mgr_exp_mgr (emgr)),
-        e_array->av->aigs[i]);
-    if (cur == 1)
-      result[counter] = '1';
-    else if (cur == -1)
-      result[counter] = '0';
-    else
-      result[counter] = 'x';
-    counter++;
-  }
-  result[len]               = '\0';
-  e_array->assignments[pos] = result;
-  return result;
 }
 
 /*------------------------------------------------------------------------*/

@@ -328,7 +328,7 @@ parse_array (BtorFtor *ftor, int len)
   if (parse_positive_int (ftor, &idx_len)) return 0;
 
   sprintf (buffer, "%d", ftor->idx);
-  res = btor_array_exp (ftor->btor, len, idx_len, buffer);
+  res = btor_array_exp (ftor->btor, len, idx_len);
   BTOR_PUSH_STACK (ftor->mm, ftor->arrays, res);
 
   return res;
