@@ -79,9 +79,9 @@ BtorAIGVec *btor_concat_aigvec (BtorAIGVecMgr *avmgr,
                                 BtorAIGVec *av1,
                                 BtorAIGVec *av2);
 
-BtorAIGVec *btor_acc_aigvec (BtorAIGVecMgr *avmgr,
-                             BtorAIGVec *av_array,
-                             BtorAIGVec *av_index);
+BtorAIGVec *btor_read_aigvec (BtorAIGVecMgr *avmgr,
+                              BtorAIGVec *av_array,
+                              BtorAIGVec *av_index);
 
 BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av_cond,
