@@ -18,7 +18,7 @@ static const char *g_usage =
     "where <option> is one of the following:"
     "\n"
     "  -h|--help                     print usage information and exit\n"
-    "  -v|--verbose                  increase verbosity\n"
+    "  -v|--verbose                  increase verbosity (0 default, 3 max)\n"
     "  -V|--version                  print version and exit\n"
     "  -de|--dump-exp <file>         dump expression in BAF\n"
     "  -da|--dump-aig <file>         dump AIG in AIGER\n"
@@ -214,6 +214,7 @@ btor_main (int argc, char **argv)
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
     {
       verbosity++;
+      g_quiet = 0;
     }
     else if (!strcmp (argv[i], "-V") || !strcmp (argv[i], "--version"))
     {
@@ -222,7 +223,8 @@ btor_main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
     {
-      g_quiet = 1;
+      g_quiet   = 1;
+      verbosity = 0;
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
@@ -327,37 +329,17 @@ btor_main (int argc, char **argv)
       btor_init_sat ();
       if (verbosity >= 2) btor_enable_verbosity_sat ();
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
-      if (sat_result == BTOR_UNSAT)
-        print_msg ("UNSATISFIABLE\n");
-      else if (sat_result == BTOR_SAT)
+      if (!g_quiet)
       {
-        print_msg ("SATISFIABLE\n");
-        for (i = 0; i < ftor_res.nvars; i++)
+        if (sat_result == BTOR_UNSAT)
+          print_msg ("UNSATISFIABLE\n");
+        else if (sat_result == BTOR_SAT)
         {
-          cur_exp = ftor_res.vars[i];
-          witness = btor_get_assignment_var_exp (emgr, cur_exp);
-
-          if (witness != NULL)
+          print_msg ("SATISFIABLE\n");
+          for (i = 0; i < ftor_res.nvars; i++)
           {
-            if (hex)
-              pretty_witness = btor_const_to_hex (mem, witness);
-            else
-              pretty_witness = witness;
-
-            print_msg_va_args ("%s: %s\n",
-                               btor_get_symbol_exp (emgr, cur_exp),
-                               pretty_witness);
-            if (hex) btor_freestr (mem, pretty_witness);
-          }
-        }
-        for (i = 0; i < ftor_res.narrays; i++)
-        {
-          cur_exp = ftor_res.arrays[i];
-          assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-          for (j = 0; j < btor_pow_2_util (cur_exp->index_len); j++)
-          {
-            witness = btor_get_assignment_array_exp (emgr, cur_exp, j);
-
+            cur_exp = ftor_res.vars[i];
+            witness = btor_get_assignment_var_exp (emgr, cur_exp);
             if (witness != NULL)
             {
               if (hex)
@@ -365,18 +347,40 @@ btor_main (int argc, char **argv)
               else
                 pretty_witness = witness;
 
-              print_msg_va_args ("%s[%d]: %s\n",
+              print_msg_va_args ("%s: %s\n",
                                  btor_get_symbol_exp (emgr, cur_exp),
-                                 j,
                                  pretty_witness);
               if (hex) btor_freestr (mem, pretty_witness);
             }
           }
+          for (i = 0; i < ftor_res.narrays; i++)
+          {
+            cur_exp = ftor_res.arrays[i];
+            assert (!BTOR_IS_INVERTED_EXP (cur_exp));
+            for (j = 0; j < btor_pow_2_util (cur_exp->index_len); j++)
+            {
+              witness = btor_get_assignment_array_exp (emgr, cur_exp, j);
+
+              if (witness != NULL)
+              {
+                if (hex)
+                  pretty_witness = btor_const_to_hex (mem, witness);
+                else
+                  pretty_witness = witness;
+
+                print_msg_va_args ("%s[%d]: %s\n",
+                                   btor_get_symbol_exp (emgr, cur_exp),
+                                   j,
+                                   pretty_witness);
+                if (hex) btor_freestr (mem, pretty_witness);
+              }
+            }
+          }
         }
-      }
-      else
-      {
-        print_msg ("UNKNOWN SAT RESULT\n");
+        else
+        {
+          print_msg ("UNKNOWN SAT RESULT\n");
+        }
       }
       btor_reset_sat ();
     }
