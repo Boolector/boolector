@@ -328,9 +328,8 @@ btor_main (int argc, char **argv)
   {
     emgr = btor_new_exp_mgr (rewrite_level, dump_trace, verbosity, trace_file);
     mem  = btor_get_mem_mgr_exp_mgr (emgr);
-    ftor = btor_new_ftor (emgr);
+    ftor = btor_new_ftor (emgr, verbosity);
 
-    if (verbosity > 0) print_verbose_msg ("parsing input\n");
     parse_error =
         btor_parse_ftor (ftor, input_file, input_file_name, &ftor_res);
 

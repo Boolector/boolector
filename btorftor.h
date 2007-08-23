@@ -10,6 +10,7 @@
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorFtor BtorFtor;
+
 typedef struct BtorFtorResult BtorFtorResult;
 
 struct BtorFtorResult
@@ -24,7 +25,8 @@ struct BtorFtorResult
   int nroots;
 };
 
-BtorFtor *btor_new_ftor (BtorExpMgr *);
+BtorFtor *btor_new_ftor (BtorExpMgr *, int verbosity);
+
 void btor_delete_ftor (BtorFtor *);
 
 const char *btor_parse_ftor (BtorFtor *,

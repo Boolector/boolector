@@ -42,11 +42,21 @@ struct BtorFtor
   const char **ops;
 
   int idx;
+
+  int verbosity;
 };
 
 static unsigned primes[4] = {111130391, 22237357, 33355519, 444476887};
 
 #define PRIMES ((sizeof primes) / sizeof primes[0])
+
+static void
+print_verbose_msg (char *msg)
+{
+  assert (msg != NULL);
+  fprintf (stderr, "[btorftor] %s", msg);
+  fflush (stderr);
+}
 
 static unsigned
 hash_op (const char *str, unsigned salt)
@@ -1224,10 +1234,12 @@ find_parser (BtorFtor *ftor, const char *op)
 }
 
 BtorFtor *
-btor_new_ftor (BtorExpMgr *btor)
+btor_new_ftor (BtorExpMgr *btor, int verbosity)
 {
   BtorMemMgr *mm = btor_get_mem_mgr_exp_mgr (btor);
   BtorFtor *res;
+
+  assert (verbosity >= 0);
 
   res = btor_malloc (mm, sizeof *res);
   memset (res, 0, sizeof *res);
@@ -1292,6 +1304,8 @@ btor_new_ftor (BtorExpMgr *btor)
   new_parser (res, parse_xor, "xor");
   new_parser (res, parse_xnor, "xnor");
 
+  res->verbosity = verbosity;
+
   return res;
 }
 
@@ -1334,6 +1348,8 @@ btor_parse_ftor (BtorFtor *ftor,
 
   assert (name);
   assert (file);
+
+  if (ftor->verbosity > 0) print_verbose_msg ("parsing input\n");
 
   ftor->file   = file;
   ftor->name   = name;
