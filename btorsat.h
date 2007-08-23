@@ -22,7 +22,11 @@ void btor_delete_cnf_mgr (BtorCNFMgr *mgr);
 
 void btor_init_sat (void);
 
+void btor_set_output_sat (FILE *output);
+
 void btor_enable_verbosity_sat (void);
+
+void btor_print_stats_sat (void);
 
 void btor_add_sat (int lit);
 

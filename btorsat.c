@@ -62,10 +62,23 @@ btor_init_sat (void)
 }
 
 void
+btor_set_output_sat (FILE *output)
+{
+  assert (output != NULL);
+  picosat_set_output (output);
+  picosat_set_prefix ("[picosat] ");
+}
+
+void
 btor_enable_verbosity_sat (void)
 {
   picosat_enable_verbosity ();
-  picosat_set_output (stderr);
+}
+
+void
+btor_print_stats_sat (void)
+{
+  picosat_stats ();
 }
 
 void

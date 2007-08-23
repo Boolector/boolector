@@ -357,6 +357,7 @@ btor_main (int argc, char **argv)
     else
     {
       btor_init_sat ();
+      btor_set_output_sat (stderr);
       if (verbosity >= 2) btor_enable_verbosity_sat ();
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
       if (!g_quiet)
@@ -412,6 +413,7 @@ btor_main (int argc, char **argv)
           print_msg ("UNKNOWN SAT RESULT\n");
         }
       }
+      if (verbosity >= 3) btor_print_stats_sat ();
       btor_reset_sat ();
     }
     btor_delete_ftor (ftor);
