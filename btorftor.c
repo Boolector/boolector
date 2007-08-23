@@ -37,6 +37,7 @@ struct BtorFtor
   BtorCharStack op;
   BtorCharStack bits;
   BtorCharStack constant;
+  BtorCharStack varname;
 
   Parser *parsers;
   const char **ops;
@@ -306,11 +307,45 @@ SKIP:
 static BtorExp *
 parse_var (BtorFtor *ftor, int len)
 {
+  const char *name;
   char buffer[20];
   BtorExp *res;
+  int ch;
 
-  sprintf (buffer, "%d", ftor->idx);
-  res = btor_var_exp (ftor->btor, len, buffer);
+  while ((ch = nextch (ftor)) == ' ' || ch == '\t')
+    ;
+
+  if (ch == EOF)
+  UNEXPECTED_EOF:
+  {
+    (void) parse_error (ftor, "unexpected EOF");
+    return 0;
+  }
+
+    if (ch == '\n')
+    {
+      sprintf (buffer, "%d", ftor->idx);
+      name = buffer;
+    }
+    else
+    {
+      assert (BTOR_EMPTY_STACK (ftor->varname));
+
+      while (!isspace (ch = nextch (ftor)))
+      {
+        if (ch == EOF) goto UNEXPECTED_EOF;
+
+        BTOR_PUSH_STACK (ftor->mm, ftor->varname, ch);
+      }
+
+      BTOR_PUSH_STACK (ftor->mm, ftor->varname, 0);
+      BTOR_RESET_STACK (ftor->varname);
+      name = ftor->varname.start;
+    }
+
+  savech (ftor, ch);
+
+  res = btor_var_exp (ftor->btor, len, name);
   BTOR_PUSH_STACK (ftor->mm, ftor->vars, res);
 
   return res;
@@ -1327,6 +1362,7 @@ btor_delete_ftor (BtorFtor *ftor)
   BTOR_RELEASE_STACK (ftor->mm, ftor->op);
   BTOR_RELEASE_STACK (ftor->mm, ftor->bits);
   BTOR_RELEASE_STACK (ftor->mm, ftor->constant);
+  BTOR_RELEASE_STACK (ftor->mm, ftor->varname);
 
   BTOR_DELETEN (ftor->mm, ftor->parsers, SIZE_PARSERS);
   BTOR_DELETEN (ftor->mm, ftor->ops, SIZE_PARSERS);

@@ -261,9 +261,16 @@ test_factor18446744073709551617_special ()
   run_sat_test ("factor18446744073709551617.in");
 }
 
+static void
+test_varname_special (void)
+{
+  run_sat_test ("varname.in");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
+  BTOR_RUN_TEST (varname_special);
   BTOR_RUN_TEST (rw1_special);
   BTOR_RUN_TEST (rw2_special);
   BTOR_RUN_TEST (rw3_special);
