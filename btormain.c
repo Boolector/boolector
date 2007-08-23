@@ -72,6 +72,14 @@ time_stamp (void)
 #endif
 
 static void
+print_verbose_msg (char *msg)
+{
+  assert (msg != NULL);
+  fprintf (stderr, "[btormain]\t%s", msg);
+  fflush (stderr);
+}
+
+static void
 print_msg (char *msg)
 {
   assert (msg != NULL);
@@ -315,6 +323,7 @@ btor_main (int argc, char **argv)
   {
     emgr = btor_new_exp_mgr (rewrite_level, dump_trace, verbosity, trace_file);
     mem  = btor_get_mem_mgr_exp_mgr (emgr);
+    if (verbosity > 0) print_verbose_msg ("parsing input\n");
     ftor = btor_new_ftor (emgr);
 
     parse_error =
@@ -356,9 +365,12 @@ btor_main (int argc, char **argv)
     }
     else
     {
+      if (verbosity > 2) print_verbose_msg ("initializing SAT solver\n");
       btor_init_sat ();
       btor_set_output_sat (stderr);
       if (verbosity >= 2) btor_enable_verbosity_sat ();
+      if (verbosity == 1)
+        print_verbose_msg ("transforming expression into SAT problem\n");
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
       if (!g_quiet)
       {
@@ -414,8 +426,10 @@ btor_main (int argc, char **argv)
         }
       }
       if (verbosity >= 3) btor_print_stats_sat ();
+      if (verbosity > 2) print_verbose_msg ("cleaning up SAT solver\n");
       btor_reset_sat ();
     }
+    if (verbosity > 1) print_verbose_msg ("cleaning up Boolector\n");
     btor_delete_ftor (ftor);
     btor_delete_exp_mgr (emgr);
   }

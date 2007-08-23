@@ -58,6 +58,18 @@ struct BtorAIGMgr
 /*------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------*/
+/* Auxilliary                                                             */
+/*------------------------------------------------------------------------*/
+
+static void
+print_verbose_msg (char *msg)
+{
+  assert (msg != NULL);
+  fprintf (stderr, "[btoraig]\t%s", msg);
+  fflush (stderr);
+}
+
+/*------------------------------------------------------------------------*/
 /* BtorAIG                                                                */
 /*------------------------------------------------------------------------*/
 
@@ -921,7 +933,9 @@ btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (amgr != NULL);
   if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
   if (aig == BTOR_AIG_TRUE) return BTOR_SAT;
+  if (amgr->verbosity > 1) print_verbose_msg ("transforming AIG into CNF\n");
   btor_aig_to_sat (amgr, aig);
+  if (amgr->verbosity > 0) print_verbose_msg ("calling SAT solver\n");
   return btor_sat_sat (INT_MAX);
 }
 

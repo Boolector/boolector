@@ -68,6 +68,14 @@ struct BtorExpMgr
 /* Auxilliary                                                             */
 /*------------------------------------------------------------------------*/
 
+static void
+print_verbose_msg (char *msg)
+{
+  assert (msg != NULL);
+  fprintf (stderr, "[btorexp]\t%s", msg);
+  fflush (stderr);
+}
+
 static char *
 zeros_string (BtorExpMgr *emgr, int len)
 {
@@ -2908,6 +2916,8 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
   free_current_assignments (emgr);
+  if (emgr->verbosity > 1)
+    print_verbose_msg ("transforming expression into AIG\n");
   aig    = btor_exp_to_aig (emgr, exp);
   result = btor_sat_aig (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr), aig);
   btor_release_aig (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr), aig);
