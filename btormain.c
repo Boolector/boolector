@@ -454,7 +454,7 @@ btor_main (int argc, char **argv)
     return_val = BTOR_UNKNOWN_EXIT;
   }
 #ifdef BTOR_HAVE_GETRUSAGE
-  if (!err && !done)
+  if (!err && !done && !g_quiet)
   {
     delta_time = time_stamp () - start_time;
     print_verbose_msg_va_args ("%.1f seconds\n", delta_time);
