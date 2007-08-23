@@ -274,7 +274,7 @@ cond_test_misc (int low, int high)
 }
 
 static void
-acc_test_misc (int low, int high)
+read_test_misc (int low, int high)
 {
   FILE *f      = NULL;
   int i        = 0;
@@ -298,8 +298,8 @@ acc_test_misc (int low, int high)
         fprintf (f, "3 const 1 1\n");
         fprintf (f, "4 constd %d %d\n", num_bits, i);
         fprintf (f, "5 constd %d %d\n", num_bits, j);
-        fprintf (f, "6 acc %d 1 2\n", num_bits);
-        fprintf (f, "7 acc %d 1 3\n", num_bits);
+        fprintf (f, "6 read %d 1 2\n", num_bits);
+        fprintf (f, "7 read %d 1 3\n", num_bits);
         fprintf (f, "8 eq 1 4 6\n");
         fprintf (f, "9 eq 1 5 7\n");
         fprintf (f, "10 and 1 8 9\n");
@@ -343,9 +343,9 @@ test_cond_misc (void)
 }
 
 static void
-test_acc_misc (void)
+test_read_misc (void)
 {
-  acc_test_misc (BTOR_TEST_MISC_LOW, BTOR_TEST_MISC_HIGH);
+  read_test_misc (BTOR_TEST_MISC_LOW, BTOR_TEST_MISC_HIGH);
 }
 
 static void
@@ -356,7 +356,7 @@ run_all_tests (int argc, char **argv)
   BTOR_RUN_TEST (sext_misc);
   BTOR_RUN_TEST (concat_misc);
   BTOR_RUN_TEST (cond_misc);
-  BTOR_RUN_TEST (acc_misc);
+  BTOR_RUN_TEST (read_misc);
 }
 
 void
