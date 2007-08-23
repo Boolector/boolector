@@ -2598,7 +2598,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
             case BTOR_CONCAT_EXP: fprintf (file, "concat"); break;
             default:
               assert (cur->kind == BTOR_READ_EXP);
-              fprintf (file, "acc");
+              fprintf (file, "read");
               break;
           }
           fprintf (file,
