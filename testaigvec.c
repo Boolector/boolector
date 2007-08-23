@@ -220,13 +220,13 @@ test_concat_aigvec (void)
 }
 
 static void
-test_acc_aigvec (void)
+test_read_aigvec (void)
 {
   char array[]         = {'0', '0', '0', '\0'};
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, 0);
   BtorAIGVec *av1      = btor_array_aigvec (avmgr, 16, 3);
   BtorAIGVec *av2      = btor_const_aigvec (avmgr, array);
-  BtorAIGVec *av3      = btor_acc_aigvec (avmgr, av1, av2);
+  BtorAIGVec *av3      = btor_read_aigvec (avmgr, av1, av2);
   assert (av3->len == 16);
   btor_release_delete_aigvec (avmgr, av1);
   btor_release_delete_aigvec (avmgr, av2);
@@ -269,7 +269,7 @@ run_aigvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (udiv_aigvec);
   BTOR_RUN_TEST (umod_aigvec);
   BTOR_RUN_TEST (concat_aigvec);
-  BTOR_RUN_TEST (acc_aigvec);
+  BTOR_RUN_TEST (read_aigvec);
   BTOR_RUN_TEST (cond_aigvec);
 }
 

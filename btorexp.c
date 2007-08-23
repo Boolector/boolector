@@ -2829,7 +2829,7 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
               break;
             default:
               assert (cur->kind == BTOR_READ_EXP);
-              cur->av = btor_acc_aigvec (avmgr, av0, av1);
+              cur->av = btor_read_aigvec (avmgr, av0, av1);
               break;
           }
           btor_release_delete_aigvec (avmgr, av0);
