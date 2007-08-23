@@ -145,6 +145,7 @@ static void
 test_aig_to_sat (void)
 {
   BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorSATMgr *smgr = btor_get_sat_mgr_aig_mgr (amgr);
   BtorAIG *var1    = btor_var_aig (amgr);
   BtorAIG *var2    = btor_var_aig (amgr);
   BtorAIG *var3    = btor_var_aig (amgr);
@@ -152,9 +153,9 @@ test_aig_to_sat (void)
   BtorAIG *and1    = btor_and_aig (amgr, var1, var2);
   BtorAIG *and2    = btor_and_aig (amgr, var3, var4);
   BtorAIG *and3    = btor_or_aig (amgr, and1, and2);
-  btor_init_sat ();
+  btor_init_sat (smgr);
   btor_aig_to_sat (amgr, and3);
-  btor_reset_sat ();
+  btor_reset_sat (smgr);
   btor_release_aig (amgr, var1);
   btor_release_aig (amgr, var2);
   btor_release_aig (amgr, var3);

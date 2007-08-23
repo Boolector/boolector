@@ -18,27 +18,27 @@ init_sat_tests (void)
 }
 
 static void
-test_new_delete_cnf_mgr (void)
+test_new_delete_sat_mgr (void)
 {
-  BtorCNFMgr *cmgr = btor_new_cnf_mgr (g_mm, 0);
-  btor_delete_cnf_mgr (cmgr);
+  BtorSATMgr *smgr = btor_new_sat_mgr (g_mm, 0);
+  btor_delete_sat_mgr (smgr);
 }
 
 static void
-test_next_cnf_id_cnf_mgr (void)
+test_next_cnf_id_sat_mgr (void)
 {
-  BtorCNFMgr *cmgr = btor_new_cnf_mgr (g_mm, 0);
-  assert (btor_next_cnf_id_cnf_mgr (cmgr) == 1);
-  assert (btor_next_cnf_id_cnf_mgr (cmgr) == 2);
-  assert (btor_next_cnf_id_cnf_mgr (cmgr) == 3);
-  btor_delete_cnf_mgr (cmgr);
+  BtorSATMgr *smgr = btor_new_sat_mgr (g_mm, 0);
+  assert (btor_next_cnf_id_sat_mgr (smgr) == 1);
+  assert (btor_next_cnf_id_sat_mgr (smgr) == 2);
+  assert (btor_next_cnf_id_sat_mgr (smgr) == 3);
+  btor_delete_sat_mgr (smgr);
 }
 
 void
 run_sat_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (new_delete_cnf_mgr);
-  BTOR_RUN_TEST (next_cnf_id_cnf_mgr);
+  BTOR_RUN_TEST (new_delete_sat_mgr);
+  BTOR_RUN_TEST (next_cnf_id_sat_mgr);
 }
 
 void

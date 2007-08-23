@@ -9,10 +9,10 @@
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 /*------------------------------------------------------------------------*/
-/* BtorCNFMgr                                                             */
+/* BtorSATMgr                                                             */
 /*------------------------------------------------------------------------*/
 
-struct BtorCNFMgr
+struct BtorSATMgr
 {
   int id;
   int verbosity;
@@ -26,95 +26,123 @@ struct BtorCNFMgr
 /*------------------------------------------------------------------------*/
 /* BEGIN OF IMPLEMENTATION                                                */
 /*------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
+/* Auxilliary                                                             */
+/*------------------------------------------------------------------------*/
 
-BtorCNFMgr *
-btor_new_cnf_mgr (BtorMemMgr *mm, int verbosity)
+static void
+print_verbose_msg (char *msg)
 {
-  BtorCNFMgr *cmgr = NULL;
+  assert (msg != NULL);
+  fprintf (stderr, "[btorsat] %s", msg);
+  fflush (stderr);
+}
+
+/*------------------------------------------------------------------------*/
+/* BtorSAT                                                                */
+/*------------------------------------------------------------------------*/
+
+BtorSATMgr *
+btor_new_sat_mgr (BtorMemMgr *mm, int verbosity)
+{
+  BtorSATMgr *smgr = NULL;
   assert (mm != NULL);
   assert (verbosity >= 0);
-  cmgr            = (BtorCNFMgr *) btor_malloc (mm, sizeof (BtorCNFMgr));
-  cmgr->id        = 1;
-  cmgr->verbosity = verbosity;
-  cmgr->mm        = mm;
-  return cmgr;
+  smgr            = (BtorSATMgr *) btor_malloc (mm, sizeof (BtorSATMgr));
+  smgr->id        = 1;
+  smgr->verbosity = verbosity;
+  smgr->mm        = mm;
+  return smgr;
 }
 
 int
-btor_next_cnf_id_cnf_mgr (BtorCNFMgr *cmgr)
+btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
 {
-  assert (cmgr != NULL);
-  assert (cmgr->id < INT_MAX);
-  return cmgr->id++;
+  assert (smgr != NULL);
+  assert (smgr->id < INT_MAX);
+  return smgr->id++;
 }
 
 void
-btor_delete_cnf_mgr (BtorCNFMgr *cmgr)
+btor_delete_sat_mgr (BtorSATMgr *smgr)
 {
-  assert (cmgr != NULL);
-  btor_free (cmgr->mm, cmgr, sizeof (BtorCNFMgr));
+  assert (smgr != NULL);
+  btor_free (smgr->mm, smgr, sizeof (BtorSATMgr));
 }
 
 void
-btor_init_sat (void)
+btor_init_sat (BtorSATMgr *smgr)
 {
+  assert (smgr != NULL);
+  if (smgr->verbosity >= 3) print_verbose_msg ("initializing PicoSAT\n");
   picosat_init ();
 }
 
 void
-btor_set_output_sat (FILE *output)
+btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 {
+  assert (smgr != NULL);
   assert (output != NULL);
   picosat_set_output (output);
   picosat_set_prefix ("[picosat] ");
 }
 
 void
-btor_enable_verbosity_sat (void)
+btor_enable_verbosity_sat (BtorSATMgr *smgr)
 {
+  assert (smgr != NULL);
   picosat_enable_verbosity ();
 }
 
 void
-btor_print_stats_sat (void)
+btor_print_stats_sat (BtorSATMgr *smgr)
 {
+  assert (smgr != NULL);
   picosat_stats ();
 }
 
 void
-btor_add_sat (int lit)
+btor_add_sat (BtorSATMgr *smgr, int lit)
 {
+  assert (smgr != NULL);
   picosat_add (lit);
 }
 
 void
-btor_dump_cnf_sat (FILE *output)
+btor_dump_cnf_sat (BtorSATMgr *smgr, FILE *output)
 {
+  assert (smgr != NULL);
   assert (output != NULL);
   picosat_print (output);
 }
 
 void
-btor_assume_sat (int lit)
+btor_assume_sat (BtorSATMgr *smgr, int lit)
 {
+  assert (smgr != NULL);
   picosat_assume (lit);
 }
 
 int
-btor_sat_sat (int limit)
+btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
+  assert (smgr != NULL);
+  if (smgr->verbosity > 0) print_verbose_msg ("calling PicoSAT\n");
   return picosat_sat (limit);
 }
 
 int
-btor_deref_sat (int lit)
+btor_deref_sat (BtorSATMgr *smgr, int lit)
 {
+  assert (smgr != NULL);
   return picosat_deref (lit);
 }
 
 void
-btor_reset_sat (void)
+btor_reset_sat (BtorSATMgr *smgr)
 {
+  assert (smgr != NULL);
+  if (smgr->verbosity >= 3) print_verbose_msg ("resetting PicoSAT\n");
   picosat_reset ();
 }
 

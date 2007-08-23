@@ -2,6 +2,7 @@
 #define BTORAIG_H_INCLUDED
 
 #include "btormem.h"
+#include "btorsat.h"
 #include "btorstack.h"
 
 #include <stdio.h>
@@ -71,6 +72,8 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+
+BtorSATMgr *btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr);
 
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 

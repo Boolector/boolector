@@ -1,6 +1,10 @@
 #include "btormain.h"
+#include "boolector.h"
+#include "btoraig.h"
+#include "btoraigvec.h"
 #include "btorconst.h"
 #include "btorexit.h"
+#include "btorexp.h"
 #include "btorftor.h"
 #include "btormem.h"
 #include "btorsat.h"
@@ -183,6 +187,7 @@ btor_main (int argc, char **argv)
   BtorExp *cur_exp            = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIG *aig                = NULL;
+  BtorSATMgr *smgr            = NULL;
   BtorFtorResult ftor_res;
   BtorFtor *ftor    = NULL;
   BtorMemMgr *mem   = NULL;
@@ -323,9 +328,9 @@ btor_main (int argc, char **argv)
   {
     emgr = btor_new_exp_mgr (rewrite_level, dump_trace, verbosity, trace_file);
     mem  = btor_get_mem_mgr_exp_mgr (emgr);
-    if (verbosity > 0) print_verbose_msg ("parsing input\n");
     ftor = btor_new_ftor (emgr);
 
+    if (verbosity > 0) print_verbose_msg ("parsing input\n");
     parse_error =
         btor_parse_ftor (ftor, input_file, input_file_name, &ftor_res);
 
@@ -355,22 +360,23 @@ btor_main (int argc, char **argv)
         if (dump_aig) btor_dump_aig (amgr, aig_file, aig);
         if (dump_cnf)
         {
-          btor_init_sat ();
+          smgr = btor_get_sat_mgr_aig_mgr (amgr);
+          btor_init_sat (smgr);
           btor_aig_to_sat (amgr, aig);
-          btor_dump_cnf_sat (cnf_file);
-          btor_reset_sat ();
+          btor_dump_cnf_sat (smgr, cnf_file);
+          btor_reset_sat (smgr);
         }
         btor_release_aig (amgr, aig);
       }
     }
     else
     {
-      if (verbosity > 2) print_verbose_msg ("initializing SAT solver\n");
-      btor_init_sat ();
-      btor_set_output_sat (stderr);
-      if (verbosity >= 3) btor_enable_verbosity_sat ();
-      if (verbosity == 1)
-        print_verbose_msg ("transforming expression into SAT problem\n");
+      amgr = btor_get_aig_mgr_aigvec_mgr (btor_get_aigvec_mgr_exp_mgr (emgr));
+      smgr = btor_get_sat_mgr_aig_mgr (amgr);
+      btor_init_sat (smgr);
+      btor_set_output_sat (smgr, stderr);
+      if (verbosity >= 3) btor_enable_verbosity_sat (smgr);
+      if (verbosity == 1) print_verbose_msg ("generating SAT instance\n");
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
       if (!g_quiet)
       {
@@ -425,11 +431,9 @@ btor_main (int argc, char **argv)
           print_msg ("UNKNOWN SAT RESULT\n");
         }
       }
-      if (verbosity >= 3) btor_print_stats_sat ();
-      if (verbosity > 2) print_verbose_msg ("releasing SAT solver\n");
-      btor_reset_sat ();
+      if (verbosity >= 3) btor_print_stats_sat (smgr);
+      btor_reset_sat (smgr);
     }
-    if (verbosity > 1) print_verbose_msg ("cleaning up\n");
     btor_delete_ftor (ftor);
     btor_delete_exp_mgr (emgr);
   }
