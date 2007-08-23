@@ -65,7 +65,7 @@ static void
 print_verbose_msg (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stderr, "[btoraig]\t%s", msg);
+  fprintf (stderr, "[btoraig] %s", msg);
   fflush (stderr);
 }
 

@@ -72,7 +72,7 @@ static void
 print_verbose_msg (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stderr, "[btorexp]\t%s", msg);
+  fprintf (stderr, "[btorexp] %s", msg);
   fflush (stderr);
 }
 
@@ -2920,6 +2920,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
     print_verbose_msg ("transforming expression into AIG\n");
   aig    = btor_exp_to_aig (emgr, exp);
   result = btor_sat_aig (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr), aig);
+  if (emgr->verbosity >= 3) print_verbose_msg ("releasing AIG\n");
   btor_release_aig (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr), aig);
   return result;
 }

@@ -75,7 +75,7 @@ static void
 print_verbose_msg (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stderr, "[btormain]\t%s", msg);
+  fprintf (stderr, "[btormain] %s", msg);
   fflush (stderr);
 }
 
@@ -368,7 +368,7 @@ btor_main (int argc, char **argv)
       if (verbosity > 2) print_verbose_msg ("initializing SAT solver\n");
       btor_init_sat ();
       btor_set_output_sat (stderr);
-      if (verbosity >= 2) btor_enable_verbosity_sat ();
+      if (verbosity >= 3) btor_enable_verbosity_sat ();
       if (verbosity == 1)
         print_verbose_msg ("transforming expression into SAT problem\n");
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
@@ -426,10 +426,10 @@ btor_main (int argc, char **argv)
         }
       }
       if (verbosity >= 3) btor_print_stats_sat ();
-      if (verbosity > 2) print_verbose_msg ("cleaning up SAT solver\n");
+      if (verbosity > 2) print_verbose_msg ("releasing SAT solver\n");
       btor_reset_sat ();
     }
-    if (verbosity > 1) print_verbose_msg ("cleaning up Boolector\n");
+    if (verbosity > 1) print_verbose_msg ("cleaning up\n");
     btor_delete_ftor (ftor);
     btor_delete_exp_mgr (emgr);
   }
