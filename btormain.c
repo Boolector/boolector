@@ -31,17 +31,21 @@ static const char *g_usage =
     "where <option> is one of the following:"
     "\n"
     "  -h|--help                     print usage information and exit\n"
-    "  -v|--verbose                  increase verbosity (0 default, 3 max)\n"
+    "  -c|--credits                  print credits\n"
     "  -V|--version                  print version and exit\n"
+    "\n"
+    "  -q|--quiet                    do not print any output\n"
+    "  -v|--verbose                  increase verbosity (0 default, 3 max)\n"
+    "\n"
+    "  -x|--hex                      hexadecimal output\n"
+    "  -o|--output <file>            set output file\n"
+    "  -t|--trace <file>             set trace file\n"
     "  -de|--dump-exp <file>         dump expression in BAF\n"
     "  -da|--dump-aig <file>         dump AIG in AIGER\n"
     "  -dc|--dump-cnf <file>         dump CNF in DIMACS\n"
-    "  -o|--output <file>            set output file\n"
-    "  -q|--quiet                    do not print any output\n"
-    "  -c|--credits                  print credits\n"
-    "  -x|--hex                      hexadecimal output\n"
+    "\n"
     "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
-    "  -t|--trace <file>             set trace file\n";
+    "  -nrc|--no-read-consistency    no array read consistency\n";
 
 static const char *g_credits =
     "**************************\n"
@@ -81,6 +85,17 @@ print_verbose_msg (char *msg)
   assert (msg != NULL);
   fprintf (stderr, "[btormain] %s", msg);
   fflush (stderr);
+}
+
+static void
+print_verbose_msg_va_args (char *msg, ...)
+{
+  va_list list;
+  assert (msg != NULL);
+  va_start (list, msg);
+  fprintf (stderr, "[btormain] ");
+  vfprintf (stderr, msg, list);
+  va_end (list);
 }
 
 static void
@@ -161,7 +176,6 @@ btor_main (int argc, char **argv)
   int done                    = 0;
   int err                     = 0;
   int i                       = 0;
-  int j                       = 0;
   int close_input_file        = 0;
   int close_output_file       = 0;
   int close_exp_file          = 0;
@@ -173,6 +187,7 @@ btor_main (int argc, char **argv)
   int dump_cnf                = 0;
   int verbosity               = 0;
   int hex                     = 0;
+  int read_mode               = 0;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
@@ -272,6 +287,11 @@ btor_main (int argc, char **argv)
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
       hex = 1;
+    }
+    else if (!strcmp (argv[i], "-nrc")
+             || !strcmp (argv[i], "--no-read-consistency"))
+    {
+      read_mode = 0;
     }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
@@ -401,29 +421,6 @@ btor_main (int argc, char **argv)
               if (hex) btor_freestr (mem, pretty_witness);
             }
           }
-          for (i = 0; i < ftor_res.narrays; i++)
-          {
-            cur_exp = ftor_res.arrays[i];
-            assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-            for (j = 0; j < btor_pow_2_util (cur_exp->index_len); j++)
-            {
-              witness = btor_get_assignment_array_exp (emgr, cur_exp, j);
-
-              if (witness != NULL)
-              {
-                if (hex)
-                  pretty_witness = btor_const_to_hex (mem, witness);
-                else
-                  pretty_witness = witness;
-
-                print_msg_va_args ("%s[%d]: %s\n",
-                                   btor_get_symbol_exp (emgr, cur_exp),
-                                   j,
-                                   pretty_witness);
-                if (hex) btor_freestr (mem, pretty_witness);
-              }
-            }
-          }
         }
         else
         {
@@ -457,8 +454,11 @@ btor_main (int argc, char **argv)
     return_val = BTOR_UNKNOWN_EXIT;
   }
 #ifdef BTOR_HAVE_GETRUSAGE
-  delta_time = time_stamp () - start_time;
-  print_msg_va_args ("%.1f seconds\n", delta_time);
+  if (!err && !done)
+  {
+    delta_time = time_stamp () - start_time;
+    print_verbose_msg_va_args ("%.1f seconds\n", delta_time);
+  }
 #endif
   return return_val;
 }
