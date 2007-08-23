@@ -331,6 +331,8 @@ parse_var (BtorFtor *ftor, int len)
     {
       assert (BTOR_EMPTY_STACK (ftor->varname));
 
+      BTOR_PUSH_STACK (ftor->mm, ftor->varname, ch);
+
       while (!isspace (ch = nextch (ftor)))
       {
         if (ch == EOF) goto UNEXPECTED_EOF;
