@@ -89,43 +89,15 @@ hash_op (const char *str, unsigned salt)
 static const char *
 parse_error (BtorBTORParser *parser, const char *fmt, ...)
 {
-  const char *p;
-  size_t bytes;
   va_list ap;
-  char *tmp;
 
-  if (parser->error) return parser->error;
-
-  bytes = strlen (parser->name) + 20; /* care for ':: \0' and lineno */
-
-  va_start (ap, fmt);
-  for (p = fmt; *p; p++)
+  if (!parser->error)
   {
-    if (*p == '%')
-    {
-      p++;
-      assert (*p);
-      if (*p == 'd' || *p == 'u')
-        bytes += 12;
-      else
-      {
-        assert (*p == 's');
-        bytes += strlen (va_arg (ap, const char *));
-      }
-    }
-    else
-      bytes++;
+    va_start (ap, fmt);
+    parser->error = btor_parse_error_message (
+        parser->mem, parser->name, parser->lineno, fmt, ap);
+    va_end (ap);
   }
-  va_end (ap);
-
-  tmp = btor_malloc (parser->mem, bytes);
-  sprintf (tmp, "%s:%d: ", parser->name, parser->lineno);
-  assert (strlen (tmp) + 1 < bytes);
-  va_start (ap, fmt);
-  vsprintf (tmp + strlen (tmp), fmt, ap);
-  va_end (ap);
-  parser->error = btor_strdup (parser->mem, tmp);
-  btor_free (parser->mem, tmp, bytes);
 
   return parser->error;
 }
