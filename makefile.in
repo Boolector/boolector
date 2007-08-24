@@ -9,9 +9,9 @@ all: libboolector.a boolector test
 
 -include dependencies
 
-dependencies: *.c *.h
+dependencies: *.c *.h makefile
 	rm -f dependencies
-	$(CC) $(CFLAGS) -MM *.c > $@
+	$(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
 boolector: boolector.o libboolector.a ../picosat/picosat.o
 	$(CC) $(CFLAGS) -o boolector boolector.o ../picosat/picosat.o -L. -lboolector
