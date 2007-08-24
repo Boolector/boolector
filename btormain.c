@@ -40,13 +40,13 @@ static const char *g_usage =
     "  -x|--hex                      hexadecimal output\n"
     "  -o|--output <file>            set output file\n"
     "  -t|--trace <file>             set trace file\n"
-    "  -de|--dump-exp <file>         dump expression in BAF\n"
-    "  -da|--dump-aig <file>         dump AIG in AIGER\n"
+    "  -de|--dump-exp <file>         dump expression\n"
+    "  -da|--dump-aig <file>         dump AIG in AIGER (only for BV)\n"
     "  -dc|--dump-cnf <file>         dump CNF in DIMACS\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
     "  -nr|--no-read                 no read consistency (not sound (SAT))\n"
-    "  -er|--eager-read              eager ackermann encoding\n"
+    "  -er|--eager-read              eager Ackermann encoding\n"
     "  -lr|--lazy-read               iterative read refinement\n"
     "  -sr|--sat-solver-read         read consistency handled by SAT solver\n";
 
