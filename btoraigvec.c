@@ -1,4 +1,6 @@
 #include "btoraigvec.h"
+#include "btorsat.h"
+#include "btorstack.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -10,9 +12,16 @@
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------*/
-/* BtorAIGVec                                                             */
-/*------------------------------------------------------------------------*/
+
+struct BtorReadObj
+{
+  BtorAIGVec *var;
+  BtorAIGVec *index;
+};
+
+typedef struct BtorReadObj BtorReadObj;
+
+BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
 
 struct BtorAIGVecMgr
 {
@@ -20,6 +29,7 @@ struct BtorAIGVecMgr
   int verbosity;
   BtorReadEnc read_enc;
   BtorAIGMgr *amgr;
+  BtorReadObjPtrStack reads;
 };
 
 /*------------------------------------------------------------------------*/
@@ -28,9 +38,6 @@ struct BtorAIGVecMgr
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF IMPLEMENTATION                                                */
-/*------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------*/
-/* BtorAIGVec                                                             */
 /*------------------------------------------------------------------------*/
 
 static BtorAIGVec *
@@ -721,6 +728,146 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   btor_free (avmgr->mm, av, sizeof (BtorAIGVec));
 }
 
+static BtorReadObj *
+new_read_object (BtorAIGVecMgr *avmgr, BtorAIGVec *av_var, BtorAIGVec *av_index)
+{
+  BtorReadObj *result = NULL;
+  assert (avmgr != NULL);
+  assert (av_var != NULL);
+  assert (av_index != NULL);
+  result        = (BtorReadObj *) btor_malloc (avmgr->mm, sizeof (BtorReadObj));
+  result->var   = btor_copy_aigvec (avmgr, av_var);
+  result->index = btor_copy_aigvec (avmgr, av_index);
+  return result;
+}
+
+static void
+delete_read_object (BtorAIGVecMgr *avmgr, BtorReadObj *obj)
+{
+  assert (avmgr != NULL);
+  assert (obj != NULL);
+  btor_release_delete_aigvec (avmgr, obj->var);
+  btor_release_delete_aigvec (avmgr, obj->index);
+  btor_free (avmgr->mm, obj, sizeof (BtorReadObj));
+}
+
+void
+btor_read_object_aigvec_mgr (BtorAIGVecMgr *avmgr,
+                             BtorAIGVec *av_var,
+                             BtorAIGVec *av_index)
+{
+  BtorReadObj *obj = NULL;
+  assert (avmgr != NULL);
+  assert (av_var != NULL);
+  assert (av_index != NULL);
+  obj = new_read_object (avmgr, av_var, av_index);
+  BTOR_PUSH_STACK (avmgr->mm, avmgr->reads, obj);
+}
+
+void
+btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
+{
+  BtorReadObj **cur1    = NULL;
+  BtorReadObj **cur2    = NULL;
+  BtorAIGVec *av_var1   = NULL;
+  BtorAIGVec *av_index1 = NULL;
+  BtorAIGVec *av_var2   = NULL;
+  BtorAIGVec *av_index2 = NULL;
+  BtorAIGMgr *amgr      = NULL;
+  BtorSATMgr *smgr      = NULL;
+  BtorAIG *aig1         = NULL;
+  BtorAIG *aig2         = NULL;
+  int i                 = 0;
+  int len               = 0;
+  int i_k               = 0;
+  int j_k               = 0;
+  int d_k               = 0;
+  int e                 = 0;
+  int a_k               = 0;
+  int b_k               = 0;
+  int d_start           = 0;
+  assert (avmgr != NULL);
+  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  cur1 = avmgr->reads.top;
+  while (cur1 != avmgr->reads.start)
+  {
+    cur1--;
+    cur2 = cur1;
+    while (cur2 != avmgr->reads.start)
+    {
+      cur2--;
+      av_var1   = (*cur1)->var;
+      av_index1 = (*cur1)->index;
+      av_var2   = (*cur2)->var;
+      av_index2 = (*cur2)->index;
+      assert (av_index1->len == av_index2->len);
+      len     = av_index1->len;
+      d_start = 0;
+      for (i = 0; i < len; i++)
+      {
+        aig1 = av_index1->aigs[i];
+        aig2 = av_index2->aigs[i];
+        assert (!BTOR_IS_CONST_AIG (aig1));
+        assert (!BTOR_IS_CONST_AIG (aig2));
+        if (BTOR_IS_INVERTED_AIG (aig1))
+          i_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+        else
+          i_k = aig1->cnf_id;
+        assert (i_k != 0);
+        if (BTOR_IS_INVERTED_AIG (aig2))
+          j_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
+        else
+          j_k = aig2->cnf_id;
+        assert (j_k != 0);
+        d_k = btor_next_cnf_id_sat_mgr (smgr);
+        if (d_start == 0) d_start = d_k;
+        assert (d_k != 0);
+        btor_add_sat (smgr, i_k);
+        btor_add_sat (smgr, j_k);
+        btor_add_sat (smgr, -d_k);
+        btor_add_sat (smgr, 0);
+        btor_add_sat (smgr, -i_k);
+        btor_add_sat (smgr, -j_k);
+        btor_add_sat (smgr, -d_k);
+        btor_add_sat (smgr, 0);
+      }
+      e = btor_next_cnf_id_sat_mgr (smgr);
+      assert (e != 0);
+      for (i = 0; i < len; i++) btor_add_sat (smgr, d_start + i);
+      btor_add_sat (smgr, e);
+      btor_add_sat (smgr, 0);
+      assert (av_var1->len == av_var2->len);
+      len = av_var1->len;
+      for (i = 0; i < len; i++)
+      {
+        aig1 = av_var1->aigs[i];
+        aig2 = av_var2->aigs[i];
+        assert (!BTOR_IS_CONST_AIG (aig1));
+        assert (!BTOR_IS_CONST_AIG (aig2));
+        if (BTOR_IS_INVERTED_AIG (aig1))
+          a_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+        else
+          a_k = aig1->cnf_id;
+        assert (a_k != 0);
+        if (BTOR_IS_INVERTED_AIG (aig2))
+          b_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
+        else
+          b_k = aig2->cnf_id;
+        assert (b_k != 0);
+        btor_add_sat (smgr, -e);
+        btor_add_sat (smgr, a_k);
+        btor_add_sat (smgr, -b_k);
+        btor_add_sat (smgr, 0);
+        btor_add_sat (smgr, -e);
+        btor_add_sat (smgr, -a_k);
+        btor_add_sat (smgr, b_k);
+        btor_add_sat (smgr, 0);
+      }
+    }
+  }
+}
+
 BtorAIGVecMgr *
 btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
 {
@@ -732,6 +879,7 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
   avmgr->verbosity = verbosity;
   avmgr->read_enc  = BTOR_SAT_SOLVER_READ_ENC;
   avmgr->amgr      = btor_new_aig_mgr (mm, verbosity);
+  BTOR_INIT_STACK (avmgr->reads);
   return avmgr;
 }
 
@@ -745,8 +893,12 @@ btor_set_read_enc_aigvec_mgr (BtorAIGVecMgr *avmgr, BtorReadEnc read_enc)
 void
 btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)
 {
+  BtorReadObj **cur = NULL;
   assert (avmgr != NULL);
+  for (cur = avmgr->reads.start; cur != avmgr->reads.top; cur++)
+    delete_read_object (avmgr, *cur);
   btor_delete_aig_mgr (avmgr->amgr);
+  BTOR_RELEASE_STACK (avmgr->mm, avmgr->reads);
   btor_free (avmgr->mm, avmgr, sizeof (BtorAIGVecMgr));
 }
 

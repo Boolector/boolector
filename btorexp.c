@@ -2375,14 +2375,13 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (emgr != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
-  assert (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)));
+  assert (!BTOR_IS_INVERTED_EXP (e_array));
+  assert (BTOR_IS_ARRAY_EXP (e_array));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
-  assert (BTOR_REAL_ADDR_EXP (e_array)->len > 0);
+  assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
-  assert (BTOR_REAL_ADDR_EXP (e_array)->index_len
-          == BTOR_REAL_ADDR_EXP (e_index)->len);
-  return btor_binary_exp (
-      emgr, BTOR_READ_EXP, e_array, e_index, BTOR_REAL_ADDR_EXP (e_array)->len);
+  assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+  return btor_binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
 
 static BtorExp *
@@ -2704,6 +2703,8 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+  if (emgr->verbosity > 1)
+    print_verbose_msg ("transforming expression into AIG\n");
   mm    = emgr->mm;
   avmgr = emgr->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -2723,7 +2724,7 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
         {
           cur->av = btor_const_aigvec (avmgr, cur->bits);
         }
-        else if (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP)
+        else if (BTOR_IS_VAR_EXP (cur))
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
         }
@@ -2731,7 +2732,12 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
         {
           cur->mark = 1;
           BTOR_PUSH_STACK (mm, exp_stack, cur);
-          if (BTOR_IS_UNARY_EXP (cur))
+          if (cur->kind == BTOR_READ_EXP)
+          {
+            /* push index on the stack */
+            BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+          }
+          else if (BTOR_IS_UNARY_EXP (cur))
           {
             BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
           }
@@ -2751,7 +2757,19 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
       else
       {
         assert (cur->mark == 1);
-        if (BTOR_IS_UNARY_EXP (cur))
+        if (cur->kind == BTOR_READ_EXP)
+        {
+          /* generate new AIGs for read */
+          cur->av = btor_var_aigvec (avmgr, cur->len);
+          /* cur->e[0] is array */
+          if (BTOR_IS_INVERTED_EXP (cur->e[1]))
+            av1 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[1])->av);
+          else
+            av1 = btor_copy_aigvec (avmgr, cur->e[1]->av);
+          btor_read_object_aigvec_mgr (avmgr, cur->av, av1);
+          btor_release_delete_aigvec (avmgr, av1);
+        }
+        else if (BTOR_IS_UNARY_EXP (cur))
         {
           assert (cur->kind == BTOR_SLICE_EXP);
           if (BTOR_IS_INVERTED_EXP (cur->e[0]))
@@ -2862,17 +2880,22 @@ free_current_assignments (BtorExpMgr *emgr)
 int
 btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
-  int result   = 0;
-  BtorAIG *aig = NULL;
+  int result       = 0;
+  BtorAIG *aig     = NULL;
+  BtorAIGMgr *amgr = NULL;
+  BtorSATMgr *smgr = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
   free_current_assignments (emgr);
-  if (emgr->verbosity > 1)
-    print_verbose_msg ("transforming expression into AIG\n");
-  aig    = btor_exp_to_aig (emgr, exp);
-  result = btor_sat_aig (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr), aig);
-  btor_release_aig (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr), aig);
+  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  aig  = btor_exp_to_aig (emgr, exp);
+  if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+  if (aig != BTOR_AIG_TRUE) btor_aig_to_sat (amgr, aig);
+  btor_handle_read_constraints_aigvec_mgr (emgr->avmgr);
+  result = btor_sat_sat (smgr, INT_MAX);
+  btor_release_aig (amgr, aig);
   return result;
 }
 

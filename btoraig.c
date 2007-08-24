@@ -867,6 +867,7 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
   BtorAIG *right   = NULL;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
+  if (amgr->verbosity > 1) print_verbose_msg ("transforming AIG into CNF\n");
   smgr = amgr->smgr;
   generate_cnf_ids (amgr, aig);
   if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
@@ -927,17 +928,6 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
     btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
   else
     btor_assume_sat (smgr, aig->cnf_id);
-}
-
-int
-btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig)
-{
-  assert (amgr != NULL);
-  if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-  if (aig == BTOR_AIG_TRUE) return BTOR_SAT;
-  if (amgr->verbosity > 1) print_verbose_msg ("transforming AIG into CNF\n");
-  btor_aig_to_sat (amgr, aig);
-  return btor_sat_sat (amgr->smgr, INT_MAX);
 }
 
 BtorSATMgr *

@@ -34,6 +34,12 @@ void btor_set_read_enc_aigvec_mgr (BtorAIGVecMgr *avmgr, BtorReadEnc read_enc);
 
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
+void btor_read_object_aigvec_mgr (BtorAIGVecMgr *avmgr,
+                                  BtorAIGVec *av_var,
+                                  BtorAIGVec *av_index);
+
+void btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr);
+
 BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
 BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
