@@ -1,8 +1,10 @@
+#include "btormem.h"
+
 #include <assert.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "btormem.h"
 
 BtorMemMgr *
 btor_new_mem_mgr (void)
@@ -77,4 +79,44 @@ btor_delete_mem_mgr (BtorMemMgr *mm)
   assert (mm != NULL);
   assert (getenv ("BTORLEAKMEM") || mm->allocated == 0);
   free (mm);
+}
+
+char *
+btor_parse_error_message (
+    BtorMemMgr *mem, const char *name, int lineno, const char *fmt, va_list ap)
+
+{
+  const char *p;
+  size_t bytes;
+  char *res;
+  char *tmp;
+
+  bytes = strlen (name) + 20; /* care for ':: \0' and lineno */
+
+  for (p = fmt; *p; p++)
+  {
+    if (*p == '%')
+    {
+      p++;
+      assert (*p);
+      if (*p == 'd' || *p == 'u')
+        bytes += 12;
+      else
+      {
+        assert (*p == 's');
+        bytes += strlen (va_arg (ap, const char *));
+      }
+    }
+    else
+      bytes++;
+  }
+
+  tmp = btor_malloc (mem, bytes);
+  sprintf (tmp, "%s:%d: ", name, lineno);
+  assert (strlen (tmp) + 1 < bytes);
+  vsprintf (tmp + strlen (tmp), fmt, ap);
+  res = btor_strdup (mem, tmp);
+  btor_free (mem, tmp, bytes);
+
+  return res;
 }

@@ -21,7 +21,7 @@ typedef BtorExp *(*Extend) (BtorExpMgr *, BtorExp *, int);
 
 struct BtorBTORParser
 {
-  BtorMemMgr *mm;
+  BtorMemMgr *mem;
   BtorExpMgr *btor;
 
   FILE *file;
@@ -89,43 +89,14 @@ hash_op (const char *str, unsigned salt)
 static const char *
 parse_error (BtorBTORParser *parser, const char *fmt, ...)
 {
-  const char *p;
-  size_t bytes;
   va_list ap;
-  char *tmp;
 
   if (!parser->error)
   {
-    bytes = strlen (parser->name) + 20; /* care for ':: \0' and lineno */
-
     va_start (ap, fmt);
-    for (p = fmt; *p; p++)
-    {
-      if (*p == '%')
-      {
-        p++;
-        assert (*p);
-        if (*p == 'd' || *p == 'u')
-          bytes += 12;
-        else
-        {
-          assert (*p == 's');
-          bytes += strlen (va_arg (ap, const char *));
-        }
-      }
-      else
-        bytes++;
-    }
+    parser->error = btor_parse_error_message (
+        parser->mem, parser->name, parser->lineno, fmt, ap);
     va_end (ap);
-
-    tmp = btor_malloc (parser->mm, bytes);
-    sprintf (tmp, "%s:%d: ", parser->name, parser->lineno);
-    assert (strlen (tmp) + 1 < bytes);
-    va_start (ap, fmt);
-    vsprintf (tmp + strlen (tmp), fmt, ap);
-    va_end (ap);
-    parser->error = btor_strdup (parser->mm, tmp);
-    btor_free (parser->mm, tmp, bytes);
   }
 
   return parser->error;
@@ -338,16 +309,16 @@ parse_var (BtorBTORParser *parser, int len)
     {
       assert (BTOR_EMPTY_STACK (parser->varname));
 
-      BTOR_PUSH_STACK (parser->mm, parser->varname, ch);
+      BTOR_PUSH_STACK (parser->mem, parser->varname, ch);
 
       while (!isspace (ch = nextch (parser)))
       {
         if (ch == EOF) goto UNEXPECTED_EOF;
 
-        BTOR_PUSH_STACK (parser->mm, parser->varname, ch);
+        BTOR_PUSH_STACK (parser->mem, parser->varname, ch);
       }
 
-      BTOR_PUSH_STACK (parser->mm, parser->varname, 0);
+      BTOR_PUSH_STACK (parser->mem, parser->varname, 0);
       BTOR_RESET_STACK (parser->varname);
       name = parser->varname.start;
     }
@@ -355,7 +326,7 @@ parse_var (BtorBTORParser *parser, int len)
   savech (parser, ch);
 
   res = btor_var_exp (parser->btor, len, name);
-  BTOR_PUSH_STACK (parser->mm, parser->vars, res);
+  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
 
   return res;
 }
@@ -394,12 +365,12 @@ parse_const (BtorBTORParser *parser, int len)
       return 0;
     }
 
-    BTOR_PUSH_STACK (parser->mm, parser->bits, ch);
+    BTOR_PUSH_STACK (parser->mem, parser->bits, ch);
   }
 
   savech (parser, ch);
   clen = BTOR_COUNT_STACK (parser->bits);
-  BTOR_PUSH_STACK (parser->mm, parser->bits, 0);
+  BTOR_PUSH_STACK (parser->mem, parser->bits, 0);
   BTOR_RESET_STACK (parser->bits);
 
   if (clen != len)
@@ -421,7 +392,7 @@ static void
 push_bit (BtorBTORParser *parser, int bit)
 {
   assert (bit == 0 || bit == 1);
-  BTOR_PUSH_STACK (parser->mm, parser->constant, '0' + bit);
+  BTOR_PUSH_STACK (parser->mem, parser->constant, '0' + bit);
 }
 
 static void
@@ -477,7 +448,7 @@ parse_consth (BtorBTORParser *parser, int len)
 
   savech (parser, ch);
   clen = BTOR_COUNT_STACK (parser->constant);
-  BTOR_PUSH_STACK (parser->mm, parser->constant, 0);
+  BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
   if (clen >= len)
@@ -500,12 +471,12 @@ parse_consth (BtorBTORParser *parser, int len)
   {
     assert (BTOR_EMPTY_STACK (parser->bits));
 
-    while (clen++ < len) BTOR_PUSH_STACK (parser->mm, parser->bits, '0');
+    while (clen++ < len) BTOR_PUSH_STACK (parser->mem, parser->bits, '0');
 
     for (p = parser->constant.start; (ch = *p); p++)
-      BTOR_PUSH_STACK (parser->mm, parser->bits, ch);
+      BTOR_PUSH_STACK (parser->mem, parser->bits, ch);
 
-    BTOR_PUSH_STACK (parser->mm, parser->bits, 0);
+    BTOR_PUSH_STACK (parser->mem, parser->bits, 0);
     BTOR_RESET_STACK (parser->bits);
 
     res = btor_const_exp (parser->btor, parser->bits.start);
@@ -564,20 +535,20 @@ parse_constd (BtorBTORParser *parser, int len)
       return 0;
     }
 
-    c = btor_strdup (parser->mm, "");
+    c = btor_strdup (parser->mem, "");
   }
   else
   {
-    c = btor_strdup (parser->mm, digit2const (ch));
+    c = btor_strdup (parser->mem, digit2const (ch));
 
     while (isdigit (ch = nextch (parser)))
     {
-      tmp = btor_mult_unbounded_const (parser->mm, c, "1010"); /* *10 */
-      btor_delete_const (parser->mm, c);
+      tmp = btor_mult_unbounded_const (parser->mem, c, "1010"); /* *10 */
+      btor_delete_const (parser->mem, c);
       c = tmp;
 
-      tmp = btor_add_unbounded_const (parser->mm, c, digit2const (ch));
-      btor_delete_const (parser->mm, c);
+      tmp = btor_add_unbounded_const (parser->mem, c, digit2const (ch));
+      btor_delete_const (parser->mem, c);
       c = tmp;
     }
   }
@@ -591,20 +562,20 @@ parse_constd (BtorBTORParser *parser, int len)
   if (pad < 0)
   {
     (void) parse_error (parser, "constant exceeds bit width");
-    btor_freestr (parser->mm, c);
+    btor_freestr (parser->mem, c);
     return 0;
   }
 
   assert (BTOR_EMPTY_STACK (parser->bits));
 
-  while (pad--) BTOR_PUSH_STACK (parser->mm, parser->bits, '0');
+  while (pad--) BTOR_PUSH_STACK (parser->mem, parser->bits, '0');
 
-  for (p = msb; *p; p++) BTOR_PUSH_STACK (parser->mm, parser->bits, *p);
+  for (p = msb; *p; p++) BTOR_PUSH_STACK (parser->mem, parser->bits, *p);
 
-  BTOR_PUSH_STACK (parser->mm, parser->bits, 0);
+  BTOR_PUSH_STACK (parser->mem, parser->bits, 0);
   BTOR_RESET_STACK (parser->bits);
 
-  btor_freestr (parser->mm, c);
+  btor_freestr (parser->mem, c);
 
   assert (strlen (parser->bits.start) == (size_t) len);
   res = btor_const_exp (parser->btor, parser->bits.start);
@@ -621,7 +592,7 @@ parse_root (BtorBTORParser *parser, int len)
 
   if (!(res = parse_exp (parser, len))) return 0;
 
-  BTOR_PUSH_STACK (parser->mm, parser->roots, res);
+  BTOR_PUSH_STACK (parser->mem, parser->roots, res);
 
   return res;
 }
@@ -1286,19 +1257,19 @@ find_parser (BtorBTORParser *parser, const char *op)
 static BtorBTORParser *
 btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
 {
-  BtorMemMgr *mm = btor_get_mem_mgr_exp_mgr (btor);
+  BtorMemMgr *mem = btor_get_mem_mgr_exp_mgr (btor);
   BtorBTORParser *res;
 
   assert (verbosity >= 0);
 
-  res = btor_malloc (mm, sizeof *res);
-  memset (res, 0, sizeof *res);
+  BTOR_NEW (mem, res);
+  BTOR_CLR (res);
 
-  res->mm   = mm;
+  res->mem  = mem;
   res->btor = btor;
 
-  BTOR_NEWN (mm, res->parsers, SIZE_PARSERS);
-  BTOR_NEWN (mm, res->ops, SIZE_PARSERS);
+  BTOR_NEWN (mem, res->parsers, SIZE_PARSERS);
+  BTOR_NEWN (mem, res->ops, SIZE_PARSERS);
   BTOR_CLRN (res->ops, SIZE_PARSERS);
 
   new_parser (res, parse_add, "add");
@@ -1369,21 +1340,20 @@ btor_delete_btor_parser (BtorBTORParser *parser)
     if ((e = parser->exps.start[i]))
       btor_release_exp (parser->btor, parser->exps.start[i]);
 
-  BTOR_RELEASE_STACK (parser->mm, parser->exps);
-  BTOR_RELEASE_STACK (parser->mm, parser->vars);
-  BTOR_RELEASE_STACK (parser->mm, parser->roots);
+  BTOR_RELEASE_STACK (parser->mem, parser->exps);
+  BTOR_RELEASE_STACK (parser->mem, parser->vars);
+  BTOR_RELEASE_STACK (parser->mem, parser->roots);
 
-  BTOR_RELEASE_STACK (parser->mm, parser->op);
-  BTOR_RELEASE_STACK (parser->mm, parser->bits);
-  BTOR_RELEASE_STACK (parser->mm, parser->constant);
-  BTOR_RELEASE_STACK (parser->mm, parser->varname);
+  BTOR_RELEASE_STACK (parser->mem, parser->op);
+  BTOR_RELEASE_STACK (parser->mem, parser->bits);
+  BTOR_RELEASE_STACK (parser->mem, parser->constant);
+  BTOR_RELEASE_STACK (parser->mem, parser->varname);
 
-  BTOR_DELETEN (parser->mm, parser->parsers, SIZE_PARSERS);
-  BTOR_DELETEN (parser->mm, parser->ops, SIZE_PARSERS);
+  BTOR_DELETEN (parser->mem, parser->parsers, SIZE_PARSERS);
+  BTOR_DELETEN (parser->mem, parser->ops, SIZE_PARSERS);
 
-  btor_freestr (parser->mm, parser->error);
-
-  btor_free (parser->mm, parser, sizeof *parser);
+  btor_freestr (parser->mem, parser->error);
+  BTOR_DELETE (parser->mem, parser);
 }
 
 static const char *
@@ -1405,7 +1375,7 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   parser->name   = name;
   parser->lineno = 1;
 
-  memset (res, 0, sizeof *res);
+  BTOR_CLR (res);
 
 NEXT:
   assert (!parser->error);
@@ -1444,7 +1414,7 @@ NEXT:
   if (parse_positive_int (parser, &parser->idx)) return parser->error;
 
   while (BTOR_COUNT_STACK (parser->exps) <= parser->idx)
-    BTOR_PUSH_STACK (parser->mm, parser->exps, 0);
+    BTOR_PUSH_STACK (parser->mem, parser->exps, 0);
 
   if (parser->exps.start[parser->idx])
     return parse_error (parser, "'%d' defined twice", parser->idx);
@@ -1453,9 +1423,9 @@ NEXT:
 
   assert (BTOR_EMPTY_STACK (parser->op));
   while (!isspace (ch = nextch (parser)) && ch != EOF)
-    BTOR_PUSH_STACK (parser->mm, parser->op, ch);
+    BTOR_PUSH_STACK (parser->mem, parser->op, ch);
 
-  BTOR_PUSH_STACK (parser->mm, parser->op, 0);
+  BTOR_PUSH_STACK (parser->mem, parser->op, 0);
   BTOR_RESET_STACK (parser->op);
   savech (parser, ch);
 
