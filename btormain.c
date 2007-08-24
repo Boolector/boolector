@@ -45,7 +45,10 @@ static const char *g_usage =
     "  -dc|--dump-cnf <file>         dump CNF in DIMACS\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
-    "  -nrc|--no-read-consistency    no array read consistency\n";
+    "  -nr|--no-read                 no read consistency (not sound (SAT))\n"
+    "  -er|--eager-read              eager ackermann encoding\n"
+    "  -lr|--lazy-read               iterative read refinement\n"
+    "  -sr|--sat-solver-read         read consistency handled by SAT solver\n";
 
 static const char *g_credits =
     "**************************\n"
@@ -187,7 +190,7 @@ btor_main (int argc, char **argv)
   int dump_cnf                = 0;
   int verbosity               = 0;
   int hex                     = 0;
-  int read_mode               = 0;
+  BtorReadEnc read_enc        = BTOR_SAT_SOLVER_READ_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
@@ -201,6 +204,7 @@ btor_main (int argc, char **argv)
   BtorExpMgr *emgr            = NULL;
   BtorExp *cur_exp            = NULL;
   BtorAIGMgr *amgr            = NULL;
+  BtorAIGVecMgr *avmgr        = NULL;
   BtorAIG *aig                = NULL;
   BtorSATMgr *smgr            = NULL;
   BtorFtorResult ftor_res;
@@ -288,10 +292,21 @@ btor_main (int argc, char **argv)
     {
       hex = 1;
     }
-    else if (!strcmp (argv[i], "-nrc")
-             || !strcmp (argv[i], "--no-read-consistency"))
+    else if (!strcmp (argv[i], "-nr") || !strcmp (argv[i], "--no-read"))
     {
-      read_mode = 0;
+      read_enc = BTOR_NO_READ_ENC;
+    }
+    else if (!strcmp (argv[i], "-er") || !strcmp (argv[i], "--eager-read"))
+    {
+      read_enc = BTOR_EAGER_READ_ENC;
+    }
+    else if (!strcmp (argv[i], "-lr") || !strcmp (argv[i], "--lazy-read"))
+    {
+      read_enc = BTOR_LAZY_READ_ENC;
+    }
+    else if (!strcmp (argv[i], "-sr") || !strcmp (argv[i], "--sat-solver-read"))
+    {
+      read_enc = BTOR_SAT_SOLVER_READ_ENC;
     }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
@@ -374,8 +389,9 @@ btor_main (int argc, char **argv)
       }
       if (dump_aig || dump_cnf)
       {
-        amgr = btor_get_aig_mgr_aigvec_mgr (btor_get_aigvec_mgr_exp_mgr (emgr));
-        aig  = btor_exp_to_aig (emgr, ftor_res.roots[0]);
+        avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
+        amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+        aig   = btor_exp_to_aig (emgr, ftor_res.roots[0]);
         if (dump_aig) btor_dump_aig (amgr, aig_file, aig);
         if (dump_cnf)
         {
@@ -390,12 +406,14 @@ btor_main (int argc, char **argv)
     }
     else
     {
-      amgr = btor_get_aig_mgr_aigvec_mgr (btor_get_aigvec_mgr_exp_mgr (emgr));
-      smgr = btor_get_sat_mgr_aig_mgr (amgr);
+      avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
+      amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+      smgr  = btor_get_sat_mgr_aig_mgr (amgr);
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stderr);
       if (verbosity >= 3) btor_enable_verbosity_sat (smgr);
       if (verbosity == 1) print_verbose_msg ("generating SAT instance\n");
+      btor_set_read_enc_aigvec_mgr (avmgr, read_enc);
       sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
       if (!g_quiet)
       {
