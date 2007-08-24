@@ -3,7 +3,9 @@
 
 #define BTOR_RUN_TEST_CHECK_LOG(name) \
   run_test_case (argc, argv, test_##name, #name, 1)
+
 #define BTOR_RUN_TEST(name) run_test_case (argc, argv, test_##name, #name, 0)
+
 void init_tests (int fast);
 
 void print_test_suite_name (const char *name);
