@@ -40,7 +40,7 @@ struct BtorExp
   {
     struct
     {
-      char *symbol; /* for variables and arrays */
+      char *symbol; /* for variables */
       union
       {
         int upper;        /* for slices only */

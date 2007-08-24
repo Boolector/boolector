@@ -18,6 +18,7 @@ struct BtorAIGVecMgr
 {
   BtorMemMgr *mm;
   int verbosity;
+  BtorReadEnc read_enc;
   BtorAIGMgr *amgr;
 };
 
@@ -729,8 +730,16 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
   avmgr            = (BtorAIGVecMgr *) btor_malloc (mm, sizeof (BtorAIGVecMgr));
   avmgr->mm        = mm;
   avmgr->verbosity = verbosity;
+  avmgr->read_enc  = BTOR_SAT_SOLVER_READ_ENC;
   avmgr->amgr      = btor_new_aig_mgr (mm, verbosity);
   return avmgr;
+}
+
+void
+btor_set_read_enc_aigvec_mgr (BtorAIGVecMgr *avmgr, BtorReadEnc read_enc)
+{
+  assert (avmgr != NULL);
+  avmgr->read_enc = read_enc;
 }
 
 void

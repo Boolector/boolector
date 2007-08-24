@@ -8,6 +8,16 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+enum BtorReadEnc
+{
+  BTOR_NO_READ_ENC,
+  BTOR_EAGER_READ_ENC,
+  BTOR_LAZY_READ_ENC,
+  BTOR_SAT_SOLVER_READ_ENC
+};
+
+typedef enum BtorReadEnc BtorReadEnc;
+
 struct BtorAIGVec
 {
   BtorAIG **aigs;
@@ -19,6 +29,8 @@ typedef struct BtorAIGVec BtorAIGVec;
 typedef struct BtorAIGVecMgr BtorAIGVecMgr;
 
 BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity);
+
+void btor_set_read_enc_aigvec_mgr (BtorAIGVecMgr *avmgr, BtorReadEnc read_enc);
 
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
