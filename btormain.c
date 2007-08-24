@@ -2,12 +2,14 @@
 #include "boolector.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorbtor.h"
 #include "btorconst.h"
 #include "btorexit.h"
 #include "btorexp.h"
-#include "btorftor.h"
 #include "btormem.h"
+#include "btorparse.h"
 #include "btorsat.h"
+#include "btorsmt.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -25,13 +27,25 @@
 #include <sys/unistd.h>
 #endif
 
+typedef struct BtorMainApp BtorMainApp;
+
+struct BtorMainApp
+{
+  FILE *output_file;
+  int quiet;
+  int *err;
+  int *i;
+  int argc;
+  char **argv;
+};
+
 static const char *g_usage =
     "usage: boolector [<option>...][<input>]\n"
     "\n"
     "where <option> is one of the following:"
     "\n"
     "  -h|--help                     print usage information and exit\n"
-    "  -c|--credits                  print credits\n"
+    "  -c|--copyright                print copyright\n"
     "  -V|--version                  print version and exit\n"
     "\n"
     "  -q|--quiet                    do not print any output\n"
@@ -43,25 +57,15 @@ static const char *g_usage =
     "  -de|--dump-exp <file>         dump expression in BAF\n"
     "  -da|--dump-aig <file>         dump AIG in AIGER\n"
     "  -dc|--dump-cnf <file>         dump CNF in DIMACS\n"
+    "  --smt                         force SMT input\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
     "  -nrc|--no-read-consistency    no array read consistency\n";
 
-static const char *g_credits =
-    "**************************\n"
-    "*       BOOLECTOR        *\n"
-    "**************************\n"
-    "* by Robert D. Brummayer *\n"
-    "*          FMV           *\n"
-    "*    JKU Linz Austria    *\n"
-    "**************************\n"
-    "*      Contributors:     *\n"
-    "**************************\n"
-    "*        Armin Biere     *\n"
-    "**************************";
-
-int g_quiet;
-FILE *g_output_file;
+static const char *g_copyright =
+    "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
+    "Institute for Formal Models and Verification\n"
+    "Johannes Kepler University, Linz, Austria\n";
 
 #ifdef BTOR_HAVE_GETRUSAGE
 static double
@@ -99,62 +103,56 @@ print_verbose_msg_va_args (char *msg, ...)
 }
 
 static void
-print_msg (char *msg)
+print_msg (BtorMainApp *app, char *msg)
 {
   assert (msg != NULL);
-  if (!g_quiet) fprintf (g_output_file, msg);
+  if (!app->quiet) fprintf (app->output_file, msg);
 }
 
 static void
-print_msg_va_args (char *msg, ...)
+print_msg_va_args (BtorMainApp *app, char *msg, ...)
 {
   va_list list;
   assert (msg != NULL);
-  if (!g_quiet)
+  if (!app->quiet)
   {
     va_start (list, msg);
-    vfprintf (g_output_file, msg, list);
+    vfprintf (app->output_file, msg, list);
     va_end (list);
   }
 }
 
 static void
-handle_dump_file (char **argv,
-                  int argc,
-                  int *i,
-                  int *err,
+handle_dump_file (BtorMainApp *app,
                   int *dump_file,
                   int *close_file,
                   const char *file_kind,
                   FILE **file)
 {
-  assert (argv != NULL);
-  assert (argc > 0);
-  assert (i != NULL);
-  assert (err != NULL);
   assert (dump_file != NULL);
   assert (close_file != NULL);
   assert (file_kind != NULL);
   assert (file != NULL);
   *dump_file = 1;
-  if (*i < argc - 1)
+  if (*app->i < app->argc - 1)
   {
     if (*close_file)
     {
       assert (*file != NULL);
       fclose (*file);
       *close_file = 0;
-      print_msg_va_args ("boolector: multiple %s files\n", file_kind);
-      *err = 1;
+      print_msg_va_args (app, "boolector: multiple %s files\n", file_kind);
+      *app->err = 1;
     }
     else
     {
-      (*i)++;
-      *file = fopen (argv[*i], "w");
+      (*app->i)++;
+      *file = fopen (app->argv[*app->i], "w");
       if (*file == NULL)
       {
-        print_msg_va_args ("boolector: can not create '%s'\n", argv[*i]);
-        *err = 1;
+        print_msg_va_args (
+            app, "boolector: can not create '%s'\n", app->argv[*app->i]);
+        *app->err = 1;
       }
       else
       {
@@ -164,9 +162,21 @@ handle_dump_file (char **argv,
   }
 }
 
+static int
+has_suffix (const char *str, const char *suffix)
+{
+  const char *p;
+
+  for (p = str; *p; p++)
+    if (!strcmp (p, suffix)) return 1;
+
+  return 0;
+}
+
 int
 btor_main (int argc, char **argv)
 {
+  BtorMainApp app;
 #ifdef BTOR_HAVE_GETRUSAGE
   double start_time = time_stamp ();
   double delta_time = 0.0;
@@ -187,6 +197,7 @@ btor_main (int argc, char **argv)
   int dump_cnf                = 0;
   int verbosity               = 0;
   int hex                     = 0;
+  int force_smt_input         = 0;
   int read_mode               = 0;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
@@ -203,58 +214,53 @@ btor_main (int argc, char **argv)
   BtorAIGMgr *amgr            = NULL;
   BtorAIG *aig                = NULL;
   BtorSATMgr *smgr            = NULL;
-  BtorFtorResult ftor_res;
-  BtorFtor *ftor    = NULL;
-  BtorMemMgr *mem   = NULL;
-  int dump_trace    = 0;
-  int rewrite_level = 2;
+  BtorParseResult parse_res;
+  const BtorParserAPI *parser_api = NULL;
+  BtorParser *parser              = NULL;
+  BtorMemMgr *mem                 = NULL;
+  int dump_trace                  = 0;
+  int rewrite_level               = 2;
 
-  g_quiet       = 0;
-  g_output_file = stdout;
+  app.quiet       = 0;
+  app.output_file = stdout;
+  app.argc        = argc;
+  app.argv        = argv;
+  app.i           = &i;
+  app.err         = &err;
 
   for (i = 1; !done && !err && i < argc; i++)
   {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
-      print_msg_va_args ("%s\n", g_usage);
+      print_msg_va_args (&app, "%s\n", g_usage);
       done = 1;
     }
-    else if (!strcmp (argv[i], "-c") || !strcmp (argv[i], "--credits"))
+    else if (!strcmp (argv[i], "-c") || !strcmp (argv[i], "--copyright"))
     {
-      print_msg_va_args ("%s\n", g_credits);
+      print_msg_va_args (&app, "%s", g_copyright);
       done = 1;
     }
     else if (!strcmp (argv[i], "-de") || !strcmp (argv[i], "--dump-exp"))
     {
-      handle_dump_file (argv,
-                        argc,
-                        &i,
-                        &err,
-                        &dump_exp,
-                        &close_exp_file,
-                        "expression",
-                        &exp_file);
+      handle_dump_file (
+          &app, &dump_exp, &close_exp_file, "expression", &exp_file);
     }
     else if (!strcmp (argv[i], "-da") || !strcmp (argv[i], "--dump-aig"))
     {
-      handle_dump_file (
-          argv, argc, &i, &err, &dump_aig, &close_aig_file, "AIG", &aig_file);
+      handle_dump_file (&app, &dump_aig, &close_aig_file, "AIG", &aig_file);
     }
     else if (!strcmp (argv[i], "-dc") || !strcmp (argv[i], "--dump-cnf"))
     {
-      handle_dump_file (
-          argv, argc, &i, &err, &dump_cnf, &close_cnf_file, "CNF", &cnf_file);
+      handle_dump_file (&app, &dump_cnf, &close_cnf_file, "CNF", &cnf_file);
+    }
+    else if (!strcmp (argv[i], "--smt"))
+    {
+      force_smt_input = 1;
     }
     else if (!strcmp (argv[i], "-t") || !strcmp (argv[i], "--trace"))
     {
-      handle_dump_file (argv,
-                        argc,
-                        &i,
-                        &err,
-                        &dump_trace,
-                        &close_trace_file,
-                        "trace",
-                        &trace_file);
+      handle_dump_file (
+          &app, &dump_trace, &close_trace_file, "trace", &trace_file);
     }
     else if ((strstr (argv[i], "-rwl") == argv[i]
               && strlen (argv[i]) == strlen ("-rlw") + 1)
@@ -265,23 +271,23 @@ btor_main (int argc, char **argv)
       assert (rewrite_level >= 0);
       if (rewrite_level > 2)
       {
-        print_msg ("boolector: rewrite level has to be in [0,2]\n");
+        print_msg (&app, "boolector: rewrite level has to be in [0,2]\n");
         err = 1;
       }
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
     {
       verbosity++;
-      g_quiet = 0;
+      app.quiet = 0;
     }
     else if (!strcmp (argv[i], "-V") || !strcmp (argv[i], "--version"))
     {
-      print_msg_va_args ("%s\n", BTOR_VERSION);
+      print_msg_va_args (&app, "%s\n", BTOR_VERSION);
       done = 1;
     }
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
     {
-      g_quiet   = 1;
+      app.quiet = 1;
       verbosity = 0;
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
@@ -299,41 +305,40 @@ btor_main (int argc, char **argv)
       {
         if (close_output_file)
         {
-          fclose (g_output_file);
+          fclose (app.output_file);
           close_output_file = 0;
-          g_output_file     = stdout;
-          print_msg_va_args ("boolector: multiple output files\n");
+          app.output_file   = stdout;
+          print_msg_va_args (&app, "boolector: multiple output files\n");
           err = 1;
         }
         else
         {
-          g_output_file = fopen (argv[++i], "w");
-          if (g_output_file == NULL)
+          app.output_file = fopen (argv[++i], "w");
+          if (app.output_file == NULL)
           {
-            g_output_file = stdout;
-            print_msg_va_args ("boolector: can not create '%s'\n", argv[i]);
+            app.output_file = stdout;
+            print_msg_va_args (
+                &app, "boolector: can not create '%s'\n", argv[i]);
             err = 1;
           }
           else
-          {
             close_output_file = 1;
-          }
         }
       }
     }
     else if (argv[i][0] == '-')
     {
-      print_msg_va_args ("boolector: invalid option '%s'\n", argv[i]);
+      print_msg_va_args (&app, "boolector: invalid option '%s'\n", argv[i]);
       err = 1;
     }
     else if (close_input_file)
     {
-      print_msg_va_args ("boolector: multiple input files\n");
+      print_msg_va_args (&app, "boolector: multiple input files\n");
       err = 1;
     }
     else if (!(file = fopen (argv[i], "r")))
     {
-      print_msg_va_args ("boolector: can not read '%s'\n", argv[i]);
+      print_msg_va_args (&app, "boolector: can not read '%s'\n", argv[i]);
       err = 1;
     }
     else
@@ -348,21 +353,31 @@ btor_main (int argc, char **argv)
   {
     emgr = btor_new_exp_mgr (rewrite_level, dump_trace, verbosity, trace_file);
     mem  = btor_get_mem_mgr_exp_mgr (emgr);
-    ftor = btor_new_ftor (emgr, verbosity);
+
+    if (force_smt_input
+        || (close_input_file && has_suffix (input_file_name, ".smt")))
+    {
+      parser_api = btor_smt_parser_api;
+    }
+    else
+      parser_api = btor_btor_parser_api;
+
+    parser = parser_api->init (emgr, verbosity);
 
     parse_error =
-        btor_parse_ftor (ftor, input_file, input_file_name, &ftor_res);
+        parser_api->parse (parser, input_file, input_file_name, &parse_res);
 
     if (parse_error)
     {
-      print_msg_va_args ("%s\n", parse_error);
+      print_msg_va_args (&app, "%s\n", parse_error);
       err = 1;
     }
-    else if (ftor_res.nroots != 1)
+    else if (parse_res.nroots != 1)
     {
-      print_msg_va_args ("%s: found %d roots but expected exactly one\n",
+      print_msg_va_args (&app,
+                         "%s: found %d roots but expected exactly one\n",
                          input_file_name,
-                         ftor_res.nroots);
+                         parse_res.nroots);
       err = 1;
     }
     else if (dump_exp || dump_aig || dump_cnf)
@@ -370,12 +385,12 @@ btor_main (int argc, char **argv)
       done = 1;
       if (dump_exp)
       {
-        btor_dump_exp (emgr, exp_file, ftor_res.roots[0]);
+        btor_dump_exp (emgr, exp_file, parse_res.roots[0]);
       }
       if (dump_aig || dump_cnf)
       {
         amgr = btor_get_aig_mgr_aigvec_mgr (btor_get_aigvec_mgr_exp_mgr (emgr));
-        aig  = btor_exp_to_aig (emgr, ftor_res.roots[0]);
+        aig  = btor_exp_to_aig (emgr, parse_res.roots[0]);
         if (dump_aig) btor_dump_aig (amgr, aig_file, aig);
         if (dump_cnf)
         {
@@ -396,17 +411,17 @@ btor_main (int argc, char **argv)
       btor_set_output_sat (smgr, stderr);
       if (verbosity >= 3) btor_enable_verbosity_sat (smgr);
       if (verbosity == 1) print_verbose_msg ("generating SAT instance\n");
-      sat_result = btor_sat_exp (emgr, ftor_res.roots[0]);
-      if (!g_quiet)
+      sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
+      if (!app.quiet)
       {
         if (sat_result == BTOR_UNSAT)
-          print_msg ("UNSATISFIABLE\n");
+          print_msg (&app, "UNSATISFIABLE\n");
         else if (sat_result == BTOR_SAT)
         {
-          print_msg ("SATISFIABLE\n");
-          for (i = 0; i < ftor_res.nvars; i++)
+          print_msg (&app, "SATISFIABLE\n");
+          for (i = 0; i < parse_res.nvars; i++)
           {
-            cur_exp = ftor_res.vars[i];
+            cur_exp = parse_res.vars[i];
             witness = btor_get_assignment_var_exp (emgr, cur_exp);
             if (witness != NULL)
             {
@@ -415,7 +430,8 @@ btor_main (int argc, char **argv)
               else
                 pretty_witness = witness;
 
-              print_msg_va_args ("%s %s\n",
+              print_msg_va_args (&app,
+                                 "%s %s\n",
                                  btor_get_symbol_exp (emgr, cur_exp),
                                  pretty_witness);
               if (hex) btor_freestr (mem, pretty_witness);
@@ -424,18 +440,19 @@ btor_main (int argc, char **argv)
         }
         else
         {
-          print_msg ("UNKNOWN SAT RESULT\n");
+          print_msg (&app, "UNKNOWN SAT RESULT\n");
         }
       }
       if (verbosity >= 3) btor_print_stats_sat (smgr);
       btor_reset_sat (smgr);
     }
-    btor_delete_ftor (ftor);
+
+    parser_api->reset (parser);
     btor_delete_exp_mgr (emgr);
   }
 
   if (close_input_file) fclose (input_file);
-  if (close_output_file) fclose (g_output_file);
+  if (close_output_file) fclose (app.output_file);
   if (close_exp_file) fclose (exp_file);
   if (close_aig_file) fclose (aig_file);
   if (close_cnf_file) fclose (cnf_file);
@@ -454,7 +471,7 @@ btor_main (int argc, char **argv)
     return_val = BTOR_UNKNOWN_EXIT;
   }
 #ifdef BTOR_HAVE_GETRUSAGE
-  if (!err && !done && !g_quiet)
+  if (!err && !done && !app.quiet)
   {
     delta_time = time_stamp () - start_time;
     print_verbose_msg_va_args ("%.1f seconds\n", delta_time);

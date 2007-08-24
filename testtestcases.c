@@ -4,9 +4,11 @@
 
 #include <assert.h>
 
-#include "btorftor.h"
+#include "btormain.h"
 #include "testrunner.h"
 #include "testtestcases.h"
+
+#include <stdio.h>
 
 void
 init_testcases_tests (void)
