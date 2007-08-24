@@ -6,7 +6,16 @@
 
 #define BTOR_RUN_TEST(name) run_test_case (argc, argv, test_##name, #name, 0)
 
-void init_tests (int fast);
+enum BtorTestCaseSpeed
+{
+  BTOR_FAST_TEST_CASE   = 0,
+  BTOR_NORMAL_TEST_CASE = 1,
+  BTOR_SLOW_TEST_CASE   = 2,
+};
+
+typedef enum BtorTestCaseSpeed BtorTestCaseSpeed;
+
+void init_tests (BtorTestCaseSpeed speed);
 
 void print_test_suite_name (const char *name);
 

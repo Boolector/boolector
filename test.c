@@ -13,6 +13,7 @@
 #include "testshift.h"
 #include "testspecial.h"
 #include "teststack.h"
+#include "testtestcases.h"
 #include "testutil.h"
 
 #ifdef NDEBUG
@@ -34,21 +35,26 @@
 int
 main (int argc, char **argv)
 {
-  int i    = 0;
-  int fast = 0;
+  BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
+  int i                   = 0;
+
   for (i = 1; i < argc; i++)
   {
     if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "--help") == 0)
     {
-      printf ("./test [-h|--help]|[-f|--fast]|{pattern}\n");
+      printf ("./test [-h|--help]|[-s|--slow][-f|--fast]|{pattern}\n");
       return 0;
     }
-    if (strcmp (argv[i], "-f") == 0 || strcmp (argv[i], "--fast") == 0)
+    else if (strcmp (argv[i], "-f") == 0 || strcmp (argv[i], "--fast") == 0)
     {
-      fast = 1;
+      speed = BTOR_FAST_TEST_CASE;
+    }
+    else if (strcmp (argv[i], "-s") == 0 || strcmp (argv[i], "--slow") == 0)
+    {
+      speed = BTOR_SLOW_TEST_CASE;
     }
   }
-  init_tests (fast);
+  init_tests (speed);
   BTOR_RUN_TESTS (util);
   BTOR_RUN_TESTS (mem);
   BTOR_RUN_TESTS (stack);
@@ -64,6 +70,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (shift);
   BTOR_RUN_TESTS (misc);
   BTOR_RUN_TESTS (special);
+  BTOR_RUN_TESTS (testcases);
   finish_tests ();
   return 0;
 }

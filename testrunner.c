@@ -10,7 +10,7 @@
 #include <string.h>
 #include <unistd.h>
 
-static int g_fast;
+static int g_speed = BTOR_NORMAL_TEST_CASE;
 static int g_num_tests;
 static int g_num_skipped_tests;
 static int g_compared;
@@ -25,10 +25,32 @@ static struct
   char nl[100];
 } terminal;
 
+/* By default a test is 'fast'.  Test that are a little bit slower
+ * but still can be run in a regression run within a minute are 'normal' and
+ * are listed below in 'normaltests'.  Slow tests take considerable more
+ * time and are listed in 'slowtests', as rule of thumb a slow test
+ * takes defintely more than 10 seconds to run.
+ */
+
+static const char *slowtests[] = {
+    "factor18446744073709551617reduced_special",
+    "factor18446744073709551617_special",
+
+    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+};
+
+/* Again these are the tests that are slightly faster than slow tests.  They
+ * run in the order of 1 to 10 seconds each of them.  Fast tests definitely
+ * take less than a second.
+ */
+static const char *normaltests[] = {
+    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+};
+
 void
-init_tests (int fast)
+init_tests (BtorTestCaseSpeed speed)
 {
-  g_fast              = fast;
+  g_speed             = speed;
   g_num_tests         = 0;
   g_num_skipped_tests = 0;
   g_compared          = 0;
@@ -114,39 +136,30 @@ void
 run_test_case (
     int argc, char **argv, void (*funcp) (), char *name, int check_log_file)
 {
-  int skip           = 0;
-  int i              = 0;
-  int found_slow     = 0;
-  char *slow_tests[] = {"factor18446744073709551617reduced_special",
-                        "factor18446744073709551617_special"};
-  const int slow_tests_len =
-      (int) (sizeof (slow_tests) / sizeof (slow_tests[0]));
+  const char **p;
+  int skip = 0;
+  int i    = 0;
+
   g_num_tests++;
-  skip       = 0;
-  found_slow = 0;
-  if (g_fast)
+  skip = 0;
+
+  if (g_speed < BTOR_NORMAL_TEST_CASE)
+    for (p = normaltests; !skip && *p; p++) skip = match (name, *p);
+
+  if (g_speed < BTOR_SLOW_TEST_CASE)
+    for (p = slowtests; !skip && *p; p++) skip = match (name, *p);
+
+  if (!skip && argc > 1)
   {
-    for (i = 0; i < slow_tests_len; i++)
+    skip = 1;
+    for (i = 1; skip && i < argc; i++)
     {
-      if (strstr (name, slow_tests[i]) != NULL)
-      {
-        skip = 1;
-        break;
-      }
+      if (argv[i][0] == '-') continue;
+
+      skip = !match (name, argv[i]);
     }
   }
-  else
-  {
-    if (argc > 1)
-    {
-      skip = 1;
-      for (i = 1; skip && i < argc; i++)
-      {
-        if (argv[i][0] == '-') continue;
-        skip = !match (name, argv[i]);
-      }
-    }
-  }
+
   if (skip)
   {
     g_num_skipped_tests++;
