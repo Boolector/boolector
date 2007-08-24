@@ -777,7 +777,7 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
   BtorSATMgr *smgr      = NULL;
   BtorAIG *aig1         = NULL;
   BtorAIG *aig2         = NULL;
-  int i                 = 0;
+  int k                 = 0;
   int len               = 0;
   int i_k               = 0;
   int j_k               = 0;
@@ -804,10 +804,10 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
       assert (av_index1->len == av_index2->len);
       len     = av_index1->len;
       d_start = 0;
-      for (i = 0; i < len; i++)
+      for (k = 0; k < len; k++)
       {
-        aig1 = av_index1->aigs[i];
-        aig2 = av_index2->aigs[i];
+        aig1 = av_index1->aigs[k];
+        aig2 = av_index2->aigs[k];
         assert (!BTOR_IS_CONST_AIG (aig1));
         assert (!BTOR_IS_CONST_AIG (aig2));
         if (BTOR_IS_INVERTED_AIG (aig1))
@@ -834,15 +834,15 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
       }
       e = btor_next_cnf_id_sat_mgr (smgr);
       assert (e != 0);
-      for (i = 0; i < len; i++) btor_add_sat (smgr, d_start + i);
+      for (k = 0; k < len; k++) btor_add_sat (smgr, d_start + k);
       btor_add_sat (smgr, e);
       btor_add_sat (smgr, 0);
       assert (av_var1->len == av_var2->len);
       len = av_var1->len;
-      for (i = 0; i < len; i++)
+      for (k = 0; k < len; k++)
       {
-        aig1 = av_var1->aigs[i];
-        aig2 = av_var2->aigs[i];
+        aig1 = av_var1->aigs[k];
+        aig2 = av_var2->aigs[k];
         assert (!BTOR_IS_CONST_AIG (aig1));
         assert (!BTOR_IS_CONST_AIG (aig2));
         if (BTOR_IS_INVERTED_AIG (aig1))
