@@ -44,6 +44,8 @@ static const char *slowtests[] = {
  * take less than a second.
  */
 static const char *normaltests[] = {
+    "factor4294967295_special",
+    "_shift",
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
@@ -85,7 +87,7 @@ void
 print_test_suite_name (const char *name)
 {
   assert (name != NULL);
-  printf ("Running %s tests\n", name);
+  printf ("Registered %s tests\n", name);
 }
 
 static void
@@ -136,9 +138,9 @@ void
 run_test_case (
     int argc, char **argv, void (*funcp) (), char *name, int check_log_file)
 {
+  int skip = 0, count;
   const char **p;
-  int skip = 0;
-  int i    = 0;
+  int i = 0;
 
   g_num_tests++;
   skip = 0;
@@ -149,15 +151,14 @@ run_test_case (
   if (g_speed < BTOR_SLOW_TEST_CASE)
     for (p = slowtests; !skip && *p; p++) skip = match (name, *p);
 
-  if (!skip && argc > 1)
+  count = 0;
+  for (i = 1; i < argc; i++) count += (argv[i][0] != '-');
+
+  if (!skip && count)
   {
     skip = 1;
     for (i = 1; skip && i < argc; i++)
-    {
-      if (argv[i][0] == '-') continue;
-
-      skip = !match (name, argv[i]);
-    }
+      if (argv[i][0] != '-') skip = !match (name, argv[i]);
   }
 
   if (skip)
@@ -173,6 +174,7 @@ run_test_case (
     fflush (stderr); /* for assertions failures */
 
     funcp ();
+
     if (check_log_file) check_log (name);
   }
 

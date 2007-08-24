@@ -40,20 +40,30 @@ main (int argc, char **argv)
 
   for (i = 1; i < argc; i++)
   {
-    if (strcmp (argv[i], "-h") == 0 || strcmp (argv[i], "--help") == 0)
+    if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
       printf ("./test [-h|--help]|[-s|--slow][-f|--fast]|{pattern}\n");
       return 0;
     }
-    else if (strcmp (argv[i], "-f") == 0 || strcmp (argv[i], "--fast") == 0)
+    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--fast"))
     {
       speed = BTOR_FAST_TEST_CASE;
     }
-    else if (strcmp (argv[i], "-s") == 0 || strcmp (argv[i], "--slow") == 0)
+    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--slow"))
     {
       speed = BTOR_SLOW_TEST_CASE;
     }
+    else if (argv[i][0] == '-')
+    {
+      printf ("*** test: invalid option '%s'\n", argv[i]);
+      return 1;
+    }
+    else
+    {
+      /* assume test case pattern */
+    }
   }
+
   init_tests (speed);
   BTOR_RUN_TESTS (util);
   BTOR_RUN_TESTS (mem);
