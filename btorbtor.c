@@ -777,7 +777,8 @@ parse_compare_and_overflow (BtorBTORParser *parser, int len, Binary f)
 
   if (len != 1)
   {
-    (void) parse_error (parser, "operator returns %d bits", len);
+    (void) parse_error (
+        parser, "comparison or overflow operator returns %d bits", len);
     return 0;
   }
 
