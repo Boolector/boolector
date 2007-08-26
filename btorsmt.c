@@ -8,7 +8,16 @@
 typedef struct BtorSMTParser BtorSMTParser;
 typedef struct BtorSMTNode BtorSMTNode;
 
-typedef enum BtorSMTTag BtorSMTTag;
+enum BtorSMTType
+{
+  BTOR_SMT_TYPE_IDENTIFIER_START    = 1,
+  BTOR_SMT_TYPE_IDENTIFIER_MIDDLE   = 2,
+  BTOR_SMT_TYPE_ARITHMETIC_OPERATOR = 4,
+  BTOR_SMT_TYPE_NUMERAL_START       = 8, /* non zero digit actually */
+  BTOR_SMT_TYPE_DIGIT               = 16,
+  BTOR_SMT_TYPE_SPACE               = 32,
+  BTOR_SMT_TYPE_IDENTIFIER_PREFIX   = 64,
+};
 
 struct BtorSMTNode
 {
@@ -29,8 +38,9 @@ struct BtorSMTParser
   int saved;
 
   char* error;
-
   BtorCharStack token;
+
+  unsigned char types[256];
 };
 
 static void*
@@ -67,6 +77,8 @@ btor_new_smt_parser (BtorExpMgr* mgr, int verbosity)
 {
   BtorMemMgr* mem = btor_get_mem_mgr_exp_mgr (mgr);
   BtorSMTParser* res;
+  unsigned char type;
+  int ch;
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
@@ -74,6 +86,35 @@ btor_new_smt_parser (BtorExpMgr* mgr, int verbosity)
   res->mem       = mem;
   res->mgr       = mgr;
   res->verbosity = verbosity;
+
+  type = BTOR_SMT_TYPE_IDENTIFIER_START | BTOR_SMT_TYPE_IDENTIFIER_MIDDLE;
+
+  for (ch = 'a'; ch <= 'z'; ch++) res->types[ch] |= type;
+  for (ch = 'A'; ch <= 'Z'; ch++) res->types[ch] |= type;
+
+  res->types['_'] |= BTOR_SMT_TYPE_IDENTIFIER_MIDDLE;
+  res->types['.'] |= BTOR_SMT_TYPE_IDENTIFIER_MIDDLE;
+  res->types['\''] |= BTOR_SMT_TYPE_IDENTIFIER_MIDDLE;
+
+  type = BTOR_SMT_TYPE_IDENTIFIER_MIDDLE;
+  type |= BTOR_SMT_TYPE_DIGIT;
+
+  res->types['0'] |= type;
+
+  type |= BTOR_SMT_TYPE_NUMERAL_START;
+  for (ch = '1'; ch <= '9'; ch++) res->types[ch] |= type;
+
+  res->types['='] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['<'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['>'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['+'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['*'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['/'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['%'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+
+  res->types[' '] |= BTOR_SMT_TYPE_SPACE;
+  res->types['\t'] |= BTOR_SMT_TYPE_SPACE;
+  res->types['\n'] |= BTOR_SMT_TYPE_SPACE;
 
   return res;
 }
@@ -125,7 +166,9 @@ savech (BtorSMTParser* parser, int ch)
 {
   assert (ch);
   assert (!parser->saved);
+
   parser->saved = ch;
+
   if (ch == '\n')
   {
     assert (parser->lineno > 1);
@@ -133,10 +176,39 @@ savech (BtorSMTParser* parser, int ch)
   }
 }
 
+static unsigned char
+int2type (BtorSMTParser* parser, int ch)
+{
+  assert (0 <= ch && ch < 256);
+  return parser->types[ch];
+}
+
 static int
 nexttok (BtorSMTParser* parser)
 {
-  return 0;
+  unsigned char type;
+  int res, ch;
+
+  assert (BTOR_EMPTY_STACK (parser->token));
+
+SKIP_WHITE_SPACE:
+
+  ch = nextch (parser);
+  if (ch == EOF) return EOF;
+
+  type = int2type (parser, ch);
+  if (type & BTOR_SMT_TYPE_SPACE) goto SKIP_WHITE_SPACE;
+
+  if (type == ';')
+  {
+    while ((ch = nextch (parser)) != '\n')
+      if (ch == EOF) return EOF;
+
+    goto SKIP_WHITE_SPACE;
+  }
+
+  {
+  }
 }
 
 static const char*
