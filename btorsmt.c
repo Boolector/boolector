@@ -107,14 +107,24 @@ btor_new_smt_parser (BtorExpMgr* mgr, int verbosity)
   res->types['='] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
   res->types['<'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
   res->types['>'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['&'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['@'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['#'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
   res->types['+'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['-'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
   res->types['*'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
   res->types['/'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
   res->types['%'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['|'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
+  res->types['~'] |= BTOR_SMT_TYPE_ARITHMETIC_OPERATOR;
 
   res->types[' '] |= BTOR_SMT_TYPE_SPACE;
   res->types['\t'] |= BTOR_SMT_TYPE_SPACE;
   res->types['\n'] |= BTOR_SMT_TYPE_SPACE;
+
+  res->types[':'] |= BTOR_SMT_TYPE_IDENTIFIER_PREFIX;
+  res->types['?'] |= BTOR_SMT_TYPE_IDENTIFIER_PREFIX;
+  res->types['$'] |= BTOR_SMT_TYPE_IDENTIFIER_PREFIX;
 
   return res;
 }
@@ -187,7 +197,7 @@ static int
 nexttok (BtorSMTParser* parser)
 {
   unsigned char type;
-  int res, ch;
+  int ch;
 
   assert (BTOR_EMPTY_STACK (parser->token));
 
@@ -207,8 +217,71 @@ SKIP_WHITE_SPACE:
     goto SKIP_WHITE_SPACE;
   }
 
+  if (type & BTOR_SMT_TYPE_IDENTIFIER_START)
   {
   }
+
+  if (type & BTOR_SMT_TYPE_IDENTIFIER_PREFIX)
+  {
+  }
+
+  if (ch == '(' || ch == ')') return ch;
+
+  if (type & BTOR_SMT_TYPE_NUMERAL_START)
+  {
+  }
+
+  if (ch == '0')
+  {
+    BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+    BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+
+    /* TODO goto rational check */
+
+    return ch;
+  }
+
+  if (ch == '{')
+  {
+    while ((ch = nextch (parser)) != '}')
+    {
+      if (ch == '{') return !parse_error (parser, "unescaped '{' after '{'");
+
+      if (ch == '\\')
+      {
+        BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+        ch = nextch (parser);
+      }
+
+      if (ch == EOF) return !parse_error (parser, "unexpected EOF after '{'");
+
+      BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+    }
+
+    BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+    return '{';
+  }
+
+  if (ch == '"')
+  {
+    while ((ch = nextch (parser)) != '"')
+    {
+      if (ch == '\\')
+      {
+        BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+        ch = nextch (parser);
+      }
+
+      if (ch == EOF) return !parse_error (parser, "unexpected EOF after '\"'");
+
+      BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+    }
+
+    BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+    return '"';
+  }
+
+  return !parse_error (parser, "unexpected character with ASCII code %d", ch);
 }
 
 static const char*
