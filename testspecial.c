@@ -273,6 +273,18 @@ test_read2_special ()
   run_unsat_test ("read2");
 }
 
+static void
+test_read3_special ()
+{
+  run_sat_test ("read3");
+}
+
+static void
+test_read4_special ()
+{
+  run_unsat_test ("read4");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -315,6 +327,8 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (factor18446744073709551617_special);
   BTOR_RUN_TEST (read1_special);
   BTOR_RUN_TEST (read2_special);
+  BTOR_RUN_TEST (read3_special);
+  BTOR_RUN_TEST (read4_special);
 }
 
 void
