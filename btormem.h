@@ -68,7 +68,14 @@ void btor_freestr (BtorMemMgr *mm, char *str);
 
 void btor_delete_mem_mgr (BtorMemMgr *mm);
 
-char *btor_parse_error_message (
-    BtorMemMgr *, const char *name, int lineno, const char *fmt, va_list);
+size_t btor_parse_error_message_length (const char *name,
+                                        const char *fmt,
+                                        va_list ap);
 
+char *btor_parse_error_message (BtorMemMgr *,
+                                const char *name,
+                                int lineno,
+                                const char *fmt,
+                                va_list,
+                                size_t bytes);
 #endif

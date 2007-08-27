@@ -81,17 +81,11 @@ btor_delete_mem_mgr (BtorMemMgr *mm)
   free (mm);
 }
 
-char *
-btor_parse_error_message (
-    BtorMemMgr *mem, const char *name, int lineno, const char *fmt, va_list ap)
-
+size_t
+btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
 {
+  size_t bytes = strlen (name) + 20; /* care for ':: \0' and lineno */
   const char *p;
-  size_t bytes;
-  char *res;
-  char *tmp;
-
-  bytes = strlen (name) + 20; /* care for ':: \0' and lineno */
 
   for (p = fmt; *p; p++)
   {
@@ -100,9 +94,15 @@ btor_parse_error_message (
       p++;
       assert (*p);
       if (*p == 'c')
+      {
+        (void) va_arg (ap, int);
         bytes += 1;
+      }
       else if (*p == 'd' || *p == 'u')
+      {
+        (void) va_arg (ap, unsigned);
         bytes += 12;
+      }
       else
       {
         assert (*p == 's');
@@ -112,6 +112,21 @@ btor_parse_error_message (
     else
       bytes++;
   }
+
+  return bytes;
+}
+
+char *
+btor_parse_error_message (BtorMemMgr *mem,
+                          const char *name,
+                          int lineno,
+                          const char *fmt,
+                          va_list ap,
+                          size_t bytes)
+
+{
+  char *res;
+  char *tmp;
 
   tmp = btor_malloc (mem, bytes);
   sprintf (tmp, "%s:%d: ", name, lineno);

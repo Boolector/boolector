@@ -16,7 +16,7 @@ enum BtorSMTCharacterClass
   BTOR_SMTCC_IDENTIFIER_START    = 1,
   BTOR_SMTCC_IDENTIFIER_MIDDLE   = 2,
   BTOR_SMTCC_ARITHMETIC_OPERATOR = 4,
-  BTOR_SMTCC_NUMERAL_START       = 8, /* non zero digit actually */
+  BTOR_SMTCC_NUMERAL_START       = 8,
   BTOR_SMTCC_DIGIT               = 16,
   BTOR_SMTCC_SPACE               = 32,
   BTOR_SMTCC_IDENTIFIER_PREFIX   = 64,
@@ -43,41 +43,41 @@ enum BtorSMTToken
   BTOR_SMTOK_AND          = 256,
   BTOR_SMTOK_ASSUMPTION   = 257,
   BTOR_SMTOK_BENCHMARK    = 258,
-  BTOR_SMTOK_EXTRAFUNS    = 259,
-  BTOR_SMTOK_EXTRAPREDS   = 260,
-  BTOR_SMTOK_EXTRASORTS   = 261,
-  BTOR_SMTOK_FALSE        = 262,
-  BTOR_SMTOK_FLET         = 263,
-  BTOR_SMTOK_FORMULA      = 264,
-  BTOR_SMTOK_IFF          = 265,
-  BTOR_SMTOK_IF_THEN_ELSE = 266,
-  BTOR_SMTOK_IMPLIES      = 267,
-  BTOR_SMTOK_ITE          = 268,
-  BTOR_SMTOK_LET          = 269,
-  BTOR_SMTOK_LOGICATTR    = 270,
-  BTOR_SMTOK_NOT          = 271,
-  BTOR_SMTOK_NOTES        = 272,
-  BTOR_SMTOK_OR           = 273,
-  BTOR_SMTOK_SAT          = 274,
-  BTOR_SMTOK_STATUS       = 275,
-  BTOR_SMTOK_TRUE         = 276,
-  BTOR_SMTOK_UNKNOWN      = 277,
-  BTOR_SMTOK_UNSAT        = 278,
-  BTOR_SMTOK_XOR          = 279,
+  BTOR_SMTOK_DISTINCT     = 259,
+  BTOR_SMTOK_EXTRAFUNS    = 260,
+  BTOR_SMTOK_EXTRAPREDS   = 261,
+  BTOR_SMTOK_EXTRASORTS   = 262,
+  BTOR_SMTOK_FALSE        = 263,
+  BTOR_SMTOK_FLET         = 264,
+  BTOR_SMTOK_FORMULA      = 265,
+  BTOR_SMTOK_IFF          = 266,
+  BTOR_SMTOK_IF_THEN_ELSE = 267,
+  BTOR_SMTOK_IMPLIES      = 268,
+  BTOR_SMTOK_ITE          = 269,
+  BTOR_SMTOK_LET          = 270,
+  BTOR_SMTOK_LOGICATTR    = 271,
+  BTOR_SMTOK_NOT          = 272,
+  BTOR_SMTOK_NOTES        = 273,
+  BTOR_SMTOK_OR           = 274,
+  BTOR_SMTOK_SAT          = 275,
+  BTOR_SMTOK_STATUS       = 276,
+  BTOR_SMTOK_TRUE         = 277,
+  BTOR_SMTOK_UNKNOWN      = 278,
+  BTOR_SMTOK_UNSAT        = 279,
+  BTOR_SMTOK_XOR          = 280,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
   BTOR_SMTOK_DEFINITIONS         = 513,
-  BTOR_SMTOK_DISTINCT            = 514,
-  BTOR_SMTOK_EXISTS              = 515,
-  BTOR_SMTOK_EXTENSIONS          = 516,
-  BTOR_SMTOK_FORALL              = 517,
-  BTOR_SMTOK_FUNS                = 518,
-  BTOR_SMTOK_LANGUAGE            = 519,
-  BTOR_SMTOK_LOGIC               = 520,
-  BTOR_SMTOK_PREDS               = 521,
-  BTOR_SMTOK_SORTS               = 522,
-  BTOR_SMTOK_THEORY              = 523,
+  BTOR_SMTOK_EXISTS              = 514,
+  BTOR_SMTOK_EXTENSIONS          = 515,
+  BTOR_SMTOK_FORALL              = 516,
+  BTOR_SMTOK_FUNS                = 517,
+  BTOR_SMTOK_LANGUAGE            = 518,
+  BTOR_SMTOK_LOGIC               = 519,
+  BTOR_SMTOK_PREDS               = 520,
+  BTOR_SMTOK_SORTS               = 521,
+  BTOR_SMTOK_THEORY              = 522,
   BTOR_SMTOK_THEORYATTR          = 524
 
 };
@@ -218,13 +218,18 @@ btor_delete_smt_parser (BtorSMTParser *parser)
 static char *
 parse_error (BtorSMTParser *parser, const char *fmt, ...)
 {
+  size_t bytes;
   va_list ap;
 
   if (!parser->error)
   {
     va_start (ap, fmt);
+    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    va_end (ap);
+
+    va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, fmt, ap);
+        parser->mem, parser->name, parser->lineno, fmt, ap, bytes);
     va_end (ap);
   }
 
@@ -763,6 +768,9 @@ btor_parse_smt_parser (BtorSMTParser *parser,
 
   assert (!parser->parsed);
   parser->parsed = 1;
+
+  if (parser->verbosity)
+    fprintf (stderr, "[btorsmt] parsing SMT file %s\n", name);
 
   parser->name   = name;
   parser->file   = file;

@@ -89,13 +89,18 @@ hash_op (const char *str, unsigned salt)
 static const char *
 parse_error (BtorBTORParser *parser, const char *fmt, ...)
 {
+  size_t bytes;
   va_list ap;
 
   if (!parser->error)
   {
     va_start (ap, fmt);
+    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    va_end (ap);
+
+    va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, fmt, ap);
+        parser->mem, parser->name, parser->lineno, fmt, ap, bytes);
     va_end (ap);
   }
 
