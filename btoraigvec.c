@@ -884,16 +884,12 @@ encode_read_constraint (BtorAIGVecMgr *avmgr,
     aig1 = av_var1->aigs[k];
     aig2 = av_var2->aigs[k];
     assert (!BTOR_IS_CONST_AIG (aig1));
+    assert (!BTOR_IS_INVERTED_AIG (aig1));
     assert (!BTOR_IS_CONST_AIG (aig2));
-    if (BTOR_IS_INVERTED_AIG (aig1))
-      a_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-    else
-      a_k = aig1->cnf_id;
+    assert (!BTOR_IS_INVERTED_AIG (aig2));
+    a_k = aig1->cnf_id;
     assert (a_k != 0);
-    if (BTOR_IS_INVERTED_AIG (aig2))
-      b_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
-    else
-      b_k = aig2->cnf_id;
+    b_k = aig2->cnf_id;
     assert (b_k != 0);
     btor_add_sat (smgr, -e);
     btor_add_sat (smgr, a_k);
