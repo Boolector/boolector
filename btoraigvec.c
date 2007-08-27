@@ -837,6 +837,7 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
         continue;
       len     = av_index1->len;
       d_start = 0;
+      d_k     = 0;
       for (k = 0; k < len; k++)
       {
         aig1 = av_index1->aigs[k];
@@ -867,7 +868,7 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
       }
       e = btor_next_cnf_id_sat_mgr (smgr);
       assert (e != 0);
-      for (k = 0; k < len; k++) btor_add_sat (smgr, d_start + k);
+      for (k = d_start; k <= d_k; k++) btor_add_sat (smgr, k);
       btor_add_sat (smgr, e);
       btor_add_sat (smgr, 0);
       assert (av_var1->len == av_var2->len);
