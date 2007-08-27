@@ -103,10 +103,11 @@ BTOR_DECLARE_STACK (SMTNodePtr, BtorSMTNode *);
 
 struct BtorSMTSymbol
 {
-  BtorSMTToken token;
   char *name;
+  BtorSMTToken token;
   BtorSMTSymbol *next;
   BtorExp *exp;
+  int pushed;
 };
 
 struct BtorSMTParser
@@ -134,6 +135,7 @@ struct BtorSMTParser
   unsigned symbols;
 
   BtorSMTNodePtrStack stack;
+  BtorSMTNodePtrStack work;
   BtorIntStack heads;
 
   BtorSMTNodes *chunks;
@@ -141,7 +143,7 @@ struct BtorSMTParser
   BtorSMTNode *last;
   unsigned nodes;
 
-  BtorExp *root;
+  BtorExp *root_exp;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -234,6 +236,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   BTOR_DELETEN (parser->mem, parser->symtab, parser->szsymtab);
 
   BTOR_RELEASE_STACK (parser->mem, parser->stack);
+  BTOR_RELEASE_STACK (parser->mem, parser->work);
   BTOR_RELEASE_STACK (parser->mem, parser->heads);
 
   for (q = parser->chunks; q; q = next)
@@ -249,7 +252,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   btor_freestr (parser->mem, parser->error);
   BTOR_RELEASE_STACK (parser->mem, parser->buffer);
 
-  if (parser->root) btor_release_exp (parser->mgr, parser->root);
+  if (parser->root_exp) btor_release_exp (parser->mgr, parser->root_exp);
 
   BTOR_DELETE (parser->mem, parser);
 }
@@ -931,6 +934,126 @@ extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
 }
 
 static char *
+wff (BtorSMTParser *parser, BtorSMTNode *root_node)
+{
+  BtorSMTNode *node, *child, *p, **s, **t, *tmp;
+  BtorSMTSymbol *symbol;
+  int start, end;
+
+  assert (BTOR_EMPTY_STACK (parser->work));
+  assert (BTOR_EMPTY_STACK (parser->stack));
+
+  assert (root_node);
+  BTOR_PUSH_STACK (parser->mem, parser->stack, root_node);
+
+  while (!BTOR_EMPTY_STACK (parser->stack))
+  {
+    node = BTOR_POP_STACK (parser->stack);
+
+    if (node)
+    {
+      if (isleaf (node))
+      {
+        symbol = strip (node);
+        if (symbol->token == BTOR_SMTOK_IDENTIFIER && !symbol->pushed)
+        {
+          symbol->pushed = 1;
+          BTOR_PUSH_STACK (parser->mem, parser->work, node);
+        }
+      }
+      else
+      {
+        BTOR_PUSH_STACK (parser->mem, parser->stack, node);
+        BTOR_PUSH_STACK (parser->mem, parser->stack, 0);
+
+        start = BTOR_COUNT_STACK (parser->stack);
+
+        for (p = node; p; p = cdr (p))
+        {
+          child = car (p);
+          assert (child);
+          BTOR_PUSH_STACK (parser->mem, parser->stack, child);
+        }
+
+        end = BTOR_COUNT_STACK (parser->stack);
+
+        if (start < end)
+        {
+          s = parser->stack.start + start;
+          t = parser->stack.start + end - 1;
+
+          while (s < t)
+          {
+            tmp = *s;
+            *s  = *t;
+            *t  = tmp;
+
+            s++;
+            t--;
+          }
+        }
+      }
+    }
+    else
+    {
+      assert (!BTOR_EMPTY_STACK (parser->stack));
+
+      node = BTOR_POP_STACK (parser->stack);
+
+      assert (node);
+      assert (!isleaf (node));
+
+      BTOR_PUSH_STACK (parser->mem, parser->work, node);
+    }
+  }
+
+  node = 0;
+  for (s = parser->work.start; s < parser->work.top; s++)
+  {
+    node = *s;
+
+    assert (node);
+
+    if (isleaf (node))
+    {
+      symbol = strip (node);
+
+      if (symbol->token == BTOR_SMTOK_IDENTIFIER)
+      {
+        if (!symbol->exp)
+          return parse_error (parser, "undefined symbol '%s'", symbol->name);
+      }
+      else
+        return parse_error (parser, "unsupported leaf '%s'", symbol->name);
+    }
+    else
+    {
+      child = car (node);
+
+      if (!child || !isleaf (child))
+        return parse_error (parser, "unsupported node");
+
+      symbol = strip (child);
+
+      switch (symbol->token)
+      {
+        case BTOR_SMTOK_IDENTIFIER: break;
+
+        default:
+          return parse_error (
+              parser, "unsupported list head (%d)", symbol->token);
+      }
+    }
+  }
+
+  assert (node == root_node);
+  BTOR_RESET_STACK (parser->work);
+
+  return parse_error (parser, "wff not done yet");
+  ;
+}
+
+static char *
 node2exp (BtorSMTParser *parser, BtorSMTNode *top)
 {
   const char *statusstr, *attrstr;
@@ -1053,7 +1176,11 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
         if (!p)
           return parse_error (parser, "argument to '%s' missing", attrstr);
 
-        /* TODO finish this part */
+        if (!wff (parser, car (p)))
+        {
+          assert (parser->error);
+          return parser->error;
+        }
 
         break;
 
