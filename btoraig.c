@@ -804,7 +804,7 @@ btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
 {
   BtorAIGMgr *amgr = NULL;
   assert (mm != NULL);
-  assert (verbosity >= 0);
+  assert (verbosity >= -1);
   amgr     = (BtorAIGMgr *) btor_malloc (mm, sizeof (BtorAIGMgr));
   amgr->mm = mm;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);

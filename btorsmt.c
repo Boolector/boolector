@@ -720,8 +720,6 @@ UNEXPECTED_CHARACTER:
   return !parse_error (parser, "unexpected character with ASCII code %d", ch);
 }
 
-#if 1
-
 static void
 btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
 {
@@ -738,7 +736,7 @@ btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
       btorsmtppaux (file, car (node), indent + 1);
       if (!(node = cdr (node))) break;
 
-      fputc ('\n', file);
+      fputs ("[btorsmt] ", file);
       for (i = 0; i < indent; i++) fputc (' ', file);
     }
 
@@ -749,11 +747,9 @@ btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
 void
 btorsmtpp (BtorSMTNode *node)
 {
-  btorsmtppaux (stdout, node, 0);
-  fputc ('\n', stdout);
+  btorsmtppaux (stderr, node, 0);
+  fputc ('\n', stderr);
 }
-
-#endif
 
 static const char *
 btor_parse_smt_parser (BtorSMTParser *parser,
@@ -811,7 +807,7 @@ NEXT_TOKEN:
 
       assert (BTOR_COUNT_STACK (parser->stack) == 1);
 
-      btorsmtpp (parser->stack.start[0]);
+      if (parser->verbosity >= 3) btorsmtpp (parser->stack.start[0]);
 
       return parse_error (parser, "node2exp not implemented yet");
     }

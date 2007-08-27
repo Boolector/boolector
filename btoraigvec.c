@@ -951,7 +951,7 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
 {
   BtorAIGVecMgr *avmgr = NULL;
   assert (mm != NULL);
-  assert (verbosity >= 0);
+  assert (verbosity >= -1);
   avmgr            = (BtorAIGVecMgr *) btor_malloc (mm, sizeof (BtorAIGVecMgr));
   avmgr->mm        = mm;
   avmgr->verbosity = verbosity;

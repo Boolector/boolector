@@ -1261,7 +1261,7 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   BtorMemMgr *mem = btor_get_mem_mgr_exp_mgr (btor);
   BtorBTORParser *res;
 
-  assert (verbosity >= 0);
+  assert (verbosity >= -1);
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);

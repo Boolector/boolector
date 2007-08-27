@@ -47,7 +47,7 @@ btor_new_sat_mgr (BtorMemMgr *mm, int verbosity)
 {
   BtorSATMgr *smgr = NULL;
   assert (mm != NULL);
-  assert (verbosity >= 0);
+  assert (verbosity >= -1);
   smgr            = (BtorSATMgr *) btor_malloc (mm, sizeof (BtorSATMgr));
   smgr->id        = 1;
   smgr->verbosity = verbosity;

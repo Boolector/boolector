@@ -2637,7 +2637,7 @@ btor_new_exp_mgr (int rewrite_level,
   assert (sizeof (int) == 4);
   assert (rewrite_level >= 0);
   assert (rewrite_level <= 2);
-  assert (verbosity >= 0);
+  assert (verbosity >= -1);
   emgr     = btor_malloc (mm, sizeof (BtorExpMgr));
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
