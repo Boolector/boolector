@@ -140,6 +140,8 @@ struct BtorSMTParser
   BtorSMTNode *free;
   BtorSMTNode *last;
   unsigned nodes;
+
+  BtorExp *root;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -168,6 +170,7 @@ cons (BtorSMTParser *parser, void *h, void *t)
   if (parser->free == parser->last)
   {
     BTOR_NEW (parser->mem, chunk);
+    BTOR_CLR (chunk);
     chunk->next    = parser->chunks;
     parser->chunks = chunk;
 
@@ -211,6 +214,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
 {
   BtorSMTSymbol *p;
   BtorSMTNodes *q;
+  BtorExp *e;
   void *next;
   unsigned i;
 
@@ -219,7 +223,11 @@ btor_delete_smt_parser (BtorSMTParser *parser)
     for (p = parser->symtab[i]; p; p = next)
     {
       next = p->next;
+
       btor_freestr (parser->mem, p->name);
+
+      if ((e = p->exp)) btor_release_exp (parser->mgr, e);
+
       BTOR_DELETE (parser->mem, p);
     }
   }
@@ -231,11 +239,18 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   for (q = parser->chunks; q; q = next)
   {
     next = q->next;
+
+    for (i = 0; i < BTOR_SMT_NODES; i++)
+      if ((e = q->nodes[i].exp)) btor_release_exp (parser->mgr, e);
+
     BTOR_DELETE (parser->mem, q);
   }
 
   btor_freestr (parser->mem, parser->error);
   BTOR_RELEASE_STACK (parser->mem, parser->buffer);
+
+  if (parser->root) btor_release_exp (parser->mgr, parser->root);
+
   BTOR_DELETE (parser->mem, parser);
 }
 
@@ -835,7 +850,6 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
   BtorSMTSymbol *symbol, *logic;
   BtorSMTNode *p, *node;
   BtorSMTToken status;
-  BtorExp *root;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
@@ -906,8 +920,6 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
 
     btor_smt_message (parser, 2, "status %s", statusstr);
   }
-
-  root = 0;
 
   for (p = top; p; p = cdr (p))
   {
