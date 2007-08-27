@@ -416,6 +416,7 @@ btor_main (int argc, char **argv)
         }
         else if (dump_cnf)
         {
+          btor_set_read_enc_aigvec_mgr (avmgr, read_enc);
           btor_init_sat (smgr);
           btor_exp_to_sat (emgr, parse_res.roots[0]);
           btor_dump_cnf_sat (smgr, cnf_file);
