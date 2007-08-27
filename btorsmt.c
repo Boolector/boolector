@@ -86,6 +86,7 @@ typedef enum BtorSMTToken BtorSMTToken;
 
 struct BtorSMTNode
 {
+  BtorExp *exp;
   void *head;
   void *tail;
 };
@@ -105,6 +106,7 @@ struct BtorSMTSymbol
   BtorSMTToken token;
   char *name;
   BtorSMTSymbol *next;
+  BtorExp *exp;
 };
 
 struct BtorSMTParser
@@ -119,6 +121,8 @@ struct BtorSMTParser
   int lineno;
   int saved;
 
+  unsigned long long bytes;
+
   char *error;
   BtorCharStack buffer;
 
@@ -132,9 +136,10 @@ struct BtorSMTParser
   BtorSMTNodePtrStack stack;
   BtorIntStack heads;
 
-  BtorSMTNodes *nodes;
+  BtorSMTNodes *chunks;
   BtorSMTNode *free;
   BtorSMTNode *last;
+  unsigned nodes;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -157,30 +162,49 @@ cdr (BtorSMTNode *node)
 static BtorSMTNode *
 cons (BtorSMTParser *parser, void *h, void *t)
 {
+  BtorSMTNodes *chunk;
   BtorSMTNode *res;
-  BtorSMTNodes *nodes;
 
   if (parser->free == parser->last)
   {
-    BTOR_NEW (parser->mem, nodes);
-    nodes->next   = parser->nodes;
-    parser->nodes = nodes;
+    BTOR_NEW (parser->mem, chunk);
+    chunk->next    = parser->chunks;
+    parser->chunks = chunk;
 
-    parser->free = nodes->nodes;
-    parser->last = parser->free + BTOR_SMT_NODES;
+    parser->free = chunk->nodes;
+    parser->last = chunk->nodes + BTOR_SMT_NODES;
   }
 
   res = parser->free++;
+  parser->nodes++;
 
+  res->exp  = 0;
   res->head = h;
   res->tail = t;
 
   return res;
 }
 
+static void
+btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
+{
+  va_list ap;
+
+  assert (level >= 0);
+
+  if (parser->verbosity < level) return;
+
+  fprintf (stderr, "[btorsmt] ");
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
+}
+
 #define isleaf(l) (1lu & (unsigned long) (l))
 #define leaf(l) ((void *) (1lu | (unsigned long) (l)))
-#define strip(l) ((void *) ((~1lu) & (unsigned long) (l)))
+#define strip(l) ((BtorSMTSymbol *) ((~1lu) & (unsigned long) (l)))
 
 static void
 btor_delete_smt_parser (BtorSMTParser *parser)
@@ -204,7 +228,7 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->stack);
   BTOR_RELEASE_STACK (parser->mem, parser->heads);
 
-  for (q = parser->nodes; q; q = next)
+  for (q = parser->chunks; q; q = next)
   {
     next = q->next;
     BTOR_DELETE (parser->mem, q);
@@ -315,6 +339,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
     res->token = BTOR_SMTOK_IDENTIFIER;
     res->name  = btor_strdup (parser->mem, name);
     res->next  = 0;
+    res->exp   = 0;
 
     parser->symbols++;
     *p = res;
@@ -334,9 +359,12 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->mem       = mem;
-  res->mgr       = mgr;
   res->verbosity = verbosity;
+
+  btor_smt_message (res, 2, "initializing SMT parser");
+
+  res->mem = mem;
+  res->mgr = mgr;
 
   type = BTOR_SMTCC_IDENTIFIER_START | BTOR_SMTCC_IDENTIFIER_MIDDLE;
 
@@ -429,7 +457,10 @@ nextch (BtorSMTParser *parser)
     parser->saved = 0;
   }
   else
+  {
+    parser->bytes++;
     res = getc (parser->file);
+  }
 
   if (res == '\n') parser->lineno++;
 
@@ -741,7 +772,7 @@ btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
       btorsmtppaux (file, car (node), indent + 1);
       if (!(node = cdr (node))) break;
 
-      fputs ("[btorsmt] ", file);
+      fputc ('\n', file);
       for (i = 0; i < indent; i++) fputc (' ', file);
     }
 
@@ -754,6 +785,43 @@ btorsmtpp (BtorSMTNode *node)
 {
   btorsmtppaux (stderr, node, 0);
   fputc ('\n', stderr);
+  fflush (stderr);
+}
+
+static char *
+node2exp (BtorSMTParser *parser, BtorSMTNode *top)
+{
+  BtorSMTSymbol *symbol, *logic;
+  BtorSMTNode *p, *node;
+
+  btor_smt_message (parser, 2, "extracting expressions");
+
+  symbol = 0;
+  for (p = top; p; p = cdr (p))
+  {
+    node = car (p);
+    if (!isleaf (node)) continue;
+
+    symbol = strip (node);
+    if (symbol->token == BTOR_SMTOK_LOGICATTR) break;
+  }
+
+  if (!p) return parse_error (parser, "no ':logic' attribute found");
+
+  p = cdr (p);
+  if (!p) return parse_error (parser, "argument to ':logic' missing");
+
+  node = car (p);
+  if (!isleaf (node))
+    return parse_error (parser, "invalid argument to ':logic'");
+
+  logic = strip (node);
+  if (strcmp (logic->name, "QF_BV") && strcmp (logic->name, "QF_AUFBV"))
+    return parse_error (parser, "unsupported logic '%s'", logic->name);
+
+  btor_smt_message (parser, 2, "logic %s", logic->name);
+
+  return parse_error (parser, "node2exp not fully implemented yet");
 }
 
 static const char *
@@ -769,8 +837,7 @@ btor_parse_smt_parser (BtorSMTParser *parser,
   assert (!parser->parsed);
   parser->parsed = 1;
 
-  if (parser->verbosity)
-    fprintf (stderr, "[btorsmt] parsing SMT file %s\n", name);
+  btor_smt_message (parser, 1, "parsing SMT file %s", name);
 
   parser->name   = name;
   parser->file   = file;
@@ -815,9 +882,15 @@ NEXT_TOKEN:
 
       assert (BTOR_COUNT_STACK (parser->stack) == 1);
 
+      btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
+      btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
+      btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
+
+      /* TODO keep this for now until the parser works.
+       */
       if (parser->verbosity >= 3) btorsmtpp (parser->stack.start[0]);
 
-      return parse_error (parser, "node2exp not implemented yet");
+      return node2exp (parser, parser->stack.start[0]);
     }
 
     goto NEXT_TOKEN;
