@@ -764,6 +764,36 @@ btor_read_object_aigvec_mgr (BtorAIGVecMgr *avmgr,
   BTOR_PUSH_STACK (avmgr->mm, avmgr->reads, obj);
 }
 
+static int
+is_const_aigvec (BtorAIGVec *av)
+{
+  int i   = 0;
+  int len = 0;
+  assert (av != NULL);
+  len = av->len;
+  for (i = 0; i < len; i++)
+  {
+    if (!BTOR_IS_CONST_AIG (av->aigs[i])) return 0;
+  }
+  return 1;
+}
+
+static int
+is_different_aigvec (BtorAIGVec *av1, BtorAIGVec *av2)
+{
+  int i   = 0;
+  int len = 0;
+  assert (av1 != NULL);
+  assert (av2 != NULL);
+  assert (av1->len == av2->len);
+  len = av1->len;
+  for (i = 0; i < len; i++)
+  {
+    if (av1->aigs[i] != av2->aigs[i]) return 1;
+  }
+  return 0;
+}
+
 void
 btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
 {
@@ -802,6 +832,9 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
       av_var2   = (*cur2)->var;
       av_index2 = (*cur2)->index;
       assert (av_index1->len == av_index2->len);
+      if (is_const_aigvec (av_index1) && is_const_aigvec (av_index2)
+          && is_different_aigvec (av_index1, av_index2))
+        continue;
       len     = av_index1->len;
       d_start = 0;
       for (k = 0; k < len; k++)
