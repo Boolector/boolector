@@ -814,8 +814,9 @@ extrafuns (BtorSMTParser *parser, BtorSMTNode *list)
 {
   BtorSMTNode *p;
 
-  if (isleaf (list))
-    return !parse_error (parser, "expected list as argument to ':extrafuns'");
+  if (!list || isleaf (list))
+    return !parse_error (parser,
+                         "expected non empty list as argument to ':extrafuns'");
 
   for (p = list; p; p = cdr (p))
     if (!extrafun (parser, car (p))) return 0;
@@ -826,6 +827,22 @@ extrafuns (BtorSMTParser *parser, BtorSMTNode *list)
 static int
 extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
 {
+  BtorSMTSymbol *symbol;
+  BtorSMTNode *node;
+
+  if (!pdecl || isleaf (pdecl) || !isleaf (node = car (pdecl))
+      || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
+    return !parse_error (parser, "invalid predicate declaration");
+
+  if (cdr (pdecl))
+    return !parse_error (
+        parser, "no support for predicate declarations with arguments");
+
+  if (symbol->exp)
+    return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
+
+  symbol->exp = btor_var_exp (parser->mgr, 1, symbol->name);
+
   return 1;
 }
 
@@ -834,8 +851,9 @@ extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
 {
   BtorSMTNode *p;
 
-  if (isleaf (list))
-    return !parse_error (parser, "expected list as argument to ':extrapreds'");
+  if (!list || isleaf (list))
+    return !parse_error (
+        parser, "expected non empty list as argument to ':extrapreds'");
 
   for (p = list; p; p = cdr (p))
     if (!extrapred (parser, car (p))) return 0;
@@ -965,6 +983,8 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
         p = cdr (p);
         if (!p)
           return parse_error (parser, "argument to '%s' missing", attrstr);
+
+        /* TODO finish this part */
 
         break;
 
