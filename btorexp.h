@@ -104,6 +104,8 @@ BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr);
 
 BtorAIG *btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp);
 
+void btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp);
+
 void btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark);
 
 #endif

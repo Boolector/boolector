@@ -201,7 +201,6 @@ btor_main (int argc, char **argv)
   int verbosity               = 0;
   int hex                     = 0;
   int force_smt_input         = 0;
-  int read_mode               = 0;
   BtorReadEnc read_enc        = BTOR_SAT_SOLVER_READ_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
@@ -408,17 +407,20 @@ btor_main (int argc, char **argv)
       {
         avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
         amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-        aig   = btor_exp_to_aig (emgr, parse_res.roots[0]);
-        if (dump_aig) btor_dump_aig (amgr, aig_file, aig);
-        if (dump_cnf)
+        smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+        if (dump_aig)
         {
-          smgr = btor_get_sat_mgr_aig_mgr (amgr);
+          aig = btor_exp_to_aig (emgr, parse_res.roots[0]);
+          btor_dump_aig (amgr, aig_file, aig);
+          btor_release_aig (amgr, aig);
+        }
+        else if (dump_cnf)
+        {
           btor_init_sat (smgr);
-          btor_aig_to_sat (amgr, aig);
+          btor_exp_to_sat (emgr, parse_res.roots[0]);
           btor_dump_cnf_sat (smgr, cnf_file);
           btor_reset_sat (smgr);
         }
-        btor_release_aig (amgr, aig);
       }
     }
     else

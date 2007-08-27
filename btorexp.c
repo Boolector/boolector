@@ -2877,6 +2877,22 @@ free_current_assignments (BtorExpMgr *emgr)
   BTOR_RESET_STACK (emgr->assigned_exps);
 }
 
+void
+btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
+{
+  BtorAIG *aig     = NULL;
+  BtorAIGMgr *amgr = NULL;
+  assert (emgr != NULL);
+  assert (exp != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+  free_current_assignments (emgr);
+  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  aig  = btor_exp_to_aig (emgr, exp);
+  if (!BTOR_IS_CONST_AIG (aig)) btor_aig_to_sat (amgr, aig);
+  btor_handle_read_constraints_aigvec_mgr (emgr->avmgr);
+  btor_release_aig (amgr, aig);
+}
+
 int
 btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
