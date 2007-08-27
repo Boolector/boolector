@@ -833,18 +833,28 @@ encode_read_constraint (BtorAIGVecMgr *avmgr,
     aig2 = av_index2->aigs[k];
     if (!BTOR_IS_CONST_AIG (aig1))
     {
-      if (BTOR_IS_INVERTED_AIG (aig1))
-        i_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+      if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
+        i_k = btor_next_cnf_id_sat_mgr (smgr);
       else
-        i_k = aig1->cnf_id;
+      {
+        if (BTOR_IS_INVERTED_AIG (aig1))
+          i_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+        else
+          i_k = aig1->cnf_id;
+      }
       assert (i_k != 0);
     }
     if (!BTOR_IS_CONST_AIG (aig2))
     {
-      if (BTOR_IS_INVERTED_AIG (aig2))
-        j_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
+      if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
+        j_k = btor_next_cnf_id_sat_mgr (smgr);
       else
-        j_k = aig2->cnf_id;
+      {
+        if (BTOR_IS_INVERTED_AIG (aig2))
+          j_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
+        else
+          j_k = aig2->cnf_id;
+      }
       assert (j_k != 0);
     }
     if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
