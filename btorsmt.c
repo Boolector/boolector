@@ -788,13 +788,54 @@ btorsmtpp (BtorSMTNode *node)
   fflush (stderr);
 }
 
+static int
+extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
+{
+  return 1;
+}
+
+static int
+extrafuns (BtorSMTParser *parser, BtorSMTNode *list)
+{
+  BtorSMTNode *p;
+
+  if (isleaf (list))
+    return !parse_error (parser, "expected list as argument to ':extrafuns'");
+
+  for (p = list; p; p = cdr (p))
+    if (!extrafun (parser, car (p))) return 0;
+
+  return !parser->error;
+}
+
+static int
+extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
+{
+  return 1;
+}
+
+static int
+extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
+{
+  BtorSMTNode *p;
+
+  if (isleaf (list))
+    return !parse_error (parser, "expected list as argument to ':extrapreds'");
+
+  for (p = list; p; p = cdr (p))
+    if (!extrapred (parser, car (p))) return 0;
+
+  return !parser->error;
+}
+
 static char *
 node2exp (BtorSMTParser *parser, BtorSMTNode *top)
 {
+  const char *statusstr, *attrstr;
   BtorSMTSymbol *symbol, *logic;
   BtorSMTNode *p, *node;
-  const char *statusstr;
   BtorSMTToken status;
+  BtorExp *root;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
@@ -838,43 +879,85 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
     if (!isleaf (node)) continue;
 
     symbol = strip (node);
+    if (symbol->token == BTOR_SMTOK_STATUS) break;
+  }
+
+  if (p)
+  {
+    p = cdr (p);
+    if (!p) return parse_error (parser, "argument to ':status' missing");
+
+    node = car (p);
+    if (!isleaf (node))
+    INVALID_STATUS_ARGUMENT:
+      return parse_error (parser, "invalid ':status' argument");
+
+    symbol = strip (node);
+    status = symbol->token;
+
+    if (status == BTOR_SMTOK_SAT)
+      statusstr = "SAT";
+    else if (status == BTOR_SMTOK_UNSAT)
+      statusstr = "UNSAT";
+    else if (status == BTOR_SMTOK_UNKNOWN)
+      statusstr = "UNKNOWN";
+    else
+      goto INVALID_STATUS_ARGUMENT;
+
+    btor_smt_message (parser, 2, "status %s", statusstr);
+  }
+
+  root = 0;
+
+  for (p = top; p; p = cdr (p))
+  {
+    node = car (p);
+    if (!isleaf (node)) continue;
+
+    symbol  = strip (node);
+    attrstr = ":formula";
 
     switch (symbol->token)
     {
-      case BTOR_SMTOK_EXTRAFUNS: break;
+      case BTOR_SMTOK_EXTRAFUNS:
+        p = cdr (p);
+        if (!p) return parse_error (parser, "argument to ':extrafuns' missing");
 
-      case BTOR_SMTOK_EXTRAPREDS: break;
+        if (!extrafuns (parser, car (p)))
+        {
+          assert (parser->error);
+          return parser->error;
+        }
+
+        break;
+
+      case BTOR_SMTOK_EXTRAPREDS:
+
+        p = cdr (p);
+        if (!p)
+          return parse_error (parser, "argument to ':extrapreds' missing");
+
+        if (!extrapreds (parser, car (p)))
+        {
+          assert (parser->error);
+          return parser->error;
+        }
+
+        break;
 
       case BTOR_SMTOK_ASSUMPTION:
-      case BTOR_SMTOK_FORMULA: break;
+        attrstr = ":assumption";
+        /* FALL THROUGH */
+      case BTOR_SMTOK_FORMULA:
+
+        p = cdr (p);
+        if (!p)
+          return parse_error (parser, "argument to '%s' missing", attrstr);
+
+        break;
 
       case BTOR_SMTOK_EXTRASORTS:
         return parse_error (parser, "':extrasorts' unsupported");
-
-      case BTOR_SMTOK_STATUS:
-
-        p = cdr (p);
-        if (!p) return parse_error (parser, "argument to ':status' missing");
-
-        node = car (p);
-        if (!isleaf (node))
-        INVALID_STATUS_ARGUMENT:
-          return parse_error (parser, "invalid ':status' argument");
-
-        status = strip (node)->token;
-
-        if (status == BTOR_SMTOK_SAT)
-          statusstr = "SAT";
-        else if (status == BTOR_SMTOK_UNSAT)
-          statusstr = "UNSAT";
-        else if (status == BTOR_SMTOK_UNKNOWN)
-          statusstr = "UNKNOWN";
-        else
-          goto INVALID_STATUS_ARGUMENT;
-
-        btor_smt_message (parser, 2, "status %s", statusstr);
-
-        break;
 
       default: break;
     }
