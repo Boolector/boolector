@@ -3,7 +3,7 @@
 #include "btorstack.h"
 
 #include <assert.h>
-#include <ctype.h> /* actually only for 'isprint' */
+#include <ctype.h>
 #include <stdarg.h>
 
 typedef struct BtorSMTParser BtorSMTParser;
@@ -806,6 +806,75 @@ btorsmtpp (BtorSMTNode *node)
 static int
 extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 {
+  BtorSMTSymbol *symbol, *sortsymbol;
+  BtorSMTNode *node, *sort;
+  int addrlen, datalen;
+  const char *p;
+  char ch;
+
+  if (!fdecl || !cdr (fdecl) || isleaf (fdecl) || !isleaf (node = car (fdecl))
+      || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
+    return !parse_error (parser, "invalid function declaration");
+
+  if (cdr (cdr (fdecl)))
+    return !parse_error (parser,
+                         "no support for function declaration "
+                         "with more than one argument");
+
+  sort = car (cdr (fdecl));
+  if (!sort || !isleaf (sort)
+      || (sortsymbol = strip (sort))->token != BTOR_SMTOK_IDENTIFIER)
+  INVALID_SORT:
+    return !parse_error (parser,
+                         "invalid or unsupported sort "
+                         "in function declaration");
+
+  if (symbol->exp)
+    return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
+
+  p = sortsymbol->name;
+  if ((ch = *p++) == 'B')
+  {
+    if (*p++ != 'i' || *p++ != 't' || *p++ != 'V' || *p++ != 'e' || *p++ != 'c'
+        || *p++ != '[' || !isdigit (ch = *p++))
+      goto INVALID_SORT;
+
+    datalen = ch - '0';
+    while (isdigit (ch = *p++)) datalen = 10 * datalen + (ch - '0');
+
+    if (!datalen || ch != ']') goto INVALID_SORT;
+
+    assert (!*p);
+
+    symbol->exp = btor_var_exp (parser->mgr, datalen, symbol->name);
+  }
+  else if (ch == 'A')
+  {
+    if (*p++ != 'r' || *p++ != 'r' || *p++ != 'a' || *p++ != 'y' || *p++ != '['
+        || !isdigit (ch = *p++))
+      goto INVALID_SORT;
+
+    addrlen = ch - '0';
+    while (isdigit (ch = *p++)) addrlen = 10 * addrlen + (ch - '0');
+
+    if (!addrlen || ch != ':' || !isdigit (ch = *p++)) goto INVALID_SORT;
+
+    datalen = ch - '0';
+    while (isdigit (ch = *p++)) datalen = 10 * datalen + (ch - '0');
+
+    if (!datalen || ch != ']') goto INVALID_SORT;
+
+    assert (!*p);
+
+    symbol->exp = btor_array_exp (parser->mgr, datalen, addrlen
+#if 0 /* TODO add this back */
+	  , symbol->name
+#endif
+    );
+  }
+  else
+    goto INVALID_SORT;
+
   return 1;
 }
 
