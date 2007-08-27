@@ -794,8 +794,8 @@ is_different_aigvec (BtorAIGVec *av1, BtorAIGVec *av2)
   return 0;
 }
 
-void
-btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
+static void
+handle_eager_read_constraints (BtorAIGVecMgr *avmgr)
 {
   BtorReadObj **cur1    = NULL;
   BtorReadObj **cur2    = NULL;
@@ -900,6 +900,14 @@ btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
       }
     }
   }
+}
+
+void
+btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
+{
+  assert (avmgr != NULL);
+  if (avmgr->read_enc == BTOR_EAGER_READ_ENC)
+    handle_eager_read_constraints (avmgr);
 }
 
 BtorAIGVecMgr *

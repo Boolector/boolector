@@ -261,6 +261,18 @@ test_factor18446744073709551617_special ()
   run_sat_test ("factor18446744073709551617.in");
 }
 
+static void
+test_read1_special ()
+{
+  run_unsat_test ("read1");
+}
+
+static void
+test_read2_special ()
+{
+  run_unsat_test ("read2");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -301,6 +313,8 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (factor18446744073709551617yconst_special);
   BTOR_RUN_TEST (factor18446744073709551617reduced_special);
   BTOR_RUN_TEST (factor18446744073709551617_special);
+  BTOR_RUN_TEST (read1_special);
+  BTOR_RUN_TEST (read2_special);
 }
 
 void

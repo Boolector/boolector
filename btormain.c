@@ -201,7 +201,7 @@ btor_main (int argc, char **argv)
   int verbosity               = 0;
   int hex                     = 0;
   int force_smt_input         = 0;
-  BtorReadEnc read_enc        = BTOR_SAT_SOLVER_READ_ENC;
+  BtorReadEnc read_enc        = BTOR_EAGER_READ_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
@@ -298,7 +298,7 @@ btor_main (int argc, char **argv)
     {
       hex = 1;
     }
-    else if (!strcmp (argv[i], "-nrc")
+    else if (!strcmp (argv[i], "-nr")
              || !strcmp (argv[i], "--no-read-consistency"))
     {
       read_enc = BTOR_NO_READ_ENC;
