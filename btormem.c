@@ -99,7 +99,9 @@ btor_parse_error_message (
     {
       p++;
       assert (*p);
-      if (*p == 'd' || *p == 'u')
+      if (*p == 'c')
+        bytes += 1;
+      else if (*p == 'd' || *p == 'u')
         bytes += 12;
       else
       {
