@@ -32,7 +32,7 @@ typedef struct BtorMainApp BtorMainApp;
 struct BtorMainApp
 {
   FILE *output_file;
-  int quiet;
+  int verbosity;
   int *err;
   int *i;
   int argc;
@@ -109,7 +109,7 @@ static void
 print_msg (BtorMainApp *app, char *msg)
 {
   assert (msg != NULL);
-  if (!app->quiet) fprintf (app->output_file, msg);
+  if (app->verbosity >= 0) fprintf (app->output_file, msg);
 }
 
 static void
@@ -117,8 +117,33 @@ print_msg_va_args (BtorMainApp *app, char *msg, ...)
 {
   va_list list;
   assert (msg != NULL);
-  if (!app->quiet)
+  if (app->verbosity >= 0)
   {
+    va_start (list, msg);
+    vfprintf (app->output_file, msg, list);
+    va_end (list);
+  }
+}
+
+static void
+print_err (BtorMainApp *app, char *msg)
+{
+  assert (msg != NULL);
+  if (app->verbosity >= 0)
+  {
+    fputs ("boolector: ", app->output_file);
+    fprintf (app->output_file, msg);
+  }
+}
+
+static void
+print_err_va_args (BtorMainApp *app, char *msg, ...)
+{
+  va_list list;
+  assert (msg != NULL);
+  if (app->verbosity >= 0)
+  {
+    fputs ("boolector: ", app->output_file);
     va_start (list, msg);
     vfprintf (app->output_file, msg, list);
     va_end (list);
@@ -144,7 +169,7 @@ handle_dump_file (BtorMainApp *app,
       assert (*file != NULL);
       fclose (*file);
       *close_file = 0;
-      print_msg_va_args (app, "boolector: multiple %s files\n", file_kind);
+      print_err_va_args (app, "multiple %s files\n", file_kind);
       *app->err = 1;
     }
     else
@@ -153,8 +178,7 @@ handle_dump_file (BtorMainApp *app,
       *file = fopen (app->argv[*app->i], "w");
       if (*file == NULL)
       {
-        print_msg_va_args (
-            app, "boolector: can not create '%s'\n", app->argv[*app->i]);
+        print_err_va_args (app, "can not create '%s'\n", app->argv[*app->i]);
         *app->err = 1;
       }
       else
@@ -198,7 +222,6 @@ btor_main (int argc, char **argv)
   int dump_exp                = 0;
   int dump_aig                = 0;
   int dump_cnf                = 0;
-  int verbosity               = 0;
   int hex                     = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_EAGER_READ_ENC;
@@ -225,7 +248,7 @@ btor_main (int argc, char **argv)
   int dump_trace                  = 0;
   int rewrite_level               = 2;
 
-  app.quiet       = 0;
+  app.verbosity   = 0;
   app.output_file = stdout;
   app.argc        = argc;
   app.argv        = argv;
@@ -275,14 +298,24 @@ btor_main (int argc, char **argv)
       assert (rewrite_level >= 0);
       if (rewrite_level > 2)
       {
-        print_msg (&app, "boolector: rewrite level has to be in [0,2]\n");
+        print_err (&app, "rewrite level has to be in [0,2]\n");
         err = 1;
       }
     }
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
     {
-      verbosity++;
-      app.quiet = 0;
+      if (app.verbosity < 0)
+      {
+        print_err (&app, "'-q' and '-v' can not be combined\n");
+        err = 1;
+      }
+      else if (app.verbosity == 3)
+      {
+        print_err (&app, "can not increase verbosity beyond '3'\n");
+        err = 1;
+      }
+      else
+        app.verbosity++;
     }
     else if (!strcmp (argv[i], "-V") || !strcmp (argv[i], "--version"))
     {
@@ -291,8 +324,13 @@ btor_main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
     {
-      app.quiet = 1;
-      verbosity = 0;
+      if (app.verbosity > 0)
+      {
+        print_err (&app, "can not combine '-q' and '-v'\n");
+        err = 1;
+      }
+      else
+        app.verbosity = -1;
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
@@ -324,7 +362,7 @@ btor_main (int argc, char **argv)
           fclose (app.output_file);
           close_output_file = 0;
           app.output_file   = stdout;
-          print_msg_va_args (&app, "boolector: multiple output files\n");
+          print_err_va_args (&app, "multiple output files\n");
           err = 1;
         }
         else
@@ -333,8 +371,7 @@ btor_main (int argc, char **argv)
           if (app.output_file == NULL)
           {
             app.output_file = stdout;
-            print_msg_va_args (
-                &app, "boolector: can not create '%s'\n", argv[i]);
+            print_err_va_args (&app, "can not create '%s'\n", argv[i]);
             err = 1;
           }
           else
@@ -344,17 +381,17 @@ btor_main (int argc, char **argv)
     }
     else if (argv[i][0] == '-')
     {
-      print_msg_va_args (&app, "boolector: invalid option '%s'\n", argv[i]);
+      print_err_va_args (&app, "invalid option '%s'\n", argv[i]);
       err = 1;
     }
     else if (close_input_file)
     {
-      print_msg_va_args (&app, "boolector: multiple input files\n");
+      print_err_va_args (&app, "multiple input files\n");
       err = 1;
     }
     else if (!(file = fopen (argv[i], "r")))
     {
-      print_msg_va_args (&app, "boolector: can not read '%s'\n", argv[i]);
+      print_err_va_args (&app, "can not read '%s'\n", argv[i]);
       err = 1;
     }
     else
@@ -367,8 +404,9 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    emgr = btor_new_exp_mgr (rewrite_level, dump_trace, verbosity, trace_file);
-    mem  = btor_get_mem_mgr_exp_mgr (emgr);
+    emgr =
+        btor_new_exp_mgr (rewrite_level, dump_trace, app.verbosity, trace_file);
+    mem = btor_get_mem_mgr_exp_mgr (emgr);
 
     if (force_smt_input
         || (close_input_file && has_suffix (input_file_name, ".smt")))
@@ -378,7 +416,7 @@ btor_main (int argc, char **argv)
     else
       parser_api = btor_btor_parser_api;
 
-    parser = parser_api->init (emgr, verbosity);
+    parser = parser_api->init (emgr, app.verbosity);
 
     parse_error =
         parser_api->parse (parser, input_file, input_file_name, &parse_res);
@@ -429,13 +467,18 @@ btor_main (int argc, char **argv)
       avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
       amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
       smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stderr);
-      if (verbosity >= 3) btor_enable_verbosity_sat (smgr);
-      if (verbosity == 1) print_verbose_msg ("generating SAT instance\n");
+
+      if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
+
+      if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
+
       btor_set_read_enc_aigvec_mgr (avmgr, read_enc);
       sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
-      if (!app.quiet)
+
+      if (app.verbosity >= 0)
       {
         if (sat_result == BTOR_UNSAT)
           print_msg (&app, "UNSATISFIABLE\n");
@@ -466,7 +509,8 @@ btor_main (int argc, char **argv)
           print_msg (&app, "UNKNOWN SAT RESULT\n");
         }
       }
-      if (verbosity >= 3) btor_print_stats_sat (smgr);
+
+      if (app.verbosity >= 3) btor_print_stats_sat (smgr);
       btor_reset_sat (smgr);
     }
 
@@ -494,7 +538,7 @@ btor_main (int argc, char **argv)
     return_val = BTOR_UNKNOWN_EXIT;
   }
 #ifdef BTOR_HAVE_GETRUSAGE
-  if (!err && !done && !app.quiet)
+  if (!err && !done && app.verbosity >= 0)
   {
     delta_time = time_stamp () - start_time;
     print_verbose_msg_va_args ("%.1f seconds\n", delta_time);
