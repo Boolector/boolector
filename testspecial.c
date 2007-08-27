@@ -297,6 +297,12 @@ test_read6_special ()
   run_unsat_test ("read6");
 }
 
+static void
+test_read7_special ()
+{
+  run_unsat_test ("read7");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -343,6 +349,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (read4_special);
   BTOR_RUN_TEST (read5_special);
   BTOR_RUN_TEST (read6_special);
+  BTOR_RUN_TEST (read7_special);
 }
 
 void

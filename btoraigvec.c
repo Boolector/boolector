@@ -828,9 +828,9 @@ encode_read_constraint (BtorAIGVecMgr *avmgr,
   if (is_different && is_const_aigvec (av_index1)
       && is_const_aigvec (av_index2))
     return;
-  if (!is_different)
+  len = av_index1->len;
+  if (is_different)
   {
-    len = av_index1->len;
     BTOR_INIT_STACK (diffs);
     for (k = 0; k < len; k++)
     {
