@@ -3,6 +3,7 @@
 #include "btorstack.h"
 
 #include <assert.h>
+#include <ctype.h> /* actually only for 'isprint' */
 #include <stdarg.h>
 
 typedef struct BtorSMTParser BtorSMTParser;
@@ -154,7 +155,7 @@ cdr (BtorSMTNode *node)
 }
 
 static BtorSMTNode *
-cons_function (BtorSMTParser *parser, void *h, void *t)
+cons (BtorSMTParser *parser, void *h, void *t)
 {
   BtorSMTNode *res;
   BtorSMTNodes *nodes;
@@ -177,7 +178,6 @@ cons_function (BtorSMTParser *parser, void *h, void *t)
   return res;
 }
 
-#define cons(h, t) (cons_function (parser, (h), (t)))
 #define isleaf(l) (1lu & (unsigned long) (l))
 #define leaf(l) ((void *) (1lu | (unsigned long) (l)))
 #define strip(l) ((void *) ((~1lu) & (unsigned long) (l)))
@@ -238,7 +238,9 @@ hash_name (const char *name)
   const char *p;
   char ch;
 
+  i   = 0;
   res = 0;
+
   for (p = name; (ch = *p); p++)
   {
     res += primes[i++] * (unsigned) ch;
@@ -310,6 +312,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
     res->next  = 0;
 
     parser->symbols++;
+    *p = res;
   }
 
   return res;
@@ -450,11 +453,12 @@ int2type (BtorSMTParser *parser, int ch)
   return parser->types[ch];
 }
 
-static int
+static BtorSMTToken
 nextok (BtorSMTParser *parser)
 {
   unsigned char type;
-  int ch, res, count;
+  BtorSMTToken res;
+  int ch, count;
 
   parser->symbol = 0;
   BTOR_RESET_STACK (parser->buffer);
@@ -466,14 +470,6 @@ SKIP_WHITE_SPACE:
 
   type = int2type (parser, ch);
   if (type & BTOR_SMTCC_SPACE) goto SKIP_WHITE_SPACE;
-
-  if (ch == ';')
-  {
-    while ((ch = nextch (parser)) != '\n')
-      if (ch == EOF) return BTOR_SMTOK_EOF;
-
-    goto SKIP_WHITE_SPACE;
-  }
 
   if (type & BTOR_SMTCC_IDENTIFIER_START)
   {
@@ -499,6 +495,8 @@ SKIP_WHITE_SPACE:
           while (int2type (parser, (ch = nextch (parser))) & BTOR_SMTCC_DIGIT)
             BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
 
+        COUNT_AND_CONTINUE_WITH_NEXT_INDEX:
+
           count++;
 
           if (ch == ']') break;
@@ -507,6 +505,12 @@ SKIP_WHITE_SPACE:
 
           BTOR_PUSH_STACK (parser->mem, parser->buffer, ':');
           ch = nextch (parser);
+        }
+        else if (ch == '0')
+        {
+          BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+          ch = nextch (parser);
+          goto COUNT_AND_CONTINUE_WITH_NEXT_INDEX;
         }
         else
           goto UNEXPECTED_CHARACTER;
@@ -526,6 +530,8 @@ SKIP_WHITE_SPACE:
 
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
+  INSERT_SYMBOL_AND_CHECK_FOR_UNSUPPORTED_KEYWORD:
+
     parser->symbol = insert_symbol (parser, parser->buffer.start);
     if (parser->symbol->token >= BTOR_SMTOK_UNSUPPORTED_KEYWORD)
       return !parse_error (
@@ -534,9 +540,20 @@ SKIP_WHITE_SPACE:
     return parser->symbol->token;
   }
 
+  if (ch == '(') return BTOR_SMTOK_LP;
+
+  if (ch == ')') return BTOR_SMTOK_RP;
+
   if (type & BTOR_SMTCC_IDENTIFIER_PREFIX)
   {
     res = ch;
+
+    assert (ch == '?' || ch == '$' || ch == ':');
+
+    assert ((ch == '?') == (res == BTOR_SMTOK_VAR));
+    assert ((ch == '$') == (res == BTOR_SMTOK_FVAR));
+    assert ((ch == ':') == (res == BTOR_SMTOK_ATTR));
+
     BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
 
     ch = nextch (parser);
@@ -554,16 +571,8 @@ SKIP_WHITE_SPACE:
     savech (parser, ch);
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
-    assert (ch == '?' || ch == '$' || ch == ':');
-
-    assert ((ch == '?') == (res == BTOR_SMTOK_VAR));
-    assert ((ch == '$') == (res == BTOR_SMTOK_FVAR));
-    assert ((ch == ':') == (res == BTOR_SMTOK_ATTR));
-
-    return res;
+    goto INSERT_SYMBOL_AND_CHECK_FOR_UNSUPPORTED_KEYWORD;
   }
-
-  if (ch == '(' || ch == ')') return ch;
 
   if (type & BTOR_SMTCC_NUMERAL_START)
   {
@@ -644,8 +653,18 @@ SKIP_WHITE_SPACE:
     return BTOR_SMTOK_ARITH;
   }
 
+  if (ch == ';')
+  {
+    while ((ch = nextch (parser)) != '\n')
+      if (ch == EOF) return BTOR_SMTOK_EOF;
+
+    goto SKIP_WHITE_SPACE;
+  }
+
   if (ch == '{')
   {
+    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
+
     while ((ch = nextch (parser)) != '}')
     {
       if (ch == '{') return !parse_error (parser, "unescaped '{' after '{'");
@@ -661,6 +680,8 @@ SKIP_WHITE_SPACE:
       BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
     }
 
+    assert (ch == '}');
+    BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
     parser->symbol        = insert_symbol (parser, parser->buffer.start);
@@ -693,30 +714,32 @@ SKIP_WHITE_SPACE:
   }
 
 UNEXPECTED_CHARACTER:
+  if (isprint (ch))
+    return !parse_error (parser, "unexpected character '%c'", ch);
+
   return !parse_error (parser, "unexpected character with ASCII code %d", ch);
 }
 
+#if 1
+
 static void
-ppaux (FILE *file, BtorSMTNode *node, int indent)
+btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
 {
-  BtorSMTNode *p, *next;
   int i;
 
   if (isleaf (node))
-    fprintf (file, "%s", ((BtorSMTSymbol *) leaf (node))->name);
+    fprintf (file, "%s", ((BtorSMTSymbol *) strip (node))->name);
   else
   {
     fputc ('(', file);
 
-    for (p = node; p; p = next)
+    for (;;)
     {
-      ppaux (file, car (node), indent + 1);
+      btorsmtppaux (file, car (node), indent + 1);
+      if (!(node = cdr (node))) break;
+
       fputc ('\n', file);
-
-      next = cdr (p);
-
-      if (next)
-        for (i = 0; i < indent; i++) fputc (' ', file);
+      for (i = 0; i < indent; i++) fputc (' ', file);
     }
 
     fputc (')', file);
@@ -724,11 +747,13 @@ ppaux (FILE *file, BtorSMTNode *node, int indent)
 }
 
 void
-pp (BtorSMTNode *node)
+btorsmtpp (BtorSMTNode *node)
 {
-  ppaux (stdout, node, 0);
+  btorsmtppaux (stdout, node, 0);
   fputc ('\n', stdout);
 }
+
+#endif
 
 static const char *
 btor_parse_smt_parser (BtorSMTParser *parser,
@@ -736,7 +761,9 @@ btor_parse_smt_parser (BtorSMTParser *parser,
                        const char *name,
                        BtorParseResult *res)
 {
+  BtorSMTNode *node, **p, **first;
   BtorSMTToken token;
+  int head;
 
   assert (!parser->parsed);
   parser->parsed = 1;
@@ -751,10 +778,45 @@ btor_parse_smt_parser (BtorSMTParser *parser,
   assert (BTOR_EMPTY_STACK (parser->stack));
   assert (BTOR_EMPTY_STACK (parser->heads));
 
+NEXT_TOKEN:
+
   token = nextok (parser);
 
   if (token == BTOR_SMTOK_LP)
   {
+    head = BTOR_COUNT_STACK (parser->stack);
+    BTOR_PUSH_STACK (parser->mem, parser->heads, head);
+    goto NEXT_TOKEN;
+  }
+
+  if (token == BTOR_SMTOK_RP)
+  {
+    if (BTOR_EMPTY_STACK (parser->heads))
+      return parse_error (parser, "too many closing ')'");
+
+    node = 0;
+    head = BTOR_POP_STACK (parser->heads);
+    assert (head <= BTOR_COUNT_STACK (parser->stack));
+    first = parser->stack.start + head;
+    p     = parser->stack.top;
+    while (first < p) node = cons (parser, *--p, node);
+
+    parser->stack.top = first;
+    BTOR_PUSH_STACK (parser->mem, parser->stack, node);
+
+    if (BTOR_EMPTY_STACK (parser->heads))
+    {
+      token = nextok (parser);
+      if (token != BTOR_SMTOK_EOF) return parse_error (parser, "expected EOF");
+
+      assert (BTOR_COUNT_STACK (parser->stack) == 1);
+
+      btorsmtpp (parser->stack.start[0]);
+
+      return parse_error (parser, "node2exp not implemented yet");
+    }
+
+    goto NEXT_TOKEN;
   }
 
   if (token == BTOR_SMTOK_ERR)
@@ -765,13 +827,13 @@ btor_parse_smt_parser (BtorSMTParser *parser,
 
   if (token == BTOR_SMTOK_EOF) return parse_error (parser, "unexpected EOF");
 
-  if (token == BTOR_SMTOK_RP)
-  {
-    if (BTOR_EMPTY_STACK (parser->stack))
-      return parse_error (parser, "too many closing ')'");
+  if (BTOR_EMPTY_STACK (parser->heads))
+    return parse_error (parser, "expected '('");
 
-    /* TODO finish */
-  }
+  assert (parser->symbol);
+  BTOR_PUSH_STACK (parser->mem, parser->stack, leaf (parser->symbol));
+
+  goto NEXT_TOKEN;
 }
 
 static BtorParserAPI api = {
