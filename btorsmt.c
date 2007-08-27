@@ -7,6 +7,7 @@
 
 typedef struct BtorSMTParser BtorSMTParser;
 typedef struct BtorSMTNode BtorSMTNode;
+typedef struct BtorSMTNodes BtorSMTNodes;
 typedef struct BtorSMTSymbol BtorSMTSymbol;
 
 enum BtorSMTCharacterClass
@@ -84,10 +85,19 @@ typedef enum BtorSMTToken BtorSMTToken;
 
 struct BtorSMTNode
 {
-  int tag;
   void *head;
   void *tail;
 };
+
+#define BTOR_SMT_NODES 10000
+
+struct BtorSMTNodes
+{
+  BtorSMTNodes *next;
+  BtorSMTNode nodes[BTOR_SMT_NODES];
+};
+
+BTOR_DECLARE_STACK (SMTNodePtr, BtorSMTNode *);
 
 struct BtorSMTSymbol
 {
@@ -112,9 +122,17 @@ struct BtorSMTParser
 
   unsigned char types[256];
 
+  BtorSMTSymbol *symbol;
   BtorSMTSymbol **symtab;
   unsigned szsymtab;
   unsigned symbols;
+
+  BtorSMTNodePtrStack stack;
+  BtorIntStack heads;
+
+  BtorSMTNodes *nodes;
+  BtorSMTNode *free;
+  BtorSMTNode *last;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -135,16 +153,30 @@ cdr (BtorSMTNode *node)
 }
 
 static BtorSMTNode *
-cons_function (BtorMemMgr *mem, void *h, void *t)
+cons_function (BtorSMTParser *parser, void *h, void *t)
 {
   BtorSMTNode *res;
-  BTOR_NEW (mem, res);
+  BtorSMTNodes *nodes;
+
+  if (parser->free == parser->last)
+  {
+    BTOR_NEW (parser->mem, nodes);
+    nodes->next   = parser->nodes;
+    parser->nodes = nodes;
+
+    parser->free = nodes->nodes;
+    parser->last = parser->free + BTOR_SMT_NODES;
+  }
+
+  res = parser->free++;
+
   res->head = h;
   res->tail = t;
+
   return res;
 }
 
-#define cons(h, t) (cons_function (parser->mem, (h), (t)))
+#define cons(h, t) (cons_function (parser, (h), (t)))
 #define isleaf(l) (1lu & (unsigned long) (l))
 #define leaf(l) ((void *) (1lu | (unsigned long) (l)))
 #define strip(l) ((void *) ((~1lu) & (unsigned long) (l)))
@@ -152,7 +184,9 @@ cons_function (BtorMemMgr *mem, void *h, void *t)
 static void
 btor_delete_smt_parser (BtorSMTParser *parser)
 {
-  BtorSMTSymbol *p, *next;
+  BtorSMTSymbol *p;
+  BtorSMTNodes *q;
+  void *next;
   unsigned i;
 
   for (i = 0; i < parser->szsymtab; i++)
@@ -165,6 +199,15 @@ btor_delete_smt_parser (BtorSMTParser *parser)
     }
   }
   BTOR_DELETEN (parser->mem, parser->symtab, parser->szsymtab);
+
+  BTOR_RELEASE_STACK (parser->mem, parser->stack);
+  BTOR_RELEASE_STACK (parser->mem, parser->heads);
+
+  for (q = parser->nodes; q; q = next)
+  {
+    next = q->next;
+    BTOR_DELETE (parser->mem, q);
+  }
 
   btor_freestr (parser->mem, parser->error);
   BTOR_RELEASE_STACK (parser->mem, parser->token);
@@ -412,7 +455,8 @@ nextok (BtorSMTParser *parser)
   unsigned char type;
   int ch, res, count;
 
-  assert (BTOR_EMPTY_STACK (parser->token));
+  parser->symbol = 0;
+  BTOR_RESET_STACK (parser->token);
 
 SKIP_WHITE_SPACE:
 
@@ -481,7 +525,12 @@ SKIP_WHITE_SPACE:
 
     BTOR_PUSH_STACK (parser->mem, parser->token, 0);
 
-    return insert_symbol (parser, parser->token.start)->token;
+    parser->symbol = insert_symbol (parser, parser->token.start);
+    if (parser->symbol->token >= BTOR_SMTOK_UNSUPPORTED_KEYWORD)
+      return !parse_error (
+          parser, "unsupported keyword '%s'", parser->token.start);
+
+    return parser->symbol->token;
   }
 
   if (type & BTOR_SMTCC_IDENTIFIER_PREFIX)
