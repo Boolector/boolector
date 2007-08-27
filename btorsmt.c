@@ -793,16 +793,27 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
 {
   BtorSMTSymbol *symbol, *logic;
   BtorSMTNode *p, *node;
+  const char *statusstr;
+  BtorSMTToken status;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
   symbol = 0;
+
   for (p = top; p; p = cdr (p))
   {
     node = car (p);
     if (!isleaf (node)) continue;
 
     symbol = strip (node);
+
+    if (symbol->token == BTOR_SMTOK_EXTRASORTS
+        || symbol->token == BTOR_SMTOK_EXTRAFUNS
+        || symbol->token == BTOR_SMTOK_EXTRAPREDS
+        || symbol->token == BTOR_SMTOK_ASSUMPTION
+        || symbol->token == BTOR_SMTOK_FORMULA)
+      return parse_error (parser, "'%s' before ':logic'", symbol->name);
+
     if (symbol->token == BTOR_SMTOK_LOGICATTR) break;
   }
 
@@ -821,6 +832,54 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
 
   btor_smt_message (parser, 2, "logic %s", logic->name);
 
+  for (p = top; p; p = cdr (p))
+  {
+    node = car (p);
+    if (!isleaf (node)) continue;
+
+    symbol = strip (node);
+
+    switch (symbol->token)
+    {
+      case BTOR_SMTOK_EXTRAFUNS: break;
+
+      case BTOR_SMTOK_EXTRAPREDS: break;
+
+      case BTOR_SMTOK_ASSUMPTION:
+      case BTOR_SMTOK_FORMULA: break;
+
+      case BTOR_SMTOK_EXTRASORTS:
+        return parse_error (parser, "':extrasorts' unsupported");
+
+      case BTOR_SMTOK_STATUS:
+
+        p = cdr (p);
+        if (!p) return parse_error (parser, "argument to ':status' missing");
+
+        node = car (p);
+        if (!isleaf (node))
+        INVALID_STATUS_ARGUMENT:
+          return parse_error (parser, "invalid ':status' argument");
+
+        status = strip (node)->token;
+
+        if (status == BTOR_SMTOK_SAT)
+          statusstr = "SAT";
+        else if (status == BTOR_SMTOK_UNSAT)
+          statusstr = "UNSAT";
+        else if (status == BTOR_SMTOK_UNKNOWN)
+          statusstr = "UNKNOWN";
+        else
+          goto INVALID_STATUS_ARGUMENT;
+
+        btor_smt_message (parser, 2, "status %s", statusstr);
+
+        break;
+
+      default: break;
+    }
+  }
+
   return parse_error (parser, "node2exp not fully implemented yet");
 }
 
@@ -830,7 +889,7 @@ btor_parse_smt_parser (BtorSMTParser *parser,
                        const char *name,
                        BtorParseResult *res)
 {
-  BtorSMTNode *node, **p, **first;
+  BtorSMTNode *node, *top, **p, **first;
   BtorSMTToken token;
   int head;
 
@@ -881,6 +940,8 @@ NEXT_TOKEN:
       if (token != BTOR_SMTOK_EOF) return parse_error (parser, "expected EOF");
 
       assert (BTOR_COUNT_STACK (parser->stack) == 1);
+      top = parser->stack.start[0];
+      BTOR_RESET_STACK (parser->stack);
 
       btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
       btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
@@ -888,9 +949,9 @@ NEXT_TOKEN:
 
       /* TODO keep this for now until the parser works.
        */
-      if (parser->verbosity >= 3) btorsmtpp (parser->stack.start[0]);
+      if (parser->verbosity >= 3) btorsmtpp (top);
 
-      return node2exp (parser, parser->stack.start[0]);
+      return node2exp (parser, top);
     }
 
     goto NEXT_TOKEN;
