@@ -1,1 +1,1 @@
-#smttrue -o log/smttrue.log log/smttrue.smt
+smttrue -o log/smttrue.log log/smttrue.smt

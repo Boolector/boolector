@@ -110,7 +110,6 @@ struct BtorSMTSymbol
   BtorSMTToken token;
   BtorSMTSymbol *next;
   BtorExp *exp;
-  int pushed;
 };
 
 struct BtorSMTParser
@@ -148,7 +147,8 @@ struct BtorSMTParser
   BtorSMTNode *last;
   unsigned nodes;
 
-  BtorExp *root_exp;
+  BtorExpPtrStack vars;
+  BtorExp *root;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -257,7 +257,9 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   btor_freestr (parser->mem, parser->error);
   BTOR_RELEASE_STACK (parser->mem, parser->buffer);
 
-  if (parser->root_exp) btor_release_exp (parser->mgr, parser->root_exp);
+  if (parser->root) btor_release_exp (parser->mgr, parser->root);
+
+  BTOR_RELEASE_STACK (parser->mem, parser->vars);
 
   BTOR_DELETE (parser->mem, parser);
 }
@@ -867,6 +869,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     assert (!*p);
 
     symbol->exp = btor_var_exp (parser->mgr, datalen, symbol->name);
+    BTOR_PUSH_STACK (parser->mem, parser->vars, symbol->exp);
   }
   else if (ch == 'A')
   {
@@ -886,11 +889,8 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 
     assert (!*p);
 
-    symbol->exp = btor_array_exp (parser->mgr, datalen, addrlen
-#if 0 /* TODO add this back */
-	  , symbol->name
-#endif
-    );
+    symbol->exp = btor_array_exp (parser->mgr, datalen, addrlen);
+    /* TODO what about 'symbol->name' back annotation? */
   }
   else
     goto INVALID_SORT;
@@ -963,20 +963,27 @@ is_let_or_flet (BtorSMTNode *node)
   return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
 }
 
+static BtorExp *
+node2exp (BtorSMTNode *node)
+{
+  return isleaf (node) ? strip (node)->exp : node->exp;
+}
+
 static char *
-translate (BtorSMTParser *parser, BtorSMTNode *root_node)
+translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
   BtorSMTNode *assignment, *body;
   BtorSMTSymbol *symbol;
+  BtorExp *and, *exp;
   BtorSMTToken token;
   int start, end;
 
   assert (BTOR_EMPTY_STACK (parser->work));
   assert (BTOR_EMPTY_STACK (parser->stack));
 
-  assert (root_node);
-  BTOR_PUSH_STACK (parser->mem, parser->stack, root_node);
+  assert (root);
+  BTOR_PUSH_STACK (parser->mem, parser->stack, root);
 
   while (!BTOR_EMPTY_STACK (parser->stack))
   {
@@ -988,10 +995,16 @@ translate (BtorSMTParser *parser, BtorSMTNode *root_node)
       {
         symbol = strip (node);
 
-        if (symbol->token == BTOR_SMTOK_IDENTIFIER && !symbol->pushed)
+        if (!symbol->exp)
         {
-          symbol->pushed = 1;
-          BTOR_PUSH_STACK (parser->mem, parser->work, node);
+          if (symbol->token == BTOR_SMTOK_TRUE)
+          {
+            symbol->exp = btor_const_exp (parser->mgr, "1");
+          }
+          else if (symbol->token == BTOR_SMTOK_FALSE)
+          {
+            symbol->exp = btor_const_exp (parser->mgr, "0");
+          }
         }
       }
       else if (car (node) == parser->bind)
@@ -1000,7 +1013,6 @@ translate (BtorSMTParser *parser, BtorSMTNode *root_node)
       }
       else if (is_let_or_flet (car (node)))
       {
-        /* TODO FIX IT */
         /* node       == ([f]let assignment body)
          * assignment == (var term)
          */
@@ -1109,15 +1121,40 @@ translate (BtorSMTParser *parser, BtorSMTNode *root_node)
     }
   }
 
-  assert (node == root_node);
   BTOR_RESET_STACK (parser->work);
 
-  return parse_error (parser, "wff not done yet");
-  ;
+  exp = node2exp (root);
+  if (!exp)
+  {
+    assert (isleaf (exp));
+    return parse_error (parser, "'%s' undefined", strip (root)->name);
+  }
+
+  if (btor_is_array_exp (parser->mgr, exp))
+    return parse_error (parser, "array expression as formula");
+
+  if (btor_get_exp_len (parser->mgr, exp) != 1)
+    return parse_error (parser, "non boolean formula");
+
+  if (parser->root)
+  {
+    assert (!btor_is_array_exp (parser->mgr, parser->root));
+    assert (btor_get_exp_len (parser->mgr, parser->root) == 1);
+
+    and = btor_and_exp (parser->mgr, parser->root, exp);
+    btor_release_exp (parser->mgr, parser->root);
+    parser->root = and;
+  }
+  else
+    parser->root = btor_copy_exp (parser->mgr, exp);
+
+  assert (!parser->error);
+
+  return 0;
 }
 
 static char *
-node2exp (BtorSMTParser *parser, BtorSMTNode *top)
+translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
 {
   const char *statusstr, *attrstr;
   BtorSMTSymbol *symbol, *logic;
@@ -1239,7 +1276,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
         if (!p)
           return parse_error (parser, "argument to '%s' missing", attrstr);
 
-        if (!translate (parser, car (p)))
+        if (translate_formula (parser, car (p)))
         {
           assert (parser->error);
           return parser->error;
@@ -1254,7 +1291,9 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
     }
   }
 
-  return parse_error (parser, "node2exp not fully implemented yet");
+  assert (!parser->error);
+
+  return 0;
 }
 
 static const char *
@@ -1308,27 +1347,36 @@ NEXT_TOKEN:
     parser->stack.top = first;
     BTOR_PUSH_STACK (parser->mem, parser->stack, node);
 
-    if (BTOR_EMPTY_STACK (parser->heads))
+    if (!BTOR_EMPTY_STACK (parser->heads)) goto NEXT_TOKEN;
+
+    token = nextok (parser);
+    if (token != BTOR_SMTOK_EOF) return parse_error (parser, "expected EOF");
+
+    assert (BTOR_COUNT_STACK (parser->stack) == 1);
+    top = parser->stack.start[0];
+    BTOR_RESET_STACK (parser->stack);
+
+    btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
+    btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
+    btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
+
+    /* TODO keep this for now until the parser works.
+     */
+    if (parser->verbosity >= 3) btorsmtpp (top);
+
+    if (translate_benchmark (parser, top))
     {
-      token = nextok (parser);
-      if (token != BTOR_SMTOK_EOF) return parse_error (parser, "expected EOF");
-
-      assert (BTOR_COUNT_STACK (parser->stack) == 1);
-      top = parser->stack.start[0];
-      BTOR_RESET_STACK (parser->stack);
-
-      btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
-      btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
-      btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
-
-      /* TODO keep this for now until the parser works.
-       */
-      if (parser->verbosity >= 3) btorsmtpp (top);
-
-      return node2exp (parser, top);
+      assert (parser->error);
+      return parser->error;
     }
 
-    goto NEXT_TOKEN;
+    res->vars  = parser->vars.start;
+    res->nvars = BTOR_COUNT_STACK (parser->vars);
+
+    res->roots  = &parser->root;
+    res->nroots = 1;
+
+    return 0; /* DONE */
   }
 
   if (token == BTOR_SMTOK_ERR)
