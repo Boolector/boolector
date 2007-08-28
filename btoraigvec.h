@@ -82,6 +82,12 @@ BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
 
 BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
+int btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+
+int btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
+                              BtorAIGVec *av1,
+                              BtorAIGVec *av2);
+
 void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr);

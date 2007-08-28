@@ -701,6 +701,40 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   return result;
 }
 
+int
+btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+{
+  int i   = 0;
+  int len = 0;
+  assert (avmgr != NULL);
+  assert (av != NULL);
+  len = av->len;
+  for (i = 0; i < len; i++)
+  {
+    if (!BTOR_IS_CONST_AIG (av->aigs[i])) return 0;
+  }
+  return 1;
+}
+
+int
+btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
+                          BtorAIGVec *av1,
+                          BtorAIGVec *av2)
+{
+  int i   = 0;
+  int len = 0;
+  assert (avmgr != NULL);
+  assert (av1 != NULL);
+  assert (av2 != NULL);
+  assert (av1->len == av2->len);
+  len = av1->len;
+  for (i = 0; i < len; i++)
+  {
+    if (av1->aigs[i] != av2->aigs[i]) return 1;
+  }
+  return 0;
+}
+
 void
 btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {

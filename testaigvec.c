@@ -225,6 +225,47 @@ test_cond_aigvec (void)
   btor_delete_aigvec_mgr (avmgr);
 }
 
+static void
+test_is_const_aigvec (void)
+{
+  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, 0);
+  BtorAIGVec *av1      = btor_var_aigvec (avmgr, 1);
+  BtorAIGVec *av2      = btor_const_aigvec (avmgr, bits);
+  BtorAIGVec *av3      = btor_concat_aigvec (avmgr, av1, av2);
+  assert (!btor_is_const_aigvec (avmgr, av1));
+  assert (btor_is_const_aigvec (avmgr, av2));
+  assert (!btor_is_const_aigvec (avmgr, av3));
+  btor_release_delete_aigvec (avmgr, av1);
+  btor_release_delete_aigvec (avmgr, av2);
+  btor_release_delete_aigvec (avmgr, av3);
+  btor_delete_aigvec_mgr (avmgr);
+}
+
+static void
+test_is_different_aigvec (void)
+{
+  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, 0);
+  BtorAIGVec *av1      = btor_var_aigvec (avmgr, 4);
+  BtorAIGVec *av2      = btor_const_aigvec (avmgr, bits);
+  BtorAIGVec *av3      = btor_concat_aigvec (avmgr, av1, av2);
+  BtorAIGVec *av4      = btor_concat_aigvec (avmgr, av2, av1);
+  assert (btor_is_different_aigvec (avmgr, av1, av2));
+  assert (btor_is_different_aigvec (avmgr, av2, av1));
+  assert (btor_is_different_aigvec (avmgr, av3, av4));
+  assert (btor_is_different_aigvec (avmgr, av4, av3));
+  assert (!btor_is_different_aigvec (avmgr, av1, av1));
+  assert (!btor_is_different_aigvec (avmgr, av2, av2));
+  assert (!btor_is_different_aigvec (avmgr, av3, av3));
+  assert (!btor_is_different_aigvec (avmgr, av4, av4));
+  btor_release_delete_aigvec (avmgr, av1);
+  btor_release_delete_aigvec (avmgr, av2);
+  btor_release_delete_aigvec (avmgr, av3);
+  btor_release_delete_aigvec (avmgr, av4);
+  btor_delete_aigvec_mgr (avmgr);
+}
+
 void
 run_aigvec_tests (int argc, char **argv)
 {
@@ -244,6 +285,8 @@ run_aigvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (umod_aigvec);
   BTOR_RUN_TEST (concat_aigvec);
   BTOR_RUN_TEST (cond_aigvec);
+  BTOR_RUN_TEST (is_const_aigvec);
+  BTOR_RUN_TEST (is_different_aigvec);
 }
 
 void
