@@ -83,6 +83,8 @@ enum BtorSMTToken
   BTOR_SMTOK_BVNEG   = 294,
   BTOR_SMTOK_BVSLE   = 295,
   BTOR_SMTOK_BVSHL   = 296,
+  BTOR_SMTOK_BVSUB   = 297,
+  BTOR_SMTOK_BVSDIV  = 298,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -558,6 +560,8 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvneg")->token  = BTOR_SMTOK_BVNEG;
   insert_symbol (res, "bvsle")->token  = BTOR_SMTOK_BVSLE;
   insert_symbol (res, "bvshl")->token  = BTOR_SMTOK_BVSHL;
+  insert_symbol (res, "bvsub")->token  = BTOR_SMTOK_BVSUB;
+  insert_symbol (res, "bvsdiv")->token = BTOR_SMTOK_BVSDIV;
 
   return res;
 }
@@ -1578,6 +1582,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_EQ:
         translate_binary (parser, node, "=", btor_eq_exp);
         break;
+      case BTOR_SMTOK_DISTINCT:
+        translate_binary (parser, node, "distinct", btor_ne_exp);
+        break;
       case BTOR_SMTOK_ITE: translate_cond (parser, node, "ite"); break;
       case BTOR_SMTOK_IF_THEN_ELSE:
         translate_cond (parser, node, "if_then_else");
@@ -1626,6 +1633,12 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         break;
       case BTOR_SMTOK_BVADD:
         translate_binary (parser, node, "bvadd", btor_add_exp);
+        break;
+      case BTOR_SMTOK_BVSUB:
+        translate_binary (parser, node, "bvsub", btor_sub_exp);
+        break;
+      case BTOR_SMTOK_BVSDIV:
+        translate_binary (parser, node, "bvsdiv", btor_sdiv_exp);
         break;
       case BTOR_SMTOK_BVMUL:
         translate_binary (parser, node, "bvmul", btor_umul_exp);
