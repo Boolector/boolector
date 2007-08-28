@@ -1,5 +1,4 @@
 #include "btoraigvec.h"
-#include "btorsat.h"
 #include "btorstack.h"
 #include "btorutil.h"
 
@@ -13,23 +12,11 @@
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
-struct BtorReadObj
-{
-  BtorAIGVec *var;
-  BtorAIGVec *index;
-};
-
-typedef struct BtorReadObj BtorReadObj;
-
-BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
-
 struct BtorAIGVecMgr
 {
   BtorMemMgr *mm;
   int verbosity;
-  BtorReadEnc read_enc;
   BtorAIGMgr *amgr;
-  BtorReadObjPtrStack reads;
 };
 
 /*------------------------------------------------------------------------*/
@@ -728,224 +715,6 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   btor_free (avmgr->mm, av, sizeof (BtorAIGVec));
 }
 
-static BtorReadObj *
-new_read_object (BtorAIGVecMgr *avmgr, BtorAIGVec *av_var, BtorAIGVec *av_index)
-{
-  BtorReadObj *result = NULL;
-  assert (avmgr != NULL);
-  assert (av_var != NULL);
-  assert (av_index != NULL);
-  result        = (BtorReadObj *) btor_malloc (avmgr->mm, sizeof (BtorReadObj));
-  result->var   = btor_copy_aigvec (avmgr, av_var);
-  result->index = btor_copy_aigvec (avmgr, av_index);
-  return result;
-}
-
-static void
-delete_read_object (BtorAIGVecMgr *avmgr, BtorReadObj *obj)
-{
-  assert (avmgr != NULL);
-  assert (obj != NULL);
-  btor_release_delete_aigvec (avmgr, obj->var);
-  btor_release_delete_aigvec (avmgr, obj->index);
-  btor_free (avmgr->mm, obj, sizeof (BtorReadObj));
-}
-
-void
-btor_read_object_aigvec_mgr (BtorAIGVecMgr *avmgr,
-                             BtorAIGVec *av_var,
-                             BtorAIGVec *av_index)
-{
-  BtorReadObj *obj = NULL;
-  assert (avmgr != NULL);
-  assert (av_var != NULL);
-  assert (av_index != NULL);
-  obj = new_read_object (avmgr, av_var, av_index);
-  BTOR_PUSH_STACK (avmgr->mm, avmgr->reads, obj);
-}
-
-static int
-is_const_aigvec (BtorAIGVec *av)
-{
-  int i   = 0;
-  int len = 0;
-  assert (av != NULL);
-  len = av->len;
-  for (i = 0; i < len; i++)
-  {
-    if (!BTOR_IS_CONST_AIG (av->aigs[i])) return 0;
-  }
-  return 1;
-}
-
-static int
-is_different_aigvec (BtorAIGVec *av1, BtorAIGVec *av2)
-{
-  int i   = 0;
-  int len = 0;
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  assert (av1->len == av2->len);
-  len = av1->len;
-  for (i = 0; i < len; i++)
-  {
-    if (av1->aigs[i] != av2->aigs[i]) return 1;
-  }
-  return 0;
-}
-
-static void
-encode_read_constraint (BtorAIGVecMgr *avmgr,
-                        BtorAIGVec *av_index1,
-                        BtorAIGVec *av_index2,
-                        BtorAIGVec *av_var1,
-                        BtorAIGVec *av_var2)
-{
-  BtorMemMgr *mm   = NULL;
-  BtorAIGMgr *amgr = NULL;
-  BtorSATMgr *smgr = NULL;
-  BtorAIG *aig1    = NULL;
-  BtorAIG *aig2    = NULL;
-  BtorIntStack diffs;
-  int k            = 0;
-  int len          = 0;
-  int i_k          = 0;
-  int j_k          = 0;
-  int d_k          = 0;
-  int e            = 0;
-  int a_k          = 0;
-  int b_k          = 0;
-  int is_different = 0;
-  assert (avmgr != NULL);
-  assert (av_index1 != NULL);
-  assert (av_index2 != NULL);
-  assert (av_var1 != NULL);
-  assert (av_var2 != NULL);
-  mm           = avmgr->mm;
-  amgr         = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr         = btor_get_sat_mgr_aig_mgr (amgr);
-  is_different = is_different_aigvec (av_index1, av_index2);
-  if (is_different && is_const_aigvec (av_index1)
-      && is_const_aigvec (av_index2))
-    return;
-  len = av_index1->len;
-  if (is_different)
-  {
-    BTOR_INIT_STACK (diffs);
-    for (k = 0; k < len; k++)
-    {
-      aig1 = av_index1->aigs[k];
-      aig2 = av_index2->aigs[k];
-      if (!BTOR_IS_CONST_AIG (aig1))
-      {
-        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        if (BTOR_IS_INVERTED_AIG (aig1))
-          i_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-        else
-          i_k = aig1->cnf_id;
-        assert (i_k != 0);
-      }
-      if (!BTOR_IS_CONST_AIG (aig2))
-      {
-        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        if (BTOR_IS_INVERTED_AIG (aig2))
-          j_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
-        else
-          j_k = aig2->cnf_id;
-        assert (j_k != 0);
-      }
-      if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
-      {
-        d_k = btor_next_cnf_id_sat_mgr (smgr);
-        assert (d_k != 0);
-        BTOR_PUSH_STACK (mm, diffs, d_k);
-        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
-        }
-        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
-        }
-      }
-    }
-    while (!BTOR_EMPTY_STACK (diffs))
-    {
-      k = BTOR_POP_STACK (diffs);
-      assert (k != 0);
-      btor_add_sat (smgr, k);
-    }
-    BTOR_RELEASE_STACK (mm, diffs);
-  }
-  e = btor_next_cnf_id_sat_mgr (smgr);
-  assert (e != 0);
-  btor_add_sat (smgr, e);
-  btor_add_sat (smgr, 0);
-  assert (av_var1->len == av_var2->len);
-  len = av_var1->len;
-  for (k = 0; k < len; k++)
-  {
-    aig1 = av_var1->aigs[k];
-    aig2 = av_var2->aigs[k];
-    assert (!BTOR_IS_CONST_AIG (aig1));
-    assert (!BTOR_IS_INVERTED_AIG (aig1));
-    assert (!BTOR_IS_CONST_AIG (aig2));
-    assert (!BTOR_IS_INVERTED_AIG (aig2));
-    a_k = aig1->cnf_id;
-    assert (a_k != 0);
-    b_k = aig2->cnf_id;
-    assert (b_k != 0);
-    btor_add_sat (smgr, -e);
-    btor_add_sat (smgr, a_k);
-    btor_add_sat (smgr, -b_k);
-    btor_add_sat (smgr, 0);
-    btor_add_sat (smgr, -e);
-    btor_add_sat (smgr, -a_k);
-    btor_add_sat (smgr, b_k);
-    btor_add_sat (smgr, 0);
-  }
-}
-
-static void
-handle_eager_read_constraints (BtorAIGVecMgr *avmgr)
-{
-  BtorReadObj **cur1 = NULL;
-  BtorReadObj **cur2 = NULL;
-  BtorReadObj *obj1  = NULL;
-  BtorReadObj *obj2  = NULL;
-  assert (avmgr != NULL);
-  cur1 = avmgr->reads.top;
-  while (cur1 != avmgr->reads.start)
-  {
-    cur1--;
-    obj1 = *cur1;
-    cur2 = cur1;
-    while (cur2 != avmgr->reads.start)
-    {
-      cur2--;
-      obj2 = *cur2;
-      encode_read_constraint (
-          avmgr, obj1->index, obj2->index, obj1->var, obj2->var);
-    }
-  }
-}
-
-void
-btor_handle_read_constraints_aigvec_mgr (BtorAIGVecMgr *avmgr)
-{
-  assert (avmgr != NULL);
-  if (avmgr->read_enc == BTOR_EAGER_READ_ENC)
-    handle_eager_read_constraints (avmgr);
-}
-
 BtorAIGVecMgr *
 btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
 {
@@ -955,28 +724,15 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
   avmgr            = (BtorAIGVecMgr *) btor_malloc (mm, sizeof (BtorAIGVecMgr));
   avmgr->mm        = mm;
   avmgr->verbosity = verbosity;
-  avmgr->read_enc  = BTOR_SAT_SOLVER_READ_ENC;
   avmgr->amgr      = btor_new_aig_mgr (mm, verbosity);
-  BTOR_INIT_STACK (avmgr->reads);
   return avmgr;
-}
-
-void
-btor_set_read_enc_aigvec_mgr (BtorAIGVecMgr *avmgr, BtorReadEnc read_enc)
-{
-  assert (avmgr != NULL);
-  avmgr->read_enc = read_enc;
 }
 
 void
 btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)
 {
-  BtorReadObj **cur = NULL;
   assert (avmgr != NULL);
-  for (cur = avmgr->reads.start; cur != avmgr->reads.top; cur++)
-    delete_read_object (avmgr, *cur);
   btor_delete_aig_mgr (avmgr->amgr);
-  BTOR_RELEASE_STACK (avmgr->mm, avmgr->reads);
   btor_free (avmgr->mm, avmgr, sizeof (BtorAIGVecMgr));
 }
 

@@ -454,7 +454,7 @@ btor_main (int argc, char **argv)
         }
         else if (dump_cnf)
         {
-          btor_set_read_enc_aigvec_mgr (avmgr, read_enc);
+          btor_set_read_enc_exp_mgr (emgr, read_enc);
           btor_init_sat (smgr);
           btor_exp_to_sat (emgr, parse_res.roots[0]);
           btor_dump_cnf_sat (smgr, cnf_file);
@@ -475,7 +475,7 @@ btor_main (int argc, char **argv)
 
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
-      btor_set_read_enc_aigvec_mgr (avmgr, read_enc);
+      btor_set_read_enc_exp_mgr (emgr, read_enc);
       sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
 
       if (app.verbosity >= 0)

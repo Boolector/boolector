@@ -33,6 +33,26 @@ enum BtorExpKind
 
 typedef enum BtorExpKind BtorExpKind;
 
+enum BtorReadEnc
+{
+  BTOR_NO_READ_ENC,
+  BTOR_EAGER_READ_ENC,
+  BTOR_LAZY_READ_ENC,
+  BTOR_SAT_SOLVER_READ_ENC
+};
+
+typedef enum BtorReadEnc BtorReadEnc;
+
+struct BtorReadObj
+{
+  BtorExp *var;
+  BtorExp *index;
+};
+
+typedef struct BtorReadObj BtorReadObj;
+
+BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
+
 struct BtorExp
 {
   BtorExpKind kind;
@@ -40,7 +60,11 @@ struct BtorExp
   {
     struct
     {
-      char *symbol; /* for variables */
+      union
+      {
+        char *symbol;                         /* for variables only */
+        BtorReadObjPtrStack *read_constraint; /* for arrays only */
+      };
       union
       {
         int upper;        /* for slices only */
@@ -97,6 +121,8 @@ struct BtorExp
 #define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
+
+void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
 
 BtorMemMgr *btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr);
 
