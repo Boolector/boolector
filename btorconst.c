@@ -862,8 +862,6 @@ btor_hex_to_const_n (BtorMemMgr *mem, const char *str, int hlen)
   char *tmp, *res, *q;
   int len;
 
-  assert (hlen <= (int) strlen (str));
-
   len = 4 * hlen;
   BTOR_NEWN (mem, tmp, len + 1);
   q = tmp;
@@ -1005,8 +1003,6 @@ btor_decimal_to_const_n (BtorMemMgr *mem, const char *str, int len)
 {
   const char *end, *p;
   char *res, *tmp;
-
-  assert (len <= (int) strlen (str));
 
   res = btor_strdup (mem, "");
 

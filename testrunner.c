@@ -44,8 +44,17 @@ static const char *slowtests[] = {
  * take less than a second.
  */
 static const char *normaltests[] = {
+    "sll_shift",
+    "srl_shift",
+    "sra_shift",
+    "rol_shift",
+    "ror_shift",
+    "sll_shift",
+    "srl_shift",
+    "sra_shift",
+    "rol_shift",
+    "ror_shift",
     "factor4294967295_special",
-    "_shift",
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 

@@ -1,4 +1,5 @@
 #include "btorsmt.h"
+#include "btorconst.h"
 #include "btormem.h"
 #include "btorstack.h"
 
@@ -1079,7 +1080,8 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
   const char *p, *start, *end;
   BtorSMTSymbol *symbol;
-  int len, token;
+  char *tmp, *extended;
+  int len, tlen, token;
 
   if (isleaf (node))
   {
@@ -1112,12 +1114,31 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             len = atoi (end + 1);
             if (len)
             {
-              /* TODO convert decimal to binary */
+              tmp = btor_decimal_to_const_n (parser->mem, start, end - start);
+
+              tlen = strlen (tmp);
+
+              if (tlen <= len)
+              {
+                if (tlen < len)
+                {
+                  extended = btor_uext_const (parser->mem, tmp, len - tlen);
+
+                  btor_delete_const (parser->mem, tmp);
+                  tmp = extended;
+                }
+
+                symbol->exp = btor_const_exp (parser->mgr, tmp);
+              }
+
+              btor_delete_const (parser->mem, tmp);
             }
           }
         }
       }
     }
+
+    if (symbol->exp) return symbol->exp;
 
     (void) parse_error (parser, "'%s' undefined", strip (node)->name);
     return 0;
