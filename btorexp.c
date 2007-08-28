@@ -2753,17 +2753,17 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
         if (BTOR_IS_CONST_EXP (cur))
         {
           cur->mark = 2;
-          fprintf (file, "%d %d const %s\n", cur->id, cur->len, cur->bits);
+          fprintf (file, "%d const %d %s\n", cur->id, cur->len, cur->bits);
         }
         else if (BTOR_IS_VAR_EXP (cur))
         {
           cur->mark = 2;
-          fprintf (file, "%d %d var\n", cur->id, cur->len);
+          fprintf (file, "%d var %d\n", cur->id, cur->len);
         }
         else if (BTOR_IS_ARRAY_EXP (cur))
         {
           cur->mark = 2;
-          fprintf (file, "%d %d array %d\n", cur->id, cur->len, cur->index_len);
+          fprintf (file, "%d array %d %d\n", cur->id, cur->len, cur->index_len);
         }
         else
         {
@@ -2791,12 +2791,13 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
       {
         assert (cur->mark == 1);
         cur->mark = 2;
-        fprintf (file, "%d %d ", cur->id, cur->len);
+        fprintf (file, "%d ", cur->id);
         if (BTOR_IS_UNARY_EXP (cur))
         {
           assert (cur->kind == BTOR_SLICE_EXP);
           fprintf (file,
-                   "slice %d %d %d\n",
+                   "slice %d %d %d %d\n",
+                   cur->len,
                    BTOR_IS_INVERTED_EXP (cur->e[0])
                        ? -BTOR_INVERT_EXP (cur->e[0])->id
                        : cur->e[0]->id,
@@ -2823,7 +2824,8 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
               break;
           }
           fprintf (file,
-                   " %d",
+                   " %d %d",
+                   cur->len,
                    BTOR_IS_INVERTED_EXP (cur->e[0])
                        ? -BTOR_INVERT_EXP (cur->e[0])->id
                        : cur->e[0]->id);
@@ -2837,7 +2839,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
         {
           assert (BTOR_IS_TERNARY_EXP (cur));
           assert (cur->kind == BTOR_COND_EXP);
-          fprintf (file, "cond");
+          fprintf (file, "cond %d", cur->len);
           fprintf (file,
                    " %d",
                    BTOR_IS_INVERTED_EXP (cur->e[0])
@@ -2861,12 +2863,12 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
   assert (exp->id < INT_MAX);
   if (BTOR_IS_INVERTED_EXP (exp))
     fprintf (file,
-             "%d %d root %d\n",
+             "%d root %d %d\n",
              BTOR_INVERT_EXP (exp)->id + 1,
              BTOR_INVERT_EXP (exp)->len,
              -BTOR_INVERT_EXP (exp)->id);
   else
-    fprintf (file, "%d %d root %d\n", exp->id + 1, exp->len, exp->id);
+    fprintf (file, "%d root %d %d\n", exp->id + 1, exp->len, exp->id);
   btor_mark_exp (emgr, exp, 0);
 }
 
