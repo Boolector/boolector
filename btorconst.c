@@ -826,3 +826,140 @@ btor_uext_const (BtorMemMgr *mem, const char *c, int len)
 
   return res;
 }
+
+char *
+btor_hex_to_const_n (BtorMemMgr *mem, const char *str, int hlen)
+{
+  const char *p, *end;
+  char *tmp, *res, *q;
+  int len;
+
+  assert (hlen <= (int) strlen (str));
+
+  len = 4 * hlen;
+  BTOR_NEWN (mem, tmp, len + 1);
+  q = tmp;
+
+  end = str + hlen;
+  for (p = str; p < end; p++) switch (*p)
+    {
+      case '0':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case '1':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case '2':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case '3':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+      case '4':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case '5':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case '6':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case '7':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+      case '8':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case '9':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case 'A':
+      case 'a':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case 'B':
+      case 'b':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+      case 'C':
+      case 'c':
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case 'D':
+      case 'd':
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case 'E':
+      case 'e':
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case 'F':
+      case 'f':
+      default:
+        assert (*p == 'f' || *p == 'F');
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+    }
+
+  assert (tmp + len == q);
+  *q++ = 0;
+
+  res = btor_strdup (mem, strip_zeroes (tmp));
+  btor_freestr (mem, tmp);
+
+  return res;
+}
+
+char *
+btor_hex_to_const (BtorMemMgr *mem, const char *str)
+{
+  return btor_hex_to_const_n (mem, str, strlen (str));
+}

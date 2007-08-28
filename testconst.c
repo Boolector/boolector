@@ -549,6 +549,47 @@ test_const_to_hex (void)
   fclose (fout);
 }
 
+static void
+test_hex_to_const_aux (FILE *file, const char *h)
+{
+  char *c = btor_hex_to_const (g_mm, h);
+  fprintf (file, "16'%s = 2'%s\n", c, h);
+  btor_freestr (g_mm, c);
+}
+
+static void
+test_hex_to_const (void)
+{
+  FILE *file = fopen ("log/hex_to_const.log", "w");
+  test_hex_to_const_aux (file, "");
+  test_hex_to_const_aux (file, "1");
+  test_hex_to_const_aux (file, "2");
+  test_hex_to_const_aux (file, "3");
+  test_hex_to_const_aux (file, "4");
+  test_hex_to_const_aux (file, "5");
+  test_hex_to_const_aux (file, "6");
+  test_hex_to_const_aux (file, "7");
+  test_hex_to_const_aux (file, "8");
+  test_hex_to_const_aux (file, "9");
+  test_hex_to_const_aux (file, "a");
+  test_hex_to_const_aux (file, "A");
+  test_hex_to_const_aux (file, "b");
+  test_hex_to_const_aux (file, "B");
+  test_hex_to_const_aux (file, "c");
+  test_hex_to_const_aux (file, "C");
+  test_hex_to_const_aux (file, "d");
+  test_hex_to_const_aux (file, "D");
+  test_hex_to_const_aux (file, "e");
+  test_hex_to_const_aux (file, "E");
+  test_hex_to_const_aux (file, "f");
+  test_hex_to_const_aux (file, "F");
+  test_hex_to_const_aux (file, "10");
+  test_hex_to_const_aux (file, "13");
+  test_hex_to_const_aux (file, "2e");
+  test_hex_to_const_aux (file, "ff");
+  fclose (file);
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -572,6 +613,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (sll_const);
   BTOR_RUN_TEST (srl_const);
   BTOR_RUN_TEST_CHECK_LOG (const_to_hex);
+  BTOR_RUN_TEST_CHECK_LOG (hex_to_const);
 }
 
 void

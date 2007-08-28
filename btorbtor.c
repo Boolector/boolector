@@ -381,9 +381,8 @@ parse_const (BtorBTORParser *parser, int len)
   if (clen != len)
   {
     (void) parse_error (parser,
-                        "constant '%s' has %d bits but expected %d",
+                        "binary constant '%s' exceeds bit width %d",
                         parser->bits.start,
-                        clen,
                         len);
     return 0;
   }
@@ -393,99 +392,58 @@ parse_const (BtorBTORParser *parser, int len)
   return res;
 }
 
-static void
-push_bit (BtorBTORParser *parser, int bit)
-{
-  assert (bit == 0 || bit == 1);
-  BTOR_PUSH_STACK (parser->mem, parser->constant, '0' + bit);
-}
-
-static void
-push_four_bits (BtorBTORParser *parser, int a, int b, int c, int d)
-{
-  push_bit (parser, a);
-  push_bit (parser, b);
-  push_bit (parser, c);
-  push_bit (parser, d);
-}
-
 static BtorExp *
 parse_consth (BtorBTORParser *parser, int len)
 {
-  int ch, clen, skip;
+  char *tmp, *extended;
   BtorExp *res;
-  char *p;
+  int ch, clen;
 
   if (parse_space (parser)) return 0;
 
   assert (BTOR_EMPTY_STACK (parser->constant));
+
   while (!isspace (ch = nextch (parser)) && ch != EOF && ch != ';')
   {
-    switch (ch)
+    if (!isxdigit (ch))
     {
-      case '0': push_four_bits (parser, 0, 0, 0, 0); break;
-      case '1': push_four_bits (parser, 0, 0, 0, 1); break;
-      case '2': push_four_bits (parser, 0, 0, 1, 0); break;
-      case '3': push_four_bits (parser, 0, 0, 1, 1); break;
-      case '4': push_four_bits (parser, 0, 1, 0, 0); break;
-      case '5': push_four_bits (parser, 0, 1, 0, 1); break;
-      case '6': push_four_bits (parser, 0, 1, 1, 0); break;
-      case '7': push_four_bits (parser, 0, 1, 1, 1); break;
-      case '8': push_four_bits (parser, 1, 0, 0, 0); break;
-      case '9': push_four_bits (parser, 1, 0, 0, 1); break;
-      case 'A':
-      case 'a': push_four_bits (parser, 1, 0, 1, 0); break;
-      case 'B':
-      case 'b': push_four_bits (parser, 1, 0, 1, 1); break;
-      case 'C':
-      case 'c': push_four_bits (parser, 1, 1, 0, 0); break;
-      case 'D':
-      case 'd': push_four_bits (parser, 1, 1, 0, 1); break;
-      case 'E':
-      case 'e': push_four_bits (parser, 1, 1, 1, 0); break;
-      case 'F':
-      case 'f': push_four_bits (parser, 1, 1, 1, 1); break;
-      default:
-        (void) parse_error (parser, "expected hexidecimal digit");
-        return 0;
+      (void) parse_error (parser, "expected hexidecimal digit");
+      return 0;
     }
+
+    BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
   }
 
   savech (parser, ch);
+
   clen = BTOR_COUNT_STACK (parser->constant);
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
-  if (clen >= len)
+  tmp  = btor_hex_to_const_n (parser->mem, parser->constant.start, clen);
+  clen = strlen (tmp);
+
+  if (clen > len)
   {
-    if (clen >= len + 4)
-    {
-    EXCEEDS_WIDTH:
-      (void) parse_error (
-          parser, "constant '%s' exceeds width", parser->constant.start);
-      return 0;
-    }
+    (void) parse_error (parser,
+                        "hexadecimal constant '%s' exceeds bit width %d",
+                        parser->constant.start,
+                        len);
 
-    for (skip = 0; clen > len; clen--, skip++)
-      if (parser->constant.start[skip] != '0') goto EXCEEDS_WIDTH;
-
-    assert (skip <= 3);
-    res = btor_const_exp (parser->btor, parser->constant.start + skip);
+    btor_freestr (parser->mem, tmp);
+    return 0;
   }
-  else
+
+  if (clen < len)
   {
-    assert (BTOR_EMPTY_STACK (parser->bits));
-
-    while (clen++ < len) BTOR_PUSH_STACK (parser->mem, parser->bits, '0');
-
-    for (p = parser->constant.start; (ch = *p); p++)
-      BTOR_PUSH_STACK (parser->mem, parser->bits, ch);
-
-    BTOR_PUSH_STACK (parser->mem, parser->bits, 0);
-    BTOR_RESET_STACK (parser->bits);
-
-    res = btor_const_exp (parser->btor, parser->bits.start);
+    extended = btor_uext_const (parser->mem, tmp, len - clen);
+    btor_delete_const (parser->mem, tmp);
+    tmp = extended;
   }
+
+  assert (len == (int) strlen (tmp));
+  res = btor_const_exp (parser->btor, tmp);
+  btor_freestr (parser->mem, tmp);
 
   assert (btor_get_exp_len (parser->btor, res) == len);
 
