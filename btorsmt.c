@@ -66,8 +66,9 @@ enum BtorSMTToken
   BTOR_SMTOK_UNSAT        = 279,
   BTOR_SMTOK_XOR          = 280,
 
-  BTOR_SMTOK_CONCAT = 281,
-  BTOR_SMTOK_EQ     = 282,
+  BTOR_SMTOK_CONCAT  = 281,
+  BTOR_SMTOK_EQ      = 282,
+  BTOR_SMTOK_EXTRACT = 283,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -577,6 +578,17 @@ int2type (BtorSMTParser *parser, int ch)
   return parser->types[ch];
 }
 
+static int
+has_prefix (const char *str, const char *prefix)
+{
+  const char *p, *q;
+
+  for (p = str, q = prefix; *q && *p == *q; p++, q++)
+    ;
+
+  return !*q;
+}
+
 static BtorSMTToken
 nextok (BtorSMTParser *parser)
 {
@@ -655,6 +667,9 @@ SKIP_WHITE_SPACE:
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
+
+    if (count == 2 && has_prefix (parser->symbol->name, "extract"))
+      parser->symbol->token = BTOR_SMTOK_EXTRACT;
 
   CHECK_FOR_UNSUPPORTED_KEYWORD:
 
@@ -889,6 +904,40 @@ push_var (BtorSMTParser *parser, BtorExp *v)
   BTOR_PUSH_STACK (parser->mem, parser->vars, btor_copy_exp (parser->mgr, v));
 }
 
+static const char *
+next_numeral (const char *str)
+{
+  const char *p = str;
+  char ch;
+
+  assert (str);
+
+  if (isdigit (*p++))
+  {
+    while (isdigit (ch = *p++))
+      ;
+
+    if (ch == ':')
+    {
+      assert (isdigit (*p));
+      return p;
+    }
+
+    assert (ch == ']');
+  }
+  else
+  {
+    while ((ch = *p++))
+      if (ch == '[')
+      {
+        assert (isdigit (*p));
+        return p;
+      }
+  }
+
+  return 0;
+}
+
 static int
 extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 {
@@ -896,7 +945,6 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   BtorSMTNode *node, *sort;
   int addrlen, datalen;
   const char *p;
-  char ch;
 
   if (!fdecl || !cdr (fdecl) || isleaf (fdecl) || !isleaf (node = car (fdecl))
       || (symbol = strip (node))->token != BTOR_SMTOK_IDENTIFIER)
@@ -919,39 +967,24 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
 
   p = sortsymbol->name;
-  if ((ch = *p++) == 'B')
+  if (has_prefix (p, "BitVec"))
   {
-    if (*p++ != 'i' || *p++ != 't' || *p++ != 'V' || *p++ != 'e' || *p++ != 'c'
-        || *p++ != '[' || !isdigit (ch = *p++))
-      goto INVALID_SORT;
+    if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
-    datalen = ch - '0';
-    while (isdigit (ch = *p++)) datalen = 10 * datalen + (ch - '0');
-
-    if (!datalen || ch != ']') goto INVALID_SORT;
-
-    assert (!*p);
+    datalen = atoi (p); /* Overflow? */
 
     symbol->exp = btor_var_exp (parser->mgr, datalen, symbol->name);
     push_var (parser, symbol->exp);
   }
-  else if (ch == 'A')
+  else if (has_prefix (p, "Array"))
   {
-    if (*p++ != 'r' || *p++ != 'r' || *p++ != 'a' || *p++ != 'y' || *p++ != '['
-        || !isdigit (ch = *p++))
-      goto INVALID_SORT;
+    if (!(p = next_numeral (p))) goto INVALID_SORT;
 
-    addrlen = ch - '0';
-    while (isdigit (ch = *p++)) addrlen = 10 * addrlen + (ch - '0');
+    addrlen = atoi (p); /* Overflow? */
 
-    if (!addrlen || ch != ':' || !isdigit (ch = *p++)) goto INVALID_SORT;
+    if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
-    datalen = ch - '0';
-    while (isdigit (ch = *p++)) datalen = 10 * datalen + (ch - '0');
-
-    if (!datalen || ch != ']') goto INVALID_SORT;
-
-    assert (!*p);
+    datalen = atoi (p); /* Overflow? */
 
     symbol->exp = btor_array_exp (parser->mgr, datalen, addrlen);
     /* TODO what about 'symbol->name' back annotation? */
@@ -1070,6 +1103,8 @@ translate_unary (BtorSMTParser *parser,
   BtorSMTNode *c;
   BtorExp *a;
 
+  assert (!node->exp);
+
   if (!is_list_of_length (node, 2))
   {
     (void) parse_error (parser, "expected exactly one argument to '%s'", name);
@@ -1089,6 +1124,8 @@ translate_binary (BtorSMTParser *parser,
 {
   BtorSMTNode *c0, *c1;
   BtorExp *a0, *a1;
+
+  assert (!node->exp);
 
   if (!is_list_of_length (node, 3))
   {
@@ -1115,6 +1152,8 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 {
   BtorSMTNode *c0, *c1, *c2;
   BtorExp *a0, *a1, *a2;
+
+  assert (!node->exp);
 
   if (!is_list_of_length (node, 4))
   {
@@ -1144,6 +1183,51 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
     else
       (void) parse_error (parser, "conditional width not one");
   }
+}
+
+static void
+translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorSMTSymbol *symbol;
+  int upper, lower, len;
+  const char *p;
+  BtorExp *exp;
+
+  assert (!node->exp);
+
+  symbol = strip (car (node));
+  assert (symbol->token == BTOR_SMTOK_EXTRACT);
+  p = symbol->name;
+
+  if (!is_list_of_length (node, 2))
+  {
+    (void) parse_error (parser, "expected exactly one argument to '%s'", p);
+    return;
+  }
+
+  if (!(exp = node2nonarrayexp_else_parse_error (parser, car (cdr (node)))))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  len = btor_get_exp_len (parser->mgr, exp);
+
+  p = next_numeral (p);
+  assert (p);
+  upper = atoi (p); /* Overflow? */
+  p     = next_numeral (p);
+  lower = atoi (p); /* Overflow? */
+  assert (!next_numeral (p));
+
+  if (len <= upper || upper < lower)
+  {
+    (void) parse_error (
+        parser, "invalid '%s' on expression of width %d", p, len);
+    return;
+  }
+
+  node->exp = btor_slice_exp (parser->mgr, exp, upper, lower);
 }
 
 static char *
@@ -1328,9 +1412,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         btor_release_exp (parser->mgr, symbol->exp);
         symbol->exp = 0;
         break;
+      case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
       default:
-        return parse_error (
-            parser, "unsupported list head (%d)", symbol->token);
+        return parse_error (parser, "unsupported list head '%s'", symbol->name);
     }
 
     if (parser->error) return parser->error;
