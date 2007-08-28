@@ -39,7 +39,7 @@ enum BtorSMTToken
   BTOR_SMTOK_ATTR       = ':',
   BTOR_SMTOK_ARITH      = '=',
 
-  BTOR_SMTOK_KEYWORD      = 256,
+  BTOR_SMTOK_KEYWORD      = 256, /* above ASCII codes */
   BTOR_SMTOK_AND          = 256,
   BTOR_SMTOK_ASSUMPTION   = 257,
   BTOR_SMTOK_BENCHMARK    = 258,
@@ -78,8 +78,10 @@ enum BtorSMTToken
   BTOR_SMTOK_PREDS               = 520,
   BTOR_SMTOK_SORTS               = 521,
   BTOR_SMTOK_THEORY              = 522,
-  BTOR_SMTOK_THEORYATTR          = 524
+  BTOR_SMTOK_THEORYATTR          = 523,
 
+  BTOR_SMTOK_INTERNAL = 1024,
+  BTOR_SMTOK_BIND     = 1024,
 };
 
 typedef enum BtorSMTToken BtorSMTToken;
@@ -133,6 +135,8 @@ struct BtorSMTParser
   BtorSMTSymbol **symtab;
   unsigned szsymtab;
   unsigned symbols;
+
+  BtorSMTNode *bind;
 
   BtorSMTNodePtrStack stack;
   BtorSMTNodePtrStack work;
@@ -370,6 +374,7 @@ static BtorSMTParser *
 btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
 {
   BtorMemMgr *mem = btor_get_mem_mgr_exp_mgr (mgr);
+  BtorSMTSymbol *bind;
   BtorSMTParser *res;
   unsigned char type;
   int ch;
@@ -460,6 +465,10 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "unknown")->token      = BTOR_SMTOK_UNKNOWN;
   insert_symbol (res, "unsat")->token        = BTOR_SMTOK_UNSAT;
   insert_symbol (res, "xor")->token          = BTOR_SMTOK_XOR;
+
+  bind        = insert_symbol (res, "_bind_");
+  bind->token = BTOR_SMTOK_BIND;
+  res->bind   = leaf (bind);
 
   return res;
 }
@@ -933,11 +942,26 @@ extrapreds (BtorSMTParser *parser, BtorSMTNode *list)
   return !parser->error;
 }
 
+static BtorSMTToken
+node2token (BtorSMTNode *node)
+{
+  return (node && isleaf (node)) ? strip (node)->token : BTOR_SMTOK_ERR;
+}
+
+static int
+is_let_or_flet (BtorSMTNode *node)
+{
+  int token = node2token (node);
+  return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
+}
+
 static char *
-wff (BtorSMTParser *parser, BtorSMTNode *root_node)
+translate (BtorSMTParser *parser, BtorSMTNode *root_node)
 {
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
+  BtorSMTNode *assignment, *body;
   BtorSMTSymbol *symbol;
+  BtorSMTToken token;
   int start, end;
 
   assert (BTOR_EMPTY_STACK (parser->work));
@@ -960,6 +984,36 @@ wff (BtorSMTParser *parser, BtorSMTNode *root_node)
           symbol->pushed = 1;
           BTOR_PUSH_STACK (parser->mem, parser->work, node);
         }
+      }
+      else if (car (node) == parser->bind)
+      {
+        BTOR_PUSH_STACK (parser->mem, parser->work, node);
+      }
+      else if (is_let_or_flet (car (node)))
+      {
+        /* TODO FIX IT */
+        /* node       == ([f]let assignment body)
+         * assignment == (var term)
+         */
+        if (!cdr (node) || !(assignment = car (cdr (node)))
+            || isleaf (assignment) || !(token = node2token (car (assignment)))
+            || (token != BTOR_SMTOK_FVAR && token != BTOR_SMTOK_VAR)
+            || !cdr (assignment) || cdr (cdr (assignment)) || !cdr (cdr (node))
+            || cdr (cdr (cdr (node))))
+          return parse_error (parser, "illformed 'let' or 'flet'");
+
+        body = car (cdr (cdr (node)));
+
+        BTOR_PUSH_STACK (parser->mem, parser->stack, node);
+        BTOR_PUSH_STACK (parser->mem, parser->stack, 0);
+
+        BTOR_PUSH_STACK (parser->mem, parser->stack, body);
+
+        BTOR_PUSH_STACK (parser->mem,
+                         parser->stack,
+                         cons (parser, parser->bind, assignment));
+
+        BTOR_PUSH_STACK (parser->mem, parser->stack, cdr (assignment));
       }
       else
       {
@@ -1176,7 +1230,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *top)
         if (!p)
           return parse_error (parser, "argument to '%s' missing", attrstr);
 
-        if (!wff (parser, car (p)))
+        if (!translate (parser, car (p)))
         {
           assert (parser->error);
           return parser->error;
