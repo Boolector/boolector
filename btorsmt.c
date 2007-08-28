@@ -615,12 +615,13 @@ SKIP_WHITE_SPACE:
            & BTOR_SMTCC_IDENTIFIER_MIDDLE)
       BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
 
+    count = 0;
+
     if (ch == '[')
     {
       BTOR_PUSH_STACK (parser->mem, parser->buffer, ch);
 
-      count = 0;
-      ch    = nextch (parser);
+      ch = nextch (parser);
 
       for (;;)
       {
@@ -667,7 +668,6 @@ SKIP_WHITE_SPACE:
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
-
     if (count == 2 && has_prefix (parser->symbol->name, "extract"))
       parser->symbol->token = BTOR_SMTOK_EXTRACT;
 
@@ -1266,6 +1266,10 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           {
             symbol->exp = btor_const_exp (parser->mgr, "0");
           }
+          else
+          {
+            /* otherwise just ignore */
+          }
         }
       }
       else if (car (node) == parser->bind)
@@ -1295,7 +1299,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
                          parser->stack,
                          cons (parser, parser->bind, assignment));
 
-        BTOR_PUSH_STACK (parser->mem, parser->stack, cdr (assignment));
+        BTOR_PUSH_STACK (parser->mem, parser->stack, car (cdr (assignment)));
       }
       else
       {
@@ -1394,7 +1398,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         {
           if (symbol->token == BTOR_SMTOK_FVAR)
           {
-            if (btor_get_exp_len (parser->mgr, exp) == 1)
+            if (btor_get_exp_len (parser->mgr, exp) != 1)
               return parse_error (parser, "flet assignment width not one");
           }
           else
@@ -1411,6 +1415,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         assert (symbol->exp);
         btor_release_exp (parser->mgr, symbol->exp);
         symbol->exp = 0;
+        body        = car (cdr (cdr (node)));
+        if ((exp = node2nonarrayexp_else_parse_error (parser, body)))
+          node->exp = btor_copy_exp (parser->mgr, exp);
         break;
       case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
       default:
