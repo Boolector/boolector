@@ -60,6 +60,14 @@ struct BtorExpMgr
   FILE *trace_file;
 };
 
+struct BtorReadObjSortObj
+{
+  BtorExpMgr *emgr;
+  BtorReadObj *obj;
+};
+
+typedef struct BtorReadObjSortObj BtorReadObjSortObj;
+
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
 /*------------------------------------------------------------------------*/
@@ -147,6 +155,30 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
   for (i = 0; i < len - 1; i++)
     if (string[i] != '0') return 0;
   return 1;
+}
+
+/*------------------------------------------------------------------------*/
+/* BtorReadObjSort                                                        */
+/*------------------------------------------------------------------------*/
+
+static BtorReadObjSortObj *
+new_read_obj_sort_obj (BtorExpMgr *emgr, BtorReadObj *obj)
+{
+  BtorReadObjSortObj *result = NULL;
+  assert (emgr != NULL);
+  assert (obj != NULL);
+  result       = btor_malloc (emgr->mm, sizeof (BtorReadObjSortObj));
+  result->emgr = emgr;
+  result->obj  = obj;
+  return result;
+}
+
+static void
+delete_read_obj_sort_obj (BtorExpMgr *emgr, BtorReadObjSortObj *sobj)
+{
+  assert (emgr != NULL);
+  assert (sobj != NULL);
+  btor_free (emgr->mm, sobj, sizeof (BtorReadObjSortObj));
 }
 
 /*------------------------------------------------------------------------*/
@@ -3117,6 +3149,66 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
   aig  = btor_exp_to_aig (emgr, exp);
   if (!BTOR_IS_CONST_AIG (aig)) btor_aig_to_sat (amgr, aig);
   btor_release_aig (amgr, aig);
+}
+
+static int
+compare_read_object_sort_objects (void *sobj1, void *sobj2)
+{
+  BtorExp *index1  = NULL;
+  BtorExp *index2  = NULL;
+  BtorAIGVec *av1  = NULL;
+  BtorAIGVec *av2  = NULL;
+  BtorExpMgr *emgr = NULL;
+  BtorAIGMgr *amgr = NULL;
+  int inverted1    = 1;
+  int inverted2    = 1;
+  int val1         = 0;
+  int val2         = 0;
+  int len          = 0;
+  assert (sobj1 != NULL);
+  assert (sobj2 != NULL);
+  emgr   = ((BtorReadObjSortObj *) sobj1)->emgr;
+  amgr   = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  index1 = ((BtorReadObjSortObj *) sobj1)->obj->index;
+  index2 = ((BtorReadObjSortObj *) sobj2)->obj->index;
+  assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
+  if (BTOR_IS_INVERTED_EXP (index1)) inverted1 = -1;
+  if (BTOR_IS_INVERTED_EXP (index2)) inverted2 = -1;
+  av1 = BTOR_REAL_ADDR_EXP (index1)->av;
+  av2 = BTOR_REAL_ADDR_EXP (index2)->av;
+  assert (av1->len == av2->len);
+  len = av1->len;
+  return 0;
+}
+
+static int
+resolve_read_conflicts (BtorExpMgr *emgr)
+{
+  BtorExp **cur_exp          = NULL;
+  BtorReadObjPtrStack *stack = NULL;
+  BtorReadObj **cur_obj      = NULL;
+  BtorReadObjSortObj **array = NULL;
+  int counter                = 0;
+  int len                    = 0;
+  /* iterate over all arrays */
+  for (cur_exp = emgr->arrays.start; cur_exp != emgr->arrays.top; cur_exp++)
+  {
+    stack = (*cur_exp)->read_constraint;
+    len   = BTOR_COUNT_STACK (*stack);
+    if (len > 0)
+    {
+      /* copy pointers to read objects and sort array */
+      array = (BtorReadObj **) btor_malloc (
+          emgr->mm, sizeof (BtorReadObjSortObj *) * len);
+      counter = 0;
+      for (cur_obj = (*stack).start; cur_obj != (*stack).top; cur_obj++)
+        array[counter++] = new_read_obj_sort_obj (emgr, *cur_obj);
+      assert (counter == len);
+      qsort (array, len, sizeof (BtorReadObjSortObj *), strcmp);
+      for (counter = 0; counter < len; counter++)
+        delete_read_obj_sort_obj (emgr, array[counter]);
+    }
+  }
 }
 
 int
