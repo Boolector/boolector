@@ -218,6 +218,28 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 #define leaf(l) ((void *) (1lu | (unsigned long) (l)))
 #define strip(l) ((BtorSMTSymbol *) ((~1lu) & (unsigned long) (l)))
 
+static unsigned
+length (BtorSMTNode *node)
+{
+  BtorSMTNode *p;
+  unsigned res;
+
+  assert (!isleaf (node));
+
+  res = 0;
+  for (p = node; p; p = cdr (p)) res++;
+
+  return res;
+}
+
+static int
+is_list_of_length (BtorSMTNode *node, unsigned l)
+{
+  if (isleaf (node)) return 0;
+
+  return length (node) == l;
+}
+
 static void
 btor_release_smt_symbols (BtorSMTParser *parser)
 {
@@ -1048,7 +1070,7 @@ translate_unary (BtorSMTParser *parser,
   BtorSMTNode *c;
   BtorExp *a;
 
-  if (!cdr (node) || cdr (cdr (node)))
+  if (!is_list_of_length (node, 2))
   {
     (void) parse_error (parser, "expected exactly one argument to '%s'", name);
     return;
@@ -1068,7 +1090,7 @@ translate_binary (BtorSMTParser *parser,
   BtorSMTNode *c0, *c1;
   BtorExp *a0, *a1;
 
-  if (!cdr (node) || !cdr (cdr (node)) || cdr (cdr (cdr (node))))
+  if (!is_list_of_length (node, 3))
   {
     (void) parse_error (parser, "expected exactly two arguments to '%s'", name);
     return;
@@ -1086,6 +1108,42 @@ translate_binary (BtorSMTParser *parser,
       else
         node->exp = f (parser->mgr, a0, a1);
     }
+}
+
+static void
+translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
+{
+  BtorSMTNode *c0, *c1, *c2;
+  BtorExp *a0, *a1, *a2;
+
+  if (!is_list_of_length (node, 4))
+  {
+    (void) parse_error (
+        parser, "expected exactly three arguments to '%s'", name);
+    return;
+  }
+
+  c0 = car (cdr (node));
+  c1 = car (cdr (cdr (node)));
+  c2 = car (cdr (cdr (cdr (node))));
+
+  if ((a0 = node2nonarrayexp_else_parse_error (parser, c0)))
+  {
+    if (btor_get_exp_len (parser->mgr, a0) == 1)
+    {
+      if ((a1 = node2nonarrayexp_else_parse_error (parser, c1)))
+        if ((a2 = node2nonarrayexp_else_parse_error (parser, c2)))
+        {
+          if (btor_get_exp_len (parser->mgr, a1)
+              != btor_get_exp_len (parser->mgr, a2))
+            (void) parse_error (parser, "expression width mismatch");
+          else
+            node->exp = btor_cond_exp (parser->mgr, a0, a1, a2);
+        }
+    }
+    else
+      (void) parse_error (parser, "conditional width not one");
+  }
 }
 
 static char *
@@ -1234,6 +1292,10 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         break;
       case BTOR_SMTOK_EQ:
         translate_binary (parser, node, "=", btor_eq_exp);
+        break;
+      case BTOR_SMTOK_ITE: translate_cond (parser, node, "ite"); break;
+      case BTOR_SMTOK_IF_THEN_ELSE:
+        translate_cond (parser, node, "if_then_else");
         break;
       case BTOR_SMTOK_BIND:
         assert (cdr (node));
