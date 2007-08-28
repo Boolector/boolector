@@ -931,6 +931,7 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
     return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
 
   symbol->exp = btor_var_exp (parser->mgr, 1, symbol->name);
+  BTOR_PUSH_STACK (parser->mem, parser->vars, symbol->exp);
 
   return 1;
 }
