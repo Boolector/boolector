@@ -78,6 +78,11 @@ enum BtorSMTToken
   BTOR_SMTOK_BVULE   = 289,
   BTOR_SMTOK_BVAND   = 290,
   BTOR_SMTOK_BVLSHR  = 291,
+  BTOR_SMTOK_BVSLT   = 292,
+  BTOR_SMTOK_BVULT   = 293,
+  BTOR_SMTOK_BVNEG   = 294,
+  BTOR_SMTOK_BVSLE   = 295,
+  BTOR_SMTOK_BVSHL   = 296,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -548,6 +553,11 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvule")->token  = BTOR_SMTOK_BVULE;
   insert_symbol (res, "bvand")->token  = BTOR_SMTOK_BVAND;
   insert_symbol (res, "bvlshr")->token = BTOR_SMTOK_BVLSHR;
+  insert_symbol (res, "bvslt")->token  = BTOR_SMTOK_BVSLT;
+  insert_symbol (res, "bvult")->token  = BTOR_SMTOK_BVULT;
+  insert_symbol (res, "bvneg")->token  = BTOR_SMTOK_BVNEG;
+  insert_symbol (res, "bvsle")->token  = BTOR_SMTOK_BVSLE;
+  insert_symbol (res, "bvshl")->token  = BTOR_SMTOK_BVSHL;
 
   return res;
 }
@@ -1611,6 +1621,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVNOT:
         translate_unary (parser, node, "bvnot", btor_not_exp);
         break;
+      case BTOR_SMTOK_BVNEG:
+        translate_unary (parser, node, "bvneg", btor_neg_exp);
+        break;
       case BTOR_SMTOK_BVADD:
         translate_binary (parser, node, "bvadd", btor_add_exp);
         break;
@@ -1620,11 +1633,23 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVULE:
         translate_binary (parser, node, "bvule", btor_ulte_exp);
         break;
+      case BTOR_SMTOK_BVSLE:
+        translate_binary (parser, node, "bvsle", btor_slte_exp);
+        break;
+      case BTOR_SMTOK_BVULT:
+        translate_binary (parser, node, "bvult", btor_ult_exp);
+        break;
+      case BTOR_SMTOK_BVSLT:
+        translate_binary (parser, node, "bvslt", btor_slt_exp);
+        break;
       case BTOR_SMTOK_BVAND:
         translate_binary (parser, node, "bvand", btor_and_exp);
         break;
       case BTOR_SMTOK_BVLSHR:
-        translate_shift (parser, node, "bvlshr", 1, btor_srl_exp);
+        translate_shift (parser, node, "bvlshr", 0, btor_srl_exp);
+        break;
+      case BTOR_SMTOK_BVSHL:
+        translate_shift (parser, node, "bvshl", 0, btor_sll_exp);
         break;
       default:
         return parse_error (parser, "unsupported list head '%s'", symbol->name);
