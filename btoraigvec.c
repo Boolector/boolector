@@ -802,8 +802,6 @@ btor_get_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   result = (char *) btor_malloc (avmgr->mm, sizeof (char) * (len + 1));
   for (i = 0; i < len; i++)
   {
-    assert (!BTOR_IS_INVERTED_AIG (av->aigs[i]));
-    assert (BTOR_IS_VAR_AIG (av->aigs[i]));
     cur = btor_get_assignment_aig (avmgr->amgr, av->aigs[i]);
     if (cur == 1)
       result[i] = '1';
