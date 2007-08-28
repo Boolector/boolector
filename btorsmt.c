@@ -65,6 +65,7 @@ enum BtorSMTToken
   BTOR_SMTOK_UNKNOWN      = 278,
   BTOR_SMTOK_UNSAT        = 279,
   BTOR_SMTOK_XOR          = 280,
+  BTOR_SMTOK_CONCAT       = 281,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -357,11 +358,10 @@ insert_symbol (BtorSMTParser *parser, const char *name)
   if (!(res = *p))
   {
     BTOR_NEW (parser->mem, res);
+    BTOR_CLR (res);
 
     res->token = BTOR_SMTOK_IDENTIFIER;
     res->name  = btor_strdup (parser->mem, name);
-    res->next  = 0;
-    res->exp   = 0;
 
     parser->symbols++;
     *p = res;
@@ -469,6 +469,8 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   bind        = insert_symbol (res, "_bind_");
   bind->token = BTOR_SMTOK_BIND;
   res->bind   = leaf (bind);
+
+  insert_symbol (res, "concat")->token = BTOR_SMTOK_CONCAT;
 
   return res;
 }
@@ -593,9 +595,10 @@ SKIP_WHITE_SPACE:
 
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
-  INSERT_SYMBOL_AND_CHECK_FOR_UNSUPPORTED_KEYWORD:
-
     parser->symbol = insert_symbol (parser, parser->buffer.start);
+
+  CHECK_FOR_UNSUPPORTED_KEYWORD:
+
     if (parser->symbol->token >= BTOR_SMTOK_UNSUPPORTED_KEYWORD)
       return !parse_error (
           parser, "unsupported keyword '%s'", parser->buffer.start);
@@ -634,7 +637,12 @@ SKIP_WHITE_SPACE:
     savech (parser, ch);
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
-    goto INSERT_SYMBOL_AND_CHECK_FOR_UNSUPPORTED_KEYWORD;
+    parser->symbol = insert_symbol (parser, parser->buffer.start);
+
+    if (res == BTOR_SMTOK_VAR || res == BTOR_SMTOK_FVAR)
+      parser->symbol->token = res;
+
+    goto CHECK_FOR_UNSUPPORTED_KEYWORD;
   }
 
   if (type & BTOR_SMTCC_NUMERAL_START)
@@ -800,7 +808,7 @@ btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
       if (!(node = cdr (node))) break;
 
       fputc ('\n', file);
-      for (i = 0; i < indent; i++) fputc (' ', file);
+      for (i = 0; i <= indent; i++) fputc (' ', file);
     }
 
     fputc (')', file);
@@ -979,6 +987,7 @@ translate (BtorSMTParser *parser, BtorSMTNode *root_node)
       if (isleaf (node))
       {
         symbol = strip (node);
+
         if (symbol->token == BTOR_SMTOK_IDENTIFIER && !symbol->pushed)
         {
           symbol->pushed = 1;
