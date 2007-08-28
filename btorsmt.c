@@ -217,12 +217,10 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 #define strip(l) ((BtorSMTSymbol *) ((~1lu) & (unsigned long) (l)))
 
 static void
-btor_delete_smt_parser (BtorSMTParser *parser)
+btor_release_smt_symbols (BtorSMTParser *parser)
 {
-  BtorSMTSymbol *p;
-  BtorSMTNodes *q;
+  BtorSMTSymbol *p, *next;
   BtorExp *e;
-  void *next;
   unsigned i;
 
   for (i = 0; i < parser->szsymtab; i++)
@@ -239,27 +237,61 @@ btor_delete_smt_parser (BtorSMTParser *parser)
     }
   }
   BTOR_DELETEN (parser->mem, parser->symtab, parser->szsymtab);
+  parser->symtab   = 0;
+  parser->szsymtab = 0;
+}
+
+static void
+btor_release_smt_nodes (BtorSMTParser *parser)
+{
+  BtorSMTNodes *p, *next;
+  BtorExp *e;
+  unsigned i;
+
+  for (p = parser->chunks; p; p = next)
+  {
+    next = p->next;
+
+    for (i = 0; i < BTOR_SMT_NODES; i++)
+      if ((e = p->nodes[i].exp)) btor_release_exp (parser->mgr, e);
+
+    BTOR_DELETE (parser->mem, p);
+  }
+
+  parser->chunks = 0;
+}
+
+static void
+btor_release_smt_internals (BtorSMTParser *parser)
+{
+  btor_release_smt_symbols (parser);
+  btor_release_smt_nodes (parser);
 
   BTOR_RELEASE_STACK (parser->mem, parser->stack);
   BTOR_RELEASE_STACK (parser->mem, parser->work);
   BTOR_RELEASE_STACK (parser->mem, parser->heads);
-
-  for (q = parser->chunks; q; q = next)
-  {
-    next = q->next;
-
-    for (i = 0; i < BTOR_SMT_NODES; i++)
-      if ((e = q->nodes[i].exp)) btor_release_exp (parser->mgr, e);
-
-    BTOR_DELETE (parser->mem, q);
-  }
-
-  btor_freestr (parser->mem, parser->error);
   BTOR_RELEASE_STACK (parser->mem, parser->buffer);
+}
 
-  if (parser->root) btor_release_exp (parser->mgr, parser->root);
+static void
+btor_release_smt_vars (BtorSMTParser *parser)
+{
+  BtorExp **p;
+
+  for (p = parser->vars.start; p < parser->vars.top; p++)
+    btor_release_exp (parser->mgr, *p);
 
   BTOR_RELEASE_STACK (parser->mem, parser->vars);
+}
+
+static void
+btor_delete_smt_parser (BtorSMTParser *parser)
+{
+  btor_release_smt_internals (parser);
+
+  btor_freestr (parser->mem, parser->error);
+  btor_release_smt_vars (parser);
+  if (parser->root) btor_release_exp (parser->mgr, parser->root);
 
   BTOR_DELETE (parser->mem, parser);
 }
@@ -825,6 +857,12 @@ btorsmtpp (BtorSMTNode *node)
   fflush (stderr);
 }
 
+static void
+push_var (BtorSMTParser *parser, BtorExp *v)
+{
+  BTOR_PUSH_STACK (parser->mem, parser->vars, btor_copy_exp (parser->mgr, v));
+}
+
 static int
 extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 {
@@ -869,7 +907,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     assert (!*p);
 
     symbol->exp = btor_var_exp (parser->mgr, datalen, symbol->name);
-    BTOR_PUSH_STACK (parser->mem, parser->vars, symbol->exp);
+    push_var (parser, symbol->exp);
   }
   else if (ch == 'A')
   {
@@ -931,7 +969,7 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
     return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
 
   symbol->exp = btor_var_exp (parser->mgr, 1, symbol->name);
-  BTOR_PUSH_STACK (parser->mem, parser->vars, symbol->exp);
+  push_var (parser, symbol->exp);
 
   return 1;
 }
@@ -1298,10 +1336,10 @@ translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
 }
 
 static const char *
-btor_parse_smt_parser (BtorSMTParser *parser,
-                       FILE *file,
-                       const char *name,
-                       BtorParseResult *res)
+parse (BtorSMTParser *parser,
+       FILE *file,
+       const char *name,
+       BtorParseResult *res)
 {
   BtorSMTNode *node, *top, **p, **first;
   BtorSMTToken token;
@@ -1395,6 +1433,17 @@ NEXT_TOKEN:
   BTOR_PUSH_STACK (parser->mem, parser->stack, leaf (parser->symbol));
 
   goto NEXT_TOKEN;
+}
+
+static const char *
+btor_parse_smt_parser (BtorSMTParser *parser,
+                       FILE *file,
+                       const char *name,
+                       BtorParseResult *res)
+{
+  (void) parse (parser, file, name, res);
+  btor_release_smt_internals (parser);
+  return parser->error;
 }
 
 static BtorParserAPI api = {

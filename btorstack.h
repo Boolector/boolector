@@ -37,6 +37,7 @@
   do                                                               \
   {                                                                \
     BTOR_DELETEN ((mm), (stack).start, BTOR_SIZE_STACK ((stack))); \
+    BTOR_INIT_STACK ((stack));                                     \
   } while (0)
 
 #define BTOR_ENLARGE_STACK(mm, stack)                       \
