@@ -1,10 +1,10 @@
-3 1 const 0
-1 32 var
-4 33 concat 3 1
-2 32 var
-5 33 concat 3 -2
-6 33 const 000000000000000000000000000000001
-7 33 add 5 6
-8 33 add 4 7
-9 1 slice 8 32 32
-10 1 root -9
+3 const 1 0
+1 var 32
+4 concat 33 3 1
+2 var 32
+5 concat 33 3 -2
+6 const 33 000000000000000000000000000000001
+7 add 33 5 6
+8 add 33 4 7
+9 slice 1 8 32 32
+10 root 1 -9

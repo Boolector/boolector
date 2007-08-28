@@ -1,6 +1,6 @@
-1 8 var
-2 8 var
-3 8 and -1 -2
-4 8 and 1 2
-5 8 and -3 -4
-6 8 root -5
+1 var 8
+2 var 8
+3 and 8 -1 -2
+4 and 8 1 2
+5 and 8 -3 -4
+6 root 8 -5

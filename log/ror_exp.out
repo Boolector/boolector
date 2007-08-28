@@ -1,8 +1,8 @@
-1 32 var
-2 5 var
-3 32 srl 1 2
-4 5 const 00001
-5 5 add -2 4
-6 32 sll 1 5
-7 32 and -3 -6
-8 32 root -7
+1 var 32
+2 var 5
+3 srl 32 1 2
+4 const 5 00001
+5 add 5 -2 4
+6 sll 32 1 5
+7 and 32 -3 -6
+8 root 32 -7

@@ -1,4 +1,4 @@
-2 32 var
-1 32 var
-3 1 ult 2 1
-4 1 root 3
+2 var 32
+1 var 32
+3 ult 1 2 1
+4 root 1 3

@@ -1,4 +1,4 @@
-1 32 var
-2 5 var
-3 32 srl 1 2
-4 32 root 3
+1 var 32
+2 var 5
+3 srl 32 1 2
+4 root 32 3

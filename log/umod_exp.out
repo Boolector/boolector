@@ -1,4 +1,4 @@
-1 32 var
-2 32 var
-3 32 umod 1 2
-4 32 root 3
+1 var 32
+2 var 32
+3 umod 32 1 2
+4 root 32 3
