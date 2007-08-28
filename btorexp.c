@@ -2733,6 +2733,8 @@ btor_get_symbol_exp (BtorExpMgr *emgr, BtorExp *exp)
 void
 btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
 {
+  char idbuffer[20];
+  const char *name;
   BtorExpPtrStack stack;
   BtorExp *cur = NULL;
   assert (emgr != NULL);
@@ -2758,7 +2760,11 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
         else if (BTOR_IS_VAR_EXP (cur))
         {
           cur->mark = 2;
-          fprintf (file, "%d var %d\n", cur->id, cur->len);
+          fprintf (file, "%d var %d", cur->id, cur->len);
+          sprintf (idbuffer, "%d", cur->id);
+          name = btor_get_symbol_exp (emgr, cur);
+          if (strcmp (name, idbuffer)) fprintf (file, " %s", name);
+          putc ('\n', file);
         }
         else if (BTOR_IS_ARRAY_EXP (cur))
         {
