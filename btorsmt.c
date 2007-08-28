@@ -65,7 +65,9 @@ enum BtorSMTToken
   BTOR_SMTOK_UNKNOWN      = 278,
   BTOR_SMTOK_UNSAT        = 279,
   BTOR_SMTOK_XOR          = 280,
-  BTOR_SMTOK_CONCAT       = 281,
+
+  BTOR_SMTOK_CONCAT = 281,
+  BTOR_SMTOK_EQ     = 282,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -504,6 +506,7 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   bind->token = BTOR_SMTOK_BIND;
   res->bind   = leaf (bind);
 
+  insert_symbol (res, "=")->token      = BTOR_SMTOK_EQ;
   insert_symbol (res, "concat")->token = BTOR_SMTOK_CONCAT;
 
   return res;
@@ -752,10 +755,11 @@ SKIP_WHITE_SPACE:
 
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
-    parser->symbol        = insert_symbol (parser, parser->buffer.start);
-    parser->symbol->token = BTOR_SMTOK_ARITH;
+    parser->symbol = insert_symbol (parser, parser->buffer.start);
+    if (parser->symbol->token == BTOR_SMTOK_IDENTIFIER)
+      parser->symbol->token = BTOR_SMTOK_ARITH;
 
-    return BTOR_SMTOK_ARITH;
+    return parser->symbol->token;
   }
 
   if (ch == ';')
@@ -1207,8 +1211,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
     child = car (node);
 
-    if (!child || !isleaf (child))
-      return parse_error (parser, "unsupported node");
+    if (!child || !isleaf (child)) return parse_error (parser, "list as head");
 
     symbol = strip (child);
 
@@ -1229,6 +1232,40 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_IFF:
         translate_binary (parser, node, "iff", btor_xnor_exp);
         break;
+      case BTOR_SMTOK_EQ:
+        translate_binary (parser, node, "=", btor_eq_exp);
+        break;
+      case BTOR_SMTOK_BIND:
+        assert (cdr (node));
+        assert (cdr (cdr (node)));
+        assert (!cdr (cdr (cdr (node))));
+        assert (isleaf (car (cdr (node))));
+        symbol = strip (car (cdr (node)));
+        if (symbol->exp)
+          return parse_error (parser, "unsupported nested '[f]let'");
+        body = car (cdr (cdr (node)));
+        if ((exp = node2nonarrayexp_else_parse_error (parser, body)))
+        {
+          if (symbol->token == BTOR_SMTOK_FVAR)
+          {
+            if (btor_get_exp_len (parser->mgr, exp) == 1)
+              return parse_error (parser, "flet assignment width not one");
+          }
+          else
+            assert (token == BTOR_SMTOK_VAR);
+
+          symbol->exp = btor_copy_exp (parser->mgr, exp);
+        }
+        break;
+      case BTOR_SMTOK_LET:
+      case BTOR_SMTOK_FLET:
+        symbol = strip (car (car (cdr (node))));
+        assert (symbol->token == BTOR_SMTOK_FVAR
+                || symbol->token == BTOR_SMTOK_VAR);
+        assert (symbol->exp);
+        btor_release_exp (parser->mgr, symbol->exp);
+        symbol->exp = 0;
+        break;
       default:
         return parse_error (
             parser, "unsupported list head (%d)", symbol->token);
@@ -1239,15 +1276,11 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
   BTOR_RESET_STACK (parser->work);
 
-  exp = node2exp (root);
-  if (!exp)
+  if (!(exp = node2nonarrayexp_else_parse_error (parser, root)))
   {
-    assert (isleaf (exp));
-    return parse_error (parser, "'%s' undefined", strip (root)->name);
+    assert (parser->error);
+    return parser->error;
   }
-
-  if (btor_is_array_exp (parser->mgr, exp))
-    return parse_error (parser, "array expression as formula");
 
   if (btor_get_exp_len (parser->mgr, exp) != 1)
     return parse_error (parser, "non boolean formula");
