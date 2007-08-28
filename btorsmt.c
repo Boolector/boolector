@@ -1008,13 +1008,27 @@ node2exp (BtorSMTNode *node)
   return isleaf (node) ? strip (node)->exp : node->exp;
 }
 
+static BtorExp *
+node2exp_else_parse_error (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorExp *res = node2exp (node);
+
+  if (res) return res;
+
+  assert (isleaf (node));
+
+  (void) parse_error (parser, "'%s' undefined", strip (node)->name);
+
+  return 0;
+}
+
 static char *
 translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
   BtorSMTNode *assignment, *body;
+  BtorExp *and, *exp, *a, *b;
   BtorSMTSymbol *symbol;
-  BtorExp *and, *exp;
   BtorSMTToken token;
   int start, end;
 
@@ -1127,37 +1141,34 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
     node = *s;
 
     assert (node);
+    assert (!isleaf (node));
 
-    if (isleaf (node))
+    child = car (node);
+
+    if (!child || !isleaf (child))
+      return parse_error (parser, "unsupported node");
+
+    symbol = strip (child);
+
+    switch (symbol->token)
     {
-      symbol = strip (node);
+      case BTOR_SMTOK_NOT:
+        if (!cdr (node) || cdr (cdr (node)))
+          return parse_error (parser, "expected exactly one argument to 'not'");
 
-      if (symbol->token == BTOR_SMTOK_IDENTIFIER)
-      {
-        if (!symbol->exp)
-          return parse_error (parser, "undefined symbol '%s'", symbol->name);
-      }
-      else
-        return parse_error (parser, "unsupported leaf '%s'", symbol->name);
+        child = car (cdr (node));
+        if (!(a = node2exp_else_parse_error (parser, child)))
+          return parser->error;
+
+        node->exp = btor_not_exp (parser->mgr, a);
+        break;
+
+      default:
+        return parse_error (
+            parser, "unsupported list head (%d)", symbol->token);
     }
-    else
-    {
-      child = car (node);
 
-      if (!child || !isleaf (child))
-        return parse_error (parser, "unsupported node");
-
-      symbol = strip (child);
-
-      switch (symbol->token)
-      {
-        case BTOR_SMTOK_IDENTIFIER: break;
-
-        default:
-          return parse_error (
-              parser, "unsupported list head (%d)", symbol->token);
-      }
-    }
+    assert (!parser->error);
   }
 
   BTOR_RESET_STACK (parser->work);
