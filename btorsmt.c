@@ -1238,7 +1238,7 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
         }
     }
     else
-      (void) parse_error (parser, "conditional width not one");
+      (void) parse_error (parser, "non boolean conditional");
   }
 }
 
