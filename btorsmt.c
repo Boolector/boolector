@@ -1076,7 +1076,11 @@ translate_binary (BtorSMTParser *parser,
   if ((a0 = node2nonarrayexp_else_parse_error (parser, c0)))
     if ((a1 = node2nonarrayexp_else_parse_error (parser, c1)))
     {
-      node->exp = f (parser->mgr, a0, a1);
+      if (btor_get_exp_len (parser->mgr, a0)
+          != btor_get_exp_len (parser->mgr, a1))
+        (void) parse_error (parser, "expression width mismatch");
+      else
+        node->exp = f (parser->mgr, a0, a1);
     }
 }
 
