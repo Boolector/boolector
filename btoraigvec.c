@@ -701,6 +701,17 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   return result;
 }
 
+void
+btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+{
+  int len = 0;
+  int i   = 0;
+  assert (avmgr != NULL);
+  assert (av != NULL);
+  len = av->len;
+  for (i = 0; i < len; i++) av->aigs[i] = BTOR_INVERT_AIG (av->aigs[i]);
+}
+
 int
 btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
