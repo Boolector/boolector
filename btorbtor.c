@@ -523,6 +523,8 @@ parse_constd (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
+  assert (BTOR_EMPTY_STACK (parser->constant));
+
   ch = nextch (parser);
   if (!isdigit (ch))
   {

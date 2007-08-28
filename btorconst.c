@@ -810,3 +810,19 @@ btor_const_to_hex (BtorMemMgr *mem, const char *c)
 
   return res;
 }
+
+char *
+btor_uext_const (BtorMemMgr *mem, const char *c, int len)
+{
+  char *res, *q;
+  const char *p;
+
+  assert (len >= 1);
+  BTOR_NEWN (mem, res, strlen (c) + len + 1);
+
+  for (q = res; len; len--, q++) *q = '0';
+
+  for (p = c; *p; p++, q++) *q = *p;
+
+  return res;
+}

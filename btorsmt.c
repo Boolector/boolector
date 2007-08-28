@@ -66,9 +66,11 @@ enum BtorSMTToken
   BTOR_SMTOK_UNSAT        = 279,
   BTOR_SMTOK_XOR          = 280,
 
-  BTOR_SMTOK_CONCAT  = 281,
+  BTOR_SMTOK_CONCAT  = 281, /* QF_BV specific symbols */
   BTOR_SMTOK_EQ      = 282,
   BTOR_SMTOK_EXTRACT = 283,
+  BTOR_SMTOK_BIT0    = 284,
+  BTOR_SMTOK_BIT1    = 285,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -531,6 +533,8 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
 
   insert_symbol (res, "=")->token      = BTOR_SMTOK_EQ;
   insert_symbol (res, "concat")->token = BTOR_SMTOK_CONCAT;
+  insert_symbol (res, "bit0")->token   = BTOR_SMTOK_BIT0;
+  insert_symbol (res, "bit1")->token   = BTOR_SMTOK_BIT1;
 
   return res;
 }
@@ -967,6 +971,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
 
   p = sortsymbol->name;
+
   if (has_prefix (p, "BitVec"))
   {
     if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
@@ -1061,37 +1066,69 @@ is_let_or_flet (BtorSMTNode *node)
   return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
 }
 
+#if 0
 static BtorExp *
-node2exp (BtorSMTNode *node)
+node2exp (BtorSMTNode * node)
 {
   return isleaf (node) ? strip (node)->exp : node->exp;
 }
+#endif
 
 static BtorExp *
-node2exp_else_parse_error (BtorSMTParser *parser, BtorSMTNode *node)
+node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
-  BtorExp *res = node2exp (node);
+  const char *p, *start, *end;
+  BtorSMTSymbol *symbol;
+  int len, token;
 
-  if (res) return res;
-
-  assert (isleaf (node));
-  (void) parse_error (parser, "'%s' undefined", strip (node)->name);
-
-  return 0;
-}
-
-static BtorExp *
-node2nonarrayexp_else_parse_error (BtorSMTParser *parser, BtorSMTNode *node)
-{
-  BtorExp *res = node2exp_else_parse_error (parser, node);
-
-  if (res && btor_is_array_exp (parser->mgr, res))
+  if (isleaf (node))
   {
-    (void) parse_error (parser, "unexpected array expression");
+    symbol = strip (node);
+    if (symbol->exp) return symbol->exp;
+
+    token = symbol->token;
+    if (token == BTOR_SMTOK_TRUE || token == BTOR_SMTOK_BIT1)
+      return symbol->exp = btor_const_exp (parser->mgr, "1");
+
+    if (token == BTOR_SMTOK_FALSE || token == BTOR_SMTOK_BIT0)
+      return symbol->exp = btor_const_exp (parser->mgr, "0");
+
+    p = symbol->name;
+    if (*p++ == 'b' && *p++ == 'v')
+    {
+      if (isdigit (*p))
+      {
+        start = p++;
+        for (end = p; isdigit (*end); end++)
+          ;
+
+        if (*end == '[')
+        {
+          for (p = end + 1; isdigit (*p); p++)
+            ;
+
+          if (*p == ']')
+          {
+            len = atoi (end + 1);
+            if (len)
+            {
+              /* TODO convert decimal to binary */
+            }
+          }
+        }
+      }
+    }
+
+    (void) parse_error (parser, "'%s' undefined", strip (node)->name);
     return 0;
   }
+  else
+  {
+    assert (node->exp);
+    return node->exp;
+  }
 
-  return res;
+  return 0;
 }
 
 static void
@@ -1112,8 +1149,7 @@ translate_unary (BtorSMTParser *parser,
   }
 
   c = car (cdr (node));
-  if ((a = node2nonarrayexp_else_parse_error (parser, c)))
-    node->exp = f (parser->mgr, a);
+  if ((a = node2exp (parser, c))) node->exp = f (parser->mgr, a);
 }
 
 static void
@@ -1136,8 +1172,8 @@ translate_binary (BtorSMTParser *parser,
   c0 = car (cdr (node));
   c1 = car (cdr (cdr (node)));
 
-  if ((a0 = node2nonarrayexp_else_parse_error (parser, c0)))
-    if ((a1 = node2nonarrayexp_else_parse_error (parser, c1)))
+  if ((a0 = node2exp (parser, c0)))
+    if ((a1 = node2exp (parser, c1)))
     {
       if (btor_get_exp_len (parser->mgr, a0)
           != btor_get_exp_len (parser->mgr, a1))
@@ -1166,12 +1202,12 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
   c1 = car (cdr (cdr (node)));
   c2 = car (cdr (cdr (cdr (node))));
 
-  if ((a0 = node2nonarrayexp_else_parse_error (parser, c0)))
+  if ((a0 = node2exp (parser, c0)))
   {
     if (btor_get_exp_len (parser->mgr, a0) == 1)
     {
-      if ((a1 = node2nonarrayexp_else_parse_error (parser, c1)))
-        if ((a2 = node2nonarrayexp_else_parse_error (parser, c2)))
+      if ((a1 = node2exp (parser, c1)))
+        if ((a2 = node2exp (parser, c2)))
         {
           if (btor_get_exp_len (parser->mgr, a1)
               != btor_get_exp_len (parser->mgr, a2))
@@ -1205,7 +1241,7 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(exp = node2nonarrayexp_else_parse_error (parser, car (cdr (node)))))
+  if (!(exp = node2exp (parser, car (cdr (node)))))
   {
     assert (parser->error);
     return;
@@ -1228,6 +1264,28 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
   }
 
   node->exp = btor_slice_exp (parser->mgr, exp, upper, lower);
+}
+
+static void
+translate_concat (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorSMTNode *c0, *c1;
+  BtorExp *a0, *a1;
+
+  assert (!node->exp);
+
+  if (!is_list_of_length (node, 3))
+  {
+    (void) parse_error (parser, "expected exactly two arguments to 'concat'");
+    return;
+  }
+
+  c0 = car (cdr (node));
+  c1 = car (cdr (cdr (node)));
+
+  if ((a0 = node2exp (parser, c0)))
+    if ((a1 = node2exp (parser, c1)))
+      node->exp = btor_concat_exp (parser->mgr, a0, a1);
 }
 
 static char *
@@ -1254,23 +1312,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
     {
       if (isleaf (node))
       {
-        symbol = strip (node);
-
-        if (!symbol->exp)
-        {
-          if (symbol->token == BTOR_SMTOK_TRUE)
-          {
-            symbol->exp = btor_const_exp (parser->mgr, "1");
-          }
-          else if (symbol->token == BTOR_SMTOK_FALSE)
-          {
-            symbol->exp = btor_const_exp (parser->mgr, "0");
-          }
-          else
-          {
-            /* otherwise just ignore */
-          }
-        }
+        /* DO NOTHING HERE */
       }
       else if (car (node) == parser->bind)
       {
@@ -1394,7 +1436,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         if (symbol->exp)
           return parse_error (parser, "unsupported nested '[f]let'");
         body = car (cdr (cdr (node)));
-        if ((exp = node2nonarrayexp_else_parse_error (parser, body)))
+        if ((exp = node2exp (parser, body)))
         {
           if (symbol->token == BTOR_SMTOK_FVAR)
           {
@@ -1416,10 +1458,11 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         btor_release_exp (parser->mgr, symbol->exp);
         symbol->exp = 0;
         body        = car (cdr (cdr (node)));
-        if ((exp = node2nonarrayexp_else_parse_error (parser, body)))
+        if ((exp = node2exp (parser, body)))
           node->exp = btor_copy_exp (parser->mgr, exp);
         break;
       case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
+      case BTOR_SMTOK_CONCAT: translate_concat (parser, node); break;
       default:
         return parse_error (parser, "unsupported list head '%s'", symbol->name);
     }
@@ -1429,7 +1472,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
   BTOR_RESET_STACK (parser->work);
 
-  if (!(exp = node2nonarrayexp_else_parse_error (parser, root)))
+  if (!(exp = node2exp (parser, root)))
   {
     assert (parser->error);
     return parser->error;
