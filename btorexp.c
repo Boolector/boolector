@@ -1386,8 +1386,7 @@ rewrite_exp (BtorExpMgr *emgr,
       if (BTOR_IS_CONST_EXP (real_e0))
       {
         if ((!BTOR_IS_INVERTED_EXP (e0) && e0->bits[0] == '1')
-            || (BTOR_IS_INVERTED_EXP (e0)
-                && BTOR_INVERT_EXP (e0)->bits[0] == '0'))
+            || (BTOR_IS_INVERTED_EXP (e0) && real_e0->bits[0] == '0'))
           result = btor_copy_exp (emgr, e1);
         else
           result = btor_copy_exp (emgr, e2);
