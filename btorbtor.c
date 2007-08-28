@@ -524,6 +524,12 @@ parse_constd (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_zero (BtorBTORParser *parser, int len)
+{
+  return btor_zero_exp (parser->btor, len);
+}
+
+static BtorExp *
 parse_root (BtorBTORParser *parser, int len)
 {
   BtorExp *res;
@@ -701,6 +707,12 @@ static BtorExp *
 parse_or (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_or_exp);
+}
+
+static BtorExp *
+parse_implies (BtorBTORParser *parser, int len)
+{
+  return parse_binary (parser, len, btor_implies_exp);
 }
 
 static BtorExp *
@@ -1221,12 +1233,14 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_const, "const");
   new_parser (res, parse_consth, "consth");
   new_parser (res, parse_constd, "constd");
+  new_parser (res, parse_zero, "zero");
   new_parser (res, parse_read, "read");
   new_parser (res, parse_eq, "eq");
   new_parser (res, parse_ne, "ne");
   new_parser (res, parse_neg, "neg");
   new_parser (res, parse_not, "not");
   new_parser (res, parse_or, "or");
+  new_parser (res, parse_implies, "implies");
   new_parser (res, parse_redand, "redand");
   new_parser (res, parse_redor, "redor");
   new_parser (res, parse_redxor, "redxor");

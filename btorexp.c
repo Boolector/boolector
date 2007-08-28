@@ -1072,6 +1072,13 @@ btor_const_exp (BtorExpMgr *emgr, const char *bits)
 }
 
 BtorExp *
+btor_zero_exp (BtorExpMgr *emgr, int len)
+{
+  assert (len > 0);
+  return zeros_exp (emgr, len);
+}
+
+BtorExp *
 btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol)
 {
   BtorExp *exp = NULL;
@@ -1632,6 +1639,19 @@ btor_or_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (
       btor_and_exp (emgr, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e1)));
+}
+
+BtorExp *
+btor_implies_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
+{
+  assert (emgr != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  return BTOR_INVERT_EXP (btor_and_exp (emgr, e0, BTOR_INVERT_EXP (e1)));
 }
 
 BtorExp *
