@@ -37,7 +37,6 @@ struct BtorBTORParser
   BtorExpPtrStack next;
 
   BtorCharStack op;
-  BtorCharStack bits;
   BtorCharStack constant;
   BtorCharStack varname;
 
@@ -361,7 +360,7 @@ parse_const (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  assert (BTOR_EMPTY_STACK (parser->bits));
+  assert (BTOR_EMPTY_STACK (parser->constant));
   while (!isspace (ch = nextch (parser)) && ch != EOF && ch != ';')
   {
     if (ch != '0' && ch != '1')
@@ -370,24 +369,24 @@ parse_const (BtorBTORParser *parser, int len)
       return 0;
     }
 
-    BTOR_PUSH_STACK (parser->mem, parser->bits, ch);
+    BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
   }
 
   savech (parser, ch);
-  clen = BTOR_COUNT_STACK (parser->bits);
-  BTOR_PUSH_STACK (parser->mem, parser->bits, 0);
-  BTOR_RESET_STACK (parser->bits);
+  clen = BTOR_COUNT_STACK (parser->constant);
+  BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
+  BTOR_RESET_STACK (parser->constant);
 
   if (clen != len)
   {
     (void) parse_error (parser,
                         "binary constant '%s' exceeds bit width %d",
-                        parser->bits.start,
+                        parser->constant.start,
                         len);
     return 0;
   }
 
-  res = btor_const_exp (parser->btor, parser->bits.start);
+  res = btor_const_exp (parser->btor, parser->constant.start);
 
   return res;
 }
@@ -450,34 +449,12 @@ parse_consth (BtorBTORParser *parser, int len)
   return res;
 }
 
-static const char *digit2const_table[10] = {
-    "",
-    "1",
-    "10",
-    "11",
-    "100",
-    "101",
-    "110",
-    "111",
-    "1000",
-    "1001",
-};
-
-static const char *
-digit2const (char ch)
-{
-  assert ('0' <= ch);
-  assert (ch <= '9');
-  return digit2const_table[ch - '0'];
-}
-
 static BtorExp *
 parse_constd (BtorBTORParser *parser, int len)
 {
-  const char *p, *msb;
-  char *c, ch, *tmp;
+  char ch, *tmp, *extended;
   BtorExp *res;
-  int pad;
+  int clen;
 
   if (parse_space (parser)) return 0;
 
@@ -490,6 +467,8 @@ parse_constd (BtorBTORParser *parser, int len)
     return 0;
   }
 
+  BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
+
   if (ch == '0')
   {
     ch = nextch (parser);
@@ -500,50 +479,46 @@ parse_constd (BtorBTORParser *parser, int len)
       return 0;
     }
 
-    c = btor_strdup (parser->mem, "");
+    tmp = btor_strdup (parser->mem, "");
   }
   else
   {
-    c = btor_strdup (parser->mem, digit2const (ch));
-
     while (isdigit (ch = nextch (parser)))
-    {
-      tmp = btor_mult_unbounded_const (parser->mem, c, "1010"); /* *10 */
-      btor_delete_const (parser->mem, c);
-      c = tmp;
+      BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
 
-      tmp = btor_add_unbounded_const (parser->mem, c, digit2const (ch));
-      btor_delete_const (parser->mem, c);
-      c = tmp;
-    }
+    clen = BTOR_COUNT_STACK (parser->constant);
+
+    tmp = btor_decimal_to_const_n (parser->mem, parser->constant.start, clen);
   }
+
+  BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
+  BTOR_RESET_STACK (parser->constant);
 
   savech (parser, ch);
 
-  for (msb = c; *msb == '0'; msb++)
-    ;
-
-  pad = len - strlen (msb);
-  if (pad < 0)
+  clen = strlen (tmp);
+  if (clen > len)
   {
-    (void) parse_error (parser, "constant exceeds bit width");
-    btor_freestr (parser->mem, c);
+    (void) parse_error (parser,
+                        "decimal constant '%s' exceeds bit width %d",
+                        parser->constant.start,
+                        len);
+    btor_freestr (parser->mem, tmp);
     return 0;
   }
 
-  assert (BTOR_EMPTY_STACK (parser->bits));
+  if (clen < len)
+  {
+    extended = btor_uext_const (parser->mem, tmp, len - clen);
+    btor_delete_const (parser->mem, tmp);
+    tmp = extended;
+  }
 
-  while (pad--) BTOR_PUSH_STACK (parser->mem, parser->bits, '0');
+  assert (len == (int) strlen (tmp));
+  res = btor_const_exp (parser->btor, tmp);
+  btor_delete_const (parser->mem, tmp);
 
-  for (p = msb; *p; p++) BTOR_PUSH_STACK (parser->mem, parser->bits, *p);
-
-  BTOR_PUSH_STACK (parser->mem, parser->bits, 0);
-  BTOR_RESET_STACK (parser->bits);
-
-  btor_freestr (parser->mem, c);
-
-  assert (strlen (parser->bits.start) == (size_t) len);
-  res = btor_const_exp (parser->btor, parser->bits.start);
+  assert (btor_get_exp_len (parser->btor, res) == len);
 
   return res;
 }
@@ -1311,7 +1286,6 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->roots);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
-  BTOR_RELEASE_STACK (parser->mem, parser->bits);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
   BTOR_RELEASE_STACK (parser->mem, parser->varname);
 

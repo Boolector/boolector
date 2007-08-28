@@ -5,6 +5,19 @@
 #include <limits.h>
 #include <string.h>
 
+static const char *digit2const_table[10] = {
+    "",
+    "1",
+    "10",
+    "11",
+    "100",
+    "101",
+    "110",
+    "111",
+    "1000",
+    "1001",
+};
+
 #ifndef NDEBUG
 
 static int
@@ -98,7 +111,7 @@ strip_zeroes (const char *a)
 char *
 btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
 {
-  char *res, *r, c, x, y, s;
+  char *res, *r, c, x, y, s, *tmp;
   int alen, blen, rlen;
   const char *p, *q;
 
@@ -134,6 +147,14 @@ btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
     s    = x ^ y ^ c;
     c    = (x & y) | (x & c) | (y & c);
     *--r = s;
+  }
+
+  p = strip_zeroes (res);
+  if ((p != res))
+  {
+    tmp = btor_copy_const (mm, p);
+    btor_delete_const (mm, res);
+    res = tmp;
   }
 
   return res;
@@ -816,13 +837,20 @@ btor_uext_const (BtorMemMgr *mem, const char *c, int len)
 {
   char *res, *q;
   const char *p;
+  int rlen;
 
   assert (len >= 1);
-  BTOR_NEWN (mem, res, strlen (c) + len + 1);
+
+  rlen = strlen (c) + len;
+
+  BTOR_NEWN (mem, res, rlen + 1);
 
   for (q = res; len; len--, q++) *q = '0';
 
   for (p = c; *p; p++, q++) *q = *p;
+
+  assert (res + rlen == q);
+  *q = 0;
 
   return res;
 }
@@ -962,4 +990,45 @@ char *
 btor_hex_to_const (BtorMemMgr *mem, const char *str)
 {
   return btor_hex_to_const_n (mem, str, strlen (str));
+}
+
+static const char *
+digit2const (char ch)
+{
+  assert ('0' <= ch);
+  assert (ch <= '9');
+  return digit2const_table[ch - '0'];
+}
+
+char *
+btor_decimal_to_const_n (BtorMemMgr *mem, const char *str, int len)
+{
+  const char *end, *p;
+  char *res, *tmp;
+
+  assert (len <= (int) strlen (str));
+
+  res = btor_strdup (mem, "");
+
+  end = str + len;
+  for (p = str; p < end; p++)
+  {
+    tmp = btor_mult_unbounded_const (mem, res, "1010"); /* *10 */
+    btor_delete_const (mem, res);
+    res = tmp;
+
+    tmp = btor_add_unbounded_const (mem, res, digit2const (*p));
+    btor_delete_const (mem, res);
+    res = tmp;
+  }
+
+  assert (strip_zeroes (res) == res);
+
+  return res;
+}
+
+char *
+btor_decimal_to_const (BtorMemMgr *mem, const char *str)
+{
+  return btor_decimal_to_const_n (mem, str, strlen (str));
 }

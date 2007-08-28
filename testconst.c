@@ -553,7 +553,7 @@ static void
 test_hex_to_const_aux (FILE *file, const char *h)
 {
   char *c = btor_hex_to_const (g_mm, h);
-  fprintf (file, "16'%s = 2'%s\n", c, h);
+  fprintf (file, "16'%s = 2'%s\n", h, c);
   btor_freestr (g_mm, c);
 }
 
@@ -590,6 +590,27 @@ test_hex_to_const (void)
   fclose (file);
 }
 
+static void
+test_decimal_to_const_aux (FILE *file, const char *d)
+{
+  char *c = btor_decimal_to_const (g_mm, d);
+  fprintf (file, "10'%s = 2'%s\n", d, c);
+  btor_freestr (g_mm, c);
+}
+
+static void
+test_decimal_to_const (void)
+{
+  FILE *file = fopen ("log/decimal_to_const.log", "w");
+  test_decimal_to_const_aux (file, "");
+  test_decimal_to_const_aux (file, "256");
+  test_decimal_to_const_aux (file, "100");
+  test_decimal_to_const_aux (file, "65537");
+  test_decimal_to_const_aux (file, "4294967296");
+  test_decimal_to_const_aux (file, "18446744073709551616");
+  fclose (file);
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -614,6 +635,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (srl_const);
   BTOR_RUN_TEST_CHECK_LOG (const_to_hex);
   BTOR_RUN_TEST_CHECK_LOG (hex_to_const);
+  BTOR_RUN_TEST_CHECK_LOG (decimal_to_const);
 }
 
 void
