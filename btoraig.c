@@ -940,11 +940,13 @@ btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr)
 int
 btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
+  int inverted = 1;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
-  assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (BTOR_IS_VAR_AIG (aig));
-  if (aig->cnf_id == 0) return 0;
+  if (BTOR_REAL_ADDR_AIG (aig)->cnf_id == 0) return 0;
+  if (BTOR_IS_INVERTED_AIG (aig))
+    return -btor_deref_sat (amgr->smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
   return btor_deref_sat (amgr->smgr, aig->cnf_id);
 }
 
