@@ -1021,6 +1021,20 @@ node2exp_else_parse_error (BtorSMTParser *parser, BtorSMTNode *node)
   return 0;
 }
 
+static BtorExp *
+node2nonarrayexp_else_parse_error (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorExp *res = node2exp_else_parse_error (parser, node);
+
+  if (res && btor_is_array_exp (parser->mgr, res))
+  {
+    (void) parse_error (parser, "unexpected array expression");
+    return 0;
+  }
+
+  return res;
+}
+
 static void
 translate_unary (BtorSMTParser *parser,
                  BtorSMTNode *node,
@@ -1037,7 +1051,7 @@ translate_unary (BtorSMTParser *parser,
   }
 
   c = car (cdr (node));
-  if ((a = node2exp_else_parse_error (parser, c)))
+  if ((a = node2nonarrayexp_else_parse_error (parser, c)))
     node->exp = f (parser->mgr, a);
 }
 
@@ -1059,9 +1073,11 @@ translate_binary (BtorSMTParser *parser,
   c0 = car (cdr (node));
   c1 = car (cdr (cdr (node)));
 
-  if ((a0 = node2exp_else_parse_error (parser, c0)))
-    if ((a1 = node2exp_else_parse_error (parser, c1)))
+  if ((a0 = node2nonarrayexp_else_parse_error (parser, c0)))
+    if ((a1 = node2nonarrayexp_else_parse_error (parser, c1)))
+    {
       node->exp = f (parser->mgr, a0, a1);
+    }
 }
 
 static char *
