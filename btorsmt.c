@@ -1016,10 +1016,52 @@ node2exp_else_parse_error (BtorSMTParser *parser, BtorSMTNode *node)
   if (res) return res;
 
   assert (isleaf (node));
-
   (void) parse_error (parser, "'%s' undefined", strip (node)->name);
 
   return 0;
+}
+
+static void
+translate_unary (BtorSMTParser *parser,
+                 BtorSMTNode *node,
+                 const char *name,
+                 BtorExp *(*f) (BtorExpMgr *, BtorExp *) )
+{
+  BtorSMTNode *c;
+  BtorExp *a;
+
+  if (!cdr (node) || cdr (cdr (node)))
+  {
+    (void) parse_error (parser, "expected exactly one argument to '%s'", name);
+    return;
+  }
+
+  c = car (cdr (node));
+  if ((a = node2exp_else_parse_error (parser, c)))
+    node->exp = f (parser->mgr, a);
+}
+
+static void
+translate_binary (BtorSMTParser *parser,
+                  BtorSMTNode *node,
+                  const char *name,
+                  BtorExp *(*f) (BtorExpMgr *, BtorExp *, BtorExp *) )
+{
+  BtorSMTNode *c0, *c1;
+  BtorExp *a0, *a1;
+
+  if (!cdr (node) || !cdr (cdr (node)) || cdr (cdr (cdr (node))))
+  {
+    (void) parse_error (parser, "expected exactly two arguments to '%s'", name);
+    return;
+  }
+
+  c0 = car (cdr (node));
+  c1 = car (cdr (cdr (node)));
+
+  if ((a0 = node2exp_else_parse_error (parser, c0)))
+    if ((a1 = node2exp_else_parse_error (parser, c1)))
+      node->exp = f (parser->mgr, a0, a1);
 }
 
 static char *
@@ -1027,8 +1069,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
   BtorSMTNode *assignment, *body;
-  BtorExp *and, *exp, *a, *b;
   BtorSMTSymbol *symbol;
+  BtorExp *and, *exp;
   BtorSMTToken token;
   int start, end;
 
@@ -1153,22 +1195,26 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
     switch (symbol->token)
     {
       case BTOR_SMTOK_NOT:
-        if (!cdr (node) || cdr (cdr (node)))
-          return parse_error (parser, "expected exactly one argument to 'not'");
-
-        child = car (cdr (node));
-        if (!(a = node2exp_else_parse_error (parser, child)))
-          return parser->error;
-
-        node->exp = btor_not_exp (parser->mgr, a);
+        translate_unary (parser, node, "not", btor_not_exp);
         break;
-
+      case BTOR_SMTOK_AND:
+        translate_binary (parser, node, "and", btor_and_exp);
+        break;
+      case BTOR_SMTOK_OR:
+        translate_binary (parser, node, "or", btor_or_exp);
+        break;
+      case BTOR_SMTOK_XOR:
+        translate_binary (parser, node, "xor", btor_xor_exp);
+        break;
+      case BTOR_SMTOK_IFF:
+        translate_binary (parser, node, "iff", btor_xnor_exp);
+        break;
       default:
         return parse_error (
             parser, "unsupported list head (%d)", symbol->token);
     }
 
-    assert (!parser->error);
+    if (parser->error) return parser->error;
   }
 
   BTOR_RESET_STACK (parser->work);
