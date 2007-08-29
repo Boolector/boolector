@@ -17,3 +17,5 @@ smtlshr3 -o log/smtlshr3.log log/smtlshr3.smt
 smtashr1 -o log/smtashr1.log log/smtashr1.smt
 smtashr2 -o log/smtashr2.log log/smtashr2.smt
 smtashr3 -o log/smtashr3.log log/smtashr3.smt
+smtbvbin -o log/smtbvbin.log log/smtbvbin.smt
+smtbvhex -o log/smtbvhex.log log/smtbvhex.smt

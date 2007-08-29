@@ -86,6 +86,9 @@ enum BtorSMTToken
   BTOR_SMTOK_BVSUB   = 297,
   BTOR_SMTOK_BVSDIV  = 298,
   BTOR_SMTOK_BVASHR  = 299,
+  BTOR_SMTOK_BVOR    = 300,
+  BTOR_SMTOK_BVUDIV  = 301,
+  BTOR_SMTOK_BVUREM  = 302,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -564,6 +567,9 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvsub")->token  = BTOR_SMTOK_BVSUB;
   insert_symbol (res, "bvsdiv")->token = BTOR_SMTOK_BVSDIV;
   insert_symbol (res, "bvashr")->token = BTOR_SMTOK_BVASHR;
+  insert_symbol (res, "bvor")->token   = BTOR_SMTOK_BVOR;
+  insert_symbol (res, "bvudiv")->token = BTOR_SMTOK_BVUDIV;
+  insert_symbol (res, "bvurem")->token = BTOR_SMTOK_BVUREM;
 
   return res;
 }
@@ -1107,8 +1113,8 @@ static BtorExp *
 node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
   const char *p, *start, *end;
+  char *tmp, *extended, ch;
   BtorSMTSymbol *symbol;
-  char *tmp, *extended;
   int len, tlen, token;
 
   if (isleaf (node))
@@ -1163,6 +1169,42 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             }
           }
         }
+      }
+      else if (*p == 'b')
+      {
+        if (*++p == 'i' && *++p == 'n')
+        {
+          for (start = ++p; (ch = *p) == '0' || ch == '1'; p++)
+            ;
+
+          if (start < p && !*p)
+            symbol->exp = btor_const_exp (parser->mgr, start);
+        }
+      }
+      else if (*p++ == 'h' && *p++ == 'e' && *p++ == 'x')
+      {
+        for (start = p; isxdigit (*p); p++)
+          ;
+
+        if (start < p && !*p)
+        {
+          len  = 4 * (p - start);
+          tmp  = btor_hex_to_const (parser->mem, start);
+          tlen = strlen (tmp);
+          assert (tlen <= len);
+          if (tlen < len)
+          {
+            extended = btor_uext_const (parser->mem, tmp, len - tlen);
+            btor_delete_const (parser->mem, tmp);
+            tmp = extended;
+          }
+          symbol->exp = btor_const_exp (parser->mgr, tmp);
+          btor_delete_const (parser->mem, tmp);
+        }
+      }
+      else
+      {
+        /* DO NOT ADD ANYTHING HERE BECAUSE 'p' CHANGED */
       }
     }
 
@@ -1652,6 +1694,12 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVSDIV:
         translate_binary (parser, node, "bvsdiv", btor_sdiv_exp);
         break;
+      case BTOR_SMTOK_BVUDIV:
+        translate_binary (parser, node, "bvudiv", btor_udiv_exp);
+        break;
+      case BTOR_SMTOK_BVUREM:
+        translate_binary (parser, node, "bvurem", btor_umod_exp);
+        break;
       case BTOR_SMTOK_BVMUL:
         translate_binary (parser, node, "bvmul", btor_umul_exp);
         break;
@@ -1669,6 +1717,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         break;
       case BTOR_SMTOK_BVAND:
         translate_binary (parser, node, "bvand", btor_and_exp);
+        break;
+      case BTOR_SMTOK_BVOR:
+        translate_binary (parser, node, "bvor", btor_or_exp);
         break;
       case BTOR_SMTOK_BVLSHR:
         translate_shift (parser, node, "bvlshr", btor_srl_exp);
