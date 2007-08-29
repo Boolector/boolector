@@ -3363,6 +3363,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   {
     while (sat_result != BTOR_UNSAT)
     {
+      assert (sat_result == BTOR_SAT);
       found_conflict = resolve_read_conflicts (emgr);
       if (!found_conflict) break;
       assert (aig != BTOR_AIG_FALSE);
@@ -3372,8 +3373,8 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
           btor_assume_sat (smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
         else
           btor_assume_sat (smgr, aig->cnf_id);
-        sat_result = btor_sat_sat (smgr, INT_MAX);
       }
+      sat_result = btor_sat_sat (smgr, INT_MAX);
     }
   }
   btor_release_aig (amgr, aig);
