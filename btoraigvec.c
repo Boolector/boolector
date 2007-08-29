@@ -756,7 +756,7 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   assert (av->len > 0);
   len = av->len;
   for (i = 0; i < len; i++) btor_release_aig (avmgr->amgr, av->aigs[i]);
-  btor_free (avmgr->mm, av->aigs, sizeof (BtorAIGVec *) * len);
+  btor_free (avmgr->mm, av->aigs, sizeof (BtorAIG *) * len);
   btor_free (avmgr->mm, av, sizeof (BtorAIGVec));
 }
 
