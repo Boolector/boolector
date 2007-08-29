@@ -102,6 +102,8 @@ enum BtorSMTToken
   BTOR_SMTOK_ROTATE_LEFT  = 312,
   BTOR_SMTOK_ROTATE_RIGHT = 313,
 
+  BTOR_SMTOK_BVXOR = 314,
+
   /* TODO: Need AIG implementation ??? */
 
   /* BTOR_SMTOK_BVSREM = ???, TODO */
@@ -593,6 +595,7 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvuge")->token  = BTOR_SMTOK_BVUGE;
   insert_symbol (res, "bvsgt")->token  = BTOR_SMTOK_BVSGT;
   insert_symbol (res, "bvsge")->token  = BTOR_SMTOK_BVSGE;
+  insert_symbol (res, "bvxor")->token  = BTOR_SMTOK_BVXOR;
 
   return res;
 }
@@ -1917,6 +1920,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         break;
       case BTOR_SMTOK_BVOR:
         translate_binary (parser, node, "bvor", btor_or_exp);
+        break;
+      case BTOR_SMTOK_BVXOR:
+        translate_binary (parser, node, "bvor", btor_xor_exp);
         break;
       case BTOR_SMTOK_BVNOR:
         translate_binary (parser, node, "bvnor", btor_nor_exp);
