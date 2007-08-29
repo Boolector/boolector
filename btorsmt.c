@@ -85,6 +85,12 @@ enum BtorSMTToken
   BTOR_SMTOK_BVSHL   = 296,
   BTOR_SMTOK_BVSUB   = 297,
   BTOR_SMTOK_BVSDIV  = 298,
+  BTOR_SMTOK_BVASHR  = 299,
+  BTOR_SMTOK_BVOR    = 300,
+  BTOR_SMTOK_BVUDIV  = 301,
+  BTOR_SMTOK_BVUREM  = 302,
+  BTOR_SMTOK_BVNAND  = 303,
+  BTOR_SMTOK_BVNOR   = 304,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -562,6 +568,12 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvshl")->token  = BTOR_SMTOK_BVSHL;
   insert_symbol (res, "bvsub")->token  = BTOR_SMTOK_BVSUB;
   insert_symbol (res, "bvsdiv")->token = BTOR_SMTOK_BVSDIV;
+  insert_symbol (res, "bvashr")->token = BTOR_SMTOK_BVASHR;
+  insert_symbol (res, "bvor")->token   = BTOR_SMTOK_BVOR;
+  insert_symbol (res, "bvudiv")->token = BTOR_SMTOK_BVUDIV;
+  insert_symbol (res, "bvurem")->token = BTOR_SMTOK_BVUREM;
+  insert_symbol (res, "bvnor")->token  = BTOR_SMTOK_BVNOR;
+  insert_symbol (res, "bvnand")->token = BTOR_SMTOK_BVNAND;
 
   return res;
 }
@@ -1105,8 +1117,8 @@ static BtorExp *
 node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
   const char *p, *start, *end;
+  char *tmp, *extended, ch;
   BtorSMTSymbol *symbol;
-  char *tmp, *extended;
   int len, tlen, token;
 
   if (isleaf (node))
@@ -1161,6 +1173,42 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             }
           }
         }
+      }
+      else if (*p == 'b')
+      {
+        if (*++p == 'i' && *++p == 'n')
+        {
+          for (start = ++p; (ch = *p) == '0' || ch == '1'; p++)
+            ;
+
+          if (start < p && !*p)
+            symbol->exp = btor_const_exp (parser->mgr, start);
+        }
+      }
+      else if (*p++ == 'h' && *p++ == 'e' && *p++ == 'x')
+      {
+        for (start = p; isxdigit (*p); p++)
+          ;
+
+        if (start < p && !*p)
+        {
+          len  = 4 * (p - start);
+          tmp  = btor_hex_to_const (parser->mem, start);
+          tlen = strlen (tmp);
+          assert (tlen <= len);
+          if (tlen < len)
+          {
+            extended = btor_uext_const (parser->mem, tmp, len - tlen);
+            btor_delete_const (parser->mem, tmp);
+            tmp = extended;
+          }
+          symbol->exp = btor_const_exp (parser->mgr, tmp);
+          btor_delete_const (parser->mem, tmp);
+        }
+      }
+      else
+      {
+        /* DO NOT ADD ANYTHING HERE BECAUSE 'p' CHANGED */
       }
     }
 
@@ -1427,10 +1475,12 @@ translate_shift (BtorSMTParser *parser,
     else
       t = btor_zero_exp (parser->mgr, len);
 
-    if (p0 > 0)
-      e0 = btor_uext_exp (parser->mgr, a0, p0);
-    else
+    if (!p0)
       e0 = btor_copy_exp (parser->mgr, a0);
+    else if (f == btor_sra_exp)
+      e0 = btor_sext_exp (parser->mgr, a0, p0);
+    else
+      e0 = btor_uext_exp (parser->mgr, a0, p0);
 
     assert (btor_get_exp_len (parser->mgr, e0) == l0);
 
@@ -1648,6 +1698,12 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVSDIV:
         translate_binary (parser, node, "bvsdiv", btor_sdiv_exp);
         break;
+      case BTOR_SMTOK_BVUDIV:
+        translate_binary (parser, node, "bvudiv", btor_udiv_exp);
+        break;
+      case BTOR_SMTOK_BVUREM:
+        translate_binary (parser, node, "bvurem", btor_umod_exp);
+        break;
       case BTOR_SMTOK_BVMUL:
         translate_binary (parser, node, "bvmul", btor_umul_exp);
         break;
@@ -1666,8 +1722,20 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVAND:
         translate_binary (parser, node, "bvand", btor_and_exp);
         break;
+      case BTOR_SMTOK_BVOR:
+        translate_binary (parser, node, "bvor", btor_or_exp);
+        break;
+      case BTOR_SMTOK_BVNOR:
+        translate_binary (parser, node, "bvnor", btor_nor_exp);
+        break;
+      case BTOR_SMTOK_BVNAND:
+        translate_binary (parser, node, "bvnand", btor_nand_exp);
+        break;
       case BTOR_SMTOK_BVLSHR:
         translate_shift (parser, node, "bvlshr", btor_srl_exp);
+        break;
+      case BTOR_SMTOK_BVASHR:
+        translate_shift (parser, node, "bvashr", btor_sra_exp);
         break;
       case BTOR_SMTOK_BVSHL:
         translate_shift (parser, node, "bvshl", btor_sll_exp);
