@@ -8,3 +8,9 @@ smtor -o log/smtor.log log/smtor.smt
 smtiff -o log/smtiff.log log/smtiff.smt
 smtflet -o log/smtflet.log log/smtflet.smt
 smtbv255 -o log/smtbv255.log log/smtbv255.smt
+smtshl1 -o log/smtshl1.log log/smtshl1.smt
+smtshl2 -o log/smtshl2.log log/smtshl2.smt
+smtshl3 -o log/smtshl3.log log/smtshl3.smt
+smtlshr1 -o log/smtlshr1.log log/smtlshr1.smt
+smtlshr2 -o log/smtlshr2.log log/smtlshr2.smt
+smtlshr3 -o log/smtlshr3.log log/smtlshr3.smt
