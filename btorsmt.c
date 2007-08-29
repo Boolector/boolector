@@ -1312,6 +1312,63 @@ translate_binary (BtorSMTParser *parser,
 }
 
 static void
+translate_associative_binary (BtorSMTParser *parser,
+                              BtorSMTNode *node,
+                              const char *name,
+                              BtorExp *(*f) (BtorExpMgr *,
+                                             BtorExp *,
+                                             BtorExp *) )
+{
+  BtorExp *res, *tmp, *exp;
+  BtorSMTNode *child, *p;
+  int len;
+
+  assert (!node->exp);
+
+  if (length (node) < 3)
+  {
+    (void) parse_error (
+        parser, "expected at least two arguments to '%s'", name);
+    return;
+  }
+
+  child = car (cdr (node));
+
+  if (!(exp = node2exp (parser, child)))
+  {
+  CHECK_FOR_PARSE_ERROR_AND_RETURN:
+    assert (parser->error);
+    return;
+  }
+
+  len = btor_get_exp_len (parser->mgr, exp);
+  res = btor_copy_exp (parser->mgr, exp);
+
+  for (p = cdr (cdr (node)); p; p = cdr (p))
+  {
+    child = car (p);
+    if (!(exp = node2exp (parser, child)))
+    {
+    RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN:
+      assert (parser->error);
+      goto CHECK_FOR_PARSE_ERROR_AND_RETURN;
+    }
+
+    if (btor_get_exp_len (parser->mgr, exp) != len)
+    {
+      parse_error (parser, "mismatched width of arguments of '%s'", name);
+      goto RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN;
+    }
+
+    tmp = f (parser->mgr, res, exp); /* left associative ? */
+    btor_release_exp (parser->mgr, res);
+    res = tmp;
+  }
+
+  node->exp = res;
+}
+
+static void
 translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 {
   BtorSMTNode *c0, *c1, *c2;
@@ -1798,19 +1855,19 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_unary (parser, node, "not", btor_not_exp);
         break;
       case BTOR_SMTOK_AND:
-        translate_binary (parser, node, "and", btor_and_exp);
+        translate_associative_binary (parser, node, "and", btor_and_exp);
         break;
       case BTOR_SMTOK_OR:
-        translate_binary (parser, node, "or", btor_or_exp);
+        translate_associative_binary (parser, node, "or", btor_or_exp);
         break;
       case BTOR_SMTOK_IMPLIES:
         translate_binary (parser, node, "implies", btor_implies_exp);
         break;
       case BTOR_SMTOK_XOR:
-        translate_binary (parser, node, "xor", btor_xor_exp);
+        translate_associative_binary (parser, node, "xor", btor_xor_exp);
         break;
       case BTOR_SMTOK_IFF:
-        translate_binary (parser, node, "iff", btor_xnor_exp);
+        translate_associative_binary (parser, node, "iff", btor_xnor_exp);
         break;
       case BTOR_SMTOK_EQ:
         translate_binary (parser, node, "=", btor_eq_exp);
