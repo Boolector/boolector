@@ -1429,10 +1429,12 @@ translate_shift (BtorSMTParser *parser,
     else
       t = btor_zero_exp (parser->mgr, len);
 
-    if (p0 > 0)
-      e0 = btor_uext_exp (parser->mgr, a0, p0);
-    else
+    if (!p0)
       e0 = btor_copy_exp (parser->mgr, a0);
+    else if (f == btor_sra_exp)
+      e0 = btor_sext_exp (parser->mgr, a0, p0);
+    else
+      e0 = btor_uext_exp (parser->mgr, a0, p0);
 
     assert (btor_get_exp_len (parser->mgr, e0) == l0);
 
