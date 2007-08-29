@@ -91,6 +91,21 @@ enum BtorSMTToken
   BTOR_SMTOK_BVUREM  = 302,
   BTOR_SMTOK_BVNAND  = 303,
   BTOR_SMTOK_BVNOR   = 304,
+  BTOR_SMTOK_BVUGT   = 305,
+  BTOR_SMTOK_BVUGE   = 306,
+  BTOR_SMTOK_BVSGT   = 307,
+  BTOR_SMTOK_BVSGE   = 308,
+
+  BTOR_SMTOK_REPEAT       = 309,
+  BTOR_SMTOK_ZERO_EXTEND  = 310,
+  BTOR_SMTOK_SIGN_EXTEND  = 311,
+  BTOR_SMTOK_ROTATE_LEFT  = 312,
+  BTOR_SMTOK_ROTATE_RIGHT = 313,
+
+  /* TODO: Need AIG implementation ??? */
+
+  /* BTOR_SMTOK_BVSREM = ???, TODO */
+  /* BTOR_SMTOK_BVSMOD = ???, TODO */
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -574,6 +589,10 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvurem")->token = BTOR_SMTOK_BVUREM;
   insert_symbol (res, "bvnor")->token  = BTOR_SMTOK_BVNOR;
   insert_symbol (res, "bvnand")->token = BTOR_SMTOK_BVNAND;
+  insert_symbol (res, "bvugt")->token  = BTOR_SMTOK_BVUGT;
+  insert_symbol (res, "bvuge")->token  = BTOR_SMTOK_BVUGE;
+  insert_symbol (res, "bvsgt")->token  = BTOR_SMTOK_BVSGT;
+  insert_symbol (res, "bvsge")->token  = BTOR_SMTOK_BVSGE;
 
   return res;
 }
@@ -711,8 +730,27 @@ SKIP_WHITE_SPACE:
     BTOR_PUSH_STACK (parser->mem, parser->buffer, 0);
 
     parser->symbol = insert_symbol (parser, parser->buffer.start);
-    if (count == 2 && has_prefix (parser->symbol->name, "extract"))
+
+    if (count == 2 && has_prefix (parser->symbol->name, "extract["))
       parser->symbol->token = BTOR_SMTOK_EXTRACT;
+
+    if (count == 1)
+    {
+      if (has_prefix (parser->symbol->name, "repeat["))
+        parser->symbol->token = BTOR_SMTOK_REPEAT;
+
+      if (has_prefix (parser->symbol->name, "zero_extend["))
+        parser->symbol->token = BTOR_SMTOK_ZERO_EXTEND;
+
+      if (has_prefix (parser->symbol->name, "sign_extend["))
+        parser->symbol->token = BTOR_SMTOK_SIGN_EXTEND;
+
+      if (has_prefix (parser->symbol->name, "rotate_left["))
+        parser->symbol->token = BTOR_SMTOK_ROTATE_LEFT;
+
+      if (has_prefix (parser->symbol->name, "rotate_right["))
+        parser->symbol->token = BTOR_SMTOK_ROTATE_RIGHT;
+    }
 
   CHECK_FOR_UNSUPPORTED_KEYWORD:
 
@@ -1362,6 +1400,11 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
 }
 
 static void
+translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
+{
+}
+
+static void
 translate_concat (BtorSMTParser *parser, BtorSMTNode *node)
 {
   BtorSMTNode *c0, *c1;
@@ -1682,6 +1725,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           node->exp = btor_copy_exp (parser->mgr, exp);
         break;
       case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
+      case BTOR_SMTOK_REPEAT: translate_repeat (parser, node); break;
       case BTOR_SMTOK_CONCAT: translate_concat (parser, node); break;
       case BTOR_SMTOK_BVNOT:
         translate_unary (parser, node, "bvnot", btor_not_exp);
@@ -1713,8 +1757,20 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVSLE:
         translate_binary (parser, node, "bvsle", btor_slte_exp);
         break;
+      case BTOR_SMTOK_BVSGT:
+        translate_binary (parser, node, "bvsgt", btor_sgt_exp);
+        break;
+      case BTOR_SMTOK_BVSGE:
+        translate_binary (parser, node, "bvsge", btor_sgte_exp);
+        break;
       case BTOR_SMTOK_BVULT:
         translate_binary (parser, node, "bvult", btor_ult_exp);
+        break;
+      case BTOR_SMTOK_BVUGT:
+        translate_binary (parser, node, "bvugt", btor_ugt_exp);
+        break;
+      case BTOR_SMTOK_BVUGE:
+        translate_binary (parser, node, "bvuge", btor_ugte_exp);
         break;
       case BTOR_SMTOK_BVSLT:
         translate_binary (parser, node, "bvslt", btor_slt_exp);
