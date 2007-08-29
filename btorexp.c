@@ -3331,11 +3331,13 @@ resolve_read_conflicts (BtorExpMgr *emgr)
           {
             found_conflict = 1;
             encode_read (emgr, index1, index2, var1, var2);
+            break;
           }
         }
       }
       for (i = 0; i < len; i++) delete_read_obj_sort_obj (emgr, array[i]);
       btor_free (emgr->mm, array, sizeof (BtorReadObjSortObj *) * len);
+      if (found_conflict) break;
     }
   }
   return found_conflict;
