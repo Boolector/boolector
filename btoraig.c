@@ -940,7 +940,6 @@ btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr)
 int
 btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  int inverted = 1;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
   assert (BTOR_IS_VAR_AIG (aig));
