@@ -1339,7 +1339,6 @@ static void
 translate_shift (BtorSMTParser *parser,
                  BtorSMTNode *node,
                  const char *name,
-                 int arithmetic,
                  BtorExp *(*f) (BtorExpMgr *, BtorExp *, BtorExp *) )
 {
   BtorExp *a0, *a1, *c, *e, *t, *e0, *u, *l, *tmp;
@@ -1382,14 +1381,30 @@ translate_shift (BtorSMTParser *parser,
 
   assert (l0 == (1 << l1));
 
-  p0 = l0 - len;
-  p1 = len - l1;
-
-  assert (p0 >= 0);
-  assert (p1 >= 0);
-
-  if (p1 > 0)
+  if (len == 1)
   {
+    assert (l0 == 1);
+    assert (l1 == 0);
+
+    if (f == btor_sra_exp)
+      node->exp = btor_copy_exp (parser->mgr, a0);
+    else
+    {
+      tmp       = btor_not_exp (parser->mgr, a1);
+      node->exp = btor_and_exp (parser->mgr, a0, tmp);
+      btor_release_exp (parser->mgr, tmp);
+    }
+  }
+  else
+  {
+    assert (len >= 1);
+
+    p0 = l0 - len;
+    p1 = len - l1;
+
+    assert (p0 >= 0);
+    assert (p1 > 0);
+
     u = btor_slice_exp (parser->mgr, a1, len - 1, len - p1);
     l = btor_slice_exp (parser->mgr, a1, l1 - 1, 0);
 
@@ -1403,13 +1418,14 @@ translate_shift (BtorSMTParser *parser,
 
     btor_release_exp (parser->mgr, u);
 
-    t = btor_zero_exp (parser->mgr, l0);
-    if (arithmetic)
+    if (f == btor_sra_exp)
     {
-      tmp = btor_not_exp (parser->mgr, t);
-      btor_release_exp (parser->mgr, t);
-      t = tmp;
+      tmp = btor_slice_exp (parser->mgr, a0, len - 1, len - 1);
+      t   = btor_sext_exp (parser->mgr, tmp, len - 1);
+      btor_release_exp (parser->mgr, tmp);
     }
+    else
+      t = btor_zero_exp (parser->mgr, len);
 
     if (p0 > 0)
       e0 = btor_uext_exp (parser->mgr, a0, p0);
@@ -1424,7 +1440,7 @@ translate_shift (BtorSMTParser *parser,
 
     if (p0 > 0)
     {
-      tmp = btor_slice_exp (parser->mgr, e, l0 - 1, 0);
+      tmp = btor_slice_exp (parser->mgr, e, len - 1, 0);
       btor_release_exp (parser->mgr, e);
       e = tmp;
     }
@@ -1433,14 +1449,6 @@ translate_shift (BtorSMTParser *parser,
     btor_release_exp (parser->mgr, c);
     btor_release_exp (parser->mgr, t);
     btor_release_exp (parser->mgr, e);
-  }
-  else
-  {
-    assert (len == 1);
-    assert (l0 == 1);
-    assert (l1 == 1);
-
-    (void) parse_error (parser, "shifting single bits not implememted");
   }
 }
 
@@ -1659,10 +1667,10 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_binary (parser, node, "bvand", btor_and_exp);
         break;
       case BTOR_SMTOK_BVLSHR:
-        translate_shift (parser, node, "bvlshr", 0, btor_srl_exp);
+        translate_shift (parser, node, "bvlshr", btor_srl_exp);
         break;
       case BTOR_SMTOK_BVSHL:
-        translate_shift (parser, node, "bvshl", 0, btor_sll_exp);
+        translate_shift (parser, node, "bvshl", btor_sll_exp);
         break;
       default:
         return parse_error (parser, "unsupported list head '%s'", symbol->name);
