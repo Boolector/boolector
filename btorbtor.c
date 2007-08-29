@@ -716,6 +716,18 @@ parse_implies (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_nor (BtorBTORParser *parser, int len)
+{
+  return parse_binary (parser, len, btor_nor_exp);
+}
+
+static BtorExp *
+parse_nand (BtorBTORParser *parser, int len)
+{
+  return parse_binary (parser, len, btor_nand_exp);
+}
+
+static BtorExp *
 parse_sdiv (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_sdiv_exp);
@@ -1279,6 +1291,8 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_var, "var");
   new_parser (res, parse_xor, "xor");
   new_parser (res, parse_xnor, "xnor");
+  new_parser (res, parse_nor, "nor");
+  new_parser (res, parse_nand, "nand");
 
   res->verbosity = verbosity;
 

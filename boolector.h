@@ -70,6 +70,10 @@ BtorExp *btor_xnor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_and_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
+BtorExp *btor_nand_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
+
+BtorExp *btor_nor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
+
 BtorExp *btor_eq_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_ne_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
