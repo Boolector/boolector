@@ -1402,7 +1402,6 @@ rewrite_exp (BtorExpMgr *emgr,
       {
         result = btor_copy_exp (emgr, e1);
       }
-      result = BTOR_COND_INVERT_EXP (e0, result);
     }
   }
   return result;
