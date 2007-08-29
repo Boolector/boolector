@@ -1,3 +1,5 @@
+# This is for SMT parser
+#
 smttrue -o log/smttrue.log log/smttrue.smt
 smtfalse -o log/smtfalse.log log/smtfalse.smt
 smtvar -o log/smtvar.log log/smtvar.smt
@@ -22,4 +24,4 @@ smtbvhex -o log/smtbvhex.log log/smtbvhex.smt
 smtrepeat -o log/smtrepeat.log log/smtrepeat.smt
 smtzeroextend -o log/smtzeroextend.log log/smtzeroextend.smt
 smtsignextend -o log/smtsignextend.log log/smtsignextend.smt
-
+smtrotate -o log/smtrotate.log log/smtrotate.smt

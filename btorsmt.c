@@ -1143,14 +1143,6 @@ is_let_or_flet (BtorSMTNode *node)
   return token == BTOR_SMTOK_LET || token == BTOR_SMTOK_FLET;
 }
 
-#if 0
-static BtorExp *
-node2exp (BtorSMTNode * node)
-{
-  return isleaf (node) ? strip (node)->exp : node->exp;
-}
-#endif
-
 static BtorExp *
 node2exp (BtorSMTParser *parser, BtorSMTNode *node)
 {
@@ -1410,7 +1402,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
   assert (!node->exp);
 
   symbol = strip (car (node));
-  assert (symbol->token = BTOR_SMTOK_REPEAT);
+  assert (symbol->token == BTOR_SMTOK_REPEAT);
 
   p = symbol->name;
 
@@ -1462,9 +1454,7 @@ translate_extend (BtorSMTParser *parser,
   assert (!node->exp);
 
   symbol = strip (car (node));
-  assert (symbol->token = BTOR_SMTOK_ZERO_EXTEND);
-
-  p = symbol->name;
+  p      = symbol->name;
 
   if (!is_list_of_length (node, 2))
   {
@@ -1484,6 +1474,63 @@ translate_extend (BtorSMTParser *parser,
   pad = atoi (p); /* TODO Overflow? */
 
   node->exp = f (parser->mgr, exp, pad);
+}
+
+static void
+translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorExp *exp, *l, *r;
+  BtorSMTSymbol *symbol;
+  int shift, token, len;
+  const char *p;
+
+  assert (!node->exp);
+
+  symbol = strip (car (node));
+  token  = symbol->token;
+  assert (token == BTOR_SMTOK_ROTATE_LEFT || token == BTOR_SMTOK_ROTATE_RIGHT);
+
+  p = symbol->name;
+
+  if (!is_list_of_length (node, 2))
+  {
+    (void) parse_error (parser, "expected exactly one argument to '%s'", p);
+    return;
+  }
+
+  if (!(exp = node2exp (parser, car (cdr (node)))))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  p = next_numeral (p);
+  assert (p);
+  assert (!next_numeral (p));
+  shift = atoi (p); /* TODO Overflow? */
+  assert (shift >= 0);
+
+  len = btor_get_exp_len (parser->mgr, exp);
+  assert (len > 0);
+  shift %= len;
+
+  if (shift)
+  {
+    if (token == BTOR_SMTOK_ROTATE_LEFT) shift = len - shift;
+
+    assert (1 <= shift && shift < len);
+
+    l = btor_slice_exp (parser->mgr, exp, shift - 1, 0);
+    r = btor_slice_exp (parser->mgr, exp, len - 1, shift);
+
+    node->exp = btor_concat_exp (parser->mgr, l, r);
+    assert (btor_get_exp_len (parser->mgr, node->exp) == len);
+
+    btor_release_exp (parser->mgr, l);
+    btor_release_exp (parser->mgr, r);
+  }
+  else
+    node->exp = btor_copy_exp (parser->mgr, exp);
 }
 
 static void
@@ -1814,6 +1861,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_SIGN_EXTEND:
         translate_extend (parser, node, btor_sext_exp);
         break;
+      case BTOR_SMTOK_ROTATE_RIGHT:
+      case BTOR_SMTOK_ROTATE_LEFT: translate_rotate (parser, node); break;
       case BTOR_SMTOK_CONCAT: translate_concat (parser, node); break;
       case BTOR_SMTOK_BVNOT:
         translate_unary (parser, node, "bvnot", btor_not_exp);
