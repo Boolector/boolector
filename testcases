@@ -19,3 +19,4 @@ smtashr2 -o log/smtashr2.log log/smtashr2.smt
 smtashr3 -o log/smtashr3.log log/smtashr3.smt
 smtbvbin -o log/smtbvbin.log log/smtbvbin.smt
 smtbvhex -o log/smtbvhex.log log/smtbvhex.smt
+smtrepeat -o log/smtrepeat.log log/smtrepeat.smt

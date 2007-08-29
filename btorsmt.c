@@ -1053,7 +1053,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   {
     if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
-    datalen = atoi (p); /* Overflow? */
+    datalen = atoi (p); /* TODO Overflow? */
 
     symbol->exp = btor_var_exp (parser->mgr, datalen, symbol->name);
     push_var (parser, symbol->exp);
@@ -1062,11 +1062,11 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   {
     if (!(p = next_numeral (p))) goto INVALID_SORT;
 
-    addrlen = atoi (p); /* Overflow? */
+    addrlen = atoi (p); /* TODO Overflow? */
 
     if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
-    datalen = atoi (p); /* Overflow? */
+    datalen = atoi (p); /* TODO Overflow? */
 
     symbol->exp = btor_array_exp (parser->mgr, datalen, addrlen);
     /* TODO what about 'symbol->name' back annotation? */
@@ -1384,9 +1384,9 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
 
   p = next_numeral (p);
   assert (p);
-  upper = atoi (p); /* Overflow? */
+  upper = atoi (p); /* TODO Overflow? */
   p     = next_numeral (p);
-  lower = atoi (p); /* Overflow? */
+  lower = atoi (p); /* TODO Overflow? */
   assert (!next_numeral (p));
 
   if (len <= upper || upper < lower)
@@ -1402,6 +1402,51 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
 static void
 translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 {
+  BtorExp *tmp, *exp, *res;
+  BtorSMTSymbol *symbol;
+  const char *p;
+  int i, count;
+
+  assert (!node->exp);
+
+  symbol = strip (car (node));
+  assert (symbol->token = BTOR_SMTOK_REPEAT);
+
+  p = symbol->name;
+
+  if (!is_list_of_length (node, 2))
+  {
+    (void) parse_error (parser, "expected exactly one argument to '%s'", p);
+    return;
+  }
+
+  if (!(exp = node2exp (parser, car (cdr (node)))))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  p = next_numeral (p);
+  assert (p);
+  assert (!next_numeral (p));
+  count = atoi (p); /* TODO Overflow? */
+
+  if (!count)
+  {
+    (void) parse_error (parser, "can not handle 'repeat[0]'");
+    return;
+  }
+
+  res = btor_copy_exp (parser->mgr, exp);
+
+  for (i = 1; i < count; i++)
+  {
+    tmp = btor_concat_exp (parser->mgr, exp, res);
+    btor_release_exp (parser->mgr, res);
+    res = tmp;
+  }
+
+  node->exp = res;
 }
 
 static void
