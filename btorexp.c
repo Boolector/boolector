@@ -3365,11 +3365,15 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
     {
       found_conflict = resolve_read_conflicts (emgr);
       if (!found_conflict) break;
-      if (BTOR_IS_INVERTED_AIG (aig))
-        btor_assume_sat (smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-      else
-        btor_assume_sat (smgr, aig->cnf_id);
-      sat_result = btor_sat_sat (smgr, INT_MAX);
+      assert (aig != BTOR_AIG_FALSE);
+      if (aig != BTOR_AIG_TRUE)
+      {
+        if (BTOR_IS_INVERTED_AIG (aig))
+          btor_assume_sat (smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+        else
+          btor_assume_sat (smgr, aig->cnf_id);
+        sat_result = btor_sat_sat (smgr, INT_MAX);
+      }
     }
   }
   btor_release_aig (amgr, aig);
