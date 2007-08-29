@@ -20,3 +20,6 @@ smtashr3 -o log/smtashr3.log log/smtashr3.smt
 smtbvbin -o log/smtbvbin.log log/smtbvbin.smt
 smtbvhex -o log/smtbvhex.log log/smtbvhex.smt
 smtrepeat -o log/smtrepeat.log log/smtrepeat.smt
+smtzeroextend -o log/smtzeroextend.log log/smtzeroextend.smt
+smtsignextend -o log/smtsignextend.log log/smtsignextend.smt
+
