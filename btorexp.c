@@ -1353,7 +1353,7 @@ rewrite_exp (BtorExpMgr *emgr,
           case BTOR_ULT_EXP: result = zeros_exp (emgr, 1); break;
           case BTOR_UDIV_EXP: result = one_exp (emgr, real_e0->len); break;
           default:
-            assert (kind == BTOR_UMOD_EXP);
+            assert (kind == BTOR_UREM_EXP);
             result = zeros_exp (emgr, real_e0->len);
             break;
         }
