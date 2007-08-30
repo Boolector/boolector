@@ -11,6 +11,7 @@
 #include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
+#include "testsmtaxioms.h"
 #include "testspecial.h"
 #include "teststack.h"
 #include "testtestcases.h"
@@ -81,6 +82,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (misc);
   BTOR_RUN_TESTS (special);
   BTOR_RUN_TESTS (testcases);
+  BTOR_RUN_TESTS (smtaxioms);
   finish_tests ();
   return 0;
 }

@@ -6,5 +6,5 @@
       (ite (and (= ?msb_s bit1) (= ?msb_t bit0))
            (bvneg (bvurem (bvneg s) t))
       (ite (and (= ?msb_s bit0) (= ?msb_t bit1))
-           (bvurem s (bvneg t)))
-           (bvneg (bvurem (bvneg s) (bvneg t)))))))
+           (bvurem s (bvneg t))
+           (bvneg (bvurem (bvneg s) (bvneg t))))))))

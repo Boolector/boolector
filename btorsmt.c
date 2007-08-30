@@ -105,6 +105,7 @@ enum BtorSMTToken
   BTOR_SMTOK_BVXOR  = 314,
   BTOR_SMTOK_BVSREM = 315,
   BTOR_SMTOK_BVSMOD = 316,
+  BTOR_SMTOK_BVXNOR = 317,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -595,6 +596,7 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvxor")->token  = BTOR_SMTOK_BVXOR;
   insert_symbol (res, "bvsrem")->token = BTOR_SMTOK_BVSREM;
   insert_symbol (res, "bvsmod")->token = BTOR_SMTOK_BVSMOD;
+  insert_symbol (res, "bvxnor")->token = BTOR_SMTOK_BVXNOR;
 
   return res;
 }
@@ -1984,7 +1986,10 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_binary (parser, node, "bvor", btor_or_exp);
         break;
       case BTOR_SMTOK_BVXOR:
-        translate_binary (parser, node, "bvor", btor_xor_exp);
+        translate_binary (parser, node, "bvxor", btor_xor_exp);
+        break;
+      case BTOR_SMTOK_BVXNOR:
+        translate_binary (parser, node, "bvxnor", btor_xnor_exp);
         break;
       case BTOR_SMTOK_BVNOR:
         translate_binary (parser, node, "bvnor", btor_nor_exp);

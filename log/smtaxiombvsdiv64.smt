@@ -1,11 +1,11 @@
-(benchmark smtaxiombvdiv
+(benchmark smtaxiombvsdiv
  :logic QF_BV
- :extrafuns ((s BitVec[16]))
- :extrafuns ((t BitVec[16]))
+ :extrafuns ((s BitVec[64]))
+ :extrafuns ((t BitVec[64]))
  :formula (not (=
 (bvsdiv s t) 
-  (let (?msb_s (extract[15:15] s))
-  (let (?msb_t (extract[15:15] t))
+  (let (?msb_s (extract[63:63] s))
+  (let (?msb_t (extract[63:63] t))
   (ite (and (= ?msb_s bit0) (= ?msb_t bit0))
        (bvudiv s t)
   (ite (and (= ?msb_s bit1) (= ?msb_t bit0))
