@@ -158,31 +158,6 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
 }
 
 /*------------------------------------------------------------------------*/
-/* BtorReadObjSort                                                        */
-/*------------------------------------------------------------------------*/
-
-static BtorReadObjSortObj *
-new_read_obj_sort_obj (BtorExpMgr *emgr, BtorReadObj *obj)
-{
-  BtorReadObjSortObj *result = NULL;
-  assert (emgr != NULL);
-  assert (obj != NULL);
-  result       = (BtorReadObjSortObj *) btor_malloc (emgr->mm,
-                                               sizeof (BtorReadObjSortObj));
-  result->emgr = emgr;
-  result->obj  = obj;
-  return result;
-}
-
-static void
-delete_read_obj_sort_obj (BtorExpMgr *emgr, BtorReadObjSortObj *sobj)
-{
-  assert (emgr != NULL);
-  assert (sobj != NULL);
-  btor_free (emgr->mm, sobj, sizeof (BtorReadObjSortObj));
-}
-
-/*------------------------------------------------------------------------*/
 /* BtorReadObj                                                            */
 /*------------------------------------------------------------------------*/
 
@@ -3198,10 +3173,10 @@ compare_read_obj_sort_obj (const void *sobj1, const void *sobj2)
   int return_val   = 0;
   assert (sobj1 != NULL);
   assert (sobj2 != NULL);
-  emgr   = (*(BtorReadObjSortObj **) sobj1)->emgr;
+  emgr   = ((BtorReadObjSortObj *) sobj1)->emgr;
   amgr   = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  index1 = (*(BtorReadObjSortObj **) sobj1)->obj->index;
-  index2 = (*(BtorReadObjSortObj **) sobj2)->obj->index;
+  index1 = ((BtorReadObjSortObj *) sobj1)->obj->index;
+  index2 = ((BtorReadObjSortObj *) sobj2)->obj->index;
   assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
   assert (BTOR_REAL_ADDR_EXP (index1)->av != NULL);
   assert (BTOR_REAL_ADDR_EXP (index2)->av != NULL);
@@ -3300,7 +3275,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   BtorExp *var2              = NULL;
   BtorReadObjPtrStack *stack = NULL;
   BtorReadObj **cur_obj      = NULL;
-  BtorReadObjSortObj **array = NULL;
+  BtorReadObjSortObj *array  = NULL;
   int i                      = 0;
   int len                    = 0;
   int found_conflict         = 0;
@@ -3311,22 +3286,26 @@ resolve_read_conflicts (BtorExpMgr *emgr)
     len   = BTOR_COUNT_STACK (*stack);
     if (len > 0)
     {
-      array = (BtorReadObjSortObj **) btor_malloc (
-          emgr->mm, sizeof (BtorReadObjSortObj *) * len);
+      array = (BtorReadObjSortObj *) btor_malloc (
+          emgr->mm, sizeof (BtorReadObjSortObj) * len);
       i = 0;
       for (cur_obj = (*stack).start; cur_obj != (*stack).top; cur_obj++)
-        array[i++] = new_read_obj_sort_obj (emgr, *cur_obj);
+      {
+        array[i].emgr = emgr;
+        array[i].obj  = *cur_obj;
+        i++;
+      }
       assert (i == len);
       qsort (
-          array, len, sizeof (BtorReadObjSortObj *), compare_read_obj_sort_obj);
+          array, len, sizeof (BtorReadObjSortObj), compare_read_obj_sort_obj);
       for (i = 0; i < len - 1; i++)
       {
-        index1 = array[i]->obj->index;
-        index2 = array[i + 1]->obj->index;
+        index1 = array[i].obj->index;
+        index2 = array[i + 1].obj->index;
         if (equal_assignments (emgr, index1, index2))
         {
-          var1 = array[i]->obj->var;
-          var2 = array[i + 1]->obj->var;
+          var1 = array[i].obj->var;
+          var2 = array[i + 1].obj->var;
           if (!equal_assignments (emgr, var1, var2))
           {
             found_conflict = 1;
@@ -3335,8 +3314,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
           }
         }
       }
-      for (i = 0; i < len; i++) delete_read_obj_sort_obj (emgr, array[i]);
-      btor_free (emgr->mm, array, sizeof (BtorReadObjSortObj *) * len);
+      btor_free (emgr->mm, array, sizeof (BtorReadObjSortObj) * len);
       if (found_conflict) break;
     }
   }
