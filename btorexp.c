@@ -3158,73 +3158,14 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
 }
 
 static int
-compare_read_obj_sort_obj (const void *sobj1, const void *sobj2)
+compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
 {
-  BtorExp *index1  = NULL;
-  BtorExp *index2  = NULL;
-  BtorAIGVec *av1  = NULL;
-  BtorAIGVec *av2  = NULL;
-  BtorExpMgr *emgr = NULL;
-  BtorAIGMgr *amgr = NULL;
   int val1         = 0;
   int val2         = 0;
-  int len          = 0;
   int i            = 0;
+  int len          = 0;
   int return_val   = 0;
-  assert (sobj1 != NULL);
-  assert (sobj2 != NULL);
-  emgr   = ((BtorReadObjSortObj *) sobj1)->emgr;
-  amgr   = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  index1 = ((BtorReadObjSortObj *) sobj1)->obj->index;
-  index2 = ((BtorReadObjSortObj *) sobj2)->obj->index;
-  assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
-  assert (BTOR_REAL_ADDR_EXP (index1)->av != NULL);
-  assert (BTOR_REAL_ADDR_EXP (index2)->av != NULL);
-  if (BTOR_IS_INVERTED_EXP (index1))
-    av1 = btor_not_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index1)->av);
-  else
-    av1 = btor_copy_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index1)->av);
-  if (BTOR_IS_INVERTED_EXP (index2))
-    av2 = btor_not_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index2)->av);
-  else
-    av2 = btor_copy_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index2)->av);
-  assert (av1->len == av2->len);
-  len = av1->len;
-  for (i = 0; i < len; i++)
-  {
-    val1 = btor_get_assignment_aig (amgr, av1->aigs[i]);
-    assert (val1 >= -1);
-    assert (val1 <= 1);
-    if (val1 == 0) val1 = -1;
-    val2 = btor_get_assignment_aig (amgr, av2->aigs[i]);
-    assert (val1 >= -1);
-    assert (val1 <= 1);
-    if (val2 == 0) val2 = -1;
-    if (val1 < val2)
-    {
-      return_val = -1;
-      break;
-    }
-    if (val2 < val1)
-    {
-      return_val = 1;
-      break;
-    }
-  }
-  btor_release_delete_aigvec (emgr->avmgr, av1);
-  btor_release_delete_aigvec (emgr->avmgr, av2);
-  return return_val;
-}
-
-static int
-equal_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
-{
   BtorAIGMgr *amgr = NULL;
-  int val1         = 0;
-  int val2         = 0;
-  int i            = 0;
-  int len          = 0;
-  int return_val   = 1;
   BtorAIGVec *av1  = NULL;
   BtorAIGVec *av2  = NULL;
   assert (emgr != NULL);
@@ -3254,15 +3195,35 @@ equal_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
     assert (val1 >= -1);
     assert (val1 <= 1);
     if (val2 == 0) val2 = -1;
-    if (val1 != val2)
+    if (val1 < val2)
     {
-      return_val = 0;
+      return_val = -1;
+      break;
+    }
+    if (val2 < val1)
+    {
+      return_val = 1;
       break;
     }
   }
   btor_release_delete_aigvec (emgr->avmgr, av1);
   btor_release_delete_aigvec (emgr->avmgr, av2);
   return return_val;
+}
+
+static int
+compare_read_obj_sort_obj (const void *sobj1, const void *sobj2)
+{
+  BtorExp *index1  = NULL;
+  BtorExp *index2  = NULL;
+  BtorExpMgr *emgr = NULL;
+  assert (sobj1 != NULL);
+  assert (sobj2 != NULL);
+  emgr   = ((BtorReadObjSortObj *) sobj1)->emgr;
+  index1 = ((BtorReadObjSortObj *) sobj1)->obj->index;
+  index2 = ((BtorReadObjSortObj *) sobj2)->obj->index;
+  assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
+  return compare_assignments (emgr, index1, index2);
 }
 
 static int
@@ -3302,11 +3263,11 @@ resolve_read_conflicts (BtorExpMgr *emgr)
       {
         index1 = array[i].obj->index;
         index2 = array[i + 1].obj->index;
-        if (equal_assignments (emgr, index1, index2))
+        if (compare_assignments (emgr, index1, index2) == 0)
         {
           var1 = array[i].obj->var;
           var2 = array[i + 1].obj->var;
-          if (!equal_assignments (emgr, var1, var2))
+          if (compare_assignments (emgr, var1, var2) != 0)
           {
             found_conflict = 1;
             encode_read (emgr, index1, index2, var1, var2);
