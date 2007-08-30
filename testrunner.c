@@ -33,6 +33,12 @@ static struct
  */
 
 static const char *slowtests[] = {
+    "smtaxiombvsmod7",
+    "smtaxiombvsmod8",
+    "smtaxiombvsdiv7",
+    "smtaxiombvsdiv8",
+    "smtaxiombvsrem7",
+    "smtaxiombvsrem8",
     "factor18446744073709551617reduced_special",
     "factor18446744073709551617_special",
 
@@ -55,6 +61,13 @@ static const char *normaltests[] = {
     "rol_shift",
     "ror_shift",
     "factor4294967295_special",
+    "smtaxiombvsmod5",
+    "smtaxiombvsmod6",
+    "smtaxiombvsdiv5",
+    "smtaxiombvsdiv6",
+    "smtaxiombvsrem5",
+    "smtaxiombvsrem6",
+
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 

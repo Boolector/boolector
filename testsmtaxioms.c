@@ -21,16 +21,16 @@ static char* axioms[] = {
     "bvsgt",
     "bvsle",
     "bvslt",
-    "bvsdiv",
     "bvuge",
     "bvugt",
     "bvule",
     "bvxnor",
     "bvxor",
-    "bvsrem",
     "bvsub",
     0, /* below are the 'hard' test cases (no 16, 32, 64 bits) */
     "bvsmod",
+    "bvsdiv",
+    "bvsrem",
     0};
 
 static void
@@ -82,9 +82,9 @@ run_smtaxioms_tests (int argc, char** argv)
 
     if ((*p)[2] != 's') test_smtaxiom (mem, argc, argv, *p, 1);
 
-    for (i = 2; i <= 5; i++) test_smtaxiom (mem, argc, argv, *p, i);
+    for (i = 2; i <= 8; i++) test_smtaxiom (mem, argc, argv, *p, i);
 
-    if (0 && first)
+    if (first)
     {
       test_smtaxiom (mem, argc, argv, *p, 16);
       test_smtaxiom (mem, argc, argv, *p, 32);
