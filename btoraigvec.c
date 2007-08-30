@@ -31,9 +31,9 @@ new_aigvec (BtorAIGVecMgr *avmgr, int len)
   BtorAIGVec *result = NULL;
   assert (avmgr != NULL);
   assert (len > 0);
-  result       = (BtorAIGVec *) btor_malloc (avmgr->mm, sizeof (BtorAIGVec));
-  result->aigs = (BtorAIG **) btor_malloc (avmgr->mm, sizeof (BtorAIG *) * len);
-  result->len  = len;
+  BTOR_NEW (avmgr->mm, result);
+  BTOR_NEWN (avmgr->mm, result->aigs, len);
+  result->len = len;
   return result;
 }
 
@@ -757,8 +757,8 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   assert (av->len > 0);
   len = av->len;
   for (i = 0; i < len; i++) btor_release_aig (avmgr->amgr, av->aigs[i]);
-  btor_free (avmgr->mm, av->aigs, sizeof (BtorAIG *) * len);
-  btor_free (avmgr->mm, av, sizeof (BtorAIGVec));
+  BTOR_DELETEN (avmgr->mm, av->aigs, len);
+  BTOR_DELETE (avmgr->mm, av);
 }
 
 BtorAIGVecMgr *
@@ -767,7 +767,7 @@ btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
   BtorAIGVecMgr *avmgr = NULL;
   assert (mm != NULL);
   assert (verbosity >= -1);
-  avmgr            = (BtorAIGVecMgr *) btor_malloc (mm, sizeof (BtorAIGVecMgr));
+  BTOR_NEW (mm, avmgr);
   avmgr->mm        = mm;
   avmgr->verbosity = verbosity;
   avmgr->amgr      = btor_new_aig_mgr (mm, verbosity);
@@ -779,7 +779,7 @@ btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr)
 {
   assert (avmgr != NULL);
   btor_delete_aig_mgr (avmgr->amgr);
-  btor_free (avmgr->mm, avmgr, sizeof (BtorAIGVecMgr));
+  BTOR_DELETE (avmgr->mm, avmgr);
 }
 
 BtorAIGMgr *
@@ -799,8 +799,8 @@ btor_get_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   assert (avmgr != NULL);
   assert (av != NULL);
   assert (av->len > 0);
-  len    = av->len;
-  result = (char *) btor_malloc (avmgr->mm, sizeof (char) * (len + 1));
+  len = av->len;
+  BTOR_NEWN (avmgr->mm, result, len + 1);
   for (i = 0; i < len; i++)
   {
     cur = btor_get_assignment_aig (avmgr->amgr, av->aigs[i]);
