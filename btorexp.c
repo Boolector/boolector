@@ -3372,7 +3372,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
       if (aig != BTOR_AIG_TRUE)
       {
         if (BTOR_IS_INVERTED_AIG (aig))
-          btor_assume_sat (smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+          btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
         else
           btor_assume_sat (smgr, aig->cnf_id);
       }
