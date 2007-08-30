@@ -941,8 +941,8 @@ int
 btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr != NULL);
-  assert (!BTOR_IS_CONST_AIG (aig));
-  assert (BTOR_IS_VAR_AIG (aig));
+  if (aig == BTOR_AIG_TRUE) return 1;
+  if (aig == BTOR_AIG_FALSE) return -1;
   if (BTOR_REAL_ADDR_AIG (aig)->cnf_id == 0) return 0;
   if (BTOR_IS_INVERTED_AIG (aig))
     return -btor_deref_sat (amgr->smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
