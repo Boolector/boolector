@@ -24,21 +24,20 @@ struct BtorExpUniqueTable
 
 typedef struct BtorExpUniqueTable BtorExpUniqueTable;
 
-#define BTOR_INIT_EXP_UNIQUE_TABLE(mm, table)                          \
-  do                                                                   \
-  {                                                                    \
-    assert (mm != NULL);                                               \
-    (table).size         = 1;                                          \
-    (table).num_elements = 0;                                          \
-    (table).chains =                                                   \
-        (BtorExp **) btor_calloc (mm, (size_t) 1, sizeof (BtorExp *)); \
+#define BTOR_INIT_EXP_UNIQUE_TABLE(mm, table) \
+  do                                          \
+  {                                           \
+    assert (mm != NULL);                      \
+    (table).size         = 1;                 \
+    (table).num_elements = 0;                 \
+    BTOR_CNEW (mm, (table).chains);           \
   } while (0)
 
-#define BTOR_RELEASE_EXP_UNIQUE_TABLE(mm, table)                       \
-  do                                                                   \
-  {                                                                    \
-    assert (mm != NULL);                                               \
-    btor_free (mm, (table).chains, sizeof (BtorExp *) * (table).size); \
+#define BTOR_RELEASE_EXP_UNIQUE_TABLE(mm, table)     \
+  do                                                 \
+  {                                                  \
+    assert (mm != NULL);                             \
+    BTOR_DELETEN (mm, (table).chains, (table).size); \
   } while (0)
 
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
@@ -183,7 +182,7 @@ delete_read_obj (BtorExpMgr *emgr, BtorReadObj *obj)
   assert (obj != NULL);
   btor_release_exp (emgr, obj->var);
   btor_release_exp (emgr, obj->index);
-  btor_free (emgr->mm, obj, sizeof (BtorReadObj));
+  BTOR_DELETE (emgr->mm, obj);
 }
 
 static void
@@ -554,7 +553,7 @@ new_const_exp_node (BtorExpMgr *emgr, const char *bits)
   assert (bits != NULL);
   len = strlen (bits);
   assert (len > 0);
-  exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  BTOR_CNEW (emgr->mm, exp);
   exp->kind = BTOR_CONST_EXP;
   BTOR_NEWN (emgr->mm, exp->bits, len + 1);
   for (i = 0; i < len; i++) exp->bits[i] = bits[i] == '1' ? '1' : '0';
@@ -574,11 +573,11 @@ new_slice_exp_node (BtorExpMgr *emgr, BtorExp *e0, int upper, int lower)
   assert (lower >= 0);
   assert (upper >= lower);
   BtorExp *exp = NULL;
-  exp          = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
-  exp->kind    = BTOR_SLICE_EXP;
-  exp->upper   = upper;
-  exp->lower   = lower;
-  exp->len     = upper - lower + 1;
+  BTOR_CNEW (emgr->mm, exp);
+  exp->kind  = BTOR_SLICE_EXP;
+  exp->upper = upper;
+  exp->lower = lower;
+  exp->len   = upper - lower + 1;
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
@@ -596,7 +595,7 @@ new_binary_exp_node (
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (len > 0);
-  exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  BTOR_CNEW (emgr->mm, exp);
   exp->kind = kind;
   exp->len  = len;
   assert (emgr->id < INT_MAX);
@@ -622,7 +621,7 @@ new_ternary_exp_node (BtorExpMgr *emgr,
   assert (e1 != NULL);
   assert (e2 != NULL);
   assert (len > 0);
-  exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  BTOR_CNEW (emgr->mm, exp);
   exp->kind = kind;
   exp->len  = len;
   assert (emgr->id < INT_MAX);
@@ -653,7 +652,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   {
     assert (BTOR_COUNT_STACK (*exp->read_constraint) == 0);
     BTOR_RELEASE_STACK (emgr->mm, *exp->read_constraint);
-    btor_free (emgr->mm, exp->read_constraint, sizeof (BtorExpPtrStack));
+    BTOR_DELETE (emgr->mm, exp->read_constraint);
   }
   else if (BTOR_IS_UNARY_EXP (exp))
   {
@@ -676,7 +675,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
     assert (emgr->avmgr != NULL);
     btor_release_delete_aigvec (emgr->avmgr, exp->av);
   }
-  btor_free (emgr->mm, exp, sizeof (BtorExp));
+  BTOR_DELETE (emgr->mm, exp);
 }
 
 static unsigned int
@@ -878,8 +877,7 @@ enlarge_exp_unique_table (BtorExpMgr *emgr)
   size     = emgr->table.size;
   new_size = size << 1;
   assert (new_size / size == 2);
-  new_chains = (BtorExp **) btor_calloc (
-      emgr->mm, (size_t) new_size, sizeof (BtorExp *));
+  BTOR_CNEWN (emgr->mm, new_chains, new_size);
   for (i = 0; i < size; i++)
   {
     cur = emgr->table.chains[i];
@@ -895,7 +893,7 @@ enlarge_exp_unique_table (BtorExpMgr *emgr)
       cur              = temp;
     }
   }
-  btor_free (emgr->mm, emgr->table.chains, sizeof (BtorExp *) * size);
+  BTOR_DELETEN (emgr->mm, emgr->table.chains, size);
   emgr->table.size   = new_size;
   emgr->table.chains = new_chains;
 }
@@ -1071,7 +1069,7 @@ btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol)
   assert (emgr != NULL);
   assert (len > 0);
   assert (symbol != NULL);
-  exp         = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  BTOR_CNEW (emgr->mm, exp);
   exp->kind   = BTOR_VAR_EXP;
   exp->symbol = btor_strdup (emgr->mm, symbol);
   exp->len    = len;
@@ -1090,7 +1088,7 @@ btor_array_exp (BtorExpMgr *emgr, int elem_len, int index_len)
   assert (elem_len > 0);
   assert (index_len > 0);
   assert (index_len <= 30);
-  exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  BTOR_CNEW (emgr->mm, exp);
   exp->kind = BTOR_ARRAY_EXP;
   BTOR_NEW (emgr->mm, exp->read_constraint);
   BTOR_INIT_STACK (*exp->read_constraint);
@@ -1909,7 +1907,7 @@ btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   btor_release_exp (emgr, result);
   result = or ;
   for (i = 0; i < len - 1; i++) btor_release_exp (emgr, temps_e2[i]);
-  btor_free (emgr->mm, temps_e2, sizeof (BtorExp *) * (len - 1));
+  BTOR_DELETEN (emgr->mm, temps_e2, len - 1);
   return result;
 }
 
@@ -2055,7 +2053,7 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
     btor_release_exp (emgr, result);
     result = or ;
     for (i = 0; i < len - 2; i++) btor_release_exp (emgr, temps_e2[i]);
-    btor_free (emgr->mm, temps_e2, sizeof (BtorExp *) * (len - 2));
+    BTOR_DELETEN (emgr->mm, temps_e2, len - 2);
   }
   return result;
 }
@@ -3047,7 +3045,7 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
   BTOR_RELEASE_STACK (emgr->mm, emgr->vars);
   BTOR_RELEASE_STACK (emgr->mm, emgr->arrays);
   btor_delete_aigvec_mgr (emgr->avmgr);
-  btor_free (emgr->mm, emgr, sizeof (BtorExpMgr));
+  BTOR_DELETE (emgr->mm, emgr);
   btor_delete_mem_mgr (mm);
 }
 
@@ -3248,9 +3246,7 @@ free_current_assignments (BtorExpMgr *emgr)
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur));
     assert (cur->assignment != NULL);
-    btor_free (emgr->mm,
-               cur->assignment,
-               sizeof (char *) * (strlen (cur->assignment) + 1));
+    btor_freestr (emgr->mm, cur->assignment);
     cur->assignment = NULL;
   }
   BTOR_RESET_STACK (emgr->assigned_exps);
@@ -3388,7 +3384,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
           }
         }
       }
-      btor_free (emgr->mm, array, sizeof (BtorReadObjSortObj) * len);
+      BTOR_DELETEN (emgr->mm, array, len);
       if (found_conflict) break;
     }
   }
