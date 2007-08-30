@@ -20,21 +20,20 @@ struct BtorAIGUniqueTable
 
 typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
 
-#define BTOR_INIT_AIG_UNIQUE_TABLE(mm, table)                          \
-  do                                                                   \
-  {                                                                    \
-    assert (mm != NULL);                                               \
-    (table).size         = 1;                                          \
-    (table).num_elements = 0;                                          \
-    (table).chains =                                                   \
-        (BtorAIG **) btor_calloc (mm, (size_t) 1, sizeof (BtorAIG *)); \
+#define BTOR_INIT_AIG_UNIQUE_TABLE(mm, table) \
+  do                                          \
+  {                                           \
+    assert (mm != NULL);                      \
+    (table).size         = 1;                 \
+    (table).num_elements = 0;                 \
+    BTOR_CNEW (mm, (table).chains);           \
   } while (0)
 
-#define BTOR_RELEASE_AIG_UNIQUE_TABLE(mm, table)                       \
-  do                                                                   \
-  {                                                                    \
-    assert (mm != NULL);                                               \
-    btor_free (mm, (table).chains, sizeof (BtorAIG *) * (table).size); \
+#define BTOR_RELEASE_AIG_UNIQUE_TABLE(mm, table)     \
+  do                                                 \
+  {                                                  \
+    assert (mm != NULL);                             \
+    BTOR_DELETEN (mm, (table).chains, (table).size); \
   } while (0)
 
 #define BTOR_AIG_UNIQUE_TABLE_LIMIT 30
@@ -80,8 +79,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (left));
   assert (!BTOR_IS_CONST_AIG (right));
-  aig = (BtorAIG *) btor_malloc (amgr->mm, sizeof (BtorAIG));
-  assert (!BTOR_IS_INVERTED_AIG (aig));
+  BTOR_NEW (amgr->mm, aig);
   assert (amgr->id < INT_MAX);
   aig->id                    = amgr->id++;
   BTOR_LEFT_CHILD_AIG (aig)  = left;
@@ -98,7 +96,7 @@ static void
 delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr != NULL);
-  if (!BTOR_IS_CONST_AIG (aig)) btor_free (amgr->mm, aig, sizeof (BtorAIG));
+  if (!BTOR_IS_CONST_AIG (aig)) BTOR_DELETE (amgr->mm, aig);
 }
 
 static unsigned int
@@ -212,8 +210,7 @@ enlarge_aig_unique_table (BtorAIGMgr *amgr)
   size     = amgr->table.size;
   new_size = size << 1;
   assert (new_size / size == 2);
-  new_chains = (BtorAIG **) btor_calloc (
-      amgr->mm, (size_t) new_size, sizeof (BtorAIG *));
+  BTOR_CNEWN (amgr->mm, new_chains, new_size);
   for (i = 0; i < size; i++)
   {
     cur = amgr->table.chains[i];
@@ -228,7 +225,7 @@ enlarge_aig_unique_table (BtorAIGMgr *amgr)
       cur              = temp;
     }
   }
-  btor_free (amgr->mm, amgr->table.chains, sizeof (BtorAIG *) * size);
+  BTOR_DELETEN (amgr->mm, amgr->table.chains, size);
   amgr->table.size   = new_size;
   amgr->table.chains = new_chains;
 }
@@ -318,7 +315,7 @@ btor_var_aig (BtorAIGMgr *amgr)
 {
   BtorAIG *aig = NULL;
   assert (amgr != NULL);
-  aig = (BtorAIG *) btor_malloc (amgr->mm, sizeof (BtorAIG));
+  BTOR_NEW (amgr->mm, aig);
   assert (amgr->id < INT_MAX);
   aig->id                    = amgr->id++;
   BTOR_LEFT_CHILD_AIG (aig)  = NULL;
@@ -807,7 +804,7 @@ btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
   BtorAIGMgr *amgr = NULL;
   assert (mm != NULL);
   assert (verbosity >= -1);
-  amgr     = (BtorAIGMgr *) btor_malloc (mm, sizeof (BtorAIGMgr));
+  BTOR_NEW (mm, amgr);
   amgr->mm = mm;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
   amgr->id        = 1;
@@ -823,7 +820,7 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
   assert (amgr->table.num_elements == 0);
   BTOR_RELEASE_AIG_UNIQUE_TABLE (amgr->mm, amgr->table);
   btor_delete_sat_mgr (amgr->smgr);
-  btor_free (amgr->mm, amgr, sizeof (BtorAIGMgr));
+  BTOR_DELETE (amgr->mm, amgr);
 }
 
 static void
