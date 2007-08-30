@@ -224,7 +224,7 @@ btor_main (int argc, char **argv)
   int dump_cnf                = 0;
   int hex                     = 0;
   int force_smt_input         = 0;
-  BtorReadEnc read_enc        = BTOR_EAGER_READ_ENC;
+  BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
