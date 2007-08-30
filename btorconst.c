@@ -40,7 +40,7 @@ btor_int_to_bin (BtorMemMgr *mm, int x, int len)
   assert (mm != NULL);
   assert (x >= 0);
   assert (len > 0);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--)
   {
     result[i] = x % 2 ? '1' : '0';
@@ -53,13 +53,10 @@ btor_int_to_bin (BtorMemMgr *mm, int x, int len)
 char *
 btor_copy_const (BtorMemMgr *mm, const char *c)
 {
-  char *result = NULL;
   assert (mm != NULL);
   assert (c != NULL);
   assert (valid_const (c));
-  result = (char *) btor_malloc (mm, sizeof (char) * (strlen (c) + 1));
-  strcpy (result, c);
-  return result;
+  return btor_strdup (mm, c);
 }
 
 void
@@ -85,7 +82,7 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
 
   delta = upper - lower + 1;
 
-  res = btor_malloc (mm, delta + 1);
+  BTOR_NEWN (mm, res, delta + 1);
 
   p   = a + len - upper;
   q   = res;
@@ -130,7 +127,7 @@ btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
   rlen = (alen < blen) ? blen : alen;
   rlen++;
 
-  res = btor_malloc (mm, rlen + 1);
+  BTOR_NEWN (mm, res, rlen + 1);
 
   p = a + alen;
   q = b + blen;
@@ -182,10 +179,10 @@ btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
 
   if (b[0] == '1' && !b[1]) return btor_strdup (mm, a);
 
-  alen      = strlen (a);
-  blen      = strlen (b);
-  rlen      = alen + blen;
-  res       = btor_malloc (mm, rlen + 1);
+  alen = strlen (a);
+  blen = strlen (b);
+  rlen = alen + blen;
+  BTOR_NEWN (mm, res, rlen + 1);
   res[rlen] = 0;
 
   for (r = res; r < res + blen; r++) *r = '0';
@@ -281,7 +278,7 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
   assert (alen >= blen);
   rlen = alen;
 
-  res = btor_malloc (mem, rlen + 1);
+  BTOR_NEWN (mem, res, rlen + 1);
 
   p = a + alen;
   q = b + blen;
@@ -330,8 +327,8 @@ btor_not_const (BtorMemMgr *mm, const char *a)
   assert (a != NULL);
   assert (strlen (a) > 0);
   assert (valid_const (a));
-  len    = (int) strlen (a);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  len = (int) strlen (a);
+  BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--) result[i] = a[i] ^ 1;
   result[len] = '\0';
   return result;
@@ -350,8 +347,8 @@ btor_and_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (a) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  len    = (int) strlen (a);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  len = (int) strlen (a);
+  BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--) result[i] = a[i] & b[i];
   result[len] = '\0';
   return result;
@@ -370,8 +367,8 @@ btor_eq_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (a) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  len       = (int) strlen (a);
-  result    = (char *) btor_malloc (mm, sizeof (char) * 2);
+  len = (int) strlen (a);
+  BTOR_NEWN (mm, result, 2);
   result[0] = '1';
   for (i = len - 1; i >= 0; i--)
   {
@@ -399,8 +396,8 @@ btor_add_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (a) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  len    = (int) strlen (a);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  len = (int) strlen (a);
+  BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--)
   {
     result[i] = a[i] ^ b[i] ^ carry;
@@ -463,7 +460,7 @@ sll_n_bits (BtorMemMgr *mm, const char *a, int n)
   assert (n < (int) strlen (a));
   len = (int) strlen (a);
   if (len == 0) return btor_strdup (mm, a);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (mm, result, len + 1);
   for (i = 0; i < len - n; i++) result[i] = a[i + n];
   for (i = len - n; i < len; i++) result[i] = '0';
   result[len] = '\0';
@@ -491,7 +488,7 @@ btor_umul_const (BtorMemMgr *mm, const char *a, const char *b)
   result = btor_int_to_bin (mm, 0, len);
   for (i = len - 1; i >= 0; i--)
   {
-    and = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+    BTOR_NEWN (mm, and, len + 1);
     for (j = 0; j < len; j++) and[j] = a[j] & b[i];
     and[len] = '\0';
     shift    = sll_n_bits (mm, and, len - 1 - i);
@@ -517,7 +514,7 @@ srl_n_bits (BtorMemMgr *mm, const char *a, int n)
   assert (n < (int) strlen (a));
   len = (int) strlen (a);
   if (len == 0) return btor_strdup (mm, a);
-  result = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (mm, result, len + 1);
   for (i = 0; i < n; i++) result[i] = '0';
   for (i = n; i < len; i++) result[i] = a[i - n];
   result[len] = '\0';
@@ -550,12 +547,12 @@ udiv_urem_const (BtorMemMgr *mm,
   assert (valid_const (b));
   len = (int) strlen (a);
   assert (len <= INT_MAX / 2);
-  len_2n           = len << 1;
-  *quotient        = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  len_2n = len << 1;
+  BTOR_NEWN (mm, *quotient, len + 1);
   (*quotient)[len] = '\0';
-  b_i              = (char *) btor_malloc (mm, sizeof (char) * (len_2n + 1));
-  b_i[len_2n]      = '\0';
-  remainder_2n     = (char *) btor_malloc (mm, sizeof (char) * (len_2n + 1));
+  BTOR_NEWN (mm, b_i, len_2n + 1);
+  b_i[len_2n] = '\0';
+  BTOR_NEWN (mm, remainder_2n, len_2n + 1);
   remainder_2n[len_2n] = '\0';
   for (i = 0; i < len; i++)
   {
@@ -582,7 +579,7 @@ udiv_urem_const (BtorMemMgr *mm,
     }
   }
   btor_delete_const (mm, b_i);
-  *remainder        = (char *) btor_malloc (mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (mm, *remainder, len + 1);
   (*remainder)[len] = '\0';
   for (i = len; i < len_2n; i++) (*remainder)[i - len] = remainder_2n[i];
   btor_delete_const (mm, remainder_2n);
@@ -693,7 +690,7 @@ btor_ult_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (a) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  result = (char *) btor_malloc (mm, sizeof (char) * 2);
+  BTOR_NEWN (mm, result, 2);
   if (strcmp (a, b) == -1)
     result[0] = '1';
   else
@@ -713,8 +710,7 @@ btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (b) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  result =
-      (char *) btor_malloc (mm, sizeof (char) * (strlen (a) + strlen (b) + 1));
+  BTOR_NEWN (mm, result, strlen (a) + strlen (b) + 1);
   strcpy (result, a);
   strcat (result, b);
   return result;
@@ -756,7 +752,7 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
   delta = plen - qlen;
   assert (delta >= 0);
 
-  extended_divisor = btor_malloc (mem, plen + 1);
+  BTOR_NEWN (mem, extended_divisor, plen + 1);
   memset (extended_divisor, '0', delta);
   strcpy (extended_divisor + delta, divisor);
 
@@ -798,7 +794,7 @@ btor_const_to_hex (BtorMemMgr *mem, const char *c)
 
   if (rlen)
   {
-    res = btor_malloc (mem, rlen + 1);
+    BTOR_NEWN (mem, res, rlen + 1);
 
     i = clen - 1;
     j = rlen;
