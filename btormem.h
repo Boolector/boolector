@@ -15,6 +15,12 @@
     (ptr) = btor_malloc ((mm), (nelems) * sizeof *(ptr)); \
   } while (0)
 
+#define BTOR_CNEWN(mm, ptr, nelems)                      \
+  do                                                     \
+  {                                                      \
+    (ptr) = btor_calloc ((mm), (nelems), sizeof *(ptr)); \
+  } while (0)
+
 #define BTOR_CLRN(ptr, nelems)                   \
   do                                             \
   {                                              \
@@ -34,6 +40,7 @@
   } while (0)
 
 #define BTOR_NEW(mm, ptr) BTOR_NEWN ((mm), (ptr), 1)
+#define BTOR_CNEW(mm, ptr) BTOR_CNEWN ((mm), (ptr), 1)
 #define BTOR_CLR(ptr) BTOR_CLRN ((ptr), 1)
 #define BTOR_DELETE(mm, ptr) BTOR_DELETEN ((mm), (ptr), 1)
 
