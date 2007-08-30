@@ -95,7 +95,7 @@ zeros_string (BtorExpMgr *emgr, int len)
   char *string = NULL;
   assert (emgr != NULL);
   assert (len > 0);
-  string = (char *) btor_malloc (emgr->mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (emgr->mm, string, len + 1);
   for (i = 0; i < len; i++) string[i] = '0';
   string[len] = '\0';
   return string;
@@ -108,7 +108,7 @@ ones_string (BtorExpMgr *emgr, int len)
   char *string = NULL;
   assert (emgr != NULL);
   assert (len > 0);
-  string = (char *) btor_malloc (emgr->mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (emgr->mm, string, len + 1);
   for (i = 0; i < len; i++) string[i] = '1';
   string[len] = '\0';
   return string;
@@ -122,7 +122,7 @@ int_to_string (BtorExpMgr *emgr, int x, int len)
   assert (emgr != NULL);
   assert (x >= 0);
   assert (len > 0);
-  string = (char *) btor_malloc (emgr->mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (emgr->mm, string, len + 1);
   for (i = len - 1; i >= 0; i--)
   {
     string[i] = x % 2 == 0 ? '0' : '1';
@@ -170,7 +170,7 @@ new_read_obj (BtorExpMgr *emgr, BtorExp *var, BtorExp *index)
   assert (emgr != NULL);
   assert (var != NULL);
   assert (index != NULL);
-  result        = (BtorReadObj *) btor_malloc (emgr->mm, sizeof (BtorReadObj));
+  BTOR_NEW (emgr->mm, result);
   result->var   = btor_copy_exp (emgr, var);
   result->index = btor_copy_exp (emgr, index);
   return result;
@@ -556,7 +556,7 @@ new_const_exp_node (BtorExpMgr *emgr, const char *bits)
   assert (len > 0);
   exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
   exp->kind = BTOR_CONST_EXP;
-  exp->bits = btor_malloc (emgr->mm, sizeof (char) * (len + 1));
+  BTOR_NEWN (emgr->mm, exp->bits, len + 1);
   for (i = 0; i < len; i++) exp->bits[i] = bits[i] == '1' ? '1' : '0';
   exp->bits[len] = '\0';
   exp->len       = len;
@@ -1071,12 +1071,10 @@ btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol)
   assert (emgr != NULL);
   assert (len > 0);
   assert (symbol != NULL);
-  exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
-  exp->kind = BTOR_VAR_EXP;
-  exp->symbol =
-      (char *) btor_malloc (emgr->mm, sizeof (char) * (strlen (symbol) + 1));
-  strcpy (exp->symbol, symbol);
-  exp->len = len;
+  exp         = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
+  exp->kind   = BTOR_VAR_EXP;
+  exp->symbol = btor_strdup (emgr->mm, symbol);
+  exp->len    = len;
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
@@ -1094,8 +1092,7 @@ btor_array_exp (BtorExpMgr *emgr, int elem_len, int index_len)
   assert (index_len <= 30);
   exp       = (BtorExp *) btor_calloc (emgr->mm, 1, sizeof (BtorExp));
   exp->kind = BTOR_ARRAY_EXP;
-  exp->read_constraint = (BtorReadObjPtrStack *) btor_malloc (
-      emgr->mm, sizeof (BtorReadObjPtrStack));
+  BTOR_NEW (emgr->mm, exp->read_constraint);
   BTOR_INIT_STACK (*exp->read_constraint);
   exp->index_len = index_len;
   exp->len       = elem_len;
@@ -1190,8 +1187,7 @@ rewrite_exp (BtorExpMgr *emgr,
       {
         counter = 0;
         len     = real_e0->len;
-        bits_result =
-            (char *) btor_malloc (emgr->mm, sizeof (char) * (diff + 2));
+        BTOR_NEWN (emgr->mm, bits_result, diff + 2);
         for (i = len - upper - 1; i <= len - upper - 1 + diff; i++)
           bits_result[counter++] = real_e0->bits[i];
         bits_result[counter] = '\0';
@@ -1880,8 +1876,7 @@ btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (len == 1) return zeros_exp (emgr, 1);
-  temps_e2 =
-      (BtorExp **) btor_malloc (emgr->mm, sizeof (BtorExp *) * (len - 1));
+  BTOR_NEWN (emgr->mm, temps_e2, len - 1);
   temps_e2[0] = btor_slice_exp (emgr, e1, len - 1, len - 1);
   for (i = 1; i < len - 1; i++)
   {
@@ -2017,8 +2012,7 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
     sext_sign_e2 = btor_sext_exp (emgr, sign_e2, len - 1);
     xor_sign_e1  = btor_xor_exp (emgr, e0, sext_sign_e1);
     xor_sign_e2  = btor_xor_exp (emgr, e1, sext_sign_e2);
-    temps_e2 =
-        (BtorExp **) btor_malloc (emgr->mm, sizeof (BtorExp *) * (len - 2));
+    BTOR_NEWN (emgr->mm, temps_e2, len - 2);
     temps_e2[0] = btor_slice_exp (emgr, xor_sign_e2, len - 2, len - 2);
     for (i = 1; i < len - 2; i++)
     {
@@ -3009,7 +3003,7 @@ btor_new_exp_mgr (int rewrite_level,
   assert (rewrite_level >= 0);
   assert (rewrite_level <= 2);
   assert (verbosity >= -1);
-  emgr     = btor_malloc (mm, sizeof (BtorExpMgr));
+  BTOR_NEW (mm, emgr);
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_INIT_STACK (emgr->assigned_exps);
@@ -3367,8 +3361,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
     len   = BTOR_COUNT_STACK (*stack);
     if (len > 0)
     {
-      array = (BtorReadObjSortObj *) btor_malloc (
-          emgr->mm, sizeof (BtorReadObjSortObj) * len);
+      BTOR_NEWN (emgr->mm, array, len);
       i = 0;
       for (cur_obj = (*stack).start; cur_obj != (*stack).top; cur_obj++)
       {
