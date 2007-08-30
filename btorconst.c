@@ -525,7 +525,7 @@ srl_n_bits (BtorMemMgr *mm, const char *a, int n)
 }
 
 static void
-udiv_umod_const (BtorMemMgr *mm,
+udiv_urem_const (BtorMemMgr *mm,
                  const char *a,
                  const char *b,
                  char **quotient,
@@ -600,13 +600,13 @@ btor_udiv_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (a) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  udiv_umod_const (mm, a, b, &quotient, &remainder);
+  udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, remainder);
   return quotient;
 }
 
 char *
-btor_umod_const (BtorMemMgr *mm, const char *a, const char *b)
+btor_urem_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *quotient  = NULL;
   char *remainder = NULL;
@@ -617,7 +617,7 @@ btor_umod_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (strlen (a) > 0);
   assert (valid_const (a));
   assert (valid_const (b));
-  udiv_umod_const (mm, a, b, &quotient, &remainder);
+  udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, quotient);
   return remainder;
 }
@@ -760,7 +760,7 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
   memset (extended_divisor, '0', delta);
   strcpy (extended_divisor + delta, divisor);
 
-  udiv_umod_const (mem, dividend, extended_divisor, &quotient, &rest);
+  udiv_urem_const (mem, dividend, extended_divisor, &quotient, &rest);
 
   btor_delete_const (mem, extended_divisor);
 

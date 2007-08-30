@@ -658,7 +658,7 @@ parse_and (BtorBTORParser *parser, int len)
 static BtorExp *
 parse_smod (BtorBTORParser *parser, int len)
 {
-  return parse_binary (parser, len, btor_smod_exp);
+  return parse_binary (parser, len, btor_srem_exp);
 }
 
 static BtorExp *
@@ -680,9 +680,9 @@ parse_udiv (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
-parse_umod (BtorBTORParser *parser, int len)
+parse_urem (BtorBTORParser *parser, int len)
 {
-  return parse_binary (parser, len, btor_umod_exp);
+  return parse_binary (parser, len, btor_urem_exp);
 }
 
 static BtorExp *
@@ -1285,7 +1285,7 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_ugte, "ugte");
   new_parser (res, parse_ult, "ult");
   new_parser (res, parse_ulte, "ulte");
-  new_parser (res, parse_umod, "umod");
+  new_parser (res, parse_urem, "urem");
   new_parser (res, parse_umul, "umul");
   new_parser (res, parse_umulo, "umulo");
   new_parser (res, parse_var, "var");

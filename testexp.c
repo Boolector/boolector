@@ -311,7 +311,7 @@ binary_non_commutative_exp_test (
   assert (exp3 == exp4);
   assert (exp4 != exp5);
   if (func == btor_sub_exp || func == btor_udiv_exp || func == btor_sdiv_exp
-      || func == btor_umod_exp || func == btor_smod_exp)
+      || func == btor_urem_exp || func == btor_srem_exp)
   {
     assert (btor_get_exp_len (emgr, exp3) == 32);
     assert (btor_get_exp_len (emgr, exp4) == 32);
@@ -424,15 +424,15 @@ test_sdivo_exp (void)
 }
 
 static void
-test_umod_exp (void)
+test_urem_exp (void)
 {
-  binary_non_commutative_exp_test (btor_umod_exp, "log/umod_exp.log");
+  binary_non_commutative_exp_test (btor_urem_exp, "log/urem_exp.log");
 }
 
 static void
-test_smod_exp (void)
+test_srem_exp (void)
 {
-  binary_non_commutative_exp_test (btor_smod_exp, "log/smod_exp.log");
+  binary_non_commutative_exp_test (btor_srem_exp, "log/srem_exp.log");
 }
 
 static void
@@ -662,8 +662,8 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (udiv_exp);
   BTOR_RUN_TEST_CHECK_LOG (sdiv_exp);
   BTOR_RUN_TEST_CHECK_LOG (sdivo_exp);
-  BTOR_RUN_TEST_CHECK_LOG (umod_exp);
-  BTOR_RUN_TEST_CHECK_LOG (smod_exp);
+  BTOR_RUN_TEST_CHECK_LOG (urem_exp);
+  BTOR_RUN_TEST_CHECK_LOG (srem_exp);
   BTOR_RUN_TEST_CHECK_LOG (concat_exp);
   BTOR_RUN_TEST_CHECK_LOG (read_exp);
   BTOR_RUN_TEST_CHECK_LOG (cond_exp);

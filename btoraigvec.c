@@ -541,7 +541,7 @@ ugte_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 }
 
 static void
-udiv_umod_aigvec (BtorAIGVecMgr *avmgr,
+udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
                   BtorAIGVec *av1,
                   BtorAIGVec *av2,
                   BtorAIGVec **quotient,
@@ -618,13 +618,13 @@ btor_udiv_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av2 != NULL);
   assert (av1->len == av2->len);
   assert (av1->len > 0);
-  udiv_umod_aigvec (avmgr, av1, av2, &quotient, &remainder);
+  udiv_urem_aigvec (avmgr, av1, av2, &quotient, &remainder);
   btor_release_delete_aigvec (avmgr, remainder);
   return quotient;
 }
 
 BtorAIGVec *
-btor_umod_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+btor_urem_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   BtorAIGVec *quotient  = NULL;
   BtorAIGVec *remainder = NULL;
@@ -633,7 +633,7 @@ btor_umod_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av2 != NULL);
   assert (av1->len == av2->len);
   assert (av1->len > 0);
-  udiv_umod_aigvec (avmgr, av1, av2, &quotient, &remainder);
+  udiv_urem_aigvec (avmgr, av1, av2, &quotient, &remainder);
   btor_release_delete_aigvec (avmgr, quotient);
   return remainder;
 }
@@ -706,6 +706,7 @@ btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
   int len = 0;
   int i   = 0;
+  (void) avmgr;
   assert (avmgr != NULL);
   assert (av != NULL);
   len = av->len;
@@ -717,6 +718,7 @@ btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
   int i   = 0;
   int len = 0;
+  (void) avmgr;
   assert (avmgr != NULL);
   assert (av != NULL);
   len = av->len;
@@ -734,6 +736,7 @@ btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
 {
   int i   = 0;
   int len = 0;
+  (void) avmgr;
   assert (avmgr != NULL);
   assert (av1 != NULL);
   assert (av2 != NULL);

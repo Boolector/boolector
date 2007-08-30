@@ -236,6 +236,7 @@ enlarge_aig_unique_table (BtorAIGMgr *amgr)
 BtorAIG *
 btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
+  (void) amgr;
   assert (amgr != NULL);
   if (BTOR_IS_CONST_AIG (aig)) return aig;
   return inc_aig_ref_counter_and_return (aig);
@@ -333,6 +334,7 @@ btor_var_aig (BtorAIGMgr *amgr)
 BtorAIG *
 btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
+  (void) amgr;
   assert (amgr != NULL);
   inc_aig_ref_counter (aig);
   return BTOR_INVERT_AIG (aig);

@@ -81,6 +81,7 @@ btor_init_sat (BtorSATMgr *smgr)
 void
 btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 {
+  (void) smgr;
   assert (smgr != NULL);
   assert (output != NULL);
   picosat_set_output (output);
@@ -90,6 +91,7 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 void
 btor_enable_verbosity_sat (BtorSATMgr *smgr)
 {
+  (void) smgr;
   assert (smgr != NULL);
   picosat_enable_verbosity ();
 }
@@ -97,6 +99,7 @@ btor_enable_verbosity_sat (BtorSATMgr *smgr)
 void
 btor_print_stats_sat (BtorSATMgr *smgr)
 {
+  (void) smgr;
   assert (smgr != NULL);
   picosat_stats ();
 }
@@ -104,6 +107,7 @@ btor_print_stats_sat (BtorSATMgr *smgr)
 void
 btor_add_sat (BtorSATMgr *smgr, int lit)
 {
+  (void) smgr;
   assert (smgr != NULL);
   picosat_add (lit);
 }
@@ -111,6 +115,7 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
 void
 btor_dump_cnf_sat (BtorSATMgr *smgr, FILE *output)
 {
+  (void) smgr;
   assert (smgr != NULL);
   assert (output != NULL);
   picosat_print (output);
@@ -119,6 +124,7 @@ btor_dump_cnf_sat (BtorSATMgr *smgr, FILE *output)
 void
 btor_assume_sat (BtorSATMgr *smgr, int lit)
 {
+  (void) smgr;
   assert (smgr != NULL);
   picosat_assume (lit);
 }
@@ -126,6 +132,7 @@ btor_assume_sat (BtorSATMgr *smgr, int lit)
 int
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
+  (void) smgr;
   assert (smgr != NULL);
   if (smgr->verbosity > 0) print_verbose_msg ("calling PicoSAT\n");
   return picosat_sat (limit);
@@ -134,6 +141,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
 int
 btor_deref_sat (BtorSATMgr *smgr, int lit)
 {
+  (void) smgr;
   assert (smgr != NULL);
   return picosat_deref (lit);
 }
@@ -141,6 +149,7 @@ btor_deref_sat (BtorSATMgr *smgr, int lit)
 void
 btor_reset_sat (BtorSATMgr *smgr)
 {
+  (void) smgr;
   assert (smgr != NULL);
   if (smgr->verbosity >= 3) print_verbose_msg ("resetting PicoSAT\n");
   picosat_reset ();

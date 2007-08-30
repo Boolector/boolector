@@ -67,7 +67,7 @@ BtorAIGVec *btor_udiv_aigvec (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av1,
                               BtorAIGVec *av2);
 
-BtorAIGVec *btor_umod_aigvec (BtorAIGVecMgr *avmgr,
+BtorAIGVec *btor_urem_aigvec (BtorAIGVecMgr *avmgr,
                               BtorAIGVec *av1,
                               BtorAIGVec *av2);
 

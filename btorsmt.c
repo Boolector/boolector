@@ -1943,7 +1943,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_binary (parser, node, "bvudiv", btor_udiv_exp);
         break;
       case BTOR_SMTOK_BVUREM:
-        translate_binary (parser, node, "bvurem", btor_umod_exp);
+        translate_binary (parser, node, "bvurem", btor_urem_exp);
         break;
       case BTOR_SMTOK_BVMUL:
         translate_binary (parser, node, "bvmul", btor_umul_exp);
@@ -2238,9 +2238,12 @@ NEXT_TOKEN:
     btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
     btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
 
-    /* TODO keep this for now until the parser works.
-     */
-    if (parser->verbosity >= 3) btorsmtpp (top);
+#if 0
+      /* TODO keep this for now until the parser works.
+       */
+      if (parser->verbosity >= 3)
+	btorsmtpp (top);
+#endif
 
     if (translate_benchmark (parser, top))
     {

@@ -372,9 +372,9 @@ test_udiv_const (void)
 }
 
 static void
-test_umod_const (void)
+test_urem_const (void)
 {
-  binary_const_test (mod, btor_umod_const);
+  binary_const_test (mod, btor_urem_const);
 }
 
 static void
@@ -627,7 +627,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (sub_const);
   BTOR_RUN_TEST (umul_const);
   BTOR_RUN_TEST (udiv_const);
-  BTOR_RUN_TEST (umod_const);
+  BTOR_RUN_TEST (urem_const);
   BTOR_RUN_TEST (eq_const);
   BTOR_RUN_TEST (ult_const);
   BTOR_RUN_TEST (concat_const);
