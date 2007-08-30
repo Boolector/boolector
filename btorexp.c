@@ -2556,12 +2556,12 @@ BtorExp *
 btor_srem_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result   = NULL;
+  BtorExp *sign_e0  = NULL;
   BtorExp *sign_e1  = NULL;
-  BtorExp *sign_e2  = NULL;
+  BtorExp *neg_e0   = NULL;
   BtorExp *neg_e1   = NULL;
-  BtorExp *neg_e2   = NULL;
+  BtorExp *cond_e0  = NULL;
   BtorExp *cond_e1  = NULL;
-  BtorExp *cond_e2  = NULL;
   BtorExp *urem     = NULL;
   BtorExp *neg_urem = NULL;
   int len           = 0;
@@ -2573,24 +2573,24 @@ btor_srem_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
   len     = BTOR_REAL_ADDR_EXP (e0)->len;
-  sign_e1 = btor_slice_exp (emgr, e0, len - 1, len - 1);
-  sign_e2 = btor_slice_exp (emgr, e1, len - 1, len - 1);
-  neg_e1  = btor_neg_exp (emgr, e0);
-  neg_e2  = btor_neg_exp (emgr, e1);
+  sign_e0 = btor_slice_exp (emgr, e0, len - 1, len - 1);
+  sign_e1 = btor_slice_exp (emgr, e1, len - 1, len - 1);
+  neg_e0  = btor_neg_exp (emgr, e0);
+  neg_e1  = btor_neg_exp (emgr, e1);
   /* normalize e0 and e1 if necessary */
-  cond_e1  = btor_cond_exp (emgr, sign_e1, neg_e1, e0);
-  cond_e2  = btor_cond_exp (emgr, sign_e2, neg_e2, e1);
-  urem     = btor_urem_exp (emgr, cond_e1, cond_e2);
+  cond_e0  = btor_cond_exp (emgr, sign_e0, neg_e0, e0);
+  cond_e1  = btor_cond_exp (emgr, sign_e1, neg_e1, e1);
+  urem     = btor_urem_exp (emgr, cond_e0, cond_e1);
   neg_urem = btor_neg_exp (emgr, urem);
   /* sign result if necessary */
   /* result is negative if e0 is negative */
-  result = btor_cond_exp (emgr, sign_e1, neg_urem, urem);
+  result = btor_cond_exp (emgr, sign_e0, neg_urem, urem);
+  btor_release_exp (emgr, sign_e0);
   btor_release_exp (emgr, sign_e1);
-  btor_release_exp (emgr, sign_e2);
+  btor_release_exp (emgr, neg_e0);
   btor_release_exp (emgr, neg_e1);
-  btor_release_exp (emgr, neg_e2);
+  btor_release_exp (emgr, cond_e0);
   btor_release_exp (emgr, cond_e1);
-  btor_release_exp (emgr, cond_e2);
   btor_release_exp (emgr, urem);
   btor_release_exp (emgr, neg_urem);
   return result;
