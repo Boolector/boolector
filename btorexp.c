@@ -3341,7 +3341,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   sat_result = btor_sat_sat (smgr, INT_MAX);
   if (emgr->read_enc == BTOR_LAZY_READ_ENC)
   {
-    while (sat_result != BTOR_UNSAT)
+    while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN)
     {
       assert (sat_result == BTOR_SAT);
       found_conflict = resolve_read_conflicts (emgr);

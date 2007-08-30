@@ -506,6 +506,7 @@ btor_main (int argc, char **argv)
         }
         else
         {
+          assert (sat_result == BTOR_UNKNOWN);
           print_msg (&app, "UNKNOWN SAT RESULT\n");
         }
       }
@@ -534,7 +535,7 @@ btor_main (int argc, char **argv)
     return_val = BTOR_SAT_EXIT;
   else
   {
-    assert (sat_result == BTOR_SAT);
+    assert (sat_result == BTOR_UNKNOWN);
     return_val = BTOR_UNKNOWN_EXIT;
   }
 #ifdef BTOR_HAVE_GETRUSAGE

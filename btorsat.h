@@ -11,6 +11,7 @@
 
 typedef struct BtorSATMgr BtorSATMgr;
 
+#define BTOR_UNKNOWN 0
 #define BTOR_SAT 10
 #define BTOR_UNSAT 20
 
