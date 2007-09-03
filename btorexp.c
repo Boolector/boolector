@@ -1087,7 +1087,6 @@ btor_array_exp (BtorExpMgr *emgr, int elem_len, int index_len)
   assert (emgr != NULL);
   assert (elem_len > 0);
   assert (index_len > 0);
-  assert (index_len <= 30);
   BTOR_CNEW (emgr->mm, exp);
   exp->kind = BTOR_ARRAY_EXP;
   BTOR_NEW (emgr->mm, exp->read_constraint);

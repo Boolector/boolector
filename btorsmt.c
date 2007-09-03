@@ -107,6 +107,9 @@ enum BtorSMTToken
   BTOR_SMTOK_BVSMOD = 316,
   BTOR_SMTOK_BVXNOR = 317,
 
+  BTOR_SMTOK_SELECT = 318,
+  BTOR_SMTOK_STORE  = 319,
+
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
   BTOR_SMTOK_DEFINITIONS         = 513,
@@ -597,6 +600,8 @@ btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
   insert_symbol (res, "bvsrem")->token = BTOR_SMTOK_BVSREM;
   insert_symbol (res, "bvsmod")->token = BTOR_SMTOK_BVSMOD;
   insert_symbol (res, "bvxnor")->token = BTOR_SMTOK_BVXNOR;
+  insert_symbol (res, "select")->token = BTOR_SMTOK_SELECT;
+  insert_symbol (res, "store")->token  = BTOR_SMTOK_STORE;
 
   return res;
 }
@@ -1735,6 +1740,51 @@ translate_shift (BtorSMTParser *parser,
   }
 }
 
+static void
+translate_select (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorSMTNode *c0, *c1;
+  BtorExp *a0, *a1;
+
+  assert (!node->exp);
+
+  if (!is_list_of_length (node, 3))
+  {
+    (void) parse_error (parser, "expected exactly two arguments to 'select'");
+    return;
+  }
+
+  c0 = car (cdr (node));
+  c1 = car (cdr (cdr (node)));
+
+  if (!(a0 = node2exp (parser, c0)))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  if (!btor_is_array_exp (parser->mgr, a0))
+  {
+    (void) parse_error (parser, "invalid first argument to 'select'");
+    return;
+  }
+
+  if (!(a1 = node2exp (parser, c1)))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  if (btor_get_index_exp_len (parser->mgr, a0)
+      != btor_get_exp_len (parser->mgr, a1))
+  {
+    (void) parse_error (parser, "mismatched bit width of 'select' index");
+    return;
+  }
+
+  node->exp = btor_read_exp (parser->mgr, a0, a1);
+}
+
 static char *
 translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
@@ -2006,6 +2056,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_BVSHL:
         translate_shift (parser, node, "bvshl", btor_sll_exp);
         break;
+      case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
       default:
         return parse_error (parser, "unsupported list head '%s'", symbol->name);
     }
