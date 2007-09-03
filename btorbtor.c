@@ -658,6 +658,12 @@ parse_and (BtorBTORParser *parser, int len)
 static BtorExp *
 parse_smod (BtorBTORParser *parser, int len)
 {
+  return parse_binary (parser, len, btor_smod_exp);
+}
+
+static BtorExp *
+parse_srem (BtorBTORParser *parser, int len)
+{
   return parse_binary (parser, len, btor_srem_exp);
 }
 
@@ -1272,6 +1278,7 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_slt, "slt");
   new_parser (res, parse_slte, "slte");
   new_parser (res, parse_smod, "smod");
+  new_parser (res, parse_srem, "srem");
   new_parser (res, parse_smul, "smul");
   new_parser (res, parse_smulo, "smulo");
   new_parser (res, parse_sra, "sra");
