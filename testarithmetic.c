@@ -206,9 +206,10 @@ divide (int x, int y)
 }
 
 static int
-mod (int x, int y)
+rem (int x, int y)
 {
   if (y == 0) return x;
+
   return x % y;
 }
 
@@ -244,7 +245,7 @@ static void
 test_urem_arithmetic (void)
 {
   u_arithmetic_test (
-      mod, "urem", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      rem, "urem", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
 }
 
 static void
@@ -276,10 +277,10 @@ test_sdiv_arithmetic (void)
 }
 
 static void
-test_smod_arithmetic (void)
+test_srem_arithmetic (void)
 {
   s_arithmetic_test (
-      mod, "smod", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      rem, "srem", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
 }
 
 static void
@@ -294,7 +295,7 @@ run_all_tests (int argc, char **argv)
   BTOR_RUN_TEST (sub_2_arithmetic);
   BTOR_RUN_TEST (smul_arithmetic);
   BTOR_RUN_TEST (sdiv_arithmetic);
-  BTOR_RUN_TEST (smod_arithmetic);
+  BTOR_RUN_TEST (srem_arithmetic);
 }
 
 void

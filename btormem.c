@@ -123,7 +123,6 @@ btor_parse_error_message (BtorMemMgr *mem,
                           const char *fmt,
                           va_list ap,
                           size_t bytes)
-
 {
   char *res;
   char *tmp;

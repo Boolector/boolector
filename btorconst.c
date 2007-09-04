@@ -1,4 +1,5 @@
 #include "btorconst.h"
+#include "btorstack.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -724,7 +725,7 @@ char *
 btor_udiv_unbounded_const (BtorMemMgr *mem,
                            const char *dividend,
                            const char *divisor,
-                           char **rest_ptr)
+                           char **rem_ptr)
 {
   char *quotient, *rest, *extended_divisor, *tmp;
   int delta, plen, qlen;
@@ -746,7 +747,7 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
 
   if (!*p || btor_cmp_const (p, q) < 0)
   {
-    if (rest_ptr) *rest_ptr = btor_strdup (mem, q);
+    if (rem_ptr) *rem_ptr = btor_strdup (mem, p); /* copy divident */
 
     return btor_strdup (mem, "");
   }
@@ -782,8 +783,8 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
     btor_freestr (mem, tmp2);
   }
 #endif
-  if (rest_ptr)
-    *rest_ptr = rest;
+  if (rem_ptr)
+    *rem_ptr = rest;
   else
     btor_delete_const (mem, rest);
 
@@ -1027,4 +1028,47 @@ char *
 btor_decimal_to_const (BtorMemMgr *mem, const char *str)
 {
   return btor_decimal_to_const_n (mem, str, strlen (str));
+}
+
+char *
+btor_const_to_decimal (BtorMemMgr *mem, const char *c)
+{
+  char *res, *q, *tmp, *rem, ch;
+  BtorCharStack stack;
+  const char *p;
+  size_t len;
+  BTOR_INIT_STACK (stack);
+
+  res = btor_copy_const (mem, c);
+  while (*res)
+  {
+    tmp = btor_udiv_unbounded_const (mem, res, "1010", &rem); /* / 10 */
+    assert (strlen (rem) <= 4);
+    ch = 0;
+    for (p = strip_zeroes (rem); *p; p++)
+    {
+      ch <<= 1;
+      if (*p == '1') ch++;
+    }
+    assert (ch < 10);
+    ch += '0';
+    BTOR_PUSH_STACK (mem, stack, ch);
+    btor_delete_const (mem, rem);
+    btor_delete_const (mem, res);
+    res = tmp;
+  }
+  btor_delete_const (mem, res);
+
+  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mem, stack, '0');
+
+  len = BTOR_COUNT_STACK (stack);
+  res = btor_malloc (mem, len + 1);
+  q   = res;
+  p   = stack.top;
+  while (p > stack.start) *q++ = *--p;
+  assert (res + len == q);
+  *q = 0;
+  assert (len == strlen (res));
+  BTOR_RELEASE_STACK (mem, stack);
+  return res;
 }

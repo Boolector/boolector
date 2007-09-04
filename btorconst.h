@@ -69,8 +69,6 @@ void btor_delete_const (BtorMemMgr *mm, char *c);
 
 int btor_cmp_const (const char *a, const char *b);
 
-char *btor_const2decimal (BtorMemMgr *mm, const char *c);
-
 char *btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower);
 
 /*------------------------------------------------------------------------*/

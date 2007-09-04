@@ -550,6 +550,74 @@ test_const_to_hex (void)
 }
 
 static void
+test_const_to_dec_aux (FILE *fout, const char *c)
+{
+  char *d = btor_const_to_decimal (g_mm, c);
+  fprintf (fout, "2'%s = 10'%s\n", c, d);
+  btor_freestr (g_mm, d);
+}
+
+static void
+test_const_to_dec (void)
+{
+  FILE *fout = fopen ("log/const_to_dec.log", "w");
+  test_const_to_dec_aux (fout, "");
+  test_const_to_dec_aux (fout, "1");
+  test_const_to_dec_aux (fout, "10");
+  test_const_to_dec_aux (fout, "11");
+  test_const_to_dec_aux (fout, "100");
+  test_const_to_dec_aux (fout, "101");
+  test_const_to_dec_aux (fout, "110");
+  test_const_to_dec_aux (fout, "111");
+  test_const_to_dec_aux (fout, "1000");
+  test_const_to_dec_aux (fout, "1001");
+  test_const_to_dec_aux (fout, "1010");
+  test_const_to_dec_aux (fout, "1011");
+  test_const_to_dec_aux (fout, "1100");
+  test_const_to_dec_aux (fout, "1101");
+  test_const_to_dec_aux (fout, "1110");
+  test_const_to_dec_aux (fout, "1111");
+  test_const_to_dec_aux (fout, "10000");
+  test_const_to_dec_aux (fout, "10001");
+  test_const_to_dec_aux (fout, "10000000000000000");
+  test_const_to_dec_aux (fout,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000");
+  test_const_to_dec_aux (fout,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000");
+  test_const_to_dec_aux (fout,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000");
+  fclose (fout);
+}
+
+static void
 test_hex_to_const_aux (FILE *file, const char *h)
 {
   char *c = btor_hex_to_const (g_mm, h);
@@ -634,6 +702,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (sll_const);
   BTOR_RUN_TEST (srl_const);
   BTOR_RUN_TEST_CHECK_LOG (const_to_hex);
+  BTOR_RUN_TEST_CHECK_LOG (const_to_dec);
   BTOR_RUN_TEST_CHECK_LOG (hex_to_const);
   BTOR_RUN_TEST_CHECK_LOG (decimal_to_const);
 }
