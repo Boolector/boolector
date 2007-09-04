@@ -270,8 +270,6 @@ compare_aigvec (BtorAIGVecMgr *avmgr,
   return tmp;
 }
 
-#if 1
-
 BtorAIGVec *
 btor_ult_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
@@ -286,7 +284,7 @@ btor_ult_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
-BtorAIGVec *
+static BtorAIGVec *
 btor_ulte_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   BtorAIGVec *result = NULL;
@@ -299,30 +297,6 @@ btor_ulte_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   result->aigs[0] = compare_aigvec (avmgr, av1, av2, BTOR_AIG_TRUE);
   return result;
 }
-
-#else
-
-BtorAIGVec *
-btor_ult_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
-{
-  BtorAIGVec *result = NULL;
-  BtorAIG *lt        = NULL;
-  BtorAIG *eq        = NULL;
-  BtorAIG *gt        = NULL;
-  assert (avmgr != NULL);
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  assert (av1->len == av2->len);
-  assert (av1->len > 0);
-  result = new_aigvec (avmgr, 1);
-  ripple_compare_aigvec (avmgr, av1, av2, &lt, &eq, &gt);
-  result->aigs[0] = lt;
-  btor_release_aig (avmgr->amgr, eq);
-  btor_release_aig (avmgr->amgr, gt);
-  return result;
-}
-
-#endif
 
 BtorAIGVec *
 btor_eq_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
@@ -585,36 +559,11 @@ sub_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
-#if 0
-static BtorAIGVec *
-ugte_aigvec (BtorAIGVecMgr * avmgr, BtorAIGVec * av1, BtorAIGVec * av2)
-{
-  BtorAIGVec *result = NULL;
-  BtorAIG *lt = NULL;
-  BtorAIG *eq = NULL;
-  BtorAIG *gt = NULL;
-  assert (avmgr != NULL);
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  assert (av1->len == av2->len);
-  assert (av1->len > 0);
-  result = new_aigvec (avmgr, 1);
-  ripple_compare_aigvec (avmgr, av1, av2, &lt, &eq, &gt);
-  result->aigs[0] = btor_or_aig (avmgr->amgr, gt, eq);
-  btor_release_aig (avmgr->amgr, lt);
-  btor_release_aig (avmgr->amgr, eq);
-  btor_release_aig (avmgr->amgr, gt);
-  return result;
-}
-#else
-
 static BtorAIGVec *
 ugte_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   return btor_ulte_aigvec (avmgr, av2, av1);
 }
-
-#endif
 
 static void
 udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
