@@ -25,3 +25,4 @@ smtrepeat -o log/smtrepeat.log log/smtrepeat.smt
 smtzeroextend -o log/smtzeroextend.log log/smtzeroextend.smt
 smtsignextend -o log/smtsignextend.log log/smtsignextend.smt
 smtrotate -o log/smtrotate.log log/smtrotate.smt
+uremudivaxiom4 -o log/uremudivaxiom4.log log/uremudivaxiom4.btor
