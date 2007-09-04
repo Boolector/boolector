@@ -64,6 +64,8 @@ BtorExp *btor_or_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_implies_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
+BtorExp *btor_iff_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
+
 BtorExp *btor_xor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_xnor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
