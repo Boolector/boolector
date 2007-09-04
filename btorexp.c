@@ -1669,7 +1669,7 @@ btor_iff_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == 1);
   assert (BTOR_REAL_ADDR_EXP (e0)->len == 1);
-  return btor_xnor_exp (emgr, e0, BTOR_INVERT_EXP (e1));
+  return btor_xnor_exp (emgr, e0, e1);
 }
 
 BtorExp *

@@ -1,4 +1,4 @@
-; b != 0  => (q = a / b && r = a % b => a = q * b + r && r < b )
+; b != 0  => (q = a / b && r = a % b => a = q * b + r && r < b)
 ;  19  18 20    9   5   14  10   6   17  11   7   8   15  12 
 
 1 var 4 a
@@ -18,13 +18,16 @@
 
 14 and 1 9 10
 15 and 1 11 12
-16 and 1 15 15
+17 umulo 1 2 3
+18 uaddo 1 4 7
+19 and 1 -17 -18
+20 and 1 15 19
 
-17 implies 1 14 16   ; but not the other way!
+22 iff 1 20 14
 
-18 zero 4
-19 eq 1 2 18
+23 zero 4
+24 eq 1 2 23
 
-20 implies 1 -19 17
+25 implies 1 -24 22
 
-21 root 1 -20
+26 root 1 -25
