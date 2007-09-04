@@ -236,6 +236,58 @@ ripple_compare_aigvec (BtorAIGVecMgr *avmgr,
   }
 }
 
+static BtorAIG *
+compare_aigvec (BtorAIGVecMgr *avmgr,
+                BtorAIGVec *av1,
+                BtorAIGVec *av2,
+                BtorAIG *last)
+{
+  BtorAIG *res, *tmp, *term0, *term1;
+  int i;
+
+  assert (last == BTOR_AIG_FALSE || last == BTOR_AIG_TRUE);
+
+  res = last;
+  for (i = av1->len - 1; i >= 0; i--)
+  {
+    term0 = btor_and_aig (
+        avmgr->amgr, av1->aigs[i], BTOR_INVERT_AIG (av2->aigs[i]));
+
+    tmp = btor_and_aig (avmgr->amgr, BTOR_INVERT_AIG (term0), res);
+    btor_release_aig (avmgr->amgr, term0);
+    btor_release_aig (avmgr->amgr, res);
+    res = tmp;
+
+    term1 = btor_and_aig (
+        avmgr->amgr, BTOR_INVERT_AIG (av1->aigs[i]), av2->aigs[i]);
+
+    tmp = btor_or_aig (avmgr->amgr, term1, res);
+    btor_release_aig (avmgr->amgr, term1);
+    btor_release_aig (avmgr->amgr, res);
+    res = tmp;
+  }
+
+  return tmp;
+}
+
+#if 1
+
+BtorAIGVec *
+btor_ult_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+{
+  BtorAIGVec *result = NULL;
+  assert (avmgr != NULL);
+  assert (av1 != NULL);
+  assert (av2 != NULL);
+  assert (av1->len == av2->len);
+  assert (av1->len > 0);
+  result          = new_aigvec (avmgr, 1);
+  result->aigs[0] = compare_aigvec (avmgr, av1, av2, BTOR_AIG_FALSE);
+  return result;
+}
+
+#else
+
 BtorAIGVec *
 btor_ult_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
@@ -255,6 +307,8 @@ btor_ult_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   btor_release_aig (avmgr->amgr, gt);
   return result;
 }
+
+#endif
 
 BtorAIGVec *
 btor_eq_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
