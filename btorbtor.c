@@ -716,12 +716,6 @@ parse_or (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
-parse_implies (BtorBTORParser *parser, int len)
-{
-  return parse_binary (parser, len, btor_implies_exp);
-}
-
-static BtorExp *
 parse_nor (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_nor_exp);
@@ -737,6 +731,60 @@ static BtorExp *
 parse_sdiv (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_sdiv_exp);
+}
+
+static BtorExp *
+parse_logical (BtorBTORParser *parser, int len, Binary f)
+{
+  BtorExp *l, *r, *res;
+
+  if (len != 1)
+  {
+    (void) parse_error (parser, "logical operator bit width '%s'", len);
+    return 0;
+  }
+
+  if (parse_space (parser)) return 0;
+
+  if (!(l = parse_exp (parser, 0))) return 0;
+
+  if (btor_get_exp_len (parser->btor, l) != 1)
+  {
+  BIT_WIDTH_ERROR_RELEASE_L_AND_RETURN:
+    (void) parse_error (parser, "expected argument of bit width '1'");
+  RELEASE_L_AND_RETURN_ERROR:
+    btor_release_exp (parser->btor, l);
+    return 0;
+  }
+
+  if (parse_space (parser)) goto RELEASE_L_AND_RETURN_ERROR;
+
+  if (!(r = parse_exp (parser, 0))) goto RELEASE_L_AND_RETURN_ERROR;
+
+  if (btor_get_exp_len (parser->btor, r) != 1)
+  {
+    btor_release_exp (parser->btor, r);
+    goto BIT_WIDTH_ERROR_RELEASE_L_AND_RETURN;
+  }
+
+  res = f (parser->btor, l, r);
+  btor_release_exp (parser->btor, r);
+  btor_release_exp (parser->btor, l);
+  assert (btor_get_exp_len (parser->btor, res) == 1);
+
+  return res;
+}
+
+static BtorExp *
+parse_implies (BtorBTORParser *parser, int len)
+{
+  return parse_logical (parser, len, btor_implies_exp);
+}
+
+static BtorExp *
+parse_iff (BtorBTORParser *parser, int len)
+{
+  return parse_logical (parser, len, btor_iff_exp);
 }
 
 static BtorExp *
@@ -1258,7 +1306,6 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_neg, "neg");
   new_parser (res, parse_not, "not");
   new_parser (res, parse_or, "or");
-  new_parser (res, parse_implies, "implies");
   new_parser (res, parse_redand, "redand");
   new_parser (res, parse_redor, "redor");
   new_parser (res, parse_redxor, "redxor");
@@ -1298,6 +1345,8 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_var, "var");
   new_parser (res, parse_xor, "xor");
   new_parser (res, parse_xnor, "xnor");
+  new_parser (res, parse_iff, "iff");
+  new_parser (res, parse_implies, "implies");
   new_parser (res, parse_nor, "nor");
   new_parser (res, parse_nand, "nand");
 
