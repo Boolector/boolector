@@ -52,6 +52,7 @@ static const char *g_usage =
     "  -v|--verbose                  increase verbosity (0 default, 3 max)\n"
     "\n"
     "  -x|--hex                      hexadecimal output\n"
+    "  -d|--dec                      decimal output\n"
     "  -o|--output <file>            set output file\n"
     "  -t|--trace <file>             set trace file\n"
     "  -de|--dump-exp <file>         dump expression\n"
@@ -222,7 +223,8 @@ btor_main (int argc, char **argv)
   int dump_exp                = 0;
   int dump_aig                = 0;
   int dump_cnf                = 0;
-  int hex                     = 0;
+  int hexadecimal             = 0;
+  int decimal                 = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
   const char *input_file_name = "<stdin>";
@@ -334,7 +336,11 @@ btor_main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
-      hex = 1;
+      hexadecimal = 1;
+    }
+    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--decimal"))
+    {
+      decimal = 1;
     }
     else if (!strcmp (argv[i], "-nr")
              || !strcmp (argv[i], "--no-read-consistency"))
@@ -491,8 +497,10 @@ btor_main (int argc, char **argv)
             witness = btor_get_assignment_var_exp (emgr, cur_exp);
             if (witness != NULL)
             {
-              if (hex)
+              if (hexadecimal)
                 pretty_witness = btor_const_to_hex (mem, witness);
+              else if (decimal)
+                pretty_witness = btor_const_to_decimal (mem, witness);
               else
                 pretty_witness = witness;
 
@@ -500,7 +508,8 @@ btor_main (int argc, char **argv)
                                  "%s %s\n",
                                  btor_get_symbol_exp (emgr, cur_exp),
                                  pretty_witness);
-              if (hex) btor_freestr (mem, pretty_witness);
+
+              if (hexadecimal || decimal) btor_freestr (mem, pretty_witness);
             }
           }
         }
