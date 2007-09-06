@@ -39,6 +39,8 @@ typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
 #define BTOR_AIG_UNIQUE_TABLE_LIMIT 30
 #define BTOR_AIG_UNIQUE_TABLE_PRIME 2000000137u
 
+#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
+
 struct BtorAIGMgr
 {
   BtorMemMgr *mm;

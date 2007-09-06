@@ -127,7 +127,7 @@ compare_aigvec (BtorAIGVecMgr *avmgr,
                 BtorAIGVec *av2,
                 BtorAIG *last)
 {
-  BtorAIG *res, *tmp, *term0, *term1;
+  BtorAIG *res, *tmp, *term0, *term1, *not_av1, *not_av2, *not_term0;
   int i;
 
   assert (last == BTOR_AIG_FALSE || last == BTOR_AIG_TRUE);
@@ -135,18 +135,22 @@ compare_aigvec (BtorAIGVecMgr *avmgr,
   res = last;
   for (i = av1->len - 1; i >= 0; i--)
   {
-    term0 = btor_and_aig (
-        avmgr->amgr, av1->aigs[i], BTOR_INVERT_AIG (av2->aigs[i]));
+    not_av2 = btor_not_aig (avmgr->amgr, (av2->aigs[i]));
+    term0   = btor_and_aig (avmgr->amgr, av1->aigs[i], not_av2);
 
-    tmp = btor_and_aig (avmgr->amgr, BTOR_INVERT_AIG (term0), res);
+    not_term0 = btor_not_aig (avmgr->amgr, term0);
+    tmp       = btor_and_aig (avmgr->amgr, not_term0, res);
     btor_release_aig (avmgr->amgr, term0);
     btor_release_aig (avmgr->amgr, res);
     res = tmp;
 
-    term1 = btor_and_aig (
-        avmgr->amgr, BTOR_INVERT_AIG (av1->aigs[i]), av2->aigs[i]);
+    not_av1 = btor_not_aig (avmgr->amgr, av1->aigs[i]);
+    term1   = btor_and_aig (avmgr->amgr, not_av1, av2->aigs[i]);
 
     tmp = btor_or_aig (avmgr->amgr, term1, res);
+    btor_release_aig (avmgr->amgr, not_av1);
+    btor_release_aig (avmgr->amgr, not_av2);
+    btor_release_aig (avmgr->amgr, not_term0);
     btor_release_aig (avmgr->amgr, term1);
     btor_release_aig (avmgr->amgr, res);
     res = tmp;

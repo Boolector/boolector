@@ -35,7 +35,6 @@ typedef struct BtorAIG BtorAIG;
 #define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
 #define BTOR_IS_CONST_AIG(aig) \
   (((aig) == BTOR_AIG_TRUE) || ((aig) == BTOR_AIG_FALSE))
-#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
 #define BTOR_IS_INVERTED_AIG(aig) (1ul & (unsigned long int) (aig))
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
 #define BTOR_IS_VAR_AIG(aig) ((aig)->children[0] == NULL)
