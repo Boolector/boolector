@@ -2511,8 +2511,10 @@ btor_sdiv_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  if (len == 1)
+    return BTOR_INVERT_EXP (btor_and_exp (emgr, BTOR_INVERT_EXP (e0), e1));
   sign_e1 = btor_slice_exp (emgr, e0, len - 1, len - 1);
   sign_e2 = btor_slice_exp (emgr, e1, len - 1, len - 1);
   /* xor: must result be signed? */
@@ -2604,8 +2606,9 @@ btor_srem_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  if (len == 1) return btor_and_exp (emgr, e0, BTOR_INVERT_EXP (e1));
   sign_e0 = btor_slice_exp (emgr, e0, len - 1, len - 1);
   sign_e1 = btor_slice_exp (emgr, e1, len - 1, len - 1);
   neg_e0  = btor_neg_exp (emgr, e0);
@@ -2661,7 +2664,7 @@ btor_smod_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len     = BTOR_REAL_ADDR_EXP (e0)->len;
   zeros   = zeros_exp (emgr, len);
   sign_e0 = btor_slice_exp (emgr, e0, len - 1, len - 1);
