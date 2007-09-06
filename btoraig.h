@@ -18,7 +18,6 @@ struct BtorAIG
   int refs;
   int mark;
   int cnf_id;
-  int first_clause_id;
   struct BtorAIG *next;
 };
 

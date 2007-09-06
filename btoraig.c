@@ -87,7 +87,6 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig->refs                  = 1;
   aig->mark                  = 0;
   aig->cnf_id                = 0;
-  aig->first_clause_id       = 0;
   aig->next                  = NULL;
   return aig;
 }
@@ -323,7 +322,6 @@ btor_var_aig (BtorAIGMgr *amgr)
   aig->refs                  = 1;
   aig->mark                  = 0;
   aig->cnf_id                = 0;
-  aig->first_clause_id       = 0;
   aig->next                  = NULL;
   return aig;
 }
@@ -886,11 +884,12 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
     {
       cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
       assert (BTOR_IS_AND_AIG (cur));
-      if (cur->first_clause_id == 0)
+      if (cur->mark == 0)
       {
-        left  = BTOR_LEFT_CHILD_AIG (cur);
-        right = BTOR_RIGHT_CHILD_AIG (cur);
-        x     = cur->cnf_id;
+        cur->mark = 1;
+        left      = BTOR_LEFT_CHILD_AIG (cur);
+        right     = BTOR_RIGHT_CHILD_AIG (cur);
+        x         = cur->cnf_id;
         if (BTOR_IS_INVERTED_AIG (left))
           y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
         else
@@ -901,12 +900,6 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
           z = right->cnf_id;
         (void) btor_add_sat (smgr, -x);
         (void) btor_add_sat (smgr, y);
-        /* TODO:
-           cur->first_clause_id = btor_add_sat (0);
-           instead of
-           cur->first_clause_id = 1;
-         */
-        cur->first_clause_id = 1;
         (void) btor_add_sat (smgr, 0);
         (void) btor_add_sat (smgr, -x);
         (void) btor_add_sat (smgr, z);
@@ -927,6 +920,7 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
     btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
   else
     btor_assume_sat (smgr, aig->cnf_id);
+  btor_mark_aig (amgr, aig, 0);
 }
 
 BtorSATMgr *
