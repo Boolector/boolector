@@ -3,6 +3,6 @@
 3 uext 65 2 46
 4 var 46
 5 uext 65 4 19
-6 umul 65 3 5
+6 mul 65 3 5
 7 eq 1 1 6
 8 root 1 7

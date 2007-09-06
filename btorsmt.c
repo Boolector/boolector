@@ -2003,7 +2003,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_binary (parser, node, "bvsmod", btor_smod_exp);
         break;
       case BTOR_SMTOK_BVMUL:
-        translate_binary (parser, node, "bvmul", btor_umul_exp);
+        translate_binary (parser, node, "bvmul", btor_mul_exp);
         break;
       case BTOR_SMTOK_BVULE:
         translate_binary (parser, node, "bvule", btor_ulte_exp);

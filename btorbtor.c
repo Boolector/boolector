@@ -668,9 +668,9 @@ parse_srem (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
-parse_smul (BtorBTORParser *parser, int len)
+parse_mul (BtorBTORParser *parser, int len)
 {
-  return parse_binary (parser, len, btor_smul_exp);
+  return parse_binary (parser, len, btor_mul_exp);
 }
 
 static BtorExp *
@@ -689,12 +689,6 @@ static BtorExp *
 parse_urem (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_urem_exp);
-}
-
-static BtorExp *
-parse_umul (BtorBTORParser *parser, int len)
-{
-  return parse_binary (parser, len, btor_umul_exp);
 }
 
 static BtorExp *
@@ -1326,7 +1320,6 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_slte, "slte");
   new_parser (res, parse_smod, "smod");
   new_parser (res, parse_srem, "srem");
-  new_parser (res, parse_smul, "smul");
   new_parser (res, parse_smulo, "smulo");
   new_parser (res, parse_sra, "sra");
   new_parser (res, parse_srl, "srl");
@@ -1340,7 +1333,7 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_ult, "ult");
   new_parser (res, parse_ulte, "ulte");
   new_parser (res, parse_urem, "urem");
-  new_parser (res, parse_umul, "umul");
+  new_parser (res, parse_mul, "mul");
   new_parser (res, parse_umulo, "umulo");
   new_parser (res, parse_var, "var");
   new_parser (res, parse_xor, "xor");

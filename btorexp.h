@@ -19,7 +19,7 @@ enum BtorExpKind
   BTOR_AND_EXP,
   BTOR_EQ_EXP,
   BTOR_ADD_EXP,
-  BTOR_UMUL_EXP,
+  BTOR_MUL_EXP,
   BTOR_ULT_EXP,
   BTOR_SLL_EXP,
   BTOR_SRL_EXP,
@@ -98,7 +98,7 @@ struct BtorExp
 #define BTOR_IS_BINARY_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
 #define BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND(kind) \
-  (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_UMUL_EXP))
+  (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_MUL_EXP))
 #define BTOR_IS_TERNARY_EXP_KIND(kind) \
   ((kind) == BTOR_WRITE_EXP || (kind) == BTOR_COND_EXP)
 

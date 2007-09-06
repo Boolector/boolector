@@ -214,24 +214,24 @@ rem (int x, int y)
 }
 
 static void
-test_add_1_arithmetic (void)
+test_add_u_arithmetic (void)
 {
   u_arithmetic_test (
       add, "add", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
 }
 
 static void
-test_sub_1_arithmetic (void)
+test_sub_u_arithmetic (void)
 {
   u_arithmetic_test (
       sub, "sub", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
 }
 
 static void
-test_umul_arithmetic (void)
+test_mul_u_arithmetic (void)
 {
   u_arithmetic_test (
-      mul, "umul", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      mul, "mul", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
 }
 
 static void
@@ -249,24 +249,24 @@ test_urem_arithmetic (void)
 }
 
 static void
-test_add_2_arithmetic (void)
+test_add_s_arithmetic (void)
 {
   s_arithmetic_test (
       add, "add", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
 }
 
 static void
-test_sub_2_arithmetic (void)
+test_sub_s_arithmetic (void)
 {
   s_arithmetic_test (
       sub, "sub", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
 }
 
 static void
-test_smul_arithmetic (void)
+test_mul_s_arithmetic (void)
 {
   s_arithmetic_test (
-      mul, "smul", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      mul, "mul", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
 }
 
 static void
@@ -286,14 +286,14 @@ test_srem_arithmetic (void)
 static void
 run_all_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (add_1_arithmetic);
-  BTOR_RUN_TEST (sub_1_arithmetic);
-  BTOR_RUN_TEST (umul_arithmetic);
+  BTOR_RUN_TEST (add_u_arithmetic);
+  BTOR_RUN_TEST (sub_u_arithmetic);
+  BTOR_RUN_TEST (mul_u_arithmetic);
   BTOR_RUN_TEST (udiv_arithmetic);
   BTOR_RUN_TEST (urem_arithmetic);
-  BTOR_RUN_TEST (add_2_arithmetic);
-  BTOR_RUN_TEST (sub_2_arithmetic);
-  BTOR_RUN_TEST (smul_arithmetic);
+  BTOR_RUN_TEST (add_s_arithmetic);
+  BTOR_RUN_TEST (sub_s_arithmetic);
+  BTOR_RUN_TEST (mul_s_arithmetic);
   BTOR_RUN_TEST (sdiv_arithmetic);
   BTOR_RUN_TEST (srem_arithmetic);
 }

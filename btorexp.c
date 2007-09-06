@@ -1228,8 +1228,8 @@ rewrite_exp (BtorExpMgr *emgr,
           case BTOR_ADD_EXP:
             bits_result = btor_add_const (emgr->mm, bits_e0, bits_e1);
             break;
-          case BTOR_UMUL_EXP:
-            bits_result = btor_umul_const (emgr->mm, bits_e0, bits_e1);
+          case BTOR_MUL_EXP:
+            bits_result = btor_mul_const (emgr->mm, bits_e0, bits_e1);
             break;
           case BTOR_ULT_EXP:
             bits_result = btor_ult_const (emgr->mm, bits_e0, bits_e1);
@@ -1269,14 +1269,14 @@ rewrite_exp (BtorExpMgr *emgr,
         {
           if (kind == BTOR_ADD_EXP)
             result = btor_copy_exp (emgr, e1);
-          else if (kind == BTOR_UMUL_EXP || kind == BTOR_SLL_EXP
+          else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                    || kind == BTOR_SRL_EXP || kind == BTOR_UDIV_EXP
                    || kind == BTOR_UREM_EXP)
             result = zeros_exp (emgr, real_e0->len);
         }
         else if (is_one)
         {
-          if (kind == BTOR_UMUL_EXP) result = btor_copy_exp (emgr, e1);
+          if (kind == BTOR_MUL_EXP) result = btor_copy_exp (emgr, e1);
         }
         btor_delete_const (emgr->mm, bits_e0);
       }
@@ -1293,7 +1293,7 @@ rewrite_exp (BtorExpMgr *emgr,
         {
           if (kind == BTOR_ADD_EXP)
             result = btor_copy_exp (emgr, e0);
-          else if (kind == BTOR_UMUL_EXP || kind == BTOR_SLL_EXP
+          else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                    || kind == BTOR_SRL_EXP)
             result = zeros_exp (emgr, real_e0->len);
           else if (kind == BTOR_UDIV_EXP)
@@ -1303,7 +1303,7 @@ rewrite_exp (BtorExpMgr *emgr,
         }
         else if (is_one)
         {
-          if (kind == BTOR_UMUL_EXP) result = btor_copy_exp (emgr, e0);
+          if (kind == BTOR_MUL_EXP) result = btor_copy_exp (emgr, e0);
         }
         btor_delete_const (emgr->mm, bits_e1);
       }
@@ -1326,7 +1326,7 @@ rewrite_exp (BtorExpMgr *emgr,
             if (real_e0->len >= 2)
             {
               temp   = int_to_exp (emgr, 2, real_e0->len);
-              result = btor_umul_exp (emgr, e0, temp);
+              result = btor_mul_exp (emgr, e0, temp);
               btor_release_exp (emgr, temp);
             }
           }
@@ -1845,7 +1845,7 @@ btor_saddo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 }
 
 BtorExp *
-btor_umul_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
+btor_mul_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result = NULL;
   int len         = 0;
@@ -1858,9 +1858,9 @@ btor_umul_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_UMUL_EXP, e0, e1, NULL, 0, 0);
+    result = rewrite_exp (emgr, BTOR_MUL_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL)
-    result = btor_binary_exp (emgr, BTOR_UMUL_EXP, e0, e1, len);
+    result = btor_binary_exp (emgr, BTOR_MUL_EXP, e0, e1, len);
   return result;
 }
 
@@ -1870,7 +1870,7 @@ btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   BtorExp *result    = NULL;
   BtorExp *uext_e1   = NULL;
   BtorExp *uext_e2   = NULL;
-  BtorExp *umul      = NULL;
+  BtorExp *mul       = NULL;
   BtorExp *slice     = NULL;
   BtorExp *and       = NULL;
   BtorExp * or       = NULL;
@@ -1909,64 +1909,17 @@ btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   }
   uext_e1 = btor_uext_exp (emgr, e0, 1);
   uext_e2 = btor_uext_exp (emgr, e1, 1);
-  umul    = btor_umul_exp (emgr, uext_e1, uext_e2);
-  slice   = btor_slice_exp (emgr, umul, len, len);
+  mul     = btor_mul_exp (emgr, uext_e1, uext_e2);
+  slice   = btor_slice_exp (emgr, mul, len, len);
   or      = btor_or_exp (emgr, result, slice);
   btor_release_exp (emgr, uext_e1);
   btor_release_exp (emgr, uext_e2);
-  btor_release_exp (emgr, umul);
+  btor_release_exp (emgr, mul);
   btor_release_exp (emgr, slice);
   btor_release_exp (emgr, result);
   result = or ;
   for (i = 0; i < len - 1; i++) btor_release_exp (emgr, temps_e2[i]);
   BTOR_DELETEN (emgr->mm, temps_e2, len - 1);
-  return result;
-}
-
-BtorExp *
-btor_smul_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
-{
-  BtorExp *result   = NULL;
-  BtorExp *sign_e1  = NULL;
-  BtorExp *sign_e2  = NULL;
-  BtorExp * xor     = NULL;
-  BtorExp *neg_e1   = NULL;
-  BtorExp *neg_e2   = NULL;
-  BtorExp *cond_e1  = NULL;
-  BtorExp *cond_e2  = NULL;
-  BtorExp *umul     = NULL;
-  BtorExp *neg_umul = NULL;
-  int len           = 0;
-  assert (emgr != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
-  sign_e1 = btor_slice_exp (emgr, e0, len - 1, len - 1);
-  sign_e2 = btor_slice_exp (emgr, e1, len - 1, len - 1);
-  /* xor: must result be signed? */
-  xor    = btor_xor_exp (emgr, sign_e1, sign_e2);
-  neg_e1 = btor_neg_exp (emgr, e0);
-  neg_e2 = btor_neg_exp (emgr, e1);
-  /* normalize e0 and e1 if necessary */
-  cond_e1  = btor_cond_exp (emgr, sign_e1, neg_e1, e0);
-  cond_e2  = btor_cond_exp (emgr, sign_e2, neg_e2, e1);
-  umul     = btor_umul_exp (emgr, cond_e1, cond_e2);
-  neg_umul = btor_neg_exp (emgr, umul);
-  /* sign result if necessary */
-  result = btor_cond_exp (emgr, xor, neg_umul, umul);
-  btor_release_exp (emgr, sign_e1);
-  btor_release_exp (emgr, sign_e2);
-  btor_release_exp (emgr, xor);
-  btor_release_exp (emgr, neg_e1);
-  btor_release_exp (emgr, neg_e2);
-  btor_release_exp (emgr, cond_e1);
-  btor_release_exp (emgr, cond_e2);
-  btor_release_exp (emgr, umul);
-  btor_release_exp (emgr, neg_umul);
   return result;
 }
 
@@ -1982,7 +1935,7 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   BtorExp *sext_sign_e2    = NULL;
   BtorExp *xor_sign_e1     = NULL;
   BtorExp *xor_sign_e2     = NULL;
-  BtorExp *smul            = NULL;
+  BtorExp *mul             = NULL;
   BtorExp *slice           = NULL;
   BtorExp *slice_n         = NULL;
   BtorExp *slice_n_minus_1 = NULL;
@@ -2004,13 +1957,13 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   {
     sext_e1         = btor_sext_exp (emgr, e0, 1);
     sext_e2         = btor_sext_exp (emgr, e1, 1);
-    smul            = btor_smul_exp (emgr, sext_e1, sext_e2);
-    slice_n         = btor_slice_exp (emgr, smul, len, len);
-    slice_n_minus_1 = btor_slice_exp (emgr, smul, len - 1, len - 1);
+    mul             = btor_mul_exp (emgr, sext_e1, sext_e2);
+    slice_n         = btor_slice_exp (emgr, mul, len, len);
+    slice_n_minus_1 = btor_slice_exp (emgr, mul, len - 1, len - 1);
     result          = btor_xor_exp (emgr, slice_n, slice_n_minus_1);
     btor_release_exp (emgr, sext_e1);
     btor_release_exp (emgr, sext_e2);
-    btor_release_exp (emgr, smul);
+    btor_release_exp (emgr, mul);
     btor_release_exp (emgr, slice_n);
     btor_release_exp (emgr, slice_n_minus_1);
   }
@@ -2045,9 +1998,9 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
     }
     sext_e1         = btor_sext_exp (emgr, e0, 1);
     sext_e2         = btor_sext_exp (emgr, e1, 1);
-    smul            = btor_smul_exp (emgr, sext_e1, sext_e2);
-    slice_n         = btor_slice_exp (emgr, smul, len, len);
-    slice_n_minus_1 = btor_slice_exp (emgr, smul, len - 1, len - 1);
+    mul             = btor_mul_exp (emgr, sext_e1, sext_e2);
+    slice_n         = btor_slice_exp (emgr, mul, len, len);
+    slice_n_minus_1 = btor_slice_exp (emgr, mul, len - 1, len - 1);
     xor             = btor_xor_exp (emgr, slice_n, slice_n_minus_1);
     or              = btor_or_exp (emgr, result, xor);
     btor_release_exp (emgr, sext_e1);
@@ -2058,7 +2011,7 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
     btor_release_exp (emgr, sext_sign_e2);
     btor_release_exp (emgr, xor_sign_e1);
     btor_release_exp (emgr, xor_sign_e2);
-    btor_release_exp (emgr, smul);
+    btor_release_exp (emgr, mul);
     btor_release_exp (emgr, slice_n);
     btor_release_exp (emgr, slice_n_minus_1);
     btor_release_exp (emgr, xor);
@@ -2943,7 +2896,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
             case BTOR_AND_EXP: fprintf (file, "and"); break;
             case BTOR_EQ_EXP: fprintf (file, "eq"); break;
             case BTOR_ADD_EXP: fprintf (file, "add"); break;
-            case BTOR_UMUL_EXP: fprintf (file, "umul"); break;
+            case BTOR_MUL_EXP: fprintf (file, "mul"); break;
             case BTOR_ULT_EXP: fprintf (file, "ult"); break;
             case BTOR_SLL_EXP: fprintf (file, "sll"); break;
             case BTOR_SRL_EXP: fprintf (file, "srl"); break;
@@ -3191,8 +3144,8 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
             case BTOR_ADD_EXP:
               cur->av = btor_add_aigvec (avmgr, av0, av1);
               break;
-            case BTOR_UMUL_EXP:
-              cur->av = btor_umul_aigvec (avmgr, av0, av1);
+            case BTOR_MUL_EXP:
+              cur->av = btor_mul_aigvec (avmgr, av0, av1);
               break;
             case BTOR_ULT_EXP:
               cur->av = btor_ult_aigvec (avmgr, av0, av1);

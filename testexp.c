@@ -286,15 +286,9 @@ test_saddo_exp (void)
 }
 
 static void
-test_umul_exp (void)
+test_mul_exp (void)
 {
-  binary_commutative_exp_test (btor_umul_exp, "log/umul_exp.log");
-}
-
-static void
-test_smul_exp (void)
-{
-  binary_commutative_exp_test (btor_smul_exp, "log/smul_exp.log");
+  binary_commutative_exp_test (btor_mul_exp, "log/mul_exp.log");
 }
 
 static void
@@ -646,8 +640,7 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (add_exp);
   BTOR_RUN_TEST_CHECK_LOG (uaddo_exp);
   BTOR_RUN_TEST_CHECK_LOG (saddo_exp);
-  BTOR_RUN_TEST_CHECK_LOG (umul_exp);
-  BTOR_RUN_TEST_CHECK_LOG (smul_exp);
+  BTOR_RUN_TEST_CHECK_LOG (mul_exp);
   BTOR_RUN_TEST_CHECK_LOG (ult_exp);
   BTOR_RUN_TEST_CHECK_LOG (slt_exp);
   BTOR_RUN_TEST_CHECK_LOG (ulte_exp);
