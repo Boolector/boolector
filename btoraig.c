@@ -46,6 +46,7 @@ struct BtorAIGMgr
   int id;
   int verbosity;
   BtorSATMgr *smgr;
+  BtorCNFEnc cnf_enc;
 };
 
 /*------------------------------------------------------------------------*/
@@ -808,6 +809,7 @@ btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
   amgr->id        = 1;
   amgr->verbosity = verbosity;
   amgr->smgr      = btor_new_sat_mgr (mm, verbosity);
+  amgr->cnf_enc   = BTOR_TSEITIN_CNF_ENC;
   return amgr;
 }
 
@@ -850,8 +852,8 @@ generate_cnf_ids (BtorAIGMgr *amgr, BtorAIG *aig)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
-void
-btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
+static void
+aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   BtorAIGPtrStack stack;
   BtorSATMgr *smgr = NULL;
@@ -921,6 +923,21 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
   else
     btor_assume_sat (smgr, aig->cnf_id);
   btor_mark_aig (amgr, aig, 0);
+}
+
+void
+btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  aig_to_sat_tseitin (amgr, aig);
+}
+
+void
+btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc)
+{
+  assert (amgr != NULL);
+  amgr->cnf_enc = cnf_enc;
 }
 
 BtorSATMgr *

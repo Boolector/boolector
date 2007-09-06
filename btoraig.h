@@ -11,6 +11,14 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+enum BtorCNFEnc
+{
+  BTOR_TSEITIN_CNF_ENC,
+  BTOR_PLAISTED_GREENBAUM_CNF_ENC
+};
+
+typedef enum BtorCNFEnc BtorCNFEnc;
+
 struct BtorAIG
 {
   int id;
@@ -71,6 +79,8 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+
+void btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc);
 
 BtorSATMgr *btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr);
 
