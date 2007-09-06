@@ -80,9 +80,7 @@ run_smtaxioms_tests (int argc, char** argv)
       p++;
     }
 
-    if ((*p)[2] != 's') test_smtaxiom (mem, argc, argv, *p, 1);
-
-    for (i = 2; i <= 8; i++) test_smtaxiom (mem, argc, argv, *p, i);
+    for (i = 1; i <= 8; i++) test_smtaxiom (mem, argc, argv, *p, i);
 
     if (first)
     {
