@@ -178,64 +178,6 @@ ripple_compare_aig (BtorAIGMgr *amgr,
   btor_release_aig (amgr, gt);
 }
 
-static void
-ripple_compare_aigvec (BtorAIGVecMgr *avmgr,
-                       BtorAIGVec *av1,
-                       BtorAIGVec *av2,
-                       BtorAIG **lt,
-                       BtorAIG **eq,
-                       BtorAIG **gt)
-{
-  int i          = 0;
-  int len        = 0;
-  BtorAIG *lt_in = NULL;
-  BtorAIG *eq_in = NULL;
-  BtorAIG *gt_in = NULL;
-  assert (avmgr != NULL);
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  assert (lt != NULL);
-  assert (eq != NULL);
-  assert (gt != NULL);
-  assert (av1->len == av2->len);
-  assert (av1->len > 0);
-  len = av1->len;
-  if (len == 1)
-  {
-    *lt = btor_and_aig (
-        avmgr->amgr, BTOR_INVERT_AIG (av1->aigs[0]), av2->aigs[0]);
-    *eq = btor_eq_aig (avmgr->amgr, av1->aigs[0], av2->aigs[0]);
-    *gt = btor_and_aig (
-        avmgr->amgr, av1->aigs[0], BTOR_INVERT_AIG (av2->aigs[0]));
-  }
-  else
-  {
-    lt_in = btor_and_aig (
-        avmgr->amgr, BTOR_INVERT_AIG (av1->aigs[0]), av2->aigs[0]);
-    eq_in = btor_eq_aig (avmgr->amgr, av1->aigs[0], av2->aigs[0]);
-    gt_in = btor_and_aig (
-        avmgr->amgr, av1->aigs[0], BTOR_INVERT_AIG (av2->aigs[0]));
-    for (i = 1; i < len; i++)
-    {
-      ripple_compare_aig (avmgr->amgr,
-                          av1->aigs[i],
-                          av2->aigs[i],
-                          lt_in,
-                          eq_in,
-                          gt_in,
-                          lt,
-                          eq,
-                          gt);
-      btor_release_aig (avmgr->amgr, lt_in);
-      btor_release_aig (avmgr->amgr, eq_in);
-      btor_release_aig (avmgr->amgr, gt_in);
-      lt_in = *lt;
-      eq_in = *eq;
-      gt_in = *gt;
-    }
-  }
-}
-
 static BtorAIG *
 compare_aigvec (BtorAIGVecMgr *avmgr,
                 BtorAIGVec *av1,
@@ -267,7 +209,7 @@ compare_aigvec (BtorAIGVecMgr *avmgr,
     res = tmp;
   }
 
-  return tmp;
+  return res;
 }
 
 BtorAIGVec *

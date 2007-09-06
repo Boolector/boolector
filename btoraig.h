@@ -67,6 +67,8 @@ void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
 void btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig);
 
+void btor_dump_aigs (BtorAIGMgr *amgr, FILE *output, BtorAIG **aig, int n);
+
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);

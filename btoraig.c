@@ -798,6 +798,13 @@ btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig)
   }
 }
 
+#if 0
+void
+btor_dump_aigs (BtorAIGMgr * amgr, FILE * output, BtorAIG ** aigs, int n)
+{
+}
+#endif
+
 BtorAIGMgr *
 btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
 {
