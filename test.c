@@ -4,6 +4,7 @@
 #include "testcomp.h"
 #include "testconst.h"
 #include "testexp.h"
+#include "testhash.h"
 #include "testlogic.h"
 #include "testmem.h"
 #include "testmisc.h"
@@ -69,6 +70,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (util);
   BTOR_RUN_TESTS (mem);
   BTOR_RUN_TESTS (stack);
+  BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);

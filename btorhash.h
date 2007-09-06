@@ -52,4 +52,8 @@ BtorPtrToIntHashBucket *btor_find_in_ptr_to_int_hash_table (
 
 BtorPtrToIntHashBucket *btor_insert_in_ptr_to_int_hash_table (
     BtorPtrToIntHashTable *, void *key, int data);
+
+unsigned btor_hashstr (void *state_dummy, void *str);
+int btor_cmpstr (void *state_dummy, void *a, void *b);
+
 #endif

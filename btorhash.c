@@ -122,7 +122,41 @@ btor_insert_in_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht,
   res->data = data;
   *p        = res;
   p2iht->count++;
+  if (p2iht->first)
+    p2iht->last->next = res;
+  else
+    p2iht->first = res;
   p2iht->last = res;
-  if (!p2iht->first) p2iht->first = res;
   return res;
+}
+
+static unsigned primes[] = {1183477, 1183541, 1183579, 1183277, 1183279};
+#define PRIMES ((sizeof primes) / sizeof *primes)
+
+unsigned
+btor_hashstr (void *state_dummy, void *str)
+{
+  const char *p = (const char *) str;
+  unsigned res, i;
+  char ch;
+
+  (void) state_dummy;
+
+  i   = 0;
+  res = 0;
+
+  while ((ch = *p++))
+  {
+    res += primes[i++] * (unsigned) ch;
+    if (i == PRIMES) i = 0;
+  }
+
+  return res;
+}
+
+int
+btor_cmpstr (void *state_dummy, void *a, void *b)
+{
+  (void) state_dummy;
+  return strcmp ((const char *) a, (const char *) b);
 }
