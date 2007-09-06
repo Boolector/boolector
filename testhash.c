@@ -21,15 +21,15 @@ static void
 test_new_delete_hash (void)
 {
   size_t allocated          = mem->allocated;
-  BtorPtrToIntHashTable *ht = btor_new_ptr_to_int_hash_table (mem, 0, 0, 0);
-  btor_delete_ptr_to_int_hash_tabale (ht);
+  BtorPtrToIntHashTable *ht = btor_new_ptr_to_int_hash_table (mem, 0, 0);
+  btor_delete_ptr_to_int_hash_table (ht);
   assert (allocated == mem->allocated);
 }
 
 static void
 test_hash_str2i (void)
 {
-  BtorPtrToIntHashTable *ht = btor_new_ptr_to_int_hash_table (mem, 0, 0, 0);
+  BtorPtrToIntHashTable *ht = btor_new_ptr_to_int_hash_table (mem, 0, 0);
 
   btor_insert_in_ptr_to_int_hash_table (ht, "one", 1);
   assert (btor_find_in_ptr_to_int_hash_table (ht, "one"));
@@ -43,7 +43,7 @@ test_hash_str2i (void)
   assert (btor_find_in_ptr_to_int_hash_table (ht, "three"));
   assert (btor_find_in_ptr_to_int_hash_table (ht, "three")->data == 3);
 
-  btor_delete_ptr_to_int_hash_tabale (ht);
+  btor_delete_ptr_to_int_hash_table (ht);
 }
 
 static void
@@ -55,7 +55,7 @@ test_traverse_hash_str2i (void)
   FILE *file;
   int i;
 
-  ht = btor_new_ptr_to_int_hash_table (mem, 0, btor_hashstr, btor_cmpstr);
+  ht = btor_new_ptr_to_int_hash_table (mem, btor_hashstr, btor_cmpstr);
 
   for (i = 0; i < 40; i++)
   {
@@ -79,7 +79,7 @@ test_traverse_hash_str2i (void)
   }
   fclose (file);
 
-  btor_delete_ptr_to_int_hash_tabale (ht);
+  btor_delete_ptr_to_int_hash_table (ht);
 }
 
 void

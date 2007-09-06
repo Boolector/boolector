@@ -1,4 +1,5 @@
 #include "btoraig.h"
+#include "btorhash.h"
 #include "btorsat.h"
 #include "btorutil.h"
 
@@ -800,12 +801,20 @@ btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig)
   }
 }
 
-#if 0
 void
-btor_dump_aigs (BtorAIGMgr * amgr, FILE * output, BtorAIG ** aigs, int n)
+btor_dump_aigs (BtorAIGMgr *amgr, FILE *file, BtorAIG **aigs, int naigs)
 {
+  BtorPtrToIntHashTable *table;
+  // unsigned M, I, L, O, A;
+  BtorAIGPtrStack stack;
+
+  table = btor_new_ptr_to_int_hash_table (amgr->mm, 0, 0);
+
+  BTOR_INIT_STACK (stack);
+  BTOR_RELEASE_STACK (amgr->mm, stack);
+
+  btor_delete_ptr_to_int_hash_table (table);
 }
-#endif
 
 BtorAIGMgr *
 btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)

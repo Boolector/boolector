@@ -1,22 +1,19 @@
 #include "btorhash.h"
 
 static unsigned
-btor_hash_ptr (void *state, void *p)
+btor_hash_ptr (void *p)
 {
-  (void) state;
   return 1183477 * (unsigned) (unsigned long) p;
 }
 
 static int
-btor_cmp_ptr (void *state, void *p, void *q)
+btor_cmp_ptr (void *p, void *q)
 {
-  (void) state;
   return ((long) p) - ((long) q);
 }
 
 BtorPtrToIntHashTable *
 btor_new_ptr_to_int_hash_table (BtorMemMgr *mem,
-                                void *state,
                                 BtorHashPtr hash,
                                 BtorCmpPtr cmp)
 {
@@ -25,9 +22,7 @@ btor_new_ptr_to_int_hash_table (BtorMemMgr *mem,
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->mem   = mem;
-  res->state = state;
-
+  res->mem  = mem;
   res->hash = hash ? hash : btor_hash_ptr;
   res->cmp  = cmp ? cmp : btor_cmp_ptr;
 
@@ -35,7 +30,7 @@ btor_new_ptr_to_int_hash_table (BtorMemMgr *mem,
 }
 
 void
-btor_delete_ptr_to_int_hash_tabale (BtorPtrToIntHashTable *p2iht)
+btor_delete_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
 {
   BtorPtrToIntHashBucket *p, *next;
 
@@ -55,7 +50,6 @@ btor_enlarge_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
   BtorPtrToIntHashBucket *p, *chain, **old_table, **new_table;
   unsigned old_size, new_size, i, h;
   BtorHashPtr hash;
-  void *state;
 
   old_size  = p2iht->size;
   old_table = p2iht->table;
@@ -63,14 +57,13 @@ btor_enlarge_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
   new_size = old_size ? 2 * old_size : 1;
   BTOR_CNEWN (p2iht->mem, new_table, new_size);
 
-  state = p2iht->state;
-  hash  = p2iht->hash;
+  hash = p2iht->hash;
 
   for (i = 0; i < old_size; i++)
     for (p = old_table[i]; p; p = chain)
     {
       chain = p->chain;
-      h     = hash (state, p->key);
+      h     = hash (p->key);
       h &= new_size - 1;
       p->chain     = new_table[h];
       new_table[h] = p;
@@ -93,10 +86,10 @@ btor_findpos_in_ptr_to_int_hash_table_pos (BtorPtrToIntHashTable *p2iht,
 
   assert (p2iht->size > 0);
 
-  h = p2iht->hash (p2iht->state, key);
+  h = p2iht->hash (key);
   h &= p2iht->size - 1;
 
-  for (p = p2iht->table + h; (b = *p) && p2iht->cmp (p2iht->state, b->key, key);
+  for (p = p2iht->table + h; (b = *p) && p2iht->cmp (b->key, key);
        p = &b->chain)
     ;
 
@@ -130,17 +123,15 @@ btor_insert_in_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht,
   return res;
 }
 
-static unsigned primes[] = {1183477, 1183541, 1183579, 1183277, 1183279};
+static unsigned primes[] = {111130391, 22237357, 33355519, 444476887};
 #define PRIMES ((sizeof primes) / sizeof *primes)
 
 unsigned
-btor_hashstr (void *state_dummy, void *str)
+btor_hashstr (void *str)
 {
   const char *p = (const char *) str;
   unsigned res, i;
   char ch;
-
-  (void) state_dummy;
 
   i   = 0;
   res = 0;
@@ -152,11 +143,4 @@ btor_hashstr (void *state_dummy, void *str)
   }
 
   return res;
-}
-
-int
-btor_cmpstr (void *state_dummy, void *a, void *b)
-{
-  (void) state_dummy;
-  return strcmp ((const char *) a, (const char *) b);
 }

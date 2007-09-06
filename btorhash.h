@@ -1,14 +1,16 @@
 #ifndef BTOR_HASH_H_INCLUDED
 #define BTOR_HASH_H_INCLUDED
 
-#include <assert.h>
+#include <string.h>
 #include "btormem.h"
+
+#include <assert.h>
 
 typedef struct BtorPtrToIntHashTable BtorPtrToIntHashTable;
 typedef struct BtorPtrToIntHashBucket BtorPtrToIntHashBucket;
 
-typedef unsigned (*BtorHashPtr) (void *state, void *key);
-typedef int (*BtorCmpPtr) (void *state, void *a, void *b);
+typedef unsigned (*BtorHashPtr) (void *key);
+typedef int (*BtorCmpPtr) (void *a, void *b);
 
 struct BtorPtrToIntHashBucket
 {
@@ -32,7 +34,6 @@ struct BtorPtrToIntHashTable
   unsigned count;
   BtorPtrToIntHashBucket **table;
 
-  void *state;
   BtorHashPtr hash;
   BtorCmpPtr cmp;
 
@@ -41,11 +42,10 @@ struct BtorPtrToIntHashTable
 };
 
 BtorPtrToIntHashTable *btor_new_ptr_to_int_hash_table (BtorMemMgr *,
-                                                       void *state,
                                                        BtorHashPtr,
                                                        BtorCmpPtr);
 
-void btor_delete_ptr_to_int_hash_tabale (BtorPtrToIntHashTable *);
+void btor_delete_ptr_to_int_hash_table (BtorPtrToIntHashTable *);
 
 BtorPtrToIntHashBucket *btor_find_in_ptr_to_int_hash_table (
     BtorPtrToIntHashTable *, void *);
@@ -53,7 +53,8 @@ BtorPtrToIntHashBucket *btor_find_in_ptr_to_int_hash_table (
 BtorPtrToIntHashBucket *btor_insert_in_ptr_to_int_hash_table (
     BtorPtrToIntHashTable *, void *key, int data);
 
-unsigned btor_hashstr (void *state_dummy, void *str);
-int btor_cmpstr (void *state_dummy, void *a, void *b);
+unsigned btor_hashstr (void *str);
+
+#define btor_cmpstr ((BtorCmpPtr) strcmp)
 
 #endif
