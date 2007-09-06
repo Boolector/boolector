@@ -23,25 +23,13 @@
 22 const 1 0
 24 cond 1 3 23 22
 25 concat 4 24 1
-28 slice 1 25 3 3
 26 cond 1 4 23 22
 27 concat 4 26 2
-29 slice 1 27 3 3
-30 and 1 -28 -29
-31 and 1 28 29
-32 and 1 -30 -31
-33 const 4 0001
-34 add 4 -25 33
-36 cond 4 28 34 25
-35 add 4 -27 33
-37 cond 4 29 35 27
-38 umul 4 36 37
-39 add 4 33 -38
-40 cond 4 32 39 38
-41 slice 1 40 3 3
-42 slice 1 40 2 2
-43 and 1 -41 -42
-44 and 1 41 42
-45 and 1 -43 -44
-46 and 1 -21 -45
-47 root 1 -46
+28 mul 4 25 27
+29 slice 1 28 3 3
+30 slice 1 28 2 2
+31 and 1 -29 -30
+32 and 1 29 30
+33 and 1 -31 -32
+34 and 1 -21 -33
+35 root 1 -34

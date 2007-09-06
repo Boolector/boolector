@@ -154,12 +154,12 @@ test_srl_aigvec (void)
 }
 
 static void
-test_umul_aigvec (void)
+test_mul_aigvec (void)
 {
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, 0);
   BtorAIGVec *av1      = btor_var_aigvec (avmgr, 32);
   BtorAIGVec *av2      = btor_var_aigvec (avmgr, 32);
-  BtorAIGVec *av3      = btor_umul_aigvec (avmgr, av1, av2);
+  BtorAIGVec *av3      = btor_mul_aigvec (avmgr, av1, av2);
   assert (av3->len == 32);
   btor_release_delete_aigvec (avmgr, av1);
   btor_release_delete_aigvec (avmgr, av2);
@@ -323,7 +323,7 @@ run_aigvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (add_aigvec);
   BTOR_RUN_TEST (sll_aigvec);
   BTOR_RUN_TEST (srl_aigvec);
-  BTOR_RUN_TEST (umul_aigvec);
+  BTOR_RUN_TEST (mul_aigvec);
   BTOR_RUN_TEST (udiv_aigvec);
   BTOR_RUN_TEST (urem_aigvec);
   BTOR_RUN_TEST (concat_aigvec);

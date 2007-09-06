@@ -15,11 +15,8 @@
 
 #define BTOR_TEST_OVERFLOW_TEMP_FILE_NAME "of.tmp"
 
-#define BTOR_TEST_OVERFLOW_U_LOW 1
-#define BTOR_TEST_OVERFLOW_U_HIGH 4
-
-#define BTOR_TEST_OVERFLOW_S_LOW 2
-#define BTOR_TEST_OVERFLOW_S_HIGH 4
+#define BTOR_TEST_OVERFLOW_LOW 1
+#define BTOR_TEST_OVERFLOW_HIGH 4
 
 static int g_argc     = 3;
 static char *g_argv[] = {
@@ -92,7 +89,7 @@ neg_overflow_test (int low, int high)
   int num_bits           = 0;
   int max                = 0;
   BtorExitCode exit_code = 0;
-  assert (low > 1);
+  assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -148,7 +145,7 @@ s_overflow_test (int (*func) (int, int),
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
-  assert (low > 1);
+  assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -237,55 +234,55 @@ static void
 test_uaddo_overflow (void)
 {
   u_overflow_test (
-      add, "uaddo", BTOR_TEST_OVERFLOW_U_LOW, BTOR_TEST_OVERFLOW_U_HIGH);
+      add, "uaddo", BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_usubo_overflow (void)
 {
   u_overflow_test (
-      sub, "usubo", BTOR_TEST_OVERFLOW_U_LOW, BTOR_TEST_OVERFLOW_U_HIGH);
+      sub, "usubo", BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_umulo_overflow (void)
 {
   u_overflow_test (
-      mul, "umulo", BTOR_TEST_OVERFLOW_U_LOW, BTOR_TEST_OVERFLOW_U_HIGH);
+      mul, "umulo", BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_nego_overflow (void)
 {
-  neg_overflow_test (BTOR_TEST_OVERFLOW_S_LOW, BTOR_TEST_OVERFLOW_S_HIGH);
+  neg_overflow_test (BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_saddo_overflow (void)
 {
   s_overflow_test (
-      add, "saddo", 0, BTOR_TEST_OVERFLOW_S_LOW, BTOR_TEST_OVERFLOW_S_HIGH);
+      add, "saddo", 0, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_ssubo_overflow (void)
 {
   s_overflow_test (
-      sub, "ssubo", 0, BTOR_TEST_OVERFLOW_S_LOW, BTOR_TEST_OVERFLOW_S_HIGH);
+      sub, "ssubo", 0, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_smulo_overflow (void)
 {
   s_overflow_test (
-      mul, "smulo", 0, BTOR_TEST_OVERFLOW_S_LOW, BTOR_TEST_OVERFLOW_S_HIGH);
+      mul, "smulo", 0, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void
 test_sdivo_overflow (void)
 {
   s_overflow_test (
-      divide, "sdivo", 1, BTOR_TEST_OVERFLOW_S_LOW, BTOR_TEST_OVERFLOW_S_HIGH);
+      divide, "sdivo", 1, BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
 }
 
 static void

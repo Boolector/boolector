@@ -469,7 +469,7 @@ sll_n_bits (BtorMemMgr *mm, const char *a, int n)
 }
 
 char *
-btor_umul_const (BtorMemMgr *mm, const char *a, const char *b)
+btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result = NULL;
   char *and    = NULL;

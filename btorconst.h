@@ -44,7 +44,7 @@ char *btor_neg_const (BtorMemMgr *mm, const char *a);
 
 char *btor_sub_const (BtorMemMgr *mm, const char *a, const char *b);
 
-char *btor_umul_const (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_mul_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_udiv_const (BtorMemMgr *mm, const char *a, const char *b);
 

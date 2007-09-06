@@ -11,7 +11,7 @@
 11 const 1 0
 12 concat 4 11 1
 13 concat 4 11 2
-14 umul 4 12 13
+14 mul 4 12 13
 15 slice 1 14 3 3
 16 and 1 10 -15
 17 root 1 -16

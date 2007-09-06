@@ -87,11 +87,9 @@ BtorExp *btor_uaddo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_saddo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-BtorExp *btor_umul_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_mul_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
-
-BtorExp *btor_smul_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 

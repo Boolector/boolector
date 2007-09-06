@@ -3,7 +3,7 @@
 3 var 32 q
 4 var 32 r
 
-7 umul 32 2 3
+7 mul 32 2 3
 8 add 32 4 7
 
 11 eq 1 1 8

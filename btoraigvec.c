@@ -382,7 +382,7 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 }
 
 BtorAIGVec *
-btor_umul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+btor_mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   BtorAIGVec *result = NULL;
   BtorAIGVec *and    = NULL;
