@@ -413,7 +413,7 @@ int_min_exp (BtorExpMgr *emgr, int len)
   char *string    = NULL;
   BtorExp *result = NULL;
   assert (emgr != NULL);
-  assert (len > 1);
+  assert (len > 0);
   string    = zeros_string (emgr, len);
   string[0] = '1';
   result    = btor_const_exp (emgr, string);
@@ -1425,8 +1425,9 @@ btor_nego_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 1);
-  len      = BTOR_REAL_ADDR_EXP (exp)->len;
+  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
+  len = BTOR_REAL_ADDR_EXP (exp)->len;
+  if (len == 1) return btor_copy_exp (emgr, exp);
   sign_exp = btor_slice_exp (emgr, exp, len - 1, len - 1);
   rest     = btor_slice_exp (emgr, exp, len - 2, 0);
   zeros    = zeros_exp (emgr, len - 1);
@@ -1821,7 +1822,7 @@ btor_saddo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len         = BTOR_REAL_ADDR_EXP (e0)->len;
   sign_e1     = btor_slice_exp (emgr, e0, len - 1, len - 1);
   sign_e2     = btor_slice_exp (emgr, e1, len - 1, len - 1);
@@ -1951,8 +1952,9 @@ btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
+  if (len == 1) return btor_and_exp (emgr, e0, e1);
   if (len == 2)
   {
     sext_e1         = btor_sext_exp (emgr, e0, 1);
@@ -2402,7 +2404,7 @@ btor_ssubo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len         = BTOR_REAL_ADDR_EXP (e0)->len;
   sign_e1     = btor_slice_exp (emgr, e0, len - 1, len - 1);
   sign_e2     = btor_slice_exp (emgr, e1, len - 1, len - 1);
@@ -2507,7 +2509,7 @@ btor_sdivo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   int_min = int_min_exp (emgr, BTOR_REAL_ADDR_EXP (e0)->len);
   ones    = ones_exp (emgr, BTOR_REAL_ADDR_EXP (e1)->len);
   eq1     = btor_eq_exp (emgr, e0, int_min);

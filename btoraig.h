@@ -11,6 +11,14 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+enum BtorCNFEnc
+{
+  BTOR_TSEITIN_CNF_ENC,
+  BTOR_PLAISTED_GREENBAUM_CNF_ENC
+};
+
+typedef enum BtorCNFEnc BtorCNFEnc;
+
 struct BtorAIG
 {
   int id;
@@ -18,7 +26,6 @@ struct BtorAIG
   int refs;
   int mark;
   int cnf_id;
-  int first_clause_id;
   struct BtorAIG *next;
 };
 
@@ -28,7 +35,6 @@ typedef struct BtorAIG BtorAIG;
 #define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
 #define BTOR_IS_CONST_AIG(aig) \
   (((aig) == BTOR_AIG_TRUE) || ((aig) == BTOR_AIG_FALSE))
-#define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
 #define BTOR_IS_INVERTED_AIG(aig) (1ul & (unsigned long int) (aig))
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
 #define BTOR_IS_VAR_AIG(aig) ((aig)->children[0] == NULL)
@@ -74,6 +80,8 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+
+void btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc);
 
 BtorSATMgr *btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr);
 

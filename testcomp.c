@@ -14,11 +14,8 @@
 
 #define BTOR_TEST_COMP_TEMP_FILE_NAME "comp.tmp"
 
-#define BTOR_TEST_COMP_U_LOW 1
-#define BTOR_TEST_COMP_U_HIGH 4
-
-#define BTOR_TEST_COMP_S_LOW 2
-#define BTOR_TEST_COMP_S_HIGH 4
+#define BTOR_TEST_COMP_LOW 1
+#define BTOR_TEST_COMP_HIGH 4
 
 static int g_argc     = 3;
 static char *g_argv[] = {
@@ -89,7 +86,7 @@ s_comp_test (int (*func) (int, int), const char *func_name, int low, int high)
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
-  assert (low > 1);
+  assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -185,73 +182,73 @@ gte (int x, int y)
 static void
 test_eq_1_comp (void)
 {
-  u_comp_test (eq, "eq", BTOR_TEST_COMP_U_LOW, BTOR_TEST_COMP_U_HIGH);
+  u_comp_test (eq, "eq", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_ne_1_comp (void)
 {
-  u_comp_test (ne, "ne", BTOR_TEST_COMP_U_LOW, BTOR_TEST_COMP_U_HIGH);
+  u_comp_test (ne, "ne", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_ult_comp (void)
 {
-  u_comp_test (lt, "ult", BTOR_TEST_COMP_U_LOW, BTOR_TEST_COMP_U_HIGH);
+  u_comp_test (lt, "ult", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_ulte_comp (void)
 {
-  u_comp_test (lte, "ulte", BTOR_TEST_COMP_U_LOW, BTOR_TEST_COMP_U_HIGH);
+  u_comp_test (lte, "ulte", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_ugt_comp (void)
 {
-  u_comp_test (gt, "ugt", BTOR_TEST_COMP_U_LOW, BTOR_TEST_COMP_U_HIGH);
+  u_comp_test (gt, "ugt", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_ugte_comp (void)
 {
-  u_comp_test (gte, "ugte", BTOR_TEST_COMP_U_LOW, BTOR_TEST_COMP_U_HIGH);
+  u_comp_test (gte, "ugte", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_eq_2_comp (void)
 {
-  s_comp_test (eq, "eq", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
+  s_comp_test (eq, "eq", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_ne_2_comp (void)
 {
-  s_comp_test (ne, "ne", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
+  s_comp_test (ne, "ne", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_slt_comp (void)
 {
-  s_comp_test (lt, "slt", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
+  s_comp_test (lt, "slt", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_slte_comp (void)
 {
-  s_comp_test (lte, "slte", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
+  s_comp_test (lte, "slte", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_sgt_comp (void)
 {
-  s_comp_test (gt, "sgt", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
+  s_comp_test (gt, "sgt", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void
 test_sgte_comp (void)
 {
-  s_comp_test (gte, "sgte", BTOR_TEST_COMP_S_LOW, BTOR_TEST_COMP_S_HIGH);
+  s_comp_test (gte, "sgte", BTOR_TEST_COMP_LOW, BTOR_TEST_COMP_HIGH);
 }
 
 static void

@@ -44,27 +44,31 @@ static const char *g_usage =
     "\n"
     "where <option> is one of the following:"
     "\n"
-    "  -h|--help                     print usage information and exit\n"
-    "  -c|--copyright                print copyright\n"
-    "  -V|--version                  print version and exit\n"
+    "  -h|--help                        print usage information and exit\n"
+    "  -c|--copyright                   print copyright\n"
+    "  -V|--version                     print version and exit\n"
     "\n"
-    "  -q|--quiet                    do not print any output\n"
-    "  -v|--verbose                  increase verbosity (0 default, 3 max)\n"
+    "  -q|--quiet                       do not print any output\n"
+    "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
-    "  -x|--hex                      hexadecimal output\n"
-    "  -d|--dec                      decimal output\n"
-    "  -o|--output <file>            set output file\n"
-    "  -t|--trace <file>             set trace file\n"
-    "  -de|--dump-exp <file>         dump expression\n"
-    "  -da|--dump-aig <file>         dump AIG in AIGER (only for BV)\n"
-    "  -dc|--dump-cnf <file>         dump CNF in DIMACS\n"
-    "  --smt                         force SMT input\n"
+    "  -x|--hex                         hexadecimal output\n"
+    "  -d|--dec                         decimal output\n"
+    "  -o|--output <file>               set output file\n"
+    "  -t|--trace <file>                set trace file\n"
+    "  -de|--dump-exp <file>            dump expression\n"
+    "  -da|--dump-aig <file>            dump AIG in AIGER (only for BV)\n"
+    "  -dc|--dump-cnf <file>            dump CNF in DIMACS\n"
+    "  --smt                            force SMT input\n"
     "\n"
-    "  -rwl<n>|--rewrite-level<n>    set rewrite level [0,2] (default 2)\n"
-    "  -nr|--no-read                 no read consistency (not sound (SAT))\n"
-    "  -er|--eager-read              eager Ackermann encoding\n"
-    "  -lr|--lazy-read               iterative read refinement\n"
-    "  -sr|--sat-solver-read         read consistency handled by SAT solver\n";
+    "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
+    "  -nr|--no-read                    no read consistency (not sound (SAT))\n"
+    "  -er|--eager-read                 eager Ackermann encoding\n"
+    "  -lr|--lazy-read                  iterative read refinement\n"
+    "  -sr|--sat-solver-read            read consistency handled by SAT "
+    "solver\n"
+    "\n"
+    "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
+    "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -227,6 +231,7 @@ btor_main (int argc, char **argv)
   int decimal                 = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
+  BtorCNFEnc cnf_enc          = BTOR_TSEITIN_CNF_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
@@ -333,6 +338,15 @@ btor_main (int argc, char **argv)
       }
       else
         app.verbosity = -1;
+    }
+    else if (!strcmp (argv[i], "-tcnf") || !strcmp (argv[i], "--tseitin-cnf"))
+    {
+      cnf_enc = BTOR_TSEITIN_CNF_ENC;
+    }
+    else if (!strcmp (argv[i], "-pgcnf")
+             || !strcmp (argv[i], "--plaisted-greenbaum-cnf"))
+    {
+      cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
@@ -447,7 +461,7 @@ btor_main (int argc, char **argv)
       {
         btor_dump_exp (emgr, exp_file, parse_res.roots[0]);
       }
-      if (dump_aig || dump_cnf)
+      else
       {
         avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
         amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -461,6 +475,7 @@ btor_main (int argc, char **argv)
         else if (dump_cnf)
         {
           btor_set_read_enc_exp_mgr (emgr, read_enc);
+          btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
           btor_init_sat (smgr);
           btor_exp_to_sat (emgr, parse_res.roots[0]);
           btor_dump_cnf_sat (smgr, cnf_file);
@@ -482,6 +497,7 @@ btor_main (int argc, char **argv)
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_read_enc_exp_mgr (emgr, read_enc);
+      btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
       sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
 
       if (app.verbosity >= 0)
