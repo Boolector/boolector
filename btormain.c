@@ -231,7 +231,7 @@ btor_main (int argc, char **argv)
   int decimal                 = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
-  BtorCNFEnc cnf_enc          = BTOR_TSEITIN_CNF_ENC;
+  BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
