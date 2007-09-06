@@ -15,11 +15,8 @@
 
 #define BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME "arith.tmp"
 
-#define BTOR_TEST_ARITHMETIC_U_LOW 1
-#define BTOR_TEST_ARITHMETIC_U_HIGH 4
-
-#define BTOR_TEST_ARITHMETIC_S_LOW 2
-#define BTOR_TEST_ARITHMETIC_S_HIGH 4
+#define BTOR_TEST_ARITHMETIC_LOW 1
+#define BTOR_TEST_ARITHMETIC_HIGH 4
 
 static int g_argc     = 3;
 static char *g_argv[] = {
@@ -106,7 +103,7 @@ s_arithmetic_test (int (*func) (int, int),
   BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
-  assert (low > 1);
+  assert (low > 0);
   assert (low <= high);
   for (num_bits = low; num_bits <= high; num_bits++)
   {
@@ -197,10 +194,8 @@ divide (int x, int y)
 {
   if (y == 0)
   {
-    if (x < 0)
-      return 1;
-    else
-      return -1;
+    if (x < 0) return 1;
+    return -1;
   }
   return x / y;
 }
@@ -217,70 +212,70 @@ static void
 test_add_u_arithmetic (void)
 {
   u_arithmetic_test (
-      add, "add", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      add, "add", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_sub_u_arithmetic (void)
 {
   u_arithmetic_test (
-      sub, "sub", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      sub, "sub", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_mul_u_arithmetic (void)
 {
   u_arithmetic_test (
-      mul, "mul", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      mul, "mul", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_udiv_arithmetic (void)
 {
   u_arithmetic_test (
-      divide, "udiv", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      divide, "udiv", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_urem_arithmetic (void)
 {
   u_arithmetic_test (
-      rem, "urem", BTOR_TEST_ARITHMETIC_U_LOW, BTOR_TEST_ARITHMETIC_U_HIGH);
+      rem, "urem", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_add_s_arithmetic (void)
 {
   s_arithmetic_test (
-      add, "add", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      add, "add", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_sub_s_arithmetic (void)
 {
   s_arithmetic_test (
-      sub, "sub", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      sub, "sub", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_mul_s_arithmetic (void)
 {
   s_arithmetic_test (
-      mul, "mul", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      mul, "mul", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_sdiv_arithmetic (void)
 {
   s_arithmetic_test (
-      divide, "sdiv", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      divide, "sdiv", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
 test_srem_arithmetic (void)
 {
   s_arithmetic_test (
-      rem, "srem", BTOR_TEST_ARITHMETIC_S_LOW, BTOR_TEST_ARITHMETIC_S_HIGH);
+      rem, "srem", BTOR_TEST_ARITHMETIC_LOW, BTOR_TEST_ARITHMETIC_HIGH);
 }
 
 static void
