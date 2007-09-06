@@ -2109,8 +2109,9 @@ btor_slt_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  if (len == 1) return btor_and_exp (emgr, e0, BTOR_INVERT_EXP (e1));
   sign_e1 = btor_slice_exp (emgr, e0, len - 1, len - 1);
   sign_e2 = btor_slice_exp (emgr, e1, len - 1, len - 1);
   /* rest_e1: e0 without sign bit */
@@ -2177,7 +2178,7 @@ btor_slte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   slt    = btor_slt_exp (emgr, e0, e1);
   eq     = btor_eq_exp (emgr, e0, e1);
   result = btor_or_exp (emgr, slt, eq);
@@ -2208,7 +2209,7 @@ btor_sgt_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_slt_exp (emgr, e1, e0);
 }
 
@@ -2245,7 +2246,7 @@ btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   slt    = btor_slt_exp (emgr, e1, e0);
   eq     = btor_eq_exp (emgr, e0, e1);
   result = btor_or_exp (emgr, slt, eq);
