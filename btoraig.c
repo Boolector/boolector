@@ -74,7 +74,6 @@ print_verbose_msg (char *msg)
 /*------------------------------------------------------------------------*/
 /* BtorAIG                                                                */
 /*------------------------------------------------------------------------*/
-
 static BtorAIG *
 new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
@@ -88,9 +87,11 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   BTOR_LEFT_CHILD_AIG (aig)  = left;
   BTOR_RIGHT_CHILD_AIG (aig) = right;
   aig->refs                  = 1;
-  aig->mark                  = 0;
   aig->cnf_id                = 0;
   aig->next                  = NULL;
+  aig->mark                  = 0;
+  aig->pos_imp               = 0;
+  aig->neg_imp               = 0;
   return aig;
 }
 
@@ -846,7 +847,186 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   BtorAIG *right   = NULL;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
-  if (amgr->verbosity > 1) print_verbose_msg ("transforming AIG into CNF\n");
+  assert (!BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)));
+  if (amgr->verbosity > 1)
+    print_verbose_msg (
+        "transforming AIG into CNF using Tseitin transformation\n");
+  smgr = amgr->smgr;
+  mm   = amgr->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (cur->cnf_id == 0)
+    {
+      if (cur->mark == 0)
+      {
+        if (BTOR_IS_VAR_AIG (cur))
+        {
+          cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        }
+        else
+        {
+          assert (BTOR_IS_AND_AIG (cur));
+          cur->mark = 1;
+          BTOR_PUSH_STACK (mm, stack, cur);
+          BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+          BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+        }
+      }
+      else
+      {
+        assert (cur->mark == 1);
+        assert (BTOR_IS_AND_AIG (cur));
+        left        = BTOR_LEFT_CHILD_AIG (cur);
+        right       = BTOR_RIGHT_CHILD_AIG (cur);
+        cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        x           = cur->cnf_id;
+        if (BTOR_IS_INVERTED_AIG (left))
+          y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
+        else
+          y = left->cnf_id;
+        if (BTOR_IS_INVERTED_AIG (right))
+          z = -BTOR_REAL_ADDR_AIG (right)->cnf_id;
+        else
+          z = right->cnf_id;
+        assert (x != 0);
+        assert (y != 0);
+        assert (z != 0);
+        (void) btor_add_sat (smgr, -x);
+        (void) btor_add_sat (smgr, y);
+        (void) btor_add_sat (smgr, 0);
+        (void) btor_add_sat (smgr, -x);
+        (void) btor_add_sat (smgr, z);
+        (void) btor_add_sat (smgr, 0);
+        (void) btor_add_sat (smgr, -y);
+        (void) btor_add_sat (smgr, -z);
+        (void) btor_add_sat (smgr, x);
+        (void) btor_add_sat (smgr, 0);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+  btor_mark_aig (amgr, aig, 0);
+}
+
+static void
+generate_cnf_ids (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  BtorAIGPtrStack stack;
+  BtorSATMgr *smgr = NULL;
+  BtorAIG *cur     = NULL;
+  BtorMemMgr *mm   = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  smgr = amgr->smgr;
+  mm   = amgr->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (cur->cnf_id == 0)
+    {
+      cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      if (BTOR_IS_AND_AIG (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
+static void
+aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  BtorAIGPtrStack stack;
+  BtorSATMgr *smgr = NULL;
+  BtorMemMgr *mm   = NULL;
+  int x            = 0;
+  int y            = 0;
+  int z            = 0;
+  int is_inverted  = 0;
+  BtorAIG *cur     = NULL;
+  BtorAIG *left    = NULL;
+  BtorAIG *right   = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
+  assert (!BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)));
+  if (amgr->verbosity > 1)
+    print_verbose_msg (
+        "transforming AIG into CNF using Plaisted-Greenbaum transformation\n");
+  smgr = amgr->smgr;
+  generate_cnf_ids (amgr, aig);
+  mm = amgr->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur         = BTOR_POP_STACK (stack);
+    is_inverted = BTOR_IS_INVERTED_AIG (cur);
+    cur         = BTOR_REAL_ADDR_AIG (cur);
+    if ((is_inverted && cur->neg_imp) || (!is_inverted && cur->pos_imp))
+      continue;
+    left  = BTOR_LEFT_CHILD_AIG (cur);
+    right = BTOR_RIGHT_CHILD_AIG (cur);
+    x     = cur->cnf_id;
+    if (BTOR_IS_INVERTED_AIG (left))
+      y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
+    else
+      y = left->cnf_id;
+    if (BTOR_IS_INVERTED_AIG (right))
+      z = -BTOR_REAL_ADDR_AIG (right)->cnf_id;
+    else
+      z = right->cnf_id;
+    assert (x != 0);
+    assert (y != 0);
+    assert (z != 0);
+    if (is_inverted)
+    {
+      btor_add_sat (smgr, x);
+      btor_add_sat (smgr, -y);
+      btor_add_sat (smgr, -z);
+      btor_add_sat (smgr, 0);
+      cur->neg_imp = 1;
+    }
+    else
+    {
+      btor_add_sat (smgr, -x);
+      btor_add_sat (smgr, y);
+      btor_add_sat (smgr, 0);
+      btor_add_sat (smgr, -x);
+      btor_add_sat (smgr, z);
+      btor_add_sat (smgr, 0);
+      cur->pos_imp = 1;
+    }
+    if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
+    {
+      if (is_inverted)
+        BTOR_PUSH_STACK (mm, stack, BTOR_INVERT_AIG (right));
+      else
+        BTOR_PUSH_STACK (mm, stack, right);
+    }
+    if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (left)))
+    {
+      if (is_inverted)
+        BTOR_PUSH_STACK (mm, stack, BTOR_INVERT_AIG (left));
+      else
+        BTOR_PUSH_STACK (mm, stack, left);
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
+void
+btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  BtorSATMgr *smgr = NULL;
+  assert (amgr != NULL);
+  assert (!BTOR_IS_CONST_AIG (aig));
   smgr = amgr->smgr;
   if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
   {
@@ -860,81 +1040,19 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   }
   else
   {
-    mm = amgr->mm;
-    BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, aig);
-    while (!BTOR_EMPTY_STACK (stack))
+    if (amgr->cnf_enc == BTOR_TSEITIN_CNF_ENC)
+      aig_to_sat_tseitin (amgr, aig);
+    else
     {
-      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-      if (cur->cnf_id == 0)
-      {
-        if (cur->mark == 0)
-        {
-          if (BTOR_IS_VAR_AIG (cur))
-          {
-            cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-          }
-          else
-          {
-            assert (BTOR_IS_AND_AIG (cur));
-            cur->mark = 1;
-            BTOR_PUSH_STACK (mm, stack, cur);
-            BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-            BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
-          }
-        }
-        else
-        {
-          assert (cur->mark == 1);
-          assert (BTOR_IS_AND_AIG (cur));
-          left        = BTOR_LEFT_CHILD_AIG (cur);
-          right       = BTOR_RIGHT_CHILD_AIG (cur);
-          cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-          x           = cur->cnf_id;
-          if (BTOR_IS_INVERTED_AIG (left))
-            y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
-          else
-            y = left->cnf_id;
-          if (BTOR_IS_INVERTED_AIG (right))
-            z = -BTOR_REAL_ADDR_AIG (right)->cnf_id;
-          else
-            z = right->cnf_id;
-          assert (x != 0);
-          assert (y != 0);
-          assert (z != 0);
-          (void) btor_add_sat (smgr, -x);
-          (void) btor_add_sat (smgr, y);
-          (void) btor_add_sat (smgr, 0);
-          (void) btor_add_sat (smgr, -x);
-          (void) btor_add_sat (smgr, z);
-          (void) btor_add_sat (smgr, 0);
-          (void) btor_add_sat (smgr, -y);
-          (void) btor_add_sat (smgr, -z);
-          (void) btor_add_sat (smgr, x);
-          (void) btor_add_sat (smgr, 0);
-          if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
-            BTOR_PUSH_STACK (mm, stack, right);
-          if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (left)))
-            BTOR_PUSH_STACK (mm, stack, left);
-        }
-      }
+      assert (amgr->cnf_enc == BTOR_PLAISTED_GREENBAUM_CNF_ENC);
+      aig_to_sat_plaisted_greenbaum (amgr, aig);
     }
-    BTOR_RELEASE_STACK (mm, stack);
+    assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+    if (BTOR_IS_INVERTED_AIG (aig))
+      btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+    else
+      btor_assume_sat (smgr, aig->cnf_id);
   }
-  assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-  if (BTOR_IS_INVERTED_AIG (aig))
-    btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-  else
-    btor_assume_sat (smgr, aig->cnf_id);
-  btor_mark_aig (amgr, aig, 0);
-}
-
-void
-btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
-{
-  assert (amgr != NULL);
-  assert (!BTOR_IS_CONST_AIG (aig));
-  aig_to_sat_tseitin (amgr, aig);
 }
 
 void

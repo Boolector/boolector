@@ -24,9 +24,11 @@ struct BtorAIG
   int id;
   struct BtorAIG *children[2];
   int refs;
-  int mark;
   int cnf_id;
   struct BtorAIG *next;
+  unsigned int mark : 2;
+  unsigned int pos_imp : 1;
+  unsigned int neg_imp : 1;
 };
 
 typedef struct BtorAIG BtorAIG;
