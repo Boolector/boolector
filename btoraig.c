@@ -998,9 +998,16 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
     cur         = BTOR_POP_STACK (stack);
     is_inverted = BTOR_IS_INVERTED_AIG (cur);
     cur         = BTOR_REAL_ADDR_AIG (cur);
-    if ((is_inverted && cur->neg_imp) || (!is_inverted && cur->pos_imp)
-        || (cur->encode_full && cur->neg_imp && cur->pos_imp))
-      continue;
+
+    if (cur->neg_imp && cur->pos_imp) continue;
+
+    if (!cur->encode_full)
+    {
+      if (is_inverted && cur->neg_imp) continue;
+
+      if (!is_inverted && cur->pos_imp) continue;
+    }
+
     left  = BTOR_LEFT_CHILD_AIG (cur);
     right = BTOR_RIGHT_CHILD_AIG (cur);
     x     = cur->cnf_id;
