@@ -90,7 +90,7 @@ main (int argc, char** argv)
   BTOR_INIT_STACK (stack);
   for (i = 0; i < model.nroots; i++)
   {
-    av = btor_exp_to_aigs (emgr, model.roots[i]);
+    av = btor_exp_to_aigvec (emgr, model.roots[i]);
     for (j = 0; j < av->len; j++)
     {
       aig = btor_copy_aig (amgr, av->aigs[j]);

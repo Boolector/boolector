@@ -137,7 +137,7 @@ BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr);
 
 BtorAIG *btor_exp_to_aig (BtorExpMgr *, BtorExp *); /* len=1 */
 
-BtorAIGVec *btor_exp_to_aigs (BtorExpMgr *, BtorExp *); /* arb. len */
+BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *, BtorExp *); /* arb. len */
 
 void btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp);
 

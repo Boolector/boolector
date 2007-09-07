@@ -79,10 +79,14 @@ typedef struct BtorReadObjSortObj BtorReadObjSortObj;
 /*------------------------------------------------------------------------*/
 
 static void
-print_verbose_msg (char *msg)
+print_verbose_msg (char *fmt, ...)
 {
-  assert (msg != NULL);
-  fprintf (stderr, "[btorexp] %s", msg);
+  va_list ap;
+  fputs ("[btorexp] ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
   fflush (stderr);
 }
 
@@ -445,6 +449,7 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 
 #define BTOR_NEXT_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->next_parent[BTOR_GET_TAG_EXP (exp)])
+
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->prev_parent[BTOR_GET_TAG_EXP (exp)])
 
@@ -3028,6 +3033,7 @@ btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
   BtorAIGVec *av2      = NULL;
   BtorAIGVecMgr *avmgr = NULL;
   BtorMemMgr *mm       = NULL;
+  unsigned count;
 
   assert (emgr != NULL);
   assert (exp != NULL);
@@ -3038,6 +3044,8 @@ btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
 
+  count = 0;
+
   while (!BTOR_EMPTY_STACK (exp_stack))
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
@@ -3046,6 +3054,8 @@ btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
     assert (!BTOR_IS_ARRAY_EXP (cur));
     if (cur->av == NULL)
     {
+      count++;
+
       if (cur->mark == 0)
       {
         if (BTOR_IS_CONST_EXP (cur))
@@ -3147,6 +3157,9 @@ btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
 
   BTOR_RELEASE_STACK (mm, exp_stack);
   btor_mark_exp (emgr, exp, 0);
+
+  if (count > 0 && emgr->verbosity > 1)
+    print_verbose_msg ("synthesized %u expressions into AIG vectors", count);
 }
 
 BtorAIG *
@@ -3156,27 +3169,51 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
   BtorAIGMgr *amgr     = NULL;
   BtorMemMgr *mm       = NULL;
   BtorAIG *result      = NULL;
+  BtorAIGVec *av       = NULL;
 
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
-
-  /* TODO this should be placed somewhere else.
-   */
-  if (emgr->verbosity > 1)
-    print_verbose_msg ("transforming expression into AIG\n");
 
   mm    = emgr->mm;
   avmgr = emgr->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
 
   btor_synthesize_exp (emgr, exp);
+  av = BTOR_REAL_ADDR_EXP (exp)->av;
 
-  assert (BTOR_REAL_ADDR_EXP (exp)->av->len == 1);
+  assert (av);
+  assert (av->len == 1);
+
+  result = av->aigs[0];
 
   if (BTOR_IS_INVERTED_EXP (exp))
-    result = btor_not_aig (amgr, BTOR_REAL_ADDR_EXP (exp)->av->aigs[0]);
+    result = btor_not_aig (amgr, result);
   else
-    result = btor_copy_aig (amgr, exp->av->aigs[0]);
+    result = btor_copy_aig (amgr, result);
+
+  return result;
+}
+
+BtorAIGVec *
+btor_exp_to_aigvec (BtorExpMgr *emgr, BtorExp *exp)
+{
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorMemMgr *mm       = NULL;
+  BtorAIGVec *result   = NULL;
+
+  assert (exp != NULL);
+
+  mm    = emgr->mm;
+  avmgr = emgr->avmgr;
+
+  btor_synthesize_exp (emgr, exp);
+  result = BTOR_REAL_ADDR_EXP (exp)->av;
+  assert (result);
+
+  if (BTOR_IS_INVERTED_EXP (exp))
+    result = btor_not_aigvec (avmgr, result);
+  else
+    result = btor_copy_aigvec (avmgr, result);
 
   return result;
 }
