@@ -1162,6 +1162,45 @@ parse_read (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_write (BtorBTORParser *parser, int len)
+{
+  BtorExp *array, *idx, *val, *res;
+  int idxlen, vallen;
+
+  if (parse_space (parser)) return 0;
+
+  if (!(array = parse_exp (parser, len))) return 0;
+
+  if (!btor_is_array_exp (parser->btor, array))
+  {
+    (void) parse_error (parser, "expected array as first argument");
+  RELEASE_ARRAY_AND_RETURN_ERROR:
+    btor_release_exp (parser->btor, array);
+    return 0;
+  }
+
+  if (parse_space (parser)) goto RELEASE_ARRAY_AND_RETURN_ERROR;
+
+  idxlen = btor_get_index_exp_len (parser->btor, array);
+  if (!(idx = parse_exp (parser, idxlen))) goto RELEASE_ARRAY_AND_RETURN_ERROR;
+
+  vallen = btor_get_exp_len (parser->btor, array);
+  if (!(val = parse_exp (parser, vallen)))
+  {
+    btor_release_exp (parser->btor, idx);
+    goto RELEASE_ARRAY_AND_RETURN_ERROR;
+  }
+
+  res = btor_write_exp (parser->btor, array, idx, val);
+
+  btor_release_exp (parser->btor, array);
+  btor_release_exp (parser->btor, idx);
+  btor_release_exp (parser->btor, val);
+
+  return res;
+}
+
+static BtorExp *
 parse_ext (BtorBTORParser *parser, int len, Extend f)
 {
   BtorExp *res, *arg;
@@ -1295,6 +1334,7 @@ btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
   new_parser (res, parse_constd, "constd");
   new_parser (res, parse_zero, "zero");
   new_parser (res, parse_read, "read");
+  new_parser (res, parse_write, "write");
   new_parser (res, parse_eq, "eq");
   new_parser (res, parse_ne, "ne");
   new_parser (res, parse_neg, "neg");
