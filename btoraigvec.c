@@ -519,7 +519,7 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
     is_gte = ugte_aigvec (avmgr, remainder_2n, b_i);
 #else
     is_gte          = new_aigvec (avmgr, 1);
-    is_gte->aigs[0] = btor_not_aig (amgr, cout);
+    is_gte->aigs[0] = btor_copy_aig (amgr, cout);
 #endif
     btor_release_aig (amgr, cout);
     (*quotient)->aigs[len - 1 - i] = btor_copy_aig (amgr, is_gte->aigs[0]);

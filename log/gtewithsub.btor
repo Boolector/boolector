@@ -1,0 +1,17 @@
+1 var 8 a
+2 var 8 b
+3 uext 9 1 1
+4 uext 9 2 1
+5 add 9 3 4
+6 consth 9 1
+7 add 9 5 6
+8 slice 1 7 8 8
+9 ugte 1 1 2
+10 implies 1 9 -8
+
+11 var 9 s
+12 eq 1 11 7
+
+20 and 1 -10 12
+
+30 root 1 20

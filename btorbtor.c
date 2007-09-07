@@ -247,6 +247,7 @@ parse_exp (BtorBTORParser *parser, int expected_len)
   if (expected_len)
   {
     len_res = btor_get_exp_len (parser->btor, res);
+
     if (expected_len != len_res)
     {
       (void) parse_error (parser,
@@ -254,6 +255,7 @@ parse_exp (BtorBTORParser *parser, int expected_len)
                           lit,
                           len_res,
                           expected_len);
+
       return 0;
     }
   }
