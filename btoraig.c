@@ -663,12 +663,13 @@ void
 btor_dump_aigs (
     BtorAIGMgr *amgr, int binary, FILE *file, BtorAIG **aigs, int naigs)
 {
-  unsigned aig_id, left_id, right_id, tmp;
+  unsigned aig_id, left_id, right_id, tmp, delta;
   BtorAIG *aig, *left, *right;
   BtorPtrToIntHashTable *table;
   BtorPtrToIntHashBucket *p;
   int M, I, L, O, A, i;
   BtorAIGPtrStack stack;
+  unsigned char ch;
 
   assert (naigs > 0);
 
@@ -716,7 +717,7 @@ btor_dump_aigs (
 
   M = I;
 
-  /* Then start add and gates in postfix order.
+  /* Then start adding ANG gates in postfix order.
    */
   assert (BTOR_EMPTY_STACK (stack));
   for (i = naigs - 1; i >= 0; i--)
@@ -771,28 +772,32 @@ btor_dump_aigs (
 
   BTOR_RELEASE_STACK (amgr->mm, stack);
 
-  L = 0;
+  L = 0; /* TODO: no latches sofar */
   O = naigs;
 
   fprintf (file, "a%cg %d %d %d %d %d\n", binary ? 'i' : 'a', M, I, L, O, A);
 
-  if (!binary)
+  /* Only need to print inputs in non binary mode.
+   */
+  for (p = table->first; p; p = p->next)
   {
-    for (p = table->first; p; p = p->next)
-    {
-      aig = p->key;
-      assert (aig);
-      assert (!BTOR_IS_INVERTED_AIG (aig));
+    aig = p->key;
 
-      if (!BTOR_IS_VAR_AIG (aig)) break;
+    assert (aig);
+    assert (!BTOR_IS_INVERTED_AIG (aig));
 
-      fprintf (file, "%d\n", 2 * p->data);
-    }
+    if (!BTOR_IS_VAR_AIG (aig)) break;
+
+    if (!binary) fprintf (file, "%d\n", 2 * p->data);
   }
 
+  /* Then the outputs ...
+   */
   for (i = 0; i < naigs; i++)
     fprintf (file, "%u\n", btor_aiger_encode_aig (table, aigs[i]));
 
+  /* And finally all the AND gates.
+   */
   while (p)
   {
     aig = p->key;
@@ -820,6 +825,23 @@ btor_dump_aigs (
 
     if (binary)
     {
+      for (i = 0; i < 2; i++)
+      {
+        delta = i ? left_id - right_id : aig_id - left_id;
+        tmp   = delta;
+
+        while (tmp & ~0x7f)
+        {
+          ch = tmp & 0x7f;
+          ch |= 0x80;
+
+          putc (ch, file);
+          tmp >>= 7;
+        }
+
+        ch = tmp;
+        putc (ch, file);
+      }
     }
     else
       fprintf (file, "%u %u %u\n", aig_id, left_id, right_id);
