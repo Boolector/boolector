@@ -514,9 +514,13 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
     for (j = 0; j < len; j++) b_i_optimized->aigs[j] = BTOR_AIG_FALSE;
     for (j = len; j < len_2n; j++)
       b_i_optimized->aigs[j] = btor_copy_aig (amgr, b_i->aigs[j]);
-    sub = sub_aigvec (avmgr, remainder_2n, b_i_optimized, &cout);
-#if 1
-    is_gte = ugte_aigvec (avmgr, remainder_2n, b_i);
+#if 0
+      sub = sub_aigvec (avmgr, remainder_2n, b_i_optimized, &cout);
+#else
+    sub             = sub_aigvec (avmgr, remainder_2n, b_i, &cout);
+#endif
+#if 0
+      is_gte = ugte_aigvec (avmgr, remainder_2n, b_i);
 #else
     is_gte          = new_aigvec (avmgr, 1);
     is_gte->aigs[0] = btor_copy_aig (amgr, cout);
