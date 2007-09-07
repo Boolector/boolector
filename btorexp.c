@@ -173,8 +173,9 @@ new_read_obj (BtorExpMgr *emgr, BtorExp *var, BtorExp *index)
   assert (var != NULL);
   assert (index != NULL);
   BTOR_NEW (emgr->mm, result);
-  result->var   = btor_copy_exp (emgr, var);
-  result->index = btor_copy_exp (emgr, index);
+  result->var                 = btor_copy_exp (emgr, var);
+  result->index               = btor_copy_exp (emgr, index);
+  result->index_cnf_generated = 0;
   return result;
 }
 
@@ -189,16 +190,16 @@ delete_read_obj (BtorExpMgr *emgr, BtorReadObj *obj)
 }
 
 static void
-encode_read (BtorExpMgr *emgr,
-             BtorExp *index1,
-             BtorExp *index2,
-             BtorExp *var1,
-             BtorExp *var2)
+encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
 {
   BtorMemMgr *mm        = NULL;
   BtorAIGVecMgr *avmgr  = NULL;
   BtorAIGMgr *amgr      = NULL;
   BtorSATMgr *smgr      = NULL;
+  BtorExp *index1       = NULL;
+  BtorExp *index2       = NULL;
+  BtorExp *var1         = NULL;
+  BtorExp *var2         = NULL;
   BtorAIGVec *av_index1 = NULL;
   BtorAIGVec *av_index2 = NULL;
   BtorAIGVec *av_var1   = NULL;
@@ -216,6 +217,12 @@ encode_read (BtorExpMgr *emgr,
   int b_k          = 0;
   int is_different = 0;
   assert (emgr != NULL);
+  assert (obj1 != NULL);
+  assert (obj2 != NULL);
+  index1 = obj1->index;
+  index2 = obj2->index;
+  var1   = obj1->var;
+  var2   = obj2->var;
   assert (index1 != NULL);
   assert (index2 != NULL);
   assert (var1 != NULL);
@@ -232,18 +239,19 @@ encode_read (BtorExpMgr *emgr,
   assert (av_index2 != NULL);
   assert (av_index1->len == av_index2->len);
   len = av_index1->len;
-  for (k = 0; k < len; k++)
+  if (!obj1->index_cnf_generated)
   {
-    if (!BTOR_IS_CONST_AIG (av_index1->aigs[k]))
-    {
-      btor_aig_to_sat (amgr, av_index1->aigs[k]);
-      btor_aig_to_sat (amgr, BTOR_INVERT_AIG (av_index1->aigs[k]));
-    }
-    if (!BTOR_IS_CONST_AIG (av_index2->aigs[k]))
-    {
-      btor_aig_to_sat (amgr, av_index2->aigs[k]);
-      btor_aig_to_sat (amgr, BTOR_INVERT_AIG (av_index2->aigs[k]));
-    }
+    for (k = 0; k < len; k++)
+      if (!BTOR_IS_CONST_AIG (av_index1->aigs[k]))
+        btor_aig_to_sat_full (amgr, av_index1->aigs[k]);
+    obj1->index_cnf_generated = 1;
+  }
+  if (!obj2->index_cnf_generated)
+  {
+    for (k = 0; k < len; k++)
+      if (!BTOR_IS_CONST_AIG (av_index2->aigs[k]))
+        btor_aig_to_sat_full (amgr, av_index2->aigs[k]);
+    obj2->index_cnf_generated = 1;
   }
   av_var1 = var1->av;
   assert (av_var1 != NULL);
@@ -367,12 +375,9 @@ register_read (BtorExpMgr *emgr, BtorExp *array, BtorExp *var, BtorExp *index)
   }
   else if (emgr->read_enc == BTOR_EAGER_READ_ENC)
   {
-    for (cur = (*stack).start; cur != (*stack).top; cur++)
-    {
-      obj = *cur;
-      encode_read (emgr, obj->index, index, obj->var, var);
-    }
     obj = new_read_obj (emgr, var, index);
+    for (cur = (*stack).start; cur != (*stack).top; cur++)
+      encode_read (emgr, *cur, obj);
     BTOR_PUSH_STACK (emgr->mm, *array->read_constraint, obj);
   }
 }
@@ -3332,6 +3337,8 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   BtorExp *var1              = NULL;
   BtorExp *var2              = NULL;
   BtorReadObjPtrStack *stack = NULL;
+  BtorReadObj *obj1          = NULL;
+  BtorReadObj *obj2          = NULL;
   BtorReadObj **cur_obj      = NULL;
   BtorReadObjSortObj *array  = NULL;
   int i                      = 0;
@@ -3358,8 +3365,10 @@ resolve_read_conflicts (BtorExpMgr *emgr)
           array, len, sizeof (BtorReadObjSortObj), compare_read_obj_sort_obj);
       for (i = 0; i < len - 1; i++)
       {
-        index1 = array[i].obj->index;
-        index2 = array[i + 1].obj->index;
+        obj1   = array[i].obj;
+        obj2   = array[i + 1].obj;
+        index1 = obj1->index;
+        index2 = obj2->index;
         if (compare_assignments (emgr, index1, index2) == 0)
         {
           var1 = array[i].obj->var;
@@ -3367,7 +3376,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
           if (compare_assignments (emgr, var1, var2) != 0)
           {
             found_conflict = 1;
-            encode_read (emgr, index1, index2, var1, var2);
+            encode_read (emgr, obj1, obj2);
             break;
           }
         }
