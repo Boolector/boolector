@@ -57,6 +57,7 @@ BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
 struct BtorExp
 {
   BtorExpKind kind;
+  int index_len; /* for arrays only */
   union
   {
     struct
@@ -73,9 +74,8 @@ struct BtorExp
       };
       union
       {
-        int lower;     /* for slices only */
-        char *bits;    /* for constants only */
-        int index_len; /* for arrays only */
+        int lower;  /* for slices only */
+        char *bits; /* for constants only */
       };
     };
     struct BtorExp *e[3]; /* children */
@@ -96,6 +96,7 @@ struct BtorExp
 #define BTOR_IS_VAR_EXP_KIND(kind) ((kind) == BTOR_VAR_EXP)
 #define BTOR_IS_ARRAY_EXP_KIND(kind) \
   (((kind) == BTOR_ARRAY_EXP) || ((kind) == BTOR_WRITE_EXP))
+#define BTOR_IS_NATIVE_ARRAY_EXP_KIND(kind) (kind == BTOR_ARRAY_EXP)
 #define BTOR_IS_UNARY_EXP_KIND(kind) ((kind) == BTOR_SLICE_EXP)
 #define BTOR_IS_BINARY_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
@@ -107,6 +108,8 @@ struct BtorExp
 #define BTOR_IS_CONST_EXP(exp) (BTOR_IS_CONST_EXP_KIND ((exp)->kind))
 #define BTOR_IS_VAR_EXP(exp) (BTOR_IS_VAR_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_EXP(exp) (BTOR_IS_ARRAY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_NATIVE_ARRAY_EXP(exp) \
+  (BTOR_IS_NATIVE_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_UNARY_EXP(exp) (BTOR_IS_UNARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BINARY_EXP(exp) (BTOR_IS_BINARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_TERNARY_EXP(exp) (BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))

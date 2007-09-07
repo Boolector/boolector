@@ -464,7 +464,7 @@ disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
   assert (pos <= 2);
   assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (parent)));
   assert (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (parent)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)));
+  assert (!BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)));
   real_parent  = BTOR_REAL_ADDR_EXP (parent);
   parent       = BTOR_TAG_EXP (real_parent, pos);
   real_child   = BTOR_REAL_ADDR_EXP (real_parent->e[pos]);
@@ -618,7 +618,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
     btor_freestr (mm, exp->symbol);
     if (exp->assignment != NULL) btor_freestr (mm, exp->assignment);
   }
-  else if (BTOR_IS_ARRAY_EXP (exp))
+  else if (BTOR_IS_NATIVE_ARRAY_EXP (exp))
   {
     assert (BTOR_COUNT_STACK (*exp->read_constraint) == 0);
     BTOR_RELEASE_STACK (mm, *exp->read_constraint);
@@ -657,7 +657,7 @@ compute_exp_hash (BtorExp *exp, int table_size)
   assert (btor_is_power_of_2_util (table_size));
   assert (!BTOR_IS_INVERTED_EXP (exp));
   assert (!BTOR_IS_VAR_EXP (exp));
-  assert (!BTOR_IS_ARRAY_EXP (exp));
+  assert (!BTOR_IS_NATIVE_ARRAY_EXP (exp));
   if (BTOR_IS_CONST_EXP (exp))
   {
     len = exp->len;
@@ -843,7 +843,7 @@ enlarge_exp_unique_table (BtorExpMgr *emgr)
     {
       assert (!BTOR_IS_INVERTED_EXP (cur));
       assert (!BTOR_IS_VAR_EXP (cur));
-      assert (!BTOR_IS_ARRAY_EXP (cur));
+      assert (!BTOR_IS_NATIVE_ARRAY_EXP (cur));
       temp             = cur->next;
       hash             = compute_exp_hash (cur, new_size);
       cur->next        = new_chains[hash];
@@ -949,7 +949,7 @@ btor_release_exp (BtorExpMgr *emgr, BtorExp *exp)
   mm = emgr->mm;
   if (cur->refs > 1)
   {
-    if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ARRAY_EXP (cur)) cur->refs--;
+    if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur)) cur->refs--;
   }
   else
   {
@@ -981,7 +981,7 @@ btor_release_exp (BtorExpMgr *emgr, BtorExp *exp)
           BTOR_PUSH_STACK (mm, stack, cur->e[1]);
           BTOR_PUSH_STACK (mm, stack, cur->e[0]);
         }
-        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ARRAY_EXP (cur))
+        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur))
           delete_exp_unique_table_entry (emgr, cur);
       }
     }
@@ -2690,7 +2690,6 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
     eq     = btor_eq_exp (emgr, e_index, e_array->e[1]);
     result = btor_cond_exp (emgr, eq, e_array->e[2], read);
     btor_release_exp (emgr, eq);
-    btor_release_exp (emgr, e_array);
     return result;
   }
   return read;
@@ -2759,12 +2758,35 @@ btor_cond_exp (BtorExpMgr *emgr,
   return result;
 }
 
+static BtorExp *
+new_write_exp (BtorExpMgr *emgr,
+               BtorExp *e_array,
+               BtorExp *e_index,
+               BtorExp *e_value)
+{
+  BtorMemMgr *mm = NULL;
+  BtorExp *exp   = NULL;
+  mm             = emgr->mm;
+  BTOR_CNEW (mm, exp);
+  exp->kind      = BTOR_WRITE_EXP;
+  exp->index_len = BTOR_REAL_ADDR_EXP (e_index)->len;
+  exp->len       = BTOR_REAL_ADDR_EXP (e_value)->len;
+  exp->e[0]      = e_array;
+  exp->e[1]      = e_index;
+  exp->e[2]      = e_value;
+  assert (emgr->id < INT_MAX);
+  exp->id   = emgr->id++;
+  exp->refs = 1;
+  return exp;
+}
+
 BtorExp *
 btor_write_exp (BtorExpMgr *emgr,
                 BtorExp *e_array,
                 BtorExp *e_index,
                 BtorExp *e_value)
 {
+  BtorExp **lookup = NULL;
   assert (emgr != NULL);
   assert (!BTOR_IS_INVERTED_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
@@ -2773,8 +2795,27 @@ btor_write_exp (BtorExpMgr *emgr,
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
-  return btor_ternary_exp (
-      emgr, BTOR_WRITE_EXP, e_array, e_index, e_value, e_array->len);
+  lookup = find_ternary_exp (emgr, BTOR_WRITE_EXP, e_array, e_index, e_value);
+  if (*lookup == NULL)
+  {
+    if (emgr->table.num_elements == emgr->table.size
+        && btor_log_2_util (emgr->table.size) < BTOR_EXP_UNIQUE_TABLE_LIMIT)
+    {
+      enlarge_exp_unique_table (emgr);
+      lookup =
+          find_ternary_exp (emgr, BTOR_WRITE_EXP, e_array, e_index, e_value);
+    }
+    *lookup = new_write_exp (emgr, e_array, e_index, e_value);
+    inc_exp_ref_counter (e_array);
+    inc_exp_ref_counter (e_index);
+    inc_exp_ref_counter (e_value);
+    assert (emgr->table.num_elements < INT_MAX);
+    emgr->table.num_elements++;
+  }
+  else
+    inc_exp_ref_counter (*lookup);
+  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  return *lookup;
 }
 
 int
@@ -3018,7 +3059,8 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
     delete_exp_node (emgr, *cur);
   for (cur = emgr->arrays.start; cur != emgr->arrays.top; cur++)
     delete_exp_node (emgr, *cur);
-  assert (emgr->table.num_elements == 0);
+  /*
+    assert (emgr->table.num_elements == 0); */
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_RELEASE_STACK (mm, emgr->assigned_exps);
   BTOR_RELEASE_STACK (mm, emgr->vars);
