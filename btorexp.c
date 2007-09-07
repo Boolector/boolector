@@ -1,15 +1,14 @@
 #include "btorexp.h"
-#include "btoraig.h"
-#include "btoraigvec.h"
-#include "btorconst.h"
-#include "btorsat.h"
-#include "btorutil.h"
-
 #include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "btoraig.h"
+#include "btoraigvec.h"
+#include "btorconst.h"
+#include "btorsat.h"
+#include "btorutil.h"
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
@@ -218,18 +217,12 @@ encode_read (BtorExpMgr *emgr,
   assert (var2 != NULL);
   assert (!BTOR_IS_INVERTED_EXP (var1));
   assert (!BTOR_IS_INVERTED_EXP (var2));
-  mm   = emgr->mm;
-  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  if (BTOR_IS_INVERTED_EXP (index1))
-    av_index1 = btor_not_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index1)->av);
-  else
-    av_index1 = btor_copy_aigvec (emgr->avmgr, index1->av);
+  mm        = emgr->mm;
+  amgr      = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  smgr      = btor_get_sat_mgr_aig_mgr (amgr);
+  av_index1 = BTOR_GET_AIGVEC_EXP (emgr, index1);
+  av_index2 = BTOR_GET_AIGVEC_EXP (emgr, index2);
   assert (av_index1 != NULL);
-  if (BTOR_IS_INVERTED_EXP (index2))
-    av_index2 = btor_not_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index2)->av);
-  else
-    av_index2 = btor_copy_aigvec (emgr->avmgr, index2->av);
   assert (av_index2 != NULL);
   assert (av_index1->len == av_index2->len);
   len = av_index1->len;
@@ -1163,6 +1156,7 @@ rewrite_exp (BtorExpMgr *emgr,
   BtorExp *real_e1  = NULL;
   BtorExp *real_e2  = NULL;
   BtorExp *temp     = NULL;
+  BtorMemMgr *mm    = NULL;
   char *bits_result = NULL;
   char *bits_e0     = NULL;
   char *bits_e1     = NULL;
@@ -1177,6 +1171,7 @@ rewrite_exp (BtorExpMgr *emgr,
   assert (emgr->rewrite_level <= 2);
   assert (lower >= 0);
   assert (lower <= upper);
+  mm = emgr->mm;
   if (BTOR_IS_UNARY_EXP_KIND (kind))
   {
     assert (e0 != NULL);
@@ -1199,13 +1194,13 @@ rewrite_exp (BtorExpMgr *emgr,
       {
         counter = 0;
         len     = real_e0->len;
-        BTOR_NEWN (emgr->mm, bits_result, diff + 2);
+        BTOR_NEWN (mm, bits_result, diff + 2);
         for (i = len - upper - 1; i <= len - upper - 1 + diff; i++)
           bits_result[counter++] = real_e0->bits[i];
         bits_result[counter] = '\0';
         result               = btor_const_exp (emgr, bits_result);
         result               = BTOR_COND_INVERT_EXP (e0, result);
-        btor_delete_const (emgr->mm, bits_result);
+        btor_delete_const (mm, bits_result);
       }
     }
   }
@@ -1224,59 +1219,50 @@ rewrite_exp (BtorExpMgr *emgr,
     {
       if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
-        if (BTOR_IS_INVERTED_EXP (e0))
-          bits_e0 = btor_not_const (emgr->mm, real_e0->bits);
-        else
-          bits_e0 = btor_copy_const (emgr->mm, real_e0->bits);
-        if (BTOR_IS_INVERTED_EXP (e1))
-          bits_e1 = btor_not_const (emgr->mm, real_e1->bits);
-        else
-          bits_e1 = btor_copy_const (emgr->mm, real_e1->bits);
+        bits_e0 = BTOR_GET_BITS_EXP (mm, e0);
+        bits_e1 = BTOR_GET_BITS_EXP (mm, e1);
         switch (kind)
         {
           case BTOR_AND_EXP:
-            bits_result = btor_and_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_and_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_EQ_EXP:
-            bits_result = btor_eq_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_eq_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_ADD_EXP:
-            bits_result = btor_add_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_add_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_MUL_EXP:
-            bits_result = btor_mul_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_mul_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_ULT_EXP:
-            bits_result = btor_ult_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_ult_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_UDIV_EXP:
-            bits_result = btor_udiv_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_udiv_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_UREM_EXP:
-            bits_result = btor_urem_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_urem_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_SLL_EXP:
-            bits_result = btor_sll_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_sll_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_SRL_EXP:
-            bits_result = btor_srl_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_srl_const (mm, bits_e0, bits_e1);
             break;
           default:
             assert (kind == BTOR_CONCAT_EXP);
-            bits_result = btor_concat_const (emgr->mm, bits_e0, bits_e1);
+            bits_result = btor_concat_const (mm, bits_e0, bits_e1);
             break;
         }
         result = btor_const_exp (emgr, bits_result);
-        btor_delete_const (emgr->mm, bits_result);
-        btor_delete_const (emgr->mm, bits_e1);
-        btor_delete_const (emgr->mm, bits_e0);
+        btor_delete_const (mm, bits_result);
+        btor_delete_const (mm, bits_e1);
+        btor_delete_const (mm, bits_e0);
       }
       else if (BTOR_IS_CONST_EXP (real_e0) && !BTOR_IS_CONST_EXP (real_e1))
       {
-        if (BTOR_IS_INVERTED_EXP (e0))
-          bits_e0 = btor_not_const (emgr->mm, real_e0->bits);
-        else
-          bits_e0 = btor_copy_const (emgr->mm, real_e0->bits);
+        bits_e0 = BTOR_GET_BITS_EXP (mm, e0);
         /* TODO: AND_EXP EQ_EXP */
         is_zero = is_zero_string (emgr, bits_e0, real_e0->len);
         is_one  = is_one_string (emgr, bits_e0, real_e0->len);
@@ -1293,14 +1279,11 @@ rewrite_exp (BtorExpMgr *emgr,
         {
           if (kind == BTOR_MUL_EXP) result = btor_copy_exp (emgr, e1);
         }
-        btor_delete_const (emgr->mm, bits_e0);
+        btor_delete_const (mm, bits_e0);
       }
       else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
-        if (BTOR_IS_INVERTED_EXP (e1))
-          bits_e1 = btor_not_const (emgr->mm, real_e1->bits);
-        else
-          bits_e1 = btor_copy_const (emgr->mm, real_e1->bits);
+        bits_e1 = BTOR_GET_BITS_EXP (mm, e1);
         /* TODO: AND_EXP EQ_EXP */
         is_zero = is_zero_string (emgr, bits_e1, real_e1->len);
         is_one  = is_one_string (emgr, bits_e1, real_e1->len);
@@ -1320,7 +1303,7 @@ rewrite_exp (BtorExpMgr *emgr,
         {
           if (kind == BTOR_MUL_EXP) result = btor_copy_exp (emgr, e0);
         }
-        btor_delete_const (emgr->mm, bits_e1);
+        btor_delete_const (mm, bits_e1);
       }
       else if (real_e0 == real_e1
                && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
@@ -3135,23 +3118,14 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
         else if (BTOR_IS_UNARY_EXP (cur))
         {
           assert (cur->kind == BTOR_SLICE_EXP);
-          if (BTOR_IS_INVERTED_EXP (cur->e[0]))
-            av0 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[0])->av);
-          else
-            av0 = btor_copy_aigvec (avmgr, cur->e[0]->av);
+          av0     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
           cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
           btor_release_delete_aigvec (avmgr, av0);
         }
         else if (BTOR_IS_BINARY_EXP (cur))
         {
-          if (BTOR_IS_INVERTED_EXP (cur->e[0]))
-            av0 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[0])->av);
-          else
-            av0 = btor_copy_aigvec (avmgr, cur->e[0]->av);
-          if (BTOR_IS_INVERTED_EXP (cur->e[1]))
-            av1 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[1])->av);
-          else
-            av1 = btor_copy_aigvec (avmgr, cur->e[1]->av);
+          av0 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
+          av1 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
           switch (cur->kind)
           {
             case BTOR_AND_EXP:
@@ -3191,18 +3165,9 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
         {
           assert (BTOR_IS_TERNARY_EXP (cur));
           assert (cur->kind == BTOR_COND_EXP);
-          if (BTOR_IS_INVERTED_EXP (cur->e[0]))
-            av0 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[0])->av);
-          else
-            av0 = btor_copy_aigvec (avmgr, cur->e[0]->av);
-          if (BTOR_IS_INVERTED_EXP (cur->e[1]))
-            av1 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[1])->av);
-          else
-            av1 = btor_copy_aigvec (avmgr, cur->e[1]->av);
-          if (BTOR_IS_INVERTED_EXP (cur->e[2]))
-            av2 = btor_not_aigvec (avmgr, BTOR_REAL_ADDR_EXP (cur->e[2])->av);
-          else
-            av2 = btor_copy_aigvec (avmgr, cur->e[2]->av);
+          av0     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
+          av1     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
+          av2     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[2]);
           cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
           btor_release_delete_aigvec (avmgr, av2);
           btor_release_delete_aigvec (avmgr, av1);
@@ -3255,10 +3220,7 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
   {
     btor_aig_to_sat (amgr, aig);
     assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-    if (BTOR_IS_INVERTED_AIG (aig))
-      btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-    else
-      btor_assume_sat (smgr, aig->cnf_id);
+    btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
   }
   btor_release_aig (amgr, aig);
 }
@@ -3281,14 +3243,8 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   assert (BTOR_REAL_ADDR_EXP (exp1)->av != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp2)->av != NULL);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  if (BTOR_IS_INVERTED_EXP (exp1))
-    av1 = btor_not_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (exp1)->av);
-  else
-    av1 = btor_copy_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (exp1)->av);
-  if (BTOR_IS_INVERTED_EXP (exp2))
-    av2 = btor_not_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (exp2)->av);
-  else
-    av2 = btor_copy_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (exp2)->av);
+  av1  = BTOR_GET_AIGVEC_EXP (emgr, exp1);
+  av2  = BTOR_GET_AIGVEC_EXP (emgr, exp2);
   assert (av1->len == av2->len);
   len = av1->len;
   for (i = 0; i < len; i++)
@@ -3407,10 +3363,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   {
     btor_aig_to_sat (amgr, aig);
     assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-    if (BTOR_IS_INVERTED_AIG (aig))
-      btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-    else
-      btor_assume_sat (smgr, aig->cnf_id);
+    btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
   }
   sat_result = btor_sat_sat (smgr, INT_MAX);
   if (emgr->read_enc == BTOR_LAZY_READ_ENC)
@@ -3424,10 +3377,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
       if (aig != BTOR_AIG_TRUE)
       {
         assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-        if (BTOR_IS_INVERTED_AIG (aig))
-          btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-        else
-          btor_assume_sat (smgr, aig->cnf_id);
+        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
       }
       sat_result = btor_sat_sat (smgr, INT_MAX);
     }

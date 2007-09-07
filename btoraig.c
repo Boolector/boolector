@@ -892,14 +892,8 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
         right       = BTOR_RIGHT_CHILD_AIG (cur);
         cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         x           = cur->cnf_id;
-        if (BTOR_IS_INVERTED_AIG (left))
-          y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
-        else
-          y = left->cnf_id;
-        if (BTOR_IS_INVERTED_AIG (right))
-          z = -BTOR_REAL_ADDR_AIG (right)->cnf_id;
-        else
-          z = right->cnf_id;
+        y           = BTOR_GET_CNF_ID_AIG (left);
+        z           = BTOR_GET_CNF_ID_AIG (right);
         assert (x != 0);
         assert (y != 0);
         assert (z != 0);
@@ -1002,14 +996,8 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
     left  = BTOR_LEFT_CHILD_AIG (cur);
     right = BTOR_RIGHT_CHILD_AIG (cur);
     x     = cur->cnf_id;
-    if (BTOR_IS_INVERTED_AIG (left))
-      y = -BTOR_REAL_ADDR_AIG (left)->cnf_id;
-    else
-      y = left->cnf_id;
-    if (BTOR_IS_INVERTED_AIG (right))
-      z = -BTOR_REAL_ADDR_AIG (right)->cnf_id;
-    else
-      z = right->cnf_id;
+    y     = BTOR_GET_CNF_ID_AIG (left);
+    z     = BTOR_GET_CNF_ID_AIG (right);
     assert (x != 0);
     assert (y != 0);
     assert (z != 0);
@@ -1061,10 +1049,7 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
   {
     if (BTOR_REAL_ADDR_AIG (aig)->cnf_id == 0)
       BTOR_REAL_ADDR_AIG (aig)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-    if (BTOR_IS_INVERTED_AIG (aig))
-      btor_add_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
-    else
-      btor_add_sat (smgr, aig->cnf_id);
+    btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
     btor_add_sat (smgr, 0);
   }
   else

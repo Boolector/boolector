@@ -44,6 +44,9 @@ typedef struct BtorAIG BtorAIG;
 #define BTOR_IS_AND_AIG(aig) ((aig)->children[0] != NULL)
 #define BTOR_LEFT_CHILD_AIG(aig) ((aig)->children[0])
 #define BTOR_RIGHT_CHILD_AIG(aig) ((aig)->children[1])
+#define BTOR_GET_CNF_ID_AIG(aig)                                  \
+  (BTOR_IS_INVERTED_AIG (aig) ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id \
+                              : (aig)->cnf_id)
 
 typedef struct BtorAIGMgr BtorAIGMgr;
 
