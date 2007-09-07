@@ -186,9 +186,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
     assert (BTOR_IS_AND_AIG (cur));
     if (BTOR_LEFT_CHILD_AIG (cur) == left
         && BTOR_RIGHT_CHILD_AIG (cur) == right)
-    {
       break;
-    }
     else
     {
       result = &(cur->next);
@@ -201,6 +199,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 static void
 enlarge_aig_unique_table (BtorAIGMgr *amgr)
 {
+  BtorMemMgr *mm       = NULL;
   BtorAIG **new_chains = NULL;
   int i                = 0;
   int size             = 0;
@@ -212,7 +211,8 @@ enlarge_aig_unique_table (BtorAIGMgr *amgr)
   size     = amgr->table.size;
   new_size = size << 1;
   assert (new_size / size == 2);
-  BTOR_CNEWN (amgr->mm, new_chains, new_size);
+  mm = amgr->mm;
+  BTOR_CNEWN (mm, new_chains, new_size);
   for (i = 0; i < size; i++)
   {
     cur = amgr->table.chains[i];
@@ -227,7 +227,7 @@ enlarge_aig_unique_table (BtorAIGMgr *amgr)
       cur              = temp;
     }
   }
-  BTOR_DELETEN (amgr->mm, amgr->table.chains, size);
+  BTOR_DELETEN (mm, amgr->table.chains, size);
   amgr->table.size   = new_size;
   amgr->table.chains = new_chains;
 }
@@ -244,12 +244,14 @@ btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 void
 btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark)
 {
+  BtorMemMgr *mm = NULL;
   BtorAIGPtrStack stack;
   BtorAIG *cur = NULL;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
+  mm = amgr->mm;
   BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (amgr->mm, stack, aig);
+  BTOR_PUSH_STACK (mm, stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
@@ -258,56 +260,52 @@ btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark)
       cur->mark = new_mark;
       if (BTOR_IS_AND_AIG (cur))
       {
-        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
       }
     }
   }
-  BTOR_RELEASE_STACK (amgr->mm, stack);
+  BTOR_RELEASE_STACK (mm, stack);
 }
 
 void
 btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
+  BtorMemMgr *mm = NULL;
   BtorAIGPtrStack stack;
   BtorAIG *cur = BTOR_REAL_ADDR_AIG (aig);
   assert (amgr != NULL);
+  mm = amgr->mm;
   if (!BTOR_IS_CONST_AIG (aig))
   {
     assert (cur->refs > 0);
     if (cur->refs > 1)
-    {
       cur->refs--;
-    }
     else
     {
       assert (cur->refs == 1);
       BTOR_INIT_STACK (stack);
-      BTOR_PUSH_STACK (amgr->mm, stack, cur);
+      BTOR_PUSH_STACK (mm, stack, cur);
       while (!BTOR_EMPTY_STACK (stack))
       {
         cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
         if (cur->refs > 1)
-        {
           cur->refs--;
-        }
         else
         {
           assert (cur->refs == 1);
           if (BTOR_IS_VAR_AIG (cur))
-          {
             delete_aig_node (amgr, cur);
-          }
           else
           {
             assert (BTOR_IS_AND_AIG (cur));
-            BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-            BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+            BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+            BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
             delete_aig_unique_table_entry (amgr, cur);
           }
         }
       }
-      BTOR_RELEASE_STACK (amgr->mm, stack);
+      BTOR_RELEASE_STACK (mm, stack);
     }
   }
 }
@@ -574,9 +572,7 @@ TRY_AGAIN:
     amgr->table.num_elements++;
   }
   else
-  {
     inc_aig_ref_counter (*lookup);
-  }
   return *lookup;
 }
 
@@ -664,6 +660,7 @@ btor_dump_aigs (
     BtorAIGMgr *amgr, int binary, FILE *file, BtorAIG **aigs, int naigs)
 {
   unsigned aig_id, left_id, right_id, tmp, delta;
+  BtorMemMgr *mm = NULL;
   BtorAIG *aig, *left, *right;
   BtorPtrToIntHashTable *table;
   BtorPtrToIntHashBucket *p;
@@ -672,6 +669,8 @@ btor_dump_aigs (
   unsigned char ch;
 
   assert (naigs > 0);
+
+  mm = amgr->mm;
 
   table = btor_new_ptr_to_int_hash_table (amgr->mm, 0, 0);
 
@@ -682,7 +681,7 @@ btor_dump_aigs (
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
-    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (amgr->mm, stack, aig);
+    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
 
   while (!BTOR_EMPTY_STACK (stack))
@@ -708,7 +707,7 @@ btor_dump_aigs (
       assert (BTOR_IS_AND_AIG (aig));
 
       right = BTOR_RIGHT_CHILD_AIG (aig);
-      BTOR_PUSH_STACK (amgr->mm, stack, right);
+      BTOR_PUSH_STACK (mm, stack, right);
 
       aig = BTOR_LEFT_CHILD_AIG (aig);
       goto CONTINUE_WITHOUT_POP;
@@ -723,7 +722,7 @@ btor_dump_aigs (
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
-    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (amgr->mm, stack, aig);
+    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
 
   while (!BTOR_EMPTY_STACK (stack))
@@ -743,11 +742,11 @@ btor_dump_aigs (
 
       if (BTOR_IS_VAR_AIG (aig)) continue;
 
-      BTOR_PUSH_STACK (amgr->mm, stack, aig);
-      BTOR_PUSH_STACK (amgr->mm, stack, 0);
+      BTOR_PUSH_STACK (mm, stack, aig);
+      BTOR_PUSH_STACK (mm, stack, 0);
 
       right = BTOR_RIGHT_CHILD_AIG (aig);
-      BTOR_PUSH_STACK (amgr->mm, stack, right);
+      BTOR_PUSH_STACK (mm, stack, right);
 
       aig = BTOR_LEFT_CHILD_AIG (aig);
       goto CONTINUE_WITH_NON_ZERO_AIG;
@@ -770,7 +769,7 @@ btor_dump_aigs (
 
   A = M - I;
 
-  BTOR_RELEASE_STACK (amgr->mm, stack);
+  BTOR_RELEASE_STACK (mm, stack);
 
   L = 0; /* TODO: no latches sofar */
   O = naigs;
@@ -871,11 +870,13 @@ btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
 void
 btor_delete_aig_mgr (BtorAIGMgr *amgr)
 {
+  BtorMemMgr *mm = NULL;
   assert (amgr != NULL);
   assert (amgr->table.num_elements == 0);
-  BTOR_RELEASE_AIG_UNIQUE_TABLE (amgr->mm, amgr->table);
+  mm = amgr->mm;
+  BTOR_RELEASE_AIG_UNIQUE_TABLE (mm, amgr->table);
   btor_delete_sat_mgr (amgr->smgr);
-  BTOR_DELETE (amgr->mm, amgr);
+  BTOR_DELETE (mm, amgr);
 }
 
 static void
@@ -908,9 +909,7 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
       if (cur->mark == 0)
       {
         if (BTOR_IS_VAR_AIG (cur))
-        {
           cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        }
         else
         {
           assert (BTOR_IS_AND_AIG (cur));
@@ -971,9 +970,7 @@ generate_cnf_ids (BtorAIGMgr *amgr, BtorAIG *aig)
       if (cur->mark == 0)
       {
         if (BTOR_IS_VAR_AIG (cur))
-        {
           cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        }
         else
         {
           assert (BTOR_IS_AND_AIG (cur));
