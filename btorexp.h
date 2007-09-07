@@ -47,6 +47,7 @@ struct BtorReadObj
 {
   BtorExp *var;
   BtorExp *index;
+  int index_cnf_generated;
 };
 
 typedef struct BtorReadObj BtorReadObj;
