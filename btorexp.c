@@ -961,7 +961,8 @@ btor_release_exp (BtorExpMgr *emgr, BtorExp *exp)
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
       if (cur->refs > 1)
       {
-        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ARRAY_EXP (cur)) cur->refs--;
+        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur))
+          cur->refs--;
       }
       else
       {
@@ -2853,8 +2854,7 @@ btor_get_symbol_exp (BtorExpMgr *emgr, BtorExp *exp)
   (void) emgr;
   assert (emgr != NULL);
   assert (exp != NULL);
-  assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp))
-          || BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)));
   return BTOR_REAL_ADDR_EXP (exp)->symbol;
 }
 
