@@ -19,7 +19,8 @@
 #include <string.h>
 
 #define BTOR_HAVE_GETRUSAGE
-// #define BTOR_HAVE_STAT
+#define BTOR_HAVE_STAT
+#define BTOR_HAVE_ISATTY
 
 #ifdef BTOR_HAVE_GETRUSAGE
 #include <sys/resource.h>
@@ -30,6 +31,10 @@
 #ifdef BTOR_HAVE_STAT
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <unistd.h>
+#endif
+
+#ifdef BTOR_HAVE_ISATTY
 #include <unistd.h>
 #endif
 
@@ -273,6 +278,7 @@ btor_main (int argc, char **argv)
   int dump_cnf                = 0;
   int hexadecimal             = 0;
   int decimal                 = 0;
+  int dump_binary_aig         = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -515,10 +521,14 @@ btor_main (int argc, char **argv)
         avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
         amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
         smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
         if (dump_aig)
         {
           aig = btor_exp_to_aig (emgr, parse_res.roots[0]);
-          btor_dump_aig (amgr, aig_file, aig);
+#ifdef BTOR_HAVE_ISATTY
+          if (close_aig_file || !isatty (1)) dump_binary_aig = 1;
+#endif
+          btor_dump_aig (amgr, dump_binary_aig, aig_file, aig);
           btor_release_aig (amgr, aig);
         }
         else if (dump_cnf)

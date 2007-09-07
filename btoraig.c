@@ -630,15 +630,17 @@ btor_cond_aig (BtorAIGMgr *amgr,
   return cond;
 }
 
+#if 0
+
 static void
-analyze_aig (
-    BtorAIGMgr *amgr, BtorAIG *aig, int *max_id, int *num_inputs, int *num_ands)
+analyze_aig (BtorAIGMgr * amgr, BtorAIG * aig, int *max_id, int *num_inputs,
+             int *num_ands)
 {
   BtorAIGPtrStack stack;
   BtorAIG *cur = NULL;
-  int max      = 0;
-  int inputs   = 0;
-  int ands     = 0;
+  int max = 0;
+  int inputs = 0;
+  int ands = 0;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
   assert (max_id != NULL);
@@ -647,34 +649,35 @@ analyze_aig (
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (amgr->mm, stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-    if (cur->mark == 0)
     {
-      cur->mark = 1;
-      if (cur->id > max) max = cur->id;
-      if (BTOR_IS_AND_AIG (cur))
-      {
-        ands++;
-        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
-      }
+      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+      if (cur->mark == 0)
+        {
+          cur->mark = 1;
+          if (cur->id > max)
+            max = cur->id;
+          if (BTOR_IS_AND_AIG (cur))
+            {
+              ands++;
+              BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+              BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+            }
+          else
+            {
+              assert (BTOR_IS_VAR_AIG (cur));
+              inputs++;
+            }
+        }
       else
-      {
-        assert (BTOR_IS_VAR_AIG (cur));
-        inputs++;
-      }
+        {
+          assert (cur->mark == 1);
+        }
     }
-    else
-    {
-      assert (cur->mark == 1);
-    }
-  }
   BTOR_RELEASE_STACK (amgr->mm, stack);
   btor_mark_aig (amgr, aig, 0);
-  *max_id     = max;
+  *max_id = max;
   *num_inputs = inputs;
-  *num_ands   = ands;
+  *num_ands = ands;
 }
 
 static unsigned int
@@ -684,7 +687,7 @@ encode_unsigned_aig_id (int id)
 }
 
 static void
-dump_aig_inputs (BtorAIGMgr *amgr, BtorAIG *aig, FILE *file)
+dump_aig_inputs (BtorAIGMgr * amgr, BtorAIG * aig, FILE * file)
 {
   BtorAIGPtrStack stack;
   BtorAIG *cur = NULL;
@@ -694,112 +697,122 @@ dump_aig_inputs (BtorAIGMgr *amgr, BtorAIG *aig, FILE *file)
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (amgr->mm, stack, aig);
   while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-    if (cur->mark == 0)
     {
-      cur->mark = 1;
-      if (BTOR_IS_AND_AIG (cur))
-      {
-        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-        BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
-      }
+      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+      if (cur->mark == 0)
+        {
+          cur->mark = 1;
+          if (BTOR_IS_AND_AIG (cur))
+            {
+              BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+              BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+            }
+          else
+            {
+              assert (BTOR_IS_VAR_AIG (cur));
+              fprintf (file, "%u\n", encode_unsigned_aig_id (cur->id));
+            }
+        }
       else
-      {
-        assert (BTOR_IS_VAR_AIG (cur));
-        fprintf (file, "%u\n", encode_unsigned_aig_id (cur->id));
-      }
+        {
+          assert (cur->mark == 1);
+        }
     }
-    else
-    {
-      assert (cur->mark == 1);
-    }
-  }
   BTOR_RELEASE_STACK (amgr->mm, stack);
   btor_mark_aig (amgr, aig, 0);
 }
 
 void
-btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig)
+btor_dump_aig (BtorAIGMgr * amgr, int binary, FILE * output, BtorAIG * aig)
 {
   BtorAIGPtrStack stack;
-  BtorAIG *cur   = NULL;
-  BtorAIG *left  = NULL;
+  BtorAIG *cur = NULL;
+  BtorAIG *left = NULL;
   BtorAIG *right = NULL;
-  int cur_id     = 0;
-  int left_id    = 0;
-  int right_id   = 0;
-  int max        = 0;
-  int inputs     = 0;
-  int ands       = 0;
+  int cur_id = 0;
+  int left_id = 0;
+  int right_id = 0;
+  int max = 0;
+  int inputs = 0;
+  int ands = 0;
   assert (amgr != NULL);
   assert (output != NULL);
+  (void) binary;			/* not supported for this version */
   if (aig == BTOR_AIG_TRUE)
-  {
-    fprintf (output, "aag 0 0 0 1 0\n1\n");
-  }
-  else if (aig == BTOR_AIG_FALSE)
-  {
-    fprintf (output, "aag 0 0 0 1 0\n0\n");
-  }
-  else if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
-  {
-    cur_id = BTOR_REAL_ADDR_AIG (aig)->id;
-    fprintf (output, "aag %d 1 0 1 0\n", cur_id);
-    cur_id <<= 1;
-    assert (BTOR_REAL_ADDR_AIG (aig)->id == cur_id / 2);
-    fprintf (output, "%d\n", cur_id);
-    assert (cur_id < INT_MAX);
-    if (BTOR_IS_INVERTED_AIG (aig))
-      fprintf (output, "%d\n", cur_id + 1);
-    else
-      fprintf (output, "%d\n", cur_id);
-  }
-  else
-  {
-    analyze_aig (amgr, aig, &max, &inputs, &ands);
-    cur = BTOR_REAL_ADDR_AIG (aig);
-    fprintf (output, "aag %d %d 0 1 %d\n", max, inputs, ands);
-    dump_aig_inputs (amgr, aig, output);
-    if (BTOR_IS_INVERTED_AIG (aig))
-      fprintf (output, "%u\n", encode_unsigned_aig_id (-cur->id));
-    else
-      fprintf (output, "%u\n", encode_unsigned_aig_id (cur->id));
-    BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (amgr->mm, stack, aig);
-    while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-      assert (BTOR_IS_AND_AIG (cur));
-      if (cur->mark == 0)
-      {
-        cur->mark = 1;
-        cur_id    = cur->id;
-        left      = BTOR_LEFT_CHILD_AIG (cur);
-        right     = BTOR_RIGHT_CHILD_AIG (cur);
-        if (BTOR_IS_INVERTED_AIG (left))
-          left_id = -BTOR_REAL_ADDR_AIG (left)->id;
-        else
-          left_id = left->id;
-        if (BTOR_IS_INVERTED_AIG (right))
-          right_id = -BTOR_REAL_ADDR_AIG (right)->id;
-        else
-          right_id = right->id;
-        fprintf (output,
-                 "%u %u %u\n",
-                 encode_unsigned_aig_id (cur_id),
-                 encode_unsigned_aig_id (left_id),
-                 encode_unsigned_aig_id (right_id));
-        if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
-          BTOR_PUSH_STACK (amgr->mm, stack, right);
-        if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (left)))
-          BTOR_PUSH_STACK (amgr->mm, stack, left);
-      }
+      fprintf (output, "aag 0 0 0 1 0\n1\n");
     }
-    BTOR_RELEASE_STACK (amgr->mm, stack);
-    btor_mark_aig (amgr, aig, 0);
-  }
+  else if (aig == BTOR_AIG_FALSE)
+    {
+      fprintf (output, "aag 0 0 0 1 0\n0\n");
+    }
+  else if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
+    {
+      cur_id = BTOR_REAL_ADDR_AIG (aig)->id;
+      fprintf (output, "aag %d 1 0 1 0\n", cur_id);
+      cur_id <<= 1;
+      assert (BTOR_REAL_ADDR_AIG (aig)->id == cur_id / 2);
+      fprintf (output, "%d\n", cur_id);
+      assert (cur_id < INT_MAX);
+      if (BTOR_IS_INVERTED_AIG (aig))
+        fprintf (output, "%d\n", cur_id + 1);
+      else
+        fprintf (output, "%d\n", cur_id);
+    }
+  else
+    {
+      analyze_aig (amgr, aig, &max, &inputs, &ands);
+      cur = BTOR_REAL_ADDR_AIG (aig);
+      fprintf (output, "aag %d %d 0 1 %d\n", max, inputs, ands);
+      dump_aig_inputs (amgr, aig, output);
+      if (BTOR_IS_INVERTED_AIG (aig))
+        fprintf (output, "%u\n", encode_unsigned_aig_id (-cur->id));
+      else
+        fprintf (output, "%u\n", encode_unsigned_aig_id (cur->id));
+      BTOR_INIT_STACK (stack);
+      BTOR_PUSH_STACK (amgr->mm, stack, aig);
+      while (!BTOR_EMPTY_STACK (stack))
+        {
+          cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+          assert (BTOR_IS_AND_AIG (cur));
+          if (cur->mark == 0)
+            {
+              cur->mark = 1;
+              cur_id = cur->id;
+              left = BTOR_LEFT_CHILD_AIG (cur);
+              right = BTOR_RIGHT_CHILD_AIG (cur);
+              if (BTOR_IS_INVERTED_AIG (left))
+                left_id = -BTOR_REAL_ADDR_AIG (left)->id;
+              else
+                left_id = left->id;
+              if (BTOR_IS_INVERTED_AIG (right))
+                right_id = -BTOR_REAL_ADDR_AIG (right)->id;
+              else
+                right_id = right->id;
+              fprintf (output, "%u %u %u\n",
+                       encode_unsigned_aig_id (cur_id),
+                       encode_unsigned_aig_id (left_id),
+                       encode_unsigned_aig_id (right_id));
+              if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
+                BTOR_PUSH_STACK (amgr->mm, stack, right);
+              if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (left)))
+                BTOR_PUSH_STACK (amgr->mm, stack, left);
+            }
+        }
+      BTOR_RELEASE_STACK (amgr->mm, stack);
+      btor_mark_aig (amgr, aig, 0);
+    }
 }
+
+#else
+
+void
+btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
+{
+  btor_dump_aigs (amgr, binary, output, &aig, 1);
+}
+
+#endif
 
 static unsigned
 btor_aiger_encode_aig (BtorPtrToIntHashTable *table, BtorAIG *aig)
@@ -973,7 +986,7 @@ btor_dump_aigs (
     left_id  = btor_aiger_encode_aig (table, left);
     right_id = btor_aiger_encode_aig (table, right);
 
-    if (left_id > right_id)
+    if (left_id < right_id)
     {
       tmp      = left_id;
       left_id  = right_id;

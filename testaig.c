@@ -31,7 +31,7 @@ test_false_aig (void)
 {
   FILE *fout       = fopen ("log/false_aig.log", "w");
   BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
-  btor_dump_aig (amgr, fout, BTOR_AIG_FALSE);
+  btor_dump_aig (amgr, 0, fout, BTOR_AIG_FALSE);
   btor_delete_aig_mgr (amgr);
   fclose (fout);
 }
@@ -41,7 +41,7 @@ test_true_aig (void)
 {
   FILE *fout       = fopen ("log/true_aig.log", "w");
   BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
-  btor_dump_aig (amgr, fout, BTOR_AIG_TRUE);
+  btor_dump_aig (amgr, 0, fout, BTOR_AIG_TRUE);
   btor_delete_aig_mgr (amgr);
   fclose (fout);
 }
@@ -53,7 +53,7 @@ test_var_aig (void)
   BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
   BtorAIG *var     = btor_var_aig (amgr);
   assert (BTOR_IS_VAR_AIG (var));
-  btor_dump_aig (amgr, fout, var);
+  btor_dump_aig (amgr, 0, fout, var);
   btor_release_aig (amgr, var);
   btor_delete_aig_mgr (amgr);
   fclose (fout);
@@ -66,7 +66,7 @@ test_not_aig (void)
   BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
   BtorAIG *var     = btor_var_aig (amgr);
   BtorAIG *not     = btor_not_aig (amgr, var);
-  btor_dump_aig (amgr, fout, not);
+  btor_dump_aig (amgr, 0, fout, not);
   btor_release_aig (amgr, var);
   btor_release_aig (amgr, not);
   btor_delete_aig_mgr (amgr);
@@ -86,7 +86,7 @@ binary_commutative_aig_test (
   BtorAIG *aig5    = func (amgr, aig2, aig1);
   assert (aig3 == aig4);
   assert (aig4 == aig5);
-  btor_dump_aig (amgr, fout, aig5);
+  btor_dump_aig (amgr, 0, fout, aig5);
   btor_release_aig (amgr, aig1);
   btor_release_aig (amgr, aig2);
   btor_release_aig (amgr, aig3);
@@ -131,7 +131,7 @@ test_cond_aig (void)
   BtorAIG *aig4    = btor_cond_aig (amgr, aig1, aig2, aig3);
   BtorAIG *aig5    = btor_cond_aig (amgr, aig1, aig2, aig3);
   assert (aig4 == aig5);
-  btor_dump_aig (amgr, fout, aig5);
+  btor_dump_aig (amgr, 0, fout, aig5);
   btor_release_aig (amgr, aig1);
   btor_release_aig (amgr, aig2);
   btor_release_aig (amgr, aig3);

@@ -74,7 +74,7 @@ BtorAIG *btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
 void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
-void btor_dump_aig (BtorAIGMgr *amgr, FILE *output, BtorAIG *aig);
+void btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig);
 
 void btor_dump_aigs (
     BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG **aigs, int naigs);
