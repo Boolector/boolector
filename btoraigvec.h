@@ -90,8 +90,6 @@ int btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
 
 void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-void btor_encode_full_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
-
 BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
 char *btor_get_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
