@@ -18,13 +18,19 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* BSD/Linux/SysV specific */
-#define BTOR_HAVE_GETRUSAGE /* do we have 'getrusage' ? */
+#define BTOR_HAVE_GETRUSAGE
+// #define BTOR_HAVE_STAT
 
 #ifdef BTOR_HAVE_GETRUSAGE
 #include <sys/resource.h>
 #include <sys/time.h>
-#include <sys/unistd.h>
+#include <unistd.h>
+#endif
+
+#ifdef BTOR_HAVE_STAT
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 #endif
 
 typedef struct BtorMainApp BtorMainApp;
@@ -33,6 +39,7 @@ struct BtorMainApp
 {
   FILE *output_file;
   int verbosity;
+  int force;
   int *err;
   int *i;
   int argc;
@@ -55,6 +62,7 @@ static const char *g_usage =
     "  -d|--dec                         decimal output\n"
     "  -o|--output <file>               set output file\n"
     "  -t|--trace <file>                set trace file\n"
+    "  -f|--force                       overwrite existing output file\n"
     "  -de|--dump-exp <file>            dump expression\n"
     "  -da|--dump-aig <file>            dump AIG in AIGER (only for BV)\n"
     "  -dc|--dump-cnf <file>            dump CNF in DIMACS\n"
@@ -155,6 +163,26 @@ print_err_va_args (BtorMainApp *app, char *msg, ...)
   }
 }
 
+static int
+file_already_exists (const char *file_name)
+{
+#ifdef BTOR_HAVE_STAT
+  struct stat buf;
+  return !stat (file_name, &buf);
+#else
+  FILE *file = fopen (file_name, "r");
+  int res;
+  if (file)
+  {
+    fclose (file);
+    res = 1;
+  }
+  else
+    res = 1;
+  return res;
+#endif
+}
+
 static void
 handle_dump_file (BtorMainApp *app,
                   int *dump_file,
@@ -162,11 +190,15 @@ handle_dump_file (BtorMainApp *app,
                   const char *file_kind,
                   FILE **file)
 {
+  const char *file_name;
+
   assert (dump_file != NULL);
   assert (close_file != NULL);
   assert (file_kind != NULL);
   assert (file != NULL);
+
   *dump_file = 1;
+
   if (*app->i < app->argc - 1)
   {
     if (*close_file)
@@ -179,16 +211,28 @@ handle_dump_file (BtorMainApp *app,
     }
     else
     {
-      (*app->i)++;
-      *file = fopen (app->argv[*app->i], "w");
-      if (*file == NULL)
+      file_name = app->argv[++*app->i];
+
+      if (file_already_exists (file_name) && !app->force)
       {
-        print_err_va_args (app, "can not create '%s'\n", app->argv[*app->i]);
+        print_err_va_args (
+            app,
+            "will not overwrite existing %s file '%s' without '-f'\n",
+            file_kind,
+            file_name);
+
         *app->err = 1;
       }
       else
       {
-        *close_file = 1;
+        *file = fopen (file_name, "w");
+        if (*file == NULL)
+        {
+          print_err_va_args (app, "can not create '%s'\n", app->argv[*app->i]);
+          *app->err = 1;
+        }
+        else
+          *close_file = 1;
       }
     }
   }
@@ -256,6 +300,7 @@ btor_main (int argc, char **argv)
   int rewrite_level               = 2;
 
   app.verbosity   = 0;
+  app.force       = 0;
   app.output_file = stdout;
   app.argc        = argc;
   app.argv        = argv;
@@ -273,6 +318,10 @@ btor_main (int argc, char **argv)
     {
       print_msg_va_args (&app, "%s", g_copyright);
       done = 1;
+    }
+    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--force"))
+    {
+      app.force = 1;
     }
     else if (!strcmp (argv[i], "-de") || !strcmp (argv[i], "--dump-exp"))
     {
