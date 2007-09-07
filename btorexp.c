@@ -275,22 +275,12 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
       aig2 = av_index2->aigs[k];
       if (!BTOR_IS_CONST_AIG (aig1))
       {
-        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        if (BTOR_IS_INVERTED_AIG (aig1))
-          i_k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-        else
-          i_k = aig1->cnf_id;
+        i_k = BTOR_GET_CNF_ID_AIG (aig1);
         assert (i_k != 0);
       }
       if (!BTOR_IS_CONST_AIG (aig2))
       {
-        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        if (BTOR_IS_INVERTED_AIG (aig2))
-          j_k = -BTOR_REAL_ADDR_AIG (aig2)->cnf_id;
-        else
-          j_k = aig2->cnf_id;
+        j_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (j_k != 0);
       }
       if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
