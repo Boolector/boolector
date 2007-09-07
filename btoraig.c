@@ -591,6 +591,7 @@ btor_eq_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   BtorAIG *eq_left  = NULL;
   BtorAIG *eq_right = NULL;
   assert (amgr != NULL);
+
   eq_left =
       BTOR_INVERT_AIG (btor_and_aig (amgr, left, BTOR_INVERT_AIG (right)));
   eq_right =

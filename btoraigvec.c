@@ -221,6 +221,7 @@ full_add_aig (
   BtorAIG *cout_and1 = NULL;
   BtorAIG *cout_and2 = NULL;
   BtorAIG *cout_and3 = NULL;
+  BtorAIG *x_or_y    = NULL;
   BtorAIG *result    = NULL;
   BtorAIG * or       = NULL;
   BtorAIG * xor      = NULL;
@@ -230,10 +231,12 @@ full_add_aig (
   cout_and1 = btor_and_aig (amgr, x, cin);
   cout_and2 = btor_and_aig (amgr, y, cin);
   cout_and3 = btor_and_aig (amgr, x, y);
+  x_or_y    = btor_or_aig (amgr, x, y);
 
-  or     = btor_or_aig (amgr, cout_and1, cout_and2);
-  *cout  = btor_or_aig (amgr, or, cout_and3);
-  xor    = btor_xor_aig (amgr, x, y);
+  or    = btor_or_aig (amgr, cout_and1, cout_and2);
+  *cout = btor_or_aig (amgr, or, cout_and3);
+
+  xor    = btor_and_aig (amgr, BTOR_INVERT_AIG (cout_and3), x_or_y);
   result = btor_xor_aig (amgr, xor, cin);
 
   btor_release_aig (amgr, or);
@@ -241,6 +244,7 @@ full_add_aig (
   btor_release_aig (amgr, cout_and1);
   btor_release_aig (amgr, cout_and2);
   btor_release_aig (amgr, cout_and3);
+  btor_release_aig (amgr, x_or_y);
   return result;
 }
 
