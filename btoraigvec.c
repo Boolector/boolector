@@ -214,46 +214,6 @@ btor_eq_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
-#if 0
-
-static BtorAIG *
-full_adder (BtorAIGMgr * amgr,
-            BtorAIG * x, BtorAIG * y, BtorAIG * cin,
-	    BtorAIG ** cout)
-{
-  BtorAIG *x_and_cin = NULL;
-  BtorAIG *y_and_cin = NULL;
-  BtorAIG *x_and_y = NULL;
-  BtorAIG *x_or_y = NULL;
-  BtorAIG *result = NULL;
-  BtorAIG *or = NULL;
-  BtorAIG *x_xor_y = NULL;
-  assert (amgr != NULL);
-  assert (cout != NULL);
-
-  x_and_cin = btor_and_aig (amgr, x, cin);
-  y_and_cin = btor_and_aig (amgr, y, cin);
-  x_and_y = btor_and_aig (amgr, x, y);
-  x_or_y = btor_or_aig (amgr, x, y);
-
-  or = btor_or_aig (amgr, x_and_cin, y_and_cin);
-  *cout = btor_or_aig (amgr, or, x_and_y);
-
-  x_xor_y = btor_and_aig (amgr, BTOR_INVERT_AIG (x_and_y), x_or_y);
-
-  result = btor_xor_aig (amgr, x_xor_y, cin);
-
-  btor_release_aig (amgr, or);
-  btor_release_aig (amgr, x_xor_y);
-  btor_release_aig (amgr, x_and_cin);
-  btor_release_aig (amgr, y_and_cin);
-  btor_release_aig (amgr, x_and_y);
-  btor_release_aig (amgr, x_or_y);
-  return result;
-}
-
-#else
-
 static BtorAIG *
 half_adder (BtorAIGMgr *amgr, BtorAIG *x, BtorAIG *y, BtorAIG **cout)
 {
@@ -282,8 +242,6 @@ full_adder (
   btor_release_aig (amgr, c2);
   return res;
 }
-
-#endif
 
 BtorAIGVec *
 btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
