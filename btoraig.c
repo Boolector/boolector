@@ -93,6 +93,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig->mark                  = 0;
   aig->pos_imp               = 0;
   aig->neg_imp               = 0;
+  aig->encode_full           = 0;
   return aig;
 }
 
@@ -325,9 +326,12 @@ btor_var_aig (BtorAIGMgr *amgr)
   BTOR_LEFT_CHILD_AIG (aig)  = NULL;
   BTOR_RIGHT_CHILD_AIG (aig) = NULL;
   aig->refs                  = 1;
-  aig->mark                  = 0;
   aig->cnf_id                = 0;
   aig->next                  = NULL;
+  aig->mark                  = 0;
+  aig->pos_imp               = 0;
+  aig->neg_imp               = 0;
+  aig->encode_full           = 0;
   return aig;
 }
 
@@ -994,7 +998,8 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
     cur         = BTOR_POP_STACK (stack);
     is_inverted = BTOR_IS_INVERTED_AIG (cur);
     cur         = BTOR_REAL_ADDR_AIG (cur);
-    if ((is_inverted && cur->neg_imp) || (!is_inverted && cur->pos_imp))
+    if ((is_inverted && cur->neg_imp) || (!is_inverted && cur->pos_imp)
+        || (cur->encode_full && cur->neg_imp && cur->pos_imp))
       continue;
     left  = BTOR_LEFT_CHILD_AIG (cur);
     right = BTOR_RIGHT_CHILD_AIG (cur);
@@ -1010,16 +1015,13 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
     assert (x != 0);
     assert (y != 0);
     assert (z != 0);
-    if (is_inverted)
+    if (cur->encode_full)
     {
       btor_add_sat (smgr, x);
       btor_add_sat (smgr, -y);
       btor_add_sat (smgr, -z);
       btor_add_sat (smgr, 0);
       cur->neg_imp = 1;
-    }
-    else
-    {
       btor_add_sat (smgr, -x);
       btor_add_sat (smgr, y);
       btor_add_sat (smgr, 0);
@@ -1027,6 +1029,27 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
       btor_add_sat (smgr, z);
       btor_add_sat (smgr, 0);
       cur->pos_imp = 1;
+    }
+    else
+    {
+      if (is_inverted)
+      {
+        btor_add_sat (smgr, x);
+        btor_add_sat (smgr, -y);
+        btor_add_sat (smgr, -z);
+        btor_add_sat (smgr, 0);
+        cur->neg_imp = 1;
+      }
+      else
+      {
+        btor_add_sat (smgr, -x);
+        btor_add_sat (smgr, y);
+        btor_add_sat (smgr, 0);
+        btor_add_sat (smgr, -x);
+        btor_add_sat (smgr, z);
+        btor_add_sat (smgr, 0);
+        cur->pos_imp = 1;
+      }
     }
     if (BTOR_IS_AND_AIG (BTOR_REAL_ADDR_AIG (right)))
     {
@@ -1078,6 +1101,13 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
     else
       btor_assume_sat (smgr, aig->cnf_id);
   }
+}
+
+void
+btor_encode_full_aig (BtorAIGMgr *amgr, BtorAIG *aig)
+{
+  assert (amgr != NULL);
+  if (!BTOR_IS_CONST_AIG (aig)) BTOR_REAL_ADDR_AIG (aig)->encode_full = 1;
 }
 
 void

@@ -665,6 +665,17 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   BTOR_DELETE (avmgr->mm, av);
 }
 
+void
+btor_encode_full_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+{
+  int i   = 0;
+  int len = 0;
+  assert (avmgr != NULL);
+  assert (av != NULL);
+  len = av->len;
+  for (i = 0; i < len; i++) btor_encode_full_aig (avmgr->amgr, av->aigs[i]);
+}
+
 BtorAIGVecMgr *
 btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
 {

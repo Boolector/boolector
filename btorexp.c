@@ -345,6 +345,10 @@ register_read (BtorExpMgr *emgr, BtorExp *array, BtorExp *var, BtorExp *index)
   assert (index != NULL);
   assert (!BTOR_IS_INVERTED_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
+  /* A read constraint needs the index positively and negatively, so
+     we have to make sure that the AIGs of the index are fully encoded
+     into CNF */
+  btor_encode_full_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index)->av);
   stack = array->read_constraint;
   if (emgr->read_enc == BTOR_LAZY_READ_ENC)
   {

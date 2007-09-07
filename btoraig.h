@@ -27,8 +27,9 @@ struct BtorAIG
   int cnf_id;
   struct BtorAIG *next;
   unsigned int mark : 2;
-  unsigned int pos_imp : 1;
-  unsigned int neg_imp : 1;
+  unsigned int pos_imp : 1;     /* has positive implication been generated? */
+  unsigned int neg_imp : 1;     /* has negative implication been generated? */
+  unsigned int encode_full : 1; /* is full encoding necessary? */
 };
 
 typedef struct BtorAIG BtorAIG;
@@ -82,6 +83,8 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+
+void btor_encode_full_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
 void btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc);
 
