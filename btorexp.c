@@ -376,46 +376,6 @@ register_read (BtorExpMgr *emgr, BtorExp *array, BtorExp *var, BtorExp *index)
 /*------------------------------------------------------------------------*/
 
 static BtorExp *
-zeros_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 0);
-  string = zeros_string (emgr, len);
-  result = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
-}
-
-static BtorExp *
-ones_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 0);
-  string = ones_string (emgr, len);
-  result = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
-}
-
-static BtorExp *
-one_exp (BtorExpMgr *emgr, int len)
-{
-  char *string    = NULL;
-  BtorExp *result = NULL;
-  assert (emgr != NULL);
-  assert (len > 0);
-  string                      = zeros_string (emgr, len);
-  string[strlen (string) - 1] = '1';
-  result                      = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
-  return result;
-}
-
-static BtorExp *
 int_min_exp (BtorExpMgr *emgr, int len)
 {
   char *string    = NULL;
@@ -1064,10 +1024,43 @@ btor_const_exp (BtorExpMgr *emgr, const char *bits)
 }
 
 BtorExp *
-btor_zero_exp (BtorExpMgr *emgr, int len)
+btor_zeros_exp (BtorExpMgr *emgr, int len)
 {
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
   assert (len > 0);
-  return zeros_exp (emgr, len);
+  string = zeros_string (emgr, len);
+  result = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
+
+BtorExp *
+btor_ones_exp (BtorExpMgr *emgr, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 0);
+  string = ones_string (emgr, len);
+  result = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
+}
+
+BtorExp *
+btor_one_exp (BtorExpMgr *emgr, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 0);
+  string                      = zeros_string (emgr, len);
+  string[strlen (string) - 1] = '1';
+  result                      = btor_const_exp (emgr, string);
+  btor_freestr (emgr->mm, string);
+  return result;
 }
 
 BtorExp *
@@ -1273,7 +1266,7 @@ rewrite_exp (BtorExpMgr *emgr,
           else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                    || kind == BTOR_SRL_EXP || kind == BTOR_UDIV_EXP
                    || kind == BTOR_UREM_EXP)
-            result = zeros_exp (emgr, real_e0->len);
+            result = btor_zeros_exp (emgr, real_e0->len);
         }
         else if (is_one)
         {
@@ -1293,9 +1286,9 @@ rewrite_exp (BtorExpMgr *emgr,
             result = btor_copy_exp (emgr, e0);
           else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                    || kind == BTOR_SRL_EXP)
-            result = zeros_exp (emgr, real_e0->len);
+            result = btor_zeros_exp (emgr, real_e0->len);
           else if (kind == BTOR_UDIV_EXP)
-            result = ones_exp (emgr, real_e0->len);
+            result = btor_ones_exp (emgr, real_e0->len);
           else if (kind == BTOR_UREM_EXP)
             result = btor_copy_exp (emgr, e0);
         }
@@ -1311,9 +1304,9 @@ rewrite_exp (BtorExpMgr *emgr,
         if (kind == BTOR_EQ_EXP)
         {
           if (e0 == e1)
-            result = one_exp (emgr, 1);
+            result = btor_one_exp (emgr, 1);
           else
-            result = zeros_exp (emgr, 1);
+            result = btor_zeros_exp (emgr, 1);
         }
         else
         {
@@ -1331,7 +1324,7 @@ rewrite_exp (BtorExpMgr *emgr,
           else
           /* replace x + ~x by -1 */
           {
-            result = ones_exp (emgr, real_e0->len);
+            result = btor_ones_exp (emgr, real_e0->len);
           }
         }
       }
@@ -1341,11 +1334,11 @@ rewrite_exp (BtorExpMgr *emgr,
       {
         switch (kind)
         {
-          case BTOR_ULT_EXP: result = zeros_exp (emgr, 1); break;
-          case BTOR_UDIV_EXP: result = one_exp (emgr, real_e0->len); break;
+          case BTOR_ULT_EXP: result = btor_zeros_exp (emgr, 1); break;
+          case BTOR_UDIV_EXP: result = btor_one_exp (emgr, real_e0->len); break;
           default:
             assert (kind == BTOR_UREM_EXP);
-            result = zeros_exp (emgr, real_e0->len);
+            result = btor_zeros_exp (emgr, real_e0->len);
             break;
         }
       }
@@ -1405,7 +1398,7 @@ btor_neg_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
-  one    = one_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
+  one    = btor_one_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_add_exp (emgr, BTOR_INVERT_EXP (exp), one);
   btor_release_exp (emgr, one);
   return result;
@@ -1428,7 +1421,7 @@ btor_nego_exp (BtorExpMgr *emgr, BtorExp *exp)
   if (len == 1) return btor_copy_exp (emgr, exp);
   sign_exp = btor_slice_exp (emgr, exp, len - 1, len - 1);
   rest     = btor_slice_exp (emgr, exp, len - 2, 0);
-  zeros    = zeros_exp (emgr, len - 1);
+  zeros    = btor_zeros_exp (emgr, len - 1);
   eq       = btor_eq_exp (emgr, rest, zeros);
   result   = btor_and_exp (emgr, sign_exp, eq);
   btor_release_exp (emgr, sign_exp);
@@ -1447,7 +1440,7 @@ btor_redor_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 1);
-  zeros  = zeros_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
+  zeros  = btor_zeros_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_ne_exp (emgr, exp, zeros);
   btor_release_exp (emgr, zeros);
   return result;
@@ -1487,7 +1480,7 @@ btor_redand_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 1);
-  ones   = ones_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
+  ones   = btor_ones_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_eq_exp (emgr, exp, ones);
   btor_release_exp (emgr, ones);
   return result;
@@ -1526,7 +1519,7 @@ btor_uext_exp (BtorExpMgr *emgr, BtorExp *exp, int len)
   else
   {
     assert (len > 0);
-    zeros  = zeros_exp (emgr, len);
+    zeros  = btor_zeros_exp (emgr, len);
     result = btor_concat_exp (emgr, zeros, exp);
     btor_release_exp (emgr, zeros);
   }
@@ -1554,8 +1547,8 @@ btor_sext_exp (BtorExpMgr *emgr, BtorExp *exp, int len)
   else
   {
     assert (len > 0);
-    zeros   = zeros_exp (emgr, len);
-    ones    = ones_exp (emgr, len);
+    zeros   = btor_zeros_exp (emgr, len);
+    ones    = btor_ones_exp (emgr, len);
     exp_len = BTOR_REAL_ADDR_EXP (exp)->len;
     neg     = btor_slice_exp (emgr, exp, exp_len - 1, exp_len - 1);
     cond    = btor_cond_exp (emgr, neg, ones, zeros);
@@ -1884,7 +1877,7 @@ btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
-  if (len == 1) return zeros_exp (emgr, 1);
+  if (len == 1) return btor_zeros_exp (emgr, 1);
   BTOR_NEWN (emgr->mm, temps_e2, len - 1);
   temps_e2[0] = btor_slice_exp (emgr, e1, len - 1, len - 1);
   for (i = 1; i < len - 1; i++)
@@ -2371,7 +2364,7 @@ btor_usubo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   uext_e1 = btor_uext_exp (emgr, e0, 1);
   uext_e2 = btor_uext_exp (emgr, BTOR_INVERT_EXP (e1), 1);
   assert (len < INT_MAX);
-  one    = one_exp (emgr, len + 1);
+  one    = btor_one_exp (emgr, len + 1);
   add1   = btor_add_exp (emgr, uext_e2, one);
   add2   = btor_add_exp (emgr, uext_e1, add1);
   result = BTOR_INVERT_EXP (btor_slice_exp (emgr, add2, len, len));
@@ -2509,7 +2502,7 @@ btor_sdivo_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   int_min = int_min_exp (emgr, BTOR_REAL_ADDR_EXP (e0)->len);
-  ones    = ones_exp (emgr, BTOR_REAL_ADDR_EXP (e1)->len);
+  ones    = btor_ones_exp (emgr, BTOR_REAL_ADDR_EXP (e1)->len);
   eq1     = btor_eq_exp (emgr, e0, int_min);
   eq2     = btor_eq_exp (emgr, e1, ones);
   result  = btor_and_exp (emgr, eq1, eq2);
@@ -2619,7 +2612,7 @@ btor_smod_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   len     = BTOR_REAL_ADDR_EXP (e0)->len;
-  zeros   = zeros_exp (emgr, len);
+  zeros   = btor_zeros_exp (emgr, len);
   sign_e0 = btor_slice_exp (emgr, e0, len - 1, len - 1);
   sign_e1 = btor_slice_exp (emgr, e1, len - 1, len - 1);
   neg_e0  = btor_neg_exp (emgr, e0);

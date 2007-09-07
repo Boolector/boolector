@@ -1711,7 +1711,7 @@ translate_shift (BtorSMTParser *parser,
       btor_release_exp (parser->mgr, tmp);
     }
     else
-      t = btor_zero_exp (parser->mgr, len);
+      t = btor_zeros_exp (parser->mgr, len);
 
     if (!p0)
       e0 = btor_copy_exp (parser->mgr, a0);

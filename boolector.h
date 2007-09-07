@@ -33,7 +33,11 @@ void btor_delete_exp_mgr (BtorExpMgr *emgr);
 /* constant */
 BtorExp *btor_const_exp (BtorExpMgr *emgr, const char *bits);
 
-BtorExp *btor_zero_exp (BtorExpMgr *emgr, int len);
+BtorExp *btor_zeros_exp (BtorExpMgr *emgr, int len);
+
+BtorExp *btor_ones_exp (BtorExpMgr *emgr, int len);
+
+BtorExp *btor_one_exp (BtorExpMgr *emgr, int len);
 
 /* variables are sticky and cannot be deleted */
 BtorExp *btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol);
