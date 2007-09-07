@@ -1,11 +1,11 @@
 SHELL=/bin/sh
 VERSION=$(shell cat VERSION)
-LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c)))
+LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@ -DBTOR_VERSION="\"$(VERSION)\"" 
 
-all: libboolector.a boolector test
+all: libboolector.a boolector test synthebtor
 
 -include dependencies
 
@@ -13,11 +13,14 @@ dependencies: *.c *.h makefile
 	rm -f dependencies
 	$(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
-boolector: boolector.o libboolector.a ../picosat/picosat.o
-	$(CC) $(CFLAGS) -o boolector boolector.o ../picosat/picosat.o -L. -lboolector
+boolector: boolector.o libboolector.a
+	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector
 
 test: $(TESTOBJ) ../picosat/picosat.o libboolector.a 
-	$(CC) $(CFLAGS) -o test $(TESTOBJ) ../picosat/picosat.o -L. -lboolector
+	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector
+
+synthebtor: synthebtor.o libboolector.a
+	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector
 
 libboolector.a: $(LIBOBJ)
 	ar rc $@ $(LIBOBJ)
