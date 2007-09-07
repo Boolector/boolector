@@ -8,5 +8,6 @@
 *~
 makefile
 boolector
+synthebtor
 test
 dependencies
