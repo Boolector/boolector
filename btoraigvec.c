@@ -421,7 +421,10 @@ btor_mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 }
 
 static BtorAIGVec *
-sub_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+sub_aigvec (BtorAIGVecMgr *avmgr,
+            BtorAIGVec *av1,
+            BtorAIGVec *av2,
+            BtorAIG **cout_ptr)
 {
   BtorAIGMgr *amgr   = NULL;
   BtorAIGVec *result = NULL;
@@ -447,15 +450,17 @@ sub_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
     cin = cout;
   }
   btor_release_delete_aigvec (avmgr, neg);
-  btor_release_aig (amgr, cout);
+  *cout_ptr = cin;
   return result;
 }
 
+#if 1
 static BtorAIGVec *
 ugte_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   return btor_ulte_aigvec (avmgr, av2, av1);
 }
+#endif
 
 static void
 udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
@@ -471,6 +476,7 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
   BtorAIGVec *is_gte        = NULL;
   BtorAIGVec *sub           = NULL;
   BtorAIGVec *remainder_2n  = NULL;
+  BtorAIG *cout             = NULL;
   int len                   = 0;
   int len_2n                = 0;
   int i                     = 0;
@@ -501,20 +507,28 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
   {
     temp = srl_n_bits (avmgr, b_i, 1, BTOR_AIG_TRUE);
     btor_release_delete_aigvec (avmgr, b_i);
-    b_i                            = temp;
-    is_gte                         = ugte_aigvec (avmgr, remainder_2n, b_i);
-    (*quotient)->aigs[len - 1 - i] = btor_copy_aig (amgr, is_gte->aigs[0]);
-    b_i_optimized                  = new_aigvec (avmgr, len_2n);
+    b_i           = temp;
+    b_i_optimized = new_aigvec (avmgr, len_2n);
     /* The first len bits of b_i have to be zero in the case
      * where subtraction is computed */
     for (j = 0; j < len; j++) b_i_optimized->aigs[j] = BTOR_AIG_FALSE;
     for (j = len; j < len_2n; j++)
       b_i_optimized->aigs[j] = btor_copy_aig (amgr, b_i->aigs[j]);
-    sub  = sub_aigvec (avmgr, remainder_2n, b_i_optimized);
+    sub = sub_aigvec (avmgr, remainder_2n, b_i_optimized, &cout);
+#if 1
+    is_gte = ugte_aigvec (avmgr, remainder_2n, b_i);
+#else
+    is_gte          = new_aigvec (avmgr, 1);
+    is_gte->aigs[0] = btor_not_aig (amgr, cout);
+#endif
+    btor_release_aig (amgr, cout);
+    (*quotient)->aigs[len - 1 - i] = btor_copy_aig (amgr, is_gte->aigs[0]);
+
     temp = btor_cond_aigvec (avmgr, is_gte, sub, remainder_2n);
+    btor_release_delete_aigvec (avmgr, is_gte);
+
     btor_release_delete_aigvec (avmgr, remainder_2n);
     remainder_2n = temp;
-    btor_release_delete_aigvec (avmgr, is_gte);
     btor_release_delete_aigvec (avmgr, sub);
     btor_release_delete_aigvec (avmgr, b_i_optimized);
   }
