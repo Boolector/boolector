@@ -1184,12 +1184,16 @@ parse_write (BtorBTORParser *parser, int len)
   idxlen = btor_get_index_exp_len (parser->btor, array);
   if (!(idx = parse_exp (parser, idxlen))) goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
-  vallen = btor_get_exp_len (parser->btor, array);
-  if (!(val = parse_exp (parser, vallen)))
+  if (parse_space (parser))
   {
+  RELEASE_ARRAY_AND_IDX_AND_RETURN_ERROR:
     btor_release_exp (parser->btor, idx);
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
   }
+
+  vallen = btor_get_exp_len (parser->btor, array);
+  if (!(val = parse_exp (parser, vallen)))
+    goto RELEASE_ARRAY_AND_IDX_AND_RETURN_ERROR;
 
   res = btor_write_exp (parser->btor, array, idx, val);
 
