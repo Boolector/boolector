@@ -254,6 +254,16 @@ has_suffix (const char *str, const char *suffix)
   return 0;
 }
 
+static int
+has_only_x (const char *str)
+{
+  const char *cur = NULL;
+  assert (str != NULL);
+  for (cur = str; *cur; cur++)
+    if (*cur != 'x') return 0;
+  return 1;
+}
+
 int
 btor_main (int argc, char **argv)
 {
@@ -570,7 +580,8 @@ btor_main (int argc, char **argv)
           {
             cur_exp = parse_res.vars[i];
             witness = btor_get_assignment_var_exp (emgr, cur_exp);
-            if (witness != NULL)
+
+            if (witness != NULL && !has_only_x (witness))
             {
               if (hexadecimal)
                 pretty_witness = btor_const_to_hex (mem, witness);
