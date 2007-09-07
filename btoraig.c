@@ -938,15 +938,31 @@ generate_cnf_ids (BtorAIGMgr *amgr, BtorAIG *aig)
     cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
     if (cur->cnf_id == 0)
     {
-      cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-      if (BTOR_IS_AND_AIG (cur))
+      if (cur->mark == 0)
       {
-        BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-        BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+        if (BTOR_IS_VAR_AIG (cur))
+        {
+          cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        }
+        else
+        {
+          assert (BTOR_IS_AND_AIG (cur));
+          cur->mark = 1;
+          BTOR_PUSH_STACK (mm, stack, cur);
+          BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+          BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+        }
+      }
+      else
+      {
+        assert (BTOR_IS_AND_AIG (cur));
+        assert (cur->mark == 1);
+        cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       }
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
+  btor_mark_aig (amgr, aig, 0);
 }
 
 static void
