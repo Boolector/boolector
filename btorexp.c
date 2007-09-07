@@ -231,6 +231,21 @@ encode_read (BtorExpMgr *emgr,
   else
     av_index2 = btor_copy_aigvec (emgr->avmgr, index2->av);
   assert (av_index2 != NULL);
+  assert (av_index1->len == av_index2->len);
+  len = av_index1->len;
+  for (k = 0; k < len; k++)
+  {
+    if (!BTOR_IS_CONST_AIG (av_index1->aigs[k]))
+    {
+      btor_aig_to_sat (amgr, av_index1->aigs[k]);
+      btor_aig_to_sat (amgr, BTOR_INVERT_AIG (av_index1->aigs[k]));
+    }
+    if (!BTOR_IS_CONST_AIG (av_index2->aigs[k]))
+    {
+      btor_aig_to_sat (amgr, av_index2->aigs[k]);
+      btor_aig_to_sat (amgr, BTOR_INVERT_AIG (av_index2->aigs[k]));
+    }
+  }
   av_var1 = var1->av;
   assert (av_var1 != NULL);
   av_var2 = var2->av;
@@ -345,10 +360,6 @@ register_read (BtorExpMgr *emgr, BtorExp *array, BtorExp *var, BtorExp *index)
   assert (index != NULL);
   assert (!BTOR_IS_INVERTED_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  /* A read constraint needs the index positively and negatively, so
-     we have to make sure that the AIGs of the index are fully encoded
-     into CNF */
-  btor_encode_full_aigvec (emgr->avmgr, BTOR_REAL_ADDR_EXP (index)->av);
   stack = array->read_constraint;
   if (emgr->read_enc == BTOR_LAZY_READ_ENC)
   {
@@ -3232,13 +3243,23 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
 {
   BtorAIG *aig     = NULL;
   BtorAIGMgr *amgr = NULL;
+  BtorSATMgr *smgr = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
   free_current_assignments (emgr);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);
-  if (!BTOR_IS_CONST_AIG (aig)) btor_aig_to_sat (amgr, aig);
+  if (!BTOR_IS_CONST_AIG (aig))
+  {
+    btor_aig_to_sat (amgr, aig);
+    assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+    if (BTOR_IS_INVERTED_AIG (aig))
+      btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+    else
+      btor_assume_sat (smgr, aig->cnf_id);
+  }
   btor_release_aig (amgr, aig);
 }
 
@@ -3382,7 +3403,15 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);
   if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-  if (aig != BTOR_AIG_TRUE) btor_aig_to_sat (amgr, aig);
+  if (aig != BTOR_AIG_TRUE)
+  {
+    btor_aig_to_sat (amgr, aig);
+    assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+    if (BTOR_IS_INVERTED_AIG (aig))
+      btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
+    else
+      btor_assume_sat (smgr, aig->cnf_id);
+  }
   sat_result = btor_sat_sat (smgr, INT_MAX);
   if (emgr->read_enc == BTOR_LAZY_READ_ENC)
   {
@@ -3394,6 +3423,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
       assert (aig != BTOR_AIG_FALSE);
       if (aig != BTOR_AIG_TRUE)
       {
+        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
         if (BTOR_IS_INVERTED_AIG (aig))
           btor_assume_sat (smgr, -BTOR_REAL_ADDR_AIG (aig)->cnf_id);
         else
