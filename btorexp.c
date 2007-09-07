@@ -2671,6 +2671,9 @@ btor_concat_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
 {
+  BtorExp *eq     = NULL;
+  BtorExp *read   = NULL;
+  BtorExp *result = NULL;
   assert (emgr != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
@@ -2680,7 +2683,17 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
-  return btor_binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
+  read = btor_binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
+  if (e_array->kind == BTOR_WRITE_EXP) /* eagerly encode McCarthy axiom */
+  {
+    /* index equal ? */
+    eq     = btor_eq_exp (emgr, e_index, e_array->e[1]);
+    result = btor_cond_exp (emgr, eq, e_array->e[2], read);
+    btor_release_exp (emgr, eq);
+    btor_release_exp (emgr, e_array);
+    return result;
+  }
+  return read;
 }
 
 static BtorExp *
@@ -2744,6 +2757,24 @@ btor_cond_exp (BtorExpMgr *emgr,
   if (result == NULL)
     result = btor_ternary_exp (emgr, BTOR_COND_EXP, e_cond, e_if, e_else, len);
   return result;
+}
+
+BtorExp *
+btor_write_exp (BtorExpMgr *emgr,
+                BtorExp *e_array,
+                BtorExp *e_index,
+                BtorExp *e_value)
+{
+  assert (emgr != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (e_array));
+  assert (BTOR_IS_ARRAY_EXP (e_array));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)));
+  assert (e_array->len > 0);
+  assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
+  assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+  return btor_ternary_exp (
+      emgr, BTOR_WRITE_EXP, e_array, e_index, e_value, e_array->len);
 }
 
 int

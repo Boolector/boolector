@@ -146,6 +146,11 @@ BtorExp *btor_concat_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 BtorExp *btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index);
 
+BtorExp *btor_write_exp (BtorExpMgr *emgr,
+                         BtorExp *e_array,
+                         BtorExp *e_index,
+                         BtorExp *e_value);
+
 BtorExp *btor_cond_exp (BtorExpMgr *emgr,
                         BtorExp *e_cond,
                         BtorExp *e_if,

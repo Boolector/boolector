@@ -94,7 +94,8 @@ struct BtorExp
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
 #define BTOR_IS_VAR_EXP_KIND(kind) ((kind) == BTOR_VAR_EXP)
-#define BTOR_IS_ARRAY_EXP_KIND(kind) ((kind) == BTOR_ARRAY_EXP)
+#define BTOR_IS_ARRAY_EXP_KIND(kind) \
+  (((kind) == BTOR_ARRAY_EXP) || ((kind) == BTOR_WRITE_EXP))
 #define BTOR_IS_UNARY_EXP_KIND(kind) ((kind) == BTOR_SLICE_EXP)
 #define BTOR_IS_BINARY_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
