@@ -560,22 +560,27 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
   amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
 
   quotient  = new_aigvec (avmgr, len);
-  remainder = btor_copy_aigvec (avmgr, av1);
+  remainder = new_aigvec (avmgr, len);
+
+  for (j = 0; j < len; j++) remainder->aigs[j] = BTOR_AIG_FALSE;
 
   for (i = len - 1; i >= 0; i--)
   {
+    btor_release_aig (amgr, remainder->aigs[len - 1]);
+
+    for (j = len - 1; j > 0; j--) remainder->aigs[j] = remainder->aigs[j - 1];
+    remainder->aigs[0] = btor_copy_aig (amgr, av1->aigs[i]);
+
     sub               = sub_aigvec (avmgr, remainder, av2, &cout);
     quotient->aigs[i] = cout;
 
     tmp = new_aigvec (avmgr, len);
-    for (j = len - 2; j >= 0; j--)
-      tmp->aigs[j + 1] =
+    for (j = 0; j < len; j++)
+      tmp->aigs[j] =
           btor_cond_aig (amgr, cout, sub->aigs[j], remainder->aigs[j]);
-    tmp->aigs[0] = BTOR_AIG_FALSE;
 
-    btor_release_delete_aigvec (avmgr, sub);
     btor_release_delete_aigvec (avmgr, remainder);
-
+    btor_release_delete_aigvec (avmgr, sub);
     remainder = tmp;
   }
 
