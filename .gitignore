@@ -5,6 +5,7 @@
 *.o
 *.a
 *.baf
+cscope.out
 *~
 makefile
 boolector
