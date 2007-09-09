@@ -39,6 +39,7 @@ static const char *slowtests[] = {
     "smtaxiombvsdiv8",
     "smtaxiombvsrem7",
     "smtaxiombvsrem8",
+    "factor4294967295_special",
     "factor18446744073709551617reduced_special",
     "factor18446744073709551617_special",
 
@@ -60,7 +61,6 @@ static const char *normaltests[] = {
     "sra_shift",
     "rol_shift",
     "ror_shift",
-    "factor4294967295_special",
     "smtaxiombvsmod5",
     "smtaxiombvsmod6",
     "smtaxiombvsdiv5",
