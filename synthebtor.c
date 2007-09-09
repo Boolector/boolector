@@ -57,6 +57,9 @@ main (int argc, char** argv)
       die (1, "too many files");
     else if (close_input)
     {
+      if (!strcmp (argv[i], input_name))
+        die (1, "input and output are the same");
+
       if (!(file = fopen (argv[i], "w")))
         die (1, "can not write '%s'", argv[i]);
 
