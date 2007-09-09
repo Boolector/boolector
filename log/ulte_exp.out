@@ -1,6 +1,4 @@
-1 var 32 v1
 2 var 32 v2
-3 ult 1 1 2
-4 eq 1 1 2
-5 and 1 -3 -4
-6 root 1 -5
+1 var 32 v1
+3 ult 1 2 1
+4 root 1 -3

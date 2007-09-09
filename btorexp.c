@@ -2082,8 +2082,7 @@ BtorExp *
 btor_ulte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result = NULL;
-  BtorExp *ult    = NULL;
-  BtorExp *eq     = NULL;
+  BtorExp *ugt    = NULL;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2091,20 +2090,19 @@ btor_ulte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  ult    = btor_ult_exp (emgr, e0, e1);
-  eq     = btor_eq_exp (emgr, e0, e1);
-  result = btor_or_exp (emgr, ult, eq);
-  btor_release_exp (emgr, ult);
-  btor_release_exp (emgr, eq);
+  ugt    = btor_ult_exp (emgr, e1, e0);
+  result = btor_not_exp (emgr, ugt);
+  btor_release_exp (emgr, ugt);
   return result;
 }
 
 BtorExp *
 btor_slte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
+#if 0
   BtorExp *result = NULL;
-  BtorExp *slt    = NULL;
-  BtorExp *eq     = NULL;
+  BtorExp *slt = NULL;
+  BtorExp *eq = NULL;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2112,12 +2110,27 @@ btor_slte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  slt    = btor_slt_exp (emgr, e0, e1);
-  eq     = btor_eq_exp (emgr, e0, e1);
+  slt = btor_slt_exp (emgr, e0, e1);
+  eq = btor_eq_exp (emgr, e0, e1);
   result = btor_or_exp (emgr, slt, eq);
   btor_release_exp (emgr, slt);
   btor_release_exp (emgr, eq);
   return result;
+#else
+  BtorExp *result = NULL;
+  BtorExp *sgt    = NULL;
+  assert (emgr != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  sgt    = btor_slt_exp (emgr, e1, e0);
+  result = btor_not_exp (emgr, sgt);
+  btor_release_exp (emgr, sgt);
+  return result;
+#endif
 }
 
 BtorExp *
@@ -2151,7 +2164,6 @@ btor_ugte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result = NULL;
   BtorExp *ult    = NULL;
-  BtorExp *eq     = NULL;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2159,20 +2171,19 @@ btor_ugte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  ult    = btor_ult_exp (emgr, e1, e0);
-  eq     = btor_eq_exp (emgr, e0, e1);
-  result = btor_or_exp (emgr, ult, eq);
+  ult    = btor_ult_exp (emgr, e0, e1);
+  result = btor_not_exp (emgr, ult);
   btor_release_exp (emgr, ult);
-  btor_release_exp (emgr, eq);
   return result;
 }
 
 BtorExp *
 btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
+#if 0
   BtorExp *result = NULL;
-  BtorExp *slt    = NULL;
-  BtorExp *eq     = NULL;
+  BtorExp *slt = NULL;
+  BtorExp *eq = NULL;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2180,12 +2191,27 @@ btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  slt    = btor_slt_exp (emgr, e1, e0);
-  eq     = btor_eq_exp (emgr, e0, e1);
+  slt = btor_slt_exp (emgr, e1, e0);
+  eq = btor_eq_exp (emgr, e0, e1);
   result = btor_or_exp (emgr, slt, eq);
   btor_release_exp (emgr, slt);
   btor_release_exp (emgr, eq);
   return result;
+#else
+  BtorExp *result = NULL;
+  BtorExp *slt    = NULL;
+  assert (emgr != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  slt    = btor_slt_exp (emgr, e0, e1);
+  result = btor_not_exp (emgr, slt);
+  btor_release_exp (emgr, slt);
+  return result;
+#endif
 }
 
 BtorExp *
