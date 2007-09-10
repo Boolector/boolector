@@ -2710,16 +2710,18 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
-  read = btor_binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
   if (e_array->kind == BTOR_WRITE_EXP) /* eagerly encode McCarthy axiom */
   {
     /* index equal ? */
+    read = btor_binary_exp (
+        emgr, BTOR_READ_EXP, e_array->e[0], e_index, e_array->len);
     eq     = btor_eq_exp (emgr, e_index, e_array->e[1]);
     result = btor_cond_exp (emgr, eq, e_array->e[2], read);
     btor_release_exp (emgr, eq);
+    btor_release_exp (emgr, read);
     return result;
   }
-  return read;
+  return btor_binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
 
 static BtorExp *
@@ -2804,6 +2806,9 @@ new_write_exp (BtorExpMgr *emgr,
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
+  connect_child_exp (emgr, exp, e_array, 0);
+  connect_child_exp (emgr, exp, e_index, 1);
+  connect_child_exp (emgr, exp, e_value, 2);
   return exp;
 }
 
