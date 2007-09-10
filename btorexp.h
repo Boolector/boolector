@@ -97,6 +97,7 @@ struct BtorExp
 #define BTOR_IS_ARRAY_EXP_KIND(kind) \
   (((kind) == BTOR_ARRAY_EXP) || ((kind) == BTOR_WRITE_EXP))
 #define BTOR_IS_NATIVE_ARRAY_EXP_KIND(kind) (kind == BTOR_ARRAY_EXP)
+#define BTOR_IS_WRITE_ARRAY_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
 #define BTOR_IS_UNARY_EXP_KIND(kind) ((kind) == BTOR_SLICE_EXP)
 #define BTOR_IS_BINARY_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
@@ -110,6 +111,8 @@ struct BtorExp
 #define BTOR_IS_ARRAY_EXP(exp) (BTOR_IS_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_NATIVE_ARRAY_EXP(exp) \
   (BTOR_IS_NATIVE_ARRAY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_WRITE_ARRAY_EXP(exp) \
+  (BTOR_IS_WRITE_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_UNARY_EXP(exp) (BTOR_IS_UNARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BINARY_EXP(exp) (BTOR_IS_BINARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_TERNARY_EXP(exp) (BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))

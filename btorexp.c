@@ -2725,7 +2725,7 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
-  if (e_array->kind == BTOR_WRITE_EXP) /* eagerly encode McCarthy axiom */
+  if (BTOR_IS_WRITE_ARRAY_EXP (e_array)) /* eagerly encode McCarthy axiom */
   {
     /* index equal ? */
     read =
@@ -2736,6 +2736,7 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
     btor_release_exp (emgr, read);
     return result;
   }
+  assert (BTOR_IS_NATIVE_ARRAY_EXP (e_array));
   return binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
 
