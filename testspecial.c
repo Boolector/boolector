@@ -334,6 +334,24 @@ test_read12_special ()
 }
 
 static void
+test_read13_special ()
+{
+  run_sat_test ("read13");
+}
+
+static void
+test_read14_special ()
+{
+  run_sat_test ("read14");
+}
+
+static void
+test_read15_special ()
+{
+  run_sat_test ("read15");
+}
+
+static void
 test_write1_special ()
 {
   run_unsat_test ("write1");
@@ -409,6 +427,9 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (read10_special);
   BTOR_RUN_TEST (read11_special);
   BTOR_RUN_TEST (read12_special);
+  BTOR_RUN_TEST (read13_special);
+  BTOR_RUN_TEST (read14_special);
+  BTOR_RUN_TEST (read15_special);
   BTOR_RUN_TEST (write1_special);
   BTOR_RUN_TEST (write2_special);
   BTOR_RUN_TEST (write3_special);
