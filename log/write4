@@ -1,0 +1,54 @@
+1 array 8 8
+2 var 8 
+3 var 8
+4 var 8 
+5 var 8 
+6 var 8
+7 var 8
+8 var 8
+9 var 8
+10 write 8 1 2 3
+11 write 8 10 4 5
+12 write 8 11 6 7 
+13 read 8 12 8 
+14 read 8 12 9 
+15 eq 1 8 9 
+16 eq 1 13 14
+17 implies 1 15 16
+18 eq 1 8 6
+19 eq 1 13 7
+20 implies 1 18 19
+21 eq 1 8 4
+22 ne 1 8 6
+23 and 1 21 22
+24 eq 1 13 5 
+25 implies 1 23 24
+26 eq 1 8 2
+27 ne 1 8 4
+28 ne 1 8 6 
+29 and 1 26 27
+30 and 1 28 29
+31 eq 1 13 3
+32 implies 1 30 31
+33 eq 1 9 6
+34 eq 1 14 7
+35 implies 1 33 34
+36 eq 1 9 4
+37 ne 1 9 6
+38 and 1 36 37
+39 eq 1 14 5
+40 implies 1 38 39
+41 eq 1 9 2
+42 ne 1 9 4
+43 ne 1 9 6
+44 and 1 41 42
+45 and 1 43 44
+46 eq 1 14 3
+47 implies 1 45 46
+48 and 1 17 20
+49 and 1 48 25
+50 and 1 49 32
+51 and 1 50 35
+52 and 1 51 40 
+53 and 1 52 47
+54 root 1 -53 
