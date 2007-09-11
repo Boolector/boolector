@@ -243,14 +243,14 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   {
     for (k = 0; k < len; k++)
       if (!BTOR_IS_CONST_AIG (av_index1->aigs[k]))
-        btor_aig_to_sat_full (amgr, av_index1->aigs[k]);
+        btor_aig_to_sat_constraints_full (amgr, av_index1->aigs[k]);
     obj1->index_cnf_generated = 1;
   }
   if (!obj2->index_cnf_generated)
   {
     for (k = 0; k < len; k++)
       if (!BTOR_IS_CONST_AIG (av_index2->aigs[k]))
-        btor_aig_to_sat_full (amgr, av_index2->aigs[k]);
+        btor_aig_to_sat_constraints_full (amgr, av_index2->aigs[k]);
     obj2->index_cnf_generated = 1;
   }
   av_var1 = var1->av;
@@ -275,11 +275,15 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
       aig2 = av_index2->aigs[k];
       if (!BTOR_IS_CONST_AIG (aig1))
       {
+        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
+          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         i_k = BTOR_GET_CNF_ID_AIG (aig1);
         assert (i_k != 0);
       }
       if (!BTOR_IS_CONST_AIG (aig2))
       {
+        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
+          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         j_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (j_k != 0);
       }
@@ -322,6 +326,7 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   {
     aig1 = av_var1->aigs[k];
     aig2 = av_var2->aigs[k];
+    assert (aig1 != aig2);
     assert (!BTOR_IS_CONST_AIG (aig1));
     assert (!BTOR_IS_INVERTED_AIG (aig1));
     assert (!BTOR_IS_CONST_AIG (aig2));
