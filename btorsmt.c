@@ -247,6 +247,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 
   if (parser->verbosity < level) return;
 
+  fflush (stdout);
   fprintf (stderr, "[btorsmt] ");
   va_start (ap, fmt);
   vfprintf (stderr, fmt, ap);
