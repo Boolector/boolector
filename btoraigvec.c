@@ -368,37 +368,143 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
-BtorAIGVec *
-btor_mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
+#if 0
+
+static BtorAIGVec *
+mul_aigvec_wordlevel (BtorAIGVecMgr * avmgr,
+                      BtorAIGVec * av1, BtorAIGVec * av2)
 {
   BtorAIGVec *result = NULL;
-  BtorAIGVec *and    = NULL;
-  BtorAIGVec *shift  = NULL;
-  BtorAIGVec *add    = NULL;
-  int i              = 0;
-  int j              = 0;
-  int len            = 0;
+  BtorAIGVec *and = NULL;
+  BtorAIGVec *shift = NULL;
+  BtorAIGVec *add = NULL;
+  int i = 0;
+  int j = 0;
+  int len = 0;
   assert (avmgr != NULL);
   assert (av1 != NULL);
   assert (av2 != NULL);
   assert (av1->len == av2->len);
   assert (av1->len > 0);
-  len    = av1->len;
+  len = av1->len;
   result = new_aigvec (avmgr, len);
-  for (i = 0; i < len; i++) result->aigs[i] = BTOR_AIG_FALSE;
+  for (i = 0; i < len; i++)
+    result->aigs[i] = BTOR_AIG_FALSE;
   for (i = len - 1; i >= 0; i--)
-  {
-    and = new_aigvec (avmgr, len);
-    for (j = 0; j < len; j++)
-      and->aigs[j] = btor_and_aig (avmgr->amgr, av1->aigs[j], av2->aigs[i]);
-    shift = sll_n_bits (avmgr, and, len - 1 - i, BTOR_AIG_TRUE);
-    add   = btor_add_aigvec (avmgr, result, shift);
-    btor_release_delete_aigvec (avmgr, result);
-    btor_release_delete_aigvec (avmgr, and);
-    btor_release_delete_aigvec (avmgr, shift);
-    result = add;
-  }
+    {
+      and = new_aigvec (avmgr, len);
+      for (j = 0; j < len; j++)
+        and->aigs[j] = btor_and_aig (avmgr->amgr, av1->aigs[j], av2->aigs[i]);
+      shift = sll_n_bits (avmgr, and, len - 1 - i, BTOR_AIG_TRUE);
+      add = btor_add_aigvec (avmgr, result, shift);
+      btor_release_delete_aigvec (avmgr, result);
+      btor_release_delete_aigvec (avmgr, and);
+      btor_release_delete_aigvec (avmgr, shift);
+      result = add;
+    }
   return result;
+}
+
+#endif
+
+/* NOTE: the word level and gate level versions produce the same AIG */
+
+static BtorAIGVec *
+mul_aigvec_gatelevel (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
+{
+  BtorAIG *cin, *cout, *and, *tmp;
+  BtorAIGMgr *amgr;
+  BtorAIGVec *res;
+  int len, i, j;
+
+  len  = a->len;
+  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+
+  assert (len > 0);
+
+  res = new_aigvec (avmgr, len);
+
+  for (j = 0; j < len; j++)
+    res->aigs[j] = btor_and_aig (amgr, a->aigs[j], b->aigs[len - 1]);
+
+  for (i = len - 2; i >= 0; i--)
+  {
+    cout = BTOR_AIG_FALSE;
+    for (j = i; j >= 0; j--)
+    {
+      and          = btor_and_aig (amgr, a->aigs[len - 1 - i + j], b->aigs[i]);
+      tmp          = res->aigs[j];
+      cin          = cout;
+      res->aigs[j] = full_adder (amgr, tmp, and, cin, &cout);
+      btor_release_aig (amgr, and);
+      btor_release_aig (amgr, tmp);
+      btor_release_aig (amgr, cin);
+    }
+    btor_release_aig (amgr, cout);
+  }
+
+  return res;
+}
+
+#if 0
+
+/* NOTE: this version of a carry save adder is working but does not seem
+ * to be faster (for the SAT solver).
+ */
+static BtorAIGVec *
+mul_aigvec_csa (BtorAIGVecMgr * avmgr, BtorAIGVec * a, BtorAIGVec * b)
+{
+  BtorAIG * cin, * cout, * and, * tmp;
+  BtorAIGVec * res, * carries;
+  BtorAIGMgr * amgr;
+  int len, i, j;
+
+  len = a->len;
+  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+
+  assert (len > 0);
+
+  res = new_aigvec (avmgr, len);
+  carries = new_aigvec (avmgr, len);
+
+  for (j = 0; j < len; j++)
+    res->aigs[j] = btor_and_aig (amgr, a->aigs[j], b->aigs[len - 1]);
+
+  for (j = 0; j < len; j++)
+    carries->aigs[j] = BTOR_AIG_FALSE;
+
+  for (i = len - 2; i >= 0; i--)
+    {
+      cout = BTOR_AIG_FALSE;
+      for (j = i; j >= 0; j--)
+	{
+	  and = btor_and_aig (amgr, a->aigs[len - 1 - i + j], b->aigs[i]);
+	  tmp = res->aigs[j];
+	  cin = carries->aigs[j + 1];
+	  res->aigs[j] = full_adder (amgr, tmp, and, cin, &cout);
+	  carries->aigs[j + 1] = cout;
+	  btor_release_aig (amgr, and);
+	  btor_release_aig (amgr, tmp);
+	  btor_release_aig (amgr, cin);
+	}
+
+      btor_release_aig (amgr, carries->aigs[0]);
+      for (j = 0; j < len - 1; j++)
+	carries->aigs[j] = carries->aigs[j+1];
+      carries->aigs[len-1] = BTOR_AIG_FALSE;
+    }
+
+  btor_release_delete_aigvec (avmgr, carries);
+
+  return res;
+}
+
+#endif
+
+BtorAIGVec *
+btor_mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
+{
+  return mul_aigvec_gatelevel (avmgr, a, b);
 }
 
 static BtorAIGVec *
