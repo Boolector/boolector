@@ -2728,8 +2728,7 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   if (BTOR_IS_WRITE_ARRAY_EXP (e_array)) /* eagerly encode McCarthy axiom */
   {
     /* index equal ? */
-    read =
-        binary_exp (emgr, BTOR_READ_EXP, e_array->e[0], e_index, e_array->len);
+    read   = btor_read_exp (emgr, e_array->e[0], e_index);
     eq     = btor_eq_exp (emgr, e_index, e_array->e[1]);
     result = btor_cond_exp (emgr, eq, e_array->e[2], read);
     btor_release_exp (emgr, eq);
