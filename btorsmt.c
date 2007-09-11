@@ -1785,6 +1785,64 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
   node->exp = btor_read_exp (parser->mgr, a0, a1);
 }
 
+static void
+translate_store (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorSMTNode *c0, *c1, *c2;
+  BtorExp *a0, *a1, *a2;
+
+  assert (!node->exp);
+
+  if (!is_list_of_length (node, 4))
+  {
+    (void) parse_error (parser, "expected exactly three arguments to 'store'");
+    return;
+  }
+
+  c0 = car (cdr (node));
+  c1 = car (cdr (cdr (node)));
+  c2 = car (cdr (cdr (cdr (node))));
+
+  if (!(a0 = node2exp (parser, c0)))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  if (!btor_is_array_exp (parser->mgr, a0))
+  {
+    (void) parse_error (parser, "invalid first argument to 'store'");
+    return;
+  }
+
+  if (!(a1 = node2exp (parser, c1)))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  if (btor_get_index_exp_len (parser->mgr, a0)
+      != btor_get_exp_len (parser->mgr, a1))
+  {
+    (void) parse_error (parser, "mismatched bit width of 'store' index");
+    return;
+  }
+
+  if (!(a2 = node2exp (parser, c2)))
+  {
+    assert (parser->error);
+    return;
+  }
+
+  if (btor_get_exp_len (parser->mgr, a2) != btor_get_exp_len (parser->mgr, a0))
+  {
+    (void) parse_error (parser, "mismatched bit width of 'store' value");
+    return;
+  }
+
+  node->exp = btor_write_exp (parser->mgr, a0, a1, a2);
+}
+
 static char *
 translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
@@ -2057,6 +2115,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_shift (parser, node, "bvshl", btor_sll_exp);
         break;
       case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
+      case BTOR_SMTOK_STORE: translate_store (parser, node); break;
       default:
         return parse_error (parser, "unsupported list head '%s'", symbol->name);
     }
