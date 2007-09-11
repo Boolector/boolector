@@ -84,7 +84,7 @@ void btor_dump_aigs (
 
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
-void btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig);
+void btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig);
 
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
