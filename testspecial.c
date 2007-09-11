@@ -339,6 +339,12 @@ test_write1_special ()
   run_unsat_test ("write1");
 }
 
+static void
+test_write2_special ()
+{
+  run_unsat_test ("write2");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -392,6 +398,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (read11_special);
   BTOR_RUN_TEST (read12_special);
   BTOR_RUN_TEST (write1_special);
+  BTOR_RUN_TEST (write2_special);
 }
 
 void
