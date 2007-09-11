@@ -2713,9 +2713,13 @@ btor_concat_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
 {
+  BtorExpPtrStack stack;
   BtorExp *eq     = NULL;
-  BtorExp *read   = NULL;
+  BtorExp *cond   = NULL;
   BtorExp *result = NULL;
+  BtorExp *cur    = NULL;
+  BtorMemMgr *mm  = NULL;
+  int found       = 0;
   assert (emgr != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
@@ -2725,14 +2729,42 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+  mm = emgr->mm;
   if (BTOR_IS_WRITE_ARRAY_EXP (e_array)) /* eagerly encode McCarthy axiom */
   {
-    /* index equal ? */
-    read   = btor_read_exp (emgr, e_array->e[0], e_index);
-    eq     = btor_eq_exp (emgr, e_index, e_array->e[1]);
-    result = btor_cond_exp (emgr, eq, e_array->e[2], read);
-    btor_release_exp (emgr, eq);
-    btor_release_exp (emgr, read);
+    BTOR_INIT_STACK (stack);
+    /* resolve read over writes */
+    cur = e_array;
+    while (!found)
+    {
+      assert (!BTOR_IS_INVERTED_EXP (cur));
+      assert (BTOR_IS_ARRAY_EXP (cur));
+      if (BTOR_IS_WRITE_ARRAY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur);
+        cur = cur->e[0];
+      }
+      else
+      {
+        assert (BTOR_IS_NATIVE_ARRAY_EXP (cur));
+        result = binary_exp (emgr, BTOR_READ_EXP, cur, e_index, cur->len);
+        found  = 1;
+      }
+    }
+    assert (!BTOR_EMPTY_STACK (stack));
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_POP_STACK (stack);
+      assert (!BTOR_IS_INVERTED_EXP (cur));
+      assert (BTOR_IS_ARRAY_EXP (cur));
+      /* index equal ? */
+      eq   = btor_eq_exp (emgr, cur->e[1], e_index);
+      cond = btor_cond_exp (emgr, eq, cur->e[2], result);
+      btor_release_exp (emgr, eq);
+      btor_release_exp (emgr, result);
+      result = cond;
+    }
+    BTOR_RELEASE_STACK (mm, stack);
     return result;
   }
   assert (BTOR_IS_NATIVE_ARRAY_EXP (e_array));
