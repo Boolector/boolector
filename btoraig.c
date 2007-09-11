@@ -1095,7 +1095,7 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 void
-btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   BtorAIGPtrStack stack;
   BtorSATMgr *smgr = NULL;
@@ -1113,14 +1113,7 @@ btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig)
         "transforming AIG into CNF using Tseitin transformation\n");
   smgr = amgr->smgr;
   mm   = amgr->mm;
-  if (BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
-  {
-    if (BTOR_REAL_ADDR_AIG (aig)->cnf_id == 0)
-      BTOR_REAL_ADDR_AIG (aig)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-    btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-    btor_add_sat (smgr, 0);
-  }
-  else
+  if (!BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
   {
     BTOR_INIT_STACK (stack);
     BTOR_PUSH_STACK (mm, stack, aig);
