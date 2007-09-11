@@ -1266,6 +1266,22 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
   return 0;
 }
 
+static BtorExp *
+node2nonarrayexp (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorExp *res;
+
+  res = node2exp (parser, node);
+  if (res && btor_is_array_exp (parser->mgr, res))
+  {
+    (void) parse_error (parser, "unexpected array argument");
+    btor_release_exp (parser->mgr, res);
+    res = 0;
+  }
+
+  return res;
+}
+
 static void
 translate_unary (BtorSMTParser *parser,
                  BtorSMTNode *node,
@@ -1284,7 +1300,7 @@ translate_unary (BtorSMTParser *parser,
   }
 
   c = car (cdr (node));
-  if ((a = node2exp (parser, c))) node->exp = f (parser->mgr, a);
+  if ((a = node2nonarrayexp (parser, c))) node->exp = f (parser->mgr, a);
 }
 
 static void
@@ -1307,8 +1323,8 @@ translate_binary (BtorSMTParser *parser,
   c0 = car (cdr (node));
   c1 = car (cdr (cdr (node)));
 
-  if ((a0 = node2exp (parser, c0)))
-    if ((a1 = node2exp (parser, c1)))
+  if ((a0 = node2nonarrayexp (parser, c0)))
+    if ((a1 = node2nonarrayexp (parser, c1)))
     {
       if (btor_get_exp_len (parser->mgr, a0)
           != btor_get_exp_len (parser->mgr, a1))
@@ -1341,7 +1357,7 @@ translate_associative_binary (BtorSMTParser *parser,
 
   child = car (cdr (node));
 
-  if (!(exp = node2exp (parser, child)))
+  if (!(exp = node2nonarrayexp (parser, child)))
   {
   CHECK_FOR_PARSE_ERROR_AND_RETURN:
     assert (parser->error);
@@ -1354,7 +1370,7 @@ translate_associative_binary (BtorSMTParser *parser,
   for (p = cdr (cdr (node)); p; p = cdr (p))
   {
     child = car (p);
-    if (!(exp = node2exp (parser, child)))
+    if (!(exp = node2nonarrayexp (parser, child)))
     {
     RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN:
       assert (parser->error);
@@ -1394,12 +1410,12 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
   c1 = car (cdr (cdr (node)));
   c2 = car (cdr (cdr (cdr (node))));
 
-  if ((a0 = node2exp (parser, c0)))
+  if ((a0 = node2nonarrayexp (parser, c0)))
   {
     if (btor_get_exp_len (parser->mgr, a0) == 1)
     {
-      if ((a1 = node2exp (parser, c1)))
-        if ((a2 = node2exp (parser, c2)))
+      if ((a1 = node2nonarrayexp (parser, c1)))
+        if ((a2 = node2nonarrayexp (parser, c2)))
         {
           if (btor_get_exp_len (parser->mgr, a1)
               != btor_get_exp_len (parser->mgr, a2))
@@ -1433,7 +1449,7 @@ translate_extract (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(exp = node2exp (parser, car (cdr (node)))))
+  if (!(exp = node2nonarrayexp (parser, car (cdr (node)))))
   {
     assert (parser->error);
     return;
@@ -1479,7 +1495,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(exp = node2exp (parser, car (cdr (node)))))
+  if (!(exp = node2nonarrayexp (parser, car (cdr (node)))))
   {
     assert (parser->error);
     return;
@@ -1529,7 +1545,7 @@ translate_extend (BtorSMTParser *parser,
     return;
   }
 
-  if (!(exp = node2exp (parser, car (cdr (node)))))
+  if (!(exp = node2nonarrayexp (parser, car (cdr (node)))))
   {
     assert (parser->error);
     return;
@@ -1565,7 +1581,7 @@ translate_rotate (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(exp = node2exp (parser, car (cdr (node)))))
+  if (!(exp = node2nonarrayexp (parser, car (cdr (node)))))
   {
     assert (parser->error);
     return;
@@ -1617,8 +1633,8 @@ translate_concat (BtorSMTParser *parser, BtorSMTNode *node)
   c0 = car (cdr (node));
   c1 = car (cdr (cdr (node)));
 
-  if ((a0 = node2exp (parser, c0)))
-    if ((a1 = node2exp (parser, c1)))
+  if ((a0 = node2nonarrayexp (parser, c0)))
+    if ((a1 = node2nonarrayexp (parser, c1)))
       node->exp = btor_concat_exp (parser->mgr, a0, a1);
 }
 
@@ -1643,13 +1659,13 @@ translate_shift (BtorSMTParser *parser,
   c0 = car (cdr (node));
   c1 = car (cdr (cdr (node)));
 
-  if (!(a0 = node2exp (parser, c0)))
+  if (!(a0 = node2nonarrayexp (parser, c0)))
   {
     assert (parser->error);
     return;
   }
 
-  if (!(a1 = node2exp (parser, c1)))
+  if (!(a1 = node2nonarrayexp (parser, c1)))
   {
     assert (parser->error);
     return;
@@ -1770,7 +1786,7 @@ translate_select (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(a1 = node2exp (parser, c1)))
+  if (!(a1 = node2nonarrayexp (parser, c1)))
   {
     assert (parser->error);
     return;
@@ -1816,7 +1832,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(a1 = node2exp (parser, c1)))
+  if (!(a1 = node2nonarrayexp (parser, c1)))
   {
     assert (parser->error);
     return;
@@ -1829,7 +1845,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
     return;
   }
 
-  if (!(a2 = node2exp (parser, c2)))
+  if (!(a2 = node2nonarrayexp (parser, c2)))
   {
     assert (parser->error);
     return;
@@ -1979,9 +1995,12 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
       case BTOR_SMTOK_IFF:
         translate_associative_binary (parser, node, "iff", btor_xnor_exp);
         break;
+
       case BTOR_SMTOK_EQ:
+        /* TODO: handle extensional arrays here */
         translate_binary (parser, node, "=", btor_eq_exp);
         break;
+
       case BTOR_SMTOK_DISTINCT:
         translate_binary (parser, node, "distinct", btor_ne_exp);
         break;
