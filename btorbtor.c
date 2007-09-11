@@ -736,7 +736,7 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
 
   if (len != 1)
   {
-    (void) parse_error (parser, "logical operator bit width '%s'", len);
+    (void) parse_error (parser, "logical operator bit width '%d'", len);
     return 0;
   }
 
