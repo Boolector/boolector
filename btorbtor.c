@@ -586,6 +586,13 @@ parse_redunary_and_nego (BtorBTORParser *parser, int len, Unary f)
 
   if (!(tmp = parse_exp (parser, 0))) return 0;
 
+  if (f != btor_nego_exp && btor_get_exp_len (parser->btor, tmp) == 1)
+  {
+    (void) parse_error (parser, "argument of reduction operation of width 1");
+    btor_release_exp (parser->btor, tmp);
+    return 0;
+  }
+
   res = f (parser->btor, tmp);
   btor_release_exp (parser->btor, tmp);
   assert (btor_get_exp_len (parser->btor, res) == 1);
