@@ -242,15 +242,13 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   if (!obj1->index_cnf_generated)
   {
     for (k = 0; k < len; k++)
-      if (!BTOR_IS_CONST_AIG (av_index1->aigs[k]))
-        btor_aig_to_sat_constraints_full (amgr, av_index1->aigs[k]);
+      btor_aig_to_sat_constraints_full (amgr, av_index1->aigs[k]);
     obj1->index_cnf_generated = 1;
   }
   if (!obj2->index_cnf_generated)
   {
     for (k = 0; k < len; k++)
-      if (!BTOR_IS_CONST_AIG (av_index2->aigs[k]))
-        btor_aig_to_sat_constraints_full (amgr, av_index2->aigs[k]);
+      btor_aig_to_sat_constraints_full (amgr, av_index2->aigs[k]);
     obj2->index_cnf_generated = 1;
   }
   av_var1 = var1->av;
@@ -3374,9 +3372,9 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);
+  btor_aig_to_sat (amgr, aig);
   if (!BTOR_IS_CONST_AIG (aig))
   {
-    btor_aig_to_sat (amgr, aig);
     assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
     btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
   }
@@ -3525,9 +3523,9 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);
   if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+  btor_aig_to_sat (amgr, aig);
   if (aig != BTOR_AIG_TRUE)
   {
-    btor_aig_to_sat (amgr, aig);
     assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
     btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
   }
