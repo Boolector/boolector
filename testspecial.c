@@ -40,6 +40,30 @@ run_unsat_test (char *name)
 }
 
 static void
+test_const1_special ()
+{
+  run_sat_test ("const1.in");
+}
+
+static void
+test_const2_special ()
+{
+  run_unsat_test ("const2.in");
+}
+
+static void
+test_var1_special ()
+{
+  run_sat_test ("var1.in");
+}
+
+static void
+test_var2_special ()
+{
+  run_sat_test ("var2.in");
+}
+
+static void
 test_rw1_special ()
 {
   run_sat_test ("rw1.in");
@@ -264,120 +288,124 @@ test_factor18446744073709551617_special ()
 static void
 test_read1_special ()
 {
-  run_unsat_test ("read1");
+  run_unsat_test ("read1.in");
 }
 
 static void
 test_read2_special ()
 {
-  run_unsat_test ("read2");
+  run_unsat_test ("read2.in");
 }
 
 static void
 test_read3_special ()
 {
-  run_sat_test ("read3");
+  run_sat_test ("read3.in");
 }
 
 static void
 test_read4_special ()
 {
-  run_unsat_test ("read4");
+  run_unsat_test ("read4.in");
 }
 
 static void
 test_read5_special ()
 {
-  run_unsat_test ("read5");
+  run_unsat_test ("read5.in");
 }
 
 static void
 test_read6_special ()
 {
-  run_unsat_test ("read6");
+  run_unsat_test ("read6.in");
 }
 
 static void
 test_read7_special ()
 {
-  run_unsat_test ("read7");
+  run_unsat_test ("read7.in");
 }
 
 static void
 test_read8_special ()
 {
-  run_unsat_test ("read8");
+  run_unsat_test ("read8.in");
 }
 
 static void
 test_read9_special ()
 {
-  run_unsat_test ("read9");
+  run_unsat_test ("read9.in");
 }
 
 static void
 test_read10_special ()
 {
-  run_unsat_test ("read10");
+  run_unsat_test ("read10.in");
 }
 
 static void
 test_read11_special ()
 {
-  run_unsat_test ("read11");
+  run_unsat_test ("read11.in");
 }
 
 static void
 test_read12_special ()
 {
-  run_sat_test ("read12");
+  run_sat_test ("read12.in");
 }
 
 static void
 test_read13_special ()
 {
-  run_sat_test ("read13");
+  run_sat_test ("read13.in");
 }
 
 static void
 test_read14_special ()
 {
-  run_sat_test ("read14");
+  run_sat_test ("read14.in");
 }
 
 static void
 test_read15_special ()
 {
-  run_sat_test ("read15");
+  run_sat_test ("read15.in");
 }
 
 static void
 test_write1_special ()
 {
-  run_unsat_test ("write1");
+  run_unsat_test ("write1.in");
 }
 
 static void
 test_write2_special ()
 {
-  run_unsat_test ("write2");
+  run_unsat_test ("write2.in");
 }
 
 static void
 test_write3_special ()
 {
-  run_unsat_test ("write3");
+  run_unsat_test ("write3.in");
 }
 
 static void
 test_write4_special ()
 {
-  run_unsat_test ("write4");
+  run_unsat_test ("write4.in");
 }
 
 void
 run_special_tests (int argc, char **argv)
 {
+  BTOR_RUN_TEST (const1_special);
+  BTOR_RUN_TEST (const2_special);
+  BTOR_RUN_TEST (var1_special);
+  BTOR_RUN_TEST (var2_special);
   BTOR_RUN_TEST (rw1_special);
   BTOR_RUN_TEST (rw2_special);
   BTOR_RUN_TEST (rw3_special);
