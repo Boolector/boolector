@@ -541,114 +541,6 @@ sub_aigvec (BtorAIGVecMgr *avmgr,
   return result;
 }
 
-#if 0
-
-#if 0
-static BtorAIGVec *
-btor_ulte_aigvec (BtorAIGVecMgr * avmgr, BtorAIGVec * av1, BtorAIGVec * av2)
-{
-  BtorAIGVec *result = NULL;
-  assert (avmgr != NULL);
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  assert (av1->len == av2->len);
-  assert (av1->len > 0);
-  result = new_aigvec (avmgr, 1);
-  result->aigs[0] = BTOR_INVERT_AIG (lt_aigvec (avmgr, av2, av1));
-  return result;
-}
-
-static BtorAIGVec *
-ugte_aigvec (BtorAIGVecMgr * avmgr, BtorAIGVec * av1, BtorAIGVec * av2)
-{
-  return btor_ulte_aigvec (avmgr, av2, av1);
-}
-#endif
-
-static void
-udiv_urem_aigvec (BtorAIGVecMgr * avmgr, BtorAIGVec * av1,
-                  BtorAIGVec * av2, BtorAIGVec ** quotient,
-                  BtorAIGVec ** remainder)
-{
-  BtorAIGMgr *amgr = NULL;
-  BtorAIGVec *b_i = NULL;
-  BtorAIGVec *b_i_optimized = NULL;
-  BtorAIGVec *temp = NULL;
-  BtorAIGVec *is_gte = NULL;
-  BtorAIGVec *sub = NULL;
-  BtorAIGVec *remainder_2n = NULL;
-  BtorAIG * cout = NULL;
-  int len = 0;
-  int len_2n = 0;
-  int i = 0;
-  int j = 0;
-  assert (avmgr != NULL);
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  assert (remainder != NULL);
-  assert (av1->len == av2->len);
-  amgr = avmgr->amgr;
-  len = av1->len;
-  assert (len <= INT_MAX / 2);
-  len_2n = len << 1;
-  *quotient = new_aigvec (avmgr, len);
-  b_i = new_aigvec (avmgr, len_2n);
-  remainder_2n = new_aigvec (avmgr, len_2n);
-  for (i = 0; i < len; i++)
-    {
-      b_i->aigs[i] = btor_copy_aig (amgr, av2->aigs[i]);
-      remainder_2n->aigs[i] = BTOR_AIG_FALSE;
-    }
-  for (i = len; i < len_2n; i++)
-    {
-      b_i->aigs[i] = BTOR_AIG_FALSE;
-      remainder_2n->aigs[i] = btor_copy_aig (amgr, av1->aigs[i - len]);
-    }
-  for (i = len - 1; i >= 0; i--)
-    {
-      temp = srl_n_bits (avmgr, b_i, 1, BTOR_AIG_TRUE);
-      btor_release_delete_aigvec (avmgr, b_i);
-      b_i = temp;
-      b_i_optimized = new_aigvec (avmgr, len_2n);
-      /* The first len bits of b_i have to be zero in the case 
-       * where subtraction is computed */
-      for (j = 0; j < len; j++)
-        b_i_optimized->aigs[j] = BTOR_AIG_FALSE;
-      for (j = len; j < len_2n; j++)
-        b_i_optimized->aigs[j] = btor_copy_aig (amgr, b_i->aigs[j]);
-#if 0
-      sub = sub_aigvec (avmgr, remainder_2n, b_i_optimized, &cout);
-#else
-      sub = sub_aigvec (avmgr, remainder_2n, b_i, &cout);
-#endif
-#if 0
-      is_gte = ugte_aigvec (avmgr, remainder_2n, b_i);
-#else
-      is_gte = new_aigvec (avmgr, 1);
-      is_gte->aigs[0] = btor_copy_aig (amgr, cout);
-#endif
-      btor_release_aig (amgr, cout);
-      (*quotient)->aigs[len - 1 - i] =
-        btor_copy_aig (amgr, is_gte->aigs[0]);
-
-      temp = btor_cond_aigvec (avmgr, is_gte, sub, remainder_2n);
-      btor_release_delete_aigvec (avmgr, is_gte);
-
-      btor_release_delete_aigvec (avmgr, remainder_2n);
-      remainder_2n = temp;
-      btor_release_delete_aigvec (avmgr, sub);
-      btor_release_delete_aigvec (avmgr, b_i_optimized);
-    }
-  btor_release_delete_aigvec (avmgr, b_i);
-  *remainder = new_aigvec (avmgr, len);
-  for (i = len; i < len_2n; i++)
-    (*remainder)->aigs[i - len] =
-      btor_copy_aig (avmgr->amgr, remainder_2n->aigs[i]);
-  btor_release_delete_aigvec (avmgr, remainder_2n);
-}
-
-#else
-
 static void
 udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
                   BtorAIGVec *av1,
@@ -693,8 +585,6 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
   *quotient_ptr  = quotient;
   *remainder_ptr = remainder;
 }
-
-#endif
 
 BtorAIGVec *
 btor_udiv_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
