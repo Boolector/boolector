@@ -594,17 +594,14 @@ udiv_urem_aigvec (BtorAIGVecMgr * avmgr,
 static void
 SC_GATE_CO (BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
 {
-  BtorAIG *DandCI, *DorCI, *tmp;
-
-  DorCI  = btor_or_aig (amgr, D, CI);
-  DandCI = btor_and_aig (amgr, D, CI);
-
-  tmp = btor_and_aig (amgr, R, DorCI);
-  *CO = btor_or_aig (amgr, tmp, DandCI);
-
-  btor_release_aig (amgr, DandCI);
-  btor_release_aig (amgr, DorCI);
-  btor_release_aig (amgr, tmp);
+  BtorAIG *sum1, *sum2, *c1, *c2;
+  sum1 = half_adder (amgr, D, CI, &c1);
+  sum2 = half_adder (amgr, sum1, R, &c2);
+  *CO  = btor_or_aig (amgr, c1, c2);
+  btor_release_aig (amgr, c1);
+  btor_release_aig (amgr, c2);
+  btor_release_aig (amgr, sum1);
+  btor_release_aig (amgr, sum2);
 }
 
 static void
@@ -615,18 +612,14 @@ SC_GATE_S (BtorAIGMgr *amgr,
            BtorAIG *CI,
            BtorAIG *Q)
 {
-  BtorAIG *DandCI, *DorCI, *DxnorCI, *DxorCIandQ;
-
-  DandCI     = btor_and_aig (amgr, D, CI);
-  DorCI      = btor_or_aig (amgr, D, CI);
-  DxnorCI    = btor_or_aig (amgr, DandCI, BTOR_INVERT_AIG (DorCI));
-  DxorCIandQ = btor_and_aig (amgr, BTOR_INVERT_AIG (DxnorCI), Q);
-  *S         = btor_xor_aig (amgr, R, DxorCIandQ);
-
-  btor_release_aig (amgr, DandCI);
-  btor_release_aig (amgr, DorCI);
-  btor_release_aig (amgr, DxnorCI);
-  btor_release_aig (amgr, DxorCIandQ);
+  BtorAIG *sum, *c1, *c2, *tmp;
+  sum = half_adder (amgr, D, CI, &c1);
+  tmp = btor_and_aig (amgr, sum, Q);
+  *S  = half_adder (amgr, tmp, R, &c2);
+  btor_release_aig (amgr, c1);
+  btor_release_aig (amgr, c2);
+  btor_release_aig (amgr, sum);
+  btor_release_aig (amgr, tmp);
 }
 
 static void
