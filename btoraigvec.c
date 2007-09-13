@@ -676,6 +676,26 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
 
     for (i = 0; i <= size - 1; i++)
       SC_GATE_S (amgr, &S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q->aigs[j]);
+
+#if 0
+      {
+	char name[100];
+	FILE * file;
+	sprintf (name, "/tmp/C%02d.aig", j);
+	file = fopen (name, "w");
+	btor_dump_aigs (amgr, 1, file, C[j], size + 1);
+	fclose (file);
+      }
+      
+      {
+	char name[100];
+	FILE * file;
+	sprintf (name, "/tmp/S%02d.aig", j + 1);
+	file = fopen (name, "w");
+	btor_dump_aigs (amgr, 1, file, S[j+1], size + 1);
+	fclose (file);
+      }
+#endif
   }
 
   for (i = size; i >= 1; i--)
