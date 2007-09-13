@@ -540,6 +540,13 @@ parse_root (BtorBTORParser *parser, int len)
 
   if (!(res = parse_exp (parser, len))) return 0;
 
+  if (btor_is_array_exp (parser->btor, res))
+  {
+    (void) parse_error (parser, "array expression as root");
+    btor_release_exp (parser->btor, res);
+    return 0;
+  }
+
   BTOR_PUSH_STACK (parser->mem, parser->roots, res);
 
   return res;

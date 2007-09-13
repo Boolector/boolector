@@ -519,6 +519,12 @@ btor_main (int argc, char **argv)
                          parse_res.nroots);
       err = 1;
     }
+    else if (btor_get_exp_len (emgr, parse_res.roots[0]) != 1)
+    {
+      print_msg_va_args (
+          &app, "%s: root has bit width different from one\n", input_file_name);
+      err = 1;
+    }
     else if (dump_exp || dump_aig || dump_cnf)
     {
       done = 1;
