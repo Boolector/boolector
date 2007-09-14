@@ -594,14 +594,25 @@ udiv_urem_aigvec (BtorAIGVecMgr * avmgr,
 static void
 SC_GATE_CO (BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
 {
-  BtorAIG *sum1, *sum2, *c1, *c2;
+#if 0
+  BtorAIG * sum1, *sum2, * c1, * c2;
   sum1 = half_adder (amgr, D, CI, &c1);
   sum2 = half_adder (amgr, sum1, R, &c2);
-  *CO  = btor_or_aig (amgr, c1, c2);
+  *CO = btor_or_aig (amgr, c1, c2);
   btor_release_aig (amgr, c1);
   btor_release_aig (amgr, c2);
   btor_release_aig (amgr, sum1);
   btor_release_aig (amgr, sum2);
+#else
+  BtorAIG *D_or_CI, *D_and_CI, *M;
+  D_or_CI  = btor_or_aig (amgr, D, CI);
+  D_and_CI = btor_and_aig (amgr, D, CI);
+  M        = btor_and_aig (amgr, D_or_CI, R);
+  *CO      = btor_or_aig (amgr, M, D_and_CI);
+  btor_release_aig (amgr, D_or_CI);
+  btor_release_aig (amgr, D_and_CI);
+  btor_release_aig (amgr, M);
+#endif
 }
 
 static void
@@ -612,14 +623,33 @@ SC_GATE_S (BtorAIGMgr *amgr,
            BtorAIG *CI,
            BtorAIG *Q)
 {
-  BtorAIG *sum, *c1, *c2, *tmp;
+#if 0
+  BtorAIG * sum, * c1, * c2, * tmp;
   sum = half_adder (amgr, D, CI, &c1);
   tmp = btor_and_aig (amgr, sum, Q);
-  *S  = half_adder (amgr, tmp, R, &c2);
+  *S = half_adder (amgr, tmp, R, &c2);
   btor_release_aig (amgr, c1);
   btor_release_aig (amgr, c2);
   btor_release_aig (amgr, sum);
   btor_release_aig (amgr, tmp);
+#else
+  BtorAIG *D_and_CI, *D_or_CI;
+  BtorAIG *T2_or_R, *T2_and_R;
+  BtorAIG *T1, *T2;
+  D_or_CI  = btor_or_aig (amgr, D, CI);
+  D_and_CI = btor_and_aig (amgr, D, CI);
+  T1       = btor_and_aig (amgr, D_or_CI, BTOR_INVERT_AIG (D_and_CI));
+  T2       = btor_and_aig (amgr, T1, Q);
+  T2_or_R  = btor_or_aig (amgr, T2, R);
+  T2_and_R = btor_and_aig (amgr, T2, R);
+  *S       = btor_and_aig (amgr, T2_or_R, BTOR_INVERT_AIG (T2_and_R));
+  btor_release_aig (amgr, T1);
+  btor_release_aig (amgr, T2);
+  btor_release_aig (amgr, D_and_CI);
+  btor_release_aig (amgr, D_or_CI);
+  btor_release_aig (amgr, T2_and_R);
+  btor_release_aig (amgr, T2_or_R);
+#endif
 }
 
 static void
