@@ -3148,7 +3148,9 @@ btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr)
 }
 
 static void
-btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
+btor_synthesize_exp (BtorExpMgr *emgr,
+                     BtorExp *exp,
+                     BtorPtrHashTable *backannoation)
 {
   BtorExpPtrStack exp_stack;
   BtorExp *cur         = NULL;
@@ -3157,7 +3159,12 @@ btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
   BtorAIGVec *av2      = NULL;
   BtorAIGVecMgr *avmgr = NULL;
   BtorMemMgr *mm       = NULL;
+  BtorPtrHashBucket *b;
+  char *indexed_name;
+  const char *name;
   unsigned count;
+  size_t len;
+  int i;
 
   assert (emgr != NULL);
   assert (exp != NULL);
@@ -3185,7 +3192,23 @@ btor_synthesize_exp (BtorExpMgr *emgr, BtorExp *exp)
         if (BTOR_IS_CONST_EXP (cur))
           cur->av = btor_const_aigvec (avmgr, cur->bits);
         else if (BTOR_IS_VAR_EXP (cur))
+        {
           cur->av = btor_var_aigvec (avmgr, cur->len);
+          if (backannoation)
+          {
+            name         = btor_get_symbol_exp (emgr, cur);
+            len          = strlen (name) + 40;
+            indexed_name = btor_malloc (mm, len);
+            for (i = 0; i < cur->av->len; i++)
+            {
+              b = btor_insert_in_ptr_hash_table (backannoation,
+                                                 cur->av->aigs[i]);
+              assert (b->key == cur->av->aigs[i]);
+              sprintf (indexed_name, "%s[%d]", name, i);
+              b->data.asStr = btor_strdup (mm, indexed_name);
+            }
+          }
+        }
         else
         {
           cur->mark = 1;
@@ -3302,7 +3325,7 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
   avmgr = emgr->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
 
-  btor_synthesize_exp (emgr, exp);
+  btor_synthesize_exp (emgr, exp, 0);
   av = BTOR_REAL_ADDR_EXP (exp)->av;
 
   assert (av);
@@ -3319,7 +3342,9 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
 }
 
 BtorAIGVec *
-btor_exp_to_aigvec (BtorExpMgr *emgr, BtorExp *exp)
+btor_exp_to_aigvec (BtorExpMgr *emgr,
+                    BtorExp *exp,
+                    BtorPtrHashTable *backannoation)
 {
   BtorAIGVecMgr *avmgr = NULL;
   BtorMemMgr *mm       = NULL;
@@ -3330,7 +3355,7 @@ btor_exp_to_aigvec (BtorExpMgr *emgr, BtorExp *exp)
   mm    = emgr->mm;
   avmgr = emgr->avmgr;
 
-  btor_synthesize_exp (emgr, exp);
+  btor_synthesize_exp (emgr, exp, backannoation);
   result = BTOR_REAL_ADDR_EXP (exp)->av;
   assert (result);
 

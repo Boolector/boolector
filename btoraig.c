@@ -630,7 +630,7 @@ btor_cond_aig (BtorAIGMgr *amgr,
 void
 btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
 {
-  btor_dump_aigs (amgr, binary, output, &aig, 1);
+  btor_dump_aigs (amgr, binary, output, &aig, 1, 0);
 }
 
 static unsigned
@@ -657,14 +657,18 @@ btor_aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 }
 
 void
-btor_dump_aigs (
-    BtorAIGMgr *amgr, int binary, FILE *file, BtorAIG **aigs, int naigs)
+btor_dump_aigs (BtorAIGMgr *amgr,
+                int binary,
+                FILE *file,
+                BtorAIG **aigs,
+                int naigs,
+                BtorPtrHashTable *backannotation)
 {
   unsigned aig_id, left_id, right_id, tmp, delta;
   BtorMemMgr *mm = NULL;
   BtorAIG *aig, *left, *right;
+  BtorPtrHashBucket *p, *b;
   BtorPtrHashTable *table;
-  BtorPtrHashBucket *p;
   int M, I, L, O, A, i;
   BtorAIGPtrStack stack;
   unsigned char ch;
@@ -849,6 +853,33 @@ btor_dump_aigs (
       fprintf (file, "%u %u %u\n", aig_id, left_id, right_id);
 
     p = p->next;
+  }
+
+  /* If we have back annotation add a symbol table.
+   */
+  i = 0;
+  if (backannotation)
+  {
+    for (p = table->first; p; p = p->next)
+    {
+      aig = p->key;
+      if (!BTOR_IS_VAR_AIG (aig)) break;
+
+      b = btor_find_in_ptr_hash_table (backannotation, aig);
+
+      /* If there is back annotation then we assume that all the
+       * variables have back annotation.
+       */
+      assert (b);
+
+      assert (b->key == aig);
+      assert (b->data.asStr);
+
+      i++;
+      assert (p->data.asInt == i);
+
+      fprintf (file, "i%d %s\n", i, b->data.asStr);
+    }
   }
 
   btor_delete_ptr_hash_table (table);

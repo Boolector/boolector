@@ -93,7 +93,7 @@ main (int argc, char** argv)
   BTOR_INIT_STACK (stack);
   for (i = 0; i < model.nroots; i++)
   {
-    av = btor_exp_to_aigvec (emgr, model.roots[i]);
+    av = btor_exp_to_aigvec (emgr, model.roots[i], 0);
     for (j = 0; j < av->len; j++)
     {
       aig = btor_copy_aig (amgr, av->aigs[j]);
@@ -107,7 +107,7 @@ main (int argc, char** argv)
   if (close_output || !isatty (1)) binary = 1;
 #endif
   btor_dump_aigs (
-      amgr, binary, output_file, stack.start, BTOR_COUNT_STACK (stack));
+      amgr, binary, output_file, stack.start, BTOR_COUNT_STACK (stack), 0);
 
   for (p = stack.start; p < stack.top; p++) btor_release_aig (amgr, *p);
   BTOR_RELEASE_STACK (mem, stack);

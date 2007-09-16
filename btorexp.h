@@ -3,6 +3,7 @@
 
 #include "boolector.h"
 #include "btoraigvec.h"
+#include "btorhash.h"
 #include "btormem.h"
 #include "btorstack.h"
 
@@ -143,9 +144,16 @@ BtorMemMgr *btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr);
 
 BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr);
 
-BtorAIG *btor_exp_to_aig (BtorExpMgr *, BtorExp *); /* len=1 */
+/* Synthesize expression of width 1 to a single AIG.
+ */
+BtorAIG *btor_exp_to_aig (BtorExpMgr *, BtorExp *);
 
-BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *, BtorExp *); /* arb. len */
+/* Synthesize expression of arbitrary width to an AIG vector.  Add string
+ * back annotation to the hash table, if the hash table is a non zero ptr.
+ * The strings in 'data.asStr' are owned by the caller.  The hash table
+ * is a map from AIG variables to strings.
+ */
+BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *, BtorExp *, BtorPtrHashTable *);
 
 void btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp);
 

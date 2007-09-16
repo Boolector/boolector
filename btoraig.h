@@ -1,6 +1,7 @@
 #ifndef BTORAIG_H_INCLUDED
 #define BTORAIG_H_INCLUDED
 
+#include "btorhash.h"
 #include "btormem.h"
 #include "btorsat.h"
 #include "btorstack.h"
@@ -79,8 +80,12 @@ void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
 void btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig);
 
-void btor_dump_aigs (
-    BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG **aigs, int naigs);
+void btor_dump_aigs (BtorAIGMgr *amgr,
+                     int binary,
+                     FILE *output,
+                     BtorAIG **aigs,
+                     int naigs,
+                     BtorPtrHashTable *back_annotation);
 
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
