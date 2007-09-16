@@ -3207,6 +3207,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
               sprintf (indexed_name, "%s[%d]", name, i);
               b->data.asStr = btor_strdup (mm, indexed_name);
             }
+            btor_free (mm, indexed_name, len);
           }
         }
         else

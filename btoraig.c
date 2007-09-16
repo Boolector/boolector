@@ -875,10 +875,8 @@ btor_dump_aigs (BtorAIGMgr *amgr,
       assert (b->key == aig);
       assert (b->data.asStr);
 
-      i++;
-      assert (p->data.asInt == i);
-
-      fprintf (file, "i%d %s\n", i, b->data.asStr);
+      assert (p->data.asInt == i + 1);
+      fprintf (file, "i%d %s\n", i++, b->data.asStr);
     }
   }
 
