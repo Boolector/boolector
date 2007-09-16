@@ -634,9 +634,9 @@ btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
 }
 
 static unsigned
-btor_aiger_encode_aig (BtorPtrToIntHashTable *table, BtorAIG *aig)
+btor_aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 {
-  BtorPtrToIntHashBucket *b;
+  BtorPtrHashBucket *b;
   BtorAIG *real_aig;
   unsigned res;
 
@@ -646,10 +646,10 @@ btor_aiger_encode_aig (BtorPtrToIntHashTable *table, BtorAIG *aig)
 
   real_aig = BTOR_REAL_ADDR_AIG (aig);
 
-  b = btor_find_in_ptr_to_int_hash_table (table, real_aig);
+  b = btor_find_in_ptr_hash_table (table, real_aig);
   assert (b);
 
-  res = 2 * (unsigned) b->data;
+  res = 2 * (unsigned) b->data.asInt;
 
   if (BTOR_IS_INVERTED_AIG (aig)) res ^= 1;
 
@@ -663,8 +663,8 @@ btor_dump_aigs (
   unsigned aig_id, left_id, right_id, tmp, delta;
   BtorMemMgr *mm = NULL;
   BtorAIG *aig, *left, *right;
-  BtorPtrToIntHashTable *table;
-  BtorPtrToIntHashBucket *p;
+  BtorPtrHashTable *table;
+  BtorPtrHashBucket *p;
   int M, I, L, O, A, i;
   BtorAIGPtrStack stack;
   unsigned char ch;
@@ -673,7 +673,7 @@ btor_dump_aigs (
 
   mm = amgr->mm;
 
-  table = btor_new_ptr_to_int_hash_table (amgr->mm, 0, 0);
+  table = btor_new_ptr_hash_table (amgr->mm, 0, 0);
 
   /* First add inputs aka variables to hash table.
    */
@@ -700,7 +700,8 @@ btor_dump_aigs (
 
     if (BTOR_IS_VAR_AIG (aig))
     {
-      btor_insert_in_ptr_to_int_hash_table (table, aig, ++I);
+      p             = btor_insert_in_ptr_hash_table (table, aig);
+      p->data.asInt = ++I;
       assert (I >= 0);
     }
     else
@@ -763,7 +764,8 @@ btor_dump_aigs (
       assert (BTOR_REAL_ADDR_AIG (aig) == aig);
       assert (BTOR_IS_AND_AIG (aig));
 
-      btor_insert_in_ptr_to_int_hash_table (table, aig, ++M);
+      p             = btor_insert_in_ptr_hash_table (table, aig);
+      p->data.asInt = ++M;
       assert (M >= 0);
     }
   }
@@ -788,7 +790,7 @@ btor_dump_aigs (
 
     if (!BTOR_IS_VAR_AIG (aig)) break;
 
-    if (!binary) fprintf (file, "%d\n", 2 * p->data);
+    if (!binary) fprintf (file, "%d\n", 2 * p->data.asInt);
   }
 
   /* Then the outputs ...
@@ -809,7 +811,7 @@ btor_dump_aigs (
     left  = BTOR_LEFT_CHILD_AIG (aig);
     right = BTOR_RIGHT_CHILD_AIG (aig);
 
-    aig_id   = 2 * (unsigned) p->data;
+    aig_id   = 2 * (unsigned) p->data.asInt;
     left_id  = btor_aiger_encode_aig (table, left);
     right_id = btor_aiger_encode_aig (table, right);
 
@@ -849,7 +851,7 @@ btor_dump_aigs (
     p = p->next;
   }
 
-  btor_delete_ptr_to_int_hash_table (table);
+  btor_delete_ptr_hash_table (table);
 }
 
 BtorAIGMgr *

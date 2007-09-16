@@ -6,52 +6,57 @@
 
 #include <assert.h>
 
-typedef struct BtorPtrToIntHashTable BtorPtrToIntHashTable;
-typedef struct BtorPtrToIntHashBucket BtorPtrToIntHashBucket;
+typedef struct BtorPtrHashTable BtorPtrHashTable;
+typedef struct BtorPtrHashBucket BtorPtrHashBucket;
 
 typedef unsigned (*BtorHashPtr) (void *key);
 typedef int (*BtorCmpPtr) (void *a, void *b);
 
-struct BtorPtrToIntHashBucket
+struct BtorPtrHashBucket
 {
   /* public:
    */
   void *key;
-  int data;
 
-  BtorPtrToIntHashBucket *next; /* chronologically */
+  union
+  {
+    int asInt;
+    void *asPtr;
+    char *asStr;
+  } data;
+
+  BtorPtrHashBucket *next; /* chronologically */
 
   /* private:
    */
-  BtorPtrToIntHashBucket *chain; /* collision chain */
+  BtorPtrHashBucket *chain; /* collision chain */
 };
 
-struct BtorPtrToIntHashTable
+struct BtorPtrHashTable
 {
   BtorMemMgr *mem;
 
   unsigned size;
   unsigned count;
-  BtorPtrToIntHashBucket **table;
+  BtorPtrHashBucket **table;
 
   BtorHashPtr hash;
   BtorCmpPtr cmp;
 
-  BtorPtrToIntHashBucket *first; /* chronologically */
-  BtorPtrToIntHashBucket *last;  /* chronologically */
+  BtorPtrHashBucket *first; /* chronologically */
+  BtorPtrHashBucket *last;  /* chronologically */
 };
 
-BtorPtrToIntHashTable *btor_new_ptr_to_int_hash_table (BtorMemMgr *,
-                                                       BtorHashPtr,
-                                                       BtorCmpPtr);
+BtorPtrHashTable *btor_new_ptr_hash_table (BtorMemMgr *,
+                                           BtorHashPtr,
+                                           BtorCmpPtr);
 
-void btor_delete_ptr_to_int_hash_table (BtorPtrToIntHashTable *);
+void btor_delete_ptr_hash_table (BtorPtrHashTable *);
 
-BtorPtrToIntHashBucket *btor_find_in_ptr_to_int_hash_table (
-    BtorPtrToIntHashTable *, void *);
+BtorPtrHashBucket *btor_find_in_ptr_hash_table (BtorPtrHashTable *, void *);
 
-BtorPtrToIntHashBucket *btor_insert_in_ptr_to_int_hash_table (
-    BtorPtrToIntHashTable *, void *key, int data);
+BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *,
+                                                  void *key);
 
 unsigned btor_hashstr (void *str);
 

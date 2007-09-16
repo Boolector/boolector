@@ -12,12 +12,10 @@ btor_cmp_ptr (void *p, void *q)
   return ((long) p) - ((long) q);
 }
 
-BtorPtrToIntHashTable *
-btor_new_ptr_to_int_hash_table (BtorMemMgr *mem,
-                                BtorHashPtr hash,
-                                BtorCmpPtr cmp)
+BtorPtrHashTable *
+btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
 {
-  BtorPtrToIntHashTable *res;
+  BtorPtrHashTable *res;
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
@@ -30,9 +28,9 @@ btor_new_ptr_to_int_hash_table (BtorMemMgr *mem,
 }
 
 void
-btor_delete_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
+btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
 {
-  BtorPtrToIntHashBucket *p, *next;
+  BtorPtrHashBucket *p, *next;
 
   for (p = p2iht->first; p; p = next)
   {
@@ -45,9 +43,9 @@ btor_delete_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
 }
 
 static void
-btor_enlarge_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
+btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 {
-  BtorPtrToIntHashBucket *p, *chain, **old_table, **new_table;
+  BtorPtrHashBucket *p, *chain, **old_table, **new_table;
   unsigned old_size, new_size, i, h;
   BtorHashPtr hash;
 
@@ -75,14 +73,13 @@ btor_enlarge_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht)
   p2iht->table = new_table;
 }
 
-static BtorPtrToIntHashBucket **
-btor_findpos_in_ptr_to_int_hash_table_pos (BtorPtrToIntHashTable *p2iht,
-                                           void *key)
+static BtorPtrHashBucket **
+btor_findpos_in_ptr_hash_table_pos (BtorPtrHashTable *p2iht, void *key)
 {
-  BtorPtrToIntHashBucket **p, *b;
+  BtorPtrHashBucket **p, *b;
   unsigned h;
 
-  if (p2iht->count == p2iht->size) btor_enlarge_ptr_to_int_hash_table (p2iht);
+  if (p2iht->count == p2iht->size) btor_enlarge_ptr_hash_table (p2iht);
 
   assert (p2iht->size > 0);
 
@@ -96,24 +93,21 @@ btor_findpos_in_ptr_to_int_hash_table_pos (BtorPtrToIntHashTable *p2iht,
   return p;
 }
 
-BtorPtrToIntHashBucket *
-btor_find_in_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht, void *key)
+BtorPtrHashBucket *
+btor_find_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
 {
-  return *btor_findpos_in_ptr_to_int_hash_table_pos (p2iht, key);
+  return *btor_findpos_in_ptr_hash_table_pos (p2iht, key);
 }
 
-BtorPtrToIntHashBucket *
-btor_insert_in_ptr_to_int_hash_table (BtorPtrToIntHashTable *p2iht,
-                                      void *key,
-                                      int data)
+BtorPtrHashBucket *
+btor_insert_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
 {
-  BtorPtrToIntHashBucket **p, *res;
-  p = btor_findpos_in_ptr_to_int_hash_table_pos (p2iht, key);
+  BtorPtrHashBucket **p, *res;
+  p = btor_findpos_in_ptr_hash_table_pos (p2iht, key);
   assert (!*p);
   BTOR_CNEW (p2iht->mem, res);
-  res->key  = key;
-  res->data = data;
-  *p        = res;
+  res->key = key;
+  *p       = res;
   p2iht->count++;
   if (p2iht->first)
     p2iht->last->next = res;
