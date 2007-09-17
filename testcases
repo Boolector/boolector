@@ -29,3 +29,11 @@ uremudivaxiom4 -o log/uremudivaxiom4.log log/uremudivaxiom4.btor
 uremudivaxiom4no -o log/uremudivaxiom4no.log log/uremudivaxiom4no.btor
 gtewithsub -o log/gtewithsub.log log/gtewithsub.btor
 smtaxiommccarthy -o log/smtaxiommccarthy.log log/smtaxiommccarthy.smt
+mulassoc4 -o log/mulassoc4.log log/mulassoc4.smt
+mulassoc5 -o log/mulassoc5.log log/mulassoc5.smt
+mulassoc6 -o log/mulassoc6.log log/mulassoc6.smt
+udiv8castdown4 -o log/udiv8castdown4.log log/udiv8castdown4.btor
+udiv8castdown5 -o log/udiv8castdown5.log log/udiv8castdown5.btor
+udiv8castdown6 -o log/udiv8castdown6.log log/udiv8castdown6.btor
+udiv8castdown7 -o log/udiv8castdown7.log log/udiv8castdown7.btor
+udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
