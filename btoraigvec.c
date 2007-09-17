@@ -621,6 +621,7 @@ SC_GATE_S (BtorAIGMgr *amgr,
            BtorAIG *CI,
            BtorAIG *Q)
 {
+#if 1 /* xor at input of full adder (smaller) */
   BtorAIG *D_and_CI, *D_or_CI;
   BtorAIG *T2_or_R, *T2_and_R;
   BtorAIG *T1, *T2;
@@ -637,6 +638,23 @@ SC_GATE_S (BtorAIGMgr *amgr,
   btor_release_aig (amgr, D_or_CI);
   btor_release_aig (amgr, T2_and_R);
   btor_release_aig (amgr, T2_or_R);
+#else /* ite at output of full adder (larger but 'abc' likes it more) */
+  BtorAIG *T1, *T2, *T3, *T4;
+  BtorAIG *D_and_CI, *D_or_CI;
+  D_or_CI  = btor_or_aig (amgr, D, CI);
+  D_and_CI = btor_and_aig (amgr, D, CI);
+  T1       = btor_and_aig (amgr, D_or_CI, BTOR_INVERT_AIG (D_and_CI));
+  T2       = btor_xor_aig (amgr, T1, R);
+  T3       = btor_or_aig (amgr, T2, BTOR_INVERT_AIG (Q));
+  T4       = btor_or_aig (amgr, R, (Q));
+  *S       = btor_and_aig (amgr, T3, T4);
+  btor_release_aig (amgr, T4);
+  btor_release_aig (amgr, T3);
+  btor_release_aig (amgr, T2);
+  btor_release_aig (amgr, T1);
+  btor_release_aig (amgr, D_and_CI);
+  btor_release_aig (amgr, D_or_CI);
+#endif
 }
 
 static void
