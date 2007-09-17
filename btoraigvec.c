@@ -368,11 +368,10 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   return result;
 }
 
-#if 0
+#if 0 /* word level multiplier */
 
 static BtorAIGVec *
-mul_aigvec_wordlevel (BtorAIGVecMgr * avmgr,
-                      BtorAIGVec * av1, BtorAIGVec * av2)
+mul_aigvec (BtorAIGVecMgr * avmgr, BtorAIGVec * av1, BtorAIGVec * av2)
 {
   BtorAIGVec *result = NULL;
   BtorAIGVec *and = NULL;
@@ -407,10 +406,12 @@ mul_aigvec_wordlevel (BtorAIGVecMgr * avmgr,
 
 #endif
 
-/* NOTE: the word level and gate level versions produce the same AIG */
+#if 1 /* gate level multiplier */
+
+/* NOTE: word and gate level produce the same result */
 
 static BtorAIGVec *
-mul_aigvec_gatelevel (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
+mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
 {
   BtorAIG *cin, *cout, *and, *tmp;
   BtorAIGMgr *amgr;
@@ -446,10 +447,13 @@ mul_aigvec_gatelevel (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
   return res;
 }
 
-#if 0
+#endif
 
-/* NOTE: this version of a carry save adder is working but does not seem
- * to be faster (for the SAT solver).
+#if 0 /* gate level carry save adder */
+
+/* NOTE: this version of a carry save adder is working and has the same
+ * size, but does not seem to be faster (for the SAT solver).  Some
+ * benchmarking results gave slower performance.
  */
 static BtorAIGVec *
 mul_aigvec_csa (BtorAIGVecMgr * avmgr, BtorAIGVec * a, BtorAIGVec * b)
@@ -504,10 +508,10 @@ mul_aigvec_csa (BtorAIGVecMgr * avmgr, BtorAIGVec * a, BtorAIGVec * b)
 BtorAIGVec *
 btor_mul_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *a, BtorAIGVec *b)
 {
-  return mul_aigvec_gatelevel (avmgr, a, b);
+  return mul_aigvec (avmgr, a, b);
 }
 
-#if 0
+#if 0 /* restoring word level divider */
 
 static BtorAIGVec *
 sub_aigvec (BtorAIGVecMgr * avmgr,
@@ -589,21 +593,16 @@ udiv_urem_aigvec (BtorAIGVecMgr * avmgr,
   *quotient_ptr = quotient;
   *remainder_ptr = remainder;
 }
-#else
+
+#endif
+
+#if 1 /* restoring gate level divider */
+
+/* NOTE: seems to be fastest, needs 8786 AIG nodes */
 
 static void
 SC_GATE_CO (BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
 {
-#if 0
-  BtorAIG * sum1, *sum2, * c1, * c2;
-  sum1 = half_adder (amgr, D, CI, &c1);
-  sum2 = half_adder (amgr, sum1, R, &c2);
-  *CO = btor_or_aig (amgr, c1, c2);
-  btor_release_aig (amgr, c1);
-  btor_release_aig (amgr, c2);
-  btor_release_aig (amgr, sum1);
-  btor_release_aig (amgr, sum2);
-#else
   BtorAIG *D_or_CI, *D_and_CI, *M;
   D_or_CI  = btor_or_aig (amgr, D, CI);
   D_and_CI = btor_and_aig (amgr, D, CI);
@@ -612,7 +611,6 @@ SC_GATE_CO (BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
   btor_release_aig (amgr, D_or_CI);
   btor_release_aig (amgr, D_and_CI);
   btor_release_aig (amgr, M);
-#endif
 }
 
 static void
@@ -623,16 +621,6 @@ SC_GATE_S (BtorAIGMgr *amgr,
            BtorAIG *CI,
            BtorAIG *Q)
 {
-#if 0
-  BtorAIG * sum, * c1, * c2, * tmp;
-  sum = half_adder (amgr, D, CI, &c1);
-  tmp = btor_and_aig (amgr, sum, Q);
-  *S = half_adder (amgr, tmp, R, &c2);
-  btor_release_aig (amgr, c1);
-  btor_release_aig (amgr, c2);
-  btor_release_aig (amgr, sum);
-  btor_release_aig (amgr, tmp);
-#else
   BtorAIG *D_and_CI, *D_or_CI;
   BtorAIG *T2_or_R, *T2_and_R;
   BtorAIG *T1, *T2;
@@ -649,7 +637,6 @@ SC_GATE_S (BtorAIGMgr *amgr,
   btor_release_aig (amgr, D_or_CI);
   btor_release_aig (amgr, T2_and_R);
   btor_release_aig (amgr, T2_or_R);
-#endif
 }
 
 static void
@@ -750,6 +737,97 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
 
   *Qptr = Q;
   *Rptr = R;
+}
+
+#endif
+
+#if 0 /* non restoring gate level divider */
+
+static void
+udiv_urem_aigvec (BtorAIGVecMgr * avmgr,
+                  BtorAIGVec * A, 
+		  BtorAIGVec * D,
+		  BtorAIGVec ** Qptr,
+		  BtorAIGVec ** Rptr)
+{
+  BtorAIG ** R, * RMSB, * sub, * ci, * co, * sum, * xor, * masked;
+  BtorAIGMgr * amgr;
+  BtorMemMgr * mem;
+  BtorAIGVec * Q;
+  int len, i, j;
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  mem = avmgr->mm;
+
+  len = A->len;
+  assert (len > 0);
+  assert (len == D->len);
+
+  BTOR_NEWN (mem, R, len);
+  for (i = 0; i < len; i++)
+    R[i] = BTOR_AIG_FALSE;
+
+  RMSB = BTOR_AIG_FALSE;
+
+  Q = new_aigvec (avmgr, len);
+
+  sub = BTOR_AIG_TRUE;
+  for (i = 0; i < len; i++)
+    {
+      btor_release_aig (amgr, RMSB);
+      RMSB = R[0];
+      for (j = 0; j < len - 1; j++)
+	R[j] = R[j+1];
+      R[len-1] = btor_copy_aig (amgr, A->aigs[i]);
+
+      ci = btor_copy_aig (amgr, sub);
+      for (j = len-1; j >= 0; j--)
+	{
+	  xor = btor_xor_aig (amgr, D->aigs[j], sub);
+	  sum = full_adder (amgr, xor, R[j], ci, &co);
+	  btor_release_aig (amgr, xor);
+	  btor_release_aig (amgr, ci);
+	  btor_release_aig (amgr, R[j]);
+	  R[j] = sum;
+	  ci = co;
+	}
+
+      sum = full_adder (amgr, sub, RMSB, ci, &co);
+      btor_release_aig (amgr, ci);
+      btor_release_aig (amgr, co);
+      btor_release_aig (amgr, RMSB);
+      RMSB = sum;
+
+      btor_release_aig (amgr, sub);
+      sub = btor_not_aig (amgr, RMSB);
+
+      Q->aigs[i] = btor_copy_aig (amgr, sub);
+    }
+
+  btor_release_aig (amgr, RMSB);
+
+  ci = BTOR_AIG_FALSE;
+  for (j = len-1; j >= 0; j--)
+    {
+      masked = btor_and_aig (amgr, BTOR_INVERT_AIG (sub), D->aigs[j]);
+      sum = full_adder (amgr, masked, R[j], ci, &co);
+      btor_release_aig (amgr, masked);
+      btor_release_aig (amgr, ci);
+      btor_release_aig (amgr, R[j]);
+      R[j] = sum;
+      ci = co;
+    }
+
+  btor_release_aig (amgr, sub);
+  btor_release_aig (amgr, ci);
+
+  *Rptr = new_aigvec (avmgr, len);
+  for (i = 0; i < len; i++)
+    (*Rptr)->aigs[i] = R[i];
+
+  BTOR_DELETEN (mem, R, len);
+
+  *Qptr = Q;
 }
 
 #endif
