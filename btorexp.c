@@ -2736,42 +2736,44 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   mm = emgr->mm;
   if (BTOR_IS_WRITE_ARRAY_EXP (e_array)) /* eagerly encode McCarthy axiom */
   {
-    BTOR_INIT_STACK (stack);
-    /* resolve read over writes */
-    cur = e_array;
-    while (!found)
+    if (emgr->write_enc == BTOR_EAGER_WRITE_ENC)
     {
-      assert (!BTOR_IS_INVERTED_EXP (cur));
-      assert (BTOR_IS_ARRAY_EXP (cur));
-      if (BTOR_IS_WRITE_ARRAY_EXP (cur))
+      BTOR_INIT_STACK (stack);
+      /* resolve read over writes */
+      cur = e_array;
+      while (!found)
       {
-        BTOR_PUSH_STACK (mm, stack, cur);
-        cur = cur->e[0];
+        assert (!BTOR_IS_INVERTED_EXP (cur));
+        assert (BTOR_IS_ARRAY_EXP (cur));
+        if (BTOR_IS_WRITE_ARRAY_EXP (cur))
+        {
+          BTOR_PUSH_STACK (mm, stack, cur);
+          cur = cur->e[0];
+        }
+        else
+        {
+          assert (BTOR_IS_NATIVE_ARRAY_EXP (cur));
+          result = binary_exp (emgr, BTOR_READ_EXP, cur, e_index, cur->len);
+          found  = 1;
+        }
       }
-      else
+      assert (!BTOR_EMPTY_STACK (stack));
+      while (!BTOR_EMPTY_STACK (stack))
       {
-        assert (BTOR_IS_NATIVE_ARRAY_EXP (cur));
-        result = binary_exp (emgr, BTOR_READ_EXP, cur, e_index, cur->len);
-        found  = 1;
+        cur = BTOR_POP_STACK (stack);
+        assert (!BTOR_IS_INVERTED_EXP (cur));
+        assert (BTOR_IS_ARRAY_EXP (cur));
+        /* index equal ? */
+        eq   = btor_eq_exp (emgr, cur->e[1], e_index);
+        cond = btor_cond_exp (emgr, eq, cur->e[2], result);
+        btor_release_exp (emgr, eq);
+        btor_release_exp (emgr, result);
+        result = cond;
       }
+      BTOR_RELEASE_STACK (mm, stack);
+      return result;
     }
-    assert (!BTOR_EMPTY_STACK (stack));
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_POP_STACK (stack);
-      assert (!BTOR_IS_INVERTED_EXP (cur));
-      assert (BTOR_IS_ARRAY_EXP (cur));
-      /* index equal ? */
-      eq   = btor_eq_exp (emgr, cur->e[1], e_index);
-      cond = btor_cond_exp (emgr, eq, cur->e[2], result);
-      btor_release_exp (emgr, eq);
-      btor_release_exp (emgr, result);
-      result = cond;
-    }
-    BTOR_RELEASE_STACK (mm, stack);
-    return result;
   }
-  assert (BTOR_IS_NATIVE_ARRAY_EXP (e_array));
   return binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
 
@@ -3090,6 +3092,7 @@ btor_new_exp_mgr (int rewrite_level,
   emgr->dump_trace    = dump_trace;
   emgr->verbosity     = verbosity;
   emgr->read_enc      = BTOR_SAT_SOLVER_READ_ENC;
+  emgr->write_enc     = BTOR_LAZY_WRITE_ENC;
   emgr->trace_file    = trace_file;
   return emgr;
 }

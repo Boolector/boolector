@@ -508,6 +508,8 @@ btor_main (int argc, char **argv)
   {
     emgr =
         btor_new_exp_mgr (rewrite_level, dump_trace, app.verbosity, trace_file);
+    btor_set_read_enc_exp_mgr (emgr, read_enc);
+    btor_set_write_enc_exp_mgr (emgr, write_enc);
     mem = btor_get_mem_mgr_exp_mgr (emgr);
 
     if (force_smt_input
@@ -566,8 +568,6 @@ btor_main (int argc, char **argv)
         }
         else if (dump_cnf)
         {
-          btor_set_read_enc_exp_mgr (emgr, read_enc);
-          btor_set_write_enc_exp_mgr (emgr, write_enc);
           btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
           btor_init_sat (smgr);
           btor_exp_to_sat (emgr, parse_res.roots[0]);
@@ -589,8 +589,6 @@ btor_main (int argc, char **argv)
 
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
-      btor_set_read_enc_exp_mgr (emgr, read_enc);
-      btor_set_write_enc_exp_mgr (emgr, write_enc);
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
       sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
 
