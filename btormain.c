@@ -76,9 +76,14 @@ static const char *g_usage =
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
     "  -nr|--no-read                    no read consistency (not sound (SAT))\n"
     "  -er|--eager-read                 eager Ackermann encoding\n"
-    "  -lr|--lazy-read                  iterative read refinement\n"
+    "  -lr|--lazy-read                  iterative read consistency refinement\n"
     "  -sr|--sat-solver-read            read consistency handled by SAT "
     "solver\n"
+    "  -nw|--no-write                   no write consistency (not sound "
+    "(SAT))\n"
+    "  -ew|--eager-write                eager McCarthy axiom encoding\n"
+    "  -lw|--lazy-write                 iterative write consistency "
+    "refinement\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n";
@@ -291,6 +296,7 @@ btor_main (int argc, char **argv)
   int dump_binary_aig         = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
+  BtorWriteEnc write_enc      = BTOR_EAGER_WRITE_ENC;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
@@ -421,8 +427,7 @@ btor_main (int argc, char **argv)
     {
       decimal = 1;
     }
-    else if (!strcmp (argv[i], "-nr")
-             || !strcmp (argv[i], "--no-read-consistency"))
+    else if (!strcmp (argv[i], "-nr") || !strcmp (argv[i], "--no-read"))
     {
       read_enc = BTOR_NO_READ_ENC;
     }
@@ -437,6 +442,18 @@ btor_main (int argc, char **argv)
     else if (!strcmp (argv[i], "-sr") || !strcmp (argv[i], "--sat-solver-read"))
     {
       read_enc = BTOR_SAT_SOLVER_READ_ENC;
+    }
+    else if (!strcmp (argv[i], "-nw") || !strcmp (argv[i], "--no-write"))
+    {
+      write_enc = BTOR_NO_WRITE_ENC;
+    }
+    else if (!strcmp (argv[i], "-ew") || !strcmp (argv[i], "--eager-write"))
+    {
+      write_enc = BTOR_EAGER_WRITE_ENC;
+    }
+    else if (!strcmp (argv[i], "-lw") || !strcmp (argv[i], "--lazy-write"))
+    {
+      write_enc = BTOR_LAZY_WRITE_ENC;
     }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
@@ -550,6 +567,7 @@ btor_main (int argc, char **argv)
         else if (dump_cnf)
         {
           btor_set_read_enc_exp_mgr (emgr, read_enc);
+          btor_set_write_enc_exp_mgr (emgr, write_enc);
           btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
           btor_init_sat (smgr);
           btor_exp_to_sat (emgr, parse_res.roots[0]);
@@ -572,6 +590,7 @@ btor_main (int argc, char **argv)
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_read_enc_exp_mgr (emgr, read_enc);
+      btor_set_write_enc_exp_mgr (emgr, write_enc);
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
       sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
 

@@ -55,6 +55,7 @@ struct BtorExpMgr
   int dump_trace;
   int verbosity;
   BtorReadEnc read_enc;
+  BtorWriteEnc write_enc;
   FILE *trace_file;
 };
 
@@ -3131,6 +3132,13 @@ btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc)
 {
   assert (emgr != NULL);
   emgr->read_enc = read_enc;
+}
+
+void
+btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc)
+{
+  assert (emgr != NULL);
+  emgr->write_enc = write_enc;
 }
 
 BtorMemMgr *

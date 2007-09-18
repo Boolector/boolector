@@ -44,6 +44,15 @@ enum BtorReadEnc
 
 typedef enum BtorReadEnc BtorReadEnc;
 
+enum BtorWriteEnc
+{
+  BTOR_NO_WRITE_ENC,
+  BTOR_EAGER_WRITE_ENC,
+  BTOR_LAZY_WRITE_ENC
+};
+
+typedef enum BtorWriteEnc BtorWriteEnc;
+
 struct BtorReadObj
 {
   BtorExp *var;
@@ -139,6 +148,8 @@ struct BtorExp
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
 void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
+
+void btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc);
 
 BtorMemMgr *btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr);
 
