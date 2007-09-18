@@ -29,7 +29,7 @@ enum BtorExpKind
   BTOR_CONCAT_EXP,
   BTOR_READ_EXP,
   BTOR_WRITE_EXP,
-  BTOR_COND_EXP,
+  BTOR_COND_EXP
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -66,17 +66,15 @@ BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
 
 struct BtorExp
 {
-  BtorExpKind kind;
-  int index_len; /* for arrays only */
+  BtorExpKind kind : 5;
+  unsigned int mark : 3;
+  int index_len;                        /* for arrays and writes only */
+  BtorReadObjPtrStack *read_constraint; /* for arrays and writes only */
   union
   {
     struct
     {
-      union
-      {
-        char *symbol;                         /* for variables only */
-        BtorReadObjPtrStack *read_constraint; /* for arrays only */
-      };
+      char *symbol; /* for variables only */
       union
       {
         int upper;        /* for slices only */
@@ -93,7 +91,6 @@ struct BtorExp
   int len; /* number of bits */
   int id;
   int refs;
-  int mark;
   BtorAIGVec *av;
   struct BtorExp *next;         /* next element in unique table */
   struct BtorExp *first_parent; /* head of parent list */
