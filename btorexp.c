@@ -620,9 +620,6 @@ new_write_exp_node (BtorExpMgr *emgr,
   exp->kind      = BTOR_WRITE_EXP;
   exp->index_len = BTOR_REAL_ADDR_EXP (e_index)->len;
   exp->len       = BTOR_REAL_ADDR_EXP (e_value)->len;
-  exp->e[0]      = e_array;
-  exp->e[1]      = e_index;
-  exp->e[2]      = e_value;
   assert (emgr->id < INT_MAX);
   exp->id   = emgr->id++;
   exp->refs = 1;
