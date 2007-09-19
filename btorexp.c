@@ -413,7 +413,7 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 {
   BtorExp *real_parent   = NULL;
   BtorExp *real_child    = NULL;
-  BtorExp *last_parent   = NULL;
+  BtorExp *first_parent  = NULL;
   BtorExp *tagged_parent = NULL;
   int i                  = 0;
   (void) emgr;
@@ -431,19 +431,20 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   {
     assert (real_child->last_parent == NULL);
     real_child->first_parent = tagged_parent;
+    real_child->last_parent  = tagged_parent;
     assert (real_parent->prev_parent[pos] == NULL);
     assert (real_parent->next_parent[pos] == NULL);
   }
-  /* append parent to list */
+  /* add parent at the beginning of the list */
   else
   {
-    last_parent = real_child->last_parent;
-    assert (last_parent != NULL);
-    real_parent->prev_parent[pos] = last_parent;
-    i                             = BTOR_GET_TAG_EXP (last_parent);
-    BTOR_REAL_ADDR_EXP (last_parent)->next_parent[i] = tagged_parent;
+    first_parent = real_child->first_parent;
+    assert (first_parent != NULL);
+    real_parent->next_parent[pos] = first_parent;
+    i                             = BTOR_GET_TAG_EXP (first_parent);
+    BTOR_REAL_ADDR_EXP (first_parent)->prev_parent[i] = tagged_parent;
+    real_child->first_parent                          = tagged_parent;
   }
-  real_child->last_parent = tagged_parent;
 }
 
 #define BTOR_NEXT_PARENT(exp) \
@@ -3116,8 +3117,7 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
     delete_exp_node (emgr, *cur);
   for (cur = emgr->arrays.start; cur != emgr->arrays.top; cur++)
     delete_exp_node (emgr, *cur);
-  /*
-    assert (emgr->table.num_elements == 0); */
+  assert (emgr->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_RELEASE_STACK (mm, emgr->assigned_exps);
   BTOR_RELEASE_STACK (mm, emgr->vars);
