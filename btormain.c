@@ -295,7 +295,7 @@ btor_main (int argc, char **argv)
   int decimal                 = 0;
   int dump_binary_aig         = 0;
   int force_smt_input         = 0;
-  BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
+  BtorReadEnc read_enc        = BTOR_EAGER_READ_ENC;
   BtorWriteEnc write_enc      = BTOR_EAGER_WRITE_ENC;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";

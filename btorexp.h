@@ -68,8 +68,7 @@ struct BtorExp
 {
   BtorExpKind kind : 5;
   unsigned int mark : 3;
-  int index_len;                        /* for arrays and writes only */
-  BtorReadObjPtrStack *read_constraint; /* for arrays and writes only */
+  int index_len; /* for arrays and writes only */
   union
   {
     struct
@@ -82,8 +81,9 @@ struct BtorExp
       };
       union
       {
-        int lower;  /* for slices only */
-        char *bits; /* for constants only */
+        int lower;             /* for slices only */
+        char *bits;            /* for constants only */
+        BtorReadObj *read_obj; /* for reads only */
       };
     };
     struct BtorExp *e[3]; /* children */
