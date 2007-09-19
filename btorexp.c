@@ -3523,7 +3523,8 @@ static int
 resolve_read_conflicts (BtorExpMgr *emgr)
 {
   BtorMemMgr *mm            = NULL;
-  BtorExp **cur_array       = NULL;
+  BtorExp **temp            = NULL;
+  BtorExp *cur_array        = NULL;
   BtorExp *cur_exp          = NULL;
   BtorExp *index1           = NULL;
   BtorExp *index2           = NULL;
@@ -3539,48 +3540,51 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   int found_conflict = 0;
   mm                 = emgr->mm;
   BTOR_INIT_STACK (stack);
-  for (cur_array = emgr->arrays.start; cur_array != emgr->arrays.top;
-       cur_array++)
-    BTOR_PUSH_STACK (mm, stack, *cur_array);
+  /* init work list with all native arrays */
+  for (temp = emgr->arrays.start; temp != emgr->arrays.top; temp++)
+    BTOR_PUSH_STACK (mm, stack, *temp);
   /* iterate over all arrays and writes */
   while (!BTOR_EMPTY_STACK (stack))
   {
-    len        = 0;
-    *cur_array = BTOR_POP_STACK (stack);
-    assert (!BTOR_IS_INVERTED_EXP (*cur_array));
-    cur_exp = (*cur_array)->first_parent;
+    len       = 0;
+    cur_array = BTOR_POP_STACK (stack);
+    assert (!BTOR_IS_INVERTED_EXP (cur_array));
+    /* count number of read parents -> len */
+    cur_exp = cur_array->first_parent;
+    assert (!BTOR_IS_INVERTED_EXP (cur_exp));
     while (cur_exp != NULL && cur_exp->kind != BTOR_WRITE_EXP)
     {
-      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
       pos     = BTOR_GET_TAG_EXP (cur_exp);
       cur_exp = BTOR_REAL_ADDR_EXP (cur_exp);
       assert (cur_exp->kind == BTOR_READ_EXP);
       cur_exp = cur_exp->next_parent[pos];
+      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
       len++;
     }
-    /* push writes on stack */
+    /* add writes to work list */
     while (cur_exp != NULL)
     {
-      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
       pos     = BTOR_GET_TAG_EXP (cur_exp);
       cur_exp = BTOR_REAL_ADDR_EXP (cur_exp);
       assert (cur_exp->kind == BTOR_WRITE_EXP);
       BTOR_PUSH_STACK (mm, stack, cur_exp);
       cur_exp = cur_exp->next_parent[pos];
+      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
     }
-    if (len > 0)
+    if (len > 1)
     {
       BTOR_NEWN (mm, array, len);
       i       = 0;
-      cur_exp = (*cur_array)->first_parent;
+      cur_exp = cur_array->first_parent;
+      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
       while (cur_exp != NULL && cur_exp->kind != BTOR_WRITE_EXP)
       {
-        assert (!BTOR_IS_INVERTED_EXP (cur_exp));
         pos           = BTOR_GET_TAG_EXP (cur_exp);
         cur_exp       = BTOR_REAL_ADDR_EXP (cur_exp);
         array[i].emgr = emgr;
         array[i].obj  = cur_exp->read_obj;
         cur_exp       = cur_exp->next_parent[pos];
+        assert (!BTOR_IS_INVERTED_EXP (cur_exp));
         i++;
       }
       assert (i == len);
