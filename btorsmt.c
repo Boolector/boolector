@@ -179,6 +179,8 @@ struct BtorSMTParser
   unsigned szsymtab;
   unsigned symbols;
 
+  unsigned constants;
+
   BtorSMTNode *bind;
 
   BtorSMTNodePtrStack stack;
@@ -1207,6 +1209,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
                 }
 
                 symbol->exp = btor_const_exp (parser->mgr, tmp);
+                parser->constants++;
               }
 
               btor_delete_const (parser->mem, tmp);
@@ -1222,7 +1225,10 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             ;
 
           if (start < p && !*p)
+          {
             symbol->exp = btor_const_exp (parser->mgr, start);
+            parser->constants++;
+          }
         }
       }
       else if (*p++ == 'h' && *p++ == 'e' && *p++ == 'x')
@@ -1244,6 +1250,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
           }
           symbol->exp = btor_const_exp (parser->mgr, tmp);
           btor_delete_const (parser->mem, tmp);
+          parser->constants++;
         }
       }
       else
@@ -2390,6 +2397,8 @@ NEXT_TOKEN:
       assert (parser->error);
       return parser->error;
     }
+
+    btor_smt_message (parser, 2, "found %u constants", parser->constants);
 
     res->vars  = parser->vars.start;
     res->nvars = BTOR_COUNT_STACK (parser->vars);
