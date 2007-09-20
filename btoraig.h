@@ -53,33 +53,52 @@ typedef struct BtorAIGMgr BtorAIGMgr;
 
 BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
 
+/* Creates new AIG manager. An AIG manager is used by nearly all functions
+ * of the AIG layer.
+ */
 BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, int verbosity);
 
+/* Deletes AIG manager from memory. */
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 
+/* Variable representing 1 bit. */
 BtorAIG *btor_var_aig (BtorAIGMgr *amgr);
 
+/* Inverter. */
 BtorAIG *btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Logical AND. */
 BtorAIG *btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
+/* Logical OR. */
 BtorAIG *btor_or_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
+/* Logical EQUIVALENCE. */
 BtorAIG *btor_eq_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
+/* Logical XOR. */
 BtorAIG *btor_xor_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
+/* If then Else. */
 BtorAIG *btor_cond_aig (BtorAIGMgr *amgr,
                         BtorAIG *aig_cond,
                         BtorAIG *aig_if,
                         BtorAIG *aig_else);
 
+/* Copies AIG (increments reference counter). */
 BtorAIG *btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Releases AIG (decrements reference counter).
+ * If reference counter reaches 0,
+ * then also the children are released
+ * and AIG is deleted from memory.
+ */
 void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Dumps AIG in AIGER format to file. */
 void btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig);
 
+/* Dumps AIGs in AIGER format to file. */
 void btor_dump_aigs (BtorAIGMgr *amgr,
                      int binary,
                      FILE *output,
@@ -87,18 +106,28 @@ void btor_dump_aigs (BtorAIGMgr *amgr,
                      int naigs,
                      BtorPtrHashTable *back_annotation);
 
+/* Converts AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Converts AIG into SAT instance. The SAT constraints are all fully
+ * encoded by the Tseitin transformation. */
 void btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Marks all reachable AIGs with new mark. */
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
+/* Solves SAT instance with root AIG aig. */
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Sets CNF encoding strategy. */
 void btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc);
 
+/* Gets SAT manager of AIG manager. */
 BtorSATMgr *btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr);
 
+/* Gets current assignment of AIG aig (in the SAT case).
+ * Do not call before calling btor_sat_aig.
+ */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
 #endif

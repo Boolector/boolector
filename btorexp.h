@@ -66,9 +66,9 @@ BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
 
 struct BtorExp
 {
-  BtorExpKind kind : 5;
-  unsigned int mark : 3;
-  int index_len; /* for arrays and writes only */
+  BtorExpKind kind : 5;  /* kind of expression */
+  unsigned int mark : 3; /* for DAG traversal algorithms */
+  int index_len;         /* for arrays and writes only */
   union
   {
     struct
@@ -88,15 +88,15 @@ struct BtorExp
     };
     struct BtorExp *e[3]; /* children */
   };
-  int len; /* number of bits */
-  int id;
-  int refs;
-  BtorAIGVec *av;
-  struct BtorExp *next;         /* next element in unique table */
-  struct BtorExp *first_parent; /* head of parent list */
-  struct BtorExp *last_parent;  /* tail of parent list */
-  struct BtorExp *prev_parent[3];
-  struct BtorExp *next_parent[3];
+  int len;                        /* number of bits */
+  int id;                         /* unique expression id */
+  int refs;                       /* reference counter */
+  BtorAIGVec *av;                 /* synthesized AIG vector */
+  struct BtorExp *next;           /* next element in unique table */
+  struct BtorExp *first_parent;   /* head of parent list */
+  struct BtorExp *last_parent;    /* tail of parent list */
+  struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */
+  struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
@@ -144,27 +144,38 @@ struct BtorExp
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
+/* Sets the read encoding paradigm. */
 void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
 
+/* Sets the read encoding strategy. */
 void btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc);
 
+/* Returns the memory manager of the expression manager. */
 BtorMemMgr *btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr);
 
+/* Returns the AIG vector manager of the expression manager. */
 BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr);
 
-/* Synthesize expression of width 1 to a single AIG.
+/* Synthesize boolean expression to a single AIG.
+ * len(exp) = 1
  */
-BtorAIG *btor_exp_to_aig (BtorExpMgr *, BtorExp *);
+BtorAIG *btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Synthesize expression of arbitrary width to an AIG vector.  Add string
+/* Synthesize expression of arbitrary length to an AIG vector.  Add string
  * back annotation to the hash table, if the hash table is a non zero ptr.
  * The strings in 'data.asStr' are owned by the caller.  The hash table
  * is a map from AIG variables to strings.
  */
-BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *, BtorExp *, BtorPtrHashTable *);
+BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *emgr,
+                                BtorExp *exp,
+                                BtorPtrHashTable *table);
 
+/* Converts boolean expression into SAT instance.
+ * len(exp) = 1
+ */
 void btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp);
 
+/* Marks all reachable expressions with new mark. */
 void btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark);
 
 #endif
