@@ -19,8 +19,8 @@ typedef struct BtorExpMgr BtorExpMgr;
 /* BtorExpMgr                                                             */
 /*------------------------------------------------------------------------*/
 
-/* Create new expression manager. An expression manager is used by all main
- * functions. */
+/* Create new expression manager. An expression manager is used by nearly
+ * all functions of the expression layer. */
 BtorExpMgr *btor_new_exp_mgr (int rewrite_level,
                               int dump_trace,
                               int verbosity,
@@ -33,213 +33,358 @@ void btor_delete_exp_mgr (BtorExpMgr *emgr);
 /* BtorExpression                                                         */
 /*------------------------------------------------------------------------*/
 
+/* Implicit precondition of all functions taking expressions as inputs:
+ * The length len of all input expressions have to be greater than zero.
+ */
+
 /* Binary constant.
- * The string length of bits has to be greater than zero. */
+ * strlen(bits) > 0
+ * len(result) = strlen(bits)
+ */
 BtorExp *btor_const_exp (BtorExpMgr *emgr, const char *bits);
 
 /* Binary constant representing len zeros.
- * The length len has to be greater than zero. */
+ * len > 0
+ * len(result) = len
+ */
 BtorExp *btor_zeros_exp (BtorExpMgr *emgr, int len);
 
 /* Binary constant representing len ones.
- * The length len has to be greater than zero. */
+ * len > 0
+ * len(result) = len
+ */
 BtorExp *btor_ones_exp (BtorExpMgr *emgr, int len);
 
 /* Binary constant representing 1 with len bits.
- * The length len has to be greater than zero. */
+ * len > 0
+ * len(result) = len
+ */
 BtorExp *btor_one_exp (BtorExpMgr *emgr, int len);
 
 /* Variable representing len bits.
- * The length len has to be greater than zero.
- * Variables are sticky and cannot be deleted. */
+ * Variables are sticky and cannot be deleted.
+ * len(result) = len
+ */
 BtorExp *btor_var_exp (BtorExpMgr *emgr, int len, const char *symbol);
 
 /* Array of size 2^index_len with elements of elem_len bits.
- * Arrays are sticky and cannot be deleted. */
+ * Arrays are sticky and cannot be deleted.
+ * elem_len > 0
+ * index_len > 0
+ */
 BtorExp *btor_array_exp (BtorExpMgr *emgr, int elem_len, int index_len);
 
-/* One's complement. */
+/* One's complement.
+ * len(result) = len(exp)
+ */
 BtorExp *btor_not_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Two's complement. */
+/* Two's complement.
+ * len(result) = len(exp)
+ */
 BtorExp *btor_neg_exp (BtorExpMgr *emgr, BtorExp *exp);
 
 /* Result represents if two's complement leads to
- * an overflow. For example INT_MIN * -1. The length of the result is 1. */
+ * an overflow. For example INT_MIN * -1.
+ * len(result) = 1
+ */
 BtorExp *btor_nego_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Logical OR reduction. */
+/* Logical OR reduction.
+ * len(exp) > 1
+ * len(result) = 1
+ */
 BtorExp *btor_redor_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Logical XOR reduction. */
+/* Logical XOR reduction.
+ * len(exp) > 1
+ * len(result) = 1
+ */
 BtorExp *btor_redxor_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Logical AND reduction. */
+/* Logical AND reduction.
+ * len(exp) > 1
+ * len(result) = 1
+ */
 BtorExp *btor_redand_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Slice a subvector from upper to lower of len upper - lower + 1.
- * The following preconditions on upper and lower must hold:
+/* Slice a subvector from upper to lower.
  * upper < len(exp)
  * lower >= 0
- * upper >= lower */
+ * upper >= lower
+ * len(result) = upper - lower + 1
+ */
 BtorExp *btor_slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower);
 
-/* Unsigned extension of len bits. */
+/* Unsigned extension of len bits.
+ * len(result) = len(exp) + len
+ */
 BtorExp *btor_uext_exp (BtorExpMgr *emgr, BtorExp *exp, int len);
 
-/* Signed extension of len bits (keep sign). */
+/* Signed extension of len bits (keep sign).
+ * len(result) = len(exp) + len
+ */
 BtorExp *btor_sext_exp (BtorExpMgr *emgr, BtorExp *exp, int len);
 
-/* Logical OR. Operands must have length 1. */
+/* Logical OR.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_or_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical IMPLICATION. Operands must have length 1. */
+/* Logical IMPLICATION.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_implies_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical EQUIVALENCE. Operands must have length 1. */
+/* Logical EQUIVALENCE.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_iff_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical XOR. Operands must have length 1. */
+/* Logical XOR.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_xor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical XNOR. Operands must have length 1. */
+/* Logical XNOR.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_xnor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical AND. Operands must have length 1. */
+/* Logical AND.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_and_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical NAND. Operands must have length 1. */
+/* Logical NAND.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_nand_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Logical NOR. Operands must have length 1. */
+/* Logical NOR.
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
+ */
 BtorExp *btor_nor_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Equality. The length of the operands have to be equal.
- * The length of the result is 1. */
+/* Equality.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_eq_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Inequality. The length of the operands have to be equal.
- * The length of the result is 1. */
+/* Inequality.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_ne_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Adder. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Adder.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_add_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
- * The length of the result is 1. */
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_uaddo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if adding two signed operands leads to an overflow.
- * The length of the result is 1. */
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_saddo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Multiplier. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Multiplier.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_mul_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if multiplying two unsigned operands leads to an overflow.
- * The length of the result is 1. */
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_umulo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if multiplying two signed operands leads to an overflow.
- * The length of the result is 1. */
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_smulo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Usigned less than. The length of the result is 1. */
+/* Usigned less than.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_ult_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Signed less than. The length of the result is 1. */
+/* Signed less than.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_slt_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Unsigned less than or equal. The length of the result is 1. */
+/* Usigned less than or equal.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_ulte_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Signed less than or equal. The length of the result is 1. */
+/* Signed less than or equal.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_slte_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Unsigned greater than. The length of the result is 1. */
+/* Usigned greater than.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_ugt_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Signed greater than. The length of the result is 1. */
+/* Signed greater than.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_sgt_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Unsigned greater than or equal. The length of the result is 1. */
+/* Usigned greater than or equal.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_ugte_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Signed greater than or equal. The length of the result is 1. */
+/* Signed greater than or equal.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Shift left logical. The length of e1 has to be a power of 2.
- * The length of e2 has to be log2 of the length of e1. */
+/* Shift left logical.
+ * is_power_of_2(len(e1))
+ * len(e2) = log2(len(e1))
+ * len(result) len(e1)
+ */
 BtorExp *btor_sll_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Shift right logical. The length of e1 has to be a power of 2.
- * The length of e2 has to be log2 of the length of e1. */
+/* Shift right logical.
+ * is_power_of_2(len(e1))
+ * len(e2) = log2(len(e1))
+ * len(result) len(e1)
+ */
 BtorExp *btor_srl_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Shift right arithmetic. The length of e1 has to be a power of 2.
- * The length of e2 has to be log2 of the length of e1. */
+/* Shift right arithmetic.
+ * is_power_of_2(len(e1))
+ * len(e2) = log2(len(e1))
+ * len(result) len(e1)
+ */
 BtorExp *btor_sra_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Rotate left. The length of e1 has to be a power of 2.
- * The length of e2 has to be log2 of the length of e1. */
+/* Rotate left.
+ * is_power_of_2(len(e1))
+ * len(e2) = log2(len(e1))
+ * len(result) len(e1)
+ */
 BtorExp *btor_rol_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Rotate right. The length of e1 has to be a power of 2.
- * The length of e2 has to be log2 of the length of e1. */
+/* Rotate right.
+ * is_power_of_2(len(e1))
+ * len(e2) = log2(len(e1))
+ * len(result) len(e1)
+ */
 BtorExp *btor_ror_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Subtractor. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Subtractor.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_sub_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if e1 - e2 leads to an overflow if both are unsigned.
- * The length of the result is 1. */
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_usubo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if e1 - e2 leads to an overflow if both are signed.
- * The length of the result is 1. */
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_ssubo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Unsigned divider. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Unsigned divider.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_udiv_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Signed divider. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Signed divider.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_sdiv_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
 /* Result represents if e1 / e2 leads to an overflow if both are signed.
- * For example INT_MIN / -1. The length of the result is 1. */
+ * For example INT_MIN / -1.
+ * len(e1) = len(e2)
+ * len(result) = 1
+ */
 BtorExp *btor_sdivo_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Unsigned modulo. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Unsigned modulo.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_urem_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Signed modulo. The length of the operands have to be equal. The
- * length of the result is equal to the length of the operands. */
+/* Signed modulo.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_srem_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
+/* Signed modulo variant.
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
+ */
 BtorExp *btor_smod_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Concatenation. The result of the concatenation has length of e1 + length
- * of e2. */
+/* Concatenation.
+ * len(result) = len(e1) + len(e2)
+ */
 BtorExp *btor_concat_exp (BtorExpMgr *emgr, BtorExp *e1, BtorExp *e2);
 
-/* Array read on array e_array at position e_index. */
+/* Array read on array e_array at position e_index.
+ * index_len(e_array) = len(e_index)
+ * len(result) = elem_len(e_array)
+ */
 BtorExp *btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index);
 
-/* Array write on array e_array at position e_index with value e_value. */
+/* Array write on array e_array at position e_index with value e_value.
+ * index_len(e_array) = len(e_index)
+ * elem_len(e_array) = len(e_value)
+ */
 BtorExp *btor_write_exp (BtorExpMgr *emgr,
                          BtorExp *e_array,
                          BtorExp *e_index,
                          BtorExp *e_value);
 
-/* If then else. e_cond must have length 1. The length of e_if and e_else
- * have to be equal. The length of the result is equal to the length of
- * e_if and e_else. */
+/* If then else.
+ * len(e_cond) = 1
+ * len(e_if) = len(e_else)
+ * len(result) = len(e_if) = len(e_else)
+ */
 BtorExp *btor_cond_exp (BtorExpMgr *emgr,
                         BtorExp *e_cond,
                         BtorExp *e_if,
@@ -257,20 +402,26 @@ int btor_get_index_exp_len (BtorExpMgr *emgr, BtorExp *e_array);
 /* Gets the symbol of a variable. */
 char *btor_get_symbol_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Copy expression (increment reference counter). */
+/* Copies expression (increment reference counter). */
 BtorExp *btor_copy_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Release expression (decrement reference counter). */
+/* Releases expression (decrement reference counter).
+ * If reference counter reaches 0,
+ * then also the children are released
+ * and expression is deleted from memory.
+ */
 void btor_release_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Dump expression to file. */
+/* Dumps expression to file. */
 void btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp);
 
-/* Solve sat problem with root exp. */
+/* Solves sat instance with root expression exp. */
 int btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Get an assignment of a variable (in the SAT case). Do not call before
- * calling btor_sat_exp. */
+/* Gets current assignment of variable exp (in the SAT case).
+ * Do not call before calling btor_sat_exp.
+ * strlen(result) = len(exp)
+ */
 char *btor_get_assignment_var_exp (BtorExpMgr *emgr, BtorExp *exp);
 
 #endif

@@ -189,6 +189,8 @@ delete_read_obj (BtorExpMgr *emgr, BtorReadObj *obj)
   BTOR_DELETE (emgr->mm, obj);
 }
 
+/* Encodes read consistency constraint the form i = j => a = b
+ * directly into CNF */
 static void
 encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
 {
@@ -348,6 +350,8 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   btor_release_delete_aigvec (avmgr, av_index2);
 }
 
+/* Registers a new read expression. If read consistency is handled eagerly,
+ * then the corresponding read constraints are added immediately */
 static void
 register_read (BtorExpMgr *emgr, BtorExp *array, BtorExp *read, BtorExp *index)
 {
@@ -416,6 +420,7 @@ int_to_exp (BtorExpMgr *emgr, int x, int len)
   return result;
 }
 
+/* Connects child to its parent and updates list of parent pointers */
 static void
 connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 {
@@ -455,7 +460,10 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   }
 }
 
-/* writes are appended to the end of array and write parent lists */
+/* Connects child to write parent. Writes can only be parents of arrays
+ * and other writes. Writes are appended to the end of array and write
+ * parent lists while reads and all other expressions are inserted
+ * at the beginning of the parent lists.*/
 static void
 connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
 {
@@ -499,6 +507,7 @@ connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->prev_parent[BTOR_GET_TAG_EXP (exp)])
 
+/* Disconnects a child from its parent and updates its parent list */
 static void
 disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
 {
@@ -683,6 +692,7 @@ new_write_exp_node (BtorExpMgr *emgr,
   return exp;
 }
 
+/* Delete expression from memory */
 static void
 delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
 {
@@ -725,6 +735,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   BTOR_DELETE (mm, exp);
 }
 
+/* Computes hash value of expresssion */
 static unsigned int
 compute_exp_hash (BtorExp *exp, int table_size)
 {
@@ -765,6 +776,8 @@ compute_exp_hash (BtorExp *exp, int table_size)
   return hash;
 }
 
+/* Finds constant expression in hash table. Returns NULL if it could not be
+ * found. */
 static BtorExp **
 find_const_exp (BtorExpMgr *emgr, const char *bits)
 {
@@ -796,6 +809,8 @@ find_const_exp (BtorExpMgr *emgr, const char *bits)
   return result;
 }
 
+/* Finds slice expression in hash table. Returns NULL if it could not be
+ * found. */
 static BtorExp **
 find_slice_exp (BtorExpMgr *emgr, BtorExp *e0, int upper, int lower)
 {
@@ -826,6 +841,9 @@ find_slice_exp (BtorExpMgr *emgr, BtorExp *e0, int upper, int lower)
   }
   return result;
 }
+
+/* Finds binary expression in hash table. Returns NULL if it could not be
+ * found. */
 static BtorExp **
 find_binary_exp (BtorExpMgr *emgr, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 {
@@ -864,6 +882,8 @@ find_binary_exp (BtorExpMgr *emgr, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
+/* Finds ternary expression in hash table. Returns NULL if it could not be
+ * found. */
 static BtorExp **
 find_ternary_exp (
     BtorExpMgr *emgr, BtorExpKind kind, BtorExp *e0, BtorExp *e1, BtorExp *e2)
@@ -898,6 +918,7 @@ find_ternary_exp (
   return result;
 }
 
+/* Enlarges unique table and rehashes expressions. */
 static void
 enlarge_exp_unique_table (BtorExpMgr *emgr)
 {
@@ -935,6 +956,7 @@ enlarge_exp_unique_table (BtorExpMgr *emgr)
   emgr->table.chains = new_chains;
 }
 
+/* Removes expression from unique table and deletes it from memory. */
 static void
 delete_exp_unique_table_entry (BtorExpMgr *emgr, BtorExp *exp)
 {
@@ -3415,6 +3437,7 @@ btor_exp_to_aigvec (BtorExpMgr *emgr,
   return result;
 }
 
+/* Frees assignments of assigned variables */
 static void
 free_current_assignments (BtorExpMgr *emgr)
 {
@@ -3454,6 +3477,7 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
   btor_release_aig (amgr, aig);
 }
 
+/* Compares the assignments of two expressions. */
 static int
 compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
 {
@@ -3519,6 +3543,8 @@ compare_read_obj_sort_obj (const void *sobj1, const void *sobj2)
   return compare_assignments (emgr, index1, index2);
 }
 
+/* Checks for read constraint conflicts and resolve it. This function is
+ * used by the lazy read approach. */
 static int
 resolve_read_conflicts (BtorExpMgr *emgr)
 {
@@ -3540,7 +3566,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   int found_conflict = 0;
   mm                 = emgr->mm;
   BTOR_INIT_STACK (stack);
-  /* init work list with all native arrays */
+  /* init work stack with all native arrays */
   for (temp = emgr->arrays.start; temp != emgr->arrays.top; temp++)
     BTOR_PUSH_STACK (mm, stack, *temp);
   /* iterate over all arrays and writes */
@@ -3561,7 +3587,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
       assert (!BTOR_IS_INVERTED_EXP (cur_exp));
       len++;
     }
-    /* add writes to work list */
+    /* add writes to work stack */
     while (cur_exp != NULL)
     {
       pos     = BTOR_GET_TAG_EXP (cur_exp);
