@@ -3555,7 +3555,7 @@ count_number_of_read_parents (BtorExpMgr *emgr, BtorExp *array)
   assert (BTOR_IS_ARRAY_EXP (array));
   cur = array->first_parent;
   assert (!BTOR_IS_INVERTED_EXP (cur));
-  while (cur != NULL && cur->kind != BTOR_WRITE_EXP)
+  while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_WRITE_EXP)
   {
     pos = BTOR_GET_TAG_EXP (cur);
     cur = BTOR_REAL_ADDR_EXP (cur);
@@ -3598,7 +3598,8 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     i       = 0;
     cur_exp = array->first_parent;
     assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-    while (cur_exp != NULL && cur_exp->kind != BTOR_WRITE_EXP)
+    while (cur_exp != NULL
+           && BTOR_REAL_ADDR_EXP (cur_exp)->kind != BTOR_WRITE_EXP)
     {
       pos                = BTOR_GET_TAG_EXP (cur_exp);
       cur_exp            = BTOR_REAL_ADDR_EXP (cur_exp);
@@ -3636,6 +3637,46 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   return found_conflict;
 }
 
+static int
+resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
+{
+  BtorMemMgr *mm      = NULL;
+  BtorExp *cur        = NULL;
+  BtorExp *cur_parent = NULL;
+  int num_reads       = 0;
+  int pos             = 0;
+  int found_conflict  = 0;
+  assert (emgr != NULL);
+  assert (array != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  mm = emgr->mm;
+  BtorExpPtrStack stack;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, array);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_POP_STACK (stack);
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    if (cur->mark == 0)
+    {
+      cur_parent = cur->last_parent;
+      assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+      while (cur_parent != NULL
+             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
+      {
+        pos        = BTOR_GET_TAG_EXP (cur_parent);
+        cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+        assert (cur_parent->kind == BTOR_WRITE_EXP);
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
+        cur_parent = cur_parent->prev_parent[pos];
+        assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+      }
+    }
+  }
+  return found_conflict;
+}
+
 /* Checks for read constraint conflicts of all arrays and resolves
  * the first conflict that has been found. This function is
  * used by the lazy read approach. */
@@ -3661,7 +3702,8 @@ resolve_read_conflicts (BtorExpMgr *emgr)
     assert (!BTOR_IS_INVERTED_EXP (cur_array));
     cur_exp = cur_array->last_parent;
     /* add writes to work stack */
-    while (cur_exp != NULL && cur_exp->kind != BTOR_READ_EXP)
+    while (cur_exp != NULL
+           && BTOR_REAL_ADDR_EXP (cur_exp)->kind != BTOR_READ_EXP)
     {
       pos     = BTOR_GET_TAG_EXP (cur_exp);
       cur_exp = BTOR_REAL_ADDR_EXP (cur_exp);
@@ -3681,7 +3723,12 @@ static int
 resolve_read_write_conflicts (BtorExpMgr *emgr)
 {
   int found_conflict = 0;
+  BtorExpPtrStack stack;
+  BtorExp **cur = NULL;
   assert (emgr != NULL);
+  for (cur = emgr->arrays.start; !found_conflict && cur != emgr->arrays.top;
+       cur++)
+    found_conflict = resolve_read_write_conflicts_array (emgr, *cur);
   return found_conflict;
 }
 
