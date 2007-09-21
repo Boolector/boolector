@@ -66,9 +66,11 @@ BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
 
 struct BtorExp
 {
-  BtorExpKind kind : 5;  /* kind of expression */
-  unsigned int mark : 3; /* for DAG traversal algorithms */
-  int index_len;         /* for arrays and writes only */
+  BtorExpKind kind : 5;    /* kind of expression */
+  unsigned int mark : 3;   /* for DAG traversal algorithms */
+  int index_len;           /* for arrays and writes only */
+  BtorReadObj *sort_reads; /* for arrays and writes only */
+  int sort_reads_len;      /* for arrays and writes only */
   union
   {
     struct
@@ -97,6 +99,7 @@ struct BtorExp
   struct BtorExp *last_parent;    /* tail of parent list */
   struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */
   struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
+  BtorExpMgr *emgr;               /* expression manager */
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
