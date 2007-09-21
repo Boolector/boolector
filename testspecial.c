@@ -378,7 +378,7 @@ test_read15_special ()
 static void
 test_read16_special ()
 {
-  run_sat_test ("read16.in");
+  run_unsat_test ("read16.in");
 }
 
 static void
