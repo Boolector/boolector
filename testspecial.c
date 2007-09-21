@@ -382,6 +382,12 @@ test_read16_special ()
 }
 
 static void
+test_read17_special ()
+{
+  run_unsat_test ("read17.in");
+}
+
+static void
 test_write1_special ()
 {
   run_unsat_test ("write1.in");
@@ -483,6 +489,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (read14_special);
   BTOR_RUN_TEST (read15_special);
   BTOR_RUN_TEST (read16_special);
+  BTOR_RUN_TEST (read17_special);
   BTOR_RUN_TEST (write1_special);
   BTOR_RUN_TEST (write2_special);
   BTOR_RUN_TEST (write3_special);
