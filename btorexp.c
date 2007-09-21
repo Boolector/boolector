@@ -3567,26 +3567,87 @@ count_number_of_read_parents (BtorExpMgr *emgr, BtorExp *array)
   return result;
 }
 
-/* Checks for read constraint conflicts and resolve it. This function is
+/* Checks for read constraint conflicts of one array and resolves
+ * the first conflict that has been found.
+ */
+static int
+resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
+{
+  int found_conflict             = 0;
+  int num_reads                  = 0;
+  int i                          = 0;
+  int pos                        = 0;
+  BtorMemMgr *mm                 = NULL;
+  BtorExp *cur_exp               = NULL;
+  BtorReadObjSortObj *sort_array = NULL;
+  BtorExp *index1                = NULL;
+  BtorExp *index2                = NULL;
+  BtorExp *var1                  = NULL;
+  BtorExp *var2                  = NULL;
+  BtorReadObj *obj1              = NULL;
+  BtorReadObj *obj2              = NULL;
+  assert (emgr != NULL);
+  assert (array != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  mm        = emgr->mm;
+  num_reads = count_number_of_read_parents (emgr, array);
+  if (num_reads > 1)
+  {
+    BTOR_NEWN (mm, sort_array, num_reads);
+    i       = 0;
+    cur_exp = array->first_parent;
+    assert (!BTOR_IS_INVERTED_EXP (cur_exp));
+    while (cur_exp != NULL && cur_exp->kind != BTOR_WRITE_EXP)
+    {
+      pos                = BTOR_GET_TAG_EXP (cur_exp);
+      cur_exp            = BTOR_REAL_ADDR_EXP (cur_exp);
+      sort_array[i].emgr = emgr;
+      sort_array[i].obj  = cur_exp->read_obj;
+      cur_exp            = cur_exp->next_parent[pos];
+      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
+      i++;
+    }
+    assert (i == num_reads);
+    qsort (sort_array,
+           num_reads,
+           sizeof (BtorReadObjSortObj),
+           compare_read_obj_sort_obj);
+    for (i = 0; i < num_reads - 1; i++)
+    {
+      obj1   = sort_array[i].obj;
+      obj2   = sort_array[i + 1].obj;
+      index1 = obj1->index;
+      index2 = obj2->index;
+      if (compare_assignments (emgr, index1, index2) == 0)
+      {
+        var1 = sort_array[i].obj->var;
+        var2 = sort_array[i + 1].obj->var;
+        if (compare_assignments (emgr, var1, var2) != 0)
+        {
+          found_conflict = 1;
+          encode_read (emgr, obj1, obj2);
+          break;
+        }
+      }
+    }
+    BTOR_DELETEN (mm, sort_array, num_reads);
+  }
+  return found_conflict;
+}
+
+/* Checks for read constraint conflicts of all arrays and resolves
+ * the first conflict that has been found. This function is
  * used by the lazy read approach. */
 static int
 resolve_read_conflicts (BtorExpMgr *emgr)
 {
-  BtorMemMgr *mm            = NULL;
-  BtorExp **temp            = NULL;
-  BtorExp *cur_array        = NULL;
-  BtorExp *cur_exp          = NULL;
-  BtorExp *index1           = NULL;
-  BtorExp *index2           = NULL;
-  BtorExp *var1             = NULL;
-  BtorExp *var2             = NULL;
-  BtorReadObj *obj1         = NULL;
-  BtorReadObj *obj2         = NULL;
-  BtorReadObjSortObj *array = NULL;
+  BtorMemMgr *mm     = NULL;
+  BtorExp **temp     = NULL;
+  BtorExp *cur_array = NULL;
+  BtorExp *cur_exp   = NULL;
   BtorExpPtrStack stack;
-  int i              = 0;
   int pos            = 0;
-  int num_reads      = 0;
   int found_conflict = 0;
   mm                 = emgr->mm;
   BTOR_INIT_STACK (stack);
@@ -3598,8 +3659,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   {
     cur_array = BTOR_POP_STACK (stack);
     assert (!BTOR_IS_INVERTED_EXP (cur_array));
-    num_reads = count_number_of_read_parents (emgr, cur_array);
-    cur_exp   = cur_array->last_parent;
+    cur_exp = cur_array->last_parent;
     /* add writes to work stack */
     while (cur_exp != NULL && cur_exp->kind != BTOR_READ_EXP)
     {
@@ -3610,48 +3670,8 @@ resolve_read_conflicts (BtorExpMgr *emgr)
       cur_exp = cur_exp->prev_parent[pos];
       assert (!BTOR_IS_INVERTED_EXP (cur_exp));
     }
-    if (num_reads > 1)
-    {
-      BTOR_NEWN (mm, array, num_reads);
-      i       = 0;
-      cur_exp = cur_array->first_parent;
-      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-      while (cur_exp != NULL && cur_exp->kind != BTOR_WRITE_EXP)
-      {
-        pos           = BTOR_GET_TAG_EXP (cur_exp);
-        cur_exp       = BTOR_REAL_ADDR_EXP (cur_exp);
-        array[i].emgr = emgr;
-        array[i].obj  = cur_exp->read_obj;
-        cur_exp       = cur_exp->next_parent[pos];
-        assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-        i++;
-      }
-      assert (i == num_reads);
-      qsort (array,
-             num_reads,
-             sizeof (BtorReadObjSortObj),
-             compare_read_obj_sort_obj);
-      for (i = 0; i < num_reads - 1; i++)
-      {
-        obj1   = array[i].obj;
-        obj2   = array[i + 1].obj;
-        index1 = obj1->index;
-        index2 = obj2->index;
-        if (compare_assignments (emgr, index1, index2) == 0)
-        {
-          var1 = array[i].obj->var;
-          var2 = array[i + 1].obj->var;
-          if (compare_assignments (emgr, var1, var2) != 0)
-          {
-            found_conflict = 1;
-            encode_read (emgr, obj1, obj2);
-            break;
-          }
-        }
-      }
-      BTOR_DELETEN (mm, array, num_reads);
-      if (found_conflict) break;
-    }
+    found_conflict = resolve_read_conflicts_array (emgr, cur_array);
+    if (found_conflict) break;
   }
   BTOR_RELEASE_STACK (mm, stack);
   return found_conflict;
