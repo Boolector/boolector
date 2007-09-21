@@ -60,12 +60,8 @@ struct BtorExp
   unsigned int encoded_read : 1;        /* flag for eager read encoding */
   unsigned int index_cnf_generated : 1; /* determines if index of read has
                                            alread been encoded to SAT */
-  unsigned int
-      copied_reads : 1; /* determines if read parents of arrays and writes have
-                           been copied to the field 'reads' or not */
-  int index_len;        /* for arrays and writes only */
-  struct BtorExp **reads; /* for arrays and writes only */
-  int reads_len;          /* for arrays and writes only */
+  int index_len;                        /* for arrays and writes only */
+  struct BtorExpPtrStack *reads;        /* for arrays and writes only */
   union
   {
     struct
