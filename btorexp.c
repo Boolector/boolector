@@ -1000,6 +1000,46 @@ btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+static void
+mark_exp_bottom_up_array (BtorExpMgr *emgr, BtorExp *array, int new_mark)
+{
+  BtorMemMgr *mm = NULL;
+  BtorExpPtrStack stack;
+  BtorExp *cur_array  = NULL;
+  BtorExp *cur_parent = NULL;
+  int pos             = 0;
+  assert (emgr != NULL);
+  assert (array != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  mm = emgr->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, array);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur_array = BTOR_POP_STACK (stack);
+    assert (!BTOR_IS_INVERTED_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
+    if (cur_array->mark != new_mark)
+    {
+      cur_array->mark = new_mark;
+      cur_parent      = cur_array->last_parent;
+      assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+      while (cur_parent != NULL
+             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
+      {
+        pos        = BTOR_GET_TAG_EXP (cur_parent);
+        cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+        assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
+        cur_parent = cur_parent->prev_parent[pos];
+        assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
 void
 btor_release_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
@@ -3649,6 +3689,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
+  mark_exp_bottom_up_array (emgr, array, 0);
   return found_conflict;
 }
 
@@ -3656,8 +3697,7 @@ static int
 resolve_read_write_conflicts (BtorExpMgr *emgr)
 {
   int found_conflict = 0;
-  BtorExpPtrStack stack;
-  BtorExp **cur = NULL;
+  BtorExp **cur      = NULL;
   assert (emgr != NULL);
   for (cur = emgr->arrays.start; !found_conflict && cur != emgr->arrays.top;
        cur++)
