@@ -3543,6 +3543,30 @@ compare_read_obj_sort_obj (const void *sobj1, const void *sobj2)
   return compare_assignments (emgr, index1, index2);
 }
 
+static int
+count_number_of_read_parents (BtorExpMgr *emgr, BtorExp *array)
+{
+  int result   = 0;
+  int pos      = 0;
+  BtorExp *cur = NULL;
+  assert (emgr != NULL);
+  assert (array != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  cur = array->first_parent;
+  assert (!BTOR_IS_INVERTED_EXP (cur));
+  while (cur != NULL && cur->kind != BTOR_WRITE_EXP)
+  {
+    pos = BTOR_GET_TAG_EXP (cur);
+    cur = BTOR_REAL_ADDR_EXP (cur);
+    assert (cur->kind == BTOR_READ_EXP);
+    cur = cur->next_parent[pos];
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    result++;
+  }
+  return result;
+}
+
 /* Checks for read constraint conflicts and resolve it. This function is
  * used by the lazy read approach. */
 static int
@@ -3562,7 +3586,7 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   BtorExpPtrStack stack;
   int i              = 0;
   int pos            = 0;
-  int len            = 0;
+  int num_reads      = 0;
   int found_conflict = 0;
   mm                 = emgr->mm;
   BTOR_INIT_STACK (stack);
@@ -3572,34 +3596,23 @@ resolve_read_conflicts (BtorExpMgr *emgr)
   /* iterate over all arrays and writes */
   while (!BTOR_EMPTY_STACK (stack))
   {
-    len       = 0;
     cur_array = BTOR_POP_STACK (stack);
     assert (!BTOR_IS_INVERTED_EXP (cur_array));
-    /* count number of read parents -> len */
-    cur_exp = cur_array->first_parent;
-    assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-    while (cur_exp != NULL && cur_exp->kind != BTOR_WRITE_EXP)
-    {
-      pos     = BTOR_GET_TAG_EXP (cur_exp);
-      cur_exp = BTOR_REAL_ADDR_EXP (cur_exp);
-      assert (cur_exp->kind == BTOR_READ_EXP);
-      cur_exp = cur_exp->next_parent[pos];
-      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-      len++;
-    }
+    num_reads = count_number_of_read_parents (emgr, cur_array);
+    cur_exp   = cur_array->last_parent;
     /* add writes to work stack */
-    while (cur_exp != NULL)
+    while (cur_exp != NULL && cur_exp->kind != BTOR_READ_EXP)
     {
       pos     = BTOR_GET_TAG_EXP (cur_exp);
       cur_exp = BTOR_REAL_ADDR_EXP (cur_exp);
       assert (cur_exp->kind == BTOR_WRITE_EXP);
       BTOR_PUSH_STACK (mm, stack, cur_exp);
-      cur_exp = cur_exp->next_parent[pos];
+      cur_exp = cur_exp->prev_parent[pos];
       assert (!BTOR_IS_INVERTED_EXP (cur_exp));
     }
-    if (len > 1)
+    if (num_reads > 1)
     {
-      BTOR_NEWN (mm, array, len);
+      BTOR_NEWN (mm, array, num_reads);
       i       = 0;
       cur_exp = cur_array->first_parent;
       assert (!BTOR_IS_INVERTED_EXP (cur_exp));
@@ -3613,10 +3626,12 @@ resolve_read_conflicts (BtorExpMgr *emgr)
         assert (!BTOR_IS_INVERTED_EXP (cur_exp));
         i++;
       }
-      assert (i == len);
-      qsort (
-          array, len, sizeof (BtorReadObjSortObj), compare_read_obj_sort_obj);
-      for (i = 0; i < len - 1; i++)
+      assert (i == num_reads);
+      qsort (array,
+             num_reads,
+             sizeof (BtorReadObjSortObj),
+             compare_read_obj_sort_obj);
+      for (i = 0; i < num_reads - 1; i++)
       {
         obj1   = array[i].obj;
         obj2   = array[i + 1].obj;
@@ -3634,11 +3649,19 @@ resolve_read_conflicts (BtorExpMgr *emgr)
           }
         }
       }
-      BTOR_DELETEN (mm, array, len);
+      BTOR_DELETEN (mm, array, num_reads);
       if (found_conflict) break;
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
+  return found_conflict;
+}
+
+static int
+resolve_read_write_conflicts (BtorExpMgr *emgr)
+{
+  int found_conflict = 0;
+  assert (emgr != NULL);
   return found_conflict;
 }
 
@@ -3665,7 +3688,24 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
     btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
   }
   sat_result = btor_sat_sat (smgr, INT_MAX);
-  if (emgr->read_enc == BTOR_LAZY_READ_ENC)
+  if (emgr->read_enc == BTOR_LAZY_READ_ENC
+      && emgr->write_enc == BTOR_LAZY_WRITE_ENC)
+  {
+    while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN)
+    {
+      assert (sat_result == BTOR_SAT);
+      found_conflict = resolve_read_write_conflicts (emgr);
+      if (!found_conflict) break;
+      assert (aig != BTOR_AIG_FALSE);
+      if (aig != BTOR_AIG_TRUE)
+      {
+        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      }
+      sat_result = btor_sat_sat (smgr, INT_MAX);
+    }
+  }
+  else if (emgr->read_enc == BTOR_LAZY_READ_ENC)
   {
     while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN)
     {
