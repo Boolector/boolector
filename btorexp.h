@@ -53,24 +53,16 @@ enum BtorWriteEnc
 
 typedef enum BtorWriteEnc BtorWriteEnc;
 
-struct BtorReadObj
-{
-  BtorExp *var;
-  BtorExp *index;
-  int index_cnf_generated;
-};
-
-typedef struct BtorReadObj BtorReadObj;
-
-BTOR_DECLARE_STACK (ReadObjPtr, BtorReadObj *);
-
 struct BtorExp
 {
-  BtorExpKind kind : 5;    /* kind of expression */
-  unsigned int mark : 3;   /* for DAG traversal algorithms */
-  int index_len;           /* for arrays and writes only */
-  BtorReadObj *sort_reads; /* for arrays and writes only */
-  int sort_reads_len;      /* for arrays and writes only */
+  BtorExpKind kind : 5;                 /* kind of expression */
+  unsigned int mark : 3;                /* for DAG traversal algorithms */
+  unsigned int encoded_read : 1;        /* flag for eager read encoding */
+  unsigned int index_cnf_generated : 1; /* determines if index of read has
+                                           alread been encoded to SAT */
+  int index_len;                        /* for arrays and writes only */
+  struct BtorExp *sort_reads;           /* for arrays and writes only */
+  int sort_reads_len;                   /* for arrays and writes only */
   union
   {
     struct
@@ -83,9 +75,8 @@ struct BtorExp
       };
       union
       {
-        int lower;             /* for slices only */
-        char *bits;            /* for constants only */
-        BtorReadObj *read_obj; /* for reads only */
+        int lower;  /* for slices only */
+        char *bits; /* for constants only */
       };
     };
     struct BtorExp *e[3]; /* children */

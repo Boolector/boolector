@@ -155,36 +155,13 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
 }
 
 /*------------------------------------------------------------------------*/
-/* BtorReadObj                                                            */
+/* BtorExp                                                                */
 /*------------------------------------------------------------------------*/
 
-static BtorReadObj *
-new_read_obj (BtorExpMgr *emgr, BtorExp *var, BtorExp *index)
-{
-  BtorReadObj *result = NULL;
-  assert (emgr != NULL);
-  assert (var != NULL);
-  assert (index != NULL);
-  BTOR_NEW (emgr->mm, result);
-  result->var                 = var;
-  result->index               = btor_copy_exp (emgr, index);
-  result->index_cnf_generated = 0;
-  return result;
-}
-
-static void
-delete_read_obj (BtorExpMgr *emgr, BtorReadObj *obj)
-{
-  assert (emgr != NULL);
-  assert (obj != NULL);
-  btor_release_exp (emgr, obj->index);
-  BTOR_DELETE (emgr->mm, obj);
-}
-
-/* Encodes read consistency constraint the form i = j => a = b
+/* Encodes read consistency constraint of the form i = j => a = b
  * directly into CNF */
 static void
-encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
+encode_read_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
 {
   BtorMemMgr *mm        = NULL;
   BtorAIGVecMgr *avmgr  = NULL;
@@ -192,8 +169,6 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   BtorSATMgr *smgr      = NULL;
   BtorExp *index1       = NULL;
   BtorExp *index2       = NULL;
-  BtorExp *var1         = NULL;
-  BtorExp *var2         = NULL;
   BtorAIGVec *av_index1 = NULL;
   BtorAIGVec *av_index2 = NULL;
   BtorAIGVec *av_var1   = NULL;
@@ -211,18 +186,14 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   int b_k          = 0;
   int is_different = 0;
   assert (emgr != NULL);
-  assert (obj1 != NULL);
-  assert (obj2 != NULL);
-  index1 = obj1->index;
-  index2 = obj2->index;
-  var1   = obj1->var;
-  var2   = obj2->var;
+  assert (read1 != NULL);
+  assert (read2 != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (read1));
+  assert (!BTOR_IS_INVERTED_EXP (read2));
+  index1 = read1->e[1];
+  index2 = read2->e[1];
   assert (index1 != NULL);
   assert (index2 != NULL);
-  assert (var1 != NULL);
-  assert (var2 != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (var1));
-  assert (!BTOR_IS_INVERTED_EXP (var2));
   mm        = emgr->mm;
   avmgr     = emgr->avmgr;
   amgr      = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -233,21 +204,21 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   assert (av_index2 != NULL);
   assert (av_index1->len == av_index2->len);
   len = av_index1->len;
-  if (!obj1->index_cnf_generated)
+  if (!read1->index_cnf_generated)
   {
     for (k = 0; k < len; k++)
       btor_aig_to_sat_constraints_full (amgr, av_index1->aigs[k]);
-    obj1->index_cnf_generated = 1;
+    read1->index_cnf_generated = 1;
   }
-  if (!obj2->index_cnf_generated)
+  if (!read2->index_cnf_generated)
   {
     for (k = 0; k < len; k++)
       btor_aig_to_sat_constraints_full (amgr, av_index2->aigs[k]);
-    obj2->index_cnf_generated = 1;
+    read2->index_cnf_generated = 1;
   }
-  av_var1 = var1->av;
+  av_var1 = read1->av;
   assert (av_var1 != NULL);
-  av_var2 = var2->av;
+  av_var2 = read2->av;
   assert (av_var2 != NULL);
   is_different = btor_is_different_aigvec (avmgr, av_index1, av_index2);
   if (is_different && btor_is_const_aigvec (avmgr, av_index1)
@@ -342,47 +313,35 @@ encode_read (BtorExpMgr *emgr, BtorReadObj *obj1, BtorReadObj *obj2)
   btor_release_delete_aigvec (avmgr, av_index2);
 }
 
-/* Registers a new read expression. If read consistency is handled eagerly,
- * then the corresponding read constraints are added immediately */
+/* Encodes read constraint eagelry by adding all
+ * read constraints with the reads so far.
+ */
 static void
-register_read (BtorExpMgr *emgr, BtorExp *array, BtorExp *read, BtorExp *index)
+encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
 {
-  BtorReadObj *obj = NULL;
-  BtorExp *cur     = NULL;
-  int pos          = 0;
+  BtorExp *cur = NULL;
+  int pos      = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (read != NULL);
-  assert (index != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (read));
   assert (!BTOR_IS_INVERTED_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  if (emgr->read_enc == BTOR_LAZY_READ_ENC)
+  cur = array->first_parent;
+  assert (!BTOR_IS_INVERTED_EXP (cur));
+  /* read expressions are at the beginning and
+     write expressions at the end of the parent list. */
+  while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_WRITE_EXP)
   {
-    obj            = new_read_obj (emgr, read, index);
-    read->read_obj = obj;
+    pos = BTOR_GET_TAG_EXP (cur);
+    cur = BTOR_REAL_ADDR_EXP (cur);
+    assert (cur->kind == BTOR_READ_EXP);
+    if (cur->encoded_read) encode_read_constraint (emgr, cur, read);
+    cur = cur->next_parent[pos];
+    assert (!BTOR_IS_INVERTED_EXP (cur));
   }
-  else if (emgr->read_enc == BTOR_EAGER_READ_ENC)
-  {
-    obj = new_read_obj (emgr, read, index);
-    cur = array->first_parent;
-    /* read expressions are at the beginning and
-       write expressions at the end of the parent list */
-    while (cur != NULL && cur->kind != BTOR_WRITE_EXP)
-    {
-      assert (!BTOR_IS_INVERTED_EXP (cur));
-      pos = BTOR_GET_TAG_EXP (cur);
-      cur = BTOR_REAL_ADDR_EXP (cur);
-      assert (cur->kind == BTOR_READ_EXP);
-      if (cur->read_obj != NULL) encode_read (emgr, cur->read_obj, obj);
-      cur = cur->next_parent[pos];
-    }
-    read->read_obj = obj;
-  }
+  read->encoded_read = 1;
 }
-
-/*------------------------------------------------------------------------*/
-/* BtorExp                                                                */
-/*------------------------------------------------------------------------*/
 
 static BtorExp *
 int_min_exp (BtorExpMgr *emgr, int len)
@@ -724,8 +683,6 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   {
     disconnect_child_exp (emgr, exp, 0);
     disconnect_child_exp (emgr, exp, 1);
-    if (exp->kind == BTOR_READ_EXP && exp->read_obj != NULL)
-      delete_read_obj (emgr, exp->read_obj);
   }
   else
   {
@@ -3316,8 +3273,10 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         {
           /* generate new AIGs for read */
           cur->av = btor_var_aigvec (avmgr, cur->len);
+          assert (!BTOR_IS_INVERTED_EXP (cur->e[0]));
           assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
-          register_read (emgr, cur->e[0], cur, cur->e[1]);
+          if (emgr->read_enc == BTOR_EAGER_READ_ENC)
+            encode_read_eagerly (emgr, cur->e[0], cur);
         }
         else if (BTOR_IS_UNARY_EXP (cur))
         {
@@ -3538,15 +3497,15 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
 }
 
 static int
-compare_read_obj_indices (const void *robj1, const void *robj2)
+compare_reads_by_index (const void *read1, const void *read2)
 {
   BtorExp *index1  = NULL;
   BtorExp *index2  = NULL;
   BtorExpMgr *emgr = NULL;
-  assert (robj1 != NULL);
-  assert (robj2 != NULL);
-  index1 = ((BtorReadObj *) robj1)->index;
-  index2 = ((BtorReadObj *) robj2)->index;
+  assert (read1 != NULL);
+  assert (read2 != NULL);
+  index1 = (*((BtorExp **) read1))->e[1];
+  index2 = (*((BtorExp **) read2))->e[1];
   emgr   = BTOR_REAL_ADDR_EXP (index1)->emgr;
   assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
   return compare_assignments (emgr, index1, index2);
@@ -3582,19 +3541,15 @@ count_number_of_read_parents (BtorExpMgr *emgr, BtorExp *array)
 static int
 resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
 {
-  int found_conflict      = 0;
-  int num_reads           = 0;
-  int i                   = 0;
-  int pos                 = 0;
-  BtorMemMgr *mm          = NULL;
-  BtorExp *cur_exp        = NULL;
-  BtorReadObj *sort_array = NULL;
-  BtorExp *index1         = NULL;
-  BtorExp *index2         = NULL;
-  BtorExp *var1           = NULL;
-  BtorExp *var2           = NULL;
-  BtorReadObj *obj1       = NULL;
-  BtorReadObj *obj2       = NULL;
+  int found_conflict   = 0;
+  int num_reads        = 0;
+  int i                = 0;
+  int pos              = 0;
+  BtorMemMgr *mm       = NULL;
+  BtorExp *cur_exp     = NULL;
+  BtorExp **sort_array = NULL;
+  BtorExp *read1       = NULL;
+  BtorExp *read2       = NULL;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (!BTOR_IS_INVERTED_EXP (array));
@@ -3610,35 +3565,27 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     while (cur_exp != NULL
            && BTOR_REAL_ADDR_EXP (cur_exp)->kind != BTOR_WRITE_EXP)
     {
-      pos                 = BTOR_GET_TAG_EXP (cur_exp);
-      cur_exp             = BTOR_REAL_ADDR_EXP (cur_exp);
-      sort_array[i].index = cur_exp->read_obj->index;
-      sort_array[i].var   = cur_exp->read_obj->var;
-      cur_exp             = cur_exp->next_parent[pos];
+      pos           = BTOR_GET_TAG_EXP (cur_exp);
+      cur_exp       = BTOR_REAL_ADDR_EXP (cur_exp);
+      sort_array[i] = cur_exp;
+      cur_exp       = cur_exp->next_parent[pos];
       assert (!BTOR_IS_INVERTED_EXP (cur_exp));
       i++;
     }
     assert (i == num_reads);
-    qsort (
-        sort_array, num_reads, sizeof (BtorReadObj), compare_read_obj_indices);
+    qsort (sort_array, num_reads, sizeof (BtorExp *), compare_reads_by_index);
     for (i = 0; i < num_reads - 1; i++)
     {
-      index1 = sort_array[i].index;
-      index2 = sort_array[i + 1].index;
-      if (compare_assignments (emgr, index1, index2) == 0)
+      read1 = sort_array[i];
+      read2 = sort_array[i + 1];
+      assert (!BTOR_IS_INVERTED_EXP (read1));
+      assert (!BTOR_IS_INVERTED_EXP (read2));
+      if (compare_assignments (emgr, read1->e[1], read2->e[1]) == 0
+          && compare_assignments (emgr, read1, read2) != 0)
       {
-        var1 = sort_array[i].var;
-        var2 = sort_array[i + 1].var;
-        if (compare_assignments (emgr, var1, var2) != 0)
-        {
-          found_conflict = 1;
-          obj1           = new_read_obj (emgr, var1, index1);
-          obj2           = new_read_obj (emgr, var2, index2);
-          encode_read (emgr, obj1, obj2);
-          delete_read_obj (emgr, obj1);
-          delete_read_obj (emgr, obj2);
-          break;
-        }
+        found_conflict = 1;
+        encode_read_constraint (emgr, read1, read2);
+        break;
       }
     }
     BTOR_DELETEN (mm, sort_array, num_reads);
