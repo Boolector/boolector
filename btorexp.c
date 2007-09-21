@@ -666,13 +666,11 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   }
   else if (BTOR_IS_NATIVE_ARRAY_EXP (exp))
   {
-    if (exp->sort_reads_len > 0)
-      BTOR_DELETEN (mm, exp->sort_reads, exp->sort_reads_len);
+    if (exp->reads_len > 0) BTOR_DELETEN (mm, exp->reads, exp->reads_len);
   }
   else if (BTOR_IS_WRITE_ARRAY_EXP (exp))
   {
-    if (exp->sort_reads_len > 0)
-      BTOR_DELETEN (mm, exp->sort_reads, exp->sort_reads_len);
+    if (exp->reads_len > 0) BTOR_DELETEN (mm, exp->reads, exp->reads_len);
     disconnect_child_exp (emgr, exp, 0);
     disconnect_child_exp (emgr, exp, 1);
     disconnect_child_exp (emgr, exp, 2);
@@ -3541,43 +3539,27 @@ count_number_of_read_parents (BtorExpMgr *emgr, BtorExp *array)
 static int
 resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
 {
-  int found_conflict   = 0;
-  int num_reads        = 0;
-  int i                = 0;
-  int pos              = 0;
-  BtorMemMgr *mm       = NULL;
-  BtorExp *cur_exp     = NULL;
-  BtorExp **sort_array = NULL;
-  BtorExp *read1       = NULL;
-  BtorExp *read2       = NULL;
+  int found_conflict = 0;
+  int num_reads      = 0;
+  int i              = 0;
+  BtorMemMgr *mm     = NULL;
+  BtorExp *read1     = NULL;
+  BtorExp *read2     = NULL;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (!BTOR_IS_INVERTED_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
+  assert (array->copied_reads);
   mm        = emgr->mm;
-  num_reads = count_number_of_read_parents (emgr, array);
+  num_reads = array->reads_len;
   if (num_reads > 1)
   {
-    BTOR_NEWN (mm, sort_array, num_reads);
-    i       = 0;
-    cur_exp = array->first_parent;
-    assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-    while (cur_exp != NULL
-           && BTOR_REAL_ADDR_EXP (cur_exp)->kind != BTOR_WRITE_EXP)
-    {
-      pos           = BTOR_GET_TAG_EXP (cur_exp);
-      cur_exp       = BTOR_REAL_ADDR_EXP (cur_exp);
-      sort_array[i] = cur_exp;
-      cur_exp       = cur_exp->next_parent[pos];
-      assert (!BTOR_IS_INVERTED_EXP (cur_exp));
-      i++;
-    }
-    assert (i == num_reads);
-    qsort (sort_array, num_reads, sizeof (BtorExp *), compare_reads_by_index);
+    i = 0;
+    qsort (array->reads, num_reads, sizeof (BtorExp *), compare_reads_by_index);
     for (i = 0; i < num_reads - 1; i++)
     {
-      read1 = sort_array[i];
-      read2 = sort_array[i + 1];
+      read1 = array->reads[i];
+      read2 = array->reads[i + 1];
       assert (!BTOR_IS_INVERTED_EXP (read1));
       assert (!BTOR_IS_INVERTED_EXP (read2));
       if (compare_assignments (emgr, read1->e[1], read2->e[1]) == 0
@@ -3588,7 +3570,6 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         break;
       }
     }
-    BTOR_DELETEN (mm, sort_array, num_reads);
   }
   return found_conflict;
 }
@@ -3596,12 +3577,15 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
 static int
 resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
 {
-  BtorMemMgr *mm      = NULL;
-  BtorExp *cur        = NULL;
-  BtorExp *cur_parent = NULL;
-  int num_reads       = 0;
-  int pos             = 0;
-  int found_conflict  = 0;
+  BtorMemMgr *mm       = NULL;
+  BtorExp *cur_exp     = NULL;
+  BtorExp *cur_array   = NULL;
+  BtorExp *cur_parent  = NULL;
+  BtorExp **sort_array = NULL;
+  int num_reads        = 0;
+  int pos              = 0;
+  int found_conflict   = 0;
+  int i                = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (!BTOR_IS_INVERTED_EXP (array));
@@ -3612,12 +3596,37 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BTOR_PUSH_STACK (mm, stack, array);
   while (!BTOR_EMPTY_STACK (stack))
   {
-    cur = BTOR_POP_STACK (stack);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    if (cur->mark == 0)
+    cur_array = BTOR_POP_STACK (stack);
+    assert (!BTOR_IS_INVERTED_EXP (cur_array));
+    if (cur_array->mark == 0)
     {
-      cur->mark  = 1;
-      cur_parent = cur->last_parent;
+      cur_array->mark = 1;
+      if (!cur_array->copied_reads)
+      {
+        num_reads = count_number_of_read_parents (emgr, cur_array);
+        assert (num_reads >= 0);
+        cur_array->reads_len = num_reads;
+        if (num_reads > 0)
+        {
+          BTOR_NEWN (mm, cur_array->reads, num_reads);
+          sort_array = cur_array->reads;
+          cur_exp    = cur_array->first_parent;
+          assert (!BTOR_IS_INVERTED_EXP (cur_exp));
+          while (cur_exp != NULL
+                 && BTOR_REAL_ADDR_EXP (cur_exp)->kind != BTOR_WRITE_EXP)
+          {
+            pos           = BTOR_GET_TAG_EXP (cur_exp);
+            cur_exp       = BTOR_REAL_ADDR_EXP (cur_exp);
+            sort_array[i] = cur_exp;
+            cur_exp       = cur_exp->next_parent[pos];
+            assert (!BTOR_IS_INVERTED_EXP (cur_exp));
+            i++;
+          }
+          assert (i == num_reads);
+        }
+        cur_array->copied_reads = 1;
+      }
+      cur_parent = cur_array->last_parent;
       assert (!BTOR_IS_INVERTED_EXP (cur_parent));
       while (cur_parent != NULL
              && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
@@ -3629,12 +3638,13 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         cur_parent = cur_parent->prev_parent[pos];
         assert (!BTOR_IS_INVERTED_EXP (cur_parent));
       }
-      BTOR_PUSH_STACK (mm, stack, cur);
+      BTOR_PUSH_STACK (mm, stack, cur_array);
     }
     else
     {
-      assert (cur->mark == 1);
-      found_conflict = resolve_read_conflicts_array (emgr, cur);
+      assert (cur_array->mark == 1);
+      assert (cur_array->copied_reads);
+      found_conflict = resolve_read_conflicts_array (emgr, cur_array);
       if (found_conflict) break;
     }
   }
