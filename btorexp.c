@@ -180,8 +180,8 @@ encode_ackermann_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
   BtorExp *index2       = NULL;
   BtorAIGVec *av_index1 = NULL;
   BtorAIGVec *av_index2 = NULL;
-  BtorAIGVec *av_var1   = NULL;
-  BtorAIGVec *av_var2   = NULL;
+  BtorAIGVec *av_val1   = NULL;
+  BtorAIGVec *av_val2   = NULL;
   BtorAIG *aig1         = NULL;
   BtorAIG *aig2         = NULL;
   BtorIntStack diffs;
@@ -225,10 +225,10 @@ encode_ackermann_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
       btor_aig_to_sat_constraints_full (amgr, av_index2->aigs[k]);
     read2->index_full_cnf = 1;
   }
-  av_var1 = read1->av;
-  assert (av_var1 != NULL);
-  av_var2 = read2->av;
-  assert (av_var2 != NULL);
+  av_val1 = read1->av;
+  assert (av_val1 != NULL);
+  av_val2 = read2->av;
+  assert (av_val2 != NULL);
   is_different = btor_is_different_aigvec (avmgr, av_index1, av_index2);
   if (is_different && btor_is_const_aigvec (avmgr, av_index1)
       && btor_is_const_aigvec (avmgr, av_index2))
@@ -292,12 +292,12 @@ encode_ackermann_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
   assert (e != 0);
   btor_add_sat (smgr, e);
   btor_add_sat (smgr, 0);
-  assert (av_var1->len == av_var2->len);
-  len = av_var1->len;
+  assert (av_val1->len == av_val2->len);
+  len = av_val1->len;
   for (k = 0; k < len; k++)
   {
-    aig1 = av_var1->aigs[k];
-    aig2 = av_var2->aigs[k];
+    aig1 = av_val1->aigs[k];
+    aig2 = av_val2->aigs[k];
     assert (aig1 != aig2);
     assert (!BTOR_IS_CONST_AIG (aig1));
     assert (!BTOR_IS_INVERTED_AIG (aig1));
@@ -322,7 +322,7 @@ encode_ackermann_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
   btor_release_delete_aigvec (avmgr, av_index2);
 }
 
-/* Encodes read constraint eagelry by adding all
+/* Encodes read constraint eagerly by adding all
  * read constraints with the reads so far.
  */
 static void
