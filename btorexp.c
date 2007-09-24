@@ -171,6 +171,7 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
 static void
 encode_ackermann_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
 {
+  assert (0);
   BtorMemMgr *mm        = NULL;
   BtorAIGVecMgr *avmgr  = NULL;
   BtorAIGMgr *amgr      = NULL;
