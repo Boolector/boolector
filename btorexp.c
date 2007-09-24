@@ -158,10 +158,18 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
 /* BtorExp                                                                */
 /*------------------------------------------------------------------------*/
 
-/* Encodes read consistency constraint of the form i = j => a = b
- * directly into CNF */
+/* Encodes Ackermann constraint of the form index i = index j =>
+ * val a = val b directly into CNF. Let n be the number of bits of the indices
+ * and m the number of bits of the values:
+ * i = j => a = b
+ * (i = j => e) ^ (e => a = b)
+ * ((i != j) v e) ^ (not e v (a = b))
+ * forall (0 <= k < n) (i_k v j_k v not d_k) ^ (not i_k v not j_k v not d_k)) ^
+ * (forall (0 <= k < n) (d_k) v e) ^
+ * forall (0 <= k < m) ((not e v a_k v not b_k) ^ (not e v not a_k v b_k))
+ */
 static void
-encode_read_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
+encode_ackermann_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
 {
   BtorMemMgr *mm        = NULL;
   BtorAIGVecMgr *avmgr  = NULL;
@@ -204,17 +212,17 @@ encode_read_constraint (BtorExpMgr *emgr, BtorExp *read1, BtorExp *read2)
   assert (av_index2 != NULL);
   assert (av_index1->len == av_index2->len);
   len = av_index1->len;
-  if (!read1->index_cnf_generated)
+  if (!read1->index_full_cnf)
   {
     for (k = 0; k < len; k++)
       btor_aig_to_sat_constraints_full (amgr, av_index1->aigs[k]);
-    read1->index_cnf_generated = 1;
+    read1->index_full_cnf = 1;
   }
-  if (!read2->index_cnf_generated)
+  if (!read2->index_full_cnf)
   {
     for (k = 0; k < len; k++)
       btor_aig_to_sat_constraints_full (amgr, av_index2->aigs[k]);
-    read2->index_cnf_generated = 1;
+    read2->index_full_cnf = 1;
   }
   av_var1 = read1->av;
   assert (av_var1 != NULL);
@@ -336,7 +344,7 @@ encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
     pos = BTOR_GET_TAG_EXP (cur);
     cur = BTOR_REAL_ADDR_EXP (cur);
     assert (cur->kind == BTOR_READ_EXP);
-    if (cur->encoded_read) encode_read_constraint (emgr, cur, read);
+    if (cur->encoded_read) encode_ackermann_constraint (emgr, cur, read);
     cur = cur->next_parent[pos];
     assert (!BTOR_IS_INVERTED_EXP (cur));
   }
@@ -3585,7 +3593,7 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
           && compare_assignments (emgr, read1, read2) != 0)
       {
         found_conflict = 1;
-        encode_read_constraint (emgr, read1, read2);
+        encode_ackermann_constraint (emgr, read1, read2);
         break;
       }
     }
