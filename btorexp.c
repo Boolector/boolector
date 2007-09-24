@@ -3702,8 +3702,10 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       if (!found_conflict)
         found_conflict = resolve_read_conflicts_array (emgr, cur_array);
       /* check if value of read is equal to value of write if indices
-       * are equal */
-      if (!found_conflict)
+       * are equal. There can be write parents although they have been
+       * eagerly rewritten (for example still one reference to write from
+       * parser) */
+      if (!found_conflict && emgr->write_enc == BTOR_LAZY_WRITE_ENC)
       {
         cur_parent = cur_array->last_parent;
         while (cur_parent != NULL
@@ -3734,7 +3736,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
           assert (!BTOR_IS_INVERTED_EXP (cur_parent));
         }
       }
-      /* free read stacks of parent writes  */
+      /* free read stacks of parent writes */
       cur_parent = cur_array->last_parent;
       while (cur_parent != NULL
              && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
