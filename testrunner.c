@@ -70,8 +70,7 @@ static const char *normaltests[] = {
     "udiv8castdown6",
     "udiv8castdown7",
     "udiv16castdown8",
-    "mulasso6",
-
+    "mulassoc6",
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
