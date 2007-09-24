@@ -964,16 +964,23 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
         assert (x != 0);
         assert (y != 0);
         assert (z != 0);
-        (void) btor_add_sat (smgr, -x);
-        (void) btor_add_sat (smgr, y);
-        (void) btor_add_sat (smgr, 0);
-        (void) btor_add_sat (smgr, -x);
-        (void) btor_add_sat (smgr, z);
-        (void) btor_add_sat (smgr, 0);
-        (void) btor_add_sat (smgr, -y);
-        (void) btor_add_sat (smgr, -z);
-        (void) btor_add_sat (smgr, x);
-        (void) btor_add_sat (smgr, 0);
+        if (!cur->neg_imp)
+        {
+          (void) btor_add_sat (smgr, -y);
+          (void) btor_add_sat (smgr, -z);
+          (void) btor_add_sat (smgr, x);
+          (void) btor_add_sat (smgr, 0);
+          cur->neg_imp = 1;
+        }
+        if (!cur->pos_imp)
+        {
+          (void) btor_add_sat (smgr, -x);
+          (void) btor_add_sat (smgr, y);
+          (void) btor_add_sat (smgr, 0);
+          (void) btor_add_sat (smgr, -x);
+          (void) btor_add_sat (smgr, z);
+          (void) btor_add_sat (smgr, 0);
+        }
       }
     }
   }
@@ -1065,6 +1072,7 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
     assert (z != 0);
     if (is_inverted)
     {
+      assert (!cur->neg_imp);
       btor_add_sat (smgr, x);
       btor_add_sat (smgr, -y);
       btor_add_sat (smgr, -z);
@@ -1073,6 +1081,7 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
     }
     else
     {
+      assert (!cur->pos_imp);
       btor_add_sat (smgr, -x);
       btor_add_sat (smgr, y);
       btor_add_sat (smgr, 0);
