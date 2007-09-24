@@ -302,7 +302,8 @@ btor_main (int argc, char **argv)
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
   char *witness               = NULL;
-  char *pretty_witness        = NULL;
+  char *pretty                = NULL;
+  char *grounded              = NULL;
   FILE *file                  = NULL;
   FILE *input_file            = stdin;
   FILE *exp_file              = stdout;
@@ -422,10 +423,19 @@ btor_main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
-      hexadecimal = 1;
+      if (decimal)
+      {
+      HEXANDDECIMAL:
+        print_err (&app, "can not force hexadecimal and decimal output");
+        err = 1;
+      }
+      else
+        hexadecimal = 1;
     }
     else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--decimal"))
     {
+      if (hexadecimal) goto HEXANDDECIMAL;
+
       decimal = 1;
     }
     else if (!strcmp (argv[i], "-nr") || !strcmp (argv[i], "--no-read"))
@@ -607,19 +617,27 @@ btor_main (int argc, char **argv)
 
             if (witness != NULL && !has_only_x (witness))
             {
-              if (hexadecimal)
-                pretty_witness = btor_const_to_hex (mem, witness);
-              else if (decimal)
-                pretty_witness = btor_const_to_decimal (mem, witness);
+              if (hexadecimal || decimal)
+              {
+                grounded = btor_ground_const (mem, witness);
+
+                if (hexadecimal)
+                  pretty = btor_const_to_hex (mem, grounded);
+                else
+                {
+                  assert (decimal);
+                  pretty = btor_const_to_decimal (mem, grounded);
+                }
+
+                btor_delete_const (mem, grounded);
+              }
               else
-                pretty_witness = witness;
+                pretty = witness;
 
-              print_msg_va_args (&app,
-                                 "%s %s\n",
-                                 btor_get_symbol_exp (emgr, cur_exp),
-                                 pretty_witness);
+              print_msg_va_args (
+                  &app, "%s %s\n", btor_get_symbol_exp (emgr, cur_exp), pretty);
 
-              if (hexadecimal || decimal) btor_freestr (mem, pretty_witness);
+              if (hexadecimal || decimal) btor_freestr (mem, pretty);
             }
           }
         }

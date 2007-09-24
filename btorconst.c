@@ -1068,3 +1068,20 @@ btor_const_to_decimal (BtorMemMgr *mem, const char *c)
   BTOR_RELEASE_STACK (mem, stack);
   return res;
 }
+
+char *
+btor_ground_const (BtorMemMgr *mm, const char *c)
+{
+  char *res, *q;
+  const char *p;
+  char ch;
+
+  BTOR_NEWN (mm, res, strlen (c) + 1);
+
+  q = res;
+  for (p = c; (ch = *p); p++) *q++ = (ch == '1') ? '1' : '0'; /* 'x' -> '0' */
+
+  *q = 0;
+
+  return res;
+}
