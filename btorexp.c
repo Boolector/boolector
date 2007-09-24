@@ -249,6 +249,7 @@ encode_ackermann_constraint (
         j_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (j_k != 0);
       }
+      /* if aigs are inverse of each other then clauses are always satisfied */
       if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
       {
         d_k = btor_next_cnf_id_sat_mgr (smgr);
@@ -282,9 +283,9 @@ encode_ackermann_constraint (
   assert (e != 0);
   btor_add_sat (smgr, e);
   btor_add_sat (smgr, 0);
-  av_a = a->av;
+  av_a = BTOR_GET_AIGVEC_EXP (emgr, a);
   assert (av_a != NULL);
-  av_b = b->av;
+  av_b = BTOR_GET_AIGVEC_EXP (emgr, b);
   assert (av_b != NULL);
   assert (av_a->len == av_b->len);
   len = av_a->len;
@@ -292,28 +293,41 @@ encode_ackermann_constraint (
   {
     aig1 = av_a->aigs[k];
     aig2 = av_b->aigs[k];
-    assert (aig1 != aig2);
-    assert (!BTOR_IS_CONST_AIG (aig1));
-    assert (!BTOR_IS_INVERTED_AIG (aig1));
-    assert (!BTOR_IS_CONST_AIG (aig2));
-    assert (!BTOR_IS_INVERTED_AIG (aig2));
-    if (aig1->cnf_id == 0) aig1->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-    a_k = aig1->cnf_id;
-    assert (a_k != 0);
-    if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-    b_k = aig2->cnf_id;
-    assert (b_k != 0);
-    btor_add_sat (smgr, -e);
-    btor_add_sat (smgr, a_k);
-    btor_add_sat (smgr, -b_k);
-    btor_add_sat (smgr, 0);
-    btor_add_sat (smgr, -e);
-    btor_add_sat (smgr, -a_k);
-    btor_add_sat (smgr, b_k);
-    btor_add_sat (smgr, 0);
+    if (!BTOR_IS_CONST_AIG (aig1))
+    {
+      if (aig1->cnf_id == 0) aig1->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      a_k = aig1->cnf_id;
+      assert (a_k != 0);
+    }
+    if (!BTOR_IS_CONST_AIG (aig2))
+    {
+      if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      b_k = aig2->cnf_id;
+      assert (b_k != 0);
+    }
+    /* if aigs are equal then clauses are always satisifed */
+    if (aig1 != aig2)
+    {
+      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
+        btor_add_sat (smgr, 0);
+      }
+      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
+        btor_add_sat (smgr, 0);
+      }
+    }
   }
   btor_release_delete_aigvec (avmgr, av_i);
   btor_release_delete_aigvec (avmgr, av_j);
+  btor_release_delete_aigvec (avmgr, av_a);
+  btor_release_delete_aigvec (avmgr, av_b);
 }
 
 /* Encodes read constraint eagerly by adding all
