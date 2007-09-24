@@ -109,8 +109,9 @@ void btor_dump_aigs (BtorAIGMgr *amgr,
 /* Converts AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
-/* Converts AIG into SAT instance. The SAT constraints are all fully
- * encoded by the Tseitin transformation. */
+/* Converts AIG fully into SAT instance.
+ * This function makes sure that all constraints are fully encoded.
+ */
 void btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Marks all reachable AIGs with new mark. */

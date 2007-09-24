@@ -1176,18 +1176,24 @@ btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig)
           assert (x != 0);
           assert (y != 0);
           assert (z != 0);
-          (void) btor_add_sat (smgr, -x);
-          (void) btor_add_sat (smgr, y);
-          (void) btor_add_sat (smgr, 0);
-          (void) btor_add_sat (smgr, -x);
-          (void) btor_add_sat (smgr, z);
-          (void) btor_add_sat (smgr, 0);
-          (void) btor_add_sat (smgr, -y);
-          (void) btor_add_sat (smgr, -z);
-          (void) btor_add_sat (smgr, x);
-          (void) btor_add_sat (smgr, 0);
-          cur->neg_imp = 1;
-          cur->pos_imp = 1;
+          if (!cur->neg_imp)
+          {
+            (void) btor_add_sat (smgr, -y);
+            (void) btor_add_sat (smgr, -z);
+            (void) btor_add_sat (smgr, x);
+            (void) btor_add_sat (smgr, 0);
+            cur->neg_imp = 1;
+          }
+          if (!cur->pos_imp)
+          {
+            (void) btor_add_sat (smgr, -x);
+            (void) btor_add_sat (smgr, y);
+            (void) btor_add_sat (smgr, 0);
+            (void) btor_add_sat (smgr, -x);
+            (void) btor_add_sat (smgr, z);
+            (void) btor_add_sat (smgr, 0);
+            cur->pos_imp = 1;
+          }
         }
       }
     }
