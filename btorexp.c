@@ -3657,19 +3657,22 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     {
       assert (cur_array->mark == 1);
       BTOR_INIT_STACK (*cur_array->reads);
-      reads      = cur_array->reads;
-      cur_parent = cur_array->first_parent;
-      assert (!BTOR_IS_INVERTED_EXP (cur_parent));
-      /* push reads on stack */
-      while (cur_parent != NULL
-             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_WRITE_EXP)
+      if (!found_conflict)
       {
-        pos        = BTOR_GET_TAG_EXP (cur_parent);
-        cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
-        assert (cur_parent->kind == BTOR_READ_EXP);
-        BTOR_PUSH_STACK (mm, *reads, cur_parent);
-        cur_parent = cur_parent->next_parent[pos];
+        reads      = cur_array->reads;
+        cur_parent = cur_array->first_parent;
         assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+        /* push reads on stack */
+        while (cur_parent != NULL
+               && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_WRITE_EXP)
+        {
+          pos        = BTOR_GET_TAG_EXP (cur_parent);
+          cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+          assert (cur_parent->kind == BTOR_READ_EXP);
+          BTOR_PUSH_STACK (mm, *reads, cur_parent);
+          cur_parent = cur_parent->next_parent[pos];
+          assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+        }
       }
       /* check if read conflicts occur */
       if (!found_conflict)
@@ -3684,7 +3687,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         {
           pos        = BTOR_GET_TAG_EXP (cur_parent);
           cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
-          assert (cur_parent->kind == BTOR_READ_EXP);
+          assert (cur_parent->kind == BTOR_WRITE_EXP);
           for (temp = reads->start; temp != reads->end; temp++)
           {
             cur_read = *temp;
@@ -3708,14 +3711,15 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         }
       }
       /* free read stacks of parent writes  */
+      cur_parent = cur_array->last_parent;
       while (cur_parent != NULL
-             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_WRITE_EXP)
+             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
       {
         pos        = BTOR_GET_TAG_EXP (cur_parent);
         cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
-        assert (cur_parent->kind == BTOR_READ_EXP);
+        assert (cur_parent->kind == BTOR_WRITE_EXP);
         BTOR_RELEASE_STACK (mm, *cur_parent->reads);
-        cur_parent = cur_parent->next_parent[pos];
+        cur_parent = cur_parent->prev_parent[pos];
         assert (!BTOR_IS_INVERTED_EXP (cur_parent));
       }
     }
