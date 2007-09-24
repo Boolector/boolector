@@ -3296,9 +3296,9 @@ btor_synthesize_exp (BtorExpMgr *emgr,
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
     assert (cur->mark >= 0);
-    assert (cur->mark <= 1);
+    assert (cur->mark <= 2);
     assert (!BTOR_IS_ARRAY_EXP (cur));
-    if (cur->av == NULL)
+    if (cur->av == NULL && cur->mark < 2)
     {
       count++;
 
@@ -3327,28 +3327,47 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         }
         else
         {
-          cur->mark = 1;
-          BTOR_PUSH_STACK (mm, exp_stack, cur);
-          if (cur->kind == BTOR_READ_EXP) /* push index on the stack */
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-          else if (BTOR_IS_UNARY_EXP (cur))
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-          else if (BTOR_IS_BINARY_EXP (cur))
+          if (BTOR_IS_WRITE_ARRAY_EXP (cur))
           {
+            cur->mark = 2;
+            /* push value on the stack */
+            BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
+            /* push index on the stack */
             BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            if (BTOR_IS_WRITE_ARRAY_EXP (cur->e[0]))
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
           }
           else
           {
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            cur->mark = 1;
+            BTOR_PUSH_STACK (mm, exp_stack, cur);
+            if (cur->kind == BTOR_READ_EXP)
+            {
+              /* push index on the stack */
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+              if (BTOR_IS_WRITE_ARRAY_EXP (cur->e[0]))
+                BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            }
+            else if (BTOR_IS_UNARY_EXP (cur))
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            else if (BTOR_IS_BINARY_EXP (cur))
+            {
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            }
+            else
+            {
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            }
           }
         }
       }
       else
       {
         assert (cur->mark == 1);
+        cur->mark = 2;
         if (cur->kind == BTOR_READ_EXP)
         {
           /* generate new AIGs for read */
