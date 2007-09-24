@@ -59,15 +59,15 @@ struct BtorExp
   unsigned int mark : 3;           /* for DAG traversal algorithms */
   unsigned int encoded_read : 1;   /* flag used by eager read encoding */
   unsigned int index_full_cnf : 1; /* determines if index of read has */
-  /* already been fully encoded into CNF */
-  int index_len;                 /* for arrays and writes only */
-  struct BtorExpPtrStack *reads; /* used for sorting read parents. */
-  /* for arrays and writes only */
+                                   /* already been fully encoded into CNF */
+  int index_len;                   /* for arrays and writes only */
+  struct BtorExpPtrStack *reads;   /* used for sorting read parents. */
+                                   /* for arrays and writes only */
   union
   {
     struct
     {
-      char *symbol; /* for variables only */
+      char *symbol; /* symbol for output. for variables only */
       union
       {
         int upper;        /* for slices only */
@@ -79,7 +79,7 @@ struct BtorExp
         char *bits; /* for constants only */
       };
     };
-    struct BtorExp *e[3]; /* children */
+    struct BtorExp *e[3]; /* three children */
   };
   int len;                        /* number of bits */
   int id;                         /* unique expression id */
