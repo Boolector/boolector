@@ -3671,69 +3671,66 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     {
       assert (cur_array->mark == 1);
       BTOR_INIT_STACK (*cur_array->reads);
-      if (!found_conflict)
+      if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
+      reads    = cur_array->reads;
+      cur_read = cur_array->first_parent;
+      assert (BTOR_IS_REGULAR_EXP (cur_read));
+      /* push reads on stack */
+      while (cur_read != NULL && cur_read->kind != BTOR_WRITE_EXP)
       {
-        reads    = cur_array->reads;
-        cur_read = cur_array->first_parent;
+        /* array children are always at position 0 */
+        assert (BTOR_GET_TAG_EXP (cur_read) == 0);
+        assert (cur_read->kind == BTOR_READ_EXP);
+        BTOR_PUSH_STACK (mm, *reads, cur_read);
+        cur_read = cur_read->next_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_read));
-        /* push reads on stack */
-        while (cur_read != NULL && cur_read->kind != BTOR_WRITE_EXP)
-        {
-          /* array children are always at position 0 */
-          assert (BTOR_GET_TAG_EXP (cur_read) == 0);
-          assert (cur_read->kind == BTOR_READ_EXP);
-          BTOR_PUSH_STACK (mm, *reads, cur_read);
-          cur_read = cur_read->next_parent[0];
-          assert (BTOR_IS_REGULAR_EXP (cur_read));
-        }
       }
       /* check if read conflicts occur */
-      if (!found_conflict)
-        found_conflict = resolve_read_conflicts_array (emgr, cur_array);
+      found_conflict = resolve_read_conflicts_array (emgr, cur_array);
+      if (found_conflict || emgr->write_enc != BTOR_LAZY_WRITE_ENC)
+        goto FREE_WRITE_PARENT_READ_STACKS;
       /* check if value of read is equal to value of write if indices
-       * are equal. There can be write parents although they have been
-       * eagerly rewritten (for example still one reference to write from
-       * parser) */
-      if (!found_conflict && emgr->write_enc == BTOR_LAZY_WRITE_ENC)
+       * are equal. ATTENTION: There can be write parents although
+       * they have been eagerly rewritten. For example the paser might still
+       * have a reference to a write, thus it is still in the parent list.
+       */
+      cur_write = cur_array->last_parent;
+      assert (BTOR_IS_REGULAR_EXP (cur_write));
+      while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
       {
-        cur_write = cur_array->last_parent;
-        assert (BTOR_IS_REGULAR_EXP (cur_write));
-        while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+        /* array children are always at position 0 */
+        assert (BTOR_GET_TAG_EXP (cur_write) == 0);
+        assert (cur_write->kind == BTOR_WRITE_EXP);
+        for (temp = reads->start; temp != reads->end; temp++)
         {
-          /* array children are always at position 0 */
-          assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-          assert (cur_write->kind == BTOR_WRITE_EXP);
-          for (temp = reads->start; temp != reads->end; temp++)
+          cur_read = *temp;
+          assert (BTOR_IS_REGULAR_EXP (cur_read));
+          indices_equal =
+              compare_assignments (emgr, cur_read->e[1], cur_write->e[1]) == 0;
+          values_equal =
+              compare_assignments (emgr, cur_read, cur_write->e[2]) == 0;
+          if (indices_equal)
           {
-            cur_read = *temp;
-            assert (BTOR_IS_REGULAR_EXP (cur_read));
-            indices_equal =
-                compare_assignments (emgr, cur_read->e[1], cur_write->e[1])
-                == 0;
-            values_equal =
-                compare_assignments (emgr, cur_read, cur_write->e[2]) == 0;
-            if (indices_equal)
+            if (!values_equal)
             {
-              if (!values_equal)
-              {
-                found_conflict = 1;
-                encode_ackermann_constraint (emgr,
-                                             cur_read->e[1],
-                                             cur_write->e[1],
-                                             cur_read,
-                                             cur_write->e[2]);
-                break;
-              }
-            }
-            else
-            {
+              found_conflict = 1;
+              encode_ackermann_constraint (emgr,
+                                           cur_read->e[1],
+                                           cur_write->e[1],
+                                           cur_read,
+                                           cur_write->e[2]);
+              goto FREE_WRITE_PARENT_READ_STACKS;
+              break;
             }
           }
-          if (found_conflict) break;
-          cur_write = cur_write->prev_parent[0];
-          assert (BTOR_IS_REGULAR_EXP (cur_write));
+          else
+          {
+          }
         }
+        cur_write = cur_write->prev_parent[0];
+        assert (BTOR_IS_REGULAR_EXP (cur_write));
       }
+    FREE_WRITE_PARENT_READ_STACKS:
       /* free read stacks of parent writes */
       cur_write = cur_array->last_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_write));
