@@ -361,26 +361,25 @@ static void
 encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
 {
   BtorExp *cur = NULL;
-  int pos      = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (read != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (read));
-  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_REGULAR_EXP (read));
+  assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   cur = array->first_parent;
-  assert (!BTOR_IS_INVERTED_EXP (cur));
+  assert (BTOR_IS_REGULAR_EXP (cur));
   /* read expressions are at the beginning and
      write expressions at the end of the parent list. */
-  while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_WRITE_EXP)
+  while (cur != NULL && cur->kind != BTOR_WRITE_EXP)
   {
-    pos = BTOR_GET_TAG_EXP (cur);
-    cur = BTOR_REAL_ADDR_EXP (cur);
+    /* array children are always at position 0 */
+    assert (BTOR_GET_TAG_EXP (cur) == 0);
     assert (cur->kind == BTOR_READ_EXP);
     if (cur->encoded_read)
       encode_ackermann_constraint (emgr, cur->e[1], read->e[1], cur, read);
-    cur = cur->next_parent[pos];
-    assert (!BTOR_IS_INVERTED_EXP (cur));
+    cur = cur->next_parent[0];
+    assert (BTOR_IS_REGULAR_EXP (cur));
   }
   read->encoded_read = 1;
 }
@@ -460,37 +459,35 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 static void
 connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
 {
-  BtorExp *real_parent   = NULL;
-  BtorExp *real_child    = NULL;
-  BtorExp *last_parent   = NULL;
-  BtorExp *tagged_parent = NULL;
-  int i                  = 0;
+  BtorExp *last_parent = NULL;
   (void) emgr;
   assert (emgr != NULL);
   assert (parent != NULL);
   assert (child != NULL);
-  real_parent       = BTOR_REAL_ADDR_EXP (parent);
-  real_child        = BTOR_REAL_ADDR_EXP (child);
-  real_parent->e[0] = child;
-  tagged_parent     = BTOR_TAG_EXP (real_parent, 0);
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (BTOR_IS_WRITE_ARRAY_EXP (parent));
+  assert (BTOR_IS_REGULAR_EXP (child));
+  assert (BTOR_IS_ARRAY_EXP (child));
+  /* array children are always at position 0 */
+  parent->e[0] = child;
   /* no parent so far? */
-  if (real_child->first_parent == NULL)
+  if (child->first_parent == NULL)
   {
-    assert (real_child->last_parent == NULL);
-    real_child->first_parent = tagged_parent;
-    real_child->last_parent  = tagged_parent;
-    assert (real_parent->prev_parent[0] == NULL);
-    assert (real_parent->next_parent[0] == NULL);
+    assert (child->last_parent == NULL);
+    child->first_parent = parent;
+    child->last_parent  = parent;
+    assert (parent->prev_parent[0] == NULL);
+    assert (parent->next_parent[0] == NULL);
   }
   /* append at the end of the list */
   else
   {
-    last_parent = real_child->last_parent;
+    last_parent = child->last_parent;
     assert (last_parent != NULL);
-    real_parent->prev_parent[0] = last_parent;
-    i                           = BTOR_GET_TAG_EXP (last_parent);
-    BTOR_REAL_ADDR_EXP (last_parent)->next_parent[i] = tagged_parent;
-    real_child->last_parent                          = tagged_parent;
+    assert (BTOR_IS_REGULAR_EXP (last_parent));
+    parent->prev_parent[0]      = last_parent;
+    last_parent->next_parent[0] = parent;
+    child->last_parent          = parent;
   }
 }
 
@@ -672,8 +669,10 @@ new_write_exp_node (BtorExpMgr *emgr,
   assert (e_array != NULL);
   assert (e_index != NULL);
   assert (e_value != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (e_array));
+  assert (BTOR_IS_REGULAR_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)));
   mm = emgr->mm;
   BTOR_CNEW (mm, exp);
   exp->kind      = BTOR_WRITE_EXP;
@@ -698,7 +697,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   BtorMemMgr *mm = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (BTOR_IS_REGULAR_EXP (exp));
   mm = emgr->mm;
   if (BTOR_IS_CONST_EXP (exp))
     btor_freestr (mm, exp->bits);
@@ -748,7 +747,7 @@ compute_exp_hash (BtorExp *exp, int table_size)
   assert (exp != NULL);
   assert (table_size > 0);
   assert (btor_is_power_of_2_util (table_size));
-  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (BTOR_IS_REGULAR_EXP (exp));
   assert (!BTOR_IS_VAR_EXP (exp));
   assert (!BTOR_IS_NATIVE_ARRAY_EXP (exp));
   if (BTOR_IS_CONST_EXP (exp))
@@ -799,7 +798,7 @@ find_const_exp (BtorExpMgr *emgr, const char *bits)
   cur    = *result;
   while (cur != NULL)
   {
-    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_REGULAR_EXP (cur));
     if (BTOR_IS_CONST_EXP (cur) && cur->len == len
         && strcmp (cur->bits, bits) == 0)
       break;
@@ -832,7 +831,7 @@ find_slice_exp (BtorExpMgr *emgr, BtorExp *e0, int upper, int lower)
   cur    = *result;
   while (cur != NULL)
   {
-    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->kind == BTOR_SLICE_EXP && cur->e[0] == e0 && cur->upper == upper
         && cur->lower == lower)
       break;
@@ -873,7 +872,7 @@ find_binary_exp (BtorExpMgr *emgr, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   }
   while (cur != NULL)
   {
-    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->kind == kind && cur->e[0] == e0 && cur->e[1] == e1)
       break;
     else
@@ -908,7 +907,7 @@ find_ternary_exp (
   cur    = *result;
   while (cur != NULL)
   {
-    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->kind == kind && cur->e[0] == e0 && cur->e[1] == e1
         && cur->e[2] == e2)
       break;
@@ -944,7 +943,7 @@ enlarge_exp_unique_table (BtorExpMgr *emgr)
     cur = emgr->table.chains[i];
     while (cur != NULL)
     {
-      assert (!BTOR_IS_INVERTED_EXP (cur));
+      assert (BTOR_IS_REGULAR_EXP (cur));
       assert (!BTOR_IS_VAR_EXP (cur));
       assert (!BTOR_IS_NATIVE_ARRAY_EXP (cur));
       temp             = cur->next;
@@ -968,12 +967,12 @@ delete_exp_unique_table_entry (BtorExpMgr *emgr, BtorExp *exp)
   BtorExp *prev     = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (BTOR_IS_REGULAR_EXP (exp));
   hash = compute_exp_hash (exp, emgr->table.size);
   cur  = emgr->table.chains[hash];
   while (cur != exp && cur != NULL)
   {
-    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_REGULAR_EXP (cur));
     prev = cur;
     cur  = cur->next;
   }
@@ -1041,17 +1040,17 @@ btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+/* set mark flags of native arrays and parent writes */
 static void
-mark_exp_bottom_up_array (BtorExpMgr *emgr, BtorExp *array, int new_mark)
+mark_exp_bottom_up_arrays (BtorExpMgr *emgr, BtorExp *array, int new_mark)
 {
   BtorMemMgr *mm = NULL;
   BtorExpPtrStack stack;
   BtorExp *cur_array  = NULL;
   BtorExp *cur_parent = NULL;
-  int pos             = 0;
   assert (emgr != NULL);
   assert (array != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   mm = emgr->mm;
   BTOR_INIT_STACK (stack);
@@ -1059,22 +1058,22 @@ mark_exp_bottom_up_array (BtorExpMgr *emgr, BtorExp *array, int new_mark)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur_array = BTOR_POP_STACK (stack);
-    assert (!BTOR_IS_INVERTED_EXP (cur_array));
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
     if (cur_array->mark != new_mark)
     {
       cur_array->mark = new_mark;
       cur_parent      = cur_array->last_parent;
-      assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+      assert (BTOR_IS_REGULAR_EXP (cur_parent));
       while (cur_parent != NULL
              && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
       {
-        pos        = BTOR_GET_TAG_EXP (cur_parent);
-        cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+        /* array children are always at position 0 */
+        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
         assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
         BTOR_PUSH_STACK (mm, stack, cur_parent);
-        cur_parent = cur_parent->prev_parent[pos];
-        assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+        cur_parent = cur_parent->prev_parent[0];
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
       }
     }
   }
@@ -1392,7 +1391,6 @@ rewrite_exp (BtorExpMgr *emgr,
       else if (BTOR_IS_CONST_EXP (real_e0) && !BTOR_IS_CONST_EXP (real_e1))
       {
         bits_e0 = BTOR_GET_BITS_EXP (mm, e0);
-        /* TODO: AND_EXP EQ_EXP */
         is_zero = is_zero_string (emgr, bits_e0, real_e0->len);
         is_one  = is_one_string (emgr, bits_e0, real_e0->len);
         if (is_zero)
@@ -1413,7 +1411,6 @@ rewrite_exp (BtorExpMgr *emgr,
       else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
         bits_e1 = BTOR_GET_BITS_EXP (mm, e1);
-        /* TODO: AND_EXP EQ_EXP */
         is_zero = is_zero_string (emgr, bits_e1, real_e1->len);
         is_one  = is_one_string (emgr, bits_e1, real_e1->len);
         if (is_zero)
@@ -1776,8 +1773,8 @@ btor_implies_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (e1 != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == 1);
-  assert (BTOR_REAL_ADDR_EXP (e1)->len == 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (btor_and_exp (emgr, e0, BTOR_INVERT_EXP (e1)));
 }
 
@@ -1789,8 +1786,8 @@ btor_iff_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (e1 != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == 1);
-  assert (BTOR_REAL_ADDR_EXP (e1)->len == 1);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_xnor_exp (emgr, e0, e1);
 }
 
@@ -2239,24 +2236,6 @@ btor_ulte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_slte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
-#if 0
-  BtorExp *result = NULL;
-  BtorExp *slt = NULL;
-  BtorExp *eq = NULL;
-  assert (emgr != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  slt = btor_slt_exp (emgr, e0, e1);
-  eq = btor_eq_exp (emgr, e0, e1);
-  result = btor_or_exp (emgr, slt, eq);
-  btor_release_exp (emgr, slt);
-  btor_release_exp (emgr, eq);
-  return result;
-#else
   BtorExp *result = NULL;
   BtorExp *sgt    = NULL;
   assert (emgr != NULL);
@@ -2270,7 +2249,6 @@ btor_slte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   result = btor_not_exp (emgr, sgt);
   btor_release_exp (emgr, sgt);
   return result;
-#endif
 }
 
 BtorExp *
@@ -2320,24 +2298,6 @@ btor_ugte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
-#if 0
-  BtorExp *result = NULL;
-  BtorExp *slt = NULL;
-  BtorExp *eq = NULL;
-  assert (emgr != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  slt = btor_slt_exp (emgr, e1, e0);
-  eq = btor_eq_exp (emgr, e0, e1);
-  result = btor_or_exp (emgr, slt, eq);
-  btor_release_exp (emgr, slt);
-  btor_release_exp (emgr, eq);
-  return result;
-#else
   BtorExp *result = NULL;
   BtorExp *slt    = NULL;
   assert (emgr != NULL);
@@ -2351,7 +2311,6 @@ btor_sgte_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   result = btor_not_exp (emgr, slt);
   btor_release_exp (emgr, slt);
   return result;
-#endif
 }
 
 BtorExp *
@@ -2843,7 +2802,7 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (emgr != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (e_array));
+  assert (BTOR_IS_REGULAR_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
   assert (e_array->len > 0);
@@ -2859,7 +2818,7 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
       cur = e_array;
       while (!found)
       {
-        assert (!BTOR_IS_INVERTED_EXP (cur));
+        assert (BTOR_IS_REGULAR_EXP (cur));
         assert (BTOR_IS_ARRAY_EXP (cur));
         if (BTOR_IS_WRITE_ARRAY_EXP (cur))
         {
@@ -2874,10 +2833,10 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
         }
       }
       assert (!BTOR_EMPTY_STACK (stack));
-      while (!BTOR_EMPTY_STACK (stack))
+      do
       {
         cur = BTOR_POP_STACK (stack);
-        assert (!BTOR_IS_INVERTED_EXP (cur));
+        assert (BTOR_IS_REGULAR_EXP (cur));
         assert (BTOR_IS_ARRAY_EXP (cur));
         /* index equal ? */
         eq   = btor_eq_exp (emgr, cur->e[1], e_index);
@@ -2885,7 +2844,7 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
         btor_release_exp (emgr, eq);
         btor_release_exp (emgr, result);
         result = cond;
-      }
+      } while (!BTOR_EMPTY_STACK (stack));
       BTOR_RELEASE_STACK (mm, stack);
       return result;
     }
@@ -2964,7 +2923,7 @@ btor_write_exp (BtorExpMgr *emgr,
 {
   BtorExp **lookup = NULL;
   assert (emgr != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (e_array));
+  assert (BTOR_IS_REGULAR_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)));
@@ -3018,7 +2977,7 @@ btor_get_index_exp_len (BtorExpMgr *emgr, BtorExp *e_array)
   (void) emgr;
   assert (emgr != NULL);
   assert (e_array != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (e_array));
+  assert (BTOR_IS_REGULAR_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
   return e_array->index_len;
 }
@@ -3560,6 +3519,8 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   assert (emgr != NULL);
   assert (exp1 != NULL);
   assert (exp2 != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp2)));
   assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
   assert (BTOR_REAL_ADDR_EXP (exp1)->av != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp2)->av != NULL);
@@ -3598,14 +3559,22 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
 static int
 compare_reads_by_index (const void *read1, const void *read2)
 {
-  BtorExp *index1  = NULL;
-  BtorExp *index2  = NULL;
-  BtorExpMgr *emgr = NULL;
+  BtorExp *exp_read1 = NULL;
+  BtorExp *exp_read2 = NULL;
+  BtorExp *index1    = NULL;
+  BtorExp *index2    = NULL;
+  BtorExpMgr *emgr   = NULL;
   assert (read1 != NULL);
   assert (read2 != NULL);
-  index1 = (*((BtorExp **) read1))->e[1];
-  index2 = (*((BtorExp **) read2))->e[1];
-  emgr   = BTOR_REAL_ADDR_EXP (index1)->emgr;
+  exp_read1 = *((BtorExp **) read1);
+  exp_read2 = *((BtorExp **) read2);
+  assert (BTOR_IS_REGULAR_EXP (exp_read1));
+  assert (BTOR_IS_REGULAR_EXP (exp_read2));
+  assert (exp_read1->kind == BTOR_READ_EXP);
+  assert (exp_read2->kind == BTOR_READ_EXP);
+  index1 = exp_read1->e[1];
+  index2 = exp_read2->e[1];
+  emgr   = exp_read1->emgr;
   assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
   return compare_assignments (emgr, index1, index2);
 }
@@ -3626,7 +3595,7 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp **sort_array   = NULL;
   assert (emgr != NULL);
   assert (array != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   mm         = emgr->mm;
   reads      = array->reads;
@@ -3640,8 +3609,8 @@ resolve_read_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     {
       read1 = sort_array[i];
       read2 = sort_array[i + 1];
-      assert (!BTOR_IS_INVERTED_EXP (read1));
-      assert (!BTOR_IS_INVERTED_EXP (read2));
+      assert (BTOR_IS_REGULAR_EXP (read1));
+      assert (BTOR_IS_REGULAR_EXP (read2));
       if (compare_assignments (emgr, read1->e[1], read2->e[1]) == 0
           && compare_assignments (emgr, read1, read2) != 0)
       {
@@ -3665,11 +3634,10 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp **temp         = NULL;
   BtorExpPtrStack *reads = NULL;
   BtorExpPtrStack stack;
-  int pos            = 0;
   int found_conflict = 0;
   assert (emgr != NULL);
   assert (array != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (array));
+  assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   mm = emgr->mm;
   BTOR_INIT_STACK (stack);
@@ -3677,23 +3645,23 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur_array = BTOR_POP_STACK (stack);
-    assert (!BTOR_IS_INVERTED_EXP (cur_array));
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
     if (cur_array->mark == 0)
     {
       cur_array->mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur_array);
       /* push writes on stack */
       cur_parent = cur_array->last_parent;
-      assert (!BTOR_IS_INVERTED_EXP (cur_parent));
-      while (cur_parent != NULL
-             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
+      assert (BTOR_IS_REGULAR_EXP (cur_parent));
+      while (cur_parent != NULL && cur_parent->kind != BTOR_READ_EXP)
       {
-        pos        = BTOR_GET_TAG_EXP (cur_parent);
-        cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+        /* array children are always at position 0 */
+        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
         assert (cur_parent->kind == BTOR_WRITE_EXP);
         BTOR_PUSH_STACK (mm, stack, cur_parent);
-        cur_parent = cur_parent->prev_parent[pos];
-        assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+        cur_parent = cur_parent->prev_parent[0];
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
       }
     }
     else
@@ -3704,17 +3672,16 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       {
         reads      = cur_array->reads;
         cur_parent = cur_array->first_parent;
-        assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
         /* push reads on stack */
-        while (cur_parent != NULL
-               && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_WRITE_EXP)
+        while (cur_parent != NULL && cur_parent->kind != BTOR_WRITE_EXP)
         {
-          pos        = BTOR_GET_TAG_EXP (cur_parent);
-          cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+          /* array children are always at position 0 */
+          assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
           assert (cur_parent->kind == BTOR_READ_EXP);
           BTOR_PUSH_STACK (mm, *reads, cur_parent);
-          cur_parent = cur_parent->next_parent[pos];
-          assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+          cur_parent = cur_parent->next_parent[0];
+          assert (BTOR_IS_REGULAR_EXP (cur_parent));
         }
       }
       /* check if read conflicts occur */
@@ -3727,16 +3694,16 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       if (!found_conflict && emgr->write_enc == BTOR_LAZY_WRITE_ENC)
       {
         cur_parent = cur_array->last_parent;
-        while (cur_parent != NULL
-               && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        while (cur_parent != NULL && cur_parent->kind != BTOR_READ_EXP)
         {
-          pos        = BTOR_GET_TAG_EXP (cur_parent);
-          cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+          /* array children are always at position 0 */
+          assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
           assert (cur_parent->kind == BTOR_WRITE_EXP);
           for (temp = reads->start; temp != reads->end; temp++)
           {
             cur_read = *temp;
-            assert (!BTOR_IS_INVERTED_EXP (cur_read));
+            assert (BTOR_IS_REGULAR_EXP (cur_read));
             if (compare_assignments (emgr, cur_read->e[1], cur_parent->e[1])
                     == 0
                 && compare_assignments (emgr, cur_read, cur_parent->e[2]) != 0)
@@ -3751,28 +3718,28 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
             }
           }
           if (found_conflict) break;
-          cur_parent = cur_parent->prev_parent[pos];
-          assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+          cur_parent = cur_parent->prev_parent[0];
+          assert (BTOR_IS_REGULAR_EXP (cur_parent));
         }
       }
       /* free read stacks of parent writes */
       cur_parent = cur_array->last_parent;
-      while (cur_parent != NULL
-             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
+      assert (BTOR_IS_REGULAR_EXP (cur_parent));
+      while (cur_parent != NULL && cur_parent->kind != BTOR_READ_EXP)
       {
-        pos        = BTOR_GET_TAG_EXP (cur_parent);
-        cur_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+        /* array children are always at position 0 */
+        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
         assert (cur_parent->kind == BTOR_WRITE_EXP);
         BTOR_RELEASE_STACK (mm, *cur_parent->reads);
-        cur_parent = cur_parent->prev_parent[pos];
-        assert (!BTOR_IS_INVERTED_EXP (cur_parent));
+        cur_parent = cur_parent->prev_parent[0];
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
       }
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
   /* release stack of starting array */
   BTOR_RELEASE_STACK (mm, *array->reads);
-  mark_exp_bottom_up_array (emgr, array, 0);
+  mark_exp_bottom_up_arrays (emgr, array, 0);
   return found_conflict;
 }
 
@@ -3838,8 +3805,7 @@ btor_get_assignment_var_exp (BtorExpMgr *emgr, BtorExp *exp)
   char *assignment = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
-  assert (!BTOR_IS_ARRAY_EXP (exp));
+  assert (BTOR_IS_REGULAR_EXP (exp));
   assert (BTOR_IS_VAR_EXP (exp));
   if (exp->av == NULL) return NULL;
   if (exp->assignment != NULL) return exp->assignment;

@@ -135,6 +135,7 @@ struct BtorExp
   ((BtorExp *) ((unsigned long int) tag | (unsigned long int) (exp)))
 #define BTOR_GET_TAG_EXP(exp) ((int) (3ul & (unsigned long int) (exp)))
 #define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
+#define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
