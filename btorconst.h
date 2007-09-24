@@ -8,6 +8,7 @@
 /*------------------------------------------------------------------------*/
 
 char *btor_int_to_bin (BtorMemMgr *mm, int x, int len);
+char *btor_ground_const (BtorMemMgr *mm, const char *const_with_x);
 
 /*------------------------------------------------------------------------*/
 /* Unbounded bit width operators.
