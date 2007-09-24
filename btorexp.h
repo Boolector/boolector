@@ -55,14 +55,14 @@ typedef enum BtorWriteEnc BtorWriteEnc;
 
 struct BtorExp
 {
-  BtorExpKind kind : 5;            /* kind of expression */
-  unsigned int mark : 3;           /* for DAG traversal algorithms */
-  unsigned int encoded_read : 1;   /* flag used by eager read encoding */
-  unsigned int index_full_cnf : 1; /* determines if index of read has */
-                                   /* already been fully encoded into CNF */
-  int index_len;                   /* for arrays and writes only */
-  struct BtorExpPtrStack *reads;   /* used for sorting read parents. */
-                                   /* for arrays and writes only */
+  BtorExpKind kind : 5;          /* kind of expression */
+  unsigned int mark : 3;         /* for DAG traversal algorithms */
+  unsigned int encoded_read : 1; /* flag used by eager read encoding */
+  unsigned int full_cnf : 1;     /* determines if exp has been */
+                                 /* fully encoded into CNF */
+  int index_len;                 /* for arrays and writes only */
+  struct BtorExpPtrStack *reads; /* used for sorting read parents. */
+                                 /* for arrays and writes only */
   union
   {
     struct
