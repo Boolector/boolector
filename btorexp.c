@@ -3256,7 +3256,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
     assert (cur->mark >= 0);
     assert (cur->mark <= 2);
-    assert (!BTOR_IS_ARRAY_EXP (cur));
+    assert (!BTOR_IS_NATIVE_ARRAY_EXP (cur));
     if (cur->av == NULL && cur->mark < 2)
     {
       count++;
@@ -3634,10 +3634,10 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp **temp         = NULL;
   BtorExpPtrStack *reads = NULL;
   BtorExpPtrStack stack;
-  BtorExpPtrStack *mc_carthy_reads = NULL;
-  int found_conflict               = 0;
-  int values_equal                 = 0;
-  int indices_equal                = 0;
+  BtorExpPtrStack *mccarthy_reads = NULL;
+  int found_conflict              = 0;
+  int values_equal                = 0;
+  int indices_equal               = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (BTOR_IS_REGULAR_EXP (array));
@@ -3694,6 +3694,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
        * they have been eagerly rewritten. For example the paser might still
        * have a reference to a write, thus it is still in the parent list.
        */
+      BTOR_NEW (mm, mccarthy_reads);
+      BTOR_INIT_STACK (*mccarthy_reads);
       cur_write = cur_array->last_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_write));
       while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
@@ -3719,6 +3721,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
                                            cur_write->e[1],
                                            cur_read,
                                            cur_write->e[2]);
+              BTOR_RELEASE_STACK (mm, *mccarthy_reads);
+              BTOR_DELETE (mm, mccarthy_reads);
               goto FREE_WRITE_PARENT_READ_STACKS;
               break;
             }
@@ -3730,6 +3734,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         cur_write = cur_write->prev_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_write));
       }
+      BTOR_RELEASE_STACK (mm, *mccarthy_reads);
+      BTOR_DELETE (mm, mccarthy_reads);
     FREE_WRITE_PARENT_READ_STACKS:
       /* free read stacks of parent writes */
       cur_write = cur_array->last_parent;
