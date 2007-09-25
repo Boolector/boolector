@@ -362,6 +362,31 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
                             BtorExp *a,
                             BtorExp *b)
 {
+  BtorMemMgr *mm       = NULL;
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorAIGMgr *amgr     = NULL;
+  BtorSATMgr *smgr     = NULL;
+  BtorAIGVec *av_i     = NULL;
+  BtorAIGVec *av_j     = NULL;
+  BtorAIGVec *av_a     = NULL;
+  BtorAIGVec *av_b     = NULL;
+  BtorAIGVec *av_w     = NULL;
+  BtorAIG *aig1        = NULL;
+  BtorAIG *aig2        = NULL;
+  BtorExp **temp       = NULL;
+  BtorExp *cur_write   = NULL;
+  BtorIntStack clause;
+  int len              = 0;
+  int k                = 0;
+  int is_equal_a_b     = 0;
+  int is_different_i_j = 0;
+  int a_k              = 0;
+  int b_k              = 0;
+  int i_k              = 0;
+  int j_k              = 0;
+  int d_k              = 0;
+  int w_k              = 0;
+  int e                = 0;
   assert (emgr != NULL);
   assert (writes != NULL);
   assert (i != NULL);
@@ -373,6 +398,206 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
+  mm    = emgr->mm;
+  avmgr = emgr->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+  av_i  = BTOR_GET_AIGVEC_EXP (emgr, i);
+  av_j  = BTOR_GET_AIGVEC_EXP (emgr, j);
+  av_a  = BTOR_GET_AIGVEC_EXP (emgr, a);
+  av_b  = BTOR_GET_AIGVEC_EXP (emgr, b);
+  assert (av_i != NULL);
+  assert (av_j != NULL);
+  assert (av_a != NULL);
+  assert (av_b != NULL);
+  assert (av_i->len == av_j->len);
+  assert (av_a->len == av_b->len);
+  is_equal_a_b     = !btor_is_different_aigvec (avmgr, av_a, av_b);
+  is_different_i_j = btor_is_different_aigvec (avmgr, av_i, av_j);
+  if (is_equal_a_b
+      || (is_different_i_j && btor_is_const_aigvec (avmgr, av_i)
+          && btor_is_const_aigvec (avmgr, av_j)))
+  {
+    /* (i = j => TRUE) <=> TRUE
+     * (FALSE => a = b) <=> TRUE
+     */
+    btor_release_delete_aigvec (avmgr, av_i);
+    btor_release_delete_aigvec (avmgr, av_j);
+    btor_release_delete_aigvec (avmgr, av_a);
+    btor_release_delete_aigvec (avmgr, av_b);
+    return;
+  }
+  /* skip i = j part if i and j are equal:
+   * W => a = b  <=>  a = b
+   */
+  if (is_different_i_j)
+  {
+    len = av_i->len;
+    if (!i->full_cnf)
+    {
+      for (k = 0; k < len; k++)
+        btor_aig_to_sat_constraints_full (amgr, av_i->aigs[k]);
+      i->full_cnf = 1;
+    }
+    if (!j->full_cnf)
+    {
+      for (k = 0; k < len; k++)
+        btor_aig_to_sat_constraints_full (amgr, av_j->aigs[k]);
+      j->full_cnf = 1;
+    }
+    BTOR_INIT_STACK (clause);
+    for (k = 0; k < len; k++)
+    {
+      aig1 = av_i->aigs[k];
+      aig2 = av_j->aigs[k];
+      if (!BTOR_IS_CONST_AIG (aig1))
+      {
+        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
+          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        i_k = BTOR_GET_CNF_ID_AIG (aig1);
+        assert (i_k != 0);
+      }
+      if (!BTOR_IS_CONST_AIG (aig2))
+      {
+        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
+          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        j_k = BTOR_GET_CNF_ID_AIG (aig2);
+        assert (j_k != 0);
+      }
+      /* if aigs are inverse of each other then clauses
+       * are always satisfied */
+      if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
+      {
+        d_k = btor_next_cnf_id_sat_mgr (smgr);
+        assert (d_k != 0);
+        BTOR_PUSH_STACK (mm, clause, d_k);
+        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
+        {
+          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
+          btor_add_sat (smgr, -d_k);
+          btor_add_sat (smgr, 0);
+        }
+        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
+        {
+          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
+          btor_add_sat (smgr, -d_k);
+          btor_add_sat (smgr, 0);
+        }
+      }
+    }
+    /* encode a = b */
+    len = av_a->len;
+    if (!a->full_cnf)
+    {
+      for (k = 0; k < len; k++)
+        btor_aig_to_sat_constraints_full (amgr, av_a->aigs[k]);
+      a->full_cnf = 1;
+    }
+    if (!b->full_cnf)
+    {
+      for (k = 0; k < len; k++)
+        btor_aig_to_sat_constraints_full (amgr, av_b->aigs[k]);
+      b->full_cnf = 1;
+    }
+    for (k = 0; k < len; k++)
+    {
+      aig1 = av_a->aigs[k];
+      aig2 = av_b->aigs[k];
+      if (!BTOR_IS_CONST_AIG (aig1))
+      {
+        if (aig1->cnf_id == 0) aig1->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        a_k = aig1->cnf_id;
+        assert (a_k != 0);
+      }
+      if (!BTOR_IS_CONST_AIG (aig2))
+      {
+        if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        b_k = aig2->cnf_id;
+        assert (b_k != 0);
+      }
+      /* aigs cannot be equal. we check this at the beginning
+       * of the function */
+      assert (aig1 != aig2);
+      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
+        btor_add_sat (smgr, 0);
+      }
+      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
+        btor_add_sat (smgr, 0);
+      }
+    }
+    /* encode i != write index premisses */
+    len = av_i->len;
+    for (temp = writes->start; temp != writes->end; temp++)
+    {
+      cur_write = *temp;
+      assert (BTOR_IS_REGULAR_EXP (cur_write));
+      assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
+      av_w = BTOR_GET_AIGVEC_EXP (emgr, cur_write->e[1]);
+      assert (av_w->len == len);
+      if (!BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf)
+      {
+        for (k = 0; k < len; k++)
+          btor_aig_to_sat_constraints_full (amgr, av_i->aigs[k]);
+        BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf = 1;
+      }
+      e = btor_next_cnf_id_sat_mgr (smgr);
+      BTOR_PUSH_STACK (mm, clause, e);
+      for (k = 0; k < len; k++)
+      {
+        aig1 = av_i->aigs[k];
+        aig2 = av_w->aigs[k];
+        if (!BTOR_IS_CONST_AIG (aig1))
+        {
+          if (aig1->cnf_id == 0) aig1->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+          i_k = aig1->cnf_id;
+          assert (i_k != 0);
+        }
+        if (!BTOR_IS_CONST_AIG (aig2))
+        {
+          if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+          w_k = aig2->cnf_id;
+          assert (w_k != 0);
+        }
+        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+        {
+          btor_add_sat (smgr, -e);
+          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -w_k);
+          btor_add_sat (smgr, 0);
+        }
+        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+        {
+          btor_add_sat (smgr, -e);
+          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, w_k);
+          btor_add_sat (smgr, 0);
+        }
+      }
+      btor_release_delete_aigvec (avmgr, av_w);
+    }
+    while (!BTOR_EMPTY_STACK (clause))
+    {
+      k = BTOR_POP_STACK (clause);
+      assert (k != 0);
+      btor_add_sat (smgr, k);
+    }
+    btor_add_sat (smgr, 0);
+    BTOR_RELEASE_STACK (mm, clause);
+  }
+  btor_release_delete_aigvec (avmgr, av_i);
+  btor_release_delete_aigvec (avmgr, av_j);
+  btor_release_delete_aigvec (avmgr, av_a);
+  btor_release_delete_aigvec (avmgr, av_b);
 }
 
 /* Encodes read constraint eagerly by adding all
