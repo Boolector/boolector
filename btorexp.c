@@ -3696,9 +3696,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
        */
       if (BTOR_IS_WRITE_ARRAY_EXP (cur_array))
       {
-        /*
-        BTOR_NEW(mm, mccarthy_reads);
-        BTOR_INIT_STACK (*mccarthy_reads); */
+        BTOR_NEW (mm, mccarthy_reads);
+        BTOR_INIT_STACK (*mccarthy_reads);
         cur_read = cur_array->first_parent;
         assert (BTOR_IS_REGULAR_EXP (cur_read));
         while (cur_read != NULL && cur_read->kind != BTOR_WRITE_EXP)
@@ -3720,12 +3719,22 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
                                            cur_read->e[1],
                                            cur_array->e[2],
                                            cur_read);
+              BTOR_RELEASE_STACK (mm, *mccarthy_reads);
+              BTOR_DELETE (mm, mccarthy_reads);
               goto FREE_WRITE_PARENT_READ_STACKS;
             }
           }
+          else
+            /* we have to check read write consistency over child write */
+            BTOR_PUSH_STACK (mm, *mccarthy_reads, cur_read);
           cur_read = cur_read->next_parent[0];
           assert (BTOR_IS_REGULAR_EXP (cur_read));
         }
+        /* change read stack with reads which still needs to be checked
+         * by child write */
+        BTOR_RELEASE_STACK (mm, *cur_array->reads);
+        BTOR_DELETE (mm, cur_array->reads);
+        cur_array->reads = mccarthy_reads;
       }
     FREE_WRITE_PARENT_READ_STACKS:
       /* free read stacks of parent writes */
