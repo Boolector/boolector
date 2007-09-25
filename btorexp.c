@@ -3844,6 +3844,8 @@ resolve_read_conflicts_array (BtorExpMgr *emgr,
   BtorExp **sort_array   = NULL;
   assert (emgr != NULL);
   assert (array != NULL);
+  assert (conflict_read1 != NULL);
+  assert (conflict_read2 != NULL);
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   mm         = emgr->mm;
@@ -3863,9 +3865,9 @@ resolve_read_conflicts_array (BtorExpMgr *emgr,
       if (compare_assignments (emgr, read1->e[1], read2->e[1]) == 0
           && compare_assignments (emgr, read1, read2) != 0)
       {
-        found_conflict = 1;
-        if (conflict_read1 != NULL) *conflict_read1 = read1;
-        if (conflict_read2 != NULL) *conflict_read2 = read2;
+        found_conflict  = 1;
+        *conflict_read1 = read1;
+        *conflict_read2 = read2;
         encode_ackermann_constraint (
             emgr, read1->e[1], read2->e[1], read1, read2);
         break;
