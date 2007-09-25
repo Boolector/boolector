@@ -357,17 +357,22 @@ encode_ackermann_constraint (
 static void
 encode_mccarthy_constraint (BtorExpMgr *emgr,
                             BtorExpPtrStack *writes,
-                            BtorExp *write,
-                            BtorExp *read)
+                            BtorExp *i,
+                            BtorExp *j,
+                            BtorExp *a,
+                            BtorExp *b)
 {
   assert (emgr != NULL);
   assert (writes != NULL);
-  assert (write != NULL);
-  assert (read != NULL);
-  assert (BTOR_IS_REGULAR_EXP (write));
-  assert (BTOR_IS_REGULAR_EXP (read));
-  assert (BTOR_IS_WRITE_ARRAY_EXP (write));
-  assert (read->kind == BTOR_READ_EXP);
+  assert (i != NULL);
+  assert (j != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (BTOR_COUNT_STACK (*writes) > 0);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (i)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
 }
 
 /* Encodes read constraint eagerly by adding all
@@ -3790,7 +3795,12 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
                   assert (BTOR_IS_REGULAR_EXP (cur_write));
                   assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
                 } while (cur_write != cur_array);
-                encode_mccarthy_constraint (emgr, &writes, cur_array, cur_read);
+                encode_mccarthy_constraint (emgr,
+                                            &writes,
+                                            cur_array->e[1],
+                                            cur_read->e[1],
+                                            cur_array->e[2],
+                                            cur_read);
                 BTOR_RELEASE_STACK (mm, writes);
                 goto FREE_WRITE_PARENT_READ_STACKS;
               }
