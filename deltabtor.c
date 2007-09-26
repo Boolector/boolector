@@ -28,6 +28,7 @@ static const char* run_name;
 
 static FILE* input;
 static int lineno;
+static int saved;
 
 static char* tmp;
 static char* cmd;
@@ -79,8 +80,29 @@ next (void)
 {
   int res;
 
-  res = getc (input);
+  if (saved != EOF)
+  {
+    res   = saved;
+    saved = EOF;
+  }
+  else
+    res = getc (input);
+
+  if (res == ' ' || res == '\t')
+  {
+    while ((res = getc (input)) == ' ' || res == '\t')
+      ;
+
+    if (res != '\n')
+    {
+      saved = res;
+      res   = ' ';
+    }
+  }
+
   if (res == '\n') lineno++;
+
+  fprintf (stderr, "next: %c\n", res);
 
   return res;
 }
@@ -105,6 +127,9 @@ parse (void)
   int ch, idx, lit, sign, width, child[3], childs;
   char *op, *name;
 
+  lineno = 1;
+  saved  = EOF;
+
 EXP:
 
   name = 0;
@@ -118,10 +143,10 @@ EXP:
     return;
   }
 
-  if (!isdigit (ch)) perr ("expected digit but got '%c'", ch);
+  if (!isdigit (ch)) perr ("expected digit but got '0x%02x'", ch);
 
   idx = ch - '0';
-  while (isdigit (ch = next ())) idx = 10 * lit - (ch - '0');
+  while (isdigit (ch = next ())) idx = 10 * idx - (ch - '0');
 
   if (ch != ' ') perr ("expected space after index %d", idx);
 
@@ -181,7 +206,7 @@ LIT:
     {
       sign = -1;
       ch   = next ();
-      if (!isdigit (ch)) perr ("expected digit after '-' but got '%c'", ch);
+      if (!isdigit (ch)) perr ("expected digit after '-' but got '0x%02x'", ch);
     }
     else
       sign = 1;
@@ -209,6 +234,8 @@ LIT:
       perr ("width missing");
 
   INSERT:
+    assert (idx >= 1);
+
     while (nexps <= idx)
     {
       if (nexps == sexps) exps = realloc (exps, (sexps *= 2) * sizeof *exps);
@@ -364,6 +391,13 @@ cone (void)
 static void
 clean (void)
 {
+  int i;
+  for (i = 1; i < nexps; i++) exps[i].idx = 0;
+}
+
+static void
+reset (void)
+{
   Exp* e;
   int i;
 
@@ -371,7 +405,6 @@ clean (void)
   {
     e      = exps + i;
     e->ref = e->old;
-    e->idx = 0;
   }
 }
 
@@ -516,6 +549,7 @@ main (int argc, char** argv)
   cone ();
   print ();
   clean ();
+  reset ();
 
   golden = run ();
   msg (1, "golden exit code %d", golden);
@@ -557,6 +591,7 @@ main (int argc, char** argv)
         simp ();
         cone ();
         print ();
+        clean ();
 
         res = run ();
 
@@ -581,7 +616,7 @@ main (int argc, char** argv)
                i - maxwidth,
                (sign < 0) ? "all one" : "zero");
 
-          clean ();
+          reset ();
         }
       }
     }
