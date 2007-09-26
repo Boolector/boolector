@@ -44,6 +44,7 @@ static int sbuf;
 static int nbuf;
 
 static int maxwidth;
+static int runs;
 
 static void
 msg (int level, const char* fmt, ...)
@@ -161,6 +162,7 @@ LIT:
         if (nbuf == sbuf) buf = realloc (buf, sbuf = sbuf ? 2 * sbuf : 1);
 
         buf[nbuf++] = ch;
+        ch          = next ();
       }
 
       if (nbuf == sbuf) buf = realloc (buf, sbuf = sbuf ? 2 * sbuf : 1);
@@ -168,6 +170,7 @@ LIT:
       nbuf      = 0;
 
       name = strdup (buf);
+
       goto INSERT;
     }
   }
@@ -296,7 +299,7 @@ deidx (int start)
 }
 
 static void
-simplify (void)
+simp (void)
 {
   int i;
   rexps = 0;
@@ -318,6 +321,7 @@ ischild (Exp* e, int child)
   if (!strcmp (e->op, "consth")) return 0;
   if (!strcmp (e->op, "constd")) return 0;
   if (!strcmp (e->op, "read") && child != 1) return 0;
+  if (!strcmp (e->op, "root") && child != 0) return 0;
   if (!strcmp (e->op, "sext") && child != 0) return 0;
   if (!strcmp (e->op, "slice") && child != 0) return 0;
   if (!strcmp (e->op, "var")) return 0;
@@ -343,7 +347,7 @@ dfs (int idx)
   if (e->idx) return;
 
   for (i = 0; i < 3; i++)
-    if (ischild (e, i)) dfs (e->child[i]);
+    if (ischild (e, i)) dfs (deref (e->child[i]));
 
   e->idx = ++rexps;
 }
@@ -448,13 +452,15 @@ expand (void)
 static int
 run (void)
 {
+  runs++;
   return system (cmd);
 }
 
 int
 main (int argc, char** argv)
 {
-  int i, golden;
+  int i, golden, res, changed, rounds, fixed, sign;
+  Exp* e;
 
   for (i = 1; i < argc; i++)
   {
@@ -504,8 +510,9 @@ main (int argc, char** argv)
   sprintf (cmd, "%s %s >/dev/null 2>/dev/null", run_name, tmp);
 
   expand ();
+
   save ();
-  simplify ();
+  simp ();
   cone ();
   print ();
   clean ();
@@ -515,15 +522,90 @@ main (int argc, char** argv)
 
   rename (tmp, output_name);
 
+  rounds = 0;
+  fixed  = 0;
+
+  do
+  {
+    changed = 0;
+    rounds++;
+
+    msg (2, "round %d", rounds);
+
+    for (i = maxwidth + 1; i < nexps; i++)
+    {
+      e = exps + i;
+      if (!e->ref) continue;
+
+      for (sign = 1; sign >= -1; sign -= 2)
+      {
+        if (e->ref != i) continue;
+
+#if 0
+	    if (!strcmp (e->op, "root"))
+	      continue;
+#endif
+
+        save ();
+        e->ref = sign * e->width;
+
+        msg (3,
+             "trying to set expression %d to %s",
+             i - maxwidth,
+             (sign < 0) ? "all one" : "zero");
+
+        simp ();
+        cone ();
+        print ();
+
+        res = run ();
+
+        if (res == golden)
+        {
+          msg (3,
+               "fixed expression %d to %s",
+               i - maxwidth,
+               (sign < 0) ? "all one" : "zero");
+
+          changed = 1;
+          fixed++;
+
+          rename (tmp, output_name);
+
+          msg (2, "saved '%s'", output_name);
+        }
+        else
+        {
+          msg (3,
+               "failed to set expression %d to %s",
+               i - maxwidth,
+               (sign < 0) ? "all one" : "zero");
+
+          clean ();
+        }
+      }
+    }
+
+  } while (changed);
+
   unlink (tmp);
+
+  msg (2, "%d rounds", rounds);
+  msg (2, "%d runs", runs);
 
   free (tmp);
   free (cmd);
 
-  for (i = 1; i < nexps; i++) free (exps[i].op);
+  for (i = 1; i < nexps; i++)
+  {
+    free (exps[i].op);
+    free (exps[i].name);
+  }
 
   free (exps);
   free (buf);
+
+  msg (1, "fixed %d expressions", fixed);
 
   return 0;
 }
