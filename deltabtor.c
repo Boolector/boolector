@@ -149,6 +149,29 @@ LIT:
 
   ch = next ();
 
+  if (width && !childs)
+  {
+    if (!strcmp (op, "const") || !strcmp (op, "consth")
+        || !strcmp (op, "constd") || !strcmp (op, "var"))
+    {
+      assert (!nbuf);
+
+      while (!isspace (ch))
+      {
+        if (nbuf == sbuf) buf = realloc (buf, sbuf = sbuf ? 2 * sbuf : 1);
+
+        buf[nbuf++] = ch;
+      }
+
+      if (nbuf == sbuf) buf = realloc (buf, sbuf = sbuf ? 2 * sbuf : 1);
+      buf[nbuf] = 0;
+      nbuf      = 0;
+
+      name = strdup (buf);
+      goto INSERT;
+    }
+  }
+
   if (isdigit (ch) || ch == '-')
   {
     if (ch == '-')
@@ -183,7 +206,6 @@ LIT:
       perr ("width missing");
 
   INSERT:
-
     while (nexps <= idx)
     {
       if (nexps == sexps) exps = realloc (exps, (sexps *= 2) * sizeof *exps);
@@ -213,15 +235,7 @@ LIT:
 
   if (!width) goto WIDTH_MISSING;
 
-  if (!strcmp (buf, "var"))
-  {
-    while ((ch = next ()) != '\n' && ch != EOF)
-      ;
-
-    goto INSERT;
-  }
-
-  perr ("expected digit bug got '%c'", ch);
+  perr ("expected digit but got '%c'", ch);
 }
 
 static void
@@ -258,6 +272,23 @@ deref (int start)
     res = start;
 
   exps[start].ref = res;
+
+  if (sign) res = -res;
+
+  return res;
+}
+
+static int
+deidx (int start)
+{
+  int res, sign, tmp;
+
+  tmp  = deref (start);
+  sign = (tmp < 0);
+  if (sign) tmp = -tmp;
+
+  res = exps[tmp].idx;
+  assert (res);
 
   if (sign) res = -res;
 
@@ -311,10 +342,10 @@ dfs (int idx)
 
   if (e->idx) return;
 
-  e->idx = ++rexps;
-
   for (i = 0; i < 3; i++)
     if (ischild (e, i)) dfs (e->child[i]);
+
+  e->idx = ++rexps;
 }
 
 static void
@@ -359,7 +390,7 @@ print (void)
     for (j = 0; j < e->childs; j++)
     {
       lit = e->child[j];
-      fprintf (file, " %d", ischild (e, j) ? deref (lit) : lit);
+      fprintf (file, " %d", ischild (e, j) ? deidx (lit) : lit);
     }
 
     if (e->name) fprintf (file, " %s", e->name);
