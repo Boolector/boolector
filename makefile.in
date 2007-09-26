@@ -5,7 +5,7 @@ TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@ -DBTOR_VERSION="\"$(VERSION)\"" 
 
-all: libboolector.a boolector test synthebtor
+all: libboolector.a boolector test synthebtor deltabtor
 
 -include dependencies
 
@@ -21,6 +21,9 @@ test: $(TESTOBJ) ../picosat/picosat.o libboolector.a
 
 synthebtor: synthebtor.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector
+
+deltabtor: deltabtor.c
+	$(CC) $(CFLAGS) -o $@ deltabtor.c
 
 libboolector.a: $(LIBOBJ)
 	ar rc $@ $(LIBOBJ)
