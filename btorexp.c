@@ -324,32 +324,35 @@ encode_ackermann_constraint (
     aig2 = av_b->aigs[k];
     if (!BTOR_IS_CONST_AIG (aig1))
     {
-      if (aig1->cnf_id == 0) aig1->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
+        BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       a_k = BTOR_GET_CNF_ID_AIG (aig1);
       assert (a_k != 0);
     }
     if (!BTOR_IS_CONST_AIG (aig2))
     {
-      if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
+        BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       b_k = BTOR_GET_CNF_ID_AIG (aig2);
       assert (b_k != 0);
     }
-    /* aigs cannot be equal. we check this at the beginning
-     * of the function */
-    assert (aig1 != aig2);
-    if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+    /* if aigs are equal then clauses are satisfied */
+    if (aig1 != aig2)
     {
-      btor_add_sat (smgr, -e);
-      if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
-      if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
-      btor_add_sat (smgr, 0);
-    }
-    if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
-    {
-      btor_add_sat (smgr, -e);
-      if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
-      if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
-      btor_add_sat (smgr, 0);
+      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
+        btor_add_sat (smgr, 0);
+      }
+      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
+        btor_add_sat (smgr, 0);
+      }
     }
   }
   btor_release_delete_aigvec (avmgr, av_i);
@@ -360,8 +363,8 @@ encode_ackermann_constraint (
 
 /* This function is used to encode constraints of the form
  * i != k1 ^ i != k2 ^ ... ^ i != kn ^ i = j => a = b
- * The stack 'writes' contains the writes. The indices of the writes represent
- * k.
+ * The stack 'writes' contains intermediate writes.
+ * The indices of the writes represent k.
  *
  * This function is called in lazy mode only. Thus, We have to encode a
  * constraint in every case, because a conflict must have been detected
@@ -503,13 +506,15 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     {
       if (!BTOR_IS_CONST_AIG (aig1))
       {
-        if (aig1->cnf_id == 0) aig1->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
+          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         a_k = BTOR_GET_CNF_ID_AIG (aig1);
         assert (a_k != 0);
       }
       if (!BTOR_IS_CONST_AIG (aig2))
       {
-        if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
+          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         b_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (b_k != 0);
       }
@@ -556,13 +561,14 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
         if (!BTOR_IS_CONST_AIG (aig1))
         {
           /* aigs of i have cnf ids as they have been
-           * used by encoding i != j */
+           * used by encoding i != j before */
           i_k = BTOR_GET_CNF_ID_AIG (aig1);
           assert (i_k != 0);
         }
         if (!BTOR_IS_CONST_AIG (aig2))
         {
-          if (aig2->cnf_id == 0) aig2->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+          if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
+            BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
           w_k = BTOR_GET_CNF_ID_AIG (aig2);
           assert (w_k != 0);
         }
