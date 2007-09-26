@@ -3968,10 +3968,6 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         assert (BTOR_IS_REGULAR_EXP (read_conflict2));
         assert (read_conflict1->kind == BTOR_READ_EXP);
         assert (read_conflict2->kind == BTOR_READ_EXP);
-        /* it can not be the case that two reads of parent writes are in
-         * conflict. this should have been detected earlier. */
-        assert (!((read_conflict1->e[0] != cur_array)
-                  && (read_conflict2->e[0] != cur_array)));
         /* two reads on this array are in conflict */
         if (read_conflict1->e[0] == cur_array
             && read_conflict2->e[0] == cur_array)
@@ -3984,31 +3980,52 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         }
         else
         {
-          /* one read conflicts with an unresolved read of a parent write */
-          assert ((read_conflict1->e[0] != cur_array)
-                  ^ (read_conflict2->e[0] != cur_array));
-          /* collect intermediate writes as premisses for mccarthy constraint */
-          BTOR_INIT_STACK (writes);
+          /* collect intermediate writes as premisses
+           * for mccarthy constraint */
           if (read_conflict1->e[0] != cur_array)
-            cur_write = read_conflict1->e[0];
-          else
-            cur_write = read_conflict2->e[0];
-          assert (BTOR_IS_REGULAR_EXP (cur_write));
-          assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
-          do
           {
-            BTOR_PUSH_STACK (mm, writes, cur_write);
-            cur_write = cur_write->e[0];
+            BTOR_INIT_STACK (writes);
+            cur_write = read_conflict1->e[0];
             assert (BTOR_IS_REGULAR_EXP (cur_write));
-            assert (BTOR_IS_ARRAY_EXP (cur_write));
-          } while (cur_write != cur_array);
-          encode_mccarthy_constraint (emgr,
-                                      &writes,
-                                      read_conflict1->e[1],
-                                      read_conflict2->e[1],
-                                      read_conflict1,
-                                      read_conflict2);
-          BTOR_RELEASE_STACK (mm, writes);
+            assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
+            do
+            {
+              BTOR_PUSH_STACK (mm, writes, cur_write);
+              cur_write = cur_write->e[0];
+              assert (BTOR_IS_REGULAR_EXP (cur_write));
+              assert (BTOR_IS_ARRAY_EXP (cur_write));
+            } while (cur_write != cur_array);
+            encode_mccarthy_constraint (emgr,
+                                        &writes,
+                                        read_conflict1->e[1],
+                                        read_conflict2->e[1],
+                                        read_conflict1,
+                                        read_conflict2);
+            BTOR_RELEASE_STACK (mm, writes);
+          }
+          /* collect intermediate writes as premisses
+           * for mccarthy constraint */
+          if (read_conflict2->e[0] != cur_array)
+          {
+            BTOR_INIT_STACK (writes);
+            cur_write = read_conflict2->e[0];
+            assert (BTOR_IS_REGULAR_EXP (cur_write));
+            assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
+            do
+            {
+              BTOR_PUSH_STACK (mm, writes, cur_write);
+              cur_write = cur_write->e[0];
+              assert (BTOR_IS_REGULAR_EXP (cur_write));
+              assert (BTOR_IS_ARRAY_EXP (cur_write));
+            } while (cur_write != cur_array);
+            encode_mccarthy_constraint (emgr,
+                                        &writes,
+                                        read_conflict1->e[1],
+                                        read_conflict2->e[1],
+                                        read_conflict1,
+                                        read_conflict2);
+            BTOR_RELEASE_STACK (mm, writes);
+          }
         }
       }
       if (found_conflict || emgr->write_enc != BTOR_LAZY_WRITE_ENC)
