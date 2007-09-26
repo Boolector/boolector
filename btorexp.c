@@ -536,7 +536,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   }
   /* encode i != write index premisses */
   len = av_i->len;
-  for (temp = writes->start; temp != writes->end; temp++)
+  for (temp = writes->start; temp != writes->top; temp++)
   {
     cur_write = *temp;
     assert (BTOR_IS_REGULAR_EXP (cur_write));
@@ -3950,7 +3950,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       {
         /* array children are always at position 0 */
         assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-        for (temp = cur_write->reads->start; temp != cur_write->reads->end;
+        for (temp = cur_write->reads->start; temp != cur_write->reads->top;
              temp++)
         {
           cur_read = *temp;
@@ -4043,7 +4043,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       {
         BTOR_NEW (mm, mccarthy_reads);
         BTOR_INIT_STACK (*mccarthy_reads);
-        for (temp = reads->start; temp != reads->end; temp++)
+        for (temp = reads->start; temp != reads->top; temp++)
         {
           cur_read = *temp;
           assert (BTOR_IS_REGULAR_EXP (cur_read));
