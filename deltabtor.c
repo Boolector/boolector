@@ -39,6 +39,7 @@ static int nexps;
 
 static int iexps;
 static int rexps;
+static int oexps;
 
 static char* buf;
 static int sbuf;
@@ -332,13 +333,98 @@ deidx (int start)
   return res;
 }
 
+static int
+isallone (int start)
+{
+  const char* p;
+  Exp* e;
+
+  if (start < 0)
+  {
+    e = exps - start;
+    if (!strcmp (e->op, "zero")) return 1;
+
+    if (!e->name) return 0;
+
+    if (!strcmp (e->op, "const") || !strcmp (e->op, "consth")
+        || !strcmp (e->op, "constx"))
+    {
+      for (p = e->name; *p; p++)
+        if (*p != '0') return 0;
+
+      return 1;
+    }
+  }
+  else
+  {
+    e = exps + start;
+
+    if (!e->name) return 0;
+
+    if (!strcmp (e->op, "const")
+        || (e->width == 1
+            && (!strcmp (e->op, "consth") || !strcmp (e->op, "constx"))))
+    {
+      for (p = e->name; *p; p++)
+        if (*p != '1') return 0;
+
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
+static int
+isallzero (int start)
+{
+  return isallone (-start);
+}
+
 static void
 simp (void)
 {
-  int i;
+  int i, c;
+  Exp* e;
+
   rexps = 0;
   for (i = 1; i < nexps; i++)
-    if (exps[i].ref) (void) deref (i);
+  {
+    e = exps + i;
+
+    if (!e->ref) continue;
+
+    if (e->childs == 2 && !strcmp (e->op, "and"))
+    {
+      if (isallzero (e->child[0]))
+        e->ref = e->child[0];
+      else if (isallzero (e->child[1]))
+        e->ref = e->child[1];
+      else if (isallone (e->child[0]))
+        e->ref = e->child[1];
+      else if (isallone (e->child[1]))
+        e->ref = e->child[0];
+    }
+
+    if (e->childs == 3 && !strcmp (e->op, "cond"))
+    {
+      c = e->child[0];
+
+      if (exps[abs (c)].width == 1)
+      {
+        if (isallone (c))
+          e->ref = e->child[0];
+        else if (isallzero (c))
+          e->ref = e->child[1];
+      }
+    }
+
+    /* TODO: add more for 'eq', 'iff', 'implies', 'or', 'xor', 'xnor'.
+     * However, those are not part of the internal repr.
+     */
+
+    (void) deref (i);
+  }
 }
 
 static int
@@ -491,6 +577,8 @@ expand (void)
   }
 
   free (old);
+
+  msg (1, "added %d zeroes", maxwidth);
 }
 
 static int
@@ -509,7 +597,7 @@ min (int a, int b)
 int
 main (int argc, char** argv)
 {
-  int i, j, golden, res, changed, rounds, interval, fixed, sign, overwritten;
+  int i, j, golden, res, rounds, interval, fixed, sign, overwritten;
   Exp* e;
 
   for (i = 1; i < argc; i++)
@@ -577,90 +665,84 @@ main (int argc, char** argv)
   fixed  = 0;
 
   interval = nexps - maxwidth;
+  oexps    = rexps;
 
   do
   {
-    msg (1, "interval %d", interval);
+    rounds++;
 
-    do
+    msg (1, "interval %d round %d", interval, rounds);
+
+    for (i = maxwidth + 1; i < nexps; i += interval)
     {
-      changed = 0;
-      rounds++;
-
-      msg (2, "round %d", rounds);
-
-      for (i = maxwidth + 1; i < nexps; i += interval)
+      for (sign = 1; sign >= -1; sign -= 2)
       {
-        for (sign = 1; sign >= -1; sign -= 2)
+        overwritten = 0;
+
+        for (j = i; j < i + interval && j < nexps; j++)
         {
-          overwritten = 0;
+          e = exps + j;
 
-          for (j = i; j < i + interval && j < nexps; j++)
-          {
-            e = exps + j;
+          if (!e->ref) continue;
 
-            if (!e->ref) continue;
+          if (e->ref != j) continue;
 
-            if (e->ref != j) continue;
+          if (!strcmp (e->op, "root")) continue;
 
-            if (!strcmp (e->op, "root")) continue;
+          if (!strcmp (e->op, "array")) continue;
 
-            if (!strcmp (e->op, "array")) continue;
+          overwritten++;
+        }
 
-            overwritten++;
-          }
+        if (!overwritten) continue;
 
-          if (!overwritten) continue;
+        save ();
 
-          save ();
+        for (j = i; j < i + interval && j < nexps; j++)
+        {
+          e = exps + j;
 
-          for (j = i; j < i + interval && j < nexps; j++)
-          {
-            e = exps + j;
+          if (!e->ref) continue;
 
-            if (!e->ref) continue;
+          if (e->ref != j) continue;
 
-            if (e->ref != j) continue;
+          if (!strcmp (e->op, "root")) continue;
 
-            if (!strcmp (e->op, "root")) continue;
+          if (!strcmp (e->op, "array")) continue;
 
-            if (!strcmp (e->op, "array")) continue;
+          e->ref = sign * e->width;
+        }
 
-            e->ref = sign * e->width;
-          }
+        msg (3,
+             "trying to set %d expressions %d .. %d to %s",
+             overwritten,
+             j,
+             min (j + interval, nexps) - 1,
+             (sign < 0) ? "all one" : "zero");
 
-          msg (3,
-               "trying to set %d expressions %d .. %d to %s",
-               overwritten,
-               j - maxwidth,
-               min (j - maxwidth + interval, nexps) - 1,
-               (sign < 0) ? "all one" : "zero");
+        simp ();
+        cone ();
+        print ();
+        clean ();
 
-          simp ();
-          cone ();
-          print ();
-          clean ();
+        res = run ();
 
-          res = run ();
+        if (res == golden)
+        {
+          fixed += overwritten;
 
-          if (res == golden)
-          {
-            changed = 1;
-            fixed += overwritten;
-
-            msg (2, "fixed %d expressions", overwritten);
-            rename (tmp, output_name);
-            msg (2, "saved %d expressions in '%s'", rexps, output_name);
-          }
-          else
-          {
-            msg (3, "restored %d expressions", overwritten);
-            reset ();
-          }
+          msg (2, "fixed %d expressions", overwritten);
+          rename (tmp, output_name);
+          oexps = rexps;
+          msg (2, "saved %d expressions in '%s'", rexps, output_name);
+        }
+        else
+        {
+          msg (3, "restored %d expressions", overwritten);
+          reset ();
         }
       }
-
-    } while (changed);
+    }
 
     if (3 < interval && interval < 8)
       interval = 3;
@@ -694,7 +776,8 @@ main (int argc, char** argv)
   free (exps);
   free (buf);
 
-  msg (1, "fixed %d expressions", fixed);
+  msg (1, "fixed %d expressions out of %d", fixed, iexps);
+  msg (1, "wrote %d expressions to '%s'", oexps, output_name);
 
   return 0;
 }
