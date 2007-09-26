@@ -426,6 +426,9 @@ print (void)
   for (i = 1; i < nexps; i++)
   {
     e = exps + i;
+
+    if (!e->ref) continue;
+
     if (!e->idx) continue;
 
     fprintf (file, "%d %s %d", e->idx, e->op, e->width);
@@ -497,10 +500,16 @@ run (void)
   return system (cmd);
 }
 
+static int
+min (int a, int b)
+{
+  return a < b ? a : b;
+}
+
 int
 main (int argc, char** argv)
 {
-  int i, golden, res, changed, rounds, fixed, sign;
+  int i, j, golden, res, changed, rounds, interval, fixed, sign, overwritten;
   Exp* e;
 
   for (i = 1; i < argc; i++)
@@ -567,68 +576,104 @@ main (int argc, char** argv)
   rounds = 0;
   fixed  = 0;
 
+  interval = nexps - maxwidth;
+
   do
   {
-    changed = 0;
-    rounds++;
+    msg (1, "interval %d", interval);
 
-    msg (2, "round %d", rounds);
-
-    for (i = maxwidth + 1; i < nexps; i++)
+    do
     {
-      e = exps + i;
-      if (!e->ref) continue;
+      changed = 0;
+      rounds++;
 
-      for (sign = 1; sign >= -1; sign -= 2)
+      msg (2, "round %d", rounds);
+
+      for (i = maxwidth + 1; i < nexps; i += interval)
       {
-        if (e->ref != i) continue;
-
-        if (!strcmp (e->op, "root")) continue;
-
-        if (!strcmp (e->op, "array")) continue;
-
-        save ();
-        e->ref = sign * e->width;
-
-        msg (3,
-             "trying to set expression %d to %s",
-             i - maxwidth,
-             (sign < 0) ? "all one" : "zero");
-
-        simp ();
-        cone ();
-        print ();
-        clean ();
-
-        res = run ();
-
-        if (res == golden)
+        for (sign = 1; sign >= -1; sign -= 2)
         {
+          overwritten = 0;
+
+          for (j = i; j < i + interval && j < nexps; j++)
+          {
+            e = exps + j;
+
+            if (!e->ref) continue;
+
+            if (e->ref != j) continue;
+
+            if (!strcmp (e->op, "root")) continue;
+
+            if (!strcmp (e->op, "array")) continue;
+
+            overwritten++;
+          }
+
+          if (!overwritten) continue;
+
+          save ();
+
+          for (j = i; j < i + interval && j < nexps; j++)
+          {
+            e = exps + j;
+
+            if (!e->ref) continue;
+
+            if (e->ref != j) continue;
+
+            if (!strcmp (e->op, "root")) continue;
+
+            if (!strcmp (e->op, "array")) continue;
+
+            e->ref = sign * e->width;
+          }
+
           msg (3,
-               "fixed expression %d to %s",
-               i - maxwidth,
+               "trying to set %d expressions %d .. %d to %s",
+               overwritten,
+               j - maxwidth,
+               min (j - maxwidth + interval, nexps) - 1,
                (sign < 0) ? "all one" : "zero");
 
-          changed = 1;
-          fixed++;
+          simp ();
+          cone ();
+          print ();
+          clean ();
 
-          rename (tmp, output_name);
+          res = run ();
 
-          msg (2, "saved %d expressions in '%s'", rexps, output_name);
-        }
-        else
-        {
-          msg (3,
-               "failed to set expression %d to %s",
-               i - maxwidth,
-               (sign < 0) ? "all one" : "zero");
+          if (res == golden)
+          {
+            changed = 1;
+            fixed += overwritten;
 
-          reset ();
+            msg (2, "fixed %d expressions", overwritten);
+            rename (tmp, output_name);
+            msg (2, "saved %d expressions in '%s'", rexps, output_name);
+          }
+          else
+          {
+            msg (3, "restored %d expressions", overwritten);
+            reset ();
+          }
         }
       }
-    }
 
-  } while (changed);
+    } while (changed);
+
+    if (3 < interval && interval < 8)
+      interval = 3;
+    else if (interval == 3)
+      interval = 2;
+    else if (interval == 2)
+      interval = 1;
+    else if (interval == 1)
+      interval = 0;
+    else
+      interval = (interval + 1) / 2;
+
+  } while (interval);
 
   unlink (tmp);
 
