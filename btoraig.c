@@ -1150,38 +1150,38 @@ btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (amgr != NULL);
   smgr = amgr->smgr;
   mm   = amgr->mm;
-  if (!BTOR_IS_CONST_AIG (aig) && !BTOR_IS_VAR_AIG (BTOR_REAL_ADDR_AIG (aig)))
+  if (!BTOR_IS_CONST_AIG (aig))
   {
     BTOR_INIT_STACK (stack);
     BTOR_PUSH_STACK (mm, stack, aig);
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-      if (cur->cnf_id == 0)
+      if (BTOR_IS_VAR_AIG (cur))
+      {
+        if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      }
+      else if (cur->mark < 2)
       {
         if (cur->mark == 0)
         {
-          if (BTOR_IS_VAR_AIG (cur))
-            cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-          else
-          {
-            assert (BTOR_IS_AND_AIG (cur));
-            cur->mark = 1;
-            BTOR_PUSH_STACK (mm, stack, cur);
-            BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-            BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
-          }
+          assert (BTOR_IS_AND_AIG (cur));
+          cur->mark = 1;
+          BTOR_PUSH_STACK (mm, stack, cur);
+          BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+          BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
         }
         else
         {
           assert (cur->mark == 1);
           assert (BTOR_IS_AND_AIG (cur));
-          left        = BTOR_LEFT_CHILD_AIG (cur);
-          right       = BTOR_RIGHT_CHILD_AIG (cur);
-          cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-          x           = cur->cnf_id;
-          y           = BTOR_GET_CNF_ID_AIG (left);
-          z           = BTOR_GET_CNF_ID_AIG (right);
+          cur->mark = 2;
+          left      = BTOR_LEFT_CHILD_AIG (cur);
+          right     = BTOR_RIGHT_CHILD_AIG (cur);
+          if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+          x = cur->cnf_id;
+          y = BTOR_GET_CNF_ID_AIG (left);
+          z = BTOR_GET_CNF_ID_AIG (right);
           assert (x != 0);
           assert (y != 0);
           assert (z != 0);
