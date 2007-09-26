@@ -22,7 +22,7 @@ test: $(TESTOBJ) ../picosat/picosat.o libboolector.a
 synthebtor: synthebtor.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector
 
-deltabtor: deltabtor.c
+deltabtor: deltabtor.c makefile
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
 
 libboolector.a: $(LIBOBJ)
