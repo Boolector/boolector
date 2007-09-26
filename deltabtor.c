@@ -17,6 +17,7 @@ struct Exp
   int width;
   int childs;
   int child[3];
+  char* name;
 };
 
 static int verbose;
@@ -101,8 +102,12 @@ static void
 parse (void)
 {
   int ch, idx, lit, sign, width, child[3], childs;
+  char *op, *name;
 
 EXP:
+
+  name = 0;
+  op   = 0;
 
   ch = next ();
 
@@ -134,6 +139,7 @@ EXP:
   if (ch != ' ') perr ("expected space after '%s'", buf);
 
   nbuf = 0;
+  op   = strdup (buf);
 
   width    = 0;
   childs   = 0;
@@ -147,12 +153,12 @@ LIT:
   {
     if (ch == '-')
     {
-      sign = 1;
+      sign = -1;
       ch   = next ();
       if (!isdigit (ch)) perr ("expected digit after '-' but got '%c'", ch);
     }
     else
-      sign = -1;
+      sign = 1;
 
     lit = ch - '0';
     while (isdigit (ch = next ())) lit = 10 * lit + (ch - '0');
@@ -188,12 +194,15 @@ LIT:
     if (exps[idx].ref) perr ("expression %d defined twice", idx);
 
     exps[idx].ref      = idx;
-    exps[idx].op       = strdup (buf);
+    exps[idx].idx      = 0;
+    exps[idx].old      = 0;
+    exps[idx].op       = op;
     exps[idx].width    = width;
     exps[idx].childs   = childs;
     exps[idx].child[0] = child[0];
     exps[idx].child[1] = child[1];
     exps[idx].child[2] = child[2];
+    exps[idx].name     = name;
 
     iexps++;
 
@@ -213,6 +222,19 @@ LIT:
   }
 
   perr ("expected digit bug got '%c'", ch);
+}
+
+static void
+save (void)
+{
+  Exp* e;
+  int i;
+
+  for (i = 1; i < nexps; i++)
+  {
+    e      = exps + i;
+    e->old = e->ref;
+  }
 }
 
 static int
@@ -334,11 +356,15 @@ print (void)
 
     fprintf (file, "%d %s %d", e->idx, e->op, e->width);
 
-    for (j = 0; j < e->childs; e++)
+    for (j = 0; j < e->childs; j++)
     {
       lit = e->child[j];
       fprintf (file, " %d", ischild (e, j) ? deref (lit) : lit);
     }
+
+    if (e->name) fprintf (file, " %s", e->name);
+
+    fputc ('\n', file);
   }
 
   fclose (file);
@@ -394,6 +420,7 @@ main (int argc, char** argv)
   cmd = malloc (strlen (run_name) + strlen (tmp) + 2);
   sprintf (cmd, "%s %s", run_name, tmp);
 
+  save ();
   simplify ();
   cone ();
   print ();
