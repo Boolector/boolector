@@ -1157,25 +1157,26 @@ btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-      if (cur->cnf_id == 0)
+      if (BTOR_IS_VAR_AIG (cur))
+      {
+        if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        continue;
+      }
+      if (cur->mark < 2)
       {
         if (cur->mark == 0)
         {
-          if (BTOR_IS_VAR_AIG (cur))
-            cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-          else
-          {
-            assert (BTOR_IS_AND_AIG (cur));
-            cur->mark = 1;
-            BTOR_PUSH_STACK (mm, stack, cur);
-            BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-            BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
-          }
+          assert (BTOR_IS_AND_AIG (cur));
+          cur->mark = 1;
+          BTOR_PUSH_STACK (mm, stack, cur);
+          BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+          BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
         }
         else
         {
           assert (cur->mark == 1);
           assert (BTOR_IS_AND_AIG (cur));
+          cur->mark   = 2;
           left        = BTOR_LEFT_CHILD_AIG (cur);
           right       = BTOR_RIGHT_CHILD_AIG (cur);
           cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
