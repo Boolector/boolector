@@ -3829,10 +3829,10 @@ compare_reads_by_index (const void *read1, const void *read2)
  * the first conflict that has been found.
  */
 static int
-resolve_read_conflicts_array (BtorExpMgr *emgr,
-                              BtorExp *array,
-                              BtorExp **conflict_read1,
-                              BtorExp **conflict_read2)
+check_read_conflicts_array (BtorExpMgr *emgr,
+                            BtorExp *array,
+                            BtorExp **conflict_read1,
+                            BtorExp **conflict_read2)
 {
   int found_conflict     = 0;
   int num_reads          = 0;
@@ -3868,8 +3868,6 @@ resolve_read_conflicts_array (BtorExpMgr *emgr,
         found_conflict  = 1;
         *conflict_read1 = read1;
         *conflict_read2 = read2;
-        encode_ackermann_constraint (
-            emgr, read1->e[1], read2->e[1], read1, read2);
         break;
       }
     }
@@ -3960,7 +3958,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         assert (BTOR_IS_REGULAR_EXP (cur_write));
       }
       /* check if read conflicts occur */
-      found_conflict = resolve_read_conflicts_array (
+      found_conflict = check_read_conflicts_array (
           emgr, cur_array, &read_conflict1, &read_conflict2);
       if (found_conflict)
       {
