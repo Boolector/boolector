@@ -1282,7 +1282,6 @@ node2nonarrayexp (BtorSMTParser *parser, BtorSMTNode *node)
   if (res && btor_is_array_exp (parser->mgr, res))
   {
     (void) parse_error (parser, "unexpected array argument");
-    btor_release_exp (parser->mgr, res);
     res = 0;
   }
 
