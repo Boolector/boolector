@@ -401,10 +401,60 @@ print (void)
   fclose (file);
 }
 
+static void
+expand (void)
+{
+  Exp *e, *old;
+  int idx, j;
+
+  nexps += maxwidth;
+
+  old   = exps;
+  sexps = nexps;
+  exps  = calloc (nexps, sizeof *exps);
+
+  for (idx = 1; idx <= maxwidth; idx++)
+  {
+    exps[idx].ref    = idx;
+    exps[idx].idx    = 0;
+    exps[idx].old    = 0;
+    exps[idx].op     = strdup ("zero");
+    exps[idx].width  = idx;
+    exps[idx].childs = 0;
+    exps[idx].name   = 0;
+  }
+
+  memcpy (exps + maxwidth + 1, old + 1, (nexps - maxwidth - 1) * sizeof *exps);
+
+  for (idx = maxwidth + 1; idx < nexps; idx++)
+  {
+    e = exps + idx;
+    assert (e->ref == idx - maxwidth);
+    e->ref += maxwidth;
+
+    for (j = 0; j < e->childs; j++)
+      if (ischild (e, j))
+      {
+        if (e->child[j] < 0)
+          e->child[j] -= maxwidth;
+        else
+          e->child[j] += maxwidth;
+      }
+  }
+
+  free (old);
+}
+
+static int
+run (void)
+{
+  return system (cmd);
+}
+
 int
 main (int argc, char** argv)
 {
-  int i;
+  int i, golden;
 
   for (i = 1; i < argc; i++)
   {
@@ -445,17 +495,23 @@ main (int argc, char** argv)
 
   parse ();
 
+  fclose (input);
+
   tmp = malloc (100);
   sprintf (tmp, "/tmp/deltabtor%u", (unsigned) getpid ());
 
-  cmd = malloc (strlen (run_name) + strlen (tmp) + 2);
-  sprintf (cmd, "%s %s", run_name, tmp);
+  cmd = malloc (strlen (run_name) + strlen (tmp) + 100);
+  sprintf (cmd, "%s %s >/dev/null 2>/dev/null", run_name, tmp);
 
+  expand ();
   save ();
   simplify ();
   cone ();
   print ();
   clean ();
+
+  golden = run ();
+  msg (1, "golden exit code %d", golden);
 
   rename (tmp, output_name);
 
@@ -467,6 +523,7 @@ main (int argc, char** argv)
   for (i = 1; i < nexps; i++) free (exps[i].op);
 
   free (exps);
+  free (buf);
 
   return 0;
 }
