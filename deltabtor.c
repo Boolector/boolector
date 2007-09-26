@@ -88,10 +88,18 @@ next (void)
   else
     res = getc (input);
 
-  if (res == ' ' || res == '\t')
+  if (res == ';')
+  {
+  SKIP_COMMENTS:
+    while ((res = getc (input)) != '\n' && res != EOF)
+      ;
+  }
+  else if (res == ' ' || res == '\t')
   {
     while ((res = getc (input)) == ' ' || res == '\t')
       ;
+
+    if (res == ';') goto SKIP_COMMENTS;
 
     if (res != '\n')
     {
@@ -133,7 +141,8 @@ EXP:
   name = 0;
   op   = 0;
 
-  ch = next ();
+  while ((ch = next ()) == '\n')
+    ;
 
   if (ch == EOF)
   {
@@ -348,6 +357,7 @@ ischild (Exp* e, int child)
   if (!strcmp (e->op, "root") && child != 0) return 0;
   if (!strcmp (e->op, "sext") && child != 0) return 0;
   if (!strcmp (e->op, "slice") && child != 0) return 0;
+  if (!strcmp (e->op, "uext") && child != 0) return 0;
   if (!strcmp (e->op, "var")) return 0;
   if (!strcmp (e->op, "zero")) return 0;
 
@@ -462,6 +472,8 @@ expand (void)
   for (idx = maxwidth + 1; idx < nexps; idx++)
   {
     e = exps + idx;
+    if (!e->ref) continue;
+
     assert (e->ref == idx - maxwidth);
     e->ref += maxwidth;
 
@@ -602,7 +614,7 @@ main (int argc, char** argv)
 
           rename (tmp, output_name);
 
-          msg (2, "saved '%s'", output_name);
+          msg (2, "saved %d expressions in '%s'", rexps, output_name);
         }
         else
         {
@@ -628,6 +640,8 @@ main (int argc, char** argv)
 
   for (i = 1; i < nexps; i++)
   {
+    if (!exps[i].ref) continue;
+
     free (exps[i].op);
     free (exps[i].name);
   }
