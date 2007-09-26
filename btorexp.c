@@ -3912,22 +3912,30 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     {
       cur_array->mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur_array);
-      /* push writes on stack */
-      cur_write = cur_array->last_parent;
-      assert (BTOR_IS_REGULAR_EXP (cur_write));
-      while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+      /* ATTENTION: There can be write parents although
+       * they have been eagerly rewritten. For example the parser might still
+       * have a reference to a write, thus it is still in the parent list.
+       */
+      if (emgr->write_enc == BTOR_LAZY_WRITE_ENC)
       {
-        /* array children are always at position 0 */
-        assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-        assert (cur_write->kind == BTOR_WRITE_EXP);
-        BTOR_PUSH_STACK (mm, stack, cur_write);
-        cur_write = cur_write->prev_parent[0];
+        /* push writes on stack */
+        cur_write = cur_array->last_parent;
         assert (BTOR_IS_REGULAR_EXP (cur_write));
+        while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+        {
+          /* array children are always at position 0 */
+          assert (BTOR_GET_TAG_EXP (cur_write) == 0);
+          assert (cur_write->kind == BTOR_WRITE_EXP);
+          BTOR_PUSH_STACK (mm, stack, cur_write);
+          cur_write = cur_write->prev_parent[0];
+          assert (BTOR_IS_REGULAR_EXP (cur_write));
+        }
       }
     }
     else
     {
       assert (cur_array->mark == 1);
+      assert (emgr->write_enc != BTOR_LAZY_WRITE_ENC ? cur_array == array : 1);
       BTOR_INIT_STACK (*cur_array->reads);
       if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
       reads = cur_array->reads;
@@ -3943,23 +3951,26 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         cur_read = cur_read->next_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_read));
       }
-      /* push unresolved reads of parent writes on read stack */
-      cur_write = cur_array->last_parent;
-      assert (BTOR_IS_REGULAR_EXP (cur_write));
-      while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+      if (emgr->write_enc == BTOR_LAZY_WRITE_ENC)
       {
-        /* array children are always at position 0 */
-        assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-        for (temp = cur_write->reads->start; temp != cur_write->reads->top;
-             temp++)
-        {
-          cur_read = *temp;
-          assert (BTOR_IS_REGULAR_EXP (cur_read));
-          assert (cur_read->kind == BTOR_READ_EXP);
-          BTOR_PUSH_STACK (mm, *reads, cur_read);
-        }
-        cur_write = cur_write->prev_parent[0];
+        /* push unresolved reads of parent writes on read stack */
+        cur_write = cur_array->last_parent;
         assert (BTOR_IS_REGULAR_EXP (cur_write));
+        while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+        {
+          /* array children are always at position 0 */
+          assert (BTOR_GET_TAG_EXP (cur_write) == 0);
+          for (temp = cur_write->reads->start; temp != cur_write->reads->top;
+               temp++)
+          {
+            cur_read = *temp;
+            assert (BTOR_IS_REGULAR_EXP (cur_read));
+            assert (cur_read->kind == BTOR_READ_EXP);
+            BTOR_PUSH_STACK (mm, *reads, cur_read);
+          }
+          cur_write = cur_write->prev_parent[0];
+          assert (BTOR_IS_REGULAR_EXP (cur_write));
+        }
       }
       /* check if read conflicts occur */
       found_conflict = check_read_conflicts_array (
@@ -4032,12 +4043,9 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
           }
         }
       }
-      if (found_conflict || emgr->write_enc != BTOR_LAZY_WRITE_ENC)
-        goto FREE_WRITE_PARENT_READ_STACKS;
+      if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
       /* check if values of collected reads are equal to the value of write if
-       * indices are equal. ATTENTION: There can be write parents although they
-       * have been eagerly rewritten. For example the parser might still have a
-       * reference to a write, thus it is still in the parent list.
+       * indices are equal.
        */
       if (BTOR_IS_WRITE_ARRAY_EXP (cur_array))
       {
