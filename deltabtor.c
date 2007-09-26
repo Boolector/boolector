@@ -102,8 +102,6 @@ next (void)
 
   if (res == '\n') lineno++;
 
-  fprintf (stderr, "next: %c\n", res);
-
   return res;
 }
 
@@ -146,7 +144,7 @@ EXP:
   if (!isdigit (ch)) perr ("expected digit but got '0x%02x'", ch);
 
   idx = ch - '0';
-  while (isdigit (ch = next ())) idx = 10 * idx - (ch - '0');
+  while (isdigit (ch = next ())) idx = 10 * idx + (ch - '0');
 
   if (ch != ' ') perr ("expected space after index %d", idx);
 
@@ -347,12 +345,10 @@ ischild (Exp* e, int child)
   if (!strcmp (e->op, "const")) return 0;
   if (!strcmp (e->op, "consth")) return 0;
   if (!strcmp (e->op, "constd")) return 0;
-  if (!strcmp (e->op, "read") && child != 1) return 0;
   if (!strcmp (e->op, "root") && child != 0) return 0;
   if (!strcmp (e->op, "sext") && child != 0) return 0;
   if (!strcmp (e->op, "slice") && child != 0) return 0;
   if (!strcmp (e->op, "var")) return 0;
-  if (!strcmp (e->op, "write") && child != 1 && child != 2) return 0;
   if (!strcmp (e->op, "zero")) return 0;
 
   return 1;
@@ -575,10 +571,9 @@ main (int argc, char** argv)
       {
         if (e->ref != i) continue;
 
-#if 0
-	    if (!strcmp (e->op, "root"))
-	      continue;
-#endif
+        if (!strcmp (e->op, "root")) continue;
+
+        if (!strcmp (e->op, "array")) continue;
 
         save ();
         e->ref = sign * e->width;
