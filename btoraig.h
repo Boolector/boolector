@@ -106,11 +106,14 @@ void btor_dump_aigs (BtorAIGMgr *amgr,
                      int naigs,
                      BtorPtrHashTable *back_annotation);
 
-/* Converts AIG into SAT instance. */
+/* Translates AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
-/* Converts AIG fully into SAT instance.
+/* Translates AIG fully into SAT instance.
  * This function makes sure that all constraints are fully encoded.
+ * Every AIG which is reachable from the root is visited and
+ * fully translated to CNF if necessary. The function guarantees that
+ * after finishing every reachable AIG has a CNF id.
  */
 void btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig);
 

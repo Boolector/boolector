@@ -165,7 +165,7 @@ BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *emgr,
                                 BtorExp *exp,
                                 BtorPtrHashTable *table);
 
-/* Converts boolean expression into SAT instance.
+/* Translates boolean expression into SAT instance.
  * len(exp) = 1
  */
 void btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp);
