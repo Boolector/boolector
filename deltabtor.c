@@ -11,8 +11,10 @@ typedef struct Exp Exp;
 struct Exp
 {
   int ref;
-  int old;
   int idx;
+  int cut;
+  int oldref;
+  int oldcut;
   char* op;
   int width;
   int childs;
@@ -254,8 +256,10 @@ LIT:
     if (exps[idx].ref) perr ("expression %d defined twice", idx);
 
     exps[idx].ref      = idx;
+    exps[idx].oldref   = idx;
+    exps[idx].cut      = 0;
+    exps[idx].oldcut   = 0;
     exps[idx].idx      = 0;
-    exps[idx].old      = 0;
     exps[idx].op       = op;
     exps[idx].width    = width;
     exps[idx].childs   = childs;
@@ -284,8 +288,9 @@ save (void)
 
   for (i = 1; i < nexps; i++)
   {
-    e      = exps + i;
-    e->old = e->ref;
+    e         = exps + i;
+    e->oldref = e->ref;
+    e->oldcut = e->cut;
   }
 }
 
@@ -293,6 +298,7 @@ static int
 deref (int start)
 {
   int res, sign, tmp;
+  Exp* e;
 
   sign = (start < 0);
   if (sign) start = -start;
@@ -300,16 +306,23 @@ deref (int start)
   assert (0 < start);
   assert (start < nexps);
 
-  tmp = exps[start].ref;
+  e = exps + start;
 
-  assert (tmp);
-
-  if (tmp != start)
-    res = deref (tmp);
-  else
+  if (e->cut)
     res = start;
+  else
+  {
+    tmp = e->ref;
 
-  exps[start].ref = res;
+    assert (tmp);
+
+    if (tmp != start)
+      res = deref (tmp);
+    else
+      res = start;
+
+    exps[start].ref = res;
+  }
 
   if (sign) res = -res;
 
@@ -399,17 +412,17 @@ simp (void)
     if (e->childs == 2 && !strcmp (e->op, "and"))
     {
       if (deref (e->child[0]) == deref (e->child[1]))
-        e->ref = e->child[0];
+        e->ref = deref (e->child[0]);
       else if (deref (e->child[0]) == -deref (e->child[1]))
         e->ref = e->width;
       else if (isallzero (e->child[0]))
-        e->ref = e->child[0];
+        e->ref = deref (e->child[0]);
       else if (isallzero (e->child[1]))
-        e->ref = e->child[1];
+        e->ref = deref (e->child[1]);
       else if (isallone (e->child[0]))
-        e->ref = e->child[1];
+        e->ref = deref (e->child[1]);
       else if (isallone (e->child[1]))
-        e->ref = e->child[0];
+        e->ref = deref (e->child[0]);
     }
 
     if (e->childs == 3 && !strcmp (e->op, "cond"))
@@ -419,20 +432,21 @@ simp (void)
       if (exps[abs (c)].width == 1)
       {
         if (isallone (c))
-          e->ref = e->child[0];
+          e->ref = deref (e->child[0]);
         else if (isallzero (c))
-          e->ref = e->child[1];
+          e->ref = deref (e->child[1]);
       }
 
-      if (deref (e->child[1]) == deref (e->child[2])) e->ref = e->child[1];
+      if (deref (e->child[1]) == deref (e->child[2]))
+        e->ref = deref (e->child[1]);
     }
 
     if (e->childs == 2 && !strcmp (e->op, "add"))
     {
       if (isallzero (e->child[0]))
-        e->ref = e->child[1];
+        e->ref = deref (e->child[1]);
       else if (isallzero (e->child[1]))
-        e->ref = e->child[0];
+        e->ref = deref (e->child[0]);
     }
 
     if (e->childs == 2
@@ -467,6 +481,8 @@ ischild (Exp* e, int child)
   assert (e->ref);
 
   if (child >= e->childs) return 0;
+
+  if (e->cut) return 0;
 
   assert (child >= 0);
 
@@ -538,7 +554,8 @@ reset (void)
   for (i = 1; i < nexps; i++)
   {
     e      = exps + i;
-    e->ref = e->old;
+    e->ref = e->oldref;
+    e->cut = e->oldcut;
   }
 }
 
@@ -602,17 +619,24 @@ print (void)
 
     if (!e->idx) continue;
 
-    fprintf (file, "%d %s %d", e->idx, e->op, e->width);
-
-    for (j = 0; j < e->childs; j++)
+    if (e->cut)
     {
-      lit = e->child[j];
-      fprintf (file, " %d", ischild (e, j) ? deidx (lit) : lit);
+      fprintf (file, "%d var %d\n", e->idx, e->width);
     }
+    else
+    {
+      fprintf (file, "%d %s %d", e->idx, e->op, e->width);
 
-    if (e->name) fprintf (file, " %s", e->name);
+      for (j = 0; j < e->childs; j++)
+      {
+        lit = e->child[j];
+        fprintf (file, " %d", ischild (e, j) ? deidx (lit) : lit);
+      }
 
-    fputc ('\n', file);
+      if (e->name) fprintf (file, " %s", e->name);
+
+      fputc ('\n', file);
+    }
   }
 
   fclose (file);
@@ -635,8 +659,10 @@ expand (void)
   for (idx = 1; idx <= maxwidth; idx++)
   {
     exps[idx].ref    = idx;
+    exps[idx].oldref = idx;
+    exps[idx].cut    = 0;
+    exps[idx].oldcut = 0;
     exps[idx].idx    = 0;
-    exps[idx].old    = 0;
     exps[idx].op     = strdup ("zero");
     exps[idx].width  = idx;
     exps[idx].childs = 0;
@@ -684,7 +710,8 @@ min (int a, int b)
 int
 main (int argc, char** argv)
 {
-  int i, j, golden, res, rounds, interval, fixed, sign, overwritten;
+  int changed, golden, res, rounds, interval, fixed, sign, overwritten;
+  int i, j;
   Exp* e;
 
   for (i = 1; i < argc; i++)
@@ -756,80 +783,93 @@ main (int argc, char** argv)
 
   do
   {
-    rounds++;
-
-    msg (1, "interval %d round %d", interval, rounds);
-
-    for (i = maxwidth + 1; i < nexps; i += interval)
+    do
     {
-      for (sign = 1; sign >= -1; sign -= 2)
+      rounds++;
+      msg (1, "interval %d size %d round %d", interval, oexps, rounds);
+
+      changed = 0;
+
+      for (i = maxwidth + 1; i < nexps; i += interval)
       {
-        overwritten = 0;
-
-        for (j = i; j < i + interval && j < nexps; j++)
+        for (sign = 1; sign >= -3; sign -= 2)
         {
-          e = exps + j;
+          overwritten = 0;
 
-          if (!e->ref) continue;
+          for (j = i; j < i + interval && j < nexps; j++)
+          {
+            e = exps + j;
 
-          if (e->ref != j) continue;
+            if (!e->ref) continue;
 
-          if (!strcmp (e->op, "root")) continue;
+            if (e->ref != j) continue;
 
-          if (!strcmp (e->op, "array")) continue;
+            if (e->cut) continue;
 
-          overwritten++;
-        }
+            if (!strcmp (e->op, "root")) continue;
 
-        if (!overwritten) continue;
+            if (!strcmp (e->op, "array")) continue;
 
-        save ();
+            overwritten++;
+          }
 
-        for (j = i; j < i + interval && j < nexps; j++)
-        {
-          e = exps + j;
+          if (!overwritten) continue;
 
-          if (!e->ref) continue;
+          save ();
 
-          if (e->ref != j) continue;
+          for (j = i; j < i + interval && j < nexps; j++)
+          {
+            e = exps + j;
 
-          if (!strcmp (e->op, "root")) continue;
+            if (!e->ref) continue;
 
-          if (!strcmp (e->op, "array")) continue;
+            if (e->ref != j) continue;
 
-          e->ref = sign * e->width;
-        }
+            if (e->cut) continue;
 
-        msg (3,
-             "trying to set %d expressions %d .. %d to %s",
-             overwritten,
-             i,
-             min (i + interval, nexps) - 1,
-             (sign < 0) ? "all one" : "zero");
+            if (!strcmp (e->op, "root")) continue;
 
-        simp ();
-        cone ();
-        print ();
-        clean ();
+            if (!strcmp (e->op, "array")) continue;
 
-        res = run ();
+            if (sign >= -1)
+              e->ref = sign * e->width;
+            else
+              e->cut = 1;
+          }
 
-        if (res == golden)
-        {
-          fixed += overwritten;
+          msg (3,
+               "trying to set %d expressions %d .. %d to %s",
+               overwritten,
+               i,
+               min (i + interval, nexps) - 1,
+               (sign < -1) ? "new variables" : (sign < 0) ? "all one" : "zero");
 
-          msg (2, "fixed %d expressions", overwritten);
-          rename (tmp, output_name);
-          oexps = rexps;
-          msg (2, "saved %d expressions in '%s'", rexps, output_name);
-        }
-        else
-        {
-          msg (3, "restored %d expressions", overwritten);
-          reset ();
+          simp ();
+          cone ();
+          print ();
+          clean ();
+
+          res = run ();
+
+          if (res == golden)
+          {
+            changed = 1;
+            fixed += overwritten;
+
+            msg (2, "fixed %d expressions", overwritten);
+            rename (tmp, output_name);
+            oexps = rexps;
+            msg (2, "saved %d expressions in '%s'", rexps, output_name);
+          }
+          else
+          {
+            msg (3, "restored %d expressions", overwritten);
+            reset ();
+          }
         }
       }
-    }
+
+    } while (changed);
 
     if (3 < interval && interval < 8)
       interval = 3;
