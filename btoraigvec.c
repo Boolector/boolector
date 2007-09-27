@@ -5828,9 +5828,7 @@ btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 int
-btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
-                          BtorAIGVec *av1,
-                          BtorAIGVec *av2)
+btor_is_equal_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 {
   int i   = 0;
   int len = 0;
@@ -5841,8 +5839,8 @@ btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
   assert (av1->len == av2->len);
   len = av1->len;
   for (i = 0; i < len; i++)
-    if (av1->aigs[i] != av2->aigs[i]) return 1;
-  return 0;
+    if (av1->aigs[i] != av2->aigs[i]) return 0;
+  return 1;
 }
 
 void

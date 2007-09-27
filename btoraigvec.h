@@ -158,10 +158,10 @@ BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 /* Determines if av is a constant AIG vector or not. */
 int btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-/* Determines if two AIG vectors are different or not. */
-int btor_is_different_aigvec (BtorAIGVecMgr *avmgr,
-                              BtorAIGVec *av1,
-                              BtorAIGVec *av2);
+/* Determines if two AIG vectors contain the same AIGs or not. */
+int btor_is_equal_aigvec (BtorAIGVecMgr *avmgr,
+                          BtorAIGVec *av1,
+                          BtorAIGVec *av2);
 
 /* Release all AIGs of the AIG vector and delete AIG vector from memory. */
 void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
