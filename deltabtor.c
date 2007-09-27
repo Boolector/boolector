@@ -339,6 +339,8 @@ isallone (int start)
   const char* p;
   Exp* e;
 
+  start = deref (start);
+
   if (start < 0)
   {
     e = exps - start;
@@ -396,7 +398,11 @@ simp (void)
 
     if (e->childs == 2 && !strcmp (e->op, "and"))
     {
-      if (isallzero (e->child[0]))
+      if (deref (e->child[0]) == deref (e->child[1]))
+        e->ref = e->child[0];
+      else if (deref (e->child[0]) == -deref (e->child[1]))
+        e->ref = e->width;
+      else if (isallzero (e->child[0]))
         e->ref = e->child[0];
       else if (isallzero (e->child[1]))
         e->ref = e->child[1];
@@ -417,9 +423,37 @@ simp (void)
         else if (isallzero (c))
           e->ref = e->child[1];
       }
+
+      if (deref (e->child[1]) == deref (e->child[2])) e->ref = e->child[1];
     }
 
-    /* TODO: add more for 'eq', 'iff', 'implies', 'or', 'xor', 'xnor'.
+    if (e->childs == 2 && !strcmp (e->op, "add"))
+    {
+      if (isallzero (e->child[0]))
+        e->ref = e->child[1];
+      else if (isallzero (e->child[1]))
+        e->ref = e->child[0];
+    }
+
+    if (e->childs == 2
+        && (!strcmp (e->op, "eq") || !strcmp (e->op, "xnor")
+            || !strcmp (e->op, "iff")))
+    {
+      if (deref (e->child[0]) == deref (e->child[1]))
+        e->ref = -e->width;
+      else if (deref (e->child[0]) == -deref (e->child[1]))
+        e->ref = e->width;
+    }
+
+    if (e->childs == 2 && !strcmp (e->op, "xor"))
+    {
+      if (deref (e->child[0]) == deref (e->child[1]))
+        e->ref = e->width;
+      else if (deref (e->child[0]) == -deref (e->child[1]))
+        e->ref = -e->width;
+    }
+
+    /* TODO: add more for 'implies', 'or'.
      * However, those are not part of the internal repr.
      */
 
@@ -769,8 +803,8 @@ main (int argc, char** argv)
         msg (3,
              "trying to set %d expressions %d .. %d to %s",
              overwritten,
-             j,
-             min (j + interval, nexps) - 1,
+             i,
+             min (i + interval, nexps) - 1,
              (sign < 0) ? "all one" : "zero");
 
         simp ();
