@@ -3549,6 +3549,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
 
       if (cur->mark == 0)
       {
+        cur->reachable = 1;
         if (BTOR_IS_CONST_EXP (cur))
           cur->av = btor_const_aigvec (avmgr, cur->bits);
         else if (BTOR_IS_VAR_EXP (cur))
@@ -3949,10 +3950,12 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       cur_array->mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur_array);
       /* ATTENTION: There can be write parents although
-       * they have been eagerly rewritten. For example the parser might still
-       * have a reference to a write, thus it is still in the parent list.
+       * they are not reachable from the root. For example the parser might
+       * still have a reference to a write, thus it is still in the parent list.
+       * We use the reachable flag to determine with which reads and writes
+       * we have to deal with.
        */
-      if (emgr->write_enc == BTOR_LAZY_WRITE_ENC)
+      if (emgr->write_enc == BTOR_LAZY_READ_ENC)
       {
         /* push writes on stack */
         cur_write = cur_array->last_parent;
@@ -3962,7 +3965,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
           /* array children are always at position 0 */
           assert (BTOR_GET_TAG_EXP (cur_write) == 0);
           assert (cur_write->kind == BTOR_WRITE_EXP);
-          BTOR_PUSH_STACK (mm, stack, cur_write);
+          if (cur_write->reachable) BTOR_PUSH_STACK (mm, stack, cur_write);
           cur_write = cur_write->prev_parent[0];
           assert (BTOR_IS_REGULAR_EXP (cur_write));
         }
@@ -3975,7 +3978,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       BTOR_INIT_STACK (*cur_array->reads);
       if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
       reads = cur_array->reads;
-      /* push parent reads on read stack */
+      /* push reachable parent reads on read stack */
       cur_read = cur_array->first_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_read));
       while (cur_read != NULL && cur_read->kind != BTOR_WRITE_EXP)
@@ -3983,7 +3986,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         /* array children are always at position 0 */
         assert (BTOR_GET_TAG_EXP (cur_read) == 0);
         assert (cur_read->kind == BTOR_READ_EXP);
-        BTOR_PUSH_STACK (mm, *reads, cur_read);
+        if (cur_read->reachable) BTOR_PUSH_STACK (mm, *reads, cur_read);
         cur_read = cur_read->next_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_read));
       }
@@ -4085,6 +4088,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
        */
       if (BTOR_IS_WRITE_ARRAY_EXP (cur_array))
       {
+        assert (cur_array->reachable);
         BTOR_NEW (mm, mccarthy_reads);
         BTOR_INIT_STACK (*mccarthy_reads);
         for (temp = reads->start; temp != reads->top; temp++)

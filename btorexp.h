@@ -58,8 +58,10 @@ struct BtorExp
   BtorExpKind kind : 5;          /* kind of expression */
   unsigned int mark : 3;         /* for DAG traversal algorithms */
   unsigned int encoded_read : 1; /* flag used by eager read encoding */
-  unsigned int full_cnf : 1;     /* determines if exp has been */
-                                 /* fully encoded into CNF */
+  unsigned int reachable : 1;    /* flag determines if expression
+                                    is reachable from root or not */
+  unsigned int full_cnf : 1;     /* determines if exp has been
+                                    fully encoded into CNF */
   int index_len;                 /* for arrays and writes only */
   struct BtorExpPtrStack *reads; /* used for sorting read parents. */
                                  /* for arrays and writes only */
