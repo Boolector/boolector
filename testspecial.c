@@ -453,6 +453,11 @@ test_write10_special ()
   run_unsat_test ("write10.in");
 }
 
+static void
+test_write11_special ()
+{
+  run_sat_test ("write11.in");
+}
 void
 run_special_tests (int argc, char **argv)
 {
@@ -525,6 +530,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (write8_special);
   BTOR_RUN_TEST (write9_special);
   BTOR_RUN_TEST (write10_special);
+  BTOR_RUN_TEST (write11_special);
 }
 
 void
