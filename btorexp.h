@@ -118,6 +118,11 @@ struct BtorExp
 #define BTOR_IS_BINARY_EXP(exp) (BTOR_IS_BINARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_TERNARY_EXP(exp) (BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))
 
+#define BTOR_ARITY_EXP(exp) \
+  (BTOR_IS_UNARY_EXP (exp)  \
+       ? 1                  \
+       : BTOR_IS_BINARY_EXP (exp) ? 2 : BTOR_IS_TERNARY_EXP (exp) ? 3 : 0)
+
 #define BTOR_INVERT_EXP(exp) ((BtorExp *) (1ul ^ (unsigned long int) (exp)))
 #define BTOR_IS_INVERTED_EXP(exp) (1ul & (unsigned long int) (exp))
 #define BTOR_COND_INVERT_EXP(cond_exp, exp) \

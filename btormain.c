@@ -69,9 +69,10 @@ static const char *g_usage =
     "  -d|--dec                         decimal output\n"
     "  -o|--output <file>               set output file\n"
     "  -t|--trace <file>                set trace file\n"
-    "  -de|--dump-exp <file>            dump expression\n"
     "  -da|--dump-aig <file>            dump AIG in AIGER (only for BV)\n"
     "  -dc|--dump-cnf <file>            dump CNF in DIMACS\n"
+    "  -de|--dump-exp <file>            dump expression in BTOR format\n"
+    "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
@@ -286,12 +287,14 @@ btor_main (int argc, char **argv)
   int close_input_file        = 0;
   int close_output_file       = 0;
   int close_exp_file          = 0;
+  int close_smt_file          = 0;
   int close_aig_file          = 0;
   int close_cnf_file          = 0;
   int close_trace_file        = 0;
   int dump_exp                = 0;
   int dump_aig                = 0;
   int dump_cnf                = 0;
+  int dump_smt                = 0;
   int hexadecimal             = 0;
   int decimal                 = 0;
   int dump_binary_aig         = 0;
@@ -309,6 +312,7 @@ btor_main (int argc, char **argv)
   FILE *exp_file              = stdout;
   FILE *aig_file              = stdout;
   FILE *cnf_file              = stdout;
+  FILE *smt_file              = stdout;
   FILE *trace_file            = stdout;
   BtorExpMgr *emgr            = NULL;
   BtorExp *cur_exp            = NULL;
@@ -351,6 +355,10 @@ btor_main (int argc, char **argv)
     {
       handle_dump_file (
           &app, &dump_exp, &close_exp_file, "expression", &exp_file);
+    }
+    else if (!strcmp (argv[i], "-ds") || !strcmp (argv[i], "--dump-smt"))
+    {
+      handle_dump_file (&app, &dump_smt, &close_smt_file, "SMT", &smt_file);
     }
     else if (!strcmp (argv[i], "-da") || !strcmp (argv[i], "--dump-aig"))
     {
@@ -555,12 +563,16 @@ btor_main (int argc, char **argv)
           &app, "%s: root has bit width different from one\n", input_file_name);
       err = 1;
     }
-    else if (dump_exp || dump_aig || dump_cnf)
+    else if (dump_exp || dump_aig || dump_cnf || dump_smt)
     {
       done = 1;
       if (dump_exp)
       {
         btor_dump_exp (emgr, exp_file, parse_res.roots[0]);
+      }
+      else if (dump_smt)
+      {
+        btor_dump_smt (emgr, smt_file, parse_res.roots[0]);
       }
       else
       {

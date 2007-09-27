@@ -37,3 +37,7 @@ udiv8castdown5 -o log/udiv8castdown5.log log/udiv8castdown5.btor
 udiv8castdown6 -o log/udiv8castdown6.log log/udiv8castdown6.btor
 udiv8castdown7 -o log/udiv8castdown7.log log/udiv8castdown7.btor
 udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
+
+# SMT writing
+#
+writesmt1 -f -ds log/writesmt1.log log/smtaxiombvsmod64.smt

@@ -3380,6 +3380,54 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
   btor_mark_exp (emgr, exp, 0);
 }
 
+#define BTOR_PUSH_EXP_IF_NOT_MARKED(e)         \
+  do                                           \
+  {                                            \
+    BtorExp *child = BTOR_REAL_ADDR_EXP ((e)); \
+    if (child->mark) break;                    \
+    child->mark = 1;                           \
+    BTOR_PUSH_STACK (mm, stack, child);        \
+  } while (0)
+
+void
+btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
+{
+  BtorMemMgr *mm = emgr->mm;
+  BtorExpPtrStack stack;
+  int next, i, arrays;
+  BtorExp *e;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (root));
+
+  arrays = 0;
+
+  while (next < BTOR_COUNT_STACK (stack))
+  {
+    e = stack.start[next++];
+
+    assert (!BTOR_IS_INVERTED_EXP (e));
+    assert (e->mark);
+
+    if (BTOR_IS_CONST_EXP (e)) continue;
+
+    if (BTOR_IS_VAR_EXP (e)) continue;
+
+    if (BTOR_IS_ARRAY_EXP (e))
+    {
+      arrays = 1;
+      continue;
+    }
+
+    for (i = 0; i < BTOR_ARITY_EXP (e); i++)
+      BTOR_PUSH_EXP_IF_NOT_MARKED (e->e[i]);
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
+
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
 BtorExpMgr *
 btor_new_exp_mgr (int rewrite_level,
                   int dump_trace,

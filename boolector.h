@@ -412,8 +412,11 @@ BtorExp *btor_copy_exp (BtorExpMgr *emgr, BtorExp *exp);
  */
 void btor_release_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Dumps expression to file. */
+/* Dumps expression to file in BTOR format. */
 void btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp);
+
+/* Dumps expression to file in SMT format. */
+void btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root);
 
 /* Solves sat instance with root expression exp. */
 int btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp);
