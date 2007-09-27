@@ -11,7 +11,6 @@ typedef struct Exp Exp;
 struct Exp
 {
   int ref;
-  int new;
   int idx;
   int cut;
   int oldref;
