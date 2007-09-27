@@ -483,8 +483,16 @@ cone (void)
 static void
 clean (void)
 {
+  Exp* e;
   int i;
-  for (i = 1; i < nexps; i++) exps[i].idx = 0;
+
+  for (i = 1; i < nexps; i++)
+  {
+    e = exps + i;
+    if (!e->ref) continue;
+
+    if (e->idx) e->idx = 0;
+  }
 }
 
 static void
@@ -500,18 +508,61 @@ reset (void)
   }
 }
 
+static int
+cmp_by_idx (const void* p, const void* q)
+{
+  Exp* a = *(Exp**) p;
+  Exp* b = *(Exp**) q;
+  assert (a->ref);
+  assert (a->idx);
+  assert (b->ref);
+  assert (b->idx);
+  return a->idx - b->idx;
+}
+
 static void
 print (void)
 {
   FILE* file = fopen (tmp, "w");
-  int i, j, lit;
-  Exp* e;
+  int i, j, lit, count;
+  Exp *e, **sorted;
 
   if (!file) die ("can not write to '%s'", tmp);
+
+  count = 0;
 
   for (i = 1; i < nexps; i++)
   {
     e = exps + i;
+
+    if (!e->ref) continue;
+
+    if (!e->idx) continue;
+
+    count++;
+  }
+
+  sorted = malloc (count * sizeof *sorted);
+
+  j = 0;
+  for (i = 1; i < nexps; i++)
+  {
+    e = exps + i;
+
+    if (!e->ref) continue;
+
+    if (!e->idx) continue;
+
+    sorted[j++] = e;
+  }
+
+  assert (j == count);
+
+  qsort (sorted, count, sizeof *sorted, cmp_by_idx);
+
+  for (i = 0; i < count; i++)
+  {
+    e = sorted[i];
 
     if (!e->ref) continue;
 
@@ -531,6 +582,8 @@ print (void)
   }
 
   fclose (file);
+
+  free (sorted);
 }
 
 static void
