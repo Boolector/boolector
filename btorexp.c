@@ -189,16 +189,17 @@ encode_ackermann_constraint (
   BtorAIG *aig1        = NULL;
   BtorAIG *aig2        = NULL;
   BtorIntStack diffs;
-  int k                = 0;
-  int len              = 0;
-  int i_k              = 0;
-  int j_k              = 0;
-  int d_k              = 0;
-  int e                = 0;
-  int a_k              = 0;
-  int b_k              = 0;
-  int is_different_i_j = 0;
-  int is_equal_a_b     = 0;
+  int k                  = 0;
+  int len                = 0;
+  int i_k                = 0;
+  int j_k                = 0;
+  int d_k                = 0;
+  int e                  = 0;
+  int a_k                = 0;
+  int b_k                = 0;
+  int is_inverse_bit_i_j = 0;
+  int is_equal_i_j       = 0;
+  int is_equal_a_b       = 0;
   assert (emgr != NULL);
   assert (i != NULL);
   assert (j != NULL);
@@ -218,11 +219,19 @@ encode_ackermann_constraint (
   assert (av_b != NULL);
   assert (av_i->len == av_j->len);
   assert (av_a->len == av_b->len);
-  is_equal_a_b     = !btor_is_different_aigvec (avmgr, av_a, av_b);
-  is_different_i_j = btor_is_different_aigvec (avmgr, av_i, av_j);
-  if (is_equal_a_b
-      || (is_different_i_j && btor_is_const_aigvec (avmgr, av_i)
-          && btor_is_const_aigvec (avmgr, av_j)))
+  is_equal_i_j = btor_is_equal_aigvec (avmgr, av_a, av_b);
+  is_equal_a_b = btor_is_equal_aigvec (avmgr, av_a, av_b);
+  len          = av_i->len;
+  for (k = 0; k < len; k++)
+  {
+    if (((unsigned long int) av_i->aigs[k])
+        ^ ((unsigned long int) av_j->aigs[k]) == 1ul)
+    {
+      is_inverse_bit_i_j = 1;
+      break;
+    }
+  }
+  if (is_equal_a_b || is_inverse_bit_i_j)
   {
     /* (i = j => TRUE) <=> TRUE
      * (FALSE => a = b) <=> TRUE
@@ -236,9 +245,8 @@ encode_ackermann_constraint (
   /* skip i = j part if i and j are equal:
    * W => a = b  <=>  a = b
    */
-  if (is_different_i_j)
+  if (!is_equal_i_j)
   {
-    len = av_i->len;
     if (!BTOR_REAL_ADDR_EXP (i)->full_cnf)
     {
       for (k = 0; k < len; k++)
@@ -270,27 +278,23 @@ encode_ackermann_constraint (
         j_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (j_k != 0);
       }
-      /* if aigs are inverse of each other then clauses
-       * are satisfied */
-      if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
+      assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul);
+      d_k = btor_next_cnf_id_sat_mgr (smgr);
+      assert (d_k != 0);
+      BTOR_PUSH_STACK (mm, diffs, d_k);
+      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
       {
-        d_k = btor_next_cnf_id_sat_mgr (smgr);
-        assert (d_k != 0);
-        BTOR_PUSH_STACK (mm, diffs, d_k);
-        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
-        }
-        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
-        }
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
+        btor_add_sat (smgr, -d_k);
+        btor_add_sat (smgr, 0);
+      }
+      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
+      {
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
+        btor_add_sat (smgr, -d_k);
+        btor_add_sat (smgr, 0);
       }
     }
     while (!BTOR_EMPTY_STACK (diffs))
