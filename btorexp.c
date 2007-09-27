@@ -1,5 +1,6 @@
 #include "btorexp.h"
 #include <assert.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -3389,18 +3390,60 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
     BTOR_PUSH_STACK (mm, stack, child);        \
   } while (0)
 
+static void
+btor_dump_smt_id (BtorExp *e, FILE *file)
+{
+  const char *type, *sym;
+  BtorExp *u;
+
+  u = BTOR_REAL_ADDR_EXP (e);
+
+  if (u != e) fputs ("(bvnot ", file);
+
+  if (BTOR_IS_VAR_EXP (u))
+  {
+    sym = u->symbol;
+    if (!isdigit (sym[0]))
+    {
+      fputs (sym, file);
+      goto CLOSE;
+    }
+
+    type = "v";
+  }
+  else if (BTOR_IS_ARRAY_EXP (u))
+    type = "a";
+  else
+    type = "?e";
+
+  fprintf (file, "%s%d", type, u->id);
+
+CLOSE:
+  if (u != e) fputc (')', file);
+}
+
+static int
+btor_cmp_dump_smt (const void *p, const void *q)
+{
+  BtorExp *a = *(BtorExp **) p;
+  BtorExp *b = *(BtorExp **) q;
+  return a->id - b->id;
+}
+
 void
 btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 {
+  int next, i, j, arrays, lets, pad;
   BtorMemMgr *mm = emgr->mm;
   BtorExpPtrStack stack;
-  int next, i, arrays;
+  const char *op;
   BtorExp *e;
 
   BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (root));
+  BTOR_PUSH_EXP_IF_NOT_MARKED (root);
 
   arrays = 0;
+  next   = 0;
 
   while (next < BTOR_COUNT_STACK (stack))
   {
@@ -3424,6 +3467,136 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   }
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
+
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_dump_smt);
+
+  fputs ("(benchmark ", file);
+  if (BTOR_IS_INVERTED_AIG (root)) fputs ("not", file);
+  fprintf (file, "root%d\n", BTOR_REAL_ADDR_EXP (root)->id);
+
+  if (arrays)
+    fputs (":logic QF_AUFBV\n", file);
+  else
+    fputs (":logic QF_BV\n", file);
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    e = stack.start[i];
+
+    assert (!BTOR_IS_INVERTED_AIG (e));
+
+    if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_ARRAY_EXP (e)) continue;
+
+    fputs (":extrafuns ((", file);
+    btor_dump_smt_id (e, file);
+
+    if (BTOR_IS_VAR_EXP (e))
+      fprintf (file, " BitVec[%d]))\n", e->len);
+    else
+      fprintf (file, " Array[%d:%d]))\n", e->index_len, e->len);
+  }
+
+  fputs (":formula\n", file);
+
+  lets = 0;
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    e = stack.start[i];
+
+    if (BTOR_IS_VAR_EXP (e) || BTOR_IS_ARRAY_EXP (e)) continue;
+
+    lets++;
+
+    fputs ("(let (", file);
+    btor_dump_smt_id (e, file);
+    fputc (' ', file);
+
+    if (e->kind == BTOR_CONST_EXP)
+    {
+      fprintf (file, "bv%s[%d]", e->bits, e->len);
+    }
+    else if (e->kind == BTOR_SLICE_EXP)
+    {
+      fprintf (file, "(extract[%d:%d] ", e->upper, e->lower);
+      btor_dump_smt_id (e->e[0], file);
+      fputc (')', file);
+    }
+    else if (e->kind == BTOR_SLL_EXP || e->kind == BTOR_SRL_EXP)
+    {
+      fputc ('(', file);
+
+      if (e->kind == BTOR_SRL_EXP)
+        fputs ("bvlshr", file);
+      else
+        fputs ("bvshl", file);
+
+      fputc (' ', file);
+      btor_dump_smt_id (e->e[0], file);
+      fputc (' ', file);
+
+      assert (e->len > 1);
+      pad = e->len - BTOR_REAL_ADDR_EXP (e->e[1])->len;
+      fprintf (file, " (zero_extend[%d] ", pad);
+
+      btor_dump_smt_id (e->e[1], file);
+
+      fputs ("))", file);
+    }
+    else if (e->kind == BTOR_COND_EXP)
+    {
+      fputs ("(ite (= bv1[1] ", file);
+      btor_dump_smt_id (e->e[0], file);
+      fputs (") ", file);
+      btor_dump_smt_id (e->e[1], file);
+      fputc (' ', file);
+      btor_dump_smt_id (e->e[2], file);
+      fputc (')', file);
+    }
+    else
+    {
+      fputc ('(', file);
+
+      switch (e->kind)
+      {
+        case BTOR_AND_EXP: op = "bvand"; break;
+        case BTOR_EQ_EXP: op = "bvxnor"; break;
+        case BTOR_ADD_EXP: op = "bvadd"; break;
+        case BTOR_MUL_EXP: op = "bvmul"; break;
+        case BTOR_ULT_EXP: op = "bvult"; break;
+        case BTOR_UDIV_EXP: op = "bvudiv"; break;
+        case BTOR_UREM_EXP: op = "bvurem"; break;
+        case BTOR_CONCAT_EXP: op = "concat"; break;
+        case BTOR_READ_EXP: op = "select"; break;
+
+        default:
+        case BTOR_WRITE_EXP:
+          assert (e->kind == BTOR_WRITE_EXP);
+          op = "store";
+          break;
+      }
+
+      fputs (op, file);
+
+      for (j = 0; j < BTOR_ARITY_EXP (e); j++)
+      {
+        fputc (' ', file);
+        btor_dump_smt_id (e->e[j], file);
+      }
+
+      fputc (')', file);
+    }
+
+    fputs (")\n", file);
+  }
+
+  fputs ("(not (= ", file);
+  btor_dump_smt_id (root, file);
+  fprintf (file, " bv0[%d]))\n", BTOR_REAL_ADDR_EXP (root)->len);
+
+  for (i = 0; i < lets + 1; i++) fputc (')', file);
+
+  fputc ('\n', file);
 
   BTOR_RELEASE_STACK (mm, stack);
 }
