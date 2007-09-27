@@ -189,17 +189,17 @@ encode_ackermann_constraint (
   BtorAIG *aig1        = NULL;
   BtorAIG *aig2        = NULL;
   BtorIntStack diffs;
-  int k                  = 0;
-  int len                = 0;
-  int i_k                = 0;
-  int j_k                = 0;
-  int d_k                = 0;
-  int e                  = 0;
-  int a_k                = 0;
-  int b_k                = 0;
-  int is_inverse_bit_i_j = 0;
-  int is_equal_i_j       = 0;
-  int is_equal_a_b       = 0;
+  int k                   = 0;
+  int len                 = 0;
+  int i_k                 = 0;
+  int j_k                 = 0;
+  int d_k                 = 0;
+  int e                   = 0;
+  int a_k                 = 0;
+  int b_k                 = 0;
+  int has_inverse_bit_i_j = 0;
+  int is_equal_i_j        = 0;
+  int is_equal_a_b        = 0;
   assert (emgr != NULL);
   assert (i != NULL);
   assert (j != NULL);
@@ -224,14 +224,15 @@ encode_ackermann_constraint (
   len          = av_i->len;
   for (k = 0; k < len; k++)
   {
-    if (((unsigned long int) av_i->aigs[k])
-        ^ ((unsigned long int) av_j->aigs[k]) == 1ul)
+    if ((((unsigned long int) av_i->aigs[k])
+         ^ ((unsigned long int) av_j->aigs[k]))
+        == 1ul)
     {
-      is_inverse_bit_i_j = 1;
+      has_inverse_bit_i_j = 1;
       break;
     }
   }
-  if (is_equal_a_b || is_inverse_bit_i_j)
+  if (is_equal_a_b || has_inverse_bit_i_j)
   {
     /* (i = j => TRUE) <=> TRUE
      * (FALSE => a = b) <=> TRUE
@@ -266,18 +267,17 @@ encode_ackermann_constraint (
       aig2 = av_j->aigs[k];
       if (!BTOR_IS_CONST_AIG (aig1))
       {
-        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         i_k = BTOR_GET_CNF_ID_AIG (aig1);
         assert (i_k != 0);
       }
       if (!BTOR_IS_CONST_AIG (aig2))
       {
-        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         j_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (j_k != 0);
       }
+      /* The bits cannot be the inverse of each other.
+       * We check this at the beginning of the function.
+       */
       assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul);
       d_k = btor_next_cnf_id_sat_mgr (smgr);
       assert (d_k != 0);
@@ -328,15 +328,11 @@ encode_ackermann_constraint (
     aig2 = av_b->aigs[k];
     if (!BTOR_IS_CONST_AIG (aig1))
     {
-      if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
-        BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       a_k = BTOR_GET_CNF_ID_AIG (aig1);
       assert (a_k != 0);
     }
     if (!BTOR_IS_CONST_AIG (aig2))
     {
-      if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-        BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       b_k = BTOR_GET_CNF_ID_AIG (aig2);
       assert (b_k != 0);
     }
@@ -450,39 +446,35 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     aig2 = av_j->aigs[k];
     if (!BTOR_IS_CONST_AIG (aig1))
     {
-      if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
-        BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       i_k = BTOR_GET_CNF_ID_AIG (aig1);
       assert (i_k != 0);
     }
     if (!BTOR_IS_CONST_AIG (aig2))
     {
-      if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-        BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       j_k = BTOR_GET_CNF_ID_AIG (aig2);
       assert (j_k != 0);
     }
-    /* if aigs are inverse of each other then clauses
-     * are satisfied */
-    if ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul)
+    /* aigs cannot be inverse of each other as this would imply
+     * that i != j which is in contradiction to the conflict which
+     * has been detected.
+     */
+    assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul);
+    d_k = btor_next_cnf_id_sat_mgr (smgr);
+    assert (d_k != 0);
+    BTOR_PUSH_STACK (mm, clause, d_k);
+    if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
     {
-      d_k = btor_next_cnf_id_sat_mgr (smgr);
-      assert (d_k != 0);
-      BTOR_PUSH_STACK (mm, clause, d_k);
-      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
-      {
-        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
-        btor_add_sat (smgr, -d_k);
-        btor_add_sat (smgr, 0);
-      }
-      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
-      {
-        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
-        btor_add_sat (smgr, -d_k);
-        btor_add_sat (smgr, 0);
-      }
+      if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
+      if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
+      btor_add_sat (smgr, -d_k);
+      btor_add_sat (smgr, 0);
+    }
+    if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
+    {
+      if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
+      if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
+      btor_add_sat (smgr, -d_k);
+      btor_add_sat (smgr, 0);
     }
   }
   /* encode a = b */
@@ -510,15 +502,11 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     {
       if (!BTOR_IS_CONST_AIG (aig1))
       {
-        if (BTOR_REAL_ADDR_AIG (aig1)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig1)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         a_k = BTOR_GET_CNF_ID_AIG (aig1);
         assert (a_k != 0);
       }
       if (!BTOR_IS_CONST_AIG (aig2))
       {
-        if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-          BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
         b_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (b_k != 0);
       }
@@ -564,15 +552,11 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
       {
         if (!BTOR_IS_CONST_AIG (aig1))
         {
-          /* aigs of i have cnf ids as they have been
-           * used by encoding i != j before */
           i_k = BTOR_GET_CNF_ID_AIG (aig1);
           assert (i_k != 0);
         }
         if (!BTOR_IS_CONST_AIG (aig2))
         {
-          if (BTOR_REAL_ADDR_AIG (aig2)->cnf_id == 0)
-            BTOR_REAL_ADDR_AIG (aig2)->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
           w_k = BTOR_GET_CNF_ID_AIG (aig2);
           assert (w_k != 0);
         }
