@@ -3437,6 +3437,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   BtorMemMgr *mm = emgr->mm;
   BtorExpPtrStack stack;
   const char *op;
+  char *tmp;
   BtorExp *e;
 
   BTOR_INIT_STACK (stack);
@@ -3514,7 +3515,9 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
     if (e->kind == BTOR_CONST_EXP)
     {
-      fprintf (file, "bv%s[%d]", e->bits, e->len);
+      tmp = btor_const_to_decimal (mm, e->bits);
+      fprintf (file, "bv%s[%d]", tmp, e->len);
+      btor_freestr (mm, tmp);
     }
     else if (e->kind == BTOR_SLICE_EXP)
     {
@@ -3553,6 +3556,19 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       btor_dump_smt_id (e->e[2], file);
       fputc (')', file);
     }
+    else if (e->kind == BTOR_EQ_EXP || e->kind == BTOR_ULT_EXP)
+    {
+      fputs ("(ite (", file);
+      if (e->kind == BTOR_EQ_EXP)
+        fputc ('=', file);
+      else
+        fputs ("bvult", file);
+      fputc (' ', file);
+      btor_dump_smt_id (e->e[0], file);
+      fputc (' ', file);
+      btor_dump_smt_id (e->e[1], file);
+      fputs (") bit1 bit0)", file);
+    }
     else
     {
       fputc ('(', file);
@@ -3560,10 +3576,8 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       switch (e->kind)
       {
         case BTOR_AND_EXP: op = "bvand"; break;
-        case BTOR_EQ_EXP: op = "bvxnor"; break;
         case BTOR_ADD_EXP: op = "bvadd"; break;
         case BTOR_MUL_EXP: op = "bvmul"; break;
-        case BTOR_ULT_EXP: op = "bvult"; break;
         case BTOR_UDIV_EXP: op = "bvudiv"; break;
         case BTOR_UREM_EXP: op = "bvurem"; break;
         case BTOR_CONCAT_EXP: op = "concat"; break;
