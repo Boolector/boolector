@@ -40,4 +40,4 @@ udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
 
 # SMT writing
 #
-writesmt1 -f -ds log/writesmt1.log log/smtaxiombvsmod64.smt
+writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
