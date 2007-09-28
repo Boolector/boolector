@@ -1,0 +1,6 @@
+1 array 1 1
+2 var 1 v1
+3 var 1 v2
+4 write 1 1 2 3
+6 read 1 4 2
+7 root 1 6
