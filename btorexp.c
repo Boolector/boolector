@@ -3480,7 +3480,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   else
     fputs (":logic QF_BV\n", file);
 
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  for (i = BTOR_COUNT_STACK (stack) - 1; i >= 0; i--)
   {
     e = stack.start[i];
 
