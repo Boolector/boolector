@@ -592,6 +592,39 @@ test_cond_exp (void)
 }
 
 static void
+test_write_exp (void)
+{
+  FILE *fout       = fopen ("log/write_exp.log", "w");
+  BtorExpMgr *emgr = btor_new_exp_mgr (0, 0, 0, stdout);
+  BtorExp *exp1    = btor_array_exp (emgr, 1, 1);
+  BtorExp *exp2    = btor_var_exp (emgr, 1, "v1");
+  BtorExp *exp3    = btor_var_exp (emgr, 1, "v2");
+  BtorExp *exp4    = btor_write_exp (emgr, exp1, exp2, exp3);
+  BtorExp *exp5    = btor_write_exp (emgr, exp1, exp2, exp3);
+  BtorExp *exp6    = btor_write_exp (emgr, exp1, exp3, exp2);
+  BtorExp *exp7    = btor_read_exp (emgr, exp5, exp2);
+  assert (exp4 == exp5);
+  assert (exp4 != exp6);
+  assert (btor_get_exp_len (emgr, exp1) == 1);
+  assert (btor_get_exp_len (emgr, exp2) == 1);
+  assert (btor_get_exp_len (emgr, exp3) == 1);
+  assert (btor_get_exp_len (emgr, exp4) == 1);
+  assert (btor_get_exp_len (emgr, exp5) == 1);
+  assert (btor_get_exp_len (emgr, exp6) == 1);
+  assert (btor_get_exp_len (emgr, exp7) == 1);
+  btor_dump_exp (emgr, fout, exp7);
+  btor_release_exp (emgr, exp1);
+  btor_release_exp (emgr, exp2);
+  btor_release_exp (emgr, exp3);
+  btor_release_exp (emgr, exp4);
+  btor_release_exp (emgr, exp5);
+  btor_release_exp (emgr, exp6);
+  btor_release_exp (emgr, exp7);
+  btor_delete_exp_mgr (emgr);
+  fclose (fout);
+}
+
+static void
 test_exp_to_aig (void)
 {
   BtorExpMgr *emgr = btor_new_exp_mgr (0, 0, 0, stdout);
@@ -668,6 +701,7 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (concat_exp);
   BTOR_RUN_TEST_CHECK_LOG (read_exp);
   BTOR_RUN_TEST_CHECK_LOG (cond_exp);
+  BTOR_RUN_TEST_CHECK_LOG (write_exp);
   BTOR_RUN_TEST (exp_to_aig);
 }
 

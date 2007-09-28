@@ -3269,7 +3269,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
           if (strcmp (name, idbuffer)) fprintf (file, " %s", name);
           putc ('\n', file);
         }
-        else if (BTOR_IS_ARRAY_EXP (cur))
+        else if (BTOR_IS_NATIVE_ARRAY_EXP (cur))
         {
           cur->mark = 2;
           fprintf (file, "%d array %d %d\n", cur->id, cur->len, cur->index_len);
@@ -3307,9 +3307,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
           fprintf (file,
                    "slice %d %d %d %d\n",
                    cur->len,
-                   BTOR_IS_INVERTED_EXP (cur->e[0])
-                       ? -BTOR_INVERT_EXP (cur->e[0])->id
-                       : cur->e[0]->id,
+                   BTOR_GET_ID_EXP (cur->e[0]),
                    cur->upper,
                    cur->lower);
         }
@@ -3332,52 +3330,38 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
               fprintf (file, "read");
               break;
           }
-          fprintf (file,
-                   " %d %d",
-                   cur->len,
-                   BTOR_IS_INVERTED_EXP (cur->e[0])
-                       ? -BTOR_INVERT_EXP (cur->e[0])->id
-                       : cur->e[0]->id);
-          fprintf (file,
-                   " %d\n",
-                   BTOR_IS_INVERTED_EXP (cur->e[1])
-                       ? -BTOR_INVERT_EXP (cur->e[1])->id
-                       : cur->e[1]->id);
+          fprintf (file, " %d %d", cur->len, BTOR_GET_ID_EXP (cur->e[0]));
+          fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[1]));
         }
         else
         {
           assert (BTOR_IS_TERNARY_EXP (cur));
-          assert (cur->kind == BTOR_COND_EXP);
-          fprintf (file, "cond %d", cur->len);
-          fprintf (file,
-                   " %d",
-                   BTOR_IS_INVERTED_EXP (cur->e[0])
-                       ? -BTOR_INVERT_EXP (cur->e[0])->id
-                       : cur->e[0]->id);
-          fprintf (file,
-                   " %d",
-                   BTOR_IS_INVERTED_EXP (cur->e[1])
-                       ? -BTOR_INVERT_EXP (cur->e[1])->id
-                       : cur->e[1]->id);
-          fprintf (file,
-                   " %d\n",
-                   BTOR_IS_INVERTED_EXP (cur->e[2])
-                       ? -BTOR_INVERT_EXP (cur->e[2])->id
-                       : cur->e[2]->id);
+          if (BTOR_IS_WRITE_ARRAY_EXP (cur))
+          {
+            fprintf (file, "write %d", cur->len);
+            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[0]));
+            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[1]));
+            fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[2]));
+          }
+          else
+          {
+            assert (cur->kind == BTOR_COND_EXP);
+            fprintf (file, "cond %d", cur->len);
+            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[0]));
+            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[1]));
+            fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[2]));
+          }
         }
       }
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
   assert (exp->id < INT_MAX);
-  if (BTOR_IS_INVERTED_EXP (exp))
-    fprintf (file,
-             "%d root %d %d\n",
-             BTOR_INVERT_EXP (exp)->id + 1,
-             BTOR_INVERT_EXP (exp)->len,
-             -BTOR_INVERT_EXP (exp)->id);
-  else
-    fprintf (file, "%d root %d %d\n", exp->id + 1, exp->len, exp->id);
+  fprintf (file,
+           "%d root %d %d\n",
+           BTOR_REAL_ADDR_EXP (exp)->id + 1,
+           BTOR_REAL_ADDR_EXP (exp)->len,
+           BTOR_GET_ID_EXP (exp));
   btor_mark_exp (emgr, exp, 0);
 }
 
