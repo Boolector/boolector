@@ -41,7 +41,7 @@ main (int argc, char **argv)
   char *buffer         = NULL;
   if (argc != 3)
   {
-    printf ("Usage: ./selectionsort <num-bits> <num-elements>\n");
+    printf ("Usage: ./genselectionsort <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
