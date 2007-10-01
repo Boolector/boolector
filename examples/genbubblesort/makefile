@@ -1,3 +1,5 @@
+CC=gcc
+CFLAGS=-g -Wall -W
 genbubblesort: genbubblesort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ genbubblesort.c -L../.. -lboolector
 clean:
