@@ -23,15 +23,15 @@ typedef struct BtorAIGVecMgr BtorAIGVecMgr;
  */
 BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity);
 
+/* Returns AIG manager of the AIG vector manager. */
+BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr);
+
 /* Deletes AIG vector manager from memory. */
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
 /* Implicit precondition of all functions taking AIG vectors as inputs:
  * The length of all input AIG vectors have to be greater than zero.
  */
-
-/* Returns AIG manager of the AIG vector manager. */
-BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
 /* Creates new AIG vector representing a constant specified by bits.
  * len(result) = strlen(bits)
@@ -165,9 +165,6 @@ int btor_is_equal_aigvec (BtorAIGVecMgr *avmgr,
 
 /* Release all AIGs of the AIG vector and delete AIG vector from memory. */
 void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
-
-/* Gets AIG manager of AIG vector manager. */
-BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
 /* Builds current assignment string of AIG vector (in the SAT case)
  * and returns it.

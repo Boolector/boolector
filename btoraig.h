@@ -58,6 +58,9 @@ BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
  */
 BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, int verbosity);
 
+/* Gets SAT manager of AIG manager. */
+BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
+
 /* Deletes AIG manager from memory. */
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 
@@ -125,9 +128,6 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Sets CNF encoding strategy. */
 void btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc);
-
-/* Gets SAT manager of AIG manager. */
-BtorSATMgr *btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr);
 
 /* Gets current assignment of AIG aig (in the SAT case).
  * Do not call before calling btor_sat_aig.

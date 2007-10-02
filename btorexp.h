@@ -151,18 +151,18 @@ void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
 void btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc);
 
 /* Returns the memory manager of the expression manager. */
-BtorMemMgr *btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr);
+BtorMemMgr *btor_get_mem_mgr_exp_mgr (const BtorExpMgr *emgr);
 
 /* Returns the AIG vector manager of the expression manager. */
-BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr);
+BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr);
 
 /* Returns stack of all variables.
  * WARNING: DO NOT MODIFY THE STACK AND ITS CONTENTS */
-const BtorExpPtrStack *btor_get_variables_exp_mgr (BtorExpMgr *emgr);
+const BtorExpPtrStack *btor_get_variables_exp_mgr (const BtorExpMgr *emgr);
 
 /* Returns stack of all arrays.
  * WARNING: DO NOT MODIFY THE STACK AND ITS CONTENTS */
-const BtorExpPtrStack *btor_get_arrays_exp_mgr (BtorExpMgr *emgr);
+const BtorExpPtrStack *btor_get_arrays_exp_mgr (const BtorExpMgr *emgr);
 
 /* Synthesize boolean expression to a single AIG.
  * len(exp) = 1

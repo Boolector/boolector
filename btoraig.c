@@ -1147,7 +1147,7 @@ btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc)
 }
 
 BtorSATMgr *
-btor_get_sat_mgr_aig_mgr (BtorAIGMgr *amgr)
+btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr)
 {
   assert (amgr != NULL);
   return (amgr->smgr);
