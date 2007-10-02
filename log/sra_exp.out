@@ -1,7 +1,7 @@
 1 var 32 v1
-3 slice 1 1 31 31
 2 var 5 v2
-5 srl 32 -1 2
+3 slice 1 1 31 31
 4 srl 32 1 2
+5 srl 32 -1 2
 6 cond 32 3 -5 4
 7 root 32 6
