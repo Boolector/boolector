@@ -391,6 +391,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BtorAIG *aig2        = NULL;
   BtorExp **temp       = NULL;
   BtorExp *cur_write   = NULL;
+  BtorExp **top        = NULL;
   BtorIntStack clause;
   int len = 0;
   int k   = 0;
@@ -528,7 +529,8 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   }
   /* encode i != write index premisses */
   len = av_i->len;
-  for (temp = writes->start; temp != writes->top; temp++)
+  top = writes->top;
+  for (temp = writes->start; temp != top; temp++)
   {
     cur_write = *temp;
     assert (BTOR_IS_REGULAR_EXP (cur_write));
@@ -3632,13 +3634,15 @@ void
 btor_delete_exp_mgr (BtorExpMgr *emgr)
 {
   BtorExp **cur  = NULL;
+  BtorExp **top  = NULL;
   BtorMemMgr *mm = NULL;
   assert (emgr != NULL);
-  mm = emgr->mm;
-  for (cur = emgr->arrays.start; cur != emgr->arrays.top; cur++)
+  mm  = emgr->mm;
+  top = emgr->arrays.top;
+  for (cur = emgr->arrays.start; cur != top; cur++)
     delete_exp_node (emgr, *cur);
-  for (cur = emgr->vars.start; cur != emgr->vars.top; cur++)
-    delete_exp_node (emgr, *cur);
+  top = emgr->vars.top;
+  for (cur = emgr->vars.start; cur != top; cur++) delete_exp_node (emgr, *cur);
   assert (emgr->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_RELEASE_STACK (mm, emgr->vars);
@@ -4073,6 +4077,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp *cur_array     = NULL;
   BtorExp *cur_write     = NULL;
   BtorExp *cur_read      = NULL;
+  BtorExp **top          = NULL;
   BtorExp **temp         = NULL;
   BtorExpPtrStack *reads = NULL;
   BtorExpPtrStack writes;
@@ -4150,8 +4155,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         {
           /* array children are always at position 0 */
           assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-          for (temp = cur_write->reads->start; temp != cur_write->reads->top;
-               temp++)
+          top = cur_write->reads->top;
+          for (temp = cur_write->reads->start; temp != top; temp++)
           {
             cur_read = *temp;
             assert (BTOR_IS_REGULAR_EXP (cur_read));
@@ -4242,7 +4247,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         assert (cur_array->reachable);
         BTOR_NEW (mm, mccarthy_reads);
         BTOR_INIT_STACK (*mccarthy_reads);
-        for (temp = reads->start; temp != reads->top; temp++)
+        top = reads->top;
+        for (temp = reads->start; temp != top; temp++)
         {
           cur_read = *temp;
           assert (BTOR_IS_REGULAR_EXP (cur_read));
@@ -4329,10 +4335,11 @@ static int
 resolve_read_write_conflicts (BtorExpMgr *emgr)
 {
   int found_conflict = 0;
+  BtorExp **top      = NULL;
   BtorExp **cur      = NULL;
   assert (emgr != NULL);
-  for (cur = emgr->arrays.start; !found_conflict && cur != emgr->arrays.top;
-       cur++)
+  top = emgr->arrays.top;
+  for (cur = emgr->arrays.start; !found_conflict && cur != top; cur++)
     found_conflict = resolve_read_write_conflicts_array (emgr, *cur);
   return found_conflict;
 }
