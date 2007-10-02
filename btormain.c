@@ -315,6 +315,8 @@ btor_main (int argc, char **argv)
   FILE *smt_file              = stdout;
   FILE *trace_file            = stdout;
   BtorExpMgr *emgr            = NULL;
+  BtorExpMgr **temp           = NULL;
+  BtorExpMgr **top            = NULL;
   BtorExp *cur_exp            = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIGVecMgr *avmgr        = NULL;
