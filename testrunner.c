@@ -115,19 +115,21 @@ print_test_suite_name (const char *name)
   printf ("Registered %s tests\n", name);
 }
 
+#if 0
 static void
 check_log (char *file_name)
 {
-  char *call               = NULL;
+  char *call = NULL;
   char *file_name_with_dir = NULL;
-  size_t len               = 0;
+  size_t len = 0;
   assert (file_name != NULL);
-  file_name_with_dir = (char *) malloc (
-      sizeof (char) * (strlen ("log/") + strlen (file_name) + 1));
+  file_name_with_dir =
+    (char *) malloc (sizeof (char) *
+                     (strlen ("log/") + strlen (file_name) + 1));
   strcpy (file_name_with_dir, "log/");
   strcat (file_name_with_dir, file_name);
   len =
-      7 + strlen (file_name_with_dir) + 5 + strlen (file_name_with_dir) + 4 + 1;
+    7 + strlen (file_name_with_dir) + 5 + strlen (file_name_with_dir) + 4 + 1;
   call = (char *) malloc (sizeof (char) * len);
   strcpy (call, "cmp -s ");
   strcat (call, file_name_with_dir);
@@ -137,6 +139,80 @@ check_log (char *file_name)
   printf ("  Checking %s", file_name);
   g_compared++;
   if (system (call) == 0)
+    {
+      nl ();
+      g_compared_succ++;
+    }
+  else
+    {
+      printf ("  %s[ %sFAILED %s]%s\n", terminal.blue, terminal.red,
+              terminal.blue, terminal.std);
+    }
+  free (call);
+  free (file_name_with_dir);
+}
+#else
+
+static int
+cmp_file (const char *a, const char *b)
+{
+  FILE *f, *g;
+  int res, c, d;
+
+  assert (a);
+  assert (b);
+
+  f = fopen (a, "r");
+  if (!f) return 0;
+
+  g = fopen (b, "r");
+  if (!g)
+  {
+    fclose (f);
+    return 0;
+  }
+
+  do
+  {
+    c   = getc (f);
+    d   = getc (g);
+    res = (c == d);
+  } while (res && c != EOF);
+
+  fclose (f);
+  fclose (g);
+
+  return res;
+}
+
+static void
+check_log (char *name)
+{
+  char *path;
+  char *log;
+  char *out;
+  size_t len;
+
+  assert (name);
+
+  len = strlen ("log/");
+  len += strlen (name);
+  len++;
+
+  path = malloc (len);
+  sprintf (path, "log/%s", name);
+
+  len += 4; /* ".log" or ".out" */
+
+  log = malloc (len);
+  out = malloc (len);
+
+  sprintf (log, "%s.log", path);
+  sprintf (out, "%s.out", path);
+
+  g_compared++;
+
+  if (cmp_file (log, out))
   {
     nl ();
     g_compared_succ++;
@@ -149,9 +225,13 @@ check_log (char *file_name)
             terminal.blue,
             terminal.std);
   }
-  free (call);
-  free (file_name_with_dir);
+
+  free (path);
+  free (log);
+  free (out);
 }
+
+#endif
 
 static int
 match (const char *str, const char *pattern)
