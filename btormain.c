@@ -57,7 +57,7 @@ static const char *g_usage =
     "where <option> is one of the following:\n"
     "\n"
     "  -h|--help                        print usage information and exit\n"
-    "  -c|--copyright                   print copyright\n"
+    "  -c|--copyright                   print copyright and exit\n"
     "  -V|--version                     print version and exit\n"
     "\n"
     "  -q|--quiet                       do not print any output\n"
