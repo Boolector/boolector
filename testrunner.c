@@ -115,44 +115,6 @@ print_test_suite_name (const char *name)
   printf ("Registered %s tests\n", name);
 }
 
-#if 0
-static void
-check_log (char *file_name)
-{
-  char *call = NULL;
-  char *file_name_with_dir = NULL;
-  size_t len = 0;
-  assert (file_name != NULL);
-  file_name_with_dir =
-    (char *) malloc (sizeof (char) *
-                     (strlen ("log/") + strlen (file_name) + 1));
-  strcpy (file_name_with_dir, "log/");
-  strcat (file_name_with_dir, file_name);
-  len =
-    7 + strlen (file_name_with_dir) + 5 + strlen (file_name_with_dir) + 4 + 1;
-  call = (char *) malloc (sizeof (char) * len);
-  strcpy (call, "cmp -s ");
-  strcat (call, file_name_with_dir);
-  strcat (call, ".log ");
-  strcat (call, file_name_with_dir);
-  strcat (call, ".out");
-  printf ("  Checking %s", file_name);
-  g_compared++;
-  if (system (call) == 0)
-    {
-      nl ();
-      g_compared_succ++;
-    }
-  else
-    {
-      printf ("  %s[ %sFAILED %s]%s\n", terminal.blue, terminal.red,
-              terminal.blue, terminal.std);
-    }
-  free (call);
-  free (file_name_with_dir);
-}
-#else
-
 static int
 cmp_file (const char *a, const char *b)
 {
@@ -230,8 +192,6 @@ check_log (char *name)
   free (log);
   free (out);
 }
-
-#endif
 
 static int
 match (const char *str, const char *pattern)
