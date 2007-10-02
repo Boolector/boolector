@@ -71,6 +71,8 @@ static const char *g_usage =
     "  -c|--copyright                   print copyright and exit\n"
     "  -V|--version                     print version and exit\n"
     "\n"
+    "  -s|--solutions                   print assignments of variables (SAT)\n"
+    "  -r|--reads                       print assignments of reads (SAT)\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
@@ -283,57 +285,114 @@ has_only_x (const char *str)
 }
 
 static void
-print_variable_assignments (BtorMainApp *app, BtorExpMgr *emgr)
+print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
 {
-  int not_binary             = 0;
-  char *pretty               = NULL;
-  char *grounded             = NULL;
-  char *witness              = NULL;
-  BtorExp **temp             = NULL;
-  BtorExp **top              = NULL;
-  BtorExp *cur               = NULL;
-  BtorExpPtrStack *variables = NULL;
-  BtorMemMgr *mem            = NULL;
-  BtorBasis basis            = BTOR_BINARY_BASIS;
+  int not_binary   = 0;
+  char *pretty     = NULL;
+  char *grounded   = NULL;
+  char *assignment = NULL;
+  BtorMemMgr *mm   = NULL;
+  BtorBasis basis  = BTOR_BINARY_BASIS;
   assert (app != NULL);
   assert (emgr != NULL);
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (BTOR_IS_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
   basis = app->basis;
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
-  mem       = btor_get_mem_mgr_exp_mgr (emgr);
+  mm         = btor_get_mem_mgr_exp_mgr (emgr);
+  assignment = btor_assignment_exp (emgr, exp);
+
+  if (assignment != NULL && !has_only_x (assignment))
+  {
+    if (not_binary)
+    {
+      grounded = btor_ground_const (mm, assignment);
+
+      if (basis == BTOR_HEXADECIMAL_BASIS)
+        pretty = btor_const_to_hex (mm, grounded);
+      else
+      {
+        assert (basis == BTOR_DECIMAL_BASIS);
+        pretty = btor_const_to_decimal (mm, grounded);
+      }
+
+      btor_delete_const (mm, grounded);
+    }
+    else
+      pretty = assignment;
+
+    if (BTOR_IS_VAR_EXP (exp))
+      print_msg_va_args (
+          app, "%s %s\n", btor_get_symbol_exp (emgr, exp), pretty);
+    else
+    {
+      assert (exp->kind == BTOR_READ_EXP);
+      print_msg_va_args (app, "read%d %s\n", exp->id, pretty);
+    }
+
+    if (not_binary) btor_freestr (mm, pretty);
+  }
+  if (assignment != NULL) btor_freestr (mm, assignment);
+}
+
+static void
+print_variable_assignments (BtorMainApp *app, BtorExpMgr *emgr)
+{
+  BtorExp **temp             = NULL;
+  BtorExp **top              = NULL;
+  BtorExpPtrStack *variables = NULL;
+  assert (app != NULL);
+  assert (emgr != NULL);
   variables = btor_get_variables_exp_mgr (emgr);
   top       = variables->top;
   for (temp = variables->start; temp != top; temp++)
+    print_assignment (app, emgr, *temp);
+}
+
+static void
+print_read_assignments (BtorMainApp *app, BtorExpMgr *emgr)
+{
+  BtorMemMgr *mm          = NULL;
+  BtorExp **temp          = NULL;
+  BtorExp **top           = NULL;
+  BtorExp *cur            = NULL;
+  BtorExp *cur_parent     = NULL;
+  BtorExpPtrStack *arrays = NULL;
+  BtorExpPtrStack stack;
+  assert (app != NULL);
+  assert (emgr != NULL);
+  mm     = btor_get_mem_mgr_exp_mgr (emgr);
+  arrays = btor_get_arrays_exp_mgr (emgr);
+  BTOR_INIT_STACK (stack);
+  /* push arrays on stack */
+  top = arrays->top;
+  for (temp = arrays->start; temp != top; temp++)
+    BTOR_PUSH_STACK (mm, stack, *temp);
+  while (!BTOR_EMPTY_STACK (stack))
   {
-    cur     = *temp;
-    witness = btor_assignment_exp (emgr, cur);
-
-    if (witness != NULL && !has_only_x (witness))
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    if (BTOR_IS_ARRAY_EXP (cur))
     {
-      if (not_binary)
+      /* push parent writes and reads on stack */
+      cur_parent = cur->last_parent;
+      assert (BTOR_IS_REGULAR_EXP (cur_parent));
+      while (cur_parent != NULL)
       {
-        grounded = btor_ground_const (mem, witness);
-
-        if (basis == BTOR_HEXADECIMAL_BASIS)
-          pretty = btor_const_to_hex (mem, grounded);
-        else
-        {
-          assert (basis == BTOR_DECIMAL_BASIS);
-          pretty = btor_const_to_decimal (mem, grounded);
-        }
-
-        btor_delete_const (mem, grounded);
+        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
+        cur_parent = cur_parent->prev_parent[0];
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
       }
-      else
-        pretty = witness;
-
-      print_msg_va_args (
-          app, "%s %s\n", btor_get_symbol_exp (emgr, cur), pretty);
-
-      if (not_binary) btor_freestr (mem, pretty);
     }
-    if (witness != NULL) btor_freestr (mem, witness);
+    else
+    {
+      assert (cur->kind == BTOR_READ_EXP);
+      print_assignment (app, emgr, cur);
+    }
   }
+  BTOR_RELEASE_STACK (mm, stack);
 }
 
 int
@@ -362,6 +421,8 @@ btor_main (int argc, char **argv)
   int dump_smt                = 0;
   int dump_binary_aig         = 0;
   int force_smt_input         = 0;
+  int print_solutions         = 0;
+  int print_reads             = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
   BtorWriteEnc write_enc      = BTOR_LAZY_WRITE_ENC;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -408,35 +469,25 @@ btor_main (int argc, char **argv)
       done = 1;
     }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--force"))
-    {
       app.force = 1;
-    }
     else if (!strcmp (argv[i], "-de") || !strcmp (argv[i], "--dump-exp"))
-    {
       handle_dump_file (
           &app, &dump_exp, &close_exp_file, "expression", &exp_file);
-    }
+    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--solutions"))
+      print_solutions = 1;
+    else if (!strcmp (argv[i], "-r") || !strcmp (argv[i], "--reads"))
+      print_reads = 1;
     else if (!strcmp (argv[i], "-ds") || !strcmp (argv[i], "--dump-smt"))
-    {
       handle_dump_file (&app, &dump_smt, &close_smt_file, "SMT", &smt_file);
-    }
     else if (!strcmp (argv[i], "-da") || !strcmp (argv[i], "--dump-aig"))
-    {
       handle_dump_file (&app, &dump_aig, &close_aig_file, "AIG", &aig_file);
-    }
     else if (!strcmp (argv[i], "-dc") || !strcmp (argv[i], "--dump-cnf"))
-    {
       handle_dump_file (&app, &dump_cnf, &close_cnf_file, "CNF", &cnf_file);
-    }
     else if (!strcmp (argv[i], "--smt"))
-    {
       force_smt_input = 1;
-    }
     else if (!strcmp (argv[i], "-t") || !strcmp (argv[i], "--trace"))
-    {
       handle_dump_file (
           &app, &dump_trace, &close_trace_file, "trace", &trace_file);
-    }
     else if ((strstr (argv[i], "-rwl") == argv[i]
               && strlen (argv[i]) == strlen ("-rlw") + 1)
              || (strstr (argv[i], "--rewrite-level") == argv[i]
@@ -481,14 +532,10 @@ btor_main (int argc, char **argv)
         app.verbosity = -1;
     }
     else if (!strcmp (argv[i], "-tcnf") || !strcmp (argv[i], "--tseitin-cnf"))
-    {
       cnf_enc = BTOR_TSEITIN_CNF_ENC;
-    }
     else if (!strcmp (argv[i], "-pgcnf")
              || !strcmp (argv[i], "--plaisted-greenbaum-cnf"))
-    {
       cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-    }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
       if (app.basis == BTOR_DECIMAL_BASIS)
@@ -507,33 +554,19 @@ btor_main (int argc, char **argv)
       app.basis = BTOR_DECIMAL_BASIS;
     }
     else if (!strcmp (argv[i], "-nr") || !strcmp (argv[i], "--no-read"))
-    {
       read_enc = BTOR_NO_READ_ENC;
-    }
     else if (!strcmp (argv[i], "-er") || !strcmp (argv[i], "--eager-read"))
-    {
       read_enc = BTOR_EAGER_READ_ENC;
-    }
     else if (!strcmp (argv[i], "-lr") || !strcmp (argv[i], "--lazy-read"))
-    {
       read_enc = BTOR_LAZY_READ_ENC;
-    }
     else if (!strcmp (argv[i], "-sr") || !strcmp (argv[i], "--sat-solver-read"))
-    {
       read_enc = BTOR_SAT_SOLVER_READ_ENC;
-    }
     else if (!strcmp (argv[i], "-nw") || !strcmp (argv[i], "--no-write"))
-    {
       write_enc = BTOR_NO_WRITE_ENC;
-    }
     else if (!strcmp (argv[i], "-ew") || !strcmp (argv[i], "--eager-write"))
-    {
       write_enc = BTOR_EAGER_WRITE_ENC;
-    }
     else if (!strcmp (argv[i], "-lw") || !strcmp (argv[i], "--lazy-write"))
-    {
       write_enc = BTOR_LAZY_WRITE_ENC;
-    }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
       if (i < argc - 1)
@@ -682,7 +715,8 @@ btor_main (int argc, char **argv)
         else if (sat_result == BTOR_SAT)
         {
           print_msg (&app, "SATISFIABLE\n");
-          print_variable_assignments (&app, emgr);
+          if (print_solutions) print_variable_assignments (&app, emgr);
+          if (print_reads) print_read_assignments (&app, emgr);
         }
         else
         {
