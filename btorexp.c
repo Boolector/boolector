@@ -4396,6 +4396,7 @@ btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (BTOR_REAL_ADDR_EXP (exp)->reachable == 1);
   avmgr = emgr->avmgr;
   if (exp->av == NULL) return NULL;
   av         = BTOR_GET_AIGVEC_EXP (emgr, exp);
