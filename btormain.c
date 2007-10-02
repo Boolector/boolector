@@ -39,7 +39,14 @@
 #include <unistd.h>
 #endif
 
-typedef struct BtorMainApp BtorMainApp;
+enum BtorBasis
+{
+  BTOR_BINARY_BASIS = 0,
+  BTOR_DECIMAL_BASIS,
+  BTOR_HEXADECIMAL_BASIS
+};
+
+typedef enum BtorBasis BtorBasis;
 
 struct BtorMainApp
 {
@@ -50,7 +57,10 @@ struct BtorMainApp
   int *i;
   int argc;
   char **argv;
+  BtorBasis basis;
 };
+
+typedef struct BtorMainApp BtorMainApp;
 
 static const char *g_usage =
     "usage: boolector [<option>...][<input>]\n"
@@ -272,6 +282,60 @@ has_only_x (const char *str)
   return 1;
 }
 
+static void
+print_variable_assignments (BtorMainApp *app, BtorExpMgr *emgr)
+{
+  int not_binary             = 0;
+  char *pretty               = NULL;
+  char *grounded             = NULL;
+  char *witness              = NULL;
+  BtorExp **temp             = NULL;
+  BtorExp **top              = NULL;
+  BtorExp *cur               = NULL;
+  BtorExpPtrStack *variables = NULL;
+  BtorMemMgr *mem            = NULL;
+  BtorBasis basis            = BTOR_BINARY_BASIS;
+  assert (app != NULL);
+  assert (emgr != NULL);
+  basis = app->basis;
+  not_binary =
+      (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
+  mem       = btor_get_mem_mgr_exp_mgr (emgr);
+  variables = btor_get_variables_exp_mgr (emgr);
+  top       = variables->top;
+  for (temp = variables->start; temp != top; temp++)
+  {
+    cur     = *temp;
+    witness = btor_assignment_exp (emgr, cur);
+
+    if (witness != NULL && !has_only_x (witness))
+    {
+      if (not_binary)
+      {
+        grounded = btor_ground_const (mem, witness);
+
+        if (basis == BTOR_HEXADECIMAL_BASIS)
+          pretty = btor_const_to_hex (mem, grounded);
+        else
+        {
+          assert (basis == BTOR_DECIMAL_BASIS);
+          pretty = btor_const_to_decimal (mem, grounded);
+        }
+
+        btor_delete_const (mem, grounded);
+      }
+      else
+        pretty = witness;
+
+      print_msg_va_args (
+          app, "%s %s\n", btor_get_symbol_exp (emgr, cur), pretty);
+
+      if (not_binary) btor_freestr (mem, pretty);
+    }
+    if (witness != NULL) btor_freestr (mem, witness);
+  }
+}
+
 int
 btor_main (int argc, char **argv)
 {
@@ -296,8 +360,6 @@ btor_main (int argc, char **argv)
   int dump_aig                = 0;
   int dump_cnf                = 0;
   int dump_smt                = 0;
-  int hexadecimal             = 0;
-  int decimal                 = 0;
   int dump_binary_aig         = 0;
   int force_smt_input         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
@@ -305,9 +367,6 @@ btor_main (int argc, char **argv)
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
-  char *witness               = NULL;
-  char *pretty                = NULL;
-  char *grounded              = NULL;
   FILE *file                  = NULL;
   FILE *input_file            = stdin;
   FILE *exp_file              = stdout;
@@ -315,12 +374,7 @@ btor_main (int argc, char **argv)
   FILE *cnf_file              = stdout;
   FILE *smt_file              = stdout;
   FILE *trace_file            = stdout;
-  BtorExpPtrStack *variables  = NULL;
-  BtorExpPtrStack *arrays     = NULL;
   BtorExpMgr *emgr            = NULL;
-  BtorExp **temp              = NULL;
-  BtorExp **top               = NULL;
-  BtorExp *cur_exp            = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIGVecMgr *avmgr        = NULL;
   BtorAIG *aig                = NULL;
@@ -339,6 +393,7 @@ btor_main (int argc, char **argv)
   app.argv        = argv;
   app.i           = &i;
   app.err         = &err;
+  app.basis       = BTOR_BINARY_BASIS;
 
   for (i = 1; !done && !err && i < argc; i++)
   {
@@ -436,20 +491,20 @@ btor_main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
     {
-      if (decimal)
+      if (app.basis == BTOR_DECIMAL_BASIS)
       {
       HEXANDDECIMAL:
         print_err (&app, "can not force hexadecimal and decimal output");
         err = 1;
       }
       else
-        hexadecimal = 1;
+        app.basis = BTOR_HEXADECIMAL_BASIS;
     }
     else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--decimal"))
     {
-      if (hexadecimal) goto HEXANDDECIMAL;
+      if (app.basis == BTOR_HEXADECIMAL_BASIS) goto HEXANDDECIMAL;
 
-      decimal = 1;
+      app.basis = BTOR_DECIMAL_BASIS;
     }
     else if (!strcmp (argv[i], "-nr") || !strcmp (argv[i], "--no-read"))
     {
@@ -627,39 +682,7 @@ btor_main (int argc, char **argv)
         else if (sat_result == BTOR_SAT)
         {
           print_msg (&app, "SATISFIABLE\n");
-          variables = btor_get_variables_exp_mgr (emgr);
-          top       = variables->top;
-          for (temp = variables->start; temp != top; temp++)
-          {
-            cur_exp = *temp;
-            witness = btor_assignment_exp (emgr, cur_exp);
-
-            if (witness != NULL && !has_only_x (witness))
-            {
-              if (hexadecimal || decimal)
-              {
-                grounded = btor_ground_const (mem, witness);
-
-                if (hexadecimal)
-                  pretty = btor_const_to_hex (mem, grounded);
-                else
-                {
-                  assert (decimal);
-                  pretty = btor_const_to_decimal (mem, grounded);
-                }
-
-                btor_delete_const (mem, grounded);
-              }
-              else
-                pretty = witness;
-
-              print_msg_va_args (
-                  &app, "%s %s\n", btor_get_symbol_exp (emgr, cur_exp), pretty);
-
-              if (hexadecimal || decimal) btor_freestr (mem, pretty);
-            }
-            if (witness != NULL) btor_freestr (mem, witness);
-          }
+          print_variable_assignments (&app, emgr);
         }
         else
         {
