@@ -1392,7 +1392,8 @@ btor_const_exp (BtorExpMgr *emgr, const char *bits)
   }
   else
     inc_exp_ref_counter (*lookup);
-  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  assert (BTOR_IS_REGULAR_EXP (*lookup));
+  ;
   return *lookup;
 }
 
@@ -1507,7 +1508,7 @@ slice_exp (BtorExpMgr *emgr, BtorExp *exp, int upper, int lower)
   }
   else
     inc_exp_ref_counter (*lookup);
-  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
 
@@ -1960,7 +1961,7 @@ binary_exp (
   }
   else
     inc_exp_ref_counter (*lookup);
-  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
 
@@ -3124,7 +3125,7 @@ ternary_exp (BtorExpMgr *emgr,
   }
   else
     inc_exp_ref_counter (*lookup);
-  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
 
@@ -3188,7 +3189,7 @@ btor_write_exp (BtorExpMgr *emgr,
   }
   else
     inc_exp_ref_counter (*lookup);
-  assert (!BTOR_IS_INVERTED_EXP (*lookup));
+  assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
 
@@ -3789,7 +3790,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         {
           /* generate new AIGs for read */
           cur->av = btor_var_aigvec (avmgr, cur->len);
-          assert (!BTOR_IS_INVERTED_EXP (cur->e[0]));
+          assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
           assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
           if (emgr->read_enc == BTOR_EAGER_READ_ENC)
             encode_read_eagerly (emgr, cur->e[0], cur);
