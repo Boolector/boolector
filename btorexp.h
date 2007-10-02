@@ -70,11 +70,7 @@ struct BtorExp
     struct
     {
       char *symbol; /* symbol for output. for variables only */
-      union
-      {
-        int upper;        /* for slices only */
-        char *assignment; /* for variables only */
-      };
+      int upper;    /* for slices only */
       union
       {
         int lower;  /* for slices only */

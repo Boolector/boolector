@@ -942,10 +942,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   if (BTOR_IS_CONST_EXP (exp))
     btor_freestr (mm, exp->bits);
   else if (BTOR_IS_VAR_EXP (exp))
-  {
     btor_freestr (mm, exp->symbol);
-    if (exp->assignment != NULL) btor_freestr (mm, exp->assignment);
-  }
   else if (BTOR_IS_NATIVE_ARRAY_EXP (exp))
     BTOR_DELETE (mm, exp->reads);
   else if (BTOR_IS_WRITE_ARRAY_EXP (exp))
@@ -4396,9 +4393,10 @@ btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (BTOR_REAL_ADDR_EXP (exp)->reachable == 1);
   avmgr = emgr->avmgr;
-  if (exp->av == NULL) return NULL;
+  if (!BTOR_REAL_ADDR_EXP (exp)->reachable
+      || BTOR_REAL_ADDR_EXP (exp)->av == NULL)
+    return NULL;
   av         = BTOR_GET_AIGVEC_EXP (emgr, exp);
   assignment = btor_assignment_aigvec (avmgr, av);
   btor_release_delete_aigvec (avmgr, av);
