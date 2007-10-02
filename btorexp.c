@@ -3785,28 +3785,28 @@ btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc)
 }
 
 BtorMemMgr *
-btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr)
+btor_get_mem_mgr_exp_mgr (const BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
   return emgr->mm;
 }
 
 BtorAIGVecMgr *
-btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr)
+btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
   return emgr->avmgr;
 }
 
-BtorExpPtrStack *
-btor_get_variables_exp_mgr (BtorExpMgr *emgr)
+const BtorExpPtrStack *
+btor_get_variables_exp_mgr (const BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
   return &(emgr->vars);
 }
 
-BtorExpPtrStack *
-btor_get_arrays_exp_mgr (BtorExpMgr *emgr)
+const BtorExpPtrStack *
+btor_get_arrays_exp_mgr (const BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
   return &(emgr->arrays);
