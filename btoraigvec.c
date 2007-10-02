@@ -5890,7 +5890,7 @@ btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr)
 }
 
 char *
-btor_get_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
   BtorAIGMgr *amgr = NULL;
   int i            = 0;

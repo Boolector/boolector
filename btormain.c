@@ -625,7 +625,7 @@ btor_main (int argc, char **argv)
           for (i = 0; i < parse_res.nvars; i++)
           {
             cur_exp = parse_res.vars[i];
-            witness = btor_get_assignment_var_exp (emgr, cur_exp);
+            witness = btor_assignment_exp (emgr, cur_exp);
 
             if (witness != NULL && !has_only_x (witness))
             {
@@ -650,6 +650,7 @@ btor_main (int argc, char **argv)
                   &app, "%s %s\n", btor_get_symbol_exp (emgr, cur_exp), pretty);
 
               if (hexadecimal || decimal) btor_freestr (mem, pretty);
+              btor_freestr (mem, witness);
             }
           }
         }

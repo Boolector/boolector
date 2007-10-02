@@ -169,7 +169,9 @@ void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 /* Gets AIG manager of AIG vector manager. */
 BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
-/* Gets current assignemt of AIG vector. */
-char *btor_get_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+/* Builds current assignment string of AIG vector (in the SAT case)
+ * and returns it.
+ */
+char *btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 #endif

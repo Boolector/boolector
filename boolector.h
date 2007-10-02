@@ -421,10 +421,11 @@ void btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root);
 /* Solves sat instance with root expression exp. */
 int btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp);
 
-/* Gets current assignment of variable exp (in the SAT case).
+/* Builds current assignment string of expression (in the SAT case)
+ * and returns it.
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-char *btor_get_assignment_var_exp (BtorExpMgr *emgr, BtorExp *exp);
+char *btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp);
 
 #endif

@@ -47,7 +47,6 @@ struct BtorExpMgr
 {
   BtorMemMgr *mm;
   BtorExpUniqueTable table;
-  BtorExpPtrStack assigned_exps;
   BtorExpPtrStack vars;
   BtorExpPtrStack arrays;
   BtorAIGVecMgr *avmgr;
@@ -3616,7 +3615,6 @@ btor_new_exp_mgr (int rewrite_level,
   BTOR_NEW (mm, emgr);
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
-  BTOR_INIT_STACK (emgr->assigned_exps);
   BTOR_INIT_STACK (emgr->vars);
   BTOR_INIT_STACK (emgr->arrays);
   emgr->avmgr         = btor_new_aigvec_mgr (mm, verbosity);
@@ -3643,7 +3641,6 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
     delete_exp_node (emgr, *cur);
   assert (emgr->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
-  BTOR_RELEASE_STACK (mm, emgr->assigned_exps);
   BTOR_RELEASE_STACK (mm, emgr->vars);
   BTOR_RELEASE_STACK (mm, emgr->arrays);
   btor_delete_aigvec_mgr (emgr->avmgr);
@@ -3922,24 +3919,6 @@ btor_exp_to_aigvec (BtorExpMgr *emgr,
   return result;
 }
 
-/* Frees assignments of assigned variables */
-static void
-free_current_assignments (BtorExpMgr *emgr)
-{
-  BtorExp *cur = NULL;
-  assert (emgr != NULL);
-  while (!BTOR_EMPTY_STACK (emgr->assigned_exps))
-  {
-    cur = BTOR_POP_STACK (emgr->assigned_exps);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur));
-    assert (cur->assignment != NULL);
-    btor_freestr (emgr->mm, cur->assignment);
-    cur->assignment = NULL;
-  }
-  BTOR_RESET_STACK (emgr->assigned_exps);
-}
-
 void
 btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
 {
@@ -3949,7 +3928,6 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
-  free_current_assignments (emgr);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);
@@ -4370,7 +4348,6 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
-  free_current_assignments (emgr);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);
@@ -4404,18 +4381,19 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
 }
 
 char *
-btor_get_assignment_var_exp (BtorExpMgr *emgr, BtorExp *exp)
+btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
-  char *assignment = NULL;
+  BtorAIGVecMgr *avmgr = NULL;
+  char *assignment     = NULL;
+  BtorAIGVec *av       = NULL;
   assert (emgr != NULL);
   assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (BTOR_IS_VAR_EXP (exp));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  avmgr = emgr->avmgr;
   if (exp->av == NULL) return NULL;
-  if (exp->assignment != NULL) return exp->assignment;
-  assignment      = btor_get_assignment_aigvec (emgr->avmgr, exp->av);
-  exp->assignment = assignment;
-  BTOR_PUSH_STACK (emgr->mm, emgr->assigned_exps, exp);
+  av         = BTOR_GET_AIGVEC_EXP (emgr, exp);
+  assignment = btor_assignment_aigvec (avmgr, av);
+  btor_release_delete_aigvec (avmgr, av);
   return assignment;
 }
 
