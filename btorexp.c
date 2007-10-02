@@ -3230,8 +3230,27 @@ btor_get_symbol_exp (BtorExpMgr *emgr, BtorExp *exp)
   return BTOR_REAL_ADDR_EXP (exp)->symbol;
 }
 
+#define BTOR_PUSH_EXP_IF_NOT_MARKED(e)         \
+  do                                           \
+  {                                            \
+    BtorExp *child = BTOR_REAL_ADDR_EXP ((e)); \
+    if (child->mark) break;                    \
+    child->mark = 1;                           \
+    BTOR_PUSH_STACK (mm, stack, child);        \
+  } while (0)
+
+static int
+btor_cmp_id (const void *p, const void *q)
+{
+  BtorExp *a = *(BtorExp **) p;
+  BtorExp *b = *(BtorExp **) q;
+  return a->id - b->id;
+}
+
+#if 0
+
 void
-btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
+btor_dump_exp (BtorExpMgr * emgr, FILE * file, BtorExp * exp)
 {
   char idbuffer[20];
   const char *name;
@@ -3246,132 +3265,243 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp)
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, exp);
   while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    assert (cur->mark >= 0);
-    assert (cur->mark <= 2);
-    if (cur->mark != 2)
     {
-      if (cur->mark == 0)
-      {
-        if (BTOR_IS_CONST_EXP (cur))
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      assert (cur->mark >= 0);
+      assert (cur->mark <= 2);
+      if (cur->mark != 2)
         {
-          cur->mark = 2;
-          fprintf (file, "%d const %d %s\n", cur->id, cur->len, cur->bits);
-        }
-        else if (BTOR_IS_VAR_EXP (cur))
-        {
-          cur->mark = 2;
-          fprintf (file, "%d var %d", cur->id, cur->len);
-          sprintf (idbuffer, "%d", cur->id);
-          name = btor_get_symbol_exp (emgr, cur);
-          if (strcmp (name, idbuffer)) fprintf (file, " %s", name);
-          putc ('\n', file);
-        }
-        else if (BTOR_IS_NATIVE_ARRAY_EXP (cur))
-        {
-          cur->mark = 2;
-          fprintf (file, "%d array %d %d\n", cur->id, cur->len, cur->index_len);
-        }
-        else
-        {
-          cur->mark = 1;
-          BTOR_PUSH_STACK (mm, stack, cur);
-          if (BTOR_IS_UNARY_EXP (cur))
-          {
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-          }
-          else if (BTOR_IS_BINARY_EXP (cur))
-          {
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-          }
+          if (cur->mark == 0)
+            {
+              if (BTOR_IS_CONST_EXP (cur))
+                {
+                  cur->mark = 2;
+                  fprintf (file, "%d const %d %s\n", cur->id, cur->len,
+                           cur->bits);
+                }
+              else if (BTOR_IS_VAR_EXP (cur))
+                {
+                  cur->mark = 2;
+                  fprintf (file, "%d var %d", cur->id, cur->len);
+                  sprintf (idbuffer, "%d", cur->id);
+                  name = btor_get_symbol_exp (emgr, cur);
+                  if (strcmp (name, idbuffer))
+                    fprintf (file, " %s", name);
+                  putc ('\n', file);
+                }
+              else if (BTOR_IS_NATIVE_ARRAY_EXP (cur))
+                {
+                  cur->mark = 2;
+                  fprintf (file, "%d array %d %d\n", cur->id, cur->len,
+                           cur->index_len);
+                }
+              else
+                {
+                  cur->mark = 1;
+                  BTOR_PUSH_STACK (mm, stack, cur);
+                  if (BTOR_IS_UNARY_EXP (cur))
+                    {
+                      BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+                    }
+                  else if (BTOR_IS_BINARY_EXP (cur))
+                    {
+                      BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+                      BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+                    }
+                  else
+                    {
+                      assert (BTOR_IS_TERNARY_EXP (cur));
+                      BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+                      BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+                      BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+                    }
+                }
+            }
           else
-          {
-            assert (BTOR_IS_TERNARY_EXP (cur));
-            BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-          }
+            {
+              assert (cur->mark == 1);
+              cur->mark = 2;
+              fprintf (file, "%d ", cur->id);
+              if (BTOR_IS_UNARY_EXP (cur))
+                {
+                  assert (cur->kind == BTOR_SLICE_EXP);
+                  fprintf (file, "slice %d %d %d %d\n",
+                           cur->len, BTOR_GET_ID_EXP (cur->e[0]),
+                           cur->upper, cur->lower);
+                }
+              else if (BTOR_IS_BINARY_EXP (cur))
+                {
+                  switch (cur->kind)
+                    {
+                    case BTOR_AND_EXP:
+                      fprintf (file, "and");
+                      break;
+                    case BTOR_EQ_EXP:
+                      fprintf (file, "eq");
+                      break;
+                    case BTOR_ADD_EXP:
+                      fprintf (file, "add");
+                      break;
+                    case BTOR_MUL_EXP:
+                      fprintf (file, "mul");
+                      break;
+                    case BTOR_ULT_EXP:
+                      fprintf (file, "ult");
+                      break;
+                    case BTOR_SLL_EXP:
+                      fprintf (file, "sll");
+                      break;
+                    case BTOR_SRL_EXP:
+                      fprintf (file, "srl");
+                      break;
+                    case BTOR_UDIV_EXP:
+                      fprintf (file, "udiv");
+                      break;
+                    case BTOR_UREM_EXP:
+                      fprintf (file, "urem");
+                      break;
+                    case BTOR_CONCAT_EXP:
+                      fprintf (file, "concat");
+                      break;
+                    default:
+                      assert (cur->kind == BTOR_READ_EXP);
+                      fprintf (file, "read");
+                      break;
+                    }
+                  fprintf (file, " %d %d",
+                           cur->len, BTOR_GET_ID_EXP (cur->e[0]));
+                  fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[1]));
+                }
+              else
+                {
+                  assert (BTOR_IS_TERNARY_EXP (cur));
+                  if (BTOR_IS_WRITE_ARRAY_EXP (cur))
+                    {
+                      fprintf (file, "write %d", cur->len);
+                      fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[0]));
+                      fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[1]));
+                      fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[2]));
+                    }
+                  else
+                    {
+                      assert (cur->kind == BTOR_COND_EXP);
+                      fprintf (file, "cond %d", cur->len);
+                      fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[0]));
+                      fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[1]));
+                      fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[2]));
+                    }
+                }
+            }
         }
-      }
-      else
-      {
-        assert (cur->mark == 1);
-        cur->mark = 2;
-        fprintf (file, "%d ", cur->id);
-        if (BTOR_IS_UNARY_EXP (cur))
-        {
-          assert (cur->kind == BTOR_SLICE_EXP);
-          fprintf (file,
-                   "slice %d %d %d %d\n",
-                   cur->len,
-                   BTOR_GET_ID_EXP (cur->e[0]),
-                   cur->upper,
-                   cur->lower);
-        }
-        else if (BTOR_IS_BINARY_EXP (cur))
-        {
-          switch (cur->kind)
-          {
-            case BTOR_AND_EXP: fprintf (file, "and"); break;
-            case BTOR_EQ_EXP: fprintf (file, "eq"); break;
-            case BTOR_ADD_EXP: fprintf (file, "add"); break;
-            case BTOR_MUL_EXP: fprintf (file, "mul"); break;
-            case BTOR_ULT_EXP: fprintf (file, "ult"); break;
-            case BTOR_SLL_EXP: fprintf (file, "sll"); break;
-            case BTOR_SRL_EXP: fprintf (file, "srl"); break;
-            case BTOR_UDIV_EXP: fprintf (file, "udiv"); break;
-            case BTOR_UREM_EXP: fprintf (file, "urem"); break;
-            case BTOR_CONCAT_EXP: fprintf (file, "concat"); break;
-            default:
-              assert (cur->kind == BTOR_READ_EXP);
-              fprintf (file, "read");
-              break;
-          }
-          fprintf (file, " %d %d", cur->len, BTOR_GET_ID_EXP (cur->e[0]));
-          fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[1]));
-        }
-        else
-        {
-          assert (BTOR_IS_TERNARY_EXP (cur));
-          if (BTOR_IS_WRITE_ARRAY_EXP (cur))
-          {
-            fprintf (file, "write %d", cur->len);
-            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[0]));
-            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[1]));
-            fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[2]));
-          }
-          else
-          {
-            assert (cur->kind == BTOR_COND_EXP);
-            fprintf (file, "cond %d", cur->len);
-            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[0]));
-            fprintf (file, " %d", BTOR_GET_ID_EXP (cur->e[1]));
-            fprintf (file, " %d\n", BTOR_GET_ID_EXP (cur->e[2]));
-          }
-        }
-      }
     }
-  }
   BTOR_RELEASE_STACK (mm, stack);
   assert (exp->id < INT_MAX);
-  fprintf (file,
-           "%d root %d %d\n",
-           BTOR_REAL_ADDR_EXP (exp)->id + 1,
-           BTOR_REAL_ADDR_EXP (exp)->len,
-           BTOR_GET_ID_EXP (exp));
+  fprintf (file, "%d root %d %d\n", BTOR_REAL_ADDR_EXP (exp)->id + 1,
+           BTOR_REAL_ADDR_EXP (exp)->len, BTOR_GET_ID_EXP (exp));
   btor_mark_exp (emgr, exp, 0);
 }
 
-#define BTOR_PUSH_EXP_IF_NOT_MARKED(e)         \
-  do                                           \
-  {                                            \
-    BtorExp *child = BTOR_REAL_ADDR_EXP ((e)); \
-    if (child->mark) break;                    \
-    child->mark = 1;                           \
-    BTOR_PUSH_STACK (mm, stack, child);        \
-  } while (0)
+#else
+
+void
+btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
+{
+  BtorMemMgr *mm = emgr->mm;
+  BtorExpPtrStack stack;
+  char idbuffer[20];
+  int next, i, j;
+  const char *op;
+  BtorExp *e;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_EXP_IF_NOT_MARKED (root);
+
+  while (next < BTOR_COUNT_STACK (stack))
+  {
+    e = stack.start[next++];
+
+    assert (!BTOR_IS_INVERTED_EXP (e));
+    assert (e->mark);
+
+    if (BTOR_IS_CONST_EXP (e)) continue;
+
+    if (BTOR_IS_VAR_EXP (e)) continue;
+
+    if (BTOR_IS_ARRAY_EXP (e)) continue;
+
+    for (i = 0; i < BTOR_ARITY_EXP (e); i++)
+      BTOR_PUSH_EXP_IF_NOT_MARKED (e->e[i]);
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
+
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
+
+  BTOR_RELEASE_STACK (mm, stack);
+
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    e = stack.start[i];
+
+    assert (!BTOR_IS_INVERTED_EXP (e));
+
+    fprintf (file, "%d ", e->id);
+
+    switch (e->kind)
+    {
+      case BTOR_ADD_EXP: op = "add"; goto PRINT;
+      case BTOR_AND_EXP: op = "and"; goto PRINT;
+      case BTOR_CONCAT_EXP: op = "concat"; goto PRINT;
+      case BTOR_COND_EXP: op = "cond"; goto PRINT;
+      case BTOR_EQ_EXP: op = "eq"; goto PRINT;
+      case BTOR_MUL_EXP: op = "mul"; goto PRINT;
+      case BTOR_READ_EXP: op = "read"; goto PRINT;
+      case BTOR_SLL_EXP: op = "sll"; goto PRINT;
+      case BTOR_SRL_EXP: op = "srl"; goto PRINT;
+      case BTOR_UDIV_EXP: op = "udiv"; goto PRINT;
+      case BTOR_ULT_EXP: op = "ult"; goto PRINT;
+      case BTOR_UREM_EXP: op = "urem"; goto PRINT;
+      case BTOR_WRITE_EXP:
+        op = "write";
+      PRINT:
+        fputs (op, file);
+        fprintf (file, " %d", e->len);
+        for (j = 0; j < BTOR_ARITY_EXP (e); j++)
+          fprintf (file, " %d", BTOR_GET_ID_EXP (e->e[j]));
+        break;
+
+      case BTOR_SLICE_EXP:
+        fprintf (file,
+                 "slice %d %d %d %d",
+                 e->len,
+                 BTOR_GET_ID_EXP (e->e[0]),
+                 e->upper,
+                 e->lower);
+        break;
+
+      case BTOR_ARRAY_EXP:
+        fprintf (file, "array %d %d", e->len, e->index_len);
+        break;
+
+      case BTOR_CONST_EXP:
+        fprintf (file, "const %d %s", e->len, e->bits);
+        break;
+
+      default:
+      case BTOR_VAR_EXP:
+        assert (e->kind == BTOR_VAR_EXP);
+        fprintf (file, "var %d", e->len);
+        sprintf (idbuffer, "%d", e->id);
+        assert (e->symbol);
+        if (strcmp (e->symbol, idbuffer)) fprintf (file, " %s", e->symbol);
+        break;
+    }
+
+    fputc ('\n', file);
+  }
+}
+
+#endif
 
 static void
 btor_dump_smt_id (BtorExp *e, FILE *file)
@@ -3403,14 +3533,6 @@ btor_dump_smt_id (BtorExp *e, FILE *file)
 
 CLOSE:
   if (u != e) fputc (')', file);
-}
-
-static int
-btor_cmp_dump_smt (const void *p, const void *q)
-{
-  BtorExp *a = *(BtorExp **) p;
-  BtorExp *b = *(BtorExp **) q;
-  return a->id - b->id;
 }
 
 void
@@ -3452,7 +3574,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
 
-  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_dump_smt);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
 
   fputs ("(benchmark ", file);
   if (BTOR_IS_INVERTED_AIG (root)) fputs ("not", file);
