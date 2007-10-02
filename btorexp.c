@@ -4122,8 +4122,9 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       cur_array->mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur_array);
       /* ATTENTION: There can be write parents although
-       * they are not reachable from the root. For example the parser might
-       * still have a reference to a write, thus it is still in the parent list.
+       * they are not reachable from the root.
+       * For example the parser might still
+       * have a reference to a write, thus it is still in the parent list.
        * We use the reachable flag to determine with which reads and writes
        * we have to deal with.
        */
