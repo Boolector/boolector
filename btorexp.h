@@ -70,11 +70,7 @@ struct BtorExp
     struct
     {
       char *symbol; /* symbol for output. for variables only */
-      union
-      {
-        int upper;        /* for slices only */
-        char *assignment; /* for variables only */
-      };
+      int upper;    /* for slices only */
       union
       {
         int lower;  /* for slices only */
@@ -159,6 +155,14 @@ BtorMemMgr *btor_get_mem_mgr_exp_mgr (BtorExpMgr *emgr);
 
 /* Returns the AIG vector manager of the expression manager. */
 BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr);
+
+/* Returns stack of all variables.
+ * ATTENTION: DO NOT MODIFY THE STACK */
+BtorExpPtrStack *btor_get_variables_exp_mgr (BtorExpMgr *emgr);
+
+/* Returns stack of all arrays.
+ * ATTENTION: DO NOT MODIFY THE STACK */
+BtorExpPtrStack *btor_get_arrays_exp_mgr (BtorExpMgr *emgr);
 
 /* Synthesize boolean expression to a single AIG.
  * len(exp) = 1

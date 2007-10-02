@@ -942,10 +942,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
   if (BTOR_IS_CONST_EXP (exp))
     btor_freestr (mm, exp->bits);
   else if (BTOR_IS_VAR_EXP (exp))
-  {
     btor_freestr (mm, exp->symbol);
-    if (exp->assignment != NULL) btor_freestr (mm, exp->assignment);
-  }
   else if (BTOR_IS_NATIVE_ARRAY_EXP (exp))
     BTOR_DELETE (mm, exp->reads);
   else if (BTOR_IS_WRITE_ARRAY_EXP (exp))
@@ -3680,6 +3677,20 @@ btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr)
   return emgr->avmgr;
 }
 
+BtorExpPtrStack *
+btor_get_variables_exp_mgr (BtorExpMgr *emgr)
+{
+  assert (emgr != NULL);
+  return &(emgr->vars);
+}
+
+BtorExpPtrStack *
+btor_get_arrays_exp_mgr (BtorExpMgr *emgr)
+{
+  assert (emgr != NULL);
+  return &(emgr->arrays);
+}
+
 static void
 btor_synthesize_exp (BtorExpMgr *emgr,
                      BtorExp *exp,
@@ -4397,7 +4408,9 @@ btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   avmgr = emgr->avmgr;
-  if (exp->av == NULL) return NULL;
+  if (!BTOR_REAL_ADDR_EXP (exp)->reachable
+      || BTOR_REAL_ADDR_EXP (exp)->av == NULL)
+    return NULL;
   av         = BTOR_GET_AIGVEC_EXP (emgr, exp);
   assignment = btor_assignment_aigvec (avmgr, av);
   btor_release_delete_aigvec (avmgr, av);
