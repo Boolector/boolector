@@ -3423,11 +3423,14 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
     assert (!BTOR_IS_INVERTED_EXP (e));
     assert (e->mark);
 
+#if 1 /* TODO: is this code needed? */
+
     if (BTOR_IS_CONST_EXP (e)) continue;
 
     if (BTOR_IS_VAR_EXP (e)) continue;
 
     if (BTOR_IS_ARRAY_EXP (e)) continue;
+#endif
 
     for (i = 0; i < BTOR_ARITY_EXP (e); i++)
       BTOR_PUSH_EXP_IF_NOT_MARKED (e->e[i]);
@@ -3499,6 +3502,9 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
     fputc ('\n', file);
   }
+
+  e = BTOR_REAL_ADDR_EXP (root);
+  fprintf (file, "%d root %d %d\n", e->id + 1, e->len, BTOR_GET_ID_EXP (root));
 }
 
 #endif
