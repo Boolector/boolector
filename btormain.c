@@ -10,6 +10,7 @@
 #include "btorparse.h"
 #include "btorsat.h"
 #include "btorsmt.h"
+#include "btorstack.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -314,9 +315,11 @@ btor_main (int argc, char **argv)
   FILE *cnf_file              = stdout;
   FILE *smt_file              = stdout;
   FILE *trace_file            = stdout;
+  BtorExpPtrStack *variables  = NULL;
+  BtorExpPtrStack *arrays     = NULL;
   BtorExpMgr *emgr            = NULL;
-  BtorExpMgr **temp           = NULL;
-  BtorExpMgr **top            = NULL;
+  BtorExp **temp              = NULL;
+  BtorExp **top               = NULL;
   BtorExp *cur_exp            = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIGVecMgr *avmgr        = NULL;
@@ -624,9 +627,11 @@ btor_main (int argc, char **argv)
         else if (sat_result == BTOR_SAT)
         {
           print_msg (&app, "SATISFIABLE\n");
-          for (i = 0; i < parse_res.nvars; i++)
+          variables = btor_get_variables_exp_mgr (emgr);
+          top       = variables->top;
+          for (temp = variables->start; temp != top; temp++)
           {
-            cur_exp = parse_res.vars[i];
+            cur_exp = *temp;
             witness = btor_assignment_exp (emgr, cur_exp);
 
             if (witness != NULL && !has_only_x (witness))
@@ -652,8 +657,8 @@ btor_main (int argc, char **argv)
                   &app, "%s %s\n", btor_get_symbol_exp (emgr, cur_exp), pretty);
 
               if (hexadecimal || decimal) btor_freestr (mem, pretty);
-              btor_freestr (mem, witness);
             }
+            if (witness != NULL) btor_freestr (mem, witness);
           }
         }
         else
