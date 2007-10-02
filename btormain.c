@@ -682,6 +682,7 @@ btor_main (int argc, char **argv)
   if (close_aig_file) fclose (aig_file);
   if (close_cnf_file) fclose (cnf_file);
   if (close_trace_file) fclose (trace_file);
+  if (close_smt_file) fclose (smt_file);
   if (err)
     return_val = BTOR_ERR_EXIT;
   else if (done)
