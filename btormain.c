@@ -340,9 +340,9 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
 static void
 print_variable_assignments (BtorMainApp *app, BtorExpMgr *emgr)
 {
-  BtorExp **temp             = NULL;
-  BtorExp **top              = NULL;
-  BtorExpPtrStack *variables = NULL;
+  BtorExp **temp                   = NULL;
+  BtorExp **top                    = NULL;
+  const BtorExpPtrStack *variables = NULL;
   assert (app != NULL);
   assert (emgr != NULL);
   variables = btor_get_variables_exp_mgr (emgr);
@@ -354,12 +354,12 @@ print_variable_assignments (BtorMainApp *app, BtorExpMgr *emgr)
 static void
 print_read_assignments (BtorMainApp *app, BtorExpMgr *emgr)
 {
-  BtorMemMgr *mm          = NULL;
-  BtorExp **temp          = NULL;
-  BtorExp **top           = NULL;
-  BtorExp *cur            = NULL;
-  BtorExp *cur_parent     = NULL;
-  BtorExpPtrStack *arrays = NULL;
+  BtorMemMgr *mm                = NULL;
+  BtorExp **temp                = NULL;
+  BtorExp **top                 = NULL;
+  BtorExp *cur                  = NULL;
+  BtorExp *cur_parent           = NULL;
+  const BtorExpPtrStack *arrays = NULL;
   BtorExpPtrStack stack;
   assert (app != NULL);
   assert (emgr != NULL);

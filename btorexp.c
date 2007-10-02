@@ -3787,14 +3787,14 @@ btor_get_aigvec_mgr_exp_mgr (BtorExpMgr *emgr)
   return emgr->avmgr;
 }
 
-BtorExpPtrStack *
+const BtorExpPtrStack *
 btor_get_variables_exp_mgr (BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
   return &(emgr->vars);
 }
 
-BtorExpPtrStack *
+const BtorExpPtrStack *
 btor_get_arrays_exp_mgr (BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
