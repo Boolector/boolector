@@ -1,13 +1,13 @@
 # This is for SMT parser
 #
-smttrue -o log/smttrue.log log/smttrue.smt
-smtfalse -o log/smtfalse.log log/smtfalse.smt
-smtvar -o log/smtvar.log log/smtvar.smt
-smtnotvar -o log/smtnotvar.log log/smtnotvar.smt
-smtandvar -o log/smtandvar.log log/smtandvar.smt
-smtxor -o log/smtxor.log log/smtxor.smt
-smtor -o log/smtor.log log/smtor.smt
-smtiff -o log/smtiff.log log/smtiff.smt
+smttrue -s -o log/smttrue.log log/smttrue.smt
+smtfalse -s -o log/smtfalse.log log/smtfalse.smt
+smtvar -s -o log/smtvar.log log/smtvar.smt
+smtnotvar -s -o log/smtnotvar.log log/smtnotvar.smt
+smtandvar -s -o log/smtandvar.log log/smtandvar.smt
+smtxor -s -o log/smtxor.log log/smtxor.smt
+smtor -s -o log/smtor.log log/smtor.smt
+smtiff -s -o log/smtiff.log log/smtiff.smt
 smtflet -o log/smtflet.log log/smtflet.smt
 smtbv255 -o log/smtbv255.log log/smtbv255.smt
 smtshl1 -o log/smtshl1.log log/smtshl1.smt
