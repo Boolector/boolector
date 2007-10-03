@@ -4374,8 +4374,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         }
       }
       if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
-      /* check if values of collected reads are equal to the value of write if
-       * indices are equal.
+      /* check if values of collected reads are equal to
+       * the value of write if indices are equal.
        */
       if (BTOR_IS_WRITE_ARRAY_EXP (cur_array))
       {
@@ -4407,10 +4407,11 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
                                              cur_read);
               }
               else
-              /* write conflicts with unresolved read of a parent write */
+              /* write conflicts with unresolved read of a
+               * parent write */
               {
-                /* collect intermediate writes as premisses for mccarthy
-                 * constraint */
+                /* collect intermediate writes as
+                 * premisses for mccarthy constraint */
                 BTOR_INIT_STACK (writes);
                 cur_write = cur_read->e[0];
                 assert (BTOR_IS_REGULAR_EXP (cur_write));
