@@ -979,8 +979,6 @@ static unsigned int
 compute_exp_hash (BtorExp *exp, int table_size)
 {
   unsigned int hash = 0;
-  int i             = 0;
-  int len           = 0;
   assert (exp != NULL);
   assert (table_size > 0);
   assert (btor_is_power_of_2_util (table_size));
@@ -988,11 +986,7 @@ compute_exp_hash (BtorExp *exp, int table_size)
   assert (!BTOR_IS_VAR_EXP (exp));
   assert (!BTOR_IS_NATIVE_ARRAY_EXP (exp));
   if (BTOR_IS_CONST_EXP (exp))
-  {
-    len = exp->len;
-    for (i = 0; i < len; i++)
-      if (exp->bits[i] == '1') hash += 1u << (i % 32);
-  }
+    hash = btor_hashstr ((void *) exp->bits);
   else if (BTOR_IS_UNARY_EXP (exp))
   {
     hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id;
@@ -1023,13 +1017,11 @@ find_const_exp (BtorExpMgr *emgr, const char *bits)
   BtorExp *cur      = NULL;
   BtorExp **result  = NULL;
   unsigned int hash = 0u;
-  int i             = 0;
   int len           = 0;
   assert (emgr != NULL);
   assert (bits != NULL);
-  len = strlen (bits);
-  for (i = 0; i < len; i++)
-    if (bits[i] == '1') hash += 1u << (i % 32);
+  len    = strlen (bits);
+  hash   = btor_hashstr ((void *) bits);
   hash   = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (emgr->table.size - 1);
   result = emgr->table.chains + hash;
   cur    = *result;
