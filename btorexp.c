@@ -3422,7 +3422,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   {
     e = stack.start[next++];
 
-    assert (!BTOR_IS_INVERTED_EXP (e));
+    assert (BTOR_IS_REGULAR_EXP (e));
     assert (e->mark);
 
     for (i = 0; i < BTOR_ARITY_EXP (e); i++)
@@ -3437,7 +3437,7 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   {
     e = stack.start[i];
 
-    assert (!BTOR_IS_INVERTED_EXP (e));
+    assert (BTOR_IS_REGULAR_EXP (e));
 
     fprintf (file, "%d ", e->id);
 
@@ -3554,7 +3554,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   {
     e = stack.start[next++];
 
-    assert (!BTOR_IS_INVERTED_EXP (e));
+    assert (BTOR_IS_REGULAR_EXP (e));
     assert (e->mark);
 
     if (BTOR_IS_CONST_EXP (e)) continue;
@@ -3576,7 +3576,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
 
   fputs ("(benchmark ", file);
-  if (BTOR_IS_INVERTED_AIG (root)) fputs ("not", file);
+  if (BTOR_IS_INVERTED_EXP (root)) fputs ("not", file);
   fprintf (file, "root%d\n", BTOR_REAL_ADDR_EXP (root)->id);
 
   if (arrays)
@@ -3588,7 +3588,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   {
     e = stack.start[i];
 
-    assert (!BTOR_IS_INVERTED_AIG (e));
+    assert (BTOR_IS_REGULAR_EXP (e));
 
     if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_ARRAY_EXP (e)) continue;
 
@@ -3608,6 +3608,8 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
     e = stack.start[i];
+
+    assert (BTOR_IS_REGULAR_EXP (e));
 
     if (BTOR_IS_VAR_EXP (e) || BTOR_IS_ARRAY_EXP (e)) continue;
 
