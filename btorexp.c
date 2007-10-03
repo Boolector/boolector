@@ -3642,20 +3642,6 @@ btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr)
   return emgr->avmgr;
 }
 
-const BtorExpPtrStack *
-btor_get_variables_exp_mgr (const BtorExpMgr *emgr)
-{
-  assert (emgr != NULL);
-  return &(emgr->vars);
-}
-
-const BtorExpPtrStack *
-btor_get_arrays_exp_mgr (const BtorExpMgr *emgr)
-{
-  assert (emgr != NULL);
-  return &(emgr->arrays);
-}
-
 static void
 btor_synthesize_exp (BtorExpMgr *emgr,
                      BtorExp *exp,

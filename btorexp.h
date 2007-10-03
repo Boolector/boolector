@@ -154,14 +154,6 @@ BtorMemMgr *btor_get_mem_mgr_exp_mgr (const BtorExpMgr *emgr);
 /* Returns the AIG vector manager of the expression manager. */
 BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr);
 
-/* Returns stack of all variables.
- * WARNING: DO NOT MODIFY THE STACK AND ITS CONTENTS */
-const BtorExpPtrStack *btor_get_variables_exp_mgr (const BtorExpMgr *emgr);
-
-/* Returns stack of all arrays.
- * WARNING: DO NOT MODIFY THE STACK AND ITS CONTENTS */
-const BtorExpPtrStack *btor_get_arrays_exp_mgr (const BtorExpMgr *emgr);
-
 /* Synthesize boolean expression to a single AIG.
  * len(exp) = 1
  */

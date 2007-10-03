@@ -72,7 +72,6 @@ static const char *g_usage =
     "  -V|--version                     print version and exit\n"
     "\n"
     "  -s|--solutions                   print assignments of variables (SAT)\n"
-    "  -r|--reads                       print assignments of reads (SAT)\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
@@ -294,7 +293,7 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (BTOR_IS_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
+  assert (BTOR_IS_VAR_EXP (exp));
   basis = app->basis;
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
@@ -320,14 +319,7 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
     else
       pretty = assignment;
 
-    if (BTOR_IS_VAR_EXP (exp))
-      print_msg_va_args (
-          app, "%s %s\n", btor_get_symbol_exp (emgr, exp), pretty);
-    else
-    {
-      assert (exp->kind == BTOR_READ_EXP);
-      print_msg_va_args (app, "read%d %s\n", exp->id, pretty);
-    }
+    print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (emgr, exp), pretty);
 
     if (not_binary) btor_freestr (mm, pretty);
   }
@@ -335,61 +327,17 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
 }
 
 static void
-print_variable_assignments (BtorMainApp *app, BtorExpMgr *emgr)
+print_variable_assignments (BtorMainApp *app,
+                            BtorExpMgr *emgr,
+                            BtorExp **vars,
+                            int nvars)
 {
-  BtorExp **temp                   = NULL;
-  BtorExp **top                    = NULL;
-  const BtorExpPtrStack *variables = NULL;
+  int i = 0;
   assert (app != NULL);
   assert (emgr != NULL);
-  variables = btor_get_variables_exp_mgr (emgr);
-  top       = variables->top;
-  for (temp = variables->start; temp != top; temp++)
-    print_assignment (app, emgr, *temp);
-}
-
-static void
-print_read_assignments (BtorMainApp *app, BtorExpMgr *emgr)
-{
-  BtorMemMgr *mm                = NULL;
-  BtorExp **temp                = NULL;
-  BtorExp **top                 = NULL;
-  BtorExp *cur                  = NULL;
-  BtorExp *cur_parent           = NULL;
-  const BtorExpPtrStack *arrays = NULL;
-  BtorExpPtrStack stack;
-  assert (app != NULL);
-  assert (emgr != NULL);
-  mm     = btor_get_mem_mgr_exp_mgr (emgr);
-  arrays = btor_get_arrays_exp_mgr (emgr);
-  BTOR_INIT_STACK (stack);
-  /* push arrays on stack */
-  top = arrays->top;
-  for (temp = arrays->start; temp != top; temp++)
-    BTOR_PUSH_STACK (mm, stack, *temp);
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    if (BTOR_IS_ARRAY_EXP (cur))
-    {
-      /* push parent writes and reads on stack */
-      cur_parent = cur->last_parent;
-      assert (BTOR_IS_REGULAR_EXP (cur_parent));
-      while (cur_parent != NULL)
-      {
-        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
-        BTOR_PUSH_STACK (mm, stack, cur_parent);
-        cur_parent = cur_parent->prev_parent[0];
-        assert (BTOR_IS_REGULAR_EXP (cur_parent));
-      }
-    }
-    else
-    {
-      assert (cur->kind == BTOR_READ_EXP);
-      print_assignment (app, emgr, cur);
-    }
-  }
-  BTOR_RELEASE_STACK (mm, stack);
+  assert (vars != NULL);
+  assert (nvars >= 0);
+  for (i = 0; i < nvars; i++) print_assignment (app, emgr, vars[i]);
 }
 
 int
@@ -419,7 +367,6 @@ btor_main (int argc, char **argv)
   int dump_binary_aig         = 0;
   int force_smt_input         = 0;
   int print_solutions         = 0;
-  int print_reads             = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
   BtorWriteEnc write_enc      = BTOR_LAZY_WRITE_ENC;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -472,8 +419,6 @@ btor_main (int argc, char **argv)
           &app, &dump_exp, &close_exp_file, "expression", &exp_file);
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--solutions"))
       print_solutions = 1;
-    else if (!strcmp (argv[i], "-r") || !strcmp (argv[i], "--reads"))
-      print_reads = 1;
     else if (!strcmp (argv[i], "-ds") || !strcmp (argv[i], "--dump-smt"))
       handle_dump_file (&app, &dump_smt, &close_smt_file, "SMT", &smt_file);
     else if (!strcmp (argv[i], "-da") || !strcmp (argv[i], "--dump-aig"))
@@ -713,8 +658,9 @@ btor_main (int argc, char **argv)
         else if (sat_result == BTOR_SAT)
         {
           print_msg (&app, "SATISFIABLE\n");
-          if (print_solutions) print_variable_assignments (&app, emgr);
-          if (print_reads) print_read_assignments (&app, emgr);
+          if (print_solutions && parse_res.nvars > 0)
+            print_variable_assignments (
+                &app, emgr, parse_res.vars, parse_res.nvars);
         }
         else
         {
