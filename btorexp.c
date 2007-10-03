@@ -4491,6 +4491,9 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+  /* eager read has to imply eager write */
+  assert (!emgr->read_enc == BTOR_EAGER_READ_ENC
+          || emgr->write_enc == BTOR_EAGER_WRITE_ENC);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   aig  = btor_exp_to_aig (emgr, exp);

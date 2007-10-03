@@ -609,6 +609,11 @@ btor_main (int argc, char **argv)
     }
   }
 
+  if (read_enc == BTOR_EAGER_READ_ENC && write_enc != BTOR_EAGER_WRITE_ENC)
+  {
+    print_err (&app, "can not combine eager read with uneager write\n");
+    err = 1;
+  }
   if (!done && !err)
   {
     emgr =
