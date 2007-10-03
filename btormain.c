@@ -706,7 +706,7 @@ btor_main (int argc, char **argv)
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
-      sat_result = btor_sat_exp (emgr, parse_res.roots[0]);
+      sat_result = btor_sat_exp (emgr, parse_res.roots[0], 0);
 
       if (app.verbosity >= 0)
       {

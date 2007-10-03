@@ -4073,7 +4073,8 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
   if (!BTOR_IS_CONST_AIG (aig))
   {
     assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-    btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    btor_add_sat (smgr, 0);
   }
   btor_release_aig (amgr, aig);
 }
@@ -4479,7 +4480,7 @@ resolve_read_write_conflicts (BtorExpMgr *emgr)
 }
 
 int
-btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
+btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental)
 {
   int sat_result     = 0;
   int found_conflict = 0;
@@ -4497,7 +4498,13 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
   if (aig != BTOR_AIG_TRUE)
   {
     assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-    btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    if (incremental)
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    else
+    {
+      btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      btor_add_sat (smgr, 0);
+    }
   }
   sat_result = btor_sat_sat (smgr, INT_MAX);
   if (emgr->read_enc == BTOR_LAZY_READ_ENC
@@ -4509,7 +4516,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp)
       found_conflict = resolve_read_write_conflicts (emgr);
       if (!found_conflict) break;
       assert (aig != BTOR_AIG_FALSE);
-      if (aig != BTOR_AIG_TRUE)
+      if (incremental && aig != BTOR_AIG_TRUE)
       {
         assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
         btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
