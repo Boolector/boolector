@@ -89,13 +89,10 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
-    "  -nr|--no-read                    no read consistency (not sound (SAT))\n"
     "  -er|--eager-read                 eager Ackermann encoding\n"
     "  -lr|--lazy-read                  iterative read consistency refinement\n"
     "  -sr|--sat-solver-read            read consistency handled by SAT "
     "solver\n"
-    "  -nw|--no-write                   no write consistency (not sound "
-    "(SAT))\n"
     "  -ew|--eager-write                eager McCarthy axiom encoding\n"
     "  -lw|--lazy-write                 iterative write consistency "
     "refinement\n"
@@ -553,16 +550,12 @@ btor_main (int argc, char **argv)
 
       app.basis = BTOR_DECIMAL_BASIS;
     }
-    else if (!strcmp (argv[i], "-nr") || !strcmp (argv[i], "--no-read"))
-      read_enc = BTOR_NO_READ_ENC;
     else if (!strcmp (argv[i], "-er") || !strcmp (argv[i], "--eager-read"))
       read_enc = BTOR_EAGER_READ_ENC;
     else if (!strcmp (argv[i], "-lr") || !strcmp (argv[i], "--lazy-read"))
       read_enc = BTOR_LAZY_READ_ENC;
     else if (!strcmp (argv[i], "-sr") || !strcmp (argv[i], "--sat-solver-read"))
       read_enc = BTOR_SAT_SOLVER_READ_ENC;
-    else if (!strcmp (argv[i], "-nw") || !strcmp (argv[i], "--no-write"))
-      write_enc = BTOR_NO_WRITE_ENC;
     else if (!strcmp (argv[i], "-ew") || !strcmp (argv[i], "--eager-write"))
       write_enc = BTOR_EAGER_WRITE_ENC;
     else if (!strcmp (argv[i], "-lw") || !strcmp (argv[i], "--lazy-write"))

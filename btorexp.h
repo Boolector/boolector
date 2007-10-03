@@ -36,7 +36,6 @@ typedef enum BtorExpKind BtorExpKind;
 
 enum BtorReadEnc
 {
-  BTOR_NO_READ_ENC,
   BTOR_EAGER_READ_ENC,
   BTOR_LAZY_READ_ENC,
   BTOR_SAT_SOLVER_READ_ENC
@@ -46,7 +45,6 @@ typedef enum BtorReadEnc BtorReadEnc;
 
 enum BtorWriteEnc
 {
-  BTOR_NO_WRITE_ENC,
   BTOR_EAGER_WRITE_ENC,
   BTOR_LAZY_WRITE_ENC
 };
