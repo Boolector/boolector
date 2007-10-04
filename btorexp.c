@@ -540,7 +540,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     if (!BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf)
     {
       for (k = 0; k < len; k++)
-        btor_aig_to_sat_constraints_full (amgr, av_i->aigs[k]);
+        btor_aig_to_sat_constraints_full (amgr, av_w->aigs[k]);
       BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf = 1;
     }
     e = btor_next_cnf_id_sat_mgr (smgr);
