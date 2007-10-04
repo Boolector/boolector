@@ -4176,6 +4176,32 @@ resolve_read_write_conflict_multi_levels (BtorExpMgr *emgr,
   BTOR_RELEASE_STACK (mm, writes);
 }
 
+/* Releases the temporary read stack, that is needed by the lazy write
+ * algrorithm, of all write parents
+ */
+static void
+release_write_parents_read_stack (BtorExpMgr *emgr, BtorExp *array)
+{
+  BtorMemMgr *mm     = NULL;
+  BtorExp *cur_write = NULL;
+  assert (emgr != NULL);
+  assert (array != NULL);
+  assert (BTOR_IS_REGULAR_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  mm        = emgr->mm;
+  cur_write = array->last_parent;
+  assert (BTOR_IS_REGULAR_EXP (cur_write));
+  while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+  {
+    /* array children are always at position 0 */
+    assert (BTOR_GET_TAG_EXP (cur_write) == 0);
+    assert (cur_write->kind == BTOR_WRITE_EXP);
+    BTOR_RELEASE_STACK (mm, *cur_write->reads);
+    cur_write = cur_write->prev_parent[0];
+    assert (BTOR_IS_REGULAR_EXP (cur_write));
+  }
+}
+
 static int
 resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
 {
@@ -4187,13 +4213,11 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp **temp         = NULL;
   BtorExpPtrStack *reads = NULL;
   BtorExpPtrStack stack;
-  BtorExpPtrStack *mccarthy_reads = NULL;
-  BtorExp *read_conflict1         = NULL;
-  BtorExp *read_conflict2         = NULL;
-  int found_conflict              = 0;
-  int values_equal                = 0;
-  int indices_equal               = 0;
-  BtorWriteEnc write_enc          = 0;
+  BtorExp *read_conflict1 = NULL;
+  BtorExp *read_conflict2 = NULL;
+  int found_conflict      = 0;
+  int indices_equal       = 0;
+  BtorWriteEnc write_enc  = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (BTOR_IS_REGULAR_EXP (array));
@@ -4238,41 +4262,84 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     {
       assert (cur_array->mark == 1);
       assert (write_enc == BTOR_LAZY_WRITE_ENC || cur_array == array);
-      BTOR_INIT_STACK (*cur_array->reads);
-      if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
+      assert (!BTOR_IS_WRITE_ARRAY_EXP (cur_array) || cur_array->reachable);
       reads = cur_array->reads;
+      BTOR_INIT_STACK (*reads);
+      if (found_conflict)
+      {
+        release_write_parents_read_stack (emgr, cur_array);
+        continue;
+      }
       /* push reachable parent reads on read stack */
       cur_read = cur_array->first_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_read));
-      while (cur_read != NULL && cur_read->kind != BTOR_WRITE_EXP)
+      while (!found_conflict && cur_read != NULL
+             && cur_read->kind != BTOR_WRITE_EXP)
       {
         /* array children are always at position 0 */
         assert (BTOR_GET_TAG_EXP (cur_read) == 0);
         assert (cur_read->kind == BTOR_READ_EXP);
-        if (cur_read->reachable) BTOR_PUSH_STACK (mm, *reads, cur_read);
+        if (cur_read->reachable)
+        {
+          if (write_enc == BTOR_LAZY_WRITE_ENC
+              && BTOR_IS_WRITE_ARRAY_EXP (cur_array))
+          {
+            found_conflict = check_read_write_conflict (
+                emgr, cur_read, cur_array, &indices_equal);
+            if (found_conflict)
+              resolve_read_write_conflict_one_level (emgr, cur_read, cur_array);
+            else if (!indices_equal)
+              BTOR_PUSH_STACK (mm, *reads, cur_read);
+          }
+          else
+            BTOR_PUSH_STACK (mm, *reads, cur_read);
+        }
         cur_read = cur_read->next_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_read));
+      }
+      if (found_conflict)
+      {
+        release_write_parents_read_stack (emgr, cur_array);
+        continue;
       }
       if (write_enc == BTOR_LAZY_WRITE_ENC)
       {
         /* push unresolved reads of parent writes on read stack */
         cur_write = cur_array->last_parent;
         assert (BTOR_IS_REGULAR_EXP (cur_write));
-        while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
+        while (!found_conflict && cur_write != NULL
+               && cur_write->kind != BTOR_READ_EXP)
         {
           /* array children are always at position 0 */
           assert (BTOR_GET_TAG_EXP (cur_write) == 0);
           top = cur_write->reads->top;
-          for (temp = cur_write->reads->start; temp != top; temp++)
+          for (temp = cur_write->reads->start; !found_conflict && temp != top;
+               temp++)
           {
             cur_read = *temp;
             assert (BTOR_IS_REGULAR_EXP (cur_read));
             assert (cur_read->kind == BTOR_READ_EXP);
-            BTOR_PUSH_STACK (mm, *reads, cur_read);
+            if (BTOR_IS_WRITE_ARRAY_EXP (cur_array))
+            {
+              found_conflict = check_read_write_conflict (
+                  emgr, cur_read, cur_array, &indices_equal);
+              if (found_conflict)
+                resolve_read_write_conflict_multi_levels (
+                    emgr, cur_read, cur_array);
+              else if (!indices_equal)
+                BTOR_PUSH_STACK (mm, *reads, cur_read);
+            }
+            else
+              BTOR_PUSH_STACK (mm, *reads, cur_read);
           }
           cur_write = cur_write->prev_parent[0];
           assert (BTOR_IS_REGULAR_EXP (cur_write));
         }
+      }
+      if (found_conflict)
+      {
+        release_write_parents_read_stack (emgr, cur_array);
+        continue;
       }
       /* check if read conflicts occur */
       found_conflict = check_read_conflicts_array (
@@ -4294,64 +4361,8 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
           resolve_read_conflict_multi_levels (
               emgr, cur_array, read_conflict1, read_conflict2);
       }
-      if (found_conflict) goto FREE_WRITE_PARENT_READ_STACKS;
-      /* check if values of collected reads are equal to
-       * the value of write if indices are equal.
-       */
-      if (BTOR_IS_WRITE_ARRAY_EXP (cur_array))
-      {
-        assert (cur_array->reachable);
-        BTOR_NEW (mm, mccarthy_reads);
-        BTOR_INIT_STACK (*mccarthy_reads);
-        top = reads->top;
-        for (temp = reads->start; temp != top; temp++)
-        {
-          cur_read = *temp;
-          assert (BTOR_IS_REGULAR_EXP (cur_read));
-          assert (cur_read->kind == BTOR_READ_EXP);
-          indices_equal =
-              compare_assignments (emgr, cur_array->e[1], cur_read->e[1]) == 0;
-          values_equal =
-              compare_assignments (emgr, cur_array->e[2], cur_read) == 0;
-          if (indices_equal)
-          {
-            if (!values_equal)
-            {
-              found_conflict = 1;
-              /* write conflicts with read on the same array */
-              if (cur_read->e[0] == cur_array)
-                resolve_read_write_conflict_one_level (
-                    emgr, cur_read, cur_array);
-              else
-                resolve_read_write_conflict_multi_levels (
-                    emgr, cur_read, cur_array);
-              BTOR_RELEASE_STACK (mm, *mccarthy_reads);
-              BTOR_DELETE (mm, mccarthy_reads);
-              goto FREE_WRITE_PARENT_READ_STACKS;
-            }
-          }
-          else
-            BTOR_PUSH_STACK (mm, *mccarthy_reads, cur_read);
-        }
-        /* replace read stack with reads which still needs to be checked
-         * by child write */
-        BTOR_RELEASE_STACK (mm, *cur_array->reads);
-        BTOR_DELETE (mm, cur_array->reads);
-        cur_array->reads = mccarthy_reads;
-      }
-    FREE_WRITE_PARENT_READ_STACKS:
       /* free read stacks of parent writes */
-      cur_write = cur_array->last_parent;
-      assert (BTOR_IS_REGULAR_EXP (cur_write));
-      while (cur_write != NULL && cur_write->kind != BTOR_READ_EXP)
-      {
-        /* array children are always at position 0 */
-        assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-        assert (cur_write->kind == BTOR_WRITE_EXP);
-        BTOR_RELEASE_STACK (mm, *cur_write->reads);
-        cur_write = cur_write->prev_parent[0];
-        assert (BTOR_IS_REGULAR_EXP (cur_write));
-      }
+      release_write_parents_read_stack (emgr, cur_array);
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
