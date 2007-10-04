@@ -4066,7 +4066,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
        * We use the reachable flag to determine with which reads and writes
        * we have to deal with.
        */
-      if (emgr->write_enc == BTOR_LAZY_READ_ENC)
+      if (emgr->write_enc == BTOR_LAZY_WRITE_ENC)
       {
         /* push writes on stack */
         cur_write = cur_array->last_parent;
