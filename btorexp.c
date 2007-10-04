@@ -3975,9 +3975,7 @@ compare_reads_by_index (const void *read1, const void *read2)
   return compare_assignments (emgr, index1, index2);
 }
 
-/* Checks for read constraint conflicts of one array and resolves
- * the first conflict that has been found.
- */
+/* Checks for read conflicts on one array */
 static int
 check_read_conflicts_array (BtorExpMgr *emgr,
                             BtorExp *array,
@@ -4025,7 +4023,7 @@ check_read_conflicts_array (BtorExpMgr *emgr,
   return found_conflict;
 }
 
-/* resolves read conflicts on the same array */
+/* Resolves read conflicts on the same array */
 static void
 resolve_read_conflict_one_level (BtorExpMgr *emgr,
                                  BtorExp *read1,
@@ -4041,7 +4039,7 @@ resolve_read_conflict_one_level (BtorExpMgr *emgr,
   encode_ackermann_constraint (emgr, read1->e[1], read2->e[1], read1, read2);
 }
 
-/* resolves read conflicts on multi levels
+/* Resolves read conflicts on multi levels
  * 'array' is the array where the conflict has been detected
  */
 static void
