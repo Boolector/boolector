@@ -41,3 +41,7 @@ udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
 # SMT writing
 #
 writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
+
+# rergression
+#
+lazyreadwritebug1 -o log/lazyreadwritebug1.log log/lazyreadwritebug1.btor
