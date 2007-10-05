@@ -8,6 +8,7 @@
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorconst.h"
+#include "btorhash.h"
 #include "btorsat.h"
 #include "btorutil.h"
 
@@ -57,7 +58,16 @@ struct BtorExpMgr
   BtorReadEnc read_enc;
   BtorWriteEnc write_enc;
   FILE *trace_file;
+  BtorPtrHashTable *aigvec_pair_cnf_id_table; /* used for McCarthy */
 };
+
+struct BtorAIGVecPair
+{
+  BtorAIGVec *av1;
+  BtorAIGVec *av2;
+};
+
+typedef struct BtorAIGVecPair BtorAIGVecPair;
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -152,6 +162,40 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
   for (i = 0; i < len - 1; i++)
     if (string[i] != '0') return 0;
   return 1;
+}
+
+static BtorAIGVecPair *
+new_aigvec_pair (BtorMemMgr *mm, BtorAIGVec *av1, BtorAIGVec *av2)
+{
+  BtorAIGVecPair *result = NULL;
+  assert (mm != NULL);
+  assert (av1 != NULL);
+  assert (av2 != NULL);
+  BTOR_NEW (mm, result);
+  result->av1 = av1;
+  result->av2 = av2;
+  return result;
+}
+
+static void
+delete_aigvec_pair (BtorMemMgr *mm, BtorAIGVecPair *pair)
+{
+  assert (mm != NULL);
+  assert (pair != NULL);
+  BTOR_DELETE (mm, pair);
+}
+
+static int
+equal_aigvec_pair (void *pair1, void *pair2)
+{
+  BtorAIGVecPair *avpair1 = NULL;
+  BtorAIGVecPair *avpair2 = NULL;
+  assert (pair1 != NULL);
+  assert (pair2 != NULL);
+  avpair1 = (BtorAIGVecPair *) pair1;
+  avpair2 = (BtorAIGVecPair *) pair2;
+  return (avpair1->av1 == avpair2->av1 && avpair1->av2 == avpair2->av2)
+         || (avpair1->av2 == avpair2->av1 && avpair1->av1 == avpair2->av2);
 }
 
 /*------------------------------------------------------------------------*/
@@ -392,6 +436,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BtorExp **temp       = NULL;
   BtorExp *cur_write   = NULL;
   BtorExp **top        = NULL;
+  BtorAIGVecPair *pair = NULL;
   BtorIntStack clause;
   int len = 0;
   int k   = 0;
@@ -3581,6 +3626,8 @@ btor_new_exp_mgr (int rewrite_level,
   emgr->read_enc      = BTOR_SAT_SOLVER_READ_ENC;
   emgr->write_enc     = BTOR_LAZY_WRITE_ENC;
   emgr->trace_file    = trace_file;
+  emgr->aigvec_pair_cnf_id_table =
+      btor_new_ptr_hash_table (mm, NULL, equal_aigvec_pair);
   return emgr;
 }
 
@@ -3601,6 +3648,7 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_RELEASE_STACK (mm, emgr->vars);
   BTOR_RELEASE_STACK (mm, emgr->arrays);
+  btor_delete_ptr_hash_table (emgr->aigvec_pair_cnf_id_table);
   btor_delete_aigvec_mgr (emgr->avmgr);
   BTOR_DELETE (mm, emgr);
   btor_delete_mem_mgr (mm);
