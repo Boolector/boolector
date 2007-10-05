@@ -58,16 +58,16 @@ struct BtorExpMgr
   BtorReadEnc read_enc;
   BtorWriteEnc write_enc;
   FILE *trace_file;
-  BtorPtrHashTable *aigvec_pair_cnf_id_table; /* used for McCarthy */
+  BtorPtrHashTable *exp_pair_cnf_id_table; /* used for McCarthy */
 };
 
-struct BtorAIGVecPair
+struct BtorExpPair
 {
-  BtorAIGVec *av1;
-  BtorAIGVec *av2;
+  BtorExp *exp1;
+  BtorExp *exp2;
 };
 
-typedef struct BtorAIGVecPair BtorAIGVecPair;
+typedef struct BtorExpPair BtorExpPair;
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -164,38 +164,67 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
   return 1;
 }
 
-static BtorAIGVecPair *
-new_aigvec_pair (BtorMemMgr *mm, BtorAIGVec *av1, BtorAIGVec *av2)
+static BtorExpPair *
+new_exp_pair (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
 {
-  BtorAIGVecPair *result = NULL;
-  assert (mm != NULL);
-  assert (av1 != NULL);
-  assert (av2 != NULL);
-  BTOR_NEW (mm, result);
-  result->av1 = av1;
-  result->av2 = av2;
+  BtorExpPair *result = NULL;
+  assert (emgr != NULL);
+  assert (exp1 != NULL);
+  assert (exp2 != NULL);
+  assert (exp1 != exp2);
+  BTOR_NEW (emgr->mm, result);
+  if (BTOR_REAL_ADDR_EXP (exp2)->id < BTOR_REAL_ADDR_EXP (exp1)->id)
+  {
+    result->exp1 = btor_copy_exp (emgr, exp2);
+    result->exp2 = btor_copy_exp (emgr, exp1);
+  }
+  else
+  {
+    result->exp1 = btor_copy_exp (emgr, exp1);
+    result->exp2 = btor_copy_exp (emgr, exp2);
+  }
   return result;
 }
 
 static void
-delete_aigvec_pair (BtorMemMgr *mm, BtorAIGVecPair *pair)
+delete_exp_pair (BtorExpMgr *emgr, BtorExpPair *pair)
 {
-  assert (mm != NULL);
+  assert (emgr != NULL);
   assert (pair != NULL);
-  BTOR_DELETE (mm, pair);
+  btor_release_exp (emgr, pair->exp1);
+  btor_release_exp (emgr, pair->exp2);
+  BTOR_DELETE (emgr->mm, pair);
+}
+
+static unsigned int
+hash_exp_pair (void *pair)
+{
+  unsigned int result   = 0u;
+  BtorExpPair *exp_pair = NULL;
+  assert (pair != NULL);
+  exp_pair = (BtorExpPair *) pair;
+  result   = (unsigned int) BTOR_REAL_ADDR_EXP (exp_pair->exp1)->id;
+  result += (unsigned int) BTOR_REAL_ADDR_EXP (exp_pair->exp2)->id;
+  result *= 7334147u;
+  return result;
 }
 
 static int
-equal_aigvec_pair (void *pair1, void *pair2)
+compare_exp_pair (void *pair1, void *pair2)
 {
-  BtorAIGVecPair *avpair1 = NULL;
-  BtorAIGVecPair *avpair2 = NULL;
+  int result             = 0;
+  BtorExpPair *exp_pair1 = NULL;
+  BtorExpPair *exp_pair2 = NULL;
   assert (pair1 != NULL);
   assert (pair2 != NULL);
-  avpair1 = (BtorAIGVecPair *) pair1;
-  avpair2 = (BtorAIGVecPair *) pair2;
-  return (avpair1->av1 == avpair2->av1 && avpair1->av2 == avpair2->av2)
-         || (avpair1->av2 == avpair2->av1 && avpair1->av1 == avpair2->av2);
+  exp_pair1 = (BtorExpPair *) pair1;
+  exp_pair2 = (BtorExpPair *) pair2;
+  result    = BTOR_REAL_ADDR_EXP (exp_pair1->exp1)->id;
+  result -= BTOR_REAL_ADDR_EXP (exp_pair2->exp1)->id;
+  if (result != 0) return result;
+  result = BTOR_REAL_ADDR_EXP (exp_pair1->exp2)->id;
+  result -= BTOR_REAL_ADDR_EXP (exp_pair2->exp2)->id;
+  return result;
 }
 
 /*------------------------------------------------------------------------*/
@@ -422,21 +451,23 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
                             BtorExp *a,
                             BtorExp *b)
 {
-  BtorMemMgr *mm       = NULL;
-  BtorAIGVecMgr *avmgr = NULL;
-  BtorAIGMgr *amgr     = NULL;
-  BtorSATMgr *smgr     = NULL;
-  BtorAIGVec *av_i     = NULL;
-  BtorAIGVec *av_j     = NULL;
-  BtorAIGVec *av_a     = NULL;
-  BtorAIGVec *av_b     = NULL;
-  BtorAIGVec *av_w     = NULL;
-  BtorAIG *aig1        = NULL;
-  BtorAIG *aig2        = NULL;
-  BtorExp **temp       = NULL;
-  BtorExp *cur_write   = NULL;
-  BtorExp **top        = NULL;
-  BtorAIGVecPair *pair = NULL;
+  BtorMemMgr *mm                          = NULL;
+  BtorAIGVecMgr *avmgr                    = NULL;
+  BtorAIGMgr *amgr                        = NULL;
+  BtorSATMgr *smgr                        = NULL;
+  BtorAIGVec *av_i                        = NULL;
+  BtorAIGVec *av_j                        = NULL;
+  BtorAIGVec *av_a                        = NULL;
+  BtorAIGVec *av_b                        = NULL;
+  BtorAIGVec *av_w                        = NULL;
+  BtorAIG *aig1                           = NULL;
+  BtorAIG *aig2                           = NULL;
+  BtorExp **temp                          = NULL;
+  BtorExp *cur_write                      = NULL;
+  BtorExp **top                           = NULL;
+  BtorExpPair *pair                       = NULL;
+  BtorPtrHashTable *exp_pair_cnf_id_table = NULL;
+  BtorPtrHashBucket *bucket               = NULL;
   BtorIntStack clause;
   int len = 0;
   int k   = 0;
@@ -458,14 +489,15 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
-  mm    = emgr->mm;
-  avmgr = emgr->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-  av_i  = BTOR_GET_AIGVEC_EXP (emgr, i);
-  av_j  = BTOR_GET_AIGVEC_EXP (emgr, j);
-  av_a  = BTOR_GET_AIGVEC_EXP (emgr, a);
-  av_b  = BTOR_GET_AIGVEC_EXP (emgr, b);
+  exp_pair_cnf_id_table = emgr->exp_pair_cnf_id_table;
+  mm                    = emgr->mm;
+  avmgr                 = emgr->avmgr;
+  amgr                  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr                  = btor_get_sat_mgr_aig_mgr (amgr);
+  av_i                  = BTOR_GET_AIGVEC_EXP (emgr, i);
+  av_j                  = BTOR_GET_AIGVEC_EXP (emgr, j);
+  av_a                  = BTOR_GET_AIGVEC_EXP (emgr, a);
+  av_b                  = BTOR_GET_AIGVEC_EXP (emgr, b);
   assert (av_i != NULL);
   assert (av_j != NULL);
   assert (av_a != NULL);
@@ -537,7 +569,18 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
       btor_aig_to_sat_constraints_full (amgr, av_b->aigs[k]);
     BTOR_REAL_ADDR_EXP (b)->full_cnf = 1;
   }
-  e = btor_next_cnf_id_sat_mgr (smgr);
+  pair   = new_exp_pair (emgr, a, b);
+  bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_id_table, pair);
+  if (bucket == NULL)
+  {
+    e = btor_next_cnf_id_sat_mgr (smgr);
+    btor_insert_in_ptr_hash_table (exp_pair_cnf_id_table, pair)->data.asInt = e;
+  }
+  else
+  {
+    e = bucket->data.asInt;
+    delete_exp_pair (emgr, pair);
+  }
   BTOR_PUSH_STACK (mm, clause, e);
   for (k = 0; k < len; k++)
   {
@@ -588,7 +631,19 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
         btor_aig_to_sat_constraints_full (amgr, av_w->aigs[k]);
       BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf = 1;
     }
-    e = btor_next_cnf_id_sat_mgr (smgr);
+    pair   = new_exp_pair (emgr, i, cur_write->e[1]);
+    bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_id_table, pair);
+    if (bucket == NULL)
+    {
+      e = btor_next_cnf_id_sat_mgr (smgr);
+      btor_insert_in_ptr_hash_table (exp_pair_cnf_id_table, pair)->data.asInt =
+          e;
+    }
+    else
+    {
+      e = bucket->data.asInt;
+      delete_exp_pair (emgr, pair);
+    }
     BTOR_PUSH_STACK (mm, clause, e);
     for (k = 0; k < len; k++)
     {
@@ -3626,19 +3681,24 @@ btor_new_exp_mgr (int rewrite_level,
   emgr->read_enc      = BTOR_SAT_SOLVER_READ_ENC;
   emgr->write_enc     = BTOR_LAZY_WRITE_ENC;
   emgr->trace_file    = trace_file;
-  emgr->aigvec_pair_cnf_id_table =
-      btor_new_ptr_hash_table (mm, NULL, equal_aigvec_pair);
+  emgr->exp_pair_cnf_id_table =
+      btor_new_ptr_hash_table (mm, hash_exp_pair, compare_exp_pair);
   return emgr;
 }
 
 void
 btor_delete_exp_mgr (BtorExpMgr *emgr)
 {
-  BtorExp **cur  = NULL;
-  BtorExp **top  = NULL;
-  BtorMemMgr *mm = NULL;
+  BtorExp **cur             = NULL;
+  BtorExp **top             = NULL;
+  BtorMemMgr *mm            = NULL;
+  BtorPtrHashBucket *bucket = NULL;
   assert (emgr != NULL);
-  mm  = emgr->mm;
+  mm = emgr->mm;
+  for (bucket = emgr->exp_pair_cnf_id_table->first; bucket != NULL;
+       bucket = bucket->next)
+    delete_exp_pair (emgr, (BtorExpPair *) bucket->key);
+  btor_delete_ptr_hash_table (emgr->exp_pair_cnf_id_table);
   top = emgr->arrays.top;
   for (cur = emgr->arrays.start; cur != top; cur++)
     delete_exp_node (emgr, *cur);
@@ -3648,7 +3708,6 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_RELEASE_STACK (mm, emgr->vars);
   BTOR_RELEASE_STACK (mm, emgr->arrays);
-  btor_delete_ptr_hash_table (emgr->aigvec_pair_cnf_id_table);
   btor_delete_aigvec_mgr (emgr->avmgr);
   BTOR_DELETE (mm, emgr);
   btor_delete_mem_mgr (mm);
