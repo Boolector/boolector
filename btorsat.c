@@ -69,7 +69,7 @@ btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr)
   assert (smgr != NULL);
   /* check that at least one index has been generated */
   assert (smgr->id > 1);
-  return smgr->id;
+  return smgr->id - 1;
 }
 
 void
