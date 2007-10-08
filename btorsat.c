@@ -63,6 +63,15 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   return smgr->id++;
 }
 
+int
+btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+  /* check that at least one index has been generated */
+  assert (smgr->id > 1);
+  return smgr->id;
+}
+
 void
 btor_delete_sat_mgr (BtorSATMgr *smgr)
 {

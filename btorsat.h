@@ -23,8 +23,12 @@ BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, int verbosity);
 /* Deletes SAT manager from memory. */
 void btor_delete_sat_mgr (BtorSATMgr *smgr);
 
-/* Generates fresh CNF id. */
+/* Generates fresh CNF indices.
+ * Indices are generated in consecutive order. */
 int btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr);
+
+/* Returns the last CNF index that has been generated. */
+int btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr);
 
 /* Inits the SAT solver. */
 void btor_init_sat (BtorSATMgr *smgr);
