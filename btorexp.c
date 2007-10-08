@@ -172,7 +172,6 @@ new_exp_pair (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   assert (emgr != NULL);
   assert (exp1 != NULL);
   assert (exp2 != NULL);
-  assert (exp1 != exp2);
   BTOR_NEW (emgr->mm, result);
   if (BTOR_REAL_ADDR_EXP (exp2)->id < BTOR_REAL_ADDR_EXP (exp1)->id)
   {
@@ -471,15 +470,16 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BtorPtrHashTable *exp_pair_cnf_eq_id_table   = NULL;
   BtorPtrHashBucket *bucket                    = NULL;
   BtorIntStack clause;
-  int len = 0;
-  int k   = 0;
-  int a_k = 0;
-  int b_k = 0;
-  int i_k = 0;
-  int j_k = 0;
-  int d_k = 0;
-  int w_k = 0;
-  int e   = 0;
+  int len      = 0;
+  int k        = 0;
+  int a_k      = 0;
+  int b_k      = 0;
+  int i_k      = 0;
+  int j_k      = 0;
+  int d_k      = 0;
+  int w_k      = 0;
+  int e        = 0;
+  int d_hashed = 0;
   assert (emgr != NULL);
   assert (writes != NULL);
   assert (i != NULL);
@@ -521,6 +521,22 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     BTOR_REAL_ADDR_EXP (j)->full_cnf = 1;
   }
   BTOR_INIT_STACK (clause);
+  /* encode i != j */
+  pair   = new_exp_pair (emgr, i, j);
+  bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair);
+  if (bucket == NULL)
+  {
+    /* hash starting cnf id - 1 for d_k */
+    d_k = btor_get_last_cnf_id_sat_mgr (smgr);
+    btor_insert_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair)
+        ->data.asInt = d_k;
+  }
+  else
+  {
+    d_hashed = 1;
+    d_k      = bucket->data.asInt;
+    delete_exp_pair (emgr, pair);
+  }
   for (k = 0; k < len; k++)
   {
     aig1 = av_i->aigs[k];
@@ -540,7 +556,10 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
      * has been detected.
      */
     assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul);
-    d_k = btor_next_cnf_id_sat_mgr (smgr);
+    if (d_hashed)
+      d_k++;
+    else
+      d_k = btor_next_cnf_id_sat_mgr (smgr);
     assert (d_k != 0);
     BTOR_PUSH_STACK (mm, clause, d_k);
     if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
@@ -3701,7 +3720,8 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
   BtorPtrHashBucket *bucket = NULL;
   assert (emgr != NULL);
   mm = emgr->mm;
-  for (bucket = emgr->exp_pair_cnf_diff_id_table->first; bucket != NULL;)
+  for (bucket = emgr->exp_pair_cnf_diff_id_table->first; bucket != NULL;
+       bucket = bucket->next)
     delete_exp_pair (emgr, (BtorExpPair *) bucket->key);
   btor_delete_ptr_hash_table (emgr->exp_pair_cnf_diff_id_table);
   for (bucket = emgr->exp_pair_cnf_eq_id_table->first; bucket != NULL;
