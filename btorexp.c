@@ -3841,6 +3841,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         {
           if (BTOR_IS_WRITE_ARRAY_EXP (cur))
           {
+            assert (emgr->write_enc != BTOR_EAGER_WRITE_ENC);
             cur->mark = 2;
             /* push value on the stack */
             BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
