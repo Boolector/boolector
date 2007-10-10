@@ -120,24 +120,6 @@ ones_string (BtorExpMgr *emgr, int len)
   return string;
 }
 
-static char *
-int_to_string (BtorExpMgr *emgr, int x, int len)
-{
-  int i        = 0;
-  char *string = NULL;
-  assert (emgr != NULL);
-  assert (x >= 0);
-  assert (len > 0);
-  BTOR_NEWN (emgr->mm, string, len + 1);
-  for (i = len - 1; i >= 0; i--)
-  {
-    string[i] = x % 2 == 0 ? '0' : '1';
-    x >>= 1;
-  }
-  string[len] = '\0';
-  return string;
-}
-
 static int
 is_zero_string (BtorExpMgr *emgr, const char *string, int len)
 {
@@ -764,17 +746,29 @@ int_min_exp (BtorExpMgr *emgr, int len)
   return result;
 }
 
-static BtorExp *
-int_to_exp (BtorExpMgr *emgr, int x, int len)
+BtorExp *
+btor_int_to_exp (BtorExpMgr *emgr, int i, int len)
 {
   char *string    = NULL;
   BtorExp *result = NULL;
   assert (emgr != NULL);
-  assert (x >= 0);
   assert (len > 1);
-  string = int_to_string (emgr, x, len);
+  string = btor_int_to_const (emgr->mm, i, len);
   result = btor_const_exp (emgr, string);
-  btor_freestr (emgr->mm, string);
+  btor_delete_const (emgr->mm, string);
+  return result;
+}
+
+BtorExp *
+btor_unsigned_to_exp (BtorExpMgr *emgr, unsigned u, int len)
+{
+  char *string    = NULL;
+  BtorExp *result = NULL;
+  assert (emgr != NULL);
+  assert (len > 1);
+  string = btor_unsigned_to_const (emgr->mm, u, len);
+  result = btor_const_exp (emgr, string);
+  btor_delete_const (emgr->mm, string);
   return result;
 }
 
@@ -1805,7 +1799,7 @@ rewrite_exp (BtorExpMgr *emgr,
           {
             if (real_e0->len >= 2)
             {
-              temp   = int_to_exp (emgr, 2, real_e0->len);
+              temp   = btor_int_to_exp (emgr, 2, real_e0->len);
               result = btor_mul_exp (emgr, e0, temp);
               btor_release_exp (emgr, temp);
             }

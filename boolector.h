@@ -61,6 +61,20 @@ BtorExp *btor_ones_exp (BtorExpMgr *emgr, int len);
  */
 BtorExp *btor_one_exp (BtorExpMgr *emgr, int len);
 
+/* Binary constant representing the unsigned integer.
+ * The constant is obtained by either truncating bits
+ * or by unsigned extension (padding with zeroes).
+ * len > 0
+ */
+BtorExp *btor_unsigned_to_exp (BtorExpMgr *emgr, unsigned u, int len);
+
+/* Binary constant representing the signed integer.
+ * The constant is obtained by either truncating bits
+ * or by signed extension (padding with ones).
+ * len > 0
+ */
+BtorExp *btor_int_to_exp (BtorExpMgr *emg, int i, int len);
+
 /* Variable representing len bits.
  * Variables are sticky and cannot be deleted.
  * len(result) = len

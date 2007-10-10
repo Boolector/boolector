@@ -9,6 +9,7 @@
 #endif
 
 #include <assert.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,25 +26,82 @@ init_const_tests (void)
 }
 
 static void
-test_int_to_bin (void)
+test_int_to_const (void)
 {
-  char *result = btor_int_to_bin (g_mm, 5, 8);
+  char *result = btor_int_to_const (g_mm, 5, 8);
   assert (strcmp (result, "00000101") == 0);
   btor_delete_const (g_mm, result);
-  result = btor_int_to_bin (g_mm, 0, 8);
+
+  result = btor_int_to_const (g_mm, 0, 8);
   assert (strcmp (result, "00000000") == 0);
   btor_delete_const (g_mm, result);
-  result = btor_int_to_bin (g_mm, 127, 8);
+
+  result = btor_int_to_const (g_mm, 127, 8);
   assert (strcmp (result, "01111111") == 0);
   btor_delete_const (g_mm, result);
-  result = btor_int_to_bin (g_mm, 126, 8);
+
+  result = btor_int_to_const (g_mm, 126, 8);
   assert (strcmp (result, "01111110") == 0);
   btor_delete_const (g_mm, result);
-  result = btor_int_to_bin (g_mm, 255, 8);
+
+  result = btor_int_to_const (g_mm, 255, 8);
   assert (strcmp (result, "11111111") == 0);
   btor_delete_const (g_mm, result);
-  result = btor_int_to_bin (g_mm, 7, 3);
+
+  result = btor_int_to_const (g_mm, 7, 3);
   assert (strcmp (result, "111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, -1, 1);
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, -2, 2);
+  assert (strcmp (result, "10") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, -3, 31);
+  assert (strcmp (result, "1111111111111111111111111111101") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, -4, 32);
+  assert (strcmp (result, "11111111111111111111111111111100") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, INT_MIN, 32);
+  assert (strcmp (result, "10000000000000000000000000000000") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, 2147483647, 32);
+  assert (strcmp (result, "01111111111111111111111111111111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_int_to_const (g_mm, -5, 33);
+  assert (strcmp (result, "111111111111111111111111111111011") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_unsigned_to_const (void)
+{
+  char *result = btor_unsigned_to_const (g_mm, 5u, 8);
+  assert (strcmp (result, "00000101") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_unsigned_to_const (g_mm, UINT_MAX, 31);
+  assert (strcmp (result, "1111111111111111111111111111111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_unsigned_to_const (g_mm, UINT_MAX, 32);
+  assert (strcmp (result, "11111111111111111111111111111111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_unsigned_to_const (g_mm, UINT_MAX, 33);
+  assert (strcmp (result, "011111111111111111111111111111111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_unsigned_to_const (g_mm, UINT_MAX, 40);
+  assert (strcmp (result, "0000000011111111111111111111111111111111") == 0);
   btor_delete_const (g_mm, result);
 }
 
@@ -253,7 +311,7 @@ unary_const_test (int (*int_func) (int),
   assert (const_func != NULL);
   for (i = 0; i < BTOR_TEST_CONST_MAX; i++)
   {
-    a      = btor_int_to_bin (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
+    a      = btor_int_to_const (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
     result = const_func (g_mm, a);
     assert ((int_func (i) & (BTOR_TEST_CONST_MAX - 1))
             == (int) strtol (result, (char **) NULL, 2));
@@ -325,10 +383,10 @@ binary_const_test (int (*int_func) (int, int),
   assert (const_func != NULL);
   for (i = 0; i < BTOR_TEST_CONST_MAX; i++)
   {
-    a = btor_int_to_bin (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
+    a = btor_int_to_const (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
     for (j = 0; j < BTOR_TEST_CONST_MAX; j++)
     {
-      b      = btor_int_to_bin (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
+      b      = btor_int_to_const (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
       result = const_func (g_mm, a, b);
       assert ((int) strlen (result) == BTOR_TEST_CONST_NUM_BITS);
       assert ((int_func (i, j) & (BTOR_TEST_CONST_MAX - 1))
@@ -392,10 +450,10 @@ binary_const_test_boolean_result (int (*int_func) (int, int),
   assert (const_func != NULL);
   for (i = 0; i < BTOR_TEST_CONST_MAX; i++)
   {
-    a = btor_int_to_bin (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
+    a = btor_int_to_const (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
     for (j = 0; j < BTOR_TEST_CONST_MAX; j++)
     {
-      b      = btor_int_to_bin (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
+      b      = btor_int_to_const (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
       result = const_func (g_mm, a, b);
       assert ((int) strlen (result) == 1);
       if (int_func (i, j))
@@ -443,10 +501,10 @@ test_concat_const (void)
   char *result = NULL;
   for (i = 0; i < BTOR_TEST_CONST_MAX; i++)
   {
-    a = btor_int_to_bin (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
+    a = btor_int_to_const (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
     for (j = 0; j < BTOR_TEST_CONST_MAX; j++)
     {
-      b      = btor_int_to_bin (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
+      b      = btor_int_to_const (g_mm, j, BTOR_TEST_CONST_NUM_BITS);
       result = btor_concat_const (g_mm, a, b);
       assert (i * (1 << BTOR_TEST_CONST_NUM_BITS) + j
               == (int) strtol (result, (char **) NULL, 2));
@@ -473,10 +531,11 @@ shift_const_test (int (*int_func) (int, int),
   assert (btor_is_power_of_2_util (BTOR_TEST_CONST_NUM_BITS));
   for (i = 0; i < BTOR_TEST_CONST_MAX; i++)
   {
-    a = btor_int_to_bin (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
+    a = btor_int_to_const (g_mm, i, BTOR_TEST_CONST_NUM_BITS);
     for (j = 0; j < btor_log_2_util (BTOR_TEST_CONST_MAX); j++)
     {
-      b = btor_int_to_bin (g_mm, j, btor_log_2_util (BTOR_TEST_CONST_NUM_BITS));
+      b = btor_int_to_const (
+          g_mm, j, btor_log_2_util (BTOR_TEST_CONST_NUM_BITS));
       result = const_func (g_mm, a, b);
       assert ((int) strlen (result) == BTOR_TEST_CONST_NUM_BITS);
       assert ((int_func (i, j) & (BTOR_TEST_CONST_MAX - 1))
@@ -682,7 +741,8 @@ test_decimal_to_const (void)
 void
 run_const_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (int_to_bin);
+  BTOR_RUN_TEST (int_to_const);
+  BTOR_RUN_TEST (unsigned_to_const);
   BTOR_RUN_TEST_CHECK_LOG (cmp_const);
   BTOR_RUN_TEST_CHECK_LOG (add_unbounded_const);
   BTOR_RUN_TEST_CHECK_LOG (mult_unbounded_const);

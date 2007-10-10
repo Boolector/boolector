@@ -7,7 +7,8 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
-char *btor_int_to_bin (BtorMemMgr *mm, int x, int len);
+char *btor_int_to_const (BtorMemMgr *mm, int x, int len);
+char *btor_unsigned_to_const (BtorMemMgr *mm, unsigned x, int len);
 char *btor_ground_const (BtorMemMgr *mm, const char *const_with_x);
 
 /*------------------------------------------------------------------------*/
