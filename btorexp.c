@@ -1831,13 +1831,18 @@ rewrite_exp (BtorExpMgr *emgr,
        * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
        * ...
        */
-      /* TODO a = ~a <=> 0 */
+      /* TODO a == ~a <=> 0 */
       /* TODO a + 2 * a <=> 3 * a <=> see below */
       /* TODO strength reduction: a * 2 == a << 1 */
       /* TODO strength reduction: a * 3 == (a << 1) + a */
       /* TODO strength reduction: a / 2 == (a >> 1) */
       /* TODO strength reduction: a / 3 =>  higher bits zero */
       /* TODO a < 0 <=> 0 */
+      /* TODO 0 < a <=> a != 0 */
+      /* TODO a < 1 <=> a == 0 */
+      /* TODO MAX < a <=> 0 */
+      /* TODO MAX-1 < a <=> a == MAX */
+      /* TODO a < MAX <=> a != MAX */
     }
   }
   else

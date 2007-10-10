@@ -73,7 +73,7 @@ main (int argc, char** argv)
   src = btor_var_exp (mgr, 32, "src");
   dst = btor_var_exp (mgr, 32, "dst");
 
-  n = btor_int_to_exp (mgr, len, 32);
+  n = btor_unsigned_to_exp (mgr, len, 32);
 
   j = btor_var_exp (mgr, 32, "j");
 
@@ -106,13 +106,13 @@ main (int argc, char** argv)
   btor_release_exp (mgr, alternative);
   assumption = tmp;
 
-  cmp = btor_slte_exp (mgr, zero, j);
+  cmp = btor_ulte_exp (mgr, zero, j);
   tmp = btor_and_exp (mgr, assumption, cmp);
   btor_release_exp (mgr, assumption);
   btor_release_exp (mgr, cmp);
   assumption = tmp;
 
-  cmp = btor_slt_exp (mgr, j, n);
+  cmp = btor_ult_exp (mgr, j, n);
   tmp = btor_and_exp (mgr, assumption, cmp);
   btor_release_exp (mgr, assumption);
   btor_release_exp (mgr, cmp);
