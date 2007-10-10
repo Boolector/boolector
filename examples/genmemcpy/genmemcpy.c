@@ -36,8 +36,9 @@ isint (const char* str)
 int
 main (int argc, char** argv)
 {
-  BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *z, *done;
-  BtorExp *mem, *assumption, *alternative, *cmp, *root;
+  BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *z;
+  BtorExp *mem, *assumption, *alternative, *cmp, *root, *v;
+  BtorExp *old, *new;
   int i, len, havelen;
   BtorExpMgr* mgr;
 
@@ -63,12 +64,20 @@ main (int argc, char** argv)
       len     = atoi (argv[i]);
     }
   }
+
+  if (!havelen) die ("length argument missing");
+
   mgr = btor_new_exp_mgr (2, 0, 2, 0);
   mem = btor_array_exp (mgr, 8, 32);
+
   src = btor_var_exp (mgr, 32, "src");
   dst = btor_var_exp (mgr, 32, "dst");
 
   n = btor_int_to_exp (mgr, len, 32);
+
+  j = btor_var_exp (mgr, 32, "j");
+
+  z = btor_zeros_exp (mgr, 32);
 
   eos = btor_add_exp (mgr, src, n);
   eod = btor_add_exp (mgr, dst, n);
@@ -96,13 +105,50 @@ main (int argc, char** argv)
   btor_release_exp (mgr, alternative);
   assumption = tmp;
 
-  root = assumption;
-
   btor_dump_exp (mgr, stdout, assumption);
 
+  cmp = btor_slte_exp (mgr, z, j);
+  tmp = btor_and_exp (mgr, assumption, cmp);
+  btor_release_exp (mgr, assumption);
+  btor_release_exp (mgr, cmp);
+  assumption = tmp;
+
+  cmp = btor_slt_exp (mgr, j, n);
+  tmp = btor_and_exp (mgr, assumption, cmp);
+  btor_release_exp (mgr, assumption);
+  btor_release_exp (mgr, cmp);
+  assumption = tmp;
+
+  p   = btor_add_exp (mgr, src, j);
+  old = btor_read_exp (mgr, mem, p);
+  btor_release_exp (mgr, p);
+
+  p = btor_copy_exp (mgr, src);
+  q = btor_copy_exp (mgr, dst);
+
+  for (i = 0; i < len; i++)
+  {
+  }
+
+  btor_release_exp (mgr, q);
+  q   = btor_add_exp (mgr, dst, j);
+  new = btor_read_exp (mgr, mem, q);
+
+  cmp = btor_ne_exp (mgr, old, new);
+
+  root = btor_and_exp (mgr, assumption, cmp);
+  btor_release_exp (mgr, assumption);
+  btor_release_exp (mgr, cmp);
+
   btor_release_exp (mgr, root);
+  btor_release_exp (mgr, p);
+  btor_release_exp (mgr, q);
+  btor_release_exp (mgr, old);
+  btor_release_exp (mgr, new);
   btor_release_exp (mgr, eos);
   btor_release_exp (mgr, eod);
+  btor_release_exp (mgr, z);
+  btor_release_exp (mgr, j);
   btor_release_exp (mgr, n);
   btor_release_exp (mgr, dst);
   btor_release_exp (mgr, src);

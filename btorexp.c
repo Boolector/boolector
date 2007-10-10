@@ -1702,21 +1702,33 @@ rewrite_exp (BtorExpMgr *emgr,
         switch (kind)
         {
           case BTOR_AND_EXP:
+            /* TODO: lots of simplifications:
+             * a <= b && b <= a  <=> a == b
+             * a != b && a == b <=> 0
+             * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
+             * ...
+             */
             bits_result = btor_and_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_EQ_EXP:
+            /* TODO a = ~a <=> 0 */
             bits_result = btor_eq_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_ADD_EXP:
+            /* TODO a + a <=> 2 * a <=> a << 1 */
             bits_result = btor_add_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_MUL_EXP:
+            /* TODO strength reduction: a * 2 == a << 1 */
+            /* TODO strength reduction: a * 3 == (a << 1) + a */
             bits_result = btor_mul_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_ULT_EXP:
             bits_result = btor_ult_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_UDIV_EXP:
+            /* TODO strength reduction: a / 2 == (a >> 1) */
+            /* TODO strength reduction: a / 3 =>  higher bits zero */
             bits_result = btor_udiv_const (mm, bits_e0, bits_e1);
             break;
           case BTOR_UREM_EXP:
