@@ -36,7 +36,7 @@ isint (const char* str)
 int
 main (int argc, char** argv)
 {
-  BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *z;
+  BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
   BtorExp *mem, *assumption, *alternative, *cmp, *root, *v;
   BtorExp *old, *new;
   int i, len, havelen;
@@ -77,7 +77,8 @@ main (int argc, char** argv)
 
   j = btor_var_exp (mgr, 32, "j");
 
-  z = btor_zeros_exp (mgr, 32);
+  zero = btor_zeros_exp (mgr, 32);
+  one  = btor_one_exp (mgr, 32);
 
   eos = btor_add_exp (mgr, src, n);
   eod = btor_add_exp (mgr, dst, n);
@@ -105,9 +106,7 @@ main (int argc, char** argv)
   btor_release_exp (mgr, alternative);
   assumption = tmp;
 
-  btor_dump_exp (mgr, stdout, assumption);
-
-  cmp = btor_slte_exp (mgr, z, j);
+  cmp = btor_slte_exp (mgr, zero, j);
   tmp = btor_and_exp (mgr, assumption, cmp);
   btor_release_exp (mgr, assumption);
   btor_release_exp (mgr, cmp);
@@ -128,6 +127,19 @@ main (int argc, char** argv)
 
   for (i = 0; i < len; i++)
   {
+    v   = btor_read_exp (mgr, mem, p);
+    tmp = btor_write_exp (mgr, mem, q, v);
+    btor_release_exp (mgr, mem);
+    btor_release_exp (mgr, v);
+    mem = tmp;
+
+    tmp = btor_add_exp (mgr, p, one);
+    btor_release_exp (mgr, p);
+    p = tmp;
+
+    tmp = btor_add_exp (mgr, q, one);
+    btor_release_exp (mgr, q);
+    q = tmp;
   }
 
   btor_release_exp (mgr, q);
@@ -140,6 +152,8 @@ main (int argc, char** argv)
   btor_release_exp (mgr, assumption);
   btor_release_exp (mgr, cmp);
 
+  btor_dump_exp (mgr, stdout, root);
+
   btor_release_exp (mgr, root);
   btor_release_exp (mgr, p);
   btor_release_exp (mgr, q);
@@ -147,7 +161,8 @@ main (int argc, char** argv)
   btor_release_exp (mgr, new);
   btor_release_exp (mgr, eos);
   btor_release_exp (mgr, eod);
-  btor_release_exp (mgr, z);
+  btor_release_exp (mgr, one);
+  btor_release_exp (mgr, zero);
   btor_release_exp (mgr, j);
   btor_release_exp (mgr, n);
   btor_release_exp (mgr, dst);
