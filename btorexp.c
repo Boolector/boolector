@@ -1702,7 +1702,8 @@ rewrite_exp (BtorExpMgr *emgr,
         switch (kind)
         {
           case BTOR_AND_EXP:
-            /* TODO: lots of simplifications:
+            /* TODO: add all the O[123] optimization of MEMICS paper.
+             * TODO: lots of word level simplifications:
              * a <= b && b <= a  <=> a == b
              * a != b && a == b <=> 0
              * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
