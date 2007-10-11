@@ -38,19 +38,33 @@ main (int argc, char** argv)
 {
   BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
   BtorExp *mem, *assumption, *alternative, *cmp, *root, *v;
+  int i, len, havelen, overlapping, signed_size_t;
   BtorExp *old, *new;
-  int i, len, havelen;
   BtorExpMgr* mgr;
 
-  len     = 0;
-  havelen = 0;
+  len           = 0;
+  havelen       = 0;
+  overlapping   = 0;
+  signed_size_t = 0;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: genmemcpy [-h] <len>\n");
+      fprintf (stderr, "usage: benmemcpy [-h][-o][-s] <len>\n");
+      fprintf (stderr, "\n");
+      fprintf (stderr, "  -h  print this command line option summary\n");
+      fprintf (stderr, "  -o  allow 'src' and 'dst' to overlap\n");
+      fprintf (stderr, "  -s  assume 'size_t' to be signed\n");
       exit (1);
+    }
+    else if (!strcmp (argv[i], "-o"))
+    {
+      overlapping = 1;
+    }
+    else if (!strcmp (argv[i], "-s"))
+    {
+      signed_size_t = 1;
     }
     else if (!argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
@@ -66,6 +80,9 @@ main (int argc, char** argv)
   }
 
   if (!havelen) die ("length argument missing");
+
+  if (len < 0 && !signed_size_t)
+    die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
   mgr = btor_new_exp_mgr (2, 0, 2, 0);
   mem = btor_array_exp (mgr, 8, 32);
@@ -92,27 +109,37 @@ main (int argc, char** argv)
   btor_release_exp (mgr, cmp);
   assumption = tmp;
 
-  cmp         = btor_ulte_exp (mgr, eos, dst);
-  alternative = cmp;
+  if (!overlapping)
+  {
+    cmp         = btor_ulte_exp (mgr, eos, dst);
+    alternative = cmp;
 
-  cmp = btor_ulte_exp (mgr, eod, src);
-  tmp = btor_or_exp (mgr, alternative, cmp);
-  btor_release_exp (mgr, alternative);
-  btor_release_exp (mgr, cmp);
-  alternative = tmp;
+    cmp = btor_ulte_exp (mgr, eod, src);
+    tmp = btor_or_exp (mgr, alternative, cmp);
+    btor_release_exp (mgr, alternative);
+    btor_release_exp (mgr, cmp);
+    alternative = tmp;
 
-  tmp = btor_and_exp (mgr, assumption, alternative);
-  btor_release_exp (mgr, assumption);
-  btor_release_exp (mgr, alternative);
-  assumption = tmp;
+    tmp = btor_and_exp (mgr, assumption, alternative);
+    btor_release_exp (mgr, assumption);
+    btor_release_exp (mgr, alternative);
+    assumption = tmp;
+  }
 
-  cmp = btor_ulte_exp (mgr, zero, j);
-  tmp = btor_and_exp (mgr, assumption, cmp);
-  btor_release_exp (mgr, assumption);
-  btor_release_exp (mgr, cmp);
-  assumption = tmp;
+  if (signed_size_t)
+  {
+    cmp = btor_slte_exp (mgr, zero, j);
+    tmp = btor_and_exp (mgr, assumption, cmp);
+    btor_release_exp (mgr, assumption);
+    btor_release_exp (mgr, cmp);
+    assumption = tmp;
+  }
 
-  cmp = btor_ult_exp (mgr, j, n);
+  if (signed_size_t)
+    cmp = btor_slt_exp (mgr, j, n);
+  else
+    cmp = btor_ult_exp (mgr, j, n);
+
   tmp = btor_and_exp (mgr, assumption, cmp);
   btor_release_exp (mgr, assumption);
   btor_release_exp (mgr, cmp);
