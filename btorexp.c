@@ -4116,6 +4116,8 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   BtorAIGMgr *amgr     = NULL;
   BtorAIGVec *av1      = NULL;
   BtorAIGVec *av2      = NULL;
+  BtorAIG *aig1        = NULL;
+  BtorAIG *aig2        = NULL;
   assert (emgr != NULL);
   assert (exp1 != NULL);
   assert (exp2 != NULL);
@@ -4126,17 +4128,19 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   assert (BTOR_REAL_ADDR_EXP (exp2)->av != NULL);
   avmgr = emgr->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  av1   = BTOR_GET_AIGVEC_EXP (emgr, exp1);
-  av2   = BTOR_GET_AIGVEC_EXP (emgr, exp2);
+  av1   = BTOR_REAL_ADDR_EXP (exp1)->av;
+  av2   = BTOR_REAL_ADDR_EXP (exp2)->av;
   assert (av1->len == av2->len);
   len = av1->len;
   for (i = 0; i < len; i++)
   {
-    val1 = btor_get_assignment_aig (amgr, av1->aigs[i]);
+    aig1 = BTOR_COND_INVERT_AIG_EXP (exp1, av1->aigs[i]);
+    aig2 = BTOR_COND_INVERT_AIG_EXP (exp2, av2->aigs[i]);
+    val1 = btor_get_assignment_aig (amgr, aig1);
     assert (val1 >= -1);
     assert (val1 <= 1);
     if (val1 == 0) val1 = -1;
-    val2 = btor_get_assignment_aig (amgr, av2->aigs[i]);
+    val2 = btor_get_assignment_aig (amgr, aig2);
     assert (val1 >= -1);
     assert (val1 <= 1);
     if (val2 == 0) val2 = -1;
@@ -4151,8 +4155,6 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
       break;
     }
   }
-  btor_release_delete_aigvec (avmgr, av1);
-  btor_release_delete_aigvec (avmgr, av2);
   return return_val;
 }
 
