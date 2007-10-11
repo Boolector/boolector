@@ -118,7 +118,7 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
  * fully translated to CNF if necessary. The function guarantees that
  * after finishing every reachable AIG has a CNF id.
  */
-void btor_aig_to_sat_constraints_full (BtorAIGMgr *amgr, BtorAIG *aig);
+void btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Marks all reachable AIGs with new mark. */
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
