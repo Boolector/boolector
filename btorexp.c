@@ -456,6 +456,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BtorAIGVec *av_w                             = NULL;
   BtorAIG *aig1                                = NULL;
   BtorAIG *aig2                                = NULL;
+  BtorExp *w_index                             = NULL;
   BtorExp **temp                               = NULL;
   BtorExp *cur_write                           = NULL;
   BtorExp **top                                = NULL;
@@ -464,16 +465,17 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BtorPtrHashTable *exp_pair_cnf_eq_id_table   = NULL;
   BtorPtrHashBucket *bucket                    = NULL;
   BtorIntStack clause;
-  int len      = 0;
-  int k        = 0;
-  int a_k      = 0;
-  int b_k      = 0;
-  int i_k      = 0;
-  int j_k      = 0;
-  int d_k      = 0;
-  int w_k      = 0;
-  int e        = 0;
-  int d_hashed = 0;
+  int len_a_b   = 0;
+  int len_i_j_w = 0;
+  int k         = 0;
+  int a_k       = 0;
+  int b_k       = 0;
+  int i_k       = 0;
+  int j_k       = 0;
+  int d_k       = 0;
+  int w_k       = 0;
+  int e         = 0;
+  int d_hashed  = 0;
   assert (emgr != NULL);
   assert (writes != NULL);
   assert (i != NULL);
@@ -491,17 +493,18 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   avmgr                      = emgr->avmgr;
   amgr                       = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr                       = btor_get_sat_mgr_aig_mgr (amgr);
-  av_i                       = BTOR_GET_AIGVEC_EXP (emgr, i);
-  av_j                       = BTOR_GET_AIGVEC_EXP (emgr, j);
-  av_a                       = BTOR_GET_AIGVEC_EXP (emgr, a);
-  av_b                       = BTOR_GET_AIGVEC_EXP (emgr, b);
+  av_i                       = BTOR_REAL_ADDR_EXP (i)->av;
+  av_j                       = BTOR_REAL_ADDR_EXP (j)->av;
+  av_a                       = BTOR_REAL_ADDR_EXP (a)->av;
+  av_b                       = BTOR_REAL_ADDR_EXP (b)->av;
   assert (av_i != NULL);
   assert (av_j != NULL);
   assert (av_a != NULL);
   assert (av_b != NULL);
-  assert (av_i->len == av_j->len);
   assert (av_a->len == av_b->len);
-  len = av_i->len;
+  assert (av_i->len == av_j->len);
+  len_a_b   = av_a->len;
+  len_i_j_w = av_i->len;
   if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_i);
@@ -531,10 +534,10 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
       d_k      = bucket->data.asInt;
       delete_exp_pair (emgr, pair);
     }
-    for (k = 0; k < len; k++)
+    for (k = 0; k < len_i_j_w; k++)
     {
-      aig1 = av_i->aigs[k];
-      aig2 = av_j->aigs[k];
+      aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
+      aig2 = BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]);
       if (!BTOR_IS_CONST_AIG (aig1))
       {
         i_k = BTOR_GET_CNF_ID_AIG (aig1);
@@ -573,7 +576,6 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     }
   }
   /* encode a = b */
-  len = av_a->len;
   if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_a);
@@ -598,10 +600,10 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     delete_exp_pair (emgr, pair);
   }
   BTOR_PUSH_STACK (mm, clause, e);
-  for (k = 0; k < len; k++)
+  for (k = 0; k < len_a_b; k++)
   {
-    aig1 = av_a->aigs[k];
-    aig2 = av_b->aigs[k];
+    aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
+    aig2 = BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]);
     /* if AIGs are equal then the clauses are satisfied */
     if (aig1 != aig2)
     {
@@ -632,21 +634,21 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     }
   }
   /* encode i != write index premisses */
-  len = av_i->len;
   top = writes->top;
   for (temp = writes->start; temp != top; temp++)
   {
     cur_write = *temp;
     assert (BTOR_IS_REGULAR_EXP (cur_write));
     assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
-    av_w = BTOR_GET_AIGVEC_EXP (emgr, cur_write->e[1]);
-    assert (av_w->len == len);
-    if (!BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_sat)
+    w_index = cur_write->e[1];
+    av_w    = BTOR_REAL_ADDR_EXP (w_index)->av;
+    assert (av_w->len == len_i_j_w);
+    if (!BTOR_REAL_ADDR_EXP (w_index)->full_sat)
     {
       btor_aigvec_to_sat_full (avmgr, av_w);
-      BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_sat = 1;
+      BTOR_REAL_ADDR_EXP (w_index)->full_sat = 1;
     }
-    pair   = new_exp_pair (emgr, i, cur_write->e[1]);
+    pair   = new_exp_pair (emgr, i, w_index);
     bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
     if (bucket == NULL)
     {
@@ -660,10 +662,10 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
       delete_exp_pair (emgr, pair);
     }
     BTOR_PUSH_STACK (mm, clause, e);
-    for (k = 0; k < len; k++)
+    for (k = 0; k < len_i_j_w; k++)
     {
-      aig1 = av_i->aigs[k];
-      aig2 = av_w->aigs[k];
+      aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
+      aig2 = BTOR_COND_INVERT_AIG_EXP (w_index, av_w->aigs[k]);
       /* if AIGs are equal then clauses are satisfied */
       if (aig1 != aig2)
       {
@@ -693,7 +695,6 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
         }
       }
     }
-    btor_release_delete_aigvec (avmgr, av_w);
   }
   while (!BTOR_EMPTY_STACK (clause))
   {
@@ -703,10 +704,6 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   }
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, clause);
-  btor_release_delete_aigvec (avmgr, av_i);
-  btor_release_delete_aigvec (avmgr, av_j);
-  btor_release_delete_aigvec (avmgr, av_a);
-  btor_release_delete_aigvec (avmgr, av_b);
 }
 
 /* Encodes read constraint eagerly by adding all
