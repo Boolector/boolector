@@ -274,7 +274,7 @@ encode_ackermann_constraint (
   assert (av_b != NULL);
   assert (av_i->len == av_j->len);
   assert (av_a->len == av_b->len);
-  is_equal_i_j = btor_is_equal_aigvec (avmgr, av_a, av_b);
+  is_equal_i_j = btor_is_equal_aigvec (avmgr, av_i, av_j);
   is_equal_a_b = btor_is_equal_aigvec (avmgr, av_a, av_b);
   len          = av_i->len;
   for (k = 0; k < len; k++)
