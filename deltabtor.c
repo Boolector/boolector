@@ -471,6 +471,14 @@ simp (void)
      * However, those are not part of the internal repr.
      */
 
+    /* TODO: add
+     *
+     *   write(write (a,x), x, y) == write (a,x,y)
+     */
+
+    /* TODO: 'read?'
+     */
+
     (void) deref (i);
   }
 }

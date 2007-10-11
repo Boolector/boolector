@@ -33,21 +33,57 @@ valid_const (const char *c)
 
 #endif
 
+#define MSB_INT ((int) (sizeof (int) * 8 - 1))
+
 char *
-btor_int_to_bin (BtorMemMgr *mm, int x, int len)
+btor_int_to_const (BtorMemMgr *mm, int x, int len)
+{
+  char *result = NULL;
+  char msb     = 0;
+  int i        = 0;
+
+  assert (mm != NULL);
+  assert (len > 0);
+
+  BTOR_NEWN (mm, result, len + 1);
+
+  msb = (x & (1 << MSB_INT)) ? '1' : '0';
+  for (i = len - 1; i >= MSB_INT; i--) result[len - 1 - i] = msb;
+
+  while (i >= 0)
+  {
+    result[len - 1 - i] = (x & (1 << i)) ? '1' : '0';
+    i--;
+  }
+
+  result[len] = '\0';
+
+  return result;
+}
+
+#define MSB_UNSIGNED ((int) (sizeof (unsigned) * 8 - 1))
+
+char *
+btor_unsigned_to_const (BtorMemMgr *mm, unsigned x, int len)
 {
   char *result = NULL;
   int i        = 0;
+
   assert (mm != NULL);
-  assert (x >= 0);
   assert (len > 0);
+
   BTOR_NEWN (mm, result, len + 1);
-  for (i = len - 1; i >= 0; i--)
+
+  for (i = len - 1; i > MSB_UNSIGNED; i--) result[len - 1 - i] = '0';
+
+  while (i >= 0)
   {
-    result[i] = x % 2 ? '1' : '0';
-    x >>= 1;
+    result[len - 1 - i] = (x & (1u << i)) ? '1' : '0';
+    i--;
   }
+
   result[len] = '\0';
+
   return result;
 }
 
@@ -421,7 +457,7 @@ btor_neg_const (BtorMemMgr *mm, const char *a)
   assert (valid_const (a));
   len    = (int) strlen (a);
   not_a  = btor_not_const (mm, a);
-  one    = btor_int_to_bin (mm, 1, len);
+  one    = btor_int_to_const (mm, 1, len);
   result = btor_add_const (mm, not_a, one);
   btor_delete_const (mm, not_a);
   btor_delete_const (mm, one);
@@ -486,7 +522,7 @@ btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (valid_const (a));
   assert (valid_const (b));
   len    = (int) strlen (a);
-  result = btor_int_to_bin (mm, 0, len);
+  result = btor_int_to_const (mm, 0, len);
   for (i = len - 1; i >= 0; i--)
   {
     BTOR_NEWN (mm, and, len + 1);
