@@ -3490,7 +3490,7 @@ btor_dump_smt_id (BtorExp *e, FILE *file)
 
     type = "v";
   }
-  else if (BTOR_IS_ARRAY_EXP (u))
+  else if (BTOR_IS_NATIVE_ARRAY_EXP (u))
     type = "a";
   else
     type = "?e";
@@ -3528,7 +3528,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
     if (BTOR_IS_VAR_EXP (e)) continue;
 
-    if (BTOR_IS_ARRAY_EXP (e))
+    if (BTOR_IS_NATIVE_ARRAY_EXP (e))
     {
       arrays = 1;
       continue;
@@ -3557,7 +3557,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_ARRAY_EXP (e)) continue;
+    if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_NATIVE_ARRAY_EXP (e)) continue;
 
     fputs (":extrafuns ((", file);
     btor_dump_smt_id (e, file);
@@ -3578,7 +3578,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (BTOR_IS_VAR_EXP (e) || BTOR_IS_ARRAY_EXP (e)) continue;
+    if (BTOR_IS_VAR_EXP (e) || BTOR_IS_NATIVE_ARRAY_EXP (e)) continue;
 
     lets++;
 
