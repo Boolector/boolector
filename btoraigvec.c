@@ -5813,6 +5813,19 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   return result;
 }
 
+void
+btor_aigvec_to_sat_full (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+{
+  BtorAIGMgr *amgr = NULL;
+  int i            = 0;
+  int len          = 0;
+  assert (avmgr != NULL);
+  assert (av != NULL);
+  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  len  = av->len;
+  for (i = 0; i < len; i++) btor_aig_to_sat_full (amgr, av->aigs[i]);
+}
+
 int
 btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {

@@ -155,6 +155,9 @@ BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
  */
 BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
+/* Translates every AIG of the AIG vector fully into CNF */
+void btor_aigvec_to_sat_full (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+
 /* Determines if av is a constant AIG vector or not. */
 int btor_is_const_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
