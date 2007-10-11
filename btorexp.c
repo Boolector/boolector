@@ -303,15 +303,15 @@ encode_ackermann_constraint (
    */
   if (!is_equal_i_j)
   {
-    if (!BTOR_REAL_ADDR_EXP (i)->full_cnf)
+    if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
     {
       btor_aigvec_to_sat_full (avmgr, av_i);
-      BTOR_REAL_ADDR_EXP (i)->full_cnf = 1;
+      BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
     }
-    if (!BTOR_REAL_ADDR_EXP (j)->full_cnf)
+    if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
     {
       btor_aigvec_to_sat_full (avmgr, av_j);
-      BTOR_REAL_ADDR_EXP (j)->full_cnf = 1;
+      BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
     }
     BTOR_INIT_STACK (diffs);
     for (k = 0; k < len; k++)
@@ -363,15 +363,15 @@ encode_ackermann_constraint (
   btor_add_sat (smgr, e);
   btor_add_sat (smgr, 0);
   len = av_a->len;
-  if (!BTOR_REAL_ADDR_EXP (a)->full_cnf)
+  if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
   }
-  if (!BTOR_REAL_ADDR_EXP (b)->full_cnf)
+  if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
   }
   for (k = 0; k < len; k++)
   {
@@ -486,15 +486,15 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   assert (av_i->len == av_j->len);
   assert (av_a->len == av_b->len);
   len = av_i->len;
-  if (!BTOR_REAL_ADDR_EXP (i)->full_cnf)
+  if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_i);
-    BTOR_REAL_ADDR_EXP (i)->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
   }
-  if (!BTOR_REAL_ADDR_EXP (j)->full_cnf)
+  if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_j);
-    BTOR_REAL_ADDR_EXP (j)->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
   }
   BTOR_INIT_STACK (clause);
   /* encode i != j */
@@ -558,15 +558,15 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   }
   /* encode a = b */
   len = av_a->len;
-  if (!BTOR_REAL_ADDR_EXP (a)->full_cnf)
+  if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
   }
-  if (!BTOR_REAL_ADDR_EXP (b)->full_cnf)
+  if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
   {
     btor_aigvec_to_sat_full (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
   }
   pair   = new_exp_pair (emgr, a, b);
   bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
@@ -625,10 +625,10 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
     av_w = BTOR_GET_AIGVEC_EXP (emgr, cur_write->e[1]);
     assert (av_w->len == len);
-    if (!BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf)
+    if (!BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_sat)
     {
       btor_aigvec_to_sat_full (avmgr, av_w);
-      BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf = 1;
+      BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_sat = 1;
     }
     pair   = new_exp_pair (emgr, i, cur_write->e[1]);
     bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
@@ -4426,9 +4426,9 @@ synthesize_and_encode_array (BtorExpMgr *emgr, BtorExp *array)
       btor_synthesize_exp (emgr, cur->e[1], NULL);
       btor_synthesize_exp (emgr, cur, NULL);
       btor_aigvec_to_sat_full (avmgr, cur->av);
-      cur->full_cnf = 1;
+      cur->full_sat = 1;
       btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (cur->e[1])->av);
-      BTOR_REAL_ADDR_EXP (cur->e[1])->full_cnf = 1;
+      BTOR_REAL_ADDR_EXP (cur->e[1])->full_sat = 1;
     }
     cur = cur->next_parent[0];
     assert (BTOR_IS_REGULAR_EXP (cur));
@@ -4438,9 +4438,9 @@ synthesize_and_encode_array (BtorExpMgr *emgr, BtorExp *array)
     btor_synthesize_exp (emgr, array->e[2], NULL);
     btor_synthesize_exp (emgr, array->e[1], NULL);
     btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (array->e[2])->av);
-    BTOR_REAL_ADDR_EXP (array->e[2])->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (array->e[2])->full_sat = 1;
     btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (array->e[1])->av);
-    BTOR_REAL_ADDR_EXP (array->e[1])->full_cnf = 1;
+    BTOR_REAL_ADDR_EXP (array->e[1])->full_sat = 1;
   }
   array->synth_enc_array = 1;
   /* update assignments */
