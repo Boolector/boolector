@@ -323,14 +323,12 @@ encode_ackermann_constraint (
   {
     if (!BTOR_REAL_ADDR_EXP (i)->full_cnf)
     {
-      for (k = 0; k < len; k++)
-        btor_aig_to_sat_constraints_full (amgr, av_i->aigs[k]);
+      btor_aigvec_to_sat_full (avmgr, av_i);
       BTOR_REAL_ADDR_EXP (i)->full_cnf = 1;
     }
     if (!BTOR_REAL_ADDR_EXP (j)->full_cnf)
     {
-      for (k = 0; k < len; k++)
-        btor_aig_to_sat_constraints_full (amgr, av_j->aigs[k]);
+      btor_aigvec_to_sat_full (avmgr, av_j);
       BTOR_REAL_ADDR_EXP (j)->full_cnf = 1;
     }
     BTOR_INIT_STACK (diffs);
@@ -385,14 +383,12 @@ encode_ackermann_constraint (
   len = av_a->len;
   if (!BTOR_REAL_ADDR_EXP (a)->full_cnf)
   {
-    for (k = 0; k < len; k++)
-      btor_aig_to_sat_constraints_full (amgr, av_a->aigs[k]);
+    btor_aigvec_to_sat_full (avmgr, av_a);
     BTOR_REAL_ADDR_EXP (a)->full_cnf = 1;
   }
   if (!BTOR_REAL_ADDR_EXP (b)->full_cnf)
   {
-    for (k = 0; k < len; k++)
-      btor_aig_to_sat_constraints_full (amgr, av_b->aigs[k]);
+    btor_aigvec_to_sat_full (avmgr, av_b);
     BTOR_REAL_ADDR_EXP (b)->full_cnf = 1;
   }
   for (k = 0; k < len; k++)
@@ -409,7 +405,7 @@ encode_ackermann_constraint (
       b_k = BTOR_GET_CNF_ID_AIG (aig2);
       assert (b_k != 0);
     }
-    /* if aigs are equal then clauses are satisfied */
+    /* if AIGs are equal then clauses are satisfied */
     if (aig1 != aig2)
     {
       if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
@@ -510,14 +506,12 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   len = av_i->len;
   if (!BTOR_REAL_ADDR_EXP (i)->full_cnf)
   {
-    for (k = 0; k < len; k++)
-      btor_aig_to_sat_constraints_full (amgr, av_i->aigs[k]);
+    btor_aigvec_to_sat_full (avmgr, av_i);
     BTOR_REAL_ADDR_EXP (i)->full_cnf = 1;
   }
   if (!BTOR_REAL_ADDR_EXP (j)->full_cnf)
   {
-    for (k = 0; k < len; k++)
-      btor_aig_to_sat_constraints_full (amgr, av_j->aigs[k]);
+    btor_aigvec_to_sat_full (avmgr, av_j);
     BTOR_REAL_ADDR_EXP (j)->full_cnf = 1;
   }
   BTOR_INIT_STACK (clause);
@@ -553,7 +547,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
         j_k = BTOR_GET_CNF_ID_AIG (aig2);
         assert (j_k != 0);
       }
-      /* aigs cannot be inverse of each other as this would imply
+      /* AIGs cannot be inverse of each other as this would imply
        * that i != j which is in contradiction to the conflict that
        * has been detected.
        */
@@ -584,14 +578,12 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   len = av_a->len;
   if (!BTOR_REAL_ADDR_EXP (a)->full_cnf)
   {
-    for (k = 0; k < len; k++)
-      btor_aig_to_sat_constraints_full (amgr, av_a->aigs[k]);
+    btor_aigvec_to_sat_full (avmgr, av_a);
     BTOR_REAL_ADDR_EXP (a)->full_cnf = 1;
   }
   if (!BTOR_REAL_ADDR_EXP (b)->full_cnf)
   {
-    for (k = 0; k < len; k++)
-      btor_aig_to_sat_constraints_full (amgr, av_b->aigs[k]);
+    btor_aigvec_to_sat_full (avmgr, av_b);
     BTOR_REAL_ADDR_EXP (b)->full_cnf = 1;
   }
   pair   = new_exp_pair (emgr, a, b);
@@ -612,7 +604,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   {
     aig1 = av_a->aigs[k];
     aig2 = av_b->aigs[k];
-    /* if aigs are equal then the clauses are satisfied */
+    /* if AIGs are equal then the clauses are satisfied */
     if (aig1 != aig2)
     {
       if (!BTOR_IS_CONST_AIG (aig1))
@@ -653,8 +645,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     assert (av_w->len == len);
     if (!BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf)
     {
-      for (k = 0; k < len; k++)
-        btor_aig_to_sat_constraints_full (amgr, av_w->aigs[k]);
+      btor_aigvec_to_sat_full (avmgr, av_w);
       BTOR_REAL_ADDR_EXP (cur_write->e[1])->full_cnf = 1;
     }
     pair   = new_exp_pair (emgr, i, cur_write->e[1]);
@@ -675,7 +666,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     {
       aig1 = av_i->aigs[k];
       aig2 = av_w->aigs[k];
-      /* if aigs are equal then clauses are satisfied */
+      /* if AIGs are equal then clauses are satisfied */
       if (aig1 != aig2)
       {
         if (!BTOR_IS_CONST_AIG (aig1))
@@ -1415,10 +1406,10 @@ mark_exp_bottom_up_arrays (BtorExpMgr *emgr, BtorExp *array, int new_mark)
     cur_array = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
-    if (cur_array->mark != new_mark)
+    if (cur_array->array_mark != new_mark)
     {
-      cur_array->mark = new_mark;
-      cur_parent      = cur_array->last_parent;
+      cur_array->array_mark = new_mark;
+      cur_parent            = cur_array->last_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_parent));
       while (cur_parent != NULL
              && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
@@ -3774,6 +3765,41 @@ btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr)
 }
 
 static void
+mark_reachable_exp (BtorExpMgr *emgr, BtorExp *exp)
+{
+  BtorExpPtrStack stack;
+  BtorExp *cur   = NULL;
+  BtorMemMgr *mm = NULL;
+  assert (emgr != NULL);
+  assert (exp != NULL);
+  mm = emgr->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, exp);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    if (!cur->reachable)
+    {
+      cur->reachable = 1;
+      if (BTOR_IS_UNARY_EXP (cur))
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      else if (BTOR_IS_BINARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+      else if (BTOR_IS_TERNARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
+static void
 btor_synthesize_exp (BtorExpMgr *emgr,
                      BtorExp *exp,
                      BtorPtrHashTable *backannoation)
@@ -3808,7 +3834,6 @@ btor_synthesize_exp (BtorExpMgr *emgr,
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
     assert (cur->mark >= 0);
     assert (cur->mark <= 2);
-    assert (!BTOR_IS_NATIVE_ARRAY_EXP (cur));
     if (cur->av == NULL && cur->mark < 2)
     {
       count++;
@@ -3837,18 +3862,19 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             btor_free (mm, indexed_name, len);
           }
         }
-        else
+        else if (!BTOR_IS_NATIVE_ARRAY_EXP (cur))
         {
           if (BTOR_IS_WRITE_ARRAY_EXP (cur))
           {
+            /* writes are only reachable in lazy mode */
             assert (emgr->write_enc != BTOR_EAGER_WRITE_ENC);
             cur->mark = 2;
-            /* push value on the stack */
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
-            /* push index on the stack */
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-            if (BTOR_IS_WRITE_ARRAY_EXP (cur->e[0]))
-              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            /* mark children recursively as reachable */
+            mark_reachable_exp (emgr, cur->e[2]);
+            mark_reachable_exp (emgr, cur->e[1]);
+            mark_reachable_exp (emgr, cur->e[0]);
+            /* we do not synthesize children as we are
+             * in lazy mode */
           }
           else
           {
@@ -3856,10 +3882,19 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             BTOR_PUSH_STACK (mm, exp_stack, cur);
             if (cur->kind == BTOR_READ_EXP)
             {
-              /* push index on the stack */
-              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-              if (BTOR_IS_WRITE_ARRAY_EXP (cur->e[0]))
+              if (emgr->read_enc == BTOR_EAGER_READ_ENC)
+              {
+                BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
                 BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+              }
+              else
+              {
+                /* mark children recursively as reachable */
+                mark_reachable_exp (emgr, cur->e[1]);
+                mark_reachable_exp (emgr, cur->e[0]);
+                /* we do not synthesize children as we are
+                 * in lazy mode */
+              }
             }
             else if (BTOR_IS_UNARY_EXP (cur))
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
@@ -4336,10 +4371,64 @@ release_write_parents_read_stack (BtorExpMgr *emgr, BtorExp *array)
     /* array children are always at position 0 */
     assert (BTOR_GET_TAG_EXP (cur_write) == 0);
     assert (cur_write->kind == BTOR_WRITE_EXP);
-    BTOR_RELEASE_STACK (mm, *cur_write->reads);
+    if (cur_write->reachable) BTOR_RELEASE_STACK (mm, *cur_write->reads);
     cur_write = cur_write->prev_parent[0];
     assert (BTOR_IS_REGULAR_EXP (cur_write));
   }
+}
+
+/* builds the AIGs of read indices of reads
+ * on this array and encodes them fully into SAT .
+ * If the array is a write, then also the write
+ * indices and the write value are synthesized
+ * and fully encoded into SAT.
+ */
+static void
+synthesize_and_encode_array (BtorExpMgr *emgr, BtorExp *array)
+{
+  BtorExp *cur         = NULL;
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorAIGMgr *amgr     = NULL;
+  BtorSATMgr *smgr     = NULL;
+  assert (emgr != NULL);
+  assert (array != NULL);
+  assert (BTOR_IS_REGULAR_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  assert (array->reachable);
+  assert (!array->synth_enc_array);
+  avmgr = emgr->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+  cur   = array->first_parent;
+  assert (BTOR_IS_REGULAR_EXP (cur));
+  while (cur != NULL && !BTOR_IS_WRITE_ARRAY_EXP (cur))
+  {
+    assert (BTOR_GET_TAG_EXP (cur) == 0);
+    assert (cur->kind == BTOR_READ_EXP);
+    if (cur->reachable)
+    {
+      btor_synthesize_exp (emgr, cur->e[1], NULL);
+      btor_synthesize_exp (emgr, cur, NULL);
+      btor_aigvec_to_sat_full (avmgr, cur->av);
+      cur->full_cnf = 1;
+      btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (cur->e[1])->av);
+      BTOR_REAL_ADDR_EXP (cur->e[1])->full_cnf = 1;
+    }
+    cur = cur->next_parent[0];
+    assert (BTOR_IS_REGULAR_EXP (cur));
+  }
+  if (BTOR_IS_WRITE_ARRAY_EXP (array))
+  {
+    btor_synthesize_exp (emgr, array->e[2], NULL);
+    btor_synthesize_exp (emgr, array->e[1], NULL);
+    btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (array->e[2])->av);
+    BTOR_REAL_ADDR_EXP (array->e[2])->full_cnf = 1;
+    btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (array->e[1])->av);
+    BTOR_REAL_ADDR_EXP (array->e[1])->full_cnf = 1;
+  }
+  array->synth_enc_array = 1;
+  /* update assignments */
+  (void) btor_sat_sat (smgr, INT_MAX);
 }
 
 static int
@@ -4371,9 +4460,9 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     cur_array = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
-    if (cur_array->mark == 0)
+    if (cur_array->array_mark == 0)
     {
-      cur_array->mark = 1;
+      cur_array->array_mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur_array);
       /* ATTENTION: There can be write parents although
        * they are not reachable from the root.
@@ -4391,7 +4480,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         {
           /* array children are always at position 0 */
           assert (BTOR_GET_TAG_EXP (cur_write) == 0);
-          assert (cur_write->kind == BTOR_WRITE_EXP);
+          assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
           if (cur_write->reachable) BTOR_PUSH_STACK (mm, stack, cur_write);
           cur_write = cur_write->prev_parent[0];
           assert (BTOR_IS_REGULAR_EXP (cur_write));
@@ -4400,7 +4489,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
     }
     else
     {
-      assert (cur_array->mark == 1);
+      assert (cur_array->array_mark == 1);
       assert (write_enc == BTOR_LAZY_WRITE_ENC || cur_array == array);
       assert (!BTOR_IS_WRITE_ARRAY_EXP (cur_array) || cur_array->reachable);
       reads = cur_array->reads;
@@ -4410,11 +4499,13 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
         release_write_parents_read_stack (emgr, cur_array);
         continue;
       }
+      if (!cur_array->synth_enc_array)
+        synthesize_and_encode_array (emgr, cur_array);
       /* push reachable parent reads on read stack */
       cur_read = cur_array->first_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_read));
       while (!found_conflict && cur_read != NULL
-             && cur_read->kind != BTOR_WRITE_EXP)
+             && !BTOR_IS_WRITE_ARRAY_EXP (cur_read))
       {
         /* array children are always at position 0 */
         assert (BTOR_GET_TAG_EXP (cur_read) == 0);
@@ -4517,11 +4608,17 @@ resolve_read_write_conflicts (BtorExpMgr *emgr)
 {
   int found_conflict = 0;
   BtorExp **top      = NULL;
-  BtorExp **cur      = NULL;
+  BtorExp **temp     = NULL;
+  BtorExp *cur       = NULL;
   assert (emgr != NULL);
   top = emgr->arrays.top;
-  for (cur = emgr->arrays.start; !found_conflict && cur != top; cur++)
-    found_conflict = resolve_read_write_conflicts_array (emgr, *cur);
+  for (temp = emgr->arrays.start; !found_conflict && temp != top; temp++)
+  {
+    cur = *temp;
+    assert (BTOR_IS_NATIVE_ARRAY_EXP (cur));
+    if (cur->reachable)
+      found_conflict = resolve_read_write_conflicts_array (emgr, cur);
+  }
   return found_conflict;
 }
 
