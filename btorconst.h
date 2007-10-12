@@ -34,6 +34,9 @@ char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, int len);
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
  */
+
+void btor_invert_const (BtorMemMgr *mm, char *a);
+
 char *btor_not_const (BtorMemMgr *mm, const char *a);
 
 char *btor_and_const (BtorMemMgr *mm, const char *a, const char *b);
