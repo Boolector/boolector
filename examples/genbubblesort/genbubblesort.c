@@ -3,21 +3,6 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
-static void
-int_to_bin (int x, char *buffer, int len)
-{
-  int i = 0;
-  for (i = len - 1; i >= 0; i--)
-  {
-    if (x % 2)
-      buffer[i] = '1';
-    else
-      buffer[i] = '0';
-    x >>= 1;
-  }
-  buffer[len] = '\0';
-}
-
 int
 main (int argc, char **argv)
 {
@@ -42,7 +27,6 @@ main (int argc, char **argv)
   BtorExp *formula         = NULL;
   BtorExp *index           = NULL;
   BtorExp *old_element     = NULL;
-  char *buffer             = NULL;
   if (argc != 3)
   {
     printf ("Usage: ./genbubblesort <num-bits> <num-elements>\n");
@@ -68,12 +52,8 @@ main (int argc, char **argv)
   num_bits_index = btor_log_2_util (num_elements);
   emgr           = btor_new_exp_mgr (2, 0, 0, stdout);
   indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
-  buffer         = (char *) malloc (sizeof (char) * (num_bits_index + 1));
   for (i = 0; i < num_elements; i++)
-  {
-    int_to_bin (i, buffer, num_bits_index);
-    indices[i] = btor_const_exp (emgr, buffer);
-  }
+    indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
   array = btor_array_exp (emgr, num_bits, num_bits_index);
   index = btor_var_exp (emgr, num_bits_index, "oldvalue");
   /* read at an arbitrary index (needed later): */
@@ -152,7 +132,6 @@ main (int argc, char **argv)
   btor_release_exp (emgr, index);
   btor_release_exp (emgr, array);
   btor_delete_exp_mgr (emgr);
-  free (buffer);
   free (indices);
   return 0;
 }
