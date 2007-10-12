@@ -756,7 +756,7 @@ btor_int_to_exp (BtorExpMgr *emgr, int i, int len)
   char *string    = NULL;
   BtorExp *result = NULL;
   assert (emgr != NULL);
-  assert (len > 1);
+  assert (len > 0);
   string = btor_int_to_const (emgr->mm, i, len);
   result = btor_const_exp (emgr, string);
   btor_delete_const (emgr->mm, string);
@@ -769,7 +769,7 @@ btor_unsigned_to_exp (BtorExpMgr *emgr, unsigned u, int len)
   char *string    = NULL;
   BtorExp *result = NULL;
   assert (emgr != NULL);
-  assert (len > 1);
+  assert (len > 0);
   string = btor_unsigned_to_const (emgr->mm, u, len);
   result = btor_const_exp (emgr, string);
   btor_delete_const (emgr->mm, string);
