@@ -1701,8 +1701,8 @@ rewrite_exp (BtorExpMgr *emgr,
     {
       if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
-        bits_e0 = BTOR_GET_BITS_EXP (mm, e0);
-        bits_e1 = BTOR_GET_BITS_EXP (mm, e1);
+        bits_e0 = BTOR_BITS_EXP (mm, e0);
+        bits_e1 = BTOR_BITS_EXP (mm, e1);
         switch (kind)
         {
           case BTOR_AND_EXP:
@@ -1744,7 +1744,7 @@ rewrite_exp (BtorExpMgr *emgr,
       }
       else if (BTOR_IS_CONST_EXP (real_e0) && !BTOR_IS_CONST_EXP (real_e1))
       {
-        bits_e0 = BTOR_GET_BITS_EXP (mm, e0);
+        bits_e0 = BTOR_BITS_EXP (mm, e0);
         is_zero = is_zero_string (emgr, bits_e0, real_e0->len);
         is_one  = is_one_string (emgr, bits_e0, real_e0->len);
         if (is_zero)
@@ -1764,7 +1764,7 @@ rewrite_exp (BtorExpMgr *emgr,
       }
       else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
       {
-        bits_e1 = BTOR_GET_BITS_EXP (mm, e1);
+        bits_e1 = BTOR_BITS_EXP (mm, e1);
         is_zero = is_zero_string (emgr, bits_e1, real_e1->len);
         is_one  = is_one_string (emgr, bits_e1, real_e1->len);
         if (is_zero)
@@ -3965,6 +3965,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
           av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
           if (invert_av0) btor_invert_aigvec (avmgr, av0);
           cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
+          /* invert back if necessary */
           if (invert_av0) btor_invert_aigvec (avmgr, av0);
         }
         else if (BTOR_IS_BINARY_EXP (cur))
@@ -3981,8 +3982,8 @@ btor_synthesize_exp (BtorExpMgr *emgr,
               BTOR_REAL_ADDR_EXP (cur->e[0]) == BTOR_REAL_ADDR_EXP (cur->e[1]);
           if (same_children_mem)
           {
-            av0 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
-            av1 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
+            av0 = BTOR_AIGVEC_EXP (emgr, cur->e[0]);
+            av1 = BTOR_AIGVEC_EXP (emgr, cur->e[1]);
           }
           else
           {
@@ -4049,9 +4050,9 @@ btor_synthesize_exp (BtorExpMgr *emgr,
                      == BTOR_REAL_ADDR_EXP (cur->e[2]);
           if (same_children_mem)
           {
-            av0 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
-            av1 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
-            av2 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[2]);
+            av0 = BTOR_AIGVEC_EXP (emgr, cur->e[0]);
+            av1 = BTOR_AIGVEC_EXP (emgr, cur->e[1]);
+            av2 = BTOR_AIGVEC_EXP (emgr, cur->e[2]);
           }
           else
           {
