@@ -1,32 +1,52 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../../boolector.h"
 #include "../../btorutil.h"
+
+static int
+num_chars (int x)
+{
+  int result = 0;
+  if (x == 0) return 1;
+  while (x > 0)
+  {
+    result++;
+    x /= 10;
+  }
+  return result;
+}
 
 int
 main (int argc, char **argv)
 {
-  int num_bits             = 0;
-  int num_bits_index       = 0;
-  int num_elements         = 0;
-  int i                    = 0;
-  int j                    = 0;
-  BtorExpMgr *emgr         = NULL;
-  BtorExp **indices        = NULL;
-  BtorExp *array           = NULL;
-  BtorExp *ne              = NULL;
-  BtorExp *sgt             = NULL;
-  BtorExp *slte            = NULL;
-  BtorExp *temp            = NULL;
-  BtorExp *read1           = NULL;
-  BtorExp *read2           = NULL;
-  BtorExp *cond1           = NULL;
-  BtorExp *cond2           = NULL;
-  BtorExp *sorted          = NULL;
-  BtorExp *no_diff_element = NULL;
-  BtorExp *formula         = NULL;
-  BtorExp *index           = NULL;
-  BtorExp *old_element     = NULL;
+  char *buffer               = NULL;
+  int num_bits               = 0;
+  int num_bits_index         = 0;
+  int num_elements           = 0;
+  int i                      = 0;
+  int j                      = 0;
+  BtorExpMgr *emgr           = NULL;
+  BtorExp **indices          = NULL;
+  BtorExp **initial_elements = NULL;
+  BtorExp **sorted_elements  = NULL;
+  BtorExp *array             = NULL;
+  BtorExp *ne                = NULL;
+  BtorExp *sgt               = NULL;
+  BtorExp *slte              = NULL;
+  BtorExp *temp              = NULL;
+  BtorExp *read1             = NULL;
+  BtorExp *read2             = NULL;
+  BtorExp *cond1             = NULL;
+  BtorExp *cond2             = NULL;
+  BtorExp *sorted            = NULL;
+  BtorExp *no_diff_element   = NULL;
+  BtorExp *formula           = NULL;
+  BtorExp *index             = NULL;
+  BtorExp *old_element       = NULL;
+  BtorExp *and               = NULL;
+  BtorExp *eq                = NULL;
+  BtorExp *var               = NULL;
   if (argc != 3)
   {
     printf ("Usage: ./genbubblesort <num-bits> <num-elements>\n");
@@ -49,15 +69,20 @@ main (int argc, char **argv)
     printf ("Number of elements must be a power of two\n");
     return 1;
   }
-  num_bits_index = btor_log_2_util (num_elements);
-  emgr           = btor_new_exp_mgr (2, 0, 0, stdout);
-  indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  num_bits_index   = btor_log_2_util (num_elements);
+  emgr             = btor_new_exp_mgr (2, 0, 0, stdout);
+  indices          = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  initial_elements = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  sorted_elements  = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
   array = btor_array_exp (emgr, num_bits, num_bits_index);
   index = btor_var_exp (emgr, num_bits_index, "oldvalue");
   /* read at an arbitrary index (needed later): */
   old_element = btor_read_exp (emgr, array, index);
+  /* read initial elements */
+  for (i = 0; i < num_elements; i++)
+    initial_elements[i] = btor_read_exp (emgr, array, indices[i]);
   /* bubble sort algorithm */
   for (i = 1; i < num_elements; i++)
   {
@@ -82,6 +107,9 @@ main (int argc, char **argv)
       btor_release_exp (emgr, cond2);
     }
   }
+  /* read sorted elements */
+  for (i = 0; i < num_elements; i++)
+    sorted_elements[i] = btor_read_exp (emgr, array, indices[i]);
   /* show that array is sorted */
   sorted = btor_const_exp (emgr, "1");
   for (i = 0; i < num_elements - 1; i++)
@@ -118,13 +146,44 @@ main (int argc, char **argv)
   no_diff_element = temp;
   /* we conjunct this with the sorted predicate */
   formula = btor_and_exp (emgr, sorted, no_diff_element);
-  /* we negate the formula and show that it is unsatisfiable */
-  temp = btor_not_exp (emgr, formula);
-  btor_release_exp (emgr, formula);
-  formula = temp;
+  /* we set variables equal to the initial read values */
+  for (i = 0; i < num_elements; i++)
+  {
+    buffer = (char *) malloc (sizeof (char)
+                              * (strlen ("initial_v") + num_chars (i) + 1));
+    sprintf (buffer, "inital_v%d", i);
+    var = btor_var_exp (emgr, num_bits, buffer);
+    eq  = btor_eq_exp (emgr, var, initial_elements[i]);
+    and = btor_and_exp (emgr, formula, eq);
+    btor_release_exp (emgr, formula);
+    formula = and;
+    btor_release_exp (emgr, var);
+    btor_release_exp (emgr, eq);
+    free (buffer);
+  }
+  /* we set variables equal to the sorted read read values */
+  for (i = 0; i < num_elements; i++)
+  {
+    buffer = (char *) malloc (sizeof (char)
+                              * (strlen ("sorted_v") + num_chars (i) + 1));
+    sprintf (buffer, "sorted_v%d", i);
+    var = btor_var_exp (emgr, num_bits, buffer);
+    eq  = btor_eq_exp (emgr, var, sorted_elements[i]);
+    and = btor_and_exp (emgr, formula, eq);
+    btor_release_exp (emgr, formula);
+    formula = and;
+    btor_release_exp (emgr, var);
+    btor_release_exp (emgr, eq);
+    free (buffer);
+  }
   btor_dump_exp (emgr, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (emgr, indices[i]);
+  for (i = 0; i < num_elements; i++)
+  {
+    btor_release_exp (emgr, indices[i]);
+    btor_release_exp (emgr, initial_elements[i]);
+    btor_release_exp (emgr, sorted_elements[i]);
+  }
   btor_release_exp (emgr, formula);
   btor_release_exp (emgr, sorted);
   btor_release_exp (emgr, no_diff_element);
@@ -133,5 +192,7 @@ main (int argc, char **argv)
   btor_release_exp (emgr, array);
   btor_delete_exp_mgr (emgr);
   free (indices);
+  free (initial_elements);
+  free (sorted_elements);
   return 0;
 }
