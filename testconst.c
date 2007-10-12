@@ -321,6 +321,22 @@ unary_const_test (int (*int_func) (int),
 }
 
 static void
+test_invert_const (void)
+{
+  char bits[] = {'1', '0', '1', '1', '\0'};
+  btor_invert_const (g_mm, bits);
+  assert (bits[0] == '0');
+  assert (bits[1] == '1');
+  assert (bits[2] == '0');
+  assert (bits[3] == '0');
+  btor_invert_const (g_mm, bits);
+  assert (bits[0] == '1');
+  assert (bits[1] == '0');
+  assert (bits[2] == '1');
+  assert (bits[3] == '1');
+}
+
+static void
 test_not_const (void)
 {
   unary_const_test (not, btor_not_const);
@@ -748,6 +764,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (mult_unbounded_const);
   BTOR_RUN_TEST_CHECK_LOG (sub_unbounded_const);
   BTOR_RUN_TEST_CHECK_LOG (udiv_unbounded_const);
+  BTOR_RUN_TEST (invert_const);
   BTOR_RUN_TEST (not_const);
   BTOR_RUN_TEST (neg_const);
   BTOR_RUN_TEST (and_const);
