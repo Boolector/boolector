@@ -133,11 +133,11 @@ struct BtorExp
                 ^ (unsigned long int) (exp)))
 #define BTOR_GET_ID_EXP(exp) \
   (BTOR_IS_INVERTED_EXP (exp) ? -BTOR_REAL_ADDR_EXP (exp)->id : exp->id)
-#define BTOR_GET_AIGVEC_EXP(emgr, exp)                                 \
+#define BTOR_AIGVEC_EXP(emgr, exp)                                     \
   (BTOR_IS_INVERTED_EXP (exp)                                          \
        ? btor_not_aigvec ((emgr)->avmgr, BTOR_REAL_ADDR_EXP (exp)->av) \
        : btor_copy_aigvec ((emgr)->avmgr, exp->av))
-#define BTOR_GET_BITS_EXP(mm, exp)                           \
+#define BTOR_BITS_EXP(mm, exp)                               \
   (BTOR_IS_INVERTED_EXP (exp)                                \
        ? btor_not_const (mm, BTOR_REAL_ADDR_EXP (exp)->bits) \
        : btor_copy_const (mm, exp->bits))
