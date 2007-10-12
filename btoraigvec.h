@@ -44,6 +44,9 @@ BtorAIGVec *btor_const_aigvec (BtorAIGVecMgr *avmgr, const char *bits);
  */
 BtorAIGVec *btor_var_aigvec (BtorAIGVecMgr *avmgr, int len);
 
+/* Inverts all AIGs of the AIG vector */
+void btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+
 /* Creates new AIG vector representing ones's complement of av.
  * len(result) = len(av)
  */

@@ -65,6 +65,18 @@ btor_var_aigvec (BtorAIGVecMgr *avmgr, int len)
   return result;
 }
 
+void
+btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+{
+  int i   = 0;
+  int len = 0;
+  assert (avmgr != NULL);
+  assert (av != NULL);
+  assert (av->len > 0);
+  len = av->len;
+  for (i = 0; i < len; i++) av->aigs[i] = BTOR_INVERT_AIG (av->aigs[i]);
+}
+
 BtorAIGVec *
 btor_not_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
