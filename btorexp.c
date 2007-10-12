@@ -1635,21 +1635,24 @@ rewrite_exp (BtorExpMgr *emgr,
              int upper,
              int lower)
 {
-  BtorExp *result  = NULL;
-  BtorExp *real_e0 = NULL;
-  BtorExp *real_e1 = NULL;
-  BtorExp *real_e2 = NULL;
-  BtorExp *temp    = NULL;
-  BtorMemMgr *mm   = NULL;
-  char *bresult    = NULL;
-  char *b0         = NULL;
-  char *b1         = NULL;
-  int i            = 0;
-  int diff         = 0;
-  int len          = 0;
-  int counter      = 0;
-  int is_zero      = 0;
-  int is_one       = 0;
+  BtorExp *result       = NULL;
+  BtorExp *real_e0      = NULL;
+  BtorExp *real_e1      = NULL;
+  BtorExp *real_e2      = NULL;
+  BtorExp *temp         = NULL;
+  BtorMemMgr *mm        = NULL;
+  char *bresult         = NULL;
+  char *b0              = NULL;
+  char *b1              = NULL;
+  int invert_b0         = 0;
+  int invert_b1         = 0;
+  int same_children_mem = 0;
+  int i                 = 0;
+  int diff              = 0;
+  int len               = 0;
+  int counter           = 0;
+  int is_zero           = 0;
+  int is_one            = 0;
   assert (emgr != NULL);
   assert (emgr->rewrite_level > 0);
   assert (emgr->rewrite_level <= 2);
@@ -1688,8 +1691,21 @@ rewrite_exp (BtorExpMgr *emgr,
     real_e1 = BTOR_REAL_ADDR_EXP (e1);
     if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
     {
-      b0 = BTOR_BITS_EXP (mm, e0);
-      b1 = BTOR_BITS_EXP (mm, e1);
+      same_children_mem = real_e0 == real_e1;
+      if (same_children_mem)
+      {
+        b0 = BTOR_BITS_EXP (mm, e0);
+        b1 = BTOR_BITS_EXP (mm, e1);
+      }
+      else
+      {
+        invert_b0 = BTOR_IS_INVERTED_EXP (e0);
+        b0        = real_e0->bits;
+        if (invert_b0) btor_invert_const (mm, b0);
+        invert_b1 = BTOR_IS_INVERTED_EXP (e1);
+        b1        = real_e1->bits;
+        if (invert_b1) btor_invert_const (mm, b1);
+      }
       switch (kind)
       {
         case BTOR_AND_EXP: bresult = btor_and_const (mm, b0, b1); break;
@@ -1706,16 +1722,29 @@ rewrite_exp (BtorExpMgr *emgr,
           bresult = btor_concat_const (mm, b0, b1);
           break;
       }
+      if (same_children_mem)
+      {
+        btor_delete_const (mm, b1);
+        btor_delete_const (mm, b0);
+      }
+      else
+      {
+        /* invert back if necessary */
+        if (invert_b0) btor_invert_const (mm, b0);
+        if (invert_b1) btor_invert_const (mm, b1);
+      }
       result = btor_const_exp (emgr, bresult);
       btor_delete_const (mm, bresult);
-      btor_delete_const (mm, b1);
-      btor_delete_const (mm, b0);
     }
     else if (BTOR_IS_CONST_EXP (real_e0) && !BTOR_IS_CONST_EXP (real_e1))
     {
-      b0      = BTOR_BITS_EXP (mm, e0);
+      invert_b0 = BTOR_IS_INVERTED_EXP (e0);
+      b0        = real_e0->bits;
+      if (invert_b0) btor_invert_const (mm, b0);
       is_zero = is_zero_string (emgr, b0, real_e0->len);
       is_one  = is_one_string (emgr, b0, real_e0->len);
+      /* invert back if necessary */
+      if (invert_b0) btor_invert_const (mm, b0);
       if (is_zero)
       {
         if (kind == BTOR_ADD_EXP)
@@ -1729,13 +1758,16 @@ rewrite_exp (BtorExpMgr *emgr,
       {
         if (kind == BTOR_MUL_EXP) result = btor_copy_exp (emgr, e1);
       }
-      btor_delete_const (mm, b0);
     }
     else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
     {
-      b1      = BTOR_BITS_EXP (mm, e1);
+      invert_b1 = BTOR_IS_INVERTED_EXP (e1);
+      b1        = real_e1->bits;
+      if (invert_b1) btor_invert_const (mm, b1);
       is_zero = is_zero_string (emgr, b1, real_e1->len);
       is_one  = is_one_string (emgr, b1, real_e1->len);
+      /* invert back if necessary */
+      if (invert_b1) btor_invert_const (mm, b1);
       if (is_zero)
       {
         if (kind == BTOR_ADD_EXP)
@@ -1752,7 +1784,6 @@ rewrite_exp (BtorExpMgr *emgr,
       {
         if (kind == BTOR_MUL_EXP) result = btor_copy_exp (emgr, e0);
       }
-      btor_delete_const (mm, b1);
     }
     else if (real_e0 == real_e1
              && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
