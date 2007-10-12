@@ -3841,6 +3841,10 @@ btor_synthesize_exp (BtorExpMgr *emgr,
   BtorAIGVecMgr *avmgr = NULL;
   BtorMemMgr *mm       = NULL;
   BtorPtrHashBucket *b;
+  int same_children_mem = 0;
+  int invert_av0        = 0;
+  int invert_av1        = 0;
+  int invert_av2        = 0;
   char *indexed_name;
   const char *name;
   unsigned count;
@@ -3957,14 +3961,38 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         else if (BTOR_IS_UNARY_EXP (cur))
         {
           assert (cur->kind == BTOR_SLICE_EXP);
-          av0     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
+          invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
+          av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
+          if (invert_av0) btor_invert_aigvec (avmgr, av0);
           cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
-          btor_release_delete_aigvec (avmgr, av0);
+          if (invert_av0) btor_invert_aigvec (avmgr, av0);
         }
         else if (BTOR_IS_BINARY_EXP (cur))
         {
-          av0 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
-          av1 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
+          /* we have to check if the children are
+           * in the same memory place
+           * if they are in the same memory place,
+           * then we need to allocate memory for the
+           * AIG vectors
+           * if they are not, then we can invert them
+           * in place and invert them back afterwards
+           * (only if necessary)  */
+          same_children_mem =
+              BTOR_REAL_ADDR_EXP (cur->e[0]) == BTOR_REAL_ADDR_EXP (cur->e[1]);
+          if (same_children_mem)
+          {
+            av0 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
+            av1 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
+          }
+          else
+          {
+            invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
+            av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
+            if (invert_av0) btor_invert_aigvec (avmgr, av0);
+            invert_av1 = BTOR_IS_INVERTED_EXP (cur->e[1]);
+            av1        = BTOR_REAL_ADDR_EXP (cur->e[1])->av;
+            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+          }
           switch (cur->kind)
           {
             case BTOR_AND_EXP:
@@ -3997,20 +4025,60 @@ btor_synthesize_exp (BtorExpMgr *emgr,
               cur->av = btor_concat_aigvec (avmgr, av0, av1);
               break;
           }
-          btor_release_delete_aigvec (avmgr, av0);
-          btor_release_delete_aigvec (avmgr, av1);
+          if (same_children_mem)
+          {
+            btor_release_delete_aigvec (avmgr, av0);
+            btor_release_delete_aigvec (avmgr, av1);
+          }
+          else
+          {
+            /* invert back if necessary */
+            if (invert_av0) btor_invert_aigvec (avmgr, av0);
+            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+          }
         }
         else
         {
           assert (BTOR_IS_TERNARY_EXP (cur));
           assert (cur->kind == BTOR_COND_EXP);
-          av0     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
-          av1     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
-          av2     = BTOR_GET_AIGVEC_EXP (emgr, cur->e[2]);
+          same_children_mem =
+              BTOR_REAL_ADDR_EXP (cur->e[0]) == BTOR_REAL_ADDR_EXP (cur->e[1])
+              || BTOR_REAL_ADDR_EXP (cur->e[0])
+                     == BTOR_REAL_ADDR_EXP (cur->e[2])
+              || BTOR_REAL_ADDR_EXP (cur->e[1])
+                     == BTOR_REAL_ADDR_EXP (cur->e[2]);
+          if (same_children_mem)
+          {
+            av0 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[0]);
+            av1 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[1]);
+            av2 = BTOR_GET_AIGVEC_EXP (emgr, cur->e[2]);
+          }
+          else
+          {
+            invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
+            av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
+            if (invert_av0) btor_invert_aigvec (avmgr, av0);
+            invert_av1 = BTOR_IS_INVERTED_EXP (cur->e[1]);
+            av1        = BTOR_REAL_ADDR_EXP (cur->e[1])->av;
+            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+            invert_av2 = BTOR_IS_INVERTED_EXP (cur->e[2]);
+            av2        = BTOR_REAL_ADDR_EXP (cur->e[2])->av;
+            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+          }
           cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
-          btor_release_delete_aigvec (avmgr, av2);
-          btor_release_delete_aigvec (avmgr, av1);
-          btor_release_delete_aigvec (avmgr, av0);
+          if (same_children_mem)
+          {
+            btor_release_delete_aigvec (avmgr, av2);
+            btor_release_delete_aigvec (avmgr, av1);
+            btor_release_delete_aigvec (avmgr, av0);
+          }
+          else
+          {
+            /* invert back if necessary */
+            if (invert_av0) btor_invert_aigvec (avmgr, av0);
+            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+          }
         }
       }
     }
@@ -4711,6 +4779,7 @@ btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
   BtorAIGVecMgr *avmgr = NULL;
   char *assignment     = NULL;
   BtorAIGVec *av       = NULL;
+  int invert_av        = 0;
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
@@ -4718,9 +4787,12 @@ btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
   if (!BTOR_REAL_ADDR_EXP (exp)->reachable
       || BTOR_REAL_ADDR_EXP (exp)->av == NULL)
     return NULL;
-  av         = BTOR_GET_AIGVEC_EXP (emgr, exp);
+  invert_av = BTOR_IS_INVERTED_EXP (exp);
+  av        = BTOR_REAL_ADDR_EXP (exp)->av;
+  if (invert_av) btor_invert_aigvec (avmgr, av);
   assignment = btor_assignment_aigvec (avmgr, av);
-  btor_release_delete_aigvec (avmgr, av);
+  /* invert back if necessary */
+  if (invert_av) btor_invert_aigvec (avmgr, av);
   return assignment;
 }
 
