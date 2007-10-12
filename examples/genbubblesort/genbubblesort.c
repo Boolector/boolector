@@ -15,8 +15,8 @@ main (int argc, char **argv)
   BtorExp **indices        = NULL;
   BtorExp *array           = NULL;
   BtorExp *ne              = NULL;
-  BtorExp *sgt             = NULL;
-  BtorExp *slte            = NULL;
+  BtorExp *ugt             = NULL;
+  BtorExp *ulte            = NULL;
   BtorExp *temp            = NULL;
   BtorExp *read1           = NULL;
   BtorExp *read2           = NULL;
@@ -63,12 +63,12 @@ main (int argc, char **argv)
   {
     for (j = 0; j < num_elements - i; j++)
     {
-      read1 = btor_read_exp (emgr, array, indices[j + 1]);
-      read2 = btor_read_exp (emgr, array, indices[j]);
-      sgt   = btor_sgt_exp (emgr, read1, read2);
+      read1 = btor_read_exp (emgr, array, indices[j]);
+      read2 = btor_read_exp (emgr, array, indices[j + 1]);
+      ugt   = btor_ugt_exp (emgr, read1, read2);
       /* swap ? */
-      cond1 = btor_cond_exp (emgr, sgt, read2, read1);
-      cond2 = btor_cond_exp (emgr, sgt, read1, read2);
+      cond1 = btor_cond_exp (emgr, ugt, read2, read1);
+      cond2 = btor_cond_exp (emgr, ugt, read1, read2);
       temp  = btor_write_exp (emgr, array, indices[j], cond1);
       btor_release_exp (emgr, array);
       array = temp;
@@ -77,7 +77,7 @@ main (int argc, char **argv)
       array = temp;
       btor_release_exp (emgr, read1);
       btor_release_exp (emgr, read2);
-      btor_release_exp (emgr, sgt);
+      btor_release_exp (emgr, ugt);
       btor_release_exp (emgr, cond1);
       btor_release_exp (emgr, cond2);
     }
@@ -88,13 +88,13 @@ main (int argc, char **argv)
   {
     read1 = btor_read_exp (emgr, array, indices[i]);
     read2 = btor_read_exp (emgr, array, indices[i + 1]);
-    slte  = btor_slte_exp (emgr, read1, read2);
-    temp  = btor_and_exp (emgr, sorted, slte);
+    ulte  = btor_ulte_exp (emgr, read1, read2);
+    temp  = btor_and_exp (emgr, sorted, ulte);
     btor_release_exp (emgr, sorted);
     sorted = temp;
     btor_release_exp (emgr, read1);
     btor_release_exp (emgr, read2);
-    btor_release_exp (emgr, slte);
+    btor_release_exp (emgr, ulte);
   }
   /* we show that every element of the initial array
    * occurs in the final sorted array by showing that

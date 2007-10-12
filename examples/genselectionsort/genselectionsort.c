@@ -20,8 +20,8 @@ main (int argc, char **argv)
   BtorExp *old_element     = NULL;
   BtorExp *index           = NULL;
   BtorExp *ne              = NULL;
-  BtorExp *slt             = NULL;
-  BtorExp *slte            = NULL;
+  BtorExp *ult             = NULL;
+  BtorExp *ulte            = NULL;
   BtorExp *temp            = NULL;
   BtorExp *read1           = NULL;
   BtorExp *read2           = NULL;
@@ -67,18 +67,18 @@ main (int argc, char **argv)
     for (j = i + 1; j < num_elements; j++)
     {
       cur_element = btor_read_exp (emgr, array, indices[j]);
-      slt         = btor_slt_exp (emgr, cur_element, min_element);
+      ult         = btor_ult_exp (emgr, cur_element, min_element);
       /* found new minimum ? */
-      temp = btor_cond_exp (emgr, slt, cur_element, min_element);
+      temp = btor_cond_exp (emgr, ult, cur_element, min_element);
       btor_release_exp (emgr, min_element);
       min_element = temp;
       /* new minimium index ? */
-      temp = btor_cond_exp (emgr, slt, indices[j], min_index);
+      temp = btor_cond_exp (emgr, ult, indices[j], min_index);
       btor_release_exp (emgr, min_index);
       min_index = temp;
       /* clean up */
       btor_release_exp (emgr, cur_element);
-      btor_release_exp (emgr, slt);
+      btor_release_exp (emgr, ult);
     }
     /* swap elements */
     read1 = btor_read_exp (emgr, array, min_index);
@@ -101,13 +101,13 @@ main (int argc, char **argv)
   {
     read1 = btor_read_exp (emgr, array, indices[i]);
     read2 = btor_read_exp (emgr, array, indices[i + 1]);
-    slte  = btor_slte_exp (emgr, read1, read2);
-    temp  = btor_and_exp (emgr, sorted, slte);
+    ulte  = btor_ulte_exp (emgr, read1, read2);
+    temp  = btor_and_exp (emgr, sorted, ulte);
     btor_release_exp (emgr, sorted);
     sorted = temp;
     btor_release_exp (emgr, read1);
     btor_release_exp (emgr, read2);
-    btor_release_exp (emgr, slte);
+    btor_release_exp (emgr, ulte);
   }
   /* we show that every element of the initial array
    * occurs in the final sorted array by showing that

@@ -13,7 +13,7 @@ main (int argc, char **argv)
   BtorExpMgr *emgr   = NULL;
   BtorExp **indices  = NULL;
   BtorExp *array     = NULL;
-  BtorExp *sgt       = NULL;
+  BtorExp *ugt       = NULL;
   BtorExp *temp      = NULL;
   BtorExp *read      = NULL;
   BtorExp *formula   = NULL;
@@ -53,18 +53,18 @@ main (int argc, char **argv)
   for (i = 1; i < num_elements; i++)
   {
     read = btor_read_exp (emgr, array, indices[i]);
-    sgt  = btor_sgt_exp (emgr, read, max);
-    temp = btor_cond_exp (emgr, sgt, read, max);
+    ugt  = btor_ugt_exp (emgr, read, max);
+    temp = btor_cond_exp (emgr, ugt, read, max);
     btor_release_exp (emgr, max);
     max = temp;
     btor_release_exp (emgr, read);
-    btor_release_exp (emgr, sgt);
+    btor_release_exp (emgr, ugt);
   }
   /* show that maximum is really the maximum */
   index = btor_var_exp (emgr, num_bits_index, "index");
   read  = btor_read_exp (emgr, array, index);
   /* there is no arbitrary read value which is greater than the maximum */
-  formula = btor_slt_exp (emgr, max, read);
+  formula = btor_ult_exp (emgr, max, read);
   btor_dump_exp (emgr, stdout, formula);
   /* clean up */
   for (i = 0; i < num_elements; i++) btor_release_exp (emgr, indices[i]);
