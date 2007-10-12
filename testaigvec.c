@@ -46,6 +46,49 @@ test_var_aigvec (void)
 }
 
 static void
+test_invert_aigvec (void)
+{
+  int i                = 0;
+  int len              = 0;
+  const char bits[]    = {'1', '0', '1', '1', '\0'};
+  BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, 0);
+  BtorAIGVec *av1      = btor_var_aigvec (avmgr, 32);
+  BtorAIGVec *av2      = btor_const_aigvec (avmgr, bits);
+  len                  = av1->len;
+  assert (len == 32);
+  for (i = 0; i < len; i++)
+  {
+    assert (!BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+    assert (BTOR_IS_VAR_AIG (av1->aigs[i]));
+  }
+  btor_invert_aigvec (avmgr, av1);
+  for (i = 0; i < len; i++) assert (BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+  btor_invert_aigvec (avmgr, av1);
+  for (i = 0; i < len; i++)
+  {
+    assert (!BTOR_IS_INVERTED_AIG (av1->aigs[i]));
+    assert (BTOR_IS_VAR_AIG (av1->aigs[i]));
+  }
+  assert (av2->aigs[0] == BTOR_AIG_TRUE);
+  assert (av2->aigs[1] == BTOR_AIG_FALSE);
+  assert (av2->aigs[2] == BTOR_AIG_TRUE);
+  assert (av2->aigs[3] == BTOR_AIG_TRUE);
+  btor_invert_aigvec (avmgr, av2);
+  assert (av2->aigs[0] == BTOR_AIG_FALSE);
+  assert (av2->aigs[1] == BTOR_AIG_TRUE);
+  assert (av2->aigs[2] == BTOR_AIG_FALSE);
+  assert (av2->aigs[3] == BTOR_AIG_FALSE);
+  btor_invert_aigvec (avmgr, av2);
+  assert (av2->aigs[0] == BTOR_AIG_TRUE);
+  assert (av2->aigs[1] == BTOR_AIG_FALSE);
+  assert (av2->aigs[2] == BTOR_AIG_TRUE);
+  assert (av2->aigs[3] == BTOR_AIG_TRUE);
+  btor_release_delete_aigvec (avmgr, av1);
+  btor_release_delete_aigvec (avmgr, av2);
+  btor_delete_aigvec_mgr (avmgr);
+}
+
+static void
 test_not_aigvec (void)
 {
   BtorAIGVecMgr *avmgr = btor_new_aigvec_mgr (g_mm, 0);
@@ -231,6 +274,7 @@ run_aigvec_tests (int argc, char **argv)
   BTOR_RUN_TEST (new_delete_aigvec_mgr);
   BTOR_RUN_TEST (const_aigvec);
   BTOR_RUN_TEST (var_aigvec);
+  BTOR_RUN_TEST (invert_aigvec);
   BTOR_RUN_TEST (not_aigvec);
   BTOR_RUN_TEST (slice_aigvec);
   BTOR_RUN_TEST (and_aigvec);
