@@ -30,7 +30,7 @@ libboolector.a: $(LIBOBJ)
 	ranlib $@
 
 clean:
-	rm -f test boolector
+	rm -f test boolector deltabtor synthebtor
 	rm -f *.o *.a
 	rm -f *.gcda *.gcno *.gcov 
 	rm -f log/*.log
