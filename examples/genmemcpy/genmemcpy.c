@@ -51,7 +51,7 @@ main (int argc, char** argv)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: benmemcpy [-h][-o][-s] <len>\n");
+      fprintf (stderr, "usage: genmemcpy [-h][-o][-s] <len>\n");
       fprintf (stderr, "\n");
       fprintf (stderr, "  -h  print this command line option summary\n");
       fprintf (stderr, "  -o  allow 'src' and 'dst' to overlap\n");
