@@ -62,8 +62,8 @@ struct BtorExp
   unsigned int full_sat : 1;        /* flag determines if expression has been
                                        fully encoded into SAT */
   unsigned int synth_enc_array : 1; /* flag determines if read indices and
-                                       write indices and values have
-                                       been fully synthesized and
+                                       read values and write index and write
+                                       value have been fully synthesized and
                                        encoded into SAT */
   int index_len;                    /* length of the index.
                                        for arrays and writes only */

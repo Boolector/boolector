@@ -4306,7 +4306,7 @@ resolve_read_conflict_one_level (BtorExpMgr *emgr,
   encode_ackermann_constraint (emgr, read1->e[1], read2->e[1], read1, read2);
 }
 
-/* Resolves a read conflict across multi levels
+/* Resolves a read conflict across multiple levels
  * 'array' is the array where the conflict has been detected
  */
 static void
