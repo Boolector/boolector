@@ -56,8 +56,8 @@ main (int argc, char **argv)
   for (i = 0; i < num_elements; i++)
     indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
   array = btor_array_exp (emgr, num_bits, num_bits_index);
-  index = btor_var_exp (emgr, num_bits_index, "oldvalue");
   /* read at an arbitrary index (needed later): */
+  index       = btor_var_exp (emgr, num_bits_index, "index");
   old_element = btor_read_exp (emgr, array, index);
   /* selection sort algorithm */
   for (i = 0; i < num_elements - 1; i++)

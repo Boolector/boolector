@@ -31,7 +31,6 @@ main (int argc, char **argv)
   BtorExp **initial_elements = NULL;
   BtorExp **sorted_elements  = NULL;
   BtorExp *array             = NULL;
-  BtorExp *ne                = NULL;
   BtorExp *ugt               = NULL;
   BtorExp *ulte              = NULL;
   BtorExp *temp              = NULL;
@@ -40,10 +39,7 @@ main (int argc, char **argv)
   BtorExp *cond1             = NULL;
   BtorExp *cond2             = NULL;
   BtorExp *sorted            = NULL;
-  BtorExp *no_diff_element   = NULL;
   BtorExp *formula           = NULL;
-  BtorExp *index             = NULL;
-  BtorExp *old_element       = NULL;
   BtorExp *eq                = NULL;
   BtorExp *var               = NULL;
   if (argc != 3)
@@ -76,9 +72,6 @@ main (int argc, char **argv)
   for (i = 0; i < num_elements; i++)
     indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
   array = btor_array_exp (emgr, num_bits, num_bits_index);
-  index = btor_var_exp (emgr, num_bits_index, "oldvalue");
-  /* read at an arbitrary index (needed later): */
-  old_element = btor_read_exp (emgr, array, index);
   /* read initial elements */
   for (i = 0; i < num_elements; i++)
     initial_elements[i] = btor_read_exp (emgr, array, indices[i]);
@@ -123,28 +116,7 @@ main (int argc, char **argv)
     btor_release_exp (emgr, read2);
     btor_release_exp (emgr, ulte);
   }
-  /* we show that every element of the initial array
-   * occurs in the final sorted array by showing that
-   * there is no counter example:
-   * It is not the case that there exists an element in
-   * the initial array which does not occur in the sorted
-   * array.*/
-  no_diff_element = btor_const_exp (emgr, "1");
-  for (i = 0; i < num_elements; i++)
-  {
-    read1 = btor_read_exp (emgr, array, indices[i]);
-    ne    = btor_ne_exp (emgr, read1, old_element);
-    temp  = btor_and_exp (emgr, no_diff_element, ne);
-    btor_release_exp (emgr, no_diff_element);
-    no_diff_element = temp;
-    btor_release_exp (emgr, read1);
-    btor_release_exp (emgr, ne);
-  }
-  temp = btor_not_exp (emgr, no_diff_element);
-  btor_release_exp (emgr, no_diff_element);
-  no_diff_element = temp;
-  /* we conjunct this with the sorted predicate */
-  formula = btor_and_exp (emgr, sorted, no_diff_element);
+  formula = btor_copy_exp (emgr, sorted);
   /* we set variables equal to the initial read values */
   for (i = 0; i < num_elements; i++)
   {
@@ -185,9 +157,6 @@ main (int argc, char **argv)
   }
   btor_release_exp (emgr, formula);
   btor_release_exp (emgr, sorted);
-  btor_release_exp (emgr, no_diff_element);
-  btor_release_exp (emgr, old_element);
-  btor_release_exp (emgr, index);
   btor_release_exp (emgr, array);
   btor_delete_exp_mgr (emgr);
   free (indices);
