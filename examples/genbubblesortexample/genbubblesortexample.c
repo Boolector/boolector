@@ -44,7 +44,7 @@ main (int argc, char **argv)
   BtorExp *var               = NULL;
   if (argc != 3)
   {
-    printf ("Usage: ./genbubblesort <num-bits> <num-elements>\n");
+    printf ("Usage: ./genbubblesortexample <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);

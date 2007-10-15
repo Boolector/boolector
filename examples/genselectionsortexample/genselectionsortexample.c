@@ -45,7 +45,7 @@ main (int argc, char **argv)
   BtorExp *var               = NULL;
   if (argc != 3)
   {
-    printf ("Usage: ./genselectionsort <num-bits> <num-elements>\n");
+    printf ("Usage: ./genselectionsortexample <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
