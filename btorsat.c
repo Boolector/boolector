@@ -164,6 +164,14 @@ btor_reset_sat (BtorSATMgr *smgr)
   picosat_reset ();
 }
 
+int
+btor_changed_assignments_sat (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  assert (smgr != NULL);
+  return picosat_changed ();
+}
+
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/

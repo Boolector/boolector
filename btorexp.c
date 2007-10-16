@@ -4495,9 +4495,11 @@ release_write_parents_read_stack (BtorExpMgr *emgr, BtorExp *array)
  * on this array and encodes them fully into SAT .
  * If the array is a write, then also the write
  * indices and the write value are synthesized
- * and fully encoded into SAT.
+ * and fully encoded into SAT. It returns
+ * if an assignments has changed as
+ * we added new constraints
  */
-static void
+static int
 synthesize_and_encode_array (BtorExpMgr *emgr, BtorExp *array)
 {
   BtorExp *cur         = NULL;
@@ -4543,6 +4545,7 @@ synthesize_and_encode_array (BtorExpMgr *emgr, BtorExp *array)
   array->synth_enc_array = 1;
   /* update assignments */
   (void) btor_sat_sat (smgr, INT_MAX);
+  return btor_changed_assignments_sat (smgr);
 }
 
 static int
@@ -4559,12 +4562,14 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp *read_conflict1 = NULL;
   BtorExp *read_conflict2 = NULL;
   int found_conflict      = 0;
+  int changed_assignments = 0;
   int indices_equal       = 0;
   BtorWriteEnc write_enc  = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
+BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   mm        = emgr->mm;
   write_enc = emgr->write_enc;
   BTOR_INIT_STACK (stack);
@@ -4608,13 +4613,18 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
       assert (!BTOR_IS_WRITE_ARRAY_EXP (cur_array) || cur_array->reachable);
       reads = cur_array->reads;
       BTOR_INIT_STACK (*reads);
-      if (found_conflict)
+      if (found_conflict || changed_assignments)
       {
         release_write_parents_read_stack (emgr, cur_array);
         continue;
       }
       if (!cur_array->synth_enc_array)
-        synthesize_and_encode_array (emgr, cur_array);
+        changed_assignments = synthesize_and_encode_array (emgr, cur_array);
+      if (changed_assignments)
+      {
+        release_write_parents_read_stack (emgr, cur_array);
+        continue;
+      }
       /* push reachable parent reads on read stack */
       cur_read = cur_array->first_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_read));
@@ -4714,6 +4724,13 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   /* release stack of starting array */
   BTOR_RELEASE_STACK (mm, *array->reads);
   mark_exp_bottom_up_arrays (emgr, array, 0);
+  if (changed_assignments)
+  {
+    /* restart */
+    found_conflict      = 0;
+    changed_assignments = 0;
+    goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
+  }
   return found_conflict;
 }
 

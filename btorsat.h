@@ -64,4 +64,9 @@ int btor_deref_sat (BtorSATMgr *smgr, int lit);
 /* Resets the status of the SAT solver. */
 void btor_reset_sat (BtorSATMgr *smgr);
 
+/* Determines if assignments have been changed
+ * as constraints have been added.
+ */
+int btor_changed_assignments_sat (BtorSATMgr *smgr);
+
 #endif
