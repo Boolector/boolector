@@ -182,33 +182,27 @@ delete_exp_pair (BtorExpMgr *emgr, BtorExpPair *pair)
 }
 
 static unsigned int
-hash_exp_pair (void *pair)
+hash_exp_pair (BtorExpPair *pair)
 {
-  unsigned int result   = 0u;
-  BtorExpPair *exp_pair = NULL;
+  unsigned int result = 0u;
   assert (pair != NULL);
-  exp_pair = (BtorExpPair *) pair;
-  result   = (unsigned int) BTOR_REAL_ADDR_EXP (exp_pair->exp1)->id;
-  result += (unsigned int) BTOR_REAL_ADDR_EXP (exp_pair->exp2)->id;
+  result = (unsigned int) BTOR_REAL_ADDR_EXP (pair->exp1)->id;
+  result += (unsigned int) BTOR_REAL_ADDR_EXP (pair->exp2)->id;
   result *= 7334147u;
   return result;
 }
 
 static int
-compare_exp_pair (void *pair1, void *pair2)
+compare_exp_pair (BtorExpPair *pair1, BtorExpPair *pair2)
 {
-  int result             = 0;
-  BtorExpPair *exp_pair1 = NULL;
-  BtorExpPair *exp_pair2 = NULL;
+  int result = 0;
   assert (pair1 != NULL);
   assert (pair2 != NULL);
-  exp_pair1 = (BtorExpPair *) pair1;
-  exp_pair2 = (BtorExpPair *) pair2;
-  result    = BTOR_REAL_ADDR_EXP (exp_pair1->exp1)->id;
-  result -= BTOR_REAL_ADDR_EXP (exp_pair2->exp1)->id;
+  result = BTOR_REAL_ADDR_EXP (pair1->exp1)->id;
+  result -= BTOR_REAL_ADDR_EXP (pair2->exp1)->id;
   if (result != 0) return result;
-  result = BTOR_REAL_ADDR_EXP (exp_pair1->exp2)->id;
-  result -= BTOR_REAL_ADDR_EXP (exp_pair2->exp2)->id;
+  result = BTOR_REAL_ADDR_EXP (pair1->exp2)->id;
+  result -= BTOR_REAL_ADDR_EXP (pair2->exp2)->id;
   return result;
 }
 
@@ -3711,18 +3705,18 @@ btor_new_exp_mgr (int rewrite_level,
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_INIT_STACK (emgr->vars);
   BTOR_INIT_STACK (emgr->arrays);
-  emgr->avmgr         = btor_new_aigvec_mgr (mm, verbosity);
-  emgr->id            = 1;
-  emgr->rewrite_level = rewrite_level;
-  emgr->dump_trace    = dump_trace;
-  emgr->verbosity     = verbosity;
-  emgr->read_enc      = BTOR_SAT_SOLVER_READ_ENC;
-  emgr->write_enc     = BTOR_LAZY_WRITE_ENC;
-  emgr->trace_file    = trace_file;
-  emgr->exp_pair_cnf_diff_id_table =
-      btor_new_ptr_hash_table (mm, hash_exp_pair, compare_exp_pair);
-  emgr->exp_pair_cnf_eq_id_table =
-      btor_new_ptr_hash_table (mm, hash_exp_pair, compare_exp_pair);
+  emgr->avmgr                      = btor_new_aigvec_mgr (mm, verbosity);
+  emgr->id                         = 1;
+  emgr->rewrite_level              = rewrite_level;
+  emgr->dump_trace                 = dump_trace;
+  emgr->verbosity                  = verbosity;
+  emgr->read_enc                   = BTOR_SAT_SOLVER_READ_ENC;
+  emgr->write_enc                  = BTOR_LAZY_WRITE_ENC;
+  emgr->trace_file                 = trace_file;
+  emgr->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
+  emgr->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   return emgr;
 }
 
@@ -4166,7 +4160,7 @@ btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
 
 /* Compares the assignments of two expressions. */
 static int
-compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
+compare_assignments (BtorExp *exp1, BtorExp *exp2)
 {
   int val1             = 0;
   int val2             = 0;
@@ -4179,7 +4173,7 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   BtorAIGVec *av2      = NULL;
   BtorAIG *aig1        = NULL;
   BtorAIG *aig2        = NULL;
-  assert (emgr != NULL);
+  BtorExpMgr *emgr     = NULL;
   assert (exp1 != NULL);
   assert (exp2 != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
@@ -4187,6 +4181,8 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
   assert (BTOR_REAL_ADDR_EXP (exp1)->av != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp2)->av != NULL);
+  emgr = BTOR_REAL_ADDR_EXP (exp1)->emgr;
+  assert (emgr != NULL);
   avmgr = emgr->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   av1   = BTOR_REAL_ADDR_EXP (exp1)->av;
@@ -4219,27 +4215,29 @@ compare_assignments (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   return return_val;
 }
 
-static int
-compare_reads_by_index (const void *read1, const void *read2)
+static unsigned int
+hash_assignment (BtorExp *exp)
 {
-  BtorExp *exp_read1 = NULL;
-  BtorExp *exp_read2 = NULL;
-  BtorExp *index1    = NULL;
-  BtorExp *index2    = NULL;
-  BtorExpMgr *emgr   = NULL;
-  assert (read1 != NULL);
-  assert (read2 != NULL);
-  exp_read1 = *((BtorExp **) read1);
-  exp_read2 = *((BtorExp **) read2);
-  assert (BTOR_IS_REGULAR_EXP (exp_read1));
-  assert (BTOR_IS_REGULAR_EXP (exp_read2));
-  assert (exp_read1->kind == BTOR_READ_EXP);
-  assert (exp_read2->kind == BTOR_READ_EXP);
-  index1 = exp_read1->e[1];
-  index2 = exp_read2->e[1];
-  emgr   = exp_read1->emgr;
-  assert (BTOR_REAL_ADDR_EXP (index1)->len == BTOR_REAL_ADDR_EXP (index2)->len);
-  return compare_assignments (emgr, index1, index2);
+  unsigned int hash    = 0u;
+  BtorExpMgr *emgr     = NULL;
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorExp *real_exp    = NULL;
+  BtorAIGVec *av       = NULL;
+  int invert_av        = 0;
+  char *assignment     = NULL;
+  assert (exp != NULL);
+  real_exp  = BTOR_REAL_ADDR_EXP (exp);
+  emgr      = real_exp->emgr;
+  avmgr     = emgr->avmgr;
+  av        = real_exp->av;
+  invert_av = BTOR_IS_INVERTED_EXP (exp);
+  if (invert_av) btor_invert_aigvec (avmgr, av);
+  assignment = btor_assignment_aigvec (avmgr, av);
+  hash       = btor_hashstr (assignment);
+  btor_freestr (emgr->mm, assignment);
+  /* invert back if necessary */
+  if (invert_av) btor_invert_aigvec (avmgr, av);
+  return hash;
 }
 
 /* Checks for read conflicts on one array */
@@ -4249,43 +4247,57 @@ check_read_conflicts_array (BtorExpMgr *emgr,
                             BtorExp **conflict_read1,
                             BtorExp **conflict_read2)
 {
-  int found_conflict     = 0;
-  int num_reads          = 0;
-  int i                  = 0;
-  BtorMemMgr *mm         = NULL;
-  BtorExp *read1         = NULL;
-  BtorExp *read2         = NULL;
-  BtorExpPtrStack *reads = NULL;
-  BtorExp **sort_array   = NULL;
+  int found_conflict        = 0;
+  BtorMemMgr *mm            = NULL;
+  BtorExp *index            = NULL;
+  BtorExpPtrStack *reads    = NULL;
+  BtorExp **temp            = NULL;
+  BtorExp **top             = NULL;
+  BtorExp *cur              = NULL;
+  BtorPtrHashTable *table   = NULL;
+  BtorPtrHashBucket *bucket = NULL;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (conflict_read1 != NULL);
   assert (conflict_read2 != NULL);
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  mm         = emgr->mm;
-  reads      = array->reads;
-  sort_array = reads->start;
-  num_reads  = BTOR_COUNT_STACK (*reads);
-  if (num_reads > 1)
+  reads = array->reads;
+  if (BTOR_COUNT_STACK (*reads) > 1)
   {
-    i = 0;
-    qsort (sort_array, num_reads, sizeof (BtorExp *), compare_reads_by_index);
-    for (i = 0; i < num_reads - 1; i++)
+    mm    = emgr->mm;
+    table = btor_new_ptr_hash_table (
+        mm, (BtorHashPtr) hash_assignment, (BtorCmpPtr) compare_assignments);
+    top = reads->top;
+    for (temp = reads->start; temp != top; temp++)
     {
-      read1 = sort_array[i];
-      read2 = sort_array[i + 1];
-      assert (BTOR_IS_REGULAR_EXP (read1));
-      assert (BTOR_IS_REGULAR_EXP (read2));
-      if (compare_assignments (emgr, read1->e[1], read2->e[1]) == 0
-          && compare_assignments (emgr, read1, read2) != 0)
+      cur = *temp;
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      assert (cur->kind == BTOR_READ_EXP);
+      index  = cur->e[1];
+      bucket = btor_find_in_ptr_hash_table (table, index);
+      /* no index with the same value so far? */
+      if (bucket == NULL)
+        btor_insert_in_ptr_hash_table (table, index)->data.asPtr = cur;
+      else
       {
-        found_conflict  = 1;
-        *conflict_read1 = read1;
-        *conflict_read2 = read2;
-        break;
+        /* we have to check for a conflict
+         * (indices are equal but values not)
+         */
+        if (compare_assignments ((BtorExp *) bucket->data.asPtr, cur) != 0)
+        {
+          found_conflict  = 1;
+          *conflict_read1 = bucket->data.asPtr;
+          *conflict_read2 = cur;
+          break;
+        }
+        /* if there is no conflict we do not need to insert read, as
+         * there is already a read with same index and value in
+         * the table
+         */
       }
     }
+    btor_delete_ptr_hash_table (table);
   }
   return found_conflict;
 }
@@ -4384,9 +4396,8 @@ check_read_write_conflict (BtorExpMgr *emgr,
   assert (BTOR_IS_REGULAR_EXP (write));
   assert (read->kind == BTOR_READ_EXP);
   assert (BTOR_IS_WRITE_ARRAY_EXP (write));
-  if ((*indices_equal =
-           compare_assignments (emgr, read->e[1], write->e[1]) == 0)
-      && compare_assignments (emgr, read, write->e[2]) != 0)
+  if ((*indices_equal = compare_assignments (read->e[1], write->e[1]) == 0)
+      && compare_assignments (read, write->e[2]) != 0)
     return 1;
   return 0;
 }
