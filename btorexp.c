@@ -60,7 +60,8 @@ struct BtorExpMgr
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
   /* statistics */
-  int num_refinements;
+  int refinements;
+  int synthesis_inconsistencies;
 };
 
 struct BtorExpPair
@@ -3718,7 +3719,8 @@ btor_new_exp_mgr (int rewrite_level,
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   emgr->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  emgr->num_refinements = 0;
+  emgr->refinements               = 0;
+  emgr->synthesis_inconsistencies = 0;
   return emgr;
 }
 
@@ -3772,8 +3774,10 @@ btor_print_stats_exp_mgr (BtorExpMgr *emgr, FILE *file)
 {
   assert (emgr != NULL);
   assert (file != NULL);
-  print_verbose_msg ("Number of refinement iterations (lazy): %d",
-                     emgr->num_refinements);
+  print_verbose_msg ("number of refinement iterations (lazy): %d",
+                     emgr->refinements);
+  print_verbose_msg ("number of synthesis inconsistencies (lazy): %d",
+                     emgr->synthesis_inconsistencies);
 }
 
 BtorMemMgr *
@@ -4729,6 +4733,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     /* restart */
     found_conflict      = 0;
     changed_assignments = 0;
+    emgr->synthesis_inconsistencies++;
     goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
   }
   return found_conflict;
@@ -4799,7 +4804,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental)
         btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
       }
       sat_result = btor_sat_sat (smgr, INT_MAX);
-      emgr->num_refinements++;
+      emgr->refinements++;
     }
   }
   btor_release_aig (amgr, aig);
