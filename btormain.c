@@ -671,6 +671,8 @@ btor_main (int argc, char **argv)
 
       if (app.verbosity >= 3) btor_print_stats_sat (smgr);
       btor_reset_sat (smgr);
+
+      if (app.verbosity >= 2) btor_print_stats_exp_mgr (emgr, stderr);
     }
 
     parser_api->reset (parser);

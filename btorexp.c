@@ -2,7 +2,6 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "btoraig.h"
@@ -60,6 +59,8 @@ struct BtorExpMgr
   FILE *trace_file;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
+  /* statistics */
+  int num_refinements;
 };
 
 struct BtorExpPair
@@ -3717,6 +3718,7 @@ btor_new_exp_mgr (int rewrite_level,
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   emgr->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
+  emgr->num_refinements = 0;
   return emgr;
 }
 
@@ -3763,6 +3765,15 @@ btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc)
 {
   assert (emgr != NULL);
   emgr->write_enc = write_enc;
+}
+
+void
+btor_print_stats_exp_mgr (BtorExpMgr *emgr, FILE *file)
+{
+  assert (emgr != NULL);
+  assert (file != NULL);
+  print_verbose_msg ("Number of refinement iterations (lazy): %d",
+                     emgr->num_refinements);
 }
 
 BtorMemMgr *
@@ -4771,6 +4782,7 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental)
         btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
       }
       sat_result = btor_sat_sat (smgr, INT_MAX);
+      emgr->num_refinements++;
     }
   }
   btor_release_aig (amgr, aig);

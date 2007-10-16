@@ -7,6 +7,8 @@
 #include "btormem.h"
 #include "btorstack.h"
 
+#include <stdio.h>
+
 /*------------------------------------------------------------------------*/
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
@@ -155,6 +157,9 @@ void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
 
 /* Sets the read encoding strategy. */
 void btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc);
+
+/* Prints statistics */
+void btor_print_stats_exp_mgr (BtorExpMgr *emgr, FILE *file);
 
 /* Returns the memory manager of the expression manager. */
 BtorMemMgr *btor_get_mem_mgr_exp_mgr (const BtorExpMgr *emgr);
