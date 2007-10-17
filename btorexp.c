@@ -61,7 +61,9 @@ struct BtorExpMgr
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
   /* statistics */
   int refinements;
-  int synthesis_inconsistencies;
+  int synthesis_assignment_inconsistencies;
+  int read_read_conflicts;
+  int read_write_conflicts;
 };
 
 struct BtorExpPair
@@ -3702,7 +3704,7 @@ btor_new_exp_mgr (int rewrite_level,
   assert (rewrite_level >= 0);
   assert (rewrite_level <= 2);
   assert (verbosity >= -1);
-  BTOR_NEW (mm, emgr);
+  BTOR_CNEW (mm, emgr);
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_INIT_STACK (emgr->vars);
@@ -3719,8 +3721,6 @@ btor_new_exp_mgr (int rewrite_level,
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   emgr->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  emgr->refinements               = 0;
-  emgr->synthesis_inconsistencies = 0;
   return emgr;
 }
 
@@ -3774,10 +3774,12 @@ btor_print_stats_exp_mgr (BtorExpMgr *emgr, FILE *file)
 {
   assert (emgr != NULL);
   assert (file != NULL);
-  print_verbose_msg ("number of refinement iterations (lazy): %d",
-                     emgr->refinements);
-  print_verbose_msg ("number of synthesis inconsistencies (lazy): %d",
-                     emgr->synthesis_inconsistencies);
+  print_verbose_msg ("lazy read-read conflicts: %d", emgr->read_read_conflicts);
+  print_verbose_msg ("lazy read-write conflicts: %d",
+                     emgr->read_write_conflicts);
+  print_verbose_msg ("lazy refinement iterations: %d", emgr->refinements);
+  print_verbose_msg ("lazy synthesis assignment inconsistencies: %d",
+                     emgr->synthesis_assignment_inconsistencies);
 }
 
 BtorMemMgr *
@@ -4563,19 +4565,23 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp **temp         = NULL;
   BtorExpPtrStack *reads = NULL;
   BtorExpPtrStack stack;
-  BtorExp *read_conflict1 = NULL;
-  BtorExp *read_conflict2 = NULL;
-  int found_conflict      = 0;
-  int changed_assignments = 0;
-  int indices_equal       = 0;
-  BtorWriteEnc write_enc  = 0;
+  BtorExp *read_conflict1  = NULL;
+  BtorExp *read_conflict2  = NULL;
+  int found_conflict       = 0;
+  int changed_assignments  = 0;
+  int indices_equal        = 0;
+  int read_read_conflicts  = 0;
+  int read_write_conflicts = 0;
+  BtorWriteEnc write_enc   = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
-  mm        = emgr->mm;
-  write_enc = emgr->write_enc;
+  read_read_conflicts  = emgr->read_read_conflicts;
+  read_write_conflicts = emgr->read_write_conflicts;
+  mm                   = emgr->mm;
+  write_enc            = emgr->write_enc;
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, array);
   while (!BTOR_EMPTY_STACK (stack))
@@ -4646,7 +4652,10 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
             found_conflict = check_read_write_conflict (
                 emgr, cur_read, cur_array, &indices_equal);
             if (found_conflict)
+            {
               resolve_read_write_conflict_one_level (emgr, cur_read, cur_array);
+              read_write_conflicts++;
+            }
             else if (!indices_equal)
               BTOR_PUSH_STACK (mm, *reads, cur_read);
           }
@@ -4683,8 +4692,11 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
               found_conflict = check_read_write_conflict (
                   emgr, cur_read, cur_array, &indices_equal);
               if (found_conflict)
+              {
                 resolve_read_write_conflict_multi_levels (
                     emgr, cur_read, cur_array);
+                read_write_conflicts++;
+              }
               else if (!indices_equal)
                 BTOR_PUSH_STACK (mm, *reads, cur_read);
             }
@@ -4705,6 +4717,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
           emgr, cur_array, &read_conflict1, &read_conflict2);
       if (found_conflict)
       {
+        read_read_conflicts++;
         assert (read_conflict1 != NULL);
         assert (read_conflict2 != NULL);
         assert (BTOR_IS_REGULAR_EXP (read_conflict1));
@@ -4733,9 +4746,11 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     /* restart */
     found_conflict      = 0;
     changed_assignments = 0;
-    emgr->synthesis_inconsistencies++;
+    emgr->synthesis_assignment_inconsistencies++;
     goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
   }
+  emgr->read_read_conflicts  = read_read_conflicts;
+  emgr->read_write_conflicts = read_write_conflicts;
   return found_conflict;
 }
 
