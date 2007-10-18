@@ -65,18 +65,18 @@
     (queue).tail -= offset;                                               \
   } while (0)
 
-#define BTOR_ENQUEUE(mm, queue, elem)                         \
-  do                                                          \
-  {                                                           \
-    if (BTOR_FULL_QUEUE ((queue)))                            \
-    {                                                         \
-      if (BTOR_COUNT_QUEUE (queue) < BTOR_SIZE_QUEUE (queue)) \
-        BTOR_MOVE_QUEUE ((mm), (queue));                      \
-      else                                                    \
-        BTOR_ENLARGE_QUEUE ((mm), (queue));                   \
-    }                                                         \
-    assert ((queue).tail < (queue).end);                      \
-    *(queue).tail++ = (elem);                                 \
+#define BTOR_ENQUEUE(mm, queue, elem)                             \
+  do                                                              \
+  {                                                               \
+    if (BTOR_FULL_QUEUE ((queue)))                                \
+    {                                                             \
+      if (2 * BTOR_COUNT_QUEUE (queue) < BTOR_SIZE_QUEUE (queue)) \
+        BTOR_MOVE_QUEUE ((mm), (queue));                          \
+      else                                                        \
+        BTOR_ENLARGE_QUEUE ((mm), (queue));                       \
+    }                                                             \
+    assert ((queue).tail < (queue).end);                          \
+    *(queue).tail++ = (elem);                                     \
   } while (0)
 
 #define BTOR_DEQUEUE(queue) (*(queue).head++)
