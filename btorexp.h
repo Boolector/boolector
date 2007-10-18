@@ -55,23 +55,19 @@ typedef enum BtorWriteEnc BtorWriteEnc;
 
 struct BtorExp
 {
-  BtorExpKind kind : 5;             /* kind of expression */
-  unsigned int mark : 3;            /* for DAG traversal */
-  unsigned int array_mark : 3;      /* for bottom up array traversal */
-  unsigned int encoded_read : 1;    /* flag used by eager read encoding */
-  unsigned int reachable : 1;       /* flag determines if expression
-                                       is reachable from root or not */
-  unsigned int full_sat : 1;        /* flag determines if expression has been
-                                       fully encoded into SAT */
-  unsigned int synth_enc_array : 1; /* flag determines if read indices and
-                                       read values and write index and write
-                                       value have been fully synthesized and
-                                       encoded into SAT */
-  int index_len;                    /* length of the index.
-                                       for arrays and writes only */
-  struct BtorExpPtrStack *reads;    /* used for sorting read parents in
-                                       the lazy write consistency algorithm.
-                                       for arrays and writes only */
+  BtorExpKind kind : 5;           /* kind of expression */
+  unsigned int mark : 3;          /* for DAG traversal */
+  unsigned int array_mark : 3;    /* for bottom up array traversal */
+  unsigned int encoded_read : 1;  /* flag used by eager read encoding */
+  unsigned int reachable : 1;     /* flag determines if expression
+                                     is reachable from root or not */
+  unsigned int full_sat : 1;      /* flag determines if expression has been
+                                     fully encoded into SAT */
+  int index_len;                  /* length of the index.
+                                     for arrays and writes only */
+  struct BtorPtrHashTable *table; /* used for determining read-read
+                                     and read-write conflicts
+                                     for arrays and writes only */
   union
   {
     struct
