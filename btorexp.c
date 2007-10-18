@@ -3776,9 +3776,11 @@ btor_print_stats_exp_mgr (BtorExpMgr *emgr, FILE *file)
 {
   assert (emgr != NULL);
   assert (file != NULL);
+
   print_verbose_msg ("lazy read-read conflicts: %d", emgr->read_read_conflicts);
   print_verbose_msg ("lazy read-write conflicts: %d",
                      emgr->read_write_conflicts);
+
   print_verbose_msg ("lazy refinement iterations: %d", emgr->refinements);
   print_verbose_msg ("lazy synthesis assignment inconsistencies: %d",
                      emgr->synthesis_assignment_inconsistencies);

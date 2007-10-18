@@ -9,6 +9,7 @@
 #include "testmem.h"
 #include "testmisc.h"
 #include "testoverflow.h"
+#include "testqueue.h"
 #include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
@@ -70,6 +71,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (util);
   BTOR_RUN_TESTS (mem);
   BTOR_RUN_TESTS (stack);
+  BTOR_RUN_TESTS (queue);
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
   BTOR_RUN_TESTS (sat);

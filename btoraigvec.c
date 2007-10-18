@@ -70,6 +70,7 @@ btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
   int i   = 0;
   int len = 0;
+  (void) avmgr;
   assert (avmgr != NULL);
   assert (av != NULL);
   assert (av->len > 0);

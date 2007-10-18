@@ -5,6 +5,7 @@
 #include "btoraigvec.h"
 #include "btorhash.h"
 #include "btormem.h"
+#include "btorqueue.h"
 #include "btorstack.h"
 
 #include <stdio.h>
@@ -147,6 +148,8 @@ struct BtorExp
 #define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
+
+BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
 
 /* Sets the read encoding paradigm. */
 void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
