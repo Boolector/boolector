@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "btoraig.h"
@@ -725,11 +726,10 @@ encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
   assert (BTOR_IS_REGULAR_EXP (cur));
   /* read expressions are at the beginning and
      write expressions at the end of the parent list. */
-  while (cur != NULL && cur->kind != BTOR_WRITE_EXP)
+  while (cur != NULL && cur->kind == BTOR_READ_EXP)
   {
     /* array children are always at position 0 */
     assert (BTOR_GET_TAG_EXP (cur) == 0);
-    assert (cur->kind == BTOR_READ_EXP);
     if (cur->encoded_read)
       encode_ackermann_constraint (emgr, cur->e[1], read->e[1], cur, read);
     cur = cur->next_parent[0];
@@ -1419,12 +1419,10 @@ mark_exp_bottom_up_arrays (BtorExpMgr *emgr, BtorExp *array, int new_mark)
       cur_array->array_mark = new_mark;
       cur_parent            = cur_array->last_parent;
       assert (BTOR_IS_REGULAR_EXP (cur_parent));
-      while (cur_parent != NULL
-             && BTOR_REAL_ADDR_EXP (cur_parent)->kind != BTOR_READ_EXP)
+      while (cur_parent != NULL && BTOR_IS_WRITE_ARRAY_EXP (cur_parent))
       {
         /* array children are always at position 0 */
         assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
-        assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
         BTOR_PUSH_STACK (mm, stack, cur_parent);
         cur_parent = cur_parent->prev_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
@@ -3772,11 +3770,10 @@ btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc)
 }
 
 void
-btor_print_stats_exp_mgr (BtorExpMgr *emgr, FILE *file)
+btor_print_stats_exp_mgr (BtorExpMgr *emgr)
 {
+  (void) emgr;
   assert (emgr != NULL);
-  assert (file != NULL);
-
   print_verbose_msg ("lazy read-read conflicts: %d", emgr->read_read_conflicts);
   print_verbose_msg ("lazy read-write conflicts: %d",
                      emgr->read_write_conflicts);
@@ -4347,6 +4344,7 @@ check_read_write_conflict (BtorExpMgr *emgr,
                            BtorExp *write,
                            int *indices_equal)
 {
+  (void) emgr;
   assert (emgr != NULL);
   assert (read != NULL);
   assert (write != NULL);
