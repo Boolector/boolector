@@ -1707,7 +1707,7 @@ rewrite_exp (BtorExpMgr *emgr,
       switch (kind)
       {
         case BTOR_AND_EXP: bresult = btor_and_const (mm, b0, b1); break;
-        case BTOR_EQ_EXP: bresult = btor_eq_const (mm, b0, b1); break;
+        case BTOR_REQ_EXP: bresult = btor_eq_const (mm, b0, b1); break;
         case BTOR_ADD_EXP: bresult = btor_add_const (mm, b0, b1); break;
         case BTOR_MUL_EXP: bresult = btor_mul_const (mm, b0, b1); break;
         case BTOR_ULT_EXP: bresult = btor_ult_const (mm, b0, b1); break;
@@ -1784,9 +1784,9 @@ rewrite_exp (BtorExpMgr *emgr,
       }
     }
     else if (real_e0 == real_e1
-             && (kind == BTOR_EQ_EXP || kind == BTOR_ADD_EXP))
+             && (kind == BTOR_REQ_EXP || kind == BTOR_ADD_EXP))
     {
-      if (kind == BTOR_EQ_EXP)
+      if (kind == BTOR_REQ_EXP)
       {
         if (e0 == e1)
           result = btor_one_exp (emgr, 1);
@@ -1852,7 +1852,7 @@ rewrite_exp (BtorExpMgr *emgr,
     assert (e0 != NULL);
     assert (e1 != NULL);
     assert (e2 != NULL);
-    assert (kind == BTOR_COND_EXP);
+    assert (kind == BTOR_RCOND_EXP);
     real_e0 = BTOR_REAL_ADDR_EXP (e0);
     real_e1 = BTOR_REAL_ADDR_EXP (e1);
     real_e2 = BTOR_REAL_ADDR_EXP (e2);
@@ -2222,8 +2222,8 @@ btor_eq_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_EQ_EXP, e0, e1, NULL, 0, 0);
-  if (result == NULL) result = binary_exp (emgr, BTOR_EQ_EXP, e0, e1, 1);
+    result = rewrite_exp (emgr, BTOR_REQ_EXP, e0, e1, NULL, 0, 0);
+  if (result == NULL) result = binary_exp (emgr, BTOR_REQ_EXP, e0, e1, 1);
   return result;
 }
 
@@ -3275,9 +3275,9 @@ btor_cond_exp (BtorExpMgr *emgr,
   assert (BTOR_REAL_ADDR_EXP (e_if)->len > 0);
   len = BTOR_REAL_ADDR_EXP (e_if)->len;
   if (emgr->rewrite_level > 0)
-    result = rewrite_exp (emgr, BTOR_COND_EXP, e_cond, e_if, e_else, 0, 0);
+    result = rewrite_exp (emgr, BTOR_RCOND_EXP, e_cond, e_if, e_else, 0, 0);
   if (result == NULL)
-    result = ternary_exp (emgr, BTOR_COND_EXP, e_cond, e_if, e_else, len);
+    result = ternary_exp (emgr, BTOR_RCOND_EXP, e_cond, e_if, e_else, len);
   return result;
 }
 
@@ -3418,8 +3418,8 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       case BTOR_ADD_EXP: op = "add"; goto PRINT;
       case BTOR_AND_EXP: op = "and"; goto PRINT;
       case BTOR_CONCAT_EXP: op = "concat"; goto PRINT;
-      case BTOR_COND_EXP: op = "cond"; goto PRINT;
-      case BTOR_EQ_EXP: op = "eq"; goto PRINT;
+      case BTOR_RCOND_EXP: op = "cond"; goto PRINT;
+      case BTOR_REQ_EXP: op = "eq"; goto PRINT;
       case BTOR_MUL_EXP: op = "mul"; goto PRINT;
       case BTOR_READ_EXP: op = "read"; goto PRINT;
       case BTOR_SLL_EXP: op = "sll"; goto PRINT;
@@ -3622,7 +3622,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
       fputs ("))", file);
     }
-    else if (e->kind == BTOR_COND_EXP)
+    else if (e->kind == BTOR_RCOND_EXP)
     {
       fputs ("(ite (= bv1[1] ", file);
       btor_dump_smt_id (e->e[0], file);
@@ -3632,10 +3632,10 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       btor_dump_smt_id (e->e[2], file);
       fputc (')', file);
     }
-    else if (e->kind == BTOR_EQ_EXP || e->kind == BTOR_ULT_EXP)
+    else if (e->kind == BTOR_REQ_EXP || e->kind == BTOR_ULT_EXP)
     {
       fputs ("(ite (", file);
-      if (e->kind == BTOR_EQ_EXP)
+      if (e->kind == BTOR_REQ_EXP)
         fputc ('=', file);
       else
         fputs ("bvult", file);
@@ -4003,7 +4003,9 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             case BTOR_AND_EXP:
               cur->av = btor_and_aigvec (avmgr, av0, av1);
               break;
-            case BTOR_EQ_EXP: cur->av = btor_eq_aigvec (avmgr, av0, av1); break;
+            case BTOR_REQ_EXP:
+              cur->av = btor_eq_aigvec (avmgr, av0, av1);
+              break;
             case BTOR_ADD_EXP:
               cur->av = btor_add_aigvec (avmgr, av0, av1);
               break;
@@ -4045,7 +4047,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         else
         {
           assert (BTOR_IS_TERNARY_EXP (cur));
-          assert (cur->kind == BTOR_COND_EXP);
+          assert (cur->kind == BTOR_RCOND_EXP);
           same_children_mem =
               BTOR_REAL_ADDR_EXP (cur->e[0]) == BTOR_REAL_ADDR_EXP (cur->e[1])
               || BTOR_REAL_ADDR_EXP (cur->e[0])
