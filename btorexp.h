@@ -109,7 +109,7 @@ struct BtorExp
 #define BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_MUL_EXP))
 #define BTOR_IS_TERNARY_EXP_KIND(kind) \
-  ((kind) == BTOR_WRITE_EXP || (kind) == BTOR_RCOND_EXP)
+  ((kind) == BTOR_WRITE_EXP || (kind) == BTOR_ACOND_EXP)
 
 #define BTOR_IS_CONST_EXP(exp) (BTOR_IS_CONST_EXP_KIND ((exp)->kind))
 #define BTOR_IS_VAR_EXP(exp) (BTOR_IS_VAR_EXP_KIND ((exp)->kind))
