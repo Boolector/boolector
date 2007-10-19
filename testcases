@@ -47,3 +47,6 @@ writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
 lazyreadwritebug1 -o log/lazyreadwritebug1.log log/lazyreadwritebug1.btor
 arrayand -o log/arrayand.log log/arrayand.btor
 readvar -o log/readvar.log log/readvar.btor
+arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
+arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
+arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor

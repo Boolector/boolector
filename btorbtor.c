@@ -798,7 +798,10 @@ parse_iff (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
-parse_compare_and_overflow (BtorBTORParser *parser, int len, Binary f)
+parse_compare_and_overflow (BtorBTORParser *parser,
+                            int len,
+                            Binary f,
+                            int can_be_array)
 {
   BtorExp *l, *r, *res;
   int llen, rlen;
@@ -812,7 +815,7 @@ parse_compare_and_overflow (BtorBTORParser *parser, int len, Binary f)
 
   if (parse_space (parser)) return 0;
 
-  if (!(l = parse_exp (parser, 0, 0))) return 0;
+  if (!(l = parse_exp (parser, 0, can_be_array))) return 0;
 
   if (parse_space (parser))
   {
@@ -821,7 +824,8 @@ parse_compare_and_overflow (BtorBTORParser *parser, int len, Binary f)
     return 0;
   }
 
-  if (!(r = parse_exp (parser, 0, 0))) goto RELEASE_L_AND_RETURN_ERROR;
+  if (!(r = parse_exp (parser, 0, can_be_array)))
+    goto RELEASE_L_AND_RETURN_ERROR;
 
   llen = btor_get_exp_len (parser->btor, l);
   rlen = btor_get_exp_len (parser->btor, r);
@@ -830,15 +834,51 @@ parse_compare_and_overflow (BtorBTORParser *parser, int len, Binary f)
   {
     (void) parse_error (
         parser, "operands have different bit width %d and %d", llen, rlen);
-
+  RELEASE_L_AND_R_AND_RETURN_ZERO:
     btor_release_exp (parser->btor, r);
     btor_release_exp (parser->btor, l);
     return 0;
   }
 
+  if (can_be_array)
+  {
+    if (btor_is_array_exp (parser->btor, l)
+        && !btor_is_array_exp (parser->btor, r))
+    {
+      (void) parse_error (parser, "first operand is array and second not");
+      goto RELEASE_L_AND_R_AND_RETURN_ZERO;
+    }
+
+    if (!btor_is_array_exp (parser->btor, l)
+        && btor_is_array_exp (parser->btor, r))
+    {
+      (void) parse_error (parser, "second operand is array and first not");
+      goto RELEASE_L_AND_R_AND_RETURN_ZERO;
+    }
+
+    if (btor_is_array_exp (parser->btor, l)
+        && btor_is_array_exp (parser->btor, r))
+    {
+      llen = btor_get_index_exp_len (parser->btor, l);
+      rlen = btor_get_index_exp_len (parser->btor, r);
+
+      if (llen != rlen)
+      {
+        (void) parse_error (
+            parser,
+            "array operands have different index width %d and %d",
+            llen,
+            rlen);
+        goto RELEASE_L_AND_R_AND_RETURN_ZERO;
+      }
+    }
+  }
+
   res = f (parser->btor, l, r);
+
   btor_release_exp (parser->btor, r);
   btor_release_exp (parser->btor, l);
+
   assert (btor_get_exp_len (parser->btor, res) == 1);
 
   return res;
@@ -847,110 +887,103 @@ parse_compare_and_overflow (BtorBTORParser *parser, int len, Binary f)
 static BtorExp *
 parse_eq (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_eq_exp);
+  return parse_compare_and_overflow (parser, len, btor_eq_exp, 1);
 }
 
 static BtorExp *
 parse_ne (BtorBTORParser *parser, int len)
 {
-  BtorExp *res, *tmp;
-
-  tmp = parse_eq (parser, len);
-  if (!tmp) return 0;
-
-  res = btor_not_exp (parser->btor, tmp);
-  btor_release_exp (parser->btor, tmp);
-  return res;
+  return parse_compare_and_overflow (parser, len, btor_ne_exp, 1);
 }
 
 static BtorExp *
 parse_sgt (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_sgt_exp);
+  return parse_compare_and_overflow (parser, len, btor_sgt_exp, 0);
 }
 
 static BtorExp *
 parse_sgte (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_sgte_exp);
+  return parse_compare_and_overflow (parser, len, btor_sgte_exp, 0);
 }
 
 static BtorExp *
 parse_slt (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_slt_exp);
+  return parse_compare_and_overflow (parser, len, btor_slt_exp, 0);
 }
 
 static BtorExp *
 parse_slte (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_slte_exp);
+  return parse_compare_and_overflow (parser, len, btor_slte_exp, 0);
 }
 
 static BtorExp *
 parse_ugt (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_ugt_exp);
+  return parse_compare_and_overflow (parser, len, btor_ugt_exp, 0);
 }
 
 static BtorExp *
 parse_ugte (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_ugte_exp);
+  return parse_compare_and_overflow (parser, len, btor_ugte_exp, 0);
 }
 
 static BtorExp *
 parse_ult (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_ult_exp);
+  return parse_compare_and_overflow (parser, len, btor_ult_exp, 0);
 }
 
 static BtorExp *
 parse_ulte (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_ulte_exp);
+  return parse_compare_and_overflow (parser, len, btor_ulte_exp, 0);
 }
 
 static BtorExp *
 parse_saddo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_saddo_exp);
+  return parse_compare_and_overflow (parser, len, btor_saddo_exp, 0);
 }
 
 static BtorExp *
 parse_ssubo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_ssubo_exp);
+  return parse_compare_and_overflow (parser, len, btor_ssubo_exp, 0);
 }
 
 static BtorExp *
 parse_smulo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_smulo_exp);
+  return parse_compare_and_overflow (parser, len, btor_smulo_exp, 0);
 }
 
 static BtorExp *
 parse_sdivo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_sdivo_exp);
+  return parse_compare_and_overflow (parser, len, btor_sdivo_exp, 0);
 }
 
 static BtorExp *
 parse_uaddo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_uaddo_exp);
+  return parse_compare_and_overflow (parser, len, btor_uaddo_exp, 0);
 }
 
 static BtorExp *
 parse_usubo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_usubo_exp);
+  return parse_compare_and_overflow (parser, len, btor_usubo_exp, 0);
 }
 
 static BtorExp *
 parse_umulo (BtorBTORParser *parser, int len)
 {
-  return parse_compare_and_overflow (parser, len, btor_umulo_exp);
+  return parse_compare_and_overflow (parser, len, btor_umulo_exp, 0);
 }
 
 static BtorExp *

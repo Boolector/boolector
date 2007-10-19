@@ -2278,8 +2278,6 @@ btor_ne_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (btor_eq_exp (emgr, e0, e1));
