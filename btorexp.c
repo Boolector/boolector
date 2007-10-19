@@ -4495,8 +4495,8 @@ lazy_synthesize_and_encode_read_exp (BtorExpMgr *emgr, BtorExp *read)
 }
 
 static int
-process_working_queue (BtorExpMgr *emgr,
-                       BtorExpPtrStack *queue,
+process_working_stack (BtorExpMgr *emgr,
+                       BtorExpPtrStack *stack,
                        BtorExpPtrStack *cleanup_stack,
                        int *assignments_changed)
 {
@@ -4507,17 +4507,17 @@ process_working_queue (BtorExpMgr *emgr,
   BtorPtrHashBucket *bucket = NULL;
   BtorMemMgr *mm            = NULL;
   assert (emgr != NULL);
-  assert (queue != NULL);
+  assert (stack != NULL);
   assert (cleanup_stack != NULL);
   assert (assignments_changed != NULL);
   mm = emgr->mm;
-  while (!BTOR_EMPTY_STACK (*queue))
+  while (!BTOR_EMPTY_STACK (*stack))
   {
-    array = BTOR_POP_STACK (*queue);
+    array = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (array));
     assert (BTOR_IS_ARRAY_EXP (array));
-    assert (!BTOR_EMPTY_STACK (*queue));
-    read = BTOR_POP_STACK (*queue);
+    assert (!BTOR_EMPTY_STACK (*stack));
+    read = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (read));
     assert (read->kind == BTOR_READ_EXP);
     /* synthesize read index and value if necessary */
@@ -4542,8 +4542,8 @@ process_working_queue (BtorExpMgr *emgr,
       else if (!indices_equal)
       {
         /* propagate read-array pair */
-        BTOR_PUSH_STACK (mm, *queue, read);
-        BTOR_PUSH_STACK (mm, *queue, array->e[0]);
+        BTOR_PUSH_STACK (mm, *stack, read);
+        BTOR_PUSH_STACK (mm, *stack, array->e[0]);
         continue;
       }
     }
@@ -4583,7 +4583,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
 {
   BtorExpPtrStack array_stack;
   BtorExpPtrStack cleanup_stack;
-  BtorExpPtrStack working_queue;
+  BtorExpPtrStack working_stack;
   BtorMemMgr *mm          = NULL;
   BtorExp *cur_array      = NULL;
   BtorExp *cur_write      = NULL;
@@ -4598,7 +4598,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   mm        = emgr->mm;
   write_enc = emgr->write_enc;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
-  BTOR_INIT_STACK (working_queue);
+  BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (cleanup_stack);
   BTOR_INIT_STACK (array_stack);
   BTOR_PUSH_STACK (mm, array_stack, array);
@@ -4647,16 +4647,16 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       while (cur_read != NULL && cur_read->kind == BTOR_READ_EXP)
       {
         assert (BTOR_GET_TAG_EXP (cur_read) == 0);
-        /* push read-array pair on working queue */
-        BTOR_PUSH_STACK (mm, working_queue, cur_read);
-        BTOR_PUSH_STACK (mm, working_queue, cur_array);
+        /* push read-array pair on working stack */
+        BTOR_PUSH_STACK (mm, working_stack, cur_read);
+        BTOR_PUSH_STACK (mm, working_stack, cur_array);
+        found_conflict = process_working_stack (
+            emgr, &working_stack, &cleanup_stack, &changed_assignments);
+        if (found_conflict || changed_assignments)
+          goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
         cur_read = cur_read->next_parent[0];
         assert (BTOR_IS_REGULAR_EXP (cur_read));
       }
-      found_conflict = process_working_queue (
-          emgr, &working_queue, &cleanup_stack, &changed_assignments);
-      if (found_conflict || changed_assignments)
-        goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
     }
   }
 BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
@@ -4667,13 +4667,12 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
     cur_array->table = NULL;
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
-  BTOR_RELEASE_STACK (mm, working_queue);
+  BTOR_RELEASE_STACK (mm, working_stack);
   BTOR_RELEASE_STACK (mm, array_stack);
   mark_exp_bottom_up_arrays (emgr, array, 0);
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
   {
-    found_conflict = 0;
     emgr->synthesis_assignment_inconsistencies++;
     goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
   }
