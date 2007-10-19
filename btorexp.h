@@ -147,8 +147,6 @@ struct BtorExp
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
-BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
-
 /* Sets the read encoding paradigm. */
 void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
 
