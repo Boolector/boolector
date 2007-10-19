@@ -1852,7 +1852,7 @@ rewrite_exp (BtorExpMgr *emgr,
     assert (e0 != NULL);
     assert (e1 != NULL);
     assert (e2 != NULL);
-    assert (kind == BTOR_RCOND_EXP);
+    assert (kind == BTOR_RCOND_EXP || kind == BTOR_ACOND_EXP);
     real_e0 = BTOR_REAL_ADDR_EXP (e0);
     real_e1 = BTOR_REAL_ADDR_EXP (e1);
     real_e2 = BTOR_REAL_ADDR_EXP (e2);
@@ -3418,8 +3418,10 @@ btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       case BTOR_ADD_EXP: op = "add"; goto PRINT;
       case BTOR_AND_EXP: op = "and"; goto PRINT;
       case BTOR_CONCAT_EXP: op = "concat"; goto PRINT;
-      case BTOR_RCOND_EXP: op = "cond"; goto PRINT;
-      case BTOR_REQ_EXP: op = "eq"; goto PRINT;
+      case BTOR_RCOND_EXP:
+      case BTOR_ACOND_EXP: op = "cond"; goto PRINT;
+      case BTOR_REQ_EXP:
+      case BTOR_AEQ_EXP: op = "eq"; goto PRINT;
       case BTOR_MUL_EXP: op = "mul"; goto PRINT;
       case BTOR_READ_EXP: op = "read"; goto PRINT;
       case BTOR_SLL_EXP: op = "sll"; goto PRINT;
