@@ -68,7 +68,6 @@ btor_var_aigvec (BtorAIGVecMgr *avmgr, int len)
 void
 btor_invert_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
-  (void) avmgr;
   int i   = 0;
   int len = 0;
   (void) avmgr;

@@ -357,9 +357,9 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
 void
 btor_invert_const (BtorMemMgr *mm, char *a)
 {
-  (void) mm;
   int len = 0;
   int i   = 0;
+  (void) mm;
   assert (mm != NULL);
   assert (a != NULL);
   assert (strlen (a) > 0);

@@ -235,8 +235,8 @@ enlarge_aig_unique_table (BtorAIGMgr *amgr)
 BtorAIG *
 btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  (void) amgr;
   assert (amgr != NULL);
+  (void) amgr;
   if (BTOR_IS_CONST_AIG (aig)) return aig;
   return inc_aig_ref_counter_and_return (aig);
 }
@@ -332,8 +332,8 @@ btor_var_aig (BtorAIGMgr *amgr)
 BtorAIG *
 btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  (void) amgr;
   assert (amgr != NULL);
+  (void) amgr;
   inc_aig_ref_counter (aig);
   return BTOR_INVERT_AIG (aig);
 }
@@ -1086,20 +1086,20 @@ btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig)
           assert (z != 0);
           if (!cur->neg_imp)
           {
-            (void) btor_add_sat (smgr, -y);
-            (void) btor_add_sat (smgr, -z);
-            (void) btor_add_sat (smgr, x);
-            (void) btor_add_sat (smgr, 0);
+            btor_add_sat (smgr, -y);
+            btor_add_sat (smgr, -z);
+            btor_add_sat (smgr, x);
+            btor_add_sat (smgr, 0);
             cur->neg_imp = 1;
           }
           if (!cur->pos_imp)
           {
-            (void) btor_add_sat (smgr, -x);
-            (void) btor_add_sat (smgr, y);
-            (void) btor_add_sat (smgr, 0);
-            (void) btor_add_sat (smgr, -x);
-            (void) btor_add_sat (smgr, z);
-            (void) btor_add_sat (smgr, 0);
+            btor_add_sat (smgr, -x);
+            btor_add_sat (smgr, y);
+            btor_add_sat (smgr, 0);
+            btor_add_sat (smgr, -x);
+            btor_add_sat (smgr, z);
+            btor_add_sat (smgr, 0);
             cur->pos_imp = 1;
           }
         }
