@@ -37,16 +37,14 @@ udiv8castdown5 -o log/udiv8castdown5.log log/udiv8castdown5.btor
 udiv8castdown6 -o log/udiv8castdown6.log log/udiv8castdown6.btor
 udiv8castdown7 -o log/udiv8castdown7.log log/udiv8castdown7.btor
 udiv16castdown8 -o log/udiv16castdown8.log log/udiv16castdown8.btor
-
-# SMT writing
-#
-writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
-
-# regression
-#
 lazyreadwritebug1 -o log/lazyreadwritebug1.log log/lazyreadwritebug1.btor
 arrayand -o log/arrayand.log log/arrayand.btor
 readvar -o log/readvar.log log/readvar.btor
 arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
 arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
 arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
+writearrayeq -f -de log/writearrayeq.log log/writearrayeq.btor
+
+# SMT writing
+#
+writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
