@@ -19,8 +19,8 @@ enum BtorExpKind
   BTOR_ARRAY_EXP  = 2,
   BTOR_SLICE_EXP  = 3,
   BTOR_AND_EXP    = 4,
-  BTOR_REQ_EXP    = 5, /* regular equality */
-  BTOR_AEQ_EXP    = 6, /* array equality */
+  BTOR_BEQ_EXP    = 5, /* equality on bit vectors */
+  BTOR_AEQ_EXP    = 6, /* equality on arrays */
   BTOR_ADD_EXP    = 7,
   BTOR_MUL_EXP    = 8,
   BTOR_ULT_EXP    = 9,
@@ -31,8 +31,8 @@ enum BtorExpKind
   BTOR_CONCAT_EXP = 14,
   BTOR_READ_EXP   = 15,
   BTOR_WRITE_EXP  = 16,
-  BTOR_RCOND_EXP  = 17, /* regular conditional */
-  BTOR_ACOND_EXP  = 18, /* array conditional */
+  BTOR_BCOND_EXP  = 17, /* conditional on bit vectors */
+  BTOR_ACOND_EXP  = 18, /* conditional on arrays */
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -109,7 +109,7 @@ struct BtorExp
 #define BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_MUL_EXP))
 #define BTOR_IS_TERNARY_EXP_KIND(kind)                  \
-  ((kind) == BTOR_WRITE_EXP || (kind) == BTOR_RCOND_EXP \
+  ((kind) == BTOR_WRITE_EXP || (kind) == BTOR_BCOND_EXP \
    || (kind) == BTOR_ACOND_EXP)
 
 #define BTOR_IS_CONST_EXP(exp) (BTOR_IS_CONST_EXP_KIND ((exp)->kind))
