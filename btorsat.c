@@ -31,7 +31,7 @@ struct BtorSATMgr
 /*------------------------------------------------------------------------*/
 
 static void
-print_verbose_msg (char *msg)
+print_verbose_msg (const char *msg)
 {
   assert (msg != NULL);
   fprintf (stderr, "[btorsat] %s", msg);
@@ -83,7 +83,14 @@ void
 btor_init_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
-  if (smgr->verbosity >= 3) print_verbose_msg ("initializing PicoSAT\n");
+
+  if (smgr->verbosity > 0)
+  {
+    fprintf (stderr, "[btorsat] PicoSAT Version %s\n", picosat_version ());
+
+    fflush (stderr);
+  }
+
   picosat_init ();
 }
 

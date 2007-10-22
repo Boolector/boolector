@@ -1139,7 +1139,7 @@ parse_cond (BtorBTORParser *parser, int len)
              != btor_get_index_exp_len (parser->btor, e))
   {
     (void) parse_error (
-        parser, "mismatch of index bit width of array 'then' and 'else'");
+        parser, "mismatch of index bit width of 'then' and 'else' arrays");
     goto RELEASE_C_AND_T_AND_E_AND_RETURN_ERROR;
   }
 

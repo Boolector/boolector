@@ -3,15 +3,14 @@ VERSION=$(shell cat VERSION)
 LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
-CFLAGS=@CFLAGS@ -DBTOR_VERSION="\"$(VERSION)\"" 
+CFLAGS=@CFLAGS@
 
 all: libboolector.a boolector test synthebtor deltabtor
 
 -include dependencies
 
 dependencies: *.c *.h makefile
-	rm -f dependencies
-	$(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
+	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
 boolector: boolector.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector
@@ -29,6 +28,9 @@ libboolector.a: $(LIBOBJ)
 	ar rc $@ $(LIBOBJ)
 	ranlib $@
 
+btorconfig.h: makefile VERSION mkconfig
+	rm -f $@; ./mkconfig > $@
+
 clean:
 	rm -f test boolector deltabtor synthebtor
 	rm -f *.o *.a
@@ -37,5 +39,6 @@ clean:
 	rm -f dependencies
 	rm -f *.tmp
 	rm -f makefile
+	rm -f btorconfig.h
 
 .PHONY: all clean
