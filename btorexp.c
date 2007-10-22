@@ -3897,6 +3897,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
   int invert_av0        = 0;
   int invert_av1        = 0;
   int invert_av2        = 0;
+  BtorReadEnc read_enc  = BTOR_EAGER_READ_ENC;
   char *indexed_name;
   const char *name;
   unsigned count;
@@ -3906,8 +3907,9 @@ btor_synthesize_exp (BtorExpMgr *emgr,
   assert (emgr != NULL);
   assert (exp != NULL);
 
-  mm    = emgr->mm;
-  avmgr = emgr->avmgr;
+  read_enc = emgr->read_enc;
+  mm       = emgr->mm;
+  avmgr    = emgr->avmgr;
 
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
@@ -3949,7 +3951,30 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         }
         else if (!BTOR_IS_NATIVE_ARRAY_EXP (cur))
         {
-          if (BTOR_IS_WRITE_ARRAY_EXP (cur))
+          /* special cases */
+          if (cur->kind == BTOR_READ_EXP)
+          {
+            if (read_enc == BTOR_EAGER_READ_ENC)
+            {
+              cur->mark = 1;
+              BTOR_PUSH_STACK (mm, exp_stack, cur);
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+              assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
+              assert (BTOR_IS_NATIVE_ARRAY_EXP (cur->e[0]));
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            }
+            else
+            {
+              cur->mark = 2;
+              cur->av   = btor_var_aigvec (avmgr, cur->len);
+              /* mark children recursively as reachable */
+              mark_reachable_exp (emgr, cur->e[1]);
+              mark_reachable_exp (emgr, cur->e[0]);
+              /* we do not synthesize children as we are
+               * in lazy mode */
+            }
+          }
+          else if (BTOR_IS_WRITE_ARRAY_EXP (cur))
           {
             /* writes are only reachable in lazy mode */
             assert (emgr->write_enc != BTOR_EAGER_WRITE_ENC);
@@ -3961,27 +3986,20 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             /* we do not synthesize children as we are
              * in lazy mode */
           }
+          else if (cur->kind == BTOR_AEQ_EXP)
+          {
+            cur->mark = 2;
+            cur->av   = btor_var_aigvec (avmgr, 1);
+            /* mark children recursively as reachable */
+            mark_reachable_exp (emgr, cur->e[1]);
+            mark_reachable_exp (emgr, cur->e[0]);
+          }
           else
           {
+            /* regular cases */
             cur->mark = 1;
             BTOR_PUSH_STACK (mm, exp_stack, cur);
-            if (cur->kind == BTOR_READ_EXP)
-            {
-              if (emgr->read_enc == BTOR_EAGER_READ_ENC)
-              {
-                BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-                BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-              }
-              else
-              {
-                /* mark children recursively as reachable */
-                mark_reachable_exp (emgr, cur->e[1]);
-                mark_reachable_exp (emgr, cur->e[0]);
-                /* we do not synthesize children as we are
-                 * in lazy mode */
-              }
-            }
-            else if (BTOR_IS_UNARY_EXP (cur))
+            if (BTOR_IS_UNARY_EXP (cur))
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
             else if (BTOR_IS_BINARY_EXP (cur))
             {
@@ -4003,12 +4021,9 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         cur->mark = 2;
         if (cur->kind == BTOR_READ_EXP)
         {
-          /* generate new AIGs for read */
+          assert (read_enc == BTOR_EAGER_READ_ENC);
           cur->av = btor_var_aigvec (avmgr, cur->len);
-          assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
-          assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
-          if (emgr->read_enc == BTOR_EAGER_READ_ENC)
-            encode_read_eagerly (emgr, cur->e[0], cur);
+          encode_read_eagerly (emgr, cur->e[0], cur);
         }
         else if (BTOR_IS_UNARY_EXP (cur))
         {
