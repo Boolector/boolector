@@ -723,17 +723,13 @@ encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   cur = array->first_parent;
-  assert (BTOR_IS_REGULAR_EXP (cur));
-  /* read expressions are at the beginning and
-     write expressions at the end of the parent list. */
-  while (cur != NULL && cur->kind == BTOR_READ_EXP)
+  /* read expressions are at the beginning of the parent list */
+  while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_READ_EXP)
   {
-    /* array children are always at position 0 */
     assert (BTOR_GET_TAG_EXP (cur) == 0);
     if (cur->encoded_read)
       encode_ackermann_constraint (emgr, cur->e[1], read->e[1], cur, read);
     cur = cur->next_parent[0];
-    assert (BTOR_IS_REGULAR_EXP (cur));
   }
   read->encoded_read = 1;
 }
@@ -826,6 +822,7 @@ static void
 connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
 {
   BtorExp *last_parent = NULL;
+  int i                = 0;
   assert (emgr != NULL);
   assert (parent != NULL);
   assert (child != NULL);
@@ -834,7 +831,6 @@ connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
   assert (BTOR_IS_REGULAR_EXP (child));
   assert (BTOR_IS_ARRAY_EXP (child));
   (void) emgr;
-  /* array children are always at position 0 */
   parent->e[0] = child;
   /* no parent so far? */
   if (child->first_parent == NULL)
@@ -850,10 +846,10 @@ connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
   {
     last_parent = child->last_parent;
     assert (last_parent != NULL);
-    assert (BTOR_IS_REGULAR_EXP (last_parent));
-    parent->prev_parent[0]      = last_parent;
-    last_parent->next_parent[0] = parent;
-    child->last_parent          = parent;
+    parent->prev_parent[0] = last_parent;
+    i                      = BTOR_GET_TAG_EXP (last_parent);
+    BTOR_REAL_ADDR_EXP (last_parent)->next_parent[i] = parent;
+    child->last_parent                               = parent;
   }
 }
 
@@ -1421,44 +1417,6 @@ btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark)
         BTOR_PUSH_STACK (mm, stack, cur->e[2]);
         BTOR_PUSH_STACK (mm, stack, cur->e[1]);
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-      }
-    }
-  }
-  BTOR_RELEASE_STACK (mm, stack);
-}
-
-/* set mark flags of native arrays and parent writes */
-static void
-mark_exp_bottom_up_arrays (BtorExpMgr *emgr, BtorExp *array, int new_mark)
-{
-  BtorMemMgr *mm = NULL;
-  BtorExpPtrStack stack;
-  BtorExp *cur_array  = NULL;
-  BtorExp *cur_parent = NULL;
-  assert (emgr != NULL);
-  assert (array != NULL);
-  assert (BTOR_IS_REGULAR_EXP (array));
-  assert (BTOR_IS_ARRAY_EXP (array));
-  mm = emgr->mm;
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, array);
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur_array = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_EXP (cur_array));
-    assert (BTOR_IS_ARRAY_EXP (cur_array));
-    if (cur_array->array_mark != new_mark)
-    {
-      cur_array->array_mark = new_mark;
-      cur_parent            = cur_array->last_parent;
-      assert (BTOR_IS_REGULAR_EXP (cur_parent));
-      while (cur_parent != NULL && BTOR_IS_WRITE_ARRAY_EXP (cur_parent))
-      {
-        /* array children are always at position 0 */
-        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
-        BTOR_PUSH_STACK (mm, stack, cur_parent);
-        cur_parent = cur_parent->prev_parent[0];
-        assert (BTOR_IS_REGULAR_EXP (cur_parent));
       }
     }
   }
@@ -4597,7 +4555,6 @@ process_working_stack (BtorExpMgr *emgr,
       {
         emgr->read_write_conflicts++;
         /* check if local or propagated read conflicts with write */
-        /* arrays are always at position 0 */
         if (read->e[0] == array)
           resolve_read_write_conflict_one_level (emgr, read, array);
         else
@@ -4649,6 +4606,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExpPtrStack array_stack;
   BtorExpPtrStack cleanup_stack;
   BtorExpPtrStack working_stack;
+  BtorExpPtrStack unmark_stack;
   BtorMemMgr *mm          = NULL;
   BtorExp *cur_array      = NULL;
   BtorExp *cur_write      = NULL;
@@ -4663,6 +4621,7 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   mm        = emgr->mm;
   write_enc = emgr->write_enc;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
+  BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (cleanup_stack);
   BTOR_INIT_STACK (array_stack);
@@ -4675,6 +4634,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     if (cur_array->array_mark == 0)
     {
       cur_array->array_mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
       BTOR_PUSH_STACK (mm, array_stack, cur_array);
       /* ATTENTION: There can be write parents although
        * they are not reachable from the root.
@@ -4686,19 +4646,19 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       if (write_enc == BTOR_LAZY_WRITE_ENC)
       {
         /* push writes on stack */
+        /* writes are at the end of the parent list */
         cur_write = cur_array->last_parent;
-        assert (BTOR_IS_REGULAR_EXP (cur_write));
-        while (cur_write != NULL && BTOR_IS_WRITE_ARRAY_EXP (cur_write))
+        while (cur_write != NULL
+               && BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (cur_write)))
         {
-          /* array children are always at position 0 */
           assert (BTOR_GET_TAG_EXP (cur_write) == 0);
+          assert (BTOR_IS_REGULAR_EXP (cur_write));
           if (cur_write->reachable)
           {
             assert (cur_write->array_mark == 0);
             BTOR_PUSH_STACK (mm, array_stack, cur_write);
           }
           cur_write = cur_write->prev_parent[0];
-          assert (BTOR_IS_REGULAR_EXP (cur_write));
         }
       }
     }
@@ -4708,10 +4668,11 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       assert (write_enc == BTOR_LAZY_WRITE_ENC || cur_array == array);
       assert (!BTOR_IS_WRITE_ARRAY_EXP (cur_array) || cur_array->reachable);
       cur_read = cur_array->first_parent;
-      assert (BTOR_IS_REGULAR_EXP (cur_read));
-      while (cur_read != NULL && cur_read->kind == BTOR_READ_EXP)
+      while (cur_read != NULL
+             && BTOR_REAL_ADDR_EXP (cur_read)->kind == BTOR_READ_EXP)
       {
         assert (BTOR_GET_TAG_EXP (cur_read) == 0);
+        assert (BTOR_IS_REGULAR_EXP (cur_read));
         /* push read-array pair on working stack */
         BTOR_PUSH_STACK (mm, working_stack, cur_read);
         BTOR_PUSH_STACK (mm, working_stack, cur_array);
@@ -4720,7 +4681,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         if (found_conflict || changed_assignments)
           goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
         cur_read = cur_read->next_parent[0];
-        assert (BTOR_IS_REGULAR_EXP (cur_read));
       }
     }
   }
@@ -4734,7 +4694,15 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   BTOR_RELEASE_STACK (mm, cleanup_stack);
   BTOR_RELEASE_STACK (mm, working_stack);
   BTOR_RELEASE_STACK (mm, array_stack);
-  mark_exp_bottom_up_arrays (emgr, array, 0);
+  /* reset array_marks of arrays */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur_array = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
+    cur_array->array_mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
   {
