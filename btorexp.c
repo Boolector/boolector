@@ -782,7 +782,6 @@ btor_unsigned_to_exp (BtorExpMgr *emgr, unsigned u, int len)
 static void
 connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 {
-  BtorExp *real_parent   = NULL;
   BtorExp *real_child    = NULL;
   BtorExp *first_parent  = NULL;
   BtorExp *tagged_parent = NULL;
@@ -793,30 +792,29 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   assert (child != NULL);
   assert (pos >= 0);
   assert (pos <= 2);
-  assert (!BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)) || pos == 1
-          || pos == 2);
-  assert (BTOR_REAL_ADDR_EXP (parent)->kind != BTOR_AEQ_EXP);
-  assert (BTOR_REAL_ADDR_EXP (parent)->kind != BTOR_ACOND_EXP);
-  real_parent         = BTOR_REAL_ADDR_EXP (parent);
-  real_child          = BTOR_REAL_ADDR_EXP (child);
-  real_parent->e[pos] = child;
-  tagged_parent       = BTOR_TAG_EXP (real_parent, pos);
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (!BTOR_IS_WRITE_ARRAY_EXP (parent) || pos == 1 || pos == 2);
+  assert (parent->kind != BTOR_AEQ_EXP);
+  assert (parent->kind != BTOR_ACOND_EXP);
+  real_child     = BTOR_REAL_ADDR_EXP (child);
+  parent->e[pos] = child;
+  tagged_parent  = BTOR_TAG_EXP (parent, pos);
   /* no parent so far? */
   if (real_child->first_parent == NULL)
   {
     assert (real_child->last_parent == NULL);
     real_child->first_parent = tagged_parent;
     real_child->last_parent  = tagged_parent;
-    assert (real_parent->prev_parent[pos] == NULL);
-    assert (real_parent->next_parent[pos] == NULL);
+    assert (parent->prev_parent[pos] == NULL);
+    assert (parent->next_parent[pos] == NULL);
   }
   /* add parent at the beginning of the list */
   else
   {
     first_parent = real_child->first_parent;
     assert (first_parent != NULL);
-    real_parent->next_parent[pos] = first_parent;
-    i                             = BTOR_GET_TAG_EXP (first_parent);
+    parent->next_parent[pos] = first_parent;
+    i                        = BTOR_GET_TAG_EXP (first_parent);
     BTOR_REAL_ADDR_EXP (first_parent)->prev_parent[i] = tagged_parent;
     real_child->first_parent                          = tagged_parent;
   }
@@ -889,7 +887,7 @@ connect_child_aeq_acond_exp (BtorExpMgr *emgr,
   (void) emgr;
   parent->e[pos]         = child;
   tagged_parent          = BTOR_TAG_EXP (parent, pos);
-  first_aeq_acond_parent = parent->first_aeq_acond_parent;
+  first_aeq_acond_parent = child->first_aeq_acond_parent;
   if (first_aeq_acond_parent == NULL)
   {
     /* set first aeq acond parent */
@@ -983,7 +981,7 @@ connect_child_aeq_acond_exp (BtorExpMgr *emgr,
     {
       assert (BTOR_IS_REGULAR_EXP (prev_parent));
       assert (prev_parent->kind == BTOR_READ_EXP);
-      assert (BTOR_GET_TAG_EXP (prev_parent == 0));
+      assert (BTOR_GET_TAG_EXP (prev_parent) == 0);
       prev_parent->next_parent[0] = tagged_parent;
       parent->prev_parent[pos]    = prev_parent;
     }
@@ -1008,7 +1006,7 @@ connect_child_aeq_acond_exp (BtorExpMgr *emgr,
 static void
 disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
 {
-  BtorExp *real_parent       = NULL;
+  BtorExp *tagged_parent     = NULL;
   BtorExp *first_parent      = NULL;
   BtorExp *last_parent       = NULL;
   BtorExp *real_first_parent = NULL;
@@ -1018,56 +1016,54 @@ disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
   assert (parent != NULL);
   assert (pos >= 0);
   assert (pos <= 2);
-  assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (parent)));
-  assert (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (parent)));
-  assert (!BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)));
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (!BTOR_IS_CONST_EXP (parent));
+  assert (!BTOR_IS_VAR_EXP (parent));
+  assert (!BTOR_IS_NATIVE_ARRAY_EXP (parent));
   (void) emgr;
-  real_parent  = BTOR_REAL_ADDR_EXP (parent);
-  parent       = BTOR_TAG_EXP (real_parent, pos);
-  real_child   = BTOR_REAL_ADDR_EXP (real_parent->e[pos]);
-  first_parent = real_child->first_parent;
-  last_parent  = real_child->last_parent;
+  tagged_parent = BTOR_TAG_EXP (parent, pos);
+  real_child    = BTOR_REAL_ADDR_EXP (parent->e[pos]);
+  first_parent  = real_child->first_parent;
+  last_parent   = real_child->last_parent;
   assert (first_parent != NULL);
   assert (last_parent != NULL);
   real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
   real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
   /* only one parent? */
-  if (first_parent == parent && first_parent == last_parent)
+  if (first_parent == tagged_parent && first_parent == last_parent)
   {
-    assert (real_parent->next_parent[pos] == NULL);
-    assert (real_parent->prev_parent[pos] == NULL);
+    assert (parent->next_parent[pos] == NULL);
+    assert (parent->prev_parent[pos] == NULL);
     real_child->first_parent = NULL;
     real_child->last_parent  = NULL;
   }
   /* is parent first parent in the list? */
-  else if (first_parent == parent)
+  else if (first_parent == tagged_parent)
   {
-    assert (real_parent->next_parent[pos] != NULL);
-    assert (real_parent->prev_parent[pos] == NULL);
-    real_child->first_parent                    = real_parent->next_parent[pos];
+    assert (parent->next_parent[pos] != NULL);
+    assert (parent->prev_parent[pos] == NULL);
+    real_child->first_parent                    = parent->next_parent[pos];
     BTOR_PREV_PARENT (real_child->first_parent) = NULL;
   }
   /* is parent last parent in the list? */
-  else if (last_parent == parent)
+  else if (last_parent == tagged_parent)
   {
-    assert (real_parent->next_parent[pos] == NULL);
-    assert (real_parent->prev_parent[pos] != NULL);
-    real_child->last_parent                    = real_parent->prev_parent[pos];
+    assert (parent->next_parent[pos] == NULL);
+    assert (parent->prev_parent[pos] != NULL);
+    real_child->last_parent                    = parent->prev_parent[pos];
     BTOR_NEXT_PARENT (real_child->last_parent) = NULL;
   }
   /* hang out parent from list */
   else
   {
-    assert (real_parent->next_parent[pos] != NULL);
-    assert (real_parent->prev_parent[pos] != NULL);
-    BTOR_PREV_PARENT (real_parent->next_parent[pos]) =
-        real_parent->prev_parent[pos];
-    BTOR_NEXT_PARENT (real_parent->prev_parent[pos]) =
-        real_parent->next_parent[pos];
+    assert (parent->next_parent[pos] != NULL);
+    assert (parent->prev_parent[pos] != NULL);
+    BTOR_PREV_PARENT (parent->next_parent[pos]) = parent->prev_parent[pos];
+    BTOR_NEXT_PARENT (parent->prev_parent[pos]) = parent->next_parent[pos];
   }
-  real_parent->next_parent[pos] = NULL;
-  real_parent->prev_parent[pos] = NULL;
-  real_parent->e[pos]           = NULL;
+  parent->next_parent[pos] = NULL;
+  parent->prev_parent[pos] = NULL;
+  parent->e[pos]           = NULL;
 }
 
 static BtorExp *
@@ -1131,8 +1127,17 @@ new_binary_exp_node (
   exp->id   = emgr->id++;
   exp->refs = 1;
   exp->emgr = emgr;
-  connect_child_exp (emgr, exp, e0, 0);
-  connect_child_exp (emgr, exp, e1, 1);
+  /* special treatment of array equalities in parent list */
+  if (kind == BTOR_AEQ_EXP)
+  {
+    connect_child_aeq_acond_exp (emgr, exp, e0, 0);
+    connect_child_aeq_acond_exp (emgr, exp, e1, 1);
+  }
+  else
+  {
+    connect_child_exp (emgr, exp, e0, 0);
+    connect_child_exp (emgr, exp, e1, 1);
+  }
   return exp;
 }
 
