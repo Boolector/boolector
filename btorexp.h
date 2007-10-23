@@ -73,7 +73,8 @@ struct BtorExp
   {
     struct
     {
-      char *symbol; /* symbol for output. for variables only */
+      char *symbol; /* symbol for output
+                       for variables only */
       int upper;    /* for slices only */
       union
       {
@@ -92,7 +93,10 @@ struct BtorExp
   struct BtorExp *last_parent;    /* tail of parent list */
   struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */
   struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
-  BtorExpMgr *emgr;               /* expression manager */
+  struct BtorExp *first_aeq_acond_parent; /* first array equality or array
+                                      conditional in parent list
+                                      for arrays and writes only */
+  BtorExpMgr *emgr;                       /* expression manager */
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
