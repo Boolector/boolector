@@ -465,6 +465,30 @@ test_write12_special ()
   run_sat_test ("write12.in");
 }
 
+static void
+test_arrayeq1_special ()
+{
+  run_sat_test ("arrayeq1.in");
+}
+
+static void
+test_arrayeq2_special ()
+{
+  run_sat_test ("arrayeq2.in");
+}
+
+static void
+test_arrayeq3_special ()
+{
+  run_sat_test ("arrayeq3.in");
+}
+
+static void
+test_arrayeq4_special ()
+{
+  run_sat_test ("arrayeq4.in");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -539,6 +563,10 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (write10_special);
   BTOR_RUN_TEST (write11_special);
   BTOR_RUN_TEST (write12_special);
+  BTOR_RUN_TEST (arrayeq1_special);
+  BTOR_RUN_TEST (arrayeq2_special);
+  BTOR_RUN_TEST (arrayeq3_special);
+  BTOR_RUN_TEST (arrayeq4_special);
 }
 
 void
