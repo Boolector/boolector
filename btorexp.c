@@ -793,7 +793,8 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   assert (child != NULL);
   assert (pos >= 0);
   assert (pos <= 2);
-  assert (!BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)));
+  assert (!BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)) || pos == 1
+          || pos == 2);
   assert (BTOR_REAL_ADDR_EXP (parent)->kind != BTOR_AEQ_EXP);
   assert (BTOR_REAL_ADDR_EXP (parent)->kind != BTOR_ACOND_EXP);
   real_parent         = BTOR_REAL_ADDR_EXP (parent);
