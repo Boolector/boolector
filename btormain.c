@@ -3,6 +3,7 @@
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbtor.h"
+#include "btorconfig.h"
 #include "btorconst.h"
 #include "btorexit.h"
 #include "btorexp.h"
@@ -559,6 +560,12 @@ btor_main (int argc, char **argv)
     print_err (&app, "can not combine eager read with uneager write\n");
     err = 1;
   }
+
+  if (app.verbosity > 0)
+  {
+    print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
+  }
+
   if (!done && !err)
   {
     emgr =

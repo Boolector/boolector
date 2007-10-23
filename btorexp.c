@@ -7,6 +7,7 @@
 #include <string.h>
 #include "btoraig.h"
 #include "btoraigvec.h"
+#include "btorconfig.h"
 #include "btorconst.h"
 #include "btorhash.h"
 #include "btorsat.h"
@@ -4948,6 +4949,12 @@ btor_assignment_exp (BtorExpMgr *emgr, BtorExp *exp)
   /* invert back if necessary */
   if (invert_av) btor_invert_aigvec (avmgr, av);
   return assignment;
+}
+
+const char *
+btor_version (void)
+{
+  return BTOR_VERSION;
 }
 
 /*------------------------------------------------------------------------*/

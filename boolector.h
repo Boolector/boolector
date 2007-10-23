@@ -29,6 +29,8 @@ BtorExpMgr *btor_new_exp_mgr (int rewrite_level,
 /* Delete expression manager */
 void btor_delete_exp_mgr (BtorExpMgr *emgr);
 
+const char *btor_version (void);
+
 /*------------------------------------------------------------------------*/
 /* BtorExpression                                                         */
 /*------------------------------------------------------------------------*/
