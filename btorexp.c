@@ -727,6 +727,7 @@ encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
   while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_READ_EXP)
   {
     assert (BTOR_GET_TAG_EXP (cur) == 0);
+    assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->encoded_read)
       encode_ackermann_constraint (emgr, cur->e[1], read->e[1], cur, read);
     cur = cur->next_parent[0];
@@ -774,7 +775,9 @@ btor_unsigned_to_exp (BtorExpMgr *emgr, unsigned u, int len)
   return result;
 }
 
-/* Connects child to its parent and updates list of parent pointers */
+/* Connects child to its parent and updates list of parent pointers.
+ * Expressions are inserted in front of the parent list
+ */
 static void
 connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
 {
@@ -789,6 +792,9 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   assert (child != NULL);
   assert (pos >= 0);
   assert (pos <= 2);
+  assert (!BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (parent)));
+  assert (BTOR_REAL_ADDR_EXP (parent)->kind != BTOR_AEQ_EXP);
+  assert (BTOR_REAL_ADDR_EXP (parent)->kind != BTOR_ACOND_EXP);
   real_parent         = BTOR_REAL_ADDR_EXP (parent);
   real_child          = BTOR_REAL_ADDR_EXP (child);
   real_parent->e[pos] = child;
@@ -814,10 +820,9 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   }
 }
 
-/* Connects child to write parent. Writes can only be parents of arrays
- * and other writes. Writes are appended to the end of array and write
- * parent lists while reads and all other expressions are inserted
- * at the beginning of the parent lists.*/
+/* Connects array child to write parent.
+ * Writes are appended to the end of the parent list
+ */
 static void
 connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
 {
@@ -850,6 +855,144 @@ connect_child_write_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child)
     i                      = BTOR_GET_TAG_EXP (last_parent);
     BTOR_REAL_ADDR_EXP (last_parent)->next_parent[i] = parent;
     child->last_parent                               = parent;
+  }
+}
+
+/* Connects array child to array equality parent or array conditional parent.
+ * Array equalites and array conditionals are inserted in the middle
+ * of the parent list
+ */
+static void
+connect_child_aeq_acond_exp (BtorExpMgr *emgr,
+                             BtorExp *parent,
+                             BtorExp *child,
+                             int pos)
+{
+  BtorExp *first_parent           = NULL;
+  BtorExp *last_parent            = NULL;
+  BtorExp *prev_parent            = NULL;
+  BtorExp *cur_parent             = NULL;
+  BtorExp *tagged_parent          = NULL;
+  BtorExp *first_aeq_acond_parent = NULL;
+  int i                           = 0;
+  assert (emgr != NULL);
+  assert (parent != NULL);
+  assert (child != NULL);
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (parent->kind == BTOR_AEQ_EXP || parent->kind == BTOR_ACOND_EXP);
+  assert (BTOR_IS_REGULAR_EXP (child));
+  assert (BTOR_IS_ARRAY_EXP (child));
+  assert (parent->kind != BTOR_AEQ_EXP || pos == 0 || pos == 1);
+  assert (parent->kind != BTOR_ACOND_EXP || pos == 1 || pos == 2);
+  (void) emgr;
+  parent->e[pos]         = child;
+  tagged_parent          = BTOR_TAG_EXP (parent, pos);
+  first_aeq_acond_parent = parent->first_aeq_acond_parent;
+  if (first_aeq_acond_parent == NULL)
+  {
+    /* set first aeq acond parent */
+    child->first_aeq_acond_parent = tagged_parent;
+    /* no parent so far ? */
+    if (child->first_parent == NULL)
+    {
+      assert (child->last_parent == NULL);
+      child->first_parent = tagged_parent;
+      child->last_parent  = tagged_parent;
+      assert (parent->prev_parent[pos] == NULL);
+      assert (parent->next_parent[pos] == NULL);
+    }
+    else
+    {
+      /* look for insertion place */
+      assert (child->first_parent != NULL);
+      assert (child->last_parent != NULL);
+      /* check if no reads have been inserted in parent list so far */
+      if (BTOR_REAL_ADDR_EXP (child->first_parent)->kind != BTOR_READ_EXP)
+      {
+        first_parent = child->first_parent;
+        assert (BTOR_IS_REGULAR_EXP (first_parent));
+        assert (BTOR_IS_WRITE_ARRAY_EXP (first_parent));
+        assert (BTOR_GET_TAG_EXP (first_parent) == 0);
+        /* insert at the beginning of the list */
+        parent->next_parent[pos]     = first_parent;
+        first_parent->prev_parent[0] = tagged_parent;
+        child->first_parent          = tagged_parent;
+      }
+      /* check if no writes have been inserted in parent list so far */
+      else if (!BTOR_IS_WRITE_ARRAY_EXP (
+                   BTOR_REAL_ADDR_EXP (child->last_parent)))
+      {
+        last_parent = child->last_parent;
+        assert (BTOR_IS_REGULAR_EXP (last_parent));
+        assert (last_parent->kind == BTOR_READ_EXP);
+        assert (BTOR_GET_TAG_EXP (last_parent) == 0);
+        /* append to the end of the list */
+        parent->prev_parent[pos]    = last_parent;
+        last_parent->next_parent[0] = tagged_parent;
+        child->last_parent          = tagged_parent;
+      }
+      else
+      {
+        /* search from the end of the list until we reach the
+         * first write after a read
+         */
+        assert (BTOR_IS_REGULAR_EXP (child->first_parent));
+        assert (child->first_parent->kind == BTOR_READ_EXP);
+        assert (BTOR_GET_TAG_EXP (child->first_parent) == 0);
+        assert (BTOR_IS_REGULAR_EXP (child->last_parent));
+        assert (BTOR_IS_WRITE_ARRAY_EXP (child->last_parent));
+        assert (BTOR_GET_TAG_EXP (child->last_parent) == 0);
+        prev_parent = child->last_parent;
+        do
+        {
+          cur_parent = prev_parent;
+          assert (BTOR_IS_REGULAR_EXP (cur_parent));
+          assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
+          assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
+          prev_parent = cur_parent->prev_parent[0];
+          assert (prev_parent != NULL);
+          assert (BTOR_IS_REGULAR_EXP (prev_parent));
+          assert (prev_parent->kind == BTOR_READ_EXP
+                  || BTOR_IS_WRITE_ARRAY_EXP (prev_parent));
+        } while (BTOR_IS_WRITE_ARRAY_EXP (prev_parent));
+        /* insert */
+        assert (BTOR_IS_REGULAR_EXP (prev_parent));
+        assert (prev_parent->kind == BTOR_READ_EXP);
+        assert (BTOR_GET_TAG_EXP (prev_parent) == 0);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
+        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
+        prev_parent->next_parent[0] = tagged_parent;
+        cur_parent->prev_parent[0]  = tagged_parent;
+        parent->next_parent[pos]    = cur_parent;
+        parent->prev_parent[pos]    = prev_parent;
+      }
+    }
+  }
+  else
+  {
+    /* insert in front of other array equalities and array conditionals,
+     * in the middle of the parent list
+     */
+    parent->next_parent[pos] = first_aeq_acond_parent;
+    i                        = BTOR_GET_TAG_EXP (first_aeq_acond_parent);
+    prev_parent = BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->prev_parent[i];
+    if (prev_parent != NULL)
+    {
+      assert (BTOR_IS_REGULAR_EXP (prev_parent));
+      assert (prev_parent->kind == BTOR_READ_EXP);
+      assert (BTOR_GET_TAG_EXP (prev_parent == 0));
+      prev_parent->next_parent[0] = tagged_parent;
+      parent->prev_parent[pos]    = prev_parent;
+    }
+    else
+    {
+      assert (parent->prev_parent[pos] == NULL);
+      assert (child->first_parent == first_aeq_acond_parent);
+      child->first_parent = tagged_parent;
+    }
+    BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->prev_parent[i] = tagged_parent;
+    child->first_aeq_acond_parent                               = tagged_parent;
   }
 }
 
