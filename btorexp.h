@@ -96,6 +96,7 @@ struct BtorExp
   struct BtorExp *first_aeq_acond_parent; /* first array equality or array
                                       conditional in parent list
                                       for arrays and writes only */
+  struct BtorExp *parent;                 /* parent pointer for BFS */
   BtorExpMgr *emgr;                       /* expression manager */
 };
 
@@ -156,6 +157,8 @@ struct BtorExp
 #define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
+
+BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
 
 /* Sets the read encoding paradigm. */
 void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);

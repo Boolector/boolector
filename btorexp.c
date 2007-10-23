@@ -4456,6 +4456,96 @@ hash_assignment (BtorExp *exp)
   return hash;
 }
 
+/* This function breath first searches the shortest path from a read to an array
+ * After the function is competed the parent pointers can be followed
+ * from the read to the array
+ */
+static void
+extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
+                                               BtorExp *read,
+                                               BtorExp *array)
+{
+  BtorExp *cur            = NULL;
+  BtorExp *next           = NULL;
+  BtorExp *aeq_acond      = NULL;
+  BtorExp *real_aeq_acond = NULL;
+  BtorMemMgr *mm          = NULL;
+  BtorAIGMgr *amgr        = NULL;
+  BtorExpPtrQueue queue;
+  BtorExpPtrStack unmark_stack;
+  int i = 0;
+  assert (emgr != NULL);
+  assert (read != NULL);
+  assert (array != NULL);
+  assert (BTOR_IS_REGULAR_EXP (read));
+  assert (read->kind == BTOR_READ_EXP);
+  assert (BTOR_IS_REGULAR_EXP (array));
+  assert (BTOR_IS_ARRAY_EXP (array));
+  mm   = emgr->mm;
+  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  BTOR_INIT_QUEUE (queue);
+  BTOR_INIT_STACK (unmark_stack);
+  cur = read->e[0];
+  assert (BTOR_IS_REGULAR_EXP (cur));
+  assert (cur != array);
+  assert (BTOR_IS_WRITE_ARRAY_EXP (cur));
+  cur->parent = read;
+  cur->mark   = 1;
+  BTOR_ENQUEUE (mm, queue, cur);
+  BTOR_PUSH_STACK (mm, unmark_stack, cur);
+  while (!BTOR_EMPTY_QUEUE (queue))
+  {
+    cur = BTOR_DEQUEUE (queue);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_ARRAY_EXP (cur));
+    if (BTOR_IS_WRITE_ARRAY_EXP (cur) && !cur->e[0]->mark)
+      BTOR_ENQUEUE (mm, queue, cur->e[0]);
+    /* enqueue all arrays which are reachable via equality
+     * where equality is set to true by the SAT solver */
+    aeq_acond      = cur->first_aeq_acond_parent;
+    real_aeq_acond = BTOR_REAL_ADDR_EXP (aeq_acond);
+    while (real_aeq_acond != NULL
+           && (real_aeq_acond->kind == BTOR_AEQ_EXP
+               || real_aeq_acond->kind == BTOR_ACOND_EXP))
+    {
+      /* TODO: deal with acond */
+      if (!real_aeq_acond->mark && real_aeq_acond->reachable
+          && real_aeq_acond->full_sat)
+      {
+        assert (real_aeq_acond->av != NULL);
+        assert (real_aeq_acond->len == 1);
+        if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
+        {
+          i = BTOR_GET_TAG_EXP (aeq_acond);
+          assert (i == 0 || i == 1);
+          /* we need the other child */
+          i    = (i + 1) & 1;
+          next = real_aeq_acond->e[i];
+          assert (BTOR_IS_REGULAR_EXP (next));
+          assert (BTOR_IS_ARRAY_EXP (next));
+          next->mark   = 1;
+          next->parent = cur;
+          BTOR_ENQUEUE (mm, queue, next);
+          BTOR_PUSH_STACK (mm, unmark_stack, next);
+        }
+      }
+      i              = BTOR_GET_TAG_EXP (aeq_acond);
+      aeq_acond      = real_aeq_acond->next_parent[i];
+      real_aeq_acond = BTOR_REAL_ADDR_EXP (aeq_acond);
+    }
+  }
+  BTOR_RELEASE_QUEUE (mm, queue);
+  /* reset mark flags */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_ARRAY_EXP (cur));
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
 /* Resolves read conflict on the same array */
 static void
 resolve_read_conflict_one_level (BtorExpMgr *emgr,
