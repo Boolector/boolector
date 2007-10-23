@@ -9,7 +9,7 @@ all: libboolector.a boolector test synthebtor deltabtor
 
 -include dependencies
 
-dependencies: *.c *.h makefile
+dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
 boolector: boolector.o libboolector.a
