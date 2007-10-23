@@ -1006,12 +1006,15 @@ connect_child_aeq_acond_exp (BtorExpMgr *emgr,
 static void
 disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
 {
-  BtorExp *tagged_parent     = NULL;
-  BtorExp *first_parent      = NULL;
-  BtorExp *last_parent       = NULL;
-  BtorExp *real_first_parent = NULL;
-  BtorExp *real_last_parent  = NULL;
-  BtorExp *real_child        = NULL;
+  BtorExp *first_aeq_acond_parent = NULL;
+  BtorExp *next_parent            = NULL;
+  BtorExp *tagged_parent          = NULL;
+  BtorExp *first_parent           = NULL;
+  BtorExp *last_parent            = NULL;
+  BtorExp *real_first_parent      = NULL;
+  BtorExp *real_last_parent       = NULL;
+  BtorExp *real_child             = NULL;
+  int i                           = 0;
   assert (emgr != NULL);
   assert (parent != NULL);
   assert (pos >= 0);
@@ -1029,6 +1032,28 @@ disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
   assert (last_parent != NULL);
   real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
   real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
+  /* special treatment of aeq and acond parents */
+  assert (!(parent->kind == BTOR_AEQ_EXP || parent->kind == BTOR_ACOND_EXP)
+          || real_child->first_aeq_acond_parent != NULL);
+  if ((parent->kind == BTOR_AEQ_EXP || parent->kind == BTOR_ACOND_EXP)
+      && BTOR_REAL_ADDR_EXP (real_child->first_aeq_acond_parent) == parent)
+  {
+    first_aeq_acond_parent = real_child->first_aeq_acond_parent;
+    /* update first_aeq_acond_parent pointer */
+    i           = BTOR_GET_TAG_EXP (first_aeq_acond_parent);
+    next_parent = BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->next_parent[i];
+    /* last aeq or acond ? */
+    if (next_parent == NULL
+        || BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (next_parent)))
+      real_child->first_aeq_acond_parent = NULL;
+    else
+    {
+      /* first aeq or acond parent is next parent */
+      assert (BTOR_REAL_ADDR_EXP (next_parent)->kind == BTOR_AEQ_EXP
+              || BTOR_REAL_ADDR_EXP (next_parent)->kind == BTOR_ACOND_EXP);
+      real_child->first_aeq_acond_parent = next_parent;
+    }
+  }
   /* only one parent? */
   if (first_parent == tagged_parent && first_parent == last_parent)
   {
