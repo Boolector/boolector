@@ -4458,7 +4458,7 @@ hash_assignment (BtorExp *exp)
 
 /* This function breath first searches the shortest path from a read to an array
  * After the function is competed the parent pointers can be followed
- * from the read to the array
+ * from the array to the read
  */
 static void
 extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
@@ -4473,7 +4473,8 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
   BtorAIGMgr *amgr        = NULL;
   BtorExpPtrQueue queue;
   BtorExpPtrStack unmark_stack;
-  int i = 0;
+  int i     = 0;
+  int found = 0;
   assert (emgr != NULL);
   assert (read != NULL);
   assert (array != NULL);
@@ -4483,12 +4484,13 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
   assert (BTOR_IS_ARRAY_EXP (array));
   mm   = emgr->mm;
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  BTOR_INIT_QUEUE (queue);
   BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_QUEUE (queue);
   cur = read->e[0];
   assert (BTOR_IS_REGULAR_EXP (cur));
   assert (cur != array);
   assert (BTOR_IS_WRITE_ARRAY_EXP (cur));
+  assert (cur->mark == 0);
   cur->parent = read;
   cur->mark   = 1;
   BTOR_ENQUEUE (mm, queue, cur);
@@ -4498,8 +4500,22 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
     cur = BTOR_DEQUEUE (queue);
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_ARRAY_EXP (cur));
-    if (BTOR_IS_WRITE_ARRAY_EXP (cur) && !cur->e[0]->mark)
-      BTOR_ENQUEUE (mm, queue, cur->e[0]);
+    assert (
+        !BTOR_IS_WRITE_ARRAY_EXP (cur)
+        || (BTOR_IS_REGULAR_EXP (cur->e[0]) && BTOR_IS_ARRAY_EXP (cur->e[0])));
+    if (cur == array)
+    {
+      found = 1;
+      break;
+    }
+    if (BTOR_IS_WRITE_ARRAY_EXP (cur) && cur->e[0]->mark == 0)
+    {
+      next         = cur->e[0];
+      next->mark   = 1;
+      next->parent = cur;
+      BTOR_ENQUEUE (mm, queue, next);
+      BTOR_PUSH_STACK (mm, unmark_stack, next);
+    }
     /* enqueue all arrays which are reachable via equality
      * where equality is set to true by the SAT solver */
     aeq_acond      = cur->first_aeq_acond_parent;
@@ -4509,7 +4525,8 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
                || real_aeq_acond->kind == BTOR_ACOND_EXP))
     {
       /* TODO: deal with acond */
-      if (!real_aeq_acond->mark && real_aeq_acond->reachable
+      assert (real_aeq_acond->kind == BTOR_AEQ_EXP);
+      if (real_aeq_acond->mark == 0 && real_aeq_acond->reachable
           && real_aeq_acond->full_sat)
       {
         assert (real_aeq_acond->av != NULL);
@@ -4523,8 +4540,8 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
           next = real_aeq_acond->e[i];
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
-          next->mark   = 1;
           next->parent = cur;
+          next->mark   = 1;
           BTOR_ENQUEUE (mm, queue, next);
           BTOR_PUSH_STACK (mm, unmark_stack, next);
         }
@@ -4534,6 +4551,7 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
       real_aeq_acond = BTOR_REAL_ADDR_EXP (aeq_acond);
     }
   }
+  assert (found);
   BTOR_RELEASE_QUEUE (mm, queue);
   /* reset mark flags */
   while (!BTOR_EMPTY_STACK (unmark_stack))
@@ -4572,8 +4590,9 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
                                        BtorExp *read2)
 {
   BtorExpPtrStack writes;
-  BtorExp *cur_write = NULL;
-  BtorMemMgr *mm     = NULL;
+  BtorExp *cur   = NULL;
+  BtorExp *next  = NULL;
+  BtorMemMgr *mm = NULL;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (read1 != NULL);
@@ -4589,17 +4608,19 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
    * for McCarthy constraint */
   if (read1->e[0] != array)
   {
+    extensionality_read_array_bfs_multiple_levels (emgr, read1, array);
     BTOR_INIT_STACK (writes);
-    cur_write = read1->e[0];
-    assert (BTOR_IS_REGULAR_EXP (cur_write));
-    assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
+    cur = array;
     do
     {
-      BTOR_PUSH_STACK (mm, writes, cur_write);
-      cur_write = cur_write->e[0];
-      assert (BTOR_IS_REGULAR_EXP (cur_write));
-      assert (BTOR_IS_ARRAY_EXP (cur_write));
-    } while (cur_write != array);
+      next = cur->parent;
+      assert (next != NULL);
+      /* TODO: deal with aeq and acond */
+      assert (BTOR_IS_REGULAR_EXP (next));
+      assert (next == read1 || BTOR_IS_WRITE_ARRAY_EXP (next));
+      if (next != read1) BTOR_PUSH_STACK (mm, writes, next);
+      cur = next;
+    } while (cur != read1);
     encode_mccarthy_constraint (
         emgr, &writes, read1->e[1], read2->e[1], read1, read2);
     BTOR_RELEASE_STACK (mm, writes);
@@ -4608,17 +4629,19 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
    * for McCarthy constraint */
   if (read2->e[0] != array)
   {
+    extensionality_read_array_bfs_multiple_levels (emgr, read2, array);
     BTOR_INIT_STACK (writes);
-    cur_write = read2->e[0];
-    assert (BTOR_IS_REGULAR_EXP (cur_write));
-    assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
+    cur = array;
     do
     {
-      BTOR_PUSH_STACK (mm, writes, cur_write);
-      cur_write = cur_write->e[0];
-      assert (BTOR_IS_REGULAR_EXP (cur_write));
-      assert (BTOR_IS_ARRAY_EXP (cur_write));
-    } while (cur_write != array);
+      next = cur->parent;
+      assert (next != NULL);
+      /* TODO: deal with aeq and acond */
+      assert (BTOR_IS_REGULAR_EXP (next));
+      assert (next == read2 || BTOR_IS_WRITE_ARRAY_EXP (next));
+      if (next != read2) BTOR_PUSH_STACK (mm, writes, next);
+      cur = next;
+    } while (cur != read2);
     encode_mccarthy_constraint (
         emgr, &writes, read1->e[1], read2->e[1], read1, read2);
     BTOR_RELEASE_STACK (mm, writes);
@@ -4671,8 +4694,9 @@ resolve_read_write_conflict_multiple_levels (BtorExpMgr *emgr,
                                              BtorExp *write)
 {
   BtorExpPtrStack writes;
-  BtorExp *cur_write = NULL;
-  BtorMemMgr *mm     = NULL;
+  BtorExp *cur   = NULL;
+  BtorExp *next  = NULL;
+  BtorMemMgr *mm = NULL;
   assert (emgr != NULL);
   assert (read != NULL);
   assert (write != NULL);
@@ -4683,17 +4707,20 @@ resolve_read_write_conflict_multiple_levels (BtorExpMgr *emgr,
   mm = emgr->mm;
   /* collect intermediate writes as
    * premisses for McCarthy constraint */
+  extensionality_read_array_bfs_multiple_levels (emgr, read, write);
+  /* follow path from write to array */
   BTOR_INIT_STACK (writes);
-  cur_write = read->e[0];
-  assert (BTOR_IS_REGULAR_EXP (cur_write));
-  assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
+  cur = write;
   do
   {
-    BTOR_PUSH_STACK (mm, writes, cur_write);
-    cur_write = cur_write->e[0];
-    assert (BTOR_IS_REGULAR_EXP (cur_write));
-    assert (BTOR_IS_WRITE_ARRAY_EXP (cur_write));
-  } while (cur_write != write);
+    next = cur->parent;
+    assert (next != NULL);
+    /* TODO: deal with aeq and acond */
+    assert (BTOR_IS_REGULAR_EXP (next));
+    assert (next == read || BTOR_IS_WRITE_ARRAY_EXP (next));
+    if (next != read) BTOR_PUSH_STACK (mm, writes, next);
+    cur = next;
+  } while (cur != read);
   encode_mccarthy_constraint (
       emgr, &writes, read->e[1], write->e[1], read, write->e[2]);
   BTOR_RELEASE_STACK (mm, writes);
