@@ -225,9 +225,9 @@ compare_exp_pair (BtorExpPair *pair1, BtorExpPair *pair2)
  * i = j => a = b
  * (i = j => e) ^ (e => a = b)
  * ((i != j) v e) ^ (not e v (a = b))
- * forall (0 <= k < n) (i_k v j_k v not d_k) ^ (not i_k v not j_k v not d_k)) ^
+ * forall (0 <= k < n) (i_k v j_k v !d_k) ^ (!i_k v !j_k v !d_k)) ^
  * (forall (0 <= k < n) (d_k) v e) ^
- * forall (0 <= k < m) ((not e v a_k v not b_k) ^ (not e v not a_k v b_k))
+ * forall (0 <= k < m) ((!e v a_k v !b_k) ^ (!e v !a_k v b_k))
  *
  * This function is called in lazy and eager mode. We have to check
  * if we have to encode a constraint at all. For example if we are in eager
@@ -708,15 +708,114 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BTOR_RELEASE_STACK (mm, clause);
 }
 
+/* Encodes the following array inequality constraint:
+ * array1 != array2 => EXISTS(i): read(array1, i) != read(array2, i)
+ */
 static void
 encode_array_inequality_virtual_reads (BtorExpMgr *emgr, BtorExp *aeq)
 {
+  BtorExpPair *pair = NULL;
+  BtorExp *read1    = NULL;
+  BtorExp *read2    = NULL;
+  BtorMemMgr *mm    = NULL;
+  BtorAIGVec *av1   = NULL;
+  BtorAIGVec *av2   = NULL;
+  BtorAIG *aig1     = NULL;
+  BtorAIG *aig2     = NULL;
+  BtorAIGMgr *amgr  = NULL;
+  BtorSATMgr *smgr  = NULL;
+  int k             = 0;
+  int len           = 0;
+  int d_k           = 0;
+  int r1_k          = 0;
+  int r2_k          = 0;
+  int e             = 0;
+  BtorIntStack diffs;
   assert (emgr != NULL);
   assert (aeq != NULL);
   assert (BTOR_IS_REGULAR_EXP (aeq));
   assert (aeq->kind == BTOR_AEQ_EXP);
-  assert (aeq->vreads != NULL);
   assert (aeq->full_sat);
+  assert (aeq->vreads != NULL);
+  assert (aeq->vreads->exp1->full_sat);
+  assert (aeq->vreads->exp2->full_sat);
+  mm   = emgr->mm;
+  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  pair = aeq->vreads;
+
+  read1 = pair->exp1;
+  assert (BTOR_IS_REGULAR_EXP (read1));
+  assert (read1->kind == BTOR_READ_EXP);
+  assert (read1->av != NULL);
+  assert (read1->full_sat);
+
+  read2 = pair->exp2;
+  assert (BTOR_IS_REGULAR_EXP (read2));
+  assert (read2->kind == BTOR_READ_EXP);
+  assert (read2->av != NULL);
+  assert (read2->full_sat);
+
+  assert (read1->e[1] == read2->e[2]);
+  assert (BTOR_IS_REGULAR_EXP (read1->e[1]));
+  assert (BTOR_IS_VAR_EXP (read1->e[1]));
+  assert (read1->len == read2->len);
+
+  BTOR_INIT_STACK (diffs);
+  len = read1->len;
+
+  av1 = read1->av;
+  assert (av1 != NULL);
+  av2 = read2->av;
+  assert (av2 != NULL);
+
+  for (k = 0; k < len; k++)
+  {
+    aig1 = av1->aigs[k];
+    assert (!BTOR_IS_INVERTED_AIG (aig1));
+    assert (!BTOR_IS_CONST_AIG (aig1));
+    assert (BTOR_IS_VAR_AIG (aig1));
+    r1_k = aig1->cnf_id;
+    assert (r1_k != 0);
+
+    aig2 = av2->aigs[k];
+    assert (!BTOR_IS_INVERTED_AIG (aig2));
+    assert (!BTOR_IS_CONST_AIG (aig2));
+    assert (BTOR_IS_VAR_AIG (aig2));
+    r2_k = aig2->cnf_id;
+    assert (r2_k != 0);
+
+    d_k = btor_next_cnf_id_sat_mgr (smgr);
+    BTOR_PUSH_STACK (mm, diffs, d_k);
+
+    btor_add_sat (smgr, r1_k);
+    btor_add_sat (smgr, r2_k);
+    btor_add_sat (smgr, -d_k);
+    btor_add_sat (smgr, 0);
+
+    btor_add_sat (smgr, -r1_k);
+    btor_add_sat (smgr, -r2_k);
+    btor_add_sat (smgr, -d_k);
+    btor_add_sat (smgr, 0);
+  }
+
+  assert (aeq->av != NULL);
+  assert (aeq->av->len == 1);
+  assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
+  assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
+  assert (BTOR_IS_VAR_AIG (aeq->av->aigs[0]));
+  e = aeq->av->aigs[0]->cnf_id;
+  assert (e != 0);
+
+  assert (!BTOR_EMPTY_STACK (diffs));
+  while (!BTOR_EMPTY_STACK (diffs))
+  {
+    d_k = BTOR_POP_STACK (diffs);
+    btor_add_sat (smgr, d_k);
+  }
+  btor_add_sat (smgr, -e);
+  btor_add_sat (smgr, 0);
+  BTOR_RELEASE_STACK (mm, diffs);
 }
 
 /* Encodes read constraint eagerly by adding all
