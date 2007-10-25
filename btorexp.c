@@ -74,8 +74,6 @@ struct BtorExpPair
   BtorExp *exp2;
 };
 
-typedef struct BtorExpPair BtorExpPair;
-
 #define BTOR_COND_INVERT_AIG_EXP(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
@@ -1284,6 +1282,8 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
       disconnect_child_exp (emgr, exp, 0);
     else if (BTOR_IS_BINARY_EXP (exp))
     {
+      /* release virtual reads */
+      if (exp->kind == BTOR_AEQ_EXP) delete_exp_pair (emgr, exp->vreads);
       disconnect_child_exp (emgr, exp, 0);
       disconnect_child_exp (emgr, exp, 1);
     }
@@ -2381,6 +2381,9 @@ btor_eq_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
 {
   BtorExpKind kind = BTOR_BEQ_EXP;
   BtorExp *result  = NULL;
+  BtorExp *read1   = NULL;
+  BtorExp *read2   = NULL;
+  BtorExp *index   = NULL;
   assert (emgr != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2402,6 +2405,17 @@ btor_eq_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   if (emgr->rewrite_level > 0)
     result = rewrite_exp (emgr, kind, e0, e1, NULL, 0, 0);
   if (result == NULL) result = binary_exp (emgr, kind, e0, e1, 1);
+  if (kind == BTOR_AEQ_EXP)
+  {
+    /* generate virtual reads */
+    index          = btor_var_exp (emgr, e0->index_len, "vreadindex");
+    read1          = btor_read_exp (emgr, e0, index);
+    read2          = btor_read_exp (emgr, e1, index);
+    result->vreads = new_exp_pair (emgr, read1, read2);
+    btor_release_exp (emgr, index);
+    btor_release_exp (emgr, read1);
+    btor_release_exp (emgr, read2);
+  }
   return result;
 }
 

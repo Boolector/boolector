@@ -54,6 +54,8 @@ enum BtorWriteEnc
 
 typedef enum BtorWriteEnc BtorWriteEnc;
 
+typedef struct BtorExpPair BtorExpPair;
+
 struct BtorExp
 {
   BtorExpKind kind : 5;           /* kind of expression */
@@ -97,6 +99,8 @@ struct BtorExp
                                       conditional in parent list
                                       for arrays and writes only */
   struct BtorExp *parent;                 /* parent pointer for BFS */
+  BtorExpPair *vreads;                    /* virtual reads
+                                             for array equalities only */
   BtorExpMgr *emgr;                       /* expression manager */
 };
 
