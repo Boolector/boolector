@@ -431,8 +431,9 @@ encode_ackermann_constraint (
 }
 
 /* This function is used to encode constraints of the form
- * i != k1 ^ i != k2 ^ ... ^ i != kn ^ i = j => a = b
+ * array equality 1 ^ ... ^ i != k1 ^ i != k2 ^ ... ^ i != kn ^ i = j => a = b
  * The stack 'writes' contains intermediate writes.
+ * The stack 'aeqs' contains intermediate array equalities (true)
  * The indices of the writes represent k.
  *
  * This function is called in lazy mode only. Thus, We have to encode a
@@ -442,6 +443,7 @@ encode_ackermann_constraint (
 static void
 encode_mccarthy_constraint (BtorExpMgr *emgr,
                             BtorExpPtrStack *writes,
+                            BtorExpPtrStack *aeqs,
                             BtorExp *i,
                             BtorExp *j,
                             BtorExp *a,
@@ -462,6 +464,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BtorExp **temp                               = NULL;
   BtorExp *cur_write                           = NULL;
   BtorExp **top                                = NULL;
+  BtorExp *aeq                                 = NULL;
   BtorExpPair *pair                            = NULL;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table = NULL;
   BtorPtrHashTable *exp_pair_cnf_eq_id_table   = NULL;
@@ -480,6 +483,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   int d_hashed  = 0;
   assert (emgr != NULL);
   assert (writes != NULL);
+  assert (aeqs != NULL);
   assert (i != NULL);
   assert (j != NULL);
   assert (a != NULL);
@@ -698,6 +702,22 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
       }
     }
   }
+  /* add to linking clause array equalites in the premisse */
+  top = aeqs->top;
+  for (temp = aeqs->start; temp != top; temp++)
+  {
+    aeq = *temp;
+    assert (BTOR_IS_REGULAR_EXP (aeq));
+    assert (aeq->kind == BTOR_AEQ_EXP);
+    assert (aeq->av->len == 1);
+    assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
+    assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
+    assert (BTOR_IS_VAR_AIG (aeq->av->aigs[0]));
+    assert (btor_get_assignment_aig (amgr, aeq->av->aigs[0]) == 1);
+    k = aeq->av->aigs[0]->cnf_id;
+    BTOR_PUSH_STACK (mm, clause, -k);
+  }
+  /* add linking clause */
   while (!BTOR_EMPTY_STACK (clause))
   {
     k = BTOR_POP_STACK (clause);
@@ -4731,6 +4751,7 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
                                        BtorExp *read2)
 {
   BtorExpPtrStack writes;
+  BtorExpPtrStack aeqs;
   BtorExp *cur   = NULL;
   BtorExp *next  = NULL;
   BtorMemMgr *mm = NULL;
@@ -4745,26 +4766,33 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
   assert (read1->kind == BTOR_READ_EXP);
   assert (read2->kind == BTOR_READ_EXP);
   mm = emgr->mm;
-  /* collect intermediate writes as premisses
+  /* collect intermediate writes and array equalities as premisses
    * for McCarthy constraint */
   if (read1->e[0] != array)
   {
     extensionality_read_array_bfs_multiple_levels (emgr, read1, array);
     BTOR_INIT_STACK (writes);
+    BTOR_INIT_STACK (aeqs);
     cur = array;
     do
     {
       next = cur->parent;
       assert (next != NULL);
-      /* TODO: deal with aeq and acond */
       assert (BTOR_IS_REGULAR_EXP (next));
-      assert (next == read1 || BTOR_IS_WRITE_ARRAY_EXP (next));
-      if (next != read1) BTOR_PUSH_STACK (mm, writes, next);
+      if (BTOR_IS_WRITE_ARRAY_EXP (next))
+        BTOR_PUSH_STACK (mm, writes, next);
+      else if (next != read1)
+      {
+        /* TODO: deal with acond */
+        assert (next->kind == BTOR_AEQ_EXP);
+        BTOR_PUSH_STACK (mm, aeqs, next);
+      }
       cur = next;
     } while (cur != read1);
     encode_mccarthy_constraint (
-        emgr, &writes, read1->e[1], read2->e[1], read1, read2);
+        emgr, &writes, &aeqs, read1->e[1], read2->e[1], read1, read2);
     BTOR_RELEASE_STACK (mm, writes);
+    BTOR_RELEASE_STACK (mm, aeqs);
   }
   /* collect intermediate writes as premisses
    * for McCarthy constraint */
@@ -4772,6 +4800,7 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
   {
     extensionality_read_array_bfs_multiple_levels (emgr, read2, array);
     BTOR_INIT_STACK (writes);
+    BTOR_INIT_STACK (aeqs);
     cur = array;
     do
     {
@@ -4779,13 +4808,20 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
       assert (next != NULL);
       /* TODO: deal with aeq and acond */
       assert (BTOR_IS_REGULAR_EXP (next));
-      assert (next == read2 || BTOR_IS_WRITE_ARRAY_EXP (next));
-      if (next != read2) BTOR_PUSH_STACK (mm, writes, next);
+      if (BTOR_IS_WRITE_ARRAY_EXP (next))
+        BTOR_PUSH_STACK (mm, writes, next);
+      else if (next != read2)
+      {
+        /* TODO: deal with acond */
+        assert (next->kind == BTOR_AEQ_EXP);
+        BTOR_PUSH_STACK (mm, aeqs, next);
+      }
       cur = next;
     } while (cur != read2);
     encode_mccarthy_constraint (
-        emgr, &writes, read1->e[1], read2->e[1], read1, read2);
+        emgr, &writes, &aeqs, read1->e[1], read2->e[1], read1, read2);
     BTOR_RELEASE_STACK (mm, writes);
+    BTOR_RELEASE_STACK (mm, aeqs);
   }
 }
 
@@ -4835,6 +4871,7 @@ resolve_read_write_conflict_multiple_levels (BtorExpMgr *emgr,
                                              BtorExp *write)
 {
   BtorExpPtrStack writes;
+  BtorExpPtrStack aeqs;
   BtorExp *cur   = NULL;
   BtorExp *next  = NULL;
   BtorMemMgr *mm = NULL;
@@ -4846,25 +4883,34 @@ resolve_read_write_conflict_multiple_levels (BtorExpMgr *emgr,
   assert (read->kind == BTOR_READ_EXP);
   assert (BTOR_IS_WRITE_ARRAY_EXP (write));
   mm = emgr->mm;
-  /* collect intermediate writes as
+  /* collect intermediate writes and array equalities as
    * premisses for McCarthy constraint */
   extensionality_read_array_bfs_multiple_levels (emgr, read, write);
-  /* follow path from write to array */
+  /* follow path from write to read */
   BTOR_INIT_STACK (writes);
+  BTOR_INIT_STACK (aeqs);
   cur = write;
+  /* read is not a direct parent of write */
+  assert (cur->parent != read);
   do
   {
     next = cur->parent;
     assert (next != NULL);
-    /* TODO: deal with aeq and acond */
     assert (BTOR_IS_REGULAR_EXP (next));
-    assert (next == read || BTOR_IS_WRITE_ARRAY_EXP (next));
-    if (next != read) BTOR_PUSH_STACK (mm, writes, next);
+    if (BTOR_IS_WRITE_ARRAY_EXP (next))
+      BTOR_PUSH_STACK (mm, writes, next);
+    else if (next != read)
+    {
+      /* TODO: deal with acond */
+      assert (next->kind == BTOR_AEQ_EXP);
+      BTOR_PUSH_STACK (mm, aeqs, next);
+    }
     cur = next;
   } while (cur != read);
   encode_mccarthy_constraint (
-      emgr, &writes, read->e[1], write->e[1], read, write->e[2]);
+      emgr, &writes, &aeqs, read->e[1], write->e[1], read, write->e[2]);
   BTOR_RELEASE_STACK (mm, writes);
+  BTOR_RELEASE_STACK (mm, aeqs);
 }
 
 /* synthesizes and fully encodes write index and value to SAT
