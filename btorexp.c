@@ -5006,13 +5006,18 @@ process_working_stack (BtorExpMgr *emgr,
   BtorExp *read             = NULL;
   BtorExp *array            = NULL;
   BtorExp *hashed_read      = NULL;
+  BtorExp *cur_aeq_acond    = NULL;
+  BtorExp *real_aeq_acond   = NULL;
   BtorPtrHashBucket *bucket = NULL;
   BtorMemMgr *mm            = NULL;
+  BtorAIGMgr *amgr          = NULL;
+  int i                     = 0;
   assert (emgr != NULL);
   assert (stack != NULL);
   assert (cleanup_stack != NULL);
   assert (assignments_changed != NULL);
-  mm = emgr->mm;
+  mm   = emgr->mm;
+  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   while (!BTOR_EMPTY_STACK (*stack))
   {
     array = BTOR_POP_STACK (*stack);
@@ -5025,6 +5030,37 @@ process_working_stack (BtorExpMgr *emgr,
     /* synthesize read index and value if necessary */
     *assignments_changed = lazy_synthesize_and_encode_read_exp (emgr, read);
     if (*assignments_changed) return 0;
+    /* hash table lookup */
+    if (array->table == NULL)
+    {
+      array->table = btor_new_ptr_hash_table (
+          mm, (BtorHashPtr) hash_assignment, (BtorCmpPtr) compare_assignments);
+      BTOR_PUSH_STACK (mm, *cleanup_stack, array);
+    }
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (array->table, read->e[1]);
+      if (bucket != NULL)
+      {
+        hashed_read = (BtorExp *) bucket->data.asPtr;
+        /* we have to check if values are equal */
+        if (compare_assignments (hashed_read, read) != 0)
+        {
+          emgr->read_read_conflicts++;
+          /* local conflict ? */
+          if (hashed_read->e[0] == array && read->e[0] == array)
+            resolve_read_conflict_one_level (emgr, hashed_read, read);
+          else
+            resolve_read_conflict_multiple_levels (
+                emgr, array, hashed_read, read);
+          return 1;
+        }
+        /* in the other case we have already propagated a representative with
+           same index and same value */
+        else
+          continue;
+      }
+    }
     if (BTOR_IS_WRITE_ARRAY_EXP (array))
     {
       *assignments_changed = lazy_synthesize_and_encode_write_exp (emgr, array);
@@ -5048,32 +5084,44 @@ process_working_stack (BtorExpMgr *emgr,
         continue;
       }
     }
-    /* check if read is consistent with other reads */
-    if (array->table == NULL)
+    assert (array->table != NULL);
+    /* insert into hash table */
+    btor_insert_in_ptr_hash_table (array->table, read->e[1])->data.asPtr = read;
+    /* propagate read-array pairs wich are reachable via array equality */
+    cur_aeq_acond  = array->first_aeq_acond_parent;
+    real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
+    while (real_aeq_acond != NULL
+           && (real_aeq_acond->kind == BTOR_AEQ_EXP
+               || real_aeq_acond->kind == BTOR_ACOND_EXP))
     {
-      array->table = btor_new_ptr_hash_table (
-          mm, (BtorHashPtr) hash_assignment, (BtorCmpPtr) compare_assignments);
-      BTOR_PUSH_STACK (mm, *cleanup_stack, array);
-    }
-    bucket = btor_find_in_ptr_hash_table (array->table, read->e[1]);
-    if (bucket == NULL)
-      btor_insert_in_ptr_hash_table (array->table, read->e[1])->data.asPtr =
-          read;
-    else
-    {
-      /* we have to check if values are equal */
-      hashed_read = (BtorExp *) bucket->data.asPtr;
-      if (compare_assignments (hashed_read, read) != 0)
+      if (real_aeq_acond->kind == BTOR_AEQ_EXP)
       {
-        emgr->read_read_conflicts++;
-        /* local conflict ? */
-        if (hashed_read->e[0] == array && read->e[0] == array)
-          resolve_read_conflict_one_level (emgr, hashed_read, read);
-        else
-          resolve_read_conflict_multiple_levels (
-              emgr, array, hashed_read, read);
-        return 1;
+        assert (real_aeq_acond->av != NULL);
+        assert (real_aeq_acond->full_sat);
+        assert (!BTOR_IS_INVERTED_AIG (real_aeq_acond->av->aigs[0]));
+        assert (!BTOR_IS_CONST_AIG (real_aeq_acond->av->aigs[0]));
+        assert (BTOR_IS_VAR_AIG (real_aeq_acond->av->aigs[0]));
+        if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
+        {
+          i = BTOR_GET_TAG_EXP (cur_aeq_acond);
+          assert (i == 0 || i == 1);
+          /* we need the other child */
+          i     = (i + 1) & 1;
+          array = real_aeq_acond->e[i];
+          assert (BTOR_IS_REGULAR_EXP (array));
+          assert (BTOR_IS_ARRAY_EXP (array));
+          BTOR_PUSH_STACK (mm, *stack, read);
+          BTOR_PUSH_STACK (mm, *stack, array);
+        }
       }
+      else
+      {
+        assert (real_aeq_acond->kind == BTOR_ACOND_EXP);
+        /* TODO: deal with acond */
+      }
+      i              = BTOR_GET_TAG_EXP (cur_aeq_acond);
+      cur_aeq_acond  = real_aeq_acond->e[i];
+      real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
     }
   }
   return 0;
