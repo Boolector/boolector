@@ -708,6 +708,17 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   BTOR_RELEASE_STACK (mm, clause);
 }
 
+static void
+encode_array_inequality_virtual_reads (BtorExpMgr *emgr, BtorExp *aeq)
+{
+  assert (emgr != NULL);
+  assert (aeq != NULL);
+  assert (BTOR_IS_REGULAR_EXP (aeq));
+  assert (aeq->kind == BTOR_AEQ_EXP);
+  assert (aeq->vreads != NULL);
+  assert (aeq->full_sat);
+}
+
 /* Encodes read constraint eagerly by adding all
  * read constraints with the reads encoded so far.
  */
@@ -4821,6 +4832,74 @@ lazy_synthesize_and_encode_read_exp (BtorExpMgr *emgr, BtorExp *read)
     changed_assignments = btor_changed_assignments_sat (smgr);
   }
   return changed_assignments;
+}
+
+/* synthesizes and fully encodes array inequality and its
+ * virtual reads to SAT (if necessary)
+ * assignments of the SAT solver cannot change, as no
+ * SAT constraints have to be generated
+ */
+void
+lazy_synthesize_and_encode_array_equality_exp (BtorExpMgr *emgr, BtorExp *aeq)
+{
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorExpPair *pair    = NULL;
+  BtorExp *read1       = NULL;
+  BtorExp *read2       = NULL;
+  BtorExp *index       = NULL;
+  assert (emgr != NULL);
+  assert (aeq != NULL);
+  assert (BTOR_IS_REGULAR_EXP (aeq));
+  assert (aeq->kind == BTOR_AEQ_EXP);
+  assert (aeq->vreads != NULL);
+  avmgr = emgr->avmgr;
+  if (aeq->av == NULL) btor_synthesize_exp (emgr, aeq, NULL);
+  if (!aeq->full_sat)
+  {
+    /* no SAT constraints are generated,
+     * AIGs get their indices only
+     * we only have to deal with variables */
+    assert (aeq->av->len == 1);
+    assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
+    assert (BTOR_IS_VAR_AIG (aeq->av->aigs[0]));
+    btor_aigvec_to_sat_full (avmgr, aeq->av);
+    aeq->full_sat = 1;
+    pair          = aeq->vreads;
+
+    /* virtual reads are local to array equality
+     * we synthesize them here */
+
+    read1 = pair->exp1;
+    assert (BTOR_IS_REGULAR_EXP (read1));
+    assert (read1->kind == BTOR_READ_EXP);
+    assert (read1->av == NULL);
+    assert (!read1->full_sat);
+    btor_synthesize_exp (emgr, read1, NULL);
+    /* AIGs are only variables */
+    btor_aigvec_to_sat_full (avmgr, read1->av);
+    read1->full_sat = 1;
+
+    read2 = pair->exp2;
+    assert (BTOR_IS_REGULAR_EXP (read2));
+    assert (read2->kind == BTOR_READ_EXP);
+    assert (read2->av == NULL);
+    assert (!read2->full_sat);
+    btor_synthesize_exp (emgr, read2, NULL);
+    /* AIGs are only variables */
+    btor_aigvec_to_sat_full (avmgr, read2->av);
+    read2->full_sat = 1;
+
+    assert (read1->e[1] == read2->e[1]);
+    index = read1->e[1];
+    assert (BTOR_IS_REGULAR_EXP (read1->e[1]));
+    assert (BTOR_IS_VAR_EXP (read1->e[1]));
+    assert (index->av == NULL);
+    assert (!index->full_sat);
+    btor_synthesize_exp (emgr, index, NULL);
+    /* AIGs are only variables */
+    btor_aigvec_to_sat_full (avmgr, index->av);
+    index->full_sat = 1;
+  }
 }
 
 static int
