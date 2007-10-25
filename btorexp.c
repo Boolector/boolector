@@ -4667,10 +4667,10 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
     {
       /* TODO: deal with acond */
       assert (real_aeq_acond->kind == BTOR_AEQ_EXP);
-      if (real_aeq_acond->mark == 0 && real_aeq_acond->reachable
-          && real_aeq_acond->full_sat)
+      if (real_aeq_acond->mark == 0 && real_aeq_acond->reachable)
       {
         assert (real_aeq_acond->av != NULL);
+        assert (real_aeq_acond->full_sat);
         assert (real_aeq_acond->len == 1);
         if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
         {
