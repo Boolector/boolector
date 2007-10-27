@@ -3953,13 +3953,14 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       btor_dump_smt_id (e->e[2], file);
       fputc (')', file);
     }
-    else if (e->kind == BTOR_BEQ_EXP || e->kind == BTOR_ULT_EXP)
+    else if (e->kind == BTOR_BEQ_EXP || e->kind == BTOR_AEQ_EXP
+             || e->kind == BTOR_ULT_EXP)
     {
       fputs ("(ite (", file);
-      if (e->kind == BTOR_BEQ_EXP)
-        fputc ('=', file);
-      else
+      if (e->kind == BTOR_ULT_EXP)
         fputs ("bvult", file);
+      else
+        fputc ('=', file);
       fputc (' ', file);
       btor_dump_smt_id (e->e[0], file);
       fputc (' ', file);
