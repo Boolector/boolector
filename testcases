@@ -1,5 +1,3 @@
-# This is for SMT parser
-#
 smttrue -s -o log/smttrue.log log/smttrue.smt
 smtfalse -s -o log/smtfalse.log log/smtfalse.smt
 smtvar -s -o log/smtvar.log log/smtvar.smt
@@ -44,7 +42,8 @@ arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
 arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
 arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
 writearrayeq -f -de log/writearrayeq.log log/writearrayeq.btor
-
-# SMT writing
-#
 writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
+smtextarrayaxiom1uf -o log/smtextarrayaxiom1uf.log log/smtextarrayaxiom1uf.smt
+smtextarrayaxiom1 -o log/smtextarrayaxiom1.log log/smtextarrayaxiom1.smt
+smtextarrayaxiom2uf -o log/smtextarrayaxiom2uf.log log/smtextarrayaxiom2uf.smt
+smtextarrayaxiom2 -o log/smtextarrayaxiom2.log log/smtextarrayaxiom2.smt
