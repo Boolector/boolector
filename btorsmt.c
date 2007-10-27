@@ -1340,6 +1340,65 @@ translate_binary (BtorSMTParser *parser,
     }
 }
 
+/* TODO: handle extensional arrays here */
+
+static void
+translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  int isarray0, isarray1, len0, len1;
+  BtorSMTNode *c0, *c1;
+  BtorExp *a0, *a1;
+
+  assert (!node->exp);
+
+  if (!is_list_of_length (node, 3))
+  {
+    (void) parse_error (parser, "expected exactly two arguments to '='");
+    return;
+  }
+
+  c0 = car (cdr (node));
+  a0 = node2exp (parser, c0);
+  if (!a0) return;
+
+  c1 = car (cdr (cdr (node)));
+  a1 = node2exp (parser, c1);
+  if (!a1) return;
+
+  len0 = btor_get_exp_len (parser->mgr, a0);
+  len1 = btor_get_exp_len (parser->mgr, a1);
+
+  if (len0 != len1)
+  {
+    (void) parse_error (parser, "expression width mismatch");
+    return;
+  }
+
+  isarray0 = btor_is_array_exp (parser->mgr, a0);
+  isarray1 = btor_is_array_exp (parser->mgr, a1);
+
+  if (isarray0 != isarray1)
+  {
+    (void) parse_error (parser, "'=' between array and non array expression");
+    return;
+  }
+
+  if (isarray0 && isarray1)
+  {
+    len0 = btor_get_index_exp_len (parser->mgr, a0);
+    len1 = btor_get_index_exp_len (parser->mgr, a1);
+
+    if (len0 != len1)
+    {
+      (void) parse_error (parser, "index width mismatch");
+      return;
+    }
+  }
+
+  assert (!parser->error);
+  node->exp = btor_eq_exp (parser->mgr, a0, a1);
+}
+
 static void
 translate_associative_binary (BtorSMTParser *parser,
                               BtorSMTNode *node,
@@ -1396,6 +1455,8 @@ translate_associative_binary (BtorSMTParser *parser,
 
   node->exp = res;
 }
+
+/* TODO handle extensional arrays here */
 
 static void
 translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
@@ -2002,10 +2063,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_associative_binary (parser, node, "iff", btor_xnor_exp);
         break;
 
-      case BTOR_SMTOK_EQ:
-        /* TODO: handle extensional arrays here */
-        translate_binary (parser, node, "=", btor_eq_exp);
-        break;
+      case BTOR_SMTOK_EQ: translate_eq (parser, node); break;
 
       case BTOR_SMTOK_DISTINCT:
         translate_binary (parser, node, "distinct", btor_ne_exp);
