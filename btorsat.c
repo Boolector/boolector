@@ -1,5 +1,6 @@
-#include "btorsat.h"
 #include "../picosat/picosat.h"
+
+#include "btorsat.h"
 
 #include <assert.h>
 #include <limits.h>
@@ -91,6 +92,13 @@ btor_init_sat (BtorSATMgr *smgr)
     fflush (stderr);
   }
 
+  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
+  picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
+  picosat_set_resize (
+      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
+
+  if (smgr->verbosity >= 3) picosat_measure_all_calls ();
+
   picosat_init ();
 }
 
@@ -150,7 +158,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
   assert (smgr != NULL);
   (void) smgr;
-  if (smgr->verbosity > 0) print_verbose_msg ("calling PicoSAT\n");
+  if (smgr->verbosity >= 2) print_verbose_msg ("calling PicoSAT\n");
   return picosat_sat (limit);
 }
 

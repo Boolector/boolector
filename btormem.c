@@ -9,16 +9,24 @@
 BtorMemMgr *
 btor_new_mem_mgr (void)
 {
-  BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
-  mm->allocated  = 0;
+  BtorMemMgr *mm   = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
+  mm->allocated    = 0;
+  mm->maxallocated = 0;
   return mm;
 }
+
+#define ADJUST()                                                            \
+  do                                                                        \
+  {                                                                         \
+    if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
+  } while (0)
 
 void *
 btor_malloc (BtorMemMgr *mm, size_t size)
 {
   assert (mm != NULL);
   mm->allocated += size;
+  ADJUST ();
   return malloc (size);
 }
 
@@ -30,6 +38,7 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (mm->allocated >= old_size);
   mm->allocated -= old_size;
   mm->allocated += new_size;
+  ADJUST ();
   return realloc (p, new_size);
 }
 
@@ -38,6 +47,7 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 {
   assert (mm != NULL);
   mm->allocated += nobj * size;
+  ADJUST ();
   return calloc (nobj, size);
 }
 
@@ -59,6 +69,7 @@ btor_strdup (BtorMemMgr *mm, const char *str)
   if (str)
   {
     res = btor_malloc (mm, strlen (str) + 1);
+    ADJUST ();
     strcpy (res, str);
   }
   else

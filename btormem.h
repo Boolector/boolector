@@ -55,6 +55,7 @@
 struct BtorMemMgr
 {
   size_t allocated;
+  size_t maxallocated;
 };
 
 typedef struct BtorMemMgr BtorMemMgr;

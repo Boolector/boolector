@@ -391,6 +391,7 @@ btor_main (int argc, char **argv)
   BtorMemMgr *mem                 = NULL;
   int dump_trace                  = 0;
   int rewrite_level               = 2;
+  size_t maxallocated             = 0;
 
   app.verbosity   = 0;
   app.force       = 0;
@@ -683,6 +684,7 @@ btor_main (int argc, char **argv)
     }
 
     parser_api->reset (parser);
+    maxallocated = mem->maxallocated;
     btor_delete_exp_mgr (emgr);
   }
 
@@ -711,6 +713,7 @@ btor_main (int argc, char **argv)
   {
     delta_time = time_stamp () - start_time;
     print_verbose_msg_va_args ("%.1f seconds\n", delta_time);
+    print_verbose_msg_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
   }
 #endif
   return return_val;
