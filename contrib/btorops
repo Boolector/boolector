@@ -1,0 +1,2 @@
+#!/bin/sh
+exec awk '{a[$2]++}END{for(k in a)printf "%-7s%d\n", k, a[k]|"sort -n -k 2";}' $*
