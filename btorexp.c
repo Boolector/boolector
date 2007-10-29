@@ -729,7 +729,7 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
 }
 
 /* Encodes the following array inequality constraint:
- * array1 != array2 => EXISTS(i): read(array1, i) != read(array2, i)
+ * array1 != array2 <=> EXISTS(i): read(array1, i) != read(array2, i)
  */
 static void
 encode_array_inequality_virtual_reads (BtorExpMgr *emgr, BtorExp *aeq)
@@ -790,6 +790,8 @@ encode_array_inequality_virtual_reads (BtorExpMgr *emgr, BtorExp *aeq)
   btor_aigvec_to_sat_full (avmgr, read2->av);
   read2->full_sat = 1;
 
+  /* encode !e => r1 != r2 */
+
   BTOR_INIT_STACK (diffs);
   len = read1->len;
 
@@ -845,6 +847,35 @@ encode_array_inequality_virtual_reads (BtorExpMgr *emgr, BtorExp *aeq)
   btor_add_sat (smgr, e);
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, diffs);
+
+  /* encode r1 != r2 => !e */
+
+  for (k = 0; k < len; k++)
+  {
+    aig1 = av1->aigs[k];
+    assert (!BTOR_IS_INVERTED_AIG (aig1));
+    assert (!BTOR_IS_CONST_AIG (aig1));
+    assert (BTOR_IS_VAR_AIG (aig1));
+    r1_k = aig1->cnf_id;
+    assert (r1_k != 0);
+
+    aig2 = av2->aigs[k];
+    assert (!BTOR_IS_INVERTED_AIG (aig2));
+    assert (!BTOR_IS_CONST_AIG (aig2));
+    assert (BTOR_IS_VAR_AIG (aig2));
+    r2_k = aig2->cnf_id;
+    assert (r2_k != 0);
+
+    btor_add_sat (smgr, -e);
+    btor_add_sat (smgr, r1_k);
+    btor_add_sat (smgr, -r2_k);
+    btor_add_sat (smgr, 0);
+
+    btor_add_sat (smgr, -e);
+    btor_add_sat (smgr, -r1_k);
+    btor_add_sat (smgr, r2_k);
+    btor_add_sat (smgr, 0);
+  }
 }
 
 /* Encodes read constraint eagerly by adding all
@@ -4698,8 +4729,7 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
           i = BTOR_GET_TAG_EXP (aeq_acond);
           assert (i == 0 || i == 1);
           /* we need the other child */
-          i    = (i + 1) & 1;
-          next = real_aeq_acond->e[i];
+          next = real_aeq_acond->e[!i];
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
           next->parent = cur;
@@ -5107,8 +5137,7 @@ process_working_stack (BtorExpMgr *emgr,
           i = BTOR_GET_TAG_EXP (cur_aeq_acond);
           assert (i == 0 || i == 1);
           /* we need the other child */
-          i     = (i + 1) & 1;
-          array = real_aeq_acond->e[i];
+          array = real_aeq_acond->e[!i];
           assert (BTOR_IS_REGULAR_EXP (array));
           assert (BTOR_IS_ARRAY_EXP (array));
           BTOR_PUSH_STACK (mm, *stack, read);
