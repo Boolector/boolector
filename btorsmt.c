@@ -1340,8 +1340,6 @@ translate_binary (BtorSMTParser *parser,
     }
 }
 
-/* TODO: handle extensional arrays here */
-
 static void
 translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 {
@@ -1370,7 +1368,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (len0 != len1)
   {
-    (void) parse_error (parser, "expression width mismatch");
+    (void) parse_error (parser, "expression width mismatch in '='");
     return;
   }
 
@@ -1390,7 +1388,7 @@ translate_eq (BtorSMTParser *parser, BtorSMTNode *node)
 
     if (len0 != len1)
     {
-      (void) parse_error (parser, "index width mismatch");
+      (void) parse_error (parser, "index width mismatch in '='");
       return;
     }
   }
@@ -1461,6 +1459,7 @@ translate_associative_binary (BtorSMTParser *parser,
 static void
 translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
 {
+  int isarray1, isarray2, len1, len2;
   BtorSMTNode *c0, *c1, *c2;
   BtorExp *a0, *a1, *a2;
 
@@ -1477,23 +1476,53 @@ translate_cond (BtorSMTParser *parser, BtorSMTNode *node, const char *name)
   c1 = car (cdr (cdr (node)));
   c2 = car (cdr (cdr (cdr (node))));
 
-  if ((a0 = node2nonarrayexp (parser, c0)))
+  a0 = node2nonarrayexp (parser, c0);
+  if (!a0) return;
+
+  if (btor_get_exp_len (parser->mgr, a0) != 1)
   {
-    if (btor_get_exp_len (parser->mgr, a0) == 1)
-    {
-      if ((a1 = node2nonarrayexp (parser, c1)))
-        if ((a2 = node2nonarrayexp (parser, c2)))
-        {
-          if (btor_get_exp_len (parser->mgr, a1)
-              != btor_get_exp_len (parser->mgr, a2))
-            (void) parse_error (parser, "expression width mismatch");
-          else
-            node->exp = btor_cond_exp (parser->mgr, a0, a1, a2);
-        }
-    }
-    else
-      (void) parse_error (parser, "non boolean conditional");
+    (void) parse_error (parser, "non boolean conditional");
+    return;
   }
+
+  a1 = node2exp (parser, c1);
+  if (!a1) return;
+
+  a2 = node2exp (parser, c2);
+  if (!a2) return;
+
+  len1 = btor_get_exp_len (parser->mgr, a1);
+  len2 = btor_get_exp_len (parser->mgr, a2);
+
+  if (len1 != len2)
+  {
+    (void) parse_error (parser, "expression width mismatch in conditional");
+    return;
+  }
+
+  isarray1 = btor_is_array_exp (parser->mgr, a1);
+  isarray2 = btor_is_array_exp (parser->mgr, a2);
+
+  if (isarray1 != isarray2)
+  {
+    (void) parse_error (parser,
+                        "conditional between array and non array expression");
+    return;
+  }
+
+  if (isarray1 && isarray2)
+  {
+    len1 = btor_get_index_exp_len (parser->mgr, a1);
+    len2 = btor_get_index_exp_len (parser->mgr, a2);
+
+    if (len1 != len2)
+    {
+      (void) parse_error (parser, "index width mismatch in conditional");
+      return;
+    }
+  }
+
+  node->exp = btor_cond_exp (parser->mgr, a0, a1, a2);
 }
 
 static void
