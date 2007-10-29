@@ -161,12 +161,17 @@ is_one_string (BtorExpMgr *emgr, const char *string, int len)
 static BtorExpPair *
 new_exp_pair (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
 {
+  int id1             = 0;
+  int id2             = 0;
   BtorExpPair *result = NULL;
   assert (emgr != NULL);
   assert (exp1 != NULL);
   assert (exp2 != NULL);
   BTOR_NEW (emgr->mm, result);
-  if (BTOR_REAL_ADDR_EXP (exp2)->id < BTOR_REAL_ADDR_EXP (exp1)->id)
+  id1 = BTOR_GET_ID_EXP (exp1);
+  id2 = BTOR_GET_ID_EXP (exp2);
+  assert (id1 != id2);
+  if (id2 < id1)
   {
     result->exp1 = btor_copy_exp (emgr, exp2);
     result->exp2 = btor_copy_exp (emgr, exp1);
@@ -206,11 +211,11 @@ compare_exp_pair (BtorExpPair *pair1, BtorExpPair *pair2)
   int result = 0;
   assert (pair1 != NULL);
   assert (pair2 != NULL);
-  result = BTOR_REAL_ADDR_EXP (pair1->exp1)->id;
-  result -= BTOR_REAL_ADDR_EXP (pair2->exp1)->id;
+  result = BTOR_GET_ID_EXP (pair1->exp1);
+  result -= BTOR_GET_ID_EXP (pair2->exp1);
   if (result != 0) return result;
-  result = BTOR_REAL_ADDR_EXP (pair1->exp2)->id;
-  result -= BTOR_REAL_ADDR_EXP (pair2->exp2)->id;
+  result = BTOR_GET_ID_EXP (pair1->exp2);
+  result -= BTOR_GET_ID_EXP (pair2->exp2);
   return result;
 }
 
