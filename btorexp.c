@@ -488,11 +488,11 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   assert (j != NULL);
   assert (a != NULL);
   assert (b != NULL);
-  assert (BTOR_COUNT_STACK (*writes) > 0);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (i)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
+  assert (BTOR_COUNT_STACK (*writes) + BTOR_COUNT_STACK (*aeqs) > 0);
   exp_pair_cnf_diff_id_table = emgr->exp_pair_cnf_diff_id_table;
   exp_pair_cnf_eq_id_table   = emgr->exp_pair_cnf_eq_id_table;
   mm                         = emgr->mm;
@@ -713,7 +713,6 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
     assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
     assert (BTOR_IS_VAR_AIG (aeq->av->aigs[0]));
-    assert (btor_get_assignment_aig (amgr, aeq->av->aigs[0]) == 1);
     k = aeq->av->aigs[0]->cnf_id;
     BTOR_PUSH_STACK (mm, clause, -k);
   }
@@ -4682,7 +4681,7 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
   cur = read->e[0];
   assert (BTOR_IS_REGULAR_EXP (cur));
   assert (cur != array);
-  assert (BTOR_IS_WRITE_ARRAY_EXP (cur));
+  assert (BTOR_IS_ARRAY_EXP (cur));
   assert (cur->mark == 0);
   cur->parent = read;
   cur->mark   = 1;
@@ -4721,18 +4720,23 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
       assert (real_aeq_acond->kind == BTOR_AEQ_EXP);
       if (real_aeq_acond->mark == 0 && real_aeq_acond->reachable)
       {
+        real_aeq_acond->mark = 1;
+        BTOR_PUSH_STACK (mm, unmark_stack, real_aeq_acond);
         assert (real_aeq_acond->av != NULL);
         assert (real_aeq_acond->full_sat);
         assert (real_aeq_acond->len == 1);
         if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
         {
-          i = BTOR_GET_TAG_EXP (aeq_acond);
+          /* set parent of array equality */
+          real_aeq_acond->parent = cur;
+          i                      = BTOR_GET_TAG_EXP (aeq_acond);
           assert (i == 0 || i == 1);
           /* we need the other child */
           next = real_aeq_acond->e[!i];
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
-          next->parent = cur;
+          /* set parent of next */
+          next->parent = real_aeq_acond;
           next->mark   = 1;
           BTOR_ENQUEUE (mm, queue, next);
           BTOR_PUSH_STACK (mm, unmark_stack, next);
@@ -4750,7 +4754,8 @@ extensionality_read_array_bfs_multiple_levels (BtorExpMgr *emgr,
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_ARRAY_EXP (cur));
+    assert (BTOR_IS_ARRAY_EXP (cur) || cur->kind == BTOR_AEQ_EXP
+            || cur->kind == BTOR_ACOND_EXP);
     cur->mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
@@ -4814,9 +4819,16 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
         BTOR_PUSH_STACK (mm, writes, next);
       else if (next != read1)
       {
-        /* TODO: deal with acond */
-        assert (next->kind == BTOR_AEQ_EXP);
-        BTOR_PUSH_STACK (mm, aeqs, next);
+        assert (BTOR_IS_NATIVE_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
+                || next->kind == BTOR_ACOND_EXP);
+        /* if next is a native array we do not have to do anything */
+        if (next->kind == BTOR_AEQ_EXP)
+          BTOR_PUSH_STACK (mm, aeqs, next);
+        else if (next->kind == BTOR_ACOND_EXP)
+        {
+          assert (0);
+          /* TODO: deal with acond */
+        }
       }
       cur = next;
     } while (cur != read1);
@@ -4843,9 +4855,16 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
         BTOR_PUSH_STACK (mm, writes, next);
       else if (next != read2)
       {
-        /* TODO: deal with acond */
-        assert (next->kind == BTOR_AEQ_EXP);
-        BTOR_PUSH_STACK (mm, aeqs, next);
+        assert (BTOR_IS_NATIVE_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
+                || next->kind == BTOR_ACOND_EXP);
+        /* if next is a native array we do not have to do anything */
+        if (next->kind == BTOR_AEQ_EXP)
+          BTOR_PUSH_STACK (mm, aeqs, next);
+        else if (next->kind == BTOR_ACOND_EXP)
+        {
+          assert (0);
+          /* TODO: deal with acond */
+        }
       }
       cur = next;
     } while (cur != read2);
@@ -4932,9 +4951,16 @@ resolve_read_write_conflict_multiple_levels (BtorExpMgr *emgr,
       BTOR_PUSH_STACK (mm, writes, next);
     else if (next != read)
     {
-      /* TODO: deal with acond */
-      assert (next->kind == BTOR_AEQ_EXP);
-      BTOR_PUSH_STACK (mm, aeqs, next);
+      assert (BTOR_IS_NATIVE_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
+              || next->kind == BTOR_ACOND_EXP);
+      /* if next is a native array we do not have to do anything */
+      if (next->kind == BTOR_AEQ_EXP)
+        BTOR_PUSH_STACK (mm, aeqs, next);
+      else if (next->kind == BTOR_ACOND_EXP)
+      {
+        assert (0);
+        /* TODO: deal with acond */
+      }
     }
     cur = next;
   } while (cur != read);
@@ -5158,7 +5184,7 @@ process_working_stack (BtorExpMgr *emgr,
 }
 
 static int
-resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
+resolve_read_write_conflicts (BtorExpMgr *emgr)
 {
   BtorExpPtrStack array_stack;
   BtorExpPtrStack cleanup_stack;
@@ -5168,13 +5194,12 @@ resolve_read_write_conflicts_array (BtorExpMgr *emgr, BtorExp *array)
   BtorExp *cur_array      = NULL;
   BtorExp *cur_write      = NULL;
   BtorExp *cur_read       = NULL;
+  BtorExp **top           = NULL;
+  BtorExp **temp          = NULL;
   int found_conflict      = 0;
   int changed_assignments = 0;
   BtorWriteEnc write_enc  = 0;
   assert (emgr != NULL);
-  assert (array != NULL);
-  assert (BTOR_IS_REGULAR_EXP (array));
-  assert (BTOR_IS_ARRAY_EXP (array));
   mm        = emgr->mm;
   write_enc = emgr->write_enc;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
@@ -5182,12 +5207,21 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (cleanup_stack);
   BTOR_INIT_STACK (array_stack);
-  BTOR_PUSH_STACK (mm, array_stack, array);
+  top = emgr->arrays.top;
+  /* push all native arrays on the stack */
+  for (temp = emgr->arrays.start; temp != top; temp++)
+  {
+    cur_array = *temp;
+    assert (BTOR_IS_NATIVE_ARRAY_EXP (cur_array));
+    if (cur_array->reachable) BTOR_PUSH_STACK (mm, array_stack, cur_array);
+  }
   while (!BTOR_EMPTY_STACK (array_stack))
   {
     cur_array = BTOR_POP_STACK (array_stack);
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
+    assert (cur_array->array_mark >= 0);
+    assert (cur_array->array_mark <= 2);
     if (cur_array->array_mark == 0)
     {
       cur_array->array_mark = 1;
@@ -5219,11 +5253,10 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         }
       }
     }
-    else
+    else if (cur_array->array_mark == 1)
     {
-      assert (cur_array->array_mark == 1);
-      assert (write_enc == BTOR_LAZY_WRITE_ENC || cur_array == array);
-      assert (!BTOR_IS_WRITE_ARRAY_EXP (cur_array) || cur_array->reachable);
+      cur_array->array_mark = 2;
+      assert (cur_array->reachable);
       cur_read = cur_array->first_parent;
       while (cur_read != NULL
              && BTOR_REAL_ADDR_EXP (cur_read)->kind == BTOR_READ_EXP)
@@ -5251,7 +5284,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   BTOR_RELEASE_STACK (mm, cleanup_stack);
   BTOR_RELEASE_STACK (mm, working_stack);
   BTOR_RELEASE_STACK (mm, array_stack);
-  /* reset array_marks of arrays */
+  /* reset array marks of arrays */
   while (!BTOR_EMPTY_STACK (unmark_stack))
   {
     cur_array = BTOR_POP_STACK (unmark_stack);
@@ -5265,25 +5298,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   {
     emgr->synthesis_assignment_inconsistencies++;
     goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
-  }
-  return found_conflict;
-}
-
-static int
-resolve_read_write_conflicts (BtorExpMgr *emgr)
-{
-  int found_conflict = 0;
-  BtorExp **top      = NULL;
-  BtorExp **temp     = NULL;
-  BtorExp *cur       = NULL;
-  assert (emgr != NULL);
-  top = emgr->arrays.top;
-  for (temp = emgr->arrays.start; !found_conflict && temp != top; temp++)
-  {
-    cur = *temp;
-    assert (BTOR_IS_NATIVE_ARRAY_EXP (cur));
-    if (cur->reachable)
-      found_conflict = resolve_read_write_conflicts_array (emgr, cur);
   }
   return found_conflict;
 }
