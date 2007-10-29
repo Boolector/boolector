@@ -234,13 +234,13 @@ compare_exp_pair (BtorExpPair *pair1, BtorExpPair *pair2)
  * (forall (0 <= k < n) (d_k) v e) ^
  * forall (0 <= k < m) ((!e v a_k v !b_k) ^ (!e v !a_k v b_k))
  *
- * This function is called in lazy and eager mode. We have to check
+ * This function is called in eager read mode only. We have to check
  * if we have to encode a constraint at all. For example if we are in eager
  * mode and the indices are constants and not equal, then we do not have
  * to encode a constraint.
  */
 static void
-encode_ackermann_constraint (
+encode_ackermann_constraint_eagerly (
     BtorExpMgr *emgr, BtorExp *i, BtorExp *j, BtorExp *a, BtorExp *b)
 {
   BtorMemMgr *mm       = NULL;
@@ -271,6 +271,7 @@ encode_ackermann_constraint (
   assert (j != NULL);
   assert (a != NULL);
   assert (b != NULL);
+  assert (emgr->read_enc == BTOR_EAGER_READ_ENC);
   mm    = emgr->mm;
   avmgr = emgr->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -325,6 +326,189 @@ encode_ackermann_constraint (
      * (FALSE => a = b) <=> TRUE
      */
     return;
+  }
+  /* skip i = j part if i and j are equal:
+   * W => a = b  <=>  a = b
+   */
+  if (!is_equal_i_j)
+  {
+    if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
+    {
+      btor_aigvec_to_sat_full (avmgr, av_i);
+      BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
+    }
+    if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
+    {
+      btor_aigvec_to_sat_full (avmgr, av_j);
+      BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
+    }
+    BTOR_INIT_STACK (diffs);
+    for (k = 0; k < len_i_j; k++)
+    {
+      aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
+      aig2 = BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]);
+      if (!BTOR_IS_CONST_AIG (aig1))
+      {
+        i_k = BTOR_GET_CNF_ID_AIG (aig1);
+        assert (i_k != 0);
+      }
+      if (!BTOR_IS_CONST_AIG (aig2))
+      {
+        j_k = BTOR_GET_CNF_ID_AIG (aig2);
+        assert (j_k != 0);
+      }
+      /* The bits cannot be the inverse of each other.
+       * We check this at the beginning of the function.
+       */
+      assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul);
+      d_k = btor_next_cnf_id_sat_mgr (smgr);
+      assert (d_k != 0);
+      BTOR_PUSH_STACK (mm, diffs, d_k);
+      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
+      {
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
+        btor_add_sat (smgr, -d_k);
+        btor_add_sat (smgr, 0);
+      }
+      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
+      {
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
+        btor_add_sat (smgr, -d_k);
+        btor_add_sat (smgr, 0);
+      }
+    }
+    while (!BTOR_EMPTY_STACK (diffs))
+    {
+      k = BTOR_POP_STACK (diffs);
+      assert (k != 0);
+      btor_add_sat (smgr, k);
+    }
+    BTOR_RELEASE_STACK (mm, diffs);
+  }
+  e = btor_next_cnf_id_sat_mgr (smgr);
+  assert (e != 0);
+  btor_add_sat (smgr, e);
+  btor_add_sat (smgr, 0);
+  if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
+  {
+    btor_aigvec_to_sat_full (avmgr, av_a);
+    BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
+  }
+  if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
+  {
+    btor_aigvec_to_sat_full (avmgr, av_b);
+    BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
+  }
+  for (k = 0; k < len_a_b; k++)
+  {
+    aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
+    aig2 = BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]);
+    if (!BTOR_IS_CONST_AIG (aig1))
+    {
+      a_k = BTOR_GET_CNF_ID_AIG (aig1);
+      assert (a_k != 0);
+    }
+    if (!BTOR_IS_CONST_AIG (aig2))
+    {
+      b_k = BTOR_GET_CNF_ID_AIG (aig2);
+      assert (b_k != 0);
+    }
+    /* if AIGs are equal then clauses are satisfied */
+    if (aig1 != aig2)
+    {
+      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
+        btor_add_sat (smgr, 0);
+      }
+      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+      {
+        btor_add_sat (smgr, -e);
+        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
+        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
+        btor_add_sat (smgr, 0);
+      }
+    }
+  }
+}
+
+/* Encodes Ackermann constraint of the form index i = index j =>
+ * value a = value b directly into CNF.
+ * Let n be the number of bits of the indices
+ * and m the number of bits of the values:
+ * i = j => a = b
+ * (i = j => e) ^ (e => a = b)
+ * ((i != j) v e) ^ (not e v (a = b))
+ * forall (0 <= k < n) (i_k v j_k v !d_k) ^ (!i_k v !j_k v !d_k)) ^
+ * (forall (0 <= k < n) (d_k) v e) ^
+ * forall (0 <= k < m) ((!e v a_k v !b_k) ^ (!e v !a_k v b_k))
+ *
+ * This function may not be called from eager read mode. We have to check
+ * if we have to encode a constraint at all. For example if we are in eager
+ * mode and the indices are constants and not equal, then we do not have
+ * to encode a constraint.
+ */
+static void
+encode_ackermann_constraint_lazily (
+    BtorExpMgr *emgr, BtorExp *i, BtorExp *j, BtorExp *a, BtorExp *b)
+{
+  BtorMemMgr *mm       = NULL;
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorAIGMgr *amgr     = NULL;
+  BtorSATMgr *smgr     = NULL;
+  BtorAIGVec *av_i     = NULL;
+  BtorAIGVec *av_j     = NULL;
+  BtorAIGVec *av_a     = NULL;
+  BtorAIGVec *av_b     = NULL;
+  BtorAIG *aig1        = NULL;
+  BtorAIG *aig2        = NULL;
+  BtorIntStack diffs;
+  int k            = 0;
+  int len_a_b      = 0;
+  int len_i_j      = 0;
+  int i_k          = 0;
+  int j_k          = 0;
+  int d_k          = 0;
+  int e            = 0;
+  int a_k          = 0;
+  int b_k          = 0;
+  int is_equal_i_j = 0;
+  assert (emgr != NULL);
+  assert (i != NULL);
+  assert (j != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (emgr->read_enc != BTOR_EAGER_READ_ENC);
+  mm    = emgr->mm;
+  avmgr = emgr->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+  av_i  = BTOR_REAL_ADDR_EXP (i)->av;
+  av_j  = BTOR_REAL_ADDR_EXP (j)->av;
+  av_a  = BTOR_REAL_ADDR_EXP (a)->av;
+  av_b  = BTOR_REAL_ADDR_EXP (b)->av;
+  assert (av_i != NULL);
+  assert (av_j != NULL);
+  assert (av_a != NULL);
+  assert (av_b != NULL);
+  assert (av_a->len == av_b->len);
+  assert (av_i->len == av_j->len);
+  len_a_b = av_a->len;
+  len_i_j = av_i->len;
+  /* check if i and j have equal AIGs */
+  is_equal_i_j = 1;
+  for (k = 0; k < len_i_j; k++)
+  {
+    if (BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k])
+        != BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]))
+    {
+      is_equal_i_j = 0;
+      break;
+    }
   }
   /* skip i = j part if i and j are equal:
    * W => a = b  <=>  a = b
@@ -919,7 +1103,8 @@ encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
     assert (BTOR_GET_TAG_EXP (cur) == 0);
     assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->encoded_read)
-      encode_ackermann_constraint (emgr, cur->e[1], read->e[1], cur, read);
+      encode_ackermann_constraint_eagerly (
+          emgr, cur->e[1], read->e[1], cur, read);
     cur = cur->next_parent[0];
   }
   read->encoded_read = 1;
@@ -4796,7 +4981,8 @@ resolve_read_conflict_one_level (BtorExpMgr *emgr,
   assert (BTOR_IS_REGULAR_EXP (read2));
   assert (read1->kind == BTOR_READ_EXP);
   assert (read2->kind == BTOR_READ_EXP);
-  encode_ackermann_constraint (emgr, read1->e[1], read2->e[1], read1, read2);
+  encode_ackermann_constraint_lazily (
+      emgr, read1->e[1], read2->e[1], read1, read2);
 }
 
 static unsigned int
@@ -4965,7 +5151,7 @@ resolve_read_write_conflict_one_level (BtorExpMgr *emgr,
   assert (BTOR_IS_REGULAR_EXP (write));
   assert (read->kind == BTOR_READ_EXP);
   assert (BTOR_IS_WRITE_ARRAY_EXP (write));
-  encode_ackermann_constraint (
+  encode_ackermann_constraint_lazily (
       emgr, read->e[1], write->e[1], read, write->e[2]);
 }
 
