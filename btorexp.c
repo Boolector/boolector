@@ -4649,7 +4649,7 @@ hash_assignment (BtorExp *exp)
 }
 
 /* This function breath first searches the shortest path from a read to an array
- * After the function is competed the parent pointers can be followed
+ * After the function is completed the parent pointers can be followed
  * from the array to the read
  */
 static void
@@ -4777,6 +4777,30 @@ resolve_read_conflict_one_level (BtorExpMgr *emgr,
   encode_ackermann_constraint (emgr, read1->e[1], read2->e[1], read1, read2);
 }
 
+static unsigned int
+hash_regular_exp_by_id (BtorExp *exp)
+{
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  return (unsigned int) exp->id * 7334147u;
+}
+
+static int
+compare_regular_exps_by_id (BtorExp *exp1, BtorExp *exp2)
+{
+  int id1 = 0;
+  int id2 = 0;
+  assert (exp1 != NULL);
+  assert (exp2 != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp1));
+  assert (BTOR_IS_REGULAR_EXP (exp2));
+  id1 = exp1->id;
+  id2 = exp2->id;
+  if (id1 < id2) return -1;
+  if (id1 > id2) return 1;
+  return 0;
+}
+
 /* Resolves a read conflict across multiple levels
  * 'array' is the array where the conflict has been detected
  */
@@ -4788,9 +4812,11 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
 {
   BtorExpPtrStack writes;
   BtorExpPtrStack aeqs;
-  BtorExp *cur   = NULL;
-  BtorExp *next  = NULL;
-  BtorMemMgr *mm = NULL;
+  BtorExp *cur            = NULL;
+  BtorExp *next           = NULL;
+  BtorMemMgr *mm          = NULL;
+  BtorPtrHashTable *table = NULL;
+  int need_hashing        = 0;
   assert (emgr != NULL);
   assert (array != NULL);
   assert (read1 != NULL);
@@ -4802,77 +4828,84 @@ resolve_read_conflict_multiple_levels (BtorExpMgr *emgr,
   assert (read1->kind == BTOR_READ_EXP);
   assert (read2->kind == BTOR_READ_EXP);
   mm = emgr->mm;
-  /* collect intermediate writes and array equalities as premisses
-   * for McCarthy constraint */
+  assert (read1->e[0] != array || read2->e[0] != array);
+  /* collect intermediate writes, array equalities and array conditionals
+   * as premisses for McCarthy constraint */
+  BTOR_INIT_STACK (writes);
+  BTOR_INIT_STACK (aeqs);
+  /* both reads are not local to the array */
+  need_hashing = read1->e[0] != array && read2->e[0] != array;
+  if (need_hashing)
+    table = btor_new_ptr_hash_table (mm,
+                                     (BtorHashPtr) hash_regular_exp_by_id,
+                                     (BtorCmpPtr) compare_regular_exps_by_id);
   if (read1->e[0] != array)
   {
     extensionality_read_array_bfs_multiple_levels (emgr, read1, array);
-    BTOR_INIT_STACK (writes);
-    BTOR_INIT_STACK (aeqs);
     cur = array;
     do
     {
       next = cur->parent;
       assert (next != NULL);
       assert (BTOR_IS_REGULAR_EXP (next));
+      assert (BTOR_IS_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
+              || next->kind == BTOR_ACOND_EXP || next->kind == BTOR_READ_EXP);
+
+      /* if next is a native array, then we do not have to do anything */
       if (BTOR_IS_WRITE_ARRAY_EXP (next))
-        BTOR_PUSH_STACK (mm, writes, next);
-      else if (next != read1)
       {
-        assert (BTOR_IS_NATIVE_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
-                || next->kind == BTOR_ACOND_EXP);
-        /* if next is a native array we do not have to do anything */
-        if (next->kind == BTOR_AEQ_EXP)
-          BTOR_PUSH_STACK (mm, aeqs, next);
-        else if (next->kind == BTOR_ACOND_EXP)
-        {
-          assert (0);
-          /* TODO: deal with acond */
-        }
+        if (need_hashing) btor_insert_in_ptr_hash_table (table, next);
+        BTOR_PUSH_STACK (mm, writes, next);
+      }
+      else if (next->kind == BTOR_AEQ_EXP)
+      {
+        if (need_hashing) btor_insert_in_ptr_hash_table (table, next);
+        BTOR_PUSH_STACK (mm, aeqs, next);
+      }
+      else if (next->kind == BTOR_ACOND_EXP)
+      {
+        /* TODO: deal with acond */
+        assert (0);
       }
       cur = next;
     } while (cur != read1);
-    encode_mccarthy_constraint (
-        emgr, &writes, &aeqs, read1->e[1], read2->e[1], read1, read2);
-    BTOR_RELEASE_STACK (mm, writes);
-    BTOR_RELEASE_STACK (mm, aeqs);
   }
-  /* collect intermediate writes as premisses
-   * for McCarthy constraint */
   if (read2->e[0] != array)
   {
     extensionality_read_array_bfs_multiple_levels (emgr, read2, array);
-    BTOR_INIT_STACK (writes);
-    BTOR_INIT_STACK (aeqs);
     cur = array;
     do
     {
       next = cur->parent;
       assert (next != NULL);
-      /* TODO: deal with aeq and acond */
       assert (BTOR_IS_REGULAR_EXP (next));
+      assert (BTOR_IS_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
+              || next->kind == BTOR_ACOND_EXP || next->kind == BTOR_READ_EXP);
+
+      /* if next is a native array, then we do not have to do anything */
       if (BTOR_IS_WRITE_ARRAY_EXP (next))
-        BTOR_PUSH_STACK (mm, writes, next);
-      else if (next != read2)
       {
-        assert (BTOR_IS_NATIVE_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
-                || next->kind == BTOR_ACOND_EXP);
-        /* if next is a native array we do not have to do anything */
-        if (next->kind == BTOR_AEQ_EXP)
+        if (!need_hashing || btor_find_in_ptr_hash_table (table, next) == NULL)
+          BTOR_PUSH_STACK (mm, writes, next);
+      }
+      else if (next->kind == BTOR_AEQ_EXP)
+      {
+        if (!need_hashing || btor_find_in_ptr_hash_table (table, next) == NULL)
           BTOR_PUSH_STACK (mm, aeqs, next);
-        else if (next->kind == BTOR_ACOND_EXP)
-        {
-          assert (0);
-          /* TODO: deal with acond */
-        }
+      }
+      else if (next->kind == BTOR_ACOND_EXP)
+      {
+        /* TODO: deal with acond */
+        assert (0);
       }
       cur = next;
     } while (cur != read2);
-    encode_mccarthy_constraint (
-        emgr, &writes, &aeqs, read1->e[1], read2->e[1], read1, read2);
-    BTOR_RELEASE_STACK (mm, writes);
-    BTOR_RELEASE_STACK (mm, aeqs);
   }
+  encode_mccarthy_constraint (
+      emgr, &writes, &aeqs, read1->e[1], read2->e[1], read1, read2);
+  BTOR_RELEASE_STACK (mm, writes);
+  BTOR_RELEASE_STACK (mm, aeqs);
+  if (need_hashing) btor_delete_ptr_hash_table (table);
 }
 
 /* Checks if a read conflicts with a write */
@@ -4947,21 +4980,16 @@ resolve_read_write_conflict_multiple_levels (BtorExpMgr *emgr,
     next = cur->parent;
     assert (next != NULL);
     assert (BTOR_IS_REGULAR_EXP (next));
+    assert (BTOR_IS_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
+            || next->kind == BTOR_ACOND_EXP || next->kind == BTOR_READ_EXP);
+
+    /* if next is a native array, then we do not have to do anything */
     if (BTOR_IS_WRITE_ARRAY_EXP (next))
       BTOR_PUSH_STACK (mm, writes, next);
-    else if (next != read)
-    {
-      assert (BTOR_IS_NATIVE_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
-              || next->kind == BTOR_ACOND_EXP);
-      /* if next is a native array we do not have to do anything */
-      if (next->kind == BTOR_AEQ_EXP)
-        BTOR_PUSH_STACK (mm, aeqs, next);
-      else if (next->kind == BTOR_ACOND_EXP)
-      {
-        assert (0);
-        /* TODO: deal with acond */
-      }
-    }
+    else if (next->kind == BTOR_AEQ_EXP)
+      BTOR_PUSH_STACK (mm, aeqs, next);
+    else if (next->kind == BTOR_ACOND_EXP)
+      assert (0); /* TODO: deal with acond */
     cur = next;
   } while (cur != read);
   encode_mccarthy_constraint (
