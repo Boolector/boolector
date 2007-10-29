@@ -45,9 +45,23 @@ writearrayeq -f -de log/writearrayeq.log log/writearrayeq.btor
 writesmt1 -f -ds log/writesmt1.log log/writesmt1.btor
 smtextarrayaxiom1uf -o log/smtextarrayaxiom1uf.log log/smtextarrayaxiom1uf.smt
 smtextarrayaxiom1 -o log/smtextarrayaxiom1.log log/smtextarrayaxiom1.smt
+smtextarray1sat0 -o log/smtextarray1sat0.log log/smtextarray1sat0.smt
+smtextarray1sat1 -o log/smtextarray1sat1.log log/smtextarray1sat1.smt
 smtextarrayaxiom2uf -o log/smtextarrayaxiom2uf.log log/smtextarrayaxiom2uf.smt
 smtextarrayaxiom2 -o log/smtextarrayaxiom2.log log/smtextarrayaxiom2.smt
+smtextarray2sat0 -o log/smtextarray2sat0.log log/smtextarray2sat0.smt
+smtextarray2sat1 -o log/smtextarray2sat1.log log/smtextarray2sat1.smt
+smtextarray2sat2 -o log/smtextarray2sat2.log log/smtextarray2sat2.smt
+smtextarray2sat3 -o log/smtextarray2sat3.log log/smtextarray2sat3.smt
 smtextarrayaxiom3uf -o log/smtextarrayaxiom3uf.log log/smtextarrayaxiom3uf.smt
 smtextarrayaxiom3 -o log/smtextarrayaxiom3.log log/smtextarrayaxiom3.smt
+smtextarray3sat0 -o log/smtextarray3sat0.log log/smtextarray3sat0.smt
+smtextarray3sat1 -o log/smtextarray3sat1.log log/smtextarray3sat1.smt
+smtextarray3sat2 -o log/smtextarray3sat2.log log/smtextarray3sat2.smt
+smtextarray3sat3 -o log/smtextarray3sat3.log log/smtextarray3sat3.smt
+smtextarray3sat4 -o log/smtextarray3sat4.log log/smtextarray3sat4.smt
+smtextarray3sat5 -o log/smtextarray3sat5.log log/smtextarray3sat5.smt
+smtextarray3sat6 -o log/smtextarray3sat6.log log/smtextarray3sat6.smt
+smtextarray3sat7 -o log/smtextarray3sat7.log log/smtextarray3sat7.smt
 smtextarrayaxiom4uf -o log/smtextarrayaxiom4uf.log log/smtextarrayaxiom4uf.smt
 smtextarrayaxiom4 -o log/smtextarrayaxiom4.log log/smtextarrayaxiom4.smt
