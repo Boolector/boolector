@@ -474,7 +474,7 @@ test_arrayeq1_special ()
 static void
 test_arrayeq2_special ()
 {
-  run_sat_test ("arrayeq2.in");
+  run_unsat_test ("arrayeq2.in");
 }
 
 static void
