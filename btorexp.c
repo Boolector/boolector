@@ -56,6 +56,7 @@ struct BtorExpMgr
   int rewrite_level;
   int dump_trace;
   int verbosity;
+  int extensionality;
   BtorReadEnc read_enc;
   BtorWriteEnc write_enc;
   FILE *trace_file;
@@ -4408,7 +4409,7 @@ btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr)
 }
 
 static void
-mark_reachable_exp (BtorExpMgr *emgr, BtorExp *exp)
+set_flags_reachable_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
   BtorExpPtrStack stack;
   BtorExp *cur   = NULL;
@@ -4428,6 +4429,7 @@ mark_reachable_exp (BtorExpMgr *emgr, BtorExp *exp)
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       else if (BTOR_IS_BINARY_EXP (cur))
       {
+        if (cur->kind == BTOR_AEQ_EXP) emgr->extensionality = 1;
         BTOR_PUSH_STACK (mm, stack, cur->e[1]);
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       }
@@ -4533,8 +4535,8 @@ btor_synthesize_exp (BtorExpMgr *emgr,
               cur->mark = 2;
               cur->av   = btor_var_aigvec (avmgr, cur->len);
               /* mark children recursively as reachable */
-              mark_reachable_exp (emgr, cur->e[1]);
-              mark_reachable_exp (emgr, cur->e[0]);
+              set_flags_reachable_exp (emgr, cur->e[1]);
+              set_flags_reachable_exp (emgr, cur->e[0]);
               /* we do not synthesize children as we are
                * in lazy mode */
             }
@@ -4545,9 +4547,9 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             assert (emgr->write_enc != BTOR_EAGER_WRITE_ENC);
             cur->mark = 2;
             /* mark children recursively as reachable */
-            mark_reachable_exp (emgr, cur->e[2]);
-            mark_reachable_exp (emgr, cur->e[1]);
-            mark_reachable_exp (emgr, cur->e[0]);
+            set_flags_reachable_exp (emgr, cur->e[2]);
+            set_flags_reachable_exp (emgr, cur->e[1]);
+            set_flags_reachable_exp (emgr, cur->e[0]);
             /* we do not synthesize children as we are
              * in lazy mode */
           }
@@ -4556,8 +4558,8 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             cur->mark = 2;
             cur->av   = btor_var_aigvec (avmgr, 1);
             /* mark children recursively as reachable */
-            mark_reachable_exp (emgr, cur->e[1]);
-            mark_reachable_exp (emgr, cur->e[0]);
+            set_flags_reachable_exp (emgr, cur->e[1]);
+            set_flags_reachable_exp (emgr, cur->e[0]);
 
             /* generate virtual reads */
             index = btor_var_exp (emgr, cur->e[0]->index_len, "vreadindex");
