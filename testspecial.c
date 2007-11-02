@@ -42,457 +42,457 @@ run_unsat_test (char *name)
 static void
 test_const1_special ()
 {
-  run_sat_test ("const1.in");
+  run_sat_test ("const1.btor");
 }
 
 static void
 test_const2_special ()
 {
-  run_unsat_test ("const2.in");
+  run_unsat_test ("const2.btor");
 }
 
 static void
 test_var1_special ()
 {
-  run_sat_test ("var1.in");
+  run_sat_test ("var1.btor");
 }
 
 static void
 test_var2_special ()
 {
-  run_sat_test ("var2.in");
+  run_sat_test ("var2.btor");
 }
 
 static void
 test_rw1_special ()
 {
-  run_sat_test ("rw1.in");
+  run_sat_test ("rw1.btor");
 }
 
 static void
 test_rw2_special ()
 {
-  run_sat_test ("rw2.in");
+  run_sat_test ("rw2.btor");
 }
 
 static void
 test_rw3_special ()
 {
-  run_sat_test ("rw3.in");
+  run_sat_test ("rw3.btor");
 }
 
 static void
 test_rw4_special ()
 {
-  run_sat_test ("rw4.in");
+  run_sat_test ("rw4.btor");
 }
 
 static void
 test_rw5_special ()
 {
-  run_sat_test ("rw5.in");
+  run_sat_test ("rw5.btor");
 }
 
 static void
 test_rw6_special ()
 {
-  run_sat_test ("rw6.in");
+  run_sat_test ("rw6.btor");
 }
 
 static void
 test_rw7_special ()
 {
-  run_sat_test ("rw7.in");
+  run_sat_test ("rw7.btor");
 }
 
 static void
 test_rw8_special ()
 {
-  run_sat_test ("rw8.in");
+  run_sat_test ("rw8.btor");
 }
 
 static void
 test_rw9_special ()
 {
-  run_sat_test ("rw9.in");
+  run_sat_test ("rw9.btor");
 }
 
 static void
 test_rw10_special ()
 {
-  run_sat_test ("rw10.in");
+  run_sat_test ("rw10.btor");
 }
 
 static void
 test_rw11_special ()
 {
-  run_sat_test ("rw11.in");
+  run_sat_test ("rw11.btor");
 }
 
 static void
 test_rw12_special ()
 {
-  run_sat_test ("rw12.in");
+  run_sat_test ("rw12.btor");
 }
 
 static void
 test_rw13_special ()
 {
-  run_sat_test ("rw13.in");
+  run_sat_test ("rw13.btor");
 }
 
 static void
 test_rw14_special ()
 {
-  run_sat_test ("rw14.in");
+  run_sat_test ("rw14.btor");
 }
 
 static void
 test_rw15_special ()
 {
-  run_sat_test ("rw15.in");
+  run_sat_test ("rw15.btor");
 }
 
 static void
 test_sqrt4_special ()
 {
-  run_sat_test ("sqrt4.in");
+  run_sat_test ("sqrt4.btor");
 }
 
 static void
 test_sqrt5_special ()
 {
-  run_unsat_test ("sqrt5.in");
+  run_unsat_test ("sqrt5.btor");
 }
 
 static void
 test_sqrt7_special ()
 {
-  run_unsat_test ("sqrt7.in");
+  run_unsat_test ("sqrt7.btor");
 }
 
 static void
 test_sqrt9_special ()
 {
-  run_sat_test ("sqrt9.in");
+  run_sat_test ("sqrt9.btor");
 }
 
 static void
 test_sqrt13_special ()
 {
-  run_unsat_test ("sqrt13.in");
+  run_unsat_test ("sqrt13.btor");
 }
 
 static void
 test_sqrt25_special ()
 {
-  run_sat_test ("sqrt25.in");
+  run_sat_test ("sqrt25.btor");
 }
 
 static void
 test_sqrt29_special ()
 {
-  run_unsat_test ("sqrt29.in");
+  run_unsat_test ("sqrt29.btor");
 }
 
 static void
 test_sqrt31_special ()
 {
-  run_unsat_test ("sqrt31.in");
+  run_unsat_test ("sqrt31.btor");
 }
 
 static void
 test_sqrt49_special ()
 {
-  run_sat_test ("sqrt49.in");
+  run_sat_test ("sqrt49.btor");
 }
 
 static void
 test_sqrt53_special ()
 {
-  run_unsat_test ("sqrt53.in");
+  run_unsat_test ("sqrt53.btor");
 }
 
 static void
 test_sqrt65537_special ()
 {
-  run_unsat_test ("sqrt65537.in");
+  run_unsat_test ("sqrt65537.btor");
 }
 
 static void
 test_sqrt4294967297_special ()
 {
-  run_unsat_test ("sqrt4294967297.in");
+  run_unsat_test ("sqrt4294967297.btor");
 }
 
 static void
 test_sqrt4295098369_special ()
 {
-  run_sat_test ("sqrt4295098369.in");
+  run_sat_test ("sqrt4295098369.btor");
 }
 
 static void
 test_sqrt18446744073709551617_special ()
 {
-  run_unsat_test ("sqrt18446744073709551617.in");
+  run_unsat_test ("sqrt18446744073709551617.btor");
 }
 
 static void
 test_factor2209_special ()
 {
-  run_sat_test ("factor2209.in");
+  run_sat_test ("factor2209.btor");
 }
 
 static void
 test_factor4294967295_special ()
 {
-  run_sat_test ("factor4294967295.in");
+  run_sat_test ("factor4294967295.btor");
 }
 
 static void
 test_factor4294967297_special ()
 {
-  run_sat_test ("factor4294967297.in");
+  run_sat_test ("factor4294967297.btor");
 }
 
 static void
 test_factor18446744073709551617const_special ()
 {
-  run_sat_test ("factor18446744073709551617const.in");
+  run_sat_test ("factor18446744073709551617const.btor");
 }
 
 static void
 test_factor18446744073709551617xconst_special ()
 {
-  run_sat_test ("factor18446744073709551617xconst.in");
+  run_sat_test ("factor18446744073709551617xconst.btor");
 }
 
 static void
 test_factor18446744073709551617yconst_special ()
 {
-  run_sat_test ("factor18446744073709551617yconst.in");
+  run_sat_test ("factor18446744073709551617yconst.btor");
 }
 
 static void
 test_factor18446744073709551617reduced_special ()
 {
-  run_sat_test ("factor18446744073709551617reduced.in");
+  run_sat_test ("factor18446744073709551617reduced.btor");
 }
 
 static void
 test_factor18446744073709551617_special ()
 {
-  run_sat_test ("factor18446744073709551617.in");
+  run_sat_test ("factor18446744073709551617.btor");
 }
 
 static void
 test_read1_special ()
 {
-  run_unsat_test ("read1.in");
+  run_unsat_test ("read1.btor");
 }
 
 static void
 test_read2_special ()
 {
-  run_unsat_test ("read2.in");
+  run_unsat_test ("read2.btor");
 }
 
 static void
 test_read3_special ()
 {
-  run_sat_test ("read3.in");
+  run_sat_test ("read3.btor");
 }
 
 static void
 test_read4_special ()
 {
-  run_unsat_test ("read4.in");
+  run_unsat_test ("read4.btor");
 }
 
 static void
 test_read5_special ()
 {
-  run_unsat_test ("read5.in");
+  run_unsat_test ("read5.btor");
 }
 
 static void
 test_read6_special ()
 {
-  run_unsat_test ("read6.in");
+  run_unsat_test ("read6.btor");
 }
 
 static void
 test_read7_special ()
 {
-  run_unsat_test ("read7.in");
+  run_unsat_test ("read7.btor");
 }
 
 static void
 test_read8_special ()
 {
-  run_unsat_test ("read8.in");
+  run_unsat_test ("read8.btor");
 }
 
 static void
 test_read9_special ()
 {
-  run_unsat_test ("read9.in");
+  run_unsat_test ("read9.btor");
 }
 
 static void
 test_read10_special ()
 {
-  run_unsat_test ("read10.in");
+  run_unsat_test ("read10.btor");
 }
 
 static void
 test_read11_special ()
 {
-  run_unsat_test ("read11.in");
+  run_unsat_test ("read11.btor");
 }
 
 static void
 test_read12_special ()
 {
-  run_sat_test ("read12.in");
+  run_sat_test ("read12.btor");
 }
 
 static void
 test_read13_special ()
 {
-  run_sat_test ("read13.in");
+  run_sat_test ("read13.btor");
 }
 
 static void
 test_read14_special ()
 {
-  run_sat_test ("read14.in");
+  run_sat_test ("read14.btor");
 }
 
 static void
 test_read15_special ()
 {
-  run_sat_test ("read15.in");
+  run_sat_test ("read15.btor");
 }
 
 static void
 test_read16_special ()
 {
-  run_unsat_test ("read16.in");
+  run_unsat_test ("read16.btor");
 }
 
 static void
 test_read17_special ()
 {
-  run_unsat_test ("read17.in");
+  run_unsat_test ("read17.btor");
 }
 
 static void
 test_read18_special ()
 {
-  run_sat_test ("read18.in");
+  run_sat_test ("read18.btor");
 }
 
 static void
 test_write1_special ()
 {
-  run_unsat_test ("write1.in");
+  run_unsat_test ("write1.btor");
 }
 
 static void
 test_write2_special ()
 {
-  run_unsat_test ("write2.in");
+  run_unsat_test ("write2.btor");
 }
 
 static void
 test_write3_special ()
 {
-  run_unsat_test ("write3.in");
+  run_unsat_test ("write3.btor");
 }
 
 static void
 test_write4_special ()
 {
-  run_unsat_test ("write4.in");
+  run_unsat_test ("write4.btor");
 }
 
 static void
 test_write5_special ()
 {
-  run_sat_test ("write5.in");
+  run_sat_test ("write5.btor");
 }
 
 static void
 test_write6_special ()
 {
-  run_unsat_test ("write6.in");
+  run_unsat_test ("write6.btor");
 }
 
 static void
 test_write7_special ()
 {
-  run_unsat_test ("write7.in");
+  run_unsat_test ("write7.btor");
 }
 
 static void
 test_write8_special ()
 {
-  run_unsat_test ("write8.in");
+  run_unsat_test ("write8.btor");
 }
 
 static void
 test_write9_special ()
 {
-  run_unsat_test ("write9.in");
+  run_unsat_test ("write9.btor");
 }
 
 static void
 test_write10_special ()
 {
-  run_unsat_test ("write10.in");
+  run_unsat_test ("write10.btor");
 }
 
 static void
 test_write11_special ()
 {
-  run_sat_test ("write11.in");
+  run_sat_test ("write11.btor");
 }
 
 static void
 test_write12_special ()
 {
-  run_sat_test ("write12.in");
+  run_sat_test ("write12.btor");
 }
 
 static void
 test_arrayeq1_special ()
 {
-  run_sat_test ("arrayeq1.in");
+  run_sat_test ("arrayeq1.btor");
 }
 
 static void
 test_arrayeq2_special ()
 {
-  run_unsat_test ("arrayeq2.in");
+  run_unsat_test ("arrayeq2.btor");
 }
 
 static void
 test_arrayeq3_special ()
 {
-  run_sat_test ("arrayeq3.in");
+  run_sat_test ("arrayeq3.btor");
 }
 
 static void
 test_arrayeq4_special ()
 {
-  run_sat_test ("arrayeq4.in");
+  run_sat_test ("arrayeq4.btor");
 }
 
 static void
 test_arrayeq5_special ()
 {
-  run_unsat_test ("arrayeq5.in");
+  run_unsat_test ("arrayeq5.btor");
 }
 
 void
