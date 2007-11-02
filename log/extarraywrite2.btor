@@ -6,6 +6,6 @@
 6 write 8 2 3 4
 7 eq 1 1 2
 8 eq 1 5 6
-9 implies 1 8 7
+9 implies 1 7 8
 10 root 1 -9
 
