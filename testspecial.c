@@ -513,6 +513,12 @@ test_arrayeq8_special ()
   run_sat_test ("arrayeq8.btor");
 }
 
+static void
+test_arrayeq9_special ()
+{
+  run_unsat_test ("arrayeq9.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -595,6 +601,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arrayeq6_special);
   BTOR_RUN_TEST (arrayeq7_special);
   BTOR_RUN_TEST (arrayeq8_special);
+  BTOR_RUN_TEST (arrayeq9_special);
 }
 
 void
