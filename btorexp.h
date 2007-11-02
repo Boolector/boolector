@@ -160,6 +160,12 @@ struct BtorExp
 #define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
 #define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
 
+#define BTOR_IS_ACC_EXP(exp) \
+  ((exp)->kind == BTOR_READ_EXP || BTOR_IS_WRITE_ARRAY_EXP (exp))
+#define BTOR_GET_INDEX_ACC_EXP(exp) ((exp)->e[1])
+#define BTOR_GET_VALUE_ACC_EXP(exp) \
+  ((exp)->kind == BTOR_READ_EXP ? exp : exp->e[2])
+
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
 BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
