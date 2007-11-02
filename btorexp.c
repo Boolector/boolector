@@ -437,237 +437,6 @@ encode_ackermann_constraint_eagerly (
   }
 }
 
-/* Encodes Ackermann constraint of the form index i = index j =>
- * value a = value b directly into CNF.
- * Let n be the number of bits of the indices
- * and m the number of bits of the values:
- * i = j => a = b
- * (i = j => e) ^ (e => a = b)
- * ((i != j) v e) ^ (not e v (a = b))
- * forall (0 <= k < n) (i_k v j_k v !d_k) ^ (!i_k v !j_k v !d_k)) ^
- * (forall (0 <= k < n) (d_k) v e) ^
- * forall (0 <= k < m) ((!e v a_k v !b_k) ^ (!e v !a_k v b_k))
- *
- * This function may not be called from eager read mode. We have to check
- * if we have to encode a constraint at all. For example if we are in eager
- * mode and the indices are constants and not equal, then we do not have
- * to encode a constraint.
- */
-static void
-encode_ackermann_constraint_lazily (
-    BtorExpMgr *emgr, BtorExp *i, BtorExp *j, BtorExp *a, BtorExp *b)
-{
-  BtorMemMgr *mm       = NULL;
-  BtorAIGVecMgr *avmgr = NULL;
-  BtorAIGMgr *amgr     = NULL;
-  BtorSATMgr *smgr     = NULL;
-  BtorAIGVec *av_i     = NULL;
-  BtorAIGVec *av_j     = NULL;
-  BtorAIGVec *av_a     = NULL;
-  BtorAIGVec *av_b     = NULL;
-  BtorAIG *aig1        = NULL;
-  BtorAIG *aig2        = NULL;
-  BtorIntStack diffs;
-  int k                                        = 0;
-  int len_a_b                                  = 0;
-  int len_i_j                                  = 0;
-  int i_k                                      = 0;
-  int j_k                                      = 0;
-  int d_k                                      = 0;
-  int e                                        = 0;
-  int a_k                                      = 0;
-  int b_k                                      = 0;
-  int is_equal_i_j                             = 0;
-  BtorExpPair *pair                            = NULL;
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table = NULL;
-  BtorPtrHashTable *exp_pair_cnf_eq_id_table   = NULL;
-  BtorPtrHashBucket *bucket                    = NULL;
-  assert (emgr != NULL);
-  assert (i != NULL);
-  assert (j != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (emgr->read_enc != BTOR_EAGER_READ_ENC);
-  exp_pair_cnf_diff_id_table = emgr->exp_pair_cnf_diff_id_table;
-  exp_pair_cnf_eq_id_table   = emgr->exp_pair_cnf_eq_id_table;
-  mm                         = emgr->mm;
-  avmgr                      = emgr->avmgr;
-  amgr                       = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr                       = btor_get_sat_mgr_aig_mgr (amgr);
-  av_i                       = BTOR_REAL_ADDR_EXP (i)->av;
-  av_j                       = BTOR_REAL_ADDR_EXP (j)->av;
-  av_a                       = BTOR_REAL_ADDR_EXP (a)->av;
-  av_b                       = BTOR_REAL_ADDR_EXP (b)->av;
-  assert (av_i != NULL);
-  assert (av_j != NULL);
-  assert (av_a != NULL);
-  assert (av_b != NULL);
-  assert (av_a->len == av_b->len);
-  assert (av_i->len == av_j->len);
-  len_a_b = av_a->len;
-  len_i_j = av_i->len;
-  BTOR_INIT_STACK (diffs);
-  /* check if i and j have equal AIGs */
-  is_equal_i_j = 1;
-  for (k = 0; k < len_i_j; k++)
-  {
-    if (BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k])
-        != BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]))
-    {
-      is_equal_i_j = 0;
-      break;
-    }
-  }
-  /* skip i = j part if i and j are equal:
-   * W => a = b  <=>  a = b
-   */
-  if (!is_equal_i_j)
-  {
-    if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
-    {
-      btor_aigvec_to_sat_full (avmgr, av_i);
-      BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
-    }
-    if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
-    {
-      btor_aigvec_to_sat_full (avmgr, av_j);
-      BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
-    }
-    pair = new_exp_pair (emgr, i, j);
-    /* already encoded i != j into SAT ? */
-    bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair);
-    /* no? */
-    if (bucket == NULL)
-    {
-      /* hash starting cnf id - 1 for d_k */
-      d_k = btor_get_last_cnf_id_sat_mgr (smgr);
-      assert (d_k != 0);
-      btor_insert_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair)
-          ->data.asInt = d_k;
-      for (k = 0; k < len_i_j; k++)
-      {
-        aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
-        aig2 = BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]);
-        if (!BTOR_IS_CONST_AIG (aig1))
-        {
-          i_k = BTOR_GET_CNF_ID_AIG (aig1);
-          assert (i_k != 0);
-        }
-        if (!BTOR_IS_CONST_AIG (aig2))
-        {
-          j_k = BTOR_GET_CNF_ID_AIG (aig2);
-          assert (j_k != 0);
-        }
-        /* The bits cannot be the inverse of each other.
-         * We check this at the beginning of the function.
-         */
-        assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2))
-                != 1ul);
-        d_k = btor_next_cnf_id_sat_mgr (smgr);
-        assert (d_k != 0);
-        BTOR_PUSH_STACK (mm, diffs, d_k);
-        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
-        }
-        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
-        }
-      }
-    }
-    else
-    {
-      /* we have already encoded i != j,
-       * we simply reuse all diffs */
-      d_k = bucket->data.asInt;
-      delete_exp_pair (emgr, pair);
-      for (k = 0; k < len_i_j; k++)
-      {
-        d_k++;
-        BTOR_PUSH_STACK (mm, diffs, d_k);
-      }
-    }
-  }
-  if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
-  {
-    btor_aigvec_to_sat_full (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
-  }
-  if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
-  {
-    btor_aigvec_to_sat_full (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
-  }
-  pair = new_exp_pair (emgr, a, b);
-  /* already encoded a = b ? */
-  bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
-  /* no ? */
-  if (bucket == NULL)
-  {
-    e = btor_next_cnf_id_sat_mgr (smgr);
-    /* hash e */
-    btor_insert_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair)->data.asInt =
-        e;
-    for (k = 0; k < len_a_b; k++)
-    {
-      aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
-      aig2 = BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]);
-      if (!BTOR_IS_CONST_AIG (aig1))
-      {
-        a_k = BTOR_GET_CNF_ID_AIG (aig1);
-        assert (a_k != 0);
-      }
-      if (!BTOR_IS_CONST_AIG (aig2))
-      {
-        b_k = BTOR_GET_CNF_ID_AIG (aig2);
-        assert (b_k != 0);
-      }
-      /* if AIGs are equal then clauses are satisfied */
-      if (aig1 != aig2)
-      {
-        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
-        {
-          btor_add_sat (smgr, -e);
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
-          btor_add_sat (smgr, 0);
-        }
-        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
-        {
-          btor_add_sat (smgr, -e);
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
-          btor_add_sat (smgr, 0);
-        }
-      }
-    }
-  }
-  else
-  {
-    /* we have already encoded a = b into SAT
-     * we simply reuse e */
-    e = bucket->data.asInt;
-    delete_exp_pair (emgr, pair);
-  }
-  while (!BTOR_EMPTY_STACK (diffs))
-  {
-    k = BTOR_POP_STACK (diffs);
-    assert (k != 0);
-    btor_add_sat (smgr, k);
-  }
-  assert (e != 0);
-  btor_add_sat (smgr, e);
-  btor_add_sat (smgr, 0);
-  BTOR_RELEASE_STACK (mm, diffs);
-}
-
 /* This function is used to encode constraints of the form
  * array equality 1 ^ ... ^ i != k1 ^ i != k2 ^ ... ^ i != kn ^ i = j => a = b
  * The stack 'writes' contains intermediate writes.
@@ -729,7 +498,6 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
-  assert (BTOR_COUNT_STACK (*writes) + BTOR_COUNT_STACK (*aeqs) > 0);
   exp_pair_cnf_diff_id_table = emgr->exp_pair_cnf_diff_id_table;
   exp_pair_cnf_eq_id_table   = emgr->exp_pair_cnf_eq_id_table;
   mm                         = emgr->mm;
@@ -4941,10 +4709,7 @@ extensionality_bfs (BtorExpMgr *emgr, BtorExp *acc, BtorExp *array)
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_QUEUE (queue);
-  if (acc->kind == BTOR_READ_EXP)
-    cur = acc->e[0];
-  else
-    cur = acc;
+  cur = BTOR_ACC_TARGET_EXP (acc);
   assert (BTOR_IS_REGULAR_EXP (cur));
   assert (cur != array);
   assert (BTOR_IS_ARRAY_EXP (cur));
@@ -5034,24 +4799,6 @@ extensionality_bfs (BtorExpMgr *emgr, BtorExp *acc, BtorExp *array)
   BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
-/* Resolves local conflict */
-static void
-resolve_local_conflict (BtorExpMgr *emgr, BtorExp *acc1, BtorExp *acc2)
-{
-  assert (emgr != NULL);
-  assert (acc1 != NULL);
-  assert (acc2 != NULL);
-  assert (BTOR_IS_REGULAR_EXP (acc1));
-  assert (BTOR_IS_REGULAR_EXP (acc2));
-  assert (BTOR_IS_ACC_EXP (acc1));
-  assert (BTOR_IS_ACC_EXP (acc2));
-  encode_ackermann_constraint_lazily (emgr,
-                                      BTOR_GET_INDEX_ACC_EXP (acc1),
-                                      BTOR_GET_INDEX_ACC_EXP (acc2),
-                                      BTOR_GET_VALUE_ACC_EXP (acc1),
-                                      BTOR_GET_VALUE_ACC_EXP (acc2));
-}
-
 static unsigned int
 hash_regular_exp_by_id (BtorExp *exp)
 {
@@ -5076,14 +4823,14 @@ compare_regular_exps_by_id (BtorExp *exp1, BtorExp *exp2)
   return 0;
 }
 
-/* Resolves a conflict across multiple levels
+/* Resolves conflict across multiple levels (if necessary)
  * 'array' is the array where the conflict has been detected
  */
 static void
-resolve_multiple_level_conflict (BtorExpMgr *emgr,
-                                 BtorExp *array,
-                                 BtorExp *acc1,
-                                 BtorExp *acc2)
+resolve_conflict (BtorExpMgr *emgr,
+                  BtorExp *array,
+                  BtorExp *acc1,
+                  BtorExp *acc2)
 {
   BtorExpPtrStack writes;
   BtorExpPtrStack aeqs;
@@ -5103,22 +4850,18 @@ resolve_multiple_level_conflict (BtorExpMgr *emgr,
   assert (BTOR_IS_ACC_EXP (acc1));
   assert (BTOR_IS_ACC_EXP (acc2));
   mm = emgr->mm;
-  assert (acc1->e[0] != array || acc2->e[0] != array);
   /* collect intermediate writes, array equalities and array conditionals
    * as premisses for McCarthy constraint */
   BTOR_INIT_STACK (writes);
   BTOR_INIT_STACK (aeqs);
   /* both expressions are not local to the array */
-  need_hashing = ((acc1->kind == BTOR_READ_EXP && acc1->e[0] != array)
-                  || (BTOR_IS_WRITE_ARRAY_EXP (acc1) && acc1 != array))
-                 && ((acc2->kind == BTOR_READ_EXP && acc2->e[0] != array)
-                     || (BTOR_IS_WRITE_ARRAY_EXP (acc2) && acc2 != array));
+  need_hashing =
+      BTOR_ACC_TARGET_EXP (acc1) != array && BTOR_ACC_TARGET_EXP (acc2);
   if (need_hashing)
     table = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) hash_regular_exp_by_id,
                                      (BtorCmpPtr) compare_regular_exps_by_id);
-  if ((acc1->kind == BTOR_READ_EXP && acc1->e[0] != array)
-      || (BTOR_IS_WRITE_ARRAY_EXP (acc1) && acc1 != array))
+  if (BTOR_ACC_TARGET_EXP (acc1) != array)
   {
     extensionality_bfs (emgr, acc1, array);
     cur = array;
@@ -5129,7 +4872,6 @@ resolve_multiple_level_conflict (BtorExpMgr *emgr,
       assert (BTOR_IS_REGULAR_EXP (next));
       assert (BTOR_IS_ARRAY_EXP (next) || next->kind == BTOR_AEQ_EXP
               || next->kind == BTOR_ACOND_EXP || BTOR_IS_ACC_EXP (next));
-
       /* if next is a native array, then we do not have to do anything */
       if (next != acc1)
       {
@@ -5152,8 +4894,7 @@ resolve_multiple_level_conflict (BtorExpMgr *emgr,
       cur = next;
     } while (cur != acc1);
   }
-  if ((acc2->kind == BTOR_READ_EXP && acc2->e[0] != array)
-      || (BTOR_IS_WRITE_ARRAY_EXP (acc2) && acc2 != array))
+  if (BTOR_ACC_TARGET_EXP (acc2) != array)
   {
     extensionality_bfs (emgr, acc2, array);
     cur = array;
@@ -5277,7 +5018,6 @@ process_working_stack (BtorExpMgr *emgr,
                        int *assignments_changed)
 {
   int indices_equal         = 0;
-  int extensionality        = 0;
   BtorExp *acc              = NULL; /* read or write interpreted as read */
   BtorExp *index            = NULL;
   BtorExp *value            = NULL;
@@ -5294,9 +5034,8 @@ process_working_stack (BtorExpMgr *emgr,
   assert (stack != NULL);
   assert (cleanup_stack != NULL);
   assert (assignments_changed != NULL);
-  mm             = emgr->mm;
-  amgr           = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  extensionality = emgr->extensionality;
+  mm   = emgr->mm;
+  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   while (!BTOR_EMPTY_STACK (*stack))
   {
     array = BTOR_POP_STACK (*stack);
@@ -5306,7 +5045,7 @@ process_working_stack (BtorExpMgr *emgr,
     acc = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (acc));
     assert (BTOR_IS_ACC_EXP (acc));
-    /* synthesize read index and value if necessary */
+    /* synthesize index and value if necessary */
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (emgr, acc);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
     value                = BTOR_GET_VALUE_ACC_EXP (acc);
@@ -5331,16 +5070,7 @@ process_working_stack (BtorExpMgr *emgr,
         if (compare_assignments (hashed_value, value) != 0)
         {
           emgr->read_read_conflicts++;
-          /* local conflict ? */
-          if ((hashed_acc->e[0] == array && acc->e[0] == array)
-              || (extensionality
-                  && ((BTOR_IS_WRITE_ARRAY_EXP (hashed_acc)
-                       && acc->e[0] == hashed_acc)
-                      || (BTOR_IS_WRITE_ARRAY_EXP (acc)
-                          && hashed_acc->e[0] == acc))))
-            resolve_local_conflict (emgr, hashed_acc, acc);
-          else
-            resolve_multiple_level_conflict (emgr, array, hashed_acc, acc);
+          resolve_conflict (emgr, array, hashed_acc, acc);
           return 1;
         }
         /* in the other case we have already dealt with a representative with
@@ -5351,32 +5081,20 @@ process_working_stack (BtorExpMgr *emgr,
     }
     if (BTOR_IS_WRITE_ARRAY_EXP (array))
     {
-      /* do not propagate if write is interpreted as read on itself */
-      if (array != acc)
+      *assignments_changed = lazy_synthesize_and_encode_acc_exp (emgr, array);
+      if (*assignments_changed) return 0;
+      /* check if read is consistent with write */
+      if (check_read_write_conflict (emgr, acc, array, &indices_equal))
       {
-        *assignments_changed = lazy_synthesize_and_encode_acc_exp (emgr, array);
-        if (*assignments_changed) return 0;
-        /* check if read is consistent with write */
-        if (check_read_write_conflict (emgr, acc, array, &indices_equal))
-        {
-          emgr->read_write_conflicts++;
-          /* check if local or propagated read conflicts with write */
-          if (acc->e[0] == array)
-          {
-            assert (acc->kind == BTOR_READ_EXP);
-            resolve_local_conflict (emgr, acc, array);
-          }
-          else
-            resolve_multiple_level_conflict (emgr, array, acc, array);
-          return 1;
-        }
-        else if (!indices_equal)
-        {
-          /* propagate */
-          BTOR_PUSH_STACK (mm, *stack, acc);
-          BTOR_PUSH_STACK (mm, *stack, array->e[0]);
-          continue;
-        }
+        emgr->read_write_conflicts++;
+        resolve_conflict (emgr, array, acc, array);
+        return 1;
+      }
+      else if (!indices_equal)
+      {
+        /* propagate */
+        BTOR_PUSH_STACK (mm, *stack, acc);
+        BTOR_PUSH_STACK (mm, *stack, array->e[0]);
       }
     }
     assert (array->table != NULL);

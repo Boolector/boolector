@@ -164,7 +164,9 @@ struct BtorExp
   ((exp)->kind == BTOR_READ_EXP || BTOR_IS_WRITE_ARRAY_EXP (exp))
 #define BTOR_GET_INDEX_ACC_EXP(exp) ((exp)->e[1])
 #define BTOR_GET_VALUE_ACC_EXP(exp) \
-  ((exp)->kind == BTOR_READ_EXP ? exp : exp->e[2])
+  ((exp)->kind == BTOR_READ_EXP ? (exp) : (exp)->e[2])
+#define BTOR_ACC_TARGET_EXP(exp) \
+  ((exp)->kind == BTOR_READ_EXP ? (exp)->e[0] : (exp))
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
