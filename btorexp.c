@@ -5474,7 +5474,7 @@ process_working_stack (BtorExpMgr *emgr,
         }
       }
       i              = BTOR_GET_TAG_EXP (cur_aeq_acond);
-      cur_aeq_acond  = real_aeq_acond->e[i];
+      cur_aeq_acond  = real_aeq_acond->next_parent[i];
       real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
     }
   }
