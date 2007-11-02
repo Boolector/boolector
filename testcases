@@ -67,3 +67,5 @@ smtextarrayaxiom4uf -o log/smtextarrayaxiom4uf.log log/smtextarrayaxiom4uf.smt
 smtextarrayaxiom4 -o log/smtextarrayaxiom4.log log/smtextarrayaxiom4.smt
 extarraywrite1 -o log/extarraywrite1.log log/extarraywrite1.btor
 extarraywrite2 -o log/extarraywrite2.log log/extarraywrite2.btor
+extarraywrite3 -o log/extarraywrite3.log log/extarraywrite3.smt
+extarraywrite3sat -o log/extarraywrite3sat.log log/extarraywrite3sat.smt
