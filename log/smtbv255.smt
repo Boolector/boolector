@@ -3,5 +3,5 @@
  :logic
  QF_BV
  :formula
- (not (= bv255[8] (not bv0[8]))))
+ (not (= bv255[8] (bvnot bv0[8]))))
 
