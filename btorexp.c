@@ -989,7 +989,7 @@ connect_child_exp (BtorExpMgr *emgr, BtorExp *parent, BtorExp *child, int pos)
   assert (BTOR_IS_REGULAR_EXP (parent));
   assert (!BTOR_IS_WRITE_ARRAY_EXP (parent) || pos == 1 || pos == 2);
   assert (parent->kind != BTOR_AEQ_EXP);
-  assert (parent->kind != BTOR_ACOND_EXP);
+  assert (parent->kind != BTOR_ACOND_EXP || pos == 0);
   real_child     = BTOR_REAL_ADDR_EXP (child);
   parent->e[pos] = child;
   tagged_parent  = BTOR_TAG_EXP (parent, pos);
@@ -1106,8 +1106,8 @@ connect_child_aeq_acond_exp (BtorExpMgr *emgr,
         first_parent = child->first_parent;
         assert (BTOR_IS_REGULAR_EXP (first_parent));
         assert (BTOR_IS_WRITE_ARRAY_EXP (first_parent));
-        assert (BTOR_GET_TAG_EXP (first_parent) == 0);
-        /* insert at the beginning of the list */
+        assert (BTOR_GET_TAG_EXP (first_parent)
+                == 0); /* insert at the beginning of the list */
         parent->next_parent[pos]     = first_parent;
         first_parent->prev_parent[0] = tagged_parent;
         child->first_parent          = tagged_parent;
@@ -1226,10 +1226,13 @@ disconnect_child_exp (BtorExpMgr *emgr, BtorExp *parent, int pos)
   assert (last_parent != NULL);
   real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
   real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
-  /* special treatment of aeq and acond parents */
-  assert (!(parent->kind == BTOR_AEQ_EXP || parent->kind == BTOR_ACOND_EXP)
+  /* special treatment of array children of aeq and acond */
+  assert (parent->kind != BTOR_AEQ_EXP || pos == 0 || pos == 1);
+  assert (!(parent->kind == BTOR_AEQ_EXP
+            || (parent->kind == BTOR_ACOND_EXP && pos != 0))
           || real_child->first_aeq_acond_parent != NULL);
-  if ((parent->kind == BTOR_AEQ_EXP || parent->kind == BTOR_ACOND_EXP)
+  if ((parent->kind == BTOR_AEQ_EXP
+       || (parent->kind == BTOR_ACOND_EXP && pos != 0))
       && BTOR_REAL_ADDR_EXP (real_child->first_aeq_acond_parent) == parent)
   {
     first_aeq_acond_parent = real_child->first_aeq_acond_parent;
@@ -1346,7 +1349,7 @@ new_binary_exp_node (
   exp->id   = emgr->id++;
   exp->refs = 1;
   exp->emgr = emgr;
-  /* special treatment of array equalities in parent list */
+  /* special treatment in parent list */
   if (kind == BTOR_AEQ_EXP)
   {
     connect_child_aeq_acond_exp (emgr, exp, e0, 0);
@@ -1448,8 +1451,9 @@ new_acond_exp_node (BtorExpMgr *emgr,
   exp->refs      = 1;
   exp->emgr      = emgr;
   connect_child_exp (emgr, exp, e_cond, 0);
-  connect_child_exp (emgr, exp, a_if, 1);
-  connect_child_exp (emgr, exp, a_else, 2);
+  /* special treatment in parent list */
+  connect_child_aeq_acond_exp (emgr, exp, a_if, 1);
+  connect_child_aeq_acond_exp (emgr, exp, a_else, 2);
   return exp;
 }
 
@@ -1491,11 +1495,7 @@ delete_exp_node (BtorExpMgr *emgr, BtorExp *exp)
       disconnect_child_exp (emgr, exp, 1);
       disconnect_child_exp (emgr, exp, 2);
     }
-    if (exp->av != NULL)
-    {
-      assert (emgr->avmgr != NULL);
-      btor_release_delete_aigvec (emgr->avmgr, exp->av);
-    }
+    if (exp->av != NULL) btor_release_delete_aigvec (emgr->avmgr, exp->av);
   }
   BTOR_DELETE (mm, exp);
 }
@@ -4309,7 +4309,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
               /* mark children recursively as reachable */
               set_flags_reachable_exp (emgr, cur->e[1]);
               set_flags_reachable_exp (emgr, cur->e[0]);
-              /* we do not synthesize children as we are
+              /* we do not synthesize index as we are
                * in lazy mode */
             }
           }
@@ -4322,8 +4322,8 @@ btor_synthesize_exp (BtorExpMgr *emgr,
             set_flags_reachable_exp (emgr, cur->e[2]);
             set_flags_reachable_exp (emgr, cur->e[1]);
             set_flags_reachable_exp (emgr, cur->e[0]);
-            /* we do not synthesize children as we are
-             * in lazy mode */
+            /* we do not synthesize index and value
+             * as we are in lazy mode */
           }
           else if (cur->kind == BTOR_AEQ_EXP)
           {
@@ -4468,44 +4468,46 @@ btor_synthesize_exp (BtorExpMgr *emgr,
         else
         {
           assert (BTOR_IS_TERNARY_EXP (cur));
-          assert (cur->kind == BTOR_BCOND_EXP);
-          same_children_mem =
-              BTOR_REAL_ADDR_EXP (cur->e[0]) == BTOR_REAL_ADDR_EXP (cur->e[1])
-              || BTOR_REAL_ADDR_EXP (cur->e[0])
-                     == BTOR_REAL_ADDR_EXP (cur->e[2])
-              || BTOR_REAL_ADDR_EXP (cur->e[1])
-                     == BTOR_REAL_ADDR_EXP (cur->e[2]);
-          if (same_children_mem)
+          if (cur->kind == BTOR_BCOND_EXP)
           {
-            av0 = BTOR_AIGVEC_EXP (emgr, cur->e[0]);
-            av1 = BTOR_AIGVEC_EXP (emgr, cur->e[1]);
-            av2 = BTOR_AIGVEC_EXP (emgr, cur->e[2]);
-          }
-          else
-          {
-            invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
-            av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
-            if (invert_av0) btor_invert_aigvec (avmgr, av0);
-            invert_av1 = BTOR_IS_INVERTED_EXP (cur->e[1]);
-            av1        = BTOR_REAL_ADDR_EXP (cur->e[1])->av;
-            if (invert_av1) btor_invert_aigvec (avmgr, av1);
-            invert_av2 = BTOR_IS_INVERTED_EXP (cur->e[2]);
-            av2        = BTOR_REAL_ADDR_EXP (cur->e[2])->av;
-            if (invert_av2) btor_invert_aigvec (avmgr, av2);
-          }
-          cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
-          if (same_children_mem)
-          {
-            btor_release_delete_aigvec (avmgr, av2);
-            btor_release_delete_aigvec (avmgr, av1);
-            btor_release_delete_aigvec (avmgr, av0);
-          }
-          else
-          {
-            /* invert back if necessary */
-            if (invert_av0) btor_invert_aigvec (avmgr, av0);
-            if (invert_av1) btor_invert_aigvec (avmgr, av1);
-            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+            same_children_mem =
+                BTOR_REAL_ADDR_EXP (cur->e[0]) == BTOR_REAL_ADDR_EXP (cur->e[1])
+                || BTOR_REAL_ADDR_EXP (cur->e[0])
+                       == BTOR_REAL_ADDR_EXP (cur->e[2])
+                || BTOR_REAL_ADDR_EXP (cur->e[1])
+                       == BTOR_REAL_ADDR_EXP (cur->e[2]);
+            if (same_children_mem)
+            {
+              av0 = BTOR_AIGVEC_EXP (emgr, cur->e[0]);
+              av1 = BTOR_AIGVEC_EXP (emgr, cur->e[1]);
+              av2 = BTOR_AIGVEC_EXP (emgr, cur->e[2]);
+            }
+            else
+            {
+              invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
+              av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
+              if (invert_av0) btor_invert_aigvec (avmgr, av0);
+              invert_av1 = BTOR_IS_INVERTED_EXP (cur->e[1]);
+              av1        = BTOR_REAL_ADDR_EXP (cur->e[1])->av;
+              if (invert_av1) btor_invert_aigvec (avmgr, av1);
+              invert_av2 = BTOR_IS_INVERTED_EXP (cur->e[2]);
+              av2        = BTOR_REAL_ADDR_EXP (cur->e[2])->av;
+              if (invert_av2) btor_invert_aigvec (avmgr, av2);
+            }
+            cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
+            if (same_children_mem)
+            {
+              btor_release_delete_aigvec (avmgr, av2);
+              btor_release_delete_aigvec (avmgr, av1);
+              btor_release_delete_aigvec (avmgr, av0);
+            }
+            else
+            {
+              /* invert back if necessary */
+              if (invert_av0) btor_invert_aigvec (avmgr, av0);
+              if (invert_av1) btor_invert_aigvec (avmgr, av1);
+              if (invert_av2) btor_invert_aigvec (avmgr, av2);
+            }
           }
         }
       }
@@ -5012,6 +5014,39 @@ lazy_synthesize_and_encode_acc_exp (BtorExpMgr *emgr, BtorExp *acc)
 }
 
 static int
+lazy_synthesize_and_encode_acond_exp (BtorExpMgr *emgr, BtorExp *acond)
+{
+  BtorExp *cond           = NULL;
+  int changed_assignments = 0;
+  int update              = 0;
+  BtorAIGVecMgr *avmgr    = NULL;
+  BtorSATMgr *smgr        = NULL;
+  avmgr                   = emgr->avmgr;
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (avmgr));
+  assert (emgr != NULL);
+  assert (acond != NULL);
+  assert (BTOR_IS_REGULAR_EXP (acond));
+  assert (acond->kind == BTOR_ACOND_EXP);
+  cond = acond->e[0];
+  assert (cond != NULL);
+  if (BTOR_REAL_ADDR_EXP (cond)->av == NULL)
+    btor_synthesize_exp (emgr, cond, NULL);
+  if (!BTOR_REAL_ADDR_EXP (cond)->full_sat)
+  {
+    update = 1;
+    btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
+    BTOR_REAL_ADDR_EXP (cond)->full_sat = 1;
+  }
+  /* update assignments if necessary */
+  if (update)
+  {
+    (void) btor_sat_sat (smgr, INT_MAX);
+    changed_assignments = btor_changed_assignments_sat (smgr);
+  }
+  return changed_assignments;
+}
+
+static int
 process_working_stack (BtorExpMgr *emgr,
                        BtorExpPtrStack *stack,
                        BtorExpPtrStack *cleanup_stack,
@@ -5026,10 +5061,12 @@ process_working_stack (BtorExpMgr *emgr,
   BtorExp *hashed_value     = NULL;
   BtorExp *cur_aeq_acond    = NULL;
   BtorExp *real_aeq_acond   = NULL;
+  BtorExp *cond             = NULL;
   BtorPtrHashBucket *bucket = NULL;
   BtorMemMgr *mm            = NULL;
   BtorAIGMgr *amgr          = NULL;
   int i                     = 0;
+  int assignment            = 0;
   assert (emgr != NULL);
   assert (stack != NULL);
   assert (cleanup_stack != NULL);
@@ -5049,6 +5086,7 @@ process_working_stack (BtorExpMgr *emgr,
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (emgr, acc);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
     value                = BTOR_GET_VALUE_ACC_EXP (acc);
+    printf ("%d: %d\n", array->id, acc->id);
     if (*assignments_changed) return 0;
     /* hash table lookup */
     if (array->table == NULL)
@@ -5131,8 +5169,24 @@ process_working_stack (BtorExpMgr *emgr,
         else
         {
           assert (real_aeq_acond->kind == BTOR_ACOND_EXP);
-          /* TODO: deal with acond */
-          assert (0);
+          *assignments_changed =
+              lazy_synthesize_and_encode_acond_exp (emgr, real_aeq_acond);
+          if (*assignments_changed) return 0;
+          i = BTOR_GET_TAG_EXP (cur_aeq_acond);
+          assert (i == 1 || i == 2);
+          cond = real_aeq_acond->e[0];
+          assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          assert (assignment == 1 || assignment == -1);
+          /* does condition select us?
+           * then we have to propagate read */
+          if ((assignment == 1 && i == 1) || (assignment == -1 && i == 2))
+          {
+            BTOR_PUSH_STACK (mm, *stack, acc);
+            BTOR_PUSH_STACK (mm, *stack, real_aeq_acond);
+          }
         }
       }
       i              = BTOR_GET_TAG_EXP (cur_aeq_acond);
