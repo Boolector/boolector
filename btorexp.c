@@ -5086,7 +5086,6 @@ process_working_stack (BtorExpMgr *emgr,
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (emgr, acc);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
     value                = BTOR_GET_VALUE_ACC_EXP (acc);
-    printf ("%d: %d\n", array->id, acc->id);
     if (*assignments_changed) return 0;
     /* hash table lookup */
     if (array->table == NULL)
