@@ -662,10 +662,10 @@ btor_main (int argc, char **argv)
       if (app.verbosity >= 0)
       {
         if (sat_result == BTOR_UNSAT)
-          print_msg (&app, "UNSATISFIABLE\n");
+          print_msg (&app, "unsat\n");
         else if (sat_result == BTOR_SAT)
         {
-          print_msg (&app, "SATISFIABLE\n");
+          print_msg (&app, "sat\n");
           if (print_solutions && parse_res.nvars > 0)
             print_variable_assignments (
                 &app, emgr, parse_res.vars, parse_res.nvars);
@@ -673,7 +673,7 @@ btor_main (int argc, char **argv)
         else
         {
           assert (sat_result == BTOR_UNKNOWN);
-          print_msg (&app, "UNKNOWN SAT RESULT\n");
+          print_msg (&app, "unknown\n");
         }
       }
 

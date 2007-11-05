@@ -1,4 +1,4 @@
 (benchmark smttrue.smt
  :logic QF_BV
- :status sat
+ :status unsat
  :formula false)
