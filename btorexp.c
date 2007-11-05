@@ -3663,7 +3663,7 @@ btor_cond_exp (BtorExpMgr *emgr,
           || (BTOR_REAL_ADDR_EXP (e_if)->index_len
               == BTOR_REAL_ADDR_EXP (e_else)->index_len));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))
-          || (BTOR_REAL_ADDR_EXP (e_if->index_len > 0)));
+          || (BTOR_REAL_ADDR_EXP (e_if)->index_len > 0));
   /* arrays may not be tagged or inverted */
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))
           || (BTOR_IS_REGULAR_EXP (e_if) && BTOR_IS_REGULAR_EXP (e_else)));
