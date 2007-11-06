@@ -537,6 +537,12 @@ test_arraycond3_special ()
   run_unsat_test ("arraycond3.btor");
 }
 
+static void
+test_arraycond4_special ()
+{
+  run_sat_test ("arraycond4.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -623,6 +629,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arraycond1_special);
   BTOR_RUN_TEST (arraycond2_special);
   BTOR_RUN_TEST (arraycond3_special);
+  BTOR_RUN_TEST (arraycond4_special);
 }
 
 void
