@@ -4809,49 +4809,27 @@ extensionality_bfs (BtorExpMgr *emgr, BtorExp *acc, BtorExp *array)
                || real_aeq_acond->kind == BTOR_ACOND_EXP))
     {
       i = BTOR_GET_TAG_EXP (cur_aeq_acond);
-      if (real_aeq_acond->reachable && real_aeq_acond->mark == 0)
+      if (real_aeq_acond->reachable && real_aeq_acond->mark == 0
+          && real_aeq_acond->kind == BTOR_AEQ_EXP)
       {
-        if (real_aeq_acond->kind == BTOR_AEQ_EXP)
+        assert (real_aeq_acond->av != NULL);
+        assert (real_aeq_acond->full_sat);
+        assert (real_aeq_acond->len == 1);
+        if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
         {
-          assert (real_aeq_acond->av != NULL);
-          assert (real_aeq_acond->full_sat);
-          assert (real_aeq_acond->len == 1);
-          if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
+          assert (i == 0 || i == 1);
+          /* we need the other child */
+          next = real_aeq_acond->e[!i];
+          assert (BTOR_IS_REGULAR_EXP (next));
+          assert (BTOR_IS_ARRAY_EXP (next));
+          if (next->mark == 0)
           {
-            assert (i == 0 || i == 1);
-            /* we need the other child */
-            next = real_aeq_acond->e[!i];
-            assert (BTOR_IS_REGULAR_EXP (next));
-            assert (BTOR_IS_ARRAY_EXP (next));
-            if (next->mark == 0)
-            {
-              /* set parent of array equality */
-              real_aeq_acond->parent = cur;
-              next->parent           = real_aeq_acond;
-              next->mark             = 1;
-              BTOR_ENQUEUE (mm, queue, next);
-              BTOR_PUSH_STACK (mm, unmark_stack, next);
-            }
-          }
-        }
-        else
-        {
-          assert (real_aeq_acond->kind == BTOR_ACOND_EXP);
-          cond       = real_aeq_acond->e[0];
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-          assert (assignment == 1 || assignment == -1);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-          /* does condition select this array ? */
-          if ((assignment == 1 && i == 1) || (assignment == -1 && i == 2))
-          {
-            if (real_aeq_acond->mark == 0)
-            {
-              real_aeq_acond->mark   = 1;
-              real_aeq_acond->parent = cur;
-              BTOR_ENQUEUE (mm, queue, real_aeq_acond);
-              BTOR_PUSH_STACK (mm, unmark_stack, real_aeq_acond);
-            }
+            /* set parent of array equality */
+            real_aeq_acond->parent = cur;
+            next->parent           = real_aeq_acond;
+            next->mark             = 1;
+            BTOR_ENQUEUE (mm, queue, next);
+            BTOR_PUSH_STACK (mm, unmark_stack, next);
           }
         }
       }
@@ -5208,10 +5186,27 @@ process_working_stack (BtorExpMgr *emgr,
       }
       else if (!indices_equal)
       {
-        /* propagate */
+        /* propagate down */
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, array->e[0]);
       }
+    }
+    else if (array->kind == BTOR_ACOND_EXP)
+    {
+      *assignments_changed = lazy_synthesize_and_encode_acond_exp (emgr, array);
+      if (*assignments_changed) return 0;
+      cond = array->e[0];
+      assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
+      assignment = btor_get_assignment_aig (
+          amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+      if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+      assert (assignment == 1 || assignment == -1);
+      /* propagate down */
+      BTOR_PUSH_STACK (mm, *stack, acc);
+      if (assignment == 1)
+        BTOR_PUSH_STACK (mm, *stack, array->e[1]);
+      else
+        BTOR_PUSH_STACK (mm, *stack, array->e[2]);
     }
     assert (array->table != NULL);
     /* insert into hash table */
@@ -5223,51 +5218,25 @@ process_working_stack (BtorExpMgr *emgr,
            && (real_aeq_acond->kind == BTOR_AEQ_EXP
                || real_aeq_acond->kind == BTOR_ACOND_EXP))
     {
-      if (real_aeq_acond->reachable)
+      if (real_aeq_acond->reachable && real_aeq_acond->kind == BTOR_AEQ_EXP)
       {
-        if (real_aeq_acond->kind == BTOR_AEQ_EXP)
+        i = BTOR_GET_TAG_EXP (cur_aeq_acond);
+        assert (real_aeq_acond->av != NULL);
+        assert (real_aeq_acond->full_sat);
+        assert (!BTOR_IS_INVERTED_AIG (real_aeq_acond->av->aigs[0]));
+        assert (!BTOR_IS_CONST_AIG (real_aeq_acond->av->aigs[0]));
+        assert (BTOR_IS_VAR_AIG (real_aeq_acond->av->aigs[0]));
+        if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
         {
-          assert (real_aeq_acond->av != NULL);
-          assert (real_aeq_acond->full_sat);
-          assert (!BTOR_IS_INVERTED_AIG (real_aeq_acond->av->aigs[0]));
-          assert (!BTOR_IS_CONST_AIG (real_aeq_acond->av->aigs[0]));
-          assert (BTOR_IS_VAR_AIG (real_aeq_acond->av->aigs[0]));
-          if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
-          {
-            i = BTOR_GET_TAG_EXP (cur_aeq_acond);
-            assert (i == 0 || i == 1);
-            /* we need the other child */
-            array = real_aeq_acond->e[!i];
-            assert (BTOR_IS_REGULAR_EXP (array));
-            assert (BTOR_IS_ARRAY_EXP (array));
-            BTOR_PUSH_STACK (mm, *stack, acc);
-            BTOR_PUSH_STACK (mm, *stack, array);
-          }
-        }
-        else
-        {
-          assert (real_aeq_acond->kind == BTOR_ACOND_EXP);
-          *assignments_changed =
-              lazy_synthesize_and_encode_acond_exp (emgr, real_aeq_acond);
-          if (*assignments_changed) return 0;
-          i = BTOR_GET_TAG_EXP (cur_aeq_acond);
-          assert (i == 1 || i == 2);
-          cond = real_aeq_acond->e[0];
-          assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-          assert (assignment == 1 || assignment == -1);
-          /* does condition select us?
-           * then we have to propagate read */
-          if ((assignment == 1 && i == 1) || (assignment == -1 && i == 2))
-          {
-            BTOR_PUSH_STACK (mm, *stack, acc);
-            BTOR_PUSH_STACK (mm, *stack, real_aeq_acond);
-          }
+          assert (i == 0 || i == 1);
+          /* we need the other child */
+          array = real_aeq_acond->e[!i];
+          assert (BTOR_IS_REGULAR_EXP (array));
+          assert (BTOR_IS_ARRAY_EXP (array));
+          BTOR_PUSH_STACK (mm, *stack, acc);
+          BTOR_PUSH_STACK (mm, *stack, array);
         }
       }
-      i              = BTOR_GET_TAG_EXP (cur_aeq_acond);
       cur_aeq_acond  = real_aeq_acond->next_parent[i];
       real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
     }
