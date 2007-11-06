@@ -756,11 +756,11 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     cond = acond->e[0];
     assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
     assert (BTOR_REAL_ADDR_EXP (cond)->av->len == 1);
-    assert (!BTOR_IS_INVERTED_AIG (BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]));
+    aig1 = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0];
     if (BTOR_IS_INVERTED_EXP (cond))
-      k = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]->cnf_id;
+      k = BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
     else
-      k = -cond->av->aigs[0]->cnf_id;
+      k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
     BTOR_PUSH_STACK (mm, linking_clause, k);
   }
   /* add negative array conditionals to linking clause */
@@ -773,11 +773,11 @@ encode_mccarthy_constraint (BtorExpMgr *emgr,
     cond = acond->e[0];
     assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
     assert (BTOR_REAL_ADDR_EXP (cond)->av->len == 1);
-    assert (!BTOR_IS_INVERTED_AIG (BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]));
+    aig1 = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0];
     if (BTOR_IS_INVERTED_EXP (cond))
-      k = -BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]->cnf_id;
+      k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
     else
-      k = cond->av->aigs[0]->cnf_id;
+      k = BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
     BTOR_PUSH_STACK (mm, linking_clause, k);
   }
   /* add linking clause */
@@ -4041,7 +4041,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
 
       fputs ("))", file);
     }
-    else if (e->kind == BTOR_BCOND_EXP)
+    else if (e->kind == BTOR_BCOND_EXP || e->kind == BTOR_ACOND_EXP)
     {
       fputs ("(ite (= bv1[1] ", file);
       btor_dump_smt_id (e->e[0], file);
