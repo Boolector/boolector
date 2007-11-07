@@ -2192,7 +2192,8 @@ rewrite_exp (BtorExpMgr *emgr,
       }
     }
     else if (real_e0 == real_e1
-             && (kind == BTOR_BEQ_EXP || kind == BTOR_ADD_EXP))
+             && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
+                 || kind == BTOR_ADD_EXP))
     {
       if (kind == BTOR_BEQ_EXP)
       {
@@ -2201,6 +2202,8 @@ rewrite_exp (BtorExpMgr *emgr,
         else
           result = btor_zeros_exp (emgr, 1);
       }
+      else if (kind == BTOR_AEQ_EXP && e0 == e1)
+        result = btor_one_exp (emgr, 1);
       else
       {
         assert (kind == BTOR_ADD_EXP);
