@@ -5327,11 +5327,13 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       }
       cur_aeq_acond  = cur_array->first_aeq_acond_parent;
       real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
-      while (cur_aeq_acond != NULL && real_aeq_acond->kind == BTOR_ACOND_EXP)
+      while (cur_aeq_acond != NULL
+             && (real_aeq_acond->kind == BTOR_ACOND_EXP
+                 || real_aeq_acond->kind == BTOR_AEQ_EXP))
       {
-        i = BTOR_GET_TAG_EXP (cur_aeq_acond);
-        if (real_aeq_acond->reachable)
+        if (real_aeq_acond->kind == BTOR_ACOND_EXP && real_aeq_acond->reachable)
           BTOR_PUSH_STACK (mm, array_stack, real_aeq_acond);
+        i              = BTOR_GET_TAG_EXP (cur_aeq_acond);
         cur_aeq_acond  = real_aeq_acond->next_parent[i];
         real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
       }
