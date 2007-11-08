@@ -4920,8 +4920,8 @@ resolve_conflict (BtorExpMgr *emgr,
   BTOR_INIT_STACK (aconds_sel1);
   BTOR_INIT_STACK (aconds_sel2);
   /* both expressions are not local to the array */
-  need_hashing =
-      BTOR_ACC_TARGET_EXP (acc1) != array && BTOR_ACC_TARGET_EXP (acc2);
+  need_hashing = BTOR_ACC_TARGET_EXP (acc1) != array
+                 && BTOR_ACC_TARGET_EXP (acc2) != array;
   if (need_hashing)
     table = btor_new_ptr_hash_table (mm,
                                      (BtorHashPtr) hash_regular_exp_by_id,
