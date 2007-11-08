@@ -5347,6 +5347,10 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
          * consistency in extensional cases */
         BTOR_PUSH_STACK (mm, working_stack, cur_array);
         BTOR_PUSH_STACK (mm, working_stack, cur_array);
+        found_conflict = process_working_stack (
+            emgr, &working_stack, &cleanup_stack, &changed_assignments);
+        if (found_conflict || changed_assignments)
+          goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
       }
       cur_read = cur_array->first_parent;
       while (cur_read != NULL
