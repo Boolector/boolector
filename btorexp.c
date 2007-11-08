@@ -4069,7 +4069,7 @@ btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root)
       btor_dump_smt_id (e->e[0], file);
       fputc (' ', file);
       btor_dump_smt_id (e->e[1], file);
-      fputs (") bit1 bit0)", file);
+      fputs (") bv1[1] bv0[1])", file);
     }
     else
     {
