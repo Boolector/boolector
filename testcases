@@ -69,3 +69,6 @@ extarraywrite1 -o log/extarraywrite1.log log/extarraywrite1.btor
 extarraywrite2 -o log/extarraywrite2.log log/extarraywrite2.btor
 extarraywrite3 -o log/extarraywrite3.log log/extarraywrite3.smt
 extarraywrite3sat -o log/extarraywrite3sat.log log/extarraywrite3sat.smt
+smtarraycond1 -o log/smtarraycond1.log log/smtarraycond1.smt
+smtarraycond2 -o log/smtarraycond2.log log/smtarraycond2.smt
+smtarraycond3 -o log/smtarraycond3.log log/smtarraycond3.smt
