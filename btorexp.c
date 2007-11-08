@@ -171,7 +171,6 @@ new_exp_pair (BtorExpMgr *emgr, BtorExp *exp1, BtorExp *exp2)
   BTOR_NEW (emgr->mm, result);
   id1 = BTOR_GET_ID_EXP (exp1);
   id2 = BTOR_GET_ID_EXP (exp2);
-  assert (id1 != id2);
   if (id2 < id1)
   {
     result->exp1 = btor_copy_exp (emgr, exp2);
