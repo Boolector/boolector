@@ -591,6 +591,24 @@ test_arraycond11_special ()
   run_unsat_test ("arraycond11.btor");
 }
 
+static void
+test_arraycond12_special ()
+{
+  run_unsat_test ("arraycond12.btor");
+}
+
+static void
+test_arraycond13_special ()
+{
+  run_unsat_test ("arraycond13.btor");
+}
+
+static void
+test_arraycond14_special ()
+{
+  run_unsat_test ("arraycond14.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -686,6 +704,9 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arraycond9_special);
   BTOR_RUN_TEST (arraycond10_special);
   BTOR_RUN_TEST (arraycond11_special);
+  BTOR_RUN_TEST (arraycond12_special);
+  BTOR_RUN_TEST (arraycond13_special);
+  BTOR_RUN_TEST (arraycond14_special);
 }
 
 void
