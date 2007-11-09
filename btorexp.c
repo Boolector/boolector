@@ -5173,8 +5173,8 @@ process_working_stack (BtorExpMgr *emgr,
           resolve_conflict (emgr, array, hashed_acc, acc);
           return 1;
         }
-        /* in the other case we have already dealt with a representative with
-           same index and same value */
+        /* in the other case we have already dealt with a representative
+         * with same index assignment and same value assignment */
         else
           continue;
       }
@@ -5224,9 +5224,9 @@ process_working_stack (BtorExpMgr *emgr,
            && (real_aeq_acond->kind == BTOR_AEQ_EXP
                || real_aeq_acond->kind == BTOR_ACOND_EXP))
     {
+      i = BTOR_GET_TAG_EXP (cur_aeq_acond);
       if (real_aeq_acond->reachable && real_aeq_acond->kind == BTOR_AEQ_EXP)
       {
-        i = BTOR_GET_TAG_EXP (cur_aeq_acond);
         assert (real_aeq_acond->av != NULL);
         assert (real_aeq_acond->full_sat);
         assert (!BTOR_IS_INVERTED_AIG (real_aeq_acond->av->aigs[0]));
