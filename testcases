@@ -96,3 +96,4 @@ rwpropindexpluszero5 -rwl0 -o log/rwpropindexpluszero5.log log/rwpropindexplusze
 rwpropindexpluszero6 -rwl0 -o log/rwpropindexpluszero6.log log/rwpropindexpluszero6.btor
 rwpropindexpluszero7 -rwl0 -o log/rwpropindexpluszero7.log log/rwpropindexpluszero7.btor
 rwpropindexpluszero8 -rwl0 -o log/rwpropindexpluszero8.log log/rwpropindexpluszero8.btor
+arraycondconst -rwl0 -o log/arraycondconst.log log/arraycondconst.btor
