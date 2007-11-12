@@ -72,3 +72,27 @@ extarraywrite3sat -o log/extarraywrite3sat.log log/extarraywrite3sat.smt
 smtarraycond1 -o log/smtarraycond1.log log/smtarraycond1.smt
 smtarraycond2 -o log/smtarraycond2.log log/smtarraycond2.smt
 smtarraycond3 -o log/smtarraycond3.log log/smtarraycond3.smt
+rwpropindexplusconst1 -o log/rwpropindexplusconst1.log log/rwpropindexplusconst1.btor
+rwpropindexplusconst2 -o log/rwpropindexplusconst2.log log/rwpropindexplusconst2.btor
+rwpropindexplusconst3 -o log/rwpropindexplusconst3.log log/rwpropindexplusconst3.btor
+rwpropindexplusconst4 -o log/rwpropindexplusconst4.log log/rwpropindexplusconst4.btor
+rwpropindexplusconst1 -rwl0 -o log/rwpropindexplusconst1.log log/rwpropindexplusconst1.btor
+rwpropindexplusconst2 -rwl0 -o log/rwpropindexplusconst2.log log/rwpropindexplusconst2.btor
+rwpropindexplusconst3 -rwl0 -o log/rwpropindexplusconst3.log log/rwpropindexplusconst3.btor
+rwpropindexplusconst4 -rwl0 -o log/rwpropindexplusconst4.log log/rwpropindexplusconst4.btor
+rwpropindexpluszero1 -o log/rwpropindexpluszero1.log log/rwpropindexpluszero1.btor
+rwpropindexpluszero2 -o log/rwpropindexpluszero2.log log/rwpropindexpluszero2.btor
+rwpropindexpluszero3 -o log/rwpropindexpluszero3.log log/rwpropindexpluszero3.btor
+rwpropindexpluszero4 -o log/rwpropindexpluszero4.log log/rwpropindexpluszero4.btor
+rwpropindexpluszero5 -o log/rwpropindexpluszero5.log log/rwpropindexpluszero5.btor
+rwpropindexpluszero6 -o log/rwpropindexpluszero6.log log/rwpropindexpluszero6.btor
+rwpropindexpluszero7 -o log/rwpropindexpluszero7.log log/rwpropindexpluszero7.btor
+rwpropindexpluszero8 -o log/rwpropindexpluszero8.log log/rwpropindexpluszero8.btor
+rwpropindexpluszero1 -rwl0 -o log/rwpropindexpluszero1.log log/rwpropindexpluszero1.btor
+rwpropindexpluszero2 -rwl0 -o log/rwpropindexpluszero2.log log/rwpropindexpluszero2.btor
+rwpropindexpluszero3 -rwl0 -o log/rwpropindexpluszero3.log log/rwpropindexpluszero3.btor
+rwpropindexpluszero4 -rwl0 -o log/rwpropindexpluszero4.log log/rwpropindexpluszero4.btor
+rwpropindexpluszero5 -rwl0 -o log/rwpropindexpluszero5.log log/rwpropindexpluszero5.btor
+rwpropindexpluszero6 -rwl0 -o log/rwpropindexpluszero6.log log/rwpropindexpluszero6.btor
+rwpropindexpluszero7 -rwl0 -o log/rwpropindexpluszero7.log log/rwpropindexpluszero7.btor
+rwpropindexpluszero8 -rwl0 -o log/rwpropindexpluszero8.log log/rwpropindexpluszero8.btor
