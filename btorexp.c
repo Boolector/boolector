@@ -3402,7 +3402,7 @@ BtorExp *
 btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
 {
   BtorExpPtrStack stack;
-  BtorExp *result, *eq, *cond, *cur;
+  BtorExp *result, *eq, *cond, *cur, *write_index;
   BtorMemMgr *mm;
   int found;
   assert (emgr != NULL);
@@ -3415,12 +3415,15 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
   mm = emgr->mm;
-  if (BTOR_IS_WRITE_ARRAY_EXP (e_array)) /* eagerly encode McCarthy axiom */
+  if (BTOR_IS_WRITE_ARRAY_EXP (e_array))
   {
+    write_index = e_array->e[1];
+    /* if read index is equal write index, then return write value */
+    if (e_index == write_index) return btor_copy_exp (emgr, e_array->e[2]);
     if (emgr->write_enc == BTOR_EAGER_WRITE_ENC)
     {
+      /* eagerly encode McCarthy axiom */
       BTOR_INIT_STACK (stack);
-      /* resolve read over writes */
       cur   = e_array;
       found = 0;
       while (!found)
