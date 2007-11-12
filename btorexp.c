@@ -4862,15 +4862,20 @@ resolve_conflict (BtorExpMgr *emgr,
       }
       else if (cur->kind == BTOR_ACOND_EXP)
       {
-        btor_insert_in_ptr_hash_table (table, cur);
-        cond       = cur->e[0];
-        assignment = btor_get_assignment_aig (
-            amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-        if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-        if (assignment == 1)
-          BTOR_PUSH_STACK (mm, aconds_sel1, cur);
-        else
-          BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+        cond = cur->e[0];
+        assert (emgr->rewrite_level == 0
+                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
+        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+        {
+          btor_insert_in_ptr_hash_table (table, cur);
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          if (assignment == 1)
+            BTOR_PUSH_STACK (mm, aconds_sel1, cur);
+          else
+            BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+        }
       }
     }
     extensionality_bfs (emgr, acc2, array);
@@ -4894,16 +4899,21 @@ resolve_conflict (BtorExpMgr *emgr,
       }
       else if (cur->kind == BTOR_ACOND_EXP)
       {
-        if (btor_find_in_ptr_hash_table (table, cur) == NULL)
+        cond = cur->e[0];
+        assert (emgr->rewrite_level == 0
+                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
+        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
         {
-          cond       = cur->e[0];
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-          if (assignment == 1)
-            BTOR_PUSH_STACK (mm, aconds_sel1, cur);
-          else
-            BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+          if (btor_find_in_ptr_hash_table (table, cur) == NULL)
+          {
+            assignment = btor_get_assignment_aig (
+                amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+            if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+            if (assignment == 1)
+              BTOR_PUSH_STACK (mm, aconds_sel1, cur);
+            else
+              BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+          }
         }
       }
     }
@@ -4926,14 +4936,19 @@ resolve_conflict (BtorExpMgr *emgr,
         BTOR_PUSH_STACK (mm, aeqs, cur);
       else if (cur->kind == BTOR_ACOND_EXP)
       {
-        cond       = cur->e[0];
-        assignment = btor_get_assignment_aig (
-            amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-        if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-        if (assignment == 1)
-          BTOR_PUSH_STACK (mm, aconds_sel1, cur);
-        else
-          BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+        cond = cur->e[0];
+        assert (emgr->rewrite_level == 0
+                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
+        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+        {
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          if (assignment == 1)
+            BTOR_PUSH_STACK (mm, aconds_sel1, cur);
+          else
+            BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+        }
       }
     }
     extensionality_bfs (emgr, acc2, array);
@@ -4951,14 +4966,19 @@ resolve_conflict (BtorExpMgr *emgr,
         BTOR_PUSH_STACK (mm, aeqs, cur);
       else if (cur->kind == BTOR_ACOND_EXP)
       {
-        cond       = cur->e[0];
-        assignment = btor_get_assignment_aig (
-            amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-        if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-        if (assignment == 1)
-          BTOR_PUSH_STACK (mm, aconds_sel1, cur);
-        else
-          BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+        cond = cur->e[0];
+        assert (emgr->rewrite_level == 0
+                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
+        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+        {
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          if (assignment == 1)
+            BTOR_PUSH_STACK (mm, aconds_sel1, cur);
+          else
+            BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+        }
       }
     }
   }
