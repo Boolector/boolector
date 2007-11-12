@@ -3398,11 +3398,20 @@ btor_concat_exp (BtorExpMgr *emgr, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
+static BtorExp *
+read_exp (BtorExpMgr *emgr,
+          BtorExp *e_array,
+          BtorExp *e_index,
+          int acond_rws,
+          int write_rws,
+          int acond_rws_limit,
+          int write_rws_limit)
 {
   BtorExpPtrStack stack;
-  BtorExp *result, *eq, *cond, *cur, *write_index;
+  BtorExp *result, *eq, *cond, *cur, *write_index, *child1, *child2;
+  BtorExp *real_write_index, *real_read_index;
+  char *bits;
+  int invert_bits, is_zero, no_rewrite, propagate_down;
   BtorMemMgr *mm;
   int found;
   assert (emgr != NULL);
@@ -3414,14 +3423,144 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+  assert (acond_rws >= 0);
+  assert (write_rws >= 0);
+  assert (acond_rws_limit >= 0);
+  assert (write_rws_limit >= 0);
   mm = emgr->mm;
+  if (e_array->kind == BTOR_ACOND_EXP && acond_rws < acond_rws_limit)
+  {
+    acond_rws++;
+    acond_rws_limit >>= 1;
+    write_rws_limit >>= 1;
+    child1 = read_exp (emgr,
+                       e_array->e[1],
+                       e_index,
+                       acond_rws,
+                       write_rws,
+                       acond_rws_limit,
+                       write_rws_limit);
+    child2 = read_exp (emgr,
+                       e_array->e[2],
+                       e_index,
+                       acond_rws,
+                       write_rws,
+                       acond_rws_limit,
+                       write_rws_limit);
+    result = btor_cond_exp (emgr, e_array->e[0], child1, child2);
+    btor_release_exp (emgr, child1);
+    btor_release_exp (emgr, child2);
+    return result;
+  }
   if (BTOR_IS_WRITE_ARRAY_EXP (e_array))
   {
     write_index = e_array->e[1];
     /* if read index is equal write index, then return write value */
     if (e_index == write_index) return btor_copy_exp (emgr, e_array->e[2]);
-    if (emgr->write_enc == BTOR_EAGER_WRITE_ENC)
+    if (emgr->write_enc != BTOR_EAGER_WRITE_ENC && write_rws < write_rws_limit)
     {
+      propagate_down   = 0;
+      real_write_index = BTOR_REAL_ADDR_EXP (write_index);
+      real_read_index  = BTOR_REAL_ADDR_EXP (e_index);
+      assert (emgr->rewrite_level >= 0);
+      no_rewrite = emgr->rewrite_level == 0;
+      if ((BTOR_IS_CONST_EXP (real_write_index)
+           && BTOR_IS_CONST_EXP (real_read_index)))
+        /* ASSUMPTION: constants are UNIQUELY hashed */
+        propagate_down = 1;
+      else if (real_write_index->kind == BTOR_ADD_EXP
+               && BTOR_IS_CONST_EXP (
+                      BTOR_REAL_ADDR_EXP (real_write_index->e[0]))
+               && real_write_index->e[1] == e_index)
+      {
+        /* check if constant is not zero */
+        if (no_rewrite)
+        {
+          bits = BTOR_REAL_ADDR_EXP (real_write_index->e[0])->bits;
+          assert (bits != NULL);
+          invert_bits = BTOR_IS_INVERTED_EXP (real_write_index->e[0]);
+          if (invert_bits) btor_invert_const (mm, bits);
+          is_zero = is_zero_string (
+              emgr, bits, BTOR_REAL_ADDR_EXP (real_write_index->e[0])->len);
+          /* invert back if necessary */
+          if (invert_bits) btor_invert_const (mm, bits);
+          if (!is_zero) propagate_down = 1;
+        }
+        else
+          propagate_down = 1;
+      }
+      else if (real_write_index->kind == BTOR_ADD_EXP
+               && BTOR_IS_CONST_EXP (
+                      BTOR_REAL_ADDR_EXP (real_write_index->e[1]))
+               && real_write_index->e[0] == e_index)
+      {
+        /* check if constant is not zero */
+        if (no_rewrite)
+        {
+          bits = BTOR_REAL_ADDR_EXP (real_write_index->e[1])->bits;
+          assert (bits != NULL);
+          invert_bits = BTOR_IS_INVERTED_EXP (real_write_index->e[1]);
+          if (invert_bits) btor_invert_const (mm, bits);
+          is_zero = is_zero_string (
+              emgr, bits, BTOR_REAL_ADDR_EXP (real_write_index->e[1])->len);
+          if (invert_bits) btor_invert_const (mm, bits);
+          if (!is_zero) propagate_down = 1;
+        }
+        else
+          propagate_down = 1;
+      }
+      else if (real_read_index->kind == BTOR_ADD_EXP
+               && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_read_index->e[0]))
+               && real_read_index->e[1] == write_index)
+      {
+        /* check if constant is not zero */
+        if (no_rewrite)
+        {
+          bits = BTOR_REAL_ADDR_EXP (real_read_index->e[0])->bits;
+          assert (bits != NULL);
+          invert_bits = BTOR_IS_INVERTED_EXP (real_read_index->e[0]);
+          if (invert_bits) btor_invert_const (mm, bits);
+          is_zero = is_zero_string (
+              emgr, bits, BTOR_REAL_ADDR_EXP (real_read_index->e[0])->len);
+          if (invert_bits) btor_invert_const (mm, bits);
+          if (!is_zero) propagate_down = 1;
+        }
+        else
+          propagate_down = 1;
+      }
+      else if (real_read_index->kind == BTOR_ADD_EXP
+               && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_read_index->e[1]))
+               && real_read_index->e[0] == write_index)
+      {
+        if (no_rewrite)
+        {
+          bits = BTOR_REAL_ADDR_EXP (real_read_index->e[1])->bits;
+          assert (bits != NULL);
+          invert_bits = BTOR_IS_INVERTED_EXP (real_read_index->e[1]);
+          if (invert_bits) btor_invert_const (mm, bits);
+          is_zero = is_zero_string (
+              emgr, bits, BTOR_REAL_ADDR_EXP (real_read_index->e[1])->len);
+          if (invert_bits) btor_invert_const (mm, bits);
+          if (!is_zero) propagate_down = 1;
+        }
+        else
+          propagate_down = 1;
+      }
+      if (propagate_down)
+      {
+        write_rws++;
+        return read_exp (emgr,
+                         e_array->e[0],
+                         e_index,
+                         acond_rws,
+                         write_rws,
+                         acond_rws_limit,
+                         write_rws_limit);
+      }
+    }
+    else
+    {
+      assert (emgr->write_enc == BTOR_EAGER_WRITE_ENC);
       /* eagerly encode McCarthy axiom */
       BTOR_INIT_STACK (stack);
       cur   = e_array;
@@ -3460,6 +3599,30 @@ btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
     }
   }
   return binary_exp (emgr, BTOR_READ_EXP, e_array, e_index, e_array->len);
+}
+
+#define BTOR_READ_OVER_ACOND_REWRITING_LIMIT 16
+#define BTOR_READ_OVER_WRITE_REWRITING_LIMIT 128
+
+BtorExp *
+btor_read_exp (BtorExpMgr *emgr, BtorExp *e_array, BtorExp *e_index)
+{
+  assert (emgr != NULL);
+  assert (e_array != NULL);
+  assert (e_index != NULL);
+  assert (BTOR_IS_REGULAR_EXP (e_array));
+  assert (BTOR_IS_ARRAY_EXP (e_array));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
+  assert (e_array->len > 0);
+  assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
+  assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+  return read_exp (emgr,
+                   e_array,
+                   e_index,
+                   0,
+                   0,
+                   BTOR_READ_OVER_ACOND_REWRITING_LIMIT,
+                   BTOR_READ_OVER_WRITE_REWRITING_LIMIT);
 }
 
 static BtorExp *
@@ -4202,8 +4365,14 @@ btor_synthesize_exp (BtorExpMgr *emgr,
 
             /* generate virtual reads */
             index = btor_var_exp (emgr, cur->e[0]->index_len, "vreadindex");
-            read1 = btor_read_exp (emgr, cur->e[0], index);
-            read2 = btor_read_exp (emgr, cur->e[1], index);
+            /* we do not want read optimizations for the virtual
+             * reads (e.g. rewriting of reads on array conditionals),
+             * so we call binary_exp directly
+             */
+            read1 = binary_exp (
+                emgr, BTOR_READ_EXP, cur->e[0], index, cur->e[0]->len);
+            read2 = binary_exp (
+                emgr, BTOR_READ_EXP, cur->e[1], index, cur->e[1]->len);
             cur->vreads = new_exp_pair (emgr, read1, read2);
 
             /* synthesize values of virtual reads */
