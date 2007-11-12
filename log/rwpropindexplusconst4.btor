@@ -1,0 +1,10 @@
+1 array 8 8
+2 var 8
+3 constd 8 1
+4 add 8 3 2
+5 write 8 1 4 4
+6 read 8 5 2
+7 read 8 1 2
+8 ne 1 6 7
+9 root 1 8
+
