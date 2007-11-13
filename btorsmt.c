@@ -1196,7 +1196,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
             {
               tmp = btor_decimal_to_const_n (parser->mem, start, end - start);
 
-              tlen = strlen (tmp);
+              tlen = (int) strlen (tmp);
 
               if (tlen <= len)
               {
@@ -1240,7 +1240,7 @@ node2exp (BtorSMTParser *parser, BtorSMTNode *node)
         {
           len  = 4 * (p - start);
           tmp  = btor_hex_to_const (parser->mem, start);
-          tlen = strlen (tmp);
+          tlen = (int) strlen (tmp);
           assert (tlen <= len);
           if (tlen < len)
           {
