@@ -5528,6 +5528,10 @@ btor_sat_exp (BtorExpMgr *emgr)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
+  /* no added assumptions and constraints -> delete old assumptions */
+  if (emgr->valid_assignments == 1) reset_assumptions (emgr);
+  emgr->valid_assignments = 1;
+
   /* iterate over constraints */
   top = emgr->constraints.top;
   for (cur = emgr->constraints.start + emgr->added_constraints; cur != top;
@@ -5547,24 +5551,18 @@ btor_sat_exp (BtorExpMgr *emgr)
     }
   }
 
-  /* no added assumptions and constraints -> delete old assumptions */
-  if (emgr->valid_assignments == 1)
-    reset_assumptions (emgr);
-  else
+  /* iterate over assumptions */
+  top = emgr->assumptions.top;
+  for (cur = emgr->assumptions.start; cur != top; cur++)
   {
-    /* iterate over assumptions */
-    top = emgr->assumptions.top;
-    for (cur = emgr->assumptions.start; cur != top; cur++)
+    aig = exp_to_aig (emgr, *cur);
+    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+    btor_aig_to_sat (amgr, aig);
+    if (aig != BTOR_AIG_TRUE)
     {
-      aig = exp_to_aig (emgr, *cur);
-      if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-      btor_aig_to_sat (amgr, aig);
-      if (aig != BTOR_AIG_TRUE)
-      {
-        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-        btor_release_aig (amgr, aig);
-      }
+      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      btor_release_aig (amgr, aig);
     }
   }
 
@@ -5581,7 +5579,6 @@ btor_sat_exp (BtorExpMgr *emgr)
       emgr->refinements++;
     }
   }
-  emgr->valid_assignments = 1;
   return sat_result;
 }
 
