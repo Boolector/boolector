@@ -2288,7 +2288,7 @@ btor_redor_exp (BtorExpMgr *emgr, BtorExp *exp)
   assert (emgr != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 1);
+  assert (BTOR_REAL_ADDR_EXP (exp)->len >= 1);
   zeros  = btor_zeros_exp (emgr, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_ne_exp (emgr, exp, zeros);
   btor_release_exp (emgr, zeros);
