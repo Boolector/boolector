@@ -61,6 +61,13 @@ btor_new_sat_mgr (BtorMemMgr *mm, int verbosity)
 }
 
 int
+btor_is_initialized_sat (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+  return smgr->initialized;
+}
+
+int
 btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
 {
   assert (smgr);
@@ -82,7 +89,10 @@ void
 btor_delete_sat_mgr (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
-  assert (!smgr->initialized);
+  /* if SAT is still initialized, then
+   * reset_sat has not been called
+   */
+  if (smgr->initialized) btor_reset_sat (smgr);
   BTOR_DELETE (smgr->mm, smgr);
 }
 

@@ -20,6 +20,9 @@ typedef struct BtorSATMgr BtorSATMgr;
  */
 BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, int verbosity);
 
+/* Returns if the SAT solver has already been initialized */
+int btor_is_initialized_sat (BtorSATMgr *smgr);
+
 /* Deletes SAT manager from memory. */
 void btor_delete_sat_mgr (BtorSATMgr *smgr);
 

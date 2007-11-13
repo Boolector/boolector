@@ -5524,6 +5524,7 @@ btor_sat_exp (BtorExpMgr *emgr)
           || emgr->write_enc == BTOR_EAGER_WRITE_ENC);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
   /* iterate over constraints */
   top = emgr->constraints.top;
