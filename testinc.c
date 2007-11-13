@@ -53,8 +53,11 @@ test_inc_counter (int w, int nondet)
     if (nondet)
     {
       sprintf (name, "oracle%d", i);
-      oracle = btor_var_exp (mgr, 1, name);
-      next   = btor_cond_exp (mgr, oracle, inc, current);
+      if (i)
+        oracle = btor_var_exp (mgr, 1, name);
+      else
+        oracle = btor_true_exp (mgr);
+      next = btor_cond_exp (mgr, oracle, inc, current);
       btor_release_exp (mgr, oracle);
     }
     else
