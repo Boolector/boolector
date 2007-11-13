@@ -5,6 +5,7 @@
 #include "testconst.h"
 #include "testexp.h"
 #include "testhash.h"
+#include "testinc.h"
 #include "testlogic.h"
 #include "testmem.h"
 #include "testmisc.h"
@@ -87,6 +88,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (special);
   BTOR_RUN_TESTS (testcases);
   BTOR_RUN_TESTS (smtaxioms);
+  BTOR_RUN_TESTS (inc);
   finish_tests ();
   return 0;
 }
