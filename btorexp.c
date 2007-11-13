@@ -5041,6 +5041,7 @@ static void
 readd_assumptions (BtorExpMgr *emgr)
 {
   BtorExp **top, **cur;
+  BtorAIG *aig;
   BtorSATMgr *smgr;
   assert (emgr != NULL);
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr));
@@ -5048,8 +5049,9 @@ readd_assumptions (BtorExpMgr *emgr)
   for (cur = emgr->assumptions.start; cur != top; cur++)
   {
     assert (BTOR_REAL_ADDR_EXP (*cur)->len == 1);
-    btor_assume_sat (
-        smgr, BTOR_GET_CNF_ID_AIG (BTOR_REAL_ADDR_EXP (*cur)->av->aigs[0]));
+    aig = exp_to_aig (emgr, *cur);
+    assert (aig != BTOR_AIG_FALSE);
+    if (aig != BTOR_AIG_TRUE) btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
   }
 }
 
