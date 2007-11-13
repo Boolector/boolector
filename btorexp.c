@@ -49,10 +49,13 @@ struct BtorExpMgr
 {
   BtorMemMgr *mm;
   BtorExpUniqueTable table;
+  BtorAIGVecMgr *avmgr;
   BtorExpPtrStack vars;
   BtorExpPtrStack arrays;
-  BtorAIGVecMgr *avmgr;
+  BtorExpPtrStack constraints;
+  BtorExpPtrStack assumptions;
   int id;
+  int valid_assignments;
   int rewrite_level;
   int dump_trace;
   int verbosity;
@@ -4066,10 +4069,13 @@ btor_new_exp_mgr (int rewrite_level,
   BTOR_CNEW (mm, emgr);
   emgr->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, emgr->table);
+  emgr->avmgr = btor_new_aigvec_mgr (mm, verbosity);
   BTOR_INIT_STACK (emgr->vars);
   BTOR_INIT_STACK (emgr->arrays);
-  emgr->avmgr                      = btor_new_aigvec_mgr (mm, verbosity);
+  BTOR_INIT_STACK (emgr->constraints);
+  BTOR_INIT_STACK (emgr->assumptions);
   emgr->id                         = 1;
+  emgr->valid_assignments          = 1;
   emgr->rewrite_level              = rewrite_level;
   emgr->dump_trace                 = dump_trace;
   emgr->verbosity                  = verbosity;
@@ -4091,6 +4097,7 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
   BtorPtrHashBucket *bucket;
   assert (emgr != NULL);
   mm = emgr->mm;
+
   for (bucket = emgr->exp_pair_cnf_diff_id_table->first; bucket != NULL;
        bucket = bucket->next)
     delete_exp_pair (emgr, (BtorExpPair *) bucket->key);
@@ -4099,15 +4106,30 @@ btor_delete_exp_mgr (BtorExpMgr *emgr)
        bucket = bucket->next)
     delete_exp_pair (emgr, (BtorExpPair *) bucket->key);
   btor_delete_ptr_hash_table (emgr->exp_pair_cnf_eq_id_table);
+
+  top = emgr->constraints.top;
+  for (cur = emgr->constraints.start; cur != top; cur++)
+    btor_release_exp (emgr, *cur);
+
+  top = emgr->assumptions.top;
+  for (cur = emgr->assumptions.start; cur != top; cur++)
+    btor_release_exp (emgr, *cur);
+
+  /* delete sticky arrays and variable */
+
   top = emgr->arrays.top;
   for (cur = emgr->arrays.start; cur != top; cur++)
     delete_exp_node (emgr, *cur);
+
   top = emgr->vars.top;
   for (cur = emgr->vars.start; cur != top; cur++) delete_exp_node (emgr, *cur);
+
   assert (emgr->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, emgr->table);
   BTOR_RELEASE_STACK (mm, emgr->vars);
   BTOR_RELEASE_STACK (mm, emgr->arrays);
+  BTOR_RELEASE_STACK (mm, emgr->constraints);
+  BTOR_RELEASE_STACK (mm, emgr->assumptions);
   btor_delete_aigvec_mgr (emgr->avmgr);
   BTOR_DELETE (mm, emgr);
   btor_delete_mem_mgr (mm);
@@ -4132,16 +4154,18 @@ btor_print_stats_exp_mgr (BtorExpMgr *emgr)
 {
   assert (emgr != NULL);
   (void) emgr;
+  print_verbose_msg ("top level constraints: %d",
+                     BTOR_COUNT_STACK (emgr->constraints));
+  print_verbose_msg ("assumptions: %d", BTOR_COUNT_STACK (emgr->assumptions));
   if (emgr->extensionality)
     print_verbose_msg ("extensionality mode: yes");
   else
     print_verbose_msg ("extensionality mode: no");
-  print_verbose_msg ("lazy read-read conflicts: %d", emgr->read_read_conflicts);
-  print_verbose_msg ("lazy read-write conflicts: %d",
-                     emgr->read_write_conflicts);
+  print_verbose_msg ("read-read conflicts: %d", emgr->read_read_conflicts);
+  print_verbose_msg ("read-write conflicts: %d", emgr->read_write_conflicts);
 
-  print_verbose_msg ("lazy refinement iterations: %d", emgr->refinements);
-  print_verbose_msg ("lazy synthesis assignment inconsistencies: %d",
+  print_verbose_msg ("refinement iterations: %d", emgr->refinements);
+  print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      emgr->synthesis_assignment_inconsistencies);
 }
 
@@ -4533,40 +4557,10 @@ exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
   return result;
 }
 
-BtorAIG *
-btor_instance_to_aig_exp (BtorExpMgr *emgr)
-{
-  BtorAIG *result, *temp, *synthesize_aig;
-  BtorExp **cur, **top;
-  BtorAIGMgr *amgr;
-  assert (emgr != NULL);
-  result = BTOR_AIG_TRUE;
-  amgr   = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  top    = emgr->constraints.top;
-  for (cur = emgr->constraints.start; cur != top; cur++)
-  {
-    synthesized_aig = exp_to_aig (emgr, *cur);
-    temp            = btor_and_aig (amgr, result, synthesized_aig);
-    btor_release_aig (amgr, result);
-    result = temp;
-    btor_release_aig (amgr, synthesized_aig);
-  }
-  top = emgr->assumptions.top;
-  for (cur = emgr->assumptions.start; cur != top; cur++)
-  {
-    synthesized_aig = exp_to_aig (emgr, *cur);
-    temp            = btor_and_aig (amgr, result, synthesized_aig);
-    btor_release_aig (amgr, result);
-    result = temp;
-    btor_release_aig (amgr, synthesized_aig);
-  }
-  return result;
-}
-
 BtorAIGVec *
 btor_exp_to_aigvec (BtorExpMgr *emgr,
                     BtorExp *exp,
-                    BtorPtrHashTable *backannoation)
+                    BtorPtrHashTable *backannotation)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -4577,7 +4571,7 @@ btor_exp_to_aigvec (BtorExpMgr *emgr,
   mm    = emgr->mm;
   avmgr = emgr->avmgr;
 
-  btor_synthesize_exp (emgr, exp, backannoation);
+  btor_synthesize_exp (emgr, exp, backannotation);
   result = BTOR_REAL_ADDR_EXP (exp)->av;
   assert (result);
 
@@ -4587,28 +4581,6 @@ btor_exp_to_aigvec (BtorExpMgr *emgr,
     result = btor_copy_aigvec (avmgr, result);
 
   return result;
-}
-
-void
-btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp)
-{
-  BtorAIG *aig;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
-  assert (emgr != NULL);
-  assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
-  amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  aig  = btor_exp_to_aig (emgr, exp);
-  btor_aig_to_sat (amgr, aig);
-  if (!BTOR_IS_CONST_AIG (aig))
-  {
-    assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-    btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-    btor_add_sat (smgr, 0);
-  }
-  btor_release_aig (amgr, aig);
 }
 
 /* Compares the assignments of two expressions. */
@@ -5402,35 +5374,153 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   return found_conflict;
 }
 
+void
+btor_add_constraint_exp (BtorExpMgr *emgr, BtorExp *exp)
+{
+  BtorExp *cur, *child, **top, **temp;
+  BtorExpPtrStack stack;
+  BtorMemMgr *mm;
+  assert (emgr != NULL);
+  assert (exp != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+  mm = emgr->mm;
+  if (emgr->valid_assignments)
+  {
+    emgr->valid_assignments = 0;
+    /* reset assumptions */
+    top = emgr->assumptions.top;
+    for (temp = emgr->assumptions.start; temp != top; temp++)
+      btor_release_exp (emgr, *temp);
+    BTOR_RESET_STACK (emgr->assumptions);
+  }
+  if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
+  {
+    BTOR_INIT_STACK (stack);
+    BTOR_PUSH_STACK (mm, stack, exp);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_POP_STACK (stack);
+      assert (!BTOR_IS_INVERTED_EXP (cur));
+      assert (cur->kind == BTOR_AND_EXP);
+      assert (cur->mark == 0 || cur->mark == 1);
+      if (!cur->mark)
+      {
+        cur->mark = 1;
+        child     = cur->e[1];
+        if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
+          BTOR_PUSH_STACK (mm, stack, child);
+        else
+          BTOR_PUSH_STACK (mm, emgr->constraints, btor_copy_exp (emgr, child));
+        child = cur->e[0];
+        if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
+          BTOR_PUSH_STACK (mm, stack, child);
+        else
+          BTOR_PUSH_STACK (mm, emgr->constraints, btor_copy_exp (emgr, child));
+      }
+    }
+    BTOR_RELEASE_STACK (mm, stack);
+    btor_mark_exp (emgr, exp, 0);
+  }
+  else
+    BTOR_PUSH_STACK (mm, emgr->constraints, btor_copy_exp (emgr, exp));
+}
+
+void
+btor_add_assumption_exp (BtorExpMgr *emgr, BtorExp *exp)
+{
+  BtorExp *cur, *child, **top, **temp;
+  BtorExpPtrStack stack;
+  BtorMemMgr *mm;
+  assert (emgr != NULL);
+  assert (exp != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+  mm = emgr->mm;
+  if (emgr->valid_assignments)
+  {
+    emgr->valid_assignments = 0;
+    /* reset assumptions */
+    top = emgr->assumptions.top;
+    for (temp = emgr->assumptions.start; temp != top; temp++)
+      btor_release_exp (emgr, *temp);
+    BTOR_RESET_STACK (emgr->assumptions);
+  }
+  if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
+  {
+    BTOR_INIT_STACK (stack);
+    BTOR_PUSH_STACK (mm, stack, exp);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_POP_STACK (stack);
+      assert (!BTOR_IS_INVERTED_EXP (cur));
+      assert (cur->kind == BTOR_AND_EXP);
+      assert (cur->mark == 0 || cur->mark == 1);
+      if (!cur->mark)
+      {
+        cur->mark = 1;
+        child     = cur->e[1];
+        if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
+          BTOR_PUSH_STACK (mm, stack, child);
+        else
+          BTOR_PUSH_STACK (mm, emgr->assumptions, btor_copy_exp (emgr, child));
+        child = cur->e[0];
+        if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
+          BTOR_PUSH_STACK (mm, stack, child);
+        else
+          BTOR_PUSH_STACK (mm, emgr->assumptions, btor_copy_exp (emgr, child));
+      }
+    }
+    BTOR_RELEASE_STACK (mm, stack);
+    btor_mark_exp (emgr, exp, 0);
+  }
+  else
+    BTOR_PUSH_STACK (mm, emgr->assumptions, btor_copy_exp (emgr, exp));
+}
+
 int
-btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental)
+btor_sat_exp (BtorExpMgr *emgr)
 {
   int sat_result, found_conflict;
+  BtorExp **top, **cur;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorAIG *aig;
   assert (emgr != NULL);
-  assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
-  /* eager read has to imply eager write */
   assert (!emgr->read_enc == BTOR_EAGER_READ_ENC
           || emgr->write_enc == BTOR_EAGER_WRITE_ENC);
   amgr = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  aig  = btor_exp_to_aig (emgr, exp);
-  if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-  btor_aig_to_sat (amgr, aig);
-  if (aig != BTOR_AIG_TRUE)
+
+  /* iterate over constraints */
+  top = emgr->constraints.top;
+  for (cur = emgr->constraints.start; cur != top; cur++)
   {
-    assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-    if (incremental)
-      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-    else
+    aig = exp_to_aig (emgr, *cur);
+    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+    btor_aig_to_sat (amgr, aig);
+    if (aig != BTOR_AIG_TRUE)
     {
+      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
       btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
       btor_add_sat (smgr, 0);
+      btor_release_aig (amgr, aig);
     }
   }
+
+  /* iterate over assumptions */
+  top = emgr->assumptions.top;
+  for (cur = emgr->assumptions.start; cur != top; cur++)
+  {
+    aig = exp_to_aig (emgr, *cur);
+    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+    btor_aig_to_sat (amgr, aig);
+    if (aig != BTOR_AIG_TRUE)
+    {
+      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      btor_release_aig (amgr, aig);
+    }
+  }
+
   sat_result = btor_sat_sat (smgr, INT_MAX);
   if (emgr->read_enc == BTOR_LAZY_READ_ENC
       || emgr->write_enc == BTOR_LAZY_WRITE_ENC)
@@ -5440,17 +5530,11 @@ btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental)
       assert (sat_result == BTOR_SAT);
       found_conflict = resolve_read_write_conflicts (emgr);
       if (!found_conflict) break;
-      assert (aig != BTOR_AIG_FALSE);
-      if (incremental && aig != BTOR_AIG_TRUE)
-      {
-        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-      }
       sat_result = btor_sat_sat (smgr, INT_MAX);
       emgr->refinements++;
     }
   }
-  btor_release_aig (amgr, aig);
+  emgr->valid_assignments = 1;
   return sat_result;
 }
 

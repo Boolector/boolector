@@ -96,8 +96,8 @@ struct BtorExp
   struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */
   struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
   struct BtorExp *first_aeq_acond_parent; /* first array equality or array
-                                      conditional in parent list
-                                      for arrays and writes only */
+                                             conditional in parent list
+                                             for arrays and writes only */
   struct BtorExp *parent;                 /* parent pointer for BFS */
   BtorExpPair *vreads;                    /* virtual reads
                                              for array equalities only */
@@ -187,12 +187,12 @@ BtorMemMgr *btor_get_mem_mgr_exp_mgr (const BtorExpMgr *emgr);
 /* Returns the AIG vector manager of the expression manager. */
 BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr);
 
-/* Synthesize boolean expression to a single AIG.
- * len(exp) = 1
+/* Synthesize formula represented by top
+ * level constraints and assumptions to a single AIG.
  */
-BtorAIG *btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp);
+BtorAIG *btor_to_aig_exp (BtorExpMgr *emgr);
 
-/* Synthesize expression of arbitrary length to an AIG vector.  Add string
+/* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
  * The strings in 'data.asStr' are owned by the caller.  The hash table
  * is a map from AIG variables to strings.
@@ -201,10 +201,10 @@ BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *emgr,
                                 BtorExp *exp,
                                 BtorPtrHashTable *table);
 
-/* Translates boolean expression into SAT instance.
- * len(exp) = 1
+/* Translates formula represented by top level constraints
+ * and assumptions into SAT instance.
  */
-void btor_exp_to_sat (BtorExpMgr *emgr, BtorExp *exp);
+void btor_to_sat_exp (BtorExpMgr *emgr);
 
 /* Marks all reachable expressions with new mark. */
 void btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark);

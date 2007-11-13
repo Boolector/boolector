@@ -434,13 +434,14 @@ void btor_dump_exp (BtorExpMgr *emgr, FILE *file, BtorExp *exp);
 /* Dumps expression to file in SMT format. */
 void btor_dump_smt (BtorExpMgr *emgr, FILE *file, BtorExp *root);
 
-/* Solves sat instance with root expression exp.
- * If the incremental flag is set, then the top level unit
- * is added as assumption to the SAT solver. If the incremental
- * flag is not set, then the unit that the root has to be true
- * is added to the sat solver.
- */
-int btor_sat_exp (BtorExpMgr *emgr, BtorExp *exp, int incremental);
+/* Adds top level constraint. */
+void btor_add_constraint_exp (BtorExpMgr *emgr, BtorExp *exp);
+
+/* Adds assumption. */
+void btor_add_assumption_exp (BtorExpMgr *emgr, BtorExp *exp);
+
+/* Solves sat instance. */
+int btor_sat_exp (BtorExpMgr *emgr);
 
 /* Builds current assignment string of expression (in the SAT case)
  * and returns it.
