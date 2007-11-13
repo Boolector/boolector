@@ -56,6 +56,7 @@ struct BtorExpMgr
   BtorExpPtrStack assumptions;
   int id;
   int valid_assignments;
+  int added_constraints;
   int rewrite_level;
   int dump_trace;
   int verbosity;
@@ -5023,6 +5024,35 @@ check_read_write_conflict (BtorExpMgr *emgr,
   return 0;
 }
 
+/* readds assumptions to the SAT solver */
+static void
+readd_assumptions (BtorExpMgr *emgr)
+{
+  BtorExp **top, **cur;
+  BtorSATMgr *smgr;
+  assert (emgr != NULL);
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr));
+  top  = emgr->assumptions.top;
+  for (cur = emgr->assumptions.start; cur != top; cur++)
+  {
+    assert (BTOR_REAL_ADDR_EXP (*cur)->len == 1);
+    btor_assume_sat (
+        smgr, BTOR_GET_CNF_ID_AIG (BTOR_REAL_ADDR_EXP (*cur)->av->aigs[0]));
+  }
+}
+
+/* updates SAT assignments and returns if an assignment has changed */
+int
+update_sat_assignments (BtorExpMgr *emgr)
+{
+  BtorSATMgr *smgr = NULL;
+  assert (emgr != NULL);
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (emgr->avmgr));
+  (void) btor_sat_sat (smgr, INT_MAX);
+  readd_assumptions (emgr);
+  return btor_changed_assignments_sat (smgr);
+}
+
 /* synthesizes and fully encodes index and value of access expression into SAT
  * (if necessary)
  * it returns if encoding changed assignments made so far
@@ -5033,7 +5063,6 @@ lazy_synthesize_and_encode_acc_exp (BtorExpMgr *emgr, BtorExp *acc)
   BtorExp *index, *value;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = NULL;
-  BtorSATMgr *smgr     = NULL;
   assert (emgr != NULL);
   assert (acc != NULL);
   assert (BTOR_IS_REGULAR_EXP (acc));
@@ -5041,9 +5070,8 @@ lazy_synthesize_and_encode_acc_exp (BtorExpMgr *emgr, BtorExp *acc)
   changed_assignments = 0;
   update              = 0;
   avmgr               = emgr->avmgr;
-  smgr  = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (avmgr));
-  index = BTOR_GET_INDEX_ACC_EXP (acc);
-  value = BTOR_GET_VALUE_ACC_EXP (acc);
+  index               = BTOR_GET_INDEX_ACC_EXP (acc);
+  value               = BTOR_GET_VALUE_ACC_EXP (acc);
   if (BTOR_REAL_ADDR_EXP (index)->av == NULL)
     btor_synthesize_exp (emgr, index, NULL);
   if (!BTOR_REAL_ADDR_EXP (index)->full_sat)
@@ -5061,11 +5089,7 @@ lazy_synthesize_and_encode_acc_exp (BtorExpMgr *emgr, BtorExp *acc)
     BTOR_REAL_ADDR_EXP (value)->full_sat = 1;
   }
   /* update assignments if necessary */
-  if (update)
-  {
-    (void) btor_sat_sat (smgr, INT_MAX);
-    changed_assignments = btor_changed_assignments_sat (smgr);
-  }
+  if (update) changed_assignments = update_sat_assignments (emgr);
   return changed_assignments;
 }
 
@@ -5075,9 +5099,7 @@ lazy_synthesize_and_encode_acond_exp (BtorExpMgr *emgr, BtorExp *acond)
   BtorExp *cond;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr;
-  BtorSATMgr *smgr;
   avmgr = emgr->avmgr;
-  smgr  = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (avmgr));
   assert (emgr != NULL);
   assert (acond != NULL);
   assert (BTOR_IS_REGULAR_EXP (acond));
@@ -5095,11 +5117,7 @@ lazy_synthesize_and_encode_acond_exp (BtorExpMgr *emgr, BtorExp *acond)
     BTOR_REAL_ADDR_EXP (cond)->full_sat = 1;
   }
   /* update assignments if necessary */
-  if (update)
-  {
-    (void) btor_sat_sat (smgr, INT_MAX);
-    changed_assignments = btor_changed_assignments_sat (smgr);
-  }
+  if (update) changed_assignments = update_sat_assignments (emgr);
   return changed_assignments;
 }
 
@@ -5374,10 +5392,21 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   return found_conflict;
 }
 
+static void
+reset_assumptions (BtorExpMgr *emgr)
+{
+  BtorExp **top, **cur;
+  assert (emgr != NULL);
+  top = emgr->assumptions.top;
+  for (cur = emgr->assumptions.start; cur != top; cur++)
+    btor_release_exp (emgr, *cur);
+  BTOR_RESET_STACK (emgr->assumptions);
+}
+
 void
 btor_add_constraint_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
-  BtorExp *cur, *child, **top, **temp;
+  BtorExp *cur, *child;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
   assert (emgr != NULL);
@@ -5387,11 +5416,7 @@ btor_add_constraint_exp (BtorExpMgr *emgr, BtorExp *exp)
   if (emgr->valid_assignments)
   {
     emgr->valid_assignments = 0;
-    /* reset assumptions */
-    top = emgr->assumptions.top;
-    for (temp = emgr->assumptions.start; temp != top; temp++)
-      btor_release_exp (emgr, *temp);
-    BTOR_RESET_STACK (emgr->assumptions);
+    reset_assumptions (emgr);
   }
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
@@ -5428,7 +5453,7 @@ btor_add_constraint_exp (BtorExpMgr *emgr, BtorExp *exp)
 void
 btor_add_assumption_exp (BtorExpMgr *emgr, BtorExp *exp)
 {
-  BtorExp *cur, *child, **top, **temp;
+  BtorExp *cur, *child;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
   assert (emgr != NULL);
@@ -5438,11 +5463,7 @@ btor_add_assumption_exp (BtorExpMgr *emgr, BtorExp *exp)
   if (emgr->valid_assignments)
   {
     emgr->valid_assignments = 0;
-    /* reset assumptions */
-    top = emgr->assumptions.top;
-    for (temp = emgr->assumptions.start; temp != top; temp++)
-      btor_release_exp (emgr, *temp);
-    BTOR_RESET_STACK (emgr->assumptions);
+    reset_assumptions (emgr);
   }
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
@@ -5492,8 +5513,11 @@ btor_sat_exp (BtorExpMgr *emgr)
 
   /* iterate over constraints */
   top = emgr->constraints.top;
-  for (cur = emgr->constraints.start; cur != top; cur++)
+  for (cur = emgr->constraints.start + emgr->added_constraints; cur != top;
+       cur++)
   {
+    assert (emgr->added_constraints < INT_MAX);
+    emgr->added_constraints++;
     aig = exp_to_aig (emgr, *cur);
     if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
     btor_aig_to_sat (amgr, aig);
@@ -5506,18 +5530,24 @@ btor_sat_exp (BtorExpMgr *emgr)
     }
   }
 
-  /* iterate over assumptions */
-  top = emgr->assumptions.top;
-  for (cur = emgr->assumptions.start; cur != top; cur++)
+  /* no added assumptions and constraints -> delete old assumptions */
+  if (emgr->valid_assignments == 1)
+    reset_assumptions (emgr);
+  else
   {
-    aig = exp_to_aig (emgr, *cur);
-    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-    btor_aig_to_sat (amgr, aig);
-    if (aig != BTOR_AIG_TRUE)
+    /* iterate over assumptions */
+    top = emgr->assumptions.top;
+    for (cur = emgr->assumptions.start; cur != top; cur++)
     {
-      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-      btor_release_aig (amgr, aig);
+      aig = exp_to_aig (emgr, *cur);
+      if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+      btor_aig_to_sat (amgr, aig);
+      if (aig != BTOR_AIG_TRUE)
+      {
+        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+        btor_release_aig (amgr, aig);
+      }
     }
   }
 
