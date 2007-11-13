@@ -5053,7 +5053,9 @@ readd_assumptions (BtorExpMgr *emgr)
   }
 }
 
-/* updates SAT assignments and returns if an assignment has changed */
+/* updates SAT assignments, readds assumptions and
+ * returns if an assignment has changed
+ */
 int
 update_sat_assignments (BtorExpMgr *emgr)
 {
