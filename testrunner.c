@@ -42,6 +42,7 @@ static const char *slowtests[] = {
     "factor4294967295_special",
     "factor18446744073709551617reduced_special",
     "factor18446744073709551617_special",
+    "inc_count8nondet",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -51,27 +52,17 @@ static const char *slowtests[] = {
  * take less than a second.
  */
 static const char *normaltests[] = {
-    "sll_shift",
-    "srl_shift",
-    "sra_shift",
-    "rol_shift",
-    "ror_shift",
-    "sll_shift",
-    "srl_shift",
-    "sra_shift",
-    "rol_shift",
-    "ror_shift",
-    "smtaxiombvsmod5",
-    "smtaxiombvsmod6",
-    "smtaxiombvsdiv5",
-    "smtaxiombvsdiv6",
-    "smtaxiombvsrem5",
-    "smtaxiombvsrem6",
-    "udiv8castdown6",
-    "udiv8castdown7",
-    "udiv16castdown8",
-    "mulassoc6",
-    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+    "sll_shift",       "srl_shift",
+    "sra_shift",       "rol_shift",
+    "ror_shift",       "sll_shift",
+    "srl_shift",       "sra_shift",
+    "rol_shift",       "ror_shift",
+    "smtaxiombvsmod5", "smtaxiombvsmod6",
+    "smtaxiombvsdiv5", "smtaxiombvsdiv6",
+    "smtaxiombvsrem5", "smtaxiombvsrem6",
+    "udiv8castdown6",  "udiv8castdown7",
+    "udiv16castdown8", "mulassoc6",
+    "inc_lt8",         0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
 void

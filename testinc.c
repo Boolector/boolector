@@ -151,6 +151,80 @@ test_inc_count8nondet (void)
   return test_inc_counter (8, 1);
 }
 
+static void
+test_inc_lt (int w)
+{
+  BtorExp *prev, *next, *lt;
+  BtorExpMgr* mgr;
+  char name[100];
+  int i, res;
+
+  assert (w > 0);
+
+  mgr = btor_new_exp_mgr (2, 0, 0, 0);
+
+  i    = 0;
+  prev = 0;
+  for (;;)
+  {
+    i++;
+
+    sprintf (name, "%d", i);
+    next = btor_var_exp (mgr, w, name);
+
+    if (prev)
+    {
+      lt = btor_ult_exp (mgr, prev, next);
+      btor_add_constraint_exp (mgr, lt);
+      btor_release_exp (mgr, lt);
+      btor_release_exp (mgr, prev);
+    }
+
+    prev = next;
+
+    res = btor_sat_exp (mgr);
+    if (res == BTOR_UNSAT) break;
+
+    assert (res == BTOR_SAT);
+    assert (i <= (1 << w));
+  }
+
+  assert (i == (1 << w) + 1);
+
+  btor_release_exp (mgr, prev);
+  btor_delete_exp_mgr (mgr);
+}
+
+static void
+test_inc_lt1 (void)
+{
+  test_inc_lt (1);
+}
+
+static void
+test_inc_lt2 (void)
+{
+  test_inc_lt (2);
+}
+
+static void
+test_inc_lt3 (void)
+{
+  test_inc_lt (3);
+}
+
+static void
+test_inc_lt4 (void)
+{
+  test_inc_lt (4);
+}
+
+static void
+test_inc_lt8 (void)
+{
+  test_inc_lt (8);
+}
+
 void
 init_inc_tests (void)
 {
@@ -170,6 +244,11 @@ run_inc_tests (int argc, char** argv)
   BTOR_RUN_TEST (inc_count3nondet);
   BTOR_RUN_TEST (inc_count4nondet);
   BTOR_RUN_TEST (inc_count8nondet);
+  BTOR_RUN_TEST (inc_lt1);
+  BTOR_RUN_TEST (inc_lt2);
+  BTOR_RUN_TEST (inc_lt3);
+  BTOR_RUN_TEST (inc_lt4);
+  BTOR_RUN_TEST (inc_lt8);
 }
 
 void
