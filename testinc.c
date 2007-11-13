@@ -31,10 +31,12 @@ test_inc_true_false (void)
 }
 
 static void
-test_inc_counter (int w)
+test_inc_counter (int w, int nondet)
 {
-  BtorExp *current, *next, *nonzero, *allzero, *one;
+  BtorExp *nonzero, *allzero, *one, *oracle;
+  BtorExp *current, *next, *inc;
   BtorExpMgr* mgr;
+  char name[100];
   int i, res;
 
   assert (w > 0);
@@ -46,7 +48,19 @@ test_inc_counter (int w)
 
   for (;;)
   {
-    next = btor_add_exp (mgr, current, one);
+    inc = btor_add_exp (mgr, current, one);
+
+    if (nondet)
+    {
+      sprintf (name, "oracle%d", i);
+      oracle = btor_var_exp (mgr, 1, name);
+      next   = btor_cond_exp (mgr, oracle, inc, current);
+      btor_release_exp (mgr, oracle);
+    }
+    else
+      next = btor_copy_exp (mgr, inc);
+
+    btor_release_exp (mgr, inc);
     btor_release_exp (mgr, current);
     current = next;
 
@@ -77,25 +91,61 @@ test_inc_counter (int w)
 static void
 test_inc_count1 (void)
 {
-  return test_inc_counter (1);
+  return test_inc_counter (1, 0);
 }
 
 static void
 test_inc_count2 (void)
 {
-  return test_inc_counter (2);
+  return test_inc_counter (2, 0);
 }
 
 static void
 test_inc_count3 (void)
 {
-  return test_inc_counter (3);
+  return test_inc_counter (3, 0);
 }
 
 static void
 test_inc_count4 (void)
 {
-  return test_inc_counter (4);
+  return test_inc_counter (4, 0);
+}
+
+static void
+test_inc_count8 (void)
+{
+  return test_inc_counter (8, 0);
+}
+
+static void
+test_inc_count1nondet (void)
+{
+  return test_inc_counter (1, 1);
+}
+
+static void
+test_inc_count2nondet (void)
+{
+  return test_inc_counter (2, 1);
+}
+
+static void
+test_inc_count3nondet (void)
+{
+  return test_inc_counter (3, 1);
+}
+
+static void
+test_inc_count4nondet (void)
+{
+  return test_inc_counter (4, 1);
+}
+
+static void
+test_inc_count8nondet (void)
+{
+  return test_inc_counter (8, 1);
 }
 
 void
@@ -111,6 +161,12 @@ run_inc_tests (int argc, char** argv)
   BTOR_RUN_TEST (inc_count2);
   BTOR_RUN_TEST (inc_count3);
   BTOR_RUN_TEST (inc_count4);
+  BTOR_RUN_TEST (inc_count8);
+  BTOR_RUN_TEST (inc_count1nondet);
+  BTOR_RUN_TEST (inc_count2nondet);
+  BTOR_RUN_TEST (inc_count3nondet);
+  BTOR_RUN_TEST (inc_count4nondet);
+  BTOR_RUN_TEST (inc_count8nondet);
 }
 
 void
