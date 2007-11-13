@@ -1882,6 +1882,12 @@ btor_zeros_exp (BtorExpMgr *emgr, int len)
 }
 
 BtorExp *
+btor_false_exp (BtorExpMgr *emgr)
+{
+  return btor_zeros_exp (emgr, 1);
+}
+
+BtorExp *
 btor_ones_exp (BtorExpMgr *emgr, int len)
 {
   char *string;
@@ -1892,6 +1898,12 @@ btor_ones_exp (BtorExpMgr *emgr, int len)
   result = btor_const_exp (emgr, string);
   btor_freestr (emgr->mm, string);
   return result;
+}
+
+BtorExp *
+btor_true_exp (BtorExpMgr *emgr)
+{
+  return btor_ones_exp (emgr, 1);
 }
 
 BtorExp *

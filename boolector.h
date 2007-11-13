@@ -7,6 +7,10 @@
 /* PUBLIC INTERFACE                                                       */
 /*------------------------------------------------------------------------*/
 
+#define BTOR_SAT 10
+#define BTOR_UNSAT 20
+#define BTOR_UNKNOWN 0
+
 /*------------------------------------------------------------------------*/
 /* Declarations                                                           */
 /*------------------------------------------------------------------------*/
@@ -50,12 +54,14 @@ BtorExp *btor_const_exp (BtorExpMgr *emgr, const char *bits);
  * len(result) = len
  */
 BtorExp *btor_zeros_exp (BtorExpMgr *emgr, int len);
+BtorExp *btor_false_exp (BtorExpMgr *);
 
 /* Binary constant representing len ones.
  * len > 0
  * len(result) = len
  */
 BtorExp *btor_ones_exp (BtorExpMgr *emgr, int len);
+BtorExp *btor_true_exp (BtorExpMgr *);
 
 /* Binary constant representing 1 with len bits.
  * len > 0
