@@ -46,7 +46,7 @@ print_verbose_msg (const char *msg)
 BtorSATMgr *
 btor_new_sat_mgr (BtorMemMgr *mm, int verbosity)
 {
-  BtorSATMgr *smgr = NULL;
+  BtorSATMgr *smgr;
 
   assert (mm != NULL);
   assert (verbosity >= -1);
