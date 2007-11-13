@@ -82,9 +82,6 @@ static const char *g_usage =
     "  -d|--dec                         decimal output\n"
     "  -o|--output <file>               set output file\n"
     "  -t|--trace <file>                set trace file\n"
-    "  -da|--dump-aig <file>            dump (partial) AIG in AIGER (only for "
-    "BV)\n"
-    "  -dc|--dump-cnf <file>            dump (partial) CNF in DIMACS\n"
     "  -de|--dump-exp <file>            dump expression in BTOR format\n"
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
@@ -359,14 +356,9 @@ btor_main (int argc, char **argv)
   int close_output_file       = 0;
   int close_exp_file          = 0;
   int close_smt_file          = 0;
-  int close_aig_file          = 0;
-  int close_cnf_file          = 0;
   int close_trace_file        = 0;
   int dump_exp                = 0;
-  int dump_aig                = 0;
-  int dump_cnf                = 0;
   int dump_smt                = 0;
-  int dump_binary_aig         = 0;
   int force_smt_input         = 0;
   int print_solutions         = 0;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
@@ -377,14 +369,11 @@ btor_main (int argc, char **argv)
   FILE *file                  = NULL;
   FILE *input_file            = stdin;
   FILE *exp_file              = stdout;
-  FILE *aig_file              = stdout;
-  FILE *cnf_file              = stdout;
   FILE *smt_file              = stdout;
   FILE *trace_file            = stdout;
   BtorExpMgr *emgr            = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIGVecMgr *avmgr        = NULL;
-  BtorAIG *aig                = NULL;
   BtorSATMgr *smgr            = NULL;
   BtorParseResult parse_res;
   const BtorParserAPI *parser_api = NULL;
@@ -424,10 +413,6 @@ btor_main (int argc, char **argv)
       print_solutions = 1;
     else if (!strcmp (argv[i], "-ds") || !strcmp (argv[i], "--dump-smt"))
       handle_dump_file (&app, &dump_smt, &close_smt_file, "SMT", &smt_file);
-    else if (!strcmp (argv[i], "-da") || !strcmp (argv[i], "--dump-aig"))
-      handle_dump_file (&app, &dump_aig, &close_aig_file, "AIG", &aig_file);
-    else if (!strcmp (argv[i], "-dc") || !strcmp (argv[i], "--dump-cnf"))
-      handle_dump_file (&app, &dump_cnf, &close_cnf_file, "CNF", &cnf_file);
     else if (!strcmp (argv[i], "--smt"))
       force_smt_input = 1;
     else if (!strcmp (argv[i], "-t") || !strcmp (argv[i], "--trace"))
@@ -564,9 +549,7 @@ btor_main (int argc, char **argv)
   }
 
   if (app.verbosity > 0)
-  {
     print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
-  }
 
   if (!done && !err)
   {
@@ -608,41 +591,15 @@ btor_main (int argc, char **argv)
           &app, "%s: root has bit width different from one\n", input_file_name);
       err = 1;
     }
-    else if (dump_exp || dump_aig || dump_cnf || dump_smt)
+    else if (dump_exp)
     {
       done = 1;
-      if (dump_exp)
-      {
-        btor_dump_exp (emgr, exp_file, parse_res.roots[0]);
-      }
-      else if (dump_smt)
-      {
-        btor_dump_smt (emgr, smt_file, parse_res.roots[0]);
-      }
-      else
-      {
-        avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
-        amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-        smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-        if (dump_aig)
-        {
-          aig = btor_exp_to_aig (emgr, parse_res.roots[0]);
-#ifdef BTOR_HAVE_ISATTY
-          if (close_aig_file || !isatty (1)) dump_binary_aig = 1;
-#endif
-          btor_dump_aig (amgr, dump_binary_aig, aig_file, aig);
-          btor_release_aig (amgr, aig);
-        }
-        else if (dump_cnf)
-        {
-          btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
-          btor_init_sat (smgr);
-          btor_exp_to_sat (emgr, parse_res.roots[0]);
-          btor_dump_cnf_sat (smgr, cnf_file);
-          btor_reset_sat (smgr);
-        }
-      }
+      btor_dump_exp (emgr, exp_file, parse_res.roots[0]);
+    }
+    else if (dump_smt)
+    {
+      done = 1;
+      btor_dump_smt (emgr, smt_file, parse_res.roots[0]);
     }
     else
     {
@@ -658,7 +615,8 @@ btor_main (int argc, char **argv)
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
-      sat_result = btor_sat_exp (emgr, parse_res.roots[0], 0);
+      btor_add_constraint_exp (emgr, parse_res.roots[0]);
+      sat_result = btor_sat_exp (emgr);
 
       if (app.verbosity >= 0)
       {
@@ -692,8 +650,6 @@ btor_main (int argc, char **argv)
   if (close_input_file) fclose (input_file);
   if (close_output_file) fclose (app.output_file);
   if (close_exp_file) fclose (exp_file);
-  if (close_aig_file) fclose (aig_file);
-  if (close_cnf_file) fclose (cnf_file);
   if (close_trace_file) fclose (trace_file);
   if (close_smt_file) fclose (smt_file);
   if (err)

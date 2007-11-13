@@ -624,30 +624,6 @@ test_write_exp (void)
   fclose (fout);
 }
 
-static void
-test_exp_to_aig (void)
-{
-  BtorExpMgr *emgr = btor_new_exp_mgr (0, 0, 0, stdout);
-  BtorExp *exp1    = btor_var_exp (emgr, 1, "v1");
-  BtorExp *exp2    = btor_var_exp (emgr, 32, "v2");
-  BtorExp *exp3    = btor_var_exp (emgr, 32, "v3");
-  BtorExp *exp4    = btor_cond_exp (emgr, exp1, exp2, exp3);
-  BtorExp *exp5    = btor_var_exp (emgr, 32, "v4");
-  BtorExp *exp6    = btor_and_exp (emgr, exp4, exp5);
-  BtorExp *exp7    = btor_slice_exp (emgr, exp6, 31, 31);
-  BtorAIG *result  = btor_exp_to_aig (emgr, exp7);
-  btor_release_aig (
-      btor_get_aig_mgr_aigvec_mgr (btor_get_aigvec_mgr_exp_mgr (emgr)), result);
-  btor_release_exp (emgr, exp1);
-  btor_release_exp (emgr, exp2);
-  btor_release_exp (emgr, exp3);
-  btor_release_exp (emgr, exp4);
-  btor_release_exp (emgr, exp5);
-  btor_release_exp (emgr, exp6);
-  btor_release_exp (emgr, exp7);
-  btor_delete_exp_mgr (emgr);
-}
-
 void
 run_exp_tests (int argc, char **argv)
 {
@@ -702,7 +678,6 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (read_exp);
   BTOR_RUN_TEST_CHECK_LOG (cond_exp);
   BTOR_RUN_TEST_CHECK_LOG (write_exp);
-  BTOR_RUN_TEST (exp_to_aig);
 }
 
 void
