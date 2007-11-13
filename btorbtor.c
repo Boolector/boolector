@@ -429,7 +429,7 @@ parse_consth (BtorBTORParser *parser, int len)
   BTOR_RESET_STACK (parser->constant);
 
   tmp  = btor_hex_to_const_n (parser->mem, parser->constant.start, clen);
-  clen = strlen (tmp);
+  clen = (int) strlen (tmp);
 
   if (clen > len)
   {
@@ -505,7 +505,7 @@ parse_constd (BtorBTORParser *parser, int len)
 
   savech (parser, ch);
 
-  clen = strlen (tmp);
+  clen = (int) strlen (tmp);
   if (clen > len)
   {
     (void) parse_error (parser,

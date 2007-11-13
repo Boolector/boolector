@@ -1295,7 +1295,7 @@ new_const_exp_node (BtorExpMgr *emgr, const char *bits)
   int i, len;
   assert (emgr != NULL);
   assert (bits != NULL);
-  len = strlen (bits);
+  len = (int) strlen (bits);
   assert (len > 0);
   BTOR_CNEW (emgr->mm, exp);
   exp->kind = BTOR_CONST_EXP;
@@ -1544,7 +1544,7 @@ find_const_exp (BtorExpMgr *emgr, const char *bits)
   int len;
   assert (emgr != NULL);
   assert (bits != NULL);
-  len    = strlen (bits);
+  len    = (int) strlen (bits);
   hash   = btor_hashstr ((void *) bits);
   hash   = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (emgr->table.size - 1);
   result = emgr->table.chains + hash;
@@ -1843,7 +1843,7 @@ btor_const_exp (BtorExpMgr *emgr, const char *bits)
   BtorExp **lookup;
   assert (emgr != NULL);
   assert (bits != NULL);
-  assert (strlen (bits) > 0);
+  assert ((int) strlen (bits) > 0);
   lookup = find_const_exp (emgr, bits);
   if (*lookup == NULL)
   {
@@ -1897,9 +1897,9 @@ btor_one_exp (BtorExpMgr *emgr, int len)
   BtorExp *result;
   assert (emgr != NULL);
   assert (len > 0);
-  string                      = zeros_string (emgr, len);
-  string[strlen (string) - 1] = '1';
-  result                      = btor_const_exp (emgr, string);
+  string                            = zeros_string (emgr, len);
+  string[(int) strlen (string) - 1] = '1';
+  result                            = btor_const_exp (emgr, string);
   btor_freestr (emgr->mm, string);
   return result;
 }
@@ -4248,7 +4248,7 @@ btor_synthesize_exp (BtorExpMgr *emgr,
           if (backannoation)
           {
             name         = btor_get_symbol_exp (emgr, cur);
-            len          = strlen (name) + 40;
+            len          = (int) strlen (name) + 40;
             indexed_name = btor_malloc (mm, len);
             for (i = 0; i < cur->av->len; i++)
             {

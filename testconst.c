@@ -110,13 +110,9 @@ test_add_unbounded_const_aux (FILE *fout, const char *a, const char *b)
 {
   char *c = btor_add_unbounded_const (g_mm, a, b);
   char fmt[80];
-  size_t len = strlen (a);
-  if (strlen (b) > len) len = strlen (b);
-  sprintf (fmt,
-           "  %%%ds\n+ %%%ds\n= %%%ds\n\n",
-           (int) len + 2,
-           (int) len + 2,
-           (int) len + 2);
+  int len = (int) strlen (a);
+  if ((int) strlen (b) > len) len = (int) strlen (b);
+  sprintf (fmt, "  %%%ds\n+ %%%ds\n= %%%ds\n\n", len + 2, len + 2, len + 2);
   fprintf (fout, fmt, a, b, c);
   btor_delete_const (g_mm, c);
 }
@@ -145,7 +141,7 @@ test_mult_unbounded_const_aux (FILE *fout, const char *a, const char *b)
   char *c = btor_mult_unbounded_const (g_mm, a, b);
   char fmt[80];
   int len;
-  len = strlen (a) + strlen (b);
+  len = (int) strlen (a) + (int) strlen (b);
   sprintf (fmt, "  %%%ds\n* %%%ds\n= %%%ds\n\n", len + 1, len + 1, len + 1);
   fprintf (fout, fmt, a, b, c);
   btor_delete_const (g_mm, c);
@@ -219,7 +215,7 @@ test_sub_unbounded_const_aux (FILE *fout, const char *a, const char *b)
 {
   char *c = btor_sub_unbounded_const (g_mm, a, b);
   char fmt[80];
-  int len = strlen (a) + 1;
+  int len = (int) strlen (a) + 1;
   sprintf (fmt, "  %%%ds\n- %%%ds\n= %%%ds\n\n", len, len, len);
   fprintf (fout, fmt, a, b, c);
   btor_delete_const (g_mm, c);
@@ -255,7 +251,7 @@ test_udiv_unbounded_const_aux (FILE *fout, const char *a, const char *b)
 {
   char *d, *c = btor_udiv_unbounded_const (g_mm, a, b, &d);
   char fmt[80];
-  size_t len = strlen (a);
+  int len = (int) strlen (a);
   sprintf (
       fmt, "  %%%ds\n/ %%%ds\n= %%%ds\n%%%% %%%ds\n\n", len, len, len, len);
   fprintf (fout, fmt, a, b, c, d);

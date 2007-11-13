@@ -438,7 +438,7 @@ btor_main (int argc, char **argv)
              || (strstr (argv[i], "--rewrite-level") == argv[i]
                  && strlen (argv[i]) == strlen ("--rewrite-level") + 1))
     {
-      rewrite_level = (int) argv[i][strlen (argv[i]) - 1] - 48;
+      rewrite_level = (int) argv[i][(int) strlen (argv[i]) - 1] - 48;
       assert (rewrite_level >= 0);
       if (rewrite_level > 2)
       {
