@@ -4500,8 +4500,8 @@ btor_synthesize_exp (BtorExpMgr *emgr,
     print_verbose_msg ("synthesized %u expressions into AIG vectors", count);
 }
 
-BtorAIG *
-btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
+static BtorAIG *
+exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -4509,6 +4509,7 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
   BtorAIGVec *av;
   BtorAIG *result;
 
+  assert (emgr != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
@@ -4529,6 +4530,36 @@ btor_exp_to_aig (BtorExpMgr *emgr, BtorExp *exp)
   else
     result = btor_copy_aig (amgr, result);
 
+  return result;
+}
+
+BtorAIG *
+btor_instance_to_aig_exp (BtorExpMgr *emgr)
+{
+  BtorAIG *result, *temp, *synthesize_aig;
+  BtorExp **cur, **top;
+  BtorAIGMgr *amgr;
+  assert (emgr != NULL);
+  result = BTOR_AIG_TRUE;
+  amgr   = btor_get_aig_mgr_aigvec_mgr (emgr->avmgr);
+  top    = emgr->constraints.top;
+  for (cur = emgr->constraints.start; cur != top; cur++)
+  {
+    synthesized_aig = exp_to_aig (emgr, *cur);
+    temp            = btor_and_aig (amgr, result, synthesized_aig);
+    btor_release_aig (amgr, result);
+    result = temp;
+    btor_release_aig (amgr, synthesized_aig);
+  }
+  top = emgr->assumptions.top;
+  for (cur = emgr->assumptions.start; cur != top; cur++)
+  {
+    synthesized_aig = exp_to_aig (emgr, *cur);
+    temp            = btor_and_aig (amgr, result, synthesized_aig);
+    btor_release_aig (amgr, result);
+    result = temp;
+    btor_release_aig (amgr, synthesized_aig);
+  }
   return result;
 }
 
