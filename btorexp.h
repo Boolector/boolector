@@ -58,19 +58,22 @@ typedef struct BtorExpPair BtorExpPair;
 
 struct BtorExp
 {
-  BtorExpKind kind : 5;           /* kind of expression */
-  unsigned int mark : 3;          /* for DAG traversal */
-  unsigned int array_mark : 3;    /* for bottom up array traversal */
-  unsigned int encoded_read : 1;  /* flag used by eager read encoding */
-  unsigned int reachable : 1;     /* flag determines if expression
-                                     is reachable from root or not */
-  unsigned int full_sat : 1;      /* flag determines if expression has been
-                                     fully encoded into SAT */
-  int index_len;                  /* length of the index.
-                                     for arrays and writes only */
-  struct BtorPtrHashTable *table; /* used for determining read-read
-                                     and read-write conflicts
-                                     for arrays and writes only */
+  BtorExpKind kind : 5;          /* kind of expression */
+  unsigned int mark : 3;         /* for DAG traversal */
+  unsigned int array_mark : 3;   /* for bottom up array traversal */
+  unsigned int encoded_read : 1; /* flag used by eager read encoding */
+  unsigned int reachable : 1;    /* flag determines if expression
+                                    is reachable from root or not */
+  unsigned int full_sat : 1;     /* flag determines if expression has been
+                                    fully encoded into SAT */
+  unsigned int vread : 1;        /* flag determines if expression
+                                    is a virtual read
+                                    for reads only */
+  int index_len;                 /* length of the index.
+                                    for arrays, writes and array conds only */
+  BtorPtrHashTable *table;       /* used for determining read-read
+                                    and read-write conflicts
+                                    for arrays and writes only */
   union
   {
     struct
@@ -97,7 +100,7 @@ struct BtorExp
   struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
   struct BtorExp *first_aeq_acond_parent; /* first array equality or array
                                              conditional in parent list
-                                             for arrays and writes only */
+                                             or arrays and writes only */
   struct BtorExp *parent;                 /* parent pointer for BFS */
   BtorExpPair *vreads;                    /* virtual reads
                                              for array equalities only */
