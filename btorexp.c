@@ -931,6 +931,7 @@ encode_read_eagerly (BtorExpMgr *emgr, BtorExp *array, BtorExp *read)
   assert (BTOR_IS_REGULAR_EXP (read));
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
+  assert (read->reachable);
   cur = array->first_parent;
   /* read expressions are at the beginning of the parent list */
   while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_READ_EXP)
@@ -4354,6 +4355,11 @@ btor_synthesize_exp (BtorExpMgr *emgr,
                 emgr, BTOR_READ_EXP, cur->e[0], index, cur->e[0]->len);
             read2 = binary_exp (
                 emgr, BTOR_READ_EXP, cur->e[1], index, cur->e[1]->len);
+
+            /* mark them as virtual */
+            read1->vread = 1;
+            read2->vread = 1;
+
             cur->vreads = new_exp_pair (emgr, read1, read2);
 
             /* synthesize values of virtual reads */
@@ -5369,13 +5375,17 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       {
         assert (BTOR_GET_TAG_EXP (cur_read) == 0);
         assert (BTOR_IS_REGULAR_EXP (cur_read));
-        /* push read-array pair on working stack */
-        BTOR_PUSH_STACK (mm, working_stack, cur_read);
-        BTOR_PUSH_STACK (mm, working_stack, cur_array);
-        found_conflict = process_working_stack (
-            emgr, &working_stack, &cleanup_stack, &changed_assignments);
-        if (found_conflict || changed_assignments)
-          goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
+        /* we only process reachable or virtual reads */
+        if (cur_read->reachable || cur_read->vread)
+        {
+          /* push read-array pair on working stack */
+          BTOR_PUSH_STACK (mm, working_stack, cur_read);
+          BTOR_PUSH_STACK (mm, working_stack, cur_array);
+          found_conflict = process_working_stack (
+              emgr, &working_stack, &cleanup_stack, &changed_assignments);
+          if (found_conflict || changed_assignments)
+            goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
+        }
         cur_read = cur_read->next_parent[0];
       }
     }
