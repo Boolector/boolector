@@ -12,22 +12,22 @@
 static void
 test_inc_true_false (void)
 {
-  BtorExpMgr* mgr = btor_new_exp_mgr (2, 0, 0, 0);
-  BtorExp* ff     = btor_false_exp (mgr);
-  BtorExp* tt     = btor_true_exp (mgr);
+  Btor* btor  = btor_new_btor (2, 0, 0, 0);
+  BtorExp* ff = btor_false_exp (btor);
+  BtorExp* tt = btor_true_exp (btor);
   int res;
 
-  btor_add_assumption_exp (mgr, tt);
-  res = btor_sat_exp (mgr);
+  btor_add_assumption_exp (btor, tt);
+  res = btor_sat_btor (btor);
   assert (res == BTOR_SAT);
 
-  btor_add_assumption_exp (mgr, ff);
-  res = btor_sat_exp (mgr);
+  btor_add_assumption_exp (btor, ff);
+  res = btor_sat_btor (btor);
   assert (res == BTOR_UNSAT);
 
-  btor_release_exp (mgr, ff);
-  btor_release_exp (mgr, tt);
-  btor_delete_exp_mgr (mgr);
+  btor_release_exp (btor, ff);
+  btor_release_exp (btor, tt);
+  btor_delete_btor (btor);
 }
 
 static void
@@ -35,48 +35,48 @@ test_inc_counter (int w, int nondet)
 {
   BtorExp *nonzero, *allzero, *one, *oracle;
   BtorExp *current, *next, *inc;
-  BtorExpMgr* mgr;
+  Btor* btor;
   char name[100];
   int i, res;
 
   assert (w > 0);
 
-  mgr     = btor_new_exp_mgr (2, 0, 0, 0);
-  one     = btor_one_exp (mgr, w);
-  current = btor_zeros_exp (mgr, w);
+  btor    = btor_new_btor (2, 0, 0, 0);
+  one     = btor_one_exp (btor, w);
+  current = btor_zeros_exp (btor, w);
   i       = 0;
 
   for (;;)
   {
-    inc = btor_add_exp (mgr, current, one);
+    inc = btor_add_exp (btor, current, one);
 
     if (nondet)
     {
       sprintf (name, "oracle%d", i);
       if (i)
-        oracle = btor_var_exp (mgr, 1, name);
+        oracle = btor_var_exp (btor, 1, name);
       else
-        oracle = btor_true_exp (mgr);
-      next = btor_cond_exp (mgr, oracle, inc, current);
-      btor_release_exp (mgr, oracle);
+        oracle = btor_true_exp (btor);
+      next = btor_cond_exp (btor, oracle, inc, current);
+      btor_release_exp (btor, oracle);
     }
     else
-      next = btor_copy_exp (mgr, inc);
+      next = btor_copy_exp (btor, inc);
 
-    btor_release_exp (mgr, inc);
-    btor_release_exp (mgr, current);
+    btor_release_exp (btor, inc);
+    btor_release_exp (btor, current);
     current = next;
 
-    nonzero = btor_redor_exp (mgr, current);
-    allzero = btor_not_exp (mgr, nonzero);
-    btor_release_exp (mgr, nonzero);
+    nonzero = btor_redor_exp (btor, current);
+    allzero = btor_not_exp (btor, nonzero);
+    btor_release_exp (btor, nonzero);
 
     i++;
 
-    btor_add_assumption_exp (mgr, allzero);
-    btor_release_exp (mgr, allzero);
+    btor_add_assumption_exp (btor, allzero);
+    btor_release_exp (btor, allzero);
 
-    res = btor_sat_exp (mgr);
+    res = btor_sat_btor (btor);
     if (res == BTOR_SAT) break;
 
     assert (res == BTOR_UNSAT);
@@ -85,10 +85,10 @@ test_inc_counter (int w, int nondet)
 
   assert (i == (1 << w));
 
-  btor_release_exp (mgr, one);
-  btor_release_exp (mgr, current);
+  btor_release_exp (btor, one);
+  btor_release_exp (btor, current);
 
-  btor_delete_exp_mgr (mgr);
+  btor_delete_btor (btor);
 }
 
 static void
@@ -155,13 +155,13 @@ static void
 test_inc_lt (int w)
 {
   BtorExp *prev, *next, *lt;
-  BtorExpMgr* mgr;
+  Btor* btor;
   char name[100];
   int i, res;
 
   assert (w > 0);
 
-  mgr = btor_new_exp_mgr (2, 0, 0, 0);
+  btor = btor_new_btor (2, 0, 0, 0);
 
   i    = 0;
   prev = 0;
@@ -170,19 +170,19 @@ test_inc_lt (int w)
     i++;
 
     sprintf (name, "%d", i);
-    next = btor_var_exp (mgr, w, name);
+    next = btor_var_exp (btor, w, name);
 
     if (prev)
     {
-      lt = btor_ult_exp (mgr, prev, next);
-      btor_add_constraint_exp (mgr, lt);
-      btor_release_exp (mgr, lt);
-      btor_release_exp (mgr, prev);
+      lt = btor_ult_exp (btor, prev, next);
+      btor_add_constraint_exp (btor, lt);
+      btor_release_exp (btor, lt);
+      btor_release_exp (btor, prev);
     }
 
     prev = next;
 
-    res = btor_sat_exp (mgr);
+    res = btor_sat_btor (btor);
     if (res == BTOR_UNSAT) break;
 
     assert (res == BTOR_SAT);
@@ -191,8 +191,8 @@ test_inc_lt (int w)
 
   assert (i == (1 << w) + 1);
 
-  btor_release_exp (mgr, prev);
-  btor_delete_exp_mgr (mgr);
+  btor_release_exp (btor, prev);
+  btor_delete_btor (btor);
 }
 
 static void

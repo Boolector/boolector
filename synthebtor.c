@@ -41,7 +41,7 @@ main (int argc, char **argv)
   BtorAIG *aig, **p;
   BtorParser *parser;
   BtorAIGMgr *amgr;
-  BtorExpMgr *emgr;
+  Btor *btor;
   BtorMemMgr *mem;
   BtorAIGVec *av;
 
@@ -80,8 +80,8 @@ main (int argc, char **argv)
     }
   }
 
-  emgr   = btor_new_exp_mgr (2, 0, verbosity, 0);
-  parser = btor_btor_parser_api->init (emgr, verbosity);
+  btor   = btor_new_btor (2, 0, verbosity, 0);
+  parser = btor_btor_parser_api->init (btor, verbosity);
 
   parse_error =
       btor_btor_parser_api->parse (parser, input_file, input_name, &model);
@@ -89,8 +89,8 @@ main (int argc, char **argv)
 
   if (!model.nroots) die (1, "no roots in '%s'", input_name);
 
-  mem   = btor_get_mem_mgr_exp_mgr (emgr);
-  avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
+  mem   = btor_get_mem_mgr_btor (btor);
+  avmgr = btor_get_aigvec_mgr_btor (btor);
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
 
   back_annotation = btor_new_ptr_hash_table (mem, 0, 0);
@@ -98,7 +98,7 @@ main (int argc, char **argv)
   BTOR_INIT_STACK (stack);
   for (i = 0; i < model.nroots; i++)
   {
-    av = btor_exp_to_aigvec (emgr, model.roots[i], back_annotation);
+    av = btor_exp_to_aigvec (btor, model.roots[i], back_annotation);
     for (j = 0; j < av->len; j++)
     {
       aig = btor_copy_aig (amgr, av->aigs[j]);
@@ -127,7 +127,7 @@ main (int argc, char **argv)
   btor_delete_ptr_hash_table (back_annotation);
 
   btor_btor_parser_api->reset (parser);
-  btor_delete_exp_mgr (emgr);
+  btor_delete_btor (btor);
 
   if (close_input) fclose (input_file);
 

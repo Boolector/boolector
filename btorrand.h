@@ -27,6 +27,6 @@ struct BtorRandExpParams
 BtorRand *btor_new_rand (BtorMemMgr *, unsigned seed);
 void btor_delete_rand (BtorMemMgr *, BtorRand *);
 
-BtorExp *btor_new_rand_exp (BtorExpMgr *, BtorRand *, BtorRandExpParams *);
+BtorExp *btor_new_rand_exp (Btor *, BtorRand *, BtorRandExpParams *);
 
 #endif

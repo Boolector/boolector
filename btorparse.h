@@ -8,7 +8,7 @@
 typedef struct BtorParser BtorParser;
 typedef struct BtorParseResult BtorParseResult;
 typedef struct BtorParserAPI BtorParserAPI;
-typedef BtorParser *(*BtorInitParser) (BtorExpMgr *, int verbosity);
+typedef BtorParser *(*BtorInitParser) (Btor *, int verbosity);
 typedef void (*BtorResetParser) (void *);
 
 typedef char *(*BtorParse) (BtorParser *,

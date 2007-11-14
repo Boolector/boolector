@@ -158,7 +158,7 @@ struct BtorSMTSymbol
 struct BtorSMTParser
 {
   BtorMemMgr *mem;
-  BtorExpMgr *mgr;
+  Btor *mgr;
   int verbosity;
   int parsed;
 
@@ -473,9 +473,9 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 }
 
 static BtorSMTParser *
-btor_new_smt_parser (BtorExpMgr *mgr, int verbosity)
+btor_new_smt_parser (Btor *mgr, int verbosity)
 {
-  BtorMemMgr *mem = btor_get_mem_mgr_exp_mgr (mgr);
+  BtorMemMgr *mem = btor_get_mem_mgr_btor (mgr);
   BtorSMTSymbol *bind;
   BtorSMTParser *res;
   unsigned char type;
@@ -1292,7 +1292,7 @@ static void
 translate_unary (BtorSMTParser *parser,
                  BtorSMTNode *node,
                  const char *name,
-                 BtorExp *(*f) (BtorExpMgr *, BtorExp *) )
+                 BtorExp *(*f) (Btor *, BtorExp *) )
 {
   BtorSMTNode *c;
   BtorExp *a;
@@ -1313,7 +1313,7 @@ static void
 translate_binary (BtorSMTParser *parser,
                   BtorSMTNode *node,
                   const char *name,
-                  BtorExp *(*f) (BtorExpMgr *, BtorExp *, BtorExp *) )
+                  BtorExp *(*f) (Btor *, BtorExp *, BtorExp *) )
 {
   BtorSMTNode *c0, *c1;
   BtorExp *a0, *a1;
@@ -1401,9 +1401,7 @@ static void
 translate_associative_binary (BtorSMTParser *parser,
                               BtorSMTNode *node,
                               const char *name,
-                              BtorExp *(*f) (BtorExpMgr *,
-                                             BtorExp *,
-                                             BtorExp *) )
+                              BtorExp *(*f) (Btor *, BtorExp *, BtorExp *) )
 {
   BtorExp *res, *tmp, *exp;
   BtorSMTNode *child, *p;
@@ -1623,7 +1621,7 @@ translate_repeat (BtorSMTParser *parser, BtorSMTNode *node)
 static void
 translate_extend (BtorSMTParser *parser,
                   BtorSMTNode *node,
-                  BtorExp *(*f) (BtorExpMgr *, BtorExp *, int) )
+                  BtorExp *(*f) (Btor *, BtorExp *, int) )
 {
   BtorSMTSymbol *symbol;
   const char *p;
@@ -1738,7 +1736,7 @@ static void
 translate_shift (BtorSMTParser *parser,
                  BtorSMTNode *node,
                  const char *name,
-                 BtorExp *(*f) (BtorExpMgr *, BtorExp *, BtorExp *) )
+                 BtorExp *(*f) (Btor *, BtorExp *, BtorExp *) )
 {
   BtorExp *a0, *a1, *c, *e, *t, *e0, *u, *l, *tmp;
   int len, l0, l1, p0, p1;

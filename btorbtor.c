@@ -12,17 +12,17 @@
 typedef struct BtorBTORParser BtorBTORParser;
 
 typedef BtorExp *(*BtorOpParser) (BtorBTORParser *, int len);
-typedef BtorExp *(*Unary) (BtorExpMgr *, BtorExp *);
-typedef BtorExp *(*Binary) (BtorExpMgr *, BtorExp *, BtorExp *);
-typedef BtorExp *(*Shift) (BtorExpMgr *, BtorExp *, BtorExp *);
-typedef BtorExp *(*Extend) (BtorExpMgr *, BtorExp *, int);
+typedef BtorExp *(*Unary) (Btor *, BtorExp *);
+typedef BtorExp *(*Binary) (Btor *, BtorExp *, BtorExp *);
+typedef BtorExp *(*Shift) (Btor *, BtorExp *, BtorExp *);
+typedef BtorExp *(*Extend) (Btor *, BtorExp *, int);
 
 #define SIZE_PARSERS 128
 
 struct BtorBTORParser
 {
   BtorMemMgr *mem;
-  BtorExpMgr *btor;
+  Btor *btor;
 
   FILE *file;
   int lineno;
@@ -1400,9 +1400,9 @@ find_parser (BtorBTORParser *parser, const char *op)
 }
 
 static BtorBTORParser *
-btor_new_btor_parser (BtorExpMgr *btor, int verbosity)
+btor_new_btor_parser (Btor *btor, int verbosity)
 {
-  BtorMemMgr *mem = btor_get_mem_mgr_exp_mgr (btor);
+  BtorMemMgr *mem = btor_get_mem_mgr_btor (btor);
   BtorBTORParser *res;
 
   assert (verbosity >= -1);

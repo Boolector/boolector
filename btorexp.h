@@ -104,7 +104,7 @@ struct BtorExp
   struct BtorExp *parent;                 /* parent pointer for BFS */
   BtorExpPair *vreads;                    /* virtual reads
                                              for array equalities only */
-  BtorExpMgr *emgr;                       /* expression manager */
+  Btor *btor;                             /* Boolector */
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
@@ -148,10 +148,10 @@ struct BtorExp
                 ^ (unsigned long int) (exp)))
 #define BTOR_GET_ID_EXP(exp) \
   (BTOR_IS_INVERTED_EXP (exp) ? -BTOR_REAL_ADDR_EXP (exp)->id : exp->id)
-#define BTOR_AIGVEC_EXP(emgr, exp)                                     \
+#define BTOR_AIGVEC_EXP(btor, exp)                                     \
   (BTOR_IS_INVERTED_EXP (exp)                                          \
-       ? btor_not_aigvec ((emgr)->avmgr, BTOR_REAL_ADDR_EXP (exp)->av) \
-       : btor_copy_aigvec ((emgr)->avmgr, exp->av))
+       ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_EXP (exp)->av) \
+       : btor_copy_aigvec ((btor)->avmgr, exp->av))
 #define BTOR_BITS_EXP(mm, exp)                               \
   (BTOR_IS_INVERTED_EXP (exp)                                \
        ? btor_not_const (mm, BTOR_REAL_ADDR_EXP (exp)->bits) \
@@ -176,40 +176,40 @@ BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
 
 /* Sets the read encoding paradigm. */
-void btor_set_read_enc_exp_mgr (BtorExpMgr *emgr, BtorReadEnc read_enc);
+void btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc);
 
 /* Sets the read encoding strategy. */
-void btor_set_write_enc_exp_mgr (BtorExpMgr *emgr, BtorWriteEnc write_enc);
+void btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc);
 
 /* Prints statistics */
-void btor_print_stats_exp_mgr (BtorExpMgr *emgr);
+void btor_print_stats_btor (Btor *btor);
 
-/* Returns the memory manager of the expression manager. */
-BtorMemMgr *btor_get_mem_mgr_exp_mgr (const BtorExpMgr *emgr);
+/* Returns the memory manager. */
+BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
 
-/* Returns the AIG vector manager of the expression manager. */
-BtorAIGVecMgr *btor_get_aigvec_mgr_exp_mgr (const BtorExpMgr *emgr);
+/* Returns the AIG vector manager. */
+BtorAIGVecMgr *btor_get_aigvec_mgr_btor (const Btor *btor);
 
-/* Synthesize formula represented by top
+/* Synthesizes formula represented by top
  * level constraints and assumptions to a single AIG.
  */
-BtorAIG *btor_to_aig_exp (BtorExpMgr *emgr);
+BtorAIG *btor_to_aig_exp (Btor *btor);
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
  * The strings in 'data.asStr' are owned by the caller.  The hash table
  * is a map from AIG variables to strings.
  */
-BtorAIGVec *btor_exp_to_aigvec (BtorExpMgr *emgr,
+BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
                                 BtorExp *exp,
                                 BtorPtrHashTable *table);
 
 /* Translates formula represented by top level constraints
  * and assumptions into SAT instance.
  */
-void btor_to_sat_exp (BtorExpMgr *emgr);
+void btor_to_sat_exp (Btor *btor);
 
 /* Marks all reachable expressions with new mark. */
-void btor_mark_exp (BtorExpMgr *emgr, BtorExp *exp, int new_mark);
+void btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark);
 
 #endif

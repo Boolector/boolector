@@ -280,7 +280,7 @@ has_only_x (const char *str)
 }
 
 static void
-print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
+print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 {
   int not_binary   = 0;
   char *pretty     = NULL;
@@ -289,15 +289,15 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
   BtorMemMgr *mm   = NULL;
   BtorBasis basis  = BTOR_BINARY_BASIS;
   assert (app != NULL);
-  assert (emgr != NULL);
+  assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
   assert (BTOR_IS_VAR_EXP (exp));
   basis = app->basis;
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
-  mm         = btor_get_mem_mgr_exp_mgr (emgr);
-  assignment = btor_assignment_exp (emgr, exp);
+  mm         = btor_get_mem_mgr_btor (btor);
+  assignment = btor_assignment_exp (btor, exp);
 
   if (assignment != NULL && !has_only_x (assignment))
   {
@@ -318,7 +318,7 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
     else
       pretty = assignment;
 
-    print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (emgr, exp), pretty);
+    print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
 
     if (not_binary) btor_freestr (mm, pretty);
   }
@@ -327,16 +327,16 @@ print_assignment (BtorMainApp *app, BtorExpMgr *emgr, BtorExp *exp)
 
 static void
 print_variable_assignments (BtorMainApp *app,
-                            BtorExpMgr *emgr,
+                            Btor *btor,
                             BtorExp **vars,
                             int nvars)
 {
   int i = 0;
   assert (app != NULL);
-  assert (emgr != NULL);
+  assert (btor != NULL);
   assert (vars != NULL);
   assert (nvars >= 0);
-  for (i = 0; i < nvars; i++) print_assignment (app, emgr, vars[i]);
+  for (i = 0; i < nvars; i++) print_assignment (app, btor, vars[i]);
 }
 
 int
@@ -371,7 +371,7 @@ btor_main (int argc, char **argv)
   FILE *exp_file              = stdout;
   FILE *smt_file              = stdout;
   FILE *trace_file            = stdout;
-  BtorExpMgr *emgr            = NULL;
+  Btor *btor                  = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIGVecMgr *avmgr        = NULL;
   BtorSATMgr *smgr            = NULL;
@@ -553,11 +553,10 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    emgr =
-        btor_new_exp_mgr (rewrite_level, dump_trace, app.verbosity, trace_file);
-    btor_set_read_enc_exp_mgr (emgr, read_enc);
-    btor_set_write_enc_exp_mgr (emgr, write_enc);
-    mem = btor_get_mem_mgr_exp_mgr (emgr);
+    btor = btor_new_btor (rewrite_level, dump_trace, app.verbosity, trace_file);
+    btor_set_read_enc_btor (btor, read_enc);
+    btor_set_write_enc_btor (btor, write_enc);
+    mem = btor_get_mem_mgr_btor (btor);
 
     if (force_smt_input
         || (close_input_file && has_suffix (input_file_name, ".smt")))
@@ -567,7 +566,7 @@ btor_main (int argc, char **argv)
     else
       parser_api = btor_btor_parser_api;
 
-    parser = parser_api->init (emgr, app.verbosity);
+    parser = parser_api->init (btor, app.verbosity);
 
     parse_error =
         parser_api->parse (parser, input_file, input_file_name, &parse_res);
@@ -585,7 +584,7 @@ btor_main (int argc, char **argv)
                          parse_res.nroots);
       err = 1;
     }
-    else if (btor_get_exp_len (emgr, parse_res.roots[0]) != 1)
+    else if (btor_get_exp_len (btor, parse_res.roots[0]) != 1)
     {
       print_msg_va_args (
           &app, "%s: root has bit width different from one\n", input_file_name);
@@ -594,16 +593,16 @@ btor_main (int argc, char **argv)
     else if (dump_exp)
     {
       done = 1;
-      btor_dump_exp (emgr, exp_file, parse_res.roots[0]);
+      btor_dump_exp (btor, exp_file, parse_res.roots[0]);
     }
     else if (dump_smt)
     {
       done = 1;
-      btor_dump_smt (emgr, smt_file, parse_res.roots[0]);
+      btor_dump_smt (btor, smt_file, parse_res.roots[0]);
     }
     else
     {
-      avmgr = btor_get_aigvec_mgr_exp_mgr (emgr);
+      avmgr = btor_get_aigvec_mgr_btor (btor);
       amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
       smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
@@ -615,8 +614,8 @@ btor_main (int argc, char **argv)
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
-      btor_add_constraint_exp (emgr, parse_res.roots[0]);
-      sat_result = btor_sat_exp (emgr);
+      btor_add_constraint_exp (btor, parse_res.roots[0]);
+      sat_result = btor_sat_btor (btor);
 
       if (app.verbosity >= 0)
       {
@@ -627,7 +626,7 @@ btor_main (int argc, char **argv)
           print_msg (&app, "sat\n");
           if (print_solutions && parse_res.nvars > 0)
             print_variable_assignments (
-                &app, emgr, parse_res.vars, parse_res.nvars);
+                &app, btor, parse_res.vars, parse_res.nvars);
         }
         else
         {
@@ -639,12 +638,12 @@ btor_main (int argc, char **argv)
       if (app.verbosity >= 3) btor_print_stats_sat (smgr);
       btor_reset_sat (smgr);
 
-      if (app.verbosity >= 2) btor_print_stats_exp_mgr (emgr);
+      if (app.verbosity >= 2) btor_print_stats_btor (btor);
     }
 
     parser_api->reset (parser);
     maxallocated = mem->maxallocated;
-    btor_delete_exp_mgr (emgr);
+    btor_delete_btor (btor);
   }
 
   if (close_input_file) fclose (input_file);
