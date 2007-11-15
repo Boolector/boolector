@@ -71,6 +71,7 @@ struct Btor
   int synthesis_assignment_inconsistencies;
   int read_read_conflicts;
   int read_write_conflicts;
+  int substitutions;
 };
 
 struct BtorExpPair
@@ -1700,7 +1701,6 @@ enlarge_exp_unique_table (Btor *btor)
   btor->table.chains = new_chains;
 }
 
-/* Removes expression from unique table and deletes it from memory. */
 static void
 delete_exp_unique_table_entry (Btor *btor, BtorExp *exp)
 {
@@ -1709,8 +1709,8 @@ delete_exp_unique_table_entry (Btor *btor, BtorExp *exp)
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
-  prev = NULL;
   hash = compute_exp_hash (exp, btor->table.size);
+  prev = NULL;
   cur  = btor->table.chains[hash];
   while (cur != exp && cur != NULL)
   {
@@ -1724,7 +1724,7 @@ delete_exp_unique_table_entry (Btor *btor, BtorExp *exp)
   else
     prev->next = cur->next;
   btor->table.num_elements--;
-  delete_exp_node (btor, cur);
+  delete_exp_node (btor, exp);
 }
 
 static void
@@ -1763,9 +1763,7 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
     {
       cur->mark = new_mark;
       if (BTOR_IS_UNARY_EXP (cur))
-      {
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-      }
       else if (BTOR_IS_BINARY_EXP (cur))
       {
         BTOR_PUSH_STACK (mm, stack, cur->e[1]);
@@ -4159,6 +4157,7 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("top level constraints: %d",
                      BTOR_COUNT_STACK (btor->constraints));
   print_verbose_msg ("assumptions: %d", BTOR_COUNT_STACK (btor->assumptions));
+  print_verbose_msg ("substitutions: %d", btor->substitutions);
   if (btor->extensionality)
     print_verbose_msg ("extensionality mode: yes");
   else
@@ -5410,36 +5409,221 @@ reset_assumptions (Btor *btor)
   BTOR_RESET_STACK (btor->assumptions);
 }
 
-static void
-substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
+static int
+is_cyclic_substitution (Btor *btor, BtorExp *left, BtorExp *right)
 {
-  BtorExp *temp, *cur_parent, *real_left, *real_right, *real_parent;
-  int tag;
+  BtorExp *cur, *real_left;
+  BtorExpPtrStack stack;
+  int is_cyclic;
+  BtorMemMgr *mm;
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
-  /* swap if necessary */
-  if (BTOR_REAL_ADDR_EXP (right)->kind == BTOR_VAR_EXP)
+  is_cyclic = 0;
+  mm        = btor->mm;
+  real_left = BTOR_REAL_ADDR_EXP (left);
+  /* check if left does not occur on the right side */
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, right);
+  while (!BTOR_EMPTY_STACK (stack))
   {
-    temp  = left;
-    left  = right;
-    right = temp;
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    assert (cur->mark == 0 || cur->mark == 1);
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      if (cur == real_left)
+      {
+        is_cyclic = 1;
+        break;
+      }
+      if (BTOR_IS_UNARY_EXP (cur))
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      else if (BTOR_IS_BINARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+      else if (BTOR_IS_TERNARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+    }
   }
-  real_left  = BTOR_REAL_ADDR_EXP (left);
-  real_right = BTOR_REAL_ADDR_EXP (right);
-  /* make parents of left also parents of right */
-  cur_parent = real_left->first_parent;
-  while (cur_parent != NULL)
+  BTOR_RELEASE_STACK (mm, stack);
+  btor_mark_exp (btor, right, 0);
+  return is_cyclic;
+}
+
+/* Checks if the result of a substitution is already in the unique table */
+static BtorExp *
+search_unique_table_substitution (
+    Btor *btor, BtorExp *real_parent, int tag, BtorExp *left, BtorExp *right)
+{
+  BtorExp *real_left, **result, *e0, *e1, *e2;
+  assert (btor != NULL);
+  assert (real_parent != NULL);
+  assert (tag >= 0);
+  assert (tag <= 2);
+  assert (left != NULL);
+  assert (right != NULL);
+  assert (BTOR_IS_REGULAR_EXP (real_parent));
+  real_left = BTOR_REAL_ADDR_EXP (left);
+  if (BTOR_IS_UNARY_EXP (real_parent))
   {
-    tag         = BTOR_GET_TAG_EXP (cur_parent);
-    real_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+    assert (tag == 0);
+    assert (BTOR_REAL_ADDR_EXP (real_parent->e[0]) == real_left);
+    if (BTOR_IS_INVERTED_EXP (real_parent->e[0]) ^ BTOR_IS_INVERTED_EXP (left))
+      e0 = BTOR_INVERT_EXP (right);
+    else
+      e0 = right;
+    assert (real_parent->kind == BTOR_SLICE_EXP);
+    result = find_slice_exp (btor, e0, real_parent->upper, real_parent->lower);
   }
+  else if (BTOR_IS_BINARY_EXP (real_parent))
+  {
+    assert (tag == 0 || tag == 1);
+    switch (tag)
+    {
+      case 0:
+        assert (BTOR_REAL_ADDR_EXP (real_parent->e[0]) == real_left);
+        if (BTOR_IS_INVERTED_EXP (real_parent->e[0])
+            ^ BTOR_IS_INVERTED_EXP (left))
+          e0 = BTOR_INVERT_EXP (right);
+        else
+          e0 = right;
+        e1 = real_parent->e[1];
+        break;
+      default:
+        assert (tag == 1);
+        assert (BTOR_REAL_ADDR_EXP (real_parent->e[1]) == real_left);
+        if (BTOR_IS_INVERTED_EXP (real_parent->e[1])
+            ^ BTOR_IS_INVERTED_EXP (left))
+          e1 = BTOR_INVERT_EXP (right);
+        else
+          e1 = right;
+        e0 = real_parent->e[0];
+        break;
+    }
+    result = find_binary_exp (btor, real_parent->kind, e0, e1);
+  }
+  else
+  {
+    assert (BTOR_IS_TERNARY_EXP (real_parent));
+    assert (tag == 0 || tag == 1 || tag == 2);
+    switch (tag)
+    {
+      case 0:
+        assert (BTOR_REAL_ADDR_EXP (real_parent->e[0]) == real_left);
+        if (BTOR_IS_INVERTED_EXP (real_parent->e[0])
+            ^ BTOR_IS_INVERTED_EXP (left))
+          e0 = BTOR_INVERT_EXP (right);
+        else
+          e0 = right;
+        e1 = real_parent->e[1];
+        e2 = real_parent->e[2];
+        break;
+      case 1:
+        assert (BTOR_REAL_ADDR_EXP (real_parent->e[1]) == real_left);
+        if (BTOR_IS_INVERTED_EXP (real_parent->e[1])
+            ^ BTOR_IS_INVERTED_EXP (left))
+          e1 = BTOR_INVERT_EXP (right);
+        else
+          e1 = right;
+        e0 = real_parent->e[0];
+        e2 = real_parent->e[2];
+        break;
+      default:
+        assert (tag == 2);
+        assert (BTOR_REAL_ADDR_EXP (real_parent->e[2]) == real_left);
+        if (BTOR_IS_INVERTED_EXP (real_parent->e[2])
+            ^ BTOR_IS_INVERTED_EXP (left))
+          e2 = BTOR_INVERT_EXP (right);
+        else
+          e2 = right;
+        e0 = real_parent->e[0];
+        e1 = real_parent->e[1];
+        break;
+    }
+    result = find_ternary_exp (btor, real_parent->kind, e0, e1, e2);
+  }
+  return *result;
+}
+
+static void
+substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
+{
+  BtorExp *cur_parent, *real_parent, *exp, *real_left;
+  BtorExp *e0, *e1, *e2;
+  BtorExpPtrStack stack;
+  int tag, upper, lower;
+  BtorMemMgr *mm;
+  assert (btor != NULL);
+  assert (left != NULL);
+  assert (right != NULL);
+  e0    = NULL;
+  e1    = NULL;
+  e2    = NULL;
+  upper = 0;
+  lower = 0;
+  mm    = btor->mm;
+  if (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
+      || is_cyclic_substitution (btor, left, right))
+    return;
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, right);
+  BTOR_PUSH_STACK (mm, stack, left);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    left                  = BTOR_POP_STACK (stack);
+    right                 = BTOR_POP_STACK (stack);
+    real_left             = BTOR_REAL_ADDR_EXP (left);
+    real_left->simplified = right;
+    cur_parent            = real_left->first_parent;
+    while (cur_parent != NULL)
+    {
+      tag         = BTOR_GET_TAG_EXP (cur_parent);
+      real_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+      if (BTOR_IS_UNARY_EXP (real_parent))
+      {
+        assert (real_parent->kind == BTOR_SLICE_EXP);
+        e0    = real_parent->e[0];
+        upper = real_parent->upper;
+        lower = real_parent->lower;
+      }
+      else if (BTOR_IS_BINARY_EXP (real_parent))
+      {
+        e0 = real_parent->e[0];
+        e1 = real_parent->e[1];
+      }
+      else
+      {
+        assert (BTOR_IS_TERNARY_EXP (real_parent));
+        e0 = real_parent->e[0];
+        e1 = real_parent->e[1];
+        e2 = real_parent->e[2];
+      }
+      exp = rewrite_exp (btor, real_parent->kind, e0, e1, e2, upper, lower);
+      if (exp == NULL)
+        exp = search_unique_table_substitution (
+            btor, real_parent, tag, left, right);
+      if (exp != NULL)
+      {
+        BTOR_PUSH_STACK (mm, stack, exp);
+        BTOR_PUSH_STACK (mm, stack, real_parent);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+  btor->substitutions++;
 }
 
 void
 btor_add_constraint_exp (Btor *btor, BtorExp *exp)
 {
-  BtorExp *cur, *child, **temp, **top;
+  BtorExp *cur, *child, *left, *right, **temp, **top;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
   int old_size;
@@ -5483,23 +5667,32 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   }
   else
     BTOR_PUSH_STACK (mm, btor->constraints, btor_copy_exp (btor, exp));
-#if 0
-  /* check if we can substitute */
-  assert (BTOR_COUNT_STACK (btor->constraints) - old_size >= 1);
-  top = btor->constraints.top;
-  for (temp = btor->constraints.start + old_size; temp != top; temp++)
+  if (btor->rewrite_level > 1)
+  {
+    /* check if we can substitute */
+    assert (BTOR_COUNT_STACK (btor->constraints) - old_size >= 1);
+    top = btor->constraints.top;
+    for (temp = btor->constraints.start + old_size; temp != top; temp++)
     {
       cur = *temp;
       if (!BTOR_IS_INVERTED_EXP (cur)
           && (cur->kind == BTOR_BEQ_EXP || cur->kind == BTOR_AEQ_EXP))
+      {
+        if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))
+            && !BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[0])))
         {
-          substitute_exp (btor, cur->e[0], cur->e[1]);
-          /* replace constraint by constant true after substitution */
-          btor_release_exp (btor, cur);
-          *temp = btor_true_exp (btor);
+          left  = cur->e[1];
+          right = cur->e[0];
         }
+        else
+        {
+          left  = cur->e[0];
+          right = cur->e[1];
+        }
+        /* substitute_exp (btor, left, right); */
+      }
     }
-#endif
+  }
 }
 
 void
