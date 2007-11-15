@@ -986,53 +986,11 @@ btor_unsigned_to_exp (Btor *btor, unsigned u, int len)
   return result;
 }
 
-/* Connects child to its parent and updates list of parent pointers.
- * Expressions are inserted in front of the parent list
- */
-static void
-connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
-{
-  BtorExp *real_child, *first_parent, *tagged_parent;
-  int tag;
-  (void) btor;
-  assert (btor != NULL);
-  assert (parent != NULL);
-  assert (child != NULL);
-  assert (pos >= 0);
-  assert (pos <= 2);
-  assert (BTOR_IS_REGULAR_EXP (parent));
-  assert (!BTOR_IS_WRITE_ARRAY_EXP (parent) || pos == 1 || pos == 2);
-  assert (parent->kind != BTOR_AEQ_EXP);
-  assert (parent->kind != BTOR_ACOND_EXP || pos == 0);
-  real_child     = BTOR_REAL_ADDR_EXP (child);
-  parent->e[pos] = child;
-  tagged_parent  = BTOR_TAG_EXP (parent, pos);
-  /* no parent so far? */
-  if (real_child->first_parent == NULL)
-  {
-    assert (real_child->last_parent == NULL);
-    real_child->first_parent = tagged_parent;
-    real_child->last_parent  = tagged_parent;
-    assert (parent->prev_parent[pos] == NULL);
-    assert (parent->next_parent[pos] == NULL);
-  }
-  /* add parent at the beginning of the list */
-  else
-  {
-    first_parent = real_child->first_parent;
-    assert (first_parent != NULL);
-    parent->next_parent[pos] = first_parent;
-    tag                      = BTOR_GET_TAG_EXP (first_parent);
-    BTOR_REAL_ADDR_EXP (first_parent)->prev_parent[tag] = tagged_parent;
-    real_child->first_parent                            = tagged_parent;
-  }
-}
-
 /* Connects array child to write parent.
  * Writes are appended to the end of the parent list
  */
 static void
-connect_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
+connect_array_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
 {
   BtorExp *last_parent;
   int tag;
@@ -1071,10 +1029,10 @@ connect_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
  * of the parent list
  */
 static void
-connect_child_aeq_acond_exp (Btor *btor,
-                             BtorExp *parent,
-                             BtorExp *child,
-                             int pos)
+connect_array_child_aeq_acond_exp (Btor *btor,
+                                   BtorExp *parent,
+                                   BtorExp *child,
+                                   int pos)
 {
   BtorExp *first_parent, *last_parent, *prev_parent, *cur_parent;
   BtorExp *first_aeq_acond_parent, *tagged_parent;
@@ -1198,6 +1156,53 @@ connect_child_aeq_acond_exp (Btor *btor,
     BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->prev_parent[tag] =
         tagged_parent;
     child->first_aeq_acond_parent = tagged_parent;
+  }
+}
+
+/* Connects child to its parent and updates list of parent pointers.
+ * Expressions are inserted in front of the parent list
+ */
+static void
+connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
+{
+  BtorExp *real_child, *first_parent, *tagged_parent;
+  int tag;
+  (void) btor;
+  assert (btor != NULL);
+  assert (parent != NULL);
+  assert (child != NULL);
+  assert (pos >= 0);
+  assert (pos <= 2);
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  if (parent->kind == BTOR_WRITE_EXP && pos == 0)
+    connect_array_child_write_exp (btor, parent, child);
+  else if (parent->kind == BTOR_AEQ_EXP
+           || (parent->kind == BTOR_ACOND_EXP && pos != 0))
+    connect_array_child_aeq_acond_exp (btor, parent, child, pos);
+  else
+  {
+    real_child     = BTOR_REAL_ADDR_EXP (child);
+    parent->e[pos] = child;
+    tagged_parent  = BTOR_TAG_EXP (parent, pos);
+    /* no parent so far? */
+    if (real_child->first_parent == NULL)
+    {
+      assert (real_child->last_parent == NULL);
+      real_child->first_parent = tagged_parent;
+      real_child->last_parent  = tagged_parent;
+      assert (parent->prev_parent[pos] == NULL);
+      assert (parent->next_parent[pos] == NULL);
+    }
+    /* add parent at the beginning of the list */
+    else
+    {
+      first_parent = real_child->first_parent;
+      assert (first_parent != NULL);
+      parent->next_parent[pos] = first_parent;
+      tag                      = BTOR_GET_TAG_EXP (first_parent);
+      BTOR_REAL_ADDR_EXP (first_parent)->prev_parent[tag] = tagged_parent;
+      real_child->first_parent                            = tagged_parent;
+    }
   }
 }
 
@@ -1353,17 +1358,8 @@ new_binary_exp_node (
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  /* special treatment in parent list */
-  if (kind == BTOR_AEQ_EXP)
-  {
-    connect_child_aeq_acond_exp (btor, exp, e0, 0);
-    connect_child_aeq_acond_exp (btor, exp, e1, 1);
-  }
-  else
-  {
-    connect_child_exp (btor, exp, e0, 0);
-    connect_child_exp (btor, exp, e1, 1);
-  }
+  connect_child_exp (btor, exp, e0, 0);
+  connect_child_exp (btor, exp, e1, 1);
   return exp;
 }
 
@@ -1422,7 +1418,7 @@ new_write_exp_node (Btor *btor,
   exp->refs = 1;
   exp->btor = btor;
   /* append writes to the end of parrent list */
-  connect_child_write_exp (btor, exp, e_array);
+  connect_child_exp (btor, exp, e_array, 0);
   connect_child_exp (btor, exp, e_index, 1);
   connect_child_exp (btor, exp, e_value, 2);
   return exp;
@@ -1452,9 +1448,8 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   exp->refs      = 1;
   exp->btor      = btor;
   connect_child_exp (btor, exp, e_cond, 0);
-  /* special treatment in parent list */
-  connect_child_aeq_acond_exp (btor, exp, a_if, 1);
-  connect_child_aeq_acond_exp (btor, exp, a_else, 2);
+  connect_child_exp (btor, exp, a_if, 1);
+  connect_child_exp (btor, exp, a_else, 2);
   return exp;
 }
 
@@ -5415,16 +5410,44 @@ reset_assumptions (Btor *btor)
   BTOR_RESET_STACK (btor->assumptions);
 }
 
+static void
+substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
+{
+  BtorExp *temp, *cur_parent, *real_left, *real_right, *real_parent;
+  int tag;
+  assert (btor != NULL);
+  assert (left != NULL);
+  assert (right != NULL);
+  /* swap if necessary */
+  if (BTOR_REAL_ADDR_EXP (right)->kind == BTOR_VAR_EXP)
+  {
+    temp  = left;
+    left  = right;
+    right = temp;
+  }
+  real_left  = BTOR_REAL_ADDR_EXP (left);
+  real_right = BTOR_REAL_ADDR_EXP (right);
+  /* make parents of left also parents of right */
+  cur_parent = real_left->first_parent;
+  while (cur_parent != NULL)
+  {
+    tag         = BTOR_GET_TAG_EXP (cur_parent);
+    real_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+  }
+}
+
 void
 btor_add_constraint_exp (Btor *btor, BtorExp *exp)
 {
-  BtorExp *cur, *child;
+  BtorExp *cur, *child, **temp, **top;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
+  int old_size;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
-  mm = btor->mm;
+  mm       = btor->mm;
+  old_size = BTOR_COUNT_STACK (btor->constraints);
   if (btor->valid_assignments)
   {
     btor->valid_assignments = 0;
@@ -5460,6 +5483,23 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   }
   else
     BTOR_PUSH_STACK (mm, btor->constraints, btor_copy_exp (btor, exp));
+#if 0
+  /* check if we can substitute */
+  assert (BTOR_COUNT_STACK (btor->constraints) - old_size >= 1);
+  top = btor->constraints.top;
+  for (temp = btor->constraints.start + old_size; temp != top; temp++)
+    {
+      cur = *temp;
+      if (!BTOR_IS_INVERTED_EXP (cur)
+          && (cur->kind == BTOR_BEQ_EXP || cur->kind == BTOR_AEQ_EXP))
+        {
+          substitute_exp (btor, cur->e[0], cur->e[1]);
+          /* replace constraint by constant true after substitution */
+          btor_release_exp (btor, cur);
+          *temp = btor_true_exp (btor);
+        }
+    }
+#endif
 }
 
 void
