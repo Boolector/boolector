@@ -102,6 +102,7 @@ struct BtorExp
                                              conditional in parent list
                                              or arrays and writes only */
   struct BtorExp *parent;                 /* parent pointer for BFS */
+  struct BtorExp *simplified;             /* equivalent simplified expression */
   BtorExpPair *vreads;                    /* virtual reads
                                              for array equalities only */
   Btor *btor;                             /* Boolector */
