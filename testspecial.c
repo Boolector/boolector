@@ -394,6 +394,30 @@ test_read18_special ()
 }
 
 static void
+test_read19_special ()
+{
+  run_unsat_test ("read19.btor");
+}
+
+static void
+test_read20_special ()
+{
+  run_unsat_test ("read20.btor");
+}
+
+static void
+test_read21_special ()
+{
+  run_unsat_test ("read21.btor");
+}
+
+static void
+test_read22_special ()
+{
+  run_unsat_test ("read22.btor");
+}
+
+static void
 test_write1_special ()
 {
   run_unsat_test ("write1.btor");
@@ -615,6 +639,18 @@ test_arraycond14_special ()
   run_unsat_test ("arraycond14.btor");
 }
 
+static void
+test_substitute1_special ()
+{
+  run_sat_test ("substitute1.btor");
+}
+
+static void
+test_substitute2_special ()
+{
+  run_unsat_test ("substitute2.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -677,6 +713,10 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (read16_special);
   BTOR_RUN_TEST (read17_special);
   BTOR_RUN_TEST (read18_special);
+  BTOR_RUN_TEST (read19_special);
+  BTOR_RUN_TEST (read20_special);
+  BTOR_RUN_TEST (read21_special);
+  BTOR_RUN_TEST (read22_special);
   BTOR_RUN_TEST (write1_special);
   BTOR_RUN_TEST (write2_special);
   BTOR_RUN_TEST (write3_special);
@@ -714,6 +754,8 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arraycond12_special);
   BTOR_RUN_TEST (arraycond13_special);
   BTOR_RUN_TEST (arraycond14_special);
+  BTOR_RUN_TEST (substitute1_special);
+  BTOR_RUN_TEST (substitute2_special);
 }
 
 void
