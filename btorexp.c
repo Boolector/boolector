@@ -56,7 +56,7 @@ struct Btor
   BtorExpPtrStack assumptions;
   int id;
   int valid_assignments;
-  int added_constraints;
+  int resolved_constraints;
   int rewrite_level;
   int dump_trace;
   int verbosity;
@@ -5707,17 +5707,6 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
         substitute_exp (btor, left, right);
       }
     }
-    /* update constraint roots */
-    for (temp = btor->constraints.start + old_size; temp != top; temp++)
-    {
-      cur = *temp;
-      if (BTOR_REAL_ADDR_EXP (cur)->simplified != NULL)
-      {
-        child = btor_copy_exp (btor, union_find_simplified_exp (btor, cur));
-        btor_release_exp (btor, *temp);
-        *temp = child;
-      }
-    }
   }
 }
 
@@ -5772,7 +5761,7 @@ int
 btor_sat_btor (Btor *btor)
 {
   int sat_result, found_conflict;
-  BtorExp **top, **cur;
+  BtorExp **top, **temp, *cur, *simplified;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorAIG *aig;
@@ -5787,14 +5776,29 @@ btor_sat_btor (Btor *btor)
   if (btor->valid_assignments == 1) reset_assumptions (btor);
   btor->valid_assignments = 1;
 
-  /* iterate over constraints */
+  /* update constraint roots */
   top = btor->constraints.top;
-  for (cur = btor->constraints.start + btor->added_constraints; cur != top;
-       cur++)
+  for (temp = btor->constraints.start; temp != top; temp++)
   {
-    assert (btor->added_constraints < INT_MAX);
-    btor->added_constraints++;
-    aig = exp_to_aig (btor, *cur);
+    cur        = *temp;
+    simplified = btor_copy_exp (btor, union_find_simplified_exp (btor, cur));
+    btor_release_exp (btor, cur);
+    *temp = simplified;
+  }
+
+  /* TODO: check if a resolved constraint is now FALSE */
+
+  /* iterate over unresolved constraints */
+  top = btor->constraints.top;
+  for (temp = btor->constraints.start + btor->resolved_constraints; temp != top;
+       temp++)
+  {
+    cur = *temp;
+
+    assert (btor->resolved_constraints < INT_MAX);
+    btor->resolved_constraints++;
+
+    aig = exp_to_aig (btor, cur);
     if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
     btor_aig_to_sat (amgr, aig);
     if (aig != BTOR_AIG_TRUE)
@@ -5808,9 +5812,14 @@ btor_sat_btor (Btor *btor)
 
   /* iterate over assumptions */
   top = btor->assumptions.top;
-  for (cur = btor->assumptions.start; cur != top; cur++)
+  for (temp = btor->assumptions.start; temp != top; temp++)
   {
-    aig = exp_to_aig (btor, *cur);
+    cur        = *temp;
+    simplified = btor_copy_exp (btor, union_find_simplified_exp (btor, cur));
+    btor_release_exp (btor, cur);
+    cur = simplified;
+
+    aig = exp_to_aig (btor, cur);
     if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
     btor_aig_to_sat (amgr, aig);
     if (aig != BTOR_AIG_TRUE)
