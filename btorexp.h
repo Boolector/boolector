@@ -97,25 +97,23 @@ struct BtorExp
   struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
   struct BtorExp *parent;         /* parent pointer for BFS */
   struct BtorExp *simplified;     /* equivalent simplified expression */
-  Btor *btor;                     /* Boolector */
-  /* Additional fields for arrays, writes and array conditionals: */
-  int index_len;           /* length of the index.
-                              for arrays, writes and array conds only */
-  BtorPtrHashTable *table; /* used for determining read-read
-                              and read-write conflicts
-                              for arrays, writes and array conditionals only*/
+  Btor *btor;                     /* boolector */
 
-  struct BtorExp *first_aparent; /* first array equality or array
-                                    conditional in parent list
-                                    or arrays and writes only */
-  struct BtorExp *last_aparent;
-  struct BtorExp
-      *prev_aparent[3]; /* prev array equality or conditional of child i */
-  struct BtorExp
-      *next_aparent[3]; /* next array equality or conditional of child i */
-#if 0
-  BtorExpPair *vreads;             /* virtual reads for array equalities */
-#endif
+  /* Additional fields for arrays, writes and array conditionals: */
+
+  int index_len;                            /* length of the index */
+  BtorPtrHashTable *table;                  /* used for determining read-read
+                                               and read-write conflicts */
+  struct BtorExp *first_aeq_acond_parent;   /* first array equality or array
+                                               conditional in parent list */
+  struct BtorExp *last_aeq_acond_parent;    /* last array equality or array
+                                               conditional in parent list */
+  struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or
+                                               conditional in aeq acond
+                                               parent list of child i */
+  struct BtorExp *next_aeq_acond_parent[3]; /* next array equality or
+                                               conditional in aeq acond
+                                               parent list of child i */
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
