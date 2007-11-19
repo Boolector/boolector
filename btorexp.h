@@ -55,64 +55,77 @@ typedef enum BtorWriteEnc BtorWriteEnc;
 
 typedef struct BtorExpPair BtorExpPair;
 
+#define BTOR_BASIC_EXP                                                       \
+  struct                                                                     \
+  {                                                                          \
+    BtorExpKind kind : 5;          /* kind of expression */                  \
+    unsigned int mark : 3;         /* for DAG traversal */                   \
+    unsigned int array_mark : 3;   /* for bottom up array traversal */       \
+    unsigned int encoded_read : 1; /* flag used by eager read encoding */    \
+    unsigned int reachable : 1;    /* flag determines if expression          \
+                                      is reachable from root */              \
+    unsigned int full_sat : 1;     /* flag determines if expression has been \
+                                      fully encoded into SAT */              \
+    unsigned int vread : 1;        /* flag determines if expression          \
+                                      is a virtual read */                   \
+    union                                                                    \
+    {                                                                        \
+      struct                                                                 \
+      {                                                                      \
+        char *symbol; /* symbol of variables for output */                   \
+        int upper;    /* upper index for slices */                           \
+        union                                                                \
+        {                                                                    \
+          int lower;           /* lower index for slices */                  \
+          char *bits;          /* bit vector of constants */                 \
+          BtorExpPair *vreads; /* virtual reads for array equalites */       \
+        };                                                                   \
+      };                                                                     \
+      struct BtorExp *e[3]; /* three expression children */                  \
+    };                                                                       \
+    int len;                        /* number of bits */                     \
+    int id;                         /* unique expression id */               \
+    int refs;                       /* reference counter */                  \
+    BtorAIGVec *av;                 /* synthesized AIG vector */             \
+    struct BtorExp *next;           /* next element in unique table */       \
+    struct BtorExp *first_parent;   /* head of parent list */                \
+    struct BtorExp *last_parent;    /* tail of parent list */                \
+    struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */ \
+    struct BtorExp *next_parent[3]; /* next exp in parent list of child i */ \
+    struct BtorExp *parent;         /* parent pointer for BFS */             \
+    struct BtorExp *simplified;     /* equivalent simplified expression */   \
+    Btor *btor;                     /* boolector */                          \
+  }
+
+#define BTOR_ADDITIONAL_ARRAY_EXP                                             \
+  struct                                                                      \
+  {                                                                           \
+    int index_len;                          /* length of the index */         \
+    BtorPtrHashTable *table;                /* used for determining read-read \
+                                               and read-write conflicts */    \
+    struct BtorExp *first_aeq_acond_parent; /* first array equality or array  \
+                                               conditional in parent list */  \
+    struct BtorExp *last_aeq_acond_parent;  /* last array equality or array   \
+                                               conditional in parent list */  \
+    struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or       \
+                                                 conditional in aeq acond     \
+                                                 parent list of child i */    \
+    struct BtorExp *next_aeq_acond_parent[3]; /* next array equality or       \
+                                                 conditional in aeq acond     \
+                                                 parent list of child i */    \
+  }
+
+struct BtorBasicExp
+{
+  BTOR_BASIC_EXP;
+};
+
 typedef struct BtorBasicExp BtorBasicExp;
 
 struct BtorExp
 {
-  /* Basic Expression Layout */
-  BtorExpKind kind : 5;          /* kind of expression */
-  unsigned int mark : 3;         /* for DAG traversal */
-  unsigned int array_mark : 3;   /* for bottom up array traversal */
-  unsigned int encoded_read : 1; /* flag used by eager read encoding */
-  unsigned int reachable : 1;    /* flag determines if expression
-                                    is reachable from root */
-  unsigned int full_sat : 1;     /* flag determines if expression has been
-                                    fully encoded into SAT */
-  unsigned int vread : 1;        /* flag determines if expression
-                                    is a virtual read */
-  union
-  {
-    struct
-    {
-      char *symbol; /* symbol of variables for output */
-      int upper;    /* upper index for slices */
-      union
-      {
-        int lower;           /* lower index for slices */
-        char *bits;          /* bit vector of constants */
-        BtorExpPair *vreads; /* virtual reads for array equalites */
-      };
-    };
-    struct BtorExp *e[3]; /* three expression children */
-  };
-  int len;                        /* number of bits */
-  int id;                         /* unique expression id */
-  int refs;                       /* reference counter */
-  BtorAIGVec *av;                 /* synthesized AIG vector */
-  struct BtorExp *next;           /* next element in unique table */
-  struct BtorExp *first_parent;   /* head of parent list */
-  struct BtorExp *last_parent;    /* tail of parent list */
-  struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */
-  struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
-  struct BtorExp *parent;         /* parent pointer for BFS */
-  struct BtorExp *simplified;     /* equivalent simplified expression */
-  Btor *btor;                     /* boolector */
-
-  /* Additional fields for arrays, writes and array conditionals: */
-
-  int index_len;                            /* length of the index */
-  BtorPtrHashTable *table;                  /* used for determining read-read
-                                               and read-write conflicts */
-  struct BtorExp *first_aeq_acond_parent;   /* first array equality or array
-                                               conditional in parent list */
-  struct BtorExp *last_aeq_acond_parent;    /* last array equality or array
-                                               conditional in parent list */
-  struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or
-                                               conditional in aeq acond
-                                               parent list of child i */
-  struct BtorExp *next_aeq_acond_parent[3]; /* next array equality or
-                                               conditional in aeq acond
-                                               parent list of child i */
+  BTOR_BASIC_EXP;
+  BTOR_ADDITIONAL_ARRAY_EXP;
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)

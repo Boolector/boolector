@@ -1501,7 +1501,7 @@ union_find_simplified_exp (Btor *btor, BtorExp *exp)
 static BtorExp *
 new_const_exp_node (Btor *btor, const char *bits)
 {
-  BtorExp *exp;
+  BtorBasicExp *exp;
   int i, len;
   assert (btor != NULL);
   assert (bits != NULL);
@@ -1517,17 +1517,17 @@ new_const_exp_node (Btor *btor, const char *bits)
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  return exp;
+  return (BtorExp *) exp;
 }
 
 static BtorExp *
 new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
 {
+  BtorBasicExp *exp = NULL;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (lower >= 0);
   assert (upper >= lower);
-  BtorExp *exp = NULL;
   BTOR_CNEW (btor->mm, exp);
   exp->kind  = BTOR_SLICE_EXP;
   exp->upper = upper;
@@ -1537,23 +1537,44 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  connect_child_exp (btor, exp, e0, 0);
-  return exp;
+  connect_child_exp (btor, (BtorExp *) exp, e0, 0);
+  return (BtorExp *) exp;
 }
 
 static BtorExp *
 new_binary_exp_node (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
 {
-  BtorExp *exp;
+  BtorBasicExp *exp;
   assert (btor != NULL);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
+  assert (kind != BTOR_AEQ_EXP);
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
   exp->kind = kind;
   exp->len  = len;
+  assert (btor->id < INT_MAX);
+  exp->id   = btor->id++;
+  exp->refs = 1;
+  exp->btor = btor;
+  connect_child_exp (btor, (BtorExp *) exp, e0, 0);
+  connect_child_exp (btor, (BtorExp *) exp, e1, 1);
+  return (BtorExp *) exp;
+}
+
+static BtorExp *
+new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  BtorExp *exp;
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  /* we need aeq and acond next and prev fields */
+  BTOR_CNEW (btor->mm, exp);
+  exp->kind = BTOR_AEQ_EXP;
+  exp->len  = 1;
   assert (btor->id < INT_MAX);
   exp->id   = btor->id++;
   exp->refs = 1;
@@ -1571,7 +1592,7 @@ new_ternary_exp_node (Btor *btor,
                       BtorExp *e2,
                       int len)
 {
-  BtorExp *exp;
+  BtorBasicExp *exp;
   assert (btor != NULL);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
   assert (kind == BTOR_BCOND_EXP);
@@ -1586,10 +1607,10 @@ new_ternary_exp_node (Btor *btor,
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  connect_child_exp (btor, exp, e0, 0);
-  connect_child_exp (btor, exp, e1, 1);
-  connect_child_exp (btor, exp, e2, 2);
-  return exp;
+  connect_child_exp (btor, (BtorExp *) exp, e0, 0);
+  connect_child_exp (btor, (BtorExp *) exp, e1, 1);
+  connect_child_exp (btor, (BtorExp *) exp, e2, 2);
+  return (BtorExp *) exp;
 }
 
 static BtorExp *
@@ -1694,7 +1715,10 @@ delete_exp_node (Btor *btor, BtorExp *exp)
     if (exp->av != NULL) btor_release_delete_aigvec (btor->avmgr, exp->av);
   }
   if (exp->simplified != NULL) btor_release_exp (btor, exp->simplified);
-  BTOR_DELETE (mm, exp);
+  if (BTOR_IS_ARRAY_EXP (exp) || exp->kind == BTOR_AEQ_EXP)
+    BTOR_DELETE (mm, exp);
+  else
+    BTOR_DELETE (mm, (BtorBasicExp *) exp);
 }
 
 /* Computes hash value of expresssion */
@@ -2115,7 +2139,7 @@ BtorExp *
 btor_var_exp (Btor *btor, int len, const char *symbol)
 {
   BtorMemMgr *mm;
-  BtorExp *exp;
+  BtorBasicExp *exp;
   assert (btor != NULL);
   assert (len > 0);
   assert (symbol != NULL);
@@ -2128,8 +2152,8 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  BTOR_PUSH_STACK (mm, btor->vars, exp);
-  return exp;
+  BTOR_PUSH_STACK (mm, btor->vars, (BtorExp *) exp);
+  return (BtorExp *) exp;
 }
 
 BtorExp *
@@ -2620,9 +2644,19 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
     }
     if (BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
         && BTOR_REAL_ADDR_EXP (e1)->id < BTOR_REAL_ADDR_EXP (e0)->id)
-      *lookup = new_binary_exp_node (btor, kind, e1, e0, len);
+    {
+      if (kind == BTOR_AEQ_EXP)
+        *lookup = new_aeq_exp_node (btor, e1, e0);
+      else
+        *lookup = new_binary_exp_node (btor, kind, e1, e0, len);
+    }
     else
-      *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
+    {
+      if (kind == BTOR_AEQ_EXP)
+        *lookup = new_aeq_exp_node (btor, e0, e1);
+      else
+        *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
+    }
     inc_exp_ref_counter (e0);
     inc_exp_ref_counter (e1);
     assert (btor->table.num_elements < INT_MAX);
