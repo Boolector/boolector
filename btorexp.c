@@ -403,7 +403,7 @@ static int
 has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
 {
   assert (it != NULL);
-  return it->cur != NULL;
+  return it->cur != NULL && it->regular_parents_done == 1;
 }
 
 /*------------------------------------------------------------------------*/
