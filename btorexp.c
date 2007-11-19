@@ -988,7 +988,7 @@ btor_unsigned_to_exp (Btor *btor, unsigned u, int len)
 }
 
 /* Connects array child to write parent.
- * Writes are appended to the end of the parent list
+ * Writes are appended to the end of the regular parent list.
  */
 static void
 connect_array_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
@@ -1025,143 +1025,98 @@ connect_array_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
   }
 }
 
-/* Connects array child to array equality parent or array conditional parent.
- * Array equalites and array conditionals are inserted in the middle
- * of the parent list
+/* Connects array child to array conditional parent.
+ * Array conditionals are appended to the end of the
+ * array equality and array conditional parent list.
  */
 static void
-connect_array_child_aeq_acond_exp (Btor *btor,
-                                   BtorExp *parent,
-                                   BtorExp *child,
-                                   int pos)
+connect_array_child_acond_exp (Btor *btor,
+                               BtorExp *parent,
+                               BtorExp *child,
+                               int pos)
 {
-  BtorExp *first_parent, *last_parent, *prev_parent, *cur_parent;
-  BtorExp *first_aeq_acond_parent, *tagged_parent;
+  BtorExp *last_parent, *tagged_parent;
   int tag;
   assert (btor != NULL);
   assert (parent != NULL);
   assert (child != NULL);
   assert (BTOR_IS_REGULAR_EXP (parent));
-  assert (parent->kind == BTOR_AEQ_EXP || parent->kind == BTOR_ACOND_EXP);
+  assert (parent->kind == BTOR_ACOND_EXP);
   assert (BTOR_IS_REGULAR_EXP (child));
   assert (BTOR_IS_ARRAY_EXP (child));
-  assert (parent->kind != BTOR_AEQ_EXP || pos == 0 || pos == 1);
-  assert (parent->kind != BTOR_ACOND_EXP || pos == 1 || pos == 2);
+  assert (pos == 1 || pos == 2);
   (void) btor;
-  parent->e[pos]         = child;
-  tagged_parent          = BTOR_TAG_EXP (parent, pos);
-  first_aeq_acond_parent = child->first_aeq_acond_parent;
-  if (first_aeq_acond_parent == NULL)
+  parent->e[pos] = child;
+  tagged_parent  = BTOR_TAG_EXP (parent, pos);
+  /* no parent so far? */
+  if (child->first_aeq_acond_parent == NULL)
   {
-    /* set first aeq acond parent */
+    assert (child->last_aeq_acond_parent == NULL);
     child->first_aeq_acond_parent = tagged_parent;
-    /* no parent so far ? */
-    if (child->first_parent == NULL)
-    {
-      assert (child->last_parent == NULL);
-      child->first_parent = tagged_parent;
-      child->last_parent  = tagged_parent;
-      assert (parent->prev_parent[pos] == NULL);
-      assert (parent->next_parent[pos] == NULL);
-    }
-    else
-    {
-      /* look for insertion place */
-      assert (child->first_parent != NULL);
-      assert (child->last_parent != NULL);
-      /* check if no reads have been inserted in parent list so far */
-      if (BTOR_REAL_ADDR_EXP (child->first_parent)->kind != BTOR_READ_EXP)
-      {
-        first_parent = child->first_parent;
-        assert (BTOR_IS_REGULAR_EXP (first_parent));
-        assert (BTOR_IS_WRITE_ARRAY_EXP (first_parent));
-        /* insert at the beginning of the list */
-        assert (BTOR_GET_TAG_EXP (first_parent) == 0);
-        parent->next_parent[pos]     = first_parent;
-        first_parent->prev_parent[0] = tagged_parent;
-        child->first_parent          = tagged_parent;
-      }
-      /* check if no writes have been inserted in parent list so far */
-      else if (!BTOR_IS_WRITE_ARRAY_EXP (
-                   BTOR_REAL_ADDR_EXP (child->last_parent)))
-      {
-        last_parent = child->last_parent;
-        assert (BTOR_IS_REGULAR_EXP (last_parent));
-        assert (last_parent->kind == BTOR_READ_EXP);
-        assert (BTOR_GET_TAG_EXP (last_parent) == 0);
-        /* append to the end of the list */
-        parent->prev_parent[pos]    = last_parent;
-        last_parent->next_parent[0] = tagged_parent;
-        child->last_parent          = tagged_parent;
-      }
-      else
-      {
-        /* search from the end of the list until we reach the
-         * first write after a read
-         */
-        assert (BTOR_IS_REGULAR_EXP (child->first_parent));
-        assert (child->first_parent->kind == BTOR_READ_EXP);
-        assert (BTOR_GET_TAG_EXP (child->first_parent) == 0);
-        assert (BTOR_IS_REGULAR_EXP (child->last_parent));
-        assert (BTOR_IS_WRITE_ARRAY_EXP (child->last_parent));
-        assert (BTOR_GET_TAG_EXP (child->last_parent) == 0);
-        prev_parent = child->last_parent;
-        do
-        {
-          cur_parent = prev_parent;
-          assert (BTOR_IS_REGULAR_EXP (cur_parent));
-          assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
-          assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
-          prev_parent = cur_parent->prev_parent[0];
-          assert (prev_parent != NULL);
-          assert (BTOR_IS_REGULAR_EXP (prev_parent));
-          assert (prev_parent->kind == BTOR_READ_EXP
-                  || BTOR_IS_WRITE_ARRAY_EXP (prev_parent));
-        } while (BTOR_IS_WRITE_ARRAY_EXP (prev_parent));
-        /* insert */
-        assert (BTOR_IS_REGULAR_EXP (prev_parent));
-        assert (prev_parent->kind == BTOR_READ_EXP);
-        assert (BTOR_GET_TAG_EXP (prev_parent) == 0);
-        assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        assert (BTOR_IS_WRITE_ARRAY_EXP (cur_parent));
-        assert (BTOR_GET_TAG_EXP (cur_parent) == 0);
-        prev_parent->next_parent[0] = tagged_parent;
-        cur_parent->prev_parent[0]  = tagged_parent;
-        parent->next_parent[pos]    = cur_parent;
-        parent->prev_parent[pos]    = prev_parent;
-      }
-    }
+    child->last_aeq_acond_parent  = tagged_parent;
+    assert (parent->prev_aeq_acond_parent[pos] == NULL);
+    assert (parent->next_aeq_acond_parent[pos] == NULL);
   }
+  /* append at the end of the list */
   else
   {
-    /* insert in front of other array equalities and array conditionals,
-     * in the middle of the parent list
-     */
-    parent->next_parent[pos] = first_aeq_acond_parent;
-    tag                      = BTOR_GET_TAG_EXP (first_aeq_acond_parent);
-    prev_parent = BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->prev_parent[tag];
-    if (prev_parent != NULL)
-    {
-      assert (BTOR_IS_REGULAR_EXP (prev_parent));
-      assert (prev_parent->kind == BTOR_READ_EXP);
-      assert (BTOR_GET_TAG_EXP (prev_parent) == 0);
-      prev_parent->next_parent[0] = tagged_parent;
-      parent->prev_parent[pos]    = prev_parent;
-    }
-    else
-    {
-      assert (parent->prev_parent[pos] == NULL);
-      assert (child->first_parent == first_aeq_acond_parent);
-      child->first_parent = tagged_parent;
-    }
-    BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->prev_parent[tag] =
+    last_parent = child->last_aeq_acond_parent;
+    assert (last_parent != NULL);
+    parent->prev_aeq_acond_parent[pos] = last_parent;
+    tag                                = BTOR_GET_TAG_EXP (last_parent);
+    BTOR_REAL_ADDR_EXP (last_parent)->next_aeq_acond_parent[tag] =
+        tagged_parent;
+    child->last_aeq_acond_parent = tagged_parent;
+  }
+}
+
+/* Connects array child to array equality parent.
+ * Array equalities are inserted at the beginning of the
+ * array equality and array conditional parent list.
+ */
+static void
+connect_array_child_aeq_exp (Btor *btor,
+                             BtorExp *parent,
+                             BtorExp *child,
+                             int pos)
+{
+  BtorExp *first_parent, *tagged_parent;
+  int tag;
+  assert (btor != NULL);
+  assert (parent != NULL);
+  assert (child != NULL);
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (parent->kind == BTOR_AEQ_EXP);
+  assert (BTOR_IS_REGULAR_EXP (child));
+  assert (BTOR_IS_ARRAY_EXP (child));
+  assert (pos == 0 || pos == 1);
+  (void) btor;
+  parent->e[pos] = child;
+  tagged_parent  = BTOR_TAG_EXP (parent, pos);
+  /* no parent so far? */
+  if (child->first_aeq_acond_parent == NULL)
+  {
+    assert (child->last_aeq_acond_parent == NULL);
+    child->first_aeq_acond_parent = tagged_parent;
+    child->last_aeq_acond_parent  = tagged_parent;
+    assert (parent->prev_aeq_acond_parent[pos] == NULL);
+    assert (parent->next_aeq_acond_parent[pos] == NULL);
+  }
+  /* add parent at the beginning of the list */
+  else
+  {
+    first_parent = child->first_aeq_acond_parent;
+    assert (first_parent != NULL);
+    parent->next_aeq_acond_parent[pos] = first_parent;
+    tag                                = BTOR_GET_TAG_EXP (first_parent);
+    BTOR_REAL_ADDR_EXP (first_parent)->prev_aeq_acond_parent[tag] =
         tagged_parent;
     child->first_aeq_acond_parent = tagged_parent;
   }
 }
 
 /* Connects child to its parent and updates list of parent pointers.
- * Expressions are inserted in front of the parent list
+ * Expressions are inserted at the beginning of the regular parent list
  */
 static void
 connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
@@ -1177,9 +1132,10 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
   assert (BTOR_IS_REGULAR_EXP (parent));
   if (parent->kind == BTOR_WRITE_EXP && pos == 0)
     connect_array_child_write_exp (btor, parent, child);
-  else if (parent->kind == BTOR_AEQ_EXP
-           || (parent->kind == BTOR_ACOND_EXP && pos != 0))
-    connect_array_child_aeq_acond_exp (btor, parent, child, pos);
+  else if (parent->kind == BTOR_AEQ_EXP)
+    connect_array_child_aeq_exp (btor, parent, child, pos);
+  else if (parent->kind == BTOR_ACOND_EXP && pos != 0)
+    connect_array_child_acond_exp (btor, parent, child, pos);
   else
   {
     real_child     = BTOR_REAL_ADDR_EXP (child);
@@ -1213,13 +1169,18 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
 #define BTOR_PREV_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->prev_parent[BTOR_GET_TAG_EXP (exp)])
 
+#define BTOR_NEXT_APARENT(exp) \
+  (BTOR_REAL_ADDR_EXP (exp)->next_aeq_acond_parent[BTOR_GET_TAG_EXP (exp)])
+
+#define BTOR_PREV_APARENT(exp) \
+  (BTOR_REAL_ADDR_EXP (exp)->prev_aeq_acond_parent[BTOR_GET_TAG_EXP (exp)])
+
 /* Disconnects a child from its parent and updates its parent list */
 static void
 disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
 {
   BtorExp *first_parent, *last_parent, *real_first_parent, *real_last_parent;
-  BtorExp *next_parent, *real_child, *tagged_parent, *first_aeq_acond_parent;
-  int tag;
+  BtorExp *child, *real_child, *tagged_parent;
   assert (btor != NULL);
   assert (parent != NULL);
   assert (pos >= 0);
@@ -1230,69 +1191,96 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
   assert (!BTOR_IS_NATIVE_ARRAY_EXP (parent));
   (void) btor;
   tagged_parent = BTOR_TAG_EXP (parent, pos);
-  real_child    = BTOR_REAL_ADDR_EXP (parent->e[pos]);
-  first_parent  = real_child->first_parent;
-  last_parent   = real_child->last_parent;
-  assert (first_parent != NULL);
-  assert (last_parent != NULL);
-  real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
-  real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
   /* special treatment of array children of aeq and acond */
-  assert (parent->kind != BTOR_AEQ_EXP || pos == 0 || pos == 1);
-  assert (!(parent->kind == BTOR_AEQ_EXP
-            || (parent->kind == BTOR_ACOND_EXP && pos != 0))
-          || real_child->first_aeq_acond_parent != NULL);
-  if ((parent->kind == BTOR_AEQ_EXP
-       || (parent->kind == BTOR_ACOND_EXP && pos != 0))
-      && BTOR_REAL_ADDR_EXP (real_child->first_aeq_acond_parent) == parent)
+  if (parent->kind == BTOR_AEQ_EXP
+      || (parent->kind == BTOR_ACOND_EXP && pos != 0))
   {
-    first_aeq_acond_parent = real_child->first_aeq_acond_parent;
-    /* update first_aeq_acond_parent pointer */
-    tag         = BTOR_GET_TAG_EXP (first_aeq_acond_parent);
-    next_parent = BTOR_REAL_ADDR_EXP (first_aeq_acond_parent)->next_parent[tag];
-    /* last aeq or acond ? */
-    if (next_parent == NULL
-        || BTOR_IS_WRITE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (next_parent)))
-      real_child->first_aeq_acond_parent = NULL;
+    child = parent->e[pos];
+    assert (BTOR_IS_REGULAR_EXP (child));
+    assert (BTOR_IS_ARRAY_EXP (child));
+    first_parent = child->first_aeq_acond_parent;
+    last_parent  = child->last_aeq_acond_parent;
+    assert (first_parent != NULL);
+    assert (last_parent != NULL);
+    real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
+    real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
+    /* only one parent? */
+    if (first_parent == tagged_parent && first_parent == last_parent)
+    {
+      assert (parent->next_aeq_acond_parent[pos] == NULL);
+      assert (parent->prev_aeq_acond_parent[pos] == NULL);
+      child->first_aeq_acond_parent = NULL;
+      child->last_aeq_acond_parent  = NULL;
+    }
+    /* is parent first parent in the list? */
+    else if (first_parent == tagged_parent)
+    {
+      assert (parent->next_aeq_acond_parent[pos] != NULL);
+      assert (parent->prev_aeq_acond_parent[pos] == NULL);
+      child->first_aeq_acond_parent = parent->next_aeq_acond_parent[pos];
+      BTOR_PREV_APARENT (child->first_aeq_acond_parent) = NULL;
+    }
+    /* is parent last parent in the list? */
+    else if (last_parent == tagged_parent)
+    {
+      assert (parent->next_aeq_acond_parent[pos] == NULL);
+      assert (parent->prev_aeq_acond_parent[pos] != NULL);
+      child->last_aeq_acond_parent = parent->prev_aeq_acond_parent[pos];
+      BTOR_NEXT_APARENT (child->last_aeq_acond_parent) = NULL;
+    }
+    /* hang out parent from list */
     else
     {
-      /* first aeq or acond parent is next parent */
-      assert (BTOR_REAL_ADDR_EXP (next_parent)->kind == BTOR_AEQ_EXP
-              || BTOR_REAL_ADDR_EXP (next_parent)->kind == BTOR_ACOND_EXP);
-      real_child->first_aeq_acond_parent = next_parent;
+      assert (parent->next_aeq_acond_parent[pos] != NULL);
+      assert (parent->prev_aeq_acond_parent[pos] != NULL);
+      BTOR_PREV_APARENT (parent->next_aeq_acond_parent[pos]) =
+          parent->prev_aeq_acond_parent[pos];
+      BTOR_NEXT_APARENT (parent->prev_aeq_acond_parent[pos]) =
+          parent->next_aeq_acond_parent[pos];
     }
   }
-  /* only one parent? */
-  if (first_parent == tagged_parent && first_parent == last_parent)
-  {
-    assert (parent->next_parent[pos] == NULL);
-    assert (parent->prev_parent[pos] == NULL);
-    real_child->first_parent = NULL;
-    real_child->last_parent  = NULL;
-  }
-  /* is parent first parent in the list? */
-  else if (first_parent == tagged_parent)
-  {
-    assert (parent->next_parent[pos] != NULL);
-    assert (parent->prev_parent[pos] == NULL);
-    real_child->first_parent                    = parent->next_parent[pos];
-    BTOR_PREV_PARENT (real_child->first_parent) = NULL;
-  }
-  /* is parent last parent in the list? */
-  else if (last_parent == tagged_parent)
-  {
-    assert (parent->next_parent[pos] == NULL);
-    assert (parent->prev_parent[pos] != NULL);
-    real_child->last_parent                    = parent->prev_parent[pos];
-    BTOR_NEXT_PARENT (real_child->last_parent) = NULL;
-  }
-  /* hang out parent from list */
   else
   {
-    assert (parent->next_parent[pos] != NULL);
-    assert (parent->prev_parent[pos] != NULL);
-    BTOR_PREV_PARENT (parent->next_parent[pos]) = parent->prev_parent[pos];
-    BTOR_NEXT_PARENT (parent->prev_parent[pos]) = parent->next_parent[pos];
+    real_child   = BTOR_REAL_ADDR_EXP (parent->e[pos]);
+    first_parent = real_child->first_parent;
+    last_parent  = real_child->last_parent;
+    assert (first_parent != NULL);
+    assert (last_parent != NULL);
+    real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
+    real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
+    /* special treatment of array children of aeq and acond */
+    /* only one parent? */
+    if (first_parent == tagged_parent && first_parent == last_parent)
+    {
+      assert (parent->next_parent[pos] == NULL);
+      assert (parent->prev_parent[pos] == NULL);
+      real_child->first_parent = NULL;
+      real_child->last_parent  = NULL;
+    }
+    /* is parent first parent in the list? */
+    else if (first_parent == tagged_parent)
+    {
+      assert (parent->next_parent[pos] != NULL);
+      assert (parent->prev_parent[pos] == NULL);
+      real_child->first_parent                    = parent->next_parent[pos];
+      BTOR_PREV_PARENT (real_child->first_parent) = NULL;
+    }
+    /* is parent last parent in the list? */
+    else if (last_parent == tagged_parent)
+    {
+      assert (parent->next_parent[pos] == NULL);
+      assert (parent->prev_parent[pos] != NULL);
+      real_child->last_parent                    = parent->prev_parent[pos];
+      BTOR_NEXT_PARENT (real_child->last_parent) = NULL;
+    }
+    /* hang out parent from list */
+    else
+    {
+      assert (parent->next_parent[pos] != NULL);
+      assert (parent->prev_parent[pos] != NULL);
+      BTOR_PREV_PARENT (parent->next_parent[pos]) = parent->prev_parent[pos];
+      BTOR_NEXT_PARENT (parent->prev_parent[pos]) = parent->next_parent[pos];
+    }
   }
   parent->next_parent[pos] = NULL;
   parent->prev_parent[pos] = NULL;
@@ -4748,7 +4736,7 @@ hash_assignment (BtorExp *exp)
 static void
 extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
 {
-  BtorExp *cur, *next, *cur_aeq_acond, *real_aeq_acond, *cond;
+  BtorExp *cur, *next, *cur_aeq, *real_aeq, *cond;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorExpPtrQueue queue;
@@ -4814,39 +4802,36 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
     }
     /* enqueue all arrays which are reachable via equality
      * where equality is set to true by the SAT solver */
-    cur_aeq_acond  = cur->first_aeq_acond_parent;
-    real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
-    while (real_aeq_acond != NULL
-           && (real_aeq_acond->kind == BTOR_AEQ_EXP
-               || real_aeq_acond->kind == BTOR_ACOND_EXP))
+    cur_aeq  = cur->first_aeq_acond_parent;
+    real_aeq = BTOR_REAL_ADDR_EXP (cur_aeq);
+    while (real_aeq != NULL && real_aeq->kind == BTOR_AEQ_EXP)
     {
-      tag = BTOR_GET_TAG_EXP (cur_aeq_acond);
-      if (real_aeq_acond->reachable && real_aeq_acond->mark == 0
-          && real_aeq_acond->kind == BTOR_AEQ_EXP)
+      tag = BTOR_GET_TAG_EXP (cur_aeq);
+      if (real_aeq->reachable && real_aeq->mark == 0)
       {
-        assert (real_aeq_acond->av != NULL);
-        assert (real_aeq_acond->full_sat);
-        assert (real_aeq_acond->len == 1);
-        if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
+        assert (real_aeq->av != NULL);
+        assert (real_aeq->full_sat);
+        assert (real_aeq->len == 1);
+        if (btor_get_assignment_aig (amgr, real_aeq->av->aigs[0]) == 1)
         {
           assert (tag == 0 || tag == 1);
           /* we need the other child */
-          next = real_aeq_acond->e[!tag];
+          next = real_aeq->e[!tag];
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
           if (next->mark == 0)
           {
             /* set parent of array equality */
-            real_aeq_acond->parent = cur;
-            next->parent           = real_aeq_acond;
-            next->mark             = 1;
+            real_aeq->parent = cur;
+            next->parent     = real_aeq;
+            next->mark       = 1;
             BTOR_ENQUEUE (mm, queue, next);
             BTOR_PUSH_STACK (mm, unmark_stack, next);
           }
         }
       }
-      cur_aeq_acond  = real_aeq_acond->next_parent[tag];
-      real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
+      cur_aeq  = real_aeq->next_aeq_acond_parent[tag];
+      real_aeq = BTOR_REAL_ADDR_EXP (cur_aeq);
     }
   }
   assert (found);
@@ -5209,7 +5194,7 @@ process_working_stack (Btor *btor,
                        int *assignments_changed)
 {
   BtorExp *acc, *index, *value, *array, *hashed_acc, *hashed_value;
-  BtorExp *cur_aeq_acond, *real_aeq_acond, *cond;
+  BtorExp *cur_aeq, *real_aeq, *cond;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
@@ -5302,33 +5287,31 @@ process_working_stack (Btor *btor,
     /* insert into hash table */
     btor_insert_in_ptr_hash_table (array->table, index)->data.asPtr = acc;
     /* propagate pairs wich are reachable via array equality */
-    cur_aeq_acond  = array->first_aeq_acond_parent;
-    real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
-    while (real_aeq_acond != NULL
-           && (real_aeq_acond->kind == BTOR_AEQ_EXP
-               || real_aeq_acond->kind == BTOR_ACOND_EXP))
+    cur_aeq  = array->first_aeq_acond_parent;
+    real_aeq = BTOR_REAL_ADDR_EXP (cur_aeq);
+    while (real_aeq != NULL && real_aeq->kind == BTOR_AEQ_EXP)
     {
-      tag = BTOR_GET_TAG_EXP (cur_aeq_acond);
-      if (real_aeq_acond->reachable && real_aeq_acond->kind == BTOR_AEQ_EXP)
+      tag = BTOR_GET_TAG_EXP (cur_aeq);
+      if (real_aeq->reachable)
       {
-        assert (real_aeq_acond->av != NULL);
-        assert (real_aeq_acond->full_sat);
-        assert (!BTOR_IS_INVERTED_AIG (real_aeq_acond->av->aigs[0]));
-        assert (!BTOR_IS_CONST_AIG (real_aeq_acond->av->aigs[0]));
-        assert (BTOR_IS_VAR_AIG (real_aeq_acond->av->aigs[0]));
-        if (btor_get_assignment_aig (amgr, real_aeq_acond->av->aigs[0]) == 1)
+        assert (real_aeq->av != NULL);
+        assert (real_aeq->full_sat);
+        assert (!BTOR_IS_INVERTED_AIG (real_aeq->av->aigs[0]));
+        assert (!BTOR_IS_CONST_AIG (real_aeq->av->aigs[0]));
+        assert (BTOR_IS_VAR_AIG (real_aeq->av->aigs[0]));
+        if (btor_get_assignment_aig (amgr, real_aeq->av->aigs[0]) == 1)
         {
           assert (tag == 0 || tag == 1);
           /* we need the other child */
-          array = real_aeq_acond->e[!tag];
+          array = real_aeq->e[!tag];
           assert (BTOR_IS_REGULAR_EXP (array));
           assert (BTOR_IS_ARRAY_EXP (array));
           BTOR_PUSH_STACK (mm, *stack, acc);
           BTOR_PUSH_STACK (mm, *stack, array);
         }
       }
-      cur_aeq_acond  = real_aeq_acond->next_parent[tag];
-      real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
+      cur_aeq  = real_aeq->next_aeq_acond_parent[tag];
+      real_aeq = BTOR_REAL_ADDR_EXP (cur_aeq);
     }
   }
   return 0;
@@ -5341,7 +5324,7 @@ resolve_read_write_conflicts (Btor *btor)
   BtorExpPtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorMemMgr *mm;
   BtorExp *cur_array, *cur_write, *cur_read, **top, **temp;
-  BtorExp *cur_aeq_acond, *real_aeq_acond, *next;
+  BtorExp *cur_acond, *real_acond, *next;
   int found_conflict, changed_assignments, extensionality, tag;
   BtorWriteEnc write_enc;
   assert (btor != NULL);
@@ -5401,17 +5384,15 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
           cur_write = cur_write->prev_parent[0];
         }
       }
-      cur_aeq_acond  = cur_array->first_aeq_acond_parent;
-      real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
-      while (cur_aeq_acond != NULL
-             && (real_aeq_acond->kind == BTOR_ACOND_EXP
-                 || real_aeq_acond->kind == BTOR_AEQ_EXP))
+      cur_acond  = cur_array->last_aeq_acond_parent;
+      real_acond = BTOR_REAL_ADDR_EXP (cur_acond);
+      while (cur_acond != NULL && real_acond->kind == BTOR_ACOND_EXP)
       {
-        if (real_aeq_acond->kind == BTOR_ACOND_EXP && real_aeq_acond->reachable)
-          BTOR_PUSH_STACK (mm, array_stack, real_aeq_acond);
-        tag            = BTOR_GET_TAG_EXP (cur_aeq_acond);
-        cur_aeq_acond  = real_aeq_acond->next_parent[tag];
-        real_aeq_acond = BTOR_REAL_ADDR_EXP (cur_aeq_acond);
+        if (real_acond->reachable)
+          BTOR_PUSH_STACK (mm, array_stack, real_acond);
+        tag        = BTOR_GET_TAG_EXP (cur_acond);
+        cur_acond  = real_acond->prev_aeq_acond_parent[tag];
+        real_acond = BTOR_REAL_ADDR_EXP (cur_acond);
       }
     }
     else if (cur_array->array_mark == 1)
@@ -5604,6 +5585,19 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     BTOR_PUSH_STACK (mm, stack, real_parent);
     cur_parent = real_parent->next_parent[tag];
   }
+  if (left->kind == BTOR_AEQ_EXP || left->kind == BTOR_ACOND_EXP)
+  {
+    cur_parent = left->first_aeq_acond_parent;
+    while (cur_parent != NULL)
+    {
+      tag = BTOR_GET_TAG_EXP (cur_parent);
+      assert (!left->kind == BTOR_AEQ_EXP || tag == 0 || tag == 1);
+      assert (!left->kind == BTOR_ACOND_EXP || tag == 1 || tag == 2);
+      real_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+      BTOR_PUSH_STACK (mm, stack, real_parent);
+      cur_parent = real_parent->next_aeq_acond_parent[tag];
+    }
+  }
   /* start substitution algorithm */
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -5628,6 +5622,19 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
         real_parent = BTOR_REAL_ADDR_EXP (cur_parent);
         BTOR_PUSH_STACK (mm, stack, real_parent);
         cur_parent = real_parent->next_parent[tag];
+      }
+      if (cur->kind == BTOR_AEQ_EXP || cur->kind == BTOR_ACOND_EXP)
+      {
+        cur_parent = cur->first_aeq_acond_parent;
+        while (cur_parent != NULL)
+        {
+          tag = BTOR_GET_TAG_EXP (cur_parent);
+          assert (!left->kind == BTOR_AEQ_EXP || tag == 0 || tag == 1);
+          assert (!left->kind == BTOR_ACOND_EXP || tag == 1 || tag == 2);
+          real_parent = BTOR_REAL_ADDR_EXP (cur_parent);
+          BTOR_PUSH_STACK (mm, stack, real_parent);
+          cur_parent = real_parent->next_aeq_acond_parent[tag];
+        }
       }
     }
   }
