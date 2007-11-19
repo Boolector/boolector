@@ -89,8 +89,6 @@ static const char *g_usage =
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
     "  -er|--eager-read                 eager Ackermann encoding\n"
     "  -lr|--lazy-read                  iterative read consistency refinement\n"
-    "  -sr|--sat-solver-read            read consistency handled by SAT "
-    "solver\n"
     "  -ew|--eager-write                eager McCarthy axiom encoding\n"
     "  -lw|--lazy-write                 iterative write consistency "
     "refinement\n"
@@ -487,8 +485,6 @@ btor_main (int argc, char **argv)
       read_enc = BTOR_EAGER_READ_ENC;
     else if (!strcmp (argv[i], "-lr") || !strcmp (argv[i], "--lazy-read"))
       read_enc = BTOR_LAZY_READ_ENC;
-    else if (!strcmp (argv[i], "-sr") || !strcmp (argv[i], "--sat-solver-read"))
-      read_enc = BTOR_SAT_SOLVER_READ_ENC;
     else if (!strcmp (argv[i], "-ew") || !strcmp (argv[i], "--eager-write"))
       write_enc = BTOR_EAGER_WRITE_ENC;
     else if (!strcmp (argv[i], "-lw") || !strcmp (argv[i], "--lazy-write"))

@@ -41,7 +41,6 @@ enum BtorReadEnc
 {
   BTOR_EAGER_READ_ENC,
   BTOR_LAZY_READ_ENC,
-  BTOR_SAT_SOLVER_READ_ENC
 };
 
 typedef enum BtorReadEnc BtorReadEnc;

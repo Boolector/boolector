@@ -4289,7 +4289,7 @@ btor_new_btor (int rewrite_level,
   btor->rewrite_level              = rewrite_level;
   btor->dump_trace                 = dump_trace;
   btor->verbosity                  = verbosity;
-  btor->read_enc                   = BTOR_SAT_SOLVER_READ_ENC;
+  btor->read_enc                   = BTOR_LAZY_READ_ENC;
   btor->write_enc                  = BTOR_LAZY_WRITE_ENC;
   btor->trace_file                 = trace_file;
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
