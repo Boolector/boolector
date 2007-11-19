@@ -56,38 +56,35 @@ typedef enum BtorWriteEnc BtorWriteEnc;
 
 typedef struct BtorExpPair BtorExpPair;
 
+typedef struct BtorBasicExp BtorBasicExp;
+
 struct BtorExp
 {
+  /* Basic Expression Layout */
   BtorExpKind kind : 5;          /* kind of expression */
   unsigned int mark : 3;         /* for DAG traversal */
   unsigned int array_mark : 3;   /* for bottom up array traversal */
   unsigned int encoded_read : 1; /* flag used by eager read encoding */
   unsigned int reachable : 1;    /* flag determines if expression
-                                    is reachable from root or not */
+                                    is reachable from root */
   unsigned int full_sat : 1;     /* flag determines if expression has been
                                     fully encoded into SAT */
   unsigned int vread : 1;        /* flag determines if expression
-                                    is a virtual read
-                                    for reads only */
-  int index_len;                 /* length of the index.
-                                    for arrays, writes and array conds only */
-  BtorPtrHashTable *table;       /* used for determining read-read
-                                    and read-write conflicts
-                                    for arrays and writes only */
+                                    is a virtual read */
   union
   {
     struct
     {
-      char *symbol; /* symbol for output
-                       for variables only */
-      int upper;    /* for slices only */
+      char *symbol; /* symbol of variables for output */
+      int upper;    /* upper index for slices */
       union
       {
-        int lower;  /* for slices only */
-        char *bits; /* for constants only */
+        int lower;           /* lower index for slices */
+        char *bits;          /* bit vector of constants */
+        BtorExpPair *vreads; /* virtual reads for array equalites */
       };
     };
-    struct BtorExp *e[3]; /* three children */
+    struct BtorExp *e[3]; /* three expression children */
   };
   int len;                        /* number of bits */
   int id;                         /* unique expression id */
@@ -98,14 +95,27 @@ struct BtorExp
   struct BtorExp *last_parent;    /* tail of parent list */
   struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */
   struct BtorExp *next_parent[3]; /* next exp in parent list of child i */
-  struct BtorExp *first_aeq_acond_parent; /* first array equality or array
-                                             conditional in parent list
-                                             or arrays and writes only */
-  struct BtorExp *parent;                 /* parent pointer for BFS */
-  struct BtorExp *simplified;             /* equivalent simplified expression */
-  BtorExpPair *vreads;                    /* virtual reads
-                                             for array equalities only */
-  Btor *btor;                             /* Boolector */
+  struct BtorExp *parent;         /* parent pointer for BFS */
+  struct BtorExp *simplified;     /* equivalent simplified expression */
+  Btor *btor;                     /* Boolector */
+  /* Additional fields for arrays, writes and array conditionals: */
+  int index_len;           /* length of the index.
+                              for arrays, writes and array conds only */
+  BtorPtrHashTable *table; /* used for determining read-read
+                              and read-write conflicts
+                              for arrays, writes and array conditionals only*/
+
+  struct BtorExp *first_aparent; /* first array equality or array
+                                    conditional in parent list
+                                    or arrays and writes only */
+  struct BtorExp *last_aparent;
+  struct BtorExp
+      *prev_aparent[3]; /* prev array equality or conditional of child i */
+  struct BtorExp
+      *next_aparent[3]; /* next array equality or conditional of child i */
+#if 0
+  BtorExpPair *vreads;             /* virtual reads for array equalities */
+#endif
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
