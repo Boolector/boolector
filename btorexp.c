@@ -4427,8 +4427,8 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             cur->vreads = new_exp_pair (btor, read1, read2);
 
             /* synthesize values of virtual reads */
-            read1->av = btor_var_aigvec (avmgr, read1->len);
-            read2->av = btor_var_aigvec (avmgr, read2->len);
+            btor_synthesize_exp (btor, read1, NULL);
+            btor_synthesize_exp (btor, read2, NULL);
             /* index gets synthesized later (if necessary) */
 
             /* eagerly encode array inequality constraint */
