@@ -1121,6 +1121,7 @@ static void
 encode_read_eagerly (Btor *btor, BtorExp *array, BtorExp *read)
 {
   BtorExp *cur;
+  BtorPartialParentIterator it;
   assert (btor != NULL);
   assert (array != NULL);
   assert (read != NULL);
@@ -1128,16 +1129,14 @@ encode_read_eagerly (Btor *btor, BtorExp *array, BtorExp *read)
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
   assert (read->reachable);
-  cur = array->first_parent;
-  /* read expressions are at the beginning of the parent list */
-  while (cur != NULL && BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_READ_EXP)
+  init_read_parent_iterator (&it, array);
+  while (has_next_parent_read_parent_iterator (&it))
   {
-    assert (BTOR_GET_TAG_EXP (cur) == 0);
+    cur = next_parent_read_parent_iterator (&it);
     assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->encoded_read)
       encode_ackermann_constraint_eagerly (
           btor, cur->e[1], read->e[1], cur, read);
-    cur = cur->next_parent[0];
   }
   read->encoded_read = 1;
 }
@@ -1992,7 +1991,7 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, exp);
-  while (!BTOR_EMPTY_STACK (stack))
+  do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
     if (cur->mark != new_mark)
@@ -2012,7 +2011,7 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       }
     }
-  }
+  } while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 }
 
@@ -2036,7 +2035,7 @@ btor_release_exp (Btor *btor, BtorExp *exp)
     assert (cur->refs == 1);
     BTOR_INIT_STACK (stack);
     BTOR_PUSH_STACK (mm, stack, cur);
-    while (!BTOR_EMPTY_STACK (stack))
+    do
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
       if (cur->refs > 1)
@@ -2063,7 +2062,7 @@ btor_release_exp (Btor *btor, BtorExp *exp)
         if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur))
           delete_exp_unique_table_entry (btor, cur);
       }
-    }
+    } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
   }
 }
@@ -3768,7 +3767,7 @@ read_exp (Btor *btor,
       BTOR_INIT_STACK (stack);
       cur   = e_array;
       found = 0;
-      while (!found)
+      do
       {
         assert (BTOR_IS_REGULAR_EXP (cur));
         assert (BTOR_IS_ARRAY_EXP (cur));
@@ -3783,7 +3782,7 @@ read_exp (Btor *btor,
           result = binary_exp (btor, BTOR_READ_EXP, cur, e_index, cur->len);
           found  = 1;
         }
-      }
+      } while (!found);
       assert (!BTOR_EMPTY_STACK (stack));
       do
       {
@@ -4479,7 +4478,7 @@ set_flags_reachable_exp (Btor *btor, BtorExp *exp)
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, exp);
-  while (!BTOR_EMPTY_STACK (stack))
+  do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
     if (!cur->reachable)
@@ -4500,7 +4499,7 @@ set_flags_reachable_exp (Btor *btor, BtorExp *exp)
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       }
     }
-  }
+  } while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 }
 
@@ -4529,13 +4528,11 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   read_enc = btor->read_enc;
   mm       = btor->mm;
   avmgr    = btor->avmgr;
+  count    = 0;
 
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
-
-  count = 0;
-
-  while (!BTOR_EMPTY_STACK (exp_stack))
+  do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
     assert (cur->mark >= 0);
@@ -4803,7 +4800,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
         }
       }
     }
-  }
+  } while (!BTOR_EMPTY_STACK (exp_stack));
 
   BTOR_RELEASE_STACK (mm, exp_stack);
   btor_mark_exp (btor, exp, 0);
@@ -4980,7 +4977,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   cur->mark   = 1;
   BTOR_ENQUEUE (mm, queue, cur);
   BTOR_PUSH_STACK (mm, unmark_stack, cur);
-  while (!BTOR_EMPTY_QUEUE (queue))
+  do
   {
     cur = BTOR_DEQUEUE (queue);
     assert (BTOR_IS_REGULAR_EXP (cur));
@@ -5051,18 +5048,19 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         }
       }
     }
-  }
+  } while (!BTOR_EMPTY_QUEUE (queue));
   assert (found);
   BTOR_RELEASE_QUEUE (mm, queue);
   /* reset mark flags */
-  while (!BTOR_EMPTY_STACK (unmark_stack))
+  assert (!BTOR_EMPTY_STACK (unmark_stack));
+  do
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_ARRAY_EXP (cur) || cur->kind == BTOR_AEQ_EXP
             || cur->kind == BTOR_ACOND_EXP);
     cur->mark = 0;
-  }
+  } while (!BTOR_EMPTY_STACK (unmark_stack));
   BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
@@ -5697,7 +5695,7 @@ is_cyclic_substitution (Btor *btor, BtorExp *left, BtorExp *right)
   /* check if left does not occur on the right side */
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, right);
-  while (!BTOR_EMPTY_STACK (stack))
+  do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
     assert (cur->mark == 0 || cur->mark == 1);
@@ -5723,7 +5721,7 @@ is_cyclic_substitution (Btor *btor, BtorExp *left, BtorExp *right)
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       }
     }
-  }
+  } while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
   btor_mark_exp (btor, right, 0);
   return is_cyclic;
@@ -5795,7 +5793,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     BTOR_PUSH_STACK (mm, stack, cur_parent);
   }
   /* start substitution algorithm */
-  while (!BTOR_EMPTY_STACK (stack))
+  do
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
@@ -5819,7 +5817,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
         BTOR_PUSH_STACK (mm, stack, cur_parent);
       }
     }
-  }
+  } while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
   btor->substitutions++;
 }
@@ -5845,7 +5843,7 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   {
     BTOR_INIT_STACK (stack);
     BTOR_PUSH_STACK (mm, stack, exp);
-    while (!BTOR_EMPTY_STACK (stack))
+    do
     {
       cur = BTOR_POP_STACK (stack);
       assert (!BTOR_IS_INVERTED_EXP (cur));
@@ -5865,7 +5863,7 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
         else
           BTOR_PUSH_STACK (mm, btor->constraints, btor_copy_exp (btor, child));
       }
-    }
+    } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
     btor_mark_exp (btor, exp, 0);
   }
@@ -5918,7 +5916,7 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   {
     BTOR_INIT_STACK (stack);
     BTOR_PUSH_STACK (mm, stack, exp);
-    while (!BTOR_EMPTY_STACK (stack))
+    do
     {
       cur = BTOR_POP_STACK (stack);
       assert (!BTOR_IS_INVERTED_EXP (cur));
@@ -5938,7 +5936,7 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
         else
           BTOR_PUSH_STACK (mm, btor->assumptions, btor_copy_exp (btor, child));
       }
-    }
+    } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
     btor_mark_exp (btor, exp, 0);
   }
