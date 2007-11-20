@@ -2964,7 +2964,7 @@ btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_IF (
       len != BTOR_REAL_ADDR_EXP (e1)->len,
-      "length of 'e0' and 'e1' must not be unequal in 'btor_add_exp'");
+      "length of 'e0' and 'e1' must not be unequal in 'btor_uaddo_exp'");
   assert (len > 0);
   uext_e1 = btor_uext_exp (btor, e0, 1);
   uext_e2 = btor_uext_exp (btor, e1, 1);
@@ -2992,7 +2992,7 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_IF (
       len != BTOR_REAL_ADDR_EXP (e1)->len,
-      "length of 'e0' and 'e1' must not be unequal in 'btor_add_exp'");
+      "length of 'e0' and 'e1' must not be unequal in 'btor_saddo_exp'");
   assert (len > 0);
   sign_e1     = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e2     = btor_slice_exp (btor, e1, len - 1, len - 1);
@@ -4167,7 +4167,7 @@ btor_write_exp (Btor *btor,
                  "index length of 'e_array' and length of 'e_index' must not "
                  "be unequal in 'btor_write_exp'");
   BTOR_ABORT_IF (e_array->len != BTOR_REAL_ADDR_EXP (e_value)->len,
-                 "element length of 'earray' and length of 'e_value' must not "
+                 "element length of 'e_array' and length of 'e_value' must not "
                  "be unequal in 'btor_write_exp'");
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
