@@ -116,19 +116,16 @@ BtorExp *btor_neg_exp (Btor *btor, BtorExp *exp);
 BtorExp *btor_nego_exp (Btor *btor, BtorExp *exp);
 
 /* Logical OR reduction.
- * len(exp) > 1
  * len(result) = 1
  */
 BtorExp *btor_redor_exp (Btor *btor, BtorExp *exp);
 
 /* Logical XOR reduction.
- * len(exp) > 1
  * len(result) = 1
  */
 BtorExp *btor_redxor_exp (Btor *btor, BtorExp *exp);
 
 /* Logical AND reduction.
- * len(exp) > 1
  * len(result) = 1
  */
 BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
@@ -152,50 +149,50 @@ BtorExp *btor_uext_exp (Btor *btor, BtorExp *exp, int len);
 BtorExp *btor_sext_exp (Btor *btor, BtorExp *exp, int len);
 
 /* Logical OR.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_or_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical IMPLICATION.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_implies_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical EQUIVALENCE.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_iff_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical XOR.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_xor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical XNOR.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_xnor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical AND.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_and_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical NAND.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_nand_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical NOR.
- * len(e1) = len(e2) = 1
- * len(result) = 1
+ * len(e1) = len(e2)
+ * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_nor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
