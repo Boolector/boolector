@@ -17,6 +17,20 @@
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
+#define BTOR_ABORT(msg)                    \
+  do                                       \
+  {                                        \
+    fputs ("[btorexp] " msg "\n", stderr); \
+    abort ();                              \
+  } while (0)
+
+#define BTOR_ABORT_IF(cond, msg) \
+  do                             \
+  {                              \
+    if (!(cond)) break;          \
+    BTOR_ABORT (msg);            \
+  } while (0)
+
 struct BtorExpUniqueTable
 {
   int size;
@@ -110,6 +124,9 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 
 #define BTOR_COND_INVERT_AIG_EXP(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
+
+#define BTOR_READ_OVER_ACOND_REWRITING_LIMIT 16
+#define BTOR_READ_OVER_WRITE_REWRITING_LIMIT 128
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -1160,8 +1177,8 @@ btor_int_to_exp (Btor *btor, int i, int len)
 {
   char *string;
   BtorExp *result;
-  assert (btor != NULL);
-  assert (len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_int_to_exp'");
+  BTOR_ABORT_IF (len < 1, "'len' must not be < 1 in 'btor_int_to_exp'");
   string = btor_int_to_const (btor->mm, i, len);
   result = btor_const_exp (btor, string);
   btor_delete_const (btor->mm, string);
@@ -1173,8 +1190,9 @@ btor_unsigned_to_exp (Btor *btor, unsigned u, int len)
 {
   char *string;
   BtorExp *result;
-  assert (btor != NULL);
-  assert (len > 0);
+  BTOR_ABORT_IF (btor == NULL,
+                 "'btor' must not be NULL in 'btor_unsigned_to_exp'");
+  BTOR_ABORT_IF (len < 1, "'len' must not be < 1 in 'btor_unsigned_to_exp'");
   string = btor_unsigned_to_const (btor->mm, u, len);
   result = btor_const_exp (btor, string);
   btor_delete_const (btor->mm, string);
@@ -2071,8 +2089,9 @@ BtorExp *
 btor_const_exp (Btor *btor, const char *bits)
 {
   BtorExp **lookup;
-  assert (btor != NULL);
-  assert (bits != NULL);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_const_exp'");
+  BTOR_ABORT_IF (bits == NULL, "'bits' must not be NULL in 'btor_const_exp'");
+  BTOR_ABORT_IF (*bits == '\0', "'bits' must not be empty in 'btor_const_exp'");
   assert ((int) strlen (bits) > 0);
   lookup = find_const_exp (btor, bits);
   if (*lookup == NULL)
@@ -2099,8 +2118,8 @@ btor_zeros_exp (Btor *btor, int len)
 {
   char *string;
   BtorExp *result;
-  assert (btor != NULL);
-  assert (len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_zeros_exp'");
+  BTOR_ABORT_IF (len < 1, "'len' must not be < 1 in 'btor_zeros_exp'");
   string = zeros_string (btor, len);
   result = btor_const_exp (btor, string);
   btor_freestr (btor->mm, string);
@@ -2118,8 +2137,8 @@ btor_ones_exp (Btor *btor, int len)
 {
   char *string;
   BtorExp *result;
-  assert (btor != NULL);
-  assert (len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ones_exp'");
+  BTOR_ABORT_IF (len < 1, "'len' must not be < 1 in 'btor_ones_exp'");
   string = ones_string (btor, len);
   result = btor_const_exp (btor, string);
   btor_freestr (btor->mm, string);
@@ -2137,8 +2156,8 @@ btor_one_exp (Btor *btor, int len)
 {
   char *string;
   BtorExp *result;
-  assert (btor != NULL);
-  assert (len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_one_exp'");
+  BTOR_ABORT_IF (len < 1, "'len' must not be < 1 in 'btor_one_exp'");
   string                            = zeros_string (btor, len);
   string[(int) strlen (string) - 1] = '1';
   result                            = btor_const_exp (btor, string);
@@ -2151,9 +2170,9 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
 {
   BtorMemMgr *mm;
   BtorBasicExp *exp;
-  assert (btor != NULL);
-  assert (len > 0);
-  assert (symbol != NULL);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_var_exp'");
+  BTOR_ABORT_IF (len < 1, "'len' must not be < 1 in 'btor_var_exp'");
+  BTOR_ABORT_IF (symbol == NULL, "'symbol' must not be NULL in 'btor_var_exp'");
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind   = BTOR_VAR_EXP;
@@ -2172,9 +2191,11 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
 {
   BtorMemMgr *mm;
   BtorExp *exp;
-  assert (btor != NULL);
-  assert (elem_len > 0);
-  assert (index_len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_array_exp'");
+  BTOR_ABORT_IF (elem_len < 1,
+                 "'elem_len' must not be < 1 in 'btor_array_exp'");
+  BTOR_ABORT_IF (index_len < 1,
+                 "'index_len' must not be < 1 in 'btor_array_exp'");
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind      = BTOR_ARRAY_EXP;
@@ -2466,9 +2487,10 @@ rewrite_exp (Btor *btor,
 BtorExp *
 btor_not_exp (Btor *btor, BtorExp *exp)
 {
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_not_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_not_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_not_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   (void) btor;
   inc_exp_ref_counter (exp);
@@ -2479,9 +2501,10 @@ BtorExp *
 btor_neg_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *result, *one;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_neg_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_neg_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_neg_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   one    = btor_one_exp (btor, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_add_exp (btor, BTOR_INVERT_EXP (exp), one);
@@ -2494,9 +2517,10 @@ btor_nego_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *result, *sign_exp, *rest, *zeros, *eq;
   int len;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_nego_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_nego_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_nego_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   len = BTOR_REAL_ADDR_EXP (exp)->len;
   if (len == 1) return btor_copy_exp (btor, exp);
@@ -2516,10 +2540,11 @@ BtorExp *
 btor_redor_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *result, *zeros;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (BTOR_REAL_ADDR_EXP (exp)->len >= 1);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_redor_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_redor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_redor_exp'");
+  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   zeros  = btor_zeros_exp (btor, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_ne_exp (btor, exp, zeros);
   btor_release_exp (btor, zeros);
@@ -2531,11 +2556,12 @@ btor_redxor_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *result, *slice, *xor;
   int i, len;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 1);
-  len    = BTOR_REAL_ADDR_EXP (exp)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_redxor_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_redxor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_redxor_exp'");
+  len = BTOR_REAL_ADDR_EXP (exp)->len;
+  assert (len > 0);
   result = btor_slice_exp (btor, exp, 0, 0);
   for (i = 1; i < len; i++)
   {
@@ -2552,10 +2578,11 @@ BtorExp *
 btor_redand_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *result, *ones;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 1);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_redand_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_redand_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_redand_exp'");
+  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   ones   = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (exp)->len);
   result = btor_eq_exp (btor, exp, ones);
   btor_release_exp (btor, ones);
@@ -2566,12 +2593,16 @@ BtorExp *
 btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
   BtorExp *result;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (lower >= 0);
-  assert (upper >= lower);
-  assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_slice_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_slice_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_slice_exp'");
+  BTOR_ABORT_IF (lower < 0, "'lower' must not be negative in 'btor_slice_exp'");
+  BTOR_ABORT_IF (upper < lower,
+                 "'upper' must not be < 'lower' in 'btor_slice_exp'");
+  BTOR_ABORT_IF (upper >= BTOR_REAL_ADDR_EXP (exp)->len,
+                 "'upper' must not be >= length of 'exp' in 'btor_slice_exp'");
+  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   result = NULL;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_SLICE_EXP, exp, NULL, NULL, upper, lower);
@@ -2583,10 +2614,12 @@ BtorExp *
 btor_uext_exp (Btor *btor, BtorExp *exp, int len)
 {
   BtorExp *result, *zeros;
-  assert (btor != NULL);
-  assert (exp != NULL);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_uext_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_uext_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_uext_exp'");
+  BTOR_ABORT_IF (len < 0, "'len' must not be negative in 'btor_uext_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
-  assert (len >= 0);
   if (len == 0)
   {
     inc_exp_ref_counter (exp);
@@ -2607,10 +2640,11 @@ btor_sext_exp (Btor *btor, BtorExp *exp, int len)
 {
   BtorExp *result, *zeros, *ones, *neg, *cond;
   int exp_len;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
-  assert (len >= 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sext_exp'");
+  BTOR_ABORT_IF (exp == NULL, "'exp' must not be NULL in 'btor_sext_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                 "'exp' must not be an array in 'btor_sext_exp'");
+  BTOR_ABORT_IF (len < 0, "'len' must not be negative in 'btor_sext_exp'");
   if (len == 0)
   {
     inc_exp_ref_counter (exp);
@@ -2682,12 +2716,16 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
 BtorExp *
 btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_or_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_or_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_or_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_or_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_or_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_or_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (
       btor_and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e1)));
@@ -2696,12 +2734,16 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_nand_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_nand_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_nand_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_nand_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_nand_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_nand_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (btor_and_exp (btor, e0, e1));
 }
@@ -2709,12 +2751,16 @@ btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_nor_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_nor_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_nor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_nor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_nor_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_nor_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (btor_or_exp (btor, e0, e1));
 }
@@ -2722,12 +2768,16 @@ btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_implies_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_implies_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_implies_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_implies_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_implies_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_implies_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (btor_and_exp (btor, e0, BTOR_INVERT_EXP (e1)));
 }
@@ -2735,12 +2785,16 @@ btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_iff_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_iff_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_iff_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_iff_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_iff_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_iff_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_xnor_exp (btor, e0, e1);
 }
@@ -2749,12 +2803,16 @@ BtorExp *
 btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, * or, *and;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_xor_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_xor_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_xor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_xor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_xor_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_xor_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   or     = btor_or_exp (btor, e0, e1);
   and    = btor_and_exp (btor, e0, e1);
@@ -2767,12 +2825,16 @@ btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_xnor_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_xnor_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_xnor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_xnor_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_xnor_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_xnor_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return BTOR_INVERT_EXP (btor_xor_exp (btor, e0, e1));
 }
@@ -2782,15 +2844,19 @@ btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_and_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_and_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_and_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_and_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_and_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_and_exp'");
+  assert (len > 0);
   result = NULL;
-  len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_AND_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL) result = binary_exp (btor, BTOR_AND_EXP, e0, e1, len);
@@ -2802,23 +2868,28 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   BtorExpKind kind;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  /* both children are arrays or not */
-  assert (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0))
-          == BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  /* if both children are arrays then they must have the same index length */
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0))
-          || (BTOR_REAL_ADDR_EXP (e0)->index_len
-              == BTOR_REAL_ADDR_EXP (e1)->index_len));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0))
-          || (BTOR_REAL_ADDR_EXP (e0)->index_len > 0));
-  /* arrays may not be tagged or inverted */
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0))
+  BtorExp *real_e0, *real_e1;
+  int is_array_e0, is_array_e1;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_eq_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_eq_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_eq_exp'");
+  real_e0     = BTOR_REAL_ADDR_EXP (e0);
+  real_e1     = BTOR_REAL_ADDR_EXP (e1);
+  is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
+  is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
+  BTOR_ABORT_IF (is_array_e0 != is_array_e1,
+                 "array must not be compared with bit vector in 'btor_eq_exp'");
+  BTOR_ABORT_IF (!is_array_e0 && real_e0->len != real_e1->len,
+                 "bit vectors must not have unequal length in 'btor_eq_exp'");
+  BTOR_ABORT_IF (
+      is_array_e0 && real_e0->len != real_e1->len,
+      "arrays must not have unequal element length in 'btor_eq_exp'");
+  BTOR_ABORT_IF (is_array_e0 && real_e0->index_len != real_e1->index_len,
+                 "arrays must not have unequal index length in 'btor_eq_exp'");
+  assert (!is_array_e0 || real_e0->index_len > 0);
+  assert (!is_array_e0
           || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  assert (real_e0->len > 0);
   result = NULL;
   kind   = BTOR_BEQ_EXP;
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0))) kind = BTOR_AEQ_EXP;
@@ -2831,11 +2902,26 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_ne_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BtorExp *real_e0, *real_e1;
+  int is_array_e0, is_array_e1;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ne_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ne_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ne_exp'");
+  real_e0     = BTOR_REAL_ADDR_EXP (e0);
+  real_e1     = BTOR_REAL_ADDR_EXP (e1);
+  is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
+  is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
+  BTOR_ABORT_IF (is_array_e0 != is_array_e1,
+                 "array must not be compared with bit vector in 'btor_ne_exp'");
+  BTOR_ABORT_IF (
+      is_array_e0 && real_e0->len != real_e1->len,
+      "arrays must not have unequal element length in 'btor_ne_exp'");
+  BTOR_ABORT_IF (is_array_e0 && real_e0->index_len != real_e1->index_len,
+                 "arrays must not have unequal index length in 'btor_ne_exp'");
+  assert (!is_array_e0 || real_e0->index_len > 0);
+  assert (!is_array_e0
+          || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
+  assert (real_e0->len > 0);
   return BTOR_INVERT_EXP (btor_eq_exp (btor, e0, e1));
 }
 
@@ -2844,15 +2930,19 @@ btor_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_add_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_add_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_add_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_add_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_add_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_add_exp'");
+  assert (len > 0);
   result = NULL;
-  len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_ADD_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL) result = binary_exp (btor, BTOR_ADD_EXP, e0, e1, len);
@@ -2864,14 +2954,18 @@ btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *uext_e1, *uext_e2, *add;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_uaddo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_uaddo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_uaddo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_uaddo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_uaddo_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_add_exp'");
+  assert (len > 0);
   uext_e1 = btor_uext_exp (btor, e0, 1);
   uext_e2 = btor_uext_exp (btor, e1, 1);
   add     = btor_add_exp (btor, uext_e1, uext_e2);
@@ -2888,14 +2982,18 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result, *sign_e1, *sign_e2, *sign_result;
   BtorExp *add, *and1, *and2, *or1, *or2;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  len         = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_saddo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_saddo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_saddo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_saddo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_saddo_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_add_exp'");
+  assert (len > 0);
   sign_e1     = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e2     = btor_slice_exp (btor, e1, len - 1, len - 1);
   add         = btor_add_exp (btor, e0, e1);
@@ -2922,15 +3020,19 @@ btor_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_mul_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_mul_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_mul_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_mul_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_mul_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_mul_exp'");
+  assert (len > 0);
   result = NULL;
-  len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_MUL_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL) result = binary_exp (btor, BTOR_MUL_EXP, e0, e1, len);
@@ -2942,14 +3044,18 @@ btor_umulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *uext_e1, *uext_e2, *mul, *slice, *and, * or, **temps_e2;
   int i, len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_umulo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_umulo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_umulo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_umulo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_umulo_exp'");
   len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_umulo_exp'");
+  assert (len > 0);
   if (len == 1) return btor_zeros_exp (btor, 1);
   BTOR_NEWN (btor->mm, temps_e2, len - 1);
   temps_e2[0] = btor_slice_exp (btor, e1, len - 1, len - 1);
@@ -2995,14 +3101,18 @@ btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *sext_sign_e2, *xor_sign_e1, *xor_sign_e2, *mul, *slice, *slice_n;
   BtorExp *slice_n_minus_1, *xor, *and, * or, **temps_e2;
   int i, len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_smulo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_smulo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_smulo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_smulo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_smulo_exp'");
   len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_smulo_exp'");
+  assert (len > 0);
   if (len == 1) return btor_and_exp (btor, e0, e1);
   if (len == 2)
   {
@@ -3078,12 +3188,16 @@ BtorExp *
 btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ult_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ult_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ult_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_ult_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_ult_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_ult_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   result = NULL;
   if (btor->rewrite_level > 0)
@@ -3098,14 +3212,18 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result, *sign_e1, *sign_e2, *rest_e1, *rest_e2, *ult;
   BtorExp *e1_signed_only, *e1_e2_pos, *e1_e2_signed, *and1, *and2, * or ;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_slt_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_slt_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_slt_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_slt_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_slt_exp'");
   len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_slt_exp'");
+  assert (len > 0);
   if (len == 1) return btor_and_exp (btor, e0, BTOR_INVERT_EXP (e1));
   sign_e1 = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e2 = btor_slice_exp (btor, e1, len - 1, len - 1);
@@ -3144,12 +3262,16 @@ BtorExp *
 btor_ulte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *ugt;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ulte_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ulte_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ulte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_ulte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_ulte_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_ulte_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   ugt    = btor_ult_exp (btor, e1, e0);
   result = btor_not_exp (btor, ugt);
@@ -3161,12 +3283,16 @@ BtorExp *
 btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *sgt;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_slte_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_slte_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_slte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_slte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_slte_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_slte_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   sgt    = btor_slt_exp (btor, e1, e0);
   result = btor_not_exp (btor, sgt);
@@ -3177,12 +3303,16 @@ btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ugt_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ugt_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ugt_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_ugt_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_ugt_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_ugt_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_ult_exp (btor, e1, e0);
 }
@@ -3190,12 +3320,16 @@ btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_sgt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sgt_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sgt_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sgt_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sgt_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sgt_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_sgt_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_slt_exp (btor, e1, e0);
 }
@@ -3204,12 +3338,16 @@ BtorExp *
 btor_ugte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *ult;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ugte_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ugte_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ugte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_ugte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_ugte_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_ugte_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   ult    = btor_ult_exp (btor, e0, e1);
   result = btor_not_exp (btor, ult);
@@ -3221,12 +3359,16 @@ BtorExp *
 btor_sgte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *slt;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sgte_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sgte_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sgte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sgte_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sgte_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_sgte_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   slt    = btor_slt_exp (btor, e0, e1);
   result = btor_not_exp (btor, slt);
@@ -3239,17 +3381,22 @@ btor_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
-  assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
-          == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sll_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sll_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sll_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sll_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sll_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (!btor_is_power_of_2_util (len),
+                 "length of 'e0' must be a power of 2 in 'btor_sll_exp'");
+  BTOR_ABORT_IF (
+      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e1' must be equal to log2(length of 'e0') in 'btor_sll_exp'");
+  assert (len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   result = NULL;
-  len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_SLL_EXP, e0, e1, NULL, 0, 0);
   if (result == NULL) result = binary_exp (btor, BTOR_SLL_EXP, e0, e1, len);
@@ -3261,15 +3408,21 @@ btor_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
-  assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
-          == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_srl_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_srl_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_srl_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_srl_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_srl_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (!btor_is_power_of_2_util (len),
+                 "length of 'e0' must be a power of 2 in 'btor_srl_exp'");
+  BTOR_ABORT_IF (
+      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e1' must be equal to log2(length of 'e0') in 'btor_srl_exp'");
+  assert (len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   result = NULL;
   len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
@@ -3283,16 +3436,21 @@ btor_sra_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *sign_e1, *srl1, *srl2;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
-  assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
-          == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sra_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sra_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sra_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sra_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sra_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (!btor_is_power_of_2_util (len),
+                 "length of 'e0' must be a power of 2 in 'btor_sra_exp'");
+  BTOR_ABORT_IF (
+      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e1' must be equal to log2(length of 'e0') in 'btor_sra_exp'");
+  assert (len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   sign_e1 = btor_slice_exp (btor, e0, len - 1, len - 1);
   srl1    = btor_srl_exp (btor, e0, e1);
   srl2    = btor_srl_exp (btor, BTOR_INVERT_EXP (e0), e1);
@@ -3307,15 +3465,22 @@ BtorExp *
 btor_rol_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *sll, *neg_e2, *srl;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
-  assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
-          == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  int len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_rol_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_rol_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_rol_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_rol_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_rol_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (!btor_is_power_of_2_util (len),
+                 "length of 'e0' must be a power of 2 in 'btor_rol_exp'");
+  BTOR_ABORT_IF (
+      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e1' must be equal to log2(length of 'e0') in 'btor_rol_exp'");
+  assert (len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   sll    = btor_sll_exp (btor, e0, e1);
   neg_e2 = btor_neg_exp (btor, e1);
   srl    = btor_srl_exp (btor, e0, neg_e2);
@@ -3330,15 +3495,22 @@ BtorExp *
 btor_ror_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *srl, *neg_e2, *sll;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
-  assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
-          == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
+  int len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ror_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ror_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ror_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_ror_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_ror_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (!btor_is_power_of_2_util (len),
+                 "length of 'e0' must be a power of 2 in 'btor_ror_exp'");
+  BTOR_ABORT_IF (
+      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e1' must be equal to log2(length of 'e0') in 'btor_ror_exp'");
+  assert (len > 1);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   srl    = btor_srl_exp (btor, e0, e1);
   neg_e2 = btor_neg_exp (btor, e1);
   sll    = btor_sll_exp (btor, e0, neg_e2);
@@ -3353,12 +3525,16 @@ BtorExp *
 btor_sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *neg_e2;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sub_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sub_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sub_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sub_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sub_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_sub_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   neg_e2 = btor_neg_exp (btor, e1);
   result = btor_add_exp (btor, e0, neg_e2);
@@ -3371,14 +3547,18 @@ btor_usubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *uext_e1, *uext_e2, *add1, *add2, *one;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_usubo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_usubo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_usubo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_usubo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_usubo_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_usubo_exp'");
+  assert (len > 0);
   uext_e1 = btor_uext_exp (btor, e0, 1);
   uext_e2 = btor_uext_exp (btor, BTOR_INVERT_EXP (e1), 1);
   assert (len < INT_MAX);
@@ -3400,14 +3580,18 @@ btor_ssubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result, *sign_e1, *sign_e2, *sign_result;
   BtorExp *sub, *and1, *and2, *or1, *or2;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  len         = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_ssubo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_ssubo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_ssubo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_ssubo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_ssubo_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_ssubo_exp'");
+  assert (len > 0);
   sign_e1     = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e2     = btor_slice_exp (btor, e1, len - 1, len - 1);
   sub         = btor_sub_exp (btor, e0, e1);
@@ -3433,13 +3617,18 @@ btor_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_udiv_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_udiv_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_udiv_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_udiv_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_udiv_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_udiv_exp'");
+  assert (len > 0);
   result = NULL;
   len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
@@ -3454,14 +3643,18 @@ btor_sdiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result, *sign_e1, *sign_e2, *xor, *neg_e1, *neg_e2;
   BtorExp *cond_e1, *cond_e2, *udiv, *neg_udiv;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sdiv_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sdiv_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sdiv_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sdiv_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sdiv_exp'");
   len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_sdiv_exp'");
+  assert (len > 0);
   if (len == 1)
     return BTOR_INVERT_EXP (btor_and_exp (btor, BTOR_INVERT_EXP (e0), e1));
   sign_e1 = btor_slice_exp (btor, e0, len - 1, len - 1);
@@ -3493,12 +3686,16 @@ BtorExp *
 btor_sdivo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *int_min, *ones, *eq1, *eq2;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_sdivo_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_sdivo_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_sdivo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_sdivo_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_sdivo_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_sdivo_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   int_min = int_min_exp (btor, BTOR_REAL_ADDR_EXP (e0)->len);
   ones    = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (e1)->len);
@@ -3516,19 +3713,23 @@ BtorExp *
 btor_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_urem_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_urem_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_urem_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_urem_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_urem_exp'");
+  BTOR_ABORT_IF (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_urem_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   result = NULL;
-  len    = BTOR_REAL_ADDR_EXP (e0)->len;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_UREM_EXP, e0, e1, NULL, 0, 0);
-  if (result == NULL) result = binary_exp (btor, BTOR_UREM_EXP, e0, e1, len);
+  if (result == NULL)
+    result =
+        binary_exp (btor, BTOR_UREM_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
   return result;
 }
 
@@ -3538,14 +3739,18 @@ btor_srem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1;
   BtorExp *cond_e0, *cond_e1, *urem, *neg_urem;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_srem_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_srem_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_srem_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_srem_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_srem_exp'");
   len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_srem_exp'");
+  assert (len > 0);
   if (len == 1) return btor_and_exp (btor, e0, BTOR_INVERT_EXP (e1));
   sign_e0 = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e1 = btor_slice_exp (btor, e1, len - 1, len - 1);
@@ -3578,14 +3783,18 @@ btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *neg_urem, *add1, *add2, *or1, *or2, *e0_and_e1, *e0_and_neg_e1;
   BtorExp *neg_e0_and_e1, *neg_e0_and_neg_e1, *zeros;
   int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  len     = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_smod_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_smod_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_smod_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_smod_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_smod_exp'");
+  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  BTOR_ABORT_IF (
+      len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_smod_exp'");
+  assert (len > 0);
   zeros   = btor_zeros_exp (btor, len);
   sign_e0 = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e1 = btor_slice_exp (btor, e1, len - 1, len - 1);
@@ -3638,21 +3847,26 @@ BtorExp *
 btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  int len;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len
-          <= INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len);
+  int len_e0;
+  int len_e1;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_concat_exp'");
+  BTOR_ABORT_IF (e0 == NULL, "'e0' must not be NULL in 'btor_concat_exp'");
+  BTOR_ABORT_IF (e1 == NULL, "'e1' must not be NULL in 'btor_concat_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                 "'e0' must not be an array in 'btor_concat_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                 "'e1' must not be an array in 'btor_concat_exp'");
+  len_e0 = BTOR_REAL_ADDR_EXP (e0)->len;
+  len_e1 = BTOR_REAL_ADDR_EXP (e1)->len;
+  assert (len_e0 > 0);
+  assert (len_e1 > 0);
+  BTOR_ABORT_IF (len_e0 > INT_MAX - len_e1,
+                 "length of result is too large in 'btor_concat_exp'");
   result = NULL;
-  len    = BTOR_REAL_ADDR_EXP (e0)->len + BTOR_REAL_ADDR_EXP (e1)->len;
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, BTOR_CONCAT_EXP, e0, e1, NULL, 0, 0);
-  if (result == NULL) result = binary_exp (btor, BTOR_CONCAT_EXP, e0, e1, len);
+  if (result == NULL)
+    result = binary_exp (btor, BTOR_CONCAT_EXP, e0, e1, len_e0 + len_e1);
   return result;
 }
 
@@ -3803,21 +4017,24 @@ read_exp (Btor *btor,
   return binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
 
-#define BTOR_READ_OVER_ACOND_REWRITING_LIMIT 16
-#define BTOR_READ_OVER_WRITE_REWRITING_LIMIT 128
-
 BtorExp *
 btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
-  assert (btor != NULL);
-  assert (e_array != NULL);
-  assert (e_index != NULL);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_read_exp'");
+  BTOR_ABORT_IF (e_array == NULL,
+                 "'e_array' must not be NULL in 'btor_read_exp'");
+  BTOR_ABORT_IF (e_index == NULL,
+                 "'e_index' must not be NULL in 'btor_read_exp'");
+  BTOR_ABORT_IF (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
+                 "'e_array' must not be a bit vector in 'btor_read_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)),
+                 "'e_index' must not be an array in 'btor_read_exp'");
   assert (BTOR_IS_REGULAR_EXP (e_array));
-  assert (BTOR_IS_ARRAY_EXP (e_array));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
+  BTOR_ABORT_IF (e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
+                 "index length of 'e_array' and length of 'e_index' must not "
+                 "be unequal in 'btor_read_exp'");
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
-  assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
   return read_exp (btor,
                    e_array,
                    e_index,
@@ -3882,29 +4099,39 @@ ternary_exp (Btor *btor,
 BtorExp *
 btor_cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
 {
-  BtorExp *result;
+  BtorExp *result, *real_e_if, *real_e_else;
   BtorExpKind kind;
   int len;
-  assert (btor != NULL);
-  assert (e_cond != NULL);
-  assert (e_if != NULL);
-  assert (e_else != NULL);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)));
-  assert (BTOR_REAL_ADDR_EXP (e_cond)->len == 1);
-  /* both children are arrays or not */
-  assert (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))
-          == BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_else)));
-  /* if both children are arrays then they must have the same index length */
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))
-          || (BTOR_REAL_ADDR_EXP (e_if)->index_len
-              == BTOR_REAL_ADDR_EXP (e_else)->index_len));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))
-          || (BTOR_REAL_ADDR_EXP (e_if)->index_len > 0));
-  /* arrays may not be tagged or inverted */
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))
+  int is_array_e_if, is_array_e_else;
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_cond_exp'");
+  BTOR_ABORT_IF (e_cond == NULL,
+                 "'e_cond' must not be NULL in 'btor_cond_exp'");
+  BTOR_ABORT_IF (e_if == NULL, "'e_if' must not be NULL in 'btor_cond_exp'");
+  BTOR_ABORT_IF (e_else == NULL,
+                 "'e_else' must not be NULL in 'btor_cond_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)),
+                 "'e_cond' must not be an array in 'btor_cond_exp'");
+  BTOR_ABORT_IF (BTOR_REAL_ADDR_EXP (e_cond)->len != 1,
+                 "length of 'e_cond' must be equal to 1 in 'btor_cond_exp'");
+  real_e_if       = BTOR_REAL_ADDR_EXP (e_if);
+  real_e_else     = BTOR_REAL_ADDR_EXP (e_else);
+  is_array_e_if   = BTOR_IS_ARRAY_EXP (real_e_if);
+  is_array_e_else = BTOR_IS_ARRAY_EXP (real_e_else);
+  BTOR_ABORT_IF (
+      is_array_e_if != is_array_e_else,
+      "array must not be combined with bit vector in 'btor_cond_exp'");
+  BTOR_ABORT_IF (!is_array_e_if && real_e_if->len != real_e_else->len,
+                 "bit vectors must not have unequal length in 'btor_cond_exp'");
+  BTOR_ABORT_IF (
+      is_array_e_if && real_e_if->len != real_e_else->len,
+      "arrays must not have unequal element length in 'btor_cond_exp'");
+  BTOR_ABORT_IF (
+      is_array_e_if && real_e_if->index_len != real_e_else->index_len,
+      "arrays must not have unequal index length in 'btor_cond_exp'");
+  assert (!is_array_e_if || real_e_if->index_len > 0);
+  assert (!is_array_e_if
           || (BTOR_IS_REGULAR_EXP (e_if) && BTOR_IS_REGULAR_EXP (e_else)));
-  assert (BTOR_REAL_ADDR_EXP (e_if)->len == BTOR_REAL_ADDR_EXP (e_else)->len);
-  assert (BTOR_REAL_ADDR_EXP (e_if)->len > 0);
+  assert (real_e_if->len > 0);
   result = NULL;
   kind   = BTOR_BCOND_EXP;
   len    = BTOR_REAL_ADDR_EXP (e_if)->len;
@@ -3922,14 +4149,29 @@ btor_write_exp (Btor *btor,
                 BtorExp *e_index,
                 BtorExp *e_value)
 {
-  assert (btor != NULL);
+  BTOR_ABORT_IF (btor == NULL, "'btor' must not be NULL in 'btor_write_exp'");
+  BTOR_ABORT_IF (e_array == NULL,
+                 "'e_array' must not be NULL in 'btor_write_exp'");
+  BTOR_ABORT_IF (e_index == NULL,
+                 "'e_index' must not be NULL in 'btor_write_exp'");
+  BTOR_ABORT_IF (e_value == NULL,
+                 "'e_value' must not be NULL in 'btor_write_exp'");
+  BTOR_ABORT_IF (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
+                 "'e_array' must not be a bit vector in 'btor_write_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)),
+                 "'e_index' must not be an array in 'btor_write_exp'");
+  BTOR_ABORT_IF (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)),
+                 "'e_value' must not be a bit vector in 'btor_write_exp'");
   assert (BTOR_IS_REGULAR_EXP (e_array));
-  assert (BTOR_IS_ARRAY_EXP (e_array));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)));
+  BTOR_ABORT_IF (e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
+                 "index length of 'e_array' and length of 'e_index' must not "
+                 "be unequal in 'btor_write_exp'");
+  BTOR_ABORT_IF (e_array->len != BTOR_REAL_ADDR_EXP (e_value)->len,
+                 "element length of 'earray' and length of 'e_value' must not "
+                 "be unequal in 'btor_write_exp'");
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
-  assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+  assert (BTOR_REAL_ADDR_EXP (e_value)->len > 0);
   return ternary_exp (btor, BTOR_WRITE_EXP, e_array, e_index, e_value, 0);
 }
 
