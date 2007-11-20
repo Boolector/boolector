@@ -288,9 +288,20 @@ init_full_parent_iterator (BtorFullParentIterator *it, BtorExp *exp)
 {
   assert (it != NULL);
   assert (exp != NULL);
-  it->cur                  = BTOR_REAL_ADDR_EXP (exp)->first_parent;
-  it->exp                  = exp;
-  it->regular_parents_done = 0;
+  it->exp = exp;
+  if (BTOR_REAL_ADDR_EXP (exp)->first_parent != NULL)
+  {
+    it->regular_parents_done = 0;
+    it->cur                  = BTOR_REAL_ADDR_EXP (exp)->first_parent;
+  }
+  else
+  {
+    it->regular_parents_done = 1;
+    if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)))
+      it->cur = BTOR_REAL_ADDR_EXP (exp)->first_aeq_acond_parent;
+    else
+      it->cur = NULL;
+  }
 }
 
 static BtorExp *
@@ -356,11 +367,12 @@ next_parent_full_parent_iterator (BtorFullParentIterator *it)
   {
     it->cur = BTOR_NEXT_PARENT (result);
     /* reached end of regular parent list ? */
-    if (it->cur == NULL && BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (it->exp)))
+    if (it->cur == NULL)
     {
-      /* traverse aeq acond parent list */
-      it->cur = BTOR_REAL_ADDR_EXP (it->exp)->first_aeq_acond_parent;
       it->regular_parents_done = 1;
+      /* traverse aeq acond parent list */
+      if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (it->exp)))
+        it->cur = BTOR_REAL_ADDR_EXP (it->exp)->first_aeq_acond_parent;
     }
   }
   else
@@ -403,7 +415,7 @@ static int
 has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
 {
   assert (it != NULL);
-  return it->cur != NULL && it->regular_parents_done == 1;
+  return it->cur != NULL;
 }
 
 /*------------------------------------------------------------------------*/
