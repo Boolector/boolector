@@ -6,6 +6,20 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define BTOR_ABORT_MEM(cond, msg)          \
+  do                                       \
+  {                                        \
+    if (!(cond)) break;                    \
+    fputs ("[btormem] " msg "\n", stderr); \
+    abort ();                              \
+  } while (0)
+
+#define ADJUST()                                                            \
+  do                                                                        \
+  {                                                                         \
+    if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
+  } while (0)
+
 BtorMemMgr *
 btor_new_mem_mgr (void)
 {
@@ -15,40 +29,43 @@ btor_new_mem_mgr (void)
   return mm;
 }
 
-#define ADJUST()                                                            \
-  do                                                                        \
-  {                                                                         \
-    if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
-  } while (0)
-
 void *
 btor_malloc (BtorMemMgr *mm, size_t size)
 {
+  void *result;
   assert (mm != NULL);
+  result = malloc (size);
+  BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_malloc'");
   mm->allocated += size;
   ADJUST ();
-  return malloc (size);
+  return result;
 }
 
 void *
 btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 {
+  void *result;
   assert (mm != NULL);
   assert (!p == !old_size);
   assert (mm->allocated >= old_size);
+  result = realloc (p, new_size);
+  BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_realloc'");
   mm->allocated -= old_size;
   mm->allocated += new_size;
   ADJUST ();
-  return realloc (p, new_size);
+  return result;
 }
 
 void *
 btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 {
+  void *result;
   assert (mm != NULL);
+  result = calloc (nobj, size);
+  BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_calloc'");
   mm->allocated += nobj * size;
   ADJUST ();
-  return calloc (nobj, size);
+  return result;
 }
 
 void
