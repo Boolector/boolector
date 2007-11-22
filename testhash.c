@@ -89,8 +89,10 @@ test_hash_str2str (void)
 {
   BtorPtrHashTable *ht;
   BtorPtrHashBucket *p;
+  BtorPtrHashData data;
   char buffer[20];
   FILE *file;
+  void *key;
   int i;
 
   ht = btor_new_ptr_hash_table (mem, btor_hashstr, btor_cmpstr);
@@ -111,6 +113,14 @@ test_hash_str2str (void)
     assert (p);
     assert (i == atoi (p->key));
     assert (10 - i == atoi (p->data.asStr));
+  }
+
+  for (i = 0; i < 10; i += 2)
+  {
+    sprintf (buffer, "%d", i);
+    btor_remove_from_ptr_hash_table (ht, buffer, &key, &data);
+    btor_freestr (mem, data.asStr);
+    btor_freestr (mem, key);
   }
 
   file = fopen ("log/hash_str2str.log", "w");

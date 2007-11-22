@@ -109,11 +109,16 @@ btor_insert_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
   res->key = key;
   *p       = res;
   p2iht->count++;
+
+  res->prev = p2iht->last;
+
   if (p2iht->first)
     p2iht->last->next = res;
   else
     p2iht->first = res;
+
   p2iht->last = res;
+
   return res;
 }
 
@@ -137,4 +142,38 @@ btor_hashstr (void *str)
   }
 
   return res;
+}
+
+void
+btor_remove_from_ptr_hash_table (BtorPtrHashTable *table,
+                                 void *key,
+                                 void **stored_key_ptr,
+                                 BtorPtrHashData *stored_data_ptr)
+{
+  BtorPtrHashBucket **p, *bucket;
+
+  p      = btor_findpos_in_ptr_hash_table_pos (table, key);
+  bucket = *p;
+
+  assert (bucket);
+  *p = bucket->chain;
+
+  if (bucket->prev)
+    bucket->prev->next = bucket->next;
+  else
+    table->first = bucket->next;
+
+  if (bucket->next)
+    bucket->next->prev = bucket->prev;
+  else
+    table->last = bucket->prev;
+
+  assert (table->count > 0);
+  table->count--;
+
+  if (stored_key_ptr) *stored_key_ptr = bucket->key;
+
+  if (stored_data_ptr) *stored_data_ptr = bucket->data;
+
+  BTOR_DELETE (table->mem, bucket);
 }
