@@ -18,7 +18,10 @@ typedef struct BtorSATMgr BtorSATMgr;
 /* Creates new SAT manager.
  * A SAT manager is used by nearly all functions of the SAT layer.
  */
-BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm, int verbosity);
+BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm);
+
+/* Sets verbosity [-1,3] */
+void btor_set_verbosity_sat_mgr (BtorSATMgr *smgr, int verbosity);
 
 /* Returns if the SAT solver has already been initialized */
 int btor_is_initialized_sat (BtorSATMgr *smgr);

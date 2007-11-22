@@ -5823,16 +5823,23 @@ btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 BtorAIGVecMgr *
-btor_new_aigvec_mgr (BtorMemMgr *mm, int verbosity)
+btor_new_aigvec_mgr (BtorMemMgr *mm)
 {
   BtorAIGVecMgr *avmgr;
   assert (mm != NULL);
-  assert (verbosity >= -1);
   BTOR_NEW (mm, avmgr);
   avmgr->mm        = mm;
-  avmgr->verbosity = verbosity;
-  avmgr->amgr      = btor_new_aig_mgr (mm, verbosity);
+  avmgr->verbosity = 0;
+  avmgr->amgr      = btor_new_aig_mgr (mm);
   return avmgr;
+}
+
+void
+btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity)
+{
+  assert (avmgr != NULL);
+  assert (verbosity >= -1 && verbosity <= 3);
+  avmgr->verbosity = verbosity;
 }
 
 void

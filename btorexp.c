@@ -66,12 +66,10 @@ struct Btor
   int valid_assignments;
   int resolved_constraints;
   int rewrite_level;
-  int dump_trace;
   int verbosity;
   int extensionality;
   BtorReadEnc read_enc;
   BtorWriteEnc write_enc;
-  FILE *trace_file;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
   /* statistics */
@@ -4923,39 +4921,88 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 }
 
 Btor *
-btor_new_btor (int rewrite_level,
-               int dump_trace,
-               int verbosity,
-               FILE *trace_file)
+btor_new_btor (void)
 {
   BtorMemMgr *mm;
   Btor *btor;
-  assert (sizeof (int) == 4);
-  assert (rewrite_level >= 0);
-  assert (rewrite_level <= 2);
-  assert (verbosity >= -1);
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr = btor_new_aigvec_mgr (mm, verbosity);
+  btor->avmgr = btor_new_aigvec_mgr (mm);
   BTOR_INIT_STACK (btor->vars);
   BTOR_INIT_STACK (btor->arrays);
   BTOR_INIT_STACK (btor->constraints);
   BTOR_INIT_STACK (btor->assumptions);
   btor->id                         = 1;
   btor->valid_assignments          = 1;
-  btor->rewrite_level              = rewrite_level;
-  btor->dump_trace                 = dump_trace;
-  btor->verbosity                  = verbosity;
+  btor->rewrite_level              = 2;
+  btor->verbosity                  = 0;
   btor->read_enc                   = BTOR_LAZY_READ_ENC;
   btor->write_enc                  = BTOR_LAZY_WRITE_ENC;
-  btor->trace_file                 = trace_file;
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   return btor;
+}
+
+void
+btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
+{
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_set_rewrite_level_btor'");
+  BTOR_ABORT_EXP (
+      rewrite_level < 0 || rewrite_level > 2,
+      "'rewrite_level' has to be in [0,2] in 'btor_set_rewrite_level_btor'");
+  BTOR_ABORT_EXP (
+      btor->id != 1,
+      "'setting rewrite level must be done before adding expressions'");
+  btor->rewrite_level = rewrite_level;
+}
+
+void
+btor_set_verbosity_btor (Btor *btor, int verbosity)
+{
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_set_verbosity_btor'");
+  BTOR_ABORT_EXP (
+      verbosity < -1 || verbosity > 3,
+      "'verbosity' has to be in [-1,3] in 'btor_set_verbosity_btor'");
+  BTOR_ABORT_EXP (btor->id != 1,
+                  "'setting verbosity must be done before adding expressions'");
+  btor->verbosity = verbosity;
+  avmgr           = btor->avmgr;
+  amgr            = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr            = btor_get_sat_mgr_aig_mgr (amgr);
+  btor_set_verbosity_aigvec_mgr (avmgr, verbosity);
+  btor_set_verbosity_aig_mgr (amgr, verbosity);
+  btor_set_verbosity_sat_mgr (smgr, verbosity);
+}
+
+void
+btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc)
+{
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_set_read_enc_btor'");
+  BTOR_ABORT_EXP (btor->id != 1,
+                  "'setting read encoding strategy must be done before adding "
+                  "expressions'");
+  btor->read_enc = read_enc;
+}
+
+void
+btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc)
+{
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_set_read_enc_btor'");
+  BTOR_ABORT_EXP (btor->id != 1,
+                  "'setting write encoding strategy must be done before adding "
+                  "expressions'");
+  btor->write_enc = write_enc;
 }
 
 void
@@ -5030,20 +5077,6 @@ btor_delete_btor (Btor *btor)
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
-}
-
-void
-btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc)
-{
-  assert (btor != NULL);
-  btor->read_enc = read_enc;
-}
-
-void
-btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc)
-{
-  assert (btor != NULL);
-  btor->write_enc = write_enc;
 }
 
 void

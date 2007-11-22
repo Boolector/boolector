@@ -37,22 +37,6 @@ enum BtorExpKind
 
 typedef enum BtorExpKind BtorExpKind;
 
-enum BtorReadEnc
-{
-  BTOR_EAGER_READ_ENC,
-  BTOR_LAZY_READ_ENC,
-};
-
-typedef enum BtorReadEnc BtorReadEnc;
-
-enum BtorWriteEnc
-{
-  BTOR_EAGER_WRITE_ENC,
-  BTOR_LAZY_WRITE_ENC
-};
-
-typedef enum BtorWriteEnc BtorWriteEnc;
-
 typedef struct BtorExpPair BtorExpPair;
 
 #define BTOR_BASIC_EXP                                                       \
@@ -199,12 +183,6 @@ struct BtorExp
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
 BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
-
-/* Sets the read encoding paradigm. */
-void btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc);
-
-/* Sets the read encoding strategy. */
-void btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc);
 
 /* Prints statistics */
 void btor_print_stats_btor (Btor *btor);

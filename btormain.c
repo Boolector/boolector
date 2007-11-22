@@ -81,7 +81,6 @@ static const char *g_usage =
     "  -x|--hex                         hexadecimal output\n"
     "  -d|--dec                         decimal output\n"
     "  -o|--output <file>               set output file\n"
-    "  -t|--trace <file>                set trace file\n"
     "  -de|--dump-exp <file>            dump expression in BTOR format\n"
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
@@ -354,7 +353,6 @@ btor_main (int argc, char **argv)
   int close_output_file       = 0;
   int close_exp_file          = 0;
   int close_smt_file          = 0;
-  int close_trace_file        = 0;
   int dump_exp                = 0;
   int dump_smt                = 0;
   int force_smt_input         = 0;
@@ -368,7 +366,6 @@ btor_main (int argc, char **argv)
   FILE *input_file            = stdin;
   FILE *exp_file              = stdout;
   FILE *smt_file              = stdout;
-  FILE *trace_file            = stdout;
   Btor *btor                  = NULL;
   BtorAIGMgr *amgr            = NULL;
   BtorAIGVecMgr *avmgr        = NULL;
@@ -377,7 +374,6 @@ btor_main (int argc, char **argv)
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
-  int dump_trace                  = 0;
   int rewrite_level               = 2;
   size_t maxallocated             = 0;
 
@@ -413,9 +409,6 @@ btor_main (int argc, char **argv)
       handle_dump_file (&app, &dump_smt, &close_smt_file, "SMT", &smt_file);
     else if (!strcmp (argv[i], "--smt"))
       force_smt_input = 1;
-    else if (!strcmp (argv[i], "-t") || !strcmp (argv[i], "--trace"))
-      handle_dump_file (
-          &app, &dump_trace, &close_trace_file, "trace", &trace_file);
     else if ((strstr (argv[i], "-rwl") == argv[i]
               && strlen (argv[i]) == strlen ("-rlw") + 1)
              || (strstr (argv[i], "--rewrite-level") == argv[i]
@@ -549,7 +542,9 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    btor = btor_new_btor (rewrite_level, dump_trace, app.verbosity, trace_file);
+    btor = btor_new_btor ();
+    btor_set_rewrite_level_btor (btor, rewrite_level);
+    btor_set_verbosity_btor (btor, app.verbosity);
     btor_set_read_enc_btor (btor, read_enc);
     btor_set_write_enc_btor (btor, write_enc);
     mem = btor_get_mem_mgr_btor (btor);
@@ -645,7 +640,6 @@ btor_main (int argc, char **argv)
   if (close_input_file) fclose (input_file);
   if (close_output_file) fclose (app.output_file);
   if (close_exp_file) fclose (exp_file);
-  if (close_trace_file) fclose (trace_file);
   if (close_smt_file) fclose (smt_file);
   if (err)
     return_val = BTOR_ERR_EXIT;

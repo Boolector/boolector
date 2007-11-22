@@ -19,15 +19,43 @@ typedef struct BtorExp BtorExp;
 
 typedef struct Btor Btor;
 
+enum BtorReadEnc
+{
+  BTOR_EAGER_READ_ENC,
+  BTOR_LAZY_READ_ENC,
+};
+
+typedef enum BtorReadEnc BtorReadEnc;
+
+enum BtorWriteEnc
+{
+  BTOR_EAGER_WRITE_ENC,
+  BTOR_LAZY_WRITE_ENC
+};
+
+typedef enum BtorWriteEnc BtorWriteEnc;
+
 /*------------------------------------------------------------------------*/
 /* Btor                                                             */
 /*------------------------------------------------------------------------*/
 
-/* Creates new boolector. */
-Btor *btor_new_btor (int rewrite_level,
-                     int dump_trace,
-                     int verbosity,
-                     FILE *trace_file);
+/* Creates new boolector instance. */
+Btor *btor_new_btor (void);
+
+/* Sets rewrite level [0,3] */
+void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
+
+/* Sets verbosity [-1,3] of btor and all sub components
+ * if verbosity is set to -1, then boolector is in "quiet mode" and
+ * does not print any output
+ */
+void btor_set_verbosity_btor (Btor *btor, int verbosity);
+
+/* Sets read encoding strategy. */
+void btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc);
+
+/* Sets write encoding strategy. */
+void btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
