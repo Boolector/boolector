@@ -12,6 +12,14 @@
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
+#define BTOR_ABORT_AIG(cond, msg)          \
+  do                                       \
+  {                                        \
+    if (!(cond)) break;                    \
+    fputs ("[btoraig] " msg "\n", stderr); \
+    abort ();                              \
+  } while (0)
+
 struct BtorAIGUniqueTable
 {
   int size;
@@ -81,7 +89,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   assert (!BTOR_IS_CONST_AIG (left));
   assert (!BTOR_IS_CONST_AIG (right));
   BTOR_NEW (amgr->mm, aig);
-  assert (amgr->id < INT_MAX);
+  BTOR_ABORT_AIG (amgr->id == INT_MAX, "AIG id overflow");
   aig->id                    = amgr->id++;
   BTOR_LEFT_CHILD_AIG (aig)  = left;
   BTOR_RIGHT_CHILD_AIG (aig) = right;
@@ -146,7 +154,8 @@ inc_aig_ref_counter (BtorAIG *aig)
 {
   if (!BTOR_IS_CONST_AIG (aig))
   {
-    assert (BTOR_REAL_ADDR_AIG (aig)->refs < INT_MAX);
+    BTOR_ABORT_AIG (BTOR_REAL_ADDR_AIG (aig)->refs == INT_MAX,
+                    "reference counter overflow");
     BTOR_REAL_ADDR_AIG (aig)->refs++;
   }
 }
@@ -313,7 +322,7 @@ btor_var_aig (BtorAIGMgr *amgr)
   BtorAIG *aig;
   assert (amgr != NULL);
   BTOR_NEW (amgr->mm, aig);
-  assert (amgr->id < INT_MAX);
+  BTOR_ABORT_AIG (amgr->id == INT_MAX, "AIG id overflow");
   aig->id                    = amgr->id++;
   BTOR_LEFT_CHILD_AIG (aig)  = NULL;
   BTOR_RIGHT_CHILD_AIG (aig) = NULL;

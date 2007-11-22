@@ -13,6 +13,14 @@
 /* BtorSATMgr                                                             */
 /*------------------------------------------------------------------------*/
 
+#define BTOR_ABORT_SAT(cond, msg)          \
+  do                                       \
+  {                                        \
+    if (!(cond)) break;                    \
+    fputs ("[btorsat] " msg "\n", stderr); \
+    abort ();                              \
+  } while (0)
+
 struct BtorSATMgr
 {
   int verbosity;
@@ -70,10 +78,13 @@ btor_is_initialized_sat (BtorSATMgr *smgr)
 int
 btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
 {
+  int result;
   assert (smgr);
   assert (smgr->initialized);
   (void) smgr;
-  return picosat_inc_max_var ();
+  result = picosat_inc_max_var ();
+  BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
+  return result;
 }
 
 int
