@@ -884,19 +884,26 @@ btor_dump_aigs (BtorAIGMgr *amgr,
 }
 
 BtorAIGMgr *
-btor_new_aig_mgr (BtorMemMgr *mm, int verbosity)
+btor_new_aig_mgr (BtorMemMgr *mm)
 {
   BtorAIGMgr *amgr;
   assert (mm != NULL);
-  assert (verbosity >= -1);
   BTOR_NEW (mm, amgr);
   amgr->mm = mm;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
   amgr->id        = 1;
-  amgr->verbosity = verbosity;
-  amgr->smgr      = btor_new_sat_mgr (mm, verbosity);
+  amgr->verbosity = 0;
+  amgr->smgr      = btor_new_sat_mgr (mm);
   amgr->cnf_enc   = BTOR_TSEITIN_CNF_ENC;
   return amgr;
+}
+
+void
+btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity)
+{
+  assert (amgr != NULL);
+  assert (verbosity >= -1 && verbosity <= 3);
+  amgr->verbosity = verbosity;
 }
 
 void

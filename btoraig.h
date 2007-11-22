@@ -56,7 +56,10 @@ BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
 /* Creates new AIG manager. An AIG manager is used by nearly all functions
  * of the AIG layer.
  */
-BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm, int verbosity);
+BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
+
+/* Sets verbosity [-1,3] */
+void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);
 
 /* Gets SAT manager of AIG manager. */
 BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
