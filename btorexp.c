@@ -2505,17 +2505,37 @@ rewrite_exp (Btor *btor,
      * ...
      */
     /* TODO a == ~a <=> 0 */
-    /* TODO a + 2 * a <=> 3 * a <=> see below */
-    /* TODO strength reduction: a * 2 == a << 1 */
-    /* TODO strength reduction: a * 3 == (a << 1) + a */
-    /* TODO strength reduction: a / 2 == (a >> 1) */
-    /* TODO strength reduction: a / 3 =>  higher bits zero */
+    /* TODO a + 2 * a <=> 3 * a <=> and see below */
+    /* TODO strength reduction: a * 2 == a << 1 (really ?)*/
+    /* TODO strength reduction: a * 3 == (a << 1) + a (really ?)*/
+    /* TODO strength reduction: a / 2 == (a >> 1) (yes!) */
+    /* TODO strength reduction: a / 3 =>  higher bits zero (check!) */
     /* TODO a < 0 <=> 0 */
     /* TODO 0 < a <=> a != 0 */
     /* TODO a < 1 <=> a == 0 */
     /* TODO MAX < a <=> 0 */
     /* TODO MAX-1 < a <=> a == MAX */
     /* TODO a < MAX <=> a != MAX */
+
+    /* TODO associativity of multiplication (always?) */
+    /* TODO associativity of addition up to a certain level */
+
+    /* TODO to support GAUSS bubble up odd terms:
+     * (2 * a + 3 * y) + 4 * x => 3 * y + (2 * a + 4 * x)
+     */
+
+    /* TODO simplify (c * x + 2 * y) + x == 5 at GAUSS application
+     * by first (c + 1) * x + 2 * y == 5 and then check whether 'c'
+     * is even.
+     */
+
+    /* TODO Howto handle 2 * x == 4 && 4 * x + 8 * y == 0 ?
+     * Maybe: x[30:0] == 2 && 4 * {x[31],2[30:0]} + 8 * y == 0?
+     * Then: x[30:0] == 2 && 8[31:0] + 8 *y == 0?
+     * Then: x[30:0] = 2 && 8 * y = -8
+     * Finally:  x[30:0] = 2 && y[29:0] = -1
+     * etc.
+     */
   }
   else
   {
