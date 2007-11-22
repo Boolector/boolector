@@ -2517,11 +2517,12 @@ rewrite_exp (Btor *btor,
     /* TODO MAX-1 < a <=> a == MAX */
     /* TODO a < MAX <=> a != MAX */
 
-    /* TODO associativity of multiplication (always?) */
-    /* TODO associativity of addition up to a certain level */
+    /* TODO associativity of multiplication (always?) or normalize */
+    /* TODO associativity of addition up to a certain level or normalize */
 
     /* TODO to support GAUSS bubble up odd terms:
      * (2 * a + 3 * y) + 4 * x => 3 * y + (2 * a + 4 * x)
+     * or alternatively normalize arithmetic terms/polynomials
      */
 
     /* TODO simplify (c * x + 2 * y) + x == 5 at GAUSS application
