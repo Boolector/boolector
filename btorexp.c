@@ -6441,9 +6441,16 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
   int old_size;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_add_constraint_exp'");
+  BTOR_ABORT_EXP (exp == NULL,
+                  "'exp' must not be NULL in 'btor_add_constraint_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                  "'exp' must not be an array in 'btor_add_constraint_exp'");
+  BTOR_ABORT_EXP (
+      BTOR_REAL_ADDR_EXP (exp)->len != 1,
+      "'exp' has to be a boolean expression in 'btor_add_constraint_exp'");
   mm       = btor->mm;
   old_size = BTOR_COUNT_STACK (btor->constraints);
   if (btor->valid_assignments)
@@ -6515,9 +6522,17 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   BtorExp *cur, *child;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_add_assumption_exp'");
+  BTOR_ABORT_EXP (exp == NULL,
+                  "'exp' must not be NULL in 'btor_add_assumption_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                  "'exp' must not be an array in 'btor_add_assumption_exp'");
+  BTOR_ABORT_EXP (
+      BTOR_REAL_ADDR_EXP (exp)->len != 1,
+      "'exp' has to be a boolean expression in 'btor_add_assumption_exp'");
+
   mm = btor->mm;
   if (btor->valid_assignments)
   {
