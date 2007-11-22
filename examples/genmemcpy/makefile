@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-g -Wall -W
+CFLAGS=-g -Wall -W -Wextra
 genmemcpy: genmemcpy.c ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ genmemcpy.c -L../.. -lboolector
 clean:
