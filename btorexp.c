@@ -4614,23 +4614,31 @@ btor_cmp_id (const void *p, const void *q)
 }
 
 void
-btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
+btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
   BtorExpPtrStack stack;
+  BtorExp *e, *root;
   char idbuffer[20];
   int next, i, j;
   const char *op;
-  BtorExp *e;
 
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dump_exp'");
-  BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exp'");
-  BTOR_ABORT_EXP (root == NULL, "'root' must not be NULL in 'btor_dump_exp'");
-
-  next = 0;
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dump_exps'");
+  BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exps'");
 
   BTOR_INIT_STACK (stack);
-  BTOR_PUSH_EXP_IF_NOT_MARKED (root);
+
+  assert (nroots == 1);
+  root = 0;
+
+  for (i = 0; i < nroots; i++)
+  {
+    root = roots[i];
+    BTOR_ABORT_EXP (root == NULL, "'root == NULL' in 'btor_dump_exps'");
+    BTOR_PUSH_EXP_IF_NOT_MARKED (root);
+  }
+
+  next = 0;
 
   while (next < BTOR_COUNT_STACK (stack))
   {
@@ -4715,6 +4723,12 @@ btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
   e = BTOR_REAL_ADDR_EXP (root);
   BTOR_ABORT_EXP (e->id == INT_MAX, "expression id overflow");
   fprintf (file, "%d root %d %d\n", e->id + 1, e->len, BTOR_GET_ID_EXP (root));
+}
+
+void
+btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
+{
+  btor_dump_exps (btor, file, &root, 1);
 }
 
 static void
