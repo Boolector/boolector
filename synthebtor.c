@@ -80,7 +80,8 @@ main (int argc, char **argv)
     }
   }
 
-  btor   = btor_new_btor (2, 0, verbosity, 0);
+  btor = btor_new_btor ();
+  btor_set_verbosity_btor (btor, verbosity);
   parser = btor_btor_parser_api->init (btor, verbosity);
 
   parse_error =

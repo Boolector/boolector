@@ -22,7 +22,7 @@ init_aig_tests (void)
 static void
 test_new_delete_aig_mgr (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   btor_delete_aig_mgr (amgr);
 }
 
@@ -30,7 +30,7 @@ static void
 test_false_aig (void)
 {
   FILE *fout       = fopen ("log/false_aig.log", "w");
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   btor_dump_aig (amgr, 0, fout, BTOR_AIG_FALSE);
   btor_delete_aig_mgr (amgr);
   fclose (fout);
@@ -40,7 +40,7 @@ static void
 test_true_aig (void)
 {
   FILE *fout       = fopen ("log/true_aig.log", "w");
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   btor_dump_aig (amgr, 0, fout, BTOR_AIG_TRUE);
   btor_delete_aig_mgr (amgr);
   fclose (fout);
@@ -50,7 +50,7 @@ static void
 test_var_aig (void)
 {
   FILE *fout       = fopen ("log/var_aig.log", "w");
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   BtorAIG *var     = btor_var_aig (amgr);
   assert (BTOR_IS_VAR_AIG (var));
   btor_dump_aig (amgr, 0, fout, var);
@@ -63,7 +63,7 @@ static void
 test_not_aig (void)
 {
   FILE *fout       = fopen ("log/not_aig.log", "w");
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   BtorAIG *var     = btor_var_aig (amgr);
   BtorAIG *not     = btor_not_aig (amgr, var);
   btor_dump_aig (amgr, 0, fout, not);
@@ -78,7 +78,7 @@ binary_commutative_aig_test (
     BtorAIG *(*func) (BtorAIGMgr *, BtorAIG *, BtorAIG *), char *log)
 {
   FILE *fout       = fopen (log, "w");
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   BtorAIG *aig1    = btor_var_aig (amgr);
   BtorAIG *aig2    = btor_var_aig (amgr);
   BtorAIG *aig3    = func (amgr, aig1, aig2);
@@ -124,7 +124,7 @@ static void
 test_cond_aig (void)
 {
   FILE *fout       = fopen ("log/cond_aig.log", "w");
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   BtorAIG *aig1    = btor_var_aig (amgr);
   BtorAIG *aig2    = btor_var_aig (amgr);
   BtorAIG *aig3    = btor_var_aig (amgr);
@@ -144,7 +144,7 @@ test_cond_aig (void)
 static void
 test_aig_to_sat (void)
 {
-  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm, 0);
+  BtorAIGMgr *amgr = btor_new_aig_mgr (g_mm);
   BtorSATMgr *smgr = btor_get_sat_mgr_aig_mgr (amgr);
   BtorAIG *var1    = btor_var_aig (amgr);
   BtorAIG *var2    = btor_var_aig (amgr);

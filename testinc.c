@@ -12,7 +12,7 @@
 static void
 test_inc_true_false (void)
 {
-  Btor* btor  = btor_new_btor (2, 0, 0, 0);
+  Btor* btor  = btor_new_btor ();
   BtorExp* ff = btor_false_exp (btor);
   BtorExp* tt = btor_true_exp (btor);
   int res;
@@ -41,7 +41,7 @@ test_inc_counter (int w, int nondet)
 
   assert (w > 0);
 
-  btor    = btor_new_btor (2, 0, 0, 0);
+  btor    = btor_new_btor ();
   one     = btor_one_exp (btor, w);
   current = btor_zeros_exp (btor, w);
   i       = 0;
@@ -161,7 +161,7 @@ test_inc_lt (int w)
 
   assert (w > 0);
 
-  btor = btor_new_btor (2, 0, 0, 0);
+  btor = btor_new_btor ();
 
   i    = 0;
   prev = 0;
