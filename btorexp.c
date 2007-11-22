@@ -1492,7 +1492,7 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
 
 /* Finds most simplified expression and shortens path to it */
 static BtorExp *
-union_find_simplified_exp (Btor *btor, BtorExp *exp)
+pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *real_exp, *cur, *next;
   int invert;
@@ -2278,7 +2278,7 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   assert (lower >= 0);
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
-  exp    = union_find_simplified_exp (btor, exp);
+  exp    = pointer_chase_simplified_exp (btor, exp);
   lookup = find_slice_exp (btor, exp, upper, lower);
   if (*lookup == NULL)
   {
@@ -2322,9 +2322,9 @@ rewrite_exp (Btor *btor,
   assert (e0 != NULL);
   mm     = btor->mm;
   result = NULL;
-  e0     = union_find_simplified_exp (btor, e0);
-  if (e1 != NULL) e1 = union_find_simplified_exp (btor, e1);
-  if (e2 != NULL) e2 = union_find_simplified_exp (btor, e2);
+  e0     = pointer_chase_simplified_exp (btor, e0);
+  if (e1 != NULL) e1 = pointer_chase_simplified_exp (btor, e1);
+  if (e2 != NULL) e2 = pointer_chase_simplified_exp (btor, e2);
   if (BTOR_IS_UNARY_EXP_KIND (kind))
   {
     assert (e0 != NULL);
@@ -2787,8 +2787,8 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (len > 0);
-  e0     = union_find_simplified_exp (btor, e0);
-  e1     = union_find_simplified_exp (btor, e1);
+  e0     = pointer_chase_simplified_exp (btor, e0);
+  e1     = pointer_chase_simplified_exp (btor, e1);
   lookup = find_binary_exp (btor, kind, e0, e1);
   if (*lookup == NULL)
   {
@@ -4372,9 +4372,9 @@ ternary_exp (Btor *btor,
   assert (e1 != NULL);
   assert (e2 != NULL);
   assert (kind != BTOR_BEQ_EXP || len > 0);
-  e0     = union_find_simplified_exp (btor, e0);
-  e1     = union_find_simplified_exp (btor, e1);
-  e2     = union_find_simplified_exp (btor, e2);
+  e0     = pointer_chase_simplified_exp (btor, e0);
+  e1     = pointer_chase_simplified_exp (btor, e1);
+  e2     = pointer_chase_simplified_exp (btor, e2);
   lookup = find_ternary_exp (btor, kind, e0, e1, e2);
   if (*lookup == NULL)
   {
@@ -6630,7 +6630,7 @@ btor_sat_btor (Btor *btor)
   for (temp = btor->constraints.start; temp != top; temp++)
   {
     cur        = *temp;
-    simplified = copy_exp (btor, union_find_simplified_exp (btor, cur));
+    simplified = copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
     btor_release_exp (btor, cur);
     *temp = simplified;
   }
@@ -6664,7 +6664,7 @@ btor_sat_btor (Btor *btor)
   for (temp = btor->assumptions.start; temp != top; temp++)
   {
     cur        = *temp;
-    simplified = copy_exp (btor, union_find_simplified_exp (btor, cur));
+    simplified = copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
     btor_release_exp (btor, cur);
     cur = simplified;
 
