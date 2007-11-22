@@ -6,28 +6,12 @@
 int
 main (int argc, char **argv)
 {
-  int num_bits             = 0;
-  int num_bits_index       = 0;
-  int num_elements         = 0;
-  int i                    = 0;
-  int j                    = 0;
-  BtorExpMgr *emgr         = NULL;
-  BtorExp **indices        = NULL;
-  BtorExp *array           = NULL;
-  BtorExp *min_index       = NULL;
-  BtorExp *min_element     = NULL;
-  BtorExp *cur_element     = NULL;
-  BtorExp *old_element     = NULL;
-  BtorExp *index           = NULL;
-  BtorExp *ne              = NULL;
-  BtorExp *ult             = NULL;
-  BtorExp *ulte            = NULL;
-  BtorExp *temp            = NULL;
-  BtorExp *read1           = NULL;
-  BtorExp *read2           = NULL;
-  BtorExp *no_diff_element = NULL;
-  BtorExp *sorted          = NULL;
-  BtorExp *formula         = NULL;
+  int num_bits, num_bits_index, num_elements, i, j;
+  Btor *btor;
+  BtorExp **indices, *array, *min_index, *min_element, *cur_element,
+      *old_element, *index;
+  BtorExp *ne, *ult, *ulte, *temp, *read1, *read2, *no_diff_element, *sorted,
+      *formula;
   if (argc != 3)
   {
     printf ("Usage: ./genselectionsort <num-bits> <num-elements>\n");
@@ -51,63 +35,63 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  emgr           = btor_new_exp_mgr (2, 0, 0, stdout);
+  btor           = btor_new_btor ();
   indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
-  array = btor_array_exp (emgr, num_bits, num_bits_index);
+    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
+  array = btor_array_exp (btor, num_bits, num_bits_index);
   /* read at an arbitrary index (needed later): */
-  index       = btor_var_exp (emgr, num_bits_index, "index");
-  old_element = btor_read_exp (emgr, array, index);
+  index       = btor_var_exp (btor, num_bits_index, "index");
+  old_element = btor_read_exp (btor, array, index);
   /* selection sort algorithm */
   for (i = 0; i < num_elements - 1; i++)
   {
-    min_element = btor_read_exp (emgr, array, indices[i]);
-    min_index   = btor_copy_exp (emgr, indices[i]);
+    min_element = btor_read_exp (btor, array, indices[i]);
+    min_index   = btor_copy_exp (btor, indices[i]);
     for (j = i + 1; j < num_elements; j++)
     {
-      cur_element = btor_read_exp (emgr, array, indices[j]);
-      ult         = btor_ult_exp (emgr, cur_element, min_element);
+      cur_element = btor_read_exp (btor, array, indices[j]);
+      ult         = btor_ult_exp (btor, cur_element, min_element);
       /* found new minimum ? */
-      temp = btor_cond_exp (emgr, ult, cur_element, min_element);
-      btor_release_exp (emgr, min_element);
+      temp = btor_cond_exp (btor, ult, cur_element, min_element);
+      btor_release_exp (btor, min_element);
       min_element = temp;
       /* new minimium index ? */
-      temp = btor_cond_exp (emgr, ult, indices[j], min_index);
-      btor_release_exp (emgr, min_index);
+      temp = btor_cond_exp (btor, ult, indices[j], min_index);
+      btor_release_exp (btor, min_index);
       min_index = temp;
       /* clean up */
-      btor_release_exp (emgr, cur_element);
-      btor_release_exp (emgr, ult);
+      btor_release_exp (btor, cur_element);
+      btor_release_exp (btor, ult);
     }
     /* swap elements */
-    read1 = btor_read_exp (emgr, array, min_index);
-    read2 = btor_read_exp (emgr, array, indices[i]);
-    temp  = btor_write_exp (emgr, array, indices[i], read1);
-    btor_release_exp (emgr, array);
+    read1 = btor_read_exp (btor, array, min_index);
+    read2 = btor_read_exp (btor, array, indices[i]);
+    temp  = btor_write_exp (btor, array, indices[i], read1);
+    btor_release_exp (btor, array);
     array = temp;
-    temp  = btor_write_exp (emgr, array, min_index, read2);
-    btor_release_exp (emgr, array);
+    temp  = btor_write_exp (btor, array, min_index, read2);
+    btor_release_exp (btor, array);
     array = temp;
     /* clean up */
-    btor_release_exp (emgr, read1);
-    btor_release_exp (emgr, read2);
-    btor_release_exp (emgr, min_index);
-    btor_release_exp (emgr, min_element);
+    btor_release_exp (btor, read1);
+    btor_release_exp (btor, read2);
+    btor_release_exp (btor, min_index);
+    btor_release_exp (btor, min_element);
   }
   /* show that array is sorted */
-  sorted = btor_const_exp (emgr, "1");
+  sorted = btor_const_exp (btor, "1");
   for (i = 0; i < num_elements - 1; i++)
   {
-    read1 = btor_read_exp (emgr, array, indices[i]);
-    read2 = btor_read_exp (emgr, array, indices[i + 1]);
-    ulte  = btor_ulte_exp (emgr, read1, read2);
-    temp  = btor_and_exp (emgr, sorted, ulte);
-    btor_release_exp (emgr, sorted);
+    read1 = btor_read_exp (btor, array, indices[i]);
+    read2 = btor_read_exp (btor, array, indices[i + 1]);
+    ulte  = btor_ulte_exp (btor, read1, read2);
+    temp  = btor_and_exp (btor, sorted, ulte);
+    btor_release_exp (btor, sorted);
     sorted = temp;
-    btor_release_exp (emgr, read1);
-    btor_release_exp (emgr, read2);
-    btor_release_exp (emgr, ulte);
+    btor_release_exp (btor, read1);
+    btor_release_exp (btor, read2);
+    btor_release_exp (btor, ulte);
   }
   /* we show that every element of the initial array
    * occurs in the final sorted array by showing that
@@ -115,36 +99,36 @@ main (int argc, char **argv)
    * It is not the case that there exists an element in
    * the initial array which does not occur in the sorted
    * array.*/
-  no_diff_element = btor_const_exp (emgr, "1");
+  no_diff_element = btor_const_exp (btor, "1");
   for (i = 0; i < num_elements; i++)
   {
-    read1 = btor_read_exp (emgr, array, indices[i]);
-    ne    = btor_ne_exp (emgr, read1, old_element);
-    temp  = btor_and_exp (emgr, no_diff_element, ne);
-    btor_release_exp (emgr, no_diff_element);
+    read1 = btor_read_exp (btor, array, indices[i]);
+    ne    = btor_ne_exp (btor, read1, old_element);
+    temp  = btor_and_exp (btor, no_diff_element, ne);
+    btor_release_exp (btor, no_diff_element);
     no_diff_element = temp;
-    btor_release_exp (emgr, read1);
-    btor_release_exp (emgr, ne);
+    btor_release_exp (btor, read1);
+    btor_release_exp (btor, ne);
   }
-  temp = btor_not_exp (emgr, no_diff_element);
-  btor_release_exp (emgr, no_diff_element);
+  temp = btor_not_exp (btor, no_diff_element);
+  btor_release_exp (btor, no_diff_element);
   no_diff_element = temp;
   /* we conjunct this with the sorted predicate */
-  formula = btor_and_exp (emgr, sorted, no_diff_element);
+  formula = btor_and_exp (btor, sorted, no_diff_element);
   /* we negate the formula and show that it is unsatisfiable */
-  temp = btor_not_exp (emgr, formula);
-  btor_release_exp (emgr, formula);
+  temp = btor_not_exp (btor, formula);
+  btor_release_exp (btor, formula);
   formula = temp;
-  btor_dump_exp (emgr, stdout, formula);
+  btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (emgr, indices[i]);
-  btor_release_exp (emgr, old_element);
-  btor_release_exp (emgr, index);
-  btor_release_exp (emgr, formula);
-  btor_release_exp (emgr, no_diff_element);
-  btor_release_exp (emgr, sorted);
-  btor_release_exp (emgr, array);
-  btor_delete_exp_mgr (emgr);
+  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
+  btor_release_exp (btor, old_element);
+  btor_release_exp (btor, index);
+  btor_release_exp (btor, formula);
+  btor_release_exp (btor, no_diff_element);
+  btor_release_exp (btor, sorted);
+  btor_release_exp (btor, array);
+  btor_delete_btor (btor);
   free (indices);
   return 0;
 }

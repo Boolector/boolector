@@ -6,19 +6,9 @@
 int
 main (int argc, char **argv)
 {
-  int num_bits       = 0;
-  int num_bits_index = 0;
-  int num_elements   = 0;
-  int i              = 0;
-  BtorExpMgr *emgr   = NULL;
-  BtorExp **indices  = NULL;
-  BtorExp *array     = NULL;
-  BtorExp *ugt       = NULL;
-  BtorExp *temp      = NULL;
-  BtorExp *read      = NULL;
-  BtorExp *formula   = NULL;
-  BtorExp *max       = NULL;
-  BtorExp *index     = NULL;
+  int num_bits, num_bits_index, num_elements, i;
+  Btor *btor;
+  BtorExp **indices, *array, *ugt, *temp, *read, *formula, *max, *index;
   if (argc != 3)
   {
     printf ("Usage: ./genmax <num-bits> <num-elements>\n");
@@ -42,38 +32,38 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  emgr           = btor_new_exp_mgr (2, 0, 0, stdout);
+  btor           = btor_new_btor ();
   indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
-  array = btor_array_exp (emgr, num_bits, num_bits_index);
+    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
+  array = btor_array_exp (btor, num_bits, num_bits_index);
   /* current maximum is first element of array */
-  max = btor_read_exp (emgr, array, indices[0]);
+  max = btor_read_exp (btor, array, indices[0]);
   /* compute maximum of array */
   for (i = 1; i < num_elements; i++)
   {
-    read = btor_read_exp (emgr, array, indices[i]);
-    ugt  = btor_ugt_exp (emgr, read, max);
-    temp = btor_cond_exp (emgr, ugt, read, max);
-    btor_release_exp (emgr, max);
+    read = btor_read_exp (btor, array, indices[i]);
+    ugt  = btor_ugt_exp (btor, read, max);
+    temp = btor_cond_exp (btor, ugt, read, max);
+    btor_release_exp (btor, max);
     max = temp;
-    btor_release_exp (emgr, read);
-    btor_release_exp (emgr, ugt);
+    btor_release_exp (btor, read);
+    btor_release_exp (btor, ugt);
   }
   /* show that maximum is really the maximum */
-  index = btor_var_exp (emgr, num_bits_index, "index");
-  read  = btor_read_exp (emgr, array, index);
+  index = btor_var_exp (btor, num_bits_index, "index");
+  read  = btor_read_exp (btor, array, index);
   /* there is no arbitrary read value which is greater than the maximum */
-  formula = btor_ult_exp (emgr, max, read);
-  btor_dump_exp (emgr, stdout, formula);
+  formula = btor_ult_exp (btor, max, read);
+  btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (emgr, indices[i]);
-  btor_release_exp (emgr, formula);
-  btor_release_exp (emgr, read);
-  btor_release_exp (emgr, index);
-  btor_release_exp (emgr, max);
-  btor_release_exp (emgr, array);
-  btor_delete_exp_mgr (emgr);
+  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
+  btor_release_exp (btor, formula);
+  btor_release_exp (btor, read);
+  btor_release_exp (btor, index);
+  btor_release_exp (btor, max);
+  btor_release_exp (btor, array);
+  btor_delete_btor (btor);
   free (indices);
   return 0;
 }

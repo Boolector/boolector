@@ -6,20 +6,9 @@
 int
 main (int argc, char **argv)
 {
-  int num_bits       = 0;
-  int num_bits_index = 0;
-  int num_elements   = 0;
-  int i              = 0;
-  BtorExpMgr *emgr   = NULL;
-  BtorExp **indices  = NULL;
-  BtorExp *array     = NULL;
-  BtorExp *eq        = NULL;
-  BtorExp *temp      = NULL;
-  BtorExp *read      = NULL;
-  BtorExp *formula   = NULL;
-  BtorExp *val       = NULL;
-  BtorExp *index     = NULL;
-  BtorExp *found     = NULL;
+  int num_bits, num_bits_index, num_elements, i;
+  Btor *btor;
+  BtorExp **indices, *array, *eq, *temp, *read, *formula, *val, *index, *found;
   if (argc != 3)
   {
     printf ("Usage: ./genlinearsearch <num-bits> <num-elements>\n");
@@ -43,40 +32,40 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  emgr           = btor_new_exp_mgr (2, 0, 0, stdout);
+  btor           = btor_new_btor ();
   indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
-  array = btor_array_exp (emgr, num_bits, num_bits_index);
+    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
+  array = btor_array_exp (btor, num_bits, num_bits_index);
   /* we write arbitrary search value into array at an arbitrary index */
-  val   = btor_var_exp (emgr, num_bits, "search_val");
-  index = btor_var_exp (emgr, num_bits_index, "search_index");
-  temp  = btor_write_exp (emgr, array, index, val);
-  btor_release_exp (emgr, array);
+  val   = btor_var_exp (btor, num_bits, "search_val");
+  index = btor_var_exp (btor, num_bits_index, "search_index");
+  temp  = btor_write_exp (btor, array, index, val);
+  btor_release_exp (btor, array);
   array = temp;
-  found = btor_const_exp (emgr, "0");
+  found = btor_const_exp (btor, "0");
   /* we search */
   for (i = 0; i < num_elements; i++)
   {
-    read = btor_read_exp (emgr, array, indices[i]);
-    eq   = btor_eq_exp (emgr, read, val);
-    temp = btor_or_exp (emgr, found, eq);
-    btor_release_exp (emgr, found);
+    read = btor_read_exp (btor, array, indices[i]);
+    eq   = btor_eq_exp (btor, read, val);
+    temp = btor_or_exp (btor, found, eq);
+    btor_release_exp (btor, found);
     found = temp;
-    btor_release_exp (emgr, read);
-    btor_release_exp (emgr, eq);
+    btor_release_exp (btor, read);
+    btor_release_exp (btor, eq);
   }
   /* we negate the formula and show that it is unsatisfiable */
-  formula = btor_not_exp (emgr, found);
-  btor_dump_exp (emgr, stdout, formula);
+  formula = btor_not_exp (btor, found);
+  btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (emgr, indices[i]);
-  btor_release_exp (emgr, formula);
-  btor_release_exp (emgr, index);
-  btor_release_exp (emgr, val);
-  btor_release_exp (emgr, found);
-  btor_release_exp (emgr, array);
-  btor_delete_exp_mgr (emgr);
+  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
+  btor_release_exp (btor, formula);
+  btor_release_exp (btor, index);
+  btor_release_exp (btor, val);
+  btor_release_exp (btor, found);
+  btor_release_exp (btor, array);
+  btor_delete_btor (btor);
   free (indices);
   return 0;
 }

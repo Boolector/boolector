@@ -6,27 +6,11 @@
 int
 main (int argc, char **argv)
 {
-  int num_bits             = 0;
-  int num_bits_index       = 0;
-  int num_elements         = 0;
-  int i                    = 0;
-  int j                    = 0;
-  BtorExpMgr *emgr         = NULL;
-  BtorExp **indices        = NULL;
-  BtorExp *array           = NULL;
-  BtorExp *ne              = NULL;
-  BtorExp *ugt             = NULL;
-  BtorExp *ulte            = NULL;
-  BtorExp *temp            = NULL;
-  BtorExp *read1           = NULL;
-  BtorExp *read2           = NULL;
-  BtorExp *cond1           = NULL;
-  BtorExp *cond2           = NULL;
-  BtorExp *sorted          = NULL;
-  BtorExp *no_diff_element = NULL;
-  BtorExp *formula         = NULL;
-  BtorExp *index           = NULL;
-  BtorExp *old_element     = NULL;
+  int num_bits, num_bits_index, num_elements, i, j;
+  Btor *btor;
+  BtorExp **indices, *array, *ne, *ugt, *ulte, *temp, *read1, *read2, *cond1,
+      *cond2, *sorted;
+  BtorExp *no_diff_element, *formula, *index, *old_element;
   if (argc != 3)
   {
     printf ("Usage: ./genbubblesort <num-bits> <num-elements>\n");
@@ -50,51 +34,51 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  emgr           = btor_new_exp_mgr (2, 0, 0, stdout);
+  btor           = btor_new_btor ();
   indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (emgr, i, num_bits_index);
-  array = btor_array_exp (emgr, num_bits, num_bits_index);
+    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
+  array = btor_array_exp (btor, num_bits, num_bits_index);
   /* read at an arbitrary index (needed later): */
-  index       = btor_var_exp (emgr, num_bits_index, "index");
-  old_element = btor_read_exp (emgr, array, index);
+  index       = btor_var_exp (btor, num_bits_index, "index");
+  old_element = btor_read_exp (btor, array, index);
   /* bubble sort algorithm */
   for (i = 1; i < num_elements; i++)
   {
     for (j = 0; j < num_elements - i; j++)
     {
-      read1 = btor_read_exp (emgr, array, indices[j]);
-      read2 = btor_read_exp (emgr, array, indices[j + 1]);
-      ugt   = btor_ugt_exp (emgr, read1, read2);
+      read1 = btor_read_exp (btor, array, indices[j]);
+      read2 = btor_read_exp (btor, array, indices[j + 1]);
+      ugt   = btor_ugt_exp (btor, read1, read2);
       /* swap ? */
-      cond1 = btor_cond_exp (emgr, ugt, read2, read1);
-      cond2 = btor_cond_exp (emgr, ugt, read1, read2);
-      temp  = btor_write_exp (emgr, array, indices[j], cond1);
-      btor_release_exp (emgr, array);
+      cond1 = btor_cond_exp (btor, ugt, read2, read1);
+      cond2 = btor_cond_exp (btor, ugt, read1, read2);
+      temp  = btor_write_exp (btor, array, indices[j], cond1);
+      btor_release_exp (btor, array);
       array = temp;
-      temp  = btor_write_exp (emgr, array, indices[j + 1], cond2);
-      btor_release_exp (emgr, array);
+      temp  = btor_write_exp (btor, array, indices[j + 1], cond2);
+      btor_release_exp (btor, array);
       array = temp;
-      btor_release_exp (emgr, read1);
-      btor_release_exp (emgr, read2);
-      btor_release_exp (emgr, ugt);
-      btor_release_exp (emgr, cond1);
-      btor_release_exp (emgr, cond2);
+      btor_release_exp (btor, read1);
+      btor_release_exp (btor, read2);
+      btor_release_exp (btor, ugt);
+      btor_release_exp (btor, cond1);
+      btor_release_exp (btor, cond2);
     }
   }
   /* show that array is sorted */
-  sorted = btor_const_exp (emgr, "1");
+  sorted = btor_const_exp (btor, "1");
   for (i = 0; i < num_elements - 1; i++)
   {
-    read1 = btor_read_exp (emgr, array, indices[i]);
-    read2 = btor_read_exp (emgr, array, indices[i + 1]);
-    ulte  = btor_ulte_exp (emgr, read1, read2);
-    temp  = btor_and_exp (emgr, sorted, ulte);
-    btor_release_exp (emgr, sorted);
+    read1 = btor_read_exp (btor, array, indices[i]);
+    read2 = btor_read_exp (btor, array, indices[i + 1]);
+    ulte  = btor_ulte_exp (btor, read1, read2);
+    temp  = btor_and_exp (btor, sorted, ulte);
+    btor_release_exp (btor, sorted);
     sorted = temp;
-    btor_release_exp (emgr, read1);
-    btor_release_exp (emgr, read2);
-    btor_release_exp (emgr, ulte);
+    btor_release_exp (btor, read1);
+    btor_release_exp (btor, read2);
+    btor_release_exp (btor, ulte);
   }
   /* we show that every element of the initial array
    * occurs in the final sorted array by showing that
@@ -102,36 +86,36 @@ main (int argc, char **argv)
    * It is not the case that there exists an element in
    * the initial array which does not occur in the sorted
    * array.*/
-  no_diff_element = btor_const_exp (emgr, "1");
+  no_diff_element = btor_const_exp (btor, "1");
   for (i = 0; i < num_elements; i++)
   {
-    read1 = btor_read_exp (emgr, array, indices[i]);
-    ne    = btor_ne_exp (emgr, read1, old_element);
-    temp  = btor_and_exp (emgr, no_diff_element, ne);
-    btor_release_exp (emgr, no_diff_element);
+    read1 = btor_read_exp (btor, array, indices[i]);
+    ne    = btor_ne_exp (btor, read1, old_element);
+    temp  = btor_and_exp (btor, no_diff_element, ne);
+    btor_release_exp (btor, no_diff_element);
     no_diff_element = temp;
-    btor_release_exp (emgr, read1);
-    btor_release_exp (emgr, ne);
+    btor_release_exp (btor, read1);
+    btor_release_exp (btor, ne);
   }
-  temp = btor_not_exp (emgr, no_diff_element);
-  btor_release_exp (emgr, no_diff_element);
+  temp = btor_not_exp (btor, no_diff_element);
+  btor_release_exp (btor, no_diff_element);
   no_diff_element = temp;
   /* we conjunct this with the sorted predicate */
-  formula = btor_and_exp (emgr, sorted, no_diff_element);
+  formula = btor_and_exp (btor, sorted, no_diff_element);
   /* we negate the formula and show that it is unsatisfiable */
-  temp = btor_not_exp (emgr, formula);
-  btor_release_exp (emgr, formula);
+  temp = btor_not_exp (btor, formula);
+  btor_release_exp (btor, formula);
   formula = temp;
-  btor_dump_exp (emgr, stdout, formula);
+  btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (emgr, indices[i]);
-  btor_release_exp (emgr, formula);
-  btor_release_exp (emgr, sorted);
-  btor_release_exp (emgr, no_diff_element);
-  btor_release_exp (emgr, old_element);
-  btor_release_exp (emgr, index);
-  btor_release_exp (emgr, array);
-  btor_delete_exp_mgr (emgr);
+  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
+  btor_release_exp (btor, formula);
+  btor_release_exp (btor, sorted);
+  btor_release_exp (btor, no_diff_element);
+  btor_release_exp (btor, old_element);
+  btor_release_exp (btor, index);
+  btor_release_exp (btor, array);
+  btor_delete_btor (btor);
   free (indices);
   return 0;
 }

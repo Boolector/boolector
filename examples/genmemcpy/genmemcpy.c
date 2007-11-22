@@ -40,7 +40,7 @@ main (int argc, char** argv)
   BtorExp *mem, *assumption, *alternative, *cmp, *root, *v;
   int i, len, havelen, overlapping, signed_size_t;
   BtorExp *old, *new;
-  BtorExpMgr* mgr;
+  Btor* btor;
 
   len           = 0;
   havelen       = 0;
@@ -84,118 +84,118 @@ main (int argc, char** argv)
   if (len < 0 && !signed_size_t)
     die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
-  mgr = btor_new_exp_mgr (2, 0, 2, 0);
-  mem = btor_array_exp (mgr, 8, 32);
+  btor = btor_new_btor ();
+  mem  = btor_array_exp (btor, 8, 32);
 
-  src = btor_var_exp (mgr, 32, "src");
-  dst = btor_var_exp (mgr, 32, "dst");
+  src = btor_var_exp (btor, 32, "src");
+  dst = btor_var_exp (btor, 32, "dst");
 
-  n = btor_unsigned_to_exp (mgr, len, 32);
+  n = btor_unsigned_to_exp (btor, len, 32);
 
-  j = btor_var_exp (mgr, 32, "j");
+  j = btor_var_exp (btor, 32, "j");
 
-  zero = btor_zeros_exp (mgr, 32);
-  one  = btor_one_exp (mgr, 32);
+  zero = btor_zeros_exp (btor, 32);
+  one  = btor_one_exp (btor, 32);
 
-  eos = btor_add_exp (mgr, src, n);
-  eod = btor_add_exp (mgr, dst, n);
+  eos = btor_add_exp (btor, src, n);
+  eod = btor_add_exp (btor, dst, n);
 
-  cmp        = btor_ulte_exp (mgr, src, eos);
+  cmp        = btor_ulte_exp (btor, src, eos);
   assumption = cmp;
 
-  cmp = btor_ulte_exp (mgr, dst, eod);
-  tmp = btor_and_exp (mgr, assumption, cmp);
-  btor_release_exp (mgr, assumption);
-  btor_release_exp (mgr, cmp);
+  cmp = btor_ulte_exp (btor, dst, eod);
+  tmp = btor_and_exp (btor, assumption, cmp);
+  btor_release_exp (btor, assumption);
+  btor_release_exp (btor, cmp);
   assumption = tmp;
 
   if (!overlapping)
   {
-    cmp         = btor_ulte_exp (mgr, eos, dst);
+    cmp         = btor_ulte_exp (btor, eos, dst);
     alternative = cmp;
 
-    cmp = btor_ulte_exp (mgr, eod, src);
-    tmp = btor_or_exp (mgr, alternative, cmp);
-    btor_release_exp (mgr, alternative);
-    btor_release_exp (mgr, cmp);
+    cmp = btor_ulte_exp (btor, eod, src);
+    tmp = btor_or_exp (btor, alternative, cmp);
+    btor_release_exp (btor, alternative);
+    btor_release_exp (btor, cmp);
     alternative = tmp;
 
-    tmp = btor_and_exp (mgr, assumption, alternative);
-    btor_release_exp (mgr, assumption);
-    btor_release_exp (mgr, alternative);
+    tmp = btor_and_exp (btor, assumption, alternative);
+    btor_release_exp (btor, assumption);
+    btor_release_exp (btor, alternative);
     assumption = tmp;
   }
 
   if (signed_size_t)
   {
-    cmp = btor_slte_exp (mgr, zero, j);
-    tmp = btor_and_exp (mgr, assumption, cmp);
-    btor_release_exp (mgr, assumption);
-    btor_release_exp (mgr, cmp);
+    cmp = btor_slte_exp (btor, zero, j);
+    tmp = btor_and_exp (btor, assumption, cmp);
+    btor_release_exp (btor, assumption);
+    btor_release_exp (btor, cmp);
     assumption = tmp;
   }
 
   if (signed_size_t)
-    cmp = btor_slt_exp (mgr, j, n);
+    cmp = btor_slt_exp (btor, j, n);
   else
-    cmp = btor_ult_exp (mgr, j, n);
+    cmp = btor_ult_exp (btor, j, n);
 
-  tmp = btor_and_exp (mgr, assumption, cmp);
-  btor_release_exp (mgr, assumption);
-  btor_release_exp (mgr, cmp);
+  tmp = btor_and_exp (btor, assumption, cmp);
+  btor_release_exp (btor, assumption);
+  btor_release_exp (btor, cmp);
   assumption = tmp;
 
-  p   = btor_add_exp (mgr, src, j);
-  old = btor_read_exp (mgr, mem, p);
-  btor_release_exp (mgr, p);
+  p   = btor_add_exp (btor, src, j);
+  old = btor_read_exp (btor, mem, p);
+  btor_release_exp (btor, p);
 
-  p = btor_copy_exp (mgr, src);
-  q = btor_copy_exp (mgr, dst);
+  p = btor_copy_exp (btor, src);
+  q = btor_copy_exp (btor, dst);
 
   for (i = 0; i < len; i++)
   {
-    v   = btor_read_exp (mgr, mem, p);
-    tmp = btor_write_exp (mgr, mem, q, v);
-    btor_release_exp (mgr, mem);
-    btor_release_exp (mgr, v);
+    v   = btor_read_exp (btor, mem, p);
+    tmp = btor_write_exp (btor, mem, q, v);
+    btor_release_exp (btor, mem);
+    btor_release_exp (btor, v);
     mem = tmp;
 
-    tmp = btor_add_exp (mgr, p, one);
-    btor_release_exp (mgr, p);
+    tmp = btor_add_exp (btor, p, one);
+    btor_release_exp (btor, p);
     p = tmp;
 
-    tmp = btor_add_exp (mgr, q, one);
-    btor_release_exp (mgr, q);
+    tmp = btor_add_exp (btor, q, one);
+    btor_release_exp (btor, q);
     q = tmp;
   }
 
-  btor_release_exp (mgr, q);
-  q   = btor_add_exp (mgr, dst, j);
-  new = btor_read_exp (mgr, mem, q);
+  btor_release_exp (btor, q);
+  q   = btor_add_exp (btor, dst, j);
+  new = btor_read_exp (btor, mem, q);
 
-  cmp = btor_ne_exp (mgr, old, new);
+  cmp = btor_ne_exp (btor, old, new);
 
-  root = btor_and_exp (mgr, assumption, cmp);
-  btor_release_exp (mgr, assumption);
-  btor_release_exp (mgr, cmp);
+  root = btor_and_exp (btor, assumption, cmp);
+  btor_release_exp (btor, assumption);
+  btor_release_exp (btor, cmp);
 
-  btor_dump_exp (mgr, stdout, root);
+  btor_dump_exp (btor, stdout, root);
 
-  btor_release_exp (mgr, root);
-  btor_release_exp (mgr, p);
-  btor_release_exp (mgr, q);
-  btor_release_exp (mgr, old);
-  btor_release_exp (mgr, new);
-  btor_release_exp (mgr, eos);
-  btor_release_exp (mgr, eod);
-  btor_release_exp (mgr, one);
-  btor_release_exp (mgr, zero);
-  btor_release_exp (mgr, j);
-  btor_release_exp (mgr, n);
-  btor_release_exp (mgr, dst);
-  btor_release_exp (mgr, src);
-  btor_release_exp (mgr, mem);
-  btor_delete_exp_mgr (mgr);
+  btor_release_exp (btor, root);
+  btor_release_exp (btor, p);
+  btor_release_exp (btor, q);
+  btor_release_exp (btor, old);
+  btor_release_exp (btor, new);
+  btor_release_exp (btor, eos);
+  btor_release_exp (btor, eod);
+  btor_release_exp (btor, one);
+  btor_release_exp (btor, zero);
+  btor_release_exp (btor, j);
+  btor_release_exp (btor, n);
+  btor_release_exp (btor, dst);
+  btor_release_exp (btor, src);
+  btor_release_exp (btor, mem);
+  btor_delete_btor (btor);
 
   return 0;
 }
