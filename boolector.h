@@ -424,14 +424,10 @@ int btor_get_index_exp_len (Btor *btor, BtorExp *e_array);
 /* Gets the symbol of a variable. */
 char *btor_get_symbol_exp (Btor *btor, BtorExp *exp);
 
-/* Copies expression (increment reference counter). */
+/* Copies expression (increments reference counter). */
 BtorExp *btor_copy_exp (Btor *btor, BtorExp *exp);
 
-/* Releases expression (decrement reference counter).
- * If reference counter reaches 0,
- * then also the children are released
- * and expression is deleted from memory.
- */
+/* Releases expression (decrements reference counter). */
 void btor_release_exp (Btor *btor, BtorExp *exp);
 
 /* Dumps expression to file in BTOR format. */
