@@ -1547,7 +1547,7 @@ new_const_exp_node (Btor *btor, const char *bits)
   for (i = 0; i < len; i++) exp->bits[i] = bits[i] == '1' ? '1' : '0';
   exp->bits[len] = '\0';
   exp->len       = len;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -1567,7 +1567,7 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   exp->upper = upper;
   exp->lower = lower;
   exp->len   = upper - lower + 1;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -1589,7 +1589,7 @@ new_binary_exp_node (
   BTOR_CNEW (btor->mm, exp);
   exp->kind = kind;
   exp->len  = len;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -1609,7 +1609,7 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_CNEW (btor->mm, exp);
   exp->kind = BTOR_AEQ_EXP;
   exp->len  = 1;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -1637,7 +1637,7 @@ new_ternary_exp_node (Btor *btor,
   BTOR_CNEW (btor->mm, exp);
   exp->kind = kind;
   exp->len  = len;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -1668,7 +1668,7 @@ new_write_exp_node (Btor *btor,
   exp->kind      = BTOR_WRITE_EXP;
   exp->index_len = BTOR_REAL_ADDR_EXP (e_index)->len;
   exp->len       = BTOR_REAL_ADDR_EXP (e_value)->len;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -1699,9 +1699,10 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   exp->kind      = BTOR_ACOND_EXP;
   exp->index_len = a_if->index_len;
   exp->len       = a_if->len;
-  exp->id        = btor->id++;
-  exp->refs      = 1;
-  exp->btor      = btor;
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
+  exp->id   = btor->id++;
+  exp->refs = 1;
+  exp->btor = btor;
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
   connect_child_exp (btor, exp, a_else, 2);
@@ -2228,7 +2229,7 @@ var_exp (Btor *btor, int len, const char *symbol)
   exp->kind   = BTOR_VAR_EXP;
   exp->symbol = btor_strdup (mm, symbol);
   exp->len    = len;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -2261,7 +2262,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   exp->kind      = BTOR_ARRAY_EXP;
   exp->index_len = index_len;
   exp->len       = elem_len;
-  assert (btor->id < INT_MAX);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
@@ -4693,6 +4694,7 @@ btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
   BTOR_RELEASE_STACK (mm, stack);
 
   e = BTOR_REAL_ADDR_EXP (root);
+  BTOR_ABORT_EXP (e->id == INT_MAX, "expression id overflow");
   fprintf (file, "%d root %d %d\n", e->id + 1, e->len, BTOR_GET_ID_EXP (root));
 }
 
