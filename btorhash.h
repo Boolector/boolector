@@ -12,20 +12,25 @@ typedef struct BtorPtrHashBucket BtorPtrHashBucket;
 typedef unsigned (*BtorHashPtr) (void *key);
 typedef int (*BtorCmpPtr) (void *a, void *b);
 
+typedef union BtorPtrHashData BtorPtrHashData;
+
+union BtorPtrHashData
+{
+  int asInt;
+  void *asPtr;
+  char *asStr;
+};
+
 struct BtorPtrHashBucket
 {
   /* public:
    */
   void *key;
 
-  union
-  {
-    int asInt;
-    void *asPtr;
-    char *asStr;
-  } data;
+  BtorPtrHashData data;
 
   BtorPtrHashBucket *next; /* chronologically */
+  BtorPtrHashBucket *prev; /* chronologically */
 
   /* private:
    */
@@ -57,6 +62,16 @@ BtorPtrHashBucket *btor_find_in_ptr_hash_table (BtorPtrHashTable *, void *);
 
 BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *,
                                                   void *key);
+
+/* Remove from hash table the bucke with the key.  The key has to be an
+ * element of the hash table.  If 'stored_data_ptr' is non zero, then data
+ * to which the given key was mapped is copied to this location.   The same
+ * applies to 'stored_key_ptr'.
+ */
+void btor_remove_from_ptr_hash_table (BtorPtrHashTable *,
+                                      void *key,
+                                      void **stored_key_ptr,
+                                      BtorPtrHashData *stored_data_ptr);
 
 unsigned btor_hashstr (void *str);
 
