@@ -950,14 +950,18 @@ encode_mccarthy_constraint (Btor *btor,
     assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
     assert (BTOR_REAL_ADDR_EXP (cond)->av->len == 1);
     aig1 = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0];
-    assert (!BTOR_IS_CONST_AIG (aig1));
-    if (BTOR_IS_INVERTED_EXP (cond)) aig1 = BTOR_INVERT_AIG (aig1);
-    if (BTOR_IS_INVERTED_AIG (aig1))
-      k = BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-    else
-      k = -aig1->cnf_id;
-    assert (k != 0);
-    BTOR_PUSH_STACK (mm, linking_clause, k);
+    /* if AIG is constant (e.g. as a result of AIG optimizations),
+     * then we do not have to include it in the premisse */
+    if (!BTOR_IS_CONST_AIG (aig1))
+    {
+      if (BTOR_IS_INVERTED_EXP (cond)) aig1 = BTOR_INVERT_AIG (aig1);
+      if (BTOR_IS_INVERTED_AIG (aig1))
+        k = BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+      else
+        k = -aig1->cnf_id;
+      assert (k != 0);
+      BTOR_PUSH_STACK (mm, linking_clause, k);
+    }
   }
   top = aconds_sel2->top;
   for (temp = aconds_sel2->start; temp != top; temp++)
@@ -969,14 +973,18 @@ encode_mccarthy_constraint (Btor *btor,
     assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
     assert (BTOR_REAL_ADDR_EXP (cond)->av->len == 1);
     aig1 = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0];
-    assert (!BTOR_IS_CONST_AIG (aig1));
-    if (BTOR_IS_INVERTED_EXP (cond)) aig1 = BTOR_INVERT_AIG (aig1);
-    if (BTOR_IS_INVERTED_AIG (aig1))
-      k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-    else
-      k = aig1->cnf_id;
-    assert (k != 0);
-    BTOR_PUSH_STACK (mm, linking_clause, k);
+    /* if AIG is constant (e.g. as a result of AIG optimizations),
+     * then we do not have to include it in the premisse */
+    if (!BTOR_IS_CONST_AIG (aig1))
+    {
+      if (BTOR_IS_INVERTED_EXP (cond)) aig1 = BTOR_INVERT_AIG (aig1);
+      if (BTOR_IS_INVERTED_AIG (aig1))
+        k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+      else
+        k = aig1->cnf_id;
+      assert (k != 0);
+      BTOR_PUSH_STACK (mm, linking_clause, k);
+    }
   }
   /* add linking clause */
   while (!BTOR_EMPTY_STACK (linking_clause))
@@ -2506,8 +2514,8 @@ rewrite_exp (Btor *btor,
      */
     /* TODO a == ~a <=> 0 */
     /* TODO a + 2 * a <=> 3 * a <=> and see below */
-    /* TODO strength reduction: a * 2 == a << 1 (really ?)*/
-    /* TODO strength reduction: a * 3 == (a << 1) + a (really ?)*/
+    /* TODO strength reduction: a * 2 == a << 1 (really ?) */
+    /* TODO strength reduction: a * 3 == (a << 1) + a (really ?) */
     /* TODO strength reduction: a / 2 == (a >> 1) (yes!) */
     /* TODO strength reduction: a / 3 =>  higher bits zero (check!) */
     /* TODO a < 0 <=> 0 */
