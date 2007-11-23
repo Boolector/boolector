@@ -5115,7 +5115,49 @@ btor_get_aigvec_mgr_btor (const Btor *btor)
 }
 
 static void
-set_flags_reachable_exp (Btor *btor, BtorExp *exp)
+synthesize_array_equality (Btor *btor, BtorExp *aeq)
+{
+  BtorExp *index, *read1, *read2;
+  BtorAIGVecMgr *avmgr;
+  assert (btor != NULL);
+  assert (aeq != NULL);
+  assert (BTOR_IS_REGULAR_EXP (aeq));
+  assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
+  assert (aeq->av == NULL);
+  assert (aeq->e[0] != aeq->e[1]);
+  avmgr   = btor->avmgr;
+  aeq->av = btor_var_aigvec (avmgr, 1);
+  /* generate virtual reads */
+  index = var_exp (btor, aeq->e[0]->index_len, "vindex");
+
+  /* we do not want read optimizations for the virtual
+   * reads (e.g. rewriting of reads on array conditionals),
+   * so we call binary_exp directly
+   */
+  read1 = binary_exp (btor, BTOR_READ_EXP, aeq->e[0], index, aeq->e[0]->len);
+  read2 = binary_exp (btor, BTOR_READ_EXP, aeq->e[1], index, aeq->e[1]->len);
+
+  /* mark them as virtual */
+  read1->vread = 1;
+  read2->vread = 1;
+
+  aeq->vreads = new_exp_pair (btor, read1, read2);
+
+  read1->av = btor_var_aigvec (avmgr, read1->len);
+  read2->av = btor_var_aigvec (avmgr, read2->len);
+
+  /* index gets synthesized later (if necessary) */
+
+  /* eagerly encode array inequality constraint */
+  encode_array_inequality_virtual_reads (btor, aeq);
+
+  btor_release_exp (btor, index);
+  btor_release_exp (btor, read1);
+  btor_release_exp (btor, read2);
+}
+
+static void
+set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
 {
   BtorExpPtrStack stack;
   BtorExp *cur;
@@ -5135,7 +5177,11 @@ set_flags_reachable_exp (Btor *btor, BtorExp *exp)
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       else if (BTOR_IS_BINARY_EXP (cur))
       {
-        if (BTOR_IS_ARRAY_EQ_EXP (cur)) btor->extensionality = 1;
+        if (BTOR_IS_ARRAY_EQ_EXP (cur))
+        {
+          btor->extensionality = 1;
+          synthesize_array_equality (btor, cur);
+        }
         BTOR_PUSH_STACK (mm, stack, cur->e[1]);
         BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       }
@@ -5154,7 +5200,7 @@ static void
 btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 {
   BtorExpPtrStack exp_stack;
-  BtorExp *cur, *index, *read1, *read2;
+  BtorExp *cur;
   BtorAIGVec *av0, *av1, *av2;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -5231,8 +5277,8 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
               cur->mark = 2;
               cur->av   = btor_var_aigvec (avmgr, cur->len);
               /* mark children recursively as reachable */
-              set_flags_reachable_exp (btor, cur->e[1]);
-              set_flags_reachable_exp (btor, cur->e[0]);
+              set_flags_and_synth_aeq (btor, cur->e[1]);
+              set_flags_and_synth_aeq (btor, cur->e[0]);
               /* we do not synthesize index as we are
                * in lazy mode */
             }
@@ -5243,9 +5289,9 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             assert (btor->write_enc != BTOR_EAGER_WRITE_ENC);
             cur->mark = 2;
             /* mark children recursively as reachable */
-            set_flags_reachable_exp (btor, cur->e[2]);
-            set_flags_reachable_exp (btor, cur->e[1]);
-            set_flags_reachable_exp (btor, cur->e[0]);
+            set_flags_and_synth_aeq (btor, cur->e[2]);
+            set_flags_and_synth_aeq (btor, cur->e[1]);
+            set_flags_and_synth_aeq (btor, cur->e[0]);
             /* we do not synthesize index and value
              * as we are in lazy mode */
           }
@@ -5253,39 +5299,10 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           {
             cur->mark            = 2;
             btor->extensionality = 1;
-            cur->av              = btor_var_aigvec (avmgr, 1);
             /* mark children recursively as reachable */
-            set_flags_reachable_exp (btor, cur->e[1]);
-            set_flags_reachable_exp (btor, cur->e[0]);
-
-            /* generate virtual reads */
-            index = var_exp (btor, cur->e[0]->index_len, "vindex");
-            /* we do not want read optimizations for the virtual
-             * reads (e.g. rewriting of reads on array conditionals),
-             * so we call binary_exp directly
-             */
-            read1 = binary_exp (
-                btor, BTOR_READ_EXP, cur->e[0], index, cur->e[0]->len);
-            read2 = binary_exp (
-                btor, BTOR_READ_EXP, cur->e[1], index, cur->e[1]->len);
-
-            /* mark them as virtual */
-            read1->vread = 1;
-            read2->vread = 1;
-
-            cur->vreads = new_exp_pair (btor, read1, read2);
-
-            /* synthesize values of virtual reads */
-            btor_synthesize_exp (btor, read1, NULL);
-            btor_synthesize_exp (btor, read2, NULL);
-            /* index gets synthesized later (if necessary) */
-
-            /* eagerly encode array inequality constraint */
-            encode_array_inequality_virtual_reads (btor, cur);
-
-            btor_release_exp (btor, index);
-            btor_release_exp (btor, read1);
-            btor_release_exp (btor, read2);
+            synthesize_array_equality (btor, cur);
+            set_flags_and_synth_aeq (btor, cur->e[1]);
+            set_flags_and_synth_aeq (btor, cur->e[0]);
           }
           else
           {
