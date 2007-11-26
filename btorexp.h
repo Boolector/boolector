@@ -69,7 +69,7 @@ typedef struct BtorExpPair BtorExpPair;
     };                                                                       \
     int len;                        /* number of bits */                     \
     int id;                         /* unique expression id */               \
-    int refs;                       /* reference counter */                  \
+    unsigned int refs;              /* reference counter */                  \
     BtorAIGVec *av;                 /* synthesized AIG vector */             \
     struct BtorExp *next;           /* next element in unique table */       \
     struct BtorExp *first_parent;   /* head of parent list */                \

@@ -24,7 +24,7 @@ struct BtorAIG
 {
   int id;
   struct BtorAIG *children[2];
-  int refs;
+  unsigned int refs;
   int cnf_id;
   struct BtorAIG *next;
   unsigned int mark : 2;

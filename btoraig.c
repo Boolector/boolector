@@ -93,7 +93,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig->id                    = amgr->id++;
   BTOR_LEFT_CHILD_AIG (aig)  = left;
   BTOR_RIGHT_CHILD_AIG (aig) = right;
-  aig->refs                  = 1;
+  aig->refs                  = 1u;
   aig->cnf_id                = 0;
   aig->next                  = NULL;
   aig->mark                  = 0;
@@ -154,7 +154,7 @@ inc_aig_ref_counter (BtorAIG *aig)
 {
   if (!BTOR_IS_CONST_AIG (aig))
   {
-    BTOR_ABORT_AIG (BTOR_REAL_ADDR_AIG (aig)->refs == INT_MAX,
+    BTOR_ABORT_AIG (BTOR_REAL_ADDR_AIG (aig)->refs == UINT_MAX,
                     "reference counter overflow");
     BTOR_REAL_ADDR_AIG (aig)->refs++;
   }
@@ -284,22 +284,22 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
   if (!BTOR_IS_CONST_AIG (aig))
   {
     cur = BTOR_REAL_ADDR_AIG (aig);
-    assert (cur->refs > 0);
-    if (cur->refs > 1)
+    assert (cur->refs > 0u);
+    if (cur->refs > 1u)
       cur->refs--;
     else
     {
-      assert (cur->refs == 1);
+      assert (cur->refs == 1u);
       BTOR_INIT_STACK (stack);
       BTOR_PUSH_STACK (mm, stack, cur);
       while (!BTOR_EMPTY_STACK (stack))
       {
         cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-        if (cur->refs > 1)
+        if (cur->refs > 1u)
           cur->refs--;
         else
         {
-          assert (cur->refs == 1);
+          assert (cur->refs == 1u);
           if (BTOR_IS_VAR_AIG (cur))
             delete_aig_node (amgr, cur);
           else
@@ -326,7 +326,7 @@ btor_var_aig (BtorAIGMgr *amgr)
   aig->id                    = amgr->id++;
   BTOR_LEFT_CHILD_AIG (aig)  = NULL;
   BTOR_RIGHT_CHILD_AIG (aig) = NULL;
-  aig->refs                  = 1;
+  aig->refs                  = 1u;
   aig->cnf_id                = 0;
   aig->next                  = NULL;
   aig->mark                  = 0;
