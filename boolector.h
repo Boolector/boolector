@@ -470,8 +470,10 @@ void btor_add_constraint_exp (Btor *btor, BtorExp *exp);
 /* Adds assumption. */
 void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
 
-/* Solves sat instance. */
-int btor_sat_btor (Btor *btor);
+/* Solves sat instance.
+ * The paramenter 'refinement_limit' sets the maximum number
+ * of iterative refinments (in lazy mode) */
+int btor_sat_btor (Btor *btor, int refinement_limit);
 
 /* Builds current assignment string of expression (in the SAT case)
  * and returns it.

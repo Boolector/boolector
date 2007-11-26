@@ -15,6 +15,7 @@
 #include "btorutil.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -606,7 +607,7 @@ btor_main (int argc, char **argv)
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
       btor_add_constraint_exp (btor, parse_res.roots[0]);
-      sat_result = btor_sat_btor (btor);
+      sat_result = btor_sat_btor (btor, INT_MAX);
 
       if (app.verbosity >= 0)
       {

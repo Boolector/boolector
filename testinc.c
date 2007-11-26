@@ -8,6 +8,7 @@
 #endif
 
 #include <assert.h>
+#include <limits.h>
 
 static void
 test_inc_true_false (void)
@@ -18,11 +19,11 @@ test_inc_true_false (void)
   int res;
 
   btor_add_assumption_exp (btor, tt);
-  res = btor_sat_btor (btor);
+  res = btor_sat_btor (btor, INT_MAX);
   assert (res == BTOR_SAT);
 
   btor_add_assumption_exp (btor, ff);
-  res = btor_sat_btor (btor);
+  res = btor_sat_btor (btor, INT_MAX);
   assert (res == BTOR_UNSAT);
 
   btor_release_exp (btor, ff);
@@ -76,7 +77,7 @@ test_inc_counter (int w, int nondet)
     btor_add_assumption_exp (btor, allzero);
     btor_release_exp (btor, allzero);
 
-    res = btor_sat_btor (btor);
+    res = btor_sat_btor (btor, INT_MAX);
     if (res == BTOR_SAT) break;
 
     assert (res == BTOR_UNSAT);
@@ -182,7 +183,7 @@ test_inc_lt (int w)
 
     prev = next;
 
-    res = btor_sat_btor (btor);
+    res = btor_sat_btor (btor, INT_MAX);
     if (res == BTOR_UNSAT) break;
 
     assert (res == BTOR_SAT);

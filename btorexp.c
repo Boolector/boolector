@@ -6859,7 +6859,7 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
 }
 
 int
-btor_sat_btor (Btor *btor)
+btor_sat_btor (Btor *btor, int refinement_limit)
 {
   int sat_result, found_conflict;
   BtorPtrHashBucket *bucket;
@@ -6868,9 +6868,12 @@ btor_sat_btor (Btor *btor)
   BtorSATMgr *smgr;
   BtorAIG *aig;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
+  BTOR_ABORT_EXP (refinement_limit < 0,
+                  "'refinement_limit' must not be negative in 'btor_sat_btor'");
   assert (!btor->read_enc == BTOR_EAGER_READ_ENC
           || btor->write_enc == BTOR_EAGER_WRITE_ENC);
   if (btor->verbosity > 0) print_verbose_msg ("calling SAT");
+  if (refinement_limit == 0) return BTOR_UNKNOWN;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
@@ -6926,7 +6929,8 @@ btor_sat_btor (Btor *btor)
   if (btor->read_enc == BTOR_LAZY_READ_ENC
       || btor->write_enc == BTOR_LAZY_WRITE_ENC)
   {
-    while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN)
+    while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
+           && btor->refinements < refinement_limit)
     {
       assert (sat_result == BTOR_SAT);
       found_conflict = resolve_read_write_conflicts (btor);
@@ -6935,6 +6939,7 @@ btor_sat_btor (Btor *btor)
       btor->refinements++;
     }
   }
+  if (btor->refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
   return sat_result;
 }
 
