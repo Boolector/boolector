@@ -77,7 +77,8 @@ struct Btor
   int synthesis_assignment_inconsistencies;
   int read_read_conflicts;
   int read_write_conflicts;
-  int substitutions;
+  int var_substitutions;
+  int array_substitutions;
 };
 
 struct BtorExpPair
@@ -5169,11 +5170,9 @@ btor_print_stats_btor (Btor *btor)
   (void) btor;
   print_verbose_msg ("top level constraints: %u", btor->constraints->count);
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
-  print_verbose_msg ("substitutions: %d", btor->substitutions);
-  if (btor->extensionality)
-    print_verbose_msg ("extensionality mode: yes");
-  else
-    print_verbose_msg ("extensionality mode: no");
+  print_verbose_msg ("variable substitutions: %d", btor->var_substitutions);
+  print_verbose_msg ("array substitutions: %d", btor->array_substitutions);
+  print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
   print_verbose_msg ("read-read conflicts: %d", btor->read_read_conflicts);
   print_verbose_msg ("read-write conflicts: %d", btor->read_write_conflicts);
 
@@ -6547,12 +6546,14 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   BtorExpPtrStack subst_stack;
   BtorFullParentIterator it;
   BtorMemMgr *mm;
+  int var_substitution;
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
-  if (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
-      || is_cyclic_substitution (btor, left, right))
-    return;
+  /* we want to substitute a variable or a native array by the right side */
+  assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
+          || BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
+  if (is_cyclic_substitution (btor, left, right)) return;
   mm          = btor->mm;
   constraints = btor->constraints;
   /* normalize */
@@ -6561,7 +6562,10 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     left  = BTOR_INVERT_EXP (left);
     right = BTOR_INVERT_EXP (right);
   }
+
   assert (BTOR_IS_REGULAR_EXP (left));
+  var_substitution = BTOR_IS_VAR_EXP (left);
+
   left->simplified = copy_exp (btor, right);
 
   /* search from bottom up */
@@ -6635,7 +6639,10 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     }
   } while (!BTOR_EMPTY_STACK (subst_stack));
   BTOR_RELEASE_STACK (mm, subst_stack);
-  btor->substitutions++;
+  if (var_substitution)
+    btor->var_substitutions++;
+  else
+    btor->array_substitutions++;
 }
 
 void
@@ -6731,21 +6738,51 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
       /* check if cur is still root */
       if (btor_find_in_ptr_hash_table (btor->new_constraints, cur) != NULL)
       {
-        if (!BTOR_IS_INVERTED_EXP (cur)
-            && (BTOR_IS_BV_EQ_EXP (cur) || BTOR_IS_ARRAY_EQ_EXP (cur)))
+        if (!BTOR_IS_INVERTED_EXP (cur))
         {
-          if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))
-              && !BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[0])))
+          assert (BTOR_IS_REGULAR_EXP (cur));
+          /* substitute bit vector variable ? */
+          if (BTOR_IS_BV_EQ_EXP (cur)
+              && (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[0]))
+                  || BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))))
           {
-            left  = cur->e[1];
-            right = cur->e[0];
+            if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))
+                && !BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[0])))
+            {
+              left  = cur->e[1];
+              right = cur->e[0];
+            }
+            else
+            {
+              left  = cur->e[0];
+              right = cur->e[1];
+            }
+            substitute_exp (btor, left, right);
           }
-          else
+          /* substitute array ? */
+          else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
-            left  = cur->e[0];
-            right = cur->e[1];
+            assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
+            assert (BTOR_IS_REGULAR_EXP (cur->e[1]));
+            assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
+            assert (BTOR_IS_ARRAY_EXP (cur->e[1]));
+            if (BTOR_IS_NATIVE_ARRAY_EXP (cur->e[0])
+                || BTOR_IS_NATIVE_ARRAY_EXP (cur->e[1]))
+            {
+              if (BTOR_IS_NATIVE_ARRAY_EXP (cur->e[1])
+                  && !BTOR_IS_NATIVE_ARRAY_EXP (cur->e[0]))
+              {
+                left  = cur->e[1];
+                right = cur->e[0];
+              }
+              else
+              {
+                left  = cur->e[0];
+                right = cur->e[1];
+              }
+              substitute_exp (btor, left, right);
+            }
           }
-          substitute_exp (btor, left, right);
         }
       }
       release_exp (btor, cur);
