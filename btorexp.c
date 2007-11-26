@@ -6482,10 +6482,67 @@ rebuild_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
+check_and_update_constraints (Btor *btor, BtorExp *exp)
 {
   BtorPtrHashTable *constraints, *new_constraints;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, *old_root, *new_root;
+  BtorExp *simplified, *old_root, *new_root;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp)->simplified != NULL);
+  constraints     = btor->constraints;
+  new_constraints = btor->new_constraints;
+  simplified      = BTOR_REAL_ADDR_EXP (exp)->simplified;
+  if (btor_find_in_ptr_hash_table (constraints, exp) != NULL)
+  {
+    new_root = simplified;
+    /* is expression also a root in new_constraints ? */
+    if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
+    {
+      /* update root */
+      btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
+      /* is new_root really new ? */
+      if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
+        btor_insert_in_ptr_hash_table (new_constraints, new_root);
+    }
+    /* update root */
+    btor_remove_from_ptr_hash_table (
+        constraints, exp, (void **) &old_root, NULL);
+    release_exp (btor, old_root);
+    /* is new root really new ? */
+    if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
+      btor_insert_in_ptr_hash_table (constraints,
+                                     btor_copy_exp (btor, new_root));
+  }
+  /* look if inverted expression is root */
+  exp = BTOR_INVERT_EXP (exp);
+  if (btor_find_in_ptr_hash_table (constraints, exp) != NULL)
+  {
+    new_root = BTOR_INVERT_EXP (simplified);
+    /* is expression also a root in new_constraints ? */
+    if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
+    {
+      /* update root */
+      btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
+      /* is new_root really new ? */
+      if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
+        btor_insert_in_ptr_hash_table (new_constraints, new_root);
+    }
+    /* update root */
+    btor_remove_from_ptr_hash_table (
+        constraints, exp, (void **) &old_root, NULL);
+    release_exp (btor, old_root);
+    /* is new root really new ? */
+    if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
+      btor_insert_in_ptr_hash_table (constraints,
+                                     btor_copy_exp (btor, new_root));
+  }
+}
+
+static void
+substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
+{
+  BtorPtrHashTable *constraints;
+  BtorExp *cur, *cur_parent, *rebuilt_exp;
   BtorExpPtrStack search_stack;
   BtorExpPtrStack subst_stack;
   BtorFullParentIterator it;
@@ -6496,9 +6553,8 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   if (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
       || is_cyclic_substitution (btor, left, right))
     return;
-  mm              = btor->mm;
-  constraints     = btor->constraints;
-  new_constraints = btor->new_constraints;
+  mm          = btor->mm;
+  constraints = btor->constraints;
   /* normalize */
   if (BTOR_IS_INVERTED_EXP (left))
   {
@@ -6521,10 +6577,9 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     {
       cur->mark = 1;
       /* are we at a root ? */
-      if (btor_find_in_ptr_hash_table (constraints, cur) != NULL)
-        BTOR_PUSH_STACK (mm, subst_stack, cur);
-      else if (btor_find_in_ptr_hash_table (constraints, BTOR_INVERT_EXP (cur))
-               != NULL)
+      if (btor_find_in_ptr_hash_table (constraints, cur) != NULL
+          || btor_find_in_ptr_hash_table (constraints, BTOR_INVERT_EXP (cur))
+                 != NULL)
         BTOR_PUSH_STACK (mm, subst_stack, cur);
       else
       {
@@ -6575,48 +6630,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
         if (cur->simplified != NULL) release_exp (btor, cur->simplified);
         cur->simplified = rebuilt_exp;
         /* do we have to update a root ? */
-        if (btor_find_in_ptr_hash_table (constraints, cur) != NULL)
-        {
-          new_root = rebuilt_exp;
-          if (btor_find_in_ptr_hash_table (new_constraints, cur) != NULL)
-          {
-            /* update root */
-            btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
-            /* is new_root really new ? */
-            if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
-              btor_insert_in_ptr_hash_table (new_constraints, new_root);
-          }
-          /* update root */
-          btor_remove_from_ptr_hash_table (
-              constraints, cur, (void **) &old_root, NULL);
-          release_exp (btor, old_root);
-          /* is new root really new ? */
-          if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
-            btor_insert_in_ptr_hash_table (constraints,
-                                           btor_copy_exp (btor, new_root));
-        }
-        /* look if inverted cur is root */
-        cur = BTOR_INVERT_EXP (cur);
-        if (btor_find_in_ptr_hash_table (constraints, cur) != NULL)
-        {
-          new_root = BTOR_INVERT_EXP (rebuilt_exp);
-          if (btor_find_in_ptr_hash_table (new_constraints, cur) != NULL)
-          {
-            /* update root */
-            btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
-            /* is new_root really new ? */
-            if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
-              btor_insert_in_ptr_hash_table (new_constraints, new_root);
-          }
-          /* update root */
-          btor_remove_from_ptr_hash_table (
-              constraints, cur, (void **) &old_root, NULL);
-          release_exp (btor, old_root);
-          /* is new root really new ? */
-          if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
-            btor_insert_in_ptr_hash_table (constraints,
-                                           btor_copy_exp (btor, new_root));
-        }
+        check_and_update_constraints (btor, cur);
       }
     }
   } while (!BTOR_EMPTY_STACK (subst_stack));
@@ -6819,6 +6833,7 @@ btor_sat_btor (Btor *btor)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
   assert (!btor->read_enc == BTOR_EAGER_READ_ENC
           || btor->write_enc == BTOR_EAGER_WRITE_ENC);
+  if (btor->verbosity > 0) print_verbose_msg ("calling SAT");
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
