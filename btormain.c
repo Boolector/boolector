@@ -92,6 +92,8 @@ static const char *g_usage =
     "  -ew|--eager-write                eager McCarthy axiom encoding\n"
     "  -lw|--lazy-write                 iterative write consistency "
     "refinement\n"
+    "  -rl <n>|--refinement limit <n>   iterative refinement limit (lazy "
+    "mode)\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n";
@@ -358,6 +360,7 @@ btor_main (int argc, char **argv)
   int dump_smt                = 0;
   int force_smt_input         = 0;
   int print_solutions         = 0;
+  int refinement_limit        = INT_MAX;
   BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
   BtorWriteEnc write_enc      = BTOR_LAZY_WRITE_ENC;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -483,6 +486,19 @@ btor_main (int argc, char **argv)
       write_enc = BTOR_EAGER_WRITE_ENC;
     else if (!strcmp (argv[i], "-lw") || !strcmp (argv[i], "--lazy-write"))
       write_enc = BTOR_LAZY_WRITE_ENC;
+    else if (!strcmp (argv[i], "-rl")
+             || !strcmp (argv[i], "--refinement-limit"))
+    {
+      if (i < argc - 1)
+      {
+        refinement_limit = atoi (argv[++i]);
+        if (refinement_limit < 0)
+        {
+          print_err_va_args (&app, "refinement limit must not be negative\n");
+          err = 1;
+        }
+      }
+    }
     else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
     {
       if (i < argc - 1)
@@ -607,7 +623,7 @@ btor_main (int argc, char **argv)
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
       btor_add_constraint_exp (btor, parse_res.roots[0]);
-      sat_result = btor_sat_btor (btor, INT_MAX);
+      sat_result = btor_sat_btor (btor, refinement_limit);
 
       if (app.verbosity >= 0)
       {
