@@ -629,7 +629,7 @@ btor_main (int argc, char **argv)
       if (app.verbosity >= 3) btor_print_stats_sat (smgr);
       btor_reset_sat (smgr);
 
-      if (app.verbosity >= 2) btor_print_stats_btor (btor);
+      if (app.verbosity >= 1) btor_print_stats_btor (btor);
     }
 
     parser_api->reset (parser);
