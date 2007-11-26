@@ -6,6 +6,8 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <sys/wait.h> /* for WEXITSTATUS */
+
 typedef struct Exp Exp;
 
 struct Exp
@@ -23,6 +25,8 @@ struct Exp
 };
 
 static int verbose;
+static int nosimp;
+static int nosort;
 
 static const char* input_name;
 static const char* output_name;
@@ -402,6 +406,8 @@ simp (void)
   int i, c;
   Exp* e;
 
+  if (nosimp) return;
+
   rexps = 0;
   for (i = 1; i < nexps; i++)
   {
@@ -617,7 +623,7 @@ print (void)
 
   assert (j == count);
 
-  qsort (sorted, count, sizeof *sorted, cmp_by_idx);
+  if (!nosort) qsort (sorted, count, sizeof *sorted, cmp_by_idx);
 
   for (i = 0; i < count; i++)
   {
@@ -706,7 +712,7 @@ static int
 run (void)
 {
   runs++;
-  return system (cmd);
+  return WEXITSTATUS (system (cmd));
 }
 
 static int
@@ -726,11 +732,17 @@ main (int argc, char** argv)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: deltabtor [-h][-v] <input> <output> <run>\n");
+      printf (
+          "usage: deltabtor [-h][-v][--no-simp][--no-sort] <input> <output> "
+          "<run>\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
       verbose++;
+    else if (!strcmp (argv[i], "--no-simp"))
+      nosimp = 1;
+    else if (!strcmp (argv[i], "--no-sort"))
+      nosort = 1;
     else if (run_name)
       die ("more than three file names given");
     else if (output_name)
