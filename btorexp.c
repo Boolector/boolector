@@ -5694,7 +5694,7 @@ hash_assignment (BtorExp *exp)
 static void
 extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
 {
-  BtorExp *cur, *next, *cur_aeq, *cond;
+  BtorExp *cur, *next, *cur_aeq, *cond, *index;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorExpPtrQueue queue;
@@ -5710,6 +5710,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   assert (BTOR_IS_ARRAY_EXP (array));
   found = 0;
   mm    = btor->mm;
+  index = BTOR_GET_INDEX_ACC_EXP (acc);
   amgr  = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_QUEUE (queue);
@@ -5731,7 +5732,8 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       found = 1;
       break;
     }
-    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0)
+    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0
+        && compare_assignments (cur->e[1], index) != 0)
     {
       next         = cur->e[0];
       next->mark   = 1;
@@ -6540,6 +6542,7 @@ check_and_update_constraints (Btor *btor, BtorExp *exp)
 static void
 substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 {
+  BtorPtrHashTable *constraints;
   BtorExp *cur, *cur_parent, *rebuilt_exp;
   BtorExpPtrStack search_stack;
   BtorExpPtrStack subst_stack;
@@ -6553,7 +6556,8 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
           || BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
   if (is_cyclic_substitution (btor, left, right)) return;
-  mm = btor->mm;
+  mm          = btor->mm;
+  constraints = btor->constraints;
   /* normalize */
   if (BTOR_IS_INVERTED_EXP (left))
   {
@@ -6579,17 +6583,19 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     {
       cur->mark = 1;
       /* are we at a root ? */
-      init_full_parent_iterator (&it, cur);
-      if (!has_next_parent_full_parent_iterator (&it))
+      if (btor_find_in_ptr_hash_table (constraints, cur) != NULL
+          || btor_find_in_ptr_hash_table (constraints, BTOR_INVERT_EXP (cur))
+                 != NULL)
         BTOR_PUSH_STACK (mm, subst_stack, cur);
       else
       {
-        do
+        init_full_parent_iterator (&it, cur);
+        while (has_next_parent_full_parent_iterator (&it))
         {
           cur_parent = next_parent_full_parent_iterator (&it);
           assert (BTOR_IS_REGULAR_EXP (cur_parent));
           BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-        } while (has_next_parent_full_parent_iterator (&it));
+        }
       }
     }
   } while (!BTOR_EMPTY_STACK (search_stack));
