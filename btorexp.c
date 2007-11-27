@@ -6505,7 +6505,7 @@ check_and_update_constraints (Btor *btor, BtorExp *exp)
     }
     /* update root */
     btor_remove_from_ptr_hash_table (
-        constraints, exp, (void **) &old_root, NULL);
+        constraints, exp, (void *) &old_root, NULL);
     release_exp (btor, old_root);
     /* is new root really new ? */
     if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
@@ -6528,7 +6528,7 @@ check_and_update_constraints (Btor *btor, BtorExp *exp)
     }
     /* update root */
     btor_remove_from_ptr_hash_table (
-        constraints, exp, (void **) &old_root, NULL);
+        constraints, exp, (void *) &old_root, NULL);
     release_exp (btor, old_root);
     /* is new root really new ? */
     if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
