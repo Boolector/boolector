@@ -6540,7 +6540,6 @@ check_and_update_constraints (Btor *btor, BtorExp *exp)
 static void
 substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 {
-  BtorPtrHashTable *constraints;
   BtorExp *cur, *cur_parent, *rebuilt_exp;
   BtorExpPtrStack search_stack;
   BtorExpPtrStack subst_stack;
@@ -6554,8 +6553,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
           || BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
   if (is_cyclic_substitution (btor, left, right)) return;
-  mm          = btor->mm;
-  constraints = btor->constraints;
+  mm = btor->mm;
   /* normalize */
   if (BTOR_IS_INVERTED_EXP (left))
   {
@@ -6581,19 +6579,17 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     {
       cur->mark = 1;
       /* are we at a root ? */
-      if (btor_find_in_ptr_hash_table (constraints, cur) != NULL
-          || btor_find_in_ptr_hash_table (constraints, BTOR_INVERT_EXP (cur))
-                 != NULL)
+      init_full_parent_iterator (&it, cur);
+      if (!has_next_parent_full_parent_iterator (&it))
         BTOR_PUSH_STACK (mm, subst_stack, cur);
       else
       {
-        init_full_parent_iterator (&it, cur);
-        while (has_next_parent_full_parent_iterator (&it))
+        do
         {
           cur_parent = next_parent_full_parent_iterator (&it);
           assert (BTOR_IS_REGULAR_EXP (cur_parent));
           BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-        }
+        } while (has_next_parent_full_parent_iterator (&it));
       }
     }
   } while (!BTOR_EMPTY_STACK (search_stack));
@@ -6946,6 +6942,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 char *
 btor_assignment_exp (Btor *btor, BtorExp *exp)
 {
+  BtorExp *simplified;
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
   char *assignment;
@@ -6956,12 +6953,13 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
                   "'exp' must not be NULL in 'btor_assignment_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_assignment_exp'");
-  if (!BTOR_REAL_ADDR_EXP (exp)->reachable
-      || BTOR_REAL_ADDR_EXP (exp)->av == NULL)
+  simplified = pointer_chase_simplified_exp (btor, exp);
+  if (!BTOR_REAL_ADDR_EXP (simplified)->reachable
+      || BTOR_REAL_ADDR_EXP (simplified)->av == NULL)
     return NULL;
   avmgr     = btor->avmgr;
-  invert_av = BTOR_IS_INVERTED_EXP (exp);
-  av        = BTOR_REAL_ADDR_EXP (exp)->av;
+  invert_av = BTOR_IS_INVERTED_EXP (simplified);
+  av        = BTOR_REAL_ADDR_EXP (simplified)->av;
   if (invert_av) btor_invert_aigvec (avmgr, av);
   assignment = btor_assignment_aigvec (avmgr, av);
   /* invert back if necessary */
