@@ -6349,7 +6349,7 @@ reset_assumptions (Btor *btor)
 }
 
 static int
-is_cyclic_substitution (Btor *btor, BtorExp *left, BtorExp *right)
+occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
 {
   BtorExp *cur, *real_left;
   BtorExpPtrStack stack;
@@ -6366,7 +6366,9 @@ is_cyclic_substitution (Btor *btor, BtorExp *left, BtorExp *right)
   BTOR_PUSH_STACK (mm, stack, right);
   do
   {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    cur = BTOR_POP_STACK (stack);
+    cur = pointer_chase_simplified_exp (btor, cur);
+    cur = BTOR_REAL_ADDR_EXP (cur);
     assert (cur->mark == 0 || cur->mark == 1);
     if (cur->mark == 0)
     {
@@ -6502,7 +6504,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   /* we want to substitute a variable or a native array by the right side */
   assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
           || BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
-  if (is_cyclic_substitution (btor, left, right)) return;
+  if (occurrence_check (btor, left, right)) return;
   mm          = btor->mm;
   constraints = btor->constraints;
   /* normalize */
