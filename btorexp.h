@@ -45,6 +45,7 @@ typedef struct BtorExpPair BtorExpPair;
     BtorExpKind kind : 5;          /* kind of expression */                  \
     unsigned int mark : 3;         /* for DAG traversal */                   \
     unsigned int array_mark : 3;   /* for bottom up array traversal */       \
+    unsigned int subst_mark : 3;   /* for substition algorithm */            \
     unsigned int encoded_read : 1; /* flag used by eager read encoding */    \
     unsigned int reachable : 1;    /* flag determines if expression          \
                                       is reachable from root */              \
