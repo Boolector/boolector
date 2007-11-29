@@ -679,6 +679,7 @@ encode_mccarthy_constraint (Btor *btor,
   BtorExpPair *pair;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table, *exp_pair_cnf_eq_id_table;
   BtorPtrHashBucket *bucket;
+  BtorIntStack clauses;
   BtorIntStack linking_clause;
   int len_a_b, len_i_j_w, e;
   int k, d_k;
@@ -687,6 +688,7 @@ encode_mccarthy_constraint (Btor *btor,
   int i_k = 0;
   int j_k = 0;
   int w_k = 0;
+  int *lit;
   assert (btor != NULL);
   assert (writes != NULL);
   assert (aeqs != NULL);
@@ -728,7 +730,10 @@ encode_mccarthy_constraint (Btor *btor,
     btor_aigvec_to_sat_full (avmgr, av_j);
     BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
   }
+
+  BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
+
   /* encode i != j */
   if (i != j)
   {
@@ -768,17 +773,17 @@ encode_mccarthy_constraint (Btor *btor,
         BTOR_PUSH_STACK (mm, linking_clause, d_k);
         if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
         {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
+          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, i_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, j_k);
+          BTOR_PUSH_STACK (mm, clauses, -d_k);
+          BTOR_PUSH_STACK (mm, clauses, 0);
         }
         if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
         {
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
-          btor_add_sat (smgr, -d_k);
-          btor_add_sat (smgr, 0);
+          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, -i_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, -j_k);
+          BTOR_PUSH_STACK (mm, clauses, -d_k);
+          BTOR_PUSH_STACK (mm, clauses, 0);
         }
       }
     }
@@ -835,17 +840,17 @@ encode_mccarthy_constraint (Btor *btor,
         }
         if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
         {
-          btor_add_sat (smgr, -e);
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
-          btor_add_sat (smgr, 0);
+          BTOR_PUSH_STACK (mm, clauses, -e);
+          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, a_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, -b_k);
+          BTOR_PUSH_STACK (mm, clauses, 0);
         }
         if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
         {
-          btor_add_sat (smgr, -e);
-          if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
-          btor_add_sat (smgr, 0);
+          BTOR_PUSH_STACK (mm, clauses, -e);
+          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, -a_k);
+          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, b_k);
+          BTOR_PUSH_STACK (mm, clauses, 0);
         }
       }
     }
@@ -902,17 +907,17 @@ encode_mccarthy_constraint (Btor *btor,
           }
           if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
           {
-            btor_add_sat (smgr, -e);
-            if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-            if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -w_k);
-            btor_add_sat (smgr, 0);
+            BTOR_PUSH_STACK (mm, clauses, -e);
+            if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, i_k);
+            if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, -w_k);
+            BTOR_PUSH_STACK (mm, clauses, 0);
           }
           if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
           {
-            btor_add_sat (smgr, -e);
-            if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-            if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, w_k);
-            btor_add_sat (smgr, 0);
+            BTOR_PUSH_STACK (mm, clauses, -e);
+            if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, -i_k);
+            if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, w_k);
+            BTOR_PUSH_STACK (mm, clauses, 0);
           }
         }
       }
@@ -988,6 +993,18 @@ encode_mccarthy_constraint (Btor *btor,
       BTOR_PUSH_STACK (mm, linking_clause, k);
     }
   }
+
+#ifndef NDEBUG
+  /* linking clause must not be true */
+  for (lit = linking_clause.start; lit != linking_clause.top; lit++)
+    assert (btor_deref_sat (smgr, *lit) != 1);
+#endif
+
+  /* add clauses */
+  for (lit = clauses.start; lit != clauses.top; lit++)
+    btor_add_sat (smgr, *lit);
+  BTOR_RELEASE_STACK (mm, clauses);
+
   /* add linking clause */
   while (!BTOR_EMPTY_STACK (linking_clause))
   {
