@@ -5641,19 +5641,19 @@ compare_assignments (BtorExp *exp1, BtorExp *exp2)
   {
     aig1 = BTOR_COND_INVERT_AIG_EXP (exp1, av1->aigs[i]);
     aig2 = BTOR_COND_INVERT_AIG_EXP (exp2, av2->aigs[i]);
+
     val1 = btor_get_assignment_aig (amgr, aig1);
-    assert (val1 >= -1);
-    assert (val1 <= 1);
-    if (val1 == 0) val1 = -1;
+    assert (val1 == -1 || val1 == 1);
+
     val2 = btor_get_assignment_aig (amgr, aig2);
-    assert (val1 >= -1);
-    assert (val1 <= 1);
-    if (val2 == 0) val2 = -1;
+    assert (val2 == -1 || val2 == 1);
+
     if (val1 < val2)
     {
       return_val = -1;
       break;
     }
+
     if (val2 < val1)
     {
       return_val = 1;
