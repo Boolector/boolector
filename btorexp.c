@@ -6492,10 +6492,10 @@ check_and_update_constraints (Btor *btor, BtorExp *exp)
 static void
 substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 {
-  BtorPtrHashTable *constraints;
-  BtorExp *cur, *cur_parent, *rebuilt_exp;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
   BtorExpPtrStack search_stack;
   BtorExpPtrStack subst_stack;
+  BtorExpPtrStack root_stack;
   BtorFullParentIterator it;
   BtorMemMgr *mm;
   int var_substitution;
@@ -6505,14 +6505,17 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   /* we want to substitute a variable or a native array by the right side */
   assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
           || BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
+
   if (occurrence_check (btor, left, right)) return;
-  mm          = btor->mm;
-  constraints = btor->constraints;
+
+  mm = btor->mm;
+
   /* normalize */
   if (BTOR_IS_INVERTED_EXP (left))
   {
     left  = BTOR_INVERT_EXP (left);
     right = BTOR_INVERT_EXP (right);
+    assert (BTOR_IS_VAR_EXP (left));
   }
 
   assert (BTOR_IS_REGULAR_EXP (left));
@@ -6524,42 +6527,49 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 
   BTOR_INIT_STACK (search_stack);
   BTOR_INIT_STACK (subst_stack);
+  BTOR_INIT_STACK (root_stack);
   BTOR_PUSH_STACK (mm, search_stack, left);
   do
   {
     cur = BTOR_POP_STACK (search_stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->mark == 0)
+    if (cur->subst_mark == 0)
     {
-      cur->mark = 1;
+      cur->subst_mark = 1;
+      init_full_parent_iterator (&it, cur);
       /* are we at a root ? */
-      if (btor_find_in_ptr_hash_table (constraints, cur) != NULL
-          || btor_find_in_ptr_hash_table (constraints, BTOR_INVERT_EXP (cur))
-                 != NULL)
-        BTOR_PUSH_STACK (mm, subst_stack, cur);
+      if (!has_next_parent_full_parent_iterator (&it))
+        BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
       else
       {
-        init_full_parent_iterator (&it, cur);
-        while (has_next_parent_full_parent_iterator (&it))
+        do
         {
           cur_parent = next_parent_full_parent_iterator (&it);
           assert (BTOR_IS_REGULAR_EXP (cur_parent));
           BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-        }
+        } while (has_next_parent_full_parent_iterator (&it));
       }
     }
   } while (!BTOR_EMPTY_STACK (search_stack));
   BTOR_RELEASE_STACK (mm, search_stack);
 
-  /* substitute */
+  /* copy roots on substitution stack */
+
+  assert (BTOR_EMPTY_STACK (subst_stack));
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++)
+    BTOR_PUSH_STACK (mm, subst_stack, *temp);
 
   assert (!BTOR_EMPTY_STACK (subst_stack));
+
+  /* substitute */
+
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-    if (cur->mark == 1)
+    if (cur->subst_mark == 1)
     {
-      cur->mark = 2;
+      cur->subst_mark = 2;
       BTOR_PUSH_STACK (mm, subst_stack, cur);
       if (BTOR_IS_UNARY_EXP (cur))
         BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
@@ -6575,10 +6585,11 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
         BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
       }
     }
-    else if (cur->mark == 2)
+    else if (cur->subst_mark == 2)
     {
-      cur->mark   = 0;
-      rebuilt_exp = rebuild_exp (btor, cur);
+      cur->subst_mark = 0;
+      rebuilt_exp     = rebuild_exp (btor, cur);
+      assert (rebuilt_exp != NULL);
       if (rebuilt_exp == cur)
         release_exp (btor, rebuilt_exp);
       else
@@ -6591,6 +6602,12 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     }
   } while (!BTOR_EMPTY_STACK (subst_stack));
   BTOR_RELEASE_STACK (mm, subst_stack);
+
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++)
+    btor_release_exp (btor, *temp);
+  BTOR_RELEASE_STACK (mm, root_stack);
+
   if (var_substitution)
     btor->var_substitutions++;
   else
