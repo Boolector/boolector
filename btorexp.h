@@ -121,7 +121,7 @@ struct BtorExp
 #define BTOR_IS_WRITE_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
 #define BTOR_IS_ARRAY_COND_EXP_KIND(kind) (kind == BTOR_ACOND_EXP)
 #define BTOR_IS_BV_COND_EXP_KIND(kind) (kind == BTOR_BCOND_EXP)
-#define BTOR_IS_NATIVE_ARRAY_EXP_KIND(kind) (kind == BTOR_ARRAY_EXP)
+#define BTOR_IS_ATOMIC_ARRAY_EXP_KIND(kind) (kind == BTOR_ARRAY_EXP)
 #define BTOR_IS_ARRAY_EXP_KIND(kind)                        \
   (((kind) == BTOR_ARRAY_EXP) || ((kind) == BTOR_WRITE_EXP) \
    || ((kind) == BTOR_ACOND_EXP))
@@ -141,8 +141,8 @@ struct BtorExp
 #define BTOR_IS_WRITE_EXP(exp) (BTOR_IS_WRITE_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_COND_EXP(exp) (BTOR_IS_ARRAY_COND_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BV_COND_EXP(exp) (BTOR_IS_BV_COND_EXP_KIND ((exp)->kind))
-#define BTOR_IS_NATIVE_ARRAY_EXP(exp) \
-  (BTOR_IS_NATIVE_ARRAY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ATOMIC_ARRAY_EXP(exp) \
+  (BTOR_IS_ATOMIC_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_EXP(exp) (BTOR_IS_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_EQ_EXP(exp) (BTOR_IS_ARRAY_EQ_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BV_EQ_EXP(exp) (BTOR_IS_BV_EQ_EXP_KIND ((exp)->kind))

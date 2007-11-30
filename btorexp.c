@@ -1460,7 +1460,7 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
   assert (BTOR_IS_REGULAR_EXP (parent));
   assert (!BTOR_IS_CONST_EXP (parent));
   assert (!BTOR_IS_VAR_EXP (parent));
-  assert (!BTOR_IS_NATIVE_ARRAY_EXP (parent));
+  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (parent));
   (void) btor;
   tagged_parent = BTOR_TAG_EXP (parent, pos);
   /* special treatment of array children of aeq and acond */
@@ -1745,7 +1745,7 @@ delete_exp_node (Btor *btor, BtorExp *exp)
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
   mm = btor->mm;
-  if (!BTOR_IS_NATIVE_ARRAY_EXP (exp))
+  if (!BTOR_IS_ATOMIC_ARRAY_EXP (exp))
   {
     if (BTOR_IS_CONST_EXP (exp))
       btor_freestr (mm, exp->bits);
@@ -1815,7 +1815,7 @@ compute_hash_exp (BtorExp *exp, int table_size)
   assert (btor_is_power_of_2_util (table_size));
   assert (BTOR_IS_REGULAR_EXP (exp));
   assert (!BTOR_IS_VAR_EXP (exp));
-  assert (!BTOR_IS_NATIVE_ARRAY_EXP (exp));
+  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (exp));
   if (BTOR_IS_CONST_EXP (exp))
     hash = btor_hashstr ((void *) exp->bits);
   else if (BTOR_IS_UNARY_EXP (exp))
@@ -1996,7 +1996,7 @@ enlarge_exp_unique_table (Btor *btor)
     {
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (!BTOR_IS_VAR_EXP (cur));
-      assert (!BTOR_IS_NATIVE_ARRAY_EXP (cur));
+      assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
       temp             = cur->next;
       hash             = compute_hash_exp (cur, new_size);
       cur->next        = new_chains[hash];
@@ -2111,7 +2111,7 @@ release_exp (Btor *btor, BtorExp *exp)
   assert (cur->refs > 0u);
   if (cur->refs > 1u)
   {
-    if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur)) cur->refs--;
+    if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ATOMIC_ARRAY_EXP (cur)) cur->refs--;
   }
   else
   {
@@ -2123,7 +2123,7 @@ release_exp (Btor *btor, BtorExp *exp)
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
       if (cur->refs > 1u)
       {
-        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur))
+        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ATOMIC_ARRAY_EXP (cur))
           cur->refs--;
       }
       else
@@ -2142,7 +2142,7 @@ release_exp (Btor *btor, BtorExp *exp)
           BTOR_PUSH_STACK (mm, stack, cur->e[1]);
           BTOR_PUSH_STACK (mm, stack, cur->e[0]);
         }
-        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_NATIVE_ARRAY_EXP (cur))
+        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ATOMIC_ARRAY_EXP (cur))
           delete_exp_unique_table_entry (btor, cur);
       }
     } while (!BTOR_EMPTY_STACK (stack));
@@ -4373,7 +4373,7 @@ read_exp_imp (Btor *btor,
         }
         else
         {
-          assert (BTOR_IS_NATIVE_ARRAY_EXP (cur));
+          assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
           result = binary_exp (btor, BTOR_READ_EXP, cur, e_index, cur->len);
           found  = 1;
         }
@@ -4812,7 +4812,7 @@ btor_dump_smt_id (BtorExp *e, FILE *file)
 
     type = "v";
   }
-  else if (BTOR_IS_NATIVE_ARRAY_EXP (u))
+  else if (BTOR_IS_ATOMIC_ARRAY_EXP (u))
     type = "a";
   else
     type = "?e";
@@ -4854,7 +4854,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     if (BTOR_IS_VAR_EXP (e)) continue;
 
-    if (BTOR_IS_NATIVE_ARRAY_EXP (e))
+    if (BTOR_IS_ATOMIC_ARRAY_EXP (e))
     {
       arrays = 1;
       continue;
@@ -4883,7 +4883,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_NATIVE_ARRAY_EXP (e)) continue;
+    if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_ATOMIC_ARRAY_EXP (e)) continue;
 
     fputs (":extrafuns ((", file);
     btor_dump_smt_id (e, file);
@@ -4904,7 +4904,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (BTOR_IS_VAR_EXP (e) || BTOR_IS_NATIVE_ARRAY_EXP (e)) continue;
+    if (BTOR_IS_VAR_EXP (e) || BTOR_IS_ATOMIC_ARRAY_EXP (e)) continue;
 
     lets++;
 
@@ -5368,7 +5368,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             btor_free (mm, indexed_name, len);
           }
         }
-        else if (!BTOR_IS_NATIVE_ARRAY_EXP (cur))
+        else if (!BTOR_IS_ATOMIC_ARRAY_EXP (cur))
         {
           /* special cases */
           if (BTOR_IS_READ_EXP (cur))
@@ -5379,7 +5379,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
               BTOR_PUSH_STACK (mm, exp_stack, cur);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
               assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
-              assert (BTOR_IS_NATIVE_ARRAY_EXP (cur->e[0]));
+              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur->e[0]));
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
             }
             else
@@ -6258,7 +6258,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   for (temp = btor->arrays.start; temp != top; temp++)
   {
     cur_array = *temp;
-    assert (BTOR_IS_NATIVE_ARRAY_EXP (cur_array));
+    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
     if (cur_array->reachable) BTOR_PUSH_STACK (mm, array_stack, cur_array);
   }
   while (!BTOR_EMPTY_STACK (array_stack))
@@ -6534,7 +6534,7 @@ substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
   assert (right != NULL);
   /* we want to substitute a variable or a native array by the right side */
   assert (BTOR_IS_REGULAR_EXP (left));
-  assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_NATIVE_ARRAY_EXP (left));
+  assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
 
   if (occurrence_check (btor, left, right))
     return;
@@ -6663,12 +6663,12 @@ is_substitution (Btor *btor,
   real_left  = BTOR_REAL_ADDR_EXP (left);
   real_right = BTOR_REAL_ADDR_EXP (right);
   if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
-      && !BTOR_IS_NATIVE_ARRAY_EXP (real_left)
-      && !BTOR_IS_NATIVE_ARRAY_EXP (real_right))
+      && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
+      && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
     return 0;
   if ((!BTOR_IS_VAR_EXP (real_left) && BTOR_IS_VAR_EXP (real_right))
-      || (!BTOR_IS_NATIVE_ARRAY_EXP (real_left)
-          && BTOR_IS_NATIVE_ARRAY_EXP (real_right)))
+      || (!BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
+          && BTOR_IS_ATOMIC_ARRAY_EXP (real_right)))
   {
     *left_result  = right;
     *right_result = left;
