@@ -6174,14 +6174,18 @@ process_working_stack (Btor *btor,
     array = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (array));
     assert (BTOR_IS_ARRAY_EXP (array));
+    assert (array->simplified == NULL);
     assert (!BTOR_EMPTY_STACK (*stack));
     acc = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (acc));
     assert (BTOR_IS_ACC_EXP (acc));
+    assert (acc->simplified == NULL);
     /* synthesize index and value if necessary */
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
-    value                = BTOR_GET_VALUE_ACC_EXP (acc);
+    assert (BTOR_REAL_ADDR_EXP (index)->simplified == NULL);
+    value = BTOR_GET_VALUE_ACC_EXP (acc);
+    assert (BTOR_REAL_ADDR_EXP (value)->simplified == NULL);
     if (*assignments_changed) return 0;
     /* hash table lookup */
     if (array->table == NULL)
@@ -6226,6 +6230,9 @@ process_working_stack (Btor *btor,
       else if (!indices_equal)
       {
         /* propagate down */
+        assert (BTOR_IS_REGULAR_EXP (array->e[0]));
+        assert (BTOR_IS_ARRAY_EXP (array->e[0]));
+        assert (array->e[0]->simplified == NULL);
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, array->e[0]);
       }
@@ -6243,9 +6250,19 @@ process_working_stack (Btor *btor,
       /* propagate down */
       BTOR_PUSH_STACK (mm, *stack, acc);
       if (assignment == 1)
+      {
+        assert (BTOR_IS_REGULAR_EXP (array->e[1]));
+        assert (BTOR_IS_ARRAY_EXP (array->e[1]));
+        assert (array->e[1]->simplified == NULL);
         BTOR_PUSH_STACK (mm, *stack, array->e[1]);
+      }
       else
+      {
+        assert (BTOR_IS_REGULAR_EXP (array->e[2]));
+        assert (BTOR_IS_ARRAY_EXP (array->e[2]));
+        assert (array->e[2]->simplified == NULL);
         BTOR_PUSH_STACK (mm, *stack, array->e[2]);
+      }
     }
     assert (array->table != NULL);
     /* insert into hash table */
@@ -6256,7 +6273,7 @@ process_working_stack (Btor *btor,
     {
       cur_aeq = next_parent_aeq_parent_iterator (&it);
       assert (BTOR_IS_REGULAR_EXP (cur_aeq));
-      if (cur_aeq->reachable)
+      if (cur_aeq->reachable && cur_aeq->simplified == NULL)
       {
         assert (cur_aeq->av != NULL);
         assert (cur_aeq->full_sat);
@@ -6272,6 +6289,7 @@ process_working_stack (Btor *btor,
             next = cur_aeq->e[0];
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
+          assert (next->simplified == NULL);
           BTOR_PUSH_STACK (mm, *stack, acc);
           BTOR_PUSH_STACK (mm, *stack, next);
         }
@@ -6308,7 +6326,8 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   {
     cur_array = *temp;
     assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
-    if (cur_array->reachable) BTOR_PUSH_STACK (mm, array_stack, cur_array);
+    if (cur_array->reachable && cur_array->simplified == NULL)
+      BTOR_PUSH_STACK (mm, array_stack, cur_array);
   }
   while (!BTOR_EMPTY_STACK (array_stack))
   {
@@ -6337,7 +6356,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         {
           cur_parent = next_parent_write_parent_iterator (&it);
           assert (BTOR_IS_REGULAR_EXP (cur_parent));
-          if (cur_parent->reachable)
+          if (cur_parent->reachable && cur_parent->simplified == NULL)
           {
             assert (cur_parent->array_mark == 0);
             BTOR_PUSH_STACK (mm, array_stack, cur_parent);
@@ -6349,7 +6368,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       {
         cur_parent = next_parent_acond_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        if (cur_parent->reachable)
+        if (cur_parent->reachable && cur_parent->simplified == NULL)
           BTOR_PUSH_STACK (mm, array_stack, cur_parent);
       }
     }
@@ -6357,6 +6376,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     {
       cur_array->array_mark = 2;
       assert (cur_array->reachable);
+      assert (cur_array->simplified == NULL);
       if (extensionality && BTOR_IS_WRITE_EXP (cur_array))
       {
         /* propagate write as read to ensure write value
@@ -6374,7 +6394,8 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
         /* we only process reachable or virtual reads */
-        if (cur_parent->reachable || cur_parent->vread)
+        if ((cur_parent->reachable || cur_parent->vread)
+            && cur_parent->simplified == NULL)
         {
           /* push read-array pair on working stack */
           BTOR_PUSH_STACK (mm, working_stack, cur_parent);
@@ -7062,9 +7083,12 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
   if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (simplified)))
   {
     invert_bits = BTOR_IS_INVERTED_EXP (simplified);
-    if (invert_bits) btor_invert_const (btor->mm, simplified->bits);
-    assignment = btor_copy_const (btor->mm, simplified->bits);
-    if (invert_bits) btor_invert_const (btor->mm, simplified->bits);
+    if (invert_bits)
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (simplified)->bits);
+    assignment =
+        btor_copy_const (btor->mm, BTOR_REAL_ADDR_EXP (simplified)->bits);
+    if (invert_bits)
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (simplified)->bits);
     return assignment;
   }
   if (!BTOR_REAL_ADDR_EXP (simplified)->reachable
