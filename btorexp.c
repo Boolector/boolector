@@ -4945,7 +4945,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
       fputs ("))", file);
     }
-    else if (BTOR_IS_BV_COND_EXP (e) || BTOR_IS_ARRAY_COND_EXP (e))
+    else if (BTOR_IS_ARRAY_OR_BV_COND_EXP (e))
     {
       fputs ("(ite (= bv1[1] ", file);
       btor_dump_smt_id (e->e[0], file);
@@ -4955,8 +4955,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
       btor_dump_smt_id (e->e[2], file);
       fputc (')', file);
     }
-    else if (BTOR_IS_BV_EQ_EXP (e) || BTOR_IS_ARRAY_EQ_EXP (e)
-             || e->kind == BTOR_ULT_EXP)
+    else if (BTOR_IS_ARRAY_OR_BV_EQ_EXP (e) || e->kind == BTOR_ULT_EXP)
     {
       fputs ("(ite (", file);
       if (e->kind == BTOR_ULT_EXP)
@@ -6456,7 +6455,7 @@ rebuild_exp (Btor *btor, BtorExp *exp)
     case BTOR_WRITE_EXP:
       return write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     default:
-      assert (BTOR_IS_BV_COND_EXP (exp) || BTOR_IS_ARRAY_COND_EXP (exp));
+      assert (BTOR_IS_ARRAY_OR_BV_COND_EXP (exp));
       return cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
   }
 }

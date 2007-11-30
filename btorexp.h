@@ -141,6 +141,8 @@ struct BtorExp
 #define BTOR_IS_WRITE_EXP(exp) (BTOR_IS_WRITE_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_COND_EXP(exp) (BTOR_IS_ARRAY_COND_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BV_COND_EXP(exp) (BTOR_IS_BV_COND_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_OR_BV_COND_EXP(exp) \
+  (BTOR_IS_ARRAY_COND_EXP (exp) || BTOR_IS_BV_COND_EXP (exp))
 #define BTOR_IS_ATOMIC_ARRAY_EXP(exp) \
   (BTOR_IS_ATOMIC_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_EXP(exp) (BTOR_IS_ARRAY_EXP_KIND ((exp)->kind))
