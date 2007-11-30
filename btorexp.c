@@ -6578,10 +6578,10 @@ substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
   BtorFullParentIterator it;
   BtorMemMgr *mm;
   int is_var_substitution;
+  assert (btor->rewrite_level > 1);
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
-  /* we want to substitute a variable or a native array by the right side */
   assert (BTOR_IS_REGULAR_EXP (left));
   assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
 
