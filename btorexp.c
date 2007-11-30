@@ -133,6 +133,7 @@ static BtorExp *concat_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *cond_exp (Btor *, BtorExp *, BtorExp *, BtorExp *);
 static BtorExp *copy_exp (Btor *, BtorExp *);
 static void release_exp (Btor *, BtorExp *);
+static void add_constraint (Btor *, BtorExp *);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -1386,10 +1387,9 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
   /* only one simplified expression ? */
   if (BTOR_REAL_ADDR_EXP (real_exp->simplified)->simplified == NULL)
   {
-    invert = BTOR_IS_INVERTED_EXP (exp)
-             ^ BTOR_IS_INVERTED_EXP (real_exp->simplified);
-    return invert ? BTOR_INVERT_EXP (real_exp->simplified)
-                  : real_exp->simplified;
+    if (BTOR_IS_INVERTED_EXP (exp))
+      return BTOR_INVERT_EXP (real_exp->simplified);
+    return exp->simplified;
   }
   /* shorten path to simplified expression */
   invert = 0;
@@ -6487,7 +6487,7 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   {
     case BTOR_CONST_EXP:
     case BTOR_VAR_EXP:
-    case BTOR_ARRAY_EXP: return copy_exp (btor, exp);
+    case BTOR_ARRAY_EXP: return copy_exp (btor, exp->simplified);
     case BTOR_SLICE_EXP:
       return slice_exp (btor, exp->e[0], exp->upper, exp->lower);
     case BTOR_AND_EXP: return and_exp (btor, exp->e[0], exp->e[1]);
@@ -6510,66 +6510,79 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   }
 }
 
-#if 0
 static void
-check_and_update_constraints (Btor * btor, BtorExp * exp)
+update_constraints (Btor *btor, BtorExp *exp)
 {
-  BtorPtrHashTable *constraints, *new_constraints;
-  BtorExp *simplified, *old_root, *new_root;
+  BtorPtrHashTable *new_constraints, *processed_constraints,
+      *synthesized_constraints, *pos, *neg;
+  BtorExp *simplified, *not_simplified, *not_exp;
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->simplified != NULL);
-  constraints = btor->constraints;
-  new_constraints = btor->new_constraints;
-  simplified = BTOR_REAL_ADDR_EXP (exp)->simplified;
-  if (btor_find_in_ptr_hash_table (constraints, exp) != NULL)
-    {
-      new_root = simplified;
-      /* is expression also a root in new_constraints ? */
-      if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
-        {
-          /* update root */
-          btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
-          /* is new_root really new ? */
-          if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
-            btor_insert_in_ptr_hash_table (new_constraints, new_root);
-        }
-      /* update root */
-      btor_remove_from_ptr_hash_table (constraints,
-                                       exp, (void *) &old_root, NULL);
-      release_exp (btor, old_root);
-      /* is new root really new ? */
-      if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
-        btor_insert_in_ptr_hash_table (constraints,
-                                       btor_copy_exp (btor, new_root));
-    }
-  /* look if inverted expression is root */
-  exp = BTOR_INVERT_EXP (exp);
-  if (btor_find_in_ptr_hash_table (constraints, exp) != NULL)
-    {
-      new_root = BTOR_INVERT_EXP (simplified);
-      /* is expression also a root in new_constraints ? */
-      if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
-        {
-          /* update root */
-          btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
-          /* is new_root really new ? */
-          if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
-            btor_insert_in_ptr_hash_table (new_constraints, new_root);
-        }
-      /* update root */
-      btor_remove_from_ptr_hash_table (constraints, exp, (void *) &old_root,
-                                       NULL);
-      release_exp (btor, old_root);
-      /* is new root really new ? */
-      if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
-        btor_insert_in_ptr_hash_table (constraints,
-                                       btor_copy_exp (btor, new_root));
-    }
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (exp->simplified != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp->simplified)->simplified == NULL);
+  assert (exp->constraint);
+  not_exp                 = BTOR_INVERT_EXP (exp);
+  simplified              = exp->simplified;
+  not_simplified          = BTOR_INVERT_EXP (simplified);
+  new_constraints         = btor->new_constraints;
+  processed_constraints   = btor->processed_constraints;
+  synthesized_constraints = btor->synthesized_constraints;
+  pos = neg = NULL;
+
+  if (btor_find_in_ptr_hash_table (new_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    pos = new_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (new_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    neg = new_constraints;
+  }
+
+  if (btor_find_in_ptr_hash_table (processed_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    assert (pos == NULL);
+    pos = processed_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (processed_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    assert (neg == NULL);
+    neg = processed_constraints;
+  }
+
+  if (btor_find_in_ptr_hash_table (synthesized_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    assert (pos == NULL);
+    pos = processed_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (synthesized_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    assert (neg == NULL);
+    neg = processed_constraints;
+  }
+
+  if (pos != NULL)
+  {
+    btor_remove_from_ptr_hash_table (pos, exp, NULL, NULL);
+    release_exp (btor, exp);
+  }
+  if (neg != NULL)
+  {
+    btor_remove_from_ptr_hash_table (neg, not_exp, NULL, NULL);
+    release_exp (btor, not_exp);
+  }
+  exp->constraint = 0;
 }
 
+/* substitutes variable or atomic array by right side */
 static void
-substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
+substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 {
   BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
   BtorExpPtrStack search_stack;
@@ -6582,11 +6595,10 @@ substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
+  assert (left->simplified == NULL);
+  assert (BTOR_REAL_ADDR_EXP (right)->simplified == NULL);
   assert (BTOR_IS_REGULAR_EXP (left));
   assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
-
-  if (occurrence_check (btor, left, right))
-    return;
 
   mm = btor->mm;
 
@@ -6601,29 +6613,28 @@ substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
   BTOR_INIT_STACK (root_stack);
   BTOR_PUSH_STACK (mm, search_stack, left);
   do
+  {
+    cur = BTOR_POP_STACK (search_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (cur->subst_mark == 0)
     {
-      cur = BTOR_POP_STACK (search_stack);
-      assert (BTOR_IS_REGULAR_EXP (cur));
-      if (cur->subst_mark == 0)
+      cur->subst_mark = 1;
+      init_full_parent_iterator (&it, cur);
+      /* are we at a root ? */
+      if (!has_next_parent_full_parent_iterator (&it))
+        BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
+      else
+      {
+        do
         {
-          cur->subst_mark = 1;
-          init_full_parent_iterator (&it, cur);
-          /* are we at a root ? */
-          if (!has_next_parent_full_parent_iterator (&it))
-            BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
-          else
-            {
-              do
-                {
-                  cur_parent = next_parent_full_parent_iterator (&it);
-                  assert (BTOR_IS_REGULAR_EXP (cur_parent));
-                  BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-                }
-              while (has_next_parent_full_parent_iterator (&it));
-            }
-        }
+          cur_parent = next_parent_full_parent_iterator (&it);
+          assert (BTOR_IS_REGULAR_EXP (cur_parent));
+          if (cur_parent->simplified == NULL)
+            BTOR_PUSH_STACK (mm, search_stack, cur_parent);
+        } while (has_next_parent_full_parent_iterator (&it));
+      }
     }
-  while (!BTOR_EMPTY_STACK (search_stack));
+  } while (!BTOR_EMPTY_STACK (search_stack));
   BTOR_RELEASE_STACK (mm, search_stack);
 
   /* copy roots on substitution stack */
@@ -6638,44 +6649,47 @@ substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
   /* substitute */
 
   do
+  {
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
+    if (cur->subst_mark == 0) continue;
+
+    if (cur == left) /* base case */
+      continue;
+
+    if (cur->subst_mark == 1)
     {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-      if (cur->subst_mark == 1)
-        {
-          cur->subst_mark = 2;
-          BTOR_PUSH_STACK (mm, subst_stack, cur);
-          if (BTOR_IS_UNARY_EXP (cur))
-            BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-          else if (BTOR_IS_BINARY_EXP (cur))
-            {
-              BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
-              BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-            }
-          else if (BTOR_IS_TERNARY_EXP (cur))
-            {
-              BTOR_PUSH_STACK (mm, subst_stack, cur->e[2]);
-              BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
-              BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-            }
-        }
-      else if (cur->subst_mark == 2)
-        {
-          cur->subst_mark = 0;
-          rebuilt_exp = rebuild_exp (btor, cur);
-          assert (rebuilt_exp != NULL);
-          if (rebuilt_exp == cur)
-            release_exp (btor, rebuilt_exp);
-          else
-            {
-              if (cur->simplified != NULL)
-                release_exp (btor, cur->simplified);
-              cur->simplified = rebuilt_exp;
-              /* do we have to update a root ? */
-              check_and_update_constraints (btor, cur);
-            }
-        }
+      cur->subst_mark = 2;
+      BTOR_PUSH_STACK (mm, subst_stack, cur);
+      if (BTOR_IS_UNARY_EXP (cur))
+        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
+      else if (BTOR_IS_BINARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
+      }
+      else if (BTOR_IS_TERNARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, subst_stack, cur->e[2]);
+        BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
+      }
     }
-  while (!BTOR_EMPTY_STACK (subst_stack));
+    else
+    {
+      assert (cur->subst_mark == 2);
+      assert (!BTOR_IS_CONST_EXP (cur));
+      assert (!BTOR_IS_VAR_EXP (cur));
+      assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      cur->subst_mark = 0;
+      rebuilt_exp     = rebuild_exp (btor, cur);
+      assert (rebuilt_exp != NULL);
+      assert (rebuilt_exp != cur);
+      if (cur->simplified != NULL) release_exp (btor, cur->simplified);
+      cur->simplified = rebuilt_exp;
+      /* do we have to update a root ? */
+      if (cur->constraint) update_constraints (btor, cur);
+    }
+  } while (!BTOR_EMPTY_STACK (subst_stack));
   BTOR_RELEASE_STACK (mm, subst_stack);
 
   top = root_stack.top;
@@ -6688,7 +6702,6 @@ substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
   else
     btor->array_substitutions++;
 }
-#endif
 
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
@@ -6700,8 +6713,8 @@ is_substitution (Btor *btor,
   BtorExp *left, *right, *real_left, *real_right;
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (left != NULL);
-  assert (right != NULL);
+  assert (left_result != NULL);
+  assert (right_result != NULL);
   if (btor->rewrite_level <= 1 || BTOR_IS_INVERTED_EXP (exp)
       || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp))
     return 0;
@@ -6732,7 +6745,7 @@ is_substitution (Btor *btor,
     *left_result  = BTOR_INVERT_EXP (*left_result);
     *right_result = BTOR_INVERT_EXP (*right_result);
   }
-  return 1;
+  return !occurrence_check (btor, *left_result, *right_result);
 }
 
 static void
@@ -6752,10 +6765,13 @@ process_new_constraints (Btor *btor)
     assert (BTOR_REAL_ADDR_EXP (cur)->constraint == 1);
     assert (pointer_chase_simplified_exp (btor, cur) == cur);
     assert (BTOR_IS_INVERTED_EXP (cur) || cur->kind != BTOR_AND_EXP);
-    /* if (is_substitution (btor, cur, &left, &right)) */
-    /* TODO substitution */
-    btor_insert_in_ptr_hash_table (processed_constraints, cur);
-    btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+    if (is_substitution (btor, cur, &left, &right))
+      substitute_exp (btor, left, right);
+    else
+    {
+      btor_insert_in_ptr_hash_table (processed_constraints, cur);
+      btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+    }
   }
 }
 
@@ -6773,22 +6789,17 @@ insert_into_new_constraint (Btor *btor, BtorExp *exp)
   }
 }
 
-void
-btor_add_constraint_exp (Btor *btor, BtorExp *exp)
+static void
+add_constraint (Btor *btor, BtorExp *exp)
 {
   BtorExp *cur, *child;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
-  BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_add_constraint_exp'");
-  BTOR_ABORT_EXP (exp == NULL,
-                  "'exp' must not be NULL in 'btor_add_constraint_exp'");
-  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                  "'exp' must not be an array in 'btor_add_constraint_exp'");
-  BTOR_ABORT_EXP (
-      BTOR_REAL_ADDR_EXP (exp)->len != 1,
-      "'exp' has to be a boolean expression in 'btor_add_constraint_exp'");
   mm = btor->mm;
   if (btor->valid_assignments)
   {
@@ -6796,6 +6807,15 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
     reset_assumptions (btor);
   }
   assert (btor->assumptions != NULL);
+
+  /* we do not add TRUE */
+  if (!BTOR_IS_INVERTED_EXP (exp) && BTOR_IS_CONST_EXP (exp)
+      && exp->bits[0] == '1')
+    return;
+  if (BTOR_IS_INVERTED_EXP (exp) && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))
+      && BTOR_REAL_ADDR_EXP (exp)->bits[0] == '0')
+    return;
+
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
     BTOR_INIT_STACK (stack);
@@ -6826,6 +6846,21 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   }
   else
     insert_into_new_constraint (btor, exp);
+}
+
+void
+btor_add_constraint_exp (Btor *btor, BtorExp *exp)
+{
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_add_constraint_exp'");
+  BTOR_ABORT_EXP (exp == NULL,
+                  "'exp' must not be NULL in 'btor_add_constraint_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                  "'exp' must not be an array in 'btor_add_constraint_exp'");
+  BTOR_ABORT_EXP (
+      BTOR_REAL_ADDR_EXP (exp)->len != 1,
+      "'exp' has to be a boolean expression in 'btor_add_constraint_exp'");
+  add_constraint (btor, exp);
   process_new_constraints (btor);
 }
 
@@ -7016,7 +7051,7 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
   char *assignment;
-  int invert_av;
+  int invert_av, invert_bits;
   BTOR_ABORT_EXP (btor == NULL,
                   "'btor' must not be NULL in 'btor_assignment_exp'");
   BTOR_ABORT_EXP (exp == NULL,
@@ -7024,6 +7059,14 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_assignment_exp'");
   simplified = pointer_chase_simplified_exp (btor, exp);
+  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (simplified)))
+  {
+    invert_bits = BTOR_IS_INVERTED_EXP (simplified);
+    if (invert_bits) btor_invert_const (btor->mm, simplified->bits);
+    assignment = btor_copy_const (btor->mm, simplified->bits);
+    if (invert_bits) btor_invert_const (btor->mm, simplified->bits);
+    return assignment;
+  }
   if (!BTOR_REAL_ADDR_EXP (simplified)->reachable
       || BTOR_REAL_ADDR_EXP (simplified)->av == NULL)
     return NULL;
