@@ -657,6 +657,12 @@ test_substitute2_special ()
   run_unsat_test ("substitute2.btor");
 }
 
+static void
+test_substitute3_special ()
+{
+  run_sat_test ("substitute3.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -763,6 +769,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arraycond14_special);
   BTOR_RUN_TEST (substitute1_special);
   BTOR_RUN_TEST (substitute2_special);
+  BTOR_RUN_TEST (substitute3_special);
 }
 
 void
