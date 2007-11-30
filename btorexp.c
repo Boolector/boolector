@@ -69,8 +69,9 @@ struct Btor
   BtorWriteEnc write_enc;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
-  BtorPtrHashTable *constraints;
   BtorPtrHashTable *new_constraints;
+  BtorPtrHashTable *processed_constraints;
+  BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
   /* statistics */
   int refinements;
@@ -5036,9 +5037,11 @@ btor_new_btor (void)
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  btor->constraints = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
   btor->new_constraints = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
+  btor->processed_constraints = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
+  btor->synthesized_constraints = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
   btor->assumptions = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
@@ -5117,9 +5120,6 @@ btor_delete_btor (Btor *btor)
     delete_exp_pair (btor, (BtorExpPair *) bucket->key);
   btor_delete_ptr_hash_table (btor->exp_pair_cnf_diff_id_table);
 
-  /* new_constraints do not have a reference */
-  btor_delete_ptr_hash_table (btor->new_constraints);
-
   for (bucket = btor->exp_pair_cnf_eq_id_table->first; bucket != NULL;
        bucket = bucket->next)
     delete_exp_pair (btor, (BtorExpPair *) bucket->key);
@@ -5127,9 +5127,20 @@ btor_delete_btor (Btor *btor)
 
   /* delete constraints and assumptions */
 
-  for (bucket = btor->constraints->first; bucket != NULL; bucket = bucket->next)
+  for (bucket = btor->new_constraints->first; bucket != NULL;
+       bucket = bucket->next)
     release_exp (btor, (BtorExp *) bucket->key);
-  btor_delete_ptr_hash_table (btor->constraints);
+  btor_delete_ptr_hash_table (btor->new_constraints);
+
+  for (bucket = btor->processed_constraints->first; bucket != NULL;
+       bucket = bucket->next)
+    release_exp (btor, (BtorExp *) bucket->key);
+  btor_delete_ptr_hash_table (btor->processed_constraints);
+
+  for (bucket = btor->synthesized_constraints->first; bucket != NULL;
+       bucket = bucket->next)
+    release_exp (btor, (BtorExp *) bucket->key);
+  btor_delete_ptr_hash_table (btor->synthesized_constraints);
 
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
     release_exp (btor, (BtorExp *) bucket->key);
@@ -5186,7 +5197,8 @@ btor_print_stats_btor (Btor *btor)
 {
   assert (btor != NULL);
   (void) btor;
-  print_verbose_msg ("top level constraints: %u", btor->constraints->count);
+  print_verbose_msg ("synthesized constraints: %u",
+                     btor->synthesized_constraints->count);
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
   print_verbose_msg ("variable substitutions: %d", btor->var_substitutions);
   print_verbose_msg ("array substitutions: %d", btor->array_substitutions);
@@ -6449,65 +6461,66 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   }
 }
 
+#if 0
 static void
-check_and_update_constraints (Btor *btor, BtorExp *exp)
+check_and_update_constraints (Btor * btor, BtorExp * exp)
 {
   BtorPtrHashTable *constraints, *new_constraints;
   BtorExp *simplified, *old_root, *new_root;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->simplified != NULL);
-  constraints     = btor->constraints;
+  constraints = btor->constraints;
   new_constraints = btor->new_constraints;
-  simplified      = BTOR_REAL_ADDR_EXP (exp)->simplified;
+  simplified = BTOR_REAL_ADDR_EXP (exp)->simplified;
   if (btor_find_in_ptr_hash_table (constraints, exp) != NULL)
-  {
-    new_root = simplified;
-    /* is expression also a root in new_constraints ? */
-    if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
     {
+      new_root = simplified;
+      /* is expression also a root in new_constraints ? */
+      if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
+        {
+          /* update root */
+          btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
+          /* is new_root really new ? */
+          if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
+            btor_insert_in_ptr_hash_table (new_constraints, new_root);
+        }
       /* update root */
-      btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
-      /* is new_root really new ? */
-      if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
-        btor_insert_in_ptr_hash_table (new_constraints, new_root);
+      btor_remove_from_ptr_hash_table (constraints,
+                                       exp, (void *) &old_root, NULL);
+      release_exp (btor, old_root);
+      /* is new root really new ? */
+      if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
+        btor_insert_in_ptr_hash_table (constraints,
+                                       btor_copy_exp (btor, new_root));
     }
-    /* update root */
-    btor_remove_from_ptr_hash_table (
-        constraints, exp, (void *) &old_root, NULL);
-    release_exp (btor, old_root);
-    /* is new root really new ? */
-    if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
-      btor_insert_in_ptr_hash_table (constraints,
-                                     btor_copy_exp (btor, new_root));
-  }
   /* look if inverted expression is root */
   exp = BTOR_INVERT_EXP (exp);
   if (btor_find_in_ptr_hash_table (constraints, exp) != NULL)
-  {
-    new_root = BTOR_INVERT_EXP (simplified);
-    /* is expression also a root in new_constraints ? */
-    if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
     {
+      new_root = BTOR_INVERT_EXP (simplified);
+      /* is expression also a root in new_constraints ? */
+      if (btor_find_in_ptr_hash_table (new_constraints, exp) != NULL)
+        {
+          /* update root */
+          btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
+          /* is new_root really new ? */
+          if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
+            btor_insert_in_ptr_hash_table (new_constraints, new_root);
+        }
       /* update root */
-      btor_remove_from_ptr_hash_table (new_constraints, exp, NULL, NULL);
-      /* is new_root really new ? */
-      if (btor_find_in_ptr_hash_table (new_constraints, new_root) == NULL)
-        btor_insert_in_ptr_hash_table (new_constraints, new_root);
+      btor_remove_from_ptr_hash_table (constraints, exp, (void *) &old_root,
+                                       NULL);
+      release_exp (btor, old_root);
+      /* is new root really new ? */
+      if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
+        btor_insert_in_ptr_hash_table (constraints,
+                                       btor_copy_exp (btor, new_root));
     }
-    /* update root */
-    btor_remove_from_ptr_hash_table (
-        constraints, exp, (void *) &old_root, NULL);
-    release_exp (btor, old_root);
-    /* is new root really new ? */
-    if (btor_find_in_ptr_hash_table (constraints, new_root) == NULL)
-      btor_insert_in_ptr_hash_table (constraints,
-                                     btor_copy_exp (btor, new_root));
-  }
 }
 
 static void
-substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
+substitute_exp (Btor * btor, BtorExp * left, BtorExp * right)
 {
   BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
   BtorExpPtrStack search_stack;
@@ -6515,28 +6528,20 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   BtorExpPtrStack root_stack;
   BtorFullParentIterator it;
   BtorMemMgr *mm;
-  int var_substitution;
+  int is_var_substitution;
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
   /* we want to substitute a variable or a native array by the right side */
-  assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left))
-          || BTOR_IS_NATIVE_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
+  assert (BTOR_IS_REGULAR_EXP (left));
+  assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_NATIVE_ARRAY_EXP (left));
 
-  if (occurrence_check (btor, left, right)) return;
+  if (occurrence_check (btor, left, right))
+    return;
 
   mm = btor->mm;
 
-  /* normalize */
-  if (BTOR_IS_INVERTED_EXP (left))
-  {
-    left  = BTOR_INVERT_EXP (left);
-    right = BTOR_INVERT_EXP (right);
-    assert (BTOR_IS_VAR_EXP (left));
-  }
-
-  assert (BTOR_IS_REGULAR_EXP (left));
-  var_substitution = BTOR_IS_VAR_EXP (left);
+  is_var_substitution = BTOR_IS_VAR_EXP (left);
 
   left->simplified = copy_exp (btor, right);
 
@@ -6547,27 +6552,29 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   BTOR_INIT_STACK (root_stack);
   BTOR_PUSH_STACK (mm, search_stack, left);
   do
-  {
-    cur = BTOR_POP_STACK (search_stack);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->subst_mark == 0)
     {
-      cur->subst_mark = 1;
-      init_full_parent_iterator (&it, cur);
-      /* are we at a root ? */
-      if (!has_next_parent_full_parent_iterator (&it))
-        BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
-      else
-      {
-        do
+      cur = BTOR_POP_STACK (search_stack);
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      if (cur->subst_mark == 0)
         {
-          cur_parent = next_parent_full_parent_iterator (&it);
-          assert (BTOR_IS_REGULAR_EXP (cur_parent));
-          BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-        } while (has_next_parent_full_parent_iterator (&it));
-      }
+          cur->subst_mark = 1;
+          init_full_parent_iterator (&it, cur);
+          /* are we at a root ? */
+          if (!has_next_parent_full_parent_iterator (&it))
+            BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
+          else
+            {
+              do
+                {
+                  cur_parent = next_parent_full_parent_iterator (&it);
+                  assert (BTOR_IS_REGULAR_EXP (cur_parent));
+                  BTOR_PUSH_STACK (mm, search_stack, cur_parent);
+                }
+              while (has_next_parent_full_parent_iterator (&it));
+            }
+        }
     }
-  } while (!BTOR_EMPTY_STACK (search_stack));
+  while (!BTOR_EMPTY_STACK (search_stack));
   BTOR_RELEASE_STACK (mm, search_stack);
 
   /* copy roots on substitution stack */
@@ -6582,42 +6589,44 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   /* substitute */
 
   do
-  {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-    if (cur->subst_mark == 1)
     {
-      cur->subst_mark = 2;
-      BTOR_PUSH_STACK (mm, subst_stack, cur);
-      if (BTOR_IS_UNARY_EXP (cur))
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-      else if (BTOR_IS_BINARY_EXP (cur))
-      {
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-      }
-      else if (BTOR_IS_TERNARY_EXP (cur))
-      {
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[2]);
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-      }
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
+      if (cur->subst_mark == 1)
+        {
+          cur->subst_mark = 2;
+          BTOR_PUSH_STACK (mm, subst_stack, cur);
+          if (BTOR_IS_UNARY_EXP (cur))
+            BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
+          else if (BTOR_IS_BINARY_EXP (cur))
+            {
+              BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
+            }
+          else if (BTOR_IS_TERNARY_EXP (cur))
+            {
+              BTOR_PUSH_STACK (mm, subst_stack, cur->e[2]);
+              BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
+            }
+        }
+      else if (cur->subst_mark == 2)
+        {
+          cur->subst_mark = 0;
+          rebuilt_exp = rebuild_exp (btor, cur);
+          assert (rebuilt_exp != NULL);
+          if (rebuilt_exp == cur)
+            release_exp (btor, rebuilt_exp);
+          else
+            {
+              if (cur->simplified != NULL)
+                release_exp (btor, cur->simplified);
+              cur->simplified = rebuilt_exp;
+              /* do we have to update a root ? */
+              check_and_update_constraints (btor, cur);
+            }
+        }
     }
-    else if (cur->subst_mark == 2)
-    {
-      cur->subst_mark = 0;
-      rebuilt_exp     = rebuild_exp (btor, cur);
-      assert (rebuilt_exp != NULL);
-      if (rebuilt_exp == cur)
-        release_exp (btor, rebuilt_exp);
-      else
-      {
-        if (cur->simplified != NULL) release_exp (btor, cur->simplified);
-        cur->simplified = rebuilt_exp;
-        /* do we have to update a root ? */
-        check_and_update_constraints (btor, cur);
-      }
-    }
-  } while (!BTOR_EMPTY_STACK (subst_stack));
+  while (!BTOR_EMPTY_STACK (subst_stack));
   BTOR_RELEASE_STACK (mm, subst_stack);
 
   top = root_stack.top;
@@ -6625,20 +6634,102 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     btor_release_exp (btor, *temp);
   BTOR_RELEASE_STACK (mm, root_stack);
 
-  if (var_substitution)
+  if (is_var_substitution)
     btor->var_substitutions++;
   else
     btor->array_substitutions++;
+}
+#endif
+
+/* checks if we can substitute and normalizes arguments to substitution */
+static int
+is_substitution (Btor *btor,
+                 BtorExp *exp,
+                 BtorExp **left_result,
+                 BtorExp **right_result)
+{
+  BtorExp *left, *right, *real_left, *real_right;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (left != NULL);
+  assert (right != NULL);
+  if (btor->rewrite_level <= 1 || BTOR_IS_INVERTED_EXP (exp)
+      || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp))
+    return 0;
+  left  = exp->e[0];
+  right = exp->e[1];
+  assert (pointer_chase_simplified_exp (btor, left) == left);
+  assert (pointer_chase_simplified_exp (btor, right) == right);
+  real_left  = BTOR_REAL_ADDR_EXP (left);
+  real_right = BTOR_REAL_ADDR_EXP (right);
+  if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
+      && !BTOR_IS_NATIVE_ARRAY_EXP (real_left)
+      && !BTOR_IS_NATIVE_ARRAY_EXP (real_right))
+    return 0;
+  if ((!BTOR_IS_VAR_EXP (real_left) && BTOR_IS_VAR_EXP (real_right))
+      || (!BTOR_IS_NATIVE_ARRAY_EXP (real_left)
+          && BTOR_IS_NATIVE_ARRAY_EXP (real_right)))
+  {
+    *left_result  = right;
+    *right_result = left;
+  }
+  else
+  {
+    *left_result  = left;
+    *right_result = right;
+  }
+  if (BTOR_IS_INVERTED_EXP (*left_result))
+  {
+    *left_result  = BTOR_INVERT_EXP (*left_result);
+    *right_result = BTOR_INVERT_EXP (*right_result);
+  }
+  return 1;
+}
+
+static void
+process_new_constraints (Btor *btor)
+{
+  BtorPtrHashTable *new_constraints, *processed_constraints;
+  BtorExp *cur, *left, *right;
+  BtorPtrHashBucket *bucket;
+  assert (btor != NULL);
+  new_constraints       = btor->new_constraints;
+  processed_constraints = btor->processed_constraints;
+  while (new_constraints->count > 0)
+  {
+    bucket = new_constraints->first;
+    assert (bucket != NULL);
+    cur = (BtorExp *) bucket->key;
+    assert (BTOR_REAL_ADDR_EXP (cur)->constraint == 1);
+    assert (pointer_chase_simplified_exp (btor, cur) == cur);
+    assert (BTOR_IS_INVERTED_EXP (cur) || cur->kind != BTOR_AND_EXP);
+    /* if (is_substitution (btor, cur, &left, &right)) */
+    /* TODO substitution */
+    btor_insert_in_ptr_hash_table (processed_constraints, cur);
+    btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+  }
+}
+
+static void
+insert_into_new_constraint (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *new_constraints;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  new_constraints = btor->new_constraints;
+  if (!btor_find_in_ptr_hash_table (new_constraints, exp))
+  {
+    btor_insert_in_ptr_hash_table (new_constraints, copy_exp (btor, exp));
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+  }
 }
 
 void
 btor_add_constraint_exp (Btor *btor, BtorExp *exp)
 {
-  BtorExp *cur, *child, *left, *right;
-  BtorPtrHashBucket *bucket;
+  BtorExp *cur, *child;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
-  unsigned int old_size;
 
   BTOR_ABORT_EXP (btor == NULL,
                   "'btor' must not be NULL in 'btor_add_constraint_exp'");
@@ -6649,8 +6740,7 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (
       BTOR_REAL_ADDR_EXP (exp)->len != 1,
       "'exp' has to be a boolean expression in 'btor_add_constraint_exp'");
-  mm       = btor->mm;
-  old_size = btor->constraints->count;
+  mm = btor->mm;
   if (btor->valid_assignments)
   {
     btor->valid_assignments = 0;
@@ -6674,107 +6764,20 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
         if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
           BTOR_PUSH_STACK (mm, stack, child);
         else
-        {
-          if (!btor_find_in_ptr_hash_table (btor->constraints, child))
-          {
-            btor_insert_in_ptr_hash_table (btor->constraints,
-                                           btor_copy_exp (btor, child));
-            btor_insert_in_ptr_hash_table (btor->new_constraints, child);
-          }
-        }
+          insert_into_new_constraint (btor, child);
         child = cur->e[0];
         if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
           BTOR_PUSH_STACK (mm, stack, child);
         else
-        {
-          if (!btor_find_in_ptr_hash_table (btor->constraints, child))
-          {
-            btor_insert_in_ptr_hash_table (btor->constraints,
-                                           btor_copy_exp (btor, child));
-            btor_insert_in_ptr_hash_table (btor->new_constraints, child);
-          }
-        }
+          insert_into_new_constraint (btor, child);
       }
     } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
     btor_mark_exp (btor, exp, 0);
   }
   else
-  {
-    if (!btor_find_in_ptr_hash_table (btor->constraints, exp))
-    {
-      btor_insert_in_ptr_hash_table (btor->constraints,
-                                     btor_copy_exp (btor, exp));
-      btor_insert_in_ptr_hash_table (btor->new_constraints, exp);
-    }
-  }
-  if (btor->rewrite_level > 1)
-  {
-    /* check if we can substitute */
-    assert (btor->constraints->count - old_size >= 1);
-    BTOR_INIT_STACK (stack);
-    /* we copy roots on stack as they may change during substitution */
-    for (bucket = btor->new_constraints->first; bucket != NULL;
-         bucket = bucket->next)
-      BTOR_PUSH_STACK (
-          mm, stack, btor_copy_exp (btor, (BtorExp *) bucket->key));
-    do
-    {
-      cur = BTOR_POP_STACK (stack);
-      /* check if cur is still root */
-      if (btor_find_in_ptr_hash_table (btor->new_constraints, cur) != NULL)
-      {
-        if (!BTOR_IS_INVERTED_EXP (cur))
-        {
-          assert (BTOR_IS_REGULAR_EXP (cur));
-          /* substitute bit vector variable ? */
-          if (BTOR_IS_BV_EQ_EXP (cur)
-              && (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[0]))
-                  || BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))))
-          {
-            if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))
-                && !BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (cur->e[0])))
-            {
-              left  = cur->e[1];
-              right = cur->e[0];
-            }
-            else
-            {
-              left  = cur->e[0];
-              right = cur->e[1];
-            }
-            substitute_exp (btor, left, right);
-          }
-          /* substitute array ? */
-          else if (BTOR_IS_ARRAY_EQ_EXP (cur))
-          {
-            assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
-            assert (BTOR_IS_REGULAR_EXP (cur->e[1]));
-            assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
-            assert (BTOR_IS_ARRAY_EXP (cur->e[1]));
-            if (BTOR_IS_NATIVE_ARRAY_EXP (cur->e[0])
-                || BTOR_IS_NATIVE_ARRAY_EXP (cur->e[1]))
-            {
-              if (BTOR_IS_NATIVE_ARRAY_EXP (cur->e[1])
-                  && !BTOR_IS_NATIVE_ARRAY_EXP (cur->e[0]))
-              {
-                left  = cur->e[1];
-                right = cur->e[0];
-              }
-              else
-              {
-                left  = cur->e[0];
-                right = cur->e[1];
-              }
-              substitute_exp (btor, left, right);
-            }
-          }
-        }
-      }
-      release_exp (btor, cur);
-    } while (!BTOR_EMPTY_STACK (stack));
-    BTOR_RELEASE_STACK (mm, stack);
-  }
+    insert_into_new_constraint (btor, exp);
+  process_new_constraints (btor);
 }
 
 void
@@ -6844,10 +6847,51 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   }
 }
 
+/* synthesizes unsynthesized constraints and updates constraints tables.
+ * returns 0 if a constraint has been synthesized into AIG_FALSE */
+static int
+process_unsynthesized_constraints (Btor *btor)
+{
+  BtorPtrHashTable *processed_constraints, *synthesized_constraints;
+  BtorPtrHashBucket *bucket;
+  BtorExp *cur;
+  BtorAIG *aig;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+  assert (btor != NULL);
+  processed_constraints   = btor->processed_constraints;
+  synthesized_constraints = btor->synthesized_constraints;
+  amgr                    = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr                    = btor_get_sat_mgr_aig_mgr (amgr);
+  while (processed_constraints->count > 0)
+  {
+    bucket = processed_constraints->first;
+    assert (bucket != NULL);
+    cur = (BtorExp *) bucket->key;
+
+    if (btor_find_in_ptr_hash_table (synthesized_constraints, cur) == NULL)
+    {
+      aig = exp_to_aig (btor, cur);
+      if (aig == BTOR_AIG_FALSE) return 1;
+      btor_aig_to_sat (amgr, aig);
+      if (aig != BTOR_AIG_TRUE)
+      {
+        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+        btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+        btor_add_sat (smgr, 0);
+        btor_release_aig (amgr, aig);
+      }
+      btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
+    }
+    btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
+  }
+  return 0;
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
-  int sat_result, found_conflict;
+  int sat_result, found_conflict, found_constraint_false;
   BtorPtrHashBucket *bucket;
   BtorExp *cur, *simplified;
   BtorAIGMgr *amgr;
@@ -6858,7 +6902,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
   assert (!btor->read_enc == BTOR_EAGER_READ_ENC
           || btor->write_enc == BTOR_EAGER_WRITE_ENC);
+
   if (btor->verbosity > 0) print_verbose_msg ("calling SAT");
+
   if (refinement_limit == 0) return BTOR_UNKNOWN;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
@@ -6868,29 +6914,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->valid_assignments == 1) reset_assumptions (btor);
   btor->valid_assignments = 1;
 
-  /* iterate over unresolved constraints */
-  for (bucket = btor->new_constraints->first; bucket != NULL;
-       bucket = bucket->next)
-  {
-    cur = (BtorExp *) bucket->key;
-
-    aig = exp_to_aig (btor, cur);
-    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-    btor_aig_to_sat (amgr, aig);
-    if (aig != BTOR_AIG_TRUE)
-    {
-      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-      btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-      btor_add_sat (smgr, 0);
-      btor_release_aig (amgr, aig);
-    }
-  }
-
-  /* reset new_constraints table */
-
-  btor_delete_ptr_hash_table (btor->new_constraints);
-  btor->new_constraints = btor_new_ptr_hash_table (
-      btor->mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
+  found_constraint_false = process_unsynthesized_constraints (btor);
+  if (found_constraint_false) return BTOR_UNSAT;
 
   /* iterate over assumptions */
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
