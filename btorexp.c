@@ -211,6 +211,20 @@ is_one_string (Btor *btor, const char *string, int len)
   return 1;
 }
 
+static int
+is_ones_string (Btor *btor, const char *string, int len)
+{
+  int i;
+  assert (btor != NULL);
+  assert (string != NULL);
+  assert (len > 0);
+  (void) btor;
+  if (string[len - 1] != '1') return 0;
+  for (i = 0; i < len - 1; i++)
+    if (string[i] != '1') return 0;
+  return 1;
+}
+
 /* Creates an expression pair which can be compared with
  * other expression pairs via the function
  * 'compare_exp_pair'
@@ -2217,11 +2231,18 @@ btor_zeros_exp (Btor *btor, int len)
   return zeros_exp (btor, len);
 }
 
+static BtorExp *
+false_exp (Btor *btor)
+{
+  assert (btor != NULL);
+  return zeros_exp (btor, 1);
+}
+
 BtorExp *
 btor_false_exp (Btor *btor)
 {
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_false_exp'");
-  return zeros_exp (btor, 1);
+  return false_exp (btor);
 }
 
 static BtorExp *
@@ -2245,13 +2266,6 @@ btor_ones_exp (Btor *btor, int len)
   return ones_exp (btor, len);
 }
 
-BtorExp *
-btor_true_exp (Btor *btor)
-{
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_true_exp'");
-  return ones_exp (btor, 1);
-}
-
 static BtorExp *
 one_exp (Btor *btor, int len)
 {
@@ -2272,6 +2286,20 @@ btor_one_exp (Btor *btor, int len)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_one_exp'");
   BTOR_ABORT_EXP (len < 1, "'len' must not be < 1 in 'btor_one_exp'");
   return one_exp (btor, len);
+}
+
+static BtorExp *
+true_exp (Btor *btor)
+{
+  assert (btor != NULL);
+  return one_exp (btor, 1);
+}
+
+BtorExp *
+btor_true_exp (Btor *btor)
+{
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_true_exp'");
+  return true_exp (btor);
 }
 
 static BtorExp *
@@ -2371,7 +2399,7 @@ rewrite_exp (Btor *btor,
   BtorMemMgr *mm;
   BtorExp *result, *real_e0, *real_e1, *real_e2, *temp;
   char *b0, *b1, *bresult;
-  int same_children_mem, i, diff, len, counter, is_zero, is_one;
+  int same_children_mem, i, diff, len, counter, is_zero, is_one, is_ones;
   int invert_b0 = 0;
   int invert_b1 = 0;
   assert (btor != NULL);
@@ -2469,6 +2497,7 @@ rewrite_exp (Btor *btor,
       if (invert_b0) btor_invert_const (mm, b0);
       is_zero = is_zero_string (btor, b0, real_e0->len);
       is_one  = is_one_string (btor, b0, real_e0->len);
+      is_ones = is_ones_string (btor, b0, real_e0->len);
       /* invert back if necessary */
       if (invert_b0) btor_invert_const (mm, b0);
       if (is_zero)
@@ -2477,12 +2506,19 @@ rewrite_exp (Btor *btor,
           result = copy_exp (btor, e1);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                  || kind == BTOR_SRL_EXP || kind == BTOR_UDIV_EXP
-                 || kind == BTOR_UREM_EXP)
+                 || kind == BTOR_UREM_EXP || kind == BTOR_AND_EXP)
           result = zeros_exp (btor, real_e0->len);
       }
       else if (is_one)
       {
         if (kind == BTOR_MUL_EXP) result = copy_exp (btor, e1);
+      }
+      else if (is_ones)
+      {
+        if (kind == BTOR_AND_EXP)
+          result = copy_exp (btor, e1);
+        else if (kind == BTOR_ULT_EXP) /* UNSIGNED_MAX < x */
+          result = false_exp (btor);
       }
     }
     else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
@@ -2492,6 +2528,7 @@ rewrite_exp (Btor *btor,
       if (invert_b1) btor_invert_const (mm, b1);
       is_zero = is_zero_string (btor, b1, real_e1->len);
       is_one  = is_one_string (btor, b1, real_e1->len);
+      is_ones = is_ones_string (btor, b1, real_e1->len);
       /* invert back if necessary */
       if (invert_b1) btor_invert_const (mm, b1);
       if (is_zero)
@@ -2499,8 +2536,10 @@ rewrite_exp (Btor *btor,
         if (kind == BTOR_ADD_EXP)
           result = copy_exp (btor, e0);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
-                 || kind == BTOR_SRL_EXP)
+                 || kind == BTOR_SRL_EXP || kind == BTOR_AND_EXP)
           result = zeros_exp (btor, real_e0->len);
+        else if (kind == BTOR_ULT_EXP) /* x < 0 */
+          result = false_exp (btor);
         else if (kind == BTOR_UDIV_EXP)
           result = ones_exp (btor, real_e0->len);
         else if (kind == BTOR_UREM_EXP)
@@ -2510,20 +2549,35 @@ rewrite_exp (Btor *btor,
       {
         if (kind == BTOR_MUL_EXP) result = copy_exp (btor, e0);
       }
+      else if (is_ones)
+      {
+        if (kind == BTOR_AND_EXP) result = copy_exp (btor, e0);
+      }
     }
     else if (real_e0 == real_e1
              && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
-                 || kind == BTOR_ADD_EXP))
+                 || kind == BTOR_AND_EXP || kind == BTOR_ADD_EXP))
     {
       if (kind == BTOR_BEQ_EXP)
       {
         if (e0 == e1)
-          result = one_exp (btor, 1);
+          result = true_exp (btor); /* x == x */
         else
-          result = zeros_exp (btor, 1);
+          result = false_exp (btor); /* x == ~x */
       }
-      else if (kind == BTOR_AEQ_EXP && e0 == e1)
-        result = one_exp (btor, 1);
+      else if (kind == BTOR_AEQ_EXP)
+      {
+        /* arrays must not be negated */
+        assert (e0 == e1);
+        result = true_exp (btor); /* x == x */
+      }
+      else if (kind == BTOR_AND_EXP)
+      {
+        if (e0 == e1)
+          result = copy_exp (btor, e0); /* x & x == x */
+        else
+          result = zeros_exp (btor, real_e0->len); /* x & ~x == 0 */
+      }
       else
       {
         assert (kind == BTOR_ADD_EXP);
@@ -2548,7 +2602,7 @@ rewrite_exp (Btor *btor,
     {
       switch (kind)
       {
-        case BTOR_ULT_EXP: result = zeros_exp (btor, 1); break;
+        case BTOR_ULT_EXP: result = false_exp (btor); break;
         case BTOR_UDIV_EXP: result = one_exp (btor, real_e0->len); break;
         default:
           assert (kind == BTOR_UREM_EXP);
@@ -2560,20 +2614,16 @@ rewrite_exp (Btor *btor,
     /* TODO: add all the O[123] optimization of MEMICS paper.
      * TODO: lots of word level simplifications:
      * a <= b && b <= a  <=> a == b
-     * a != b && a == b <=> 0
      * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
      * ...
      */
-    /* TODO a == ~a <=> 0 */
     /* TODO a + 2 * a <=> 3 * a <=> and see below */
     /* TODO strength reduction: a * 2 == a << 1 (really ?) */
     /* TODO strength reduction: a * 3 == (a << 1) + a (really ?) */
     /* TODO strength reduction: a / 2 == (a >> 1) (yes!) */
     /* TODO strength reduction: a / 3 =>  higher bits zero (check!) */
-    /* TODO a < 0 <=> 0 */
     /* TODO 0 < a <=> a != 0 */
     /* TODO a < 1 <=> a == 0 */
-    /* TODO MAX < a <=> 0 */
     /* TODO MAX-1 < a <=> a == MAX */
     /* TODO a < MAX <=> a != MAX */
 
