@@ -562,6 +562,12 @@ test_arrayeq11_special ()
 }
 
 static void
+test_arrayeq12_special ()
+{
+  run_sat_test ("arrayeq12.btor");
+}
+
+static void
 test_arraycond1_special ()
 {
   run_sat_test ("arraycond1.btor");
@@ -753,6 +759,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arrayeq9_special);
   BTOR_RUN_TEST (arrayeq10_special);
   BTOR_RUN_TEST (arrayeq11_special);
+  BTOR_RUN_TEST (arrayeq12_special);
   BTOR_RUN_TEST (arraycond1_special);
   BTOR_RUN_TEST (arraycond2_special);
   BTOR_RUN_TEST (arraycond3_special);
