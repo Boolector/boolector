@@ -375,6 +375,7 @@ btor_main (int argc, char **argv)
   BtorAIGVecMgr *avmgr        = NULL;
   BtorSATMgr *smgr            = NULL;
   BtorParseResult parse_res;
+  BtorExpPtrStack varstack;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
@@ -622,7 +623,19 @@ btor_main (int argc, char **argv)
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
-      btor_add_constraint_exp (btor, parse_res.roots[0]);
+
+      for (i = 0; i < parse_res.nroots; i++)
+        btor_add_constraint_exp (btor, parse_res.roots[i]);
+
+      BTOR_INIT_STACK (varstack);
+
+      for (i = 0; i < parse_res.nvars; i++)
+        BTOR_PUSH_STACK (
+            mem, varstack, btor_copy_exp (btor, parse_res.vars[i]));
+
+      parser_api->reset (parser);
+      parser_api = 0;
+
       sat_result = btor_sat_btor (btor, refinement_limit);
 
       if (app.verbosity >= 0)
@@ -634,7 +647,7 @@ btor_main (int argc, char **argv)
           print_msg (&app, "sat\n");
           if (print_solutions && parse_res.nvars > 0)
             print_variable_assignments (
-                &app, btor, parse_res.vars, parse_res.nvars);
+                &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
         }
         else
         {
@@ -643,13 +656,19 @@ btor_main (int argc, char **argv)
         }
       }
 
+      for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
+        btor_release_exp (btor, varstack.start[i]);
+      BTOR_RELEASE_STACK (mem, varstack);
+
       if (app.verbosity > 1) btor_print_stats_sat (smgr);
+
       btor_reset_sat (smgr);
 
       if (app.verbosity > 0) btor_print_stats_btor (btor);
     }
 
-    parser_api->reset (parser);
+    if (parser_api) parser_api->reset (parser);
+
     maxallocated = mem->maxallocated;
     btor_delete_btor (btor);
   }
