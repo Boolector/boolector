@@ -1,0 +1,24 @@
+1 var 2
+2 var 2
+3 var 2
+4 var 2
+5 array 8 2
+92 var 2
+93 var 8
+94 write 8 5 92 93
+95 var 2
+96 var 8
+97 write 8 94 95 96
+98 var 2
+99 var 8
+100 write 8 97 98 99
+101 read 8 100 1
+102 read 8 100 2
+103 read 8 100 3
+104 read 8 100 4
+106 ult 1 101 102
+107 ult 1 102 103
+108 ult 1 103 104
+110 and 1 106 107
+111 and 1 108 110
+113 root 1 111
