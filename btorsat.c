@@ -201,7 +201,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  if (smgr->verbosity >= 2) print_verbose_msg ("calling PicoSAT\n");
+  if (smgr->verbosity > 2) print_verbose_msg ("calling PicoSAT\n");
   return picosat_sat (limit);
 }
 

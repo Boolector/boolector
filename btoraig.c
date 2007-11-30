@@ -971,7 +971,7 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
   BtorAIG *cur, *left, *right;
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
-  if (amgr->verbosity > 1)
+  if (amgr->verbosity > 2)
     print_verbose_msg (
         "transforming AIG into CNF using Plaisted-Greenbaum transformation\n");
   smgr = amgr->smgr;
@@ -1113,7 +1113,7 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
-  if (amgr->verbosity > 1)
+  if (amgr->verbosity > 2)
     print_verbose_msg (
         "transforming AIG into CNF using Tseitin transformation\n");
   btor_aig_to_sat_full (amgr, aig);
