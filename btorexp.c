@@ -80,6 +80,7 @@ struct Btor
   int read_write_conflicts;
   int var_substitutions;
   int array_substitutions;
+  int vreads;
 };
 
 struct BtorExpPair
@@ -5252,6 +5253,7 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("variable substitutions: %d", btor->var_substitutions);
   print_verbose_msg ("array substitutions: %d", btor->array_substitutions);
   print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
+  print_verbose_msg ("virtual reads: %d", btor->vreads);
   print_verbose_msg ("read-read conflicts: %d", btor->read_read_conflicts);
   print_verbose_msg ("read-write conflicts: %d", btor->read_write_conflicts);
 
@@ -5303,7 +5305,12 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   aeq->vreads = new_exp_pair (btor, read1, read2);
 
   read1->av = btor_var_aigvec (avmgr, read1->len);
-  if (read1 != read2) read2->av = btor_var_aigvec (avmgr, read2->len);
+  btor->vreads++;
+  if (read1 != read2)
+  {
+    read2->av = btor_var_aigvec (avmgr, read2->len);
+    btor->vreads++;
+  }
 
   /* index gets synthesized later (if necessary) */
 
