@@ -81,6 +81,7 @@ struct Btor
   int var_substitutions;
   int array_substitutions;
   int vreads;
+  int linear_equations;
 };
 
 struct BtorExpPair
@@ -5254,6 +5255,7 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("array substitutions: %d", btor->array_substitutions);
   print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
   print_verbose_msg ("virtual reads: %d", btor->vreads);
+  print_verbose_msg ("linear constraint equations: %d", btor->linear_equations);
   print_verbose_msg ("read-read conflicts: %d", btor->read_read_conflicts);
   print_verbose_msg ("read-write conflicts: %d", btor->read_write_conflicts);
 
@@ -6803,8 +6805,38 @@ process_new_constraints (Btor *btor)
   }
 }
 
+static int
+is_linear_equation_child (Btor *btor, BtorExp *exp, int mul_parent)
+{
+  BtorExp *real_exp;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (mul_parent == 0 || mul_parent == 1);
+  real_exp = BTOR_REAL_ADDR_EXP (exp);
+  if (BTOR_IS_VAR_EXP (real_exp) || BTOR_IS_CONST_EXP (real_exp)) return 1;
+  if (mul_parent) /* children of mul may only be variables and constants */
+    return 0;
+  if (real_exp->kind == BTOR_ADD_EXP)
+    return is_linear_equation_child (btor, real_exp->e[0], 0)
+           && is_linear_equation_child (btor, real_exp->e[1], 0);
+  if (real_exp->kind == BTOR_MUL_EXP)
+    return is_linear_equation_child (btor, real_exp->e[0], 1)
+           && is_linear_equation_child (btor, real_exp->e[1], 1);
+  return 0;
+}
+
+static int
+is_linear_equation (Btor *btor, BtorExp *exp)
+{
+  assert (btor != NULL);
+  assert (exp != NULL);
+  if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_BV_EQ_EXP (exp)) return 0;
+  return is_linear_equation_child (btor, exp->e[0], 0)
+         && is_linear_equation_child (btor, exp->e[1], 0);
+}
+
 static void
-insert_into_new_constraint (Btor *btor, BtorExp *exp)
+insert_new_constraint (Btor *btor, BtorExp *exp)
 {
   BtorPtrHashTable *new_constraints;
   assert (btor != NULL);
@@ -6812,6 +6844,10 @@ insert_into_new_constraint (Btor *btor, BtorExp *exp)
   new_constraints = btor->new_constraints;
   if (!btor_find_in_ptr_hash_table (new_constraints, exp))
   {
+    if (btor->verbosity > 0)
+    {
+      if (is_linear_equation (btor, exp)) btor->linear_equations++;
+    }
     btor_insert_in_ptr_hash_table (new_constraints, copy_exp (btor, exp));
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
   }
@@ -6861,19 +6897,19 @@ add_constraint (Btor *btor, BtorExp *exp)
         if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
           BTOR_PUSH_STACK (mm, stack, child);
         else
-          insert_into_new_constraint (btor, child);
+          insert_new_constraint (btor, child);
         child = cur->e[0];
         if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
           BTOR_PUSH_STACK (mm, stack, child);
         else
-          insert_into_new_constraint (btor, child);
+          insert_new_constraint (btor, child);
       }
     } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
     btor_mark_exp (btor, exp, 0);
   }
   else
-    insert_into_new_constraint (btor, exp);
+    insert_new_constraint (btor, exp);
 }
 
 void
