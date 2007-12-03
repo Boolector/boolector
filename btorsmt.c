@@ -2251,7 +2251,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   if (btor_get_exp_len (parser->btor, exp) != 1)
     return parse_error (parser, "non boolean formula");
 
-  BTOR_PUSH_STACK (parser->mem, parser->roots, exp);
+  BTOR_PUSH_STACK (
+      parser->mem, parser->roots, btor_copy_exp (parser->btor, exp));
 
   assert (!parser->error);
 
