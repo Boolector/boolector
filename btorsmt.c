@@ -2266,12 +2266,33 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 static char *
 translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
 {
+  BtorSMTSymbol *symbol, *logic, *benchmark;
   const char *statusstr, *attrstr;
-  BtorSMTSymbol *symbol, *logic;
   BtorSMTNode *p, *node;
   BtorSMTToken status;
 
   btor_smt_message (parser, 2, "extracting expressions");
+
+  p = top;
+
+  if (!p || !(node = car (p)) || !isleaf (node)
+      || strip (node)->token != BTOR_SMTOK_BENCHMARK)
+    return parse_error (parser, "expected 'benchmark' keyword");
+
+  p = cdr (p);
+
+  if (!p || !(benchmark = car (p)) || !isleaf (benchmark)
+      || strip (benchmark)->token != BTOR_SMTOK_IDENTIFIER)
+    return parse_error (parser, "expected benchmark name");
+
+  benchmark = strip (benchmark);
+
+  btor_smt_message (parser, 2, "benchmark %s", benchmark->name);
+
+  while (p)
+  {
+    p = cdr (p);
+  }
 
   symbol = 0;
 
@@ -2339,6 +2360,11 @@ translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
       goto INVALID_STATUS_ARGUMENT;
 
     btor_smt_message (parser, 2, "status %s", statusstr);
+  }
+
+  for (p = top; p; p = cdr (p))
+  {
+    node = car (p);
   }
 
   for (p = top; p; p = cdr (p))
@@ -2471,7 +2497,7 @@ NEXT_TOKEN:
     btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
 
 #if 0
-      /* TODO keep this for now until the parser works.
+      /* TODO keep this for now until the parser really works.
        */
       if (parser->verbosity >= 3)
 	btorsmtpp (top);
