@@ -596,8 +596,11 @@ btor_main (int argc, char **argv)
                            parse_res.nroots);
         err = 1;
       }
-      done = 1;
-      btor_dump_exp (btor, exp_file, parse_res.roots[0]);
+      else
+      {
+        done = 1;
+        btor_dump_exp (btor, exp_file, parse_res.roots[0]);
+      }
     }
     else if (dump_smt)
     {
@@ -610,8 +613,11 @@ btor_main (int argc, char **argv)
             parse_res.nroots);
         err = 1;
       }
-      done = 1;
-      btor_dump_smt (btor, smt_file, parse_res.roots[0]);
+      else
+      {
+        done = 1;
+        btor_dump_smt (btor, smt_file, parse_res.roots[0]);
+      }
     }
     else
     {
@@ -630,7 +636,7 @@ btor_main (int argc, char **argv)
 
       for (i = 0; i < parse_res.nroots; i++)
       {
-        /* TODO
+        /* TODO: replace this by a check!
          */
         assert (btor_get_exp_len (btor, parse_res.roots[i]) == 1);
         btor_add_constraint_exp (btor, parse_res.roots[i]);
