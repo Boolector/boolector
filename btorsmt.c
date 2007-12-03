@@ -193,7 +193,7 @@ struct BtorSMTParser
   unsigned nodes;
 
   BtorExpPtrStack vars;
-  BtorExp *root;
+  BtorExpPtrStack roots;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -355,11 +355,16 @@ btor_release_smt_vars (BtorSMTParser *parser)
 static void
 btor_delete_smt_parser (BtorSMTParser *parser)
 {
+  BtorExp **p;
+
   btor_release_smt_internals (parser);
 
   btor_freestr (parser->mem, parser->error);
   btor_release_smt_vars (parser);
-  if (parser->root) btor_release_exp (parser->btor, parser->root);
+
+  for (p = parser->roots.start; p != parser->roots.top; p++)
+    btor_release_exp (parser->btor, *p);
+  BTOR_RELEASE_STACK (parser->mem, parser->roots);
 
   BTOR_DELETE (parser->mem, parser);
 }
@@ -1961,9 +1966,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
   BtorSMTNode *assignment, *body;
   BtorSMTSymbol *symbol;
-  BtorExp *and, *exp;
   BtorSMTToken token;
   int start, end;
+  BtorExp *exp;
 
   assert (BTOR_EMPTY_STACK (parser->work));
   assert (BTOR_EMPTY_STACK (parser->stack));
@@ -2246,17 +2251,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   if (btor_get_exp_len (parser->btor, exp) != 1)
     return parse_error (parser, "non boolean formula");
 
-  if (parser->root)
-  {
-    assert (!btor_is_array_exp (parser->btor, parser->root));
-    assert (btor_get_exp_len (parser->btor, parser->root) == 1);
-
-    and = btor_and_exp (parser->btor, parser->root, exp);
-    btor_release_exp (parser->btor, parser->root);
-    parser->root = and;
-  }
-  else
-    parser->root = btor_copy_exp (parser->btor, exp);
+  BTOR_PUSH_STACK (parser->mem, parser->roots, exp);
 
   assert (!parser->error);
 
@@ -2538,8 +2533,8 @@ NEXT_TOKEN:
     res->vars  = parser->vars.start;
     res->nvars = BTOR_COUNT_STACK (parser->vars);
 
-    res->roots  = &parser->root;
-    res->nroots = 1;
+    res->nroots = BTOR_COUNT_STACK (parser->roots);
+    res->roots  = parser->roots.start;
 
     return 0; /* DONE */
   }
