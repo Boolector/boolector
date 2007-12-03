@@ -1,4 +1,4 @@
-(benchmark bvlshr
+(benchmark bvlshr3
  :logic QF_BV
 
  :assumption (= (bvlshr bv0[3] bv0[3]) bv0[3])
