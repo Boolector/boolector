@@ -6,7 +6,21 @@ fi
 temp=/tmp/btorvis$$
 pstemp=$temp".ps"
 pdftemp=$temp".pdf"
-./btor2dot.awk < $1 | dot -Tps2 > $pstemp
+btor2dot=unknown
+for d in `echo $PATH|sed -e 's,:, ,g'` .
+do
+  file=$d/btor2dot.awk
+  [ -d $d ] || continue
+  [ -f $file ] || continue
+  btor2dot=$file
+  break
+done
+if [ $btor2dot = unknown ]
+then
+  echo "*** btorvis: can not find 'btor2dot.awk'" 1>&2
+  exit 1
+fi
+$btor2dot < $1 | dot -Tps2 > $pstemp
 ps2pdf $pstemp $pdftemp || exit 1
 acroread $pdftemp
 rm -f $pstemp $pdftemp
