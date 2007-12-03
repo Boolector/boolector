@@ -6784,6 +6784,12 @@ is_linear_equation (Btor *btor, BtorExp *exp)
   assert (btor != NULL);
   assert (exp != NULL);
   if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_BV_EQ_EXP (exp)) return 0;
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  if (BTOR_REAL_ADDR_EXP (exp->e[0])->kind != BTOR_ADD_EXP
+      && BTOR_REAL_ADDR_EXP (exp->e[1])->kind != BTOR_ADD_EXP
+      && BTOR_REAL_ADDR_EXP (exp->e[0])->kind != BTOR_MUL_EXP
+      && BTOR_REAL_ADDR_EXP (exp->e[1])->kind != BTOR_MUL_EXP)
+    return 0;
   return is_linear_equation_child (btor, exp->e[0], 0)
          && is_linear_equation_child (btor, exp->e[1], 0);
 }
