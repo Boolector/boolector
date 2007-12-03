@@ -121,6 +121,8 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 #define BTOR_COND_INVERT_AIG_EXP(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
+#define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 128
+
 static BtorExp *const_exp (Btor *, const char *);
 static BtorExp *slice_exp (Btor *, BtorExp *, int, int);
 static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
@@ -4305,7 +4307,7 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   BtorExpPtrStack stack;
   BtorExp *result, *eq, *cond, *cur, *write_index;
   BtorExp *real_write_index, *real_read_index, *cur_array;
-  int propagate_down, found;
+  int propagate_down, found, propagations;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (e_array != NULL);
@@ -4331,6 +4333,7 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
         cur_array       = e_array;
         assert (BTOR_IS_REGULAR_EXP (cur_array));
         assert (BTOR_IS_ARRAY_EXP (cur_array));
+        propagations = 0;
         /* ASSUMPTION: constants are UNIQUELY hashed */
         do
         {
@@ -4368,10 +4371,12 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
             cur_array = cur_array->e[0];
             assert (BTOR_IS_REGULAR_EXP (cur_array));
             assert (BTOR_IS_ARRAY_EXP (cur_array));
+            propagations++;
           }
           else
             break;
-        } while (BTOR_IS_WRITE_EXP (cur_array));
+        } while (BTOR_IS_WRITE_EXP (cur_array)
+                 && propagations < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
         return binary_exp (
             btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
       }
