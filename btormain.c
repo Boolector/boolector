@@ -585,27 +585,31 @@ btor_main (int argc, char **argv)
       print_msg_va_args (&app, "%s\n", parse_error);
       err = 1;
     }
-    else if (parse_res.nroots != 1)
-    {
-      print_msg_va_args (&app,
-                         "%s: found %d roots but expected exactly one\n",
-                         input_file_name,
-                         parse_res.nroots);
-      err = 1;
-    }
-    else if (btor_get_exp_len (btor, parse_res.roots[0]) != 1)
-    {
-      print_msg_va_args (
-          &app, "%s: root has bit width different from one\n", input_file_name);
-      err = 1;
-    }
     else if (dump_exp)
     {
+      if (parse_res.nroots != 1)
+      {
+        print_msg_va_args (&app,
+                           "%s: found %d roots but expected exactly while "
+                           "dumping expressions\n",
+                           input_file_name,
+                           parse_res.nroots);
+        err = 1;
+      }
       done = 1;
       btor_dump_exp (btor, exp_file, parse_res.roots[0]);
     }
     else if (dump_smt)
     {
+      if (parse_res.nroots != 1)
+      {
+        print_msg_va_args (
+            &app,
+            "%s: found %d roots but expected exactly while dumping smt\n",
+            input_file_name,
+            parse_res.nroots);
+        err = 1;
+      }
       done = 1;
       btor_dump_smt (btor, smt_file, parse_res.roots[0]);
     }
@@ -625,7 +629,12 @@ btor_main (int argc, char **argv)
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
 
       for (i = 0; i < parse_res.nroots; i++)
+      {
+        /* TODO
+         */
+        assert (btor_get_exp_len (btor, parse_res.roots[i]) == 1);
         btor_add_constraint_exp (btor, parse_res.roots[i]);
+      }
 
       BTOR_INIT_STACK (varstack);
 
