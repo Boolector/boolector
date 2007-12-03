@@ -2289,10 +2289,34 @@ translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
 
   btor_smt_message (parser, 2, "benchmark %s", benchmark->name);
 
-  while (p)
-  {
-    p = cdr (p);
-  }
+#if 0
+  for (p = top; p; p = cdr (p))
+    {
+      node = car (p);
+      if (!isleaf (node))
+	return parse_error (parser, "unexpected list at top level");
+
+      symbol = strip (node);
+
+      switch (symbol->token)
+	{
+	  case BTOR_SMTOK_ASSUMPTION:
+	  case BTOR_SMTOK_BENCHMARK:
+          case BTOR_SMTOK_EXTRAFUNS:
+          case BTOR_SMTOK_EXTRAPREDS:
+          case BTOR_SMTOK_EXTRASORTS:
+	  case BTOR_SMTOK_FORMULA:
+	  case BTOR_SMTOK_LOGIC:
+	  case BTOR_SMTOK_STATUS:
+	  case BTOR_SMTOK_NOTES:
+	    p = cdr (p);		/* skip one term */
+	    break;
+
+	  default:
+	    return parse_error (parser, "unexpected top level token");
+	}
+    }
+#endif
 
   symbol = 0;
 
