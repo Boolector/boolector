@@ -4682,19 +4682,16 @@ void
 btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
+  int next, i, j, maxid, id;
   BtorExpPtrStack stack;
   BtorExp *e, *root;
   char idbuffer[20];
-  int next, i, j;
   const char *op;
 
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dump_exps'");
   BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exps'");
 
   BTOR_INIT_STACK (stack);
-
-  assert (nroots == 1);
-  root = 0;
 
   for (i = 0; i < nroots; i++)
   {
@@ -4785,9 +4782,22 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 
   BTOR_RELEASE_STACK (mm, stack);
 
-  e = BTOR_REAL_ADDR_EXP (root);
-  BTOR_ABORT_EXP (e->id == INT_MAX, "expression id overflow");
-  fprintf (file, "%d root %d %d\n", e->id + 1, e->len, BTOR_GET_ID_EXP (root));
+  maxid = 0;
+  for (i = 0; i < nroots; i++)
+  {
+    root = roots[i];
+    e    = BTOR_REAL_ADDR_EXP (root);
+    if (e->id > maxid) maxid = e->id;
+  }
+
+  for (i = 0; i < nroots; i++)
+  {
+    id = maxid + i;
+    BTOR_ABORT_EXP (id == INT_MAX, "expression id overflow");
+
+    root = roots[i];
+    fprintf (file, "%d root %d %d\n", id + 1, e->len, BTOR_GET_ID_EXP (root));
+  }
 }
 
 void

@@ -587,20 +587,8 @@ btor_main (int argc, char **argv)
     }
     else if (dump_exp)
     {
-      if (parse_res.nroots != 1)
-      {
-        print_msg_va_args (&app,
-                           "%s: found %d roots but expected exactly while "
-                           "dumping expressions\n",
-                           input_file_name,
-                           parse_res.nroots);
-        err = 1;
-      }
-      else
-      {
-        done = 1;
-        btor_dump_exp (btor, exp_file, parse_res.roots[0]);
-      }
+      btor_dump_exps (btor, exp_file, parse_res.roots, parse_res.nroots);
+      done = 1;
     }
     else if (dump_smt)
     {
@@ -608,7 +596,7 @@ btor_main (int argc, char **argv)
       {
         print_msg_va_args (
             &app,
-            "%s: found %d roots but expected exactly while dumping smt\n",
+            "%s: found %d roots but expected exactly one while dumping smt\n",
             input_file_name,
             parse_res.nroots);
         err = 1;
