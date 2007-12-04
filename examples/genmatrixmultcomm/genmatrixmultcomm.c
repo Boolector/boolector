@@ -96,7 +96,7 @@ main (int argc, char **argv)
   B       = btor_array_exp (btor, num_bits, num_bits_index);
   A_x_B   = matrix_mult (btor, A, B, size, num_bits, num_bits_index);
   B_x_A   = matrix_mult (btor, B, A, size, num_bits, num_bits_index);
-  formula = btor_eq_exp (btor, A, A_x_B);
+  formula = btor_eq_exp (btor, A_x_B, B_x_A);
   /* we negate the formula and try to show that it is unsatisfiable
    * formula is SAT as matrix multiplication is not commutative in general */
   temp = btor_not_exp (btor, formula);
