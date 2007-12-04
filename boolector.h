@@ -458,8 +458,9 @@ BtorExp *btor_copy_exp (Btor *btor, BtorExp *exp);
 /* Releases expression (decrements reference counter). */
 void btor_release_exp (Btor *btor, BtorExp *exp);
 
-/* Dumps expression to file in BTOR format. */
+/* Dumps expression(s) to file in BTOR format. */
 void btor_dump_exp (Btor *btor, FILE *file, BtorExp *exp);
+void btor_dump_exps (Btor *btor, FILE *file, BtorExp **exps, int n);
 
 /* Dumps expression to file in SMT format. */
 void btor_dump_smt (Btor *btor, FILE *file, BtorExp *root);
