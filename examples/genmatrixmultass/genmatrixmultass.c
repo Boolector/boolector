@@ -33,7 +33,7 @@ matrix_mult (Btor *btor,
   result = btor_array_exp (btor, num_bits, num_bits_index);
   /* initialize result matrix with zeroes */
   zero = btor_zeros_exp (btor, num_bits);
-  for (i = 0; i < size * size; i++)
+  for (i = 0; i < num_bits_index * num_bits_index; i++)
   {
     temp = btor_write_exp (btor, result, indices[i], zero);
     btor_release_exp (btor, result);
@@ -90,8 +90,9 @@ main (int argc, char **argv)
   num_bits_index = compute_num_bits_index (num_elements);
   btor           = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
-  for (i = 0; i < num_elements; i++)
+  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_bits_index
+                                 * num_bits_index);
+  for (i = 0; i < num_bits_index * num_bits_index; i++)
     indices[i] = btor_int_to_exp (btor, i, num_bits_index);
   A       = btor_array_exp (btor, num_bits, num_bits_index);
   B       = btor_array_exp (btor, num_bits, num_bits_index);
@@ -107,7 +108,8 @@ main (int argc, char **argv)
   formula = temp;
   btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
+  for (i = 0; i < num_bits_index * num_bits_index; i++)
+    btor_release_exp (btor, indices[i]);
   btor_release_exp (btor, formula);
   btor_release_exp (btor, A);
   btor_release_exp (btor, B);
