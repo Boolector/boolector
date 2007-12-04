@@ -6823,6 +6823,8 @@ add_constraint (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
+  exp = pointer_chase_simplified_exp (btor, exp);
+
   mm = btor->mm;
   if (btor->valid_assignments)
   {
