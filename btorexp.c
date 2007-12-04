@@ -6752,8 +6752,16 @@ process_new_constraints (Btor *btor)
       substitute_exp (btor, left, right);
     else
     {
-      btor_insert_in_ptr_hash_table (processed_constraints, cur);
-      btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+      if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
+      {
+        btor_insert_in_ptr_hash_table (processed_constraints, cur);
+        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+      }
+      else
+      { /* constraint is already in processed_constraints */
+        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+        release_exp (btor, cur);
+      }
     }
   }
 }
@@ -6991,8 +6999,14 @@ process_unsynthesized_constraints (Btor *btor)
         btor_release_aig (amgr, aig);
       }
       btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
+      btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
     }
-    btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
+    else
+    {
+      /* constraint is already in synthesized_constraints */
+      btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
+      release_exp (btor, cur);
+    }
   }
   return 0;
 }
