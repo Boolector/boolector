@@ -33,7 +33,8 @@ main (int argc, char **argv)
   }
   num_bits_index = btor_log_2_util (num_elements);
   btor           = btor_new_btor ();
-  indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  btor_set_rewrite_level_btor (btor, 0);
+  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = btor_int_to_exp (btor, i, num_bits_index);
   array = btor_array_exp (btor, num_bits, num_bits_index);
