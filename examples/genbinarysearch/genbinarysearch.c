@@ -8,10 +8,9 @@ main (int argc, char **argv)
 {
   int num_bits, num_bits_index, num_elements, i, num_iterations;
   Btor *btor;
-  BtorExp **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1, *read2,
-      *formula, *val;
-  BtorExp *index, *found, *sorted, *low, *high, *two, *one, *mid, *sub, *udiv,
-      *inc, *dec;
+  BtorExp **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1;
+  BtorExp *read2, *formula, *val, *index, *found, *sorted, *low, *high;
+  BtorExp *two, *one, *mid, *sub, *udiv, *inc, *dec;
   if (argc != 3)
   {
     printf ("Usage: ./genbinarysearch <num-bits> <num-elements>\n");
@@ -38,7 +37,8 @@ main (int argc, char **argv)
   /* binary search needs log2(size(array)) + 1 iterations in the worst case */
   num_iterations = num_bits_index + 1;
   btor           = btor_new_btor ();
-  indices        = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  btor_set_rewrite_level_btor (btor, 0);
+  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = btor_int_to_exp (btor, i, num_bits_index);
   array = btor_array_exp (btor, num_bits, num_bits_index);
