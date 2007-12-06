@@ -2052,10 +2052,12 @@ delete_exp_unique_table_entry (Btor *btor, BtorExp *exp)
 static void
 inc_exp_ref_counter (BtorExp *exp)
 {
+  BtorExp *real_exp;
   assert (exp != NULL);
-  BTOR_ABORT_EXP (BTOR_REAL_ADDR_EXP (exp)->refs == UINT_MAX,
-                  "Reference counter overflow");
-  BTOR_REAL_ADDR_EXP (exp)->refs++;
+  real_exp = BTOR_REAL_ADDR_EXP (exp);
+  BTOR_ABORT_EXP (real_exp->refs == UINT_MAX, "Reference counter overflow");
+  if (!BTOR_IS_VAR_EXP (real_exp) && !BTOR_IS_ATOMIC_ARRAY_EXP (real_exp))
+    real_exp->refs++;
 }
 
 static BtorExp *
