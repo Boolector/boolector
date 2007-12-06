@@ -4303,10 +4303,12 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
-  BtorExpPtrStack stack;
-  BtorExp *result, *eq, *cond, *cur, *write_index, *left, *right;
+  BtorExpPtrStack stack, unmark_stack;
+  BtorPtrHashTable *results;
+  BtorPtrHashBucket *bucket;
+  BtorExp *result, *eq, *cur, *write_index, *left, *right;
   BtorExp *real_write_index, *real_read_index, *cur_array;
-  int propagate_down, found, propagations;
+  int propagate_down, propagations;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (e_array != NULL);
@@ -4318,13 +4320,112 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
   mm = btor->mm;
-  if (BTOR_IS_WRITE_EXP (e_array))
+  if (btor->mode == BTOR_EAGER_MODE)
   {
-    write_index = e_array->e[1];
-    /* if read index is equal write index, then return write value */
-    if (e_index == write_index) return copy_exp (btor, e_array->e[2]);
-    if (btor->mode == BTOR_LAZY_MODE)
+    if (BTOR_IS_WRITE_EXP (e_array) || BTOR_IS_ARRAY_COND_EXP (e_array))
     {
+      results = btor_new_ptr_hash_table (
+          mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
+      BTOR_INIT_STACK (stack);
+      BTOR_INIT_STACK (unmark_stack);
+      BTOR_PUSH_STACK (mm, stack, e_array);
+      do
+      {
+        cur = BTOR_POP_STACK (stack);
+        assert (BTOR_IS_REGULAR_EXP (cur));
+        assert (BTOR_IS_ARRAY_EXP (cur));
+        assert (cur->array_mark >= 0);
+        assert (cur->array_mark <= 2);
+
+        if (cur->array_mark == 2) continue;
+
+        if (cur->array_mark == 0)
+        {
+          cur->array_mark = 1;
+          BTOR_PUSH_STACK (mm, stack, cur);
+          BTOR_PUSH_STACK (mm, unmark_stack, cur);
+          if (BTOR_IS_WRITE_EXP (cur))
+            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+          else if (BTOR_IS_ARRAY_COND_EXP (cur))
+          {
+            BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+          }
+        }
+        else if (cur->array_mark == 1)
+        {
+          cur->array_mark = 2;
+          if (BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+          {
+            result = binary_exp (btor, BTOR_READ_EXP, cur, e_index, cur->len);
+            btor_insert_in_ptr_hash_table (results, cur)->data.asPtr = result;
+          }
+          else if (BTOR_IS_WRITE_EXP (cur))
+          {
+            bucket = btor_find_in_ptr_hash_table (results, cur->e[0]);
+            assert (bucket != NULL);
+            result = (BtorExp *) bucket->data.asPtr;
+            assert (result != NULL);
+            eq     = eq_exp (btor, cur->e[1], e_index);
+            result = cond_exp (btor, eq, cur->e[2], result);
+            btor_insert_in_ptr_hash_table (results, cur)->data.asPtr = result;
+            release_exp (btor, eq);
+          }
+          else
+          {
+            assert (BTOR_IS_ARRAY_COND_EXP (cur));
+            bucket = btor_find_in_ptr_hash_table (results, cur->e[2]);
+            assert (bucket != NULL);
+            left = (BtorExp *) bucket->data.asPtr;
+            assert (left != NULL);
+            bucket = btor_find_in_ptr_hash_table (results, cur->e[1]);
+            assert (bucket != NULL);
+            right = (BtorExp *) bucket->data.asPtr;
+            assert (right != NULL);
+            result = cond_exp (btor, cur->e[0], left, right);
+            btor_insert_in_ptr_hash_table (results, cur)->data.asPtr = result;
+          }
+        }
+      } while (!BTOR_EMPTY_STACK (stack));
+      BTOR_RELEASE_STACK (mm, stack);
+
+      /* unmark arrays */
+      while (!BTOR_EMPTY_STACK (unmark_stack))
+      {
+        cur = BTOR_POP_STACK (unmark_stack);
+        assert (BTOR_IS_REGULAR_EXP (cur));
+        assert (BTOR_IS_ARRAY_EXP (cur));
+        cur->array_mark = 0;
+      }
+      BTOR_RELEASE_STACK (mm, unmark_stack);
+
+      /* increment reference counter of result */
+      bucket = btor_find_in_ptr_hash_table (results, e_array);
+      assert (bucket != NULL);
+      result = copy_exp (btor, (BtorExp *) bucket->data.asPtr);
+
+      /* release intermediate results */
+      for (bucket = results->first; bucket != NULL; bucket = bucket->next)
+      {
+        cur = (BtorExp *) bucket->data.asPtr;
+        assert (cur != NULL);
+        assert (BTOR_IS_REGULAR_EXP (cur));
+        assert (!BTOR_IS_ARRAY_EXP (cur));
+        release_exp (btor, cur);
+      }
+      btor_delete_ptr_hash_table (results);
+
+      return result;
+    }
+  }
+  else
+  {
+    assert (btor->mode == BTOR_LAZY_MODE);
+    if (BTOR_IS_WRITE_EXP (e_array))
+    {
+      write_index = e_array->e[1];
+      /* if read index is equal write index, then return write value */
+      if (e_index == write_index) return copy_exp (btor, e_array->e[2]);
       /* we need this so x + 0 is rewritten into x */
       if (btor->rewrite_level > 0)
       {
@@ -4380,56 +4481,6 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
             btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
       }
     }
-    else
-    {
-      assert (btor->mode == BTOR_EAGER_MODE);
-      /* eagerly encode McCarthy axiom */
-      BTOR_INIT_STACK (stack);
-      cur   = e_array;
-      found = 0;
-      do
-      {
-        assert (BTOR_IS_REGULAR_EXP (cur));
-        assert (BTOR_IS_ARRAY_EXP (cur));
-        if (BTOR_IS_WRITE_EXP (cur))
-        {
-          BTOR_PUSH_STACK (mm, stack, cur);
-          cur = cur->e[0];
-        }
-        else
-        {
-          assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-          result = binary_exp (btor, BTOR_READ_EXP, cur, e_index, cur->len);
-          found  = 1;
-        }
-      } while (!found);
-      assert (!BTOR_EMPTY_STACK (stack));
-      do
-      {
-        cur = BTOR_POP_STACK (stack);
-        assert (BTOR_IS_REGULAR_EXP (cur));
-        assert (BTOR_IS_ARRAY_EXP (cur));
-        /* index equal ? */
-        eq   = eq_exp (btor, cur->e[1], e_index);
-        cond = cond_exp (btor, eq, cur->e[2], result);
-        release_exp (btor, eq);
-        release_exp (btor, result);
-        result = cond;
-      } while (!BTOR_EMPTY_STACK (stack));
-      BTOR_RELEASE_STACK (mm, stack);
-      return result;
-    }
-  }
-  else if (BTOR_IS_ARRAY_COND_EXP (e_array) && btor->mode == BTOR_EAGER_MODE)
-  {
-    left  = read_exp (btor, e_array->e[1], e_index);
-    right = read_exp (btor, e_array->e[2], e_index);
-    assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
-    assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)));
-    result = cond_exp (btor, e_array->e[0], left, right);
-    release_exp (btor, left);
-    release_exp (btor, right);
-    return result;
   }
   return binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
