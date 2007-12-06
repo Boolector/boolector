@@ -65,8 +65,7 @@ struct Btor
   int rewrite_level;
   int verbosity;
   int extensionality;
-  BtorReadEnc read_enc;
-  BtorWriteEnc write_enc;
+  BtorMode mode;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
   BtorPtrHashTable *new_constraints;
@@ -499,7 +498,7 @@ encode_ackermann_constraint_eagerly (
   assert (j != NULL);
   assert (a != NULL);
   assert (b != NULL);
-  assert (btor->read_enc == BTOR_EAGER_READ_ENC);
+  assert (btor->mode == BTOR_EAGER_MODE);
   mm    = btor->mm;
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -4305,7 +4304,7 @@ static BtorExp *
 read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
   BtorExpPtrStack stack;
-  BtorExp *result, *eq, *cond, *cur, *write_index;
+  BtorExp *result, *eq, *cond, *cur, *write_index, *left, *right;
   BtorExp *real_write_index, *real_read_index, *cur_array;
   int propagate_down, found, propagations;
   BtorMemMgr *mm;
@@ -4324,7 +4323,7 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
     write_index = e_array->e[1];
     /* if read index is equal write index, then return write value */
     if (e_index == write_index) return copy_exp (btor, e_array->e[2]);
-    if (btor->write_enc != BTOR_EAGER_WRITE_ENC)
+    if (btor->mode == BTOR_LAZY_MODE)
     {
       /* we need this so x + 0 is rewritten into x */
       if (btor->rewrite_level > 0)
@@ -4383,7 +4382,7 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
     }
     else
     {
-      assert (btor->write_enc == BTOR_EAGER_WRITE_ENC);
+      assert (btor->mode == BTOR_EAGER_MODE);
       /* eagerly encode McCarthy axiom */
       BTOR_INIT_STACK (stack);
       cur   = e_array;
@@ -4420,6 +4419,17 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
       BTOR_RELEASE_STACK (mm, stack);
       return result;
     }
+  }
+  else if (BTOR_IS_ARRAY_COND_EXP (e_array) && btor->mode == BTOR_EAGER_MODE)
+  {
+    left  = read_exp (btor, e_array->e[1], e_index);
+    right = read_exp (btor, e_array->e[2], e_index);
+    assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (left)));
+    assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)));
+    result = cond_exp (btor, e_array->e[0], left, right);
+    release_exp (btor, left);
+    release_exp (btor, right);
+    return result;
   }
   return binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
 }
@@ -5045,8 +5055,7 @@ btor_new_btor (void)
   btor->valid_assignments          = 1;
   btor->rewrite_level              = 2;
   btor->verbosity                  = 0;
-  btor->read_enc                   = BTOR_LAZY_READ_ENC;
-  btor->write_enc                  = BTOR_LAZY_WRITE_ENC;
+  btor->mode                       = BTOR_LAZY_MODE;
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
@@ -5099,25 +5108,13 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 }
 
 void
-btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc)
+btor_set_mode_btor (Btor *btor, BtorMode mode)
 {
   BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_set_read_enc_btor'");
+                  "'btor' must not be NULL in 'btor_set_mode_btor'");
   BTOR_ABORT_EXP (btor->id != 1,
-                  "'setting read encoding strategy must be done before adding "
-                  "expressions'");
-  btor->read_enc = read_enc;
-}
-
-void
-btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc)
-{
-  BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_set_read_enc_btor'");
-  BTOR_ABORT_EXP (btor->id != 1,
-                  "'setting write encoding strategy must be done before adding "
-                  "expressions'");
-  btor->write_enc = write_enc;
+                  "'setting mode must be done before adding expressions'");
+  btor->mode = mode;
 }
 
 void
@@ -5336,7 +5333,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashBucket *b;
-  BtorReadEnc read_enc;
+  BtorMode mode;
   char *indexed_name;
   const char *name;
   unsigned int count;
@@ -5349,10 +5346,10 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   assert (btor != NULL);
   assert (exp != NULL);
 
-  read_enc = btor->read_enc;
-  mm       = btor->mm;
-  avmgr    = btor->avmgr;
-  count    = 0;
+  mode  = btor->mode;
+  mm    = btor->mm;
+  avmgr = btor->avmgr;
+  count = 0;
 
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
@@ -5394,7 +5391,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           /* special cases */
           if (BTOR_IS_READ_EXP (cur))
           {
-            if (read_enc == BTOR_EAGER_READ_ENC)
+            if (mode == BTOR_EAGER_MODE)
             {
               cur->mark = 1;
               BTOR_PUSH_STACK (mm, exp_stack, cur);
@@ -5405,6 +5402,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             else
             {
+              assert (mode == BTOR_LAZY_MODE);
               cur->mark = 2;
               cur->av   = btor_var_aigvec (avmgr, cur->len);
               /* mark children recursively as reachable */
@@ -5417,7 +5415,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           else if (BTOR_IS_WRITE_EXP (cur))
           {
             /* writes are only reachable in lazy mode */
-            assert (btor->write_enc != BTOR_EAGER_WRITE_ENC);
+            assert (mode != BTOR_EAGER_MODE);
             cur->mark = 2;
             /* mark children recursively as reachable */
             set_flags_and_synth_aeq (btor, cur->e[2]);
@@ -5449,6 +5447,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             else
             {
+              assert (!BTOR_IS_ARRAY_COND_EXP (cur) || mode != BTOR_EAGER_MODE);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
@@ -5462,7 +5461,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
         cur->mark = 2;
         if (BTOR_IS_READ_EXP (cur))
         {
-          assert (read_enc == BTOR_EAGER_READ_ENC);
+          assert (mode == BTOR_EAGER_MODE);
           cur->av = btor_var_aigvec (avmgr, cur->len);
           encode_read_eagerly (btor, cur->e[0], cur);
         }
@@ -6279,11 +6278,11 @@ resolve_read_write_conflicts (Btor *btor)
   BtorMemMgr *mm;
   BtorExp *cur_array, *cur_parent, **top, **temp;
   int found_conflict, changed_assignments, extensionality;
-  BtorWriteEnc write_enc;
+  BtorMode mode;
   assert (btor != NULL);
   found_conflict = 0;
   mm             = btor->mm;
-  write_enc      = btor->write_enc;
+  mode           = btor->mode;
   extensionality = btor->extensionality;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   assert (!found_conflict);
@@ -6320,7 +6319,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
        * We use the reachable flag to determine with which reads and writes
        * we have to deal with.
        */
-      if (write_enc == BTOR_LAZY_WRITE_ENC)
+      if (mode == BTOR_LAZY_MODE)
       {
         /* push writes on stack */
         init_write_parent_iterator (&it, cur_array);
@@ -7034,8 +7033,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
   BTOR_ABORT_EXP (refinement_limit < 0,
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
-  assert (!btor->read_enc == BTOR_EAGER_READ_ENC
-          || btor->write_enc == BTOR_EAGER_WRITE_ENC);
 
   verbosity   = btor->verbosity;
   refinements = btor->refinements;
@@ -7073,8 +7070,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   }
 
   sat_result = btor_sat_sat (smgr, INT_MAX);
-  if (btor->read_enc == BTOR_LAZY_READ_ENC
-      || btor->write_enc == BTOR_LAZY_WRITE_ENC)
+  if (btor->mode == BTOR_LAZY_MODE)
   {
     while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
            && btor->refinements < refinement_limit)
@@ -7087,9 +7083,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
         printf ("Starting refinement iteration %d\n", refinements);
       sat_result = btor_sat_sat (smgr, INT_MAX);
     }
+    btor->refinements = refinements;
+    if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
   }
-  btor->refinements = refinements;
-  if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
   return sat_result;
 }
 
