@@ -81,6 +81,7 @@ struct Btor
   int array_substitutions;
   int vreads;
   int linear_equations;
+  int sat_calls;
 };
 
 struct BtorExpPair
@@ -1177,31 +1178,54 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   }
 }
 
-/* Encodes read constraint eagerly by adding all
+/* Encodes read constraint of one array eagerly by adding all
  * read constraints with the reads encoded so far.
  */
 static void
-encode_read_eagerly (Btor *btor, BtorExp *array, BtorExp *read)
+encode_read_consistency_array_eagerly (Btor *btor, BtorExp *array)
 {
-  BtorExp *cur;
-  BtorPartialParentIterator it;
+  BtorExp *cur_i, *cur_j;
+  BtorPartialParentIterator it_i, it_j;
   assert (btor != NULL);
   assert (array != NULL);
-  assert (read != NULL);
-  assert (BTOR_IS_REGULAR_EXP (read));
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  assert (read->reachable);
-  init_read_parent_iterator (&it, array);
-  while (has_next_parent_read_parent_iterator (&it))
+  assert (array->reachable);
+  assert (btor->mode == BTOR_EAGER_MODE);
+  init_read_parent_iterator (&it_i, array);
+  while (has_next_parent_read_parent_iterator (&it_i))
   {
-    cur = next_parent_read_parent_iterator (&it);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->encoded_read)
-      encode_ackermann_constraint_eagerly (
-          btor, cur->e[1], read->e[1], cur, read);
+    cur_i = next_parent_read_parent_iterator (&it_i);
+    assert (BTOR_IS_REGULAR_EXP (cur_i));
+    if (cur_i->reachable)
+    {
+      it_j = it_i;
+      while (has_next_parent_read_parent_iterator (&it_j))
+      {
+        cur_j = next_parent_read_parent_iterator (&it_j);
+        assert (BTOR_IS_REGULAR_EXP (cur_j));
+        if (cur_j->reachable)
+          encode_ackermann_constraint_eagerly (
+              btor, cur_i->e[1], cur_j->e[1], cur_i, cur_j);
+      }
+    }
   }
-  read->encoded_read = 1;
+}
+
+static void
+encode_read_consistency_all_arrays_eagerly (Btor *btor)
+{
+  BtorExp **top, **temp, *cur;
+  assert (btor != NULL);
+  assert (btor->mode == BTOR_EAGER_MODE);
+  top = btor->arrays.top;
+  for (temp = btor->arrays.start; temp != top; temp++)
+  {
+    cur = *temp;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+    if (cur->reachable) encode_read_consistency_array_eagerly (btor, cur);
+  }
 }
 
 static BtorExp *
@@ -5444,20 +5468,20 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           /* special cases */
           if (BTOR_IS_READ_EXP (cur))
           {
+            cur->av = btor_var_aigvec (avmgr, cur->len);
+            assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
             if (mode == BTOR_EAGER_MODE)
             {
-              cur->mark = 1;
-              BTOR_PUSH_STACK (mm, exp_stack, cur);
+              /* push index on the stack */
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-              assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
               assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur->e[0]));
+              /* push array on the stack */
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
             }
             else
             {
               assert (mode == BTOR_LAZY_MODE);
-              cur->mark = 2;
-              cur->av   = btor_var_aigvec (avmgr, cur->len);
+              assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
               /* mark children recursively as reachable */
               set_flags_and_synth_aeq (btor, cur->e[1]);
               set_flags_and_synth_aeq (btor, cur->e[0]);
@@ -5467,7 +5491,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           }
           else if (BTOR_IS_WRITE_EXP (cur))
           {
-            /* writes are only reachable in lazy mode */
+            /* writes are not reachable in eager mode */
             assert (mode != BTOR_EAGER_MODE);
             cur->mark = 2;
             /* mark children recursively as reachable */
@@ -5512,13 +5536,8 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
       {
         assert (cur->mark == 1);
         cur->mark = 2;
-        if (BTOR_IS_READ_EXP (cur))
-        {
-          assert (mode == BTOR_EAGER_MODE);
-          cur->av = btor_var_aigvec (avmgr, cur->len);
-          encode_read_eagerly (btor, cur->e[0], cur);
-        }
-        else if (BTOR_IS_UNARY_EXP (cur))
+        assert (!BTOR_IS_READ_EXP (cur));
+        if (BTOR_IS_UNARY_EXP (cur))
         {
           assert (cur->kind == BTOR_SLICE_EXP);
           invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
@@ -6975,6 +6994,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (
       BTOR_REAL_ADDR_EXP (exp)->len != 1,
       "'exp' has to be a boolean expression in 'btor_add_assumption_exp'");
+  BTOR_ABORT_EXP (btor->mode == BTOR_EAGER_MODE,
+                  "eager mode must not be used incrementally");
 
   mm = btor->mm;
   if (btor->valid_assignments)
@@ -7083,9 +7104,13 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorAIG *aig;
+  BtorMode mode;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
   BTOR_ABORT_EXP (refinement_limit < 0,
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
+  mode = btor->mode;
+  BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->sat_calls != 0,
+                  "eager mode must not be used incrementally");
 
   verbosity   = btor->verbosity;
   refinements = btor->refinements;
@@ -7096,29 +7121,42 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
-  /* no added assumptions and constraints -> delete old assumptions */
-  if (btor->valid_assignments == 1) reset_assumptions (btor);
-  btor->valid_assignments = 1;
+  /* no incrementality in eager mode */
+  if (mode != BTOR_EAGER_MODE)
+  {
+    /* no added assumptions and constraints -> delete old assumptions */
+    if (btor->valid_assignments == 1) reset_assumptions (btor);
+    btor->valid_assignments = 1;
+  }
 
   found_constraint_false = process_unsynthesized_constraints (btor);
   if (found_constraint_false) return BTOR_UNSAT;
 
-  /* iterate over assumptions */
-  for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
+  if (btor->mode == BTOR_EAGER_MODE)
   {
-    cur        = (BtorExp *) bucket->key;
-    simplified = copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
-    release_exp (btor, cur);
-    cur = simplified;
-
-    aig = exp_to_aig (btor, cur);
-    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-    btor_aig_to_sat (amgr, aig);
-    if (aig != BTOR_AIG_TRUE)
+    encode_read_consistency_all_arrays_eagerly (btor);
+  }
+  else
+  {
+    /* no incrementality in eager mode */
+    /* iterate over assumptions */
+    for (bucket = btor->assumptions->first; bucket != NULL;
+         bucket = bucket->next)
     {
-      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-      btor_release_aig (amgr, aig);
+      cur        = (BtorExp *) bucket->key;
+      simplified = copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
+      release_exp (btor, cur);
+      cur = simplified;
+
+      aig = exp_to_aig (btor, cur);
+      if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+      btor_aig_to_sat (amgr, aig);
+      if (aig != BTOR_AIG_TRUE)
+      {
+        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+        btor_release_aig (amgr, aig);
+      }
     }
   }
 
@@ -7139,6 +7177,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     btor->refinements = refinements;
     if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
   }
+  btor->sat_calls++;
   return sat_result;
 }
 

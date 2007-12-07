@@ -42,19 +42,18 @@ typedef struct BtorExpPair BtorExpPair;
 #define BTOR_BASIC_EXP                                                       \
   struct                                                                     \
   {                                                                          \
-    BtorExpKind kind : 5;          /* kind of expression */                  \
-    unsigned int mark : 3;         /* for DAG traversal */                   \
-    unsigned int array_mark : 3;   /* for bottom up array traversal */       \
-    unsigned int subst_mark : 3;   /* for substition algorithm */            \
-    unsigned int encoded_read : 1; /* flag used by eager read encoding */    \
-    unsigned int reachable : 1;    /* flag determines if expression          \
-                                      is reachable from root */              \
-    unsigned int full_sat : 1;     /* flag determines if expression has been \
-                                      fully encoded into SAT */              \
-    unsigned int vread : 1;        /* flag determines if expression          \
-                                      is a virtual read */                   \
-    unsigned int constraint : 1;   /* flag determines if expression is a top \
-                                      level   constraint */                                                             \
+    BtorExpKind kind : 5;        /* kind of expression */                    \
+    unsigned int mark : 3;       /* for DAG traversal */                     \
+    unsigned int array_mark : 3; /* for bottom up array traversal */         \
+    unsigned int subst_mark : 3; /* for substition algorithm */              \
+    unsigned int reachable : 1;  /* flag determines if expression            \
+                                    is reachable from root */                \
+    unsigned int full_sat : 1;   /* flag determines if expression has been   \
+                                    fully encoded into SAT */                \
+    unsigned int vread : 1;      /* flag determines if expression            \
+                                    is a virtual read */                     \
+    unsigned int constraint : 1; /* flag determines if expression is a top   \
+                                    level constraint */                                                               \
     union                                                                    \
     {                                                                        \
       struct                                                                 \
