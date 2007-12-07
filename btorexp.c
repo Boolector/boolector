@@ -479,7 +479,7 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
  */
 static void
 encode_ackermann_constraint_eagerly (
-    Btor *btor, BtorExp *i, BtorExp *j, BtorExp *a, BtorExp *b)
+    Btor *btor, BtorExp *i, BtorExp *j, BtorExp *a, BtorExp *b, int fixed_e)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -514,6 +514,7 @@ encode_ackermann_constraint_eagerly (
   assert (av_b != NULL);
   assert (av_a->len == av_b->len);
   assert (av_i->len == av_j->len);
+  assert (fixed_e >= 0);
   len_a_b = av_a->len;
   len_i_j = av_i->len;
   /* check if a and b have equal AIGs */
@@ -619,6 +620,7 @@ encode_ackermann_constraint_eagerly (
   e = btor_next_cnf_id_sat_mgr (smgr);
   assert (e != 0);
   btor_add_sat (smgr, e);
+  if (fixed_e != 0) btor_add_sat (smgr, -fixed_e);
   btor_add_sat (smgr, 0);
   if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
@@ -1148,34 +1150,36 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, diffs);
 
+#if 0
   /* encode r1 != r2 => !e */
 
   for (k = 0; k < len; k++)
-  {
-    aig1 = av1->aigs[k];
-    assert (!BTOR_IS_INVERTED_AIG (aig1));
-    assert (!BTOR_IS_CONST_AIG (aig1));
-    assert (BTOR_IS_VAR_AIG (aig1));
-    r1_k = aig1->cnf_id;
-    assert (r1_k != 0);
+    {
+      aig1 = av1->aigs[k];
+      assert (!BTOR_IS_INVERTED_AIG (aig1));
+      assert (!BTOR_IS_CONST_AIG (aig1));
+      assert (BTOR_IS_VAR_AIG (aig1));
+      r1_k = aig1->cnf_id;
+      assert (r1_k != 0);
 
-    aig2 = av2->aigs[k];
-    assert (!BTOR_IS_INVERTED_AIG (aig2));
-    assert (!BTOR_IS_CONST_AIG (aig2));
-    assert (BTOR_IS_VAR_AIG (aig2));
-    r2_k = aig2->cnf_id;
-    assert (r2_k != 0);
+      aig2 = av2->aigs[k];
+      assert (!BTOR_IS_INVERTED_AIG (aig2));
+      assert (!BTOR_IS_CONST_AIG (aig2));
+      assert (BTOR_IS_VAR_AIG (aig2));
+      r2_k = aig2->cnf_id;
+      assert (r2_k != 0);
 
-    btor_add_sat (smgr, -e);
-    btor_add_sat (smgr, r1_k);
-    btor_add_sat (smgr, -r2_k);
-    btor_add_sat (smgr, 0);
+      btor_add_sat (smgr, -e);
+      btor_add_sat (smgr, r1_k);
+      btor_add_sat (smgr, -r2_k);
+      btor_add_sat (smgr, 0);
 
-    btor_add_sat (smgr, -e);
-    btor_add_sat (smgr, -r1_k);
-    btor_add_sat (smgr, r2_k);
-    btor_add_sat (smgr, 0);
-  }
+      btor_add_sat (smgr, -e);
+      btor_add_sat (smgr, -r1_k);
+      btor_add_sat (smgr, r2_k);
+      btor_add_sat (smgr, 0);
+    }
+#endif
 }
 
 /* Encodes read constraint of one array eagerly by adding all
@@ -1197,16 +1201,16 @@ encode_read_consistency_array_eagerly (Btor *btor, BtorExp *array)
   {
     cur_i = next_parent_read_parent_iterator (&it_i);
     assert (BTOR_IS_REGULAR_EXP (cur_i));
-    if (cur_i->reachable)
+    if (cur_i->reachable || cur_i->vread)
     {
       it_j = it_i;
       while (has_next_parent_read_parent_iterator (&it_j))
       {
         cur_j = next_parent_read_parent_iterator (&it_j);
         assert (BTOR_IS_REGULAR_EXP (cur_j));
-        if (cur_j->reachable)
+        if (cur_j->reachable || cur_j->vread)
           encode_ackermann_constraint_eagerly (
-              btor, cur_i->e[1], cur_j->e[1], cur_i, cur_j);
+              btor, cur_i->e[1], cur_j->e[1], cur_i, cur_j, 0);
       }
     }
   }
@@ -1226,6 +1230,89 @@ encode_read_consistency_all_arrays_eagerly (Btor *btor)
     assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
     if (cur->reachable) encode_read_consistency_array_eagerly (btor, cur);
   }
+}
+
+static void
+encode_read_consistency_array_equality_eagerly (Btor *btor, BtorExp *aeq)
+{
+  BtorExp *array1, *array2, *read1, *read2;
+  BtorPartialParentIterator it1, it2;
+  int e;
+  assert (btor != NULL);
+  assert (aeq != NULL);
+  assert (BTOR_IS_REGULAR_EXP (aeq));
+  assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
+  assert (btor->mode == BTOR_EAGER_MODE);
+  array1 = aeq->e[0];
+  assert (BTOR_IS_REGULAR_EXP (array1));
+  assert (BTOR_IS_ATOMIC_ARRAY_EXP (array1));
+  array2 = aeq->e[1];
+  assert (BTOR_IS_REGULAR_EXP (array2));
+  assert (BTOR_IS_ATOMIC_ARRAY_EXP (array2));
+  e = aeq->av->aigs[0]->cnf_id;
+  assert (e != 0);
+  init_read_parent_iterator (&it1, array1);
+  while (has_next_parent_read_parent_iterator (&it1))
+  {
+    read1 = next_parent_read_parent_iterator (&it1);
+    assert (BTOR_IS_REGULAR_EXP (read1));
+    if (read1->reachable || read1->vread)
+    {
+      init_read_parent_iterator (&it2, array2);
+      while (has_next_parent_read_parent_iterator (&it2))
+      {
+        read2 = next_parent_read_parent_iterator (&it2);
+        assert (BTOR_IS_REGULAR_EXP (read2));
+        /* virtual reads are only used to encode array inequality */
+        if ((read2->reachable || read2->vread))
+          encode_ackermann_constraint_eagerly (
+              btor, read1->e[1], read2->e[1], read1, read2, e);
+      }
+    }
+  }
+}
+
+static void
+encode_read_consistency_all_array_equalities_eagerly (Btor *btor)
+{
+  BtorMemMgr *mm;
+  BtorExpPtrStack unmark_stack;
+  BtorPartialParentIterator it;
+  BtorExp **top, **temp, *cur_array, *cur;
+  assert (btor != NULL);
+  assert (btor->mode == BTOR_EAGER_MODE);
+  mm = btor->mm;
+  BTOR_INIT_STACK (unmark_stack);
+  top = btor->arrays.top;
+  for (temp = btor->arrays.start; temp != top; temp++)
+  {
+    cur_array = *temp;
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
+    if (cur_array->reachable)
+    {
+      init_aeq_parent_iterator (&it, cur_array);
+      while (has_next_parent_aeq_parent_iterator (&it))
+      {
+        cur = next_parent_aeq_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur));
+        if (!cur->mark && cur->reachable)
+        {
+          cur->mark = 1;
+          BTOR_PUSH_STACK (mm, unmark_stack, cur);
+          encode_read_consistency_array_equality_eagerly (btor, cur);
+        }
+      }
+    }
+  }
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_ARRAY_EQ_EXP (cur));
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
 static BtorExp *
@@ -5329,6 +5416,9 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   aeq->av = btor_var_aigvec (avmgr, 1);
   /* generate virtual reads */
   index = var_exp (btor, aeq->e[0]->index_len, "vindex");
+  if (btor->mode == BTOR_EAGER_MODE)
+    index->av = btor_var_aigvec (avmgr, index->len);
+  /* in lazy mode index gets synthesized later (if necessary) */
 
   /* we do not want read optimizations for the virtual
    * reads (e.g. rewriting of reads on array conditionals),
@@ -5350,8 +5440,6 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
     read2->av = btor_var_aigvec (avmgr, read2->len);
     btor->vreads++;
   }
-
-  /* index gets synthesized later (if necessary) */
 
   /* eagerly encode array inequality constraint */
   encode_array_inequality_virtual_reads (btor, aeq);
@@ -5414,8 +5502,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   char *indexed_name;
   const char *name;
   unsigned int count;
-  int same_children_mem, i;
-  size_t len;
+  int same_children_mem, i, len;
   int invert_av0 = 0;
   int invert_av1 = 0;
   int invert_av2 = 0;
@@ -5493,6 +5580,8 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           {
             /* writes are not reachable in eager mode */
             assert (mode != BTOR_EAGER_MODE);
+            /* set mark flag to explicitly to 2
+             * as write has no AIG vector */
             cur->mark = 2;
             /* mark children recursively as reachable */
             set_flags_and_synth_aeq (btor, cur->e[2]);
@@ -5503,12 +5592,22 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           }
           else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
-            cur->mark            = 2;
             btor->extensionality = 1;
-            /* mark children recursively as reachable */
+            /* generate virtual reads and create AIG
+             * variable for array equality */
             synthesize_array_equality (btor, cur);
-            set_flags_and_synth_aeq (btor, cur->e[1]);
-            set_flags_and_synth_aeq (btor, cur->e[0]);
+            if (mode == BTOR_EAGER_MODE)
+            {
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            }
+            else
+            {
+              assert (mode == BTOR_LAZY_MODE);
+              /* mark children recursively as reachable */
+              set_flags_and_synth_aeq (btor, cur->e[1]);
+              set_flags_and_synth_aeq (btor, cur->e[0]);
+            }
           }
           else
           {
@@ -7135,6 +7234,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->mode == BTOR_EAGER_MODE)
   {
     encode_read_consistency_all_arrays_eagerly (btor);
+    encode_read_consistency_all_array_equalities_eagerly (btor);
   }
   else
   {
