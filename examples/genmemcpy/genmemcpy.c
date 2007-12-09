@@ -85,7 +85,9 @@ main (int argc, char** argv)
     die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
   btor = btor_new_btor ();
-  mem  = btor_array_exp (btor, 8, 32);
+  btor_set_rewrite_level_btor (btor, 0);
+
+  mem = btor_array_exp (btor, 8, 32);
 
   src = btor_var_exp (btor, 32, "src");
   dst = btor_var_exp (btor, 32, "dst");

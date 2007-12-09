@@ -19,21 +19,13 @@ typedef struct BtorExp BtorExp;
 
 typedef struct Btor Btor;
 
-enum BtorReadEnc
+enum BtorMode
 {
-  BTOR_EAGER_READ_ENC,
-  BTOR_LAZY_READ_ENC,
+  BTOR_EAGER_MODE,
+  BTOR_LAZY_MODE,
 };
 
-typedef enum BtorReadEnc BtorReadEnc;
-
-enum BtorWriteEnc
-{
-  BTOR_EAGER_WRITE_ENC,
-  BTOR_LAZY_WRITE_ENC
-};
-
-typedef enum BtorWriteEnc BtorWriteEnc;
+typedef enum BtorMode BtorMode;
 
 /*------------------------------------------------------------------------*/
 /* Btor                                                             */
@@ -51,11 +43,8 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
-/* Sets read encoding strategy. */
-void btor_set_read_enc_btor (Btor *btor, BtorReadEnc read_enc);
-
-/* Sets write encoding strategy. */
-void btor_set_write_enc_btor (Btor *btor, BtorWriteEnc write_enc);
+/* Sets boolector mode. */
+void btor_set_mode_btor (Btor *btor, BtorMode mode);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);

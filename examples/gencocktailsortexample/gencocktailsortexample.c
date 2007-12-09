@@ -23,8 +23,8 @@ main (int argc, char **argv)
   int num_bits, num_bits_index, num_elements, i, top, bottom;
   char *buffer;
   Btor *btor;
-  BtorExp **indices, **initial_elements, **sorted_elements, *array, *eq, *ugt,
-      *ult, *ulte;
+  BtorExp **indices, **initial_elements, **sorted_elements;
+  BtorExp *array, *eq, *ugt, *ult, *ulte;
   BtorExp *temp, *read1, *read2, *cond1, *cond2, *sorted, *formula, *var;
   bottom = 0;
   if (argc != 3)
@@ -49,8 +49,9 @@ main (int argc, char **argv)
     printf ("Number of elements must be a power of two\n");
     return 1;
   }
-  num_bits_index   = btor_log_2_util (num_elements);
-  btor             = btor_new_btor ();
+  num_bits_index = btor_log_2_util (num_elements);
+  btor           = btor_new_btor ();
+  btor_set_rewrite_level_btor (btor, 0);
   indices          = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   initial_elements = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   sorted_elements  = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);

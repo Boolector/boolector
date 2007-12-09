@@ -87,13 +87,11 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
-    "  -er|--eager-read                 eager Ackermann encoding\n"
-    "  -lr|--lazy-read                  iterative read consistency refinement\n"
-    "  -ew|--eager-write                eager McCarthy axiom encoding\n"
-    "  -lw|--lazy-write                 iterative write consistency "
-    "refinement\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit (lazy "
     "mode)\n"
+    "\n"
+    "  -e|--eager                       eager encoding strategy\n"
+    "  -l|--lazy                        lazy encoding strategy (default)\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n";
@@ -361,8 +359,7 @@ btor_main (int argc, char **argv)
   int force_smt_input         = 0;
   int print_solutions         = 0;
   int refinement_limit        = INT_MAX;
-  BtorReadEnc read_enc        = BTOR_LAZY_READ_ENC;
-  BtorWriteEnc write_enc      = BTOR_LAZY_WRITE_ENC;
+  BtorMode mode               = BTOR_LAZY_MODE;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
@@ -479,14 +476,10 @@ btor_main (int argc, char **argv)
 
       app.basis = BTOR_DECIMAL_BASIS;
     }
-    else if (!strcmp (argv[i], "-er") || !strcmp (argv[i], "--eager-read"))
-      read_enc = BTOR_EAGER_READ_ENC;
-    else if (!strcmp (argv[i], "-lr") || !strcmp (argv[i], "--lazy-read"))
-      read_enc = BTOR_LAZY_READ_ENC;
-    else if (!strcmp (argv[i], "-ew") || !strcmp (argv[i], "--eager-write"))
-      write_enc = BTOR_EAGER_WRITE_ENC;
-    else if (!strcmp (argv[i], "-lw") || !strcmp (argv[i], "--lazy-write"))
-      write_enc = BTOR_LAZY_WRITE_ENC;
+    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--eager"))
+      mode = BTOR_EAGER_MODE;
+    else if (!strcmp (argv[i], "-l") || !strcmp (argv[i], "--lazy"))
+      mode = BTOR_LAZY_MODE;
     else if (!strcmp (argv[i], "-rl")
              || !strcmp (argv[i], "--refinement-limit"))
     {
@@ -549,12 +542,6 @@ btor_main (int argc, char **argv)
     }
   }
 
-  if (read_enc == BTOR_EAGER_READ_ENC && write_enc != BTOR_EAGER_WRITE_ENC)
-  {
-    print_err (&app, "can not combine eager read with uneager write\n");
-    err = 1;
-  }
-
   if (app.verbosity > 0)
     print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
 
@@ -563,8 +550,7 @@ btor_main (int argc, char **argv)
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, rewrite_level);
     btor_set_verbosity_btor (btor, app.verbosity);
-    btor_set_read_enc_btor (btor, read_enc);
-    btor_set_write_enc_btor (btor, write_enc);
+    btor_set_mode_btor (btor, mode);
     mem = btor_get_mem_mgr_btor (btor);
 
     if (force_smt_input
