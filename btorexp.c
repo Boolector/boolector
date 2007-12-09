@@ -472,17 +472,25 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
  * (i = j => e) ^ (e => a = b)
  * ((i != j) v e) ^ (not e v (a = b))
  * forall (0 <= k < n) (i_k v j_k v !d_k) ^ (!i_k v !j_k v !d_k)) ^
- * (forall (0 <= k < n) (d_k) v e) ^
+ * linking clause: forall (0 <= k < n) (d_k) v e) ^
  * forall (0 <= k < m) ((!e v a_k v !b_k) ^ (!e v !a_k v b_k))
  *
  * This function is called in eager read mode only. We have to check
  * if we have to encode a constraint at all. For example if we are in eager
  * mode and the indices are constants and not equal, then we do not have
  * to encode a constraint.
+ *
+ * If 'additional_e' is not zero, then it is negatively added to the
+ * linking clause.
+ *
  */
 static void
-encode_ackermann_constraint_eagerly (
-    Btor *btor, BtorExp *i, BtorExp *j, BtorExp *a, BtorExp *b, int fixed_e)
+encode_ackermann_constraint_eagerly (Btor *btor,
+                                     BtorExp *i,
+                                     BtorExp *j,
+                                     BtorExp *a,
+                                     BtorExp *b,
+                                     int additional_e)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -517,7 +525,6 @@ encode_ackermann_constraint_eagerly (
   assert (av_b != NULL);
   assert (av_a->len == av_b->len);
   assert (av_i->len == av_j->len);
-  assert (fixed_e >= 0);
   len_a_b = av_a->len;
   len_i_j = av_i->len;
   /* check if a and b have equal AIGs */
@@ -623,7 +630,7 @@ encode_ackermann_constraint_eagerly (
   e = btor_next_cnf_id_sat_mgr (smgr);
   assert (e != 0);
   btor_add_sat (smgr, e);
-  if (fixed_e != 0) btor_add_sat (smgr, -fixed_e);
+  if (additional_e != 0) btor_add_sat (smgr, -additional_e);
   btor_add_sat (smgr, 0);
   if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
