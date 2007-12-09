@@ -1064,6 +1064,9 @@ btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig)
         if (cur->mark == 0)
         {
           assert (BTOR_IS_AND_AIG (cur));
+
+          /* TODO: Why not abort if 'neg_imp && pos_imp' ?? */
+
           cur->mark = 1;
           BTOR_PUSH_STACK (mm, stack, cur);
           BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
@@ -1134,6 +1137,59 @@ btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig)
       aig_to_sat_plaisted_greenbaum (amgr, aig);
     }
   }
+}
+
+void
+btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
+{
+  BtorAIG *aig, *real_aig, *left, *right;
+  BtorAIGPtrStack stack;
+
+  if (root == BTOR_AIG_TRUE) return;
+
+  if (root == BTOR_AIG_FALSE)
+  {
+    /* Add empty clause.
+     */
+    btor_add_sat (amgr->smgr, 0);
+    return;
+  }
+
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (amgr->mm, stack, root);
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    aig = BTOR_POP_STACK (stack);
+
+    if (!BTOR_IS_INVERTED_AIG (aig) && BTOR_IS_AND_AIG (aig))
+    {
+      BTOR_PUSH_STACK (amgr->mm, stack, BTOR_RIGHT_CHILD_AIG (aig));
+      BTOR_PUSH_STACK (amgr->mm, stack, BTOR_LEFT_CHILD_AIG (aig));
+    }
+    else
+    {
+      real_aig = BTOR_REAL_ADDR_AIG (aig);
+
+      if (BTOR_IS_INVERTED_AIG (aig) && BTOR_IS_AND_AIG (real_aig))
+      {
+        left  = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_aig));
+        right = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_aig));
+        btor_aig_to_sat (amgr, left);
+        btor_aig_to_sat (amgr, right);
+        btor_add_sat (amgr->smgr, BTOR_GET_CNF_ID_AIG (left));
+        btor_add_sat (amgr->smgr, BTOR_GET_CNF_ID_AIG (right));
+        btor_add_sat (amgr->smgr, 0);
+      }
+      else
+      {
+        btor_aig_to_sat (amgr, aig);
+        btor_add_sat (amgr->smgr, BTOR_GET_CNF_ID_AIG (aig));
+        btor_add_sat (amgr->smgr, 0);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (amgr->mm, stack);
 }
 
 void

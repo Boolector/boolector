@@ -7312,14 +7312,18 @@ process_unsynthesized_constraints (Btor *btor)
     {
       aig = exp_to_aig (btor, cur);
       if (aig == BTOR_AIG_FALSE) return 1;
-      btor_aig_to_sat (amgr, aig);
-      if (aig != BTOR_AIG_TRUE)
-      {
-        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-        btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-        btor_add_sat (smgr, 0);
-        btor_release_aig (amgr, aig);
-      }
+#if 0
+          btor_aig_to_sat (amgr, aig);
+          if (aig != BTOR_AIG_TRUE)
+            {
+              assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+              btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+              btor_add_sat (smgr, 0);
+            }
+#else
+      btor_add_toplevel_aig_to_sat (amgr, aig);
+#endif
+      btor_release_aig (amgr, aig);
       btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
       btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
     }

@@ -115,6 +115,11 @@ void btor_dump_aigs (BtorAIGMgr *amgr,
 /* Translates AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* As 'btor_aig_to_sat' but also add the argument as new SAT constraint.
+ * Actually this will result in less constraints being generated.
+ */
+void btor_add_toplevel_aig_to_sat (BtorAIGMgr *, BtorAIG *);
+
 /* Translates AIG fully into SAT instance.
  * This function makes sure that all constraints are fully encoded.
  * Every AIG which is reachable from the root is visited and
