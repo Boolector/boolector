@@ -1,4 +1,5 @@
 #include "btormem.h"
+#include "btorexit.h"
 
 #include <assert.h>
 #include <stdarg.h>
@@ -11,7 +12,7 @@
   {                                        \
     if (!(cond)) break;                    \
     fputs ("[btormem] " msg "\n", stderr); \
-    abort ();                              \
+    exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
 #define ADJUST()                                                            \
@@ -20,12 +21,29 @@
     if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
   } while (0)
 
+#define LIMIT(inc)                                                             \
+  do                                                                           \
+  {                                                                            \
+    BTOR_ABORT_MEM (                                                           \
+        inc > 0 && mm->limited && mm->allocated + (inc) >= mm->limitallocated, \
+        "memory limit reached");                                               \
+  } while (0)
+
 BtorMemMgr *
 btor_new_mem_mgr (void)
 {
+  const char *limit_str_in_mb;
   BtorMemMgr *mm   = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
   mm->allocated    = 0;
   mm->maxallocated = 0;
+  if ((limit_str_in_mb = getenv ("BTORMEMLIMIT")))
+  {
+    mm->limited        = 1;
+    mm->limitallocated = ((size_t) atoi (limit_str_in_mb)) << 20;
+  }
+  else
+    mm->limited = 0;
+
   return mm;
 }
 
@@ -34,6 +52,7 @@ btor_malloc (BtorMemMgr *mm, size_t size)
 {
   void *result;
   assert (mm != NULL);
+  LIMIT (size);
   result = malloc (size);
   BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_malloc'");
   mm->allocated += size;
@@ -48,6 +67,7 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (mm != NULL);
   assert (!p == !old_size);
   assert (mm->allocated >= old_size);
+  LIMIT (new_size - old_size);
   result = realloc (p, new_size);
   BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_realloc'");
   mm->allocated -= old_size;
@@ -59,11 +79,13 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 void *
 btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 {
+  size_t bytes = nobj * size;
   void *result;
   assert (mm != NULL);
+  LIMIT (bytes);
   result = calloc (nobj, size);
   BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_calloc'");
-  mm->allocated += nobj * size;
+  mm->allocated += bytes;
   ADJUST ();
   return result;
 }

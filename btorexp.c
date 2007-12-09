@@ -1,17 +1,19 @@
 #include "btorexp.h"
+#include "btoraig.h"
+#include "btoraigvec.h"
+#include "btorconfig.h"
+#include "btorconst.h"
+#include "btorexit.h"
+#include "btorhash.h"
+#include "btorsat.h"
+#include "btorutil.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "btoraig.h"
-#include "btoraigvec.h"
-#include "btorconfig.h"
-#include "btorconst.h"
-#include "btorhash.h"
-#include "btorsat.h"
-#include "btorutil.h"
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
@@ -22,7 +24,7 @@
   {                                        \
     if (!(cond)) break;                    \
     fputs ("[btorexp] " msg "\n", stderr); \
-    abort ();                              \
+    exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
 struct BtorExpUniqueTable

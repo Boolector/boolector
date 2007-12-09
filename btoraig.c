@@ -1,4 +1,5 @@
 #include "btoraig.h"
+#include "btorexit.h"
 #include "btorhash.h"
 #include "btorsat.h"
 #include "btorutil.h"
@@ -17,7 +18,7 @@
   {                                        \
     if (!(cond)) break;                    \
     fputs ("[btoraig] " msg "\n", stderr); \
-    abort ();                              \
+    exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
 struct BtorAIGUniqueTable
