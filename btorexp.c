@@ -4881,6 +4881,13 @@ write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
       return result;
     }
   }
+  /* if array is a write which writes on the same index we can skip it
+   * as we overwrite the value anyhow
+   */
+  if (btor->rewrite_level > 0 && BTOR_IS_WRITE_EXP (e_array)
+      && e_array->e[1] == e_index)
+    return ternary_exp (
+        btor, BTOR_WRITE_EXP, e_array->e[0], e_index, e_value, 0);
   return ternary_exp (btor, BTOR_WRITE_EXP, e_array, e_index, e_value, 0);
 }
 
