@@ -1,17 +1,19 @@
 #include "btorexp.h"
+#include "btoraig.h"
+#include "btoraigvec.h"
+#include "btorconfig.h"
+#include "btorconst.h"
+#include "btorexit.h"
+#include "btorhash.h"
+#include "btorsat.h"
+#include "btorutil.h"
+
 #include <assert.h>
 #include <ctype.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "btoraig.h"
-#include "btoraigvec.h"
-#include "btorconfig.h"
-#include "btorconst.h"
-#include "btorhash.h"
-#include "btorsat.h"
-#include "btorutil.h"
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
@@ -22,7 +24,7 @@
   {                                        \
     if (!(cond)) break;                    \
     fputs ("[btorexp] " msg "\n", stderr); \
-    abort ();                              \
+    exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
 struct BtorExpUniqueTable
@@ -7027,41 +7029,6 @@ is_substitution (Btor *btor,
   return !occurrence_check (btor, *left_result, *right_result);
 }
 
-static void
-process_new_constraints (Btor *btor)
-{
-  BtorPtrHashTable *new_constraints, *processed_constraints;
-  BtorExp *cur, *left, *right;
-  BtorPtrHashBucket *bucket;
-  assert (btor != NULL);
-  new_constraints       = btor->new_constraints;
-  processed_constraints = btor->processed_constraints;
-  while (new_constraints->count > 0)
-  {
-    bucket = new_constraints->first;
-    assert (bucket != NULL);
-    cur = (BtorExp *) bucket->key;
-    assert (BTOR_REAL_ADDR_EXP (cur)->constraint == 1);
-    assert (pointer_chase_simplified_exp (btor, cur) == cur);
-    assert (BTOR_IS_INVERTED_EXP (cur) || cur->kind != BTOR_AND_EXP);
-    if (is_substitution (btor, cur, &left, &right))
-      substitute_exp (btor, left, right);
-    else
-    {
-      if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
-      {
-        btor_insert_in_ptr_hash_table (processed_constraints, cur);
-        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
-      }
-      else
-      { /* constraint is already in processed_constraints */
-        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
-        release_exp (btor, cur);
-      }
-    }
-  }
-}
-
 static int
 is_linear_equation_child (Btor *btor, BtorExp *exp, int mul_parent)
 {
@@ -7096,6 +7063,49 @@ is_linear_equation (Btor *btor, BtorExp *exp)
     return 0;
   return is_linear_equation_child (btor, exp->e[0], 0)
          && is_linear_equation_child (btor, exp->e[1], 0);
+}
+
+static void
+process_new_constraints (Btor *btor)
+{
+  BtorPtrHashTable *new_constraints, *processed_constraints;
+  BtorExp *cur, *left, *right;
+  BtorPtrHashBucket *bucket;
+  assert (btor != NULL);
+  new_constraints       = btor->new_constraints;
+  processed_constraints = btor->processed_constraints;
+  while (new_constraints->count > 0)
+  {
+    bucket = new_constraints->first;
+    assert (bucket != NULL);
+    cur = (BtorExp *) bucket->key;
+    assert (BTOR_REAL_ADDR_EXP (cur)->constraint == 1);
+    assert (pointer_chase_simplified_exp (btor, cur) == cur);
+    assert (BTOR_IS_INVERTED_EXP (cur) || cur->kind != BTOR_AND_EXP);
+    if (is_substitution (btor, cur, &left, &right))
+      substitute_exp (btor, left, right);
+    else
+    {
+#if 0
+          if (is_linear_equation (btor, cur))
+#if 0
+	    btor_dump_exp (btor, stderr, cur);
+#else
+	    fprintf (stderr, "linear equation: %d\n", cur->id);
+#endif
+#endif
+      if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
+      {
+        btor_insert_in_ptr_hash_table (processed_constraints, cur);
+        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+      }
+      else
+      { /* constraint is already in processed_constraints */
+        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+        release_exp (btor, cur);
+      }
+    }
+  }
 }
 
 static void

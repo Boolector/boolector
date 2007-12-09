@@ -1,5 +1,6 @@
 #include "../picosat/picosat.h"
 
+#include "btorexit.h"
 #include "btorsat.h"
 
 #include <assert.h>
@@ -18,7 +19,7 @@
   {                                        \
     if (!(cond)) break;                    \
     fputs ("[btorsat] " msg "\n", stderr); \
-    abort ();                              \
+    exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
 struct BtorSATMgr
