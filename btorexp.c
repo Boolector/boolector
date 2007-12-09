@@ -7085,6 +7085,8 @@ is_linear_equation (Btor * btor, BtorExp * exp)
 
 #else
 
+/* TODO this is still not working, I fear ... */
+
 static int is_linear_sum (Btor *, BtorExp *);
 
 static int
