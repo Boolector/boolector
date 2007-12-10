@@ -5555,10 +5555,14 @@ report_constraint_stats (Btor *btor, int force)
     if (btor->verbosity == 3 && changes < 10) return;
   }
 
-  print_verbose_msg ("added/processed/synthesized %d/%d/%d constraints",
+  print_verbose_msg ("%d/%d/%d constraints %d/%d/%d %.1f MB",
                      btor->stats.constraints.added,
                      btor->stats.constraints.processed,
-                     btor->stats.constraints.synthesized);
+                     btor->stats.constraints.synthesized,
+                     btor->new_constraints->count,
+                     btor->processed_constraints->count,
+                     btor->synthesized_constraints->count,
+                     btor->mm->allocated / (double) (1 << 20));
 
   btor->stats.old.constraints = btor->stats.constraints;
 }
