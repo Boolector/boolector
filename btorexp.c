@@ -2536,7 +2536,8 @@ rewrite_exp (Btor *btor,
              int lower)
 {
   BtorMemMgr *mm;
-  BtorExp *result, *real_e0, *real_e1, *real_e2, *temp;
+  BtorExp *result, *real_e0, *real_e1, *real_e2, *temp, *zero, *one;
+  BtorExp *ones, *eq;
   char *b0, *b1, *bresult;
   int same_children_mem, i, diff, len, counter, is_zero, is_one, is_ones;
   int invert_b0 = 0;
@@ -2734,13 +2735,24 @@ rewrite_exp (Btor *btor,
       }
     }
     else if (e0 == e1
-             && (kind == BTOR_ULT_EXP || kind == BTOR_UDIV_EXP
-                 || kind == BTOR_UREM_EXP))
+             && (kind == BTOR_ULT_EXP || kind == BTOR_UREM_EXP
+                 || kind == BTOR_UDIV_EXP))
     {
       switch (kind)
       {
         case BTOR_ULT_EXP: result = false_exp (btor); break;
-        case BTOR_UDIV_EXP: result = one_exp (btor, real_e0->len); break;
+        /* v / v is 1 if v != 0 and UINT_MAX otherwise */
+        case BTOR_UDIV_EXP:
+          zero   = zeros_exp (btor, real_e0->len);
+          one    = one_exp (btor, real_e0->len);
+          ones   = ones_exp (btor, real_e0->len);
+          eq     = eq_exp (btor, e0, zero);
+          result = cond_exp (btor, eq, ones, one);
+          release_exp (btor, zero);
+          release_exp (btor, eq);
+          release_exp (btor, ones);
+          release_exp (btor, one);
+          break;
         default:
           assert (kind == BTOR_UREM_EXP);
           result = zeros_exp (btor, real_e0->len);
