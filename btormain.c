@@ -643,7 +643,10 @@ btor_main (int argc, char **argv)
         btor_add_constraint_exp (btor, root);
         btor_release_exp (btor, root);
 
-        btor_rewrite (btor);
+#if 0
+	      /* TODO Better not? */
+	      btor_rewrite (btor);
+#endif
 
         if (app.verbosity > 1
             && p - constraints.start == constraints_report_limit)
