@@ -2620,9 +2620,19 @@ rewrite_exp (Btor *btor,
         if (kind == BTOR_ADD_EXP)
           result = copy_exp (btor, e1);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
-                 || kind == BTOR_SRL_EXP || kind == BTOR_UDIV_EXP
-                 || kind == BTOR_UREM_EXP || kind == BTOR_AND_EXP)
+                 || kind == BTOR_SRL_EXP || kind == BTOR_UREM_EXP
+                 || kind == BTOR_AND_EXP)
           result = zeros_exp (btor, real_e0->len);
+        else if (kind == BTOR_UDIV_EXP)
+        {
+          zero   = zeros_exp (btor, real_e0->len);
+          ones   = ones_exp (btor, real_e0->len);
+          eq     = eq_exp (btor, e1, zero);
+          result = cond_exp (btor, eq, ones, zero);
+          release_exp (btor, zero);
+          release_exp (btor, eq);
+          release_exp (btor, ones);
+        }
       }
       else if (is_one)
       {
@@ -2660,7 +2670,8 @@ rewrite_exp (Btor *btor,
       }
       else if (is_one)
       {
-        if (kind == BTOR_MUL_EXP) result = copy_exp (btor, e0);
+        if (kind == BTOR_MUL_EXP || kind == BTOR_UDIV_EXP)
+          result = copy_exp (btor, e0);
       }
       else if (is_ones)
       {
