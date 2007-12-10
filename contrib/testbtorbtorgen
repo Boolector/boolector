@@ -1,15 +1,33 @@
 #!/bin/bash
 i=0
+file="/tmp/test$$btor"
 while true 
 do 
   ((i++))
-  echo -n "Test "$i": "
-  btorgen 2> /dev/null > /tmp/test.btor
-  boolector -rl 100000 /tmp/test.btor 
+  echo -n "Test "$i" (rwl2): "
+  btorgen 2> /dev/null > $file 
+  boolector -rwl2 -rl 100000 $file
   retval=$?
-  if [[ retval -ne 2 ]] && [[ retval -ne 3 ]]; then
+  if [[ $retval -ne 2 ]] && [[ $retval -ne 3 ]]; then
     echo "ERROR"
-    cp /tmp/test.btor ./error.btor
+    cp $file ./error.btor
+    rm -f $file
     exit
   fi
+  echo -n "Test "$i" (rwl1): "
+  boolector -rwl1 $file 
+  if [[ $? -ne $retval ]]; then
+    echo "ERROR"
+    cp $file ./error.btor
+    rm -f $file
+    exit
+  fi 
+  echo -n "Test "$i" (rwl0): "
+  boolector -rwl0 $file 
+  if [[ $? -ne $retval ]]; then
+    echo "ERROR"
+    cp $file ./error.btor
+    rm -f $file
+    exit
+  fi 
 done
