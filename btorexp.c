@@ -67,12 +67,7 @@ struct Btor
   BtorMemMgr *mm;
   BtorExpUniqueTable table;
   BtorAIGVecMgr *avmgr;
-  // BtorExpPtrStack vars;
-#if 0
-  BtorExpPtrStack arrays;
-#else
   BtorPtrHashTable *arrays;
-#endif
   int id;
   int valid_assignments;
   int rewrite_level;
@@ -1913,10 +1908,6 @@ delete_exp_node (Btor *btor, BtorExp *exp)
   if (!BTOR_IS_ATOMIC_ARRAY_EXP (exp) && exp->av != NULL)
     btor_release_delete_aigvec (btor->avmgr, exp->av);
 
-#if 0 /* now part of 'release_exp' */
-  if (exp->simplified != NULL)
-    release_exp (btor, exp->simplified);
-#endif
   if (BTOR_IS_ARRAY_EXP (exp) || BTOR_IS_ARRAY_EQ_EXP (exp))
     BTOR_DELETE (mm, exp);
   else
@@ -2182,7 +2173,6 @@ inc_exp_ref_counter (BtorExp *exp)
   assert (exp != NULL);
   real_exp = BTOR_REAL_ADDR_EXP (exp);
   BTOR_ABORT_EXP (real_exp->refs == UINT_MAX, "Reference counter overflow");
-  // if (!BTOR_IS_VAR_EXP (real_exp) && !BTOR_IS_ATOMIC_ARRAY_EXP (real_exp))
   real_exp->refs++;
 }
 
@@ -2253,7 +2243,6 @@ release_exp (Btor *btor, BtorExp *exp)
   assert (cur->refs > 0u);
   if (cur->refs > 1u)
   {
-    // if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ATOMIC_ARRAY_EXP (cur))
     cur->refs--;
   }
   else
@@ -2266,7 +2255,6 @@ release_exp (Btor *btor, BtorExp *exp)
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
       if (cur->refs > 1u)
       {
-        // if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ATOMIC_ARRAY_EXP (cur))
         cur->refs--;
       }
       else
@@ -2452,7 +2440,6 @@ var_exp (Btor *btor, int len, const char *symbol)
   exp->id   = btor->id++;
   exp->refs = 1u;
   exp->btor = btor;
-  // BTOR_PUSH_STACK (mm, btor->vars, (BtorExp *) exp);
   return (BtorExp *) exp;
 }
 
@@ -2485,11 +2472,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   exp->id   = btor->id++;
   exp->refs = 1u;
   exp->btor = btor;
-#if 0
-  BTOR_PUSH_STACK (mm, btor->arrays, exp);
-#else
   btor_insert_in_ptr_hash_table (btor->arrays, exp);
-#endif
   return exp;
 }
 
@@ -5422,14 +5405,9 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr = btor_new_aigvec_mgr (mm);
-#if 0
-  BTOR_INIT_STACK (btor->vars);
-  BTOR_INIT_STACK (btor->arrays);
-#else
+  btor->avmgr  = btor_new_aigvec_mgr (mm);
   btor->arrays = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
-#endif
   btor->id                         = 1;
   btor->valid_assignments          = 1;
   btor->rewrite_level              = 2;
@@ -5499,7 +5477,6 @@ btor_set_mode_btor (Btor *btor, BtorMode mode)
 void
 btor_delete_btor (Btor *btor)
 {
-  // BtorExp **cur, **top, *temp;
   BtorMemMgr *mm;
   BtorPtrHashBucket *bucket;
   assert (btor != NULL);
@@ -5536,54 +5513,9 @@ btor_delete_btor (Btor *btor)
     release_exp (btor, (BtorExp *) bucket->key);
   btor_delete_ptr_hash_table (btor->assumptions);
 
-#if 0
-  /* release simplified expressions of arrays and variables
-   * before deleting them
-   */
-
-  top = btor->arrays.top;
-  for (cur = btor->arrays.start; cur != top; cur++)
-    {
-      temp = *cur;
-      assert (BTOR_IS_REGULAR_EXP (temp));
-      if (temp->simplified != NULL)
-        {
-          release_exp (btor, temp->simplified);
-          temp->simplified = NULL;
-        }
-    }
-
-  top = btor->vars.top;
-  for (cur = btor->vars.start; cur != top; cur++)
-    {
-      temp = *cur;
-      assert (BTOR_IS_REGULAR_EXP (temp));
-      if (temp->simplified != NULL)
-        {
-          release_exp (btor, temp->simplified);
-          temp->simplified = NULL;
-        }
-    }
-
-  /* delete sticky arrays and variable */
-
-  top = btor->arrays.top;
-  for (cur = btor->arrays.start; cur != top; cur++)
-    delete_exp_node (btor, *cur);
-
-  top = btor->vars.top;
-  for (cur = btor->vars.start; cur != top; cur++)
-    delete_exp_node (btor, *cur);
-#endif
-
   assert (btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
-#if 0
-  BTOR_RELEASE_STACK (mm, btor->vars);
-  BTOR_RELEASE_STACK (mm, btor->arrays);
-#else
   btor_delete_ptr_hash_table (btor->arrays);
-#endif
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
@@ -5594,16 +5526,20 @@ constraints_stats_changes (Btor *btor)
 {
   int res;
 
-  res = btor->stats.constraints.added;
-  res -= btor->stats.old.constraints.added;
+  if (btor->stats.old.constraints.added && !btor->new_constraints->count)
+    return INT_MAX;
 
-  res += btor->stats.constraints.processed;
-  res -= btor->stats.old.constraints.processed;
+  if (btor->stats.old.constraints.processed
+      && !btor->processed_constraints->count)
+    return INT_MAX;
 
-  res += btor->stats.constraints.synthesized;
-  res -= btor->stats.old.constraints.synthesized;
+  res = abs (btor->stats.old.constraints.added - btor->new_constraints->count);
 
-  assert (res >= 0);
+  res += abs (btor->stats.old.constraints.processed
+              - btor->processed_constraints->count);
+
+  res += abs (btor->stats.old.constraints.synthesized
+              - btor->synthesized_constraints->count);
 
   return res;
 }
@@ -5635,7 +5571,10 @@ report_constraint_stats (Btor *btor, int force)
                      btor->synthesized_constraints->count,
                      btor->mm->allocated / (double) (1 << 20));
 
-  btor->stats.old.constraints = btor->stats.constraints;
+  btor->stats.old.constraints.added     = btor->new_constraints->count;
+  btor->stats.old.constraints.processed = btor->processed_constraints->count;
+  btor->stats.old.constraints.synthesized =
+      btor->synthesized_constraints->count;
 }
 
 void
@@ -7315,12 +7254,12 @@ is_linear_product (Btor *btor, BtorExp *exp)
 
   if (exp->kind == BTOR_MUL_EXP)
   {
-    factor = exp->e[0];
+    factor      = exp->e[0];
     real_factor = BTOR_REAL_ADDR_EXP (factor);
     if (BTOR_IS_CONST_EXP (real_factor))
       return is_linear_product (btor, exp->e[1]);
 
-    factor = exp->e[1];
+    factor      = exp->e[1];
     real_factor = BTOR_REAL_ADDR_EXP (factor);
     if (BTOR_IS_CONST_EXP (real_factor))
       return is_linear_product (btor, exp->e[0]);
@@ -7384,14 +7323,21 @@ process_new_constraints (Btor *btor)
       substitute_exp (btor, left, right);
     else
     {
+      if (btor->verbosity > 0)
+      {
+        if (is_linear_equation (btor, cur))
+        {
+          btor->stats.linear_equations++;
 #if 0
-          if (is_linear_equation (btor, cur))
 #if 0
-            btor_dump_exp (btor, stderr, cur);
+		  btor_dump_exp (btor, stderr, cur);
 #else
-            fprintf (stderr, "linear equation: %d\n", cur->id);
+		  fprintf (stderr, "linear equation: %d\n", cur->id);
 #endif
 #endif
+        }
+      }
+
       if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
       {
         btor_insert_in_ptr_hash_table (processed_constraints, cur);
@@ -7418,10 +7364,6 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
   new_constraints = btor->new_constraints;
   if (!btor_find_in_ptr_hash_table (new_constraints, exp))
   {
-    if (btor->verbosity > 0)
-    {
-      if (is_linear_equation (btor, exp)) btor->stats.linear_equations++;
-    }
     btor_insert_in_ptr_hash_table (new_constraints, copy_exp (btor, exp));
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
 
@@ -7610,17 +7552,8 @@ process_unsynthesized_constraints (Btor *btor)
     {
       aig = exp_to_aig (btor, cur);
       if (aig == BTOR_AIG_FALSE) return 1;
-#if 0
-          btor_aig_to_sat (amgr, aig);
-          if (aig != BTOR_AIG_TRUE)
-            {
-              assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-              btor_add_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-              btor_add_sat (smgr, 0);
-            }
-#else
+
       btor_add_toplevel_aig_to_sat (amgr, aig);
-#endif
       btor_release_aig (amgr, aig);
       btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
       btor_remove_from_ptr_hash_table (processed_constraints, cur, 0, 0);

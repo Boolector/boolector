@@ -608,7 +608,7 @@ btor_main (int argc, char **argv)
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stderr);
 
-      if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
+      if (app.verbosity >= 2) btor_enable_verbosity_sat (smgr);
 
       if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
