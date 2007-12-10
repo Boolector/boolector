@@ -5,6 +5,7 @@
 
 #include <assert.h>
 #include <limits.h>
+#include <stdarg.h>
 #include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
@@ -41,10 +42,14 @@ struct BtorSATMgr
 /*------------------------------------------------------------------------*/
 
 static void
-print_verbose_msg (const char *msg)
+print_verbose_msg (const char *fmt, ...)
 {
-  assert (msg != NULL);
-  fprintf (stderr, "[btorsat] %s", msg);
+  va_list ap;
+  assert (fmt != NULL);
+  fprintf (stderr, "[btorsat] ");
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
   fflush (stderr);
 }
 
@@ -91,6 +96,8 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   (void) smgr;
   result = picosat_inc_max_var ();
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
+  if (smgr->verbosity > 2 && !(result % 100000))
+    print_verbose_msg ("reached CNF id %d\n", result);
   return result;
 }
 
@@ -202,7 +209,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  if (smgr->verbosity > 2) print_verbose_msg ("calling PicoSAT\n");
+  if (smgr->verbosity > 2) print_verbose_msg ("calling SAT solver PicoSAT\n");
   return picosat_sat (limit);
 }
 
@@ -221,7 +228,7 @@ btor_reset_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  if (smgr->verbosity >= 3) print_verbose_msg ("resetting PicoSAT\n");
+  if (smgr->verbosity > 1) print_verbose_msg ("resetting PicoSAT\n");
   picosat_reset ();
   smgr->initialized = 0;
 }

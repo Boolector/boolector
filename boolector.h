@@ -457,6 +457,10 @@ void btor_dump_smt (Btor *btor, FILE *file, BtorExp *root);
 /* Adds top level constraint. */
 void btor_add_constraint_exp (Btor *btor, BtorExp *exp);
 
+/* Rewriting added constraints.
+ */
+void btor_rewrite (Btor *btor);
+
 /* Adds assumption. */
 void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
 

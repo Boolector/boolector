@@ -121,7 +121,7 @@ static void
 print_verbose_msg (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stderr, "[btormain] %s", msg);
+  fprintf (stderr, "[btrmain] %s", msg);
   fflush (stderr);
 }
 
@@ -131,7 +131,7 @@ print_verbose_msg_va_args (char *msg, ...)
   va_list list;
   assert (msg != NULL);
   va_start (list, msg);
-  fprintf (stderr, "[btormain] ");
+  fprintf (stderr, "[btrmain] ");
   vfprintf (stderr, msg, list);
   va_end (list);
 }
@@ -360,6 +360,7 @@ btor_main (int argc, char **argv)
   int print_solutions   = 0;
   int refinement_limit  = INT_MAX;
   int root_len;
+  int constraints_reported, constraints_report_limit, nconstraints;
   BtorMode mode               = BTOR_LAZY_MODE;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
@@ -632,13 +633,35 @@ btor_main (int argc, char **argv)
       parser_api->reset (parser);
       parser_api = 0;
 
+      constraints_reported     = 0;
+      nconstraints             = BTOR_COUNT_STACK (constraints);
+      constraints_report_limit = (19 + nconstraints) / 20;
+
       for (p = constraints.start; p < constraints.top; p++)
       {
         root = *p;
         btor_add_constraint_exp (btor, root);
         btor_release_exp (btor, root);
+
+        btor_rewrite (btor);
+
+        if (app.verbosity > 1
+            && p - constraints.start == constraints_report_limit)
+        {
+          constraints_reported = constraints_report_limit;
+          constraints_report_limit += (19 + nconstraints) / 20;
+          assert (nconstraints);
+          print_verbose_msg_va_args (
+              "added %d constraints (%.0f%%)\n",
+              constraints_reported,
+              100.0 * constraints_reported / (double) nconstraints);
+        }
       }
       BTOR_RELEASE_STACK (mem, constraints);
+
+      if (app.verbosity > 1 && constraints_reported < nconstraints)
+        print_verbose_msg_va_args ("added %d constraints (100%)\n",
+                                   nconstraints);
 
       sat_result = btor_sat_btor (btor, refinement_limit);
 

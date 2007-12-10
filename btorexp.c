@@ -5902,7 +5902,7 @@ btor_synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   BTOR_RELEASE_STACK (mm, exp_stack);
   btor_mark_exp (btor, exp, 0);
 
-  if (count > 0 && btor->verbosity > 1)
+  if (count > 0 && btor->verbosity > 2)
     print_verbose_msg ("synthesized %u expressions into AIG vectors", count);
 }
 
@@ -7287,7 +7287,15 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (
       BTOR_REAL_ADDR_EXP (exp)->len != 1,
       "'exp' has to be a boolean expression in 'btor_add_constraint_exp'");
+
   add_constraint (btor, exp);
+}
+
+void
+btor_rewrite (Btor *btor)
+{
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_rewrite'");
+
   process_new_constraints (btor);
 }
 
@@ -7422,12 +7430,15 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BtorSATMgr *smgr;
   BtorAIG *aig;
   BtorMode mode;
+
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
   BTOR_ABORT_EXP (refinement_limit < 0,
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
   mode = btor->mode;
   BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->sat_calls != 0,
                   "eager mode must not be used incrementally");
+
+  process_new_constraints (btor);
 
   verbosity   = btor->verbosity;
   refinements = btor->refinements;
@@ -7489,7 +7500,13 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       if (!found_conflict) break;
       refinements++;
       if (verbosity > 1)
-        printf ("Starting refinement iteration %d\n", refinements);
+      {
+        if (verbosity > 2 || !(refinements % 10))
+        {
+          fprintf (stderr, "[btorsat] refinement iteration %d\n", refinements);
+          fflush (stderr);
+        }
+      }
       sat_result = btor_sat_sat (smgr, INT_MAX);
     }
     btor->refinements = refinements;
