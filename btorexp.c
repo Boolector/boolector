@@ -6574,7 +6574,7 @@ process_working_stack (Btor *btor,
 }
 
 static int
-resolve_read_write_conflicts (Btor *btor)
+check_and_resolve_read_write_conflicts (Btor *btor)
 {
   BtorExpPtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorPartialParentIterator it;
@@ -7485,7 +7485,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
            && btor->refinements < refinement_limit)
     {
       assert (sat_result == BTOR_SAT);
-      found_conflict = resolve_read_write_conflicts (btor);
+      found_conflict = check_and_resolve_read_write_conflicts (btor);
       if (!found_conflict) break;
       refinements++;
       if (verbosity > 1)
