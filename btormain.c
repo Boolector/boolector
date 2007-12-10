@@ -617,9 +617,10 @@ btor_main (int argc, char **argv)
       BTOR_INIT_STACK (varstack);
       BTOR_INIT_STACK (constraints);
 
-      for (i = 0; i < parse_res.nvars; i++)
-        BTOR_PUSH_STACK (
-            mem, varstack, btor_copy_exp (btor, parse_res.vars[i]));
+      if (print_solutions)
+        for (i = 0; i < parse_res.nvars; i++)
+          BTOR_PUSH_STACK (
+              mem, varstack, btor_copy_exp (btor, parse_res.vars[i]));
 
       for (i = 0; i < parse_res.nroots; i++)
       {
