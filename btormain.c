@@ -345,20 +345,21 @@ btor_main (int argc, char **argv)
   double start_time = time_stamp ();
   double delta_time = 0.0;
 #endif
-  int return_val              = 0;
-  int sat_result              = 0;
-  int done                    = 0;
-  int err                     = 0;
-  int i                       = 0;
-  int close_input_file        = 0;
-  int close_output_file       = 0;
-  int close_exp_file          = 0;
-  int close_smt_file          = 0;
-  int dump_exp                = 0;
-  int dump_smt                = 0;
-  int force_smt_input         = 0;
-  int print_solutions         = 0;
-  int refinement_limit        = INT_MAX;
+  int return_val        = 0;
+  int sat_result        = 0;
+  int done              = 0;
+  int err               = 0;
+  int i                 = 0;
+  int close_input_file  = 0;
+  int close_output_file = 0;
+  int close_exp_file    = 0;
+  int close_smt_file    = 0;
+  int dump_exp          = 0;
+  int dump_smt          = 0;
+  int force_smt_input   = 0;
+  int print_solutions   = 0;
+  int refinement_limit  = INT_MAX;
+  int root_len;
   BtorMode mode               = BTOR_LAZY_MODE;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
@@ -372,12 +373,13 @@ btor_main (int argc, char **argv)
   BtorAIGVecMgr *avmgr        = NULL;
   BtorSATMgr *smgr            = NULL;
   BtorParseResult parse_res;
-  BtorExpPtrStack varstack;
+  BtorExpPtrStack varstack, constraints;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   int rewrite_level               = 2;
   size_t maxallocated             = 0;
+  BtorExp *root, **p;
 
   app.verbosity   = 0;
   app.force       = 0;
@@ -608,22 +610,35 @@ btor_main (int argc, char **argv)
 
       btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
 
-      for (i = 0; i < parse_res.nroots; i++)
-      {
-        /* TODO: replace this by a check!
-         */
-        assert (btor_get_exp_len (btor, parse_res.roots[i]) == 1);
-        btor_add_constraint_exp (btor, parse_res.roots[i]);
-      }
-
       BTOR_INIT_STACK (varstack);
+      BTOR_INIT_STACK (constraints);
 
       for (i = 0; i < parse_res.nvars; i++)
         BTOR_PUSH_STACK (
             mem, varstack, btor_copy_exp (btor, parse_res.vars[i]));
 
+      for (i = 0; i < parse_res.nroots; i++)
+      {
+        root     = parse_res.roots[i];
+        root_len = btor_get_exp_len (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = btor_redor_exp (btor, root);
+        else
+          root = btor_copy_exp (btor, root);
+        BTOR_PUSH_STACK (mem, constraints, root);
+      }
+
       parser_api->reset (parser);
       parser_api = 0;
+
+      for (p = constraints.start; p < constraints.top; p++)
+      {
+        root = *p;
+        btor_add_constraint_exp (btor, root);
+        btor_release_exp (btor, root);
+      }
+      BTOR_RELEASE_STACK (mem, constraints);
 
       sat_result = btor_sat_btor (btor, refinement_limit);
 
