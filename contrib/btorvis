@@ -1,5 +1,5 @@
 #!/bin/sh
-if [ $# -ne 1 ]; then
+if [ $# -gt 1 ]; then
   echo "Usage: ./btorvis.sh <filename>"
   exit 1
 fi
@@ -20,7 +20,7 @@ then
   echo "*** btorvis: can not find 'btor2dot.awk'" 1>&2
   exit 1
 fi
-$btor2dot < $1 | dot -Tps2 > $pstemp
+cat $*|$btor2dot | dot -Tps2 > $pstemp
 ps2pdf $pstemp $pdftemp || exit 1
 acroread $pdftemp
 rm -f $pstemp $pdftemp
