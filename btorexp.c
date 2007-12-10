@@ -2733,18 +2733,14 @@ rewrite_exp (Btor *btor,
           result = ones_exp (btor, real_e0->len);
       }
     }
-    else if (e0 == e1
-             && (kind == BTOR_ULT_EXP || kind == BTOR_UDIV_EXP
-                 || kind == BTOR_UREM_EXP))
+    else if (e0 == e1 && (kind == BTOR_ULT_EXP || kind == BTOR_UREM_EXP))
     {
-      switch (kind)
+      if (kind == BTOR_ULT_EXP)
+        result = false_exp (btor);
+      else
       {
-        case BTOR_ULT_EXP: result = false_exp (btor); break;
-        case BTOR_UDIV_EXP: result = one_exp (btor, real_e0->len); break;
-        default:
-          assert (kind == BTOR_UREM_EXP);
-          result = zeros_exp (btor, real_e0->len);
-          break;
+        assert (kind == BTOR_UREM_EXP);
+        result = zeros_exp (btor, real_e0->len);
       }
     }
 
