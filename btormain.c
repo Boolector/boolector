@@ -598,6 +598,9 @@ btor_main (int argc, char **argv)
     }
     else
     {
+      if (app.verbosity > 0)
+        print_verbose_msg_va_args ("parsed %d roots\n", parse_res.nroots);
+
       avmgr = btor_get_aigvec_mgr_btor (btor);
       amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
       smgr  = btor_get_sat_mgr_aig_mgr (amgr);
@@ -655,7 +658,7 @@ btor_main (int argc, char **argv)
           constraints_report_limit += (19 + nconstraints) / 20;
           assert (nconstraints);
           print_verbose_msg_va_args (
-              "added %d constraints (%.0f%%)\n",
+              "added %d roots (%.0f%%)\n",
               constraints_reported,
               100.0 * constraints_reported / (double) nconstraints);
         }
@@ -663,8 +666,7 @@ btor_main (int argc, char **argv)
       BTOR_RELEASE_STACK (mem, constraints);
 
       if (app.verbosity > 1 && constraints_reported < nconstraints)
-        print_verbose_msg_va_args ("added %d constraints (100%)\n",
-                                   nconstraints);
+        print_verbose_msg_va_args ("added %d roots (100%)\n", nconstraints);
 
       sat_result = btor_sat_btor (btor, refinement_limit);
 

@@ -55,6 +55,13 @@ typedef struct BtorExpUniqueTable BtorExpUniqueTable;
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
+struct ConstraintStats
+{
+  int added;
+  int processed;
+  int synthesized;
+};
+
 struct Btor
 {
   BtorMemMgr *mm;
@@ -75,15 +82,24 @@ struct Btor
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
   /* statistics */
-  int refinements;
-  int synthesis_assignment_inconsistencies;
-  int read_read_conflicts;
-  int read_write_conflicts;
-  int var_substitutions;
-  int array_substitutions;
-  int vreads;
-  int linear_equations;
-  int sat_calls;
+
+  struct
+  {
+    int refinements;
+    int synthesis_assignment_inconsistencies;
+    int read_read_conflicts;
+    int read_write_conflicts;
+    int var_substitutions;
+    int array_substitutions;
+    int vreads;
+    int linear_equations;
+    int sat_calls;
+    struct ConstraintStats constraints;
+    struct
+    {
+      struct ConstraintStats constraints;
+    } old;
+  } stats;
 };
 
 struct BtorExpPair
@@ -5502,25 +5518,73 @@ btor_delete_btor (Btor *btor)
   btor_delete_mem_mgr (mm);
 }
 
+static int
+constraints_stats_changes (Btor *btor)
+{
+  int res;
+
+  res = btor->stats.constraints.added;
+  res -= btor->stats.old.constraints.added;
+
+  res += btor->stats.constraints.processed;
+  res -= btor->stats.old.constraints.processed;
+
+  res += btor->stats.constraints.synthesized;
+  res -= btor->stats.old.constraints.synthesized;
+
+  assert (res >= 0);
+
+  return res;
+}
+
+static void
+report_constraint_stats (Btor *btor, int force)
+{
+  int changes;
+
+  if (!force)
+  {
+    if (btor->verbosity <= 0) return;
+
+    changes = constraints_stats_changes (btor);
+
+    if (btor->verbosity == 1 && changes < 1000) return;
+
+    if (btor->verbosity == 2 && changes < 100) return;
+
+    if (btor->verbosity == 3 && changes < 10) return;
+  }
+
+  print_verbose_msg ("added/processed/synthesized %d/%d/%d constraints",
+                     btor->stats.constraints.added,
+                     btor->stats.constraints.processed,
+                     btor->stats.constraints.synthesized);
+
+  btor->stats.old.constraints = btor->stats.constraints;
+}
+
 void
 btor_print_stats_btor (Btor *btor)
 {
   assert (btor != NULL);
   (void) btor;
-  print_verbose_msg ("synthesized constraints: %u",
-                     btor->synthesized_constraints->count);
+  report_constraint_stats (btor, 1);
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
-  print_verbose_msg ("variable substitutions: %d", btor->var_substitutions);
-  print_verbose_msg ("array substitutions: %d", btor->array_substitutions);
+  print_verbose_msg ("variable substitutions: %d",
+                     btor->stats.var_substitutions);
+  print_verbose_msg ("array substitutions: %d",
+                     btor->stats.array_substitutions);
   print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
-  print_verbose_msg ("virtual reads: %d", btor->vreads);
-  print_verbose_msg ("linear constraint equations: %d", btor->linear_equations);
-  print_verbose_msg ("read-read conflicts: %d", btor->read_read_conflicts);
-  print_verbose_msg ("read-write conflicts: %d", btor->read_write_conflicts);
-
-  print_verbose_msg ("refinement iterations: %d", btor->refinements);
+  print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
+  print_verbose_msg ("linear constraint equations: %d",
+                     btor->stats.linear_equations);
+  print_verbose_msg ("read-read conflicts: %d",
+                     btor->stats.read_read_conflicts);
+  print_verbose_msg ("read-write conflicts: %d",
+                     btor->stats.read_write_conflicts);
+  print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
-                     btor->synthesis_assignment_inconsistencies);
+                     btor->stats.synthesis_assignment_inconsistencies);
 }
 
 BtorMemMgr *
@@ -5568,11 +5632,11 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   aeq->vreads = new_exp_pair (btor, read1, read2);
 
   read1->av = btor_var_aigvec (avmgr, read1->len);
-  btor->vreads++;
+  btor->stats.vreads++;
   if (read1 != read2)
   {
     read2->av = btor_var_aigvec (avmgr, read2->len);
-    btor->vreads++;
+    btor->stats.vreads++;
   }
 
   /* eagerly encode array inequality constraint */
@@ -6481,7 +6545,7 @@ process_working_stack (Btor *btor,
         /* we have to check if values are equal */
         if (compare_assignments (hashed_value, value) != 0)
         {
-          btor->read_read_conflicts++;
+          btor->stats.read_read_conflicts++;
           resolve_conflict (btor, array, hashed_acc, acc);
           return 1;
         }
@@ -6498,7 +6562,7 @@ process_working_stack (Btor *btor,
       /* check if read is consistent with write */
       if (check_read_write_conflict (btor, acc, array, &indices_equal))
       {
-        btor->read_write_conflicts++;
+        btor->stats.read_write_conflicts++;
         resolve_conflict (btor, array, acc, array);
         return 1;
       }
@@ -6777,7 +6841,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
   {
-    btor->synthesis_assignment_inconsistencies++;
+    btor->stats.synthesis_assignment_inconsistencies++;
     goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
   }
   return found_conflict;
@@ -7066,9 +7130,9 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   BTOR_RELEASE_STACK (mm, root_stack);
 
   if (is_var_substitution)
-    btor->var_substitutions++;
+    btor->stats.var_substitutions++;
   else
-    btor->array_substitutions++;
+    btor->stats.array_substitutions++;
 }
 
 /* checks if we can substitute and normalizes arguments to substitution */
@@ -7258,10 +7322,13 @@ process_new_constraints (Btor *btor)
       if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
       {
         btor_insert_in_ptr_hash_table (processed_constraints, cur);
-        btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
+        btor_remove_from_ptr_hash_table (new_constraints, cur, 0, 0);
+
+        btor->stats.constraints.processed++;
+        report_constraint_stats (btor, 0);
       }
       else
-      { /* constraint is already in processed_constraints */
+      { /* constraint is already processed */
         btor_remove_from_ptr_hash_table (new_constraints, cur, NULL, NULL);
         release_exp (btor, cur);
       }
@@ -7280,10 +7347,13 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
   {
     if (btor->verbosity > 0)
     {
-      if (is_linear_equation (btor, exp)) btor->linear_equations++;
+      if (is_linear_equation (btor, exp)) btor->stats.linear_equations++;
     }
     btor_insert_in_ptr_hash_table (new_constraints, copy_exp (btor, exp));
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+
+    btor->stats.constraints.added++;
+    report_constraint_stats (btor, 0);
   }
 }
 
@@ -7480,7 +7550,10 @@ process_unsynthesized_constraints (Btor *btor)
 #endif
       btor_release_aig (amgr, aig);
       btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
-      btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
+      btor_remove_from_ptr_hash_table (processed_constraints, cur, 0, 0);
+
+      btor->stats.constraints.synthesized++;
+      report_constraint_stats (btor, 0);
     }
     else
     {
@@ -7510,16 +7583,16 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BTOR_ABORT_EXP (refinement_limit < 0,
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
   mode = btor->mode;
-  BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->sat_calls != 0,
+  BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->stats.sat_calls != 0,
                   "eager mode must not be used incrementally");
+
+  verbosity = btor->verbosity;
+  if (verbosity > 0) print_verbose_msg ("calling SAT");
 
   process_new_constraints (btor);
 
   mm          = btor->mm;
-  verbosity   = btor->verbosity;
-  refinements = btor->refinements;
-
-  if (verbosity > 0) print_verbose_msg ("calling SAT");
+  refinements = btor->stats.refinements;
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
@@ -7571,7 +7644,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     BTOR_INIT_STACK (top_arrays);
     search_top_arrays (btor, &top_arrays);
     while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
-           && btor->refinements < refinement_limit)
+           && btor->stats.refinements < refinement_limit)
     {
       assert (sat_result == BTOR_SAT);
       found_conflict =
@@ -7588,11 +7661,11 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       }
       sat_result = btor_sat_sat (smgr, INT_MAX);
     }
-    btor->refinements = refinements;
+    btor->stats.refinements = refinements;
     if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
     BTOR_RELEASE_STACK (mm, top_arrays);
   }
-  btor->sat_calls++;
+  btor->stats.sat_calls++;
   return sat_result;
 }
 
