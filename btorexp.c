@@ -3292,7 +3292,7 @@ rewrite_aeq_write_eagerly (Btor * btor, BtorExp * write, BtorExp * array)
 }
 
 static BtorExp *
-eq_except_i_exp (Btor * btor, BtorExp * e0, BtorExp * e1, BtorExp *i)
+eq_except_i_exp (Btor * btor, BtorExp * e0, BtorExp * e1, BtorExp * i)
 {
   BtorExp *temp;
   assert (btor != NULL);
@@ -3303,11 +3303,12 @@ eq_except_i_exp (Btor * btor, BtorExp * e0, BtorExp * e1, BtorExp *i)
   assert (BTOR_IS_REGULAR_EXP (e1));
   assert (BTOR_IS_ARRAY_EXP (e0));
   assert (BTOR_IS_ARRAY_EXP (e1));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP(i)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (i)));
 }
 
 static BtorExp *
-eq_except_i_write_exp (Btor * btor, BtorExp *write, BtorExp *array, BtorExp *i)
+eq_except_i_write_exp (Btor * btor, BtorExp * write, BtorExp * array,
+                       BtorExp * i)
 {
   BtorExp *temp1, *temp2, *temp3, *temp4, *temp5, *result;
   assert (btor != NULL);
@@ -3334,7 +3335,8 @@ eq_except_i_write_exp (Btor * btor, BtorExp *write, BtorExp *array, BtorExp *i)
 }
 
 static BtorExp *
-eq_except_i_atomic_exp (Btor * btor, BtorExp *atomic1, BtorExp *atomic2, BtorExp *i)
+eq_except_i_atomic_exp (Btor * btor, BtorExp * atomic1, BtorExp * atomic2,
+                        BtorExp * i)
 {
   BtorExp *left, *right, *result;
   assert (btor != NULL);
@@ -3383,15 +3385,15 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 #if 0
       if (btor->mode == BTOR_EAGER_MODE)
         {
-	  if (BTOR_IS_ARRAY_COND_EXP (e0))
-	    return rewrite_aeq_acond_eagerly (btor, e0, e1);
-	  if (BTOR_IS_ARRAY_COND_EXP (e1))
-	    return rewrite_aeq_acond_eagerly (btor, e1, e0);
-	  if (BTOR_IS_WRITE_EXP (e0))
-	    return rewrite_aeq_write_eagerly (btor, e0, e1);
-	  if (BTOR_IS_WRITE_EXP (e1))
-	    return rewrite_aeq_write_eagerly (btor, e1, e0);
-	}
+          if (BTOR_IS_ARRAY_COND_EXP (e0))
+            return rewrite_aeq_acond_eagerly (btor, e0, e1);
+          if (BTOR_IS_ARRAY_COND_EXP (e1))
+            return rewrite_aeq_acond_eagerly (btor, e1, e0);
+          if (BTOR_IS_WRITE_EXP (e0))
+            return rewrite_aeq_write_eagerly (btor, e0, e1);
+          if (BTOR_IS_WRITE_EXP (e1))
+            return rewrite_aeq_write_eagerly (btor, e1, e0);
+        }
 #endif
   }
   if (btor->rewrite_level > 0)
@@ -6439,7 +6441,6 @@ process_working_stack (Btor *btor,
   int assignment, indices_equal;
   assert (btor != NULL);
   assert (stack != NULL);
-  assert (cleanup_stack != NULL);
   assert (assignments_changed != NULL);
   mm   = btor->mm;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
@@ -6573,8 +6574,94 @@ process_working_stack (Btor *btor,
   return 0;
 }
 
+/* searches the top arrays where the conflict check begins
+ * and pushes them on the stack
+ */
+static void
+search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
+{
+  BtorPartialParentIterator it;
+  BtorExp **temp, **top, *cur_array, *cur_parent;
+  BtorExpPtrStack stack, unmark_stack;
+  BtorMemMgr *mm;
+  int found_top;
+  assert (btor != NULL);
+  assert (top_arrays != NULL);
+  assert (BTOR_COUNT_STACK (*top_arrays) == 0);
+  mm = btor->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+  top = btor->arrays.top;
+  for (temp = btor->arrays.start; temp != top; temp++)
+  {
+    cur_array = *temp;
+    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
+    if (cur_array->reachable && cur_array->simplified == NULL)
+      BTOR_PUSH_STACK (mm, stack, cur_array);
+  }
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur_array = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
+    assert (cur_array->reachable);
+    assert (cur_array->simplified == NULL);
+    assert (cur_array->array_mark == 0 || cur_array->array_mark == 1);
+    if (cur_array->array_mark == 0)
+    {
+      cur_array->array_mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
+      found_top = 1;
+      /* ATTENTION: There can be write and array conditional parents although
+       * they are not reachable from the root.
+       * For example the parser might still
+       * have a reference to a write, thus it is still in the parent list.
+       * We use the reachable flag to determine with which writes
+       * and array conditionals we have to deal with.
+       */
+
+      /* push writes on stack */
+      init_write_parent_iterator (&it, cur_array);
+      while (has_next_parent_write_parent_iterator (&it))
+      {
+        found_top  = 0;
+        cur_parent = next_parent_write_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        if (cur_parent->reachable && cur_parent->simplified == NULL)
+        {
+          assert (cur_parent->array_mark == 0);
+          BTOR_PUSH_STACK (mm, stack, cur_parent);
+        }
+      }
+      /* push array conditionals on stack */
+      init_acond_parent_iterator (&it, cur_array);
+      while (has_next_parent_acond_parent_iterator (&it))
+      {
+        found_top  = 0;
+        cur_parent = next_parent_acond_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        if (cur_parent->reachable && cur_parent->simplified == NULL)
+          BTOR_PUSH_STACK (mm, stack, cur_parent);
+      }
+      if (found_top) BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
+    }
+  }
+  BTOR_RELEASE_STACK (mm, stack);
+
+  /* reset array marks of arrays */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur_array = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
+    assert (cur_array->array_mark == 1);
+    cur_array->array_mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
 static int
-check_and_resolve_read_write_conflicts (Btor *btor)
+check_and_resolve_read_write_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
 {
   BtorExpPtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorPartialParentIterator it;
@@ -6583,6 +6670,8 @@ check_and_resolve_read_write_conflicts (Btor *btor)
   int found_conflict, changed_assignments, extensionality;
   BtorMode mode;
   assert (btor != NULL);
+  assert (top_arrays != NULL);
+  assert (btor->mode == BTOR_LAZY_MODE);
   found_conflict = 0;
   mm             = btor->mm;
   mode           = btor->mode;
@@ -6594,73 +6683,50 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (cleanup_stack);
   BTOR_INIT_STACK (array_stack);
-  top = btor->arrays.top;
-  /* push all native arrays on the stack */
-  for (temp = btor->arrays.start; temp != top; temp++)
+
+  /* push all top arrays on the stack */
+  top = top_arrays->top;
+  for (temp = top_arrays->start; temp != top; temp++)
   {
     cur_array = *temp;
-    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
-    if (cur_array->reachable && cur_array->simplified == NULL)
-      BTOR_PUSH_STACK (mm, array_stack, cur_array);
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
+    assert (cur_array->reachable);
+    assert (cur_array->simplified == NULL);
+    BTOR_PUSH_STACK (mm, array_stack, cur_array);
   }
+
   while (!BTOR_EMPTY_STACK (array_stack))
   {
     cur_array = BTOR_POP_STACK (array_stack);
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
-    assert (cur_array->array_mark >= 0);
-    assert (cur_array->array_mark <= 2);
+    assert (cur_array->reachable);
+    assert (cur_array->simplified == NULL);
+    assert (cur_array->array_mark == 0 || cur_array->array_mark == 1);
     if (cur_array->array_mark == 0)
     {
       cur_array->array_mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
-      BTOR_PUSH_STACK (mm, array_stack, cur_array);
-      /* ATTENTION: There can be write parents although
-       * they are not reachable from the root.
-       * For example the parser might still
-       * have a reference to a write, thus it is still in the parent list.
-       * We use the reachable flag to determine with which reads and writes
-       * we have to deal with.
-       */
-      if (mode == BTOR_LAZY_MODE)
+      if (BTOR_IS_WRITE_EXP (cur_array))
       {
-        /* push writes on stack */
-        init_write_parent_iterator (&it, cur_array);
-        while (has_next_parent_write_parent_iterator (&it))
+        BTOR_PUSH_STACK (mm, array_stack, cur_array->e[0]);
+        if (extensionality)
         {
-          cur_parent = next_parent_write_parent_iterator (&it);
-          assert (BTOR_IS_REGULAR_EXP (cur_parent));
-          if (cur_parent->reachable && cur_parent->simplified == NULL)
-          {
-            assert (cur_parent->array_mark == 0);
-            BTOR_PUSH_STACK (mm, array_stack, cur_parent);
-          }
+          /* propagate write as read to ensure write value
+           * consistency in extensional cases */
+          BTOR_PUSH_STACK (mm, working_stack, cur_array);
+          BTOR_PUSH_STACK (mm, working_stack, cur_array);
+          found_conflict = process_working_stack (
+              btor, &working_stack, &cleanup_stack, &changed_assignments);
+          if (found_conflict || changed_assignments)
+            goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
         }
       }
-      init_acond_parent_iterator (&it, cur_array);
-      while (has_next_parent_acond_parent_iterator (&it))
+      else if (BTOR_IS_ARRAY_COND_EXP (cur_array))
       {
-        cur_parent = next_parent_acond_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        if (cur_parent->reachable && cur_parent->simplified == NULL)
-          BTOR_PUSH_STACK (mm, array_stack, cur_parent);
-      }
-    }
-    else if (cur_array->array_mark == 1)
-    {
-      cur_array->array_mark = 2;
-      assert (cur_array->reachable);
-      assert (cur_array->simplified == NULL);
-      if (extensionality && BTOR_IS_WRITE_EXP (cur_array))
-      {
-        /* propagate write as read to ensure write value
-         * consistency in extensional cases */
-        BTOR_PUSH_STACK (mm, working_stack, cur_array);
-        BTOR_PUSH_STACK (mm, working_stack, cur_array);
-        found_conflict = process_working_stack (
-            btor, &working_stack, &cleanup_stack, &changed_assignments);
-        if (found_conflict || changed_assignments)
-          goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
+        BTOR_PUSH_STACK (mm, array_stack, cur_array->e[2]);
+        BTOR_PUSH_STACK (mm, array_stack, cur_array->e[1]);
       }
       init_read_parent_iterator (&it, cur_array);
       while (has_next_parent_read_parent_iterator (&it))
@@ -6686,21 +6752,28 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   while (!BTOR_EMPTY_STACK (cleanup_stack))
   {
     cur_array = BTOR_POP_STACK (cleanup_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_EXP (cur_array));
+    assert (cur_array->table != NULL);
     btor_delete_ptr_hash_table (cur_array->table);
     cur_array->table = NULL;
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
+
   BTOR_RELEASE_STACK (mm, working_stack);
   BTOR_RELEASE_STACK (mm, array_stack);
+
   /* reset array marks of arrays */
   while (!BTOR_EMPTY_STACK (unmark_stack))
   {
     cur_array = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
+    assert (cur_array->array_mark == 1);
     cur_array->array_mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
+
   /* restart? (assignments changed during lazy synthesis and encoding) */
   if (changed_assignments)
   {
@@ -7177,9 +7250,9 @@ process_new_constraints (Btor *btor)
 #if 0
           if (is_linear_equation (btor, cur))
 #if 0
-	    btor_dump_exp (btor, stderr, cur);
+            btor_dump_exp (btor, stderr, cur);
 #else
-	    fprintf (stderr, "linear equation: %d\n", cur->id);
+            fprintf (stderr, "linear equation: %d\n", cur->id);
 #endif
 #endif
       if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
@@ -7424,12 +7497,14 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int refinements;
+  BtorExpPtrStack top_arrays;
   BtorPtrHashBucket *bucket;
   BtorExp *cur, *simplified;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorAIG *aig;
   BtorMode mode;
+  BtorMemMgr *mm;
 
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
   BTOR_ABORT_EXP (refinement_limit < 0,
@@ -7440,6 +7515,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   process_new_constraints (btor);
 
+  mm          = btor->mm;
   verbosity   = btor->verbosity;
   refinements = btor->refinements;
 
@@ -7492,11 +7568,14 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   sat_result = btor_sat_sat (smgr, INT_MAX);
   if (btor->mode == BTOR_LAZY_MODE)
   {
+    BTOR_INIT_STACK (top_arrays);
+    search_top_arrays (btor, &top_arrays);
     while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
            && btor->refinements < refinement_limit)
     {
       assert (sat_result == BTOR_SAT);
-      found_conflict = check_and_resolve_read_write_conflicts (btor);
+      found_conflict =
+          check_and_resolve_read_write_conflicts (btor, &top_arrays);
       if (!found_conflict) break;
       refinements++;
       if (verbosity > 1)
@@ -7511,6 +7590,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     }
     btor->refinements = refinements;
     if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
+    BTOR_RELEASE_STACK (mm, top_arrays);
   }
   btor->sat_calls++;
   return sat_result;
