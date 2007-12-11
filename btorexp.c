@@ -600,23 +600,26 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-release_exp (Btor *btor, BtorExp *exp)
+release_and_deallocate_exp (Btor *btor, BtorExp *root, int deallocate_root)
 {
   BtorMemMgr *mm;
   BtorExpPtrStack stack;
   BtorExp *cur;
   assert (btor);
-  assert (exp);
-  mm  = btor->mm;
-  cur = BTOR_REAL_ADDR_EXP (exp);
-  assert (cur->refs > 0u);
-  if (cur->refs > 1u)
-    cur->refs--;
+  assert (root);
+  mm = btor->mm;
+
+  root = BTOR_REAL_ADDR_EXP (root);
+  assert (root->refs > 0u);
+  if (root->refs > 1u)
+    root->refs--;
   else
   {
-    assert (cur->refs == 1u);
+    assert (root->refs == 1u);
     BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, cur);
+    cur = root;
+    goto ENTER_WITHOUT_PUSH_AND_POP;
+
     do
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
@@ -624,6 +627,7 @@ release_exp (Btor *btor, BtorExp *exp)
         cur->refs--;
       else
       {
+      ENTER_WITHOUT_PUSH_AND_POP:
         assert (cur->refs == 1u);
 
         if (BTOR_IS_UNARY_EXP (cur))
@@ -663,13 +667,19 @@ release_exp (Btor *btor, BtorExp *exp)
         remove_from_unique_table_exp (btor, cur);
         erase_local_data_exp (btor, cur);
         disconnect_children_exp (btor, cur);
-        really_deallocate_exp (btor, cur);
+
+        if (deallocate_root || cur != root) really_deallocate_exp (btor, cur);
       }
     } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
   }
 }
 
+static void
+release_exp (Btor *btor, BtorExp *exp)
+{
+  return release_and_deallocate_exp (btor, exp, 1);
+}
 static void
 delete_exp_pair (Btor *btor, BtorExpPair *pair)
 {
@@ -1909,6 +1919,10 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
   if (invert) cur = BTOR_INVERT_EXP (cur);
   release_exp (btor, real_exp->simplified);
   real_exp->simplified = cur;
+
+  /* TODO: need to update the simplified pointers on the way to cur as well.
+   */
+
   /* if starting expression is inverted, then we have to invert result */
   if (BTOR_IS_INVERTED_EXP (exp)) cur = BTOR_INVERT_EXP (cur);
   return cur;
