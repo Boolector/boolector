@@ -589,7 +589,9 @@ release_exp (Btor *btor, BtorExp *exp)
         if (cur->simplified)
         {
           BTOR_PUSH_STACK (mm, stack, cur->simplified);
-          cur->simplified = 0;
+#ifndef NDEBUG
+          cur->simplified = NULL;
+#endif
         }
 
         if (BTOR_IS_ARRAY_EQ_EXP (cur) && cur->vreads)
@@ -597,7 +599,9 @@ release_exp (Btor *btor, BtorExp *exp)
           BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
           BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
           BTOR_DELETE (mm, cur->vreads);
-          exp->vreads = 0;
+#ifndef NDEBUG
+          cur->vreads = 0;
+#endif
         }
 
         disconnect_exp (btor, cur);
