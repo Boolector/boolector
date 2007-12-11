@@ -6160,7 +6160,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       found = 1;
       break;
     }
-    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0
+    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0 && cur->e[1]->av != NULL
         && compare_assignments (cur->e[1], index) != 0)
     {
       next         = cur->e[0];
@@ -6169,7 +6169,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    else if (BTOR_IS_ARRAY_COND_EXP (cur))
+    else if (BTOR_IS_ARRAY_COND_EXP (cur) && cur->e[0]->av != NULL)
     {
       /* check assignment to determine which array to choose */
       cond       = cur->e[0];
@@ -6198,6 +6198,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       assert (BTOR_IS_REGULAR_EXP (cur_aeq));
       if (cur_aeq->reachable && cur_aeq->mark == 0)
       {
+        /* array equality is synthesized eagerly */
         assert (cur_aeq->av != NULL);
         assert (cur_aeq->full_sat);
         assert (cur_aeq->len == 1);
