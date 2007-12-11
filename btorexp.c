@@ -151,7 +151,6 @@ static BtorExp *concat_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *cond_exp (Btor *, BtorExp *, BtorExp *, BtorExp *);
 static BtorExp *copy_exp (Btor *, BtorExp *);
 static BtorExp *read_exp (Btor *, BtorExp *, BtorExp *);
-static void release_exp (Btor *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
 static void synthesize_exp (Btor *, BtorExp *, BtorPtrHashTable *);
 static void synthesize_array_equality (Btor *, BtorExp *);
@@ -277,6 +276,336 @@ new_exp_pair (Btor *btor, BtorExp *exp1, BtorExp *exp2)
     result->exp2 = copy_exp (btor, exp2);
   }
   return result;
+}
+
+/* Disconnects a child from its parent and updates its parent list */
+static void
+disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
+{
+  BtorExp *first_parent, *last_parent, *real_first_parent, *real_last_parent;
+  BtorExp *child, *real_child, *tagged_parent;
+  assert (btor != NULL);
+  assert (parent != NULL);
+  assert (pos >= 0);
+  assert (pos <= 2);
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (!BTOR_IS_CONST_EXP (parent));
+  assert (!BTOR_IS_VAR_EXP (parent));
+  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (parent));
+  (void) btor;
+  tagged_parent = BTOR_TAG_EXP (parent, pos);
+  /* special treatment of array children of aeq and acond */
+  if (BTOR_IS_ARRAY_EQ_EXP (parent)
+      || (BTOR_IS_ARRAY_COND_EXP (parent) && pos != 0))
+  {
+    child = parent->e[pos];
+    assert (BTOR_IS_REGULAR_EXP (child));
+    assert (BTOR_IS_ARRAY_EXP (child));
+    first_parent = child->first_aeq_acond_parent;
+    last_parent  = child->last_aeq_acond_parent;
+    assert (first_parent != NULL);
+    assert (last_parent != NULL);
+    real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
+    real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
+    /* only one parent? */
+    if (first_parent == tagged_parent && first_parent == last_parent)
+    {
+      assert (parent->next_aeq_acond_parent[pos] == NULL);
+      assert (parent->prev_aeq_acond_parent[pos] == NULL);
+      child->first_aeq_acond_parent = NULL;
+      child->last_aeq_acond_parent  = NULL;
+    }
+    /* is parent first parent in the list? */
+    else if (first_parent == tagged_parent)
+    {
+      assert (parent->next_aeq_acond_parent[pos] != NULL);
+      assert (parent->prev_aeq_acond_parent[pos] == NULL);
+      child->first_aeq_acond_parent = parent->next_aeq_acond_parent[pos];
+      BTOR_PREV_AEQ_ACOND_PARENT (child->first_aeq_acond_parent) = NULL;
+    }
+    /* is parent last parent in the list? */
+    else if (last_parent == tagged_parent)
+    {
+      assert (parent->next_aeq_acond_parent[pos] == NULL);
+      assert (parent->prev_aeq_acond_parent[pos] != NULL);
+      child->last_aeq_acond_parent = parent->prev_aeq_acond_parent[pos];
+      BTOR_NEXT_AEQ_ACOND_PARENT (child->last_aeq_acond_parent) = NULL;
+    }
+    /* hang out parent from list */
+    else
+    {
+      assert (parent->next_aeq_acond_parent[pos] != NULL);
+      assert (parent->prev_aeq_acond_parent[pos] != NULL);
+      BTOR_PREV_AEQ_ACOND_PARENT (parent->next_aeq_acond_parent[pos]) =
+          parent->prev_aeq_acond_parent[pos];
+      BTOR_NEXT_AEQ_ACOND_PARENT (parent->prev_aeq_acond_parent[pos]) =
+          parent->next_aeq_acond_parent[pos];
+    }
+  }
+  else
+  {
+    real_child   = BTOR_REAL_ADDR_EXP (parent->e[pos]);
+    first_parent = real_child->first_parent;
+    last_parent  = real_child->last_parent;
+    assert (first_parent != NULL);
+    assert (last_parent != NULL);
+    real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
+    real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
+    /* special treatment of array children of aeq and acond */
+    /* only one parent? */
+    if (first_parent == tagged_parent && first_parent == last_parent)
+    {
+      assert (parent->next_parent[pos] == NULL);
+      assert (parent->prev_parent[pos] == NULL);
+      real_child->first_parent = NULL;
+      real_child->last_parent  = NULL;
+    }
+    /* is parent first parent in the list? */
+    else if (first_parent == tagged_parent)
+    {
+      assert (parent->next_parent[pos] != NULL);
+      assert (parent->prev_parent[pos] == NULL);
+      real_child->first_parent                    = parent->next_parent[pos];
+      BTOR_PREV_PARENT (real_child->first_parent) = NULL;
+    }
+    /* is parent last parent in the list? */
+    else if (last_parent == tagged_parent)
+    {
+      assert (parent->next_parent[pos] == NULL);
+      assert (parent->prev_parent[pos] != NULL);
+      real_child->last_parent                    = parent->prev_parent[pos];
+      BTOR_NEXT_PARENT (real_child->last_parent) = NULL;
+    }
+    /* hang out parent from list */
+    else
+    {
+      assert (parent->next_parent[pos] != NULL);
+      assert (parent->prev_parent[pos] != NULL);
+      BTOR_PREV_PARENT (parent->next_parent[pos]) = parent->prev_parent[pos];
+      BTOR_NEXT_PARENT (parent->prev_parent[pos]) = parent->next_parent[pos];
+    }
+  }
+  parent->next_parent[pos] = NULL;
+  parent->prev_parent[pos] = NULL;
+  parent->e[pos]           = NULL;
+}
+
+/* Computes hash value of expresssion by children ids */
+static unsigned int
+compute_hash_exp (BtorExp *exp, int table_size)
+{
+  unsigned int hash;
+  assert (exp != NULL);
+  assert (table_size > 0);
+  assert (btor_is_power_of_2_util (table_size));
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (!BTOR_IS_VAR_EXP (exp));
+  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (exp));
+  if (BTOR_IS_CONST_EXP (exp))
+    hash = btor_hashstr ((void *) exp->bits);
+  else if (BTOR_IS_UNARY_EXP (exp))
+  {
+    hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id;
+    if (exp->kind == BTOR_SLICE_EXP)
+      hash += (unsigned int) exp->upper + (unsigned int) exp->lower;
+  }
+  else if (BTOR_IS_BINARY_EXP (exp))
+  {
+    hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id
+           + (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[1])->id;
+  }
+  else
+  {
+    assert (BTOR_IS_TERNARY_EXP (exp));
+    hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id
+           + (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[1])->id
+           + (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[2])->id;
+  }
+  hash = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (table_size - 1);
+  return hash;
+}
+
+static void
+disconnect_from_unique_table_exp (Btor *btor, BtorExp *exp)
+{
+  unsigned int hash;
+  BtorExp *cur, *prev;
+
+  assert (btor != NULL);
+  assert (btor->table.num_elements > 0);
+
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
+  hash = compute_hash_exp (exp, btor->table.size);
+  prev = NULL;
+  cur  = btor->table.chains[hash];
+  while (cur != exp && cur != NULL)
+  {
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    prev = cur;
+    cur  = cur->next;
+  }
+  assert (cur != NULL);
+  if (prev == NULL)
+    btor->table.chains[hash] = cur->next;
+  else
+    prev->next = cur->next;
+
+  btor->table.num_elements--;
+}
+
+/* Disconnect children of expression in parent list and also free all local
+ * data of 'exp'.  Virtual reads and simplified expressions have to be
+ * handled by the calling functio, e.g. 'release_exp', to avoid recursion.
+ */
+static void
+disconnect_exp (Btor *btor, BtorExp *exp)
+{
+  BtorMemMgr *mm;
+
+  assert (btor);
+  assert (exp);
+
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
+  mm = btor->mm;
+
+  if (BTOR_IS_PROXY_EXP (exp))
+  {
+    /* do nothing */
+  }
+  else if (BTOR_IS_VAR_EXP (exp))
+  {
+    btor_freestr (mm, exp->symbol);
+    exp->symbol = 0;
+  }
+  else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
+  {
+    btor_remove_from_ptr_hash_table (btor->arrays, exp, 0, 0);
+  }
+  else
+  {
+    disconnect_from_unique_table_exp (btor, exp);
+
+    if (BTOR_IS_CONST_EXP (exp))
+    {
+      btor_freestr (mm, exp->bits);
+      exp->bits = 0;
+    }
+    else if (BTOR_IS_WRITE_EXP (exp))
+    {
+      disconnect_child_exp (btor, exp, 0);
+      disconnect_child_exp (btor, exp, 1);
+      disconnect_child_exp (btor, exp, 2);
+    }
+    else if (BTOR_IS_UNARY_EXP (exp))
+    {
+      disconnect_child_exp (btor, exp, 0);
+    }
+    else if (BTOR_IS_BINARY_EXP (exp))
+    {
+      disconnect_child_exp (btor, exp, 0);
+      disconnect_child_exp (btor, exp, 1);
+    }
+    else
+    {
+      assert (BTOR_IS_TERNARY_EXP (exp));
+      disconnect_child_exp (btor, exp, 0);
+      disconnect_child_exp (btor, exp, 1);
+      disconnect_child_exp (btor, exp, 2);
+    }
+  }
+
+  if (exp->av)
+  {
+    btor_release_delete_aigvec (btor->avmgr, exp->av);
+    exp->av = 0;
+  }
+#ifndef NDEBUG
+  exp->kind = BTOR_DISCONNECTED_EXP;
+#endif
+}
+
+/* Delete expression from memory.
+ */
+static void
+delete_exp (Btor *btor, BtorExp *exp)
+{
+  BtorMemMgr *mm;
+
+  assert (btor);
+  assert (exp);
+  assert (exp->kind == BTOR_DISCONNECTED_EXP);
+
+  mm = btor->mm;
+
+#ifndef NDEBUG
+  exp->kind = BTOR_INVALID_EXP;
+#endif
+  btor_free (mm, exp, exp->bytes);
+}
+
+static void
+release_exp (Btor *btor, BtorExp *exp)
+{
+  BtorMemMgr *mm;
+  BtorExpPtrStack stack;
+  BtorExp *cur;
+  assert (btor);
+  assert (exp);
+  mm  = btor->mm;
+  cur = BTOR_REAL_ADDR_EXP (exp);
+  assert (cur->refs > 0u);
+  if (cur->refs > 1u)
+    cur->refs--;
+  else
+  {
+    assert (cur->refs == 1u);
+    BTOR_INIT_STACK (stack);
+    BTOR_PUSH_STACK (mm, stack, cur);
+    do
+    {
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      if (cur->refs > 1u)
+        cur->refs--;
+      else
+      {
+        assert (cur->refs == 1u);
+        if (BTOR_IS_UNARY_EXP (cur))
+          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+        else if (BTOR_IS_BINARY_EXP (cur))
+        {
+          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+        }
+        else if (BTOR_IS_TERNARY_EXP (cur))
+        {
+          BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+        }
+
+        if (cur->simplified)
+        {
+          BTOR_PUSH_STACK (mm, stack, cur->simplified);
+          cur->simplified = 0;
+        }
+
+        if (BTOR_IS_ARRAY_EQ_EXP (cur) && cur->vreads)
+        {
+          BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
+          BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
+          BTOR_DELETE (mm, cur->vreads);
+          exp->vreads = 0;
+        }
+
+        disconnect_exp (btor, cur);
+        delete_exp (btor, cur);
+      }
+    } while (!BTOR_EMPTY_STACK (stack));
+    BTOR_RELEASE_STACK (mm, stack);
+  }
 }
 
 static void
@@ -1572,118 +1901,6 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
   }
 }
 
-/* Disconnects a child from its parent and updates its parent list */
-static void
-disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
-{
-  BtorExp *first_parent, *last_parent, *real_first_parent, *real_last_parent;
-  BtorExp *child, *real_child, *tagged_parent;
-  assert (btor != NULL);
-  assert (parent != NULL);
-  assert (pos >= 0);
-  assert (pos <= 2);
-  assert (BTOR_IS_REGULAR_EXP (parent));
-  assert (!BTOR_IS_CONST_EXP (parent));
-  assert (!BTOR_IS_VAR_EXP (parent));
-  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (parent));
-  (void) btor;
-  tagged_parent = BTOR_TAG_EXP (parent, pos);
-  /* special treatment of array children of aeq and acond */
-  if (BTOR_IS_ARRAY_EQ_EXP (parent)
-      || (BTOR_IS_ARRAY_COND_EXP (parent) && pos != 0))
-  {
-    child = parent->e[pos];
-    assert (BTOR_IS_REGULAR_EXP (child));
-    assert (BTOR_IS_ARRAY_EXP (child));
-    first_parent = child->first_aeq_acond_parent;
-    last_parent  = child->last_aeq_acond_parent;
-    assert (first_parent != NULL);
-    assert (last_parent != NULL);
-    real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
-    real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
-    /* only one parent? */
-    if (first_parent == tagged_parent && first_parent == last_parent)
-    {
-      assert (parent->next_aeq_acond_parent[pos] == NULL);
-      assert (parent->prev_aeq_acond_parent[pos] == NULL);
-      child->first_aeq_acond_parent = NULL;
-      child->last_aeq_acond_parent  = NULL;
-    }
-    /* is parent first parent in the list? */
-    else if (first_parent == tagged_parent)
-    {
-      assert (parent->next_aeq_acond_parent[pos] != NULL);
-      assert (parent->prev_aeq_acond_parent[pos] == NULL);
-      child->first_aeq_acond_parent = parent->next_aeq_acond_parent[pos];
-      BTOR_PREV_AEQ_ACOND_PARENT (child->first_aeq_acond_parent) = NULL;
-    }
-    /* is parent last parent in the list? */
-    else if (last_parent == tagged_parent)
-    {
-      assert (parent->next_aeq_acond_parent[pos] == NULL);
-      assert (parent->prev_aeq_acond_parent[pos] != NULL);
-      child->last_aeq_acond_parent = parent->prev_aeq_acond_parent[pos];
-      BTOR_NEXT_AEQ_ACOND_PARENT (child->last_aeq_acond_parent) = NULL;
-    }
-    /* hang out parent from list */
-    else
-    {
-      assert (parent->next_aeq_acond_parent[pos] != NULL);
-      assert (parent->prev_aeq_acond_parent[pos] != NULL);
-      BTOR_PREV_AEQ_ACOND_PARENT (parent->next_aeq_acond_parent[pos]) =
-          parent->prev_aeq_acond_parent[pos];
-      BTOR_NEXT_AEQ_ACOND_PARENT (parent->prev_aeq_acond_parent[pos]) =
-          parent->next_aeq_acond_parent[pos];
-    }
-  }
-  else
-  {
-    real_child   = BTOR_REAL_ADDR_EXP (parent->e[pos]);
-    first_parent = real_child->first_parent;
-    last_parent  = real_child->last_parent;
-    assert (first_parent != NULL);
-    assert (last_parent != NULL);
-    real_first_parent = BTOR_REAL_ADDR_EXP (first_parent);
-    real_last_parent  = BTOR_REAL_ADDR_EXP (last_parent);
-    /* special treatment of array children of aeq and acond */
-    /* only one parent? */
-    if (first_parent == tagged_parent && first_parent == last_parent)
-    {
-      assert (parent->next_parent[pos] == NULL);
-      assert (parent->prev_parent[pos] == NULL);
-      real_child->first_parent = NULL;
-      real_child->last_parent  = NULL;
-    }
-    /* is parent first parent in the list? */
-    else if (first_parent == tagged_parent)
-    {
-      assert (parent->next_parent[pos] != NULL);
-      assert (parent->prev_parent[pos] == NULL);
-      real_child->first_parent                    = parent->next_parent[pos];
-      BTOR_PREV_PARENT (real_child->first_parent) = NULL;
-    }
-    /* is parent last parent in the list? */
-    else if (last_parent == tagged_parent)
-    {
-      assert (parent->next_parent[pos] == NULL);
-      assert (parent->prev_parent[pos] != NULL);
-      real_child->last_parent                    = parent->prev_parent[pos];
-      BTOR_NEXT_PARENT (real_child->last_parent) = NULL;
-    }
-    /* hang out parent from list */
-    else
-    {
-      assert (parent->next_parent[pos] != NULL);
-      assert (parent->prev_parent[pos] != NULL);
-      BTOR_PREV_PARENT (parent->next_parent[pos]) = parent->prev_parent[pos];
-      BTOR_NEXT_PARENT (parent->prev_parent[pos]) = parent->next_parent[pos];
-    }
-  }
-  parent->next_parent[pos] = NULL;
-  parent->prev_parent[pos] = NULL;
-  parent->e[pos]           = NULL;
-}
-
 static BtorExp *
 new_const_exp_node (Btor *btor, const char *bits)
 {
@@ -1694,7 +1911,8 @@ new_const_exp_node (Btor *btor, const char *bits)
   len = (int) strlen (bits);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
-  exp->kind = BTOR_CONST_EXP;
+  exp->kind  = BTOR_CONST_EXP;
+  exp->bytes = sizeof *exp;
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
   for (i = 0; i < len; i++) exp->bits[i] = bits[i] == '1' ? '1' : '0';
   exp->bits[len] = '\0';
@@ -1716,6 +1934,7 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   assert (upper >= lower);
   BTOR_CNEW (btor->mm, exp);
   exp->kind  = BTOR_SLICE_EXP;
+  exp->bytes = sizeof *exp;
   exp->upper = upper;
   exp->lower = lower;
   exp->len   = upper - lower + 1;
@@ -1739,8 +1958,9 @@ new_binary_exp_node (
   assert (e1 != NULL);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
-  exp->kind = kind;
-  exp->len  = len;
+  exp->kind  = kind;
+  exp->bytes = sizeof *exp;
+  exp->len   = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1u;
@@ -1759,8 +1979,9 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (e1 != NULL);
   /* we need aeq and acond next and prev fields */
   BTOR_CNEW (btor->mm, exp);
-  exp->kind = BTOR_AEQ_EXP;
-  exp->len  = 1;
+  exp->kind  = BTOR_AEQ_EXP;
+  exp->bytes = sizeof *exp;
+  exp->len   = 1;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1u;
@@ -1787,8 +2008,9 @@ new_ternary_exp_node (Btor *btor,
   assert (e2 != NULL);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
-  exp->kind = kind;
-  exp->len  = len;
+  exp->kind  = kind;
+  exp->bytes = sizeof *exp;
+  exp->len   = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
   exp->refs = 1u;
@@ -1818,6 +2040,7 @@ new_write_exp_node (Btor *btor,
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind      = BTOR_WRITE_EXP;
+  exp->bytes     = sizeof *exp;
   exp->index_len = BTOR_REAL_ADDR_EXP (e_index)->len;
   exp->len       = BTOR_REAL_ADDR_EXP (e_value)->len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
@@ -1849,6 +2072,7 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind      = BTOR_ACOND_EXP;
+  exp->bytes     = sizeof *exp;
   exp->index_len = a_if->index_len;
   exp->len       = a_if->len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
@@ -1859,54 +2083,6 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   connect_child_exp (btor, exp, a_if, 1);
   connect_child_exp (btor, exp, a_else, 2);
   return exp;
-}
-
-/* Delete expression from memory */
-static void
-delete_exp_node (Btor *btor, BtorExp *exp)
-{
-  BtorMemMgr *mm;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  mm = btor->mm;
-
-  if (BTOR_IS_CONST_EXP (exp))
-    btor_freestr (mm, exp->bits);
-  else if (BTOR_IS_VAR_EXP (exp))
-    btor_freestr (mm, exp->symbol);
-  else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
-    btor_remove_from_ptr_hash_table (btor->arrays, exp, 0, 0);
-  else if (BTOR_IS_WRITE_EXP (exp))
-  {
-    disconnect_child_exp (btor, exp, 0);
-    disconnect_child_exp (btor, exp, 1);
-    disconnect_child_exp (btor, exp, 2);
-  }
-  else if (BTOR_IS_UNARY_EXP (exp))
-    disconnect_child_exp (btor, exp, 0);
-  else if (BTOR_IS_BINARY_EXP (exp))
-  {
-    /* release virtual reads */
-    if (BTOR_IS_ARRAY_EQ_EXP (exp) && exp->vreads != NULL)
-      delete_exp_pair (btor, exp->vreads);
-    disconnect_child_exp (btor, exp, 0);
-    disconnect_child_exp (btor, exp, 1);
-  }
-  else
-  {
-    assert (BTOR_IS_TERNARY_EXP (exp));
-    disconnect_child_exp (btor, exp, 0);
-    disconnect_child_exp (btor, exp, 1);
-    disconnect_child_exp (btor, exp, 2);
-  }
-
-  if (exp->av != NULL) btor_release_delete_aigvec (btor->avmgr, exp->av);
-
-  if (BTOR_IS_ARRAY_EXP (exp) || BTOR_IS_ARRAY_EQ_EXP (exp))
-    BTOR_DELETE (mm, exp);
-  else
-    BTOR_DELETE (mm, (BtorBasicExp *) exp);
 }
 
 /* Computes hash value of expression by id */
@@ -1929,41 +2105,6 @@ compare_exp_by_id (BtorExp *exp1, BtorExp *exp2)
   if (id1 < id2) return -1;
   if (id1 > id2) return 1;
   return 0;
-}
-
-/* Computes hash value of expresssion by children ids */
-static unsigned int
-compute_hash_exp (BtorExp *exp, int table_size)
-{
-  unsigned int hash;
-  assert (exp != NULL);
-  assert (table_size > 0);
-  assert (btor_is_power_of_2_util (table_size));
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (!BTOR_IS_VAR_EXP (exp));
-  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (exp));
-  if (BTOR_IS_CONST_EXP (exp))
-    hash = btor_hashstr ((void *) exp->bits);
-  else if (BTOR_IS_UNARY_EXP (exp))
-  {
-    hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id;
-    if (exp->kind == BTOR_SLICE_EXP)
-      hash += (unsigned int) exp->upper + (unsigned int) exp->lower;
-  }
-  else if (BTOR_IS_BINARY_EXP (exp))
-  {
-    hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id
-           + (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[1])->id;
-  }
-  else
-  {
-    assert (BTOR_IS_TERNARY_EXP (exp));
-    hash = (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[0])->id
-           + (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[1])->id
-           + (unsigned int) BTOR_REAL_ADDR_EXP (exp->e[2])->id;
-  }
-  hash = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (table_size - 1);
-  return hash;
 }
 
 /* Finds constant expression in hash table. Returns NULL if it could not be
@@ -2136,32 +2277,6 @@ enlarge_exp_unique_table (Btor *btor)
 }
 
 static void
-delete_exp_unique_table_entry (Btor *btor, BtorExp *exp)
-{
-  unsigned int hash;
-  BtorExp *cur, *prev;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  hash = compute_hash_exp (exp, btor->table.size);
-  prev = NULL;
-  cur  = btor->table.chains[hash];
-  while (cur != exp && cur != NULL)
-  {
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    prev = cur;
-    cur  = cur->next;
-  }
-  assert (cur != NULL);
-  if (prev == NULL)
-    btor->table.chains[hash] = cur->next;
-  else
-    prev->next = cur->next;
-  btor->table.num_elements--;
-  delete_exp_node (btor, exp);
-}
-
-static void
 inc_exp_ref_counter (BtorExp *exp)
 {
   BtorExp *real_exp;
@@ -2223,57 +2338,6 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
     }
   } while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
-}
-
-static void
-release_exp (Btor *btor, BtorExp *exp)
-{
-  BtorMemMgr *mm;
-  BtorExpPtrStack stack;
-  BtorExp *cur;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  mm  = btor->mm;
-  cur = BTOR_REAL_ADDR_EXP (exp);
-  assert (cur->refs > 0u);
-  if (cur->refs > 1u)
-    cur->refs--;
-  else
-  {
-    assert (cur->refs == 1u);
-    BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, cur);
-    do
-    {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-      if (cur->refs > 1u)
-        cur->refs--;
-      else
-      {
-        assert (cur->refs == 1u);
-        if (BTOR_IS_UNARY_EXP (cur))
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        else if (BTOR_IS_BINARY_EXP (cur))
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
-        else if (BTOR_IS_TERNARY_EXP (cur))
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
-        if (cur->simplified != NULL)
-          BTOR_PUSH_STACK (mm, stack, cur->simplified);
-        if (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-          delete_exp_unique_table_entry (btor, cur);
-        else
-          delete_exp_node (btor, cur);
-      }
-    } while (!BTOR_EMPTY_STACK (stack));
-    BTOR_RELEASE_STACK (mm, stack);
-  }
 }
 
 void
@@ -2425,6 +2489,7 @@ var_exp (Btor *btor, int len, const char *symbol)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind   = BTOR_VAR_EXP;
+  exp->bytes  = sizeof *exp;
   exp->symbol = btor_strdup (mm, symbol);
   exp->len    = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
@@ -2457,6 +2522,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind      = BTOR_ARRAY_EXP;
+  exp->bytes     = sizeof *exp;
   exp->index_len = index_len;
   exp->len       = elem_len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");

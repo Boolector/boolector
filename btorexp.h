@@ -14,25 +14,32 @@
 
 enum BtorExpKind
 {
-  BTOR_CONST_EXP  = 0,
-  BTOR_VAR_EXP    = 1,
-  BTOR_ARRAY_EXP  = 2,
-  BTOR_SLICE_EXP  = 3,
-  BTOR_AND_EXP    = 4,
-  BTOR_BEQ_EXP    = 5, /* equality on bit vectors */
-  BTOR_AEQ_EXP    = 6, /* equality on arrays */
-  BTOR_ADD_EXP    = 7,
-  BTOR_MUL_EXP    = 8,
-  BTOR_ULT_EXP    = 9,
-  BTOR_SLL_EXP    = 10,
-  BTOR_SRL_EXP    = 11,
-  BTOR_UDIV_EXP   = 12,
-  BTOR_UREM_EXP   = 13,
-  BTOR_CONCAT_EXP = 14,
-  BTOR_READ_EXP   = 15,
-  BTOR_WRITE_EXP  = 16,
-  BTOR_BCOND_EXP  = 17, /* conditional on bit vectors */
-  BTOR_ACOND_EXP  = 18, /* conditional on arrays */
+#ifndef NDEBUG
+  BTOR_INVALID_EXP = 0, /* for debugging purposes */
+#endif
+  BTOR_CONST_EXP  = 1,
+  BTOR_VAR_EXP    = 2,
+  BTOR_ARRAY_EXP  = 3,
+  BTOR_SLICE_EXP  = 4,
+  BTOR_AND_EXP    = 5,
+  BTOR_BEQ_EXP    = 6, /* equality on bit vectors */
+  BTOR_AEQ_EXP    = 7, /* equality on arrays */
+  BTOR_ADD_EXP    = 8,
+  BTOR_MUL_EXP    = 9,
+  BTOR_ULT_EXP    = 10,
+  BTOR_SLL_EXP    = 11,
+  BTOR_SRL_EXP    = 12,
+  BTOR_UDIV_EXP   = 13,
+  BTOR_UREM_EXP   = 14,
+  BTOR_CONCAT_EXP = 15,
+  BTOR_READ_EXP   = 16,
+  BTOR_WRITE_EXP  = 17,
+  BTOR_BCOND_EXP  = 18, /* conditional on bit vectors */
+  BTOR_ACOND_EXP  = 19, /* conditional on arrays */
+  BTOR_PROXY_EXP  = 20, /* simplified expression without children */
+#ifndef NDEBUG
+  BTOR_DISCONNECTED_EXP = 21, /* for debugging purposes */
+#endif
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -52,8 +59,9 @@ typedef struct BtorExpPair BtorExpPair;
                                     fully encoded into SAT */                \
     unsigned int vread : 1;      /* flag determines if expression            \
                                     is a virtual read */                     \
-    unsigned int constraint : 1; /* flag determines if expression is a top   \
-                                    level constraint */                                                               \
+    unsigned int constraint : 1; /* flag determines if expression is a       \
+                                    top level constraint */                  \
+    unsigned bytes : 8;          /* allocated bytes */                       \
     union                                                                    \
     {                                                                        \
       struct                                                                 \
@@ -119,6 +127,7 @@ struct BtorExp
 #define BTOR_IS_READ_EXP_KIND(kind) (kind == BTOR_READ_EXP)
 #define BTOR_IS_WRITE_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
 #define BTOR_IS_ARRAY_COND_EXP_KIND(kind) (kind == BTOR_ACOND_EXP)
+#define BTOR_IS_PROXY_EXP_KIND(kind) ((kind) == BTOR_PROXY_EXP)
 #define BTOR_IS_BV_COND_EXP_KIND(kind) (kind == BTOR_BCOND_EXP)
 #define BTOR_IS_ATOMIC_ARRAY_EXP_KIND(kind) (kind == BTOR_ARRAY_EXP)
 #define BTOR_IS_ARRAY_EXP_KIND(kind)                        \
@@ -140,6 +149,7 @@ struct BtorExp
 #define BTOR_IS_WRITE_EXP(exp) (BTOR_IS_WRITE_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_COND_EXP(exp) (BTOR_IS_ARRAY_COND_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BV_COND_EXP(exp) (BTOR_IS_BV_COND_EXP_KIND ((exp)->kind))
+#define BTOR_IS_PROXY_EXP(exp) (BTOR_IS_PROXY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_OR_BV_COND_EXP(exp) \
   (BTOR_IS_ARRAY_COND_EXP (exp) || BTOR_IS_BV_COND_EXP (exp))
 #define BTOR_IS_ATOMIC_ARRAY_EXP(exp) \
