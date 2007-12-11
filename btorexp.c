@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define NPROXY
+
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
@@ -1961,6 +1963,34 @@ update_constraints (Btor *btor, BtorExp *exp)
   exp->constraint = 0;
 }
 
+#ifndef NPROXY
+
+static void
+release_children_exp (Btor *btor, BtorExp *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
+  if (BTOR_IS_UNARY_EXP (exp))
+  {
+    release_exp (btor, exp->e[0]);
+  }
+  else if (BTOR_IS_BINARY_EXP (exp))
+  {
+    release_exp (btor, exp->e[1]);
+    release_exp (btor, exp->e[0]);
+  }
+  else if (BTOR_IS_TERNARY_EXP (exp))
+  {
+    release_exp (btor, exp->e[2]);
+    release_exp (btor, exp->e[1]);
+    release_exp (btor, exp->e[0]);
+  }
+}
+
+#endif
+
 static void
 overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 {
@@ -1977,12 +2007,13 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
   if (exp->constraint) update_constraints (btor, exp);
 
     /* TODO: PROXY CODE WORKING? */
-#if 0
-  release_children_exp (btor, exp);		/* TODO !! */
+#ifndef NPROXY
+  release_children_exp (btor, exp);
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp);
   disconnect_children_exp (btor, exp);
-  exp->kind = BTOR_PROXY_EXP;
+  exp->kind   = BTOR_PROXY_EXP;
+  exp->erased = 0;
 #endif
 }
 
@@ -4827,6 +4858,7 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_concat_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_concat_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_concat_exp'");
+
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_concat_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
