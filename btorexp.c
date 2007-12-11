@@ -928,12 +928,12 @@ encode_ackermann_constraint_eagerly (Btor *btor,
   {
     if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
     {
-      btor_aigvec_to_sat_full (avmgr, av_i);
+      btor_aigvec_to_sat_both_phases (avmgr, av_i);
       BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
     }
     if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
     {
-      btor_aigvec_to_sat_full (avmgr, av_j);
+      btor_aigvec_to_sat_both_phases (avmgr, av_j);
       BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
     }
     BTOR_INIT_STACK (diffs);
@@ -988,12 +988,12 @@ encode_ackermann_constraint_eagerly (Btor *btor,
   btor_add_sat (smgr, 0);
   if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
-    btor_aigvec_to_sat_full (avmgr, av_a);
+    btor_aigvec_to_sat_both_phases (avmgr, av_a);
     BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
   }
   if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
   {
-    btor_aigvec_to_sat_full (avmgr, av_b);
+    btor_aigvec_to_sat_both_phases (avmgr, av_b);
     BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
   }
   for (k = 0; k < len_a_b; k++)
@@ -1105,12 +1105,12 @@ encode_mccarthy_constraint (Btor *btor,
   len_i_j_w = av_i->len;
   if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
   {
-    btor_aigvec_to_sat_full (avmgr, av_i);
+    btor_aigvec_to_sat_both_phases (avmgr, av_i);
     BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
   }
   if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
   {
-    btor_aigvec_to_sat_full (avmgr, av_j);
+    btor_aigvec_to_sat_both_phases (avmgr, av_j);
     BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
   }
 
@@ -1186,12 +1186,12 @@ encode_mccarthy_constraint (Btor *btor,
   /* encode a = b */
   if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
   {
-    btor_aigvec_to_sat_full (avmgr, av_a);
+    btor_aigvec_to_sat_both_phases (avmgr, av_a);
     BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
   }
   if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
   {
-    btor_aigvec_to_sat_full (avmgr, av_b);
+    btor_aigvec_to_sat_both_phases (avmgr, av_b);
     BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
   }
   pair = new_exp_pair (btor, a, b);
@@ -1259,7 +1259,7 @@ encode_mccarthy_constraint (Btor *btor,
     assert (av_w->len == len_i_j_w);
     if (!BTOR_REAL_ADDR_EXP (w_index)->full_sat)
     {
-      btor_aigvec_to_sat_full (avmgr, av_w);
+      btor_aigvec_to_sat_both_phases (avmgr, av_w);
       BTOR_REAL_ADDR_EXP (w_index)->full_sat = 1;
     }
     pair = new_exp_pair (btor, i, w_index);
@@ -1451,11 +1451,11 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
 
   /* assign aig cnf indices as there are only variables,
    * no SAT constraints are generated */
-  btor_aigvec_to_sat_full (avmgr, aeq->av);
+  btor_aigvec_to_sat_both_phases (avmgr, aeq->av);
   aeq->full_sat = 1;
-  btor_aigvec_to_sat_full (avmgr, av1);
+  btor_aigvec_to_sat_both_phases (avmgr, av1);
   read1->full_sat = 1;
-  btor_aigvec_to_sat_full (avmgr, av2);
+  btor_aigvec_to_sat_both_phases (avmgr, av2);
   read2->full_sat = 1;
 
   /* encode !e => r1 != r2 */
@@ -6526,7 +6526,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
   if (!BTOR_REAL_ADDR_EXP (index)->full_sat)
   {
     update = 1;
-    btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
+    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
     BTOR_REAL_ADDR_EXP (index)->full_sat = 1;
   }
   if (BTOR_REAL_ADDR_EXP (value)->av == NULL)
@@ -6534,7 +6534,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
   if (!BTOR_REAL_ADDR_EXP (value)->full_sat)
   {
     update = 1;
-    btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (value)->av);
+    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (value)->av);
     BTOR_REAL_ADDR_EXP (value)->full_sat = 1;
   }
   /* update assignments if necessary */
@@ -6561,7 +6561,7 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor, BtorExp *acond)
   if (!BTOR_REAL_ADDR_EXP (cond)->full_sat)
   {
     update = 1;
-    btor_aigvec_to_sat_full (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
+    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
     BTOR_REAL_ADDR_EXP (cond)->full_sat = 1;
   }
   /* update assignments if necessary */

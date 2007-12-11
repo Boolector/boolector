@@ -120,13 +120,11 @@ void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 void btor_add_toplevel_aig_to_sat (BtorAIGMgr *, BtorAIG *);
 
-/* Translates AIG fully into SAT instance.
- * This function makes sure that all constraints are fully encoded.
- * Every AIG which is reachable from the root is visited and
- * fully translated to CNF if necessary. The function guarantees that
- * after finishing every reachable AIG has a CNF id.
+/* Translates AIG into SAT instance in both phases.
+ * The function guarantees that after finishing every reachable AIG
+ * has a CNF id.
  */
-void btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig);
+void btor_aig_to_sat_both_phases (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Marks all reachable AIGs with new mark. */
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);

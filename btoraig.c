@@ -1038,7 +1038,7 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 void
-btor_aig_to_sat_full (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_to_sat_both_phases (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   BtorAIGPtrStack stack;
   BtorSATMgr *smgr;
@@ -1120,7 +1120,7 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   if (amgr->verbosity > 2)
     print_verbose_msg (
         "transforming AIG into CNF using Tseitin transformation\n");
-  btor_aig_to_sat_full (amgr, aig);
+  btor_aig_to_sat_both_phases (amgr, aig);
 }
 
 void
