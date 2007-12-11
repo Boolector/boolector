@@ -1975,6 +1975,15 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 
   /* do we have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
+
+    /* TODO: PROXY CODE WORKING? */
+#if 0
+  release_children_exp (btor, exp);		/* TODO !! */
+  remove_from_unique_table_exp (btor, exp);
+  erase_local_data_exp (btor, exp);
+  disconnect_children_exp (btor, exp);
+  exp->kind = BTOR_PROXY_EXP;
+#endif
 }
 
 /* Finds most simplified expression and shortens path to it */
