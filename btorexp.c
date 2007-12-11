@@ -3414,13 +3414,19 @@ eq_except_I_atomic_exp (Btor *btor,
   assert (BTOR_IS_ATOMIC_ARRAY_EXP (atomic2));
   result = eq_exp (btor, atomic1, atomic2);
   if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (result))) return result;
-  synthesize_array_equality (btor, result);
-  /* set atomic1 and atomic2 reachable,
-   * as we cannot do this in 'synthesize_exp' anymore */
-  atomic1->reachable = 1;
-  atomic2->reachable = 1;
-  lambda             = result->vreads->exp1->e[1];
-  top                = I->top;
+  if (result->av == NULL)
+  {
+    assert (result->vreads == NULL);
+    synthesize_array_equality (btor, result);
+    /* set atomic1 and atomic2 reachable,
+     * as we cannot do this in 'synthesize_exp' anymore */
+    atomic1->reachable = 1;
+    atomic2->reachable = 1;
+  }
+  assert (result->av != NULL);
+  assert (result->vreads != NULL);
+  lambda = result->vreads->exp1->e[1];
+  top    = I->top;
   for (cur = I->start; cur != top; cur++)
   {
     eq   = eq_exp (btor, lambda, *cur);
@@ -6220,7 +6226,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       found = 1;
       break;
     }
-    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0
+    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0 && cur->e[1]->av != NULL
         && compare_assignments (cur->e[1], index) != 0)
     {
       next         = cur->e[0];
@@ -6229,7 +6235,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    else if (BTOR_IS_ARRAY_COND_EXP (cur))
+    else if (BTOR_IS_ARRAY_COND_EXP (cur) && cur->e[0]->av != NULL)
     {
       /* check assignment to determine which array to choose */
       cond       = cur->e[0];
@@ -6258,6 +6264,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       assert (BTOR_IS_REGULAR_EXP (cur_aeq));
       if (cur_aeq->reachable && cur_aeq->mark == 0)
       {
+        /* array equality is synthesized eagerly */
         assert (cur_aeq->av != NULL);
         assert (cur_aeq->full_sat);
         assert (cur_aeq->len == 1);
