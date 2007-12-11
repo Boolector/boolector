@@ -1981,7 +1981,7 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 static BtorExp *
 pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
 {
-  BtorExp *real_exp, *cur, *next;
+  BtorExp *real_exp, *cur, *simplified, *next;
   int invert;
   assert (btor != NULL);
   assert (exp != NULL);
@@ -1996,29 +1996,29 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
     return exp->simplified;
   }
   /* shorten path to simplified expression */
-  invert = 0;
-  cur    = real_exp->simplified;
+  invert     = 0;
+  simplified = real_exp->simplified;
   do
   {
-    if (BTOR_IS_INVERTED_EXP (cur)) invert = !invert;
-    next = BTOR_REAL_ADDR_EXP (cur)->simplified;
-    cur  = next;
-  } while (BTOR_REAL_ADDR_EXP (cur)->simplified != NULL);
-  /* cur is representative element */
-  assert (BTOR_REAL_ADDR_EXP (cur)->simplified == NULL);
+    if (BTOR_IS_INVERTED_EXP (simplified)) invert = !invert;
+    next       = BTOR_REAL_ADDR_EXP (simplified)->simplified;
+    simplified = next;
+  } while (BTOR_REAL_ADDR_EXP (simplified)->simplified != NULL);
+  /* 'simplified' is representative element */
+  assert (BTOR_REAL_ADDR_EXP (simplified)->simplified == NULL);
   /* increment reference counter so that it won't be deleted recursively */
-  cur = copy_exp (btor, cur);
-  if (invert) cur = BTOR_INVERT_EXP (cur);
-  release_exp (btor, real_exp->simplified);
+  simplified = copy_exp (btor, simplified);
+  if (invert) simplified = BTOR_INVERT_EXP (simplified);
 
-  overwrite_exp (btor, real_exp, cur);
+  overwrite_exp (btor, real_exp, simplified);
 
   /* TODO: need to update the simplified pointers on the way to cur as well.
    */
 
   /* if starting expression is inverted, then we have to invert result */
-  if (BTOR_IS_INVERTED_EXP (exp)) cur = BTOR_INVERT_EXP (cur);
-  return cur;
+  if (BTOR_IS_INVERTED_EXP (exp)) simplified = BTOR_INVERT_EXP (simplified);
+
+  return simplified;
 }
 
 /* Connects child to its parent and updates list of parent pointers.
