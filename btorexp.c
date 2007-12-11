@@ -600,86 +600,92 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-release_and_deallocate_exp (Btor *btor, BtorExp *root, int deallocate_root)
+recursively_release_exp (Btor *btor, BtorExp *root)
 {
   BtorMemMgr *mm;
   BtorExpPtrStack stack;
   BtorExp *cur;
+
   assert (btor);
   assert (root);
+  assert (BTOR_IS_REGULAR_EXP (root));
+  assert (root->refs == 1u);
+
   mm = btor->mm;
 
-  root = BTOR_REAL_ADDR_EXP (root);
-  assert (root->refs > 0u);
-  if (root->refs > 1u)
-    root->refs--;
-  else
+  BTOR_INIT_STACK (stack);
+  cur = root;
+  goto ENTER_WITHOUT_PUSH_AND_POP;
+
+  do
   {
-    assert (root->refs == 1u);
-    BTOR_INIT_STACK (stack);
-    cur = root;
-    goto ENTER_WITHOUT_PUSH_AND_POP;
-
-    do
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    if (cur->refs > 1u)
+      cur->refs--;
+    else
     {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-      if (cur->refs > 1u)
-        cur->refs--;
-      else
+    ENTER_WITHOUT_PUSH_AND_POP:
+      assert (cur->refs == 1u);
+
+      if (BTOR_IS_UNARY_EXP (cur))
       {
-      ENTER_WITHOUT_PUSH_AND_POP:
-        assert (cur->refs == 1u);
-
-        if (BTOR_IS_UNARY_EXP (cur))
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
-        else if (BTOR_IS_BINARY_EXP (cur))
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
-        else if (BTOR_IS_TERNARY_EXP (cur))
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
-
-        if (cur->simplified)
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->simplified);
-#ifndef NDEBUG
-          cur->simplified = NULL;
-#endif
-        }
-
-        if (BTOR_IS_ARRAY_EQ_EXP (cur) && cur->vreads)
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
-          BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
-          BTOR_DELETE (mm, cur->vreads);
-#ifndef NDEBUG
-          cur->vreads = 0;
-#endif
-        }
-
-        remove_from_unique_table_exp (btor, cur);
-        erase_local_data_exp (btor, cur);
-        disconnect_children_exp (btor, cur);
-
-        if (deallocate_root || cur != root) really_deallocate_exp (btor, cur);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
       }
-    } while (!BTOR_EMPTY_STACK (stack));
-    BTOR_RELEASE_STACK (mm, stack);
-  }
+      else if (BTOR_IS_BINARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+      else if (BTOR_IS_TERNARY_EXP (cur))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+
+      if (cur->simplified)
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->simplified);
+#ifndef NDEBUG
+        cur->simplified = NULL;
+#endif
+      }
+
+      if (BTOR_IS_ARRAY_EQ_EXP (cur) && cur->vreads)
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
+        BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
+        BTOR_DELETE (mm, cur->vreads);
+#ifndef NDEBUG
+        cur->vreads = 0;
+#endif
+      }
+
+      remove_from_unique_table_exp (btor, cur);
+      erase_local_data_exp (btor, cur);
+      disconnect_children_exp (btor, cur);
+      really_deallocate_exp (btor, cur);
+    }
+  } while (!BTOR_EMPTY_STACK (stack));
+  BTOR_RELEASE_STACK (mm, stack);
 }
 
 static void
-release_exp (Btor *btor, BtorExp *exp)
+release_exp (Btor *btor, BtorExp *root)
 {
-  return release_and_deallocate_exp (btor, exp, 1);
+  assert (btor);
+  assert (root);
+
+  root = BTOR_REAL_ADDR_EXP (root);
+
+  assert (root->refs > 0u);
+
+  if (root->refs > 1u)
+    root->refs--;
+  else
+    recursively_release_exp (btor, root);
 }
+
 static void
 delete_exp_pair (Btor *btor, BtorExpPair *pair)
 {
@@ -7171,6 +7177,22 @@ update_constraints (Btor *btor, BtorExp *exp)
   exp->constraint = 0;
 }
 
+static void
+overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
+{
+  assert (btor);
+  assert (exp);
+  assert (simplified);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
+  if (exp->simplified) release_exp (btor, exp->simplified);
+
+  exp->simplified = copy_exp (btor, simplified);
+
+  /* do we have to update a constraint ? */
+  if (exp->constraint) update_constraints (btor, exp);
+}
+
 /* substitutes variable or atomic array by right side */
 static void
 substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
@@ -7195,7 +7217,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 
   is_var_substitution = BTOR_IS_VAR_EXP (left);
 
-  left->simplified = copy_exp (btor, right);
+  overwrite_exp (btor, left, right);
 
   /* search from bottom up */
 
@@ -7275,10 +7297,9 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
       rebuilt_exp     = rebuild_exp (btor, cur);
       assert (rebuilt_exp != NULL);
       assert (rebuilt_exp != cur);
-      if (cur->simplified != NULL) release_exp (btor, cur->simplified);
-      cur->simplified = rebuilt_exp;
-      /* do we have to update a root ? */
-      if (cur->constraint) update_constraints (btor, cur);
+
+      overwrite_exp (btor, cur, rebuilt_exp);
+      release_exp (btor, rebuilt_exp);
     }
   } while (!BTOR_EMPTY_STACK (subst_stack));
   BTOR_RELEASE_STACK (mm, subst_stack);
