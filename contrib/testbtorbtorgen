@@ -1,28 +1,46 @@
 #!/bin/bash
 i=0
 file="/tmp/test$$.btor"
+refinementlimit=100000
 while true 
 do 
   ((i++))
-  echo -n "Test "$i" (rwl2): "
+  mode=lazy
+  rwl=rwl2
+  echo -n "Test $i ($mode, $rwl): "
   btorgen 2> /dev/null > $file 
-  boolector -rwl2 -rl 100000 $file
-  retval=$?
-  if [[ $retval -ne 2 ]] && [[ $retval -ne 3 ]]; then
+  boolector --$mode -$rwl -rl $refinementlimit $file
+  goldenretval=$?
+  if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
     cp $file ./error.btor
     rm -f $file
     exit
   fi
-  for rwl in "rwl1" "rwl0"
+  for rwl in rwl1 rwl0
   do
-    echo -n "Test $i ($rwl): "
-    boolector -$rwl $file 
-    if [[ $? -ne $retval ]]; then
+    echo -n "Test $i ($mode, $rwl): "
+    boolector --$mode -$rwl -rl $refinementlimit $file 
+    retval=$?
+    if [[ $retval -ne $goldenretval ]]; then
       echo "ERROR"
       cp $file ./error.btor
       rm -f $file
       exit
     fi 
   done
+  mode=eager
+  for rwl in rwl2 rwl1 rwl0
+  do
+    echo -n "Test $i ($mode, $rwl): "
+    boolector --$mode -$rwl $file 
+    retval=$?
+    if [[ $retval -ne $goldenretval ]]; then
+      echo "ERROR"
+      cp $file ./error.btor
+      rm -f $file
+      exit
+    fi 
+  done
+  echo ""
 done
