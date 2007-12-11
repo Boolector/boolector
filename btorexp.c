@@ -2021,7 +2021,7 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 static BtorExp *
 pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
 {
-  BtorExp *real_exp, *cur, *simplified, *not_simplified;
+  BtorExp *real_exp, *cur, *simplified, *not_simplified, *next;
   int invert;
   assert (btor != NULL);
   assert (exp != NULL);
@@ -2049,18 +2049,19 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
   simplified = copy_exp (btor, simplified);
   if (invert) simplified = BTOR_INVERT_EXP (simplified);
 
-  overwrite_exp (btor, real_exp, simplified);
-
   invert         = 0;
   not_simplified = BTOR_INVERT_EXP (simplified);
-  cur            = real_exp->simplified;
+  cur            = copy_exp (btor, real_exp);
   do
   {
     if (BTOR_IS_INVERTED_EXP (cur)) invert = !invert;
-    cur = BTOR_REAL_ADDR_EXP (cur);
+    cur  = BTOR_REAL_ADDR_EXP (cur);
+    next = copy_exp (btor, cur->simplified);
     overwrite_exp (btor, cur, invert ? not_simplified : simplified);
-    cur = cur->simplified;
+    release_exp (btor, cur);
+    cur = next;
   } while (BTOR_REAL_ADDR_EXP (cur)->simplified != NULL);
+  release_exp (btor, cur);
 
   /* if starting expression is inverted, then we have to invert result */
   if (BTOR_IS_INVERTED_EXP (exp)) simplified = BTOR_INVERT_EXP (simplified);
