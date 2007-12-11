@@ -1891,6 +1891,92 @@ connect_array_child_aeq_exp (Btor *btor,
   }
 }
 
+static void
+update_constraints (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *new_constraints, *processed_constraints,
+      *synthesized_constraints, *pos, *neg;
+  BtorExp *simplified, *not_simplified, *not_exp;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (exp->simplified != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp->simplified)->simplified == NULL);
+  assert (exp->constraint);
+  not_exp                 = BTOR_INVERT_EXP (exp);
+  simplified              = exp->simplified;
+  not_simplified          = BTOR_INVERT_EXP (simplified);
+  new_constraints         = btor->new_constraints;
+  processed_constraints   = btor->processed_constraints;
+  synthesized_constraints = btor->synthesized_constraints;
+  pos = neg = NULL;
+
+  if (btor_find_in_ptr_hash_table (new_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    pos = new_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (new_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    neg = new_constraints;
+  }
+
+  if (btor_find_in_ptr_hash_table (processed_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    assert (pos == NULL);
+    pos = processed_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (processed_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    assert (neg == NULL);
+    neg = processed_constraints;
+  }
+
+  if (btor_find_in_ptr_hash_table (synthesized_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    assert (pos == NULL);
+    pos = processed_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (synthesized_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    assert (neg == NULL);
+    neg = processed_constraints;
+  }
+
+  if (pos != NULL)
+  {
+    btor_remove_from_ptr_hash_table (pos, exp, NULL, NULL);
+    release_exp (btor, exp);
+  }
+  if (neg != NULL)
+  {
+    btor_remove_from_ptr_hash_table (neg, not_exp, NULL, NULL);
+    release_exp (btor, not_exp);
+  }
+  exp->constraint = 0;
+}
+
+static void
+overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
+{
+  assert (btor);
+  assert (exp);
+  assert (simplified);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
+  if (exp->simplified) release_exp (btor, exp->simplified);
+
+  exp->simplified = copy_exp (btor, simplified);
+
+  /* do we have to update a constraint ? */
+  if (exp->constraint) update_constraints (btor, exp);
+}
+
 /* Finds most simplified expression and shortens path to it */
 static BtorExp *
 pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
@@ -1924,7 +2010,8 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
   cur = copy_exp (btor, cur);
   if (invert) cur = BTOR_INVERT_EXP (cur);
   release_exp (btor, real_exp->simplified);
-  real_exp->simplified = cur;
+
+  overwrite_exp (btor, real_exp, cur);
 
   /* TODO: need to update the simplified pointers on the way to cur as well.
    */
@@ -7105,92 +7192,6 @@ rebuild_exp (Btor *btor, BtorExp *exp)
       assert (BTOR_IS_ARRAY_OR_BV_COND_EXP (exp));
       return cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
   }
-}
-
-static void
-update_constraints (Btor *btor, BtorExp *exp)
-{
-  BtorPtrHashTable *new_constraints, *processed_constraints,
-      *synthesized_constraints, *pos, *neg;
-  BtorExp *simplified, *not_simplified, *not_exp;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (exp->simplified != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp->simplified)->simplified == NULL);
-  assert (exp->constraint);
-  not_exp                 = BTOR_INVERT_EXP (exp);
-  simplified              = exp->simplified;
-  not_simplified          = BTOR_INVERT_EXP (simplified);
-  new_constraints         = btor->new_constraints;
-  processed_constraints   = btor->processed_constraints;
-  synthesized_constraints = btor->synthesized_constraints;
-  pos = neg = NULL;
-
-  if (btor_find_in_ptr_hash_table (new_constraints, exp))
-  {
-    add_constraint (btor, simplified);
-    pos = new_constraints;
-  }
-  if (btor_find_in_ptr_hash_table (new_constraints, not_exp))
-  {
-    add_constraint (btor, not_simplified);
-    neg = new_constraints;
-  }
-
-  if (btor_find_in_ptr_hash_table (processed_constraints, exp))
-  {
-    add_constraint (btor, simplified);
-    assert (pos == NULL);
-    pos = processed_constraints;
-  }
-  if (btor_find_in_ptr_hash_table (processed_constraints, not_exp))
-  {
-    add_constraint (btor, not_simplified);
-    assert (neg == NULL);
-    neg = processed_constraints;
-  }
-
-  if (btor_find_in_ptr_hash_table (synthesized_constraints, exp))
-  {
-    add_constraint (btor, simplified);
-    assert (pos == NULL);
-    pos = processed_constraints;
-  }
-  if (btor_find_in_ptr_hash_table (synthesized_constraints, not_exp))
-  {
-    add_constraint (btor, not_simplified);
-    assert (neg == NULL);
-    neg = processed_constraints;
-  }
-
-  if (pos != NULL)
-  {
-    btor_remove_from_ptr_hash_table (pos, exp, NULL, NULL);
-    release_exp (btor, exp);
-  }
-  if (neg != NULL)
-  {
-    btor_remove_from_ptr_hash_table (neg, not_exp, NULL, NULL);
-    release_exp (btor, not_exp);
-  }
-  exp->constraint = 0;
-}
-
-static void
-overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
-{
-  assert (btor);
-  assert (exp);
-  assert (simplified);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-
-  if (exp->simplified) release_exp (btor, exp->simplified);
-
-  exp->simplified = copy_exp (btor, simplified);
-
-  /* do we have to update a constraint ? */
-  if (exp->constraint) update_constraints (btor, exp);
 }
 
 /* substitutes variable or atomic array by right side */
