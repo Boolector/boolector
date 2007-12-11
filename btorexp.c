@@ -1876,9 +1876,7 @@ delete_exp_node (Btor *btor, BtorExp *exp)
   else if (BTOR_IS_VAR_EXP (exp))
     btor_freestr (mm, exp->symbol);
   else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
-  {
     btor_remove_from_ptr_hash_table (btor->arrays, exp, 0, 0);
-  }
   else if (BTOR_IS_WRITE_EXP (exp))
   {
     disconnect_child_exp (btor, exp, 0);
@@ -1903,10 +1901,7 @@ delete_exp_node (Btor *btor, BtorExp *exp)
     disconnect_child_exp (btor, exp, 2);
   }
 
-  /* TODO: Why is the first guard necessary?  Was before non-sticky arrays.
-   */
-  if (!BTOR_IS_ATOMIC_ARRAY_EXP (exp) && exp->av != NULL)
-    btor_release_delete_aigvec (btor->avmgr, exp->av);
+  if (exp->av != NULL) btor_release_delete_aigvec (btor->avmgr, exp->av);
 
   if (BTOR_IS_ARRAY_EXP (exp) || BTOR_IS_ARRAY_EQ_EXP (exp))
     BTOR_DELETE (mm, exp);
@@ -2242,9 +2237,7 @@ release_exp (Btor *btor, BtorExp *exp)
   cur = BTOR_REAL_ADDR_EXP (exp);
   assert (cur->refs > 0u);
   if (cur->refs > 1u)
-  {
     cur->refs--;
-  }
   else
   {
     assert (cur->refs == 1u);
@@ -2254,9 +2247,7 @@ release_exp (Btor *btor, BtorExp *exp)
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
       if (cur->refs > 1u)
-      {
         cur->refs--;
-      }
       else
       {
         assert (cur->refs == 1u);
@@ -6671,7 +6662,7 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
   BTOR_INIT_STACK (unmark_stack);
   for (bucket = btor->arrays->first; bucket; bucket = bucket->next)
   {
-    cur_array = bucket->key;
+    cur_array = (BtorExp *) bucket->key;
     assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
     if (cur_array->reachable && cur_array->simplified == NULL)
       BTOR_PUSH_STACK (mm, stack, cur_array);
