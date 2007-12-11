@@ -4685,8 +4685,7 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
       {
         cur = (BtorExp *) bucket->data.asPtr;
         assert (cur != NULL);
-        assert (BTOR_IS_REGULAR_EXP (cur));
-        assert (!BTOR_IS_ARRAY_EXP (cur));
+        assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (cur)));
         release_exp (btor, cur);
       }
       btor_delete_ptr_hash_table (results);
