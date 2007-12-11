@@ -926,15 +926,15 @@ encode_ackermann_constraint_eagerly (Btor *btor,
    */
   if (!is_equal_i_j)
   {
-    if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
+    if (!BTOR_REAL_ADDR_EXP (i)->sat_both_phases)
     {
       btor_aigvec_to_sat_both_phases (avmgr, av_i);
-      BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
+      BTOR_REAL_ADDR_EXP (i)->sat_both_phases = 1;
     }
-    if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
+    if (!BTOR_REAL_ADDR_EXP (j)->sat_both_phases)
     {
       btor_aigvec_to_sat_both_phases (avmgr, av_j);
-      BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
+      BTOR_REAL_ADDR_EXP (j)->sat_both_phases = 1;
     }
     BTOR_INIT_STACK (diffs);
     for (k = 0; k < len_i_j; k++)
@@ -986,15 +986,15 @@ encode_ackermann_constraint_eagerly (Btor *btor,
   btor_add_sat (smgr, e);
   if (additional_e != 0) btor_add_sat (smgr, -additional_e);
   btor_add_sat (smgr, 0);
-  if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (a)->sat_both_phases)
   {
     btor_aigvec_to_sat_both_phases (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (a)->sat_both_phases = 1;
   }
-  if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (b)->sat_both_phases)
   {
     btor_aigvec_to_sat_both_phases (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (b)->sat_both_phases = 1;
   }
   for (k = 0; k < len_a_b; k++)
   {
@@ -1103,15 +1103,15 @@ encode_mccarthy_constraint (Btor *btor,
   assert (av_i->len == av_j->len);
   len_a_b   = av_a->len;
   len_i_j_w = av_i->len;
-  if (!BTOR_REAL_ADDR_EXP (i)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (i)->sat_both_phases)
   {
     btor_aigvec_to_sat_both_phases (avmgr, av_i);
-    BTOR_REAL_ADDR_EXP (i)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (i)->sat_both_phases = 1;
   }
-  if (!BTOR_REAL_ADDR_EXP (j)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (j)->sat_both_phases)
   {
     btor_aigvec_to_sat_both_phases (avmgr, av_j);
-    BTOR_REAL_ADDR_EXP (j)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (j)->sat_both_phases = 1;
   }
 
   BTOR_INIT_STACK (clauses);
@@ -1184,15 +1184,15 @@ encode_mccarthy_constraint (Btor *btor,
     }
   }
   /* encode a = b */
-  if (!BTOR_REAL_ADDR_EXP (a)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (a)->sat_both_phases)
   {
     btor_aigvec_to_sat_both_phases (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (a)->sat_both_phases = 1;
   }
-  if (!BTOR_REAL_ADDR_EXP (b)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (b)->sat_both_phases)
   {
     btor_aigvec_to_sat_both_phases (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (b)->sat_both_phases = 1;
   }
   pair = new_exp_pair (btor, a, b);
   /* already encoded a = b ? */
@@ -1257,10 +1257,10 @@ encode_mccarthy_constraint (Btor *btor,
     w_index = cur_write->e[1];
     av_w    = BTOR_REAL_ADDR_EXP (w_index)->av;
     assert (av_w->len == len_i_j_w);
-    if (!BTOR_REAL_ADDR_EXP (w_index)->full_sat)
+    if (!BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases)
     {
       btor_aigvec_to_sat_both_phases (avmgr, av_w);
-      BTOR_REAL_ADDR_EXP (w_index)->full_sat = 1;
+      BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases = 1;
     }
     pair = new_exp_pair (btor, i, w_index);
     /* already encoded i != w_index into SAT ? */
@@ -1419,7 +1419,7 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   assert (aeq != NULL);
   assert (BTOR_IS_REGULAR_EXP (aeq));
   assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
-  assert (!aeq->full_sat);
+  assert (!aeq->sat_both_phases);
   assert (aeq->vreads != NULL);
   mm     = btor->mm;
   avmgr  = btor->avmgr;
@@ -1431,13 +1431,13 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   assert (BTOR_IS_REGULAR_EXP (read1));
   assert (BTOR_IS_READ_EXP (read1));
   assert (read1->av != NULL);
-  assert (!read1->full_sat);
+  assert (!read1->sat_both_phases);
 
   read2 = vreads->exp2;
   assert (BTOR_IS_REGULAR_EXP (read2));
   assert (BTOR_IS_READ_EXP (read2));
   assert (read2->av != NULL);
-  assert (!read2->full_sat);
+  assert (!read2->sat_both_phases);
 
   assert (read1->e[1] == read2->e[1]);
   assert (BTOR_IS_REGULAR_EXP (read1->e[1]));
@@ -1452,11 +1452,11 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   /* assign aig cnf indices as there are only variables,
    * no SAT constraints are generated */
   btor_aigvec_to_sat_both_phases (avmgr, aeq->av);
-  aeq->full_sat = 1;
+  aeq->sat_both_phases = 1;
   btor_aigvec_to_sat_both_phases (avmgr, av1);
-  read1->full_sat = 1;
+  read1->sat_both_phases = 1;
   btor_aigvec_to_sat_both_phases (avmgr, av2);
-  read2->full_sat = 1;
+  read2->sat_both_phases = 1;
 
   /* encode !e => r1 != r2 */
 
@@ -6270,7 +6270,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       {
         /* array equality is synthesized eagerly */
         assert (cur_aeq->av != NULL);
-        assert (cur_aeq->full_sat);
+        assert (cur_aeq->sat_both_phases);
         assert (cur_aeq->len == 1);
         if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
         {
@@ -6523,19 +6523,19 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
   value               = BTOR_GET_VALUE_ACC_EXP (acc);
   if (BTOR_REAL_ADDR_EXP (index)->av == NULL)
     synthesize_exp (btor, index, NULL);
-  if (!BTOR_REAL_ADDR_EXP (index)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (index)->sat_both_phases)
   {
     update = 1;
     btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
-    BTOR_REAL_ADDR_EXP (index)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (index)->sat_both_phases = 1;
   }
   if (BTOR_REAL_ADDR_EXP (value)->av == NULL)
     synthesize_exp (btor, value, NULL);
-  if (!BTOR_REAL_ADDR_EXP (value)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (value)->sat_both_phases)
   {
     update = 1;
     btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (value)->av);
-    BTOR_REAL_ADDR_EXP (value)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (value)->sat_both_phases = 1;
   }
   /* update assignments if necessary */
   if (update) changed_assignments = update_sat_assignments (btor);
@@ -6558,11 +6558,11 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor, BtorExp *acond)
   cond                = acond->e[0];
   assert (cond != NULL);
   if (BTOR_REAL_ADDR_EXP (cond)->av == NULL) synthesize_exp (btor, cond, NULL);
-  if (!BTOR_REAL_ADDR_EXP (cond)->full_sat)
+  if (!BTOR_REAL_ADDR_EXP (cond)->sat_both_phases)
   {
     update = 1;
     btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
-    BTOR_REAL_ADDR_EXP (cond)->full_sat = 1;
+    BTOR_REAL_ADDR_EXP (cond)->sat_both_phases = 1;
   }
   /* update assignments if necessary */
   if (update) changed_assignments = update_sat_assignments (btor);
@@ -6694,7 +6694,7 @@ process_working_stack (Btor *btor,
       if (cur_aeq->reachable && cur_aeq->simplified == NULL)
       {
         assert (cur_aeq->av != NULL);
-        assert (cur_aeq->full_sat);
+        assert (cur_aeq->sat_both_phases);
         assert (!BTOR_IS_INVERTED_AIG (cur_aeq->av->aigs[0]));
         assert (!BTOR_IS_CONST_AIG (cur_aeq->av->aigs[0]));
         assert (BTOR_IS_VAR_AIG (cur_aeq->av->aigs[0]));

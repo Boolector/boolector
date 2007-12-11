@@ -55,13 +55,14 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int subst_mark : 3; /* for substition algorithm */              \
     unsigned int reachable : 1;  /* flag determines if expression            \
                                     is reachable from root */                \
-    unsigned int full_sat : 1;   /* flag determines if expression has been   \
-                                    fully encoded into SAT */                \
+    unsigned int                                                             \
+        sat_both_phases : 1;     /* flag determines if expression has been   \
+                                    encoded into SAT in both phases */       \
     unsigned int vread : 1;      /* flag determines if expression            \
                                     is a virtual read */                     \
     unsigned int constraint : 1; /* flag determines if expression is a       \
                                     top level constraint */                  \
-    unsigned bytes : 8;          /* allocated bytes */                       \
+    unsigned int bytes : 8;      /* allocated bytes */                       \
     union                                                                    \
     {                                                                        \
       struct                                                                 \
