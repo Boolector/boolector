@@ -426,16 +426,18 @@ compute_hash_exp (BtorExp *exp, int table_size)
 }
 
 static void
-disconnect_from_unique_table_exp (Btor *btor, BtorExp *exp)
+remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
 {
   unsigned int hash;
   BtorExp *cur, *prev;
 
-  assert (btor != NULL);
-  assert (btor->table.num_elements > 0);
-
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
+
+  if (!exp->unique) return;
+
+  assert (btor != NULL);
+  assert (btor->table.num_elements > 0);
 
   hash = compute_hash_exp (exp, btor->table.size);
   prev = NULL;
@@ -453,14 +455,24 @@ disconnect_from_unique_table_exp (Btor *btor, BtorExp *exp)
     prev->next = cur->next;
 
   btor->table.num_elements--;
+
+  exp->unique = 0; /* NOTE: this is not debugging code ! */
 }
 
-/* Disconnect children of expression in parent list and also free all local
- * data of 'exp'.  Virtual reads and simplified expressions have to be
- * handled by the calling functio, e.g. 'release_exp', to avoid recursion.
+/* Disconnect children of expression in parent list and if applicable from
+ * unique table.  Do not touch local data, nor any reference counts.  The
+ * kind of the expression becomes 'BTOR_DISCONNECTED_EXP' in debugging mode.
+ *
+ * Actually we have the sequence
+ *
+ *   UNIQUE -> !UNIQUE -> ERASED -> DISCONNECTED -> INVALID
+ *
+ * after a unique or non uninque expression is allocated until it is
+ * deallocated.  We also have loop back from DISCONNECTED to !UNIQUE
+ * if an expression is rewritten and reused as PROXY.
  */
 static void
-disconnect_exp (Btor *btor, BtorExp *exp)
+disconnect_children_exp (Btor *btor, BtorExp *exp)
 {
   BtorMemMgr *mm;
 
@@ -468,6 +480,11 @@ disconnect_exp (Btor *btor, BtorExp *exp)
   assert (exp);
 
   assert (BTOR_IS_REGULAR_EXP (exp));
+
+  assert (exp->erased);
+  assert (!exp->unique);
+  assert (exp->kind != BTOR_INVALID_EXP);
+  assert (exp->kind != BTOR_DISCONNECTED_EXP);
 
   mm = btor->mm;
 
@@ -477,8 +494,7 @@ disconnect_exp (Btor *btor, BtorExp *exp)
   }
   else if (BTOR_IS_VAR_EXP (exp))
   {
-    btor_freestr (mm, exp->symbol);
-    exp->symbol = 0;
+    /* do nothing */
   }
   else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
   {
@@ -486,20 +502,7 @@ disconnect_exp (Btor *btor, BtorExp *exp)
   }
   else
   {
-    disconnect_from_unique_table_exp (btor, exp);
-
-    if (BTOR_IS_CONST_EXP (exp))
-    {
-      btor_freestr (mm, exp->bits);
-      exp->bits = 0;
-    }
-    else if (BTOR_IS_WRITE_EXP (exp))
-    {
-      disconnect_child_exp (btor, exp, 0);
-      disconnect_child_exp (btor, exp, 1);
-      disconnect_child_exp (btor, exp, 2);
-    }
-    else if (BTOR_IS_UNARY_EXP (exp))
+    if (BTOR_IS_UNARY_EXP (exp))
     {
       disconnect_child_exp (btor, exp, 0);
     }
@@ -508,35 +511,85 @@ disconnect_exp (Btor *btor, BtorExp *exp)
       disconnect_child_exp (btor, exp, 0);
       disconnect_child_exp (btor, exp, 1);
     }
-    else
+    else if (BTOR_IS_TERNARY_EXP (exp))
     {
-      assert (BTOR_IS_TERNARY_EXP (exp));
       disconnect_child_exp (btor, exp, 0);
       disconnect_child_exp (btor, exp, 1);
       disconnect_child_exp (btor, exp, 2);
     }
   }
 
+#ifndef NDEBUG
+  exp->kind = BTOR_DISCONNECTED_EXP;
+#endif
+}
+
+/* Delete local data of expression.
+ *
+ * Virtual reads and simplified expressions have to be handled by the
+ * calling function, e.g. 'release_exp', to avoid recursion.
+ */
+static void
+erase_local_data_exp (Btor *btor, BtorExp *exp)
+{
+  BtorMemMgr *mm;
+
+  assert (btor);
+  assert (exp);
+
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
+  assert (!exp->erased);
+  assert (!exp->unique);
+  assert (exp->kind != BTOR_INVALID_EXP);
+  assert (exp->kind != BTOR_DISCONNECTED_EXP);
+
+  mm = btor->mm;
+
+  if (BTOR_IS_VAR_EXP (exp))
+  {
+    btor_freestr (mm, exp->symbol);
+#ifndef NDEBUG
+    exp->symbol = 0;
+#endif
+  }
+
+  if (BTOR_IS_CONST_EXP (exp))
+  {
+    btor_freestr (mm, exp->bits);
+#ifndef NDEBUG
+    exp->bits = 0;
+#endif
+  }
+
   if (exp->av)
   {
     btor_release_delete_aigvec (btor->avmgr, exp->av);
-    exp->av = 0;
-  }
 #ifndef NDEBUG
-  exp->kind = BTOR_DISCONNECTED_EXP;
+    exp->av = 0;
+#endif
+  }
+
+#ifndef NDEBUG
+  exp->erased = 1;
 #endif
 }
 
 /* Delete expression from memory.
  */
 static void
-delete_exp (Btor *btor, BtorExp *exp)
+really_deallocate_exp (Btor *btor, BtorExp *exp)
 {
   BtorMemMgr *mm;
 
   assert (btor);
   assert (exp);
+
+  assert (BTOR_IS_REGULAR_EXP (exp));
+
   assert (exp->kind == BTOR_DISCONNECTED_EXP);
+  assert (exp->erased);
+  assert (!exp->unique);
 
   mm = btor->mm;
 
@@ -572,8 +625,11 @@ release_exp (Btor *btor, BtorExp *exp)
       else
       {
         assert (cur->refs == 1u);
+
         if (BTOR_IS_UNARY_EXP (cur))
+        {
           BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+        }
         else if (BTOR_IS_BINARY_EXP (cur))
         {
           BTOR_PUSH_STACK (mm, stack, cur->e[1]);
@@ -604,8 +660,10 @@ release_exp (Btor *btor, BtorExp *exp)
 #endif
         }
 
-        disconnect_exp (btor, cur);
-        delete_exp (btor, cur);
+        remove_from_unique_table_exp (btor, cur);
+        erase_local_data_exp (btor, cur);
+        disconnect_children_exp (btor, cur);
+        really_deallocate_exp (btor, cur);
       }
     } while (!BTOR_EMPTY_STACK (stack));
     BTOR_RELEASE_STACK (mm, stack);
@@ -2372,6 +2430,7 @@ const_exp (Btor *btor, const char *bits)
     *lookup = new_const_exp_node (btor, bits);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
+    (*lookup)->unique = 1;
   }
   else
     inc_exp_ref_counter (*lookup);
@@ -2561,6 +2620,7 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
     inc_exp_ref_counter (exp);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
+    (*lookup)->unique = 1;
   }
   else
     inc_exp_ref_counter (*lookup);
@@ -3152,6 +3212,7 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
     inc_exp_ref_counter (e1);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
+    (*lookup)->unique = 1;
   }
   else
     inc_exp_ref_counter (*lookup);
@@ -4901,6 +4962,7 @@ ternary_exp (Btor *btor,
     inc_exp_ref_counter (e2);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
+    (*lookup)->unique = 1;
   }
   else
     inc_exp_ref_counter (*lookup);

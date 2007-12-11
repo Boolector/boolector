@@ -12,6 +12,9 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+/* NOTE: DO NOT REORDER THE INDICES.
+ * CERTAIN MACROS DEPEND ON ORDER.
+ */
 enum BtorExpKind
 {
 #ifndef NDEBUG
@@ -62,6 +65,8 @@ typedef struct BtorExpPair BtorExpPair;
                                     is a virtual read */                     \
     unsigned int constraint : 1; /* flag determines if expression is a       \
                                     top level constraint */                  \
+    unsigned int erased : 1;     /* for debugging purposes */                \
+    unsigned int unique : 1;     /* in unique table? */                      \
     unsigned int bytes : 8;      /* allocated bytes */                       \
     union                                                                    \
     {                                                                        \
