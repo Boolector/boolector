@@ -104,13 +104,11 @@ BtorExp *btor_unsigned_to_exp (Btor *btor, unsigned u, int len);
 BtorExp *btor_int_to_exp (Btor *emg, int i, int len);
 
 /* Variable representing len bits.
- * Variables are sticky and cannot be deleted.
  * len(result) = len
  */
 BtorExp *btor_var_exp (Btor *btor, int len, const char *symbol);
 
 /* Array of size 2 ^ index_len with elements of elem_len bits.
- * Arrays are sticky and cannot be deleted.
  * elem_len > 0
  * index_len > 0
  */
