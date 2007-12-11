@@ -556,6 +556,13 @@ btor_main (int argc, char **argv)
     btor_set_mode_btor (btor, mode);
     mem = btor_get_mem_mgr_btor (btor);
 
+    avmgr = btor_get_aigvec_mgr_btor (btor);
+    amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+    smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+    btor_init_sat (smgr);
+    btor_set_output_sat (smgr, stderr);
+
     if (force_smt_input
         || (close_input_file && has_suffix (input_file_name, ".smt")))
     {
@@ -600,13 +607,6 @@ btor_main (int argc, char **argv)
     {
       if (app.verbosity > 0)
         print_verbose_msg_va_args ("parsed %d roots\n", parse_res.nroots);
-
-      avmgr = btor_get_aigvec_mgr_btor (btor);
-      amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-      smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-      btor_init_sat (smgr);
-      btor_set_output_sat (smgr, stderr);
 
       if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
 
