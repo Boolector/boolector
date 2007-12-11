@@ -2045,7 +2045,6 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
   } while (BTOR_REAL_ADDR_EXP (simplified)->simplified != NULL);
   /* 'simplified' is representative element */
   assert (BTOR_REAL_ADDR_EXP (simplified)->simplified == NULL);
-  /* increment reference counter so that it won't be deleted recursively */
   if (invert) simplified = BTOR_INVERT_EXP (simplified);
 
   invert         = 0;
