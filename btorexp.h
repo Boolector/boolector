@@ -196,6 +196,7 @@ struct BtorExp
 #define BTOR_GET_VALUE_ACC_EXP(exp) \
   (BTOR_IS_READ_EXP (exp) ? (exp) : (exp)->e[2])
 #define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
+#define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 

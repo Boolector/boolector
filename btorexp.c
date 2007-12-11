@@ -1322,7 +1322,7 @@ encode_mccarthy_constraint (Btor *btor,
     aeq = *temp;
     assert (BTOR_IS_REGULAR_EXP (aeq));
     assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
-    assert (aeq->av != NULL);
+    assert (BTOR_IS_SYNTH_EXP (aeq));
     assert (aeq->av->len == 1);
     assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
     assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
@@ -1337,7 +1337,7 @@ encode_mccarthy_constraint (Btor *btor,
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
     cond = acond->e[0];
-    assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
+    assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)));
     assert (BTOR_REAL_ADDR_EXP (cond)->av->len == 1);
     aig1 = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0];
     /* if AIG is constant (e.g. as a result of AIG optimizations),
@@ -1360,7 +1360,7 @@ encode_mccarthy_constraint (Btor *btor,
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
     cond = acond->e[0];
-    assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
+    assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)));
     assert (BTOR_REAL_ADDR_EXP (cond)->av->len == 1);
     aig1 = BTOR_REAL_ADDR_EXP (cond)->av->aigs[0];
     /* if AIG is constant (e.g. as a result of AIG optimizations),
@@ -1430,13 +1430,13 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   read1 = vreads->exp1;
   assert (BTOR_IS_REGULAR_EXP (read1));
   assert (BTOR_IS_READ_EXP (read1));
-  assert (read1->av != NULL);
+  assert (BTOR_IS_SYNTH_EXP (read1));
   assert (!read1->sat_both_phases);
 
   read2 = vreads->exp2;
   assert (BTOR_IS_REGULAR_EXP (read2));
   assert (BTOR_IS_READ_EXP (read2));
-  assert (read2->av != NULL);
+  assert (BTOR_IS_SYNTH_EXP (read2));
   assert (!read2->sat_both_phases);
 
   assert (read1->e[1] == read2->e[1]);
@@ -1496,7 +1496,7 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
     btor_add_sat (smgr, 0);
   }
 
-  assert (aeq->av != NULL);
+  assert (BTOR_IS_SYNTH_EXP (aeq));
   assert (aeq->av->len == 1);
   assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
   assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
@@ -3418,7 +3418,8 @@ eq_except_I_atomic_exp (Btor *btor,
   assert (BTOR_IS_ATOMIC_ARRAY_EXP (atomic2));
   result = eq_exp (btor, atomic1, atomic2);
   if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (result))) return result;
-  if (result->av == NULL)
+  assert (BTOR_IS_REGULAR_EXP (result));
+  if (!BTOR_IS_SYNTH_EXP (result))
   {
     assert (result->vreads == NULL);
     synthesize_array_equality (btor, result);
@@ -3427,7 +3428,7 @@ eq_except_I_atomic_exp (Btor *btor,
     atomic1->reachable = 1;
     atomic2->reachable = 1;
   }
-  assert (result->av != NULL);
+  assert (BTOR_IS_SYNTH_EXP (result));
   assert (result->vreads != NULL);
   lambda = result->vreads->exp1->e[1];
   top    = I->top;
@@ -5689,7 +5690,7 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   assert (aeq != NULL);
   assert (BTOR_IS_REGULAR_EXP (aeq));
   assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
-  assert (aeq->av == NULL);
+  assert (!BTOR_IS_SYNTH_EXP (aeq));
   avmgr   = btor->avmgr;
   aeq->av = btor_var_aigvec (avmgr, 1);
   /* generate virtual reads */
@@ -5799,7 +5800,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
     assert (cur->mark >= 0);
     assert (cur->mark <= 2);
-    if (cur->av == NULL && cur->mark < 2)
+    if (!BTOR_IS_SYNTH_EXP (cur) && cur->mark < 2)
     {
       count++;
 
@@ -6123,8 +6124,8 @@ compare_assignments (BtorExp *exp1, BtorExp *exp2)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp2)));
   assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
-  assert (BTOR_REAL_ADDR_EXP (exp1)->av != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp2)->av != NULL);
+  assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (exp1)));
+  assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (exp2)));
   btor = BTOR_REAL_ADDR_EXP (exp1)->btor;
   assert (btor != NULL);
   return_val = 0;
@@ -6230,7 +6231,8 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       found = 1;
       break;
     }
-    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0 && cur->e[1]->av != NULL
+    if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0
+        && BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))
         && compare_assignments (cur->e[1], index) != 0)
     {
       next         = cur->e[0];
@@ -6239,7 +6241,8 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    else if (BTOR_IS_ARRAY_COND_EXP (cur) && cur->e[0]->av != NULL)
+    else if (BTOR_IS_ARRAY_COND_EXP (cur)
+             && BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cur->e[0])))
     {
       /* check assignment to determine which array to choose */
       cond       = cur->e[0];
@@ -6268,8 +6271,8 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       assert (BTOR_IS_REGULAR_EXP (cur_aeq));
       if (cur_aeq->reachable && cur_aeq->mark == 0)
       {
-        /* array equality is synthesized eagerly */
-        assert (cur_aeq->av != NULL);
+        /* array equalities are synthesized eagerly */
+        assert (BTOR_IS_SYNTH_EXP (cur_aeq));
         assert (cur_aeq->sat_both_phases);
         assert (cur_aeq->len == 1);
         if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
@@ -6521,7 +6524,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
   avmgr               = btor->avmgr;
   index               = BTOR_GET_INDEX_ACC_EXP (acc);
   value               = BTOR_GET_VALUE_ACC_EXP (acc);
-  if (BTOR_REAL_ADDR_EXP (index)->av == NULL)
+  if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (index)))
     synthesize_exp (btor, index, NULL);
   if (!BTOR_REAL_ADDR_EXP (index)->sat_both_phases)
   {
@@ -6529,7 +6532,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
     btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
     BTOR_REAL_ADDR_EXP (index)->sat_both_phases = 1;
   }
-  if (BTOR_REAL_ADDR_EXP (value)->av == NULL)
+  if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (value)))
     synthesize_exp (btor, value, NULL);
   if (!BTOR_REAL_ADDR_EXP (value)->sat_both_phases)
   {
@@ -6557,7 +6560,8 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor, BtorExp *acond)
   update              = 0;
   cond                = acond->e[0];
   assert (cond != NULL);
-  if (BTOR_REAL_ADDR_EXP (cond)->av == NULL) synthesize_exp (btor, cond, NULL);
+  if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)))
+    synthesize_exp (btor, cond, NULL);
   if (!BTOR_REAL_ADDR_EXP (cond)->sat_both_phases)
   {
     update = 1;
@@ -6660,7 +6664,7 @@ process_working_stack (Btor *btor,
       *assignments_changed = lazy_synthesize_and_encode_acond_exp (btor, array);
       if (*assignments_changed) return 0;
       cond = array->e[0];
-      assert (BTOR_REAL_ADDR_EXP (cond)->av != NULL);
+      assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)));
       assignment = btor_get_assignment_aig (
           amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
       if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
@@ -6693,7 +6697,7 @@ process_working_stack (Btor *btor,
       assert (BTOR_IS_REGULAR_EXP (cur_aeq));
       if (cur_aeq->reachable && cur_aeq->simplified == NULL)
       {
-        assert (cur_aeq->av != NULL);
+        assert (BTOR_IS_SYNTH_EXP (cur_aeq));
         assert (cur_aeq->sat_both_phases);
         assert (!BTOR_IS_INVERTED_AIG (cur_aeq->av->aigs[0]));
         assert (!BTOR_IS_CONST_AIG (cur_aeq->av->aigs[0]));
@@ -7396,9 +7400,9 @@ process_new_constraints (Btor *btor)
           btor->stats.linear_equations++;
 #if 0
 #if 0
-		  btor_dump_exp (btor, stderr, cur);
+                  btor_dump_exp (btor, stderr, cur);
 #else
-		  fprintf (stderr, "linear equation: %d\n", cur->id);
+                  fprintf (stderr, "linear equation: %d\n", cur->id);
 #endif
 #endif
         }
@@ -7766,7 +7770,7 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
     return assignment;
   }
   if (!BTOR_REAL_ADDR_EXP (exp)->reachable
-      || BTOR_REAL_ADDR_EXP (exp)->av == NULL)
+      || !BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (exp)))
     return NULL;
   avmgr     = btor->avmgr;
   invert_av = BTOR_IS_INVERTED_EXP (exp);
