@@ -3307,7 +3307,6 @@ eq_except_I_write_exp (Btor *btor,
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_WRITE_EXP (write));
   assert (BTOR_IS_ARRAY_EXP (array));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (i)));
   i      = write->e[1];
   temp   = read_exp (btor, array, i);
   result = eq_exp (btor, temp, write->e[2]);
