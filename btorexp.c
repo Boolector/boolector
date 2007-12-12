@@ -7429,8 +7429,6 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
 
   is_var_substitution = BTOR_IS_VAR_EXP (left);
 
-  overwrite_exp (btor, left, right);
-
   /* search from bottom up */
 
   BTOR_INIT_STACK (search_stack);
@@ -7461,6 +7459,8 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
     }
   } while (!BTOR_EMPTY_STACK (search_stack));
   BTOR_RELEASE_STACK (mm, search_stack);
+
+  overwrite_exp (btor, left, right);
 
   /* copy roots on substitution stack */
 
