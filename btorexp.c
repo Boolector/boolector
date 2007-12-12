@@ -518,9 +518,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
     disconnect_child_exp (btor, exp, 1);
     disconnect_child_exp (btor, exp, 2);
   }
-#ifndef NDEBUG
   exp->disconnected = 1;
-#endif
 }
 
 /* Delete local data of expression.
@@ -568,9 +566,7 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
     exp->av = 0;
 #endif
   }
-#ifndef NDEBUG
   exp->erased = 1;
-#endif
 }
 
 /* Delete expression from memory.
