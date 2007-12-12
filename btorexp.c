@@ -302,7 +302,7 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
   {
     child = parent->e[pos];
     assert (BTOR_IS_REGULAR_EXP (child));
-    assert (BTOR_IS_ARRAY_EXP (child));
+    assert (BTOR_IS_ARRAY_EXP (child) || BTOR_IS_PROXY_EXP (child));
     first_parent = child->first_aeq_acond_parent;
     last_parent  = child->last_aeq_acond_parent;
     assert (first_parent != NULL);
@@ -661,6 +661,10 @@ recursively_release_exp (Btor *btor, BtorExp *root)
 
       remove_from_unique_table_exp (btor, cur);
       erase_local_data_exp (btor, cur);
+
+      /* It is safe to access the children here, since they are pushed
+       * on the stack and will be release later if necessary.
+       */
       disconnect_children_exp (btor, cur);
       really_deallocate_exp (btor, cur);
     }
@@ -1959,31 +1963,13 @@ update_constraints (Btor *btor, BtorExp *exp)
   exp->constraint = 0;
 }
 
-#ifndef NPROXY
-
-static void
-release_children_exp (Btor *btor, BtorExp *exp)
-{
-  int i;
-
-  assert (btor);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-
-  for (i = 0; i < BTOR_ARITY_EXP (exp); i++)
-  {
-    release_exp (btor, exp->e[i]);
-#ifndef NDEBUG
-    exp->e[i] = 0;
-#endif
-  }
-}
-
-#endif
-
 static void
 overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 {
+#ifndef NPROXY
+  BtorExp *e[3];
+  int i, arity;
+#endif
   assert (btor);
   assert (exp);
   assert (simplified);
@@ -2000,8 +1986,10 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 #ifndef NPROXY
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp);
+  arity = BTOR_ARITY_EXP (exp);
+  for (i = 0; i < arity; i++) e[i] = exp->e[i];
   disconnect_children_exp (btor, exp);
-  release_children_exp (btor, exp);
+  for (i = 0; i < arity; i++) release_exp (btor, e[i]);
   exp->kind         = BTOR_PROXY_EXP;
   exp->disconnected = 0;
   exp->erased       = 0;
