@@ -112,3 +112,4 @@ rw18 -rwl0 -o log/rw18.log log/rw18.log
 rw18 -rwl1 -o log/rw18.log log/rw18.log
 eager1 --eager -rwl0 -o log/eager1.log log/eager1.log
 eager2 --eager -rwl0 -o log/eager2.log log/eager2.log
+proxybug -o log/proxybug.log log/proxybug.btor

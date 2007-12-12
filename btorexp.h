@@ -40,9 +40,6 @@ enum BtorExpKind
   BTOR_BCOND_EXP  = 18, /* conditional on bit vectors */
   BTOR_ACOND_EXP  = 19, /* conditional on arrays */
   BTOR_PROXY_EXP  = 20, /* simplified expression without children */
-#ifndef NDEBUG
-  BTOR_DISCONNECTED_EXP = 21, /* for debugging purposes */
-#endif
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -59,15 +56,16 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int reachable : 1;  /* flag determines if expression            \
                                     is reachable from root */                \
     unsigned int                                                             \
-        sat_both_phases : 1;     /* flag determines if expression has been   \
-                                    encoded into SAT in both phases */       \
-    unsigned int vread : 1;      /* flag determines if expression            \
-                                    is a virtual read */                     \
-    unsigned int constraint : 1; /* flag determines if expression is a       \
-                                    top level constraint */                  \
-    unsigned int erased : 1;     /* for debugging purposes */                \
-    unsigned int unique : 1;     /* in unique table? */                      \
-    unsigned int bytes : 8;      /* allocated bytes */                       \
+        sat_both_phases : 1;       /* flag determines if expression has been \
+                                      encoded into SAT in both phases */     \
+    unsigned int vread : 1;        /* flag determines if expression          \
+                                      is a virtual read */                   \
+    unsigned int constraint : 1;   /* flag determines if expression is a     \
+                                      top level constraint */                \
+    unsigned int erased : 1;       /* for debugging purposes */              \
+    unsigned int disconnected : 1; /* for debugging purpose */               \
+    unsigned int unique : 1;       /* in unique table? */                    \
+    unsigned int bytes : 8;        /* allocated bytes */                     \
     union                                                                    \
     {                                                                        \
       struct                                                                 \
