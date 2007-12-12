@@ -483,10 +483,11 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
 
   assert (BTOR_IS_REGULAR_EXP (exp));
 
-  assert (exp->erased);
-  assert (!exp->unique);
   assert (exp->kind != BTOR_INVALID_EXP);
-  assert (exp->kind != BTOR_DISCONNECTED_EXP);
+
+  assert (!exp->unique);
+  assert (exp->erased);
+  assert (!exp->disconnected);
 
   mm = btor->mm;
 
@@ -502,27 +503,23 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   {
     btor_remove_from_ptr_hash_table (btor->arrays, exp, 0, 0);
   }
-  else
+  else if (BTOR_IS_UNARY_EXP (exp))
   {
-    if (BTOR_IS_UNARY_EXP (exp))
-    {
-      disconnect_child_exp (btor, exp, 0);
-    }
-    else if (BTOR_IS_BINARY_EXP (exp))
-    {
-      disconnect_child_exp (btor, exp, 0);
-      disconnect_child_exp (btor, exp, 1);
-    }
-    else if (BTOR_IS_TERNARY_EXP (exp))
-    {
-      disconnect_child_exp (btor, exp, 0);
-      disconnect_child_exp (btor, exp, 1);
-      disconnect_child_exp (btor, exp, 2);
-    }
+    disconnect_child_exp (btor, exp, 0);
   }
-
+  else if (BTOR_IS_BINARY_EXP (exp))
+  {
+    disconnect_child_exp (btor, exp, 0);
+    disconnect_child_exp (btor, exp, 1);
+  }
+  else if (BTOR_IS_TERNARY_EXP (exp))
+  {
+    disconnect_child_exp (btor, exp, 0);
+    disconnect_child_exp (btor, exp, 1);
+    disconnect_child_exp (btor, exp, 2);
+  }
 #ifndef NDEBUG
-  exp->kind = BTOR_DISCONNECTED_EXP;
+  exp->disconnected = 1;
 #endif
 }
 
@@ -541,10 +538,10 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
 
   assert (BTOR_IS_REGULAR_EXP (exp));
 
-  assert (!exp->erased);
   assert (!exp->unique);
+  assert (!exp->erased);
+  assert (!exp->disconnected);
   assert (exp->kind != BTOR_INVALID_EXP);
-  assert (exp->kind != BTOR_DISCONNECTED_EXP);
 
   mm = btor->mm;
 
@@ -571,7 +568,6 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
     exp->av = 0;
 #endif
   }
-
 #ifndef NDEBUG
   exp->erased = 1;
 #endif
@@ -589,9 +585,9 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
 
   assert (BTOR_IS_REGULAR_EXP (exp));
 
-  assert (exp->kind == BTOR_DISCONNECTED_EXP);
-  assert (exp->erased);
   assert (!exp->unique);
+  assert (exp->disconnected);
+  assert (exp->erased);
 
   mm = btor->mm;
 
@@ -1968,24 +1964,18 @@ update_constraints (Btor *btor, BtorExp *exp)
 static void
 release_children_exp (Btor *btor, BtorExp *exp)
 {
+  int i;
+
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_EXP (exp));
 
-  if (BTOR_IS_UNARY_EXP (exp))
+  for (i = 0; i < BTOR_ARITY_EXP (exp); i++)
   {
-    release_exp (btor, exp->e[0]);
-  }
-  else if (BTOR_IS_BINARY_EXP (exp))
-  {
-    release_exp (btor, exp->e[1]);
-    release_exp (btor, exp->e[0]);
-  }
-  else if (BTOR_IS_TERNARY_EXP (exp))
-  {
-    release_exp (btor, exp->e[2]);
-    release_exp (btor, exp->e[1]);
-    release_exp (btor, exp->e[0]);
+    release_exp (btor, exp->e[i]);
+#ifndef NDEBUG
+    exp->e[i] = 0;
+#endif
   }
 }
 
@@ -2008,12 +1998,13 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
 
     /* TODO: PROXY CODE WORKING? */
 #ifndef NPROXY
-  release_children_exp (btor, exp);
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp);
   disconnect_children_exp (btor, exp);
-  exp->kind   = BTOR_PROXY_EXP;
-  exp->erased = 0;
+  release_children_exp (btor, exp);
+  exp->kind         = BTOR_PROXY_EXP;
+  exp->disconnected = 0;
+  exp->erased       = 0;
 #endif
 }
 
@@ -5617,6 +5608,22 @@ void
 btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
 {
   btor_dump_exps (btor, file, &root, 1);
+}
+
+void
+btor_vis_exp (Btor *btor, BtorExp *exp)
+{
+  char cmd[100], *path;
+  static int idx = 0;
+  FILE *file;
+  sprintf (cmd, "btorvis ");
+  path = cmd + strlen (cmd);
+  sprintf (path, "/tmp/btorvisexp.%d.btor", idx++);
+  file = fopen (path, "w");
+  btor_dump_exp (btor, file, exp);
+  fclose (file);
+  strcat (cmd, "&");
+  system (cmd);
 }
 
 static void
