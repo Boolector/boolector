@@ -2777,6 +2777,7 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   BtorExp **lookup;
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = pointer_chase_simplified_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (lower >= 0);
   assert (upper >= lower);
@@ -3118,6 +3119,7 @@ not_exp (Btor *btor, BtorExp *exp)
 {
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = pointer_chase_simplified_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   (void) btor;
@@ -3130,6 +3132,7 @@ btor_not_exp (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_not_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_not_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_not_exp'");
   return not_exp (btor, exp);
@@ -3141,6 +3144,7 @@ neg_exp (Btor *btor, BtorExp *exp)
   BtorExp *result, *one;
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = pointer_chase_simplified_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   one    = one_exp (btor, BTOR_REAL_ADDR_EXP (exp)->len);
@@ -3154,6 +3158,7 @@ btor_neg_exp (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_neg_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_neg_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_neg_exp'");
   return neg_exp (btor, exp);
@@ -3166,6 +3171,7 @@ btor_nego_exp (Btor *btor, BtorExp *exp)
   int len;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_nego_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_nego_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_nego_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
@@ -3189,6 +3195,7 @@ btor_redor_exp (Btor *btor, BtorExp *exp)
   BtorExp *result, *zeros;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_redor_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_redor_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_redor_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
@@ -3205,6 +3212,7 @@ btor_redxor_exp (Btor *btor, BtorExp *exp)
   int i, len;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_redxor_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_redxor_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_redxor_exp'");
   len = BTOR_REAL_ADDR_EXP (exp)->len;
@@ -3227,6 +3235,7 @@ btor_redand_exp (Btor *btor, BtorExp *exp)
   BtorExp *result, *ones;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_redand_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_redand_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_redand_exp'");
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
@@ -3242,6 +3251,7 @@ slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   BtorExp *result;
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = pointer_chase_simplified_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (lower >= 0);
   assert (upper >= lower);
@@ -3259,6 +3269,7 @@ btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_slice_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_slice_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_slice_exp'");
   BTOR_ABORT_EXP (lower < 0,
@@ -3276,6 +3287,7 @@ uext_exp (Btor *btor, BtorExp *exp, int len)
   BtorExp *result, *zeros;
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = pointer_chase_simplified_exp (btor, exp);
   assert (len >= 0);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
@@ -3299,6 +3311,7 @@ btor_uext_exp (Btor *btor, BtorExp *exp, int len)
 {
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_uext_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_uext_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_uext_exp'");
   BTOR_ABORT_EXP (len < 0, "'len' must not be negative in 'btor_uext_exp'");
@@ -3312,6 +3325,7 @@ sext_exp (Btor *btor, BtorExp *exp, int len)
   int exp_len;
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = pointer_chase_simplified_exp (btor, exp);
   assert (len >= 0);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
@@ -3342,6 +3356,7 @@ btor_sext_exp (Btor *btor, BtorExp *exp, int len)
 {
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sext_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_sext_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_sext_exp'");
   BTOR_ABORT_EXP (len < 0, "'len' must not be negative in 'btor_sext_exp'");
@@ -3401,6 +3416,8 @@ or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -3415,6 +3432,8 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_or_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_or_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_or_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_or_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3431,6 +3450,8 @@ btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_nand_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_nand_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_nand_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_nand_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3448,6 +3469,8 @@ btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_nor_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_nor_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_nor_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_nor_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3466,6 +3489,8 @@ btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
                   "'btor' must not be NULL in 'btor_implies_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_implies_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_implies_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_implies_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3483,6 +3508,8 @@ btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_iff_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_iff_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_iff_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_iff_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3501,6 +3528,8 @@ xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -3519,6 +3548,8 @@ btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_xor_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_xor_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_xor_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_xor_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3535,6 +3566,8 @@ btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_xnor_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_xnor_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_xnor_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_xnor_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3553,6 +3586,8 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -3572,6 +3607,8 @@ btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_and_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_and_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_and_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_and_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3721,9 +3758,13 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 #ifndef NDEBUG
   BtorExp *real_e0, *real_e1;
   int is_array_e0, is_array_e1;
+#endif
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+#ifndef NDEBUG
   real_e0     = BTOR_REAL_ADDR_EXP (e0);
   real_e1     = BTOR_REAL_ADDR_EXP (e1);
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
@@ -3771,6 +3812,8 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_eq_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_eq_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_eq_exp'");
+  e0          = pointer_chase_simplified_exp (btor, e0);
+  e1          = pointer_chase_simplified_exp (btor, e1);
   real_e0     = BTOR_REAL_ADDR_EXP (e0);
   real_e1     = BTOR_REAL_ADDR_EXP (e1);
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
@@ -3796,6 +3839,8 @@ btor_ne_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ne_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ne_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ne_exp'");
+  e0          = pointer_chase_simplified_exp (btor, e0);
+  e1          = pointer_chase_simplified_exp (btor, e1);
   real_e0     = BTOR_REAL_ADDR_EXP (e0);
   real_e1     = BTOR_REAL_ADDR_EXP (e1);
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
@@ -3822,6 +3867,8 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -3841,6 +3888,8 @@ btor_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_add_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_add_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_add_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_add_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3859,6 +3908,8 @@ btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_uaddo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_uaddo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_uaddo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_uaddo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3887,6 +3938,8 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_saddo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_saddo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_saddo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_saddo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3923,6 +3976,8 @@ mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -3942,6 +3997,8 @@ btor_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_mul_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_mul_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_mul_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_mul_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -3960,6 +4017,8 @@ btor_umulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_umulo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_umulo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_umulo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_umulo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4017,6 +4076,8 @@ btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_smulo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_smulo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_smulo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_smulo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4104,6 +4165,8 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -4121,6 +4184,8 @@ btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ult_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ult_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ult_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_ult_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4140,6 +4205,8 @@ slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -4185,6 +4252,8 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_slt_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_slt_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_slt_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_slt_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4202,6 +4271,8 @@ btor_ulte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ulte_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ulte_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ulte_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_ulte_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4223,6 +4294,8 @@ btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_slte_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_slte_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_slte_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_slte_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4243,6 +4316,8 @@ btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ugt_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ugt_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ugt_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_ugt_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4260,6 +4335,8 @@ btor_sgt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sgt_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sgt_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sgt_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sgt_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4278,6 +4355,8 @@ btor_ugte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ugte_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ugte_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ugte_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_ugte_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4299,6 +4378,8 @@ btor_sgte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sgte_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sgte_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sgte_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sgte_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4320,6 +4401,8 @@ sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
@@ -4343,6 +4426,8 @@ btor_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sll_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sll_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sll_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sll_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4363,6 +4448,8 @@ srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 1);
@@ -4386,6 +4473,8 @@ btor_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_srl_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_srl_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_srl_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_srl_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4407,6 +4496,8 @@ btor_sra_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sra_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sra_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sra_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sra_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4437,6 +4528,8 @@ btor_rol_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_rol_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_rol_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_rol_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_rol_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4467,6 +4560,8 @@ btor_ror_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ror_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ror_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ror_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_ror_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4496,6 +4591,8 @@ sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -4512,6 +4609,8 @@ btor_sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sub_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sub_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sub_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sub_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4530,6 +4629,8 @@ btor_usubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_usubo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_usubo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_usubo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_usubo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4563,6 +4664,8 @@ btor_ssubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_ssubo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_ssubo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_ssubo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_ssubo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4599,6 +4702,8 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -4618,6 +4723,8 @@ btor_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_udiv_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_udiv_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_udiv_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_udiv_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4637,6 +4744,8 @@ btor_sdiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sdiv_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sdiv_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sdiv_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sdiv_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4680,6 +4789,8 @@ btor_sdivo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sdivo_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_sdivo_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_sdivo_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_sdivo_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4707,6 +4818,8 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
@@ -4726,6 +4839,8 @@ btor_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_urem_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_urem_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_urem_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_urem_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4745,6 +4860,8 @@ btor_srem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_srem_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_srem_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_srem_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_srem_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4789,6 +4906,8 @@ btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_smod_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_smod_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_smod_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_smod_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4853,6 +4972,8 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
@@ -4879,7 +5000,8 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_concat_exp'");
   BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_concat_exp'");
   BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_concat_exp'");
-
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
                   "'e0' must not be an array in 'btor_concat_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
@@ -4903,6 +5025,8 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   assert (btor != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
+  e_array = pointer_chase_simplified_exp (btor, e_array);
+  e_index = pointer_chase_simplified_exp (btor, e_index);
   assert (BTOR_IS_REGULAR_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
@@ -5082,6 +5206,8 @@ btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
                   "'e_array' must not be NULL in 'btor_read_exp'");
   BTOR_ABORT_EXP (e_index == NULL,
                   "'e_index' must not be NULL in 'btor_read_exp'");
+  e_array = pointer_chase_simplified_exp (btor, e_array);
+  e_index = pointer_chase_simplified_exp (btor, e_index);
   BTOR_ABORT_EXP (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
                   "'e_array' must not be a bit vector in 'btor_read_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)),
@@ -5158,6 +5284,9 @@ cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   assert (e_cond != NULL);
   assert (e_if != NULL);
   assert (e_else != NULL);
+  e_cond = pointer_chase_simplified_exp (btor, e_cond);
+  e_if   = pointer_chase_simplified_exp (btor, e_if);
+  e_else = pointer_chase_simplified_exp (btor, e_else);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)));
   assert (BTOR_REAL_ADDR_EXP (e_cond)->len == 1);
   real_e_if       = BTOR_REAL_ADDR_EXP (e_if);
@@ -5194,6 +5323,9 @@ btor_cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   BTOR_ABORT_EXP (e_if == NULL, "'e_if' must not be NULL in 'btor_cond_exp'");
   BTOR_ABORT_EXP (e_else == NULL,
                   "'e_else' must not be NULL in 'btor_cond_exp'");
+  e_cond = pointer_chase_simplified_exp (btor, e_cond);
+  e_if   = pointer_chase_simplified_exp (btor, e_if);
+  e_else = pointer_chase_simplified_exp (btor, e_else);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)),
                   "'e_cond' must not be an array in 'btor_cond_exp'");
   BTOR_ABORT_EXP (BTOR_REAL_ADDR_EXP (e_cond)->len != 1,
@@ -5225,6 +5357,9 @@ write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
   assert (e_array != NULL);
   assert (e_index != NULL);
   assert (e_value != NULL);
+  e_array = pointer_chase_simplified_exp (btor, e_array);
+  e_index = pointer_chase_simplified_exp (btor, e_index);
+  e_value = pointer_chase_simplified_exp (btor, e_value);
   assert (BTOR_IS_REGULAR_EXP (e_array));
   assert (BTOR_IS_ARRAY_EXP (e_array));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)));
@@ -5268,6 +5403,9 @@ btor_write_exp (Btor *btor,
                   "'e_index' must not be NULL in 'btor_write_exp'");
   BTOR_ABORT_EXP (e_value == NULL,
                   "'e_value' must not be NULL in 'btor_write_exp'");
+  e_array = pointer_chase_simplified_exp (btor, e_array);
+  e_index = pointer_chase_simplified_exp (btor, e_index);
+  e_value = pointer_chase_simplified_exp (btor, e_value);
   BTOR_ABORT_EXP (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
                   "'e_array' must not be a bit vector in 'btor_write_exp'");
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)),
@@ -5290,6 +5428,7 @@ btor_get_exp_len (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (btor == NULL,
                   "'btor' must not be NULL in 'btor_get_exp_len'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_get_exp_len'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   (void) btor;
   return BTOR_REAL_ADDR_EXP (exp)->len;
 }
@@ -5300,6 +5439,7 @@ btor_is_array_exp (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (btor == NULL,
                   "'btor' must not be NULL in 'btor_is_array_exp'");
   BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_is_array_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   (void) btor;
   return BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp));
 }
@@ -5311,6 +5451,7 @@ btor_get_index_exp_len (Btor *btor, BtorExp *e_array)
                   "'btor' must not be NULL in 'btor_get_index_exp_len'");
   BTOR_ABORT_EXP (e_array == NULL,
                   "'e_array' must not be NULL in 'btor_get_index_exp_len'");
+  e_array = pointer_chase_simplified_exp (btor, e_array);
   BTOR_ABORT_EXP (
       !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
       "'e_array' must not be a bit vector in 'btor_get_index_exp_len'");
@@ -5326,6 +5467,7 @@ btor_get_symbol_exp (Btor *btor, BtorExp *exp)
                   "'btor' must not be NULL in 'btor_get_symbol_exp'");
   BTOR_ABORT_EXP (exp == NULL,
                   "'exp' must not be NULL in 'btor_get_symbol_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' has to be a variable in 'btor_get_symbol_exp'");
   (void) btor;
@@ -7677,6 +7819,7 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
                   "'btor' must not be NULL in 'btor_add_constraint_exp'");
   BTOR_ABORT_EXP (exp == NULL,
                   "'exp' must not be NULL in 'btor_add_constraint_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_add_constraint_exp'");
   BTOR_ABORT_EXP (
@@ -7705,6 +7848,7 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
                   "'btor' must not be NULL in 'btor_add_assumption_exp'");
   BTOR_ABORT_EXP (exp == NULL,
                   "'exp' must not be NULL in 'btor_add_assumption_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_add_assumption_exp'");
   BTOR_ABORT_EXP (
