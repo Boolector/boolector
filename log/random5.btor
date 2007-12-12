@@ -1,0 +1,303 @@
+1 array 4 4
+2 array 2 2
+3 array 1 2
+4 var 2
+5 array 2 3
+6 var 2
+7 var 1
+8 array 2 4
+9 array 2 3
+10 array 1 3
+11 array 3 3
+12 array 2 2
+13 var 4
+14 var 4
+15 var 3
+16 array 1 4
+17 var 2
+18 var 3
+19 array 3 4
+20 var 4
+21 slice 1 17 0 0
+22 slice 1 6 0 0
+23 xor 1 21 22
+24 write 2 2 4 6
+25 ssubo 1 17 -17
+26 slice 1 -17 0 0
+27 slice 1 4 0 0
+28 and 1 26 27
+29 const 2 01
+30 sext 4 -23 3
+31 ult 1 13 -30
+32 not 2 29
+33 slice 3 13 3 1
+34 saddo 1 33 -15
+35 mul 3 33 18
+36 xnor 1 -23 -7
+37 slice 1 29 1 1
+38 saddo 1 -37 21
+39 not 1 -26
+40 mul 1 -7 25
+41 slice 1 17 1 1
+42 iff 1 41 7
+43 and 1 31 7
+44 uext 2 40 1
+45 sext 2 -42 1
+46 ssubo 1 44 -45
+47 neg 2 6
+48 not 1 31
+49 slice 1 -18 0 0
+50 xnor 1 -49 21
+51 redor 1 17
+52 slice 1 29 0 0
+53 implies 1 7 52
+54 array 1 1
+55 write 1 54 -49 37
+56 slice 1 47 0 0
+57 ugte 1 56 38
+58 sgte 1 35 18
+59 uext 2 42 1
+60 slice 1 -13 0 0
+61 srl 2 59 60
+62 sext 2 57 1
+63 sub 2 62 47
+64 uext 3 61 1
+65 slice 2 64 2 1
+66 eq 1 3 3
+67 slice 1 15 2 2
+68 ugte 1 67 -28
+69 uext 4 43 3
+70 sdiv 4 -14 -69
+71 slice 2 -15 2 1
+72 write 2 12 29 -71
+73 sub 2 29 44
+74 implies 1 40 34
+75 smulo 1 7 -53
+76 uext 4 43 3
+77 uext 4 40 3
+78 write 4 1 76 77
+79 sext 16 17 14
+80 rol 16 79 76
+81 neg 1 23
+82 slice 1 29 1 1
+83 srem 1 75 -82
+84 uext 4 53 3
+85 uaddo 1 -84 77
+86 uext 3 75 2
+87 read 1 10 -86
+88 redxor 1 35
+89 ne 1 -58 38
+90 neg 1 66
+91 urem 3 -64 -33
+92 sext 4 -15 1
+93 sext 4 28 3
+94 udiv 4 -92 93
+95 sext 4 -85 3
+96 uext 4 -89 3
+97 slt 1 95 96
+98 write 3 19 -94 64
+99 ssubo 1 35 15
+100 sext 2 -31 1
+101 slte 1 65 -100
+102 saddo 1 31 34
+103 slice 1 -15 1 1
+104 sext 3 25 2
+105 cond 3 103 104 35
+106 const 1 0
+107 array 3 1
+108 write 3 107 83 86
+109 sext 4 47 2
+110 usubo 1 96 -109
+111 slice 1 14 1 1
+112 ugte 1 53 111
+113 array 2 1
+114 write 2 113 -85 -65
+115 write 3 108 -83 -105
+116 sext 8 -50 7
+117 sll 8 116 35
+118 slice 1 73 1 1
+119 nand 1 101 -118
+120 const 1 1
+121 mul 1 26 75
+122 mul 1 -99 -49
+123 slice 2 105 1 0
+124 write 1 3 123 7
+125 ugt 1 14 76
+126 sext 4 102 3
+127 srl 4 126 -29
+128 sext 4 51 3
+129 slice 1 128 3 3
+130 var 3
+131 uext 4 -75 3
+132 sext 4 51 3
+133 udiv 4 -131 132
+134 zero 2
+135 uext 3 -4 1
+136 nego 1 135
+137 sext 4 17 2
+138 ult 1 -133 137
+139 slice 2 133 2 1
+140 saddo 1 62 139
+141 uext 3 75 2
+142 write 3 19 93 141
+143 redand 1 -4
+144 sext 3 38 2
+145 slice 1 -70 3 3
+146 write 1 10 144 145
+147 sext 4 121 3
+148 uext 2 68 1
+149 srl 4 147 -148
+150 implies 1 82 -85
+151 write 1 54 82 36
+152 xnor 1 -99 66
+153 smulo 1 65 62
+154 array 4 3
+155 uext 3 40 2
+156 write 4 154 -155 -13
+157 sext 3 90 2
+158 write 1 146 -157 40
+159 slice 1 133 0 0
+160 write 1 16 76 159
+161 const 2 10
+162 implies 1 150 -48
+163 uext 2 7 1
+164 read 1 3 163
+165 sext 3 -29 1
+166 sext 3 106 2
+167 sub 3 165 -166
+168 sgte 1 -30 -70
+169 uext 3 -51 2
+170 urem 3 169 157
+171 ror 16 -80 147
+172 slice 1 18 2 2
+173 xor 1 -172 106
+174 sext 3 53 2
+175 sdivo 1 -174 -15
+176 sext 4 125 3
+177 add 4 176 92
+178 iff 1 -31 153
+179 sgte 1 167 -169
+180 slice 2 177 3 2
+181 usubo 1 4 180
+182 write 1 158 167 -50
+183 write 2 8 70 65
+184 slice 3 20 2 0
+185 redor 1 184
+186 uext 3 -110 2
+187 sext 3 25 2
+188 udiv 3 186 187
+189 slice 1 105 0 0
+190 sdiv 1 75 189
+191 write 2 113 38 63
+192 sext 2 136 1
+193 redxor 1 192
+194 uext 4 34 3
+195 sll 16 -79 -194
+196 slice 3 70 2 0
+197 uext 3 46 2
+198 urem 3 196 197
+199 ne 1 111 -31
+200 redor 1 -123
+201 read 2 5 141
+202 read 2 9 -197
+203 read 3 11 141
+204 read 2 24 32
+205 read 1 55 58
+206 read 2 72 -123
+207 read 4 78 126
+208 read 3 98 94
+209 read 2 114 85
+210 read 3 115 -52
+211 read 1 124 17
+212 read 3 142 92
+213 read 1 151 41
+214 read 4 156 144
+215 read 1 160 149
+216 read 1 182 -198
+217 read 2 183 13
+218 read 2 191 99
+219 nego 1 32
+220 redand 1 91
+221 redxor 1 -117
+222 nego 1 127
+223 redand 1 130
+224 redxor 1 -134
+225 redor 1 -149
+226 nego 1 161
+227 redand 1 -170
+228 redxor 1 171
+229 nego 1 188
+230 nego 1 195
+231 redxor 1 198
+232 redand 1 -201
+233 redand 1 202
+234 redxor 1 203
+235 redand 1 204
+236 nego 1 206
+237 redxor 1 207
+238 redxor 1 -208
+239 redor 1 209
+240 redor 1 210
+241 redor 1 212
+242 nego 1 214
+243 redand 1 217
+244 nego 1 218
+245 iff 1 39 74
+246 iff 1 81 87
+247 and 1 88 97
+248 nand 1 112 -119
+249 nand 1 120 122
+250 nor 1 129 138
+251 or 1 140 143
+252 nand 1 152 162
+253 and 1 164 168
+254 and 1 173 175
+255 nand 1 178 179
+256 and 1 181 185
+257 nor 1 -190 193
+258 nor 1 199 -200
+259 implies 1 205 -211
+260 and 1 213 215
+261 nand 1 -216 219
+262 and 1 220 221
+263 nand 1 222 223
+264 nor 1 224 225
+265 and 1 226 -227
+266 xnor 1 228 -229
+267 implies 1 -230 231
+268 and 1 232 233
+269 or 1 234 235
+270 and 1 236 237
+271 xnor 1 238 239
+272 nor 1 -240 241
+273 xor 1 242 243
+274 iff 1 244 -245
+275 implies 1 246 247
+276 and 1 -248 -249
+277 xnor 1 250 251
+278 nor 1 252 253
+279 xnor 1 254 255
+280 iff 1 256 -257
+281 nand 1 258 259
+282 xnor 1 260 -261
+283 or 1 262 263
+284 xnor 1 -264 265
+285 implies 1 266 267
+286 nor 1 268 269
+287 implies 1 -270 271
+288 implies 1 272 273
+289 nand 1 274 275
+290 iff 1 276 277
+291 nand 1 278 279
+292 xnor 1 280 281
+293 nor 1 282 283
+294 and 1 284 285
+295 xor 1 -286 287
+296 and 1 -288 -289
+297 implies 1 -290 -291
+298 and 1 292 293
+299 iff 1 294 -295
+300 implies 1 296 297
+301 iff 1 298 299
+302 nor 1 300 301
+303 root 1 302
