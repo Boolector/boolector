@@ -5003,6 +5003,37 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return concat_exp (btor, e0, e1);
 }
 
+/* returns true if exp1 and exp2 present the same constant */
+static int
+check_equal_const (Btor *btor, BtorExp *exp1, BtorExp *exp2)
+{
+  int invert_exp1, invert_exp2, result;
+  BtorMemMgr *mm;
+  assert (btor != NULL);
+  assert (exp1 != NULL);
+  assert (exp2 != NULL);
+  assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp1)));
+  assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp2)));
+  assert (BTOR_REAL_ADDR_EXP (exp1)->simplified == NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp2)->simplified == NULL);
+  mm = btor->mm;
+  if (exp1 == exp2) return 1;
+  if ((((unsigned long int) exp1) ^ ((unsigned long int) exp2)) == 1ul)
+    return 0;
+  assert (BTOR_REAL_ADDR_EXP (exp1) != BTOR_REAL_ADDR_EXP (exp2));
+  invert_exp1 = BTOR_IS_INVERTED_EXP (exp1);
+  invert_exp2 = BTOR_IS_INVERTED_EXP (exp2);
+  if (invert_exp1) btor_invert_const (mm, BTOR_REAL_ADDR_EXP (exp1)->bits);
+  if (invert_exp2) btor_invert_const (mm, BTOR_REAL_ADDR_EXP (exp2)->bits);
+  result =
+      strcmp (BTOR_REAL_ADDR_EXP (exp1)->bits, BTOR_REAL_ADDR_EXP (exp2)->bits)
+      == 0;
+  /* invert back (if necessary) */
+  if (invert_exp1) btor_invert_const (mm, BTOR_REAL_ADDR_EXP (exp1)->bits);
+  if (invert_exp2) btor_invert_const (mm, BTOR_REAL_ADDR_EXP (exp2)->bits);
+  return result;
+}
+
 static BtorExp *
 read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
@@ -5129,7 +5160,11 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
     {
       write_index = e_array->e[1];
       /* if read index is equal write index, then return write value */
-      if (e_index == write_index) return copy_exp (btor, e_array->e[2]);
+      if (e_index == write_index
+          || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e_index))
+              && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (write_index))
+              && check_equal_const (btor, e_index, write_index)))
+        return copy_exp (btor, e_array->e[2]);
       /* we need this so x + 0 is rewritten into x */
       if (btor->rewrite_level > 0)
       {
@@ -5144,9 +5179,14 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
           assert (BTOR_IS_WRITE_EXP (cur_array));
           write_index = cur_array->e[1];
           /* indices are equal */
-          if (e_index == write_index) return copy_exp (btor, cur_array->e[2]);
-          real_write_index = BTOR_REAL_ADDR_EXP (cur_array->e[1]);
+          if (e_index == write_index
+              || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e_index))
+                  && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (write_index))
+                  && check_equal_const (btor, e_index, write_index)))
+            return copy_exp (btor, cur_array->e[2]);
+          real_write_index = BTOR_REAL_ADDR_EXP (write_index);
           propagate_down   = 0;
+          /* constants have to be different here */
           if ((BTOR_IS_CONST_EXP (real_write_index)
                && BTOR_IS_CONST_EXP (real_read_index)))
             propagate_down = 1;

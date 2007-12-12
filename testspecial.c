@@ -496,6 +496,12 @@ test_write13_special ()
 }
 
 static void
+test_write14_special ()
+{
+  run_unsat_test ("write14.btor");
+}
+
+static void
 test_arrayeq1_special ()
 {
   run_sat_test ("arrayeq1.btor");
@@ -772,6 +778,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (write11_special);
   BTOR_RUN_TEST (write12_special);
   BTOR_RUN_TEST (write13_special);
+  BTOR_RUN_TEST (write14_special);
   BTOR_RUN_TEST (arrayeq1_special);
   BTOR_RUN_TEST (arrayeq2_special);
   BTOR_RUN_TEST (arrayeq3_special);

@@ -102,6 +102,8 @@ random1 -o log/random1.log log/random1.btor
 random2 -o log/random2.log log/random2.btor
 random3 -o log/random3.log log/random3.btor
 random4 -o log/random4.log log/random4.btor
+random5 -rwl0 -o log/random5.log log/random5.btor
+random5 -rwl1 -o log/random5.log log/random5.btor
 rw16 -rwl0 -o log/rw16.log log/rw16.log
 rw16 -rwl1 -o log/rw16.log log/rw16.log
 rw17 -rwl0 -o log/rw17.log log/rw17.log
