@@ -18,9 +18,9 @@
 #define BTOR_TEST_OVERFLOW_LOW 1
 #define BTOR_TEST_OVERFLOW_HIGH 4
 
-static int g_argc     = 3;
+static int g_argc     = 4;
 static char *g_argv[] = {
-    "./boolector", "-q", BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, ""};
+    "./boolector", "-q", BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, "-rwl1"};
 
 void
 init_overflow_tests (void)
@@ -302,7 +302,6 @@ void
 run_overflow_tests (int argc, char **argv)
 {
   run_all_tests (argc, argv);
-  g_argc    = 4;
   g_argv[3] = "-rwl0";
   run_all_tests (argc, argv);
 }

@@ -18,9 +18,9 @@
 #define BTOR_TEST_SHIFT_LOW 2
 #define BTOR_TEST_SHIFT_HIGH 8
 
-static int g_argc     = 3;
+static int g_argc     = 4;
 static char *g_argv[] = {
-    "./boolector", "-q", BTOR_TEST_SHIFT_TEMP_FILE_NAME, ""};
+    "./boolector", "-q", BTOR_TEST_SHIFT_TEMP_FILE_NAME, "-rwl1"};
 
 static BtorMemMgr *g_mm;
 
@@ -227,7 +227,6 @@ void
 run_shift_tests (int argc, char **argv)
 {
   run_all_tests (argc, argv);
-  g_argc    = 4;
   g_argv[3] = "-rwl0";
   run_all_tests (argc, argv);
 }
