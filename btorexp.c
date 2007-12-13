@@ -4999,8 +4999,6 @@ check_equal_const (Btor *btor, BtorExp *exp1, BtorExp *exp2)
   assert (exp2 != NULL);
   assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp1)));
   assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp2)));
-  assert (BTOR_REAL_ADDR_EXP (exp1)->simplified == NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp2)->simplified == NULL);
   mm = btor->mm;
   if (exp1 == exp2) return 1;
   if ((((unsigned long int) exp1) ^ ((unsigned long int) exp2)) == 1ul)
