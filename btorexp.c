@@ -75,6 +75,7 @@ struct Btor
   int rewrite_level;
   int verbosity;
   int extensionality;
+  int vread_index_id;
   BtorMode mode;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
@@ -5888,7 +5889,7 @@ btor_new_btor (void)
   btor->id                         = 1;
   btor->valid_assignments          = 1;
   btor->rewrite_level              = 2;
-  btor->verbosity                  = 0;
+  btor->vread_index_id             = 1;
   btor->mode                       = BTOR_LAZY_MODE;
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -6092,6 +6093,37 @@ btor_get_aigvec_mgr_btor (const Btor *btor)
   return btor->avmgr;
 }
 
+static int
+num_digits (int x)
+{
+  int result;
+  assert (x > 0);
+  result = 0;
+  while (x > 0)
+  {
+    result++;
+    x /= 10;
+  }
+  return result;
+}
+
+static BtorExp *
+vread_index_exp (Btor *btor, int len)
+{
+  char *symbol;
+  BtorExp *result;
+  assert (btor != NULL);
+  assert (len > 0);
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "vread index id overflow");
+  symbol = (char *) malloc (sizeof (char)
+                            * (6 + num_digits (btor->vread_index_id) + 1));
+  sprintf (symbol, "vindex%d", btor->vread_index_id);
+  btor->vread_index_id++;
+  result = var_exp (btor, len, symbol);
+  free (symbol);
+  return result;
+}
+
 static void
 synthesize_array_equality (Btor *btor, BtorExp *aeq)
 {
@@ -6105,7 +6137,7 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   avmgr   = btor->avmgr;
   aeq->av = btor_var_aigvec (avmgr, 1);
   /* generate virtual reads */
-  index = var_exp (btor, aeq->e[0]->index_len, "vindex");
+  index = vread_index_exp (btor, aeq->e[0]->index_len);
   if (btor->mode == BTOR_EAGER_MODE) synthesize_exp (btor, index, NULL);
   /* in lazy mode we synthesize index later (if necessary) */
 
