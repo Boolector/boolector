@@ -1669,7 +1669,6 @@ encode_read_consistency_array_equality_eagerly (Btor *btor, BtorExp *aeq)
       {
         read2 = next_parent_read_parent_iterator (&it2);
         assert (BTOR_IS_REGULAR_EXP (read2));
-        /* virtual reads are only used to encode array inequality */
         if ((read2->reachable || read2->vread))
           encode_ackermann_constraint_eagerly (
               btor, read1->e[1], read2->e[1], read1, read2, e);
