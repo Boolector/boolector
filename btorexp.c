@@ -1115,15 +1115,15 @@ encode_ackermann_constraint_eagerly (Btor *btor,
  * before.
  */
 static void
-encode_mccarthy_constraint (Btor *btor,
-                            BtorExpPtrStack *writes,
-                            BtorExpPtrStack *aeqs,
-                            BtorExpPtrStack *aconds_sel1,
-                            BtorExpPtrStack *aconds_sel2,
-                            BtorExp *i,
-                            BtorExp *j,
-                            BtorExp *a,
-                            BtorExp *b)
+encode_mccarthy_ext_constraint (Btor *btor,
+                                BtorExpPtrStack *writes,
+                                BtorExpPtrStack *aeqs,
+                                BtorExpPtrStack *aconds_sel1,
+                                BtorExpPtrStack *aconds_sel2,
+                                BtorExp *i,
+                                BtorExp *j,
+                                BtorExp *a,
+                                BtorExp *b)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -6875,15 +6875,15 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
     }
   }
   btor_delete_ptr_hash_table (table);
-  encode_mccarthy_constraint (btor,
-                              &writes,
-                              &aeqs,
-                              &aconds_sel1,
-                              &aconds_sel2,
-                              BTOR_GET_INDEX_ACC_EXP (acc1),
-                              BTOR_GET_INDEX_ACC_EXP (acc2),
-                              BTOR_GET_VALUE_ACC_EXP (acc1),
-                              BTOR_GET_VALUE_ACC_EXP (acc2));
+  encode_mccarthy_ext_constraint (btor,
+                                  &writes,
+                                  &aeqs,
+                                  &aconds_sel1,
+                                  &aconds_sel2,
+                                  BTOR_GET_INDEX_ACC_EXP (acc1),
+                                  BTOR_GET_INDEX_ACC_EXP (acc2),
+                                  BTOR_GET_VALUE_ACC_EXP (acc1),
+                                  BTOR_GET_VALUE_ACC_EXP (acc2));
   BTOR_RELEASE_STACK (mm, writes);
   BTOR_RELEASE_STACK (mm, aeqs);
   BTOR_RELEASE_STACK (mm, aconds_sel1);
