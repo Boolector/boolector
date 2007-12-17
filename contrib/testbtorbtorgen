@@ -1,6 +1,6 @@
 #!/bin/bash
 i=0
-file="/tmp/test$$.btor"
+file="/tmp/testbtorbtorgen$$.btor"
 refinementlimit=100000
 while true 
 do 
