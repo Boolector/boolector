@@ -84,19 +84,19 @@ struct Btor
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
   /* statistics */
-
   struct
   {
-    int refinements;
-    int synthesis_assignment_inconsistencies;
-    int read_read_conflicts;
-    int read_write_conflicts;
-    int var_substitutions;
-    int array_substitutions;
-    int vreads;
-    int linear_equations;
-    int sat_calls;
-    struct ConstraintStats constraints;
+    int refinements;                          /* lazy */
+    int synthesis_assignment_inconsistencies; /* lazy */
+    int read_read_conflicts;                  /* lazy */
+    int read_write_conflicts;                 /* lazy */
+    int var_substitutions;                    /* lazy and eager */
+    int array_substitutions;                  /* lazy and eager */
+    int vreads;                               /* lazy */
+    int linear_equations;                     /* lazy and eager */
+    int sat_calls;                            /* lazy */
+    int transitivity_constraints;             /* eager */
+    struct ConstraintStats constraints;       /* lazy and eager */
     struct
     {
       struct ConstraintStats constraints;
@@ -6058,22 +6058,31 @@ btor_print_stats_btor (Btor *btor)
   assert (btor != NULL);
   (void) btor;
   report_constraint_stats (btor, 1);
-  print_verbose_msg ("assumptions: %u", btor->assumptions->count);
   print_verbose_msg ("variable substitutions: %d",
                      btor->stats.var_substitutions);
   print_verbose_msg ("array substitutions: %d",
                      btor->stats.array_substitutions);
   print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
-  print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
-  print_verbose_msg ("linear constraint equations: %d",
-                     btor->stats.linear_equations);
-  print_verbose_msg ("read-read conflicts: %d",
-                     btor->stats.read_read_conflicts);
-  print_verbose_msg ("read-write conflicts: %d",
-                     btor->stats.read_write_conflicts);
-  print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
-  print_verbose_msg ("synthesis assignment inconsistencies: %d",
-                     btor->stats.synthesis_assignment_inconsistencies);
+  if (btor->mode == BTOR_LAZY_MODE)
+  {
+    print_verbose_msg ("assumptions: %u", btor->assumptions->count);
+    print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
+    print_verbose_msg ("linear constraint equations: %d",
+                       btor->stats.linear_equations);
+    print_verbose_msg ("read-read conflicts: %d",
+                       btor->stats.read_read_conflicts);
+    print_verbose_msg ("read-write conflicts: %d",
+                       btor->stats.read_write_conflicts);
+    print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
+    print_verbose_msg ("synthesis assignment inconsistencies: %d",
+                       btor->stats.synthesis_assignment_inconsistencies);
+  }
+  else
+  {
+    assert (btor->mode == BTOR_EAGER_MODE);
+    print_verbose_msg ("transitivity constraints: %d",
+                       btor->stats.transitivity_constraints);
+  }
 }
 
 BtorMemMgr *
