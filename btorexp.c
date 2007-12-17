@@ -3807,10 +3807,10 @@ eq_except_I_atomic_exp (Btor *btor,
   {
     assert (result->vreads == NULL);
     synthesize_array_equality (btor, result);
-    /* set atomic1 and atomic2 reachable,
-     * as we cannot do this in 'synthesize_exp' anymore */
+    /* set reachable flags */
     atomic1->reachable = 1;
     atomic2->reachable = 1;
+    result->reachable  = 1;
   }
   assert (BTOR_IS_SYNTH_EXP (result));
   assert (result->vreads != NULL);
