@@ -1,7 +1,6 @@
 #!/bin/bash
-tmpfile="/tmp/testsmtdir$$"
-statsat="status SAT"
-statunsat="status UNSAT"
+statsat=":status sat"
+statunsat=":status unsat"
 if [[ $# -ne 1 ]]; then
   echo "Usage: ./testsmtdir <dir>"
   exit 1;
@@ -9,23 +8,21 @@ fi
 cd $1
 for file in *.smt
 do
-  boolector $file -v -v 2> $tmpfile
+  echo -n "$file"": "
+  boolector $file
   ret=$?
   if [[ $ret -eq 2 ]]; then
-    if [[ x"`grep "$statsat" $tmpfile`" = x ]]; then
+    if [[ x"`grep "$statsat" $file`" = x ]]; then
       echo "error: $file"
-      rm -f $tmpfile
       exit 1
     fi
   elif [[ $ret -eq 3 ]]; then
-    if [[ x"`grep "$statunsat" $tmpfile`" = x ]]; then
+    if [[ x"`grep "$statunsat" $file`" = x ]]; then
       echo "error: $file"
-      rm -f $tmpfile
       exit 1
     fi
   else
     echo "error: $file"
-    rm -f $tmpfile
     exit 1
   fi
 done
