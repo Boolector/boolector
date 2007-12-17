@@ -3742,6 +3742,9 @@ rewrite_aeq_acond_eagerly (Btor *btor, BtorExp *cond, BtorExp *array)
   return result;
 }
 
+/* write (a, i, v) =I b := a =_{I UNION {i}} b ^ ((read (b, i) = v) v
+ * (OR j IN I => j = i))
+ */
 static BtorExp *
 eq_except_I_write_exp (Btor *btor,
                        BtorExp *write,
@@ -3781,6 +3784,7 @@ eq_except_I_write_exp (Btor *btor,
   return result;
 }
 
+/* a =I b := a = b v (OR i IN I => lambda = i) */
 static BtorExp *
 eq_except_I_atomic_exp (Btor *btor,
                         BtorExp *atomic1,
