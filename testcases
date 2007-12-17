@@ -104,13 +104,13 @@ random3 -o log/random3.log log/random3.btor
 random4 -o log/random4.log log/random4.btor
 random5 -rwl0 -o log/random5.log log/random5.btor
 random5 -rwl1 -o log/random5.log log/random5.btor
-rw16 -rwl0 -o log/rw16.log log/rw16.log
-rw16 -rwl1 -o log/rw16.log log/rw16.log
-rw17 -rwl0 -o log/rw17.log log/rw17.log
-rw17 -rwl1 -o log/rw17.log log/rw17.log
-rw18 -rwl0 -o log/rw18.log log/rw18.log
-rw18 -rwl1 -o log/rw18.log log/rw18.log
-eager1 --eager -rwl0 -o log/eager1.log log/eager1.log
-eager2 --eager -rwl0 -o log/eager2.log log/eager2.log
+rw16 -rwl0 -o log/rw16.log log/rw16.btor
+rw16 -rwl1 -o log/rw16.log log/rw16.btor
+rw17 -rwl0 -o log/rw17.log log/rw17.btor
+rw17 -rwl1 -o log/rw17.log log/rw17.btor
+rw18 -rwl0 -o log/rw18.log log/rw18.btor
+rw18 -rwl1 -o log/rw18.log log/rw18.btor
+eager1 --eager -rwl0 -o log/eager1.log log/eager1.btor
+eager2 --eager -rwl0 -o log/eager2.log log/eager2.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 arrayeq7 --eager -rwl0 -o log/arrayeq7.log log/arrayeq7.btor
