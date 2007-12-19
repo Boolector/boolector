@@ -1,5 +1,5 @@
 #!/bin/bash
-for ((numbits=2;numbits<=10;numbits+=1))
+for ((numbits=2;numbits<=9;numbits+=1))
 do
   header=1
   filename=writechains$numbits".smt"
