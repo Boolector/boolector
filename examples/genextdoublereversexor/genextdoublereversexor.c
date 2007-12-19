@@ -6,6 +6,14 @@
 
 BtorExp **indices;
 
+static int
+compute_num_bits_index (int num_elements)
+{
+  assert (num_elements > 1);
+  while (!btor_is_power_of_2_util (num_elements)) num_elements++;
+  return btor_log_2_util (num_elements);
+}
+
 static BtorExp *
 reverse_array_with_xor (Btor *btor, BtorExp *array, int num_elements)
 {
@@ -80,12 +88,7 @@ main (int argc, char **argv)
     printf ("Number of elements must be greater than one\n");
     return 1;
   }
-  if (!btor_is_power_of_2_util (num_elements))
-  {
-    printf ("Number of elements must be a power of two\n");
-    return 1;
-  }
-  num_bits_index = btor_log_2_util (num_elements);
+  num_bits_index = compute_num_bits_index (num_elements);
   btor           = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
