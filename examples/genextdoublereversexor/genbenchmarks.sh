@@ -20,6 +20,7 @@ do
 	echo "x ^= y;" >> $filename 
 	echo "y ^= x;" >> $filename
 	echo "x ^= y;" >> $filename
+	echo "" >> $filename
 	echo -n "Contributed by Robert Brummayer " >> $filename
 	echo "(robert.brummayer@gmail.com)." >> $filename
 	echo "}" >> $filename
