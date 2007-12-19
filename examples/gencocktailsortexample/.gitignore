@@ -1,1 +1,3 @@
 gencocktailsortexample
+*.btor
+*.smt

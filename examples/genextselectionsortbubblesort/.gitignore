@@ -1,1 +1,3 @@
 genextselectionsortbubblesort
+*.btor
+*.smt

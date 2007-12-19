@@ -1,1 +1,3 @@
 genextmatrixmultcomm
+*.btor
+*.smt

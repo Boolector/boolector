@@ -1,1 +1,3 @@
 genextwritechains
+*.btor
+*.smt

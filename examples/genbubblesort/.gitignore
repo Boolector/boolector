@@ -1,1 +1,3 @@
 genbubblesort
+*.btor
+*.smt

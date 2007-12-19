@@ -1,1 +1,3 @@
 genextdoublereversexor
+*.btor
+*.smt

@@ -1,1 +1,3 @@
 genmemcpy
+*.btor
+*.smt
