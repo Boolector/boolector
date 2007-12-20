@@ -1,7 +1,7 @@
 #!/bin/bash
 for ((numbits=2;numbits<=8;numbits*=2))
 do
-  for ((size=2;size<=20;size+=1))
+  for ((size=2;size<=12;size+=1))
   do
     header=1
     filename=matrixmultcomm$size"_"$numbits".smt"
