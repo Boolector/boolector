@@ -12,6 +12,10 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
+
+BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
+
 /* NOTE: DO NOT REORDER THE INDICES.
  * CERTAIN MACROS DEPEND ON ORDER.
  */
@@ -20,26 +24,27 @@ enum BtorExpKind
 #ifndef NDEBUG
   BTOR_INVALID_EXP = 0, /* for debugging purposes */
 #endif
-  BTOR_CONST_EXP  = 1,
-  BTOR_VAR_EXP    = 2,
-  BTOR_ARRAY_EXP  = 3,
-  BTOR_SLICE_EXP  = 4,
-  BTOR_AND_EXP    = 5,
-  BTOR_BEQ_EXP    = 6, /* equality on bit vectors */
-  BTOR_AEQ_EXP    = 7, /* equality on arrays */
-  BTOR_ADD_EXP    = 8,
-  BTOR_MUL_EXP    = 9,
-  BTOR_ULT_EXP    = 10,
-  BTOR_SLL_EXP    = 11,
-  BTOR_SRL_EXP    = 12,
-  BTOR_UDIV_EXP   = 13,
-  BTOR_UREM_EXP   = 14,
-  BTOR_CONCAT_EXP = 15,
-  BTOR_READ_EXP   = 16,
-  BTOR_WRITE_EXP  = 17,
-  BTOR_BCOND_EXP  = 18, /* conditional on bit vectors */
-  BTOR_ACOND_EXP  = 19, /* conditional on arrays */
-  BTOR_PROXY_EXP  = 20, /* simplified expression without children */
+  BTOR_CONST_EXP      = 1,
+  BTOR_VAR_EXP        = 2,
+  BTOR_ARRAY_EXP      = 3,
+  BTOR_SLICE_EXP      = 4,
+  BTOR_AND_EXP        = 5,
+  BTOR_BEQ_EXP        = 6, /* equality on bit vectors */
+  BTOR_AEQ_EXP        = 7, /* equality on arrays */
+  BTOR_AEQ_EXCEPT_EXP = 8,
+  BTOR_ADD_EXP        = 9,
+  BTOR_MUL_EXP        = 10,
+  BTOR_ULT_EXP        = 11,
+  BTOR_SLL_EXP        = 12,
+  BTOR_SRL_EXP        = 13,
+  BTOR_UDIV_EXP       = 14,
+  BTOR_UREM_EXP       = 15,
+  BTOR_CONCAT_EXP     = 16,
+  BTOR_READ_EXP       = 17,
+  BTOR_WRITE_EXP      = 18,
+  BTOR_BCOND_EXP      = 19, /* conditional on bit vectors */
+  BTOR_ACOND_EXP      = 20, /* conditional on arrays */
+  BTOR_PROXY_EXP      = 21, /* simplified expression without children */
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -77,6 +82,7 @@ typedef struct BtorExpPair BtorExpPair;
           int lower;           /* lower index for slices */                  \
           char *bits;          /* bit vector of constants */                 \
           BtorExpPair *vreads; /* virtual reads for array equalites */       \
+          BtorExpPtrStack *I;                                                \
         };                                                                   \
       };                                                                     \
       struct BtorExp *e[3]; /* three expression children */                  \
@@ -200,10 +206,6 @@ struct BtorExp
   (BTOR_IS_READ_EXP (exp) ? (exp) : (exp)->e[2])
 #define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
 #define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
-
-BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
-
-BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
 
 /* Prints statistics */
 void btor_print_stats_btor (Btor *btor);

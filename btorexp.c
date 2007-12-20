@@ -654,6 +654,12 @@ recursively_release_exp (Btor *btor, BtorExp *root)
         cur->vreads = 0;
 #endif
       }
+      else if (cur->kind == BTOR_AEQ_EXCEPT_EXP && cur->I)
+      {
+        while (!BTOR_EMPTY_STACK (*cur->I))
+          BTOR_PUSH_STACK (mm, stack, BTOR_POP_STACK (*cur->I));
+        BTOR_RELEASE_STACK (mm, *cur->I);
+      }
 
       remove_from_unique_table_exp (btor, cur);
       erase_local_data_exp (btor, cur);
@@ -2197,6 +2203,33 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   exp->id   = btor->id++;
   exp->refs = 1u;
   exp->btor = btor;
+  connect_child_exp (btor, exp, e0, 0);
+  connect_child_exp (btor, exp, e1, 1);
+  return exp;
+}
+
+static BtorExp *
+new_aeq_except_node (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExpPtrStack *I)
+{
+  BtorExp *exp;
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (I != NULL);
+  assert (BTOR_IS_REGULAR_EXP (e0));
+  assert (BTOR_IS_REGULAR_EXP (e1));
+  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e0));
+  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e1));
+  /* we need aeq and acond next and prev fields */
+  BTOR_CNEW (btor->mm, exp);
+  exp->kind  = BTOR_AEQ_EXCEPT_EXP;
+  exp->bytes = sizeof *exp;
+  exp->len   = 1;
+  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
+  exp->id   = btor->id++;
+  exp->refs = 1u;
+  exp->btor = btor;
+  exp->I    = I;
   connect_child_exp (btor, exp, e0, 0);
   connect_child_exp (btor, exp, e1, 1);
   return exp;
