@@ -95,7 +95,6 @@ struct Btor
     int vreads;                               /* lazy */
     int linear_equations;                     /* lazy and eager */
     int sat_calls;                            /* lazy */
-    int array_eq_transitivity_constraints;    /* eager */
     struct ConstraintStats constraints;       /* lazy and eager */
     struct
     {
@@ -1718,138 +1717,6 @@ encode_read_consistency_all_array_equalities_eagerly (Btor *btor)
     cur->mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
-}
-
-static int
-has_direct_transitive_array_eq (
-    Btor *btor, BtorExp *a, BtorExp *b, BtorExp **aeq_bc, BtorExp **aeq_cd)
-{
-  BtorPartialParentIterator it1, it2;
-  BtorExp *c, *d;
-  assert (btor != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (aeq_bc != NULL);
-  assert (aeq_cd != NULL);
-  assert (BTOR_IS_REGULAR_EXP (a));
-  assert (BTOR_IS_REGULAR_EXP (b));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (a));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (b));
-  assert (a->reachable);
-  assert (b->reachable);
-  init_aeq_parent_iterator (&it1, b);
-  while (has_next_parent_aeq_parent_iterator (&it1))
-  {
-    *aeq_bc = next_parent_aeq_parent_iterator (&it1);
-    assert (BTOR_IS_REGULAR_EXP (*aeq_bc));
-    if ((*aeq_bc)->reachable)
-    {
-      if ((*aeq_bc)->e[0] == b)
-        c = (*aeq_bc)->e[1];
-      else
-        c = (*aeq_bc)->e[0];
-      assert (c->reachable);
-      if (c != a)
-      {
-        init_aeq_parent_iterator (&it2, c);
-        while (has_next_parent_aeq_parent_iterator (&it2))
-        {
-          *aeq_cd = next_parent_aeq_parent_iterator (&it2);
-          assert (BTOR_IS_REGULAR_EXP (*aeq_cd));
-          if ((*aeq_cd)->reachable)
-          {
-            if ((*aeq_cd)->e[0] == c)
-              d = (*aeq_cd)->e[1];
-            else
-              d = (*aeq_cd)->e[0];
-            assert (d->reachable);
-            if (a == d) return 1;
-          }
-        }
-      }
-    }
-  }
-  return 0;
-}
-
-static void
-encode_array_eq_transitivity_constraint (Btor *btor,
-                                         BtorExp *aeq_ab,
-                                         BtorExp *aeq_bc,
-                                         BtorExp *aeq_ca)
-{
-  BtorSATMgr *smgr;
-  int a, b, c;
-  assert (btor != NULL);
-  assert (aeq_ab != NULL);
-  assert (aeq_bc != NULL);
-  assert (aeq_ca != NULL);
-  assert (BTOR_IS_REGULAR_EXP (aeq_ab));
-  assert (BTOR_IS_REGULAR_EXP (aeq_bc));
-  assert (BTOR_IS_REGULAR_EXP (aeq_ca));
-  assert (BTOR_IS_ARRAY_EQ_EXP (aeq_ab));
-  assert (BTOR_IS_ARRAY_EQ_EXP (aeq_bc));
-  assert (BTOR_IS_ARRAY_EQ_EXP (aeq_ca));
-  assert (BTOR_IS_SYNTH_EXP (aeq_ab));
-  assert (BTOR_IS_SYNTH_EXP (aeq_bc));
-  assert (BTOR_IS_SYNTH_EXP (aeq_ca));
-  assert (aeq_ab->len == 1);
-  assert (aeq_bc->len == 1);
-  assert (aeq_ca->len == 1);
-  assert (!BTOR_IS_INVERTED_AIG (aeq_ab->av->aigs[0]));
-  assert (!BTOR_IS_INVERTED_AIG (aeq_bc->av->aigs[0]));
-  assert (!BTOR_IS_INVERTED_AIG (aeq_ca->av->aigs[0]));
-  assert (BTOR_IS_VAR_AIG (aeq_ab->av->aigs[0]));
-  assert (BTOR_IS_VAR_AIG (aeq_bc->av->aigs[0]));
-  assert (BTOR_IS_VAR_AIG (aeq_ca->av->aigs[0]));
-  assert (aeq_ab->av->aigs[0]->cnf_id != 0);
-  assert (aeq_bc->av->aigs[0]->cnf_id != 0);
-  assert (aeq_ca->av->aigs[0]->cnf_id != 0);
-  a    = aeq_ab->av->aigs[0]->cnf_id;
-  b    = aeq_bc->av->aigs[0]->cnf_id;
-  c    = aeq_ca->av->aigs[0]->cnf_id;
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  /* add constraint (a = b  ^  b = c)  =>  a = c */
-  btor_add_sat (smgr, -a);
-  btor_add_sat (smgr, -b);
-  btor_add_sat (smgr, c);
-  btor_add_sat (smgr, 0);
-  btor->stats.array_eq_transitivity_constraints++;
-}
-
-static void
-add_array_eq_transitivity_constraints_eagerly (Btor *btor)
-{
-  BtorPtrHashBucket *bucket;
-  BtorPartialParentIterator it;
-  BtorExp *i, *j, *aeq_ab, *aeq_bc, *aeq_ca;
-  assert (btor != NULL);
-  for (bucket = btor->arrays->first; bucket != NULL; bucket = bucket->next)
-  {
-    i = (BtorExp *) bucket->key;
-    assert (BTOR_IS_REGULAR_EXP (i));
-    assert (BTOR_IS_ATOMIC_ARRAY_EXP (i));
-    if (i->reachable)
-    {
-      init_aeq_parent_iterator (&it, i);
-      while (has_next_parent_aeq_parent_iterator (&it))
-      {
-        aeq_ab = next_parent_aeq_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_EXP (aeq_ab));
-        if (aeq_ab->reachable)
-        {
-          if (aeq_ab->e[0] == i)
-            j = aeq_ab->e[1];
-          else
-            j = aeq_ab->e[0];
-          assert (j->reachable);
-          if (has_direct_transitive_array_eq (btor, i, j, &aeq_bc, &aeq_ca))
-            encode_array_eq_transitivity_constraint (
-                btor, aeq_ab, aeq_bc, aeq_ca);
-        }
-      }
-    }
-  }
 }
 
 static BtorExp *
@@ -6213,12 +6080,6 @@ btor_print_stats_btor (Btor *btor)
     print_verbose_msg ("synthesis assignment inconsistencies: %d",
                        btor->stats.synthesis_assignment_inconsistencies);
   }
-  else
-  {
-    assert (btor->mode == BTOR_EAGER_MODE);
-    print_verbose_msg ("transitivity constraints for array equality: %d",
-                       btor->stats.array_eq_transitivity_constraints);
-  }
 }
 
 BtorMemMgr *
@@ -8178,6 +8039,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->stats.sat_calls != 0,
                   "eager mode must not be used incrementally");
 
+  /* we need substitution for transitivity of array equalities */
+  BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->rewrite_level != 2,
+                  "eager mode implies rewrite level 2");
   verbosity = btor->verbosity;
   if (verbosity > 0) print_verbose_msg ("calling SAT");
 
@@ -8205,7 +8069,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     encode_read_consistency_all_arrays_eagerly (btor);
     encode_read_consistency_all_array_equalities_eagerly (btor);
-    add_array_eq_transitivity_constraints_eagerly (btor);
   }
   else
   {
