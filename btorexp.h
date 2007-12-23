@@ -82,7 +82,6 @@ typedef struct BtorExpPair BtorExpPair;
           int lower;           /* lower index for slices */                  \
           char *bits;          /* bit vector of constants */                 \
           BtorExpPair *vreads; /* virtual reads for array equalites */       \
-          BtorExpPtrStack *I;                                                \
         };                                                                   \
       };                                                                     \
       struct BtorExp *e[3]; /* three expression children */                  \
@@ -99,6 +98,8 @@ typedef struct BtorExpPair BtorExpPair;
     struct BtorExp *parent;         /* parent pointer for BFS */             \
     struct BtorExp *simplified;     /* equivalent simplified expression */   \
     Btor *btor;                     /* boolector */                          \
+    BtorExpPtrStack *I;                                                      \
+    unsigned int hash_I; /* only for I */                                    \
   }
 
 #define BTOR_ADDITIONAL_ARRAY_EXP                                             \

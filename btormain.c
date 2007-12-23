@@ -653,7 +653,7 @@ btor_main (int argc, char **argv)
          * faster approach would be to let the parser add the
          * constraints directly as they come and then call rewrite.
          */
-        btor_rewrite (btor);
+        if (mode != BTOR_EAGER_MODE) btor_rewrite (btor);
 #endif
 
         if (app.verbosity > 1
