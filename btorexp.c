@@ -1871,13 +1871,13 @@ update_constraints (Btor *btor, BtorExp *exp)
   {
     add_constraint (btor, simplified);
     assert (pos == NULL);
-    pos = processed_constraints;
+    pos = synthesized_constraints;
   }
   if (btor_find_in_ptr_hash_table (synthesized_constraints, not_exp))
   {
     add_constraint (btor, not_simplified);
     assert (neg == NULL);
-    neg = processed_constraints;
+    neg = synthesized_constraints;
   }
 
   if (pos != NULL)
@@ -8080,13 +8080,13 @@ process_new_constraints (Btor *btor)
 static void
 insert_new_constraint (Btor *btor, BtorExp *exp)
 {
-  BtorPtrHashTable *new_constraints;
   assert (btor != NULL);
   assert (exp != NULL);
-  new_constraints = btor->new_constraints;
-  if (!btor_find_in_ptr_hash_table (new_constraints, exp))
+  if (!btor_find_in_ptr_hash_table (btor->new_constraints, exp)
+      && !btor_find_in_ptr_hash_table (btor->processed_constraints, exp)
+      && !btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
-    btor_insert_in_ptr_hash_table (new_constraints, copy_exp (btor, exp));
+    btor_insert_in_ptr_hash_table (btor->new_constraints, copy_exp (btor, exp));
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
 
     btor->stats.constraints.added++;
