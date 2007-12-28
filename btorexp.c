@@ -6760,24 +6760,34 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
     cur = BTOR_DEQUEUE (queue);
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_ARRAY_EXP (cur));
+
     if (cur == array)
     {
       found = 1;
       break;
     }
+
+    /* lazy_synthesize_and_encode_acc_exp sets the 'sat_both_phases' flag.
+     * If this flag is not set, we have to find an other way
+     * to the conflict. */
     if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0
-        && BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))
+        && BTOR_REAL_ADDR_EXP (cur->e[1])->sat_both_phases
         && compare_assignments (cur->e[1], index) != 0)
     {
+      assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cur->e[1])));
       next         = cur->e[0];
       next->mark   = 1;
       next->parent = cur;
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
+    /* lazy_synthesize_and_encode_acond_exp sets the 'sat_both_phases' flag.
+     * If this flag is not set, we have to find an other way
+     * to the conflict. */
     else if (BTOR_IS_ARRAY_COND_EXP (cur)
-             && BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cur->e[0])))
+             && BTOR_REAL_ADDR_EXP (cur->e[0])->sat_both_phases)
     {
+      assert (BTOR_IS_SYNTH_EXP (cur->e[0]));
       /* check assignment to determine which array to choose */
       cond       = cur->e[0];
       assignment = btor_get_assignment_aig (
