@@ -182,6 +182,12 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   assert (smgr->initialized);
   (void) smgr;
   picosat_add (lit);
+#if 0
+  if (lit != 0)
+    printf ("%d ", lit);
+  else
+    printf ("0\n");
+#endif
 }
 
 void
