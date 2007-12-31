@@ -265,7 +265,7 @@ main ()
       cur = getchar ();
       if (cur == EOF || (cur != 'x' && cur <= '0' && cur > '9'))
       {
-        printf ("Input error");
+        printf ("Input error\n");
         error = 1;
         goto BTOR_SUDOKU_CLEANUP;
       }
@@ -309,7 +309,7 @@ main ()
 
   sat_result = btor_sat_btor (btor, INT_MAX);
   if (sat_result == BTOR_UNSAT)
-    printf ("Sudoku instance is not solvable");
+    printf ("Sudoku instance is not solvable\n");
   else
   {
     assert (sat_result == BTOR_SAT);
