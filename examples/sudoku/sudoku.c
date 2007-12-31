@@ -11,7 +11,7 @@
 #define SUDOKU_SIZE_SQRT 3
 #define SUDOKU_NUM_FIELDS (SUDOKU_SIZE * SUDOKU_SIZE)
 
-BtorExp **indices, **values;
+BtorExp **indices, **values, **vars;
 
 static BtorExp *
 generate_value_constraints (Btor *btor, BtorExp *matrix)
@@ -200,6 +200,27 @@ generate_square_constraints (Btor *btor, BtorExp *matrix)
   return result;
 }
 
+static BtorExp *
+generate_var_read_relations (Btor *btor, BtorExp *matrix)
+{
+  int i;
+  BtorExp *cur, *eq, *result, *temp;
+  assert (btor != NULL);
+  assert (matrix != NULL);
+  result = btor_true_exp (btor);
+  for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
+  {
+    cur  = btor_read_exp (btor, matrix, indices[i]);
+    eq   = btor_eq_exp (btor, cur, vars[i]);
+    temp = btor_and_exp (btor, result, eq);
+    btor_release_exp (btor, result);
+    result = temp;
+    btor_release_exp (btor, cur);
+    btor_release_exp (btor, eq);
+  }
+  return result;
+}
+
 int
 main ()
 {
@@ -210,14 +231,25 @@ main ()
   BtorExp *matrix, *temp, *constraint;
 
   /* init stuff */
-  error   = 0;
-  btor    = btor_new_btor ();
+
+  error = 0;
+
+  btor = btor_new_btor ();
+  /* no substitution */
+  btor_set_rewrite_level_btor (btor, 1);
+
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
     indices[i] = btor_unsigned_to_exp (btor, i, SUDOKU_NUM_BITS_INDEX);
+
   values = (BtorExp **) malloc (sizeof (BtorExp *) * 10);
   for (i = 0; i <= 9; i++)
     values[i] = btor_unsigned_to_exp (btor, i, SUDOKU_NUM_BITS_VAL);
+
+  vars = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
+  for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
+    vars[i] = btor_var_exp (btor, SUDOKU_NUM_BITS_VAL, "var");
+
   matrix = btor_array_exp (btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX);
 
   /* read initial sudoku file */
@@ -266,12 +298,22 @@ main ()
   btor_add_constraint_exp (btor, constraint);
   btor_release_exp (btor, constraint);
 
+  /* add relational encoding of variables */
+  constraint = generate_var_read_relations (btor, matrix);
+  btor_add_constraint_exp (btor, constraint);
+  btor_release_exp (btor, constraint);
+
   /* clean up */
 BTOR_SUDOKU_CLEANUP:
   for (i = 0; i <= SUDOKU_SIZE; i++) btor_release_exp (btor, values[i]);
   free (values);
+
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++) btor_release_exp (btor, indices[i]);
   free (indices);
+
+  for (i = 0; i < SUDOKU_NUM_FIELDS; i++) btor_release_exp (btor, vars[i]);
+  free (vars);
+
   btor_release_exp (btor, matrix);
   btor_delete_btor (btor);
   if (error) return EXIT_FAILURE;
