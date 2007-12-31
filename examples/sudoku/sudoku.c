@@ -1,8 +1,12 @@
 #include <assert.h>
 #include <ctype.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../boolector.h"
+#include "../../btorconst.h"
+#include "../../btorexp.h"
+#include "../../btormem.h"
 #include "../../btorutil.h"
 
 #define SUDOKU_NUM_BITS_INDEX 7
@@ -163,7 +167,7 @@ generate_square_constraint (Btor *btor, BtorExp *matrix, int line, int col)
   for (i = 0; i < SUDOKU_SIZE; i++)
   {
     read1 = btor_read_exp (btor, matrix, indices[pos[i]]);
-    for (j = 1; j <= SUDOKU_SIZE; j++)
+    for (j = i + 1; j < SUDOKU_SIZE; j++)
     {
       read2 = btor_read_exp (btor, matrix, indices[pos[j]]);
       ne    = btor_ne_exp (btor, read1, read2);
@@ -224,17 +228,17 @@ generate_var_read_relations (Btor *btor, BtorExp *matrix)
 int
 main ()
 {
-  int i;
-  int error;
-  int cur;
+  int i, error, cur, sat_result, counter, line_counter;
+  char *assignment, *assignment_dec;
   Btor *btor;
+  BtorMemMgr *mm;
   BtorExp *matrix, *temp, *constraint;
 
   /* init stuff */
-
   error = 0;
 
   btor = btor_new_btor ();
+  mm   = btor_get_mem_mgr_btor (btor);
   /* no substitution */
   btor_set_rewrite_level_btor (btor, 1);
 
@@ -252,7 +256,7 @@ main ()
 
   matrix = btor_array_exp (btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX);
 
-  /* read initial sudoku file */
+  /* read sudoku file */
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
   {
     /* skip whitespace */
@@ -302,6 +306,37 @@ main ()
   constraint = generate_var_read_relations (btor, matrix);
   btor_add_constraint_exp (btor, constraint);
   btor_release_exp (btor, constraint);
+
+  sat_result = btor_sat_btor (btor, INT_MAX);
+  if (sat_result == BTOR_UNSAT)
+    printf ("Sudoku instance is not solvable");
+  else
+  {
+    assert (sat_result == BTOR_SAT);
+    counter      = 0;
+    line_counter = 0;
+    for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
+    {
+      assignment     = btor_assignment_exp (btor, vars[i]);
+      assignment_dec = btor_const_to_decimal (mm, assignment);
+      printf ("%s", assignment_dec);
+      counter++;
+      if (counter % SUDOKU_SIZE_SQRT == 0) printf (" ");
+      if (counter == SUDOKU_SIZE)
+      {
+        printf ("\n");
+        counter = 0;
+        line_counter++;
+      }
+      if (line_counter == SUDOKU_SIZE_SQRT)
+      {
+        printf ("\n");
+        line_counter = 0;
+      }
+      btor_freestr (mm, assignment);
+      btor_freestr (mm, assignment_dec);
+    }
+  }
 
   /* clean up */
 BTOR_SUDOKU_CLEANUP:
