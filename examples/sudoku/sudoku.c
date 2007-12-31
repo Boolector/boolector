@@ -3,6 +3,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "../../boolector.h"
 #include "../../btorconst.h"
 #include "../../btorexp.h"
@@ -226,21 +227,39 @@ generate_var_read_relations (Btor *btor, BtorExp *matrix)
 }
 
 int
-main ()
+main (int argc, char **argv)
 {
-  int i, error, cur, sat_result, counter, line_counter;
+  int i, error, cur, sat_result, counter, line_counter, dump_formula;
+  char varname[6];
   char *assignment, *assignment_dec;
   Btor *btor;
   BtorMemMgr *mm;
-  BtorExp *matrix, *temp, *constraint;
+  BtorExp *matrix, *temp, *formula, *constraint;
+
+  if ((argc != 2 && argc != 1)
+      || (argc == 2 && strcmp (argv[1], "--dump-formula") != 0))
+  {
+    printf ("Usage: ./sudoku [--dump-formula]\n");
+    return EXIT_SUCCESS;
+  }
+
+  if (argc == 1)
+    dump_formula = 0;
+  else
+  {
+    assert (argc == 2);
+    dump_formula = 1;
+  }
 
   /* init stuff */
   error = 0;
 
   btor = btor_new_btor ();
   mm   = btor_get_mem_mgr_btor (btor);
-  /* no substitution */
-  btor_set_rewrite_level_btor (btor, 1);
+  if (dump_formula)
+    btor_set_rewrite_level_btor (btor, 0);
+  else
+    btor_set_rewrite_level_btor (btor, 1); /* no substitution */
 
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
@@ -252,7 +271,10 @@ main ()
 
   vars = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
-    vars[i] = btor_var_exp (btor, SUDOKU_NUM_BITS_VAL, "var");
+  {
+    sprintf (varname, "var%d", i);
+    vars[i] = btor_var_exp (btor, SUDOKU_NUM_BITS_VAL, varname);
+  }
 
   matrix = btor_array_exp (btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX);
 
@@ -280,61 +302,75 @@ main ()
     }
   }
 
-  /* add sudoku constraints */
+  /* generate sudoku formula */
 
-  /* add value constraints */
-  constraint = generate_value_constraints (btor, matrix);
-  btor_add_constraint_exp (btor, constraint);
-  btor_release_exp (btor, constraint);
+  /* generate value constraints */
+  formula = generate_value_constraints (btor, matrix);
 
   /* add row constraints */
   constraint = generate_row_constraints (btor, matrix);
-  btor_add_constraint_exp (btor, constraint);
+  temp       = btor_and_exp (btor, formula, constraint);
+  btor_release_exp (btor, formula);
+  formula = temp;
   btor_release_exp (btor, constraint);
 
-  /* add col constraints */
+  /* generate col constraints */
   constraint = generate_col_constraints (btor, matrix);
-  btor_add_constraint_exp (btor, constraint);
+  temp       = btor_and_exp (btor, formula, constraint);
+  btor_release_exp (btor, formula);
+  formula = temp;
   btor_release_exp (btor, constraint);
 
-  /* add square constraints */
+  /* generate square constraints */
   constraint = generate_square_constraints (btor, matrix);
-  btor_add_constraint_exp (btor, constraint);
+  temp       = btor_and_exp (btor, formula, constraint);
+  btor_release_exp (btor, formula);
+  formula = temp;
   btor_release_exp (btor, constraint);
 
-  /* add relational encoding of variables */
+  /* generate relational encoding of variables */
   constraint = generate_var_read_relations (btor, matrix);
-  btor_add_constraint_exp (btor, constraint);
+  temp       = btor_and_exp (btor, formula, constraint);
+  btor_release_exp (btor, formula);
+  formula = temp;
   btor_release_exp (btor, constraint);
 
-  sat_result = btor_sat_btor (btor, INT_MAX);
-  if (sat_result == BTOR_UNSAT)
-    printf ("Sudoku instance is not solvable\n");
+  if (dump_formula)
+    btor_dump_exp (btor, stdout, formula);
   else
   {
-    assert (sat_result == BTOR_SAT);
-    counter      = 0;
-    line_counter = 0;
-    for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
+    /* add formula */
+    btor_add_constraint_exp (btor, formula);
+
+    sat_result = btor_sat_btor (btor, INT_MAX);
+    if (sat_result == BTOR_UNSAT)
+      printf ("Sudoku instance is not solvable\n");
+    else
     {
-      assignment     = btor_assignment_exp (btor, vars[i]);
-      assignment_dec = btor_const_to_decimal (mm, assignment);
-      printf ("%s", assignment_dec);
-      counter++;
-      if (counter % SUDOKU_SIZE_SQRT == 0) printf (" ");
-      if (counter == SUDOKU_SIZE)
+      assert (sat_result == BTOR_SAT);
+      counter      = 0;
+      line_counter = 0;
+      for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
       {
-        printf ("\n");
-        counter = 0;
-        line_counter++;
+        assignment     = btor_assignment_exp (btor, vars[i]);
+        assignment_dec = btor_const_to_decimal (mm, assignment);
+        printf ("%s", assignment_dec);
+        counter++;
+        if (counter % SUDOKU_SIZE_SQRT == 0) printf (" ");
+        if (counter == SUDOKU_SIZE)
+        {
+          printf ("\n");
+          counter = 0;
+          line_counter++;
+        }
+        if (line_counter == SUDOKU_SIZE_SQRT)
+        {
+          printf ("\n");
+          line_counter = 0;
+        }
+        btor_freestr (mm, assignment);
+        btor_freestr (mm, assignment_dec);
       }
-      if (line_counter == SUDOKU_SIZE_SQRT)
-      {
-        printf ("\n");
-        line_counter = 0;
-      }
-      btor_freestr (mm, assignment);
-      btor_freestr (mm, assignment_dec);
     }
   }
 
@@ -349,6 +385,7 @@ BTOR_SUDOKU_CLEANUP:
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++) btor_release_exp (btor, vars[i]);
   free (vars);
 
+  btor_release_exp (btor, formula);
   btor_release_exp (btor, matrix);
   btor_delete_btor (btor);
   if (error) return EXIT_FAILURE;
