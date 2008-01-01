@@ -13,7 +13,7 @@ main (int argc, char **argv)
   BtorExp *no_diff_element, *formula, *index, *old_element;
   if (argc != 3)
   {
-    printf ("Usage: ./genbubblesort <num-bits> <num-elements>\n");
+    printf ("Usage: ./bubblesort <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
