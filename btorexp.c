@@ -2497,25 +2497,20 @@ find_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower)
 static BtorExp **
 find_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *cur, *temp, **result;
+  BtorExp *cur, **result;
   unsigned int hash;
   assert (btor != NULL);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
   assert (e0 != NULL);
   assert (e1 != NULL);
+  assert (!BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
+          || BTOR_REAL_ADDR_EXP (e0)->id <= BTOR_REAL_ADDR_EXP (e1)->id);
   hash = (((unsigned int) BTOR_REAL_ADDR_EXP (e0)->id
            + (unsigned int) BTOR_REAL_ADDR_EXP (e1)->id)
           * BTOR_EXP_UNIQUE_TABLE_PRIME)
          & (btor->table.size - 1);
   result = btor->table.chains + hash;
   cur    = *result;
-  if (BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
-      && BTOR_REAL_ADDR_EXP (e1)->id < BTOR_REAL_ADDR_EXP (e0)->id)
-  {
-    temp = e0;
-    e0   = e1;
-    e1   = temp;
-  }
   while (cur != NULL)
   {
     assert (BTOR_IS_REGULAR_EXP (cur));
@@ -3452,14 +3447,23 @@ btor_sext_exp (Btor *btor, BtorExp *exp, int len)
 static BtorExp *
 binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
 {
-  BtorExp **lookup;
+  BtorExp **lookup, *temp;
   assert (btor != NULL);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (len > 0);
-  e0     = pointer_chase_simplified_exp (btor, e0);
-  e1     = pointer_chase_simplified_exp (btor, e1);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+  if (BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
+      && BTOR_REAL_ADDR_EXP (e1)->id < BTOR_REAL_ADDR_EXP (e0)->id)
+  {
+    temp = e0;
+    e0   = e1;
+    e1   = temp;
+  }
+  assert (!BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
+          || BTOR_REAL_ADDR_EXP (e0)->id <= BTOR_REAL_ADDR_EXP (e1)->id);
   lookup = find_binary_exp (btor, kind, e0, e1);
   if (*lookup == NULL)
   {
@@ -3469,21 +3473,10 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
       enlarge_exp_unique_table (btor);
       lookup = find_binary_exp (btor, kind, e0, e1);
     }
-    if (BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
-        && BTOR_REAL_ADDR_EXP (e1)->id < BTOR_REAL_ADDR_EXP (e0)->id)
-    {
-      if (kind == BTOR_AEQ_EXP)
-        *lookup = new_aeq_exp_node (btor, e1, e0);
-      else
-        *lookup = new_binary_exp_node (btor, kind, e1, e0, len);
-    }
+    if (kind == BTOR_AEQ_EXP)
+      *lookup = new_aeq_exp_node (btor, e0, e1);
     else
-    {
-      if (kind == BTOR_AEQ_EXP)
-        *lookup = new_aeq_exp_node (btor, e0, e1);
-      else
-        *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
-    }
+      *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
     inc_exp_ref_counter (e0);
     inc_exp_ref_counter (e1);
     assert (btor->table.num_elements < INT_MAX);
