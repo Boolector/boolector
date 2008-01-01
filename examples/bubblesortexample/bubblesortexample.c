@@ -28,7 +28,7 @@ main (int argc, char **argv)
   BtorExp *read2, *cond1, *cond2, *sorted, *formula, *eq, *var;
   if (argc != 3)
   {
-    printf ("Usage: ./genbubblesortexample <num-bits> <num-elements>\n");
+    printf ("Usage: ./bubblesortexample <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
