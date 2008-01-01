@@ -14,7 +14,7 @@ main (int argc, char **argv)
   bottom = 0;
   if (argc != 3)
   {
-    printf ("Usage: ./gencocktailsort <num-bits> <num-elements>\n");
+    printf ("Usage: ./cocktailsort <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);

@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall -W -Wextra
-gencocktailsort: gencocktailsort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ gencocktailsort.c -L../.. -lboolector
+cocktailsort: cocktailsort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ cocktailsort.c -L../.. -lboolector
 clean:
-	rm -f gencocktailsort
+	rm -f cocktailsort
