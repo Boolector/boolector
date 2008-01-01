@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall -W -Wextra
-genselectionsortexample: genselectionsortexample.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ genselectionsortexample.c -L../.. -lboolector
+selectionsortexample: selectionsortexample.c ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ selectionsortexample.c -L../.. -lboolector
 clean:
-	rm -f genselectionsortexample
+	rm -f selectionsortexample
