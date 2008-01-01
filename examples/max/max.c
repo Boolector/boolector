@@ -11,7 +11,7 @@ main (int argc, char **argv)
   BtorExp **indices, *array, *ugt, *temp, *read, *formula, *max, *index;
   if (argc != 3)
   {
-    printf ("Usage: ./genmax <num-bits> <num-elements>\n");
+    printf ("Usage: ./max <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
