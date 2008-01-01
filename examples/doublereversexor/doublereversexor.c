@@ -73,7 +73,7 @@ main (int argc, char **argv)
   BtorExp *array, *orig_array, *formula;
   if (argc != 3)
   {
-    printf ("Usage: ./genextdoublereversexor <num-bits> <num-elements>\n");
+    printf ("Usage: ./doublereversexor <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
