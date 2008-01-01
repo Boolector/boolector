@@ -5,7 +5,7 @@ do
   do
     header=1
     filename=matrixmultcomm$size"_"$numbits".smt"
-    ./genextmatrixmultcomm $numbits $size | boolector -rwl0 -ds | while read line
+    ./matrixmultcomm $numbits $size | boolector -rwl0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename
