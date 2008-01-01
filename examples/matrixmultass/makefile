@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall -W -Wextra
-genextmatrixmultass: genextmatrixmultass.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ genextmatrixmultass.c -L../.. -lboolector
+matrixmultass: matrixmultass.c ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ matrixmultass.c -L../.. -lboolector
 clean:
-	rm -f genextmatrixmultass
+	rm -f matrixmultass

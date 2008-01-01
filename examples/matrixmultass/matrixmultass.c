@@ -71,7 +71,7 @@ main (int argc, char **argv)
   BtorExp *A, *B, *C, *A_x_B, *B_x_C, *AB_x_C, *A_x_BC, *formula, *temp;
   if (argc != 3)
   {
-    printf ("Usage: ./genextmatrixmultcomm <num-bits> <size>\n");
+    printf ("Usage: ./matrixmultass <num-bits> <size>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
