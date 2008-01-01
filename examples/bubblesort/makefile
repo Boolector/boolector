@@ -1,6 +1,8 @@
 CC=gcc
 CFLAGS=-g -Wall -W -Wextra
-bubblesort: bubblesort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ bubblesort.c -L../.. -lboolector
+
+all: bubblesort.c bubblesortexample.c ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o bubblesort bubblesort.c -L../.. -lboolector
+	$(CC) $(CFLAGS) -o bubblesortexample bubblesortexample.c -L../.. -lboolector
 clean:
-	rm -f bubblesort
+	rm -f bubblesort bubblesortexample
