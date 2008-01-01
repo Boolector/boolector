@@ -3,7 +3,7 @@ for ((numbits=2;numbits<=9;numbits+=1))
 do
   header=1
   filename=writechains$numbits".smt"
-  ./genextwritechains $numbits | boolector -rwl0 -ds | while read line
+  ./writechains $numbits | boolector -rwl0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename

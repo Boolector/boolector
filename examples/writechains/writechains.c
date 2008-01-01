@@ -8,7 +8,7 @@ main (int argc, char** argv)
 
   if (argc != 2 || (l = atoi (argv[1])) <= 0)
   {
-    fprintf (stderr, "*** usage: genwritechains <bits>\n");
+    fprintf (stderr, "*** usage: writechains <bits>\n");
     exit (1);
   }
 
