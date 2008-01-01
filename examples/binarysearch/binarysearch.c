@@ -13,7 +13,7 @@ main (int argc, char **argv)
   BtorExp *two, *one, *mid, *sub, *udiv, *inc, *dec;
   if (argc != 3)
   {
-    printf ("Usage: ./genbinarysearch <num-bits> <num-elements>\n");
+    printf ("Usage: ./binarysearch <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
