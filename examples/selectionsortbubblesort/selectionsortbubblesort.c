@@ -13,8 +13,7 @@ main (int argc, char **argv)
   BtorExp *cur_element, *min_index, *temp;
   if (argc != 3)
   {
-    printf (
-        "Usage: ./genextselectionsortbubblesort <num-bits> <num-elements>\n");
+    printf ("Usage: ./selectionsortbubblesort <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);

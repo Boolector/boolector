@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall -W -Wextra
-genextselectionsortbubblesort: genextselectionsortbubblesort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ genextselectionsortbubblesort.c -L../.. -lboolector
+selectionsortbubblesort: selectionsortbubblesort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ selectionsortbubblesort.c -L../.. -lboolector
 clean:
-	rm -f genextselectionsortbubblesort
+	rm -f selectionsortbubblesort

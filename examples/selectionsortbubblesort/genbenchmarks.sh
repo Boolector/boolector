@@ -3,7 +3,7 @@ for ((numelements=2;numelements<=128;numelements*=2))
 do
   header=1
   filename=selectionsortbubblesort$numelements".smt"
-  ./genextselectionsortbubblesort 1 $numelements | boolector -rwl0 -ds | while read line
+  ./selectionsortbubblesort 1 $numelements | boolector -rwl0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename
