@@ -11,7 +11,7 @@ main (int argc, char **argv)
   BtorExp **indices, *array, *eq, *temp, *read, *formula, *val, *index, *found;
   if (argc != 3)
   {
-    printf ("Usage: ./genlinearsearch <num-bits> <num-elements>\n");
+    printf ("Usage: ./linearsearch <num-bits> <num-elements>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
