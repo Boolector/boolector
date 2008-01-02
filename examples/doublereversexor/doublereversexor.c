@@ -4,28 +4,27 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
-BtorExp **indices;
-
-static int
-compute_num_bits_index (int num_elements)
-{
-  assert (num_elements > 1);
-  while (!btor_is_power_of_2_util (num_elements)) num_elements++;
-  return btor_log_2_util (num_elements);
-}
-
 static BtorExp *
-reverse_array_with_xor (Btor *btor, BtorExp *array, int num_elements)
+reverse_array_with_xor (Btor *btor,
+                        BtorExp *array,
+                        int num_elements,
+                        BtorExp *orig_bottom_exp,
+                        BtorExp *orig_top_exp)
 {
-  BtorExp *x, *y, *result, *temp, *xor;
+  BtorExp *x, *y, *result, *temp, *xor, *bottom_exp, *top_exp, *one;
   int bottom;
   int top;
   assert (btor != NULL);
   assert (num_elements > 1);
+  assert (orig_bottom_exp != NULL);
+  assert (orig_top_exp != NULL);
   /* we reverse the array */
-  result = array;
-  bottom = 0;
-  top    = num_elements - 1;
+  result     = array;
+  bottom     = 0;
+  top        = num_elements - 1;
+  bottom_exp = btor_copy_exp (btor, orig_bottom_exp);
+  top_exp    = btor_copy_exp (btor, orig_top_exp);
+  one        = btor_one_exp (btor, 32);
   while (top > bottom)
   {
     /* we can swap two ints without a temporay variable
@@ -34,80 +33,89 @@ reverse_array_with_xor (Btor *btor, BtorExp *array, int num_elements)
      * y ^= x
      * x ^= y
      */
-    x    = btor_read_exp (btor, result, indices[bottom]);
-    y    = btor_read_exp (btor, result, indices[top]);
+    x    = btor_read_exp (btor, result, bottom_exp);
+    y    = btor_read_exp (btor, result, top_exp);
     xor  = btor_xor_exp (btor, x, y);
-    temp = btor_write_exp (btor, result, indices[bottom], xor);
+    temp = btor_write_exp (btor, result, bottom_exp, xor);
     btor_release_exp (btor, result);
     result = temp;
     btor_release_exp (btor, x);
     btor_release_exp (btor, xor);
 
-    x    = btor_read_exp (btor, result, indices[bottom]);
+    x    = btor_read_exp (btor, result, bottom_exp);
     xor  = btor_xor_exp (btor, x, y);
-    temp = btor_write_exp (btor, result, indices[top], xor);
+    temp = btor_write_exp (btor, result, top_exp, xor);
     btor_release_exp (btor, result);
     result = temp;
     btor_release_exp (btor, y);
     btor_release_exp (btor, xor);
 
-    y    = btor_read_exp (btor, result, indices[top]);
+    y    = btor_read_exp (btor, result, top_exp);
     xor  = btor_xor_exp (btor, x, y);
-    temp = btor_write_exp (btor, result, indices[bottom], xor);
+    temp = btor_write_exp (btor, result, bottom_exp, xor);
     btor_release_exp (btor, result);
     result = temp;
     btor_release_exp (btor, x);
     btor_release_exp (btor, y);
     btor_release_exp (btor, xor);
+
     top--;
+    temp = btor_sub_exp (btor, top_exp, one);
+    btor_release_exp (btor, top_exp);
+    top_exp = temp;
+
     bottom++;
+    temp = btor_add_exp (btor, bottom_exp, one);
+    btor_release_exp (btor, bottom_exp);
+    bottom_exp = temp;
   }
+  btor_release_exp (btor, one);
+  btor_release_exp (btor, bottom_exp);
+  btor_release_exp (btor, top_exp);
   return result;
 }
 
 int
 main (int argc, char **argv)
 {
-  int num_bits, num_bits_index, num_elements, i;
+  int num_elements;
   Btor *btor;
-  BtorExp *array, *orig_array, *formula;
-  if (argc != 3)
+  BtorExp *array, *orig_array, *formula, *top, *bottom;
+  if (argc != 2)
   {
-    printf ("Usage: ./doublereversexor <num-bits> <num-elements>\n");
+    printf ("Usage: ./doublereversexor <num-elements>\n");
     return 1;
   }
-  num_bits = atoi (argv[1]);
-  if (num_bits <= 0)
-  {
-    printf ("Number of bits must be greater than zero\n");
-    return 1;
-  }
-  num_elements = atoi (argv[2]);
+  num_elements = atoi (argv[1]);
   if (num_elements <= 1)
   {
     printf ("Number of elements must be greater than one\n");
     return 1;
   }
-  num_bits_index = compute_num_bits_index (num_elements);
-  btor           = btor_new_btor ();
+
+  btor = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
-  for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
-  array      = btor_array_exp (btor, num_bits, num_bits_index);
+
+  array      = btor_array_exp (btor, 8, 32);
   orig_array = btor_copy_exp (btor, array);
-  array      = reverse_array_with_xor (btor, array, num_elements);
-  array      = reverse_array_with_xor (btor, array, num_elements);
-  /* array has to be equal here, we reversed it two times */
+  bottom     = btor_var_exp (btor, 32, "bottom");
+  top        = btor_var_exp (btor, 32, "top");
+  /* top and bottom can be arbitrary
+   * if we reverse two times
+   * we get the same memory as before
+   * */
+  array = reverse_array_with_xor (btor, array, num_elements, bottom, top);
+  array = reverse_array_with_xor (btor, array, num_elements, bottom, top);
+  /* memory has to be equal */
   /* we show this by showing that the negation is unsat */
   formula = btor_ne_exp (btor, array, orig_array);
   btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
   btor_release_exp (btor, formula);
   btor_release_exp (btor, array);
+  btor_release_exp (btor, bottom);
+  btor_release_exp (btor, top);
   btor_release_exp (btor, orig_array);
   btor_delete_btor (btor);
-  free (indices);
   return 0;
 }
