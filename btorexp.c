@@ -300,7 +300,7 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
   (void) btor;
   tagged_parent = BTOR_TAG_EXP (parent, pos);
   /* special treatment of array children of aeq and acond */
-  if (BTOR_IS_ARRAY_EQ_EXP (parent)
+  if (BTOR_IS_ARRAY_EQ_EXP (parent) || parent->kind == BTOR_AEQ_EXCEPT_EXP
       || (BTOR_IS_ARRAY_COND_EXP (parent) && pos != 0))
   {
     child = parent->e[pos];
@@ -515,11 +515,8 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   {
     if (exp->kind == BTOR_AEQ_EXCEPT_EXP)
       btor_remove_from_ptr_hash_table (btor->aeqs, exp, 0, 0);
-    else
-    {
-      disconnect_child_exp (btor, exp, 0);
-      disconnect_child_exp (btor, exp, 1);
-    }
+    disconnect_child_exp (btor, exp, 0);
+    disconnect_child_exp (btor, exp, 1);
   }
   else if (BTOR_IS_TERNARY_EXP (exp))
   {
@@ -825,7 +822,8 @@ next_parent_aeq_parent_iterator (BtorPartialParentIterator *it)
   result = it->cur;
   assert (result != NULL);
   it->cur = BTOR_NEXT_AEQ_ACOND_PARENT (result);
-  assert (BTOR_IS_ARRAY_EQ_EXP (BTOR_REAL_ADDR_EXP (result)));
+  assert (BTOR_IS_ARRAY_EQ_EXP (BTOR_REAL_ADDR_EXP (result))
+          || BTOR_REAL_ADDR_EXP (result)->kind == BTOR_AEQ_EXCEPT_EXP);
   return BTOR_REAL_ADDR_EXP (result);
 }
 
@@ -885,7 +883,9 @@ static int
 has_next_parent_aeq_parent_iterator (BtorPartialParentIterator *it)
 {
   assert (it != NULL);
-  return it->cur != NULL && BTOR_IS_ARRAY_EQ_EXP (BTOR_REAL_ADDR_EXP (it->cur));
+  return it->cur != NULL
+         && (BTOR_IS_ARRAY_EQ_EXP (BTOR_REAL_ADDR_EXP (it->cur))
+             || BTOR_REAL_ADDR_EXP (it->cur)->kind == BTOR_AEQ_EXCEPT_EXP);
 }
 
 static int
@@ -1794,7 +1794,7 @@ connect_array_child_aeq_exp (Btor *btor,
   assert (parent != NULL);
   assert (child != NULL);
   assert (BTOR_IS_REGULAR_EXP (parent));
-  assert (BTOR_IS_ARRAY_EQ_EXP (parent));
+  assert (BTOR_IS_ARRAY_EQ_EXP (parent) || parent->kind == BTOR_AEQ_EXCEPT_EXP);
   assert (BTOR_IS_REGULAR_EXP (child));
   assert (BTOR_IS_ARRAY_EXP (child));
   assert (pos == 0 || pos == 1);
@@ -2016,7 +2016,7 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
   assert (pointer_chase_simplified_exp (btor, child) == child);
   if (parent->kind == BTOR_WRITE_EXP && pos == 0)
     connect_array_child_write_exp (btor, parent, child);
-  else if (BTOR_IS_ARRAY_EQ_EXP (parent))
+  else if (BTOR_IS_ARRAY_EQ_EXP (parent) || parent->kind == BTOR_AEQ_EXCEPT_EXP)
     connect_array_child_aeq_exp (btor, parent, child, pos);
   else if (BTOR_IS_ARRAY_COND_EXP (parent) && pos != 0)
     connect_array_child_acond_exp (btor, parent, child, pos);
@@ -2123,6 +2123,7 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
+  assert (btor->mode == BTOR_LAZY_MODE);
   /* we need aeq and acond next and prev fields */
   BTOR_CNEW (btor->mm, exp);
   exp->kind  = BTOR_AEQ_EXP;
@@ -2138,7 +2139,7 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static int
-compare_ptr (const void *a, const void *b)
+compare_ptr_qsort (const void *a, const void *b)
 {
   void *p = *(void **) a;
   void *q = *(void **) b;
@@ -2229,6 +2230,8 @@ new_aeq_except_exp_node (Btor *btor,
   exp->e[1] = e1;
   for (cur = I->start; cur != I->top; cur++)
     exp->hash_I += (unsigned int) BTOR_REAL_ADDR_EXP (*cur)->id;
+  connect_child_exp (btor, exp, e0, 0);
+  connect_child_exp (btor, exp, e1, 1);
   return exp;
 }
 
@@ -2249,7 +2252,7 @@ aeq_except_exp (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExpPtrStack *I)
   assert (e1->simplified == NULL);
 
   /* sort I */
-  qsort (I->start, BTOR_COUNT_STACK (*I), sizeof *I->start, compare_ptr);
+  qsort (I->start, BTOR_COUNT_STACK (*I), sizeof *I->start, compare_ptr_qsort);
   dest = I->start;
   for (cur = I->start; cur != I->top; cur++)
   {
@@ -2307,9 +2310,16 @@ aeq_except_exp (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExpPtrStack *I)
     release_exp (btor, read1);
     release_exp (btor, lambda);
     assert (BTOR_IS_REGULAR_EXP (exp));
+    btor_insert_in_ptr_hash_table (btor->aeqs, exp);
     return exp;
   }
-  inc_exp_ref_counter (*lookup);
+  else
+  {
+    for (cur = I->start; cur != I->top; cur++) release_exp (btor, *cur);
+    BTOR_RELEASE_STACK (btor->mm, *I);
+    BTOR_DELETE (btor->mm, I);
+    inc_exp_ref_counter (*lookup);
+  }
   assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
@@ -3720,7 +3730,7 @@ eq_except_I_write_exp (Btor *btor,
                        BtorExp *array,
                        BtorExpPtrStack *I)
 {
-  BtorExp *temp, *eq, *result, *i;
+  BtorExp *temp, *eq, *result, *i, **cur;
   assert (btor != NULL);
   assert (write != NULL);
   assert (array != NULL);
@@ -3733,6 +3743,16 @@ eq_except_I_write_exp (Btor *btor,
   temp   = read_exp (btor, array, i);
   result = eq_exp (btor, temp, write->e[2]);
   release_exp (btor, temp);
+
+  for (cur = I->start; cur != I->top; cur++)
+  {
+    eq   = eq_exp (btor, i, *cur);
+    temp = or_exp (btor, result, eq);
+    release_exp (btor, result);
+    result = temp;
+    release_exp (btor, eq);
+  }
+
   BTOR_PUSH_STACK (btor->mm, *I, copy_exp (btor, i));
   eq   = eq_except_I_exp (btor, write->e[0], array, I);
   temp = and_exp (btor, result, eq);
@@ -3765,8 +3785,6 @@ eq_except_I_atomic_exp (Btor *btor,
     return true_exp (btor);
   }
   result = aeq_except_exp (btor, atomic1, atomic2, I);
-  if (btor_find_in_ptr_hash_table (btor->aeqs, result) == NULL)
-    btor_insert_in_ptr_hash_table (btor->aeqs, result);
   return result;
 }
 
@@ -8010,14 +8028,97 @@ substitute_aeq_except_exp (Btor *btor, BtorExp *exp)
 static void
 process_new_constraints (Btor *btor)
 {
-  BtorPtrHashTable *new_constraints, *processed_constraints;
+  BtorPtrHashTable *new_constraints, *processed_constraints, *working_queue,
+      *hashed_pairs;
   BtorExp *cur, *left, *right;
+  BtorExp *l, *r, *t, *a, *b, *c, *and, *implies, **temp;
+  BtorExpPair *pair;
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack stack;
+  BtorPartialParentIterator it;
+  BtorExpPtrStack *I, *J, *K;
+  int i;
   assert (btor != NULL);
   new_constraints = btor->new_constraints;
   if (btor->mode == BTOR_EAGER_MODE)
   {
+    /* encode transitivity */
+    hashed_pairs = btor_new_ptr_hash_table (
+        btor->mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
+    working_queue = btor_new_ptr_hash_table (
+        btor->mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
+    for (bucket = btor->aeqs->last; bucket != NULL; bucket = bucket->prev)
+    {
+      l = bucket->key;
+      btor_insert_in_ptr_hash_table (working_queue, l);
+    }
+
+    while (working_queue->count > 0)
+    {
+      bucket = working_queue->first;
+      assert (bucket != NULL);
+      l = bucket->key;
+      btor_remove_from_ptr_hash_table (working_queue, l, NULL, NULL);
+      assert (l != NULL);
+      assert (BTOR_IS_REGULAR_EXP (l));
+      for (i = 0; i < 2; i++)
+      {
+        a = l->e[i];
+        I = l->I;
+        assert (I != NULL);
+        b = l->e[!i];
+        init_aeq_parent_iterator (&it, b);
+        while (has_next_parent_aeq_parent_iterator (&it))
+        {
+          r = next_parent_aeq_parent_iterator (&it);
+          assert (BTOR_IS_REGULAR_EXP (r));
+          J = r->I;
+          assert (J != NULL);
+          if (r == l) continue;
+          if (r->e[0] != b)
+          {
+            assert (r->e[1] == b);
+            c = r->e[0];
+          }
+          else
+            c = r->e[1];
+          assert (c != a);
+          assert (c != b);
+
+          pair = new_exp_pair (btor, l, r);
+          if (btor_find_in_ptr_hash_table (hashed_pairs, pair) == NULL)
+          {
+            btor_insert_in_ptr_hash_table (hashed_pairs, pair);
+            BTOR_NEW (btor->mm, K);
+            BTOR_INIT_STACK (*K);
+            for (temp = I->start; temp != I->top; temp++)
+              BTOR_PUSH_STACK (btor->mm, *K, copy_exp (btor, *temp));
+            for (temp = J->start; temp != J->top; temp++)
+              BTOR_PUSH_STACK (btor->mm, *K, copy_exp (btor, *temp));
+            t = aeq_except_exp (btor, a, c, K);
+            /* aeq table owns at least one reference */
+            assert (t->refs >= 1);
+            if (btor_find_in_ptr_hash_table (working_queue, t) == NULL)
+              btor_insert_in_ptr_hash_table (working_queue, t);
+            and     = and_exp (btor, l, r);
+            implies = or_exp (btor, BTOR_INVERT_EXP (and), t);
+            btor_add_constraint_exp (btor, implies);
+            release_exp (btor, and);
+            release_exp (btor, implies);
+            release_exp (btor, t);
+          }
+          else
+            delete_exp_pair (btor, pair);
+        }
+      }
+    }
+    for (bucket = hashed_pairs->first; bucket != NULL; bucket = bucket->next)
+      delete_exp_pair (btor, (BtorExpPair *) bucket->key);
+    btor_delete_ptr_hash_table (hashed_pairs);
+
+    btor_delete_ptr_hash_table (working_queue);
+
+    /* rewriting of aeq_except */
     assert (btor->stats.constraints.processed == 0);
     BTOR_INIT_STACK (stack);
     for (bucket = btor->aeqs->last; bucket != NULL; bucket = bucket->prev)
