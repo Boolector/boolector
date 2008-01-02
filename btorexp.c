@@ -3765,7 +3765,8 @@ eq_except_I_atomic_exp (Btor *btor,
     return true_exp (btor);
   }
   result = aeq_except_exp (btor, atomic1, atomic2, I);
-  btor_insert_in_ptr_hash_table (btor->aeqs, result);
+  if (btor_find_in_ptr_hash_table (btor->aeqs, result) == NULL)
+    btor_insert_in_ptr_hash_table (btor->aeqs, result);
   return result;
 }
 
