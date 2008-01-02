@@ -4,16 +4,6 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
-BtorExp **indices;
-
-static int
-compute_num_bits_index (int num_elements)
-{
-  assert (num_elements > 1);
-  while (!btor_is_power_of_2_util (num_elements)) num_elements++;
-  return btor_log_2_util (num_elements);
-}
-
 static BtorExp *
 reverse_array_with_xor (Btor *btor,
                         BtorExp *array,
@@ -88,9 +78,9 @@ reverse_array_with_xor (Btor *btor,
 int
 main (int argc, char **argv)
 {
-  int num_bits_index, num_elements;
+  int num_elements;
   Btor *btor;
-  BtorExp *array, *orig_array, *formula, *top, *bottom, *num_elements_m_1_exp;
+  BtorExp *array, *orig_array, *formula, *top, *bottom;
   if (argc != 2)
   {
     printf ("Usage: ./doublereversexor <num-elements>\n");
@@ -103,8 +93,7 @@ main (int argc, char **argv)
     return 1;
   }
 
-  num_bits_index = compute_num_bits_index (num_elements);
-  btor           = btor_new_btor ();
+  btor = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
 
   array      = btor_array_exp (btor, 8, 32);
@@ -117,7 +106,7 @@ main (int argc, char **argv)
    * */
   array = reverse_array_with_xor (btor, array, num_elements, bottom, top);
   array = reverse_array_with_xor (btor, array, num_elements, bottom, top);
-  /* array has to be equal here, we reversed it two times */
+  /* memory has to be equal */
   /* we show this by showing that the negation is unsat */
   formula = btor_ne_exp (btor, array, orig_array);
   btor_dump_exp (btor, stdout, formula);
@@ -127,7 +116,6 @@ main (int argc, char **argv)
   btor_release_exp (btor, bottom);
   btor_release_exp (btor, top);
   btor_release_exp (btor, orig_array);
-  btor_release_exp (btor, num_elements_m_1_exp);
   btor_delete_btor (btor);
   return 0;
 }
