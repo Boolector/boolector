@@ -23,10 +23,9 @@ main (int argc, char **argv)
   int num_elements, i, j;
   char *buffer;
   Btor *btor;
-  BtorExp **initial_elements, **sorted_elements, *mem;
-  BtorExp *ugt, *ulte, *temp, *read1, *start, *top, *pos, *pos_p_1,
-      *num_elements_exp;
-  BtorExp *read2, *cond1, *cond2, *sorted, *formula, *eq, *var, *one;
+  BtorExp **initial_elements, **sorted_elements, *mem, *var, *one;
+  BtorExp *ugt, *ulte, *temp, *read1, *start, *top, *pos, *num_elements_exp;
+  BtorExp *read2, *cond1, *cond2, *sorted, *formula, *eq, *pos_p_1;
   if (argc != 2)
   {
     printf ("Usage: ./bubblesortmemexample <num-elements>\n");
