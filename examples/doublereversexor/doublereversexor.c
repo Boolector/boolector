@@ -5,21 +5,22 @@
 #include "../../btorutil.h"
 
 static BtorExp *
-reverse_array_with_xor (Btor *btor,
-                        BtorExp *array,
-                        int num_elements,
-                        BtorExp *orig_bottom_exp,
-                        BtorExp *orig_top_exp)
+reverse_with_xor (Btor *btor,
+                  BtorExp *mem,
+                  int num_elements,
+                  BtorExp *orig_bottom_exp,
+                  BtorExp *orig_top_exp)
 {
   BtorExp *x, *y, *result, *temp, *xor, *bottom_exp, *top_exp, *one;
   int bottom;
   int top;
   assert (btor != NULL);
+  assert (mem != NULL);
   assert (num_elements > 1);
   assert (orig_bottom_exp != NULL);
   assert (orig_top_exp != NULL);
   /* we reverse the array */
-  result     = array;
+  result     = mem;
   bottom     = 0;
   top        = num_elements - 1;
   bottom_exp = btor_copy_exp (btor, orig_bottom_exp);
@@ -80,7 +81,7 @@ main (int argc, char **argv)
 {
   int num_elements;
   Btor *btor;
-  BtorExp *array, *orig_array, *formula, *top, *bottom;
+  BtorExp *mem, *orig_mem, *formula, *top, *bottom;
   if (argc != 2)
   {
     printf ("Usage: ./doublereversexor <num-elements>\n");
@@ -96,26 +97,26 @@ main (int argc, char **argv)
   btor = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
 
-  array      = btor_array_exp (btor, 8, 32);
-  orig_array = btor_copy_exp (btor, array);
-  bottom     = btor_var_exp (btor, 32, "bottom");
-  top        = btor_var_exp (btor, 32, "top");
+  mem      = btor_array_exp (btor, 8, 32);
+  orig_mem = btor_copy_exp (btor, mem);
+  bottom   = btor_var_exp (btor, 32, "bottom");
+  top      = btor_var_exp (btor, 32, "top");
   /* top and bottom can be arbitrary
    * if we reverse two times
    * we get the same memory as before
    * */
-  array = reverse_array_with_xor (btor, array, num_elements, bottom, top);
-  array = reverse_array_with_xor (btor, array, num_elements, bottom, top);
+  mem = reverse_with_xor (btor, mem, num_elements, bottom, top);
+  mem = reverse_with_xor (btor, mem, num_elements, bottom, top);
   /* memory has to be equal */
   /* we show this by showing that the negation is unsat */
-  formula = btor_ne_exp (btor, array, orig_array);
+  formula = btor_ne_exp (btor, mem, orig_mem);
   btor_dump_exp (btor, stdout, formula);
   /* clean up */
   btor_release_exp (btor, formula);
-  btor_release_exp (btor, array);
+  btor_release_exp (btor, mem);
   btor_release_exp (btor, bottom);
   btor_release_exp (btor, top);
-  btor_release_exp (btor, orig_array);
+  btor_release_exp (btor, orig_mem);
   btor_delete_btor (btor);
   return 0;
 }
