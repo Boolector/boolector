@@ -8,7 +8,6 @@
 #include "../../btorconst.h"
 #include "../../btorexp.h"
 #include "../../btormem.h"
-#include "../../btorutil.h"
 
 #define SUDOKU_NUM_BITS_INDEX 7
 #define SUDOKU_NUM_BITS_VAL 4
