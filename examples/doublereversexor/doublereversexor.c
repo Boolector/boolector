@@ -2,7 +2,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../boolector.h"
-#include "../../btorutil.h"
 
 static BtorExp *
 reverse_with_xor (Btor *btor,
