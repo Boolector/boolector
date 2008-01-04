@@ -10,11 +10,11 @@ for ((overlap=0;overlap<=1;overlap+=1))
   do
     header=1
     if [[ $overlap -eq 1 ]]; then
-      filename=swapmemxoroverlap$size".smt"
+      filename=swapmemoverlap$size".smt"
     else
-      filename=swapmemxor$size".smt"
+      filename=swapmem$size".smt"
     fi
-    ./swapmemxor $size $overlaparg | boolector -rwl0 -ds | while read line
+    ./swapmem $size $overlaparg | boolector -rwl0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename

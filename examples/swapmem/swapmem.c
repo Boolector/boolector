@@ -83,7 +83,7 @@ main (int argc, char **argv)
           && (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0))
       || (argc == 3 && strcmp (argv[2], "-o") != 0))
   {
-    printf ("Usage: ./swapmemxor <num-elements> [-o]\n");
+    printf ("Usage: ./swapmem <num-elements> [-o]\n");
     return 1;
   }
   num_elements = atoi (argv[1]);
