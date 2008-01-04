@@ -18,7 +18,6 @@ swap_with_xor (Btor *btor,
   assert (num_elements > 0);
   assert (start1 != NULL);
   assert (start2 != NULL);
-  /* we reverse the array */
   result = mem;
   pos1   = btor_copy_exp (btor, start1);
   pos2   = btor_copy_exp (btor, start2);
