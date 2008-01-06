@@ -106,10 +106,7 @@ main (int argc, char **argv)
 
   formula = sorted;
 
-  /* we show that every element of the initial sequence
-   * occurs in the final sorted  sequence by showing that
-   * there is no counter example:
-   * It is not the case that there exists an element in
+  /* It is not the case that there exists an element in
    * the initial sequence which does not occur in the sorted
    * sequence.*/
   no_diff_element = btor_true_exp (btor);
