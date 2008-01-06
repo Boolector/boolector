@@ -13,7 +13,7 @@ do
       echo "of length $size in memory. Additionally, we read an element" >> $filename
       
       echo "at an arbitrary index of the initial array and show that this" >> $filename
-      echo "element can not be unequal to an element in the sorted array">> $filename
+      echo "element can not be unequal to an element in the sorted array.">> $filename
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
