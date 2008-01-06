@@ -3,10 +3,14 @@ for ((overlap=0;overlap<=1;overlap+=1))
   do
   if [[ $overlap -eq 1 ]]; then
     overlaparg="-o"
+    limit=60
+    inc=2
   else
     overlaparg=""
+    limit=30
+    inc=1
   fi
-  for ((size=2;size<=20;size+=1))
+  for ((size=2;size<=$limit;size+=$inc))
   do
     header=1
     if [[ $overlap -eq 1 ]]; then
