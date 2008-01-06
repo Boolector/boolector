@@ -81,10 +81,7 @@ main (int argc, char **argv)
     btor_release_exp (btor, read2);
     btor_release_exp (btor, ulte);
   }
-  /* we show that every element of the initial array
-   * occurs in the final sorted array by showing that
-   * there is no counter example:
-   * It is not the case that there exists an element in
+  /* It is not the case that there exists an element in
    * the initial array which does not occur in the sorted
    * array.*/
   no_diff_element = btor_const_exp (btor, "1");
