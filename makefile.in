@@ -12,14 +12,14 @@ all: libboolector.a boolector test synthebtor deltabtor
 dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
-boolector: boolector.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector
+boolector: boolector.o libboolector.a ../picosat/libpicosat.a
+	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector -L../picosat -lpicosat
 
 test: $(TESTOBJ) ../picosat/libpicosat.a libboolector.a 
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector -L../picosat -lpicosat
 
-synthebtor: synthebtor.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector
+synthebtor: synthebtor.o libboolector.a ../picosat/libpicosat.a
+	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector -L../picosat -lpicosat
 
 deltabtor: deltabtor.c makefile
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
