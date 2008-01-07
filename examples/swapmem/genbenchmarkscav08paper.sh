@@ -28,13 +28,13 @@ for ((overlap=0;overlap<=1;overlap+=1))
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename
 	echo ":source {" >> $filename
-	echo "We swap two arbitrary byte sequences of length $size in memory two times." >> $filename
+	echo "We swap two arrays of length $size in memory two times." >> $filename
 	if [[ $overlap -eq 1 ]]; then
 	  echo "The sequences can overlap, hence it is not always the case" >> $filename
 	else
 	  echo "The sequences can not overlap, hence it is always the case" >> $filename
 	fi
-	echo "that swapping the sequences two times yields the initial memory state." >> $filename
+	echo "that swapping the arrays two times yields the initial memory." >> $filename
 	echo "" >> $filename
 	echo "Swapping is done via XOR in the following way:" >> $filename
 	echo "x ^= y;" >> $filename 
