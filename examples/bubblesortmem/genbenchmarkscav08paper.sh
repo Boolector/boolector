@@ -3,7 +3,12 @@ inc=1
 for ((size=2;size<=50;size+=$inc))
 do
   header=1
-  filename=bubblesortmem$size".smt"
+  if [[ $size -lt 10 ]]; then
+    sizestring="00"$size
+  else
+    sizestring="0"$size
+  fi
+  filename=bubsort$sizestring"un.smt"
   ./bubblesortmem $size | boolector -rwl0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
