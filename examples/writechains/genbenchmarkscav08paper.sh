@@ -12,10 +12,17 @@ do
   for ((numbits=2;numbits<=$limit;numbits+=$inc))
   do
     header=1
-    if [[ $a -eq 1 ]]; then
-      filename=writechainsunsat$numbits".smt"
+    if [[ $numbits -lt 10 ]]; then
+      numbitsstring="00"$numbits
+    elif [[ $numbits -lt 100 ]]; then
+      numbitsstring="0"$numbits
     else
-      filename=writechainssat$numbits".smt"
+      numbitsstring=$numbits
+    fi
+    if [[ $a -eq 1 ]]; then
+      filename=wchains$numbitsstring"ue.smt"
+    else
+      filename=wchains$numbitsstring"se.smt"
     fi
     ./writechains $aarg $numbits | boolector -rwl0 -ds | while read line
     do
