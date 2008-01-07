@@ -19,22 +19,22 @@ for ((overlap=0;overlap<=1;overlap+=1))
       sizestring="0"$size
     fi
     if [[ $overlap -eq 1 ]]; then
-      filename=swapxor$sizestring"se.smt"
+      filename=swapmem$sizestring"se.smt"
     else
-      filename=swapxor$sizestring"ue.smt"
+      filename=swapmem$sizestring"ue.smt"
     fi
     ./swapmem $size $overlaparg | boolector -rwl0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename
 	echo ":source {" >> $filename
-	echo "We swap two arrays of length $size in memory two times." >> $filename
+	echo "We swap two byte sequences of length $size twice in memory." >> $filename
 	if [[ $overlap -eq 1 ]]; then
 	  echo "The sequences can overlap, hence it is not always the case" >> $filename
 	else
 	  echo "The sequences can not overlap, hence it is always the case" >> $filename
 	fi
-	echo "that swapping the arrays two times yields the initial memory." >> $filename
+	echo "that swapping them twice yields the initial memory." >> $filename
 	echo "" >> $filename
 	echo "Swapping is done via XOR in the following way:" >> $filename
 	echo "x ^= y;" >> $filename 
