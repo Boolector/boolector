@@ -13,10 +13,15 @@ for ((overlap=0;overlap<=1;overlap+=1))
   for ((size=2;size<=$limit;size+=$inc))
   do
     header=1
-    if [[ $overlap -eq 1 ]]; then
-      filename=swapmemoverlap$size".smt"
+    if [[ $size -lt 10 ]]; then
+      sizestring="00"$size
     else
-      filename=swapmem$size".smt"
+      sizestring="0"$size
+    fi
+    if [[ $overlap -eq 1 ]]; then
+      filename=swapxor$sizestring"se.smt"
+    else
+      filename=swapxor$sizestring"ue.smt"
     fi
     ./swapmem $size $overlaparg | boolector -rwl0 -ds | while read line
     do
