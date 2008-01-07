@@ -11,7 +11,7 @@ do
   else
     sizestring=$size
   fi
-  filename=dubrevl$sizestring"ue.smt"
+  filename=dubreva$sizestring"ue.smt"
   ./doublereversearray $size | boolector -rwl0 -ds | while read line
   do
     if [[ $header -eq 1 ]]; then
