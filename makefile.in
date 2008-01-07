@@ -15,8 +15,8 @@ dependencies: btorconfig.h *.c *.h makefile
 boolector: boolector.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector
 
-test: $(TESTOBJ) ../picosat/picosat.o libboolector.a 
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector
+test: $(TESTOBJ) ../picosat/libpicosat.a libboolector.a 
+	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector -L../picosat -lpicosat
 
 synthebtor: synthebtor.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector
