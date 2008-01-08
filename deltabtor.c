@@ -538,7 +538,7 @@ dfs (int idx)
 static void
 cone (void)
 {
-  int i, true_roots = 0, false_roots = 0, non_trivial_roots = 0;
+  int i, true_roots = 0, false_roots = 0, non_trivial_roots = 0, skip;
 
   rexps = 0;
 
@@ -556,11 +556,25 @@ cone (void)
   for (i = 1; i < nexps; i++)
     if (exps[i].ref && !strcmp (exps[i].op, "root"))
     {
-      if (non_trivial_roots || false_roots || true_roots) dfs (i);
+      skip = 0;
 
-      if (isallzero (exps[i].child[0])) false_roots = 0;
+      if (isallzero (exps[i].child[0]))
+      {
+        if (false_roots)
+          false_roots = 0;
+        else
+          skip = 1;
+      }
 
-      if (isallone (exps[i].child[0])) true_roots = 0;
+      if (isallone (exps[i].child[0]))
+      {
+        if (!non_trivial_roots && true_roots)
+          true_roots = 0;
+        else
+          skip = 1;
+      }
+
+      if (!skip) dfs (i);
     }
 }
 
