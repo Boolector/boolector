@@ -111,3 +111,4 @@ rw17 -rwl1 -o log/rw17.log log/rw17.btor
 rw18 -rwl0 -o log/rw18.log log/rw18.btor
 rw18 -rwl1 -o log/rw18.log log/rw18.btor
 proxybug -o log/proxybug.log log/proxybug.btor
+prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
