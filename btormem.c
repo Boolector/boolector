@@ -11,7 +11,7 @@
   do                                       \
   {                                        \
     if (!(cond)) break;                    \
-    fputs ("[btormem] " msg "\n", stderr); \
+    fputs ("[btormem] " msg "\n", stdout); \
     exit (BTOR_ERR_EXIT);                  \
   } while (0)
 

@@ -56,12 +56,12 @@ static void
 print_verbose_msg (char *fmt, ...)
 {
   va_list ap;
-  fprintf (stderr, "[btorbtor] ");
+  fprintf (stdout, "[btorbtor] ");
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 static unsigned

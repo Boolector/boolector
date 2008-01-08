@@ -227,7 +227,7 @@ run_test_case (
     printf (" Running %s ", name);
 
     fflush (stdout);
-    fflush (stderr); /* for assertions failures */
+    fflush (stdout); /* for assertions failures */
 
     funcp ();
 

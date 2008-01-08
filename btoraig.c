@@ -17,7 +17,7 @@
   do                                       \
   {                                        \
     if (!(cond)) break;                    \
-    fputs ("[btoraig] " msg "\n", stderr); \
+    fputs ("[btoraig] " msg "\n", stdout); \
     exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
@@ -75,8 +75,8 @@ static void
 print_verbose_msg (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stderr, "[btoraig] %s", msg);
-  fflush (stderr);
+  fprintf (stdout, "[btoraig] %s", msg);
+  fflush (stdout);
 }
 
 /*------------------------------------------------------------------------*/

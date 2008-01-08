@@ -250,12 +250,12 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
   if (parser->verbosity < level) return;
 
   fflush (stdout);
-  fprintf (stderr, "[btorsmt] ");
+  fprintf (stdout, "[btorsmt] ");
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 #define isleaf(l) (1lu & (unsigned long) (l))
@@ -991,9 +991,9 @@ btorsmtppaux (FILE *file, BtorSMTNode *node, int indent)
 void
 btorsmtpp (BtorSMTNode *node)
 {
-  btorsmtppaux (stderr, node, 0);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  btorsmtppaux (stdout, node, 0);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 static void

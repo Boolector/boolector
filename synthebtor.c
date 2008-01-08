@@ -18,11 +18,11 @@ static void
 die (int prefix, const char *fmt, ...)
 {
   va_list ap;
-  if (prefix) fputs ("*** synthebtor: ", stderr);
+  if (prefix) fputs ("*** synthebtor: ", stdout);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
+  fputc ('\n', stdout);
   exit (1);
 }
 

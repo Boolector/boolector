@@ -60,12 +60,12 @@ msg (int level, const char* fmt, ...)
   va_list ap;
   if (verbose < level) return;
   fflush (stdout);
-  fputs ("[deltabtor] ", stderr);
+  fputs ("[deltabtor] ", stdout);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 static void
@@ -73,12 +73,12 @@ die (const char* fmt, ...)
 {
   va_list ap;
   fflush (stdout);
-  fputs ("*** deltabtor: ", stderr);
+  fputs ("*** deltabtor: ", stdout);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
   exit (1);
 }
 
@@ -125,12 +125,12 @@ perr (const char* fmt, ...)
 {
   va_list ap;
   fflush (stdout);
-  fprintf (stderr, "%s:%d: ", input_name, lineno);
+  fprintf (stdout, "%s:%d: ", input_name, lineno);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
   exit (1);
 }
 

@@ -19,7 +19,7 @@
   do                                       \
   {                                        \
     if (!(cond)) break;                    \
-    fputs ("[btorsat] " msg "\n", stderr); \
+    fputs ("[btorsat] " msg "\n", stdout); \
     exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
@@ -46,11 +46,11 @@ print_verbose_msg (const char *fmt, ...)
 {
   va_list ap;
   assert (fmt != NULL);
-  fprintf (stderr, "[btorsat] ");
+  fprintf (stdout, "[btorsat] ");
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fflush (stderr);
+  fflush (stdout);
 }
 
 /*------------------------------------------------------------------------*/
@@ -129,9 +129,9 @@ btor_init_sat (BtorSATMgr *smgr)
 
   if (smgr->verbosity > 0)
   {
-    fprintf (stderr, "[btorsat] PicoSAT Version %s\n", picosat_version ());
+    fprintf (stdout, "[btorsat] PicoSAT Version %s\n", picosat_version ());
 
-    fflush (stderr);
+    fflush (stdout);
   }
 
   picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);

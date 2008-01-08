@@ -25,7 +25,7 @@
   do                                       \
   {                                        \
     if (!(cond)) break;                    \
-    fputs ("[btorexp] " msg "\n", stderr); \
+    fputs ("[btorexp] " msg "\n", stdout); \
     exit (BTOR_ERR_EXIT);                  \
   } while (0)
 
@@ -180,12 +180,12 @@ static void
 print_verbose_msg (char *fmt, ...)
 {
   va_list ap;
-  fputs ("[btorexp] ", stderr);
+  fputs ("[btorexp] ", stdout);
   va_start (ap, fmt);
-  vfprintf (stderr, fmt, ap);
+  vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stderr);
-  fflush (stderr);
+  fputc ('\n', stdout);
+  fflush (stdout);
 }
 
 static char *
@@ -8156,9 +8156,9 @@ process_new_constraints (Btor *btor)
           btor->stats.linear_equations++;
 #if 0
 #if 0
-                  btor_dump_exp (btor, stderr, cur);
+                  btor_dump_exp (btor, stdout, cur);
 #else
-                  fprintf (stderr, "linear equation: %d\n", cur->id);
+                  fprintf (stdout, "linear equation: %d\n", cur->id);
 #endif
 #endif
         }
@@ -8488,8 +8488,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       {
         if (verbosity > 2 || !(refinements % 10))
         {
-          fprintf (stderr, "[btorsat] refinement iteration %d\n", refinements);
-          fflush (stderr);
+          fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
+          fflush (stdout);
         }
       }
       sat_result = btor_sat_sat (smgr, INT_MAX);

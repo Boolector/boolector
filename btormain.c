@@ -121,8 +121,8 @@ static void
 print_verbose_msg (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stderr, "[btrmain] %s", msg);
-  fflush (stderr);
+  fprintf (stdout, "[btrmain] %s", msg);
+  fflush (stdout);
 }
 
 static void
@@ -131,8 +131,8 @@ print_verbose_msg_va_args (char *msg, ...)
   va_list list;
   assert (msg != NULL);
   va_start (list, msg);
-  fprintf (stderr, "[btrmain] ");
-  vfprintf (stderr, msg, list);
+  fprintf (stdout, "[btrmain] ");
+  vfprintf (stdout, msg, list);
   va_end (list);
 }
 
@@ -561,7 +561,7 @@ btor_main (int argc, char **argv)
     smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
     btor_init_sat (smgr);
-    btor_set_output_sat (smgr, stderr);
+    btor_set_output_sat (smgr, stdout);
 
     if (force_smt_input
         || (close_input_file && has_suffix (input_file_name, ".smt")))
