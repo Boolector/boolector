@@ -7591,6 +7591,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   BtorFullParentIterator it;
   BtorMemMgr *mm;
   int is_var_substitution;
+  int pushed;
   assert (btor->rewrite_level > 1);
   assert (btor != NULL);
   assert (left != NULL);
@@ -7619,18 +7620,18 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
       cur->subst_mark = 1;
       init_full_parent_iterator (&it, cur);
       /* are we at a root ? */
-      if (!has_next_parent_full_parent_iterator (&it))
-        BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
-      else
+      pushed = 0;
+      while (has_next_parent_full_parent_iterator (&it))
       {
-        do
+        cur_parent = next_parent_full_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        if (cur_parent->simplified == NULL)
         {
-          cur_parent = next_parent_full_parent_iterator (&it);
-          assert (BTOR_IS_REGULAR_EXP (cur_parent));
-          if (cur_parent->simplified == NULL)
-            BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-        } while (has_next_parent_full_parent_iterator (&it));
+          pushed = 1;
+          BTOR_PUSH_STACK (mm, search_stack, cur_parent);
+        }
       }
+      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
     }
   } while (!BTOR_EMPTY_STACK (search_stack));
   BTOR_RELEASE_STACK (mm, search_stack);
@@ -7644,11 +7645,9 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   for (temp = root_stack.start; temp != top; temp++)
     BTOR_PUSH_STACK (mm, subst_stack, *temp);
 
-  assert (!BTOR_EMPTY_STACK (subst_stack));
-
   /* substitute */
 
-  do
+  while (!BTOR_EMPTY_STACK (subst_stack))
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
     if (cur->subst_mark == 0) continue;
@@ -7688,7 +7687,7 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
       overwrite_exp (btor, cur, rebuilt_exp);
       release_exp (btor, rebuilt_exp);
     }
-  } while (!BTOR_EMPTY_STACK (subst_stack));
+  }
   BTOR_RELEASE_STACK (mm, subst_stack);
 
   top = root_stack.top;
@@ -8145,6 +8144,7 @@ process_new_constraints (Btor *btor)
     assert (BTOR_REAL_ADDR_EXP (cur)->constraint == 1);
     assert (pointer_chase_simplified_exp (btor, cur) == cur);
     assert (BTOR_IS_INVERTED_EXP (cur) || cur->kind != BTOR_AND_EXP);
+    assert (pointer_chase_simplified_exp (btor, cur) == cur);
     if (is_substitution (btor, cur, &left, &right))
       substitute_exp (btor, left, right);
     else
@@ -8186,6 +8186,7 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
 {
   assert (btor != NULL);
   assert (exp != NULL);
+  assert (pointer_chase_simplified_exp (btor, exp) == exp);
   if (!btor_find_in_ptr_hash_table (btor->new_constraints, exp)
       && !btor_find_in_ptr_hash_table (btor->processed_constraints, exp)
       && !btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
