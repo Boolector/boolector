@@ -1,6 +1,6 @@
 #!/bin/bash
 inc=1
-limit=100
+limit=10
 for ((size=2;size<=$limit;size+=$inc))
 do
   header=1
@@ -17,13 +17,14 @@ do
     if [[ $header -eq 1 ]]; then
       echo "(benchmark $filename" > $filename
       echo ":source {" >> $filename
-      echo "We reverse an array of length $size twice in memory." >> $filename
-      echo "We show via extensionality that the final memory is equal to the initial." >> $filename
+      echo "We reverse an array of length $size twice in memory at $size positions." >> $filename
+      echo "We show via extensionality that memory has to be equal." >> $filename
       echo "" >> $filename
-      echo "Swapping elements is done via XOR in the following way:" >> $filename
+      echo "In one case swapping elements is done via XOR in the following way:" >> $filename
       echo "x ^= y;" >> $filename 
       echo "y ^= x;" >> $filename
       echo "x ^= y;" >> $filename
+      echo "In the other case the elements are just swapped." >> $filename
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
@@ -39,9 +40,4 @@ do
       echo $line >> $filename
     fi
   done
-  if [[ $size -eq 10 ]]; then
-    inc=2
-  elif [[ $size -eq 20 ]]; then
-    inc=5
-  fi
 done
