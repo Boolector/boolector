@@ -22,7 +22,10 @@ BEGIN { print "digraph G {" }
   } else if ($2 == "zero") {
     printf "%d [shape=box, label=\"zero\\n\"];\n", $1
   } else if ($2 == "var") {
-    printf "%d [shape=box, label=\"var\\n%d\"];\n", $1, $3
+    if (NF == 3)
+      printf "%d [shape=box, label=\"var\\n%d\"];\n", $1, $3
+    else if (NF > 3)
+      printf "%d [shape=box, label=\"%s\\n%d\"];\n", $1, $4, $3
   } else if ($2 == "array") {
     arrays[$1]
     printf "%d [shape=box, style=filled, fillcolor=lightblue, label=\"array\\n%d %d\"];\n", $1, $3, $4
