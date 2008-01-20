@@ -502,87 +502,87 @@ test_write14_special ()
 }
 
 static void
-test_arrayeq1_special ()
+test_ext1_special ()
 {
-  run_sat_test ("arrayeq1.btor");
+  run_sat_test ("ext1.btor");
 }
 
 static void
-test_arrayeq2_special ()
+test_ext2_special ()
 {
-  run_unsat_test ("arrayeq2.btor");
+  run_unsat_test ("ext2.btor");
 }
 
 static void
-test_arrayeq3_special ()
+test_ext3_special ()
 {
-  run_sat_test ("arrayeq3.btor");
+  run_sat_test ("ext3.btor");
 }
 
 static void
-test_arrayeq4_special ()
+test_ext4_special ()
 {
-  run_sat_test ("arrayeq4.btor");
+  run_sat_test ("ext4.btor");
 }
 
 static void
-test_arrayeq5_special ()
+test_ext5_special ()
 {
-  run_unsat_test ("arrayeq5.btor");
+  run_unsat_test ("ext5.btor");
 }
 
 static void
-test_arrayeq6_special ()
+test_ext6_special ()
 {
-  run_sat_test ("arrayeq6.btor");
+  run_sat_test ("ext6.btor");
 }
 
 static void
-test_arrayeq7_special ()
+test_ext7_special ()
 {
-  run_unsat_test ("arrayeq7.btor");
+  run_unsat_test ("ext7.btor");
 }
 
 static void
-test_arrayeq8_special ()
+test_ext8_special ()
 {
-  run_sat_test ("arrayeq8.btor");
+  run_sat_test ("ext8.btor");
 }
 
 static void
-test_arrayeq9_special ()
+test_ext9_special ()
 {
-  run_unsat_test ("arrayeq9.btor");
+  run_unsat_test ("ext9.btor");
 }
 
 static void
-test_arrayeq10_special ()
+test_ext10_special ()
 {
-  run_unsat_test ("arrayeq10.btor");
+  run_unsat_test ("ext10.btor");
 }
 
 static void
-test_arrayeq11_special ()
+test_ext11_special ()
 {
-  run_unsat_test ("arrayeq11.btor");
+  run_unsat_test ("ext11.btor");
 }
 
 static void
-test_arrayeq12_special ()
+test_ext12_special ()
 {
-  run_sat_test ("arrayeq12.btor");
+  run_sat_test ("ext12.btor");
 }
 
 static void
-test_arrayeq13_special ()
+test_ext13_special ()
 {
-  run_unsat_test ("arrayeq13.btor");
+  run_unsat_test ("ext13.btor");
 }
 
 static void
-test_arrayeq14_special ()
+test_ext14_special ()
 {
-  run_sat_test ("arrayeq14.btor");
+  run_sat_test ("ext14.btor");
 }
 
 static void
@@ -785,20 +785,20 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (write12_special);
   BTOR_RUN_TEST (write13_special);
   BTOR_RUN_TEST (write14_special);
-  BTOR_RUN_TEST (arrayeq1_special);
-  BTOR_RUN_TEST (arrayeq2_special);
-  BTOR_RUN_TEST (arrayeq3_special);
-  BTOR_RUN_TEST (arrayeq4_special);
-  BTOR_RUN_TEST (arrayeq5_special);
-  BTOR_RUN_TEST (arrayeq6_special);
-  BTOR_RUN_TEST (arrayeq7_special);
-  BTOR_RUN_TEST (arrayeq8_special);
-  BTOR_RUN_TEST (arrayeq9_special);
-  BTOR_RUN_TEST (arrayeq10_special);
-  BTOR_RUN_TEST (arrayeq11_special);
-  BTOR_RUN_TEST (arrayeq12_special);
-  BTOR_RUN_TEST (arrayeq13_special);
-  BTOR_RUN_TEST (arrayeq14_special);
+  BTOR_RUN_TEST (ext1_special);
+  BTOR_RUN_TEST (ext2_special);
+  BTOR_RUN_TEST (ext3_special);
+  BTOR_RUN_TEST (ext4_special);
+  BTOR_RUN_TEST (ext5_special);
+  BTOR_RUN_TEST (ext6_special);
+  BTOR_RUN_TEST (ext7_special);
+  BTOR_RUN_TEST (ext8_special);
+  BTOR_RUN_TEST (ext9_special);
+  BTOR_RUN_TEST (ext10_special);
+  BTOR_RUN_TEST (ext11_special);
+  BTOR_RUN_TEST (ext12_special);
+  BTOR_RUN_TEST (ext13_special);
+  BTOR_RUN_TEST (ext14_special);
   BTOR_RUN_TEST (arraycond1_special);
   BTOR_RUN_TEST (arraycond2_special);
   BTOR_RUN_TEST (arraycond3_special);
