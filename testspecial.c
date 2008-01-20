@@ -622,6 +622,12 @@ test_ext20_special ()
 }
 
 static void
+test_ext21_special ()
+{
+  run_unsat_test ("ext21.btor");
+}
+
+static void
 test_arraycond1_special ()
 {
   run_sat_test ("arraycond1.btor");
@@ -841,6 +847,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (ext18_special);
   BTOR_RUN_TEST (ext19_special);
   BTOR_RUN_TEST (ext20_special);
+  BTOR_RUN_TEST (ext21_special);
   BTOR_RUN_TEST (arraycond1_special);
   BTOR_RUN_TEST (arraycond2_special);
   BTOR_RUN_TEST (arraycond3_special);
