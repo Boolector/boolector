@@ -586,6 +586,24 @@ test_ext14_special ()
 }
 
 static void
+test_ext15_special ()
+{
+  run_unsat_test ("ext15.btor");
+}
+
+static void
+test_ext16_special ()
+{
+  run_unsat_test ("ext16.btor");
+}
+
+static void
+test_ext17_special ()
+{
+  run_sat_test ("ext17.btor");
+}
+
+static void
 test_arraycond1_special ()
 {
   run_sat_test ("arraycond1.btor");
@@ -799,6 +817,9 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (ext12_special);
   BTOR_RUN_TEST (ext13_special);
   BTOR_RUN_TEST (ext14_special);
+  BTOR_RUN_TEST (ext15_special);
+  BTOR_RUN_TEST (ext16_special);
+  BTOR_RUN_TEST (ext17_special);
   BTOR_RUN_TEST (arraycond1_special);
   BTOR_RUN_TEST (arraycond2_special);
   BTOR_RUN_TEST (arraycond3_special);
