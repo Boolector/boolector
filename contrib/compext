@@ -1,0 +1,19 @@
+#!/bin/sh
+for file in ../log/ext*.btor
+do
+  boolector $file -rwl0 -ds > temp.smt
+  basefilename=`basename $file`
+  echo -n $basefilename":\tboolector: "
+  res=`boolector temp.smt`
+  if [ "x$res" = xsat ]; then
+    echo -n "  "
+  fi
+  echo -n $res"    z3: "
+  res=`z3 temp.smt | tr -d '\r'`
+  if [ "x$res" = xsat ]; then
+    echo -n "  "
+  fi
+  echo -n $res"    cvc3: "
+  res=`cvc3 -lang smtlib temp.smt`
+  echo $res
+done
