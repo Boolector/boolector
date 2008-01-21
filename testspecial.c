@@ -652,6 +652,12 @@ test_ext25_special ()
 }
 
 static void
+test_ext26_special ()
+{
+  run_unsat_test ("ext26.btor");
+}
+
+static void
 test_arraycond1_special ()
 {
   run_sat_test ("arraycond1.btor");
@@ -876,6 +882,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (ext23_special);
   BTOR_RUN_TEST (ext24_special);
   BTOR_RUN_TEST (ext25_special);
+  BTOR_RUN_TEST (ext26_special);
   BTOR_RUN_TEST (arraycond1_special);
   BTOR_RUN_TEST (arraycond2_special);
   BTOR_RUN_TEST (arraycond3_special);
