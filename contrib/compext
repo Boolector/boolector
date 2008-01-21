@@ -17,3 +17,4 @@ do
   res=`cvc3 -lang smtlib temp.smt`
   echo $res
 done
+rm temp.smt
