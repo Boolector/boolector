@@ -6744,7 +6744,7 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   BtorExpPtrQueue queue;
   BtorExpPtrStack unmark_stack;
   BtorPartialParentIterator it;
-  int found, assignment;
+  int found, assignment, extensionality;
   assert (btor != NULL);
   assert (acc != NULL);
   assert (array != NULL);
@@ -6752,10 +6752,11 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   assert (BTOR_IS_ACC_EXP (acc));
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  found = 0;
-  mm    = btor->mm;
-  index = BTOR_GET_INDEX_ACC_EXP (acc);
-  amgr  = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  found          = 0;
+  extensionality = btor->extensionality;
+  mm             = btor->mm;
+  index          = BTOR_GET_INDEX_ACC_EXP (acc);
+  amgr           = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_QUEUE (queue);
   cur = BTOR_ACC_TARGET_EXP (acc);
@@ -6817,34 +6818,85 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
-    /* enqueue all arrays which are reachable via equality
-     * where equality is set to true by the SAT solver */
-    init_aeq_parent_iterator (&it, cur);
-    while (has_next_parent_aeq_parent_iterator (&it))
+    if (extensionality)
     {
-      cur_aeq = next_parent_aeq_parent_iterator (&it);
-      assert (BTOR_IS_REGULAR_EXP (cur_aeq));
-      if (cur_aeq->reachable && cur_aeq->mark == 0)
+      /* enqueue all arrays which are reachable via equality
+       * where equality is set to true by the SAT solver */
+      init_aeq_parent_iterator (&it, cur);
+      while (has_next_parent_aeq_parent_iterator (&it))
       {
-        /* array equalities are synthesized eagerly */
-        assert (BTOR_IS_SYNTH_EXP (cur_aeq));
-        assert (cur_aeq->sat_both_phases);
-        assert (cur_aeq->len == 1);
-        if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
+        cur_aeq = next_parent_aeq_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_aeq));
+        if (cur_aeq->reachable && cur_aeq->mark == 0)
         {
-          /* we need the other child */
-          if (cur_aeq->e[0] == cur)
-            next = cur_aeq->e[1];
-          else
-            next = cur_aeq->e[0];
-          assert (BTOR_IS_REGULAR_EXP (next));
-          assert (BTOR_IS_ARRAY_EXP (next));
-          if (next->mark == 0)
+          /* array equalities are synthesized eagerly */
+          assert (BTOR_IS_SYNTH_EXP (cur_aeq));
+          assert (cur_aeq->sat_both_phases);
+          assert (cur_aeq->len == 1);
+          if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
           {
-            /* set parent of array equality */
-            cur_aeq->parent = cur;
-            next->parent    = cur_aeq;
-            next->mark      = 1;
+            /* we need the other child */
+            if (cur_aeq->e[0] == cur)
+              next = cur_aeq->e[1];
+            else
+              next = cur_aeq->e[0];
+            assert (BTOR_IS_REGULAR_EXP (next));
+            assert (BTOR_IS_ARRAY_EXP (next));
+            if (next->mark == 0)
+            {
+              /* set parent of array equality */
+              cur_aeq->parent = cur;
+              next->parent    = cur_aeq;
+              next->mark      = 1;
+              BTOR_ENQUEUE (mm, queue, next);
+              BTOR_PUSH_STACK (mm, unmark_stack, next);
+            }
+          }
+        }
+      }
+      /* search upwards in the extensional case */
+      init_acond_parent_iterator (&it, cur);
+      while (has_next_parent_acond_parent_iterator (&it))
+      {
+        next = next_parent_acond_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (next));
+        assert (BTOR_IS_ARRAY_EXP (next));
+        assert (next->simplified == NULL);
+        if (next->reachable && next->mark == 0)
+        {
+          cond       = next->e[0];
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          assert (assignment == 1 || assignment == -1);
+          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          /* search upwards only if array has been selected by the condition */
+          if ((assignment == 1 && cur == next->e[1])
+              || (assignment == -1 && cur == next->e[2]))
+          {
+            next->mark   = 1;
+            next->parent = cur;
+            BTOR_ENQUEUE (mm, queue, next);
+            BTOR_PUSH_STACK (mm, unmark_stack, next);
+          }
+        }
+      }
+      init_write_parent_iterator (&it, cur);
+      while (has_next_parent_write_parent_iterator (&it))
+      {
+        next = next_parent_write_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (next));
+        assert (BTOR_IS_ARRAY_EXP (next));
+        assert (next->simplified == NULL);
+        if (next->reachable && next->mark == 0)
+        {
+          /* search upwards only if write has been synthesized and
+           * assignments to the indices are unequal
+           * */
+          if (BTOR_REAL_ADDR_EXP (next->e[1])->sat_both_phases
+              && compare_assignments (next->e[1], index) != 0)
+          {
+            next->mark   = 1;
+            next->parent = cur;
             BTOR_ENQUEUE (mm, queue, next);
             BTOR_PUSH_STACK (mm, unmark_stack, next);
           }
@@ -7140,12 +7192,13 @@ process_working_stack (Btor *btor,
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
-  int assignment, indices_equal;
+  int assignment, indices_equal, extensionality;
   assert (btor != NULL);
   assert (stack != NULL);
   assert (assignments_changed != NULL);
-  mm   = btor->mm;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  extensionality = btor->extensionality;
+  mm             = btor->mm;
+  amgr           = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   while (!BTOR_EMPTY_STACK (*stack))
   {
     array = BTOR_POP_STACK (*stack);
@@ -7244,31 +7297,79 @@ process_working_stack (Btor *btor,
     assert (array->table != NULL);
     /* insert into hash table */
     btor_insert_in_ptr_hash_table (array->table, index)->data.asPtr = acc;
-    /* propagate pairs wich are reachable via array equality */
-    init_aeq_parent_iterator (&it, array);
-    while (has_next_parent_aeq_parent_iterator (&it))
+    if (extensionality)
     {
-      cur_aeq = next_parent_aeq_parent_iterator (&it);
-      assert (BTOR_IS_REGULAR_EXP (cur_aeq));
-      if (cur_aeq->reachable && cur_aeq->simplified == NULL)
+      /* propagate pairs wich are reachable via array equality */
+      init_aeq_parent_iterator (&it, array);
+      while (has_next_parent_aeq_parent_iterator (&it))
       {
-        assert (BTOR_IS_SYNTH_EXP (cur_aeq));
-        assert (cur_aeq->sat_both_phases);
-        assert (!BTOR_IS_INVERTED_AIG (cur_aeq->av->aigs[0]));
-        assert (!BTOR_IS_CONST_AIG (cur_aeq->av->aigs[0]));
-        assert (BTOR_IS_VAR_AIG (cur_aeq->av->aigs[0]));
-        if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
+        cur_aeq = next_parent_aeq_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_aeq));
+        if (cur_aeq->reachable && cur_aeq->simplified == NULL)
         {
-          /* we need the other child */
-          if (cur_aeq->e[0] == array)
-            next = cur_aeq->e[1];
-          else
-            next = cur_aeq->e[0];
+          assert (BTOR_IS_SYNTH_EXP (cur_aeq));
+          assert (cur_aeq->sat_both_phases);
+          assert (!BTOR_IS_INVERTED_AIG (cur_aeq->av->aigs[0]));
+          assert (!BTOR_IS_CONST_AIG (cur_aeq->av->aigs[0]));
+          assert (BTOR_IS_VAR_AIG (cur_aeq->av->aigs[0]));
+          if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
+          {
+            /* we need the other child */
+            if (cur_aeq->e[0] == array)
+              next = cur_aeq->e[1];
+            else
+              next = cur_aeq->e[0];
+            assert (BTOR_IS_REGULAR_EXP (next));
+            assert (BTOR_IS_ARRAY_EXP (next));
+            assert (next->simplified == NULL);
+            BTOR_PUSH_STACK (mm, *stack, acc);
+            BTOR_PUSH_STACK (mm, *stack, next);
+          }
+        }
+      }
+      /* propagate upwards in the extensional case */
+      init_acond_parent_iterator (&it, array);
+      while (has_next_parent_acond_parent_iterator (&it))
+      {
+        next = next_parent_acond_parent_iterator (&it);
+        if (next->reachable && next->simplified == NULL)
+        {
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
           assert (next->simplified == NULL);
-          BTOR_PUSH_STACK (mm, *stack, acc);
-          BTOR_PUSH_STACK (mm, *stack, next);
+          cond       = next->e[0];
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          assert (assignment == 1 || assignment == -1);
+          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          /* propagate upwards only if array has been selected by the condition
+           */
+          if ((assignment == 1 && array == next->e[1])
+              || (assignment == -1 && array == next->e[2]))
+          {
+            BTOR_PUSH_STACK (mm, *stack, acc);
+            BTOR_PUSH_STACK (mm, *stack, next);
+          }
+        }
+      }
+      init_write_parent_iterator (&it, array);
+      while (has_next_parent_write_parent_iterator (&it))
+      {
+        next = next_parent_write_parent_iterator (&it);
+        if (next->reachable && next->simplified == NULL)
+        {
+          assert (BTOR_IS_REGULAR_EXP (next));
+          assert (BTOR_IS_ARRAY_EXP (next));
+          assert (next->simplified == NULL);
+          *assignments_changed =
+              lazy_synthesize_and_encode_acc_exp (btor, next);
+          if (*assignments_changed) return 0;
+          /* propagate upwards only if assignments to the indices are unequal */
+          if (compare_assignments (next->e[1], index) != 0)
+          {
+            BTOR_PUSH_STACK (mm, *stack, acc);
+            BTOR_PUSH_STACK (mm, *stack, next);
+          }
         }
       }
     }
