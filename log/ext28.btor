@@ -1,0 +1,20 @@
+1 array 1 2
+2 array 1 2
+3 var 2 i
+4 var 2 j
+5 var 2 k
+7 var 1 e1
+8 var 1 e2
+9 write 1 1 3 7
+10 write 1 2 4 8
+11 read 1 1 5
+12 read 1 2 5
+13 ne 1 11 12
+14 ne 1 3 5
+15 ne 1 4 5
+16 eq 1 9 10
+17 and 1 13 14
+18 and 1 15 16
+19 and 1 17 18
+20 root 1 19
+
