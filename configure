@@ -5,6 +5,9 @@ cov=no
 o1=no
 o2=yes
 o3=no
+static=no
+m32=no
+m64=no
 
 while [ $# -gt 0 ]
 do
@@ -15,8 +18,11 @@ do
     -O2) debug=no; cov=no; o1=no; o2=yes; o3=no;;
     -O3) debug=no; cov=no; o1=no; o2=no; o3=yes;;
     -no-opt) o1=no; o2=no; o3=no;;
+    -static) static=yes;;
+    -m32) m32=yes;;
+    -m64) m64=yes;;
     *) cat <<EOF
-*** usage: ./configure [-g][-cov][-O1][-O2][-O3][-no-opt]
+*** usage: ./configure [-g][-cov][-O[1-3]][-no-opt][-static][-m{32,64}]
 EOF
 exit 1
 ;;
@@ -40,6 +46,9 @@ if [ X"$CFLAGS" = X ]; then
   case X"$CC" in
     Xgcc*)
       CFLAGS="$CFLAGS -W -Wall -Wextra"
+      [ $static = yes ] && CFLAGS="$CFLAGS -static"
+      [ $m32 = yes ] && CFLAGS="$CFLAGS -m32"
+      [ $m64 = yes ] && CFLAGS="$CFLAGS -m64"
       if [ $debug = yes ]; then
         CFLAGS="$CFLAGS -g3 -ggdb"
       else
