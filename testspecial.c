@@ -502,6 +502,18 @@ test_write14_special ()
 }
 
 static void
+test_write15_special ()
+{
+  run_sat_test ("write15.btor");
+}
+
+static void
+test_write16_special ()
+{
+  run_unsat_test ("write16.btor");
+}
+
+static void
 test_ext1_special ()
 {
   run_sat_test ("ext1.btor");
@@ -869,6 +881,8 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (write12_special);
   BTOR_RUN_TEST (write13_special);
   BTOR_RUN_TEST (write14_special);
+  BTOR_RUN_TEST (write15_special);
+  BTOR_RUN_TEST (write16_special);
   BTOR_RUN_TEST (ext1_special);
   BTOR_RUN_TEST (ext2_special);
   BTOR_RUN_TEST (ext3_special);
