@@ -6,7 +6,7 @@ while true
 do 
   ((i++))
   rwl=rwl2
-  echo -n "Test $i ($mode, $rwl): "
+  echo -n "Test $i $rwl: "
   btorgen 2> /dev/null > $file 
   boolector -$rwl -rl $refinementlimit $file
   goldenretval=$?
@@ -18,7 +18,7 @@ do
   fi
   for rwl in rwl1 rwl0
   do
-    echo -n "Test $i ($mode, $rwl): "
+    echo -n "Test $i $rwl: "
     boolector -$rwl -rl $refinementlimit $file 
     retval=$?
     if [[ $retval -ne $goldenretval ]]; then
