@@ -5,11 +5,10 @@ refinementlimit=100000
 while true 
 do 
   ((i++))
-  mode=lazy
   rwl=rwl2
   echo -n "Test $i ($mode, $rwl): "
   btorgen 2> /dev/null > $file 
-  boolector --$mode -$rwl -rl $refinementlimit $file
+  boolector -$rwl -rl $refinementlimit $file
   goldenretval=$?
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
@@ -20,20 +19,7 @@ do
   for rwl in rwl1 rwl0
   do
     echo -n "Test $i ($mode, $rwl): "
-    boolector --$mode -$rwl -rl $refinementlimit $file 
-    retval=$?
-    if [[ $retval -ne $goldenretval ]]; then
-      echo "ERROR"
-      cp $file ./error.btor
-      rm -f $file
-      exit
-    fi 
-  done
-  mode=eager
-  for rwl in rwl2 rwl1 rwl0
-  do
-    echo -n "Test $i ($mode, $rwl): "
-    boolector --$mode -$rwl $file 
+    boolector -$rwl -rl $refinementlimit $file 
     retval=$?
     if [[ $retval -ne $goldenretval ]]; then
       echo "ERROR"
