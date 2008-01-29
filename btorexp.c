@@ -7337,13 +7337,16 @@ process_working_stack (Btor *btor,
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
           assert (next->simplified == NULL);
+          *assignments_changed =
+              lazy_synthesize_and_encode_acond_exp (btor, next);
+          if (*assignments_changed) return 0;
           cond       = next->e[0];
           assignment = btor_get_assignment_aig (
               amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
           assert (assignment == 1 || assignment == -1);
           if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-          /* propagate upwards only if array has been selected by the condition
-           */
+          /* propagate upwards only if array has been selected
+           * by the condition */
           if ((assignment == 1 && array == next->e[1])
               || (assignment == -1 && array == next->e[2]))
           {
@@ -7364,7 +7367,8 @@ process_working_stack (Btor *btor,
           *assignments_changed =
               lazy_synthesize_and_encode_acc_exp (btor, next);
           if (*assignments_changed) return 0;
-          /* propagate upwards only if assignments to the indices are unequal */
+          /* propagate upwards only if assignments to the
+           * indices are unequal */
           if (compare_assignments (next->e[1], index) != 0)
           {
             BTOR_PUSH_STACK (mm, *stack, acc);
