@@ -813,6 +813,12 @@ test_substitute4_special ()
   run_sat_test ("substitute4.btor");
 }
 
+static void
+test_upprop1_special ()
+{
+  run_sat_test ("upprop1.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -945,6 +951,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (substitute2_special);
   BTOR_RUN_TEST (substitute3_special);
   BTOR_RUN_TEST (substitute4_special);
+  BTOR_RUN_TEST (upprop1_special);
 }
 
 void
