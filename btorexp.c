@@ -6757,14 +6757,15 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   mm             = btor->mm;
   index          = BTOR_GET_INDEX_ACC_EXP (acc);
   amgr           = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  BTOR_INIT_STACK (unmark_stack);
-  BTOR_INIT_QUEUE (queue);
-  cur = BTOR_ACC_TARGET_EXP (acc);
+  cur            = BTOR_ACC_TARGET_EXP (acc);
   assert (BTOR_IS_REGULAR_EXP (cur));
   assert (BTOR_IS_ARRAY_EXP (cur));
   assert (cur->mark == 0);
   cur->parent = acc;
   cur->mark   = 1;
+
+  BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_QUEUE (queue);
   BTOR_ENQUEUE (mm, queue, cur);
   BTOR_PUSH_STACK (mm, unmark_stack, cur);
   do
@@ -6919,6 +6920,32 @@ extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
+static int
+propagated_upwards (Btor *btor, BtorExp *exp)
+{
+  BtorExp *parent;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (BTOR_IS_ARRAY_EXP (exp) || BTOR_IS_WRITE_EXP (exp)
+          || BTOR_IS_ARRAY_COND_EXP (exp) || BTOR_IS_ARRAY_EQ_EXP (exp));
+  assert (exp->parent != NULL);
+  parent = exp->parent;
+  assert (BTOR_IS_REGULAR_EXP (parent));
+  assert (BTOR_IS_ARRAY_EXP (parent) || BTOR_IS_ACC_EXP (parent)
+          || BTOR_IS_ARRAY_COND_EXP (parent) || BTOR_IS_ARRAY_EQ_EXP (parent));
+  if (BTOR_IS_WRITE_EXP (exp) && exp->e[0] == parent) return 1;
+  if (BTOR_IS_ARRAY_COND_EXP (exp)
+      && (exp->e[1] == parent || exp->e[2] == parent))
+    return 1;
+  if (BTOR_IS_ARRAY_EQ_EXP (exp))
+  {
+    assert (exp->e[0] == parent || exp->e[1] == parent);
+    return 1;
+  }
+  return 0;
+}
+
 /* Resolves conflict across multiple levels (if necessary)
  * 'array' is the array where the conflict has been detected
  */
@@ -6926,11 +6953,10 @@ static void
 resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
 {
   BtorExpPtrStack writes, aeqs, aconds_sel1, aconds_sel2;
-  BtorExp *cur, *cond;
+  BtorExp *cur, *cond, *prev;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   int assignment;
-  int followed_aeq;
   BtorPtrHashTable *table;
   assert (btor != NULL);
   assert (array != NULL);
@@ -6953,17 +6979,17 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
   table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
   extensionality_bfs (btor, acc1, array);
-  followed_aeq = 0;
-  for (cur = array->parent; cur != acc1; cur = cur->parent)
+  prev = NULL;
+  for (cur = array; cur != acc1; cur = cur->parent)
   {
     assert (cur != NULL);
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_ARRAY_EXP (cur) || BTOR_IS_ARRAY_EQ_EXP (cur)
             || BTOR_IS_ARRAY_COND_EXP (cur) || BTOR_IS_ACC_EXP (cur));
-    /* skip array when we follow array equality */
-    if (followed_aeq)
-      followed_aeq = 0;
-    else
+    if ((prev == NULL && propagated_upwards (btor, cur))
+        || (prev != NULL
+            && !(propagated_upwards (btor, prev)
+                 && !propagated_upwards (btor, cur))))
     {
       if (BTOR_IS_WRITE_EXP (cur))
       {
@@ -6974,7 +7000,6 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
       {
         btor_insert_in_ptr_hash_table (table, cur);
         BTOR_PUSH_STACK (mm, aeqs, cur);
-        followed_aeq = 1;
       }
       else if (BTOR_IS_ARRAY_COND_EXP (cur))
       {
@@ -6994,20 +7019,21 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
         }
       }
     }
+    prev = cur;
   }
   extensionality_bfs (btor, acc2, array);
-  followed_aeq = 0;
-  for (cur = array->parent; cur != acc2; cur = cur->parent)
+  prev = NULL;
+  for (cur = array; cur != acc2; cur = cur->parent)
   {
     assert (cur != NULL);
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_ARRAY_EXP (cur) || BTOR_IS_ARRAY_EQ_EXP (cur)
             || BTOR_IS_ARRAY_COND_EXP (cur) || BTOR_IS_ACC_EXP (cur));
-    assert (cur != array);
-    /* skip array when we follow array equality */
-    if (followed_aeq)
-      followed_aeq = 0;
-    else
+
+    if ((prev == NULL && propagated_upwards (btor, cur))
+        || (prev != NULL
+            && !(propagated_upwards (btor, prev)
+                 && !propagated_upwards (btor, cur))))
     {
       if (BTOR_IS_WRITE_EXP (cur))
       {
@@ -7018,7 +7044,6 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
       {
         if (btor_find_in_ptr_hash_table (table, cur) == NULL)
           BTOR_PUSH_STACK (mm, aeqs, cur);
-        followed_aeq = 1;
       }
       else if (BTOR_IS_ARRAY_COND_EXP (cur))
       {
@@ -7040,6 +7065,7 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
         }
       }
     }
+    prev = cur;
   }
   btor_delete_ptr_hash_table (table);
   encode_mccarthy_ext_constraint (btor,
