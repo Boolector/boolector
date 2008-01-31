@@ -112,3 +112,8 @@ rw18 -rwl0 -o log/rw18.log log/rw18.btor
 rw18 -rwl1 -o log/rw18.log log/rw18.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
+swapmem002se -o log/swapmem002se.log log/swapmem002se.smt
+swapmem002ue -o log/swapmem002ue.log log/swapmem002ue.smt
+wchains002se -o log/wchains002se.log log/wchains002se.smt
+wchains002ue -o log/wchains002ue.log log/wchains002ue.smt
+dubreva002ue -o log/dubreva002ue.log log/dubreva002ue.smt
