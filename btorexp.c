@@ -95,7 +95,8 @@ struct Btor
     int vreads;                               /* lazy */
     int linear_equations;                     /* lazy and eager */
     int sat_calls;                            /* lazy */
-    struct ConstraintStats constraints;       /* lazy and eager */
+    long long int lemmas_size_sum;
+    struct ConstraintStats constraints; /* lazy and eager */
     struct
     {
       struct ConstraintStats constraints;
@@ -1174,6 +1175,11 @@ encode_mccarthy_ext_constraint (Btor *btor,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
+
+  btor->stats.lemmas_size_sum +=
+      BTOR_COUNT_STACK (*writes) + BTOR_COUNT_STACK (*aeqs)
+      + BTOR_COUNT_STACK (*aconds_sel1) + BTOR_COUNT_STACK (*aconds_sel2) + 2;
+
   exp_pair_cnf_diff_id_table = btor->exp_pair_cnf_diff_id_table;
   exp_pair_cnf_eq_id_table   = btor->exp_pair_cnf_eq_id_table;
   mm                         = btor->mm;
@@ -6168,14 +6174,17 @@ btor_print_stats_btor (Btor *btor)
   if (btor->mode == BTOR_LAZY_MODE)
   {
     print_verbose_msg ("assumptions: %u", btor->assumptions->count);
-    print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
-    print_verbose_msg ("linear constraint equations: %d",
-                       btor->stats.linear_equations);
+    print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
     print_verbose_msg ("read-read conflicts: %d",
                        btor->stats.read_read_conflicts);
     print_verbose_msg ("read-write conflicts: %d",
                        btor->stats.read_write_conflicts);
-    print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
+    print_verbose_msg ("average size of lemmas: %.1f",
+                       (double) btor->stats.lemmas_size_sum
+                           / (double) btor->stats.refinements);
+    print_verbose_msg ("linear constraint equations: %d",
+                       btor->stats.linear_equations);
+    print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
     print_verbose_msg ("synthesis assignment inconsistencies: %d",
                        btor->stats.synthesis_assignment_inconsistencies);
   }
