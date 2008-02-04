@@ -143,70 +143,72 @@ BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
 BtorExp *btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower);
 
 /* Unsigned extension of len bits.
+ * len >= 0
  * len(result) = len(exp) + len
  */
 BtorExp *btor_uext_exp (Btor *btor, BtorExp *exp, int len);
 
 /* Signed extension of len bits (keep sign).
+ * len >= 0
  * len(result) = len(exp) + len
  */
 BtorExp *btor_sext_exp (Btor *btor, BtorExp *exp, int len);
 
-/* Logical OR.
+/* Logical and bit-vector OR.
  * len(e1) = len(e2)
  * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_or_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical IMPLICATION.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
  */
 BtorExp *btor_implies_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
 /* Logical EQUIVALENCE.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e1) = len(e2) = 1
+ * len(result) = 1
  */
 BtorExp *btor_iff_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Logical XOR.
+/* Logical and bit-vector XOR.
  * len(e1) = len(e2)
  * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_xor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Logical XNOR.
+/* Logical and bit-vector XNOR.
  * len(e1) = len(e2)
  * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_xnor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Logical AND.
+/* Logical and bit-vector AND.
  * len(e1) = len(e2)
  * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_and_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Logical NAND.
+/* Logical and bit-vector NAND.
  * len(e1) = len(e2)
  * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_nand_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Logical NOR.
+/* Logical and bit-vector NOR.
  * len(e1) = len(e2)
  * len(result) = len(e1) = len(e2)
  */
 BtorExp *btor_nor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Equality.
+/* bit-vector equality.
  * len(e1) = len(e2)
  * len(result) = 1
  */
 BtorExp *btor_eq_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Inequality.
+/* bit-vector inequality.
  * len(e1) = len(e2)
  * len(result) = 1
  */
