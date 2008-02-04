@@ -76,9 +76,8 @@ struct Btor
   int verbosity;
   int extensionality;
   int vread_index_id;
-  BtorMode mode;
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for lazy McCarthy */
-  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for lazy McCarthy */
+  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for McCarthy encoding */
+  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for McCarthy encoding */
   BtorPtrHashTable *new_constraints;
   BtorPtrHashTable *processed_constraints;
   BtorPtrHashTable *synthesized_constraints;
@@ -86,18 +85,20 @@ struct Btor
   /* statistics */
   struct
   {
-    int refinements;                          /* lazy */
-    int synthesis_assignment_inconsistencies; /* lazy */
-    int read_read_conflicts;                  /* lazy */
-    int read_write_conflicts;                 /* lazy */
-    int var_substitutions;                    /* lazy and eager */
-    int array_substitutions;                  /* lazy and eager */
-    int vreads;                               /* lazy */
-    int linear_equations;                     /* lazy and eager */
-    int sat_calls;                            /* lazy */
+    int refinements; /* number of iterative refinements */
+    /* number of restarts as a result of lazy synthesis */
+    int synthesis_assignment_inconsistencies;
+    int read_read_conflicts;  /* number of read-read conflicts */
+    int read_write_conflicts; /* number of read-write conflicts */
+    /* number of variables that have been substituted */
+    int var_substitutions;
+    /* number of array variables that have been substituted */
+    int array_substitutions;
+    int vreads;                     /* number of virtual reads */
+    int linear_equations;           /* number of linear equations */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    struct ConstraintStats constraints; /* lazy and eager */
+    struct ConstraintStats constraints; /* constraint statistics */
     struct
     {
       struct ConstraintStats constraints;
@@ -159,10 +160,6 @@ static BtorExp *read_exp (Btor *, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
 static void synthesize_exp (Btor *, BtorExp *, BtorPtrHashTable *);
 static void synthesize_array_equality (Btor *, BtorExp *);
-static BtorExp *eq_except_I_exp (Btor *,
-                                 BtorExp *,
-                                 BtorExp *,
-                                 BtorExpPtrStack *);
 static void inc_exp_ref_counter (BtorExp *);
 static void enlarge_exp_unique_table (Btor *);
 
@@ -909,239 +906,21 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
 /* BtorExp                                                                */
 /*------------------------------------------------------------------------*/
 
-/* Encodes Ackermann constraint of the form index i = index j =>
- * value a = value b directly into CNF.
- * Let n be the number of bits of the indices
- * and m the number of bits of the values:
- * i = j => a = b
- * (i = j => e) ^ (e => a = b)
- * ((i != j) v e) ^ (not e v (a = b))
- * forall (0 <= k < n) (i_k v j_k v !d_k) ^ (!i_k v !j_k v !d_k)) ^
- * linking clause: forall (0 <= k < n) (d_k) v e) ^
- * forall (0 <= k < m) ((!e v a_k v !b_k) ^ (!e v !a_k v b_k))
- *
- * This function is called in eager read mode only. We have to check
- * if we have to encode a constraint at all. For example if we are in eager
- * mode and the indices are constants and not equal, then we do not have
- * to encode a constraint.
- *
- * If 'additional_e' is not zero, then it is negatively added to the
- * linking clause.
- *
- */
-static void
-encode_ackermann_constraint_eagerly (Btor *btor,
-                                     BtorExp *i,
-                                     BtorExp *j,
-                                     BtorExp *a,
-                                     BtorExp *b,
-                                     int additional_e)
-{
-  BtorMemMgr *mm;
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
-  BtorAIGVec *av_i, *av_j, *av_a, *av_b;
-  BtorAIG *aig1, *aig2;
-  BtorIntStack diffs;
-  int k, len_a_b, len_i_j, d_k, e;
-  int has_inverse_bit_i_j, is_equal_i_j, is_equal_a_b;
-  int i_k = 0;
-  int j_k = 0;
-  int a_k = 0;
-  int b_k = 0;
-  assert (btor != NULL);
-  assert (i != NULL);
-  assert (j != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (btor->mode == BTOR_EAGER_MODE);
-  mm    = btor->mm;
-  avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-  av_i  = BTOR_REAL_ADDR_EXP (i)->av;
-  av_j  = BTOR_REAL_ADDR_EXP (j)->av;
-  av_a  = BTOR_REAL_ADDR_EXP (a)->av;
-  av_b  = BTOR_REAL_ADDR_EXP (b)->av;
-  assert (av_i != NULL);
-  assert (av_j != NULL);
-  assert (av_a != NULL);
-  assert (av_b != NULL);
-  assert (av_a->len == av_b->len);
-  assert (av_i->len == av_j->len);
-  len_a_b = av_a->len;
-  len_i_j = av_i->len;
-  /* check if a and b have equal AIGs */
-  is_equal_a_b = 1;
-  for (k = 0; k < len_a_b; k++)
-  {
-    if (BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k])
-        != BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]))
-    {
-      is_equal_a_b = 0;
-      break;
-    }
-  }
-  /* check if i and j have equal AIGs */
-  is_equal_i_j = 1;
-  for (k = 0; k < len_i_j; k++)
-  {
-    if (BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k])
-        != BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]))
-    {
-      is_equal_i_j = 0;
-      break;
-    }
-  }
-  has_inverse_bit_i_j = 0;
-  for (k = 0; k < len_i_j; k++)
-  {
-    if ((((unsigned long int) BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]))
-         ^ ((unsigned long int) BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k])))
-        == 1ul)
-    {
-      has_inverse_bit_i_j = 1;
-      break;
-    }
-  }
-  if (is_equal_a_b || has_inverse_bit_i_j)
-  {
-    /* (i = j => TRUE) <=> TRUE
-     * (FALSE => a = b) <=> TRUE
-     */
-    return;
-  }
-  /* skip i = j part if i and j are equal:
-   * W => a = b  <=>  a = b
-   */
-  if (!is_equal_i_j)
-  {
-    if (!BTOR_REAL_ADDR_EXP (i)->sat_both_phases)
-    {
-      btor_aigvec_to_sat_both_phases (avmgr, av_i);
-      BTOR_REAL_ADDR_EXP (i)->sat_both_phases = 1;
-    }
-    if (!BTOR_REAL_ADDR_EXP (j)->sat_both_phases)
-    {
-      btor_aigvec_to_sat_both_phases (avmgr, av_j);
-      BTOR_REAL_ADDR_EXP (j)->sat_both_phases = 1;
-    }
-    BTOR_INIT_STACK (diffs);
-    for (k = 0; k < len_i_j; k++)
-    {
-      aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
-      aig2 = BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]);
-      if (!BTOR_IS_CONST_AIG (aig1))
-      {
-        i_k = BTOR_GET_CNF_ID_AIG (aig1);
-        assert (i_k != 0);
-      }
-      if (!BTOR_IS_CONST_AIG (aig2))
-      {
-        j_k = BTOR_GET_CNF_ID_AIG (aig2);
-        assert (j_k != 0);
-      }
-      /* The bits cannot be the inverse of each other.
-       * We check this at the beginning of the function.
-       */
-      assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2)) != 1ul);
-      d_k = btor_next_cnf_id_sat_mgr (smgr);
-      assert (d_k != 0);
-      BTOR_PUSH_STACK (mm, diffs, d_k);
-      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
-      {
-        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, i_k);
-        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, j_k);
-        btor_add_sat (smgr, -d_k);
-        btor_add_sat (smgr, 0);
-      }
-      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
-      {
-        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -i_k);
-        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -j_k);
-        btor_add_sat (smgr, -d_k);
-        btor_add_sat (smgr, 0);
-      }
-    }
-    while (!BTOR_EMPTY_STACK (diffs))
-    {
-      k = BTOR_POP_STACK (diffs);
-      assert (k != 0);
-      btor_add_sat (smgr, k);
-    }
-    BTOR_RELEASE_STACK (mm, diffs);
-  }
-  e = btor_next_cnf_id_sat_mgr (smgr);
-  assert (e != 0);
-  btor_add_sat (smgr, e);
-  if (additional_e != 0) btor_add_sat (smgr, -additional_e);
-  btor_add_sat (smgr, 0);
-  if (!BTOR_REAL_ADDR_EXP (a)->sat_both_phases)
-  {
-    btor_aigvec_to_sat_both_phases (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->sat_both_phases = 1;
-  }
-  if (!BTOR_REAL_ADDR_EXP (b)->sat_both_phases)
-  {
-    btor_aigvec_to_sat_both_phases (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->sat_both_phases = 1;
-  }
-  for (k = 0; k < len_a_b; k++)
-  {
-    aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
-    aig2 = BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]);
-    if (!BTOR_IS_CONST_AIG (aig1))
-    {
-      a_k = BTOR_GET_CNF_ID_AIG (aig1);
-      assert (a_k != 0);
-    }
-    if (!BTOR_IS_CONST_AIG (aig2))
-    {
-      b_k = BTOR_GET_CNF_ID_AIG (aig2);
-      assert (b_k != 0);
-    }
-    /* if AIGs are equal then clauses are satisfied */
-    if (aig1 != aig2)
-    {
-      if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
-      {
-        btor_add_sat (smgr, -e);
-        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, a_k);
-        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, -b_k);
-        btor_add_sat (smgr, 0);
-      }
-      if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
-      {
-        btor_add_sat (smgr, -e);
-        if (!BTOR_IS_CONST_AIG (aig1)) btor_add_sat (smgr, -a_k);
-        if (!BTOR_IS_CONST_AIG (aig2)) btor_add_sat (smgr, b_k);
-        btor_add_sat (smgr, 0);
-      }
-    }
-  }
-}
-
-/* This function is used to encode constraints of the form
- * array equality 1 ^ ... ^ i != k1 ^ i != k2 ^ ... ^ i != kn ^ i = j => a = b
+/* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
- * The stack 'aeqs' contains intermediate array equalities (true)
- * The indices of the writes represent k.
- *
- * This function is called in lazy mode only. Thus, We have to encode a
- * constraint in every case, because a conflict must have been detected
- * before.
+ * The stack 'aeqs' contains intermediate array equalities (true).
+ * The stacks 'aconds' constain intermediate array conditionals.
  */
 static void
-encode_mccarthy_ext_constraint (Btor *btor,
-                                BtorExpPtrStack *writes,
-                                BtorExpPtrStack *aeqs,
-                                BtorExpPtrStack *aconds_sel1,
-                                BtorExpPtrStack *aconds_sel2,
-                                BtorExp *i,
-                                BtorExp *j,
-                                BtorExp *a,
-                                BtorExp *b)
+lemma_on_demand (Btor *btor,
+                 BtorExpPtrStack *writes,
+                 BtorExpPtrStack *aeqs,
+                 BtorExpPtrStack *aconds_sel1,
+                 BtorExpPtrStack *aconds_sel2,
+                 BtorExp *i,
+                 BtorExp *j,
+                 BtorExp *a,
+                 BtorExp *b)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -1562,7 +1341,7 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   len = read1->len;
 
   /* we do not need to hash the diffs as we never use
-   * value1 != value2 in a lazy constraint read encoding */
+   * value1 != value2 in a lemma on demand */
 
   for (k = 0; k < len; k++)
   {
@@ -1611,56 +1390,6 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   btor_add_sat (smgr, e);
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, diffs);
-}
-
-/* Encodes read constraint of one array eagerly by adding all
- * read constraints with the reads encoded so far.
- */
-static void
-encode_read_consistency_array_eagerly (Btor *btor, BtorExp *array)
-{
-  BtorExp *cur_i, *cur_j;
-  BtorPartialParentIterator it_i, it_j;
-  assert (btor != NULL);
-  assert (array != NULL);
-  assert (BTOR_IS_REGULAR_EXP (array));
-  assert (BTOR_IS_ARRAY_EXP (array));
-  assert (array->reachable);
-  assert (btor->mode == BTOR_EAGER_MODE);
-  init_read_parent_iterator (&it_i, array);
-  while (has_next_parent_read_parent_iterator (&it_i))
-  {
-    cur_i = next_parent_read_parent_iterator (&it_i);
-    assert (BTOR_IS_REGULAR_EXP (cur_i));
-    if (cur_i->reachable || cur_i->vread)
-    {
-      it_j = it_i;
-      while (has_next_parent_read_parent_iterator (&it_j))
-      {
-        cur_j = next_parent_read_parent_iterator (&it_j);
-        assert (BTOR_IS_REGULAR_EXP (cur_j));
-        if (cur_j->reachable || cur_j->vread)
-          encode_ackermann_constraint_eagerly (
-              btor, cur_i->e[1], cur_j->e[1], cur_i, cur_j, 0);
-      }
-    }
-  }
-}
-
-static void
-encode_read_consistency_all_arrays_eagerly (Btor *btor)
-{
-  BtorExp *cur;
-  BtorPtrHashBucket *bucket;
-  assert (btor != NULL);
-  assert (btor->mode == BTOR_EAGER_MODE);
-  for (bucket = btor->arrays->first; bucket; bucket = bucket->next)
-  {
-    cur = bucket->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    if (cur->reachable) encode_read_consistency_array_eagerly (btor, cur);
-  }
 }
 
 static BtorExp *
@@ -2132,7 +1861,6 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
-  assert (btor->mode == BTOR_LAZY_MODE);
   /* we need aeq and acond next and prev fields */
   BTOR_CNEW (btor->mm, exp);
   exp->kind  = BTOR_AEQ_EXP;
@@ -2145,192 +1873,6 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   connect_child_exp (btor, exp, e0, 0);
   connect_child_exp (btor, exp, e1, 1);
   return exp;
-}
-
-static int
-compare_ptr_qsort (const void *a, const void *b)
-{
-  void *p = *(void **) a;
-  void *q = *(void **) b;
-  return p - q;
-}
-
-static int
-equal_I (BtorExpPtrStack *I1, BtorExpPtrStack *I2)
-{
-  BtorExp **p, **q;
-  assert (I1 != NULL);
-  assert (I2 != NULL);
-  if (BTOR_COUNT_STACK (*I1) != BTOR_COUNT_STACK (*I2)) return 0;
-  p = I1->start;
-  q = I2->start;
-  while (p != I1->top)
-    if (*p++ != *q++) return 0;
-  return 1;
-}
-
-static BtorExp **
-find_aeq_except_exp (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExpPtrStack *I)
-{
-  BtorExp *cur, *temp, **result;
-  BtorExp **p;
-  unsigned int hash;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (I != NULL);
-  assert (BTOR_IS_REGULAR_EXP (e0));
-  assert (BTOR_IS_REGULAR_EXP (e1));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e0));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e1));
-  hash = (unsigned int) e0->id + (unsigned int) e1->id;
-  for (p = I->start; p != I->top; p++)
-    hash += (unsigned int) BTOR_REAL_ADDR_EXP (*p)->id;
-  hash   = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (btor->table.size - 1);
-  result = btor->table.chains + hash;
-  cur    = *result;
-  if (e1->id < e0->id)
-  {
-    temp = e0;
-    e0   = e1;
-    e1   = temp;
-  }
-  while (cur != NULL)
-  {
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->kind == BTOR_AEQ_EXCEPT_EXP && cur->e[0] == e0 && cur->e[1] == e1
-        && equal_I (cur->I, I))
-      break;
-    else
-    {
-      result = &cur->next;
-      cur    = *result;
-    }
-  }
-
-  return result;
-}
-
-static BtorExp *
-new_aeq_except_exp_node (Btor *btor,
-                         BtorExp *e0,
-                         BtorExp *e1,
-                         BtorExpPtrStack *I)
-{
-  BtorExp *exp, **cur;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (I != NULL);
-  assert (BTOR_IS_REGULAR_EXP (e0));
-  assert (BTOR_IS_REGULAR_EXP (e1));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e0));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e1));
-  BTOR_CNEW (btor->mm, exp);
-  exp->kind  = BTOR_AEQ_EXCEPT_EXP;
-  exp->bytes = sizeof *exp;
-  exp->len   = 1;
-  BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
-  exp->id   = btor->id++;
-  exp->refs = 1u;
-  exp->btor = btor;
-  exp->I    = I;
-  exp->e[0] = e0;
-  exp->e[1] = e1;
-  for (cur = I->start; cur != I->top; cur++)
-    exp->hash_I += (unsigned int) BTOR_REAL_ADDR_EXP (*cur)->id;
-  connect_child_exp (btor, exp, e0, 0);
-  connect_child_exp (btor, exp, e1, 1);
-  return exp;
-}
-
-static BtorExp *
-aeq_except_exp (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExpPtrStack *I)
-{
-  BtorExp *lambda, *read0, *read1, *temp, *index, **lookup, **cur, **dest;
-  BtorExp *constraint, *eq, *exp;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (I != NULL);
-  assert (BTOR_IS_REGULAR_EXP (e0));
-  assert (BTOR_IS_REGULAR_EXP (e1));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e0));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e1));
-  assert (e0->simplified == NULL);
-  assert (e1->simplified == NULL);
-
-  /* sort I */
-  qsort (I->start, BTOR_COUNT_STACK (*I), sizeof *I->start, compare_ptr_qsort);
-  dest = I->start;
-  for (cur = I->start; cur != I->top; cur++)
-  {
-    index = *cur;
-    if (cur == I->start || cur[-1] != index)
-      *dest++ = index;
-    else
-      release_exp (btor, index);
-  }
-  I->top = dest;
-
-  lookup = find_aeq_except_exp (btor, e0, e1, I);
-  if (*lookup == NULL)
-  {
-    if (btor->table.num_elements == btor->table.size
-        && btor_log_2_util (btor->table.size) < BTOR_EXP_UNIQUE_TABLE_LIMIT)
-    {
-      enlarge_exp_unique_table (btor);
-      lookup = find_aeq_except_exp (btor, e0, e1, I);
-    }
-    if (e1->id < e0->id)
-    {
-      temp = e0;
-      e0   = e1;
-      e1   = temp;
-    }
-    exp     = new_aeq_except_exp_node (btor, e0, e1, I);
-    *lookup = exp;
-    inc_exp_ref_counter (e0);
-    inc_exp_ref_counter (e1);
-    assert (btor->table.num_elements < INT_MAX);
-    btor->table.num_elements++;
-    (*lookup)->unique = 1;
-
-    lambda      = btor_var_exp (btor, e0->index_len, "vindex");
-    read0       = read_exp (btor, e0, lambda);
-    read1       = read_exp (btor, e1, lambda);
-    exp->vreads = new_exp_pair (btor, read0, read1);
-    constraint  = eq_exp (btor, read0, read1);
-    for (cur = I->start; cur != I->top; cur++)
-    {
-      eq   = eq_exp (btor, lambda, *cur);
-      temp = BTOR_INVERT_EXP (
-          and_exp (btor, BTOR_INVERT_EXP (constraint), BTOR_INVERT_EXP (eq)));
-      release_exp (btor, constraint);
-      constraint = temp;
-      release_exp (btor, eq);
-    }
-    temp = eq_exp (btor, exp, constraint);
-    release_exp (btor, constraint);
-    constraint = temp;
-    add_constraint (btor, constraint);
-    release_exp (btor, constraint);
-    release_exp (btor, read0);
-    release_exp (btor, read1);
-    release_exp (btor, lambda);
-    assert (BTOR_IS_REGULAR_EXP (exp));
-    btor_insert_in_ptr_hash_table (btor->aeqs, exp);
-    return exp;
-  }
-  else
-  {
-    for (cur = I->start; cur != I->top; cur++) release_exp (btor, *cur);
-    BTOR_RELEASE_STACK (btor->mm, *I);
-    BTOR_DELETE (btor->mm, I);
-    inc_exp_ref_counter (*lookup);
-  }
-  assert (BTOR_IS_REGULAR_EXP (*lookup));
-  return *lookup;
 }
 
 static BtorExp *
@@ -3718,110 +3260,10 @@ btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
-rewrite_aeq_acond_eagerly (Btor *btor, BtorExp *cond, BtorExp *array)
-{
-  BtorExp *eq_left, *eq_right, *result;
-  assert (BTOR_IS_REGULAR_EXP (cond));
-  assert (BTOR_IS_REGULAR_EXP (array));
-  assert (BTOR_IS_ARRAY_COND_EXP (cond));
-  assert (BTOR_IS_ARRAY_EXP (array));
-  eq_left  = eq_exp (btor, cond->e[1], array);
-  eq_right = eq_exp (btor, cond->e[2], array);
-  result   = cond_exp (btor, cond->e[0], eq_left, eq_right);
-  release_exp (btor, eq_left);
-  release_exp (btor, eq_right);
-  return result;
-}
-
-static BtorExp *
-eq_except_I_write_exp (Btor *btor,
-                       BtorExp *write,
-                       BtorExp *array,
-                       BtorExpPtrStack *I)
-{
-  BtorExp *temp, *eq, *result, *i, **cur;
-  assert (btor != NULL);
-  assert (write != NULL);
-  assert (array != NULL);
-  assert (I != NULL);
-  assert (BTOR_IS_REGULAR_EXP (write));
-  assert (BTOR_IS_REGULAR_EXP (array));
-  assert (BTOR_IS_WRITE_EXP (write));
-  assert (BTOR_IS_ARRAY_EXP (array));
-  i      = write->e[1];
-  temp   = read_exp (btor, array, i);
-  result = eq_exp (btor, temp, write->e[2]);
-  release_exp (btor, temp);
-
-  for (cur = I->start; cur != I->top; cur++)
-  {
-    eq   = eq_exp (btor, i, *cur);
-    temp = or_exp (btor, result, eq);
-    release_exp (btor, result);
-    result = temp;
-    release_exp (btor, eq);
-  }
-
-  BTOR_PUSH_STACK (btor->mm, *I, copy_exp (btor, i));
-  eq   = eq_except_I_exp (btor, write->e[0], array, I);
-  temp = and_exp (btor, result, eq);
-  release_exp (btor, result);
-  result = temp;
-  release_exp (btor, eq);
-  return result;
-}
-
-static BtorExp *
-eq_except_I_atomic_exp (Btor *btor,
-                        BtorExp *atomic1,
-                        BtorExp *atomic2,
-                        BtorExpPtrStack *I)
-{
-  BtorExp *result, **temp;
-  assert (btor != NULL);
-  assert (atomic1 != NULL);
-  assert (atomic2 != NULL);
-  assert (I != NULL);
-  assert (BTOR_IS_REGULAR_EXP (atomic1));
-  assert (BTOR_IS_REGULAR_EXP (atomic2));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (atomic1));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (atomic2));
-  if (atomic1 == atomic2)
-  {
-    for (temp = I->start; temp != I->top; temp++) release_exp (btor, *temp);
-    BTOR_RELEASE_STACK (btor->mm, *I);
-    BTOR_DELETE (btor->mm, I);
-    return true_exp (btor);
-  }
-  result = aeq_except_exp (btor, atomic1, atomic2, I);
-  return result;
-}
-
-static BtorExp *
-eq_except_I_exp (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExpPtrStack *I)
-{
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (I != NULL);
-  assert (BTOR_IS_REGULAR_EXP (e0));
-  assert (BTOR_IS_REGULAR_EXP (e1));
-  assert (BTOR_IS_ARRAY_EXP (e0));
-  assert (BTOR_IS_ARRAY_EXP (e1));
-  assert (!BTOR_IS_ARRAY_COND_EXP (e0));
-  assert (!BTOR_IS_ARRAY_COND_EXP (e1));
-  if (BTOR_IS_WRITE_EXP (e0)) return eq_except_I_write_exp (btor, e0, e1, I);
-  if (BTOR_IS_WRITE_EXP (e1)) return eq_except_I_write_exp (btor, e1, e0, I);
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (e0) && BTOR_IS_ATOMIC_ARRAY_EXP (e1));
-  return eq_except_I_atomic_exp (btor, e0, e1, I);
-}
-
-static BtorExp *
 eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   BtorExpKind kind;
-  BtorExpPtrStack *I;
 #ifndef NDEBUG
   BtorExp *real_e0, *real_e1;
   int is_array_e0, is_array_e1;
@@ -3846,10 +3288,6 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 #endif
   result = NULL;
   kind   = BTOR_BEQ_EXP;
-  if (btor->mode == BTOR_EAGER_MODE)
-  {
-    if (e0 == e1) return true_exp (btor);
-  }
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
   {
     assert (BTOR_IS_REGULAR_EXP (e0));
@@ -3857,28 +3295,6 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     assert (BTOR_IS_ARRAY_EXP (e0));
     assert (BTOR_IS_ARRAY_EXP (e1));
     kind = BTOR_AEQ_EXP;
-    if (btor->mode == BTOR_EAGER_MODE)
-    {
-      if (BTOR_IS_ARRAY_COND_EXP (e0))
-        return rewrite_aeq_acond_eagerly (btor, e0, e1);
-      if (BTOR_IS_ARRAY_COND_EXP (e1))
-        return rewrite_aeq_acond_eagerly (btor, e1, e0);
-      if (BTOR_IS_WRITE_EXP (e0) || BTOR_IS_WRITE_EXP (e1))
-      {
-        BTOR_NEW (btor->mm, I);
-        BTOR_INIT_STACK (*I);
-        if (BTOR_IS_WRITE_EXP (e0)) return eq_except_I_exp (btor, e0, e1, I);
-        if (BTOR_IS_WRITE_EXP (e1)) return eq_except_I_exp (btor, e1, e0, I);
-      }
-    }
-  }
-  if (btor->mode == BTOR_EAGER_MODE
-      && BTOR_IS_ATOMIC_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0))
-      && BTOR_IS_ATOMIC_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)))
-  {
-    BTOR_NEW (btor->mm, I);
-    BTOR_INIT_STACK (*I);
-    return eq_except_I_atomic_exp (btor, e0, e1, I);
   }
   if (btor->rewrite_level > 0)
     result = rewrite_exp (btor, kind, e0, e1, NULL, 0, 0);
@@ -5126,11 +4542,7 @@ check_equal_const (Btor *btor, BtorExp *exp1, BtorExp *exp2)
 static BtorExp *
 read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
-  BtorExpPtrStack stack, unmark_stack;
-  BtorPtrHashTable *results;
-  BtorPtrHashBucket *bucket;
-  BtorExp *result, *eq, *cur, *write_index, *left, *right;
-  BtorExp *real_write_index, *real_read_index, *cur_array;
+  BtorExp *real_write_index, *real_read_index, *cur_array, *write_index;
   int propagate_down, propagations;
   BtorMemMgr *mm;
   assert (btor != NULL);
@@ -5145,174 +4557,73 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
   mm = btor->mm;
-  if (btor->mode == BTOR_EAGER_MODE)
+  if (BTOR_IS_WRITE_EXP (e_array))
   {
-    if (BTOR_IS_WRITE_EXP (e_array) || BTOR_IS_ARRAY_COND_EXP (e_array))
+    write_index = e_array->e[1];
+    /* if read index is equal write index, then return write value */
+    if (e_index == write_index
+        || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e_index))
+            && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (write_index))
+            && check_equal_const (btor, e_index, write_index)))
+      return copy_exp (btor, e_array->e[2]);
+    /* we need this so x + 0 is rewritten into x */
+    if (btor->rewrite_level > 0)
     {
-      results = btor_new_ptr_hash_table (
-          mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
-      BTOR_INIT_STACK (stack);
-      BTOR_INIT_STACK (unmark_stack);
-      BTOR_PUSH_STACK (mm, stack, e_array);
+      real_read_index = BTOR_REAL_ADDR_EXP (e_index);
+      cur_array       = e_array;
+      assert (BTOR_IS_REGULAR_EXP (cur_array));
+      assert (BTOR_IS_ARRAY_EXP (cur_array));
+      propagations = 0;
+      /* ASSUMPTION: constants are UNIQUELY hashed */
       do
       {
-        cur = BTOR_POP_STACK (stack);
-        assert (BTOR_IS_REGULAR_EXP (cur));
-        assert (BTOR_IS_ARRAY_EXP (cur));
-        assert (cur->array_mark >= 0);
-        assert (cur->array_mark <= 2);
-
-        if (cur->array_mark == 2) continue;
-
-        if (cur->array_mark == 0)
+        assert (BTOR_IS_WRITE_EXP (cur_array));
+        write_index = cur_array->e[1];
+        /* indices are equal */
+        if (e_index == write_index
+            || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e_index))
+                && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (write_index))
+                && check_equal_const (btor, e_index, write_index)))
+          return copy_exp (btor, cur_array->e[2]);
+        real_write_index = BTOR_REAL_ADDR_EXP (write_index);
+        propagate_down   = 0;
+        /* constants have to be different here */
+        if ((BTOR_IS_CONST_EXP (real_write_index)
+             && BTOR_IS_CONST_EXP (real_read_index)))
+          propagate_down = 1;
+        else if (real_write_index->kind == BTOR_ADD_EXP
+                 && BTOR_IS_CONST_EXP (
+                        BTOR_REAL_ADDR_EXP (real_write_index->e[0]))
+                 && real_write_index->e[1] == e_index)
+          propagate_down = 1;
+        else if (real_write_index->kind == BTOR_ADD_EXP
+                 && BTOR_IS_CONST_EXP (
+                        BTOR_REAL_ADDR_EXP (real_write_index->e[1]))
+                 && real_write_index->e[0] == e_index)
+          propagate_down = 1;
+        else if (real_read_index->kind == BTOR_ADD_EXP
+                 && BTOR_IS_CONST_EXP (
+                        BTOR_REAL_ADDR_EXP (real_read_index->e[0]))
+                 && real_read_index->e[1] == write_index)
+          propagate_down = 1;
+        else if (real_read_index->kind == BTOR_ADD_EXP
+                 && BTOR_IS_CONST_EXP (
+                        BTOR_REAL_ADDR_EXP (real_read_index->e[1]))
+                 && real_read_index->e[0] == write_index)
+          propagate_down = 1;
+        if (propagate_down)
         {
-          cur->array_mark = 1;
-          BTOR_PUSH_STACK (mm, stack, cur);
-          BTOR_PUSH_STACK (mm, unmark_stack, cur);
-          if (BTOR_IS_WRITE_EXP (cur))
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-          else if (BTOR_IS_ARRAY_COND_EXP (cur))
-          {
-            BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          }
+          cur_array = cur_array->e[0];
+          assert (BTOR_IS_REGULAR_EXP (cur_array));
+          assert (BTOR_IS_ARRAY_EXP (cur_array));
+          propagations++;
         }
-        else if (cur->array_mark == 1)
-        {
-          cur->array_mark = 2;
-          if (BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-          {
-            result = binary_exp (btor, BTOR_READ_EXP, cur, e_index, cur->len);
-            btor_insert_in_ptr_hash_table (results, cur)->data.asPtr = result;
-          }
-          else if (BTOR_IS_WRITE_EXP (cur))
-          {
-            bucket = btor_find_in_ptr_hash_table (results, cur->e[0]);
-            assert (bucket != NULL);
-            result = (BtorExp *) bucket->data.asPtr;
-            assert (result != NULL);
-            eq     = eq_exp (btor, cur->e[1], e_index);
-            result = cond_exp (btor, eq, cur->e[2], result);
-            btor_insert_in_ptr_hash_table (results, cur)->data.asPtr = result;
-            release_exp (btor, eq);
-          }
-          else
-          {
-            assert (BTOR_IS_ARRAY_COND_EXP (cur));
-            bucket = btor_find_in_ptr_hash_table (results, cur->e[2]);
-            assert (bucket != NULL);
-            left = (BtorExp *) bucket->data.asPtr;
-            assert (left != NULL);
-            bucket = btor_find_in_ptr_hash_table (results, cur->e[1]);
-            assert (bucket != NULL);
-            right = (BtorExp *) bucket->data.asPtr;
-            assert (right != NULL);
-            result = cond_exp (btor, cur->e[0], left, right);
-            btor_insert_in_ptr_hash_table (results, cur)->data.asPtr = result;
-          }
-        }
-      } while (!BTOR_EMPTY_STACK (stack));
-      BTOR_RELEASE_STACK (mm, stack);
-
-      /* unmark arrays */
-      while (!BTOR_EMPTY_STACK (unmark_stack))
-      {
-        cur = BTOR_POP_STACK (unmark_stack);
-        assert (BTOR_IS_REGULAR_EXP (cur));
-        assert (BTOR_IS_ARRAY_EXP (cur));
-        cur->array_mark = 0;
-      }
-      BTOR_RELEASE_STACK (mm, unmark_stack);
-
-      /* increment reference counter of result */
-      bucket = btor_find_in_ptr_hash_table (results, e_array);
-      assert (bucket != NULL);
-      result = copy_exp (btor, (BtorExp *) bucket->data.asPtr);
-
-      /* release intermediate results */
-      for (bucket = results->first; bucket != NULL; bucket = bucket->next)
-      {
-        cur = (BtorExp *) bucket->data.asPtr;
-        assert (cur != NULL);
-        assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (cur)));
-        release_exp (btor, cur);
-      }
-      btor_delete_ptr_hash_table (results);
-
-      return result;
-    }
-  }
-  else
-  {
-    assert (btor->mode == BTOR_LAZY_MODE);
-    if (BTOR_IS_WRITE_EXP (e_array))
-    {
-      write_index = e_array->e[1];
-      /* if read index is equal write index, then return write value */
-      if (e_index == write_index
-          || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e_index))
-              && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (write_index))
-              && check_equal_const (btor, e_index, write_index)))
-        return copy_exp (btor, e_array->e[2]);
-      /* we need this so x + 0 is rewritten into x */
-      if (btor->rewrite_level > 0)
-      {
-        real_read_index = BTOR_REAL_ADDR_EXP (e_index);
-        cur_array       = e_array;
-        assert (BTOR_IS_REGULAR_EXP (cur_array));
-        assert (BTOR_IS_ARRAY_EXP (cur_array));
-        propagations = 0;
-        /* ASSUMPTION: constants are UNIQUELY hashed */
-        do
-        {
-          assert (BTOR_IS_WRITE_EXP (cur_array));
-          write_index = cur_array->e[1];
-          /* indices are equal */
-          if (e_index == write_index
-              || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e_index))
-                  && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (write_index))
-                  && check_equal_const (btor, e_index, write_index)))
-            return copy_exp (btor, cur_array->e[2]);
-          real_write_index = BTOR_REAL_ADDR_EXP (write_index);
-          propagate_down   = 0;
-          /* constants have to be different here */
-          if ((BTOR_IS_CONST_EXP (real_write_index)
-               && BTOR_IS_CONST_EXP (real_read_index)))
-            propagate_down = 1;
-          else if (real_write_index->kind == BTOR_ADD_EXP
-                   && BTOR_IS_CONST_EXP (
-                          BTOR_REAL_ADDR_EXP (real_write_index->e[0]))
-                   && real_write_index->e[1] == e_index)
-            propagate_down = 1;
-          else if (real_write_index->kind == BTOR_ADD_EXP
-                   && BTOR_IS_CONST_EXP (
-                          BTOR_REAL_ADDR_EXP (real_write_index->e[1]))
-                   && real_write_index->e[0] == e_index)
-            propagate_down = 1;
-          else if (real_read_index->kind == BTOR_ADD_EXP
-                   && BTOR_IS_CONST_EXP (
-                          BTOR_REAL_ADDR_EXP (real_read_index->e[0]))
-                   && real_read_index->e[1] == write_index)
-            propagate_down = 1;
-          else if (real_read_index->kind == BTOR_ADD_EXP
-                   && BTOR_IS_CONST_EXP (
-                          BTOR_REAL_ADDR_EXP (real_read_index->e[1]))
-                   && real_read_index->e[0] == write_index)
-            propagate_down = 1;
-          if (propagate_down)
-          {
-            cur_array = cur_array->e[0];
-            assert (BTOR_IS_REGULAR_EXP (cur_array));
-            assert (BTOR_IS_ARRAY_EXP (cur_array));
-            propagations++;
-          }
-          else
-            break;
-        } while (BTOR_IS_WRITE_EXP (cur_array)
-                 && propagations < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
-        return binary_exp (
-            btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
-      }
+        else
+          break;
+      } while (BTOR_IS_WRITE_EXP (cur_array)
+               && propagations < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
+      return binary_exp (
+          btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
     }
   }
   return binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
@@ -5472,7 +4783,6 @@ btor_cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
 static BtorExp *
 write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
 {
-  BtorExp *write_left, *write_right, *result;
   assert (btor != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
@@ -5488,18 +4798,6 @@ write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->len == BTOR_REAL_ADDR_EXP (e_value)->len);
   assert (BTOR_REAL_ADDR_EXP (e_value)->len > 0);
-  if (btor->mode == BTOR_EAGER_MODE)
-  {
-    if (BTOR_IS_ARRAY_COND_EXP (e_array))
-    {
-      write_left  = write_exp (btor, e_array->e[1], e_index, e_value);
-      write_right = write_exp (btor, e_array->e[2], e_index, e_value);
-      result      = cond_exp (btor, e_array->e[0], write_left, write_right);
-      release_exp (btor, write_left);
-      release_exp (btor, write_right);
-      return result;
-    }
-  }
   /* if array is a write which writes on the same index we can skip it
    * as we overwrite the value anyhow
    */
@@ -5993,7 +5291,6 @@ btor_new_btor (void)
   btor->valid_assignments          = 1;
   btor->rewrite_level              = 2;
   btor->vread_index_id             = 1;
-  btor->mode                       = BTOR_LAZY_MODE;
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
@@ -6045,16 +5342,6 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
   btor_set_verbosity_aigvec_mgr (avmgr, verbosity);
   btor_set_verbosity_aig_mgr (amgr, verbosity);
   btor_set_verbosity_sat_mgr (smgr, verbosity);
-}
-
-void
-btor_set_mode_btor (Btor *btor, BtorMode mode)
-{
-  BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_set_mode_btor'");
-  BTOR_ABORT_EXP (btor->id != 1,
-                  "'setting mode must be done before adding expressions'");
-  btor->mode = mode;
 }
 
 void
@@ -6174,26 +5461,23 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("array substitutions: %d",
                      btor->stats.array_substitutions);
   print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
-  if (btor->mode == BTOR_LAZY_MODE)
-  {
-    print_verbose_msg ("assumptions: %u", btor->assumptions->count);
-    print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
-    print_verbose_msg ("read-read conflicts: %d",
-                       btor->stats.read_read_conflicts);
-    print_verbose_msg ("read-write conflicts: %d",
-                       btor->stats.read_write_conflicts);
-    print_verbose_msg ("average lemma size: %.1f",
-                       (double) btor->stats.lemmas_size_sum
-                           / (double) btor->stats.refinements);
-    print_verbose_msg ("average linking clause size: %.1f",
-                       (double) btor->stats.lclause_size_sum
-                           / (double) btor->stats.refinements);
-    print_verbose_msg ("linear constraint equations: %d",
-                       btor->stats.linear_equations);
-    print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
-    print_verbose_msg ("synthesis assignment inconsistencies: %d",
-                       btor->stats.synthesis_assignment_inconsistencies);
-  }
+  print_verbose_msg ("assumptions: %u", btor->assumptions->count);
+  print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
+  print_verbose_msg ("read-read conflicts: %d",
+                     btor->stats.read_read_conflicts);
+  print_verbose_msg ("read-write conflicts: %d",
+                     btor->stats.read_write_conflicts);
+  print_verbose_msg (
+      "average lemma size: %.1f",
+      (double) btor->stats.lemmas_size_sum / (double) btor->stats.refinements);
+  print_verbose_msg (
+      "average linking clause size: %.1f",
+      (double) btor->stats.lclause_size_sum / (double) btor->stats.refinements);
+  print_verbose_msg ("linear constraint equations: %d",
+                     btor->stats.linear_equations);
+  print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
+  print_verbose_msg ("synthesis assignment inconsistencies: %d",
+                     btor->stats.synthesis_assignment_inconsistencies);
 }
 
 BtorMemMgr *
@@ -6255,8 +5539,6 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   aeq->av = btor_var_aigvec (avmgr, 1);
   /* generate virtual reads */
   index = vread_index_exp (btor, aeq->e[0]->index_len);
-  if (btor->mode == BTOR_EAGER_MODE) synthesize_exp (btor, index, NULL);
-  /* in lazy mode we synthesize index later (if necessary) */
 
   /* we do not want read optimizations for the virtual
    * reads (e.g. rewriting of reads on array conditionals),
@@ -6279,7 +5561,6 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
     btor->stats.vreads++;
   }
 
-  /* eagerly encode array inequality constraint */
   encode_array_inequality_virtual_reads (btor, aeq);
 
   release_exp (btor, index);
@@ -6336,7 +5617,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashBucket *b;
-  BtorMode mode;
   char *indexed_name;
   const char *name;
   unsigned int count;
@@ -6348,7 +5628,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   assert (btor != NULL);
   assert (exp != NULL);
 
-  mode  = btor->mode;
   mm    = btor->mm;
   avmgr = btor->avmgr;
   count = 0;
@@ -6396,29 +5675,13 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           {
             cur->av = btor_var_aigvec (avmgr, cur->len);
             assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
-            if (mode == BTOR_EAGER_MODE)
-            {
-              /* push index on the stack */
-              BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur->e[0]));
-              /* push array on the stack */
-              BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-            }
-            else
-            {
-              assert (mode == BTOR_LAZY_MODE);
-              assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
-              /* mark children recursively as reachable */
-              set_flags_and_synth_aeq (btor, cur->e[1]);
-              set_flags_and_synth_aeq (btor, cur->e[0]);
-              /* we do not synthesize index as we are
-               * in lazy mode */
-            }
+            assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
+            /* mark children recursively as reachable */
+            set_flags_and_synth_aeq (btor, cur->e[1]);
+            set_flags_and_synth_aeq (btor, cur->e[0]);
           }
           else if (BTOR_IS_WRITE_EXP (cur))
           {
-            /* writes are not reachable in eager mode */
-            assert (mode != BTOR_EAGER_MODE);
             /* set mark flag to explicitly to 2
              * as write has no AIG vector */
             cur->mark = 2;
@@ -6426,8 +5689,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             set_flags_and_synth_aeq (btor, cur->e[2]);
             set_flags_and_synth_aeq (btor, cur->e[1]);
             set_flags_and_synth_aeq (btor, cur->e[0]);
-            /* we do not synthesize index and value
-             * as we are in lazy mode */
           }
           else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
@@ -6435,17 +5696,9 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             /* generate virtual reads and create AIG
              * variable for array equality */
             synthesize_array_equality (btor, cur);
-            if (mode == BTOR_EAGER_MODE)
-            {
-              assert (0);
-            }
-            else
-            {
-              assert (mode == BTOR_LAZY_MODE);
-              /* mark children recursively as reachable */
-              set_flags_and_synth_aeq (btor, cur->e[1]);
-              set_flags_and_synth_aeq (btor, cur->e[0]);
-            }
+            /* mark children recursively as reachable */
+            set_flags_and_synth_aeq (btor, cur->e[1]);
+            set_flags_and_synth_aeq (btor, cur->e[0]);
           }
           else
           {
@@ -6461,7 +5714,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             else
             {
-              assert (!BTOR_IS_ARRAY_COND_EXP (cur) || mode != BTOR_EAGER_MODE);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[2]);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
@@ -7083,15 +6335,15 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
     prev = cur;
   }
   btor_delete_ptr_hash_table (table);
-  encode_mccarthy_ext_constraint (btor,
-                                  &writes,
-                                  &aeqs,
-                                  &aconds_sel1,
-                                  &aconds_sel2,
-                                  BTOR_GET_INDEX_ACC_EXP (acc1),
-                                  BTOR_GET_INDEX_ACC_EXP (acc2),
-                                  BTOR_GET_VALUE_ACC_EXP (acc1),
-                                  BTOR_GET_VALUE_ACC_EXP (acc2));
+  lemma_on_demand (btor,
+                   &writes,
+                   &aeqs,
+                   &aconds_sel1,
+                   &aconds_sel2,
+                   BTOR_GET_INDEX_ACC_EXP (acc1),
+                   BTOR_GET_INDEX_ACC_EXP (acc2),
+                   BTOR_GET_VALUE_ACC_EXP (acc1),
+                   BTOR_GET_VALUE_ACC_EXP (acc2));
   BTOR_RELEASE_STACK (mm, writes);
   BTOR_RELEASE_STACK (mm, aeqs);
   BTOR_RELEASE_STACK (mm, aconds_sel1);
@@ -7516,13 +6768,10 @@ check_and_resolve_read_write_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
   BtorMemMgr *mm;
   BtorExp *cur_array, *cur_parent, **top, **temp;
   int found_conflict, changed_assignments, extensionality;
-  BtorMode mode;
   assert (btor != NULL);
   assert (top_arrays != NULL);
-  assert (btor->mode == BTOR_LAZY_MODE);
   found_conflict = 0;
   mm             = btor->mm;
-  mode           = btor->mode;
   extensionality = btor->extensionality;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   assert (!found_conflict);
@@ -8001,286 +7250,15 @@ is_linear_equation (Btor *btor, BtorExp *exp)
 
 #endif
 
-static BtorExp *
-rewrite_aeq_except_exp (Btor *btor, BtorExp *exp)
-{
-  BtorExpPtrStack *I;
-  BtorPartialParentIterator it1, it2;
-  BtorExp *array1, *array2, *read1, *read2, *result, *temp, **cur, **top;
-  BtorExp *premisse, *eq, *ne, *implies;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (exp->kind == BTOR_AEQ_EXCEPT_EXP);
-  array1 = exp->e[0];
-  array2 = exp->e[1];
-  assert (BTOR_IS_REGULAR_EXP (array1));
-  assert (BTOR_IS_REGULAR_EXP (array2));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (array1));
-  assert (BTOR_IS_ATOMIC_ARRAY_EXP (array2));
-  I = exp->I;
-  assert (I != NULL);
-  result = true_exp (btor);
-  top    = I->top;
-  init_read_parent_iterator (&it1, array1);
-  while (has_next_parent_read_parent_iterator (&it1))
-  {
-    read1 = next_parent_read_parent_iterator (&it1);
-    assert (BTOR_IS_REGULAR_EXP (read1));
-    assert (!read1->vread);
-    init_read_parent_iterator (&it2, array2);
-    while (has_next_parent_read_parent_iterator (&it2))
-    {
-      read2 = next_parent_read_parent_iterator (&it2);
-      assert (BTOR_IS_REGULAR_EXP (read2));
-      assert (!read2->vread);
-      premisse = eq_exp (btor, read1->e[1], read2->e[1]);
-      for (cur = I->start; cur != top; cur++)
-      {
-        ne   = BTOR_INVERT_EXP (eq_exp (btor, *cur, read1->e[1]));
-        temp = and_exp (btor, premisse, ne);
-        release_exp (btor, premisse);
-        premisse = temp;
-        release_exp (btor, ne);
-      }
-      eq      = eq_exp (btor, read1, read2);
-      implies = or_exp (btor, BTOR_INVERT_EXP (premisse), eq);
-      temp    = and_exp (btor, result, implies);
-      release_exp (btor, result);
-      result = temp;
-      release_exp (btor, premisse);
-      release_exp (btor, eq);
-      release_exp (btor, implies);
-    }
-  }
-  return result;
-}
-
-static void
-substitute_aeq_except_exp (Btor *btor, BtorExp *exp)
-{
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
-  BtorExp *left, *right;
-  BtorExpPtrStack search_stack;
-  BtorExpPtrStack subst_stack;
-  BtorExpPtrStack root_stack;
-  BtorFullParentIterator it;
-  BtorMemMgr *mm;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (exp->simplified == NULL);
-
-  mm = btor->mm;
-
-  left  = exp;
-  right = rewrite_aeq_except_exp (btor, exp);
-
-  /* search from bottom up */
-
-  BTOR_INIT_STACK (search_stack);
-  BTOR_INIT_STACK (subst_stack);
-  BTOR_INIT_STACK (root_stack);
-  BTOR_PUSH_STACK (mm, search_stack, left);
-  do
-  {
-    cur = BTOR_POP_STACK (search_stack);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->subst_mark == 0)
-    {
-      cur->subst_mark = 1;
-      init_full_parent_iterator (&it, cur);
-      /* are we at a root ? */
-      if (!has_next_parent_full_parent_iterator (&it))
-        BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
-      else
-      {
-        do
-        {
-          cur_parent = next_parent_full_parent_iterator (&it);
-          assert (BTOR_IS_REGULAR_EXP (cur_parent));
-          if (cur_parent->simplified == NULL)
-            BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-        } while (has_next_parent_full_parent_iterator (&it));
-      }
-    }
-  } while (!BTOR_EMPTY_STACK (search_stack));
-  BTOR_RELEASE_STACK (mm, search_stack);
-
-  overwrite_exp (btor, left, right);
-
-  /* copy roots on substitution stack */
-
-  assert (BTOR_EMPTY_STACK (subst_stack));
-  top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++)
-    BTOR_PUSH_STACK (mm, subst_stack, *temp);
-
-  assert (!BTOR_EMPTY_STACK (subst_stack));
-
-  /* substitute */
-
-  do
-  {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-    if (cur->subst_mark == 0) continue;
-
-    if (cur == left) /* base case */
-      continue;
-
-    if (cur->subst_mark == 1)
-    {
-      cur->subst_mark = 2;
-      BTOR_PUSH_STACK (mm, subst_stack, cur);
-      if (BTOR_IS_UNARY_EXP (cur))
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-      else if (BTOR_IS_BINARY_EXP (cur))
-      {
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-      }
-      else if (BTOR_IS_TERNARY_EXP (cur))
-      {
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[2]);
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[1]);
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[0]);
-      }
-    }
-    else
-    {
-      assert (cur->subst_mark == 2);
-      assert (!BTOR_IS_CONST_EXP (cur));
-      assert (!BTOR_IS_VAR_EXP (cur));
-      assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-      cur->subst_mark = 0;
-      rebuilt_exp     = rebuild_exp (btor, cur);
-      assert (rebuilt_exp != NULL);
-      assert (rebuilt_exp != cur);
-
-      overwrite_exp (btor, cur, rebuilt_exp);
-      release_exp (btor, rebuilt_exp);
-    }
-  } while (!BTOR_EMPTY_STACK (subst_stack));
-  BTOR_RELEASE_STACK (mm, subst_stack);
-
-  top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++) release_exp (btor, *temp);
-  BTOR_RELEASE_STACK (mm, root_stack);
-  btor_release_exp (btor, right);
-}
-
 static void
 process_new_constraints (Btor *btor)
 {
-  BtorPtrHashTable *new_constraints, *processed_constraints, *working_queue,
-      *hashed_pairs;
+  BtorPtrHashTable *new_constraints, *processed_constraints;
   BtorExp *cur, *left, *right;
-  BtorExp *l, *r, *t, *a, *b, *c, *and, *implies, **temp;
-  BtorExpPair *pair;
   BtorPtrHashBucket *bucket;
-  BtorExpPtrStack stack;
-  BtorPartialParentIterator it;
-  BtorExpPtrStack *I, *J, *K;
-  int i;
   assert (btor != NULL);
   new_constraints = btor->new_constraints;
-  if (btor->mode == BTOR_EAGER_MODE)
-  {
-    /* encode transitivity */
-    hashed_pairs = btor_new_ptr_hash_table (
-        btor->mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-    working_queue = btor_new_ptr_hash_table (
-        btor->mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
-    for (bucket = btor->aeqs->last; bucket != NULL; bucket = bucket->prev)
-    {
-      l = bucket->key;
-      btor_insert_in_ptr_hash_table (working_queue, l);
-    }
-
-    while (working_queue->count > 0)
-    {
-      bucket = working_queue->first;
-      assert (bucket != NULL);
-      l = bucket->key;
-      btor_remove_from_ptr_hash_table (working_queue, l, NULL, NULL);
-      assert (l != NULL);
-      assert (BTOR_IS_REGULAR_EXP (l));
-      for (i = 0; i < 2; i++)
-      {
-        a = l->e[i];
-        I = l->I;
-        assert (I != NULL);
-        b = l->e[!i];
-        init_aeq_parent_iterator (&it, b);
-        while (has_next_parent_aeq_parent_iterator (&it))
-        {
-          r = next_parent_aeq_parent_iterator (&it);
-          assert (BTOR_IS_REGULAR_EXP (r));
-          J = r->I;
-          assert (J != NULL);
-          if (r == l) continue;
-          if (r->e[0] != b)
-          {
-            assert (r->e[1] == b);
-            c = r->e[0];
-          }
-          else
-            c = r->e[1];
-          assert (c != a);
-          assert (c != b);
-
-          pair = new_exp_pair (btor, l, r);
-          if (btor_find_in_ptr_hash_table (hashed_pairs, pair) == NULL)
-          {
-            btor_insert_in_ptr_hash_table (hashed_pairs, pair);
-            BTOR_NEW (btor->mm, K);
-            BTOR_INIT_STACK (*K);
-            for (temp = I->start; temp != I->top; temp++)
-              BTOR_PUSH_STACK (btor->mm, *K, copy_exp (btor, *temp));
-            for (temp = J->start; temp != J->top; temp++)
-              BTOR_PUSH_STACK (btor->mm, *K, copy_exp (btor, *temp));
-            t = aeq_except_exp (btor, a, c, K);
-            /* aeq table owns at least one reference */
-            assert (t->refs >= 1);
-            if (btor_find_in_ptr_hash_table (working_queue, t) == NULL)
-              btor_insert_in_ptr_hash_table (working_queue, t);
-            and     = and_exp (btor, l, r);
-            implies = or_exp (btor, BTOR_INVERT_EXP (and), t);
-            btor_add_constraint_exp (btor, implies);
-            release_exp (btor, and);
-            release_exp (btor, implies);
-            release_exp (btor, t);
-          }
-          else
-            delete_exp_pair (btor, pair);
-        }
-      }
-    }
-    for (bucket = hashed_pairs->first; bucket != NULL; bucket = bucket->next)
-      delete_exp_pair (btor, (BtorExpPair *) bucket->key);
-    btor_delete_ptr_hash_table (hashed_pairs);
-
-    btor_delete_ptr_hash_table (working_queue);
-
-    /* rewriting of aeq_except */
-    assert (btor->stats.constraints.processed == 0);
-    BTOR_INIT_STACK (stack);
-    for (bucket = btor->aeqs->last; bucket != NULL; bucket = bucket->prev)
-      BTOR_PUSH_STACK (btor->mm, stack, copy_exp (btor, bucket->key));
-
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_POP_STACK (stack);
-      substitute_aeq_except_exp (btor, cur);
-      release_exp (btor, cur);
-    }
-    BTOR_RELEASE_STACK (btor->mm, stack);
-  }
-  else
-  {
-    assert (btor->aeqs->count == 0);
-  }
-
+  assert (btor->aeqs->count == 0);
   processed_constraints = btor->processed_constraints;
   while (new_constraints->count > 0)
   {
@@ -8448,8 +7426,6 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   BTOR_ABORT_EXP (
       BTOR_REAL_ADDR_EXP (exp)->len != 1,
       "'exp' has to be a boolean expression in 'btor_add_assumption_exp'");
-  BTOR_ABORT_EXP (btor->mode == BTOR_EAGER_MODE,
-                  "eager mode must not be used incrementally");
 
   mm = btor->mm;
   if (btor->valid_assignments)
@@ -8557,15 +7533,11 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorAIG *aig;
-  BtorMode mode;
   BtorMemMgr *mm;
 
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
   BTOR_ABORT_EXP (refinement_limit < 0,
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
-  mode = btor->mode;
-  BTOR_ABORT_EXP (mode == BTOR_EAGER_MODE && btor->stats.sat_calls != 0,
-                  "eager mode must not be used incrementally");
 
   verbosity = btor->verbosity;
   if (verbosity > 0) print_verbose_msg ("calling SAT");
@@ -8579,73 +7551,55 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
-  /* no incrementality in eager mode */
-  if (mode != BTOR_EAGER_MODE)
-  {
-    /* no added assumptions and constraints -> delete old assumptions */
-    if (btor->valid_assignments == 1) reset_assumptions (btor);
-    btor->valid_assignments = 1;
-  }
+  /* no added assumptions and constraints -> delete old assumptions */
+  if (btor->valid_assignments == 1) reset_assumptions (btor);
+  btor->valid_assignments = 1;
 
   found_constraint_false = process_unsynthesized_constraints (btor);
   if (found_constraint_false) return BTOR_UNSAT;
 
-  if (btor->mode == BTOR_EAGER_MODE)
+  /* iterate over assumptions */
+  for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
   {
-    encode_read_consistency_all_arrays_eagerly (btor);
-  }
-  else
-  {
-    /* no incrementality in eager mode */
-    /* iterate over assumptions */
-    for (bucket = btor->assumptions->first; bucket != NULL;
-         bucket = bucket->next)
-    {
-      cur        = (BtorExp *) bucket->key;
-      simplified = copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
-      release_exp (btor, cur);
-      cur = simplified;
+    cur        = (BtorExp *) bucket->key;
+    simplified = copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
+    release_exp (btor, cur);
+    cur = simplified;
 
-      aig = exp_to_aig (btor, cur);
-      if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-      btor_aig_to_sat (amgr, aig);
-      if (aig != BTOR_AIG_TRUE)
-      {
-        assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-        btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-        btor_release_aig (amgr, aig);
-      }
+    aig = exp_to_aig (btor, cur);
+    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
+    btor_aig_to_sat (amgr, aig);
+    if (aig != BTOR_AIG_TRUE)
+    {
+      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      btor_release_aig (amgr, aig);
     }
   }
 
   sat_result = btor_sat_sat (smgr, INT_MAX);
-  if (btor->mode == BTOR_LAZY_MODE)
+  BTOR_INIT_STACK (top_arrays);
+  search_top_arrays (btor, &top_arrays);
+  while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
+         && btor->stats.refinements < refinement_limit)
   {
-    BTOR_INIT_STACK (top_arrays);
-    search_top_arrays (btor, &top_arrays);
-    while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
-           && btor->stats.refinements < refinement_limit)
+    assert (sat_result == BTOR_SAT);
+    found_conflict = check_and_resolve_read_write_conflicts (btor, &top_arrays);
+    if (!found_conflict) break;
+    refinements++;
+    if (verbosity > 1)
     {
-      assert (sat_result == BTOR_SAT);
-      found_conflict =
-          check_and_resolve_read_write_conflicts (btor, &top_arrays);
-      if (!found_conflict) break;
-      refinements++;
-      if (verbosity > 1)
+      if (verbosity > 2 || !(refinements % 10))
       {
-        if (verbosity > 2 || !(refinements % 10))
-        {
-          fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
-          fflush (stdout);
-        }
+        fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
+        fflush (stdout);
       }
-      sat_result = btor_sat_sat (smgr, INT_MAX);
     }
-    btor->stats.refinements = refinements;
-    if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
-    BTOR_RELEASE_STACK (mm, top_arrays);
+    sat_result = btor_sat_sat (smgr, INT_MAX);
   }
-  btor->stats.sat_calls++;
+  btor->stats.refinements = refinements;
+  if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
+  BTOR_RELEASE_STACK (mm, top_arrays);
   return sat_result;
 }
 

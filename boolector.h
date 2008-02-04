@@ -19,14 +19,6 @@ typedef struct BtorExp BtorExp;
 
 typedef struct Btor Btor;
 
-enum BtorMode
-{
-  BTOR_EAGER_MODE,
-  BTOR_LAZY_MODE,
-};
-
-typedef enum BtorMode BtorMode;
-
 /*------------------------------------------------------------------------*/
 /* Btor                                                             */
 /*------------------------------------------------------------------------*/
@@ -42,9 +34,6 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
  * does not print any output
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
-
-/* Sets boolector mode. */
-void btor_set_mode_btor (Btor *btor, BtorMode mode);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
@@ -464,7 +453,7 @@ void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
 
 /* Solves sat instance.
  * The paramenter 'refinement_limit' sets the maximum number
- * of iterative refinments (in lazy mode) */
+ * of iterative refinments */
 int btor_sat_btor (Btor *btor, int refinement_limit);
 
 /* Builds current assignment string of expression (in the SAT case)

@@ -87,11 +87,7 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
-    "  -rl <n>|--refinement limit <n>   iterative refinement limit (lazy "
-    "mode)\n"
-    "\n"
-    "  -e|--eager                       eager encoding strategy\n"
-    "  -l|--lazy                        lazy encoding strategy (default)\n"
+    "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n";
@@ -361,7 +357,6 @@ btor_main (int argc, char **argv)
   int refinement_limit  = INT_MAX;
   int root_len;
   int constraints_reported, constraints_report_limit, nconstraints;
-  BtorMode mode               = BTOR_LAZY_MODE;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   const char *input_file_name = "<stdin>";
   const char *parse_error     = NULL;
@@ -479,10 +474,6 @@ btor_main (int argc, char **argv)
 
       app.basis = BTOR_DECIMAL_BASIS;
     }
-    else if (!strcmp (argv[i], "-e") || !strcmp (argv[i], "--eager"))
-      mode = BTOR_EAGER_MODE;
-    else if (!strcmp (argv[i], "-l") || !strcmp (argv[i], "--lazy"))
-      mode = BTOR_LAZY_MODE;
     else if (!strcmp (argv[i], "-rl")
              || !strcmp (argv[i], "--refinement-limit"))
     {
@@ -553,7 +544,6 @@ btor_main (int argc, char **argv)
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, rewrite_level);
     btor_set_verbosity_btor (btor, app.verbosity);
-    btor_set_mode_btor (btor, mode);
     mem = btor_get_mem_mgr_btor (btor);
 
     avmgr = btor_get_aigvec_mgr_btor (btor);
@@ -648,13 +638,12 @@ btor_main (int argc, char **argv)
         btor_release_exp (btor, root);
 
 #if 0
-	      /* Currently this does not make any difference since the
-	       * parser generates all the roots up-front.  A better or
-	       * faster approach would be to let the parser add the
-	       * constraints directly as they come and then call rewrite.
-	       */
-	      if (mode != BTOR_EAGER_MODE)
-		btor_rewrite (btor);
+              /* Currently this does not make any difference since the
+               * parser generates all the roots up-front.  A better or
+               * faster approach would be to let the parser add the
+               * constraints directly as they come and then call rewrite.
+               */
+              btor_rewrite (btor);
 #endif
 
         if (app.verbosity > 1
