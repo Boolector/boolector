@@ -85,20 +85,28 @@ struct Btor
   /* statistics */
   struct
   {
-    int refinements; /* number of iterative refinements */
+    /* number of iterative refinements */
+    int refinements;
     /* number of restarts as a result of lazy synthesis */
     int synthesis_assignment_inconsistencies;
-    int read_read_conflicts;  /* number of read-read conflicts */
-    int read_write_conflicts; /* number of read-write conflicts */
+    /* number of read-read conflicts */
+    int read_read_conflicts;
+    /* number of read-write conflicts */
+    int read_write_conflicts;
     /* number of variables that have been substituted */
     int var_substitutions;
     /* number of array variables that have been substituted */
     int array_substitutions;
-    int vreads;                     /* number of virtual reads */
-    int linear_equations;           /* number of linear equations */
-    long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
-    long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    struct ConstraintStats constraints; /* constraint statistics */
+    /* number of virtual reads */
+    int vreads;
+    /* number of linear equations */
+    int linear_equations;
+    /* sum of the size of all added lemmas */
+    long long int lemmas_size_sum;
+    /* sum of the size of all linking clauses */
+    long long int lclause_size_sum;
+    /* constraint statistics */
+    struct ConstraintStats constraints;
     struct
     {
       struct ConstraintStats constraints;
@@ -155,13 +163,7 @@ static BtorExp *add_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *concat_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *cond_exp (Btor *, BtorExp *, BtorExp *, BtorExp *);
-static BtorExp *copy_exp (Btor *, BtorExp *);
-static BtorExp *read_exp (Btor *, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
-static void synthesize_exp (Btor *, BtorExp *, BtorPtrHashTable *);
-static void synthesize_array_equality (Btor *, BtorExp *);
-static void inc_exp_ref_counter (BtorExp *);
-static void enlarge_exp_unique_table (Btor *);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -169,10 +171,6 @@ static void enlarge_exp_unique_table (Btor *);
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF IMPLEMENTATION                                                */
-/*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
-/* Auxilliary                                                             */
 /*------------------------------------------------------------------------*/
 
 static void
@@ -252,6 +250,27 @@ is_ones_string (Btor *btor, const char *string, int len)
   for (i = 0; i < len - 1; i++)
     if (string[i] != '1') return 0;
   return 1;
+}
+
+static void
+inc_exp_ref_counter (Btor *btor, BtorExp *exp)
+{
+  BtorExp *real_exp;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  (void) btor;
+  real_exp = BTOR_REAL_ADDR_EXP (exp);
+  BTOR_ABORT_EXP (real_exp->refs == UINT_MAX, "Reference counter overflow");
+  real_exp->refs++;
+}
+
+static BtorExp *
+copy_exp (Btor *btor, BtorExp *exp)
+{
+  assert (btor != NULL);
+  assert (exp != NULL);
+  inc_exp_ref_counter (btor, exp);
+  return exp;
 }
 
 /* Creates an expression pair which can be compared with
@@ -901,10 +920,6 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
   assert (it != NULL);
   return it->cur != NULL;
 }
-
-/*------------------------------------------------------------------------*/
-/* BtorExp                                                                */
-/*------------------------------------------------------------------------*/
 
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
@@ -2155,26 +2170,6 @@ enlarge_exp_unique_table (Btor *btor)
   btor->table.chains = new_chains;
 }
 
-static void
-inc_exp_ref_counter (BtorExp *exp)
-{
-  BtorExp *real_exp;
-  assert (exp != NULL);
-  real_exp = BTOR_REAL_ADDR_EXP (exp);
-  BTOR_ABORT_EXP (real_exp->refs == UINT_MAX, "Reference counter overflow");
-  real_exp->refs++;
-}
-
-static BtorExp *
-copy_exp (Btor *btor, BtorExp *exp)
-{
-  assert (btor != NULL);
-  assert (exp != NULL);
-  (void) btor;
-  inc_exp_ref_counter (exp);
-  return exp;
-}
-
 BtorExp *
 btor_copy_exp (Btor *btor, BtorExp *exp)
 {
@@ -2250,7 +2245,7 @@ const_exp (Btor *btor, const char *bits)
     (*lookup)->unique = 1;
   }
   else
-    inc_exp_ref_counter (*lookup);
+    inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
   ;
   return *lookup;
@@ -2435,13 +2430,13 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
       lookup = find_slice_exp (btor, exp, upper, lower);
     }
     *lookup = new_slice_exp_node (btor, exp, upper, lower);
-    inc_exp_ref_counter (exp);
+    inc_exp_ref_counter (btor, exp);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
-    inc_exp_ref_counter (*lookup);
+    inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
@@ -2765,7 +2760,7 @@ not_exp (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   (void) btor;
-  inc_exp_ref_counter (exp);
+  inc_exp_ref_counter (btor, exp);
   return BTOR_INVERT_EXP (exp);
 }
 
@@ -2934,10 +2929,7 @@ uext_exp (Btor *btor, BtorExp *exp, int len)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   if (len == 0)
-  {
-    inc_exp_ref_counter (exp);
-    result = exp;
-  }
+    result = copy_exp (btor, exp);
   else
   {
     assert (len > 0);
@@ -2972,10 +2964,7 @@ sext_exp (Btor *btor, BtorExp *exp, int len)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
   if (len == 0)
-  {
-    inc_exp_ref_counter (exp);
-    result = exp;
-  }
+    result = copy_exp (btor, exp);
   else
   {
     assert (len > 0);
@@ -3038,14 +3027,14 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
       *lookup = new_aeq_exp_node (btor, e0, e1);
     else
       *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
-    inc_exp_ref_counter (e0);
-    inc_exp_ref_counter (e1);
+    inc_exp_ref_counter (btor, e0);
+    inc_exp_ref_counter (btor, e1);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
-    inc_exp_ref_counter (*lookup);
+    inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
@@ -4690,15 +4679,15 @@ ternary_exp (Btor *btor,
         *lookup = new_ternary_exp_node (btor, kind, e0, e1, e2, len);
         break;
     }
-    inc_exp_ref_counter (e0);
-    inc_exp_ref_counter (e1);
-    inc_exp_ref_counter (e2);
+    inc_exp_ref_counter (btor, e0);
+    inc_exp_ref_counter (btor, e1);
+    inc_exp_ref_counter (btor, e2);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
-    inc_exp_ref_counter (*lookup);
+    inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
   return *lookup;
 }
