@@ -95,7 +95,8 @@ struct Btor
     int vreads;                               /* lazy */
     int linear_equations;                     /* lazy and eager */
     int sat_calls;                            /* lazy */
-    long long int lemmas_size_sum;
+    long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
+    long long int lclause_size_sum; /* sum of the size of all linking clauses */
     struct ConstraintStats constraints; /* lazy and eager */
     struct
     {
@@ -1477,6 +1478,8 @@ encode_mccarthy_ext_constraint (Btor *btor,
   for (lit = linking_clause.start; lit != linking_clause.top; lit++)
     assert (btor_deref_sat (smgr, *lit) != 1);
 #endif
+
+  btor->stats.lclause_size_sum += BTOR_COUNT_STACK (linking_clause);
 
   /* add clauses */
   for (lit = clauses.start; lit != clauses.top; lit++)
@@ -6179,8 +6182,11 @@ btor_print_stats_btor (Btor *btor)
                        btor->stats.read_read_conflicts);
     print_verbose_msg ("read-write conflicts: %d",
                        btor->stats.read_write_conflicts);
-    print_verbose_msg ("average size of lemmas: %.1f",
+    print_verbose_msg ("average lemma size: %.1f",
                        (double) btor->stats.lemmas_size_sum
+                           / (double) btor->stats.refinements);
+    print_verbose_msg ("average linking clause size: %.1f",
+                       (double) btor->stats.lclause_size_sum
                            / (double) btor->stats.refinements);
     print_verbose_msg ("linear constraint equations: %d",
                        btor->stats.linear_equations);
