@@ -920,15 +920,15 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
  * The stacks 'aconds' constain intermediate array conditionals.
  */
 static void
-lemma_on_demand (Btor *btor,
-                 BtorExpPtrStack *writes,
-                 BtorExpPtrStack *aeqs,
-                 BtorExpPtrStack *aconds_sel1,
-                 BtorExpPtrStack *aconds_sel2,
-                 BtorExp *i,
-                 BtorExp *j,
-                 BtorExp *a,
-                 BtorExp *b)
+encode_lemma (Btor *btor,
+              BtorExpPtrStack *writes,
+              BtorExpPtrStack *aeqs,
+              BtorExpPtrStack *aconds_sel1,
+              BtorExpPtrStack *aconds_sel2,
+              BtorExp *i,
+              BtorExp *j,
+              BtorExp *a,
+              BtorExp *b)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -5985,7 +5985,7 @@ hash_assignment (BtorExp *exp)
  * from the array to the read
  */
 static void
-extensionality_bfs (Btor *btor, BtorExp *acc, BtorExp *array)
+bfs (Btor *btor, BtorExp *acc, BtorExp *array)
 {
   BtorExp *cur, *next, *cur_aeq, *cond, *index;
   BtorMemMgr *mm;
@@ -6196,11 +6196,11 @@ propagated_upwards (Btor *btor, BtorExp *exp)
   return 0;
 }
 
-/* Resolves conflict across multiple levels (if necessary)
+/* Adds lemma on demand
  * 'array' is the array where the conflict has been detected
  */
 static void
-resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
+add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
 {
   BtorExpPtrStack writes, aeqs, aconds_sel1, aconds_sel2;
   BtorExp *cur, *cond, *prev;
@@ -6228,7 +6228,7 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
   BTOR_INIT_STACK (aconds_sel2);
   table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
-  extensionality_bfs (btor, acc1, array);
+  bfs (btor, acc1, array);
   prev = NULL;
   for (cur = array; cur != acc1; cur = cur->parent)
   {
@@ -6271,7 +6271,7 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
     }
     prev = cur;
   }
-  extensionality_bfs (btor, acc2, array);
+  bfs (btor, acc2, array);
   prev = NULL;
   for (cur = array; cur != acc2; cur = cur->parent)
   {
@@ -6318,15 +6318,15 @@ resolve_conflict (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
     prev = cur;
   }
   btor_delete_ptr_hash_table (table);
-  lemma_on_demand (btor,
-                   &writes,
-                   &aeqs,
-                   &aconds_sel1,
-                   &aconds_sel2,
-                   BTOR_GET_INDEX_ACC_EXP (acc1),
-                   BTOR_GET_INDEX_ACC_EXP (acc2),
-                   BTOR_GET_VALUE_ACC_EXP (acc1),
-                   BTOR_GET_VALUE_ACC_EXP (acc2));
+  encode_lemma (btor,
+                &writes,
+                &aeqs,
+                &aconds_sel1,
+                &aconds_sel2,
+                BTOR_GET_INDEX_ACC_EXP (acc1),
+                BTOR_GET_INDEX_ACC_EXP (acc2),
+                BTOR_GET_VALUE_ACC_EXP (acc1),
+                BTOR_GET_VALUE_ACC_EXP (acc2));
   BTOR_RELEASE_STACK (mm, writes);
   BTOR_RELEASE_STACK (mm, aeqs);
   BTOR_RELEASE_STACK (mm, aconds_sel1);
@@ -6513,7 +6513,7 @@ process_working_stack (Btor *btor,
         if (compare_assignments (hashed_value, value) != 0)
         {
           btor->stats.read_read_conflicts++;
-          resolve_conflict (btor, array, hashed_acc, acc);
+          add_lemma (btor, array, hashed_acc, acc);
           return 1;
         }
         /* in the other case we have already dealt with a representative
@@ -6530,7 +6530,7 @@ process_working_stack (Btor *btor,
       if (check_read_write_conflict (btor, acc, array, &indices_equal))
       {
         btor->stats.read_write_conflicts++;
-        resolve_conflict (btor, array, acc, array);
+        add_lemma (btor, array, acc, array);
         return 1;
       }
       else if (!indices_equal)
@@ -6744,7 +6744,7 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
 }
 
 static int
-check_and_resolve_read_write_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
+check_and_resolve_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
 {
   BtorExpPtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorPartialParentIterator it;
@@ -7567,7 +7567,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
          && btor->stats.refinements < refinement_limit)
   {
     assert (sat_result == BTOR_SAT);
-    found_conflict = check_and_resolve_read_write_conflicts (btor, &top_arrays);
+    found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
     if (!found_conflict) break;
     refinements++;
     if (verbosity > 1)
