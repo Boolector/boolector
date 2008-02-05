@@ -2375,7 +2375,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   exp->id   = btor->id++;
   exp->refs = 1u;
   exp->btor = btor;
-  btor_insert_in_ptr_hash_table (btor->arrays, exp);
+  (void) btor_insert_in_ptr_hash_table (btor->arrays, exp);
   return exp;
 }
 
@@ -6215,12 +6215,12 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
     {
       if (BTOR_IS_WRITE_EXP (cur))
       {
-        btor_insert_in_ptr_hash_table (table, cur);
+        (void) btor_insert_in_ptr_hash_table (table, cur);
         BTOR_PUSH_STACK (mm, writes, cur);
       }
       else if (BTOR_IS_ARRAY_EQ_EXP (cur))
       {
-        btor_insert_in_ptr_hash_table (table, cur);
+        (void) btor_insert_in_ptr_hash_table (table, cur);
         BTOR_PUSH_STACK (mm, aeqs, cur);
       }
       else if (BTOR_IS_ARRAY_COND_EXP (cur))
@@ -6230,7 +6230,7 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
                 || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
         if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
         {
-          btor_insert_in_ptr_hash_table (table, cur);
+          (void) btor_insert_in_ptr_hash_table (table, cur);
           assignment = btor_get_assignment_aig (
               amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
           if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
@@ -7244,7 +7244,7 @@ process_new_constraints (Btor *btor)
 
       if (btor_find_in_ptr_hash_table (processed_constraints, cur) == NULL)
       {
-        btor_insert_in_ptr_hash_table (processed_constraints, cur);
+        (void) btor_insert_in_ptr_hash_table (processed_constraints, cur);
         btor_remove_from_ptr_hash_table (new_constraints, cur, 0, 0);
 
         btor->stats.constraints.processed++;
@@ -7269,7 +7269,8 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
       && !btor_find_in_ptr_hash_table (btor->processed_constraints, exp)
       && !btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
-    btor_insert_in_ptr_hash_table (btor->new_constraints, copy_exp (btor, exp));
+    (void) btor_insert_in_ptr_hash_table (btor->new_constraints,
+                                          copy_exp (btor, exp));
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
 
     btor->stats.constraints.added++;
@@ -7406,8 +7407,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
         else
         {
           if (!btor_find_in_ptr_hash_table (btor->assumptions, child))
-            btor_insert_in_ptr_hash_table (btor->assumptions,
-                                           btor_copy_exp (btor, child));
+            (void) btor_insert_in_ptr_hash_table (btor->assumptions,
+                                                  btor_copy_exp (btor, child));
         }
         child = cur->e[0];
         if (!BTOR_IS_INVERTED_EXP (child) && child->kind == BTOR_AND_EXP)
@@ -7415,8 +7416,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
         else
         {
           if (!btor_find_in_ptr_hash_table (btor->assumptions, child))
-            btor_insert_in_ptr_hash_table (btor->assumptions,
-                                           btor_copy_exp (btor, child));
+            (void) btor_insert_in_ptr_hash_table (btor->assumptions,
+                                                  btor_copy_exp (btor, child));
         }
       }
     } while (!BTOR_EMPTY_STACK (stack));
@@ -7426,8 +7427,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   else
   {
     if (!btor_find_in_ptr_hash_table (btor->assumptions, exp))
-      btor_insert_in_ptr_hash_table (btor->assumptions,
-                                     btor_copy_exp (btor, exp));
+      (void) btor_insert_in_ptr_hash_table (btor->assumptions,
+                                            btor_copy_exp (btor, exp));
   }
 }
 
@@ -7460,7 +7461,7 @@ process_unsynthesized_constraints (Btor *btor)
 
       btor_add_toplevel_aig_to_sat (amgr, aig);
       btor_release_aig (amgr, aig);
-      btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
+      (void) btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
       btor_remove_from_ptr_hash_table (processed_constraints, cur, 0, 0);
 
       btor->stats.constraints.synthesized++;
