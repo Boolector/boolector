@@ -971,16 +971,12 @@ encode_lemma (Btor *btor,
   assert (av_i->len == av_j->len);
   len_a_b   = av_a->len;
   len_i_j_w = av_i->len;
-  if (!BTOR_REAL_ADDR_EXP (i)->sat_both_phases)
-  {
-    btor_aigvec_to_sat_both_phases (avmgr, av_i);
-    BTOR_REAL_ADDR_EXP (i)->sat_both_phases = 1;
-  }
-  if (!BTOR_REAL_ADDR_EXP (j)->sat_both_phases)
-  {
-    btor_aigvec_to_sat_both_phases (avmgr, av_j);
-    BTOR_REAL_ADDR_EXP (j)->sat_both_phases = 1;
-  }
+
+  /* i and j have to be synthesized and translated to SAT before */
+  assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (i)));
+  assert (BTOR_REAL_ADDR_EXP (i)->sat_both_phases);
+  assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (j)));
+  assert (BTOR_REAL_ADDR_EXP (j)->sat_both_phases);
 
   BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
@@ -1051,17 +1047,14 @@ encode_lemma (Btor *btor,
       }
     }
   }
+
   /* encode a = b */
-  if (!BTOR_REAL_ADDR_EXP (a)->sat_both_phases)
-  {
-    btor_aigvec_to_sat_both_phases (avmgr, av_a);
-    BTOR_REAL_ADDR_EXP (a)->sat_both_phases = 1;
-  }
-  if (!BTOR_REAL_ADDR_EXP (b)->sat_both_phases)
-  {
-    btor_aigvec_to_sat_both_phases (avmgr, av_b);
-    BTOR_REAL_ADDR_EXP (b)->sat_both_phases = 1;
-  }
+  /* a and b have to be synthesized and translated to SAT before */
+  assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (a)));
+  assert (BTOR_REAL_ADDR_EXP (a)->sat_both_phases);
+  assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (b)));
+  assert (BTOR_REAL_ADDR_EXP (b)->sat_both_phases);
+
   pair = new_exp_pair (btor, a, b);
   /* already encoded a = b ? */
   bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
@@ -1125,11 +1118,11 @@ encode_lemma (Btor *btor,
     w_index = cur_write->e[1];
     av_w    = BTOR_REAL_ADDR_EXP (w_index)->av;
     assert (av_w->len == len_i_j_w);
-    if (!BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases)
-    {
-      btor_aigvec_to_sat_both_phases (avmgr, av_w);
-      BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases = 1;
-    }
+
+    /* write index has to be synthesized and translated to SAT before */
+    assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (w_index)));
+    assert (BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases);
+
     pair = new_exp_pair (btor, i, w_index);
     /* already encoded i != w_index into SAT ? */
     bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
