@@ -24,27 +24,26 @@ enum BtorExpKind
 #ifndef NDEBUG
   BTOR_INVALID_EXP = 0, /* for debugging purposes */
 #endif
-  BTOR_CONST_EXP      = 1,
-  BTOR_VAR_EXP        = 2,
-  BTOR_ARRAY_EXP      = 3,
-  BTOR_SLICE_EXP      = 4,
-  BTOR_AND_EXP        = 5,
-  BTOR_BEQ_EXP        = 6, /* equality on bit vectors */
-  BTOR_AEQ_EXP        = 7, /* equality on arrays */
-  BTOR_AEQ_EXCEPT_EXP = 8,
-  BTOR_ADD_EXP        = 9,
-  BTOR_MUL_EXP        = 10,
-  BTOR_ULT_EXP        = 11,
-  BTOR_SLL_EXP        = 12,
-  BTOR_SRL_EXP        = 13,
-  BTOR_UDIV_EXP       = 14,
-  BTOR_UREM_EXP       = 15,
-  BTOR_CONCAT_EXP     = 16,
-  BTOR_READ_EXP       = 17,
-  BTOR_WRITE_EXP      = 18,
-  BTOR_BCOND_EXP      = 19, /* conditional on bit vectors */
-  BTOR_ACOND_EXP      = 20, /* conditional on arrays */
-  BTOR_PROXY_EXP      = 21, /* simplified expression without children */
+  BTOR_CONST_EXP  = 1,
+  BTOR_VAR_EXP    = 2,
+  BTOR_ARRAY_EXP  = 3,
+  BTOR_SLICE_EXP  = 4,
+  BTOR_AND_EXP    = 5,
+  BTOR_BEQ_EXP    = 6, /* equality on bit vectors */
+  BTOR_AEQ_EXP    = 7, /* equality on arrays */
+  BTOR_ADD_EXP    = 8,
+  BTOR_MUL_EXP    = 9,
+  BTOR_ULT_EXP    = 10,
+  BTOR_SLL_EXP    = 11,
+  BTOR_SRL_EXP    = 12,
+  BTOR_UDIV_EXP   = 13,
+  BTOR_UREM_EXP   = 14,
+  BTOR_CONCAT_EXP = 15,
+  BTOR_READ_EXP   = 16,
+  BTOR_WRITE_EXP  = 17,
+  BTOR_BCOND_EXP  = 18, /* conditional on bit vectors */
+  BTOR_ACOND_EXP  = 19, /* conditional on arrays */
+  BTOR_PROXY_EXP  = 20, /* simplified expression without children */
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -68,7 +67,7 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int constraint : 1;   /* flag determines if expression is a     \
                                       top level constraint */                \
     unsigned int erased : 1;       /* for debugging purposes */              \
-    unsigned int disconnected : 1; /* for debugging purpose */               \
+    unsigned int disconnected : 1; /* for debugging purposes */              \
     unsigned int unique : 1;       /* in unique table? */                    \
     unsigned int bytes : 8;        /* allocated bytes */                     \
     union                                                                    \
@@ -98,8 +97,6 @@ typedef struct BtorExpPair BtorExpPair;
     struct BtorExp *parent;         /* parent pointer for BFS */             \
     struct BtorExp *simplified;     /* equivalent simplified expression */   \
     Btor *btor;                     /* boolector */                          \
-    BtorExpPtrStack *I;                                                      \
-    unsigned int hash_I; /* only for I */                                    \
   }
 
 #define BTOR_ADDITIONAL_ARRAY_EXP                                             \
