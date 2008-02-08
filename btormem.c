@@ -35,7 +35,8 @@ BtorMemMgr *
 btor_new_mem_mgr (void)
 {
   const char *limit_str_in_mb;
-  BtorMemMgr *mm   = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
+  BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
+  BTOR_ABORT_MEM (mm == NULL, "out of memory in 'btor_new_mem_mgr'");
   mm->allocated    = 0;
   mm->maxallocated = 0;
   if ((limit_str_in_mb = getenv ("BTORMEMLIMIT")))
