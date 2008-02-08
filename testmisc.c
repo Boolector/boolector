@@ -74,15 +74,15 @@ slice (int x, int high, int low, int num_bits)
 static void
 slice_test_misc (int low, int high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  char *result = 0;
-  int num_bits = 0;
-  const int x  = 11;
+  FILE *f                = NULL;
+  int i                  = 0;
+  int j                  = 0;
+  char *result           = 0;
+  int num_bits           = 0;
+  const int x            = 11;
+  BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     for (i = num_bits - 1; i >= 0; i--)
@@ -139,18 +139,18 @@ ext_test_misc (char *(*func) (int, int, int),
                int low,
                int high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  int max      = 0;
-  char *result = 0;
-  int num_bits = 0;
+  FILE *f                = NULL;
+  int i                  = 0;
+  int j                  = 0;
+  int max                = 0;
+  char *result           = 0;
+  int num_bits           = 0;
+  BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
   assert (low > 0);
   assert (low <= high);
   assert (func == uext || func == sext);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);
@@ -198,15 +198,15 @@ concat (int x, int y, int num_bits)
 static void
 concat_test_misc (int low, int high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  int max      = 0;
-  char *result = 0;
-  int num_bits = 0;
+  FILE *f                = NULL;
+  int i                  = 0;
+  int j                  = 0;
+  int max                = 0;
+  char *result           = 0;
+  int num_bits           = 0;
+  BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);
@@ -235,16 +235,16 @@ concat_test_misc (int low, int high)
 static void
 cond_test_misc (int low, int high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  int k        = 0;
-  int max      = 0;
-  int result   = 0;
-  int num_bits = 0;
+  FILE *f                = NULL;
+  int i                  = 0;
+  int j                  = 0;
+  int k                  = 0;
+  int max                = 0;
+  int result             = 0;
+  int num_bits           = 0;
+  BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);
@@ -276,14 +276,14 @@ cond_test_misc (int low, int high)
 static void
 read_test_misc (int low, int high)
 {
-  FILE *f      = NULL;
-  int i        = 0;
-  int j        = 0;
-  int max      = 0;
-  int num_bits = 0;
+  FILE *f                = NULL;
+  int i                  = 0;
+  int j                  = 0;
+  int max                = 0;
+  int num_bits           = 0;
+  BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);

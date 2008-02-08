@@ -35,14 +35,14 @@ init_logic_tests (void)
 static void
 not_logic_test (int low, int high)
 {
-  FILE *f             = NULL;
-  unsigned int i      = 0;
-  unsigned int result = 0;
-  int num_bits        = 0;
-  int max             = 0;
+  FILE *f                = NULL;
+  unsigned int i         = 0;
+  unsigned int result    = 0;
+  int num_bits           = 0;
+  int max                = 0;
+  BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);
@@ -69,17 +69,17 @@ binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
                    int low,
                    int high)
 {
-  FILE *f             = NULL;
-  unsigned int i      = 0;
-  unsigned int j      = 0;
-  unsigned int result = 0;
-  int num_bits        = 0;
-  int max             = 0;
+  FILE *f                = NULL;
+  unsigned int i         = 0;
+  unsigned int j         = 0;
+  unsigned int result    = 0;
+  int num_bits           = 0;
+  int max                = 0;
+  BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);
@@ -108,15 +108,15 @@ binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
 static void
 xnor_logic_test (int low, int high)
 {
-  FILE *f             = NULL;
-  unsigned int i      = 0;
-  unsigned int j      = 0;
-  unsigned int result = 0;
-  int num_bits        = 0;
-  int max             = 0;
+  FILE *f                = NULL;
+  unsigned int i         = 0;
+  unsigned int j         = 0;
+  unsigned int result    = 0;
+  int num_bits           = 0;
+  int max                = 0;
+  BtorExitCode exit_code = 0;
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);
@@ -148,16 +148,16 @@ red_logic_test (unsigned int (*func) (unsigned int, unsigned int),
                 int low,
                 int high)
 {
-  FILE *f             = NULL;
-  unsigned int i      = 0;
-  unsigned int result = 0;
-  int num_bits        = 0;
-  int max             = 0;
+  FILE *f                = NULL;
+  unsigned int i         = 0;
+  unsigned int result    = 0;
+  int num_bits           = 0;
+  int max                = 0;
+  BtorExitCode exit_code = 0;
   assert (func != NULL);
   assert (func_name != NULL);
   assert (low > 0);
   assert (low <= high);
-  BtorExitCode exit_code = 0;
   for (num_bits = low; num_bits <= high; num_bits++)
   {
     max = btor_pow_2_util (num_bits);

@@ -95,61 +95,61 @@ test_inc_counter (int w, int nondet)
 static void
 test_inc_count1 (void)
 {
-  return test_inc_counter (1, 0);
+  test_inc_counter (1, 0);
 }
 
 static void
 test_inc_count2 (void)
 {
-  return test_inc_counter (2, 0);
+  test_inc_counter (2, 0);
 }
 
 static void
 test_inc_count3 (void)
 {
-  return test_inc_counter (3, 0);
+  test_inc_counter (3, 0);
 }
 
 static void
 test_inc_count4 (void)
 {
-  return test_inc_counter (4, 0);
+  test_inc_counter (4, 0);
 }
 
 static void
 test_inc_count8 (void)
 {
-  return test_inc_counter (8, 0);
+  test_inc_counter (8, 0);
 }
 
 static void
 test_inc_count1nondet (void)
 {
-  return test_inc_counter (1, 1);
+  test_inc_counter (1, 1);
 }
 
 static void
 test_inc_count2nondet (void)
 {
-  return test_inc_counter (2, 1);
+  test_inc_counter (2, 1);
 }
 
 static void
 test_inc_count3nondet (void)
 {
-  return test_inc_counter (3, 1);
+  test_inc_counter (3, 1);
 }
 
 static void
 test_inc_count4nondet (void)
 {
-  return test_inc_counter (4, 1);
+  test_inc_counter (4, 1);
 }
 
 static void
 test_inc_count8nondet (void)
 {
-  return test_inc_counter (8, 1);
+  test_inc_counter (8, 1);
 }
 
 static void
