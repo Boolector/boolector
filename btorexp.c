@@ -21,12 +21,14 @@
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ABORT_EXP(cond, msg)          \
-  do                                       \
-  {                                        \
-    if (!(cond)) break;                    \
-    fputs ("[btorexp] " msg "\n", stdout); \
-    exit (BTOR_ERR_EXIT);                  \
+#define BTOR_ABORT_EXP(cond, msg)            \
+  do                                         \
+  {                                          \
+    if (cond)                                \
+    {                                        \
+      fputs ("[btorexp] " msg "\n", stdout); \
+      exit (BTOR_ERR_EXIT);                  \
+    }                                        \
   } while (0)
 
 struct BtorExpUniqueTable

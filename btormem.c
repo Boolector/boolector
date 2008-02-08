@@ -7,12 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BTOR_ABORT_MEM(cond, msg)          \
-  do                                       \
-  {                                        \
-    if (!(cond)) break;                    \
-    fputs ("[btormem] " msg "\n", stdout); \
-    exit (BTOR_ERR_EXIT);                  \
+#define BTOR_ABORT_MEM(cond, msg)            \
+  do                                         \
+  {                                          \
+    if (cond)                                \
+    {                                        \
+      fputs ("[btormem] " msg "\n", stdout); \
+      exit (BTOR_ERR_EXIT);                  \
+    }                                        \
   } while (0)
 
 #define ADJUST()                                                            \
