@@ -50,7 +50,7 @@ typedef enum BtorExpKind BtorExpKind;
 
 typedef struct BtorExpPair BtorExpPair;
 
-#define BTOR_BASIC_EXP                                                       \
+#define BTOR_BV_VAR_EXP                                                      \
   struct                                                                     \
   {                                                                          \
     BtorExpKind kind : 5;        /* kind of expression */                    \
@@ -70,33 +70,41 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int disconnected : 1; /* for debugging purposes */              \
     unsigned int unique : 1;       /* in unique table? */                    \
     unsigned int bytes : 8;        /* allocated bytes */                     \
+    int id;                        /* unique expression id */                \
+    int len;                       /* number of bits */                      \
+    unsigned int refs;             /* reference counter */                   \
+    BtorAIGVec *av;                /* synthesized AIG vector */              \
+    struct BtorExp *next;          /* next element in unique table */        \
+    struct BtorExp *parent;        /* parent pointer for BFS */              \
+    struct BtorExp *simplified;    /* equivalent simplified expression */    \
+    Btor *btor;                    /* boolector */                           \
+    struct BtorExp *first_parent;  /* head of parent list */                 \
+    struct BtorExp *last_parent;   /* tail of parent list */                 \
+  }
+
+#define BTOR_BV_ADDITIONAL_EXP                                               \
+  struct                                                                     \
+  {                                                                          \
     union                                                                    \
     {                                                                        \
       struct                                                                 \
       {                                                                      \
-        char *symbol; /* symbol of variables for output */                   \
-        int upper;    /* upper index for slices */                           \
+        union                                                                \
+        {                                                                    \
+          char *symbol; /* symbol of variables for output */                 \
+          char *bits;   /* bit vector of constants */                        \
+        };                                                                   \
+        int upper; /* upper index for slices */                              \
         union                                                                \
         {                                                                    \
           int lower;           /* lower index for slices */                  \
-          char *bits;          /* bit vector of constants */                 \
           BtorExpPair *vreads; /* virtual reads for array equalites */       \
         };                                                                   \
       };                                                                     \
       struct BtorExp *e[3]; /* three expression children */                  \
     };                                                                       \
-    int len;                        /* number of bits */                     \
-    int id;                         /* unique expression id */               \
-    unsigned int refs;              /* reference counter */                  \
-    BtorAIGVec *av;                 /* synthesized AIG vector */             \
-    struct BtorExp *next;           /* next element in unique table */       \
-    struct BtorExp *first_parent;   /* head of parent list */                \
-    struct BtorExp *last_parent;    /* tail of parent list */                \
     struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */ \
     struct BtorExp *next_parent[3]; /* next exp in parent list of child i */ \
-    struct BtorExp *parent;         /* parent pointer for BFS */             \
-    struct BtorExp *simplified;     /* equivalent simplified expression */   \
-    Btor *btor;                     /* boolector */                          \
   }
 
 #define BTOR_ARRAY_VAR_EXP                                                    \
@@ -122,16 +130,34 @@ typedef struct BtorExpPair BtorExpPair;
                                                  parent list of child i */ \
   }
 
-struct BtorBasicExp
+struct BtorBVVarExp
 {
-  BTOR_BASIC_EXP;
+  BTOR_BV_VAR_EXP;
+  char *symbol;
 };
 
-typedef struct BtorBasicExp BtorBasicExp;
+typedef struct BtorBVVarExp BtorBVVarExp;
+
+struct BtorBVConstExp
+{
+  BTOR_BV_VAR_EXP;
+  char *bits;
+};
+
+typedef struct BtorBVConstExp BtorBVConstExp;
+
+struct BtorBVExp
+{
+  BTOR_BV_VAR_EXP;
+  BTOR_BV_ADDITIONAL_EXP;
+};
+
+typedef struct BtorBVExp BtorBVExp;
 
 struct BtorArrayVarExp
 {
-  BTOR_BASIC_EXP;
+  BTOR_BV_VAR_EXP;
+  BTOR_BV_ADDITIONAL_EXP;
   BTOR_ARRAY_VAR_EXP;
 };
 
@@ -139,7 +165,8 @@ typedef struct BtorArrayVarExp BtorArrayVarExp;
 
 struct BtorExp
 {
-  BTOR_BASIC_EXP;
+  BTOR_BV_VAR_EXP;
+  BTOR_BV_ADDITIONAL_EXP;
   BTOR_ARRAY_VAR_EXP;
   BTOR_ARRAY_ADDITIONAL_EXP;
 };

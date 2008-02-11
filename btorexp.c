@@ -1735,7 +1735,7 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
 static BtorExp *
 new_const_exp_node (Btor *btor, const char *bits)
 {
-  BtorBasicExp *exp;
+  BtorBVConstExp *exp;
   int i, len;
   assert (btor != NULL);
   assert (bits != NULL);
@@ -1758,7 +1758,7 @@ new_const_exp_node (Btor *btor, const char *bits)
 static BtorExp *
 new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
 {
-  BtorBasicExp *exp = NULL;
+  BtorBVExp *exp = NULL;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (lower >= 0);
@@ -1781,7 +1781,7 @@ static BtorExp *
 new_binary_exp_node (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
 {
-  BtorBasicExp *exp;
+  BtorBVExp *exp;
   assert (btor != NULL);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
   assert (kind != BTOR_AEQ_EXP);
@@ -1830,7 +1830,7 @@ new_ternary_exp_node (Btor *btor,
                       BtorExp *e2,
                       int len)
 {
-  BtorBasicExp *exp;
+  BtorBVExp *exp;
   assert (btor != NULL);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
   assert (kind == BTOR_BCOND_EXP);
@@ -2330,7 +2330,7 @@ static BtorExp *
 var_exp (Btor *btor, int len, const char *symbol)
 {
   BtorMemMgr *mm;
-  BtorBasicExp *exp;
+  BtorBVVarExp *exp;
   assert (btor != NULL);
   assert (len > 0);
   assert (symbol != NULL);
