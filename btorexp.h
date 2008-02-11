@@ -99,7 +99,7 @@ typedef struct BtorExpPair BtorExpPair;
     Btor *btor;                     /* boolector */                          \
   }
 
-#define BTOR_ADDITIONAL_ARRAY_EXP                                             \
+#define BTOR_ARRAY_VAR_EXP                                                    \
   struct                                                                      \
   {                                                                           \
     int index_len;                          /* length of the index */         \
@@ -109,12 +109,17 @@ typedef struct BtorExpPair BtorExpPair;
                                                conditional in parent list */  \
     struct BtorExp *last_aeq_acond_parent;  /* last array equality or array   \
                                                conditional in parent list */  \
-    struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or       \
-                                                 conditional in aeq acond     \
-                                                 parent list of child i */    \
-    struct BtorExp *next_aeq_acond_parent[3]; /* next array equality or       \
-                                                 conditional in aeq acond     \
-                                                 parent list of child i */    \
+  }
+
+#define BTOR_ARRAY_ADDITIONAL_EXP                                          \
+  struct                                                                   \
+  {                                                                        \
+    struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or    \
+                                                 conditional in aeq acond  \
+                                                 parent list of child i */ \
+    struct BtorExp *next_aeq_acond_parent[3]; /* next array equality or    \
+                                                 conditional in aeq acond  \
+                                                 parent list of child i */ \
   }
 
 struct BtorBasicExp
@@ -124,10 +129,19 @@ struct BtorBasicExp
 
 typedef struct BtorBasicExp BtorBasicExp;
 
+struct BtorArrayVarExp
+{
+  BTOR_BASIC_EXP;
+  BTOR_ARRAY_VAR_EXP;
+};
+
+typedef struct BtorArrayVarExp BtorArrayVarExp;
+
 struct BtorExp
 {
   BTOR_BASIC_EXP;
-  BTOR_ADDITIONAL_ARRAY_EXP;
+  BTOR_ARRAY_VAR_EXP;
+  BTOR_ARRAY_ADDITIONAL_EXP;
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)

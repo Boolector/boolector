@@ -2361,7 +2361,7 @@ BtorExp *
 btor_array_exp (Btor *btor, int elem_len, int index_len)
 {
   BtorMemMgr *mm;
-  BtorExp *exp;
+  BtorArrayVarExp *exp;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_array_exp'");
   BTOR_ABORT_EXP (elem_len < 1,
                   "'elem_len' must not be < 1 in 'btor_array_exp'");
@@ -2378,7 +2378,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   exp->refs = 1u;
   exp->btor = btor;
   (void) btor_insert_in_ptr_hash_table (btor->arrays, exp);
-  return exp;
+  return (BtorExp *) exp;
 }
 
 static BtorExp *
