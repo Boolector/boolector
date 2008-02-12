@@ -72,14 +72,14 @@ struct Btor
   BtorExpUniqueTable table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *arrays;
-  int id;
+  int id; /* global expression id counter */
   int valid_assignments;
   int rewrite_level;
   int verbosity;
   int extensionality;
   int vread_index_id;
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* used for McCarthy encoding */
-  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* used for McCarthy encoding */
+  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
+  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *new_constraints;
   BtorPtrHashTable *processed_constraints;
   BtorPtrHashTable *synthesized_constraints;
