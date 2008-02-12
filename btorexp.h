@@ -70,6 +70,7 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int disconnected : 1; /* for debugging purposes */              \
     unsigned int unique : 1;       /* in unique table? */                    \
     unsigned int bytes : 8;        /* allocated bytes */                     \
+    unsigned int arity : 2;        /* arity of operator */                   \
     int id;                        /* unique expression id */                \
     int len;                       /* number of bits */                      \
     unsigned int refs;             /* reference counter */                   \
@@ -213,11 +214,6 @@ struct BtorExp
 #define BTOR_IS_UNARY_EXP(exp) (BTOR_IS_UNARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BINARY_EXP(exp) (BTOR_IS_BINARY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_TERNARY_EXP(exp) (BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))
-
-#define BTOR_ARITY_EXP(exp) \
-  (BTOR_IS_UNARY_EXP (exp)  \
-       ? 1                  \
-       : BTOR_IS_BINARY_EXP (exp) ? 2 : BTOR_IS_TERNARY_EXP (exp) ? 3 : 0)
 
 #define BTOR_INVERT_EXP(exp) ((BtorExp *) (1ul ^ (unsigned long int) (exp)))
 #define BTOR_IS_INVERTED_EXP(exp) (1ul & (unsigned long int) (exp))
