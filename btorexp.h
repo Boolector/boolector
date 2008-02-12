@@ -73,13 +73,17 @@ typedef struct BtorExpPair BtorExpPair;
     int id;                        /* unique expression id */                \
     int len;                       /* number of bits */                      \
     unsigned int refs;             /* reference counter */                   \
-    BtorAIGVec *av;                /* synthesized AIG vector */              \
-    struct BtorExp *next;          /* next element in unique table */        \
-    struct BtorExp *parent;        /* parent pointer for BFS */              \
-    struct BtorExp *simplified;    /* equivalent simplified expression */    \
-    Btor *btor;                    /* boolector */                           \
-    struct BtorExp *first_parent;  /* head of parent list */                 \
-    struct BtorExp *last_parent;   /* tail of parent list */                 \
+    union                                                                    \
+    {                                                                        \
+      BtorAIGVec *av;        /* synthesized AIG vector */                    \
+      BtorPtrHashTable *rho; /* used for finding array conflicts */          \
+    };                                                                       \
+    struct BtorExp *next;         /* next element in unique table */         \
+    struct BtorExp *parent;       /* parent pointer for BFS */               \
+    struct BtorExp *simplified;   /* equivalent simplified expression */     \
+    Btor *btor;                   /* boolector */                            \
+    struct BtorExp *first_parent; /* head of parent list */                  \
+    struct BtorExp *last_parent;  /* tail of parent list */                  \
   }
 
 #define BTOR_BV_ADDITIONAL_EXP                                               \
@@ -111,8 +115,6 @@ typedef struct BtorExpPair BtorExpPair;
   struct                                                                     \
   {                                                                          \
     int index_len;                          /* length of the index */        \
-    BtorPtrHashTable *rho;                  /* used for finding              \
-                                               theory conflicts */           \
     struct BtorExp *first_aeq_acond_parent; /* first array equality or array \
                                                conditional in parent list */ \
     struct BtorExp *last_aeq_acond_parent;  /* last array equality or array  \
