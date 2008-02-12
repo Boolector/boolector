@@ -107,16 +107,16 @@ typedef struct BtorExpPair BtorExpPair;
     struct BtorExp *next_parent[3]; /* next exp in parent list of child i */ \
   }
 
-#define BTOR_ARRAY_VAR_EXP                                                    \
-  struct                                                                      \
-  {                                                                           \
-    int index_len;                          /* length of the index */         \
-    BtorPtrHashTable *table;                /* used for determining read-read \
-                                               and read-write conflicts */    \
-    struct BtorExp *first_aeq_acond_parent; /* first array equality or array  \
-                                               conditional in parent list */  \
-    struct BtorExp *last_aeq_acond_parent;  /* last array equality or array   \
-                                               conditional in parent list */  \
+#define BTOR_ARRAY_VAR_EXP                                                   \
+  struct                                                                     \
+  {                                                                          \
+    int index_len;                          /* length of the index */        \
+    BtorPtrHashTable *rho;                  /* used for finding              \
+                                               theory conflicts */           \
+    struct BtorExp *first_aeq_acond_parent; /* first array equality or array \
+                                               conditional in parent list */ \
+    struct BtorExp *last_aeq_acond_parent;  /* last array equality or array  \
+                                               conditional in parent list */ \
   }
 
 #define BTOR_ARRAY_ADDITIONAL_EXP                                          \

@@ -6468,15 +6468,15 @@ process_working_stack (Btor *btor,
     assert (BTOR_REAL_ADDR_EXP (value)->simplified == NULL);
     if (*assignments_changed) return 0;
     /* hash table lookup */
-    if (array->table == NULL)
+    if (array->rho == NULL)
     {
-      array->table = btor_new_ptr_hash_table (
+      array->rho = btor_new_ptr_hash_table (
           mm, (BtorHashPtr) hash_assignment, (BtorCmpPtr) compare_assignments);
       BTOR_PUSH_STACK (mm, *cleanup_stack, array);
     }
     else
     {
-      bucket = btor_find_in_ptr_hash_table (array->table, index);
+      bucket = btor_find_in_ptr_hash_table (array->rho, index);
       if (bucket != NULL)
       {
         hashed_acc = (BtorExp *) bucket->data.asPtr;
@@ -6544,9 +6544,9 @@ process_working_stack (Btor *btor,
         BTOR_PUSH_STACK (mm, *stack, array->e[2]);
       }
     }
-    assert (array->table != NULL);
+    assert (array->rho != NULL);
     /* insert into hash table */
-    btor_insert_in_ptr_hash_table (array->table, index)->data.asPtr = acc;
+    btor_insert_in_ptr_hash_table (array->rho, index)->data.asPtr = acc;
     if (extensionality)
     {
       /* propagate pairs wich are reachable via array equality */
@@ -6808,9 +6808,9 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
     cur_array = BTOR_POP_STACK (cleanup_stack);
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
-    assert (cur_array->table != NULL);
-    btor_delete_ptr_hash_table (cur_array->table);
-    cur_array->table = NULL;
+    assert (cur_array->rho != NULL);
+    btor_delete_ptr_hash_table (cur_array->rho);
+    cur_array->rho = NULL;
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
 
