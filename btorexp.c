@@ -1654,6 +1654,7 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
 
   assert (btor != NULL);
   assert (exp != NULL);
+  (void) btor;
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
