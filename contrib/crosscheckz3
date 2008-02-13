@@ -1,0 +1,59 @@
+#!/bin/bash
+i=0
+file="/tmp/crosscheckz3$$.btor"
+smtfile="temp.smt"
+refinementlimit=100000
+while true 
+do 
+  ((i++))
+  rwl=rwl2
+  echo -n "Test $i $rwl: "
+  btorgen 2> /dev/null > $file 
+  boolector -$rwl -rl $refinementlimit $file
+  goldenretval=$?
+  if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
+    echo "ERROR"
+    cp $file ./error.btor
+    rm -f $file
+    exit
+  fi
+
+  if [[ $goldenretval -eq 2 ]]; then
+    status=sat
+  else
+    status=unsat
+  fi
+
+  for rwl in rwl1 rwl0
+  do
+    echo -n "Test $i $rwl: "
+    boolector -$rwl -rl $refinementlimit $file 
+    retval=$?
+    if [[ $retval -ne $goldenretval ]]; then
+      echo "ERROR"
+      cp $file ./error.btor
+      rm -f $file
+      exit
+    fi 
+  done
+
+  boolector $file -rwl0 -ds > $smtfile
+
+  z3result="`z3 $smtfile | tr -d '\r'`"
+  echo "Test $i Z3:   $z3result"
+
+  if [[ "x$z3result" = x ]]; then
+    echo "Z3 CRASH"
+    cp $file ./z3crash.btor
+  fi
+
+  if [[ "x$status" = xsat ]] && [[ "x$z3result" = xunsat ]]; then
+      echo "ERROR"
+      cp $file ./error.btor
+      rm -f $file
+      exit
+  fi
+
+  echo ""
+
+done
