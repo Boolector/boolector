@@ -637,15 +637,6 @@ btor_main (int argc, char **argv)
         btor_add_constraint_exp (btor, root);
         btor_release_exp (btor, root);
 
-#if 0
-              /* Currently this does not make any difference since the
-               * parser generates all the roots up-front.  A better or
-               * faster approach would be to let the parser add the
-               * constraints directly as they come and then call rewrite.
-               */
-              btor_rewrite (btor);
-#endif
-
         if (app.verbosity > 1
             && p - constraints.start == constraints_report_limit)
         {
