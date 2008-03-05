@@ -1,3 +1,28 @@
+/* Verifies correcntess of Peter Wegeners algorithm:
+ *
+ *   P. Wegener.
+ *   A technique for counting ones in a binary computer.
+ *   CACM 3(5), 1960.
+ *
+ *  The algorithm goes as follows:
+ *
+ *    for (y = x, c = 0; y; y &= y - 1)
+ *      c++;
+ *
+ *  We unroll this bit witdh (n) times
+ *
+ *    for (c = i = 0; i < n; i++, y &= y - 1)
+ *      if (y)
+ *        c++;
+ *
+ *  and compare it against
+ *
+ *    for (s = i = 0; i < n; i++)
+ *      if (x & (1 << i))
+ *        s++;
+ *
+ *  then 's = c'.
+ */
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
