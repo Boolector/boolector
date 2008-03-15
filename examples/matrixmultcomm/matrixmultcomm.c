@@ -6,14 +6,6 @@
 
 BtorExp **indices;
 
-static int
-compute_num_bits_index (int num_elements)
-{
-  assert (num_elements > 1);
-  while (!btor_is_power_of_2_util (num_elements)) num_elements++;
-  return btor_log_2_util (num_elements);
-}
-
 static BtorExp *
 matrix_mult (Btor *btor,
              BtorExp *m1,
@@ -87,7 +79,7 @@ main (int argc, char **argv)
     return 1;
   }
   num_elements   = size * size;
-  num_bits_index = compute_num_bits_index (num_elements);
+  num_bits_index = btor_next_power_of_2_util (num_elements);
   btor           = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
