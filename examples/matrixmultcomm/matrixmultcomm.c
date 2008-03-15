@@ -79,7 +79,7 @@ main (int argc, char **argv)
     return 1;
   }
   num_elements   = size * size;
-  num_bits_index = btor_next_power_of_2_util (num_elements);
+  num_bits_index = btor_log_2_util (btor_next_power_of_2_util (num_elements));
   btor           = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
