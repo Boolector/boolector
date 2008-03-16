@@ -997,7 +997,7 @@ btorsmtpp (BtorSMTNode *node)
 }
 
 static void
-push_var (BtorSMTParser *parser, BtorExp *v)
+push_input (BtorSMTParser *parser, BtorExp *v)
 {
   BTOR_PUSH_STACK (
       parser->mem, parser->inputs, btor_copy_exp (parser->btor, v));
@@ -1074,7 +1074,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     datalen = atoi (p); /* TODO Overflow? */
 
     symbol->exp = btor_var_exp (parser->btor, datalen, symbol->name);
-    push_var (parser, symbol->exp);
+    push_input (parser, symbol->exp);
   }
   else if (has_prefix (p, "Array"))
   {
@@ -1087,6 +1087,8 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     datalen = atoi (p); /* TODO Overflow? */
 
     symbol->exp = btor_array_exp (parser->btor, datalen, addrlen);
+    push_input (parser, symbol->exp);
+
     /* TODO what about 'symbol->name' back annotation? */
   }
   else
@@ -1128,7 +1130,7 @@ extrapred (BtorSMTParser *parser, BtorSMTNode *pdecl)
     return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
 
   symbol->exp = btor_var_exp (parser->btor, 1, symbol->name);
-  push_var (parser, symbol->exp);
+  push_input (parser, symbol->exp);
 
   return 1;
 }
