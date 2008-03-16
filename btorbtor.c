@@ -640,6 +640,18 @@ parse_zero (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_one (BtorBTORParser *parser, int len)
+{
+  return btor_one_exp (parser->btor, len);
+}
+
+static BtorExp *
+parse_ones (BtorBTORParser *parser, int len)
+{
+  return btor_ones_exp (parser->btor, len);
+}
+
+static BtorExp *
 parse_root (BtorBTORParser *parser, int len)
 {
   BtorExp *res;
@@ -1521,6 +1533,8 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_next, "next"); /* only in parser */
   new_parser (res, parse_nor, "nor");
   new_parser (res, parse_not, "not");
+  new_parser (res, parse_one, "one");
+  new_parser (res, parse_ones, "ones");
   new_parser (res, parse_or, "or");
   new_parser (res, parse_read, "read");
   new_parser (res, parse_redand, "redand");
