@@ -373,6 +373,7 @@ parse_array (BtorBTORParser *parser, int len)
   /* TODO: symbols for arrays */
 
   res = btor_array_exp (parser->btor, len, idx_len);
+  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
   parser->info.start[parser->idx].array = 1;
 
   return res;
@@ -1594,6 +1595,30 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_DELETE (parser->mem, parser);
 }
 
+static void
+remove_regs_from_vars (BtorBTORParser *parser)
+{
+  BtorExp **p, **q, *e;
+  Info info;
+  int i;
+
+  p = q = parser->vars.start;
+  for (i = 1; i <= parser->idx; i++)
+  {
+    info = parser->info.start[i];
+
+    if (!info.var && !info.array) continue;
+
+    e = parser->exps.start[i];
+    assert (*p == e);
+    p++;
+
+    if (!info.next) *q++ = e;
+  }
+  assert (p == parser->vars.top);
+  parser->vars.top = q;
+}
+
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
                         FILE *file,
@@ -1607,7 +1632,7 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   assert (name);
   assert (file);
 
-  if (parser->verbosity > 0) print_verbose_msg ("parsing BTOR file %s", name);
+  if (parser->verbosity > 0) print_verbose_msg ("parsing %s", name);
 
   parser->file   = file;
   parser->name   = name;
@@ -1624,8 +1649,11 @@ NEXT:
   if (ch == EOF)
   {
   DONE:
+
     if (res)
     {
+      remove_regs_from_vars (parser);
+
       res->nvars = BTOR_COUNT_STACK (parser->vars);
       res->vars  = parser->vars.start;
 
@@ -1635,6 +1663,13 @@ NEXT:
       res->nregs = BTOR_COUNT_STACK (parser->regs);
       res->regs  = parser->regs.start;
       res->nexts = parser->nexts.start;
+
+      if (parser->verbosity > 0)
+      {
+        print_verbose_msg ("parsed %d variables", res->nvars);
+        print_verbose_msg ("parsed %d registers", res->nregs);
+        print_verbose_msg ("parsed %d roots", res->nroots);
+      }
     }
 
     return 0;
