@@ -571,6 +571,11 @@ btor_main (int argc, char **argv)
       print_msg_va_args (&app, "%s\n", parse_error);
       err = 1;
     }
+    else if (parse_res.nregs > 0)
+    {
+      print_err (&app, "no support for 'next'\n");
+      err = 1;
+    }
     else if (dump_exp)
     {
       btor_dump_exps (btor, exp_file, parse_res.roots, parse_res.nroots);

@@ -19,6 +19,17 @@ typedef BtorExp *(*Extend) (Btor *, BtorExp *, int);
 
 #define SIZE_PARSERS 128
 
+typedef struct Info Info;
+
+struct Info
+{
+  unsigned var : 1;
+  unsigned array : 1;
+  unsigned next : 1;
+};
+
+BTOR_DECLARE_STACK (Info, Info);
+
 struct BtorBTORParser
 {
   BtorMemMgr *mem;
@@ -31,11 +42,12 @@ struct BtorBTORParser
   char *error;
 
   BtorExpPtrStack exps;
+  BtorInfoStack info;
+
   BtorExpPtrStack roots;
   BtorExpPtrStack vars;
   BtorExpPtrStack regs;
   BtorExpPtrStack next;
-  BtorExpPtrStack init;
 
   BtorCharStack op;
   BtorCharStack constant;
@@ -45,7 +57,6 @@ struct BtorBTORParser
   const char **ops;
 
   int idx;
-
   int verbosity;
 };
 
@@ -231,12 +242,7 @@ parse_exp (BtorBTORParser *parser, int expected_len, int can_be_array)
   if (parse_non_zero_int (parser, &lit)) return 0;
 
   idx = abs (lit);
-
-  if (!idx)
-  {
-    (void) parse_error (parser, "invalid index '0'");
-    return 0;
-  }
+  assert (idx);
 
   if (idx >= BTOR_COUNT_STACK (parser->exps)
       || !(res = parser->exps.start[idx]))
@@ -318,8 +324,7 @@ parse_symbol (BtorBTORParser *parser)
   if (ch == '\n')
   {
     sprintf (buffer, "%d", parser->idx);
-    for (p = buffer; (ch = *p); p++)
-      BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
+    for (p = buffer; *p; p++) BTOR_PUSH_STACK (parser->mem, parser->symbol, *p);
   }
   else
   {
@@ -350,6 +355,7 @@ parse_var (BtorBTORParser *parser, int len)
 
   res = btor_var_exp (parser->btor, len, parser->symbol.start);
   BTOR_PUSH_STACK (parser->mem, parser->vars, res);
+  parser->info.start[parser->idx].var = 1;
 
   return res;
 }
@@ -357,7 +363,6 @@ parse_var (BtorBTORParser *parser, int len)
 static BtorExp *
 parse_array (BtorBTORParser *parser, int len)
 {
-  char buffer[20];
   BtorExp *res;
   int idx_len;
 
@@ -365,10 +370,95 @@ parse_array (BtorBTORParser *parser, int len)
 
   if (parse_positive_int (parser, &idx_len)) return 0;
 
-  sprintf (buffer, "%d", parser->idx);
+  /* TODO: symbols for arrays */
+
   res = btor_array_exp (parser->btor, len, idx_len);
+  parser->info.start[parser->idx].array = 1;
 
   return res;
+}
+
+static BtorExp *
+parse_array_exp (BtorBTORParser *parser, int len)
+{
+  BtorExp *res;
+
+  res = parse_exp (parser, len, 1);
+  if (!res) return 0;
+
+  if (btor_is_array_exp (parser->btor, res)) return res;
+
+  (void) parse_error (parser, "expected array expression");
+  btor_release_exp (parser->btor, res);
+
+  return 0;
+}
+
+static BtorExp *
+parse_next (BtorBTORParser *parser, int len)
+{
+  int idx, current_idx_len, next_idx_len;
+  BtorExp *current, *next;
+  Info info;
+
+  if (parse_space (parser)) return 0;
+
+  if (parse_positive_int (parser, &idx)) return 0;
+
+  if (idx >= BTOR_COUNT_STACK (parser->exps)
+      || !(current = parser->exps.start[idx]))
+  {
+    (void) parse_error (parser, "invalid next index %d", idx);
+    return 0;
+  }
+
+  info = parser->info.start[idx];
+
+  if (!info.var && !info.array)
+  {
+    (void) parse_error (
+        parser, "next index %d is neither variable nor an array", idx);
+    return 0;
+  }
+
+  if (info.next)
+  {
+    (void) parse_error (parser, "next index %d already used", idx);
+    return 0;
+  }
+
+  if (parse_space (parser)) return 0;
+
+  if (info.array)
+  {
+    assert (btor_is_array_exp (parser->btor, current));
+    if (!(next = parse_array_exp (parser, len))) return 0;
+
+    current_idx_len = btor_get_index_exp_len (parser->btor, current);
+    next_idx_len    = btor_get_index_exp_len (parser->btor, next);
+
+    if (current_idx_len != next_idx_len)
+    {
+      btor_release_exp (parser->btor, next);
+      (void) parse_error (parser,
+                          "arrays with different index width %d and %d",
+                          current_idx_len,
+                          next_idx_len);
+      return 0;
+    }
+  }
+  else
+  {
+    assert (!btor_is_array_exp (parser->btor, current));
+
+    if (!(next = parse_exp (parser, len, 0))) return 0;
+  }
+
+  BTOR_PUSH_STACK (parser->mem, parser->regs, current);
+  BTOR_PUSH_STACK (parser->mem, parser->next, next);
+  parser->info.start[idx].next = 1;
+
+  return next;
 }
 
 static BtorExp *
@@ -558,62 +648,6 @@ parse_root (BtorBTORParser *parser, int len)
   if (!(res = parse_exp (parser, len, 0))) return 0;
 
   BTOR_PUSH_STACK (parser->mem, parser->roots, res);
-
-  return res;
-}
-
-static BtorExp *
-parse_reg (BtorBTORParser *parser, int len)
-{
-  BtorExp *res, *next;
-
-  if (parse_space (parser)) return 0;
-
-  if (!(next = parse_exp (parser, len, 0))) return 0;
-
-  if (!parse_symbol (parser))
-  {
-    btor_release_exp (parser->btor, next);
-    return 0;
-  }
-
-  res = btor_var_exp (parser->btor, len, parser->symbol.start);
-  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
-  BTOR_PUSH_STACK (parser->mem, parser->next, next);
-  BTOR_PUSH_STACK (parser->mem, parser->init, 0);
-
-  return res;
-}
-
-static BtorExp *
-parse_ireg (BtorBTORParser *parser, int len)
-{
-  BtorExp *res, *next, *init;
-
-  if (parse_space (parser)) return 0;
-
-  if (!(next = parse_exp (parser, len, 0))) return 0;
-
-  if (parse_space (parser))
-  {
-  RELEASE_NEXT_AND_RETURN_0:
-    btor_release_exp (parser->btor, next);
-    return 0;
-  }
-
-  if (!(init = parse_exp (parser, len, 0))) goto RELEASE_NEXT_AND_RETURN_0;
-
-  if (!parse_symbol (parser))
-  {
-    btor_release_exp (parser->btor, next);
-    btor_release_exp (parser->btor, init);
-    return 0;
-  }
-
-  res = btor_var_exp (parser->btor, len, parser->symbol.start);
-  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
-  BTOR_PUSH_STACK (parser->mem, parser->next, next);
-  BTOR_PUSH_STACK (parser->mem, parser->init, init);
 
   return res;
 }
@@ -1275,22 +1309,6 @@ parse_slice (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
-parse_array_exp (BtorBTORParser *parser, int len)
-{
-  BtorExp *res;
-
-  res = parse_exp (parser, len, 1);
-  if (!res) return 0;
-
-  if (btor_is_array_exp (parser->btor, res)) return res;
-
-  (void) parse_error (parser, "expected array expression");
-  btor_release_exp (parser->btor, res);
-
-  return 0;
-}
-
-static BtorExp *
 parse_read (BtorBTORParser *parser, int len)
 {
   BtorExp *array, *idx, *res;
@@ -1494,12 +1512,12 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_eq, "eq");
   new_parser (res, parse_iff, "iff");
   new_parser (res, parse_implies, "implies");
-  new_parser (res, parse_ireg, "ireg"); /* only in parser */
   new_parser (res, parse_mul, "mul");
   new_parser (res, parse_nand, "nand");
   new_parser (res, parse_neg, "neg");
   new_parser (res, parse_nego, "nego");
   new_parser (res, parse_ne, "ne");
+  new_parser (res, parse_next, "next"); /* only in parser */
   new_parser (res, parse_nor, "nor");
   new_parser (res, parse_not, "not");
   new_parser (res, parse_or, "or");
@@ -1507,7 +1525,6 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_redand, "redand");
   new_parser (res, parse_redor, "redor");
   new_parser (res, parse_redxor, "redxor");
-  new_parser (res, parse_reg, "reg"); /* only in parser */
   new_parser (res, parse_rol, "rol");
   new_parser (res, parse_root, "root"); /* only in parser */
   new_parser (res, parse_ror, "ror");
@@ -1560,11 +1577,11 @@ btor_delete_btor_parser (BtorBTORParser *parser)
       btor_release_exp (parser->btor, parser->exps.start[i]);
 
   BTOR_RELEASE_STACK (parser->mem, parser->exps);
+  BTOR_RELEASE_STACK (parser->mem, parser->info);
   BTOR_RELEASE_STACK (parser->mem, parser->vars);
   BTOR_RELEASE_STACK (parser->mem, parser->roots);
   BTOR_RELEASE_STACK (parser->mem, parser->regs);
   BTOR_RELEASE_STACK (parser->mem, parser->next);
-  BTOR_RELEASE_STACK (parser->mem, parser->init);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
@@ -1618,7 +1635,6 @@ NEXT:
       res->nregs = BTOR_COUNT_STACK (parser->regs);
       res->regs  = parser->regs.start;
       res->next  = parser->next.start;
-      res->init  = parser->init.start;
     }
 
     return 0;
@@ -1640,7 +1656,12 @@ NEXT:
   if (parse_positive_int (parser, &parser->idx)) return parser->error;
 
   while (BTOR_COUNT_STACK (parser->exps) <= parser->idx)
+  {
+    Info info;
+    memset (&info, 0, sizeof info);
+    BTOR_PUSH_STACK (parser->mem, parser->info, info);
     BTOR_PUSH_STACK (parser->mem, parser->exps, 0);
+  }
 
   if (parser->exps.start[parser->idx])
     return parse_error (parser, "'%d' defined twice", parser->idx);

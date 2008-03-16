@@ -96,6 +96,10 @@ main (int argc, char **argv)
 
   back_annotation = btor_new_ptr_hash_table (mem, 0, 0);
 
+  for (i = 0; i < model.nregs; i++)
+    if (btor_is_array_exp (btor, model.regs[i]))
+      die (1, "can not handle memories");
+
   BTOR_INIT_STACK (stack);
   for (i = 0; i < model.nroots; i++)
   {
