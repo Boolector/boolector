@@ -112,6 +112,17 @@ void btor_dump_aigs (BtorAIGMgr *amgr,
                      BtorAIG **aigs,
                      BtorPtrHashTable *back_annotation);
 
+/* Dumps sequential AIGER model to file. */
+void btor_dump_aiger (BtorAIGMgr *amgr,
+                      int binary,
+                      FILE *output,
+                      int naigs,
+                      BtorAIG **aigs,
+                      int nregs,
+                      BtorAIG **regs,
+                      BtorAIG **nexts,
+                      BtorPtrHashTable *back_annotation);
+
 /* Translates AIG into SAT instance. */
 void btor_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *aig);
 

@@ -47,7 +47,7 @@ struct BtorBTORParser
   BtorExpPtrStack roots;
   BtorExpPtrStack vars;
   BtorExpPtrStack regs;
-  BtorExpPtrStack next;
+  BtorExpPtrStack nexts;
 
   BtorCharStack op;
   BtorCharStack constant;
@@ -455,7 +455,7 @@ parse_next (BtorBTORParser *parser, int len)
   }
 
   BTOR_PUSH_STACK (parser->mem, parser->regs, current);
-  BTOR_PUSH_STACK (parser->mem, parser->next, next);
+  BTOR_PUSH_STACK (parser->mem, parser->nexts, next);
   parser->info.start[idx].next = 1;
 
   return next;
@@ -1581,7 +1581,7 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->vars);
   BTOR_RELEASE_STACK (parser->mem, parser->roots);
   BTOR_RELEASE_STACK (parser->mem, parser->regs);
-  BTOR_RELEASE_STACK (parser->mem, parser->next);
+  BTOR_RELEASE_STACK (parser->mem, parser->nexts);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
@@ -1634,7 +1634,7 @@ NEXT:
 
       res->nregs = BTOR_COUNT_STACK (parser->regs);
       res->regs  = parser->regs.start;
-      res->next  = parser->next.start;
+      res->nexts = parser->nexts.start;
     }
 
     return 0;

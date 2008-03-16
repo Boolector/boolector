@@ -37,7 +37,9 @@ main (int argc, char **argv)
   BtorPtrHashBucket *b;
   BtorParseResult model;
   BtorAIGVecMgr *avmgr;
-  BtorAIGPtrStack stack;
+  BtorAIGPtrStack regs;
+  BtorAIGPtrStack nexts;
+  BtorAIGPtrStack aigs;
   BtorAIG *aig, **p;
   BtorParser *parser;
   BtorAIGMgr *amgr;
@@ -96,18 +98,39 @@ main (int argc, char **argv)
 
   back_annotation = btor_new_ptr_hash_table (mem, 0, 0);
 
-  for (i = 0; i < model.nregs; i++)
-    if (btor_is_array_exp (btor, model.regs[i]))
-      die (1, "can not handle memories");
+  BTOR_INIT_STACK (regs);
+  BTOR_INIT_STACK (nexts);
 
-  BTOR_INIT_STACK (stack);
+  for (i = 0; i < model.nregs; i++)
+  {
+    if (btor_is_array_exp (btor, model.regs[i]))
+      die (1, "can not synthesize memories (yet)");
+
+    av = btor_exp_to_aigvec (btor, model.regs[i], back_annotation);
+    for (j = 0; j < av->len; j++)
+    {
+      aig = btor_copy_aig (amgr, av->aigs[j]);
+      BTOR_PUSH_STACK (mem, regs, aig);
+    }
+    btor_release_delete_aigvec (avmgr, av);
+
+    av = btor_exp_to_aigvec (btor, model.nexts[i], back_annotation);
+    for (j = 0; j < av->len; j++)
+    {
+      aig = btor_copy_aig (amgr, av->aigs[j]);
+      BTOR_PUSH_STACK (mem, nexts, aig);
+    }
+    btor_release_delete_aigvec (avmgr, av);
+  }
+
+  BTOR_INIT_STACK (aigs);
   for (i = 0; i < model.nroots; i++)
   {
     av = btor_exp_to_aigvec (btor, model.roots[i], back_annotation);
     for (j = 0; j < av->len; j++)
     {
       aig = btor_copy_aig (amgr, av->aigs[j]);
-      BTOR_PUSH_STACK (mem, stack, aig);
+      BTOR_PUSH_STACK (mem, aigs, aig);
     }
     btor_release_delete_aigvec (avmgr, av);
   }
@@ -116,15 +139,25 @@ main (int argc, char **argv)
 #ifdef BTOR_HAVE_ISATTY
   if (close_output || !isatty (1)) binary = 1;
 #endif
-  btor_dump_aigs (amgr,
-                  binary,
-                  output_file,
-                  BTOR_COUNT_STACK (stack),
-                  stack.start,
-                  back_annotation);
+  assert (BTOR_COUNT_STACK (regs) == BTOR_COUNT_STACK (nexts));
+  btor_dump_aiger (amgr,
+                   binary,
+                   output_file,
+                   BTOR_COUNT_STACK (aigs),
+                   aigs.start,
+                   BTOR_COUNT_STACK (regs),
+                   regs.start,
+                   nexts.start,
+                   back_annotation);
 
-  for (p = stack.start; p < stack.top; p++) btor_release_aig (amgr, *p);
-  BTOR_RELEASE_STACK (mem, stack);
+  for (p = aigs.start; p < aigs.top; p++) btor_release_aig (amgr, *p);
+  BTOR_RELEASE_STACK (mem, aigs);
+
+  for (p = regs.start; p < regs.top; p++) btor_release_aig (amgr, *p);
+  BTOR_RELEASE_STACK (mem, regs);
+
+  for (p = nexts.start; p < nexts.top; p++) btor_release_aig (amgr, *p);
+  BTOR_RELEASE_STACK (mem, nexts);
 
   for (b = back_annotation->first; b; b = b->next)
     btor_freestr (mem, b->data.asStr);

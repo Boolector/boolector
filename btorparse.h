@@ -26,7 +26,7 @@ struct BtorParseResult
 
   int nregs;
   BtorExp **regs;
-  BtorExp **next;
+  BtorExp **nexts;
 };
 
 struct BtorParserAPI

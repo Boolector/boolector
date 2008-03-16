@@ -636,6 +636,17 @@ btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
   btor_dump_aigs (amgr, binary, output, 1, &aig, 0);
 }
 
+void
+btor_dump_aigs (BtorAIGMgr *amgr,
+                int binary,
+                FILE *file,
+                int naigs,
+                BtorAIG **aigs,
+                BtorPtrHashTable *backannotation)
+{
+  btor_dump_aiger (amgr, binary, file, naigs, aigs, 0, 0, 0, backannotation);
+}
+
 static unsigned
 btor_aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 {
@@ -660,12 +671,15 @@ btor_aiger_encode_aig (BtorPtrHashTable *table, BtorAIG *aig)
 }
 
 void
-btor_dump_aigs (BtorAIGMgr *amgr,
-                int binary,
-                FILE *file,
-                int naigs,
-                BtorAIG **aigs,
-                BtorPtrHashTable *backannotation)
+btor_dump_aiger (BtorAIGMgr *amgr,
+                 int binary,
+                 FILE *file,
+                 int naigs,
+                 BtorAIG **aigs,
+                 int nregs,
+                 BtorAIG **regs,
+                 BtorAIG **nexts,
+                 BtorPtrHashTable *backannotation)
 {
   unsigned aig_id, left_id, right_id, tmp, delta;
   BtorMemMgr *mm;
