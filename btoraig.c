@@ -633,7 +633,7 @@ btor_cond_aig (BtorAIGMgr *amgr,
 void
 btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig)
 {
-  btor_dump_aigs (amgr, binary, output, &aig, 1, 0);
+  btor_dump_aigs (amgr, binary, output, 1, &aig, 0);
 }
 
 static unsigned
@@ -663,8 +663,8 @@ void
 btor_dump_aigs (BtorAIGMgr *amgr,
                 int binary,
                 FILE *file,
-                BtorAIG **aigs,
                 int naigs,
+                BtorAIG **aigs,
                 BtorPtrHashTable *backannotation)
 {
   unsigned aig_id, left_id, right_id, tmp, delta;

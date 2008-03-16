@@ -108,8 +108,8 @@ void btor_dump_aig (BtorAIGMgr *amgr, int binary, FILE *output, BtorAIG *aig);
 void btor_dump_aigs (BtorAIGMgr *amgr,
                      int binary,
                      FILE *output,
-                     BtorAIG **aigs,
                      int naigs,
+                     BtorAIG **aigs,
                      BtorPtrHashTable *back_annotation);
 
 /* Translates AIG into SAT instance. */

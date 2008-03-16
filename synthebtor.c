@@ -119,8 +119,8 @@ main (int argc, char **argv)
   btor_dump_aigs (amgr,
                   binary,
                   output_file,
-                  stack.start,
                   BTOR_COUNT_STACK (stack),
+                  stack.start,
                   back_annotation);
 
   for (p = stack.start; p < stack.top; p++) btor_release_aig (amgr, *p);
