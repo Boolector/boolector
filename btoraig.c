@@ -682,29 +682,45 @@ btor_dump_aiger (BtorAIGMgr *amgr,
                  BtorPtrHashTable *backannotation)
 {
   unsigned aig_id, left_id, right_id, tmp, delta;
-  BtorMemMgr *mm;
+  BtorPtrHashTable *table, *latches;
   BtorAIG *aig, *left, *right;
   BtorPtrHashBucket *p, *b;
-  BtorPtrHashTable *table;
   int M, I, L, O, A, i;
   BtorAIGPtrStack stack;
   unsigned char ch;
+  BtorMemMgr *mm;
 
   assert (naigs > 0);
 
   mm = amgr->mm;
 
-  table = btor_new_ptr_hash_table (amgr->mm, 0, 0);
+  table   = btor_new_ptr_hash_table (amgr->mm, 0, 0);
+  latches = btor_new_ptr_hash_table (amgr->mm, 0, 0);
 
-  /* First add inputs aka variables to hash table.
+  /* First add latches and inputs to hash tables.
    */
-  I = 0;
+  for (i = nregs - 1; i >= 0; i--)
+
+  {
+    aig = regs[i];
+    assert (!BTOR_IS_CONST_AIG (aig));
+    assert (!btor_find_in_ptr_hash_table (latches, aig));
+    btor_insert_in_ptr_hash_table (latches, aig);
+  }
+
   BTOR_INIT_STACK (stack);
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
     if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
   }
+  for (i = nregs - 1; i >= 0; i--)
+  {
+    aig = nexts[i];
+    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+  }
+
+  M = 0;
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -721,9 +737,11 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
     if (BTOR_IS_VAR_AIG (aig))
     {
+      if (btor_find_in_ptr_hash_table (latches, aig)) continue;
+
       p             = btor_insert_in_ptr_hash_table (table, aig);
-      p->data.asInt = ++I;
-      assert (I >= 0);
+      p->data.asInt = ++M;
+      assert (M > 0);
     }
     else
     {
@@ -737,11 +755,29 @@ btor_dump_aiger (BtorAIGMgr *amgr,
     }
   }
 
-  M = I;
+  for (i = nregs - 1; i >= 0; i--)
+  {
+    aig = regs[i];
+    assert (!BTOR_IS_CONST_AIG (aig));
+    assert (btor_find_in_ptr_hash_table (latches, aig));
+    assert (!btor_find_in_ptr_hash_table (table, aig));
+    p             = btor_insert_in_ptr_hash_table (table, aig);
+    p->data.asInt = ++M;
+    assert (M > 0);
+  }
+
+  L = nregs;
+  assert (L <= M);
+  I = M - L;
 
   /* Then start adding ANG gates in postfix order.
    */
   assert (BTOR_EMPTY_STACK (stack));
+  for (i = nregs - 1; i >= 0; i--)
+  {
+    aig = nexts[i];
+    if (!BTOR_IS_CONST_AIG (aig)) BTOR_PUSH_STACK (mm, stack, aig);
+  }
   for (i = naigs - 1; i >= 0; i--)
   {
     aig = aigs[i];
@@ -787,15 +823,14 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
       p             = btor_insert_in_ptr_hash_table (table, aig);
       p->data.asInt = ++M;
-      assert (M >= 0);
+      assert (M > 0);
     }
   }
 
-  A = M - I;
+  A = M - I - L;
 
   BTOR_RELEASE_STACK (mm, stack);
 
-  L = 0; /* TODO: no latches sofar */
   O = naigs;
 
   fprintf (file, "a%cg %d %d %d %d %d\n", binary ? 'i' : 'a', M, I, L, O, A);
@@ -811,7 +846,18 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
     if (!BTOR_IS_VAR_AIG (aig)) break;
 
+    if (btor_find_in_ptr_hash_table (latches, aig)) continue;
+
     if (!binary) fprintf (file, "%d\n", 2 * p->data.asInt);
+  }
+
+  /* Now the latches aka regs.
+   */
+  for (i = 0; i < nregs; i++)
+  {
+    if (!binary) fprintf (file, "%u ", btor_aiger_encode_aig (table, regs[i]));
+
+    fprintf (file, "%u\n", btor_aiger_encode_aig (table, nexts[i]));
   }
 
   /* Then the outputs ...
@@ -882,6 +928,8 @@ btor_dump_aiger (BtorAIGMgr *amgr,
       aig = p->key;
       if (!BTOR_IS_VAR_AIG (aig)) break;
 
+      if (btor_find_in_ptr_hash_table (latches, aig)) continue;
+
       b = btor_find_in_ptr_hash_table (backannotation, aig);
 
       /* If there is back annotation then we assume that all the
@@ -893,11 +941,13 @@ btor_dump_aiger (BtorAIGMgr *amgr,
       assert (b->data.asStr);
 
       assert (p->data.asInt == i + 1);
+
       fprintf (file, "i%d %s\n", i++, b->data.asStr);
     }
   }
 
   btor_delete_ptr_hash_table (table);
+  btor_delete_ptr_hash_table (latches);
 }
 
 BtorAIGMgr *
