@@ -35,10 +35,11 @@ struct BtorBTORParser
   BtorExpPtrStack vars;
   BtorExpPtrStack regs;
   BtorExpPtrStack next;
+  BtorExpPtrStack init;
 
   BtorCharStack op;
   BtorCharStack constant;
-  BtorCharStack varname;
+  BtorCharStack symbol;
 
   BtorOpParser *parsers;
   const char **ops;
@@ -295,12 +296,11 @@ SKIP:
   return 0;
 }
 
-static BtorExp *
-parse_var (BtorBTORParser *parser, int len)
+static int
+parse_symbol (BtorBTORParser *parser)
 {
-  const char *name;
   char buffer[20];
-  BtorExp *res;
+  const char *p;
   int ch;
 
   while ((ch = nextch (parser)) == ' ' || ch == '\t')
@@ -313,32 +313,42 @@ parse_var (BtorBTORParser *parser, int len)
     return 0;
   }
 
-    if (ch == '\n')
+    assert (BTOR_EMPTY_STACK (parser->symbol));
+
+  if (ch == '\n')
+  {
+    sprintf (buffer, "%d", parser->idx);
+    for (p = buffer; (ch = *p); p++)
+      BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
+  }
+  else
+  {
+    BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
+
+    while (!isspace (ch = nextch (parser)))
     {
-      sprintf (buffer, "%d", parser->idx);
-      name = buffer;
+      if (ch == EOF) goto UNEXPECTED_EOF;
+
+      BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
     }
-    else
-    {
-      assert (BTOR_EMPTY_STACK (parser->varname));
-
-      BTOR_PUSH_STACK (parser->mem, parser->varname, ch);
-
-      while (!isspace (ch = nextch (parser)))
-      {
-        if (ch == EOF) goto UNEXPECTED_EOF;
-
-        BTOR_PUSH_STACK (parser->mem, parser->varname, ch);
-      }
-
-      BTOR_PUSH_STACK (parser->mem, parser->varname, 0);
-      BTOR_RESET_STACK (parser->varname);
-      name = parser->varname.start;
-    }
+  }
 
   savech (parser, ch);
 
-  res = btor_var_exp (parser->btor, len, name);
+  BTOR_PUSH_STACK (parser->mem, parser->symbol, 0);
+  BTOR_RESET_STACK (parser->symbol);
+
+  return 1;
+}
+
+static BtorExp *
+parse_var (BtorBTORParser *parser, int len)
+{
+  BtorExp *res;
+
+  if (!parse_symbol (parser)) return 0;
+
+  res = btor_var_exp (parser->btor, len, parser->symbol.start);
   BTOR_PUSH_STACK (parser->mem, parser->vars, res);
 
   return res;
@@ -548,6 +558,62 @@ parse_root (BtorBTORParser *parser, int len)
   if (!(res = parse_exp (parser, len, 0))) return 0;
 
   BTOR_PUSH_STACK (parser->mem, parser->roots, res);
+
+  return res;
+}
+
+static BtorExp *
+parse_reg (BtorBTORParser *parser, int len)
+{
+  BtorExp *res, *next;
+
+  if (parse_space (parser)) return 0;
+
+  if (!(next = parse_exp (parser, len, 0))) return 0;
+
+  if (!parse_symbol (parser))
+  {
+    btor_release_exp (parser->btor, next);
+    return 0;
+  }
+
+  res = btor_var_exp (parser->btor, len, parser->symbol.start);
+  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
+  BTOR_PUSH_STACK (parser->mem, parser->next, next);
+  BTOR_PUSH_STACK (parser->mem, parser->init, 0);
+
+  return res;
+}
+
+static BtorExp *
+parse_ireg (BtorBTORParser *parser, int len)
+{
+  BtorExp *res, *next, *init;
+
+  if (parse_space (parser)) return 0;
+
+  if (!(next = parse_exp (parser, len, 0))) return 0;
+
+  if (parse_space (parser))
+  {
+  RELEASE_NEXT_AND_RETURN_0:
+    btor_release_exp (parser->btor, next);
+    return 0;
+  }
+
+  if (!(init = parse_exp (parser, len, 0))) goto RELEASE_NEXT_AND_RETURN_0;
+
+  if (!parse_symbol (parser))
+  {
+    btor_release_exp (parser->btor, next);
+    btor_release_exp (parser->btor, init);
+    return 0;
+  }
+
+  res = btor_var_exp (parser->btor, len, parser->symbol.start);
+  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
+  BTOR_PUSH_STACK (parser->mem, parser->next, next);
+  BTOR_PUSH_STACK (parser->mem, parser->init, init);
 
   return res;
 }
@@ -1428,6 +1494,7 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_eq, "eq");
   new_parser (res, parse_iff, "iff");
   new_parser (res, parse_implies, "implies");
+  new_parser (res, parse_ireg, "ireg"); /* only in parser */
   new_parser (res, parse_mul, "mul");
   new_parser (res, parse_nand, "nand");
   new_parser (res, parse_neg, "neg");
@@ -1440,6 +1507,7 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_redand, "redand");
   new_parser (res, parse_redor, "redor");
   new_parser (res, parse_redxor, "redxor");
+  new_parser (res, parse_reg, "reg"); /* only in parser */
   new_parser (res, parse_rol, "rol");
   new_parser (res, parse_root, "root"); /* only in parser */
   new_parser (res, parse_ror, "ror");
@@ -1494,10 +1562,13 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->exps);
   BTOR_RELEASE_STACK (parser->mem, parser->vars);
   BTOR_RELEASE_STACK (parser->mem, parser->roots);
+  BTOR_RELEASE_STACK (parser->mem, parser->regs);
+  BTOR_RELEASE_STACK (parser->mem, parser->next);
+  BTOR_RELEASE_STACK (parser->mem, parser->init);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
-  BTOR_RELEASE_STACK (parser->mem, parser->varname);
+  BTOR_RELEASE_STACK (parser->mem, parser->symbol);
 
   BTOR_DELETEN (parser->mem, parser->parsers, SIZE_PARSERS);
   BTOR_DELETEN (parser->mem, parser->ops, SIZE_PARSERS);
@@ -1538,11 +1609,16 @@ NEXT:
   DONE:
     if (res)
     {
-      res->vars  = parser->vars.start;
       res->nvars = BTOR_COUNT_STACK (parser->vars);
+      res->vars  = parser->vars.start;
 
-      res->roots  = parser->roots.start;
       res->nroots = BTOR_COUNT_STACK (parser->roots);
+      res->roots  = parser->roots.start;
+
+      res->nregs = BTOR_COUNT_STACK (parser->regs);
+      res->regs  = parser->regs.start;
+      res->next  = parser->next.start;
+      res->init  = parser->init.start;
     }
 
     return 0;
