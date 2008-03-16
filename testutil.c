@@ -59,12 +59,40 @@ test_pow_2_util (void)
   assert (btor_pow_2_util (8) == 256);
 }
 
+static void
+test_next_power_of_2_util (void)
+{
+  assert (btor_next_power_of_2_util (1) == 1);
+  assert (btor_next_power_of_2_util (2) == 2);
+  assert (btor_next_power_of_2_util (3) == 4);
+  assert (btor_next_power_of_2_util (4) == 4);
+  assert (btor_next_power_of_2_util (5) == 8);
+  assert (btor_next_power_of_2_util (6) == 8);
+  assert (btor_next_power_of_2_util (7) == 8);
+  assert (btor_next_power_of_2_util (8) == 8);
+  assert (btor_next_power_of_2_util (9) == 16);
+  assert (btor_next_power_of_2_util (10) == 16);
+  assert (btor_next_power_of_2_util (11) == 16);
+  assert (btor_next_power_of_2_util (12) == 16);
+  assert (btor_next_power_of_2_util (13) == 16);
+  assert (btor_next_power_of_2_util (14) == 16);
+  assert (btor_next_power_of_2_util (15) == 16);
+  assert (btor_next_power_of_2_util (16) == 16);
+  assert (btor_next_power_of_2_util (520) == 1024);
+  assert (btor_next_power_of_2_util (990) == 1024);
+  assert (btor_next_power_of_2_util (4095) == 4096);
+  assert (btor_next_power_of_2_util (22376) == 32768);
+  assert (btor_next_power_of_2_util (111712) == 131072);
+  assert (btor_next_power_of_2_util (1000000000) == 1073741824);
+}
+
 void
 run_util_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (is_power_of_2_util);
   BTOR_RUN_TEST (log_2_util);
   BTOR_RUN_TEST (pow_2_util);
+  BTOR_RUN_TEST (next_power_of_2_util);
 }
 
 void

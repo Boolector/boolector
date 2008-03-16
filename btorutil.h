@@ -11,4 +11,6 @@ int btor_log_2_util (int x);
 
 int btor_pow_2_util (int x);
 
+int btor_next_power_of_2_util (int x);
+
 #endif

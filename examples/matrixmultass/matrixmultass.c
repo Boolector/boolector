@@ -6,14 +6,6 @@
 
 BtorExp **indices;
 
-static int
-compute_num_bits_index (int num_elements)
-{
-  assert (num_elements > 1);
-  while (!btor_is_power_of_2_util (num_elements)) num_elements++;
-  return btor_log_2_util (num_elements);
-}
-
 static BtorExp *
 matrix_mult (Btor *btor,
              BtorExp *m1,
@@ -33,7 +25,7 @@ matrix_mult (Btor *btor,
   result = btor_array_exp (btor, num_bits, num_bits_index);
   /* initialize result matrix with zeroes */
   zero = btor_zeros_exp (btor, num_bits);
-  for (i = 0; i < num_bits_index * num_bits_index; i++)
+  for (i = 0; i < size * size; i++)
   {
     temp = btor_write_exp (btor, result, indices[i], zero);
     btor_release_exp (btor, result);
@@ -87,12 +79,11 @@ main (int argc, char **argv)
     return 1;
   }
   num_elements   = size * size;
-  num_bits_index = compute_num_bits_index (num_elements);
+  num_bits_index = btor_log_2_util (btor_next_power_of_2_util (num_elements));
   btor           = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_bits_index
-                                 * num_bits_index);
-  for (i = 0; i < num_bits_index * num_bits_index; i++)
+  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  for (i = 0; i < num_elements; i++)
     indices[i] = btor_int_to_exp (btor, i, num_bits_index);
   A       = btor_array_exp (btor, num_bits, num_bits_index);
   B       = btor_array_exp (btor, num_bits, num_bits_index);
@@ -102,14 +93,14 @@ main (int argc, char **argv)
   AB_x_C  = matrix_mult (btor, A_x_B, C, size, num_bits, num_bits_index);
   A_x_BC  = matrix_mult (btor, A, B_x_C, size, num_bits, num_bits_index);
   formula = btor_eq_exp (btor, AB_x_C, A_x_BC);
-  /* we negate the formula and try to show that it is unsatisfiable */
+  /* we negate the formula and try to show that it is unsatisfiable
+   * if size is a power of 2, then the instance is UNSAT, else SAT */
   temp = btor_not_exp (btor, formula);
   btor_release_exp (btor, formula);
   formula = temp;
   btor_dump_exp (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_bits_index * num_bits_index; i++)
-    btor_release_exp (btor, indices[i]);
+  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
   btor_release_exp (btor, formula);
   btor_release_exp (btor, A);
   btor_release_exp (btor, B);

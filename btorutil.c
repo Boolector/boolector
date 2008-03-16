@@ -56,6 +56,16 @@ btor_pow_2_util (int x)
   return result;
 }
 
+int
+btor_next_power_of_2_util (int x)
+{
+  int i;
+  assert (x > 0);
+  x--;
+  for (i = 1; i < (int) sizeof (int) * 8; i *= 2) x = x | (x >> i);
+  return x + 1;
+}
+
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/
