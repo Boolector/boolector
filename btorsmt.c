@@ -192,8 +192,8 @@ struct BtorSMTParser
   BtorSMTNode *last;
   unsigned nodes;
 
-  BtorExpPtrStack vars;
-  BtorExpPtrStack roots;
+  BtorExpPtrStack inputs;
+  BtorExpPtrStack outputs;
 };
 
 static unsigned primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -346,10 +346,10 @@ btor_release_smt_vars (BtorSMTParser *parser)
 {
   BtorExp **p;
 
-  for (p = parser->vars.start; p < parser->vars.top; p++)
+  for (p = parser->inputs.start; p < parser->inputs.top; p++)
     btor_release_exp (parser->btor, *p);
 
-  BTOR_RELEASE_STACK (parser->mem, parser->vars);
+  BTOR_RELEASE_STACK (parser->mem, parser->inputs);
 }
 
 static void
@@ -362,9 +362,9 @@ btor_delete_smt_parser (BtorSMTParser *parser)
   btor_freestr (parser->mem, parser->error);
   btor_release_smt_vars (parser);
 
-  for (p = parser->roots.start; p != parser->roots.top; p++)
+  for (p = parser->outputs.start; p != parser->outputs.top; p++)
     btor_release_exp (parser->btor, *p);
-  BTOR_RELEASE_STACK (parser->mem, parser->roots);
+  BTOR_RELEASE_STACK (parser->mem, parser->outputs);
 
   BTOR_DELETE (parser->mem, parser);
 }
@@ -999,7 +999,8 @@ btorsmtpp (BtorSMTNode *node)
 static void
 push_var (BtorSMTParser *parser, BtorExp *v)
 {
-  BTOR_PUSH_STACK (parser->mem, parser->vars, btor_copy_exp (parser->btor, v));
+  BTOR_PUSH_STACK (
+      parser->mem, parser->inputs, btor_copy_exp (parser->btor, v));
 }
 
 static const char *
@@ -2252,7 +2253,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
     return parse_error (parser, "non boolean formula");
 
   BTOR_PUSH_STACK (
-      parser->mem, parser->roots, btor_copy_exp (parser->btor, exp));
+      parser->mem, parser->outputs, btor_copy_exp (parser->btor, exp));
 
   assert (!parser->error);
 
@@ -2531,11 +2532,11 @@ NEXT_TOKEN:
 
     btor_smt_message (parser, 2, "found %u constants", parser->constants);
 
-    res->vars  = parser->vars.start;
-    res->nvars = BTOR_COUNT_STACK (parser->vars);
+    res->inputs  = parser->inputs.start;
+    res->ninputs = BTOR_COUNT_STACK (parser->inputs);
 
-    res->nroots = BTOR_COUNT_STACK (parser->roots);
-    res->roots  = parser->roots.start;
+    res->noutputs = BTOR_COUNT_STACK (parser->outputs);
+    res->outputs  = parser->outputs.start;
 
     return 0; /* DONE */
   }

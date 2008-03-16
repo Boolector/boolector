@@ -44,8 +44,8 @@ struct BtorBTORParser
   BtorExpPtrStack exps;
   BtorInfoStack info;
 
-  BtorExpPtrStack roots;
-  BtorExpPtrStack vars;
+  BtorExpPtrStack inputs;
+  BtorExpPtrStack outputs;
   BtorExpPtrStack regs;
   BtorExpPtrStack nexts;
 
@@ -354,7 +354,7 @@ parse_var (BtorBTORParser *parser, int len)
   if (!parse_symbol (parser)) return 0;
 
   res = btor_var_exp (parser->btor, len, parser->symbol.start);
-  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
+  BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].var = 1;
 
   return res;
@@ -373,7 +373,7 @@ parse_array (BtorBTORParser *parser, int len)
   /* TODO: symbols for arrays */
 
   res = btor_array_exp (parser->btor, len, idx_len);
-  BTOR_PUSH_STACK (parser->mem, parser->vars, res);
+  BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
 
   return res;
@@ -648,7 +648,7 @@ parse_root (BtorBTORParser *parser, int len)
 
   if (!(res = parse_exp (parser, len, 0))) return 0;
 
-  BTOR_PUSH_STACK (parser->mem, parser->roots, res);
+  BTOR_PUSH_STACK (parser->mem, parser->outputs, res);
 
   return res;
 }
@@ -1579,8 +1579,8 @@ btor_delete_btor_parser (BtorBTORParser *parser)
 
   BTOR_RELEASE_STACK (parser->mem, parser->exps);
   BTOR_RELEASE_STACK (parser->mem, parser->info);
-  BTOR_RELEASE_STACK (parser->mem, parser->vars);
-  BTOR_RELEASE_STACK (parser->mem, parser->roots);
+  BTOR_RELEASE_STACK (parser->mem, parser->inputs);
+  BTOR_RELEASE_STACK (parser->mem, parser->outputs);
   BTOR_RELEASE_STACK (parser->mem, parser->regs);
   BTOR_RELEASE_STACK (parser->mem, parser->nexts);
 
@@ -1602,7 +1602,7 @@ remove_regs_from_vars (BtorBTORParser *parser)
   Info info;
   int i;
 
-  p = q = parser->vars.start;
+  p = q = parser->inputs.start;
   for (i = 1; i <= parser->idx; i++)
   {
     info = parser->info.start[i];
@@ -1615,8 +1615,8 @@ remove_regs_from_vars (BtorBTORParser *parser)
 
     if (!info.next) *q++ = e;
   }
-  assert (p == parser->vars.top);
-  parser->vars.top = q;
+  assert (p == parser->inputs.top);
+  parser->inputs.top = q;
 }
 
 static const char *
@@ -1654,11 +1654,11 @@ NEXT:
     {
       remove_regs_from_vars (parser);
 
-      res->nvars = BTOR_COUNT_STACK (parser->vars);
-      res->vars  = parser->vars.start;
+      res->ninputs = BTOR_COUNT_STACK (parser->inputs);
+      res->inputs  = parser->inputs.start;
 
-      res->nroots = BTOR_COUNT_STACK (parser->roots);
-      res->roots  = parser->roots.start;
+      res->noutputs = BTOR_COUNT_STACK (parser->outputs);
+      res->outputs  = parser->outputs.start;
 
       res->nregs = BTOR_COUNT_STACK (parser->regs);
       res->regs  = parser->regs.start;
@@ -1666,9 +1666,9 @@ NEXT:
 
       if (parser->verbosity > 0)
       {
-        print_verbose_msg ("parsed %d variables", res->nvars);
+        print_verbose_msg ("parsed %d inputs", res->ninputs);
         print_verbose_msg ("parsed %d registers", res->nregs);
-        print_verbose_msg ("parsed %d roots", res->nroots);
+        print_verbose_msg ("parsed %d outputs", res->noutputs);
       }
     }
 

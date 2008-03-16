@@ -578,30 +578,33 @@ btor_main (int argc, char **argv)
     }
     else if (dump_exp)
     {
-      btor_dump_exps (btor, exp_file, parse_res.roots, parse_res.nroots);
+      btor_dump_exps (btor, exp_file, parse_res.outputs, parse_res.noutputs);
       done = 1;
     }
     else if (dump_smt)
     {
-      if (parse_res.nroots != 1)
+      if (parse_res.noutputs != 1)
       {
-        print_msg_va_args (
-            &app,
-            "%s: found %d roots but expected exactly one while dumping smt\n",
-            input_file_name,
-            parse_res.nroots);
+        print_msg_va_args (&app,
+                           "%s: found %d outputs "
+                           "but expected exactly one "
+                           "when dumping smt\n",
+                           input_file_name,
+                           parse_res.noutputs);
         err = 1;
       }
       else
       {
         done = 1;
-        btor_dump_smt (btor, smt_file, parse_res.roots[0]);
+        btor_dump_smt (btor, smt_file, parse_res.outputs[0]);
       }
     }
     else
     {
       if (app.verbosity > 0)
-        print_verbose_msg_va_args ("parsed %d roots\n", parse_res.nroots);
+        print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
+                                   parse_res.ninputs,
+                                   parse_res.noutputs);
 
       if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
 
@@ -613,13 +616,14 @@ btor_main (int argc, char **argv)
       BTOR_INIT_STACK (constraints);
 
       if (print_solutions)
-        for (i = 0; i < parse_res.nvars; i++)
-          BTOR_PUSH_STACK (
-              mem, varstack, btor_copy_exp (btor, parse_res.vars[i]));
+        for (i = 0; i < parse_res.ninputs; i++)
+          if (!btor_is_array_exp (btor, parse_res.inputs[i]))
+            BTOR_PUSH_STACK (
+                mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
 
-      for (i = 0; i < parse_res.nroots; i++)
+      for (i = 0; i < parse_res.noutputs; i++)
       {
-        root     = parse_res.roots[i];
+        root     = parse_res.outputs[i];
         root_len = btor_get_exp_len (btor, root);
         assert (root_len >= 1);
         if (root_len > 1)
@@ -649,7 +653,7 @@ btor_main (int argc, char **argv)
           constraints_report_limit += (19 + nconstraints) / 20;
           assert (nconstraints);
           print_verbose_msg_va_args (
-              "added %d roots (%.0f%%)\n",
+              "added %d outputs (%.0f%%)\n",
               constraints_reported,
               100.0 * constraints_reported / (double) nconstraints);
         }
@@ -657,7 +661,7 @@ btor_main (int argc, char **argv)
       BTOR_RELEASE_STACK (mem, constraints);
 
       if (app.verbosity > 1 && constraints_reported < nconstraints)
-        print_verbose_msg_va_args ("added %d roots (100%)\n", nconstraints);
+        print_verbose_msg_va_args ("added %d outputs (100%)\n", nconstraints);
 
       sat_result = btor_sat_btor (btor, refinement_limit);
 
@@ -668,7 +672,7 @@ btor_main (int argc, char **argv)
         else if (sat_result == BTOR_SAT)
         {
           print_msg (&app, "sat\n");
-          if (print_solutions && parse_res.nvars > 0)
+          if (print_solutions && parse_res.ninputs > 0)
             print_variable_assignments (
                 &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
         }

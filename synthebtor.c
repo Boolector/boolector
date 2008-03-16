@@ -90,7 +90,7 @@ main (int argc, char **argv)
       btor_btor_parser_api->parse (parser, input_file, input_name, &model);
   if (parse_error) die (0, parse_error);
 
-  if (!model.nroots) die (1, "no roots in '%s'", input_name);
+  if (!model.noutputs) die (1, "no roots in '%s'", input_name);
 
   mem   = btor_get_mem_mgr_btor (btor);
   avmgr = btor_get_aigvec_mgr_btor (btor);
@@ -124,9 +124,9 @@ main (int argc, char **argv)
   }
 
   BTOR_INIT_STACK (aigs);
-  for (i = 0; i < model.nroots; i++)
+  for (i = 0; i < model.noutputs; i++)
   {
-    av = btor_exp_to_aigvec (btor, model.roots[i], back_annotation);
+    av = btor_exp_to_aigvec (btor, model.outputs[i], back_annotation);
     for (j = 0; j < av->len; j++)
     {
       aig = btor_copy_aig (amgr, av->aigs[j]);

@@ -18,11 +18,11 @@ typedef char *(*BtorParse) (BtorParser *,
 
 struct BtorParseResult
 {
-  int nvars;
-  BtorExp **vars;
+  int ninputs;
+  BtorExp **inputs;
 
-  int nroots;
-  BtorExp **roots;
+  int noutputs;
+  BtorExp **outputs;
 
   int nregs;
   BtorExp **regs;
