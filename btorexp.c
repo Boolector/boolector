@@ -4803,7 +4803,10 @@ deep_copy_and_instantiate_regs (Btor *btor,
   atomic_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
   for (bucket = inst_table->first; bucket != NULL; bucket = bucket->next)
-    btor_insert_in_ptr_hash_table (atomic_table, bucket->data.asPtr);
+  {
+    if (btor_find_in_ptr_hash_table (atomic_table, bucket->data.asPtr) != NULL)
+      btor_insert_in_ptr_hash_table (atomic_table, bucket->data.asPtr);
+  }
 
   BTOR_INIT_STACK (pre_stack);
   BTOR_INIT_STACK (post_stack);
