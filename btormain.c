@@ -51,6 +51,14 @@ enum BtorBasis
 
 typedef enum BtorBasis BtorBasis;
 
+enum BtorAppMode
+{
+  BTOR_APP_REGULAR_MODE = 0,
+  BTOR_APP_BMC_MODE
+};
+
+typedef enum BtorAppMode BtorAppMode;
+
 struct BtorMainApp
 {
   FILE *output_file;
@@ -61,6 +69,7 @@ struct BtorMainApp
   int argc;
   char **argv;
   BtorBasis basis;
+  BtorAppMode mode;
 };
 
 typedef struct BtorMainApp BtorMainApp;
@@ -87,6 +96,8 @@ static const char *g_usage =
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
     "\n"
+    "  -maxk=<k>                        sets maximum bound for model checking\n"
+    "                                   default bound is 10\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
@@ -356,6 +367,8 @@ btor_main (int argc, char **argv)
   int force_smt_input   = 0;
   int print_solutions   = 0;
   int refinement_limit  = INT_MAX;
+  int maxk              = 10;
+  int curk              = 0;
   int root_len;
   int constraints_reported, constraints_report_limit, nconstraints;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -388,6 +401,7 @@ btor_main (int argc, char **argv)
   app.i           = &i;
   app.err         = &err;
   app.basis       = BTOR_BINARY_BASIS;
+  app.mode        = BTOR_APP_REGULAR_MODE;
 
   for (i = 1; !done && !err && i < argc; i++)
   {
@@ -422,6 +436,15 @@ btor_main (int argc, char **argv)
       if (rewrite_level > 2)
       {
         print_err (&app, "rewrite level has to be in [0,2]\n");
+        err = 1;
+      }
+    }
+    else if (strstr (argv[i], "-maxk=") == argv[i])
+    {
+      maxk = atoi (argv[i] + 6);
+      if (maxk < 0)
+      {
+        print_err (&app, "invalid k\n");
         err = 1;
       }
     }
@@ -544,177 +567,185 @@ btor_main (int argc, char **argv)
 
   if (!done && !err)
   {
-    btor = btor_new_btor ();
-    btor_set_rewrite_level_btor (btor, rewrite_level);
-    btor_set_verbosity_btor (btor, app.verbosity);
-    mem = btor_get_mem_mgr_btor (btor);
-
-    avmgr = btor_get_aigvec_mgr_btor (btor);
-    amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-    smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-    btor_init_sat (smgr);
-    btor_set_output_sat (smgr, stdout);
-
-    if (force_smt_input
-        || (close_input_file && has_suffix (input_file_name, ".smt")))
+    do
     {
-      parser_api = btor_smt_parser_api;
-    }
-    else
-      parser_api = btor_btor_parser_api;
+      btor = btor_new_btor ();
+      btor_set_rewrite_level_btor (btor, rewrite_level);
+      btor_set_verbosity_btor (btor, app.verbosity);
+      mem = btor_get_mem_mgr_btor (btor);
 
-    parser = parser_api->init (btor, app.verbosity);
+      avmgr = btor_get_aigvec_mgr_btor (btor);
+      amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+      smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-    parse_error =
-        parser_api->parse (parser, input_file, input_file_name, &parse_res);
+      btor_init_sat (smgr);
+      btor_set_output_sat (smgr, stdout);
 
-    if (parse_error)
-    {
-      print_msg_va_args (&app, "%s\n", parse_error);
-      err = 1;
-    }
-    else if (dump_exp)
-    {
-      btor_dump_exps (btor, exp_file, parse_res.outputs, parse_res.noutputs);
-      done = 1;
-    }
-    else if (dump_smt)
-    {
-      if (parse_res.noutputs != 1)
+      if (force_smt_input
+          || (close_input_file && has_suffix (input_file_name, ".smt")))
+        parser_api = btor_smt_parser_api;
+      else
+        parser_api = btor_btor_parser_api;
+
+      parser = parser_api->init (btor, app.verbosity);
+
+      parse_error =
+          parser_api->parse (parser, input_file, input_file_name, &parse_res);
+
+      if (parse_error)
       {
-        print_msg_va_args (&app,
-                           "%s: found %d outputs "
-                           "but expected exactly one "
-                           "when dumping smt\n",
-                           input_file_name,
-                           parse_res.noutputs);
+        print_msg_va_args (&app, "%s\n", parse_error);
         err = 1;
+      }
+      else if (dump_exp)
+      {
+        btor_dump_exps (btor, exp_file, parse_res.outputs, parse_res.noutputs);
+        done = 1;
+      }
+      else if (dump_smt)
+      {
+        if (parse_res.noutputs != 1)
+        {
+          print_msg_va_args (&app,
+                             "%s: found %d outputs "
+                             "but expected exactly one "
+                             "when dumping smt\n",
+                             input_file_name,
+                             parse_res.noutputs);
+          err = 1;
+        }
+        else
+        {
+          done = 1;
+          btor_dump_smt (btor, smt_file, parse_res.outputs[0]);
+        }
       }
       else
       {
-        done = 1;
-        btor_dump_smt (btor, smt_file, parse_res.outputs[0]);
-      }
-    }
-    else
-    {
-      if (app.verbosity > 0)
-        print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
-                                   parse_res.ninputs,
-                                   parse_res.noutputs);
+        if (app.verbosity > 0)
+          print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
+                                     parse_res.ninputs,
+                                     parse_res.noutputs);
 
-      if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
+        if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
 
-      if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
+        if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
-      btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
+        btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
 
-      BTOR_INIT_STACK (varstack);
-      BTOR_INIT_STACK (constraints);
+        BTOR_INIT_STACK (varstack);
+        BTOR_INIT_STACK (constraints);
 
-      if (print_solutions)
-        for (i = 0; i < parse_res.ninputs; i++)
-          if (!btor_is_array_exp (btor, parse_res.inputs[i]))
-            BTOR_PUSH_STACK (
-                mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
+        if (print_solutions)
+          for (i = 0; i < parse_res.ninputs; i++)
+            if (!btor_is_array_exp (btor, parse_res.inputs[i]))
+              BTOR_PUSH_STACK (
+                  mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
 
-      for (i = 0; i < parse_res.noutputs; i++)
-      {
-        root     = parse_res.outputs[i];
-        root_len = btor_get_exp_len (btor, root);
-        assert (root_len >= 1);
-        if (root_len > 1)
-          root = btor_redor_exp (btor, root);
-        else
-          root = btor_copy_exp (btor, root);
-        BTOR_PUSH_STACK (mem, constraints, root);
-      }
+        for (i = 0; i < parse_res.noutputs; i++)
+        {
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
+          BTOR_PUSH_STACK (mem, constraints, root);
+        }
 
-      /* test it */
-      if (parse_res.nregs > 0)
-      {
-        inst_table = btor_apply_next (
-            btor, parse_res.regs, parse_res.nexts, parse_res.nregs, 3);
+        if (parse_res.nregs > 0)
+        {
+          app.mode = BTOR_APP_BMC_MODE;
+          print_msg_va_args (&app, "Solving BMC instance with k = %d: ", curk);
+          inst_table = btor_apply_next (
+              btor, parse_res.regs, parse_res.nexts, parse_res.nregs, curk);
 
-        /* instantiate registers in 'bad' */
+          /* instantiate registers in 'bad' */
+          for (p = constraints.start; p < constraints.top; p++)
+          {
+            inst = btor_deep_copy_and_instantiate_regs (btor, inst_table, *p);
+            btor_release_exp (btor, *p);
+            *p = inst;
+          }
+
+          /* clean up */
+          for (buck = inst_table->first; buck != NULL; buck = buck->next)
+            btor_release_exp (btor, (BtorExp *) buck->data.asPtr);
+          btor_delete_ptr_hash_table (inst_table);
+        }
+        parser_api->reset (parser);
+        parser_api = 0;
+
+        constraints_reported     = 0;
+        nconstraints             = BTOR_COUNT_STACK (constraints);
+        constraints_report_limit = (19 + nconstraints) / 20;
+
         for (p = constraints.start; p < constraints.top; p++)
         {
-          inst = btor_deep_copy_and_instantiate_regs (btor, inst_table, *p);
-          btor_release_exp (btor, *p);
-          *p = inst;
+          root = *p;
+          btor_add_constraint_exp (btor, root);
+          btor_release_exp (btor, root);
+
+          if (app.verbosity > 1
+              && p - constraints.start == constraints_report_limit)
+          {
+            constraints_reported = constraints_report_limit;
+            constraints_report_limit += (19 + nconstraints) / 20;
+            assert (nconstraints);
+            print_verbose_msg_va_args (
+                "added %d outputs (%.0f%%)\n",
+                constraints_reported,
+                100.0 * constraints_reported / (double) nconstraints);
+          }
+        }
+        BTOR_RELEASE_STACK (mem, constraints);
+
+        if (app.verbosity > 1 && constraints_reported < nconstraints)
+          print_verbose_msg_va_args ("added %d outputs (100%)\n", nconstraints);
+
+        sat_result = btor_sat_btor (btor, refinement_limit);
+
+        if (app.verbosity >= 0)
+        {
+          if (sat_result == BTOR_UNSAT)
+            print_msg (&app, "unsat\n");
+          else if (sat_result == BTOR_SAT)
+          {
+            print_msg (&app, "sat\n");
+            if (print_solutions && parse_res.ninputs > 0)
+              print_variable_assignments (
+                  &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+          }
+          else
+          {
+            assert (sat_result == BTOR_UNKNOWN);
+            print_msg (&app, "unknown\n");
+          }
         }
 
-        /* clean up */
-        for (buck = inst_table->first; buck != NULL; buck = buck->next)
-          btor_release_exp (btor, (BtorExp *) buck->data.asPtr);
-        btor_delete_ptr_hash_table (inst_table);
+        for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
+          btor_release_exp (btor, varstack.start[i]);
+        BTOR_RELEASE_STACK (mem, varstack);
+
+        if (app.verbosity > 1) btor_print_stats_sat (smgr);
+
+        btor_reset_sat (smgr);
+
+        if (app.verbosity > 0) btor_print_stats_btor (btor);
       }
-      parser_api->reset (parser);
-      parser_api = 0;
 
-      constraints_reported     = 0;
-      nconstraints             = BTOR_COUNT_STACK (constraints);
-      constraints_report_limit = (19 + nconstraints) / 20;
+      if (parser_api) parser_api->reset (parser);
 
-      for (p = constraints.start; p < constraints.top; p++)
+      maxallocated = mem->maxallocated;
+      btor_delete_btor (btor);
+      if (app.mode == BTOR_APP_BMC_MODE)
       {
-        root = *p;
-        btor_add_constraint_exp (btor, root);
-        btor_release_exp (btor, root);
-
-        if (app.verbosity > 1
-            && p - constraints.start == constraints_report_limit)
-        {
-          constraints_reported = constraints_report_limit;
-          constraints_report_limit += (19 + nconstraints) / 20;
-          assert (nconstraints);
-          print_verbose_msg_va_args (
-              "added %d outputs (%.0f%%)\n",
-              constraints_reported,
-              100.0 * constraints_reported / (double) nconstraints);
-        }
+        curk++;
+        rewind (input_file);
       }
-      BTOR_RELEASE_STACK (mem, constraints);
-
-      if (app.verbosity > 1 && constraints_reported < nconstraints)
-        print_verbose_msg_va_args ("added %d outputs (100%)\n", nconstraints);
-
-      sat_result = btor_sat_btor (btor, refinement_limit);
-
-      if (app.verbosity >= 0)
-      {
-        if (sat_result == BTOR_UNSAT)
-          print_msg (&app, "unsat\n");
-        else if (sat_result == BTOR_SAT)
-        {
-          print_msg (&app, "sat\n");
-          if (print_solutions && parse_res.ninputs > 0)
-            print_variable_assignments (
-                &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
-        }
-        else
-        {
-          assert (sat_result == BTOR_UNKNOWN);
-          print_msg (&app, "unknown\n");
-        }
-      }
-
-      for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
-        btor_release_exp (btor, varstack.start[i]);
-      BTOR_RELEASE_STACK (mem, varstack);
-
-      if (app.verbosity > 1) btor_print_stats_sat (smgr);
-
-      btor_reset_sat (smgr);
-
-      if (app.verbosity > 0) btor_print_stats_btor (btor);
-    }
-
-    if (parser_api) parser_api->reset (parser);
-
-    maxallocated = mem->maxallocated;
-    btor_delete_btor (btor);
+    } while (app.mode == BTOR_APP_BMC_MODE && curk <= maxk
+             && sat_result == BTOR_UNSAT);
   }
 
   if (close_input_file) fclose (input_file);
