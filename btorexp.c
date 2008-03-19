@@ -4791,12 +4791,20 @@ deep_copy_and_instantiate_regs (Btor *btor,
   BtorExp *(*bin_func) (Btor *, BtorExp *, BtorExp *);
   BtorExpPtrStack pre_stack, post_stack, build_stack, release_stack;
   BtorPtrHashBucket *bucket;
+  BtorPtrHashTable *atomic_table;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (inst_table != NULL);
   assert (root != NULL);
-
   mm = btor->mm;
+
+  /* we remember with what the register was instantiated
+   * during rebuild we have to treat these instantiations as atomic units */
+  atomic_table = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
+  for (bucket = inst_table->first; bucket != NULL; bucket = bucket->next)
+    btor_insert_in_ptr_hash_table (atomic_table, bucket->data.asPtr);
+
   BTOR_INIT_STACK (pre_stack);
   BTOR_INIT_STACK (post_stack);
   BTOR_INIT_STACK (build_stack);
@@ -4847,7 +4855,8 @@ deep_copy_and_instantiate_regs (Btor *btor,
     cur = BTOR_POP_STACK (post_stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
     if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_CONST_EXP (cur)
-        || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+        || BTOR_IS_ATOMIC_ARRAY_EXP (cur)
+        || btor_find_in_ptr_hash_table (atomic_table, cur) != NULL)
       BTOR_PUSH_STACK (mm, build_stack, cur);
     else
     {
@@ -4933,6 +4942,7 @@ deep_copy_and_instantiate_regs (Btor *btor,
   BTOR_RELEASE_STACK (mm, post_stack);
   BTOR_RELEASE_STACK (mm, build_stack);
   BTOR_RELEASE_STACK (mm, release_stack);
+  btor_delete_ptr_hash_table (atomic_table);
 
   return result;
 }
