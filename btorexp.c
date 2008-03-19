@@ -4973,15 +4973,13 @@ btor_unroll_next (
   {
     assert (BTOR_IS_REGULAR_EXP (regs[i]));
     assert (BTOR_IS_VAR_EXP (regs[i]));
+    assert (BTOR_REAL_ADDR_EXP (nexts[i])->simplified == NULL);
   }
 #endif
 
   if (size == 0) return;
 
   mm = btor->mm;
-
-  for (i = 0; i < size; i++)
-    nexts[i] = pointer_chase_simplified_exp (btor, nexts[i]);
 
   BTOR_NEWN (mm, next_insts, size);
   inst_table = btor_new_ptr_hash_table (
