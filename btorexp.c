@@ -4782,6 +4782,235 @@ rewrite_exp (Btor *btor,
   return result;
 }
 
+static BtorExp *
+deep_copy_and_instantiate_regs (Btor *btor,
+                                BtorPtrHashTable *inst_table,
+                                BtorExp *root)
+{
+  BtorExp *cur, *result, *e0, *e1, *e2, *cur_result;
+  BtorExp *(*bin_func) (Btor *, BtorExp *, BtorExp *);
+  BtorExpPtrStack pre_stack, post_stack, build_stack, release_stack;
+  BtorPtrHashBucket *bucket;
+  BtorMemMgr *mm;
+  assert (btor != NULL);
+  assert (inst_table != NULL);
+  assert (root != NULL);
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (pre_stack);
+  BTOR_INIT_STACK (post_stack);
+  BTOR_INIT_STACK (build_stack);
+  BTOR_INIT_STACK (release_stack);
+
+  BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (root));
+  do
+  {
+    cur = BTOR_POP_STACK (pre_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+
+    if (BTOR_IS_CONST_EXP (cur))
+      BTOR_PUSH_STACK (mm, post_stack, cur);
+    else if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+    {
+      bucket = btor_find_in_ptr_hash_table (inst_table, cur);
+      if (bucket == NULL)
+        BTOR_PUSH_STACK (mm, post_stack, cur);
+      else
+        BTOR_PUSH_STACK (mm, post_stack, (BtorExp *) bucket->data.asPtr);
+    }
+    else
+    {
+      BTOR_PUSH_STACK (mm, post_stack, cur);
+      switch (cur->arity)
+      {
+        case 1:
+          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+          break;
+        case 2:
+          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
+          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+          break;
+        default:
+          assert (cur->arity == 3);
+          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[2]));
+          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
+          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+          break;
+      }
+    }
+  } while (!BTOR_EMPTY_STACK (pre_stack));
+
+  assert (!BTOR_EMPTY_STACK (post_stack));
+  /* rebuild, but with new instiantion */
+  do
+  {
+    cur = BTOR_POP_STACK (post_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_CONST_EXP (cur)
+        || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      BTOR_PUSH_STACK (mm, build_stack, cur);
+    else
+    {
+      switch (cur->arity)
+      {
+        case 1:
+          assert (cur->kind == BTOR_SLICE_EXP);
+          assert (!BTOR_EMPTY_STACK (build_stack));
+          e0 = BTOR_POP_STACK (build_stack);
+          if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
+          cur_result = slice_exp (btor, e0, cur->upper, cur->lower);
+          BTOR_PUSH_STACK (mm, release_stack, cur_result);
+          BTOR_PUSH_STACK (mm, build_stack, cur_result);
+          break;
+
+        case 2:
+          assert (!BTOR_EMPTY_STACK (build_stack));
+          e0 = BTOR_POP_STACK (build_stack);
+          if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
+          assert (!BTOR_EMPTY_STACK (build_stack));
+          e1 = BTOR_POP_STACK (build_stack);
+          if (BTOR_IS_INVERTED_EXP (cur->e[1])) e1 = BTOR_INVERT_EXP (e1);
+          switch (cur->kind)
+          {
+            case BTOR_AND_EXP: bin_func = and_exp; break;
+            case BTOR_BEQ_EXP:
+            case BTOR_AEQ_EXP: bin_func = eq_exp; break;
+            case BTOR_ADD_EXP: bin_func = add_exp; break;
+            case BTOR_MUL_EXP: bin_func = mul_exp; break;
+            case BTOR_ULT_EXP: bin_func = ult_exp; break;
+            case BTOR_SLL_EXP: bin_func = sll_exp; break;
+            case BTOR_SRL_EXP: bin_func = srl_exp; break;
+            case BTOR_UDIV_EXP: bin_func = udiv_exp; break;
+            case BTOR_UREM_EXP: bin_func = urem_exp; break;
+            case BTOR_CONCAT_EXP: bin_func = concat_exp; break;
+            default:
+              assert (BTOR_IS_READ_EXP (cur));
+              bin_func = read_exp;
+              break;
+          }
+          cur_result = bin_func (btor, e0, e1);
+          BTOR_PUSH_STACK (mm, release_stack, cur_result);
+          BTOR_PUSH_STACK (mm, build_stack, cur_result);
+          break;
+
+        default:
+          assert (cur->arity == 3);
+          assert (!BTOR_EMPTY_STACK (build_stack));
+          e0 = BTOR_POP_STACK (build_stack);
+          if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
+          assert (!BTOR_EMPTY_STACK (build_stack));
+          e1 = BTOR_POP_STACK (build_stack);
+          if (BTOR_IS_INVERTED_EXP (cur->e[1])) e1 = BTOR_INVERT_EXP (e1);
+          e2 = BTOR_POP_STACK (build_stack);
+          if (BTOR_IS_INVERTED_EXP (cur->e[2])) e2 = BTOR_INVERT_EXP (e2);
+          if (BTOR_IS_WRITE_EXP (cur))
+            cur_result = write_exp (btor, e0, e1, e2);
+          else
+          {
+            assert (cur->kind == BTOR_BCOND_EXP || cur->kind == BTOR_ACOND_EXP);
+            cur_result = cond_exp (btor, e0, e1, e2);
+          }
+          BTOR_PUSH_STACK (mm, release_stack, cur_result);
+          BTOR_PUSH_STACK (mm, build_stack, cur_result);
+          break;
+      }
+    }
+  } while (!BTOR_EMPTY_STACK (post_stack));
+
+  assert (BTOR_COUNT_STACK (build_stack) == 1);
+  result = BTOR_POP_STACK (build_stack);
+  if (BTOR_IS_INVERTED_EXP (root)) result = BTOR_INVERT_EXP (result);
+
+  /* cleanup */
+  while (!BTOR_EMPTY_STACK (release_stack))
+  {
+    cur = BTOR_POP_STACK (release_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    release_exp (btor, cur);
+  }
+  BTOR_RELEASE_STACK (mm, pre_stack);
+  BTOR_RELEASE_STACK (mm, post_stack);
+  BTOR_RELEASE_STACK (mm, build_stack);
+  BTOR_RELEASE_STACK (mm, release_stack);
+
+  return result;
+}
+
+static void
+unroll_nexts_and_instantiante_regs (Btor *btor,
+                                    BtorPtrHashTable *inst_table,
+                                    BtorExp **nexts,
+                                    BtorExp **result_nexts,
+                                    int size)
+{
+#if 0
+  int i;
+  assert (btor != NULL);
+  assert (inst_table != NULL);
+  assert (nexts != NULL);
+  assert (result_nexts != NULL);
+  assert (size > 0);
+  for (i = 0; i < size; i++)
+    {
+
+    }
+#endif
+}
+
+void
+btor_unroll_next (
+    Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times)
+{
+#if 0
+  int i;
+  BtorPtrHashTable *inst_table;
+  BtorExp **insts, **next_insts;
+  BtorMemMgr *mm;
+  assert (btor != NULL);
+  assert (regs != NULL);
+  assert (nexts != NULL);
+  assert (size >= 0);
+  assert (times >= 0);
+#ifndef NDEBUG
+  for (i = 0; i < size; i++)
+    {
+      assert (BTOR_IS_REGULAR_EXP (regs[i]));
+      assert (BTOR_IS_VAR_EXP (regs[i]));
+    }
+#endif
+
+  if (size == 0)
+    return;
+
+  mm = btor->mm;
+
+  for (i = 0; i < size; i++)
+    nexts[i] = pointer_chase_simplified_exp (btor, nexts[i]);
+
+  BTOR_NEWN (mm, insts, times);
+  BTOR_NEWN (mm, next_insts, times);
+
+  for (i = 0; i < size; i++)
+    insts[i] = zeros_exp (btor, regs[i]->len);
+  inst_table = btor_new_ptr_hash_table (mm, (BtorHashPtr) hash_exp_by_id, 
+                                            (BtorCmpPtr) compare_exp_by_id);
+  for (i = 0; i < size; i++)
+    btor_insert_in_ptr_hash_table (inst_table, regs[i])->data.asPtr = insts[i];
+  unroll_nexts_and_instantiante_regs (btor, inst_table, nexts, next_insts, size);
+  for (i = 0; i < size; i++)
+    {
+      btor_find_in_ptr_hash_table (inst_table, insts[i])->data.asPtr = next_insts [i];
+      release_exp (btor, insts[i]);
+    }
+
+  for (i = 0; i < size; i++)
+    release_exp (btor, insts[i]);
+
+  BTOR_DELETEN(mm, insts, times);
+  BTOR_DELETEN(mm, next_insts, times);
+#endif
+}
+
 int
 btor_get_exp_len (Btor *btor, BtorExp *exp)
 {

@@ -418,6 +418,9 @@ BtorExp *btor_cond_exp (Btor *btor,
                         BtorExp *e_if,
                         BtorExp *e_else);
 
+void btor_unroll_next (
+    Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times);
+
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorExp *exp);
 
