@@ -4940,31 +4940,27 @@ static void
 unroll_nexts_and_instantiante_regs (Btor *btor,
                                     BtorPtrHashTable *inst_table,
                                     BtorExp **nexts,
-                                    BtorExp **result_nexts,
+                                    BtorExp **result,
                                     int size)
 {
-#if 0
   int i;
   assert (btor != NULL);
   assert (inst_table != NULL);
   assert (nexts != NULL);
-  assert (result_nexts != NULL);
+  assert (result != NULL);
   assert (size > 0);
   for (i = 0; i < size; i++)
-    {
-
-    }
-#endif
+    result[i] = deep_copy_and_instantiate_regs (btor, inst_table, nexts[i]);
 }
 
 void
 btor_unroll_next (
     Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times)
 {
-#if 0
-  int i;
+  int i, j;
+  BtorPtrHashBucket *bucket;
   BtorPtrHashTable *inst_table;
-  BtorExp **insts, **next_insts;
+  BtorExp **next_insts;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (regs != NULL);
@@ -4973,42 +4969,46 @@ btor_unroll_next (
   assert (times >= 0);
 #ifndef NDEBUG
   for (i = 0; i < size; i++)
-    {
-      assert (BTOR_IS_REGULAR_EXP (regs[i]));
-      assert (BTOR_IS_VAR_EXP (regs[i]));
-    }
+  {
+    assert (BTOR_IS_REGULAR_EXP (regs[i]));
+    assert (BTOR_IS_VAR_EXP (regs[i]));
+  }
 #endif
 
-  if (size == 0)
-    return;
+  if (size == 0) return;
 
   mm = btor->mm;
 
   for (i = 0; i < size; i++)
     nexts[i] = pointer_chase_simplified_exp (btor, nexts[i]);
 
-  BTOR_NEWN (mm, insts, times);
   BTOR_NEWN (mm, next_insts, times);
+  inst_table = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
 
-  for (i = 0; i < size; i++)
-    insts[i] = zeros_exp (btor, regs[i]->len);
-  inst_table = btor_new_ptr_hash_table (mm, (BtorHashPtr) hash_exp_by_id, 
-                                            (BtorCmpPtr) compare_exp_by_id);
-  for (i = 0; i < size; i++)
-    btor_insert_in_ptr_hash_table (inst_table, regs[i])->data.asPtr = insts[i];
-  unroll_nexts_and_instantiante_regs (btor, inst_table, nexts, next_insts, size);
-  for (i = 0; i < size; i++)
+  for (i = 0; i <= times; i++)
+  {
+    for (j = 0; j < size; j++)
+      btor_insert_in_ptr_hash_table (inst_table, regs[j])->data.asPtr =
+          zeros_exp (btor, regs[j]->len);
+    unroll_nexts_and_instantiante_regs (
+        btor, inst_table, nexts, next_insts, size);
+    for (j = 0; j < size; j++)
     {
-      btor_find_in_ptr_hash_table (inst_table, insts[i])->data.asPtr = next_insts [i];
-      release_exp (btor, insts[i]);
+      bucket = btor_find_in_ptr_hash_table (inst_table, regs[j]);
+      release_exp (btor, (BtorExp *) bucket->data.asPtr);
+      bucket->data.asPtr = next_insts[j];
     }
+  }
 
-  for (i = 0; i < size; i++)
-    release_exp (btor, insts[i]);
+  /* inst_table holds now final instantiations */
 
-  BTOR_DELETEN(mm, insts, times);
-  BTOR_DELETEN(mm, next_insts, times);
-#endif
+  /* clean up for testing */
+  for (bucket = inst_table->first; bucket != NULL; bucket = bucket->next)
+    release_exp (btor, (BtorExp *) bucket->data.asPtr);
+  btor_delete_ptr_hash_table (inst_table);
+
+  BTOR_DELETEN (mm, next_insts, times);
 }
 
 int
