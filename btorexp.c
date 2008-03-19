@@ -4824,17 +4824,17 @@ deep_copy_and_instantiate_regs (Btor *btor,
       switch (cur->arity)
       {
         case 1:
-          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
           break;
         case 2:
-          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
-          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
+          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
           break;
         default:
           assert (cur->arity == 3);
-          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[2]));
-          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
-          BTOR_PUSH_STACK (mm, post_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[2]));
+          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
+          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
           break;
       }
     }
@@ -4901,6 +4901,7 @@ deep_copy_and_instantiate_regs (Btor *btor,
           assert (!BTOR_EMPTY_STACK (build_stack));
           e1 = BTOR_POP_STACK (build_stack);
           if (BTOR_IS_INVERTED_EXP (cur->e[1])) e1 = BTOR_INVERT_EXP (e1);
+          assert (!BTOR_EMPTY_STACK (build_stack));
           e2 = BTOR_POP_STACK (build_stack);
           if (BTOR_IS_INVERTED_EXP (cur->e[2])) e2 = BTOR_INVERT_EXP (e2);
           if (BTOR_IS_WRITE_EXP (cur))
@@ -4918,7 +4919,7 @@ deep_copy_and_instantiate_regs (Btor *btor,
   } while (!BTOR_EMPTY_STACK (post_stack));
 
   assert (BTOR_COUNT_STACK (build_stack) == 1);
-  result = BTOR_POP_STACK (build_stack);
+  result = copy_exp (btor, BTOR_POP_STACK (build_stack));
   if (BTOR_IS_INVERTED_EXP (root)) result = BTOR_INVERT_EXP (result);
 
   /* cleanup */
@@ -4982,15 +4983,16 @@ btor_unroll_next (
   for (i = 0; i < size; i++)
     nexts[i] = pointer_chase_simplified_exp (btor, nexts[i]);
 
-  BTOR_NEWN (mm, next_insts, times);
+  BTOR_NEWN (mm, next_insts, size);
   inst_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
 
+  for (j = 0; j < size; j++)
+    btor_insert_in_ptr_hash_table (inst_table, regs[j])->data.asPtr =
+        zeros_exp (btor, regs[j]->len);
+
   for (i = 0; i <= times; i++)
   {
-    for (j = 0; j < size; j++)
-      btor_insert_in_ptr_hash_table (inst_table, regs[j])->data.asPtr =
-          zeros_exp (btor, regs[j]->len);
     unroll_nexts_and_instantiante_regs (
         btor, inst_table, nexts, next_insts, size);
     for (j = 0; j < size; j++)
@@ -5008,7 +5010,7 @@ btor_unroll_next (
     release_exp (btor, (BtorExp *) bucket->data.asPtr);
   btor_delete_ptr_hash_table (inst_table);
 
-  BTOR_DELETEN (mm, next_insts, times);
+  BTOR_DELETEN (mm, next_insts, size);
 }
 
 int
