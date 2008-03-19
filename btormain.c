@@ -7,6 +7,7 @@
 #include "btorconst.h"
 #include "btorexit.h"
 #include "btorexp.h"
+#include "btorhash.h"
 #include "btormem.h"
 #include "btorparse.h"
 #include "btorsat.h"
@@ -375,7 +376,9 @@ btor_main (int argc, char **argv)
   BtorMemMgr *mem                 = NULL;
   int rewrite_level               = 2;
   size_t maxallocated             = 0;
-  BtorExp *root, **p;
+  BtorExp *root, **p, *inst;
+  BtorPtrHashTable *inst_table;
+  BtorPtrHashBucket *buck;
 
   app.verbosity   = 0;
   app.force       = 0;
@@ -630,9 +633,23 @@ btor_main (int argc, char **argv)
 
       /* test it */
       if (parse_res.nregs > 0)
-        btor_unroll_next (
-            btor, parse_res.regs, parse_res.nexts, parse_res.nregs, 0);
+      {
+        inst_table = btor_apply_next (
+            btor, parse_res.regs, parse_res.nexts, parse_res.nregs, 3);
 
+        /* instantiate registers in 'bad' */
+        for (p = constraints.start; p < constraints.top; p++)
+        {
+          inst = btor_deep_copy_and_instantiate_regs (btor, inst_table, *p);
+          btor_release_exp (btor, *p);
+          *p = inst;
+        }
+
+        /* clean up */
+        for (buck = inst_table->first; buck != NULL; buck = buck->next)
+          btor_release_exp (btor, (BtorExp *) buck->data.asPtr);
+        btor_delete_ptr_hash_table (inst_table);
+      }
       parser_api->reset (parser);
       parser_api = 0;
 

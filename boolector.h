@@ -1,6 +1,8 @@
 #ifndef BOOLECTOR_H_INCLUDED
 #define BOOLECTOR_H_INCLUDED
 
+#include "btorhash.h"
+
 #include <stdio.h>
 
 /*------------------------------------------------------------------------*/
@@ -418,7 +420,11 @@ BtorExp *btor_cond_exp (Btor *btor,
                         BtorExp *e_if,
                         BtorExp *e_else);
 
-void btor_unroll_next (
+/* Applies the next operator to the registers in 'regs' 'times' times.
+ * The next functions of the registers are given in 'nexts'. The size
+ * of 'regs' has to be equal to the size of the 'nexts'.
+ */
+BtorPtrHashTable *btor_apply_next (
     Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times);
 
 /* Gets the length of an expression representing the number of bits. */

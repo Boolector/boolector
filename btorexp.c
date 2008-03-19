@@ -4937,12 +4937,29 @@ deep_copy_and_instantiate_regs (Btor *btor,
   return result;
 }
 
+BtorExp *
+btor_deep_copy_and_instantiate_regs (Btor *btor,
+                                     BtorPtrHashTable *inst_table,
+                                     BtorExp *root)
+{
+  BTOR_ABORT_EXP (
+      btor == NULL,
+      "'btor' must not be NULL in 'deep_copy_and_instantiate_regs'");
+  BTOR_ABORT_EXP (
+      inst_table == NULL,
+      "'inst_table' must not be NULL in 'deep_copy_and_instantiate_regs'");
+  BTOR_ABORT_EXP (
+      root == NULL,
+      "'root' must not be NULL in 'deep_copy_and_instantiate_regs'");
+  return deep_copy_and_instantiate_regs (btor, inst_table, root);
+}
+
 static void
-unroll_nexts_and_instantiante_regs (Btor *btor,
-                                    BtorPtrHashTable *inst_table,
-                                    BtorExp **nexts,
-                                    BtorExp **result,
-                                    int size)
+apply_nexts_and_instantiante_regs (Btor *btor,
+                                   BtorPtrHashTable *inst_table,
+                                   BtorExp **nexts,
+                                   BtorExp **result,
+                                   int size)
 {
   int i;
   assert (btor != NULL);
@@ -4954,8 +4971,8 @@ unroll_nexts_and_instantiante_regs (Btor *btor,
     result[i] = deep_copy_and_instantiate_regs (btor, inst_table, nexts[i]);
 }
 
-void
-btor_unroll_next (
+BtorPtrHashTable *
+btor_apply_next (
     Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times)
 {
   int i, j;
@@ -4963,11 +4980,15 @@ btor_unroll_next (
   BtorPtrHashTable *inst_table;
   BtorExp **next_insts;
   BtorMemMgr *mm;
-  assert (btor != NULL);
-  assert (regs != NULL);
-  assert (nexts != NULL);
-  assert (size >= 0);
-  assert (times >= 0);
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_apply_next'");
+  BTOR_ABORT_EXP (regs == NULL, "'regs' must not be NULL in 'btor_apply_next'");
+  BTOR_ABORT_EXP (nexts == NULL,
+                  "'nexts' must not be NULL in 'btor_apply_next'");
+  BTOR_ABORT_EXP (size < 1,
+                  "'size' must not be less than one in 'btor_apply_next'");
+  BTOR_ABORT_EXP (times < 0,
+                  "'times' must not be negative in 'btor_apply_next'");
+
 #ifndef NDEBUG
   for (i = 0; i < size; i++)
   {
@@ -4977,21 +4998,21 @@ btor_unroll_next (
   }
 #endif
 
-  if (size == 0) return;
-
   mm = btor->mm;
 
   BTOR_NEWN (mm, next_insts, size);
   inst_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
 
+  /* init registers with zero */
   for (j = 0; j < size; j++)
     btor_insert_in_ptr_hash_table (inst_table, regs[j])->data.asPtr =
         zeros_exp (btor, regs[j]->len);
 
-  for (i = 0; i <= times; i++)
+  /* apply next */
+  for (i = 0; i < times; i++)
   {
-    unroll_nexts_and_instantiante_regs (
+    apply_nexts_and_instantiante_regs (
         btor, inst_table, nexts, next_insts, size);
     for (j = 0; j < size; j++)
     {
@@ -5001,14 +5022,10 @@ btor_unroll_next (
     }
   }
 
-  /* inst_table holds now final instantiations */
-
-  /* clean up for testing */
-  for (bucket = inst_table->first; bucket != NULL; bucket = bucket->next)
-    release_exp (btor, (BtorExp *) bucket->data.asPtr);
-  btor_delete_ptr_hash_table (inst_table);
+  /* inst_table now holds final instantiations */
 
   BTOR_DELETEN (mm, next_insts, size);
+  return inst_table;
 }
 
 int
