@@ -1,3 +1,4 @@
+; product automaton of 'automaton even' and 'automaton odd'
 1 var 2 stateeven
 2 constd 2 2
 3 var 1 input

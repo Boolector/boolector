@@ -1,3 +1,5 @@
+; the automaton accepts if the number of 1's
+; is greater than 0 and even
 1 var 2 state
 2 constd 2 2
 3 eq 1 1 2
