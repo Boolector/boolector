@@ -13,4 +13,6 @@ int btor_pow_2_util (int x);
 
 int btor_next_power_of_2_util (int x);
 
+int btor_num_chars_util (int x);
+
 #endif

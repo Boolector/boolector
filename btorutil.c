@@ -66,6 +66,21 @@ btor_next_power_of_2_util (int x)
   return x + 1;
 }
 
+int
+btor_num_chars_util (int x)
+{
+  int result;
+  assert (x >= 0);
+
+  result = 0;
+  do
+  {
+    x /= 10;
+    result++;
+  } while (x > 0);
+  return result;
+}
+
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/
