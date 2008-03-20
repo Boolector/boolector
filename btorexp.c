@@ -2337,16 +2337,14 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   return var_exp (btor, len, symbol);
 }
 
-BtorExp *
-btor_array_exp (Btor *btor, int elem_len, int index_len)
+static BtorExp *
+array_exp (Btor *btor, int elem_len, int index_len)
 {
   BtorMemMgr *mm;
   BtorArrayVarExp *exp;
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_array_exp'");
-  BTOR_ABORT_EXP (elem_len < 1,
-                  "'elem_len' must not be < 1 in 'btor_array_exp'");
-  BTOR_ABORT_EXP (index_len < 1,
-                  "'index_len' must not be < 1 in 'btor_array_exp'");
+  assert (btor != NULL);
+  assert (elem_len >= 1);
+  assert (index_len >= 1);
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   exp->kind      = BTOR_ARRAY_EXP;
@@ -2359,6 +2357,17 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   exp->btor = btor;
   (void) btor_insert_in_ptr_hash_table (btor->arrays, exp);
   return (BtorExp *) exp;
+}
+
+BtorExp *
+btor_array_exp (Btor *btor, int elem_len, int index_len)
+{
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_array_exp'");
+  BTOR_ABORT_EXP (elem_len < 1,
+                  "'elem_len' must not be < 1 in 'btor_array_exp'");
+  BTOR_ABORT_EXP (index_len < 1,
+                  "'index_len' must not be < 1 in 'btor_array_exp'");
+  return array_exp (btor, elem_len, index_len);
 }
 
 static BtorExp *
@@ -4785,14 +4794,18 @@ rewrite_exp (Btor *btor,
 static BtorExp *
 deep_copy_and_instantiate_regs (Btor *btor,
                                 BtorPtrHashTable *inst_table,
-                                BtorExp *root)
+                                BtorExp *root,
+                                int time_shift,
+                                int k)
 {
-  BtorExp *cur, *result, *e0, *e1, *e2, *cur_result;
+  BtorExp *cur, *result, *e0, *e1, *e2, *cur_result, *var;
   BtorExp *(*bin_func) (Btor *, BtorExp *, BtorExp *);
   BtorExpPtrStack pre_stack, post_stack, build_stack, release_stack;
   BtorPtrHashBucket *bucket;
-  BtorPtrHashTable *atomic_table;
+  BtorPtrHashTable *atomic_table, *var_table;
   BtorMemMgr *mm;
+  char *var_name;
+  int var_name_len;
   assert (btor != NULL);
   assert (inst_table != NULL);
   assert (root != NULL);
@@ -4807,6 +4820,12 @@ deep_copy_and_instantiate_regs (Btor *btor,
     if (btor_find_in_ptr_hash_table (atomic_table, bucket->data.asPtr) == NULL)
       btor_insert_in_ptr_hash_table (atomic_table, bucket->data.asPtr);
   }
+
+  /* if we perform a shift in time, then we have to replace all regular
+   * variables and atomic arrays by new instances */
+  if (time_shift)
+    var_table = btor_new_ptr_hash_table (
+        mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
 
   BTOR_INIT_STACK (pre_stack);
   BTOR_INIT_STACK (post_stack);
@@ -4825,7 +4844,35 @@ deep_copy_and_instantiate_regs (Btor *btor,
     {
       bucket = btor_find_in_ptr_hash_table (inst_table, cur);
       if (bucket == NULL)
-        BTOR_PUSH_STACK (mm, post_stack, cur);
+      {
+        if (time_shift)
+        {
+          bucket = btor_find_in_ptr_hash_table (var_table, cur);
+          if (bucket == NULL)
+          {
+            if (BTOR_IS_VAR_EXP (cur))
+            {
+              assert (cur->symbol != NULL);
+              var_name_len = strlen (cur->symbol) + btor_num_chars_util (k) + 1;
+              BTOR_NEWN (mm, var_name, var_name_len);
+              sprintf (var_name, "%s%d", cur->symbol, k);
+              var = var_exp (btor, cur->len, var_name);
+              BTOR_DELETEN (mm, var_name, var_name_len);
+            }
+            else
+            {
+              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+              var = array_exp (btor, cur->len, cur->index_len);
+            }
+            btor_insert_in_ptr_hash_table (var_table, cur)->data.asPtr = var;
+            BTOR_PUSH_STACK (mm, post_stack, var);
+          }
+          else
+            BTOR_PUSH_STACK (mm, post_stack, (BtorExp *) bucket->data.asPtr);
+        }
+        else
+          BTOR_PUSH_STACK (mm, post_stack, cur);
+      }
       else
         BTOR_PUSH_STACK (mm, post_stack, (BtorExp *) bucket->data.asPtr);
     }
@@ -4852,7 +4899,7 @@ deep_copy_and_instantiate_regs (Btor *btor,
   } while (!BTOR_EMPTY_STACK (pre_stack));
 
   assert (!BTOR_EMPTY_STACK (post_stack));
-  /* rebuild, but with new instiantion */
+  /* rebuild, but with new instiantions */
   do
   {
     cur = BTOR_POP_STACK (post_stack);
@@ -4947,6 +4994,13 @@ deep_copy_and_instantiate_regs (Btor *btor,
   BTOR_RELEASE_STACK (mm, release_stack);
   btor_delete_ptr_hash_table (atomic_table);
 
+  if (time_shift)
+  {
+    for (bucket = var_table->first; bucket != NULL; bucket = bucket->next)
+      release_exp (btor, (BtorExp *) bucket->data.asPtr);
+    btor_delete_ptr_hash_table (var_table);
+  }
+
   return result;
 }
 
@@ -4964,7 +5018,7 @@ btor_deep_copy_and_instantiate_regs (Btor *btor,
   BTOR_ABORT_EXP (
       root == NULL,
       "'root' must not be NULL in 'deep_copy_and_instantiate_regs'");
-  return deep_copy_and_instantiate_regs (btor, inst_table, root);
+  return deep_copy_and_instantiate_regs (btor, inst_table, root, 0, 0);
 }
 
 static void
@@ -4972,7 +5026,8 @@ apply_nexts_and_instantiante_regs (Btor *btor,
                                    BtorPtrHashTable *inst_table,
                                    BtorExp **nexts,
                                    BtorExp **result,
-                                   int size)
+                                   int size,
+                                   int k)
 {
   int i;
   assert (btor != NULL);
@@ -4980,8 +5035,10 @@ apply_nexts_and_instantiante_regs (Btor *btor,
   assert (nexts != NULL);
   assert (result != NULL);
   assert (size > 0);
+  assert (k > 0);
   for (i = 0; i < size; i++)
-    result[i] = deep_copy_and_instantiate_regs (btor, inst_table, nexts[i]);
+    result[i] =
+        deep_copy_and_instantiate_regs (btor, inst_table, nexts[i], 1, k);
 }
 
 BtorPtrHashTable *
@@ -5026,7 +5083,7 @@ btor_apply_next (
   for (i = 0; i < times; i++)
   {
     apply_nexts_and_instantiante_regs (
-        btor, inst_table, nexts, next_insts, size);
+        btor, inst_table, nexts, next_insts, size, i + 1);
     for (j = 0; j < size; j++)
     {
       bucket = btor_find_in_ptr_hash_table (inst_table, regs[j]);

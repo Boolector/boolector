@@ -277,7 +277,7 @@ void btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark);
 
 /* Creates a deep copy of the DAG with root 'root' and instantiates
  * every occurrence of an register by the instantiation determined
- * by the instantiation table 'inst_table'
+ * by the instantiation table 'inst_table'.
  */
 BtorExp *btor_deep_copy_and_instantiate_regs (Btor *btor,
                                               BtorPtrHashTable *inst_table,
