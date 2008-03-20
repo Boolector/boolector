@@ -5750,20 +5750,6 @@ btor_get_aigvec_mgr_btor (const Btor *btor)
   return btor->avmgr;
 }
 
-static int
-num_digits (int x)
-{
-  int result;
-  assert (x > 0);
-  result = 0;
-  while (x > 0)
-  {
-    result++;
-    x /= 10;
-  }
-  return result;
-}
-
 static BtorExp *
 vread_index_exp (Btor *btor, int len)
 {
@@ -5772,8 +5758,8 @@ vread_index_exp (Btor *btor, int len)
   assert (btor != NULL);
   assert (len > 0);
   BTOR_ABORT_EXP (btor->id == INT_MAX, "vread index id overflow");
-  symbol = (char *) malloc (sizeof (char)
-                            * (6 + num_digits (btor->vread_index_id) + 1));
+  symbol = (char *) malloc (
+      sizeof (char) * (6 + btor_num_digits_util (btor->vread_index_id) + 1));
   sprintf (symbol, "vindex%d", btor->vread_index_id);
   btor->vread_index_id++;
   result = var_exp (btor, len, symbol);
