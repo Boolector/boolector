@@ -4804,7 +4804,7 @@ deep_copy_and_instantiate_regs (Btor *btor,
       mm, (BtorHashPtr) hash_exp_by_id, (BtorCmpPtr) compare_exp_by_id);
   for (bucket = inst_table->first; bucket != NULL; bucket = bucket->next)
   {
-    if (btor_find_in_ptr_hash_table (atomic_table, bucket->data.asPtr) != NULL)
+    if (btor_find_in_ptr_hash_table (atomic_table, bucket->data.asPtr) == NULL)
       btor_insert_in_ptr_hash_table (atomic_table, bucket->data.asPtr);
   }
 
