@@ -1,0 +1,13 @@
+1 var 2 state
+2 constd 2 2
+3 eq 1 1 2
+4 root 1 3
+6 var 1 input
+7 one 2
+8 add 2 1 7
+9 sub 2 1 7
+10 const 2 11
+11 eq 1 1 10
+12 cond 2 11 9 8
+13 cond 2 6 12 1 
+14 next 2 1 13
