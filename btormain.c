@@ -42,6 +42,8 @@
 #include <unistd.h>
 #endif
 
+#define MAXK 32
+
 enum BtorBasis
 {
   BTOR_BINARY_BASIS = 0,
@@ -97,7 +99,6 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -maxk=<k>                        sets maximum bound for model checking\n"
-    "                                   default bound is 10\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
@@ -367,8 +368,9 @@ btor_main (int argc, char **argv)
   int force_smt_input   = 0;
   int print_solutions   = 0;
   int refinement_limit  = INT_MAX;
-  int maxk              = 10;
+  int maxk              = MAXK;
   int curk              = 0;
+  int report_on_bmc     = 1;
   int root_len;
   int constraints_reported, constraints_report_limit, nconstraints;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -656,8 +658,14 @@ btor_main (int argc, char **argv)
 
         if (parse_res.nregs > 0)
         {
-          app.mode = BTOR_APP_BMC_MODE;
-          print_msg_va_args (&app, "Solving BMC instance with k = %d: ", curk);
+          if (report_on_bmc)
+          {
+            app.mode = BTOR_APP_BMC_MODE;
+            print_msg_va_args (
+                &app, "Solving BMC problem with maximum bound %d\n", maxk);
+            report_on_bmc = 0;
+          }
+          print_msg_va_args (&app, "k = %d: ", curk);
           inst_table = btor_apply_next (
               btor, parse_res.regs, parse_res.nexts, parse_res.nregs, curk);
 
