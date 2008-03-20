@@ -4850,7 +4850,8 @@ deep_copy_and_instantiate_regs (Btor *btor,
             if (BTOR_IS_VAR_EXP (cur))
             {
               assert (cur->symbol != NULL);
-              var_name_len = strlen (cur->symbol) + btor_num_chars_util (k) + 1;
+              var_name_len =
+                  strlen (cur->symbol) + btor_num_digits_util (k) + 1;
               BTOR_NEWN (mm, var_name, var_name_len);
               sprintf (var_name, "%s%d", cur->symbol, k);
               var = var_exp (btor, cur->len, var_name);

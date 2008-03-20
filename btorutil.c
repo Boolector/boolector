@@ -67,7 +67,7 @@ btor_next_power_of_2_util (int x)
 }
 
 int
-btor_num_chars_util (int x)
+btor_num_digits_util (int x)
 {
   int result;
   assert (x >= 0);

@@ -87,18 +87,18 @@ test_next_power_of_2_util (void)
 }
 
 static void
-test_num_chars_util (void)
+test_num_digits_util (void)
 {
-  assert (btor_num_chars_util (0) == 1);
-  assert (btor_num_chars_util (1) == 1);
-  assert (btor_num_chars_util (5) == 1);
-  assert (btor_num_chars_util (11) == 2);
-  assert (btor_num_chars_util (99) == 2);
-  assert (btor_num_chars_util (100) == 3);
-  assert (btor_num_chars_util (1024) == 4);
-  assert (btor_num_chars_util (10001) == 5);
-  assert (btor_num_chars_util (100343) == 6);
-  assert (btor_num_chars_util (2343443) == 7);
+  assert (btor_num_digits_util (0) == 1);
+  assert (btor_num_digits_util (1) == 1);
+  assert (btor_num_digits_util (5) == 1);
+  assert (btor_num_digits_util (11) == 2);
+  assert (btor_num_digits_util (99) == 2);
+  assert (btor_num_digits_util (100) == 3);
+  assert (btor_num_digits_util (1024) == 4);
+  assert (btor_num_digits_util (10001) == 5);
+  assert (btor_num_digits_util (100343) == 6);
+  assert (btor_num_digits_util (2343443) == 7);
 }
 
 void
@@ -108,7 +108,7 @@ run_util_tests (int argc, char **argv)
   BTOR_RUN_TEST (log_2_util);
   BTOR_RUN_TEST (pow_2_util);
   BTOR_RUN_TEST (next_power_of_2_util);
-  BTOR_RUN_TEST (num_chars_util);
+  BTOR_RUN_TEST (num_digits_util);
 }
 
 void
