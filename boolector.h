@@ -423,9 +423,16 @@ BtorExp *btor_cond_exp (Btor *btor,
 /* Applies the next operator to the registers in 'regs' 'times' times.
  * The next functions of the registers are given in 'nexts'. The size
  * of 'regs' has to be equal to the size of the 'nexts'.
+ * The function stores in the array states, which must have size
+ * 'times + 1', concatenations of the bit-vector register contents,
+ * respectively representing state at time t.
  */
-BtorPtrHashTable *btor_apply_next (
-    Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times);
+BtorPtrHashTable *btor_apply_next (Btor *btor,
+                                   BtorExp **regs,
+                                   BtorExp **nexts,
+                                   int size,
+                                   int times,
+                                   BtorExp **states);
 
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorExp *exp);

@@ -5047,13 +5047,17 @@ apply_nexts_and_instantiante_regs (Btor *btor,
 }
 
 BtorPtrHashTable *
-btor_apply_next (
-    Btor *btor, BtorExp **regs, BtorExp **nexts, int size, int times)
+btor_apply_next (Btor *btor,
+                 BtorExp **regs,
+                 BtorExp **nexts,
+                 int size,
+                 int times,
+                 BtorExp **states)
 {
   int i, j;
   BtorPtrHashBucket *bucket;
   BtorPtrHashTable *inst_table;
-  BtorExp **next_insts;
+  BtorExp **next_insts, *cur, *state, *temp;
   BtorMemMgr *mm;
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_apply_next'");
   BTOR_ABORT_EXP (regs == NULL, "'regs' must not be NULL in 'btor_apply_next'");
@@ -5063,6 +5067,8 @@ btor_apply_next (
                   "'size' must not be less than one in 'btor_apply_next'");
   BTOR_ABORT_EXP (times < 0,
                   "'times' must not be negative in 'btor_apply_next'");
+  BTOR_ABORT_EXP (states == NULL,
+                  "'states' must not be NULL in 'btor_apply_next'");
 
 #ifndef NDEBUG
   for (i = 0; i < size; i++)
@@ -5092,10 +5098,34 @@ btor_apply_next (
     for (j = 0; j < size; j++)
     {
       bucket = btor_find_in_ptr_hash_table (inst_table, regs[j]);
-      release_exp (btor, (BtorExp *) bucket->data.asPtr);
+      cur    = (BtorExp *) bucket->data.asPtr;
+      if (j == 0)
+        state = copy_exp (btor, cur);
+      else
+      {
+        temp = concat_exp (btor, state, cur);
+        release_exp (btor, state);
+        state = temp;
+      }
+      release_exp (btor, cur);
       bucket->data.asPtr = next_insts[j];
     }
+    states[i] = state;
   }
+  for (j = 0; j < size; j++)
+  {
+    bucket = btor_find_in_ptr_hash_table (inst_table, regs[j]);
+    cur    = (BtorExp *) bucket->data.asPtr;
+    if (j == 0)
+      state = copy_exp (btor, cur);
+    else
+    {
+      temp = concat_exp (btor, state, cur);
+      release_exp (btor, state);
+      state = temp;
+    }
+  }
+  states[times] = state;
 
   /* inst_table now holds final instantiations */
 

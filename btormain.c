@@ -98,12 +98,16 @@ static const char *g_usage =
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
     "\n"
-    "  -maxk=<k>                        sets maximum bound for model checking\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
-    "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n";
+    "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n"
+    "\n"
+    "\n"
+    "BMC options:\n"
+    "  -maxk=<k>                        sets maximum bound for model checking\n"
+    "  -adc                             use all different constraint\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -359,6 +363,7 @@ btor_main (int argc, char **argv)
   int done              = 0;
   int err               = 0;
   int i                 = 0;
+  int j                 = 0;
   int close_input_file  = 0;
   int close_output_file = 0;
   int close_exp_file    = 0;
@@ -371,6 +376,8 @@ btor_main (int argc, char **argv)
   int maxk              = MAXK;
   int curk              = 0;
   int report_on_bmc     = 1;
+  int bmc_adc           = 0;
+  int adc_false         = 0;
   int root_len;
   int constraints_reported, constraints_report_limit, nconstraints;
   BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -391,7 +398,7 @@ btor_main (int argc, char **argv)
   BtorMemMgr *mem                 = NULL;
   int rewrite_level               = 2;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *inst;
+  BtorExp *root, **p, *inst, **states, *adc, *temp, *ne;
   BtorPtrHashTable *inst_table;
   BtorPtrHashBucket *buck;
 
@@ -450,6 +457,8 @@ btor_main (int argc, char **argv)
         err = 1;
       }
     }
+    else if (!strcmp (argv[i], "-adc"))
+      bmc_adc = 1;
     else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
     {
       if (app.verbosity < 0)
@@ -661,13 +670,55 @@ btor_main (int argc, char **argv)
           if (report_on_bmc)
           {
             app.mode = BTOR_APP_BMC_MODE;
-            print_msg_va_args (
-                &app, "Solving BMC problem with maximum bound %d\n", maxk);
+            if (bmc_adc)
+              print_msg (&app,
+                         "Solving BMC problem with All Different Constraint\n");
+            else
+              print_msg_va_args (
+                  &app, "Solving BMC problem with maximum bound %d\n", maxk);
             report_on_bmc = 0;
           }
-          print_msg_va_args (&app, "k = %d: ", curk);
-          inst_table = btor_apply_next (
-              btor, parse_res.regs, parse_res.nexts, parse_res.nregs, curk);
+
+          BTOR_NEWN (mem, states, curk + 1);
+          inst_table = btor_apply_next (btor,
+                                        parse_res.regs,
+                                        parse_res.nexts,
+                                        parse_res.nregs,
+                                        curk,
+                                        states);
+
+          if (bmc_adc)
+          {
+            /* we check if this is the last iteration */
+            if (curk > 0)
+            {
+              adc = btor_true_exp (btor);
+              for (i = 0; i < curk + 1; i++)
+              {
+                for (j = i + 1; j < curk + 1; j++)
+                {
+                  ne   = btor_ne_exp (btor, states[i], states[j]);
+                  temp = btor_and_exp (btor, adc, ne);
+                  btor_release_exp (btor, adc);
+                  adc = temp;
+                  btor_release_exp (btor, ne);
+                }
+              }
+              btor_add_constraint_exp (btor, adc);
+              btor_release_exp (btor, adc);
+              sat_result = btor_sat_btor (btor, refinement_limit);
+              if (sat_result == BTOR_UNSAT)
+              {
+                adc_false = 1;
+                print_msg (&app, "No more states reachable\n");
+              }
+            }
+          }
+
+          if (!adc_false) print_msg_va_args (&app, "k = %d: ", curk);
+
+          for (i = 0; i < curk + 1; i++) btor_release_exp (btor, states[i]);
+          BTOR_DELETEN (mem, states, curk + 1);
 
           /* instantiate registers in 'bad' */
           for (p = constraints.start; p < constraints.top; p++)
@@ -712,23 +763,26 @@ btor_main (int argc, char **argv)
         if (app.verbosity > 1 && constraints_reported < nconstraints)
           print_verbose_msg_va_args ("added %d outputs (100%)\n", nconstraints);
 
-        sat_result = btor_sat_btor (btor, refinement_limit);
-
-        if (app.verbosity >= 0)
+        if (!adc_false)
         {
-          if (sat_result == BTOR_UNSAT)
-            print_msg (&app, "unsat\n");
-          else if (sat_result == BTOR_SAT)
+          sat_result = btor_sat_btor (btor, refinement_limit);
+
+          if (app.verbosity >= 0)
           {
-            print_msg (&app, "sat\n");
-            if (print_solutions && parse_res.ninputs > 0)
-              print_variable_assignments (
-                  &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
-          }
-          else
-          {
-            assert (sat_result == BTOR_UNKNOWN);
-            print_msg (&app, "unknown\n");
+            if (sat_result == BTOR_UNSAT)
+              print_msg (&app, "unsat\n");
+            else if (sat_result == BTOR_SAT)
+            {
+              print_msg (&app, "sat\n");
+              if (print_solutions && parse_res.ninputs > 0)
+                print_variable_assignments (
+                    &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+            }
+            else
+            {
+              assert (sat_result == BTOR_UNKNOWN);
+              print_msg (&app, "unknown\n");
+            }
           }
         }
 
@@ -753,7 +807,7 @@ btor_main (int argc, char **argv)
         rewind (input_file);
       }
     } while (app.mode == BTOR_APP_BMC_MODE && curk <= maxk
-             && sat_result == BTOR_UNSAT);
+             && sat_result == BTOR_UNSAT && !adc_false);
   }
 
   if (close_input_file) fclose (input_file);
