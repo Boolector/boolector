@@ -808,7 +808,7 @@ btor_main (int argc, char **argv)
       }
     } while (app.mode == BTOR_APP_BMC_MODE
              && ((bmc_adc && !adc_false)
-                 || (curk <= maxk && sat_result == BTOR_UNSAT)));
+                 || (!bmc_adc && curk <= maxk && sat_result == BTOR_UNSAT)));
   }
 
   if (close_input_file) fclose (input_file);
