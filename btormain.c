@@ -350,6 +350,29 @@ print_variable_assignments (BtorMainApp *app,
   for (i = 0; i < nvars; i++) print_assignment (app, btor, vars[i]);
 }
 
+static BtorExp *
+generate_adc_exp (Btor *btor, BtorExp **array, int size)
+{
+  int i, j;
+  BtorExp *ne, *temp, *result;
+  assert (btor != NULL);
+  assert (array != NULL);
+  assert (size > 0);
+  result = btor_true_exp (btor);
+  for (i = 0; i < size - 1; i++)
+  {
+    for (j = i + 1; j < size; j++)
+    {
+      ne   = btor_ne_exp (btor, array[i], array[j]);
+      temp = btor_and_exp (btor, result, ne);
+      btor_release_exp (btor, result);
+      result = temp;
+      btor_release_exp (btor, ne);
+    }
+  }
+  return result;
+}
+
 int
 btor_main (int argc, char **argv)
 {
@@ -363,7 +386,6 @@ btor_main (int argc, char **argv)
   int done              = 0;
   int err               = 0;
   int i                 = 0;
-  int j                 = 0;
   int close_input_file  = 0;
   int close_output_file = 0;
   int close_exp_file    = 0;
@@ -398,7 +420,7 @@ btor_main (int argc, char **argv)
   BtorMemMgr *mem                 = NULL;
   int rewrite_level               = 2;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *inst, **states, *adc, *temp, *ne;
+  BtorExp *root, **p, *inst, **states, *adc;
   BtorPtrHashTable *inst_table;
   BtorPtrHashBucket *buck;
 
@@ -689,21 +711,9 @@ btor_main (int argc, char **argv)
 
           if (bmc_adc)
           {
-            /* we check if this is the last iteration */
             if (curk > 0)
             {
-              adc = btor_true_exp (btor);
-              for (i = 0; i < curk + 1; i++)
-              {
-                for (j = i + 1; j < curk + 1; j++)
-                {
-                  ne   = btor_ne_exp (btor, states[i], states[j]);
-                  temp = btor_and_exp (btor, adc, ne);
-                  btor_release_exp (btor, adc);
-                  adc = temp;
-                  btor_release_exp (btor, ne);
-                }
-              }
+              adc = generate_adc_exp (btor, states, curk + 1);
               btor_add_constraint_exp (btor, adc);
               btor_release_exp (btor, adc);
               sat_result = btor_sat_btor (btor, refinement_limit);
