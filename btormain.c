@@ -42,7 +42,7 @@
 #include <unistd.h>
 #endif
 
-#define MAXK 32
+#define BTOR_MAIN_DEFAULT_MAXK 32
 
 enum BtorBasis
 {
@@ -64,14 +64,32 @@ typedef enum BtorAppMode BtorAppMode;
 struct BtorMainApp
 {
   FILE *output_file;
+  int close_output_file;
+  FILE *input_file;
+  char *input_file_name;
+  int close_input_file;
   int verbosity;
   int force;
-  int *err;
-  int *i;
+  int done;
+  int err;
+  int argpos;
   int argc;
   char **argv;
   BtorBasis basis;
   BtorAppMode mode;
+  int dump_exp;
+  FILE *exp_file;
+  int close_exp_file;
+  int dump_smt;
+  FILE *smt_file;
+  int close_smt_file;
+  int rewrite_level;
+  int maxk;
+  int bmc_adc;
+  BtorCNFEnc cnf_enc;
+  int refinement_limit;
+  int force_smt_input;
+  int print_solutions;
 };
 
 typedef struct BtorMainApp BtorMainApp;
@@ -230,7 +248,7 @@ handle_dump_file (BtorMainApp *app,
 
   *dump_file = 1;
 
-  if (*app->i < app->argc - 1)
+  if (app->argpos < app->argc - 1)
   {
     if (*close_file)
     {
@@ -238,11 +256,11 @@ handle_dump_file (BtorMainApp *app,
       fclose (*file);
       *close_file = 0;
       print_err_va_args (app, "multiple %s files\n", file_kind);
-      *app->err = 1;
+      app->err = 1;
     }
     else
     {
-      file_name = app->argv[++*app->i];
+      file_name = app->argv[++app->argpos];
 
       if (file_already_exists (file_name) && !app->force)
       {
@@ -252,15 +270,16 @@ handle_dump_file (BtorMainApp *app,
             file_kind,
             file_name);
 
-        *app->err = 1;
+        app->err = 1;
       }
       else
       {
         *file = fopen (file_name, "w");
         if (*file == NULL)
         {
-          print_err_va_args (app, "can not create '%s'\n", app->argv[*app->i]);
-          *app->err = 1;
+          print_err_va_args (
+              app, "can not create '%s'\n", app->argv[app->argpos]);
+          app->err = 1;
         }
         else
           *close_file = 1;
@@ -373,6 +392,196 @@ generate_adc_exp (Btor *btor, BtorExp **array, int size)
   return result;
 }
 
+static void
+parse_commandline_arguments (BtorMainApp *app)
+{
+  FILE *temp_file;
+  for (app->argpos = 1; !app->done && !app->err && app->argpos < app->argc;
+       app->argpos++)
+  {
+    if (!strcmp (app->argv[app->argpos], "-h")
+        || !strcmp (app->argv[app->argpos], "--help"))
+    {
+      print_msg_va_args (app, "%s\n", g_usage);
+      app->done = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-c")
+             || !strcmp (app->argv[app->argpos], "--copyright"))
+    {
+      print_msg_va_args (app, "%s", g_copyright);
+      app->done = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-f")
+             || !strcmp (app->argv[app->argpos], "--force"))
+      app->force = 1;
+    else if (!strcmp (app->argv[app->argpos], "-de")
+             || !strcmp (app->argv[app->argpos], "--dump-exp"))
+      handle_dump_file (app,
+                        &app->dump_exp,
+                        &app->close_exp_file,
+                        "expression",
+                        &app->exp_file);
+    else if (!strcmp (app->argv[app->argpos], "-s")
+             || !strcmp (app->argv[app->argpos], "--solutions"))
+      app->print_solutions = 1;
+    else if (!strcmp (app->argv[app->argpos], "-ds")
+             || !strcmp (app->argv[app->argpos], "--dump-smt"))
+      handle_dump_file (
+          app, &app->dump_smt, &app->close_smt_file, "SMT", &app->smt_file);
+    else if (!strcmp (app->argv[app->argpos], "--smt"))
+      app->force_smt_input = 1;
+    else if ((strstr (app->argv[app->argpos], "-rwl") == app->argv[app->argpos]
+              && strlen (app->argv[app->argpos]) == strlen ("-rlw") + 1)
+             || (strstr (app->argv[app->argpos], "--rewrite-level")
+                     == app->argv[app->argpos]
+                 && strlen (app->argv[app->argpos])
+                        == strlen ("--rewrite-level") + 1))
+    {
+      app->rewrite_level =
+          (int)
+              app->argv[app->argpos][(int) strlen (app->argv[app->argpos]) - 1]
+          - 48;
+      if (app->rewrite_level > 2 || app->rewrite_level < 0)
+      {
+        print_err (app, "rewrite level has to be in [0,2]\n");
+        app->err = 1;
+      }
+    }
+    else if (strstr (app->argv[app->argpos], "-maxk=")
+             == app->argv[app->argpos])
+    {
+      app->maxk = atoi (app->argv[app->argpos] + 6);
+      if (app->maxk < 0)
+      {
+        print_err (app, "invalid k\n");
+        app->err = 1;
+      }
+    }
+    else if (!strcmp (app->argv[app->argpos], "-adc"))
+      app->bmc_adc = 1;
+    else if (!strcmp (app->argv[app->argpos], "-v")
+             || !strcmp (app->argv[app->argpos], "--verbose"))
+    {
+      if (app->verbosity < 0)
+      {
+        print_err (app, "'-q' and '-v' can not be combined\n");
+        app->err = 1;
+      }
+      else if (app->verbosity == 3)
+      {
+        print_err (app, "can not increase verbosity beyond '3'\n");
+        app->err = 1;
+      }
+      else
+        app->verbosity++;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-V")
+             || !strcmp (app->argv[app->argpos], "--version"))
+    {
+      print_msg_va_args (app, "%s\n", BTOR_VERSION);
+      app->done = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-q")
+             || !strcmp (app->argv[app->argpos], "--quiet"))
+    {
+      if (app->verbosity > 0)
+      {
+        print_err (app, "'-q' and '-v' can not be combined\n");
+        app->err = 1;
+      }
+      else
+        app->verbosity = -1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-tcnf")
+             || !strcmp (app->argv[app->argpos], "--tseitin-cnf"))
+      app->cnf_enc = BTOR_TSEITIN_CNF_ENC;
+    else if (!strcmp (app->argv[app->argpos], "-pgcnf")
+             || !strcmp (app->argv[app->argpos], "--plaisted-greenbaum-cnf"))
+      app->cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
+    else if (!strcmp (app->argv[app->argpos], "-x")
+             || !strcmp (app->argv[app->argpos], "--hex"))
+    {
+      if (app->basis == BTOR_DECIMAL_BASIS)
+      {
+      HEXANDDECIMAL:
+        print_err (app, "can not force hexadecimal and decimal output");
+        app->err = 1;
+      }
+      else
+        app->basis = BTOR_HEXADECIMAL_BASIS;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-d")
+             || !strcmp (app->argv[app->argpos], "--decimal"))
+    {
+      if (app->basis == BTOR_HEXADECIMAL_BASIS) goto HEXANDDECIMAL;
+
+      app->basis = BTOR_DECIMAL_BASIS;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-rl")
+             || !strcmp (app->argv[app->argpos], "--refinement-limit"))
+    {
+      if (app->argpos < app->argc - 1)
+      {
+        app->refinement_limit = atoi (app->argv[++app->argpos]);
+        if (app->refinement_limit < 0)
+        {
+          print_err_va_args (app, "refinement limit must not be negative\n");
+          app->err = 1;
+        }
+      }
+    }
+    else if (!strcmp (app->argv[app->argpos], "-o")
+             || !strcmp (app->argv[app->argpos], "--output"))
+    {
+      if (app->argpos < app->argc - 1)
+      {
+        if (app->close_output_file)
+        {
+          fclose (app->output_file);
+          app->close_output_file = 0;
+          app->output_file       = stdout;
+          print_err_va_args (app, "multiple output files\n");
+          app->err = 1;
+        }
+        else
+        {
+          app->output_file = fopen (app->argv[++app->argpos], "w");
+          if (app->output_file == NULL)
+          {
+            app->output_file = stdout;
+            print_err_va_args (
+                app, "can not create '%s'\n", app->argv[app->argpos]);
+            app->err = 1;
+          }
+          else
+            app->close_output_file = 1;
+        }
+      }
+    }
+    else if (app->argv[app->argpos][0] == '-')
+    {
+      print_err_va_args (app, "invalid option '%s'\n", app->argv[app->argpos]);
+      app->err = 1;
+    }
+    else if (app->close_input_file)
+    {
+      print_err_va_args (app, "multiple input files\n");
+      app->err = 1;
+    }
+    else if (!(temp_file = fopen (app->argv[app->argpos], "r")))
+    {
+      print_err_va_args (app, "can not read '%s'\n", app->argv[app->argpos]);
+      app->err = 1;
+    }
+    else
+    {
+      app->input_file_name  = app->argv[app->argpos];
+      app->input_file       = temp_file;
+      app->close_input_file = 1;
+    }
+  }
+}
+
 int
 btor_main (int argc, char **argv)
 {
@@ -381,229 +590,68 @@ btor_main (int argc, char **argv)
   double start_time = time_stamp ();
   double delta_time = 0.0;
 #endif
-  int return_val        = 0;
-  int sat_result        = 0;
-  int done              = 0;
-  int err               = 0;
-  int i                 = 0;
-  int close_input_file  = 0;
-  int close_output_file = 0;
-  int close_exp_file    = 0;
-  int close_smt_file    = 0;
-  int dump_exp          = 0;
-  int dump_smt          = 0;
-  int force_smt_input   = 0;
-  int print_solutions   = 0;
-  int refinement_limit  = INT_MAX;
-  int maxk              = MAXK;
-  int curk              = 0;
-  int report_on_bmc     = 1;
-  int bmc_adc           = 0;
-  int adc_false         = 0;
+  int return_val    = 0;
+  int sat_result    = 0;
+  int i             = 0;
+  int curk          = 0;
+  int report_on_bmc = 1;
+  int adc_false     = 0;
   int root_len;
   int constraints_reported, constraints_report_limit, nconstraints;
-  BtorCNFEnc cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-  const char *input_file_name = "<stdin>";
-  const char *parse_error     = NULL;
-  FILE *file                  = NULL;
-  FILE *input_file            = stdin;
-  FILE *exp_file              = stdout;
-  FILE *smt_file              = stdout;
-  Btor *btor                  = NULL;
-  BtorAIGMgr *amgr            = NULL;
-  BtorAIGVecMgr *avmgr        = NULL;
-  BtorSATMgr *smgr            = NULL;
+  const char *parse_error = NULL;
+  Btor *btor              = NULL;
+  BtorAIGMgr *amgr        = NULL;
+  BtorAIGVecMgr *avmgr    = NULL;
+  BtorSATMgr *smgr        = NULL;
   BtorParseResult parse_res;
   BtorExpPtrStack varstack, constraints;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
-  int rewrite_level               = 2;
   size_t maxallocated             = 0;
   BtorExp *root, **p, *inst, **states, *adc;
   BtorPtrHashTable *inst_table;
   BtorPtrHashBucket *buck;
 
-  app.verbosity   = 0;
-  app.force       = 0;
-  app.output_file = stdout;
-  app.argc        = argc;
-  app.argv        = argv;
-  app.i           = &i;
-  app.err         = &err;
-  app.basis       = BTOR_BINARY_BASIS;
-  app.mode        = BTOR_APP_REGULAR_MODE;
+  app.verbosity         = 0;
+  app.force             = 0;
+  app.output_file       = stdout;
+  app.close_output_file = 0;
+  app.input_file        = stdin;
+  app.input_file_name   = "<stdin>";
+  app.close_input_file  = 0;
+  app.argc              = argc;
+  app.argv              = argv;
+  app.argpos            = 0;
+  app.done              = 0;
+  app.err               = 0;
+  app.basis             = BTOR_BINARY_BASIS;
+  app.mode              = BTOR_APP_REGULAR_MODE;
+  app.dump_exp          = 0;
+  app.exp_file          = stdout;
+  app.close_exp_file    = 0;
+  app.dump_smt          = 0;
+  app.smt_file          = stdout;
+  app.close_smt_file    = 0;
+  app.rewrite_level     = 2;
+  app.maxk              = BTOR_MAIN_DEFAULT_MAXK;
+  app.bmc_adc           = 0;
+  app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
+  app.refinement_limit  = INT_MAX;
+  app.force_smt_input   = 0;
+  app.print_solutions   = 0;
 
-  for (i = 1; !done && !err && i < argc; i++)
-  {
-    if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
-    {
-      print_msg_va_args (&app, "%s\n", g_usage);
-      done = 1;
-    }
-    else if (!strcmp (argv[i], "-c") || !strcmp (argv[i], "--copyright"))
-    {
-      print_msg_va_args (&app, "%s", g_copyright);
-      done = 1;
-    }
-    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--force"))
-      app.force = 1;
-    else if (!strcmp (argv[i], "-de") || !strcmp (argv[i], "--dump-exp"))
-      handle_dump_file (
-          &app, &dump_exp, &close_exp_file, "expression", &exp_file);
-    else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--solutions"))
-      print_solutions = 1;
-    else if (!strcmp (argv[i], "-ds") || !strcmp (argv[i], "--dump-smt"))
-      handle_dump_file (&app, &dump_smt, &close_smt_file, "SMT", &smt_file);
-    else if (!strcmp (argv[i], "--smt"))
-      force_smt_input = 1;
-    else if ((strstr (argv[i], "-rwl") == argv[i]
-              && strlen (argv[i]) == strlen ("-rlw") + 1)
-             || (strstr (argv[i], "--rewrite-level") == argv[i]
-                 && strlen (argv[i]) == strlen ("--rewrite-level") + 1))
-    {
-      rewrite_level = (int) argv[i][(int) strlen (argv[i]) - 1] - 48;
-      assert (rewrite_level >= 0);
-      if (rewrite_level > 2)
-      {
-        print_err (&app, "rewrite level has to be in [0,2]\n");
-        err = 1;
-      }
-    }
-    else if (strstr (argv[i], "-maxk=") == argv[i])
-    {
-      maxk = atoi (argv[i] + 6);
-      if (maxk < 0)
-      {
-        print_err (&app, "invalid k\n");
-        err = 1;
-      }
-    }
-    else if (!strcmp (argv[i], "-adc"))
-      bmc_adc = 1;
-    else if (!strcmp (argv[i], "-v") || !strcmp (argv[i], "--verbose"))
-    {
-      if (app.verbosity < 0)
-      {
-        print_err (&app, "'-q' and '-v' can not be combined\n");
-        err = 1;
-      }
-      else if (app.verbosity == 3)
-      {
-        print_err (&app, "can not increase verbosity beyond '3'\n");
-        err = 1;
-      }
-      else
-        app.verbosity++;
-    }
-    else if (!strcmp (argv[i], "-V") || !strcmp (argv[i], "--version"))
-    {
-      print_msg_va_args (&app, "%s\n", BTOR_VERSION);
-      done = 1;
-    }
-    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
-    {
-      if (app.verbosity > 0)
-      {
-        print_err (&app, "can not combine '-q' and '-v'\n");
-        err = 1;
-      }
-      else
-        app.verbosity = -1;
-    }
-    else if (!strcmp (argv[i], "-tcnf") || !strcmp (argv[i], "--tseitin-cnf"))
-      cnf_enc = BTOR_TSEITIN_CNF_ENC;
-    else if (!strcmp (argv[i], "-pgcnf")
-             || !strcmp (argv[i], "--plaisted-greenbaum-cnf"))
-      cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-    else if (!strcmp (argv[i], "-x") || !strcmp (argv[i], "--hex"))
-    {
-      if (app.basis == BTOR_DECIMAL_BASIS)
-      {
-      HEXANDDECIMAL:
-        print_err (&app, "can not force hexadecimal and decimal output");
-        err = 1;
-      }
-      else
-        app.basis = BTOR_HEXADECIMAL_BASIS;
-    }
-    else if (!strcmp (argv[i], "-d") || !strcmp (argv[i], "--decimal"))
-    {
-      if (app.basis == BTOR_HEXADECIMAL_BASIS) goto HEXANDDECIMAL;
-
-      app.basis = BTOR_DECIMAL_BASIS;
-    }
-    else if (!strcmp (argv[i], "-rl")
-             || !strcmp (argv[i], "--refinement-limit"))
-    {
-      if (i < argc - 1)
-      {
-        refinement_limit = atoi (argv[++i]);
-        if (refinement_limit < 0)
-        {
-          print_err_va_args (&app, "refinement limit must not be negative\n");
-          err = 1;
-        }
-      }
-    }
-    else if (!strcmp (argv[i], "-o") || !strcmp (argv[i], "--output"))
-    {
-      if (i < argc - 1)
-      {
-        if (close_output_file)
-        {
-          fclose (app.output_file);
-          close_output_file = 0;
-          app.output_file   = stdout;
-          print_err_va_args (&app, "multiple output files\n");
-          err = 1;
-        }
-        else
-        {
-          app.output_file = fopen (argv[++i], "w");
-          if (app.output_file == NULL)
-          {
-            app.output_file = stdout;
-            print_err_va_args (&app, "can not create '%s'\n", argv[i]);
-            err = 1;
-          }
-          else
-            close_output_file = 1;
-        }
-      }
-    }
-    else if (argv[i][0] == '-')
-    {
-      print_err_va_args (&app, "invalid option '%s'\n", argv[i]);
-      err = 1;
-    }
-    else if (close_input_file)
-    {
-      print_err_va_args (&app, "multiple input files\n");
-      err = 1;
-    }
-    else if (!(file = fopen (argv[i], "r")))
-    {
-      print_err_va_args (&app, "can not read '%s'\n", argv[i]);
-      err = 1;
-    }
-    else
-    {
-      input_file_name  = argv[i];
-      input_file       = file;
-      close_input_file = 1;
-    }
-  }
+  parse_commandline_arguments (&app);
 
   if (app.verbosity > 0)
     print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
 
-  if (!done && !err)
+  if (!app.done && !app.err)
   {
     do
     {
       btor = btor_new_btor ();
-      btor_set_rewrite_level_btor (btor, rewrite_level);
+      btor_set_rewrite_level_btor (btor, app.rewrite_level);
       btor_set_verbosity_btor (btor, app.verbosity);
       mem = btor_get_mem_mgr_btor (btor);
 
@@ -614,28 +662,29 @@ btor_main (int argc, char **argv)
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
 
-      if (force_smt_input
-          || (close_input_file && has_suffix (input_file_name, ".smt")))
+      if (app.force_smt_input
+          || (app.close_input_file && has_suffix (app.input_file_name, ".smt")))
         parser_api = btor_smt_parser_api;
       else
         parser_api = btor_btor_parser_api;
 
       parser = parser_api->init (btor, app.verbosity);
 
-      parse_error =
-          parser_api->parse (parser, input_file, input_file_name, &parse_res);
+      parse_error = parser_api->parse (
+          parser, app.input_file, app.input_file_name, &parse_res);
 
       if (parse_error)
       {
         print_msg_va_args (&app, "%s\n", parse_error);
-        err = 1;
+        app.err = 1;
       }
-      else if (dump_exp)
+      else if (app.dump_exp)
       {
-        btor_dump_exps (btor, exp_file, parse_res.outputs, parse_res.noutputs);
-        done = 1;
+        btor_dump_exps (
+            btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
+        app.done = 1;
       }
-      else if (dump_smt)
+      else if (app.dump_smt)
       {
         if (parse_res.noutputs != 1)
         {
@@ -643,14 +692,14 @@ btor_main (int argc, char **argv)
                              "%s: found %d outputs "
                              "but expected exactly one "
                              "when dumping smt\n",
-                             input_file_name,
+                             app.input_file_name,
                              parse_res.noutputs);
-          err = 1;
+          app.err = 1;
         }
         else
         {
-          done = 1;
-          btor_dump_smt (btor, smt_file, parse_res.outputs[0]);
+          app.done = 1;
+          btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
         }
       }
       else
@@ -664,12 +713,12 @@ btor_main (int argc, char **argv)
 
         if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
-        btor_set_cnf_enc_aig_mgr (amgr, cnf_enc);
+        btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
 
         BTOR_INIT_STACK (varstack);
         BTOR_INIT_STACK (constraints);
 
-        if (print_solutions)
+        if (app.print_solutions)
           for (i = 0; i < parse_res.ninputs; i++)
             if (!btor_is_array_exp (btor, parse_res.inputs[i]))
               BTOR_PUSH_STACK (
@@ -692,12 +741,13 @@ btor_main (int argc, char **argv)
           if (report_on_bmc)
           {
             app.mode = BTOR_APP_BMC_MODE;
-            if (bmc_adc)
+            if (app.bmc_adc)
               print_msg (&app,
                          "Solving BMC problem with All Different Constraint\n");
             else
-              print_msg_va_args (
-                  &app, "Solving BMC problem with maximum bound %d\n", maxk);
+              print_msg_va_args (&app,
+                                 "Solving BMC problem with maximum bound %d\n",
+                                 app.maxk);
             report_on_bmc = 0;
           }
 
@@ -709,14 +759,14 @@ btor_main (int argc, char **argv)
                                         curk,
                                         states);
 
-          if (bmc_adc)
+          if (app.bmc_adc)
           {
             if (curk > 0)
             {
               adc = generate_adc_exp (btor, states, curk + 1);
               btor_add_constraint_exp (btor, adc);
               btor_release_exp (btor, adc);
-              sat_result = btor_sat_btor (btor, refinement_limit);
+              sat_result = btor_sat_btor (btor, app.refinement_limit);
               if (sat_result == BTOR_UNSAT)
               {
                 adc_false = 1;
@@ -775,7 +825,7 @@ btor_main (int argc, char **argv)
 
         if (!adc_false)
         {
-          sat_result = btor_sat_btor (btor, refinement_limit);
+          sat_result = btor_sat_btor (btor, app.refinement_limit);
 
           if (app.verbosity >= 0)
           {
@@ -784,7 +834,7 @@ btor_main (int argc, char **argv)
             else if (sat_result == BTOR_SAT)
             {
               print_msg (&app, "sat\n");
-              if (print_solutions && parse_res.ninputs > 0)
+              if (app.print_solutions && parse_res.ninputs > 0)
                 print_variable_assignments (
                     &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
             }
@@ -814,20 +864,21 @@ btor_main (int argc, char **argv)
       if (app.mode == BTOR_APP_BMC_MODE)
       {
         curk++;
-        rewind (input_file);
+        rewind (app.input_file);
       }
-    } while (app.mode == BTOR_APP_BMC_MODE
-             && ((bmc_adc && !adc_false)
-                 || (!bmc_adc && curk <= maxk && sat_result == BTOR_UNSAT)));
+    } while (
+        app.mode == BTOR_APP_BMC_MODE
+        && ((app.bmc_adc && !adc_false)
+            || (!app.bmc_adc && curk <= app.maxk && sat_result == BTOR_UNSAT)));
   }
 
-  if (close_input_file) fclose (input_file);
-  if (close_output_file) fclose (app.output_file);
-  if (close_exp_file) fclose (exp_file);
-  if (close_smt_file) fclose (smt_file);
-  if (err)
+  if (app.close_input_file) fclose (app.input_file);
+  if (app.close_output_file) fclose (app.output_file);
+  if (app.close_exp_file) fclose (app.exp_file);
+  if (app.close_smt_file) fclose (app.smt_file);
+  if (app.err)
     return_val = BTOR_ERR_EXIT;
-  else if (done)
+  else if (app.done)
     return_val = BTOR_SUCC_EXIT;
   else if (sat_result == BTOR_UNSAT)
     return_val = BTOR_UNSAT_EXIT;
@@ -839,7 +890,7 @@ btor_main (int argc, char **argv)
     return_val = BTOR_UNKNOWN_EXIT;
   }
 #ifdef BTOR_HAVE_GETRUSAGE
-  if (!err && !done && app.verbosity > 0)
+  if (!app.err && !app.done && app.verbosity > 0)
   {
     delta_time = time_stamp () - start_time;
     print_verbose_msg_va_args ("%.1f seconds\n", delta_time);
