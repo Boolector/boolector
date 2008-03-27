@@ -623,6 +623,40 @@ test_write_exp (void)
   fclose (fout);
 }
 
+static void
+test_inc_exp (void)
+{
+  FILE *fout    = fopen ("log/inc_exp.log", "w");
+  Btor *btor    = btor_new_btor ();
+  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorExp *exp2 = btor_inc_exp (btor, exp1);
+  BtorExp *exp3 = btor_inc_exp (btor, exp1);
+  assert (exp2 == exp3);
+  btor_dump_exp (btor, fout, exp3);
+  btor_release_exp (btor, exp1);
+  btor_release_exp (btor, exp2);
+  btor_release_exp (btor, exp3);
+  btor_delete_btor (btor);
+  fclose (fout);
+}
+
+static void
+test_dec_exp (void)
+{
+  FILE *fout    = fopen ("log/dec_exp.log", "w");
+  Btor *btor    = btor_new_btor ();
+  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorExp *exp2 = btor_dec_exp (btor, exp1);
+  BtorExp *exp3 = btor_dec_exp (btor, exp1);
+  assert (exp2 == exp3);
+  btor_dump_exp (btor, fout, exp3);
+  btor_release_exp (btor, exp1);
+  btor_release_exp (btor, exp2);
+  btor_release_exp (btor, exp3);
+  btor_delete_btor (btor);
+  fclose (fout);
+}
+
 void
 run_exp_tests (int argc, char **argv)
 {
@@ -677,6 +711,8 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (read_exp);
   BTOR_RUN_TEST_CHECK_LOG (cond_exp);
   BTOR_RUN_TEST_CHECK_LOG (write_exp);
+  BTOR_RUN_TEST_CHECK_LOG (inc_exp);
+  BTOR_RUN_TEST_CHECK_LOG (dec_exp);
 }
 
 void

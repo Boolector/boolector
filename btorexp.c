@@ -5133,6 +5133,34 @@ btor_apply_next (Btor *btor,
   return inst_table;
 }
 
+BtorExp *
+btor_inc_exp (Btor *btor, BtorExp *exp)
+{
+  BtorExp *one, *result;
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_inc_exp'");
+  BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_inc_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                  "'e0' must not be an array in 'btor_inc_exp'");
+  one    = one_exp (btor, BTOR_REAL_ADDR_EXP (exp)->len);
+  result = add_exp (btor, exp, one);
+  release_exp (btor, one);
+  return result;
+}
+
+BtorExp *
+btor_dec_exp (Btor *btor, BtorExp *exp)
+{
+  BtorExp *one, *result;
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dec_exp'");
+  BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_dec_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                  "'e0' must not be an array in 'btor_dec_exp'");
+  one    = one_exp (btor, BTOR_REAL_ADDR_EXP (exp)->len);
+  result = sub_exp (btor, exp, one);
+  release_exp (btor, one);
+  return result;
+}
+
 int
 btor_get_exp_len (Btor *btor, BtorExp *exp)
 {

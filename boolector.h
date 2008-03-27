@@ -434,6 +434,12 @@ BtorPtrHashTable *btor_apply_next (Btor *btor,
                                    int times,
                                    BtorExp **states);
 
+/* Increments bit-vector expression by one */
+BtorExp *btor_inc_exp (Btor *btor, BtorExp *exp);
+
+/* Decrements bit-vector expression by one */
+BtorExp *btor_dec_exp (Btor *btor, BtorExp *exp);
+
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorExp *exp);
 
