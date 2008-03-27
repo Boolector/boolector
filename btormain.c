@@ -781,7 +781,7 @@ btor_main (int argc, char **argv)
           BTOR_DELETEN (mem, states, curk + 1);
 
           /* instantiate registers in 'bad' */
-          for (p = constraints.start; p < constraints.top; p++)
+          for (p = constraints.start; p != constraints.top; p++)
           {
             inst = btor_deep_copy_and_instantiate_regs (btor, inst_table, *p);
             btor_release_exp (btor, *p);
