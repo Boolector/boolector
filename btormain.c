@@ -609,8 +609,8 @@ btor_main (int argc, char **argv)
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *inst, **states, *adc;
-  BtorPtrHashTable *inst_table;
+  BtorExp *root, **p, *inst, **states_k, *adc;
+  BtorPtrHashTable *inst_table_k;
   BtorPtrHashBucket *buck;
 
   app.verbosity         = 0;
@@ -751,19 +751,19 @@ btor_main (int argc, char **argv)
             report_on_bmc = 0;
           }
 
-          BTOR_NEWN (mem, states, curk + 1);
-          inst_table = btor_apply_next (btor,
-                                        parse_res.regs,
-                                        parse_res.nexts,
-                                        parse_res.nregs,
-                                        curk,
-                                        states);
+          BTOR_NEWN (mem, states_k, curk + 1);
+          inst_table_k = btor_apply_next (btor,
+                                          parse_res.regs,
+                                          parse_res.nexts,
+                                          parse_res.nregs,
+                                          curk,
+                                          states_k);
 
           if (app.bmc_adc)
           {
             if (curk > 0)
             {
-              adc = generate_adc_exp (btor, states, curk + 1);
+              adc = generate_adc_exp (btor, states_k, curk + 1);
               btor_add_constraint_exp (btor, adc);
               btor_release_exp (btor, adc);
               sat_result = btor_sat_btor (btor, app.refinement_limit);
@@ -777,21 +777,21 @@ btor_main (int argc, char **argv)
 
           if (!adc_false) print_msg_va_args (&app, "k = %d: ", curk);
 
-          for (i = 0; i < curk + 1; i++) btor_release_exp (btor, states[i]);
-          BTOR_DELETEN (mem, states, curk + 1);
+          for (i = 0; i < curk + 1; i++) btor_release_exp (btor, states_k[i]);
+          BTOR_DELETEN (mem, states_k, curk + 1);
 
           /* instantiate registers in 'bad' */
           for (p = constraints.start; p != constraints.top; p++)
           {
-            inst = btor_deep_copy_and_instantiate_regs (btor, inst_table, *p);
+            inst = btor_deep_copy_and_instantiate_regs (btor, inst_table_k, *p);
             btor_release_exp (btor, *p);
             *p = inst;
           }
 
           /* clean up */
-          for (buck = inst_table->first; buck != NULL; buck = buck->next)
+          for (buck = inst_table_k->first; buck != NULL; buck = buck->next)
             btor_release_exp (btor, (BtorExp *) buck->data.asPtr);
-          btor_delete_ptr_hash_table (inst_table);
+          btor_delete_ptr_hash_table (inst_table_k);
         }
         parser_api->reset (parser);
         parser_api = 0;
