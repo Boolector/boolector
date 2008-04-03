@@ -369,29 +369,6 @@ print_variable_assignments (BtorMainApp *app,
   for (i = 0; i < nvars; i++) print_assignment (app, btor, vars[i]);
 }
 
-static BtorExp *
-generate_adc_exp (Btor *btor, BtorExp **array, int size)
-{
-  int i, j;
-  BtorExp *ne, *temp, *result;
-  assert (btor != NULL);
-  assert (array != NULL);
-  assert (size > 0);
-  result = btor_true_exp (btor);
-  for (i = 0; i < size - 1; i++)
-  {
-    for (j = i + 1; j < size; j++)
-    {
-      ne   = btor_ne_exp (btor, array[i], array[j]);
-      temp = btor_and_exp (btor, result, ne);
-      btor_release_exp (btor, result);
-      result = temp;
-      btor_release_exp (btor, ne);
-    }
-  }
-  return result;
-}
-
 static void
 parse_commandline_arguments (BtorMainApp *app)
 {
@@ -661,13 +638,14 @@ btor_main (int argc, char **argv)
   BtorAIGVecMgr *avmgr = NULL;
   BtorSATMgr *smgr     = NULL;
   BtorParseResult parse_res;
-  BtorExpPtrStack varstack, constraints;
+  BtorExpPtrStack varstack, constraints, bv_states;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *adc, *conjuncted_constraints, *bad, *not_and;
-  BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *and;
+  BtorExp *root, **p, *adc, *conjuncted_constraints, *bad, *not_and, *bv_state;
+  BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *and, *temp;
+  BtorExp *ne, *diff;
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
 
@@ -814,6 +792,7 @@ btor_main (int argc, char **argv)
             btor_new_ptr_hash_table (mem,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
+        BTOR_INIT_STACK (bv_states);
         BTOR_NEWN (mem, old_insts, parse_res.nregs);
         for (i = 0; i < parse_res.nregs; i++)
           old_insts[i] = btor_copy_exp (btor, parse_res.regs[i]);
@@ -832,9 +811,11 @@ btor_main (int argc, char **argv)
                                        (BtorCmpPtr) btor_compare_exp_by_id);
 
           /* we generate new variable instantiations */
+          bv_state = NULL;
           for (i = 0; i < parse_res.nregs; i++)
           {
             cur = parse_res.regs[i];
+            assert (BTOR_IS_REGULAR_EXP (cur));
             assert (cur->symbol != NULL);
             var_name_len =
                 strlen (cur->symbol) + btor_num_digits_util (curk) + 2;
@@ -845,7 +826,39 @@ btor_main (int argc, char **argv)
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;
+            /* state vector for all different constraint */
+            if (BTOR_IS_VAR_EXP (cur))
+            {
+              if (bv_state == NULL)
+                bv_state = btor_copy_exp (btor, cur);
+              else
+              {
+                temp = btor_concat_exp (btor, bv_state, cur);
+                btor_release_exp (btor, bv_state);
+                bv_state = temp;
+              }
+            }
+            else
+            {
+              /* TODO implement */
+              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+              assert (0);
+            }
           }
+
+          /* incremental all different constraint */
+          diff = btor_true_exp (btor);
+          for (p = bv_states.start; p != bv_states.top; p++)
+          {
+            ne   = btor_ne_exp (btor, *p, bv_state);
+            temp = btor_and_exp (btor, diff, ne);
+            btor_release_exp (btor, diff);
+            diff = temp;
+            btor_release_exp (btor, ne);
+          }
+          BTOR_PUSH_STACK (mem, bv_states, bv_state);
+          btor_add_constraint_exp (btor, diff);
+          btor_release_exp (btor, diff);
 
           /* we set new instantiations equal to old next */
           for (i = 0; i < parse_res.nregs; i++)
@@ -924,6 +937,10 @@ btor_main (int argc, char **argv)
         BTOR_DELETEN (mem, old_insts, parse_res.nregs);
 
         BTOR_DELETEN (mem, new_insts, parse_res.nregs);
+
+        for (p = bv_states.start; p < bv_states.top; p++)
+          btor_release_exp (btor, *p);
+        BTOR_RELEASE_STACK (mem, bv_states);
       }
       else
       {
