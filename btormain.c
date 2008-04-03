@@ -582,6 +582,61 @@ parse_commandline_arguments (BtorMainApp *app)
   }
 }
 
+static void
+print_sat_result (BtorMainApp *app, int sat_result)
+{
+  assert (app != NULL);
+  if (sat_result == BTOR_UNSAT)
+    print_msg (app, "unsat\n");
+  else if (sat_result == BTOR_SAT)
+    print_msg (app, "sat\n");
+  else
+  {
+    assert (sat_result == BTOR_UNKNOWN);
+    print_msg (app, "unknown\n");
+  }
+}
+
+static BtorExp *
+conjunct_constraints (Btor *btor, BtorExpPtrStack *constraints)
+{
+  int i;
+  BtorExp *temp, *result;
+  assert (btor != NULL);
+  assert (constraints != NULL);
+  assert (BTOR_COUNT_STACK (*constraints) > 0);
+  result = btor_true_exp (btor);
+  for (i = 0; i < BTOR_COUNT_STACK (*constraints); i++)
+  {
+    temp = btor_and_exp (btor, result, constraints->start[i]);
+    btor_release_exp (btor, result);
+    result = temp;
+  }
+  return result;
+}
+
+static BtorExp *
+generate_regs_eq_zero (Btor *btor, BtorExp **regs, int size)
+{
+  int i;
+  BtorExp *result, *temp, *zero, *eq;
+  assert (btor != NULL);
+  assert (regs != NULL);
+  assert (size > 0);
+  result = btor_true_exp (btor);
+  for (i = 0; i < size; i++)
+  {
+    zero = btor_zeros_exp (btor, btor_get_exp_len (btor, regs[i]));
+    eq   = btor_eq_exp (btor, regs[i], zero);
+    temp = btor_and_exp (btor, result, eq);
+    btor_release_exp (btor, result);
+    result = temp;
+    btor_release_exp (btor, zero);
+    btor_release_exp (btor, eq);
+  }
+  return result;
+}
+
 int
 btor_main (int argc, char **argv)
 {
@@ -596,22 +651,25 @@ btor_main (int argc, char **argv)
   int curk          = 0;
   int report_on_bmc = 1;
   int adc_false     = 0;
-  int root_len;
+  int bmc_done      = 0;
+  int root_len, var_name_len;
   int constraints_reported, constraints_report_limit, nconstraints;
   const char *parse_error = NULL;
-  Btor *btor              = NULL;
-  BtorAIGMgr *amgr        = NULL;
-  BtorAIGVecMgr *avmgr    = NULL;
-  BtorSATMgr *smgr        = NULL;
+  char *var_name;
+  Btor *btor           = NULL;
+  BtorAIGMgr *amgr     = NULL;
+  BtorAIGVecMgr *avmgr = NULL;
+  BtorSATMgr *smgr     = NULL;
   BtorParseResult parse_res;
   BtorExpPtrStack varstack, constraints;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *inst, **states_k, *adc;
-  BtorPtrHashTable *inst_table_k;
-  BtorPtrHashBucket *buck;
+  BtorExp *root, **p, *adc, *conjuncted_constraints, *bad, *not_and;
+  BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *and;
+  BtorPtrHashTable *reg_inst, *input_inst;
+  BtorPtrHashBucket *bucket;
 
   app.verbosity         = 0;
   app.force             = 0;
@@ -648,151 +706,228 @@ btor_main (int argc, char **argv)
 
   if (!app.done && !app.err)
   {
-    do
+    btor = btor_new_btor ();
+    btor_set_rewrite_level_btor (btor, app.rewrite_level);
+    btor_set_verbosity_btor (btor, app.verbosity);
+    mem = btor_get_mem_mgr_btor (btor);
+
+    avmgr = btor_get_aigvec_mgr_btor (btor);
+    amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+    smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+    btor_init_sat (smgr);
+    btor_set_output_sat (smgr, stdout);
+
+    if (app.force_smt_input
+        || (app.close_input_file && has_suffix (app.input_file_name, ".smt")))
+      parser_api = btor_smt_parser_api;
+    else
+      parser_api = btor_btor_parser_api;
+
+    parser = parser_api->init (btor, app.verbosity);
+
+    parse_error = parser_api->parse (
+        parser, app.input_file, app.input_file_name, &parse_res);
+
+    if (parse_error)
     {
-      btor = btor_new_btor ();
-      btor_set_rewrite_level_btor (btor, app.rewrite_level);
-      btor_set_verbosity_btor (btor, app.verbosity);
-      mem = btor_get_mem_mgr_btor (btor);
-
-      avmgr = btor_get_aigvec_mgr_btor (btor);
-      amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-      smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-      btor_init_sat (smgr);
-      btor_set_output_sat (smgr, stdout);
-
-      if (app.force_smt_input
-          || (app.close_input_file && has_suffix (app.input_file_name, ".smt")))
-        parser_api = btor_smt_parser_api;
-      else
-        parser_api = btor_btor_parser_api;
-
-      parser = parser_api->init (btor, app.verbosity);
-
-      parse_error = parser_api->parse (
-          parser, app.input_file, app.input_file_name, &parse_res);
-
-      if (parse_error)
+      print_msg_va_args (&app, "%s\n", parse_error);
+      app.err = 1;
+    }
+    else if (app.dump_exp)
+    {
+      btor_dump_exps (
+          btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
+      app.done = 1;
+    }
+    else if (app.dump_smt)
+    {
+      if (parse_res.noutputs != 1)
       {
-        print_msg_va_args (&app, "%s\n", parse_error);
+        print_msg_va_args (&app,
+                           "%s: found %d outputs "
+                           "but expected exactly one "
+                           "when dumping smt\n",
+                           app.input_file_name,
+                           parse_res.noutputs);
         app.err = 1;
       }
-      else if (app.dump_exp)
-      {
-        btor_dump_exps (
-            btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
-        app.done = 1;
-      }
-      else if (app.dump_smt)
-      {
-        if (parse_res.noutputs != 1)
-        {
-          print_msg_va_args (&app,
-                             "%s: found %d outputs "
-                             "but expected exactly one "
-                             "when dumping smt\n",
-                             app.input_file_name,
-                             parse_res.noutputs);
-          app.err = 1;
-        }
-        else
-        {
-          app.done = 1;
-          btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
-        }
-      }
       else
       {
-        if (app.verbosity > 0)
-          print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
-                                     parse_res.ninputs,
-                                     parse_res.noutputs);
+        app.done = 1;
+        btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
+      }
+    }
+    else
+    {
+      if (app.verbosity > 0)
+        print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
+                                   parse_res.ninputs,
+                                   parse_res.noutputs);
 
-        if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
+      if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
 
-        if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
+      if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
 
-        btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
+      btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
 
-        BTOR_INIT_STACK (varstack);
-        BTOR_INIT_STACK (constraints);
+      BTOR_INIT_STACK (varstack);
+      BTOR_INIT_STACK (constraints);
 
-        if (app.print_solutions)
-          for (i = 0; i < parse_res.ninputs; i++)
-            if (!btor_is_array_exp (btor, parse_res.inputs[i]))
-              BTOR_PUSH_STACK (
-                  mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
+      if (app.print_solutions)
+        for (i = 0; i < parse_res.ninputs; i++)
+          if (!btor_is_array_exp (btor, parse_res.inputs[i]))
+            BTOR_PUSH_STACK (
+                mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
 
-        for (i = 0; i < parse_res.noutputs; i++)
+      for (i = 0; i < parse_res.noutputs; i++)
+      {
+        root     = parse_res.outputs[i];
+        root_len = btor_get_exp_len (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = btor_redor_exp (btor, root);
+        else
+          root = btor_copy_exp (btor, root);
+        BTOR_PUSH_STACK (mem, constraints, root);
+      }
+
+      /* BMC ? */
+      if (parse_res.nregs > 0)
+      {
+        if (report_on_bmc)
         {
-          root     = parse_res.outputs[i];
-          root_len = btor_get_exp_len (btor, root);
-          assert (root_len >= 1);
-          if (root_len > 1)
-            root = btor_redor_exp (btor, root);
+          app.mode = BTOR_APP_BMC_MODE;
+          if (app.bmc_adc)
+            print_msg (&app,
+                       "Solving BMC problem with All Different Constraint\n");
           else
-            root = btor_copy_exp (btor, root);
-          BTOR_PUSH_STACK (mem, constraints, root);
+            print_msg_va_args (
+                &app, "Solving BMC problem with maximum bound %d\n", app.maxk);
+          report_on_bmc = 0;
         }
 
-        if (parse_res.nregs > 0)
+        conjuncted_constraints = conjunct_constraints (btor, &constraints);
+        regs_zero =
+            generate_regs_eq_zero (btor, parse_res.regs, parse_res.nregs);
+        reg_inst =
+            btor_new_ptr_hash_table (mem,
+                                     (BtorHashPtr) btor_hash_exp_by_id,
+                                     (BtorCmpPtr) btor_compare_exp_by_id);
+        BTOR_NEWN (mem, old_insts, parse_res.nregs);
+        for (i = 0; i < parse_res.nregs; i++)
+          old_insts[i] = btor_copy_exp (btor, parse_res.regs[i]);
+
+        BTOR_CNEWN (mem, new_insts, parse_res.nregs);
+
+        for (i = 0; i < parse_res.nregs; i++)
+          btor_insert_in_ptr_hash_table (reg_inst, parse_res.regs[i])
+              ->data.asPtr = NULL;
+        for (curk = 0; curk <= app.maxk && !bmc_done; curk++)
         {
-          if (report_on_bmc)
+          print_msg_va_args (&app, "k = %d:\n", curk);
+          input_inst =
+              btor_new_ptr_hash_table (mem,
+                                       (BtorHashPtr) btor_hash_exp_by_id,
+                                       (BtorCmpPtr) btor_compare_exp_by_id);
+
+          /* we generate new variable instantiations */
+          for (i = 0; i < parse_res.nregs; i++)
           {
-            app.mode = BTOR_APP_BMC_MODE;
-            if (app.bmc_adc)
-              print_msg (&app,
-                         "Solving BMC problem with All Different Constraint\n");
-            else
-              print_msg_va_args (&app,
-                                 "Solving BMC problem with maximum bound %d\n",
-                                 app.maxk);
-            report_on_bmc = 0;
+            cur = parse_res.regs[i];
+            assert (cur->symbol != NULL);
+            var_name_len =
+                strlen (cur->symbol) + btor_num_digits_util (curk) + 2;
+            BTOR_NEWN (mem, var_name, var_name_len);
+            sprintf (var_name, "%s_%d", cur->symbol, curk);
+            var = btor_var_exp (btor, cur->len, var_name);
+            BTOR_DELETEN (mem, var_name, var_name_len);
+            bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
+            assert (bucket != NULL);
+            bucket->data.asPtr = var;
           }
 
-          BTOR_NEWN (mem, states_k, curk + 1);
-          inst_table_k = btor_apply_next (btor,
-                                          parse_res.regs,
-                                          parse_res.nexts,
-                                          parse_res.nregs,
-                                          curk,
-                                          states_k);
-
-          if (app.bmc_adc)
+          /* we set new instantiations equal to old next */
+          for (i = 0; i < parse_res.nregs; i++)
           {
-            if (curk > 0)
+            new_insts[i] = btor_next_exp_bmc (
+                btor, reg_inst, parse_res.nexts[i], curk, input_inst);
+            bucket = btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
+            assert (bucket != NULL);
+            assert (bucket->data.asPtr != NULL);
+            eq = btor_eq_exp (
+                btor, old_insts[i], (BtorExp *) bucket->data.asPtr);
+            btor_add_constraint_exp (btor, eq);
+            btor_release_exp (btor, eq);
+          }
+
+          bad = btor_next_exp_bmc (
+              btor, reg_inst, conjuncted_constraints, curk, input_inst);
+          print_msg (&app, "  Inductive case: ");
+          btor_add_assumption_exp (btor, bad);
+          sat_result = btor_sat_btor (btor, app.refinement_limit);
+          print_sat_result (&app, sat_result);
+          if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
+            bmc_done = 1;
+          else
+          {
+            assert (sat_result == BTOR_SAT);
+            print_msg (&app, "  Base case: ");
+            btor_add_assumption_exp (btor, regs_zero);
+            btor_add_assumption_exp (btor, bad);
+            sat_result = btor_sat_btor (btor, app.refinement_limit);
+            print_sat_result (&app, sat_result);
+            if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
+              bmc_done = 1;
+            else
             {
-              adc = generate_adc_exp (btor, states_k, curk + 1);
-              btor_add_constraint_exp (btor, adc);
-              btor_release_exp (btor, adc);
-              sat_result = btor_sat_btor (btor, app.refinement_limit);
-              if (sat_result == BTOR_UNSAT)
-              {
-                adc_false = 1;
-                print_msg (&app, "No more states reachable\n");
-              }
+              assert (sat_result == BTOR_UNSAT);
+              /* we add NOT (Init /\ Bad_k) */
+              and     = btor_and_exp (btor, regs_zero, bad);
+              not_and = btor_not_exp (btor, and);
+              btor_add_constraint_exp (btor, not_and);
+              btor_release_exp (btor, not_and);
+              btor_release_exp (btor, and);
             }
           }
 
-          if (!adc_false) print_msg_va_args (&app, "k = %d: ", curk);
-
-          for (i = 0; i < curk + 1; i++) btor_release_exp (btor, states_k[i]);
-          BTOR_DELETEN (mem, states_k, curk + 1);
-
-          /* instantiate registers in 'bad' */
-          for (p = constraints.start; p != constraints.top; p++)
+          for (i = 0; i < parse_res.nregs; i++)
           {
-            inst = btor_deep_copy_and_instantiate_regs (btor, inst_table_k, *p);
-            btor_release_exp (btor, *p);
-            *p = inst;
+            btor_release_exp (btor, old_insts[i]);
+            old_insts[i] = new_insts[i];
+            new_insts[i] = NULL;
+            bucket = btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
+            btor_release_exp (btor, (BtorExp *) bucket->data.asPtr);
+            bucket->data.asPtr = NULL;
           }
 
-          /* clean up */
-          for (buck = inst_table_k->first; buck != NULL; buck = buck->next)
-            btor_release_exp (btor, (BtorExp *) buck->data.asPtr);
-          btor_delete_ptr_hash_table (inst_table_k);
+          /* cleanup */
+          for (bucket = input_inst->first; bucket != NULL;
+               bucket = bucket->next)
+            btor_release_exp (btor, (BtorExp *) bucket->data.asPtr);
+          btor_delete_ptr_hash_table (input_inst);
+
+          btor_release_exp (btor, bad);
         }
+
+        /* cleanup */
+        btor_delete_ptr_hash_table (reg_inst);
+
+        btor_release_exp (btor, conjuncted_constraints);
+        btor_release_exp (btor, regs_zero);
+        for (p = constraints.start; p < constraints.top; p++)
+          btor_release_exp (btor, *p);
+        BTOR_RELEASE_STACK (mem, constraints);
+
+        for (i = 0; i < parse_res.nregs; i++)
+          btor_release_exp (btor, old_insts[i]);
+        BTOR_DELETEN (mem, old_insts, parse_res.nregs);
+
+        BTOR_DELETEN (mem, new_insts, parse_res.nregs);
+      }
+      else
+      {
+        /* Regular Mode */
         parser_api->reset (parser);
         parser_api = 0;
 
@@ -823,53 +958,30 @@ btor_main (int argc, char **argv)
         if (app.verbosity > 1 && constraints_reported < nconstraints)
           print_verbose_msg_va_args ("added %d outputs (100%)\n", nconstraints);
 
-        if (!adc_false)
-        {
-          sat_result = btor_sat_btor (btor, app.refinement_limit);
+        sat_result = btor_sat_btor (btor, app.refinement_limit);
+        print_sat_result (&app, sat_result);
 
-          if (app.verbosity >= 0)
-          {
-            if (sat_result == BTOR_UNSAT)
-              print_msg (&app, "unsat\n");
-            else if (sat_result == BTOR_SAT)
-            {
-              print_msg (&app, "sat\n");
-              if (app.print_solutions && parse_res.ninputs > 0)
-                print_variable_assignments (
-                    &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
-            }
-            else
-            {
-              assert (sat_result == BTOR_UNKNOWN);
-              print_msg (&app, "unknown\n");
-            }
-          }
-        }
-
-        for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
-          btor_release_exp (btor, varstack.start[i]);
-        BTOR_RELEASE_STACK (mem, varstack);
+        if (sat_result == BTOR_SAT && app.print_solutions
+            && parse_res.ninputs > 0)
+          print_variable_assignments (
+              &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
 
         if (app.verbosity > 1) btor_print_stats_sat (smgr);
-
-        btor_reset_sat (smgr);
 
         if (app.verbosity > 0) btor_print_stats_btor (btor);
       }
 
-      if (parser_api) parser_api->reset (parser);
+      for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
+        btor_release_exp (btor, varstack.start[i]);
+      BTOR_RELEASE_STACK (mem, varstack);
 
-      maxallocated = mem->maxallocated;
-      btor_delete_btor (btor);
-      if (app.mode == BTOR_APP_BMC_MODE)
-      {
-        curk++;
-        rewind (app.input_file);
-      }
-    } while (
-        app.mode == BTOR_APP_BMC_MODE
-        && ((app.bmc_adc && !adc_false)
-            || (!app.bmc_adc && curk <= app.maxk && sat_result == BTOR_UNSAT)));
+      btor_reset_sat (smgr);
+    }
+
+    if (parser_api) parser_api->reset (parser);
+
+    maxallocated = mem->maxallocated;
+    btor_delete_btor (btor);
   }
 
   if (app.close_input_file) fclose (app.input_file);
