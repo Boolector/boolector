@@ -826,14 +826,15 @@ btor_main (int argc, char **argv)
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;
+
             /* state vector for all different constraint */
             if (BTOR_IS_VAR_EXP (cur))
             {
               if (bv_state == NULL)
-                bv_state = btor_copy_exp (btor, cur);
+                bv_state = btor_copy_exp (btor, var);
               else
               {
-                temp = btor_concat_exp (btor, bv_state, cur);
+                temp = btor_concat_exp (btor, bv_state, var);
                 btor_release_exp (btor, bv_state);
                 bv_state = temp;
               }
