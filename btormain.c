@@ -650,6 +650,7 @@ btor_main (int argc, char **argv)
   BtorExp *ne, *diff;
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
+  BtorExpPtrStack *array_states;
 
   app.verbosity         = 0;
   app.force             = 0;
@@ -806,6 +807,13 @@ btor_main (int argc, char **argv)
         assert (BTOR_COUNT_STACK (bv_regs) + BTOR_COUNT_STACK (array_regs)
                 == parse_res.nregs);
 
+        if (BTOR_COUNT_STACK (array_regs) > 0)
+        {
+          BTOR_NEWN (mem, array_states, BTOR_COUNT_STACK (array_regs));
+          for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
+            BTOR_INIT_STACK (array_states[i]);
+        }
+
         conjuncted_constraints = conjunct_constraints (btor, &constraints);
         regs_zero              = generate_regs_eq_zero (btor, &bv_regs);
         reg_inst =
@@ -864,7 +872,10 @@ btor_main (int argc, char **argv)
             cur = array_regs.start[i];
             assert (BTOR_IS_REGULAR_EXP (cur));
             assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-            assert (0);
+            var    = btor_array_exp (btor, cur->len, cur->index_len);
+            bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
+            assert (bucket != NULL);
+            bucket->data.asPtr = var;
           }
 
           /* incremental all different constraint */
@@ -881,7 +892,7 @@ btor_main (int argc, char **argv)
           btor_add_constraint_exp (btor, diff);
           btor_release_exp (btor, diff);
 
-          /* we set new instantiations equal to old next */
+          /* we set instantiations equal */
           for (i = 0; i < parse_res.nregs; i++)
           {
             new_insts[i] = btor_next_exp_bmc (
@@ -897,6 +908,7 @@ btor_main (int argc, char **argv)
 
           bad = btor_next_exp_bmc (
               btor, reg_inst, conjuncted_constraints, curk, input_inst);
+
           print_msg (&app, "  Inductive case: ");
           btor_add_assumption_exp (btor, bad);
           sat_result = btor_sat_btor (btor, app.refinement_limit);
@@ -962,6 +974,13 @@ btor_main (int argc, char **argv)
         for (p = bv_states.start; p < bv_states.top; p++)
           btor_release_exp (btor, *p);
         BTOR_RELEASE_STACK (mem, bv_states);
+
+        if (BTOR_COUNT_STACK (array_regs) > 0)
+        {
+          for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
+            BTOR_RELEASE_STACK (mem, array_states[i]);
+          BTOR_DELETEN (mem, array_states, BTOR_COUNT_STACK (array_regs));
+        }
 
         BTOR_RELEASE_STACK (mem, bv_regs);
         BTOR_RELEASE_STACK (mem, array_regs);
