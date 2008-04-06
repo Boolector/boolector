@@ -593,18 +593,20 @@ conjunct_constraints (Btor *btor, BtorExpPtrStack *constraints)
 }
 
 static BtorExp *
-generate_regs_eq_zero (Btor *btor, BtorExp **regs, int size)
+generate_regs_eq_zero (Btor *btor, const BtorExpPtrStack *bv_regs)
 {
   int i;
-  BtorExp *result, *temp, *zero, *eq;
+  BtorExp *result, *temp, *zero, *eq, *cur;
   assert (btor != NULL);
-  assert (regs != NULL);
-  assert (size > 0);
+  assert (bv_regs != NULL);
   result = btor_true_exp (btor);
-  for (i = 0; i < size; i++)
+  for (i = 0; i < BTOR_COUNT_STACK (*bv_regs); i++)
   {
-    zero = btor_zeros_exp (btor, btor_get_exp_len (btor, regs[i]));
-    eq   = btor_eq_exp (btor, regs[i], zero);
+    cur = bv_regs->start[i];
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_VAR_EXP (cur));
+    zero = btor_zeros_exp (btor, btor_get_exp_len (btor, cur));
+    eq   = btor_eq_exp (btor, cur, zero);
     temp = btor_and_exp (btor, result, eq);
     btor_release_exp (btor, result);
     result = temp;
@@ -638,7 +640,7 @@ btor_main (int argc, char **argv)
   BtorAIGVecMgr *avmgr = NULL;
   BtorSATMgr *smgr     = NULL;
   BtorParseResult parse_res;
-  BtorExpPtrStack varstack, constraints, bv_states;
+  BtorExpPtrStack varstack, constraints, bv_states, bv_regs, array_regs;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
@@ -785,9 +787,27 @@ btor_main (int argc, char **argv)
           report_on_bmc = 0;
         }
 
+        BTOR_INIT_STACK (bv_regs);
+        BTOR_INIT_STACK (array_regs);
+
+        for (i = 0; i < parse_res.nregs; i++)
+        {
+          cur = parse_res.regs[i];
+          assert (BTOR_IS_REGULAR_EXP (cur));
+          if (BTOR_IS_VAR_EXP (cur))
+            BTOR_PUSH_STACK (mem, bv_regs, cur);
+          else
+          {
+            assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+            BTOR_PUSH_STACK (mem, array_regs, cur);
+          }
+        }
+
+        assert (BTOR_COUNT_STACK (bv_regs) + BTOR_COUNT_STACK (array_regs)
+                == parse_res.nregs);
+
         conjuncted_constraints = conjunct_constraints (btor, &constraints);
-        regs_zero =
-            generate_regs_eq_zero (btor, parse_res.regs, parse_res.nregs);
+        regs_zero              = generate_regs_eq_zero (btor, &bv_regs);
         reg_inst =
             btor_new_ptr_hash_table (mem,
                                      (BtorHashPtr) btor_hash_exp_by_id,
@@ -810,12 +830,13 @@ btor_main (int argc, char **argv)
                                        (BtorHashPtr) btor_hash_exp_by_id,
                                        (BtorCmpPtr) btor_compare_exp_by_id);
 
-          /* we generate new variable instantiations */
+          /* we generate new variable instantiations for bv-vars */
           bv_state = NULL;
-          for (i = 0; i < parse_res.nregs; i++)
+          for (i = 0; i < BTOR_COUNT_STACK (bv_regs); i++)
           {
-            cur = parse_res.regs[i];
+            cur = bv_regs.start[i];
             assert (BTOR_IS_REGULAR_EXP (cur));
+            assert (BTOR_IS_VAR_EXP (cur));
             assert (cur->symbol != NULL);
             var_name_len =
                 strlen (cur->symbol) + btor_num_digits_util (curk) + 2;
@@ -826,25 +847,24 @@ btor_main (int argc, char **argv)
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;
-
-            /* state vector for all different constraint */
-            if (BTOR_IS_VAR_EXP (cur))
-            {
-              if (bv_state == NULL)
-                bv_state = btor_copy_exp (btor, var);
-              else
-              {
-                temp = btor_concat_exp (btor, bv_state, var);
-                btor_release_exp (btor, bv_state);
-                bv_state = temp;
-              }
-            }
+            /* bit-vector state for all different constraint */
+            if (bv_state == NULL)
+              bv_state = btor_copy_exp (btor, var);
             else
             {
-              /* TODO implement */
-              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-              assert (0);
+              temp = btor_concat_exp (btor, bv_state, var);
+              btor_release_exp (btor, bv_state);
+              bv_state = temp;
             }
+          }
+
+          /* we generate new variable instantiations for arrays */
+          for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
+          {
+            cur = array_regs.start[i];
+            assert (BTOR_IS_REGULAR_EXP (cur));
+            assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+            assert (0);
           }
 
           /* incremental all different constraint */
@@ -942,6 +962,9 @@ btor_main (int argc, char **argv)
         for (p = bv_states.start; p < bv_states.top; p++)
           btor_release_exp (btor, *p);
         BTOR_RELEASE_STACK (mem, bv_states);
+
+        BTOR_RELEASE_STACK (mem, bv_regs);
+        BTOR_RELEASE_STACK (mem, array_regs);
       }
       else
       {
