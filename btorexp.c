@@ -4610,6 +4610,15 @@ rewrite_exp (Btor *btor,
           release_exp (btor, ones);
         }
       }
+      else if (is_one && is_ones)
+      {
+        assert (real_e0->len == 1);
+        if (kind == BTOR_AND_EXP || kind == BTOR_BEQ_EXP
+            || kind == BTOR_MUL_EXP)
+          result = copy_exp (btor, e1);
+        else if (kind == BTOR_ULT_EXP)
+          result = false_exp (btor);
+      }
       else if (is_one)
       {
         if (kind == BTOR_MUL_EXP) result = copy_exp (btor, e1);
@@ -4643,6 +4652,13 @@ rewrite_exp (Btor *btor,
           result = false_exp (btor);
         else if (kind == BTOR_UDIV_EXP)
           result = ones_exp (btor, real_e0->len);
+      }
+      else if (is_one && is_ones)
+      {
+        assert (real_e1->len == 1);
+        if (kind == BTOR_AND_EXP || kind == BTOR_BEQ_EXP || kind == BTOR_MUL_EXP
+            || kind == BTOR_UDIV_EXP)
+          result = copy_exp (btor, e0);
       }
       else if (is_one)
       {
