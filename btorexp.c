@@ -6531,14 +6531,20 @@ readd_assumptions (Btor *btor)
   BtorPtrHashBucket *bucket;
   BtorAIG *aig;
   BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
   assert (btor != NULL);
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
   {
     assert (BTOR_REAL_ADDR_EXP ((BtorExp *) bucket->key)->len == 1);
     aig = exp_to_aig (btor, (BtorExp *) bucket->key);
     assert (aig != BTOR_AIG_FALSE);
-    if (aig != BTOR_AIG_TRUE) btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+    if (aig != BTOR_AIG_TRUE)
+    {
+      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
+      btor_release_aig (amgr, aig);
+    }
   }
 }
 
@@ -6551,8 +6557,8 @@ update_sat_assignments (Btor *btor)
   BtorSATMgr *smgr = NULL;
   assert (btor != NULL);
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  (void) btor_sat_sat (smgr, INT_MAX);
   readd_assumptions (btor);
+  (void) btor_sat_sat (smgr, INT_MAX);
   return btor_changed_assignments_sat (smgr);
 }
 
