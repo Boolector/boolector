@@ -7729,6 +7729,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
         fflush (stdout);
       }
     }
+    readd_assumptions (btor);
     sat_result = btor_sat_sat (smgr, INT_MAX);
   }
   btor->stats.refinements = refinements;
