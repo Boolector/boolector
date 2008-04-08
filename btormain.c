@@ -629,7 +629,6 @@ btor_main (int argc, char **argv)
   int i             = 0;
   int curk          = 0;
   int report_on_bmc = 1;
-  int adc_false     = 0;
   int bmc_done      = 0;
   int root_len, var_name_len;
   int constraints_reported, constraints_report_limit, nconstraints;
@@ -645,9 +644,9 @@ btor_main (int argc, char **argv)
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *adc, *conjuncted_constraints, *bad, *not_and, *bv_state;
+  BtorExp *root, **p, *conjuncted_constraints, *bad, *not_and, *bv_state;
   BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *and, *temp;
-  BtorExp *ne, *diff;
+  BtorExp *ne, *diff, *diff_bv, *diff_arrays, *diff_array;
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack *array_states;
@@ -867,6 +866,7 @@ btor_main (int argc, char **argv)
           }
 
           /* we generate new variable instantiations for arrays */
+          diff_arrays = btor_false_exp (btor);
           for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
           {
             cur = array_regs.start[i];
@@ -876,20 +876,39 @@ btor_main (int argc, char **argv)
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;
+            /* all different constraint */
+            diff_array = btor_true_exp (btor);
+            for (p = array_states[i].start; p != array_states[i].top; p++)
+            {
+              ne   = btor_ne_exp (btor, *p, var);
+              temp = btor_and_exp (btor, diff_array, ne);
+              btor_release_exp (btor, diff_array);
+              diff_array = temp;
+              btor_release_exp (btor, ne);
+            }
+            temp = btor_or_exp (btor, diff_arrays, diff_array);
+            btor_release_exp (btor, diff_arrays);
+            diff_arrays = temp;
+            BTOR_PUSH_STACK (mem, array_states[i], btor_copy_exp (btor, var));
+            btor_release_exp (btor, diff_array);
           }
 
           /* incremental all different constraint */
-          diff = btor_true_exp (btor);
+          diff_bv = btor_true_exp (btor);
           for (p = bv_states.start; p != bv_states.top; p++)
           {
             ne   = btor_ne_exp (btor, *p, bv_state);
-            temp = btor_and_exp (btor, diff, ne);
-            btor_release_exp (btor, diff);
-            diff = temp;
+            temp = btor_and_exp (btor, diff_bv, ne);
+            btor_release_exp (btor, diff_bv);
+            diff_bv = temp;
             btor_release_exp (btor, ne);
           }
           BTOR_PUSH_STACK (mem, bv_states, bv_state);
+
+          diff = btor_or_exp (btor, diff_arrays, diff_bv);
           btor_add_constraint_exp (btor, diff);
+          btor_release_exp (btor, diff_bv);
+          btor_release_exp (btor, diff_arrays);
           btor_release_exp (btor, diff);
 
           /* we set instantiations equal */
@@ -982,7 +1001,11 @@ btor_main (int argc, char **argv)
         if (BTOR_COUNT_STACK (array_regs) > 0)
         {
           for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
+          {
+            for (p = array_states[i].start; p != array_states[i].top; p++)
+              btor_release_exp (btor, *p);
             BTOR_RELEASE_STACK (mem, array_states[i]);
+          }
           BTOR_DELETEN (mem, array_states, BTOR_COUNT_STACK (array_regs));
         }
 
