@@ -6,7 +6,7 @@ CC=@CC@
 CFLAGS=@CFLAGS@
 GPTLIBS=@GPTLIBS@
 
-all: libboolector.a boolector test synthebtor deltabtor
+all: libboolector.a boolector test synthebtor deltabtor basicbtor
 
 -include dependencies
 
