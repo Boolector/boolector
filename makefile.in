@@ -25,6 +25,9 @@ synthebtor: synthebtor.o libboolector.a
 deltabtor: deltabtor.c makefile
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
 
+basicbtor: basicbtor.c makefile
+	$(CC) $(CFLAGS) -o $@ basicbtor.c
+
 libboolector.a: $(LIBOBJ)
 	ar rc $@ $(LIBOBJ)
 	ranlib $@
