@@ -10,7 +10,6 @@ typedef struct Cmd Cmd;
 enum Op
 {
   NOOP = 0,
-
   ADD,
   EXIT,
   GOTO,
@@ -21,7 +20,9 @@ enum Op
   PEEK,
   POKE,
   PRINT,
+  READ,
   SAVE,
+  WRITE,
 };
 
 typedef enum Op Op;
@@ -31,13 +32,19 @@ struct Cmd
   Op op;
   unsigned short immediate;
   unsigned short arg;
+  char* str;
   int next;
 };
 
-static FILE* input;
+static FILE *input, *data;
 static int saved = EOF;
+static int instring;
+static const char* inputname;
+static const char* dataname;
 static const char* name;
 static int lineno = 1;
+static char* buffer;
+static int szbuf, nbuf;
 
 #define MAXLINE (1 << 16)
 #define MAXMEM (1 << 16)
@@ -64,7 +71,7 @@ static void
 perr (const char* msg, ...)
 {
   va_list ap;
-  fprintf (stderr, "%s:%d: ", name ? name : "<stdin>", lineno);
+  fprintf (stderr, "%s:%d: ", name, lineno);
   va_start (ap, msg);
   vfprintf (stderr, msg, ap);
   va_end (ap);
@@ -83,13 +90,14 @@ next (void)
     saved = EOF;
   }
   else
-  {
     res = getc (input);
 
-    if ('a' <= res && res <= 'z') res = 'A' + (res - 'a');
-  }
+  if (!instring && 'a' <= res && res <= 'z') res = 'A' + (res - 'a');
+
+  if (res == '"') instring = !instring;
 
   if (res == '\n') lineno++;
+
   return res;
 }
 
@@ -106,44 +114,53 @@ save (char ch)
   }
 }
 
+static int
+spaceortab (char ch)
+{
+  return ch == ' ' || ch == '\t';
+}
+
 int
 main (int argc, char** argv)
 {
   int i, ch, line, immediate, arg, sign, last, first, pc, usarg;
+  const char* str;
   Op op;
-
-  name = 0;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: btorbasic [-<n>][<input>]\n");
+      fprintf (stderr, "usage: btorbasic [-<n>][<program>[<data>]]\n");
       exit (0);
     }
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
-    else if (name)
-      die ("multiple input files '%s' and '%s'", name, argv[i]);
+    else if (dataname)
+      die ("more than two input files");
+    else if (inputname)
+      dataname = argv[i];
     else
-      name = argv[i];
+      inputname = argv[i];
   }
 
-  if (name)
+  if (inputname)
   {
-    if (!(input = fopen (name, "r"))) die ("can not read '%s'", name);
+    if (!(input = fopen (inputname, "r"))) die ("can not read '%s'", inputname);
+
+    name = inputname;
   }
   else
+  {
+    name  = "<stdin>";
     input = stdin;
-
-  ch = next ();
-
-  assert (!isspace (EOF));
-  assert (!isspace ('\n'));
+  }
 
 NEXTLINE:
 
-  while (isspace (ch)) ch = next ();
+  ch = next ();
+
+  while (spaceortab (ch)) ch = next ();
 
   if (ch == EOF) goto DONE;
 
@@ -152,11 +169,14 @@ NEXTLINE:
   line = ch - '0';
   while (isdigit (ch = next ())) line = 10 * line + (ch - '0');
 
-  if (!isspace (ch)) perr ("expected space after line number");
+  if (!spaceortab (ch)) perr ("expected space after line number");
 
   if (program[line].op) perr ("line %d defined twice", line);
 
-  ch = next ();
+  do
+  {
+    ch = next ();
+  } while (spaceortab (ch));
 
   switch (ch)
   {
@@ -203,26 +223,49 @@ NEXTLINE:
     case 'P':
       if ((ch = next ()) == 'E')
       {
-        if (ch != 'E') goto INVALIDOP;
-        if (ch != 'K') goto INVALIDOP;
+        if (next () != 'E') goto INVALIDOP;
+        if (next () != 'K') goto INVALIDOP;
         op = PEEK;
       }
       else if (ch == 'O')
       {
-        if (ch != 'K') goto INVALIDOP;
-        if (ch != 'E') goto INVALIDOP;
+        if (next () != 'K') goto INVALIDOP;
+        if (next () != 'E') goto INVALIDOP;
         op = POKE;
       }
       else if (ch == 'R')
       {
-        if (ch != 'I') goto INVALIDOP;
-        if (ch != 'N') goto INVALIDOP;
-        if (ch != 'T') goto INVALIDOP;
+        if (next () != 'I') goto INVALIDOP;
+        if (next () != 'N') goto INVALIDOP;
+        if (next () != 'T') goto INVALIDOP;
         op = PRINT;
       }
       else
         goto INVALIDOP;
 
+      break;
+
+    case 'R':
+      if (next () != 'E') goto INVALIDOP;
+
+      if ((ch = next ()) == 'M')
+      {
+        goto INVALIDOP;
+
+        while ((ch = next ()) != '\n' && ch != EOF)
+          ;
+
+        if (ch == EOF) perr ("end of file in comment");
+
+        goto NEXTLINE;
+      }
+
+      if (ch != 'A') goto INVALIDOP;
+      if (next () != 'D') goto INVALIDOP;
+
+      if (!inputname) perr ("can not read data from stdin as well");
+
+      op = READ;
       break;
 
     case 'S':
@@ -232,15 +275,73 @@ NEXTLINE:
       op = SAVE;
       break;
 
+    case 'W':
+      if (next () != 'W') goto INVALIDOP;
+      if (next () != 'R') goto INVALIDOP;
+      if (next () != 'I') goto INVALIDOP;
+      if (next () != 'T') goto INVALIDOP;
+      if (next () != 'E') goto INVALIDOP;
+      op = WRITE;
+      break;
+
     default:
     INVALIDOP:
       perr ("invalid operator");
   }
 
-  if (!isspace (next ())) goto INVALIDOP;
+  if (!spaceortab (next ())) goto INVALIDOP;
 
   immediate = 0;
   ch        = next ();
+
+  if (ch == '"')
+  {
+    if (op != PRINT) perr ("unexpected string argument");
+
+    for (;;)
+    {
+      if (nbuf == szbuf)
+        buffer = realloc (buffer, szbuf = (szbuf ? 2 * szbuf : 128));
+
+      ch = next ();
+
+      if (ch == '"')
+      {
+        buffer[nbuf++]    = 0;
+        program[line].op  = PRINT;
+        program[line].str = strdup (buffer);
+        nbuf              = 0;
+
+        while (spaceortab (ch = next ()))
+          ;
+
+        if (ch != '\n') perr ("expected new line after string");
+
+        goto NEXTLINE;
+      }
+
+      if (ch == '\n') perr ("unexpected new line in string");
+
+      if (ch == EOF) perr ("unexpected end of line in string");
+
+      if (ch == '\\')
+      {
+        ch = next ();
+        if (ch == 'r')
+          ch = '\r';
+        else if (ch == 'n')
+          ch = '\n';
+        else if (ch == 't')
+          ch = '\t';
+        else
+          perr ("invalid escape sequence");
+      }
+
+      buffer[nbuf++] = ch;
+    }
+  }
+
+  if (op == PRINT) perr ("expected string argument");
 
   if (ch == '-')
   {
@@ -288,13 +389,14 @@ NEXTLINE:
     }
   }
 
-  if (op == SAVE && immediate) perr ("expected register as argument");
+  if ((op == SAVE || op == READ) && immediate)
+    perr ("expected register as argument");
 
   if (arg < -32768) perr ("argument too small");
 
   if (arg >= 32768) perr ("argument too large");
 
-  while (isspace (ch = next ()))
+  while (spaceortab (ch = next ()))
     ;
 
   if (ch != '\n') perr ("expected new line at end of command");
@@ -307,8 +409,24 @@ NEXTLINE:
 
 DONE:
 
+  if (inputname) fclose (input);
+
+  if (dataname)
+  {
+    if (!(data = fopen (dataname, "r"))) perr ("can not read '%s'", dataname);
+
+    name = dataname;
+  }
+  else
+  {
+    name = "<stdin>";
+    data = stdin;
+  }
+
   first = -1;
   last  = -1;
+
+  for (i = 0; i < MAXLINE; i++) program[i].next = -1;
 
   for (i = 0; i < MAXLINE; i++)
   {
@@ -328,21 +446,21 @@ DONE:
     last = i;
   }
 
-  if (first < 0) perr ("empty program");
-
-  assert (last >= 0);
-
-  if ((op = program[last].op) != EXIT && op != JMP && op != GOTO)
-    perr ("expected EXIT, JMP, or GOTO command");
-
   pc = first;
 
-NEXT:
+NEXTCMD:
+
+  if (pc < 0)
+  {
+    usarg = accu;
+    goto EXIT;
+  }
 
   op        = program[pc].op;
+  str       = program[pc].str;
   immediate = program[pc].immediate;
   usarg     = program[pc].arg;
-  if (op != SAVE && !immediate) usarg = regs[usarg];
+  if (op != SAVE && op != READ && !immediate) usarg = regs[usarg];
   pc = program[pc].next;
 
   if (op == GOTO)
@@ -367,16 +485,38 @@ NEXT:
 
       case POKE: mem[usarg] = accu; break;
 
-      case PRINT: printf ("%d\n", arg); break;
+      case PRINT:
+        fputs (str, stdout);
+        fflush (stdout);
+        break;
+
+      case READ:
+        if (fscanf (data, "%d", &arg) != 1) perr ("read failed");
+        if (arg < -32768 || arg >= 32768) perr ("read value out of bounds");
+        assert (usarg < 26);
+        regs[usarg] = (unsigned short) arg;
+        break;
 
       case SAVE:
         assert (usarg < 26);
         regs[usarg] = accu;
         break;
 
-      default: assert (op == EXIT); exit (arg);
+      case WRITE:
+        printf ("%d\n", usarg);
+        fflush (stdout);
+        break;
+
+      default:
+        assert (op == EXIT);
+      EXIT:
+        if (dataname) fclose (data);
+        for (i = 0; i < MAXLINE; i++)
+          if (program[i].op == PRINT) free (program[i].str);
+        free (buffer);
+        exit (usarg);
     }
   }
 
-  goto NEXT;
+  goto NEXTCMD;
 }
