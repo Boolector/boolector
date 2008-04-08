@@ -43,8 +43,10 @@ static int lineno = 1;
 #define MAXMEM (1 << 16)
 
 static Cmd program[MAXLINE];
-static unsigned mem[MAXMEM];
-static unsigned regs[26];
+static unsigned short mem[MAXMEM];
+static unsigned short regs[26];
+static unsigned short accu;
+static int flag;
 
 static void
 die (const char* msg, ...)
@@ -81,10 +83,13 @@ next (void)
     saved = EOF;
   }
   else
+  {
     res = getc (input);
 
-  if (res == '\n') lineno++;
+    if ('a' <= res && res <= 'z') res = 'A' + (res - 'a');
+  }
 
+  if (res == '\n') lineno++;
   return res;
 }
 
@@ -104,7 +109,7 @@ save (char ch)
 int
 main (int argc, char** argv)
 {
-  int i, ch, line, immediate, arg, sign;
+  int i, ch, line, immediate, arg, sign, last, first, pc, usarg;
   Op op;
 
   name = 0;
@@ -283,6 +288,8 @@ NEXTLINE:
     }
   }
 
+  if (op == SAVE && immediate) perr ("expected register as argument");
+
   if (arg < -32768) perr ("argument too small");
 
   if (arg >= 32768) perr ("argument too large");
@@ -300,5 +307,76 @@ NEXTLINE:
 
 DONE:
 
-  return 0;
+  first = -1;
+  last  = -1;
+
+  for (i = 0; i < MAXLINE; i++)
+  {
+    if (!(op = program[i].op)) continue;
+
+    arg = program[i].arg;
+    if (op == GOTO || op == JMP)
+    {
+      if (!program[arg].op) perr ("line %d does not exist", arg);
+    }
+
+    if (last >= 0)
+      program[last].next = i;
+    else
+      first = i;
+
+    last = i;
+  }
+
+  if (first < 0) perr ("empty program");
+
+  assert (last >= 0);
+
+  if ((op = program[last].op) != EXIT && op != JMP && op != GOTO)
+    perr ("expected EXIT, JMP, or GOTO command");
+
+  pc = first;
+
+NEXT:
+
+  op        = program[pc].op;
+  immediate = program[pc].immediate;
+  usarg     = program[pc].arg;
+  if (op != SAVE && !immediate) usarg = regs[usarg];
+  pc = program[pc].next;
+
+  if (op == GOTO)
+    pc = usarg;
+  else if (op == JMP)
+  {
+    if (flag) pc = usarg;
+  }
+  else
+  {
+    switch (op)
+    {
+      case ADD: accu += usarg; break;
+
+      case LE: flag = (accu <= usarg); break;
+
+      case LT: flag = (accu < usarg); break;
+
+      case LOAD: accu = usarg; break;
+
+      case PEEK: accu = mem[usarg]; break;
+
+      case POKE: mem[usarg] = accu; break;
+
+      case PRINT: printf ("%d\n", arg); break;
+
+      case SAVE:
+        assert (usarg < 26);
+        regs[usarg] = accu;
+        break;
+
+      default: assert (op == EXIT); exit (arg);
+    }
+  }
+
+  goto NEXT;
 }
