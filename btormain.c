@@ -908,6 +908,10 @@ btor_main (int argc, char **argv)
 
           bad = btor_next_exp_bmc (
               btor, reg_inst, conjuncted_constraints, curk, input_inst);
+          /*
+          if (curk == 1)
+            btor_dump_exps (btor, stdout, &bad, 1);
+            */
 
           print_msg (&app, "  Inductive case: ");
           btor_add_assumption_exp (btor, bad);
