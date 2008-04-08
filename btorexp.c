@@ -6541,9 +6541,10 @@ check_read_write_conflict (Btor *btor,
 }
 
 /* readds assumptions to the SAT solver */
-static void
+static int
 readd_assumptions (Btor *btor)
 {
+  BtorExp *exp;
   BtorPtrHashBucket *bucket;
   BtorAIG *aig;
   BtorSATMgr *smgr;
@@ -6554,14 +6555,18 @@ readd_assumptions (Btor *btor)
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
   {
     assert (BTOR_REAL_ADDR_EXP ((BtorExp *) bucket->key)->len == 1);
-    aig = exp_to_aig (btor, (BtorExp *) bucket->key);
-    assert (aig != BTOR_AIG_FALSE);
+    exp = pointer_chase_simplified_exp (btor, (BtorExp *) bucket->key);
+    aig = exp_to_aig (btor, exp);
+    if (aig == BTOR_AIG_FALSE) return 1;
+    btor_aig_to_sat (amgr, aig);
     if (aig != BTOR_AIG_TRUE)
     {
+      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
       btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
       btor_release_aig (amgr, aig);
     }
   }
+  return 0;
 }
 
 /* updates SAT assignments, readds assumptions and
@@ -6570,11 +6575,14 @@ readd_assumptions (Btor *btor)
 int
 update_sat_assignments (Btor *btor)
 {
+  int result, found_assumption_false;
   BtorSATMgr *smgr = NULL;
   assert (btor != NULL);
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  readd_assumptions (btor);
-  (void) btor_sat_sat (smgr, INT_MAX);
+  found_assumption_false = readd_assumptions (btor);
+  assert (!found_assumption_false);
+  result = btor_sat_sat (smgr, INT_MAX);
+  assert (result == BTOR_SAT);
   return btor_changed_assignments_sat (smgr);
 }
 
@@ -6869,6 +6877,7 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
   {
     cur_array = (BtorExp *) bucket->key;
     assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
+    /* we can safely skip arrays which have been simplified */
     if (cur_array->reachable && cur_array->simplified == NULL)
       BTOR_PUSH_STACK (mm, stack, cur_array);
   }
@@ -6885,23 +6894,22 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
       cur_array->array_mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
       found_top = 1;
-      /* ATTENTION: There can be write and array conditional parents although
-       * they are not reachable from the root.
+      /* ATTENTION: There can be write and array conditional parents
+       * although they are not reachable from root.
        * For example the parser might still
        * have a reference to a write, thus it is still in the parent list.
        * We use the reachable flag to determine with which writes
        * and array conditionals we have to deal with.
        */
-
       /* push writes on stack */
       init_write_parent_iterator (&it, cur_array);
       while (has_next_parent_write_parent_iterator (&it))
       {
-        found_top  = 0;
         cur_parent = next_parent_write_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
         if (cur_parent->reachable && cur_parent->simplified == NULL)
         {
+          found_top = 0;
           assert (cur_parent->array_mark == 0);
           BTOR_PUSH_STACK (mm, stack, cur_parent);
         }
@@ -6910,11 +6918,13 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
       init_acond_parent_iterator (&it, cur_array);
       while (has_next_parent_acond_parent_iterator (&it))
       {
-        found_top  = 0;
         cur_parent = next_parent_acond_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
         if (cur_parent->reachable && cur_parent->simplified == NULL)
+        {
+          found_top = 0;
           BTOR_PUSH_STACK (mm, stack, cur_parent);
+        }
       }
       if (found_top) BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
     }
@@ -7678,13 +7688,10 @@ int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
-  int refinements;
+  int refinements, found_assumption_false;
   BtorExpPtrStack top_arrays;
-  BtorPtrHashBucket *bucket;
-  BtorExp *cur;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
-  BtorAIG *aig;
   BtorMemMgr *mm;
 
   BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_sat_btor'");
@@ -7710,22 +7717,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   found_constraint_false = process_unsynthesized_constraints (btor);
   if (found_constraint_false) return BTOR_UNSAT;
 
-  /* iterate over assumptions */
-  for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
-  {
-    cur = (BtorExp *) bucket->key;
-    cur = pointer_chase_simplified_exp (btor, cur);
-
-    aig = exp_to_aig (btor, cur);
-    if (aig == BTOR_AIG_FALSE) return BTOR_UNSAT;
-    btor_aig_to_sat (amgr, aig);
-    if (aig != BTOR_AIG_TRUE)
-    {
-      assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
-      btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
-      btor_release_aig (amgr, aig);
-    }
-  }
+  found_assumption_false = readd_assumptions (btor);
+  if (found_assumption_false) return BTOR_UNSAT;
 
   sat_result = btor_sat_sat (smgr, INT_MAX);
   BTOR_INIT_STACK (top_arrays);
@@ -7745,7 +7738,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
         fflush (stdout);
       }
     }
-    readd_assumptions (btor);
+    found_assumption_false = readd_assumptions (btor);
+    assert (!found_assumption_false);
     sat_result = btor_sat_sat (smgr, INT_MAX);
   }
   btor->stats.refinements = refinements;
