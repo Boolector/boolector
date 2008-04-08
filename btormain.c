@@ -68,6 +68,9 @@ struct BtorMainApp
   FILE *input_file;
   char *input_file_name;
   int close_input_file;
+  FILE *replay_file;
+  int close_replay_file;
+  int replay;
   int verbosity;
   int force;
   int done;
@@ -112,6 +115,7 @@ static const char *g_usage =
     "  -x|--hex                         hexadecimal output\n"
     "  -d|--dec                         decimal output\n"
     "  -o|--output <file>               set output file\n"
+    "  -r|--replay <file>               turn replay on and set replay file\n"
     "  -de|--dump-exp <file>            dump expression in BTOR format\n"
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
@@ -535,6 +539,36 @@ parse_commandline_arguments (BtorMainApp *app)
         }
       }
     }
+    else if (!strcmp (app->argv[app->argpos], "-r")
+             || !strcmp (app->argv[app->argpos], "--replay"))
+    {
+      if (app->argpos < app->argc - 1)
+      {
+        if (app->close_replay_file)
+        {
+          fclose (app->replay_file);
+          app->close_replay_file = 0;
+          print_err_va_args (app, "multiple replay files\n");
+          app->err = 1;
+        }
+        else
+        {
+          app->replay_file = fopen (app->argv[++app->argpos], "w");
+          if (app->replay_file == NULL)
+          {
+            print_err_va_args (
+                app, "can not create '%s'\n", app->argv[app->argpos]);
+            app->err = 1;
+          }
+          else
+          {
+            app->close_replay_file = 1;
+            app->replay            = 1;
+          }
+        }
+      }
+    }
+
     else if (app->argv[app->argpos][0] == '-')
     {
       print_err_va_args (app, "invalid option '%s'\n", app->argv[app->argpos]);
@@ -658,6 +692,7 @@ btor_main (int argc, char **argv)
   app.input_file        = stdin;
   app.input_file_name   = "<stdin>";
   app.close_input_file  = 0;
+  app.replay            = 0;
   app.argc              = argc;
   app.argv              = argv;
   app.argpos            = 0;
@@ -689,6 +724,7 @@ btor_main (int argc, char **argv)
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
     btor_set_verbosity_btor (btor, app.verbosity);
+    btor_set_replay_btor (btor, app.replay);
     mem = btor_get_mem_mgr_btor (btor);
 
     avmgr = btor_get_aigvec_mgr_btor (btor);
@@ -979,6 +1015,8 @@ btor_main (int argc, char **argv)
           btor_release_exp (btor, bad);
         }
 
+        if (app.replay) btor_replay_btor (btor, app.replay_file);
+
         /* cleanup */
         btor_delete_ptr_hash_table (reg_inst);
 
@@ -1075,6 +1113,7 @@ btor_main (int argc, char **argv)
   if (app.close_output_file) fclose (app.output_file);
   if (app.close_exp_file) fclose (app.exp_file);
   if (app.close_smt_file) fclose (app.smt_file);
+  if (app.close_replay_file) fclose (app.replay_file);
   if (app.err)
     return_val = BTOR_ERR_EXIT;
   else if (app.done)

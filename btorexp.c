@@ -77,6 +77,7 @@ struct Btor
   int rewrite_level;
   int verbosity;
   int extensionality;
+  int replay;
   int vread_index_id;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
@@ -84,6 +85,7 @@ struct Btor
   BtorPtrHashTable *processed_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
+  BtorExpPtrStack replay_constraints;
   /* statistics */
   struct
   {
@@ -5497,6 +5499,7 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  BTOR_INIT_STACK (btor->replay_constraints);
   return btor;
 }
 
@@ -5510,8 +5513,21 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
       "'rewrite_level' has to be in [0,2] in 'btor_set_rewrite_level_btor'");
   BTOR_ABORT_EXP (
       btor->id != 1,
-      "'setting rewrite level must be done before adding expressions'");
+      "setting rewrite level must be done before adding expressions");
   btor->rewrite_level = rewrite_level;
+}
+
+void
+btor_set_replay_btor (Btor *btor, int replay)
+{
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_set_replay_btor'");
+  BTOR_ABORT_EXP (
+      btor->new_constraints->count + btor->processed_constraints->count
+              + btor->synthesized_constraints->count + btor->assumptions->count
+          > 0u,
+      "setting replay must be done before add constraints and assumptions");
+  btor->replay = replay;
 }
 
 void
@@ -5541,6 +5557,7 @@ btor_delete_btor (Btor *btor)
 {
   BtorMemMgr *mm;
   BtorPtrHashBucket *bucket;
+  int i;
   assert (btor != NULL);
   mm = btor->mm;
 
@@ -5574,6 +5591,10 @@ btor_delete_btor (Btor *btor)
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
     release_exp (btor, (BtorExp *) bucket->key);
   btor_delete_ptr_hash_table (btor->assumptions);
+
+  for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
+    btor_release_exp (btor, btor->replay_constraints.start[i]);
+  BTOR_RELEASE_STACK (mm, btor->replay_constraints);
 
   assert (btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
@@ -7553,22 +7574,54 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
                   "'btor' must not be NULL in 'btor_add_constraint_exp'");
   BTOR_ABORT_EXP (exp == NULL,
                   "'exp' must not be NULL in 'btor_add_constraint_exp'");
-  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' must not be an array in 'btor_add_constraint_exp'");
   BTOR_ABORT_EXP (
       BTOR_REAL_ADDR_EXP (exp)->len != 1,
       "'exp' has to be a boolean expression in 'btor_add_constraint_exp'");
+  if (btor->replay)
+    BTOR_PUSH_STACK (
+        btor->mm, btor->replay_constraints, btor_copy_exp (btor, exp));
+
+  exp = pointer_chase_simplified_exp (btor, exp);
 
   add_constraint (btor, exp);
 }
 
 void
-btor_rewrite (Btor *btor)
+btor_rewrite_btor (Btor *btor)
 {
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_rewrite'");
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_rewrite_btor'");
 
   process_new_constraints (btor);
+}
+
+void
+btor_replay_btor (Btor *btor, FILE *file)
+{
+  BtorExp *result, *temp;
+  BtorPtrHashBucket *b;
+  int i;
+  BTOR_ABORT_EXP (btor == NULL,
+                  "'btor' must not be NULL in 'btor_replay_btor'");
+  BTOR_ABORT_EXP (file == NULL,
+                  "'file' must not be NULL in 'btor_replay_btor'");
+  result = btor_true_exp (btor);
+  for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
+  {
+    temp = btor_and_exp (btor, result, btor->replay_constraints.start[i]);
+    btor_release_exp (btor, result);
+    result = temp;
+  }
+  for (b = btor->assumptions->first; b != NULL; b = b->next)
+  {
+    temp = btor_and_exp (btor, result, (BtorExp *) b->key);
+    btor_release_exp (btor, result);
+    result = temp;
+  }
+  btor_dump_exp (btor, file, result);
+  btor_release_exp (btor, result);
 }
 
 void

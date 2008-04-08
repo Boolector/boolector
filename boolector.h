@@ -37,6 +37,9 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
+/* Turns replay on or off */
+void btor_set_replay_btor (Btor *btor, int replay);
+
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
 
@@ -456,7 +459,10 @@ void btor_add_constraint_exp (Btor *btor, BtorExp *exp);
 
 /* Rewriting added constraints.
  */
-void btor_rewrite (Btor *btor);
+void btor_rewrite_btor (Btor *btor);
+
+/* Dump added constraints and current assumptions to file 'file'. */
+void btor_replay_btor (Btor *btor, FILE *file);
 
 /* Adds assumption. */
 void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
