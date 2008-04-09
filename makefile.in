@@ -36,7 +36,7 @@ btorconfig.h: makefile VERSION mkconfig
 	rm -f $@; ./mkconfig > $@
 
 clean:
-	rm -f test boolector deltabtor synthebtor
+	rm -f test boolector deltabtor synthebtor basicbtor
 	rm -f *.o *.a
 	rm -f *.gcda *.gcno *.gcov 
 	rm -f log/*.log
