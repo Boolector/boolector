@@ -87,8 +87,8 @@ struct BtorMainApp
   FILE *smt_file;
   int close_smt_file;
   int rewrite_level;
-  int maxk;
-  int bmc_adc;
+  int bmcmaxk;
+  int bmcadc;
   BtorCNFEnc cnf_enc;
   int refinement_limit;
   int force_smt_input;
@@ -128,8 +128,9 @@ static const char *g_usage =
     "\n"
     "\n"
     "BMC options:\n"
-    "  -maxk=<k>                        sets maximum bound for model checking\n"
-    "  -adc                             use all different constraint\n";
+    "  -bmc-maxk=<k>                     sets maximum bound for model "
+    "checking\n"
+    "  -bmc-no-adc                       disable all different constraint\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -428,18 +429,18 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
-    else if (strstr (app->argv[app->argpos], "-maxk=")
+    else if (strstr (app->argv[app->argpos], "-bmc-maxk=")
              == app->argv[app->argpos])
     {
-      app->maxk = atoi (app->argv[app->argpos] + 6);
-      if (app->maxk < 0)
+      app->bmcmaxk = atoi (app->argv[app->argpos] + 10);
+      if (app->bmcmaxk < 0)
       {
         print_err (app, "invalid k\n");
         app->err = 1;
       }
     }
-    else if (!strcmp (app->argv[app->argpos], "-adc"))
-      app->bmc_adc = 1;
+    else if (!strcmp (app->argv[app->argpos], "-bmc-no-adc"))
+      app->bmcadc = 0;
     else if (!strcmp (app->argv[app->argpos], "-v")
              || !strcmp (app->argv[app->argpos], "--verbose"))
     {
@@ -658,14 +659,12 @@ btor_main (int argc, char **argv)
   double start_time = time_stamp ();
   double delta_time = 0.0;
 #endif
-  int return_val    = 0;
-  int sat_result    = 0;
-  int i             = 0;
-  int curk          = 0;
-  int report_on_bmc = 1;
-  int bmc_done      = 0;
+  int return_val = 0;
+  int sat_result = 0;
+  int i          = 0;
+  int bmc_done   = 0;
   int root_len, var_name_len;
-  int constraints_reported, constraints_report_limit, nconstraints;
+  int constraints_reported, constraints_report_limit, nconstraints, bmck;
   const char *parse_error = NULL;
   char *var_name;
   Btor *btor           = NULL;
@@ -708,8 +707,8 @@ btor_main (int argc, char **argv)
   app.smt_file          = stdout;
   app.close_smt_file    = 0;
   app.rewrite_level     = 2;
-  app.maxk              = BTOR_MAIN_DEFAULT_MAXK;
-  app.bmc_adc           = 0;
+  app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
+  app.bmcadc            = 1;
   app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   app.refinement_limit  = INT_MAX;
   app.force_smt_input   = 0;
@@ -812,17 +811,14 @@ btor_main (int argc, char **argv)
       /* BMC ? */
       if (parse_res.nregs > 0)
       {
-        if (report_on_bmc)
-        {
-          app.mode = BTOR_APP_BMC_MODE;
-          if (app.bmc_adc)
-            print_msg (&app,
-                       "Solving BMC problem with All Different Constraint\n");
-          else
-            print_msg_va_args (
-                &app, "Solving BMC problem with maximum bound %d\n", app.maxk);
-          report_on_bmc = 0;
-        }
+        app.mode = BTOR_APP_BMC_MODE;
+        print_msg (&app, "Solving BMC problem\n");
+        if (app.bmcadc)
+          print_msg (&app, "Use all different constraints: yes\n");
+        else
+          print_msg (&app, "Use all different constraints: no\n");
+        if (app.bmcmaxk >= 0)
+          print_msg_va_args (&app, "Max bound: %d\n", app.bmcmaxk);
 
         BTOR_INIT_STACK (bv_regs);
         BTOR_INIT_STACK (array_regs);
@@ -866,9 +862,10 @@ btor_main (int argc, char **argv)
         for (i = 0; i < parse_res.nregs; i++)
           btor_insert_in_ptr_hash_table (reg_inst, parse_res.regs[i])
               ->data.asPtr = NULL;
-        for (curk = 0; curk <= app.maxk && !bmc_done; curk++)
+        for (bmck = 0; (app.bmcmaxk == -1 || bmck <= app.bmcmaxk) && !bmc_done;
+             bmck++)
         {
-          print_msg_va_args (&app, "k = %d:\n", curk);
+          print_msg_va_args (&app, "k = %d:\n", bmck);
           input_inst =
               btor_new_ptr_hash_table (mem,
                                        (BtorHashPtr) btor_hash_exp_by_id,
@@ -883,9 +880,9 @@ btor_main (int argc, char **argv)
             assert (BTOR_IS_VAR_EXP (cur));
             assert (cur->symbol != NULL);
             var_name_len =
-                strlen (cur->symbol) + btor_num_digits_util (curk) + 2;
+                strlen (cur->symbol) + btor_num_digits_util (bmck) + 2;
             BTOR_NEWN (mem, var_name, var_name_len);
-            sprintf (var_name, "%s_%d", cur->symbol, curk);
+            sprintf (var_name, "%s_%d", cur->symbol, bmck);
             var = btor_var_exp (btor, cur->len, var_name);
             BTOR_DELETEN (mem, var_name, var_name_len);
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
@@ -943,7 +940,7 @@ btor_main (int argc, char **argv)
           BTOR_PUSH_STACK (mem, bv_states, bv_state);
 
           diff = btor_or_exp (btor, diff_arrays, diff_bv);
-          btor_add_constraint_exp (btor, diff);
+          if (app.bmcadc) btor_add_constraint_exp (btor, diff);
           btor_release_exp (btor, diff_bv);
           btor_release_exp (btor, diff_arrays);
           btor_release_exp (btor, diff);
@@ -952,7 +949,7 @@ btor_main (int argc, char **argv)
           for (i = 0; i < parse_res.nregs; i++)
           {
             new_insts[i] = btor_next_exp_bmc (
-                btor, reg_inst, parse_res.nexts[i], curk, input_inst);
+                btor, reg_inst, parse_res.nexts[i], bmck, input_inst);
             bucket = btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
             assert (bucket != NULL);
             assert (bucket->data.asPtr != NULL);
@@ -963,11 +960,7 @@ btor_main (int argc, char **argv)
           }
 
           bad = btor_next_exp_bmc (
-              btor, reg_inst, conjuncted_constraints, curk, input_inst);
-          /*
-          if (curk == 1)
-            btor_dump_exps (btor, stdout, &bad, 1);
-            */
+              btor, reg_inst, conjuncted_constraints, bmck, input_inst);
 
           print_msg (&app, "  Inductive case: ");
           btor_add_assumption_exp (btor, bad);
