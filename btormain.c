@@ -692,6 +692,7 @@ btor_main (int argc, char **argv)
   app.input_file        = stdin;
   app.input_file_name   = "<stdin>";
   app.close_input_file  = 0;
+  app.close_replay_file = 0;
   app.replay            = 0;
   app.argc              = argc;
   app.argv              = argv;
