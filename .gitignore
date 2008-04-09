@@ -10,6 +10,7 @@ cscope.out
 makefile
 boolector
 synthebtor
+basicbtor
 test
 dependencies
 deltabtor
