@@ -130,7 +130,7 @@ static const char *g_usage =
     "BMC options:\n"
     "  -bmc-maxk=<k>                     sets maximum bound for model "
     "checking\n"
-    "  -bmc-no-adc                       disable all different constraint\n";
+    "  -bmc-no-adc                       disable all different constraints\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
