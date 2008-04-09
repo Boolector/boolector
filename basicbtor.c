@@ -276,7 +276,6 @@ NEXTLINE:
       break;
 
     case 'W':
-      if (next () != 'W') goto INVALIDOP;
       if (next () != 'R') goto INVALIDOP;
       if (next () != 'I') goto INVALIDOP;
       if (next () != 'T') goto INVALIDOP;
