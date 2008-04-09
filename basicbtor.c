@@ -11,6 +11,7 @@ enum Op
 {
   NOOP = 0,
   ADD,
+  EQ,
   EXIT,
   GOTO,
   JMP,
@@ -187,10 +188,16 @@ NEXTLINE:
       break;
 
     case 'E':
-      if (next () != 'X') goto INVALIDOP;
-      if (next () != 'I') goto INVALIDOP;
-      if (next () != 'T') goto INVALIDOP;
-      op = EXIT;
+      if ((ch = next ()) == 'X')
+      {
+        if (next () != 'I') goto INVALIDOP;
+        if (next () != 'T') goto INVALIDOP;
+        op = EXIT;
+      }
+      else if (ch == 'Q')
+        op = EQ;
+      else
+        goto INVALIDOP;
       break;
 
     case 'G':
@@ -250,8 +257,6 @@ NEXTLINE:
 
       if ((ch = next ()) == 'M')
       {
-        goto INVALIDOP;
-
         while ((ch = next ()) != '\n' && ch != EOF)
           ;
 
@@ -473,6 +478,8 @@ NEXTCMD:
     switch (op)
     {
       case ADD: accu += usarg; break;
+
+      case EQ: flag = (accu == usarg); break;
 
       case LE: flag = (accu <= usarg); break;
 
