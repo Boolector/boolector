@@ -124,17 +124,23 @@ spaceortab (char ch)
 int
 main (int argc, char** argv)
 {
-  int i, ch, line, immediate, arg, sign, last, first, pc, usarg;
+  int i, ch, line, immediate, arg, sign, last, first, pc, usarg, simulate, res;
+  int nextpc, nextaccu, nextflag, nextregs, nextmem;
+  int id, pcid, regsid, memid, accuid, flagid;
   const char* str;
   Op op;
+
+  simulate = 0;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: btorbasic [-<n>][<program>[<data>]]\n");
+      fprintf (stderr, "usage: btorbasic [-<s>][<program>[<data>]]\n");
       exit (0);
     }
+    else if (!strcmp (argv[i], "-s"))
+      simulate = 1;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (dataname)
@@ -144,6 +150,8 @@ main (int argc, char** argv)
     else
       inputname = argv[i];
   }
+
+  if (!simulate && dataname) die ("can only use data file in simulation mode");
 
   if (inputname)
   {
@@ -415,18 +423,6 @@ DONE:
 
   if (inputname) fclose (input);
 
-  if (dataname)
-  {
-    if (!(data = fopen (dataname, "r"))) perr ("can not read '%s'", dataname);
-
-    name = dataname;
-  }
-  else
-  {
-    name = "<stdin>";
-    data = stdin;
-  }
-
   first = -1;
   last  = -1;
 
@@ -450,13 +446,27 @@ DONE:
     last = i;
   }
 
+  if (!simulate) goto SYNTHESIZE;
+
+  if (dataname)
+  {
+    if (!(data = fopen (dataname, "r"))) perr ("can not read '%s'", dataname);
+
+    name = dataname;
+  }
+  else
+  {
+    name = "<stdin>";
+    data = stdin;
+  }
+
   pc = first;
 
 NEXTCMD:
 
   if (pc < 0)
   {
-    usarg = accu;
+    res = 0;
     goto EXIT;
   }
 
@@ -515,14 +525,57 @@ NEXTCMD:
 
       default:
         assert (op == EXIT);
-      EXIT:
-        if (dataname) fclose (data);
-        for (i = 0; i < MAXLINE; i++)
-          if (program[i].op == PRINT) free (program[i].str);
-        free (buffer);
-        exit (usarg);
+        res = usarg;
+        goto EXIT;
     }
   }
 
   goto NEXTCMD;
+
+SYNTHESIZE:
+
+  id = 1;
+
+  pcid = id++;
+  printf ("%d var 16 pc\n", pcid);
+
+  accuid = id++;
+  printf ("%d var 16 accu\n", accuid);
+
+  flagid = id++;
+  printf ("%d var 1 flag\n", flagid);
+
+  regsid = id++;
+  printf ("%d array 16 5\n", regsid);
+
+  memid = id++;
+  printf ("%d array 16 16\n", memid);
+
+  nextpc   = pcid;
+  nextaccu = accuid;
+  nextflag = flagid;
+  nextregs = regsid;
+  nextmem  = memid;
+
+  pc = first;
+  while (pc >= 0)
+  {
+    op = program[pc].op;
+    assert (op);
+
+    if (op != WRITE && op != PRINT)
+    {
+    }
+    immediate = program[pc].immediate;
+    arg       = program[pc].arg;
+
+    pc = program[pc].next;
+  }
+
+EXIT:
+  if (dataname) fclose (data);
+  for (i = 0; i < MAXLINE; i++)
+    if (program[i].op == PRINT) free (program[i].str);
+  free (buffer);
+  exit (res);
 }
