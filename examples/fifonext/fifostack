@@ -1,0 +1,60 @@
+#!/bin/bash
+if [[ $# -ne 2 ]]; then
+  echo "Usage: ./fifostack <num-bits> <power>"
+  exit
+fi
+bw=$1
+power=$2
+id=1
+((size = 2 ** power))
+echo "$((id++)) array $bw $power"
+echo "$((id++)) var 1 full"
+((idfull = id - 1))
+echo "$((id++)) var 1 empty" 
+((idempty = id - 1))
+echo "$((id++)) var $bw data_out"
+((iddataout = id  - 1))
+echo "$((id++)) var $power head"
+((idhead = id - 1))
+echo "$((id++)) var $power tail"
+((idtail = id - 1))
+((idzero = id))
+((idone = id + 1))
+for ((i = 0; i < size; i++))
+do
+  echo "$((id++)) constd $power $i"
+done
+((idmaxconst = id - 1))
+echo ""
+echo "$((id++)) var 1 enqeue"
+((idenqueue = id - 1))
+echo "$((id++)) var 1 deqeue"
+((iddequeue = id - 1))
+echo "$((id++)) var 1 reset"
+((idreset = id - 1))
+echo "$((id++)) var $bw data_in"
+((iddatain = id - 1))
+echo "$((id++)) xor 1 $idenqueue $iddequeue"
+((idxor = id - 1))
+echo ""
+echo "$((id++)) next $power $idhead $idzero" 
+echo ""
+echo "$((id++)) sub $power $idtail $idone"
+((idtailsub = id - 1))
+echo "$((id++)) ugt 1 $idtail $idzero"
+((lastid = id - 1))
+echo "$((id++)) cond $power $lastid $idtailsub $idtail"
+((idtailcond = id - 1))
+echo "$((id++)) add $power $idtail $idone" 
+((idtailadd = id - 1))
+echo "$((id++)) ult 1 $idtail $idmaxconst"
+((lastid = id - 1))
+echo "$((id++)) cond $power $lastid $idtailadd $idtail"
+((lastid = id - 1))
+echo "$((id++)) cond $power $idenqueue $lastid $idtailcond"
+((lastid = id - 1))
+echo "$((id++)) cond $power $idxor $lastid $idtail"
+((lastid = id - 1))
+echo "$((id++)) cond $power $idreset $idzero $lastid"
+((lastid = id - 1))
+echo "$((id++)) next $power $idtail $lastid"
