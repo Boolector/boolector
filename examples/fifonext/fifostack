@@ -27,11 +27,16 @@ do
 done
 ((idmaxconst = id - 1))
 echo ""
-echo "$((id++)) zero 1"
-((idzero1 = id - 1))
-echo "$((id++)) one 1"
-((idone1 = id - 1))
-echo ""
+if [[ $power -gt 1 ]]; then
+  echo "$((id++)) zero 1"
+  ((idzero1 = id - 1))
+  echo "$((id++)) one 1"
+  ((idone1 = id - 1))
+  echo ""
+else
+  idzero1=$idzero
+  idone1=$idone
+fi
 echo "$((id++)) var 1 enqeue"
 ((idenqueue = id - 1))
 echo "$((id++)) var 1 deqeue"
@@ -44,12 +49,16 @@ echo "$((id++)) xor 1 $idenqueue $iddequeue"
 ((idxor = id - 1))
 echo ""
 
+echo ";next of head"
 echo "$((id++)) next $power $idhead $idzero" 
 
 echo ""
+echo ";next of tail"
 echo "$((id++)) sub $power $idtail $idone"
 ((idtailsub = id - 1))
-echo "$((id++)) cond $power $idempty $idtail $idtailsub"
+echo "$((id++)) and 1 -$idfull -$idempty"
+((lastid = id - 1))
+echo "$((id++)) cond $power $lastid $idtailsub $idtail"
 ((idtailcond = id - 1))
 echo "$((id++)) add $power $idtail $idone" 
 ((idtailadd = id - 1))
@@ -59,22 +68,42 @@ echo "$((id++)) cond $power $idenqueue $lastid $idtailcond"
 ((lastid = id - 1))
 echo "$((id++)) cond $power $idxor $lastid $idtail"
 ((lastid = id - 1))
-echo "$((id++)) cond $power $idreset $idzero $lastid"
+echo "$((id++)) cond $power $idreset $lastid $idzero"
 ((lastid = id - 1))
 echo "$((id++)) next $power $idtail $lastid"
 
 echo ""
-echo "$((id++)) redand 1 $idtail"
-((idtailredand = id - 1))
-echo "$((id++)) and 1 $idtailredand $idenqueue"
+echo ";next of full"
+echo "$((id++)) eq 1 $idtail $idmaxconst"
+((lastid = id - 1))
+echo "$((id++)) and 1 $lastid $idenqueue"
 ((lastid = id - 1))
 echo "$((id++)) cond 1 $lastid $idone1 $idfull"
-((idfullcond = id - 1))
-echo "$((id++)) and 1 $idtailredand $idfull"
 ((lastid = id - 1))
-echo "$((id++)) cond 1 $lastid $idzero1 $idfull"
-echo ""
+echo "$((id++)) cond 1 $iddequeue $idzero1 $lastid"
+((lastid = id - 1))
+echo "$((id++)) cond 1 $idxor $lastid $idfull"
+((lastid = id - 1))
+echo "$((id++)) cond 1 $idreset $lastid $idzero1"
+((lastid = id - 1))
+echo "$((id++)) next 1 $idfull $lastid"
 
+echo ""
+echo ";next of empty"
+echo "$((id++)) eq 1 $idtail $idone"
+((lastid = id - 1))
+echo "$((id++)) cond 1 $lastid $idone1 $idempty"
+((lastid = id - 1))
+echo "$((id++)) cond 1 $idenqueue $idzero1 $lastid"
+((lastid = id - 1))
+echo "$((id++)) cond 1 $idxor $lastid $idempty"
+((lastid = id - 1))
+echo "$((id++)) cond 1 $idreset $lastid $idone1"
+((lastid = id - 1))
+echo "$((id++)) next 1 $idempty $lastid"
+
+echo ""
+echo ";next of memory"
 echo "$((id++)) write $bw $idarray $idtail $iddatain"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idfull $idarray $lastid"
