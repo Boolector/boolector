@@ -4814,7 +4814,8 @@ btor_next_exp_bmc (Btor *btor,
 {
   BtorExp *cur, *result, *e0, *e1, *e2, *cur_result, *var;
   BtorExp *(*bin_func) (Btor *, BtorExp *, BtorExp *);
-  BtorExpPtrStack pre_stack, post_stack, build_stack, release_stack;
+  BtorExpPtrStack stack;
+  BtorPtrHashTable *build_table;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   char *var_name;
@@ -4828,111 +4829,127 @@ btor_next_exp_bmc (Btor *btor,
 
   mm = btor->mm;
 
-  BTOR_INIT_STACK (pre_stack);
-  BTOR_INIT_STACK (post_stack);
-  BTOR_INIT_STACK (build_stack);
-  BTOR_INIT_STACK (release_stack);
+  BTOR_INIT_STACK (stack);
+  build_table = btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
-  BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (root));
+  assert (BTOR_REAL_ADDR_EXP (root)->mark == 0);
+
+  BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (root));
   do
   {
-    cur = BTOR_POP_STACK (pre_stack);
+    cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
 
-    if (BTOR_IS_CONST_EXP (cur))
-      BTOR_PUSH_STACK (mm, post_stack, cur);
-    else if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+    if (cur->mark == 2) continue;
+
+    if (cur->mark == 0)
     {
-      bucket = btor_find_in_ptr_hash_table (reg_table, cur);
-      if (bucket == NULL)
+      if (BTOR_IS_CONST_EXP (cur))
       {
-        /* no register -> input variable
-         * we have to look if input has already been instantiated
-         * before
-         */
-        bucket = btor_find_in_ptr_hash_table (input_table, cur);
+        btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =
+            btor_copy_exp (btor, cur);
+        cur->mark = 2;
+      }
+      else if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      {
+        bucket = btor_find_in_ptr_hash_table (reg_table, cur);
         if (bucket == NULL)
         {
-          if (BTOR_IS_VAR_EXP (cur))
+          /* no register -> input variable
+           * we have to look if input has already been instantiated
+           * before
+           */
+          bucket = btor_find_in_ptr_hash_table (input_table, cur);
+          if (bucket == NULL)
           {
-            assert (cur->symbol != NULL);
-            var_name_len = strlen (cur->symbol) + btor_num_digits_util (k) + 2;
-            BTOR_NEWN (mm, var_name, var_name_len);
-            sprintf (var_name, "%s_%d", cur->symbol, k);
-            var = var_exp (btor, cur->len, var_name);
-            BTOR_DELETEN (mm, var_name, var_name_len);
+            if (BTOR_IS_VAR_EXP (cur))
+            {
+              assert (cur->symbol != NULL);
+              var_name_len =
+                  strlen (cur->symbol) + btor_num_digits_util (k) + 2;
+              BTOR_NEWN (mm, var_name, var_name_len);
+              sprintf (var_name, "%s_%d", cur->symbol, k);
+              var = var_exp (btor, cur->len, var_name);
+              BTOR_DELETEN (mm, var_name, var_name_len);
+            }
+            else
+            {
+              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+              var = array_exp (btor, cur->len, cur->index_len);
+            }
+            btor_insert_in_ptr_hash_table (input_table, cur)->data.asPtr = var;
+            btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =
+                copy_exp (btor, var);
           }
           else
           {
-            assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-            var = array_exp (btor, cur->len, cur->index_len);
+            assert (bucket->data.asPtr != NULL);
+            btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =
+                copy_exp (btor, (BtorExp *) bucket->data.asPtr);
           }
-          btor_insert_in_ptr_hash_table (input_table, cur)->data.asPtr = var;
-          BTOR_PUSH_STACK (mm, post_stack, var);
         }
         else
         {
           assert (bucket->data.asPtr != NULL);
-          BTOR_PUSH_STACK (mm, post_stack, (BtorExp *) bucket->data.asPtr);
+          btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =
+              copy_exp (btor, (BtorExp *) bucket->data.asPtr);
         }
+        cur->mark = 2;
       }
       else
       {
-        assert (bucket->data.asPtr != NULL);
-        BTOR_PUSH_STACK (mm, post_stack, (BtorExp *) bucket->data.asPtr);
+        cur->mark = 1;
+        BTOR_PUSH_STACK (mm, stack, cur);
+        switch (cur->arity)
+        {
+          case 1:
+            BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+            break;
+          case 2:
+            BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
+            BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+            break;
+          default:
+            assert (cur->arity == 3);
+            BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur->e[2]));
+            BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
+            BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
+            break;
+        }
       }
     }
     else
     {
-      BTOR_PUSH_STACK (mm, post_stack, cur);
-      switch (cur->arity)
-      {
-        case 1:
-          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
-          break;
-        case 2:
-          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
-          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
-          break;
-        default:
-          assert (cur->arity == 3);
-          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[2]));
-          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[1]));
-          BTOR_PUSH_STACK (mm, pre_stack, BTOR_REAL_ADDR_EXP (cur->e[0]));
-          break;
-      }
-    }
-  } while (!BTOR_EMPTY_STACK (pre_stack));
-
-  assert (!BTOR_EMPTY_STACK (post_stack));
-  /* rebuild, but with new instiantions */
-  do
-  {
-    cur = BTOR_POP_STACK (post_stack);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_CONST_EXP (cur)
-        || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-      BTOR_PUSH_STACK (mm, build_stack, cur);
-    else
-    {
+      assert (cur->mark == 1);
+      assert (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_CONST_EXP (cur)
+              && !BTOR_IS_ATOMIC_ARRAY_EXP (cur));
       switch (cur->arity)
       {
         case 1:
           assert (cur->kind == BTOR_SLICE_EXP);
-          assert (!BTOR_EMPTY_STACK (build_stack));
-          e0 = BTOR_POP_STACK (build_stack);
+          bucket = btor_find_in_ptr_hash_table (build_table,
+                                                BTOR_REAL_ADDR_EXP (cur->e[0]));
+          assert (bucket != NULL);
+          assert (bucket->data.asPtr != NULL);
+          e0 = (BtorExp *) bucket->data.asPtr;
           if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
           cur_result = slice_exp (btor, e0, cur->upper, cur->lower);
-          BTOR_PUSH_STACK (mm, release_stack, cur_result);
-          BTOR_PUSH_STACK (mm, build_stack, cur_result);
           break;
 
         case 2:
-          assert (!BTOR_EMPTY_STACK (build_stack));
-          e0 = BTOR_POP_STACK (build_stack);
+          bucket = btor_find_in_ptr_hash_table (build_table,
+                                                BTOR_REAL_ADDR_EXP (cur->e[0]));
+          assert (bucket != NULL);
+          assert (bucket->data.asPtr != NULL);
+          e0 = (BtorExp *) bucket->data.asPtr;
           if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
-          assert (!BTOR_EMPTY_STACK (build_stack));
-          e1 = BTOR_POP_STACK (build_stack);
+          bucket = btor_find_in_ptr_hash_table (build_table,
+                                                BTOR_REAL_ADDR_EXP (cur->e[1]));
+          assert (bucket != NULL);
+          assert (bucket->data.asPtr != NULL);
+          e1 = (BtorExp *) bucket->data.asPtr;
           if (BTOR_IS_INVERTED_EXP (cur->e[1])) e1 = BTOR_INVERT_EXP (e1);
           switch (cur->kind)
           {
@@ -4953,20 +4970,27 @@ btor_next_exp_bmc (Btor *btor,
               break;
           }
           cur_result = bin_func (btor, e0, e1);
-          BTOR_PUSH_STACK (mm, release_stack, cur_result);
-          BTOR_PUSH_STACK (mm, build_stack, cur_result);
           break;
 
         default:
           assert (cur->arity == 3);
-          assert (!BTOR_EMPTY_STACK (build_stack));
-          e0 = BTOR_POP_STACK (build_stack);
+          bucket = btor_find_in_ptr_hash_table (build_table,
+                                                BTOR_REAL_ADDR_EXP (cur->e[0]));
+          assert (bucket != NULL);
+          assert (bucket->data.asPtr != NULL);
+          e0 = (BtorExp *) bucket->data.asPtr;
           if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
-          assert (!BTOR_EMPTY_STACK (build_stack));
-          e1 = BTOR_POP_STACK (build_stack);
+          bucket = btor_find_in_ptr_hash_table (build_table,
+                                                BTOR_REAL_ADDR_EXP (cur->e[1]));
+          assert (bucket != NULL);
+          assert (bucket->data.asPtr != NULL);
+          e1 = (BtorExp *) bucket->data.asPtr;
           if (BTOR_IS_INVERTED_EXP (cur->e[1])) e1 = BTOR_INVERT_EXP (e1);
-          assert (!BTOR_EMPTY_STACK (build_stack));
-          e2 = BTOR_POP_STACK (build_stack);
+          bucket = btor_find_in_ptr_hash_table (build_table,
+                                                BTOR_REAL_ADDR_EXP (cur->e[2]));
+          assert (bucket != NULL);
+          assert (bucket->data.asPtr != NULL);
+          e2 = (BtorExp *) bucket->data.asPtr;
           if (BTOR_IS_INVERTED_EXP (cur->e[2])) e2 = BTOR_INVERT_EXP (e2);
           if (BTOR_IS_WRITE_EXP (cur))
             cur_result = write_exp (btor, e0, e1, e2);
@@ -4975,28 +4999,30 @@ btor_next_exp_bmc (Btor *btor,
             assert (cur->kind == BTOR_BCOND_EXP || cur->kind == BTOR_ACOND_EXP);
             cur_result = cond_exp (btor, e0, e1, e2);
           }
-          BTOR_PUSH_STACK (mm, release_stack, cur_result);
-          BTOR_PUSH_STACK (mm, build_stack, cur_result);
           break;
       }
+      btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr = cur_result;
+      cur->mark                                                    = 2;
     }
-  } while (!BTOR_EMPTY_STACK (post_stack));
+  } while (!BTOR_EMPTY_STACK (stack));
+  btor_mark_exp (btor, root, 0);
 
-  assert (BTOR_COUNT_STACK (build_stack) == 1);
-  result = copy_exp (btor, BTOR_POP_STACK (build_stack));
+  bucket = btor_find_in_ptr_hash_table (build_table, BTOR_REAL_ADDR_EXP (root));
+  assert (bucket != NULL);
+  assert (bucket->data.asPtr != NULL);
+  result = copy_exp (btor, (BtorExp *) bucket->data.asPtr);
+
   if (BTOR_IS_INVERTED_EXP (root)) result = BTOR_INVERT_EXP (result);
 
   /* cleanup */
-  while (!BTOR_EMPTY_STACK (release_stack))
+  for (bucket = build_table->first; bucket != NULL; bucket = bucket->next)
   {
-    cur = BTOR_POP_STACK (release_stack);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    release_exp (btor, cur);
+    assert (bucket->data.asPtr != NULL);
+    btor_release_exp (btor, (BtorExp *) bucket->data.asPtr);
   }
-  BTOR_RELEASE_STACK (mm, pre_stack);
-  BTOR_RELEASE_STACK (mm, post_stack);
-  BTOR_RELEASE_STACK (mm, build_stack);
-  BTOR_RELEASE_STACK (mm, release_stack);
+  btor_delete_ptr_hash_table (build_table);
+
+  BTOR_RELEASE_STACK (mm, stack);
 
   return result;
 }
