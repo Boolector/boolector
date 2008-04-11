@@ -26,17 +26,13 @@ do
   echo "$((id++)) constd $power $i"
 done
 ((idmaxconst = id - 1))
+((idmaxconstm1 = id - 2))
 echo ""
-if [[ $power -gt 1 ]]; then
-  echo "$((id++)) zero 1"
-  ((idzero1 = id - 1))
-  echo "$((id++)) one 1"
-  ((idone1 = id - 1))
-  echo ""
-else
-  idzero1=$idzero
-  idone1=$idone
-fi
+echo "$((id++)) zero 1"
+((idzero1 = id - 1))
+echo "$((id++)) one 1"
+((idone1 = id - 1))
+echo ""
 echo "$((id++)) var 1 enqeue"
 ((idenqueue = id - 1))
 echo "$((id++)) var 1 deqeue"
@@ -56,9 +52,7 @@ echo ""
 echo ";next of tail"
 echo "$((id++)) sub $power $idtail $idone"
 ((idtailsub = id - 1))
-echo "$((id++)) and 1 -$idfull -$idempty"
-((lastid = id - 1))
-echo "$((id++)) cond $power $lastid $idtailsub $idtail"
+echo "$((id++)) cond $power $idempty $idtail $idtailsub"
 ((idtailcond = id - 1))
 echo "$((id++)) add $power $idtail $idone" 
 ((idtailadd = id - 1))
@@ -74,7 +68,7 @@ echo "$((id++)) next $power $idtail $lastid"
 
 echo ""
 echo ";next of full"
-echo "$((id++)) eq 1 $idtail $idmaxconst"
+echo "$((id++)) eq 1 $idtail $idmaxconstm1"
 ((lastid = id - 1))
 echo "$((id++)) cond 1 $lastid $idone1 $idfull"
 ((lastid = id - 1))
