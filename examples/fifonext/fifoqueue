@@ -1,11 +1,18 @@
 #!/bin/bash
-if [[ $# -ne 2 ]]; then
-  echo "Usage: ./fifoqueue <num-bits> <power>"
+if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
+  echo "Usage: ./fifoqueue <num-bits> <power> [start-id]"
   exit
 fi
+
 bw=$1
 power=$2
-id=1
+
+if  [[ $# = 3 ]]; then
+  id=$3
+else
+  id=1
+fi
+
 ((size = 2 ** power))
 echo "$((id++)) array $bw $power"
 ((idarray = id - 1))
