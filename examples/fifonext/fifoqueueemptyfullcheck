@@ -1,0 +1,36 @@
+#!/bin/bash
+if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
+  echo "Usage: ./fifoqueueemptyfullcheck <num-bits> <power> [-s]"
+  exit
+fi
+
+if [[ $# = 3 ]] && [[ x$3 = x-s ]]; then
+  sat=1
+else
+  sat=0
+fi
+
+temp="/tmp/fifoqueueemptyfullcheck.tmp"
+
+./fifostack $1 $2 > $temp
+idempty="`egrep .*var.*empty < $temp | awk '{ print $1 }';`"
+idfull="`egrep .*var.*full < $temp | awk '{ print $1 }';`"
+idlast="`tail -n 1 $temp | awk '{ print $1 }';`"
+idreset="`egrep .*var.*reset < $temp | awk '{ print $1 }';`"
+idone="`egrep .*one.*1 < $temp | awk '{ print $1 }';`"
+
+((id = idlast + 1))
+
+cat $temp
+echo ""
+echo "$((id++)) next 1 $idreset $idone"
+echo ""
+if [[ $sat = 1 ]]; then
+  echo "$((id++)) eq 1 $idfull $idempty"
+else
+  echo "$((id++)) and 1 $idfull $idempty"
+fi
+((lastid = id - 1))
+echo "$((id++)) and 1 $lastid $idreset"
+((lastid = id - 1))
+echo "$((id++)) root 1 $lastid"
