@@ -76,8 +76,6 @@ echo ""
 echo ";next of full"
 echo "$((id++)) eq 1 $idtail $idmaxconst"
 ((lastid = id - 1))
-echo "$((id++)) and 1 $lastid $idenqueue"
-((lastid = id - 1))
 echo "$((id++)) cond 1 $lastid $idone1 $idfull"
 ((lastid = id - 1))
 echo "$((id++)) cond 1 $iddequeue $idzero1 $lastid"
