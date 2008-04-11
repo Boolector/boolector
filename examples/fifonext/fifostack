@@ -97,8 +97,12 @@ echo "$((id++)) next 1 $idempty $lastid"
 echo ""
 echo ";next of data_out"
 echo "$((id++)) read $bw $idarray $idtailsub"
+((idread = id - 1))
+echo "$((id++)) and 1 $iddequeue -$idempty"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idempty $iddataout $lastid"
+echo "$((id++)) cond $bw $lastid $idread $iddataout"
+((lastid = id - 1))
+echo "$((id++)) cond $bw $idxor $lastid $iddataout"
 ((lastid = id - 1))
 echo "$((id++)) next $bw $iddataout $lastid"
 
@@ -111,18 +115,16 @@ echo "$((id++)) cond $bw $idfull $idarray $lastid"
 ((idarraytemp = idarray))
 for ((i = 0; i < size - 2; i++))
 do
-  echo "$((id++)) ult 1 $((idzero + i)) $idtail"
-  ((idult = id - 1))
   echo "$((id++)) read $bw $idarray $((idzero + i + 1))"
   ((lastid = id - 1))
   echo "$((id++)) write $bw $idarraytemp $((idzero + i)) $lastid"
-  ((lastid = id - 1))
-  echo "$((id++)) cond $bw $idult $lastid $idtemp"
   ((idarraytemp = id - 1))
 done
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idenqueue $idarraycond $lastid"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idxor $lastid $idarray"
+((lastid = id - 1))
+echo "$((id++)) cond $bw $idreset $lastid $idarray"
 ((lastid = id - 1))
 echo "$((id++)) next $bw $idarray $lastid"
