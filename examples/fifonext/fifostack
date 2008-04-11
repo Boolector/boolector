@@ -108,3 +108,21 @@ echo "$((id++)) write $bw $idarray $idtail $iddatain"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idfull $idarray $lastid"
 ((idarraycond = id - 1))
+((idarraytemp = idarray))
+for ((i = 0; i < size - 2; i++))
+do
+  echo "$((id++)) ult 1 $((idzero + i)) $idtail"
+  ((idult = id - 1))
+  echo "$((id++)) read $bw $idarray $((idzero + i + 1))"
+  ((lastid = id - 1))
+  echo "$((id++)) write $bw $idarraytemp $((idzero + i)) $lastid"
+  ((lastid = id - 1))
+  echo "$((id++)) cond $bw $idult $lastid $idtemp"
+  ((idarraytemp = id - 1))
+done
+((lastid = id - 1))
+echo "$((id++)) cond $bw $idenqueue $idarraycond $lastid"
+((lastid = id - 1))
+echo "$((id++)) cond $bw $idxor $lastid $idarray"
+((lastid = id - 1))
+echo "$((id++)) next $bw $idarray $lastid"
