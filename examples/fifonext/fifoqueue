@@ -103,7 +103,7 @@ echo "$((id++)) cond 1 $iddequeue $idzero1 $lastid"
 ((lastid = id - 1))
 echo "$((id++)) cond 1 $idxor $lastid $idfull"
 ((lastid = id - 1))
-echo "$((id++)) cond 1 $idreset $lastid $idone1"
+echo "$((id++)) cond 1 $idreset $lastid $idzero1"
 ((lastid = id - 1))
 echo "$((id++)) next 1 $idfull $lastid"
 
