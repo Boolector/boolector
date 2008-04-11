@@ -101,6 +101,14 @@ echo "$((id++)) cond 1 $idreset $lastid $idone1"
 echo "$((id++)) next 1 $idempty $lastid"
 
 echo ""
+echo ";next of data_out"
+echo "$((id++)) read $bw $idarray $idtailsub"
+((lastid = id - 1))
+echo "$((id++)) cond $bw $idempty $iddataout $lastid"
+((lastid = id - 1))
+echo "$((id++)) next $bw $iddataout $lastid"
+
+echo ""
 echo ";next of memory"
 echo "$((id++)) write $bw $idarray $idtail $iddatain"
 ((lastid = id - 1))
