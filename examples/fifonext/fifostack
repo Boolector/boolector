@@ -96,7 +96,7 @@ echo "$((id++)) next 1 $idempty $lastid"
 
 echo ""
 echo ";next of data_out"
-echo "$((id++)) read $bw $idarray $idtailsub"
+echo "$((id++)) read $bw $idarray $idhead"
 ((idread = id - 1))
 echo "$((id++)) and 1 $iddequeue -$idempty"
 ((lastid = id - 1))
