@@ -982,11 +982,18 @@ btor_main (int argc, char **argv)
             {
               assert (sat_result == BTOR_UNSAT);
               /* we add NOT (Init /\ Bad_k) */
-              and     = btor_and_exp (btor, regs_zero, bad);
-              not_and = btor_not_exp (btor, and);
-              btor_add_constraint_exp (btor, not_and);
-              btor_release_exp (btor, not_and);
-              btor_release_exp (btor, and);
+
+              /* we do not add it, as assumptions would
+               * be deleted in the replay file
+               */
+              if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
+              {
+                and     = btor_and_exp (btor, regs_zero, bad);
+                not_and = btor_not_exp (btor, and);
+                btor_add_constraint_exp (btor, not_and);
+                btor_release_exp (btor, not_and);
+                btor_release_exp (btor, and);
+              }
             }
           }
 
