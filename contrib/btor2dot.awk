@@ -29,7 +29,7 @@ BEGIN { print "digraph G {" }
   } else if ($2 == "array") {
     arrays[$1]
     printf "%d [shape=box, style=filled, fillcolor=lightblue, label=\"array\\n%d %d\"];\n", $1, $3, $4
-  } else if ($2 == "neg" || $2 == "not" || $2 == "redor" || 
+  } else if ($2 == "neg" || $2 == "not" || $2 == "redor" || $2 == "proxy" ||
              $2 == "redxor" || $2 == "redand" || $2 == "nego") {
     printf "%d [label=\"%s\"];\n", $1, $2
     print_unary_child_arrow($1, $4)

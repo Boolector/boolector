@@ -695,6 +695,12 @@ parse_neg (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_proxy (BtorBTORParser *parser, int len)
+{
+  return parse_unary (parser, len, btor_copy_exp);
+}
+
+static BtorExp *
 parse_redunary_and_nego (BtorBTORParser *parser, int len, Unary f)
 {
   BtorExp *tmp, *res;
@@ -1536,6 +1542,7 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_one, "one");
   new_parser (res, parse_ones, "ones");
   new_parser (res, parse_or, "or");
+  new_parser (res, parse_proxy, "proxy");
   new_parser (res, parse_read, "read");
   new_parser (res, parse_redand, "redand");
   new_parser (res, parse_redor, "redor");

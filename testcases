@@ -120,3 +120,4 @@ wchains002se -o log/wchains002se.log log/wchains002se.smt
 wchains002ue -o log/wchains002ue.log log/wchains002ue.smt
 dubreva002ue -o log/dubreva002ue.log log/dubreva002ue.smt
 regrw8simp -o log/regrw8simp.log log/regrw8simp.btor
+regprim11simp -o log/regprim11simp.log log/regprim11simp.btor

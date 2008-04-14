@@ -21,9 +21,13 @@ BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
  */
 enum BtorExpKind
 {
-#ifndef NDEBUG
-  BTOR_INVALID_EXP = 0, /* for debugging purposes */
-#endif
+  /* Even though the following is just for debugging purposes,
+   * we should not put '#ifndef NDEBUG' around.  This would
+   * make delta debugging of Heisenbugs in release mode more
+   * difficult.
+   */
+  BTOR_INVALID_EXP = 0,
+
   BTOR_CONST_EXP  = 1,
   BTOR_VAR_EXP    = 2,
   BTOR_ARRAY_EXP  = 3,

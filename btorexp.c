@@ -18,8 +18,7 @@
 /* Pointer chasing is a must for most incremental applications.  We keep
  * this switch to turn off pointer chasing around, for debugging purposes.
  *
- * #define NPROXY
- *
+#define NPROXY
  */
 
 /*------------------------------------------------------------------------*/
@@ -2744,6 +2743,8 @@ btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return xor_exp (btor, e0, e1);
 }
 
+#undef NDEBUG
+
 static BtorExp *
 eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
@@ -2786,6 +2787,8 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   if (result == NULL) result = binary_exp (btor, kind, e0, e1, 1);
   return result;
 }
+
+#define NDEBUG
 
 BtorExp *
 btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
@@ -5161,7 +5164,18 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
     assert (BTOR_IS_REGULAR_EXP (e));
     assert (e->mark);
 
-    for (i = 0; i < e->arity; i++) BTOR_PUSH_EXP_IF_NOT_MARKED (e->e[i]);
+    if (BTOR_IS_PROXY_EXP (e))
+    {
+      assert (e->simplified);
+      BTOR_PUSH_EXP_IF_NOT_MARKED (e->simplified);
+    }
+    else
+    {
+#ifndef NPROXY
+      assert (!e->simplified);
+#endif
+      for (i = 0; i < e->arity; i++) BTOR_PUSH_EXP_IF_NOT_MARKED (e->e[i]);
+    }
   }
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
@@ -5186,6 +5200,7 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
       case BTOR_BEQ_EXP:
       case BTOR_AEQ_EXP: op = "eq"; goto PRINT;
       case BTOR_MUL_EXP: op = "mul"; goto PRINT;
+      case BTOR_PROXY_EXP: op = "proxy"; goto PRINT;
       case BTOR_READ_EXP: op = "read"; goto PRINT;
       case BTOR_SLL_EXP: op = "sll"; goto PRINT;
       case BTOR_SRL_EXP: op = "srl"; goto PRINT;
@@ -5197,8 +5212,12 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
       PRINT:
         fputs (op, file);
         fprintf (file, " %d", e->len);
-        for (j = 0; j < e->arity; j++)
-          fprintf (file, " %d", BTOR_GET_ID_EXP (e->e[j]));
+
+        if (BTOR_IS_PROXY_EXP (e))
+          fprintf (file, " %d", BTOR_GET_ID_EXP (e->simplified));
+        else
+          for (j = 0; j < e->arity; j++)
+            fprintf (file, " %d", BTOR_GET_ID_EXP (e->e[j]));
         break;
 
       case BTOR_SLICE_EXP:
