@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NPROXY
+/* #define NPROXY */
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
