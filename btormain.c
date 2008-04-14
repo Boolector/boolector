@@ -61,6 +61,14 @@ enum BtorAppMode
 
 typedef enum BtorAppMode BtorAppMode;
 
+enum BtorAppBMCMode
+{
+  BTOR_APP_BMC_MODE_BASIS_ONLY = 0,
+  BTOR_APP_BMC_MODE_INDUCT_ONLY
+};
+
+typedef enum BtorAppBMCMode BtorAppBMCMode;
+
 struct BtorMainApp
 {
   FILE *output_file;
@@ -79,7 +87,8 @@ struct BtorMainApp
   int argc;
   char **argv;
   BtorBasis basis;
-  BtorAppMode mode;
+  BtorAppMode app_mode;
+  BtorAppBMCMode bmc_mode;
   int dump_exp;
   FILE *exp_file;
   int close_exp_file;
@@ -124,13 +133,19 @@ static const char *g_usage =
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
-    "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding\n"
+    "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding "
+    "(default)\n"
     "\n"
     "\n"
     "BMC options:\n"
     "  -bmc-maxk=<k>                     sets maximum bound for model "
     "checking\n"
-    "  -bmc-no-adc                       disable all different constraints\n";
+    "  -bmc-adc                          use all different constraints "
+    "(default)\n"
+    "  -bmc-no-adc                       disable all different constraints\n"
+    "  -bmc-base-only                    base case only (search for "
+    "wittnesses) (default)\n"
+    "  -bmc-induct-only                  inductive case only\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -439,8 +454,14 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
+    else if (!strcmp (app->argv[app->argpos], "-bmc-adc"))
+      app->bmcadc = 1;
     else if (!strcmp (app->argv[app->argpos], "-bmc-no-adc"))
       app->bmcadc = 0;
+    else if (!strcmp (app->argv[app->argpos], "-bmc-base-only"))
+      app->bmc_mode = BTOR_APP_BMC_MODE_BASIS_ONLY;
+    else if (!strcmp (app->argv[app->argpos], "-bmc-induct-only"))
+      app->bmc_mode = BTOR_APP_BMC_MODE_INDUCT_ONLY;
     else if (!strcmp (app->argv[app->argpos], "-v")
              || !strcmp (app->argv[app->argpos], "--verbose"))
     {
@@ -707,7 +728,8 @@ btor_main (int argc, char **argv)
   app.done              = 0;
   app.err               = 0;
   app.basis             = BTOR_BINARY_BASIS;
-  app.mode              = BTOR_APP_REGULAR_MODE;
+  app.app_mode          = BTOR_APP_REGULAR_MODE;
+  app.bmc_mode          = BTOR_APP_BMC_MODE_BASIS_ONLY;
   app.dump_exp          = 0;
   app.exp_file          = stdout;
   app.close_exp_file    = 0;
@@ -819,12 +841,19 @@ btor_main (int argc, char **argv)
       /* BMC ? */
       if (parse_res.nregs > 0)
       {
-        app.mode = BTOR_APP_BMC_MODE;
+        app.app_mode = BTOR_APP_BMC_MODE;
         print_msg (&app, "Solving BMC problem\n");
         if (app.bmcadc)
           print_msg (&app, "Use all different constraints: yes\n");
         else
           print_msg (&app, "Use all different constraints: no\n");
+        if (app.bmc_mode == BTOR_APP_BMC_MODE_BASIS_ONLY)
+          print_msg (&app, "Checking base case only\n");
+        else
+        {
+          assert (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY);
+          print_msg (&app, "Checking inductive case only\n");
+        }
         if (app.bmcmaxk >= 0)
           print_msg_va_args (&app, "Max bound: %d\n", app.bmcmaxk);
 
@@ -931,9 +960,11 @@ btor_main (int argc, char **argv)
             btor_release_exp (btor, diff_array);
           }
 
-          /* we generate assumption that bv-instantiations@0 are zero */
+          /* we generate expression that bv-instantiations@0 are zero */
           if (bmck == 0)
+          {
             regs_zero = generate_regs_eq_zero (btor, reg_inst, &bv_regs);
+          }
 
           /* incremental all different constraint */
           diff_bv = btor_true_exp (btor);
@@ -974,37 +1005,70 @@ btor_main (int argc, char **argv)
           bad = btor_next_exp_bmc (
               btor, reg_inst, conjuncted_constraints, bmck, input_inst);
 
-          print_msg (&app, "  Inductive case: ");
-          btor_add_assumption_exp (btor, bad);
-          sat_result = btor_sat_btor (btor, app.refinement_limit);
-          print_sat_result (&app, sat_result);
-          if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
-            bmc_done = 1;
-          else
+          if (app.bmc_mode == BTOR_APP_BMC_MODE_BASIS_ONLY)
           {
-            assert (sat_result == BTOR_SAT);
-            print_msg (&app, "  Base case: ");
-            btor_add_assumption_exp (btor, regs_zero);
-            btor_add_assumption_exp (btor, bad);
+            /* check all different constraint */
             sat_result = btor_sat_btor (btor, app.refinement_limit);
-            print_sat_result (&app, sat_result);
-            if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
+            if (sat_result == BTOR_UNSAT)
+            {
+              print_msg (&app, "No more states reachable\n");
               bmc_done = 1;
+            }
             else
             {
-              assert (sat_result == BTOR_UNSAT);
-              /* we add NOT (Init /\ Bad_k) */
-
-              /* we do not add it, as assumptions would
-               * be deleted in the replay file
-               */
-              if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
+              print_msg (&app, "  Base case: ");
+              if (bmck == 0) btor_add_constraint_exp (btor, regs_zero);
+              btor_add_assumption_exp (btor, bad);
+              sat_result = btor_sat_btor (btor, app.refinement_limit);
+              print_sat_result (&app, sat_result);
+              if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
+                bmc_done = 1;
+              else
               {
+                /* we add NOT (Init /\ Bad_k) */
+                assert (sat_result == BTOR_UNSAT);
                 and     = btor_and_exp (btor, regs_zero, bad);
                 not_and = btor_not_exp (btor, and);
                 btor_add_constraint_exp (btor, not_and);
                 btor_release_exp (btor, not_and);
                 btor_release_exp (btor, and);
+              }
+            }
+          }
+          else
+          {
+            print_msg (&app, "  Inductive case: ");
+            btor_add_assumption_exp (btor, bad);
+            sat_result = btor_sat_btor (btor, app.refinement_limit);
+            print_sat_result (&app, sat_result);
+            if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
+              bmc_done = 1;
+            else
+            {
+              assert (sat_result == BTOR_SAT);
+              print_msg (&app, "  Base case: ");
+              btor_add_assumption_exp (btor, regs_zero);
+              btor_add_assumption_exp (btor, bad);
+              sat_result = btor_sat_btor (btor, app.refinement_limit);
+              print_sat_result (&app, sat_result);
+              if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
+                bmc_done = 1;
+              else
+              {
+                assert (sat_result == BTOR_UNSAT);
+                /* we add NOT (Init /\ Bad_k) */
+
+                /* we do not add it in the last iteration,
+                 * as assumptions would be deleted in the replay file
+                 */
+                if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
+                {
+                  and     = btor_and_exp (btor, regs_zero, bad);
+                  not_and = btor_not_exp (btor, and);
+                  btor_add_constraint_exp (btor, not_and);
+                  btor_release_exp (btor, not_and);
+                  btor_release_exp (btor, and);
+                }
               }
             }
           }
