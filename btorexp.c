@@ -15,7 +15,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* #define NPROXY */
+/* Pointer chasing is a must for most incremental applications.  We keep
+ * this switch to turn off pointer chasing around, for debugging purposes.
+ *
+ * #define NPROXY
+ *
+ */
 
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
