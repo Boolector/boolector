@@ -1,22 +1,25 @@
 #!/bin/bash
-if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
-  echo "Usage: ./fifoqueue <num-bits> <power> [start-id]"
+if [[ $# -ne 3 ]] && [[ $# -ne 4 ]]; then
+  echo "Usage: ./fifoqueue <num-bits> <power> <start-id> [--reset-mem]"
   exit
+fi
+
+if [[ $# = 4 ]] && [[ ! $4 = --reset-mem ]]; then
+  echo "Usage: ./fifoqueue <num-bits> <power> <start-id> [--reset-mem]"
+  exit;
+fi
+
+if [[ $# = 4 ]]; then
+  resetmem=1
+else
+  resetmem=0
 fi
 
 bw=$1
 power=$2
 ((size = 2 ** power))
 
-if  [[ $# = 3 ]]; then
-  id=$3
-  #we skip inputs, as they have already been defined
-  idreset=1
-  idenqueue=2
-  iddequeue=3
-  iddatain=4
-  idxor=5
-else
+if [[ $3 = 1 ]]; then
   id=1
   echo "$((id++)) var 1 reset"
   ((idreset = id - 1))
@@ -28,8 +31,15 @@ else
   ((iddatain = id - 1))
   echo "$((id++)) xor 1 $idenqueue $iddequeue"
   ((idxor = id - 1))
+else
+  id=$3
+  #we skip inputs, as they have already been defined
+  idreset=1
+  idenqueue=2
+  iddequeue=3
+  iddatain=4
+  idxor=5
 fi
-
 
 echo ""
 echo "$((id++)) array $bw $power"
@@ -60,7 +70,12 @@ echo "$((id++)) zero 1"
 ((idzero1 = id - 1))
 echo "$((id++)) one 1"
 ((idone1 = id - 1))
+
 echo ""
+if [[ $resetmem = 1 ]]; then
+  echo "$((id++)) zero $bw"
+  ((idzerobw = id - 1))
+fi
 
 echo ";next of head_fq"
 echo "$((id++)) add $power $idhead $idone"
@@ -136,6 +151,15 @@ echo "$((id++)) next $bw $iddataout $lastid"
 
 echo ""
 echo ";next of queue memory"
+if [[ $resetmem = 1 ]]; then
+  idlastarray=$idarray
+  for ((i = 0; i < size; i++))
+  do
+    echo "$((id++)) write $bw $idlastarray $((idzero + i)) $idzerobw"
+    ((idlastarray = id - 1))
+  done
+  idresetmem=$idlastarray
+fi
 echo "$((id++)) write $bw $idarray $idtail $iddatain"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idfull $idarray $lastid"
@@ -144,6 +168,10 @@ echo "$((id++)) cond $bw $idenqueue $lastid $idarray"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idxor $lastid $idarray"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idreset $lastid $idarray"
+if [[ $resetmem = 1 ]]; then
+  echo "$((id++)) cond $bw $idreset $lastid $idresetmem"
+else
+  echo "$((id++)) cond $bw $idreset $lastid $idarray"
+fi
 ((lastid = id - 1))
 echo "$((id++)) next $bw $idarray $lastid"
