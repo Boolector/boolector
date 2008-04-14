@@ -628,11 +628,15 @@ conjunct_constraints (Btor *btor, BtorExpPtrStack *constraints)
 }
 
 static BtorExp *
-generate_regs_eq_zero (Btor *btor, const BtorExpPtrStack *bv_regs)
+generate_regs_eq_zero (Btor *btor,
+                       BtorPtrHashTable *inst_table,
+                       const BtorExpPtrStack *bv_regs)
 {
   int i;
-  BtorExp *result, *temp, *zero, *eq, *cur;
+  BtorExp *result, *temp, *zero, *eq, *cur, *inst;
+  BtorPtrHashBucket *bucket;
   assert (btor != NULL);
+  assert (inst_table != NULL);
   assert (bv_regs != NULL);
   result = btor_true_exp (btor);
   for (i = 0; i < BTOR_COUNT_STACK (*bv_regs); i++)
@@ -640,8 +644,12 @@ generate_regs_eq_zero (Btor *btor, const BtorExpPtrStack *bv_regs)
     cur = bv_regs->start[i];
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur));
-    zero = btor_zeros_exp (btor, btor_get_exp_len (btor, cur));
-    eq   = btor_eq_exp (btor, cur, zero);
+    bucket = btor_find_in_ptr_hash_table (inst_table, cur);
+    assert (bucket != NULL);
+    assert (bucket->data.asPtr != NULL);
+    inst = (BtorExp *) bucket->data.asPtr;
+    zero = btor_zeros_exp (btor, btor_get_exp_len (btor, inst));
+    eq   = btor_eq_exp (btor, inst, zero);
     temp = btor_and_exp (btor, result, eq);
     btor_release_exp (btor, result);
     result = temp;
@@ -847,16 +855,12 @@ btor_main (int argc, char **argv)
         }
 
         conjuncted_constraints = conjunct_constraints (btor, &constraints);
-        regs_zero              = generate_regs_eq_zero (btor, &bv_regs);
         reg_inst =
             btor_new_ptr_hash_table (mem,
                                      (BtorHashPtr) btor_hash_exp_by_id,
                                      (BtorCmpPtr) btor_compare_exp_by_id);
         BTOR_INIT_STACK (bv_states);
-        BTOR_NEWN (mem, old_insts, parse_res.nregs);
-        for (i = 0; i < parse_res.nregs; i++)
-          old_insts[i] = btor_copy_exp (btor, parse_res.regs[i]);
-
+        BTOR_CNEWN (mem, old_insts, parse_res.nregs);
         BTOR_CNEWN (mem, new_insts, parse_res.nregs);
 
         for (i = 0; i < parse_res.nregs; i++)
@@ -927,6 +931,10 @@ btor_main (int argc, char **argv)
             btor_release_exp (btor, diff_array);
           }
 
+          /* we generate assumption that bv-instantiations@0 are zero */
+          if (bmck == 0)
+            regs_zero = generate_regs_eq_zero (btor, reg_inst, &bv_regs);
+
           /* incremental all different constraint */
           diff_bv = btor_true_exp (btor);
           for (p = bv_states.start; p != bv_states.top; p++)
@@ -945,18 +953,22 @@ btor_main (int argc, char **argv)
           btor_release_exp (btor, diff_arrays);
           btor_release_exp (btor, diff);
 
-          /* we set instantiations equal */
+          /* we set instantiations equal to last 'next' application */
           for (i = 0; i < parse_res.nregs; i++)
           {
             new_insts[i] = btor_next_exp_bmc (
                 btor, reg_inst, parse_res.nexts[i], bmck, input_inst);
-            bucket = btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
-            assert (bucket != NULL);
-            assert (bucket->data.asPtr != NULL);
-            eq = btor_eq_exp (
-                btor, old_insts[i], (BtorExp *) bucket->data.asPtr);
-            btor_add_constraint_exp (btor, eq);
-            btor_release_exp (btor, eq);
+            if (bmck > 0)
+            {
+              bucket =
+                  btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
+              assert (bucket != NULL);
+              assert (bucket->data.asPtr != NULL);
+              eq = btor_eq_exp (
+                  btor, old_insts[i], (BtorExp *) bucket->data.asPtr);
+              btor_add_constraint_exp (btor, eq);
+              btor_release_exp (btor, eq);
+            }
           }
 
           bad = btor_next_exp_bmc (
@@ -999,7 +1011,7 @@ btor_main (int argc, char **argv)
 
           for (i = 0; i < parse_res.nregs; i++)
           {
-            btor_release_exp (btor, old_insts[i]);
+            if (bmck > 0) btor_release_exp (btor, old_insts[i]);
             old_insts[i] = new_insts[i];
             new_insts[i] = NULL;
             bucket = btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);

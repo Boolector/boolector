@@ -4835,6 +4835,7 @@ btor_next_exp_bmc (Btor *btor,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
   assert (BTOR_REAL_ADDR_EXP (root)->mark == 0);
+  assert (BTOR_REAL_ADDR_EXP (root)->simplified == NULL);
 
   BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (root));
   do
