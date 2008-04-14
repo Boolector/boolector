@@ -1,23 +1,24 @@
 #!/bin/bash
+# rmo: reset memory and output to zero if reset is active (low)
 if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
-  echo "Usage: ./fifoccemptyfull <num-bits> <power> [--reset-mem]"
+  echo "Usage: ./fifoccemptyfull <num-bits> <power> [-rmo]"
   exit
 fi
 
-if [[ $# = 3 ]] && [[ ! $3 = --reset-mem ]]; then
-  echo "Usage: ./fifoccemptyfull <num-bits> <power> [--reset-mem]"
+if [[ $# = 3 ]] && [[ ! $3 = -rmo ]]; then
+  echo "Usage: ./fifoccemptyfull <num-bits> <power> [-rmo]"
   exit
 fi
 
 if [[ $# = 3 ]]; then
-  resetmem=--reset-mem
+  rmo=-rmo
 else
-  resetmem=""
+  rmo=""
 fi
 
 tempstack="/tmp/fifoccemptyfullstack.tmp"
 
-./fifostack $1 $2 1 $resetmem > $tempstack
+./fifostack $1 $2 1 $rmo > $tempstack
 idemptystack="`egrep .*var.*empty < $tempstack | awk '{ print $1 }';`"
 idfullstack="`egrep .*var.*full < $tempstack | awk '{ print $1 }';`"
 idlaststack="`tail -n 1 $tempstack | awk '{ print $1 }';`"
@@ -29,7 +30,7 @@ idone="`egrep .*one.*1 < $tempstack | awk '{ print $1 }';`"
 
 tempqueue="/tmp/fifoccemptyfullqueue.tmp"
 
-./fifoqueue $1 $2 $id $resetmem > $tempqueue
+./fifoqueue $1 $2 $id $rmo > $tempqueue
 idemptyqueue="`egrep .*var.*empty < $tempqueue | awk '{ print $1 }';`"
 idfullqueue="`egrep .*var.*full < $tempqueue | awk '{ print $1 }';`"
 idlastqueue="`tail -n 1 $tempqueue | awk '{ print $1 }';`"

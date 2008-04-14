@@ -1,18 +1,19 @@
 #!/bin/bash
+# rmo: reset memory and output to zero if reset is active (low)
 if [[ $# -ne 3 ]] && [[ $# -ne 4 ]]; then
-  echo "Usage: ./fifoqueue <num-bits> <power> <start-id> [--reset-mem]"
+  echo "Usage: ./fifoqueue <num-bits> <power> <start-id> [-rmo]"
   exit
 fi
 
-if [[ $# = 4 ]] && [[ ! $4 = --reset-mem ]]; then
-  echo "Usage: ./fifoqueue <num-bits> <power> <start-id> [--reset-mem]"
+if [[ $# = 4 ]] && [[ ! $4 = -rmo ]]; then
+  echo "Usage: ./fifoqueue <num-bits> <power> <start-id> [-rmo]"
   exit;
 fi
 
 if [[ $# = 4 ]]; then
-  resetmem=1
+  rmo=1
 else
-  resetmem=0
+  rmo=0
 fi
 
 bw=$1
@@ -72,7 +73,7 @@ echo "$((id++)) one 1"
 ((idone1 = id - 1))
 
 echo ""
-if [[ $resetmem = 1 ]]; then
+if [[ $rmo = 1 ]]; then
   echo "$((id++)) zero $bw"
   ((idzerobw = id - 1))
 fi
@@ -137,18 +138,22 @@ echo "$((id++)) cond $bw $lastid $idread $iddataout"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idxor $lastid $iddataout"
 ((lastid = id - 1))
+if [[ $rmo = 1 ]]; then
+  echo "$((id++)) cond $bw $idreset $lastid $idzerobw"
+  ((lastid = id - 1))
+fi
 echo "$((id++)) next $bw $iddataout $lastid"
 
 echo ""
 echo ";next of stack memory"
-if [[ $resetmem = 1 ]]; then
+if [[ $rmo = 1 ]]; then
   idlastarray=$idarray
   for ((i = 0; i < size; i++))
   do
     echo "$((id++)) write $bw $idlastarray $((idzero + i)) $idzerobw"
     ((idlastarray = id - 1))
   done
-  idresetmem=$idlastarray
+  idrmo=$idlastarray
 fi
 echo "$((id++)) write $bw $idarray $idtail $iddatain"
 ((lastid = id - 1))
@@ -167,8 +172,8 @@ echo "$((id++)) cond $bw $idenqueue $idarraycond $lastid"
 ((lastid = id - 1))
 echo "$((id++)) cond $bw $idxor $lastid $idarray"
 ((lastid = id - 1))
-if [[ $resetmem = 1 ]]; then
-  echo "$((id++)) cond $bw $idreset $lastid $idresetmem"
+if [[ $rmo = 1 ]]; then
+  echo "$((id++)) cond $bw $idreset $lastid $idrmo"
 else
   echo "$((id++)) cond $bw $idreset $lastid $idarray"
 fi
