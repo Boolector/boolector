@@ -6602,7 +6602,8 @@ readd_assumptions (Btor *btor)
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
   {
     assert (BTOR_REAL_ADDR_EXP ((BtorExp *) bucket->key)->len == 1);
-    exp = pointer_chase_simplified_exp (btor, (BtorExp *) bucket->key);
+    exp = (BtorExp *) bucket->key;
+    assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
     aig = exp_to_aig (btor, exp);
     if (aig == BTOR_AIG_FALSE) return 1;
     btor_aig_to_sat (amgr, aig);
@@ -7763,6 +7764,24 @@ process_unsynthesized_constraints (Btor *btor)
   return 0;
 }
 
+static void
+update_assumptions (Btor *btor)
+{
+  BtorPtrHashBucket *bucket;
+  BtorExp *cur, *simp;
+  assert (btor != NULL);
+  for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
+  {
+    cur = (BtorExp *) bucket->key;
+    if (cur->simplified != NULL)
+    {
+      simp = btor_copy_exp (btor, pointer_chase_simplified_exp (btor, cur));
+      btor_release_exp (btor, cur);
+      bucket->key = simp;
+    }
+  }
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
@@ -7795,6 +7814,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   found_constraint_false = process_unsynthesized_constraints (btor);
   if (found_constraint_false) return BTOR_UNSAT;
+
+  /* pointer chase assumptions */
+  update_assumptions (btor);
 
   found_assumption_false = readd_assumptions (btor);
   if (found_assumption_false) return BTOR_UNSAT;
