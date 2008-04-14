@@ -1595,6 +1595,7 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
   exp->kind         = BTOR_PROXY_EXP;
   exp->disconnected = 0;
   exp->erased       = 0;
+  exp->arity        = 0; /* defensive */
 #endif
 }
 
@@ -7273,6 +7274,10 @@ substitute_exp (Btor *btor, BtorExp *left, BtorExp *right)
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
     if (cur->subst_mark == 0) continue;
+
+#ifndef NDEBUG
+    if (cur->simplified) assert (cur == left); /* really? */
+#endif
 
     if (cur == left) /* base case */
       continue;
