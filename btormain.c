@@ -942,7 +942,7 @@ btor_main (int argc, char **argv)
           }
 
           /* we generate new variable instantiations for arrays */
-          diff_arrays = btor_false_exp (btor);
+          if (app.bmcadc) diff_arrays = btor_false_exp (btor);
           for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
           {
             cur = array_regs.start[i];
