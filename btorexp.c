@@ -2743,8 +2743,6 @@ btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return xor_exp (btor, e0, e1);
 }
 
-#undef NDEBUG
-
 static BtorExp *
 eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
@@ -2787,8 +2785,6 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   if (result == NULL) result = binary_exp (btor, kind, e0, e1, 1);
   return result;
 }
-
-#define NDEBUG
 
 BtorExp *
 btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
@@ -2872,13 +2868,15 @@ cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
 #ifndef NDEBUG
   BtorExp *real_e_if, *real_e_else;
   int is_array_e_if, is_array_e_else;
+#endif
+  e_cond = pointer_chase_simplified_exp (btor, e_cond);
+  e_if   = pointer_chase_simplified_exp (btor, e_if);
+  e_else = pointer_chase_simplified_exp (btor, e_else);
+#ifndef NDEBUG
   assert (btor != NULL);
   assert (e_cond != NULL);
   assert (e_if != NULL);
   assert (e_else != NULL);
-  e_cond = pointer_chase_simplified_exp (btor, e_cond);
-  e_if   = pointer_chase_simplified_exp (btor, e_if);
-  e_else = pointer_chase_simplified_exp (btor, e_else);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)));
   assert (BTOR_REAL_ADDR_EXP (e_cond)->len == 1);
   real_e_if       = BTOR_REAL_ADDR_EXP (e_if);
