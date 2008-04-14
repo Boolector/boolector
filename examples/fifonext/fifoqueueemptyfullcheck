@@ -12,7 +12,7 @@ fi
 
 temp="/tmp/fifoqueueemptyfullcheck.tmp"
 
-./fifostack $1 $2 > $temp
+./fifostack $1 $2 1 > $temp
 idempty="`egrep .*var.*empty < $temp | awk '{ print $1 }';`"
 idfull="`egrep .*var.*full < $temp | awk '{ print $1 }';`"
 idlast="`tail -n 1 $temp | awk '{ print $1 }';`"
