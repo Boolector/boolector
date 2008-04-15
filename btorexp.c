@@ -80,7 +80,7 @@ struct Btor
   int valid_assignments;
   int rewrite_level;
   int verbosity;
-  int extensionality;
+  int has_array_equalities;
   int replay;
   int vread_index_id;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
@@ -5720,7 +5720,8 @@ btor_print_stats_btor (Btor *btor)
                      btor->stats.var_substitutions);
   print_verbose_msg ("array substitutions: %d",
                      btor->stats.array_substitutions);
-  print_verbose_msg ("extensionality: %s", btor->extensionality ? "yes" : "no");
+  print_verbose_msg ("array equalites: %s",
+                     btor->has_array_equalities ? "yes" : "no");
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
   print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
   print_verbose_msg ("read-read conflicts: %d",
@@ -5838,7 +5839,7 @@ set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
         case 2:
           if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
-            btor->extensionality = 1;
+            btor->has_array_equalities = 1;
             synthesize_array_equality (btor, cur);
           }
           BTOR_PUSH_STACK (mm, stack, cur->e[1]);
@@ -5939,7 +5940,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           }
           else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
-            btor->extensionality = 1;
+            btor->has_array_equalities = 1;
             /* generate virtual reads and create AIG
              * variable for array equality */
             synthesize_array_equality (btor, cur);
@@ -6247,7 +6248,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   BtorExpPtrQueue queue;
   BtorExpPtrStack unmark_stack;
   BtorPartialParentIterator it;
-  int found, assignment, extensionality;
+  int found, assignment, has_array_equalities;
   assert (btor != NULL);
   assert (acc != NULL);
   assert (array != NULL);
@@ -6255,12 +6256,12 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   assert (BTOR_IS_ACC_EXP (acc));
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  found          = 0;
-  extensionality = btor->extensionality;
-  mm             = btor->mm;
-  index          = BTOR_GET_INDEX_ACC_EXP (acc);
-  amgr           = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  cur            = BTOR_ACC_TARGET_EXP (acc);
+  found                = 0;
+  has_array_equalities = btor->has_array_equalities;
+  mm                   = btor->mm;
+  index                = BTOR_GET_INDEX_ACC_EXP (acc);
+  amgr                 = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  cur                  = BTOR_ACC_TARGET_EXP (acc);
   assert (BTOR_IS_REGULAR_EXP (cur));
   assert (BTOR_IS_ARRAY_EXP (cur));
   assert (cur->mark == 0);
@@ -6322,7 +6323,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
-    if (extensionality)
+    if (has_array_equalities)
     {
       /* enqueue all arrays which are reachable via equality
        * where equality is set to true by the SAT solver */
@@ -6738,13 +6739,13 @@ process_working_stack (Btor *btor,
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
-  int assignment, indices_equal, extensionality;
+  int assignment, indices_equal, has_array_equalities;
   assert (btor != NULL);
   assert (stack != NULL);
   assert (assignments_changed != NULL);
-  extensionality = btor->extensionality;
-  mm             = btor->mm;
-  amgr           = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  has_array_equalities = btor->has_array_equalities;
+  mm                   = btor->mm;
+  amgr                 = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   while (!BTOR_EMPTY_STACK (*stack))
   {
     array = BTOR_POP_STACK (*stack);
@@ -6843,7 +6844,7 @@ process_working_stack (Btor *btor,
     assert (array->rho != NULL);
     /* insert into hash table */
     btor_insert_in_ptr_hash_table (array->rho, index)->data.asPtr = acc;
-    if (extensionality)
+    if (has_array_equalities)
     {
       /* propagate pairs wich are reachable via array equality */
       init_aeq_parent_iterator (&it, array);
@@ -7022,12 +7023,12 @@ check_and_resolve_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
   BtorPartialParentIterator it;
   BtorMemMgr *mm;
   BtorExp *cur_array, *cur_parent, **top, **temp;
-  int found_conflict, changed_assignments, extensionality;
+  int found_conflict, changed_assignments, has_array_equalities;
   assert (btor != NULL);
   assert (top_arrays != NULL);
-  found_conflict = 0;
-  mm             = btor->mm;
-  extensionality = btor->extensionality;
+  found_conflict       = 0;
+  mm                   = btor->mm;
+  has_array_equalities = btor->has_array_equalities;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   assert (!found_conflict);
   changed_assignments = 0;
@@ -7063,7 +7064,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       if (BTOR_IS_WRITE_EXP (cur_array))
       {
         BTOR_PUSH_STACK (mm, array_stack, cur_array->e[0]);
-        if (extensionality)
+        if (has_array_equalities)
         {
           /* propagate write as read to ensure write value
            * consistency in extensional cases */
