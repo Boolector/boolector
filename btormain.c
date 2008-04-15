@@ -716,8 +716,8 @@ btor_main (int argc, char **argv)
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *conjuncted_constraints, *bad, *not_and, *bv_state;
-  BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *and, *temp;
+  BtorExp *root, **p, *conjuncted_constraints, *bad, *bv_state;
+  BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *temp;
   BtorExp *ne, *diff, *diff_bv, *diff_arrays, *diff_array, *not_bad;
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
