@@ -594,7 +594,6 @@ parse_commandline_arguments (BtorMainApp *app)
         }
       }
     }
-
     else if (app->argv[app->argpos][0] == '-')
     {
       print_err_va_args (app, "invalid option '%s'\n", app->argv[app->argpos]);
@@ -616,6 +615,13 @@ parse_commandline_arguments (BtorMainApp *app)
       app->input_file       = temp_file;
       app->close_input_file = 1;
     }
+  }
+
+  if (app->close_replay_file && app->bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT)
+  {
+    print_err_va_args (
+        app, "Can not create replay file for 'base-and-induct' mode\n");
+    app->err = 1;
   }
 }
 
@@ -1092,18 +1098,11 @@ btor_main (int argc, char **argv)
               {
                 assert (sat_result == BTOR_UNSAT);
                 /* we add NOT (Init /\ Bad_k) */
-
-                /* we do not add it in the last iteration,
-                 * as assumptions would be deleted in the replay file
-                 */
-                if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
-                {
-                  and     = btor_and_exp (btor, regs_zero, bad);
-                  not_and = btor_not_exp (btor, and);
-                  btor_add_constraint_exp (btor, not_and);
-                  btor_release_exp (btor, not_and);
-                  btor_release_exp (btor, and);
-                }
+                and     = btor_and_exp (btor, regs_zero, bad);
+                not_and = btor_not_exp (btor, and);
+                btor_add_constraint_exp (btor, not_and);
+                btor_release_exp (btor, not_and);
+                btor_release_exp (btor, and);
               }
             }
           }
