@@ -1035,7 +1035,7 @@ btor_main (int argc, char **argv)
               bmc_done = 1;
             else
             {
-              /* we add NOT (Init /\ Bad_k) */
+              /* we add NOT Bad_k */
 
               /* we do not add it in the last iteration,
                * as assumptions would be deleted in the replay file
@@ -1043,11 +1043,9 @@ btor_main (int argc, char **argv)
               if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
               {
                 assert (sat_result == BTOR_UNSAT);
-                and     = btor_and_exp (btor, regs_zero, bad);
-                not_and = btor_not_exp (btor, and);
-                btor_add_constraint_exp (btor, not_and);
-                btor_release_exp (btor, not_and);
-                btor_release_exp (btor, and);
+                not_bad = btor_not_exp (btor, bad);
+                btor_add_constraint_exp (btor, not_bad);
+                btor_release_exp (btor, not_bad);
               }
             }
           }
@@ -1097,12 +1095,10 @@ btor_main (int argc, char **argv)
               else
               {
                 assert (sat_result == BTOR_UNSAT);
-                /* we add NOT (Init /\ Bad_k) */
-                and     = btor_and_exp (btor, regs_zero, bad);
-                not_and = btor_not_exp (btor, and);
-                btor_add_constraint_exp (btor, not_and);
-                btor_release_exp (btor, not_and);
-                btor_release_exp (btor, and);
+                /* we add NOT Bad_k */
+                not_bad = btor_not_exp (btor, bad);
+                btor_add_constraint_exp (btor, not_bad);
+                btor_release_exp (btor, not_bad);
               }
             }
           }
