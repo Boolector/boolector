@@ -1,5 +1,4 @@
 #!/bin/bash
-# rmo: reset memory and output to zero if reset is active (low)
 if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
   echo "Usage: ./fifoeqcheck <num-bits> <power> [-rmo]"
   exit
