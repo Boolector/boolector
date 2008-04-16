@@ -22,6 +22,10 @@
  */
 
 /*------------------------------------------------------------------------*/
+
+#define AVERAGE(a, b) ((b) ? ((double) (a)) / ((double) (b)) : 0.0)
+
+/*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
@@ -5782,10 +5786,10 @@ btor_print_stats_btor (Btor *btor)
                      btor->stats.read_write_conflicts);
   print_verbose_msg (
       "average lemma size: %.1f",
-      (double) btor->stats.lemmas_size_sum / (double) btor->stats.refinements);
+      AVERAGE (btor->stats.lemmas_size_sum, btor->stats.refinements));
   print_verbose_msg (
       "average linking clause size: %.1f",
-      (double) btor->stats.lclause_size_sum / (double) btor->stats.refinements);
+      AVERAGE (btor->stats.lclause_size_sum, btor->stats.refinements));
   print_verbose_msg ("linear constraint equations: %d",
                      btor->stats.linear_equations);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
