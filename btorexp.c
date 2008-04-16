@@ -2460,15 +2460,23 @@ ternary_exp (Btor *btor,
              int len)
 {
   BtorExp **lookup;
+  BtorExp *temp;
   assert (btor != NULL);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (e2 != NULL);
   assert (kind != BTOR_BEQ_EXP || len > 0);
-  e0     = pointer_chase_simplified_exp (btor, e0);
-  e1     = pointer_chase_simplified_exp (btor, e1);
-  e2     = pointer_chase_simplified_exp (btor, e2);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+  e2 = pointer_chase_simplified_exp (btor, e2);
+  if (BTOR_IS_INVERTED_EXP (e0))
+  {
+    e0   = BTOR_INVERT_EXP (e0);
+    temp = e1;
+    e1   = e2;
+    e2   = temp;
+  }
   lookup = find_ternary_exp (btor, kind, e0, e1, e2);
   if (*lookup == NULL)
   {
@@ -7347,22 +7355,39 @@ static int
 is_substitution (Btor *btor,
                  BtorExp *exp,
                  BtorExp **left_result,
-                 BtorExp **right_result)
+                 BtorExp **right_result,
+                 int *subst_bool_var)
 {
   BtorExp *left, *right, *real_left, *real_right;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (left_result != NULL);
   assert (right_result != NULL);
-  if (btor->rewrite_level <= 1 || BTOR_IS_INVERTED_EXP (exp)
-      || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp))
-    return 0;
-  left  = exp->e[0];
-  right = exp->e[1];
-  assert (pointer_chase_simplified_exp (btor, left) == left);
-  assert (pointer_chase_simplified_exp (btor, right) == right);
-  real_left  = BTOR_REAL_ADDR_EXP (left);
-  real_right = BTOR_REAL_ADDR_EXP (right);
+  assert (subst_bool_var != NULL);
+  assert (btor->rewrite_level > 1);
+  assert (pointer_chase_simplified_exp (btor, exp) == exp);
+  if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)))
+  {
+    assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+    if (BTOR_IS_INVERTED_EXP (exp))
+    {
+      *left_result  = BTOR_REAL_ADDR_EXP (exp);
+      *right_result = zeros_exp (btor, 1);
+    }
+    else
+    {
+      *left_result  = exp;
+      *right_result = one_exp (btor, 1);
+    }
+    *subst_bool_var = 1;
+    return 1;
+  }
+  if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
+  *subst_bool_var = 0;
+  left            = exp->e[0];
+  right           = exp->e[1];
+  real_left       = BTOR_REAL_ADDR_EXP (left);
+  real_right      = BTOR_REAL_ADDR_EXP (right);
   if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
@@ -7503,9 +7528,11 @@ process_new_constraints (Btor *btor)
   BtorPtrHashTable *new_constraints, *processed_constraints;
   BtorExp *cur, *left, *right;
   BtorPtrHashBucket *bucket;
+  int rewrite_level, subst_bool_var;
   assert (btor != NULL);
   new_constraints       = btor->new_constraints;
   processed_constraints = btor->processed_constraints;
+  rewrite_level         = btor->rewrite_level;
   while (new_constraints->count > 0)
   {
     bucket = new_constraints->first;
@@ -7514,9 +7541,12 @@ process_new_constraints (Btor *btor)
     assert (BTOR_REAL_ADDR_EXP (cur)->constraint == 1);
     assert (pointer_chase_simplified_exp (btor, cur) == cur);
     assert (BTOR_IS_INVERTED_EXP (cur) || cur->kind != BTOR_AND_EXP);
-    assert (pointer_chase_simplified_exp (btor, cur) == cur);
-    if (is_substitution (btor, cur, &left, &right))
+    if (rewrite_level > 1
+        && is_substitution (btor, cur, &left, &right, &subst_bool_var))
+    {
       substitute_exp (btor, left, right);
+      if (subst_bool_var) release_exp (btor, right);
+    }
     else
     {
       if (btor->verbosity > 0)
