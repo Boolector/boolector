@@ -123,6 +123,7 @@ struct Btor
     {
       struct ConstraintStats constraints;
     } old;
+    long long expressions;
   } stats;
 };
 
@@ -1733,6 +1734,7 @@ new_const_exp_node (Btor *btor, const char *bits)
   len = (int) strlen (bits);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
+  btor->stats.expressions++;
   exp->kind  = BTOR_CONST_EXP;
   exp->bytes = sizeof *exp;
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
@@ -1755,6 +1757,7 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   assert (lower >= 0);
   assert (upper >= lower);
   BTOR_CNEW (btor->mm, exp);
+  btor->stats.expressions++;
   exp->kind  = BTOR_SLICE_EXP;
   exp->bytes = sizeof *exp;
   exp->arity = 1;
@@ -1781,6 +1784,7 @@ new_binary_exp_node (
   assert (e1 != NULL);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
+  btor->stats.expressions++;
   exp->kind  = kind;
   exp->bytes = sizeof *exp;
   exp->arity = 2;
@@ -1803,6 +1807,7 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (e0 != NULL);
   assert (e1 != NULL);
   BTOR_CNEW (btor->mm, exp);
+  btor->stats.expressions++;
   exp->kind  = BTOR_AEQ_EXP;
   exp->bytes = sizeof *exp;
   exp->arity = 2;
@@ -1833,6 +1838,7 @@ new_ternary_exp_node (Btor *btor,
   assert (e2 != NULL);
   assert (len > 0);
   BTOR_CNEW (btor->mm, exp);
+  btor->stats.expressions++;
   exp->kind  = kind;
   exp->bytes = sizeof *exp;
   exp->arity = 3;
@@ -1865,6 +1871,7 @@ new_write_exp_node (Btor *btor,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)));
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
+  btor->stats.expressions++;
   exp->kind      = BTOR_WRITE_EXP;
   exp->bytes     = sizeof *exp;
   exp->arity     = 3;
@@ -1898,6 +1905,7 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   assert (a_if->len > 0);
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
+  btor->stats.expressions++;
   exp->kind      = BTOR_ACOND_EXP;
   exp->bytes     = sizeof *exp;
   exp->arity     = 3;
@@ -2323,6 +2331,7 @@ var_exp (Btor *btor, int len, const char *symbol)
   assert (symbol != NULL);
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
+  btor->stats.expressions++;
   exp->kind   = BTOR_VAR_EXP;
   exp->bytes  = sizeof *exp;
   exp->symbol = btor_strdup (mm, symbol);
@@ -2354,6 +2363,7 @@ array_exp (Btor *btor, int elem_len, int index_len)
   assert (index_len >= 1);
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
+  btor->stats.expressions++;
   exp->kind      = BTOR_ARRAY_EXP;
   exp->bytes     = sizeof *exp;
   exp->index_len = index_len;
@@ -5772,6 +5782,7 @@ btor_print_stats_btor (Btor *btor)
   assert (btor != NULL);
   (void) btor;
   report_constraint_stats (btor, 1);
+  print_verbose_msg ("number of expressions: %lld", btor->stats.expressions);
   print_verbose_msg ("variable substitutions: %d",
                      btor->stats.var_substitutions);
   print_verbose_msg ("array substitutions: %d",
