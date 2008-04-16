@@ -1,11 +1,11 @@
-smttrue -s -o log/smttrue.log log/smttrue.smt
-smtfalse -s -o log/smtfalse.log log/smtfalse.smt
-smtvar -s -o log/smtvar.log log/smtvar.smt
-smtnotvar -s -o log/smtnotvar.log log/smtnotvar.smt
-smtandvar -s -o log/smtandvar.log log/smtandvar.smt
-smtxor -s -o log/smtxor.log log/smtxor.smt
-smtor -s -o log/smtor.log log/smtor.smt
-smtiff -s -o log/smtiff.log log/smtiff.smt
+smttrue -m -o log/smttrue.log log/smttrue.smt
+smtfalse -m -o log/smtfalse.log log/smtfalse.smt
+smtvar -m -o log/smtvar.log log/smtvar.smt
+smtnotvar -m -o log/smtnotvar.log log/smtnotvar.smt
+smtandvar -m -o log/smtandvar.log log/smtandvar.smt
+smtxor -m -o log/smtxor.log log/smtxor.smt
+smtor -m -o log/smtor.log log/smtor.smt
+smtiff -m -o log/smtiff.log log/smtiff.smt
 smtflet -o log/smtflet.log log/smtflet.smt
 smtbv255 -o log/smtbv255.log log/smtbv255.smt
 smtshl1 -o log/smtshl1.log log/smtshl1.smt
