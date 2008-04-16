@@ -4602,6 +4602,8 @@ rewrite_exp (Btor *btor,
       if (invert_b0) btor_invert_const (mm, b0);
       if (is_zero)
       {
+        if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
+          result = not_exp (btor, e1);
         if (kind == BTOR_ADD_EXP)
           result = copy_exp (btor, e1);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
@@ -4652,8 +4654,10 @@ rewrite_exp (Btor *btor,
       if (invert_b1) btor_invert_const (mm, b1);
       if (is_zero)
       {
-        if (kind == BTOR_SLL_EXP || kind == BTOR_SRL_EXP
-            || kind == BTOR_UREM_EXP || kind == BTOR_ADD_EXP)
+        if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
+          result = not_exp (btor, e0);
+        else if (kind == BTOR_SLL_EXP || kind == BTOR_SRL_EXP
+                 || kind == BTOR_UREM_EXP || kind == BTOR_ADD_EXP)
           result = copy_exp (btor, e0);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_AND_EXP)
           result = zeros_exp (btor, real_e0->len);
