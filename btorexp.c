@@ -5108,6 +5108,7 @@ btor_get_symbol_exp (Btor *btor, BtorExp *exp)
                   "'btor' must not be NULL in 'btor_get_symbol_exp'");
   BTOR_ABORT_EXP (exp == NULL,
                   "'exp' must not be NULL in 'btor_get_symbol_exp'");
+  exp = pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_EXP (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)),
                   "'exp' has to be a variable in 'btor_get_symbol_exp'");
   (void) btor;

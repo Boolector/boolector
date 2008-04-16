@@ -343,7 +343,6 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (BTOR_IS_VAR_EXP (exp));
   basis = app->basis;
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
@@ -933,6 +932,10 @@ btor_main (int argc, char **argv)
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;
+
+            if (app.print_solutions)
+              BTOR_PUSH_STACK (mem, varstack, btor_copy_exp (btor, var));
+
             /* bit-vector state for all different constraint */
             if (app.bmcadc)
             {
@@ -1023,6 +1026,14 @@ btor_main (int argc, char **argv)
 
           bad = btor_next_exp_bmc (
               btor, reg_inst, conjuncted_constraints, bmck, input_inst);
+
+          if (app.print_solutions)
+            for (bucket = input_inst->first; bucket != NULL;
+                 bucket = bucket->next)
+              BTOR_PUSH_STACK (
+                  mem,
+                  varstack,
+                  btor_copy_exp (btor, (BtorExp *) bucket->data.asPtr));
 
           if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
           {
@@ -1192,16 +1203,15 @@ btor_main (int argc, char **argv)
 
         sat_result = btor_sat_btor (btor, app.refinement_limit);
         print_sat_result (&app, sat_result);
-
-        if (sat_result == BTOR_SAT && app.print_solutions
-            && parse_res.ninputs > 0)
-          print_variable_assignments (
-              &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
-
-        if (app.verbosity > 1) btor_print_stats_sat (smgr);
-
-        if (app.verbosity > 0) btor_print_stats_btor (btor);
       }
+      if (sat_result == BTOR_SAT && app.print_solutions
+          && parse_res.ninputs > 0)
+        print_variable_assignments (
+            &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+
+      if (app.verbosity > 1) btor_print_stats_sat (smgr);
+
+      if (app.verbosity > 0) btor_print_stats_btor (btor);
 
       for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
         btor_release_exp (btor, varstack.start[i]);
