@@ -4505,7 +4505,8 @@ rewrite_exp (Btor *btor,
 {
   BtorMemMgr *mm;
   BtorExp *result, *real_e0, *real_e1, *real_e2, *temp, *zero, *one;
-  BtorExp *ones, *eq;
+  BtorExp *ones, *eq, *temp_left, *temp_right;
+  BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
   char *b0, *b1, *bresult;
   int same_children_mem, i, diff, len, counter, is_zero, is_one, is_ones;
   int invert_b0 = 0;
@@ -4759,6 +4760,41 @@ rewrite_exp (Btor *btor,
           result = zeros_exp (btor, real_e0->len);
           break;
       }
+    }
+    else if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0)
+             && BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1)
+             && BTOR_IS_INVERTED_EXP (e0) == BTOR_IS_INVERTED_EXP (e1)
+             && real_e0->e[0] == real_e1->e[0]
+             && (real_e0->e[1] == real_e1->e[1]
+                 || real_e0->e[2] == real_e1->e[2])
+             && (kind == BTOR_ULT_EXP || kind == BTOR_BEQ_EXP
+                 || kind == BTOR_AEQ_EXP || kind == BTOR_ADD_EXP
+                 || kind == BTOR_UDIV_EXP))
+    {
+      switch (kind)
+      {
+        case BTOR_ULT_EXP: fptr = ult_exp; break;
+        case BTOR_BEQ_EXP:
+        case BTOR_AEQ_EXP: fptr = eq_exp; break;
+        case BTOR_ADD_EXP: fptr = add_exp;
+        default:
+          assert (kind == BTOR_UDIV_EXP);
+          fptr = udiv_exp;
+          break;
+      }
+      temp_left  = fptr (btor, real_e0->e[1], real_e1->e[1]);
+      temp_right = fptr (btor, real_e0->e[2], real_e1->e[2]);
+      if (BTOR_IS_INVERTED_EXP (e0))
+      {
+        assert (BTOR_IS_INVERTED_EXP (e1));
+        temp_left  = BTOR_INVERT_EXP (temp_left);
+        temp_right = BTOR_INVERT_EXP (temp_right);
+      }
+      else
+        assert (!BTOR_IS_INVERTED_EXP (e1));
+      result = cond_exp (btor, real_e0->e[0], temp_left, temp_right);
+      release_exp (btor, temp_left);
+      release_exp (btor, temp_right);
     }
 
     /* TODO: add all the O[123] optimization of MEMICS paper.
