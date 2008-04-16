@@ -102,7 +102,7 @@ struct BtorMainApp
   BtorCNFEnc cnf_enc;
   int refinement_limit;
   int force_smt_input;
-  int print_solutions;
+  int print_model;
 };
 
 typedef struct BtorMainApp BtorMainApp;
@@ -116,7 +116,7 @@ static const char *g_usage =
     "  -c|--copyright                   print copyright and exit\n"
     "  -V|--version                     print version and exit\n"
     "\n"
-    "  -s|--solutions                   print assignments of variables (SAT)\n"
+    "  -m|--model                       print (partial) model in the SAT case\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
@@ -418,9 +418,9 @@ parse_commandline_arguments (BtorMainApp *app)
                         &app->close_exp_file,
                         "expression",
                         &app->exp_file);
-    else if (!strcmp (app->argv[app->argpos], "-s")
-             || !strcmp (app->argv[app->argpos], "--solutions"))
-      app->print_solutions = 1;
+    else if (!strcmp (app->argv[app->argpos], "-m")
+             || !strcmp (app->argv[app->argpos], "--model"))
+      app->print_model = 1;
     else if (!strcmp (app->argv[app->argpos], "-ds")
              || !strcmp (app->argv[app->argpos], "--dump-smt"))
       handle_dump_file (
@@ -616,11 +616,22 @@ parse_commandline_arguments (BtorMainApp *app)
     }
   }
 
-  if (app->close_replay_file && app->bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT)
+  if (!app->err)
   {
-    print_err_va_args (
-        app, "Can not create replay file for 'base-and-induct' mode\n");
-    app->err = 1;
+    if (app->close_replay_file
+        && app->bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT)
+    {
+      print_err_va_args (
+          app, "Can not create replay file for 'base-and-induct' BMC mode\n");
+      app->err = 1;
+    }
+
+    if (app->print_model && app->rewrite_level > 1)
+    {
+      if (app->verbosity > 0)
+        print_verbose_msg ("Setting rewrite level to 1 for model generation\n");
+      app->rewrite_level = 1;
+    }
   }
 }
 
@@ -751,7 +762,7 @@ btor_main (int argc, char **argv)
   app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   app.refinement_limit  = INT_MAX;
   app.force_smt_input   = 0;
-  app.print_solutions   = 0;
+  app.print_model       = 0;
 
   parse_commandline_arguments (&app);
 
@@ -829,7 +840,7 @@ btor_main (int argc, char **argv)
       BTOR_INIT_STACK (varstack);
       BTOR_INIT_STACK (constraints);
 
-      if (app.print_solutions)
+      if (app.print_model)
         for (i = 0; i < parse_res.ninputs; i++)
           if (!btor_is_array_exp (btor, parse_res.inputs[i]))
             BTOR_PUSH_STACK (
@@ -933,7 +944,7 @@ btor_main (int argc, char **argv)
             assert (bucket != NULL);
             bucket->data.asPtr = var;
 
-            if (app.print_solutions)
+            if (app.print_model)
               BTOR_PUSH_STACK (mem, varstack, btor_copy_exp (btor, var));
 
             /* bit-vector state for all different constraint */
@@ -1027,7 +1038,7 @@ btor_main (int argc, char **argv)
           bad = btor_next_exp_bmc (
               btor, reg_inst, conjuncted_constraints, bmck, input_inst);
 
-          if (app.print_solutions)
+          if (app.print_model)
             for (bucket = input_inst->first; bucket != NULL;
                  bucket = bucket->next)
               BTOR_PUSH_STACK (
@@ -1204,8 +1215,7 @@ btor_main (int argc, char **argv)
         sat_result = btor_sat_btor (btor, app.refinement_limit);
         print_sat_result (&app, sat_result);
       }
-      if (sat_result == BTOR_SAT && app.print_solutions
-          && parse_res.ninputs > 0)
+      if (sat_result == BTOR_SAT && app.print_model && parse_res.ninputs > 0)
         print_variable_assignments (
             &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
 
