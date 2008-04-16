@@ -1,23 +1,12 @@
 #!/bin/bash
-if [[ $# -ne 2 ]] && [[ $# -ne 3 ]]; then
-  echo "Usage: ./fifoeqcheck <num-bits> <power> [-rmo]"
+if [[ $# -ne 2 ]]; then
+  echo "Usage: ./fifoeqcheck <num-bits> <power>"
   exit
-fi
-
-if [[ $# = 3 ]] && [[ ! $3 = -rmo ]]; then
-  echo "Usage: ./fifo <num-bits> <power> [-rmo]"
-  exit
-fi
-
-if [[ $# = 3 ]]; then
-  rmo=-rmo
-else
-  rmo=""
 fi
 
 tempstack="/tmp/fifoeqcheckstack.tmp"
 
-./fifostack $1 $2 1 $rmo > $tempstack
+./fifostack $1 $2 1 > $tempstack
 iddataoutstack="`egrep .*var.*data_out < $tempstack | awk '{ print $1 }';`"
 idemptystack="`egrep .*var.*empty < $tempstack | awk '{ print $1 }';`"
 idfullstack="`egrep .*var.*full < $tempstack | awk '{ print $1 }';`"
@@ -30,7 +19,7 @@ idone="`egrep .*one.*1 < $tempstack | awk '{ print $1 }';`"
 
 tempqueue="/tmp/fifoeqcheckqueue.tmp"
 
-./fifoqueue $1 $2 $id $rmo > $tempqueue
+./fifoqueue $1 $2 $id > $tempqueue
 iddataoutqueue="`egrep .*var.*data_out < $tempqueue | awk '{ print $1 }';`"
 idemptyqueue="`egrep .*var.*empty < $tempqueue | awk '{ print $1 }';`"
 idfullqueue="`egrep .*var.*full < $tempqueue | awk '{ print $1 }';`"
@@ -45,7 +34,7 @@ echo ""
 echo ""
 echo "$((id++)) next 1 $idreset $idone"
 echo ""
-echo ";BAD: full or empty differ in the two implementations "
+echo ";BAD: full, empty or data_out differ in the two implementations "
 echo "$((id++)) ne 1 $idfullstack $idfullqueue"
 ((idne1 = id - 1))
 echo "$((id++)) ne 1 $idemptystack $idemptyqueue"
