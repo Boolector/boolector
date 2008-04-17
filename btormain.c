@@ -1097,12 +1097,8 @@ btor_main (int argc, char **argv)
             else
             {
               assert (sat_result == BTOR_UNSAT);
-              /* we add NOT Bad_k
-               * we do not add it in the last iteration
-               * as assumptions would be deleted in the replay file
-               */
-              if (!(app.replay_mode != BTOR_APP_REPLAY_MODE_NONE
-                    && app.bmcmaxk != -1 && bmck == app.bmcmaxk))
+              /* we add NOT Bad_k, except in the last iteration */
+              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
               {
                 not_bad = btor_not_exp (btor, bad);
                 btor_add_constraint_exp (btor, not_bad);
@@ -1121,12 +1117,8 @@ btor_main (int argc, char **argv)
             else
             {
               assert (sat_result == BTOR_SAT);
-              /* we add NOT Bad_k
-               * we do not add it in the last iteration
-               * as assumptions would be deleted in the replay file
-               */
-              if (!(app.replay_mode != BTOR_APP_REPLAY_MODE_NONE
-                    && app.bmcmaxk != -1 && bmck == app.bmcmaxk))
+              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
+              /* we add NOT Bad_k, except in the last iteration */
               {
                 not_bad = btor_not_exp (btor, bad);
                 btor_add_constraint_exp (btor, not_bad);
