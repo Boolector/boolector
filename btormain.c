@@ -154,7 +154,6 @@ static const char *g_usage =
     "  -bmc-no-adc                       disable all different constraints\n"
     "  -bmc-base-only                    base case (search for wittnesses, no "
     "adc)\n"
-
     "  -bmc-induct-only                  inductive case only\n"
     "  -bmc-replay <file>                turn replay on\n"
     "  -bmc-replay-only <file>           generate replay file only\n";
@@ -1097,10 +1096,14 @@ btor_main (int argc, char **argv)
               bmc_done = 1;
             else
             {
-              /* we add NOT Bad_k, except in the last iteration */
-              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
+              assert (sat_result == BTOR_UNSAT);
+              /* we add NOT Bad_k
+               * we do not add it in the last iteration
+               * as assumptions would be deleted in the replay file
+               */
+              if (!(app.replay_mode != BTOR_APP_REPLAY_MODE_NONE
+                    && app.bmcmaxk != -1 && bmck == app.bmcmaxk))
               {
-                assert (sat_result == BTOR_UNSAT);
                 not_bad = btor_not_exp (btor, bad);
                 btor_add_constraint_exp (btor, not_bad);
                 btor_release_exp (btor, not_bad);
@@ -1118,8 +1121,12 @@ btor_main (int argc, char **argv)
             else
             {
               assert (sat_result == BTOR_SAT);
-              /* we add NOT Bad_k, except in the last iteration */
-              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
+              /* we add NOT Bad_k
+               * we do not add it in the last iteration
+               * as assumptions would be deleted in the replay file
+               */
+              if (!(app.replay_mode != BTOR_APP_REPLAY_MODE_NONE
+                    && app.bmcmaxk != -1 && bmck == app.bmcmaxk))
               {
                 not_bad = btor_not_exp (btor, bad);
                 btor_add_constraint_exp (btor, not_bad);
