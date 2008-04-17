@@ -74,7 +74,6 @@ enum BtorAppReplayMode
 {
   BTOR_APP_REPLAY_MODE_NONE = 0,
   BTOR_APP_REPLAY_MODE_FULL,
-  BTOR_APP_REPLAY_MODE_GEN
 };
 
 typedef enum BtorAppReplayMode BtorAppReplayMode;
@@ -155,8 +154,7 @@ static const char *g_usage =
     "  -bmc-base-only                    base case (search for wittnesses, no "
     "adc)\n"
     "  -bmc-induct-only                  inductive case only\n"
-    "  -bmc-replay <file>                turn replay on\n"
-    "  -bmc-replay-only <file>           generate replay file only\n";
+    "  -bmc-replay <file>                turn replay on\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -598,34 +596,6 @@ parse_commandline_arguments (BtorMainApp *app)
           {
             app->close_replay_file = 1;
             app->replay_mode       = BTOR_APP_REPLAY_MODE_FULL;
-          }
-        }
-      }
-    }
-    else if (!strcmp (app->argv[app->argpos], "-bmc-replay-only"))
-    {
-      if (app->argpos < app->argc - 1)
-      {
-        if (app->close_replay_file)
-        {
-          fclose (app->replay_file);
-          app->close_replay_file = 0;
-          print_err_va_args (app, "multiple replay\n");
-          app->err = 1;
-        }
-        else
-        {
-          app->replay_file = fopen (app->argv[++app->argpos], "w");
-          if (app->replay_file == NULL)
-          {
-            print_err_va_args (
-                app, "can not create '%s'\n", app->argv[app->argpos]);
-            app->err = 1;
-          }
-          else
-          {
-            app->close_replay_file = 1;
-            app->replay_mode       = BTOR_APP_REPLAY_MODE_GEN;
           }
         }
       }
