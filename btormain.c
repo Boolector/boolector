@@ -125,7 +125,6 @@ static const char *g_usage =
     "  -x|--hex                         hexadecimal output\n"
     "  -d|--dec                         decimal output\n"
     "  -o|--output <file>               set output file\n"
-    "  -r|--replay <file>               turn replay on and set replay file\n"
     "  -de|--dump-exp <file>            dump expression in BTOR format\n"
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
@@ -144,9 +143,11 @@ static const char *g_usage =
     "  -bmc-adc                          use all different constraints "
     "(default)\n"
     "  -bmc-no-adc                       disable all different constraints\n"
-    "  -bmc-base-only                    base case (search for wittnesses "
-    "only, no adc)\n"
-    "  -bmc-induct-only                  inductive case only\n";
+    "  -bmc-base-only                    base case (search for wittnesses, no "
+    "adc)\n"
+
+    "  -bmc-induct-only                  inductive case only\n"
+    "  -bmc-replay <file>                turn replay on and set replay file\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -564,8 +565,7 @@ parse_commandline_arguments (BtorMainApp *app)
         }
       }
     }
-    else if (!strcmp (app->argv[app->argpos], "-r")
-             || !strcmp (app->argv[app->argpos], "--replay"))
+    else if (!strcmp (app->argv[app->argpos], "-bmc-replay"))
     {
       if (app->argpos < app->argc - 1)
       {
@@ -727,11 +727,13 @@ btor_main (int argc, char **argv)
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
   BtorExp *root, **p, *conjuncted_constraints, *bad, *bv_state;
-  BtorExp **old_insts, **new_insts, *eq, *regs_zero, *cur, *var, *temp;
-  BtorExp *ne, *diff, *diff_bv, *diff_arrays, *diff_array, *not_bad;
+  BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
+  BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
+  BtorExp *diff_arrays = NULL;
+  BtorExp *regs_zero   = NULL;
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
-  BtorExpPtrStack *array_states;
+  BtorExpPtrStack *array_states = NULL;
 
   app.verbosity         = 0;
   app.force             = 0;
