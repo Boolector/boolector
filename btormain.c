@@ -70,6 +70,15 @@ enum BtorAppBMCMode
 
 typedef enum BtorAppBMCMode BtorAppBMCMode;
 
+enum BtorAppReplayMode
+{
+  BTOR_APP_REPLAY_MODE_NONE = 0,
+  BTOR_APP_REPLAY_MODE_FULL,
+  BTOR_APP_REPLAY_MODE_GEN
+};
+
+typedef enum BtorAppReplayMode BtorAppReplayMode;
+
 struct BtorMainApp
 {
   FILE *output_file;
@@ -79,7 +88,7 @@ struct BtorMainApp
   int close_input_file;
   FILE *replay_file;
   int close_replay_file;
-  int replay;
+  BtorAppReplayMode replay_mode;
   int verbosity;
   int force;
   int done;
@@ -147,7 +156,8 @@ static const char *g_usage =
     "adc)\n"
 
     "  -bmc-induct-only                  inductive case only\n"
-    "  -bmc-replay <file>                turn replay on and set replay file\n";
+    "  -bmc-replay <file>                turn replay on\n"
+    "  -bmc-replay-only <file>           generate replay file only\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
@@ -573,7 +583,7 @@ parse_commandline_arguments (BtorMainApp *app)
         {
           fclose (app->replay_file);
           app->close_replay_file = 0;
-          print_err_va_args (app, "multiple replay files\n");
+          print_err_va_args (app, "multiple replay\n");
           app->err = 1;
         }
         else
@@ -588,7 +598,35 @@ parse_commandline_arguments (BtorMainApp *app)
           else
           {
             app->close_replay_file = 1;
-            app->replay            = 1;
+            app->replay_mode       = BTOR_APP_REPLAY_MODE_FULL;
+          }
+        }
+      }
+    }
+    else if (!strcmp (app->argv[app->argpos], "-bmc-replay-only"))
+    {
+      if (app->argpos < app->argc - 1)
+      {
+        if (app->close_replay_file)
+        {
+          fclose (app->replay_file);
+          app->close_replay_file = 0;
+          print_err_va_args (app, "multiple replay\n");
+          app->err = 1;
+        }
+        else
+        {
+          app->replay_file = fopen (app->argv[++app->argpos], "w");
+          if (app->replay_file == NULL)
+          {
+            print_err_va_args (
+                app, "can not create '%s'\n", app->argv[app->argpos]);
+            app->err = 1;
+          }
+          else
+          {
+            app->close_replay_file = 1;
+            app->replay_mode       = BTOR_APP_REPLAY_MODE_GEN;
           }
         }
       }
@@ -618,11 +656,11 @@ parse_commandline_arguments (BtorMainApp *app)
 
   if (!app->err)
   {
-    if (app->close_replay_file
+    if (app->replay_mode != BTOR_APP_REPLAY_MODE_NONE
         && app->bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT)
     {
       print_err_va_args (
-          app, "Can not create replay file for 'base-and-induct' BMC mode\n");
+          app, "Replay for 'base-and-induct' BMC mode is not supported\n");
       app->err = 1;
     }
 
@@ -743,7 +781,7 @@ btor_main (int argc, char **argv)
   app.input_file_name   = "<stdin>";
   app.close_input_file  = 0;
   app.close_replay_file = 0;
-  app.replay            = 0;
+  app.replay_mode       = BTOR_APP_REPLAY_MODE_NONE;
   app.argc              = argc;
   app.argv              = argv;
   app.argpos            = 0;
@@ -776,7 +814,7 @@ btor_main (int argc, char **argv)
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
     btor_set_verbosity_btor (btor, app.verbosity);
-    btor_set_replay_btor (btor, app.replay);
+    btor_set_replay_btor (btor, app.replay_mode != BTOR_APP_REPLAY_MODE_NONE);
     mem = btor_get_mem_mgr_btor (btor);
 
     avmgr = btor_get_aigvec_mgr_btor (btor);
@@ -1059,12 +1097,8 @@ btor_main (int argc, char **argv)
               bmc_done = 1;
             else
             {
-              /* we add NOT Bad_k */
-
-              /* we do not add it in the last iteration,
-               * as assumptions would be deleted in the replay file
-               */
-              if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
+              /* we add NOT Bad_k, except in the last iteration */
+              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
               {
                 assert (sat_result == BTOR_UNSAT);
                 not_bad = btor_not_exp (btor, bad);
@@ -1084,12 +1118,8 @@ btor_main (int argc, char **argv)
             else
             {
               assert (sat_result == BTOR_SAT);
-              /* we add NOT Bad_k */
-
-              /* we do not add it in the last iteration,
-               * as assumptions would be deleted in the replay file
-               */
-              if (!(app.replay && bmck == app.bmcmaxk && app.bmcmaxk != -1))
+              /* we add NOT Bad_k, except in the last iteration */
+              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
               {
                 not_bad = btor_not_exp (btor, bad);
                 btor_add_constraint_exp (btor, not_bad);
@@ -1146,7 +1176,8 @@ btor_main (int argc, char **argv)
           btor_release_exp (btor, bad);
         }
 
-        if (app.replay) btor_replay_btor (btor, app.replay_file);
+        if (app.replay_mode != BTOR_APP_REPLAY_MODE_NONE)
+          btor_replay_btor (btor, app.replay_file);
 
         /* cleanup */
         btor_delete_ptr_hash_table (reg_inst);
