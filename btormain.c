@@ -658,17 +658,16 @@ print_sat_result (BtorMainApp *app, int sat_result)
 }
 
 static BtorExp *
-conjunct_constraints (Btor *btor, BtorExpPtrStack *constraints)
+disjunct_constraints (Btor *btor, BtorExpPtrStack *constraints)
 {
   int i;
   BtorExp *temp, *result;
   assert (btor != NULL);
   assert (constraints != NULL);
-  assert (BTOR_COUNT_STACK (*constraints) > 0);
-  result = btor_true_exp (btor);
+  result = btor_false_exp (btor);
   for (i = 0; i < BTOR_COUNT_STACK (*constraints); i++)
   {
-    temp = btor_and_exp (btor, result, constraints->start[i]);
+    temp = btor_or_exp (btor, result, constraints->start[i]);
     btor_release_exp (btor, result);
     result = temp;
   }
@@ -733,7 +732,7 @@ btor_main (int argc, char **argv)
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *conjuncted_constraints, *bad, *bv_state;
+  BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state;
   BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
   BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
   BtorExp *diff_arrays = NULL;
@@ -914,7 +913,7 @@ btor_main (int argc, char **argv)
             BTOR_INIT_STACK (array_states[i]);
         }
 
-        conjuncted_constraints = conjunct_constraints (btor, &constraints);
+        disjuncted_constraints = disjunct_constraints (btor, &constraints);
         reg_inst =
             btor_new_ptr_hash_table (mem,
                                      (BtorHashPtr) btor_hash_exp_by_id,
@@ -1045,7 +1044,7 @@ btor_main (int argc, char **argv)
           }
 
           bad = btor_next_exp_bmc (
-              btor, reg_inst, conjuncted_constraints, bmck, input_inst);
+              btor, reg_inst, disjuncted_constraints, bmck, input_inst);
 
           if (app.print_model)
             for (bucket = input_inst->first; bucket != NULL;
@@ -1151,7 +1150,7 @@ btor_main (int argc, char **argv)
         /* cleanup */
         btor_delete_ptr_hash_table (reg_inst);
 
-        btor_release_exp (btor, conjuncted_constraints);
+        btor_release_exp (btor, disjuncted_constraints);
         btor_release_exp (btor, regs_zero);
         for (p = constraints.start; p < constraints.top; p++)
           btor_release_exp (btor, *p);

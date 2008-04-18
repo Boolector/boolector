@@ -35,6 +35,7 @@ struct Cmd
   unsigned short arg;
   char* str;
   int next;
+  int pcid;
 };
 
 static FILE *input, *data;
@@ -125,7 +126,7 @@ int
 main (int argc, char** argv)
 {
   int i, ch, line, immediate, arg, sign, last, first, pc, usarg, simulate, res;
-  int nextpc, nextaccu, nextflag, nextregs, nextmem;
+  int nextpcid, nextaccuid, nextflagid, nextregsid, nextmemid;
   int id, pcid, regsid, memid, accuid, flagid;
   const char* str;
   Op op;
@@ -551,21 +552,48 @@ SYNTHESIZE:
   memid = id++;
   printf ("%d array 16 16\n", memid);
 
-  nextpc   = pcid;
-  nextaccu = accuid;
-  nextflag = flagid;
-  nextregs = regsid;
-  nextmem  = memid;
+  pc = first;
+  while (pc >= 0)
+  {
+    program[pc].pcid = id;
+    printf ("%d constd 16 %d\n", id, pc);
+    id++;
+    pc = program[pc].next;
+  }
+
+  nextpcid   = pcid;
+  nextaccuid = accuid;
+  nextflagid = flagid;
+  nextregsid = regsid;
+  nextmemid  = memid;
 
   pc = first;
   while (pc >= 0)
   {
     op = program[pc].op;
-    assert (op);
 
-    if (op != WRITE && op != PRINT)
+    immediate = program[pc].immediate;
+    usarg     = program[pc].arg;
+
+    if (op == GOTO || op == JMP)
     {
+      printf ("%d eq 1 %d %d\n", id++, pcid, program[pc].pcid);
+
+      if (op == JMP)
+      {
+        printf ("%d and 1 %d %d\n", id, id - 1, flagid);
+        id++;
+      }
+
+      printf (
+          "%d cond 16 %d %d %d\n", id, id - 1, program[usarg].pcid, nextpcid);
+      nextpcid = id++;
     }
+    else if (program[pc].next >= 0)
+    {
+      nextpcid = program[program[pc].next].pcid;
+    }
+
     immediate = program[pc].immediate;
     arg       = program[pc].arg;
 
@@ -573,6 +601,9 @@ SYNTHESIZE:
   }
 
 EXIT:
+
+  printf ("%d next 16 %d %d\n", id++, pcid, nextpcid);
+
   if (dataname) fclose (data);
   for (i = 0; i < MAXLINE; i++)
     if (program[i].op == PRINT) free (program[i].str);
