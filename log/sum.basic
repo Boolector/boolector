@@ -1,3 +1,5 @@
+100 save i
+105 save s
 110 read n
 120 load i
 130 le n

@@ -617,8 +617,9 @@ SYNTHESIZE:
   {
     op    = program[pc].op;
     usarg = program[pc].arg;
-    printf ("%d eq 1 %d %d\n", atthispcid = id++, pcid, program[pc].pcid);
 
+    printf ("%d eq 1 %d %d\n", atthispcid = id++, pcid, program[pc].pcid);
+    /* DO NOT SEPERATE THIS CASE FROM THE PREVIOUS LINE !!! */
     if (op == GOTO || op == JMP)
     {
       if (op == JMP)
@@ -629,36 +630,102 @@ SYNTHESIZE:
 
       printf (
           "%d cond 16 %d %d %d\n", id, id - 1, program[usarg].pcid, nextpcid);
+
       nextpcid = id++;
     }
     else if (program[pc].next >= 0)
     {
-      nextpcid = program[program[pc].next].pcid;
+      printf ("%d cond 16 %d %d %d\n",
+              id,
+              atthispcid,
+              program[program[pc].next].pcid,
+              nextpcid);
+      nextpcid = id++;
     }
 
     immediate = program[pc].immediate;
 
-    pc = program[pc].next;
-  }
-
-  if (op == EQ || op == LT || op == LE)
-  {
     if (immediate)
       printf ("%d constd 16 %d\n", tmp = id++, usarg);
     else
       tmp = regreadids[usarg];
 
-    if (op == EQ) printf ("%d eq 1 %d %d\n", id++, accuid, tmp);
-    if (op == LT) printf ("%d slt 1 %d %d\n", id++, accuid, tmp);
-    if (op == LE) printf ("%d slte 1 %d %d\n", id++, accuid, tmp);
+    if (op == EQ || op == LT || op == LE)
+    {
+      if (op == EQ) printf ("%d eq 1 %d %d\n", id++, accuid, tmp);
+      if (op == LT) printf ("%d slt 1 %d %d\n", id++, accuid, tmp);
+      if (op == LE) printf ("%d slte 1 %d %d\n", id++, accuid, tmp);
 
-    printf ("%d cond %d %d %d\n", nextflagid = id, atthispcid, id - 1, flagid);
+      printf ("%d cond 1 %d %d %d\n", id, atthispcid, id - 1, nextflagid);
+      nextflagid = id++;
+    }
+    else if (op == WRITE)
+    {
+      printf ("%d redor 1 %d\n", id++, tmp);
+      printf ("%d root 1 %d\n", id, id - 1);
+      id++;
+    }
+    else if (op == PEEK)
+    {
+      printf ("%d read 16 %d %d\n", id++, memid, tmp);
+      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextaccuid);
+      nextaccuid = id++;
+    }
+    else if (op == POKE)
+    {
+      printf ("%d write 16 %d %d %d\n", id++, nextmemid, tmp, accuid);
+      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextmemid);
+      nextmemid = id++;
+    }
+    else if (op == READ)
+    {
+      assert (!immediate);
+      printf ("%d var 16 read_%c_at_line_%d\n", id++, 'A' + usarg, pc);
+      printf (
+          "%d write 16 %d %d %d\n", id, nextregsid, regindexids[usarg], id - 1);
+      id++;
+      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextregsid);
+      nextregsid = id++;
+    }
+    else if (op == SAVE)
+    {
+      assert (!immediate);
+      printf ("%d write 16 %d %d %d\n",
+              id++,
+              nextregsid,
+              regindexids[usarg],
+              accuid);
+      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextregsid);
+      nextregsid = id++;
+    }
+    else if (op == LOAD)
+    {
+      printf ("%d cond 16 %d %d %d\n", id, atthispcid, tmp, nextaccuid);
+      nextaccuid = id++;
+    }
+    else if (op == ADD)
+    {
+      printf ("%d add 16 %d %d\n", id++, nextaccuid, tmp);
+      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextaccuid);
+      nextaccuid = id++;
+    }
+    else if (op == PRINT || op == EXIT)
+    {
+      /* DO NOTHING */
+    }
+    else
+      assert (op == GOTO || op == JMP); /* got all ops? */
+
+    pc = program[pc].next;
   }
 
-EXIT:
-
   printf ("%d next 16 %d %d\n", id++, pcid, nextpcid);
+  printf ("%d next 16 %d %d\n", id++, accuid, nextaccuid);
   printf ("%d next 1 %d %d\n", id++, flagid, nextflagid);
+  printf ("%d next 16 %d %d\n", id++, regsid, nextregsid);
+  printf ("%d next 16 %d %d\n", id++, memid, nextmemid);
+
+EXIT:
 
   if (dataname) fclose (data);
   for (i = 0; i < MAXLINE; i++)
