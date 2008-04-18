@@ -20,7 +20,7 @@ fi
 temp="/tmp/genbenchmarksinduct.btor"
 bw=32
 maxk=10
-for (( power = 2; power <= 10; power+=1))
+for (( power = 2; power <= 10; power+=2))
 do
   for ((k = 3; k <= $maxk; k++))
     do
