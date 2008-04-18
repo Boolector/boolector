@@ -39,7 +39,7 @@ do
       filebtor=$file".btor"
       filesmt=$file".smt"
       ./fifoeqcheck $bw $power > $temp 
-      boolector $temp -bmc-induct-only $adc -bmc-maxk=$k -bmc-replay $filebtor
+      boolector $temp -rwl1 -bmc-induct-only $adc -bmc-maxk=$k -bmc-replay $filebtor
       boolector -rwl0 $filebtor -ds | while read line 
       do
 	if [[ $header -eq 1 ]]; then
