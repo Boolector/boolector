@@ -126,9 +126,11 @@ int
 main (int argc, char** argv)
 {
   int i, ch, line, immediate, arg, sign, last, first, pc, usarg, simulate, res;
-  int nextpcid, nextaccuid, nextflagid, nextregsid, nextmemid;
+  int nextpcid, nextaccuid, nextflagid, nextregsid, nextmemid, atthispcid;
+  int regindexids[26], regwriteids[26], regreadids[26];
   int id, pcid, regsid, memid, accuid, flagid;
   const char* str;
+  int tmp;
   Op op;
 
   simulate = 0;
@@ -561,6 +563,49 @@ SYNTHESIZE:
     pc = program[pc].next;
   }
 
+  memset (regindexids, 0, sizeof regindexids);
+  memset (regreadids, 0, sizeof regreadids);
+  memset (regwriteids, 0, sizeof regwriteids);
+
+  pc = first;
+  while (pc >= 0)
+  {
+    op = program[pc].op;
+
+    if (op == ADD || op == EQ || op == LE || op == LT || op == LOAD
+        || op == PEEK || op == POKE || op == READ || op == SAVE || op == WRITE)
+    {
+      immediate = program[pc].immediate;
+      usarg     = program[pc].arg;
+
+      if (!immediate)
+      {
+        if (!regindexids[usarg])
+          printf ("%d constd 5 %d\n", regindexids[usarg] = id++, usarg);
+
+        if (op == SAVE)
+        {
+          if (!regwriteids[usarg])
+            printf ("%d write 16 %d %d %d\n",
+                    regwriteids[usarg] = id++,
+                    regsid,
+                    regindexids[usarg],
+                    accuid);
+        }
+        else
+        {
+          if (!regreadids[usarg])
+            printf ("%d read 16 %d %d\n",
+                    regreadids[usarg] = id++,
+                    regsid,
+                    regindexids[usarg]);
+        }
+      }
+    }
+
+    pc = program[pc].next;
+  }
+
   nextpcid   = pcid;
   nextaccuid = accuid;
   nextflagid = flagid;
@@ -570,18 +615,15 @@ SYNTHESIZE:
   pc = first;
   while (pc >= 0)
   {
-    op = program[pc].op;
-
-    immediate = program[pc].immediate;
-    usarg     = program[pc].arg;
+    op    = program[pc].op;
+    usarg = program[pc].arg;
+    printf ("%d eq 1 %d %d\n", atthispcid = id++, pcid, program[pc].pcid);
 
     if (op == GOTO || op == JMP)
     {
-      printf ("%d eq 1 %d %d\n", id++, pcid, program[pc].pcid);
-
       if (op == JMP)
       {
-        printf ("%d and 1 %d %d\n", id, id - 1, flagid);
+        printf ("%d and 1 %d %d\n", id, atthispcid, flagid);
         id++;
       }
 
@@ -595,14 +637,28 @@ SYNTHESIZE:
     }
 
     immediate = program[pc].immediate;
-    arg       = program[pc].arg;
 
     pc = program[pc].next;
+  }
+
+  if (op == EQ || op == LT || op == LE)
+  {
+    if (immediate)
+      printf ("%d constd 16 %d\n", tmp = id++, usarg);
+    else
+      tmp = regreadids[usarg];
+
+    if (op == EQ) printf ("%d eq 1 %d %d\n", id++, accuid, tmp);
+    if (op == LT) printf ("%d slt 1 %d %d\n", id++, accuid, tmp);
+    if (op == LE) printf ("%d slte 1 %d %d\n", id++, accuid, tmp);
+
+    printf ("%d cond %d %d %d\n", nextflagid = id, atthispcid, id - 1, flagid);
   }
 
 EXIT:
 
   printf ("%d next 16 %d %d\n", id++, pcid, nextpcid);
+  printf ("%d next 1 %d %d\n", id++, flagid, nextflagid);
 
   if (dataname) fclose (data);
   for (i = 0; i < MAXLINE; i++)
