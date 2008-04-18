@@ -17,7 +17,7 @@ do
       else
         powerstring=$power
       fi
-      file="fifo"$bw"b"$powerstring"k"$kstring
+      file="fifo"$bw"bc"$powerstring"k"$kstring
       filebtor=$file".btor"
       filesmt=$file".smt"
       ./fifoeqcheck $bw $power > $temp 
