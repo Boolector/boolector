@@ -21,7 +21,7 @@ do
       filebtor=$file".btor"
       filesmt=$file".smt"
       ./fifoeqcheck $bw $power > $temp 
-      boolector $temp -bmc-base-only -bmc-maxk=$k -bmc-replay $filebtor
+      boolector $temp -rwl1 -bmc-base-only -bmc-maxk=$k -bmc-replay $filebtor
       boolector -rwl0 $filebtor -ds | while read line 
       do
 	if [[ $header -eq 1 ]]; then
@@ -33,7 +33,7 @@ do
 	  echo "Fifo inputs: 'enqueue', 'dequeue', 'reset' (active low) and 'data_in'." >> $filesmt
 	  echo "Fifo output: 'empty', 'full' and 'data_out'." >> $filesmt
 	  echo "Bit-width: $bw" >> $filesmt
-	  echo "The fifo has an internal memory of size $((2 ** $power)), which is modelled as array." >> $filesmt
+	  echo "The fifos have an internal memory of size $((2 ** $power)), respectively modelled as array." >> $filesmt
 	  echo "" >> $filesmt
 	  echo -n "Contributed by Robert Brummayer " >> $filesmt
 	  echo "(robert.brummayer@gmail.com)." >> $filesmt
