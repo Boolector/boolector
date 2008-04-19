@@ -52,8 +52,8 @@ static int szbuf, nbuf;
 #define MAXMEM (1 << 16)
 
 static Cmd program[MAXLINE];
-static unsigned short mem[MAXMEM];
-static unsigned short regs[26];
+static unsigned short* mem;
+static unsigned short* regs;
 static unsigned short accu;
 static int flag;
 
@@ -435,6 +435,8 @@ DONE:
   {
     if (!(op = program[i].op)) continue;
 
+    if (!simulate && program[i].op == PRINT) continue;
+
     arg = program[i].arg;
     if (op == GOTO || op == JMP)
     {
@@ -449,8 +451,13 @@ DONE:
     last = i;
   }
 
+  res = 0;
+
   if (!simulate) goto SYNTHESIZE;
 
+  /* Here starts the implementations of the simulator, which is used if
+   * the '-s' command line option is specified.
+   */
   if (dataname)
   {
     if (!(data = fopen (dataname, "r"))) perr ("can not read '%s'", dataname);
@@ -465,13 +472,14 @@ DONE:
 
   pc = first;
 
+  /* By allocating here, we can use 'valgrind'.
+   */
+  mem  = malloc (MAXMEM * sizeof *mem);
+  regs = malloc (26 * sizeof *regs);
+
 NEXTCMD:
 
-  if (pc < 0)
-  {
-    res = 0;
-    goto EXIT;
-  }
+  if (pc < 0) goto EXIT;
 
   op        = program[pc].op;
   str       = program[pc].str;
@@ -535,6 +543,8 @@ NEXTCMD:
 
   goto NEXTCMD;
 
+  /* END OF SIMULATOR */
+
 SYNTHESIZE:
 
   id = 1;
@@ -557,9 +567,12 @@ SYNTHESIZE:
   pc = first;
   while (pc >= 0)
   {
-    program[pc].pcid = id;
-    printf ("%d constd 16 %d\n", id, pc);
-    id++;
+    if (program[pc].pcid != PRINT)
+    {
+      program[pc].pcid = id;
+      printf ("%d constd 16 %d\n", id, pc);
+      id++;
+    }
     pc = program[pc].next;
   }
 
@@ -567,43 +580,55 @@ SYNTHESIZE:
   memset (regreadids, 0, sizeof regreadids);
   memset (regwriteids, 0, sizeof regwriteids);
 
-  pc = first;
-  while (pc >= 0)
+  for (pc = first; pc >= 0; pc = program[pc].next)
   {
     op = program[pc].op;
-
-    if (op == ADD || op == EQ || op == LE || op == LT || op == LOAD
-        || op == PEEK || op == POKE || op == READ || op == SAVE || op == WRITE)
+    switch (op)
     {
-      immediate = program[pc].immediate;
-      usarg     = program[pc].arg;
+      case ADD:
+      case EQ:
+      case EXIT:
+      case LE:
+      case LT:
+      case LOAD:
+      case PEEK:
+      case POKE:
+      case READ:
+      case SAVE:
+        immediate = program[pc].immediate;
+        usarg     = program[pc].arg;
 
-      if (!immediate)
-      {
-        if (!regindexids[usarg])
-          printf ("%d constd 5 %d\n", regindexids[usarg] = id++, usarg);
+        if (!immediate)
+        {
+          if (!regindexids[usarg])
+            printf ("%d constd 5 %d\n", regindexids[usarg] = id++, usarg);
 
-        if (op == SAVE)
-        {
-          if (!regwriteids[usarg])
-            printf ("%d write 16 %d %d %d\n",
-                    regwriteids[usarg] = id++,
-                    regsid,
-                    regindexids[usarg],
-                    accuid);
+          if (op == SAVE)
+          {
+            if (!regwriteids[usarg])
+              printf ("%d write 16 %d %d %d\n",
+                      regwriteids[usarg] = id++,
+                      regsid,
+                      regindexids[usarg],
+                      accuid);
+          }
+          else
+          {
+            if (!regreadids[usarg])
+              printf ("%d read 16 %d %d\n",
+                      regreadids[usarg] = id++,
+                      regsid,
+                      regindexids[usarg]);
+          }
         }
-        else
-        {
-          if (!regreadids[usarg])
-            printf ("%d read 16 %d %d\n",
-                    regreadids[usarg] = id++,
-                    regsid,
-                    regindexids[usarg]);
-        }
-      }
+        break;
+        ;
+
+      case GOTO:
+      case JMP:
+      case PRINT:
+      default: assert (op == WRITE); break;
     }
-
-    pc = program[pc].next;
   }
 
   nextpcid   = pcid;
@@ -612,10 +637,12 @@ SYNTHESIZE:
   nextregsid = regsid;
   nextmemid  = memid;
 
-  pc = first;
-  while (pc >= 0)
+  for (pc = first; pc >= 0; pc = program[pc].next)
   {
-    op    = program[pc].op;
+    op = program[pc].op;
+
+    if (op == PRINT || op == WRITE) continue;
+
     usarg = program[pc].arg;
 
     printf ("%d eq 1 %d %d\n", atthispcid = id++, pcid, program[pc].pcid);
@@ -659,7 +686,7 @@ SYNTHESIZE:
       printf ("%d cond 1 %d %d %d\n", id, atthispcid, id - 1, nextflagid);
       nextflagid = id++;
     }
-    else if (op == WRITE)
+    else if (op == EXIT)
     {
       printf ("%d redor 1 %d\n", id++, tmp);
       printf ("%d root 1 %d\n", id, id - 1);
@@ -709,14 +736,8 @@ SYNTHESIZE:
       printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextaccuid);
       nextaccuid = id++;
     }
-    else if (op == PRINT || op == EXIT)
-    {
-      /* DO NOTHING */
-    }
     else
       assert (op == GOTO || op == JMP); /* got all ops? */
-
-    pc = program[pc].next;
   }
 
   printf ("%d next 16 %d %d\n", id++, pcid, nextpcid);
@@ -725,11 +746,18 @@ SYNTHESIZE:
   printf ("%d next 16 %d %d\n", id++, regsid, nextregsid);
   printf ("%d next 16 %d %d\n", id++, memid, nextmemid);
 
+  /* END OF SYTHESIZER */
+
 EXIT:
 
   if (dataname) fclose (data);
   for (i = 0; i < MAXLINE; i++)
     if (program[i].op == PRINT) free (program[i].str);
   free (buffer);
+  if (simulate)
+  {
+    free (mem);
+    free (regs);
+  }
   exit (res);
 }
