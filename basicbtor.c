@@ -9,21 +9,25 @@ typedef struct Cmd Cmd;
 
 enum Op
 {
-  NOOP = 0,
-  ADD,
-  EQ,
-  EXIT,
-  GOTO,
-  JMP,
-  LE,
-  LT,
-  LOAD,
-  PEEK,
-  POKE,
-  PRINT,
-  READ,
-  SAVE,
-  WRITE,
+  NOOP = 0,  // for debugging purposes only
+
+  ADD,    // accu += arg
+  EQ,     // flag = (accu == arg)
+  EXIT,   // exit arg
+  GE,     // flag = (accu >= arg)
+  GT,     // flag = (accu > arg)
+  GOTO,   // goto argi            immediate only
+  JMP,    // if flag goto arg     immediate only
+  LE,     // flag = (accu <= arg)
+  LT,     // flag = (accu < arg)
+  LOAD,   // accu = arg		       		-> SAVE
+  NE,     // flag = (accu != arg)
+  PEEK,   // accu = mem[arg]			-> POKE
+  POKE,   // mem[arg] = accu			-> PEEK
+  PRINT,  // print "str"		simulation only
+  READ,   // read arg		register only	-> WRITE
+  SAVE,   // arg = accu		register only	-> LOAD
+  WRITE,  // write arg		simulation only	-> READ
 };
 
 typedef enum Op Op;
@@ -212,10 +216,18 @@ NEXTLINE:
       break;
 
     case 'G':
-      if (next () != 'O') goto INVALIDOP;
-      if (next () != 'T') goto INVALIDOP;
-      if (next () != 'O') goto INVALIDOP;
-      op = GOTO;
+      if ((ch == next ()) == 'E')
+        op = GE;
+      else if (ch == 'T')
+        op = GT;
+      else if (ch != 'O')
+        goto INVALIDOP;
+      else if (next () != 'T')
+        goto INVALIDOP;
+      else if (next () != 'O')
+        goto INVALIDOP;
+      else
+        op = GOTO;
       break;
 
     case 'J':
@@ -236,6 +248,11 @@ NEXTLINE:
         if (next () != 'D') goto INVALIDOP;
         op = LOAD;
       }
+      break;
+
+    case 'N':
+      if (next () != 'E') goto INVALIDOP;
+      op = NE;
       break;
 
     case 'P':
@@ -504,11 +521,17 @@ NEXTCMD:
 
       case EQ: flag = (accu == usarg); break;
 
+      case GE: flag = (accu >= usarg); break;
+
+      case GT: flag = (accu > usarg); break;
+
       case LE: flag = (accu <= usarg); break;
 
       case LT: flag = (accu < usarg); break;
 
       case LOAD: accu = usarg; break;
+
+      case NE: flag = (accu != usarg); break;
 
       case PEEK: accu = mem[usarg]; break;
 
@@ -592,9 +615,12 @@ SYNTHESIZE:
       case ADD:
       case EQ:
       case EXIT:
+      case GE:
+      case GT:
       case LE:
       case LT:
       case LOAD:
+      case NE:
       case PEEK:
       case POKE:
       case READ:
@@ -681,11 +707,14 @@ SYNTHESIZE:
     else
       tmp = regreadids[usarg];
 
-    if (op == EQ || op == LT || op == LE)
+    if (op == EQ || op == GE || op == GT || op == LT || op == LE || op == NE)
     {
       if (op == EQ) printf ("%d eq 1 %d %d\n", id++, accuid, tmp);
-      if (op == LT) printf ("%d slt 1 %d %d\n", id++, accuid, tmp);
+      if (op == GE) printf ("%d sgte 1 %d %d\n", id++, accuid, tmp);
+      if (op == GT) printf ("%d sgt 1 %d %d\n", id++, accuid, tmp);
       if (op == LE) printf ("%d slte 1 %d %d\n", id++, accuid, tmp);
+      if (op == LT) printf ("%d slt 1 %d %d\n", id++, accuid, tmp);
+      if (op == NE) printf ("%d ne 1 %d %d\n", id++, accuid, tmp);
 
       printf ("%d cond 1 %d %d %d\n", id, atthispcid, id - 1, nextflagid);
       nextflagid = id++;
