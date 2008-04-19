@@ -455,6 +455,8 @@ DONE:
 
   if (!simulate) goto SYNTHESIZE;
 
+  /* START OF SIMULATOR */
+
   /* Here starts the implementations of the simulator, which is used if
    * the '-s' command line option is specified.
    */
@@ -544,6 +546,8 @@ NEXTCMD:
   goto NEXTCMD;
 
   /* END OF SIMULATOR */
+
+  /* START OF SYNTHESIZER */
 
 SYNTHESIZE:
 
@@ -689,6 +693,8 @@ SYNTHESIZE:
     else if (op == EXIT)
     {
       printf ("%d redor 1 %d\n", id++, tmp);
+      printf ("%d and 1 %d %d\n", id, id - 1, atthispcid);
+      id++;
       printf ("%d root 1 %d\n", id, id - 1);
       id++;
     }
