@@ -656,7 +656,7 @@ SYNTHESIZE:
 
       case GOTO:
       case JMP:
-      case PRINT:
+      case PRINT: break;
       default: assert (op == WRITE); break;
     }
   }
