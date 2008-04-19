@@ -4815,6 +4815,7 @@ rewrite_exp (Btor *btor,
      * TODO: lots of word level simplifications:
      * a <= b && b <= a  <=> a == b
      * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
+     * {a,b} == {c,d} with |a|=|c| <=> a == c && b == d
      * ...
      */
     /* TODO a + 2 * a <=> 3 * a <=> and see below */
@@ -4827,12 +4828,16 @@ rewrite_exp (Btor *btor,
     /* TODO MAX-1 < a <=> a == MAX */
     /* TODO a < MAX <=> a != MAX */
 
+    /* TODO (x < ~x) <=> !msb(x) */
+    /* TODO (~x < x) <=> msb(x) */
+
     /* TODO associativity of multiplication (always?) or normalize */
     /* TODO associativity of addition up to a certain level or normalize */
 
     /* TODO to support GAUSS bubble up odd terms:
      * (2 * a + 3 * y) + 4 * x => 3 * y + (2 * a + 4 * x)
      * or alternatively normalize arithmetic terms/polynomials
+     * or simply always replace by equation.
      */
 
     /* TODO simplify (c * x + 2 * y) + x == 5 at GAUSS application
