@@ -10,7 +10,7 @@ module fifoqueue (
 );
 
 input clock;
-input reset;
+input reset; /* active low */
 input enqueue;
 input dequeue;
 input [31:0] data_in;
@@ -20,7 +20,7 @@ output full;
 output [31:0] data_out;
 
 wire clock;
-wire reset; /* active low */
+wire reset;
 wire enqueue;
 wire dequeue;
 wire [31:0] data_in;
