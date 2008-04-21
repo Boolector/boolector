@@ -53,9 +53,6 @@ void btor_print_stats_sat (BtorSATMgr *smgr);
  */
 void btor_add_sat (BtorSATMgr *smgr, int lit);
 
-/* Dumps the CNF of the SAT solver to file. */
-void btor_dump_cnf_sat (BtorSATMgr *smgr, FILE *output);
-
 /* Adds assumption to SAT solver. */
 void btor_assume_sat (BtorSATMgr *smgr, int lit);
 

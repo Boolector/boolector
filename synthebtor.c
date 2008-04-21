@@ -84,6 +84,7 @@ main (int argc, char **argv)
 
   btor = btor_new_btor ();
   btor_set_verbosity_btor (btor, verbosity);
+  btor_set_rewrite_level_btor (btor, 1);
   parser = btor_btor_parser_api->init (btor, verbosity);
 
   parse_error =

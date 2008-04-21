@@ -20,14 +20,14 @@ enum Op
   JMP,    // if flag goto arg     immediate only
   LE,     // flag = (accu <= arg)
   LT,     // flag = (accu < arg)
-  LOAD,   // accu = arg		       		-> SAVE
+  LOAD,   // accu = arg                           -> SAVE
   NE,     // flag = (accu != arg)
-  PEEK,   // accu = mem[arg]			-> POKE
-  POKE,   // mem[arg] = accu			-> PEEK
-  PRINT,  // print "str"		simulation only
-  READ,   // read arg		register only	-> WRITE
-  SAVE,   // arg = accu		register only	-> LOAD
-  WRITE,  // write arg		simulation only	-> READ
+  PEEK,   // accu = mem[arg]                      -> POKE
+  POKE,   // mem[arg] = accu                      -> PEEK
+  PRINT,  // print "str"          simulation only
+  READ,   // read arg             register only   -> WRITE
+  SAVE,   // arg = accu           register only   -> LOAD
+  WRITE,  // write arg            simulation only -> READ
 };
 
 typedef enum Op Op;
@@ -37,7 +37,7 @@ struct Cmd
   Op op;
   unsigned short immediate;
   unsigned short arg;
-  char* str;
+  char *str;
   int next;
   int pcid;
 };
@@ -45,24 +45,24 @@ struct Cmd
 static FILE *input, *data;
 static int saved = EOF;
 static int instring;
-static const char* inputname;
-static const char* dataname;
-static const char* name;
+static const char *inputname;
+static const char *dataname;
+static const char *name;
 static int lineno = 1;
-static char* buffer;
+static char *buffer;
 static int szbuf, nbuf;
 
 #define MAXLINE (1 << 16)
 #define MAXMEM (1 << 16)
 
 static Cmd program[MAXLINE];
-static unsigned short* mem;
-static unsigned short* regs;
+static unsigned short *mem;
+static unsigned short *regs;
 static unsigned short accu;
 static int flag;
 
 static void
-die (const char* msg, ...)
+die (const char *msg, ...)
 {
   va_list ap;
   fputs ("*** btorbasic: ", stderr);
@@ -74,7 +74,7 @@ die (const char* msg, ...)
 }
 
 static void
-perr (const char* msg, ...)
+perr (const char *msg, ...)
 {
   va_list ap;
   fprintf (stderr, "%s:%d: ", name, lineno);
@@ -127,13 +127,13 @@ spaceortab (char ch)
 }
 
 int
-main (int argc, char** argv)
+main (int argc, char **argv)
 {
   int i, ch, line, immediate, arg, sign, last, first, pc, usarg, simulate, res;
   int nextpcid, nextaccuid, nextflagid, nextregsid, nextmemid, atthispcid;
   int regindexids[26], regwriteids[26], regreadids[26];
   int id, pcid, regsid, memid, accuid, flagid;
-  const char* str;
+  const char *str;
   int tmp;
   Op op;
 
@@ -216,7 +216,7 @@ NEXTLINE:
       break;
 
     case 'G':
-      if ((ch == next ()) == 'E')
+      if ((ch = next ()) == 'E')
         op = GE;
       else if (ch == 'T')
         op = GT;
@@ -318,6 +318,7 @@ NEXTLINE:
 
     default:
     INVALIDOP:
+      op = NOOP;
       perr ("invalid operator");
   }
 

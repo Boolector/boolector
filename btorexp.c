@@ -565,25 +565,19 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
   if (BTOR_IS_VAR_EXP (exp))
   {
     btor_freestr (mm, exp->symbol);
-#ifndef NDEBUG
     exp->symbol = 0;
-#endif
   }
 
   if (BTOR_IS_CONST_EXP (exp))
   {
     btor_freestr (mm, exp->bits);
-#ifndef NDEBUG
     exp->bits = 0;
-#endif
   }
 
   if (exp->av)
   {
     btor_release_delete_aigvec (btor->avmgr, exp->av);
-#ifndef NDEBUG
     exp->av = 0;
-#endif
   }
   exp->erased = 1;
 }
@@ -606,9 +600,7 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
 
   mm = btor->mm;
 
-#ifndef NDEBUG
   exp->kind = BTOR_INVALID_EXP;
-#endif
   btor_free (mm, exp, exp->bytes);
 }
 
@@ -647,9 +639,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
       if (cur->simplified)
       {
         BTOR_PUSH_STACK (mm, stack, cur->simplified);
-#ifndef NDEBUG
         cur->simplified = NULL;
-#endif
       }
 
       if (BTOR_IS_ARRAY_EQ_EXP (cur) && cur->vreads)
@@ -657,9 +647,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
         BTOR_DELETE (mm, cur->vreads);
-#ifndef NDEBUG
         cur->vreads = 0;
-#endif
       }
 
       remove_from_unique_table_exp (btor, cur);

@@ -1,0 +1,8 @@
+Solving BMC problem
+Using all different constraints: yes
+Checking base case and inductive case
+k = 0:
+  Inductive case: sat
+  Base case: unsat
+k = 1:
+  Inductive case: unsat
