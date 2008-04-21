@@ -193,16 +193,6 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
 }
 
 void
-btor_dump_cnf_sat (BtorSATMgr *smgr, FILE *output)
-{
-  assert (smgr != NULL);
-  assert (output != NULL);
-  assert (smgr->initialized);
-  (void) smgr;
-  picosat_print (output);
-}
-
-void
 btor_assume_sat (BtorSATMgr *smgr, int lit)
 {
   assert (smgr != NULL);
