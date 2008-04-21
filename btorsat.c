@@ -141,8 +141,6 @@ btor_init_sat (BtorSATMgr *smgr)
   picosat_set_resize (
       smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
 
-  if (smgr->verbosity >= 3) picosat_measure_all_calls ();
-
   picosat_init ();
 
   smgr->initialized = 1;
