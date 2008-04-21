@@ -216,7 +216,7 @@ NEXTLINE:
       break;
 
     case 'G':
-      if ((ch == next ()) == 'E')
+      if ((ch = next ()) == 'E')
         op = GE;
       else if (ch == 'T')
         op = GT;
@@ -318,6 +318,7 @@ NEXTLINE:
 
     default:
     INVALIDOP:
+      op = NOOP;
       perr ("invalid operator");
   }
 
