@@ -7,16 +7,14 @@
  * from the book "hacker's delight" (Warren Jr., Henry)
  * works as expected, e.g. next_power_of_2(5) == 8
  *
- * Algorithm:
  * int next_power_of_2 (int x)
  * {
  *   int i;
  *   x--;
- *   for (i = 1; i < 32; i = i * 2)
+ *   for (i = 1; i < sizeof(int) * 8; i = i * 2)
  *     x = x | (x >> i)
  *   return x + 1;
  * }
- * Note: we assume that sizeof(int) == 4
  */
 
 int
@@ -30,7 +28,7 @@ main (int argc, char **argv)
   char *const_string;
   if (argc != 2)
   {
-    printf ("Usage: ./nextpowerof2 <num-bits>");
+    printf ("Usage: ./nextpowerof2 <num-bits>\n");
     return EXIT_FAILURE;
   }
   num_bits = atoi (argv[1]);
