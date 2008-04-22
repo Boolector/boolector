@@ -4694,9 +4694,107 @@ rewrite_exp (Btor *btor,
         if (kind == BTOR_AND_EXP) result = copy_exp (btor, e0);
       }
     }
+    /* two level optimization for BTOR_AND_EXP */
+    else if (kind == BTOR_AND_EXP)
+    {
+      if (e0 == e1) /* x & x == x */
+        result = copy_exp (btor, e0);
+      else if (BTOR_INVERT_EXP (e0) == e1) /* x & ~x == 0 */
+        result = zeros_exp (btor, real_e0->len);
+      else if (real_e0->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e0))
+      {
+        /* first rule of contradiction */
+        if (real_e0->e[0] == BTOR_INVERT_EXP (e1)
+            || real_e0->e[1] == BTOR_INVERT_EXP (e1))
+          result = zeros_exp (btor, real_e0->len);
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e1->e[0] == BTOR_INVERT_EXP (e0)
+            || real_e1->e[1] == BTOR_INVERT_EXP (e0))
+          result = zeros_exp (btor, real_e0->len);
+      }
+      /* second rule of contradiction */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[0])
+            || real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
+            || real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0])
+            || real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
+          result = zeros_exp (btor, real_e0->len);
+      }
+      /* first rule of subsumption */
+      else if (real_e0->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e0))
+      {
+        if (real_e0->e[0] == BTOR_INVERT_EXP (e1)
+            || real_e0->e[1] == BTOR_INVERT_EXP (e1))
+          result = copy_exp (btor, e1);
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e1->e[0] == BTOR_INVERT_EXP (e0)
+            || real_e1->e[1] == BTOR_INVERT_EXP (e0))
+          result = copy_exp (btor, e0);
+      }
+      /* second rule of subsumption */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[0])
+            || real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
+            || real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0])
+            || real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
+          result = copy_exp (btor, e1);
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && !BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[0])
+            || real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
+            || real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0])
+            || real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
+          result = copy_exp (btor, e0);
+      }
+      /* rule of resolution */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+      {
+        if ((real_e0->e[0] == real_e1->e[0]
+             && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
+            || (real_e0->e[0] == real_e1->e[1]
+                && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0])))
+          result = BTOR_INVERT_EXP (copy_exp (btor, real_e0->e[0]));
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+      {
+        if ((real_e1->e[1] == real_e0->e[1]
+             && real_e1->e[0] == BTOR_INVERT_EXP (real_e0->e[0]))
+            || (real_e1->e[1] == real_e0->e[0]
+                && real_e1->e[0] == BTOR_INVERT_EXP (real_e0->e[1])))
+          result = BTOR_INVERT_EXP (copy_exp (btor, real_e1->e[1]));
+      }
+      /* asymmetric rule of idempotency */
+      else if (real_e0->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e0))
+      {
+        if (real_e0->e[0] == e1 || real_e0->e[1] == e1)
+          result = copy_exp (btor, e0);
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e1->e[0] == e0 || real_e1->e[1] == e0)
+          result = copy_exp (btor, e1);
+      }
+    }
     else if (real_e0 == real_e1
              && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
-                 || kind == BTOR_AND_EXP || kind == BTOR_ADD_EXP))
+                 || kind == BTOR_ADD_EXP))
     {
       if (kind == BTOR_BEQ_EXP)
       {
@@ -4710,13 +4808,6 @@ rewrite_exp (Btor *btor,
         /* arrays must not be negated */
         assert (e0 == e1);
         result = true_exp (btor); /* x == x */
-      }
-      else if (kind == BTOR_AND_EXP)
-      {
-        if (e0 == e1)
-          result = copy_exp (btor, e0); /* x & x == x */
-        else
-          result = zeros_exp (btor, real_e0->len); /* x & ~x == 0 */
       }
       else
       {
