@@ -4897,6 +4897,22 @@ rewrite_exp (Btor *btor,
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
+
+      /* further opimizations: */
+
+      /* a < b && b < a simplifies to FALSE */
+      else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
+               && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+               && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
+        result = false_exp (btor);
+      /* NOT (a < b) && NOT (b < a) simplifies to a == b */
+      else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
+               && BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
+               && real_e0->e[0] == real_e1->e[1]
+               && real_e0->e[1] == real_e1->e[0])
+        /* ATTENTION: indirect recursive call,
+         * make sure it does not trigger another recursive calls */
+        result = eq_exp (btor, e0, e1);
     }
     else if (real_e0 == real_e1
              && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
@@ -4997,7 +5013,6 @@ rewrite_exp (Btor *btor,
     }
 
     /* TODO: lots of word level simplifications:
-     * a <= b && b <= a  <=> a == b
      * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
      * {a,b} == {c,d} with |a|=|c| <=> a == c && b == d
      * ...
