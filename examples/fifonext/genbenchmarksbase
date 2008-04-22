@@ -29,7 +29,7 @@ do
 	  echo ":source {" >> $filesmt
 	  echo "This benchmark comes from bounded model checking of two fifo implementations." >> $filesmt
 	  echo "The fifos are resetted once at the beginning. We show that the" >> $filesmt
-	  echo "implementations are behavioral equivalent up to a bound of $k clock cycles." >> $filesmt
+	  echo "implementations are behaviorally equivalent up to a bound of $k clock cycles." >> $filesmt
 	  echo "Fifo inputs: 'enqueue', 'dequeue', 'reset' (active low) and 'data_in'." >> $filesmt
 	  echo "Fifo output: 'empty', 'full' and 'data_out'." >> $filesmt
 	  echo "Bit-width: $bw" >> $filesmt
