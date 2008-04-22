@@ -4694,9 +4694,10 @@ rewrite_exp (Btor *btor,
         if (kind == BTOR_AND_EXP) result = copy_exp (btor, e0);
       }
     }
-    /* two level optimization for BTOR_AND_EXP */
+    /* two level optimization [MEMICS] for BTOR_AND_EXP */
     else if (kind == BTOR_AND_EXP)
     {
+    BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       if (e0 == e1) /* x & x == x */
         result = copy_exp (btor, e0);
       else if (BTOR_INVERT_EXP (e0) == e1) /* x & ~x == 0 */
@@ -4790,6 +4791,111 @@ rewrite_exp (Btor *btor,
       {
         if (real_e1->e[0] == e0 || real_e1->e[1] == e0)
           result = copy_exp (btor, e1);
+      }
+
+      /* rules that use looping */
+
+      /* symmetric rule of idempotency */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e0->e[0] == real_e1->e[0] || real_e0->e[1] == real_e1->e[0])
+        {
+          e1      = real_e1->e[1];
+          real_e1 = BTOR_REAL_ADDR_EXP (e1);
+          assert (!BTOR_IS_CONST_EXP (real_e1));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && real_e0->kind == BTOR_AND_EXP
+               && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e0->e[0] == real_e1->e[1] || real_e0->e[1] == real_e1->e[1])
+        {
+          e1      = real_e1->e[0];
+          real_e1 = BTOR_REAL_ADDR_EXP (e1);
+          assert (!BTOR_IS_CONST_EXP (real_e1));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+      }
+      /* asymmetric rule of substitution */
+      else if (real_e0->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e0))
+      {
+        if (real_e0->e[1] == e1)
+        {
+          e0      = BTOR_INVERT_EXP (real_e0->e[0]);
+          real_e0 = BTOR_REAL_ADDR_EXP (e0);
+          assert (!BTOR_IS_CONST_EXP (real_e0));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+        if (real_e0->e[0] == e1)
+        {
+          e0      = BTOR_INVERT_EXP (real_e0->e[1]);
+          real_e0 = BTOR_REAL_ADDR_EXP (e0);
+          assert (!BTOR_IS_CONST_EXP (real_e0));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e1))
+      {
+        if (real_e1->e[0] == e0)
+        {
+          e1      = BTOR_INVERT_EXP (real_e1->e[1]);
+          real_e1 = BTOR_REAL_ADDR_EXP (e1);
+          assert (!BTOR_IS_CONST_EXP (real_e1));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+        if (real_e1->e[1] == e0)
+        {
+          e1      = BTOR_INVERT_EXP (real_e1->e[0]);
+          real_e1 = BTOR_REAL_ADDR_EXP (e1);
+          assert (!BTOR_IS_CONST_EXP (real_e1));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+      }
+      /* symmetric rule of substitution */
+      else if (real_e0->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e0)
+               && real_e1->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e1))
+      {
+        if ((real_e0->e[1] == real_e1->e[0])
+            || (real_e0->e[1] == real_e1->e[1]))
+        {
+          e0      = BTOR_INVERT_EXP (real_e0->e[0]);
+          real_e0 = BTOR_REAL_ADDR_EXP (e0);
+          assert (!BTOR_IS_CONST_EXP (real_e0));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+        if ((real_e0->e[0] == real_e1->e[0])
+            || (real_e0->e[0] == real_e1->e[1]))
+        {
+          e0      = BTOR_INVERT_EXP (real_e0->e[1]);
+          real_e0 = BTOR_REAL_ADDR_EXP (e0);
+          assert (!BTOR_IS_CONST_EXP (real_e0));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+      }
+      /* use commutativity */
+      else if (real_e1->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e1)
+               && real_e0->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e0))
+      {
+        if ((real_e1->e[0] == real_e0->e[1])
+            || (real_e1->e[0] == real_e0->e[0]))
+        {
+          e1      = BTOR_INVERT_EXP (real_e1->e[1]);
+          real_e1 = BTOR_REAL_ADDR_EXP (e1);
+          assert (!BTOR_IS_CONST_EXP (real_e1));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
+        if ((real_e1->e[1] == real_e0->e[1])
+            || (real_e1->e[1] == real_e0->e[0]))
+        {
+          e1      = BTOR_INVERT_EXP (real_e1->e[0]);
+          real_e1 = BTOR_REAL_ADDR_EXP (e1);
+          assert (!BTOR_IS_CONST_EXP (real_e1));
+          goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
+        }
       }
     }
     else if (real_e0 == real_e1
@@ -4890,8 +4996,7 @@ rewrite_exp (Btor *btor,
       release_exp (btor, temp_right);
     }
 
-    /* TODO: add all the O[123] optimization of MEMICS paper.
-     * TODO: lots of word level simplifications:
+    /* TODO: lots of word level simplifications:
      * a <= b && b <= a  <=> a == b
      * a[7:4] == b[7:4] && a[3:0] == b[3:0] <=> a == b
      * {a,b} == {c,d} with |a|=|c| <=> a == c && b == d
