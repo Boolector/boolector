@@ -24,11 +24,7 @@ do
       echo -n "Contributed by Robert Brummayer " >> $filename
       echo "(robert.brummayer@gmail.com)." >> $filename
       echo "}" >> $filename
-      if [[ $overlap -eq 1 ]]; then
-	echo ":status sat" >> $filename
-      else
-	echo ":status unsat" >> $filename
-      fi
+      echo ":status unsat" >> $filename
       echo ":category { crafted }" >> $filename
       header=0
     else
