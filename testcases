@@ -122,3 +122,6 @@ dubreva002ue -o log/dubreva002ue.log log/dubreva002ue.smt
 regrw8simp -o log/regrw8simp.log log/regrw8simp.btor
 regprim11simp -o log/regprim11simp.log log/regprim11simp.btor
 regexit0basic -o log/regexit0basic.log log/regexit0basic.btor
+andopt1 -rwl1 -o log/andopt1.log log/andopt1.btor
+andopt2 -rwl1 -o log/andopt2.log log/andopt2.btor
+andopt3 -rwl1 -o log/andopt3.log log/andopt3.btor
