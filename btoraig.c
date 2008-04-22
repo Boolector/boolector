@@ -354,7 +354,7 @@ btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   assert (amgr != NULL);
   if (left == BTOR_AIG_FALSE || right == BTOR_AIG_FALSE) return BTOR_AIG_FALSE;
   if (left == BTOR_AIG_TRUE) return inc_aig_ref_counter_and_return (right);
-TRY_AGAIN:
+BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   if (right == BTOR_AIG_TRUE || (left == right))
     return inc_aig_ref_counter_and_return (left);
   if (left == BTOR_INVERT_AIG (right)) return BTOR_AIG_FALSE;
@@ -479,7 +479,7 @@ TRY_AGAIN:
         || BTOR_RIGHT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right))
     {
       right = BTOR_RIGHT_CHILD_AIG (real_right);
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
   /* use commutativity */
@@ -491,7 +491,7 @@ TRY_AGAIN:
                == BTOR_RIGHT_CHILD_AIG (real_right))
     {
       right = BTOR_LEFT_CHILD_AIG (real_right);
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
   /* asymmetric rule of substitution */
@@ -500,12 +500,12 @@ TRY_AGAIN:
     if (BTOR_RIGHT_CHILD_AIG (real_left) == right)
     {
       left = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
     if (BTOR_LEFT_CHILD_AIG (real_left) == right)
     {
       left = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
   /* use commutativity */
@@ -514,12 +514,12 @@ TRY_AGAIN:
     if (BTOR_LEFT_CHILD_AIG (real_right) == left)
     {
       right = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
     if (BTOR_RIGHT_CHILD_AIG (real_right) == left)
     {
       right = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
   /* symmetric rule of substitution */
@@ -531,14 +531,14 @@ TRY_AGAIN:
             == BTOR_RIGHT_CHILD_AIG (real_right)))
     {
       left = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_left));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
     if ((BTOR_LEFT_CHILD_AIG (real_left) == BTOR_LEFT_CHILD_AIG (real_right))
         || (BTOR_LEFT_CHILD_AIG (real_left)
             == BTOR_RIGHT_CHILD_AIG (real_right)))
     {
       left = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_left));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
   /* use commutativity */
@@ -550,14 +550,14 @@ TRY_AGAIN:
             == BTOR_LEFT_CHILD_AIG (real_left)))
     {
       right = BTOR_INVERT_AIG (BTOR_RIGHT_CHILD_AIG (real_right));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
     if ((BTOR_RIGHT_CHILD_AIG (real_right) == BTOR_RIGHT_CHILD_AIG (real_left))
         || (BTOR_RIGHT_CHILD_AIG (real_right)
             == BTOR_LEFT_CHILD_AIG (real_left)))
     {
       right = BTOR_INVERT_AIG (BTOR_LEFT_CHILD_AIG (real_right));
-      goto TRY_AGAIN;
+      goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
   lookup = find_and_aig (amgr, left, right);
