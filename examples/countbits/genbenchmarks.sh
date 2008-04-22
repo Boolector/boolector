@@ -1,5 +1,5 @@
 #!/bin/bash
-limit=128
+limit=512
 for ((size=16;size<=$limit;size*=2))
 do
   header=1
