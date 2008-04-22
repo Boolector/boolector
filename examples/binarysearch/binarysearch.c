@@ -23,7 +23,7 @@ main (int argc, char **argv)
     return 1;
   }
   num_elements = atoi (argv[2]);
-  if (num_elements <= 1)
+  if (num_elements < 4)
   {
     printf ("Number of elements must be at least four\n");
     return 1;
