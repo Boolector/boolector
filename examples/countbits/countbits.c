@@ -1,6 +1,6 @@
-/* Verifies correcntess of Peter Wegeners algorithm:
+/* Verifies correcntess of Peter Wegner's algorithm:
  *
- *   P. Wegener.
+ *   P. Wegner.
  *   A technique for counting ones in a binary computer.
  *   CACM 3(5), 1960.
  *
