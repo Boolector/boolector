@@ -22,7 +22,7 @@ do
       echo "CACM 3(5), 1960." >> $filename
       echo "Bit-width: $size" >> $filename
       echo "" >> $filename
-      echo -n "Contributed by Armin Biere" >> $filename
+      echo -n "Contributed by Armin Biere " >> $filename
       echo "(armin.biere@jku.at)." >> $filename
       echo "}" >> $filename
       echo ":status unsat" >> $filename
