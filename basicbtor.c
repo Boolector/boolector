@@ -469,6 +469,14 @@ DONE:
     last = i;
   }
 
+  if (first > 0)
+  {
+    program[0].op        = GOTO;
+    program[0].immediate = 1;
+    program[0].arg       = first;
+    first                = 0;
+  }
+
   res = 0;
 
   if (!simulate) goto SYNTHESIZE;
