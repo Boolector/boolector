@@ -2871,6 +2871,32 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
+rewrite_cond_as_and_exp (Btor *btor,
+                         BtorExp *e_cond,
+                         BtorExp *e_if,
+                         BtorExp *e_else)
+{
+  BtorExp *res, *l, *r;
+
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_else)));
+
+  assert (BTOR_REAL_ADDR_EXP (e_cond)->len == 1);
+  assert (BTOR_REAL_ADDR_EXP (e_if)->len == 1);
+  assert (BTOR_REAL_ADDR_EXP (e_else)->len == 1);
+
+  l = and_exp (btor, e_cond, BTOR_INVERT_EXP (e_if));
+  r = and_exp (btor, BTOR_INVERT_EXP (e_cond), BTOR_INVERT_EXP (e_else));
+
+  res = and_exp (btor, BTOR_INVERT_EXP (l), BTOR_INVERT_EXP (r));
+
+  release_exp (btor, l);
+  release_exp (btor, r);
+
+  return res;
+}
+
+static BtorExp *
 cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
 {
   BtorExp *result;
@@ -5072,8 +5098,18 @@ rewrite_exp (Btor *btor,
     }
     else if (e1 == e2)
       result = copy_exp (btor, e1);
+    else if (kind == BTOR_BCOND_EXP && real_e1->len == 1)
+    {
+      temp_left = and_exp (btor, e0, BTOR_INVERT_EXP (e1));
 
-    /* TODO e0 ? e1 : ~e1 <=> e0 == e1 */
+      temp_right = and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e2));
+
+      result = and_exp (
+          btor, BTOR_INVERT_EXP (temp_left), BTOR_INVERT_EXP (temp_right));
+
+      release_exp (btor, temp_right);
+      release_exp (btor, temp_left);
+    }
   }
   return result;
 }
