@@ -2780,6 +2780,12 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!is_array_e0
           || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
 #endif
+  /* ~e0 == ~e1 is the same as e0 == e1 */
+  if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+  {
+    e0 = BTOR_REAL_ADDR_EXP (e0);
+    e1 = BTOR_REAL_ADDR_EXP (e1);
+  }
   result = NULL;
   kind   = BTOR_BEQ_EXP;
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
