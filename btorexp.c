@@ -4564,7 +4564,7 @@ rewrite_exp (Btor *btor,
     assert (kind == BTOR_SLICE_EXP);
     real_e0 = BTOR_REAL_ADDR_EXP (e0);
     diff    = upper - lower;
-    if (diff + 1 == real_e0->len)
+    if (diff + 1 == real_e0->len) /* also handles result->len == 1 */
       result = copy_exp (btor, e0);
     else if (BTOR_IS_CONST_EXP (real_e0))
     {
@@ -4578,6 +4578,8 @@ rewrite_exp (Btor *btor,
       result           = BTOR_COND_INVERT_EXP (e0, result);
       btor_delete_const (mm, bresult);
     }
+
+    /* TODO: {a,b}[1,0] == b[1,0] etc., e.g. push slice into concat */
   }
   else if (BTOR_IS_BINARY_EXP_KIND (kind))
   {
@@ -4684,6 +4686,8 @@ rewrite_exp (Btor *btor,
         else if (kind == BTOR_ULT_EXP) /* UNSIGNED_MAX < x */
           result = false_exp (btor);
       }
+
+      /* TODO: handle all 'result->len == 1' cases */
     }
     else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
     {
@@ -4725,6 +4729,8 @@ rewrite_exp (Btor *btor,
       {
         if (kind == BTOR_AND_EXP) result = copy_exp (btor, e0);
       }
+
+      /* TODO: handle all 'result->len == 1' cases */
     }
     /* two level optimization [MEMICS] for BTOR_AND_EXP */
     else if (kind == BTOR_AND_EXP)
@@ -4980,6 +4986,8 @@ rewrite_exp (Btor *btor,
           /* replace x + ~x by -1 */
           result = ones_exp (btor, real_e0->len);
       }
+
+      /* TODO: handle all 'result->len == 1' cases */
     }
     else if (e0 == e1
              && (kind == BTOR_ULT_EXP || kind == BTOR_UREM_EXP
@@ -5007,6 +5015,8 @@ rewrite_exp (Btor *btor,
           result = zeros_exp (btor, real_e0->len);
           break;
       }
+
+      /* TODO: handle all 'result->len == 1' cases */
     }
     else if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0)
              && BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1)
@@ -5042,6 +5052,10 @@ rewrite_exp (Btor *btor,
       result = cond_exp (btor, real_e0->e[0], temp_left, temp_right);
       release_exp (btor, temp_left);
       release_exp (btor, temp_right);
+    }
+    else
+    {
+      /* TODO: handle all 'result->len == 1' cases */
     }
 
     /* TODO: lots of word level simplifications:
