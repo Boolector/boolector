@@ -870,22 +870,25 @@ btor_main (int argc, char **argv)
       if (parse_res.nregs > 0)
       {
         app.app_mode = BTOR_APP_BMC_MODE;
-        print_msg (&app, "Solving BMC problem\n");
-        if (app.bmcadc)
-          print_msg (&app, "Using all different constraints: yes\n");
-        else
-          print_msg (&app, "Using all different constraints: no\n");
-        if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
-          print_msg (&app, "Checking base case only\n");
-        else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
-          print_msg (&app, "Checking inductive case only\n");
-        else
+        if (app.verbosity > 0)
         {
-          assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
-          print_msg (&app, "Checking base case and inductive case\n");
+          print_verbose_msg ("Solving BMC problem\n");
+          if (app.bmcadc)
+            print_verbose_msg ("Using all different constraints: yes\n");
+          else
+            print_verbose_msg ("Using all different constraints: no\n");
+          if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
+            print_verbose_msg ("Checking base case only\n");
+          else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
+            print_verbose_msg ("Checking inductive case only\n");
+          else
+          {
+            assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
+            print_verbose_msg ("Checking base case and inductive case\n");
+          }
+          if (app.bmcmaxk >= 0)
+            print_verbose_msg_va_args ("Max bound: %d\n", app.bmcmaxk);
         }
-        if (app.bmcmaxk >= 0)
-          print_msg_va_args (&app, "Max bound: %d\n", app.bmcmaxk);
 
         BTOR_INIT_STACK (bv_regs);
         BTOR_INIT_STACK (array_regs);
@@ -928,7 +931,7 @@ btor_main (int argc, char **argv)
         for (bmck = 0; (app.bmcmaxk == -1 || bmck <= app.bmcmaxk) && !bmc_done;
              bmck++)
         {
-          print_msg_va_args (&app, "k = %d:\n", bmck);
+          if (app.verbosity > 0) print_verbose_msg_va_args ("k = %d:\n", bmck);
           input_inst =
               btor_new_ptr_hash_table (mem,
                                        (BtorHashPtr) btor_hash_exp_by_id,
@@ -1056,11 +1059,13 @@ btor_main (int argc, char **argv)
 
           if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
           {
-            print_msg (&app, "  Base case: ");
+            if (app.verbosity > 0) print_verbose_msg ("Base case:\n");
             if (bmck == 0) btor_add_constraint_exp (btor, regs_zero);
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor, app.refinement_limit);
-            print_sat_result (&app, sat_result);
+            if (app.verbosity > 0 || sat_result == BTOR_SAT
+                || sat_result == BTOR_UNKNOWN)
+              print_sat_result (&app, sat_result);
             if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
               bmc_done = 1;
             else
@@ -1077,10 +1082,12 @@ btor_main (int argc, char **argv)
           }
           else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
           {
-            print_msg (&app, "  Inductive case: ");
+            if (app.verbosity > 0) print_verbose_msg ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor, app.refinement_limit);
-            print_sat_result (&app, sat_result);
+            if (app.verbosity > 0 || sat_result == BTOR_UNSAT
+                || sat_result == BTOR_UNKNOWN)
+              print_sat_result (&app, sat_result);
             if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
               bmc_done = 1;
             else
@@ -1098,20 +1105,24 @@ btor_main (int argc, char **argv)
           else
           {
             assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
-            print_msg (&app, "  Inductive case: ");
+            if (app.verbosity > 0) print_verbose_msg ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor, app.refinement_limit);
-            print_sat_result (&app, sat_result);
+            if (app.verbosity > 0 || sat_result == BTOR_UNSAT
+                || sat_result == BTOR_UNKNOWN)
+              print_sat_result (&app, sat_result);
             if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
               bmc_done = 1;
             else
             {
               assert (sat_result == BTOR_SAT);
-              print_msg (&app, "  Base case: ");
+              if (app.verbosity > 0) print_verbose_msg ("Base case:\n");
               btor_add_assumption_exp (btor, regs_zero);
               btor_add_assumption_exp (btor, bad);
               sat_result = btor_sat_btor (btor, app.refinement_limit);
-              print_sat_result (&app, sat_result);
+              if (app.verbosity > 0 || sat_result == BTOR_SAT
+                  || sat_result == BTOR_UNKNOWN)
+                print_sat_result (&app, sat_result);
               if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
                 bmc_done = 1;
               else
