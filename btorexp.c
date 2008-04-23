@@ -4918,7 +4918,7 @@ rewrite_exp (Btor *btor,
                && real_e0->e[1] == real_e1->e[0])
         /* ATTENTION: indirect recursive call,
          * make sure it does not trigger another recursive calls */
-        result = eq_exp (btor, e0, e1);
+        result = eq_exp (btor, real_e0->e[0], real_e0->e[1]);
     }
     else if (real_e0 == real_e1
              && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
