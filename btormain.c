@@ -1158,6 +1158,12 @@ btor_main (int argc, char **argv)
         if (app.replay_mode != BTOR_APP_REPLAY_MODE_NONE)
           btor_replay_btor (btor, app.replay_file);
 
+        if (!bmc_done)
+        {
+          sat_result = BTOR_UNKNOWN;
+          print_sat_result (&app, sat_result);
+        }
+
         /* cleanup */
         btor_delete_ptr_hash_table (reg_inst);
 
