@@ -1,0 +1,46 @@
+1 array 32 3
+2 var 3 start
+3 var 3 end
+4 var 3 p
+5 var 1 flag
+
+6 constd 32 0
+7 constd 3 1
+8 constd 1 1
+
+; next start
+9 next 3 2 2
+
+; next end
+10 next 3 3 3
+
+;next of p
+11 add 3 4 7
+12 ult 1 4 3
+13 cond 3 12 11 4
+14 ne 1 5 8
+15 cond 3 14 2 13 
+16 next 3 4 15
+
+;next flag
+17 next 1 5 8
+
+;next of memory
+18 write 32 1 4 6
+19 eq 1 5 8
+20 ult 1 4 3
+21 and 1 19 20 
+22 cond 32 21 18 1
+23 next 32 1 22
+
+;check property
+24 var 3 i
+25 read 32 1 24
+26 ne 1 25 6 ;read != 0
+27 eq 1 5 8 ; flag == 1
+28 ult 1 2 3 ;start < end
+;29 ult 1 24 2 ; i < start
+;30 ult 1 24 3 ; i < end
+29 and 1 26 27
+30 and 1 28 29
+31 root 1 30
