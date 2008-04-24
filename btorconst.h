@@ -65,6 +65,8 @@ char *btor_ult_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
 
+char *btor_inverse_const (BtorMemMgr *mm, const char *a);
+
 /*------------------------------------------------------------------------*/
 /* Work for both fixed and unbounded bit width constants.
  */

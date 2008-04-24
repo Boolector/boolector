@@ -4516,7 +4516,7 @@ rewrite_exp (Btor *btor,
   BtorExp *ones, *eq, *temp_left, *temp_right;
   BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
   char *b0, *b1, *bresult;
-  int same_children_mem, i, diff, len, counter, is_zero, is_one, is_ones;
+  int same_children_mem, is_zero, is_one, is_ones;
   int invert_b0 = 0;
   int invert_b1 = 0;
   assert (btor != NULL);
@@ -4537,19 +4537,13 @@ rewrite_exp (Btor *btor,
     assert (e2 == NULL);
     assert (kind == BTOR_SLICE_EXP);
     real_e0 = BTOR_REAL_ADDR_EXP (e0);
-    diff    = upper - lower;
-    if (diff + 1 == real_e0->len) /* also handles result->len == 1 */
+    if (upper - lower + 1 == real_e0->len) /* handles result->len == 1 */
       result = copy_exp (btor, e0);
     else if (BTOR_IS_CONST_EXP (real_e0))
     {
-      counter = 0;
-      len     = real_e0->len;
-      BTOR_NEWN (mm, bresult, diff + 2);
-      for (i = len - upper - 1; i <= len - upper - 1 + diff; i++)
-        bresult[counter++] = real_e0->bits[i];
-      bresult[counter] = '\0';
-      result           = const_exp (btor, bresult);
-      result           = BTOR_COND_INVERT_EXP (e0, result);
+      bresult = btor_slice_const (mm, real_e0->bits, upper, lower);
+      result  = const_exp (btor, bresult);
+      result  = BTOR_COND_INVERT_EXP (e0, result);
       btor_delete_const (mm, bresult);
     }
 

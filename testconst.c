@@ -750,6 +750,64 @@ test_decimal_to_const (void)
   fclose (file);
 }
 
+static void
+test_slice_const_aux (FILE *file, const char *c, int upper, int lower)
+{
+  char *r = btor_slice_const (g_mm, c, upper, lower);
+  fprintf (file, "%s[%d:%d] = %s\n", c, upper, lower, r);
+  btor_delete_const (g_mm, r);
+}
+
+static void
+test_slice_const (void)
+{
+  FILE *file = fopen ("log/slice_const.log", "w");
+
+  test_slice_const_aux (file, "01", 0, 0);
+  test_slice_const_aux (file, "01", 1, 0);
+  test_slice_const_aux (file, "01", 1, 1);
+
+  test_slice_const_aux (file, "101", 0, 0);
+  test_slice_const_aux (file, "101", 1, 0);
+  test_slice_const_aux (file, "101", 2, 0);
+  test_slice_const_aux (file, "101", 1, 1);
+  test_slice_const_aux (file, "101", 2, 1);
+  test_slice_const_aux (file, "101", 2, 2);
+
+  test_slice_const_aux (file, "11110000", 7, 4);
+  test_slice_const_aux (file, "11110000", 5, 2);
+  test_slice_const_aux (file, "11110000", 3, 0);
+
+  fclose (file);
+}
+
+static void
+test_inverse_const_aux (FILE *file, const char *c)
+{
+  char *i = btor_inverse_const (g_mm, c);
+  fprintf (file, "1 / %s = %s mod 2^%ld\n", c, i, strlen (c));
+  btor_delete_const (g_mm, i);
+}
+
+static void
+test_inverse_const (void)
+{
+  FILE *file = fopen ("log/inverse_const.log", "w");
+  test_inverse_const_aux (file, "1");
+  test_inverse_const_aux (file, "01");
+  test_inverse_const_aux (file, "001");
+  test_inverse_const_aux (file, "0001");
+  test_inverse_const_aux (file, "11");
+  test_inverse_const_aux (file, "101");
+  test_inverse_const_aux (file, "111");
+  test_inverse_const_aux (file, "1001");
+  test_inverse_const_aux (file, "1011");
+  test_inverse_const_aux (file, "1101");
+  test_inverse_const_aux (file, "1111");
+  test_inverse_const_aux (file, "01010101010101010101010101010101");
+  fclose (file);
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -778,6 +836,8 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (const_to_dec);
   BTOR_RUN_TEST_CHECK_LOG (hex_to_const);
   BTOR_RUN_TEST_CHECK_LOG (decimal_to_const);
+  BTOR_RUN_TEST_CHECK_LOG (slice_const);
+  BTOR_RUN_TEST_CHECK_LOG (inverse_const);
 }
 
 void

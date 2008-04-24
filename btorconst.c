@@ -114,17 +114,17 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
   len = (int) strlen (a);
 
   assert (0 <= lower);
-  assert (upper <= len);
+  assert (upper < len);
 
   delta = upper - lower + 1;
 
   BTOR_NEWN (mm, res, delta + 1);
 
-  p   = a + len - upper;
+  p   = a + len - 1 - upper;
   q   = res;
-  eoa = a + len - lower + 1;
+  eoa = a + len - 1 - lower;
 
-  while (p < eoa) *q++ = *p++;
+  while (p <= eoa) *q++ = *p++;
 
   *q = 0;
 
@@ -1107,6 +1107,95 @@ btor_ground_const (BtorMemMgr *mm, const char *c)
   for (p = c; (ch = *p); p++) *q++ = (ch == '1') ? '1' : '0'; /* 'x' -> '0' */
 
   *q = 0;
+
+  return res;
+}
+
+static int
+btor_is_zero_const (const char *c)
+{
+  const char *p;
+
+  for (p = c; *p; p++)
+    if (*p != '0') return 0;
+
+  return 1;
+}
+
+#ifndef NDEBUG
+
+static int
+btor_is_one_const (const char *c)
+{
+  const char *p;
+
+  for (p = c; *p; p++)
+    if (*p != '0')
+    {
+      assert (*p == '1');
+      return !p[1];
+    }
+
+  return 0;
+}
+
+#endif
+
+char *
+btor_inverse_const (BtorMemMgr *mm, const char *c)
+{
+  char *a, *b, *y, *ly, *r, *q, *yq, *res, *ty;
+  int len = strlen (c);
+
+  assert (len > 0);
+  assert (c[len - 1] == '1'); /* odd */
+
+  a    = btor_malloc (mm, len + 2);
+  a[0] = '1';
+  memset (a + 1, '0', len);
+  a[len + 1] = 0;
+
+  b    = btor_malloc (mm, len + 2);
+  b[0] = '0';
+  memcpy (b + 1, c, len);
+  b[len + 1] = 0;
+
+  y  = btor_unsigned_to_const (mm, 1, len + 1);
+  ly = btor_unsigned_to_const (mm, 0, len + 1);
+
+  while (!btor_is_zero_const (b))
+  {
+    udiv_urem_const (mm, a, b, &q, &r);
+
+    btor_delete_const (mm, a);
+
+    a = b;
+    b = r;
+
+    ty = y;
+    yq = btor_mul_const (mm, y, q);
+    btor_delete_const (mm, q);
+
+    y = btor_sub_const (mm, ly, yq);
+    btor_delete_const (mm, yq);
+
+    btor_delete_const (mm, ly);
+    ly = ty;
+  }
+
+  res = btor_slice_const (mm, ly, len - 1, 0);
+
+#ifndef NDEBUG
+  assert (strlen (res) == strlen (c));
+  ty = btor_mul_const (mm, c, res);
+  assert (btor_is_one_const (ty));
+  btor_delete_const (mm, ty);
+#endif
+
+  btor_delete_const (mm, ly);  // btor_free (mm, ly, len + 2);
+  btor_delete_const (mm, y);   // btor_free (mm, y, len + 2);
+  btor_delete_const (mm, b);   // btor_free (mm, b, len + 2);
+  btor_delete_const (mm, a);   // btor_free (mm, a, len + 2);
 
   return res;
 }
