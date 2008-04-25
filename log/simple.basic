@@ -1,0 +1,6 @@
+10 load 100
+20 save a
+30 ne a
+40 jmp 60
+50 exit 0
+60 exit 1
