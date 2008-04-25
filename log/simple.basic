@@ -1,6 +1,5 @@
 10 load 100
-20 save a
-30 ne a
-40 jmp 60
-50 exit 0
-60 exit 1
+20 ne 100
+30 jmp 50
+40 exit 0
+50 exit 1
