@@ -1,5 +1,2 @@
 10 load 100
-20 ne 100
-30 jmp 50
-40 exit 0
-50 exit 1
+20 exit 0
