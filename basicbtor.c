@@ -474,6 +474,7 @@ DONE:
     program[0].op        = GOTO;
     program[0].immediate = 1;
     program[0].arg       = first;
+    program[0].next      = first;
     first                = 0;
   }
 
