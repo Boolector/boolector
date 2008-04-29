@@ -785,7 +785,7 @@ static void
 test_inverse_const_aux (FILE *file, const char *c)
 {
   char *i = btor_inverse_const (g_mm, c);
-  fprintf (file, "1 / %s = %s mod 2^%ld\n", c, i, strlen (c));
+  fprintf (file, "1 / %s = %s mod 2^%ld\n", c, i, (long) strlen (c));
   btor_delete_const (g_mm, i);
 }
 
