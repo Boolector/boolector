@@ -129,25 +129,29 @@ spaceortab (char ch)
 int
 main (int argc, char **argv)
 {
-  int i, ch, line, immediate, arg, sign, last, first, pc, usarg, simulate, res;
+  int i, ch, line, immediate, arg, sign, last, first, pc, usarg, res;
   int nextpcid, nextaccuid, nextflagid, nextregsid, nextmemid, atthispcid;
   int regindexids[26], regwriteids[26], regreadids[26];
   int id, pcid, regsid, memid, accuid, flagid;
+  int simulate, bits;
   const char *str;
   int tmp;
   Op op;
 
   simulate = 0;
+  bits     = 16;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fprintf (stderr, "usage: btorbasic [-<s>][<program>[<data>]]\n");
+      fprintf (stderr, "usage: btorbasic [-32][-<s>][<program>[<data>]]\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-s"))
       simulate = 1;
+    else if (!strcmp (argv[i], "-32"))
+      bits = 32;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s'", argv[i]);
     else if (dataname)
@@ -159,6 +163,8 @@ main (int argc, char **argv)
   }
 
   if (!simulate && dataname) die ("can only use data file in simulation mode");
+
+  if (simulate && bits == 32) die ("can not simulate 32 bit architecture");
 
   if (inputname)
   {
@@ -587,19 +593,19 @@ SYNTHESIZE:
   id = 1;
 
   pcid = id++;
-  printf ("%d var 16 pc\n", pcid);
+  printf ("%d var %d pc\n", pcid, bits);
 
   accuid = id++;
-  printf ("%d var 16 accu\n", accuid);
+  printf ("%d var %d accu\n", accuid, bits);
 
   flagid = id++;
   printf ("%d var 1 flag\n", flagid);
 
   regsid = id++;
-  printf ("%d array 16 5\n", regsid);
+  printf ("%d array %d 5\n", regsid, bits);
 
   memid = id++;
-  printf ("%d array 16 16\n", memid);
+  printf ("%d array %d %d\n", memid, bits, bits);
 
   pc = first;
   while (pc >= 0)
@@ -607,7 +613,7 @@ SYNTHESIZE:
     if (program[pc].pcid != PRINT)
     {
       program[pc].pcid = id;
-      printf ("%d constd 16 %d\n", id, pc);
+      printf ("%d constd %d %d\n", id, bits, pc);
       id++;
     }
     pc = program[pc].next;
@@ -646,8 +652,9 @@ SYNTHESIZE:
           if (op == SAVE)
           {
             if (!regwriteids[usarg])
-              printf ("%d write 16 %d %d %d\n",
+              printf ("%d write %d %d %d %d\n",
                       regwriteids[usarg] = id++,
+                      bits,
                       regsid,
                       regindexids[usarg],
                       accuid);
@@ -655,8 +662,9 @@ SYNTHESIZE:
           else
           {
             if (!regreadids[usarg])
-              printf ("%d read 16 %d %d\n",
+              printf ("%d read %d %d %d\n",
                       regreadids[usarg] = id++,
+                      bits,
                       regsid,
                       regindexids[usarg]);
           }
@@ -686,34 +694,52 @@ SYNTHESIZE:
     usarg = program[pc].arg;
 
     printf ("%d eq 1 %d %d\n", atthispcid = id++, pcid, program[pc].pcid);
-    /* DO NOT SEPERATE THIS CASE FROM THE PREVIOUS LINE !!! */
-    if (op == GOTO || op == JMP)
-    {
-      if (op == JMP)
-      {
-        printf ("%d and 1 %d %d\n", id, atthispcid, flagid);
-        id++;
-      }
 
-      printf (
-          "%d cond 16 %d %d %d\n", id, id - 1, program[usarg].pcid, nextpcid);
+    /* DO NOT SEPERATE THIS CASE FROM THE PREVIOUS LINE !!! */
+
+    if (op == GOTO)
+    {
+      printf ("%d cond %d %d %d %d\n",
+              id,
+              bits,
+              atthispcid,
+              program[usarg].pcid,
+              nextpcid);
 
       nextpcid = id++;
     }
-    else if (program[pc].next >= 0)
+    else
     {
-      printf ("%d cond 16 %d %d %d\n",
-              id,
-              atthispcid,
-              program[program[pc].next].pcid,
-              nextpcid);
-      nextpcid = id++;
+      if (program[pc].next >= 0)
+      {
+        printf ("%d cond %d %d %d %d\n",
+                id,
+                bits,
+                atthispcid,
+                program[program[pc].next].pcid,
+                nextpcid);
+
+        nextpcid = id++;
+      }
+
+      if (op == JMP)
+      {
+        printf ("%d and 1 %d %d\n", id++, atthispcid, flagid);
+        printf ("%d cond %d %d %d %d\n",
+                id,
+                bits,
+                id - 1,
+                program[usarg].pcid,
+                nextpcid);
+
+        nextpcid = id++;
+      }
     }
 
     immediate = program[pc].immediate;
 
     if (immediate)
-      printf ("%d constd 16 %d\n", tmp = id++, usarg);
+      printf ("%d constd %d %d\n", tmp = id++, bits, usarg);
     else
       tmp = regreadids[usarg];
 
@@ -739,57 +765,66 @@ SYNTHESIZE:
     }
     else if (op == PEEK)
     {
-      printf ("%d read 16 %d %d\n", id++, memid, tmp);
-      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextaccuid);
+      printf ("%d read %d %d %d\n", id++, bits, memid, tmp);
+      printf (
+          "%d cond %d %d %d %d\n", id, bits, atthispcid, id - 1, nextaccuid);
       nextaccuid = id++;
     }
     else if (op == POKE)
     {
-      printf ("%d write 16 %d %d %d\n", id++, nextmemid, tmp, accuid);
-      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextmemid);
+      printf ("%d write %d %d %d %d\n", id++, bits, nextmemid, tmp, accuid);
+      printf ("%d cond %d %d %d %d\n", id, bits, atthispcid, id - 1, nextmemid);
       nextmemid = id++;
     }
     else if (op == READ)
     {
       assert (!immediate);
-      printf ("%d var 16 read_%c_at_line_%d\n", id++, 'A' + usarg, pc);
-      printf (
-          "%d write 16 %d %d %d\n", id, nextregsid, regindexids[usarg], id - 1);
+      printf ("%d var %d read_%c_at_line_%d\n", id++, bits, 'A' + usarg, pc);
+      printf ("%d write %d %d %d %d\n",
+              id,
+              bits,
+              nextregsid,
+              regindexids[usarg],
+              id - 1);
       id++;
-      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextregsid);
+      printf (
+          "%d cond %d %d %d %d\n", id, bits, atthispcid, id - 1, nextregsid);
       nextregsid = id++;
     }
     else if (op == SAVE)
     {
       assert (!immediate);
-      printf ("%d write 16 %d %d %d\n",
+      printf ("%d write %d %d %d %d\n",
               id++,
+              bits,
               nextregsid,
               regindexids[usarg],
               accuid);
-      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextregsid);
+      printf (
+          "%d cond %d %d %d %d\n", id, bits, atthispcid, id - 1, nextregsid);
       nextregsid = id++;
     }
     else if (op == LOAD)
     {
-      printf ("%d cond 16 %d %d %d\n", id, atthispcid, tmp, nextaccuid);
+      printf ("%d cond %d %d %d %d\n", id, bits, atthispcid, tmp, nextaccuid);
       nextaccuid = id++;
     }
     else if (op == ADD)
     {
-      printf ("%d add 16 %d %d\n", id++, nextaccuid, tmp);
-      printf ("%d cond 16 %d %d %d\n", id, atthispcid, id - 1, nextaccuid);
+      printf ("%d add %d %d %d\n", id++, bits, nextaccuid, tmp);
+      printf (
+          "%d cond %d %d %d %d\n", id, bits, atthispcid, id - 1, nextaccuid);
       nextaccuid = id++;
     }
     else
       assert (op == GOTO || op == JMP); /* got all ops? */
   }
 
-  printf ("%d next 16 %d %d\n", id++, pcid, nextpcid);
-  printf ("%d next 16 %d %d\n", id++, accuid, nextaccuid);
+  printf ("%d next %d %d %d\n", id++, bits, pcid, nextpcid);
+  printf ("%d next %d %d %d\n", id++, bits, accuid, nextaccuid);
   printf ("%d next 1 %d %d\n", id++, flagid, nextflagid);
-  printf ("%d next 16 %d %d\n", id++, regsid, nextregsid);
-  printf ("%d next 16 %d %d\n", id++, memid, nextmemid);
+  printf ("%d next %d %d %d\n", id++, bits, regsid, nextregsid);
+  printf ("%d next %d %d %d\n", id++, bits, memid, nextmemid);
 
   /* END OF SYTHESIZER */
 
