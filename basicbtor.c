@@ -695,8 +695,6 @@ SYNTHESIZE:
 
     printf ("%d eq 1 %d %d\n", atthispcid = id++, pcid, program[pc].pcid);
 
-    /* DO NOT SEPERATE THIS CASE FROM THE PREVIOUS LINE !!! */
-
     if (op == GOTO)
     {
       printf ("%d cond %d %d %d %d\n",
@@ -708,7 +706,7 @@ SYNTHESIZE:
 
       nextpcid = id++;
     }
-    else
+    else if (op != EXIT)
     {
       if (program[pc].next >= 0)
       {
