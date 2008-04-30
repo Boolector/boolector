@@ -5482,8 +5482,7 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
       case BTOR_ADD_EXP: op = "add"; goto PRINT;
       case BTOR_AND_EXP: op = "and"; goto PRINT;
       case BTOR_CONCAT_EXP: op = "concat"; goto PRINT;
-      case BTOR_BCOND_EXP:
-      case BTOR_ACOND_EXP: op = "cond"; goto PRINT;
+      case BTOR_BCOND_EXP: op = "cond"; goto PRINT;
       case BTOR_BEQ_EXP:
       case BTOR_AEQ_EXP: op = "eq"; goto PRINT;
       case BTOR_MUL_EXP: op = "mul"; goto PRINT;
@@ -5493,9 +5492,8 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
       case BTOR_SRL_EXP: op = "srl"; goto PRINT;
       case BTOR_UDIV_EXP: op = "udiv"; goto PRINT;
       case BTOR_ULT_EXP: op = "ult"; goto PRINT;
-      case BTOR_UREM_EXP: op = "urem"; goto PRINT;
-      case BTOR_WRITE_EXP:
-        op = "write";
+      case BTOR_UREM_EXP:
+        op = "urem";
       PRINT:
         fputs (op, file);
         fprintf (file, " %d", e->len);
@@ -5518,6 +5516,26 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 
       case BTOR_ARRAY_EXP:
         fprintf (file, "array %d %d", e->len, e->index_len);
+        break;
+
+      case BTOR_WRITE_EXP:
+        fprintf (file,
+                 "write %d %d %d %d %d",
+                 e->len,
+                 e->index_len,
+                 BTOR_GET_ID_EXP (e->e[0]),
+                 BTOR_GET_ID_EXP (e->e[1]),
+                 BTOR_GET_ID_EXP (e->e[2]));
+        break;
+
+      case BTOR_ACOND_EXP:
+        fprintf (file,
+                 "acond %d %d %d %d %d",
+                 e->len,
+                 e->index_len,
+                 BTOR_GET_ID_EXP (e->e[0]),
+                 BTOR_GET_ID_EXP (e->e[1]),
+                 BTOR_GET_ID_EXP (e->e[2]));
         break;
 
       case BTOR_CONST_EXP:
