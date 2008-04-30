@@ -66,7 +66,7 @@ main (int argc, char** argv)
     {
       printf ("%d add 32 %d %d\n", idx++, v[i], c[j / 8]);
       printf ("%d slice 8 %d %d %d\n", idx++, v[i], j + 7, j);
-      printf ("%d write 8 %d %d %d\n", idx, first, idx - 2, idx - 1);
+      printf ("%d write 8 32 %d %d %d\n", idx, first, idx - 2, idx - 1);
       first = idx++;
     }
   }
@@ -77,7 +77,7 @@ main (int argc, char** argv)
     {
       printf ("%d add 32 %d %d\n", idx++, v[i], c[j / 8]);
       printf ("%d slice 8 %d %d %d\n", idx++, v[i], j + 7, j);
-      printf ("%d write 8 %d %d %d\n", idx, second, idx - 2, idx - 1);
+      printf ("%d write 8 32 %d %d %d\n", idx, second, idx - 2, idx - 1);
       second = idx++;
     }
   }
