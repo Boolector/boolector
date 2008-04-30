@@ -1218,7 +1218,6 @@ static BtorExp *
 parse_cond (BtorBTORParser *parser, int len)
 {
   BtorExp *c, *t, *e, *res;
-  int arrays;
 
   if (parse_space (parser)) return 0;
 
@@ -1231,7 +1230,7 @@ parse_cond (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(t = parse_exp (parser, len, 1))) goto RELEASE_C_AND_RETURN_ERROR;
+  if (!(t = parse_exp (parser, len, 0))) goto RELEASE_C_AND_RETURN_ERROR;
 
   if (parse_space (parser))
   {
@@ -1240,27 +1239,7 @@ parse_cond (BtorBTORParser *parser, int len)
     goto RELEASE_C_AND_RETURN_ERROR;
   }
 
-  arrays = btor_is_array_exp (parser->btor, t);
-
-  if (!(e = parse_exp (parser, len, arrays)))
-    goto RELEASE_C_AND_T_AND_RETURN_ERROR;
-
-  if (arrays && !btor_is_array_exp (parser->btor, e))
-  {
-    (void) parse_error (parser, "'then' part array but 'else' part not");
-  RELEASE_C_AND_T_AND_E_AND_RETURN_ERROR:
-    btor_release_exp (parser->btor, e);
-    goto RELEASE_C_AND_T_AND_RETURN_ERROR;
-  }
-
-  if (arrays
-      && btor_get_index_exp_len (parser->btor, t)
-             != btor_get_index_exp_len (parser->btor, e))
-  {
-    (void) parse_error (
-        parser, "mismatch of index bit width of 'then' and 'else' arrays");
-    goto RELEASE_C_AND_T_AND_E_AND_RETURN_ERROR;
-  }
+  if (!(e = parse_exp (parser, len, 0))) goto RELEASE_C_AND_T_AND_RETURN_ERROR;
 
   res = btor_cond_exp (parser->btor, c, t, e);
   btor_release_exp (parser->btor, e);
