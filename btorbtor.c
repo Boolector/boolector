@@ -1271,6 +1271,57 @@ parse_cond (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_acond (BtorBTORParser *parser, int len)
+{
+  BtorExp *c, *t, *e, *res;
+  int idxlen;
+
+  if (parse_space (parser)) return 0;
+
+  if (parse_positive_int (parser, &idxlen)) return 0;
+
+  if (parse_space (parser)) return 0;
+
+  if (!(c = parse_exp (parser, 1, 0))) return 0;
+
+  if (parse_space (parser))
+  {
+  RELEASE_C_AND_RETURN_ERROR:
+    btor_release_exp (parser->btor, c);
+    return 0;
+  }
+
+  if (!(t = parse_array_exp (parser, len))) goto RELEASE_C_AND_RETURN_ERROR;
+
+  if (idxlen != btor_get_index_exp_len (parser->btor, t))
+  {
+    (void) parse_error (parser, "mismatch of index bit width of 'then' array");
+  RELEASE_C_AND_T_AND_RETURN_ERROR:
+    btor_release_exp (parser->btor, t);
+    goto RELEASE_C_AND_RETURN_ERROR;
+  }
+
+  if (parse_space (parser)) goto RELEASE_C_AND_T_AND_RETURN_ERROR;
+
+  if (!(e = parse_array_exp (parser, len)))
+    goto RELEASE_C_AND_T_AND_RETURN_ERROR;
+
+  if (idxlen != btor_get_index_exp_len (parser->btor, e))
+  {
+    (void) parse_error (parser, "mismatch of index bit width of 'else' array");
+    btor_release_exp (parser->btor, e);
+    goto RELEASE_C_AND_T_AND_RETURN_ERROR;
+  }
+
+  res = btor_cond_exp (parser->btor, c, t, e);
+  btor_release_exp (parser->btor, e);
+  btor_release_exp (parser->btor, t);
+  btor_release_exp (parser->btor, c);
+
+  return res;
+}
+
+static BtorExp *
 parse_slice (BtorBTORParser *parser, int len)
 {
   int arglen, upper, lower, delta;
@@ -1528,6 +1579,7 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_array, "array");
   new_parser (res, parse_concat, "concat");
   new_parser (res, parse_cond, "cond");
+  new_parser (res, parse_acond, "acond");
   new_parser (res, parse_const, "const");
   new_parser (res, parse_constd, "constd");
   new_parser (res, parse_consth, "consth");
