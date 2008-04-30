@@ -3,8 +3,7 @@
 3 array 1 1
 4 var 1
 5 var 1
-6 var 1
-7 write 1 1 4 5
+7 write 1 1 1 4 5
 8 read 1 7 4
 9 read 1 2 4
 10 eq 1 1 2

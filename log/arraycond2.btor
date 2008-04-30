@@ -9,10 +9,10 @@
 9 and 1 -5 -6
 10 and 1 7 8
 11 var 1
-12 cond 1 -11 1 2
+12 acond 1 1 11 2 1
 13 read 1 12 3
 14 read 1 12 4
 15 and 1 13 14
 16 and 1 9 10
-17 and 1 16 15
+17 and 1 15 16
 18 root 1 17
