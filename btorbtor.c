@@ -1363,6 +1363,10 @@ parse_write (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
+  if (parse_positive_int (parser, &idxlen)) return 0;
+
+  if (parse_space (parser)) return 0;
+
   if (!(array = parse_array_exp (parser, len))) return 0;
 
   if (parse_space (parser))
@@ -1372,7 +1376,6 @@ parse_write (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  idxlen = btor_get_index_exp_len (parser->btor, array);
   if (!(idx = parse_exp (parser, idxlen, 0)))
     goto RELEASE_ARRAY_AND_RETURN_ERROR;
 
