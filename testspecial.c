@@ -861,8 +861,6 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (factor18446744073709551617const_special);
   BTOR_RUN_TEST (factor18446744073709551617xconst_special);
   BTOR_RUN_TEST (factor18446744073709551617yconst_special);
-  BTOR_RUN_TEST (factor18446744073709551617reduced_special);
-  BTOR_RUN_TEST (factor18446744073709551617_special);
   BTOR_RUN_TEST (read1_special);
   BTOR_RUN_TEST (read2_special);
   BTOR_RUN_TEST (read3_special);
