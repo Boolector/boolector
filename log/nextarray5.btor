@@ -27,7 +27,7 @@
 25 write 8 2 21 9 22
 26 write 8 2 25 8 23
 27 acond 8 2 24 26 21
-28 next 8 1 27
+28 anext 8 2 1 27
 
 29 constd 3 3 
 30 eq 1 2 29
