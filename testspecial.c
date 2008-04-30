@@ -274,18 +274,6 @@ test_factor18446744073709551617yconst_special ()
 }
 
 static void
-test_factor18446744073709551617reduced_special ()
-{
-  run_sat_test ("factor18446744073709551617reduced.btor");
-}
-
-static void
-test_factor18446744073709551617_special ()
-{
-  run_sat_test ("factor18446744073709551617.btor");
-}
-
-static void
 test_read1_special ()
 {
   run_unsat_test ("read1.btor");
