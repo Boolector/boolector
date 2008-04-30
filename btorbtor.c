@@ -398,7 +398,7 @@ parse_array_exp (BtorBTORParser *parser, int len)
 static BtorExp *
 parse_next (BtorBTORParser *parser, int len)
 {
-  int idx, current_idx_len, next_idx_len;
+  int idx;
   BtorExp *current, *next;
   Info info;
 
@@ -415,10 +415,9 @@ parse_next (BtorBTORParser *parser, int len)
 
   info = parser->info.start[idx];
 
-  if (!info.var && !info.array)
+  if (!info.var)
   {
-    (void) parse_error (
-        parser, "next index %d is neither variable nor an array", idx);
+    (void) parse_error (parser, "next index %d is not a variable", idx);
     return 0;
   }
 
@@ -430,29 +429,65 @@ parse_next (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (info.array)
+  assert (!btor_is_array_exp (parser->btor, current));
+  if (!(next = parse_exp (parser, len, 0))) return 0;
+
+  BTOR_PUSH_STACK (parser->mem, parser->regs, current);
+  BTOR_PUSH_STACK (parser->mem, parser->nexts, next);
+  parser->info.start[idx].next = 1;
+
+  return next;
+}
+
+static BtorExp *
+parse_anext (BtorBTORParser *parser, int len)
+{
+  int idx, current_idx_len, idx_len;
+  BtorExp *current, *next;
+  Info info;
+
+  if (parse_space (parser)) return 0;
+
+  if (parse_positive_int (parser, &idx_len)) return 0;
+
+  if (parse_space (parser)) return 0;
+
+  if (parse_positive_int (parser, &idx)) return 0;
+
+  if (idx >= BTOR_COUNT_STACK (parser->exps)
+      || !(current = parser->exps.start[idx]))
   {
-    assert (btor_is_array_exp (parser->btor, current));
-    if (!(next = parse_array_exp (parser, len))) return 0;
-
-    current_idx_len = btor_get_index_exp_len (parser->btor, current);
-    next_idx_len    = btor_get_index_exp_len (parser->btor, next);
-
-    if (current_idx_len != next_idx_len)
-    {
-      btor_release_exp (parser->btor, next);
-      (void) parse_error (parser,
-                          "arrays with different index width %d and %d",
-                          current_idx_len,
-                          next_idx_len);
-      return 0;
-    }
+    (void) parse_error (parser, "invalid next index %d", idx);
+    return 0;
   }
-  else
-  {
-    assert (!btor_is_array_exp (parser->btor, current));
 
-    if (!(next = parse_exp (parser, len, 0))) return 0;
+  info = parser->info.start[idx];
+  if (!info.array)
+  {
+    (void) parse_error (parser, "next index %d is not an array", idx);
+    return 0;
+  }
+
+  if (info.next)
+  {
+    (void) parse_error (parser, "next index %d already used", idx);
+    return 0;
+  }
+
+  if (parse_space (parser)) return 0;
+
+  assert (btor_is_array_exp (parser->btor, current));
+  if (!(next = parse_array_exp (parser, len))) return 0;
+
+  current_idx_len = btor_get_index_exp_len (parser->btor, current);
+  if (idx_len != current_idx_len)
+  {
+    btor_release_exp (parser->btor, next);
+    (void) parse_error (parser,
+                        "arrays with different index width %d and %d",
+                        current_idx_len,
+                        idx_len);
+    return 0;
   }
 
   BTOR_PUSH_STACK (parser->mem, parser->regs, current);
@@ -1570,7 +1605,8 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_neg, "neg");
   new_parser (res, parse_nego, "nego");
   new_parser (res, parse_ne, "ne");
-  new_parser (res, parse_next, "next"); /* only in parser */
+  new_parser (res, parse_next, "next");   /* only in parser */
+  new_parser (res, parse_anext, "anext"); /* only in parser */
   new_parser (res, parse_nor, "nor");
   new_parser (res, parse_not, "not");
   new_parser (res, parse_one, "one");
