@@ -40,8 +40,6 @@ static const char *slowtests[] = {
     "smtaxiombvsrem7",
     "smtaxiombvsrem8",
     "factor4294967295_special",
-    "factor18446744073709551617reduced_special",
-    "factor18446744073709551617_special",
     "inc_count8nondet",
     "binarysearch32s016",
     "fifo32ia04k05",
