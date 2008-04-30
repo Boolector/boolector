@@ -119,6 +119,13 @@ swapmem002ue -o log/swapmem002ue.log log/swapmem002ue.smt
 wchains002se -o log/wchains002se.log log/wchains002se.smt
 wchains002ue -o log/wchains002ue.log log/wchains002ue.smt
 dubreva002ue -o log/dubreva002ue.log log/dubreva002ue.smt
+binarysearch32s016 -o log/binarysearch32s016.log log/binarysearch32s016.smt
+countbits016 -o log/countbits016.log log/countbits016.smt
+fifo32bc04k05 -o log/fifo32bc04k05.log log/fifo32bc04k05.smt
+fifo32ia04k05 -o log/fifo32ia04k05.log log/fifo32ia04k05.smt
+fifo32in04k05 -o log/fifo32in04k05.log log/fifo32in04k05.smt
+nextpoweroftwo016 -o log/nextpoweroftwo016.log log/nextpoweroftwo016.smt
+memcpy02 -o log/memcpy02.log log/memcpy02.smt
 regrw8simp -o log/regrw8simp.log log/regrw8simp.btor
 regprim11simp -o log/regprim11simp.log log/regprim11simp.btor
 regexit0basic -o log/regexit0basic.log log/regexit0basic.btor
