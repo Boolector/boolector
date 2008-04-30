@@ -45,6 +45,7 @@ static const char *slowtests[] = {
     "inc_count8nondet",
     "binarysearch32s016",
     "fifo32ia04k05",
+    "mulassoc6",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
