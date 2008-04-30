@@ -1,6 +1,6 @@
 #!/bin/bash
 if [[ $# -ne 3 ]]; then
-  echo "Usage: ./fifoqueue <num-bits> <power> <start-id>"
+  echo "Usage: ./fifostack <num-bits> <power> <start-id>"
   exit
 fi
 
@@ -126,23 +126,23 @@ echo "$((id++)) next $bw $iddataout $lastid"
 
 echo ""
 echo ";next of stack memory"
-echo "$((id++)) write $bw $idarray $idtail $iddatain"
+echo "$((id++)) write $bw $power $idarray $idtail $iddatain"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idfull $idarray $lastid"
+echo "$((id++)) acond $bw $power $idfull $idarray $lastid"
 ((idarraycond = id - 1))
 ((idarraytemp = idarray))
 for ((i = 0; i < size - 2; i++))
 do
   echo "$((id++)) read $bw $idarray $((idzero + i + 1))"
   ((lastid = id - 1))
-  echo "$((id++)) write $bw $idarraytemp $((idzero + i)) $lastid"
+  echo "$((id++)) write $bw $power $idarraytemp $((idzero + i)) $lastid"
   ((idarraytemp = id - 1))
 done
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idenqueue $idarraycond $lastid"
+echo "$((id++)) acond $bw $power $idenqueue $idarraycond $lastid"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idxor $lastid $idarray"
+echo "$((id++)) acond $bw $power $idxor $lastid $idarray"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idreset $lastid $idarray"
+echo "$((id++)) acond $bw $power $idreset $lastid $idarray"
 ((lastid = id - 1))
-echo "$((id++)) next $bw $idarray $lastid"
+echo "$((id++)) anext $bw $power $idarray $lastid"

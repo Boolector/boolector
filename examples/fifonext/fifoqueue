@@ -137,14 +137,14 @@ echo "$((id++)) next $bw $iddataout $lastid"
 
 echo ""
 echo ";next of queue memory"
-echo "$((id++)) write $bw $idarray $idtail $iddatain"
+echo "$((id++)) write $bw $power $idarray $idtail $iddatain"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idfull $idarray $lastid"
+echo "$((id++)) acond $bw $power $idfull $idarray $lastid"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idenqueue $lastid $idarray"
+echo "$((id++)) acond $bw $power $idenqueue $lastid $idarray"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idxor $lastid $idarray"
+echo "$((id++)) acond $bw $power $idxor $lastid $idarray"
 ((lastid = id - 1))
-echo "$((id++)) cond $bw $idreset $lastid $idarray"
+echo "$((id++)) acond $bw $power $idreset $lastid $idarray"
 ((lastid = id - 1))
-echo "$((id++)) next $bw $idarray $lastid"
+echo "$((id++)) anext $bw $power $idarray $lastid"
