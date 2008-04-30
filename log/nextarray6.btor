@@ -5,7 +5,7 @@
 4 add 3 2 3
 5 next 3 2 4
 
-6 write 3 1 2 2
+6 write 3 3 1 2 2
 7 next 3 1 6
 
 8 var 3 lambda
