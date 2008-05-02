@@ -132,6 +132,8 @@ regexit0basic -o log/regexit0basic.log log/regexit0basic.btor
 andopt1 -rwl1 -o log/andopt1.log log/andopt1.btor
 andopt2 -rwl1 -o log/andopt2.log log/andopt2.btor
 andopt3 -rwl1 -o log/andopt3.log log/andopt3.btor
+andopt4 -rwl1 -o log/andopt4.log log/andopt4.btor
+andopt5 -rwl1 -o log/andopt5.log log/andopt5.btor
 nextcounter1 -o log/nextcounter1.log log/nextcounter1.btor
 nextcounter2 -o log/nextcounter2.log log/nextcounter2.btor
 nextcounter3 -o log/nextcounter3.log log/nextcounter3.btor
