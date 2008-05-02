@@ -2268,7 +2268,7 @@ translate_benchmark (BtorSMTParser *parser,
                      BtorParseResult *res)
 {
   BtorSMTSymbol *symbol, *logic, *benchmark;
-  const char *statusstr, *attrstr;
+  const char *attrstr;
   BtorSMTNode *p, *node;
   BtorSMTToken status;
 
@@ -2348,10 +2348,12 @@ translate_benchmark (BtorSMTParser *parser,
     return parse_error (parser, "invalid argument to ':logic'");
 
   logic = strip (node);
-  if (strcmp (logic->name, "QF_BV") && strcmp (logic->name, "QF_AUFBV"))
+  if (!strcmp (logic->name, "QF_BV"))
+    res->logic = BTOR_LOGIC_QF_BV;
+  else if (!strcmp (logic->name, "QF_AUFBV"))
+    res->logic = BTOR_LOGIC_QF_AUFBV;
+  else
     return parse_error (parser, "unsupported logic '%s'", logic->name);
-
-  btor_smt_message (parser, 2, "logic %s", logic->name);
 
   for (p = top; p; p = cdr (p))
   {
@@ -2376,24 +2378,13 @@ translate_benchmark (BtorSMTParser *parser,
     status = symbol->token;
 
     if (status == BTOR_SMTOK_SAT)
-    {
       res->status = BTOR_PARSE_SAT_STATUS_SAT;
-      statusstr   = "SAT";
-    }
     else if (status == BTOR_SMTOK_UNSAT)
-    {
       res->status = BTOR_PARSE_SAT_STATUS_UNSAT;
-      statusstr   = "UNSAT";
-    }
     else if (status == BTOR_SMTOK_UNKNOWN)
-    {
       res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
-      statusstr   = "UNKNOWN";
-    }
     else
       goto INVALID_STATUS_ARGUMENT;
-
-    btor_smt_message (parser, 2, "status %s", statusstr);
   }
 
   for (p = top; p; p = cdr (p))

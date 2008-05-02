@@ -58,6 +58,8 @@ struct BtorBTORParser
 
   int idx;
   int verbosity;
+
+  int found_arrays;
 };
 
 static unsigned primes[4] = {111130391, 22237357, 33355519, 444476887};
@@ -375,6 +377,8 @@ parse_array (BtorBTORParser *parser, int len)
   res = btor_array_exp (parser->btor, len, idx_len);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
+
+  parser->found_arrays = 1;
 
   return res;
 }
@@ -1745,6 +1749,10 @@ NEXT:
     {
       remove_regs_from_vars (parser);
 
+      if (parser->found_arrays)
+        res->logic = BTOR_LOGIC_QF_AUFBV;
+      else
+        res->logic = BTOR_LOGIC_QF_BV;
       res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
 
       res->ninputs = BTOR_COUNT_STACK (parser->inputs);

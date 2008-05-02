@@ -2,6 +2,7 @@
 #define BTORPARSE_H_INCLUDED
 
 #include "btorexp.h"
+#include "btorlogic.h"
 
 #include <stdio.h>
 
@@ -27,6 +28,7 @@ typedef enum BtorParseSATStatus BtorParseSATStatus;
 
 struct BtorParseResult
 {
+  BtorLogic logic;
   BtorParseSATStatus status;
 
   int ninputs;

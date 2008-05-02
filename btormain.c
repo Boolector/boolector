@@ -8,6 +8,7 @@
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorhash.h"
+#include "btorlogic.h"
 #include "btormem.h"
 #include "btorparse.h"
 #include "btorsat.h"
@@ -835,13 +836,32 @@ btor_main (int argc, char **argv)
     else
     {
       if (app.verbosity > 0)
+      {
         print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
                                    parse_res.ninputs,
                                    parse_res.noutputs);
+        if (parse_res.logic == BTOR_LOGIC_QF_BV)
+          print_verbose_msg ("logic QF_BV\n");
+        else
+        {
+          assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
+          print_verbose_msg ("logic QF_AUFBV\n");
+        }
+
+        if (parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
+          print_verbose_msg ("status sat\n");
+        else if (parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
+          print_verbose_msg ("status unsat\n");
+        else
+        {
+          assert (parse_res.status == BTOR_PARSE_SAT_STATUS_UNKNOWN);
+          print_verbose_msg ("status unknown\n");
+        }
+      }
 
       if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
 
-      if (app.verbosity == 1) print_verbose_msg ("generating SAT instance\n");
+      if (app.verbosity >= 1) print_verbose_msg ("generating SAT instance\n");
 
       btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
 
