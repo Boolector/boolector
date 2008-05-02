@@ -28,7 +28,7 @@ typedef struct Btor Btor;
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
 
-/* Sets rewrite level [0,3] */
+/* Sets rewrite level [0,2] */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
 /* Sets verbosity [-1,3] of btor and all sub components
