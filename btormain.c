@@ -1232,6 +1232,14 @@ btor_main (int argc, char **argv)
 
         sat_result = btor_sat_btor (btor, app.refinement_limit);
         print_sat_result (&app, sat_result);
+
+        /* check if status is equal to benchmark status */
+        if (sat_result == BTOR_SAT
+            && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
+          print_msg (&app, "ERROR: status of benchmark is 'unsat'\n");
+        else if (sat_result == BTOR_UNSAT
+                 && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
+          print_msg (&app, "ERROR: status of benchmark is 'sat'\n");
       }
       if (sat_result == BTOR_SAT && app.print_model && parse_res.ninputs > 0)
         print_variable_assignments (

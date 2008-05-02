@@ -16,8 +16,19 @@ typedef char *(*BtorParse) (BtorParser *,
                             const char *,
                             BtorParseResult *);
 
+enum BtorParseSATStatus
+{
+  BTOR_PARSE_SAT_STATUS_UNKNOWN,
+  BTOR_PARSE_SAT_STATUS_SAT,
+  BTOR_PARSE_SAT_STATUS_UNSAT
+};
+
+typedef enum BtorParseSATStatus BtorParseSATStatus;
+
 struct BtorParseResult
 {
+  BtorParseSATStatus status;
+
   int ninputs;
   BtorExp **inputs;
 

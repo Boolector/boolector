@@ -1745,6 +1745,8 @@ NEXT:
     {
       remove_regs_from_vars (parser);
 
+      res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+
       res->ninputs = BTOR_COUNT_STACK (parser->inputs);
       res->inputs  = parser->inputs.start;
 

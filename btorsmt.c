@@ -2263,7 +2263,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 }
 
 static char *
-translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
+translate_benchmark (BtorSMTParser *parser,
+                     BtorSMTNode *top,
+                     BtorParseResult *res)
 {
   BtorSMTSymbol *symbol, *logic, *benchmark;
   const char *statusstr, *attrstr;
@@ -2374,11 +2376,20 @@ translate_benchmark (BtorSMTParser *parser, BtorSMTNode *top)
     status = symbol->token;
 
     if (status == BTOR_SMTOK_SAT)
-      statusstr = "SAT";
+    {
+      res->status = BTOR_PARSE_SAT_STATUS_SAT;
+      statusstr   = "SAT";
+    }
     else if (status == BTOR_SMTOK_UNSAT)
-      statusstr = "UNSAT";
+    {
+      res->status = BTOR_PARSE_SAT_STATUS_UNSAT;
+      statusstr   = "UNSAT";
+    }
     else if (status == BTOR_SMTOK_UNKNOWN)
-      statusstr = "UNKNOWN";
+    {
+      res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+      statusstr   = "UNKNOWN";
+    }
     else
       goto INVALID_STATUS_ARGUMENT;
 
@@ -2526,7 +2537,7 @@ NEXT_TOKEN:
 	btorsmtpp (top);
 #endif
 
-    if (translate_benchmark (parser, top))
+    if (translate_benchmark (parser, top, res))
     {
       assert (parser->error);
       return parser->error;
