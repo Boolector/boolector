@@ -2715,45 +2715,6 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
-xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
-{
-  BtorExp *result, * or, *and;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  e0 = pointer_chase_simplified_exp (btor, e0);
-  e1 = pointer_chase_simplified_exp (btor, e1);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  or     = or_exp (btor, e0, e1);
-  and    = and_exp (btor, e0, e1);
-  result = and_exp (btor, or, BTOR_INVERT_EXP (and));
-  release_exp (btor, or);
-  release_exp (btor, and);
-  return result;
-}
-
-BtorExp *
-btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
-{
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_xor_exp'");
-  BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_xor_exp'");
-  BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_xor_exp'");
-  e0 = pointer_chase_simplified_exp (btor, e0);
-  e1 = pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                  "'e0' must not be an array in 'btor_xor_exp'");
-  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                  "'e1' must not be an array in 'btor_xor_exp'");
-  BTOR_ABORT_EXP (
-      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
-      "length of 'e0' and 'e1' must not be unequal in 'btor_xor_exp'");
-  return xor_exp (btor, e0, e1);
-}
-
-static BtorExp *
 eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
@@ -2827,6 +2788,51 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_EXP (is_array_e0 && real_e0->index_len != real_e1->index_len,
                   "arrays must not have unequal index length in 'btor_eq_exp'");
   return eq_exp (btor, e0, e1);
+}
+
+static BtorExp *
+xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  BtorExp *result, * or, *and;
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+
+  /* XOR (e0, e1) can be rewritten to e0 != e1 in the boolean case
+   * this can lead to more substitutions */
+  if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
+    return BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
+
+  or     = or_exp (btor, e0, e1);
+  and    = and_exp (btor, e0, e1);
+  result = and_exp (btor, or, BTOR_INVERT_EXP (and));
+  release_exp (btor, or);
+  release_exp (btor, and);
+  return result;
+}
+
+BtorExp *
+btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_xor_exp'");
+  BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_xor_exp'");
+  BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_xor_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                  "'e0' must not be an array in 'btor_xor_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                  "'e1' must not be an array in 'btor_xor_exp'");
+  BTOR_ABORT_EXP (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_xor_exp'");
+  return xor_exp (btor, e0, e1);
 }
 
 static BtorExp *
@@ -3186,7 +3192,7 @@ btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
       "length of 'e0' and 'e1' must not be unequal to 1 in 'btor_iff_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  return btor_xnor_exp (btor, e0, e1);
+  return eq_exp (btor, e0, e1);
 }
 
 BtorExp *
@@ -3205,6 +3211,11 @@ btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "length of 'e0' and 'e1' must not be unequal in 'btor_xnor_exp'");
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+
+  /* XNOR (e0, e1) can be rewritten to e0 == e1 in the boolean case
+   * this can lead to more substitutions */
+  if (BTOR_REAL_ADDR_EXP (e0)->len == 1) return eq_exp (btor, e0, e1);
+
   return BTOR_INVERT_EXP (xor_exp (btor, e0, e1));
 }
 
@@ -4703,6 +4714,50 @@ rewrite_exp (Btor *btor,
         result = copy_exp (btor, e0);
       else if (BTOR_INVERT_EXP (e0) == e1) /* x & ~x == 0 */
         result = zeros_exp (btor, real_e0->len);
+
+      /* further opimizations: */
+
+      /* a < b && b < a simplifies to FALSE */
+      else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
+               && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+               && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
+        result = false_exp (btor);
+      /* NOT (a < b) && NOT (b < a) simplifies to a == b */
+      else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
+               && BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
+               && real_e0->e[0] == real_e1->e[1]
+               && real_e0->e[1] == real_e1->e[0])
+        /* ATTENTION: indirect recursive call,
+         * make sure it does not trigger another recursive calls */
+        result = eq_exp (btor,
+                         BTOR_REAL_ADDR_EXP (real_e0->e[0]),
+                         BTOR_REAL_ADDR_EXP (real_e0->e[1]));
+      /* a XNOR b simplifies to a == b for the boolean case */
+      else if (real_e0->len == 1 && real_e0->kind == BTOR_AND_EXP
+               && real_e1->kind == BTOR_AND_EXP && BTOR_IS_INVERTED_EXP (e0)
+               && BTOR_IS_INVERTED_EXP (e1)
+               && BTOR_IS_INVERTED_EXP (real_e0->e[0])
+                      != BTOR_IS_INVERTED_EXP (real_e0->e[1])
+               && BTOR_IS_INVERTED_EXP (real_e1->e[0])
+                      != BTOR_IS_INVERTED_EXP (real_e1->e[1])
+               && (((((unsigned long int) real_e0->e[0])
+                     ^ ((unsigned long int) real_e1->e[0]))
+                        == 1ul
+                    && (((unsigned long int) real_e0->e[1])
+                        ^ ((unsigned long int) real_e1->e[1]))
+                           == 1ul)
+                   || ((((unsigned long int) real_e0->e[0])
+                        ^ ((unsigned long int) real_e1->e[1]))
+                           == 1ul
+                       && (((unsigned long int) real_e0->e[1])
+                           ^ ((unsigned long int) real_e1->e[0]))
+                              == 1ul)))
+        /* ATTENTION: indirect recursive call,
+         * make sure it does not trigger another recursive calls */
+        result = eq_exp (btor,
+                         BTOR_REAL_ADDR_EXP (real_e0->e[0]),
+                         BTOR_REAL_ADDR_EXP (real_e0->e[1]));
+
       else if (real_e0->kind == BTOR_AND_EXP && !BTOR_IS_INVERTED_EXP (e0))
       {
         /* first rule of contradiction */
@@ -4898,22 +4953,6 @@ rewrite_exp (Btor *btor,
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
-
-      /* further opimizations: */
-
-      /* a < b && b < a simplifies to FALSE */
-      else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
-               && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
-               && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
-        result = false_exp (btor);
-      /* NOT (a < b) && NOT (b < a) simplifies to a == b */
-      else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
-               && BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
-               && real_e0->e[0] == real_e1->e[1]
-               && real_e0->e[1] == real_e1->e[0])
-        /* ATTENTION: indirect recursive call,
-         * make sure it does not trigger another recursive calls */
-        result = eq_exp (btor, real_e0->e[0], real_e0->e[1]);
     }
     else if (real_e0 == real_e1
              && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
