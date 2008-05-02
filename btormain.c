@@ -790,9 +790,6 @@ btor_main (int argc, char **argv)
     amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
     smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-    btor_init_sat (smgr);
-    btor_set_output_sat (smgr, stdout);
-
     if (app.force_smt_input
         || (app.close_input_file && has_suffix (app.input_file_name, ".smt")))
       parser_api = btor_smt_parser_api;
@@ -835,6 +832,14 @@ btor_main (int argc, char **argv)
     }
     else
     {
+      /* we eanble the preprocessor for pure bit-vector logic */
+      /*
+      if (parse_res.logic == BTOR_LOGIC_QF_BV)
+        btor_enable_preproc_sat (smgr);
+      */
+      btor_init_sat (smgr);
+      btor_set_output_sat (smgr, stdout);
+
       if (app.verbosity > 0)
       {
         print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",

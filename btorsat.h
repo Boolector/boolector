@@ -72,4 +72,7 @@ void btor_reset_sat (BtorSATMgr *smgr);
  */
 int btor_changed_assignments_sat (BtorSATMgr *smgr);
 
+/* Enables the SAT preprocessor. */
+void btor_enable_preproc_sat (BtorSATMgr *smgr);
+
 #endif

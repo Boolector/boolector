@@ -1,6 +1,6 @@
 SHELL=/bin/sh
 VERSION=$(shell cat VERSION)
-LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o ../picosat/version.o
+LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o ../picosat/version.o ../picoprep/libpicoprep.o ../picoprep/version.o
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@
@@ -14,13 +14,13 @@ dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
 boolector: boolector.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector $(GPTLIBS)
+	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector $(GPTLIBS) -lz
 
 test: $(TESTOBJ) libboolector.a 
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(GPTLIBS)
+	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(GPTLIBS) -lz
 
 synthebtor: synthebtor.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector
+	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector -lz
 
 deltabtor: deltabtor.c makefile
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
