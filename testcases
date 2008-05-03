@@ -135,6 +135,8 @@ andopt3 -rwl1 -o log/andopt3.log log/andopt3.btor
 andopt4 -rwl1 -o log/andopt4.log log/andopt4.btor
 andopt5 -rwl1 -o log/andopt5.log log/andopt5.btor
 andopt6 -rwl1 -o log/andopt6.log log/andopt6.btor
+andopt7 -rwl1 -o log/andopt7.log log/andopt7.btor
+andopt8 -rwl1 -o log/andopt8.log log/andopt8.btor
 nextcounter1 -o log/nextcounter1.log log/nextcounter1.btor
 nextcounter2 -o log/nextcounter2.log log/nextcounter2.btor
 nextcounter3 -o log/nextcounter3.log log/nextcounter3.btor
