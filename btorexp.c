@@ -2801,21 +2801,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       }
       else if (!BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
       {
-        /* a XNOR b simplifies to a == b for the boolean case */
-        if (real_e0->len == 1
-            && BTOR_IS_INVERTED_EXP (real_e0->e[0])
-                   != BTOR_IS_INVERTED_EXP (real_e0->e[1])
-            && BTOR_IS_INVERTED_EXP (real_e1->e[0])
-                   != BTOR_IS_INVERTED_EXP (real_e1->e[1])
-            && ((real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[0])
-                 && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
-                || (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
-                    && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0]))))
-          /* ATTENTION: indirect recursive call,
-           * make sure it does not trigger another recursive calls */
-          return eq_exp (btor,
-                         BTOR_REAL_ADDR_EXP (real_e0->e[0]),
-                         BTOR_REAL_ADDR_EXP (real_e0->e[1]));
         /* second rule of subsumption */
         if (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[0])
             || real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
@@ -2872,6 +2857,21 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       {
         assert (BTOR_IS_INVERTED_EXP (e0));
         assert (BTOR_IS_INVERTED_EXP (e1));
+        /* a XNOR b simplifies to a == b for the boolean case */
+        if (real_e0->len == 1
+            && BTOR_IS_INVERTED_EXP (real_e0->e[0])
+                   != BTOR_IS_INVERTED_EXP (real_e0->e[1])
+            && BTOR_IS_INVERTED_EXP (real_e1->e[0])
+                   != BTOR_IS_INVERTED_EXP (real_e1->e[1])
+            && ((real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[0])
+                 && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
+                || (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
+                    && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0]))))
+          /* ATTENTION: indirect recursive call,
+           * make sure it does not trigger another recursive calls */
+          return eq_exp (btor,
+                         BTOR_REAL_ADDR_EXP (real_e0->e[0]),
+                         BTOR_REAL_ADDR_EXP (real_e0->e[1]));
         /* rule of resolution */
         if ((real_e0->e[0] == real_e1->e[0]
              && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
@@ -2960,23 +2960,24 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           return copy_exp (btor, e1);
       }
     }
-
-    /* further opimizations: */
-    /* a < b && b < a simplifies to FALSE */
-    else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
-             && !BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
-             && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
-      return false_exp (btor);
-    /* NOT (a < b) && NOT (b < a) simplifies to a == b */
-    else if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP
-             && BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
-             && real_e0->e[0] == real_e1->e[1]
-             && real_e0->e[1] == real_e1->e[0])
-      /* ATTENTION: indirect recursive call,
-       * make sure it does not trigger another recursive calls */
-      return eq_exp (btor,
-                     BTOR_REAL_ADDR_EXP (real_e0->e[0]),
-                     BTOR_REAL_ADDR_EXP (real_e0->e[1]));
+    else
+    {
+      assert (real_e0->kind != BTOR_AND_EXP);
+      assert (real_e1->kind != BTOR_AND_EXP);
+      if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP)
+      {
+        /* a < b && b < a simplifies to FALSE */
+        if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+            && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
+          return false_exp (btor);
+        /* NOT (a < b) && NOT (b < a) simplifies to a == b */
+        if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
+            && real_e0->e[0] == real_e1->e[1] && real_e0->e[1] == real_e1->e[0])
+          return eq_exp (btor,
+                         BTOR_REAL_ADDR_EXP (real_e0->e[0]),
+                         BTOR_REAL_ADDR_EXP (real_e0->e[1]));
+      }
+    }
   }
   if (btor->rewrite_level > 0)
     result = rewrite_binary_exp (btor, BTOR_AND_EXP, e0, e1);
