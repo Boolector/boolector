@@ -33,6 +33,8 @@ struct BtorSATMgr
   int initialized;
   int preproc_enabled;
 
+  const char *ss_name;
+
   void (*ss_init) ();
   void (*ss_add) (int);
   int (*ss_sat) (int);
@@ -45,7 +47,7 @@ struct BtorSATMgr
   void (*ss_set_new) (void *, void *(*) (void *, size_t));
   void (*ss_set_delete) (void *, void (*) (void *, void *, size_t));
   void (*ss_set_resize) (void *, void *(*) (void *, void *, size_t, size_t));
-  const char *ss_name;
+  void (*ss_stats) (void);
 };
 
 /*------------------------------------------------------------------------*/
@@ -89,6 +91,8 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->initialized     = 0;
   smgr->preproc_enabled = 0;
 
+  smgr->ss_name = "PicoSAT";
+
   smgr->ss_init        = picosat_init;
   smgr->ss_add         = picosat_add;
   smgr->ss_sat         = picosat_sat;
@@ -101,8 +105,7 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_set_new     = picosat_set_new;
   smgr->ss_set_delete  = picosat_set_delete;
   smgr->ss_set_resize  = picosat_set_resize;
-
-  smgr->ss_name = "PicoSAT";
+  smgr->ss_stats       = picosat_stats;
 
   return smgr;
 }
@@ -207,7 +210,7 @@ btor_print_stats_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  picosat_stats ();
+  smgr->ss_stats ();
 }
 
 void
@@ -278,9 +281,12 @@ void
 btor_enable_preproc_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
+
   BTOR_ABORT_SAT (smgr->initialized,
-                  "'btor_init_sat' must not have been called before "
+                  "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
+
+  smgr->ss_name = "PicoPrep";
 
   smgr->ss_init        = picoprep_init;
   smgr->ss_add         = picoprep_add;
@@ -294,8 +300,7 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_set_new     = picoprep_set_new;
   smgr->ss_set_delete  = picoprep_set_delete;
   smgr->ss_set_resize  = picoprep_set_resize;
-
-  smgr->ss_name = "PicoPrep";
+  smgr->ss_stats       = picoprep_stats;
 
   smgr->preproc_enabled = 1;
 }
