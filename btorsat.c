@@ -45,6 +45,7 @@ struct BtorSATMgr
   void (*ss_set_new) (void *, void *(*) (void *, size_t));
   void (*ss_set_delete) (void *, void (*) (void *, void *, size_t));
   void (*ss_set_resize) (void *, void *(*) (void *, void *, size_t, size_t));
+  const char *ss_name;
 };
 
 /*------------------------------------------------------------------------*/
@@ -100,6 +101,8 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_set_new     = picosat_set_new;
   smgr->ss_set_delete  = picosat_set_delete;
   smgr->ss_set_resize  = picosat_set_resize;
+
+  smgr->ss_name = "PicoSAT";
 
   return smgr;
 }
@@ -163,7 +166,8 @@ btor_init_sat (BtorSATMgr *smgr)
     if (smgr->preproc_enabled)
       print_verbose_msg ("PicoPrep Version %s\n", picoprep_version ());
 
-    print_verbose_msg (" PicoSAT Version %s\n", picosat_version ());
+    print_verbose_msg ("PicoSAT  Version %s\n", picosat_version ());
+
     fflush (stdout);
   }
 
@@ -236,7 +240,8 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  if (smgr->verbosity > 2) print_verbose_msg ("calling SAT solver PicoSAT\n");
+  if (smgr->verbosity > 2)
+    print_verbose_msg ("calling SAT solver %s\n", smgr->ss_name);
   return smgr->ss_sat (limit);
 }
 
@@ -289,6 +294,8 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_set_new     = picoprep_set_new;
   smgr->ss_set_delete  = picoprep_set_delete;
   smgr->ss_set_resize  = picoprep_set_resize;
+
+  smgr->ss_name = "PicoPrep";
 
   smgr->preproc_enabled = 1;
 }
