@@ -6384,8 +6384,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
               }
               else
               {
-                /* conditionals are normalized,
-                 * condition must not be inverted */
+                /* conditionals are normalized */
                 assert (!BTOR_IS_INVERTED_EXP (cur->e[0]));
                 av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
                 invert_av1 = BTOR_IS_INVERTED_EXP (cur->e[1]);
@@ -6627,11 +6626,11 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
     {
       assert (BTOR_IS_SYNTH_EXP (cur->e[0]));
       /* check assignment to determine which array to choose */
-      cond       = cur->e[0];
-      assignment = btor_get_assignment_aig (
-          amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+      cond = cur->e[0];
+      /* conditionals are normalized */
+      assert (!BTOR_IS_INVERTED_EXP (cond));
+      assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
       assert (assignment == 1 || assignment == -1);
-      if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
       if (assignment == 1)
         next = cur->e[1];
       else
@@ -6690,11 +6689,11 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         assert (next->simplified == NULL);
         if (next->reachable && next->mark == 0)
         {
-          cond       = next->e[0];
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          cond = next->e[0];
+          /* conditionals are normalized */
+          assert (!BTOR_IS_INVERTED_EXP (cond));
+          assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
           assert (assignment == 1 || assignment == -1);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
           /* search upwards only if array has been selected by the condition */
           if ((assignment == 1 && cur == next->e[1])
               || (assignment == -1 && cur == next->e[2]))
@@ -6831,14 +6830,13 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
       else if (BTOR_IS_ARRAY_COND_EXP (cur))
       {
         cond = cur->e[0];
-        assert (btor->rewrite_level == 0
-                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
-        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+        /* conditionals are noramlized */
+        assert (!BTOR_IS_INVERTED_EXP (cond));
+        assert (btor->rewrite_level == 0 || !BTOR_IS_CONST_EXP (cond));
+        if (!BTOR_IS_CONST_EXP (cond))
         {
           (void) btor_insert_in_ptr_hash_table (table, cur);
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+          assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
           if (assignment == 1)
             BTOR_PUSH_STACK (mm, aconds_sel1, cur);
           else
@@ -6875,15 +6873,14 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
       else if (BTOR_IS_ARRAY_COND_EXP (cur))
       {
         cond = cur->e[0];
-        assert (btor->rewrite_level == 0
-                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
-        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+        /* conditionals are normalized */
+        assert (!BTOR_IS_INVERTED_EXP (cond));
+        assert (btor->rewrite_level == 0 || !BTOR_IS_CONST_EXP (cond));
+        if (!BTOR_IS_CONST_EXP (cond))
         {
           if (btor_find_in_ptr_hash_table (table, cur) == NULL)
           {
-            assignment = btor_get_assignment_aig (
-                amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-            if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+            assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
             if (assignment == 1)
               BTOR_PUSH_STACK (mm, aconds_sel1, cur);
             else
@@ -7140,10 +7137,10 @@ process_working_stack (Btor *btor,
       *assignments_changed = lazy_synthesize_and_encode_acond_exp (btor, array);
       if (*assignments_changed) return 0;
       cond = array->e[0];
-      assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)));
-      assignment = btor_get_assignment_aig (
-          amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-      if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
+      /* conditionals are normalized */
+      assert (!BTOR_IS_INVERTED_EXP (cond));
+      assert (BTOR_IS_SYNTH_EXP (cond));
+      assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
       assert (assignment == 1 || assignment == -1);
       /* propagate down */
       BTOR_PUSH_STACK (mm, *stack, acc);
@@ -7208,11 +7205,11 @@ process_working_stack (Btor *btor,
           *assignments_changed =
               lazy_synthesize_and_encode_acond_exp (btor, next);
           if (*assignments_changed) return 0;
-          cond       = next->e[0];
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
+          cond = next->e[0];
+          /* conditionals are normalized */
+          assert (!BTOR_IS_INVERTED_EXP (cond));
+          assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
           assert (assignment == 1 || assignment == -1);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
           /* propagate upwards only if array has been selected
            * by the condition */
           if ((assignment == 1 && array == next->e[1])
