@@ -790,6 +790,12 @@ test_arraycond17_special ()
 }
 
 static void
+test_arraycond18_special ()
+{
+  run_unsat_test ("arraycond18.btor");
+}
+
+static void
 test_substitute1_special ()
 {
   run_sat_test ("substitute1.btor");
@@ -947,6 +953,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (arraycond15_special);
   BTOR_RUN_TEST (arraycond16_special);
   BTOR_RUN_TEST (arraycond17_special);
+  BTOR_RUN_TEST (arraycond18_special);
   BTOR_RUN_TEST (substitute1_special);
   BTOR_RUN_TEST (substitute2_special);
   BTOR_RUN_TEST (substitute3_special);
