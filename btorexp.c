@@ -2618,6 +2618,7 @@ rewrite_unary_exp (
   assert (lower <= upper);
   assert (BTOR_IS_UNARY_EXP_KIND (kind));
   assert (kind == BTOR_SLICE_EXP);
+  (void) kind;
   mm      = btor->mm;
   result  = NULL;
   e0      = pointer_chase_simplified_exp (btor, e0);
@@ -5283,7 +5284,8 @@ btor_next_exp_bmc (Btor *btor,
           assert (bucket != NULL);
           assert (bucket->data.asPtr != NULL);
           e0 = (BtorExp *) bucket->data.asPtr;
-          if (BTOR_IS_INVERTED_EXP (cur->e[0])) e0 = BTOR_INVERT_EXP (e0);
+          /* condtionals are normalized */
+          assert (!BTOR_IS_INVERTED_EXP (cur->e[0]));
           bucket = btor_find_in_ptr_hash_table (build_table,
                                                 BTOR_REAL_ADDR_EXP (cur->e[1]));
           assert (bucket != NULL);
