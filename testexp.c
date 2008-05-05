@@ -43,6 +43,57 @@ test_const_exp (void)
 }
 
 static void
+test_zeros_exp (void)
+{
+  FILE *fout    = fopen ("log/zeros_exp.log", "w");
+  Btor *btor    = btor_new_btor ();
+  BtorExp *exp1 = btor_zeros_exp (btor, 8);
+  BtorExp *exp2 = btor_const_exp (btor, "00000000");
+  assert (exp1 == exp2);
+  assert (btor_get_exp_len (btor, exp1) == 8);
+  assert (btor_get_exp_len (btor, exp2) == 8);
+  btor_dump_exp (btor, fout, exp1);
+  btor_release_exp (btor, exp1);
+  btor_release_exp (btor, exp2);
+  btor_delete_btor (btor);
+  fclose (fout);
+}
+
+static void
+test_ones_exp (void)
+{
+  FILE *fout    = fopen ("log/ones_exp.log", "w");
+  Btor *btor    = btor_new_btor ();
+  BtorExp *exp1 = btor_ones_exp (btor, 8);
+  BtorExp *exp2 = btor_const_exp (btor, "11111111");
+  assert (exp1 == exp2);
+  assert (btor_get_exp_len (btor, exp1) == 8);
+  assert (btor_get_exp_len (btor, exp2) == 8);
+  btor_dump_exp (btor, fout, exp1);
+  btor_release_exp (btor, exp1);
+  btor_release_exp (btor, exp2);
+  btor_delete_btor (btor);
+  fclose (fout);
+}
+
+static void
+test_one_exp (void)
+{
+  FILE *fout    = fopen ("log/one_exp.log", "w");
+  Btor *btor    = btor_new_btor ();
+  BtorExp *exp1 = btor_one_exp (btor, 8);
+  BtorExp *exp2 = btor_const_exp (btor, "00000001");
+  assert (exp1 == exp2);
+  assert (btor_get_exp_len (btor, exp1) == 8);
+  assert (btor_get_exp_len (btor, exp2) == 8);
+  btor_dump_exp (btor, fout, exp1);
+  btor_release_exp (btor, exp1);
+  btor_release_exp (btor, exp2);
+  btor_delete_btor (btor);
+  fclose (fout);
+}
+
+static void
 test_var_exp (void)
 {
   FILE *fout    = fopen ("log/var_exp.log", "w");
@@ -662,6 +713,9 @@ run_exp_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_btor);
   BTOR_RUN_TEST_CHECK_LOG (const_exp);
+  BTOR_RUN_TEST_CHECK_LOG (zeros_exp);
+  BTOR_RUN_TEST_CHECK_LOG (ones_exp);
+  BTOR_RUN_TEST_CHECK_LOG (one_exp);
   BTOR_RUN_TEST_CHECK_LOG (var_exp);
   BTOR_RUN_TEST_CHECK_LOG (array_exp);
   BTOR_RUN_TEST_CHECK_LOG (not_exp);
