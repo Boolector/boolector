@@ -1044,7 +1044,9 @@ btor_main (int argc, char **argv)
               diff_bv = temp;
               btor_release_exp (btor, ne);
             }
-            BTOR_PUSH_STACK (mem, bv_states, bv_state);
+
+            if (BTOR_COUNT_STACK (bv_regs) > 0)
+              BTOR_PUSH_STACK (mem, bv_states, bv_state);
 
             diff = btor_or_exp (btor, diff_arrays, diff_bv);
             btor_add_constraint_exp (btor, diff);
