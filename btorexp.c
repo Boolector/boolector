@@ -5051,17 +5051,13 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         fptr = udiv_exp;
         break;
     }
-    temp_left  = fptr (btor, real_e0->e[1], real_e1->e[1]);
-    temp_right = fptr (btor, real_e0->e[2], real_e1->e[2]);
-    if (BTOR_IS_INVERTED_EXP (e0))
-    {
-      assert (BTOR_IS_INVERTED_EXP (e1));
-      temp_left  = BTOR_INVERT_EXP (temp_left);
-      temp_right = BTOR_INVERT_EXP (temp_right);
-    }
-    else
-      assert (!BTOR_IS_INVERTED_EXP (e1));
-    result = cond_exp (btor, real_e0->e[0], temp_left, temp_right);
+    temp_left  = fptr (btor,
+                      BTOR_COND_INVERT_EXP (e0, real_e0->e[1]),
+                      BTOR_COND_INVERT_EXP (e0, real_e1->e[1]));
+    temp_right = fptr (btor,
+                       BTOR_COND_INVERT_EXP (e0, real_e0->e[2]),
+                       BTOR_COND_INVERT_EXP (e0, real_e1->e[2]));
+    result     = cond_exp (btor, real_e0->e[0], temp_left, temp_right);
     release_exp (btor, temp_left);
     release_exp (btor, temp_right);
   }
