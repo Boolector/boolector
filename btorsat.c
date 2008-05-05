@@ -263,7 +263,7 @@ btor_reset_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  if (smgr->verbosity > 1) print_verbose_msg ("resetting PicoSAT\n");
+  if (smgr->verbosity > 1) print_verbose_msg ("resetting %s\n", smgr->ss_name);
   smgr->ss_reset ();
   smgr->initialized = 0;
 }
