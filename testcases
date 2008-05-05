@@ -110,6 +110,12 @@ rw17 -rwl0 -o log/rw17.log log/rw17.btor
 rw17 -rwl1 -o log/rw17.log log/rw17.btor
 rw18 -rwl0 -o log/rw18.log log/rw18.btor
 rw18 -rwl1 -o log/rw18.log log/rw18.btor
+rw19 -rwl0 -o log/rw19.log log/rw19.btor
+rw19 -rwl1 -o log/rw19.log log/rw19.btor
+rw20 -rwl0 -o log/rw20.log log/rw20.btor
+rw20 -rwl1 -o log/rw20.log log/rw20.btor
+rw21 -rwl0 -o log/rw21.log log/rw21.btor
+rw21 -rwl1 -o log/rw21.log log/rw21.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt

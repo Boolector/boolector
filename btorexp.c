@@ -5045,7 +5045,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       case BTOR_ULT_EXP: fptr = ult_exp; break;
       case BTOR_BEQ_EXP:
       case BTOR_AEQ_EXP: fptr = eq_exp; break;
-      case BTOR_ADD_EXP: fptr = add_exp;
+      case BTOR_ADD_EXP: fptr = add_exp; break;
       default:
         assert (kind == BTOR_UDIV_EXP);
         fptr = udiv_exp;
