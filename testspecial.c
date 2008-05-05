@@ -7,6 +7,7 @@
 #endif
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -926,6 +927,67 @@ test_andopt17_special ()
   run_unsat_test ("andopt17.btor");
 }
 
+static void
+run_verbose_test (char *name, int verbosity)
+{
+  char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
+  char *boolector_str = "./boolector";
+  char *redirect_str  = "> /dev/null";
+  char *v1_str        = "-v";
+  char *v2_str        = "-v -v";
+  char *v3_str        = "-v -v -v";
+  char *v_str;
+  char *syscall_str;
+  strcpy (full_name, "log/");
+  strcat (full_name, name);
+  assert (verbosity > 0);
+  assert (verbosity <= 3);
+  switch (verbosity)
+  {
+    case 1: v_str = v1_str; break;
+    case 2: v_str = v2_str; break;
+    default:
+      assert (verbosity == 3);
+      v_str = v3_str;
+      break;
+  }
+  syscall_str =
+      (char *) malloc (sizeof (char)
+                       * (strlen (boolector_str) + 1 + strlen (full_name) + 1
+                          + strlen (v_str) + 1 + strlen (redirect_str) + 1));
+  sprintf (syscall_str,
+           "%s %s %s %s",
+           boolector_str,
+           full_name,
+           v_str,
+           redirect_str);
+  /* we are not interested in the output,
+   * we just want to run 'verbosity' code
+   * A system call is used, as verbose messages
+   * are always written to stdout and we have
+   * to redirect them.
+   */
+  system (syscall_str);
+  free (syscall_str);
+  free (full_name);
+}
+
+static void
+test_verbose1_special ()
+{
+  run_verbose_test ("verbose1.btor", 1);
+  run_verbose_test ("verbose1.btor", 2);
+  run_verbose_test ("verbose1.btor", 3);
+}
+
+static void
+test_verbose2_special ()
+{
+  run_verbose_test ("verbose2.btor", 1);
+  run_verbose_test ("verbose2.btor", 2);
+  run_verbose_test ("verbose2.btor", 3);
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -1077,6 +1139,8 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (andopt15_special);
   BTOR_RUN_TEST (andopt16_special);
   BTOR_RUN_TEST (andopt17_special);
+  BTOR_RUN_TEST (verbose1_special);
+  BTOR_RUN_TEST (verbose2_special);
 }
 
 void
