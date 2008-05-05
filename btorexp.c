@@ -6386,9 +6386,10 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
               }
               else
               {
-                invert_av0 = BTOR_IS_INVERTED_EXP (cur->e[0]);
+                /* conditionals are normalized,
+                 * condition must not be inverted */
+                assert (!BTOR_IS_INVERTED_EXP (cur->e[0]));
                 av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
-                if (invert_av0) btor_invert_aigvec (avmgr, av0);
                 invert_av1 = BTOR_IS_INVERTED_EXP (cur->e[1]);
                 av1        = BTOR_REAL_ADDR_EXP (cur->e[1])->av;
                 if (invert_av1) btor_invert_aigvec (avmgr, av1);
@@ -6406,7 +6407,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
               else
               {
                 /* invert back if necessary */
-                if (invert_av0) btor_invert_aigvec (avmgr, av0);
                 if (invert_av1) btor_invert_aigvec (avmgr, av1);
                 if (invert_av2) btor_invert_aigvec (avmgr, av2);
               }
