@@ -2867,8 +2867,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
                  && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[1]))
                 || (real_e0->e[0] == BTOR_INVERT_EXP (real_e1->e[1])
                     && real_e0->e[1] == BTOR_INVERT_EXP (real_e1->e[0]))))
-          /* ATTENTION: indirect recursive call,
-           * make sure it does not trigger another recursive calls */
           return eq_exp (btor,
                          BTOR_REAL_ADDR_EXP (real_e0->e[0]),
                          BTOR_REAL_ADDR_EXP (real_e0->e[1]));
