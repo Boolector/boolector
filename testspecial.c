@@ -908,6 +908,24 @@ test_andopt14_special ()
   run_unsat_test ("andopt14.btor");
 }
 
+static void
+test_andopt15_special ()
+{
+  run_unsat_test ("andopt15.btor");
+}
+
+static void
+test_andopt16_special ()
+{
+  run_unsat_test ("andopt16.btor");
+}
+
+static void
+test_andopt17_special ()
+{
+  run_unsat_test ("andopt17.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -1056,6 +1074,9 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (andopt12_special);
   BTOR_RUN_TEST (andopt13_special);
   BTOR_RUN_TEST (andopt14_special);
+  BTOR_RUN_TEST (andopt15_special);
+  BTOR_RUN_TEST (andopt16_special);
+  BTOR_RUN_TEST (andopt17_special);
 }
 
 void
