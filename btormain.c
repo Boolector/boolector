@@ -696,7 +696,7 @@ generate_regs_eq_zero (Btor *btor,
     assert (bucket != NULL);
     assert (bucket->data.asPtr != NULL);
     inst = (BtorExp *) bucket->data.asPtr;
-    zero = btor_zeros_exp (btor, btor_get_exp_len (btor, inst));
+    zero = btor_zero_exp (btor, btor_get_exp_len (btor, inst));
     eq   = btor_eq_exp (btor, inst, zero);
     temp = btor_and_exp (btor, result, eq);
     btor_release_exp (btor, result);

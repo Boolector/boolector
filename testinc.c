@@ -44,7 +44,7 @@ test_inc_counter (int w, int nondet)
 
   btor    = btor_new_btor ();
   one     = btor_one_exp (btor, w);
-  current = btor_zeros_exp (btor, w);
+  current = btor_zero_exp (btor, w);
   i       = 0;
 
   for (;;)

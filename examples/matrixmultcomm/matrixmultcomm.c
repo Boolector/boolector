@@ -24,7 +24,7 @@ matrix_mult (Btor *btor,
   assert (num_bits_index >= 1);
   result = btor_array_exp (btor, num_bits, num_bits_index);
   /* initialize result matrix with zeroes */
-  zero = btor_zeros_exp (btor, num_bits);
+  zero = btor_zero_exp (btor, num_bits);
   for (i = 0; i < size * size; i++)
   {
     temp = btor_write_exp (btor, result, indices[i], zero);

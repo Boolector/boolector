@@ -63,7 +63,7 @@ BtorExp *btor_const_exp (Btor *btor, const char *bits);
  * len > 0
  * len(result) = len
  */
-BtorExp *btor_zeros_exp (Btor *btor, int len);
+BtorExp *btor_zero_exp (Btor *btor, int len);
 
 /* Constant respresenting FALSE */
 BtorExp *btor_false_exp (Btor *btor);

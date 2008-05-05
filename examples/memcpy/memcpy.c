@@ -96,7 +96,7 @@ main (int argc, char** argv)
 
   j = btor_var_exp (btor, 32, "j");
 
-  zero = btor_zeros_exp (btor, 32);
+  zero = btor_zero_exp (btor, 32);
   one  = btor_one_exp (btor, 32);
 
   eos = btor_add_exp (btor, src, n);

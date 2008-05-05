@@ -675,7 +675,7 @@ parse_constd (BtorBTORParser *parser, int len)
 static BtorExp *
 parse_zero (BtorBTORParser *parser, int len)
 {
-  return btor_zeros_exp (parser->btor, len);
+  return btor_zero_exp (parser->btor, len);
 }
 
 static BtorExp *

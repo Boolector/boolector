@@ -43,11 +43,11 @@ test_const_exp (void)
 }
 
 static void
-test_zeros_exp (void)
+test_zero_exp (void)
 {
-  FILE *fout    = fopen ("log/zeros_exp.log", "w");
+  FILE *fout    = fopen ("log/zero_exp.log", "w");
   Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_zeros_exp (btor, 8);
+  BtorExp *exp1 = btor_zero_exp (btor, 8);
   BtorExp *exp2 = btor_const_exp (btor, "00000000");
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
@@ -713,7 +713,7 @@ run_exp_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (new_delete_btor);
   BTOR_RUN_TEST_CHECK_LOG (const_exp);
-  BTOR_RUN_TEST_CHECK_LOG (zeros_exp);
+  BTOR_RUN_TEST_CHECK_LOG (zero_exp);
   BTOR_RUN_TEST_CHECK_LOG (ones_exp);
   BTOR_RUN_TEST_CHECK_LOG (one_exp);
   BTOR_RUN_TEST_CHECK_LOG (var_exp);
