@@ -825,6 +825,89 @@ test_upprop1_special ()
   run_sat_test ("upprop1.btor");
 }
 
+static void
+test_andopt1_special ()
+{
+  run_unsat_test ("andopt1.btor");
+}
+
+static void
+test_andopt2_special ()
+{
+  run_unsat_test ("andopt2.btor");
+}
+
+static void
+test_andopt3_special ()
+{
+  run_unsat_test ("andopt3.btor");
+}
+static void
+test_andopt4_special ()
+{
+  run_unsat_test ("andopt4.btor");
+}
+
+static void
+test_andopt5_special ()
+{
+  run_unsat_test ("andopt5.btor");
+}
+
+static void
+test_andopt6_special ()
+{
+  run_unsat_test ("andopt6.btor");
+}
+
+static void
+test_andopt7_special ()
+{
+  run_unsat_test ("andopt7.btor");
+}
+
+static void
+test_andopt8_special ()
+{
+  run_unsat_test ("andopt8.btor");
+}
+
+static void
+test_andopt9_special ()
+{
+  run_unsat_test ("andopt9.btor");
+}
+
+static void
+test_andopt10_special ()
+{
+  run_unsat_test ("andopt10.btor");
+}
+
+static void
+test_andopt11_special ()
+{
+  run_unsat_test ("andopt11.btor");
+}
+
+static void
+test_andopt12_special ()
+{
+  run_unsat_test ("andopt12.btor");
+}
+
+static void
+test_andopt13_special ()
+{
+  run_unsat_test ("andopt13.btor");
+}
+
+static void
+test_andopt14_special ()
+{
+  run_unsat_test ("andopt14.btor");
+}
+
 void
 run_special_tests (int argc, char **argv)
 {
@@ -959,6 +1042,20 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (substitute3_special);
   BTOR_RUN_TEST (substitute4_special);
   BTOR_RUN_TEST (upprop1_special);
+  BTOR_RUN_TEST (andopt1_special);
+  BTOR_RUN_TEST (andopt2_special);
+  BTOR_RUN_TEST (andopt3_special);
+  BTOR_RUN_TEST (andopt4_special);
+  BTOR_RUN_TEST (andopt5_special);
+  BTOR_RUN_TEST (andopt6_special);
+  BTOR_RUN_TEST (andopt7_special);
+  BTOR_RUN_TEST (andopt8_special);
+  BTOR_RUN_TEST (andopt9_special);
+  BTOR_RUN_TEST (andopt10_special);
+  BTOR_RUN_TEST (andopt11_special);
+  BTOR_RUN_TEST (andopt12_special);
+  BTOR_RUN_TEST (andopt13_special);
+  BTOR_RUN_TEST (andopt14_special);
 }
 
 void

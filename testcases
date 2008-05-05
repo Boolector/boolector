@@ -129,20 +129,6 @@ memcpy02 -o log/memcpy02.log log/memcpy02.smt
 regrw8simp -o log/regrw8simp.log log/regrw8simp.btor
 regprim11simp -o log/regprim11simp.log log/regprim11simp.btor
 regexit0basic -o log/regexit0basic.log log/regexit0basic.btor
-andopt1 -rwl1 -o log/andopt1.log log/andopt1.btor
-andopt2 -rwl1 -o log/andopt2.log log/andopt2.btor
-andopt3 -rwl1 -o log/andopt3.log log/andopt3.btor
-andopt4 -rwl1 -o log/andopt4.log log/andopt4.btor
-andopt5 -rwl1 -o log/andopt5.log log/andopt5.btor
-andopt6 -rwl1 -o log/andopt6.log log/andopt6.btor
-andopt7 -rwl1 -o log/andopt7.log log/andopt7.btor
-andopt8 -rwl1 -o log/andopt8.log log/andopt8.btor
-andopt9 -rwl1 -o log/andopt9.log log/andopt9.btor
-andopt10 -rwl1 -o log/andopt10.log log/andopt10.btor
-andopt11 -rwl1 -o log/andopt11.log log/andopt11.btor
-andopt12 -rwl1 -o log/andopt12.log log/andopt12.btor
-andopt13 -rwl1 -o log/andopt13.log log/andopt13.btor
-andopt14 -rwl1 -o log/andopt14.log log/andopt14.btor
 nextcounter1 -o log/nextcounter1.log log/nextcounter1.btor
 nextcounter2 -o log/nextcounter2.log log/nextcounter2.btor
 nextcounter3 -o log/nextcounter3.log log/nextcounter3.btor
