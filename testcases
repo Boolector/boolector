@@ -159,3 +159,4 @@ nextarray4 -o log/nextarray4.log log/nextarray4.btor
 nextarray5 -o log/nextarray5.log log/nextarray5.btor
 nextarray6 -o log/nextarray6.log log/nextarray6.btor
 nextarray7 -o log/nextarray7.log log/nextarray7.btor
+nextarray8 -o log/nextarray8.log log/nextarray8.btor
