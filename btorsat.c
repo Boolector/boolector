@@ -5,6 +5,7 @@
 #include "btorsat.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -187,7 +188,8 @@ btor_init_sat (BtorSATMgr *smgr)
 void
 btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 {
-  char *prefix, *p, *q;
+  char *prefix, *q;
+  const char *p;
 
   assert (smgr != NULL);
   assert (smgr->initialized);
