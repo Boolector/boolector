@@ -7032,13 +7032,14 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor, BtorExp *acond)
   update              = 0;
   cond                = acond->e[0];
   assert (cond != NULL);
-  if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)))
-    synthesize_exp (btor, cond, NULL);
-  if (!BTOR_REAL_ADDR_EXP (cond)->sat_both_phases)
+  /* conditionals are normalized */
+  assert (!BTOR_IS_INVERTED_EXP (cond));
+  if (!BTOR_IS_SYNTH_EXP (cond)) synthesize_exp (btor, cond, NULL);
+  if (!cond->sat_both_phases)
   {
     update = 1;
-    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
-    BTOR_REAL_ADDR_EXP (cond)->sat_both_phases = 1;
+    btor_aigvec_to_sat_both_phases (avmgr, cond->av);
+    cond->sat_both_phases = 1;
   }
   /* update assignments if necessary */
   if (update) changed_assignments = update_sat_assignments (btor);
