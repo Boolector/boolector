@@ -5872,12 +5872,11 @@ btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   for (i = 0; i < len; i++)
   {
     cur = btor_get_assignment_aig (amgr, av->aigs[i]);
+    assert (cur == 1 || cur == -1);
     if (cur == 1)
       result[i] = '1';
-    else if (cur == -1)
-      result[i] = '0';
     else
-      result[i] = 'x';
+      result[i] = '0';
   }
   result[i] = '\0';
   return result;

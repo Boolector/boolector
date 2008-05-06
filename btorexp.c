@@ -6742,7 +6742,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
           }
         }
       }
-      /* search upwards in the extensional case */
+      /* search upwards */
       init_acond_parent_iterator (&it, cur);
       while (has_next_parent_acond_parent_iterator (&it))
       {
@@ -6757,7 +6757,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
           assert (!BTOR_IS_INVERTED_EXP (cond));
           assignment = btor_get_assignment_aig (amgr, cond->av->aigs[0]);
           assert (assignment == 1 || assignment == -1);
-          /* search upwards only if array has been selected by the condition */
+          /* search upwards only if array has been selected */
           if ((assignment == 1 && cur == next->e[1])
               || (assignment == -1 && cur == next->e[2]))
           {
@@ -6779,7 +6779,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         {
           /* search upwards only if write has been synthesized and
            * assignments to the indices are unequal
-           * */
+           */
           if (BTOR_REAL_ADDR_EXP (next->e[1])->sat_both_phases
               && compare_assignments (next->e[1], index) != 0)
           {
@@ -7256,7 +7256,7 @@ process_working_stack (Btor *btor,
           }
         }
       }
-      /* propagate upwards in the extensional case */
+      /* propagate upwards */
       init_acond_parent_iterator (&it, array);
       while (has_next_parent_acond_parent_iterator (&it))
       {
@@ -7448,8 +7448,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         BTOR_PUSH_STACK (mm, array_stack, cur_array->e[0]);
         if (has_array_equalities)
         {
-          /* propagate write as read to ensure write value
-           * consistency in extensional cases */
+          /* propagate writes as reads if there are array equalities */
           BTOR_PUSH_STACK (mm, working_stack, cur_array);
           BTOR_PUSH_STACK (mm, working_stack, cur_array);
           found_conflict = process_working_stack (
