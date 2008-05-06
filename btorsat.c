@@ -187,12 +187,20 @@ btor_init_sat (BtorSATMgr *smgr)
 void
 btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 {
+  char *prefix, *p, *q;
+
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (output != NULL);
   (void) smgr;
   smgr->ss_set_output (output);
-  smgr->ss_set_prefix ("[picosat] ");
+
+  prefix = btor_malloc (smgr->mm, strlen (smgr->ss_name) + 3);
+  sprintf (prefix, "[%s] ", smgr->ss_name);
+  q = prefix + 1;
+  for (p = smgr->ss_name; *p; p++) *q++ = tolower (*p);
+  smgr->ss_set_prefix (prefix);
+  btor_free (smgr->mm, prefix, strlen (smgr->ss_name) + 3);
 }
 
 void
