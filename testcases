@@ -41,8 +41,10 @@ readvar -o log/readvar.log log/readvar.btor
 arrayeqerr0 -o log/arrayeqerr0.log log/arrayeqerr0.btor
 arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
 arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
-dumparrayeq -f -de log/dumparrayeq.log log/dumparrayeq.btor
-dumpsmt1 -f -ds log/dumpsmt1.log log/dumpsmt1.btor
+dumpbtor1 -rwl0 -f -de log/dumpbtor1.log log/dumpbtor1.btor
+dumpbtor2 -rwl0 -f -de log/dumpbtor2.log log/dumpbtor2.btor
+dumpsmt1 -rwl0 -f -ds log/dumpsmt1.log log/dumpsmt1.btor
+dumpsmt2 -rwl0 -f -ds log/dumpsmt2.log log/dumpsmt2.btor
 smtextarrayaxiom1uf -o log/smtextarrayaxiom1uf.log log/smtextarrayaxiom1uf.smt
 smtextarrayaxiom1 -o log/smtextarrayaxiom1.log log/smtextarrayaxiom1.smt
 smtextarray1sat0 -o log/smtextarray1sat0.log log/smtextarray1sat0.smt
