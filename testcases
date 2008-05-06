@@ -127,6 +127,10 @@ rw24 -rwl0 -o log/rw24.log log/rw24.btor
 rw24 -rwl1 -o log/rw24.log log/rw24.btor
 rw25 -rwl0 -o log/rw25.log log/rw25.btor
 rw25 -rwl1 -o log/rw25.log log/rw25.btor
+rw26 -rwl0 -o log/rw26.log log/rw26.btor
+rw26 -rwl1 -o log/rw26.log log/rw26.btor
+rw27 -rwl0 -o log/rw27.log log/rw27.btor
+rw27 -rwl1 -o log/rw27.log log/rw27.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt

@@ -4959,10 +4959,23 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     {
       if (kind == BTOR_MUL_EXP || kind == BTOR_UDIV_EXP)
         result = copy_exp (btor, e0);
+      else if (kind == BTOR_ULT_EXP)
+      {
+        temp = zero_exp (btor, real_e0->len);
+        /* ATTENTION: indirect recursive call make sure
+         * it does not trigger another recurisve calls */
+        result = eq_exp (btor, e0, temp);
+        release_exp (btor, temp);
+      }
     }
     else if (is_ones)
     {
-      if (kind == BTOR_AND_EXP) result = copy_exp (btor, e0);
+      if (kind == BTOR_AND_EXP)
+        result = copy_exp (btor, e0);
+      else if (kind == BTOR_ULT_EXP)
+        /* ATTENTION: indirect recursive call make sure
+         * it does not trigger another recurisve calls */
+        result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
     }
 
     /* TODO: handle all 'result->len == 1' cases */
