@@ -808,8 +808,14 @@ btor_main (int argc, char **argv)
     }
     else if (app.dump_exp)
     {
-      btor_dump_exps (
-          btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
+      assert (app.rewrite_level >= 0);
+      assert (app.rewrite_level <= 2);
+      if (app.rewrite_level == 2)
+        btor_dump_exps_after_substitution (
+            btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
+      else
+        btor_dump_exps (
+            btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
       app.done = 1;
     }
     else if (app.dump_smt)
@@ -835,9 +841,11 @@ btor_main (int argc, char **argv)
       /* we eanble the preprocessor for pure bit-vector logic */
       /*
        */
-      if (parse_res.logic == BTOR_LOGIC_QF_BV && !parse_res.nregs
-          && !getenv ("NPICOPREP"))
-        btor_enable_preproc_sat (smgr);
+#if 0
+          if (parse_res.logic == BTOR_LOGIC_QF_BV &&
+              !parse_res.nregs && !getenv ("NPICOPREP"))
+            btor_enable_preproc_sat (smgr);
+#endif
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
 

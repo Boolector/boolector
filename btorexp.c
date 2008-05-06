@@ -168,6 +168,7 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 
 static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
+static void process_new_constraints (Btor *);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -5433,8 +5434,8 @@ btor_cmp_id (const void *p, const void *q)
   return a->id - b->id;
 }
 
-void
-btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
+static void
+dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
   int next, i, j, maxid, id;
@@ -5443,15 +5444,17 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
   char idbuffer[20];
   const char *op;
 
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dump_exps'");
-  BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exps'");
+  assert (btor != NULL);
+  assert (file != NULL);
+  assert (roots != NULL);
+  assert (nroots > 0);
 
   BTOR_INIT_STACK (stack);
 
   for (i = 0; i < nroots; i++)
   {
     root = roots[i];
-    BTOR_ABORT_EXP (root == NULL, "'root == NULL' in 'btor_dump_exps'");
+    assert (root != NULL);
     BTOR_PUSH_EXP_IF_NOT_MARKED (root);
   }
 
@@ -5589,9 +5592,69 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 }
 
 void
+btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
+{
+  int i;
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dump_exps'");
+  BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exps'");
+  BTOR_ABORT_EXP (roots == NULL,
+                  "'roots' must not be NULL in 'btor_dump_exps'");
+  BTOR_ABORT_EXP (nroots < 1,
+                  "There must be at least one root in 'btor_dump_exps'");
+  for (i = 0; i < nroots; i++)
+  {
+    BTOR_ABORT_EXP (roots[i] == NULL,
+                    "Root must not be NULL in 'btor_dump_exps'");
+  }
+  dump_exps (btor, file, roots, nroots);
+}
+
+void
+btor_dump_exps_after_substitution (Btor *btor,
+                                   FILE *file,
+                                   BtorExp **roots,
+                                   int nroots)
+{
+  BtorExp *temp, **new_roots;
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *constraints;
+  int new_nroots, i;
+  for (i = 0; i < nroots; i++)
+  {
+    if (BTOR_REAL_ADDR_EXP (roots[i])->len == 1)
+      temp = copy_exp (btor, roots[i]);
+    else
+      temp = btor_redor_exp (btor, roots[i]);
+    add_constraint (btor, temp);
+    release_exp (btor, temp);
+  }
+  process_new_constraints (btor);
+  constraints = btor->processed_constraints;
+  new_nroots  = (int) constraints->count;
+  BTOR_NEWN (btor->mm, new_roots, new_nroots);
+  i = 0;
+  for (b = constraints->first; b != NULL; b = b->next)
+    new_roots[i++] = (BtorExp *) b->key;
+  dump_exps (btor, file, new_roots, new_nroots);
+  BTOR_DELETEN (btor->mm, new_roots, new_nroots);
+}
+
+static void
+dump_exp (Btor *btor, FILE *file, BtorExp *root)
+{
+  assert (btor != NULL);
+  assert (file != NULL);
+  assert (root != NULL);
+  dump_exps (btor, file, &root, 1);
+}
+
+void
 btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
 {
-  btor_dump_exps (btor, file, &root, 1);
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_dump_exp'");
+  BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exp'");
+  BTOR_ABORT_EXP (root == NULL, "'root' must not be NULL in 'btor_dump_exp'");
+  dump_exp (btor, file, root);
 }
 
 void
@@ -5604,7 +5667,7 @@ btor_vis_exp (Btor *btor, BtorExp *exp)
   path = cmd + strlen (cmd);
   sprintf (path, "/tmp/btorvisexp.%d.btor", idx++);
   file = fopen (path, "w");
-  btor_dump_exp (btor, file, exp);
+  dump_exp (btor, file, exp);
   fclose (file);
   strcat (cmd, "&");
   system (cmd);
@@ -8017,7 +8080,7 @@ btor_replay_btor (Btor *btor, FILE *file)
     btor_release_exp (btor, result);
     result = temp;
   }
-  btor_dump_exp (btor, file, result);
+  dump_exp (btor, file, result);
   btor_release_exp (btor, result);
 }
 
