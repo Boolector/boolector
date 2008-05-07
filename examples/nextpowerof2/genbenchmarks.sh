@@ -23,7 +23,7 @@ do
       echo "int next_power_of_2 (int x)" >> $filename
       echo "\{" >> $filename
       echo "  int i;" >> $filename
-      echo "  x-- >> $filename;" >> $filename
+      echo "  x--; >> $filename
       echo "  for (i = 1; i < sizeof(int) * 8; i = i * 2)" >> $filename
       echo "  x = x | (x >> i)" >> $filename
       echo "  return x + 1;" >> $filename
