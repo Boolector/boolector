@@ -2468,7 +2468,6 @@ ternary_exp (Btor *btor,
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (e2 != NULL);
-  assert (kind != BTOR_BEQ_EXP || len > 0);
   e0 = pointer_chase_simplified_exp (btor, e0);
   e1 = pointer_chase_simplified_exp (btor, e1);
   e2 = pointer_chase_simplified_exp (btor, e2);
