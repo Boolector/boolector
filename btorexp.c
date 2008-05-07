@@ -3802,7 +3802,7 @@ btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result;
+  BtorExp *result, *temp;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -3812,6 +3812,15 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  /* normalization
+   * ~a < ~b  is the same as  b < a
+   */
+  if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+  {
+    temp = BTOR_REAL_ADDR_EXP (e1);
+    e1   = BTOR_REAL_ADDR_EXP (e0);
+    e0   = temp;
+  }
   result = NULL;
   if (btor->rewrite_level > 0)
     result = rewrite_binary_exp (btor, BTOR_ULT_EXP, e0, e1);
