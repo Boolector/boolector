@@ -170,6 +170,7 @@ static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
 static void process_new_constraints (Btor *);
 static BtorExp *slice_exp_aux (Btor *, BtorExp *, int, int, int);
+static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *rewrite_slice_exp (Btor *, BtorExp *, int, int, int);
 
 /*------------------------------------------------------------------------*/
@@ -2630,7 +2631,7 @@ static BtorExp *
 rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower, int calls)
 {
   BtorMemMgr *mm;
-  BtorExp *real_e0, *result, *temp_left, *temp_right;
+  BtorExp *real_e0, *result, *temp_left, *temp_right, *temp;
   char *bresult;
   int len;
   assert (btor != NULL);
@@ -2660,12 +2661,20 @@ rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower, int calls)
   }
   /* push slice into ADD if we slice from the LSB and do not slice
    * the whole bit-vector */
-  else if (lower == 0 && upper < len - 1 && real_e0->kind == BTOR_ADD_EXP)
+  else if (lower == 0 && upper < len - 1
+           && (real_e0->kind == BTOR_ADD_EXP || real_e0->kind == BTOR_MUL_EXP))
   {
     /* ATTENTION: 2 recursive calls */
     temp_left  = slice_exp_aux (btor, real_e0->e[0], upper, lower, calls + 1);
     temp_right = slice_exp_aux (btor, real_e0->e[1], upper, lower, calls + 1);
-    result = BTOR_COND_INVERT_EXP (e0, add_exp (btor, temp_left, temp_right));
+    if (real_e0->kind == BTOR_ADD_EXP)
+      temp = add_exp (btor, temp_left, temp_right);
+    else
+    {
+      assert (real_e0->kind == BTOR_MUL_EXP);
+      temp = mul_exp (btor, temp_left, temp_right);
+    }
+    result = BTOR_COND_INVERT_EXP (e0, temp);
     release_exp (btor, temp_left);
     release_exp (btor, temp_right);
   }
