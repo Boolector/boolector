@@ -1,4 +1,7 @@
 #!/bin/bash
+
+# ATTENTION: we use btorold2new filter as workaround
+
 i=0
 file="/tmp/testbtorbtorgen$$.btor"
 refinementlimit=100000
@@ -7,7 +10,7 @@ do
   ((i++))
   rwl=rwl2
   echo -n "Test $i $rwl: "
-  btorgen 2> /dev/null > $file 
+  btorgen 2> /dev/null | btorold2new > $file 
   boolector -$rwl -rl $refinementlimit $file
   goldenretval=$?
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
