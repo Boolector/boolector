@@ -2465,22 +2465,14 @@ ternary_exp (Btor *btor,
              int len)
 {
   BtorExp **lookup;
-  BtorExp *temp;
   assert (btor != NULL);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (e2 != NULL);
-  e0 = pointer_chase_simplified_exp (btor, e0);
-  e1 = pointer_chase_simplified_exp (btor, e1);
-  e2 = pointer_chase_simplified_exp (btor, e2);
-  if (BTOR_IS_INVERTED_EXP (e0))
-  {
-    e0   = BTOR_INVERT_EXP (e0);
-    temp = e1;
-    e1   = e2;
-    e2   = temp;
-  }
+  e0     = pointer_chase_simplified_exp (btor, e0);
+  e1     = pointer_chase_simplified_exp (btor, e1);
+  e2     = pointer_chase_simplified_exp (btor, e2);
   lookup = find_ternary_exp (btor, kind, e0, e1, e2);
   if (*lookup == NULL)
   {
@@ -2741,7 +2733,8 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
 #endif
   /* ~e0 == ~e1 is the same as e0 == e1 */
-  if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+  if (btor->rewrite_level > 0 && BTOR_IS_INVERTED_EXP (e0)
+      && BTOR_IS_INVERTED_EXP (e1))
   {
     e0 = BTOR_REAL_ADDR_EXP (e0);
     e1 = BTOR_REAL_ADDR_EXP (e1);
@@ -3218,7 +3211,7 @@ rewrite_ternary_exp (
 static BtorExp *
 cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
 {
-  BtorExp *result;
+  BtorExp *result, *temp;
   BtorExpKind kind;
 #ifndef NDEBUG
   BtorExp *real_e_if, *real_e_else;
@@ -3246,6 +3239,15 @@ cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   assert (!is_array_e_if || e_if->index_len == e_else->index_len);
   assert (!is_array_e_if || e_if->index_len > 0);
 #endif
+  /* normalization: condition must not be inverted
+   * we need this normalization also in rewrite level 0 */
+  if (BTOR_IS_INVERTED_EXP (e_cond))
+  {
+    e_cond = BTOR_INVERT_EXP (e_cond);
+    temp   = e_if;
+    e_if   = e_else;
+    e_else = temp;
+  }
   result = NULL;
   kind   = BTOR_BCOND_EXP;
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))) kind = BTOR_ACOND_EXP;
@@ -3852,10 +3854,9 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  /* normalization
-   * ~a < ~b  is the same as  b < a
-   */
-  if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+  /* ~a < ~b  is the same as  b < a */
+  if (btor->rewrite_level > 0 && BTOR_IS_INVERTED_EXP (e0)
+      && BTOR_IS_INVERTED_EXP (e1))
   {
     temp = BTOR_REAL_ADDR_EXP (e1);
     e1   = BTOR_REAL_ADDR_EXP (e0);
@@ -6955,7 +6956,7 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
       else if (BTOR_IS_ARRAY_COND_EXP (cur))
       {
         cond = cur->e[0];
-        /* conditionals are noramlized */
+        /* conditionals are normalized */
         assert (!BTOR_IS_INVERTED_EXP (cond));
         assert (btor->rewrite_level == 0 || !BTOR_IS_CONST_EXP (cond));
         if (!BTOR_IS_CONST_EXP (cond))
