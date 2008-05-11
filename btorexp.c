@@ -3168,7 +3168,7 @@ static BtorExp *
 rewrite_ternary_exp (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 {
-  BtorExp *result, *real_e0, *real_e1, *real_e2, *temp_left, *temp_right;
+  BtorExp *result, *real_e1, *real_e2, *temp_left, *temp_right;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (btor->rewrite_level > 0);
@@ -3178,21 +3178,23 @@ rewrite_ternary_exp (
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (e2 != NULL);
-  e0      = pointer_chase_simplified_exp (btor, e0);
-  e1      = pointer_chase_simplified_exp (btor, e1);
-  e2      = pointer_chase_simplified_exp (btor, e2);
-  mm      = btor->mm;
-  result  = NULL;
-  real_e0 = BTOR_REAL_ADDR_EXP (e0);
+  e0     = pointer_chase_simplified_exp (btor, e0);
+  e1     = pointer_chase_simplified_exp (btor, e1);
+  e2     = pointer_chase_simplified_exp (btor, e2);
+  mm     = btor->mm;
+  result = NULL;
+  assert (!BTOR_IS_INVERTED_EXP (e0));
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
   real_e2 = BTOR_REAL_ADDR_EXP (e2);
-  if (BTOR_IS_CONST_EXP (real_e0))
+  if (BTOR_IS_CONST_EXP (e0))
   {
-    if ((!BTOR_IS_INVERTED_EXP (e0) && e0->bits[0] == '1')
-        || (BTOR_IS_INVERTED_EXP (e0) && real_e0->bits[0] == '0'))
+    if (e0->bits[0] == '1')
       result = copy_exp (btor, e1);
     else
+    {
+      assert (e0->bits[0] == '0');
       result = copy_exp (btor, e2);
+    }
   }
   else if (e1 == e2)
     result = copy_exp (btor, e1);
