@@ -43,6 +43,7 @@ arrayeqerr1 -o log/arrayeqerr1.log log/arrayeqerr1.btor
 arrayeqerr2 -o log/arrayeqerr2.log log/arrayeqerr2.btor
 dumpbtor1 -rwl0 -f -de log/dumpbtor1.log log/dumpbtor1.btor
 dumpbtor2 -rwl0 -f -de log/dumpbtor2.log log/dumpbtor2.btor
+dumpbtor3 -f -de log/dumpbtor3.log log/dumpbtor3.btor
 dumpsmt1 -rwl0 -f -ds log/dumpsmt1.log log/dumpsmt1.btor
 dumpsmt2 -rwl0 -f -ds log/dumpsmt2.log log/dumpsmt2.btor
 dumpreplay1 -q -rwl0 -f -bmc-base-only -bmc-maxk=2 -bmc-replay log/dumpreplay1.log log/dumpreplay1.btor
