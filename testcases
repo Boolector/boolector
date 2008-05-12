@@ -144,6 +144,8 @@ rw32 -rwl0 -o log/rw32.log log/rw32.btor
 rw32 -rwl1 -o log/rw32.log log/rw32.btor
 rw33 -rwl0 -o log/rw33.log log/rw33.btor
 rw33 -rwl1 -o log/rw33.log log/rw33.btor
+rw34 -rwl0 -o log/rw34.log log/rw34.btor
+rw34 -rwl1 -o log/rw34.log log/rw34.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt
