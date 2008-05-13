@@ -9,7 +9,7 @@ pdftemp=$temp".pdf"
 btor2dot=unknown
 for d in `echo $PATH|sed -e 's,:, ,g'` .
 do
-  file=$d/btor2dot.awk
+  file=$d/btor2dot
   [ -d $d ] || continue
   [ -f $file ] || continue
   btor2dot=$file
@@ -17,7 +17,7 @@ do
 done
 if [ $btor2dot = unknown ]
 then
-  echo "*** btorvis: can not find 'btor2dot.awk'" 1>&2
+  echo "*** btorvis: can not find 'btor2dot'" 1>&2
   exit 1
 fi
 cat $*|$btor2dot | dot -Tps2 > $pstemp
