@@ -6320,8 +6320,25 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             btor_free (mm, indexed_name, len);
           }
         }
-        else if (!BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+        else
         {
+          /* writes cannot be reached directly
+           * we stop the synthesis as soon
+           * we reach reads or array equalities.
+           * if we synthesize writes later,
+           * we only synthesize its index
+           * and value, but not the write itself
+           * if there are no reads or array
+           * equalities on a write, then
+           * it is not reachable
+           */
+          assert (!BTOR_IS_WRITE_EXP (cur));
+
+          /* atomic arrays and array conditionals
+           * should also not be reached directly */
+          assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+          assert (!BTOR_IS_ARRAY_COND_EXP (cur));
+
           /* special cases */
           if (BTOR_IS_READ_EXP (cur))
           {
@@ -6329,16 +6346,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
             assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
             /* mark children recursively as reachable */
-            set_flags_and_synth_aeq (btor, cur->e[1]);
-            set_flags_and_synth_aeq (btor, cur->e[0]);
-          }
-          else if (BTOR_IS_WRITE_EXP (cur))
-          {
-            /* set mark flag to explicitly to 2
-             * as write has no AIG vector */
-            cur->mark = 2;
-            /* mark children recursively as reachable */
-            set_flags_and_synth_aeq (btor, cur->e[2]);
             set_flags_and_synth_aeq (btor, cur->e[1]);
             set_flags_and_synth_aeq (btor, cur->e[0]);
           }
