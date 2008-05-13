@@ -169,9 +169,7 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
 static void process_new_constraints (Btor *);
-static BtorExp *slice_exp_aux (Btor *, BtorExp *, int, int, int);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
-static BtorExp *rewrite_slice_exp (Btor *, BtorExp *, int, int, int);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -2599,31 +2597,10 @@ btor_neg_exp (Btor *btor, BtorExp *exp)
 }
 
 static BtorExp *
-slice_exp_aux (Btor *btor, BtorExp *exp, int upper, int lower, int calls)
-{
-  BtorExp *result;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  exp = pointer_chase_simplified_exp (btor, exp);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
-  assert (lower >= 0);
-  assert (upper >= lower);
-  assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
-  result = NULL;
-  if (btor->rewrite_level > 0)
-    result = rewrite_slice_exp (btor, exp, upper, lower, calls);
-  if (result == NULL) result = unary_exp_slice_exp (btor, exp, upper, lower);
-  return result;
-}
-
-#define BTOR_REWRITE_SLICE_EXP_REC_LIMIT 5
-
-static BtorExp *
-rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower, int calls)
+rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower)
 {
   BtorMemMgr *mm;
-  BtorExp *real_e0, *result, *temp_left, *temp_right, *temp;
+  BtorExp *real_e0, *result;
   char *bresult;
   int len;
   assert (btor != NULL);
@@ -2632,10 +2609,6 @@ rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower, int calls)
   assert (e0 != NULL);
   assert (lower >= 0);
   assert (lower <= upper);
-  assert (calls >= 0);
-
-  /* stop recursion */
-  if (calls == BTOR_REWRITE_SLICE_EXP_REC_LIMIT) return NULL;
 
   mm      = btor->mm;
   result  = NULL;
@@ -2651,25 +2624,6 @@ rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower, int calls)
     result  = BTOR_COND_INVERT_EXP (e0, result);
     btor_delete_const (mm, bresult);
   }
-  /* push slice into ADD if we slice from the LSB and do not slice
-   * the whole bit-vector */
-  else if (lower == 0 && upper < len - 1
-           && (real_e0->kind == BTOR_ADD_EXP || real_e0->kind == BTOR_MUL_EXP))
-  {
-    /* ATTENTION: 2 recursive calls */
-    temp_left  = slice_exp_aux (btor, real_e0->e[0], upper, lower, calls + 1);
-    temp_right = slice_exp_aux (btor, real_e0->e[1], upper, lower, calls + 1);
-    if (real_e0->kind == BTOR_ADD_EXP)
-      temp = add_exp (btor, temp_left, temp_right);
-    else
-    {
-      assert (real_e0->kind == BTOR_MUL_EXP);
-      temp = mul_exp (btor, temp_left, temp_right);
-    }
-    result = BTOR_COND_INVERT_EXP (e0, temp);
-    release_exp (btor, temp_left);
-    release_exp (btor, temp_right);
-  }
   /* TODO: {a,b}[1,0] == b[1,0] etc., e.g. push slice into concat */
   return result;
 }
@@ -2677,6 +2631,7 @@ rewrite_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower, int calls)
 static BtorExp *
 slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
+  BtorExp *result;
   assert (btor != NULL);
   assert (exp != NULL);
   exp = pointer_chase_simplified_exp (btor, exp);
@@ -2685,7 +2640,11 @@ slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
   assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
-  return slice_exp_aux (btor, exp, upper, lower, 0);
+  result = NULL;
+  if (btor->rewrite_level > 0)
+    result = rewrite_slice_exp (btor, exp, upper, lower);
+  if (result == NULL) result = unary_exp_slice_exp (btor, exp, upper, lower);
+  return result;
 }
 
 BtorExp *
