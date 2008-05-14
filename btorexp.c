@@ -3079,7 +3079,10 @@ btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result;
+  BtorExp *result, *temp, *cur;
+  BtorExpPtrStack stack, po_stack;
+  BtorMemMgr *mm;
+  int i;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -3092,6 +3095,49 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e0)->len
           <= INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len);
+  if (btor->rewrite_level > 0
+      && BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_CONCAT_EXP)
+  {
+    mm     = btor->mm;
+    result = copy_exp (btor, e0);
+    BTOR_INIT_STACK (po_stack);
+    BTOR_INIT_STACK (stack);
+    BTOR_PUSH_STACK (mm, stack, e1);
+    do
+    {
+      cur = BTOR_POP_STACK (stack);
+      if (BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_CONCAT_EXP)
+      {
+        BTOR_PUSH_STACK (
+            mm,
+            stack,
+            BTOR_COND_INVERT_EXP (cur, BTOR_REAL_ADDR_EXP (cur)->e[1]));
+        BTOR_PUSH_STACK (
+            mm,
+            stack,
+            BTOR_COND_INVERT_EXP (cur, BTOR_REAL_ADDR_EXP (cur)->e[0]));
+      }
+      else
+        BTOR_PUSH_STACK (mm, po_stack, cur);
+    } while (!BTOR_EMPTY_STACK (stack));
+    BTOR_RELEASE_STACK (mm, stack);
+
+    assert (!BTOR_EMPTY_STACK (po_stack));
+    for (i = 0; i < BTOR_COUNT_STACK (po_stack); i++)
+    {
+      cur = po_stack.start[i];
+      assert (BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_CONCAT_EXP);
+      /* cur is not a concat, so this recursive call should not
+       * trigger other recursive calls */
+      temp = concat_exp (btor, result, cur);
+      release_exp (btor, result);
+      result = temp;
+    }
+    BTOR_RELEASE_STACK (mm, po_stack);
+
+    return result;
+  }
+
   result = NULL;
   if (btor->rewrite_level > 0)
     result = rewrite_binary_exp (btor, BTOR_CONCAT_EXP, e0, e1);
