@@ -2,10 +2,6 @@
 
 # ATTENTION: we use btorold2new filter as workaround
 
-i=0
-file="/tmp/testbtorbtorgen$$.btor"
-refinementlimit=100000
-
 btorgen=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
 do
@@ -20,6 +16,10 @@ then
   echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
   exit 1
 fi
+
+i=0
+file="/tmp/testbtorbtorgen$$.btor"
+refinementlimit=100000
 
 while true 
 do 
