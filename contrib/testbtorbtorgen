@@ -5,6 +5,22 @@
 i=0
 file="/tmp/testbtorbtorgen$$.btor"
 refinementlimit=100000
+
+btorgen=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  file=$d/btorgen
+  [ -d $d ] || continue
+  [ -f $file ] || continue
+  btorgen=$file
+  break
+done
+if [ $btorgen = unknown ]
+then
+  echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
+  exit 1
+fi
+
 while true 
 do 
   ((i++))
