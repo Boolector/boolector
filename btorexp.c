@@ -2005,7 +2005,8 @@ find_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
   assert (e0 != NULL);
   assert (e1 != NULL);
-  assert (!BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
+  assert (btor->rewrite_level == 0
+          || !BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
           || BTOR_REAL_ADDR_EXP (e0)->id <= BTOR_REAL_ADDR_EXP (e1)->id);
   hash = (((unsigned int) BTOR_REAL_ADDR_EXP (e0)->id
            + (unsigned int) BTOR_REAL_ADDR_EXP (e1)->id)
@@ -2420,14 +2421,15 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
   assert (len > 0);
   e0 = pointer_chase_simplified_exp (btor, e0);
   e1 = pointer_chase_simplified_exp (btor, e1);
-  if (BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
+  if (btor->rewrite_level > 0 && BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
       && BTOR_REAL_ADDR_EXP (e1)->id < BTOR_REAL_ADDR_EXP (e0)->id)
   {
     temp = e0;
     e0   = e1;
     e1   = temp;
   }
-  assert (!BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
+  assert (btor->rewrite_level == 0
+          || !BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND (kind)
           || BTOR_REAL_ADDR_EXP (e0)->id <= BTOR_REAL_ADDR_EXP (e1)->id);
   lookup = find_binary_exp (btor, kind, e0, e1);
   if (*lookup == NULL)
