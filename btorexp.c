@@ -3095,6 +3095,7 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e0)->len
           <= INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len);
+  /* normalize concats --> left-associative */
   if (btor->rewrite_level > 0
       && BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_CONCAT_EXP)
   {
