@@ -11,8 +11,7 @@ do
   btorgen=$file
   break
 done
-if [ $btorgen = unknown ]
-then
+if [ $btorgen = unknown ]; then
   echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
   exit 1
 fi
@@ -27,6 +26,10 @@ do
   rwl=rwl2
   echo -n "Test $i $rwl: "
   btorgen 2> /dev/null | btorold2new > $file 
+  if [ ! -s $file ]; then
+    echo "*** testbtorbtorgen: generated file is empty"
+    exit 1
+  fi 
   boolector -$rwl -rl $refinementlimit $file
   goldenretval=$?
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
