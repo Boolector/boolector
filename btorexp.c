@@ -3120,7 +3120,6 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       else
         BTOR_PUSH_STACK (mm, po_stack, cur);
     } while (!BTOR_EMPTY_STACK (stack));
-    BTOR_RELEASE_STACK (mm, stack);
 
     assert (!BTOR_EMPTY_STACK (po_stack));
     for (i = 0; i < BTOR_COUNT_STACK (po_stack); i++)
@@ -3133,6 +3132,8 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       release_exp (btor, result);
       result = temp;
     }
+
+    BTOR_RELEASE_STACK (mm, stack);
     BTOR_RELEASE_STACK (mm, po_stack);
 
     return result;
