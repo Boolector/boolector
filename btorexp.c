@@ -6280,6 +6280,9 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 
   assert (btor != NULL);
   assert (exp != NULL);
+  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (!BTOR_IS_WRITE_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (!BTOR_IS_ARRAY_COND_EXP (BTOR_REAL_ADDR_EXP (exp)));
 
   mm    = btor->mm;
   avmgr = btor->avmgr;
