@@ -3159,9 +3159,11 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   if (btor->rewrite_level > 0
       && BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_CONCAT_EXP)
   {
-    mm     = btor->mm;
-    result = copy_exp (btor, e0);
+    mm = btor->mm;
+
     BTOR_INIT_STACK (po_stack);
+    BTOR_PUSH_STACK (mm, po_stack, e0);
+
     BTOR_INIT_STACK (stack);
     BTOR_PUSH_STACK (mm, stack, e1);
     do
@@ -3182,8 +3184,9 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         BTOR_PUSH_STACK (mm, po_stack, cur);
     } while (!BTOR_EMPTY_STACK (stack));
 
-    assert (!BTOR_EMPTY_STACK (po_stack));
-    for (i = 0; i < BTOR_COUNT_STACK (po_stack); i++)
+    assert (BTOR_COUNT_STACK (po_stack) >= 3);
+    result = concat_exp (btor, po_stack.start[0], po_stack.start[1]);
+    for (i = 2; i < BTOR_COUNT_STACK (po_stack); i++)
     {
       cur = po_stack.start[i];
       assert (BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_CONCAT_EXP);
