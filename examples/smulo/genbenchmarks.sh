@@ -14,7 +14,7 @@ do
       echo "(benchmark $filename" > $filename
       echo ":source {" >> $filename
       echo "We verify the correctness of a signed multiplication" >> $filename
-      echo "overflow detection unit as proposed in" >> $filename
+      echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
@@ -51,7 +51,7 @@ do
       echo "(benchmark $filename" > $filename
       echo ":source {" >> $filename
       echo "We verify a verification condition for a signed multiplication" >> $filename
-      echo "overflow detection unit as proposed in" >> $filename
+      echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
@@ -97,7 +97,7 @@ do
       echo "(benchmark $filename" > $filename
       echo ":source {" >> $filename
       echo "We verify a verification condition for a signed multiplication" >> $filename
-      echo "overflow detection unit as proposed in" >> $filename
+      echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
@@ -142,7 +142,7 @@ do
       echo "(benchmark $filename" > $filename
       echo ":source {" >> $filename
       echo "We try to verify a verification condition for a signed multiplication" >> $filename
-      echo "overflow detection unit as proposed in" >> $filename
+      echo "overflow detection unit, which is described in" >> $filename
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
