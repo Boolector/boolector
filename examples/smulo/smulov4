@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# -ne 1 ]]; then
-  echo "Usage: ./smulov3 <num-bits>"
+  echo "Usage: ./smulov4 <num-bits>"
   exit 1
 fi
 
@@ -15,8 +15,8 @@ numbits=$1
 
 echo "1 var $numbits"
 echo "2 var $numbits"
-echo "3 slice $((numbits2 + 1)) 1 $((numbits - 1)) $((numbits2 - 1))"
-echo "4 slice $((numbits2 + 1)) 2 $((numbits - 1)) $((numbits2 - 1))"
+echo "3 slice $numbits2 1 $((numbits - 1)) $numbits2"
+echo "4 slice $numbits2 2 $((numbits - 1)) $numbits2"
 echo "5 redor 1 3"
 echo "6 redor 1 4"
 echo "7 and 1 -5 -6"
