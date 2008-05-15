@@ -1,7 +1,7 @@
 #!/bin/bash
 
 if [[ $# -ne 1 ]]; then
-  echo "Usage: ./umulo <num-bits>"
+  echo "Usage: ./umulov1 <num-bits>"
   exit 1
 fi
 
