@@ -1,5 +1,6 @@
 #!/bin/bash
-for ((bits=8; bits <= 64; bits += 8))
+inc=4
+for ((bits = 4; bits <= 64; bits += inc))
 do
   header=1
   if [[ $bits -lt 10 ]]; then
@@ -30,8 +31,10 @@ do
       echo $line >> $filename
     fi
   done
-  if [[ $bits -eq 128 ]]; then
-    inc=32
+  if [[ $bits -eq 16 ]]; then
+    inc=8
+  elif [[ $bits -eq 32 ]]; then
+    inc=16
   fi
 done
 
