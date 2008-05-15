@@ -1,6 +1,6 @@
 #!/bin/bash
 inc=16
-for ((bits=16; bits <= 512; bits+=inc))
+for ((bits=16; bits <= 256; bits+=inc))
 do
   header=1
   if [[ $bits -lt 100 ]]; then
@@ -33,8 +33,6 @@ do
   done
   if [[ $bits -eq 128 ]]; then
     inc=32
-  elif [[ $bits -eq 256 ]]; then
-    inc=64
   fi
 done
 
