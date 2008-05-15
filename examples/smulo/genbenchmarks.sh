@@ -115,7 +115,7 @@ do
       echo "If the n/2 most significant bits of the operands are zero, then" >> $filename
       echo "the overflow detection unit must not yield an overflow." >> $filename
       echo "Obviously, this is an invalid verification condition" >> $filename
-      echo "as 0011 * 0011 = 1001 overflows for signed multiplication, which" >> $filename
+      echo "as 0011 * 0011 = 1001 overflows in the signed case, which" >> $filename
       echo "is correctly detected by the unit." >> $filename
       echo "" >> $filename
       echo "Bit-width: $bits" >> $filename
