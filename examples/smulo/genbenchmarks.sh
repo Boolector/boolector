@@ -19,7 +19,7 @@ do
       echo "\"Combined unsigned and two's complement saturating multipliers\"" >> $filename
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
-      echo "Let n be the bit-width and r the result of the multiplication. ">> $filename
+      echo "Let n be the bit-width and r the result of the multiplication.">> $filename
       echo "Let ^ denote boolean XOR, and + boolean OR." >> $filename
       echo "If the overflow detection unit finds an overflow, then it must be the case that" >> $filename
       echo "(r[2n-1] ^ r[n-1])  +  (r[2n-2] ^ r[n-1])  +  ...  +  ([r[n] ^ r[n-1]) holds." >> $filename
