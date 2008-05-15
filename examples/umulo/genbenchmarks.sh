@@ -60,7 +60,7 @@ do
       echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
-      echo "Let n be the bit-width (even) and r the result of the multiplication." >> $filename
+      echo "Let n be the bit-width, which is even." >> $filename
       echo "If the n/2 most significant bits of the operands are zero, then." >> $filename
       echo "the overflow detection unit must not yield an overflow." >> $filename
       echo "" >> $filename
