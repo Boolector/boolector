@@ -86,3 +86,51 @@ do
     inc=128
   fi
 done
+
+inc=16
+for ((bits = 32; bits <= 1024; bits+=inc))
+do
+  header=1
+  if [[ $bits -lt 100 ]]; then
+    bitsstring="00"$bits
+  elif [[ $bits -lt 1000 ]]; then 
+    bitsstring="0"$bits
+  else
+    bitsstring=$bits
+  fi
+  filename=smulov3bw$bitsstring".smt"
+  ./smulov3 $bits | boolector -rwl0 -ds | while read line
+  do
+    if [[ $header -eq 1 ]]; then
+      echo "(benchmark $filename" > $filename
+      echo ":source {" >> $filename
+      echo "We try to verify a verification condition for a signed multiplication" >> $filename
+      echo "overflow detection unit as proposed in" >> $filename
+      echo "\"Combined Unsigned and Two's Complement Saturating Multipliers\"" >> $filename
+      echo "by M. Schulte et al." >> $filename
+      echo "" >> $filename
+      echo "Let n be the bit-width, which is even." >> $filename
+      echo "We try to verify the following." >> $filename 
+      echo "If the n/2 most significant bits of the operands are zero, then." >> $filename
+      echo "the overflow detection unit must not yield an overflow." >> $filename
+      echo "Obviously, this is an invalid verification condition as 0011 * 0011 = 1001 overflows" >> $filename
+      echo "for signed multiplication, which is correctly detected by the unit.
+      echo "" >> $filename
+      echo "Bit-width: $bits" >> $filename
+      echo "" >> $filename
+      echo -n "Contributed by Robert Brummayer " >> $filename
+      echo "(robert.brummayer@gmail.com)." >> $filename
+      echo "}" >> $filename
+      echo ":status sat" >> $filename
+      echo ":category { industrial }" >> $filename
+      header=0
+    else
+      echo $line >> $filename
+    fi
+  done
+  if [[ $bits -lt 256 ]]; then
+    ((inc = 2 * inc))
+  else
+    inc=128
+  fi
+done
