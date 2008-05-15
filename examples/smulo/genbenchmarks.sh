@@ -23,6 +23,7 @@ do
       echo "Let ^ denote boolean XOR, + boolean OR, and [i] the bit at position i." >> $filename
       echo "If the overflow detection unit finds an overflow, then it must be the case that" >> $filename
       echo "(r[2n-1] ^ r[n-1])  +  (r[2n-2] ^ r[n-1])  +  ...  +  ([r[n] ^ r[n-1]) holds." >> $filename
+      echo "" >> $filename
       echo "Bit-width: $bits" >> $filename
       echo "" >> $filename
       echo -n "Contributed by Robert Brummayer " >> $filename
