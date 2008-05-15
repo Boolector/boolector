@@ -65,7 +65,7 @@ do
       echo "by M. Schulte et al." >> $filename
       echo "" >> $filename
       echo "Let n be the bit-width, which is even." >> $filename
-      echo "If the n/2 + 1 most significant bits of the operands are zero, then." >> $filename
+      echo "If the n/2 + 1 most significant bits of the operands are zero, then" >> $filename
       echo "the overflow detection unit must not yield an overflow." >> $filename
       echo "" >> $filename
       echo "Bit-width: $bits" >> $filename
@@ -111,10 +111,11 @@ do
       echo "" >> $filename
       echo "Let n be the bit-width, which is even." >> $filename
       echo "We try to verify the following." >> $filename 
-      echo "If the n/2 most significant bits of the operands are zero, then." >> $filename
+      echo "If the n/2 most significant bits of the operands are zero, then" >> $filename
       echo "the overflow detection unit must not yield an overflow." >> $filename
-      echo "Obviously, this is an invalid verification condition as 0011 * 0011 = 1001 overflows" >> $filename
-      echo "for signed multiplication, which is correctly detected by the unit.
+      echo "Obviously, this is an invalid verification condition" >> $filename
+      echo "as 0011 * 0011 = 1001 overflows for signed multiplication, which" >> $filename
+      echo "is correctly detected by the unit." >> $filename
       echo "" >> $filename
       echo "Bit-width: $bits" >> $filename
       echo "" >> $filename
