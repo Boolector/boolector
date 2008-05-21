@@ -90,6 +90,7 @@ struct Btor
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *new_constraints;
+  BtorPtrHashTable *subst_constraints;
   BtorPtrHashTable *processed_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
@@ -6051,6 +6052,10 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->subst_constraints =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor->processed_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
@@ -6141,6 +6146,14 @@ btor_delete_btor (Btor *btor)
        bucket = bucket->next)
     release_exp (btor, (BtorExp *) bucket->key);
   btor_delete_ptr_hash_table (btor->new_constraints);
+
+  for (bucket = btor->subst_constraints->first; bucket != NULL;
+       bucket = bucket->next)
+  {
+    release_exp (btor, (BtorExp *) bucket->key);
+    release_exp (btor, (BtorExp *) bucket->data.asPtr);
+  }
+  btor_delete_ptr_hash_table (btor->subst_constraints);
 
   for (bucket = btor->processed_constraints->first; bucket != NULL;
        bucket = bucket->next)
