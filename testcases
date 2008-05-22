@@ -156,6 +156,16 @@ rw38 -rwl0 -o log/rw38.log log/rw38.btor
 rw38 -rwl1 -o log/rw38.log log/rw38.btor
 rw39 -rwl0 -o log/rw39.log log/rw39.btor
 rw39 -rwl1 -o log/rw39.log log/rw39.btor
+hd1 -rwl0 -o log/hd1.log log/hd1.btor
+hd1 -rwl1 -o log/hd1.log log/hd1.btor
+hd2 -rwl0 -o log/hd2.log log/hd2.btor
+hd2 -rwl1 -o log/hd2.log log/hd2.btor
+hd3 -rwl0 -o log/hd3.log log/hd3.btor
+hd3 -rwl1 -o log/hd3.log log/hd3.btor
+hd4 -rwl0 -o log/hd4.log log/hd4.btor
+hd4 -rwl1 -o log/hd4.log log/hd4.btor
+hd5 -rwl0 -o log/hd5.log log/hd5.btor
+hd5 -rwl1 -o log/hd5.log log/hd5.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt
