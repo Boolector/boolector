@@ -8406,7 +8406,9 @@ substitute_all_exps (Btor *btor)
     cur = (BtorExp *) b->key;
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
+
+    if (btor_find_in_ptr_hash_table (order, (BtorExp *) b->data.asPtr) == NULL)
+      BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
 
     /* ATTENTION: Assumption that there are no direct loops
      * as a result of occurrence check */
@@ -8414,72 +8416,75 @@ substitute_all_exps (Btor *btor)
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
 
-      if (btor_find_in_ptr_hash_table (order, cur) == NULL)
+      if (cur->mark == 0)
       {
-        assert (!BTOR_IS_CONST_EXP (cur) && !BTOR_IS_VAR_EXP (cur)
-                && !BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-        if (cur->mark == 0)
+        cur->mark = 1;
+        BTOR_PUSH_STACK (mm, stack, cur);
+        switch (cur->arity)
         {
-          cur->mark = 1;
-          BTOR_PUSH_STACK (mm, stack, cur);
-          switch (cur->arity)
-          {
-            case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
-            case 2:
-              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+          case 1:
+            if (btor_find_in_ptr_hash_table (order, cur->e[0]) == NULL)
               BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-              break;
-            default:
-              assert (cur->arity == 3);
+            break;
+          case 2:
+            if (btor_find_in_ptr_hash_table (order, cur->e[1]) == NULL)
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+            if (btor_find_in_ptr_hash_table (order, cur->e[0]) == NULL)
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+            break;
+          default:
+            assert (cur->arity == 3);
+            if (btor_find_in_ptr_hash_table (order, cur->e[2]) == NULL)
               BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+            if (btor_find_in_ptr_hash_table (order, cur->e[1]) == NULL)
               BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+            if (btor_find_in_ptr_hash_table (order, cur->e[0]) == NULL)
               BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-              break;
-          }
+            break;
         }
-        else
+      }
+      else
+      {
+        assert (cur->mark == 1);
+        switch (cur->arity)
         {
-          assert (cur->mark == 1);
-          switch (cur->arity)
-          {
-            case 1:
-              b_temp = btor_find_in_ptr_hash_table (order, cur->e[0]);
-              assert (b_temp != NULL);
-              val0 = b_temp->data.asInt;
-              assert (val0 >= 0);
-              btor_insert_in_ptr_hash_table (order, cur)->data.asInt = val0;
-              break;
-            case 2:
-              b_temp = btor_find_in_ptr_hash_table (order, cur->e[0]);
-              assert (b_temp != NULL);
-              val0 = b_temp->data.asInt;
-              assert (val0 >= 0);
-              b_temp = btor_find_in_ptr_hash_table (order, cur->e[1]);
-              assert (b_temp != NULL);
-              val1 = b_temp->data.asInt;
-              assert (val1 >= 0);
-              max = BTOR_MAX_UTIL (val0, val1);
-              btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
-              break;
-            default:
-              assert (cur->arity == 3);
-              b_temp = btor_find_in_ptr_hash_table (order, cur->e[0]);
-              assert (b_temp != NULL);
-              val0 = b_temp->data.asInt;
-              assert (val0 >= 0);
-              b_temp = btor_find_in_ptr_hash_table (order, cur->e[1]);
-              assert (b_temp != NULL);
-              val1 = b_temp->data.asInt;
-              assert (val1 >= 0);
-              b_temp = btor_find_in_ptr_hash_table (order, cur->e[2]);
-              assert (b_temp != NULL);
-              val2 = b_temp->data.asInt;
-              assert (val2 >= 0);
-              max = BTOR_MAX_UTIL (val0, val1);
-              max = BTOR_MAX_UTIL (max, val2);
-              btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
-              break;
-          }
+          case 1:
+            b_temp = btor_find_in_ptr_hash_table (order, cur->e[0]);
+            assert (b_temp != NULL);
+            val0 = b_temp->data.asInt;
+            assert (val0 >= 0);
+            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = val0;
+            break;
+          case 2:
+            b_temp = btor_find_in_ptr_hash_table (order, cur->e[0]);
+            assert (b_temp != NULL);
+            val0 = b_temp->data.asInt;
+            assert (val0 >= 0);
+            b_temp = btor_find_in_ptr_hash_table (order, cur->e[1]);
+            assert (b_temp != NULL);
+            val1 = b_temp->data.asInt;
+            assert (val1 >= 0);
+            max = BTOR_MAX_UTIL (val0, val1);
+            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
+            break;
+          default:
+            assert (cur->arity == 3);
+            b_temp = btor_find_in_ptr_hash_table (order, cur->e[0]);
+            assert (b_temp != NULL);
+            val0 = b_temp->data.asInt;
+            assert (val0 >= 0);
+            b_temp = btor_find_in_ptr_hash_table (order, cur->e[1]);
+            assert (b_temp != NULL);
+            val1 = b_temp->data.asInt;
+            assert (val1 >= 0);
+            b_temp = btor_find_in_ptr_hash_table (order, cur->e[2]);
+            assert (b_temp != NULL);
+            val2 = b_temp->data.asInt;
+            assert (val2 >= 0);
+            max = BTOR_MAX_UTIL (val0, val1);
+            max = BTOR_MAX_UTIL (max, val2);
+            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
+            break;
         }
       }
     }
