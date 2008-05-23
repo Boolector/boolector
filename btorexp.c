@@ -168,6 +168,7 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 
 static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
+static void substitute_all_exps (Btor *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
 
 /*------------------------------------------------------------------------*/
@@ -5758,9 +5759,7 @@ btor_dump_exps_after_substitution (Btor *btor,
     add_constraint (btor, temp);
     release_exp (btor, temp);
   }
-  /* TODO fix me
-  process_new_constraints (btor);
-  */
+  substitute_all_exps (btor);
   constraints = btor->processed_constraints;
   new_nroots  = (int) constraints->count;
   BTOR_NEWN (btor->mm, new_roots, new_nroots);
@@ -8313,6 +8312,11 @@ update_assumptions (Btor *btor)
   }
 }
 
+static void
+substitute_all_exps (Btor *btor)
+{
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
@@ -8330,9 +8334,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   verbosity = btor->verbosity;
   if (verbosity > 0) print_verbose_msg ("calling SAT");
 
-  /* TODO fixme
-  process_new_constraints (btor);
-  */
+  if (btor->rewrite_level > 1) substitute_all_exps (btor);
 
   mm          = btor->mm;
   refinements = btor->stats.refinements;
