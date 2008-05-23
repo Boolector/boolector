@@ -5275,7 +5275,7 @@ btor_next_exp_bmc (Btor *btor,
   assert (BTOR_REAL_ADDR_EXP (root)->simplified == NULL);
 
   BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (root));
-  do
+  while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
@@ -5442,7 +5442,7 @@ btor_next_exp_bmc (Btor *btor,
       btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr = cur_result;
       cur->mark                                                    = 2;
     }
-  } while (!BTOR_EMPTY_STACK (stack));
+  }
   btor_mark_exp (btor, root, 0);
 
   bucket = btor_find_in_ptr_hash_table (build_table, BTOR_REAL_ADDR_EXP (root));
