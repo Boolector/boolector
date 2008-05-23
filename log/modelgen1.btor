@@ -5,5 +5,5 @@
 5 slice 2 1 7 6
 6 slice 2 2 7 6
 7 udiv 2 5 6
-8 lt 1 4 7
+8 ulte 1 4 7
 9 root 1 8
