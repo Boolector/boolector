@@ -1,1 +1,3 @@
-log/modelgen1.btor:8: invalid operator 'lt'
+sat
+1 00xxxxxx
+2 10000010
