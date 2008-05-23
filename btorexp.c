@@ -8365,7 +8365,10 @@ substitute_all_exps (Btor *btor)
           BTOR_PUSH_STACK (mm, stack, (BtorExp *) b_temp->data.asPtr);
         }
         else
+        {
+          assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
           btor_insert_in_ptr_hash_table (order, cur)->data.asInt = 0;
+        }
       }
       else
       {
