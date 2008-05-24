@@ -2533,10 +2533,7 @@ btor_not_exp (Btor *btor, BtorExp *exp)
 static BtorExp *
 add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result, *temp, *cur;
-  BtorExpPtrStack stack, po_stack;
-  BtorMemMgr *mm;
-  int i;
+  BtorExp *result;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2546,60 +2543,6 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-
-#if 0
-  /* normalize adds --> left-associative */
-  if (btor->rewrite_level > 0 && BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_ADD_EXP)
-    {
-      mm = btor->mm;
-      result = copy_exp (btor, e0);
-      BTOR_INIT_STACK (po_stack);
-      BTOR_INIT_STACK (stack);
-      BTOR_PUSH_STACK (mm, stack, e1);
-      if (BTOR_REAL_ADDR_EXP (e0)->kind == BTOR_ADD_EXP)
-        BTOR_PUSH_STACK (mm, stack, e0);
-      do
-        {
-          cur = BTOR_POP_STACK (stack);
-          if (BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_ADD_EXP)
-            {
-              BTOR_PUSH_STACK (mm, stack,
-                               BTOR_COND_INVERT_EXP (cur,
-                                                     BTOR_REAL_ADDR_EXP (cur)->
-                                                     e[1]));
-              BTOR_PUSH_STACK (mm, stack,
-                               BTOR_COND_INVERT_EXP (cur,
-                                                     BTOR_REAL_ADDR_EXP (cur)->
-                                                     e[0]));
-            }
-          else
-            BTOR_PUSH_STACK (mm, po_stack, cur);
-        }
-      while (!BTOR_EMPTY_STACK (stack));
-
-      assert (!BTOR_EMPTY_STACK (po_stack));
-      /* addition is commutative, we sort the operands by id */
-      qsort (po_stack.start, BTOR_COUNT_STACK (po_stack),
-             sizeof (BtorExp *), btor_compare_exp_by_id);
-
-      for (i = 0; i < BTOR_COUNT_STACK (po_stack); i++)
-        {
-          cur = po_stack.start[i];
-          assert (BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_ADD_EXP);
-          /* cur is not an add, so this recursive call should not
-           * trigger other recursive calls */
-          temp = add_exp (btor, result, cur);
-          release_exp (btor, result);
-          result = temp;
-        }
-
-      BTOR_RELEASE_STACK (mm, stack);
-      BTOR_RELEASE_STACK (mm, po_stack);
-
-      return result;
-    }
-#endif
-
   result = NULL;
   if (btor->rewrite_level > 0)
     result = rewrite_binary_exp (btor, BTOR_ADD_EXP, e0, e1);
@@ -5272,7 +5215,7 @@ btor_next_exp_bmc (Btor *btor,
   assert (BTOR_REAL_ADDR_EXP (root)->simplified == NULL);
 
   BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (root));
-  do
+  while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
@@ -5439,7 +5382,7 @@ btor_next_exp_bmc (Btor *btor,
       btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr = cur_result;
       cur->mark                                                    = 2;
     }
-  } while (!BTOR_EMPTY_STACK (stack));
+  }
   btor_mark_exp (btor, root, 0);
 
   bucket = btor_find_in_ptr_hash_table (build_table, BTOR_REAL_ADDR_EXP (root));

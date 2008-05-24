@@ -197,12 +197,12 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
   (void) smgr;
   smgr->ss_set_output (output);
 
-  prefix = btor_malloc (smgr->mm, strlen (smgr->ss_name) + 3);
+  prefix = btor_malloc (smgr->mm, strlen (smgr->ss_name) + 4);
   sprintf (prefix, "[%s] ", smgr->ss_name);
   q = prefix + 1;
   for (p = smgr->ss_name; *p; p++) *q++ = tolower (*p);
   smgr->ss_set_prefix (prefix);
-  btor_free (smgr->mm, prefix, strlen (smgr->ss_name) + 3);
+  btor_free (smgr->mm, prefix, strlen (smgr->ss_name) + 4);
 }
 
 void

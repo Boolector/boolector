@@ -18,12 +18,7 @@ int
 btor_is_power_of_2_util (int x)
 {
   assert (x > 0);
-  while (x > 1)
-  {
-    if ((x & 1) != 0) return 0;
-    x >>= 1;
-  }
-  return 1;
+  return (x & (x - 1)) == 0;
 }
 
 int

@@ -1817,7 +1817,7 @@ NEXT:
   if (parse_positive_int (parser, &len)) return parser->error;
 
   if (!(op_parser = find_parser (parser, parser->op.start)))
-    return parse_error (parser, "invalid operator '%s'", parser->op);
+    return parse_error (parser, "invalid operator '%s'", parser->op.start);
 
   if (!(e = op_parser (parser, len)))
   {
