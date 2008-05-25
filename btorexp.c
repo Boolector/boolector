@@ -8258,7 +8258,7 @@ update_assumptions (Btor *btor)
 static void
 substitute_all_exps (Btor *btor)
 {
-  int order_num, val0, val1, val2, max, i;
+  int order_num, val0, val1, val2, max;
   BtorPtrHashTable *subst_constraints, *processed_constraints, *order;
   BtorPtrHashBucket *b, *b_temp;
   BtorExpPtrStack stack;
@@ -8470,9 +8470,9 @@ substitute_all_exps (Btor *btor)
   }
 
   /* we delete cyclic susbstitutions and synthesize them instead */
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  while (!BTOR_EMPTY_STACK (stack))
   {
-    left = stack.start[i];
+    left = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (left));
     assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
     right = (BtorExp *) btor_find_in_ptr_hash_table (subst_constraints, left)
