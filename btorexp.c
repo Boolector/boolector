@@ -8152,8 +8152,7 @@ substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
   int pushed, i;
   assert (btor != NULL);
   assert (substs != NULL);
-
-  if (substs->count == 0u) return;
+  assert (substs->count > 0u);
 
   mm = btor->mm;
 
@@ -8162,7 +8161,6 @@ substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
   BTOR_INIT_STACK (root_stack);
   /* search upwards for all reachable roots */
   /* we push all left sides on the search stack */
-  assert (substs->count > 0u);
   for (b = substs->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
@@ -8263,7 +8261,7 @@ static void
 substitute_all_exps (Btor *btor)
 {
   int order_num, val0, val1, val2, max;
-  BtorPtrHashTable *subst_constraints, *processed_constraints, *order;
+  BtorPtrHashTable *subst_constraints, *processed_constraints, *order, *substs;
   BtorPtrHashBucket *b, *b_temp;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
@@ -8274,238 +8272,259 @@ substitute_all_exps (Btor *btor)
   subst_constraints     = btor->subst_constraints;
   processed_constraints = btor->processed_constraints;
   BTOR_INIT_STACK (stack);
-  order = btor_new_ptr_hash_table (mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
-
-  /* topological sort of constraints */
-  for (b = subst_constraints->first; b != NULL; b = b->next)
+  /* during rebuild new equality constraints can be added */
+  while (subst_constraints->count > 0u)
   {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    BTOR_PUSH_STACK (mm, stack, (BtorExp *) cur);
+    order = btor_new_ptr_hash_table (mm,
+                                     (BtorHashPtr) btor_hash_exp_by_id,
+                                     (BtorCmpPtr) btor_compare_exp_by_id);
 
-    while (!BTOR_EMPTY_STACK (stack))
+    substs = btor_new_ptr_hash_table (mm,
+                                      (BtorHashPtr) btor_hash_exp_by_id,
+                                      (BtorCmpPtr) btor_compare_exp_by_id);
+
+    /* we copy the current substitution constraints into a local hash table,
+     * and empty the global substitution table */
+    for (b = subst_constraints->first; b != NULL; b = b->next)
     {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      cur = (BtorExp *) b->key;
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
+      btor_remove_from_ptr_hash_table (subst_constraints, cur, NULL, NULL);
+    }
 
-      if (cur == NULL)
+    assert (subst_constraints->count == 0u);
+
+    /* topological sort of constraints */
+    for (b = substs->first; b != NULL; b = b->next)
+    {
+      cur = (BtorExp *) b->key;
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      BTOR_PUSH_STACK (mm, stack, (BtorExp *) cur);
+
+      while (!BTOR_EMPTY_STACK (stack))
       {
-        cur = BTOR_POP_STACK (stack);
-        assert (BTOR_IS_REGULAR_EXP (cur));
-        assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-        assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
-        btor_insert_in_ptr_hash_table (order, cur)->data.asInt = order_num++;
-        continue;
-      }
+        cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
 
-      if (cur->mark == 1) continue;
-
-      cur->mark = 1;
-
-      if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_VAR_EXP (cur)
-          || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-      {
-        b_temp = btor_find_in_ptr_hash_table (subst_constraints, cur);
-        if (b_temp != NULL)
+        if (cur == NULL)
         {
-          BTOR_PUSH_STACK (mm, stack, cur);
-          BTOR_PUSH_STACK (mm, stack, NULL);
-          BTOR_PUSH_STACK (mm, stack, (BtorExp *) b_temp->data.asPtr);
+          cur = BTOR_POP_STACK (stack);
+          assert (BTOR_IS_REGULAR_EXP (cur));
+          assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+          assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
+          btor_insert_in_ptr_hash_table (order, cur)->data.asInt = order_num++;
+          continue;
+        }
+
+        if (cur->mark == 1) continue;
+
+        cur->mark = 1;
+
+        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_VAR_EXP (cur)
+            || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+        {
+          b_temp = btor_find_in_ptr_hash_table (substs, cur);
+          if (b_temp != NULL)
+          {
+            BTOR_PUSH_STACK (mm, stack, cur);
+            BTOR_PUSH_STACK (mm, stack, NULL);
+            BTOR_PUSH_STACK (mm, stack, (BtorExp *) b_temp->data.asPtr);
+          }
+          else
+          {
+            assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
+            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = 0;
+          }
         }
         else
         {
-          assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
-          btor_insert_in_ptr_hash_table (order, cur)->data.asInt = 0;
-        }
-      }
-      else
-      {
-        switch (cur->arity)
-        {
-          case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
-          case 2:
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-            break;
-          default:
-            assert (cur->arity == 3);
-            BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-            break;
+          switch (cur->arity)
+          {
+            case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
+            case 2:
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+            default:
+              assert (cur->arity == 3);
+              BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+          }
         }
       }
     }
-  }
 
-  /* intermediate cleanup */
-  for (b = subst_constraints->first; b != NULL; b = b->next)
-  {
-    assert (BTOR_IS_REGULAR_EXP ((BtorExp *) b->key));
-    assert (BTOR_IS_VAR_EXP ((BtorExp *) b->key)
-            || BTOR_IS_ATOMIC_ARRAY_EXP ((BtorExp *) b->key));
-    btor_mark_exp (btor, (BtorExp *) b->key, 0);
-    btor_mark_exp (btor, (BtorExp *) b->data.asPtr, 0);
-  }
+    /* intermediate cleanup */
+    for (b = substs->first; b != NULL; b = b->next)
+    {
+      assert (BTOR_IS_REGULAR_EXP ((BtorExp *) b->key));
+      assert (BTOR_IS_VAR_EXP ((BtorExp *) b->key)
+              || BTOR_IS_ATOMIC_ARRAY_EXP ((BtorExp *) b->key));
+      btor_mark_exp (btor, (BtorExp *) b->key, 0);
+      btor_mark_exp (btor, (BtorExp *) b->data.asPtr, 0);
+    }
 
-  /* we look for cycles */
-  for (b = subst_constraints->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
+    /* we look for cycles */
+    for (b = substs->first; b != NULL; b = b->next)
+    {
+      cur = (BtorExp *) b->key;
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
 
-    /* we assume that there are no direct loops
-     * as a result of occurrence check */
+      /* we assume that there are no direct loops
+       * as a result of occurrence check */
+      while (!BTOR_EMPTY_STACK (stack))
+      {
+        cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+
+        if (cur->mark == 2) continue;
+
+        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_VAR_EXP (cur)
+            || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+        {
+          assert (btor_find_in_ptr_hash_table (order, cur) != NULL);
+          continue;
+        }
+
+        if (cur->mark == 0)
+        {
+          cur->mark = 1;
+          BTOR_PUSH_STACK (mm, stack, cur);
+          switch (cur->arity)
+          {
+            case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
+            case 2:
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+            default:
+              assert (cur->arity == 3);
+              BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+          }
+        }
+        else
+        {
+          assert (cur->mark == 1);
+          cur->mark = 2;
+          switch (cur->arity)
+          {
+            case 1:
+              b_temp = btor_find_in_ptr_hash_table (
+                  order, BTOR_REAL_ADDR_EXP (cur->e[0]));
+              assert (b_temp != NULL);
+              val0 = b_temp->data.asInt;
+              assert (val0 >= 0);
+              btor_insert_in_ptr_hash_table (order, cur)->data.asInt = val0;
+              break;
+            case 2:
+              b_temp = btor_find_in_ptr_hash_table (
+                  order, BTOR_REAL_ADDR_EXP (cur->e[0]));
+              assert (b_temp != NULL);
+              val0 = b_temp->data.asInt;
+              assert (val0 >= 0);
+              b_temp = btor_find_in_ptr_hash_table (
+                  order, BTOR_REAL_ADDR_EXP (cur->e[1]));
+              assert (b_temp != NULL);
+              val1 = b_temp->data.asInt;
+              assert (val1 >= 0);
+              max = BTOR_MAX_UTIL (val0, val1);
+              btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
+              break;
+            default:
+              assert (cur->arity == 3);
+              b_temp = btor_find_in_ptr_hash_table (
+                  order, BTOR_REAL_ADDR_EXP (cur->e[0]));
+              assert (b_temp != NULL);
+              val0 = b_temp->data.asInt;
+              assert (val0 >= 0);
+              b_temp = btor_find_in_ptr_hash_table (
+                  order, BTOR_REAL_ADDR_EXP (cur->e[1]));
+              assert (b_temp != NULL);
+              val1 = b_temp->data.asInt;
+              assert (val1 >= 0);
+              b_temp = btor_find_in_ptr_hash_table (
+                  order, BTOR_REAL_ADDR_EXP (cur->e[2]));
+              assert (b_temp != NULL);
+              val2 = b_temp->data.asInt;
+              assert (val2 >= 0);
+              max = BTOR_MAX_UTIL (val0, val1);
+              max = BTOR_MAX_UTIL (max, val2);
+              btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
+              break;
+          }
+        }
+      }
+    }
+
+    assert (BTOR_EMPTY_STACK (stack));
+    /* we eliminate cyclic substitutions, and reset mark flags */
+    for (b = substs->first; b != NULL; b = b->next)
+    {
+      cur = (BtorExp *) b->key;
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      btor_mark_exp (btor, cur, 0);
+      btor_mark_exp (btor, (BtorExp *) b->data.asPtr, 0);
+      order_num = btor_find_in_ptr_hash_table (order, cur)->data.asInt;
+      max       = btor_find_in_ptr_hash_table (
+                order, BTOR_REAL_ADDR_EXP ((BtorExp *) b->data.asPtr))
+                ->data.asInt;
+      assert (order_num != max);
+      /* found cycle */
+      if (max > order_num) BTOR_PUSH_STACK (mm, stack, cur);
+    }
+
+    /* we delete cyclic substitutions and synthesize them instead */
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      left = BTOR_POP_STACK (stack);
+      assert (BTOR_IS_REGULAR_EXP (left));
+      assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
+      right =
+          (BtorExp *) btor_find_in_ptr_hash_table (substs, left)->data.asPtr;
+      assert (right != NULL);
 
-      if (cur->mark == 2) continue;
-
-      if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_VAR_EXP (cur)
-          || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-      {
-        assert (btor_find_in_ptr_hash_table (order, cur) != NULL);
-        continue;
-      }
-
-      if (cur->mark == 0)
-      {
-        cur->mark = 1;
-        BTOR_PUSH_STACK (mm, stack, cur);
-        switch (cur->arity)
-        {
-          case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
-          case 2:
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-            break;
-          default:
-            assert (cur->arity == 3);
-            BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-            break;
-        }
-      }
+      constraint             = eq_exp (btor, left, right);
+      constraint->constraint = 1;
+      if (btor_find_in_ptr_hash_table (processed_constraints, constraint)
+          == NULL)
+        btor_insert_in_ptr_hash_table (processed_constraints, constraint);
       else
-      {
-        assert (cur->mark == 1);
-        cur->mark = 2;
-        switch (cur->arity)
-        {
-          case 1:
-            b_temp = btor_find_in_ptr_hash_table (
-                order, BTOR_REAL_ADDR_EXP (cur->e[0]));
-            assert (b_temp != NULL);
-            val0 = b_temp->data.asInt;
-            assert (val0 >= 0);
-            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = val0;
-            break;
-          case 2:
-            b_temp = btor_find_in_ptr_hash_table (
-                order, BTOR_REAL_ADDR_EXP (cur->e[0]));
-            assert (b_temp != NULL);
-            val0 = b_temp->data.asInt;
-            assert (val0 >= 0);
-            b_temp = btor_find_in_ptr_hash_table (
-                order, BTOR_REAL_ADDR_EXP (cur->e[1]));
-            assert (b_temp != NULL);
-            val1 = b_temp->data.asInt;
-            assert (val1 >= 0);
-            max = BTOR_MAX_UTIL (val0, val1);
-            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
-            break;
-          default:
-            assert (cur->arity == 3);
-            b_temp = btor_find_in_ptr_hash_table (
-                order, BTOR_REAL_ADDR_EXP (cur->e[0]));
-            assert (b_temp != NULL);
-            val0 = b_temp->data.asInt;
-            assert (val0 >= 0);
-            b_temp = btor_find_in_ptr_hash_table (
-                order, BTOR_REAL_ADDR_EXP (cur->e[1]));
-            assert (b_temp != NULL);
-            val1 = b_temp->data.asInt;
-            assert (val1 >= 0);
-            b_temp = btor_find_in_ptr_hash_table (
-                order, BTOR_REAL_ADDR_EXP (cur->e[2]));
-            assert (b_temp != NULL);
-            val2 = b_temp->data.asInt;
-            assert (val2 >= 0);
-            max = BTOR_MAX_UTIL (val0, val1);
-            max = BTOR_MAX_UTIL (max, val2);
-            btor_insert_in_ptr_hash_table (order, cur)->data.asInt = max;
-            break;
-        }
-      }
+        release_exp (btor, constraint);
+      btor_remove_from_ptr_hash_table (substs, left, NULL, NULL);
+      release_exp (btor, left);
+      release_exp (btor, right);
     }
-  }
 
-  assert (BTOR_EMPTY_STACK (stack));
-  /* we eliminate cyclic substitutions, and reset mark flags */
-  for (b = subst_constraints->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    btor_mark_exp (btor, cur, 0);
-    btor_mark_exp (btor, (BtorExp *) b->data.asPtr, 0);
-    order_num = btor_find_in_ptr_hash_table (order, cur)->data.asInt;
-    max       = btor_find_in_ptr_hash_table (
-              order, BTOR_REAL_ADDR_EXP ((BtorExp *) b->data.asPtr))
-              ->data.asInt;
-    assert (order_num != max);
-    /* found cycle */
-    if (max > order_num) BTOR_PUSH_STACK (mm, stack, cur);
-  }
+    /* we substitue and rebuild in one pass */
+    substitute_all_exps_and_rebuild (btor, substs);
 
-  /* we delete cyclic substitutions and synthesize them instead */
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    left = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_EXP (left));
-    assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
-    right = (BtorExp *) btor_find_in_ptr_hash_table (subst_constraints, left)
-                ->data.asPtr;
-    assert (right != NULL);
+    /* cleanup, we delete all substitution constraints */
+    for (b = substs->first; b != NULL; b = b->next)
+    {
+      left = (BtorExp *) b->key;
+      assert (BTOR_IS_REGULAR_EXP (left));
+      assert (left->kind == BTOR_PROXY_EXP);
+      assert (left->simplified != NULL);
+      right = (BtorExp *) b->data.asPtr;
+      assert (right != NULL);
+      release_exp (btor, left);
+      release_exp (btor, right);
+    }
 
-    constraint             = eq_exp (btor, left, right);
-    constraint->constraint = 1;
-    if (btor_find_in_ptr_hash_table (processed_constraints, constraint) == NULL)
-      btor_insert_in_ptr_hash_table (processed_constraints, constraint);
-    else
-      release_exp (btor, constraint);
-    btor_remove_from_ptr_hash_table (subst_constraints, left, NULL, NULL);
-    release_exp (btor, left);
-    release_exp (btor, right);
-  }
-
-  /* we substitue and rebuild in one pass */
-  substitute_all_exps_and_rebuild (btor, subst_constraints);
-
-  /* cleanup, we delete all substitution constraints */
-  while (subst_constraints->count > 0u)
-  {
-    b = subst_constraints->first;
-    assert (b != NULL);
-    left = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (left));
-    assert (left->kind == BTOR_PROXY_EXP);
-    assert (left->simplified != NULL);
-    right = (BtorExp *) b->data.asPtr;
-    assert (right != NULL);
-    btor_remove_from_ptr_hash_table (subst_constraints, left, NULL, NULL);
-    release_exp (btor, left);
-    release_exp (btor, right);
+    btor_delete_ptr_hash_table (order);
+    btor_delete_ptr_hash_table (substs);
   }
 
   BTOR_RELEASE_STACK (mm, stack);
-  btor_delete_ptr_hash_table (order);
 }
 
 int
