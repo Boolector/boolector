@@ -8574,7 +8574,6 @@ substitute_all_exps (Btor *btor)
     right = (BtorExp *) btor_find_in_ptr_hash_table (subst_constraints, left)
                 ->data.asPtr;
     assert (right != NULL);
-    btor_remove_from_ptr_hash_table (order, left, NULL, NULL);
 
     constraint = eq_exp (btor, left, right);
     if (btor_find_in_ptr_hash_table (processed_constraints, constraint) == NULL)
