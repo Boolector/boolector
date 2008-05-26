@@ -194,10 +194,11 @@ EXP:
   nbuf = 0;
   op   = strdup (buf);
 
-  width         = 0;
-  addrwidth     = 0;
-  needaddrwidth = 0;
-  childs        = 0;
+  needaddrwidth = isarrayop (op);
+
+  width     = 0;
+  addrwidth = 0;
+  childs    = 0;
   child[0] = child[1] = child[2] = 0;
 
 LIT:
@@ -247,12 +248,19 @@ LIT:
 
     if (childs == 3)
       perr ("more than three childs");
-    else if (width)
-      child[childs++] = lit;
-    else if (lit <= 0)
-      perr ("expected positive width");
-    else
+    else if (!width)
+    {
+      if (lit <= 0) perr ("expected positive width");
       width = lit;
+    }
+    else if (needaddrwidth && !addrwidth)
+    {
+      if (lit <= 0) perr ("expected positive address bit width");
+
+      addrwidth = lit;
+    }
+    else
+      child[childs++] = lit;
 
     if (ch == ' ') goto LIT;
 
@@ -261,6 +269,8 @@ LIT:
     if (!width)
     WIDTH_MISSING:
       perr ("width missing");
+
+    if (needaddrwidth && !addrwidth) perr ("address bit width missing");
 
   INSERT:
     assert (idx >= 1);
@@ -691,7 +701,7 @@ print (void)
     {
       fprintf (file, "%d %s %d", e->idx, e->op, e->width);
 
-      if (isarrayop (e->op)) fprintf (file, "%d", e->addrwidth);
+      if (isarrayop (e->op)) fprintf (file, " %d", e->addrwidth);
 
       for (j = 0; j < e->childs; j++)
       {
