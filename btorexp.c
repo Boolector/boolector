@@ -8287,8 +8287,9 @@ substitute_all_exps (Btor *btor)
 
     /* we copy the current substitution constraints into a local hash table,
      * and empty the global substitution table */
-    for (b = subst_constraints->first; b != NULL; b = b->next)
+    while (subst_constraints->count > 0u)
     {
+      b   = subst_constraints->first;
       cur = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
