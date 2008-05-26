@@ -8262,16 +8262,15 @@ static void
 substitute_all_exps (Btor *btor)
 {
   int order_num, val, max, i;
-  BtorPtrHashTable *subst_constraints, *processed_constraints, *order, *substs;
+  BtorPtrHashTable *subst_constraints, *order, *substs;
   BtorPtrHashBucket *b, *b_temp;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
   BtorExp *cur, *constraint, *left, *right, *child;
   assert (btor != NULL);
 
-  mm                    = btor->mm;
-  subst_constraints     = btor->subst_constraints;
-  processed_constraints = btor->processed_constraints;
+  mm                = btor->mm;
+  subst_constraints = btor->subst_constraints;
   BTOR_INIT_STACK (stack);
 
   /* new equality constraints can be added during rebuild */
@@ -8445,13 +8444,10 @@ substitute_all_exps (Btor *btor)
           (BtorExp *) btor_find_in_ptr_hash_table (substs, left)->data.asPtr;
       assert (right != NULL);
 
-      constraint             = eq_exp (btor, left, right);
-      constraint->constraint = 1;
-      if (btor_find_in_ptr_hash_table (processed_constraints, constraint)
-          == NULL)
-        btor_insert_in_ptr_hash_table (processed_constraints, constraint);
-      else
-        release_exp (btor, constraint);
+      constraint = eq_exp (btor, left, right);
+      insert_processed_constraint (btor, constraint);
+      release_exp (btor, constraint);
+
       btor_remove_from_ptr_hash_table (substs, left, NULL, NULL);
       release_exp (btor, left);
       release_exp (btor, right);
