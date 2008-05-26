@@ -7874,6 +7874,15 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
         btor_insert_in_ptr_hash_table (btor->subst_constraints,
                                        copy_exp (btor, left))
             ->data.asPtr = copy_exp (btor, right);
+      else
+      {
+        if (!btor_find_in_ptr_hash_table (btor->processed_constraints, exp))
+          (void) btor_insert_in_ptr_hash_table (btor->processed_constraints,
+                                                copy_exp (btor, exp));
+        btor->stats.constraints.processed++;
+        BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+      }
+
       if (subst_bool_var) release_exp (btor, right);
     }
     else
@@ -8220,7 +8229,6 @@ substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
     else
     {
       assert (cur->subst_mark == 2);
-      assert (!BTOR_IS_CONST_EXP (cur));
       cur->subst_mark = 0;
       if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
       {
@@ -8456,7 +8464,7 @@ substitute_all_exps (Btor *btor)
     if (max > order_num) BTOR_PUSH_STACK (mm, stack, cur);
   }
 
-  /* we delete cyclic susbstitutions and synthesize them instead */
+  /* we delete cyclic substitutions and synthesize them instead */
   while (!BTOR_EMPTY_STACK (stack))
   {
     left = BTOR_POP_STACK (stack);
