@@ -19,6 +19,7 @@ struct Exp
   int oldcut;
   char* op;
   int width;
+  int addrwidth;
   int childs;
   int child[3];
   char* name;
@@ -134,10 +135,22 @@ perr (const char* fmt, ...)
   exit (1);
 }
 
+static int
+isarrayop (const char* op)
+{
+  if (!strcmp (op, "array")) return 1;
+
+  if (!strcmp (op, "acond")) return 1;
+
+  if (!strcmp (op, "write")) return 1;
+
+  return 0;
+}
+
 static void
 parse (void)
 {
-  int ch, idx, lit, sign, width, child[3], childs;
+  int ch, idx, lit, sign, width, addrwidth, child[3], childs, needaddrwidth;
   char *op, *name;
 
   lineno = 1;
@@ -181,8 +194,10 @@ EXP:
   nbuf = 0;
   op   = strdup (buf);
 
-  width    = 0;
-  childs   = 0;
+  width         = 0;
+  addrwidth     = 0;
+  needaddrwidth = 0;
+  childs        = 0;
   child[0] = child[1] = child[2] = 0;
 
 LIT:
@@ -259,18 +274,19 @@ LIT:
 
     if (exps[idx].ref) perr ("expression %d defined twice", idx);
 
-    exps[idx].ref      = idx;
-    exps[idx].oldref   = idx;
-    exps[idx].cut      = 0;
-    exps[idx].oldcut   = 0;
-    exps[idx].idx      = 0;
-    exps[idx].op       = op;
-    exps[idx].width    = width;
-    exps[idx].childs   = childs;
-    exps[idx].child[0] = child[0];
-    exps[idx].child[1] = child[1];
-    exps[idx].child[2] = child[2];
-    exps[idx].name     = name;
+    exps[idx].ref       = idx;
+    exps[idx].oldref    = idx;
+    exps[idx].cut       = 0;
+    exps[idx].oldcut    = 0;
+    exps[idx].idx       = 0;
+    exps[idx].op        = op;
+    exps[idx].width     = width;
+    exps[idx].addrwidth = addrwidth;
+    exps[idx].childs    = childs;
+    exps[idx].child[0]  = child[0];
+    exps[idx].child[1]  = child[1];
+    exps[idx].child[2]  = child[2];
+    exps[idx].name      = name;
 
     iexps++;
 
@@ -431,7 +447,7 @@ simp (void)
         e->ref = deref (e->child[0]);
     }
 
-    if (e->childs == 3 && !strcmp (e->op, "cond"))
+    if (e->childs == 3 && (!strcmp (e->op, "cond") || !strcmp (e->op, "acond")))
     {
       c = e->child[0];
 
@@ -674,6 +690,8 @@ print (void)
     else
     {
       fprintf (file, "%d %s %d", e->idx, e->op, e->width);
+
+      if (isarrayop (e->op)) fprintf (file, "%d", e->addrwidth);
 
       for (j = 0; j < e->childs; j++)
       {
