@@ -7748,9 +7748,10 @@ substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
   while (!BTOR_EMPTY_STACK (subst_stack))
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-    assert (!BTOR_IS_CONST_EXP (cur));
 
     if (cur->subst_mark == 0) continue;
+
+    assert (!BTOR_IS_CONST_EXP (cur));
 
     if (cur->subst_mark == 1)
     {
@@ -7760,7 +7761,7 @@ substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b != NULL);
-        assert (cur == (BtorExp *) b->data.asPtr);
+        assert (cur == (BtorExp *) b->key);
         rhs = (BtorExp *) b->data.asPtr;
         assert (rhs != NULL);
         BTOR_PUSH_STACK (mm, subst_stack, rhs);
@@ -8117,8 +8118,8 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
         (void) btor_insert_in_ptr_hash_table (btor->processed_constraints,
                                               copy_exp (btor, exp));
       btor->stats.constraints.processed++;
+      BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
     }
-    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
 
     btor->stats.constraints.added++;
     report_constraint_stats (btor, 0);
@@ -8585,11 +8586,31 @@ substitute_all_exps (Btor *btor)
                 ->data.asPtr;
     assert (right != NULL);
 
-    constraint = eq_exp (btor, left, right);
+    constraint             = eq_exp (btor, left, right);
+    constraint->constraint = 1;
     if (btor_find_in_ptr_hash_table (processed_constraints, constraint) == NULL)
       btor_insert_in_ptr_hash_table (processed_constraints, constraint);
     else
       release_exp (btor, constraint);
+    btor_remove_from_ptr_hash_table (subst_constraints, left, NULL, NULL);
+    release_exp (btor, left);
+    release_exp (btor, right);
+  }
+
+  /* we substitue and rebuild in one pass */
+  substitute_all_exps_and_rebuild (btor, subst_constraints);
+
+  /* cleanup, we delete all substitution constraints */
+  while (subst_constraints->count > 0u)
+  {
+    b = subst_constraints->first;
+    assert (b != NULL);
+    left = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (left));
+    assert (left->kind == BTOR_PROXY_EXP);
+    assert (left->simplified != NULL);
+    right = (BtorExp *) b->data.asPtr;
+    assert (right != NULL);
     btor_remove_from_ptr_hash_table (subst_constraints, left, NULL, NULL);
     release_exp (btor, left);
     release_exp (btor, right);
