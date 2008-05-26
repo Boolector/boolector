@@ -7685,242 +7685,6 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   }
 }
 
-/* we perform all substitutions in one pass and rebuild the formula
- * cyclic substitutions must have been deleted before! */
-static void
-substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
-{
-  BtorExpPtrStack subst_stack, search_stack, root_stack;
-  BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs;
-  BtorMemMgr *mm;
-  BtorFullParentIterator it;
-  int pushed, i;
-  assert (btor != NULL);
-  assert (substs != NULL);
-
-  if (substs->count == 0u) return;
-
-  mm = btor->mm;
-
-  BTOR_INIT_STACK (subst_stack);
-  BTOR_INIT_STACK (search_stack);
-  BTOR_INIT_STACK (root_stack);
-  /* search upwards for all reachable roots */
-  /* we push all left sides on the search stack */
-  assert (substs->count > 0u);
-  for (b = substs->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    BTOR_PUSH_STACK (mm, search_stack, cur);
-  }
-  do
-  {
-    cur = BTOR_POP_STACK (search_stack);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->subst_mark == 0)
-    {
-      cur->subst_mark = 1;
-      init_full_parent_iterator (&it, cur);
-      /* are we at a root ? */
-      pushed = 0;
-      while (has_next_parent_full_parent_iterator (&it))
-      {
-        cur_parent = next_parent_full_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        pushed = 1;
-        BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-      }
-      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, copy_exp (btor, cur));
-    }
-  } while (!BTOR_EMPTY_STACK (search_stack));
-  BTOR_RELEASE_STACK (mm, search_stack);
-
-  assert (BTOR_EMPTY_STACK (subst_stack));
-  /* copy roots on substitution stack */
-  top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++)
-    BTOR_PUSH_STACK (mm, subst_stack, *temp);
-
-  /* substitute */
-  while (!BTOR_EMPTY_STACK (subst_stack))
-  {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-
-    if (cur->subst_mark == 0) continue;
-
-    assert (!BTOR_IS_CONST_EXP (cur));
-
-    if (cur->subst_mark == 1)
-    {
-      BTOR_PUSH_STACK (mm, subst_stack, cur);
-      cur->subst_mark = 2;
-      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-      {
-        b = btor_find_in_ptr_hash_table (substs, cur);
-        assert (b != NULL);
-        assert (cur == (BtorExp *) b->key);
-        rhs = (BtorExp *) b->data.asPtr;
-        assert (rhs != NULL);
-        BTOR_PUSH_STACK (mm, subst_stack, rhs);
-      }
-      else
-      {
-        for (i = cur->arity - 1; i >= 0; i--)
-          BTOR_PUSH_STACK (mm, subst_stack, cur->e[i]);
-      }
-    }
-    else
-    {
-      assert (cur->subst_mark == 2);
-      assert (!BTOR_IS_CONST_EXP (cur));
-      cur->subst_mark = 0;
-      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
-      {
-        b = btor_find_in_ptr_hash_table (substs, cur);
-        assert (b != NULL);
-        assert (cur == (BtorExp *) b->key);
-        rhs = (BtorExp *) b->data.asPtr;
-        assert (rhs != NULL);
-        rebuilt_exp = copy_exp (btor, rhs);
-        if (BTOR_IS_VAR_EXP (cur))
-          btor->stats.var_substitutions++;
-        else
-          btor->stats.array_substitutions++;
-      }
-      else
-        rebuilt_exp = rebuild_exp (btor, cur);
-      assert (rebuilt_exp != NULL);
-      assert (rebuilt_exp != cur);
-
-      overwrite_exp (btor, cur, rebuilt_exp);
-      release_exp (btor, rebuilt_exp);
-    }
-  }
-  BTOR_RELEASE_STACK (mm, subst_stack);
-
-  top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++) release_exp (btor, *temp);
-  BTOR_RELEASE_STACK (mm, root_stack);
-}
-
-#if 0
-/* substitutes variable or atomic array by right side */
-static void
-substitute_one_exp_one_root (Btor * btor, BtorExp * left, BtorExp * right, BtorExp* root)
-{
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
-  BtorExpPtrStack subst_stack;
-  BtorFullParentIterator it;
-  BtorMemMgr *mm;
-  int is_var_substitution, pushed, i;
-  assert (btor->rewrite_level > 1);
-  assert (btor != NULL);
-  assert (left != NULL);
-  assert (right != NULL);
-  assert (BTOR_REAL_ADDR_EXP (right)->simplified == NULL);
-  assert (BTOR_IS_REGULAR_EXP (left));
-  assert (left->simplified == NULL);
-  assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
-  assert (root != NULL);
-
-  mm = btor->mm;
-
-#if 0
-      /* search upwards for all reachable roots */
-      BTOR_INIT_STACK (subst_stack);
-      BTOR_INIT_STACK (search_stack);
-      BTOR_INIT_STACK (root_stack);
-      BTOR_PUSH_STACK (mm, search_stack, left);
-      do
-        {
-          cur = BTOR_POP_STACK (search_stack);
-          assert (BTOR_IS_REGULAR_EXP (cur));
-          if (cur->subst_mark == 0)
-            {
-              cur->subst_mark = 1;
-              init_full_parent_iterator (&it, cur);
-              /* are we at a root ? */
-              pushed = 0;
-              while (has_next_parent_full_parent_iterator (&it))
-                {
-                  cur_parent = next_parent_full_parent_iterator (&it);
-                  assert (BTOR_IS_REGULAR_EXP (cur_parent));
-                  if (cur_parent->simplified == NULL)
-                    {
-                      pushed = 1;
-                      BTOR_PUSH_STACK (mm, search_stack, cur_parent);
-                    }
-                }
-              if (!pushed)
-                BTOR_PUSH_STACK (mm, root_stack, copy_exp (btor, cur));
-            }
-        }
-      while (!BTOR_EMPTY_STACK (search_stack));
-      BTOR_RELEASE_STACK (mm, search_stack);
-      assert (BTOR_EMPTY_STACK (subst_stack));
-      /* copy roots on substitution stack */
-      top = root_stack.top;
-      for (temp = root_stack.start; temp != top; temp++)
-        BTOR_PUSH_STACK (mm, subst_stack, *temp);
-#endif
-  is_var_substitution = BTOR_IS_VAR_EXP (left);
-
-  BTOR_INIT_STACK (subst_stack);
-  BTOR_PUSH_STACK (mm, subst_stack, copy_exp (btor, root));
-
-  overwrite_exp (btor, left, right);
-
-  /* substitute */
-  while (!BTOR_EMPTY_STACK (subst_stack))
-    {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-      if (cur->subst_mark == 0)
-        continue;
-
-#ifndef NDEBUG
-      if (cur->simplified)
-        assert (cur == left);   /* really? */
-#endif
-
-      if (cur == left)          /* base case */
-        continue;
-
-      if (cur->subst_mark == 1)
-        {
-          cur->subst_mark = 2;
-          BTOR_PUSH_STACK (mm, subst_stack, cur);
-          for (i = cur->arity - 1; i >= 0; i--)
-            BTOR_PUSH_STACK (mm, subst_stack, cur->e[i]);
-        }
-      else
-        {
-          assert (cur->subst_mark == 2);
-          assert (!BTOR_IS_CONST_EXP (cur));
-          assert (!BTOR_IS_VAR_EXP (cur));
-          assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-          cur->subst_mark = 0;
-          rebuilt_exp = rebuild_exp (btor, cur);
-          assert (rebuilt_exp != NULL);
-          assert (rebuilt_exp != cur);
-
-          overwrite_exp (btor, cur, rebuilt_exp);
-          release_exp (btor, rebuilt_exp);
-        }
-    }
-  BTOR_RELEASE_STACK (mm, subst_stack);
-
-  release_exp (btor, root);
-
-  if (is_var_substitution)
-    btor->stats.var_substitutions++;
-  else
-    btor->stats.array_substitutions++;
-}
-#endif
-
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
 is_substitution (Btor *btor,
@@ -8366,6 +8130,127 @@ update_assumptions (Btor *btor)
   }
 }
 
+/* we perform all substitutions in one pass and rebuild the formula
+ * cyclic substitutions must have been deleted before! */
+static void
+substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
+{
+  BtorExpPtrStack subst_stack, search_stack, root_stack;
+  BtorPtrHashBucket *b;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs;
+  BtorMemMgr *mm;
+  BtorFullParentIterator it;
+  int pushed, i;
+  assert (btor != NULL);
+  assert (substs != NULL);
+
+  if (substs->count == 0u) return;
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (subst_stack);
+  BTOR_INIT_STACK (search_stack);
+  BTOR_INIT_STACK (root_stack);
+  /* search upwards for all reachable roots */
+  /* we push all left sides on the search stack */
+  assert (substs->count > 0u);
+  for (b = substs->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+    BTOR_PUSH_STACK (mm, search_stack, cur);
+  }
+  do
+  {
+    cur = BTOR_POP_STACK (search_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (cur->subst_mark == 0)
+    {
+      cur->subst_mark = 1;
+      init_full_parent_iterator (&it, cur);
+      /* are we at a root ? */
+      pushed = 0;
+      while (has_next_parent_full_parent_iterator (&it))
+      {
+        cur_parent = next_parent_full_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        pushed = 1;
+        BTOR_PUSH_STACK (mm, search_stack, cur_parent);
+      }
+      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, copy_exp (btor, cur));
+    }
+  } while (!BTOR_EMPTY_STACK (search_stack));
+  BTOR_RELEASE_STACK (mm, search_stack);
+
+  assert (BTOR_EMPTY_STACK (subst_stack));
+  /* copy roots on substitution stack */
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++)
+    BTOR_PUSH_STACK (mm, subst_stack, *temp);
+
+  /* substitute */
+  while (!BTOR_EMPTY_STACK (subst_stack))
+  {
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
+
+    if (cur->subst_mark == 0) continue;
+
+    assert (!BTOR_IS_CONST_EXP (cur));
+
+    if (cur->subst_mark == 1)
+    {
+      BTOR_PUSH_STACK (mm, subst_stack, cur);
+      cur->subst_mark = 2;
+      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      {
+        b = btor_find_in_ptr_hash_table (substs, cur);
+        assert (b != NULL);
+        assert (cur == (BtorExp *) b->key);
+        rhs = (BtorExp *) b->data.asPtr;
+        assert (rhs != NULL);
+        BTOR_PUSH_STACK (mm, subst_stack, rhs);
+      }
+      else
+      {
+        for (i = cur->arity - 1; i >= 0; i--)
+          BTOR_PUSH_STACK (mm, subst_stack, cur->e[i]);
+      }
+    }
+    else
+    {
+      assert (cur->subst_mark == 2);
+      assert (!BTOR_IS_CONST_EXP (cur));
+      cur->subst_mark = 0;
+      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      {
+        b = btor_find_in_ptr_hash_table (substs, cur);
+        assert (b != NULL);
+        assert (cur == (BtorExp *) b->key);
+        rhs = (BtorExp *) b->data.asPtr;
+        assert (rhs != NULL);
+        rebuilt_exp = copy_exp (btor, rhs);
+        if (BTOR_IS_VAR_EXP (cur))
+          btor->stats.var_substitutions++;
+        else
+          btor->stats.array_substitutions++;
+      }
+      else
+        rebuilt_exp = rebuild_exp (btor, cur);
+      assert (rebuilt_exp != NULL);
+      assert (rebuilt_exp != cur);
+
+      overwrite_exp (btor, cur, rebuilt_exp);
+      release_exp (btor, rebuilt_exp);
+    }
+  }
+  BTOR_RELEASE_STACK (mm, subst_stack);
+
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++) release_exp (btor, *temp);
+  BTOR_RELEASE_STACK (mm, root_stack);
+}
+
 static void
 substitute_all_exps (Btor *btor)
 {
@@ -8389,7 +8274,6 @@ substitute_all_exps (Btor *btor)
   for (b = subst_constraints->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
-    printf ("%s\n", cur->symbol);
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
     BTOR_PUSH_STACK (mm, stack, (BtorExp *) cur);
@@ -8404,7 +8288,6 @@ substitute_all_exps (Btor *btor)
         assert (BTOR_IS_REGULAR_EXP (cur));
         assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
         assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
-        printf ("%s: %d\n", cur->symbol, order_num);
         btor_insert_in_ptr_hash_table (order, cur)->data.asInt = order_num++;
         continue;
       }
@@ -8555,8 +8438,6 @@ substitute_all_exps (Btor *btor)
     }
   }
 
-  printf ("\n\n");
-
   assert (BTOR_EMPTY_STACK (stack));
   /* we eliminate cyclic substitutions, and reset mark flags */
   for (b = subst_constraints->first; b != NULL; b = b->next)
@@ -8572,7 +8453,6 @@ substitute_all_exps (Btor *btor)
               ->data.asInt;
     assert (order_num != max);
     /* found cycle */
-    printf ("%s: %d %d\n", cur->symbol, order_num, max);
     if (max > order_num) BTOR_PUSH_STACK (mm, stack, cur);
   }
 
