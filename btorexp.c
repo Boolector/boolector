@@ -67,7 +67,7 @@ typedef struct BtorExpUniqueTable BtorExpUniqueTable;
 
 struct ConstraintStats
 {
-  int added;
+  int subst;
   int processed;
   int synthesized;
 };
@@ -6105,24 +6105,22 @@ constraints_stats_changes (Btor *btor)
 {
   int res;
 
-  /* TODO fixme
-     if (btor->stats.old.constraints.added && !btor->new_constraints->count)
-     return INT_MAX;
+  if (btor->stats.old.constraints.subst && !btor->subst_constraints->count)
+    return INT_MAX;
 
-     if (btor->stats.old.constraints.processed &&
-     !btor->processed_constraints->count)
-     return INT_MAX;
+  if (btor->stats.old.constraints.processed
+      && !btor->processed_constraints->count)
+    return INT_MAX;
 
-     res = abs (btor->stats.old.constraints.added -
-     btor->new_constraints->count);
+  res =
+      abs (btor->stats.old.constraints.subst - btor->subst_constraints->count);
 
-     res += abs (btor->stats.old.constraints.processed -
-     btor->processed_constraints->count);
+  res += abs (btor->stats.old.constraints.processed
+              - btor->processed_constraints->count);
 
-     res += abs (btor->stats.old.constraints.synthesized -
-     btor->synthesized_constraints->count);
+  res += abs (btor->stats.old.constraints.synthesized
+              - btor->synthesized_constraints->count);
 
-   */
   return res;
 }
 
@@ -6144,21 +6142,19 @@ report_constraint_stats (Btor *btor, int force)
     if (btor->verbosity == 3 && changes < 10) return;
   }
 
-  /* TODO fixme
-     print_verbose_msg ("%d/%d/%d constraints %d/%d/%d %.1f MB",
-     btor->stats.constraints.added,
-     btor->stats.constraints.processed,
-     btor->stats.constraints.synthesized,
-     btor->new_constraints->count,
-     btor->processed_constraints->count,
-     btor->synthesized_constraints->count,
-     btor->mm->allocated / (double) (1 << 20));
+  print_verbose_msg ("%d/%d/%d constraints %d/%d/%d %.1f MB",
+                     btor->stats.constraints.subst,
+                     btor->stats.constraints.processed,
+                     btor->stats.constraints.synthesized,
+                     btor->subst_constraints->count,
+                     btor->processed_constraints->count,
+                     btor->synthesized_constraints->count,
+                     btor->mm->allocated / (double) (1 << 20));
 
-     btor->stats.old.constraints.added = btor->new_constraints->count;
-     btor->stats.old.constraints.processed = btor->processed_constraints->count;
-     btor->stats.old.constraints.synthesized =
-     btor->synthesized_constraints->count;
-   */
+  btor->stats.old.constraints.subst     = btor->subst_constraints->count;
+  btor->stats.old.constraints.processed = btor->processed_constraints->count;
+  btor->stats.old.constraints.synthesized =
+      btor->synthesized_constraints->count;
 }
 
 void
@@ -7687,18 +7683,16 @@ rebuild_exp (Btor *btor, BtorExp *exp)
 
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
-is_substitution (Btor *btor,
-                 BtorExp *exp,
-                 BtorExp **left_result,
-                 BtorExp **right_result,
-                 int *subst_bool_var)
+normalize_substitution (Btor *btor,
+                        BtorExp *exp,
+                        BtorExp **left_result,
+                        BtorExp **right_result)
 {
   BtorExp *left, *right, *real_left, *real_right;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (left_result != NULL);
   assert (right_result != NULL);
-  assert (subst_bool_var != NULL);
   assert (btor->rewrite_level > 1);
   assert (pointer_chase_simplified_exp (btor, exp) == exp);
   if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)))
@@ -7714,15 +7708,14 @@ is_substitution (Btor *btor,
       *left_result  = exp;
       *right_result = one_exp (btor, 1);
     }
-    *subst_bool_var = 1;
+    inc_exp_ref_counter (btor, *left_result);
     return 1;
   }
   if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
-  *subst_bool_var = 0;
-  left            = exp->e[0];
-  right           = exp->e[1];
-  real_left       = BTOR_REAL_ADDR_EXP (left);
-  real_right      = BTOR_REAL_ADDR_EXP (right);
+  left       = exp->e[0];
+  right      = exp->e[1];
+  real_left  = BTOR_REAL_ADDR_EXP (left);
+  real_right = BTOR_REAL_ADDR_EXP (right);
   if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
@@ -7744,7 +7737,13 @@ is_substitution (Btor *btor,
     *left_result  = BTOR_INVERT_EXP (*left_result);
     *right_result = BTOR_INVERT_EXP (*right_result);
   }
-  return !occurrence_check (btor, *left_result, *right_result);
+  if (!occurrence_check (btor, *left_result, *right_result))
+  {
+    inc_exp_ref_counter (btor, *left_result);
+    inc_exp_ref_counter (btor, *right_result);
+    return 1;
+  }
+  return 0;
 }
 
 #if 0
@@ -7858,43 +7857,47 @@ is_linear_equation (Btor *btor, BtorExp *exp)
 #endif
 
 static void
+insert_processed_constraint (Btor *btor, BtorExp *exp)
+{
+  assert (btor != NULL);
+  assert (exp != NULL);
+  if (!btor_find_in_ptr_hash_table (btor->processed_constraints, exp))
+  {
+    (void) btor_insert_in_ptr_hash_table (btor->processed_constraints,
+                                          copy_exp (btor, exp));
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+    btor->stats.constraints.processed++;
+  }
+}
+
+static void
 insert_new_constraint (Btor *btor, BtorExp *exp)
 {
   BtorExp *left, *right;
-  int subst_bool_var;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (pointer_chase_simplified_exp (btor, exp) == exp);
   if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
     if (btor->rewrite_level > 1
-        && is_substitution (btor, exp, &left, &right, &subst_bool_var))
+        && normalize_substitution (btor, exp, &left, &right))
     {
       if (!btor_find_in_ptr_hash_table (btor->subst_constraints, left))
+      {
         btor_insert_in_ptr_hash_table (btor->subst_constraints,
                                        copy_exp (btor, left))
             ->data.asPtr = copy_exp (btor, right);
-      else
-      {
-        if (!btor_find_in_ptr_hash_table (btor->processed_constraints, exp))
-          (void) btor_insert_in_ptr_hash_table (btor->processed_constraints,
-                                                copy_exp (btor, exp));
-        btor->stats.constraints.processed++;
-        BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+        btor->stats.constraints.subst++;
       }
+      else
+        insert_processed_constraint (btor, exp);
 
-      if (subst_bool_var) release_exp (btor, right);
+      release_exp (btor, left);
+      release_exp (btor, right);
     }
     else
-    {
-      if (!btor_find_in_ptr_hash_table (btor->processed_constraints, exp))
-        (void) btor_insert_in_ptr_hash_table (btor->processed_constraints,
-                                              copy_exp (btor, exp));
-      btor->stats.constraints.processed++;
-      BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    }
+      insert_processed_constraint (btor, exp);
 
-    btor->stats.constraints.added++;
     report_constraint_stats (btor, 0);
   }
 }
