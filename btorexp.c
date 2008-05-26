@@ -7686,13 +7686,13 @@ rebuild_exp (Btor *btor, BtorExp *exp)
 }
 
 /* we perform all substitutions in one pass and rebuild the formula
- * the substitutions must not depend on each other */
+ * cyclic substitutions must have been deleted before! */
 static void
 substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
 {
   BtorExpPtrStack subst_stack, search_stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -7744,43 +7744,53 @@ substitute_all_exps_and_rebuild (Btor *btor, BtorPtrHashTable *substs)
   for (temp = root_stack.start; temp != top; temp++)
     BTOR_PUSH_STACK (mm, subst_stack, *temp);
 
-  for (b = substs->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-    if (BTOR_IS_VAR_EXP (cur))
-      btor->stats.var_substitutions++;
-    else
-      btor->stats.array_substitutions++;
-    overwrite_exp (btor, cur, (BtorExp *) b->data.asPtr);
-  }
-
   /* substitute */
   while (!BTOR_EMPTY_STACK (subst_stack))
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (subst_stack));
-    if (cur->subst_mark == 0) continue;
+    assert (!BTOR_IS_CONST_EXP (cur));
 
-    if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur)
-        || BTOR_IS_CONST_EXP (cur)) /* base case */
-      continue;
+    if (cur->subst_mark == 0) continue;
 
     if (cur->subst_mark == 1)
     {
-      cur->subst_mark = 2;
       BTOR_PUSH_STACK (mm, subst_stack, cur);
-      for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, subst_stack, cur->e[i]);
+      cur->subst_mark = 2;
+      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      {
+        b = btor_find_in_ptr_hash_table (substs, cur);
+        assert (b != NULL);
+        assert (cur == (BtorExp *) b->data.asPtr);
+        rhs = (BtorExp *) b->data.asPtr;
+        assert (rhs != NULL);
+        BTOR_PUSH_STACK (mm, subst_stack, rhs);
+      }
+      else
+      {
+        for (i = cur->arity - 1; i >= 0; i--)
+          BTOR_PUSH_STACK (mm, subst_stack, cur->e[i]);
+      }
     }
     else
     {
       assert (cur->subst_mark == 2);
       assert (!BTOR_IS_CONST_EXP (cur));
-      assert (!BTOR_IS_VAR_EXP (cur));
-      assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
       cur->subst_mark = 0;
-      rebuilt_exp     = rebuild_exp (btor, cur);
+      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      {
+        b = btor_find_in_ptr_hash_table (substs, cur);
+        assert (b != NULL);
+        assert (cur == (BtorExp *) b->key);
+        rhs = (BtorExp *) b->data.asPtr;
+        assert (rhs != NULL);
+        rebuilt_exp = copy_exp (btor, rhs);
+        if (BTOR_IS_VAR_EXP (cur))
+          btor->stats.var_substitutions++;
+        else
+          btor->stats.array_substitutions++;
+      }
+      else
+        rebuilt_exp = rebuild_exp (btor, cur);
       assert (rebuilt_exp != NULL);
       assert (rebuilt_exp != cur);
 
