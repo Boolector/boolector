@@ -8454,13 +8454,9 @@ substitute_all_exps (Btor *btor)
     cur = (BtorExp *) b->key;
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+    BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
 
-    if (btor_find_in_ptr_hash_table (
-            order, BTOR_REAL_ADDR_EXP ((BtorExp *) b->data.asPtr))
-        == NULL)
-      BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
-
-    /* ATTENTION: Assumption that there are no direct loops
+    /* we assume that there are no direct loops
      * as a result of occurrence check */
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -8578,6 +8574,8 @@ substitute_all_exps (Btor *btor)
     right = (BtorExp *) btor_find_in_ptr_hash_table (subst_constraints, left)
                 ->data.asPtr;
     assert (right != NULL);
+    btor_remove_from_ptr_hash_table (order, left, NULL, NULL);
+
     constraint = eq_exp (btor, left, right);
     if (btor_find_in_ptr_hash_table (processed_constraints, constraint) == NULL)
       btor_insert_in_ptr_hash_table (processed_constraints, constraint);
