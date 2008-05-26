@@ -7681,6 +7681,79 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   }
 }
 
+static int
+is_odd_constant (BtorExp *exp)
+{
+  /* TODO handle inverted even constants as well */
+
+  if (BTOR_IS_INVERTED_EXP (exp)) return 0;
+
+  if (exp->kind != BTOR_CONST_EXP) return 0;
+
+  return exp->bits[exp->len - 1] == '1';
+}
+
+static int
+is_non_inverted_variable (BtorExp *exp)
+{
+  if (BTOR_IS_INVERTED_EXP (exp)) return 0;
+
+  return exp->kind == BTOR_VAR_EXP;
+}
+
+static int
+normalize_linear_term (Btor *btor,
+                       BtorExp *term,
+                       BtorExp **inv_ptr,
+                       BtorExp **lhs_ptr,
+                       BtorExp **rhs_ptr)
+{
+  char *noninv, *inv;
+
+  if (BTOR_IS_INVERTED_EXP (term)) return 0;
+
+  if (term->kind == BTOR_ADD_EXP)
+  {
+    /* TODO add simple one level test and then also recursive test.
+     */
+    return 0;
+  }
+  else if (term->kind == BTOR_MUL_EXP)
+  {
+    if (is_odd_constant (term->e[0]))
+    {
+      if (!is_non_inverted_variable (term->e[1])) return 0;
+
+      /* odd * var
+       */
+      *lhs_ptr = copy_exp (btor, term->e[1]);
+      noninv   = term->e[0]->bits;
+    }
+    else if (is_odd_constant (term->e[1]))
+    {
+      if (!is_non_inverted_variable (term->e[0])) return 0;
+
+      /* var * odd
+       */
+      *lhs_ptr = copy_exp (btor, term->e[0]);
+      noninv   = term->e[1]->bits;
+    }
+    else
+      return 0;
+
+    *rhs_ptr = zero_exp (btor, term->len);
+    inv      = btor_inverse_const (btor->mm, noninv);
+    *inv_ptr = const_exp (btor, inv);
+    btor_delete_const (btor->mm, inv);
+
+    btor->stats.linear_equations++;
+
+    return 1;
+  }
+  else
+    return 0;
+}
+
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
 normalize_substitution (Btor *btor,
@@ -7688,7 +7761,7 @@ normalize_substitution (Btor *btor,
                         BtorExp **left_result,
                         BtorExp **right_result)
 {
-  BtorExp *left, *right, *real_left, *real_right;
+  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (left_result != NULL);
@@ -7716,145 +7789,58 @@ normalize_substitution (Btor *btor,
   right      = exp->e[1];
   real_left  = BTOR_REAL_ADDR_EXP (left);
   real_right = BTOR_REAL_ADDR_EXP (right);
+
   if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
-    return 0;
-  if ((!BTOR_IS_VAR_EXP (real_left) && BTOR_IS_VAR_EXP (real_right))
-      || (!BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
-          && BTOR_IS_ATOMIC_ARRAY_EXP (real_right)))
   {
-    *left_result  = right;
-    *right_result = left;
+    if (normalize_linear_term (btor, left, &inv, left_result, &tmp))
+      *right_result = sub_exp (btor, right, tmp);
+    else if (normalize_linear_term (btor, right, &inv, left_result, &tmp))
+      *right_result = sub_exp (btor, left, tmp);
+    else
+      return 0;
+
+    release_exp (btor, tmp);
+    tmp = mul_exp (btor, *right_result, inv);
+    release_exp (btor, *right_result);
+    release_exp (btor, inv);
+    *right_result = tmp;
   }
   else
   {
-    *left_result  = left;
-    *right_result = right;
+    if ((!BTOR_IS_VAR_EXP (real_left) && BTOR_IS_VAR_EXP (real_right))
+        || (!BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
+            && BTOR_IS_ATOMIC_ARRAY_EXP (real_right)))
+    {
+      *left_result  = right;
+      *right_result = left;
+    }
+    else
+    {
+      *left_result  = left;
+      *right_result = right;
+    }
+
+    copy_exp (btor, left);
+    copy_exp (btor, right);
   }
+
   if (BTOR_IS_INVERTED_EXP (*left_result))
   {
     *left_result  = BTOR_INVERT_EXP (*left_result);
     *right_result = BTOR_INVERT_EXP (*right_result);
   }
-  if (!occurrence_check (btor, *left_result, *right_result))
+
+  if (occurrence_check (btor, *left_result, *right_result))
   {
-    inc_exp_ref_counter (btor, *left_result);
-    inc_exp_ref_counter (btor, *right_result);
-    return 1;
-  }
-  return 0;
-}
-
-#if 0
-
-static int
-is_linear_equation_child (Btor * btor, BtorExp * exp, int mul_parent)
-{
-  BtorExp *real_exp;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (mul_parent == 0 || mul_parent == 1);
-  real_exp = BTOR_REAL_ADDR_EXP (exp);
-  if (BTOR_IS_VAR_EXP (real_exp) || BTOR_IS_CONST_EXP (real_exp))
-    return 1;
-  if (mul_parent)               /* children of mul may only be variables and constants */
+    release_exp (btor, *left_result);
+    release_exp (btor, *right_result);
     return 0;
-  if (real_exp->kind == BTOR_ADD_EXP)
-    return is_linear_equation_child (btor, real_exp->e[0], 0) &&
-      is_linear_equation_child (btor, real_exp->e[1], 0);
-  if (real_exp->kind == BTOR_MUL_EXP)
-    return is_linear_equation_child (btor, real_exp->e[0], 1) &&
-      is_linear_equation_child (btor, real_exp->e[1], 1);
-  return 0;
-}
-
-static int
-is_linear_equation (Btor * btor, BtorExp * exp)
-{
-  assert (btor != NULL);
-  assert (exp != NULL);
-  if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_BV_EQ_EXP (exp))
-    return 0;
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  if (BTOR_REAL_ADDR_EXP (exp->e[0])->kind != BTOR_ADD_EXP
-      && BTOR_REAL_ADDR_EXP (exp->e[1])->kind != BTOR_ADD_EXP
-      && BTOR_REAL_ADDR_EXP (exp->e[0])->kind != BTOR_MUL_EXP
-      && BTOR_REAL_ADDR_EXP (exp->e[1])->kind != BTOR_MUL_EXP)
-    return 0;
-  return is_linear_equation_child (btor, exp->e[0], 0) &&
-    is_linear_equation_child (btor, exp->e[1], 0);
-}
-
-#else
-
-/* TODO this is still not working, I fear ... */
-
-static int is_linear_sum (Btor *, BtorExp *);
-
-static int
-is_linear_product (Btor *btor, BtorExp *exp)
-{
-  BtorExp *factor, *real_factor;
-
-  if (BTOR_IS_INVERTED_EXP (exp))
-    return BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp));
-
-  if (BTOR_IS_VAR_EXP (exp)) return 1;
-
-  if (BTOR_IS_CONST_EXP (exp)) return 1;
-
-  if (exp->kind == BTOR_ADD_EXP) return is_linear_sum (btor, exp);
-
-  if (exp->kind == BTOR_MUL_EXP)
-  {
-    factor      = exp->e[0];
-    real_factor = BTOR_REAL_ADDR_EXP (factor);
-    if (BTOR_IS_CONST_EXP (real_factor))
-      return is_linear_product (btor, exp->e[1]);
-
-    factor      = exp->e[1];
-    real_factor = BTOR_REAL_ADDR_EXP (factor);
-    if (BTOR_IS_CONST_EXP (real_factor))
-      return is_linear_product (btor, exp->e[0]);
   }
 
-  return 0;
+  return 1;
 }
-
-static int
-is_linear_sum (Btor *btor, BtorExp *exp)
-{
-  if (BTOR_IS_INVERTED_EXP (exp) || exp->kind != BTOR_ADD_EXP)
-    return is_linear_product (btor, exp);
-
-  if (is_linear_product (btor, exp->e[0])) return 1;
-
-  if (is_linear_product (btor, exp->e[1])) return 1;
-
-  return 0;
-}
-
-static int
-is_linear_equation (Btor *btor, BtorExp *exp)
-{
-  assert (btor != NULL);
-  assert (exp != NULL);
-
-  if (BTOR_IS_INVERTED_EXP (exp)) return 0;
-
-  if (!BTOR_IS_BV_EQ_EXP (exp)) return 0;
-
-  assert (BTOR_IS_REGULAR_EXP (exp));
-
-  if (is_linear_sum (btor, exp->e[0])) return 1;
-
-  if (is_linear_sum (btor, exp->e[1])) return 1;
-
-  return 0;
-}
-
-#endif
 
 static void
 insert_processed_constraint (Btor *btor, BtorExp *exp)
