@@ -156,6 +156,10 @@ rw38 -rwl0 -o log/rw38.log log/rw38.btor
 rw38 -rwl1 -o log/rw38.log log/rw38.btor
 rw39 -rwl0 -o log/rw39.log log/rw39.btor
 rw39 -rwl1 -o log/rw39.log log/rw39.btor
+rw40 -rwl0 -o log/rw40.log log/rw40.btor
+rw40 -rwl1 -o log/rw40.log log/rw40.btor
+rw41 -rwl0 -o log/rw41.log log/rw41.btor
+rw41 -rwl1 -o log/rw41.log log/rw41.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor

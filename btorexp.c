@@ -3653,7 +3653,10 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
+  BtorExpPtrStack stack;
   BtorExp *result;
+  BtorMemMgr *mm;
+  BtorExp *cur, *mul_const, *mul, *temp;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -3664,6 +3667,61 @@ mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   result = NULL;
+  /* const * (a + const) =recursively= const * a + const * const */
+  if (btor->rewrite_level > 0
+      && ((BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+           && BTOR_IS_REGULAR_EXP (e1) && e1->kind == BTOR_ADD_EXP
+           && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
+               || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
+          || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+              && BTOR_IS_REGULAR_EXP (e0) && e0->kind == BTOR_ADD_EXP
+              && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
+                  || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1]))))))
+  {
+    mm = btor->mm;
+    BTOR_INIT_STACK (stack);
+    result = zero_exp (btor, BTOR_REAL_ADDR_EXP (e0)->len);
+    if (BTOR_IS_REGULAR_EXP (e0) && e0->kind == BTOR_ADD_EXP)
+    {
+      assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
+              || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+      assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)));
+      mul_const = e1;
+      BTOR_PUSH_STACK (mm, stack, e0);
+    }
+    else
+    {
+      assert (BTOR_IS_REGULAR_EXP (e1) && e1->kind == BTOR_ADD_EXP);
+      assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
+              || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+      assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)));
+      mul_const = e0;
+      BTOR_PUSH_STACK (mm, stack, e1);
+    }
+    do
+    {
+      cur = BTOR_POP_STACK (stack);
+      if (BTOR_IS_REGULAR_EXP (cur) && cur->kind == BTOR_ADD_EXP
+          && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cur->e[0]))
+              || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))))
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+      else
+      {
+        /* just one recursive call, should not trigger other calls */
+        mul  = mul_exp (btor, cur, mul_const);
+        temp = add_exp (btor, result, mul);
+        release_exp (btor, result);
+        result = temp;
+        release_exp (btor, mul);
+      }
+    } while (!BTOR_EMPTY_STACK (stack));
+    BTOR_RELEASE_STACK (mm, stack);
+    return result;
+  }
+
   if (btor->rewrite_level > 0)
     result = rewrite_binary_exp (btor, BTOR_MUL_EXP, e0, e1);
   if (result == NULL)
