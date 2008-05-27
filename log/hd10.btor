@@ -1,5 +1,5 @@
 ; Hacker's Delight, page 18, absolute value computation 
-1 var 16
+1 var 16 x
 2 constd 4 14
 3 one 16
 4 zero 16
