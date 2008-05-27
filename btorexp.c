@@ -7701,57 +7701,93 @@ is_non_inverted_variable (BtorExp *exp)
   return exp->kind == BTOR_VAR_EXP;
 }
 
+/* term = 3*x        =>  *lhs_ptr = x, *rhs_ptr = 0,   *inv_ptr = 1/3
+ * term = 3*x + 2*z  =>  *lhs_ptr = x, *rhs_ptr = 2*z, *inv_ptr = 1/3
+ */
 static int
-normalize_linear_term (Btor *btor,
-                       BtorExp *term,
-                       BtorExp **inv_ptr,
-                       BtorExp **lhs_ptr,
-                       BtorExp **rhs_ptr)
+normalize_linear_term_bounded (Btor *btor,
+                               BtorExp *term,
+                               BtorExp **inv_ptr,
+                               BtorExp **lhs_ptr,
+                               BtorExp **rhs_ptr,
+                               int *bound_ptr)
 {
-  char *noninv, *inv;
+  char *factor, *invconst;
+  BtorExp *tmp, *other;
 
-  if (BTOR_IS_INVERTED_EXP (term)) return 0;
+  if (*bound_ptr <= 0) return 0;
+
+  *bound_ptr -= 1;
+
+  if (BTOR_IS_INVERTED_EXP (term))
+    return 0; /* TODO: two-complement & recurse */
 
   if (term->kind == BTOR_ADD_EXP)
   {
-    /* TODO add simple one level test and then also recursive test.
-     */
-    return 0;
+    if (normalize_linear_term_bounded (
+            btor, term->e[0], inv_ptr, lhs_ptr, &tmp, bound_ptr))
+    {
+      other = term->e[1];
+    }
+    else if (normalize_linear_term_bounded (
+                 btor, term->e[1], inv_ptr, lhs_ptr, &tmp, bound_ptr))
+    {
+      other = term->e[0];
+    }
+    else
+      return 0;
+
+    *rhs_ptr = add_exp (btor, other, tmp);
+    release_exp (btor, tmp);
   }
   else if (term->kind == BTOR_MUL_EXP)
   {
     if (is_odd_constant (term->e[0]))
     {
-      if (!is_non_inverted_variable (term->e[1])) return 0;
+      if (!is_non_inverted_variable (term->e[1])) return 0; /* TODO: recurse! */
 
       /* odd * var
        */
       *lhs_ptr = copy_exp (btor, term->e[1]);
-      noninv   = term->e[0]->bits;
+      factor   = term->e[0]->bits;
     }
     else if (is_odd_constant (term->e[1]))
     {
-      if (!is_non_inverted_variable (term->e[0])) return 0;
+      if (!is_non_inverted_variable (term->e[0])) return 0; /* TODO: recurse! */
 
       /* var * odd
        */
       *lhs_ptr = copy_exp (btor, term->e[0]);
-      noninv   = term->e[1]->bits;
+      factor   = term->e[1]->bits;
     }
     else
       return 0;
 
     *rhs_ptr = zero_exp (btor, term->len);
-    inv      = btor_inverse_const (btor->mm, noninv);
-    *inv_ptr = const_exp (btor, inv);
-    btor_delete_const (btor->mm, inv);
-
-    btor->stats.linear_equations++;
-
-    return 1;
+    invconst = btor_inverse_const (btor->mm, factor);
+    *inv_ptr = const_exp (btor, invconst);
+    btor_delete_const (btor->mm, invconst);
+  }
+  else if (term->kind == BTOR_VAR_EXP)
+  {
+    *lhs_ptr = copy_exp (btor, term);
+    *rhs_ptr = zero_exp (btor, term->len);
+    *inv_ptr = one_exp (btor, term->len);
   }
   else
     return 0;
+
+  btor->stats.linear_equations++;
+
+  return 1;
+}
+
+static int
+normalize_linear_term (
+    Btor *btor, BtorExp *term, BtorExp **inv, BtorExp **lhs, BtorExp **rhs)
+{
+  int bound = 100;
+  return normalize_linear_term_bounded (btor, term, inv, lhs, rhs, &bound);
 }
 
 /* checks if we can substitute and normalizes arguments to substitution */
