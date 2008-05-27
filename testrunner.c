@@ -77,6 +77,7 @@ static const char *normaltests[] = {
     "inc_lt8",
     "hd4",
     "hd9",
+    "hd11",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
