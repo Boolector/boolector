@@ -44,6 +44,7 @@ static const char *slowtests[] = {
     "binarysearch32s016",
     "fifo32ia04k05",
     "mulassoc6",
+    "hd10",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -53,17 +54,31 @@ static const char *slowtests[] = {
  * take less than a second.
  */
 static const char *normaltests[] = {
-    "sll_shift",       "srl_shift",
-    "sra_shift",       "rol_shift",
-    "ror_shift",       "sll_shift",
-    "srl_shift",       "sra_shift",
-    "rol_shift",       "ror_shift",
-    "smtaxiombvsmod5", "smtaxiombvsmod6",
-    "smtaxiombvsdiv5", "smtaxiombvsdiv6",
-    "smtaxiombvsrem5", "smtaxiombvsrem6",
-    "udiv8castdown6",  "udiv8castdown7",
-    "udiv16castdown8", "mulassoc6",
-    "inc_lt8",         0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+    "sll_shift",
+    "srl_shift",
+    "sra_shift",
+    "rol_shift",
+    "ror_shift",
+    "sll_shift",
+    "srl_shift",
+    "sra_shift",
+    "rol_shift",
+    "ror_shift",
+    "smtaxiombvsmod5",
+    "smtaxiombvsmod6",
+    "smtaxiombvsdiv5",
+    "smtaxiombvsdiv6",
+    "smtaxiombvsrem5",
+    "smtaxiombvsrem6",
+    "udiv8castdown6",
+    "udiv8castdown7",
+    "udiv16castdown8",
+    "mulassoc6",
+    "inc_lt8",
+    "hd4",
+    "hd9",
+
+    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
 void
