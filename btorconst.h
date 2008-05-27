@@ -26,10 +26,14 @@ char *btor_udiv_unbounded_const (BtorMemMgr *mm,
                                  char **rest_ptr);
 
 char *btor_decimal_to_const (BtorMemMgr *mm, const char *str);
+
 char *btor_decimal_to_const_n (BtorMemMgr *mm, const char *str, int len);
 
 char *btor_hex_to_const (BtorMemMgr *mm, const char *str);
+
 char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, int len);
+
+char *btor_one_const (BtorMemMgr *mm, int len);
 
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
