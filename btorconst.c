@@ -1199,3 +1199,18 @@ btor_inverse_const (BtorMemMgr *mm, const char *c)
 
   return res;
 }
+
+char *
+btor_one_const (BtorMemMgr *mm, int len)
+{
+  char *res;
+  int i;
+
+  assert (len > 0);
+  res = btor_malloc (mm, len + 1);
+  for (i = 0; i < len - 1; i++) res[i] = '0';
+  res[i++] = '1';
+  res[i]   = 0;
+
+  return res;
+}

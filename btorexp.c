@@ -7701,19 +7701,20 @@ is_non_inverted_variable (BtorExp *exp)
   return exp->kind == BTOR_VAR_EXP;
 }
 
-/* term = 3*x        =>  *lhs_ptr = x, *rhs_ptr = 0,   *inv_ptr = 1/3
- * term = 3*x + 2*z  =>  *lhs_ptr = x, *rhs_ptr = 2*z, *inv_ptr = 1/3
+/* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
+ * and 'factor' is odd?  We check whether this is possible but do not use
+ * more then 'bound' recursive calls.
  */
 static int
 normalize_linear_term_bounded (Btor *btor,
                                BtorExp *term,
-                               BtorExp **inv_ptr,
+                               char **factor_ptr,
                                BtorExp **lhs_ptr,
                                BtorExp **rhs_ptr,
                                int *bound_ptr)
 {
-  char *factor, *invconst;
   BtorExp *tmp, *other;
+  char *factor;
 
   if (*bound_ptr <= 0) return 0;
 
@@ -7725,12 +7726,12 @@ normalize_linear_term_bounded (Btor *btor,
   if (term->kind == BTOR_ADD_EXP)
   {
     if (normalize_linear_term_bounded (
-            btor, term->e[0], inv_ptr, lhs_ptr, &tmp, bound_ptr))
+            btor, term->e[0], factor_ptr, lhs_ptr, &tmp, bound_ptr))
     {
       other = term->e[1];
     }
     else if (normalize_linear_term_bounded (
-                 btor, term->e[1], inv_ptr, lhs_ptr, &tmp, bound_ptr))
+                 btor, term->e[1], factor_ptr, lhs_ptr, &tmp, bound_ptr))
     {
       other = term->e[0];
     }
@@ -7763,16 +7764,14 @@ normalize_linear_term_bounded (Btor *btor,
     else
       return 0;
 
-    *rhs_ptr = zero_exp (btor, term->len);
-    invconst = btor_inverse_const (btor->mm, factor);
-    *inv_ptr = const_exp (btor, invconst);
-    btor_delete_const (btor->mm, invconst);
+    *factor_ptr = btor_copy_const (btor->mm, factor);
+    *rhs_ptr    = zero_exp (btor, term->len);
   }
   else if (term->kind == BTOR_VAR_EXP)
   {
-    *lhs_ptr = copy_exp (btor, term);
-    *rhs_ptr = zero_exp (btor, term->len);
-    *inv_ptr = one_exp (btor, term->len);
+    *lhs_ptr    = copy_exp (btor, term);
+    *rhs_ptr    = zero_exp (btor, term->len);
+    *factor_ptr = btor_one_const (btor->mm, term->len);
   }
   else
     return 0;
@@ -7784,10 +7783,10 @@ normalize_linear_term_bounded (Btor *btor,
 
 static int
 normalize_linear_term (
-    Btor *btor, BtorExp *term, BtorExp **inv, BtorExp **lhs, BtorExp **rhs)
+    Btor *btor, BtorExp *term, char **fp, BtorExp **lp, BtorExp **rp)
 {
   int bound = 100;
-  return normalize_linear_term_bounded (btor, term, inv, lhs, rhs, &bound);
+  return normalize_linear_term_bounded (btor, term, fp, lp, rp, &bound);
 }
 
 /* checks if we can substitute and normalizes arguments to substitution */
@@ -7798,6 +7797,8 @@ normalize_substitution (Btor *btor,
                         BtorExp **right_result)
 {
   BtorExp *left, *right, *real_left, *real_right, *tmp, *inv;
+  char *ic, *fc;
+
   assert (btor != NULL);
   assert (exp != NULL);
   assert (left_result != NULL);
@@ -7830,17 +7831,21 @@ normalize_substitution (Btor *btor,
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
   {
-    if (normalize_linear_term (btor, left, &inv, left_result, &tmp))
+    if (normalize_linear_term (btor, left, &fc, left_result, &tmp))
       *right_result = sub_exp (btor, right, tmp);
-    else if (normalize_linear_term (btor, right, &inv, left_result, &tmp))
+    else if (normalize_linear_term (btor, right, &fc, left_result, &tmp))
       *right_result = sub_exp (btor, left, tmp);
     else
       return 0;
 
     release_exp (btor, tmp);
+    ic = btor_inverse_const (btor->mm, fc);
+    btor_delete_const (btor->mm, fc);
+    inv = const_exp (btor, ic);
+    btor_delete_const (btor->mm, ic);
     tmp = mul_exp (btor, *right_result, inv);
-    release_exp (btor, *right_result);
     release_exp (btor, inv);
+    release_exp (btor, *right_result);
     *right_result = tmp;
   }
   else
