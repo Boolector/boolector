@@ -166,6 +166,12 @@ hd4 -rwl0 -o log/hd4.log log/hd4.btor
 hd4 -rwl1 -o log/hd4.log log/hd4.btor
 hd5 -rwl0 -o log/hd5.log log/hd5.btor
 hd5 -rwl1 -o log/hd5.log log/hd5.btor
+hd6 -rwl0 -o log/hd6.log log/hd6.btor
+hd6 -rwl1 -o log/hd6.log log/hd6.btor
+hd7 -rwl0 -o log/hd7.log log/hd7.btor
+hd7 -rwl1 -o log/hd7.log log/hd7.btor
+hd8 -rwl0 -o log/hd8.log log/hd8.btor
+hd8 -rwl1 -o log/hd8.log log/hd8.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt
