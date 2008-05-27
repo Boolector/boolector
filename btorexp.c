@@ -7706,12 +7706,12 @@ is_non_inverted_variable (BtorExp *exp)
  * more then 'bound' recursive calls.
  */
 static int
-normalize_linear_term_bounded (Btor *btor,
-                               BtorExp *term,
-                               char **factor_ptr,
-                               BtorExp **lhs_ptr,
-                               BtorExp **rhs_ptr,
-                               int *bound_ptr)
+rewrite_linear_term_bounded (Btor *btor,
+                             BtorExp *term,
+                             char **factor_ptr,
+                             BtorExp **lhs_ptr,
+                             BtorExp **rhs_ptr,
+                             int *bound_ptr)
 {
   BtorExp *tmp, *other;
   char *factor;
@@ -7725,12 +7725,12 @@ normalize_linear_term_bounded (Btor *btor,
 
   if (term->kind == BTOR_ADD_EXP)
   {
-    if (normalize_linear_term_bounded (
+    if (rewrite_linear_term_bounded (
             btor, term->e[0], factor_ptr, lhs_ptr, &tmp, bound_ptr))
     {
       other = term->e[1];
     }
-    else if (normalize_linear_term_bounded (
+    else if (rewrite_linear_term_bounded (
                  btor, term->e[1], factor_ptr, lhs_ptr, &tmp, bound_ptr))
     {
       other = term->e[0];
@@ -7782,11 +7782,11 @@ normalize_linear_term_bounded (Btor *btor,
 }
 
 static int
-normalize_linear_term (
+rewrite_linear_term (
     Btor *btor, BtorExp *term, char **fp, BtorExp **lp, BtorExp **rp)
 {
   int bound = 100;
-  return normalize_linear_term_bounded (btor, term, fp, lp, rp, &bound);
+  return rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
 }
 
 /* checks if we can substitute and normalizes arguments to substitution */
@@ -7831,9 +7831,9 @@ normalize_substitution (Btor *btor,
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
   {
-    if (normalize_linear_term (btor, left, &fc, left_result, &tmp))
+    if (rewrite_linear_term (btor, left, &fc, left_result, &tmp))
       *right_result = sub_exp (btor, right, tmp);
-    else if (normalize_linear_term (btor, right, &fc, left_result, &tmp))
+    else if (rewrite_linear_term (btor, right, &fc, left_result, &tmp))
       *right_result = sub_exp (btor, left, tmp);
     else
       return 0;
