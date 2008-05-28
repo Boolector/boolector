@@ -234,3 +234,4 @@ lin2 -o log/lin2.log log/lin2.btor
 lin3 -o log/lin3.log log/lin3.btor
 lin4 -o log/lin4.log log/lin4.btor
 twocomplementassub -o log/twocomplementassub.log log/twocomplementassub.btor
+regsubslapd149921red -o log/regsubslapd149921red.log log/regsubslapd149921red.btor
