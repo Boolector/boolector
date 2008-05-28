@@ -1,4 +1,5 @@
 #include "btorconst.h"
+#include "btormem.h"
 #include "btorstack.h"
 #include "btorutil.h"
 
@@ -1083,9 +1084,9 @@ btor_const_to_decimal (BtorMemMgr *mem, const char *c)
   if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mem, stack, '0');
 
   len = BTOR_COUNT_STACK (stack);
-  res = btor_malloc (mem, len + 1);
-  q   = res;
-  p   = stack.top;
+  BTOR_NEWN (mem, res, len + 1);
+  q = res;
+  p = stack.top;
   while (p > stack.start) *q++ = *--p;
   assert (res + len == q);
   *q = 0;
@@ -1150,12 +1151,12 @@ btor_inverse_const (BtorMemMgr *mm, const char *c)
   assert (len > 0);
   assert (c[len - 1] == '1'); /* odd */
 
-  a    = btor_malloc (mm, len + 2);
+  BTOR_NEWN (mm, a, len + 2);
   a[0] = '1';
   memset (a + 1, '0', len);
   a[len + 1] = 0;
 
-  b    = btor_malloc (mm, len + 2);
+  BTOR_NEWN (mm, b, len + 2);
   b[0] = '0';
   memcpy (b + 1, c, len);
   b[len + 1] = 0;
@@ -1207,7 +1208,7 @@ btor_one_const (BtorMemMgr *mm, int len)
   int i;
 
   assert (len > 0);
-  res = btor_malloc (mm, len + 1);
+  BTOR_NEWN (mm, res, len + 1);
   for (i = 0; i < len - 1; i++) res[i] = '0';
   res[i++] = '1';
   res[i]   = 0;
@@ -1223,9 +1224,9 @@ btor_twocomplement_const (BtorMemMgr *mm, const char *a)
   assert (mm != NULL);
   assert (a != NULL);
   assert (valid_const (a));
-  carry    = 1;
-  len      = (int) strlen (a);
-  res      = btor_malloc (mm, len + 1);
+  carry = 1;
+  len   = (int) strlen (a);
+  BTOR_NEWN (mm, res, len + 1);
   res[len] = 0;
   for (i = len - 1; i >= 0; i--)
   {
