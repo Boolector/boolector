@@ -1222,7 +1222,6 @@ btor_twocomplement_const (BtorMemMgr *mm, const char *a)
   char *res;
   assert (mm != NULL);
   assert (a != NULL);
-  assert ((int) strlen (a) > 0);
   assert (valid_const (a));
   carry    = 1;
   len      = (int) strlen (a);

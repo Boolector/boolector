@@ -7856,8 +7856,6 @@ rewrite_linear_term_bounded (Btor *btor,
   else
     return 0;
 
-  btor->stats.linear_equations++;
-
   return 1;
 }
 
@@ -7865,8 +7863,10 @@ static int
 rewrite_linear_term (
     Btor *btor, BtorExp *term, char **fp, BtorExp **lp, BtorExp **rp)
 {
-  int bound = 100;
-  return rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
+  int bound = 100, res;
+  res       = rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
+  if (res) btor->stats.linear_equations++;
+  return res;
 }
 
 /* checks if we can substitute and normalizes arguments to substitution */
