@@ -808,6 +808,38 @@ test_inverse_const (void)
   fclose (file);
 }
 
+static void
+test_twoscomplement_aux (const char *str)
+{
+  char *a = btor_twocomplement_const (g_mm, str);
+  char *b = btor_twocomplement_const (g_mm, a);
+  assert (!strcmp (b, str));
+  btor_delete_const (g_mm, b);
+  btor_delete_const (g_mm, a);
+}
+
+static void
+test_twoscomplement_const (void)
+{
+  test_twoscomplement_aux ("");
+  test_twoscomplement_aux ("0");
+  test_twoscomplement_aux ("1");
+  test_twoscomplement_aux ("00");
+  test_twoscomplement_aux ("01");
+  test_twoscomplement_aux ("10");
+  test_twoscomplement_aux ("11");
+  test_twoscomplement_aux ("000");
+  test_twoscomplement_aux ("001");
+  test_twoscomplement_aux ("010");
+  test_twoscomplement_aux ("011");
+  test_twoscomplement_aux ("100");
+  test_twoscomplement_aux ("101");
+  test_twoscomplement_aux ("110");
+  test_twoscomplement_aux ("111");
+  test_twoscomplement_aux ("11111111");
+  test_twoscomplement_aux ("00000000");
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -838,6 +870,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (decimal_to_const);
   BTOR_RUN_TEST_CHECK_LOG (slice_const);
   BTOR_RUN_TEST_CHECK_LOG (inverse_const);
+  BTOR_RUN_TEST (twoscomplement_const);
 }
 
 void

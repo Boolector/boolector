@@ -1220,14 +1220,15 @@ btor_twocomplement_const (BtorMemMgr *mm, const char *a)
 {
   int len, i, carry, newcarry;
   char *res;
-  (void) mm;
   assert (mm != NULL);
   assert (a != NULL);
   assert ((int) strlen (a) > 0);
   assert (valid_const (a));
-  carry = 1;
-  len   = (int) strlen (a);
-  for (i = len - 1; i >= 0; i++)
+  carry    = 1;
+  len      = (int) strlen (a);
+  res      = btor_malloc (mm, len + 1);
+  res[len] = 0;
+  for (i = len - 1; i >= 0; i--)
   {
     newcarry = carry & !a[i];
     res[i]   = (char) (1 ^ a[i] ^ carry);
