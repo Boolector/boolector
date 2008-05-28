@@ -2083,7 +2083,6 @@ const_exp (Btor *btor, const char *bits)
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
-  ;
   return *lookup;
 }
 
