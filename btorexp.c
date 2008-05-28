@@ -165,6 +165,7 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_all_exps (Btor *);
+static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
 
 /*------------------------------------------------------------------------*/
@@ -2082,7 +2083,6 @@ const_exp (Btor *btor, const char *bits)
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
-  ;
   return *lookup;
 }
 
@@ -2610,13 +2610,6 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!is_array_e0
           || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
 #endif
-  /* ~e0 == ~e1 is the same as e0 == e1 */
-  if (btor->rewrite_level > 0 && BTOR_IS_INVERTED_EXP (e0)
-      && BTOR_IS_INVERTED_EXP (e1))
-  {
-    e0 = BTOR_REAL_ADDR_EXP (e0);
-    e1 = BTOR_REAL_ADDR_EXP (e1);
-  }
   result = NULL;
   kind   = BTOR_BEQ_EXP;
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
@@ -2627,7 +2620,16 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     assert (BTOR_IS_ARRAY_EXP (e1));
     kind = BTOR_AEQ_EXP;
   }
-  if (btor->rewrite_level > 0) result = rewrite_binary_exp (btor, kind, e0, e1);
+  /* ~e0 == ~e1 is the same as e0 == e1 */
+  if (btor->rewrite_level > 0)
+  {
+    if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+    {
+      e0 = BTOR_REAL_ADDR_EXP (e0);
+      e1 = BTOR_REAL_ADDR_EXP (e1);
+    }
+    result = rewrite_binary_exp (btor, kind, e0, e1);
+  }
   if (result == NULL) result = binary_exp (btor, kind, e0, e1, 1);
   return result;
 }
@@ -2963,12 +2965,6 @@ xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-
-  /* XOR (e0, e1) can be rewritten to e0 != e1 in the boolean case
-   * this can lead to more substitutions */
-  if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
-    return BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
-
   or     = or_exp (btor, e0, e1);
   and    = and_exp (btor, e0, e1);
   result = and_exp (btor, or, BTOR_INVERT_EXP (and));
@@ -3840,17 +3836,18 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  /* ~a < ~b  is the same as  b < a */
-  if (btor->rewrite_level > 0 && BTOR_IS_INVERTED_EXP (e0)
-      && BTOR_IS_INVERTED_EXP (e1))
-  {
-    temp = BTOR_REAL_ADDR_EXP (e1);
-    e1   = BTOR_REAL_ADDR_EXP (e0);
-    e0   = temp;
-  }
   result = NULL;
   if (btor->rewrite_level > 0)
+  {
+    if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
+    {
+      /* ~a < ~b  is the same as  b < a */
+      temp = BTOR_REAL_ADDR_EXP (e1);
+      e1   = BTOR_REAL_ADDR_EXP (e0);
+      e0   = temp;
+    }
     result = rewrite_binary_exp (btor, BTOR_ULT_EXP, e0, e1);
+  }
   if (result == NULL) result = binary_exp (btor, BTOR_ULT_EXP, e0, e1, 1);
   return result;
 }
@@ -7833,7 +7830,9 @@ normalize_substitution (Btor *btor,
     inc_exp_ref_counter (btor, *left_result);
     return 1;
   }
-  if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
+
+  if (!BTOR_IS_REGULAR_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
+
   left       = exp->e[0];
   right      = exp->e[1];
   real_left  = BTOR_REAL_ADDR_EXP (left);
