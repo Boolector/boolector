@@ -26,6 +26,274 @@ init_const_tests (void)
 }
 
 static void
+test_zero_const (void)
+{
+  char *result = btor_zero_const (g_mm, 1);
+  assert (strcmp (result, "0") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 2);
+  assert (strcmp (result, "00") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 3);
+  assert (strcmp (result, "000") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 4);
+  assert (strcmp (result, "0000") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 5);
+  assert (strcmp (result, "00000") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 8);
+  assert (strcmp (result, "00000000") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 16);
+  assert (strcmp (result, "0000000000000000") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 32);
+  assert (strcmp (result, "00000000000000000000000000000000") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_one_const (void)
+{
+  char *result = btor_one_const (g_mm, 1);
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 2);
+  assert (strcmp (result, "01") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 3);
+  assert (strcmp (result, "001") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 4);
+  assert (strcmp (result, "0001") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 5);
+  assert (strcmp (result, "00001") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 8);
+  assert (strcmp (result, "00000001") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 16);
+  assert (strcmp (result, "0000000000000001") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 32);
+  assert (strcmp (result, "00000000000000000000000000000001") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_ones_const (void)
+{
+  char *result = btor_ones_const (g_mm, 1);
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 2);
+  assert (strcmp (result, "11") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 3);
+  assert (strcmp (result, "111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 4);
+  assert (strcmp (result, "1111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 5);
+  assert (strcmp (result, "11111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 8);
+  assert (strcmp (result, "11111111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 16);
+  assert (strcmp (result, "1111111111111111") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 32);
+  assert (strcmp (result, "11111111111111111111111111111111") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_is_zero_const (void)
+{
+  char *result = btor_zero_const (g_mm, 1);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 2);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 3);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 4);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 5);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 8);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 16);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 32);
+  assert (btor_is_zero_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 1);
+  assert (btor_is_zero_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 2);
+  assert (btor_is_zero_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 32);
+  assert (btor_is_zero_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 32);
+  assert (btor_is_zero_const (result) == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_is_one_const (void)
+{
+  char *result = btor_one_const (g_mm, 1);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 2);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 3);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 4);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 5);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 8);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 16);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 32);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 1);
+  assert (btor_is_one_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 2);
+  assert (btor_is_one_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 32);
+  assert (btor_is_one_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 1);
+  assert (btor_is_one_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 32);
+  assert (btor_is_one_const (result) == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_is_ones_const (void)
+{
+  char *result = btor_ones_const (g_mm, 1);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 2);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 3);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 4);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 5);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 8);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 16);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ones_const (g_mm, 32);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 1);
+  assert (btor_is_ones_const (result) == 1);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 2);
+  assert (btor_is_ones_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_one_const (g_mm, 32);
+  assert (btor_is_ones_const (result) == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_zero_const (g_mm, 32);
+  assert (btor_is_ones_const (result) == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
 test_int_to_const (void)
 {
   char *result = btor_int_to_const (g_mm, 5, 8);
@@ -843,6 +1111,12 @@ test_twoscomplement_const (void)
 void
 run_const_tests (int argc, char **argv)
 {
+  BTOR_RUN_TEST (zero_const);
+  BTOR_RUN_TEST (one_const);
+  BTOR_RUN_TEST (ones_const);
+  BTOR_RUN_TEST (is_zero_const);
+  BTOR_RUN_TEST (is_one_const);
+  BTOR_RUN_TEST (is_ones_const);
   BTOR_RUN_TEST (int_to_const);
   BTOR_RUN_TEST (unsigned_to_const);
   BTOR_RUN_TEST_CHECK_LOG (cmp_const);

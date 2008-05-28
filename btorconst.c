@@ -34,7 +34,66 @@ valid_const (const char *c)
 
 #endif
 
+static const char *
+digit2const (char ch)
+{
+  assert ('0' <= ch);
+  assert (ch <= '9');
+  return digit2const_table[ch - '0'];
+}
+
+static const char *
+strip_zeroes (const char *a)
+{
+  while (*a == '0') a++;
+
+  return a;
+}
+
 #define MSB_INT ((int) (sizeof (int) * 8 - 1))
+
+char *
+btor_zero_const (BtorMemMgr *mm, int len)
+{
+  char *res;
+  int i;
+
+  assert (len > 0);
+  BTOR_NEWN (mm, res, len + 1);
+  for (i = 0; i < len; i++) res[i] = '0';
+  res[i] = '\0';
+
+  return res;
+}
+
+char *
+btor_one_const (BtorMemMgr *mm, int len)
+{
+  char *res;
+  int i;
+
+  assert (len > 0);
+  BTOR_NEWN (mm, res, len + 1);
+  for (i = 0; i < len - 1; i++) res[i] = '0';
+  res[i++] = '1';
+  res[i]   = '\0';
+
+  return res;
+}
+
+char *
+btor_ones_const (BtorMemMgr *mm, int len)
+{
+  char *res;
+  int i;
+
+  assert (len > 0);
+  BTOR_NEWN (mm, res, len + 1);
+  for (i = 0; i < len; i++) res[i] = '1';
+  res[i] = '\0';
+
+  return res;
+}
 
 char *
 btor_int_to_const (BtorMemMgr *mm, int x, int len)
@@ -88,6 +147,224 @@ btor_unsigned_to_const (BtorMemMgr *mm, unsigned x, int len)
 }
 
 char *
+btor_decimal_to_const_n (BtorMemMgr *mem, const char *str, int len)
+{
+  const char *end, *p;
+  char *res, *tmp;
+
+  res = btor_strdup (mem, "");
+
+  end = str + len;
+  for (p = str; p < end; p++)
+  {
+    tmp = btor_mult_unbounded_const (mem, res, "1010"); /* *10 */
+    btor_delete_const (mem, res);
+    res = tmp;
+
+    tmp = btor_add_unbounded_const (mem, res, digit2const (*p));
+    btor_delete_const (mem, res);
+    res = tmp;
+  }
+
+  assert (strip_zeroes (res) == res);
+
+  return res;
+}
+
+char *
+btor_decimal_to_const (BtorMemMgr *mem, const char *str)
+{
+  return btor_decimal_to_const_n (mem, str, (int) strlen (str));
+}
+
+char *
+btor_hex_to_const_n (BtorMemMgr *mem, const char *str, int hlen)
+{
+  const char *p, *end;
+  char *tmp, *res, *q;
+  int len;
+
+  len = 4 * hlen;
+  BTOR_NEWN (mem, tmp, len + 1);
+  q = tmp;
+
+  end = str + hlen;
+  for (p = str; p < end; p++) switch (*p)
+    {
+      case '0':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case '1':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case '2':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case '3':
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+      case '4':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case '5':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case '6':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case '7':
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+      case '8':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case '9':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case 'A':
+      case 'a':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case 'B':
+      case 'b':
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+      case 'C':
+      case 'c':
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '0';
+        break;
+      case 'D':
+      case 'd':
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        *q++ = '1';
+        break;
+      case 'E':
+      case 'e':
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '0';
+        break;
+      case 'F':
+      case 'f':
+      default:
+        assert (*p == 'f' || *p == 'F');
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        *q++ = '1';
+        break;
+    }
+
+  assert (tmp + len == q);
+  *q++ = 0;
+
+  res = btor_strdup (mem, strip_zeroes (tmp));
+  btor_freestr (mem, tmp);
+
+  return res;
+}
+
+char *
+btor_hex_to_const (BtorMemMgr *mem, const char *str)
+{
+  return btor_hex_to_const_n (mem, str, (int) strlen (str));
+}
+
+char *
+btor_ground_const (BtorMemMgr *mm, const char *c)
+{
+  char *res, *q;
+  const char *p;
+  char ch;
+
+  BTOR_NEWN (mm, res, (int) strlen (c) + 1);
+
+  q = res;
+  for (p = c; (ch = *p); p++) *q++ = (ch == '1') ? '1' : '0'; /* 'x' -> '0' */
+
+  *q = 0;
+
+  return res;
+}
+
+int
+btor_is_zero_const (const char *str)
+{
+  const char *p;
+  assert (str != NULL);
+  assert ((int) strlen (str) > 0);
+  for (p = str; *p; p++)
+    if (*p != '0') return 0;
+  return 1;
+}
+
+int
+btor_is_one_const (const char *str)
+{
+  int len, i;
+  assert (str != NULL);
+  len = (int) strlen (str);
+  assert (len > 0);
+  if (str[len - 1] != '1') return 0;
+  for (i = 0; i < len - 1; i++)
+    if (str[i] != '0') return 0;
+  return 1;
+}
+
+int
+btor_is_ones_const (const char *str)
+{
+  const char *p;
+  assert (str != NULL);
+  assert ((int) strlen (str) > 0);
+  for (p = str; *p; p++)
+    if (*p != '1') return 0;
+  return 1;
+}
+
+char *
 btor_copy_const (BtorMemMgr *mm, const char *c)
 {
   assert (mm != NULL);
@@ -132,14 +409,6 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
   assert ((int) strlen (res) == delta);
 
   return res;
-}
-
-static const char *
-strip_zeroes (const char *a)
-{
-  while (*a == '0') a++;
-
-  return a;
 }
 
 char *
@@ -811,51 +1080,6 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
 }
 
 char *
-btor_const_to_hex (BtorMemMgr *mem, const char *c)
-{
-  int clen, rlen, i, j, tmp;
-  char *res, ch;
-
-  clen = (int) strlen (c);
-  rlen = (clen + 3) / 4;
-
-  if (rlen)
-  {
-    BTOR_NEWN (mem, res, rlen + 1);
-
-    i = clen - 1;
-    j = rlen;
-
-    res[j--] = 0;
-
-    while (i >= 0)
-    {
-      tmp = (c[i--] == '1');
-      if (i >= 0)
-      {
-        tmp |= (c[i--] == '1') << 1;
-        if (i >= 0)
-        {
-          tmp |= (c[i--] == '1') << 2;
-          if (i >= 0) tmp |= (c[i--] == '1') << 3;
-        }
-      }
-
-      if (tmp < 10)
-        ch = '0' + tmp;
-      else
-        ch = 'a' + (tmp - 10);
-
-      res[j--] = ch;
-    }
-  }
-  else
-    res = btor_strdup (mem, "0");
-
-  return res;
-}
-
-char *
 btor_uext_const (BtorMemMgr *mem, const char *c, int len)
 {
   char *res, *q;
@@ -877,270 +1101,6 @@ btor_uext_const (BtorMemMgr *mem, const char *c, int len)
 
   return res;
 }
-
-char *
-btor_hex_to_const_n (BtorMemMgr *mem, const char *str, int hlen)
-{
-  const char *p, *end;
-  char *tmp, *res, *q;
-  int len;
-
-  len = 4 * hlen;
-  BTOR_NEWN (mem, tmp, len + 1);
-  q = tmp;
-
-  end = str + hlen;
-  for (p = str; p < end; p++) switch (*p)
-    {
-      case '0':
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '0';
-        break;
-      case '1':
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '1';
-        break;
-      case '2':
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '0';
-        break;
-      case '3':
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '1';
-        break;
-      case '4':
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '0';
-        break;
-      case '5':
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '1';
-        break;
-      case '6':
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '0';
-        break;
-      case '7':
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '1';
-        break;
-      case '8':
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '0';
-        break;
-      case '9':
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '0';
-        *q++ = '1';
-        break;
-      case 'A':
-      case 'a':
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '0';
-        break;
-      case 'B':
-      case 'b':
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '1';
-        *q++ = '1';
-        break;
-      case 'C':
-      case 'c':
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '0';
-        break;
-      case 'D':
-      case 'd':
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '0';
-        *q++ = '1';
-        break;
-      case 'E':
-      case 'e':
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '0';
-        break;
-      case 'F':
-      case 'f':
-      default:
-        assert (*p == 'f' || *p == 'F');
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '1';
-        *q++ = '1';
-        break;
-    }
-
-  assert (tmp + len == q);
-  *q++ = 0;
-
-  res = btor_strdup (mem, strip_zeroes (tmp));
-  btor_freestr (mem, tmp);
-
-  return res;
-}
-
-char *
-btor_hex_to_const (BtorMemMgr *mem, const char *str)
-{
-  return btor_hex_to_const_n (mem, str, (int) strlen (str));
-}
-
-static const char *
-digit2const (char ch)
-{
-  assert ('0' <= ch);
-  assert (ch <= '9');
-  return digit2const_table[ch - '0'];
-}
-
-char *
-btor_decimal_to_const_n (BtorMemMgr *mem, const char *str, int len)
-{
-  const char *end, *p;
-  char *res, *tmp;
-
-  res = btor_strdup (mem, "");
-
-  end = str + len;
-  for (p = str; p < end; p++)
-  {
-    tmp = btor_mult_unbounded_const (mem, res, "1010"); /* *10 */
-    btor_delete_const (mem, res);
-    res = tmp;
-
-    tmp = btor_add_unbounded_const (mem, res, digit2const (*p));
-    btor_delete_const (mem, res);
-    res = tmp;
-  }
-
-  assert (strip_zeroes (res) == res);
-
-  return res;
-}
-
-char *
-btor_decimal_to_const (BtorMemMgr *mem, const char *str)
-{
-  return btor_decimal_to_const_n (mem, str, (int) strlen (str));
-}
-
-char *
-btor_const_to_decimal (BtorMemMgr *mem, const char *c)
-{
-  char *res, *q, *tmp, *rem, ch;
-  BtorCharStack stack;
-  const char *p;
-  int len;
-  BTOR_INIT_STACK (stack);
-
-  res = btor_copy_const (mem, c);
-  while (*res)
-  {
-    tmp = btor_udiv_unbounded_const (mem, res, "1010", &rem); /* / 10 */
-    assert ((int) strlen (rem) <= 4);
-    ch = 0;
-    for (p = strip_zeroes (rem); *p; p++)
-    {
-      ch <<= 1;
-      if (*p == '1') ch++;
-    }
-    assert (ch < 10);
-    ch += '0';
-    BTOR_PUSH_STACK (mem, stack, ch);
-    btor_delete_const (mem, rem);
-    btor_delete_const (mem, res);
-    res = tmp;
-  }
-  btor_delete_const (mem, res);
-
-  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mem, stack, '0');
-
-  len = BTOR_COUNT_STACK (stack);
-  BTOR_NEWN (mem, res, len + 1);
-  q = res;
-  p = stack.top;
-  while (p > stack.start) *q++ = *--p;
-  assert (res + len == q);
-  *q = 0;
-  assert (len == (int) strlen (res));
-  BTOR_RELEASE_STACK (mem, stack);
-  return res;
-}
-
-char *
-btor_ground_const (BtorMemMgr *mm, const char *c)
-{
-  char *res, *q;
-  const char *p;
-  char ch;
-
-  BTOR_NEWN (mm, res, (int) strlen (c) + 1);
-
-  q = res;
-  for (p = c; (ch = *p); p++) *q++ = (ch == '1') ? '1' : '0'; /* 'x' -> '0' */
-
-  *q = 0;
-
-  return res;
-}
-
-static int
-btor_is_zero_const (const char *c)
-{
-  const char *p;
-
-  for (p = c; *p; p++)
-    if (*p != '0') return 0;
-
-  return 1;
-}
-
-#ifndef NDEBUG
-
-static int
-btor_is_one_const (const char *c)
-{
-  const char *p;
-
-  for (p = c; *p; p++)
-    if (*p != '0')
-    {
-      assert (*p == '1');
-      return !p[1];
-    }
-
-  return 0;
-}
-
-#endif
 
 char *
 btor_inverse_const (BtorMemMgr *mm, const char *c)
@@ -1202,21 +1162,6 @@ btor_inverse_const (BtorMemMgr *mm, const char *c)
 }
 
 char *
-btor_one_const (BtorMemMgr *mm, int len)
-{
-  char *res;
-  int i;
-
-  assert (len > 0);
-  BTOR_NEWN (mm, res, len + 1);
-  for (i = 0; i < len - 1; i++) res[i] = '0';
-  res[i++] = '1';
-  res[i]   = 0;
-
-  return res;
-}
-
-char *
 btor_twocomplement_const (BtorMemMgr *mm, const char *a)
 {
   int len, i, carry, newcarry;
@@ -1234,5 +1179,93 @@ btor_twocomplement_const (BtorMemMgr *mm, const char *a)
     res[i]   = (char) (1 ^ a[i] ^ carry);
     carry    = newcarry;
   }
+  return res;
+}
+
+char *
+btor_const_to_hex (BtorMemMgr *mem, const char *c)
+{
+  int clen, rlen, i, j, tmp;
+  char *res, ch;
+
+  clen = (int) strlen (c);
+  rlen = (clen + 3) / 4;
+
+  if (rlen)
+  {
+    BTOR_NEWN (mem, res, rlen + 1);
+
+    i = clen - 1;
+    j = rlen;
+
+    res[j--] = 0;
+
+    while (i >= 0)
+    {
+      tmp = (c[i--] == '1');
+      if (i >= 0)
+      {
+        tmp |= (c[i--] == '1') << 1;
+        if (i >= 0)
+        {
+          tmp |= (c[i--] == '1') << 2;
+          if (i >= 0) tmp |= (c[i--] == '1') << 3;
+        }
+      }
+
+      if (tmp < 10)
+        ch = '0' + tmp;
+      else
+        ch = 'a' + (tmp - 10);
+
+      res[j--] = ch;
+    }
+  }
+  else
+    res = btor_strdup (mem, "0");
+
+  return res;
+}
+
+char *
+btor_const_to_decimal (BtorMemMgr *mem, const char *c)
+{
+  char *res, *q, *tmp, *rem, ch;
+  BtorCharStack stack;
+  const char *p;
+  int len;
+  BTOR_INIT_STACK (stack);
+
+  res = btor_copy_const (mem, c);
+  while (*res)
+  {
+    tmp = btor_udiv_unbounded_const (mem, res, "1010", &rem); /* / 10 */
+    assert ((int) strlen (rem) <= 4);
+    ch = 0;
+    for (p = strip_zeroes (rem); *p; p++)
+    {
+      ch <<= 1;
+      if (*p == '1') ch++;
+    }
+    assert (ch < 10);
+    ch += '0';
+    BTOR_PUSH_STACK (mem, stack, ch);
+    btor_delete_const (mem, rem);
+    btor_delete_const (mem, res);
+    res = tmp;
+  }
+  btor_delete_const (mem, res);
+
+  if (BTOR_EMPTY_STACK (stack)) BTOR_PUSH_STACK (mem, stack, '0');
+
+  len = BTOR_COUNT_STACK (stack);
+  BTOR_NEWN (mem, res, len + 1);
+  q = res;
+  p = stack.top;
+  while (p > stack.start) *q++ = *--p;
+  assert (res + len == q);
+  *q = 0;
+  assert (len == (int) strlen (res));
+  BTOR_RELEASE_STACK (mem, stack);
   return res;
 }

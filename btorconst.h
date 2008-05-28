@@ -7,9 +7,31 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+char *btor_zero_const (BtorMemMgr *mm, int len);
+
+char *btor_one_const (BtorMemMgr *mm, int len);
+
+char *btor_ones_const (BtorMemMgr *mm, int len);
+
 char *btor_int_to_const (BtorMemMgr *mm, int x, int len);
+
 char *btor_unsigned_to_const (BtorMemMgr *mm, unsigned x, int len);
+
+char *btor_decimal_to_const (BtorMemMgr *mm, const char *str);
+
+char *btor_decimal_to_const_n (BtorMemMgr *mm, const char *str, int len);
+
+char *btor_hex_to_const (BtorMemMgr *mm, const char *str);
+
+char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, int len);
+
 char *btor_ground_const (BtorMemMgr *mm, const char *const_with_x);
+
+int btor_is_zero_const (const char *str);
+
+int btor_is_one_const (const char *str);
+
+int btor_is_ones_const (const char *str);
 
 /*------------------------------------------------------------------------*/
 /* Unbounded bit width operators.
@@ -24,16 +46,6 @@ char *btor_udiv_unbounded_const (BtorMemMgr *mm,
                                  const char *a,
                                  const char *b,
                                  char **rest_ptr);
-
-char *btor_decimal_to_const (BtorMemMgr *mm, const char *str);
-
-char *btor_decimal_to_const_n (BtorMemMgr *mm, const char *str, int len);
-
-char *btor_hex_to_const (BtorMemMgr *mm, const char *str);
-
-char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, int len);
-
-char *btor_one_const (BtorMemMgr *mm, int len);
 
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
@@ -88,6 +100,7 @@ char *btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower);
 /* Output functions.
  */
 char *btor_const_to_hex (BtorMemMgr *mm, const char *c);
+
 char *btor_const_to_decimal (BtorMemMgr *mm, const char *c);
 
 #endif

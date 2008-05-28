@@ -187,73 +187,6 @@ print_verbose_msg (char *fmt, ...)
   fflush (stdout);
 }
 
-static char *
-zero_string (Btor *btor, int len)
-{
-  int i;
-  char *string;
-  assert (btor != NULL);
-  assert (len > 0);
-  BTOR_NEWN (btor->mm, string, len + 1);
-  for (i = 0; i < len; i++) string[i] = '0';
-  string[len] = '\0';
-  return string;
-}
-
-static char *
-ones_string (Btor *btor, int len)
-{
-  int i;
-  char *string;
-  assert (btor != NULL);
-  assert (len > 0);
-  BTOR_NEWN (btor->mm, string, len + 1);
-  for (i = 0; i < len; i++) string[i] = '1';
-  string[len] = '\0';
-  return string;
-}
-
-static int
-is_zero_string (Btor *btor, const char *string, int len)
-{
-  int i;
-  assert (btor != NULL);
-  assert (string != NULL);
-  assert (len > 0);
-  (void) btor;
-  for (i = 0; i < len; i++)
-    if (string[i] != '0') return 0;
-  return 1;
-}
-
-static int
-is_one_string (Btor *btor, const char *string, int len)
-{
-  int i;
-  assert (btor != NULL);
-  assert (string != NULL);
-  assert (len > 0);
-  (void) btor;
-  if (string[len - 1] != '1') return 0;
-  for (i = 0; i < len - 1; i++)
-    if (string[i] != '0') return 0;
-  return 1;
-}
-
-static int
-is_ones_string (Btor *btor, const char *string, int len)
-{
-  int i;
-  assert (btor != NULL);
-  assert (string != NULL);
-  assert (len > 0);
-  (void) btor;
-  if (string[len - 1] != '1') return 0;
-  for (i = 0; i < len - 1; i++)
-    if (string[i] != '1') return 0;
-  return 1;
-}
-
 static void
 inc_exp_ref_counter (Btor *btor, BtorExp *exp)
 {
@@ -2170,10 +2103,10 @@ int_min_exp (Btor *btor, int len)
   BtorExp *result;
   assert (btor != NULL);
   assert (len > 0);
-  string    = zero_string (btor, len);
+  string    = btor_zero_const (btor->mm, len);
   string[0] = '1';
   result    = const_exp (btor, string);
-  btor_freestr (btor->mm, string);
+  btor_delete_const (btor->mm, string);
   return result;
 }
 
@@ -2184,9 +2117,9 @@ zero_exp (Btor *btor, int len)
   BtorExp *result;
   assert (btor != NULL);
   assert (len > 0);
-  string = zero_string (btor, len);
+  string = btor_zero_const (btor->mm, len);
   result = const_exp (btor, string);
-  btor_freestr (btor->mm, string);
+  btor_delete_const (btor->mm, string);
   return result;
 }
 
@@ -2219,9 +2152,9 @@ ones_exp (Btor *btor, int len)
   BtorExp *result;
   assert (btor != NULL);
   assert (len > 0);
-  string = ones_string (btor, len);
+  string = btor_ones_const (btor->mm, len);
   result = const_exp (btor, string);
-  btor_freestr (btor->mm, string);
+  btor_delete_const (btor->mm, string);
   return result;
 }
 
@@ -2240,10 +2173,9 @@ one_exp (Btor *btor, int len)
   BtorExp *result;
   assert (btor != NULL);
   assert (len > 0);
-  string                            = zero_string (btor, len);
-  string[(int) strlen (string) - 1] = '1';
-  result                            = const_exp (btor, string);
-  btor_freestr (btor->mm, string);
+  string = btor_one_const (btor->mm, len);
+  result = const_exp (btor, string);
+  btor_delete_const (btor->mm, string);
   return result;
 }
 
@@ -4980,9 +4912,9 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     invert_b0 = BTOR_IS_INVERTED_EXP (e0);
     b0        = real_e0->bits;
     if (invert_b0) btor_invert_const (mm, b0);
-    is_zero = is_zero_string (btor, b0, real_e0->len);
-    is_one  = is_one_string (btor, b0, real_e0->len);
-    is_ones = is_ones_string (btor, b0, real_e0->len);
+    is_zero = btor_is_zero_const (b0);
+    is_one  = btor_is_one_const (b0);
+    is_ones = btor_is_ones_const (b0);
     /* invert back if necessary */
     if (invert_b0) btor_invert_const (mm, b0);
     if (is_zero)
@@ -5033,9 +4965,9 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     invert_b1 = BTOR_IS_INVERTED_EXP (e1);
     b1        = real_e1->bits;
     if (invert_b1) btor_invert_const (mm, b1);
-    is_zero = is_zero_string (btor, b1, real_e1->len);
-    is_one  = is_one_string (btor, b1, real_e1->len);
-    is_ones = is_ones_string (btor, b1, real_e1->len);
+    is_zero = btor_is_zero_const (b1);
+    is_one  = btor_is_one_const (b1);
+    is_ones = btor_is_ones_const (b1);
     /* invert back if necessary */
     if (invert_b1) btor_invert_const (mm, b1);
     if (is_zero)
