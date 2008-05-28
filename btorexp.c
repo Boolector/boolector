@@ -8187,7 +8187,7 @@ rebuild_and_substitute (Btor *btor, BtorPtrHashTable *substs)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -8284,7 +8284,8 @@ rebuild_and_substitute (Btor *btor, BtorPtrHashTable *substs)
       assert (rebuilt_exp != NULL);
       assert (rebuilt_exp != cur);
 
-      overwrite_exp (btor, cur, rebuilt_exp);
+      simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
+      overwrite_exp (btor, cur, simplified);
       release_exp (btor, rebuilt_exp);
     }
   }
