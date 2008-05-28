@@ -71,6 +71,8 @@ char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_inverse_const (BtorMemMgr *mm, const char *a);
 
+char *btor_twocomplement_const (BtorMemMgr *mm, const char *);
+
 /*------------------------------------------------------------------------*/
 /* Work for both fixed and unbounded bit width constants.
  */

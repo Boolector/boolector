@@ -22,8 +22,6 @@
  */
 
 /*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
@@ -7739,11 +7737,11 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   }
 }
 
+/* TODO move to 'btorconst.c' ?
+ */
 static int
 is_odd_constant (BtorExp *exp)
 {
-  /* TODO handle inverted even constants as well */
-
   if (BTOR_IS_INVERTED_EXP (exp)) return 0;
 
   if (exp->kind != BTOR_CONST_EXP) return 0;
@@ -7751,17 +7749,9 @@ is_odd_constant (BtorExp *exp)
   return exp->bits[exp->len - 1] == '1';
 }
 
-static int
-is_non_inverted_variable (BtorExp *exp)
-{
-  if (BTOR_IS_INVERTED_EXP (exp)) return 0;
-
-  return exp->kind == BTOR_VAR_EXP;
-}
-
 /* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
  * and 'factor' is odd?  We check whether this is possible but do not use
- * more then 'bound' recursive calls.
+ * more than 'bound' recursive calls.
  */
 static int
 rewrite_linear_term_bounded (Btor *btor,
@@ -7779,18 +7769,41 @@ rewrite_linear_term_bounded (Btor *btor,
   *bound_ptr -= 1;
 
   if (BTOR_IS_INVERTED_EXP (term))
-    return 0; /* TODO: two-complement & recurse */
+  {
+    /* term = ~subterm
+     *      = -1 - subterm
+     *      = -1 - (factor * lhs + rhs)
+     *      = (-factor) * lhs + (-1 -rhs)
+     *      = (-factor) * lhs + ~rhs
+     */
+    if (!rewrite_linear_term_bounded (
+            btor, BTOR_INVERT_EXP (term), &factor, lhs_ptr, rhs_ptr, bound_ptr))
+      return 0;
 
-  if (term->kind == BTOR_ADD_EXP)
+    *rhs_ptr    = BTOR_INVERT_EXP (*rhs_ptr);
+    *factor_ptr = btor_twocomplement_const (btor->mm, factor);
+    btor_delete_const (btor->mm, factor);
+
+    return 0;
+  }
+  else if (term->kind == BTOR_ADD_EXP)
   {
     if (rewrite_linear_term_bounded (
             btor, term->e[0], factor_ptr, lhs_ptr, &tmp, bound_ptr))
     {
+      /* term = e0 + e1
+       *      = (factor * lhs + rhs) + e1
+       *      = factor * lhs + (e1 + rhs)
+       */
       other = term->e[1];
     }
     else if (rewrite_linear_term_bounded (
                  btor, term->e[1], factor_ptr, lhs_ptr, &tmp, bound_ptr))
     {
+      /* term = e0 + e1
+       *      = e0 + (factor * lhs + rhs)
+       *      = factor * lhs + (e0 + rhs)
+       */
       other = term->e[0];
     }
     else
@@ -7803,27 +7816,38 @@ rewrite_linear_term_bounded (Btor *btor,
   {
     if (is_odd_constant (term->e[0]))
     {
-      if (!is_non_inverted_variable (term->e[1])) return 0; /* TODO: recurse! */
+      if (!rewrite_linear_term_bounded (
+              btor, term->e[1], &factor, lhs_ptr, &tmp, bound_ptr))
+        return 0;
 
-      /* odd * var
+      /* term = e0 * e1
+       *      = e0 * (factor * lhs + rhs)
+       *      = (e0 * factor) * lhs + e0 * rhs
+       *      = (other * factor) * lhs + other * rhs
        */
-      *lhs_ptr = copy_exp (btor, term->e[1]);
-      factor   = term->e[0]->bits;
+      other = term->e[0];
     }
     else if (is_odd_constant (term->e[1]))
     {
-      if (!is_non_inverted_variable (term->e[0])) return 0; /* TODO: recurse! */
+      if (!rewrite_linear_term_bounded (
+              btor, term->e[0], &factor, lhs_ptr, &tmp, bound_ptr))
+        return 0;
 
-      /* var * odd
+      /* term = e0 * e1
+       *      = (factor * lhs + rhs) * e1
+       *      = (e1 * factor) * lhs + e1 * rhs
+       *      = (other * factor) * lhs + other * rhs
        */
-      *lhs_ptr = copy_exp (btor, term->e[0]);
-      factor   = term->e[1]->bits;
+      other = term->e[1];
     }
     else
       return 0;
 
-    *factor_ptr = btor_copy_const (btor->mm, factor);
-    *rhs_ptr    = zero_exp (btor, term->len);
+    assert (!BTOR_IS_INVERTED_EXP (other));
+    *factor_ptr = btor_mul_const (btor->mm, other->bits, factor);
+    btor_delete_const (btor->mm, factor);
+    *rhs_ptr = btor_mul_exp (btor, other, tmp);
+    btor_release_exp (btor, tmp);
   }
   else if (term->kind == BTOR_VAR_EXP)
   {

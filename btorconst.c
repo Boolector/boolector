@@ -363,7 +363,7 @@ btor_invert_const (BtorMemMgr *mm, char *a)
   assert ((int) strlen (a) > 0);
   assert (valid_const (a));
   len = (int) strlen (a);
-  for (i = 0; i < len; i++) a[i] = (char) 1 ^ a[i];
+  for (i = 0; i < len; i++) a[i] = (char) (1 ^ a[i]);
 }
 
 char *
@@ -1192,10 +1192,10 @@ btor_inverse_const (BtorMemMgr *mm, const char *c)
   btor_delete_const (mm, ty);
 #endif
 
-  btor_delete_const (mm, ly);  // btor_free (mm, ly, len + 2);
-  btor_delete_const (mm, y);   // btor_free (mm, y, len + 2);
-  btor_delete_const (mm, b);   // btor_free (mm, b, len + 2);
-  btor_delete_const (mm, a);   // btor_free (mm, a, len + 2);
+  btor_delete_const (mm, ly);
+  btor_delete_const (mm, y);
+  btor_delete_const (mm, b);
+  btor_delete_const (mm, a);
 
   return res;
 }
@@ -1212,5 +1212,26 @@ btor_one_const (BtorMemMgr *mm, int len)
   res[i++] = '1';
   res[i]   = 0;
 
+  return res;
+}
+
+char *
+btor_twocomplement_const (BtorMemMgr *mm, const char *a)
+{
+  int len, i, carry, newcarry;
+  char *res;
+  (void) mm;
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert ((int) strlen (a) > 0);
+  assert (valid_const (a));
+  carry = 1;
+  len   = (int) strlen (a);
+  for (i = len - 1; i >= 0; i++)
+  {
+    newcarry = carry & !a[i];
+    res[i]   = (char) (1 ^ a[i] ^ carry);
+    carry    = newcarry;
+  }
   return res;
 }
