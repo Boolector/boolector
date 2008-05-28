@@ -6148,7 +6148,7 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, btor->replay_constraints.start[i]);
   BTOR_RELEASE_STACK (mm, btor->replay_constraints);
 
-  assert (btor->table.num_elements == 0);
+  assert (getenv ("BTORLEAKEXP") || btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
   btor_delete_ptr_hash_table (btor->arrays);
   btor_delete_aigvec_mgr (btor->avmgr);
@@ -7783,8 +7783,6 @@ rewrite_linear_term_bounded (Btor *btor,
     *rhs_ptr    = BTOR_INVERT_EXP (*rhs_ptr);
     *factor_ptr = btor_twocomplement_const (btor->mm, factor);
     btor_delete_const (btor->mm, factor);
-
-    return 0;
   }
   else if (term->kind == BTOR_ADD_EXP)
   {
