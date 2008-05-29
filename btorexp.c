@@ -4844,9 +4844,10 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   BtorExp *ones, *eq, *temp_left, *temp_right;
   BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
   char *b0, *b1, *bresult;
-  int same_children_mem, is_zero, is_one, is_ones;
+  int same_children_mem;
   int invert_b0 = 0;
   int invert_b1 = 0;
+  BtorSpecialConst sc;
   assert (btor != NULL);
   assert (btor->rewrite_level > 0);
   assert (btor->rewrite_level <= 2);
@@ -4911,52 +4912,50 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     invert_b0 = BTOR_IS_INVERTED_EXP (e0);
     b0        = real_e0->bits;
     if (invert_b0) btor_invert_const (mm, b0);
-    is_zero = btor_is_zero_const (b0);
-    is_one  = btor_is_one_const (b0);
-    is_ones = btor_is_ones_const (b0);
+    sc = btor_is_special_const (b0);
     /* invert back if necessary */
     if (invert_b0) btor_invert_const (mm, b0);
-    if (is_zero)
+    switch (sc)
     {
-      if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
-        result = not_exp (btor, e1);
-      if (kind == BTOR_ADD_EXP)
-        result = copy_exp (btor, e1);
-      else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
-               || kind == BTOR_SRL_EXP || kind == BTOR_UREM_EXP
-               || kind == BTOR_AND_EXP)
-        result = zero_exp (btor, real_e0->len);
-      else if (kind == BTOR_UDIV_EXP)
-      {
-        zero   = zero_exp (btor, real_e0->len);
-        ones   = ones_exp (btor, real_e0->len);
-        eq     = eq_exp (btor, e1, zero);
-        result = cond_exp (btor, eq, ones, zero);
-        release_exp (btor, zero);
-        release_exp (btor, eq);
-        release_exp (btor, ones);
-      }
+      case BTOR_SPECIAL_CONST_ZERO:
+        if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
+          result = not_exp (btor, e1);
+        if (kind == BTOR_ADD_EXP)
+          result = copy_exp (btor, e1);
+        else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
+                 || kind == BTOR_SRL_EXP || kind == BTOR_UREM_EXP
+                 || kind == BTOR_AND_EXP)
+          result = zero_exp (btor, real_e0->len);
+        else if (kind == BTOR_UDIV_EXP)
+        {
+          zero   = zero_exp (btor, real_e0->len);
+          ones   = ones_exp (btor, real_e0->len);
+          eq     = eq_exp (btor, e1, zero);
+          result = cond_exp (btor, eq, ones, zero);
+          release_exp (btor, zero);
+          release_exp (btor, eq);
+          release_exp (btor, ones);
+        }
+        break;
+      case BTOR_SPECIAL_CONST_ONE_ONES:
+        assert (real_e0->len == 1);
+        if (kind == BTOR_AND_EXP || kind == BTOR_BEQ_EXP
+            || kind == BTOR_MUL_EXP)
+          result = copy_exp (btor, e1);
+        else if (kind == BTOR_ULT_EXP)
+          result = false_exp (btor);
+        break;
+      case BTOR_SPECIAL_CONST_ONE:
+        if (kind == BTOR_MUL_EXP) result = copy_exp (btor, e1);
+        break;
+      case BTOR_SPECIAL_CONST_ONES:
+        if (kind == BTOR_AND_EXP)
+          result = copy_exp (btor, e1);
+        else if (kind == BTOR_ULT_EXP) /* UNSIGNED_MAX < x */
+          result = false_exp (btor);
+        break;
+      default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
     }
-    else if (is_one && is_ones)
-    {
-      assert (real_e0->len == 1);
-      if (kind == BTOR_AND_EXP || kind == BTOR_BEQ_EXP || kind == BTOR_MUL_EXP)
-        result = copy_exp (btor, e1);
-      else if (kind == BTOR_ULT_EXP)
-        result = false_exp (btor);
-    }
-    else if (is_one)
-    {
-      if (kind == BTOR_MUL_EXP) result = copy_exp (btor, e1);
-    }
-    else if (is_ones)
-    {
-      if (kind == BTOR_AND_EXP)
-        result = copy_exp (btor, e1);
-      else if (kind == BTOR_ULT_EXP) /* UNSIGNED_MAX < x */
-        result = false_exp (btor);
-    }
-
     /* TODO: handle all 'result->len == 1' cases */
   }
   else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
@@ -4964,53 +4963,51 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     invert_b1 = BTOR_IS_INVERTED_EXP (e1);
     b1        = real_e1->bits;
     if (invert_b1) btor_invert_const (mm, b1);
-    is_zero = btor_is_zero_const (b1);
-    is_one  = btor_is_one_const (b1);
-    is_ones = btor_is_ones_const (b1);
+    sc = btor_is_special_const (b1);
     /* invert back if necessary */
     if (invert_b1) btor_invert_const (mm, b1);
-    if (is_zero)
+    switch (sc)
     {
-      if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
-        result = not_exp (btor, e0);
-      else if (kind == BTOR_SLL_EXP || kind == BTOR_SRL_EXP
-               || kind == BTOR_UREM_EXP || kind == BTOR_ADD_EXP)
-        result = copy_exp (btor, e0);
-      else if (kind == BTOR_MUL_EXP || kind == BTOR_AND_EXP)
-        result = zero_exp (btor, real_e0->len);
-      else if (kind == BTOR_ULT_EXP) /* x < 0 */
-        result = false_exp (btor);
-      else if (kind == BTOR_UDIV_EXP)
-        result = ones_exp (btor, real_e0->len);
-    }
-    else if (is_one && is_ones)
-    {
-      assert (real_e1->len == 1);
-      if (kind == BTOR_AND_EXP || kind == BTOR_BEQ_EXP || kind == BTOR_MUL_EXP
-          || kind == BTOR_UDIV_EXP)
-        result = copy_exp (btor, e0);
-    }
-    else if (is_one)
-    {
-      if (kind == BTOR_MUL_EXP || kind == BTOR_UDIV_EXP)
-        result = copy_exp (btor, e0);
-      else if (kind == BTOR_ULT_EXP)
-      {
-        temp = zero_exp (btor, real_e0->len);
-        /* ATTENTION: indirect recursive call make sure
-         * it does not trigger another recurisve calls */
-        result = eq_exp (btor, e0, temp);
-        release_exp (btor, temp);
-      }
-    }
-    else if (is_ones)
-    {
-      if (kind == BTOR_AND_EXP)
-        result = copy_exp (btor, e0);
-      else if (kind == BTOR_ULT_EXP)
-        /* ATTENTION: indirect recursive call make sure
-         * it does not trigger another recurisve calls */
-        result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
+      case BTOR_SPECIAL_CONST_ZERO:
+        if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
+          result = not_exp (btor, e0);
+        else if (kind == BTOR_SLL_EXP || kind == BTOR_SRL_EXP
+                 || kind == BTOR_UREM_EXP || kind == BTOR_ADD_EXP)
+          result = copy_exp (btor, e0);
+        else if (kind == BTOR_MUL_EXP || kind == BTOR_AND_EXP)
+          result = zero_exp (btor, real_e0->len);
+        else if (kind == BTOR_ULT_EXP) /* x < 0 */
+          result = false_exp (btor);
+        else if (kind == BTOR_UDIV_EXP)
+          result = ones_exp (btor, real_e0->len);
+        break;
+      case BTOR_SPECIAL_CONST_ONE_ONES:
+        assert (real_e1->len == 1);
+        if (kind == BTOR_AND_EXP || kind == BTOR_BEQ_EXP || kind == BTOR_MUL_EXP
+            || kind == BTOR_UDIV_EXP)
+          result = copy_exp (btor, e0);
+        break;
+      case BTOR_SPECIAL_CONST_ONE:
+        if (kind == BTOR_MUL_EXP || kind == BTOR_UDIV_EXP)
+          result = copy_exp (btor, e0);
+        else if (kind == BTOR_ULT_EXP)
+        {
+          temp = zero_exp (btor, real_e0->len);
+          /* ATTENTION: indirect recursive call make sure
+           * it does not trigger another recurisve calls */
+          result = eq_exp (btor, e0, temp);
+          release_exp (btor, temp);
+        }
+        break;
+      case BTOR_SPECIAL_CONST_ONES:
+        if (kind == BTOR_AND_EXP)
+          result = copy_exp (btor, e0);
+        else if (kind == BTOR_ULT_EXP)
+          /* ATTENTION: indirect recursive call make sure
+           * it does not trigger another recurisve calls */
+          result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
+        break;
+      default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
     }
 
     /* TODO: handle all 'result->len == 1' cases */

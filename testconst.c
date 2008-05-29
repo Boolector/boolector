@@ -294,6 +294,44 @@ test_is_ones_const (void)
 }
 
 static void
+test_is_special_const (void)
+{
+  assert (btor_is_special_const ("0") == BTOR_SPECIAL_CONST_ZERO);
+  assert (btor_is_special_const ("1") == BTOR_SPECIAL_CONST_ONE_ONES);
+
+  assert (btor_is_special_const ("00") == BTOR_SPECIAL_CONST_ZERO);
+  assert (btor_is_special_const ("01") == BTOR_SPECIAL_CONST_ONE);
+  assert (btor_is_special_const ("10") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("11") == BTOR_SPECIAL_CONST_ONES);
+
+  assert (btor_is_special_const ("000") == BTOR_SPECIAL_CONST_ZERO);
+  assert (btor_is_special_const ("001") == BTOR_SPECIAL_CONST_ONE);
+  assert (btor_is_special_const ("010") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("011") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("100") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("101") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("110") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("111") == BTOR_SPECIAL_CONST_ONES);
+
+  assert (btor_is_special_const ("0000") == BTOR_SPECIAL_CONST_ZERO);
+  assert (btor_is_special_const ("0001") == BTOR_SPECIAL_CONST_ONE);
+  assert (btor_is_special_const ("0010") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("0011") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("0100") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("0101") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("0110") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("0111") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1000") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1001") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1010") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1011") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1100") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1101") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1110") == BTOR_SPECIAL_CONST_NONE);
+  assert (btor_is_special_const ("1111") == BTOR_SPECIAL_CONST_ONES);
+}
+
+static void
 test_int_to_const (void)
 {
   char *result = btor_int_to_const (g_mm, 5, 8);
@@ -1117,6 +1155,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (is_zero_const);
   BTOR_RUN_TEST (is_one_const);
   BTOR_RUN_TEST (is_ones_const);
+  BTOR_RUN_TEST (is_special_const);
   BTOR_RUN_TEST (int_to_const);
   BTOR_RUN_TEST (unsigned_to_const);
   BTOR_RUN_TEST_CHECK_LOG (cmp_const);

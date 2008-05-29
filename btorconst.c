@@ -364,6 +364,43 @@ btor_is_ones_const (const char *str)
   return 1;
 }
 
+BtorSpecialConst
+btor_is_special_const (const char *str)
+{
+  char c;
+  const char *p;
+  assert (str != NULL);
+  assert ((int) strlen (str) > 0);
+
+  c = *str;
+  p = str + 1;
+
+  while (*p)
+  {
+    if (*p != c)
+    {
+      p++;
+      if (c == '0' && !*p)
+        return BTOR_SPECIAL_CONST_ONE;
+      else
+        return BTOR_SPECIAL_CONST_NONE;
+    }
+    else
+      p++;
+  }
+
+  if (c == '0') return BTOR_SPECIAL_CONST_ZERO;
+
+  assert (c == '1');
+  /* bit-width == 1 ? */
+  if (p == str + 1)
+  {
+    assert ((int) strlen (str) == 1);
+    return BTOR_SPECIAL_CONST_ONE_ONES;
+  }
+  return BTOR_SPECIAL_CONST_ONES;
+}
+
 char *
 btor_copy_const (BtorMemMgr *mm, const char *c)
 {

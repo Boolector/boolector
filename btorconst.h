@@ -7,6 +7,17 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+enum BtorSpecialConst
+{
+  BTOR_SPECIAL_CONST_ZERO,
+  BTOR_SPECIAL_CONST_ONE,
+  BTOR_SPECIAL_CONST_ONES,
+  BTOR_SPECIAL_CONST_ONE_ONES,
+  BTOR_SPECIAL_CONST_NONE
+};
+
+typedef enum BtorSpecialConst BtorSpecialConst;
+
 char *btor_zero_const (BtorMemMgr *mm, int len);
 
 char *btor_one_const (BtorMemMgr *mm, int len);
@@ -32,6 +43,8 @@ int btor_is_zero_const (const char *str);
 int btor_is_one_const (const char *str);
 
 int btor_is_ones_const (const char *str);
+
+BtorSpecialConst btor_is_special_const (const char *str);
 
 /*------------------------------------------------------------------------*/
 /* Unbounded bit width operators.
