@@ -97,10 +97,12 @@ struct Btor
     int refinements;
     /* number of restarts as a result of lazy synthesis */
     int synthesis_assignment_inconsistencies;
-    /* number of read-read conflicts */
-    int read_read_conflicts;
-    /* number of read-write conflicts */
-    int read_write_conflicts;
+    /* number of array axiom 1 conflicts:
+     * a = b /\ i = j => read(a, i) = read(b, j) */
+    int array_axiom_1_conflicts;
+    /* number of array axiom 2 conflicts:
+     * i = j => read(write(a, i, e), j) = e */
+    int array_axiom_2_conflicts;
     /* number of variables that have been substituted */
     int var_substitutions;
     /* number of array variables that have been substituted */
@@ -6157,10 +6159,10 @@ btor_print_stats_btor (Btor *btor)
                      btor->has_array_equalities ? "yes" : "no");
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
   print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
-  print_verbose_msg ("read-read conflicts: %d",
-                     btor->stats.read_read_conflicts);
-  print_verbose_msg ("read-write conflicts: %d",
-                     btor->stats.read_write_conflicts);
+  print_verbose_msg ("array axiom 1 conflicts: %d",
+                     btor->stats.array_axiom_1_conflicts);
+  print_verbose_msg ("array axiom 2 conflicts: %d",
+                     btor->stats.array_axiom_2_conflicts);
   print_verbose_msg (
       "average lemma size: %.1f",
       BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum, btor->stats.refinements));
@@ -7034,12 +7036,12 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
   BTOR_RELEASE_STACK (mm, aconds_sel2);
 }
 
-/* Checks if a read conflicts with a write */
+/* checks array axiom 2 */
 static int
-check_read_write_conflict (Btor *btor,
-                           BtorExp *acc,
-                           BtorExp *write,
-                           int *indices_equal)
+find_array_axiom_2_conflict (Btor *btor,
+                             BtorExp *acc,
+                             BtorExp *write,
+                             int *indices_equal)
 {
   assert (btor != NULL);
   assert (acc != NULL);
@@ -7218,6 +7220,7 @@ process_working_stack (Btor *btor,
     }
     else
     {
+      /* check array axiom 1 */
       bucket = btor_find_in_ptr_hash_table (array->rho, index);
       if (bucket != NULL)
       {
@@ -7228,7 +7231,7 @@ process_working_stack (Btor *btor,
         /* we have to check if values are equal */
         if (compare_assignments (hashed_value, value) != 0)
         {
-          btor->stats.read_read_conflicts++;
+          btor->stats.array_axiom_1_conflicts++;
           add_lemma (btor, array, hashed_acc, acc);
           return 1;
         }
@@ -7242,10 +7245,10 @@ process_working_stack (Btor *btor,
     {
       *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, array);
       if (*assignments_changed) return 0;
-      /* check if read is consistent with write */
-      if (check_read_write_conflict (btor, acc, array, &indices_equal))
+      /* check array axiom 2 */
+      if (find_array_axiom_2_conflict (btor, acc, array, &indices_equal))
       {
-        btor->stats.read_write_conflicts++;
+        btor->stats.array_axiom_2_conflicts++;
         add_lemma (btor, array, acc, array);
         return 1;
       }
