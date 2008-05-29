@@ -3095,7 +3095,7 @@ static BtorExp *
 rewrite_ternary_exp (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 {
-  BtorExp *result, *real_e0, *real_e1, *real_e2, *temp_left, *temp_right;
+  BtorExp *result;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (btor->rewrite_level > 0);
@@ -3105,33 +3105,23 @@ rewrite_ternary_exp (
   assert (e0 != NULL);
   assert (e1 != NULL);
   assert (e2 != NULL);
-  e0      = pointer_chase_simplified_exp (btor, e0);
-  e1      = pointer_chase_simplified_exp (btor, e1);
-  e2      = pointer_chase_simplified_exp (btor, e2);
-  mm      = btor->mm;
-  result  = NULL;
-  real_e0 = BTOR_REAL_ADDR_EXP (e0);
-  real_e1 = BTOR_REAL_ADDR_EXP (e1);
-  real_e2 = BTOR_REAL_ADDR_EXP (e2);
+  (void) kind;
+  e0     = pointer_chase_simplified_exp (btor, e0);
+  e1     = pointer_chase_simplified_exp (btor, e1);
+  e2     = pointer_chase_simplified_exp (btor, e2);
+  mm     = btor->mm;
+  result = NULL;
   if (BTOR_IS_CONST_EXP (e0))
   {
-    if ((!BTOR_IS_INVERTED_EXP (e0) && e0->bits[0] == '1')
-        || (BTOR_IS_INVERTED_EXP (e0) && real_e0->bits[0] == '0'))
+    /* condtionals are normalized if rewrite level > 0 */
+    assert (!BTOR_IS_INVERTED_EXP (e0));
+    if (e0->bits[0] == '1')
       result = copy_exp (btor, e1);
     else
       result = copy_exp (btor, e2);
   }
   else if (e1 == e2)
     result = copy_exp (btor, e1);
-  else if (kind == BTOR_BCOND_EXP && real_e1->len == 1)
-  {
-    temp_left  = and_exp (btor, e0, BTOR_INVERT_EXP (e1));
-    temp_right = and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e2));
-    result     = and_exp (
-        btor, BTOR_INVERT_EXP (temp_left), BTOR_INVERT_EXP (temp_right));
-    release_exp (btor, temp_right);
-    release_exp (btor, temp_left);
-  }
   return result;
 }
 
@@ -7831,7 +7821,7 @@ normalize_substitution (Btor *btor,
     return 1;
   }
 
-  if (!BTOR_IS_REGULAR_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
+  if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
 
   left       = exp->e[0];
   right      = exp->e[1];
