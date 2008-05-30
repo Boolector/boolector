@@ -2466,7 +2466,16 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   result = NULL;
   if (btor->rewrite_level > 0)
+  {
+    /* a - a == 0 */
+    if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
+        && e0 == BTOR_INVERT_EXP (e1->e[0]) && !BTOR_IS_INVERTED_EXP (e1->e[1])
+        && BTOR_IS_CONST_EXP (e1->e[1])
+        && btor_is_special_const (e1->e[1]->bits) == BTOR_SPECIAL_CONST_ONE)
+      return zero_exp (btor, e1->len);
+
     result = rewrite_binary_exp (btor, BTOR_ADD_EXP, e0, e1);
+  }
   if (result == NULL)
     result =
         binary_exp (btor, BTOR_ADD_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
