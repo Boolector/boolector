@@ -1635,14 +1635,14 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
 }
 
 static BtorExp *
-new_const_exp_node (Btor *btor, const char *bits)
+new_const_exp_node (Btor *btor, const char *bits, int len)
 {
   BtorBVConstExp *exp;
-  int i, len;
+  int i;
   assert (btor != NULL);
   assert (bits != NULL);
-  len = (int) strlen (bits);
   assert (len > 0);
+  assert ((int) strlen (bits) == len);
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
   exp->kind  = BTOR_CONST_EXP;
@@ -1856,14 +1856,14 @@ btor_compare_exp_by_id (BtorExp *exp1, BtorExp *exp2)
 /* Finds constant expression in hash table. Returns NULL if it could not be
  * found. */
 static BtorExp **
-find_const_exp (Btor *btor, const char *bits)
+find_const_exp (Btor *btor, const char *bits, int len)
 {
   BtorExp *cur, **result;
   unsigned int hash;
-  int len;
   assert (btor != NULL);
   assert (bits != NULL);
-  len    = (int) strlen (bits);
+  assert (len > 0);
+  assert ((int) strlen (bits) == len);
   hash   = btor_hashstr ((void *) bits);
   hash   = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (btor->table.size - 1);
   result = btor->table.chains + hash;
@@ -2065,19 +2065,33 @@ static BtorExp *
 const_exp (Btor *btor, const char *bits)
 {
   BtorExp **lookup;
+  int inv, len;
+  char *lookupbits;
   assert (btor != NULL);
   assert (bits != NULL);
-  assert ((int) strlen (bits) > 0);
-  lookup = find_const_exp (btor, bits);
+  len = (int) strlen (bits);
+  assert (len > 0);
+  inv        = 0;
+  lookupbits = (char *) bits;
+  if (btor->rewrite_level > 0)
+  {
+    /* normalize constants, constants are always even */
+    if (bits[len - 1] == '1')
+    {
+      lookupbits = btor_not_const (btor->mm, bits);
+      inv        = 1;
+    }
+  }
+  lookup = find_const_exp (btor, lookupbits, len);
   if (*lookup == NULL)
   {
     if (btor->table.num_elements == btor->table.size
         && btor_log_2_util (btor->table.size) < BTOR_EXP_UNIQUE_TABLE_LIMIT)
     {
       enlarge_exp_unique_table (btor);
-      lookup = find_const_exp (btor, bits);
+      lookup = find_const_exp (btor, lookupbits, len);
     }
-    *lookup = new_const_exp_node (btor, bits);
+    *lookup = new_const_exp_node (btor, lookupbits, len);
     assert (btor->table.num_elements < INT_MAX);
     btor->table.num_elements++;
     (*lookup)->unique = 1;
@@ -2085,6 +2099,11 @@ const_exp (Btor *btor, const char *bits)
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
+  if (inv)
+  {
+    btor_delete_const (btor->mm, lookupbits);
+    return BTOR_INVERT_EXP (*lookup);
+  }
   return *lookup;
 }
 
