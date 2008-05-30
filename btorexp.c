@@ -209,7 +209,7 @@ is_const_one_exp (Btor *btor, BtorExp *exp)
     btor_invert_const (btor->mm, real_exp->bits);
   }
   else
-    result = btor_is_special_const (real_exp->bits) == BTOR_SPECIAL_CONST_ONE;
+    result = btor_is_special_const (exp->bits) == BTOR_SPECIAL_CONST_ONE;
 
   return result;
 }
