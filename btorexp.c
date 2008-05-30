@@ -1,4 +1,5 @@
 #include "btorexp.h"
+
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorconfig.h"
@@ -188,6 +189,29 @@ print_verbose_msg (char *fmt, ...)
   va_end (ap);
   fputc ('\n', stdout);
   fflush (stdout);
+}
+
+static int
+is_const_one_exp (Btor *btor, BtorExp *exp)
+{
+  int result;
+  BtorExp *real_exp;
+  assert (btor != NULL);
+  assert (exp != NULL);
+
+  if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))) return 0;
+
+  if (BTOR_IS_INVERTED_EXP (exp))
+  {
+    real_exp = BTOR_REAL_ADDR_EXP (exp);
+    btor_invert_const (btor->mm, real_exp->bits);
+    result = btor_is_special_const (real_exp->bits) == BTOR_SPECIAL_CONST_ONE;
+    btor_invert_const (btor->mm, real_exp->bits);
+  }
+  else
+    result = btor_is_special_const (real_exp->bits) == BTOR_SPECIAL_CONST_ONE;
+
+  return result;
 }
 
 static void
@@ -2488,9 +2512,8 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   {
     /* a - a == 0 */
     if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
-        && e0 == BTOR_INVERT_EXP (e1->e[0]) && !BTOR_IS_INVERTED_EXP (e1->e[1])
-        && BTOR_IS_CONST_EXP (e1->e[1])
-        && btor_is_special_const (e1->e[1]->bits) == BTOR_SPECIAL_CONST_ONE)
+        && e0 == BTOR_INVERT_EXP (e1->e[0])
+        && is_const_one_exp (btor, e1->e[1]))
       return zero_exp (btor, e1->len);
 
     result = rewrite_binary_exp (btor, BTOR_ADD_EXP, e0, e1);
