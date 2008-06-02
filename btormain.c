@@ -138,7 +138,7 @@ static const char *g_usage =
     "  -ds|--dump-smt <file>            dump expression in SMT format\n"
     "  -f|--force                       overwrite existing output file\n"
     "\n"
-    "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,2] (default 2)\n"
+    "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
@@ -447,9 +447,9 @@ parse_commandline_arguments (BtorMainApp *app)
           (int)
               app->argv[app->argpos][(int) strlen (app->argv[app->argpos]) - 1]
           - 48;
-      if (app->rewrite_level > 2 || app->rewrite_level < 0)
+      if (app->rewrite_level > 3 || app->rewrite_level < 0)
       {
-        print_err (app, "rewrite level has to be in [0,2]\n");
+        print_err (app, "rewrite level has to be in [0,3]\n");
         app->err = 1;
       }
     }
@@ -765,7 +765,7 @@ btor_main (int argc, char **argv)
   app.dump_smt          = 0;
   app.smt_file          = stdout;
   app.close_smt_file    = 0;
-  app.rewrite_level     = 2;
+  app.rewrite_level     = 3;
   app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
   app.bmcadc            = 1;
   app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -809,8 +809,8 @@ btor_main (int argc, char **argv)
     else if (app.dump_exp)
     {
       assert (app.rewrite_level >= 0);
-      assert (app.rewrite_level <= 2);
-      if (app.rewrite_level == 2)
+      assert (app.rewrite_level <= 3);
+      if (app.rewrite_level >= 2)
         btor_dump_exps_after_substitution (
             btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
       else
