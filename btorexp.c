@@ -169,6 +169,7 @@ static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_all_exps (Btor *);
 static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
+static BtorExp *add_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
 
 /*------------------------------------------------------------------------*/
@@ -1656,6 +1657,96 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
       real_child->first_parent                            = tagged_parent;
     }
   }
+}
+
+static void
+normalize_binary_comm_ass_exp (Btor *btor,
+                               BtorExp *e0,
+                               BtorExp *e1,
+                               BtorExp **e0_norm,
+                               BtorExp **e1_norm,
+                               BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *),
+                               BtorExpKind kind)
+{
+  BtorMemMgr *mm;
+  BtorExpPtrStack po_stack, stack;
+  BtorExp *cur, *result, *temp;
+  int i;
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (e0_norm != NULL);
+  assert (e1_norm != NULL);
+  assert (fptr != NULL);
+  assert (BTOR_IS_BINARY_EXP_KIND (kind));
+  assert (!BTOR_IS_INVERTED_EXP (e0));
+  assert (!BTOR_IS_INVERTED_EXP (e1));
+  assert (e0->kind == kind);
+  assert (e1->kind == kind);
+  assert (btor->rewrite_level > 2);
+  mm = btor->mm;
+  for (i = 0; i < 2; i++)
+  {
+    BTOR_INIT_STACK (po_stack);
+    BTOR_INIT_STACK (stack);
+    if (i == 0)
+      BTOR_PUSH_STACK (mm, stack, e0);
+    else
+      BTOR_PUSH_STACK (mm, stack, e1);
+    do
+    {
+      cur = BTOR_POP_STACK (stack);
+      if (!BTOR_IS_INVERTED_EXP (cur) && cur->kind == kind)
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+      }
+      else
+        BTOR_PUSH_STACK (mm, po_stack, cur);
+    } while (!BTOR_EMPTY_STACK (stack));
+
+    assert (!BTOR_EMPTY_STACK (po_stack));
+    /* operation is commutative, we sort the operands by id */
+    qsort (po_stack.start,
+           BTOR_COUNT_STACK (po_stack),
+           sizeof (BtorExp *),
+           (BtorCmpPtr) btor_compare_exp_by_id);
+
+    assert (BTOR_COUNT_STACK (po_stack) >= 2);
+    result = fptr (btor, po_stack.start[0], po_stack.start[1]);
+    for (i = 2; i < BTOR_COUNT_STACK (po_stack); i++)
+    {
+      cur = po_stack.start[i];
+      assert (!(!BTOR_IS_INVERTED_EXP (cur) && cur->kind == BTOR_ADD_EXP));
+      temp = fptr (btor, result, cur);
+      release_exp (btor, result);
+      result = temp;
+    }
+
+    assert (BTOR_EMPTY_STACK (stack));
+    BTOR_RESET_STACK (po_stack);
+
+    if (i == 0)
+      *e0_norm = result;
+    else
+      *e1_norm = result;
+  }
+
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, po_stack);
+}
+
+static void
+normalize_add (
+    Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp **e0_norm, BtorExp **e1_norm)
+{
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (e0_norm != NULL);
+  assert (e1_norm != NULL);
+  assert (BTOR_REAL_ADDR_EXP (e0)->kind == BTOR_ADD_EXP);
+  assert (BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_ADD_EXP);
 }
 
 static BtorExp *
