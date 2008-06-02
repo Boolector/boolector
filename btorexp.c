@@ -1659,6 +1659,14 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
   }
 }
 
+static int
+compare_exp_by_id_qsort (const void *exp1, const void *exp2)
+{
+  assert (exp1 != NULL);
+  assert (exp2 != NULL);
+  return btor_compare_exp_by_id (*((BtorExp **) exp1), *((BtorExp **) exp2));
+}
+
 static void
 normalize_binary_comm_ass_exp (Btor *btor,
                                BtorExp *e0,
@@ -1671,7 +1679,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
   BtorMemMgr *mm;
   BtorExpPtrStack po_stack, stack;
   BtorExp *cur, *result, *temp;
-  int i;
+  int i, j;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -1684,11 +1692,13 @@ normalize_binary_comm_ass_exp (Btor *btor,
   assert (e0->kind == kind);
   assert (e1->kind == kind);
   assert (btor->rewrite_level > 2);
+
   mm = btor->mm;
+  BTOR_INIT_STACK (po_stack);
+  BTOR_INIT_STACK (stack);
+
   for (i = 0; i < 2; i++)
   {
-    BTOR_INIT_STACK (po_stack);
-    BTOR_INIT_STACK (stack);
     if (i == 0)
       BTOR_PUSH_STACK (mm, stack, e0);
     else
@@ -1710,17 +1720,15 @@ normalize_binary_comm_ass_exp (Btor *btor,
     qsort (po_stack.start,
            BTOR_COUNT_STACK (po_stack),
            sizeof (BtorExp *),
-           (BtorCmpPtr) btor_compare_exp_by_id);
+           compare_exp_by_id_qsort);
 
     assert (BTOR_COUNT_STACK (po_stack) >= 2);
     result = fptr (btor, po_stack.start[0], po_stack.start[1]);
-    assert (BTOR_REAL_ADDR_EXP (result)->kind == kind);
-    for (i = 2; i < BTOR_COUNT_STACK (po_stack); i++)
+    for (j = 2; j < BTOR_COUNT_STACK (po_stack); j++)
     {
-      cur = po_stack.start[i];
+      cur = po_stack.start[j];
       assert (!(!BTOR_IS_INVERTED_EXP (cur) && cur->kind == BTOR_ADD_EXP));
-      temp = fptr (btor, result, cur);
-      assert (BTOR_REAL_ADDR_EXP (temp)->kind == kind);
+      temp = fptr (btor, cur, result);
       release_exp (btor, result);
       result = temp;
     }
@@ -1739,7 +1747,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
 }
 
 static void
-normalize_adds (
+normalize_adds_exp (
     Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp **e0_norm, BtorExp **e1_norm)
 {
   assert (btor != NULL);
@@ -1753,6 +1761,23 @@ normalize_adds (
   assert (e1->kind == BTOR_ADD_EXP);
   normalize_binary_comm_ass_exp (
       btor, e0, e1, e0_norm, e1_norm, add_exp, BTOR_ADD_EXP);
+}
+
+static void
+normalize_muls_exp (
+    Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp **e0_norm, BtorExp **e1_norm)
+{
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (e0_norm != NULL);
+  assert (e1_norm != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (e0));
+  assert (!BTOR_IS_INVERTED_EXP (e1));
+  assert (e0->kind == BTOR_MUL_EXP);
+  assert (e1->kind == BTOR_MUL_EXP);
+  normalize_binary_comm_ass_exp (
+      btor, e0, e1, e0_norm, e1_norm, mul_exp, BTOR_MUL_EXP);
 }
 
 static BtorExp *
@@ -2738,8 +2763,8 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result;
   BtorExpKind kind;
 #ifndef NDEBUG
-  BtorExp *real_e0, *real_e1;
-  int is_array_e0, is_array_e1;
+  BtorExp *real_e0, *real_e1, *e0_norm, *e1_norm;
+  int is_array_e0, is_array_e1, normalized;
 #endif
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -2759,8 +2784,11 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (!is_array_e0
           || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
 #endif
-  result = NULL;
-  kind   = BTOR_BEQ_EXP;
+
+  normalized = 0;
+  result     = NULL;
+  kind       = BTOR_BEQ_EXP;
+
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
   {
     assert (BTOR_IS_REGULAR_EXP (e0));
@@ -2777,9 +2805,39 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       e0 = BTOR_REAL_ADDR_EXP (e0);
       e1 = BTOR_REAL_ADDR_EXP (e1);
     }
+
+    /* normalize adds and muls on demand */
+    if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
+        && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
+    {
+      if (e0->kind == BTOR_ADD_EXP)
+      {
+        assert (e1->kind == BTOR_ADD_EXP);
+        normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+      else if (e0->kind == BTOR_MUL_EXP)
+      {
+        assert (e1->kind == BTOR_MUL_EXP);
+        normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+    }
+
     result = rewrite_binary_exp (btor, kind, e0, e1);
   }
   if (result == NULL) result = binary_exp (btor, kind, e0, e1, 1);
+
+  if (normalized)
+  {
+    release_exp (btor, e0_norm);
+    release_exp (btor, e1_norm);
+  }
+
   return result;
 }
 
@@ -5091,7 +5149,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         break;
       default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
     }
-    /* TODO: handle all 'result->len == 1' cases */
   }
   else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
   {
@@ -5144,8 +5201,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         break;
       default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
     }
-
-    /* TODO: handle all 'result->len == 1' cases */
   }
   else if (real_e0 == real_e1
            && (kind == BTOR_BEQ_EXP || kind == BTOR_AEQ_EXP
@@ -5181,8 +5236,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         /* replace x + ~x by -1 */
         result = ones_exp (btor, real_e0->len);
     }
-
-    /* TODO: handle all 'result->len == 1' cases */
   }
   else if (e0 == e1
            && (kind == BTOR_ULT_EXP || kind == BTOR_UREM_EXP
@@ -5210,8 +5263,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         result = zero_exp (btor, real_e0->len);
         break;
     }
-
-    /* TODO: handle all 'result->len == 1' cases */
   }
   else if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0)
            && BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1)
@@ -5242,10 +5293,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     result     = cond_exp (btor, real_e0->e[0], temp_left, temp_right);
     release_exp (btor, temp_left);
     release_exp (btor, temp_right);
-  }
-  else
-  {
-    /* TODO: handle all 'result->len == 1' cases */
   }
 
   /* TODO: lots of word level simplifications:
