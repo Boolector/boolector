@@ -2866,9 +2866,11 @@ eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
   BtorExpKind kind;
+  BtorExp *e0_norm, *e1_norm;
+  int normalized;
 #ifndef NDEBUG
-  BtorExp *real_e0, *real_e1, *e0_norm, *e1_norm;
-  int is_array_e0, is_array_e1, normalized;
+  BtorExp *real_e0, *real_e1;
+  int is_array_e0, is_array_e1;
 #endif
   assert (btor != NULL);
   assert (e0 != NULL);
