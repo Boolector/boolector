@@ -1,13 +1,13 @@
 #include "btorhash.h"
 
 static unsigned
-btor_hash_ptr (void *p)
+btor_hash_ptr (const void *p)
 {
   return 1183477 * (unsigned) (unsigned long) p;
 }
 
 static int
-btor_cmp_ptr (void *p, void *q)
+btor_cmp_ptr (const void *p, const void *q)
 {
   return ((long) p) - ((long) q);
 }
@@ -126,7 +126,7 @@ static unsigned primes[] = {111130391, 22237357, 33355519, 444476887};
 #define PRIMES ((sizeof primes) / sizeof *primes)
 
 unsigned
-btor_hashstr (void *str)
+btor_hashstr (const void *str)
 {
   const char *p = (const char *) str;
   unsigned res, i;

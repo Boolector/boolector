@@ -9,8 +9,8 @@
 typedef struct BtorPtrHashTable BtorPtrHashTable;
 typedef struct BtorPtrHashBucket BtorPtrHashBucket;
 
-typedef unsigned (*BtorHashPtr) (void *key);
-typedef int (*BtorCmpPtr) (void *a, void *b);
+typedef unsigned (*BtorHashPtr) (const void *key);
+typedef int (*BtorCmpPtr) (const void *a, const void *b);
 
 typedef union BtorPtrHashData BtorPtrHashData;
 
@@ -73,7 +73,7 @@ void btor_remove_from_ptr_hash_table (BtorPtrHashTable *,
                                       void **stored_key_ptr,
                                       BtorPtrHashData *stored_data_ptr);
 
-unsigned btor_hashstr (void *str);
+unsigned btor_hashstr (const void *str);
 
 #define btor_cmpstr ((BtorCmpPtr) strcmp)
 
