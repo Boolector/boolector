@@ -3017,6 +3017,7 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       return copy_exp (btor, e0);
     if (BTOR_INVERT_EXP (e0) == e1) /* x & ~x == 0 */
       return zero_exp (btor, real_e0->len);
+
     if (real_e0->kind == BTOR_AND_EXP && real_e1->kind == BTOR_AND_EXP)
     {
       if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
@@ -3129,7 +3130,8 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           return BTOR_INVERT_EXP (copy_exp (btor, real_e1->e[1]));
       }
     }
-    else if (real_e0->kind == BTOR_AND_EXP)
+
+    if (real_e0->kind == BTOR_AND_EXP)
     {
       if (BTOR_IS_INVERTED_EXP (e0))
       {
@@ -3166,7 +3168,8 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           return copy_exp (btor, e0);
       }
     }
-    else if (real_e1->kind == BTOR_AND_EXP)
+
+    if (real_e1->kind == BTOR_AND_EXP)
     {
       if (BTOR_IS_INVERTED_EXP (e1))
       {
@@ -3203,24 +3206,21 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           return copy_exp (btor, e1);
       }
     }
-    else
+
+    if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP)
     {
-      assert (real_e0->kind != BTOR_AND_EXP);
-      assert (real_e1->kind != BTOR_AND_EXP);
-      if (real_e0->kind == BTOR_ULT_EXP && real_e1->kind == BTOR_ULT_EXP)
-      {
-        /* a < b && b < a simplifies to FALSE */
-        if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
-            && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
-          return false_exp (btor);
-        /* NOT (a < b) && NOT (b < a) simplifies to a == b */
-        if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
-            && real_e0->e[0] == real_e1->e[1] && real_e0->e[1] == real_e1->e[0])
-          return eq_exp (btor,
-                         BTOR_REAL_ADDR_EXP (real_e0->e[0]),
-                         BTOR_REAL_ADDR_EXP (real_e0->e[1]));
-      }
+      /* a < b && b < a simplifies to FALSE */
+      if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+          && e0->e[0] == e1->e[1] && e0->e[1] == e1->e[0])
+        return false_exp (btor);
+      /* NOT (a < b) && NOT (b < a) simplifies to a == b */
+      if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
+          && real_e0->e[0] == real_e1->e[1] && real_e0->e[1] == real_e1->e[0])
+        return eq_exp (btor,
+                       BTOR_REAL_ADDR_EXP (real_e0->e[0]),
+                       BTOR_REAL_ADDR_EXP (real_e0->e[1]));
     }
+
     if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
         && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
     {
