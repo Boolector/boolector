@@ -2977,7 +2977,8 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *real_e0, *real_e1, *result;
+  BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm;
+  int normalized;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -2989,11 +2990,15 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
-  result  = NULL;
+
+  normalized = 0;
+  result     = NULL;
+
   /* inline rewriting code as operands can change, e.g.
-   * symtmetric rule of idempotency */
+   * symmetric rule of idempotency
+   * two level optimization [MEMICS] for BTOR_AND_EXP
+   */
   if (btor->rewrite_level > 0)
-  /* two level optimization [MEMICS] for BTOR_AND_EXP */
   {
   BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
     if (e0 == e1) /* x & x == x */
@@ -3204,12 +3209,39 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
                          BTOR_REAL_ADDR_EXP (real_e0->e[1]));
       }
     }
-  }
-  if (btor->rewrite_level > 0)
+    if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
+        && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
+    {
+      if (e0->kind == BTOR_ADD_EXP)
+      {
+        assert (e1->kind == BTOR_ADD_EXP);
+        normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+      else if (e0->kind == BTOR_MUL_EXP)
+      {
+        assert (e1->kind == BTOR_MUL_EXP);
+        normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+    }
     result = rewrite_binary_exp (btor, BTOR_AND_EXP, e0, e1);
+  }
+
   if (result == NULL)
     result =
         binary_exp (btor, BTOR_AND_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+  if (normalized)
+  {
+    release_exp (btor, e0_norm);
+    release_exp (btor, e1_norm);
+  }
+
   return result;
 }
 
