@@ -174,6 +174,8 @@ rw48 -o log/rw48.log log/rw48.btor
 rw49 -o log/rw49.log log/rw49.btor
 rw50 -o log/rw50.log log/rw50.btor
 rw51 -o log/rw51.log log/rw51.btor
+rw52 -rwl0 -o log/rw52.log log/rw52.btor
+rw52 -rwl1 -o log/rw52.log log/rw52.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor

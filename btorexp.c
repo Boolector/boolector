@@ -3450,7 +3450,7 @@ static BtorExp *
 rewrite_ternary_exp (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 {
-  BtorExp *result;
+  BtorExp *result, *left, *right;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (btor->rewrite_level > 0);
@@ -3476,6 +3476,14 @@ rewrite_ternary_exp (
   }
   else if (e1 == e2)
     result = copy_exp (btor, e1);
+  else if (kind == BTOR_BCOND_EXP && BTOR_REAL_ADDR_EXP (e1)->len == 1)
+  {
+    left   = or_exp (btor, BTOR_INVERT_EXP (e0), e1);
+    right  = or_exp (btor, e0, e2);
+    result = and_exp (btor, left, right);
+    release_exp (btor, left);
+    release_exp (btor, right);
+  }
   return result;
 }
 
