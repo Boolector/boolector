@@ -112,6 +112,10 @@ struct Btor
     int vreads;
     /* number of linear equations */
     int linear_equations;
+    /* number of add chains normalizations */
+    int adds_normalized;
+    /* number of mul chains normalizations */
+    int muls_normalized;
     /* sum of the size of all added lemmas */
     long long int lemmas_size_sum;
     /* sum of the size of all linking clauses */
@@ -1773,6 +1777,14 @@ normalize_binary_comm_ass_exp (Btor *btor,
     *e0_norm = copy_exp (btor, e0);
     *e1_norm = copy_exp (btor, e1);
     return;
+  }
+
+  if (kind == BTOR_ADD_EXP)
+    btor->stats.adds_normalized++;
+  else
+  {
+    assert (kind == BTOR_MUL_EXP);
+    btor->stats.muls_normalized++;
   }
 
   assert (comm->count >= 2u);
@@ -6551,6 +6563,10 @@ btor_print_stats_btor (Btor *btor)
                                         btor->stats.refinements));
   print_verbose_msg ("linear constraint equations: %d",
                      btor->stats.linear_equations);
+  print_verbose_msg ("Number of add normalizations: %d",
+                     btor->stats.adds_normalized);
+  print_verbose_msg ("Number of mul normalizations: %d",
+                     btor->stats.muls_normalized);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      btor->stats.synthesis_assignment_inconsistencies);
