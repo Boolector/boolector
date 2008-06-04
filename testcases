@@ -191,6 +191,22 @@ rw58 -rwl3 -o log/rw58.log log/rw58.btor
 rw59 -rwl0 -o log/rw59.log log/rw59.btor
 rw59 -rwl3 -o log/rw59.log log/rw59.btor
 rw60 -o log/rw60.log log/rw60.btor
+rw61 -rwl0 -o log/rw61.log log/rw61.btor
+rw61 -rwl1 -o log/rw61.log log/rw61.btor
+rw62 -rwl0 -o log/rw62.log log/rw62.btor
+rw62 -rwl1 -o log/rw62.log log/rw62.btor
+rw63 -rwl0 -o log/rw63.log log/rw63.btor
+rw63 -rwl1 -o log/rw63.log log/rw63.btor
+rw64 -rwl0 -o log/rw64.log log/rw64.btor
+rw64 -rwl1 -o log/rw64.log log/rw64.btor
+rw65 -rwl0 -o log/rw65.log log/rw65.btor
+rw65 -rwl1 -o log/rw65.log log/rw65.btor
+rw66 -rwl0 -o log/rw66.log log/rw66.btor
+rw66 -rwl1 -o log/rw66.log log/rw66.btor
+rw67 -rwl0 -o log/rw67.log log/rw67.btor
+rw67 -rwl1 -o log/rw67.log log/rw67.btor
+rw68 -rwl0 -o log/rw68.log log/rw68.btor
+rw68 -rwl1 -o log/rw68.log log/rw68.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
