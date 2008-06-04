@@ -3933,7 +3933,7 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result, *e0_norm, *e1_norm, *mul_const;
+  BtorExp *result, *e0_norm, *e1_norm, *mul_const, *cur, *mul, *temp;
   BtorMemMgr *mm;
   BtorExpPtrStack stack;
   int normalized;
