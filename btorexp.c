@@ -3933,7 +3933,9 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result, *e0_norm, *e1_norm;
+  BtorExp *result, *e0_norm, *e1_norm, *mul_const;
+  BtorMemMgr *mm;
+  BtorExpPtrStack stack;
   int normalized;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -3948,17 +3950,70 @@ mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   normalized = 0;
   result     = NULL;
 
-  /* TODO:
-   * const * (a + const) == const * a + const * const */
-  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
-      && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == BTOR_ADD_EXP
-      && e1->kind == BTOR_ADD_EXP)
+  /* const * (a + const) =recursively= const * a + const * const */
+  if (btor->rewrite_level > 2)
   {
-    /* normalize adds on demand */
-    normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
-    normalized = 1;
-    e0         = e0_norm;
-    e1         = e1_norm;
+    if ((BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)) && BTOR_IS_REGULAR_EXP (e1)
+         && e1->kind == BTOR_ADD_EXP
+         && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
+             || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
+        || (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+            && BTOR_IS_REGULAR_EXP (e0) && e0->kind == BTOR_ADD_EXP
+            && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
+                || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))))
+    {
+      mm = btor->mm;
+      BTOR_INIT_STACK (stack);
+      result = zero_exp (btor, BTOR_REAL_ADDR_EXP (e0)->len);
+      if (BTOR_IS_REGULAR_EXP (e0) && e0->kind == BTOR_ADD_EXP)
+      {
+        assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
+                || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+        assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)));
+        mul_const = e1;
+        BTOR_PUSH_STACK (mm, stack, e0);
+      }
+      else
+      {
+        assert (BTOR_IS_REGULAR_EXP (e1) && e1->kind == BTOR_ADD_EXP);
+        assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
+                || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+        assert (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)));
+        mul_const = e0;
+        BTOR_PUSH_STACK (mm, stack, e1);
+      }
+      do
+      {
+        cur = BTOR_POP_STACK (stack);
+        if (BTOR_IS_REGULAR_EXP (cur) && cur->kind == BTOR_ADD_EXP
+            && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cur->e[0]))
+                || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cur->e[1]))))
+        {
+          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+        }
+        else
+        {
+          mul  = mul_exp (btor, cur, mul_const);
+          temp = add_exp (btor, result, mul);
+          release_exp (btor, result);
+          result = temp;
+          release_exp (btor, mul);
+        }
+      } while (!BTOR_EMPTY_STACK (stack));
+      BTOR_RELEASE_STACK (mm, stack);
+      return result;
+    }
+
+    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+        && e0->kind == BTOR_ADD_EXP && e1->kind == BTOR_ADD_EXP)
+    {
+      /* normalize adds on demand */
+      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+      normalized = 1;
+      e0         = e0_norm;
+      e1         = e1_norm;
+    }
   }
 
   if (btor->rewrite_level > 0)
