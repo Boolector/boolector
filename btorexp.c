@@ -170,6 +170,8 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 #define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 128
 
 static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
+static BtorExp *rewrite_cond_exp (
+    Btor *, BtorExpKind, BtorExp *, BtorExp *, BtorExp *, int);
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_all_exps (Btor *);
 static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
@@ -3447,48 +3449,8 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
-rewrite_ternary_exp (
-    Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, BtorExp *e2)
-{
-  BtorExp *result, *left, *right;
-  BtorMemMgr *mm;
-  assert (btor != NULL);
-  assert (btor->rewrite_level > 0);
-  assert (BTOR_IS_TERNARY_EXP_KIND (kind));
-  assert (kind == BTOR_BCOND_EXP || kind == BTOR_ACOND_EXP);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (e2 != NULL);
-  (void) kind;
-  e0     = pointer_chase_simplified_exp (btor, e0);
-  e1     = pointer_chase_simplified_exp (btor, e1);
-  e2     = pointer_chase_simplified_exp (btor, e2);
-  mm     = btor->mm;
-  result = NULL;
-  if (BTOR_IS_CONST_EXP (e0))
-  {
-    /* condtionals are normalized if rewrite level > 0 */
-    assert (!BTOR_IS_INVERTED_EXP (e0));
-    if (e0->bits[0] == '1')
-      result = copy_exp (btor, e1);
-    else
-      result = copy_exp (btor, e2);
-  }
-  else if (e1 == e2)
-    result = copy_exp (btor, e1);
-  else if (kind == BTOR_BCOND_EXP && BTOR_REAL_ADDR_EXP (e1)->len == 1)
-  {
-    left   = or_exp (btor, BTOR_INVERT_EXP (e0), e1);
-    right  = or_exp (btor, e0, e2);
-    result = and_exp (btor, left, right);
-    release_exp (btor, left);
-    release_exp (btor, right);
-  }
-  return result;
-}
-
-static BtorExp *
-cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
+cond_exp_bounded (
+    Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else, int bound)
 {
   BtorExp *result, *temp;
   BtorExpKind kind;
@@ -3530,11 +3492,19 @@ cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   kind   = BTOR_BCOND_EXP;
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))) kind = BTOR_ACOND_EXP;
   if (btor->rewrite_level > 0)
-    result = rewrite_ternary_exp (btor, kind, e_cond, e_if, e_else);
+    result = rewrite_cond_exp (btor, kind, e_cond, e_if, e_else, bound);
   if (result == NULL)
     result = ternary_exp (
         btor, kind, e_cond, e_if, e_else, BTOR_REAL_ADDR_EXP (e_if)->len);
   return result;
+}
+
+#define BTOR_COND_EXP_RW_BOUND 128
+
+static BtorExp *
+cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
+{
+  return cond_exp_bounded (btor, e_cond, e_if, e_else, BTOR_COND_EXP_RW_BOUND);
 }
 
 BtorExp *
@@ -5610,6 +5580,109 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
    * Finally:  x[30:0] = 2 && y[29:0] = -1
    * etc.
    */
+  return result;
+}
+
+static BtorExp *
+rewrite_cond_exp (Btor *btor,
+                  BtorExpKind kind,
+                  BtorExp *e0,
+                  BtorExp *e1,
+                  BtorExp *e2,
+                  int bound)
+{
+  BtorExp *result, *left, *right, *cond;
+  BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
+  BtorMemMgr *mm;
+  assert (btor != NULL);
+  assert (btor->rewrite_level > 0);
+  assert (BTOR_IS_TERNARY_EXP_KIND (kind));
+  assert (kind == BTOR_BCOND_EXP || kind == BTOR_ACOND_EXP);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (e2 != NULL);
+  assert (bound >= 0);
+
+  result = NULL;
+
+  if (bound > 0)
+  {
+    e0 = pointer_chase_simplified_exp (btor, e0);
+    e1 = pointer_chase_simplified_exp (btor, e1);
+    e2 = pointer_chase_simplified_exp (btor, e2);
+    mm = btor->mm;
+    if (BTOR_IS_CONST_EXP (e0))
+    {
+      /* condtionals are normalized if rewrite level > 0 */
+      assert (!BTOR_IS_INVERTED_EXP (e0));
+      if (e0->bits[0] == '1')
+        result = copy_exp (btor, e1);
+      else
+        result = copy_exp (btor, e2);
+    }
+    else if (e1 == e2)
+      result = copy_exp (btor, e1);
+    else if (kind == BTOR_BCOND_EXP && BTOR_REAL_ADDR_EXP (e1)->len == 1)
+    {
+      left   = or_exp (btor, BTOR_INVERT_EXP (e0), e1);
+      right  = or_exp (btor, e0, e2);
+      result = and_exp (btor, left, right);
+      release_exp (btor, left);
+      release_exp (btor, right);
+    }
+    else if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e1)
+             && !BTOR_IS_INVERTED_EXP (e2) && kind == BTOR_BCOND_EXP
+             && e1->kind == e2->kind)
+    {
+      fptr = NULL;
+      switch (e1->kind)
+      {
+        case BTOR_ADD_EXP: fptr = add_exp; break;
+        case BTOR_AND_EXP: fptr = and_exp; break;
+        case BTOR_MUL_EXP: fptr = mul_exp; break;
+        case BTOR_UDIV_EXP: fptr = udiv_exp; break;
+        case BTOR_UREM_EXP: fptr = urem_exp; break;
+        default: break;
+      }
+
+      if (fptr != NULL)
+      {
+        if (e1->e[0] == e2->e[0])
+        {
+          bound--;
+          cond   = cond_exp_bounded (btor, e0, e1->e[1], e2->e[1], bound);
+          result = fptr (btor, e1->e[0], cond);
+          release_exp (btor, cond);
+        }
+        else if (e1->e[1] == e2->e[1])
+        {
+          bound--;
+          cond   = cond_exp_bounded (btor, e0, e1->e[0], e2->e[0], bound);
+          result = fptr (btor, cond, e1->e[1]);
+          release_exp (btor, cond);
+        }
+
+        if (result == NULL && fptr != udiv_exp && fptr != urem_exp)
+        {
+          /* works only for commutative operators: */
+          if (e1->e[0] == e2->e[1])
+          {
+            bound--;
+            cond   = cond_exp_bounded (btor, e0, e1->e[1], e2->e[0], bound);
+            result = fptr (btor, e1->e[0], cond);
+            release_exp (btor, cond);
+          }
+          else if (e1->e[1] == e2->e[0])
+          {
+            bound--;
+            cond   = cond_exp_bounded (btor, e0, e1->e[0], e2->e[1], bound);
+            result = fptr (btor, e1->e[1], cond);
+            release_exp (btor, cond);
+          }
+        }
+      }
+    }
+  }
   return result;
 }
 
