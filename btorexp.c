@@ -2997,15 +2997,15 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
           upper = real_e0->len - 1;
           if (real_e0->kind == BTOR_CONCAT_EXP)
-            lower = upper - BTOR_REAL_ADDR_EXP (real_e0->e[0])->len;
+            lower = upper - BTOR_REAL_ADDR_EXP (real_e0->e[0])->len + 1;
           else
-            lower = upper - BTOR_REAL_ADDR_EXP (real_e1->e[0])->len;
+            lower = upper - BTOR_REAL_ADDR_EXP (real_e1->e[0])->len + 1;
 
           e0_0 = slice_exp (btor, e0, upper, lower);
           e1_0 = slice_exp (btor, e1, upper, lower);
-          upper--;
-          e0_1   = slice_exp (btor, e0, upper, 0);
-          e1_1   = slice_exp (btor, e1, upper, 0);
+          lower--;
+          e0_1   = slice_exp (btor, e0, lower, 0);
+          e1_1   = slice_exp (btor, e1, lower, 0);
           left   = eq_exp_bounded (btor, e0_0, e1_0, calls);
           right  = eq_exp_bounded (btor, e0_1, e1_1, calls);
           result = and_exp (btor, left, right);
