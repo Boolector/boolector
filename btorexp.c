@@ -2958,7 +2958,9 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (btor->rewrite_level > 2)
     {
       if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+          && (e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
           && e0->kind == e1->kind)
+
       {
         if (e0->kind == BTOR_ADD_EXP)
         {
@@ -2968,8 +2970,9 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
           e0         = e0_norm;
           e1         = e1_norm;
         }
-        else if (e0->kind == BTOR_MUL_EXP)
+        else
         {
+          assert (e0->kind == BTOR_MUL_EXP);
           assert (e1->kind == BTOR_MUL_EXP);
           normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
           normalized = 1;
