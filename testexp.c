@@ -213,12 +213,6 @@ test_neg_exp (void)
 }
 
 static void
-test_nego_exp (void)
-{
-  unary_exp_test (btor_nego_exp, "log/nego_exp.log");
-}
-
-static void
 test_redor_exp (void)
 {
   unary_exp_test (btor_redor_exp, "log/redor_exp.log");
@@ -759,7 +753,6 @@ run_exp_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (array_exp);
   BTOR_RUN_TEST_CHECK_LOG (not_exp);
   BTOR_RUN_TEST_CHECK_LOG (neg_exp);
-  BTOR_RUN_TEST_CHECK_LOG (nego_exp);
   BTOR_RUN_TEST_CHECK_LOG (redor_exp);
   BTOR_RUN_TEST_CHECK_LOG (redxor_exp);
   BTOR_RUN_TEST_CHECK_LOG (redand_exp);

@@ -78,54 +78,6 @@ u_overflow_test (int (*func) (int, int),
 }
 
 static void
-neg_overflow_test (int low, int high)
-{
-  FILE *f                = NULL;
-  int i                  = 0;
-  int overflow_test      = 0;
-  int overflow_boolector = 0;
-  int const_id           = 0;
-  int result             = 0;
-  int num_bits           = 0;
-  int max                = 0;
-  BtorExitCode exit_code = 0;
-  assert (low > 0);
-  assert (low <= high);
-  for (num_bits = low; num_bits <= high; num_bits++)
-  {
-    max = btor_pow_2_util (num_bits - 1);
-    for (i = -max; i < max; i++)
-    {
-      overflow_test      = 0;
-      overflow_boolector = 0;
-      result             = -i;
-      if (!(result >= -max && result < max)) overflow_test = 1;
-      f = fopen (BTOR_TEST_OVERFLOW_TEMP_FILE_NAME, "w");
-      assert (f != NULL);
-      if (i < 0)
-      {
-        fprintf (f, "1 constd %d %d\n", num_bits, -i);
-        fprintf (f, "2 neg %d 1\n", num_bits);
-        const_id = 2;
-      }
-      else
-      {
-        fprintf (f, "1 constd %d %d\n", num_bits, i);
-        const_id = 1;
-      }
-      fprintf (f, "%d nego 1 %d\n", const_id + 1, const_id);
-      fprintf (f, "%d root 1 %d\n", const_id + 2, const_id + 1);
-      fclose (f);
-      exit_code = btor_main (g_argc, g_argv);
-      assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
-      if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
-      if (overflow_boolector) assert (overflow_test);
-      if (overflow_test) assert (overflow_boolector);
-    }
-  }
-}
-
-static void
 s_overflow_test (int (*func) (int, int),
                  const char *func_name,
                  int exclude_second_zero,
@@ -252,12 +204,6 @@ test_umulo_overflow (void)
 }
 
 static void
-test_nego_overflow (void)
-{
-  neg_overflow_test (BTOR_TEST_OVERFLOW_LOW, BTOR_TEST_OVERFLOW_HIGH);
-}
-
-static void
 test_saddo_overflow (void)
 {
   s_overflow_test (
@@ -291,7 +237,6 @@ run_all_tests (int argc, char **argv)
   BTOR_RUN_TEST (uaddo_overflow);
   BTOR_RUN_TEST (usubo_overflow);
   BTOR_RUN_TEST (umulo_overflow);
-  BTOR_RUN_TEST (nego_overflow);
   BTOR_RUN_TEST (saddo_overflow);
   BTOR_RUN_TEST (ssubo_overflow);
   BTOR_RUN_TEST (smulo_overflow);

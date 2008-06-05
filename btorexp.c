@@ -3624,31 +3624,6 @@ btor_cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
 }
 
 BtorExp *
-btor_nego_exp (Btor *btor, BtorExp *exp)
-{
-  BtorExp *result, *sign_exp, *rest, *zero, *eq;
-  int len;
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_nego_exp'");
-  BTOR_ABORT_EXP (exp == NULL, "'exp' must not be NULL in 'btor_nego_exp'");
-  exp = pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                  "'exp' must not be an array in 'btor_nego_exp'");
-  assert (BTOR_REAL_ADDR_EXP (exp)->len > 0);
-  len = BTOR_REAL_ADDR_EXP (exp)->len;
-  if (len == 1) return copy_exp (btor, exp);
-  sign_exp = slice_exp (btor, exp, len - 1, len - 1);
-  rest     = slice_exp (btor, exp, len - 2, 0);
-  zero     = zero_exp (btor, len - 1);
-  eq       = eq_exp (btor, rest, zero);
-  result   = and_exp (btor, sign_exp, eq);
-  release_exp (btor, sign_exp);
-  release_exp (btor, rest);
-  release_exp (btor, zero);
-  release_exp (btor, eq);
-  return result;
-}
-
-BtorExp *
 btor_redor_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *result, *zero;

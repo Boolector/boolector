@@ -118,12 +118,6 @@ BtorExp *btor_not_exp (Btor *btor, BtorExp *exp);
  */
 BtorExp *btor_neg_exp (Btor *btor, BtorExp *exp);
 
-/* Result represents if two's complement leads to
- * an overflow. For example INT_MIN * -1.
- * len(result) = 1
- */
-BtorExp *btor_nego_exp (Btor *btor, BtorExp *exp);
-
 /* Logical OR reduction.
  * len(result) = 1
  */

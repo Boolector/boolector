@@ -734,13 +734,25 @@ parse_neg (BtorBTORParser *parser, int len)
 }
 
 static BtorExp *
+parse_inc (BtorBTORParser *parser, int len)
+{
+  return parse_unary (parser, len, btor_inc_exp);
+}
+
+static BtorExp *
+parse_dec (BtorBTORParser *parser, int len)
+{
+  return parse_unary (parser, len, btor_dec_exp);
+}
+
+static BtorExp *
 parse_proxy (BtorBTORParser *parser, int len)
 {
   return parse_unary (parser, len, btor_copy_exp);
 }
 
 static BtorExp *
-parse_redunary_and_nego (BtorBTORParser *parser, int len, Unary f)
+parse_redunary (BtorBTORParser *parser, int len, Unary f)
 {
   BtorExp *tmp, *res;
 
@@ -751,7 +763,7 @@ parse_redunary_and_nego (BtorBTORParser *parser, int len, Unary f)
 
   if (!(tmp = parse_exp (parser, 0, 0))) return 0;
 
-  if (f != btor_nego_exp && btor_get_exp_len (parser->btor, tmp) == 1)
+  if (btor_get_exp_len (parser->btor, tmp) == 1)
   {
     (void) parse_error (parser, "argument of reduction operation of width 1");
     btor_release_exp (parser->btor, tmp);
@@ -768,25 +780,19 @@ parse_redunary_and_nego (BtorBTORParser *parser, int len, Unary f)
 static BtorExp *
 parse_redand (BtorBTORParser *parser, int len)
 {
-  return parse_redunary_and_nego (parser, len, btor_redand_exp);
+  return parse_redunary (parser, len, btor_redand_exp);
 }
 
 static BtorExp *
 parse_redor (BtorBTORParser *parser, int len)
 {
-  return parse_redunary_and_nego (parser, len, btor_redor_exp);
+  return parse_redunary (parser, len, btor_redor_exp);
 }
 
 static BtorExp *
 parse_redxor (BtorBTORParser *parser, int len)
 {
-  return parse_redunary_and_nego (parser, len, btor_redxor_exp);
-}
-
-static BtorExp *
-parse_nego (BtorBTORParser *parser, int len)
-{
-  return parse_redunary_and_nego (parser, len, btor_nego_exp);
+  return parse_redunary (parser, len, btor_redxor_exp);
 }
 
 static BtorExp *
@@ -1607,7 +1613,8 @@ btor_new_btor_parser (Btor *btor, int verbosity)
   new_parser (res, parse_mul, "mul");
   new_parser (res, parse_nand, "nand");
   new_parser (res, parse_neg, "neg");
-  new_parser (res, parse_nego, "nego");
+  new_parser (res, parse_inc, "inc");
+  new_parser (res, parse_dec, "dec");
   new_parser (res, parse_ne, "ne");
   new_parser (res, parse_next, "next");   /* only in parser */
   new_parser (res, parse_anext, "anext"); /* only in parser */
