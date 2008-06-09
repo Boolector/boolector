@@ -846,9 +846,8 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
   return it->cur != NULL;
 }
 
-#ifndef NDEBUG
 static int
-has_parents (Btor *btor, BtorExp *exp)
+has_parents_exp (Btor *btor, BtorExp *exp)
 {
   BtorFullParentIterator it;
   assert (btor != NULL);
@@ -856,7 +855,6 @@ has_parents (Btor *btor, BtorExp *exp)
   init_full_parent_iterator (&it, exp);
   return has_next_parent_full_parent_iterator (&it);
 }
-#endif
 
 static void
 check_not_simplified_or_top (Btor *btor, BtorExp *exp)
@@ -871,7 +869,7 @@ check_not_simplified_or_top (Btor *btor, BtorExp *exp)
 
   assert (exp->len == 1);
   assert (BTOR_IS_CONST_EXP (exp));
-  assert (!has_parents (btor, exp));
+  assert (!has_parents_exp (btor, exp));
 #else
   (void) btor;
   (void) exp;
@@ -1504,7 +1502,7 @@ update_constraints (Btor *btor, BtorExp *exp)
   synthesized_constraints   = btor->synthesized_constraints;
   pos = neg = NULL;
 
-  /* substitution constraints are handled in a different way */
+  /* variable  substitution constraints are handled in a different way */
 
   if (btor_find_in_ptr_hash_table (unsynthesized_constraints, exp))
   {
@@ -8480,6 +8478,14 @@ rewrite_linear_term (
   return res;
 }
 
+static int
+is_embedded_constraint_exp (Btor *btor, BtorExp *exp)
+{
+  assert (btor != NULL);
+  assert (exp != NULL);
+  return BTOR_REAL_ADDR_EXP (exp)->len == 1 && has_parents_exp (btor, exp);
+}
+
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
 normalize_substitution (Btor *btor,
@@ -8576,18 +8582,69 @@ normalize_substitution (Btor *btor,
   return 1;
 }
 
-static void
+static int
 insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 {
+  BtorPtrHashTable *uc;
   assert (btor != NULL);
   assert (exp != NULL);
-  if (!btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp))
+  uc = btor->unsynthesized_constraints;
+  if (!btor_find_in_ptr_hash_table (uc, exp))
   {
-    (void) btor_insert_in_ptr_hash_table (btor->unsynthesized_constraints,
-                                          copy_exp (btor, exp));
+    inc_exp_ref_counter (btor, exp);
+    (void) btor_insert_in_ptr_hash_table (uc, exp);
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
     btor->stats.constraints.unsynthesized++;
+    return 1;
   }
+  return 0;
+}
+
+static void
+insert_varsubst_constraint (Btor *btor,
+                            BtorExp *exp,
+                            BtorExp *left,
+                            BtorExp *right)
+{
+  BtorPtrHashTable *vsc;
+  BtorPtrHashBucket *bucket;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (left != NULL);
+  assert (right != NULL);
+  vsc    = btor->varsubst_constraints;
+  bucket = btor_find_in_ptr_hash_table (vsc, left);
+  if (bucket == NULL)
+  {
+    inc_exp_ref_counter (btor, left);
+    inc_exp_ref_counter (btor, right);
+    btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
+    /* do not set constraint flag, as they are gone after substitution
+     * and treated differently */
+    btor->stats.constraints.varsubst++;
+  }
+  /* if v = t_1 is already in varsubst, we
+   * have to synthesize v = t_2 */
+  else if (right != (BtorExp *) bucket->data.asPtr)
+    insert_unsynthesized_constraint (btor, exp);
+}
+
+static int
+insert_embedded_constraint (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *ec;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  ec = btor->embedded_constraints;
+  if (!btor_find_in_ptr_hash_table (ec, exp))
+  {
+    inc_exp_ref_counter (btor, exp);
+    (void) btor_insert_in_ptr_hash_table (ec, exp);
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+    /* TODO statistics */
+    return 1;
+  }
+  return 0;
 }
 
 static void
@@ -8599,21 +8656,20 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
   assert (pointer_chase_simplified_exp (btor, exp) == exp);
   if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
-    if (btor->rewrite_level > 1
-        && normalize_substitution (btor, exp, &left, &right))
+    if (btor->rewrite_level > 1)
     {
-      if (!btor_find_in_ptr_hash_table (btor->varsubst_constraints, left))
+      if (normalize_substitution (btor, exp, &left, &right))
       {
-        btor_insert_in_ptr_hash_table (btor->varsubst_constraints,
-                                       copy_exp (btor, left))
-            ->data.asPtr = copy_exp (btor, right);
-        btor->stats.constraints.varsubst++;
+        insert_varsubst_constraint (btor, exp, left, right);
+        release_exp (btor, left);
+        release_exp (btor, right);
       }
+      /*
+      else if (is_embedded_constraint_exp (btor, exp))
+        insert_embedded_constraint (btor, exp);
+        */
       else
         insert_unsynthesized_constraint (btor, exp);
-
-      release_exp (btor, left);
-      release_exp (btor, right);
     }
     else
       insert_unsynthesized_constraint (btor, exp);
