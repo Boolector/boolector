@@ -66,6 +66,7 @@ typedef struct BtorExpUniqueTable BtorExpUniqueTable;
 struct ConstraintStats
 {
   int varsubst;
+  int embedded;
   int unsynthesized;
   int synthesized;
 };
@@ -6680,7 +6681,8 @@ btor_set_replay_btor (Btor *btor, int replay)
   BTOR_ABORT_EXP (btor == NULL,
                   "'btor' must not be NULL in 'btor_set_replay_btor'");
   BTOR_ABORT_EXP (
-      btor->varsubst_constraints->count + btor->unsynthesized_constraints->count
+      btor->varsubst_constraints->count + btor->embedded_constraints->count
+              + btor->unsynthesized_constraints->count
               + btor->synthesized_constraints->count + btor->assumptions->count
           > 0u,
       "setting replay must be done before add constraints and assumptions");
@@ -6785,6 +6787,9 @@ constraints_stats_changes (Btor *btor)
   res = abs (btor->stats.old.constraints.varsubst
              - btor->varsubst_constraints->count);
 
+  res += abs (btor->stats.old.constraints.embedded
+              - btor->embedded_constraints->count);
+
   res += abs (btor->stats.old.constraints.unsynthesized
               - btor->unsynthesized_constraints->count);
 
@@ -6812,16 +6817,19 @@ report_constraint_stats (Btor *btor, int force)
     if (btor->verbosity == 3 && changes < 10) return;
   }
 
-  print_verbose_msg ("%d/%d/%d constraints %d/%d/%d %.1f MB",
+  print_verbose_msg ("%d/%d/%d/%d constraints %d/%d/%d/%d %.1f MB",
                      btor->stats.constraints.varsubst,
+                     btor->stats.constraints.embedded,
                      btor->stats.constraints.unsynthesized,
                      btor->stats.constraints.synthesized,
                      btor->varsubst_constraints->count,
+                     btor->embedded_constraints->count,
                      btor->unsynthesized_constraints->count,
                      btor->synthesized_constraints->count,
                      btor->mm->allocated / (double) (1 << 20));
 
   btor->stats.old.constraints.varsubst = btor->varsubst_constraints->count;
+  btor->stats.old.constraints.embedded = btor->embedded_constraints->count;
   btor->stats.old.constraints.unsynthesized =
       btor->unsynthesized_constraints->count;
   btor->stats.old.constraints.synthesized =
@@ -8596,7 +8604,7 @@ normalize_substitution (Btor *btor,
   return 1;
 }
 
-static int
+static void
 insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 {
   BtorPtrHashTable *uc;
@@ -8609,9 +8617,7 @@ insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
     (void) btor_insert_in_ptr_hash_table (uc, exp);
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
     btor->stats.constraints.unsynthesized++;
-    return 1;
   }
-  return 0;
 }
 
 static void
@@ -8643,7 +8649,7 @@ insert_varsubst_constraint (Btor *btor,
     insert_unsynthesized_constraint (btor, exp);
 }
 
-static int
+static void
 insert_embedded_constraint (Btor *btor, BtorExp *exp)
 {
   BtorPtrHashTable *ec;
@@ -8655,10 +8661,8 @@ insert_embedded_constraint (Btor *btor, BtorExp *exp)
     inc_exp_ref_counter (btor, exp);
     (void) btor_insert_in_ptr_hash_table (ec, exp);
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    /* TODO statistics */
-    return 1;
+    btor->stats.constraints.embedded++;
   }
-  return 0;
 }
 
 static void
