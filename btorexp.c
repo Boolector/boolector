@@ -1486,8 +1486,8 @@ connect_array_child_aeq_exp (Btor *btor,
 static void
 update_constraints (Btor *btor, BtorExp *exp)
 {
-  BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints, *pos,
-      *neg;
+  BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints;
+  BtorPtrHashTable *embedded_constraints, *pos, *neg;
   BtorExp *simplified, *not_simplified, *not_exp;
   assert (btor != NULL);
   assert (exp != NULL);
@@ -1498,11 +1498,25 @@ update_constraints (Btor *btor, BtorExp *exp)
   not_exp                   = BTOR_INVERT_EXP (exp);
   simplified                = exp->simplified;
   not_simplified            = BTOR_INVERT_EXP (simplified);
+  embedded_constraints      = btor->embedded_constraints;
   unsynthesized_constraints = btor->unsynthesized_constraints;
   synthesized_constraints   = btor->synthesized_constraints;
   pos = neg = NULL;
 
   /* variable  substitution constraints are handled in a different way */
+
+  if (btor_find_in_ptr_hash_table (embedded_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    assert (pos == NULL);
+    pos = embedded_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (embedded_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    assert (neg == NULL);
+    neg = embedded_constraints;
+  }
 
   if (btor_find_in_ptr_hash_table (unsynthesized_constraints, exp))
   {
@@ -8664,10 +8678,8 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
         release_exp (btor, left);
         release_exp (btor, right);
       }
-      /*
       else if (is_embedded_constraint_exp (btor, exp))
         insert_embedded_constraint (btor, exp);
-        */
       else
         insert_unsynthesized_constraint (btor, exp);
     }
@@ -8852,6 +8864,25 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
     if (!btor_find_in_ptr_hash_table (btor->assumptions, exp))
       (void) btor_insert_in_ptr_hash_table (btor->assumptions,
                                             btor_copy_exp (btor, exp));
+  }
+}
+
+static void
+process_embedded_constraints (Btor *btor)
+{
+  BtorPtrHashTable *ec;
+  BtorPtrHashBucket *b;
+  BtorExp *cur;
+  assert (btor != NULL);
+  ec = btor->embedded_constraints;
+  /* dummy implementation */
+  while (ec->count > 0u)
+  {
+    b   = ec->first;
+    cur = (BtorExp *) b->key;
+    insert_unsynthesized_constraint (btor, cur);
+    btor_remove_from_ptr_hash_table (ec, cur, NULL, NULL);
+    release_exp (btor, cur);
   }
 }
 
@@ -9272,7 +9303,14 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   verbosity = btor->verbosity;
   if (verbosity > 0) print_verbose_msg ("calling SAT");
 
-  if (btor->rewrite_level > 1) substitute_all_exps (btor);
+  if (btor->rewrite_level > 1)
+  {
+    do
+    {
+      substitute_all_exps (btor);
+      process_embedded_constraints (btor);
+    } while (btor->varsubst_constraints->count > 0u);
+  }
 
   mm          = btor->mm;
   refinements = btor->stats.refinements;
