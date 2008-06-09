@@ -15,12 +15,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* Pointer chasing is a must for most incremental applications.  We keep
- * this switch to turn off pointer chasing around, for debugging purposes.
- *
-#define NPROXY
- */
-
 /*------------------------------------------------------------------------*/
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
@@ -851,6 +845,38 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
   return it->cur != NULL;
 }
 
+#ifndef NDEBUG
+static int
+has_parents (Btor *btor, BtorExp *exp)
+{
+  BtorFullParentIterator it;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  init_full_parent_iterator (&it, exp);
+  return has_next_parent_full_parent_iterator (&it);
+}
+#endif
+
+static void
+check_not_simplified_or_top (Btor *btor, BtorExp *exp)
+{
+#ifndef NDEBUG
+  assert (btor != NULL);
+  assert (exp != NULL);
+
+  exp = BTOR_REAL_ADDR_EXP (exp);
+
+  if (exp->simplified == NULL) return;
+
+  assert (exp->len == 1);
+  assert (BTOR_IS_CONST_EXP (exp));
+  assert (!has_parents (btor, exp));
+#else
+  (void) btor;
+  (void) exp;
+#endif
+}
+
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
  * The stack 'aeqs' contains intermediate array equalities (true).
@@ -1518,12 +1544,13 @@ update_constraints (Btor *btor, BtorExp *exp)
 }
 
 static void
-overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
+set_simplified_exp (Btor *btor,
+                    BtorExp *exp,
+                    BtorExp *simplified,
+                    int overwrite)
 {
-#ifndef NPROXY
   BtorExp *e[3];
   int i;
-#endif
   assert (btor);
   assert (exp);
   assert (simplified);
@@ -1536,8 +1563,8 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
   /* do we have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
 
-    /* TODO: PROXY CODE WORKING? */
-#ifndef NPROXY
+  if (!overwrite) return;
+
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
@@ -1546,8 +1573,7 @@ overwrite_exp (Btor *btor, BtorExp *exp, BtorExp *simplified)
   exp->kind         = BTOR_PROXY_EXP;
   exp->disconnected = 0;
   exp->erased       = 0;
-  exp->arity        = 0; /* defensive */
-#endif
+  exp->arity        = 0;
 }
 
 /* Finds most simplified expression and shortens path to it */
@@ -1585,7 +1611,7 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
     if (BTOR_IS_INVERTED_EXP (cur)) invert = !invert;
     cur  = BTOR_REAL_ADDR_EXP (cur);
     next = copy_exp (btor, cur->simplified);
-    overwrite_exp (btor, cur, invert ? not_simplified : simplified);
+    set_simplified_exp (btor, cur, invert ? not_simplified : simplified, 1);
     release_exp (btor, cur);
     cur = next;
   } while (BTOR_REAL_ADDR_EXP (cur)->simplified != NULL);
@@ -6142,16 +6168,10 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
     assert (BTOR_IS_REGULAR_EXP (e));
     assert (e->mark);
 
-    if (BTOR_IS_PROXY_EXP (e))
-    {
-      assert (e->simplified);
+    if (e->simplified)
       BTOR_PUSH_EXP_IF_NOT_MARKED (e->simplified);
-    }
     else
     {
-#ifndef NPROXY
-      assert (!e->simplified);
-#endif
       for (i = 0; i < e->arity; i++) BTOR_PUSH_EXP_IF_NOT_MARKED (e->e[i]);
     }
   }
@@ -6189,7 +6209,7 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
         fputs (op, file);
         fprintf (file, " %d", e->len);
 
-        if (BTOR_IS_PROXY_EXP (e))
+        if (e->simplified)
           fprintf (file, " %d", BTOR_GET_ID_EXP (e->simplified));
         else
           for (j = 0; j < e->arity; j++)
@@ -7409,6 +7429,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       {
         cur_aeq = next_parent_aeq_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_aeq));
+        check_not_simplified_or_top (btor, cur_aeq);
         if (cur_aeq->reachable && cur_aeq->mark == 0)
         {
           /* array equalities are synthesized eagerly */
@@ -7707,7 +7728,7 @@ readd_assumptions (Btor *btor)
   {
     assert (BTOR_REAL_ADDR_EXP ((BtorExp *) bucket->key)->len == 1);
     exp = (BtorExp *) bucket->key;
-    assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
+    exp = pointer_chase_simplified_exp (btor, exp);
     aig = exp_to_aig (btor, exp);
     if (aig == BTOR_AIG_FALSE) return 1;
     btor_aig_to_sat (amgr, aig);
@@ -7835,7 +7856,7 @@ process_working_stack (Btor *btor,
     acc = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (acc));
     assert (BTOR_IS_ACC_EXP (acc));
-    assert (acc->simplified == NULL);
+    check_not_simplified_or_top (btor, acc);
     /* synthesize index and value if necessary */
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
@@ -7932,7 +7953,8 @@ process_working_stack (Btor *btor,
       {
         cur_aeq = next_parent_aeq_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_aeq));
-        if (cur_aeq->reachable && cur_aeq->simplified == NULL)
+        check_not_simplified_or_top (btor, cur_aeq);
+        if (cur_aeq->reachable)
         {
           assert (BTOR_IS_SYNTH_EXP (cur_aeq));
           assert (cur_aeq->sat_both_phases);
@@ -7959,11 +7981,11 @@ process_working_stack (Btor *btor,
       while (has_next_parent_acond_parent_iterator (&it))
       {
         next = next_parent_acond_parent_iterator (&it);
-        if (next->reachable && next->simplified == NULL)
+        assert (next->simplified == NULL);
+        if (next->reachable)
         {
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
-          assert (next->simplified == NULL);
           *assignments_changed =
               lazy_synthesize_and_encode_acond_exp (btor, next);
           if (*assignments_changed) return 0;
@@ -7986,11 +8008,11 @@ process_working_stack (Btor *btor,
       while (has_next_parent_write_parent_iterator (&it))
       {
         next = next_parent_write_parent_iterator (&it);
-        if (next->reachable && next->simplified == NULL)
+        assert (next->simplified == NULL);
+        if (next->reachable)
         {
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
-          assert (next->simplified == NULL);
           *assignments_changed =
               lazy_synthesize_and_encode_acc_exp (btor, next);
           if (*assignments_changed) return 0;
@@ -8030,9 +8052,8 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
   {
     cur_array = (BtorExp *) bucket->key;
     assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
-    /* we can safely skip arrays which have been simplified */
-    if (cur_array->reachable && cur_array->simplified == NULL)
-      BTOR_PUSH_STACK (mm, stack, cur_array);
+    assert (cur_array->simplified == NULL);
+    if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
   }
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -8060,7 +8081,8 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
       {
         cur_parent = next_parent_write_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        if (cur_parent->reachable && cur_parent->simplified == NULL)
+        assert (cur_parent->simplified == NULL);
+        if (cur_parent->reachable)
         {
           found_top = 0;
           assert (cur_parent->array_mark == 0);
@@ -8073,7 +8095,8 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
       {
         cur_parent = next_parent_acond_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        if (cur_parent->reachable && cur_parent->simplified == NULL)
+        assert (cur_parent->simplified == NULL);
+        if (cur_parent->reachable)
         {
           found_top = 0;
           BTOR_PUSH_STACK (mm, stack, cur_parent);
@@ -8166,8 +8189,8 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
         /* we only process reachable or virtual reads */
-        if ((cur_parent->reachable || cur_parent->vread)
-            && cur_parent->simplified == NULL)
+        check_not_simplified_or_top (btor, cur_parent);
+        if (cur_parent->reachable || cur_parent->vread)
         {
           /* push read-array pair on working stack */
           BTOR_PUSH_STACK (mm, working_stack, cur_parent);
@@ -8920,7 +8943,7 @@ rebuild_and_substitute (Btor *btor, BtorPtrHashTable *substs)
       assert (rebuilt_exp != cur);
 
       simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
-      overwrite_exp (btor, cur, simplified);
+      set_simplified_exp (btor, cur, simplified, 1);
       release_exp (btor, rebuilt_exp);
     }
   }
