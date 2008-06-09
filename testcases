@@ -275,6 +275,8 @@ hd16 -rwl0 -o log/hd16.log log/hd16.btor
 hd16 -rwl1 -o log/hd16.log log/hd16.btor
 hd17 -rwl0 -o log/hd17.log log/hd17.btor
 hd17 -rwl1 -o log/hd17.log log/hd17.btor
+hd18 -rwl0 -o log/hd18.log log/hd18.btor
+hd18 -rwl1 -o log/hd18.log log/hd18.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt
