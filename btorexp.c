@@ -605,6 +605,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
 
       if (cur->simplified)
       {
+        assert (btor->rewrite_level > 1);
         BTOR_PUSH_STACK (mm, stack, cur->simplified);
         cur->simplified = NULL;
       }
@@ -1571,6 +1572,7 @@ set_simplified_exp (Btor *btor,
   assert (exp);
   assert (simplified);
   assert (BTOR_REAL_ADDR_EXP (simplified)->simplified == NULL);
+  assert (btor->rewrite_level > 1);
 
   if (BTOR_IS_INVERTED_EXP (exp))
   {
