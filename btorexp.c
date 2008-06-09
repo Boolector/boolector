@@ -65,8 +65,8 @@ typedef struct BtorExpUniqueTable BtorExpUniqueTable;
 
 struct ConstraintStats
 {
-  int subst;
-  int processed;
+  int varsubst;
+  int unsynthesized;
   int synthesized;
 };
 
@@ -85,8 +85,9 @@ struct Btor
   int vread_index_id;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
-  BtorPtrHashTable *subst_constraints;
-  BtorPtrHashTable *processed_constraints;
+  BtorPtrHashTable *varsubst_constraints;
+  BtorPtrHashTable *embedded_constraints;
+  BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
   BtorExpPtrStack replay_constraints;
@@ -1487,7 +1488,8 @@ connect_array_child_aeq_exp (Btor *btor,
 static void
 update_constraints (Btor *btor, BtorExp *exp)
 {
-  BtorPtrHashTable *processed_constraints, *synthesized_constraints, *pos, *neg;
+  BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints, *pos,
+      *neg;
   BtorExp *simplified, *not_simplified, *not_exp;
   assert (btor != NULL);
   assert (exp != NULL);
@@ -1495,26 +1497,26 @@ update_constraints (Btor *btor, BtorExp *exp)
   assert (exp->simplified != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp->simplified)->simplified == NULL);
   assert (exp->constraint);
-  not_exp                 = BTOR_INVERT_EXP (exp);
-  simplified              = exp->simplified;
-  not_simplified          = BTOR_INVERT_EXP (simplified);
-  processed_constraints   = btor->processed_constraints;
-  synthesized_constraints = btor->synthesized_constraints;
+  not_exp                   = BTOR_INVERT_EXP (exp);
+  simplified                = exp->simplified;
+  not_simplified            = BTOR_INVERT_EXP (simplified);
+  unsynthesized_constraints = btor->unsynthesized_constraints;
+  synthesized_constraints   = btor->synthesized_constraints;
   pos = neg = NULL;
 
   /* substitution constraints are handled in a different way */
 
-  if (btor_find_in_ptr_hash_table (processed_constraints, exp))
+  if (btor_find_in_ptr_hash_table (unsynthesized_constraints, exp))
   {
     add_constraint (btor, simplified);
     assert (pos == NULL);
-    pos = processed_constraints;
+    pos = unsynthesized_constraints;
   }
-  if (btor_find_in_ptr_hash_table (processed_constraints, not_exp))
+  if (btor_find_in_ptr_hash_table (unsynthesized_constraints, not_exp))
   {
     add_constraint (btor, not_simplified);
     assert (neg == NULL);
-    neg = processed_constraints;
+    neg = unsynthesized_constraints;
   }
 
   if (btor_find_in_ptr_hash_table (synthesized_constraints, exp))
@@ -6333,7 +6335,7 @@ btor_dump_exps_after_substitution (Btor *btor,
     release_exp (btor, temp);
   }
   substitute_all_exps (btor);
-  constraints = btor->processed_constraints;
+  constraints = btor->unsynthesized_constraints;
   new_nroots  = (int) constraints->count;
   BTOR_NEWN (btor->mm, new_roots, new_nroots);
   i = 0;
@@ -6608,23 +6610,28 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr                      = btor_new_aigvec_mgr (mm);
-  btor->arrays                     = btor_new_ptr_hash_table (mm,
+  btor->avmgr             = btor_new_aigvec_mgr (mm);
+  btor->arrays            = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->id                         = 1;
-  btor->valid_assignments          = 1;
-  btor->rewrite_level              = 3;
-  btor->vread_index_id             = 1;
+  btor->id                = 1;
+  btor->valid_assignments = 1;
+  btor->rewrite_level     = 3;
+  btor->vread_index_id    = 1;
+
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  btor->subst_constraints =
+  btor->varsubst_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->processed_constraints =
+  btor->embedded_constraints =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->unsynthesized_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
@@ -6636,6 +6643,7 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+
   BTOR_INIT_STACK (btor->replay_constraints);
   return btor;
 }
@@ -6660,7 +6668,7 @@ btor_set_replay_btor (Btor *btor, int replay)
   BTOR_ABORT_EXP (btor == NULL,
                   "'btor' must not be NULL in 'btor_set_replay_btor'");
   BTOR_ABORT_EXP (
-      btor->subst_constraints->count + btor->processed_constraints->count
+      btor->varsubst_constraints->count + btor->unsynthesized_constraints->count
               + btor->synthesized_constraints->count + btor->assumptions->count
           > 0u,
       "setting replay must be done before add constraints and assumptions");
@@ -6710,18 +6718,23 @@ btor_delete_btor (Btor *btor)
 
   /* delete constraints and assumptions */
 
-  for (bucket = btor->subst_constraints->first; bucket != NULL;
+  for (bucket = btor->varsubst_constraints->first; bucket != NULL;
        bucket = bucket->next)
   {
     release_exp (btor, (BtorExp *) bucket->key);
     release_exp (btor, (BtorExp *) bucket->data.asPtr);
   }
-  btor_delete_ptr_hash_table (btor->subst_constraints);
+  btor_delete_ptr_hash_table (btor->varsubst_constraints);
 
-  for (bucket = btor->processed_constraints->first; bucket != NULL;
+  for (bucket = btor->embedded_constraints->first; bucket != NULL;
        bucket = bucket->next)
     release_exp (btor, (BtorExp *) bucket->key);
-  btor_delete_ptr_hash_table (btor->processed_constraints);
+  btor_delete_ptr_hash_table (btor->embedded_constraints);
+
+  for (bucket = btor->unsynthesized_constraints->first; bucket != NULL;
+       bucket = bucket->next)
+    release_exp (btor, (BtorExp *) bucket->key);
+  btor_delete_ptr_hash_table (btor->unsynthesized_constraints);
 
   for (bucket = btor->synthesized_constraints->first; bucket != NULL;
        bucket = bucket->next)
@@ -6749,18 +6762,19 @@ constraints_stats_changes (Btor *btor)
 {
   int res;
 
-  if (btor->stats.old.constraints.subst && !btor->subst_constraints->count)
+  if (btor->stats.old.constraints.varsubst
+      && !btor->varsubst_constraints->count)
     return INT_MAX;
 
-  if (btor->stats.old.constraints.processed
-      && !btor->processed_constraints->count)
+  if (btor->stats.old.constraints.unsynthesized
+      && !btor->unsynthesized_constraints->count)
     return INT_MAX;
 
-  res =
-      abs (btor->stats.old.constraints.subst - btor->subst_constraints->count);
+  res = abs (btor->stats.old.constraints.varsubst
+             - btor->varsubst_constraints->count);
 
-  res += abs (btor->stats.old.constraints.processed
-              - btor->processed_constraints->count);
+  res += abs (btor->stats.old.constraints.unsynthesized
+              - btor->unsynthesized_constraints->count);
 
   res += abs (btor->stats.old.constraints.synthesized
               - btor->synthesized_constraints->count);
@@ -6787,16 +6801,17 @@ report_constraint_stats (Btor *btor, int force)
   }
 
   print_verbose_msg ("%d/%d/%d constraints %d/%d/%d %.1f MB",
-                     btor->stats.constraints.subst,
-                     btor->stats.constraints.processed,
+                     btor->stats.constraints.varsubst,
+                     btor->stats.constraints.unsynthesized,
                      btor->stats.constraints.synthesized,
-                     btor->subst_constraints->count,
-                     btor->processed_constraints->count,
+                     btor->varsubst_constraints->count,
+                     btor->unsynthesized_constraints->count,
                      btor->synthesized_constraints->count,
                      btor->mm->allocated / (double) (1 << 20));
 
-  btor->stats.old.constraints.subst     = btor->subst_constraints->count;
-  btor->stats.old.constraints.processed = btor->processed_constraints->count;
+  btor->stats.old.constraints.varsubst = btor->varsubst_constraints->count;
+  btor->stats.old.constraints.unsynthesized =
+      btor->unsynthesized_constraints->count;
   btor->stats.old.constraints.synthesized =
       btor->synthesized_constraints->count;
 }
@@ -8562,16 +8577,16 @@ normalize_substitution (Btor *btor,
 }
 
 static void
-insert_processed_constraint (Btor *btor, BtorExp *exp)
+insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 {
   assert (btor != NULL);
   assert (exp != NULL);
-  if (!btor_find_in_ptr_hash_table (btor->processed_constraints, exp))
+  if (!btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp))
   {
-    (void) btor_insert_in_ptr_hash_table (btor->processed_constraints,
+    (void) btor_insert_in_ptr_hash_table (btor->unsynthesized_constraints,
                                           copy_exp (btor, exp));
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    btor->stats.constraints.processed++;
+    btor->stats.constraints.unsynthesized++;
   }
 }
 
@@ -8587,21 +8602,21 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
     if (btor->rewrite_level > 1
         && normalize_substitution (btor, exp, &left, &right))
     {
-      if (!btor_find_in_ptr_hash_table (btor->subst_constraints, left))
+      if (!btor_find_in_ptr_hash_table (btor->varsubst_constraints, left))
       {
-        btor_insert_in_ptr_hash_table (btor->subst_constraints,
+        btor_insert_in_ptr_hash_table (btor->varsubst_constraints,
                                        copy_exp (btor, left))
             ->data.asPtr = copy_exp (btor, right);
-        btor->stats.constraints.subst++;
+        btor->stats.constraints.varsubst++;
       }
       else
-        insert_processed_constraint (btor, exp);
+        insert_unsynthesized_constraint (btor, exp);
 
       release_exp (btor, left);
       release_exp (btor, right);
     }
     else
-      insert_processed_constraint (btor, exp);
+      insert_unsynthesized_constraint (btor, exp);
 
     report_constraint_stats (btor, 0);
   }
@@ -8789,20 +8804,20 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
 static int
 process_unsynthesized_constraints (Btor *btor)
 {
-  BtorPtrHashTable *processed_constraints, *synthesized_constraints;
+  BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints;
   BtorPtrHashBucket *bucket;
   BtorExp *cur;
   BtorAIG *aig;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   assert (btor != NULL);
-  processed_constraints   = btor->processed_constraints;
-  synthesized_constraints = btor->synthesized_constraints;
-  amgr                    = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr                    = btor_get_sat_mgr_aig_mgr (amgr);
-  while (processed_constraints->count > 0)
+  unsynthesized_constraints = btor->unsynthesized_constraints;
+  synthesized_constraints   = btor->synthesized_constraints;
+  amgr                      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr                      = btor_get_sat_mgr_aig_mgr (amgr);
+  while (unsynthesized_constraints->count > 0)
   {
-    bucket = processed_constraints->first;
+    bucket = unsynthesized_constraints->first;
     assert (bucket != NULL);
     cur = (BtorExp *) bucket->key;
 
@@ -8814,7 +8829,7 @@ process_unsynthesized_constraints (Btor *btor)
       btor_add_toplevel_aig_to_sat (amgr, aig);
       btor_release_aig (amgr, aig);
       (void) btor_insert_in_ptr_hash_table (synthesized_constraints, cur);
-      btor_remove_from_ptr_hash_table (processed_constraints, cur, 0, 0);
+      btor_remove_from_ptr_hash_table (unsynthesized_constraints, cur, 0, 0);
 
       btor->stats.constraints.synthesized++;
       report_constraint_stats (btor, 0);
@@ -8822,7 +8837,8 @@ process_unsynthesized_constraints (Btor *btor)
     else
     {
       /* constraint is already in synthesized_constraints */
-      btor_remove_from_ptr_hash_table (processed_constraints, cur, NULL, NULL);
+      btor_remove_from_ptr_hash_table (
+          unsynthesized_constraints, cur, NULL, NULL);
       release_exp (btor, cur);
     }
   }
@@ -8968,19 +8984,19 @@ static void
 substitute_all_exps (Btor *btor)
 {
   int order_num, val, max, i;
-  BtorPtrHashTable *subst_constraints, *order, *substs;
+  BtorPtrHashTable *varsubst_constraints, *order, *substs;
   BtorPtrHashBucket *b, *b_temp;
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
   BtorExp *cur, *constraint, *left, *right, *child;
   assert (btor != NULL);
 
-  mm                = btor->mm;
-  subst_constraints = btor->subst_constraints;
+  mm                   = btor->mm;
+  varsubst_constraints = btor->varsubst_constraints;
   BTOR_INIT_STACK (stack);
 
   /* new equality constraints can be added during rebuild */
-  while (subst_constraints->count > 0u)
+  while (varsubst_constraints->count > 0u)
   {
     order_num = 1;
     order     = btor_new_ptr_hash_table (mm,
@@ -8993,16 +9009,16 @@ substitute_all_exps (Btor *btor)
 
     /* we copy the current substitution constraints into a local hash table,
      * and empty the global substitution table */
-    while (subst_constraints->count > 0u)
+    while (varsubst_constraints->count > 0u)
     {
-      b   = subst_constraints->first;
+      b   = varsubst_constraints->first;
       cur = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
       btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
-      btor_remove_from_ptr_hash_table (subst_constraints, cur, NULL, NULL);
+      btor_remove_from_ptr_hash_table (varsubst_constraints, cur, NULL, NULL);
     }
-    assert (subst_constraints->count == 0u);
+    assert (varsubst_constraints->count == 0u);
 
     /* we search for cyclic substitution dependencies
      * and map the substitutions to an ordering number */
@@ -9152,7 +9168,7 @@ substitute_all_exps (Btor *btor)
       assert (right != NULL);
 
       constraint = eq_exp (btor, left, right);
-      insert_processed_constraint (btor, constraint);
+      insert_unsynthesized_constraint (btor, constraint);
       release_exp (btor, constraint);
 
       btor_remove_from_ptr_hash_table (substs, left, NULL, NULL);
