@@ -4883,7 +4883,7 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   if (btor->rewrite_level > 0)
   {
     /* we do not need the optimization v / power_of_2_constant as
-     * the AIG level finds this out */
+     * the AIG level does this optimization already */
 
     /* boolean case */
     if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
@@ -5041,7 +5041,7 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   if (btor->rewrite_level > 0)
   {
     /* we do not need the optimization v % power_of_2_constant as
-     * the AIG level finds this out */
+     * the AIG level does this optimization already */
 
     /* boolean case */
     if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
