@@ -2739,14 +2739,18 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   if (btor->rewrite_level > 0)
   {
+    /* boolean case */
+    if (BTOR_REAL_ADDR_EXP (e0)->len == 1) return xor_exp (btor, e0, e1);
+
     /* a - a == 0 */
     if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
         && e0 == BTOR_INVERT_EXP (e1->e[0])
         && is_const_one_exp (btor, e1->e[1]))
       return zero_exp (btor, e1->len);
-    else if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
-             && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == BTOR_MUL_EXP
-             && e1->kind == BTOR_MUL_EXP)
+
+    if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
+        && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == BTOR_MUL_EXP
+        && e1->kind == BTOR_MUL_EXP)
     {
       /* normalize muls on demand */
       normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
@@ -2985,6 +2989,10 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       e0 = BTOR_REAL_ADDR_EXP (e0);
       e1 = BTOR_REAL_ADDR_EXP (e1);
     }
+
+    /* we do not rewrite eq in the boolean case, as we
+     * cannot extract the resulting XNOR on top level again and
+     * would therefore lose substitutions */
 
     /* normalize adds and muls on demand */
     if (btor->rewrite_level > 2)
@@ -4009,50 +4017,54 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   normalized = 0;
   result     = NULL;
 
-  /* const * (t + const) =recursively= const * t + const * const */
-  if (btor->rewrite_level > 2 && *calls < BTOR_MUL_EXP_RW_BOUND)
-  {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)) && BTOR_IS_REGULAR_EXP (e1)
-        && e1->kind == BTOR_ADD_EXP
-        && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
-            || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
-    {
-      *calls += 1;
-      left   = mul_exp_bounded (btor, e0, e1->e[0], calls);
-      right  = mul_exp_bounded (btor, e0, e1->e[1], calls);
-      result = add_exp (btor, left, right);
-      release_exp (btor, left);
-      release_exp (btor, right);
-      return result;
-    }
-
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)) && BTOR_IS_REGULAR_EXP (e0)
-        && e0->kind == BTOR_ADD_EXP
-        && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
-            || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1]))))
-    {
-      *calls += 1;
-      left   = mul_exp_bounded (btor, e1, e0->e[0], calls);
-      right  = mul_exp_bounded (btor, e1, e0->e[1], calls);
-      result = add_exp (btor, left, right);
-      release_exp (btor, left);
-      release_exp (btor, right);
-      return result;
-    }
-
-    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
-        && e0->kind == BTOR_ADD_EXP && e1->kind == BTOR_ADD_EXP)
-    {
-      /* normalize adds on demand */
-      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
-    }
-  }
-
   if (btor->rewrite_level > 0)
+  {
+    /* boolean case */
+    if (BTOR_REAL_ADDR_EXP (e0)->len == 1) return and_exp (btor, e0, e1);
+
+    /* const * (t + const) =recursively= const * t + const * const */
+    if (btor->rewrite_level > 2 && *calls < BTOR_MUL_EXP_RW_BOUND)
+    {
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+          && BTOR_IS_REGULAR_EXP (e1) && e1->kind == BTOR_ADD_EXP
+          && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
+              || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
+      {
+        *calls += 1;
+        left   = mul_exp_bounded (btor, e0, e1->e[0], calls);
+        right  = mul_exp_bounded (btor, e0, e1->e[1], calls);
+        result = add_exp (btor, left, right);
+        release_exp (btor, left);
+        release_exp (btor, right);
+        return result;
+      }
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+          && BTOR_IS_REGULAR_EXP (e0) && e0->kind == BTOR_ADD_EXP
+          && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
+              || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1]))))
+      {
+        *calls += 1;
+        left   = mul_exp_bounded (btor, e1, e0->e[0], calls);
+        right  = mul_exp_bounded (btor, e1, e0->e[1], calls);
+        result = add_exp (btor, left, right);
+        release_exp (btor, left);
+        release_exp (btor, right);
+        return result;
+      }
+
+      if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+          && e0->kind == BTOR_ADD_EXP && e1->kind == BTOR_ADD_EXP)
+      {
+        /* normalize adds on demand */
+        normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+    }
     result = rewrite_binary_exp (btor, BTOR_MUL_EXP, e0, e1);
+  }
 
   if (result == NULL)
     result =
@@ -4268,6 +4280,11 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       e1   = BTOR_REAL_ADDR_EXP (e0);
       e0   = temp;
     }
+
+    /* boolean case */
+    if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
+      return and_exp (btor, BTOR_INVERT_EXP (e0), e1);
+
     if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
         && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
     {
@@ -4837,29 +4854,36 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   normalized = 0;
   result     = NULL;
 
-  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
-      && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
+  if (btor->rewrite_level > 0)
   {
-    if (e0->kind == BTOR_ADD_EXP)
+    /* boolean case */
+    if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
+      return BTOR_INVERT_EXP (and_exp (btor, BTOR_INVERT_EXP (e0), e1));
+
+    /* normalize adds and muls on demand */
+    if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
+        && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
     {
-      assert (e1->kind == BTOR_ADD_EXP);
-      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
+      if (e0->kind == BTOR_ADD_EXP)
+      {
+        assert (e1->kind == BTOR_ADD_EXP);
+        normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+      else if (e0->kind == BTOR_MUL_EXP)
+      {
+        assert (e1->kind == BTOR_MUL_EXP);
+        normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
     }
-    else if (e0->kind == BTOR_MUL_EXP)
-    {
-      assert (e1->kind == BTOR_MUL_EXP);
-      normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
-    }
+    result = rewrite_binary_exp (btor, BTOR_UDIV_EXP, e0, e1);
   }
 
-  if (btor->rewrite_level > 0)
-    result = rewrite_binary_exp (btor, BTOR_UDIV_EXP, e0, e1);
   if (result == NULL)
     result =
         binary_exp (btor, BTOR_UDIV_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
@@ -4985,29 +5009,36 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   normalized = 0;
   result     = NULL;
 
-  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
-      && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
+  if (btor->rewrite_level > 0)
   {
-    if (e0->kind == BTOR_ADD_EXP)
+    /* boolean case */
+    if (BTOR_REAL_ADDR_EXP (e0)->len == 1)
+      return and_exp (btor, e0, BTOR_INVERT_EXP (e1));
+
+    /* normalize adds and muls on demand */
+    if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
+        && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
     {
-      assert (e1->kind == BTOR_ADD_EXP);
-      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
+      if (e0->kind == BTOR_ADD_EXP)
+      {
+        assert (e1->kind == BTOR_ADD_EXP);
+        normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
+      else if (e0->kind == BTOR_MUL_EXP)
+      {
+        assert (e1->kind == BTOR_MUL_EXP);
+        normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
+        normalized = 1;
+        e0         = e0_norm;
+        e1         = e1_norm;
+      }
     }
-    else if (e0->kind == BTOR_MUL_EXP)
-    {
-      assert (e1->kind == BTOR_MUL_EXP);
-      normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
-    }
+    result = rewrite_binary_exp (btor, BTOR_UREM_EXP, e0, e1);
   }
 
-  if (btor->rewrite_level > 0)
-    result = rewrite_binary_exp (btor, BTOR_UREM_EXP, e0, e1);
   if (result == NULL)
     result =
         binary_exp (btor, BTOR_UREM_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
