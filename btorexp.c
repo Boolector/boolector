@@ -9320,6 +9320,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     } while (btor->varsubst_constraints->count > 0u);
   }
 
+  assert (btor->varsubst_constraints->count == 0u);
+  assert (btor->embedded_constraints->count == 0u);
+
   mm          = btor->mm;
   refinements = btor->stats.refinements;
 
@@ -9333,6 +9336,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   found_constraint_false = process_unsynthesized_constraints (btor);
   if (found_constraint_false) return BTOR_UNSAT;
+
+  assert (btor->unsynthesized_constraints->count == 0u);
 
   /* pointer chase assumptions */
   update_assumptions (btor);
