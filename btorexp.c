@@ -84,6 +84,7 @@ struct Btor
   int has_array_equalities;
   int replay;
   int vread_index_id;
+  int inconsistent;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *varsubst_constraints;
@@ -858,7 +859,7 @@ has_parents_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-check_not_simplified_or_top (Btor *btor, BtorExp *exp)
+check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 {
 #ifndef NDEBUG
   assert (btor != NULL);
@@ -869,8 +870,8 @@ check_not_simplified_or_top (Btor *btor, BtorExp *exp)
   if (exp->simplified == NULL) return;
 
   assert (exp->len == 1);
+  while (exp->simplified != NULL) exp = BTOR_REAL_ADDR_EXP (exp->simplified);
   assert (BTOR_IS_CONST_EXP (exp));
-  assert (!has_parents_exp (btor, exp));
 #else
   (void) btor;
   (void) exp;
@@ -1569,7 +1570,13 @@ set_simplified_exp (Btor *btor,
   assert (btor);
   assert (exp);
   assert (simplified);
-  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (BTOR_REAL_ADDR_EXP (simplified)->simplified == NULL);
+
+  if (BTOR_IS_INVERTED_EXP (exp))
+  {
+    exp        = BTOR_INVERT_EXP (exp);
+    simplified = BTOR_INVERT_EXP (simplified);
+  }
 
   if (exp->simplified) release_exp (btor, exp->simplified);
 
@@ -1626,7 +1633,7 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
     if (BTOR_IS_INVERTED_EXP (cur)) invert = !invert;
     cur  = BTOR_REAL_ADDR_EXP (cur);
     next = copy_exp (btor, cur->simplified);
-    set_simplified_exp (btor, cur, invert ? not_simplified : simplified, 1);
+    set_simplified_exp (btor, cur, invert ? not_simplified : simplified, 0);
     release_exp (btor, cur);
     cur = next;
   } while (BTOR_REAL_ADDR_EXP (cur)->simplified != NULL);
@@ -1661,6 +1668,35 @@ pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
     return exp->simplified;
   }
   return recursively_pointer_chase_simplified_exp (btor, exp);
+}
+
+static int
+merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b, int overwrite)
+{
+  BtorExp *rep_a, *rep_b, *rep;
+  assert (btor != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (btor->rewrite_level > 1);
+  assert (BTOR_REAL_ADDR_EXP (a)->len == 1);
+  assert (BTOR_REAL_ADDR_EXP (b)->len == 1);
+  rep_a = pointer_chase_simplified_exp (btor, a);
+  rep_b = pointer_chase_simplified_exp (btor, b);
+
+  assert (rep_a == a || rep_b == b);
+
+  if (rep_a == BTOR_INVERT_EXP (rep_b)) return 0;
+
+  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (rep_a)))
+    rep = rep_a;
+  else
+    rep = rep_b;
+
+  if (a != rep) set_simplified_exp (btor, a, rep, overwrite);
+
+  if (b != rep) set_simplified_exp (btor, b, rep, overwrite);
+
+  return 1;
 }
 
 /* Connects child to its parent and updates list of parent pointers.
@@ -6192,7 +6228,7 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
     assert (BTOR_IS_REGULAR_EXP (e));
     assert (e->mark);
 
-    if (e->simplified)
+    if (e->kind == BTOR_PROXY_EXP)
       BTOR_PUSH_EXP_IF_NOT_MARKED (e->simplified);
     else
     {
@@ -6233,7 +6269,7 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
         fputs (op, file);
         fprintf (file, " %d", e->len);
 
-        if (e->simplified)
+        if (e->kind == BTOR_PROXY_EXP)
           fprintf (file, " %d", BTOR_GET_ID_EXP (e->simplified));
         else
           for (j = 0; j < e->arity; j++)
@@ -7477,7 +7513,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       {
         cur_aeq = next_parent_aeq_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_aeq));
-        check_not_simplified_or_top (btor, cur_aeq);
+        check_not_simplified_or_const (btor, cur_aeq);
         if (cur_aeq->reachable && cur_aeq->mark == 0)
         {
           /* array equalities are synthesized eagerly */
@@ -7904,13 +7940,13 @@ process_working_stack (Btor *btor,
     acc = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_EXP (acc));
     assert (BTOR_IS_ACC_EXP (acc));
-    check_not_simplified_or_top (btor, acc);
+    check_not_simplified_or_const (btor, acc);
     /* synthesize index and value if necessary */
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
-    assert (BTOR_REAL_ADDR_EXP (index)->simplified == NULL);
+    check_not_simplified_or_const (btor, index);
     value = BTOR_GET_VALUE_ACC_EXP (acc);
-    assert (BTOR_REAL_ADDR_EXP (value)->simplified == NULL);
+    check_not_simplified_or_const (btor, value);
     if (*assignments_changed) return 0;
     /* hash table lookup */
     if (array->rho == NULL)
@@ -7968,6 +8004,7 @@ process_working_stack (Btor *btor,
       *assignments_changed = lazy_synthesize_and_encode_acond_exp (btor, array);
       if (*assignments_changed) return 0;
       cond = array->e[0];
+      assert (BTOR_REAL_ADDR_EXP (cond)->simplified == NULL);
       assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)));
       assignment = btor_get_assignment_aig (
           amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
@@ -8001,7 +8038,7 @@ process_working_stack (Btor *btor,
       {
         cur_aeq = next_parent_aeq_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_aeq));
-        check_not_simplified_or_top (btor, cur_aeq);
+        check_not_simplified_or_const (btor, cur_aeq);
         if (cur_aeq->reachable)
         {
           assert (BTOR_IS_SYNTH_EXP (cur_aeq));
@@ -8237,7 +8274,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
         /* we only process reachable or virtual reads */
-        check_not_simplified_or_top (btor, cur_parent);
+        check_not_simplified_or_const (btor, cur_parent);
         if (cur_parent->reachable || cur_parent->vread)
         {
           /* push read-array pair on working stack */
@@ -8672,10 +8709,13 @@ insert_embedded_constraint (Btor *btor, BtorExp *exp)
 static void
 insert_new_constraint (Btor *btor, BtorExp *exp)
 {
-  BtorExp *left, *right;
+  BtorExp *left, *right, *true_exp;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (pointer_chase_simplified_exp (btor, exp) == exp);
+
+  if (btor->inconsistent) return;
+
   if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
     if (btor->rewrite_level > 1)
@@ -8686,10 +8726,20 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
         release_exp (btor, left);
         release_exp (btor, right);
       }
-      else if (is_embedded_constraint_exp (btor, exp))
-        insert_embedded_constraint (btor, exp);
       else
-        insert_unsynthesized_constraint (btor, exp);
+      {
+        true_exp = btor_true_exp (btor);
+        if (merge_simplified_exp_const (btor, exp, true_exp, 0))
+        {
+          if (is_embedded_constraint_exp (btor, exp))
+            insert_embedded_constraint (btor, exp);
+          else
+            insert_unsynthesized_constraint (btor, exp);
+        }
+        else
+          btor->inconsistent = 1;
+        release_exp (btor, true_exp);
+      }
     }
     else
       insert_unsynthesized_constraint (btor, exp);
@@ -9309,6 +9359,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
                   "'refinement_limit' must not be negative in 'btor_sat_btor'");
 
   verbosity = btor->verbosity;
+
+  if (btor->inconsistent) return BTOR_UNSAT;
+
   if (verbosity > 0) print_verbose_msg ("calling SAT");
 
   if (btor->rewrite_level > 1)
@@ -9319,6 +9372,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       process_embedded_constraints (btor);
     } while (btor->varsubst_constraints->count > 0u);
   }
+
+  if (btor->inconsistent) return BTOR_UNSAT;
 
   assert (btor->varsubst_constraints->count == 0u);
   assert (btor->embedded_constraints->count == 0u);

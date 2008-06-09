@@ -2,6 +2,6 @@
 2 var 8
 4 const 8 00000000
 5 eq 1 1 4
-6 eq 1 2 4
-7 root 1 -5
-8 root 1 -6
+7 eq 1 2 4
+8 root 1 -5
+9 root 1 -7
