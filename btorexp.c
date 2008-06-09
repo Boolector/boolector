@@ -174,7 +174,7 @@ static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static BtorExp *rewrite_cond_exp (
     Btor *, BtorExpKind, BtorExp *, BtorExp *, BtorExp *, int *);
 static void add_constraint (Btor *, BtorExp *);
-static void substitute_all_exps (Btor *);
+static void substitute_var_exps (Btor *);
 static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *add_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
@@ -6347,7 +6347,7 @@ btor_dump_exps_after_substitution (Btor *btor,
     add_constraint (btor, temp);
     release_exp (btor, temp);
   }
-  substitute_all_exps (btor);
+  substitute_var_exps (btor);
   constraints = btor->unsynthesized_constraints;
   new_nroots  = (int) constraints->count;
   BTOR_NEWN (btor->mm, new_roots, new_nroots);
@@ -6778,6 +6778,10 @@ constraints_stats_changes (Btor *btor)
 
   if (btor->stats.old.constraints.varsubst
       && !btor->varsubst_constraints->count)
+    return INT_MAX;
+
+  if (btor->stats.old.constraints.embedded
+      && !btor->embedded_constraints->count)
     return INT_MAX;
 
   if (btor->stats.old.constraints.unsynthesized
@@ -8871,25 +8875,6 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   }
 }
 
-static void
-process_embedded_constraints (Btor *btor)
-{
-  BtorPtrHashTable *ec;
-  BtorPtrHashBucket *b;
-  BtorExp *cur;
-  assert (btor != NULL);
-  ec = btor->embedded_constraints;
-  /* dummy implementation */
-  while (ec->count > 0u)
-  {
-    b   = ec->first;
-    cur = (BtorExp *) b->key;
-    insert_unsynthesized_constraint (btor, cur);
-    btor_remove_from_ptr_hash_table (ec, cur, NULL, NULL);
-    release_exp (btor, cur);
-  }
-}
-
 /* synthesizes unsynthesized constraints and updates constraints tables.
  * returns 0 if a constraint has been synthesized into AIG_FALSE */
 static int
@@ -8954,10 +8939,10 @@ update_assumptions (Btor *btor)
   }
 }
 
-/* we perform all substitutions in one pass and rebuild the formula
+/* we perform all variable substitutions in one pass and rebuild the formula
  * cyclic substitutions must have been deleted before! */
 static void
-rebuild_and_substitute (Btor *btor, BtorPtrHashTable *substs)
+rebuild_and_substitute_var_exps (Btor *btor, BtorPtrHashTable *substs)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -9072,7 +9057,7 @@ rebuild_and_substitute (Btor *btor, BtorPtrHashTable *substs)
 }
 
 static void
-substitute_all_exps (Btor *btor)
+substitute_var_exps (Btor *btor)
 {
   int order_num, val, max, i;
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
@@ -9267,8 +9252,8 @@ substitute_all_exps (Btor *btor)
       release_exp (btor, right);
     }
 
-    /* we rebuild and substiute in one pass */
-    rebuild_and_substitute (btor, substs);
+    /* we rebuild and substiute variables in one pass */
+    rebuild_and_substitute_var_exps (btor, substs);
 
     /* cleanup, we delete all substitution constraints */
     for (b = substs->first; b != NULL; b = b->next)
@@ -9288,6 +9273,25 @@ substitute_all_exps (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (mm, stack);
+}
+
+static void
+process_embedded_constraints (Btor *btor)
+{
+  BtorPtrHashTable *ec;
+  BtorPtrHashBucket *b;
+  BtorExp *cur;
+  assert (btor != NULL);
+  ec = btor->embedded_constraints;
+  /* dummy implementation */
+  while (ec->count > 0u)
+  {
+    b   = ec->first;
+    cur = (BtorExp *) b->key;
+    insert_unsynthesized_constraint (btor, cur);
+    btor_remove_from_ptr_hash_table (ec, cur, NULL, NULL);
+    release_exp (btor, cur);
+  }
 }
 
 int
@@ -9311,7 +9315,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     do
     {
-      substitute_all_exps (btor);
+      substitute_var_exps (btor);
       process_embedded_constraints (btor);
     } while (btor->varsubst_constraints->count > 0u);
   }
