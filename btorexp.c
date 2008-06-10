@@ -192,6 +192,23 @@ static BtorExp *and_exp (Btor *, BtorExp *, BtorExp *);
 /*------------------------------------------------------------------------*/
 
 static void
+check_hash_table_proxy_free (BtorPtrHashTable *table)
+{
+  BtorPtrHashBucket *b;
+  for (b = table->first; b != NULL; b = b->next)
+    assert (BTOR_REAL_ADDR_EXP (b->key)->kind != BTOR_PROXY_EXP);
+}
+
+static void
+check_all_hash_tables_prox_free (Btor *btor)
+{
+  check_hash_table_proxy_free (btor->varsubst_constraints);
+  check_hash_table_proxy_free (btor->embedded_constraints);
+  check_hash_table_proxy_free (btor->unsynthesized_constraints);
+  check_hash_table_proxy_free (btor->synthesized_constraints);
+}
+
+static void
 print_verbose_msg (char *fmt, ...)
 {
   va_list ap;
@@ -9371,7 +9388,10 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
     /* embedded constraints have possibly lost their parents,
      * e.g. top conjunction of constraints that are released */
     if (has_parents_exp (btor, cur))
+    {
+      btor->stats.ec_substitutions++;
       BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
+    }
   }
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -9416,11 +9436,6 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
       cur->subst_mark = 2;
       BTOR_PUSH_STACK (mm, stack, cur);
 
-      if (btor_find_in_ptr_hash_table (ec, cur) != NULL) continue;
-
-      if (btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
-        continue;
-
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
     }
@@ -9429,20 +9444,12 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
       assert (cur->subst_mark == 2);
       cur->subst_mark = 0;
 
-      /* base cases already initialized */
-      if (btor_find_in_ptr_hash_table (ec, cur) != NULL
-          || btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
-        btor->stats.ec_substitutions++;
-      else
-      {
-        rebuilt_exp = rebuild_exp (btor, cur);
-        assert (rebuilt_exp != NULL);
-        assert (rebuilt_exp != cur);
-
-        simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
-        set_simplified_exp (btor, cur, simplified, 1);
-        release_exp (btor, rebuilt_exp);
-      }
+      rebuilt_exp = rebuild_exp (btor, cur);
+      assert (rebuilt_exp != NULL);
+      assert (rebuilt_exp != cur);
+      assert (BTOR_REAL_ADDR_EXP (rebuilt_exp)->simplified == NULL);
+      set_simplified_exp (btor, cur, rebuilt_exp, 1);
+      release_exp (btor, rebuilt_exp);
     }
   }
 
@@ -9461,7 +9468,10 @@ process_embedded_constraints (Btor *btor)
   BtorExp *cur;
   assert (btor != NULL);
   ec = btor->embedded_constraints;
-  if (ec->count > 0u) rebuild_and_substitute_embedded_constraints (btor, ec);
+#if 0
+  if (ec->count > 0u)
+    rebuild_and_substitute_embedded_constraints (btor, ec);
+#endif
   while (ec->count > 0u)
   {
     b   = ec->first;
@@ -9496,8 +9506,11 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     do
     {
+      check_all_hash_tables_prox_free (btor);
       substitute_var_exps (btor);
+      check_all_hash_tables_prox_free (btor);
       process_embedded_constraints (btor);
+      check_all_hash_tables_prox_free (btor);
     } while (btor->varsubst_constraints->count > 0u
              || btor->embedded_constraints->count > 0u);
   }
@@ -9518,7 +9531,10 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->valid_assignments == 1) reset_assumptions (btor);
   btor->valid_assignments = 1;
 
+  check_all_hash_tables_prox_free (btor);
   found_constraint_false = process_unsynthesized_constraints (btor);
+  check_all_hash_tables_prox_free (btor);
+
   if (found_constraint_false) return BTOR_UNSAT;
 
   assert (btor->unsynthesized_constraints->count == 0u);
