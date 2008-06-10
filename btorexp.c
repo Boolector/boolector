@@ -9329,6 +9329,114 @@ substitute_var_exps (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+/* we substitute all embedded constraints by true and rebuild the formula */
+static void
+rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
+{
+  BtorExpPtrStack stack, root_stack;
+  BtorPtrHashBucket *b;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
+  BtorMemMgr *mm;
+  BtorFullParentIterator it;
+  int pushed, i;
+  assert (btor != NULL);
+  assert (ec != NULL);
+  assert (ec->count > 0u);
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (root_stack);
+
+  /* we push all embedded constraints on the search stack */
+  for (b = ec->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_REAL_ADDR_EXP (cur)->constraint);
+    /* embedded constraints have possibly lost their parents,
+     * e.g. top conjunction of constraints that are released */
+    if (has_parents_exp (btor, cur))
+      BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
+  }
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    /* search upwards for all reachable roots */
+    cur = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (cur->subst_mark == 0)
+    {
+      cur->subst_mark = 1;
+      init_full_parent_iterator (&it, cur);
+      /* are we at a root ? */
+      pushed = 0;
+      while (has_next_parent_full_parent_iterator (&it))
+      {
+        cur_parent = next_parent_full_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        pushed = 1;
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
+      }
+      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, copy_exp (btor, cur));
+    }
+  }
+
+  /* copy roots on substitution stack */
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++)
+    BTOR_PUSH_STACK (mm, stack, *temp);
+
+  /* substitute */
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+
+    if (cur->subst_mark == 0) continue;
+
+    assert (!BTOR_IS_CONST_EXP (cur));
+    assert (!BTOR_IS_VAR_EXP (cur));
+    assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+
+    if (cur->subst_mark == 1)
+    {
+      cur->subst_mark = 2;
+      BTOR_PUSH_STACK (mm, stack, cur);
+
+      if (btor_find_in_ptr_hash_table (ec, cur) != NULL) continue;
+
+      if (btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
+        continue;
+
+      for (i = cur->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+    }
+    else
+    {
+      assert (cur->subst_mark == 2);
+      cur->subst_mark = 0;
+
+      /* base cases already initialized */
+      if (btor_find_in_ptr_hash_table (ec, cur) != NULL) continue;
+
+      if (btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
+        continue;
+
+      rebuilt_exp = rebuild_exp (btor, cur);
+      assert (rebuilt_exp != NULL);
+      assert (rebuilt_exp != cur);
+
+      simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
+      set_simplified_exp (btor, cur, simplified, 1);
+      release_exp (btor, rebuilt_exp);
+    }
+  }
+
+  BTOR_RELEASE_STACK (mm, stack);
+
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++) release_exp (btor, *temp);
+  BTOR_RELEASE_STACK (mm, root_stack);
+}
+
 static void
 process_embedded_constraints (Btor *btor)
 {
@@ -9337,7 +9445,7 @@ process_embedded_constraints (Btor *btor)
   BtorExp *cur;
   assert (btor != NULL);
   ec = btor->embedded_constraints;
-  /* dummy implementation */
+  if (ec->count > 0u) rebuild_and_substitute_embedded_constraints (btor, ec);
   while (ec->count > 0u)
   {
     b   = ec->first;
