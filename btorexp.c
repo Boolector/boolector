@@ -8716,13 +8716,32 @@ insert_embedded_constraint (Btor *btor, BtorExp *exp)
 static void
 insert_new_constraint (Btor *btor, BtorExp *exp)
 {
-  BtorExp *left, *right, *true_exp;
+  BtorExp *left, *right, *true_exp, *real_exp;
   assert (btor != NULL);
   assert (exp != NULL);
-
-  exp = pointer_chase_simplified_exp (btor, exp);
+  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
   if (btor->inconsistent) return;
+
+  exp      = pointer_chase_simplified_exp (btor, exp);
+  real_exp = BTOR_REAL_ADDR_EXP (exp);
+
+  if (BTOR_IS_CONST_EXP (real_exp))
+  {
+    if ((BTOR_IS_INVERTED_EXP (exp) && real_exp->bits[0] == '1')
+        || (!BTOR_IS_INVERTED_EXP (exp) && real_exp->bits[0] == '0'))
+    {
+      btor->inconsistent = 1;
+      return;
+    }
+    else
+    {
+      /* we do not add true */
+      assert ((BTOR_IS_INVERTED_EXP (exp) && real_exp->bits[0] == '0')
+              || (!BTOR_IS_INVERTED_EXP (exp) && real_exp->bits[0] == '1'));
+      return;
+    }
+  }
 
   if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
@@ -8776,14 +8795,6 @@ add_constraint (Btor *btor, BtorExp *exp)
     reset_assumptions (btor);
   }
   assert (btor->assumptions != NULL);
-
-  /* we do not add TRUE */
-  if (!BTOR_IS_INVERTED_EXP (exp) && BTOR_IS_CONST_EXP (exp)
-      && exp->bits[0] == '1')
-    return;
-  if (BTOR_IS_INVERTED_EXP (exp) && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))
-      && BTOR_REAL_ADDR_EXP (exp)->bits[0] == '0')
-    return;
 
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
