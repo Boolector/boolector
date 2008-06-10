@@ -9367,7 +9367,7 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -9446,8 +9446,6 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
 
       rebuilt_exp = rebuild_exp (btor, cur);
       assert (rebuilt_exp != NULL);
-      assert (rebuilt_exp != cur);
-      assert (BTOR_REAL_ADDR_EXP (rebuilt_exp)->simplified == NULL);
       set_simplified_exp (btor, cur, rebuilt_exp, 1);
       release_exp (btor, rebuilt_exp);
     }
@@ -9468,10 +9466,7 @@ process_embedded_constraints (Btor *btor)
   BtorExp *cur;
   assert (btor != NULL);
   ec = btor->embedded_constraints;
-#if 0
-  if (ec->count > 0u)
-    rebuild_and_substitute_embedded_constraints (btor, ec);
-#endif
+  if (ec->count > 0u) rebuild_and_substitute_embedded_constraints (btor, ec);
   while (ec->count > 0u)
   {
     b   = ec->first;
