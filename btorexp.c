@@ -1498,6 +1498,7 @@ update_constraints (Btor *btor, BtorExp *exp)
   assert (exp->simplified != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp->simplified)->simplified == NULL);
   assert (exp->constraint);
+
   not_exp                   = BTOR_INVERT_EXP (exp);
   simplified                = exp->simplified;
   not_simplified            = BTOR_INVERT_EXP (simplified);
@@ -1507,19 +1508,6 @@ update_constraints (Btor *btor, BtorExp *exp)
   pos = neg = NULL;
 
   /* variable  substitution constraints are handled in a different way */
-
-  if (btor_find_in_ptr_hash_table (embedded_constraints, exp))
-  {
-    add_constraint (btor, simplified);
-    assert (pos == NULL);
-    pos = embedded_constraints;
-  }
-  if (btor_find_in_ptr_hash_table (embedded_constraints, not_exp))
-  {
-    add_constraint (btor, not_simplified);
-    assert (neg == NULL);
-    neg = embedded_constraints;
-  }
 
   if (btor_find_in_ptr_hash_table (unsynthesized_constraints, exp))
   {
@@ -1532,6 +1520,19 @@ update_constraints (Btor *btor, BtorExp *exp)
     add_constraint (btor, not_simplified);
     assert (neg == NULL);
     neg = unsynthesized_constraints;
+  }
+
+  if (btor_find_in_ptr_hash_table (embedded_constraints, exp))
+  {
+    add_constraint (btor, simplified);
+    assert (pos == NULL);
+    pos = embedded_constraints;
+  }
+  if (btor_find_in_ptr_hash_table (embedded_constraints, not_exp))
+  {
+    add_constraint (btor, not_simplified);
+    assert (neg == NULL);
+    neg = embedded_constraints;
   }
 
   if (btor_find_in_ptr_hash_table (synthesized_constraints, exp))
@@ -1584,10 +1585,10 @@ set_simplified_exp (Btor *btor,
 
   exp->simplified = copy_exp (btor, simplified);
 
+  if (!overwrite) return;
+
   /* do we have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
-
-  if (!overwrite) return;
 
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp);
@@ -9372,7 +9373,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     {
       substitute_var_exps (btor);
       process_embedded_constraints (btor);
-    } while (btor->varsubst_constraints->count > 0u);
+    } while (btor->varsubst_constraints->count > 0u
+             || btor->embedded_constraints->count > 0u);
   }
 
   if (btor->inconsistent) return BTOR_UNSAT;
