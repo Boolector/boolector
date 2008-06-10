@@ -8007,7 +8007,7 @@ process_working_stack (Btor *btor,
       *assignments_changed = lazy_synthesize_and_encode_acond_exp (btor, array);
       if (*assignments_changed) return 0;
       cond = array->e[0];
-      assert (BTOR_REAL_ADDR_EXP (cond)->simplified == NULL);
+      check_not_simplified_or_const (btor, index);
       assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)));
       assignment = btor_get_assignment_aig (
           amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);

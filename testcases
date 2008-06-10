@@ -346,3 +346,11 @@ regrembeddedconstraint4 -rwl0 -o log/regrembeddedconstraint4.log log/regrembedde
 regrembeddedconstraint4 -rwl1 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
 regrembeddedconstraint4 -rwl2 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
 regrembeddedconstraint4 -rwl3 -o log/regrembeddedconstraint4.log log/regrembeddedconstraint4.btor
+regrembeddedconstraint5 -rwl0 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl1 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl2 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint5 -rwl3 -o log/regrembeddedconstraint5.log log/regrembeddedconstraint5.btor
+regrembeddedconstraint6 -rwl0 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl1 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl2 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
+regrembeddedconstraint6 -rwl3 -o log/regrembeddedconstraint6.log log/regrembeddedconstraint6.btor
