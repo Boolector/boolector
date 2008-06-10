@@ -330,3 +330,11 @@ inc -rwl0 -o log/inc.log log/inc.btor
 inc -o log/inc.log log/inc.btor
 dec -rwl0 -o log/dec.log log/dec.btor
 dec -o log/dec.log log/dec.btor
+regrembeddedconstraint1 -rwl0 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl1 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl2 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint1 -rwl3 -o log/regrembeddedconstraint1.log log/regrembeddedconstraint1.btor
+regrembeddedconstraint2 -rwl0 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl1 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl2 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
+regrembeddedconstraint2 -rwl3 -o log/regrembeddedconstraint2.log log/regrembeddedconstraint2.btor
