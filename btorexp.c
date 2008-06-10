@@ -8715,7 +8715,8 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
   BtorExp *left, *right, *true_exp;
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (pointer_chase_simplified_exp (btor, exp) == exp);
+
+  exp = pointer_chase_simplified_exp (btor, exp);
 
   if (btor->inconsistent) return;
 
