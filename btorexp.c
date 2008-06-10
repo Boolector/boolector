@@ -110,6 +110,8 @@ struct Btor
     int var_substitutions;
     /* number of array variables that have been substituted */
     int array_substitutions;
+    /* embedded constraint substitutions */
+    int ec_substitutions;
     /* number of virtual reads */
     int vreads;
     /* number of linear equations */
@@ -6890,6 +6892,8 @@ btor_print_stats_btor (Btor *btor)
                      btor->stats.var_substitutions);
   print_verbose_msg ("array substitutions: %d",
                      btor->stats.array_substitutions);
+  print_verbose_msg ("embedded constraint substitutions: %d",
+                     btor->stats.ec_substitutions);
   print_verbose_msg ("array equalites: %s",
                      btor->has_array_equalities ? "yes" : "no");
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
@@ -9415,18 +9419,19 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
       cur->subst_mark = 0;
 
       /* base cases already initialized */
-      if (btor_find_in_ptr_hash_table (ec, cur) != NULL) continue;
+      if (btor_find_in_ptr_hash_table (ec, cur) != NULL
+          || btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
+        btor->stats.ec_substitutions++;
+      else
+      {
+        rebuilt_exp = rebuild_exp (btor, cur);
+        assert (rebuilt_exp != NULL);
+        assert (rebuilt_exp != cur);
 
-      if (btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
-        continue;
-
-      rebuilt_exp = rebuild_exp (btor, cur);
-      assert (rebuilt_exp != NULL);
-      assert (rebuilt_exp != cur);
-
-      simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
-      set_simplified_exp (btor, cur, simplified, 1);
-      release_exp (btor, rebuilt_exp);
+        simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
+        set_simplified_exp (btor, cur, simplified, 1);
+        release_exp (btor, rebuilt_exp);
+      }
     }
   }
 
