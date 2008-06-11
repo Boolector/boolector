@@ -370,3 +370,7 @@ regrembeddedconstraint10 -rwl0 -o log/regrembeddedconstraint10.log log/regrembed
 regrembeddedconstraint10 -rwl1 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
 regrembeddedconstraint10 -rwl2 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
 regrembeddedconstraint10 -rwl3 -o log/regrembeddedconstraint10.log log/regrembeddedconstraint10.btor
+regrembeddedconstraint11 -rwl0 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl1 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl2 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor
+regrembeddedconstraint11 -rwl3 -o log/regrembeddedconstraint11.log log/regrembeddedconstraint11.btor

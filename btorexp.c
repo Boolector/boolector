@@ -8385,9 +8385,7 @@ occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
   BTOR_PUSH_STACK (mm, stack, right);
   do
   {
-    cur = BTOR_POP_STACK (stack);
-    cur = pointer_chase_simplified_exp (btor, cur);
-    cur = BTOR_REAL_ADDR_EXP (cur);
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
     assert (cur->mark == 0 || cur->mark == 1);
     if (cur->mark == 0)
     {
