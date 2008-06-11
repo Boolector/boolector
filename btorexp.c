@@ -9444,8 +9444,14 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
       assert (cur->subst_mark == 2);
       cur->subst_mark = 0;
 
+      /* base case */
+      if (btor_find_in_ptr_hash_table (ec, cur) != NULL
+          || btor_find_in_ptr_hash_table (ec, BTOR_INVERT_EXP (cur)) != NULL)
+        continue;
+
       rebuilt_exp = rebuild_exp (btor, cur);
       assert (rebuilt_exp != NULL);
+      assert (rebuilt_exp != cur);
       set_simplified_exp (btor, cur, rebuilt_exp, 1);
       release_exp (btor, rebuilt_exp);
     }
@@ -9465,15 +9471,29 @@ process_embedded_constraints (Btor *btor)
   BtorPtrHashBucket *b;
   BtorExp *cur;
   assert (btor != NULL);
-  ec = btor->embedded_constraints;
-  if (ec->count > 0u) rebuild_and_substitute_embedded_constraints (btor, ec);
-  while (ec->count > 0u)
+  if (btor->embedded_constraints->count > 0u)
   {
-    b   = ec->first;
-    cur = (BtorExp *) b->key;
-    insert_unsynthesized_constraint (btor, cur);
-    btor_remove_from_ptr_hash_table (ec, cur, NULL, NULL);
-    release_exp (btor, cur);
+    ec = btor_new_ptr_hash_table (btor->mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
+    for (b = btor->embedded_constraints->first; b != NULL; b = b->next)
+      btor_insert_in_ptr_hash_table (ec, copy_exp (btor, (BtorExp *) b->key));
+
+    rebuild_and_substitute_embedded_constraints (btor, ec);
+
+    for (b = btor->embedded_constraints->first; b != NULL; b = b->next)
+      release_exp (btor, (BtorExp *) b->key);
+    btor_delete_ptr_hash_table (ec);
+
+    while (btor->embedded_constraints->count > 0u)
+    {
+      b   = btor->embedded_constraints->first;
+      cur = (BtorExp *) b->key;
+      insert_unsynthesized_constraint (btor, cur);
+      btor_remove_from_ptr_hash_table (
+          btor->embedded_constraints, cur, NULL, NULL);
+      release_exp (btor, cur);
+    }
   }
 }
 
