@@ -811,7 +811,7 @@ btor_main (int argc, char **argv)
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
       if (app.rewrite_level >= 2)
-        btor_dump_exps_after_substitution (
+        btor_dump_exps_after_full_rewriting (
             btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
       else
         btor_dump_exps (

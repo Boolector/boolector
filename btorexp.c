@@ -177,7 +177,7 @@ static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
 static BtorExp *rewrite_cond_exp (
     Btor *, BtorExpKind, BtorExp *, BtorExp *, BtorExp *, int *);
 static void add_constraint (Btor *, BtorExp *);
-static void substitute_var_exps (Btor *);
+static void substitute_vars_and_process_embedded_constraints (Btor *);
 static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *add_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
@@ -6392,36 +6392,6 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
   dump_exps (btor, file, roots, nroots);
 }
 
-void
-btor_dump_exps_after_substitution (Btor *btor,
-                                   FILE *file,
-                                   BtorExp **roots,
-                                   int nroots)
-{
-  BtorExp *temp, **new_roots;
-  BtorPtrHashBucket *b;
-  BtorPtrHashTable *constraints;
-  int new_nroots, i;
-  for (i = 0; i < nroots; i++)
-  {
-    if (BTOR_REAL_ADDR_EXP (roots[i])->len == 1)
-      temp = copy_exp (btor, roots[i]);
-    else
-      temp = btor_redor_exp (btor, roots[i]);
-    add_constraint (btor, temp);
-    release_exp (btor, temp);
-  }
-  substitute_var_exps (btor);
-  constraints = btor->unsynthesized_constraints;
-  new_nroots  = (int) constraints->count;
-  BTOR_NEWN (btor->mm, new_roots, new_nroots);
-  i = 0;
-  for (b = constraints->first; b != NULL; b = b->next)
-    new_roots[i++] = (BtorExp *) b->key;
-  dump_exps (btor, file, new_roots, new_nroots);
-  BTOR_DELETEN (btor->mm, new_roots, new_nroots);
-}
-
 static void
 dump_exp (Btor *btor, FILE *file, BtorExp *root)
 {
@@ -6438,6 +6408,51 @@ btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
   BTOR_ABORT_EXP (file == NULL, "'file' must not be NULL in 'btor_dump_exp'");
   BTOR_ABORT_EXP (root == NULL, "'root' must not be NULL in 'btor_dump_exp'");
   dump_exp (btor, file, root);
+}
+
+void
+btor_dump_exps_after_full_rewriting (Btor *btor,
+                                     FILE *file,
+                                     BtorExp **roots,
+                                     int nroots)
+{
+  BtorExp *temp, **new_roots;
+  BtorPtrHashBucket *b;
+  int new_nroots, i;
+  for (i = 0; i < nroots; i++)
+  {
+    if (BTOR_REAL_ADDR_EXP (roots[i])->len == 1)
+      temp = copy_exp (btor, roots[i]);
+    else
+      temp = btor_redor_exp (btor, roots[i]);
+    add_constraint (btor, temp);
+    release_exp (btor, temp);
+  }
+
+  substitute_vars_and_process_embedded_constraints (btor);
+
+  if (btor->inconsistent)
+  {
+    temp = false_exp (btor);
+    dump_exp (btor, file, temp);
+    release_exp (btor, temp);
+  }
+  else if (btor->unsynthesized_constraints->count == 0u)
+  {
+    temp = false_exp (btor);
+    dump_exp (btor, file, temp);
+    release_exp (btor, temp);
+  }
+  else
+  {
+    new_nroots = (int) btor->unsynthesized_constraints->count;
+    BTOR_NEWN (btor->mm, new_roots, new_nroots);
+    i = 0;
+    for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+      new_roots[i++] = (BtorExp *) b->key;
+    dump_exps (btor, file, new_roots, new_nroots);
+    BTOR_DELETEN (btor->mm, new_roots, new_nroots);
+  }
 }
 
 void
@@ -9487,6 +9502,22 @@ process_embedded_constraints (Btor *btor)
   }
 }
 
+static void
+substitute_vars_and_process_embedded_constraints (Btor *btor)
+{
+  assert (btor != NULL);
+  assert (btor->rewrite_level > 1);
+  do
+  {
+    assert (check_all_hash_tables_prox_free (btor));
+    substitute_var_exps (btor);
+    assert (check_all_hash_tables_prox_free (btor));
+    process_embedded_constraints (btor);
+    assert (check_all_hash_tables_prox_free (btor));
+  } while (btor->varsubst_constraints->count > 0u
+           || btor->embedded_constraints->count > 0u);
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
@@ -9508,17 +9539,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (verbosity > 0) print_verbose_msg ("calling SAT");
 
   if (btor->rewrite_level > 1)
-  {
-    do
-    {
-      assert (check_all_hash_tables_prox_free (btor));
-      substitute_var_exps (btor);
-      assert (check_all_hash_tables_prox_free (btor));
-      process_embedded_constraints (btor);
-      assert (check_all_hash_tables_prox_free (btor));
-    } while (btor->varsubst_constraints->count > 0u
-             || btor->embedded_constraints->count > 0u);
-  }
+    substitute_vars_and_process_embedded_constraints (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
