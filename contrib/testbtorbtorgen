@@ -18,6 +18,7 @@ fi
 
 i=0
 file="/tmp/testbtorbtorgen$$.btor"
+filedump="/tmp/testbtorbtorgendump$$.btor"
 refinementlimit=100000
 
 while true 
@@ -42,13 +43,23 @@ do
   do
     echo -n "Test $i $rwl: "
     boolector -$rwl -rl $refinementlimit $file 
-    retval=$?
-    if [[ $retval -ne $goldenretval ]]; then
-      echo "ERROR"
-      cp $file ./error.btor
-      rm -f $file
-      exit
-    fi 
+  retval=$?
+  if [[ $retval -ne $goldenretval ]]; then
+    echo "ERROR"
+    cp $file ./error.btor
+    rm -f $file
+    exit
+  fi 
   done
+  echo -n "Test $i dump: "
+  boolector $file -de > $filedump 
+  boolector $filedump
+  retval=$?
+  if [[ $retval -ne $goldenretval ]]; then
+    echo "ERROR"
+    cp $file ./error.btor
+    rm -f $file
+    exit
+  fi 
   echo ""
 done
