@@ -9386,7 +9386,7 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -9466,7 +9466,11 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
       rebuilt_exp = rebuild_exp (btor, cur);
       assert (rebuilt_exp != NULL);
       /* base case: rebuilt_exp == cur */
-      if (rebuilt_exp != cur) set_simplified_exp (btor, cur, rebuilt_exp, 1);
+      if (rebuilt_exp != cur)
+      {
+        simplified = pointer_chase_simplified_exp (btor, rebuilt_exp);
+        set_simplified_exp (btor, cur, simplified, 1);
+      }
 
       release_exp (btor, rebuilt_exp);
     }
