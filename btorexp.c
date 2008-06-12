@@ -6439,7 +6439,7 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
   }
   else if (btor->unsynthesized_constraints->count == 0u)
   {
-    temp = false_exp (btor);
+    temp = true_exp (btor);
     dump_exp (btor, file, temp);
     release_exp (btor, temp);
   }
