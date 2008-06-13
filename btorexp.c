@@ -3043,11 +3043,45 @@ btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 }
 
 static BtorExp *
+or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  return BTOR_INVERT_EXP (
+      and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e1)));
+}
+
+BtorExp *
+btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_or_exp'");
+  BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_or_exp'");
+  BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_or_exp'");
+  e0 = pointer_chase_simplified_exp (btor, e0);
+  e1 = pointer_chase_simplified_exp (btor, e1);
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
+                  "'e0' must not be an array in 'btor_or_exp'");
+  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
+                  "'e1' must not be an array in 'btor_or_exp'");
+  BTOR_ABORT_EXP (
+      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
+      "length of 'e0' and 'e1' must not be unequal in 'btor_or_exp'");
+  return or_exp (btor, e0, e1);
+}
+
+static BtorExp *
 eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 {
   BtorExp *result;
   BtorExpKind kind;
-  BtorExp *e0_norm, *e1_norm, *left, *right, *e0_0, *e0_1, *e1_0, *e1_1;
+  BtorExp *e0_norm, *e1_norm, *left, *right, *e0_0, *e0_1, *e1_0, *e1_1, *eq;
   BtorExp *real_e0, *real_e1;
   int normalized, upper, lower;
 #ifndef NDEBUG
@@ -3058,11 +3092,14 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   assert (e1 != NULL);
   assert (calls != NULL);
   assert (*calls >= 0);
+
   e0 = pointer_chase_simplified_exp (btor, e0);
   e1 = pointer_chase_simplified_exp (btor, e1);
+
+  real_e0 = BTOR_REAL_ADDR_EXP (e0);
+  real_e1 = BTOR_REAL_ADDR_EXP (e1);
+
 #ifndef NDEBUG
-  real_e0     = BTOR_REAL_ADDR_EXP (e0);
-  real_e1     = BTOR_REAL_ADDR_EXP (e1);
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
   is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
   assert (is_array_e0 == is_array_e1);
@@ -3078,7 +3115,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   result     = NULL;
   kind       = BTOR_BEQ_EXP;
 
-  if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
+  if (BTOR_IS_ARRAY_EXP (real_e0))
   {
     assert (BTOR_IS_REGULAR_EXP (e0));
     assert (BTOR_IS_REGULAR_EXP (e1));
@@ -3086,9 +3123,10 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     assert (BTOR_IS_ARRAY_EXP (e1));
     kind = BTOR_AEQ_EXP;
   }
-  /* ~e0 == ~e1 is the same as e0 == e1 */
+
   if (btor->rewrite_level > 0)
   {
+    /* ~e0 == ~e1 is the same as e0 == e1 */
     if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
     {
       e0 = BTOR_REAL_ADDR_EXP (e0);
@@ -3099,9 +3137,51 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
      * cannot extract the resulting XNOR on top level again and
      * would therefore lose substitutions */
 
-    /* normalize adds and muls on demand */
+    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0))
+    {
+      if (real_e0->e[1] == e1)
+      {
+        *calls += 1;
+        eq     = eq_exp_bounded (btor, real_e0->e[2], e1, calls);
+        result = or_exp (btor, real_e0->e[0], eq);
+        release_exp (btor, eq);
+        return result;
+      }
+
+      if (real_e0->e[2] == e1)
+      {
+        *calls += 1;
+        eq     = eq_exp_bounded (btor, real_e0->e[1], e1, calls);
+        result = or_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
+        release_exp (btor, eq);
+        return result;
+      }
+    }
+
+    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1))
+    {
+      if (real_e1->e[1] == e0)
+      {
+        *calls += 1;
+        eq     = eq_exp_bounded (btor, real_e1->e[2], e0, calls);
+        result = or_exp (btor, real_e1->e[0], eq);
+        release_exp (btor, eq);
+        return result;
+      }
+
+      if (real_e1->e[2] == e0)
+      {
+        *calls += 1;
+        eq     = eq_exp_bounded (btor, real_e1->e[1], e0, calls);
+        result = or_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
+        release_exp (btor, eq);
+        return result;
+      }
+    }
+
     if (btor->rewrite_level > 2)
     {
+      /* normalize adds and muls on demand */
       if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
           && (e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
           && e0->kind == e1->kind)
@@ -3128,8 +3208,6 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       else if (kind == BTOR_BEQ_EXP
                && *calls < BTOR_EQ_OVER_CONCAT_EXP_RW_BOUND)
       {
-        real_e0 = BTOR_REAL_ADDR_EXP (e0);
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
         /* push eq down over concats */
         if ((real_e0->kind == BTOR_CONCAT_EXP
              && real_e1->kind == BTOR_CONCAT_EXP
@@ -3171,6 +3249,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
     result = rewrite_binary_exp (btor, kind, e0, e1);
   }
+
   if (result == NULL) result = binary_exp (btor, kind, e0, e1, 1);
 
   if (normalized)
@@ -3503,40 +3582,6 @@ btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "length of 'e0' and 'e1' must not be unequal in 'btor_and_exp'");
   return and_exp (btor, e0, e1);
-}
-
-static BtorExp *
-or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
-{
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  e0 = pointer_chase_simplified_exp (btor, e0);
-  e1 = pointer_chase_simplified_exp (btor, e1);
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)));
-  assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
-  return BTOR_INVERT_EXP (
-      and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e1)));
-}
-
-BtorExp *
-btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
-{
-  BTOR_ABORT_EXP (btor == NULL, "'btor' must not be NULL in 'btor_or_exp'");
-  BTOR_ABORT_EXP (e0 == NULL, "'e0' must not be NULL in 'btor_or_exp'");
-  BTOR_ABORT_EXP (e1 == NULL, "'e1' must not be NULL in 'btor_or_exp'");
-  e0 = pointer_chase_simplified_exp (btor, e0);
-  e1 = pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                  "'e0' must not be an array in 'btor_or_exp'");
-  BTOR_ABORT_EXP (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                  "'e1' must not be an array in 'btor_or_exp'");
-  BTOR_ABORT_EXP (
-      BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
-      "length of 'e0' and 'e1' must not be unequal in 'btor_or_exp'");
-  return or_exp (btor, e0, e1);
 }
 
 static BtorExp *
