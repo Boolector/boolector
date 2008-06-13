@@ -3135,7 +3135,10 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
     /* we do not rewrite eq in the boolean case, as we
      * cannot extract the resulting XNOR on top level again and
-     * would therefore lose substitutions */
+     * would therefore lose substitutions
+     * additionally, we do not rewrite eq in the boolean case, as
+     * we rewrite a != b to a = ~b and substitute.
+     * */
 
     if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0))
     {
@@ -8676,6 +8679,7 @@ normalize_substitution (Btor *btor,
   assert (right_result != NULL);
   assert (btor->rewrite_level > 1);
   assert (pointer_chase_simplified_exp (btor, exp) == exp);
+
   if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)))
   {
     assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
@@ -8691,6 +8695,29 @@ normalize_substitution (Btor *btor,
     }
     inc_exp_ref_counter (btor, *left_result);
     return 1;
+  }
+
+  /* in the boolean case a != b is the same as a == ~b */
+  if (BTOR_IS_INVERTED_EXP (exp)
+      && BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_BEQ_EXP
+      && BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])->len == 1)
+  {
+    left  = BTOR_REAL_ADDR_EXP (exp)->e[0];
+    right = BTOR_REAL_ADDR_EXP (exp)->e[1];
+
+    if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left)))
+    {
+      *left_result  = copy_exp (btor, left);
+      *right_result = BTOR_INVERT_EXP (copy_exp (btor, right));
+      goto BTOR_NORMALIZE_SUBST_RESULT;
+    }
+
+    if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (right)))
+    {
+      *left_result  = copy_exp (btor, right);
+      *right_result = BTOR_INVERT_EXP (copy_exp (btor, left));
+      goto BTOR_NORMALIZE_SUBST_RESULT;
+    }
   }
 
   if (BTOR_IS_INVERTED_EXP (exp) || !BTOR_IS_ARRAY_OR_BV_EQ_EXP (exp)) return 0;
@@ -8740,6 +8767,7 @@ normalize_substitution (Btor *btor,
     copy_exp (btor, right);
   }
 
+BTOR_NORMALIZE_SUBST_RESULT:
   if (BTOR_IS_INVERTED_EXP (*left_result))
   {
     *left_result  = BTOR_INVERT_EXP (*left_result);
