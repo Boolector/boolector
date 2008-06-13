@@ -203,7 +203,7 @@ check_hash_table_proxy_free (BtorPtrHashTable *table)
 }
 
 static int
-check_all_hash_tables_prox_free (Btor *btor)
+check_all_hash_tables_proxy_free (Btor *btor)
 {
   if (!check_hash_table_proxy_free (btor->varsubst_constraints)) return 0;
   if (!check_hash_table_proxy_free (btor->embedded_constraints)) return 0;
@@ -9513,11 +9513,11 @@ substitute_vars_and_process_embedded_constraints (Btor *btor)
   assert (btor->rewrite_level > 1);
   do
   {
-    assert (check_all_hash_tables_prox_free (btor));
+    assert (check_all_hash_tables_proxy_free (btor));
     substitute_var_exps (btor);
-    assert (check_all_hash_tables_prox_free (btor));
+    assert (check_all_hash_tables_proxy_free (btor));
     process_embedded_constraints (btor);
-    assert (check_all_hash_tables_prox_free (btor));
+    assert (check_all_hash_tables_proxy_free (btor));
   } while (btor->varsubst_constraints->count > 0u
            || btor->embedded_constraints->count > 0u);
 }
@@ -9561,9 +9561,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->valid_assignments == 1) reset_assumptions (btor);
   btor->valid_assignments = 1;
 
-  assert (check_all_hash_tables_prox_free (btor));
+  assert (check_all_hash_tables_proxy_free (btor));
   found_constraint_false = process_unsynthesized_constraints (btor);
-  assert (check_all_hash_tables_prox_free (btor));
+  assert (check_all_hash_tables_proxy_free (btor));
 
   if (found_constraint_false) return BTOR_UNSAT;
 
