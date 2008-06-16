@@ -261,6 +261,14 @@ rw94 -rwl0 -o log/rw94.log log/rw94.btor
 rw94 -rwl1 -o log/rw94.log log/rw94.btor
 rw95 -rwl0 -o log/rw95.log log/rw95.btor
 rw95 -rwl1 -o log/rw95.log log/rw95.btor
+rw96 -rwl0 -o log/rw96.log log/rw96.btor
+rw96 -rwl1 -o log/rw96.log log/rw96.btor
+rw97 -rwl0 -o log/rw97.log log/rw97.btor
+rw97 -rwl1 -o log/rw97.log log/rw97.btor
+rw98 -rwl0 -o log/rw98.log log/rw98.btor
+rw98 -rwl1 -o log/rw98.log log/rw98.btor
+rw99 -rwl0 -o log/rw99.log log/rw99.btor
+rw99 -rwl1 -o log/rw99.log log/rw99.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor

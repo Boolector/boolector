@@ -2827,7 +2827,7 @@ btor_not_exp (Btor *btor, BtorExp *exp)
 static BtorExp *
 add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result, *e0_norm, *e1_norm;
+  BtorExp *result, *e0_norm, *e1_norm, *temp;
   int normalized;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -2852,6 +2852,58 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         && e0 == BTOR_INVERT_EXP (e1->e[0])
         && is_const_one_exp (btor, e1->e[1]))
       return zero_exp (btor, e1->len);
+
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+        && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP)
+    {
+      /* recursion is no problem here, as one call leads to
+       * folding of constants, and the other call can not
+       * trigger the same kind of recursion anymore */
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+        temp   = add_exp (btor, e0, e1->e[0]);
+        result = add_exp (btor, temp, e1->e[1]);
+        release_exp (btor, temp);
+        return result;
+      }
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+        temp   = add_exp (btor, e0, e1->e[1]);
+        result = add_exp (btor, temp, e1->e[0]);
+        release_exp (btor, temp);
+        return result;
+      }
+    }
+
+    else if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+             && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_ADD_EXP)
+    {
+      /* recursion is no problem here, as one call leads to
+       * folding of constants, and the other call can not
+       * trigger the same kind of recursion anymore */
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+        temp   = add_exp (btor, e1, e0->e[0]);
+        result = add_exp (btor, temp, e0->e[1]);
+        release_exp (btor, temp);
+        return result;
+      }
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+        temp   = add_exp (btor, e1, e0->e[1]);
+        result = add_exp (btor, temp, e0->e[0]);
+        release_exp (btor, temp);
+        return result;
+      }
+    }
 
     if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
         && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == BTOR_MUL_EXP
@@ -4219,6 +4271,58 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
     /* boolean case */
     if (BTOR_REAL_ADDR_EXP (e0)->len == 1) return and_exp (btor, e0, e1);
+
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+        && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_MUL_EXP)
+    {
+      /* recursion is no problem here, as one call leads to
+       * folding of constants, and the other call can not
+       * trigger the same kind of recursion anymore */
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+        left   = mul_exp_bounded (btor, e0, e1->e[0], calls);
+        result = mul_exp_bounded (btor, left, e1->e[1], calls);
+        release_exp (btor, left);
+        return result;
+      }
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+        left   = mul_exp_bounded (btor, e0, e1->e[1], calls);
+        result = mul_exp_bounded (btor, left, e1->e[0], calls);
+        release_exp (btor, left);
+        return result;
+      }
+    }
+
+    else if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+             && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_MUL_EXP)
+    {
+      /* recursion is no problem here, as one call leads to
+       * folding of constants, and the other call can not
+       * trigger the same kind of recursion anymore */
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+        left   = mul_exp_bounded (btor, e1, e0->e[0], calls);
+        result = mul_exp_bounded (btor, left, e0->e[1], calls);
+        release_exp (btor, left);
+        return result;
+      }
+
+      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+      {
+        assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+        left   = mul_exp_bounded (btor, e1, e0->e[1], calls);
+        result = mul_exp_bounded (btor, left, e0->e[0], calls);
+        release_exp (btor, left);
+        return result;
+      }
+    }
 
     /* const * (t + const) =recursively= const * t + const * const */
     if (btor->rewrite_level > 2 && *calls < BTOR_MUL_EXP_RW_BOUND)
