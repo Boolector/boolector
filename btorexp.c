@@ -3736,55 +3736,86 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e0)->len
           <= INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len);
-  /* normalize concats --> left-associative */
-  if (btor->rewrite_level > 2
-      && BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_CONCAT_EXP)
-  {
-    mm = btor->mm;
-
-    BTOR_INIT_STACK (po_stack);
-    BTOR_PUSH_STACK (mm, po_stack, e0);
-
-    BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, e1);
-    do
-    {
-      cur = BTOR_POP_STACK (stack);
-      if (BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_CONCAT_EXP)
-      {
-        BTOR_PUSH_STACK (
-            mm,
-            stack,
-            BTOR_COND_INVERT_EXP (cur, BTOR_REAL_ADDR_EXP (cur)->e[1]));
-        BTOR_PUSH_STACK (
-            mm,
-            stack,
-            BTOR_COND_INVERT_EXP (cur, BTOR_REAL_ADDR_EXP (cur)->e[0]));
-      }
-      else
-        BTOR_PUSH_STACK (mm, po_stack, cur);
-    } while (!BTOR_EMPTY_STACK (stack));
-
-    assert (BTOR_COUNT_STACK (po_stack) >= 3);
-    result = concat_exp (btor, po_stack.start[0], po_stack.start[1]);
-    for (i = 2; i < BTOR_COUNT_STACK (po_stack); i++)
-    {
-      cur = po_stack.start[i];
-      assert (BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_CONCAT_EXP);
-      temp = concat_exp (btor, result, cur);
-      release_exp (btor, result);
-      result = temp;
-    }
-
-    BTOR_RELEASE_STACK (mm, stack);
-    BTOR_RELEASE_STACK (mm, po_stack);
-
-    return result;
-  }
 
   result = NULL;
+
   if (btor->rewrite_level > 0)
+  {
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+        && BTOR_REAL_ADDR_EXP (e0)->kind == BTOR_CONCAT_EXP
+        && BTOR_IS_CONST_EXP (
+               BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[1])))
+    {
+      /* recursion is no problem here, as one call leads to
+       * folding of constants, and the other call can not
+       * trigger the same kind of recursion anymore */
+
+      if (!BTOR_IS_INVERTED_EXP (e0))
+      {
+        temp   = concat_exp (btor, e0->e[1], e1);
+        result = concat_exp (btor, e0->e[0], temp);
+        release_exp (btor, temp);
+      }
+      else
+      {
+        temp = concat_exp (
+            btor, BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (e0)->e[1]), e1);
+        result = concat_exp (
+            btor, BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0]), temp);
+        release_exp (btor, temp);
+      }
+      return result;
+    }
+
+    /* normalize concats --> left-associative */
+    if (btor->rewrite_level > 2
+        && BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_CONCAT_EXP)
+    {
+      mm = btor->mm;
+
+      BTOR_INIT_STACK (po_stack);
+      BTOR_PUSH_STACK (mm, po_stack, e0);
+
+      BTOR_INIT_STACK (stack);
+      BTOR_PUSH_STACK (mm, stack, e1);
+      do
+      {
+        cur = BTOR_POP_STACK (stack);
+        if (BTOR_REAL_ADDR_EXP (cur)->kind == BTOR_CONCAT_EXP)
+        {
+          BTOR_PUSH_STACK (
+              mm,
+              stack,
+              BTOR_COND_INVERT_EXP (cur, BTOR_REAL_ADDR_EXP (cur)->e[1]));
+          BTOR_PUSH_STACK (
+              mm,
+              stack,
+              BTOR_COND_INVERT_EXP (cur, BTOR_REAL_ADDR_EXP (cur)->e[0]));
+        }
+        else
+          BTOR_PUSH_STACK (mm, po_stack, cur);
+      } while (!BTOR_EMPTY_STACK (stack));
+
+      assert (BTOR_COUNT_STACK (po_stack) >= 3);
+      result = concat_exp (btor, po_stack.start[0], po_stack.start[1]);
+      for (i = 2; i < BTOR_COUNT_STACK (po_stack); i++)
+      {
+        cur = po_stack.start[i];
+        assert (BTOR_REAL_ADDR_EXP (cur)->kind != BTOR_CONCAT_EXP);
+        temp = concat_exp (btor, result, cur);
+        release_exp (btor, result);
+        result = temp;
+      }
+
+      BTOR_RELEASE_STACK (mm, stack);
+      BTOR_RELEASE_STACK (mm, po_stack);
+
+      return result;
+    }
+
     result = rewrite_binary_exp (btor, BTOR_CONCAT_EXP, e0, e1);
+  }
+
   if (result == NULL)
     result = binary_exp (
         btor,
