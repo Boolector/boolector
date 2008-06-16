@@ -9,7 +9,7 @@ numerrors=0
 
 function cleanup
 {
-  cat $fileids | while read line; 
+  cat $fileids | while read line
   do 
     kill $line 2> /dev/null
   done
