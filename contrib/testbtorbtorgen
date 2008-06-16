@@ -11,7 +11,7 @@ do
   btorgen=$file
   break
 done
-if [ $btorgen = unknown ]; then
+if [[ $btorgen = unknown ]]; then
   echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
   exit 1
 fi
@@ -19,7 +19,17 @@ fi
 i=0
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgendump$$.btor"
+fileerror="./error.btor"
 refinementlimit=100000
+
+if [[ $# -gt 1 ]]; then
+  echo "*** testbtorbtorgen: usage: ./testbtorbtorgen [output-file]" 1>&2
+  exit 1
+fi
+
+if [[ $# -eq 1 ]]; then
+  fileerror=$1
+fi
 
 while true 
 do 
@@ -35,7 +45,7 @@ do
   goldenretval=$?
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
-    cp $file ./error.btor
+    cp $file $fileerror
     rm -f $file
     exit
   fi
@@ -46,7 +56,7 @@ do
   retval=$?
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
-    cp $file ./error.btor
+    cp $file $fileerror
     rm -f $file
     exit
   fi 
@@ -57,7 +67,7 @@ do
   retval=$?
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
-    cp $file ./error.btor
+    cp $file $fileerror
     rm -f $file
     exit
   fi 
