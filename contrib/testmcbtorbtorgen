@@ -5,18 +5,21 @@
 cores=4
 sleeptime=10
 fileids="/tmp/testmcbtorbtorgen$$.pids"
+numerrors=0
 
 function cleanup
 {
   cat $fileids | while read line; 
   do 
-    kill $line 
+    kill $line 2> /dev/null
   done
 }
 
+rm -f error*.btor
+
 for ((i = 1; i <= $cores; i++))
 do
-  ./testbtorbtorgen "./error$i" > /dev/null &
+  ./testbtorbtorgen "./error"$i".btor" > /dev/null &
   if [[ $i -eq 1 ]]; then
     echo $! > $fileids
   else
@@ -27,10 +30,11 @@ done
 
 trap "cleanup; exit" SIGHUP SIGINT SIGTERM
 
-while true
+while [[ $numerrors -lt $cores ]]
 do
   sleep $sleeptime 
   errors=error*.btor
-  echo "Errors: "`ls $errors 2> /dev/null | wc -l`
+  numerrors=`ls $errors 2> /dev/null | wc -l`
+  echo "Errors: $numerrors"
 done
 
