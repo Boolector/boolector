@@ -7893,7 +7893,12 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         assert (BTOR_IS_REGULAR_EXP (next));
         assert (BTOR_IS_ARRAY_EXP (next));
         assert (next->simplified == NULL);
-        if (next->reachable && next->mark == 0)
+        /* lazy_synthesize_and_encode_acc_exp sets the
+         * 'sat_both_phases' flag.
+         * If this flag is not set, we have to find an other way
+         * to the conflict. */
+        if (next->reachable && next->mark == 0
+            && BTOR_REAL_ADDR_EXP (next->e[0])->sat_both_phases)
         {
           cond       = next->e[0];
           assignment = btor_get_assignment_aig (
