@@ -273,6 +273,10 @@ rw100 -rwl0 -o log/rw100.log log/rw100.btor
 rw100 -rwl1 -o log/rw100.log log/rw100.btor
 rw101 -rwl0 -o log/rw101.log log/rw101.btor
 rw101 -rwl1 -o log/rw101.log log/rw101.btor
+rw102 -rwl0 -o log/rw102.log log/rw102.btor
+rw102 -rwl1 -o log/rw102.log log/rw102.btor
+rw103 -rwl0 -o log/rw103.log log/rw103.btor
+rw103 -rwl1 -o log/rw103.log log/rw103.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor

@@ -3392,7 +3392,7 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm;
+  BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
   int normalized;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -3542,6 +3542,7 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         if (real_e0->e[0] == BTOR_INVERT_EXP (e1)
             || real_e0->e[1] == BTOR_INVERT_EXP (e1))
           return copy_exp (btor, e1);
+
         /* asymmetric rule of substitution */
         if (real_e0->e[1] == e1)
         {
@@ -3550,6 +3551,7 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           assert (!BTOR_IS_CONST_EXP (real_e0));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
+
         /* asymmetric rule of substitution */
         if (real_e0->e[0] == e1)
         {
@@ -3562,13 +3564,39 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       else
       {
         assert (!BTOR_IS_INVERTED_EXP (e0));
+
         /* first rule of contradiction */
-        if (real_e0->e[0] == BTOR_INVERT_EXP (e1)
-            || real_e0->e[1] == BTOR_INVERT_EXP (e1))
-          return zero_exp (btor, real_e0->len);
+        if (e0->e[0] == BTOR_INVERT_EXP (e1)
+            || e0->e[1] == BTOR_INVERT_EXP (e1))
+          return zero_exp (btor, e0->len);
+
         /* asymmetric rule of idempotency */
-        if (real_e0->e[0] == e1 || real_e0->e[1] == e1)
-          return copy_exp (btor, e0);
+        if (e0->e[0] == e1 || e0->e[1] == e1) return copy_exp (btor, e0);
+
+        if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)))
+        {
+          /* recursion is no problem here, as one call leads to
+           * folding of constants, and the other call can not
+           * trigger the same kind of recursion anymore */
+
+          if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
+          {
+            assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+            temp   = and_exp (btor, e1, e0->e[0]);
+            result = and_exp (btor, temp, e0->e[1]);
+            release_exp (btor, temp);
+            return result;
+          }
+
+          if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+          {
+            assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+            temp   = and_exp (btor, e1, e0->e[1]);
+            result = and_exp (btor, temp, e0->e[0]);
+            release_exp (btor, temp);
+            return result;
+          }
+        }
       }
     }
 
@@ -3600,13 +3628,39 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       else
       {
         assert (!BTOR_IS_INVERTED_EXP (e1));
+
         /* first rule of contradiction */
-        if (real_e1->e[0] == BTOR_INVERT_EXP (e0)
-            || real_e1->e[1] == BTOR_INVERT_EXP (e0))
+        if (e1->e[0] == BTOR_INVERT_EXP (e0)
+            || e1->e[1] == BTOR_INVERT_EXP (e0))
           return zero_exp (btor, real_e0->len);
+
         /* asymmetric rule of idempotency */
-        if (real_e1->e[0] == e0 || real_e1->e[1] == e0)
-          return copy_exp (btor, e1);
+        if (e1->e[0] == e0 || e1->e[1] == e0) return copy_exp (btor, e1);
+
+        if (BTOR_IS_CONST_EXP (real_e0))
+        {
+          /* recursion is no problem here, as one call leads to
+           * folding of constants, and the other call can not
+           * trigger the same kind of recursion anymore */
+
+          if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
+          {
+            assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+            temp   = and_exp (btor, e0, e1->e[0]);
+            result = and_exp (btor, temp, e1->e[1]);
+            release_exp (btor, temp);
+            return result;
+          }
+
+          if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+          {
+            assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+            temp   = and_exp (btor, e0, e1->e[1]);
+            result = and_exp (btor, temp, e1->e[0]);
+            release_exp (btor, temp);
+            return result;
+          }
+        }
       }
     }
 
