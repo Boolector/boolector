@@ -174,7 +174,7 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
 #define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 128
 
 static BtorExp *rewrite_binary_exp (Btor *, BtorExpKind, BtorExp *, BtorExp *);
-static BtorExp *rewrite_cond_exp (
+static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExpKind, BtorExp *, BtorExp *, BtorExp *, int *);
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_vars_and_process_embedded_constraints (Btor *);
@@ -3964,7 +3964,7 @@ cond_exp_bounded (
 
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))) kind = BTOR_ACOND_EXP;
   if (btor->rewrite_level > 0 && *calls < BTOR_COND_EXP_RW_BOUND)
-    result = rewrite_cond_exp (btor, kind, e_cond, e_if, e_else, calls);
+    result = rewrite_cond_exp_bounded (btor, kind, e_cond, e_if, e_else, calls);
   if (result == NULL)
     result = ternary_exp (
         btor, kind, e_cond, e_if, e_else, BTOR_REAL_ADDR_EXP (e_if)->len);
@@ -6095,14 +6095,14 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
-rewrite_cond_exp (Btor *btor,
-                  BtorExpKind kind,
-                  BtorExp *e0,
-                  BtorExp *e1,
-                  BtorExp *e2,
-                  int *calls)
+rewrite_cond_exp_bounded (Btor *btor,
+                          BtorExpKind kind,
+                          BtorExp *e0,
+                          BtorExp *e1,
+                          BtorExp *e2,
+                          int *calls)
 {
-  BtorExp *result, *left, *right, *cond, *uext;
+  BtorExp *result, *left, *right, *cond, *uext, *and, *econd0, *econd1, *econd2;
   BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
   BtorMemMgr *mm;
   assert (btor != NULL);
@@ -6123,9 +6123,9 @@ rewrite_cond_exp (Btor *btor,
   e1 = pointer_chase_simplified_exp (btor, e1);
   e2 = pointer_chase_simplified_exp (btor, e2);
 
-  if (e1 == e2)
-    result = copy_exp (btor, e1);
-  else if (BTOR_IS_CONST_EXP (e0))
+  if (e1 == e2) return copy_exp (btor, e1);
+
+  if (BTOR_IS_CONST_EXP (e0))
   {
     /* condtionals are normalized if rewrite level > 0 */
     assert (!BTOR_IS_INVERTED_EXP (e0));
@@ -6133,8 +6133,44 @@ rewrite_cond_exp (Btor *btor,
       result = copy_exp (btor, e1);
     else
       result = copy_exp (btor, e2);
+    return result;
   }
-  else if (kind == BTOR_BCOND_EXP)
+
+  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e1)))
+  {
+    econd0 = BTOR_REAL_ADDR_EXP (e1)->e[0];
+
+    if (BTOR_IS_INVERTED_EXP (e1))
+    {
+      econd1 = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (e1)->e[1]);
+      econd2 = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (e1)->e[2]);
+    }
+    else
+    {
+      econd1 = e1->e[1];
+      econd2 = e1->e[2];
+    }
+
+    if (econd1 == e2)
+    {
+      *calls += 1;
+      and    = and_exp (btor, e0, BTOR_INVERT_EXP (econd0));
+      result = cond_exp_bounded (btor, and, econd2, e2, calls);
+      release_exp (btor, and);
+      return result;
+    }
+
+    if (econd2 == e2)
+    {
+      *calls += 1;
+      and    = and_exp (btor, e0, econd0);
+      result = cond_exp_bounded (btor, and, econd1, e2, calls);
+      release_exp (btor, and);
+      return result;
+    }
+  }
+
+  if (kind == BTOR_BCOND_EXP)
   {
     if (BTOR_REAL_ADDR_EXP (e1)->len == 1)
     {
@@ -6143,26 +6179,32 @@ rewrite_cond_exp (Btor *btor,
       result = and_exp (btor, left, right);
       release_exp (btor, left);
       release_exp (btor, right);
+      return result;
     }
-    else if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
-             && ((e1->e[0] == e2 && is_const_one_exp (btor, e1->e[1]))
-                 || (e1->e[1] == e2 && is_const_one_exp (btor, e1->e[0]))))
+
+    if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
+        && ((e1->e[0] == e2 && is_const_one_exp (btor, e1->e[1]))
+            || (e1->e[1] == e2 && is_const_one_exp (btor, e1->e[0]))))
     {
       uext   = uext_exp (btor, e0, BTOR_REAL_ADDR_EXP (e1)->len - 1);
       result = add_exp (btor, e2, uext);
       release_exp (btor, uext);
+      return result;
     }
-    else if (!BTOR_IS_INVERTED_EXP (e2) && e2->kind == BTOR_ADD_EXP
-             && ((e2->e[0] == e1 && is_const_one_exp (btor, e2->e[1]))
-                 || (e2->e[1] == e1 && is_const_one_exp (btor, e2->e[0]))))
+
+    if (!BTOR_IS_INVERTED_EXP (e2) && e2->kind == BTOR_ADD_EXP
+        && ((e2->e[0] == e1 && is_const_one_exp (btor, e2->e[1]))
+            || (e2->e[1] == e1 && is_const_one_exp (btor, e2->e[0]))))
     {
       uext = uext_exp (
           btor, BTOR_INVERT_EXP (e0), BTOR_REAL_ADDR_EXP (e1)->len - 1);
       result = add_exp (btor, e1, uext);
       release_exp (btor, uext);
+      return result;
     }
-    else if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e1)
-             && !BTOR_IS_INVERTED_EXP (e2) && e1->kind == e2->kind)
+
+    if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e1)
+        && !BTOR_IS_INVERTED_EXP (e2) && e1->kind == e2->kind)
     {
       fptr = NULL;
       switch (e1->kind)
@@ -6183,16 +6225,19 @@ rewrite_cond_exp (Btor *btor,
           cond   = cond_exp_bounded (btor, e0, e1->e[1], e2->e[1], calls);
           result = fptr (btor, e1->e[0], cond);
           release_exp (btor, cond);
+          return result;
         }
-        else if (e1->e[1] == e2->e[1])
+
+        if (e1->e[1] == e2->e[1])
         {
           *calls += 1;
           cond   = cond_exp_bounded (btor, e0, e1->e[0], e2->e[0], calls);
           result = fptr (btor, cond, e1->e[1]);
           release_exp (btor, cond);
+          return result;
         }
 
-        if (result == NULL && fptr != udiv_exp && fptr != urem_exp)
+        if (fptr != udiv_exp && fptr != urem_exp)
         {
           /* works only for commutative operators: */
           if (e1->e[0] == e2->e[1])
@@ -6201,13 +6246,16 @@ rewrite_cond_exp (Btor *btor,
             cond   = cond_exp_bounded (btor, e0, e1->e[1], e2->e[0], calls);
             result = fptr (btor, e1->e[0], cond);
             release_exp (btor, cond);
+            return result;
           }
-          else if (e1->e[1] == e2->e[0])
+
+          if (e1->e[1] == e2->e[0])
           {
             *calls += 1;
             cond   = cond_exp_bounded (btor, e0, e1->e[0], e2->e[1], calls);
             result = fptr (btor, e1->e[1], cond);
             release_exp (btor, cond);
+            return result;
           }
         }
       }
