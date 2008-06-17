@@ -277,6 +277,16 @@ rw102 -rwl0 -o log/rw102.log log/rw102.btor
 rw102 -rwl1 -o log/rw102.log log/rw102.btor
 rw103 -rwl0 -o log/rw103.log log/rw103.btor
 rw103 -rwl1 -o log/rw103.log log/rw103.btor
+rw104 -rwl0 -o log/rw104.log log/rw104.btor
+rw104 -rwl1 -o log/rw104.log log/rw104.btor
+rw105 -rwl0 -o log/rw105.log log/rw105.btor
+rw105 -rwl1 -o log/rw105.log log/rw105.btor
+rw106 -rwl0 -o log/rw106.log log/rw106.btor
+rw106 -rwl1 -o log/rw106.log log/rw106.btor
+rw107 -rwl0 -o log/rw107.log log/rw107.btor
+rw107 -rwl1 -o log/rw107.log log/rw107.btor
+rw108 -rwl0 -o log/rw108.log log/rw108.btor
+rw108 -rwl1 -o log/rw108.log log/rw108.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor

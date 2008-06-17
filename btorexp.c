@@ -3192,6 +3192,23 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
      * we rewrite a != b to a = ~b and substitute.
      * */
 
+    /* a = a + c is FALSE if rewrite level > 0, as
+     * t + 0 is rewritten to t, hence c has to be != 0
+     */
+    if (!BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_ADD_EXP
+        && ((e0->e[0] == e1
+             && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+            || (e0->e[1] == e1
+                && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))))
+      return false_exp (btor);
+
+    if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
+        && ((e1->e[0] == e0
+             && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+            || (e1->e[1] == e0
+                && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))))
+      return false_exp (btor);
+
     /* a = b ? a : c is rewritten to  b OR a = c
      * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
      */
