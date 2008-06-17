@@ -880,6 +880,7 @@ has_parents_exp (Btor *btor, BtorExp *exp)
   BtorFullParentIterator it;
   assert (btor != NULL);
   assert (exp != NULL);
+  (void) btor;
   init_full_parent_iterator (&it, exp);
   return has_next_parent_full_parent_iterator (&it);
 }
