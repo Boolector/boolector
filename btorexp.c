@@ -8686,29 +8686,33 @@ reset_assumptions (Btor *btor)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
+/* check if left does not occur on the right side */
 static int
 occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
 {
   BtorExp *cur, *real_left;
-  BtorExpPtrStack stack;
+  BtorExpPtrStack stack, unmark_stack;
   int is_cyclic, i;
   BtorMemMgr *mm;
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
+
   is_cyclic = 0;
   mm        = btor->mm;
   real_left = BTOR_REAL_ADDR_EXP (left);
-  /* check if left does not occur on the right side */
   BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+
   BTOR_PUSH_STACK (mm, stack, right);
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    assert (cur->mark == 0 || cur->mark == 1);
-    if (cur->mark == 0)
+    assert (cur->aux_mark == 0 || cur->aux_mark == 1);
+    if (cur->aux_mark == 0)
     {
-      cur->mark = 1;
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, cur);
       if (cur == real_left)
       {
         is_cyclic = 1;
@@ -8719,7 +8723,16 @@ occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
     }
   } while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
-  btor_mark_exp (btor, right, 0);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (cur->aux_mark == 1);
+    cur->aux_mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+
   return is_cyclic;
 }
 
@@ -9405,9 +9418,9 @@ rebuild_and_substitute_var_exps (Btor *btor, BtorPtrHashTable *substs)
   {
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->subst_mark == 0)
+    if (cur->aux_mark == 0)
     {
-      cur->subst_mark = 1;
+      cur->aux_mark = 1;
       init_full_parent_iterator (&it, cur);
       /* are we at a root ? */
       pushed = 0;
@@ -9432,14 +9445,14 @@ rebuild_and_substitute_var_exps (Btor *btor, BtorPtrHashTable *substs)
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
 
-    if (cur->subst_mark == 0) continue;
+    if (cur->aux_mark == 0) continue;
 
     assert (!BTOR_IS_CONST_EXP (cur));
 
-    if (cur->subst_mark == 1)
+    if (cur->aux_mark == 1)
     {
       BTOR_PUSH_STACK (mm, stack, cur);
-      cur->subst_mark = 2;
+      cur->aux_mark = 2;
       if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
@@ -9457,8 +9470,8 @@ rebuild_and_substitute_var_exps (Btor *btor, BtorPtrHashTable *substs)
     }
     else
     {
-      assert (cur->subst_mark == 2);
-      cur->subst_mark = 0;
+      assert (cur->aux_mark == 2);
+      cur->aux_mark = 0;
       if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
@@ -9746,9 +9759,9 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
     /* search upwards for all reachable roots */
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
-    if (cur->subst_mark == 0)
+    if (cur->aux_mark == 0)
     {
-      cur->subst_mark = 1;
+      cur->aux_mark = 1;
       init_full_parent_iterator (&it, cur);
       /* are we at a root ? */
       pushed = 0;
@@ -9773,15 +9786,15 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
 
-    if (cur->subst_mark == 0) continue;
+    if (cur->aux_mark == 0) continue;
 
     assert (!BTOR_IS_CONST_EXP (cur));
     assert (!BTOR_IS_VAR_EXP (cur));
     assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
 
-    if (cur->subst_mark == 1)
+    if (cur->aux_mark == 1)
     {
-      cur->subst_mark = 2;
+      cur->aux_mark = 2;
       BTOR_PUSH_STACK (mm, stack, cur);
 
       for (i = cur->arity - 1; i >= 0; i--)
@@ -9789,8 +9802,8 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
     }
     else
     {
-      assert (cur->subst_mark == 2);
-      cur->subst_mark = 0;
+      assert (cur->aux_mark == 2);
+      cur->aux_mark = 0;
 
       rebuilt_exp = rebuild_exp (btor, cur);
       assert (rebuilt_exp != NULL);

@@ -426,3 +426,15 @@ regrbfs1 -rwl3 -o log/regrbfs1.log log/regrbfs1.btor
 regrbfs1 -rwl2 -o log/regrbfs1.log log/regrbfs1.btor
 regrbfs1 -rwl1 -o log/regrbfs1.log log/regrbfs1.btor
 regrbfs1 -rwl0 -o log/regrbfs1.log log/regrbfs1.btor
+regrmark1 -rwl3 -o log/regrmark1.log log/regrmark1.btor
+regrmark1 -rwl2 -o log/regrmark1.log log/regrmark1.btor
+regrmark1 -rwl1 -o log/regrmark1.log log/regrmark1.btor
+regrmark1 -rwl0 -o log/regrmark1.log log/regrmark1.btor
+regrmark2 -rwl3 -o log/regrmark2.log log/regrmark2.btor
+regrmark2 -rwl2 -o log/regrmark2.log log/regrmark2.btor
+regrmark2 -rwl1 -o log/regrmark2.log log/regrmark2.btor
+regrmark2 -rwl0 -o log/regrmark2.log log/regrmark2.btor
+regrmark3 -rwl3 -o log/regrmark3.log log/regrmark3.btor
+regrmark3 -rwl2 -o log/regrmark3.log log/regrmark3.btor
+regrmark3 -rwl1 -o log/regrmark3.log log/regrmark3.btor
+regrmark3 -rwl0 -o log/regrmark3.log log/regrmark3.btor
