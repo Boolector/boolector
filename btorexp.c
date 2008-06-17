@@ -22,7 +22,7 @@
 /* Bounds for recursive rewriting */
 #define BTOR_COND_EXP_RW_BOUND 128
 #define BTOR_MUL_EXP_RW_BOUND 128
-#define BTOR_EQ_OVER_CONCAT_EXP_RW_BOUND 128
+#define BTOR_EQ_EXP_RW_BOUND 128
 #define BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND 128
 
 #define BTOR_ABORT_EXP(cond, msg)            \
@@ -2991,63 +2991,60 @@ rewrite_slice_exp_bounded (
   assert (calls != NULL);
   assert (*calls >= 0);
 
-  result = NULL;
-  if (*calls < BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND)
-  {
-    mm         = btor->mm;
-    e0         = pointer_chase_simplified_exp (btor, e0);
-    real_e0    = BTOR_REAL_ADDR_EXP (e0);
-    len        = real_e0->len;
-    len_result = upper - lower + 1;
+  result     = NULL;
+  mm         = btor->mm;
+  e0         = pointer_chase_simplified_exp (btor, e0);
+  real_e0    = BTOR_REAL_ADDR_EXP (e0);
+  len        = real_e0->len;
+  len_result = upper - lower + 1;
 
-    if (len == len_result) /* handles result->len == 1 */
-      result = copy_exp (btor, e0);
-    else if (BTOR_IS_CONST_EXP (real_e0))
+  if (len == len_result) /* handles result->len == 1 */
+    result = copy_exp (btor, e0);
+  else if (BTOR_IS_CONST_EXP (real_e0))
+  {
+    bresult = btor_slice_const (mm, real_e0->bits, upper, lower);
+    result  = const_exp (btor, bresult);
+    result  = BTOR_COND_INVERT_EXP (e0, result);
+    btor_delete_const (mm, bresult);
+  }
+  /* check if slice and child of concat matches */
+  else if (real_e0->kind == BTOR_CONCAT_EXP)
+  {
+    if (lower == 0 && BTOR_REAL_ADDR_EXP (real_e0->e[1])->len == len_result)
     {
-      bresult = btor_slice_const (mm, real_e0->bits, upper, lower);
-      result  = const_exp (btor, bresult);
-      result  = BTOR_COND_INVERT_EXP (e0, result);
-      btor_delete_const (mm, bresult);
+      if (BTOR_IS_INVERTED_EXP (e0))
+        result = BTOR_INVERT_EXP (copy_exp (btor, real_e0->e[1]));
+      else
+        result = copy_exp (btor, real_e0->e[1]);
     }
-    /* check if slice and child of concat matches */
-    else if (real_e0->kind == BTOR_CONCAT_EXP)
+    if (btor->rewrite_level < 3)
     {
-      if (lower == 0 && BTOR_REAL_ADDR_EXP (real_e0->e[1])->len == len_result)
+      /* we look just one level down */
+      if (upper == len - 1
+          && BTOR_REAL_ADDR_EXP (real_e0->e[0])->len == len_result)
       {
         if (BTOR_IS_INVERTED_EXP (e0))
-          result = BTOR_INVERT_EXP (copy_exp (btor, real_e0->e[1]));
+          result = BTOR_INVERT_EXP (copy_exp (btor, real_e0->e[0]));
         else
-          result = copy_exp (btor, real_e0->e[1]);
+          result = copy_exp (btor, real_e0->e[0]);
       }
-      if (btor->rewrite_level < 3)
+    }
+    else if (*calls < BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND)
+    {
+      /* concats are normalized at rewrite level 3 */
+      /* we recursively check if slice and child of concat matches */
+      if (lower >= BTOR_REAL_ADDR_EXP (real_e0->e[1])->len)
       {
-        /* we look just one level down */
-        if (upper == len - 1
-            && BTOR_REAL_ADDR_EXP (real_e0->e[0])->len == len_result)
-        {
-          if (BTOR_IS_INVERTED_EXP (e0))
-            result = BTOR_INVERT_EXP (copy_exp (btor, real_e0->e[0]));
-          else
-            result = copy_exp (btor, real_e0->e[0]);
-        }
-      }
-      else
-      {
-        /* concats are normalized at rewrite level 3 */
-        /* we recursively check if slice and child of concat matches */
-        if (lower >= BTOR_REAL_ADDR_EXP (real_e0->e[1])->len)
-        {
-          *calls += 1;
-          len = BTOR_REAL_ADDR_EXP (real_e0->e[1])->len;
-          upper -= len;
-          lower -= len;
-          if (BTOR_IS_INVERTED_EXP (e0))
-            result = rewrite_slice_exp_bounded (
-                btor, BTOR_INVERT_EXP (real_e0->e[0]), upper, lower, calls);
-          else
-            result = rewrite_slice_exp_bounded (
-                btor, real_e0->e[0], upper, lower, calls);
-        }
+        *calls += 1;
+        len = BTOR_REAL_ADDR_EXP (real_e0->e[1])->len;
+        upper -= len;
+        lower -= len;
+        if (BTOR_IS_INVERTED_EXP (e0))
+          result = rewrite_slice_exp_bounded (
+              btor, BTOR_INVERT_EXP (real_e0->e[0]), upper, lower, calls);
+        else
+          result = rewrite_slice_exp_bounded (
+              btor, real_e0->e[0], upper, lower, calls);
       }
     }
   }
@@ -3212,7 +3209,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     /* a = b ? a : c is rewritten to  b OR a = c
      * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
      */
-    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0))
+    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0) && *calls < BTOR_EQ_EXP_RW_BOUND)
     {
       if (real_e0->e[1] == e1)
       {
@@ -3251,7 +3248,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       }
     }
 
-    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1))
+    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1) && *calls < BTOR_EQ_EXP_RW_BOUND)
     {
       if (real_e1->e[1] == e0)
       {
@@ -3316,8 +3313,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
           e1         = e1_norm;
         }
       }
-      else if (kind == BTOR_BEQ_EXP
-               && *calls < BTOR_EQ_OVER_CONCAT_EXP_RW_BOUND)
+      else if (kind == BTOR_BEQ_EXP && *calls < BTOR_EQ_EXP_RW_BOUND)
       {
         /* push eq down over concats */
         if ((real_e0->kind == BTOR_CONCAT_EXP
@@ -3963,7 +3959,7 @@ cond_exp_bounded (
   kind   = BTOR_BCOND_EXP;
 
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))) kind = BTOR_ACOND_EXP;
-  if (btor->rewrite_level > 0 && *calls < BTOR_COND_EXP_RW_BOUND)
+  if (btor->rewrite_level > 0)
     result = rewrite_cond_exp_bounded (btor, kind, e_cond, e_if, e_else, calls);
   if (result == NULL)
     result = ternary_exp (
@@ -4375,12 +4371,9 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_REAL_ADDR_EXP (e0)->len == 1) return and_exp (btor, e0, e1);
 
     if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
-        && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_MUL_EXP)
+        && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_MUL_EXP
+        && *calls < BTOR_MUL_EXP_RW_BOUND)
     {
-      /* recursion is no problem here, as one call leads to
-       * folding of constants, and the other call can not
-       * trigger the same kind of recursion anymore */
-
       if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
       {
         assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
@@ -4401,12 +4394,10 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     }
 
     else if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
-             && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_MUL_EXP)
-    {
-      /* recursion is no problem here, as one call leads to
-       * folding of constants, and the other call can not
-       * trigger the same kind of recursion anymore */
+             && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_MUL_EXP
+             && *calls < BTOR_MUL_EXP_RW_BOUND)
 
+    {
       if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
       {
         assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
@@ -6114,7 +6105,6 @@ rewrite_cond_exp_bounded (Btor *btor,
   assert (e2 != NULL);
   assert (calls != NULL);
   assert (*calls >= 0);
-  assert (*calls < BTOR_COND_EXP_RW_BOUND);
 
   result = NULL;
   mm     = btor->mm;
@@ -6136,7 +6126,9 @@ rewrite_cond_exp_bounded (Btor *btor,
     return result;
   }
 
-  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e1)))
+  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e1))
+      && *calls < BTOR_COND_EXP_RW_BOUND)
+
   {
     econd0 = BTOR_REAL_ADDR_EXP (e1)->e[0];
 
@@ -6170,7 +6162,8 @@ rewrite_cond_exp_bounded (Btor *btor,
     }
   }
 
-  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e2)))
+  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e2))
+      && *calls < BTOR_COND_EXP_RW_BOUND)
   {
     econd0 = BTOR_REAL_ADDR_EXP (e2)->e[0];
 
@@ -6238,7 +6231,8 @@ rewrite_cond_exp_bounded (Btor *btor,
     }
 
     if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e1)
-        && !BTOR_IS_INVERTED_EXP (e2) && e1->kind == e2->kind)
+        && !BTOR_IS_INVERTED_EXP (e2) && e1->kind == e2->kind
+        && *calls < BTOR_COND_EXP_RW_BOUND)
     {
       fptr = NULL;
       switch (e1->kind)
