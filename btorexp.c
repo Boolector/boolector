@@ -9111,7 +9111,7 @@ insert_embedded_constraint (Btor *btor, BtorExp *exp)
 static void
 insert_new_constraint (Btor *btor, BtorExp *exp)
 {
-  BtorExp *left, *right, *true_exp, *real_exp;
+  BtorExp *left, *right, *exp_true, *real_exp;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
@@ -9150,8 +9150,8 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
       }
       else
       {
-        true_exp = btor_true_exp (btor);
-        if (merge_simplified_exp_const (btor, exp, true_exp, 0))
+        exp_true = true_exp (btor);
+        if (merge_simplified_exp_const (btor, exp, exp_true, 0))
         {
           if (is_embedded_constraint_exp (btor, exp))
             insert_embedded_constraint (btor, exp);
@@ -9160,7 +9160,7 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
         }
         else
           btor->inconsistent = 1;
-        release_exp (btor, true_exp);
+        release_exp (btor, exp_true);
       }
     }
     else
@@ -9254,7 +9254,7 @@ btor_replay_btor (Btor *btor, FILE *file)
                   "'btor' must not be NULL in 'btor_replay_btor'");
   BTOR_ABORT_EXP (file == NULL,
                   "'file' must not be NULL in 'btor_replay_btor'");
-  result = btor_true_exp (btor);
+  result = true_exp (btor);
   for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
   {
     temp = btor_and_exp (btor, result, btor->replay_constraints.start[i]);
