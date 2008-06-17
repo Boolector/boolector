@@ -6170,6 +6170,40 @@ rewrite_cond_exp_bounded (Btor *btor,
     }
   }
 
+  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e2)))
+  {
+    econd0 = BTOR_REAL_ADDR_EXP (e2)->e[0];
+
+    if (BTOR_IS_INVERTED_EXP (e2))
+    {
+      econd1 = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (e2)->e[1]);
+      econd2 = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (e2)->e[2]);
+    }
+    else
+    {
+      econd1 = e2->e[1];
+      econd2 = e2->e[2];
+    }
+
+    if (econd1 == e1)
+    {
+      *calls += 1;
+      and    = and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (econd0));
+      result = cond_exp_bounded (btor, and, econd2, e1, calls);
+      release_exp (btor, and);
+      return result;
+    }
+
+    if (econd2 == e1)
+    {
+      *calls += 1;
+      and    = and_exp (btor, BTOR_INVERT_EXP (e0), econd0);
+      result = cond_exp_bounded (btor, and, econd1, e1, calls);
+      release_exp (btor, and);
+      return result;
+    }
+  }
+
   if (kind == BTOR_BCOND_EXP)
   {
     if (BTOR_REAL_ADDR_EXP (e1)->len == 1)
