@@ -3126,6 +3126,36 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return or_exp (btor, e0, e1);
 }
 
+static int
+is_exp_and_exp_plus_const_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  /* we need this so that a + 0 is rewritten to a */
+  assert (btor->rewrite_level > 0);
+
+  if (BTOR_REAL_ADDR_EXP (e0)->kind == BTOR_ADD_EXP
+      && !BTOR_IS_INVERTED_EXP (e0))
+  {
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])) && e0->e[1] == e1)
+      return 1;
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])) && e0->e[0] == e1)
+      return 1;
+  }
+
+  if (BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_ADD_EXP
+      && !BTOR_IS_INVERTED_EXP (e1))
+  {
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])) && e1->e[1] == e0)
+      return 1;
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])) && e1->e[0] == e0)
+      return 1;
+  }
+
+  return 0;
+}
+
 static BtorExp *
 eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 {
@@ -3193,22 +3223,58 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     /* a = a + c is FALSE if rewrite level > 0, as
      * t + 0 is rewritten to t, hence c has to be != 0
      */
-    if (!BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_ADD_EXP
-        && ((e0->e[0] == e1
-             && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
-            || (e0->e[1] == e1
-                && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))))
-      return false_exp (btor);
-
-    if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP
-        && ((e1->e[0] == e0
-             && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
-            || (e1->e[1] == e0
-                && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))))
-      return false_exp (btor);
+    if (is_exp_and_exp_plus_const_rwl1 (btor, e0, e1)) return false_exp (btor);
 
     if (btor->rewrite_level > 2)
     {
+      /* b ? a : t = a + c  ---> !b AND a + c = t
+       * rewrite level > 0 ensures that constant c is != 0 */
+      if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+          && e0->kind == BTOR_BCOND_EXP)
+      {
+        if (is_exp_and_exp_plus_const_rwl1 (btor, e0->e[1], e1))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e0->e[2], e1, calls);
+          result = and_exp (btor, BTOR_INVERT_EXP (e0->e[0]), eq);
+          release_exp (btor, eq);
+          return result;
+        }
+
+        if (is_exp_and_exp_plus_const_rwl1 (btor, e0->e[2], e1))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e0->e[1], e1, calls);
+          result = and_exp (btor, e0->e[0], eq);
+          release_exp (btor, eq);
+          return result;
+        }
+      }
+
+      /* a + c = b ? a : t  ---> !b AND a + c = t
+       * rewrite level > 0 ensures that constant c is != 0 */
+      if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+          && e1->kind == BTOR_BCOND_EXP)
+      {
+        if (is_exp_and_exp_plus_const_rwl1 (btor, e1->e[1], e0))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e1->e[2], e0, calls);
+          result = and_exp (btor, BTOR_INVERT_EXP (e1->e[0]), eq);
+          release_exp (btor, eq);
+          return result;
+        }
+
+        if (is_exp_and_exp_plus_const_rwl1 (btor, e1->e[2], e0))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e1->e[1], e0, calls);
+          result = and_exp (btor, e1->e[0], eq);
+          release_exp (btor, eq);
+          return result;
+        }
+      }
+
       /* a = b ? a : c is rewritten to  b OR a = c
        * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
        */
