@@ -3233,10 +3233,38 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
     if (btor->rewrite_level > 2)
     {
-      /* b ? a : t = a + c  ---> !b AND a + c = t
-       * rewrite level > 0 ensures that constant c is != 0 */
       if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
       {
+        /* a + b = a + c ---> b = c */
+        if (e0->kind == BTOR_ADD_EXP && e1->kind == BTOR_ADD_EXP)
+        {
+          if (e0->e[0] == e1->e[0])
+          {
+            *calls += 1;
+            return eq_exp_bounded (btor, e0->e[1], e1->e[1], calls);
+          }
+
+          if (e0->e[0] == e1->e[1])
+          {
+            *calls += 1;
+            return eq_exp_bounded (btor, e0->e[1], e1->e[0], calls);
+          }
+
+          if (e0->e[1] == e1->e[0])
+          {
+            *calls += 1;
+            return eq_exp_bounded (btor, e0->e[0], e1->e[1], calls);
+          }
+
+          if (e0->e[1] == e1->e[1])
+          {
+            *calls += 1;
+            return eq_exp_bounded (btor, e0->e[0], e1->e[0], calls);
+          }
+        }
+
+        /* b ? a : t = a + c  ---> !b AND a + c = t
+         * rewrite level > 0 ensures that constant c is != 0 */
         if (e0->kind == BTOR_BCOND_EXP)
         {
           if (is_exp_and_exp_plus_const_rwl1 (btor, e0->e[1], e1))

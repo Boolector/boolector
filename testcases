@@ -337,6 +337,27 @@ rw132 -rwl0 -o log/rw132.log log/rw132.btor
 rw132 -rwl1 -o log/rw132.log log/rw132.btor
 rw133 -rwl0 -o log/rw133.log log/rw133.btor
 rw133 -rwl1 -o log/rw133.log log/rw133.btor
+
+rw134 -rwl0 -o log/rw134.log log/rw134.btor
+rw134 -rwl3 -o log/rw134.log log/rw134.btor
+rw135 -rwl0 -o log/rw135.log log/rw135.btor
+rw135 -rwl3 -o log/rw135.log log/rw135.btor
+rw136 -rwl0 -o log/rw136.log log/rw136.btor
+rw136 -rwl3 -o log/rw136.log log/rw136.btor
+rw137 -rwl0 -o log/rw137.log log/rw137.btor
+rw137 -rwl3 -o log/rw137.log log/rw137.btor
+rw138 -rwl0 -o log/rw138.log log/rw138.btor
+rw138 -rwl3 -o log/rw138.log log/rw138.btor
+rw139 -rwl0 -o log/rw139.log log/rw139.btor
+rw139 -rwl3 -o log/rw139.log log/rw139.btor
+rw140 -rwl0 -o log/rw140.log log/rw140.btor
+rw140 -rwl3 -o log/rw140.log log/rw140.btor
+rw141 -rwl0 -o log/rw141.log log/rw141.btor
+rw141 -rwl3 -o log/rw141.log log/rw141.btor
+rw142 -rwl0 -o log/rw142.log log/rw142.btor
+rw142 -rwl3 -o log/rw142.log log/rw142.btor
+rw143 -rwl0 -o log/rw143.log log/rw143.btor
+rw143 -rwl3 -o log/rw143.log log/rw143.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
