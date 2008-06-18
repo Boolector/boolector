@@ -3207,89 +3207,91 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
                 && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))))
       return false_exp (btor);
 
-    /* a = b ? a : c is rewritten to  b OR a = c
-     * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
-     */
-    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0) && *calls < BTOR_EQ_EXP_RW_BOUND)
-    {
-      if (real_e0->e[1] == e1)
-      {
-        *calls += 1;
-        if (BTOR_IS_INVERTED_EXP (e0))
-        {
-          eq =
-              eq_exp_bounded (btor, BTOR_INVERT_EXP (real_e0->e[2]), e1, calls);
-          result = and_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
-        }
-        else
-        {
-          eq     = eq_exp_bounded (btor, real_e0->e[2], e1, calls);
-          result = or_exp (btor, real_e0->e[0], eq);
-        }
-        release_exp (btor, eq);
-        return result;
-      }
-
-      if (real_e0->e[2] == e1)
-      {
-        *calls += 1;
-        if (BTOR_IS_INVERTED_EXP (e0))
-        {
-          eq =
-              eq_exp_bounded (btor, BTOR_INVERT_EXP (real_e0->e[1]), e1, calls);
-          result = and_exp (btor, real_e0->e[0], eq);
-        }
-        else
-        {
-          eq     = eq_exp_bounded (btor, real_e0->e[1], e1, calls);
-          result = or_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
-        }
-        release_exp (btor, eq);
-        return result;
-      }
-    }
-
-    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1) && *calls < BTOR_EQ_EXP_RW_BOUND)
-    {
-      if (real_e1->e[1] == e0)
-      {
-        *calls += 1;
-        if (BTOR_IS_INVERTED_EXP (e1))
-        {
-          eq =
-              eq_exp_bounded (btor, BTOR_INVERT_EXP (real_e1->e[2]), e0, calls);
-          result = and_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
-        }
-        else
-        {
-          eq     = eq_exp_bounded (btor, real_e1->e[2], e0, calls);
-          result = or_exp (btor, real_e1->e[0], eq);
-        }
-        release_exp (btor, eq);
-        return result;
-      }
-
-      if (real_e1->e[2] == e0)
-      {
-        *calls += 1;
-        if (BTOR_IS_INVERTED_EXP (e1))
-        {
-          eq =
-              eq_exp_bounded (btor, BTOR_INVERT_EXP (real_e1->e[1]), e0, calls);
-          result = and_exp (btor, real_e1->e[0], eq);
-        }
-        else
-        {
-          eq     = eq_exp_bounded (btor, real_e1->e[1], e0, calls);
-          result = or_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
-        }
-        release_exp (btor, eq);
-        return result;
-      }
-    }
-
     if (btor->rewrite_level > 2)
     {
+      /* a = b ? a : c is rewritten to  b OR a = c
+       * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
+       */
+      if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0)
+          && *calls < BTOR_EQ_EXP_RW_BOUND)
+      {
+        if (real_e0->e[1] == e1)
+        {
+          *calls += 1;
+          if (BTOR_IS_INVERTED_EXP (e0))
+          {
+            eq = eq_exp_bounded (
+                btor, BTOR_INVERT_EXP (real_e0->e[2]), e1, calls);
+            result = and_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
+          }
+          else
+          {
+            eq     = eq_exp_bounded (btor, real_e0->e[2], e1, calls);
+            result = or_exp (btor, real_e0->e[0], eq);
+          }
+          release_exp (btor, eq);
+          return result;
+        }
+
+        if (real_e0->e[2] == e1)
+        {
+          *calls += 1;
+          if (BTOR_IS_INVERTED_EXP (e0))
+          {
+            eq = eq_exp_bounded (
+                btor, BTOR_INVERT_EXP (real_e0->e[1]), e1, calls);
+            result = and_exp (btor, real_e0->e[0], eq);
+          }
+          else
+          {
+            eq     = eq_exp_bounded (btor, real_e0->e[1], e1, calls);
+            result = or_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
+          }
+          release_exp (btor, eq);
+          return result;
+        }
+      }
+
+      if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1)
+          && *calls < BTOR_EQ_EXP_RW_BOUND)
+      {
+        if (real_e1->e[1] == e0)
+        {
+          *calls += 1;
+          if (BTOR_IS_INVERTED_EXP (e1))
+          {
+            eq = eq_exp_bounded (
+                btor, BTOR_INVERT_EXP (real_e1->e[2]), e0, calls);
+            result = and_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
+          }
+          else
+          {
+            eq     = eq_exp_bounded (btor, real_e1->e[2], e0, calls);
+            result = or_exp (btor, real_e1->e[0], eq);
+          }
+          release_exp (btor, eq);
+          return result;
+        }
+
+        if (real_e1->e[2] == e0)
+        {
+          *calls += 1;
+          if (BTOR_IS_INVERTED_EXP (e1))
+          {
+            eq = eq_exp_bounded (
+                btor, BTOR_INVERT_EXP (real_e1->e[1]), e0, calls);
+            result = and_exp (btor, real_e1->e[0], eq);
+          }
+          else
+          {
+            eq     = eq_exp_bounded (btor, real_e1->e[1], e0, calls);
+            result = or_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
+          }
+          release_exp (btor, eq);
+          return result;
+        }
+      }
+
       /* normalize adds and muls on demand */
       if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
           && (e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
