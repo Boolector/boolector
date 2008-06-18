@@ -3129,27 +3129,33 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 static int
 is_exp_and_exp_plus_const_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
+  BtorExp *real_e0, *real_e1;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
   /* we need this so that a + 0 is rewritten to a */
   assert (btor->rewrite_level > 0);
 
-  if (BTOR_REAL_ADDR_EXP (e0)->kind == BTOR_ADD_EXP
-      && !BTOR_IS_INVERTED_EXP (e0))
+  real_e0 = BTOR_REAL_ADDR_EXP (e0);
+  real_e1 = BTOR_REAL_ADDR_EXP (e1);
+
+  if (real_e0->kind == BTOR_ADD_EXP)
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])) && e0->e[1] == e1)
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e0->e[0]))
+        && BTOR_COND_INVERT_EXP (e0, real_e0->e[1]) == e1)
       return 1;
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])) && e0->e[0] == e1)
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e0->e[1]))
+        && BTOR_COND_INVERT_EXP (e0, real_e0->e[0]) == e1)
       return 1;
   }
 
-  if (BTOR_REAL_ADDR_EXP (e1)->kind == BTOR_ADD_EXP
-      && !BTOR_IS_INVERTED_EXP (e1))
+  if (real_e1->kind == BTOR_ADD_EXP)
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])) && e1->e[1] == e0)
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[0]))
+        && BTOR_COND_INVERT_EXP (e1, real_e1->e[1]) == e0)
       return 1;
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])) && e1->e[0] == e0)
+    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[1]))
+        && BTOR_COND_INVERT_EXP (e1, real_e1->e[0]) == e0)
       return 1;
   }
 
