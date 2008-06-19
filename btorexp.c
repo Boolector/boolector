@@ -3238,49 +3238,101 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
     if (btor->rewrite_level > 2)
     {
-      /* b ? a : t = a + c  ---> !b AND a + c = t
-       * rewrite level > 0 ensures that constant c is != 0 */
-      if (!BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_BCOND_EXP)
+      if (!BTOR_IS_INVERTED_EXP (e0))
       {
-        if (is_always_unequal_rwl1 (btor, e0->e[1], e1))
+        /* a + b = a  ----> b = 0,
+         * this rule does not lead to less substitutions. 'a' cannot
+         * be substituted as the occurrence check would fail */
+        if (e0->kind == BTOR_ADD_EXP)
         {
-          *calls += 1;
-          eq     = eq_exp_bounded (btor, e0->e[2], e1, calls);
-          result = and_exp (btor, BTOR_INVERT_EXP (e0->e[0]), eq);
-          release_exp (btor, eq);
-          return result;
+          if (e0->e[0] == e1)
+          {
+            *calls += 1;
+            left   = zero_exp (btor, e0->len);
+            result = eq_exp_bounded (btor, left, e0->e[1], calls);
+            release_exp (btor, left);
+            return result;
+          }
+
+          if (e0->e[1] == e1)
+          {
+            *calls += 1;
+            left   = zero_exp (btor, e0->len);
+            result = eq_exp_bounded (btor, left, e0->e[0], calls);
+            release_exp (btor, left);
+            return result;
+          }
         }
 
-        if (is_always_unequal_rwl1 (btor, e0->e[2], e1))
+        /* b ? a : t = d  ---a != d-->  !b AND d = t */
+        if (e0->kind == BTOR_BCOND_EXP)
         {
-          *calls += 1;
-          eq     = eq_exp_bounded (btor, e0->e[1], e1, calls);
-          result = and_exp (btor, e0->e[0], eq);
-          release_exp (btor, eq);
-          return result;
+          if (is_always_unequal_rwl1 (btor, e0->e[1], e1))
+          {
+            *calls += 1;
+            eq     = eq_exp_bounded (btor, e0->e[2], e1, calls);
+            result = and_exp (btor, BTOR_INVERT_EXP (e0->e[0]), eq);
+            release_exp (btor, eq);
+            return result;
+          }
+
+          if (is_always_unequal_rwl1 (btor, e0->e[2], e1))
+          {
+            *calls += 1;
+            eq     = eq_exp_bounded (btor, e0->e[1], e1, calls);
+            result = and_exp (btor, e0->e[0], eq);
+            release_exp (btor, eq);
+            return result;
+          }
         }
       }
 
-      /* a + c = b ? a : t  ---> !b AND a + c = t
-       * rewrite level > 0 ensures that constant c is != 0 */
-      if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_BCOND_EXP)
+      if (!BTOR_IS_INVERTED_EXP (e1))
       {
-        if (is_always_unequal_rwl1 (btor, e1->e[1], e0))
+        /* a = a + b  ----> b = 0,
+         * this rule does not lead to less substitutions. 'a' cannot
+         * be substituted as the occurrence check would fail */
+        if (e1->kind == BTOR_ADD_EXP)
         {
-          *calls += 1;
-          eq     = eq_exp_bounded (btor, e1->e[2], e0, calls);
-          result = and_exp (btor, BTOR_INVERT_EXP (e1->e[0]), eq);
-          release_exp (btor, eq);
-          return result;
+          if (e1->e[0] == e0)
+          {
+            *calls += 1;
+            left   = zero_exp (btor, e1->len);
+            result = eq_exp_bounded (btor, left, e1->e[1], calls);
+            release_exp (btor, left);
+            return result;
+          }
+
+          if (e1->e[1] == e0)
+          {
+            *calls += 1;
+            left   = zero_exp (btor, e1->len);
+            result = eq_exp_bounded (btor, left, e1->e[0], calls);
+            release_exp (btor, left);
+            return result;
+          }
         }
 
-        if (is_always_unequal_rwl1 (btor, e1->e[2], e0))
+        /* d = b ? a : t  ---a != d-->  !b AND d = t */
+        if (e1->kind == BTOR_BCOND_EXP)
         {
-          *calls += 1;
-          eq     = eq_exp_bounded (btor, e1->e[1], e0, calls);
-          result = and_exp (btor, e1->e[0], eq);
-          release_exp (btor, eq);
-          return result;
+          if (is_always_unequal_rwl1 (btor, e1->e[1], e0))
+          {
+            *calls += 1;
+            eq     = eq_exp_bounded (btor, e1->e[2], e0, calls);
+            result = and_exp (btor, BTOR_INVERT_EXP (e1->e[0]), eq);
+            release_exp (btor, eq);
+            return result;
+          }
+
+          if (is_always_unequal_rwl1 (btor, e1->e[2], e0))
+          {
+            *calls += 1;
+            eq     = eq_exp_bounded (btor, e1->e[1], e0, calls);
+            result = and_exp (btor, e1->e[0], eq);
+            release_exp (btor, eq);
+            return result;
+          }
         }
       }
 
