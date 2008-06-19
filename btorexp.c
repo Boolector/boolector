@@ -3127,17 +3127,23 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static int
-is_exp_and_exp_plus_const_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
+is_always_unequal_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *real_e0, *real_e1;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
-  /* we need this so that a + 0 is rewritten to a */
+  /* we need this so that a + 0 is rewritten to a,
+   * and constants are normalized (all inverted constants are odd) */
   assert (btor->rewrite_level > 0);
+
+  if (e0 == BTOR_INVERT_EXP (e1)) return 1;
 
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
+
+  if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1) && e0 != e1)
+    return 1;
 
   if (real_e0->kind == BTOR_ADD_EXP)
   {
@@ -3226,10 +3232,9 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
      * we rewrite a != b to a = ~b and substitute.
      * */
 
-    /* a = a + c is FALSE if rewrite level > 0, as
-     * t + 0 is rewritten to t, hence c has to be != 0
-     */
-    if (is_exp_and_exp_plus_const_rwl1 (btor, e0, e1)) return false_exp (btor);
+    if (e0 == e1) return true_exp (btor);
+
+    if (is_always_unequal_rwl1 (btor, e0, e1)) return false_exp (btor);
 
     if (btor->rewrite_level > 2)
     {
@@ -3267,7 +3272,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
          * rewrite level > 0 ensures that constant c is != 0 */
         if (e0->kind == BTOR_BCOND_EXP)
         {
-          if (is_exp_and_exp_plus_const_rwl1 (btor, e0->e[1], e1))
+          if (is_always_unequal_rwl1 (btor, e0->e[1], e1))
           {
             *calls += 1;
             eq     = eq_exp_bounded (btor, e0->e[2], e1, calls);
@@ -3276,7 +3281,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
             return result;
           }
 
-          if (is_exp_and_exp_plus_const_rwl1 (btor, e0->e[2], e1))
+          if (is_always_unequal_rwl1 (btor, e0->e[2], e1))
           {
             *calls += 1;
             eq     = eq_exp_bounded (btor, e0->e[1], e1, calls);
@@ -3290,7 +3295,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
          * rewrite level > 0 ensures that constant c is != 0 */
         if (e1->kind == BTOR_BCOND_EXP)
         {
-          if (is_exp_and_exp_plus_const_rwl1 (btor, e1->e[1], e0))
+          if (is_always_unequal_rwl1 (btor, e1->e[1], e0))
           {
             *calls += 1;
             eq     = eq_exp_bounded (btor, e1->e[2], e0, calls);
@@ -3299,7 +3304,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
             return result;
           }
 
-          if (is_exp_and_exp_plus_const_rwl1 (btor, e1->e[2], e0))
+          if (is_always_unequal_rwl1 (btor, e1->e[2], e0))
           {
             *calls += 1;
             eq     = eq_exp_bounded (btor, e1->e[1], e0, calls);
