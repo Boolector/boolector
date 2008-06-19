@@ -1,5 +1,7 @@
 #!/bin/sh
 
+LIBS=-lz
+
 debug=no
 cov=no
 o1=no
@@ -9,6 +11,7 @@ static=no
 m32=no
 m64=no
 gpt=no
+release=no
 
 while [ $# -gt 0 ]
 do
@@ -23,8 +26,9 @@ do
     -m32) m32=yes;;
     -m64) m64=yes;;
     -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no; ;;
+    -r) release=yes; static=yes; gpt=yes; debug=no; cov=no; o1=no; o2=no; o3=yes;;
     *) cat <<EOF
-*** usage: ./configure [-g][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt]
+*** usage: ./configure [-g][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-r]
 EOF
 exit 1
 ;;
@@ -80,10 +84,13 @@ if [ X"$CFLAGS" = X ]; then
   esac
 fi
 echo " $CFLAGS"
-if [ $gpt = yes ]; then
-  GPTLIBS="-ltcmalloc -lprofiler"
+
+if [ $release = yes ]; then
+  LIBS=$LIBS" -ltcmalloc -lstdc++ -lpthread"
+elif [ $gpt = yes ]; then
+  LIBS=$LIBS" -ltcmalloc -lprofiler"
 fi
 echo -n "makefile ..."
 rm -f makefile
-sed -e "s,@CC@,$CC," -e "s,@CFLAGS@,$CFLAGS," -e "s,@GPTLIBS@,$GPTLIBS," makefile.in > makefile
+sed -e "s,@CC@,$CC," -e "s,@CFLAGS@,$CFLAGS," -e "s,@LIBS@,$LIBS," makefile.in > makefile
 echo " done"

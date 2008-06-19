@@ -4,7 +4,7 @@ LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o ../p
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@
-GPTLIBS=@GPTLIBS@
+LIBS=@LIBS@
 
 all: libboolector.a boolector test synthebtor deltabtor basicbtor
 
@@ -14,10 +14,10 @@ dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
 boolector: boolector.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector $(GPTLIBS) -lz
+	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector $(LIBS)
 
 test: $(TESTOBJ) libboolector.a 
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(GPTLIBS) -lz
+	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)
 
 synthebtor: synthebtor.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector -lz
