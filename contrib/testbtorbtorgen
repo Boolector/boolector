@@ -46,7 +46,6 @@ do
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
     cp $file $fileerror
-    rm -f $file
     exit
   fi
   for rwl in rwl2 rwl1 rwl0
@@ -57,18 +56,16 @@ do
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
     cp $file $fileerror
-    rm -f $file
     exit
   fi 
   done
   echo -n "Test $i dump: "
   boolector $file -de > $filedump 
-  boolector $filedump
+  boolector -rl $refinementlimit $filedump
   retval=$?
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
     cp $file $fileerror
-    rm -f $file
     exit
   fi 
   echo ""
