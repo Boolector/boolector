@@ -17,6 +17,8 @@ if [[ $btorgen = unknown ]]; then
 fi
 
 i=0
+counter=0
+valgrindcheck=50 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgendump$$.btor"
 fileerror="./error.btor"
@@ -34,13 +36,16 @@ fi
 while true 
 do 
   ((i++))
+  ((counter++))
   rwl=rwl3
   echo -n "Test $i $rwl: "
+
   btorgen 2> /dev/null | btorold2new > $file 
   if [ ! -s $file ]; then
     echo "*** testbtorbtorgen: generated file is empty"
     exit 1
   fi 
+
   boolector -$rwl -rl $refinementlimit $file
   goldenretval=$?
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
@@ -48,6 +53,7 @@ do
     cp $file $fileerror
     exit
   fi
+
   for rwl in rwl2 rwl1 rwl0
   do
     echo -n "Test $i $rwl: "
@@ -59,6 +65,7 @@ do
     exit
   fi 
   done
+
   echo -n "Test $i dump: "
   boolector $file -de > $filedump 
   boolector -rl $refinementlimit $filedump
@@ -68,5 +75,19 @@ do
     cp $file $fileerror
     exit
   fi 
+
+  if [[ $counter -eq $valgrindcheck ]]; then
+    counter=0
+    echo -n "Test $i valg: "
+    memerr=`valgrind -q ../boolector $file 2>&1 | grep ==`
+    if [[ -n $memerr ]]; then
+      echo ""
+      echo "ERROR"
+      cp $file $fileerror
+      exit
+    fi 
+    echo "OK"
+  fi
+
   echo ""
 done
