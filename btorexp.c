@@ -3238,6 +3238,52 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
     if (btor->rewrite_level > 2)
     {
+      /* b ? a : t = a + c  ---> !b AND a + c = t
+       * rewrite level > 0 ensures that constant c is != 0 */
+      if (!BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_BCOND_EXP)
+      {
+        if (is_always_unequal_rwl1 (btor, e0->e[1], e1))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e0->e[2], e1, calls);
+          result = and_exp (btor, BTOR_INVERT_EXP (e0->e[0]), eq);
+          release_exp (btor, eq);
+          return result;
+        }
+
+        if (is_always_unequal_rwl1 (btor, e0->e[2], e1))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e0->e[1], e1, calls);
+          result = and_exp (btor, e0->e[0], eq);
+          release_exp (btor, eq);
+          return result;
+        }
+      }
+
+      /* a + c = b ? a : t  ---> !b AND a + c = t
+       * rewrite level > 0 ensures that constant c is != 0 */
+      if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_BCOND_EXP)
+      {
+        if (is_always_unequal_rwl1 (btor, e1->e[1], e0))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e1->e[2], e0, calls);
+          result = and_exp (btor, BTOR_INVERT_EXP (e1->e[0]), eq);
+          release_exp (btor, eq);
+          return result;
+        }
+
+        if (is_always_unequal_rwl1 (btor, e1->e[2], e0))
+        {
+          *calls += 1;
+          eq     = eq_exp_bounded (btor, e1->e[1], e0, calls);
+          result = and_exp (btor, e1->e[0], eq);
+          release_exp (btor, eq);
+          return result;
+        }
+      }
+
       if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
       {
         /* a + b = a + c ---> b = c */
@@ -3265,52 +3311,6 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
           {
             *calls += 1;
             return eq_exp_bounded (btor, e0->e[0], e1->e[0], calls);
-          }
-        }
-
-        /* b ? a : t = a + c  ---> !b AND a + c = t
-         * rewrite level > 0 ensures that constant c is != 0 */
-        if (e0->kind == BTOR_BCOND_EXP)
-        {
-          if (is_always_unequal_rwl1 (btor, e0->e[1], e1))
-          {
-            *calls += 1;
-            eq     = eq_exp_bounded (btor, e0->e[2], e1, calls);
-            result = and_exp (btor, BTOR_INVERT_EXP (e0->e[0]), eq);
-            release_exp (btor, eq);
-            return result;
-          }
-
-          if (is_always_unequal_rwl1 (btor, e0->e[2], e1))
-          {
-            *calls += 1;
-            eq     = eq_exp_bounded (btor, e0->e[1], e1, calls);
-            result = and_exp (btor, e0->e[0], eq);
-            release_exp (btor, eq);
-            return result;
-          }
-        }
-
-        /* a + c = b ? a : t  ---> !b AND a + c = t
-         * rewrite level > 0 ensures that constant c is != 0 */
-        if (e1->kind == BTOR_BCOND_EXP)
-        {
-          if (is_always_unequal_rwl1 (btor, e1->e[1], e0))
-          {
-            *calls += 1;
-            eq     = eq_exp_bounded (btor, e1->e[2], e0, calls);
-            result = and_exp (btor, BTOR_INVERT_EXP (e1->e[0]), eq);
-            release_exp (btor, eq);
-            return result;
-          }
-
-          if (is_always_unequal_rwl1 (btor, e1->e[2], e0))
-          {
-            *calls += 1;
-            eq     = eq_exp_bounded (btor, e1->e[1], e0, calls);
-            result = and_exp (btor, e1->e[0], eq);
-            release_exp (btor, eq);
-            return result;
           }
         }
       }
