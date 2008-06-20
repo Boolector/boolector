@@ -18,7 +18,7 @@ fi
 
 i=0
 counter=0
-valgrindcheck=50 # every nth testcase we perform a memory check with valgrind
+valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgendump$$.btor"
 fileerror="./error.btor"
