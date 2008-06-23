@@ -9057,7 +9057,7 @@ rewrite_linear_term_bounded (Btor *btor,
       return 0;
 
     *rhs_ptr    = BTOR_INVERT_EXP (*rhs_ptr);
-    *factor_ptr = btor_twocomplement_const (btor->mm, factor);
+    *factor_ptr = btor_neg_const (btor->mm, factor);
     btor_delete_const (btor->mm, factor);
   }
   else if (term->kind == BTOR_ADD_EXP)

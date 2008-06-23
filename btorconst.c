@@ -1199,27 +1199,6 @@ btor_inverse_const (BtorMemMgr *mm, const char *c)
 }
 
 char *
-btor_twocomplement_const (BtorMemMgr *mm, const char *a)
-{
-  int len, i, carry, newcarry;
-  char *res;
-  assert (mm != NULL);
-  assert (a != NULL);
-  assert (valid_const (a));
-  carry = 1;
-  len   = (int) strlen (a);
-  BTOR_NEWN (mm, res, len + 1);
-  res[len] = 0;
-  for (i = len - 1; i >= 0; i--)
-  {
-    newcarry = carry & !a[i];
-    res[i]   = (char) (1 ^ a[i] ^ carry);
-    carry    = newcarry;
-  }
-  return res;
-}
-
-char *
 btor_const_to_hex (BtorMemMgr *mem, const char *c)
 {
   int clen, rlen, i, j, tmp;
