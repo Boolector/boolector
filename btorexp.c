@@ -3610,7 +3610,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e1      = real_e1->e[1];
           real_e1 = BTOR_REAL_ADDR_EXP (e1);
-          assert (!BTOR_IS_CONST_EXP (real_e1));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
         /* use commutativity */
@@ -3618,7 +3617,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e1      = real_e1->e[0];
           real_e1 = BTOR_REAL_ADDR_EXP (e1);
-          assert (!BTOR_IS_CONST_EXP (real_e1));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
@@ -3636,7 +3634,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e1      = BTOR_INVERT_EXP (real_e1->e[1]);
           real_e1 = BTOR_REAL_ADDR_EXP (e1);
-          assert (!BTOR_IS_CONST_EXP (real_e1));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
         /* symmetric rule of substitution */
@@ -3645,7 +3642,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e1      = BTOR_INVERT_EXP (real_e1->e[0]);
           real_e1 = BTOR_REAL_ADDR_EXP (e1);
-          assert (!BTOR_IS_CONST_EXP (real_e1));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
@@ -3663,7 +3659,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e0      = BTOR_INVERT_EXP (real_e0->e[0]);
           real_e0 = BTOR_REAL_ADDR_EXP (e0);
-          assert (!BTOR_IS_CONST_EXP (real_e0));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
         /* symmetric rule of substitution */
@@ -3672,7 +3667,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e0      = BTOR_INVERT_EXP (real_e0->e[1]);
           real_e0 = BTOR_REAL_ADDR_EXP (e0);
-          assert (!BTOR_IS_CONST_EXP (real_e0));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
@@ -3722,7 +3716,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e0      = BTOR_INVERT_EXP (real_e0->e[0]);
           real_e0 = BTOR_REAL_ADDR_EXP (e0);
-          assert (!BTOR_IS_CONST_EXP (real_e0));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
 
@@ -3731,7 +3724,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e0      = BTOR_INVERT_EXP (real_e0->e[1]);
           real_e0 = BTOR_REAL_ADDR_EXP (e0);
-          assert (!BTOR_IS_CONST_EXP (real_e0));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
@@ -3787,7 +3779,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e1      = BTOR_INVERT_EXP (real_e1->e[1]);
           real_e1 = BTOR_REAL_ADDR_EXP (e1);
-          assert (!BTOR_IS_CONST_EXP (real_e1));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
         /* asymmetric rule of substitution */
@@ -3795,7 +3786,6 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         {
           e1      = BTOR_INVERT_EXP (real_e1->e[0]);
           real_e1 = BTOR_REAL_ADDR_EXP (e1);
-          assert (!BTOR_IS_CONST_EXP (real_e1));
           goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
         }
       }
