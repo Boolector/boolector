@@ -23,10 +23,13 @@ static const char *digit2const_table[10] = {
 #ifndef NDEBUG
 
 static int
-valid_const (const char *c)
+is_valid_const (const char *c)
 {
   const char *p;
   char ch;
+
+  assert (c != NULL);
+
   for (p = c; (ch = *p); p++)
     if (ch != '0' && ch != '1') return 0;
   return 1;
@@ -39,12 +42,16 @@ digit2const (char ch)
 {
   assert ('0' <= ch);
   assert (ch <= '9');
+
   return digit2const_table[ch - '0'];
 }
 
 static const char *
 strip_zeroes (const char *a)
 {
+  assert (a != NULL);
+  assert (is_valid_const (a));
+
   while (*a == '0') a++;
 
   return a;
@@ -59,6 +66,7 @@ btor_zero_const (BtorMemMgr *mm, int len)
   int i;
 
   assert (len > 0);
+
   BTOR_NEWN (mm, res, len + 1);
   for (i = 0; i < len; i++) res[i] = '0';
   res[i] = '\0';
@@ -72,7 +80,9 @@ btor_one_const (BtorMemMgr *mm, int len)
   char *res;
   int i;
 
+  assert (mm != NULL);
   assert (len > 0);
+
   BTOR_NEWN (mm, res, len + 1);
   for (i = 0; i < len - 1; i++) res[i] = '0';
   res[i++] = '1';
@@ -87,7 +97,9 @@ btor_ones_const (BtorMemMgr *mm, int len)
   char *res;
   int i;
 
+  assert (mm != NULL);
   assert (len > 0);
+
   BTOR_NEWN (mm, res, len + 1);
   for (i = 0; i < len; i++) res[i] = '1';
   res[i] = '\0';
@@ -152,6 +164,10 @@ btor_decimal_to_const_n (BtorMemMgr *mem, const char *str, int len)
   const char *end, *p;
   char *res, *tmp;
 
+  assert (mem != NULL);
+  assert (str != NULL);
+  assert (len >= 0);
+
   res = btor_strdup (mem, "");
 
   end = str + len;
@@ -174,6 +190,9 @@ btor_decimal_to_const_n (BtorMemMgr *mem, const char *str, int len)
 char *
 btor_decimal_to_const (BtorMemMgr *mem, const char *str)
 {
+  assert (mem != NULL);
+  assert (str != NULL);
+
   return btor_decimal_to_const_n (mem, str, (int) strlen (str));
 }
 
@@ -183,6 +202,10 @@ btor_hex_to_const_n (BtorMemMgr *mem, const char *str, int hlen)
   const char *p, *end;
   char *tmp, *res, *q;
   int len;
+
+  assert (mem != NULL);
+  assert (str != NULL);
+  assert (hlen >= 0);
 
   len = 4 * hlen;
   BTOR_NEWN (mem, tmp, len + 1);
@@ -309,6 +332,9 @@ btor_hex_to_const_n (BtorMemMgr *mem, const char *str, int hlen)
 char *
 btor_hex_to_const (BtorMemMgr *mem, const char *str)
 {
+  assert (mem != NULL);
+  assert (str != NULL);
+
   return btor_hex_to_const_n (mem, str, (int) strlen (str));
 }
 
@@ -318,6 +344,11 @@ btor_ground_const (BtorMemMgr *mm, const char *c)
   char *res, *q;
   const char *p;
   char ch;
+
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert ((int) strlen (c) > 0);
+  assert (is_valid_const (c));
 
   BTOR_NEWN (mm, res, (int) strlen (c) + 1);
 
@@ -333,8 +364,11 @@ int
 btor_is_zero_const (const char *str)
 {
   const char *p;
+
   assert (str != NULL);
   assert ((int) strlen (str) > 0);
+  assert (is_valid_const (str));
+
   for (p = str; *p; p++)
     if (*p != '0') return 0;
   return 1;
@@ -344,9 +378,12 @@ int
 btor_is_one_const (const char *str)
 {
   int len, i;
+
   assert (str != NULL);
+  assert ((int) strlen (str) > 0);
+  assert (is_valid_const (str));
+
   len = (int) strlen (str);
-  assert (len > 0);
   if (str[len - 1] != '1') return 0;
   for (i = 0; i < len - 1; i++)
     if (str[i] != '0') return 0;
@@ -357,8 +394,11 @@ int
 btor_is_ones_const (const char *str)
 {
   const char *p;
+
   assert (str != NULL);
   assert ((int) strlen (str) > 0);
+  assert (is_valid_const (str));
+
   for (p = str; *p; p++)
     if (*p != '1') return 0;
   return 1;
@@ -369,8 +409,10 @@ btor_is_special_const (const char *str)
 {
   char c;
   const char *p;
+
   assert (str != NULL);
   assert ((int) strlen (str) > 0);
+  assert (is_valid_const (str));
 
   c = *str;
   p = str + 1;
@@ -406,14 +448,18 @@ btor_copy_const (BtorMemMgr *mm, const char *c)
 {
   assert (mm != NULL);
   assert (c != NULL);
-  assert (valid_const (c));
+  assert (is_valid_const (c));
+
   return btor_strdup (mm, c);
 }
 
 void
 btor_delete_const (BtorMemMgr *mm, char *c)
 {
-  assert (valid_const (c));
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert (is_valid_const (c));
+
   btor_freestr (mm, c);
 }
 
@@ -424,13 +470,14 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
   char *res, *q;
   int len, delta;
 
-  assert (valid_const (a));
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (is_valid_const (a));
+  assert (upper < (int) strlen (a));
+  assert (upper >= lower);
+  assert (lower >= 0);
 
-  len = (int) strlen (a);
-
-  assert (0 <= lower);
-  assert (upper < len);
-
+  len   = (int) strlen (a);
   delta = upper - lower + 1;
 
   BTOR_NEWN (mm, res, delta + 1);
@@ -455,8 +502,11 @@ btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
   int alen, blen, rlen;
   const char *p, *q;
 
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
 
   a = strip_zeroes (a);
   b = strip_zeroes (b);
@@ -507,8 +557,11 @@ btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
   int alen, blen, rlen, i;
   const char *p;
 
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
 
   a = strip_zeroes (a);
 
@@ -567,8 +620,10 @@ btor_cmp_const (const char *a, const char *b)
   const char *p, *q, *s;
   int l, k, delta;
 
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
 
   a = strip_zeroes (a);
   b = strip_zeroes (b);
@@ -607,8 +662,11 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
   int alen, blen, rlen;
   const char *p, *q;
 
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (mem != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
   assert (btor_cmp_const (b, a) <= 0);
 
   a = strip_zeroes (a);
@@ -665,10 +723,12 @@ btor_invert_const (BtorMemMgr *mm, char *a)
 {
   int len, i;
   (void) mm;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
+  assert (is_valid_const (a));
+
   len = (int) strlen (a);
   for (i = 0; i < len; i++) a[i] = (char) (1 ^ a[i]);
 }
@@ -678,10 +738,12 @@ btor_not_const (BtorMemMgr *mm, const char *a)
 {
   char *result;
   int len, i;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
+  assert (is_valid_const (a));
+
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--) result[i] = a[i] ^ 1;
@@ -694,13 +756,15 @@ btor_and_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result;
   int len, i;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--) result[i] = a[i] & b[i];
@@ -713,13 +777,15 @@ btor_eq_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result;
   int len, i;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, 2);
   result[0] = '1';
@@ -740,13 +806,15 @@ btor_add_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char carry, *result;
   int len, i;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   carry = '0';
   len   = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
@@ -764,10 +832,12 @@ btor_neg_const (BtorMemMgr *mm, const char *a)
 {
   char *result, *not_a, *one;
   int len;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
+  assert (is_valid_const (a));
+
   len    = (int) strlen (a);
   not_a  = btor_not_const (mm, a);
   one    = btor_int_to_const (mm, 1, len);
@@ -782,13 +852,15 @@ btor_sub_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *neg_b;
   int len;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len    = (int) strlen (a);
   neg_b  = btor_neg_const (mm, b);
   result = btor_add_const (mm, a, neg_b);
@@ -801,11 +873,13 @@ sll_n_bits (BtorMemMgr *mm, const char *a, int n)
 {
   char *result;
   int len, i;
+
   assert (mm != NULL);
   assert (a != NULL);
-  assert (valid_const (a));
+  assert (is_valid_const (a));
   assert (n >= 0);
   assert (n < (int) strlen (a));
+
   len = (int) strlen (a);
   if (len == 0) return btor_strdup (mm, a);
   BTOR_NEWN (mm, result, len + 1);
@@ -820,13 +894,15 @@ btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *and, *add, *shift;
   int i, j, len;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len    = (int) strlen (a);
   result = btor_int_to_const (mm, 0, len);
   for (i = len - 1; i >= 0; i--)
@@ -849,11 +925,13 @@ srl_n_bits (BtorMemMgr *mm, const char *a, int n)
 {
   char *result;
   int len, i;
+
   assert (mm != NULL);
   assert (a != NULL);
-  assert (valid_const (a));
+  assert (is_valid_const (a));
   assert (n >= 0);
   assert (n < (int) strlen (a));
+
   len = (int) strlen (a);
   if (len == 0) return btor_strdup (mm, a);
   BTOR_NEWN (mm, result, len + 1);
@@ -872,6 +950,7 @@ udiv_urem_const (BtorMemMgr *mm,
 {
   char *b_i, *temp, *sub, *remainder_2n;
   int len, len_2n, i, gte;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
@@ -879,10 +958,12 @@ udiv_urem_const (BtorMemMgr *mm,
   assert (remainder != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len = (int) strlen (a);
   assert (len <= INT_MAX / 2);
+
   len_2n = len << 1;
   BTOR_NEWN (mm, *quotient, len + 1);
   (*quotient)[len] = '\0';
@@ -925,13 +1006,15 @@ char *
 btor_udiv_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *quotient, *remainder;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, remainder);
   return quotient;
@@ -941,13 +1024,15 @@ char *
 btor_urem_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *quotient, *remainder;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, quotient);
   return remainder;
@@ -958,12 +1043,16 @@ btor_sll_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *temp;
   int i, len;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert ((int) strlen (a) > 1);
   assert (btor_is_power_of_2_util ((int) strlen (a)));
   assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len = (int) strlen (b);
   if (b[len - 1] == '1')
     result = sll_n_bits (mm, a, 1);
@@ -986,12 +1075,16 @@ btor_srl_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *temp;
   int i, len;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert ((int) strlen (a) > 1);
   assert (btor_is_power_of_2_util ((int) strlen (a)));
   assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   len = (int) strlen (b);
   if (b[len - 1] == '1')
     result = srl_n_bits (mm, a, 1);
@@ -1013,13 +1106,15 @@ char *
 btor_ult_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   BTOR_NEWN (mm, result, 2);
   if (strcmp (a, b) == -1)
     result[0] = '1';
@@ -1033,13 +1128,15 @@ char *
 btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result;
+
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert ((int) strlen (a) > 0);
   assert ((int) strlen (b) > 0);
-  assert (valid_const (a));
-  assert (valid_const (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
   BTOR_NEWN (mm, result, (int) strlen (a) + (int) strlen (b) + 1);
   strcpy (result, a);
   strcat (result, b);
@@ -1056,8 +1153,11 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
   int delta, plen, qlen;
   const char *p, *q;
 
-  assert (valid_const (dividend));
-  assert (valid_const (divisor));
+  assert (mem != NULL);
+  assert (dividend != NULL);
+  assert (divisor != NULL);
+  assert (is_valid_const (dividend));
+  assert (is_valid_const (divisor));
 
   dividend = strip_zeroes (dividend);
   divisor  = strip_zeroes (divisor);
@@ -1123,7 +1223,10 @@ btor_uext_const (BtorMemMgr *mem, const char *c, int len)
   const char *p;
   int rlen;
 
+  assert (mem != NULL);
+  assert (c != NULL);
   assert (len >= 1);
+  assert (is_valid_const (c));
 
   rlen = (int) strlen (c) + len;
 
@@ -1145,8 +1248,11 @@ btor_inverse_const (BtorMemMgr *mm, const char *c)
   char *a, *b, *y, *ly, *r, *q, *yq, *res, *ty;
   int len = strlen (c);
 
+  assert (mm != NULL);
+  assert (c != NULL);
   assert (len > 0);
   assert (c[len - 1] == '1'); /* odd */
+  assert (is_valid_const (c));
 
   BTOR_NEWN (mm, a, len + 2);
   a[0] = '1';
@@ -1204,6 +1310,10 @@ btor_const_to_hex (BtorMemMgr *mem, const char *c)
   int clen, rlen, i, j, tmp;
   char *res, ch;
 
+  assert (mem != NULL);
+  assert (c != NULL);
+  assert (is_valid_const (c));
+
   clen = (int) strlen (c);
   rlen = (clen + 3) / 4;
 
@@ -1251,6 +1361,10 @@ btor_const_to_decimal (BtorMemMgr *mem, const char *c)
   const char *p;
   int len;
   BTOR_INIT_STACK (stack);
+
+  assert (mem != NULL);
+  assert (c != NULL);
+  assert (is_valid_const (c));
 
   res = btor_copy_const (mem, c);
   while (*res)
