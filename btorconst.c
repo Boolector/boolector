@@ -1283,8 +1283,8 @@ btor_ult_const (BtorMemMgr *mm, const char *a, const char *b)
   return result;
 }
 
-char *
-btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
+static char *
+concat_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result;
 
@@ -1293,13 +1293,26 @@ btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (b != NULL);
   assert ((int) strlen (a) > 0);
   assert ((int) strlen (b) > 0);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
 
   BTOR_NEWN (mm, result, (int) strlen (a) + (int) strlen (b) + 1);
   strcpy (result, a);
   strcat (result, b);
   return result;
+}
+
+char *
+btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert ((int) strlen (a) > 0);
+  assert ((int) strlen (b) > 0);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+  return concat_const (mm, a, b);
 }
 
 char *
@@ -1375,21 +1388,21 @@ btor_udiv_unbounded_const (BtorMemMgr *mem,
   return quotient;
 }
 
-char *
-btor_uext_const (BtorMemMgr *mem, const char *c, int len)
+static char *
+uext_const (BtorMemMgr *mm, const char *c, int len)
 {
   char *res, *q;
   const char *p;
   int rlen;
 
-  assert (mem != NULL);
+  assert (mm != NULL);
   assert (c != NULL);
-  assert (len >= 1);
-  assert (is_valid_const (c));
+  assert (len > 0);
+  assert (is_valid_const_3vl (c));
 
   rlen = (int) strlen (c) + len;
 
-  BTOR_NEWN (mem, res, rlen + 1);
+  BTOR_NEWN (mm, res, rlen + 1);
 
   for (q = res; len; len--, q++) *q = '0';
 
@@ -1399,6 +1412,16 @@ btor_uext_const (BtorMemMgr *mem, const char *c, int len)
   *q = 0;
 
   return res;
+}
+
+char *
+btor_uext_const (BtorMemMgr *mem, const char *c, int len)
+{
+  assert (mem != NULL);
+  assert (c != NULL);
+  assert (len > 0);
+  assert (is_valid_const (c));
+  return uext_const (mem, c, len);
 }
 
 char *
@@ -1871,4 +1894,69 @@ btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_valid_const_3vl (a));
   assert (is_valid_const_3vl (b));
   return mul_const (mm, a, b);
+}
+
+char *
+btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *result;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+  /* TODO replace dummy implementation */
+  if (is_valid_const (a) && is_valid_const (b))
+    result = btor_udiv_const (mm, a, b);
+  else
+    result = btor_x_const_3vl (mm, (int) strlen (a));
+
+  return result;
+}
+
+char *
+btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *result;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+  /* TODO replace dummy implementation */
+  if (is_valid_const (a) && is_valid_const (b))
+    result = btor_udiv_const (mm, a, b);
+  else
+    result = btor_x_const_3vl (mm, (int) strlen (a));
+
+  return result;
+}
+
+char *
+btor_uext_const_3vl (BtorMemMgr *mm, const char *c, int len)
+{
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert (len > 0);
+  assert (is_valid_const_3vl (c));
+  return uext_const (mm, c, len);
+}
+
+char *
+btor_concat_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert ((int) strlen (a) > 0);
+  assert ((int) strlen (b) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+  return concat_const (mm, a, b);
 }

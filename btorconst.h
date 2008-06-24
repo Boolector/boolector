@@ -116,6 +116,14 @@ char *btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
+char *btor_udiv_const (BtorMemMgr *mm, const char *a, const char *b);
+
+char *btor_urem_const (BtorMemMgr *mm, const char *a, const char *b);
+
+char *btor_uext_const (BtorMemMgr *mm, const char *c, int len);
+
+char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
+
 char *btor_ground_const_3vl (BtorMemMgr *mm, const char *c);
 
 /*------------------------------------------------------------------------*/
