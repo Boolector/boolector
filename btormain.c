@@ -362,7 +362,7 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
   {
     if (not_binary)
     {
-      grounded = btor_ground_const (mm, assignment);
+      grounded = btor_ground_const_3vl (mm, assignment);
 
       if (basis == BTOR_HEXADECIMAL_BASIS)
         pretty = btor_const_to_hex (mm, grounded);

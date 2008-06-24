@@ -36,7 +36,7 @@ is_valid_const (const char *c)
 }
 
 static int
-is_valid_const_3VL (const char *c)
+is_valid_const_3vl (const char *c)
 {
   const char *p;
   char ch;
@@ -352,7 +352,7 @@ btor_hex_to_const (BtorMemMgr *mem, const char *str)
 }
 
 char *
-btor_ground_const (BtorMemMgr *mm, const char *c)
+btor_ground_const_3vl (BtorMemMgr *mm, const char *c)
 {
   char *res, *q;
   const char *p;
@@ -361,7 +361,7 @@ btor_ground_const (BtorMemMgr *mm, const char *c)
   assert (mm != NULL);
   assert (c != NULL);
   assert ((int) strlen (c) > 0);
-  assert (is_valid_const_3VL (c));
+  assert (is_valid_const_3vl (c));
 
   BTOR_NEWN (mm, res, (int) strlen (c) + 1);
 
@@ -461,7 +461,7 @@ btor_copy_const (BtorMemMgr *mm, const char *c)
 {
   assert (mm != NULL);
   assert (c != NULL);
-  assert (is_valid_const (c));
+  assert (is_valid_const_3vl (c));
 
   return btor_strdup (mm, c);
 }
@@ -471,7 +471,7 @@ btor_delete_const (BtorMemMgr *mm, char *c)
 {
   assert (mm != NULL);
   assert (c != NULL);
-  assert (is_valid_const (c));
+  assert (is_valid_const_3vl (c));
 
   btor_freestr (mm, c);
 }
@@ -731,19 +731,29 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
   return res;
 }
 
+static void
+invert_const (BtorMemMgr *mm, char *a)
+{
+  int len, i;
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  (void) mm;
+
+  len = (int) strlen (a);
+  for (i = 0; i < len; i++)
+    if (a[i] != 'x') a[i] = (char) (1 ^ a[i]);
+}
+
 void
 btor_invert_const (BtorMemMgr *mm, char *a)
 {
-  int len, i;
-  (void) mm;
-
   assert (mm != NULL);
   assert (a != NULL);
   assert ((int) strlen (a) > 0);
   assert (is_valid_const (a));
-
-  len = (int) strlen (a);
-  for (i = 0; i < len; i++) a[i] = (char) (1 ^ a[i]);
+  invert_const (mm, a);
 }
 
 char *
@@ -764,8 +774,8 @@ btor_not_const (BtorMemMgr *mm, const char *a)
   return result;
 }
 
-char *
-btor_and_const (BtorMemMgr *mm, const char *a, const char *b)
+static char *
+and_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result;
   int len, i;
@@ -775,22 +785,27 @@ btor_and_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
 
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
-  for (i = len - 1; i >= 0; i--) result[i] = a[i] & b[i];
+  for (i = len - 1; i >= 0; i--)
+  {
+    if (a[i] == '0' || b[i] == '0')
+      result[i] = '0';
+    else if (a[i] == 'x' || b[i] == 'x')
+      result[i] = 'x';
+    else
+      result[i] = a[i] & b[i];
+  }
   result[len] = '\0';
   return result;
 }
 
 char *
-btor_eq_const (BtorMemMgr *mm, const char *a, const char *b)
+btor_and_const (BtorMemMgr *mm, const char *a, const char *b)
 {
-  char *result;
-  int len, i;
-
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
@@ -799,19 +814,57 @@ btor_eq_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_valid_const (a));
   assert (is_valid_const (b));
 
+  return and_const (mm, a, b);
+}
+
+static char *
+eq_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *result;
+  int len, i, has_x;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, 2);
   result[0] = '1';
+  has_x     = 0;
+
   for (i = len - 1; i >= 0; i--)
   {
-    if (a[i] != b[i])
+    if (a[i] == 'x' || b[i] == 'x')
+      has_x = 1;
+    else if (a[i] != b[i])
     {
       result[0] = '0';
       break;
     }
   }
   result[1] = '\0';
+
+  if (result[0] == '1' && has_x) result[0] = 'x';
+
   return result;
+}
+
+char *
+btor_eq_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
+  return eq_const (mm, a, b);
 }
 
 char *
@@ -1411,4 +1464,217 @@ btor_const_to_decimal (BtorMemMgr *mem, const char *c)
   assert (len == (int) strlen (res));
   BTOR_RELEASE_STACK (mem, stack);
   return res;
+}
+
+char *
+btor_x_const_3vl (BtorMemMgr *mm, int len)
+{
+  char *res;
+  int i;
+
+  assert (mm != NULL);
+  assert (len > 0);
+
+  BTOR_NEWN (mm, res, len + 1);
+  for (i = 0; i < len; i++) res[i] = 'x';
+  res[i] = '\0';
+
+  return res;
+}
+
+void
+btor_invert_const_3vl (BtorMemMgr *mm, char *a)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  invert_const (mm, a);
+}
+
+char *
+btor_and_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+  return and_const (mm, a, b);
+}
+
+char *
+btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+  return eq_const (mm, a, b);
+}
+
+static void
+ult_const_0_x_or_x_1_case (
+    const char *a, const char *b, int len, int i, char *result)
+{
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (len == (int) strlen (a));
+  assert (i >= 0);
+  assert (i < len);
+  assert (result != NULL);
+  assert ((int) strlen (result) == 1);
+  assert ((a[i] == '0' && b[i] == 'x') || (a[i] == 'x' && b[i] == '1'));
+
+  result[0] = 'x';
+
+  for (i = i + 1; i < len; i++)
+  {
+    if (a[i] == '0' && b[i] == 'x') continue;
+
+    if (a[i] == 'x' && b[i] == '1') continue;
+
+    if (a[i] == '0' && b[i] == '1')
+    {
+      result[0] = '1';
+      break;
+    }
+
+    if (a[i] == b[i] && a[i] != 'x' && b[i] != 'x')
+      continue;
+    else
+      break;
+  }
+}
+
+static void
+ult_const_1_x_or_x_0_case (
+    const char *a, const char *b, int len, int i, char *result)
+{
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (len == (int) strlen (a));
+  assert (i >= 0);
+  assert (i < len);
+  assert (result != NULL);
+  assert ((int) strlen (result) == 1);
+  assert ((a[i] == '1' && b[i] == 'x') || (a[i] == 'x' && b[i] == '0'));
+
+  result[0] = '0';
+
+  for (i = i + 1; i < len; i++)
+  {
+    if (a[i] == '0')
+    {
+      if (b[i] == '0')
+        continue;
+      else
+      {
+        result[0] = 'x';
+        break;
+      }
+    }
+
+    if (a[i] == '1')
+    {
+      if (b[i] == '0')
+        break;
+      else
+        continue;
+    }
+
+    if (a[i] == 'x')
+    {
+      if (b[i] == '0')
+        continue;
+      else
+      {
+        result[0] = 'x';
+        break;
+      }
+    }
+  }
+}
+
+char *
+btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *result;
+  int i, len;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+
+  len = (int) strlen (a);
+  BTOR_NEWN (mm, result, 2);
+  result[0] = '0';
+  result[1] = '\0';
+
+  for (i = 0; i < len; i++)
+  {
+    if (a[i] == '0')
+    {
+      if (b[i] == 'x')
+      {
+        ult_const_0_x_or_x_1_case (a, b, len, i, result);
+        break;
+      }
+      else if (b[i] == '1')
+      {
+        result[0] = '1';
+        break;
+      }
+      else
+        continue;
+    }
+
+    if (a[i] == '1')
+    {
+      if (b[i] == 'x')
+      {
+        ult_const_1_x_or_x_0_case (a, b, len, i, result);
+        break;
+      }
+      else if (b[i] == '0')
+      {
+        result[0] = '0';
+        break;
+      }
+      else
+        continue;
+    }
+
+    if (a[i] == 'x')
+    {
+      if (b[i] == '1')
+      {
+        ult_const_0_x_or_x_1_case (a, b, len, i, result);
+        break;
+      }
+      else if (b[i] == '0')
+      {
+        ult_const_1_x_or_x_0_case (a, b, len, i, result);
+        break;
+      }
+      else
+      {
+        result[0] = 'x';
+        break;
+      }
+    }
+
+    assert (a[i] == b[i] && a[i] != 'x' && b[i] != 'x');
+  }
+
+  return result;
 }

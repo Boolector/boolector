@@ -36,8 +36,6 @@ char *btor_hex_to_const (BtorMemMgr *mm, const char *str);
 
 char *btor_hex_to_const_n (BtorMemMgr *mm, const char *str, int len);
 
-char *btor_ground_const (BtorMemMgr *mm, const char *const_with_x);
-
 int btor_is_zero_const (const char *str);
 
 int btor_is_one_const (const char *str);
@@ -72,6 +70,8 @@ char *btor_and_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_eq_const (BtorMemMgr *mm, const char *a, const char *b);
 
+char *btor_ult_const (BtorMemMgr *mm, const char *a, const char *b);
+
 char *btor_add_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_neg_const (BtorMemMgr *mm, const char *a);
@@ -90,11 +90,25 @@ char *btor_srl_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_uext_const (BtorMemMgr *mm, const char *c, int len);
 
-char *btor_ult_const (BtorMemMgr *mm, const char *a, const char *b);
-
 char *btor_concat_const (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_inverse_const (BtorMemMgr *mm, const char *a);
+
+/*------------------------------------------------------------------------*/
+/* Three valued logic.
+ */
+
+char *btor_x_const_3vl (BtorMemMgr *mm, int len);
+
+void btor_invert_const_3vl (BtorMemMgr *mm, char *a);
+
+char *btor_and_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+
+char *btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+
+char *btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+
+char *btor_ground_const_3vl (BtorMemMgr *mm, const char *c);
 
 /*------------------------------------------------------------------------*/
 /* Work for both fixed and unbounded bit width constants.
