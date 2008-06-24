@@ -985,7 +985,7 @@ sll_n_bits (BtorMemMgr *mm, const char *a, int n)
 
   assert (mm != NULL);
   assert (a != NULL);
-  assert (is_valid_const (a));
+  assert (is_valid_const_3vl (a));
   assert (n >= 0);
   assert (n < (int) strlen (a));
 
@@ -1037,7 +1037,7 @@ srl_n_bits (BtorMemMgr *mm, const char *a, int n)
 
   assert (mm != NULL);
   assert (a != NULL);
-  assert (is_valid_const (a));
+  assert (is_valid_const_3vl (a));
   assert (n >= 0);
   assert (n < (int) strlen (a));
 
@@ -1147,19 +1147,18 @@ btor_urem_const (BtorMemMgr *mm, const char *a, const char *b)
   return remainder;
 }
 
-char *
-btor_sll_const (BtorMemMgr *mm, const char *a, const char *b)
+static char *
+sll_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *temp;
   int i, len;
-
   assert (mm != NULL);
   assert (a != NULL);
   assert (b != NULL);
   assert ((int) strlen (a) > 1);
   assert (btor_is_power_of_2_util ((int) strlen (a)));
   assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
-  assert (is_valid_const (a));
+  assert (is_valid_const_3vl (a));
   assert (is_valid_const (b));
 
   len = (int) strlen (b);
@@ -1180,7 +1179,22 @@ btor_sll_const (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 char *
-btor_srl_const (BtorMemMgr *mm, const char *a, const char *b)
+btor_sll_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert ((int) strlen (a) > 1);
+  assert (btor_is_power_of_2_util ((int) strlen (a)));
+  assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
+  return sll_const (mm, a, b);
+}
+
+static char *
+srl_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *temp;
   int i, len;
@@ -1191,7 +1205,7 @@ btor_srl_const (BtorMemMgr *mm, const char *a, const char *b)
   assert ((int) strlen (a) > 1);
   assert (btor_is_power_of_2_util ((int) strlen (a)));
   assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
-  assert (is_valid_const (a));
+  assert (is_valid_const_3vl (a));
   assert (is_valid_const (b));
 
   len = (int) strlen (b);
@@ -1209,6 +1223,21 @@ btor_srl_const (BtorMemMgr *mm, const char *a, const char *b)
     btor_delete_const (mm, temp);
   }
   return result;
+}
+
+char *
+btor_srl_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert ((int) strlen (a) > 1);
+  assert (btor_is_power_of_2_util ((int) strlen (a)));
+  assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
+  return srl_const (mm, a, b);
 }
 
 char *
@@ -1733,4 +1762,79 @@ btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_valid_const_3vl (a));
   assert (is_valid_const_3vl (b));
   return add_const (mm, a, b);
+}
+
+static int
+compute_min_shift (BtorMemMgr *mm, const char *b)
+{
+  int len, i, result;
+  assert (mm != NULL);
+  assert (b != NULL);
+
+  len    = (int) strlen (b);
+  result = 0;
+
+  for (i = 0; i < len; i++)
+  {
+    if (b[i] == '1')
+    {
+      result += btor_pow_2_util (len - i - 1);
+      assert (result > 0);
+    }
+  }
+  return result;
+}
+
+char *
+btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  int min_shift;
+  char *result, *temp;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert ((int) strlen (a) > 1);
+  assert (btor_is_power_of_2_util ((int) strlen (a)));
+  assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+
+  if (is_valid_const (b))
+    result = sll_const (mm, a, b);
+  else
+  {
+    temp      = btor_x_const_3vl (mm, (int) strlen (a));
+    min_shift = compute_min_shift (mm, b);
+    result    = sll_n_bits (mm, temp, min_shift);
+    btor_delete_const (mm, temp);
+  }
+  return result;
+}
+
+char *
+btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  int min_shift;
+  char *result, *temp;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert ((int) strlen (a) > 1);
+  assert (btor_is_power_of_2_util ((int) strlen (a)));
+  assert (btor_log_2_util ((int) strlen (a)) == (int) strlen (b));
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+
+  if (is_valid_const (b))
+    result = srl_const (mm, a, b);
+  else
+  {
+    temp      = btor_x_const_3vl (mm, (int) strlen (a));
+    min_shift = compute_min_shift (mm, b);
+    result    = srl_n_bits (mm, temp, min_shift);
+    btor_delete_const (mm, temp);
+  }
+  return result;
 }
