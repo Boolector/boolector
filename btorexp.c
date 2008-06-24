@@ -178,6 +178,7 @@ static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExpKind, BtorExp *, BtorExp *, BtorExp *, int *);
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_vars_and_process_embedded_constraints (Btor *);
+static BtorExp *const_exp (Btor *, const char *);
 static BtorExp *xor_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *add_exp (Btor *, BtorExp *, BtorExp *);
 static BtorExp *mul_exp (Btor *, BtorExp *, BtorExp *);
@@ -2045,6 +2046,8 @@ static BtorExp *
 new_binary_exp_node (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
 {
+  int invert_e0, invert_e1;
+  char *b0, b1;
   BtorBVExp *exp;
   assert (btor != NULL);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
@@ -2064,6 +2067,86 @@ new_binary_exp_node (
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
+
+  if (BTOR_REAL_ADDR_EXP (e0)->bits == NULL
+      || BTOR_REAL_ADDR_EXP (e1)->bits == NULL || btor->rewrite_level < 2
+      || kind == BTOR_READ_EXP || kind == BTOR_AEQ_EXP)
+    return (BtorExp *) exp;
+
+  invert_e0 = 0;
+  invert_e1 = 0;
+  if (BTOR_IS_INVERTED_EXP (e0))
+  {
+    invert_e0 = 1;
+    btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (e0)->bits);
+  }
+  if (BTOR_IS_INVERTED_EXP (e1))
+  {
+    invert_e1 = 1;
+    btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (e1)->bits);
+  }
+  switch (kind)
+  {
+    case BTOR_AND_EXP:
+      exp->bits = btor_and_const_3vl (btor->mm,
+                                      BTOR_REAL_ADDR_EXP (e0)->bits,
+                                      BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_BEQ_EXP:
+      exp->bits = btor_eq_const_3vl (btor->mm,
+                                     BTOR_REAL_ADDR_EXP (e0)->bits,
+                                     BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_ADD_EXP:
+      exp->bits = btor_add_const_3vl (btor->mm,
+                                      BTOR_REAL_ADDR_EXP (e0)->bits,
+                                      BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_MUL_EXP:
+      exp->bits = btor_mul_const_3vl (btor->mm,
+                                      BTOR_REAL_ADDR_EXP (e0)->bits,
+                                      BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_ULT_EXP:
+      exp->bits = btor_ult_const_3vl (btor->mm,
+                                      BTOR_REAL_ADDR_EXP (e0)->bits,
+                                      BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_SLL_EXP:
+      exp->bits = btor_sll_const_3vl (btor->mm,
+                                      BTOR_REAL_ADDR_EXP (e0)->bits,
+                                      BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_SRL_EXP:
+      exp->bits = btor_srl_const_3vl (btor->mm,
+                                      BTOR_REAL_ADDR_EXP (e0)->bits,
+                                      BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_UDIV_EXP:
+      exp->bits = btor_udiv_const_3vl (btor->mm,
+                                       BTOR_REAL_ADDR_EXP (e0)->bits,
+                                       BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    case BTOR_UREM_EXP:
+      exp->bits = btor_urem_const_3vl (btor->mm,
+                                       BTOR_REAL_ADDR_EXP (e0)->bits,
+                                       BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+    default:
+      assert (kind == BTOR_CONCAT_EXP);
+      exp->bits = btor_concat_const_3vl (btor->mm,
+                                         BTOR_REAL_ADDR_EXP (e0)->bits,
+                                         BTOR_REAL_ADDR_EXP (e1)->bits);
+      break;
+  }
+  if (invert_e0)
+    btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (e0)->bits);
+  if (invert_e1)
+    btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (e1)->bits);
+
+  if (btor_is_const_2vl (btor->mm, exp->bits))
+    exp->simplified = const_exp (btor, exp->bits);
+
   return (BtorExp *) exp;
 }
 
