@@ -35,6 +35,19 @@ is_valid_const (const char *c)
   return 1;
 }
 
+static int
+is_valid_const_3VL (const char *c)
+{
+  const char *p;
+  char ch;
+
+  assert (c != NULL);
+
+  for (p = c; (ch = *p); p++)
+    if (ch != '0' && ch != '1' && ch != 'x') return 0;
+  return 1;
+}
+
 #endif
 
 static const char *
@@ -348,7 +361,7 @@ btor_ground_const (BtorMemMgr *mm, const char *c)
   assert (mm != NULL);
   assert (c != NULL);
   assert ((int) strlen (c) > 0);
-  assert (is_valid_const (c));
+  assert (is_valid_const_3VL (c));
 
   BTOR_NEWN (mm, res, (int) strlen (c) + 1);
 
