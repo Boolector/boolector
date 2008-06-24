@@ -124,6 +124,8 @@ char *btor_uext_const_3vl (BtorMemMgr *mm, const char *c, int len);
 
 char *btor_concat_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
+int btor_is_const_2vl (BtorMemMgr *mm, const char *c);
+
 char *btor_ground_const_3vl (BtorMemMgr *mm, const char *c);
 
 /*------------------------------------------------------------------------*/

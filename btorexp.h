@@ -75,6 +75,7 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int unique : 1;       /* in unique table? */                    \
     unsigned int bytes : 8;        /* allocated bytes */                     \
     unsigned int arity : 2;        /* arity of operator */                   \
+    char *bits;                    /* three valued bits */                   \
     int id;                        /* unique expression id */                \
     int len;                       /* number of bits */                      \
     unsigned int refs;             /* reference counter */                   \
@@ -98,12 +99,8 @@ typedef struct BtorExpPair BtorExpPair;
     {                                                                        \
       struct                                                                 \
       {                                                                      \
-        union                                                                \
-        {                                                                    \
-          char *symbol; /* symbol of variables for output */                 \
-          char *bits;   /* bit vector of constants */                        \
-        };                                                                   \
-        int upper; /* upper index for slices */                              \
+        char *symbol; /* symbol of variables for output */                   \
+        int upper;    /* upper index for slices */                           \
         union                                                                \
         {                                                                    \
           int lower;           /* lower index for slices */                  \
@@ -148,7 +145,6 @@ typedef struct BtorBVVarExp BtorBVVarExp;
 struct BtorBVConstExp
 {
   BTOR_BV_VAR_EXP;
-  char *bits;
 };
 
 typedef struct BtorBVConstExp BtorBVConstExp;

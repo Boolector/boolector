@@ -1960,3 +1960,11 @@ btor_concat_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_valid_const_3vl (b));
   return concat_const (mm, a, b);
 }
+
+int
+btor_is_const_2vl (BtorMemMgr *mm, const char *c)
+{
+  assert (mm != NULL);
+  assert (c != NULL);
+  return strchr (c, 'x') == NULL;
+}

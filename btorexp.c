@@ -554,16 +554,12 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
 
   mm = btor->mm;
 
+  if (exp->bits != NULL) btor_freestr (mm, exp->bits);
+
   if (BTOR_IS_VAR_EXP (exp))
   {
     btor_freestr (mm, exp->symbol);
     exp->symbol = 0;
-  }
-
-  if (BTOR_IS_CONST_EXP (exp))
-  {
-    btor_freestr (mm, exp->bits);
-    exp->bits = 0;
   }
 
   if (exp->av)
@@ -593,6 +589,7 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
   mm = btor->mm;
 
   exp->kind = BTOR_INVALID_EXP;
+
   btor_free (mm, exp, exp->bytes);
 }
 
@@ -1998,12 +1995,13 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   assert (bits != NULL);
   assert (len > 0);
   assert ((int) strlen (bits) == len);
+  assert (btor_is_const_2vl (btor->mm, bits));
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
   exp->kind  = BTOR_CONST_EXP;
   exp->bytes = sizeof *exp;
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
-  for (i = 0; i < len; i++) exp->bits[i] = bits[i] == '1' ? '1' : '0';
+  for (i = 0; i < len; i++) exp->bits[i] = bits[i];
   exp->bits[len] = '\0';
   exp->len       = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
@@ -2623,6 +2621,7 @@ var_exp (Btor *btor, int len, const char *symbol)
   exp->id   = btor->id++;
   exp->refs = 1u;
   exp->btor = btor;
+  exp->bits = btor_x_const_3vl (btor->mm, len);
   return (BtorExp *) exp;
 }
 
@@ -2829,6 +2828,7 @@ static BtorExp *
 add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm, *temp;
+  char *result_bits;
   int normalized;
   assert (btor != NULL);
   assert (e0 != NULL);
