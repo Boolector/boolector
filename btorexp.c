@@ -554,7 +554,11 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
 
   mm = btor->mm;
 
-  if (exp->bits != NULL) btor_freestr (mm, exp->bits);
+  if (BTOR_IS_CONST_EXP (exp))
+  {
+    btor_freestr (mm, exp->bits);
+    exp->bits = 0;
+  }
 
   if (BTOR_IS_VAR_EXP (exp))
   {
@@ -589,6 +593,8 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
   mm = btor->mm;
 
   exp->kind = BTOR_INVALID_EXP;
+
+  if (exp->bits != NULL) btor_freestr (btor->mm, exp->bits);
 
   btor_free (mm, exp, exp->bytes);
 }
@@ -2828,7 +2834,6 @@ static BtorExp *
 add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm, *temp;
-  char *result_bits;
   int normalized;
   assert (btor != NULL);
   assert (e0 != NULL);
