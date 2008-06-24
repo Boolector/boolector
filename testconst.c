@@ -1362,6 +1362,74 @@ test_ult_const_3vl (void)
   result = btor_ult_const_3vl (g_mm, "x1", "x1");
   assert (strcmp (result, "x") == 0);
   btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x1", "x10");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0xx1", "x1x0");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "01x1", "x110");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x10", "x100");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x0", "x11");
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x00", "x101");
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x01", "x111");
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x00", "x101");
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "0x01", "x110");
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x0", "x01");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x0x", "x01x");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x01", "x011");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x00", "x010");
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x1", "x00");
+  assert (strcmp (result, "0") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x10", "x000");
+  assert (strcmp (result, "0") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x11", "x001");
+  assert (strcmp (result, "0") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_ult_const_3vl (g_mm, "1x1x", "x00x");
+  assert (strcmp (result, "0") == 0);
+  btor_delete_const (g_mm, result);
 }
 
 void
