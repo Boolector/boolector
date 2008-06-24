@@ -108,6 +108,8 @@ char *btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
+char *btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+
 char *btor_ground_const_3vl (BtorMemMgr *mm, const char *c);
 
 /*------------------------------------------------------------------------*/
