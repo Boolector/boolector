@@ -110,6 +110,8 @@ char *btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
+char *btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+
 char *btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b);

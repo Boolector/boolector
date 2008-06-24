@@ -1700,6 +1700,22 @@ test_srl_const_3vl (void)
   btor_delete_const (g_mm, result);
 }
 
+static void
+test_mul_const_3vl (void)
+{
+  char *result = btor_mul_const_3vl (g_mm, "x0", "01");
+  assert (strcmp (result, "x0") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_mul_const_3vl (g_mm, "x0", "00");
+  assert (strcmp (result, "00") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_mul_const_3vl (g_mm, "x0", "1x");
+  assert (strcmp (result, "x0") == 0);
+  btor_delete_const (g_mm, result);
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -1745,6 +1761,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (add_const_3vl);
   BTOR_RUN_TEST (sll_const_3vl);
   BTOR_RUN_TEST (srl_const_3vl);
+  BTOR_RUN_TEST (mul_const_3vl);
 }
 
 void

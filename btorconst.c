@@ -998,8 +998,8 @@ sll_n_bits (BtorMemMgr *mm, const char *a, int n)
   return result;
 }
 
-char *
-btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
+static char *
+mul_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *and, *add, *shift;
   int i, j, len;
@@ -1009,24 +1009,45 @@ btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (b != NULL);
   assert (strlen (a) == strlen (b));
   assert ((int) strlen (a) > 0);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
 
   len    = (int) strlen (a);
   result = btor_int_to_const (mm, 0, len);
   for (i = len - 1; i >= 0; i--)
   {
     BTOR_NEWN (mm, and, len + 1);
-    for (j = 0; j < len; j++) and[j] = a[j] & b[i];
+    for (j = 0; j < len; j++)
+    {
+      if (a[j] == '0' || b[i] == '0')
+        and[j] = '0';
+      else if (a[j] == 'x' || b[i] == 'x')
+        and[j] = 'x';
+      else
+        and[j] = a[j] & b[i];
+    }
     and[len] = '\0';
     shift    = sll_n_bits (mm, and, len - 1 - i);
-    add      = btor_add_const (mm, result, shift);
+    add      = add_const (mm, result, shift);
     btor_delete_const (mm, result);
     btor_delete_const (mm, and);
     btor_delete_const (mm, shift);
     result = add;
   }
   return result;
+}
+
+char *
+btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+  return mul_const (mm, a, b);
 }
 
 static char *
@@ -1837,4 +1858,17 @@ btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
     btor_delete_const (mm, temp);
   }
   return result;
+}
+
+char *
+btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (strlen (a) == strlen (b));
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  assert (is_valid_const_3vl (b));
+  return mul_const (mm, a, b);
 }
