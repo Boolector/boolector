@@ -1703,6 +1703,7 @@ remove_regs_from_vars (BtorBTORParser *parser)
   BtorExp **p, **q, *e;
   Info info;
   int i;
+  return;
 
   p = q = parser->inputs.start;
   for (i = 1; i <= parser->idx; i++)

@@ -196,6 +196,209 @@ static BtorExp *and_exp (Btor *, BtorExp *, BtorExp *);
 
 #ifndef NDEBUG
 
+static char *
+compute_slice_3vl (Btor *btor, BtorExp *e0, int upper, int lower)
+{
+  int invert_e0;
+  char *b0, *result;
+  BtorMemMgr *mm;
+
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (upper < BTOR_REAL_ADDR_EXP (e0)->len);
+  assert (upper >= lower);
+  assert (lower >= 0);
+  assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
+  assert (btor->rewrite_level > 1);
+
+  mm        = btor->mm;
+  b0        = BTOR_REAL_ADDR_EXP (e0)->bits;
+  invert_e0 = 0;
+
+  if (BTOR_IS_INVERTED_EXP (e0))
+  {
+    invert_e0 = 1;
+    btor_invert_const_3vl (mm, b0);
+  }
+
+  result = btor_slice_const_3vl (mm, b0, upper, lower);
+
+  if (invert_e0) btor_invert_const_3vl (mm, b0);
+
+  return result;
+}
+
+static char *
+compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
+{
+  int invert_e0, invert_e1, same_children_mem;
+  char *b0, *b1, *result;
+  BtorMemMgr *mm;
+
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (BTOR_IS_BINARY_EXP_KIND (kind));
+  assert (kind != BTOR_READ_EXP);
+  assert (kind != BTOR_AEQ_EXP);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
+  assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
+  assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
+  assert (btor->rewrite_level > 1);
+
+  mm = btor->mm;
+  b0 = BTOR_REAL_ADDR_EXP (e0)->bits;
+  b1 = BTOR_REAL_ADDR_EXP (e1)->bits;
+
+  same_children_mem = b0 == b1;
+
+  if (same_children_mem)
+  {
+    if (BTOR_IS_INVERTED_EXP (e0))
+      b0 = btor_not_const_3vl (mm, b0);
+    else
+      b0 = btor_copy_const (mm, b0);
+
+    if (BTOR_IS_INVERTED_EXP (e1))
+      b1 = btor_not_const_3vl (mm, b1);
+    else
+      b1 = btor_copy_const (mm, b1);
+  }
+  else
+  {
+    invert_e0 = 0;
+    invert_e1 = 0;
+
+    if (BTOR_IS_INVERTED_EXP (e0))
+    {
+      invert_e0 = 1;
+      btor_invert_const_3vl (mm, b0);
+    }
+
+    if (BTOR_IS_INVERTED_EXP (e1))
+    {
+      invert_e1 = 1;
+      btor_invert_const_3vl (mm, b1);
+    }
+  }
+
+  switch (kind)
+  {
+    case BTOR_AND_EXP: result = btor_and_const_3vl (mm, b0, b1); break;
+    case BTOR_BEQ_EXP: result = btor_eq_const_3vl (mm, b0, b1); break;
+    case BTOR_ADD_EXP: result = btor_add_const_3vl (mm, b0, b1); break;
+    case BTOR_MUL_EXP: result = btor_mul_const_3vl (mm, b0, b1); break;
+    case BTOR_ULT_EXP: result = btor_ult_const_3vl (mm, b0, b1); break;
+    case BTOR_SLL_EXP: result = btor_sll_const_3vl (mm, b0, b1); break;
+    case BTOR_SRL_EXP: result = btor_srl_const_3vl (mm, b0, b1); break;
+    case BTOR_UDIV_EXP: result = btor_udiv_const_3vl (mm, b0, b1); break;
+    case BTOR_UREM_EXP: result = btor_urem_const_3vl (mm, b0, b1); break;
+    default:
+      assert (kind == BTOR_CONCAT_EXP);
+      result = btor_concat_const_3vl (mm, b0, b1);
+      break;
+  }
+
+  if (same_children_mem)
+  {
+    btor_delete_const (mm, b0);
+    btor_delete_const (mm, b1);
+  }
+  else
+  {
+    if (invert_e0) btor_invert_const_3vl (mm, b0);
+    if (invert_e1) btor_invert_const_3vl (mm, b1);
+  }
+
+  return result;
+}
+
+static char *
+compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
+{
+  int invert_e0, invert_e1, invert_e2;
+  char *b0, *b1, *b2, *result;
+  int same_children_mem;
+  BtorMemMgr *mm;
+
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (e2 != NULL);
+  assert (BTOR_REAL_ADDR_EXP (e0)->len == 1);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len == BTOR_REAL_ADDR_EXP (e2)->len);
+  assert (BTOR_REAL_ADDR_EXP (e1)->len > 0);
+  assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
+  assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
+  assert (BTOR_REAL_ADDR_EXP (e2)->bits != NULL);
+  assert (btor->rewrite_level > 1);
+
+  mm                = btor->mm;
+  b0                = BTOR_REAL_ADDR_EXP (e0)->bits;
+  b1                = BTOR_REAL_ADDR_EXP (e1)->bits;
+  b2                = BTOR_REAL_ADDR_EXP (e2)->bits;
+  same_children_mem = b0 == b1 || b0 == b2 || b1 == b2;
+
+  if (same_children_mem)
+  {
+    if (BTOR_IS_INVERTED_EXP (e0))
+      b0 = btor_not_const_3vl (mm, b0);
+    else
+      b0 = btor_copy_const (mm, b0);
+
+    if (BTOR_IS_INVERTED_EXP (e1))
+      b1 = btor_not_const_3vl (mm, b1);
+    else
+      b1 = btor_copy_const (mm, b1);
+
+    if (BTOR_IS_INVERTED_EXP (e2))
+      b2 = btor_not_const_3vl (mm, b2);
+    else
+      b2 = btor_copy_const (mm, b2);
+  }
+  else
+  {
+    invert_e0 = 0;
+    invert_e1 = 0;
+    invert_e2 = 0;
+
+    if (BTOR_IS_INVERTED_EXP (e0))
+    {
+      invert_e0 = 1;
+      btor_invert_const_3vl (mm, b0);
+    }
+
+    if (BTOR_IS_INVERTED_EXP (e1))
+    {
+      invert_e1 = 1;
+      btor_invert_const_3vl (mm, b1);
+    }
+
+    if (BTOR_IS_INVERTED_EXP (e2))
+    {
+      invert_e2 = 1;
+      btor_invert_const_3vl (mm, b2);
+    }
+  }
+
+  result = btor_cond_const_3vl (mm, b0, b1, b2);
+
+  if (same_children_mem)
+  {
+    btor_delete_const (mm, b0);
+    btor_delete_const (mm, b1);
+    btor_delete_const (mm, b2);
+  }
+  else
+  {
+    if (invert_e0) btor_invert_const_3vl (mm, b0);
+    if (invert_e1) btor_invert_const_3vl (mm, b1);
+    if (invert_e2) btor_invert_const_3vl (mm, b2);
+  }
+
+  return result;
+}
+
 static int
 check_hash_table_proxy_free (BtorPtrHashTable *table)
 {
@@ -2023,18 +2226,15 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
 static BtorExp *
 new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
 {
-  int invert_e0;
-  char *b0;
-  BtorMemMgr *mm;
   BtorBVExp *exp = NULL;
 
   assert (btor != NULL);
   assert (e0 != NULL);
-  assert (lower >= 0);
+  assert (upper < BTOR_REAL_ADDR_EXP (e0)->len);
   assert (upper >= lower);
+  assert (lower >= 0);
 
-  mm = btor->mm;
-  BTOR_CNEW (mm, exp);
+  BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
   exp->kind  = BTOR_SLICE_EXP;
   exp->bytes = sizeof *exp;
@@ -2047,29 +2247,6 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   exp->refs = 1u;
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
-
-  b0 = BTOR_REAL_ADDR_EXP (e0)->bits;
-
-  if (btor->rewrite_level < 2 || b0 == NULL) return (BtorExp *) exp;
-
-  invert_e0 = 0;
-
-  if (BTOR_IS_INVERTED_EXP (e0))
-  {
-    invert_e0 = 1;
-    btor_invert_const_3vl (mm, b0);
-  }
-
-  exp->bits = btor_slice_const_3vl (mm, b0, upper, lower);
-
-  if (invert_e0) btor_invert_const_3vl (mm, b0);
-
-  if (btor_is_const_2vl (mm, exp->bits))
-  {
-    exp->simplified = const_exp (btor, exp->bits);
-    btor->stats.simplifications_3vl++;
-  }
-
   return (BtorExp *) exp;
 }
 
@@ -2077,10 +2254,7 @@ static BtorExp *
 new_binary_exp_node (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
 {
-  int invert_e0, invert_e1, same_children_mem;
-  char *b0, *b1;
   BtorBVExp *exp;
-  BtorMemMgr *mm;
 
   assert (btor != NULL);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
@@ -2089,8 +2263,7 @@ new_binary_exp_node (
   assert (e1 != NULL);
   assert (len > 0);
 
-  mm = btor->mm;
-  BTOR_CNEW (mm, exp);
+  BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
   exp->kind  = kind;
   exp->bytes = sizeof *exp;
@@ -2102,80 +2275,6 @@ new_binary_exp_node (
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
-
-  b0 = BTOR_REAL_ADDR_EXP (e0)->bits;
-  b1 = BTOR_REAL_ADDR_EXP (e1)->bits;
-
-  if (btor->rewrite_level < 2 || b0 == NULL || b1 == NULL
-      || kind == BTOR_READ_EXP || kind == BTOR_AEQ_EXP)
-    return (BtorExp *) exp;
-
-  same_children_mem = b0 == b1;
-
-  if (same_children_mem)
-  {
-    if (BTOR_IS_INVERTED_EXP (e0))
-      b0 = btor_not_const_3vl (mm, b0);
-    else
-      b0 = btor_copy_const (mm, b0);
-
-    if (BTOR_IS_INVERTED_EXP (e1))
-      b1 = btor_not_const_3vl (mm, b1);
-    else
-      b1 = btor_copy_const (mm, b1);
-  }
-  else
-  {
-    invert_e0 = 0;
-    invert_e1 = 0;
-
-    if (BTOR_IS_INVERTED_EXP (e0))
-    {
-      invert_e0 = 1;
-      btor_invert_const_3vl (mm, b0);
-    }
-
-    if (BTOR_IS_INVERTED_EXP (e1))
-    {
-      invert_e1 = 1;
-      btor_invert_const_3vl (mm, b1);
-    }
-  }
-
-  switch (kind)
-  {
-    case BTOR_AND_EXP: exp->bits = btor_and_const_3vl (mm, b0, b1); break;
-    case BTOR_BEQ_EXP: exp->bits = btor_eq_const_3vl (mm, b0, b1); break;
-    case BTOR_ADD_EXP: exp->bits = btor_add_const_3vl (mm, b0, b1); break;
-    case BTOR_MUL_EXP: exp->bits = btor_mul_const_3vl (mm, b0, b1); break;
-    case BTOR_ULT_EXP: exp->bits = btor_ult_const_3vl (mm, b0, b1); break;
-    case BTOR_SLL_EXP: exp->bits = btor_sll_const_3vl (mm, b0, b1); break;
-    case BTOR_SRL_EXP: exp->bits = btor_srl_const_3vl (mm, b0, b1); break;
-    case BTOR_UDIV_EXP: exp->bits = btor_udiv_const_3vl (mm, b0, b1); break;
-    case BTOR_UREM_EXP: exp->bits = btor_urem_const_3vl (mm, b0, b1); break;
-    default:
-      assert (kind == BTOR_CONCAT_EXP);
-      exp->bits = btor_concat_const_3vl (mm, b0, b1);
-      break;
-  }
-
-  if (same_children_mem)
-  {
-    btor_delete_const (mm, b0);
-    btor_delete_const (mm, b1);
-  }
-  else
-  {
-    if (invert_e0) btor_invert_const_3vl (mm, b0);
-    if (invert_e1) btor_invert_const_3vl (mm, b1);
-  }
-
-  if (btor_is_const_2vl (mm, exp->bits))
-  {
-    exp->simplified = const_exp (btor, exp->bits);
-    btor->stats.simplifications_3vl++;
-  }
-
   return (BtorExp *) exp;
 }
 
@@ -2210,10 +2309,6 @@ new_ternary_exp_node (Btor *btor,
                       BtorExp *e2,
                       int len)
 {
-  int invert_e0, invert_e1, invert_e2;
-  char *b0, *b1, *b2;
-  int same_children_mem;
-  BtorMemMgr *mm;
   BtorBVExp *exp;
 
   assert (btor != NULL);
@@ -2224,8 +2319,7 @@ new_ternary_exp_node (Btor *btor,
   assert (e2 != NULL);
   assert (len > 0);
 
-  mm = btor->mm;
-  BTOR_CNEW (mm, exp);
+  BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
   exp->kind  = kind;
   exp->bytes = sizeof *exp;
@@ -2238,79 +2332,6 @@ new_ternary_exp_node (Btor *btor,
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
   connect_child_exp (btor, (BtorExp *) exp, e2, 2);
-
-  b0 = BTOR_REAL_ADDR_EXP (e0)->bits;
-  b1 = BTOR_REAL_ADDR_EXP (e1)->bits;
-  b2 = BTOR_REAL_ADDR_EXP (e2)->bits;
-
-  if (btor->rewrite_level < 2 || b0 == NULL || b1 == NULL || b2 == NULL)
-    return (BtorExp *) exp;
-
-  same_children_mem = b0 == b1 || b0 == b2 || b1 == b2;
-
-  if (same_children_mem)
-  {
-    if (BTOR_IS_INVERTED_EXP (e0))
-      b0 = btor_not_const_3vl (mm, b0);
-    else
-      b0 = btor_copy_const (mm, b0);
-
-    if (BTOR_IS_INVERTED_EXP (e1))
-      b1 = btor_not_const_3vl (mm, b1);
-    else
-      b1 = btor_copy_const (mm, b1);
-
-    if (BTOR_IS_INVERTED_EXP (e2))
-      b2 = btor_not_const_3vl (mm, b2);
-    else
-      b2 = btor_copy_const (mm, b2);
-  }
-  else
-  {
-    invert_e0 = 0;
-    invert_e1 = 0;
-    invert_e2 = 0;
-
-    if (BTOR_IS_INVERTED_EXP (e0))
-    {
-      invert_e0 = 1;
-      btor_invert_const_3vl (mm, b0);
-    }
-
-    if (BTOR_IS_INVERTED_EXP (e1))
-    {
-      invert_e1 = 1;
-      btor_invert_const_3vl (mm, b1);
-    }
-
-    if (BTOR_IS_INVERTED_EXP (e2))
-    {
-      invert_e2 = 1;
-      btor_invert_const_3vl (mm, b2);
-    }
-  }
-
-  exp->bits = btor_cond_const_3vl (mm, b0, b1, b2);
-
-  if (same_children_mem)
-  {
-    btor_delete_const (mm, b0);
-    btor_delete_const (mm, b1);
-    btor_delete_const (mm, b2);
-  }
-  else
-  {
-    if (invert_e0) btor_invert_const_3vl (mm, b0);
-    if (invert_e1) btor_invert_const_3vl (mm, b1);
-    if (invert_e2) btor_invert_const_3vl (mm, b2);
-  }
-
-  if (btor_is_const_2vl (mm, exp->bits))
-  {
-    exp->simplified = const_exp (btor, exp->bits);
-    btor->stats.simplifications_3vl++;
-  }
-
   return (BtorExp *) exp;
 }
 
@@ -3027,6 +3048,8 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm, *temp;
   int normalized;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -3037,6 +3060,7 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
 
+  kind       = BTOR_ADD_EXP;
   normalized = 0;
   result     = NULL;
 
@@ -3113,12 +3137,32 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       e0         = e0_norm;
       e1         = e1_norm;
     }
-    result = rewrite_binary_exp (btor, BTOR_ADD_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_ADD_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -3254,6 +3298,7 @@ slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
   BtorExp *result;
   int calls;
+  char *bits_3vl;
   assert (btor != NULL);
   assert (exp != NULL);
   exp = pointer_chase_simplified_exp (btor, exp);
@@ -3268,7 +3313,31 @@ slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 
   if (btor->rewrite_level > 0)
     result = rewrite_slice_exp_bounded (btor, exp, upper, lower, &calls);
-  if (result == NULL) result = unary_exp_slice_exp (btor, exp, upper, lower);
+
+  if (result == NULL)
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_slice_3vl (btor, exp, upper, lower);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = unary_exp_slice_exp (btor, exp, upper, lower);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
+
   return result;
 }
 
@@ -3373,6 +3442,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   BtorExp *e0_norm, *e1_norm, *left, *right, *e0_0, *e0_1, *e1_0, *e1_1, *eq;
   BtorExp *real_e0, *real_e1;
   int normalized, upper, lower;
+  char *bits_3vl;
 #ifndef NDEBUG
   int is_array_e0, is_array_e1;
 #endif
@@ -3400,9 +3470,9 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
           || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
 #endif
 
+  kind       = BTOR_BEQ_EXP;
   normalized = 0;
   result     = NULL;
-  kind       = BTOR_BEQ_EXP;
 
   if (BTOR_IS_ARRAY_EXP (real_e0))
   {
@@ -3715,7 +3785,32 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
-  if (result == NULL) result = binary_exp (btor, kind, e0, e1, 1);
+  if (result == NULL)
+  {
+    if (btor->rewrite_level > 1)
+    {
+      if (kind == BTOR_AEQ_EXP)
+        bits_3vl = btor_x_const_3vl (btor->mm, 1);
+      else
+        bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, 1);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -3764,7 +3859,9 @@ static BtorExp *
 and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
+  char *bits_3vl;
   int normalized;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -3777,6 +3874,7 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
 
+  kind       = BTOR_AND_EXP;
   normalized = 0;
   result     = NULL;
 
@@ -4059,12 +4157,32 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         e1         = e1_norm;
       }
     }
-    result = rewrite_binary_exp (btor, BTOR_AND_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_AND_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -4139,6 +4257,8 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExpPtrStack stack, po_stack;
   BtorMemMgr *mm;
   int i;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -4152,6 +4272,7 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len
           <= INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len);
 
+  kind   = BTOR_CONCAT_EXP;
   result = NULL;
 
   if (btor->rewrite_level > 0)
@@ -4228,16 +4349,37 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       return result;
     }
 
-    result = rewrite_binary_exp (btor, BTOR_CONCAT_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
   if (result == NULL)
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
     result = binary_exp (
         btor,
-        BTOR_CONCAT_EXP,
+        kind,
         e0,
         e1,
         BTOR_REAL_ADDR_EXP (e0)->len + BTOR_REAL_ADDR_EXP (e1)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
+
   return result;
 }
 
@@ -4265,6 +4407,7 @@ cond_exp_bounded (
 {
   BtorExp *result, *temp;
   BtorExpKind kind;
+  char *bits_3vl;
 #ifndef NDEBUG
   BtorExp *real_e_if, *real_e_else;
   int is_array_e_if, is_array_e_else;
@@ -4309,9 +4452,32 @@ cond_exp_bounded (
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))) kind = BTOR_ACOND_EXP;
   if (btor->rewrite_level > 0)
     result = rewrite_cond_exp_bounded (btor, kind, e_cond, e_if, e_else, calls);
+
   if (result == NULL)
+  {
+    if (btor->rewrite_level > 1 && kind == BTOR_BCOND_EXP)
+    {
+      bits_3vl = compute_bcond_3vl (btor, e_cond, e_if, e_else);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
     result = ternary_exp (
         btor, kind, e_cond, e_if, e_else, BTOR_REAL_ADDR_EXP (e_if)->len);
+
+    if (btor->rewrite_level > 1 && kind == BTOR_BCOND_EXP)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
+
   return result;
 }
 
@@ -4695,6 +4861,8 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 {
   BtorExp *result, *e0_norm, *e1_norm, *left, *right;
   int normalized;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -4707,6 +4875,7 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   assert (calls != NULL);
   assert (*calls >= 0);
 
+  kind       = BTOR_MUL_EXP;
   normalized = 0;
   result     = NULL;
 
@@ -4806,12 +4975,32 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
         e1         = e1_norm;
       }
     }
-    result = rewrite_binary_exp (btor, BTOR_MUL_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_MUL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -5001,6 +5190,8 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *temp, *e0_norm, *e1_norm;
   int normalized;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -5011,6 +5202,7 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
 
+  kind       = BTOR_ULT_EXP;
   normalized = 0;
   result     = NULL;
 
@@ -5048,10 +5240,32 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         e1         = e1_norm;
       }
     }
-    result = rewrite_binary_exp (btor, BTOR_ULT_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
-  if (result == NULL) result = binary_exp (btor, BTOR_ULT_EXP, e0, e1, 1);
+  if (result == NULL)
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, 1);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -5282,6 +5496,8 @@ static BtorExp *
 sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -5294,12 +5510,36 @@ sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
   assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
           == BTOR_REAL_ADDR_EXP (e1)->len);
+
   result = NULL;
-  if (btor->rewrite_level > 0)
-    result = rewrite_binary_exp (btor, BTOR_SLL_EXP, e0, e1);
+  kind   = BTOR_SLL_EXP;
+
+  if (btor->rewrite_level > 0) result = rewrite_binary_exp (btor, kind, e0, e1);
+
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_SLL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
+
   return result;
 }
 
@@ -5329,6 +5569,8 @@ static BtorExp *
 srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -5341,12 +5583,36 @@ srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor_is_power_of_2_util (BTOR_REAL_ADDR_EXP (e0)->len));
   assert (btor_log_2_util (BTOR_REAL_ADDR_EXP (e0)->len)
           == BTOR_REAL_ADDR_EXP (e1)->len);
+
+  kind   = BTOR_SRL_EXP;
   result = NULL;
-  if (btor->rewrite_level > 0)
-    result = rewrite_binary_exp (btor, BTOR_SRL_EXP, e0, e1);
+
+  if (btor->rewrite_level > 0) result = rewrite_binary_exp (btor, kind, e0, e1);
+
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_SRL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
+
   return result;
 }
 
@@ -5584,6 +5850,8 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm;
   int normalized;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -5594,6 +5862,7 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
 
+  kind       = BTOR_UDIV_EXP;
   normalized = 0;
   result     = NULL;
 
@@ -5627,12 +5896,32 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         e1         = e1_norm;
       }
     }
-    result = rewrite_binary_exp (btor, BTOR_UDIV_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_UDIV_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -5742,6 +6031,8 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm;
   int normalized;
+  char *bits_3vl;
+  BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -5752,6 +6043,7 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->len == BTOR_REAL_ADDR_EXP (e1)->len);
   assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
 
+  kind       = BTOR_UREM_EXP;
   normalized = 0;
   result     = NULL;
 
@@ -5785,12 +6077,32 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         e1         = e1_norm;
       }
     }
-    result = rewrite_binary_exp (btor, BTOR_UREM_EXP, e0, e1);
+    result = rewrite_binary_exp (btor, kind, e0, e1);
   }
 
   if (result == NULL)
-    result =
-        binary_exp (btor, BTOR_UREM_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+  {
+    if (btor->rewrite_level > 1)
+    {
+      bits_3vl = compute_binary_3vl (btor, kind, e0, e1);
+      if (btor_is_const_2vl (btor->mm, bits_3vl))
+      {
+        result = const_exp (btor, bits_3vl);
+        btor_delete_const (btor->mm, bits_3vl);
+        return result;
+      }
+    }
+
+    result = binary_exp (btor, kind, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
+
+    if (btor->rewrite_level > 1)
+    {
+      if (result->bits == NULL)
+        result->bits = bits_3vl;
+      else
+        btor_delete_const (btor->mm, bits_3vl);
+    }
+  }
 
   if (normalized)
   {
@@ -5966,6 +6278,7 @@ static BtorExp *
 read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
   BtorExp *real_write_index, *real_read_index, *cur_array, *write_index;
+  BtorExp *result;
   int propagate_down, propagations;
   BtorMemMgr *mm;
   assert (btor != NULL);
@@ -6042,9 +6355,14 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
         break;
     } while (BTOR_IS_WRITE_EXP (cur_array)
              && propagations < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
-    return binary_exp (btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
+    result =
+        binary_exp (btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
   }
-  return binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
+  else
+    result = binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
+  /* currently we do not know anything about 3vl bits of reads */
+  if (result->bits == NULL) result->bits = btor_x_const_3vl (mm, e_array->len);
+  return result;
 }
 
 BtorExp *
