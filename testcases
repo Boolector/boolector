@@ -557,3 +557,5 @@ regr3vl4 -rwl1 -o log/regr3vl4.log log/regr3vl4.btor
 regr3vl4 -rwl0 -o log/regr3vl4.log log/regr3vl4.btor
 3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
 3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
+3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
+3vl2 -rwl0 -o log/3vl2.log log/3vl2.btor
