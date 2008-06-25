@@ -1845,6 +1845,7 @@ compute_min_shift (BtorMemMgr *mm, const char *b)
   int len, i, result;
   assert (mm != NULL);
   assert (b != NULL);
+  (void) mm;
 
   len    = (int) strlen (b);
   result = 0;
@@ -1987,6 +1988,7 @@ btor_is_const_2vl (BtorMemMgr *mm, const char *c)
 {
   assert (mm != NULL);
   assert (c != NULL);
+  (void) mm;
   return strchr (c, 'x') == NULL;
 }
 

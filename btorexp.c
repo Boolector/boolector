@@ -194,8 +194,6 @@ static BtorExp *and_exp (Btor *, BtorExp *, BtorExp *);
 /* BEGIN OF IMPLEMENTATION                                                */
 /*------------------------------------------------------------------------*/
 
-#ifndef NDEBUG
-
 static char *
 compute_slice_3vl (Btor *btor, BtorExp *e0, int upper, int lower)
 {
@@ -246,9 +244,11 @@ compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
   assert (btor->rewrite_level > 1);
 
-  mm = btor->mm;
-  b0 = BTOR_REAL_ADDR_EXP (e0)->bits;
-  b1 = BTOR_REAL_ADDR_EXP (e1)->bits;
+  mm        = btor->mm;
+  b0        = BTOR_REAL_ADDR_EXP (e0)->bits;
+  b1        = BTOR_REAL_ADDR_EXP (e1)->bits;
+  invert_e0 = 0;
+  invert_e1 = 0;
 
   same_children_mem = b0 == b1;
 
@@ -266,9 +266,6 @@ compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   }
   else
   {
-    invert_e0 = 0;
-    invert_e1 = 0;
-
     if (BTOR_IS_INVERTED_EXP (e0))
     {
       invert_e0 = 1;
@@ -338,6 +335,9 @@ compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
   b1                = BTOR_REAL_ADDR_EXP (e1)->bits;
   b2                = BTOR_REAL_ADDR_EXP (e2)->bits;
   same_children_mem = b0 == b1 || b0 == b2 || b1 == b2;
+  invert_e0         = 0;
+  invert_e1         = 0;
+  invert_e2         = 0;
 
   if (same_children_mem)
   {
@@ -358,10 +358,6 @@ compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
   }
   else
   {
-    invert_e0 = 0;
-    invert_e1 = 0;
-    invert_e2 = 0;
-
     if (BTOR_IS_INVERTED_EXP (e0))
     {
       invert_e0 = 1;
@@ -398,6 +394,8 @@ compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 
   return result;
 }
+
+#ifndef NDEBUG
 
 static int
 check_hash_table_proxy_free (BtorPtrHashTable *table)
@@ -3048,7 +3046,7 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm, *temp;
   int normalized;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -3298,7 +3296,7 @@ slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
   BtorExp *result;
   int calls;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   assert (btor != NULL);
   assert (exp != NULL);
   exp = pointer_chase_simplified_exp (btor, exp);
@@ -3442,7 +3440,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   BtorExp *e0_norm, *e1_norm, *left, *right, *e0_0, *e0_1, *e1_0, *e1_1, *eq;
   BtorExp *real_e0, *real_e1;
   int normalized, upper, lower;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
 #ifndef NDEBUG
   int is_array_e0, is_array_e1;
 #endif
@@ -3859,7 +3857,7 @@ static BtorExp *
 and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   int normalized;
   BtorExpKind kind;
   assert (btor != NULL);
@@ -4257,7 +4255,7 @@ concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExpPtrStack stack, po_stack;
   BtorMemMgr *mm;
   int i;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -4407,7 +4405,7 @@ cond_exp_bounded (
 {
   BtorExp *result, *temp;
   BtorExpKind kind;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
 #ifndef NDEBUG
   BtorExp *real_e_if, *real_e_else;
   int is_array_e_if, is_array_e_else;
@@ -4861,7 +4859,7 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 {
   BtorExp *result, *e0_norm, *e1_norm, *left, *right;
   int normalized;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -5190,7 +5188,7 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *temp, *e0_norm, *e1_norm;
   int normalized;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -5496,7 +5494,7 @@ static BtorExp *
 sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -5569,7 +5567,7 @@ static BtorExp *
 srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -5850,7 +5848,7 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm;
   int normalized;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -6031,7 +6029,7 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm;
   int normalized;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExpKind kind;
   assert (btor != NULL);
   assert (e0 != NULL);
