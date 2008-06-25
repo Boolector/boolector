@@ -1717,18 +1717,74 @@ test_mul_const_3vl (void)
 }
 
 static void
-test_uext_const_3vl (void)
-{
-  char *result = btor_uext_const_3vl (g_mm, "x00x", 4);
-  assert (strcmp (result, "0000x00x") == 0);
-  btor_delete_const (g_mm, result);
-}
-
-static void
 test_concat_const_3vl (void)
 {
   char *result = btor_concat_const_3vl (g_mm, "x00x", "x11x");
   assert (strcmp (result, "x00xx11x") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_slice_const_3vl (void)
+{
+  char *result = btor_slice_const_3vl (g_mm, "x00x", 3, 0);
+  assert (strcmp (result, "x00x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_slice_const_3vl (g_mm, "100x", 3, 3);
+  assert (strcmp (result, "1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_slice_const_3vl (g_mm, "100x", 3, 2);
+  assert (strcmp (result, "10") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_slice_const_3vl (g_mm, "100x", 0, 0);
+  assert (strcmp (result, "x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_slice_const_3vl (g_mm, "100x", 2, 0);
+  assert (strcmp (result, "00x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_slice_const_3vl (g_mm, "100x", 3, 1);
+  assert (strcmp (result, "100") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_cond_const_3vl (void)
+{
+  char *result = btor_cond_const_3vl (g_mm, "1", "100x", "x011");
+  assert (strcmp (result, "100x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "0", "100x", "x011");
+  assert (strcmp (result, "x011") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "x", "100x", "x011");
+  assert (strcmp (result, "x0xx") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "x", "1001", "1001");
+  assert (strcmp (result, "1001") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "x", "1000", "1001");
+  assert (strcmp (result, "100x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "x", "100x", "1001");
+  assert (strcmp (result, "100x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "x", "1000", "100x");
+  assert (strcmp (result, "100x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_cond_const_3vl (g_mm, "x", "100x", "100x");
+  assert (strcmp (result, "100x") == 0);
   btor_delete_const (g_mm, result);
 }
 
@@ -1778,8 +1834,9 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (sll_const_3vl);
   BTOR_RUN_TEST (srl_const_3vl);
   BTOR_RUN_TEST (mul_const_3vl);
-  BTOR_RUN_TEST (uext_const_3vl);
   BTOR_RUN_TEST (concat_const_3vl);
+  BTOR_RUN_TEST (slice_const_3vl);
+  BTOR_RUN_TEST (cond_const_3vl);
 }
 
 void
