@@ -122,6 +122,8 @@ struct Btor
     int muls_normalized;
     /* number of simplifications as result of 3 valued logic analysis */
     int simplifications_3vl;
+    /*  how often have we pushed a read over write during construction */
+    int read_props_3vl;
     /* sum of the size of all added lemmas */
     long long int lemmas_size_sum;
     /* sum of the size of all linking clauses */
@@ -6279,6 +6281,7 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   BtorExp *result;
   int propagate_down, propagations;
   BtorMemMgr *mm;
+  char *bits_3vl;
   assert (btor != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
@@ -6342,6 +6345,22 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
                && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_read_index->e[1]))
                && real_read_index->e[0] == write_index)
         propagate_down = 1;
+      else if (btor->rewrite_level > 1)
+      {
+        /* check if read index and write index can never be equal */
+        bits_3vl =
+            compute_binary_3vl (btor, BTOR_BEQ_EXP, e_index, write_index);
+
+        /* must have been detected earlier */
+        assert (bits_3vl[0] != '1');
+
+        if (bits_3vl[0] == '0')
+        {
+          propagate_down = 1;
+          btor->stats.read_props_3vl++;
+        }
+        btor_delete_const (btor->mm, bits_3vl);
+      }
       if (propagate_down)
       {
         cur_array = cur_array->e[0];
@@ -8008,6 +8027,7 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
   print_verbose_msg ("3vl simplifications: %d",
                      btor->stats.simplifications_3vl);
+  print_verbose_msg ("3vl read propagations: %d", btor->stats.read_props_3vl);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      btor->stats.synthesis_assignment_inconsistencies);
