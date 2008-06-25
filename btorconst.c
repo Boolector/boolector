@@ -769,8 +769,8 @@ btor_invert_const (BtorMemMgr *mm, char *a)
   invert_const (mm, a);
 }
 
-char *
-btor_not_const (BtorMemMgr *mm, const char *a)
+static char *
+not_const (BtorMemMgr *mm, const char *a)
 {
   char *result;
   int len, i;
@@ -778,13 +778,31 @@ btor_not_const (BtorMemMgr *mm, const char *a)
   assert (mm != NULL);
   assert (a != NULL);
   assert ((int) strlen (a) > 0);
-  assert (is_valid_const (a));
+  assert (is_valid_const_3vl (a));
 
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
-  for (i = len - 1; i >= 0; i--) result[i] = a[i] ^ 1;
+
+  for (i = 0; i < len; i++)
+  {
+    if (a[i] == 'x')
+      result[i] = 'x';
+    else
+      result[i] = a[i] ^ 1;
+  }
   result[len] = '\0';
   return result;
+}
+
+char *
+btor_not_const (BtorMemMgr *mm, const char *a)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const (a));
+
+  return not_const (mm, a);
 }
 
 static char *
@@ -1609,6 +1627,16 @@ btor_invert_const_3vl (BtorMemMgr *mm, char *a)
   assert ((int) strlen (a) > 0);
   assert (is_valid_const_3vl (a));
   invert_const (mm, a);
+}
+
+char *
+btor_not_const_3vl (BtorMemMgr *mm, const char *a)
+{
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert ((int) strlen (a) > 0);
+  assert (is_valid_const_3vl (a));
+  return not_const (mm, a);
 }
 
 char *

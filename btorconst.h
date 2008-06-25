@@ -102,6 +102,8 @@ char *btor_x_const_3vl (BtorMemMgr *mm, int len);
 
 void btor_invert_const_3vl (BtorMemMgr *mm, char *a);
 
+char *btor_not_const_3vl (BtorMemMgr *mm, const char *a);
+
 char *btor_and_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
 char *btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b);

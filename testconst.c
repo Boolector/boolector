@@ -1169,6 +1169,26 @@ test_invert_const_3vl (void)
 }
 
 static void
+test_not_const_3vl (void)
+{
+  char *result = btor_not_const_3vl (g_mm, "x01x");
+  assert (strcmp (result, "x10x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_not_const_3vl (g_mm, "1xx0");
+  assert (strcmp (result, "0xx1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_not_const_3vl (g_mm, "xxx0");
+  assert (strcmp (result, "xxx1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_not_const_3vl (g_mm, "x1xx");
+  assert (strcmp (result, "x0xx") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
 test_and_const_3vl (void)
 {
   char *result = btor_and_const_3vl (g_mm, "10", "1x");
@@ -1827,6 +1847,7 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (inverse_const);
   BTOR_RUN_TEST (x_const_3vl);
   BTOR_RUN_TEST (invert_const_3vl);
+  BTOR_RUN_TEST (not_const_3vl);
   BTOR_RUN_TEST (and_const_3vl);
   BTOR_RUN_TEST (eq_const_3vl);
   BTOR_RUN_TEST (ult_const_3vl);
