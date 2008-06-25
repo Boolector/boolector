@@ -120,6 +120,8 @@ struct Btor
     int adds_normalized;
     /* number of mul chains normalizations */
     int muls_normalized;
+    /* number of simplifications as result of 3 valued logic analysis */
+    int simplifications_3vl;
     /* sum of the size of all added lemmas */
     long long int lemmas_size_sum;
     /* sum of the size of all linking clauses */
@@ -2063,7 +2065,10 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   if (invert_e0) btor_invert_const_3vl (mm, b0);
 
   if (btor_is_const_2vl (mm, exp->bits))
+  {
     exp->simplified = const_exp (btor, exp->bits);
+    btor->stats.simplifications_3vl++;
+  }
 
   return (BtorExp *) exp;
 }
@@ -2166,7 +2171,10 @@ new_binary_exp_node (
   }
 
   if (btor_is_const_2vl (mm, exp->bits))
+  {
     exp->simplified = const_exp (btor, exp->bits);
+    btor->stats.simplifications_3vl++;
+  }
 
   return (BtorExp *) exp;
 }
@@ -2298,7 +2306,10 @@ new_ternary_exp_node (Btor *btor,
   }
 
   if (btor_is_const_2vl (mm, exp->bits))
+  {
     exp->simplified = const_exp (btor, exp->bits);
+    btor->stats.simplifications_3vl++;
+  }
 
   return (BtorExp *) exp;
 }
@@ -7677,10 +7688,10 @@ btor_print_stats_btor (Btor *btor)
                                         btor->stats.refinements));
   print_verbose_msg ("linear constraint equations: %d",
                      btor->stats.linear_equations);
-  print_verbose_msg ("Number of add normalizations: %d",
-                     btor->stats.adds_normalized);
-  print_verbose_msg ("Number of mul normalizations: %d",
-                     btor->stats.muls_normalized);
+  print_verbose_msg ("add normalizations: %d", btor->stats.adds_normalized);
+  print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
+  print_verbose_msg ("3vl simplifications: %d",
+                     btor->stats.simplifications_3vl);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      btor->stats.synthesis_assignment_inconsistencies);
