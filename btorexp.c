@@ -8039,7 +8039,8 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
   print_verbose_msg ("3vl simplifications: %d",
                      btor->stats.simplifications_3vl);
-  print_verbose_msg ("3vl read propagations: %d", btor->stats.read_props_3vl);
+  print_verbose_msg ("3vl read over write propagations: %d",
+                     btor->stats.read_props_3vl);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      btor->stats.synthesis_assignment_inconsistencies);
