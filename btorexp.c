@@ -3410,10 +3410,18 @@ is_always_unequal_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = 0;
 
-  if (e0 == BTOR_INVERT_EXP (e1)) return 1;
-
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
+
+  if (BTOR_IS_ARRAY_EXP (real_e0))
+  {
+    assert (BTOR_IS_ARRAY_EXP (real_e1));
+    return 0;
+  }
+
+  assert (!BTOR_IS_ARRAY_EXP (real_e1));
+
+  if (e0 == BTOR_INVERT_EXP (e1)) return 1;
 
   if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1) && e0 != e1)
     return 1;
