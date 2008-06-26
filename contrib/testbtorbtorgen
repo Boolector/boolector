@@ -16,6 +16,20 @@ if [[ $btorgen = unknown ]]; then
   exit 1
 fi
 
+btorgenjava=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  file=$d/btorgenjava
+  [ -d $d ] || continue
+  [ -f $file ] || continue
+  btorgenjava=$file
+  break
+done
+if [[ $btorgenjava = unknown ]]; then
+  echo "*** testbtorbtorgen: can not find 'btorgenjava'" 1>&2
+  exit 1
+fi
+
 i=0
 counter=0
 valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
@@ -23,6 +37,7 @@ file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgendump$$.btor"
 fileerror="./error.btor"
 refinementlimit=100000
+last=btorgenjava
 
 if [[ $# -gt 1 ]]; then
   echo "*** testbtorbtorgen: usage: ./testbtorbtorgen [output-file]" 1>&2
@@ -40,7 +55,14 @@ do
   rwl=rwl3
   echo -n "Test $i $rwl: "
 
-  btorgen 2> /dev/null | btorold2new > $file 
+  if [ $last = btorgen ]; then
+    btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > $file 
+    last=btorgenjava
+  else
+    btorgen 2> /dev/null | btorold2new > $file 
+    last=btorgen
+  fi
+
   if [ ! -s $file ]; then
     echo "*** testbtorbtorgen: generated file is empty"
     exit 1
@@ -51,6 +73,7 @@ do
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
     cp $file $fileerror
+    echo "; default error" >> $fileerror
     exit
   fi
 
@@ -62,6 +85,7 @@ do
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
     cp $file $fileerror
+    echo "; $rwl error" >> $fileerror
     exit
   fi 
   done
@@ -73,6 +97,7 @@ do
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
     cp $file $fileerror
+    echo "; dump error" >> $fileerror
     exit
   fi 
 
@@ -84,6 +109,7 @@ do
       echo ""
       echo "ERROR"
       cp $file $fileerror
+      echo "; valgrind error" >> $fileerror
       exit
     fi 
     echo "OK"
