@@ -123,7 +123,7 @@ struct Btor
     /* number of simplifications as result of 3 valued logic analysis */
     int simplifications_3vl;
     /*  how often have we pushed a read over write during construction */
-    int read_props_3vl;
+    int read_props_construct;
     /* sum of the size of all added lemmas */
     long long int lemmas_size_sum;
     /* sum of the size of all linking clauses */
@@ -3394,16 +3394,21 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return or_exp (btor, e0, e1);
 }
 
+/* this function requires rewrite level >= 1 */
 static int
 is_always_unequal_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *real_e0, *real_e1;
+  int result;
+  char *bits_3vl;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
   /* we need this so that a + 0 is rewritten to a,
    * and constants are normalized (all inverted constants are odd) */
   assert (btor->rewrite_level > 0);
+
+  result = 0;
 
   if (e0 == BTOR_INVERT_EXP (e1)) return 1;
 
@@ -3431,6 +3436,14 @@ is_always_unequal_rwl1 (Btor *btor, BtorExp *e0, BtorExp *e1)
     if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[1]))
         && BTOR_COND_INVERT_EXP (e1, real_e1->e[0]) == e0)
       return 1;
+  }
+
+  if (btor->rewrite_level > 1)
+  {
+    bits_3vl = compute_binary_3vl (btor, BTOR_BEQ_EXP, e0, e1);
+    if (bits_3vl[0] == '0') result = 1;
+    btor_delete_const (btor->mm, bits_3vl);
+    return result;
   }
 
   return 0;
@@ -6261,9 +6274,8 @@ static BtorExp *
 read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
   BtorExp *cur_array, *write_index, *result;
-  int propagate_down, propagations;
+  int propagations;
   BtorMemMgr *mm;
-  char *bits_3vl;
   assert (btor != NULL);
   assert (e_array != NULL);
   assert (e_index != NULL);
@@ -6275,7 +6287,9 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   assert (e_array->len > 0);
   assert (BTOR_REAL_ADDR_EXP (e_index)->len > 0);
   assert (e_array->index_len == BTOR_REAL_ADDR_EXP (e_index)->len);
+
   mm = btor->mm;
+
   if (btor->rewrite_level > 0 && BTOR_IS_WRITE_EXP (e_array))
   {
     write_index = e_array->e[1];
@@ -6290,43 +6304,24 @@ read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
     do
     {
       assert (BTOR_IS_WRITE_EXP (cur_array));
-      write_index    = cur_array->e[1];
-      propagate_down = 0;
+      write_index = cur_array->e[1];
 
-      /* indices are equal */
       if (e_index == write_index) return copy_exp (btor, cur_array->e[2]);
 
       if (is_always_unequal_rwl1 (btor, e_index, write_index))
-        propagate_down = 1;
-      else if (btor->rewrite_level > 1)
-      {
-        /* check if read index and write index can never be equal */
-        bits_3vl =
-            compute_binary_3vl (btor, BTOR_BEQ_EXP, e_index, write_index);
-
-        /* must have been detected earlier */
-        assert (bits_3vl[0] != '1');
-
-        if (bits_3vl[0] == '0')
-        {
-          propagate_down = 1;
-          btor->stats.read_props_3vl++;
-        }
-        btor_delete_const (btor->mm, bits_3vl);
-      }
-
-      if (propagate_down)
       {
         cur_array = cur_array->e[0];
         assert (BTOR_IS_REGULAR_EXP (cur_array));
         assert (BTOR_IS_ARRAY_EXP (cur_array));
         propagations++;
+        btor->stats.read_props_construct++;
       }
       else
         break;
 
     } while (BTOR_IS_WRITE_EXP (cur_array)
              && propagations < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
+
     result =
         binary_exp (btor, BTOR_READ_EXP, cur_array, e_index, cur_array->len);
   }
@@ -7982,8 +7977,8 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
   print_verbose_msg ("3vl simplifications: %d",
                      btor->stats.simplifications_3vl);
-  print_verbose_msg ("3vl read over write propagations: %d",
-                     btor->stats.read_props_3vl);
+  print_verbose_msg ("read over write propagations during construction: %d",
+                     btor->stats.read_props_construct);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      btor->stats.synthesis_assignment_inconsistencies);
