@@ -3150,7 +3150,7 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_ADD_EXP;
       }
     }
 
@@ -3165,6 +3165,7 @@ add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_ADD_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);
@@ -3821,7 +3822,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_EQ_EXP;
       }
     }
 
@@ -3836,6 +3837,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_EQ_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);
@@ -4194,7 +4196,7 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_AND_EXP;
       }
     }
 
@@ -4209,6 +4211,7 @@ and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_AND_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);
@@ -5015,7 +5018,7 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_MUL_EXP;
       }
     }
 
@@ -5030,6 +5033,7 @@ mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_MUL_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);
@@ -5281,7 +5285,7 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_ULT_EXP;
       }
     }
 
@@ -5296,6 +5300,7 @@ ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_ULT_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);
@@ -5940,7 +5945,7 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_UDIV_EXP;
       }
     }
 
@@ -5955,6 +5960,7 @@ udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_UDIV_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);
@@ -6122,7 +6128,7 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         result = const_exp (btor, bits_3vl);
         btor_delete_const (btor->mm, bits_3vl);
         btor->stats.simplifications_3vl++;
-        return result;
+        goto BTOR_CLEANUP_AND_EXIT_UREM_EXP;
       }
     }
 
@@ -6137,6 +6143,7 @@ urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
   }
 
+BTOR_CLEANUP_AND_EXIT_UREM_EXP:
   if (normalized)
   {
     release_exp (btor, e0_norm);

@@ -555,6 +555,14 @@ regr3vl4 -rwl3 -o log/regr3vl4.log log/regr3vl4.btor
 regr3vl4 -rwl2 -o log/regr3vl4.log log/regr3vl4.btor
 regr3vl4 -rwl1 -o log/regr3vl4.log log/regr3vl4.btor
 regr3vl4 -rwl0 -o log/regr3vl4.log log/regr3vl4.btor
+regrexpleak1 -rwl3 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak1 -rwl2 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak1 -rwl1 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak1 -rwl0 -o log/regrexpleak1.log log/regrexpleak1.btor
+regrexpleak2 -rwl3 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrexpleak2 -rwl2 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrexpleak2 -rwl1 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrexpleak2 -rwl0 -o log/regrexpleak2.log log/regrexpleak2.btor
 3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
 3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
 3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
