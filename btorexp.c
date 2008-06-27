@@ -9715,7 +9715,7 @@ normalize_substitution (Btor *btor,
     else
     {
       assert (upper > 0);
-      assert (upper < len);
+      assert (upper < len - 1);
 
       left  = var_exp (btor, len - 1 - upper, "lambda");
       right = var_exp (btor, upper, "lambda");
