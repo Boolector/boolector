@@ -899,6 +899,54 @@ test_substitute15_special ()
 }
 
 static void
+test_substitute16_special ()
+{
+  run_unsat_test ("substitute16.btor");
+}
+
+static void
+test_substitute17_special ()
+{
+  run_unsat_test ("substitute17.btor");
+}
+
+static void
+test_substitute18_special ()
+{
+  run_unsat_test ("substitute18.btor");
+}
+
+static void
+test_substitute19_special ()
+{
+  run_unsat_test ("substitute19.btor");
+}
+
+static void
+test_substitute20_special ()
+{
+  run_unsat_test ("substitute20.btor");
+}
+
+static void
+test_substitute21_special ()
+{
+  run_unsat_test ("substitute21.btor");
+}
+
+static void
+test_substitute22_special ()
+{
+  run_unsat_test ("substitute22.btor");
+}
+
+static void
+test_substitute23_special ()
+{
+  run_unsat_test ("substitute23.btor");
+}
+
+static void
 test_upprop1_special ()
 {
   run_sat_test ("upprop1.btor");
@@ -1212,6 +1260,14 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (substitute13_special);
   BTOR_RUN_TEST (substitute14_special);
   BTOR_RUN_TEST (substitute15_special);
+  BTOR_RUN_TEST (substitute16_special);
+  BTOR_RUN_TEST (substitute17_special);
+  BTOR_RUN_TEST (substitute18_special);
+  BTOR_RUN_TEST (substitute19_special);
+  BTOR_RUN_TEST (substitute20_special);
+  BTOR_RUN_TEST (substitute21_special);
+  BTOR_RUN_TEST (substitute22_special);
+  BTOR_RUN_TEST (substitute23_special);
   BTOR_RUN_TEST (upprop1_special);
   BTOR_RUN_TEST (andopt1_special);
   BTOR_RUN_TEST (andopt2_special);
