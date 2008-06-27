@@ -9652,7 +9652,7 @@ normalize_substitution (Btor *btor,
                         BtorExp **left_result,
                         BtorExp **right_result)
 {
-  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var;
+  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *exp_const;
   int upper, lower, len;
   char *ic, *fc;
 
@@ -9695,39 +9695,42 @@ normalize_substitution (Btor *btor,
 
     len = BTOR_REAL_ADDR_EXP (var)->len;
 
+    if (BTOR_IS_INVERTED_EXP (var))
+      exp_const = zero_exp (btor, 1);
+    else
+      exp_const = one_exp (btor, 1);
+
     if (upper == 0)
     {
-      left = var_exp (btor, len - 1, "aux");
-
-      if (BTOR_IS_INVERTED_EXP (var))
-        right = zero_exp (btor, 1);
-      else
-        right = one_exp (btor, 1);
-
-      *left_result  = copy_exp (btor, BTOR_REAL_ADDR_EXP (var));
-      *right_result = concat_exp (btor, left, right);
+      left          = var_exp (btor, len - 1, "lambda");
+      *right_result = concat_exp (btor, left, exp_const);
       release_exp (btor, left);
-      release_exp (btor, right);
-
-      return 1;
     }
-
-    if (upper == len - 1)
+    else if (upper == len - 1)
     {
-      if (BTOR_IS_INVERTED_EXP (var))
-        left = zero_exp (btor, 1);
-      else
-        left = one_exp (btor, 1);
+      right         = var_exp (btor, len - 1, "lambda");
+      *right_result = concat_exp (btor, exp_const, right);
+      release_exp (btor, right);
+    }
+    else
+    {
+      assert (upper > 0);
+      assert (upper < len);
 
-      right = var_exp (btor, len - 1, "aux");
+      left  = var_exp (btor, len - 1 - upper, "lambda");
+      right = var_exp (btor, upper, "lambda");
 
-      *left_result  = copy_exp (btor, BTOR_REAL_ADDR_EXP (var));
-      *right_result = concat_exp (btor, left, right);
+      tmp           = concat_exp (btor, left, exp_const);
+      *right_result = concat_exp (btor, tmp, right);
+
+      release_exp (btor, tmp);
       release_exp (btor, left);
       release_exp (btor, right);
-
-      return 1;
     }
+
+    release_exp (btor, exp_const);
+    *left_result = copy_exp (btor, BTOR_REAL_ADDR_EXP (var));
+    return 1;
   }
 
   /* in the boolean case a != b is the same as a == ~b */
