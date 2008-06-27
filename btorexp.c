@@ -9645,6 +9645,58 @@ is_embedded_constraint_exp (Btor *btor, BtorExp *exp)
   return BTOR_REAL_ADDR_EXP (exp)->len == 1 && has_parents_exp (btor, exp);
 }
 
+static BtorExp *
+slice_on_var_subst_rhs (
+    Btor *btor, BtorExp *var, int upper, int lower, BtorExp *e_const)
+{
+  int len_var, len_slice;
+  BtorExp *left, *right, *tmp, *result;
+
+  assert (btor != NULL);
+  assert (var != NULL);
+  assert (e_const != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (var));
+  assert (BTOR_IS_VAR_EXP (var));
+  assert (btor_is_const_2vl (btor->mm, BTOR_REAL_ADDR_EXP (e_const)->bits));
+  assert (upper < var->len);
+  assert (upper >= lower);
+  assert (lower >= 0);
+
+  len_var   = var->len;
+  len_slice = upper - lower + 1;
+  assert (len_slice == BTOR_REAL_ADDR_EXP (e_const)->len);
+
+  if (lower == 0)
+  {
+    left   = var_exp (btor, len_var - len_slice, "lambda");
+    result = concat_exp (btor, left, e_const);
+    release_exp (btor, left);
+  }
+  else if (upper == len_var - 1)
+  {
+    right  = var_exp (btor, len_var - len_slice, "lambda");
+    result = concat_exp (btor, e_const, right);
+    release_exp (btor, right);
+  }
+  else
+  {
+    assert (upper > 0);
+    assert (upper < len_var - 1);
+
+    left  = var_exp (btor, len_var - len_slice - lower, "lambda");
+    right = var_exp (btor, lower, "lambda");
+
+    tmp    = concat_exp (btor, left, e_const);
+    result = concat_exp (btor, tmp, right);
+
+    release_exp (btor, tmp);
+    release_exp (btor, left);
+    release_exp (btor, right);
+  }
+
+  return result;
+}
+
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
 normalize_substitution (Btor *btor,
@@ -9652,8 +9704,8 @@ normalize_substitution (Btor *btor,
                         BtorExp **left_result,
                         BtorExp **right_result)
 {
-  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *exp_const;
-  int upper, lower, len;
+  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *e_const;
+  int upper, lower;
   char *ic, *fc;
 
   assert (btor != NULL);
@@ -9685,7 +9737,6 @@ normalize_substitution (Btor *btor,
   {
     upper = BTOR_REAL_ADDR_EXP (exp)->upper;
     lower = BTOR_REAL_ADDR_EXP (exp)->lower;
-    assert (upper == lower);
 
     /* we push negation of slice down */
     if (BTOR_IS_INVERTED_EXP (exp))
@@ -9693,43 +9744,16 @@ normalize_substitution (Btor *btor,
     else
       var = exp->e[0];
 
-    len = BTOR_REAL_ADDR_EXP (var)->len;
-
     if (BTOR_IS_INVERTED_EXP (var))
-      exp_const = zero_exp (btor, 1);
+      e_const = zero_exp (btor, 1);
     else
-      exp_const = one_exp (btor, 1);
+      e_const = one_exp (btor, 1);
 
-    if (upper == 0)
-    {
-      left          = var_exp (btor, len - 1, "lambda");
-      *right_result = concat_exp (btor, left, exp_const);
-      release_exp (btor, left);
-    }
-    else if (upper == len - 1)
-    {
-      right         = var_exp (btor, len - 1, "lambda");
-      *right_result = concat_exp (btor, exp_const, right);
-      release_exp (btor, right);
-    }
-    else
-    {
-      assert (upper > 0);
-      assert (upper < len - 1);
+    var = BTOR_REAL_ADDR_EXP (var);
 
-      left  = var_exp (btor, len - 1 - upper, "lambda");
-      right = var_exp (btor, upper, "lambda");
-
-      tmp           = concat_exp (btor, left, exp_const);
-      *right_result = concat_exp (btor, tmp, right);
-
-      release_exp (btor, tmp);
-      release_exp (btor, left);
-      release_exp (btor, right);
-    }
-
-    release_exp (btor, exp_const);
-    *left_result = copy_exp (btor, BTOR_REAL_ADDR_EXP (var));
+    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, e_const);
+    *left_result  = copy_exp (btor, var);
+    release_exp (btor, e_const);
     return 1;
   }
 
