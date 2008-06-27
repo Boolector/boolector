@@ -9706,7 +9706,7 @@ normalize_substitution (Btor *btor,
 {
   BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *e_const;
   int upper, lower;
-  char *ic, *fc;
+  char *ic, *fc, *bits_const;
 
   assert (btor != NULL);
   assert (exp != NULL);
@@ -9745,14 +9745,15 @@ normalize_substitution (Btor *btor,
       var = exp->e[0];
 
     if (BTOR_IS_INVERTED_EXP (var))
+    {
       e_const = zero_exp (btor, 1);
+      var     = BTOR_REAL_ADDR_EXP (var);
+    }
     else
       e_const = one_exp (btor, 1);
 
-    var = BTOR_REAL_ADDR_EXP (var);
-
-    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, e_const);
     *left_result  = copy_exp (btor, var);
+    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, e_const);
     release_exp (btor, e_const);
     return 1;
   }
@@ -9786,6 +9787,66 @@ normalize_substitution (Btor *btor,
   right      = exp->e[1];
   real_left  = BTOR_REAL_ADDR_EXP (left);
   real_right = BTOR_REAL_ADDR_EXP (right);
+
+  if (real_left->kind == BTOR_SLICE_EXP
+      && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_left->e[0]))
+      && (BTOR_IS_CONST_EXP (real_right)
+          || btor_is_const_2vl (btor->mm, real_right->bits)))
+  {
+    upper = real_left->upper;
+    lower = real_left->lower;
+
+    /* we push negation of slice down */
+    if (BTOR_IS_INVERTED_EXP (left))
+      var = BTOR_INVERT_EXP (real_left->e[0]);
+    else
+      var = left->e[0];
+
+    bits_const = BTOR_BITS_EXP (btor->mm, right);
+    e_const    = const_exp (btor, bits_const);
+
+    if (BTOR_IS_INVERTED_EXP (var))
+    {
+      e_const = BTOR_INVERT_EXP (e_const);
+      var     = BTOR_REAL_ADDR_EXP (var);
+    }
+
+    *left_result  = copy_exp (btor, var);
+    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, e_const);
+    release_exp (btor, e_const);
+    btor_delete_const (btor->mm, bits_const);
+    return 1;
+  }
+
+  if (real_right->kind == BTOR_SLICE_EXP
+      && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_right->e[0]))
+      && (BTOR_IS_CONST_EXP (real_left)
+          || btor_is_const_2vl (btor->mm, real_left->bits)))
+  {
+    upper = real_right->upper;
+    lower = real_right->lower;
+
+    /* we push negation of slice down */
+    if (BTOR_IS_INVERTED_EXP (right))
+      var = BTOR_INVERT_EXP (real_right->e[0]);
+    else
+      var = right->e[0];
+
+    bits_const = BTOR_BITS_EXP (btor->mm, left);
+    e_const    = const_exp (btor, bits_const);
+
+    if (BTOR_IS_INVERTED_EXP (var))
+    {
+      e_const = BTOR_INVERT_EXP (e_const);
+      var     = BTOR_REAL_ADDR_EXP (var);
+    }
+
+    *left_result  = copy_exp (btor, var);
+    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, e_const);
+    release_exp (btor, e_const);
+    btor_delete_const (btor->mm, bits_const);
+    return 1;
+  }
 
   if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
       && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
