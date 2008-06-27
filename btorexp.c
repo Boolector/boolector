@@ -9652,7 +9652,8 @@ normalize_substitution (Btor *btor,
                         BtorExp **left_result,
                         BtorExp **right_result)
 {
-  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv;
+  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var;
+  int upper, lower, len;
   char *ic, *fc;
 
   assert (btor != NULL);
@@ -9677,6 +9678,56 @@ normalize_substitution (Btor *btor,
     }
     inc_exp_ref_counter (btor, *left_result);
     return 1;
+  }
+
+  if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_SLICE_EXP
+      && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
+  {
+    upper = BTOR_REAL_ADDR_EXP (exp)->upper;
+    lower = BTOR_REAL_ADDR_EXP (exp)->lower;
+    assert (upper == lower);
+
+    /* we push negation of slice down */
+    if (BTOR_IS_INVERTED_EXP (exp))
+      var = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0]);
+    else
+      var = exp->e[0];
+
+    len = BTOR_REAL_ADDR_EXP (var)->len;
+
+    if (upper == 0)
+    {
+      left = var_exp (btor, len - 1, "aux");
+
+      if (BTOR_IS_INVERTED_EXP (var))
+        right = zero_exp (btor, 1);
+      else
+        right = one_exp (btor, 1);
+
+      *left_result  = copy_exp (btor, BTOR_REAL_ADDR_EXP (var));
+      *right_result = concat_exp (btor, left, right);
+      release_exp (btor, left);
+      release_exp (btor, right);
+
+      return 1;
+    }
+
+    if (upper == len - 1)
+    {
+      if (BTOR_IS_INVERTED_EXP (var))
+        left = zero_exp (btor, 1);
+      else
+        left = one_exp (btor, 1);
+
+      right = var_exp (btor, len - 1, "aux");
+
+      *left_result  = copy_exp (btor, BTOR_REAL_ADDR_EXP (var));
+      *right_result = concat_exp (btor, left, right);
+      release_exp (btor, left);
+      release_exp (btor, right);
+
+      return 1;
+    }
   }
 
   /* in the boolean case a != b is the same as a == ~b */
