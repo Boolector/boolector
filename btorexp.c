@@ -9751,6 +9751,12 @@ normalize_substitution (Btor *btor,
     else
       var = exp->e[0];
 
+    /* we do not create a lambda if variable is already in substitution
+     * table */
+    if (btor_find_in_ptr_hash_table (btor->varsubst_constraints,
+                                     BTOR_REAL_ADDR_EXP (var)))
+      return 0;
+
     if (BTOR_IS_INVERTED_EXP (var))
     {
       tmp = zero_exp (btor, 1);
