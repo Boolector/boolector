@@ -45,6 +45,7 @@ struct BtorSATMgr
   void (*ss_set_prefix) (const char *);
   int (*ss_inc_max_var) ();
   int (*ss_variables) ();
+  int (*ss_clauses) ();
   void (*ss_set_new) (void *, void *(*) (void *, size_t));
   void (*ss_set_delete) (void *, void (*) (void *, void *, size_t));
   void (*ss_set_resize) (void *, void *(*) (void *, void *, size_t, size_t));
@@ -103,6 +104,7 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_set_prefix  = picosat_set_prefix;
   smgr->ss_inc_max_var = picosat_inc_max_var;
   smgr->ss_variables   = picosat_variables;
+  smgr->ss_clauses     = picosat_added_original_clauses;
   smgr->ss_set_new     = picosat_set_new;
   smgr->ss_set_delete  = picosat_set_delete;
   smgr->ss_set_resize  = picosat_set_resize;
@@ -253,8 +255,13 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
+
   if (smgr->verbosity > 2)
+  {
     print_verbose_msg ("calling SAT solver %s\n", smgr->ss_name);
+    print_verbose_msg ("original clauses: %d\n", smgr->ss_clauses ());
+  }
+
   return smgr->ss_sat (limit);
 }
 
@@ -307,6 +314,7 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_set_prefix  = picoprep_set_prefix;
   smgr->ss_inc_max_var = picoprep_inc_max_var;
   smgr->ss_variables   = picoprep_variables;
+  smgr->ss_clauses     = picoprep_added_original_clauses;
   smgr->ss_set_new     = picoprep_set_new;
   smgr->ss_set_delete  = picoprep_set_delete;
   smgr->ss_set_resize  = picoprep_set_resize;
