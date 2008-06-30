@@ -6511,7 +6511,9 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       case BTOR_SPECIAL_CONST_ZERO:
         if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
           result = not_exp (btor, e1);
-        if (kind == BTOR_ADD_EXP)
+        else if (kind == BTOR_ULT_EXP) /* 0 < a --> a != 0 */
+          result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
+        else if (kind == BTOR_ADD_EXP)
           result = copy_exp (btor, e1);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                  || kind == BTOR_SRL_EXP || kind == BTOR_UREM_EXP
@@ -6582,8 +6584,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
           result = copy_exp (btor, e0);
         else if (kind == BTOR_ULT_EXP)
         {
-          temp = zero_exp (btor, real_e0->len);
-          /* ATTENTION: indirect recursive call */
+          temp   = zero_exp (btor, real_e0->len);
           result = eq_exp (btor, e0, temp);
           release_exp (btor, temp);
         }
@@ -6592,7 +6593,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         if (kind == BTOR_AND_EXP)
           result = copy_exp (btor, e0);
         else if (kind == BTOR_ULT_EXP)
-          /* ATTENTION: indirect recursive call */
           result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
         break;
       default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
@@ -6701,16 +6701,10 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   /* TODO strength reduction: a * 3 == (a << 1) + a (really ?) */
   /* TODO strength reduction: a / 2 == (a >> 1) (yes!) */
   /* TODO strength reduction: a / 3 =>  higher bits zero (check!) */
-  /* TODO 0 < a <=> a != 0 */
-  /* TODO a < 1 <=> a == 0 */
   /* TODO MAX-1 < a <=> a == MAX */
-  /* TODO a < MAX <=> a != MAX */
 
   /* TODO (x < ~x) <=> !msb(x) */
   /* TODO (~x < x) <=> msb(x) */
-
-  /* TODO associativity of multiplication (always?) or normalize */
-  /* TODO associativity of addition up to a certain level or normalize */
 
   /* TODO to support GAUSS bubble up odd terms:
    * (2 * a + 3 * y) + 4 * x => 3 * y + (2 * a + 4 * x)
