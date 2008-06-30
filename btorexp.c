@@ -9956,12 +9956,7 @@ insert_varsubst_constraint (Btor *btor,
   /* if v = t_1 is already in varsubst, we
    * have to synthesize v = t_2 */
   else if (right != (BtorExp *) bucket->data.asPtr)
-  {
-    if (is_embedded_constraint_exp (btor, exp))
-      insert_embedded_constraint (btor, exp);
-    else
-      insert_unsynthesized_constraint (btor, exp);
-  }
+    insert_unsynthesized_constraint (btor, exp);
 }
 
 static void
