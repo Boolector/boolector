@@ -3261,7 +3261,7 @@ rewrite_slice_exp_bounded (
       else
         result = copy_exp (btor, real_e0->e[1]);
     }
-    if (btor->rewrite_level < 3)
+    else if (btor->rewrite_level < 3)
     {
       /* we look just one level down */
       if (upper == len - 1
@@ -6511,7 +6511,9 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       case BTOR_SPECIAL_CONST_ZERO:
         if (kind == BTOR_BEQ_EXP && real_e0->len == 1)
           result = not_exp (btor, e1);
-        if (kind == BTOR_ADD_EXP)
+        else if (kind == BTOR_ULT_EXP) /* 0 < a --> a != 0 */
+          result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
+        else if (kind == BTOR_ADD_EXP)
           result = copy_exp (btor, e1);
         else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
                  || kind == BTOR_SRL_EXP || kind == BTOR_UREM_EXP
@@ -6582,8 +6584,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
           result = copy_exp (btor, e0);
         else if (kind == BTOR_ULT_EXP)
         {
-          temp = zero_exp (btor, real_e0->len);
-          /* ATTENTION: indirect recursive call */
+          temp   = zero_exp (btor, real_e0->len);
           result = eq_exp (btor, e0, temp);
           release_exp (btor, temp);
         }
@@ -6592,7 +6593,6 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         if (kind == BTOR_AND_EXP)
           result = copy_exp (btor, e0);
         else if (kind == BTOR_ULT_EXP)
-          /* ATTENTION: indirect recursive call */
           result = BTOR_INVERT_EXP (eq_exp (btor, e0, e1));
         break;
       default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
@@ -6701,16 +6701,10 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   /* TODO strength reduction: a * 3 == (a << 1) + a (really ?) */
   /* TODO strength reduction: a / 2 == (a >> 1) (yes!) */
   /* TODO strength reduction: a / 3 =>  higher bits zero (check!) */
-  /* TODO 0 < a <=> a != 0 */
-  /* TODO a < 1 <=> a == 0 */
   /* TODO MAX-1 < a <=> a == MAX */
-  /* TODO a < MAX <=> a != MAX */
 
   /* TODO (x < ~x) <=> !msb(x) */
   /* TODO (~x < x) <=> msb(x) */
-
-  /* TODO associativity of multiplication (always?) or normalize */
-  /* TODO associativity of addition up to a certain level or normalize */
 
   /* TODO to support GAUSS bubble up odd terms:
    * (2 * a + 3 * y) + 4 * x => 3 * y + (2 * a + 4 * x)
@@ -9738,7 +9732,7 @@ normalize_substitution (Btor *btor,
     inc_exp_ref_counter (btor, *left_result);
     return 1;
   }
-
+#if 1
   if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_SLICE_EXP
       && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
   {
@@ -9750,6 +9744,12 @@ normalize_substitution (Btor *btor,
       var = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0]);
     else
       var = exp->e[0];
+
+    /* we do not create a lambda if variable is already in substitution
+     * table */
+    if (btor_find_in_ptr_hash_table (btor->varsubst_constraints,
+                                     BTOR_REAL_ADDR_EXP (var)))
+      return 0;
 
     if (BTOR_IS_INVERTED_EXP (var))
     {
@@ -9764,7 +9764,7 @@ normalize_substitution (Btor *btor,
     release_exp (btor, tmp);
     return 1;
   }
-
+#endif
   /* in the boolean case a != b is the same as a == ~b */
   if (BTOR_IS_INVERTED_EXP (exp)
       && BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_BEQ_EXP
@@ -9915,6 +9915,22 @@ insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 }
 
 static void
+insert_embedded_constraint (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *ec;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  ec = btor->embedded_constraints;
+  if (!btor_find_in_ptr_hash_table (ec, exp))
+  {
+    inc_exp_ref_counter (btor, exp);
+    (void) btor_insert_in_ptr_hash_table (ec, exp);
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+    btor->stats.constraints.embedded++;
+  }
+}
+
+static void
 insert_varsubst_constraint (Btor *btor,
                             BtorExp *exp,
                             BtorExp *left,
@@ -9941,22 +9957,6 @@ insert_varsubst_constraint (Btor *btor,
    * have to synthesize v = t_2 */
   else if (right != (BtorExp *) bucket->data.asPtr)
     insert_unsynthesized_constraint (btor, exp);
-}
-
-static void
-insert_embedded_constraint (Btor *btor, BtorExp *exp)
-{
-  BtorPtrHashTable *ec;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  ec = btor->embedded_constraints;
-  if (!btor_find_in_ptr_hash_table (ec, exp))
-  {
-    inc_exp_ref_counter (btor, exp);
-    (void) btor_insert_in_ptr_hash_table (ec, exp);
-    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    btor->stats.constraints.embedded++;
-  }
 }
 
 static void
