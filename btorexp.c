@@ -3261,7 +3261,7 @@ rewrite_slice_exp_bounded (
       else
         result = copy_exp (btor, real_e0->e[1]);
     }
-    if (btor->rewrite_level < 3)
+    else if (btor->rewrite_level < 3)
     {
       /* we look just one level down */
       if (upper == len - 1
@@ -9738,7 +9738,7 @@ normalize_substitution (Btor *btor,
     inc_exp_ref_counter (btor, *left_result);
     return 1;
   }
-
+#if 1
   if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_SLICE_EXP
       && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
   {
@@ -9770,7 +9770,7 @@ normalize_substitution (Btor *btor,
     release_exp (btor, tmp);
     return 1;
   }
-
+#endif
   /* in the boolean case a != b is the same as a == ~b */
   if (BTOR_IS_INVERTED_EXP (exp)
       && BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_BEQ_EXP
