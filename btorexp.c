@@ -9921,6 +9921,22 @@ insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 }
 
 static void
+insert_embedded_constraint (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *ec;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  ec = btor->embedded_constraints;
+  if (!btor_find_in_ptr_hash_table (ec, exp))
+  {
+    inc_exp_ref_counter (btor, exp);
+    (void) btor_insert_in_ptr_hash_table (ec, exp);
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+    btor->stats.constraints.embedded++;
+  }
+}
+
+static void
 insert_varsubst_constraint (Btor *btor,
                             BtorExp *exp,
                             BtorExp *left,
@@ -9946,22 +9962,11 @@ insert_varsubst_constraint (Btor *btor,
   /* if v = t_1 is already in varsubst, we
    * have to synthesize v = t_2 */
   else if (right != (BtorExp *) bucket->data.asPtr)
-    insert_unsynthesized_constraint (btor, exp);
-}
-
-static void
-insert_embedded_constraint (Btor *btor, BtorExp *exp)
-{
-  BtorPtrHashTable *ec;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  ec = btor->embedded_constraints;
-  if (!btor_find_in_ptr_hash_table (ec, exp))
   {
-    inc_exp_ref_counter (btor, exp);
-    (void) btor_insert_in_ptr_hash_table (ec, exp);
-    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    btor->stats.constraints.embedded++;
+    if (is_embedded_constraint_exp (btor, exp))
+      insert_embedded_constraint (btor, exp);
+    else
+      insert_unsynthesized_constraint (btor, exp);
   }
 }
 
