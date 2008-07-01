@@ -545,6 +545,12 @@ test_write23_special ()
 }
 
 static void
+test_write24_special ()
+{
+  run_unsat_test ("write24.btor");
+}
+
+static void
 test_ext1_special ()
 {
   run_sat_test ("ext1.btor");
