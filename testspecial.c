@@ -1321,6 +1321,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (write21_special);
   BTOR_RUN_TEST (write22_special);
   BTOR_RUN_TEST (write23_special);
+  BTOR_RUN_TEST (write24_special);
   BTOR_RUN_TEST (ext1_special);
   BTOR_RUN_TEST (ext2_special);
   BTOR_RUN_TEST (ext3_special);
