@@ -58,7 +58,7 @@ do
   echo "Checking ${benchmarks[$nr]}"
   status=`grep -m 1 "status" "${benchmarks[$nr]}"`
   status=`echo $status | awk '{ print $NF }'`
-  if [[ ! "$status" = sat ]] && [[ ! "$status" = unsat ]]; then
+  if [[ ! "$status" = sat ]] && [[ ! "$status" = unsat ]] && [[ ! "$status" = unknown ]]; then
     echo "*** testscrambledsmt: could not extract benchmark status"
     exit 1
   fi
@@ -71,7 +71,7 @@ do
     statusboolector=`cat $filetmp`
   fi
 
-  if [[ ! $status = $statusboolector ]]; then
+  if [[ ! $status = $statusboolector ]] && [[ ! $status = unknown ]]; then
     echo "ERROR: benchmark: ${benchmarks[$nr]}, scrambler seed: $seed" > $fileerror
     exit 1
   fi
