@@ -1,0 +1,78 @@
+#!/bin/bash
+
+declare -a benchmarks
+inputfile=smtbenchmarksqfbv_qfaufbv
+fileerror="./error"
+filetmp="/tmp/testscrambledsmt$$.out"
+
+scrambler=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  file=$d/scrambler
+  [ -d $d ] || continue
+  [ -f $file ] || continue
+  scrambler=$file
+  break
+done
+
+boolector=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  file=$d/boolector
+  [ -d $d ] || continue
+  [ -f $file ] || continue
+  boolector=$file
+  break
+done
+
+if [[ $scrambler = unknown ]]; then
+  echo "*** testscrambledsmt: can not find 'scrambler'" 1>&2
+  exit 1
+fi
+
+if [[ ! -e $inputfile ]] || [[ ! -s $inputfile ]] || [[ ! -r $inputfile ]]; then
+  echo "*** testscrambledsmt: input error " 1>&2
+  exit 1 
+fi
+
+if [[ $# -gt 1 ]]; then
+  echo "*** testscrambledsmt: usage: ./testscrambledsmt [output-file]" 1>&2
+  exit 1
+fi
+
+if [[ $# -eq 1 ]]; then
+  fileerror=$1
+fi
+
+numbenchmarks=0
+echo "Reading benchmark file"
+exec < $inputfile
+while read line
+do
+  benchmarks[((numbenchmarks++))]=$line
+done
+
+while true
+do
+  ((nr = RANDOM % numbenchmarks))
+  echo "Checking ${benchmarks[$nr]}"
+  status=`grep -m 1 "status" "${benchmarks[$nr]}"`
+  status=`echo $status | awk '{ print $NF }'`
+  if [[ ! "$status" = sat ]] && [[ ! "$status" = unsat ]]; then
+    echo "*** testscrambledsmt: could not extract benchmark status"
+    exit 1
+  fi
+
+  seed=$RANDOM
+  rm -f $filetmp
+  statusboolector=none
+  scrambler $seed ${benchmarks[$nr]} | boolector --smt > $filetmp
+  if [[ -e $filetmp ]] && [[ -s $filetmp ]]; then
+    statusboolector=`cat $filetmp`
+  fi
+
+  if [[ ! $status = $statusboolector ]]; then
+    echo "ERROR: benchmark: ${benchmarks[$nr]}, scrambler seed: $seed" > $fileerror
+    exit 1
+  fi
+done
