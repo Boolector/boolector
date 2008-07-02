@@ -15,7 +15,7 @@ function cleanup
   done
 }
 
-rm -f scramblederror*.btor
+rm -f scramblederror*
 
 for ((i = 1; i <= $cores; i++))
 do
