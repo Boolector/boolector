@@ -10,9 +10,17 @@ die () {
 sed \
   -e '/^C[A-Z]*=/!d' \
   -e 's,^,#define BTOR_,' \
-  -e 's,=, ",' \
+  -e 's,=[ 	]*, ",' \
   -e 's,$,",' \
   makefile
+
+CC="`awk '/^CC=/{print}' makefile|sed -e 's,^CC=,,'`"
+case x"$CC" in
+xgcc) CCVERSION="`$CC --version 2>/dev/null|head -1`";;
+   *) CCVERSION="";;
+esac
+
+echo "#define BTOR_CCVERSION \"$CCVERSION\""
 
 echo "#define BTOR_OS \"`uname -a`\""
 

@@ -17,6 +17,7 @@
 #include "btorutil.h"
 
 #include <assert.h>
+#include <ctype.h>
 #include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -158,9 +159,13 @@ static const char *g_usage =
     "  -bmc-replay <file>                turn replay on\n";
 
 static const char *g_copyright =
-    "Copyright (c) 2007, Robert Brummayer, Armin Biere\n"
+    "Copyright (c) 2007 - 2008, Robert Brummayer, Armin Biere\n"
     "Institute for Formal Models and Verification\n"
-    "Johannes Kepler University, Linz, Austria\n";
+    "Johannes Kepler University, Linz, Austria\n"
+    "\n"
+    "All rights reserved.\n"
+    "This version can only be used in a research environment.\n"
+    "Commercial usage is prohibited.\n";
 
 #ifdef BTOR_HAVE_GETRUSAGE
 static double
@@ -707,6 +712,20 @@ generate_regs_eq_zero (Btor *btor,
   return result;
 }
 
+static int
+stdin_starts_with_open_parenthesis (void)
+{
+  int ch, res;
+
+  while (isspace ((ch = getc (stdin))))
+    ;
+
+  res = (ch == '(');
+  if (ch != EOF) ungetc (ch, stdin);
+
+  return res;
+};
+
 int
 btor_main (int argc, char **argv)
 {
@@ -776,7 +795,16 @@ btor_main (int argc, char **argv)
   parse_commandline_arguments (&app);
 
   if (app.verbosity > 0)
+  {
     print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
+    print_verbose_msg_va_args ("%s %s\n", BTOR_CC, BTOR_CFLAGS);
+    if (*BTOR_CCVERSION) print_verbose_msg_va_args ("%s\n", BTOR_CCVERSION);
+
+    /* Not really necessary?
+     *
+     * print_verbose_msg_va_args ("%s\n", BTOR_OS);
+     */
+  }
 
   if (!app.done && !app.err)
   {
@@ -790,11 +818,16 @@ btor_main (int argc, char **argv)
     amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
     smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-    if (app.force_smt_input
-        || (app.close_input_file && has_suffix (app.input_file_name, ".smt")))
+    parser_api = btor_btor_parser_api;
+    if (app.force_smt_input)
       parser_api = btor_smt_parser_api;
-    else
-      parser_api = btor_btor_parser_api;
+    else if (app.close_input_file)
+    {
+      if (has_suffix (app.input_file_name, ".smt"))
+        parser_api = btor_smt_parser_api;
+    }
+    else if (stdin_starts_with_open_parenthesis ())
+      parser_api = btor_smt_parser_api;
 
     parser = parser_api->init (btor, app.verbosity);
 
