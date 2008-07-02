@@ -17,7 +17,7 @@ sed \
 CC="`awk '/^CC=/{print}' makefile|sed -e 's,^CC=,,'`"
 case x"$CC" in
 xgcc) CCVERSION="`$CC --version 2>/dev/null|head -1`";;
-   *) CCVERSION="with unknown version";;
+   *) CCVERSION="";;
 esac
 
 echo "#define BTOR_CCVERSION \"$CCVERSION\""

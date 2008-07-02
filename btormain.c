@@ -798,6 +798,7 @@ btor_main (int argc, char **argv)
   {
     print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
     print_verbose_msg_va_args ("%s %s\n", BTOR_CC, BTOR_CFLAGS);
+    if (*BTOR_CCVERSION) print_verbose_msg_va_args ("%s\n", BTOR_CCVERSION);
 
     /* Not really necessary?
      *
