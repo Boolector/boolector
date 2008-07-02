@@ -66,7 +66,7 @@ do
   seed=$RANDOM
   rm -f $filetmp
   statusboolector=none
-  scrambler $seed ${benchmarks[$nr]} | boolector --smt > $filetmp
+  scrambler $seed ${benchmarks[$nr]} | boolector > $filetmp
   if [[ -e $filetmp ]] && [[ -s $filetmp ]]; then
     statusboolector=`cat $filetmp`
   fi
