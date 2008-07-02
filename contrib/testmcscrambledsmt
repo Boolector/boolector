@@ -1,0 +1,46 @@
+#!/bin/bash
+
+# run testscrambledsmt on multiple cores simultaneously
+
+cores=4
+sleeptime=10
+fileids="/tmp/testmcscrambledsmt$$.pids"
+numerrors=0
+
+function cleanup
+{
+  cat $fileids | while read line
+  do 
+    kill $line 2> /dev/null
+  done
+}
+
+rm -f scramblederror*.btor
+
+for ((i = 1; i <= $cores; i++))
+do
+  ./testscrambledsmt "./scramblederror"$i > /dev/null &
+  if [[ $i -eq 1 ]]; then
+    echo $! > $fileids
+  else
+    echo $! >> $fileids
+  fi
+  sleep 1
+done
+
+trap "cleanup; exit" SIGHUP SIGINT SIGTERM
+
+i=0
+while [[ $numerrors -lt $cores ]]
+do
+  sleep $sleeptime 
+  errors=scramblederror*
+  numerrors=`ls $errors 2> /dev/null | wc -l`
+  echo "Errors: $numerrors"
+  ((i++))
+  if [[ $i -eq 6 ]]; then
+    echo ""
+    i=0
+  fi
+done
+
