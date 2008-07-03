@@ -1,5 +1,8 @@
-#include "../picoprep/picoprep.h"
 #include "../picosat/picosat.h"
+
+#ifdef BTOR_USE_PICOPREP
+#include "../picoprep/picoprep.h"
+#endif
 
 #include "btorexit.h"
 #include "btorsat.h"
@@ -169,9 +172,10 @@ btor_init_sat (BtorSATMgr *smgr)
 
   if (smgr->verbosity > 0)
   {
+#ifdef BTOR_USE_PICOPREP
     if (smgr->preproc_enabled)
       print_verbose_msg ("PicoPrep Version %s\n", picoprep_version ());
-
+#endif
     print_verbose_msg ("PicoSAT  Version %s\n", picosat_version ());
 
     fflush (stdout);
@@ -299,6 +303,8 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
 
+#ifdef BTOR_USE_PICOPREP
+
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
@@ -321,6 +327,8 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_stats       = picoprep_stats;
 
   smgr->preproc_enabled = 1;
+
+#endif
 }
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */

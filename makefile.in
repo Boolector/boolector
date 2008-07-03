@@ -20,7 +20,7 @@ test: $(TESTOBJ) libboolector.a
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)
 
 synthebtor: synthebtor.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector -lz
+	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
 
 deltabtor: deltabtor.c makefile
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
