@@ -302,12 +302,11 @@ void
 btor_enable_preproc_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
-
-#ifdef BTOR_USE_PICOPREP
-
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
+
+#ifdef BTOR_USE_PICOPREP
 
   smgr->ss_name = "PicoPrep";
 
