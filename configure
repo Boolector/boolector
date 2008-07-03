@@ -1,6 +1,6 @@
 #!/bin/sh
 
-LIBS=-lz
+LIBS=""
 
 debug=no
 cov=no
@@ -12,6 +12,7 @@ m32=no
 m64=no
 gpt=no
 release=no
+picoprep=no
 
 while [ $# -gt 0 ]
 do
@@ -25,10 +26,11 @@ do
     -static) static=yes;;
     -m32) m32=yes;;
     -m64) m64=yes;;
-    -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no; ;;
+    -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no;;
+    -pp) picoprep=yes;;
     -r) release=yes; static=yes; gpt=yes; debug=no; cov=no; o1=no; o2=no; o3=yes;;
     *) cat <<EOF
-*** usage: ./configure [-g][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-r]
+*** usage: ./configure [-g][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-pp][-r]
 EOF
 exit 1
 ;;
@@ -45,6 +47,7 @@ echo "static .. $static"
 echo "m32 ... $m32"
 echo "m64 ... $m64"
 echo "gpt ... $gpt"
+echo "picoprep ... $picoprep"
 
 echo -n "cc ..."
 [ "X$CC" = X ] && CC=gcc
@@ -90,7 +93,15 @@ if [ $release = yes ]; then
 elif [ $gpt = yes ]; then
   LIBS=$LIBS" -ltcmalloc -lprofiler"
 fi
+
+PICOPREP_OBJS=""
+if [ $picoprep = yes ]; then
+  CFLAGS=$CFLAGS" -DBTOR_USE_PICOPREP"
+  PICOPREP_OBJS="../picoprep/libpicoprep.o ../picoprep/version.o"
+  LIBS="-lz"
+fi
+
 echo -n "makefile ..."
 rm -f makefile
-sed -e "s,@CC@,$CC," -e "s,@CFLAGS@,$CFLAGS," -e "s,@LIBS@,$LIBS," makefile.in > makefile
+sed -e "s,@CC@,$CC," -e "s,@CFLAGS@,$CFLAGS," -e "s,@LIBS@,$LIBS," -e "s,@PICOPREP_OBJS@,$PICOPREP_OBJS," makefile.in > makefile
 echo " done"

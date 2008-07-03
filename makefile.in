@@ -1,6 +1,6 @@
 SHELL=/bin/sh
 VERSION=$(shell cat VERSION)
-LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o ../picosat/version.o ../picoprep/libpicoprep.o ../picoprep/version.o
+LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) ../picosat/picosat.o ../picosat/version.o @PICOPREP_OBJS@ 
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@
