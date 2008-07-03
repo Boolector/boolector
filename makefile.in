@@ -14,19 +14,19 @@ dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 
 boolector: boolector.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) -o $@ boolector.o -L. -lboolector $(LIBS)@STRIP@
 
 test: $(TESTOBJ) libboolector.a 
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)@STRIP@
 
 synthebtor: synthebtor.o libboolector.a
-	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)@STRIP@
 
 deltabtor: deltabtor.c makefile
-	$(CC) $(CFLAGS) -o $@ deltabtor.c
+	$(CC) $(CFLAGS) -o $@ deltabtor.c@STRIP@
 
 basicbtor: basicbtor.c makefile
-	$(CC) $(CFLAGS) -o $@ basicbtor.c
+	$(CC) $(CFLAGS) -o $@ basicbtor.c@STRIP@
 
 libboolector.a: $(LIBOBJ)
 	ar rc $@ $(LIBOBJ)
