@@ -93,8 +93,8 @@ main (int argc, char **argv)
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);
 
-  mem   = btor_get_mem_mgr_btor (btor);
-  avmgr = btor_get_aigvec_mgr_btor (btor);
+  mem   = btor->mm;
+  avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
 
   back_annotation = btor_new_ptr_hash_table (mem, 0, 0);

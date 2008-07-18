@@ -1,6 +1,6 @@
 #include "testinc.h"
-#include "boolector.h"
 #include "btorexit.h"
+#include "btorexp.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG

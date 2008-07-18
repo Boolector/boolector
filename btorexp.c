@@ -10812,8 +10812,10 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
 }
 
 const char *
-btor_version (void)
+btor_version (Btor *btor)
 {
+  assert (btor != NULL);
+  (void) btor;
   return BTOR_VERSION;
 }
 

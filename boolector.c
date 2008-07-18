@@ -67,9 +67,3 @@ boolector_delete (Btor* btor)
                         "'btor' must not be NULL in 'boolector_delete'");
   btor_delete_btor (btor);
 }
-
-const char*
-boolector_version ()
-{
-  return btor_version ();
-}

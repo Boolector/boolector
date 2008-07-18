@@ -12,6 +12,10 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
+/*------------------------------------------------------------------------*/
+/* Declarations                                                           */
+/*------------------------------------------------------------------------*/
+
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 
 BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
@@ -330,8 +334,37 @@ struct Btor
 #define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
 #define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
 
-/* Prints statistics */
+/*------------------------------------------------------------------------*/
+/* Btor                                                                   */
+/*------------------------------------------------------------------------*/
+
+/* Creates new boolector instance. */
+Btor *btor_new_btor (void);
+
+/* Sets rewrite level [0,2] */
+void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
+
+/* Sets verbosity [-1,3] of btor and all sub components
+ * if verbosity is set to -1, then boolector is in "quiet mode" and
+ * does not print any output
+ */
+void btor_set_verbosity_btor (Btor *btor, int verbosity);
+
+/* Turns replay on or off */
+void btor_set_replay_btor (Btor *btor, int replay);
+
+/* Deletes boolector. */
+void btor_delete_btor (Btor *btor);
+
+/* Gets version. */
+const char *btor_version (Btor *btor);
+
+/* Prints statistics. */
 void btor_print_stats_btor (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+/* Misc                                                                   */
+/*------------------------------------------------------------------------*/
 
 /* Synthesizes formula represented by top
  * level constraints and assumptions to a single AIG.
