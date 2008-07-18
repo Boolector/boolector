@@ -344,16 +344,16 @@ struct Btor
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
 
-/* Sets rewrite level [0,2] */
+/* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
 /* Sets verbosity [-1,3] of btor and all sub components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
- * does not print any output
+ * does not print any output.
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
-/* Turns replay on or off */
+/* Turns replay on or off. */
 void btor_set_replay_btor (Btor *btor, int replay);
 
 /* Deletes boolector. */
@@ -370,7 +370,7 @@ void btor_print_stats_btor (Btor *btor);
 /*------------------------------------------------------------------------*/
 
 /* Implicit precondition of all functions taking expressions as inputs:
- * The length len of all input expressions have to be greater than zero.
+ * The length 'len' of all input expressions have to be greater than zero.
  */
 
 /* Binary constant.
@@ -379,7 +379,7 @@ void btor_print_stats_btor (Btor *btor);
  */
 BtorExp *btor_const_exp (Btor *btor, const char *bits);
 
-/* Binary constant representing len zeros.
+/* Binary constant representing 'len' zeros.
  * len > 0
  * len(result) = len
  */
@@ -388,7 +388,7 @@ BtorExp *btor_zero_exp (Btor *btor, int len);
 /* Constant respresenting FALSE */
 BtorExp *btor_false_exp (Btor *btor);
 
-/* Binary constant representing len ones.
+/* Binary constant representing 'len' ones.
  * len > 0
  * len(result) = len
  */
@@ -397,7 +397,7 @@ BtorExp *btor_ones_exp (Btor *btor, int len);
 /* Constant respresenting TRUE */
 BtorExp *btor_true_exp (Btor *btor);
 
-/* Binary constant representing 1 with len bits.
+/* Binary constant representing 1 with 'len' bits.
  * len > 0
  * len(result) = len
  */
@@ -417,12 +417,12 @@ BtorExp *btor_unsigned_to_exp (Btor *btor, unsigned u, int len);
  */
 BtorExp *btor_int_to_exp (Btor *emg, int i, int len);
 
-/* Variable representing len bits.
+/* Variable representing 'len' bits.
  * len(result) = len
  */
 BtorExp *btor_var_exp (Btor *btor, int len, const char *symbol);
 
-/* Array of size 2 ^ index_len with elements of elem_len bits.
+/* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
  * index_len > 0
  */
@@ -453,7 +453,7 @@ BtorExp *btor_redxor_exp (Btor *btor, BtorExp *exp);
  */
 BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
 
-/* Slice a subvector from upper to lower.
+/* Slice a subvector from 'upper' to 'lower'.
  * upper < len(exp)
  * lower >= 0
  * upper >= lower
@@ -461,13 +461,13 @@ BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
  */
 BtorExp *btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower);
 
-/* Unsigned extension of len bits.
+/* Unsigned extension of 'len' bits.
  * len >= 0
  * len(result) = len(exp) + len
  */
 BtorExp *btor_uext_exp (Btor *btor, BtorExp *exp, int len);
 
-/* Signed extension of len bits (keep sign).
+/* Signed extension of 'len' bits (keep sign).
  * len >= 0
  * len(result) = len(exp) + len
  */
@@ -521,13 +521,13 @@ BtorExp *btor_or_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
  */
 BtorExp *btor_nor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* bit-vector equality.
+/* Bit-vector or array equality.
  * len(e1) = len(e2)
  * len(result) = 1
  */
 BtorExp *btor_eq_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* bit-vector inequality.
+/* Bit-vector or array inequality.
  * len(e1) = len(e2)
  * len(result) = 1
  */
@@ -712,13 +712,13 @@ BtorExp *btor_smod_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
  */
 BtorExp *btor_concat_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Array read on array e_array at position e_index.
+/* Array read on array 'e_array' at position 'e_index'.
  * index_len(e_array) = len(e_index)
  * len(result) = elem_len(e_array)
  */
 BtorExp *btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index);
 
-/* Array write on array e_array at position e_index with value e_value.
+/* Array write on array 'e_array' at position 'e_index' with value 'e_value'.
  * index_len(e_array) = len(e_index)
  * elem_len(e_array) = len(e_value)
  */
@@ -727,7 +727,7 @@ BtorExp *btor_write_exp (Btor *btor,
                          BtorExp *e_index,
                          BtorExp *e_value);
 
-/* If then else.
+/* If-then-else.
  * len(e_cond) = 1
  * len(e_if) = len(e_else)
  * len(result) = len(e_if) = len(e_else)

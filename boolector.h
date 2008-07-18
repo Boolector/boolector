@@ -50,7 +50,7 @@ void boolector_delete (Btor *btor);
  */
 BtorExp *boolector_const (Btor *btor, const char *bits);
 
-/* Binary constant representing len zeros.
+/* Binary constant representing 'len' zeros.
  * len > 0
  * len(result) = len
  */
@@ -59,7 +59,7 @@ BtorExp *boolector_zero (Btor *btor, int len);
 /* Constant respresenting FALSE */
 BtorExp *boolector_false (Btor *btor);
 
-/* Binary constant representing len ones.
+/* Binary constant representing 'len' ones.
  * len > 0
  * len(result) = len
  */
@@ -68,7 +68,7 @@ BtorExp *boolector_ones (Btor *btor, int len);
 /* Constant respresenting TRUE */
 BtorExp *boolector_true (Btor *btor);
 
-/* Binary constant representing 1 with len bits.
+/* Binary constant representing 1 with 'len' bits.
  * len > 0
  * len(result) = len
  */
@@ -93,7 +93,7 @@ BtorExp *boolector_int (Btor *emg, int i, int len);
  */
 BtorExp *boolector_var (Btor *btor, int len, const char *symbol);
 
-/* Array of size 2 ^ index_len with elements of elem_len bits.
+/* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
  * index_len > 0
  */
@@ -124,7 +124,7 @@ BtorExp *boolector_redxor (Btor *btor, BtorExp *exp);
  */
 BtorExp *boolector_redand (Btor *btor, BtorExp *exp);
 
-/* Slice a subvector from upper to lower.
+/* Slice a subvector from 'upper' to 'lower'.
  * upper < len(exp)
  * lower >= 0
  * upper >= lower
@@ -132,13 +132,13 @@ BtorExp *boolector_redand (Btor *btor, BtorExp *exp);
  */
 BtorExp *boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower);
 
-/* Unsigned extension of len bits.
+/* Unsigned extension of 'len' bits.
  * len >= 0
  * len(result) = len(exp) + len
  */
 BtorExp *boolector_uext (Btor *btor, BtorExp *exp, int len);
 
-/* Signed extension of len bits (keep sign).
+/* Signed extension of 'len' bits (keep sign).
  * len >= 0
  * len(result) = len(exp) + len
  */
@@ -192,13 +192,13 @@ BtorExp *boolector_or (Btor *btor, BtorExp *e1, BtorExp *e2);
  */
 BtorExp *boolector_nor (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* bit-vector equality.
+/* Bit-vector or array equality.
  * len(e1) = len(e2)
  * len(result) = 1
  */
 BtorExp *boolector_eq (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* bit-vector inequality.
+/* Bit-vector or array inequality.
  * len(e1) = len(e2)
  * len(result) = 1
  */
@@ -383,13 +383,13 @@ BtorExp *boolector_smod (Btor *btor, BtorExp *e1, BtorExp *e2);
  */
 BtorExp *boolector_concat (Btor *btor, BtorExp *e1, BtorExp *e2);
 
-/* Array read on array e_array at position e_index.
+/* Array read on array 'e_array' at position 'e_index'.
  * index_len(e_array) = len(e_index)
  * len(result) = elem_len(e_array)
  */
 BtorExp *boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index);
 
-/* Array write on array e_array at position e_index with value e_value.
+/* Array write on array 'e_array' at position 'e_index' with value 'e_value'.
  * index_len(e_array) = len(e_index)
  * elem_len(e_array) = len(e_value)
  */
@@ -398,7 +398,7 @@ BtorExp *boolector_write (Btor *btor,
                           BtorExp *e_index,
                           BtorExp *e_value);
 
-/* If then else.
+/* If-then-else.
  * len(e_cond) = 1
  * len(e_if) = len(e_else)
  * len(result) = len(e_if) = len(e_else)
