@@ -416,13 +416,13 @@ BtorExp *boolector_dec (Btor *btor, BtorExp *exp);
 
 /* Gets the number of bits of an expression.
  * If 'exp' is an array, then result is the number of bits of its elements */
-int boolector_get_num_bits (Btor *btor, BtorExp *exp);
+int boolector_get_len (Btor *btor, BtorExp *exp);
 
 /* Determines if expression is an array or not. */
 int boolector_is_array (Btor *btor, BtorExp *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
-int boolector_get_num_bits_of_index (Btor *btor, BtorExp *e_array);
+int boolector_get_len_index (Btor *btor, BtorExp *e_array);
 
 /* Gets the symbol of a variable. */
 char *boolector_get_symbol_of_var (Btor *btor, BtorExp *var);
