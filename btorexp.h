@@ -174,6 +174,92 @@ struct BtorExp
   BTOR_ARRAY_ADDITIONAL_EXP;
 };
 
+struct BtorExpUniqueTable
+{
+  int size;
+  int num_elements;
+  struct BtorExp **chains;
+};
+
+typedef struct BtorExpUniqueTable BtorExpUniqueTable;
+
+struct ConstraintStats
+{
+  int varsubst;
+  int embedded;
+  int unsynthesized;
+  int synthesized;
+};
+
+typedef struct ConstraintStats ConstraintStats;
+
+struct Btor
+{
+  BtorMemMgr *mm;
+  BtorExpUniqueTable table;
+  BtorAIGVecMgr *avmgr;
+  BtorPtrHashTable *arrays;
+  int id; /* global expression id counter */
+  int valid_assignments;
+  int rewrite_level;
+  int verbosity;
+  int has_array_equalities;
+  int replay;
+  int vread_index_id;
+  int inconsistent;
+  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
+  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
+  BtorPtrHashTable *varsubst_constraints;
+  BtorPtrHashTable *embedded_constraints;
+  BtorPtrHashTable *unsynthesized_constraints;
+  BtorPtrHashTable *synthesized_constraints;
+  BtorPtrHashTable *assumptions;
+  BtorExpPtrStack replay_constraints;
+  /* statistics */
+  struct
+  {
+    /* number of iterative refinements */
+    int refinements;
+    /* number of restarts as a result of lazy synthesis */
+    int synthesis_assignment_inconsistencies;
+    /* number of array axiom 1 conflicts:
+     * a = b /\ i = j => read(a, i) = read(b, j) */
+    int array_axiom_1_conflicts;
+    /* number of array axiom 2 conflicts:
+     * i = j => read(write(a, i, e), j) = e */
+    int array_axiom_2_conflicts;
+    /* number of variables that have been substituted */
+    int var_substitutions;
+    /* number of array variables that have been substituted */
+    int array_substitutions;
+    /* embedded constraint substitutions */
+    int ec_substitutions;
+    /* number of virtual reads */
+    int vreads;
+    /* number of linear equations */
+    int linear_equations;
+    /* number of add chains normalizations */
+    int adds_normalized;
+    /* number of mul chains normalizations */
+    int muls_normalized;
+    /* number of simplifications as result of 3 valued logic analysis */
+    int simplifications_3vl;
+    /*  how often have we pushed a read over write during construction */
+    int read_props_construct;
+    /* sum of the size of all added lemmas */
+    long long int lemmas_size_sum;
+    /* sum of the size of all linking clauses */
+    long long int lclause_size_sum;
+    /* constraint statistics */
+    ConstraintStats constraints;
+    struct
+    {
+      ConstraintStats constraints;
+    } old;
+    long long expressions;
+  } stats;
+};
+
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
 #define BTOR_IS_VAR_EXP_KIND(kind) ((kind) == BTOR_VAR_EXP)
 #define BTOR_IS_READ_EXP_KIND(kind) (kind == BTOR_READ_EXP)
@@ -243,90 +329,6 @@ struct BtorExp
   (BTOR_IS_READ_EXP (exp) ? (exp) : (exp)->e[2])
 #define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
 #define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
-
-struct BtorExpUniqueTable
-{
-  int size;
-  int num_elements;
-  struct BtorExp **chains;
-};
-
-typedef struct BtorExpUniqueTable BtorExpUniqueTable;
-
-struct ConstraintStats
-{
-  int varsubst;
-  int embedded;
-  int unsynthesized;
-  int synthesized;
-};
-
-struct Btor
-{
-  BtorMemMgr *mm;
-  BtorExpUniqueTable table;
-  BtorAIGVecMgr *avmgr;
-  BtorPtrHashTable *arrays;
-  int id; /* global expression id counter */
-  int valid_assignments;
-  int rewrite_level;
-  int verbosity;
-  int has_array_equalities;
-  int replay;
-  int vread_index_id;
-  int inconsistent;
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
-  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
-  BtorPtrHashTable *varsubst_constraints;
-  BtorPtrHashTable *embedded_constraints;
-  BtorPtrHashTable *unsynthesized_constraints;
-  BtorPtrHashTable *synthesized_constraints;
-  BtorPtrHashTable *assumptions;
-  BtorExpPtrStack replay_constraints;
-  /* statistics */
-  struct
-  {
-    /* number of iterative refinements */
-    int refinements;
-    /* number of restarts as a result of lazy synthesis */
-    int synthesis_assignment_inconsistencies;
-    /* number of array axiom 1 conflicts:
-     * a = b /\ i = j => read(a, i) = read(b, j) */
-    int array_axiom_1_conflicts;
-    /* number of array axiom 2 conflicts:
-     * i = j => read(write(a, i, e), j) = e */
-    int array_axiom_2_conflicts;
-    /* number of variables that have been substituted */
-    int var_substitutions;
-    /* number of array variables that have been substituted */
-    int array_substitutions;
-    /* embedded constraint substitutions */
-    int ec_substitutions;
-    /* number of virtual reads */
-    int vreads;
-    /* number of linear equations */
-    int linear_equations;
-    /* number of add chains normalizations */
-    int adds_normalized;
-    /* number of mul chains normalizations */
-    int muls_normalized;
-    /* number of simplifications as result of 3 valued logic analysis */
-    int simplifications_3vl;
-    /*  how often have we pushed a read over write during construction */
-    int read_props_construct;
-    /* sum of the size of all added lemmas */
-    long long int lemmas_size_sum;
-    /* sum of the size of all linking clauses */
-    long long int lclause_size_sum;
-    /* constraint statistics */
-    struct ConstraintStats constraints;
-    struct
-    {
-      struct ConstraintStats constraints;
-    } old;
-    long long expressions;
-  } stats;
-};
 
 /* Prints statistics */
 void btor_print_stats_btor (Btor *btor);
