@@ -1070,7 +1070,7 @@ boolector_dec (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_get_bit_width (Btor *btor, BtorExp *exp)
+boolector_get_num_bits (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
@@ -1088,7 +1088,7 @@ boolector_is_array (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_get_bit_width_of_index (Btor *btor, BtorExp *e_array)
+boolector_get_num_bits_of_index (Btor *btor, BtorExp *e_array)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_array == NULL, "'e_array' must not be NULL");

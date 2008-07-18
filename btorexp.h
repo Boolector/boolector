@@ -746,10 +746,10 @@ BtorExp *btor_dec_exp (Btor *btor, BtorExp *exp);
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorExp *exp);
 
-/* Determines if exp is an array or not. */
+/* Determines if expression is an array or not. */
 int btor_is_array_exp (Btor *btor, BtorExp *exp);
 
-/* Gets the number of bits used by indices of e_array. */
+/* Gets the number of bits used by indices on 'e_array'. */
 int btor_get_index_exp_len (Btor *btor, BtorExp *e_array);
 
 /* Gets the symbol of a variable. */
@@ -762,12 +762,12 @@ BtorExp *btor_copy_exp (Btor *btor, BtorExp *exp);
 void btor_release_exp (Btor *btor, BtorExp *exp);
 
 /* Dumps expression(s) to file in BTOR format. */
-void btor_dump_exp (Btor *btor, FILE *file, BtorExp *exp);
-void btor_dump_exps (Btor *btor, FILE *file, BtorExp **exps, int n);
+void btor_dump_exp (Btor *btor, FILE *file, BtorExp *root);
+void btor_dump_exps (Btor *btor, FILE *file, BtorExp **exps, int nroots);
 void btor_dump_exps_after_full_rewriting (Btor *btor,
                                           FILE *file,
                                           BtorExp **exps,
-                                          int n);
+                                          int nroots);
 
 /* Dumps expression to file in SMT format. */
 void btor_dump_smt (Btor *btor, FILE *file, BtorExp *root);
@@ -824,14 +824,5 @@ int btor_compare_exp_by_id (BtorExp *exp1, BtorExp *exp2);
 
 /* Finds most simplified expression and shortens path to it */
 BtorExp *btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp);
-
-/* Dumps expressions to file */
-void btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots);
-
-/* Dumps expressions after full rewriting to file */
-void btor_dump_exps_after_full_rewriting (Btor *btor,
-                                          FILE *file,
-                                          BtorExp **roots,
-                                          int nroots);
 
 #endif
