@@ -221,6 +221,7 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
+  BtorCharPtrStack assignments;
   BtorExpPtrStack replay_constraints;
   /* statistics */
   struct
@@ -796,7 +797,7 @@ int btor_sat_btor (Btor *btor, int refinement_limit);
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-char *btor_assignment_exp (Btor *btor, BtorExp *exp);
+const char *btor_assignment_exp (Btor *btor, BtorExp *exp);
 
 /*------------------------------------------------------------------------*/
 /* Misc                                                                   */

@@ -444,22 +444,23 @@ void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *root);
 /* Dumps expression to file in SMT format. */
 void boolector_dump_smt (Btor *btor, FILE *file, BtorExp *root);
 
-/* Adds top level constraint. */
+/* Adds constraint. */
 void boolector_add_constraint (Btor *btor, BtorExp *exp);
 
 /* Adds assumption. */
 void boolector_add_assumption (Btor *btor, BtorExp *exp);
 
-/* Solves sat instance.
+/* Solves SAT instance.
  * The paramenter 'refinement_limit' sets the maximum number
- * of iterative refinments */
+ * of iterative refinments. Use INT_MAX as default. */
 int boolector_sat (Btor *btor, int refinement_limit);
 
 /* Builds current assignment string of expression (in the SAT case)
  * and returns it.
- * Do not call before calling boolector_sat_btor.
+ * Do not call before calling 'boolector_sat_btor'.
+ * The assignment strings will be automatically deleted by 'boolector_delete'.
  * strlen(result) = len(exp)
  */
-char *boolector_assignment (Btor *btor, BtorExp *exp);
+const char *boolector_assignment (Btor *btor, BtorExp *exp);
 
 #endif

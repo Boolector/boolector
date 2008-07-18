@@ -346,12 +346,12 @@ has_only_x (const char *str)
 static void
 print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 {
-  int not_binary   = 0;
-  char *pretty     = NULL;
-  char *grounded   = NULL;
-  char *assignment = NULL;
-  BtorMemMgr *mm   = NULL;
-  BtorBasis basis  = BTOR_BINARY_BASIS;
+  int not_binary         = 0;
+  char *pretty           = NULL;
+  char *grounded         = NULL;
+  const char *assignment = NULL;
+  BtorMemMgr *mm         = NULL;
+  BtorBasis basis        = BTOR_BINARY_BASIS;
   assert (app != NULL);
   assert (btor != NULL);
   assert (exp != NULL);
@@ -379,13 +379,12 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
       btor_delete_const (mm, grounded);
     }
     else
-      pretty = assignment;
+      pretty = (char *) assignment;
 
     print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
 
     if (not_binary) btor_freestr (mm, pretty);
   }
-  if (assignment != NULL) btor_freestr (mm, assignment);
 }
 
 static void

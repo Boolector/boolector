@@ -1168,6 +1168,16 @@ boolector_add_assumption (Btor *btor, BtorExp *exp)
   btor_add_assumption_exp (btor, exp);
 }
 
+const char *
+boolector_assignment (Btor *btor, BtorExp *exp)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                        "'exp' must not be an array");
+  return btor_assignment_exp (btor, exp);
+}
+
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/
