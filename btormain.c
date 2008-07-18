@@ -1,5 +1,4 @@
 #include "btormain.h"
-#include "boolector.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbtor.h"
