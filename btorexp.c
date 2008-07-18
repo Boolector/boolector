@@ -26,14 +26,15 @@
 #define BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND 128
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
 
-#define BTOR_ABORT_EXP(cond, msg)            \
-  do                                         \
-  {                                          \
-    if (cond)                                \
-    {                                        \
-      fputs ("[btorexp] " msg "\n", stdout); \
-      exit (BTOR_ERR_EXIT);                  \
-    }                                        \
+#define BTOR_ABORT_EXP(cond, msg)                   \
+  do                                                \
+  {                                                 \
+    if (cond)                                       \
+    {                                               \
+      printf ("[btorexp] %s: %s\n", __func__, msg); \
+      fflush (stdout);                              \
+      exit (BTOR_ERR_EXIT);                         \
+    }                                               \
   } while (0)
 
 #define BTOR_INIT_EXP_UNIQUE_TABLE(mm, table) \

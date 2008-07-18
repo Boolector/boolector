@@ -20,14 +20,15 @@
 /* BtorSATMgr                                                             */
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ABORT_SAT(cond, msg)            \
-  do                                         \
-  {                                          \
-    if (cond)                                \
-    {                                        \
-      fputs ("[btorsat] " msg "\n", stdout); \
-      exit (BTOR_ERR_EXIT);                  \
-    }                                        \
+#define BTOR_ABORT_SAT(cond, msg)                   \
+  do                                                \
+  {                                                 \
+    if (cond)                                       \
+    {                                               \
+      printf ("[btorsat] %s: %s\n", __func__, msg); \
+      fflush (stdout);                              \
+      exit (BTOR_ERR_EXIT);                         \
+    }                                               \
   } while (0)
 
 struct BtorSATMgr
