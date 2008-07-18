@@ -36,15 +36,6 @@
     }                                        \
   } while (0)
 
-struct BtorExpUniqueTable
-{
-  int size;
-  int num_elements;
-  struct BtorExp **chains;
-};
-
-typedef struct BtorExpUniqueTable BtorExpUniqueTable;
-
 #define BTOR_INIT_EXP_UNIQUE_TABLE(mm, table) \
   do                                          \
   {                                           \
@@ -63,81 +54,6 @@ typedef struct BtorExpUniqueTable BtorExpUniqueTable;
 
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
-
-struct ConstraintStats
-{
-  int varsubst;
-  int embedded;
-  int unsynthesized;
-  int synthesized;
-};
-
-struct Btor
-{
-  BtorMemMgr *mm;
-  BtorExpUniqueTable table;
-  BtorAIGVecMgr *avmgr;
-  BtorPtrHashTable *arrays;
-  int id; /* global expression id counter */
-  int valid_assignments;
-  int rewrite_level;
-  int verbosity;
-  int has_array_equalities;
-  int replay;
-  int vread_index_id;
-  int inconsistent;
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
-  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
-  BtorPtrHashTable *varsubst_constraints;
-  BtorPtrHashTable *embedded_constraints;
-  BtorPtrHashTable *unsynthesized_constraints;
-  BtorPtrHashTable *synthesized_constraints;
-  BtorPtrHashTable *assumptions;
-  BtorExpPtrStack replay_constraints;
-  /* statistics */
-  struct
-  {
-    /* number of iterative refinements */
-    int refinements;
-    /* number of restarts as a result of lazy synthesis */
-    int synthesis_assignment_inconsistencies;
-    /* number of array axiom 1 conflicts:
-     * a = b /\ i = j => read(a, i) = read(b, j) */
-    int array_axiom_1_conflicts;
-    /* number of array axiom 2 conflicts:
-     * i = j => read(write(a, i, e), j) = e */
-    int array_axiom_2_conflicts;
-    /* number of variables that have been substituted */
-    int var_substitutions;
-    /* number of array variables that have been substituted */
-    int array_substitutions;
-    /* embedded constraint substitutions */
-    int ec_substitutions;
-    /* number of virtual reads */
-    int vreads;
-    /* number of linear equations */
-    int linear_equations;
-    /* number of add chains normalizations */
-    int adds_normalized;
-    /* number of mul chains normalizations */
-    int muls_normalized;
-    /* number of simplifications as result of 3 valued logic analysis */
-    int simplifications_3vl;
-    /*  how often have we pushed a read over write during construction */
-    int read_props_construct;
-    /* sum of the size of all added lemmas */
-    long long int lemmas_size_sum;
-    /* sum of the size of all linking clauses */
-    long long int lclause_size_sum;
-    /* constraint statistics */
-    struct ConstraintStats constraints;
-    struct
-    {
-      struct ConstraintStats constraints;
-    } old;
-    long long expressions;
-  } stats;
-};
 
 struct BtorExpPair
 {
@@ -7828,28 +7744,21 @@ btor_new_btor (void)
 void
 btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 {
-  BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_set_rewrite_level_btor'");
-  BTOR_ABORT_EXP (
-      rewrite_level < 0 || rewrite_level > 3,
-      "'rewrite_level' has to be in [0,3] in 'btor_set_rewrite_level_btor'");
-  BTOR_ABORT_EXP (
-      btor->id != 1,
-      "setting rewrite level must be done before adding expressions");
+  assert (btor != NULL);
+  assert (btor->rewrite_level >= 0);
+  assert (btor->rewrite_level <= 3);
+  assert (btor->id == 1);
   btor->rewrite_level = rewrite_level;
 }
 
 void
 btor_set_replay_btor (Btor *btor, int replay)
 {
-  BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_set_replay_btor'");
-  BTOR_ABORT_EXP (
-      btor->varsubst_constraints->count + btor->embedded_constraints->count
+  assert (btor != NULL);
+  assert (btor->varsubst_constraints->count + btor->embedded_constraints->count
               + btor->unsynthesized_constraints->count
               + btor->synthesized_constraints->count + btor->assumptions->count
-          > 0u,
-      "setting replay must be done before add constraints and assumptions");
+          == 0u);
   btor->replay = replay;
 }
 
@@ -7859,17 +7768,16 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
-  BTOR_ABORT_EXP (btor == NULL,
-                  "'btor' must not be NULL in 'btor_set_verbosity_btor'");
-  BTOR_ABORT_EXP (
-      verbosity < -1 || verbosity > 3,
-      "'verbosity' has to be in [-1,3] in 'btor_set_verbosity_btor'");
-  BTOR_ABORT_EXP (btor->id != 1,
-                  "'setting verbosity must be done before adding expressions'");
+
+  assert (btor != NULL);
+  assert (btor->verbosity >= -1);
+  assert (btor->verbosity <= 3);
+  assert (btor->id == 1);
   btor->verbosity = verbosity;
-  avmgr           = btor->avmgr;
-  amgr            = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr            = btor_get_sat_mgr_aig_mgr (amgr);
+
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
   btor_set_verbosity_aigvec_mgr (avmgr, verbosity);
   btor_set_verbosity_aig_mgr (amgr, verbosity);
   btor_set_verbosity_sat_mgr (smgr, verbosity);
@@ -7881,7 +7789,9 @@ btor_delete_btor (Btor *btor)
   BtorMemMgr *mm;
   BtorPtrHashBucket *bucket;
   int i;
+
   assert (btor != NULL);
+
   mm = btor->mm;
 
   for (bucket = btor->exp_pair_cnf_diff_id_table->first; bucket != NULL;
