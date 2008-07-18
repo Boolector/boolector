@@ -3510,6 +3510,15 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
   if (btor->rewrite_level > 0)
   {
+    /* write (a, i, e1) = write (a, i, e2) ----> e1 = e2 */
+    if (kind == BTOR_AEQ_EXP && BTOR_IS_WRITE_EXP (e0) && BTOR_IS_WRITE_EXP (e1)
+        && e0->e[0] == e1->e[0] && e0->e[1] == e1->e[1])
+    {
+      e0   = e0->e[2];
+      e1   = e1->e[2];
+      kind = BTOR_BEQ_EXP;
+    }
+
     /* ~e0 == ~e1 is the same as e0 == e1 */
     if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1))
     {
@@ -3532,7 +3541,7 @@ eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     {
       if (!BTOR_IS_INVERTED_EXP (e0))
       {
-        /* a + b = a  ----> b = 0,
+        /* a + b = a ----> b = 0,
          * this rule does not lead to less substitutions. 'a' cannot
          * be substituted as the occurrence check would fail */
         if (e0->kind == BTOR_ADD_EXP)
@@ -9774,7 +9783,7 @@ normalize_substitution (Btor *btor,
     inc_exp_ref_counter (btor, *left_result);
     return 1;
   }
-#if 1
+
   if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_SLICE_EXP
       && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
   {
@@ -9806,7 +9815,7 @@ normalize_substitution (Btor *btor,
     release_exp (btor, tmp);
     return 1;
   }
-#endif
+
   /* in the boolean case a != b is the same as a == ~b */
   if (BTOR_IS_INVERTED_EXP (exp)
       && BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_BEQ_EXP
