@@ -309,7 +309,6 @@ boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "length of 'e0' and 'e1' must not be unequal");
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_xnor_exp (btor, e0, e1);
 }
 
@@ -346,7 +345,6 @@ boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "length of 'e0' and 'e1' must not be unequal");
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_nand_exp (btor, e0, e1);
 }
 
@@ -383,7 +381,6 @@ boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "length of 'e0' and 'e1' must not be unequal");
-  assert (BTOR_REAL_ADDR_EXP (e0)->len > 0);
   return btor_nor_exp (btor, e0, e1);
 }
 
@@ -433,10 +430,6 @@ boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "arrays must not have unequal element length");
   BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0->index_len != real_e1->index_len,
                         "arrays must not have unequal index length");
-  assert (!is_array_e0 || real_e0->index_len > 0);
-  assert (!is_array_e0
-          || (BTOR_IS_REGULAR_EXP (e0) && BTOR_IS_REGULAR_EXP (e1)));
-  assert (real_e0->len > 0);
   return btor_ne_exp (btor, e0, e1);
 }
 
@@ -1077,7 +1070,7 @@ boolector_dec (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_get_bw (Btor *btor, BtorExp *exp)
+boolector_get_bit_width (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
@@ -1095,7 +1088,7 @@ boolector_is_array (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_get_bw_of_index (Btor *btor, BtorExp *e_array)
+boolector_get_bit_width_of_index (Btor *btor, BtorExp *e_array)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_array == NULL, "'e_array' must not be NULL");
