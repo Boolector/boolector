@@ -41,7 +41,7 @@ void boolector_delete (Btor *btor);
 /*------------------------------------------------------------------------*/
 
 /* Implicit precondition of all functions taking expressions as inputs:
- * The length len of all input expressions have to be greater than zero.
+ * The length 'len' of all input expressions have to be greater than zero.
  */
 
 /* Binary constant.
