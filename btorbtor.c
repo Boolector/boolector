@@ -1583,7 +1583,7 @@ find_parser (BtorBTORParser *parser, const char *op)
 static BtorBTORParser *
 btor_new_btor_parser (Btor *btor, int verbosity)
 {
-  BtorMemMgr *mem = btor_get_mem_mgr_btor (btor);
+  BtorMemMgr *mem = btor->mm;
   BtorBTORParser *res;
 
   assert (verbosity >= -1);

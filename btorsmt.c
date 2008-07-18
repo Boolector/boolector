@@ -480,7 +480,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 static BtorSMTParser *
 btor_new_smt_parser (Btor *btor, int verbosity)
 {
-  BtorMemMgr *mem = btor_get_mem_mgr_btor (btor);
+  BtorMemMgr *mem = btor->mm;
   BtorSMTSymbol *bind;
   BtorSMTParser *res;
   unsigned char type;

@@ -333,12 +333,6 @@ struct Btor
 /* Prints statistics */
 void btor_print_stats_btor (Btor *btor);
 
-/* Returns the memory manager. */
-BtorMemMgr *btor_get_mem_mgr_btor (const Btor *btor);
-
-/* Returns the AIG vector manager. */
-BtorAIGVecMgr *btor_get_aigvec_mgr_btor (const Btor *btor);
-
 /* Synthesizes formula represented by top
  * level constraints and assumptions to a single AIG.
  */

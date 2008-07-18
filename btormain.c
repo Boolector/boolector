@@ -360,7 +360,7 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
   basis = app->basis;
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
-  mm         = btor_get_mem_mgr_btor (btor);
+  mm         = btor->mm;
   assignment = btor_assignment_exp (btor, exp);
 
   if (assignment != NULL && !has_only_x (assignment))
@@ -812,9 +812,9 @@ btor_main (int argc, char **argv)
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
     btor_set_verbosity_btor (btor, app.verbosity);
     btor_set_replay_btor (btor, app.replay_mode != BTOR_APP_REPLAY_MODE_NONE);
-    mem = btor_get_mem_mgr_btor (btor);
+    mem = btor->mm;
 
-    avmgr = btor_get_aigvec_mgr_btor (btor);
+    avmgr = btor->avmgr;
     amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
     smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
