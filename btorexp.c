@@ -6372,9 +6372,8 @@ btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 static BtorExp *
 write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
 {
-  BtorExpPtrStack stack;
-  BtorMemMgr *mm;
   BtorExp *cur, *cur_write, *temp, *result;
+  BtorExp *chain[BTOR_WRITE_CHAIN_EXP_RW_BOUND];
   int depth;
   assert (btor != NULL);
   assert (e_array != NULL);
@@ -6392,36 +6391,36 @@ write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
   assert (e_array->len == BTOR_REAL_ADDR_EXP (e_value)->len);
   assert (BTOR_REAL_ADDR_EXP (e_value)->len > 0);
 
-  mm     = btor->mm;
   result = NULL;
 
   if (btor->rewrite_level > 2 && BTOR_IS_WRITE_EXP (e_array))
   {
-    depth = 1;
-    BTOR_INIT_STACK (stack);
-    cur = e_array;
+    depth = 0;
+    cur   = e_array;
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_WRITE_EXP (cur));
+
     while (BTOR_IS_WRITE_EXP (cur) && cur->e[1] != e_index
            && depth < BTOR_WRITE_CHAIN_EXP_RW_BOUND)
     {
-      depth++;
-      BTOR_PUSH_STACK (mm, stack, cur);
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_WRITE_EXP (cur));
-      cur = cur->e[0];
+      chain[depth++] = cur;
+      cur            = cur->e[0];
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_ARRAY_EXP (cur));
     }
+
     if (depth < BTOR_WRITE_CHAIN_EXP_RW_BOUND && BTOR_IS_WRITE_EXP (cur))
     {
       assert (cur->e[1] == e_index);
       /* we overwrite this position anyhow, so we can skip
        * this intermediate write */
       cur = copy_exp (btor, cur->e[0]);
-      while (!BTOR_EMPTY_STACK (stack))
+      depth--;
+      while (depth >= 0)
       {
-        cur_write = BTOR_POP_STACK (stack);
+        cur_write = chain[depth--];
         assert (BTOR_IS_REGULAR_EXP (cur_write));
         assert (BTOR_IS_WRITE_EXP (cur_write));
         temp = ternary_exp (
@@ -6433,8 +6432,6 @@ write_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index, BtorExp *e_value)
       result = ternary_exp (btor, BTOR_WRITE_EXP, cur, e_index, e_value, 0);
       release_exp (btor, cur);
     }
-
-    BTOR_RELEASE_STACK (mm, stack);
   }
   if (result == NULL)
     result = ternary_exp (btor, BTOR_WRITE_EXP, e_array, e_index, e_value, 0);
