@@ -347,7 +347,7 @@ Btor *btor_new_btor (void);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
-/* Sets verbosity [-1,3] of btor and all sub components
+/* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
  * does not print any output.
  */
@@ -385,7 +385,9 @@ BtorExp *btor_const_exp (Btor *btor, const char *bits);
  */
 BtorExp *btor_zero_exp (Btor *btor, int len);
 
-/* Constant respresenting FALSE */
+/* Constant respresenting FALSE
+ * len(result) = 1
+ */
 BtorExp *btor_false_exp (Btor *btor);
 
 /* Binary constant representing 'len' ones.
@@ -394,7 +396,9 @@ BtorExp *btor_false_exp (Btor *btor);
  */
 BtorExp *btor_ones_exp (Btor *btor, int len);
 
-/* Constant respresenting TRUE */
+/* Constant respresenting TRUE
+ * len(result) = 1
+ */
 BtorExp *btor_true_exp (Btor *btor);
 
 /* Binary constant representing 1 with 'len' bits.
@@ -418,6 +422,7 @@ BtorExp *btor_unsigned_to_exp (Btor *btor, unsigned u, int len);
 BtorExp *btor_int_to_exp (Btor *emg, int i, int len);
 
 /* Variable representing 'len' bits.
+ * len > 0
  * len(result) = len
  */
 BtorExp *btor_var_exp (Btor *btor, int len, const char *symbol);
@@ -438,22 +443,22 @@ BtorExp *btor_not_exp (Btor *btor, BtorExp *exp);
  */
 BtorExp *btor_neg_exp (Btor *btor, BtorExp *exp);
 
-/* Logical OR reduction.
+/* OR reduction.
  * len(result) = 1
  */
 BtorExp *btor_redor_exp (Btor *btor, BtorExp *exp);
 
-/* Logical XOR reduction.
+/* XOR reduction.
  * len(result) = 1
  */
 BtorExp *btor_redxor_exp (Btor *btor, BtorExp *exp);
 
-/* Logical AND reduction.
+/* AND reduction.
  * len(result) = 1
  */
 BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
 
-/* Slice a subvector from 'upper' to 'lower'.
+/* Slice a sub-vector from 'upper' to 'lower'.
  * upper < len(exp)
  * lower >= 0
  * upper >= lower
@@ -474,243 +479,243 @@ BtorExp *btor_uext_exp (Btor *btor, BtorExp *exp, int len);
 BtorExp *btor_sext_exp (Btor *btor, BtorExp *exp, int len);
 
 /* Logical IMPLICATION.
- * len(e1) = len(e2) = 1
+ * len(e0) = len(e1) = 1
  * len(result) = 1
  */
-BtorExp *btor_implies_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical EQUIVALENCE.
- * len(e1) = len(e2) = 1
+ * len(e0) = len(e1) = 1
  * len(result) = 1
  */
-BtorExp *btor_iff_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector XOR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_xor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector XNOR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_xnor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector AND.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_and_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector NAND.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_nand_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector OR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_or_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector NOR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_nor_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Bit-vector or array equality.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_eq_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Bit-vector or array inequality.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ne_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ne_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Adder.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_add_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_uaddo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if adding two signed operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_saddo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Multiplier.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_mul_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if multiplying two unsigned operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_umulo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_umulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if multiplying two signed operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_smulo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned less than.
- * len(e1) = len(e2)
+/* Unsigned less than.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ult_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed less than.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_slt_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned less than or equal.
- * len(e1) = len(e2)
+/* Unsigned less than or equal.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ulte_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ulte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed less than or equal.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_slte_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned greater than.
- * len(e1) = len(e2)
+/* Unsigned greater than.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ugt_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed greater than.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_sgt_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sgt_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned greater than or equal.
- * len(e1) = len(e2)
+/* Unsigned greater than or equal.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ugte_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ugte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed greater than or equal.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_sgte_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sgte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Shift left logical.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) len(e0)
  */
-BtorExp *btor_sll_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Shift right logical.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *btor_srl_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Shift right arithmetic.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *btor_sra_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sra_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Rotate left.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *btor_rol_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_rol_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Rotate right.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *btor_ror_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ror_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Subtractor.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_sub_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Result represents if e1 - e2 leads to an overflow if both are unsigned.
- * len(e1) = len(e2)
+/* Result represents if e0 - e1 leads to an overflow if both are unsigned.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_usubo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_usubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Result represents if e1 - e2 leads to an overflow if both are signed.
- * len(e1) = len(e2)
+/* Result represents if e0 - e1 leads to an overflow if both are signed.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ssubo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_ssubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Unsigned divider.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_udiv_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed divider.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_sdiv_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sdiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Result represents if e1 / e2 leads to an overflow if both are signed.
+/* Result represents if e0 / e1 leads to an overflow if both are signed.
  * For example INT_MIN / -1.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_sdivo_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_sdivo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Unsigned modulo.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_urem_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed modulo.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_srem_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_srem_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed modulo variant.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_smod_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Concatenation.
- * len(result) = len(e1) + len(e2)
+ * len(result) = len(e0) + len(e1)
  */
-BtorExp *btor_concat_exp (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Array read on array 'e_array' at position 'e_index'.
  * index_len(e_array) = len(e_index)
@@ -820,7 +825,7 @@ BtorExp *btor_next_exp_bmc (Btor *btor,
 unsigned int btor_hash_exp_by_id (BtorExp *exp);
 
 /* Compares two expression pairs by ID */
-int btor_compare_exp_by_id (BtorExp *exp1, BtorExp *exp2);
+int btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1);
 
 /* Finds most simplified expression and shortens path to it */
 BtorExp *btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp);

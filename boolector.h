@@ -27,7 +27,7 @@ Btor *boolector_new (void);
 /* Sets rewrite level [0,2] */
 void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
 
-/* Sets verbosity [-1,3] of btor and all sub components
+/* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
  * does not print any output
  */
@@ -56,7 +56,9 @@ BtorExp *boolector_const (Btor *btor, const char *bits);
  */
 BtorExp *boolector_zero (Btor *btor, int len);
 
-/* Constant respresenting FALSE */
+/* Constant respresenting FALSE
+ * len(result) = 1
+ */
 BtorExp *boolector_false (Btor *btor);
 
 /* Binary constant representing 'len' ones.
@@ -65,7 +67,9 @@ BtorExp *boolector_false (Btor *btor);
  */
 BtorExp *boolector_ones (Btor *btor, int len);
 
-/* Constant respresenting TRUE */
+/* Constant respresenting TRUE
+ * len(result) = 1
+ */
 BtorExp *boolector_true (Btor *btor);
 
 /* Binary constant representing 1 with 'len' bits.
@@ -88,7 +92,8 @@ BtorExp *boolector_unsigned_int (Btor *btor, unsigned u, int len);
  */
 BtorExp *boolector_int (Btor *emg, int i, int len);
 
-/* Variable representing len bits.
+/* Variable representing 'len' bits.
+ * len > 0
  * len(result) = len
  */
 BtorExp *boolector_var (Btor *btor, int len, const char *symbol);
@@ -109,22 +114,22 @@ BtorExp *boolector_not (Btor *btor, BtorExp *exp);
  */
 BtorExp *boolector_neg (Btor *btor, BtorExp *exp);
 
-/* Logical OR reduction.
+/* OR reduction.
  * len(result) = 1
  */
 BtorExp *boolector_redor (Btor *btor, BtorExp *exp);
 
-/* Logical XOR reduction.
+/* XOR reduction.
  * len(result) = 1
  */
 BtorExp *boolector_redxor (Btor *btor, BtorExp *exp);
 
-/* Logical AND reduction.
+/* AND reduction.
  * len(result) = 1
  */
 BtorExp *boolector_redand (Btor *btor, BtorExp *exp);
 
-/* Slice a subvector from 'upper' to 'lower'.
+/* Slice a sub-vector from 'upper' to 'lower'.
  * upper < len(exp)
  * lower >= 0
  * upper >= lower
@@ -145,243 +150,243 @@ BtorExp *boolector_uext (Btor *btor, BtorExp *exp, int len);
 BtorExp *boolector_sext (Btor *btor, BtorExp *exp, int len);
 
 /* Logical IMPLICATION.
- * len(e1) = len(e2) = 1
+ * len(e0) = len(e1) = 1
  * len(result) = 1
  */
-BtorExp *boolector_implies (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical EQUIVALENCE.
- * len(e1) = len(e2) = 1
+ * len(e0) = len(e1) = 1
  * len(result) = 1
  */
-BtorExp *boolector_iff (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector XOR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_xor (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector XNOR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_xnor (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector AND.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_and (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector NAND.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_nand (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector OR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_or (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Logical and bit-vector NOR.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_nor (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Bit-vector or array equality.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_eq (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Bit-vector or array inequality.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_ne (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Adder.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_add (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_uaddo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if adding two signed operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_saddo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Multiplier.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_mul (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if multiplying two unsigned operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_umulo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Result represents if multiplying two signed operands leads to an overflow.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_smulo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned less than.
- * len(e1) = len(e2)
+/* Unsigned less than.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_ult (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed less than.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_slt (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned less than or equal.
- * len(e1) = len(e2)
+/* Unsigned less than or equal.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_ulte (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed less than or equal.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_slte (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned greater than.
- * len(e1) = len(e2)
+/* Unsigned greater than.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_ugt (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed greater than.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_sgt (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Usigned greater than or equal.
- * len(e1) = len(e2)
+/* Unsigned greater than or equal.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_ugte (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed greater than or equal.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_sgte (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Shift left logical.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *boolector_sll (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Shift right logical.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *boolector_srl (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Shift right arithmetic.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *boolector_sra (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Rotate left.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *boolector_rol (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Rotate right.
- * is_power_of_2(len(e1))
- * len(e2) = log2(len(e1))
- * len(result) len(e1)
+ * is_power_of_2(len(e0))
+ * len(e1) = log2(len(e0))
+ * len(result) = len(e0)
  */
-BtorExp *boolector_ror (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Subtractor.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_sub (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Result represents if e1 - e2 leads to an overflow if both are unsigned.
- * len(e1) = len(e2)
+/* Result represents if e0 - e1 leads to an overflow if both are unsigned.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_usubo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Result represents if e1 - e2 leads to an overflow if both are signed.
- * len(e1) = len(e2)
+/* Result represents if e0 - e1 leads to an overflow if both are signed.
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_ssubo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Unsigned divider.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_udiv (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed divider.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_sdiv (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Result represents if e1 / e2 leads to an overflow if both are signed.
+/* Result represents if e0 / e1 leads to an overflow if both are signed.
  * For example INT_MIN / -1.
- * len(e1) = len(e2)
+ * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *boolector_sdivo (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Unsigned modulo.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_urem (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed modulo.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_srem (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Signed modulo variant.
- * len(e1) = len(e2)
- * len(result) = len(e1) = len(e2)
+ * len(e0) = len(e1)
+ * len(result) = len(e0) = len(e1)
  */
-BtorExp *boolector_smod (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Concatenation.
- * len(result) = len(e1) + len(e2)
+ * len(result) = len(e0) + len(e1)
  */
-BtorExp *boolector_concat (Btor *btor, BtorExp *e1, BtorExp *e2);
+BtorExp *boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1);
 
 /* Array read on array 'e_array' at position 'e_index'.
  * index_len(e_array) = len(e_index)

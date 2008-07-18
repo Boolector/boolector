@@ -2325,15 +2325,15 @@ btor_hash_exp_by_id (BtorExp *exp)
 
 /* Compares expressions by id */
 int
-btor_compare_exp_by_id (BtorExp *exp1, BtorExp *exp2)
+btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1)
 {
-  int id1, id2;
+  int id0, id1;
+  assert (exp0 != NULL);
   assert (exp1 != NULL);
-  assert (exp2 != NULL);
+  id0 = BTOR_GET_ID_EXP (exp0);
   id1 = BTOR_GET_ID_EXP (exp1);
-  id2 = BTOR_GET_ID_EXP (exp2);
-  if (id1 < id2) return -1;
-  if (id1 > id2) return 1;
+  if (id0 < id1) return -1;
+  if (id0 > id1) return 1;
   return 0;
 }
 
