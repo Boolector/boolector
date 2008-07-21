@@ -1,6 +1,7 @@
 #include "testconst.h"
 #include "btorconst.h"
 #include "btormem.h"
+#include "btorstack.h"
 #include "btorutil.h"
 #include "testrunner.h"
 
@@ -16,6 +17,9 @@
 
 #define BTOR_TEST_CONST_NUM_BITS 4
 #define BTOR_TEST_CONST_MAX (1 << BTOR_TEST_CONST_NUM_BITS)
+
+#define BTOR_TEST_CONST_3VL_LOW 1
+#define BTOR_TEST_CONST_3VL_HIGH 4
 
 static BtorMemMgr *g_mm;
 
@@ -1115,6 +1119,305 @@ test_inverse_const (void)
 }
 
 static void
+generate_consts_from_3vl_const (const char *const_3vl, BtorCharPtrStack *stack)
+{
+  const char *p;
+  char *temp, *cur;
+  int len, i, num_elements, pos;
+
+  assert (const_3vl != NULL);
+  assert (stack != NULL);
+  assert (BTOR_EMPTY_STACK (*stack));
+  len = (int) strlen (const_3vl);
+  assert (len > 0);
+
+  p = const_3vl;
+  assert (*p == '0' || *p == '1' || *p == 'x');
+
+  if (*p == '0' || *p == 'x')
+  {
+    temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+    *temp     = '0';
+    temp[len] = '\0';
+    BTOR_PUSH_STACK (g_mm, *stack, temp);
+  }
+  if (*p == '1' || *p == 'x')
+  {
+    temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+    *temp     = '1';
+    temp[len] = '\0';
+    BTOR_PUSH_STACK (g_mm, *stack, temp);
+  }
+
+  assert (!BTOR_EMPTY_STACK (*stack));
+  for (p = const_3vl + 1; *p; p++)
+  {
+    assert (*p == '0' || *p == '1' || *p == 'x');
+
+    pos          = p - const_3vl;
+    num_elements = BTOR_COUNT_STACK (*stack);
+
+    if (*p != 'x')
+    {
+      for (i = 0; i < num_elements; i++)
+      {
+        cur = stack->start[i];
+        if (*p != 'x') cur[pos] = *p;
+      }
+    }
+    else
+    {
+      for (i = 0; i < num_elements; i++)
+      {
+        cur       = stack->start[i];
+        temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+        temp[len] = '\0';
+        strncpy (temp, cur, pos);
+        cur[pos]  = '0';
+        temp[pos] = '1';
+        BTOR_PUSH_STACK (g_mm, *stack, temp);
+      }
+    }
+  }
+}
+
+static int
+strcmp_qsort (const void *a, const void *b)
+{
+  return strcmp (*((char **) a), *((char **) b));
+}
+
+static void
+test_generate_concrete_consts_from_3vl_const (void)
+{
+  int i = 0;
+  BtorCharPtrStack stack;
+
+  BTOR_INIT_STACK (stack);
+  generate_consts_from_3vl_const ("1001", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 1);
+  assert (strcmp (stack.start[0], "1001") == 0);
+  btor_freestr (g_mm, stack.start[0]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("x001", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 2);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0001") == 0);
+  assert (strcmp (stack.start[1], "1001") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("0x01", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 2);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0001") == 0);
+  assert (strcmp (stack.start[1], "0101") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("11x1", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 2);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "1101") == 0);
+  assert (strcmp (stack.start[1], "1111") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("100x", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 2);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "1000") == 0);
+  assert (strcmp (stack.start[1], "1001") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("x00x", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 4);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0000") == 0);
+  assert (strcmp (stack.start[1], "0001") == 0);
+  assert (strcmp (stack.start[2], "1000") == 0);
+  assert (strcmp (stack.start[3], "1001") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("0xx1", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 4);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0001") == 0);
+  assert (strcmp (stack.start[1], "0011") == 0);
+  assert (strcmp (stack.start[2], "0101") == 0);
+  assert (strcmp (stack.start[3], "0111") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("xx0x", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 8);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0000") == 0);
+  assert (strcmp (stack.start[1], "0001") == 0);
+  assert (strcmp (stack.start[2], "0100") == 0);
+  assert (strcmp (stack.start[3], "0101") == 0);
+  assert (strcmp (stack.start[4], "1000") == 0);
+  assert (strcmp (stack.start[5], "1001") == 0);
+  assert (strcmp (stack.start[6], "1100") == 0);
+  assert (strcmp (stack.start[7], "1101") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_consts_from_3vl_const ("xxxx", &stack);
+  assert (BTOR_COUNT_STACK (stack) == 16);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0000") == 0);
+  assert (strcmp (stack.start[1], "0001") == 0);
+  assert (strcmp (stack.start[2], "0010") == 0);
+  assert (strcmp (stack.start[3], "0011") == 0);
+  assert (strcmp (stack.start[4], "0100") == 0);
+  assert (strcmp (stack.start[5], "0101") == 0);
+  assert (strcmp (stack.start[6], "0110") == 0);
+  assert (strcmp (stack.start[7], "0111") == 0);
+  assert (strcmp (stack.start[8], "1000") == 0);
+  assert (strcmp (stack.start[9], "1001") == 0);
+  assert (strcmp (stack.start[10], "1010") == 0);
+  assert (strcmp (stack.start[11], "1011") == 0);
+  assert (strcmp (stack.start[12], "1100") == 0);
+  assert (strcmp (stack.start[13], "1101") == 0);
+  assert (strcmp (stack.start[14], "1110") == 0);
+  assert (strcmp (stack.start[15], "1111") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+
+  BTOR_RELEASE_STACK (g_mm, stack);
+}
+
+static void
+generate_all_3vl_consts (int len, BtorCharPtrStack *stack)
+{
+  char *temp, *cur;
+  int i, j, num_elements;
+
+  assert (len > 0);
+  assert (stack != NULL);
+  assert (BTOR_EMPTY_STACK (*stack));
+
+  temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+  *temp     = '0';
+  temp[len] = '\0';
+  BTOR_PUSH_STACK (g_mm, *stack, temp);
+
+  temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+  *temp     = '1';
+  temp[len] = '\0';
+  BTOR_PUSH_STACK (g_mm, *stack, temp);
+
+  temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+  *temp     = 'x';
+  temp[len] = '\0';
+  BTOR_PUSH_STACK (g_mm, *stack, temp);
+
+  assert (!BTOR_EMPTY_STACK (*stack));
+  for (i = 1; i < len; i++)
+  {
+    num_elements = BTOR_COUNT_STACK (*stack);
+    for (j = 0; j < num_elements; j++)
+    {
+      cur = stack->start[j];
+
+      temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+      temp[len] = '\0';
+      strncpy (temp, cur, i);
+      temp[i] = '0';
+      BTOR_PUSH_STACK (g_mm, *stack, temp);
+
+      temp      = (char *) btor_malloc (g_mm, sizeof (char) * (len + 1));
+      temp[len] = '\0';
+      strncpy (temp, cur, i);
+      temp[i] = '1';
+      BTOR_PUSH_STACK (g_mm, *stack, temp);
+
+      cur[i] = 'x';
+    }
+  }
+}
+
+static void
+test_generate_all_3vl_consts (void)
+{
+  int i;
+  BtorCharPtrStack stack;
+  BTOR_INIT_STACK (stack);
+
+  generate_all_3vl_consts (1, &stack);
+  assert (BTOR_COUNT_STACK (stack) == 3);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "0") == 0);
+  assert (strcmp (stack.start[1], "1") == 0);
+  assert (strcmp (stack.start[2], "x") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_all_3vl_consts (2, &stack);
+  assert (BTOR_COUNT_STACK (stack) == 9);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "00") == 0);
+  assert (strcmp (stack.start[1], "01") == 0);
+  assert (strcmp (stack.start[2], "0x") == 0);
+  assert (strcmp (stack.start[3], "10") == 0);
+  assert (strcmp (stack.start[4], "11") == 0);
+  assert (strcmp (stack.start[5], "1x") == 0);
+  assert (strcmp (stack.start[6], "x0") == 0);
+  assert (strcmp (stack.start[7], "x1") == 0);
+  assert (strcmp (stack.start[8], "xx") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+  BTOR_RESET_STACK (stack);
+
+  generate_all_3vl_consts (3, &stack);
+  assert (BTOR_COUNT_STACK (stack) == 27);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof (char *), strcmp_qsort);
+  assert (strcmp (stack.start[0], "000") == 0);
+  assert (strcmp (stack.start[1], "001") == 0);
+  assert (strcmp (stack.start[2], "00x") == 0);
+  assert (strcmp (stack.start[3], "010") == 0);
+  assert (strcmp (stack.start[4], "011") == 0);
+  assert (strcmp (stack.start[5], "01x") == 0);
+  assert (strcmp (stack.start[6], "0x0") == 0);
+  assert (strcmp (stack.start[7], "0x1") == 0);
+  assert (strcmp (stack.start[8], "0xx") == 0);
+  assert (strcmp (stack.start[9], "100") == 0);
+  assert (strcmp (stack.start[10], "101") == 0);
+  assert (strcmp (stack.start[11], "10x") == 0);
+  assert (strcmp (stack.start[12], "110") == 0);
+  assert (strcmp (stack.start[13], "111") == 0);
+  assert (strcmp (stack.start[14], "11x") == 0);
+  assert (strcmp (stack.start[15], "1x0") == 0);
+  assert (strcmp (stack.start[16], "1x1") == 0);
+  assert (strcmp (stack.start[17], "1xx") == 0);
+  assert (strcmp (stack.start[18], "x00") == 0);
+  assert (strcmp (stack.start[19], "x01") == 0);
+  assert (strcmp (stack.start[20], "x0x") == 0);
+  assert (strcmp (stack.start[21], "x10") == 0);
+  assert (strcmp (stack.start[22], "x11") == 0);
+  assert (strcmp (stack.start[23], "x1x") == 0);
+  assert (strcmp (stack.start[24], "xx0") == 0);
+  assert (strcmp (stack.start[25], "xx1") == 0);
+  assert (strcmp (stack.start[26], "xxx") == 0);
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+    btor_freestr (g_mm, stack.start[i]);
+
+  BTOR_RELEASE_STACK (g_mm, stack);
+}
+
+static void
 test_x_const_3vl (void)
 {
   char *result = btor_x_const_3vl (g_mm, 1);
@@ -1169,6 +1472,58 @@ test_invert_const_3vl (void)
 }
 
 static void
+check_const_3vl_compatible (const char *c_3vl, const char *c)
+{
+  int i, len;
+
+  assert (c_3vl != NULL);
+  assert (c != NULL);
+  len = (int) strlen (c);
+  assert (len == (int) strlen (c));
+
+  for (i = 0; i < len; i++)
+  {
+    assert (c_3vl[i] == '0' || c_3vl[i] == '1' || c_3vl[i] == 'x');
+    assert (c[i] == '0' || c[i] == '1');
+    assert (!(c_3vl[i] == '0' && c[i] == '1'));
+    assert (!(c_3vl[i] == '1' && c[i] == '0'));
+  }
+}
+
+static void
+test_invert_const_3vl_exhaustive_range (void)
+{
+  BtorCharPtrStack consts_3vl, consts_concrete;
+  char *const_3vl, *const_concrete;
+  int i;
+
+  BTOR_INIT_STACK (consts_3vl);
+  BTOR_INIT_STACK (consts_concrete);
+  for (i = BTOR_TEST_CONST_3VL_LOW; i < BTOR_TEST_CONST_3VL_HIGH; i++)
+  {
+    assert (BTOR_EMPTY_STACK (consts_3vl));
+    generate_all_3vl_consts (i, &consts_3vl);
+    while (!BTOR_EMPTY_STACK (consts_3vl))
+    {
+      const_3vl = BTOR_POP_STACK (consts_3vl);
+      assert (BTOR_EMPTY_STACK (consts_concrete));
+      generate_consts_from_3vl_const (const_3vl, &consts_concrete);
+      btor_invert_const_3vl (g_mm, const_3vl);
+      while (!BTOR_EMPTY_STACK (consts_concrete))
+      {
+        const_concrete = BTOR_POP_STACK (consts_concrete);
+        btor_invert_const (g_mm, const_concrete);
+        check_const_3vl_compatible (const_3vl, const_concrete);
+        btor_freestr (g_mm, const_concrete);
+      }
+      btor_freestr (g_mm, const_3vl);
+    }
+  }
+  BTOR_RELEASE_STACK (g_mm, consts_3vl);
+  BTOR_RELEASE_STACK (g_mm, consts_concrete);
+}
+
+static void
 test_not_const_3vl (void)
 {
   char *result = btor_not_const_3vl (g_mm, "x01x");
@@ -1186,6 +1541,125 @@ test_not_const_3vl (void)
   result = btor_not_const_3vl (g_mm, "x1xx");
   assert (strcmp (result, "x0xx") == 0);
   btor_delete_const (g_mm, result);
+}
+
+static void
+test_not_const_3vl_exhaustive_range (void)
+{
+  BtorCharPtrStack consts_3vl, consts_concrete;
+  char *const_3vl, *const_concrete, *not_const_3vl, *not_const_concrete;
+  int i;
+
+  BTOR_INIT_STACK (consts_3vl);
+  BTOR_INIT_STACK (consts_concrete);
+  for (i = BTOR_TEST_CONST_3VL_LOW; i < BTOR_TEST_CONST_3VL_HIGH; i++)
+  {
+    assert (BTOR_EMPTY_STACK (consts_3vl));
+    generate_all_3vl_consts (i, &consts_3vl);
+    while (!BTOR_EMPTY_STACK (consts_3vl))
+    {
+      const_3vl = BTOR_POP_STACK (consts_3vl);
+      assert (BTOR_EMPTY_STACK (consts_concrete));
+      generate_consts_from_3vl_const (const_3vl, &consts_concrete);
+      not_const_3vl = btor_not_const_3vl (g_mm, const_3vl);
+      while (!BTOR_EMPTY_STACK (consts_concrete))
+      {
+        const_concrete     = BTOR_POP_STACK (consts_concrete);
+        not_const_concrete = btor_not_const (g_mm, const_concrete);
+        check_const_3vl_compatible (not_const_3vl, not_const_concrete);
+        btor_freestr (g_mm, const_concrete);
+        btor_freestr (g_mm, not_const_concrete);
+      }
+      btor_freestr (g_mm, const_3vl);
+      btor_freestr (g_mm, not_const_3vl);
+    }
+  }
+  BTOR_RELEASE_STACK (g_mm, consts_3vl);
+  BTOR_RELEASE_STACK (g_mm, consts_concrete);
+}
+
+static void
+check_binary_3vl_compatible (const char *result_3vl,
+                             const BtorCharPtrStack *consts_a,
+                             const BtorCharPtrStack *consts_b,
+                             char *(*f) (BtorMemMgr *,
+                                         const char *,
+                                         const char *) )
+{
+  char *a, *b, *result;
+  int i, j;
+
+  assert (result_3vl != NULL);
+  assert (consts_a != NULL);
+  assert (consts_b != NULL);
+  assert (f != NULL);
+  assert (!BTOR_EMPTY_STACK (*consts_a));
+  assert (!BTOR_EMPTY_STACK (*consts_b));
+
+  for (i = 0; i < BTOR_COUNT_STACK (*consts_a); i++)
+  {
+    a = consts_a->start[i];
+    for (j = 0; j < BTOR_COUNT_STACK (*consts_b); j++)
+    {
+      b      = consts_b->start[j];
+      result = f (g_mm, a, b);
+      check_const_3vl_compatible (result_3vl, result);
+      btor_freestr (g_mm, result);
+    }
+  }
+}
+
+static void
+test_binary_const_3vl_exhaustive_range (
+    char *(*f_3vl) (BtorMemMgr *, const char *, const char *),
+    char *(*f) (BtorMemMgr *, const char *, const char *) )
+{
+  BtorCharPtrStack consts_3vl_a, consts_3vl_b, consts_a, consts_b;
+  char *const_3vl_a, *const_3vl_b, *result_3vl;
+  int i;
+
+  assert (f_3vl != NULL);
+  assert (f != NULL);
+
+  BTOR_INIT_STACK (consts_3vl_a);
+  BTOR_INIT_STACK (consts_3vl_b);
+  BTOR_INIT_STACK (consts_a);
+  BTOR_INIT_STACK (consts_b);
+
+  for (i = BTOR_TEST_CONST_3VL_LOW; i < BTOR_TEST_CONST_3VL_HIGH; i++)
+  {
+    assert (BTOR_EMPTY_STACK (consts_3vl_a));
+    generate_all_3vl_consts (i, &consts_3vl_a);
+    while (!BTOR_EMPTY_STACK (consts_3vl_a))
+    {
+      const_3vl_a = BTOR_POP_STACK (consts_3vl_a);
+      assert (BTOR_EMPTY_STACK (consts_a));
+      generate_consts_from_3vl_const (const_3vl_a, &consts_a);
+      assert (BTOR_EMPTY_STACK (consts_3vl_b));
+      generate_all_3vl_consts (i, &consts_3vl_b);
+      while (!BTOR_EMPTY_STACK (consts_3vl_b))
+      {
+        const_3vl_b = BTOR_POP_STACK (consts_3vl_b);
+        result_3vl  = f_3vl (g_mm, const_3vl_a, const_3vl_b);
+        assert (BTOR_EMPTY_STACK (consts_b));
+        generate_consts_from_3vl_const (const_3vl_b, &consts_b);
+        check_binary_3vl_compatible (result_3vl, &consts_a, &consts_b, f);
+        btor_freestr (g_mm, result_3vl);
+        btor_freestr (g_mm, const_3vl_b);
+        while (!BTOR_EMPTY_STACK (consts_b))
+          btor_freestr (g_mm, BTOR_POP_STACK (consts_b));
+      }
+      btor_freestr (g_mm, const_3vl_a);
+
+      while (!BTOR_EMPTY_STACK (consts_a))
+        btor_freestr (g_mm, BTOR_POP_STACK (consts_a));
+    }
+  }
+
+  BTOR_RELEASE_STACK (g_mm, consts_3vl_a);
+  BTOR_RELEASE_STACK (g_mm, consts_3vl_b);
+  BTOR_RELEASE_STACK (g_mm, consts_a);
+  BTOR_RELEASE_STACK (g_mm, consts_b);
 }
 
 static void
@@ -1221,6 +1695,12 @@ test_and_const_3vl (void)
 }
 
 static void
+test_and_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_and_const_3vl, btor_and_const);
+}
+
+static void
 test_eq_const_3vl (void)
 {
   char *result = btor_eq_const_3vl (g_mm, "10", "0x");
@@ -1250,6 +1730,12 @@ test_eq_const_3vl (void)
   result = btor_eq_const_3vl (g_mm, "11", "x0");
   assert (strcmp (result, "0") == 0);
   btor_delete_const (g_mm, result);
+}
+
+static void
+test_eq_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_eq_const_3vl, btor_eq_const);
 }
 
 static void
@@ -1453,6 +1939,12 @@ test_ult_const_3vl (void)
 }
 
 static void
+test_ult_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_ult_const_3vl, btor_ult_const);
+}
+
+static void
 test_add_const_3vl (void)
 {
   char *result = btor_add_const_3vl (g_mm, "00", "0x");
@@ -1582,6 +2074,12 @@ test_add_const_3vl (void)
   result = btor_add_const_3vl (g_mm, "x1", "x1");
   assert (strcmp (result, "x0") == 0);
   btor_delete_const (g_mm, result);
+}
+
+static void
+test_add_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_add_const_3vl, btor_add_const);
 }
 
 static void
@@ -1737,11 +2235,24 @@ test_mul_const_3vl (void)
 }
 
 static void
+test_mul_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_mul_const_3vl, btor_mul_const);
+}
+
+static void
 test_concat_const_3vl (void)
 {
   char *result = btor_concat_const_3vl (g_mm, "x00x", "x11x");
   assert (strcmp (result, "x00xx11x") == 0);
   btor_delete_const (g_mm, result);
+}
+
+static void
+test_concat_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_concat_const_3vl,
+                                          btor_concat_const);
 }
 
 static void
@@ -1845,17 +2356,27 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (decimal_to_const);
   BTOR_RUN_TEST_CHECK_LOG (slice_const);
   BTOR_RUN_TEST_CHECK_LOG (inverse_const);
+  BTOR_RUN_TEST (generate_concrete_consts_from_3vl_const);
+  BTOR_RUN_TEST (generate_all_3vl_consts);
   BTOR_RUN_TEST (x_const_3vl);
   BTOR_RUN_TEST (invert_const_3vl);
+  BTOR_RUN_TEST (invert_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (not_const_3vl);
+  BTOR_RUN_TEST (not_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (and_const_3vl);
+  BTOR_RUN_TEST (and_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (eq_const_3vl);
+  BTOR_RUN_TEST (eq_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (ult_const_3vl);
+  BTOR_RUN_TEST (ult_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (add_const_3vl);
+  BTOR_RUN_TEST (add_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (sll_const_3vl);
   BTOR_RUN_TEST (srl_const_3vl);
   BTOR_RUN_TEST (mul_const_3vl);
+  BTOR_RUN_TEST (mul_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (concat_const_3vl);
+  BTOR_RUN_TEST (concat_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (slice_const_3vl);
   BTOR_RUN_TEST (cond_const_3vl);
 }
