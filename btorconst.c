@@ -7,10 +7,16 @@
 #include <limits.h>
 #include <string.h>
 
+#define BTOR_NOT_CONST_3VL(a) ((a) == 'x' ? 'x' : (a) ^ 1)
 #define BTOR_AND_CONST_3VL(a, b) \
   (((a) == '0' || (b) == '0')    \
        ? '0'                     \
        : (((a) == 'x' || (b) == 'x') ? 'x' : (a) & (b)))
+#define BTOR_OR_CONST_3VL(a, b) \
+  (((a) == '1' || (b) == '1')   \
+       ? '1'                    \
+       : (((a) == 'x' || (b) == 'x') ? 'x' : (a) | (b)))
+#define BTOR_XOR_CONST_3VL(a, b) (((a) == 'x' || (b) == 'x') ? 'x' : (a) ^ (b))
 
 static const char *digit2const_table[10] = {
     "",
@@ -788,13 +794,7 @@ not_const (BtorMemMgr *mm, const char *a)
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
 
-  for (i = 0; i < len; i++)
-  {
-    if (a[i] == 'x')
-      result[i] = 'x';
-    else
-      result[i] = a[i] ^ 1;
-  }
+  for (i = 0; i < len; i++) result[i] = BTOR_NOT_CONST_3VL (a[i]);
   result[len] = '\0';
   return result;
 }
@@ -914,21 +914,11 @@ add_const (BtorMemMgr *mm, const char *a, const char *b)
   BTOR_NEWN (mm, result, len + 1);
   for (i = len - 1; i >= 0; i--)
   {
-    if (a[i] == 'x' || b[i] == 'x' || carry == 'x')
-      result[i] = 'x';
-    else
-      result[i] = a[i] ^ b[i] ^ carry;
-
-    p0 = BTOR_AND_CONST_3VL (a[i], b[i]);
-    p1 = BTOR_AND_CONST_3VL (a[i], carry);
-    p2 = BTOR_AND_CONST_3VL (b[i], carry);
-
-    if (p0 == '1' || p1 == '1' || p2 == '1')
-      carry = '1';
-    else if (p0 == 'x' || p1 == 'x' || p2 == 'x')
-      carry = 'x';
-    else
-      carry = p0 | p1 | p2;
+    result[i] = BTOR_XOR_CONST_3VL (BTOR_XOR_CONST_3VL (a[i], b[i]), carry);
+    p0        = BTOR_AND_CONST_3VL (a[i], b[i]);
+    p1        = BTOR_AND_CONST_3VL (a[i], carry);
+    p2        = BTOR_AND_CONST_3VL (b[i], carry);
+    carry     = BTOR_OR_CONST_3VL (BTOR_OR_CONST_3VL (p0, p1), p2);
   }
   result[len] = '\0';
   return result;
