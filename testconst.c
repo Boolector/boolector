@@ -2309,6 +2309,34 @@ test_concat_const_3vl_exhaustive_range (void)
 }
 
 static void
+test_udiv_const_3vl (void)
+{
+  char *result = btor_udiv_const_3vl (g_mm, "0000", "000x");
+  assert (strcmp (result, "xxxx") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_udiv_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_udiv_const_3vl, btor_udiv_const);
+}
+
+static void
+test_urem_const_3vl (void)
+{
+  char *result = btor_urem_const_3vl (g_mm, "0000", "000x");
+  assert (strcmp (result, "xxxx") == 0);
+  btor_delete_const (g_mm, result);
+}
+
+static void
+test_urem_const_3vl_exhaustive_range (void)
+{
+  test_binary_const_3vl_exhaustive_range (btor_urem_const_3vl, btor_urem_const);
+}
+
+static void
 test_slice_const_3vl (void)
 {
   char *result = btor_slice_const_3vl (g_mm, "x00x", 3, 0);
@@ -2536,6 +2564,10 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (mul_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (concat_const_3vl);
   BTOR_RUN_TEST (concat_const_3vl_exhaustive_range);
+  BTOR_RUN_TEST (udiv_const_3vl);
+  BTOR_RUN_TEST (udiv_const_3vl_exhaustive_range);
+  BTOR_RUN_TEST (urem_const_3vl);
+  BTOR_RUN_TEST (urem_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (slice_const_3vl);
   BTOR_RUN_TEST (cond_const_3vl);
   BTOR_RUN_TEST (cond_const_3vl_exhaustive_range);

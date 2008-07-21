@@ -1065,64 +1065,102 @@ srl_n_bits (BtorMemMgr *mm, const char *a, int n)
 }
 
 static void
-udiv_urem_const (BtorMemMgr *mm,
-                 const char *a,
-                 const char *b,
-                 char **quotient,
-                 char **remainder)
+SC_GATE_CO (char *CO, char R, char D, char CI)
 {
-  char *b_i, *temp, *sub, *remainder_2n;
-  int len, len_2n, i, gte;
+  char D_or_CI, D_and_CI, M;
+  D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
+  D_and_CI = BTOR_AND_CONST_3VL (D, CI);
+  M        = BTOR_AND_CONST_3VL (D_or_CI, R);
+  *CO      = BTOR_OR_CONST_3VL (M, D_and_CI);
+}
+
+static void
+SC_GATE_S (char *S, char R, char D, char CI, char Q)
+{
+  char D_and_CI, D_or_CI;
+  char T2_or_R, T2_and_R;
+  char T1, T2;
+  D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
+  D_and_CI = BTOR_AND_CONST_3VL (D, CI);
+  T1       = BTOR_AND_CONST_3VL (D_or_CI, BTOR_NOT_CONST_3VL (D_and_CI));
+  T2       = BTOR_AND_CONST_3VL (T1, Q);
+  T2_or_R  = BTOR_OR_CONST_3VL (T2, R);
+  T2_and_R = BTOR_AND_CONST_3VL (T2, R);
+  *S       = BTOR_AND_CONST_3VL (T2_or_R, BTOR_NOT_CONST_3VL (T2_and_R));
+}
+
+static void
+udiv_urem_const (
+    BtorMemMgr *mm, const char *Ain, const char *Din, char **Qptr, char **Rptr)
+{
+  char *A, *nD, **S, **C;
+  char *Q, *R;
+  int size, i, j;
 
   assert (mm != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (quotient != NULL);
-  assert (remainder != NULL);
-  assert (strlen (a) == strlen (b));
-  assert ((int) strlen (a) > 0);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
+  assert (Ain != NULL);
+  assert (Din != NULL);
+  assert (Qptr != NULL);
+  assert (Rptr != NULL);
+  assert (is_valid_const_3vl (Ain));
+  assert (is_valid_const_3vl (Din));
+  assert (strlen (Ain) == strlen (Din));
 
-  len = (int) strlen (a);
-  assert (len <= INT_MAX / 2);
+  size = (int) strlen (Ain);
+  assert (size > 0);
 
-  len_2n = len << 1;
-  BTOR_NEWN (mm, *quotient, len + 1);
-  (*quotient)[len] = '\0';
-  BTOR_NEWN (mm, b_i, len_2n + 1);
-  b_i[len_2n] = '\0';
-  BTOR_NEWN (mm, remainder_2n, len_2n + 1);
-  remainder_2n[len_2n] = '\0';
-  for (i = 0; i < len; i++)
+  BTOR_NEWN (mm, A, size);
+  for (i = 0; i < size; i++) A[i] = Ain[size - 1 - i];
+
+  BTOR_NEWN (mm, nD, size);
+  for (i = 0; i < size; i++) nD[i] = BTOR_NOT_CONST_3VL (Din[size - 1 - i]);
+
+  BTOR_NEWN (mm, S, size + 1);
+  for (j = 0; j <= size; j++)
   {
-    b_i[i]          = b[i];
-    remainder_2n[i] = '0';
+    BTOR_NEWN (mm, S[j], size + 1);
+    for (i = 0; i <= size; i++) S[j][i] = '0';
   }
-  for (i = len; i < len_2n; i++)
+
+  BTOR_NEWN (mm, C, size + 1);
+  for (j = 0; j <= size; j++)
   {
-    b_i[i]          = '0';
-    remainder_2n[i] = a[i - len];
+    BTOR_NEWN (mm, C[j], size + 1);
+    for (i = 0; i <= size; i++) C[j][i] = '0';
   }
-  for (i = len - 1; i >= 0; i--)
+
+  BTOR_NEWN (mm, R, size + 1);
+  BTOR_NEWN (mm, Q, size + 1);
+  R[size] = '\0';
+  Q[size] = '\0';
+
+  for (j = 0; j <= size - 1; j++)
   {
-    temp = srl_n_bits (mm, b_i, 1);
-    btor_delete_const (mm, b_i);
-    b_i                      = temp;
-    gte                      = btor_cmp_const (remainder_2n, b_i) >= 0;
-    (*quotient)[len - 1 - i] = (char) (48 ^ gte);
-    if (gte)
-    {
-      sub = btor_sub_const (mm, remainder_2n, b_i);
-      btor_delete_const (mm, remainder_2n);
-      remainder_2n = sub;
-    }
+    S[j][0] = A[size - j - 1];
+    C[j][0] = '1';
+
+    for (i = 0; i <= size - 1; i++)
+      SC_GATE_CO (&C[j][i + 1], S[j][i], nD[i], C[j][i]);
+
+    Q[j] = BTOR_OR_CONST_3VL (C[j][size], S[j][size]);
+
+    for (i = 0; i <= size - 1; i++)
+      SC_GATE_S (&S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q[j]);
   }
-  btor_delete_const (mm, b_i);
-  BTOR_NEWN (mm, *remainder, len + 1);
-  (*remainder)[len] = '\0';
-  for (i = len; i < len_2n; i++) (*remainder)[i - len] = remainder_2n[i];
-  btor_delete_const (mm, remainder_2n);
+
+  for (i = size; i >= 1; i--) R[size - i] = S[size][i];
+
+  for (j = 0; j <= size; j++) BTOR_DELETEN (mm, C[j], size + 1);
+  BTOR_DELETEN (mm, C, size + 1);
+
+  for (j = 0; j <= size; j++) BTOR_DELETEN (mm, S[j], size + 1);
+  BTOR_DELETEN (mm, S, size + 1);
+
+  BTOR_DELETEN (mm, nD, size);
+  BTOR_DELETEN (mm, A, size);
+
+  *Qptr = Q;
+  *Rptr = R;
 }
 
 char *
@@ -1935,7 +1973,7 @@ btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 char *
 btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
-  char *result;
+  char *quotient, *remainder;
 
   assert (mm != NULL);
   assert (a != NULL);
@@ -1944,19 +1982,16 @@ btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   assert ((int) strlen (a) > 0);
   assert (is_valid_const_3vl (a));
   assert (is_valid_const_3vl (b));
-  /* TODO replace dummy implementation */
-  if (is_valid_const (a) && is_valid_const (b))
-    result = btor_udiv_const (mm, a, b);
-  else
-    result = btor_x_const_3vl (mm, (int) strlen (a));
 
-  return result;
+  udiv_urem_const (mm, a, b, &quotient, &remainder);
+  btor_delete_const (mm, remainder);
+  return quotient;
 }
 
 char *
 btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
-  char *result;
+  char *quotient, *remainder;
 
   assert (mm != NULL);
   assert (a != NULL);
@@ -1965,13 +2000,10 @@ btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   assert ((int) strlen (a) > 0);
   assert (is_valid_const_3vl (a));
   assert (is_valid_const_3vl (b));
-  /* TODO replace dummy implementation */
-  if (is_valid_const (a) && is_valid_const (b))
-    result = btor_udiv_const (mm, a, b);
-  else
-    result = btor_x_const_3vl (mm, (int) strlen (a));
 
-  return result;
+  udiv_urem_const (mm, a, b, &quotient, &remainder);
+  btor_delete_const (mm, quotient);
+  return remainder;
 }
 
 char *
