@@ -2095,7 +2095,7 @@ static void
 test_sll_const_3vl (void)
 {
   char *result = btor_sll_const_3vl (g_mm, "10101001", "00x");
-  assert (strcmp (result, "xxxxxxxx") == 0);
+  assert (strcmp (result, "xxxxx0xx") == 0);
   btor_delete_const (g_mm, result);
 
   result = btor_sll_const_3vl (g_mm, "10101001", "01x");
@@ -2157,6 +2157,22 @@ test_sll_const_3vl (void)
   result = btor_sll_const_3vl (g_mm, "xx010111", "111");
   assert (strcmp (result, "10000000") == 0);
   btor_delete_const (g_mm, result);
+
+  result = btor_sll_const_3vl (g_mm, "111001xx", "00x");
+  assert (strcmp (result, "11x0xxxx") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_sll_const_3vl (g_mm, "111100xx", "0x1");
+  assert (strcmp (result, "1xxxxxx0") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_sll_const_3vl (g_mm, "11111111", "xxx");
+  assert (strcmp (result, "1xxxxxxx") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_sll_const_3vl (g_mm, "0xxxxxx1", "1xx");
+  assert (strcmp (result, "xxxx0000") == 0);
+  btor_delete_const (g_mm, result);
 }
 
 static void
@@ -2169,7 +2185,7 @@ static void
 test_srl_const_3vl (void)
 {
   char *result = btor_srl_const_3vl (g_mm, "10101001", "00x");
-  assert (strcmp (result, "xxxxxxxx") == 0);
+  assert (strcmp (result, "xxxxxx0x") == 0);
   btor_delete_const (g_mm, result);
 
   result = btor_srl_const_3vl (g_mm, "10101001", "01x");
@@ -2230,6 +2246,22 @@ test_srl_const_3vl (void)
 
   result = btor_srl_const_3vl (g_mm, "xx010111", "111");
   assert (strcmp (result, "0000000x") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_srl_const_3vl (g_mm, "111001xx", "00x");
+  assert (strcmp (result, "x11x0xxx") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_srl_const_3vl (g_mm, "111100xx", "0x1");
+  assert (strcmp (result, "0xx1xxxx") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_srl_const_3vl (g_mm, "11111111", "xxx");
+  assert (strcmp (result, "xxxxxxx1") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_srl_const_3vl (g_mm, "0xxxxxx1", "1xx");
+  assert (strcmp (result, "0000xxxx") == 0);
   btor_delete_const (g_mm, result);
 }
 

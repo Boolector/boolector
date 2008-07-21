@@ -1839,33 +1839,41 @@ btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   return add_const (mm, a, b);
 }
 
-static int
-compute_min_shift (BtorMemMgr *mm, const char *b)
+static void
+compute_min_max_num_shifts (BtorMemMgr *mm,
+                            const char *b,
+                            int *min_shifts,
+                            int *max_shifts)
 {
-  int len, i, result;
+  int len, i, shifts;
   assert (mm != NULL);
   assert (b != NULL);
+  assert (min_shifts != NULL);
+  assert (max_shifts != NULL);
   (void) mm;
 
-  len    = (int) strlen (b);
-  result = 0;
+  len         = (int) strlen (b);
+  *min_shifts = 0;
+  *max_shifts = 0;
 
   for (i = 0; i < len; i++)
   {
     if (b[i] == '1')
     {
-      result += btor_pow_2_util (len - i - 1);
-      assert (result > 0);
+      shifts = btor_pow_2_util (len - i - 1);
+      *min_shifts += shifts;
+      *max_shifts += shifts;
     }
+    else if (b[i] == 'x')
+      *max_shifts += btor_pow_2_util (len - i - 1);
   }
-  return result;
 }
 
 char *
 btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
-  int min_shift;
-  char *result, *temp;
+  int min_shifts, max_shifts, len, found, i, j;
+  char cur, *result, *temp;
 
   assert (mm != NULL);
   assert (a != NULL);
@@ -1880,9 +1888,26 @@ btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
     result = sll_const (mm, a, b);
   else
   {
-    temp      = btor_x_const_3vl (mm, (int) strlen (a));
-    min_shift = compute_min_shift (mm, b);
-    result    = sll_n_bits (mm, temp, min_shift);
+    len  = (int) strlen (a);
+    temp = btor_x_const_3vl (mm, len);
+    compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
+    result = sll_n_bits (mm, temp, min_shifts);
+    for (i = 0; i < len; i++)
+    {
+      cur = a[i];
+      if (cur != 'x')
+      {
+        found = 0;
+        for (j = i + 1; j < len; j++)
+        {
+          if (a[j] == cur)
+            found++;
+          else
+            break;
+        }
+        if (found >= max_shifts) result[i] = cur;
+      }
+    }
     btor_delete_const (mm, temp);
   }
   return result;
@@ -1891,8 +1916,8 @@ btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 char *
 btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
-  int min_shift;
-  char *result, *temp;
+  int min_shifts, max_shifts, len, found, i, j;
+  char *result, *temp, cur;
 
   assert (mm != NULL);
   assert (a != NULL);
@@ -1907,9 +1932,26 @@ btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
     result = srl_const (mm, a, b);
   else
   {
-    temp      = btor_x_const_3vl (mm, (int) strlen (a));
-    min_shift = compute_min_shift (mm, b);
-    result    = srl_n_bits (mm, temp, min_shift);
+    len  = (int) strlen (a);
+    temp = btor_x_const_3vl (mm, len);
+    compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
+    result = srl_n_bits (mm, temp, min_shifts);
+    for (i = len - 1; i >= 0; i--)
+    {
+      cur = a[i];
+      if (cur != 'x')
+      {
+        found = 0;
+        for (j = i - 1; j >= 0; j--)
+        {
+          if (a[j] == cur)
+            found++;
+          else
+            break;
+        }
+        if (found >= max_shifts) result[i] = cur;
+      }
+    }
     btor_delete_const (mm, temp);
   }
   return result;
