@@ -7,6 +7,11 @@
 #include <limits.h>
 #include <string.h>
 
+#define BTOR_AND_CONST_3VL(a, b) \
+  (((a) == '0' || (b) == '0')    \
+       ? '0'                     \
+       : (((a) == 'x' || (b) == 'x') ? 'x' : (a) & (b)))
+
 static const char *digit2const_table[10] = {
     "",
     "1",
@@ -821,15 +826,7 @@ and_const (BtorMemMgr *mm, const char *a, const char *b)
 
   len = (int) strlen (a);
   BTOR_NEWN (mm, result, len + 1);
-  for (i = len - 1; i >= 0; i--)
-  {
-    if (a[i] == '0' || b[i] == '0')
-      result[i] = '0';
-    else if (a[i] == 'x' || b[i] == 'x')
-      result[i] = 'x';
-    else
-      result[i] = a[i] & b[i];
-  }
+  for (i = len - 1; i >= 0; i--) result[i] = BTOR_AND_CONST_3VL (a[i], b[i]);
   result[len] = '\0';
   return result;
 }
@@ -922,26 +919,9 @@ add_const (BtorMemMgr *mm, const char *a, const char *b)
     else
       result[i] = a[i] ^ b[i] ^ carry;
 
-    if (a[i] == '0' || b[i] == '0')
-      p0 = '0';
-    else if (a[i] == 'x' || b[i] == 'x')
-      p0 = 'x';
-    else
-      p0 = a[i] & b[i];
-
-    if (a[i] == '0' || carry == '0')
-      p1 = '0';
-    else if (a[i] == 'x' || carry == 'x')
-      p1 = 'x';
-    else
-      p1 = a[i] & carry;
-
-    if (b[i] == '0' || carry == '0')
-      p2 = '0';
-    else if (b[i] == 'x' || carry == 'x')
-      p2 = 'x';
-    else
-      p2 = b[i] & carry;
+    p0 = BTOR_AND_CONST_3VL (a[i], b[i]);
+    p1 = BTOR_AND_CONST_3VL (a[i], carry);
+    p2 = BTOR_AND_CONST_3VL (b[i], carry);
 
     if (p0 == '1' || p1 == '1' || p2 == '1')
       carry = '1';
@@ -1048,15 +1028,7 @@ mul_const (BtorMemMgr *mm, const char *a, const char *b)
   for (i = len - 1; i >= 0; i--)
   {
     BTOR_NEWN (mm, and, len + 1);
-    for (j = 0; j < len; j++)
-    {
-      if (a[j] == '0' || b[i] == '0')
-        and[j] = '0';
-      else if (a[j] == 'x' || b[i] == 'x')
-        and[j] = 'x';
-      else
-        and[j] = a[j] & b[i];
-    }
+    for (j = 0; j < len; j++) and[j] = BTOR_AND_CONST_3VL (a[j], b[i]);
     and[len] = '\0';
     shift    = sll_n_bits (mm, and, len - 1 - i);
     add      = add_const (mm, result, shift);
