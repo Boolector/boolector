@@ -1970,9 +1970,32 @@ btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   return mul_const (mm, a, b);
 }
 
+static char
+is_unequal_zero_3vl (BtorMemMgr *mm, const char *b)
+{
+  int found_x;
+  const char *p;
+  assert (mm != NULL);
+  assert (b != NULL);
+  (void) mm;
+
+  found_x = 0;
+  for (p = b; *p; p++)
+  {
+    if (*p == '1')
+      return '1';
+    else if (*p == 'x')
+      found_x = 1;
+  }
+
+  if (found_x) return 'x';
+  return '0';
+}
+
 char *
 btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
+  int i, len;
   char *quotient, *remainder;
 
   assert (mm != NULL);
@@ -1985,12 +2008,27 @@ btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, remainder);
+
+  /* optimization: b != 0 => a udiv b <= a */
+  if (is_unequal_zero_3vl (mm, b) == '1')
+  {
+    len = (int) strlen (a);
+    for (i = 0; i < len; i++)
+    {
+      if (a[i] == '0')
+        quotient[i] = '0';
+      else
+        break;
+    }
+  }
+
   return quotient;
 }
 
 char *
 btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
+  int i, len;
   char *quotient, *remainder;
 
   assert (mm != NULL);
@@ -2003,6 +2041,20 @@ btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, quotient);
+
+  /* optimization: b != 0 => a urem b <= a */
+  if (is_unequal_zero_3vl (mm, b) == '1')
+  {
+    len = (int) strlen (a);
+    for (i = 0; i < len; i++)
+    {
+      if (a[i] == '0')
+        remainder[i] = '0';
+      else
+        break;
+    }
+  }
+
   return remainder;
 }
 

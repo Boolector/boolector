@@ -2314,6 +2314,10 @@ test_udiv_const_3vl (void)
   char *result = btor_udiv_const_3vl (g_mm, "0000", "000x");
   assert (strcmp (result, "xxxx") == 0);
   btor_delete_const (g_mm, result);
+
+  result = btor_udiv_const_3vl (g_mm, "00xx", "xxx1");
+  assert (strcmp (result, "00xx") == 0);
+  btor_delete_const (g_mm, result);
 }
 
 static void
@@ -2327,6 +2331,10 @@ test_urem_const_3vl (void)
 {
   char *result = btor_urem_const_3vl (g_mm, "0000", "000x");
   assert (strcmp (result, "xxxx") == 0);
+  btor_delete_const (g_mm, result);
+
+  result = btor_urem_const_3vl (g_mm, "00xx", "xxx1");
+  assert (strcmp (result, "00xx") == 0);
   btor_delete_const (g_mm, result);
 }
 
