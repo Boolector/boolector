@@ -1995,7 +1995,9 @@ is_unequal_zero_3vl (BtorMemMgr *mm, const char *b)
 char *
 btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
+#if 0
   int i, len;
+#endif
   char *quotient, *remainder;
 
   assert (mm != NULL);
@@ -2009,18 +2011,23 @@ btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, remainder);
 
+/* it seems like this optimization is not necessary here,
+ * as the division circuit propagates the known bits
+ * quite well */
+#if 0
   /* optimization: b != 0 => a udiv b <= a */
-  if (is_unequal_zero_3vl (mm, b) == '1')
-  {
-    len = (int) strlen (a);
-    for (i = 0; i < len; i++)
+  if (is_unequal_zero_3vl(mm, b) == '1')
     {
-      if (a[i] == '0')
-        quotient[i] = '0';
-      else
-        break;
+      len = (int) strlen (a);
+      for (i = 0; i < len; i++)
+        {
+	  if (a[i] == '0')
+	    quotient[i] = '0';
+	  else
+	    break;
+	}
     }
-  }
+#endif
 
   return quotient;
 }
@@ -2028,7 +2035,7 @@ btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 char *
 btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
-  int i, len;
+  int i, len, skip_a, skip_b;
   char *quotient, *remainder;
 
   assert (mm != NULL);
@@ -2042,14 +2049,27 @@ btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, quotient);
 
-  /* optimization: b != 0 => a urem b <= a */
+  /* optimization: b != 0 => a urem b <= a  /\ a urem b <= b,
+   * this optimization is necessary, as the urem circuit
+   * does not propagate the known bits well */
+  skip_a = 0;
+  skip_b = 0;
   if (is_unequal_zero_3vl (mm, b) == '1')
   {
     len = (int) strlen (a);
     for (i = 0; i < len; i++)
     {
-      if (a[i] == '0')
+      if (!skip_a && a[i] == '0')
         remainder[i] = '0';
+      else if (!skip_b)
+        skip_a = 1;
+      else
+        break;
+
+      if (!skip_b && b[i] == '0')
+        remainder[i] = '0';
+      else if (!skip_a)
+        skip_b = 1;
       else
         break;
     }

@@ -574,3 +574,7 @@ regrexpleak2 -rwl0 -o log/regrexpleak2.log log/regrexpleak2.btor
 3vl3 -rwl0 -o log/3vl3.log log/3vl3.btor
 3vl4 -rwl2 -o log/3vl4.log log/3vl4.btor
 3vl4 -rwl0 -o log/3vl4.log log/3vl4.btor
+3vl5 -rwl2 -o log/3vl5.log log/3vl5.btor
+3vl5 -rwl0 -o log/3vl5.log log/3vl5.btor
+3vl6 -rwl2 -o log/3vl6.log log/3vl6.btor
+3vl6 -rwl0 -o log/3vl6.log log/3vl6.btor
