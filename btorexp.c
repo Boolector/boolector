@@ -6020,6 +6020,8 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       case BTOR_SPECIAL_CONST_ONE:
         if (kind == BTOR_MUL_EXP || kind == BTOR_UDIV_EXP)
           result = btor_copy_exp (btor, e0);
+        else if (kind == BTOR_UREM_EXP)
+          result = btor_zero_exp (btor, real_e0->len);
         else if (kind == BTOR_ULT_EXP)
         {
           temp   = btor_zero_exp (btor, real_e0->len);
