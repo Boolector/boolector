@@ -2512,6 +2512,32 @@ test_cond_const_3vl_exhaustive_range ()
   BTOR_RELEASE_STACK (g_mm, consts_c);
 }
 
+static void
+test_get_num_leading_zeros_const (void)
+{
+  assert (btor_get_num_leading_zeros_const (g_mm, "0010") == 2);
+  assert (btor_get_num_leading_zeros_const (g_mm, "x010") == 0);
+  assert (btor_get_num_leading_zeros_const (g_mm, "1010") == 0);
+  assert (btor_get_num_leading_zeros_const (g_mm, "1010") == 0);
+  assert (btor_get_num_leading_zeros_const (g_mm, "0x10") == 1);
+  assert (btor_get_num_leading_zeros_const (g_mm, "0110") == 1);
+  assert (btor_get_num_leading_zeros_const (g_mm, "0000") == 4);
+  assert (btor_get_num_leading_zeros_const (g_mm, "0") == 1);
+}
+
+static void
+test_get_num_leading_ones_const (void)
+{
+  assert (btor_get_num_leading_ones_const (g_mm, "1101") == 2);
+  assert (btor_get_num_leading_ones_const (g_mm, "x101") == 0);
+  assert (btor_get_num_leading_ones_const (g_mm, "0101") == 0);
+  assert (btor_get_num_leading_ones_const (g_mm, "0101") == 0);
+  assert (btor_get_num_leading_ones_const (g_mm, "1x01") == 1);
+  assert (btor_get_num_leading_ones_const (g_mm, "1001") == 1);
+  assert (btor_get_num_leading_ones_const (g_mm, "1111") == 4);
+  assert (btor_get_num_leading_ones_const (g_mm, "1") == 1);
+}
+
 void
 run_const_tests (int argc, char **argv)
 {
@@ -2579,6 +2605,8 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (slice_const_3vl);
   BTOR_RUN_TEST (cond_const_3vl);
   BTOR_RUN_TEST (cond_const_3vl_exhaustive_range);
+  BTOR_RUN_TEST (get_num_leading_zeros_const);
+  BTOR_RUN_TEST (get_num_leading_ones_const);
 }
 
 void

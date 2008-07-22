@@ -578,3 +578,24 @@ regrexpleak2 -rwl0 -o log/regrexpleak2.log log/regrexpleak2.btor
 3vl5 -rwl0 -o log/3vl5.log log/3vl5.btor
 3vl6 -rwl2 -o log/3vl6.log log/3vl6.btor
 3vl6 -rwl0 -o log/3vl6.log log/3vl6.btor
+udivtheorem1 -o log/udivtheorem1.log log/udivtheorem1.btor
+uremtheorem1 -o log/uremtheorem1.log log/uremtheorem1.btor
+ulttheorem1 -o log/ulttheorem1.log log/ulttheorem1.btor
+ultsubst1 -rwl0 -o log/ultsubst1.log log/ultsubst1.btor
+ultsubst1 -rwl2 -o log/ultsubst1.log log/ultsubst1.btor
+ultsubst2 -rwl0 -o log/ultsubst2.log log/ultsubst2.btor
+ultsubst2 -rwl2 -o log/ultsubst2.log log/ultsubst2.btor
+ultsubst3 -rwl0 -o log/ultsubst3.log log/ultsubst3.btor
+ultsubst3 -rwl2 -o log/ultsubst3.log log/ultsubst3.btor
+ultsubst4 -rwl0 -o log/ultsubst4.log log/ultsubst4.btor
+ultsubst4 -rwl2 -o log/ultsubst4.log log/ultsubst4.btor
+ultsubst5 -rwl0 -o log/ultsubst5.log log/ultsubst5.btor
+ultsubst5 -rwl2 -o log/ultsubst5.log log/ultsubst5.btor
+ultsubst6 -rwl0 -o log/ultsubst6.log log/ultsubst6.btor
+ultsubst6 -rwl2 -o log/ultsubst6.log log/ultsubst6.btor
+ultsubst7 -rwl0 -o log/ultsubst7.log log/ultsubst7.btor
+ultsubst7 -rwl2 -o log/ultsubst7.log log/ultsubst7.btor
+ultsubst8 -rwl0 -o log/ultsubst8.log log/ultsubst8.btor
+ultsubst8 -rwl2 -o log/ultsubst8.log log/ultsubst8.btor
+ultsubst9 -rwl0 -o log/ultsubst9.log log/ultsubst9.btor
+ultsubst9 -rwl2 -o log/ultsubst9.log log/ultsubst9.btor

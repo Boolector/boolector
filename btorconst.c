@@ -487,6 +487,40 @@ btor_delete_const (BtorMemMgr *mm, char *c)
   btor_freestr (mm, c);
 }
 
+int
+btor_get_num_leading_zeros_const (BtorMemMgr *mm, const char *c)
+{
+  const char *p;
+  int result;
+
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert (*c != '\0');
+  assert (is_valid_const_3vl (c));
+
+  result = 0;
+  for (p = c; *p == '0'; p++) result++;
+
+  return result;
+}
+
+int
+btor_get_num_leading_ones_const (BtorMemMgr *mm, const char *c)
+{
+  const char *p;
+  int result;
+
+  assert (mm != NULL);
+  assert (c != NULL);
+  assert (*c != '\0');
+  assert (is_valid_const_3vl (c));
+
+  result = 0;
+  for (p = c; *p == '1'; p++) result++;
+
+  return result;
+}
+
 static char *
 slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
 {

@@ -9113,6 +9113,96 @@ slice_on_var_subst_rhs (
   return result;
 }
 
+enum BtorSubstCompKind
+{
+  BTOR_SUBST_COMP_ULT_KIND,
+  BTOR_SUBST_COMP_ULTE_KIND,
+  BTOR_SUBST_COMP_UGT_KIND,
+  BTOR_SUBST_COMP_UGTE_KIND
+};
+
+typedef enum BtorSubstCompKind BtorSubstCompKind;
+
+static BtorSubstCompKind
+reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
+{
+  assert (btor != NULL);
+  (void) btor;
+  switch (comp)
+  {
+    case BTOR_SUBST_COMP_ULT_KIND: return BTOR_SUBST_COMP_UGT_KIND;
+    case BTOR_SUBST_COMP_ULTE_KIND: return BTOR_SUBST_COMP_UGTE_KIND;
+    case BTOR_SUBST_COMP_UGT_KIND: return BTOR_SUBST_COMP_ULT_KIND;
+    default:
+      assert (comp == BTOR_SUBST_COMP_UGTE_KIND);
+      return BTOR_SUBST_COMP_ULTE_KIND;
+  }
+}
+
+static void
+insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *uc;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  uc = btor->unsynthesized_constraints;
+  if (!btor_find_in_ptr_hash_table (uc, exp))
+  {
+    inc_exp_ref_counter (btor, exp);
+    (void) btor_insert_in_ptr_hash_table (uc, exp);
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+    btor->stats.constraints.unsynthesized++;
+  }
+}
+
+static void
+insert_embedded_constraint (Btor *btor, BtorExp *exp)
+{
+  BtorPtrHashTable *ec;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  ec = btor->embedded_constraints;
+  if (!btor_find_in_ptr_hash_table (ec, exp))
+  {
+    inc_exp_ref_counter (btor, exp);
+    (void) btor_insert_in_ptr_hash_table (ec, exp);
+    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
+    btor->stats.constraints.embedded++;
+  }
+}
+
+static void
+insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
+{
+  BtorExp *eq;
+  BtorPtrHashTable *vsc;
+  BtorPtrHashBucket *bucket;
+
+  assert (btor != NULL);
+  assert (left != NULL);
+  assert (right != NULL);
+
+  vsc    = btor->varsubst_constraints;
+  bucket = btor_find_in_ptr_hash_table (vsc, left);
+  if (bucket == NULL)
+  {
+    inc_exp_ref_counter (btor, left);
+    inc_exp_ref_counter (btor, right);
+    btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
+    /* do not set constraint flag, as they are gone after substitution
+     * and treated differently */
+    btor->stats.constraints.varsubst++;
+  }
+  /* if v = t_1 is already in varsubst, we
+   * have to synthesize v = t_2 */
+  else if (right != (BtorExp *) bucket->data.asPtr)
+  {
+    eq = btor_eq_exp (btor, left, right);
+    insert_unsynthesized_constraint (btor, eq);
+    btor_release_exp (btor, eq);
+  }
+}
+
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
 normalize_substitution (Btor *btor,
@@ -9120,9 +9210,12 @@ normalize_substitution (Btor *btor,
                         BtorExp **left_result,
                         BtorExp **right_result)
 {
-  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var;
-  int upper, lower;
-  char *ic, *fc;
+  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
+  BtorExp *const_exp, *real_exp;
+  int upper, lower, leadings;
+  char *ic, *fc, *bits;
+  BtorMemMgr *mm;
+  BtorSubstCompKind comp;
 
   assert (btor != NULL);
   assert (exp != NULL);
@@ -9130,6 +9223,8 @@ normalize_substitution (Btor *btor,
   assert (right_result != NULL);
   assert (btor->rewrite_level > 1);
   assert (btor_pointer_chase_simplified_exp (btor, exp) == exp);
+
+  mm = btor->mm;
 
   if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)))
   {
@@ -9178,6 +9273,85 @@ normalize_substitution (Btor *btor,
     *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, tmp);
     btor_release_exp (btor, tmp);
     return 1;
+  }
+
+  if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_ULT_EXP
+      && (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0]))
+          || BTOR_IS_VAR_EXP (
+                 BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[1]))))
+  {
+    real_exp = BTOR_REAL_ADDR_EXP (exp);
+
+    if (BTOR_IS_INVERTED_EXP (exp))
+      comp = BTOR_SUBST_COMP_UGTE_KIND;
+    else
+      comp = BTOR_SUBST_COMP_ULT_KIND;
+
+    if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_exp->e[0])))
+    {
+      var   = real_exp->e[0];
+      right = real_exp->e[1];
+    }
+    else
+    {
+      assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_exp->e[1])));
+      var   = real_exp->e[1];
+      right = real_exp->e[0];
+      comp  = reverse_subst_comp_kind (btor, comp);
+    }
+
+    /* ~a comp b is equal to a reverse_comp ~b,
+     * where comp in ult, ulte, ugt, ugte */
+    if (BTOR_IS_INVERTED_EXP (var))
+    {
+      var   = BTOR_REAL_ADDR_EXP (var);
+      right = BTOR_INVERT_EXP (right);
+      comp  = reverse_subst_comp_kind (btor, comp);
+    }
+
+    /* we do not create a lambda if variable is already in substitution
+     * table */
+    assert (!BTOR_IS_INVERTED_EXP (var));
+    if (btor_find_in_ptr_hash_table (btor->varsubst_constraints, var)) return 0;
+
+    if (BTOR_IS_INVERTED_EXP (right))
+      bits = btor_not_const_3vl (mm, BTOR_REAL_ADDR_EXP (right)->bits);
+    else
+      bits = btor_copy_const (mm, right->bits);
+
+    if (comp == BTOR_SUBST_COMP_ULT_KIND || comp == BTOR_SUBST_COMP_ULTE_KIND)
+    {
+      leadings = btor_get_num_leading_zeros_const (btor->mm, bits);
+      if (leadings > 0)
+      {
+        const_exp = btor_zero_exp (btor, leadings);
+        lambda    = btor_var_exp (btor, var->len - leadings, "lambda");
+        tmp       = btor_concat_exp (btor, const_exp, lambda);
+        insert_varsubst_constraint (btor, var, tmp);
+        btor_release_exp (btor, const_exp);
+        btor_release_exp (btor, lambda);
+        btor_release_exp (btor, tmp);
+      }
+    }
+    else
+    {
+      assert (comp == BTOR_SUBST_COMP_UGT_KIND
+              || comp == BTOR_SUBST_COMP_UGTE_KIND);
+      leadings = btor_get_num_leading_ones_const (btor->mm, bits);
+      if (leadings > 0)
+      {
+        const_exp = btor_ones_exp (btor, leadings);
+        lambda    = btor_var_exp (btor, var->len - leadings, "lambda");
+        tmp       = btor_concat_exp (btor, const_exp, lambda);
+        insert_varsubst_constraint (btor, var, tmp);
+        btor_release_exp (btor, const_exp);
+        btor_release_exp (btor, lambda);
+        btor_release_exp (btor, tmp);
+      }
+    }
+
+    btor_delete_const (btor->mm, bits);
+    return 0;
   }
 
   /* in the boolean case a != b is the same as a == ~b */
@@ -9314,67 +9488,6 @@ BTOR_NORMALIZE_SUBST_RESULT:
 }
 
 static void
-insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
-{
-  BtorPtrHashTable *uc;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  uc = btor->unsynthesized_constraints;
-  if (!btor_find_in_ptr_hash_table (uc, exp))
-  {
-    inc_exp_ref_counter (btor, exp);
-    (void) btor_insert_in_ptr_hash_table (uc, exp);
-    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    btor->stats.constraints.unsynthesized++;
-  }
-}
-
-static void
-insert_embedded_constraint (Btor *btor, BtorExp *exp)
-{
-  BtorPtrHashTable *ec;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  ec = btor->embedded_constraints;
-  if (!btor_find_in_ptr_hash_table (ec, exp))
-  {
-    inc_exp_ref_counter (btor, exp);
-    (void) btor_insert_in_ptr_hash_table (ec, exp);
-    BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
-    btor->stats.constraints.embedded++;
-  }
-}
-
-static void
-insert_varsubst_constraint (Btor *btor,
-                            BtorExp *exp,
-                            BtorExp *left,
-                            BtorExp *right)
-{
-  BtorPtrHashTable *vsc;
-  BtorPtrHashBucket *bucket;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (left != NULL);
-  assert (right != NULL);
-  vsc    = btor->varsubst_constraints;
-  bucket = btor_find_in_ptr_hash_table (vsc, left);
-  if (bucket == NULL)
-  {
-    inc_exp_ref_counter (btor, left);
-    inc_exp_ref_counter (btor, right);
-    btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
-    /* do not set constraint flag, as they are gone after substitution
-     * and treated differently */
-    btor->stats.constraints.varsubst++;
-  }
-  /* if v = t_1 is already in varsubst, we
-   * have to synthesize v = t_2 */
-  else if (right != (BtorExp *) bucket->data.asPtr)
-    insert_unsynthesized_constraint (btor, exp);
-}
-
-static void
 insert_new_constraint (Btor *btor, BtorExp *exp)
 {
   BtorExp *left, *right, *exp_true, *real_exp;
@@ -9410,7 +9523,7 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
     {
       if (normalize_substitution (btor, exp, &left, &right))
       {
-        insert_varsubst_constraint (btor, exp, left, right);
+        insert_varsubst_constraint (btor, left, right);
         btor_release_exp (btor, left);
         btor_release_exp (btor, right);
       }
