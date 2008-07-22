@@ -7525,6 +7525,43 @@ set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
 }
 
 static void
+propagate_3vl_to_aigvec (Btor *btor, BtorExp *exp)
+{
+  BtorAIGVec *av;
+  BtorAIGMgr *amgr;
+  char *bits;
+  int i, len;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (exp->bits != NULL);
+  assert (exp->av != NULL);
+  assert (btor->rewrite_level > 1);
+
+  av   = exp->av;
+  len  = av->len;
+  bits = exp->bits;
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+
+  for (i = 0; i < len; i++)
+  {
+    assert (!(av->aigs[i] == BTOR_AIG_TRUE && bits[i] == '0'));
+    assert (!(av->aigs[i] == BTOR_AIG_FALSE && bits[i] == '1'));
+    assert (bits[i] == '0' || bits[i] == '1' || bits[i] == 'x');
+
+    if (!BTOR_IS_CONST_AIG (av->aigs[i]) && bits[i] != 'x')
+    {
+      btor_release_aig (amgr, av->aigs[i]);
+      if (bits[i] == '0')
+        av->aigs[i] = BTOR_AIG_FALSE;
+      else
+        av->aigs[i] = BTOR_AIG_TRUE;
+    }
+  }
+}
+
+static void
 synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 {
   BtorExpPtrStack exp_stack;
@@ -7710,6 +7747,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
                 cur->av = btor_concat_aigvec (avmgr, av0, av1);
                 break;
             }
+
             if (same_children_mem)
             {
               btor_release_delete_aigvec (avmgr, av0);
@@ -7767,6 +7805,8 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             break;
         }
+
+        if (btor->rewrite_level > 1) propagate_3vl_to_aigvec (btor, cur);
       }
     }
   } while (!BTOR_EMPTY_STACK (exp_stack));
