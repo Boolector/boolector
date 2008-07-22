@@ -497,6 +497,7 @@ btor_get_num_leading_zeros_const (BtorMemMgr *mm, const char *c)
   assert (c != NULL);
   assert (*c != '\0');
   assert (is_valid_const_3vl (c));
+  (void) mm;
 
   result = 0;
   for (p = c; *p == '0'; p++) result++;
@@ -514,6 +515,7 @@ btor_get_num_leading_ones_const (BtorMemMgr *mm, const char *c)
   assert (c != NULL);
   assert (*c != '\0');
   assert (is_valid_const_3vl (c));
+  (void) mm;
 
   result = 0;
   for (p = c; *p == '1'; p++) result++;
