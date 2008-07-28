@@ -34,86 +34,86 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  btor           = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor           = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
-  array = btor_array_exp (btor, num_bits, num_bits_index);
+    indices[i] = boolector_int (btor, i, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index);
   /* read at an arbitrary index (needed later): */
-  index       = btor_var_exp (btor, num_bits_index, "index");
-  old_element = btor_read_exp (btor, array, index);
+  index       = boolector_var (btor, num_bits_index, "index");
+  old_element = boolector_read (btor, array, index);
   /* bubble sort algorithm */
   for (i = 1; i < num_elements; i++)
   {
     for (j = 0; j < num_elements - i; j++)
     {
-      read1 = btor_read_exp (btor, array, indices[j]);
-      read2 = btor_read_exp (btor, array, indices[j + 1]);
-      ugt   = btor_ugt_exp (btor, read1, read2);
+      read1 = boolector_read (btor, array, indices[j]);
+      read2 = boolector_read (btor, array, indices[j + 1]);
+      ugt   = boolector_ugt (btor, read1, read2);
       /* swap ? */
-      cond1 = btor_cond_exp (btor, ugt, read2, read1);
-      cond2 = btor_cond_exp (btor, ugt, read1, read2);
-      temp  = btor_write_exp (btor, array, indices[j], cond1);
-      btor_release_exp (btor, array);
+      cond1 = boolector_cond (btor, ugt, read2, read1);
+      cond2 = boolector_cond (btor, ugt, read1, read2);
+      temp  = boolector_write (btor, array, indices[j], cond1);
+      boolector_release (btor, array);
       array = temp;
-      temp  = btor_write_exp (btor, array, indices[j + 1], cond2);
-      btor_release_exp (btor, array);
+      temp  = boolector_write (btor, array, indices[j + 1], cond2);
+      boolector_release (btor, array);
       array = temp;
-      btor_release_exp (btor, read1);
-      btor_release_exp (btor, read2);
-      btor_release_exp (btor, ugt);
-      btor_release_exp (btor, cond1);
-      btor_release_exp (btor, cond2);
+      boolector_release (btor, read1);
+      boolector_release (btor, read2);
+      boolector_release (btor, ugt);
+      boolector_release (btor, cond1);
+      boolector_release (btor, cond2);
     }
   }
   /* show that array is sorted */
-  sorted = btor_const_exp (btor, "1");
+  sorted = boolector_const (btor, "1");
   for (i = 0; i < num_elements - 1; i++)
   {
-    read1 = btor_read_exp (btor, array, indices[i]);
-    read2 = btor_read_exp (btor, array, indices[i + 1]);
-    ulte  = btor_ulte_exp (btor, read1, read2);
-    temp  = btor_and_exp (btor, sorted, ulte);
-    btor_release_exp (btor, sorted);
+    read1 = boolector_read (btor, array, indices[i]);
+    read2 = boolector_read (btor, array, indices[i + 1]);
+    ulte  = boolector_ulte (btor, read1, read2);
+    temp  = boolector_and (btor, sorted, ulte);
+    boolector_release (btor, sorted);
     sorted = temp;
-    btor_release_exp (btor, read1);
-    btor_release_exp (btor, read2);
-    btor_release_exp (btor, ulte);
+    boolector_release (btor, read1);
+    boolector_release (btor, read2);
+    boolector_release (btor, ulte);
   }
   /* It is not the case that there exists an element in
    * the initial array which does not occur in the sorted
    * array.*/
-  no_diff_element = btor_const_exp (btor, "1");
+  no_diff_element = boolector_const (btor, "1");
   for (i = 0; i < num_elements; i++)
   {
-    read1 = btor_read_exp (btor, array, indices[i]);
-    ne    = btor_ne_exp (btor, read1, old_element);
-    temp  = btor_and_exp (btor, no_diff_element, ne);
-    btor_release_exp (btor, no_diff_element);
+    read1 = boolector_read (btor, array, indices[i]);
+    ne    = boolector_ne (btor, read1, old_element);
+    temp  = boolector_and (btor, no_diff_element, ne);
+    boolector_release (btor, no_diff_element);
     no_diff_element = temp;
-    btor_release_exp (btor, read1);
-    btor_release_exp (btor, ne);
+    boolector_release (btor, read1);
+    boolector_release (btor, ne);
   }
-  temp = btor_not_exp (btor, no_diff_element);
-  btor_release_exp (btor, no_diff_element);
+  temp = boolector_not (btor, no_diff_element);
+  boolector_release (btor, no_diff_element);
   no_diff_element = temp;
   /* we conjunct this with the sorted predicate */
-  formula = btor_and_exp (btor, sorted, no_diff_element);
+  formula = boolector_and (btor, sorted, no_diff_element);
   /* we negate the formula and show that it is unsatisfiable */
-  temp = btor_not_exp (btor, formula);
-  btor_release_exp (btor, formula);
+  temp = boolector_not (btor, formula);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_dump_exp (btor, stdout, formula);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, sorted);
-  btor_release_exp (btor, no_diff_element);
-  btor_release_exp (btor, old_element);
-  btor_release_exp (btor, index);
-  btor_release_exp (btor, array);
-  btor_delete_btor (btor);
+  for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
+  boolector_release (btor, formula);
+  boolector_release (btor, sorted);
+  boolector_release (btor, no_diff_element);
+  boolector_release (btor, old_element);
+  boolector_release (btor, index);
+  boolector_release (btor, array);
+  boolector_delete (btor);
   free (indices);
   return 0;
 }

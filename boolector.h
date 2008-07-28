@@ -452,7 +452,7 @@ void boolector_add_assumption (Btor *btor, BtorExp *exp);
 
 /* Solves SAT instance.
  * The paramenter 'refinement_limit' sets the maximum number
- * of iterative refinments. Use INT_MAX as default. */
+ * of iterative refinements. Use INT_MAX as default. */
 int boolector_sat (Btor *btor, int refinement_limit);
 
 /* Builds current assignment string of expression (in the SAT case)

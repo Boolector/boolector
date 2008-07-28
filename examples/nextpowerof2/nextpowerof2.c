@@ -48,83 +48,83 @@ main (int argc, char **argv)
   powers                 = (BtorExp **) malloc (sizeof (BtorExp *) * num_bits);
   const_string           = (char *) malloc (sizeof (char) * (num_bits + 1));
   const_string[num_bits] = '\0';
-  btor                   = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor                   = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
   for (i = 0; i < num_bits; i++) const_string[i] = '0';
   for (i = 0; i < num_bits; i++)
   {
     const_string[num_bits - 1 - i] = '1';
-    powers[i]                      = btor_const_exp (btor, const_string);
+    powers[i]                      = boolector_const (btor, const_string);
     const_string[num_bits - 1 - i] = '0';
   }
-  one = btor_unsigned_to_exp (btor, 1, num_bits);
-  x   = btor_var_exp (btor, num_bits, "x");
+  one = boolector_unsigned_int (btor, 1, num_bits);
+  x   = boolector_var (btor, num_bits, "x");
 
-  next_power = btor_sub_exp (btor, x, one);
+  next_power = boolector_sub (btor, x, one);
   for (i = 1; i < num_bits; i++)
   {
-    cur_const = btor_unsigned_to_exp (btor, i, num_bits_log_2);
-    shift     = btor_sra_exp (btor, next_power, cur_const);
-    temp      = btor_or_exp (btor, next_power, shift);
-    btor_release_exp (btor, next_power);
+    cur_const = boolector_unsigned_int (btor, i, num_bits_log_2);
+    shift     = boolector_sra (btor, next_power, cur_const);
+    temp      = boolector_or (btor, next_power, shift);
+    boolector_release (btor, next_power);
     next_power = temp;
-    btor_release_exp (btor, shift);
-    btor_release_exp (btor, cur_const);
+    boolector_release (btor, shift);
+    boolector_release (btor, cur_const);
   }
-  temp = btor_add_exp (btor, next_power, one);
-  btor_release_exp (btor, next_power);
+  temp = boolector_add (btor, next_power, one);
+  boolector_release (btor, next_power);
   next_power = temp;
-  formula    = btor_false_exp (btor);
+  formula    = boolector_false (btor);
   for (i = 0; i < num_bits; i++)
   {
-    eq   = btor_eq_exp (btor, next_power, powers[i]);
-    temp = btor_or_exp (btor, formula, eq);
-    btor_release_exp (btor, formula);
+    eq   = boolector_eq (btor, next_power, powers[i]);
+    temp = boolector_or (btor, formula, eq);
+    boolector_release (btor, formula);
     formula = temp;
-    btor_release_exp (btor, eq);
+    boolector_release (btor, eq);
   }
 
   /* x must be less than next_power,
    * we take unsigned less than, as the biggest power of 2 is INT_MIN,
    * and therefore negative.
    */
-  lte  = btor_ulte_exp (btor, x, next_power);
-  temp = btor_and_exp (btor, lte, formula);
-  btor_release_exp (btor, formula);
+  lte  = boolector_ulte (btor, x, next_power);
+  temp = boolector_and (btor, lte, formula);
+  boolector_release (btor, formula);
   formula = temp;
 
   /* we show that x is greater than (next_power >> 1), hence next_power
    * is indeed the NEXT biggest power of 2 */
-  cur_const           = btor_unsigned_to_exp (btor, 1, num_bits_log_2);
-  next_smallest_power = btor_srl_exp (btor, next_power, cur_const);
-  gt                  = btor_sgt_exp (btor, x, next_smallest_power);
-  temp                = btor_and_exp (btor, gt, formula);
-  btor_release_exp (btor, formula);
+  cur_const           = boolector_unsigned_int (btor, 1, num_bits_log_2);
+  next_smallest_power = boolector_srl (btor, next_power, cur_const);
+  gt                  = boolector_sgt (btor, x, next_smallest_power);
+  temp                = boolector_and (btor, gt, formula);
+  boolector_release (btor, formula);
   formula = temp;
 
   /* we assume x > 0 */
-  gte  = btor_sgte_exp (btor, x, one);
-  temp = btor_implies_exp (btor, gte, formula);
-  btor_release_exp (btor, formula);
+  gte  = boolector_sgte (btor, x, one);
+  temp = boolector_implies (btor, gte, formula);
+  boolector_release (btor, formula);
   formula = temp;
 
   /* we show that negation is unsatisfiable to verify the algorithm */
-  temp = btor_not_exp (btor, formula);
-  btor_release_exp (btor, formula);
+  temp = boolector_not (btor, formula);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_dump_exp (btor, stdout, formula);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_bits; i++) btor_release_exp (btor, powers[i]);
-  btor_release_exp (btor, lte);
-  btor_release_exp (btor, gte);
-  btor_release_exp (btor, gt);
-  btor_release_exp (btor, cur_const);
-  btor_release_exp (btor, next_smallest_power);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, next_power);
-  btor_release_exp (btor, x);
-  btor_release_exp (btor, one);
-  btor_delete_btor (btor);
+  for (i = 0; i < num_bits; i++) boolector_release (btor, powers[i]);
+  boolector_release (btor, lte);
+  boolector_release (btor, gte);
+  boolector_release (btor, gt);
+  boolector_release (btor, cur_const);
+  boolector_release (btor, next_smallest_power);
+  boolector_release (btor, formula);
+  boolector_release (btor, next_power);
+  boolector_release (btor, x);
+  boolector_release (btor, one);
+  boolector_delete (btor);
   free (powers);
   free (const_string);
   return 0;

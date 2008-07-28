@@ -43,68 +43,68 @@ main (int argc, char **argv)
     printf ("Number of bits must be a power of two\n");
     return 1;
   }
-  btor = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
-  var       = btor_var_exp (btor, num_bits, "var");
-  var_shift = btor_copy_exp (btor, var);
-  zero      = btor_zero_exp (btor, num_bits);
-  one       = btor_one_exp (btor, num_bits);
-  onelog    = btor_one_exp (btor, btor_log_2_util (num_bits));
-  result1   = btor_true_exp (btor);
+  btor = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
+  var       = boolector_var (btor, num_bits, "var");
+  var_shift = boolector_copy (btor, var);
+  zero      = boolector_zero (btor, num_bits);
+  one       = boolector_one (btor, num_bits);
+  onelog    = boolector_one (btor, btor_log_2_util (num_bits));
+  result1   = boolector_true (btor);
   for (i = 0; i < num_bits - 2; i++)
   {
     /* x > 1 ? */
-    sgt = btor_sgt_exp (btor, var_shift, one);
+    sgt = boolector_sgt (btor, var_shift, one);
 
     /* x % 2 != 1 ? */
-    and = btor_and_exp (btor, var_shift, one);
-    ne  = btor_ne_exp (btor, and, one);
-    btor_release_exp (btor, and);
+    and = boolector_and (btor, var_shift, one);
+    ne  = boolector_ne (btor, and, one);
+    boolector_release (btor, and);
 
-    and = btor_and_exp (btor, result1, ne);
-    btor_release_exp (btor, ne);
+    and = boolector_and (btor, result1, ne);
+    boolector_release (btor, ne);
 
-    temp = btor_cond_exp (btor, sgt, and, result1);
-    btor_release_exp (btor, result1);
+    temp = boolector_cond (btor, sgt, and, result1);
+    boolector_release (btor, result1);
     result1 = temp;
 
-    btor_release_exp (btor, sgt);
-    btor_release_exp (btor, and);
+    boolector_release (btor, sgt);
+    boolector_release (btor, and);
 
     /* x >>= 1; */
-    temp = btor_srl_exp (btor, var_shift, onelog);
-    btor_release_exp (btor, var_shift);
+    temp = boolector_srl (btor, var_shift, onelog);
+    boolector_release (btor, var_shift);
     var_shift = temp;
   }
 
   /* (x & (x - 1)) == 0 */
-  temp    = btor_sub_exp (btor, var, one);
-  result2 = btor_and_exp (btor, var, temp);
-  btor_release_exp (btor, temp);
-  temp = btor_eq_exp (btor, result2, zero);
-  btor_release_exp (btor, result2);
+  temp    = boolector_sub (btor, var, one);
+  result2 = boolector_and (btor, var, temp);
+  boolector_release (btor, temp);
+  temp = boolector_eq (btor, result2, zero);
+  boolector_release (btor, result2);
   result2 = temp;
 
-  sgt     = btor_sgt_exp (btor, var, zero);
-  eq      = btor_eq_exp (btor, result1, result2);
-  formula = btor_implies_exp (btor, sgt, eq);
-  temp    = btor_not_exp (btor, formula);
-  btor_release_exp (btor, formula);
+  sgt     = boolector_sgt (btor, var, zero);
+  eq      = boolector_eq (btor, result1, result2);
+  formula = boolector_implies (btor, sgt, eq);
+  temp    = boolector_not (btor, formula);
+  boolector_release (btor, formula);
   formula = temp;
 
-  btor_dump_exp (btor, stdout, formula);
+  boolector_dump_btor (btor, stdout, formula);
 
   /* clean up */
-  btor_release_exp (btor, sgt);
-  btor_release_exp (btor, eq);
-  btor_release_exp (btor, result1);
-  btor_release_exp (btor, result2);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, var);
-  btor_release_exp (btor, var_shift);
-  btor_release_exp (btor, zero);
-  btor_release_exp (btor, one);
-  btor_release_exp (btor, onelog);
-  btor_delete_btor (btor);
+  boolector_release (btor, sgt);
+  boolector_release (btor, eq);
+  boolector_release (btor, result1);
+  boolector_release (btor, result2);
+  boolector_release (btor, formula);
+  boolector_release (btor, var);
+  boolector_release (btor, var_shift);
+  boolector_release (btor, zero);
+  boolector_release (btor, one);
+  boolector_release (btor, onelog);
+  boolector_delete (btor);
   return 0;
 }

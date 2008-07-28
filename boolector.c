@@ -1168,6 +1168,15 @@ boolector_add_assumption (Btor *btor, BtorExp *exp)
   btor_add_assumption_exp (btor, exp);
 }
 
+int
+boolector_sat (Btor *btor, int refinement_limit)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (refinement_limit < 0,
+                        "'refinement_limit' must not be negative");
+  return btor_sat_btor (btor, refinement_limit);
+}
+
 const char *
 boolector_assignment (Btor *btor, BtorExp *exp)
 {

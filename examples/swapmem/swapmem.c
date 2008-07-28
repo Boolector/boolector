@@ -19,9 +19,9 @@ swap_with_xor (Btor *btor,
   assert (start1 != NULL);
   assert (start2 != NULL);
   result = mem;
-  pos1   = btor_copy_exp (btor, start1);
-  pos2   = btor_copy_exp (btor, start2);
-  one    = btor_one_exp (btor, 32);
+  pos1   = boolector_copy (btor, start1);
+  pos2   = boolector_copy (btor, start2);
+  one    = boolector_one (btor, 32);
   for (i = 0; i < num_elements; i++)
   {
     /* we can swap two elements without a temporay variable
@@ -30,43 +30,43 @@ swap_with_xor (Btor *btor,
      * y ^= x
      * x ^= y
      */
-    x    = btor_read_exp (btor, result, pos1);
-    y    = btor_read_exp (btor, result, pos2);
-    xor  = btor_xor_exp (btor, x, y);
-    temp = btor_write_exp (btor, result, pos1, xor);
-    btor_release_exp (btor, result);
+    x    = boolector_read (btor, result, pos1);
+    y    = boolector_read (btor, result, pos2);
+    xor  = boolector_xor (btor, x, y);
+    temp = boolector_write (btor, result, pos1, xor);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, x);
-    btor_release_exp (btor, xor);
+    boolector_release (btor, x);
+    boolector_release (btor, xor);
 
-    x    = btor_read_exp (btor, result, pos1);
-    xor  = btor_xor_exp (btor, x, y);
-    temp = btor_write_exp (btor, result, pos2, xor);
-    btor_release_exp (btor, result);
+    x    = boolector_read (btor, result, pos1);
+    xor  = boolector_xor (btor, x, y);
+    temp = boolector_write (btor, result, pos2, xor);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, y);
-    btor_release_exp (btor, xor);
+    boolector_release (btor, y);
+    boolector_release (btor, xor);
 
-    y    = btor_read_exp (btor, result, pos2);
-    xor  = btor_xor_exp (btor, x, y);
-    temp = btor_write_exp (btor, result, pos1, xor);
-    btor_release_exp (btor, result);
+    y    = boolector_read (btor, result, pos2);
+    xor  = boolector_xor (btor, x, y);
+    temp = boolector_write (btor, result, pos1, xor);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, x);
-    btor_release_exp (btor, y);
-    btor_release_exp (btor, xor);
+    boolector_release (btor, x);
+    boolector_release (btor, y);
+    boolector_release (btor, xor);
 
-    temp = btor_add_exp (btor, pos1, one);
-    btor_release_exp (btor, pos1);
+    temp = boolector_add (btor, pos1, one);
+    boolector_release (btor, pos1);
     pos1 = temp;
 
-    temp = btor_add_exp (btor, pos2, one);
-    btor_release_exp (btor, pos2);
+    temp = boolector_add (btor, pos2, one);
+    boolector_release (btor, pos2);
     pos2 = temp;
   }
-  btor_release_exp (btor, one);
-  btor_release_exp (btor, pos1);
-  btor_release_exp (btor, pos2);
+  boolector_release (btor, one);
+  boolector_release (btor, pos1);
+  boolector_release (btor, pos2);
   return result;
 }
 
@@ -98,73 +98,73 @@ main (int argc, char **argv)
   else
     overlap = 0;
 
-  btor = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
 
-  mem      = btor_array_exp (btor, 8, 32);
-  orig_mem = btor_copy_exp (btor, mem);
-  start1   = btor_var_exp (btor, 32, "start1");
-  start2   = btor_var_exp (btor, 32, "start2");
+  mem      = boolector_array (btor, 8, 32);
+  orig_mem = boolector_copy (btor, mem);
+  start1   = boolector_var (btor, 32, "start1");
+  start2   = boolector_var (btor, 32, "start2");
   mem      = swap_with_xor (btor, mem, num_elements, start1, start2);
   mem      = swap_with_xor (btor, mem, num_elements, start1, start2);
   /* memory has to be equal */
   /* we show this by showing that the negation is unsat */
-  formula = btor_eq_exp (btor, mem, orig_mem);
+  formula = boolector_eq (btor, mem, orig_mem);
 
   if (!overlap)
   {
     /* we do not allow that two locations overlap */
-    num_elements_exp = btor_unsigned_to_exp (btor, num_elements, 32);
+    num_elements_exp = boolector_unsigned_int (btor, num_elements, 32);
 
-    add1       = btor_add_exp (btor, start1, num_elements_exp);
-    ugte1      = btor_ugte_exp (btor, start2, add1);
-    uaddo1     = btor_uaddo_exp (btor, start1, num_elements_exp);
-    not_uaddo1 = btor_not_exp (btor, uaddo1);
+    add1       = boolector_add (btor, start1, num_elements_exp);
+    ugte1      = boolector_ugte (btor, start2, add1);
+    uaddo1     = boolector_uaddo (btor, start1, num_elements_exp);
+    not_uaddo1 = boolector_not (btor, uaddo1);
 
-    add2       = btor_add_exp (btor, start2, num_elements_exp);
-    ugte2      = btor_ugte_exp (btor, start1, add2);
-    uaddo2     = btor_uaddo_exp (btor, start2, num_elements_exp);
-    not_uaddo2 = btor_not_exp (btor, uaddo2);
+    add2       = boolector_add (btor, start2, num_elements_exp);
+    ugte2      = boolector_ugte (btor, start1, add2);
+    uaddo2     = boolector_uaddo (btor, start2, num_elements_exp);
+    not_uaddo2 = boolector_not (btor, uaddo2);
 
-    premisse_part1 = btor_and_exp (btor, ugte1, not_uaddo1);
-    temp           = btor_and_exp (btor, premisse_part1, not_uaddo2);
-    btor_release_exp (btor, premisse_part1);
+    premisse_part1 = boolector_and (btor, ugte1, not_uaddo1);
+    temp           = boolector_and (btor, premisse_part1, not_uaddo2);
+    boolector_release (btor, premisse_part1);
     premisse_part1 = temp;
 
-    premisse_part2 = btor_and_exp (btor, ugte2, not_uaddo2);
-    temp           = btor_and_exp (btor, premisse_part2, not_uaddo1);
-    btor_release_exp (btor, premisse_part2);
+    premisse_part2 = boolector_and (btor, ugte2, not_uaddo2);
+    temp           = boolector_and (btor, premisse_part2, not_uaddo1);
+    boolector_release (btor, premisse_part2);
     premisse_part2 = temp;
 
-    or   = btor_or_exp (btor, premisse_part1, premisse_part2);
-    temp = btor_implies_exp (btor, or, formula);
-    btor_release_exp (btor, formula);
+    or   = boolector_or (btor, premisse_part1, premisse_part2);
+    temp = boolector_implies (btor, or, formula);
+    boolector_release (btor, formula);
     formula = temp;
 
-    btor_release_exp (btor, num_elements_exp);
-    btor_release_exp (btor, ugte1);
-    btor_release_exp (btor, ugte2);
-    btor_release_exp (btor, add1);
-    btor_release_exp (btor, add2);
-    btor_release_exp (btor, or);
-    btor_release_exp (btor, uaddo1);
-    btor_release_exp (btor, uaddo2);
-    btor_release_exp (btor, not_uaddo1);
-    btor_release_exp (btor, not_uaddo2);
-    btor_release_exp (btor, premisse_part1);
-    btor_release_exp (btor, premisse_part2);
+    boolector_release (btor, num_elements_exp);
+    boolector_release (btor, ugte1);
+    boolector_release (btor, ugte2);
+    boolector_release (btor, add1);
+    boolector_release (btor, add2);
+    boolector_release (btor, or);
+    boolector_release (btor, uaddo1);
+    boolector_release (btor, uaddo2);
+    boolector_release (btor, not_uaddo1);
+    boolector_release (btor, not_uaddo2);
+    boolector_release (btor, premisse_part1);
+    boolector_release (btor, premisse_part2);
   }
 
-  temp = btor_not_exp (btor, formula);
-  btor_release_exp (btor, formula);
+  temp = boolector_not (btor, formula);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_dump_exp (btor, stdout, formula);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, mem);
-  btor_release_exp (btor, start1);
-  btor_release_exp (btor, start2);
-  btor_release_exp (btor, orig_mem);
-  btor_delete_btor (btor);
+  boolector_release (btor, formula);
+  boolector_release (btor, mem);
+  boolector_release (btor, start1);
+  boolector_release (btor, start2);
+  boolector_release (btor, orig_mem);
+  boolector_delete (btor);
   return 0;
 }

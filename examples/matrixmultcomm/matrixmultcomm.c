@@ -22,35 +22,35 @@ matrix_mult (Btor *btor,
   assert (size > 1);
   assert (num_bits >= 1);
   assert (num_bits_index >= 1);
-  result = btor_array_exp (btor, num_bits, num_bits_index);
+  result = boolector_array (btor, num_bits, num_bits_index);
   /* initialize result matrix with zeroes */
-  zero = btor_zero_exp (btor, num_bits);
+  zero = boolector_zero (btor, num_bits);
   for (i = 0; i < size * size; i++)
   {
-    temp = btor_write_exp (btor, result, indices[i], zero);
-    btor_release_exp (btor, result);
+    temp = boolector_write (btor, result, indices[i], zero);
+    boolector_release (btor, result);
     result = temp;
   }
-  btor_release_exp (btor, zero);
+  boolector_release (btor, zero);
   /* matrix multiplication */
   for (i = 0; i < size; i++)
     for (j = 0; j < size; j++)
       for (k = 0; k < size; k++)
       {
         /* result[i][j] += m1[i][k] * m2[k][j]; */
-        read1 = btor_read_exp (btor, result, indices[i * size + j]);
-        read2 = btor_read_exp (btor, m1, indices[i * size + k]);
-        read3 = btor_read_exp (btor, m2, indices[k * size + j]);
-        mult  = btor_mul_exp (btor, read2, read3);
-        add   = btor_add_exp (btor, read1, mult);
-        temp  = btor_write_exp (btor, result, indices[i * size + j], add);
-        btor_release_exp (btor, result);
+        read1 = boolector_read (btor, result, indices[i * size + j]);
+        read2 = boolector_read (btor, m1, indices[i * size + k]);
+        read3 = boolector_read (btor, m2, indices[k * size + j]);
+        mult  = boolector_mul (btor, read2, read3);
+        add   = boolector_add (btor, read1, mult);
+        temp  = boolector_write (btor, result, indices[i * size + j], add);
+        boolector_release (btor, result);
         result = temp;
-        btor_release_exp (btor, read1);
-        btor_release_exp (btor, read2);
-        btor_release_exp (btor, read3);
-        btor_release_exp (btor, mult);
-        btor_release_exp (btor, add);
+        boolector_release (btor, read1);
+        boolector_release (btor, read2);
+        boolector_release (btor, read3);
+        boolector_release (btor, mult);
+        boolector_release (btor, add);
       }
   return result;
 }
@@ -80,30 +80,30 @@ main (int argc, char **argv)
   }
   num_elements   = size * size;
   num_bits_index = btor_log_2_util (btor_next_power_of_2_util (num_elements));
-  btor           = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor           = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
-  A       = btor_array_exp (btor, num_bits, num_bits_index);
-  B       = btor_array_exp (btor, num_bits, num_bits_index);
+    indices[i] = boolector_int (btor, i, num_bits_index);
+  A       = boolector_array (btor, num_bits, num_bits_index);
+  B       = boolector_array (btor, num_bits, num_bits_index);
   A_x_B   = matrix_mult (btor, A, B, size, num_bits, num_bits_index);
   B_x_A   = matrix_mult (btor, B, A, size, num_bits, num_bits_index);
-  formula = btor_eq_exp (btor, A_x_B, B_x_A);
+  formula = boolector_eq (btor, A_x_B, B_x_A);
   /* we negate the formula and try to show that it is unsatisfiable
    * formula is SAT as matrix multiplication is not commutative in general */
-  temp = btor_not_exp (btor, formula);
-  btor_release_exp (btor, formula);
+  temp = boolector_not (btor, formula);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_dump_exp (btor, stdout, formula);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, A);
-  btor_release_exp (btor, B);
-  btor_release_exp (btor, A_x_B);
-  btor_release_exp (btor, B_x_A);
-  btor_delete_btor (btor);
+  for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
+  boolector_release (btor, formula);
+  boolector_release (btor, A);
+  boolector_release (btor, B);
+  boolector_release (btor, A_x_B);
+  boolector_release (btor, B_x_A);
+  boolector_delete (btor);
   free (indices);
   return 0;
 }

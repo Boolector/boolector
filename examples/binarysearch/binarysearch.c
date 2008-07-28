@@ -36,94 +36,94 @@ main (int argc, char **argv)
   num_bits_index = btor_log_2_util (num_elements);
   /* binary search needs log2(size(array)) + 1 iterations in the worst case */
   num_iterations = num_bits_index + 1;
-  btor           = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor           = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
-  array = btor_array_exp (btor, num_bits, num_bits_index);
+    indices[i] = boolector_int (btor, i, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index);
   /* we write arbitrary search value into array at an arbitrary index */
-  val   = btor_var_exp (btor, num_bits, "search_val");
-  index = btor_var_exp (btor, num_bits_index, "search_index");
-  temp  = btor_write_exp (btor, array, index, val);
-  btor_release_exp (btor, array);
+  val   = boolector_var (btor, num_bits, "search_val");
+  index = boolector_var (btor, num_bits_index, "search_index");
+  temp  = boolector_write (btor, array, index, val);
+  boolector_release (btor, array);
   array = temp;
   /* we assume that array is sorted */
-  sorted = btor_const_exp (btor, "1");
+  sorted = boolector_const (btor, "1");
   for (i = 0; i < num_elements - 1; i++)
   {
-    read1 = btor_read_exp (btor, array, indices[i]);
-    read2 = btor_read_exp (btor, array, indices[i + 1]);
-    ulte  = btor_ulte_exp (btor, read1, read2);
-    temp  = btor_and_exp (btor, sorted, ulte);
-    btor_release_exp (btor, sorted);
+    read1 = boolector_read (btor, array, indices[i]);
+    read2 = boolector_read (btor, array, indices[i + 1]);
+    ulte  = boolector_ulte (btor, read1, read2);
+    temp  = boolector_and (btor, sorted, ulte);
+    boolector_release (btor, sorted);
     sorted = temp;
-    btor_release_exp (btor, read1);
-    btor_release_exp (btor, read2);
-    btor_release_exp (btor, ulte);
+    boolector_release (btor, read1);
+    boolector_release (btor, read2);
+    boolector_release (btor, ulte);
   }
   /* binary search algorithm */
-  low   = btor_int_to_exp (btor, 0, num_bits_index);
-  high  = btor_int_to_exp (btor, num_elements - 1, num_bits_index);
-  two   = btor_int_to_exp (btor, 2, num_bits_index);
-  one   = btor_int_to_exp (btor, 1, num_bits_index);
-  found = btor_const_exp (btor, "0");
+  low   = boolector_int (btor, 0, num_bits_index);
+  high  = boolector_int (btor, num_elements - 1, num_bits_index);
+  two   = boolector_int (btor, 2, num_bits_index);
+  one   = boolector_int (btor, 1, num_bits_index);
+  found = boolector_const (btor, "0");
   for (i = 0; i < num_iterations; i++)
   {
     /* compute mid */
-    sub  = btor_sub_exp (btor, high, low);
-    udiv = btor_udiv_exp (btor, sub, two);
-    mid  = btor_add_exp (btor, low, udiv);
+    sub  = boolector_sub (btor, high, low);
+    udiv = boolector_udiv (btor, sub, two);
+    mid  = boolector_add (btor, low, udiv);
     /* read mid element */
-    read1 = btor_read_exp (btor, array, mid);
+    read1 = boolector_read (btor, array, mid);
     /* compare element with search val */
-    eq  = btor_eq_exp (btor, val, read1);
-    ult = btor_ult_exp (btor, val, read1);
-    ugt = btor_ugt_exp (btor, val, read1);
+    eq  = boolector_eq (btor, val, read1);
+    ult = boolector_ult (btor, val, read1);
+    ugt = boolector_ugt (btor, val, read1);
     /* found element ? */
-    temp = btor_or_exp (btor, found, eq);
-    btor_release_exp (btor, found);
+    temp = boolector_or (btor, found, eq);
+    boolector_release (btor, found);
     found = temp;
     /* adapt high (if necessary) */
-    dec  = btor_sub_exp (btor, mid, one);
-    temp = btor_cond_exp (btor, ult, dec, high);
-    btor_release_exp (btor, high);
+    dec  = boolector_sub (btor, mid, one);
+    temp = boolector_cond (btor, ult, dec, high);
+    boolector_release (btor, high);
     high = temp;
     /* adapt low (if necessary) */
-    inc  = btor_add_exp (btor, mid, one);
-    temp = btor_cond_exp (btor, ugt, inc, low);
-    btor_release_exp (btor, low);
+    inc  = boolector_add (btor, mid, one);
+    temp = boolector_cond (btor, ugt, inc, low);
+    boolector_release (btor, low);
     low = temp;
-    btor_release_exp (btor, sub);
-    btor_release_exp (btor, udiv);
-    btor_release_exp (btor, mid);
-    btor_release_exp (btor, eq);
-    btor_release_exp (btor, ult);
-    btor_release_exp (btor, ugt);
-    btor_release_exp (btor, read1);
-    btor_release_exp (btor, inc);
-    btor_release_exp (btor, dec);
+    boolector_release (btor, sub);
+    boolector_release (btor, udiv);
+    boolector_release (btor, mid);
+    boolector_release (btor, eq);
+    boolector_release (btor, ult);
+    boolector_release (btor, ugt);
+    boolector_release (btor, read1);
+    boolector_release (btor, inc);
+    boolector_release (btor, dec);
   }
   /* the array is sorted implies that we have found the element */
-  formula = btor_implies_exp (btor, sorted, found);
+  formula = boolector_implies (btor, sorted, found);
   /* we negate the formula and show that it is unsatisfiable */
-  temp = btor_not_exp (btor, formula);
-  btor_release_exp (btor, formula);
+  temp = boolector_not (btor, formula);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_dump_exp (btor, stdout, formula);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, index);
-  btor_release_exp (btor, val);
-  btor_release_exp (btor, found);
-  btor_release_exp (btor, array);
-  btor_release_exp (btor, sorted);
-  btor_release_exp (btor, low);
-  btor_release_exp (btor, high);
-  btor_release_exp (btor, two);
-  btor_release_exp (btor, one);
-  btor_delete_btor (btor);
+  for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
+  boolector_release (btor, formula);
+  boolector_release (btor, index);
+  boolector_release (btor, val);
+  boolector_release (btor, found);
+  boolector_release (btor, array);
+  boolector_release (btor, sorted);
+  boolector_release (btor, low);
+  boolector_release (btor, high);
+  boolector_release (btor, two);
+  boolector_release (btor, one);
+  boolector_delete (btor);
   free (indices);
   return 0;
 }

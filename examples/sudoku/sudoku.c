@@ -24,20 +24,20 @@ generate_value_constraints (Btor *btor, BtorExp *matrix)
   BtorExp *lte, *gt, *and, *result, *cur, *temp;
   assert (btor != NULL);
   assert (matrix != NULL);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
   {
-    cur  = btor_read_exp (btor, matrix, indices[i]);
-    gt   = btor_ugt_exp (btor, cur, values[0]);
-    lte  = btor_ulte_exp (btor, cur, values[9]);
-    and  = btor_and_exp (btor, lte, gt);
-    temp = btor_and_exp (btor, result, and);
-    btor_release_exp (btor, result);
+    cur  = boolector_read (btor, matrix, indices[i]);
+    gt   = boolector_ugt (btor, cur, values[0]);
+    lte  = boolector_ulte (btor, cur, values[9]);
+    and  = boolector_and (btor, lte, gt);
+    temp = boolector_and (btor, result, and);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, cur);
-    btor_release_exp (btor, gt);
-    btor_release_exp (btor, lte);
-    btor_release_exp (btor, and);
+    boolector_release (btor, cur);
+    boolector_release (btor, gt);
+    boolector_release (btor, lte);
+    boolector_release (btor, and);
   }
   return result;
 }
@@ -51,21 +51,21 @@ generate_row_constraint (Btor *btor, BtorExp *matrix, int line)
   assert (matrix != NULL);
   assert (line >= 0);
   assert (line < SUDOKU_SIZE);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_SIZE; i++)
   {
-    read1 = btor_read_exp (btor, matrix, indices[line * SUDOKU_SIZE + i]);
+    read1 = boolector_read (btor, matrix, indices[line * SUDOKU_SIZE + i]);
     for (j = i + 1; j < SUDOKU_SIZE; j++)
     {
-      read2 = btor_read_exp (btor, matrix, indices[line * SUDOKU_SIZE + j]);
-      ne    = btor_ne_exp (btor, read1, read2);
-      temp  = btor_and_exp (btor, result, ne);
-      btor_release_exp (btor, result);
+      read2 = boolector_read (btor, matrix, indices[line * SUDOKU_SIZE + j]);
+      ne    = boolector_ne (btor, read1, read2);
+      temp  = boolector_and (btor, result, ne);
+      boolector_release (btor, result);
       result = temp;
-      btor_release_exp (btor, ne);
-      btor_release_exp (btor, read2);
+      boolector_release (btor, ne);
+      boolector_release (btor, read2);
     }
-    btor_release_exp (btor, read1);
+    boolector_release (btor, read1);
   }
   return result;
 }
@@ -77,14 +77,14 @@ generate_row_constraints (Btor *btor, BtorExp *matrix)
   BtorExp *result, *temp, *constraint;
   assert (btor != NULL);
   assert (matrix != NULL);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_SIZE; i++)
   {
     constraint = generate_row_constraint (btor, matrix, i);
-    temp       = btor_and_exp (btor, result, constraint);
-    btor_release_exp (btor, result);
+    temp       = boolector_and (btor, result, constraint);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, constraint);
+    boolector_release (btor, constraint);
   }
   return result;
 }
@@ -98,21 +98,21 @@ generate_col_constraint (Btor *btor, BtorExp *matrix, int col)
   assert (matrix != NULL);
   assert (col >= 0);
   assert (col < SUDOKU_SIZE);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_SIZE; i++)
   {
-    read1 = btor_read_exp (btor, matrix, indices[i * SUDOKU_SIZE + col]);
+    read1 = boolector_read (btor, matrix, indices[i * SUDOKU_SIZE + col]);
     for (j = i + 1; j < SUDOKU_SIZE; j++)
     {
-      read2 = btor_read_exp (btor, matrix, indices[j * SUDOKU_SIZE + col]);
-      ne    = btor_ne_exp (btor, read1, read2);
-      temp  = btor_and_exp (btor, result, ne);
-      btor_release_exp (btor, result);
+      read2 = boolector_read (btor, matrix, indices[j * SUDOKU_SIZE + col]);
+      ne    = boolector_ne (btor, read1, read2);
+      temp  = boolector_and (btor, result, ne);
+      boolector_release (btor, result);
       result = temp;
-      btor_release_exp (btor, ne);
-      btor_release_exp (btor, read2);
+      boolector_release (btor, ne);
+      boolector_release (btor, read2);
     }
-    btor_release_exp (btor, read1);
+    boolector_release (btor, read1);
   }
   return result;
 }
@@ -124,14 +124,14 @@ generate_col_constraints (Btor *btor, BtorExp *matrix)
   BtorExp *result, *temp, *constraint;
   assert (btor != NULL);
   assert (matrix != NULL);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_SIZE; i++)
   {
     constraint = generate_col_constraint (btor, matrix, i);
-    temp       = btor_and_exp (btor, result, constraint);
-    btor_release_exp (btor, result);
+    temp       = boolector_and (btor, result, constraint);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, constraint);
+    boolector_release (btor, constraint);
   }
   return result;
 }
@@ -163,21 +163,21 @@ generate_square_constraint (Btor *btor, BtorExp *matrix, int line, int col)
   }
   assert (counter == SUDOKU_SIZE);
 
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_SIZE; i++)
   {
-    read1 = btor_read_exp (btor, matrix, indices[pos[i]]);
+    read1 = boolector_read (btor, matrix, indices[pos[i]]);
     for (j = i + 1; j < SUDOKU_SIZE; j++)
     {
-      read2 = btor_read_exp (btor, matrix, indices[pos[j]]);
-      ne    = btor_ne_exp (btor, read1, read2);
-      temp  = btor_and_exp (btor, result, ne);
-      btor_release_exp (btor, result);
+      read2 = boolector_read (btor, matrix, indices[pos[j]]);
+      ne    = boolector_ne (btor, read1, read2);
+      temp  = boolector_and (btor, result, ne);
+      boolector_release (btor, result);
       result = temp;
-      btor_release_exp (btor, ne);
-      btor_release_exp (btor, read2);
+      boolector_release (btor, ne);
+      boolector_release (btor, read2);
     }
-    btor_release_exp (btor, read1);
+    boolector_release (btor, read1);
   }
   return result;
 }
@@ -189,16 +189,16 @@ generate_square_constraints (Btor *btor, BtorExp *matrix)
   BtorExp *result, *temp, *constraint;
   assert (btor != NULL);
   assert (matrix != NULL);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_SIZE; i += SUDOKU_SIZE_SQRT)
   {
     for (j = 0; j < SUDOKU_SIZE; j += SUDOKU_SIZE_SQRT)
     {
       constraint = generate_square_constraint (btor, matrix, i, j);
-      temp       = btor_and_exp (btor, result, constraint);
-      btor_release_exp (btor, result);
+      temp       = boolector_and (btor, result, constraint);
+      boolector_release (btor, result);
       result = temp;
-      btor_release_exp (btor, constraint);
+      boolector_release (btor, constraint);
     }
   }
   return result;
@@ -211,16 +211,16 @@ generate_var_read_relations (Btor *btor, BtorExp *matrix)
   BtorExp *cur, *eq, *result, *temp;
   assert (btor != NULL);
   assert (matrix != NULL);
-  result = btor_true_exp (btor);
+  result = boolector_true (btor);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
   {
-    cur  = btor_read_exp (btor, matrix, indices[i]);
-    eq   = btor_eq_exp (btor, cur, vars[i]);
-    temp = btor_and_exp (btor, result, eq);
-    btor_release_exp (btor, result);
+    cur  = boolector_read (btor, matrix, indices[i]);
+    eq   = boolector_eq (btor, cur, vars[i]);
+    temp = boolector_and (btor, result, eq);
+    boolector_release (btor, result);
     result = temp;
-    btor_release_exp (btor, cur);
-    btor_release_exp (btor, eq);
+    boolector_release (btor, cur);
+    boolector_release (btor, eq);
   }
   return result;
 }
@@ -230,7 +230,8 @@ main (int argc, char **argv)
 {
   int i, error, cur, sat_result, counter, line_counter, dump_formula;
   char varname[6];
-  char *assignment, *assignment_dec;
+  const char *assignment;
+  char *assignment_dec;
   Btor *btor;
   BtorMemMgr *mm;
   BtorExp *matrix, *temp, *formula, *constraint;
@@ -253,29 +254,27 @@ main (int argc, char **argv)
   /* init stuff */
   error = 0;
 
-  btor = btor_new_btor ();
-  mm   = btor_get_mem_mgr_btor (btor);
-  if (dump_formula)
-    btor_set_rewrite_level_btor (btor, 0);
-  else
-    btor_set_rewrite_level_btor (btor, 1); /* no substitution */
+  btor = boolector_new ();
+  mm   = btor->mm;
+
+  if (dump_formula) boolector_set_rewrite_level (btor, 0);
 
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
-    indices[i] = btor_unsigned_to_exp (btor, i, SUDOKU_NUM_BITS_INDEX);
+    indices[i] = boolector_unsigned_int (btor, i, SUDOKU_NUM_BITS_INDEX);
 
   values = (BtorExp **) malloc (sizeof (BtorExp *) * 10);
   for (i = 0; i <= 9; i++)
-    values[i] = btor_unsigned_to_exp (btor, i, SUDOKU_NUM_BITS_VAL);
+    values[i] = boolector_unsigned_int (btor, i, SUDOKU_NUM_BITS_VAL);
 
   vars = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
   {
     sprintf (varname, "var%d", i);
-    vars[i] = btor_var_exp (btor, SUDOKU_NUM_BITS_VAL, varname);
+    vars[i] = boolector_var (btor, SUDOKU_NUM_BITS_VAL, varname);
   }
 
-  matrix = btor_array_exp (btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX);
+  matrix = boolector_array (btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX);
 
   /* read sudoku file */
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
@@ -295,8 +294,8 @@ main (int argc, char **argv)
     assert (cur == 'x' || (cur > '0' && cur <= '9'));
     if (cur != 'x')
     {
-      temp = btor_write_exp (btor, matrix, indices[i], values[cur - 48]);
-      btor_release_exp (btor, matrix);
+      temp = boolector_write (btor, matrix, indices[i], values[cur - 48]);
+      boolector_release (btor, matrix);
       matrix = temp;
     }
   }
@@ -308,40 +307,40 @@ main (int argc, char **argv)
 
   /* add row constraints */
   constraint = generate_row_constraints (btor, matrix);
-  temp       = btor_and_exp (btor, formula, constraint);
-  btor_release_exp (btor, formula);
+  temp       = boolector_and (btor, formula, constraint);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_release_exp (btor, constraint);
+  boolector_release (btor, constraint);
 
   /* generate col constraints */
   constraint = generate_col_constraints (btor, matrix);
-  temp       = btor_and_exp (btor, formula, constraint);
-  btor_release_exp (btor, formula);
+  temp       = boolector_and (btor, formula, constraint);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_release_exp (btor, constraint);
+  boolector_release (btor, constraint);
 
   /* generate square constraints */
   constraint = generate_square_constraints (btor, matrix);
-  temp       = btor_and_exp (btor, formula, constraint);
-  btor_release_exp (btor, formula);
+  temp       = boolector_and (btor, formula, constraint);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_release_exp (btor, constraint);
+  boolector_release (btor, constraint);
 
   /* generate relational encoding of variables */
   constraint = generate_var_read_relations (btor, matrix);
-  temp       = btor_and_exp (btor, formula, constraint);
-  btor_release_exp (btor, formula);
+  temp       = boolector_and (btor, formula, constraint);
+  boolector_release (btor, formula);
   formula = temp;
-  btor_release_exp (btor, constraint);
+  boolector_release (btor, constraint);
 
   if (dump_formula)
-    btor_dump_exp (btor, stdout, formula);
+    boolector_dump_btor (btor, stdout, formula);
   else
   {
     /* add formula */
-    btor_add_constraint_exp (btor, formula);
+    boolector_add_constraint (btor, formula);
 
-    sat_result = btor_sat_btor (btor, INT_MAX);
+    sat_result = boolector_sat (btor, INT_MAX);
     if (sat_result == BTOR_UNSAT)
       printf ("Sudoku instance is not solvable\n");
     else
@@ -351,7 +350,7 @@ main (int argc, char **argv)
       line_counter = 0;
       for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
       {
-        assignment     = btor_assignment_exp (btor, vars[i]);
+        assignment     = boolector_assignment (btor, vars[i]);
         assignment_dec = btor_const_to_decimal (mm, assignment);
         printf ("%s", assignment_dec);
         counter++;
@@ -367,7 +366,6 @@ main (int argc, char **argv)
           printf ("\n");
           line_counter = 0;
         }
-        btor_freestr (mm, assignment);
         btor_freestr (mm, assignment_dec);
       }
     }
@@ -375,18 +373,18 @@ main (int argc, char **argv)
 
   /* clean up */
 BTOR_SUDOKU_CLEANUP:
-  for (i = 0; i <= SUDOKU_SIZE; i++) btor_release_exp (btor, values[i]);
+  for (i = 0; i <= SUDOKU_SIZE; i++) boolector_release (btor, values[i]);
   free (values);
 
-  for (i = 0; i < SUDOKU_NUM_FIELDS; i++) btor_release_exp (btor, indices[i]);
+  for (i = 0; i < SUDOKU_NUM_FIELDS; i++) boolector_release (btor, indices[i]);
   free (indices);
 
-  for (i = 0; i < SUDOKU_NUM_FIELDS; i++) btor_release_exp (btor, vars[i]);
+  for (i = 0; i < SUDOKU_NUM_FIELDS; i++) boolector_release (btor, vars[i]);
   free (vars);
 
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, matrix);
-  btor_delete_btor (btor);
+  boolector_release (btor, formula);
+  boolector_release (btor, matrix);
+  boolector_delete (btor);
   if (error) return EXIT_FAILURE;
   return EXIT_SUCCESS;
 }

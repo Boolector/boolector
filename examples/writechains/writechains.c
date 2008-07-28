@@ -4,16 +4,16 @@
 #include <string.h>
 
 static int
-isnum (const char* str)
+isnum (const char *str)
 {
-  const char* p;
+  const char *p;
   for (p = str; *p; p++)
     if (!isdigit (*p)) return 0;
   return 1;
 }
 
 int
-main (int argc, char** argv)
+main (int argc, char **argv)
 {
   int i, j, n = -1, *v, first, second, idx, c[4], aligned = 0, assumption;
 

@@ -32,39 +32,39 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  btor           = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor           = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
-  array = btor_array_exp (btor, num_bits, num_bits_index);
+    indices[i] = boolector_int (btor, i, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index);
   /* current maximum is first element of array */
-  max = btor_read_exp (btor, array, indices[0]);
+  max = boolector_read (btor, array, indices[0]);
   /* compute maximum of array */
   for (i = 1; i < num_elements; i++)
   {
-    read = btor_read_exp (btor, array, indices[i]);
-    ugt  = btor_ugt_exp (btor, read, max);
-    temp = btor_cond_exp (btor, ugt, read, max);
-    btor_release_exp (btor, max);
+    read = boolector_read (btor, array, indices[i]);
+    ugt  = boolector_ugt (btor, read, max);
+    temp = boolector_cond (btor, ugt, read, max);
+    boolector_release (btor, max);
     max = temp;
-    btor_release_exp (btor, read);
-    btor_release_exp (btor, ugt);
+    boolector_release (btor, read);
+    boolector_release (btor, ugt);
   }
   /* show that maximum is really the maximum */
-  index = btor_var_exp (btor, num_bits_index, "index");
-  read  = btor_read_exp (btor, array, index);
+  index = boolector_var (btor, num_bits_index, "index");
+  read  = boolector_read (btor, array, index);
   /* there is no arbitrary read value which is greater than the maximum */
-  formula = btor_ult_exp (btor, max, read);
-  btor_dump_exp (btor, stdout, formula);
+  formula = boolector_ult (btor, max, read);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, read);
-  btor_release_exp (btor, index);
-  btor_release_exp (btor, max);
-  btor_release_exp (btor, array);
-  btor_delete_btor (btor);
+  for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
+  boolector_release (btor, formula);
+  boolector_release (btor, read);
+  boolector_release (btor, index);
+  boolector_release (btor, max);
+  boolector_release (btor, array);
+  boolector_delete (btor);
   free (indices);
   return 0;
 }

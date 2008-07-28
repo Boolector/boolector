@@ -10378,6 +10378,7 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
+  BtorExp *real_exp;
   char *assignment;
   int invert_av, invert_bits;
 
@@ -10386,7 +10387,13 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
 
-  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp)))
+  real_exp = BTOR_REAL_ADDR_EXP (exp);
+
+  if (!real_exp->reachable
+      || (!BTOR_IS_CONST_EXP (real_exp) && !BTOR_IS_SYNTH_EXP (real_exp)))
+    return NULL;
+
+  if (BTOR_IS_CONST_EXP (real_exp))
   {
     invert_bits = BTOR_IS_INVERTED_EXP (exp);
     if (invert_bits)
@@ -10394,18 +10401,17 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
     assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
     if (invert_bits)
       btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
-    return assignment;
   }
-  if (!BTOR_REAL_ADDR_EXP (exp)->reachable
-      || !BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (exp)))
-    return NULL;
-  avmgr     = btor->avmgr;
-  invert_av = BTOR_IS_INVERTED_EXP (exp);
-  av        = BTOR_REAL_ADDR_EXP (exp)->av;
-  if (invert_av) btor_invert_aigvec (avmgr, av);
-  assignment = btor_assignment_aigvec (avmgr, av);
-  /* invert back if necessary */
-  if (invert_av) btor_invert_aigvec (avmgr, av);
+  else
+  {
+    avmgr     = btor->avmgr;
+    invert_av = BTOR_IS_INVERTED_EXP (exp);
+    av        = BTOR_REAL_ADDR_EXP (exp)->av;
+    if (invert_av) btor_invert_aigvec (avmgr, av);
+    assignment = btor_assignment_aigvec (avmgr, av);
+    /* invert back if necessary */
+    if (invert_av) btor_invert_aigvec (avmgr, av);
+  }
 
   BTOR_PUSH_STACK (btor->mm, btor->assignments, assignment);
   return assignment;

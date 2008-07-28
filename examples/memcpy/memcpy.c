@@ -7,7 +7,7 @@
 #include <string.h>
 
 static void
-die (const char* fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   va_start (ap, fmt);
@@ -19,7 +19,7 @@ die (const char* fmt, ...)
 }
 
 static int
-isint (const char* str)
+isint (const char *str)
 {
   char ch;
 
@@ -34,13 +34,13 @@ isint (const char* str)
 }
 
 int
-main (int argc, char** argv)
+main (int argc, char **argv)
 {
   BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
   BtorExp *mem, *assumption, *alternative, *cmp, *root, *v;
   int i, len, havelen, overlapping, signed_size_t;
   BtorExp *old, *new;
-  Btor* btor;
+  Btor *btor;
 
   len           = 0;
   havelen       = 0;
@@ -84,120 +84,120 @@ main (int argc, char** argv)
   if (len < 0 && !signed_size_t)
     die ("negative <len> while 'size_t' is unsigned (try '-s')");
 
-  btor = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
 
-  mem = btor_array_exp (btor, 8, 32);
+  mem = boolector_array (btor, 8, 32);
 
-  src = btor_var_exp (btor, 32, "src");
-  dst = btor_var_exp (btor, 32, "dst");
+  src = boolector_var (btor, 32, "src");
+  dst = boolector_var (btor, 32, "dst");
 
-  n = btor_unsigned_to_exp (btor, len, 32);
+  n = boolector_unsigned_int (btor, len, 32);
 
-  j = btor_var_exp (btor, 32, "j");
+  j = boolector_var (btor, 32, "j");
 
-  zero = btor_zero_exp (btor, 32);
-  one  = btor_one_exp (btor, 32);
+  zero = boolector_zero (btor, 32);
+  one  = boolector_one (btor, 32);
 
-  eos = btor_add_exp (btor, src, n);
-  eod = btor_add_exp (btor, dst, n);
+  eos = boolector_add (btor, src, n);
+  eod = boolector_add (btor, dst, n);
 
-  cmp        = btor_ulte_exp (btor, src, eos);
+  cmp        = boolector_ulte (btor, src, eos);
   assumption = cmp;
 
-  cmp = btor_ulte_exp (btor, dst, eod);
-  tmp = btor_and_exp (btor, assumption, cmp);
-  btor_release_exp (btor, assumption);
-  btor_release_exp (btor, cmp);
+  cmp = boolector_ulte (btor, dst, eod);
+  tmp = boolector_and (btor, assumption, cmp);
+  boolector_release (btor, assumption);
+  boolector_release (btor, cmp);
   assumption = tmp;
 
   if (!overlapping)
   {
-    cmp         = btor_ulte_exp (btor, eos, dst);
+    cmp         = boolector_ulte (btor, eos, dst);
     alternative = cmp;
 
-    cmp = btor_ulte_exp (btor, eod, src);
-    tmp = btor_or_exp (btor, alternative, cmp);
-    btor_release_exp (btor, alternative);
-    btor_release_exp (btor, cmp);
+    cmp = boolector_ulte (btor, eod, src);
+    tmp = boolector_or (btor, alternative, cmp);
+    boolector_release (btor, alternative);
+    boolector_release (btor, cmp);
     alternative = tmp;
 
-    tmp = btor_and_exp (btor, assumption, alternative);
-    btor_release_exp (btor, assumption);
-    btor_release_exp (btor, alternative);
+    tmp = boolector_and (btor, assumption, alternative);
+    boolector_release (btor, assumption);
+    boolector_release (btor, alternative);
     assumption = tmp;
   }
 
   if (signed_size_t)
   {
-    cmp = btor_slte_exp (btor, zero, j);
-    tmp = btor_and_exp (btor, assumption, cmp);
-    btor_release_exp (btor, assumption);
-    btor_release_exp (btor, cmp);
+    cmp = boolector_slte (btor, zero, j);
+    tmp = boolector_and (btor, assumption, cmp);
+    boolector_release (btor, assumption);
+    boolector_release (btor, cmp);
     assumption = tmp;
   }
 
   if (signed_size_t)
-    cmp = btor_slt_exp (btor, j, n);
+    cmp = boolector_slt (btor, j, n);
   else
-    cmp = btor_ult_exp (btor, j, n);
+    cmp = boolector_ult (btor, j, n);
 
-  tmp = btor_and_exp (btor, assumption, cmp);
-  btor_release_exp (btor, assumption);
-  btor_release_exp (btor, cmp);
+  tmp = boolector_and (btor, assumption, cmp);
+  boolector_release (btor, assumption);
+  boolector_release (btor, cmp);
   assumption = tmp;
 
-  p   = btor_add_exp (btor, src, j);
-  old = btor_read_exp (btor, mem, p);
-  btor_release_exp (btor, p);
+  p   = boolector_add (btor, src, j);
+  old = boolector_read (btor, mem, p);
+  boolector_release (btor, p);
 
-  p = btor_copy_exp (btor, src);
-  q = btor_copy_exp (btor, dst);
+  p = boolector_copy (btor, src);
+  q = boolector_copy (btor, dst);
 
   for (i = 0; i < len; i++)
   {
-    v   = btor_read_exp (btor, mem, p);
-    tmp = btor_write_exp (btor, mem, q, v);
-    btor_release_exp (btor, mem);
-    btor_release_exp (btor, v);
+    v   = boolector_read (btor, mem, p);
+    tmp = boolector_write (btor, mem, q, v);
+    boolector_release (btor, mem);
+    boolector_release (btor, v);
     mem = tmp;
 
-    tmp = btor_add_exp (btor, p, one);
-    btor_release_exp (btor, p);
+    tmp = boolector_add (btor, p, one);
+    boolector_release (btor, p);
     p = tmp;
 
-    tmp = btor_add_exp (btor, q, one);
-    btor_release_exp (btor, q);
+    tmp = boolector_add (btor, q, one);
+    boolector_release (btor, q);
     q = tmp;
   }
 
-  btor_release_exp (btor, q);
-  q   = btor_add_exp (btor, dst, j);
-  new = btor_read_exp (btor, mem, q);
+  boolector_release (btor, q);
+  q   = boolector_add (btor, dst, j);
+  new = boolector_read (btor, mem, q);
 
-  cmp = btor_ne_exp (btor, old, new);
+  cmp = boolector_ne (btor, old, new);
 
-  root = btor_and_exp (btor, assumption, cmp);
-  btor_release_exp (btor, assumption);
-  btor_release_exp (btor, cmp);
+  root = boolector_and (btor, assumption, cmp);
+  boolector_release (btor, assumption);
+  boolector_release (btor, cmp);
 
-  btor_dump_exp (btor, stdout, root);
+  boolector_dump_btor (btor, stdout, root);
 
-  btor_release_exp (btor, root);
-  btor_release_exp (btor, p);
-  btor_release_exp (btor, q);
-  btor_release_exp (btor, old);
-  btor_release_exp (btor, new);
-  btor_release_exp (btor, eos);
-  btor_release_exp (btor, eod);
-  btor_release_exp (btor, one);
-  btor_release_exp (btor, zero);
-  btor_release_exp (btor, j);
-  btor_release_exp (btor, n);
-  btor_release_exp (btor, dst);
-  btor_release_exp (btor, src);
-  btor_release_exp (btor, mem);
-  btor_delete_btor (btor);
+  boolector_release (btor, root);
+  boolector_release (btor, p);
+  boolector_release (btor, q);
+  boolector_release (btor, old);
+  boolector_release (btor, new);
+  boolector_release (btor, eos);
+  boolector_release (btor, eod);
+  boolector_release (btor, one);
+  boolector_release (btor, zero);
+  boolector_release (btor, j);
+  boolector_release (btor, n);
+  boolector_release (btor, dst);
+  boolector_release (btor, src);
+  boolector_release (btor, mem);
+  boolector_delete (btor);
 
   return 0;
 }

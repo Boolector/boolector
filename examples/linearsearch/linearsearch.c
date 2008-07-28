@@ -32,41 +32,41 @@ main (int argc, char **argv)
     return 1;
   }
   num_bits_index = btor_log_2_util (num_elements);
-  btor           = btor_new_btor ();
-  btor_set_rewrite_level_btor (btor, 0);
+  btor           = boolector_new ();
+  boolector_set_rewrite_level (btor, 0);
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
-    indices[i] = btor_int_to_exp (btor, i, num_bits_index);
-  array = btor_array_exp (btor, num_bits, num_bits_index);
+    indices[i] = boolector_int (btor, i, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index);
   /* we write arbitrary search value into array at an arbitrary index */
-  val   = btor_var_exp (btor, num_bits, "search_val");
-  index = btor_var_exp (btor, num_bits_index, "search_index");
-  temp  = btor_write_exp (btor, array, index, val);
-  btor_release_exp (btor, array);
+  val   = boolector_var (btor, num_bits, "search_val");
+  index = boolector_var (btor, num_bits_index, "search_index");
+  temp  = boolector_write (btor, array, index, val);
+  boolector_release (btor, array);
   array = temp;
-  found = btor_const_exp (btor, "0");
+  found = boolector_const (btor, "0");
   /* we search */
   for (i = 0; i < num_elements; i++)
   {
-    read = btor_read_exp (btor, array, indices[i]);
-    eq   = btor_eq_exp (btor, read, val);
-    temp = btor_or_exp (btor, found, eq);
-    btor_release_exp (btor, found);
+    read = boolector_read (btor, array, indices[i]);
+    eq   = boolector_eq (btor, read, val);
+    temp = boolector_or (btor, found, eq);
+    boolector_release (btor, found);
     found = temp;
-    btor_release_exp (btor, read);
-    btor_release_exp (btor, eq);
+    boolector_release (btor, read);
+    boolector_release (btor, eq);
   }
   /* we negate the formula and show that it is unsatisfiable */
-  formula = btor_not_exp (btor, found);
-  btor_dump_exp (btor, stdout, formula);
+  formula = boolector_not (btor, found);
+  boolector_dump_btor (btor, stdout, formula);
   /* clean up */
-  for (i = 0; i < num_elements; i++) btor_release_exp (btor, indices[i]);
-  btor_release_exp (btor, formula);
-  btor_release_exp (btor, index);
-  btor_release_exp (btor, val);
-  btor_release_exp (btor, found);
-  btor_release_exp (btor, array);
-  btor_delete_btor (btor);
+  for (i = 0; i < num_elements; i++) boolector_release (btor, indices[i]);
+  boolector_release (btor, formula);
+  boolector_release (btor, index);
+  boolector_release (btor, val);
+  boolector_release (btor, found);
+  boolector_release (btor, array);
+  boolector_delete (btor);
   free (indices);
   return 0;
 }
