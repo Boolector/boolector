@@ -799,10 +799,10 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
  */
 static void
 encode_lemma (Btor *btor,
-              BtorExpPtrStack *writes,
-              BtorExpPtrStack *aeqs,
-              BtorExpPtrStack *aconds_sel1,
-              BtorExpPtrStack *aconds_sel2,
+              BtorPtrHashTable *writes,
+              BtorPtrHashTable *aeqs,
+              BtorPtrHashTable *aconds_sel1,
+              BtorPtrHashTable *aconds_sel2,
               BtorExp *i,
               BtorExp *j,
               BtorExp *a,
@@ -814,10 +814,10 @@ encode_lemma (Btor *btor,
   BtorSATMgr *smgr;
   BtorAIGVec *av_i, *av_j, *av_a, *av_b, *av_w;
   BtorAIG *aig1, *aig2;
-  BtorExp *w_index, *cur_write, *aeq, *acond, *cond, **temp, **top;
+  BtorExp *w_index, *cur_write, *aeq, *acond, *cond;
   BtorExpPair *pair;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table, *exp_pair_cnf_eq_id_table;
-  BtorPtrHashBucket *bucket;
+  BtorPtrHashBucket *bucket, *bucket_temp;
   BtorIntStack clauses;
   BtorIntStack linking_clause;
   int len_a_b, len_i_j_w, e;
@@ -843,8 +843,7 @@ encode_lemma (Btor *btor,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
 
   btor->stats.lemmas_size_sum +=
-      BTOR_COUNT_STACK (*writes) + BTOR_COUNT_STACK (*aeqs)
-      + BTOR_COUNT_STACK (*aconds_sel1) + BTOR_COUNT_STACK (*aconds_sel2) + 2;
+      writes->count + aeqs->count + aconds_sel1->count + aconds_sel2->count + 2;
 
   exp_pair_cnf_diff_id_table = btor->exp_pair_cnf_diff_id_table;
   exp_pair_cnf_eq_id_table   = btor->exp_pair_cnf_eq_id_table;
@@ -1002,10 +1001,9 @@ encode_lemma (Btor *btor,
   assert (e != 0);
   BTOR_PUSH_STACK (mm, linking_clause, e);
   /* encode i != write index premisses */
-  top = writes->top;
-  for (temp = writes->start; temp != top; temp++)
+  for (bucket = writes->last; bucket != NULL; bucket = bucket->prev)
   {
-    cur_write = *temp;
+    cur_write = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (cur_write));
     assert (BTOR_IS_WRITE_EXP (cur_write));
     w_index = cur_write->e[1];
@@ -1018,9 +1016,9 @@ encode_lemma (Btor *btor,
 
     pair = new_exp_pair (btor, i, w_index);
     /* already encoded i != w_index into SAT ? */
-    bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
+    bucket_temp = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
     /* no ? */
-    if (bucket == NULL)
+    if (bucket_temp == NULL)
     {
       e = btor_next_cnf_id_sat_mgr (smgr);
       btor_insert_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair)
@@ -1063,17 +1061,17 @@ encode_lemma (Btor *btor,
     {
       /* we have already encoded i != w_j into SAT
        * we simply reuse e for the linking clause */
-      e = bucket->data.asInt;
+      e = bucket_temp->data.asInt;
       delete_exp_pair (btor, pair);
     }
     assert (e != 0);
     BTOR_PUSH_STACK (mm, linking_clause, e);
   }
+
   /* add array equalites in the premisse to linking clause */
-  top = aeqs->top;
-  for (temp = aeqs->start; temp != top; temp++)
+  for (bucket = aeqs->last; bucket != NULL; bucket = bucket->prev)
   {
-    aeq = *temp;
+    aeq = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (aeq));
     assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
     assert (BTOR_IS_SYNTH_EXP (aeq));
@@ -1084,10 +1082,10 @@ encode_lemma (Btor *btor,
     k = -aeq->av->aigs[0]->cnf_id;
     BTOR_PUSH_STACK (mm, linking_clause, k);
   }
-  top = aconds_sel1->top;
-  for (temp = aconds_sel1->start; temp != top; temp++)
+
+  for (bucket = aconds_sel1->last; bucket != NULL; bucket = bucket->prev)
   {
-    acond = *temp;
+    acond = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
     cond = acond->e[0];
@@ -1107,10 +1105,10 @@ encode_lemma (Btor *btor,
       BTOR_PUSH_STACK (mm, linking_clause, k);
     }
   }
-  top = aconds_sel2->top;
-  for (temp = aconds_sel2->start; temp != top; temp++)
+
+  for (bucket = aconds_sel2->last; bucket != NULL; bucket = bucket->prev)
   {
-    acond = *temp;
+    acond = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
     cond = acond->e[0];
@@ -5977,12 +5975,11 @@ propagated_upwards (Btor *btor, BtorExp *exp)
 static void
 add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
 {
-  BtorExpPtrStack writes, aeqs, aconds_sel1, aconds_sel2;
-  BtorExp *cur, *cond, *prev;
+  BtorPtrHashTable *writes, *aeqs, *aconds_sel1, *aconds_sel2;
+  BtorExp *cur, *cond, *prev, *acc;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   int assignment;
-  BtorPtrHashTable *table;
   assert (btor != NULL);
   assert (array != NULL);
   assert (acc1 != NULL);
@@ -5993,122 +5990,91 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
   assert (BTOR_IS_ARRAY_EXP (array));
   assert (BTOR_IS_ACC_EXP (acc1));
   assert (BTOR_IS_ACC_EXP (acc2));
+
   mm   = btor->mm;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+
   /* collect intermediate writes, array equalities and array conditionals
    * as premisses for McCarthy constraint */
-  BTOR_INIT_STACK (writes);
-  BTOR_INIT_STACK (aeqs);
-  BTOR_INIT_STACK (aconds_sel1);
-  BTOR_INIT_STACK (aconds_sel2);
-  table = btor_new_ptr_hash_table (mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
-  bfs (btor, acc1, array);
-  prev = NULL;
-  for (cur = array; cur != acc1; cur = cur->parent)
-  {
-    assert (cur != NULL);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_ARRAY_EXP (cur) || BTOR_IS_ARRAY_EQ_EXP (cur)
-            || BTOR_IS_ARRAY_COND_EXP (cur) || BTOR_IS_ACC_EXP (cur));
-    if ((prev == NULL && propagated_upwards (btor, cur))
-        || (prev != NULL
-            && !(propagated_upwards (btor, prev)
-                 && !propagated_upwards (btor, cur))))
-    {
-      if (BTOR_IS_WRITE_EXP (cur))
-      {
-        (void) btor_insert_in_ptr_hash_table (table, cur);
-        BTOR_PUSH_STACK (mm, writes, cur);
-      }
-      else if (BTOR_IS_ARRAY_EQ_EXP (cur))
-      {
-        (void) btor_insert_in_ptr_hash_table (table, cur);
-        BTOR_PUSH_STACK (mm, aeqs, cur);
-      }
-      else if (BTOR_IS_ARRAY_COND_EXP (cur))
-      {
-        cond = cur->e[0];
-        assert (btor->rewrite_level == 0
-                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
-        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
-        {
-          (void) btor_insert_in_ptr_hash_table (table, cur);
-          assignment = btor_get_assignment_aig (
-              amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
-          assert (assignment == 1 || assignment == -1);
-          if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
-          if (assignment == 1)
-            BTOR_PUSH_STACK (mm, aconds_sel1, cur);
-          else
-            BTOR_PUSH_STACK (mm, aconds_sel2, cur);
-        }
-      }
-    }
-    prev = cur;
-  }
-  bfs (btor, acc2, array);
-  prev = NULL;
-  for (cur = array; cur != acc2; cur = cur->parent)
-  {
-    assert (cur != NULL);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_ARRAY_EXP (cur) || BTOR_IS_ARRAY_EQ_EXP (cur)
-            || BTOR_IS_ARRAY_COND_EXP (cur) || BTOR_IS_ACC_EXP (cur));
+  writes      = btor_new_ptr_hash_table (mm,
+                                    (BtorHashPtr) btor_hash_exp_by_id,
+                                    (BtorCmpPtr) btor_compare_exp_by_id);
+  aeqs        = btor_new_ptr_hash_table (mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
+  aconds_sel1 = btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
+  aconds_sel2 = btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
 
-    if ((prev == NULL && propagated_upwards (btor, cur))
-        || (prev != NULL
-            && !(propagated_upwards (btor, prev)
-                 && !propagated_upwards (btor, cur))))
+  for (acc = acc1; acc != NULL; acc = acc == acc1 ? acc2 : NULL)
+  {
+    bfs (btor, acc, array);
+    prev = NULL;
+    for (cur = array; cur != acc; cur = cur->parent)
     {
-      if (BTOR_IS_WRITE_EXP (cur))
+      assert (cur != NULL);
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      assert (BTOR_IS_ARRAY_EXP (cur) || BTOR_IS_ARRAY_EQ_EXP (cur)
+              || BTOR_IS_ARRAY_COND_EXP (cur) || BTOR_IS_ACC_EXP (cur));
+      if ((prev == NULL && propagated_upwards (btor, cur))
+          || (prev != NULL
+              && !(propagated_upwards (btor, prev)
+                   && !propagated_upwards (btor, cur))))
       {
-        if (btor_find_in_ptr_hash_table (table, cur) == NULL)
-          BTOR_PUSH_STACK (mm, writes, cur);
-      }
-      else if (BTOR_IS_ARRAY_EQ_EXP (cur))
-      {
-        if (btor_find_in_ptr_hash_table (table, cur) == NULL)
-          BTOR_PUSH_STACK (mm, aeqs, cur);
-      }
-      else if (BTOR_IS_ARRAY_COND_EXP (cur))
-      {
-        cond = cur->e[0];
-        assert (btor->rewrite_level == 0
-                || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
-        if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+        if (BTOR_IS_WRITE_EXP (cur))
         {
-          if (btor_find_in_ptr_hash_table (table, cur) == NULL)
+          if (!btor_find_in_ptr_hash_table (writes, cur))
+            btor_insert_in_ptr_hash_table (writes, cur);
+        }
+        else if (BTOR_IS_ARRAY_EQ_EXP (cur))
+        {
+          if (!btor_find_in_ptr_hash_table (aeqs, cur))
+            btor_insert_in_ptr_hash_table (aeqs, cur);
+        }
+        else if (BTOR_IS_ARRAY_COND_EXP (cur))
+        {
+          cond = cur->e[0];
+          assert (btor->rewrite_level == 0
+                  || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
+          if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
           {
             assignment = btor_get_assignment_aig (
                 amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
             assert (assignment == 1 || assignment == -1);
             if (BTOR_IS_INVERTED_EXP (cond)) assignment = -assignment;
             if (assignment == 1)
-              BTOR_PUSH_STACK (mm, aconds_sel1, cur);
+            {
+              if (!btor_find_in_ptr_hash_table (aconds_sel1, cur))
+                btor_insert_in_ptr_hash_table (aconds_sel1, cur);
+            }
             else
-              BTOR_PUSH_STACK (mm, aconds_sel2, cur);
+            {
+              if (!btor_find_in_ptr_hash_table (aconds_sel2, cur))
+                btor_insert_in_ptr_hash_table (aconds_sel2, cur);
+            }
           }
         }
       }
+      prev = cur;
     }
-    prev = cur;
   }
-  btor_delete_ptr_hash_table (table);
+
   encode_lemma (btor,
-                &writes,
-                &aeqs,
-                &aconds_sel1,
-                &aconds_sel2,
+                writes,
+                aeqs,
+                aconds_sel1,
+                aconds_sel2,
                 BTOR_GET_INDEX_ACC_EXP (acc1),
                 BTOR_GET_INDEX_ACC_EXP (acc2),
                 BTOR_GET_VALUE_ACC_EXP (acc1),
                 BTOR_GET_VALUE_ACC_EXP (acc2));
-  BTOR_RELEASE_STACK (mm, writes);
-  BTOR_RELEASE_STACK (mm, aeqs);
-  BTOR_RELEASE_STACK (mm, aconds_sel1);
-  BTOR_RELEASE_STACK (mm, aconds_sel2);
+  btor_delete_ptr_hash_table (writes);
+  btor_delete_ptr_hash_table (aeqs);
+  btor_delete_ptr_hash_table (aconds_sel1);
+  btor_delete_ptr_hash_table (aconds_sel2);
 }
 
 /* checks array axiom 2 */
