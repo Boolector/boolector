@@ -9341,7 +9341,8 @@ normalize_substitution (Btor *btor,
     }
 
     /* ~a comp b is equal to a reverse_comp ~b,
-     * where comp in ult, ulte, ugt, ugte */
+     * where comp in ult, ulte, ugt, ugte
+     * (e.g. reverse_comp of ult is ugt) */
     if (BTOR_IS_INVERTED_EXP (var))
     {
       var   = BTOR_REAL_ADDR_EXP (var);
