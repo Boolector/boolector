@@ -2409,7 +2409,7 @@ btor_eq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
 
-#ifndef NDBUG
+#ifndef NDEBUG
   real_e0     = BTOR_REAL_ADDR_EXP (e0);
   real_e1     = BTOR_REAL_ADDR_EXP (e1);
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);

@@ -1345,13 +1345,12 @@ static BtorExp *
 rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 {
   BtorExp *left, *right, *e0_0, *e0_1, *e1_0, *e1_1, *result, *eq;
-  BtorExp *e0_norm, *e1_norm;
+  BtorExp *e0_norm, *e1_norm, *real_e0, *real_e1;
   int normalized, upper, lower;
   BtorExpKind kind;
 
 #ifndef NDEBUG
   int is_array_e0, is_array_e1;
-  BtorExp *real_e0, *real_e1;
 #endif
 
   assert (btor != NULL);
@@ -1360,9 +1359,10 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   assert (calls != NULL);
   assert (*calls >= 0);
 
+  real_e0 = BTOR_REAL_ADDR_EXP (e0);
+  real_e1 = BTOR_REAL_ADDR_EXP (e1);
+
 #ifndef NDEBUG
-  real_e0     = BTOR_REAL_ADDR_EXP (e0);
-  real_e1     = BTOR_REAL_ADDR_EXP (e1);
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
   is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
   assert (is_array_e0 == is_array_e1);
