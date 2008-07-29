@@ -800,6 +800,44 @@ int btor_sat_btor (Btor *btor, int refinement_limit);
 const char *btor_assignment_exp (Btor *btor, BtorExp *exp);
 
 /*------------------------------------------------------------------------*/
+/* Low-level BtorExp                                                      */
+/*------------------------------------------------------------------------*/
+
+BtorExp *btor_slice_exp_node (Btor *btor, BtorExp *exp, int upper, int lower);
+
+BtorExp *btor_and_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_eq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_add_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_mul_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_ult_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_sll_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_srl_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_udiv_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_urem_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_concat_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+
+BtorExp *btor_read_exp_node (Btor *btor, BtorExp *e_array, BtorExp *e_index);
+
+BtorExp *btor_write_exp_node (Btor *btor,
+                              BtorExp *e_array,
+                              BtorExp *e_index,
+                              BtorExp *e_value);
+
+BtorExp *btor_cond_exp_node (Btor *btor,
+                             BtorExp *e_cond,
+                             BtorExp *e_if,
+                             BtorExp *e_else);
+
+/*------------------------------------------------------------------------*/
 /* Misc                                                                   */
 /*------------------------------------------------------------------------*/
 
