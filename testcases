@@ -599,3 +599,5 @@ ultsubst8 -rwl0 -o log/ultsubst8.log log/ultsubst8.btor
 ultsubst8 -rwl2 -o log/ultsubst8.log log/ultsubst8.btor
 ultsubst9 -rwl0 -o log/ultsubst9.log log/ultsubst9.btor
 ultsubst9 -rwl2 -o log/ultsubst9.log log/ultsubst9.btor
+slicesubst1 -rwl0 -o log/slicesubst1.log log/slicesubst1.btor
+slicesubst1 -rwl2 -o log/slicesubst1.log log/slicesubst1.btor
