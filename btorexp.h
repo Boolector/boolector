@@ -869,4 +869,52 @@ int btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1);
 /* Finds most simplified expression and shortens path to it */
 BtorExp *btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp);
 
+/*------------------------------------------------------------------------*/
+/* Debugging                                                              */
+/*------------------------------------------------------------------------*/
+
+#ifndef NDEBUG
+
+int btor_precond_slice_exp_dbg (const Btor *btor,
+                                const BtorExp *exp,
+                                int upper,
+                                int lower);
+
+int btor_precond_ext_exp_dbg (const Btor *btor, const BtorExp *exp, int len);
+
+int btor_precond_regular_unary_bv_exp_dbg (const Btor *btor,
+                                           const BtorExp *exp);
+
+int btor_precond_eq_exp_dbg (const Btor *btor,
+                             const BtorExp *e0,
+                             const BtorExp *e1);
+
+int btor_precond_shift_exp_dbg (const Btor *btor,
+                                const BtorExp *e0,
+                                const BtorExp *e1);
+
+int btor_precond_concat_exp_dbg (const Btor *btor,
+                                 const BtorExp *e0,
+                                 const BtorExp *e1);
+
+int btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
+                                            const BtorExp *e0,
+                                            const BtorExp *e1);
+
+int btor_precond_read_exp_dbg (const Btor *btor,
+                               const BtorExp *e_array,
+                               const BtorExp *e_index);
+
+int btor_precond_write_exp_dbg (const Btor *btor,
+                                const BtorExp *e_array,
+                                const BtorExp *e_index,
+                                const BtorExp *e_value);
+
+int btor_precond_cond_exp_dbg (const Btor *btor,
+                               const BtorExp *e_cond,
+                               const BtorExp *e_if,
+                               const BtorExp *e_else);
+
+#endif
+
 #endif
