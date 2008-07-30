@@ -419,6 +419,7 @@ hd18 -rwl0 -o log/hd18.log log/hd18.btor
 hd18 -rwl1 -o log/hd18.log log/hd18.btor
 hd19 -o log/hd19.log log/hd19.btor
 hd20 -o log/hd20.log log/hd20.btor
+hd21 -o log/hd21.log log/hd21.btor
 proxybug -o log/proxybug.log log/proxybug.btor
 prim8bugreduced -o log/prim8bugreduced.log log/prim8bugreduced.btor
 bubsort002un -o log/bubsort002un.log log/bubsort002un.smt
