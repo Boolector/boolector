@@ -74,7 +74,7 @@ compute_slice_3vl (Btor *btor, BtorExp *e0, int upper, int lower)
 static BtorExp *
 slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
 {
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExp *result;
   BtorMemMgr *mm;
 
@@ -189,7 +189,7 @@ BtorExp *
 btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
   int calls;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorExp *result;
   BtorMemMgr *mm;
 
@@ -607,7 +607,7 @@ is_always_unequal (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *real_e0, *real_e1;
   int result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   assert (btor != NULL);
   assert (e0 != NULL);
   assert (e1 != NULL);
@@ -880,7 +880,7 @@ static BtorExp *
 and_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
@@ -1210,7 +1210,7 @@ BtorExp *
 btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -1243,7 +1243,7 @@ static BtorExp *
 eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
@@ -1617,7 +1617,7 @@ BtorExp *
 btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
   int calls;
 
@@ -1655,7 +1655,7 @@ static BtorExp *
 add_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
@@ -1784,7 +1784,7 @@ BtorExp *
 btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -1817,7 +1817,7 @@ static BtorExp *
 mul_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
@@ -1971,7 +1971,7 @@ BtorExp *
 btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
   int calls;
 
@@ -2006,7 +2006,7 @@ static BtorExp *
 ult_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
@@ -2097,7 +2097,7 @@ BtorExp *
 btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -2130,7 +2130,7 @@ BtorExp *
 btor_rewrite_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -2170,7 +2170,7 @@ BtorExp *
 btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -2209,7 +2209,7 @@ static BtorExp *
 udiv_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
@@ -2295,7 +2295,7 @@ BtorExp *
 btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -2328,7 +2328,7 @@ static BtorExp *
 urem_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
@@ -2415,7 +2415,7 @@ BtorExp *
 btor_rewrite_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -2761,7 +2761,7 @@ static BtorExp *
 cond_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 {
   BtorExp *result;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   BtorMemMgr *mm;
 
   assert (btor_precond_cond_exp_dbg (btor, e0, e1, e2));
@@ -3039,7 +3039,7 @@ btor_rewrite_cond_exp (Btor *btor,
 {
   BtorExp *result;
   BtorMemMgr *mm;
-  char *bits_3vl;
+  char *bits_3vl = NULL;
   int calls;
 
   e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
