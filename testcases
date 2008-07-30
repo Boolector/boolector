@@ -566,6 +566,7 @@ regrexpleak2 -rwl3 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrexpleak2 -rwl2 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrexpleak2 -rwl1 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrexpleak2 -rwl0 -o log/regrexpleak2.log log/regrexpleak2.btor
+regrpointerchasing1 -o log/regrpointerchasing1.log log/regrpointerchasing1.btor
 3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
 3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
 3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
