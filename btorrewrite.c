@@ -13,7 +13,7 @@
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
 #define BTOR_COND_EXP_RW_BOUND 128
 
-#define BTOR_3VL_REWRITE
+/* #define BTOR_3VL_REWRITE */
 
 static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExp *, BtorExp *, BtorExp *, int *);
@@ -2409,6 +2409,7 @@ btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
+#ifdef BTOR_3VL_REWRITE
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_UDIV_EXP, e0, e1);
@@ -2421,6 +2422,7 @@ btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
     btor_delete_const (mm, bits_3vl);
   }
+#endif
 
   result = rewrite_udiv_exp (btor, e0, e1);
   assert (result != NULL);
