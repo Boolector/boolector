@@ -6794,6 +6794,10 @@ normalize_substitution (Btor *btor,
     assert (!BTOR_IS_INVERTED_EXP (var));
     if (btor_find_in_ptr_hash_table (btor->varsubst_constraints, var)) return 0;
 
+#ifdef BTOR_NO_3VL
+    if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (right))) return 0;
+#endif
+
     if (BTOR_IS_INVERTED_EXP (right))
       bits = btor_not_const_3vl (mm, BTOR_REAL_ADDR_EXP (right)->bits);
     else
