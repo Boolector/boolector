@@ -1367,10 +1367,10 @@ parse_slice (BtorBTORParser *parser, int len)
   if (parse_non_negative_int (parser, &upper))
     goto RELEASE_ARG_AND_RETURN_ERROR;
 
-  if (upper > arglen)
+  if (upper >= arglen)
   {
     (void) parse_error (
-        parser, "upper index '%d' exceeds argument width '%d", upper, arglen);
+        parser, "upper index '%d' >= argument width '%d", upper, arglen);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
 
