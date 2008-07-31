@@ -13,8 +13,6 @@
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
 #define BTOR_COND_EXP_RW_BOUND 128
 
-#define BTOR_3VL_REWRITE
-
 static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExp *, BtorExp *, BtorExp *, int *);
 
@@ -43,7 +41,7 @@ is_const_one_exp (Btor *btor, BtorExp *exp)
   return result;
 }
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
 
 static char *
 compute_slice_3vl (Btor *btor, BtorExp *e0, int upper, int lower)
@@ -92,7 +90,7 @@ slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_slice_3vl (btor, exp, upper, lower);
@@ -109,7 +107,7 @@ slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
   result = btor_slice_exp_node (btor, exp, upper, lower);
   assert (result != NULL);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -214,7 +212,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_slice_3vl (btor, exp, upper, lower);
@@ -236,7 +234,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   return result;
 }
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
 
 static char *
 compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
@@ -683,7 +681,7 @@ is_always_unequal (Btor *btor, BtorExp *e0, BtorExp *e1)
       return 1;
   }
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_BEQ_EXP, e0, e1);
@@ -927,7 +925,7 @@ and_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_AND_EXP, e0, e1);
@@ -943,7 +941,7 @@ and_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_and_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -1266,7 +1264,7 @@ btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_AND_EXP, e0, e1);
@@ -1300,7 +1298,7 @@ eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
@@ -1321,7 +1319,7 @@ eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_eq_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -1686,7 +1684,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
@@ -1724,7 +1722,7 @@ add_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_ADD_EXP, e0, e1);
@@ -1740,7 +1738,7 @@ add_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_add_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -1862,7 +1860,7 @@ btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_ADD_EXP, e0, e1);
@@ -1896,7 +1894,7 @@ mul_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_MUL_EXP, e0, e1);
@@ -1912,7 +1910,7 @@ mul_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_mul_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -2060,7 +2058,7 @@ btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_MUL_EXP, e0, e1);
@@ -2095,7 +2093,7 @@ ult_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_ULT_EXP, e0, e1);
@@ -2111,7 +2109,7 @@ ult_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_ult_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -2195,7 +2193,7 @@ btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_ULT_EXP, e0, e1);
@@ -2230,7 +2228,7 @@ btor_rewrite_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_SLL_EXP, e0, e1);
@@ -2247,7 +2245,7 @@ btor_rewrite_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   result = rewrite_binary_exp (btor, BTOR_SLL_EXP, e0, e1);
   if (result == NULL) result = btor_sll_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -2273,7 +2271,7 @@ btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_SRL_EXP, e0, e1);
@@ -2290,7 +2288,7 @@ btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   result = rewrite_binary_exp (btor, BTOR_SRL_EXP, e0, e1);
   if (result == NULL) result = btor_srl_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -2316,7 +2314,7 @@ udiv_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_UDIV_EXP, e0, e1);
@@ -2332,7 +2330,7 @@ udiv_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_udiv_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -2411,7 +2409,7 @@ btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_UDIV_EXP, e0, e1);
@@ -2445,7 +2443,7 @@ urem_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_UREM_EXP, e0, e1);
@@ -2461,7 +2459,7 @@ urem_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   result = btor_urem_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     if (result->bits == NULL)
@@ -2541,7 +2539,7 @@ btor_rewrite_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_UREM_EXP, e0, e1);
@@ -2651,7 +2649,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   result = rewrite_binary_exp (btor, BTOR_CONCAT_EXP, e0, e1);
   if (result == NULL) result = btor_concat_exp_node (btor, e0, e1);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1 && result->bits == NULL)
   {
     bits_3vl = compute_binary_3vl (btor, BTOR_CONCAT_EXP, e0, e1);
@@ -2721,7 +2719,7 @@ btor_rewrite_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
     result = btor_read_exp_node (btor, e_array, e_index);
   assert (result != NULL);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   /* currently we do not know anything about 3vl bits of reads */
   if (result->bits == NULL) result->bits = btor_x_const_3vl (mm, e_array->len);
 #endif
@@ -2794,7 +2792,7 @@ btor_rewrite_write_exp (Btor *btor,
   return result;
 }
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
 
 static char *
 compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
@@ -2900,7 +2898,7 @@ cond_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1 && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)))
   {
     bits_3vl = compute_bcond_3vl (btor, e0, e1, e2);
@@ -2916,7 +2914,7 @@ cond_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
 
   result = btor_cond_exp_node (btor, e0, e1, e2);
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1 && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)))
   {
     if (result->bits == NULL)
@@ -3193,7 +3191,7 @@ btor_rewrite_cond_exp (Btor *btor,
 
   mm = btor->mm;
 
-#ifdef BTOR_3VL_REWRITE
+#ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1 && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if)))
   {
     bits_3vl = compute_bcond_3vl (btor, e_cond, e_if, e_else);
