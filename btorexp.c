@@ -4989,6 +4989,8 @@ set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+#ifndef BTOR_NO_3VL
+
 static void
 propagate_3vl_to_aigvec (Btor *btor, BtorExp *exp)
 {
@@ -5025,6 +5027,8 @@ propagate_3vl_to_aigvec (Btor *btor, BtorExp *exp)
     }
   }
 }
+
+#endif
 
 static void
 synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
@@ -5271,7 +5275,9 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             break;
         }
 
+#ifndef BTOR_NO_3VL
         if (btor->rewrite_level > 1) propagate_3vl_to_aigvec (btor, cur);
+#endif
       }
     }
   } while (!BTOR_EMPTY_STACK (exp_stack));
