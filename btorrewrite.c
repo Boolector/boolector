@@ -13,7 +13,7 @@
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
 #define BTOR_COND_EXP_RW_BOUND 128
 
-/* #define BTOR_3VL_REWRITE */
+#define BTOR_3VL_REWRITE
 
 static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExp *, BtorExp *, BtorExp *, int *);
@@ -1306,13 +1306,15 @@ eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)))
       bits_3vl = btor_x_const_3vl (mm, 1);
     else
-      bits_3vl = compute_binary_3vl (btor, BTOR_BEQ_EXP, e0, e1);
-    if (btor_is_const_2vl (mm, bits_3vl))
     {
-      result = btor_const_exp (btor, bits_3vl);
-      btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
-      return result;
+      bits_3vl = compute_binary_3vl (btor, BTOR_BEQ_EXP, e0, e1);
+      if (btor_is_const_2vl (mm, bits_3vl))
+      {
+        result = btor_const_exp (btor, bits_3vl);
+        btor_delete_const (mm, bits_3vl);
+        btor->stats.simplifications_3vl++;
+        return result;
+      }
     }
   }
 #endif
