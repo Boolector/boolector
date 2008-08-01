@@ -98,7 +98,6 @@ slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -220,7 +219,6 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -933,7 +931,6 @@ and_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -1272,7 +1269,6 @@ btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -1310,7 +1306,6 @@ eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
       {
         result = btor_const_exp (btor, bits_3vl);
         btor_delete_const (mm, bits_3vl);
-        btor->stats.simplifications_3vl++;
         return result;
       }
     }
@@ -1694,7 +1689,6 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       {
         result = btor_const_exp (btor, bits_3vl);
         btor_delete_const (mm, bits_3vl);
-        btor->stats.simplifications_3vl++;
         return result;
       }
       btor_delete_const (mm, bits_3vl);
@@ -1730,7 +1724,6 @@ add_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -1868,7 +1861,6 @@ btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -1902,7 +1894,6 @@ mul_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -2066,7 +2057,6 @@ btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -2101,7 +2091,6 @@ ult_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -2201,7 +2190,6 @@ btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -2236,7 +2224,6 @@ btor_rewrite_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -2279,7 +2266,6 @@ btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -2322,7 +2308,6 @@ udiv_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -2417,7 +2402,6 @@ btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -2451,7 +2435,6 @@ urem_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -2547,7 +2530,6 @@ btor_rewrite_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);
@@ -2657,7 +2639,6 @@ btor_rewrite_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (btor->mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     result->bits = bits_3vl;
@@ -2906,7 +2887,6 @@ cond_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
   }
@@ -3199,7 +3179,6 @@ btor_rewrite_cond_exp (Btor *btor,
     {
       result = btor_const_exp (btor, bits_3vl);
       btor_delete_const (mm, bits_3vl);
-      btor->stats.simplifications_3vl++;
       return result;
     }
     btor_delete_const (mm, bits_3vl);

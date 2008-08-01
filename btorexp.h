@@ -250,8 +250,6 @@ struct Btor
     int adds_normalized;
     /* number of mul chains normalizations */
     int muls_normalized;
-    /* number of simplifications as result of 3 valued logic analysis */
-    int simplifications_3vl;
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */

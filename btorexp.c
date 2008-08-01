@@ -4864,8 +4864,6 @@ btor_print_stats_btor (Btor *btor)
                      btor->stats.linear_equations);
   print_verbose_msg ("add normalizations: %d", btor->stats.adds_normalized);
   print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
-  print_verbose_msg ("3vl simplifications: %d",
-                     btor->stats.simplifications_3vl);
   print_verbose_msg ("read over write propagations during construction: %d",
                      btor->stats.read_props_construct);
   print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
