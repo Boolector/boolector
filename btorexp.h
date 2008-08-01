@@ -206,7 +206,8 @@ struct Btor
   BtorExpUniqueTable table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *arrays;
-  int id; /* global expression id counter */
+  int id;        /* expression id counter */
+  int lambda_id; /* counter for lambda variables (subst) */
   int valid_assignments;
   int rewrite_level;
   int verbosity;

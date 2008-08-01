@@ -4622,6 +4622,7 @@ btor_new_btor (void)
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
   btor->id                = 1;
+  btor->lambda_id         = 1;
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
@@ -6539,6 +6540,28 @@ is_embedded_constraint_exp (Btor *btor, BtorExp *exp)
 }
 
 static BtorExp *
+lambda_var_exp (Btor *btor, int len)
+{
+  BtorExp *result;
+  char *name;
+  int string_len;
+  BtorMemMgr *mm;
+
+  assert (btor != NULL);
+  assert (len > 0);
+
+  mm = btor->mm;
+
+  string_len = btor_num_digits_util (btor->lambda_id) + 9;
+  BTOR_NEWN (mm, name, string_len);
+  sprintf (name, "lambda_%d_", btor->lambda_id);
+  btor->lambda_id++;
+  result = btor_var_exp (btor, len, name);
+  BTOR_DELETEN (mm, name, string_len);
+  return result;
+}
+
+static BtorExp *
 slice_on_var_subst_rhs (
     Btor *btor, BtorExp *var, int upper, int lower, BtorExp *e_const)
 {
@@ -6561,13 +6584,13 @@ slice_on_var_subst_rhs (
 
   if (lower == 0)
   {
-    left   = btor_var_exp (btor, len_var - len_slice, "lambda");
+    left   = lambda_var_exp (btor, len_var - len_slice);
     result = btor_concat_exp (btor, left, e_const);
     btor_release_exp (btor, left);
   }
   else if (upper == len_var - 1)
   {
-    right  = btor_var_exp (btor, len_var - len_slice, "lambda");
+    right  = lambda_var_exp (btor, len_var - len_slice);
     result = btor_concat_exp (btor, e_const, right);
     btor_release_exp (btor, right);
   }
@@ -6576,8 +6599,8 @@ slice_on_var_subst_rhs (
     assert (upper > 0);
     assert (upper < len_var - 1);
 
-    left  = btor_var_exp (btor, len_var - len_slice - lower, "lambda");
-    right = btor_var_exp (btor, lower, "lambda");
+    left  = lambda_var_exp (btor, len_var - len_slice - lower);
+    right = lambda_var_exp (btor, lower);
 
     tmp    = btor_concat_exp (btor, left, e_const);
     result = btor_concat_exp (btor, tmp, right);
@@ -6807,7 +6830,7 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         const_exp = btor_zero_exp (btor, leadings);
-        lambda    = btor_var_exp (btor, var->len - leadings, "lambda");
+        lambda    = lambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -6823,7 +6846,7 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         const_exp = btor_ones_exp (btor, leadings);
-        lambda    = btor_var_exp (btor, var->len - leadings, "lambda");
+        lambda    = lambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
