@@ -41,7 +41,7 @@ echo "$((id++)) and 32 $lastid $idhex"
 
 for ((i = 0; i < num_loops; i++))
 do
-echo "$((id++)) var 8 buffer_byte"
+echo "$((id++)) var 8 buffer_byte"$bytescounter
 ((lastid = id - 1))
 echo "$((id++)) concat 32 $idzero $lastid"
 ((lastid = id - 1))

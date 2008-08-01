@@ -6,6 +6,7 @@ if [[ $# -ne 1 ]] && [[ $# -ne 0 ]]; then
 fi
 
 num_loops=5552
+counter=0
 
 if [[ $# -eq 1 ]]; then
   if [[ ! $num_loops -gt 0 ]]; then
@@ -38,8 +39,9 @@ echo "$((id++)) and 32 $lastid $idhex"
 
 for ((i = 0; i < num_loops - 1; i++))
 do
-echo "$((id++)) var 8 buffer_byte"
+echo "$((id++)) var 8 buffer_byte"$counter
 ((lastid = id - 1))
+((counter++))
 echo "$((id++)) concat 32 $idzero $lastid"
 ((lastid = id - 1))
 echo "$((id++)) add 32 $ids1 $lastid"
@@ -48,7 +50,7 @@ echo "$((id++)) add 32 $ids1 $ids2"
 ((ids2 = id - 1))
 done
 
-echo "$((id++)) var 8 buffer_byte"
+echo "$((id++)) var 8 buffer_byte"$counter
 ((lastid = id - 1))
 echo "$((id++)) concat 32 $idzero $lastid"
 ((lastid = id - 1))
