@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-/* maxOR algorithm from hacker's delight, page 60 */
+/* maxXOR algorithm from hacker's delight, page 62 */
 
 BtorExp *
 btor_maxxor (Btor *btor,
