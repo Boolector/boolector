@@ -4,6 +4,7 @@ CFLAGS=-g -Wall -W -Wextra
 all:
 	$(MAKE) minor
 	$(MAKE) maxor
+	$(MAKE) maxand
 
 minor: minor.c ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ minor.c -L../.. -lboolector
@@ -11,5 +12,9 @@ minor: minor.c ../../boolector.h ../../btorutil.h ../../libboolector.a
 maxor: maxor.c ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ maxor.c -L../.. -lboolector
 
+maxand: maxand.c ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ maxand.c -L../.. -lboolector
+
+
 clean:
-	rm -f minor maxor
+	rm -f minor maxor maxand
