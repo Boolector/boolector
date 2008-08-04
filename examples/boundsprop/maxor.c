@@ -1,58 +1,51 @@
-#include <stdio.h>
-#include <stdlib.h>
+#include "maxor.h"
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
+#include <assert.h>
+#include <stdio.h>
+#include <stdlib.h>
+
 /* maxOR algorithm from hacker's delight, page 60 */
 
-int
-main (int argc, char **argv)
+BtorExp *
+btor_maxor (Btor *btor,
+            BtorExp *a_in,
+            BtorExp *b_in,
+            BtorExp *c_in,
+            BtorExp *d_in,
+            BtorExp *m_in,
+            int num_bits)
 {
-  int num_bits, i;
-  Btor *btor;
-  BtorExp *formula, *temp_1, *temp_2, *m, *zero, *zero_num_bits_m_1;
-  BtorExp *one, *tmp, *a, *b, *c, *d, *m_minus_1, *b_minus_m;
-  BtorExp *d_minus_m, *one_log_bits, *b_or_d, *b_and_d;
+  BtorExp *temp_1, *temp_2, *m, *zero;
+  BtorExp *tmp, *a, *b, *c, *d, *m_minus_1, *b_minus_m;
+  BtorExp *d_minus_m, *one_log_bits, *b_and_d;
   BtorExp *b_and_d_and_m, *temp_1_ugte_a, *temp_2_ugte_c;
   BtorExp *b_and_d_and_m_ne_zero, *cond_1, *cond_2, *result;
   BtorExp *and_break, *cond_3, *cond_4, *_break;
+  int i;
 
-  if (argc != 2)
-  {
-    printf ("Usage: ./maxor <num-bits>\n");
-    return 1;
-  }
-  num_bits = atoi (argv[1]);
-  if (num_bits <= 1)
-  {
-    printf ("Number of bits must be greater than one\n");
-    return 1;
-  }
-  if (!btor_is_power_of_2_util (num_bits))
-  {
-    printf ("Number of bits must be a power of two\n");
-    return 1;
-  }
+  assert (btor != NULL);
+  assert (a_in != NULL);
+  assert (b_in != NULL);
+  assert (c_in != NULL);
+  assert (d_in != NULL);
+  assert (m_in != NULL);
+  assert (num_bits > 0);
+  assert (btor_is_power_of_2_util (num_bits));
 
-  btor = boolector_new ();
-  boolector_set_rewrite_level (btor, 0);
+  a = boolector_copy (btor, a_in);
+  b = boolector_copy (btor, b_in);
+  c = boolector_copy (btor, c_in);
+  d = boolector_copy (btor, d_in);
+  m = boolector_copy (btor, m_in);
 
-  one               = boolector_one (btor, 1);
-  one_log_bits      = boolector_one (btor, btor_log_2_util (num_bits));
-  zero_num_bits_m_1 = boolector_zero (btor, num_bits - 1);
-  zero              = boolector_zero (btor, num_bits);
-  m                 = boolector_concat (btor, one, zero_num_bits_m_1);
-  a                 = boolector_var (btor, num_bits, "a");
-  b                 = boolector_var (btor, num_bits, "b");
-  c                 = boolector_var (btor, num_bits, "c");
-  d                 = boolector_var (btor, num_bits, "d");
+  one_log_bits = boolector_one (btor, btor_log_2_util (num_bits));
+  zero         = boolector_zero (btor, num_bits);
 
   /* as soon _break becomes 1, we do not change the values
    * of b and d anymore */
   _break = boolector_false (btor);
-
-  /* needed later for conclusion */
-  b_or_d = boolector_or (btor, b, d);
 
   for (i = 0; i < num_bits; i++)
   {
@@ -121,28 +114,14 @@ main (int argc, char **argv)
 
   result = boolector_or (btor, b, d);
 
-  /* conclusion: result is indeed the maximum of b | d */
-  formula = boolector_ugte (btor, result, b_or_d);
-  /* we negate the formula and show that it is UNSAT */
-  tmp = boolector_not (btor, formula);
-  boolector_release (btor, formula);
-  formula = tmp;
-  boolector_dump_btor (btor, stdout, formula);
-
-  /* clean up */
   boolector_release (btor, _break);
-  boolector_release (btor, result);
-  boolector_release (btor, formula);
-  boolector_release (btor, b_or_d);
   boolector_release (btor, a);
   boolector_release (btor, b);
   boolector_release (btor, c);
   boolector_release (btor, d);
   boolector_release (btor, m);
   boolector_release (btor, zero);
-  boolector_release (btor, zero_num_bits_m_1);
-  boolector_release (btor, one);
   boolector_release (btor, one_log_bits);
-  boolector_delete (btor);
-  return 0;
+
+  return result;
 }

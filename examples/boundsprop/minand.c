@@ -2,6 +2,7 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
+#include <assert.h>
 #include <stdio.h>
 #include <stdlib.h>
 
