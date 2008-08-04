@@ -7,6 +7,7 @@ all:
 	$(MAKE) minand
 	$(MAKE) maxand
 	$(MAKE) minxor
+	$(MAKE) maxxor
 
 minor: minormain.c minor.c minor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ minor.c minormain.c -L../.. -lboolector
@@ -23,6 +24,9 @@ maxand: maxandmain.c maxand.c maxand.h ../../boolector.h ../../btorutil.h ../../
 minxor: minxormain.c minxor.c minxor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ minxor.c minxormain.c -L../.. -lboolector
 
+maxxor: maxxormain.c maxxor.c maxxor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ maxxor.c maxxormain.c -L../.. -lboolector
+
 
 clean:
-	rm -f minor maxor minand maxand minxor
+	rm -f minor maxor minand maxand minxor maxxor

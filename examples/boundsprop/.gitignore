@@ -3,5 +3,6 @@ maxor
 minand
 maxand
 minxor
+maxxor
 *.btor
 *.smt
