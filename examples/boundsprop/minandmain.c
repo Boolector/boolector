@@ -1,6 +1,6 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
-#include "minor.h"
+#include "minand.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,11 +11,11 @@ main (int argc, char **argv)
   int num_bits;
   Btor *btor;
   BtorExp *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
-  BtorExp *result, *one, *a_or_c;
+  BtorExp *result, *one, *a_and_c;
 
   if (argc != 2)
   {
-    printf ("Usage: ./minor <num-bits>\n");
+    printf ("Usage: ./minand <num-bits>\n");
     return 1;
   }
   num_bits = atoi (argv[1]);
@@ -42,12 +42,12 @@ main (int argc, char **argv)
   d                 = boolector_var (btor, num_bits, "d");
 
   /* needed later for conclusion */
-  a_or_c = boolector_or (btor, a, c);
+  a_and_c = boolector_and (btor, a, c);
 
-  result = btor_minor (btor, a, b, c, d, m, num_bits);
+  result = btor_minand (btor, a, b, c, d, m, num_bits);
 
-  /* conclusion: result is indeed the minimum of a | c */
-  formula = boolector_ulte (btor, result, a_or_c);
+  /* conclusion: result is indeed the minimum of a & c */
+  formula = boolector_ulte (btor, result, a_and_c);
   /* we negate the formula and show that it is UNSAT */
   tmp = boolector_not (btor, formula);
   boolector_release (btor, formula);
@@ -57,7 +57,7 @@ main (int argc, char **argv)
   /* clean up */
   boolector_release (btor, result);
   boolector_release (btor, formula);
-  boolector_release (btor, a_or_c);
+  boolector_release (btor, a_and_c);
   boolector_release (btor, a);
   boolector_release (btor, b);
   boolector_release (btor, c);
