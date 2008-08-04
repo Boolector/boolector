@@ -65,7 +65,7 @@ btor_maxand (Btor *btor,
     not_b_and_d_and_m_ne_zero = boolector_ne (btor, not_b_and_d_and_m, zero);
 
     d_and_not_m   = boolector_and (btor, d, not_m);
-    temp_2        = boolector_or (btor, d_and_not_m, not_m);
+    temp_2        = boolector_or (btor, d_and_not_m, m_minus_1);
     temp_2_ugte_c = boolector_ugte (btor, temp_2, c);
 
     /* update b */
