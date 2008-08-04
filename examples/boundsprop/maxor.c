@@ -82,6 +82,7 @@ main (int argc, char **argv)
     tmp       = boolector_or (btor, _break, and_break);
     boolector_release (btor, _break);
     _break = tmp;
+    boolector_release (btor, and_break);
 
     /* update d */
     cond_3 = boolector_cond (btor, temp_2_ugte_c, temp_2, d);
@@ -90,12 +91,18 @@ main (int argc, char **argv)
     boolector_release (btor, d);
     d = tmp;
 
+    /* update _break */
+    and_break = boolector_and (btor, b_and_d_and_m_ne_zero, temp_2_ugte_c);
+    tmp       = boolector_or (btor, _break, and_break);
+    boolector_release (btor, _break);
+    _break = tmp;
+    boolector_release (btor, and_break);
+
     /* update m */
     tmp = boolector_srl (btor, m, one_log_bits);
     boolector_release (btor, m);
     m = tmp;
 
-    boolector_release (btor, and_break);
     boolector_release (btor, b_and_d);
     boolector_release (btor, b_and_d_and_m);
     boolector_release (btor, b_and_d_and_m_ne_zero);
