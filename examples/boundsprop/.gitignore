@@ -4,5 +4,6 @@ minand
 maxand
 minxor
 maxxor
+theorems
 *.btor
 *.smt
