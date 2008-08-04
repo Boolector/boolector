@@ -46,7 +46,7 @@ main (int argc, char **argv)
 
   result = btor_maxor (btor, a, b, c, d, m, num_bits);
 
-  /* conclusion: result is indeed the maximum of b | d*/
+  /* conclusion: result is indeed the maximum of b | d */
   formula = boolector_ugte (btor, result, b_or_d);
   /* we negate the formula and show that it is UNSAT */
   tmp = boolector_not (btor, formula);
