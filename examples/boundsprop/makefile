@@ -7,8 +7,8 @@ all:
 	$(MAKE) minand
 	$(MAKE) maxand
 
-minor: minor.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ minor.c -L../.. -lboolector
+minor: minormain.c minor.c minor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
+	$(CC) $(CFLAGS) -o $@ minor.c minormain.c -L../.. -lboolector
 
 maxor: maxor.c ../../boolector.h ../../btorutil.h ../../libboolector.a
 	$(CC) $(CFLAGS) -o $@ maxor.c -L../.. -lboolector
