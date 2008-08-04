@@ -11,7 +11,8 @@ main (int argc, char **argv)
   int num_bits;
   Btor *btor;
   BtorExp *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
-  BtorExp *result, *one, *a_xor_c;
+  BtorExp *result, *one, *x_xor_y;
+  BtorExp *premisse, *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y, *concl;
 
   if (argc != 2)
   {
@@ -40,14 +41,28 @@ main (int argc, char **argv)
   b                 = boolector_var (btor, num_bits, "b");
   c                 = boolector_var (btor, num_bits, "c");
   d                 = boolector_var (btor, num_bits, "d");
+  x                 = boolector_var (btor, num_bits, "x");
+  y                 = boolector_var (btor, num_bits, "y");
 
-  /* needed later for conclusion */
-  a_xor_c = boolector_xor (btor, a, c);
+  x_xor_y = boolector_xor (btor, x, y);
+
+  a_ulte_x = boolector_ulte (btor, a, x);
+  x_ulte_b = boolector_ulte (btor, x, b);
+  c_ulte_y = boolector_ulte (btor, c, y);
+  y_ulte_d = boolector_ulte (btor, y, d);
+  premisse = boolector_and (btor, a_ulte_x, x_ulte_b);
+  tmp      = boolector_and (btor, premisse, c_ulte_y);
+  boolector_release (btor, premisse);
+  premisse = tmp;
+  tmp      = boolector_and (btor, premisse, y_ulte_d);
+  boolector_release (btor, premisse);
+  premisse = tmp;
 
   result = btor_minxor (btor, a, b, c, d, m, num_bits);
 
-  /* conclusion: result is indeed the minimum of a ^ c */
-  formula = boolector_ulte (btor, result, a_xor_c);
+  /* conclusion: result is indeed the minimum of x ^ y */
+  concl   = boolector_ulte (btor, result, x_xor_y);
+  formula = boolector_implies (btor, premisse, concl);
   /* we negate the formula and show that it is UNSAT */
   tmp = boolector_not (btor, formula);
   boolector_release (btor, formula);
@@ -56,13 +71,21 @@ main (int argc, char **argv)
 
   /* clean up */
   boolector_release (btor, result);
+  boolector_release (btor, premisse);
+  boolector_release (btor, concl);
   boolector_release (btor, formula);
-  boolector_release (btor, a_xor_c);
+  boolector_release (btor, x_xor_y);
+  boolector_release (btor, a_ulte_x);
+  boolector_release (btor, x_ulte_b);
+  boolector_release (btor, c_ulte_y);
+  boolector_release (btor, y_ulte_d);
   boolector_release (btor, a);
   boolector_release (btor, b);
   boolector_release (btor, c);
   boolector_release (btor, d);
   boolector_release (btor, m);
+  boolector_release (btor, x);
+  boolector_release (btor, y);
   boolector_release (btor, zero_num_bits_m_1);
   boolector_release (btor, one);
   boolector_delete (btor);
