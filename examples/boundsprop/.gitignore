@@ -1,5 +1,6 @@
 minor
 maxor
+minand
 maxand
 *.btor
 *.smt
