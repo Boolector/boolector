@@ -53,7 +53,17 @@ do
   ((i++))
   ((counter++))
   rwl=rwl3
-  echo -n "Test $i $rwl: "
+
+  randomnumber=$RANDOM
+  ((randomnumber %= 2))
+  if [[ $randomnumber -eq 0 ]]; then
+    uamode=uad
+  else
+    uamode=uai
+  fi
+
+  uarwl=$RANDOM
+  ((uarwl %= 4))
 
   if [ $last = btorgen ]; then
     btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > $file 
@@ -68,26 +78,35 @@ do
     exit 1
   fi 
 
-  boolector -$rwl -rl $refinementlimit $file
+  echo -n "Test $i $rwl: "
+  callstring="-$rwl -rl $refinementlimit $file"
+  if [[ $uarwl -eq 3 ]]; then
+    callstring=$callstring" "-$uamode
+  fi
+  boolector $callstring
   goldenretval=$?
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
     cp $file $fileerror
-    echo "; default error" >> $fileerror
+    echo "; error: $callstring" >> $fileerror
     exit
   fi
 
-  for rwl in rwl2 rwl1 rwl0
+  for rwl in 2 1 0
   do
-    echo -n "Test $i $rwl: "
-    boolector -$rwl -rl $refinementlimit $file 
-  retval=$?
-  if [[ $retval -ne $goldenretval ]]; then
-    echo "ERROR"
-    cp $file $fileerror
-    echo "; $rwl error" >> $fileerror
-    exit
-  fi 
+    echo -n "Test $i rwl$rwl: "
+    callstring="-rwl$rwl -rl $refinementlimit $file"
+    if [[ $uarwl -eq $rwl ]]; then
+      callstring=$callstring" -"$uamode
+    fi
+    boolector $callstring 
+    retval=$?
+    if [[ $retval -ne $goldenretval ]]; then
+      echo "ERROR"
+      cp $file $fileerror
+      echo "; error: $callstring" >> $fileerror
+      exit
+    fi 
   done
 
   echo -n "Test $i dump: "

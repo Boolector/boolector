@@ -106,6 +106,7 @@ struct BtorMainApp
   FILE *smt_file;
   int close_smt_file;
   int rewrite_level;
+  int under_approx_mode;
   int bmcmaxk;
   int bmcadc;
   BtorCNFEnc cnf_enc;
@@ -140,6 +141,11 @@ static const char *g_usage =
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
+    "\n"
+    "  -uai                             use under-approximation with BW "
+    "increment\n"
+    "  -uad                             use under-approximation with BW "
+    "doubling\n"
     "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding "
@@ -510,6 +516,10 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity = -1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-uai"))
+      app->under_approx_mode = 1;
+    else if (!strcmp (app->argv[app->argpos], "-uad"))
+      app->under_approx_mode = 2;
     else if (!strcmp (app->argv[app->argpos], "-tcnf")
              || !strcmp (app->argv[app->argpos], "--tseitin-cnf"))
       app->cnf_enc = BTOR_TSEITIN_CNF_ENC;
@@ -783,6 +793,7 @@ btor_main (int argc, char **argv)
   app.smt_file          = stdout;
   app.close_smt_file    = 0;
   app.rewrite_level     = 3;
+  app.under_approx_mode = 0;
   app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
   app.bmcadc            = 1;
   app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -808,6 +819,7 @@ btor_main (int argc, char **argv)
   {
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
+    btor_set_under_approx_mode (btor, app.under_approx_mode);
     btor_set_verbosity_btor (btor, app.verbosity);
     btor_set_replay_btor (btor, app.replay_mode != BTOR_APP_REPLAY_MODE_NONE);
     mem = btor->mm;

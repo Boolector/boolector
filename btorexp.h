@@ -206,6 +206,7 @@ struct Btor
   BtorExpUniqueTable table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *arrays;
+  BtorPtrHashTable *vars;
   int id;        /* expression id counter */
   int lambda_id; /* counter for lambda variables (subst) */
   int valid_assignments;
@@ -215,6 +216,9 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
+  int under_approx_mode;
+  int under_approx_width;
+  int under_approx_e;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *varsubst_constraints;
@@ -352,6 +356,13 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
  * does not print any output.
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
+
+/* Sets under-approximation mode.
+ * 0 -> under-approximation disabled
+ * 1 -> under-approximation where bit-width is incremented by one
+ * 2 -> under-approximation where bit-width is doubled
+ */
+void btor_set_under_approx_mode (Btor *btor, int mode);
 
 /* Turns replay on or off. */
 void btor_set_replay_btor (Btor *btor, int replay);

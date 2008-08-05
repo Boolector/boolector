@@ -59,6 +59,17 @@ boolector_set_verbosity (Btor *btor, int verbosity)
 }
 
 void
+boolector_set_under_approx_mode (Btor *btor, int mode)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (mode < 0 || mode > 2, "'mode' has to be in [0,2]");
+  BTOR_ABORT_BOOLECTOR (btor->id != 1,
+                        "setting under-approximation mode must be done before "
+                        "adding expressions");
+  btor_set_under_approx_mode (btor, mode);
+}
+
+void
 boolector_delete (Btor *btor)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");

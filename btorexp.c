@@ -603,7 +603,8 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   }
   else if (BTOR_IS_VAR_EXP (exp))
   {
-    /* do nothing */
+    if (btor->under_approx_mode)
+      btor_remove_from_ptr_hash_table (btor->vars, exp, 0, 0);
   }
   else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
   {
@@ -2452,6 +2453,8 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->refs = 1u;
   exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
+  if (btor->under_approx_mode)
+    (void) btor_insert_in_ptr_hash_table (btor->vars, exp);
   return (BtorExp *) exp;
 }
 
@@ -4617,15 +4620,19 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr             = btor_new_aigvec_mgr (mm);
-  btor->arrays            = btor_new_ptr_hash_table (mm,
+  btor->avmgr              = btor_new_aigvec_mgr (mm);
+  btor->arrays             = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->id                = 1;
-  btor->lambda_id         = 1;
-  btor->valid_assignments = 1;
-  btor->rewrite_level     = 3;
-  btor->vread_index_id    = 1;
+  btor->vars               = btor_new_ptr_hash_table (mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->id                 = 1;
+  btor->lambda_id          = 1;
+  btor->valid_assignments  = 1;
+  btor->rewrite_level      = 3;
+  btor->vread_index_id     = 1;
+  btor->under_approx_width = 1;
 
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -4665,6 +4672,16 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor->rewrite_level <= 3);
   assert (btor->id == 1);
   btor->rewrite_level = rewrite_level;
+}
+
+void
+btor_set_under_approx_mode (Btor *btor, int mode)
+{
+  assert (btor != NULL);
+  assert (mode >= 0);
+  assert (mode <= 2);
+  assert (btor->id == 1);
+  btor->under_approx_mode = mode;
 }
 
 void
@@ -4760,6 +4777,7 @@ btor_delete_btor (Btor *btor)
   assert (getenv ("BTORLEAKEXP") || btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
   btor_delete_ptr_hash_table (btor->arrays);
+  btor_delete_ptr_hash_table (btor->vars);
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
@@ -7758,11 +7776,97 @@ substitute_vars_and_process_embedded_constraints (Btor *btor)
            || btor->embedded_constraints->count > 0u);
 }
 
+static void
+update_under_approx_width (Btor *btor)
+{
+  assert (btor != NULL);
+  if (btor->under_approx_mode == 1)
+    btor->under_approx_width++;
+  else
+  {
+    assert (btor->under_approx_mode == 2);
+    btor->under_approx_width *= 2;
+  }
+
+  if (btor->verbosity > 0)
+    print_verbose_msg ("setting bit-width of under-approximation to %d",
+                       btor->under_approx_width);
+}
+
+int
+encode_under_approx (Btor *btor)
+{
+  BtorSATMgr *smgr;
+  BtorPtrHashBucket *b;
+  BtorExp *var;
+  BtorAIG **aigs;
+  int encoded, len, under_approx_width, i, id1, id2, under_approx_e, first_pos;
+
+  assert (btor != NULL);
+
+  encoded = 0;
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  under_approx_width = btor->under_approx_width;
+
+  if (btor->under_approx_e == 0)
+    btor->under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
+  under_approx_e = btor->under_approx_e;
+
+  for (b = btor->vars->first; b != NULL; b = b->next)
+  {
+    var = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (var));
+
+    if (!var->reachable) continue;
+
+    len = var->len;
+    if (under_approx_width >= len) continue;
+
+    if (var->av == NULL) continue;
+
+    aigs = var->av->aigs;
+    assert (aigs != NULL);
+
+    first_pos = 0;
+    i         = len - under_approx_width;
+    while (i >= 0 && aigs[i]->cnf_id == 0) i--;
+
+    if (i < 0) continue;
+
+    first_pos = i;
+    id1       = aigs[first_pos]->cnf_id;
+    assert (id1 != 0);
+
+    for (i = first_pos - 1; i >= 0; i--)
+    {
+      id2 = aigs[i]->cnf_id;
+
+      if (id2 == 0) continue;
+
+      btor_add_sat (smgr, -id1);
+      btor_add_sat (smgr, id2);
+      btor_add_sat (smgr, -under_approx_e);
+      btor_add_sat (smgr, 0);
+
+      btor_add_sat (smgr, id1);
+      btor_add_sat (smgr, -id2);
+      btor_add_sat (smgr, -under_approx_e);
+      btor_add_sat (smgr, 0);
+      encoded = 1;
+    }
+  }
+
+  if (encoded) btor_assume_sat (smgr, under_approx_e);
+
+  return encoded;
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
-  int refinements, found_assumption_false;
+  int refinements, found_assumption_false, under_approx_finished;
+  int under_approx_mode;
   BtorExpPtrStack top_arrays;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -7771,7 +7875,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   assert (btor != NULL);
   assert (refinement_limit >= 0);
 
-  verbosity = btor->verbosity;
+  verbosity             = btor->verbosity;
+  under_approx_mode     = btor->under_approx_mode;
+  under_approx_finished = 0;
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
@@ -7810,15 +7916,28 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   found_assumption_false = readd_assumptions (btor);
   if (found_assumption_false) return BTOR_UNSAT;
 
-  sat_result = btor_sat_sat (smgr, INT_MAX);
+  under_approx_finished = !encode_under_approx (btor);
+  sat_result            = btor_sat_sat (smgr, INT_MAX);
   BTOR_INIT_STACK (top_arrays);
   search_top_arrays (btor, &top_arrays);
-  while (sat_result != BTOR_UNSAT && sat_result != BTOR_UNKNOWN
-         && btor->stats.refinements < refinement_limit)
+  while (btor->stats.refinements < refinement_limit
+         && (sat_result == BTOR_SAT
+             || (under_approx_mode && !under_approx_finished
+                 && sat_result != BTOR_UNKNOWN)))
   {
-    assert (sat_result == BTOR_SAT);
-    found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
-    if (!found_conflict) break;
+    if (sat_result == BTOR_SAT)
+    {
+      found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
+      if (!found_conflict) break;
+    }
+    else
+    {
+      assert (sat_result == BTOR_UNSAT);
+      assert (under_approx_mode);
+      assert (!under_approx_finished);
+      update_under_approx_width (btor);
+      under_approx_finished = !encode_under_approx (btor);
+    }
     refinements++;
     if (verbosity > 1)
     {
