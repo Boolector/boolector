@@ -604,7 +604,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   else if (BTOR_IS_VAR_EXP (exp))
   {
     if (btor->under_approx_mode)
-      btor_remove_from_ptr_hash_table (btor->vars, exp, 0, 0);
+      btor_remove_from_ptr_hash_table (btor->vars_reads, exp, 0, 0);
   }
   else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
   {
@@ -612,6 +612,11 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   }
   else
   {
+    if (btor->under_approx_mode)
+    {
+      if (exp->kind == BTOR_READ_EXP)
+        btor_remove_from_ptr_hash_table (btor->vars_reads, exp, 0, 0);
+    }
     for (i = 0; i < exp->arity; i++) disconnect_child_exp (btor, exp, i);
   }
   exp->disconnected = 1;
@@ -1939,6 +1944,13 @@ new_binary_exp_node (
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
+
+  if (btor->under_approx_mode)
+  {
+    if (exp->kind == BTOR_READ_EXP)
+      (void) btor_insert_in_ptr_hash_table (btor->vars_reads, exp);
+  }
+
   return (BtorExp *) exp;
 }
 
@@ -2454,7 +2466,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
   if (btor->under_approx_mode)
-    (void) btor_insert_in_ptr_hash_table (btor->vars, exp);
+    (void) btor_insert_in_ptr_hash_table (btor->vars_reads, exp);
   return (BtorExp *) exp;
 }
 
@@ -4620,13 +4632,14 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr              = btor_new_aigvec_mgr (mm);
-  btor->arrays             = btor_new_ptr_hash_table (mm,
+  btor->avmgr  = btor_new_aigvec_mgr (mm);
+  btor->arrays = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->vars               = btor_new_ptr_hash_table (mm,
-                                        (BtorHashPtr) btor_hash_exp_by_id,
-                                        (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->vars_reads =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor->id                 = 1;
   btor->lambda_id          = 1;
   btor->valid_assignments  = 1;
@@ -4777,7 +4790,7 @@ btor_delete_btor (Btor *btor)
   assert (getenv ("BTORLEAKEXP") || btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
   btor_delete_ptr_hash_table (btor->arrays);
-  btor_delete_ptr_hash_table (btor->vars);
+  btor_delete_ptr_hash_table (btor->vars_reads);
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
@@ -7810,7 +7823,7 @@ encode_under_approx (Btor *btor)
 
   under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
 
-  for (b = btor->vars->first; b != NULL; b = b->next)
+  for (b = btor->vars_reads->first; b != NULL; b = b->next)
   {
     var = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (var));
