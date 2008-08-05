@@ -7808,9 +7808,7 @@ encode_under_approx (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   under_approx_width = btor->under_approx_width;
 
-  if (btor->under_approx_e == 0)
-    btor->under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
-  under_approx_e = btor->under_approx_e;
+  under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
 
   for (b = btor->vars->first; b != NULL; b = b->next)
   {
