@@ -218,6 +218,7 @@ struct Btor
   int inconsistent;
   int under_approx_mode;
   int under_approx_width;
+  int last_under_approx_e;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *varsubst_constraints;
