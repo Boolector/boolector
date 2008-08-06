@@ -812,7 +812,7 @@ btor_main (int argc, char **argv)
   app.rewrite_level     = 3;
   app.ua                = 0;
   app.ua_mode           = BTOR_UA_GLOBAL_MODE;
-  app.ua_bw_ref         = BTOR_UA_BW_REF_BY_INC_ONE;
+  app.ua_bw_ref         = BTOR_UA_BW_REF_BY_DOUBLING;
   app.ua_enc            = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
   app.bmcadc            = 1;
