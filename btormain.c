@@ -531,19 +531,40 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-ua"))
       app->ua = 1;
     else if (!strcmp (app->argv[app->argpos], "-ual"))
+    {
       app->ua_mode = BTOR_UA_LOCAL_MODE;
+      app->ua      = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-uag"))
+    {
       app->ua_mode = BTOR_UA_GLOBAL_MODE;
+      app->ua      = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-uai"))
+    {
       app->ua_bw_ref = BTOR_UA_BW_REF_BY_INC_ONE;
+      app->ua        = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-uad"))
+    {
       app->ua_bw_ref = BTOR_UA_BW_REF_BY_DOUBLING;
+      app->ua        = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-uaz"))
+    {
       app->ua_enc = BTOR_UA_ENC_ZERO_EXTEND;
+      app->ua     = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-uao"))
+    {
       app->ua_enc = BTOR_UA_ENC_ONE_EXTEND;
+      app->ua     = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-uas"))
+    {
       app->ua_enc = BTOR_UA_ENC_SIGN_EXTEND;
+      app->ua     = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-tcnf")
              || !strcmp (app->argv[app->argpos], "--tseitin-cnf"))
       app->cnf_enc = BTOR_TSEITIN_CNF_ENC;
