@@ -4763,6 +4763,8 @@ btor_set_under_approx_mode (Btor *btor, BtorUAMode mode)
   assert (btor != NULL);
   assert (btor->id == 1);
   btor->ua_mode = mode;
+
+  if (mode == BTOR_UA_LOCAL_MODE) picosat_enable_trace_generation ();
 }
 
 void

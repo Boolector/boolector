@@ -57,9 +57,27 @@ do
   randomnumber=$RANDOM
   ((randomnumber %= 2))
   if [[ $randomnumber -eq 0 ]]; then
-    uamode=uad
+    uamode=uag
   else
-    uamode=uai
+    uamode=ual
+  fi
+
+  randomnumber=$RANDOM
+  ((randomnumber %= 2))
+  if [[ $randomnumber -eq 0 ]]; then
+    uabwref=uad
+  else
+    uabwref=uai
+  fi
+
+  randomnumber=$RANDOM
+  ((randomnumber %= 3))
+  if [[ $randomnumber -eq 0 ]]; then
+    uaenc=uaz
+  elif [[ $randomnumber -eq 1 ]]; then
+    uaenc=uao
+  else
+    uaenc=uas
   fi
 
   uarwl=$RANDOM
@@ -81,7 +99,7 @@ do
   echo -n "Test $i $rwl: "
   callstring="-$rwl -rl $refinementlimit $file"
   if [[ $uarwl -eq 3 ]]; then
-    callstring=$callstring" "-$uamode
+    callstring=$callstring" -$uamode -$uabwref -$uaenc"
   fi
   boolector $callstring
   goldenretval=$?
@@ -97,7 +115,7 @@ do
     echo -n "Test $i rwl$rwl: "
     callstring="-rwl$rwl -rl $refinementlimit $file"
     if [[ $uarwl -eq $rwl ]]; then
-      callstring=$callstring" -"$uamode
+      callstring=$callstring" -$uamode -$uabwref -$uaenc"
     fi
     boolector $callstring 
     retval=$?
