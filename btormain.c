@@ -106,7 +106,10 @@ struct BtorMainApp
   FILE *smt_file;
   int close_smt_file;
   int rewrite_level;
-  int under_approx_mode;
+  int ua;
+  BtorUAMode ua_mode;
+  BtorUABWRef ua_bw_ref;
+  BtorUAEnc ua_enc;
   int bmcmaxk;
   int bmcadc;
   BtorCNFEnc cnf_enc;
@@ -142,26 +145,35 @@ static const char *g_usage =
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
     "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
     "\n"
-    "  -uai                             use under-approximation with BW "
-    "increment\n"
-    "  -uad                             use under-approximation with BW "
-    "doubling\n"
-    "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding "
+    "(default)\n"
+
+    "\n"
+    "Under-approximation options:\n"
+    "  -ua                              enable under-approximation\n"
+    "\n"
+    "  -uai                             BW refinement by 1\n"
+    "  -uad                             BW refinement by doubling (default)\n"
+    "\n"
+    "  -ual                             local BW refinement\n"
+    "  -uag                             global BW refinement (default)\n"
+    "\n"
+    "  -uaz                             UA encoding by zero-extension\n"
+    "  -uao                             UA encoding by one-extension\n"
+    "  -uas                             UA encoding by sign-extension "
     "(default)\n"
     "\n"
     "\n"
     "BMC options:\n"
-    "  -bmc-maxk=<k>                     sets maximum bound for model "
-    "checking\n"
-    "  -bmc-adc                          use all different constraints "
+    "  -bmc-maxk=<k>                    sets maximum bound for model checking\n"
+    "  -bmc-adc                         use all different constraints "
     "(default)\n"
-    "  -bmc-no-adc                       disable all different constraints\n"
-    "  -bmc-base-only                    base case (search for wittnesses, no "
+    "  -bmc-no-adc                      disable all different constraints\n"
+    "  -bmc-base-only                   base case (search for wittnesses, no "
     "adc)\n"
-    "  -bmc-induct-only                  inductive case only\n"
-    "  -bmc-replay <file>                turn replay on\n";
+    "  -bmc-induct-only                 inductive case only\n"
+    "  -bmc-replay <file>               turn replay on\n";
 
 static const char *g_copyright =
     "Copyright (c) 2007 - 2008, Robert Brummayer, Armin Biere\n"
@@ -516,10 +528,22 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity = -1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-ua"))
+      app->ua = 1;
+    else if (!strcmp (app->argv[app->argpos], "-ual"))
+      app->ua_mode = BTOR_UA_LOCAL_MODE;
+    else if (!strcmp (app->argv[app->argpos], "-uag"))
+      app->ua_mode = BTOR_UA_GLOBAL_MODE;
     else if (!strcmp (app->argv[app->argpos], "-uai"))
-      app->under_approx_mode = 1;
+      app->ua_bw_ref = BTOR_UA_BW_REF_BY_INC_ONE;
     else if (!strcmp (app->argv[app->argpos], "-uad"))
-      app->under_approx_mode = 2;
+      app->ua_bw_ref = BTOR_UA_BW_REF_BY_DOUBLING;
+    else if (!strcmp (app->argv[app->argpos], "-uaz"))
+      app->ua_enc = BTOR_UA_ENC_ZERO_EXTEND;
+    else if (!strcmp (app->argv[app->argpos], "-uao"))
+      app->ua_enc = BTOR_UA_ENC_ONE_EXTEND;
+    else if (!strcmp (app->argv[app->argpos], "-uas"))
+      app->ua_enc = BTOR_UA_ENC_SIGN_EXTEND;
     else if (!strcmp (app->argv[app->argpos], "-tcnf")
              || !strcmp (app->argv[app->argpos], "--tseitin-cnf"))
       app->cnf_enc = BTOR_TSEITIN_CNF_ENC;
@@ -786,7 +810,10 @@ btor_main (int argc, char **argv)
   app.smt_file          = stdout;
   app.close_smt_file    = 0;
   app.rewrite_level     = 3;
-  app.under_approx_mode = 0;
+  app.ua                = 0;
+  app.ua_mode           = BTOR_UA_GLOBAL_MODE;
+  app.ua_bw_ref         = BTOR_UA_BW_REF_BY_INC_ONE;
+  app.ua_enc            = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
   app.bmcadc            = 1;
   app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
@@ -812,7 +839,13 @@ btor_main (int argc, char **argv)
   {
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
-    btor_set_under_approx_mode (btor, app.under_approx_mode);
+    if (app.ua)
+    {
+      btor_enable_under_approx (btor);
+      btor_set_under_approx_mode (btor, app.ua_mode);
+      btor_set_under_approx_bw_ref (btor, app.ua_bw_ref);
+      btor_set_under_approx_enc (btor, app.ua_enc);
+    }
     btor_set_verbosity_btor (btor, app.verbosity);
     btor_set_replay_btor (btor, app.replay_mode != BTOR_APP_REPLAY_MODE_NONE);
     mem = btor->mm;

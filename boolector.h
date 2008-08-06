@@ -35,13 +35,6 @@ void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
  */
 void boolector_set_verbosity (Btor *btor, int verbosity);
 
-/* Sets under-approximation mode.
- * 0 -> under-approximation disabled
- * 1 -> under-approximation where bit-width is incremented by one
- * 2 -> under-approximation where bit-width is doubled
- */
-void boolector_set_under_approx_mode (Btor *btor, int mode);
-
 /* Deletes boolector. */
 void boolector_delete (Btor *btor);
 
