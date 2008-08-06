@@ -7996,8 +7996,8 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
-  if (!real_exp->reachable
-      || (!BTOR_IS_CONST_EXP (real_exp) && !BTOR_IS_SYNTH_EXP (real_exp)))
+  if ((!BTOR_IS_CONST_EXP (real_exp)
+       && (!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))))
     return NULL;
 
   if (BTOR_IS_CONST_EXP (real_exp))
