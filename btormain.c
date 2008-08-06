@@ -646,13 +646,6 @@ parse_commandline_arguments (BtorMainApp *app)
           app, "Replay for 'base-and-induct' BMC mode is not supported\n");
       app->err = 1;
     }
-
-    if (app->print_model && app->rewrite_level > 1)
-    {
-      if (app->verbosity > 0)
-        print_verbose_msg ("Setting rewrite level to 1 for model generation\n");
-      app->rewrite_level = 1;
-    }
   }
 }
 

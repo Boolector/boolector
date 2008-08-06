@@ -628,7 +628,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
  * calling function, e.g. 'btor_release_exp', to avoid recursion.
  */
 static void
-erase_local_data_exp (Btor *btor, BtorExp *exp)
+erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
 {
   BtorMemMgr *mm;
 
@@ -650,7 +650,13 @@ erase_local_data_exp (Btor *btor, BtorExp *exp)
     exp->bits = 0;
   }
 
-  if (BTOR_IS_VAR_EXP (exp))
+  else if (BTOR_IS_VAR_EXP (exp) && free_symbol)
+  {
+    btor_freestr (mm, exp->symbol);
+    exp->symbol = 0;
+  }
+
+  else if (BTOR_IS_PROXY_EXP (exp) && free_symbol && exp->symbol != NULL)
   {
     btor_freestr (mm, exp->symbol);
     exp->symbol = 0;
@@ -737,7 +743,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
       }
 
       remove_from_unique_table_exp (btor, cur);
-      erase_local_data_exp (btor, cur);
+      erase_local_data_exp (btor, cur, 1);
 
       /* It is safe to access the children here, since they are pushed
        * on the stack and will be release later if necessary.
@@ -1708,7 +1714,7 @@ set_simplified_exp (Btor *btor,
   if (exp->constraint) update_constraints (btor, exp);
 
   remove_from_unique_table_exp (btor, exp);
-  erase_local_data_exp (btor, exp);
+  erase_local_data_exp (btor, exp, 0);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
   disconnect_children_exp (btor, exp);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
@@ -4142,7 +4148,6 @@ btor_get_symbol_exp (Btor *btor, BtorExp *exp)
   /* do not pointer-chase! */
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)));
   (void) btor;
   return BTOR_REAL_ADDR_EXP (exp)->symbol;
 }
