@@ -7831,8 +7831,83 @@ update_global_under_approx_width (Btor *btor)
                        btor->global_ua_width);
 }
 
-int
-encode_global_under_approx (Btor *btor)
+static int
+encode_global_under_approx_const_extend (Btor *btor, int pos)
+{
+  BtorSATMgr *smgr;
+  BtorPtrHashBucket *b;
+  BtorExp *var;
+  BtorAIG **aigs;
+  int ua_width, id, i, len, encoded, under_approx_e;
+
+  assert (btor != NULL);
+  assert (btor->ua_mode == BTOR_UA_GLOBAL_MODE);
+
+  encoded = 0;
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  ua_width = btor->global_ua_width;
+
+  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  {
+    var = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (var));
+
+    if (!var->reachable) continue;
+
+    len = var->len;
+    if (ua_width >= len) continue;
+
+    if (var->av == NULL) continue;
+
+    aigs = var->av->aigs;
+    assert (aigs != NULL);
+
+    for (i = len - ua_width - 1; i >= 0; i--)
+    {
+      if (BTOR_IS_CONST_AIG (aigs[i])) continue;
+
+      id = aigs[i]->cnf_id;
+
+      if (id == 0) continue;
+
+      if (!encoded)
+      {
+        under_approx_e         = btor_next_cnf_id_sat_mgr (smgr);
+        btor->last_global_ua_e = under_approx_e;
+        encoded                = 1;
+      }
+
+      if (pos)
+        btor_add_sat (smgr, id);
+      else
+        btor_add_sat (smgr, -id);
+
+      btor_add_sat (smgr, -under_approx_e);
+      btor_add_sat (smgr, 0);
+    }
+  }
+
+  return encoded;
+}
+
+static int
+encode_global_under_approx_zero_extend (Btor *btor)
+{
+  assert (btor != NULL);
+  assert (btor->ua_mode == BTOR_UA_GLOBAL_MODE);
+  return encode_global_under_approx_const_extend (btor, 0);
+}
+
+static int
+encode_global_under_approx_one_extend (Btor *btor)
+{
+  assert (btor != NULL);
+  assert (btor->ua_mode == BTOR_UA_GLOBAL_MODE);
+  return encode_global_under_approx_const_extend (btor, 1);
+}
+
+static int
+encode_global_under_approx_sign_extend (Btor *btor)
 {
   BtorSATMgr *smgr;
   BtorPtrHashBucket *b;
@@ -7841,19 +7916,11 @@ encode_global_under_approx (Btor *btor)
   int encoded, len, ua_width, i, id1, id2, under_approx_e, first_pos;
 
   assert (btor != NULL);
+  assert (btor->ua_mode == BTOR_UA_GLOBAL_MODE);
 
   encoded = 0;
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   ua_width = btor->global_ua_width;
-
-  if (btor->last_global_ua_e != 0)
-  {
-    btor_add_sat (smgr, -btor->last_global_ua_e);
-    btor_add_sat (smgr, 0);
-  }
-
-  under_approx_e         = btor_next_cnf_id_sat_mgr (smgr);
-  btor->last_global_ua_e = under_approx_e;
 
   for (b = btor->vars_reads->first; b != NULL; b = b->next)
   {
@@ -7872,7 +7939,7 @@ encode_global_under_approx (Btor *btor)
 
     first_pos = 0;
     i         = len - ua_width;
-    while (i >= 0 && aigs[i]->cnf_id == 0) i--;
+    while (i >= 0 && (BTOR_IS_CONST_AIG (aigs[i]) || aigs[i]->cnf_id == 0)) i--;
 
     if (i < 0) continue;
 
@@ -7882,9 +7949,18 @@ encode_global_under_approx (Btor *btor)
 
     for (i = first_pos - 1; i >= 0; i--)
     {
+      if (BTOR_IS_CONST_AIG (aigs[i])) continue;
+
       id2 = aigs[i]->cnf_id;
 
       if (id2 == 0) continue;
+
+      if (!encoded)
+      {
+        under_approx_e         = btor_next_cnf_id_sat_mgr (smgr);
+        btor->last_global_ua_e = under_approx_e;
+        encoded                = 1;
+      }
 
       btor_add_sat (smgr, -id1);
       btor_add_sat (smgr, id2);
@@ -7895,11 +7971,45 @@ encode_global_under_approx (Btor *btor)
       btor_add_sat (smgr, -id2);
       btor_add_sat (smgr, -under_approx_e);
       btor_add_sat (smgr, 0);
-      encoded = 1;
     }
   }
 
-  if (encoded) btor_assume_sat (smgr, under_approx_e);
+  return encoded;
+}
+
+static int
+encode_global_under_approx (Btor *btor)
+{
+  int encoded;
+  BtorSATMgr *smgr;
+
+  assert (btor != NULL);
+  assert (btor->ua_mode == BTOR_UA_GLOBAL_MODE);
+
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+
+  /* disable previous clauses */
+  if (btor->last_global_ua_e != 0)
+  {
+    btor_add_sat (smgr, -btor->last_global_ua_e);
+    btor_add_sat (smgr, 0);
+  }
+
+  switch (btor->ua_enc)
+  {
+    case BTOR_UA_ENC_ZERO_EXTEND:
+      encoded = encode_global_under_approx_zero_extend (btor);
+      break;
+    case BTOR_UA_ENC_ONE_EXTEND:
+      encoded = encode_global_under_approx_one_extend (btor);
+      break;
+    default:
+      assert (btor->ua_enc == BTOR_UA_ENC_SIGN_EXTEND);
+      encoded = encode_global_under_approx_sign_extend (btor);
+      break;
+  }
+
+  if (encoded) btor_assume_sat (smgr, btor->last_global_ua_e);
 
   return encoded;
 }
