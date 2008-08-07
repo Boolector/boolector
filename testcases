@@ -617,3 +617,4 @@ underapprox1 -rwl0 -uad -uag -uao -o log/underapprox1.log log/underapprox1.btor
 underapprox2 -rwl0 -uai -ual -uaz -o log/underapprox2.log log/underapprox2.btor
 underapprox3 -rwl0 -uai -ual -uas -o log/underapprox3.log log/underapprox3.btor
 underapprox4 -rwl0 -uai -ual -uas -o log/underapprox4.log log/underapprox4.btor
+underapprox4 -rwl0 -uag -ual -uas -o log/underapprox4.log log/underapprox4.btor

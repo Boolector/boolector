@@ -4757,6 +4757,7 @@ btor_enable_under_approx (Btor *btor)
   assert (btor != NULL);
   assert (btor->id == 1);
   btor->ua = 1;
+  picosat_enable_trace_generation ();
 }
 
 void
@@ -4765,8 +4766,6 @@ btor_set_under_approx_mode (Btor *btor, BtorUAMode mode)
   assert (btor != NULL);
   assert (btor->id == 1);
   btor->ua_mode = mode;
-
-  if (mode == BTOR_UA_LOCAL_MODE) picosat_enable_trace_generation ();
 }
 
 void
@@ -7896,18 +7895,21 @@ update_under_approx_width (Btor *btor)
 
   if (btor->ua_mode == BTOR_UA_GLOBAL_MODE)
   {
-    if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
-      btor->global_ua_width++;
-    else
+    if (picosat_corelit (btor->last_global_ua_e))
     {
-      assert (ua_bw_ref == BTOR_UA_BW_REF_BY_DOUBLING);
-      btor->global_ua_width *= 2;
-    }
+      if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
+        btor->global_ua_width++;
+      else
+      {
+        assert (ua_bw_ref == BTOR_UA_BW_REF_BY_DOUBLING);
+        btor->global_ua_width *= 2;
+      }
 
-    if (verbosity > 0)
-      print_verbose_msg ("setting global under-approximation bit-width to %d",
-                         btor->global_ua_width);
-    update = 1;
+      if (verbosity > 0)
+        print_verbose_msg ("setting global under-approximation bit-width to %d",
+                           btor->global_ua_width);
+      update = 1;
+    }
   }
   else
   {
