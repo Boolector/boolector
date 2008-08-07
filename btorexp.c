@@ -7977,6 +7977,15 @@ encode_under_approx_const_extend (Btor *btor, int phase)
 
     if (ua_mode == BTOR_UA_LOCAL_MODE)
     {
+      if (((BtorUAVar *) b->data.asPtr)->updated_ua_width == 0
+          && ((BtorUAVar *) b->data.asPtr)->last_e != 0)
+      {
+        /* variable was not in core and therefore has not been refined,
+         * reassume e */
+        btor_assume_sat (smgr, ((BtorUAVar *) b->data.asPtr)->last_e);
+        continue;
+      }
+
       ua_width = ((BtorUAVar *) b->data.asPtr)->ua_width;
 
       /* disable previous clauses */
