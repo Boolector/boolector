@@ -7918,7 +7918,10 @@ update_under_approx_width (Btor *btor)
     {
       e = ((BtorUAVar *) b->data.asPtr)->last_e;
 
-      if (e != 0 && picosat_corelit (e))
+      if ((e == 0
+           && ((BtorUAVar *) b->data.asPtr)->ua_width
+                  < ((BtorExp *) b->key)->len)
+          || (e != 0 && picosat_corelit (e)))
       {
         if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
           ((BtorUAVar *) b->data.asPtr)->ua_width++;
