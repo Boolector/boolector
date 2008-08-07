@@ -7912,7 +7912,10 @@ update_under_approx_width (Btor *btor)
     for (b = btor->vars_reads->first; b != NULL; b = b->next)
     {
       e = ((BtorUAVar *) b->data.asPtr)->last_e;
-      assert (e != 0);
+
+      /* no new clauses have been used */
+      if (e == 0) continue;
+
       if (picosat_corelit (e))
       {
         updates++;
