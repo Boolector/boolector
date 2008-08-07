@@ -7905,9 +7905,8 @@ update_under_approx_width (Btor *btor)
     }
 
     if (verbosity > 0)
-      print_verbose_msg (
-          "setting global bit-width of under-approximation to %d",
-          btor->global_ua_width);
+      print_verbose_msg ("setting global under-approximation bit-width to %d",
+                         btor->global_ua_width);
     update = 1;
   }
   else
