@@ -7878,17 +7878,18 @@ substitute_vars_and_process_embedded_constraints (Btor *btor)
            || btor->embedded_constraints->count > 0u);
 }
 
-static void
+static int
 update_under_approx_width (Btor *btor)
 {
   BtorPtrHashBucket *b;
   BtorUABWRef ua_bw_ref;
-  int updates, e;
+  int update, e;
 
   assert (btor != NULL);
   assert (btor->ua);
 
   ua_bw_ref = btor->ua_bw_ref;
+  update    = 0;
 
   if (btor->ua_mode == BTOR_UA_GLOBAL_MODE)
   {
@@ -7904,11 +7905,11 @@ update_under_approx_width (Btor *btor)
       print_verbose_msg (
           "setting global bit-width of under-approximation to %d",
           btor->global_ua_width);
+    update = 1;
   }
   else
   {
     assert (btor->ua_mode == BTOR_UA_LOCAL_MODE);
-    updates = 0;
     for (b = btor->vars_reads->first; b != NULL; b = b->next)
     {
       e = ((BtorUAVar *) b->data.asPtr)->last_e;
@@ -7918,7 +7919,7 @@ update_under_approx_width (Btor *btor)
 
       if (picosat_corelit (e))
       {
-        updates++;
+        update = 1;
         if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
           ((BtorUAVar *) b->data.asPtr)->ua_width++;
         else
@@ -7928,8 +7929,9 @@ update_under_approx_width (Btor *btor)
         }
       }
     }
-    assert (updates > 0);
   }
+
+  return update;
 }
 
 static int
@@ -8275,7 +8277,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       assert (sat_result == BTOR_UNSAT);
       assert (ua);
       assert (!under_approx_finished);
-      update_under_approx_width (btor);
+
+      if (!update_under_approx_width (btor)) break;
+
       under_approx_finished = !encode_under_approx (btor);
     }
     refinements++;
