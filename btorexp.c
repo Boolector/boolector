@@ -55,6 +55,7 @@ struct BtorUAVar
 {
   int last_e;
   int ua_width;
+  int updated_ua_width;
 };
 
 typedef struct BtorUAVar BtorUAVar;
@@ -364,7 +365,7 @@ btor_copy_exp (Btor *btor, BtorExp *exp)
 }
 
 static BtorUAVar *
-new_ua_var (Btor *btor, int last_e, int ua_width)
+new_ua_var (Btor *btor, int last_e, int ua_width, int updated_ua_width)
 {
   BtorUAVar *result;
 
@@ -373,8 +374,9 @@ new_ua_var (Btor *btor, int last_e, int ua_width)
   assert (ua_width > 0);
 
   BTOR_NEW (btor->mm, result);
-  result->last_e   = last_e;
-  result->ua_width = ua_width;
+  result->last_e           = last_e;
+  result->ua_width         = ua_width;
+  result->updated_ua_width = updated_ua_width;
 
   return result;
 }
@@ -1981,7 +1983,7 @@ hash_var_read_for_ua (Btor *btor, BtorExp *exp)
   else
   {
     assert (btor->ua_mode == BTOR_UA_LOCAL_MODE);
-    var = new_ua_var (btor, 0, 1);
+    var = new_ua_var (btor, 0, 1, 0);
     btor_insert_in_ptr_hash_table (btor->vars_reads, exp)->data.asPtr = var;
   }
 }
@@ -7883,12 +7885,13 @@ update_under_approx_width (Btor *btor)
 {
   BtorPtrHashBucket *b;
   BtorUABWRef ua_bw_ref;
-  int update, e;
+  int update, e, verbosity;
 
   assert (btor != NULL);
   assert (btor->ua);
 
   ua_bw_ref = btor->ua_bw_ref;
+  verbosity = btor->verbosity;
   update    = 0;
 
   if (btor->ua_mode == BTOR_UA_GLOBAL_MODE)
@@ -7901,7 +7904,7 @@ update_under_approx_width (Btor *btor)
       btor->global_ua_width *= 2;
     }
 
-    if (btor->verbosity > 0)
+    if (verbosity > 0)
       print_verbose_msg (
           "setting global bit-width of under-approximation to %d",
           btor->global_ua_width);
@@ -7914,12 +7917,8 @@ update_under_approx_width (Btor *btor)
     {
       e = ((BtorUAVar *) b->data.asPtr)->last_e;
 
-      /* no new clauses have been used */
-      if (e == 0) continue;
-
-      if (picosat_corelit (e))
+      if (e != 0 && picosat_corelit (e))
       {
-        update = 1;
         if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
           ((BtorUAVar *) b->data.asPtr)->ua_width++;
         else
@@ -7927,7 +7926,17 @@ update_under_approx_width (Btor *btor)
           assert (ua_bw_ref == BTOR_UA_BW_REF_BY_DOUBLING);
           ((BtorUAVar *) b->data.asPtr)->ua_width *= 2;
         }
+
+        update                                          = 1;
+        ((BtorUAVar *) b->data.asPtr)->updated_ua_width = 1;
+
+        if (verbosity >= 3)
+          print_verbose_msg ("Setting under-approxmation bit-width of %s to %d",
+                             ((BtorExp *) b->key)->symbol,
+                             ((BtorUAVar *) b->data.asPtr)->ua_width);
       }
+      else
+        ((BtorUAVar *) b->data.asPtr)->updated_ua_width = 0;
     }
   }
 
@@ -8082,6 +8091,15 @@ encode_under_approx_sign_extend (Btor *btor)
 
     if (ua_mode == BTOR_UA_LOCAL_MODE)
     {
+      if (((BtorUAVar *) b->data.asPtr)->updated_ua_width == 0
+          && ((BtorUAVar *) b->data.asPtr)->last_e != 0)
+      {
+        /* variable was not in core and therefore has not been refined,
+         * reassume e */
+        btor_assume_sat (smgr, ((BtorUAVar *) b->data.asPtr)->last_e);
+        continue;
+      }
+
       ua_width = ((BtorUAVar *) b->data.asPtr)->ua_width;
 
       /* disable previous clauses */
