@@ -642,7 +642,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
     if (btor->ua)
     {
       btor_remove_from_ptr_hash_table (
-          btor->vars_reads, exp, 0, (BtorPtrHashData *) &ua_var);
+          btor->vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_var);
       if (ua_var != NULL) delete_ua_var (btor, ua_var);
     }
   }
@@ -655,7 +655,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
     if (btor->ua && exp->kind == BTOR_READ_EXP)
     {
       btor_remove_from_ptr_hash_table (
-          btor->vars_reads, exp, 0, (BtorPtrHashData *) &ua_var);
+          btor->vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_var);
       if (ua_var != NULL) delete_ua_var (btor, ua_var);
     }
     for (i = 0; i < exp->arity; i++) disconnect_child_exp (btor, exp, i);
@@ -7962,6 +7962,8 @@ encode_under_approx_const_extend (Btor *btor, int phase)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   ua_mode = btor->ua_mode;
 
+  ua_width       = 0;
+  under_approx_e = 0;
   if (ua_mode == BTOR_UA_GLOBAL_MODE) ua_width = btor->global_ua_width;
 
   for (b = btor->vars_reads->first; b != NULL; b = b->next)
@@ -8083,7 +8085,8 @@ encode_under_approx_sign_extend (Btor *btor)
   assert (btor != NULL);
   assert (btor->ua);
 
-  encoded = 0;
+  encoded        = 0;
+  under_approx_e = 0;
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   ua_width = btor->global_ua_width;
   ua_mode  = btor->ua_mode;
