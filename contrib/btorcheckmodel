@@ -1,0 +1,57 @@
+#!/bin/bash
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
+  exit 1
+fi
+
+file="/tmp/btorcheckmodel$$.btor"
+
+cat $1 > $file
+
+id=`tail -n 1 $1 | awk '{ print $1 }'`
+((id++))
+
+first=0
+emptymodel=1
+cat $2 | while read line
+do
+if [[ $first -eq 0 ]]; then
+  first=1
+  if [[ $line != sat ]]; then
+    echo "Formula is not SAT"
+    exit 1
+  fi
+else
+  emptymodel=0
+  mid=`echo $line | awk '{ print $1 }'`
+  ass=`echo $line | awk '{ print $2 }'`
+  asslen=${#ass}
+  randomnumber=$RANDOM
+  ((randomnumber %= 2))
+  if [[ $randomnumber -eq 0 ]]; then
+    #replace x's by 0 
+    ass=${ass//x/0}
+  else
+    #replace x's by 1 
+    ass=${ass//x/1}
+  fi
+  echo "$((id++)) const $asslen $ass" >> $file
+  ((lastid= id - 1))
+  echo "$((id++)) eq 1 $mid $lastid" >> $file
+  ((lastid= id - 1))
+  echo "$((id++)) root 1 $lastid" >> $file
+fi
+done
+
+boolector $file > /dev/null
+retval=$?
+if [[ $retval -eq 3 ]]; then
+  echo "Invalid model"
+  exit 1
+elif [[ $retval -ne 2 ]]; then
+  echo "Unexpected return value"
+  exit 1
+fi
+
+exit 0
