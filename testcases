@@ -571,6 +571,7 @@ regrpointerchasing1 -o log/regrpointerchasing1.log log/regrpointerchasing1.btor
 regrunderapprox1 -rwl0 -uad -o log/regrunderapprox1.log log/regrunderapprox1.btor
 regrunderapprox2 -rwl0 -uai -o log/regrunderapprox2.log log/regrunderapprox2.btor
 regrunderapprox3 -rwl0 -uai -o log/regrunderapprox3.log log/regrunderapprox3.btor
+regrunderapprox4 -rwl0 -ual -o log/regrunderapprox4.log log/regrunderapprox4.btor
 3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
 3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
 3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
@@ -617,4 +618,4 @@ underapprox1 -rwl0 -uad -uag -uao -o log/underapprox1.log log/underapprox1.btor
 underapprox2 -rwl0 -uai -ual -uaz -o log/underapprox2.log log/underapprox2.btor
 underapprox3 -rwl0 -uai -ual -uas -o log/underapprox3.log log/underapprox3.btor
 underapprox4 -rwl0 -uai -ual -uas -o log/underapprox4.log log/underapprox4.btor
-underapprox4 -rwl0 -uag -ual -uas -o log/underapprox4.log log/underapprox4.btor
+underapprox4 -rwl0 -uai -uag -uas -o log/underapprox4.log log/underapprox4.btor

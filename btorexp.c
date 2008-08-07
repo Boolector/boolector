@@ -7918,10 +7918,7 @@ update_under_approx_width (Btor *btor)
     {
       e = ((BtorUAVar *) b->data.asPtr)->last_e;
 
-      if ((e == 0
-           && ((BtorUAVar *) b->data.asPtr)->ua_width
-                  < ((BtorExp *) b->key)->len)
-          || (e != 0 && picosat_corelit (e)))
+      if (e != 0 && picosat_corelit (e))
       {
         if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
           ((BtorUAVar *) b->data.asPtr)->ua_width++;
@@ -7988,6 +7985,7 @@ encode_under_approx_const_extend (Btor *btor, int phase)
         /* variable was not in core and therefore has not been refined,
          * reassume e */
         btor_assume_sat (smgr, ((BtorUAVar *) b->data.asPtr)->last_e);
+        encoded = 1;
         continue;
       }
 
@@ -8110,6 +8108,7 @@ encode_under_approx_sign_extend (Btor *btor)
         /* variable was not in core and therefore has not been refined,
          * reassume e */
         btor_assume_sat (smgr, ((BtorUAVar *) b->data.asPtr)->last_e);
+        encoded = 1;
         continue;
       }
 
