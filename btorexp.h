@@ -259,8 +259,10 @@ struct Btor
   /* statistics */
   struct
   {
-    /* number of iterative refinements */
-    int refinements;
+    /* number of under-approximation refinements */
+    int ua_refinements;
+    /* number of lemmas on demand refinements */
+    int lod_refinements;
     /* number of restarts as a result of lazy synthesis */
     int synthesis_assignment_inconsistencies;
     /* number of array axiom 1 conflicts:

@@ -4971,17 +4971,20 @@ btor_print_stats_btor (Btor *btor)
   print_verbose_msg ("array equalites: %s",
                      btor->has_array_equalities ? "yes" : "no");
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
-  print_verbose_msg ("refinement iterations: %d", btor->stats.refinements);
+  print_verbose_msg ("under-approximation refinements: %d",
+                     btor->stats.ua_refinements);
+  print_verbose_msg ("lemmas on demand refinements: %d",
+                     btor->stats.lod_refinements);
   print_verbose_msg ("array axiom 1 conflicts: %d",
                      btor->stats.array_axiom_1_conflicts);
   print_verbose_msg ("array axiom 2 conflicts: %d",
                      btor->stats.array_axiom_2_conflicts);
-  print_verbose_msg (
-      "average lemma size: %.1f",
-      BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum, btor->stats.refinements));
+  print_verbose_msg ("average lemma size: %.1f",
+                     BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
+                                        btor->stats.lod_refinements));
   print_verbose_msg ("average linking clause size: %.1f",
                      BTOR_AVERAGE_UTIL (btor->stats.lclause_size_sum,
-                                        btor->stats.refinements));
+                                        btor->stats.lod_refinements));
   print_verbose_msg ("linear constraint equations: %d",
                      btor->stats.linear_equations);
   print_verbose_msg ("add normalizations: %d", btor->stats.adds_normalized);
@@ -8239,7 +8242,8 @@ int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
-  int refinements, found_assumption_false, under_approx_finished, ua;
+  int ua_refinements, lod_refinements, found_assumption_false;
+  int under_approx_finished, ua;
   BtorExpPtrStack top_arrays;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -8264,8 +8268,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   assert (btor->varsubst_constraints->count == 0u);
   assert (btor->embedded_constraints->count == 0u);
 
-  mm          = btor->mm;
-  refinements = btor->stats.refinements;
+  mm              = btor->mm;
+  ua_refinements  = btor->stats.ua_refinements;
+  lod_refinements = btor->stats.lod_refinements;
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
@@ -8296,14 +8301,16 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BTOR_INIT_STACK (top_arrays);
   search_top_arrays (btor, &top_arrays);
 
-  while (btor->stats.refinements < refinement_limit
+  while ((lod_refinements + ua_refinements) < refinement_limit
          && (sat_result == BTOR_SAT
              || (ua && !under_approx_finished && sat_result != BTOR_UNKNOWN)))
   {
     if (sat_result == BTOR_SAT)
     {
       found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
+
       if (!found_conflict) break;
+      lod_refinements++;
     }
     else
     {
@@ -8314,13 +8321,15 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       if (!update_under_approx_width (btor)) break;
 
       under_approx_finished = !encode_under_approx (btor);
+      ua_refinements++;
     }
-    refinements++;
     if (verbosity > 1)
     {
-      if (verbosity > 2 || !(refinements % 10))
+      if (verbosity > 2 || !((lod_refinements + ua_refinements) % 10))
       {
-        fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
+        fprintf (stdout,
+                 "[btorsat] refinement iteration %d\n",
+                 lod_refinements + ua_refinements);
         fflush (stdout);
       }
     }
@@ -8328,8 +8337,13 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     assert (!found_assumption_false);
     sat_result = btor_sat_sat (smgr, INT_MAX);
   }
-  btor->stats.refinements = refinements;
-  if (refinements == refinement_limit) sat_result = BTOR_UNKNOWN;
+
+  if (lod_refinements + ua_refinements == refinement_limit)
+    sat_result = BTOR_UNKNOWN;
+
+  btor->stats.ua_refinements  = ua_refinements;
+  btor->stats.lod_refinements = lod_refinements;
+
   BTOR_RELEASE_STACK (mm, top_arrays);
   return sat_result;
 }
