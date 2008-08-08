@@ -256,7 +256,6 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
-  BtorCharPtrStack assignments;
   BtorExpPtrStack replay_constraints;
   /* statistics */
   struct
@@ -834,7 +833,7 @@ void btor_replay_btor (Btor *btor, FILE *file);
 /* Adds assumption. */
 void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
 
-/* Solves sat instance.
+/* Solves SAT instance.
  * The paramenter 'refinement_limit' sets the maximum number
  * of iterative refinments */
 int btor_sat_btor (Btor *btor, int refinement_limit);
@@ -844,7 +843,10 @@ int btor_sat_btor (Btor *btor, int refinement_limit);
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-const char *btor_assignment_exp (Btor *btor, BtorExp *exp);
+char *btor_assignment_exp (Btor *btor, BtorExp *exp);
+
+/* Frees an assignment obtained by calling 'btor_assignment_exp' */
+void btor_free_assignment_exp (Btor *btor, char *assignment);
 
 /*------------------------------------------------------------------------*/
 /* Low-level BtorExp                                                      */

@@ -1177,7 +1177,7 @@ boolector_sat (Btor *btor, int refinement_limit)
   return btor_sat_btor (btor, refinement_limit);
 }
 
-const char *
+char *
 boolector_assignment (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
@@ -1185,6 +1185,14 @@ boolector_assignment (Btor *btor, BtorExp *exp)
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
   return btor_assignment_exp (btor, exp);
+}
+
+void
+boolector_free_assignment (Btor *btor, char *assignment)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (assignment == NULL, "'assignment' must not be NULL");
+  btor_free_assignment_exp (btor, assignment);
 }
 
 /*------------------------------------------------------------------------*/

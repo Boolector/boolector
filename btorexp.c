@@ -4740,7 +4740,6 @@ btor_new_btor (void)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
-  BTOR_INIT_STACK (btor->assignments);
   BTOR_INIT_STACK (btor->replay_constraints);
   return btor;
 }
@@ -4887,10 +4886,6 @@ btor_delete_btor (Btor *btor)
   for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
     btor_release_exp (btor, (BtorExp *) bucket->key);
   btor_delete_ptr_hash_table (btor->assumptions);
-
-  for (i = 0; i < BTOR_COUNT_STACK (btor->assignments); i++)
-    btor_freestr (btor->mm, btor->assignments.start[i]);
-  BTOR_RELEASE_STACK (mm, btor->assignments);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
     btor_release_exp (btor, btor->replay_constraints.start[i]);
@@ -8498,7 +8493,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   return sat_result;
 }
 
-const char *
+char *
 btor_assignment_exp (Btor *btor, BtorExp *exp)
 {
   BtorAIGVecMgr *avmgr;
@@ -8538,8 +8533,15 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
     if (invert_av) btor_invert_aigvec (avmgr, av);
   }
 
-  BTOR_PUSH_STACK (btor->mm, btor->assignments, assignment);
   return assignment;
+}
+
+void
+btor_free_assignment_exp (Btor *btor, char *assignment)
+{
+  assert (btor != NULL);
+  assert (assignment != NULL);
+  btor_freestr (btor->mm, assignment);
 }
 
 const char *
