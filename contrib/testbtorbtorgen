@@ -36,6 +36,7 @@ valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgendump$$.btor"
 fileerror="./error.btor"
+fileoutputmodel="/tmp/testbtorbtorgenoutputmodel$$.btor"
 refinementlimit=100000
 last=btorgenjava
 
@@ -83,6 +84,9 @@ do
   uarwl=$RANDOM
   ((uarwl %= 4))
 
+  checkmodel=$RANDOM
+  ((checkmodel %= 2))
+
   if [ $last = btorgen ]; then
     btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > $file 
     last=btorgenjava
@@ -97,17 +101,38 @@ do
   fi 
 
   echo -n "Test $i $rwl: "
+
   callstring="-$rwl -rl $refinementlimit $file"
   if [[ $uarwl -eq 3 ]]; then
     callstring=$callstring" -$uamode -$uabwref -$uaenc"
   fi
-  boolector $callstring
-  goldenretval=$?
+  if [[ $checkmodel -eq 1 ]]; then
+    callstring=$callstring" -m"
+    boolector $callstring > $fileoutputmodel
+    goldenretval=$?
+    head -n 1 $fileoutputmodel
+  else
+    boolector $callstring
+    goldenretval=$?
+  fi
+
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
     echo "ERROR"
     cp $file $fileerror
     echo "; error: $callstring" >> $fileerror
     exit
+  fi
+
+  if [[ $checkmodel -eq 1 ]] && [[ $goldenretval -eq 2 ]]; then
+    btorcheckmodel $file $fileoutputmodel 
+    retval=$?
+    if [[ $retval -ne 0 ]]; then
+      echo "ERROR"
+      cp $file $fileerror
+      cp $fileoutputmodel $fileerror".model"
+      echo "; error: $callstring" >> $fileerror
+      exit 1
+    fi
   fi
 
   for rwl in 2 1 0
@@ -117,13 +142,21 @@ do
     if [[ $uarwl -eq $rwl ]]; then
       callstring=$callstring" -$uamode -$uabwref -$uaenc"
     fi
-    boolector $callstring 
-    retval=$?
+    if [[ $checkmodel -eq 1 ]]; then
+      callstring=$callstring" -m"
+      boolector $callstring > $fileoutputmodel
+      retval=$?
+      head -n 1 $fileoutputmodel
+    else
+      boolector $callstring
+      retval=$?
+    fi
+
     if [[ $retval -ne $goldenretval ]]; then
       echo "ERROR"
       cp $file $fileerror
       echo "; error: $callstring" >> $fileerror
-      exit
+      exit 1
     fi 
   done
 
@@ -135,8 +168,20 @@ do
     echo "ERROR"
     cp $file $fileerror
     echo "; dump error" >> $fileerror
-    exit
+    exit 1
   fi 
+
+  if [[ $checkmodel -eq 1 ]] && [[ $retval -eq 2 ]]; then
+    btorcheckmodel $file $fileoutputmodel 
+    retval=$?
+    if [[ $retval -ne 0 ]]; then
+      echo "ERROR"
+      cp $file $fileerror
+      cp $fileoutputmodel $fileerror".model"
+      echo "; error: $callstring" >> $fileerror
+      exit 1
+    fi
+  fi
 
   if [[ $counter -eq $valgrindcheck ]]; then
     counter=0
@@ -147,7 +192,7 @@ do
       echo "ERROR"
       cp $file $fileerror
       echo "; valgrind error" >> $fileerror
-      exit
+      exit 1
     fi 
     echo "OK"
   fi
