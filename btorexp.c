@@ -8457,10 +8457,11 @@ btor_sat_btor (Btor *btor, int refinement_limit)
         if (verbosity >= 2)
         {
           print_verbose_msg (
-              "Early termination of under-approximation refinement in UNSAT "
+              "early termination of under-approximation refinement in UNSAT "
               "case");
           print_verbose_msg (
-              "Under-approximation has not been used to conclude UNSAT");
+              "current under-approximation has not been used to conclude "
+              "UNSAT");
         }
         break;
       }
