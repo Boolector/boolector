@@ -208,13 +208,13 @@ enum BtorUAMode
 
 typedef enum BtorUAMode BtorUAMode;
 
-enum BtorUABWRef
+enum BtorUARef
 {
-  BTOR_UA_BW_REF_BY_DOUBLING = 0,
-  BTOR_UA_BW_REF_BY_INC_ONE
+  BTOR_UA_REF_BY_DOUBLING = 0,
+  BTOR_UA_REF_BY_INC_ONE
 };
 
-typedef enum BtorUABWRef BtorUABWRef;
+typedef enum BtorUARef BtorUARef;
 
 enum BtorUAEnc
 {
@@ -241,12 +241,12 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
-  int ua;                /* under-approximation (UA) enabled */
-  BtorUAMode ua_mode;    /* UA mode */
-  BtorUABWRef ua_bw_ref; /* UA BW refinement strategy */
-  BtorUAEnc ua_enc;      /* UA encoding strategy */
-  int global_ua_width;   /* global under-approximation bit-width */
-  int last_global_ua_e;  /* last global UA e for CNF */
+  int ua;               /* under-approximation (UA) enabled */
+  BtorUAMode ua_mode;   /* UA mode */
+  BtorUARef ua_ref;     /* UA refinement strategy */
+  BtorUAEnc ua_enc;     /* UA encoding strategy */
+  int global_ua_width;  /* global under-approximation bit-width */
+  int last_global_ua_e; /* last global UA e for CNF */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *varsubst_constraints;
@@ -389,7 +389,7 @@ void btor_enable_under_approx (Btor *btor);
 
 void btor_set_under_approx_mode (Btor *btor, BtorUAMode mode);
 
-void btor_set_under_approx_bw_ref (Btor *btor, BtorUABWRef ua_bw_ref);
+void btor_set_under_approx_ref (Btor *btor, BtorUARef ua_ref);
 
 void btor_set_under_approx_enc (Btor *btor, BtorUAEnc ua_bw_enc);
 

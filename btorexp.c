@@ -4769,11 +4769,11 @@ btor_set_under_approx_mode (Btor *btor, BtorUAMode mode)
 }
 
 void
-btor_set_under_approx_bw_ref (Btor *btor, BtorUABWRef ua_bw_ref)
+btor_set_under_approx_ref (Btor *btor, BtorUARef ua_ref)
 {
   assert (btor != NULL);
   assert (btor->id == 1);
-  btor->ua_bw_ref = ua_bw_ref;
+  btor->ua_ref = ua_ref;
 }
 
 void
@@ -7883,13 +7883,13 @@ static int
 update_under_approx_width (Btor *btor)
 {
   BtorPtrHashBucket *b;
-  BtorUABWRef ua_bw_ref;
+  BtorUARef ua_ref;
   int update, e, verbosity;
 
   assert (btor != NULL);
   assert (btor->ua);
 
-  ua_bw_ref = btor->ua_bw_ref;
+  ua_ref    = btor->ua_ref;
   verbosity = btor->verbosity;
   update    = 0;
 
@@ -7897,11 +7897,11 @@ update_under_approx_width (Btor *btor)
   {
     if (picosat_corelit (btor->last_global_ua_e))
     {
-      if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
+      if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
         btor->global_ua_width++;
       else
       {
-        assert (ua_bw_ref == BTOR_UA_BW_REF_BY_DOUBLING);
+        assert (ua_ref == BTOR_UA_REF_BY_DOUBLING);
         btor->global_ua_width *= 2;
       }
 
@@ -7920,11 +7920,11 @@ update_under_approx_width (Btor *btor)
 
       if (e != 0 && picosat_corelit (e))
       {
-        if (ua_bw_ref == BTOR_UA_BW_REF_BY_INC_ONE)
+        if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
           ((BtorUAVar *) b->data.asPtr)->ua_width++;
         else
         {
-          assert (ua_bw_ref == BTOR_UA_BW_REF_BY_DOUBLING);
+          assert (ua_ref == BTOR_UA_REF_BY_DOUBLING);
           ((BtorUAVar *) b->data.asPtr)->ua_width *= 2;
         }
 

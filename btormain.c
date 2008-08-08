@@ -108,7 +108,7 @@ struct BtorMainApp
   int rewrite_level;
   int ua;
   BtorUAMode ua_mode;
-  BtorUABWRef ua_bw_ref;
+  BtorUARef ua_ref;
   BtorUAEnc ua_enc;
   int bmcmaxk;
   int bmcadc;
@@ -542,13 +542,13 @@ parse_commandline_arguments (BtorMainApp *app)
     }
     else if (!strcmp (app->argv[app->argpos], "-uai"))
     {
-      app->ua_bw_ref = BTOR_UA_BW_REF_BY_INC_ONE;
-      app->ua        = 1;
+      app->ua_ref = BTOR_UA_REF_BY_INC_ONE;
+      app->ua     = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-uad"))
     {
-      app->ua_bw_ref = BTOR_UA_BW_REF_BY_DOUBLING;
-      app->ua        = 1;
+      app->ua_ref = BTOR_UA_REF_BY_DOUBLING;
+      app->ua     = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-uaz"))
     {
@@ -833,7 +833,7 @@ btor_main (int argc, char **argv)
   app.rewrite_level     = 3;
   app.ua                = 0;
   app.ua_mode           = BTOR_UA_GLOBAL_MODE;
-  app.ua_bw_ref         = BTOR_UA_BW_REF_BY_DOUBLING;
+  app.ua_ref            = BTOR_UA_REF_BY_DOUBLING;
   app.ua_enc            = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
   app.bmcadc            = 1;
@@ -864,7 +864,7 @@ btor_main (int argc, char **argv)
     {
       btor_enable_under_approx (btor);
       btor_set_under_approx_mode (btor, app.ua_mode);
-      btor_set_under_approx_bw_ref (btor, app.ua_bw_ref);
+      btor_set_under_approx_ref (btor, app.ua_ref);
       btor_set_under_approx_enc (btor, app.ua_enc);
     }
     btor_set_verbosity_btor (btor, app.verbosity);
