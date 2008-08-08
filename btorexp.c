@@ -8318,7 +8318,18 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       assert (ua);
       assert (!under_approx_finished);
 
-      if (!update_under_approx_width (btor)) break;
+      if (!update_under_approx_width (btor))
+      {
+        if (verbosity >= 2)
+        {
+          print_verbose_msg (
+              "Early termination of under-approximation refinement in UNSAT "
+              "case");
+          print_verbose_msg (
+              "Under-approximation has not been used to conclude UNSAT");
+        }
+        break;
+      }
 
       under_approx_finished = !encode_under_approx (btor);
       ua_refinements++;
