@@ -5073,14 +5073,13 @@ btor_print_stats_btor (Btor *btor)
                       &sum_read_refs,
                       &avg_var_refs,
                       &avg_read_refs);
-    print_verbose_msg ("total number of variables: %d", num_vars);
-    print_verbose_msg ("total number of reads: %d", num_reads);
+    print_verbose_msg ("number of variables: %d", num_vars);
+    print_verbose_msg ("number of reads: %d", num_reads);
     if (btor->stats.ua_refinements && btor->ua_mode == BTOR_UA_LOCAL_MODE)
     {
-      print_verbose_msg ("total sum of UA refinements of variables: %d",
+      print_verbose_msg ("sum of UA refinements of variables: %d",
                          sum_var_refs);
-      print_verbose_msg ("total sum of UA refinements of reads: %d",
-                         sum_read_refs);
+      print_verbose_msg ("sum of UA refinements of reads: %d", sum_read_refs);
       print_verbose_msg ("average UA refinements of variables: %.1f",
                          avg_var_refs);
       print_verbose_msg ("average UA refinements of reads: %.1f",
