@@ -4978,24 +4978,32 @@ report_constraint_stats (Btor *btor, int force)
 }
 
 static void
-compute_average_var_and_read_refinements (Btor *btor,
-                                          float *avg_var_refs,
-                                          float *avg_read_refs)
+compute_ua_stats (Btor *btor,
+                  unsigned int *num_vars,
+                  unsigned int *num_reads,
+                  unsigned long long int *sum_var_refs,
+                  unsigned long long int *sum_read_refs,
+                  float *avg_var_refs,
+                  float *avg_read_refs)
 {
   BtorPtrHashBucket *b;
-  unsigned int sum_var_refinements, sum_read_refinements, var_count, read_count;
   BtorExp *var;
   BtorUAData *data;
+  BtorUAMode ua_mode;
 
   assert (btor != NULL);
+  assert (num_vars != NULL);
+  assert (num_reads != NULL);
+  assert (sum_var_refs != NULL);
+  assert (sum_read_refs != NULL);
   assert (avg_var_refs != NULL);
   assert (avg_read_refs != NULL);
-  assert (btor->ua_mode == BTOR_UA_LOCAL_MODE);
 
-  sum_var_refinements  = 0u;
-  sum_read_refinements = 0u;
-  var_count            = 0u;
-  read_count           = 0u;
+  *num_vars      = 0u;
+  *num_reads     = 0u;
+  *sum_var_refs  = 0llu;
+  *sum_read_refs = 0llu;
+  ua_mode        = btor->ua_mode;
 
   for (b = btor->vars_reads->first; b != NULL; b = b->next)
   {
@@ -5007,31 +5015,38 @@ compute_average_var_and_read_refinements (Btor *btor,
 
     if (BTOR_IS_VAR_EXP (var))
     {
-      sum_var_refinements += (unsigned int) data->refinements;
-      var_count++;
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+        *sum_var_refs += (unsigned int) data->refinements;
+      *num_vars += 1;
     }
     else
     {
-      sum_read_refinements += (unsigned int) data->refinements;
-      read_count++;
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+        *sum_read_refs += (unsigned int) data->refinements;
+      *num_reads += 1;
     }
   }
 
-  if (var_count)
-    *avg_var_refs = (float) sum_var_refinements / (float) var_count;
-  else
-    *avg_var_refs = 0.0f;
+  if (ua_mode == BTOR_UA_LOCAL_MODE)
+  {
+    if (*num_vars)
+      *avg_var_refs = (float) *sum_var_refs / (float) *num_vars;
+    else
+      *avg_var_refs = 0.0f;
 
-  if (read_count)
-    *avg_read_refs = (float) sum_read_refinements / (float) read_count;
-  else
-    *avg_read_refs = 0.0f;
+    if (*num_reads)
+      *avg_read_refs = (float) *sum_read_refs / (float) *num_reads;
+    else
+      *avg_read_refs = 0.0f;
+  }
 }
 
 void
 btor_print_stats_btor (Btor *btor)
 {
   float avg_var_refs, avg_read_refs;
+  unsigned int num_vars, num_reads;
+  unsigned long long int sum_var_refs, sum_read_refs;
 
   assert (btor != NULL);
   (void) btor;
@@ -5056,10 +5071,21 @@ btor_print_stats_btor (Btor *btor)
   {
     print_verbose_msg ("under-approximation (UA) refinement loops: %d",
                        btor->stats.ua_refinements);
+    compute_ua_stats (btor,
+                      &num_vars,
+                      &num_reads,
+                      &sum_var_refs,
+                      &sum_read_refs,
+                      &avg_var_refs,
+                      &avg_read_refs);
+    print_verbose_msg ("total number of variables: %d", num_vars);
+    print_verbose_msg ("total number of reads: %d", num_reads);
     if (btor->stats.ua_refinements && btor->ua_mode == BTOR_UA_LOCAL_MODE)
     {
-      compute_average_var_and_read_refinements (
-          btor, &avg_var_refs, &avg_read_refs);
+      print_verbose_msg ("total sum of UA refinements of variables: %d",
+                         sum_var_refs);
+      print_verbose_msg ("total sum of UA refinements of reads: %d",
+                         sum_read_refs);
       print_verbose_msg ("average UA refinements of variables: %.1f",
                          avg_var_refs);
       print_verbose_msg ("average UA refinements of reads: %.1f",
