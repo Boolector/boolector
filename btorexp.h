@@ -245,6 +245,7 @@ struct Btor
   BtorUAMode ua_mode;   /* UA mode */
   BtorUARef ua_ref;     /* UA refinement strategy */
   BtorUAEnc ua_enc;     /* UA encoding strategy */
+  int ua_start_width;   /* start width of encoding */
   int global_ua_width;  /* global under-approximation bit-width */
   int last_global_ua_e; /* last global UA e for CNF */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
@@ -388,6 +389,8 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
 void btor_enable_under_approx (Btor *btor);
+
+void btor_set_under_approx_start_width (Btor *btor, int ua_start_width);
 
 void btor_set_under_approx_mode (Btor *btor, BtorUAMode mode);
 

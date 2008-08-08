@@ -55,7 +55,7 @@ struct BtorUAVar
 {
   int last_e;
   int ua_width;
-  int updated_ua_width;
+  int updated_ua_width; /* boolean flag */
 };
 
 typedef struct BtorUAVar BtorUAVar;
@@ -1983,7 +1983,7 @@ hash_var_read_for_ua (Btor *btor, BtorExp *exp)
   else
   {
     assert (btor->ua_mode == BTOR_UA_LOCAL_MODE);
-    var = new_ua_var (btor, 0, 1, 0);
+    var = new_ua_var (btor, 0, btor->ua_start_width, 0);
     btor_insert_in_ptr_hash_table (btor->vars_reads, exp)->data.asPtr = var;
   }
 }
@@ -4709,6 +4709,7 @@ btor_new_btor (void)
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
+  btor->ua_start_width    = 1;
   btor->global_ua_width   = 1;
 
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
@@ -4758,6 +4759,16 @@ btor_enable_under_approx (Btor *btor)
   assert (btor->id == 1);
   btor->ua = 1;
   picosat_enable_trace_generation ();
+}
+
+void
+btor_set_under_approx_start_width (Btor *btor, int ua_start_width)
+{
+  assert (btor != NULL);
+  assert (btor->id == 1);
+  assert (ua_start_width > 0);
+  btor->ua_start_width  = ua_start_width;
+  btor->global_ua_width = ua_start_width;
 }
 
 void
