@@ -56,6 +56,7 @@ struct BtorUAVar
   int last_e;
   int ua_width;
   int updated_ua_width; /* boolean flag */
+  int refinements;
 };
 
 typedef struct BtorUAVar BtorUAVar;
@@ -377,6 +378,7 @@ new_ua_var (Btor *btor, int last_e, int ua_width, int updated_ua_width)
   result->last_e           = last_e;
   result->ua_width         = ua_width;
   result->updated_ua_width = updated_ua_width;
+  result->refinements      = 0;
 
   return result;
 }
@@ -4975,11 +4977,65 @@ report_constraint_stats (Btor *btor, int force)
       btor->synthesized_constraints->count;
 }
 
+static void
+compute_average_var_and_read_refinements (Btor *btor,
+                                          float *avg_var_refs,
+                                          float *avg_read_refs)
+{
+  BtorPtrHashBucket *b;
+  unsigned int sum_var_refinements, sum_read_refinements, var_count, read_count;
+  BtorExp *var;
+  BtorUAVar *data;
+
+  assert (btor != NULL);
+  assert (avg_var_refs != NULL);
+  assert (avg_read_refs != NULL);
+  assert (btor->ua_mode == BTOR_UA_LOCAL_MODE);
+
+  sum_var_refinements  = 0u;
+  sum_read_refinements = 0u;
+  var_count            = 0u;
+  read_count           = 0u;
+
+  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  {
+    var  = (BtorExp *) b->key;
+    data = (BtorUAVar *) b->data.asPtr;
+
+    assert (!BTOR_IS_INVERTED_EXP (var));
+    assert (BTOR_IS_VAR_EXP (var) || var->kind == BTOR_READ_EXP);
+
+    if (BTOR_IS_VAR_EXP (var))
+    {
+      sum_var_refinements += (unsigned int) data->refinements;
+      var_count++;
+    }
+    else
+    {
+      sum_read_refinements += (unsigned int) data->refinements;
+      read_count++;
+    }
+  }
+
+  if (var_count)
+    *avg_var_refs = (float) sum_var_refinements / (float) var_count;
+  else
+    *avg_var_refs = 0.0f;
+
+  if (read_count)
+    *avg_read_refs = (float) sum_read_refinements / (float) read_count;
+  else
+    *avg_read_refs = 0.0f;
+}
+
 void
 btor_print_stats_btor (Btor *btor)
 {
+  float avg_var_refs, avg_read_refs;
+
   assert (btor != NULL);
   (void) btor;
+
   report_constraint_stats (btor, 1);
   print_verbose_msg ("number of expressions: %lld", btor->stats.expressions);
   print_verbose_msg ("variable substitutions: %d",
@@ -4988,30 +5044,51 @@ btor_print_stats_btor (Btor *btor)
                      btor->stats.array_substitutions);
   print_verbose_msg ("embedded constraint substitutions: %d",
                      btor->stats.ec_substitutions);
+
   print_verbose_msg ("array equalites: %s",
                      btor->has_array_equalities ? "yes" : "no");
+  if (btor->has_array_equalities)
+    print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
+
   print_verbose_msg ("assumptions: %u", btor->assumptions->count);
-  print_verbose_msg ("under-approximation refinements: %d",
-                     btor->stats.ua_refinements);
+
+  if (btor->ua)
+  {
+    print_verbose_msg ("under-approximation (UA) refinements: %d",
+                       btor->stats.ua_refinements);
+    if (btor->ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      compute_average_var_and_read_refinements (
+          btor, &avg_var_refs, &avg_read_refs);
+      print_verbose_msg ("average UA refinements of variables: %.1f",
+                         avg_var_refs);
+      print_verbose_msg ("average UA refinements of reads: %.1f",
+                         avg_read_refs);
+    }
+  }
+
   print_verbose_msg ("lemmas on demand refinements: %d",
                      btor->stats.lod_refinements);
-  print_verbose_msg ("array axiom 1 conflicts: %d",
-                     btor->stats.array_axiom_1_conflicts);
-  print_verbose_msg ("array axiom 2 conflicts: %d",
-                     btor->stats.array_axiom_2_conflicts);
-  print_verbose_msg ("average lemma size: %.1f",
-                     BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
-                                        btor->stats.lod_refinements));
-  print_verbose_msg ("average linking clause size: %.1f",
-                     BTOR_AVERAGE_UTIL (btor->stats.lclause_size_sum,
-                                        btor->stats.lod_refinements));
+  if (btor->stats.lod_refinements)
+  {
+    print_verbose_msg ("array axiom 1 conflicts: %d",
+                       btor->stats.array_axiom_1_conflicts);
+    print_verbose_msg ("array axiom 2 conflicts: %d",
+                       btor->stats.array_axiom_2_conflicts);
+    print_verbose_msg ("average lemma size: %.1f",
+                       BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
+                                          btor->stats.lod_refinements));
+    print_verbose_msg ("average linking clause size: %.1f",
+                       BTOR_AVERAGE_UTIL (btor->stats.lclause_size_sum,
+                                          btor->stats.lod_refinements));
+  }
+
   print_verbose_msg ("linear constraint equations: %d",
                      btor->stats.linear_equations);
   print_verbose_msg ("add normalizations: %d", btor->stats.adds_normalized);
   print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
   print_verbose_msg ("read over write propagations during construction: %d",
                      btor->stats.read_props_construct);
-  print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
   print_verbose_msg ("synthesis assignment inconsistencies: %d",
                      btor->stats.synthesis_assignment_inconsistencies);
 }
@@ -7953,6 +8030,7 @@ update_under_approx_width (Btor *btor)
 
         update                                          = 1;
         ((BtorUAVar *) b->data.asPtr)->updated_ua_width = 1;
+        ((BtorUAVar *) b->data.asPtr)->refinements++;
 
         if (verbosity >= 3)
           print_verbose_msg ("Setting under-approxmation bit-width of %s to %d",
