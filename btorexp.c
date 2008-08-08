@@ -4711,6 +4711,7 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->ua_start_width    = 1;
   btor->global_ua_width   = 1;
+  btor->unsat_core_lookup = picosat_usedlit;
 
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -4758,7 +4759,15 @@ btor_enable_under_approx (Btor *btor)
   assert (btor != NULL);
   assert (btor->id == 1);
   btor->ua = 1;
+}
+
+void
+btor_enable_full_unsat_core (Btor *btor)
+{
+  assert (btor != NULL);
+  assert (btor->id == 1);
   picosat_enable_trace_generation ();
+  btor->unsat_core_lookup = picosat_corelit;
 }
 
 void
@@ -7909,7 +7918,7 @@ update_under_approx_width (Btor *btor)
 
   if (btor->ua_mode == BTOR_UA_GLOBAL_MODE)
   {
-    if (picosat_corelit (btor->last_global_ua_e))
+    if (btor->unsat_core_lookup (btor->last_global_ua_e))
     {
       if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
         btor->global_ua_width++;
@@ -7932,7 +7941,7 @@ update_under_approx_width (Btor *btor)
     {
       e = ((BtorUAVar *) b->data.asPtr)->last_e;
 
-      if (e != 0 && picosat_corelit (e))
+      if (e != 0 && btor->unsat_core_lookup (e))
       {
         if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
           ((BtorUAVar *) b->data.asPtr)->ua_width++;

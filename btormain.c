@@ -111,6 +111,7 @@ struct BtorMainApp
   BtorUAMode ua_mode;
   BtorUARef ua_ref;
   BtorUAEnc ua_enc;
+  int ua_over_approximate_core;
   int bmcmaxk;
   int bmcadc;
   BtorCNFEnc cnf_enc;
@@ -165,6 +166,8 @@ static const char *g_usage =
     "  -uao                             UA encoding by one-extension\n"
     "  -uas                             UA encoding by sign-extension "
     "(default)\n"
+    "\n"
+    "  -uaoac                           over-approximate UNSAT core\n"
     "\n"
     "\n"
     "BMC options:\n"
@@ -578,6 +581,11 @@ parse_commandline_arguments (BtorMainApp *app)
       app->ua_enc = BTOR_UA_ENC_SIGN_EXTEND;
       app->ua     = 1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-uaoac"))
+    {
+      app->ua_over_approximate_core = 1;
+      app->ua                       = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-tcnf")
              || !strcmp (app->argv[app->argpos], "--tseitin-cnf"))
       app->cnf_enc = BTOR_TSEITIN_CNF_ENC;
@@ -820,41 +828,42 @@ btor_main (int argc, char **argv)
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack *array_states = NULL;
 
-  app.verbosity         = 0;
-  app.force             = 0;
-  app.output_file       = stdout;
-  app.close_output_file = 0;
-  app.input_file        = stdin;
-  app.input_file_name   = "<stdin>";
-  app.close_input_file  = 0;
-  app.close_replay_file = 0;
-  app.replay_mode       = BTOR_APP_REPLAY_MODE_NONE;
-  app.argc              = argc;
-  app.argv              = argv;
-  app.argpos            = 0;
-  app.done              = 0;
-  app.err               = 0;
-  app.basis             = BTOR_BINARY_BASIS;
-  app.app_mode          = BTOR_APP_REGULAR_MODE;
-  app.bmc_mode          = BTOR_APP_BMC_MODE_BASE_INDUCT;
-  app.dump_exp          = 0;
-  app.exp_file          = stdout;
-  app.close_exp_file    = 0;
-  app.dump_smt          = 0;
-  app.smt_file          = stdout;
-  app.close_smt_file    = 0;
-  app.rewrite_level     = 3;
-  app.ua                = 0;
-  app.ua_start_width    = 1;
-  app.ua_mode           = BTOR_UA_GLOBAL_MODE;
-  app.ua_ref            = BTOR_UA_REF_BY_DOUBLING;
-  app.ua_enc            = BTOR_UA_ENC_SIGN_EXTEND;
-  app.bmcmaxk           = -1; /* -1 means it has not been set by the user */
-  app.bmcadc            = 1;
-  app.cnf_enc           = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-  app.refinement_limit  = INT_MAX;
-  app.force_smt_input   = 0;
-  app.print_model       = 0;
+  app.verbosity                = 0;
+  app.force                    = 0;
+  app.output_file              = stdout;
+  app.close_output_file        = 0;
+  app.input_file               = stdin;
+  app.input_file_name          = "<stdin>";
+  app.close_input_file         = 0;
+  app.close_replay_file        = 0;
+  app.replay_mode              = BTOR_APP_REPLAY_MODE_NONE;
+  app.argc                     = argc;
+  app.argv                     = argv;
+  app.argpos                   = 0;
+  app.done                     = 0;
+  app.err                      = 0;
+  app.basis                    = BTOR_BINARY_BASIS;
+  app.app_mode                 = BTOR_APP_REGULAR_MODE;
+  app.bmc_mode                 = BTOR_APP_BMC_MODE_BASE_INDUCT;
+  app.dump_exp                 = 0;
+  app.exp_file                 = stdout;
+  app.close_exp_file           = 0;
+  app.dump_smt                 = 0;
+  app.smt_file                 = stdout;
+  app.close_smt_file           = 0;
+  app.rewrite_level            = 3;
+  app.ua                       = 0;
+  app.ua_start_width           = 1;
+  app.ua_mode                  = BTOR_UA_GLOBAL_MODE;
+  app.ua_ref                   = BTOR_UA_REF_BY_DOUBLING;
+  app.ua_enc                   = BTOR_UA_ENC_SIGN_EXTEND;
+  app.ua_over_approximate_core = 0;
+  app.bmcmaxk          = -1; /* -1 means it has not been set by the user */
+  app.bmcadc           = 1;
+  app.cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
+  app.refinement_limit = INT_MAX;
+  app.force_smt_input  = 0;
+  app.print_model      = 0;
 
   parse_commandline_arguments (&app);
 
@@ -877,6 +886,7 @@ btor_main (int argc, char **argv)
     if (app.ua)
     {
       btor_enable_under_approx (btor);
+      if (!app.ua_over_approximate_core) btor_enable_full_unsat_core (btor);
       btor_set_under_approx_start_width (btor, app.ua_start_width);
       btor_set_under_approx_mode (btor, app.ua_mode);
       btor_set_under_approx_ref (btor, app.ua_ref);

@@ -241,13 +241,14 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
-  int ua;               /* under-approximation (UA) enabled */
-  BtorUAMode ua_mode;   /* UA mode */
-  BtorUARef ua_ref;     /* UA refinement strategy */
-  BtorUAEnc ua_enc;     /* UA encoding strategy */
-  int ua_start_width;   /* start width of encoding */
-  int global_ua_width;  /* global under-approximation bit-width */
-  int last_global_ua_e; /* last global UA e for CNF */
+  int ua;                         /* under-approximation (UA) enabled */
+  BtorUAMode ua_mode;             /* UA mode */
+  BtorUARef ua_ref;               /* UA refinement strategy */
+  BtorUAEnc ua_enc;               /* UA encoding strategy */
+  int ua_start_width;             /* start width of encoding */
+  int global_ua_width;            /* global under-approximation bit-width */
+  int last_global_ua_e;           /* last global UA e for CNF */
+  int (*unsat_core_lookup) (int); /* lookup function for UNSAT core */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *varsubst_constraints;
@@ -389,6 +390,8 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
 void btor_enable_under_approx (Btor *btor);
+
+void btor_enable_full_unsat_core (Btor *btor);
 
 void btor_set_under_approx_start_width (Btor *btor, int ua_start_width);
 
