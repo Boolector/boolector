@@ -5,17 +5,25 @@ if [[ ! -e ~/boolector ]] && [[ ! -d ~/boolector ]]; then
   exit 1
 fi
 
+if [[ ! -e ~/picosat ]] && [[ ! -d ~/picosat ]]; then
+  echo "Could not find picosat source in home directory"
+  exit 1
+fi
+
 rm -r -f /tmp/instrumentallsourcecov
 mkdir /tmp/instrumentallsourcecov
 cp -r ~/boolector /tmp/instrumentallsourcecov/
+cp -r ~/picosat /tmp/instrumentallsourcecov/
 cd /tmp/instrumentallsourcecov/boolector
+indent -l10000 *.c
 
-#make clean
-#indent -l10000 *.c
-#./configure -cov
-#make
-#./test -s
-#gcov *.c
+make clean
+./configure -cov
+make
+./test -s
+gcov *.c
+
+echo "Instrumenting source files:"
 
 for file in *.c
 do
@@ -28,6 +36,13 @@ do
     fi
     echo "$file"
     ./contrib/instrumentsourcecov "$file"
+    file=${file##".c"}
+    mv $file".ins" $file
   fi
 done
+
+#make clean
+#./configure -g
+#make
+#cp boolector ~/boolector/boolector
 

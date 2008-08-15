@@ -35,15 +35,15 @@ rm -f $output
 
 cat $file | while read -r line
 do
-  if [[ ${unreached[$i]} = $counter ]]; then
+  if [[ ${unreached[$i]} -eq $counter ]]; then
     if [[ `expr match "$line" "{"` -ne 1 ]]; then
       if [[ `expr match "$lastline" "if"` -eq 2 ]] || \
 	 [[ `expr match "$lastline" "else"` -eq 4 ]] || \
 	 [[ `expr match "$lastline" "while"` -eq 5 ]] || \
 	 [[ `expr match "$lastline" "do"` -eq 2 ]] || \
-	 [[ `expr match "$lastline" "for"` -eq 3 ]]; then 
-	echo -n "{ assert (0); " >> $output
-	echo "$line }" >> $output
+	 [[ `expr match "$lastline" "for"` -eq 3 ]]; then
+	 echo -n "{ assert (0); " >> $output
+	 echo "$line }" >> $output
       else
 	echo "assert (0);" >> $output
 	echo "$line" >> $output
