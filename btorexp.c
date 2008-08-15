@@ -4841,50 +4841,44 @@ void
 btor_delete_btor (Btor *btor)
 {
   BtorMemMgr *mm;
-  BtorPtrHashBucket *bucket;
+  BtorPtrHashBucket *b;
   int i;
 
   assert (btor != NULL);
 
   mm = btor->mm;
 
-  for (bucket = btor->exp_pair_cnf_diff_id_table->first; bucket != NULL;
-       bucket = bucket->next)
-    delete_exp_pair (btor, (BtorExpPair *) bucket->key);
+  for (b = btor->exp_pair_cnf_diff_id_table->first; b != NULL; b = b->next)
+    delete_exp_pair (btor, (BtorExpPair *) b->key);
   btor_delete_ptr_hash_table (btor->exp_pair_cnf_diff_id_table);
 
-  for (bucket = btor->exp_pair_cnf_eq_id_table->first; bucket != NULL;
-       bucket = bucket->next)
-    delete_exp_pair (btor, (BtorExpPair *) bucket->key);
+  for (b = btor->exp_pair_cnf_eq_id_table->first; b != NULL; b = b->next)
+    delete_exp_pair (btor, (BtorExpPair *) b->key);
   btor_delete_ptr_hash_table (btor->exp_pair_cnf_eq_id_table);
 
   /* delete constraints and assumptions */
 
-  for (bucket = btor->varsubst_constraints->first; bucket != NULL;
-       bucket = bucket->next)
+  for (b = btor->varsubst_constraints->first; b != NULL; b = b->next)
   {
-    btor_release_exp (btor, (BtorExp *) bucket->key);
-    btor_release_exp (btor, (BtorExp *) bucket->data.asPtr);
+    btor_release_exp (btor, (BtorExp *) b->key);
+    btor_release_exp (btor, (BtorExp *) b->data.asPtr);
   }
   btor_delete_ptr_hash_table (btor->varsubst_constraints);
 
-  for (bucket = btor->embedded_constraints->first; bucket != NULL;
-       bucket = bucket->next)
-    btor_release_exp (btor, (BtorExp *) bucket->key);
+  for (b = btor->embedded_constraints->first; b != NULL; b = b->next)
+    btor_release_exp (btor, (BtorExp *) b->key);
   btor_delete_ptr_hash_table (btor->embedded_constraints);
 
-  for (bucket = btor->unsynthesized_constraints->first; bucket != NULL;
-       bucket = bucket->next)
-    btor_release_exp (btor, (BtorExp *) bucket->key);
+  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+    btor_release_exp (btor, (BtorExp *) b->key);
   btor_delete_ptr_hash_table (btor->unsynthesized_constraints);
 
-  for (bucket = btor->synthesized_constraints->first; bucket != NULL;
-       bucket = bucket->next)
-    btor_release_exp (btor, (BtorExp *) bucket->key);
+  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
+    btor_release_exp (btor, (BtorExp *) b->key);
   btor_delete_ptr_hash_table (btor->synthesized_constraints);
 
-  for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
-    btor_release_exp (btor, (BtorExp *) bucket->key);
+  for (b = btor->assumptions->first; b != NULL; b = b->next)
+    btor_release_exp (btor, (BtorExp *) b->key);
   btor_delete_ptr_hash_table (btor->assumptions);
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
