@@ -998,10 +998,14 @@ btor_main (int argc, char **argv)
       BTOR_INIT_STACK (constraints);
 
       if (app.print_model)
+      {
         for (i = 0; i < parse_res.ninputs; i++)
+        {
           if (!btor_is_array_exp (btor, parse_res.inputs[i]))
             BTOR_PUSH_STACK (
                 mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
+        }
+      }
 
       for (i = 0; i < parse_res.noutputs; i++)
       {
@@ -1201,12 +1205,14 @@ btor_main (int argc, char **argv)
               btor, reg_inst, disjuncted_constraints, bmck, input_inst);
 
           if (app.print_model)
+          {
             for (bucket = input_inst->first; bucket != NULL;
                  bucket = bucket->next)
               BTOR_PUSH_STACK (
                   mem,
                   varstack,
                   btor_copy_exp (btor, (BtorExp *) bucket->data.asPtr));
+          }
 
           if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
           {
