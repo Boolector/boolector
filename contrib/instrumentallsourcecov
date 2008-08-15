@@ -1,0 +1,33 @@
+#!/bin/bash
+
+if [[ ! -e ~/boolector ]] && [[ ! -d ~/boolector ]]; then
+  echo "Could not find boolector source in home directory"
+  exit 1
+fi
+
+rm -r -f /tmp/instrumentallsourcecov
+mkdir /tmp/instrumentallsourcecov
+cp -r ~/boolector /tmp/instrumentallsourcecov/
+cd /tmp/instrumentallsourcecov/boolector
+
+#make clean
+#indent -l10000 *.c
+#./configure -cov
+#make
+#./test -s
+#gcov *.c
+
+for file in *.c
+do
+  if [[ $file != basicbtor.c ]] && [[ $file != boolector.c ]] && \
+     [[ $file != btorrand.c ]] && [[ $file != deltabtor.c ]] && \
+     [[ $file != synthebtor.c ]] && [[ ${file:0:4} != test ]]; then
+    if [[ ! -e $file".gcov" || ! -r $file".gcov" ]]; then
+      echo "Could not read $file"".gcov file"
+      exit 1
+    fi
+    echo "$file"
+    ./contrib/instrumentsourcecov "$file"
+  fi
+done
+
