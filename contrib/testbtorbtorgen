@@ -3,6 +3,7 @@
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
 usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [id] [-cov]" 
+covdir="./covtests/"
 
 btorgen=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
@@ -37,11 +38,11 @@ counter=0
 valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgendump$$.btor"
-fileerror="./error.btor"
 fileoutputmodel="/tmp/testbtorbtorgenoutputmodel$$.btor"
 refinementlimit=100000
 last=btorgenjava
 cov=no
+id=1
 
 if [[ $# -gt 2 ]]; then
   echo $usage 1>&2
@@ -52,10 +53,10 @@ fi
 if [[ $# -eq 2 ]]; then
   if [[ $1 = "-cov" ]]; then
     cov=yes
-    fileerror="error"$2".btor"
+    id=$2
   elif [[ $2 = "-cov" ]]; then
     cov=yes
-    fileerror="error"$1".btor"
+    id=$1
   else
     echo $usage 1>&2
     exit 1
@@ -64,7 +65,19 @@ elif [[ $# -eq 1 ]]; then
   if [[ $1 = "-cov" ]]; then
     cov=yes
   else
-    fileerror="error"$1".btor"
+    id=$1
+  fi
+fi
+
+fileerror="error"$id".btor"
+
+if [[ $cov = yes ]]; then
+  rm -r -f $covdir
+  mkdir $covdir
+  if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || \
+     [[ ! -r $covdir ]] || [[ ! -w $covdir ]]; then
+    echo "IO error"
+    exit 1
   fi
 fi
 
@@ -121,18 +134,34 @@ do
 
   echo -n "Test $i $rwl: "
 
+  if [[ $cov = yes ]]; then
+    covfile=$covdir"cov_id"$id"_test"$i"_"$rwl
+  fi
   callstring="-$rwl -rl $refinementlimit $file"
   if [[ $uarwl -eq 3 ]]; then
     callstring=$callstring" -$uamode -$uabwref -$uaenc"
   fi
+
   if [[ $checkmodel -eq 1 ]]; then
     callstring=$callstring" -m"
-    boolector $callstring > $fileoutputmodel
-    goldenretval=$?
+    if [[ $cov = yes ]]; then
+      boolector $callstring 1> $fileoutputmodel 2> $covfile".err"
+      goldenretval=$?
+      echo ${callstring/" $file"/""} > $covfile".cs"
+    else
+      boolector $callstring > $fileoutputmodel
+      goldenretval=$?
+    fi
     head -n 1 $fileoutputmodel
   else
-    boolector $callstring
-    goldenretval=$?
+    if [[ $cov = yes ]]; then
+      boolector $callstring 2> $covfile".err"
+      goldenretval=$?
+      echo ${callstring/" $file"/""} > $covfile".cs"
+    else
+      boolector $callstring
+      goldenretval=$?
+    fi
   fi
 
   if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
@@ -157,18 +186,35 @@ do
   for rwl in 2 1 0
   do
     echo -n "Test $i rwl$rwl: "
+
+    if [[ $cov = yes ]]; then
+      covfile=$covdir"cov_id"$id"_test"$i"_rwl"$rwl
+    fi
     callstring="-rwl$rwl -rl $refinementlimit $file"
     if [[ $uarwl -eq $rwl ]]; then
       callstring=$callstring" -$uamode -$uabwref -$uaenc"
     fi
+
     if [[ $checkmodel -eq 1 ]]; then
       callstring=$callstring" -m"
-      boolector $callstring > $fileoutputmodel
-      retval=$?
+      if [[ $cov = yes ]]; then
+	boolector $callstring 1> $fileoutputmodel 2> $covfile".err"
+	retval=$?
+	echo ${callstring/" $file"/""} > $covfile".cs"
+      else
+	boolector $callstring > $fileoutputmodel
+	retval=$?
+      fi
       head -n 1 $fileoutputmodel
     else
-      boolector $callstring
-      retval=$?
+      if [[ $cov = yes ]]; then
+	boolector $callstring 2> $covfile".err"
+	retval=$?
+	echo ${callstring/" $file"/""} > $covfile".cs"
+      else
+	boolector $callstring
+	retval=$?
+      fi
     fi
 
     if [[ $retval -ne $goldenretval ]]; then
@@ -180,8 +226,8 @@ do
   done
 
   echo -n "Test $i dump: "
-  boolector $file -de > $filedump 
-  boolector -rl $refinementlimit $filedump
+  boolector $file -de 1> $filedump 2> /dev/null
+  boolector -rl $refinementlimit $filedump 2> /dev/null
   retval=$?
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
