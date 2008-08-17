@@ -148,6 +148,7 @@ do
       covfile=$covdir"cov_id"$id"_test"$i"_rwl"$rwl
       stderror=$covfile".err"
       echo ${callstring/" $file"/""} > $covfile".cs"
+      cp $file $covdir"/test"$i".btor"
     else
      stderror=/dev/null
     fi
