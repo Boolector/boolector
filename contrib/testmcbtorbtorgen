@@ -19,7 +19,7 @@ rm -f error*.btor
 
 for ((i = 1; i <= $cores; i++))
 do
-  ./testbtorbtorgen "./error"$i".btor" > /dev/null &
+  ./testbtorbtorgen $i > /dev/null &
   if [[ $i -eq 1 ]]; then
     echo $! > $fileids
   else
