@@ -37,8 +37,8 @@ i=0
 counter=0
 valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
-filedump="/tmp/testbtorbtorgendump$$.btor"
-fileoutputmodel="/tmp/testbtorbtorgenoutputmodel$$.btor"
+filedump="/tmp/testbtorbtorgen$$dump.btor"
+stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 refinementlimit=100000
 last=btorgenjava
 cov=no
@@ -85,7 +85,7 @@ while true
 do 
   ((i++))
   ((counter++))
-  rwl=rwl3
+  rwl=3
 
   randomnumber=$RANDOM
   ((randomnumber %= 2))
@@ -132,96 +132,44 @@ do
     exit 1
   fi 
 
-  echo -n "Test $i $rwl: "
-
-  if [[ $cov = yes ]]; then
-    covfile=$covdir"cov_id"$id"_test"$i"_"$rwl
-  fi
-  callstring="-$rwl -rl $refinementlimit $file"
-  if [[ $uarwl -eq 3 ]]; then
-    callstring=$callstring" -$uamode -$uabwref -$uaenc"
-  fi
-
-  if [[ $checkmodel -eq 1 ]]; then
-    callstring=$callstring" -m"
-    if [[ $cov = yes ]]; then
-      boolector $callstring 1> $fileoutputmodel 2> $covfile".err"
-      goldenretval=$?
-      echo ${callstring/" $file"/""} > $covfile".cs"
-    else
-      boolector $callstring > $fileoutputmodel
-      goldenretval=$?
-    fi
-    head -n 1 $fileoutputmodel
-  else
-    if [[ $cov = yes ]]; then
-      boolector $callstring 2> $covfile".err"
-      goldenretval=$?
-      echo ${callstring/" $file"/""} > $covfile".cs"
-    else
-      boolector $callstring
-      goldenretval=$?
-    fi
-  fi
-
-  if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
-    echo "ERROR"
-    cp $file $fileerror
-    echo "; error: $callstring" >> $fileerror
-    exit
-  fi
-
-  if [[ $checkmodel -eq 1 ]] && [[ $goldenretval -eq 2 ]]; then
-    btorcheckmodel $file $fileoutputmodel 
-    retval=$?
-    if [[ $retval -ne 0 ]]; then
-      echo "ERROR"
-      cp $file $fileerror
-      cp $fileoutputmodel $fileerror".model"
-      echo "; error: $callstring" >> $fileerror
-      exit 1
-    fi
-  fi
-
-  for rwl in 2 1 0
+  for rwl in 3 2 1 0
   do
     echo -n "Test $i rwl$rwl: "
 
-    if [[ $cov = yes ]]; then
-      covfile=$covdir"cov_id"$id"_test"$i"_rwl"$rwl
-    fi
     callstring="-rwl$rwl -rl $refinementlimit $file"
-    if [[ $uarwl -eq $rwl ]]; then
+    if [[ $uarwl -eq 3 ]]; then
       callstring=$callstring" -$uamode -$uabwref -$uaenc"
     fi
-
     if [[ $checkmodel -eq 1 ]]; then
       callstring=$callstring" -m"
-      if [[ $cov = yes ]]; then
-	boolector $callstring 1> $fileoutputmodel 2> $covfile".err"
-	retval=$?
-	echo ${callstring/" $file"/""} > $covfile".cs"
-      else
-	boolector $callstring > $fileoutputmodel
-	retval=$?
-      fi
-      head -n 1 $fileoutputmodel
-    else
-      if [[ $cov = yes ]]; then
-	boolector $callstring 2> $covfile".err"
-	retval=$?
-	echo ${callstring/" $file"/""} > $covfile".cs"
-      else
-	boolector $callstring
-	retval=$?
-      fi
     fi
 
-    if [[ $retval -ne $goldenretval ]]; then
-      echo "ERROR"
-      cp $file $fileerror
-      echo "; error: $callstring" >> $fileerror
-      exit 1
+    if [[ $cov = yes ]]; then
+      covfile=$covdir"cov_id"$id"_test"$i"_rwl"$rwl
+      stderror=$covfile".err"
+      echo ${callstring/" $file"/""} > $covfile".cs"
+    else
+     stderror=/dev/null
+    fi
+      
+    boolector $callstring 1> $stdoutput 2> $stderror
+    retval=$?
+    cat $stdoutput | head -n 1
+    if [[ $rwl -eq 3 ]]; then 
+      goldenretval=$retval
+      if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
+	echo "ERROR"
+	cp $file $fileerror
+	echo "; error: $callstring" >> $fileerror
+	exit
+      fi
+    else
+      if [[ $retval -ne $goldenretval ]]; then
+	echo "ERROR"
+	cp $file $fileerror
+	echo "; error: $callstring" >> $fileerror
+	exit 1
+      fi
     fi 
   done
 
@@ -237,12 +185,12 @@ do
   fi 
 
   if [[ $checkmodel -eq 1 ]] && [[ $retval -eq 2 ]]; then
-    btorcheckmodel $file $fileoutputmodel 
+    btorcheckmodel $file $stdoutput
     retval=$?
     if [[ $retval -ne 0 ]]; then
       echo "ERROR"
       cp $file $fileerror
-      cp $fileoutputmodel $fileerror".model"
+      cp $stdoutput $fileerror".model"
       echo "; error: $callstring" >> $fileerror
       exit 1
     fi
