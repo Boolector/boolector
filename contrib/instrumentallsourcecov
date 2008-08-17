@@ -10,6 +10,8 @@ if [[ ! -e ~/picosat ]] && [[ ! -d ~/picosat ]]; then
   exit 1
 fi
 
+id=0
+
 rm -r -f /tmp/instrumentallsourcecov
 mkdir /tmp/instrumentallsourcecov
 cp -r ~/boolector /tmp/instrumentallsourcecov/
@@ -35,14 +37,20 @@ do
       exit 1
     fi
     echo "$file"
-    ./contrib/instrumentsourcecov "$file"
-    file=${file##".c"}
-    mv $file".ins" $file
+    newid=`./contrib/instrumentsourcecov "$file" $id`
+    if [[ $? -ne 0 ]]; then
+      echo "Error occurred (instrumentsourcecov)"
+      exit 1
+    else 
+      id=$newid
+      file=${file##".c"}
+      mv $file".ins" $file
+    fi
   fi
 done
 
-#make clean
-#./configure -g
-#make
-#cp boolector ~/boolector/boolector
+make clean
+./configure -g
+make
+cp boolector ~/boolector/boolector
 

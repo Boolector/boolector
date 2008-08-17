@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [[ $# -ne 1 ]]; then
-  echo "Usage: ./instrumentsourcecov <source-file>"
+if [[ $# -ne 2 ]]; then
+  echo "Usage: ./instrumentsourcecov <source-file> <start-id>"
   exit 1;
 fi
 
@@ -14,6 +14,8 @@ if [[ ! -e $file".gcov" || ! -r $file".gcov" ]]; then
   exit 1
 fi
 
+id=$2
+
 exec 10<"$file"".gcov"
 while read line <&10
 do
@@ -25,6 +27,8 @@ do
     ((counter++))
   fi
 done
+# close file
+exec 10>&-
 
 len=$counter
 counter=1
@@ -33,7 +37,10 @@ lastline=""
 output=$file".ins"
 rm -f $output
 
-cat $file | while read -r line
+echo "#include <stdio.h>" >> $output
+
+exec 10<"$file"
+while read -r line <&10
 do
   if [[ ${unreached[$i]} -eq $counter ]]; then
 
@@ -46,12 +53,13 @@ do
 	 [[ `expr match "$lastline" "while"` -eq 5 ]] || \
 	 [[ `expr match "$lastline" "do"` -eq 2 ]] || \
 	 [[ `expr match "$lastline" "for"` -eq 3 ]]; then
-	 echo -n "{ assert (0); " >> $output
+	 echo -n "{ fprintf(stderr, \"%d\\n\", $id); " >> $output
 	 echo "$line }" >> $output
       else
-	echo "assert (0);" >> $output
+	echo "fprintf(stderr, \"%d\\n\", $id);" >> $output
 	echo "$line" >> $output
       fi
+     ((id++))
 
     else
       echo "$line" >> $output
@@ -67,5 +75,8 @@ do
   lastline=$line
 done
 
+# close file
+exec 10>&-
 
-
+echo $id
+exit 0
