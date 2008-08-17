@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# ATTENTION: we use btorold2new filter as workaround
+# ATTENTION: we use btorold2new filter as workaround for btorgen
+
+usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [id] [-cov]" 
 
 btorgen=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
@@ -39,14 +41,31 @@ fileerror="./error.btor"
 fileoutputmodel="/tmp/testbtorbtorgenoutputmodel$$.btor"
 refinementlimit=100000
 last=btorgenjava
+cov=no
 
-if [[ $# -gt 1 ]]; then
-  echo "*** testbtorbtorgen: usage: ./testbtorbtorgen [id]" 1>&2
+if [[ $# -gt 2 ]]; then
+  echo $usage 1>&2
   exit 1
 fi
 
-if [[ $# -eq 1 ]]; then
-  fileerror="error"$1".btor"
+#parse arguments
+if [[ $# -eq 2 ]]; then
+  if [[ $1 = "-cov" ]]; then
+    cov=yes
+    fileerror="error"$2".btor"
+  elif [[ $2 = "-cov" ]]; then
+    cov=yes
+    fileerror="error"$1".btor"
+  else
+    echo $usage 1>&2
+    exit 1
+  fi
+elif [[ $# -eq 1 ]]; then
+  if [[ $1 = "-cov" ]]; then
+    cov=yes
+  else
+    fileerror="error"$1".btor"
+  fi
 fi
 
 while true 
