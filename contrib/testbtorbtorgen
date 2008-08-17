@@ -41,12 +41,12 @@ refinementlimit=100000
 last=btorgenjava
 
 if [[ $# -gt 1 ]]; then
-  echo "*** testbtorbtorgen: usage: ./testbtorbtorgen [output-file]" 1>&2
+  echo "*** testbtorbtorgen: usage: ./testbtorbtorgen [id]" 1>&2
   exit 1
 fi
 
 if [[ $# -eq 1 ]]; then
-  fileerror=$1
+  fileerror="error"$1".btor"
 fi
 
 while true 
