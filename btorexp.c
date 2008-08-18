@@ -8000,12 +8000,13 @@ substitute_vars_and_process_embedded_constraints (Btor *btor)
 }
 
 static int
-update_under_approx_width (Btor *btor)
+update_under_approx_eff_width (Btor *btor)
 {
   BtorPtrHashBucket *b;
   BtorUARef ua_ref;
   BtorExp *var;
   BtorUAData *data;
+  char *max_string;
   int update, e, verbosity;
 
   assert (btor != NULL);
@@ -8038,6 +8039,8 @@ update_under_approx_width (Btor *btor)
     assert (btor->ua.mode == BTOR_UA_LOCAL_MODE);
     for (b = btor->vars_reads->first; b != NULL; b = b->next)
     {
+      max_string = "";
+
       var  = (BtorExp *) b->key;
       data = (BtorUAData *) b->data.asPtr;
 
@@ -8056,6 +8059,13 @@ update_under_approx_width (Btor *btor)
           data->eff_width *= 2;
         }
 
+        /* check also for overflow */
+        if (data->eff_width >= var->len || data->eff_width <= 0)
+        {
+          max_string      = " (max)";
+          data->eff_width = var->len;
+        }
+
         update                  = 1;
         data->updated_eff_width = 1;
         data->refinements++;
@@ -8063,14 +8073,16 @@ update_under_approx_width (Btor *btor)
         if (verbosity >= 3)
         {
           if (BTOR_IS_VAR_EXP (var))
-            print_verbose_msg ("UA: setting effective bit-width of %s to %d",
+            print_verbose_msg ("UA: setting effective bit-width of %s to %d%s",
                                var->symbol,
-                               data->eff_width);
+                               data->eff_width,
+                               max_string);
           else
             print_verbose_msg (
-                "UA: setting effective bit-width of read %d to %d",
+                "UA: setting effective bit-width of read %d to %d%s",
                 var->id,
-                data->eff_width);
+                data->eff_width,
+                max_string);
         }
       }
       else
@@ -8449,7 +8461,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       assert (ua);
       assert (!under_approx_finished);
 
-      if (!update_under_approx_width (btor))
+      if (!update_under_approx_eff_width (btor))
       {
         if (verbosity >= 2)
         {
