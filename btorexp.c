@@ -4229,6 +4229,40 @@ btor_cmp_id (const void *p, const void *q)
   return a->id - b->id;
 }
 
+static int
+btor_cmp_len (const void *p, const void *q)
+{
+  BtorExp *a = *(BtorExp **) p;
+  BtorExp *b = *(BtorExp **) q;
+  return a->len - b->len;
+}
+
+static int
+btor_cmp_ua_data_eff_width (const void *p, const void *q)
+{
+  Btor *btor;
+  BtorPtrHashBucket *bucket;
+  BtorExp *a, *b;
+  BtorUAData *data_a, *data_b;
+
+  a = *(BtorExp **) p;
+  b = *(BtorExp **) q;
+
+  btor = a->btor;
+
+  bucket = btor_find_in_ptr_hash_table (btor->vars_reads, a);
+  assert (bucket != NULL);
+  data_a = (BtorUAData *) bucket->data.asPtr;
+  assert (data_a != NULL);
+
+  bucket = btor_find_in_ptr_hash_table (btor->vars_reads, b);
+  assert (bucket != NULL);
+  data_b = (BtorUAData *) bucket->data.asPtr;
+  assert (data_b != NULL);
+
+  return data_a->eff_width - data_b->eff_width;
+}
+
 static void
 dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 {
@@ -4973,27 +5007,308 @@ report_constraint_stats (Btor *btor, int force)
 }
 
 static void
-compute_ua_stats (Btor *btor,
-                  unsigned int *num_vars,
-                  unsigned int *num_reads,
-                  unsigned long long int *sum_var_refs,
-                  unsigned long long int *sum_read_refs,
-                  double *avg_var_refs,
-                  double *avg_read_refs,
-                  int *max_var_width,
-                  int *max_read_width,
-                  int *min_var_width,
-                  int *min_read_width,
-                  int *max_var_eff_width,
-                  int *max_read_eff_width,
-                  int *min_var_eff_width,
-                  int *min_read_eff_width,
-                  double *avg_var_width,
-                  double *avg_read_width,
-                  double *avg_var_eff_width,
-                  double *avg_read_eff_width,
-                  double *avg_width,
-                  double *avg_eff_width)
+compute_ua_stats_distribution (Btor *btor,
+                               double avg_var_width,
+                               double avg_read_width,
+                               double avg_var_eff_width,
+                               double avg_read_eff_width,
+                               double avg_width,
+                               double avg_eff_width,
+                               int *median_var_width,
+                               double *variance_var_width,
+                               int *median_read_width,
+                               double *variance_read_width,
+                               int *median_var_eff_width,
+                               double *variance_var_eff_width,
+                               int *median_read_eff_width,
+                               double *variance_read_eff_width,
+                               int *median_width,
+                               double *variance_width,
+                               int *median_eff_width,
+                               double *variance_eff_width)
+{
+  BtorExpPtrStack reads, vars, all;
+  BtorPtrHashBucket *b;
+  BtorMemMgr *mm;
+  BtorExp *var;
+  BtorUAData *data;
+  BtorUAMode ua_mode;
+  double temp;
+  int left, right;
+
+  assert (btor != NULL);
+  assert (btor->ua.enabled);
+  assert (avg_var_width >= 0.0);
+  assert (avg_read_width >= 0.0);
+  assert (avg_var_eff_width >= 0.0);
+  assert (avg_read_eff_width >= 0.0);
+  assert (avg_width >= 0.0);
+  assert (avg_eff_width >= 0.0);
+  assert (median_var_width != NULL);
+  assert (variance_var_width != NULL);
+  assert (median_read_width != NULL);
+  assert (variance_read_width != NULL);
+  assert (median_var_eff_width != NULL);
+  assert (variance_var_eff_width != NULL);
+  assert (median_read_eff_width != NULL);
+  assert (variance_read_eff_width != NULL);
+  assert (median_width != NULL);
+  assert (variance_width != NULL);
+  assert (median_eff_width != NULL);
+  assert (variance_eff_width != NULL);
+
+  *median_var_width        = 0;
+  *variance_var_width      = 0.0;
+  *median_read_width       = 0;
+  *variance_read_width     = 0.0;
+  *median_var_eff_width    = 0;
+  *variance_var_eff_width  = 0.0;
+  *median_read_eff_width   = 0.0;
+  *variance_read_eff_width = 0.0;
+  *median_width            = 0;
+  *variance_width          = 0.0;
+  *median_eff_width        = 0.0;
+  *variance_eff_width      = 0.0;
+
+  mm      = btor->mm;
+  ua_mode = btor->ua.mode;
+
+  BTOR_INIT_STACK (vars);
+  BTOR_INIT_STACK (reads);
+  BTOR_INIT_STACK (all);
+
+  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  {
+    var = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (var));
+    assert (BTOR_IS_VAR_EXP (var) || var->kind == BTOR_READ_EXP);
+
+    data = (BtorUAData *) b->data.asPtr;
+    assert (ua_mode == BTOR_UA_GLOBAL_MODE || data != NULL);
+
+    BTOR_PUSH_STACK (mm, all, var);
+
+    if (BTOR_IS_VAR_EXP (var))
+    {
+      BTOR_PUSH_STACK (mm, vars, var);
+
+      temp = (double) var->len - avg_var_width;
+      *variance_var_width += temp * temp;
+
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      {
+        temp = (double) data->eff_width - avg_var_eff_width;
+        *variance_var_eff_width += temp * temp;
+      }
+    }
+    else
+    {
+      BTOR_PUSH_STACK (mm, reads, var);
+
+      temp = (double) var->len - avg_read_width;
+      *variance_read_width += temp * temp;
+
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      {
+        temp = (double) data->eff_width - avg_read_eff_width;
+        *variance_read_eff_width += temp * temp;
+      }
+    }
+
+    temp = (double) var->len - avg_width;
+    *variance_width += temp * temp;
+
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      temp = (double) data->eff_width - avg_eff_width;
+      *variance_eff_width += temp * temp;
+    }
+  }
+
+  if (!BTOR_EMPTY_STACK (vars))
+  {
+    *variance_var_width /= (double) BTOR_COUNT_STACK (vars);
+
+    qsort (
+        vars.start, BTOR_COUNT_STACK (vars), sizeof (BtorExp *), btor_cmp_len);
+    if (BTOR_COUNT_STACK (vars) & 1)
+      *median_var_width = vars.start[BTOR_COUNT_STACK (vars) / 2]->len;
+    else
+    {
+      left              = vars.start[(BTOR_COUNT_STACK (vars) / 2) - 1]->len;
+      right             = vars.start[BTOR_COUNT_STACK (vars) / 2]->len;
+      *median_var_width = (double) (left + right) / 2.0;
+    }
+
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      *variance_var_eff_width /= (double) BTOR_COUNT_STACK (vars);
+
+      qsort (vars.start,
+             BTOR_COUNT_STACK (vars),
+             sizeof (BtorExp *),
+             btor_cmp_ua_data_eff_width);
+      if (BTOR_COUNT_STACK (vars) & 1)
+      {
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, vars.start[BTOR_COUNT_STACK (vars) / 2]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        *median_var_eff_width = ((BtorUAData *) b->data.asPtr)->eff_width;
+      }
+      else
+      {
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, vars.start[(BTOR_COUNT_STACK (vars) / 2) - 1]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        left = ((BtorUAData *) b->data.asPtr)->eff_width;
+
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, vars.start[BTOR_COUNT_STACK (vars) / 2]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        right = ((BtorUAData *) b->data.asPtr)->eff_width;
+
+        *median_var_eff_width = (double) (left + right) / 2.0;
+      }
+    }
+  }
+
+  if (!BTOR_EMPTY_STACK (reads))
+  {
+    *variance_read_width /= (double) BTOR_COUNT_STACK (reads);
+
+    qsort (reads.start,
+           BTOR_COUNT_STACK (reads),
+           sizeof (BtorExp *),
+           btor_cmp_len);
+    if (BTOR_COUNT_STACK (reads) & 1)
+      *median_read_width = reads.start[BTOR_COUNT_STACK (reads) / 2]->len;
+    else
+    {
+      left               = reads.start[(BTOR_COUNT_STACK (reads) / 2) - 1]->len;
+      right              = reads.start[BTOR_COUNT_STACK (reads) / 2]->len;
+      *median_read_width = (double) (left + right) / 2.0;
+    }
+
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      *variance_read_eff_width /= (double) BTOR_COUNT_STACK (reads);
+
+      qsort (reads.start,
+             BTOR_COUNT_STACK (reads),
+             sizeof (BtorExp *),
+             btor_cmp_ua_data_eff_width);
+      if (BTOR_COUNT_STACK (reads) & 1)
+      {
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, reads.start[BTOR_COUNT_STACK (reads) / 2]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        *median_read_eff_width = ((BtorUAData *) b->data.asPtr)->eff_width;
+      }
+      else
+      {
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, reads.start[(BTOR_COUNT_STACK (reads) / 2) - 1]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        left = ((BtorUAData *) b->data.asPtr)->eff_width;
+
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, reads.start[BTOR_COUNT_STACK (reads) / 2]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        right = ((BtorUAData *) b->data.asPtr)->eff_width;
+
+        *median_read_eff_width = (double) (left + right) / 2.0;
+      }
+    }
+  }
+
+  if (!BTOR_EMPTY_STACK (all))
+  {
+    *variance_width /= (double) btor->vars_reads->count;
+
+    qsort (all.start, BTOR_COUNT_STACK (all), sizeof (BtorExp *), btor_cmp_len);
+    if (BTOR_COUNT_STACK (all) & 1)
+      *median_width = all.start[BTOR_COUNT_STACK (all) / 2]->len;
+    else
+    {
+      left          = all.start[(BTOR_COUNT_STACK (all) / 2) - 1]->len;
+      right         = all.start[BTOR_COUNT_STACK (all) / 2]->len;
+      *median_width = (double) (left + right) / 2.0;
+    }
+
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      *variance_eff_width /= (double) btor->vars_reads->count;
+
+      qsort (all.start,
+             BTOR_COUNT_STACK (all),
+             sizeof (BtorExp *),
+             btor_cmp_ua_data_eff_width);
+      if (BTOR_COUNT_STACK (all) & 1)
+      {
+        b = btor_find_in_ptr_hash_table (btor->vars_reads,
+                                         all.start[BTOR_COUNT_STACK (all) / 2]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        *median_eff_width = ((BtorUAData *) b->data.asPtr)->eff_width;
+      }
+      else
+      {
+        b = btor_find_in_ptr_hash_table (
+            btor->vars_reads, all.start[(BTOR_COUNT_STACK (all) / 2) - 1]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        left = ((BtorUAData *) b->data.asPtr)->eff_width;
+
+        b = btor_find_in_ptr_hash_table (btor->vars_reads,
+                                         all.start[BTOR_COUNT_STACK (all) / 2]);
+        assert (b != NULL);
+        assert (b->data.asPtr != NULL);
+        right = ((BtorUAData *) b->data.asPtr)->eff_width;
+
+        *median_eff_width = (double) (left + right) / 2.0;
+      }
+    }
+  }
+
+  BTOR_RELEASE_STACK (mm, vars);
+  BTOR_RELEASE_STACK (mm, reads);
+  BTOR_RELEASE_STACK (mm, all);
+}
+
+static void
+compute_basic_ua_stats (Btor *btor,
+                        unsigned int *num_vars,
+                        unsigned int *num_reads,
+                        unsigned long long int *sum_var_refs,
+                        unsigned long long int *sum_read_refs,
+                        unsigned long long int *sum_refs,
+                        double *avg_var_refs,
+                        double *avg_read_refs,
+                        double *avg_refs,
+                        int *max_var_width,
+                        int *max_read_width,
+                        int *max_width,
+                        int *min_var_width,
+                        int *min_read_width,
+                        int *min_width,
+                        int *max_var_eff_width,
+                        int *max_read_eff_width,
+                        int *max_eff_width,
+                        int *min_var_eff_width,
+                        int *min_read_eff_width,
+                        int *min_eff_width,
+                        double *avg_var_width,
+                        double *avg_read_width,
+                        double *avg_var_eff_width,
+                        double *avg_read_eff_width,
+                        double *avg_width,
+                        double *avg_eff_width)
 {
   BtorPtrHashBucket *b;
   BtorExp *var;
@@ -5009,22 +5324,30 @@ compute_ua_stats (Btor *btor,
   assert (num_reads != NULL);
   assert (sum_var_refs != NULL);
   assert (sum_read_refs != NULL);
+  assert (sum_refs != NULL);
   assert (avg_var_refs != NULL);
   assert (avg_read_refs != NULL);
+  assert (avg_refs != NULL);
   assert (max_var_width != NULL);
   assert (max_read_width != NULL);
+  assert (max_width != NULL);
   assert (min_var_width != NULL);
   assert (min_read_width != NULL);
+  assert (min_width != NULL);
   assert (max_var_eff_width != NULL);
   assert (max_read_eff_width != NULL);
+  assert (max_eff_width != NULL);
   assert (min_var_eff_width != NULL);
   assert (min_read_eff_width != NULL);
+  assert (min_eff_width != NULL);
   assert (avg_var_width != NULL);
   assert (avg_read_width != NULL);
   assert (avg_var_eff_width != NULL);
   assert (avg_read_eff_width != NULL);
   assert (avg_width != NULL);
   assert (avg_eff_width != NULL);
+
+  ua_mode = btor->ua.mode;
 
   sum_var_width      = 0llu;
   sum_read_width     = 0llu;
@@ -5035,16 +5358,30 @@ compute_ua_stats (Btor *btor,
   *num_reads     = 0u;
   *sum_var_refs  = 0llu;
   *sum_read_refs = 0llu;
-  ua_mode        = btor->ua.mode;
+  *sum_refs      = 0llu;
 
   *max_var_width      = 0;
   *max_read_width     = 0;
+  *max_width          = 0;
   *min_var_width      = 0;
   *min_read_width     = 0;
+  *min_width          = 0;
   *max_var_eff_width  = 0;
   *max_read_eff_width = 0;
+  *max_eff_width      = 0;
   *min_var_eff_width  = 0;
   *min_read_eff_width = 0;
+  *min_eff_width      = 0;
+
+  *avg_var_refs       = 0.0;
+  *avg_read_refs      = 0.0;
+  *avg_refs           = 0.0;
+  *avg_var_width      = 0.0;
+  *avg_read_width     = 0.0;
+  *avg_var_eff_width  = 0.0;
+  *avg_read_eff_width = 0.0;
+  *avg_width          = 0.0;
+  *avg_eff_width      = 0.0;
 
   for (b = btor->vars_reads->first; b != NULL; b = b->next)
   {
@@ -5053,6 +5390,21 @@ compute_ua_stats (Btor *btor,
 
     assert (!BTOR_IS_INVERTED_EXP (var));
     assert (BTOR_IS_VAR_EXP (var) || var->kind == BTOR_READ_EXP);
+
+    if (var->len < *min_width || *min_width == 0) *min_width = var->len;
+
+    if (var->len > *max_width || *max_width == 0) *max_width = var->len;
+
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      if (data->eff_width < *min_eff_width || *min_eff_width == 0)
+        *min_eff_width = data->eff_width;
+
+      if (data->eff_width > *max_eff_width || *max_eff_width == 0)
+        *max_eff_width = data->eff_width;
+
+      *sum_refs += data->refinements;
+    }
 
     if (BTOR_IS_VAR_EXP (var))
     {
@@ -5067,7 +5419,7 @@ compute_ua_stats (Btor *btor,
       if (ua_mode == BTOR_UA_LOCAL_MODE)
       {
         sum_var_eff_width += data->eff_width;
-        *sum_var_refs += (unsigned int) data->refinements;
+        *sum_var_refs += data->refinements;
 
         if (data->eff_width < *min_var_eff_width || *min_var_eff_width == 0)
           *min_var_eff_width = data->eff_width;
@@ -5089,7 +5441,7 @@ compute_ua_stats (Btor *btor,
       if (ua_mode == BTOR_UA_LOCAL_MODE)
       {
         sum_read_eff_width += data->eff_width;
-        *sum_read_refs += (unsigned int) data->refinements;
+        *sum_read_refs += data->refinements;
 
         if (data->eff_width < *min_read_eff_width || *min_read_eff_width == 0)
           *min_read_eff_width = data->eff_width;
@@ -5110,12 +5462,6 @@ compute_ua_stats (Btor *btor,
       *avg_var_eff_width = (double) sum_var_eff_width / (double) *num_vars;
     }
   }
-  else
-  {
-    *avg_var_refs      = 0.0;
-    *avg_var_width     = 0.0;
-    *avg_var_eff_width = 0.0;
-  }
 
   if (*num_reads)
   {
@@ -5126,36 +5472,17 @@ compute_ua_stats (Btor *btor,
       *avg_read_eff_width = (double) sum_read_eff_width / (double) *num_reads;
     }
   }
-  else
-  {
-    *avg_read_refs      = 0.0;
-    *avg_read_width     = 0.0;
-    *avg_read_eff_width = 0.0;
-  }
 
   if (*num_vars || *num_reads)
   {
     *avg_width = (double) (sum_var_width + sum_read_width)
                  / (double) (*num_vars + *num_reads);
     if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
       *avg_eff_width = (double) (sum_var_eff_width + sum_read_eff_width)
                        / (double) (*num_vars + *num_reads);
-  }
-  else
-  {
-    *avg_width     = 0.0;
-    *avg_eff_width = 0.0;
-  }
-
-  if (ua_mode == BTOR_UA_GLOBAL_MODE)
-  {
-    *min_var_eff_width  = btor->ua.global_eff_width;
-    *max_var_eff_width  = btor->ua.global_eff_width;
-    *min_read_eff_width = btor->ua.global_eff_width;
-    *max_read_eff_width = btor->ua.global_eff_width;
-    *avg_var_eff_width  = (double) btor->ua.global_eff_width;
-    *avg_read_eff_width = (double) btor->ua.global_eff_width;
-    *avg_eff_width      = (double) btor->ua.global_eff_width;
+      *avg_refs = (double) *sum_refs / (double) btor->vars_reads->count;
+    }
   }
 }
 
@@ -5164,16 +5491,24 @@ btor_print_stats_btor (Btor *btor)
 {
   double avg_var_refs, avg_read_refs, avg_var_width, avg_read_width;
   double avg_var_eff_width, avg_read_eff_width, avg_width, avg_eff_width;
+  double variance_var_width, variance_read_width, variance_var_eff_width;
+  double variance_read_eff_width, variance_width, variance_eff_width;
+  double avg_refs;
   unsigned int num_vars, num_reads;
-  unsigned long long int sum_var_refs, sum_read_refs;
+  unsigned long long int sum_var_refs, sum_read_refs, sum_refs;
   int max_var_width, max_read_width, min_var_width, min_read_width;
   int max_var_eff_width, max_read_eff_width, min_var_eff_width;
-  int min_read_eff_width;
+  int min_read_eff_width, median_var_width, median_read_width;
+  int median_var_eff_width, median_read_eff_width, median_width;
+  int median_eff_width, verbosity, min_width, max_width;
+  int min_eff_width, max_eff_width;
   BtorUAMode ua_mode;
 
   assert (btor != NULL);
-  (void) btor;
-  ua_mode = btor->ua.mode;
+  assert (btor->verbosity > 0);
+
+  ua_mode   = btor->ua.mode;
+  verbosity = btor->verbosity;
 
   report_constraint_stats (btor, 1);
   print_verbose_msg ("number of expressions: %lld", btor->stats.expressions);
@@ -5193,81 +5528,155 @@ btor_print_stats_btor (Btor *btor)
 
   if (btor->ua.enabled)
   {
+    print_verbose_msg ("");
     print_verbose_msg ("under-approximation (UA) statistics:");
     print_verbose_msg (" refinement loops: %d", btor->stats.ua_refinements);
-    compute_ua_stats (btor,
-                      &num_vars,
-                      &num_reads,
-                      &sum_var_refs,
-                      &sum_read_refs,
-                      &avg_var_refs,
-                      &avg_read_refs,
-                      &max_var_width,
-                      &max_read_width,
-                      &min_var_width,
-                      &min_read_width,
-                      &max_var_eff_width,
-                      &max_read_eff_width,
-                      &min_var_eff_width,
-                      &min_read_eff_width,
-                      &avg_var_width,
-                      &avg_read_width,
-                      &avg_var_eff_width,
-                      &avg_read_eff_width,
-                      &avg_width,
-                      &avg_eff_width);
+    if (ua_mode == BTOR_UA_GLOBAL_MODE)
+      print_verbose_msg (" global effective bit-width (final): %d",
+                         btor->ua.global_eff_width);
 
-    print_verbose_msg (" avg bit-width of variables and reads: %.1f",
-                       avg_width);
-    print_verbose_msg (" avg eff. bit-width of variables and reads: %.1f",
-                       avg_eff_width);
+    if (verbosity < 2) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
+
+    compute_basic_ua_stats (btor,
+                            &num_vars,
+                            &num_reads,
+                            &sum_var_refs,
+                            &sum_read_refs,
+                            &sum_refs,
+                            &avg_var_refs,
+                            &avg_read_refs,
+                            &avg_refs,
+                            &max_var_width,
+                            &max_read_width,
+                            &max_width,
+                            &min_var_width,
+                            &min_read_width,
+                            &min_width,
+                            &max_var_eff_width,
+                            &max_read_eff_width,
+                            &max_eff_width,
+                            &min_var_eff_width,
+                            &min_read_eff_width,
+                            &min_eff_width,
+                            &avg_var_width,
+                            &avg_read_width,
+                            &avg_var_eff_width,
+                            &avg_read_eff_width,
+                            &avg_width,
+                            &avg_eff_width);
+
+    compute_ua_stats_distribution (btor,
+                                   avg_var_width,
+                                   avg_read_width,
+                                   avg_var_eff_width,
+                                   avg_read_eff_width,
+                                   avg_width,
+                                   avg_eff_width,
+                                   &median_var_width,
+                                   &variance_var_width,
+                                   &median_read_width,
+                                   &variance_read_width,
+                                   &median_var_eff_width,
+                                   &variance_var_eff_width,
+                                   &median_read_eff_width,
+                                   &variance_read_eff_width,
+                                   &median_width,
+                                   &variance_width,
+                                   &median_eff_width,
+                                   &variance_eff_width);
+
     print_verbose_msg ("");
     print_verbose_msg (" variables:");
     print_verbose_msg ("  number: %d", num_vars);
-    if (ua_mode == BTOR_UA_LOCAL_MODE && btor->stats.ua_refinements)
+    if (num_vars > 0)
     {
-      print_verbose_msg ("  sum of refinements: %d", sum_var_refs);
-      print_verbose_msg ("  avg refinements: %.1f", avg_var_refs);
+      print_verbose_msg ("  min bit-width: %d", min_var_width);
+      print_verbose_msg ("  max bit-width: %d", max_var_width);
+      print_verbose_msg ("  avg bit-width: %.1f", avg_var_width);
+      print_verbose_msg ("  median of bit-width: %d", median_var_width);
+      print_verbose_msg ("  variance of bit-width: %.1f", variance_var_width);
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      {
+        print_verbose_msg ("  min eff. bit-width: %d", min_var_eff_width);
+        print_verbose_msg ("  max eff. bit-width: %d", max_var_eff_width);
+        print_verbose_msg ("  avg eff. bit-width: %.1f", avg_var_eff_width);
+        print_verbose_msg ("  median of eff. bit-width: %d",
+                           median_var_eff_width);
+        print_verbose_msg ("  variance of eff. bit-width: %.1f",
+                           variance_var_eff_width);
+        print_verbose_msg ("  sum of refinements: %llu", sum_var_refs);
+        print_verbose_msg ("  avg refinements: %.1f", avg_var_refs);
+      }
     }
-    print_verbose_msg ("  min bit-width: %d", min_var_width);
-    print_verbose_msg ("  min eff. bit-width: %d", min_var_eff_width);
-    print_verbose_msg ("  max bit-width: %d", max_var_width);
-    print_verbose_msg ("  max eff. bit-width: %d", max_var_eff_width);
-    print_verbose_msg ("  avg bit-width: %.1f", avg_var_width);
-    print_verbose_msg ("  avg eff. bit-width: %.1f", avg_var_eff_width);
 
     print_verbose_msg ("");
     print_verbose_msg (" reads:");
     print_verbose_msg ("  number: %d", num_reads);
-    if (ua_mode == BTOR_UA_LOCAL_MODE && btor->stats.ua_refinements)
+    if (num_reads > 0)
     {
-      print_verbose_msg ("  sum of refinements: %d", sum_read_refs);
-      print_verbose_msg ("  avg refinements: %.1f", avg_read_refs);
+      print_verbose_msg ("  min bit-width: %d", min_read_width);
+      print_verbose_msg ("  max bit-width: %d", max_read_width);
+      print_verbose_msg ("  avg bit-width: %.1f", avg_read_width);
+      print_verbose_msg ("  median of bit-width: %d", median_read_width);
+      print_verbose_msg ("  variance of bit-width: %.1f", variance_read_width);
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      {
+        print_verbose_msg ("  min eff. bit-width: %d", min_read_eff_width);
+        print_verbose_msg ("  max eff. bit-width: %d", max_read_eff_width);
+        print_verbose_msg ("  avg eff. bit-width: %.1f", avg_read_eff_width);
+        print_verbose_msg ("  median of eff. bit-width: %d",
+                           median_read_eff_width);
+        print_verbose_msg ("  variance of eff. bit-width: %.1f",
+                           variance_read_eff_width);
+        print_verbose_msg ("  sum of refinements: %llu", sum_read_refs);
+        print_verbose_msg ("  avg refinements: %.1f", avg_read_refs);
+      }
     }
-    print_verbose_msg ("  min bit-width: %d", min_read_width);
-    print_verbose_msg ("  min eff. bit-width: %d", min_read_eff_width);
-    print_verbose_msg ("  max bit-width: %d", max_read_width);
-    print_verbose_msg ("  max eff. bit-width: %d", max_read_eff_width);
-    print_verbose_msg ("  avg bit-width: %.1f", avg_read_width);
-    print_verbose_msg ("  avg eff. bit-width: %.1f", avg_read_eff_width);
+
+    if (num_vars == 0 || num_reads == 0) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
+
     print_verbose_msg ("");
+    print_verbose_msg (" variables and reads:");
+    print_verbose_msg ("  number: %u", btor->vars_reads->count);
+    if (btor->vars_reads->count > 0u)
+    {
+      print_verbose_msg ("  min bit-width: %d", min_width);
+      print_verbose_msg ("  max bit-width: %d", max_width);
+      print_verbose_msg ("  avg bit-width: %.1f", avg_width);
+      print_verbose_msg ("  median of bit-width: %d", median_width);
+      print_verbose_msg ("  variance of bit-width: %.1f", variance_width);
+      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      {
+        print_verbose_msg ("  min eff. bit-width: %d", min_eff_width);
+        print_verbose_msg ("  max eff. bit-width: %d", max_eff_width);
+        print_verbose_msg ("  avg eff. bit-width: %.1f", avg_eff_width);
+        print_verbose_msg ("  median of eff. bit-width: %d", median_eff_width);
+        print_verbose_msg ("  variance of eff. bit-width: %.1f",
+                           variance_eff_width);
+        print_verbose_msg ("  sum of refinements: %llu", sum_refs);
+        print_verbose_msg ("  avg refinements: %.1f", avg_refs);
+      }
+    }
   }
 
-  print_verbose_msg ("lemmas on demand refinements: %d",
-                     btor->stats.lod_refinements);
+BTOR_CONTINUE_BASIC_STATS_OUTPUT:
+  print_verbose_msg ("");
+  print_verbose_msg ("lemmas on demand statistics:");
+  print_verbose_msg (" refinements: %d", btor->stats.lod_refinements);
   if (btor->stats.lod_refinements)
   {
-    print_verbose_msg ("array axiom 1 conflicts: %d",
+    print_verbose_msg (" array axiom 1 conflicts: %d",
                        btor->stats.array_axiom_1_conflicts);
-    print_verbose_msg ("array axiom 2 conflicts: %d",
+    print_verbose_msg (" array axiom 2 conflicts: %d",
                        btor->stats.array_axiom_2_conflicts);
-    print_verbose_msg ("average lemma size: %.1f",
+    print_verbose_msg (" average lemma size: %.1f",
                        BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
                                           btor->stats.lod_refinements));
-    print_verbose_msg ("average linking clause size: %.1f",
+    print_verbose_msg (" average linking clause size: %.1f",
                        BTOR_AVERAGE_UTIL (btor->stats.lclause_size_sum,
                                           btor->stats.lod_refinements));
   }
+  print_verbose_msg ("");
 
   print_verbose_msg ("linear constraint equations: %d",
                      btor->stats.linear_equations);
