@@ -107,7 +107,7 @@ struct BtorMainApp
   int close_smt_file;
   int rewrite_level;
   int ua;
-  int ua_start_width;
+  int ua_initial_eff_width;
   BtorUAMode ua_mode;
   BtorUARef ua_ref;
   BtorUAEnc ua_enc;
@@ -154,10 +154,12 @@ static const char *g_usage =
     "\n"
     "Under-approximation options:\n"
     "  -ua                              enable under-approximation (UA)\n"
-    "  -uaw=<n>                         set UA start width (default n=1)\n"
+    "  -uaw=<n>                         set initial effecitve bit-width "
+    "(default n=1)\n"
     "\n"
-    "  -uai                             UA refinement by incrementing\n"
-    "  -uad                             UA refinement by doubling (default)\n"
+    "  -uai                             eff. width refinement by incrementing\n"
+    "  -uad                             eff. width refinement by doubling "
+    "(default)\n"
     "\n"
     "  -ual                             local refinement strategy\n"
     "  -uag                             global refinement strategy (default)\n"
@@ -540,9 +542,9 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (strstr (app->argv[app->argpos], "-uaw=") == app->argv[app->argpos]
              && strlen (app->argv[app->argpos]) > strlen ("-uaw="))
     {
-      app->ua_start_width = atoi (app->argv[app->argpos] + 5);
-      app->ua             = 1;
-      if (app->ua_start_width < 1)
+      app->ua_initial_eff_width = atoi (app->argv[app->argpos] + 5);
+      app->ua                   = 1;
+      if (app->ua_initial_eff_width < 1)
       {
         print_err (app, "UA start width must be greater than zero\n");
         app->err = 1;
@@ -855,7 +857,7 @@ btor_main (int argc, char **argv)
   app.close_smt_file           = 0;
   app.rewrite_level            = 3;
   app.ua                       = 0;
-  app.ua_start_width           = 1;
+  app.ua_initial_eff_width     = 1;
   app.ua_mode                  = BTOR_UA_GLOBAL_MODE;
   app.ua_ref                   = BTOR_UA_REF_BY_DOUBLING;
   app.ua_enc                   = BTOR_UA_ENC_SIGN_EXTEND;
@@ -889,7 +891,8 @@ btor_main (int argc, char **argv)
     {
       btor_enable_under_approx (btor);
       if (!app.ua_over_approximate_core) btor_enable_full_unsat_core (btor);
-      btor_set_under_approx_start_width (btor, app.ua_start_width);
+      btor_set_under_approx_initial_effective_width (btor,
+                                                     app.ua_initial_eff_width);
       btor_set_under_approx_mode (btor, app.ua_mode);
       btor_set_under_approx_ref (btor, app.ua_ref);
       btor_set_under_approx_enc (btor, app.ua_enc);

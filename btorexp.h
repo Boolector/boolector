@@ -241,13 +241,17 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
-  int ua;                         /* under-approximation (UA) enabled */
-  BtorUAMode ua_mode;             /* UA mode */
-  BtorUARef ua_ref;               /* UA refinement strategy */
-  BtorUAEnc ua_enc;               /* UA encoding strategy */
-  int ua_start_width;             /* start width of encoding */
-  int global_ua_width;            /* global under-approximation bit-width */
-  int last_global_ua_e;           /* last global UA e for CNF */
+  struct /* Under-approximation UA */
+  {
+    int enabled;           /* UA enabled */
+    BtorUAMode mode;       /* UA mode */
+    BtorUARef ref;         /* UA refinement strategy */
+    BtorUAEnc enc;         /* UA encoding strategy */
+    int initial_eff_width; /* UA initial effective bit-width */
+    int global_eff_width;  /* global effective bit-width (only for global UA
+                              mode) */
+    int global_last_e; /* last global UA e for CNF (only for global UA mode) */
+  } ua;
   int (*unsat_core_lookup) (int); /* lookup function for UNSAT core */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
@@ -392,7 +396,8 @@ void btor_enable_under_approx (Btor *btor);
 
 void btor_enable_full_unsat_core (Btor *btor);
 
-void btor_set_under_approx_start_width (Btor *btor, int ua_start_width);
+void btor_set_under_approx_initial_effective_width (Btor *btor,
+                                                    int ua_start_width);
 
 void btor_set_under_approx_mode (Btor *btor, BtorUAMode mode);
 
