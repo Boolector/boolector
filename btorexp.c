@@ -8000,6 +8000,27 @@ substitute_vars_and_process_embedded_constraints (Btor *btor)
 }
 
 static int
+max_len_global_under_approx_vars (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  int max;
+  BtorExp *var;
+
+  assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE);
+
+  max = 0;
+
+  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  {
+    var = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (var));
+    assert (BTOR_IS_VAR_EXP (var) || var->kind == BTOR_READ_EXP);
+    if (var->len > max) max = var->len;
+  }
+  return max;
+}
+
+static int
 update_under_approx_eff_width (Btor *btor)
 {
   BtorPtrHashBucket *b;
@@ -8012,12 +8033,14 @@ update_under_approx_eff_width (Btor *btor)
   assert (btor != NULL);
   assert (btor->ua.enabled);
 
-  ua_ref    = btor->ua.ref;
-  verbosity = btor->verbosity;
-  update    = 0;
+  ua_ref     = btor->ua.ref;
+  verbosity  = btor->verbosity;
+  update     = 0;
+  max_string = "";
 
   if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
   {
+    assert (btor->ua.global_max_eff_width > 0);
     if (btor->unsat_core_lookup (btor->ua.global_last_e))
     {
       if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
@@ -8028,9 +8051,18 @@ update_under_approx_eff_width (Btor *btor)
         btor->ua.global_eff_width *= 2;
       }
 
+      /* check also for overflow */
+      if (btor->ua.global_eff_width >= btor->ua.global_max_eff_width
+          || btor->ua.global_eff_width <= 0)
+      {
+        max_string                = " (max)";
+        btor->ua.global_eff_width = btor->ua.global_max_eff_width;
+      }
+
       if (verbosity > 0)
-        print_verbose_msg ("UA: setting global effective bit-width to %d",
-                           btor->ua.global_eff_width);
+        print_verbose_msg ("UA: setting global effective bit-width to %d%s",
+                           btor->ua.global_eff_width,
+                           max_string);
       update = 1;
     }
   }
@@ -8437,7 +8469,12 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   found_assumption_false = readd_assumptions (btor);
   if (found_assumption_false) return BTOR_UNSAT;
 
-  if (ua) under_approx_finished = !encode_under_approx (btor);
+  if (ua)
+  {
+    if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
+      btor->ua.global_max_eff_width = max_len_global_under_approx_vars (btor);
+    under_approx_finished = !encode_under_approx (btor);
+  }
 
   sat_result = btor_sat_sat (smgr, INT_MAX);
 

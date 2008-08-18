@@ -243,14 +243,14 @@ struct Btor
   int inconsistent;
   struct /* Under-approximation UA */
   {
-    int enabled;           /* UA enabled */
-    BtorUAMode mode;       /* UA mode */
-    BtorUARef ref;         /* UA refinement strategy */
-    BtorUAEnc enc;         /* UA encoding strategy */
-    int initial_eff_width; /* UA initial effective bit-width */
-    int global_eff_width;  /* global effective bit-width (only for global UA
-                              mode) */
-    int global_last_e; /* last global UA e for CNF (only for global UA mode) */
+    int enabled;              /* UA enabled */
+    BtorUAMode mode;          /* UA mode */
+    BtorUARef ref;            /* UA refinement strategy */
+    BtorUAEnc enc;            /* UA encoding strategy */
+    int initial_eff_width;    /* UA initial effective bit-width */
+    int global_eff_width;     /* global effective bit-width  */
+    int global_max_eff_width; /* maximum necessary effective bit-width */
+    int global_last_e;        /* last global UA e for CNF */
   } ua;
   int (*unsat_core_lookup) (int); /* lookup function for UNSAT core */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
