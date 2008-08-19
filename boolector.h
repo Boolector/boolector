@@ -457,14 +457,18 @@ void boolector_add_assumption (Btor *btor, BtorExp *exp);
  * of iterative refinements. Use INT_MAX as default. */
 int boolector_sat (Btor *btor, int refinement_limit);
 
-/* Builds current assignment string of expression (in the SAT case)
+/* Builds current assignment string of
+ * bit-vector expression (in the SAT case)
  * and returns it.
  * Do not call before calling 'boolector_sat_btor'.
  * The assignment string has to be freed by the user.
  * strlen(result) = len(exp)
  */
-char *boolector_assignment (Btor *btor, BtorExp *exp);
+char *boolector_bv_assignment (Btor *btor, BtorExp *exp);
 
-void boolector_free_assignment (Btor *btor, char *assignment);
+void boolector_array_assignment (
+    Btor *btor, BtorExp *exp, char ***indices, char ***values, int *size);
+
+void boolector_free_bv_assignment (Btor *btor, char *assignment);
 
 #endif

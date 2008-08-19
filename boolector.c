@@ -1178,21 +1178,35 @@ boolector_sat (Btor *btor, int refinement_limit)
 }
 
 char *
-boolector_assignment (Btor *btor, BtorExp *exp)
+boolector_bv_assignment (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
-  return btor_assignment_exp (btor, exp);
+  return btor_bv_assignment_exp (btor, exp);
 }
 
 void
-boolector_free_assignment (Btor *btor, char *assignment)
+boolector_array_assignment (
+    Btor *btor, BtorExp *exp, char ***indices, char ***values, int *size)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (indices == NULL, "'indices' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (values == NULL, "'values' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (size == NULL, "'size' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
+                        "'exp' must not be a bit-vector");
+  return btor_array_assignment_exp (btor, exp, indices, values, size);
+}
+
+void
+boolector_free_bv_assignment (Btor *btor, char *assignment)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (assignment == NULL, "'assignment' must not be NULL");
-  btor_free_assignment_exp (btor, assignment);
+  btor_free_bv_assignment_exp (btor, assignment);
 }
 
 /*------------------------------------------------------------------------*/

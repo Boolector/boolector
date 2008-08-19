@@ -462,6 +462,10 @@ modelgen1 -rwl1 -m -o log/modelgen1.log log/modelgen1.btor
 modelgen2 -rwl3 -m -o log/modelgen2.log log/modelgen2.btor
 modelgen3 -rwl3 -m -o log/modelgen3.log log/modelgen3.btor
 modelgen4 -rwl3 -fm -o log/modelgen4.log log/modelgen4.btor
+modelgen5 -rwl3 -fm -o log/modelgen5.log log/modelgen5.btor
+modelgen6 -rwl3 -fm -o log/modelgen6.log log/modelgen6.btor
+modelgen7 -rwl3 -fm -o log/modelgen7.log log/modelgen7.btor
+modelgen8 -rwl0 -fm -o log/modelgen8.log log/modelgen8.btor
 substcyclic1 -o log/substcyclic1.log log/substcyclic1.btor
 lin0 -o log/lin0.log log/lin0.btor
 lin1 -o log/lin1.log log/lin1.btor

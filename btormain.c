@@ -141,7 +141,7 @@ static const char *g_usage =
     "  -V|--version                     print version and exit\n"
     "\n"
     "  -[p]m|--[partial-]model          print partial model in the SAT case\n"
-    "  -fm|--full-model                 print full model in the SAT case\n"
+    "  -fm|--full-model                 print full model (BV) in the SAT case\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
@@ -392,54 +392,70 @@ convert_to_full_assignment (char *assignment)
   }
 }
 
-static void
-print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
+static char *
+format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
 {
-  int not_binary   = 0;
-  char *pretty     = NULL;
-  char *grounded   = NULL;
-  char *assignment = NULL;
-  BtorMemMgr *mm   = NULL;
-  BtorBasis basis  = BTOR_BINARY_BASIS;
+  BtorBasis basis;
+  char *pretty, *grounded;
+  int not_binary;
+  BtorMemMgr *mm;
+
   assert (app != NULL);
   assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (assignment != NULL);
+
   basis = app->basis;
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
-  mm         = btor->mm;
-  assignment = btor_assignment_exp (btor, exp);
-  assert (assignment != NULL);
+  mm = btor->mm;
 
   if (app->print_model == BTOR_APP_PRINT_MODEL_FULL)
     convert_to_full_assignment (assignment);
 
+  if (not_binary)
+  {
+    grounded = btor_ground_const_3vl (mm, assignment);
+
+    if (basis == BTOR_HEXADECIMAL_BASIS)
+      pretty = btor_const_to_hex (mm, grounded);
+    else
+    {
+      assert (basis == BTOR_DECIMAL_BASIS);
+      pretty = btor_const_to_decimal (mm, grounded);
+    }
+
+    btor_delete_const (mm, grounded);
+  }
+  else
+    pretty = btor_copy_const (mm, assignment);
+
+  return pretty;
+}
+
+static void
+print_bv_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
+{
+  char *pretty, *assignment;
+  BtorMemMgr *mm = NULL;
+
+  assert (app != NULL);
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (exp));
+
+  mm = btor->mm;
+
+  assignment = btor_bv_assignment_exp (btor, exp);
+  assert (assignment != NULL);
+
   if (app->print_model == BTOR_APP_PRINT_MODEL_FULL || !has_only_x (assignment))
   {
-    if (not_binary)
-    {
-      grounded = btor_ground_const_3vl (mm, assignment);
-
-      if (basis == BTOR_HEXADECIMAL_BASIS)
-        pretty = btor_const_to_hex (mm, grounded);
-      else
-      {
-        assert (basis == BTOR_DECIMAL_BASIS);
-        pretty = btor_const_to_decimal (mm, grounded);
-      }
-
-      btor_delete_const (mm, grounded);
-    }
-    else
-      pretty = (char *) assignment;
-
+    pretty = format_assignment (app, btor, assignment);
     print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
-
-    if (not_binary) btor_freestr (mm, pretty);
+    btor_free_bv_assignment_exp (btor, pretty);
   }
 
-  if (assignment != NULL) btor_free_assignment_exp (btor, assignment);
+  btor_free_bv_assignment_exp (btor, assignment);
 }
 
 static void
@@ -448,12 +464,61 @@ print_variable_assignments (BtorMainApp *app,
                             BtorExp **vars,
                             int nvars)
 {
-  int i = 0;
+  int i;
+
   assert (app != NULL);
   assert (btor != NULL);
   assert (vars != NULL);
   assert (nvars >= 0);
-  for (i = 0; i < nvars; i++) print_assignment (app, btor, vars[i]);
+
+  for (i = 0; i < nvars; i++) print_bv_assignment (app, btor, vars[i]);
+}
+
+static void
+print_array_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
+{
+  char **indices, **values;
+  char *pretty_index, *pretty_value;
+  int i, size;
+
+  assert (app != NULL);
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (exp));
+  btor_array_assignment_exp (btor, exp, &indices, &values, &size);
+  if (size > 0)
+  {
+    for (i = 0; i < size; i++)
+    {
+      pretty_index = format_assignment (app, btor, indices[i]);
+      pretty_value = format_assignment (app, btor, values[i]);
+      print_msg_va_args (
+          app, "%d[%s] %s\n", exp->id, pretty_index, pretty_value);
+
+      btor_free_bv_assignment_exp (btor, pretty_index);
+      btor_free_bv_assignment_exp (btor, pretty_value);
+      btor_free_bv_assignment_exp (btor, indices[i]);
+      btor_free_bv_assignment_exp (btor, values[i]);
+    }
+    BTOR_DELETEN (btor->mm, indices, size);
+    BTOR_DELETEN (btor->mm, values, size);
+  }
+}
+
+static void
+print_array_assignments (BtorMainApp *app,
+                         Btor *btor,
+                         BtorExp **arrays,
+                         int narrays)
+{
+  int i;
+
+  assert (app != NULL);
+  assert (btor != NULL);
+  assert (arrays != NULL);
+  assert (narrays >= 0);
+
+  for (i = 0; i < narrays; i++) print_array_assignment (app, btor, arrays[i]);
 }
 
 static void
@@ -852,6 +917,7 @@ btor_main (int argc, char **argv)
   BtorSATMgr *smgr     = NULL;
   BtorParseResult parse_res;
   BtorExpPtrStack varstack, constraints, bv_states, bv_regs, array_regs;
+  BtorExpPtrStack arraystack;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
@@ -1031,15 +1097,22 @@ btor_main (int argc, char **argv)
       btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
 
       BTOR_INIT_STACK (varstack);
+      BTOR_INIT_STACK (arraystack);
       BTOR_INIT_STACK (constraints);
 
       if (app.print_model)
       {
         for (i = 0; i < parse_res.ninputs; i++)
         {
-          if (!btor_is_array_exp (btor, parse_res.inputs[i]))
+          assert (!BTOR_IS_INVERTED_EXP (parse_res.inputs[i]));
+          assert (BTOR_IS_VAR_EXP (parse_res.inputs[i])
+                  || BTOR_IS_ATOMIC_ARRAY_EXP (parse_res.inputs[i]));
+          if (BTOR_IS_VAR_EXP (parse_res.inputs[i]))
             BTOR_PUSH_STACK (
                 mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
+          else
+            BTOR_PUSH_STACK (
+                mem, arraystack, btor_copy_exp (btor, parse_res.inputs[i]));
         }
       }
 
@@ -1056,6 +1129,7 @@ btor_main (int argc, char **argv)
       }
 
       /* BMC ? */
+      /* TODO: array models for BMC inputs */
       if (parse_res.nregs > 0)
       {
         app.app_mode = BTOR_APP_BMC_MODE;
@@ -1434,9 +1508,15 @@ btor_main (int argc, char **argv)
                  && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
           print_msg (&app, "ERROR: status of benchmark is 'sat'\n");
       }
-      if (sat_result == BTOR_SAT && app.print_model && parse_res.ninputs > 0)
-        print_variable_assignments (
-            &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+      if (sat_result == BTOR_SAT && app.print_model)
+      {
+        if (BTOR_COUNT_STACK (varstack) > 0)
+          print_variable_assignments (
+              &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+        if (BTOR_COUNT_STACK (arraystack) > 0)
+          print_array_assignments (
+              &app, btor, arraystack.start, BTOR_COUNT_STACK (arraystack));
+      }
 
       if (app.verbosity > 1) btor_print_stats_sat (smgr);
 
@@ -1445,6 +1525,10 @@ btor_main (int argc, char **argv)
       for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
         btor_release_exp (btor, varstack.start[i]);
       BTOR_RELEASE_STACK (mem, varstack);
+
+      for (i = 0; i < BTOR_COUNT_STACK (arraystack); i++)
+        btor_release_exp (btor, arraystack.start[i]);
+      BTOR_RELEASE_STACK (mem, arraystack);
 
       btor_reset_sat (smgr);
     }

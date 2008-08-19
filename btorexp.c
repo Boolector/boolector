@@ -692,6 +692,15 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
     exp->bits = 0;
   }
 
+  else if (BTOR_IS_ARRAY_EXP (exp))
+  {
+    if (exp->rho != NULL)
+    {
+      btor_delete_ptr_hash_table (exp->rho);
+      exp->rho = 0;
+    }
+  }
+
   else if (BTOR_IS_VAR_EXP (exp) && free_symbol)
   {
     btor_freestr (mm, exp->symbol);
@@ -4773,6 +4782,7 @@ btor_new_btor (void)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
+  BTOR_INIT_STACK (btor->arrays_with_model);
   BTOR_INIT_STACK (btor->replay_constraints);
   return btor;
 }
@@ -4918,6 +4928,8 @@ btor_delete_btor (Btor *btor)
   for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
     btor_release_exp (btor, btor->replay_constraints.start[i]);
   BTOR_RELEASE_STACK (mm, btor->replay_constraints);
+
+  BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
   assert (getenv ("BTORLEAKEXP") || btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
@@ -7053,8 +7065,17 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
     assert (BTOR_IS_REGULAR_EXP (cur_array));
     assert (BTOR_IS_ARRAY_EXP (cur_array));
     assert (cur_array->rho != NULL);
-    btor_delete_ptr_hash_table (cur_array->rho);
-    cur_array->rho = NULL;
+
+    if (found_conflict || changed_assignments)
+    {
+      btor_delete_ptr_hash_table (cur_array->rho);
+      cur_array->rho = NULL;
+    }
+    else
+    {
+      /* remember arrays for incremental usage */
+      BTOR_PUSH_STACK (mm, btor->arrays_with_model, cur_array);
+    }
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
 
@@ -7093,6 +7114,36 @@ reset_assumptions (Btor *btor)
       btor_new_ptr_hash_table (btor->mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+}
+
+static void
+reset_array_models (Btor *btor)
+{
+  BtorExp *cur;
+  int i;
+
+  assert (btor != NULL);
+
+  for (i = 0; i < BTOR_COUNT_STACK (btor->arrays_with_model); i++)
+  {
+    cur = btor->arrays_with_model.start[i];
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_ARRAY_EXP (cur));
+    assert (cur->rho != NULL);
+    btor_delete_ptr_hash_table (cur->rho);
+    cur->rho = NULL;
+  }
+  BTOR_RESET_STACK (btor->arrays_with_model);
+}
+
+static void
+reset_incremental_usage (Btor *btor)
+{
+  assert (btor != NULL);
+
+  reset_assumptions (btor);
+  reset_array_models (btor);
+  btor->valid_assignments = 0;
 }
 
 /* check if left does not occur on the right side */
@@ -7847,12 +7898,7 @@ add_constraint (Btor *btor, BtorExp *exp)
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
   mm = btor->mm;
-  if (btor->valid_assignments)
-  {
-    btor->valid_assignments = 0;
-    reset_assumptions (btor);
-  }
-  assert (btor->assumptions != NULL);
+  if (btor->valid_assignments) reset_incremental_usage (btor);
 
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
@@ -7943,11 +7989,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
   mm = btor->mm;
-  if (btor->valid_assignments)
-  {
-    btor->valid_assignments = 0;
-    reset_assumptions (btor);
-  }
+  if (btor->valid_assignments) reset_incremental_usage (btor);
+
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
     BTOR_INIT_STACK (stack);
@@ -8988,8 +9031,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
-  /* no added assumptions and constraints -> delete old assumptions */
-  if (btor->valid_assignments == 1) reset_assumptions (btor);
+  if (btor->valid_assignments == 1) reset_incremental_usage (btor);
   btor->valid_assignments = 1;
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -9079,7 +9121,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
 /*NOTE: works only for assignments to variables (RWL2 and RWL3 rules!) */
 char *
-btor_assignment_exp (Btor *btor, BtorExp *exp)
+btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
@@ -9094,7 +9136,8 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
-  if (!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))
+  if ((!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))
+      && !real_exp->vread)
   {
     invert_bits = BTOR_IS_INVERTED_EXP (exp);
     if (invert_bits)
@@ -9127,7 +9170,49 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
 }
 
 void
-btor_free_assignment_exp (Btor *btor, char *assignment)
+btor_array_assignment_exp (
+    Btor *btor, BtorExp *exp, char ***indices, char ***values, int *size)
+{
+  BtorPtrHashBucket *b;
+  BtorExp *index, *value;
+  int i;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (exp));
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  assert (BTOR_IS_ARRAY_EXP (exp));
+  assert (indices != NULL);
+  assert (values != NULL);
+  assert (size != NULL);
+
+  i = 0;
+
+  if (exp->rho == NULL)
+  {
+    *size = 0;
+    return;
+  }
+
+  *size = (int) exp->rho->count;
+  if (*size > 0)
+  {
+    BTOR_NEWN (btor->mm, *indices, *size);
+    BTOR_NEWN (btor->mm, *values, *size);
+
+    for (b = exp->rho->first; b != NULL; b = b->next)
+    {
+      index         = (BtorExp *) b->key;
+      value         = (BtorExp *) b->data.asPtr;
+      (*indices)[i] = btor_bv_assignment_exp (btor, index);
+      (*values)[i]  = btor_bv_assignment_exp (btor, value);
+      i++;
+    }
+  }
+}
+
+void
+btor_free_bv_assignment_exp (Btor *btor, char *assignment)
 {
   assert (btor != NULL);
   assert (assignment != NULL);

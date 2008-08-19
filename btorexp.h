@@ -260,6 +260,7 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
+  BtorExpPtrStack arrays_with_model;
   BtorExpPtrStack replay_constraints;
   /* statistics */
   struct
@@ -848,10 +849,13 @@ int btor_sat_btor (Btor *btor, int refinement_limit);
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-char *btor_assignment_exp (Btor *btor, BtorExp *exp);
+char *btor_bv_assignment_exp (Btor *btor, BtorExp *exp);
 
-/* Frees an assignment obtained by calling 'btor_assignment_exp' */
-void btor_free_assignment_exp (Btor *btor, char *assignment);
+void btor_array_assignment_exp (
+    Btor *btor, BtorExp *exp, char ***indices, char ***values, int *size);
+
+/* Frees BV assignment obtained by calling 'btor_assignment_exp' */
+void btor_free_bv_assignment_exp (Btor *btor, char *assignment);
 
 /*------------------------------------------------------------------------*/
 /* Low-level BtorExp                                                      */
