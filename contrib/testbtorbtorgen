@@ -39,7 +39,6 @@ valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgen$$dump.btor"
 stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
-refinementlimit=100000
 last=btorgenjava
 cov=no
 id=1
@@ -136,7 +135,7 @@ do
   do
     echo -n "Test $i rwl$rwl: "
 
-    callstring="-rwl$rwl -rl $refinementlimit $file"
+    callstring="-rwl$rwl $file"
     if [[ $uarwl -eq 3 ]]; then
       callstring=$callstring" -$uamode -$uabwref -$uaenc"
     fi
@@ -176,7 +175,7 @@ do
 
   echo -n "Test $i dump: "
   boolector $file -de 1> $filedump 2> /dev/null
-  boolector -rl $refinementlimit $filedump 2> /dev/null
+  boolector $filedump 2> /dev/null
   retval=$?
   if [[ $retval -ne $goldenretval ]]; then
     echo "ERROR"
