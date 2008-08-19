@@ -9077,6 +9077,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   return sat_result;
 }
 
+/*NOTE: works only for assignments to variables (RWL2 and RWL3 rules!) */
 char *
 btor_assignment_exp (Btor *btor, BtorExp *exp)
 {
@@ -9093,11 +9094,16 @@ btor_assignment_exp (Btor *btor, BtorExp *exp)
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
-  if ((!BTOR_IS_CONST_EXP (real_exp)
-       && (!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))))
-    return NULL;
-
-  if (BTOR_IS_CONST_EXP (real_exp))
+  if (!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))
+  {
+    invert_bits = BTOR_IS_INVERTED_EXP (exp);
+    if (invert_bits)
+      btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
+    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
+    if (invert_bits)
+      btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
+  }
+  else if (BTOR_IS_CONST_EXP (real_exp))
   {
     invert_bits = BTOR_IS_INVERTED_EXP (exp);
     if (invert_bits)

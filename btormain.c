@@ -79,6 +79,15 @@ enum BtorAppReplayMode
 
 typedef enum BtorAppReplayMode BtorAppReplayMode;
 
+enum BtorPrintModel
+{
+  BTOR_APP_PRINT_MODEL_NONE = 0,
+  BTOR_APP_PRINT_MODEL_PARTIAL,
+  BTOR_APP_PRINT_MODEL_FULL
+};
+
+typedef enum BtorPrintModel BtorPrintModel;
+
 struct BtorMainApp
 {
   FILE *output_file;
@@ -117,7 +126,7 @@ struct BtorMainApp
   BtorCNFEnc cnf_enc;
   int refinement_limit;
   int force_smt_input;
-  int print_model;
+  BtorPrintModel print_model;
 };
 
 typedef struct BtorMainApp BtorMainApp;
@@ -131,7 +140,8 @@ static const char *g_usage =
     "  -c|--copyright                   print copyright and exit\n"
     "  -V|--version                     print version and exit\n"
     "\n"
-    "  -m|--model                       print (partial) model in the SAT case\n"
+    "  -[p]m|--[partial-]model          print partial model in the SAT case\n"
+    "  -fm|--full-model                 print full model in the SAT case\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
@@ -369,6 +379,20 @@ has_only_x (const char *str)
 }
 
 static void
+convert_to_full_assignment (char *assignment)
+{
+  char *p;
+
+  assert (assignment != NULL);
+
+  for (p = assignment; *p; p++)
+  {
+    assert (*p == 'x' || *p == '0' || *p == '1');
+    if (*p == 'x') *p = '0';
+  }
+}
+
+static void
 print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 {
   int not_binary   = 0;
@@ -386,8 +410,12 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
   mm         = btor->mm;
   assignment = btor_assignment_exp (btor, exp);
+  assert (assignment != NULL);
 
-  if (assignment != NULL && !has_only_x (assignment))
+  if (app->print_model == BTOR_APP_PRINT_MODEL_FULL)
+    convert_to_full_assignment (assignment);
+
+  if (app->print_model == BTOR_APP_PRINT_MODEL_FULL || !has_only_x (assignment))
   {
     if (not_binary)
     {
@@ -458,8 +486,13 @@ parse_commandline_arguments (BtorMainApp *app)
                         "expression",
                         &app->exp_file);
     else if (!strcmp (app->argv[app->argpos], "-m")
-             || !strcmp (app->argv[app->argpos], "--model"))
-      app->print_model = 1;
+             || (!strcmp (app->argv[app->argpos], "-pm")
+                 || !strcmp (app->argv[app->argpos], "--model"))
+             || !strcmp (app->argv[app->argpos], "--partial-model"))
+      app->print_model = BTOR_APP_PRINT_MODEL_PARTIAL;
+    else if (!strcmp (app->argv[app->argpos], "-fm")
+             || !strcmp (app->argv[app->argpos], "--full-model"))
+      app->print_model = BTOR_APP_PRINT_MODEL_FULL;
     else if (!strcmp (app->argv[app->argpos], "-ds")
              || !strcmp (app->argv[app->argpos], "--dump-smt"))
       handle_dump_file (
@@ -867,7 +900,7 @@ btor_main (int argc, char **argv)
   app.cnf_enc          = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   app.refinement_limit = INT_MAX;
   app.force_smt_input  = 0;
-  app.print_model      = 0;
+  app.print_model      = BTOR_APP_PRINT_MODEL_NONE;
 
   parse_commandline_arguments (&app);
 
