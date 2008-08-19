@@ -104,7 +104,10 @@ BtorExp *boolector_var (Btor *btor, int len, const char *symbol);
  * elem_len > 0
  * index_len > 0
  */
-BtorExp *boolector_array (Btor *btor, int elem_len, int index_len);
+BtorExp *boolector_array (Btor *btor,
+                          int elem_len,
+                          int index_len,
+                          const char *symbol);
 
 /* One's complement.
  * len(result) = len(exp)

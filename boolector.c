@@ -138,12 +138,13 @@ boolector_var (Btor *btor, int len, const char *symbol)
 }
 
 BtorExp *
-boolector_array (Btor *btor, int elem_len, int index_len)
+boolector_array (Btor *btor, int elem_len, int index_len, const char *symbol)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (elem_len < 1, "'elem_len' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_len < 1, "'index_len' must not be < 1");
-  return btor_array_exp (btor, elem_len, index_len);
+  BTOR_ABORT_BOOLECTOR (symbol == NULL, "'symbol' must not be NULL");
+  return btor_array_exp (btor, elem_len, index_len, symbol);
 }
 
 BtorExp *

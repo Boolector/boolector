@@ -101,7 +101,7 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_rewrite_level (btor, 0);
 
-  mem      = boolector_array (btor, 8, 32);
+  mem      = boolector_array (btor, 8, 32, "mem");
   orig_mem = boolector_copy (btor, mem);
   start1   = boolector_var (btor, 32, "start1");
   start2   = boolector_var (btor, 32, "start2");

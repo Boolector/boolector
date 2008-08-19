@@ -106,7 +106,7 @@ typedef struct BtorExpPair BtorExpPair;
     {                                                                        \
       struct                                                                 \
       {                                                                      \
-        char *symbol; /* symbol of variables for output */                   \
+        char *symbol; /* symbol for output */                                \
         int upper;    /* upper index for slices */                           \
         union                                                                \
         {                                                                    \
@@ -484,7 +484,10 @@ BtorExp *btor_var_exp (Btor *btor, int len, const char *symbol);
  * elem_len > 0
  * index_len > 0
  */
-BtorExp *btor_array_exp (Btor *btor, int elem_len, int index_len);
+BtorExp *btor_array_exp (Btor *btor,
+                         int elem_len,
+                         int index_len,
+                         const char *symbol);
 
 /* One's complement.
  * len(result) = len(exp)

@@ -29,7 +29,7 @@ main (int argc, char **argv)
   boolector_set_rewrite_level (btor, 0);
   one = boolector_one (btor, 32);
 
-  mem = boolector_array (btor, 8, 32);
+  mem = boolector_array (btor, 8, 32, "array");
   /* first index */
   start            = boolector_var (btor, 32, "start");
   num_elements_exp = boolector_unsigned_int (btor, num_elements, 32);

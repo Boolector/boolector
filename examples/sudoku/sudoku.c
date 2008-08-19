@@ -230,8 +230,7 @@ main (int argc, char **argv)
 {
   int i, error, cur, sat_result, counter, line_counter, dump_formula;
   char varname[6];
-  const char *assignment;
-  char *assignment_dec;
+  char *assignment, *assignment_dec;
   Btor *btor;
   BtorMemMgr *mm;
   BtorExp *matrix, *temp, *formula, *constraint;
@@ -274,7 +273,8 @@ main (int argc, char **argv)
     vars[i] = boolector_var (btor, SUDOKU_NUM_BITS_VAL, varname);
   }
 
-  matrix = boolector_array (btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX);
+  matrix = boolector_array (
+      btor, SUDOKU_NUM_BITS_VAL, SUDOKU_NUM_BITS_INDEX, "matrix");
 
   /* read sudoku file */
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
@@ -350,7 +350,7 @@ main (int argc, char **argv)
       line_counter = 0;
       for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
       {
-        assignment     = boolector_assignment (btor, vars[i]);
+        assignment     = boolector_bv_assignment (btor, vars[i]);
         assignment_dec = btor_const_to_decimal (mm, assignment);
         printf ("%s", assignment_dec);
         counter++;
@@ -367,6 +367,7 @@ main (int argc, char **argv)
           line_counter = 0;
         }
         btor_freestr (mm, assignment_dec);
+        boolector_free_bv_assignment (btor, assignment);
       }
     }
   }

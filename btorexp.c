@@ -699,6 +699,12 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
       btor_delete_ptr_hash_table (exp->rho);
       exp->rho = 0;
     }
+
+    if (BTOR_IS_ATOMIC_ARRAY_EXP (exp) && free_symbol)
+    {
+      btor_freestr (mm, exp->symbol);
+      exp->symbol = 0;
+    }
   }
 
   else if (BTOR_IS_VAR_EXP (exp) && free_symbol)
@@ -2546,7 +2552,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
 }
 
 BtorExp *
-btor_array_exp (Btor *btor, int elem_len, int index_len)
+btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
 {
   BtorMemMgr *mm;
   BtorArrayVarExp *exp;
@@ -2554,12 +2560,14 @@ btor_array_exp (Btor *btor, int elem_len, int index_len)
   assert (btor != NULL);
   assert (elem_len > 0);
   assert (index_len > 0);
+  assert (symbol != NULL);
 
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
   exp->kind      = BTOR_ARRAY_EXP;
   exp->bytes     = sizeof *exp;
+  exp->symbol    = btor_strdup (mm, symbol);
   exp->index_len = index_len;
   exp->len       = elem_len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
@@ -4004,7 +4012,8 @@ btor_next_exp_bmc (Btor *btor,
             else
             {
               assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-              var = btor_array_exp (btor, cur->len, cur->index_len);
+              var =
+                  btor_array_exp (btor, cur->len, cur->index_len, cur->symbol);
             }
             btor_insert_in_ptr_hash_table (input_table, cur)->data.asPtr = var;
             btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =

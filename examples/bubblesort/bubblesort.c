@@ -39,7 +39,7 @@ main (int argc, char **argv)
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index, "array");
   /* read at an arbitrary index (needed later): */
   index       = boolector_var (btor, num_bits_index, "index");
   old_element = boolector_read (btor, array, index);

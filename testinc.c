@@ -232,7 +232,7 @@ test_inc_assume_assert1 (void)
   int sat_result;
   Btor *btor = btor_new_btor ();
   btor_set_rewrite_level_btor (btor, 0);
-  BtorExp *array    = btor_array_exp (btor, 1, 1);
+  BtorExp *array    = btor_array_exp (btor, 1, 1, "array1");
   BtorExp *index1   = btor_var_exp (btor, 1, "index1");
   BtorExp *index2   = btor_var_exp (btor, 1, "index2");
   BtorExp *read1    = btor_read_exp (btor, array, index1);

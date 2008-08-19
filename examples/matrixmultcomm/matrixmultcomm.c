@@ -12,7 +12,8 @@ matrix_mult (Btor *btor,
              BtorExp *m2,
              int size,
              int num_bits,
-             int num_bits_index)
+             int num_bits_index,
+             const char *symbol)
 {
   int i, j, k;
   BtorExp *temp, *result, *zero, *read1, *read2, *read3, *mult, *add;
@@ -22,7 +23,8 @@ matrix_mult (Btor *btor,
   assert (size > 1);
   assert (num_bits >= 1);
   assert (num_bits_index >= 1);
-  result = boolector_array (btor, num_bits, num_bits_index);
+  assert (symbol != NULL);
+  result = boolector_array (btor, num_bits, num_bits_index, symbol);
   /* initialize result matrix with zeroes */
   zero = boolector_zero (btor, num_bits);
   for (i = 0; i < size * size; i++)
@@ -85,10 +87,10 @@ main (int argc, char **argv)
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
-  A       = boolector_array (btor, num_bits, num_bits_index);
-  B       = boolector_array (btor, num_bits, num_bits_index);
-  A_x_B   = matrix_mult (btor, A, B, size, num_bits, num_bits_index);
-  B_x_A   = matrix_mult (btor, B, A, size, num_bits, num_bits_index);
+  A       = boolector_array (btor, num_bits, num_bits_index, "A");
+  B       = boolector_array (btor, num_bits, num_bits_index, "B");
+  A_x_B   = matrix_mult (btor, A, B, size, num_bits, num_bits_index, "AxB");
+  B_x_A   = matrix_mult (btor, B, A, size, num_bits, num_bits_index, "BxA");
   formula = boolector_eq (btor, A_x_B, B_x_A);
   /* we negate the formula and try to show that it is unsatisfiable
    * formula is SAT as matrix multiplication is not commutative in general */

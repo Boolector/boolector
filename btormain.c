@@ -493,8 +493,7 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
       pretty_index = format_assignment (app, btor, indices[i]);
       pretty_value = format_assignment (app, btor, values[i]);
       print_msg_va_args (
-          app, "%d[%s] %s\n", exp->id, pretty_index, pretty_value);
-
+          app, "%s[%s] %s\n", exp->symbol, pretty_index, pretty_value);
       btor_free_bv_assignment_exp (btor, pretty_index);
       btor_free_bv_assignment_exp (btor, pretty_value);
       btor_free_bv_assignment_exp (btor, indices[i]);
@@ -1242,7 +1241,8 @@ btor_main (int argc, char **argv)
             cur = array_regs.start[i];
             assert (BTOR_IS_REGULAR_EXP (cur));
             assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-            var    = btor_array_exp (btor, cur->len, cur->index_len);
+            /* TODO: variable name as in bv case */
+            var = btor_array_exp (btor, cur->len, cur->index_len, cur->symbol);
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;

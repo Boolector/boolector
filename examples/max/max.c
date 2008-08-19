@@ -37,7 +37,7 @@ main (int argc, char **argv)
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index, "array");
   /* current maximum is first element of array */
   max = boolector_read (btor, array, indices[0]);
   /* compute maximum of array */

@@ -1086,7 +1086,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 
     datalen = atoi (p); /* TODO Overflow? */
 
-    symbol->exp = btor_array_exp (parser->btor, datalen, addrlen);
+    symbol->exp = btor_array_exp (parser->btor, datalen, addrlen, symbol->name);
     push_input (parser, symbol->exp);
 
     /* TODO what about 'symbol->name' back annotation? */

@@ -153,9 +153,9 @@ test_array_exp (void)
 {
   FILE *fout    = fopen ("log/array_exp.log", "w");
   Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_array_exp (btor, 32, 8);
+  BtorExp *exp1 = btor_array_exp (btor, 32, 8, "array1");
   BtorExp *exp2 = btor_copy_exp (btor, exp1);
-  BtorExp *exp3 = btor_array_exp (btor, 32, 8);
+  BtorExp *exp3 = btor_array_exp (btor, 32, 8, "array2");
   assert (exp1 == exp2);
   assert (exp1 != exp3);
   assert (btor_get_exp_len (btor, exp1) == 32);
@@ -624,7 +624,7 @@ test_read_exp (void)
 {
   FILE *fout    = fopen ("log/read_exp.log", "w");
   Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_array_exp (btor, 32, 8);
+  BtorExp *exp1 = btor_array_exp (btor, 32, 8, "array1");
   BtorExp *exp2 = btor_var_exp (btor, 8, "v1");
   BtorExp *exp3 = btor_read_exp (btor, exp1, exp2);
   BtorExp *exp4 = btor_read_exp (btor, exp1, exp2);
@@ -678,7 +678,7 @@ test_write_exp (void)
 {
   FILE *fout    = fopen ("log/write_exp.log", "w");
   Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_array_exp (btor, 1, 1);
+  BtorExp *exp1 = btor_array_exp (btor, 1, 1, "array1");
   BtorExp *exp2 = btor_var_exp (btor, 1, "v1");
   BtorExp *exp3 = btor_var_exp (btor, 1, "v2");
   BtorExp *exp4 = btor_write_exp (btor, exp1, exp2, exp3);

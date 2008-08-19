@@ -41,7 +41,7 @@ main (int argc, char **argv)
   indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
-  array = boolector_array (btor, num_bits, num_bits_index);
+  array = boolector_array (btor, num_bits, num_bits_index, "array");
   /* we write arbitrary search value into array at an arbitrary index */
   val   = boolector_var (btor, num_bits, "search_val");
   index = boolector_var (btor, num_bits_index, "search_index");

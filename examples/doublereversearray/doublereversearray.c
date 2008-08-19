@@ -146,7 +146,7 @@ main (int argc, char **argv)
   btor = boolector_new ();
   boolector_set_rewrite_level (btor, 0);
 
-  orig_mem = boolector_array (btor, 8, 32);
+  orig_mem = boolector_array (btor, 8, 32, "mem");
   mem1     = boolector_copy (btor, orig_mem);
   mem2     = boolector_copy (btor, orig_mem);
   for (i = 0; i < num_elements; i++)
