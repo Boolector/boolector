@@ -315,13 +315,13 @@ parse_symbol (BtorBTORParser *parser)
     ;
 
   if (ch == EOF)
-  UNEXPECTED_EOF:
   {
+  UNEXPECTED_EOF:
     (void) parse_error (parser, "unexpected EOF");
     return 0;
   }
 
-    assert (BTOR_EMPTY_STACK (parser->symbol));
+  assert (BTOR_EMPTY_STACK (parser->symbol));
 
   if (ch == '\n')
   {

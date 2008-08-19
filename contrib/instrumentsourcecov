@@ -1,0 +1,82 @@
+#!/bin/bash
+
+if [[ $# -ne 2 ]]; then
+  echo "Usage: ./instrumentsourcecov <source-file> <start-id>"
+  exit 1;
+fi
+
+counter=0
+declare -a unreached
+file=$1
+
+if [[ ! -e $file".gcov" || ! -r $file".gcov" ]]; then
+  echo "Could not read $file"".gcov file"
+  exit 1
+fi
+
+id=$2
+
+exec 10<"$file"".gcov"
+while read line <&10
+do
+  if [[ ${line:0:6} = "#####:" ]]; then
+    substr=${line:7}
+    pos=`expr index "$substr" ":"`
+    ((pos--))
+    unreached[$counter]=${substr:0:pos}
+    ((counter++))
+  fi
+done
+# close file
+exec 10>&-
+
+len=$counter
+counter=1
+i=0
+lastline=""
+output=$file".ins"
+rm -f $output
+
+echo "#include <stdio.h>" >> $output
+
+exec 10<"$file"
+while read -r line <&10
+do
+  if [[ ${unreached[$i]} -eq $counter ]]; then
+
+    if [[ `expr match "$line" "{"` -ne 1 ]] \
+      && [[ `expr match "$line" "else"` -ne 4 ]] \
+      && [[ `expr "$line" : '.*\(:\)'` != ":" ]]; then
+
+      if [[ `expr match "$lastline" "if"` -eq 2 ]] || \
+	 [[ `expr match "$lastline" "else"` -eq 4 ]] || \
+	 [[ `expr match "$lastline" "while"` -eq 5 ]] || \
+	 [[ `expr match "$lastline" "do"` -eq 2 ]] || \
+	 [[ `expr match "$lastline" "for"` -eq 3 ]]; then
+	 echo -n "{ fprintf(stderr, \"%d\\n\", $id); " >> $output
+	 echo "$line }" >> $output
+      else
+	echo "fprintf(stderr, \"%d\\n\", $id);" >> $output
+	echo "$line" >> $output
+      fi
+     ((id++))
+
+    else
+      echo "$line" >> $output
+    fi	
+
+    if [[ $i -lt $len ]]; then
+      ((i++))
+    fi
+  else
+    echo "$line" >> $output
+  fi
+  ((counter++))
+  lastline=$line
+done
+
+# close file
+exec 10>&-
+
+echo $id
+exit 0
