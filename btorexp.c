@@ -661,8 +661,8 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
             btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
         if (ua_data != NULL) delete_ua_data (btor, ua_data);
       }
-      else if (exp->kind == BTOR_WRITE_EXP)
-        btor_remove_from_ptr_hash_table (btor->ua.writes, exp, 0, 0);
+      else if (BTOR_IS_WRITE_EXP (exp) || BTOR_IS_ARRAY_COND_EXP (exp))
+        btor_remove_from_ptr_hash_table (btor->ua.writes_aconds, exp, 0, 0);
     }
     for (i = 0; i < exp->arity; i++) disconnect_child_exp (btor, exp, i);
   }
@@ -2132,7 +2132,8 @@ new_write_exp_node (Btor *btor,
   connect_child_exp (btor, exp, e_index, 1);
   connect_child_exp (btor, exp, e_value, 2);
 
-  if (btor->ua.enabled) btor_insert_in_ptr_hash_table (btor->ua.writes, exp);
+  if (btor->ua.enabled)
+    btor_insert_in_ptr_hash_table (btor->ua.writes_aconds, exp);
 
   return exp;
 }
@@ -2167,6 +2168,10 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
   connect_child_exp (btor, exp, a_else, 2);
+
+  if (btor->ua.enabled)
+    btor_insert_in_ptr_hash_table (btor->ua.writes_aconds, exp);
+
   return exp;
 }
 
@@ -4770,7 +4775,7 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->ua.writes =
+  btor->ua.writes_aconds =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
@@ -4963,7 +4968,7 @@ btor_delete_btor (Btor *btor)
 
   assert (btor->ua.vars_reads->count == 0u);
   btor_delete_ptr_hash_table (btor->ua.vars_reads);
-  btor_delete_ptr_hash_table (btor->ua.writes);
+  btor_delete_ptr_hash_table (btor->ua.writes_aconds);
 
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
@@ -6702,7 +6707,9 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
 }
 
 static int
-lazy_synthesize_and_encode_acond_exp (Btor *btor, BtorExp *acond)
+lazy_synthesize_and_encode_acond_exp (Btor *btor,
+                                      BtorExp *acond,
+                                      int force_update)
 {
   BtorExp *cond;
   int changed_assignments, update;
@@ -6725,7 +6732,8 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor, BtorExp *acond)
     BTOR_REAL_ADDR_EXP (cond)->sat_both_phases = 1;
   }
   /* update assignments if necessary */
-  if (update) changed_assignments = update_sat_assignments (btor);
+  if (update && force_update)
+    changed_assignments = update_sat_assignments (btor);
   return changed_assignments;
 }
 
@@ -6820,7 +6828,8 @@ process_working_stack (Btor *btor,
     }
     else if (BTOR_IS_ARRAY_COND_EXP (array))
     {
-      *assignments_changed = lazy_synthesize_and_encode_acond_exp (btor, array);
+      *assignments_changed =
+          lazy_synthesize_and_encode_acond_exp (btor, array, 1);
       if (*assignments_changed) return 0;
       cond = array->e[0];
       check_not_simplified_or_const (btor, index);
@@ -6891,7 +6900,7 @@ process_working_stack (Btor *btor,
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
           *assignments_changed =
-              lazy_synthesize_and_encode_acond_exp (btor, next);
+              lazy_synthesize_and_encode_acond_exp (btor, next, 1);
           if (*assignments_changed) return 0;
           cond       = next->e[0];
           assignment = btor_get_assignment_aig (
@@ -9060,13 +9069,19 @@ synthesize_reads_and_writes_for_under_approx (Btor *btor)
       lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
   }
 
-  for (b = btor->ua.writes->first; b != NULL; b = b->next)
+  for (b = btor->ua.writes_aconds->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (cur->kind == BTOR_WRITE_EXP);
+    assert (BTOR_IS_WRITE_EXP (cur) || BTOR_IS_ARRAY_COND_EXP (cur));
 
-    if (cur->reachable) lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
+    if (cur->reachable)
+    {
+      if (BTOR_IS_WRITE_EXP (cur))
+        lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
+      else
+        lazy_synthesize_and_encode_acond_exp (btor, cur, 0);
+    }
   }
 }
 
