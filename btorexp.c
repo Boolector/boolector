@@ -9148,6 +9148,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
       if (!found_conflict) break;
       lod_refinements++;
+      found_assumption_false = readd_assumptions (btor);
+      assert (!found_assumption_false);
     }
     else
     {
@@ -9182,8 +9184,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
         fflush (stdout);
       }
     }
-    found_assumption_false = readd_assumptions (btor);
-    assert (!found_assumption_false);
     sat_result = btor_sat_sat (smgr, INT_MAX);
   }
 
