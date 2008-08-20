@@ -6603,7 +6603,6 @@ find_array_axiom_2_conflict (Btor *btor,
 static int
 readd_assumptions (Btor *btor)
 {
-  BtorUAData *data;
   BtorExp *exp;
   BtorPtrHashBucket *b;
   BtorAIG *aig;
@@ -6628,24 +6627,35 @@ readd_assumptions (Btor *btor)
     }
   }
 
-  if (btor->ua.enabled)
+  return 0;
+}
+
+static void
+readd_under_approx_assumptions (Btor *btor)
+{
+  BtorSATMgr *smgr;
+  BtorUAData *data;
+  BtorPtrHashBucket *b;
+
+  assert (btor != NULL);
+  assert (btor->ua.enabled);
+
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+
+  if (btor->ua.mode == BTOR_UA_LOCAL_MODE)
   {
-    if (btor->ua.mode == BTOR_UA_LOCAL_MODE)
+    for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
     {
-      for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-      {
-        data = (BtorUAData *) b->data.asPtr;
-        if (data->last_e != 0) btor_assume_sat (smgr, data->last_e);
-      }
-    }
-    else
-    {
-      assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE);
-      if (btor->ua.global_last_e != 0)
-        btor_assume_sat (smgr, btor->ua.global_last_e);
+      data = (BtorUAData *) b->data.asPtr;
+      if (data->last_e != 0) btor_assume_sat (smgr, data->last_e);
     }
   }
-  return 0;
+  else
+  {
+    assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE);
+    if (btor->ua.global_last_e != 0)
+      btor_assume_sat (smgr, btor->ua.global_last_e);
+  }
 }
 
 /* updates SAT assignments, readds assumptions and
@@ -9162,9 +9172,12 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
 
       if (!found_conflict) break;
+
       lod_refinements++;
       found_assumption_false = readd_assumptions (btor);
       assert (!found_assumption_false);
+
+      if (ua && !under_approx_finished) readd_under_approx_assumptions (btor);
     }
     else
     {
