@@ -18,29 +18,32 @@ cat $2 | while read line
 do
 if [[ $first -eq 0 ]]; then
   first=1
-  if [[ $line != sat ]]; then
+  if [[ "$line" != sat ]]; then
     echo "Formula is not SAT"
     exit 1
   fi
 else
   emptymodel=0
-  mid=`echo $line | awk '{ print $1 }'`
-  ass=`echo $line | awk '{ print $2 }'`
-  asslen=${#ass}
-  randomnumber=$RANDOM
-  ((randomnumber %= 2))
-  if [[ $randomnumber -eq 0 ]]; then
-    #replace x's by 0 
-    ass=${ass//x/0}
-  else
-    #replace x's by 1 
-    ass=${ass//x/1}
+  # bv model ?
+  if [[ `expr index "$line" "["` -eq 0 ]]; then
+    mid=`echo $line | awk '{ print $1 }'`
+    ass=`echo $line | awk '{ print $2 }'`
+    asslen=${#ass}
+    randomnumber=$RANDOM
+    ((randomnumber %= 2))
+    if [[ $randomnumber -eq 0 ]]; then
+      #replace x's by 0 
+      ass=${ass//x/0}
+    else
+      #replace x's by 1 
+      ass=${ass//x/1}
+    fi
+    echo "$((id++)) const $asslen $ass" >> $file
+    ((lastid= id - 1))
+    echo "$((id++)) eq 1 $mid $lastid" >> $file
+    ((lastid= id - 1))
+    echo "$((id++)) root 1 $lastid" >> $file
   fi
-  echo "$((id++)) const $asslen $ass" >> $file
-  ((lastid= id - 1))
-  echo "$((id++)) eq 1 $mid $lastid" >> $file
-  ((lastid= id - 1))
-  echo "$((id++)) root 1 $lastid" >> $file
 fi
 done
 
