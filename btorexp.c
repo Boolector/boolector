@@ -643,7 +643,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
     if (btor->ua.enabled)
     {
       btor_remove_from_ptr_hash_table (
-          btor->vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
+          btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
       if (ua_data != NULL) delete_ua_data (btor, ua_data);
     }
   }
@@ -653,11 +653,16 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   }
   else
   {
-    if (btor->ua.enabled && exp->kind == BTOR_READ_EXP)
+    if (btor->ua.enabled)
     {
-      btor_remove_from_ptr_hash_table (
-          btor->vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
-      if (ua_data != NULL) delete_ua_data (btor, ua_data);
+      if (exp->kind == BTOR_READ_EXP)
+      {
+        btor_remove_from_ptr_hash_table (
+            btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
+        if (ua_data != NULL) delete_ua_data (btor, ua_data);
+      }
+      else if (exp->kind == BTOR_WRITE_EXP)
+        btor_remove_from_ptr_hash_table (btor->ua.writes, exp, 0, 0);
     }
     for (i = 0; i < exp->arity; i++) disconnect_child_exp (btor, exp, i);
   }
@@ -1992,15 +1997,16 @@ hash_var_read_for_ua (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_INVERTED_EXP (exp));
   assert (BTOR_IS_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
   assert (btor->ua.enabled);
-  assert (!btor_find_in_ptr_hash_table (btor->vars_reads, exp));
+  assert (!btor_find_in_ptr_hash_table (btor->ua.vars_reads, exp));
 
   if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-    btor_insert_in_ptr_hash_table (btor->vars_reads, exp)->data.asPtr = NULL;
+    btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp)->data.asPtr = NULL;
   else
   {
     assert (btor->ua.mode == BTOR_UA_LOCAL_MODE);
     ua_data = new_ua_data (btor, btor->ua.initial_eff_width);
-    btor_insert_in_ptr_hash_table (btor->vars_reads, exp)->data.asPtr = ua_data;
+    btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp)->data.asPtr =
+        ua_data;
   }
 }
 
@@ -2125,6 +2131,9 @@ new_write_exp_node (Btor *btor,
   connect_child_exp (btor, exp, e_array, 0);
   connect_child_exp (btor, exp, e_index, 1);
   connect_child_exp (btor, exp, e_value, 2);
+
+  if (btor->ua.enabled) btor_insert_in_ptr_hash_table (btor->ua.writes, exp);
+
   return exp;
 }
 
@@ -4272,12 +4281,12 @@ btor_cmp_ua_data_eff_width (const void *p, const void *q)
 
   btor = a->btor;
 
-  bucket = btor_find_in_ptr_hash_table (btor->vars_reads, a);
+  bucket = btor_find_in_ptr_hash_table (btor->ua.vars_reads, a);
   assert (bucket != NULL);
   data_a = (BtorUAData *) bucket->data.asPtr;
   assert (data_a != NULL);
 
-  bucket = btor_find_in_ptr_hash_table (btor->vars_reads, b);
+  bucket = btor_find_in_ptr_hash_table (btor->ua.vars_reads, b);
   assert (bucket != NULL);
   data_b = (BtorUAData *) bucket->data.asPtr;
   assert (data_b != NULL);
@@ -4757,7 +4766,11 @@ btor_new_btor (void)
   btor->arrays = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->vars_reads =
+  btor->ua.vars_reads =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->ua.writes =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
@@ -4948,8 +4961,9 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
   btor_delete_ptr_hash_table (btor->arrays);
 
-  assert (btor->vars_reads->count == 0u);
-  btor_delete_ptr_hash_table (btor->vars_reads);
+  assert (btor->ua.vars_reads->count == 0u);
+  btor_delete_ptr_hash_table (btor->ua.vars_reads);
+  btor_delete_ptr_hash_table (btor->ua.writes);
 
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
@@ -5086,7 +5100,7 @@ compute_median_eff_width_ua_stats (Btor *btor, BtorExpPtrStack *stack)
          btor_cmp_ua_data_eff_width);
   if (num_elements & 1)
   {
-    b = btor_find_in_ptr_hash_table (btor->vars_reads,
+    b = btor_find_in_ptr_hash_table (btor->ua.vars_reads,
                                      stack->start[num_elements >> 1]);
     assert (b != NULL);
     assert (b->data.asPtr != NULL);
@@ -5094,13 +5108,13 @@ compute_median_eff_width_ua_stats (Btor *btor, BtorExpPtrStack *stack)
   }
   else
   {
-    b = btor_find_in_ptr_hash_table (btor->vars_reads,
+    b = btor_find_in_ptr_hash_table (btor->ua.vars_reads,
                                      stack->start[(num_elements >> 1) - 1]);
     assert (b != NULL);
     assert (b->data.asPtr != NULL);
     left = ((BtorUAData *) b->data.asPtr)->eff_width;
 
-    b = btor_find_in_ptr_hash_table (btor->vars_reads,
+    b = btor_find_in_ptr_hash_table (btor->ua.vars_reads,
                                      stack->start[num_elements >> 1]);
     assert (b != NULL);
     assert (b->data.asPtr != NULL);
@@ -5180,7 +5194,7 @@ compute_ua_stats_distribution (Btor *btor,
   BTOR_INIT_STACK (reads);
   BTOR_INIT_STACK (all);
 
-  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
@@ -5242,16 +5256,16 @@ compute_ua_stats_distribution (Btor *btor,
     }
   }
 
-  assert ((unsigned int) BTOR_COUNT_STACK (all) == btor->vars_reads->count);
+  assert ((unsigned int) BTOR_COUNT_STACK (all) == btor->ua.vars_reads->count);
 
   if (!BTOR_EMPTY_STACK (all))
   {
-    *variance_width /= (double) btor->vars_reads->count;
+    *variance_width /= (double) btor->ua.vars_reads->count;
     *median_width = compute_median_width_ua_stats (btor, &all);
 
     if (ua_mode == BTOR_UA_LOCAL_MODE)
     {
-      *variance_eff_width /= (double) btor->vars_reads->count;
+      *variance_eff_width /= (double) btor->ua.vars_reads->count;
       *median_eff_width = compute_median_eff_width_ua_stats (btor, &all);
     }
   }
@@ -5385,7 +5399,7 @@ compute_basic_ua_stats (Btor *btor,
   *avg_width          = 0.0;
   *avg_eff_width      = 0.0;
 
-  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur  = (BtorExp *) b->key;
     data = (BtorUAData *) b->data.asPtr;
@@ -5624,8 +5638,8 @@ btor_print_stats_btor (Btor *btor)
 
     print_verbose_msg ("");
     print_verbose_msg (" variables and reads:");
-    print_verbose_msg ("  number: %u", btor->vars_reads->count);
-    if (btor->vars_reads->count > 0u)
+    print_verbose_msg ("  number: %u", btor->ua.vars_reads->count);
+    if (btor->ua.vars_reads->count > 0u)
     {
       print_verbose_msg ("  min bit-width: %d", min_width);
       print_verbose_msg ("  max bit-width: %d", max_width);
@@ -5720,7 +5734,8 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   avmgr   = btor->avmgr;
   aeq->av = btor_var_aigvec (avmgr, 1);
   /* generate virtual reads */
-  index = vread_index_exp (btor, aeq->e[0]->index_len);
+  index              = vread_index_exp (btor, aeq->e[0]->index_len);
+  index->vread_index = 1;
 
   /* we do not want read optimizations for the virtual
    * reads (e.g. rewriting of reads on array conditionals),
@@ -6583,18 +6598,19 @@ find_array_axiom_2_conflict (Btor *btor,
 static int
 readd_assumptions (Btor *btor)
 {
+  BtorUAData *data;
   BtorExp *exp;
-  BtorPtrHashBucket *bucket;
+  BtorPtrHashBucket *b;
   BtorAIG *aig;
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
   assert (btor != NULL);
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  for (bucket = btor->assumptions->first; bucket != NULL; bucket = bucket->next)
+  for (b = btor->assumptions->first; b != NULL; b = b->next)
   {
-    assert (BTOR_REAL_ADDR_EXP ((BtorExp *) bucket->key)->len == 1);
-    exp = (BtorExp *) bucket->key;
+    assert (BTOR_REAL_ADDR_EXP ((BtorExp *) b->key)->len == 1);
+    exp = (BtorExp *) b->key;
     exp = btor_pointer_chase_simplified_exp (btor, exp);
     aig = exp_to_aig (btor, exp);
     if (aig == BTOR_AIG_FALSE) return 1;
@@ -6604,6 +6620,24 @@ readd_assumptions (Btor *btor)
       assert (BTOR_REAL_ADDR_AIG (aig)->cnf_id != 0);
       btor_assume_sat (smgr, BTOR_GET_CNF_ID_AIG (aig));
       btor_release_aig (amgr, aig);
+    }
+  }
+
+  if (btor->ua.enabled)
+  {
+    if (btor->ua.mode == BTOR_UA_LOCAL_MODE)
+    {
+      for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
+      {
+        data = (BtorUAData *) b->data.asPtr;
+        if (data->last_e != 0) btor_assume_sat (smgr, data->last_e);
+      }
+    }
+    else
+    {
+      assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE);
+      if (btor->ua.global_last_e != 0)
+        btor_assume_sat (smgr, btor->ua.global_last_e);
     }
   }
   return 0;
@@ -6631,7 +6665,7 @@ update_sat_assignments (Btor *btor)
  * it returns if encoding changed assignments made so far
  */
 static int
-lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
+lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
 {
   BtorExp *index, *value;
   int changed_assignments, update;
@@ -6662,7 +6696,8 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc)
     BTOR_REAL_ADDR_EXP (value)->sat_both_phases = 1;
   }
   /* update assignments if necessary */
-  if (update) changed_assignments = update_sat_assignments (btor);
+  if (update && force_update)
+    changed_assignments = update_sat_assignments (btor);
   return changed_assignments;
 }
 
@@ -6725,7 +6760,7 @@ process_working_stack (Btor *btor,
     assert (BTOR_IS_ACC_EXP (acc));
     check_not_simplified_or_const (btor, acc);
     /* synthesize index and value if necessary */
-    *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc);
+    *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc, 1);
     index                = BTOR_GET_INDEX_ACC_EXP (acc);
     check_not_simplified_or_const (btor, index);
     value = BTOR_GET_VALUE_ACC_EXP (acc);
@@ -6763,7 +6798,8 @@ process_working_stack (Btor *btor,
     }
     if (BTOR_IS_WRITE_EXP (array))
     {
-      *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, array);
+      *assignments_changed =
+          lazy_synthesize_and_encode_acc_exp (btor, array, 1);
       if (*assignments_changed) return 0;
       /* check array axiom 2 */
       if (find_array_axiom_2_conflict (btor, acc, array, &indices_equal))
@@ -6882,7 +6918,7 @@ process_working_stack (Btor *btor,
           assert (BTOR_IS_REGULAR_EXP (next));
           assert (BTOR_IS_ARRAY_EXP (next));
           *assignments_changed =
-              lazy_synthesize_and_encode_acc_exp (btor, next);
+              lazy_synthesize_and_encode_acc_exp (btor, next, 1);
           if (*assignments_changed) return 0;
           /* propagate upwards only if assignments to the
            * indices are unequal */
@@ -8604,7 +8640,7 @@ max_len_global_under_approx_vars (Btor *btor)
 
   max = 0;
 
-  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
@@ -8662,7 +8698,7 @@ update_under_approx_eff_width (Btor *btor)
   else
   {
     assert (btor->ua.mode == BTOR_UA_LOCAL_MODE);
-    for (b = btor->vars_reads->first; b != NULL; b = b->next)
+    for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
     {
       max_string = "";
 
@@ -8738,15 +8774,15 @@ encode_under_approx_const_extend (Btor *btor, int phase)
 
   if (ua_mode == BTOR_UA_GLOBAL_MODE) eff_width = btor->ua.global_eff_width;
 
-  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
-    if (!cur->reachable) continue;
+    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
-    if (cur->av == NULL) continue;
+    assert (cur->av != NULL);
 
     aigs = cur->av->aigs;
     assert (aigs != NULL);
@@ -8864,15 +8900,15 @@ encode_under_approx_sign_extend (Btor *btor)
 
   if (ua_mode == BTOR_UA_GLOBAL_MODE) eff_width = btor->ua.global_eff_width;
 
-  for (b = btor->vars_reads->first; b != NULL; b = b->next)
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
-    if (!cur->reachable) continue;
+    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
-    if (cur->av == NULL) continue;
+    assert (cur->av != NULL);
 
     if (ua_mode == BTOR_UA_LOCAL_MODE)
     {
@@ -9006,6 +9042,34 @@ encode_under_approx (Btor *btor)
   return encoded;
 }
 
+static void
+synthesize_reads_and_writes_for_under_approx (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorExp *cur;
+
+  assert (btor != NULL);
+
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+
+    if (cur->kind == BTOR_READ_EXP && (cur->reachable || cur->vread))
+      lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
+  }
+
+  for (b = btor->ua.writes->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (cur->kind == BTOR_WRITE_EXP);
+
+    if (cur->reachable) lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
+  }
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
@@ -9063,6 +9127,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   if (ua)
   {
+    synthesize_reads_and_writes_for_under_approx (btor);
     if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
       btor->ua.global_max_eff_width = max_len_global_under_approx_vars (btor);
     under_approx_finished = !encode_under_approx (btor);

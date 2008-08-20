@@ -61,42 +61,44 @@ typedef enum BtorExpKind BtorExpKind;
 
 typedef struct BtorExpPair BtorExpPair;
 
-#define BTOR_BV_VAR_EXP                                                      \
-  struct                                                                     \
-  {                                                                          \
-    BtorExpKind kind : 5;        /* kind of expression */                    \
-    unsigned int mark : 3;       /* for DAG traversal */                     \
-    unsigned int array_mark : 3; /* for bottom up array traversal */         \
-    unsigned int aux_mark : 3;   /* auxiallary mark flag */                  \
-    unsigned int reachable : 1;  /* flag determines if expression            \
-                                    is reachable from root */                \
-    unsigned int                                                             \
-        sat_both_phases : 1;       /* flag determines if expression has been \
-                                      encoded into SAT in both phases */     \
-    unsigned int vread : 1;        /* flag determines if expression          \
-                                      is a virtual read */                   \
-    unsigned int constraint : 1;   /* flag determines if expression is a     \
-                                      top level constraint */                \
-    unsigned int erased : 1;       /* for debugging purposes */              \
-    unsigned int disconnected : 1; /* for debugging purposes */              \
-    unsigned int unique : 1;       /* in unique table? */                    \
-    unsigned int bytes : 8;        /* allocated bytes */                     \
-    unsigned int arity : 2;        /* arity of operator */                   \
-    char *bits;                    /* three valued bits */                   \
-    int id;                        /* unique expression id */                \
-    int len;                       /* number of bits */                      \
-    unsigned int refs;             /* reference counter */                   \
-    union                                                                    \
-    {                                                                        \
-      BtorAIGVec *av;        /* synthesized AIG vector */                    \
-      BtorPtrHashTable *rho; /* used for finding array conflicts */          \
-    };                                                                       \
-    struct BtorExp *next;         /* next element in unique table */         \
-    struct BtorExp *parent;       /* parent pointer for BFS */               \
-    struct BtorExp *simplified;   /* equivalent simplified expression */     \
-    Btor *btor;                   /* boolector */                            \
-    struct BtorExp *first_parent; /* head of parent list */                  \
-    struct BtorExp *last_parent;  /* tail of parent list */                  \
+#define BTOR_BV_VAR_EXP                                                        \
+  struct                                                                       \
+  {                                                                            \
+    BtorExpKind kind : 5;        /* kind of expression */                      \
+    unsigned int mark : 3;       /* for DAG traversal */                       \
+    unsigned int array_mark : 3; /* for bottom up array traversal */           \
+    unsigned int aux_mark : 3;   /* auxiallary mark flag */                    \
+    unsigned int reachable : 1;  /* flag determines if expression              \
+                                    is reachable from root */                  \
+    unsigned int                                                               \
+        sat_both_phases : 1;       /* flag determines if expression has been   \
+                                      encoded into SAT in both phases */       \
+    unsigned int vread : 1;        /* flag determines if expression            \
+                                      is a virtual read */                     \
+    unsigned int vread_index : 1;  /* flat determines if expression            \
+                                      is an index used by two virtual reads */ \
+    unsigned int constraint : 1;   /* flag determines if expression is a       \
+                                      top level constraint */                  \
+    unsigned int erased : 1;       /* for debugging purposes */                \
+    unsigned int disconnected : 1; /* for debugging purposes */                \
+    unsigned int unique : 1;       /* in unique table? */                      \
+    unsigned int bytes : 8;        /* allocated bytes */                       \
+    unsigned int arity : 2;        /* arity of operator */                     \
+    char *bits;                    /* three valued bits */                     \
+    int id;                        /* unique expression id */                  \
+    int len;                       /* number of bits */                        \
+    unsigned int refs;             /* reference counter */                     \
+    union                                                                      \
+    {                                                                          \
+      BtorAIGVec *av;        /* synthesized AIG vector */                      \
+      BtorPtrHashTable *rho; /* used for finding array conflicts */            \
+    };                                                                         \
+    struct BtorExp *next;         /* next element in unique table */           \
+    struct BtorExp *parent;       /* parent pointer for BFS */                 \
+    struct BtorExp *simplified;   /* equivalent simplified expression */       \
+    Btor *btor;                   /* boolector */                              \
+    struct BtorExp *first_parent; /* head of parent list */                    \
+    struct BtorExp *last_parent;  /* tail of parent list */                    \
   }
 
 #define BTOR_BV_ADDITIONAL_EXP                                               \
@@ -231,7 +233,6 @@ struct Btor
   BtorExpUniqueTable table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *arrays;
-  BtorPtrHashTable *vars_reads;
   int id;        /* expression id counter */
   int lambda_id; /* counter for lambda variables (subst) */
   int valid_assignments;
@@ -243,14 +244,16 @@ struct Btor
   int inconsistent;
   struct /* Under-approximation UA */
   {
-    int enabled;              /* UA enabled */
-    BtorUAMode mode;          /* UA mode */
-    BtorUARef ref;            /* UA refinement strategy */
-    BtorUAEnc enc;            /* UA encoding strategy */
-    int initial_eff_width;    /* UA initial effective bit-width */
-    int global_eff_width;     /* global effective bit-width  */
-    int global_max_eff_width; /* maximum necessary effective bit-width */
-    int global_last_e;        /* last global UA e for CNF */
+    int enabled;                  /* UA enabled */
+    BtorUAMode mode;              /* UA mode */
+    BtorUARef ref;                /* UA refinement strategy */
+    BtorUAEnc enc;                /* UA encoding strategy */
+    int initial_eff_width;        /* UA initial effective bit-width */
+    int global_eff_width;         /* global effective bit-width  */
+    int global_max_eff_width;     /* maximum necessary effective bit-width */
+    int global_last_e;            /* last global UA e for CNF */
+    BtorPtrHashTable *vars_reads; /* bv variables and reads */
+    BtorPtrHashTable *writes;     /* array writes */
   } ua;
   int (*unsat_core_lookup) (int); /* lookup function for UNSAT core */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
