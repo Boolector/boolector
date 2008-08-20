@@ -24,8 +24,9 @@ if [[ $first -eq 0 ]]; then
   fi
 else
   emptymodel=0
-  # bv model ?
-  if [[ `expr index "$line" "["` -eq 0 ]]; then
+  openbracketpos=`expr index "$line" "["`
+  if [[ $openbracketpos -eq 0 ]]; then
+    # bv model
     mid=`echo $line | awk '{ print $1 }'`
     ass=`echo $line | awk '{ print $2 }'`
     asslen=${#ass}
@@ -43,7 +44,39 @@ else
     echo "$((id++)) eq 1 $mid $lastid" >> $file
     ((lastid= id - 1))
     echo "$((id++)) root 1 $lastid" >> $file
-  fi
+  else
+    # array model
+    ((temp = openbracketpos - 1))
+    closebracketpos=`expr index "$line" "]"`
+    arrayid=${line:0:temp}
+    ((lenindexass = closebracketpos - openbracketpos - 1))
+
+    indexass=${line:openbracketpos:lenindexass}
+    if [[ `expr index "$indexass" x` -ne 0 ]]; then
+      echo "Unexpected index assignment"
+      exit 1
+    fi
+    indexasslen=${#indexass}
+
+    valueass=`echo $line | awk '{ print $2 }'`
+    if [[ `expr index "$valueass" x` -ne 0 ]]; then
+      echo "Unexpected value assignment"
+      exit 1
+    fi
+    valueasslen=${#valueass}
+
+    echo "$((id++)) const $indexasslen $indexass" >> $file
+    ((lastid= id - 1))
+    indexid=$lastid
+    echo "$((id++)) const $valueasslen $valueass" >> $file
+    ((lastid= id - 1))
+    valueid=$lastid
+    echo "$((id++)) read $valueasslen $arrayid $indexid" >> $file
+    ((lastid= id - 1))
+    echo "$((id++)) eq 1 $valueid $lastid" >> $file
+    ((lastid= id - 1))
+    echo "$((id++)) root 1 $lastid" >> $file
+  fi 
 fi
 done
 
