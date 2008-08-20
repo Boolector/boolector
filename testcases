@@ -457,6 +457,7 @@ nextarray6 -o log/nextarray6.log log/nextarray6.btor
 nextarray7 -o log/nextarray7.log log/nextarray7.btor
 nextarray8 -o log/nextarray8.log log/nextarray8.btor
 nextarray8 -rwl0 -o log/nextarray8.log log/nextarray8.btor
+nextarrayinput1 -rwl0 -o log/nextarrayinput1.log log/nextarrayinput1.btor
 regpicoprepsqrt4 -o log/regpicoprepsqrt4.log log/regpicoprepsqrt4.btor
 modelgen1 -rwl1 -m -o log/modelgen1.log log/modelgen1.btor
 modelgen2 -rwl3 -m -o log/modelgen2.log log/modelgen2.btor

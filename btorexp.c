@@ -4012,8 +4012,12 @@ btor_next_exp_bmc (Btor *btor,
             else
             {
               assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-              var =
-                  btor_array_exp (btor, cur->len, cur->index_len, cur->symbol);
+              var_name_len =
+                  strlen (cur->symbol) + btor_num_digits_util (k) + 2;
+              BTOR_NEWN (mm, var_name, var_name_len);
+              sprintf (var_name, "%s_%d", cur->symbol, k);
+              var = btor_array_exp (btor, cur->len, cur->index_len, var_name);
+              BTOR_DELETEN (mm, var_name, var_name_len);
             }
             btor_insert_in_ptr_hash_table (input_table, cur)->data.asPtr = var;
             btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =

@@ -1128,7 +1128,6 @@ btor_main (int argc, char **argv)
       }
 
       /* BMC ? */
-      /* TODO: array models for BMC inputs */
       if (parse_res.nregs > 0)
       {
         app.app_mode = BTOR_APP_BMC_MODE;
@@ -1241,11 +1240,20 @@ btor_main (int argc, char **argv)
             cur = array_regs.start[i];
             assert (BTOR_IS_REGULAR_EXP (cur));
             assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
-            /* TODO: variable name as in bv case */
-            var = btor_array_exp (btor, cur->len, cur->index_len, cur->symbol);
+            assert (cur->symbol != NULL);
+            var_name_len =
+                strlen (cur->symbol) + btor_num_digits_util (bmck) + 2;
+            BTOR_NEWN (mem, var_name, var_name_len);
+            sprintf (var_name, "%s_%d", cur->symbol, bmck);
+            var = btor_array_exp (btor, cur->len, cur->index_len, var_name);
+            BTOR_DELETEN (mem, var_name, var_name_len);
             bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
             assert (bucket != NULL);
             bucket->data.asPtr = var;
+
+            if (app.print_model)
+              BTOR_PUSH_STACK (mem, arraystack, btor_copy_exp (btor, var));
+
             /* all different constraint */
             if (app.bmcadc)
             {
@@ -1318,10 +1326,14 @@ btor_main (int argc, char **argv)
           {
             for (bucket = input_inst->first; bucket != NULL;
                  bucket = bucket->next)
-              BTOR_PUSH_STACK (
-                  mem,
-                  varstack,
-                  btor_copy_exp (btor, (BtorExp *) bucket->data.asPtr));
+            {
+              var = (BtorExp *) bucket->data.asPtr;
+              assert (BTOR_IS_VAR_EXP (var) || BTOR_IS_ATOMIC_ARRAY_EXP (var));
+              if (BTOR_IS_VAR_EXP (var))
+                BTOR_PUSH_STACK (mem, varstack, btor_copy_exp (btor, var));
+              else
+                BTOR_PUSH_STACK (mem, arraystack, btor_copy_exp (btor, var));
+            }
           }
 
           if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
