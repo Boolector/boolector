@@ -9216,7 +9216,7 @@ btor_array_assignment_exp (
     for (b = exp->rho->first; b != NULL; b = b->next)
     {
       index         = (BtorExp *) b->key;
-      value         = (BtorExp *) b->data.asPtr;
+      value         = BTOR_GET_VALUE_ACC_EXP ((BtorExp *) b->data.asPtr);
       (*indices)[i] = btor_bv_assignment_exp (btor, index);
       (*values)[i]  = btor_bv_assignment_exp (btor, value);
       i++;
