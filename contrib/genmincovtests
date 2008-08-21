@@ -1,0 +1,46 @@
+#!/bin/bash
+
+filebasic="/tmp/genmincovtestsbasic$$.tmp"
+fileformula="/tmp/genmincovtestsformula$$.tmp"
+fileboolector="/tmp/genmincovtestsboolector$$.tmp"
+
+./gencovformula > $fileformula
+
+if [[ $? -ne 0 ]]; then
+  echo "Formula could not be generated"
+  exit 1
+fi
+
+rm -f $filebasic
+
+exec 10<"$fileformula"
+while read line <&10
+do
+  op=`echo "$line" | awk '{ print $2 }'`
+  if [[ "$op" = ulte ]]; then
+    id=`echo "$line" | awk '{ print $1 }'`
+    idsum=`echo "$line" | awk '{ print $4 }'`
+    break
+  else
+    echo "$line" >> $filebasic
+  fi
+done
+# close file
+exec 10>&-
+
+num=1
+result=unsat
+while [[ "$result" = unsat ]]
+do
+  cp $filebasic $fileformula
+  echo "$id constd 32 $num" >> $fileformula
+  echo "$((id + 1)) eq 1 $idsum $id" >> $fileformula
+  echo "$((id + 2)) root 1 $((id + 1))" >> $fileformula
+  boolector $fileformula -m > $fileboolector
+  result=`head -n 1 $fileboolector`
+  if [[ "$result" = sat ]]; then
+    cat $fileboolector
+  else
+    ((num++))
+  fi
+done

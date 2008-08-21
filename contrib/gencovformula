@@ -1,0 +1,110 @@
+#!/bin/bash
+
+declare -a positions 
+declare -a positionsfile 
+
+id=1
+
+covdir="./covtests"
+file="/tmp/gencovformula$$.tmp"
+
+if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]] || \
+   [[ ! -x $covdir ]]; then
+  echo "IO error"
+  exit 1
+fi
+
+cd $covdir
+
+for f in *.err
+do
+  cat $f | sort | uniq > $file
+  cp $file $f
+done
+
+cat *.err | sort | uniq > $file
+numbits=`wc -l $file | awk '{ print $1 }'`
+
+if [[ "$numbits" -lt 1 ]]; then
+  echo "No coverage increment possible"
+  exit 1
+fi
+
+((max = 2 ** 32 - 1))
+if [[ "$numbits" -gt $max ]]; then
+  echo "Too many test positions"
+  exit 1
+fi
+
+i=0
+exec 10<$file
+while read line <&10
+do
+  positions[$i]=$line
+  ((i++))
+done
+# close file
+exec 10>&-
+
+echo "$((id++)) zero $numbits"
+((idzero = id - 1))
+lastvector=$idzero
+
+echo "$((id++)) zero 32"
+((idsum = id - 1))
+
+echo "$((id++)) ones $numbits"
+((idones = id - 1))
+
+for f in *.err
+do
+  echo "$((id++)) var 1 $f"
+  ((idvar = id - 1))
+
+  echo "$((id++)) uext 32 $idvar 31"
+  ((lastid = id - 1))
+
+  echo "$((id++)) add 32 $lastid $idsum"
+  ((idsum = id - 1))
+
+  exec 10<$f
+  while read line <&10
+  do
+    positionsfile[$line]="1"
+  done
+  # close file
+  exec 10>&-
+
+  i=0
+  bitstring=""
+  while [[ $i -lt $numbits ]] 
+  do
+    line=${positions[$i]}
+    if [[ -n "${positionsfile[$line]}" ]]; then
+      bitstring=$bitstring"1"
+      positionsfile[$line]=""
+    else 
+      bitstring=$bitstring"0"
+    fi
+    ((i++))
+  done
+
+  echo $((id++)) const $numbits $bitstring
+  ((lastid = id - 1))
+  echo "$((id++)) cond $numbits $idvar $lastid $idzero"
+  ((lastid = id - 1))
+  echo "$((id++)) or $numbits $lastvector $lastid"
+  ((lastvector = id - 1))
+done
+
+echo "$((id++)) eq 1 $lastvector $idones"
+((lastid = id - 1))
+echo "$((id++)) root 1 $lastid"
+
+echo "$((id++)) ones 32"
+((idones32 = id - 1))
+echo "$((id++)) ulte 1 $idsum $idones32"
+((lastid = id - 1))
+echo "$((id++)) root 1 $lastid"
+
+exit 0
