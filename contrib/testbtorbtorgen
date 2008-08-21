@@ -143,7 +143,7 @@ do
     fi
 
     if [[ $cov = yes ]]; then
-      covfile=$covdir"cov_id"$id"_test"$i"_rwl"$rwl
+      covfile=$covdir"cov_id"$id"_test"$i"_"$rwl
       stderror=$covfile".err"
       echo ${callstring/" $file"/""} > $covfile".cs"
       cp $file $covdir"/test"$i".btor"
