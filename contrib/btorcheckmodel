@@ -80,7 +80,7 @@ else
 fi
 done
 
-boolector $file > /dev/null
+boolector $file &> /dev/null
 retval=$?
 if [[ $retval -eq 3 ]]; then
   echo "Invalid model"
