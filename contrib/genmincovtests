@@ -28,15 +28,17 @@ done
 # close file
 exec 10>&-
 
+echo "Computing minimal test suite" >&2
 num=1
 result=unsat
 while [[ "$result" = unsat ]]
 do
+  echo "Trying number of tests = $num" >&2
   cp $filebasic $fileformula
   echo "$id constd 32 $num" >> $fileformula
   echo "$((id + 1)) eq 1 $idsum $id" >> $fileformula
   echo "$((id + 2)) root 1 $((id + 1))" >> $fileformula
-  boolector $fileformula -m > $fileboolector
+  boolector $fileformula -m 1> $fileboolector 2> /dev/null
   result=`head -n 1 $fileboolector`
   if [[ "$result" = sat ]]; then
     cat $fileboolector

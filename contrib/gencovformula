@@ -10,34 +10,36 @@ file="/tmp/gencovformula$$.tmp"
 
 if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]] || \
    [[ ! -x $covdir ]]; then
-  echo "IO error"
+  echo "IO error" >&2
   exit 1
 fi
 
 cd $covdir
 
-echo "Preprocessing test formulas">&2
+echo "Preprocessing for SMT formula generation" >&2
 for f in *.err
 do
-  if [[ -s $f ]]; then
-    rm $f
-  else
-    cat $f | sort | uniq > $file
-    cp $file $f
+
+  if [[ ! -s $f ]]; then
+    echo "Unexpected empty file: $f" >&2
+    exit 1
   fi
+
+  cat $f | sort | uniq > $file
+  cp $file $f
 done
 
 cat *.err | sort | uniq > $file
 numbits=`wc -l $file | awk '{ print $1 }'`
 
 if [[ "$numbits" -lt 1 ]]; then
-  echo "No coverage increment possible"
+  echo "No coverage increment possible" >&2
   exit 1
 fi
 
 ((max = 2 ** 32 - 1))
 if [[ "$numbits" -gt $max ]]; then
-  echo "Too many test positions"
+  echo "Too many test positions" >&2
   exit 1
 fi
 
@@ -64,7 +66,7 @@ echo "$((id++)) ones $numbits"
 echo "Generating SMT formula ">&2
 for f in *.err
 do
-  echo "$((id++)) var 1 $f"
+  echo "$((id++)) var 1 ${f%%".err"}"
   ((idvar = id - 1))
 
   echo "$((id++)) uext 32 $idvar 31"
