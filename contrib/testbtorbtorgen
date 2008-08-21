@@ -84,7 +84,6 @@ while true
 do 
   ((i++))
   ((counter++))
-  rwl=3
 
   randomnumber=$RANDOM
   ((randomnumber %= 2))
