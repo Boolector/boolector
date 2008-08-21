@@ -44,9 +44,14 @@ while read -r line <&10
 do
   if [[ ${unreached[$i]} -eq $counter ]]; then
 
-    if [[ `expr match "$line" "{"` -ne 1 ]] \
-      && [[ `expr match "$line" "else"` -ne 4 ]] \
-      && [[ `expr "$line" : '.*\(:\)'` != ":" ]]; then
+    if [[ `expr match "$line" "{"` -ne 1 ]] && \
+       [[ `expr match "$line" "}"` -ne 1 ]] && \
+       [[ `expr match "$line" "if"` -ne 2 ]] && \
+       [[ `expr match "$line" "else"` -ne 4 ]] && \
+       [[ `expr match "$line" "while"` -ne 5 ]] && \
+       [[ `expr match "$line" "do"` -ne 2 ]] && \
+       [[ `expr match "$line" "for"` -ne 3 ]] && \
+       [[ `expr "$line" : '.*\(:\)'` != ":" ]]; then
 
       if [[ `expr match "$lastline" "if"` -eq 2 ]] || \
 	 [[ `expr match "$lastline" "else"` -eq 4 ]] || \
