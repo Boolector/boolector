@@ -59,7 +59,8 @@ done
 # close file
 exec 10>&-
 
-echo "Computing minimal number of tests" >&2
+echo "found "`ls "$covdir"*.btor | wc -l`" tests"
+echo "computing minimal number of tests" >&2
 num=1
 result=unsat
 while [[ "$result" = unsat ]]
@@ -85,7 +86,7 @@ do
 	  csfile="$covdir""$testbase"".cs"
 	  cp "$errfile" "$covdir""fileerr"
 	  cp "$csfile" "$covdir""filecs"
-	  echo "delta-debugging $testbase" >&2
+	  echo "minimizing $testbase" >&2
 	  testfile="$covdir""$testbase"".btor"
 	  $deltabtor "$testfile" $filereduced ./covdeltadebrun
 	  cp $filereduced ~/boolector/log/covtest$testid".btor"
