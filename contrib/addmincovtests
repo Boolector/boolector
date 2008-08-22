@@ -34,6 +34,16 @@ fi
 
 rm -f $filebasic
 
+#compute test id
+maxline=`grep covtest ~/boolector/testcases | sort | tail -n 1`
+if [[ -n "$maxline" ]]; then
+  maxcol=`echo "$maxline" | awk '{ print $1 }'`
+  testid=${maxcol##covtest}
+  ((testid++))
+else
+  testid=1
+fi
+
 exec 10<"$fileformula"
 while read line <&10
 do
@@ -71,13 +81,19 @@ do
       else
         if [[ `echo "$line" | awk '{ print $2 }'` -eq 1 ]]; then
 	  testbase=`echo "$line" | awk '{ print $1 }'`
-	  cp "$covdir""$testbase"".err" "$covdir""fileerr"
-	  cp "$covdir""$testbase"".cs" "$covdir""filecs"
+	  errfile="$covdir""$testbase"".err"
+	  csfile="$covdir""$testbase"".cs"
+	  resfile="$covdir""$testbase"".out"
+	  cp "$errfile" "$covdir""fileerr"
+	  cp "$csfile" "$covdir""filecs"
 	  echo "delta-debugging $testbase" >&2
 	  testfile="$covdir""$testbase"".btor"
 	  $deltabtor "$testfile" $filereduced ./covdeltadebrun
-	  cp $filereduced "$testfile"
-	  echo "$testbase"
+	  cp $filereduced ~/boolector/log/covtest$testid".btor"
+	  cp $resfile ~/boolector/log/covtest$testid".out"
+	  testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
+	  echo "$testcasesline" >> ~/boolector/testcases
+	  git add -f ~/boolector/log/covtest$testid".*
 	fi
       fi
     done
@@ -87,3 +103,5 @@ do
     ((num++))
   fi
 done
+
+echo "added $num tests" >&2
