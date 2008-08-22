@@ -50,7 +50,7 @@ echo "$((id++)) zero 32"
 echo "$((id++)) ones $numbits"
 ((idones = id - 1))
 
-echo "Generating SMT formula ">&2
+echo "generating SMT formula ">&2
 for f in *.err
 do
   echo "$((id++)) var 1 ${f%%".err"}"
