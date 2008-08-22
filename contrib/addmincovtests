@@ -65,7 +65,7 @@ num=1
 result=unsat
 while [[ "$result" = unsat ]]
 do
-  echo "Trying number of tests = $num" >&2
+  echo "trying number of tests = $num" >&2
   cp $filebasic $fileformula
   echo "$id constd 32 $num" >> $fileformula
   echo "$((id + 1)) eq 1 $idsum $id" >> $fileformula
