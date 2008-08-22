@@ -144,7 +144,6 @@ do
       stderror=$covbase".err"
       callfile=$covbase".cs"
       covtestfile=$covbase".btor"
-      covtestres=$covbase".out"
       echo ${callstring/" $file"/""} > $callfile
       cp $file $covtestfile
     else
@@ -183,14 +182,6 @@ do
 	  cp "$filetmp" "$stderror"
 	  echo "$hashsum" >> "$filecovhashes"
 	  ((numcovtests++))
-	  if [[ $goldenretval -eq 2 ]]; then
-	    echo sat > "$covtestres"
-	  elif [[ $goldenretval -eq 3 ]]; then
-	    echo unsat > "$covtestres"
-	  else
-	    echo $ERROR
-	    exit 1
-	  fi
 
 	  if [[ "$covlimit" -eq $numcovtests ]]; then
 	     exit 0 
