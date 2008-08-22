@@ -177,7 +177,7 @@ do
       else
         cat "$stderror" | sort | uniq > $filetmp
 	hashsum="`md5sum "$filetmp"`"
-	if [[ `grep -c "$hashsum" "$filecovhashes"` -eq 0 ]]; then
+	if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
 	  cp "$filetmp" "$stderror"
 	  echo "$hashsum" >> "$filecovhashes"
 	  ((numcovtests++))
@@ -204,7 +204,6 @@ do
     fi
 
   done
-
 
   echo -n "Test $i dump: "
   boolector $file -de 1> $filedump 2> /dev/null
