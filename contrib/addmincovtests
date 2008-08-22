@@ -90,7 +90,8 @@ do
 	  testfile="$covdir""$testbase"".btor"
 	  $deltabtor "$testfile" $filereduced ./covdeltadebrun
 	  cp $filereduced ~/boolector/log/covtest$testid".btor"
-	  boolector -rwl0 "$filereduced" 1> ~/boolector/log/covtest$testid".out " 2> /dev/null
+	  boolector -rwl0 "$filereduced" \
+	  1> ~/boolector/log/covtest$testid".out" 2> /dev/null
 	  testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
 	  echo "$testcasesline" >> ~/boolector/testcases
 	  ((testid++))
