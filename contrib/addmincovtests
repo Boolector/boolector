@@ -1,10 +1,10 @@
 #!/bin/bash
 
-filebasic="/tmp/genmincovtestsbasic$$.tmp"
-fileformula="/tmp/genmincovtestsformula$$.tmp"
-fileboolector="/tmp/genmincovtestsboolector$$.tmp"
-filereduced="/tmp/genmincovtestsreduced$$.tmp"
-covdir="./covtests/"
+filebasic="/tmp/addmincovtestsbasic$$.tmp"
+fileformula="/tmp/addmincovtestsformula$$.tmp"
+fileboolector="/tmp/addmincovtestsboolector$$.tmp"
+filereduced="/tmp/addmincovtestsreduced$$.tmp"
+covdir="covtests/"
 
 deltabtor=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
@@ -16,12 +16,12 @@ do
   break
 done
 if [[ $deltabtor = unknown ]]; then
-  echo "*** genmincovtests: can not find 'deltabtor'" 1>&2
+  echo "*** addmincovtests: can not find 'deltabtor'" 1>&2
   exit 1
 fi
 
 if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]]; then
-  echo "*** genmincovtests: can not read coverage test directory" 1>&2
+  echo "*** addmincovtests: can not read coverage test directory" 1>&2
   exit 1
 fi
   

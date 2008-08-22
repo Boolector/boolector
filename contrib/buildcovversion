@@ -12,11 +12,11 @@ fi
 
 id=0
 
-rm -r -f /tmp/instrumentallsourcecov
-mkdir /tmp/instrumentallsourcecov
-cp -r ~/boolector /tmp/instrumentallsourcecov/
-cp -r ~/picosat /tmp/instrumentallsourcecov/
-cd /tmp/instrumentallsourcecov/boolector
+rm -r -f /tmp/buildallsourcecov
+mkdir /tmp/buildallsourcecov
+cp -r ~/boolector /tmp/buildallsourcecov/
+cp -r ~/picosat /tmp/buildallsourcecov/
+cd /tmp/buildallsourcecov/boolector
 indent -l10000 *.c
 
 make clean
