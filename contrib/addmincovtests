@@ -92,6 +92,7 @@ do
 	  boolector -rwl0 "$filereduced" > ~/boolector/log/covtest$testid".out"
 	  testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
 	  echo "$testcasesline" >> ~/boolector/testcases
+	  ((testid++))
 	fi
       fi
     done
