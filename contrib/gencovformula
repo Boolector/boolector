@@ -16,19 +16,6 @@ fi
 
 cd $covdir
 
-echo "Preprocessing for SMT formula generation" >&2
-for f in *.err
-do
-
-  if [[ ! -s $f ]]; then
-    echo "Unexpected empty file: $f" >&2
-    exit 1
-  fi
-
-  cat $f | sort | uniq > $file
-  cp $file $f
-done
-
 cat *.err | sort | uniq > $file
 numbits=`wc -l $file | awk '{ print $1 }'`
 
