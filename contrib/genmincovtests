@@ -3,7 +3,28 @@
 filebasic="/tmp/genmincovtestsbasic$$.tmp"
 fileformula="/tmp/genmincovtestsformula$$.tmp"
 fileboolector="/tmp/genmincovtestsboolector$$.tmp"
+filereduced="/tmp/genmincovtestsreduced$$.tmp"
+covdir="./covtests/"
 
+deltabtor=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  file=$d/deltabtor
+  [ -d $d ] || continue
+  [ -f $file ] || continue
+  deltabtor=$file
+  break
+done
+if [[ $deltabtor = unknown ]]; then
+  echo "*** genmincovtests: can not find 'deltabtor'" 1>&2
+  exit 1
+fi
+
+if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]]; then
+  echo "*** genmincovtests: can not read coverage test directory" 1>&2
+  exit 1
+fi
+  
 ./gencovformula > $fileformula
 
 if [[ $? -ne 0 ]]; then
@@ -28,7 +49,7 @@ done
 # close file
 exec 10>&-
 
-echo "Computing minimal test suite" >&2
+echo "Computing minimal number of tests" >&2
 num=1
 result=unsat
 while [[ "$result" = unsat ]]
@@ -41,7 +62,27 @@ do
   boolector $fileformula -m 1> $fileboolector 2> /dev/null
   result=`head -n 1 $fileboolector`
   if [[ "$result" = sat ]]; then
-    cat $fileboolector
+    exec 10<"$fileboolector"
+    skipfirstline=1
+    while read line <&10
+    do
+      if [[ $skipfirstline -eq 1 ]]; then
+        skipfirstline=0
+      else
+        if [[ `echo "$line" | awk '{ print $2 }'` -eq 1 ]]; then
+	  testbase=`echo "$line" | awk '{ print $1 }'`
+	  cp "$covdir""$testbase"".err" "$covdir""fileerr"
+	  cp "$covdir""$testbase"".cs" "$covdir""filecs"
+	  echo "delta-debugging $testbase" >&2
+	  testfile="$covdir""$testbase"".btor"
+	  $deltabtor "$testfile" $filereduced ./covdeltadebrun
+	  cp $filereduced "$testfile"
+	  echo "$testbase"
+	fi
+      fi
+    done
+    # close file
+    exec 10>&-
   else
     ((num++))
   fi
