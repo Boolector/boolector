@@ -38,6 +38,8 @@ counter=0
 valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
 file="/tmp/testbtorbtorgen$$.btor"
 filedump="/tmp/testbtorbtorgen$$dump.btor"
+filetmp="/tmp/testbtorbtorgen$$.tmp"
+filecovhashes="/tmp/testbtorbtorgen$$hashes.tmp"
 stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 last=btorgenjava
 cov=no
@@ -69,6 +71,8 @@ if [[ $cov = yes ]]; then
     echo "IO error"
     exit 1
   fi
+  rm -f $filecovhashes
+  touch $filecovhashes
 fi
 
 while true 
@@ -171,14 +175,30 @@ do
 	rm "$callfile"
 	rm "$covtestfile"
       else
-	((numcovtests++))
-	if [[ $goldenretval -eq 2 ]]; then
-	  echo sat > "$covtestres"
-	elif [[ $goldenretval -eq 3 ]]; then
-	  echo unsat > "$covtestres"
+        cat "$stderror" | sort | uniq > $filetmp
+	hashsum="`md5sum "$filetmp"`"
+	if [[ `grep -c "$hashsum" "$filecovhashes"` -eq 0 ]]; then
+	  cp "$filetmp" "$stderror"
+	  echo "$hashsum" >> "$filecovhashes"
+	  ((numcovtests++))
+	  if [[ $goldenretval -eq 2 ]]; then
+	    echo sat > "$covtestres"
+	  elif [[ $goldenretval -eq 3 ]]; then
+	    echo unsat > "$covtestres"
+	  else
+	    echo $ERROR
+	    exit 1
+	  fi
+
+	  if [[ "$covlimit" -gt 0 ]] && \
+	     [[ "$covlimit" -eq $numcovtests ]]; then
+	     exit 0 
+	  fi
+
 	else
-	  echo $ERROR
-	  exit 1
+	  rm "$stderror"
+	  rm "$callfile"
+	  rm "$covtestfile"
 	fi
       fi
     fi
@@ -221,11 +241,6 @@ do
       exit 1
     fi 
     echo "OK"
-  fi
-
-  if [[ $cov = yes ]] && [[ "$covlimit" -gt 0 ]] && \
-     [[ "$covlimit" -eq $numcovtests ]]; then
-     break
   fi
 
   echo ""
