@@ -42,7 +42,7 @@ filetmp="/tmp/testbtorbtorgen$$.tmp"
 filecovhashes="/tmp/testbtorbtorgen$$hashes.tmp"
 stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 last=btorgenjava
-cov=no
+cov=0
 covlimit=0
 id=1
 numcovtests=0
@@ -51,19 +51,19 @@ while getopts "i:c:" o
 do
   case "$o" in
   i)	id=$OPTARG;;
-  c)	cov=yes; covlimit=$OPTARG;;
+  c)	cov=1; covlimit=$OPTARG;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
 
-if [[ $cov = yes ]] && [[ "$covlimit" -lt 1 ]]; then
+if [[ $cov -eq 1 ]] && [[ "$covlimit" -lt 1 ]]; then
   echo "Coverage limit must be positive" 1>&2
   exit 1
 fi
 
 fileerror="error"$id".btor"
 
-if [[ $cov = yes ]]; then
+if [[ $cov -eq 1 ]]; then
   rm -r -f $covdir
   mkdir $covdir
   if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || \
@@ -81,7 +81,7 @@ do
   ((counter++))
 
   randomnumber=$RANDOM
-  ((randomnumber %= 2))
+  ((randomnumber &= 1))
   if [[ $randomnumber -eq 0 ]]; then
     uamode=uag
   else
@@ -89,7 +89,7 @@ do
   fi
 
   randomnumber=$RANDOM
-  ((randomnumber %= 2))
+  ((randomnumber &= 1))
   if [[ $randomnumber -eq 0 ]]; then
     uabwref=uad
   else
@@ -107,10 +107,12 @@ do
   fi
 
   uarwl=$RANDOM
-  ((uarwl %= 4))
+  ((uarwl &= 3))
 
+  # when we create coverage tests,
+  # we do not want to generate models
   checkmodel=$RANDOM
-  ((checkmodel %= 2))
+  ((checkmodel = checkmodel & 1 & !cov))
 
   if [ $last = btorgen ]; then
     btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > $file 
@@ -137,7 +139,7 @@ do
       callstring=$callstring" -m"
     fi
 
-    if [[ $cov = yes ]]; then
+    if [[ $cov -eq 1 ]]; then
       covbase=$covdir"cov_id"$id"_test"$((i * 4 + rwl))
       stderror=$covbase".err"
       callfile=$covbase".cs"
@@ -169,7 +171,7 @@ do
       fi
     fi 
 
-    if [[ $cov = yes ]]; then
+    if [[ $cov -eq 1 ]]; then
       if [[ ! -s "$stderror" ]]; then
 	rm "$stderror"
 	rm "$callfile"
@@ -190,8 +192,7 @@ do
 	    exit 1
 	  fi
 
-	  if [[ "$covlimit" -gt 0 ]] && \
-	     [[ "$covlimit" -eq $numcovtests ]]; then
+	  if [[ "$covlimit" -eq $numcovtests ]]; then
 	     exit 0 
 	  fi
 
