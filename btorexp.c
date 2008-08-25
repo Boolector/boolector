@@ -5070,6 +5070,7 @@ compute_median_width_ua_stats (Btor *btor, BtorExpPtrStack *stack)
   assert (btor != NULL);
   assert (stack != NULL);
   assert (!BTOR_EMPTY_STACK (*stack));
+  (void) btor;
 
   num_elements = (unsigned int) BTOR_COUNT_STACK (*stack);
 
@@ -8780,9 +8781,11 @@ encode_under_approx_const_extend (Btor *btor, int phase)
   BtorPtrHashBucket *b;
   BtorExp *cur;
   BtorAIG **aigs;
-  int eff_width, id, i, len, encoded, encoded_local, under_approx_e;
+  int id, i, len, encoded, encoded_local;
+  int eff_width      = 0;
+  int under_approx_e = 0;
   BtorUAMode ua_mode;
-  BtorUAData *data;
+  BtorUAData *data = NULL;
 
   assert (btor != NULL);
   assert (btor->ua.enabled);
@@ -8905,10 +8908,11 @@ encode_under_approx_sign_extend (Btor *btor)
   BtorPtrHashBucket *b;
   BtorExp *cur;
   BtorAIG **aigs;
-  int encoded, encoded_local, len, eff_width, i;
-  int id1, id2, under_approx_e, first_pos;
+  int encoded, encoded_local, len, i, id1, id2, first_pos;
+  int eff_width      = 0;
+  int under_approx_e = 0;
   BtorUAMode ua_mode;
-  BtorUAData *data;
+  BtorUAData *data = NULL;
 
   assert (btor != NULL);
   assert (btor->ua.enabled);
