@@ -957,16 +957,18 @@ rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
   int normalized;
 
+  normalized = 0;
+
+BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
+  /* two level optimization [MEMICS] for BTOR_AND_EXP */
+  assert (!normalized);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
-  real_e0    = BTOR_REAL_ADDR_EXP (e0);
-  real_e1    = BTOR_REAL_ADDR_EXP (e1);
-  normalized = 0;
+  real_e0 = BTOR_REAL_ADDR_EXP (e0);
+  real_e1 = BTOR_REAL_ADDR_EXP (e1);
 
-  /* two level optimization [MEMICS] for BTOR_AND_EXP */
-BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
   if (e0 == e1) /* x & x == x */
     return btor_copy_exp (btor, e0);
   if (BTOR_INVERT_EXP (e0) == e1) /* x & ~x == 0 */
@@ -985,15 +987,13 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* symmetric rule of idempotency */
       if (real_e0->e[0] == real_e1->e[0] || real_e0->e[1] == real_e1->e[0])
       {
-        e1      = real_e1->e[1];
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
+        e1 = real_e1->e[1];
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
       /* use commutativity */
       if (real_e0->e[0] == real_e1->e[1] || real_e0->e[1] == real_e1->e[1])
       {
-        e1      = real_e1->e[0];
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
+        e1 = real_e1->e[0];
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
     }
@@ -1008,15 +1008,13 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* symmetric rule of substitution */
       if ((real_e1->e[0] == real_e0->e[1]) || (real_e1->e[0] == real_e0->e[0]))
       {
-        e1      = BTOR_INVERT_EXP (real_e1->e[1]);
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
+        e1 = BTOR_INVERT_EXP (real_e1->e[1]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
       /* symmetric rule of substitution */
       if ((real_e1->e[1] == real_e0->e[1]) || (real_e1->e[1] == real_e0->e[0]))
       {
-        e1      = BTOR_INVERT_EXP (real_e1->e[0]);
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
+        e1 = BTOR_INVERT_EXP (real_e1->e[0]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
     }
@@ -1031,15 +1029,13 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* symmetric rule of substitution */
       if ((real_e0->e[1] == real_e1->e[0]) || (real_e0->e[1] == real_e1->e[1]))
       {
-        e0      = BTOR_INVERT_EXP (real_e0->e[0]);
-        real_e0 = BTOR_REAL_ADDR_EXP (e0);
+        e0 = BTOR_INVERT_EXP (real_e0->e[0]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
       /* symmetric rule of substitution */
       if ((real_e0->e[0] == real_e1->e[0]) || (real_e0->e[0] == real_e1->e[1]))
       {
-        e0      = BTOR_INVERT_EXP (real_e0->e[1]);
-        real_e0 = BTOR_REAL_ADDR_EXP (e0);
+        e0 = BTOR_INVERT_EXP (real_e0->e[1]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
     }
@@ -1087,16 +1083,14 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* asymmetric rule of substitution */
       if (real_e0->e[1] == e1)
       {
-        e0      = BTOR_INVERT_EXP (real_e0->e[0]);
-        real_e0 = BTOR_REAL_ADDR_EXP (e0);
+        e0 = BTOR_INVERT_EXP (real_e0->e[0]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
 
       /* asymmetric rule of substitution */
       if (real_e0->e[0] == e1)
       {
-        e0      = BTOR_INVERT_EXP (real_e0->e[1]);
-        real_e0 = BTOR_REAL_ADDR_EXP (e0);
+        e0 = BTOR_INVERT_EXP (real_e0->e[1]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
     }
@@ -1149,15 +1143,13 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* asymmetric rule of substitution */
       if (real_e1->e[0] == e0)
       {
-        e1      = BTOR_INVERT_EXP (real_e1->e[1]);
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
+        e1 = BTOR_INVERT_EXP (real_e1->e[1]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
       /* asymmetric rule of substitution */
       if (real_e1->e[1] == e0)
       {
-        e1      = BTOR_INVERT_EXP (real_e1->e[0]);
-        real_e1 = BTOR_REAL_ADDR_EXP (e1);
+        e1 = BTOR_INVERT_EXP (real_e1->e[0]);
         goto BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN;
       }
     }
