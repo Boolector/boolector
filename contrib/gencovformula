@@ -5,19 +5,19 @@ declare -a positionsfile
 
 id=1
 
-covdir="./covtests"
-file="/tmp/gencovformula$$.tmp"
+readonly covdir="./covtests"
+readonly file="/tmp/gencovformula$$.tmp"
 
-if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]] || \
-   [[ ! -x $covdir ]]; then
-  echo "IO error" >&2
+if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || [[ ! -r "$covdir" ]] || \
+   [[ ! -x "$covdir" ]]; then
+  echo "IO error" 1>&2
   exit 1
 fi
 
 cd $covdir
 
-cat *.err | sort | uniq > $file
-numbits=`wc -l $file | awk '{ print $1 }'`
+cat *.err | sort | uniq > "$file"
+numbits=`wc -l "$file" | awk '{ print $1 }'`
 
 if [[ "$numbits" -lt 1 ]]; then
   echo "No coverage increment possible" >&2
@@ -25,20 +25,17 @@ if [[ "$numbits" -lt 1 ]]; then
 fi
 
 ((max = 2 ** 32 - 1))
-if [[ "$numbits" -gt $max ]]; then
+if [[ "$numbits" -gt "$max" ]]; then
   echo "Too many test positions" >&2
   exit 1
 fi
 
 i=0
-exec 10<$file
-while read line <&10
+while read line
 do
   positions[$i]=$line
   ((i++))
-done
-# close file
-exec 10>&-
+done < "$file"
 
 echo "$((id++)) zero $numbits"
 ((idzero = id - 1))
@@ -50,7 +47,7 @@ echo "$((id++)) zero 32"
 echo "$((id++)) ones $numbits"
 ((idones = id - 1))
 
-echo "generating SMT formula ">&2
+echo "generating SMT formula "1>&2
 for f in *.err
 do
   echo "$((id++)) var 1 ${f%%".err"}"
@@ -62,17 +59,14 @@ do
   echo "$((id++)) add 32 $lastid $idsum"
   ((idsum = id - 1))
 
-  exec 10<$f
-  while read line <&10
+  while read line
   do
     positionsfile[$line]="1"
-  done
-  # close file
-  exec 10>&-
+  done < "$f"
 
   i=0
   bitstring=""
-  while [[ $i -lt $numbits ]] 
+  while [[ "$i" -lt "$numbits" ]] 
   do
     line=${positions[$i]}
     if [[ -n "${positionsfile[$line]}" ]]; then
