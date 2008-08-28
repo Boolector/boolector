@@ -1,5 +1,7 @@
 #!/bin/bash
 
+readonly homedir=/tmp/buildallsourcecov/
+
 if [[ ! -e ~/boolector ]] && [[ ! -d ~/boolector ]]; then
   echo "Could not find boolector source in home directory"
   exit 1
@@ -12,11 +14,11 @@ fi
 
 id=0
 
-rm -r -f /tmp/buildallsourcecov
-mkdir /tmp/buildallsourcecov
-cp -r ~/boolector /tmp/buildallsourcecov/
-cp -r ~/picosat /tmp/buildallsourcecov/
-cd /tmp/buildallsourcecov/boolector
+rm -r -f "$homedir"
+mkdir "$homedir"
+cp -r ~/boolector "$homedir"
+cp -r ~/picosat "$homedir"
+cd "${homedir}boolector"
 indent -l10000 *.c
 
 make clean
@@ -29,22 +31,22 @@ echo "Instrumenting source files:"
 
 for file in *.c
 do
-  if [[ $file != basicbtor.c ]] && [[ $file != boolector.c ]] && \
-     [[ $file != btorrand.c ]] && [[ $file != deltabtor.c ]] && \
-     [[ $file != synthebtor.c ]] && [[ ${file:0:4} != test ]]; then
-    if [[ ! -e $file".gcov" || ! -r $file".gcov" ]]; then
-      echo "Could not read $file"".gcov file"
+  if [[ "$file" != "basicbtor.c" ]] && [[ "$file" != "boolector.c" ]] && \
+     [[ "$file" != "btorrand.c" ]] && [[ "$file" != "deltabtor.c" ]] && \
+     [[ "$file" != "synthebtor.c" ]] && [[ "${file:0:4}" != "test" ]]; then
+    if [[ ! -e "${file}.gcov" || ! -r "${file}.gcov" ]]; then
+      echo "Could not read ${file}.gcov file"
       exit 1
     fi
     echo "$file"
-    newid=`./contrib/instrumentsourcecov "$file" $id`
+    newid=`./contrib/instrumentsourcecov "$file" "$id"`
     if [[ $? -ne 0 ]]; then
       echo "Error occurred (instrumentsourcecov)"
       exit 1
     else 
       id=$newid
       file=${file##".c"}
-      mv $file".ins" $file
+      mv "${file}.ins" "$file"
     fi
   fi
 done
