@@ -2,19 +2,19 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit>]" 
-covdir="./covtests/"
+readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit>]" 
+readonly covdir="./covtests/"
 
 btorgen=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
 do
   file=$d/btorgen
-  [ -d $d ] || continue
-  [ -f $file ] || continue
+  [ -d "$d" ] || continue
+  [ -f "$file" ] || continue
   btorgen=$file
   break
 done
-if [[ $btorgen = unknown ]]; then
+if [[ "$btorgen" = unknown ]]; then
   echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
   exit 1
 fi
@@ -23,24 +23,25 @@ btorgenjava=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
 do
   file=$d/btorgenjava
-  [ -d $d ] || continue
-  [ -f $file ] || continue
+  [ -d "$d" ] || continue
+  [ -f "$file" ] || continue
   btorgenjava=$file
   break
 done
-if [[ $btorgenjava = unknown ]]; then
+if [[ "$btorgenjava" = unknown ]]; then
   echo "*** testbtorbtorgen: can not find 'btorgenjava'" 1>&2
   exit 1
 fi
 
+readonly valgrindcheck=100 # every nth testcase we check with valgrind
+readonly file="/tmp/testbtorbtorgen$$.btor"
+readonly filedump="/tmp/testbtorbtorgen$$dump.btor"
+readonly filetmp="/tmp/testbtorbtorgen$$.tmp"
+readonly filecovhashes="/tmp/testbtorbtorgen$$hashes.tmp"
+readonly stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
+
 i=0
 counter=0
-valgrindcheck=100 # every nth testcase we perform a memory check with valgrind
-file="/tmp/testbtorbtorgen$$.btor"
-filedump="/tmp/testbtorbtorgen$$dump.btor"
-filetmp="/tmp/testbtorbtorgen$$.tmp"
-filecovhashes="/tmp/testbtorbtorgen$$hashes.tmp"
-stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 last=btorgenjava
 cov=0
 covlimit=0
@@ -56,23 +57,23 @@ do
   esac
 done
 
-if [[ $cov -eq 1 ]] && [[ "$covlimit" -lt 1 ]]; then
+if [[ "$cov" -eq 1 ]] && [[ "$covlimit" -lt 1 ]]; then
   echo "Coverage limit must be positive" 1>&2
   exit 1
 fi
 
 fileerror="error"$id".btor"
 
-if [[ $cov -eq 1 ]]; then
-  rm -r -f $covdir
-  mkdir $covdir
-  if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || \
-     [[ ! -r $covdir ]] || [[ ! -w $covdir ]]; then
+if [[ "$cov" -eq 1 ]]; then
+  rm -r -f "$covdir"
+  mkdir "$covdir"
+  if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || \
+     [[ ! -r "$covdir" ]] || [[ ! -w "$covdir" ]]; then
     echo "IO error"
     exit 1
   fi
-  rm -f $filecovhashes
-  touch $filecovhashes
+  rm -f "$filecovhashes"
+  touch "$filecovhashes"
 fi
 
 while true 
@@ -82,7 +83,7 @@ do
 
   randomnumber=$RANDOM
   ((randomnumber &= 1))
-  if [[ $randomnumber -eq 0 ]]; then
+  if [[ "$randomnumber" -eq 0 ]]; then
     uamode=uag
   else
     uamode=ual
@@ -90,7 +91,7 @@ do
 
   randomnumber=$RANDOM
   ((randomnumber &= 1))
-  if [[ $randomnumber -eq 0 ]]; then
+  if [[ "$randomnumber" -eq 0 ]]; then
     uabwref=uad
   else
     uabwref=uai
@@ -98,9 +99,9 @@ do
 
   randomnumber=$RANDOM
   ((randomnumber %= 3))
-  if [[ $randomnumber -eq 0 ]]; then
+  if [[ "$randomnumber" -eq 0 ]]; then
     uaenc=uaz
-  elif [[ $randomnumber -eq 1 ]]; then
+  elif [[ "$randomnumber" -eq 1 ]]; then
     uaenc=uao
   else
     uaenc=uas
@@ -114,15 +115,15 @@ do
   checkmodel=$RANDOM
   ((checkmodel = checkmodel & 1 & !cov))
 
-  if [ $last = btorgen ]; then
-    btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > $file 
+  if [[ "$last" = "btorgen" ]]; then
+    btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file"
     last=btorgenjava
   else
-    btorgen 2> /dev/null | btorold2new > $file 
+    btorgen 2> /dev/null | btorold2new > "$file"
     last=btorgen
   fi
 
-  if [ ! -s $file ]; then
+  if [[ ! -s "$file" ]]; then
     echo "*** testbtorbtorgen: generated file is empty"
     exit 1
   fi 
@@ -132,58 +133,59 @@ do
     echo -n "Test $i rwl$rwl: "
 
     callstring="-rwl$rwl $file"
-    if [[ $uarwl -eq 3 ]]; then
-      callstring=$callstring" -$uamode -$uabwref -$uaenc"
+    if [[ "$uarwl" -eq 3 ]]; then
+      callstring="$callstring -$uamode -$uabwref -$uaenc"
     fi
-    if [[ $checkmodel -eq 1 ]]; then
-      callstring=$callstring" -m"
+    if [[ "$checkmodel" -eq 1 ]]; then
+      callstring="$callstring -m"
     fi
 
-    if [[ $cov -eq 1 ]]; then
-      covbase=$covdir"cov_id"$id"_test"$((i * 4 + rwl))
-      stderror=$covbase".err"
-      callfile=$covbase".cs"
-      covtestfile=$covbase".btor"
-      echo ${callstring/" $file"/""} > $callfile
-      cp $file $covtestfile
+    if [[ "$cov" -eq 1 ]]; then
+      covbase=${covdir}cov_id${id}_test$((i * 4 + rwl))
+      stderror=${covbase}.err
+      callfile=${covbase}.cs
+      covtestfile=${covbase}.btor
+      echo ${callstring/" $file"/""} > "$callfile"
+      cp "$file" "$covtestfile"
     else
      stderror=/dev/null
     fi
       
-    boolector $callstring 1> $stdoutput 2> $stderror
+    echo $callstring
+    boolector $callstring 1> "$stdoutput" 2> "$stderror"
     retval=$?
-    cat $stdoutput | head -n 1
-    if [[ $rwl -eq 3 ]]; then 
+    cat "$stdoutput" | head -n 1
+    if [[ "$rwl" -eq 3 ]]; then 
       goldenretval=$retval
-      if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
+      if [[ "$goldenretval" -ne 2 ]] && [[ "$goldenretval" -ne 3 ]]; then
 	echo "ERROR"
-	cp $file $fileerror
-	echo "; error: $callstring" >> $fileerror
+	cp "$file" "$fileerror"
+	echo "; error: $callstring" >> "$fileerror"
 	exit
       fi
     else
-      if [[ $retval -ne $goldenretval ]]; then
+      if [[ "$retval" -ne "$goldenretval" ]]; then
 	echo "ERROR"
-	cp $file $fileerror
-	echo "; error: $callstring" >> $fileerror
+	cp "$file" "$fileerror"
+	echo "; error: $callstring" >> "$fileerror"
 	exit 1
       fi
     fi 
 
-    if [[ $cov -eq 1 ]]; then
+    if [[ "$cov" -eq 1 ]]; then
       if [[ ! -s "$stderror" ]]; then
 	rm "$stderror"
 	rm "$callfile"
 	rm "$covtestfile"
       else
-        cat "$stderror" | sort | uniq > $filetmp
-	hashsum="`md5sum "$filetmp"`"
+        cat "$stderror" | sort | uniq > "$filetmp"
+	hashsum=`md5sum "$filetmp"`
 	if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
 	  cp "$filetmp" "$stderror"
 	  echo "$hashsum" >> "$filecovhashes"
 	  ((numcovtests++))
 
-	  if [[ "$covlimit" -eq $numcovtests ]]; then
+	  if [[ "$covlimit" -eq "$numcovtests" ]]; then
 	     exit 0 
 	  fi
 
@@ -198,37 +200,37 @@ do
   done
 
   echo -n "Test $i dump: "
-  boolector $file -de 1> $filedump 2> /dev/null
-  boolector $filedump 2> /dev/null
+  boolector "$file" -de 1> "$filedump" 2> /dev/null
+  boolector "$filedump" 2> /dev/null
   retval=$?
-  if [[ $retval -ne $goldenretval ]]; then
+  if [[ "$retval" -ne "$goldenretval" ]]; then
     echo "ERROR"
-    cp $file $fileerror
-    echo "; dump error" >> $fileerror
+    cp "$file" "$fileerror"
+    echo "; dump error" >> "$fileerror"
     exit 1
   fi 
 
-  if [[ $checkmodel -eq 1 ]] && [[ $retval -eq 2 ]]; then
-    btorcheckmodel $file $stdoutput
+  if [[ "$checkmodel" -eq 1 ]] && [[ "$retval" -eq 2 ]]; then
+    btorcheckmodel "$file" "$stdoutput"
     retval=$?
-    if [[ $retval -ne 0 ]]; then
+    if [[ "$retval" -ne 0 ]]; then
       echo "ERROR"
-      cp $file $fileerror
-      cp $stdoutput $fileerror".model"
-      echo "; error: $callstring" >> $fileerror
+      cp "$file" "$fileerror"
+      cp "$stdoutput" "${fileerror}.model"
+      echo "; error: $callstring" >> "$fileerror"
       exit 1
     fi
   fi
 
-  if [[ $counter -eq $valgrindcheck ]]; then
+  if [[ "$counter" -eq "$valgrindcheck" ]]; then
     counter=0
     echo -n "Test $i valg: "
-    memerr=`valgrind -q ../boolector $file 2>&1 | grep ==`
-    if [[ -n $memerr ]]; then
+    memerr=`valgrind -q ../boolector "$file" 2>&1 | grep ==`
+    if [[ -n "$memerr" ]]; then
       echo ""
       echo "ERROR"
-      cp $file $fileerror
-      echo "; valgrind error" >> $fileerror
+      cp "$file" "$fileerror"
+      echo "; valgrind error" >> "$fileerror"
       exit 1
     fi 
     echo "OK"
