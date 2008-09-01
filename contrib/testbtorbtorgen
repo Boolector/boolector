@@ -158,7 +158,7 @@ do
     fi
 
     if [[ "$cov" -eq 1 ]]; then
-      covbase=${covdir}cov_id${id}_test$((i * 4 + rwl))
+      covbase=${covdir}cov_id${id}_test$numcovtests
       stderror=${covbase}.err
     else
      stderror=/dev/null
