@@ -2,12 +2,10 @@
 
 # run testbtorbtorgen on multiple cores simultaneously
 
-trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
-
 declare -a ids
 
-cores=4
-sleeptime=10
+readonly cores=4
+readonly sleeptime=10
 numerrors=0
 
 function cleanup
@@ -19,6 +17,8 @@ function cleanup
     fi
   done
 }
+
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
 rm -f error*.btor
 

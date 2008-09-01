@@ -2,39 +2,8 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
-
 readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit>]" 
 readonly covdir="./covtests/"
-
-btorgen=unknown
-for d in `echo $PATH | sed -e 's,:, ,g'` .
-do
-  file=$d/btorgen
-  [ -d "$d" ] || continue
-  [ -f "$file" ] || continue
-  btorgen=$file
-  break
-done
-if [[ "$btorgen" = unknown ]]; then
-  echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
-  exit 1
-fi
-
-btorgenjava=unknown
-for d in `echo $PATH | sed -e 's,:, ,g'` .
-do
-  file=$d/btorgenjava
-  [ -d "$d" ] || continue
-  [ -f "$file" ] || continue
-  btorgenjava=$file
-  break
-done
-if [[ "$btorgenjava" = unknown ]]; then
-  echo "*** testbtorbtorgen: can not find 'btorgenjava'" 1>&2
-  exit 1
-fi
-
 readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/testbtorbtorgen$$.btor"
 readonly filedump="/tmp/testbtorbtorgen$$dump.btor"
@@ -50,6 +19,36 @@ function cleanup
   rm -f "$filecovhashes"
   rm -f "$stdoutput"
 }
+
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
+
+btorgen=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  tmpfile=$d/btorgen
+  [ -d "$d" ] || continue
+  [ -f "$tmpfile" ] || continue
+  btorgen=$tmpfile
+  break
+done
+if [[ "$btorgen" = unknown ]]; then
+  echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
+  exit 1
+fi
+
+btorgenjava=unknown
+for d in `echo $PATH | sed -e 's,:, ,g'` .
+do
+  tmpfile=$d/btorgenjava
+  [ -d "$d" ] || continue
+  [ -f "$tmpfile" ] || continue
+  btorgenjava=$tmpfile
+  break
+done
+if [[ "$btorgenjava" = unknown ]]; then
+  echo "*** testbtorbtorgen: can not find 'btorgenjava'" 1>&2
+  exit 1
+fi
 
 i=0
 counter=0
