@@ -4,6 +4,7 @@
 
 declare -a ids
 
+readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>]" 
 readonly cores=4
 readonly sleeptime=10
 numerrors=0
@@ -20,11 +21,24 @@ function cleanup
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
+while getopts "c:" o
+do
+  case "$o" in
+  c)	cov=1; covlimit=$OPTARG;;
+  [?])	echo "$usage" 1>&2; exit 1;;
+  esac
+done
+
+
 rm -f error*.btor
 
 for ((i = 1; i <= "$cores"; i++))
 do
-  ./testbtorbtorgen "$i" > /dev/null &
+  if [[ "$cov" -eq 1 ]]; then
+    ./testbtorbtorgen "$i -c $covlimit" > /dev/null &
+  else
+    ./testbtorbtorgen "$i" > /dev/null &
+  fi
   ids[$i]=$!
   sleep 1
 done
