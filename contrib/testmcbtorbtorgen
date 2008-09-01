@@ -9,21 +9,22 @@ numerrors=0
 
 function cleanup
 {
-  cat $fileids | while read line
+  cat "$fileids" | while read line
   do 
-    kill $line 2> /dev/null
+    kill "$line" 2> /dev/null
   done
+  rm -f "$fileids"
 }
 
 rm -f error*.btor
 
-for ((i = 1; i <= $cores; i++))
+for ((i = 1; i <= "$cores"; i++))
 do
-  ./testbtorbtorgen $i > /dev/null &
-  if [[ $i -eq 1 ]]; then
-    echo $! > $fileids
+  ./testbtorbtorgen "$i" > /dev/null &
+  if [[ "$i" -eq 1 ]]; then
+    echo $! > "$fileids"
   else
-    echo $! >> $fileids
+    echo $! >> "$fileids"
   fi
   sleep 1
 done
@@ -31,14 +32,14 @@ done
 trap "cleanup; exit" SIGHUP SIGINT SIGTERM
 
 i=0
-while [[ $numerrors -lt $cores ]]
+while [[ "$numerrors" -lt "$cores" ]]
 do
-  sleep $sleeptime 
+  sleep "$sleeptime"
   errors=error*.btor
-  numerrors=`ls $errors 2> /dev/null | wc -l`
+  numerrors=`ls "$errors" 2> /dev/null | wc -l`
   echo "Errors: $numerrors"
   ((i++))
-  if [[ $i -eq 6 ]]; then
+  if [[ "$i" -eq 6 ]]; then
     echo ""
     i=0
   fi
