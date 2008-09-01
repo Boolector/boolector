@@ -5,8 +5,10 @@
 declare -a ids
 
 readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>]" 
+readonly covdir="./covtests/"
 readonly cores=4
 readonly sleeptime=10
+cov=0
 numerrors=0
 
 function cleanup
@@ -29,15 +31,24 @@ do
   esac
 done
 
+if [[ "$cov" -eq 1 ]]; then
+  rm -r -f "$covdir"
+  mkdir "$covdir"
+  if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || \
+     [[ ! -r "$covdir" ]] || [[ ! -w "$covdir" ]]; then
+    echo "IO error"
+    exit 1
+  fi
+fi
 
 rm -f error*.btor
 
 for ((i = 1; i <= "$cores"; i++))
 do
   if [[ "$cov" -eq 1 ]]; then
-    ./testbtorbtorgen "$i -c $covlimit" > /dev/null &
+    ./testbtorbtorgen -i "$i" -c "$covlimit" -n > /dev/null &
   else
-    ./testbtorbtorgen "$i" > /dev/null &
+    ./testbtorbtorgen -i "$i" > /dev/null &
   fi
   ids[$i]=$!
   sleep 1
