@@ -4,7 +4,6 @@ readonly file="/tmp/btorcheckmodel$$.btor"
 
 function cleanup
 {
-  echo CALLING
   rm -f "$file"
 }
 
