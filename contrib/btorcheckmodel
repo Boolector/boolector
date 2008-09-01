@@ -1,11 +1,19 @@
 #!/bin/bash
 
+readonly file="/tmp/btorcheckmodel$$.btor"
+
+function cleanup
+{
+  echo CALLING
+  rm -f "$file"
+}
+
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
+
 if [[ $# -ne 2 ]]; then
   echo "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
   exit 1
 fi
-
-readonly file="/tmp/btorcheckmodel$$.btor"
 
 cat "$1" > "$file"
 
@@ -90,7 +98,5 @@ elif [[ "$retval" -ne 2 ]]; then
   exit 1
 fi
 
-# cleanup
-rm -f "$file"
-
+cleanup
 exit 0
