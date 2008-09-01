@@ -2,7 +2,7 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit>]" 
+readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit> [-n]]" 
 readonly covdir="./covtests/"
 readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/testbtorbtorgen$$.btor"
@@ -57,31 +57,36 @@ cov=0
 covlimit=0
 id=1
 numcovtests=0
+covcleanup=1
 
-while getopts "i:c:" o
+while getopts "i:c:n" o
 do
   case "$o" in
   i)	id=$OPTARG;;
   c)	cov=1; covlimit=$OPTARG;;
+  n)	covcleanup=0;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
 
-if [[ "$cov" -eq 1 ]] && [[ "$covlimit" -lt 1 ]]; then
-  echo "Coverage limit must be positive" 1>&2
-  exit 1
-fi
-
 fileerror="error${id}.btor"
 
 if [[ "$cov" -eq 1 ]]; then
-  rm -r -f "$covdir"
-  mkdir "$covdir"
-  if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || \
-     [[ ! -r "$covdir" ]] || [[ ! -w "$covdir" ]]; then
-    echo "IO error"
+  if [[ "$covlimit" -lt 1 ]]; then
+    echo "Coverage limit must be positive" 1>&2
     exit 1
   fi
+
+  if [[ "$covcleanup" -eq 1 ]]; then
+    rm -r -f "$covdir"
+    mkdir "$covdir"
+    if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || \
+       [[ ! -r "$covdir" ]] || [[ ! -w "$covdir" ]]; then
+      echo "IO error"
+      exit 1
+    fi
+  fi
+
   rm -f "$filecovhashes"
   touch "$filecovhashes"
 fi
