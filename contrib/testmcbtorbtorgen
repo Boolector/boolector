@@ -55,11 +55,18 @@ do
 done
 
 i=0
-while [[ "$numerrors" -lt "$cores" ]]
+numcovtests=0
+((totalsumcovtests = cores * covlimit))
+while [[ "$numerrors" -lt "$cores" ]] && \
+      ([[ "$cov" -eq 0 ]] || [[ "$numcovtests" -lt "$totalsumcovtests" ]])
 do
   sleep "$sleeptime"
   numerrors=`ls error*.btor 2> /dev/null | wc -l`
   echo "Errors: $numerrors"
+  if [[ "$cov" -eq 1 ]]; then
+    numcovtests=`ls ${covdir}*.btor 2> /dev/null | wc -l`
+    echo "Coverage tests: $numcovtests"
+  fi
   ((i++))
   if [[ "$i" -eq 6 ]]; then
     echo ""
