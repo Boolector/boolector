@@ -160,10 +160,6 @@ do
     if [[ "$cov" -eq 1 ]]; then
       covbase=${covdir}cov_id${id}_test$((i * 4 + rwl))
       stderror=${covbase}.err
-      callfile=${covbase}.cs
-      covtestfile=${covbase}.btor
-      echo ${callstring/" $file"/""} > "$callfile"
-      cp "$file" "$covtestfile"
     else
      stderror=/dev/null
     fi
@@ -194,13 +190,15 @@ do
     if [[ "$cov" -eq 1 ]]; then
       if [[ ! -s "$stderror" ]]; then
 	rm "$stderror"
-	rm "$callfile"
-	rm "$covtestfile"
       else
         cat "$stderror" | sort | uniq > "$filetmp"
 	hashsum=`md5sum "$filetmp"`
 	if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
 	  cp "$filetmp" "$stderror"
+	  callfile=${covbase}.cs
+	  covtestfile=${covbase}.btor
+	  echo ${callstring/" $file"/""} > "$callfile"
+	  cp "$file" "$covtestfile"
 	  echo "$hashsum" >> "$filecovhashes"
 	  ((numcovtests++))
 
@@ -210,8 +208,6 @@ do
 
 	else
 	  rm "$stderror"
-	  rm "$callfile"
-	  rm "$covtestfile"
 	fi
       fi
     fi
