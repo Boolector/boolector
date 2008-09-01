@@ -14,7 +14,9 @@ function cleanup
 {
   for ((i = 1; i <= "$cores"; i++))
   do
-    kill "${ids[$i]}" 2> /dev/null
+    if [[ -n "${ids[$i]}" ]]; then
+      kill "${ids[$i]}" 2> /dev/null
+    fi
   done
 }
 
