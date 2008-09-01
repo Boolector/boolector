@@ -2,6 +2,8 @@
 
 # run testbtorbtorgen on multiple cores simultaneously
 
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
+
 declare -a ids
 
 cores=4
@@ -24,8 +26,6 @@ do
   ids[$i]=$!
   sleep 1
 done
-
-trap 'cleanup; exit' SIGHUP SIGINT SIGTERM
 
 i=0
 while [[ "$numerrors" -lt "$cores" ]]

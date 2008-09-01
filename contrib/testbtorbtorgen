@@ -2,6 +2,8 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
+
 readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit>]" 
 readonly covdir="./covtests/"
 
@@ -40,6 +42,15 @@ readonly filetmp="/tmp/testbtorbtorgen$$.tmp"
 readonly filecovhashes="/tmp/testbtorbtorgen$$hashes.tmp"
 readonly stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 
+function cleanup
+{
+  rm -f "$file"
+  rm -f "$filedump"
+  rm -f "$filetmp"
+  rm -f "$filecovhashes"
+  rm -f "$stdoutput"
+}
+
 i=0
 counter=0
 last=btorgenjava
@@ -62,7 +73,7 @@ if [[ "$cov" -eq 1 ]] && [[ "$covlimit" -lt 1 ]]; then
   exit 1
 fi
 
-fileerror="error"$id".btor"
+fileerror="error${id}.btor"
 
 if [[ "$cov" -eq 1 ]]; then
   rm -r -f "$covdir"
@@ -75,6 +86,7 @@ if [[ "$cov" -eq 1 ]]; then
   rm -f "$filecovhashes"
   touch "$filecovhashes"
 fi
+
 
 while true 
 do 
@@ -125,6 +137,7 @@ do
 
   if [[ ! -s "$file" ]]; then
     echo "*** testbtorbtorgen: generated file is empty"
+    cleanup
     exit 1
   fi 
 
@@ -161,13 +174,15 @@ do
 	echo "ERROR"
 	cp "$file" "$fileerror"
 	echo "; error: $callstring" >> "$fileerror"
-	exit
+	cleanup
+	exit 1
       fi
     else
       if [[ "$retval" -ne "$goldenretval" ]]; then
 	echo "ERROR"
 	cp "$file" "$fileerror"
 	echo "; error: $callstring" >> "$fileerror"
+	cleanup
 	exit 1
       fi
     fi 
@@ -207,6 +222,7 @@ do
     echo "ERROR"
     cp "$file" "$fileerror"
     echo "; dump error" >> "$fileerror"
+    cleanup
     exit 1
   fi 
 
@@ -218,6 +234,7 @@ do
       cp "$file" "$fileerror"
       cp "$stdoutput" "${fileerror}.model"
       echo "; error: $callstring" >> "$fileerror"
+      cleanup
       exit 1
     fi
   fi
@@ -231,6 +248,7 @@ do
       echo "ERROR"
       cp "$file" "$fileerror"
       echo "; valgrind error" >> "$fileerror"
+      cleanup
       exit 1
     fi 
     echo "OK"
