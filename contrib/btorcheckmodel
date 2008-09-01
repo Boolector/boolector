@@ -90,4 +90,7 @@ elif [[ "$retval" -ne 2 ]]; then
   exit 1
 fi
 
+# cleanup
+rm -f "$file"
+
 exit 0

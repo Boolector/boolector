@@ -25,7 +25,7 @@ do
   sleep 1
 done
 
-trap "cleanup; exit" SIGHUP SIGINT SIGTERM
+trap 'cleanup; exit' SIGHUP SIGINT SIGTERM
 
 i=0
 while [[ "$numerrors" -lt "$cores" ]]
