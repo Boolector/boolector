@@ -8,7 +8,7 @@ readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/testbtorbtorgen$$.btor"
 readonly filedump="/tmp/testbtorbtorgen$$dump.btor"
 readonly filetmp="/tmp/testbtorbtorgen$$.tmp"
-readonly filecovhashes="/tmp/testbtorbtorgen$$hashes.tmp"
+readonly filecovhashes="./testbtorbtorgenhashes"
 readonly stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 
 function cleanup
@@ -56,7 +56,7 @@ last=btorgenjava
 cov=0
 covlimit=0
 id=1
-numcovtests=0
+covtestcounter=0
 covcleanup=1
 
 while getopts "i:c:n" o
@@ -85,10 +85,10 @@ if [[ "$cov" -eq 1 ]]; then
       echo "IO error"
       exit 1
     fi
-  fi
 
-  rm -f "$filecovhashes"
-  touch "$filecovhashes"
+    rm -f "$filecovhashes"
+    touch "$filecovhashes"
+  fi
 fi
 
 
@@ -158,7 +158,7 @@ do
     fi
 
     if [[ "$cov" -eq 1 ]]; then
-      covbase=${covdir}cov_id${id}_test$numcovtests
+      covbase=${covdir}cov_id${id}_test$covtestcounter
       stderror=${covbase}.err
     else
      stderror=/dev/null
@@ -193,19 +193,36 @@ do
       else
         cat "$stderror" | sort | uniq > "$filetmp"
 	hashsum=`md5sum "$filetmp"`
-	if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
+        # synchronization for parallel usage
+	( flock -x 200 
+	  numcovtests=`cat "$filecovhashes" | wc -l`
+	  if [[ "$numcovtests" -eq "$covlimit" ]]; then
+	    exit 2
+	  fi
+	  if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
+	    echo "$hashsum" >> "$filecovhashes"
+	    exit 1
+	  else
+	    exit 0
+	  fi 
+	) 200> /var/lock/testbtorbtorgenlock
+	returnval=$?
+
+	if [[ "$returnval" -eq 2 ]]; then
+	  if [[ "$covcleanup" -eq 1 ]]; then
+	    cleanup
+	  fi
+	  rm "$stderror"
+	  exit 0
+	fi
+
+	if [[ "$returnval" -eq 1 ]]; then
 	  cp "$filetmp" "$stderror"
 	  callfile=${covbase}.cs
 	  covtestfile=${covbase}.btor
 	  echo ${callstring/" $file"/""} > "$callfile"
 	  cp "$file" "$covtestfile"
-	  echo "$hashsum" >> "$filecovhashes"
-	  ((numcovtests++))
-
-	  if [[ "$covlimit" -eq "$numcovtests" ]]; then
-	     exit 0 
-	  fi
-
+	  ((covtestcounter++))
 	else
 	  rm "$stderror"
 	fi

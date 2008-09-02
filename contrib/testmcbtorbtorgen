@@ -8,6 +8,7 @@ readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>]"
 readonly covdir="./covtests/"
 readonly cores=4
 readonly sleeptime=10
+readonly filecovhashes="./testbtorbtorgenhashes"
 cov=0
 numerrors=0
 
@@ -19,6 +20,7 @@ function cleanup
       kill "${ids[$i]}" 2> /dev/null
     fi
   done
+  rm -f "$filecovhashes"
 }
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
@@ -39,6 +41,9 @@ if [[ "$cov" -eq 1 ]]; then
     echo "IO error"
     exit 1
   fi
+
+  rm -f "$filecovhashes"
+  touch "$filecovhashes"
 fi
 
 rm -f error*.btor
@@ -56,9 +61,8 @@ done
 
 i=0
 numcovtests=0
-((totalsumcovtests = cores * covlimit))
 while [[ "$numerrors" -lt "$cores" ]] && \
-      ([[ "$cov" -eq 0 ]] || [[ "$numcovtests" -lt "$totalsumcovtests" ]])
+      ([[ "$cov" -eq 0 ]] || [[ "$numcovtests" -lt "$covlimit" ]])
 do
   sleep "$sleeptime"
   numerrors=`ls error*.btor 2> /dev/null | wc -l`
@@ -73,4 +77,4 @@ do
     i=0
   fi
 done
-
+cleanup
