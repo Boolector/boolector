@@ -9,6 +9,7 @@ readonly file="/tmp/testbtorbtorgen$$.btor"
 readonly filedump="/tmp/testbtorbtorgen$$dump.btor"
 readonly filetmp="/tmp/testbtorbtorgen$$.tmp"
 readonly filecovhashes="./testbtorbtorgenhashes"
+readonly filecovlock="/var/lock/testmcbtorbtorgenlock"
 readonly stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 
 function cleanup
@@ -16,8 +17,10 @@ function cleanup
   rm -f "$file"
   rm -f "$filedump"
   rm -f "$filetmp"
-  rm -f "$filecovhashes"
   rm -f "$stdoutput"
+  if [[ "$covcleanup" -eq 1 ]]; then
+    rm -f "$filecovhashes"
+  fi
 }
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
@@ -205,13 +208,11 @@ do
 	  else
 	    exit 0
 	  fi 
-	) 200> /var/lock/testbtorbtorgenlock
+	) 200> "$filecovlock"
 	returnval=$?
 
 	if [[ "$returnval" -eq 2 ]]; then
-	  if [[ "$covcleanup" -eq 1 ]]; then
-	    cleanup
-	  fi
+	  cleanup
 	  rm "$stderror"
 	  exit 0
 	fi

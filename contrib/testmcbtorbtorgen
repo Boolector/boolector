@@ -9,6 +9,7 @@ readonly covdir="./covtests/"
 readonly cores=4
 readonly sleeptime=10
 readonly filecovhashes="./testbtorbtorgenhashes"
+readonly filecovlock="/var/lock/testmcbtorbtorgenlock"
 cov=0
 numerrors=0
 
@@ -20,7 +21,10 @@ function cleanup
       kill "${ids[$i]}" 2> /dev/null
     fi
   done
-  rm -f "$filecovhashes"
+  if [[ "$cov" -eq 1 ]]; then
+    rm -f "$filecovhashes"
+    rm -f "$filecovlock"
+  fi
 }
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
