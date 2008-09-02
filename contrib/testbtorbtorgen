@@ -2,7 +2,7 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [i <id>] [-c <limit> [-n]]" 
+readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [-i <id>] [-c <limit> [-n]]" 
 readonly covdir="./covtests/"
 readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/testbtorbtorgen$$.btor"
