@@ -5206,6 +5206,8 @@ compute_ua_stats_distribution (Btor *btor,
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
+    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
+
     data = (BtorUAData *) b->data.asPtr;
     assert (ua_mode == BTOR_UA_GLOBAL_MODE || data != NULL);
 
@@ -5262,7 +5264,7 @@ compute_ua_stats_distribution (Btor *btor,
     }
   }
 
-  assert ((unsigned int) BTOR_COUNT_STACK (all) == btor->ua.vars_reads->count);
+  assert ((unsigned int) BTOR_COUNT_STACK (all) <= btor->ua.vars_reads->count);
 
   if (!BTOR_EMPTY_STACK (all))
   {
@@ -5412,6 +5414,8 @@ compute_basic_ua_stats (Btor *btor,
 
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+
+    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
     update_min_basic_ua_stats (btor, min_width, cur->len);
     update_max_basic_ua_stats (btor, max_width, cur->len);
@@ -5593,7 +5597,7 @@ btor_print_stats_btor (Btor *btor)
                                    &variance_eff_width);
 
     print_verbose_msg ("");
-    print_verbose_msg (" variables:");
+    print_verbose_msg (" variables after rewriting:");
     print_verbose_msg ("  number: %d", num_vars);
     if (num_vars > 0)
     {
@@ -5617,7 +5621,7 @@ btor_print_stats_btor (Btor *btor)
     }
 
     print_verbose_msg ("");
-    print_verbose_msg (" reads:");
+    print_verbose_msg (" reads after rewriting:");
     print_verbose_msg ("  number: %d", num_reads);
     if (num_reads > 0)
     {
@@ -5643,7 +5647,7 @@ btor_print_stats_btor (Btor *btor)
     if (num_vars == 0 || num_reads == 0) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
 
     print_verbose_msg ("");
-    print_verbose_msg (" variables and reads:");
+    print_verbose_msg (" variables and reads after rewriting:");
     print_verbose_msg ("  number: %u", btor->ua.vars_reads->count);
     if (btor->ua.vars_reads->count > 0u)
     {
