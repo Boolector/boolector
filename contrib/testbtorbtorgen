@@ -9,7 +9,7 @@ readonly file="/tmp/testbtorbtorgen$$.btor"
 readonly filedump="/tmp/testbtorbtorgen$$dump.btor"
 readonly filetmp="/tmp/testbtorbtorgen$$.tmp"
 readonly filecovhashes="./testbtorbtorgenhashes"
-readonly filecovlock="/var/lock/testmcbtorbtorgenlock"
+readonly filecovlock="/var/lock/testmcbtorbtorgen${PPID}lock"
 readonly stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
 
 function cleanup
@@ -20,6 +20,7 @@ function cleanup
   rm -f "$stdoutput"
   if [[ "$covcleanup" -eq 1 ]]; then
     rm -f "$filecovhashes"
+    rm -f "$filecovlock"
   fi
 }
 

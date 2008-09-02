@@ -9,7 +9,7 @@ readonly covdir="./covtests/"
 readonly cores=4
 readonly sleeptime=10
 readonly filecovhashes="./testbtorbtorgenhashes"
-readonly filecovlock="/var/lock/testmcbtorbtorgenlock"
+readonly filecovlock="/var/lock/testmcbtorbtorgen$$lock"
 cov=0
 numerrors=0
 
