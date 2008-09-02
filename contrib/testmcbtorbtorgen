@@ -73,7 +73,13 @@ do
   echo "Errors: $numerrors"
   if [[ "$cov" -eq 1 ]]; then
     numcovtests=`ls ${covdir}*.btor 2> /dev/null | wc -l`
-    echo "Coverage tests: $numcovtests"
+    covtestspercents=`echo "scale=2; ($numcovtests / $covlimit) * 100" | bc`
+    if [[ "$covtestspercents" = "100.00" ]]; then
+      covtestspercents=100 
+    else
+      covtestspercents=${covtestspercents:0:2}
+    fi
+    echo "Coverage tests: $numcovtests (${covtestspercents}%)"
   fi
   ((i++))
   if [[ "$i" -eq 6 ]]; then
