@@ -242,6 +242,7 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
+  int sat_result;
   struct /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */
