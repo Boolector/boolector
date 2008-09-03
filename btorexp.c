@@ -4278,6 +4278,12 @@ btor_cmp_len (const void *p, const void *q)
 }
 
 static int
+btor_cmp_int_qsort (const void *p, const void *q)
+{
+  return *(int *) p - *(int *) q;
+}
+
+static int
 btor_cmp_ua_data_eff_width (const void *p, const void *q)
 {
   Btor *btor;
@@ -4870,6 +4876,10 @@ btor_enable_under_approx (Btor *btor)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->ua.read_indices =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 void
@@ -5006,7 +5016,11 @@ btor_delete_btor (Btor *btor)
   {
     assert (btor->ua.vars_reads->count == 0u);
     btor_delete_ptr_hash_table (btor->ua.vars_reads);
+    assert (btor->ua.writes_aconds->count == 0u);
     btor_delete_ptr_hash_table (btor->ua.writes_aconds);
+    /* does not have to be empty, only temporary
+     * used for sorting (median computing) */
+    btor_delete_ptr_hash_table (btor->ua.read_indices);
   }
 
   btor_delete_aigvec_mgr (btor->avmgr);
@@ -5215,6 +5229,30 @@ compute_median_mod_width_ua_stats (Btor *btor, BtorExpPtrStack *stack)
     assert (b->data.asPtr != NULL);
     right = ((BtorUAData *) b->data.asPtr)->mod_len;
 
+    result = (double) (left + right) / 2.0;
+  }
+  return result;
+}
+
+static double
+compute_median_width_indices_ua_stats (Btor *btor, BtorIntStack *stack)
+{
+  int num_elements, left, right;
+  double result;
+  assert (btor != NULL);
+  assert (stack != NULL);
+  assert (btor->ua.enabled);
+  assert (btor->sat_result == BTOR_SAT);
+
+  num_elements = (unsigned int) BTOR_COUNT_STACK (*stack);
+
+  qsort (stack->start, num_elements, sizeof (int), btor_cmp_int_qsort);
+  if (num_elements & 1)
+    result = stack->start[num_elements >> 1];
+  else
+  {
+    left   = stack->start[(num_elements >> 1) - 1];
+    right  = stack->start[(num_elements >> 1)];
     result = (double) (left + right) / 2.0;
   }
   return result;
@@ -5790,13 +5828,21 @@ compute_basic_array_ua_stats (Btor *btor,
                               int *min_index_mod_width,
                               int *max_index_mod_width,
                               double *avg_index_width,
-                              double *avg_index_mod_width)
+                              double *avg_index_mod_width,
+                              double *median_index_width,
+                              double *variance_index_width,
+                              double *median_index_mod_width,
+                              double *variance_index_mod_width)
 {
-  BtorPtrHashBucket *b_a, *b;
+  BtorIntStack index_mod_widths;
+  BtorIntStack index_widths;
+  BtorPtrHashBucket *b_a, *b, *temp;
   BtorExp *array, *index;
-  int found_index, mod_len;
+  int found_index, mod_len, index_width, index_mod_width;
   long long int sum_index_width;
   long long int sum_index_mod_width;
+  int i;
+  BtorMemMgr *mm;
 
   assert (btor != NULL);
   assert (num_arrays != NULL);
@@ -5807,20 +5853,31 @@ compute_basic_array_ua_stats (Btor *btor,
   assert (max_index_mod_width != NULL);
   assert (avg_index_width != NULL);
   assert (avg_index_mod_width != NULL);
+  assert (median_index_width != NULL);
+  assert (variance_index_width != NULL);
+  assert (median_index_mod_width != NULL);
+  assert (variance_index_mod_width != NULL);
   assert (btor->ua.enabled);
   assert (btor->sat_result == BTOR_SAT);
 
+  mm = btor->mm;
+  BTOR_INIT_STACK (index_widths);
+  BTOR_INIT_STACK (index_mod_widths);
   sum_index_width     = 0llu;
   sum_index_mod_width = 0llu;
   *num_arrays         = 0;
   *num_indices        = 0;
 
-  *min_index_width     = 0;
-  *max_index_width     = 0;
-  *min_index_mod_width = 0;
-  *max_index_mod_width = 0;
-  *avg_index_width     = 0.0;
-  *avg_index_mod_width = 0.0;
+  *min_index_width          = 0;
+  *max_index_width          = 0;
+  *min_index_mod_width      = 0;
+  *max_index_mod_width      = 0;
+  *avg_index_width          = 0.0;
+  *avg_index_mod_width      = 0.0;
+  *median_index_width       = 0.0;
+  *variance_index_width     = 0.0;
+  *median_index_mod_width   = 0.0;
+  *variance_index_mod_width = 0.0;
 
   for (b_a = btor->arrays->first; b_a != NULL; b_a = b_a->next)
   {
@@ -5839,7 +5896,20 @@ compute_basic_array_ua_stats (Btor *btor,
       if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (index)))
       {
         found_index = 1;
-        mod_len     = compute_model_len_ua_stats (btor, index);
+
+        temp = btor_find_in_ptr_hash_table (btor->ua.read_indices, index);
+        if (temp == NULL)
+        {
+          mod_len = compute_model_len_ua_stats (btor, index);
+          /* hash for sorting later */
+          btor_insert_in_ptr_hash_table (btor->ua.read_indices, index)
+              ->data.asInt = mod_len;
+        }
+        else
+          mod_len = temp->data.asInt;
+
+        BTOR_PUSH_STACK (mm, index_mod_widths, mod_len);
+
         sum_index_mod_width += mod_len;
         update_min_basic_ua_stats (btor, min_index_mod_width, mod_len);
         update_max_basic_ua_stats (btor, max_index_mod_width, mod_len);
@@ -5849,6 +5919,7 @@ compute_basic_array_ua_stats (Btor *btor,
 
     if (found_index)
     {
+      BTOR_PUSH_STACK (mm, index_widths, array->index_len);
       update_min_basic_ua_stats (btor, min_index_width, array->index_len);
       update_max_basic_ua_stats (btor, max_index_width, array->index_len);
       sum_index_width += array->index_len;
@@ -5861,6 +5932,39 @@ compute_basic_array_ua_stats (Btor *btor,
 
   if (*num_indices > 0)
     *avg_index_mod_width = (double) sum_index_mod_width / (double) *num_indices;
+
+  /* compute variance and median */
+
+  if (BTOR_COUNT_STACK (index_widths) > 0)
+  {
+    for (i = 0; i < BTOR_COUNT_STACK (index_widths); i++)
+    {
+      index_width = index_widths.start[i];
+      update_variance_ua_stats (
+          btor, variance_index_width, *avg_index_width, index_width);
+    }
+    *variance_index_width /= (double) BTOR_COUNT_STACK (index_widths);
+    *median_index_width =
+        compute_median_width_indices_ua_stats (btor, &index_widths);
+  }
+
+  if (BTOR_COUNT_STACK (index_mod_widths) > 0)
+  {
+    for (i = 0; i < BTOR_COUNT_STACK (index_mod_widths); i++)
+    {
+      index_mod_width = index_mod_widths.start[i];
+      update_variance_ua_stats (btor,
+                                variance_index_mod_width,
+                                *avg_index_mod_width,
+                                index_mod_width);
+    }
+    *variance_index_mod_width /= (double) BTOR_COUNT_STACK (index_mod_widths);
+    *median_index_mod_width =
+        compute_median_width_indices_ua_stats (btor, &index_mod_widths);
+  }
+
+  BTOR_RELEASE_STACK (mm, index_widths);
+  BTOR_RELEASE_STACK (mm, index_mod_widths);
 }
 
 void
@@ -5877,6 +5981,8 @@ btor_print_stats_btor (Btor *btor)
   double median_read_mod_width, variance_read_mod_width;
   double median_mod_width, variance_mod_width;
   double avg_index_width, avg_index_mod_width;
+  double median_index_width, variance_index_width;
+  double median_index_mod_width, variance_index_mod_width;
   unsigned int num_vars, num_reads;
   unsigned long long int sum_var_refs, sum_read_refs, sum_refs;
   int max_var_width, max_read_width, min_var_width, min_read_width;
@@ -6086,20 +6192,29 @@ btor_print_stats_btor (Btor *btor)
                                     &min_index_mod_width,
                                     &max_index_mod_width,
                                     &avg_index_width,
-                                    &avg_index_mod_width);
+                                    &avg_index_mod_width,
+                                    &median_index_width,
+                                    &variance_index_width,
+                                    &median_index_mod_width,
+                                    &variance_index_mod_width);
+
       print_verbose_msg ("");
       print_verbose_msg (" instantiated arrays: %d", num_arrays);
       if (num_arrays > 0)
       {
         print_verbose_msg ("  instantiated indices: %d", num_indices);
-        print_verbose_msg ("  indices orig. width: %d %d %.1f",
+        print_verbose_msg ("  indices orig. width: %d %d %.1f %1.f %1.f",
                            min_index_width,
                            max_index_width,
-                           avg_index_width);
-        print_verbose_msg ("  indices model width: %d %d %.1f",
+                           avg_index_width,
+                           median_index_width,
+                           variance_index_width);
+        print_verbose_msg ("  indices model width: %d %d %.1f %1.f %1.f",
                            min_index_mod_width,
                            max_index_mod_width,
-                           avg_index_mod_width);
+                           avg_index_mod_width,
+                           median_index_mod_width,
+                           variance_index_mod_width);
       }
     }
   }
