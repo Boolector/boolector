@@ -4876,10 +4876,6 @@ btor_enable_under_approx (Btor *btor)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->ua.read_indices =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 void
@@ -5018,9 +5014,6 @@ btor_delete_btor (Btor *btor)
     btor_delete_ptr_hash_table (btor->ua.vars_reads);
     assert (btor->ua.writes_aconds->count == 0u);
     btor_delete_ptr_hash_table (btor->ua.writes_aconds);
-    /* does not have to be empty, only temporary
-     * used for sorting (median computing) */
-    btor_delete_ptr_hash_table (btor->ua.read_indices);
   }
 
   btor_delete_aigvec_mgr (btor->avmgr);
@@ -5836,7 +5829,7 @@ compute_basic_array_ua_stats (Btor *btor,
 {
   BtorIntStack index_mod_widths;
   BtorIntStack index_widths;
-  BtorPtrHashBucket *b_a, *b, *temp;
+  BtorPtrHashBucket *b_a, *b;
   BtorExp *array, *index;
   int found_index, mod_len, index_width, index_mod_width;
   long long int sum_index_width;
@@ -5897,17 +5890,7 @@ compute_basic_array_ua_stats (Btor *btor,
       {
         found_index = 1;
 
-        temp = btor_find_in_ptr_hash_table (btor->ua.read_indices, index);
-        if (temp == NULL)
-        {
-          mod_len = compute_model_len_ua_stats (btor, index);
-          /* hash for sorting later */
-          btor_insert_in_ptr_hash_table (btor->ua.read_indices, index)
-              ->data.asInt = mod_len;
-        }
-        else
-          mod_len = temp->data.asInt;
-
+        mod_len = compute_model_len_ua_stats (btor, index);
         BTOR_PUSH_STACK (mm, index_mod_widths, mod_len);
 
         sum_index_mod_width += mod_len;

@@ -255,7 +255,6 @@ struct Btor
     int global_last_e;               /* last global UA e for CNF */
     BtorPtrHashTable *vars_reads;    /* bv variables and reads */
     BtorPtrHashTable *writes_aconds; /* array writes and array conds */
-    BtorPtrHashTable *read_indices;  /* instantiated read indices */
   } ua;
   int (*unsat_core_lookup) (int); /* lookup function for UNSAT core */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
