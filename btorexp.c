@@ -6186,13 +6186,13 @@ btor_print_stats_btor (Btor *btor)
       if (num_arrays > 0)
       {
         print_verbose_msg ("  instantiated indices: %d", num_indices);
-        print_verbose_msg ("  indices orig. width: %d %d %.1f %1.f %1.f",
+        print_verbose_msg ("  indices orig. width: %d %d %.1f %.1f %.1f",
                            min_index_width,
                            max_index_width,
                            avg_index_width,
                            median_index_width,
                            variance_index_width);
-        print_verbose_msg ("  indices model width: %d %d %.1f %1.f %1.f",
+        print_verbose_msg ("  indices model width: %d %d %.1f %.1f %.1f",
                            min_index_mod_width,
                            max_index_mod_width,
                            avg_index_mod_width,
