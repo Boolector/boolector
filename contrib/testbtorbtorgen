@@ -196,7 +196,7 @@ do
 	rm "$stderror"
       else
         cat "$stderror" | sort | uniq > "$filetmp"
-	hashsum=`md5sum "$filetmp"`
+	hashsum=`md5sum "$filetmp" | awk '{ print $1 }'`
         # synchronization for parallel usage
 	( flock -x 200 
 	  numcovtests=`cat "$filecovhashes" | wc -l`
