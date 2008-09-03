@@ -5491,21 +5491,18 @@ compute_basic_ua_stats (Btor *btor,
                         int *min_var_width,
                         int *min_read_width,
                         int *min_width,
-
                         int *max_var_eff_width,
                         int *max_read_eff_width,
                         int *max_eff_width,
                         int *min_var_eff_width,
                         int *min_read_eff_width,
                         int *min_eff_width,
-
                         int *max_var_mod_width,
                         int *max_read_mod_width,
                         int *max_mod_width,
                         int *min_var_mod_width,
                         int *min_read_mod_width,
                         int *min_mod_width,
-
                         double *avg_var_width,
                         double *avg_read_width,
                         double *avg_var_eff_width,
@@ -5847,14 +5844,12 @@ btor_print_stats_btor (Btor *btor)
                             &min_var_eff_width,
                             &min_read_eff_width,
                             &min_eff_width,
-
                             &max_var_mod_width,
                             &max_read_mod_width,
                             &max_mod_width,
                             &min_var_mod_width,
                             &min_read_mod_width,
                             &min_mod_width,
-
                             &avg_var_width,
                             &avg_read_width,
                             &avg_var_eff_width,
@@ -5883,12 +5878,10 @@ btor_print_stats_btor (Btor *btor)
                                    &variance_var_eff_width,
                                    &median_read_eff_width,
                                    &variance_read_eff_width,
-
                                    &median_var_mod_width,
                                    &variance_var_mod_width,
                                    &median_read_mod_width,
                                    &variance_read_mod_width,
-
                                    &median_width,
                                    &variance_width,
                                    &median_eff_width,
@@ -5897,111 +5890,89 @@ btor_print_stats_btor (Btor *btor)
                                    &variance_mod_width);
 
     print_verbose_msg ("");
-    print_verbose_msg (" variables after rewriting:");
-    print_verbose_msg ("  number: %d", num_vars);
+    print_verbose_msg (" vars after rewriting: %d", num_vars);
     if (num_vars > 0)
     {
-      print_verbose_msg ("  min orig. bit-width: %d", min_var_width);
-      print_verbose_msg ("  max orig. bit-width: %d", max_var_width);
-      print_verbose_msg ("  avg orig. bit-width: %.1f", avg_var_width);
-      print_verbose_msg ("  median of orig. bit-width: %.1f", median_var_width);
-      print_verbose_msg ("  variance of orig. bit-width: %.1f",
+      print_verbose_msg ("  vars orig width: %d %d %.1f %.1f %.1f",
+                         min_var_width,
+                         max_var_width,
+                         avg_var_width,
+                         median_var_width,
                          variance_var_width);
       if (ua_mode == BTOR_UA_LOCAL_MODE)
-      {
-        print_verbose_msg ("  min eff. bit-width: %d", min_var_eff_width);
-        print_verbose_msg ("  max eff. bit-width: %d", max_var_eff_width);
-        print_verbose_msg ("  avg eff. bit-width: %.1f", avg_var_eff_width);
-        print_verbose_msg ("  median of eff. bit-width: %.1f",
-                           median_var_eff_width);
-        print_verbose_msg ("  variance of eff. bit-width: %.1f",
-                           variance_var_eff_width);
-        print_verbose_msg ("  sum of refinements: %llu", sum_var_refs);
-        print_verbose_msg ("  avg refinements: %.1f", avg_var_refs);
-      }
+        print_verbose_msg ("  vars eff. width: %d %d %.1f %.1f %.1f %llu %.1f",
+                           min_var_eff_width,
+                           max_var_eff_width,
+                           avg_var_eff_width,
+                           median_var_eff_width,
+                           variance_var_eff_width,
+                           sum_var_refs,
+                           avg_var_refs);
       if (btor->sat_result == BTOR_SAT)
-      {
-        print_verbose_msg ("  min model bit-width: %d", min_var_mod_width);
-        print_verbose_msg ("  max model bit-width: %d", max_var_mod_width);
-        print_verbose_msg ("  avg model bit-width: %.1f", avg_var_mod_width);
-        print_verbose_msg ("  median of model bit-width: %.1f",
-                           median_var_mod_width);
-        print_verbose_msg ("  variance of model bit-width: %.1f",
+        print_verbose_msg ("  vars model width: %d %d %.1f %.1f %.1f",
+                           min_var_mod_width,
+                           max_var_mod_width,
+                           avg_var_mod_width,
+                           median_var_mod_width,
                            variance_var_mod_width);
-      }
     }
 
     print_verbose_msg ("");
-    print_verbose_msg (" reads after rewriting:");
-    print_verbose_msg ("  number: %d", num_reads);
+    print_verbose_msg (" reads after rewriting: %d", num_reads);
     if (num_reads > 0)
     {
-      print_verbose_msg ("  min orig. bit-width: %d", min_read_width);
-      print_verbose_msg ("  max orig. bit-width: %d", max_read_width);
-      print_verbose_msg ("  avg orig. bit-width: %.1f", avg_read_width);
-      print_verbose_msg ("  median of orig. bit-width: %.1f",
-                         median_read_width);
-      print_verbose_msg ("  variance of orig. bit-width: %.1f",
+      print_verbose_msg ("  reads orig width: %d %d %.1f %.1f %.1f",
+                         min_read_width,
+                         max_read_width,
+                         avg_read_width,
+                         median_read_width,
                          variance_read_width);
       if (ua_mode == BTOR_UA_LOCAL_MODE)
-      {
-        print_verbose_msg ("  min eff. bit-width: %d", min_read_eff_width);
-        print_verbose_msg ("  max eff. bit-width: %d", max_read_eff_width);
-        print_verbose_msg ("  avg eff. bit-width: %.1f", avg_read_eff_width);
-        print_verbose_msg ("  median of eff. bit-width: %.1f",
-                           median_read_eff_width);
-        print_verbose_msg ("  variance of eff. bit-width: %.1f",
-                           variance_read_eff_width);
-        print_verbose_msg ("  sum of refinements: %llu", sum_read_refs);
-        print_verbose_msg ("  avg refinements: %.1f", avg_read_refs);
-      }
+        print_verbose_msg ("  reads eff. width: %d %d %.1f %.1f %.1f %llu %.1f",
+                           min_read_eff_width,
+                           max_read_eff_width,
+                           avg_read_eff_width,
+                           median_read_eff_width,
+                           variance_read_eff_width,
+                           sum_read_refs,
+                           avg_read_refs);
       if (btor->sat_result == BTOR_SAT)
-      {
-        print_verbose_msg ("  min model bit-width: %d", min_read_mod_width);
-        print_verbose_msg ("  max model bit-width: %d", max_read_mod_width);
-        print_verbose_msg ("  avg model bit-width: %.1f", avg_read_mod_width);
-        print_verbose_msg ("  median of model bit-width: %.1f",
-                           median_read_mod_width);
-        print_verbose_msg ("  variance of model bit-width: %.1f",
+        print_verbose_msg ("  reads model width: %d %d %.1f %.1f %.1f",
+                           min_read_mod_width,
+                           max_read_mod_width,
+                           avg_read_mod_width,
+                           median_read_mod_width,
                            variance_read_mod_width);
-      }
     }
 
     if (num_vars == 0 || num_reads == 0) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
 
     print_verbose_msg ("");
-    print_verbose_msg (" variables and reads after rewriting:");
-    print_verbose_msg ("  number: %u", btor->ua.vars_reads->count);
-    if (btor->ua.vars_reads->count > 0u)
-    {
-      print_verbose_msg ("  min orig. bit-width: %d", min_width);
-      print_verbose_msg ("  max orig. bit-width: %d", max_width);
-      print_verbose_msg ("  avg orig. bit-width: %.1f", avg_width);
-      print_verbose_msg ("  median of orig. bit-width: %.1f", median_width);
-      print_verbose_msg ("  variance of orig. bit-width: %.1f", variance_width);
-      if (ua_mode == BTOR_UA_LOCAL_MODE)
-      {
-        print_verbose_msg ("  min eff. bit-width: %d", min_eff_width);
-        print_verbose_msg ("  max eff. bit-width: %d", max_eff_width);
-        print_verbose_msg ("  avg eff. bit-width: %.1f", avg_eff_width);
-        print_verbose_msg ("  median of eff. bit-width: %.1f",
-                           median_eff_width);
-        print_verbose_msg ("  variance of eff. bit-width: %.1f",
-                           variance_eff_width);
-        print_verbose_msg ("  sum of refinements: %llu", sum_refs);
-        print_verbose_msg ("  avg refinements: %.1f", avg_refs);
-      }
-      if (btor->sat_result == BTOR_SAT)
-      {
-        print_verbose_msg ("  min model bit-width: %d", min_mod_width);
-        print_verbose_msg ("  max model bit-width: %d", max_mod_width);
-        print_verbose_msg ("  avg model bit-width: %.1f", avg_mod_width);
-        print_verbose_msg ("  median of model bit-width: %.1f",
-                           median_mod_width);
-        print_verbose_msg ("  variance of model bit-width: %.1f",
-                           variance_mod_width);
-      }
-    }
+    print_verbose_msg (" variables + reads after rewriting: %d",
+                       num_vars + num_reads);
+    print_verbose_msg ("  vars + reads orig width: %d %d %.1f %.1f %.1f",
+                       min_width,
+                       max_width,
+                       avg_width,
+                       median_width,
+                       variance_width);
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+      print_verbose_msg (
+          "  vars + reads eff. width: %d %d %.1f %.1f %.1f %llu %.1f",
+          min_eff_width,
+          max_eff_width,
+          avg_eff_width,
+          median_eff_width,
+          variance_eff_width,
+          sum_refs,
+          avg_refs);
+    if (btor->sat_result == BTOR_SAT)
+      print_verbose_msg ("  vars + reads model width: %d %d %.1f %.1f %.1f",
+                         min_mod_width,
+                         max_mod_width,
+                         avg_mod_width,
+                         median_mod_width,
+                         variance_mod_width);
   }
 
 BTOR_CONTINUE_BASIC_STATS_OUTPUT:
