@@ -4797,26 +4797,16 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr  = btor_new_aigvec_mgr (mm);
-  btor->arrays = btor_new_ptr_hash_table (mm,
+  btor->avmgr             = btor_new_aigvec_mgr (mm);
+  btor->arrays            = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->ua.vars_reads =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->ua.writes_aconds =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->id                   = 1;
-  btor->lambda_id            = 1;
-  btor->valid_assignments    = 1;
-  btor->rewrite_level        = 3;
-  btor->vread_index_id       = 1;
-  btor->ua.initial_eff_width = 1;
-  btor->ua.global_eff_width  = 1;
-  btor->unsat_core_lookup    = picosat_usedlit;
+  btor->id                = 1;
+  btor->lambda_id         = 1;
+  btor->valid_assignments = 1;
+  btor->rewrite_level     = 3;
+  btor->vread_index_id    = 1;
+  btor->unsat_core_lookup = picosat_usedlit;
 
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -4861,9 +4851,25 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 void
 btor_enable_under_approx (Btor *btor)
 {
+  BtorMemMgr *mm;
+
   assert (btor != NULL);
   assert (btor->id == 1);
-  btor->ua.enabled = 1;
+  assert (!btor->ua.enabled);
+
+  mm = btor->mm;
+
+  btor->ua.enabled           = 1;
+  btor->ua.initial_eff_width = 1;
+  btor->ua.global_eff_width  = 1;
+  btor->ua.vars_reads =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->ua.writes_aconds =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 void
@@ -4996,9 +5002,12 @@ btor_delete_btor (Btor *btor)
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
   btor_delete_ptr_hash_table (btor->arrays);
 
-  assert (btor->ua.vars_reads->count == 0u);
-  btor_delete_ptr_hash_table (btor->ua.vars_reads);
-  btor_delete_ptr_hash_table (btor->ua.writes_aconds);
+  if (btor->ua.enabled)
+  {
+    assert (btor->ua.vars_reads->count == 0u);
+    btor_delete_ptr_hash_table (btor->ua.vars_reads);
+    btor_delete_ptr_hash_table (btor->ua.writes_aconds);
+  }
 
   btor_delete_aigvec_mgr (btor->avmgr);
   BTOR_DELETE (mm, btor);
