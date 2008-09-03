@@ -5814,7 +5814,7 @@ btor_print_stats_btor (Btor *btor)
   {
     print_verbose_msg ("");
     print_verbose_msg ("under-approximation (UA) statistics:");
-    print_verbose_msg (" refinement loops: %d", btor->stats.ua_refinements);
+    print_verbose_msg (" UA refinements: %d", btor->stats.ua_refinements);
     if (ua_mode == BTOR_UA_GLOBAL_MODE)
       print_verbose_msg (" global effective bit-width (final): %d",
                          btor->ua.global_eff_width);
@@ -5890,7 +5890,7 @@ btor_print_stats_btor (Btor *btor)
                                    &variance_mod_width);
 
     print_verbose_msg ("");
-    print_verbose_msg (" vars after rewriting: %d", num_vars);
+    print_verbose_msg (" reachable vars: %d", num_vars);
     if (num_vars > 0)
     {
       print_verbose_msg ("  vars orig width: %d %d %.1f %.1f %.1f",
@@ -5918,7 +5918,7 @@ btor_print_stats_btor (Btor *btor)
     }
 
     print_verbose_msg ("");
-    print_verbose_msg (" reads after rewriting: %d", num_reads);
+    print_verbose_msg (" reachable reads: %d", num_reads);
     if (num_reads > 0)
     {
       print_verbose_msg ("  reads orig width: %d %d %.1f %.1f %.1f",
@@ -5948,8 +5948,7 @@ btor_print_stats_btor (Btor *btor)
     if (num_vars == 0 || num_reads == 0) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
 
     print_verbose_msg ("");
-    print_verbose_msg (" variables + reads after rewriting: %d",
-                       num_vars + num_reads);
+    print_verbose_msg (" reachable vars + reads: %d", num_vars + num_reads);
     print_verbose_msg ("  vars + reads orig width: %d %d %.1f %.1f %.1f",
                        min_width,
                        max_width,
@@ -5978,7 +5977,7 @@ btor_print_stats_btor (Btor *btor)
 BTOR_CONTINUE_BASIC_STATS_OUTPUT:
   print_verbose_msg ("");
   print_verbose_msg ("lemmas on demand statistics:");
-  print_verbose_msg (" refinements: %d", btor->stats.lod_refinements);
+  print_verbose_msg (" LOD refinements: %d", btor->stats.lod_refinements);
   if (btor->stats.lod_refinements)
   {
     print_verbose_msg (" array axiom 1 conflicts: %d",
