@@ -5230,12 +5230,10 @@ compute_ua_stats_distribution (Btor *btor,
                                double *variance_var_eff_width,
                                double *median_read_eff_width,
                                double *variance_read_eff_width,
-
                                double *median_var_mod_width,
                                double *variance_var_mod_width,
                                double *median_read_mod_width,
                                double *variance_read_mod_width,
-
                                double *median_width,
                                double *variance_width,
                                double *median_eff_width,
@@ -5528,7 +5526,6 @@ compute_basic_ua_stats (Btor *btor,
   unsigned long long int sum_read_eff_width;
   unsigned long long int sum_var_mod_width;
   unsigned long long int sum_read_mod_width;
-  int mod_len;
 
   assert (btor != NULL);
   assert (num_vars != NULL);
@@ -5633,11 +5630,9 @@ compute_basic_ua_stats (Btor *btor,
     update_max_basic_ua_stats (btor, max_width, cur->len);
     if (btor->sat_result == BTOR_SAT)
     {
-      mod_len = data->mod_len;
-      update_min_basic_ua_stats (btor, min_mod_width, mod_len);
-      update_max_basic_ua_stats (btor, max_mod_width, mod_len);
+      update_min_basic_ua_stats (btor, min_mod_width, data->mod_len);
+      update_max_basic_ua_stats (btor, max_mod_width, data->mod_len);
     }
-
     if (ua_mode == BTOR_UA_LOCAL_MODE)
     {
       update_min_basic_ua_stats (btor, min_eff_width, data->eff_width);
@@ -5649,16 +5644,15 @@ compute_basic_ua_stats (Btor *btor,
     if (BTOR_IS_VAR_EXP (cur))
     {
       sum_var_width += cur->len;
-      if (btor->sat_result == BTOR_SAT) sum_var_mod_width += mod_len;
+      if (btor->sat_result == BTOR_SAT) sum_var_mod_width += data->mod_len;
 
       update_min_basic_ua_stats (btor, min_var_width, cur->len);
       update_max_basic_ua_stats (btor, max_var_width, cur->len);
       if (btor->sat_result == BTOR_SAT)
       {
-        update_min_basic_ua_stats (btor, min_var_mod_width, mod_len);
-        update_max_basic_ua_stats (btor, max_var_mod_width, mod_len);
+        update_min_basic_ua_stats (btor, min_var_mod_width, data->mod_len);
+        update_max_basic_ua_stats (btor, max_var_mod_width, data->mod_len);
       }
-
       if (ua_mode == BTOR_UA_LOCAL_MODE)
       {
         update_min_basic_ua_stats (btor, min_var_eff_width, data->eff_width);
@@ -5672,14 +5666,14 @@ compute_basic_ua_stats (Btor *btor,
     else
     {
       sum_read_width += cur->len;
-      if (btor->sat_result == BTOR_SAT) sum_read_mod_width += mod_len;
+      if (btor->sat_result == BTOR_SAT) sum_read_mod_width += data->mod_len;
 
       update_min_basic_ua_stats (btor, min_read_width, cur->len);
       update_max_basic_ua_stats (btor, max_read_width, cur->len);
       if (btor->sat_result == BTOR_SAT)
       {
-        update_min_basic_ua_stats (btor, min_read_mod_width, mod_len);
-        update_max_basic_ua_stats (btor, max_read_mod_width, mod_len);
+        update_min_basic_ua_stats (btor, min_read_mod_width, data->mod_len);
+        update_max_basic_ua_stats (btor, max_read_mod_width, data->mod_len);
       }
 
       if (ua_mode == BTOR_UA_LOCAL_MODE)
