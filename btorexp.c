@@ -6136,7 +6136,7 @@ btor_print_stats_btor (Btor *btor)
                            variance_read_mod_width);
     }
 
-    if (num_vars == 0 || num_reads == 0)
+    if (num_vars != 0 && num_reads != 0)
     {
       print_verbose_msg ("");
       print_verbose_msg (" reachable vars + reads: %d", num_vars + num_reads);
