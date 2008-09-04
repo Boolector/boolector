@@ -21,6 +21,7 @@ function cleanup
       kill "${ids[$i]}" 2> /dev/null
     fi
   done
+  sleep 1
   if [[ "$cov" -eq 1 ]]; then
     rm -f "$filecovhashes"
     rm -f "$filecovlock"
