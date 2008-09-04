@@ -4,14 +4,14 @@
 
 declare -a ids
 
-readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>]" 
+readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>] [-d] [-x]" 
 readonly covdir="./covtests/"
 readonly cores=4
-readonly sleeptime=10
 readonly filecovhashes="./testbtorbtorgenhashes"
 readonly filecovlock="/var/lock/testmcbtorbtorgen$$lock"
 cov=0
 numerrors=0
+sleeptime=10
 
 function cleanup
 {
@@ -29,10 +29,12 @@ function cleanup
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
-while getopts "c:" o
+while getopts "c:dx" o
 do
   case "$o" in
   c)	cov=1; covlimit=$OPTARG;;
+  d)	dialog=dialog;;
+  x)	dialog=Xdialog;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
@@ -63,14 +65,22 @@ do
   sleep 1
 done
 
+if [[ -n "$dialog" ]]; then
+  pipecmd="$dialog --backtitle \"Generating $covlimit coverage tests\" --gauge \"Progress\" 6 60 0"
+  sleeptime=1
+else
+  pipecmd=cat
+fi
+
 i=0
 numcovtests=0
 while [[ "$numerrors" -lt "$cores" ]] && \
       ([[ "$cov" -eq 0 ]] || [[ "$numcovtests" -lt "$covlimit" ]])
 do
-  sleep "$sleeptime"
   numerrors=`ls error*.btor 2> /dev/null | wc -l`
-  echo "Errors: $numerrors"
+  if [[ -z "$dialog" ]]; then
+    echo "Errors: $numerrors"
+  fi
   if [[ "$cov" -eq 1 ]]; then
     numcovtests=`ls ${covdir}*.btor 2> /dev/null | wc -l`
     covtestspercents=`echo "scale=2; ($numcovtests / $covlimit) * 100" | bc`
@@ -79,12 +89,17 @@ do
     else
       covtestspercents=${covtestspercents:0:2}
     fi
-    echo "Coverage tests: $numcovtests (${covtestspercents}%)"
+    if [[ -z "$dialog" ]]; then
+      echo "Coverage tests: $numcovtests (${covtestspercents}%)"
+    else
+      echo "$covtestspercents"
+    fi
   fi
   ((i++))
-  if [[ "$i" -eq 6 ]]; then
+  if [[ -z "$dialog" ]] && [[ "$i" -eq 6 ]]; then
     echo ""
     i=0
   fi
-done
+  sleep "$sleeptime"
+done | eval "$pipecmd"
 cleanup
