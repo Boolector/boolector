@@ -84,12 +84,8 @@ do
   fi
   if [[ "$cov" -eq 1 ]]; then
     numcovtests=`ls ${covdir}*.btor 2> /dev/null | wc -l`
-    covtestspercents=`echo "scale=2; ($numcovtests / $covlimit) * 100" | bc`
-    if [[ "$covtestspercents" = "100.00" ]]; then
-      covtestspercents=100 
-    else
-      covtestspercents=${covtestspercents:0:2}
-    fi
+    covtestspercentsbc=`echo "scale=2; ($numcovtests / $covlimit) * 100" | bc`
+    covtestspercents=`printf "%.0f" "$covtestspercentsbc"`
     if [[ -z "$dialog" ]]; then
       echo "Coverage tests: $numcovtests (${covtestspercents}%)"
     else

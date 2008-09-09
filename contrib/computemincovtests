@@ -8,6 +8,8 @@ readonly usage="./computemincovtests [-a]"
 readonly cores=4
 readonly selected="${covdir}selected"
 
+sleeptime=10
+
 function cleanup
 {
   killall minimizecovtests &> /dev/null
@@ -38,13 +40,16 @@ if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || [[ ! -r "$covdir" ]]; then
 fi
 
 add=0
-while getopts "a" o
+while getopts "adx" o
 do
   case "$o" in
   a)	add=1;;
+  d)	dialog=dialog;;
+  x)	dialog=Xdialog;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
+
   
 ./gencovformula > "$fileformula"
 
@@ -99,19 +104,37 @@ do
   fi
 done
 
+if [[ -n "$dialog" ]]; then
+  pipecmd="$dialog --backtitle \"Minimizing $num coverage tests\" --gauge \"Progress\" 6 60 0"
+  sleeptime=1
+else
+  pipecmd=cat
+fi
+
 for ((i = 1; i <= "$cores"; i++))
 do
   ./minimizecovtests -i "$i" &
 done
 
 minimized=0
+i=0
 while [[ "$minimized" -lt "$num" ]]
 do
   minimized=`ls ${covdir}*.red 2> /dev/null | wc -l`
-  echo "$minimized"
-  sleep 1
-done
-
+  mintestspercentsbc=`echo "scale=2; ($minimized / $num) * 100" | bc`
+  mintestspercents=`printf "%.0f" "$mintestspercentsbc"`
+  if [[ -z "$dialog" ]]; then
+    ((i++))
+    echo "Minimized tests: $minimized (${mintestspercents}%)"
+    if [[ "$i" -eq 6 ]]; then
+      echo ""
+      i=0
+    fi
+  else
+    echo "$mintestspercents"
+  fi
+  sleep "$sleeptime" 
+done | eval "$pipecmd"
 
 if [[ "$add" -eq 1 ]]; then
   #compute test id
@@ -138,7 +161,5 @@ if [[ "$add" -eq 1 ]]; then
   echo "added $num tests" >&2
   cd ~/boolector/log
   git add -f covtest*.*
-else
-  echo "minimized $num tests" >&2
 fi
 cleanup

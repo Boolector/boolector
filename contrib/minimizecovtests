@@ -75,7 +75,6 @@ do
   idstring=`echo "$line" | awk -F_ '{ print $2 }'`
   foundid=${idstring:2}
   if [[ "$foundid" -eq "$id" ]]; then
-    echo "minimizing $line" >&2
     errfile="$covdir${line}.err"
     csfile="$covdir${line}.cs"
     reducedfile="$covdir${line}.red"
