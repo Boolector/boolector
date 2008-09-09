@@ -102,7 +102,6 @@ done
 for ((i = 1; i <= "$cores"; i++))
 do
   ./minimizecovtests -i "$i" &
-  sleep 1
 done
 
 minimized=0

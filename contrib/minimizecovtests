@@ -7,7 +7,6 @@ readonly reducedfiletmp="/tmp/minimizecovtests$$.tmp"
 
 function cleanup
 {
-#  killall deltabtor &> /dev/null
   if [[ -n "$deltadebscript" ]]; then
     rm -f "$deltadebscript"
   fi
