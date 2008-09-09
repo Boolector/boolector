@@ -44,8 +44,7 @@ else
   testid=1
 fi
 
-exec 10<"$fileformula"
-while read line <&10
+while read line
 do
   op=`echo "$line" | awk '{ print $2 }'`
   if [[ "$op" = ulte ]]; then
@@ -55,9 +54,7 @@ do
   else
     echo "$line" >> $filebasic
   fi
-done
-# close file
-exec 10>&-
+done < "$fileformula"
 
 echo "found "`ls "$covdir"*.btor | wc -l`" tests"
 echo "computing minimal number of tests" >&2
@@ -73,9 +70,8 @@ do
   boolector $fileformula -m 1> $fileboolector 2> /dev/null
   result=`head -n 1 $fileboolector`
   if [[ "$result" = sat ]]; then
-    exec 10<"$fileboolector"
     skipfirstline=1
-    while read line <&10
+    while read line
     do
       if [[ $skipfirstline -eq 1 ]]; then
         skipfirstline=0
@@ -97,9 +93,7 @@ do
 	  ((testid++))
 	fi
       fi
-    done
-    # close file
-    exec 10>&-
+    done < "$fileboolector"
   else
     ((num++))
   fi
