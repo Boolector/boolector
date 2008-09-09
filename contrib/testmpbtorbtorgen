@@ -4,10 +4,10 @@
 
 declare -a ids
 
-readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>] [-d] [-x] [-p <num-processes>]" 
+readonly usage="*** testmpbtorbtorgen: usage: ./testmpbtorbtorgen [-c <limit>] [-d] [-x] [-p <num-processes>]" 
 readonly covdir="./covtests/"
 readonly filecovhashes="./testbtorbtorgenhashes"
-readonly filecovlock="/var/lock/testmcbtorbtorgen$$lock"
+readonly filecovlock="/var/lock/testmpbtorbtorgen$$lock"
 cov=0
 numerrors=0
 sleeptime=10
