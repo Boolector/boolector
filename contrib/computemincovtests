@@ -5,6 +5,18 @@ readonly fileformula="/tmp/computemincovtestsformula$$.tmp"
 readonly fileboolector="/tmp/computemincovtestsboolector$$.tmp"
 readonly covdir="covtests/"
 readonly usage="./computemincovtests [-a]"
+readonly cores=4
+readonly selected="${covdir}selected"
+
+function cleanup
+{
+  killall minimizecovtests &> /dev/null
+  rm -f "$fileformula"
+  rm -f "$fileboolector"
+  rm -f "$selected"
+}
+
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
 deltabtor=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
@@ -43,18 +55,6 @@ fi
 
 rm -f "$filebasic"
 
-if [[ "$add" -eq 1 ]]; then
-  #compute test id
-  maxline=`grep covtest ~/boolector/testcases | sort | tail -n 1`
-  if [[ -n "$maxline" ]]; then
-    maxcol=`echo "$maxline" | awk '{ print $1 }'`
-    testid=${maxcol##covtest}
-    ((testid++))
-  else
-    testid=1
-  fi
-fi
-
 while read line
 do
   op=`echo "$line" | awk '{ print $2 }'`
@@ -66,6 +66,8 @@ do
     echo "$line" >> $filebasic
   fi
 done < "$fileformula"
+
+rm -f "$selected"
 
 echo "found "`ls "$covdir"*.btor | wc -l`" tests"
 echo "computing minimal number of tests" >&2
@@ -88,23 +90,7 @@ do
         skipfirstline=0
       else
         if [[ `echo "$line" | awk '{ print $2 }'` -eq 1 ]]; then
-	  testbase=`echo "$line" | awk '{ print $1 }'`
-	  errfile="$covdir${testbase}.err"
-	  csfile="$covdir${testbase}.cs"
-	  reducedfile="$covdir${testbase}.red"
-	  cp "$errfile" "${covdir}fileerr"
-	  cp "$csfile" "${covdir}filecs"
-	  echo "minimizing $testbase" >&2
-	  testfile="$covdir""$testbase"".btor"
-	  $deltabtor "$testfile" $reducedfile ./covdeltadebrun
-	  if [[ "$add" -eq 1 ]]; then
-	    cp $reducedfile ~/boolector/log/covtest$testid".btor"
-	    boolector -rwl0 "$reducedfile" \
-	    1> ~/boolector/log/covtest$testid".out" 2> /dev/null
-	    testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
-	    echo "$testcasesline" >> ~/boolector/testcases
-	    ((testid++))
-          fi
+	  echo "$line" | awk '{ print $1 }' >> "$selected"
 	fi
       fi
     done < "$fileboolector"
@@ -113,10 +99,47 @@ do
   fi
 done
 
+for ((i = 1; i <= "$cores"; i++))
+do
+  ./minimizecovtests -i "$i" &
+  sleep 1
+done
+
+minimized=0
+while [[ "$minimized" -lt "$num" ]]
+do
+  minimized=`ls ${covdir}*.red 2> /dev/null | wc -l`
+  echo "$minimized"
+  sleep 1
+done
+
+
 if [[ "$add" -eq 1 ]]; then
+  #compute test id
+  maxline=`grep covtest ~/boolector/testcases | sort | tail -n 1`
+  if [[ -n "$maxline" ]]; then
+    maxcol=`echo "$maxline" | awk '{ print $1 }'`
+    testid=${maxcol##covtest}
+    ((testid++))
+  else
+    testid=1
+  fi
+
+  while read line
+  do
+    reducedfile="$covdir${line}.red"
+    csfile="$covdir${line}.cs"
+    cp $reducedfile ~/boolector/log/covtest$testid".btor"
+    boolector -rwl0 "$reducedfile" \
+    1> ~/boolector/log/covtest$testid".out" 2> /dev/null
+    testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
+    echo "$testcasesline" >> ~/boolector/testcases
+    ((testid++))
+  done < "$selected"
   echo "added $num tests" >&2
   cd ~/boolector/log
   git add -f covtest*.*
 else
   echo "minimized $num tests" >&2
 fi
+cleanup
