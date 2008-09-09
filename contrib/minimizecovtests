@@ -15,13 +15,13 @@ do
   deltabtor=$file
   break
 done
-if [[ $deltabtor = unknown ]]; then
-  echo "*** addmincovtests: can not find 'deltabtor'" 1>&2
+if [[ "$deltabtor" = unknown ]]; then
+  echo "*** minimizecovtests: can not find 'deltabtor'" 1>&2
   exit 1
 fi
 
-if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]]; then
-  echo "*** addmincovtests: can not read coverage test directory" 1>&2
+if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || [[ ! -r "$covdir" ]]; then
+  echo "*** minimizecovtests: can not read coverage test directory" 1>&2
   exit 1
 fi
 
@@ -34,14 +34,14 @@ do
   esac
 done
   
-./gencovformula > $fileformula
+./gencovformula > "$fileformula"
 
 if [[ $? -ne 0 ]]; then
   echo "Formula could not be generated"
   exit 1
 fi
 
-rm -f $filebasic
+rm -f "$filebasic"
 
 if [[ "$add" -eq 1 ]]; then
   #compute test id
@@ -84,7 +84,7 @@ do
     skipfirstline=1
     while read line
     do
-      if [[ $skipfirstline -eq 1 ]]; then
+      if [[ "$skipfirstline" -eq 1 ]]; then
         skipfirstline=0
       else
         if [[ `echo "$line" | awk '{ print $2 }'` -eq 1 ]]; then
