@@ -4,10 +4,10 @@ readonly filebasic="/tmp/computemincovtestsbasic$$.tmp"
 readonly fileformula="/tmp/computemincovtestsformula$$.tmp"
 readonly fileboolector="/tmp/computemincovtestsboolector$$.tmp"
 readonly covdir="covtests/"
-readonly usage="./computemincovtests [-a]"
-readonly cores=4
+readonly usage="./computemincovtests [-a] [-d] [-x] [-p <num-processes>]"
 readonly selected="${covdir}selected"
 
+processes=4
 sleeptime=10
 
 function cleanup
@@ -40,17 +40,22 @@ if [[ ! -e "$covdir" ]] || [[ ! -d "$covdir" ]] || [[ ! -r "$covdir" ]]; then
 fi
 
 add=0
-while getopts "adx" o
+while getopts "adxp:" o
 do
   case "$o" in
   a)	add=1;;
   d)	dialog=dialog;;
   x)	dialog=Xdialog;;
+  p)    processes=$OPTARG;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
 
-  
+if [[ "$processes" -lt 1 ]]; then
+  echo "number of processes must be positive"
+  exit 1
+fi
+
 ./gencovformula > "$fileformula"
 
 if [[ $? -ne 0 ]]; then
@@ -111,7 +116,7 @@ else
   pipecmd=cat
 fi
 
-for ((i = 1; i <= "$cores"; i++))
+for ((i = 1; i <= "$processes"; i++))
 do
   ./minimizecovtests -i "$i" &
 done

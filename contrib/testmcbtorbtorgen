@@ -1,21 +1,21 @@
 #!/bin/bash
 
-# run testbtorbtorgen on multiple cores simultaneously
+# run multiple instances of testbtorbtorgen simultaneously
 
 declare -a ids
 
-readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>] [-d] [-x]" 
+readonly usage="*** testmcbtorbtorgen: usage: ./testmcbtorbtorgen [-c <limit>] [-d] [-x] [-p <num-processes>]" 
 readonly covdir="./covtests/"
-readonly cores=4
 readonly filecovhashes="./testbtorbtorgenhashes"
 readonly filecovlock="/var/lock/testmcbtorbtorgen$$lock"
 cov=0
 numerrors=0
 sleeptime=10
+processes=4
 
 function cleanup
 {
-  for ((i = 1; i <= "$cores"; i++))
+  for ((i = 1; i <= "$processes"; i++))
   do
     if [[ -n "${ids[$i]}" ]]; then
       kill "${ids[$i]}" 2> /dev/null
@@ -30,15 +30,21 @@ function cleanup
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
-while getopts "c:dx" o
+while getopts "c:dxp:" o
 do
   case "$o" in
   c)	cov=1; covlimit=$OPTARG;;
   d)	dialog=dialog;;
   x)	dialog=Xdialog;;
+  p)    processes=$OPTARG;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
+
+if [[ "$processes" -lt 1 ]]; then
+  echo "number of processes must be positive"
+  exit 1
+fi
 
 if [[ "$cov" -eq 1 ]]; then
   rm -r -f "$covdir"
@@ -55,7 +61,7 @@ fi
 
 rm -f error*.btor
 
-for ((i = 1; i <= "$cores"; i++))
+for ((i = 1; i <= "$processes"; i++))
 do
   if [[ "$cov" -eq 1 ]]; then
     ./testbtorbtorgen -i "$i" -c "$covlimit" -n > /dev/null &
@@ -75,7 +81,7 @@ fi
 
 i=0
 numcovtests=0
-while [[ "$numerrors" -lt "$cores" ]] && \
+while [[ "$numerrors" -lt "$processes" ]] && \
       ([[ "$cov" -eq 0 ]] || [[ "$numcovtests" -lt "$covlimit" ]])
 do
   numerrors=`ls error*.btor 2> /dev/null | wc -l`
