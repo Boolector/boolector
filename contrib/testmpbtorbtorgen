@@ -11,7 +11,8 @@ readonly filecovlock="/var/lock/testmpbtorbtorgen$$lock"
 cov=0
 numerrors=0
 sleeptime=10
-processes=4
+processes=`cat /proc/cpuinfo | grep processor | sort | tail -n 1 | awk '{ print $3 }'`
+((processes++))
 
 function cleanup
 {
