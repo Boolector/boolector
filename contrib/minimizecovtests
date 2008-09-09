@@ -1,10 +1,10 @@
 #!/bin/bash
 
-filebasic="/tmp/addmincovtestsbasic$$.tmp"
-fileformula="/tmp/addmincovtestsformula$$.tmp"
-fileboolector="/tmp/addmincovtestsboolector$$.tmp"
-filereduced="/tmp/addmincovtestsreduced$$.tmp"
-covdir="covtests/"
+readonly filebasic="/tmp/minimizecovtestsbasic$$.tmp"
+readonly fileformula="/tmp/minimizecovtestsformula$$.tmp"
+readonly fileboolector="/tmp/minimizecovtestsboolector$$.tmp"
+readonly covdir="covtests/"
+readonly usage="./minimizecovtests [-a]"
 
 deltabtor=unknown
 for d in `echo $PATH | sed -e 's,:, ,g'` .
@@ -24,6 +24,15 @@ if [[ ! -e $covdir ]] || [[ ! -d $covdir ]] || [[ ! -r $covdir ]]; then
   echo "*** addmincovtests: can not read coverage test directory" 1>&2
   exit 1
 fi
+
+add=0
+while getopts "a" o
+do
+  case "$o" in
+  a)	add=1;;
+  [?])	echo "$usage" 1>&2; exit 1;;
+  esac
+done
   
 ./gencovformula > $fileformula
 
@@ -34,14 +43,16 @@ fi
 
 rm -f $filebasic
 
-#compute test id
-maxline=`grep covtest ~/boolector/testcases | sort | tail -n 1`
-if [[ -n "$maxline" ]]; then
-  maxcol=`echo "$maxline" | awk '{ print $1 }'`
-  testid=${maxcol##covtest}
-  ((testid++))
-else
-  testid=1
+if [[ "$add" -eq 1 ]]; then
+  #compute test id
+  maxline=`grep covtest ~/boolector/testcases | sort | tail -n 1`
+  if [[ -n "$maxline" ]]; then
+    maxcol=`echo "$maxline" | awk '{ print $1 }'`
+    testid=${maxcol##covtest}
+    ((testid++))
+  else
+    testid=1
+  fi
 fi
 
 while read line
@@ -78,19 +89,22 @@ do
       else
         if [[ `echo "$line" | awk '{ print $2 }'` -eq 1 ]]; then
 	  testbase=`echo "$line" | awk '{ print $1 }'`
-	  errfile="$covdir""$testbase"".err"
-	  csfile="$covdir""$testbase"".cs"
-	  cp "$errfile" "$covdir""fileerr"
-	  cp "$csfile" "$covdir""filecs"
+	  errfile="$covdir${testbase}.err"
+	  csfile="$covdir${testbase}.cs"
+	  reducedfile="$covdir${testbase}.red"
+	  cp "$errfile" "${covdir}fileerr"
+	  cp "$csfile" "${covdir}filecs"
 	  echo "minimizing $testbase" >&2
 	  testfile="$covdir""$testbase"".btor"
-	  $deltabtor "$testfile" $filereduced ./covdeltadebrun
-	  cp $filereduced ~/boolector/log/covtest$testid".btor"
-	  boolector -rwl0 "$filereduced" \
-	  1> ~/boolector/log/covtest$testid".out" 2> /dev/null
-	  testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
-	  echo "$testcasesline" >> ~/boolector/testcases
-	  ((testid++))
+	  $deltabtor "$testfile" $reducedfile ./covdeltadebrun
+	  if [[ "$add" -eq 1 ]]; then
+	    cp $reducedfile ~/boolector/log/covtest$testid".btor"
+	    boolector -rwl0 "$reducedfile" \
+	    1> ~/boolector/log/covtest$testid".out" 2> /dev/null
+	    testcasesline=covtest$testid" "`cat "$csfile"`" -o log/covtest$testid"".log log/covtest$testid"".btor"
+	    echo "$testcasesline" >> ~/boolector/testcases
+	    ((testid++))
+          fi
 	fi
       fi
     done < "$fileboolector"
@@ -99,6 +113,10 @@ do
   fi
 done
 
-echo "added $num tests" >&2
-cd ~/boolector/log
-git add -f covtest*.*
+if [[ "$add" -eq 1 ]]; then
+  echo "added $num tests" >&2
+  cd ~/boolector/log
+  git add -f covtest*.*
+else
+  echo "minimized $num tests" >&2
+fi
