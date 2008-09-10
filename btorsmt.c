@@ -872,8 +872,10 @@ SKIP_WHITE_SPACE:
 
     ch = nextch (parser);
     if (int2type (parser, ch) & BTOR_SMTCC_DIGIT)
+    {
     UNEXPECTED_DIGIT_AFTER_ZERO:
       return !parse_error (parser, "unexpected digit after '0'");
+    }
 
     goto CHECK_FOR_FRACTIONAL_PART;
   }
@@ -1057,10 +1059,12 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
   sort = car (cdr (fdecl));
   if (!sort || !isleaf (sort)
       || (sortsymbol = strip (sort))->token != BTOR_SMTOK_IDENTIFIER)
+  {
   INVALID_SORT:
     return !parse_error (parser,
                          "invalid or unsupported sort "
                          "in function declaration");
+  }
 
   if (symbol->exp)
     return !parse_error (parser, "multiple definitions for '%s'", symbol->name);
@@ -2371,8 +2375,10 @@ translate_benchmark (BtorSMTParser *parser,
 
     node = car (p);
     if (!isleaf (node))
+    {
     INVALID_STATUS_ARGUMENT:
       return parse_error (parser, "invalid ':status' argument");
+    }
 
     symbol = strip (node);
     status = symbol->token;
