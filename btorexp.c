@@ -57,7 +57,6 @@ struct BtorUAData
   int eff_width;
   int updated_eff_width; /* boolean flag */
   int refinements;
-  int mod_len;
 };
 
 typedef struct BtorUAData BtorUAData;
@@ -379,7 +378,6 @@ new_ua_data (Btor *btor, int eff_width)
   result->eff_width         = eff_width;
   result->updated_eff_width = 0;
   result->refinements       = 0;
-  result->mod_len           = 0;
 
   return result;
 }
@@ -2002,16 +2000,14 @@ hash_var_read_for_ua (Btor *btor, BtorExp *exp)
   assert (!btor_find_in_ptr_hash_table (btor->ua.vars_reads, exp));
 
   if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-  {
-    ua_data = new_ua_data (btor, 0);
-  }
+    btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp);
   else
   {
     assert (btor->ua.mode == BTOR_UA_LOCAL_MODE);
     ua_data = new_ua_data (btor, btor->ua.initial_eff_width);
+    btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp)->data.asPtr =
+        ua_data;
   }
-  btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp)->data.asPtr =
-      ua_data;
 }
 
 static BtorExp *
@@ -5158,10 +5154,13 @@ compute_basic_ua_stats (Btor *btor,
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
-    data = (BtorUAData *) b->data.asPtr;
-    assert (data != NULL);
-
     if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
+
+    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    {
+      data = (BtorUAData *) b->data.asPtr;
+      assert (data != NULL);
+    }
 
     update_min_basic_ua_stats (btor, min_width, cur->len);
     update_max_basic_ua_stats (btor, max_width, cur->len);
@@ -8934,7 +8933,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   btor->stats.lod_refinements = lod_refinements;
 
   BTOR_RELEASE_STACK (mm, top_arrays);
-  btor->sat_result = sat_result;
   return sat_result;
 }
 
