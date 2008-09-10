@@ -5075,7 +5075,7 @@ compute_basic_ua_stats (Btor *btor,
 {
   BtorPtrHashBucket *b;
   BtorExp *cur;
-  BtorUAData *data;
+  BtorUAData *data = NULL;
   BtorUAMode ua_mode;
   unsigned long long int sum_var_width;
   unsigned long long int sum_read_width;
