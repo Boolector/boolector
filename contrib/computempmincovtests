@@ -21,16 +21,8 @@ function cleanup
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
-deltabtor=unknown
-for d in `echo $PATH | sed -e 's,:, ,g'` .
-do
-  file=$d/deltabtor
-  [ -d $d ] || continue
-  [ -f $file ] || continue
-  deltabtor=$file
-  break
-done
-if [[ "$deltabtor" = unknown ]]; then
+deltabtor=`which deltabtor`
+if [[ -z "$deltabtor" ]]; then
   echo "*** computempmincovtests: can not find 'deltabtor'" 1>&2
   exit 1
 fi
