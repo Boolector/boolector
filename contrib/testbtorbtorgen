@@ -26,30 +26,15 @@ function cleanup
 
 trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
-btorgen=unknown
-for d in `echo $PATH | sed -e 's,:, ,g'` .
-do
-  tmpfile=$d/btorgen
-  [ -d "$d" ] || continue
-  [ -f "$tmpfile" ] || continue
-  btorgen=$tmpfile
-  break
-done
-if [[ "$btorgen" = unknown ]]; then
+btorgen=`which btorgen`
+if [[ -z "$btorgen" ]]; then
   echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
   exit 1
 fi
 
-btorgenjava=unknown
-for d in `echo $PATH | sed -e 's,:, ,g'` .
-do
-  tmpfile=$d/btorgenjava
-  [ -d "$d" ] || continue
-  [ -f "$tmpfile" ] || continue
-  btorgenjava=$tmpfile
-  break
-done
-if [[ "$btorgenjava" = unknown ]]; then
+btorgenjava=`which btorgenjava`
+
+if [[ -z "$btorgenjava" ]]; then
   echo "*** testbtorbtorgen: can not find 'btorgenjava'" 1>&2
   exit 1
 fi
