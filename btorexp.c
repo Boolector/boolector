@@ -1067,22 +1067,71 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 }
 
 static int
-assignment_forced (BtorAIGVec *av)
+assignment_always_unequal (Btor *btor, BtorExp *exp1, BtorExp *exp2)
 {
-  int i, len;
-  BtorAIG *aig;
+  int i, len, id1, id2, val;
+  BtorAIGVec *av1, *av2;
+  BtorAIG *aig1, *aig2;
 
-  assert (av->len > 0);
+  assert (btor != NULL);
+  assert (exp1 != NULL);
+  assert (exp2 != NULL);
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp2)));
+  assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
 
-  len = av->len;
+  av1 = BTOR_REAL_ADDR_EXP (exp1)->av;
+  av2 = BTOR_REAL_ADDR_EXP (exp2)->av;
+  len = av1->len;
   for (i = 0; i < len; i++)
   {
-    aig = BTOR_REAL_ADDR_AIG (av->aigs[i]);
-    assert (BTOR_IS_CONST_AIG (aig) || aig->cnf_id != 0);
-    if (!BTOR_IS_CONST_AIG (aig) && !picosat_deref_toplevel (aig->cnf_id))
-      return 0;
+    aig1 = BTOR_COND_INVERT_AIG_EXP (exp1, av1->aigs[i]);
+    aig2 = BTOR_COND_INVERT_AIG_EXP (exp2, av2->aigs[i]);
+    if (!BTOR_IS_CONST_AIG (aig1))
+    {
+      id1 = BTOR_GET_CNF_ID_AIG (aig1);
+      assert (id1 != 0);
+      if (picosat_deref_toplevel (id1))
+      {
+        if (!BTOR_IS_CONST_AIG (aig2))
+        {
+          id2 = BTOR_GET_CNF_ID_AIG (aig2);
+          assert (id2 != 0);
+          assert (picosat_deref (id1) != 0);
+          assert (picosat_deref (id2) != 0);
+          if (picosat_deref_toplevel (id2)
+              && picosat_deref (id1) != picosat_deref (id2))
+            return 1;
+        }
+        else
+        {
+          val = picosat_deref (id1);
+          assert (val != 0);
+          if ((val == 1 && aig2 == BTOR_AIG_FALSE)
+              || (val == -1 && aig2 == BTOR_AIG_TRUE))
+            return 1;
+        }
+      }
+    }
+    else
+    {
+      if (!BTOR_IS_CONST_AIG (aig2))
+      {
+        id2 = BTOR_GET_CNF_ID_AIG (aig2);
+        if (picosat_deref_toplevel (id2))
+        {
+          val = picosat_deref (id2);
+          assert (val != 0);
+          if ((val == 1 && aig1 == BTOR_AIG_FALSE)
+              || (val == -1 && aig1 == BTOR_AIG_TRUE))
+            return 1;
+        }
+      }
+      else if (aig1 != aig2)
+        return 1;
+    }
   }
-  return 1;
+  return 0;
 }
 
 /* This function is used to encode a lemma on demand.
@@ -1113,7 +1162,7 @@ encode_lemma (Btor *btor,
   BtorPtrHashBucket *bucket, *bucket_temp;
   BtorIntStack clauses;
   BtorIntStack linking_clause;
-  int len_a_b, len_i_j_w, e, assignment_forced_i;
+  int len_a_b, len_i_j_w, e;
   int k, d_k;
   int a_k = 0;
   int b_k = 0;
@@ -1166,10 +1215,8 @@ encode_lemma (Btor *btor,
   BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
 
-  assignment_forced_i = assignment_forced (av_i);
-
   /* encode i != j */
-  if (i != j && !(assignment_forced_i && assignment_forced (av_j)))
+  if (i != j && !assignment_always_unequal (btor, i, j))
   {
     pair = new_exp_pair (btor, i, j);
     /* already encoded i != j into SAT ? */
@@ -1226,6 +1273,7 @@ encode_lemma (Btor *btor,
       /* we have already encoded i != j,
        * we simply reuse all diffs for the linking clause */
       d_k = bucket->data.asInt;
+      assert (d_k != 0);
       delete_exp_pair (btor, pair);
       for (k = 0; k < len_i_j_w; k++)
       {
@@ -1309,7 +1357,7 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (w_index)));
     assert (BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases);
 
-    if (!(assignment_forced_i && assignment_forced (av_w)))
+    if (!assignment_always_unequal (btor, i, w_index))
     {
       pair = new_exp_pair (btor, i, w_index);
       /* already encoded i != w_index into SAT ? */
