@@ -1080,8 +1080,7 @@ assignment_forced (BtorAIGVec *av)
     aig = BTOR_REAL_ADDR_AIG (av->aigs[i]);
     assert (BTOR_IS_CONST_AIG (aig) || aig->cnf_id != 0);
     if (!BTOR_IS_CONST_AIG (aig) && !picosat_deref_toplevel (aig->cnf_id))
-      ;
-    return 0;
+      return 0;
   }
   return 1;
 }
