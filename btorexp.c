@@ -1069,7 +1069,7 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 static int
 assignment_always_unequal (Btor *btor, BtorExp *exp1, BtorExp *exp2)
 {
-  int i, len, id1, id2, val;
+  int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
 
@@ -1087,48 +1087,24 @@ assignment_always_unequal (Btor *btor, BtorExp *exp1, BtorExp *exp2)
   {
     aig1 = BTOR_COND_INVERT_AIG_EXP (exp1, av1->aigs[i]);
     aig2 = BTOR_COND_INVERT_AIG_EXP (exp2, av2->aigs[i]);
-    if (!BTOR_IS_CONST_AIG (aig1))
-    {
-      id1 = BTOR_GET_CNF_ID_AIG (aig1);
-      assert (id1 != 0);
-      if (picosat_deref_toplevel (id1))
-      {
-        if (!BTOR_IS_CONST_AIG (aig2))
-        {
-          id2 = BTOR_GET_CNF_ID_AIG (aig2);
-          assert (id2 != 0);
-          assert (picosat_deref (id1) != 0);
-          assert (picosat_deref (id2) != 0);
-          if (picosat_deref_toplevel (id2)
-              && picosat_deref (id1) != picosat_deref (id2))
-            return 1;
-        }
-        else
-        {
-          val = picosat_deref (id1);
-          assert (val != 0);
-          if ((val == 1 && aig2 == BTOR_AIG_FALSE)
-              || (val == -1 && aig2 == BTOR_AIG_TRUE))
-            return 1;
-        }
-      }
-    }
+
+    if (aig1 == BTOR_AIG_TRUE)
+      val1 = 1;
+    else if (aig1 == BTOR_AIG_FALSE)
+      val1 = -1;
     else
+      val1 = picosat_deref_toplevel (BTOR_GET_CNF_ID_AIG (aig1));
+
+    if (val1 != 0) /*  not toplevel assigned or const  */
     {
-      if (!BTOR_IS_CONST_AIG (aig2))
-      {
-        id2 = BTOR_GET_CNF_ID_AIG (aig2);
-        if (picosat_deref_toplevel (id2))
-        {
-          val = picosat_deref (id2);
-          assert (val != 0);
-          if ((val == 1 && aig1 == BTOR_AIG_FALSE)
-              || (val == -1 && aig1 == BTOR_AIG_TRUE))
-            return 1;
-        }
-      }
-      else if (aig1 != aig2)
-        return 1;
+      if (aig2 == BTOR_AIG_TRUE)
+        val2 = 1;
+      else if (aig2 == BTOR_AIG_FALSE)
+        val2 = -1;
+      else
+        val2 = picosat_deref_toplevel (BTOR_GET_CNF_ID_AIG (aig2));
+
+      if (val2 != 0 && val1 != val2) return 1;
     }
   }
   return 0;
