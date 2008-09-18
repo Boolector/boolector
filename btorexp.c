@@ -1066,6 +1066,26 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 #endif
 }
 
+static int
+assignment_forced (BtorAIGVec *av)
+{
+  int i, len;
+  BtorAIG *aig;
+
+  assert (av->len > 0);
+
+  len = av->len;
+  for (i = 0; i < len; i++)
+  {
+    aig = BTOR_REAL_ADDR_AIG (av->aigs[i]);
+    assert (BTOR_IS_CONST_AIG (aig) || aig->cnf_id != 0);
+    if (!BTOR_IS_CONST_AIG (aig) && !picosat_deref_toplevel (aig->cnf_id))
+      ;
+    return 0;
+  }
+  return 1;
+}
+
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
  * The stack 'aeqs' contains intermediate array equalities (true).
@@ -1094,7 +1114,7 @@ encode_lemma (Btor *btor,
   BtorPtrHashBucket *bucket, *bucket_temp;
   BtorIntStack clauses;
   BtorIntStack linking_clause;
-  int len_a_b, len_i_j_w, e;
+  int len_a_b, len_i_j_w, e, assignment_forced_i;
   int k, d_k;
   int a_k = 0;
   int b_k = 0;
@@ -1147,8 +1167,10 @@ encode_lemma (Btor *btor,
   BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
 
+  assignment_forced_i = assignment_forced (av_i);
+
   /* encode i != j */
-  if (i != j)
+  if (i != j && !(assignment_forced_i && assignment_forced (av_j)))
   {
     pair = new_exp_pair (btor, i, j);
     /* already encoded i != j into SAT ? */
@@ -1288,58 +1310,64 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (w_index)));
     assert (BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases);
 
-    pair = new_exp_pair (btor, i, w_index);
-    /* already encoded i != w_index into SAT ? */
-    bucket_temp = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
-    /* no ? */
-    if (bucket_temp == NULL)
+    if (!(assignment_forced_i && assignment_forced (av_w)))
     {
-      e = btor_next_cnf_id_sat_mgr (smgr);
-      btor_insert_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair)
-          ->data.asInt = e;
-      for (k = 0; k < len_i_j_w; k++)
+      pair = new_exp_pair (btor, i, w_index);
+      /* already encoded i != w_index into SAT ? */
+      bucket_temp =
+          btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
+      /* no ? */
+      if (bucket_temp == NULL)
       {
-        aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
-        aig2 = BTOR_COND_INVERT_AIG_EXP (w_index, av_w->aigs[k]);
-        /* if AIGs are equal then clauses are satisfied */
-        if (aig1 != aig2)
+        e = btor_next_cnf_id_sat_mgr (smgr);
+        btor_insert_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair)
+            ->data.asInt = e;
+        for (k = 0; k < len_i_j_w; k++)
         {
-          if (!BTOR_IS_CONST_AIG (aig1))
+          aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
+          aig2 = BTOR_COND_INVERT_AIG_EXP (w_index, av_w->aigs[k]);
+          /* if AIGs are equal then clauses are satisfied */
+          if (aig1 != aig2)
           {
-            i_k = BTOR_GET_CNF_ID_AIG (aig1);
-            assert (i_k != 0);
-          }
-          if (!BTOR_IS_CONST_AIG (aig2))
-          {
-            w_k = BTOR_GET_CNF_ID_AIG (aig2);
-            assert (w_k != 0);
-          }
-          if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
-          {
-            BTOR_PUSH_STACK (mm, clauses, -e);
-            if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, i_k);
-            if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, -w_k);
-            BTOR_PUSH_STACK (mm, clauses, 0);
-          }
-          if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
-          {
-            BTOR_PUSH_STACK (mm, clauses, -e);
-            if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, -i_k);
-            if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, w_k);
-            BTOR_PUSH_STACK (mm, clauses, 0);
+            if (!BTOR_IS_CONST_AIG (aig1))
+            {
+              i_k = BTOR_GET_CNF_ID_AIG (aig1);
+              assert (i_k != 0);
+            }
+            if (!BTOR_IS_CONST_AIG (aig2))
+            {
+              w_k = BTOR_GET_CNF_ID_AIG (aig2);
+              assert (w_k != 0);
+            }
+            if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+            {
+              BTOR_PUSH_STACK (mm, clauses, -e);
+              if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, i_k);
+              if (!BTOR_IS_CONST_AIG (aig2))
+                BTOR_PUSH_STACK (mm, clauses, -w_k);
+              BTOR_PUSH_STACK (mm, clauses, 0);
+            }
+            if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+            {
+              BTOR_PUSH_STACK (mm, clauses, -e);
+              if (!BTOR_IS_CONST_AIG (aig1))
+                BTOR_PUSH_STACK (mm, clauses, -i_k);
+              if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, w_k);
+              BTOR_PUSH_STACK (mm, clauses, 0);
+            }
           }
         }
       }
+      else
+      {
+        /* we have already encoded i != w_j into SAT
+         * we simply reuse e for the linking clause */
+        e = bucket_temp->data.asInt;
+        delete_exp_pair (btor, pair);
+      }
+      assert (e != 0);
+      BTOR_PUSH_STACK (mm, linking_clause, e);
     }
-    else
-    {
-      /* we have already encoded i != w_j into SAT
-       * we simply reuse e for the linking clause */
-      e = bucket_temp->data.asInt;
-      delete_exp_pair (btor, pair);
-    }
-    assert (e != 0);
-    BTOR_PUSH_STACK (mm, linking_clause, e);
   }
 
   /* add array equalites in the premisse to linking clause */
@@ -1417,13 +1445,12 @@ encode_lemma (Btor *btor,
   BTOR_RELEASE_STACK (mm, clauses);
 
   /* add linking clause */
-  assert (!BTOR_EMPTY_STACK (linking_clause));
-  do
+  while (!BTOR_EMPTY_STACK (linking_clause))
   {
     k = BTOR_POP_STACK (linking_clause);
     assert (k != 0);
     if (!picosat_deref_toplevel (k)) btor_add_sat (smgr, k);
-  } while (!BTOR_EMPTY_STACK (linking_clause));
+  }
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, linking_clause);
 }
