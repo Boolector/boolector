@@ -1417,12 +1417,13 @@ encode_lemma (Btor *btor,
   BTOR_RELEASE_STACK (mm, clauses);
 
   /* add linking clause */
-  while (!BTOR_EMPTY_STACK (linking_clause))
+  assert (!BTOR_EMPTY_STACK (linking_clause));
+  do
   {
     k = BTOR_POP_STACK (linking_clause);
     assert (k != 0);
-    btor_add_sat (smgr, k);
-  }
+    if (!picosat_deref_toplevel (k)) btor_add_sat (smgr, k);
+  } while (!BTOR_EMPTY_STACK (linking_clause));
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, linking_clause);
 }
