@@ -257,6 +257,35 @@ test_inc_assume_assert1 (void)
   btor_delete_btor (btor);
 }
 
+static void
+test_inc_lemmas_on_demand_1 ()
+{
+  int sat_result;
+  Btor *btor = btor_new_btor ();
+  btor_set_rewrite_level_btor (btor, 0);
+  BtorExp *array  = btor_array_exp (btor, 1, 1, "array1");
+  BtorExp *index1 = btor_var_exp (btor, 1, "index1");
+  BtorExp *index2 = btor_var_exp (btor, 1, "index2");
+  BtorExp *read1  = btor_read_exp (btor, array, index1);
+  BtorExp *read2  = btor_read_exp (btor, array, index2);
+  BtorExp *eq     = btor_eq_exp (btor, index1, index2);
+  BtorExp *ne     = btor_ne_exp (btor, read1, read2);
+  btor_add_constraint_exp (btor, eq);
+  btor_add_assumption_exp (btor, ne);
+  sat_result = btor_sat_btor (btor, INT_MAX);
+  assert (sat_result == BTOR_UNSAT);
+  sat_result = btor_sat_btor (btor, INT_MAX);
+  assert (sat_result == BTOR_SAT);
+  btor_release_exp (btor, array);
+  btor_release_exp (btor, index1);
+  btor_release_exp (btor, index2);
+  btor_release_exp (btor, read1);
+  btor_release_exp (btor, read2);
+  btor_release_exp (btor, eq);
+  btor_release_exp (btor, ne);
+  btor_delete_btor (btor);
+}
+
 void
 init_inc_tests (void)
 {
@@ -282,6 +311,7 @@ run_inc_tests (int argc, char **argv)
   BTOR_RUN_TEST (inc_lt4);
   BTOR_RUN_TEST (inc_lt8);
   BTOR_RUN_TEST (inc_assume_assert1);
+  BTOR_RUN_TEST (inc_lemmas_on_demand_1);
 }
 
 void
