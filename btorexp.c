@@ -6993,18 +6993,8 @@ reset_array_models (Btor *btor)
 static void
 reset_incremental_usage (Btor *btor)
 {
-  BtorPtrHashBucket *b;
-  BtorMemMgr *mm;
-
   assert (btor != NULL);
 
-  mm = btor->mm;
-
-  for (b = btor->exp_pair_ass_unequal_table->first; b != NULL; b = b->next)
-    delete_exp_pair (btor, (BtorExpPair *) b->key);
-  btor_delete_ptr_hash_table (btor->exp_pair_ass_unequal_table);
-  btor->exp_pair_ass_unequal_table = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   reset_assumptions (btor);
   reset_array_models (btor);
   btor->valid_assignments = 0;
