@@ -79,6 +79,13 @@ print_verbose_msg (const char *fmt, ...)
   fflush (stdout);
 }
 
+static void
+btor_picosat_init (void)
+{
+  picosat_init ();
+  picosat_set_global_default_phase (-1);
+}
+
 /*------------------------------------------------------------------------*/
 /* BtorSAT                                                                */
 /*------------------------------------------------------------------------*/
@@ -99,7 +106,7 @@ btor_new_sat_mgr (BtorMemMgr *mm)
 
   smgr->ss_name = "PicoSAT";
 
-  smgr->ss_init        = picosat_init;
+  smgr->ss_init        = btor_picosat_init;
   smgr->ss_add         = picosat_add;
   smgr->ss_sat         = picosat_sat;
   smgr->ss_deref       = picosat_deref;
