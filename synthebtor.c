@@ -28,9 +28,10 @@ die (int prefix, const char *fmt, ...)
 int
 main (int argc, char **argv)
 {
-  int i, j, verbosity = 0, close_input = 0, close_output = 0, binary;
-  const char *input_name = "<stdin>", *output_name = "<stdout>";
-  FILE *input_file = stdin, *output_file = stdout, *file;
+  int i, j, verbosity, close_input, close_output, binary, merge;
+  const char *input_name, *output_name;
+  FILE *input_file, *output_file, *file;
+  BtorAIG *aig, *tmp, *merged, **p;
   BtorPtrHashTable *back_annotation;
   const char *parse_error;
   BtorPtrHashBucket *b;
@@ -39,22 +40,33 @@ main (int argc, char **argv)
   BtorAIGPtrStack regs;
   BtorAIGPtrStack nexts;
   BtorAIGPtrStack aigs;
-  BtorAIG *aig, **p;
   BtorParser *parser;
   BtorAIGMgr *amgr;
-  Btor *btor;
   BtorMemMgr *mem;
   BtorAIGVec *av;
+  Btor *btor;
+
+  verbosity    = 0;
+  close_input  = 0;
+  close_output = 0;
+  binary       = 0;
+  merge        = 0;
+  input_name   = "<stdin>";
+  output_name  = "<stdout>";
+  input_file   = stdin;
+  output_file  = stdout;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: synthebor [-h][-v][<input>[<output>]]\n");
+      printf ("usage: synthebor [-h][-v][-m][<input>[<output>]]\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
       verbosity++;
+    else if (!strcmp (argv[i], "-m"))
+      merge = 1;
     else if (argv[i][0] == '-')
       die (1, "invalid command line option '%s'", argv[i]);
     else if (close_output)
@@ -92,6 +104,8 @@ main (int argc, char **argv)
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);
 
+  if (model.nregs && merge) die (1, "can not merge registers");
+
   mem   = btor->mm;
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -124,18 +138,32 @@ main (int argc, char **argv)
   }
 
   BTOR_INIT_STACK (aigs);
+  merged = BTOR_AIG_TRUE;
+
   for (i = 0; i < model.noutputs; i++)
   {
     av = btor_exp_to_aigvec (btor, model.outputs[i], back_annotation);
     for (j = 0; j < av->len; j++)
     {
-      aig = btor_copy_aig (amgr, av->aigs[j]);
-      BTOR_PUSH_STACK (mem, aigs, aig);
+      aig = av->aigs[j];
+
+      if (merge)
+      {
+        tmp = btor_and_aig (amgr, merged, aig);
+        btor_release_aig (amgr, merged);
+        merged = tmp;
+      }
+      else
+      {
+        aig = btor_copy_aig (amgr, aig);
+        BTOR_PUSH_STACK (mem, aigs, aig);
+      }
     }
     btor_release_delete_aigvec (avmgr, av);
   }
 
-  binary = 0;
+  if (merged) BTOR_PUSH_STACK (mem, aigs, merged);
+
 #ifdef BTOR_HAVE_ISATTY
   if (close_output || !isatty (1)) binary = 1;
 #endif
