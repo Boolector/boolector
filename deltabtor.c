@@ -787,16 +787,24 @@ int
 main (int argc, char** argv)
 {
   int changed, golden, res, rounds, interval, fixed, sign, overwritten;
-  int i, j;
+  int i, j, argstart, len;
   Exp* e;
+
+  argstart = argc;
 
   for (i = 1; i < argc; i++)
   {
-    if (!strcmp (argv[i], "-h"))
+    if (run_name)
+    {
+      argstart = i;
+      break;
+    }
+    else if (!strcmp (argv[i], "-h"))
     {
       printf (
-          "usage: deltabtor [-h][-v][--no-simp][--no-sort] <input> <output> "
-          "<run>\n");
+          "usage: deltabtor "
+          "[-h][-v][--no-simp][--no-sort] <in> <out> "
+          "<run> [<opt> ...]\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
@@ -805,8 +813,6 @@ main (int argc, char** argv)
       nosimp = 1;
     else if (!strcmp (argv[i], "--no-sort"))
       nosort = 1;
-    else if (run_name)
-      die ("more than three file names given");
     else if (output_name)
       run_name = argv[i];
     else if (input_name)
@@ -840,8 +846,17 @@ main (int argc, char** argv)
   tmp = malloc (100);
   sprintf (tmp, "/tmp/deltabtor%u", (unsigned) getpid ());
 
-  cmd = malloc (strlen (run_name) + strlen (tmp) + 100);
-  sprintf (cmd, "%s %s >/dev/null 2>/dev/null", run_name, tmp);
+  len = strlen (tmp);
+
+  for (i = argstart; i < argc; i++) len += 1 + strlen (argv[i]);
+
+  cmd = malloc (strlen (run_name) + len + 100);
+  sprintf (cmd, "%s %s", run_name, tmp);
+
+  for (i = argstart; i < argc; i++)
+    sprintf (cmd + strlen (cmd), " %s", argv[i]);
+
+  sprintf (cmd + strlen (cmd), " >/dev/null 2>/dev/null");
 
   expand ();
 
