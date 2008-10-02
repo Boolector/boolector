@@ -1,0 +1,5 @@
+news for release 0.5 since 0.4
+------------------------------
+* faster model generation
+* support for array models
+* support for under-approximation techniques for bit-vector variables and reads
