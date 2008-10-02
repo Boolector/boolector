@@ -30,7 +30,7 @@ do
     -s) strip=yes;;
     -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no;;
     -pp) picoprep=yes;;
-    -r) release=yes; static=yes; gpt=yes; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
+    -r) release=yes; static=yes; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
     *) cat <<EOF
 *** usage: ./configure [-g][-s][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-pp][-r]
 EOF
@@ -91,7 +91,7 @@ if [ X"$CFLAGS" = X ]; then
 fi
 echo " $CFLAGS"
 
-if [ $release = yes ]; then
+if [ $release = yes -a $gpt = yes ]; then
   LIBS=$LIBS" -ltcmalloc -lstdc++ -lpthread"
 elif [ $gpt = yes ]; then
   LIBS=$LIBS" -ltcmalloc -lprofiler"
