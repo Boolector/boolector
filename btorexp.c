@@ -2075,7 +2075,8 @@ hash_var_read_for_ua (Btor *btor, BtorExp *exp)
     btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp);
   else
   {
-    assert (btor->ua.mode == BTOR_UA_LOCAL_MODE);
+    assert (btor->ua.mode == BTOR_UA_LOCAL_MODE
+            || btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
     ua_data = new_ua_data (btor, btor->ua.initial_eff_width);
     btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp)->data.asPtr =
         ua_data;
@@ -5190,6 +5191,8 @@ compute_basic_ua_stats (Btor *btor,
   assert (avg_width != NULL);
   assert (avg_eff_width != NULL);
 
+  assert (btor->ua.enabled);
+
   ua_mode = btor->ua.mode;
 
   sum_var_width      = 0llu;
@@ -5234,7 +5237,7 @@ compute_basic_ua_stats (Btor *btor,
 
     if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       data = (BtorUAData *) b->data.asPtr;
       assert (data != NULL);
@@ -5242,7 +5245,7 @@ compute_basic_ua_stats (Btor *btor,
 
     update_min_basic_ua_stats (btor, min_width, cur->len);
     update_max_basic_ua_stats (btor, max_width, cur->len);
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       update_min_basic_ua_stats (btor, min_eff_width, data->eff_width);
       update_max_basic_ua_stats (btor, max_eff_width, data->eff_width);
@@ -5256,7 +5259,7 @@ compute_basic_ua_stats (Btor *btor,
 
       update_min_basic_ua_stats (btor, min_var_width, cur->len);
       update_max_basic_ua_stats (btor, max_var_width, cur->len);
-      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
         update_min_basic_ua_stats (btor, min_var_eff_width, data->eff_width);
         update_max_basic_ua_stats (btor, max_var_eff_width, data->eff_width);
@@ -5273,7 +5276,7 @@ compute_basic_ua_stats (Btor *btor,
       update_min_basic_ua_stats (btor, min_read_width, cur->len);
       update_max_basic_ua_stats (btor, max_read_width, cur->len);
 
-      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
         update_min_basic_ua_stats (btor, min_read_eff_width, data->eff_width);
         update_max_basic_ua_stats (btor, max_read_eff_width, data->eff_width);
@@ -5288,7 +5291,7 @@ compute_basic_ua_stats (Btor *btor,
   if (*num_vars)
   {
     *avg_var_width = (double) sum_var_width / (double) *num_vars;
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       *avg_var_refs      = (double) *sum_var_refs / (double) *num_vars;
       *avg_var_eff_width = (double) sum_var_eff_width / (double) *num_vars;
@@ -5298,7 +5301,7 @@ compute_basic_ua_stats (Btor *btor,
   if (*num_reads)
   {
     *avg_read_width = (double) sum_read_width / (double) *num_reads;
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       *avg_read_refs      = (double) *sum_read_refs / (double) *num_reads;
       *avg_read_eff_width = (double) sum_read_eff_width / (double) *num_reads;
@@ -5309,7 +5312,7 @@ compute_basic_ua_stats (Btor *btor,
   {
     *avg_width = (double) (sum_var_width + sum_read_width)
                  / (double) (*num_vars + *num_reads);
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       *avg_eff_width = (double) (sum_var_eff_width + sum_read_eff_width)
                        / (double) (*num_vars + *num_reads);
@@ -5400,7 +5403,7 @@ btor_print_stats_btor (Btor *btor)
                          min_var_width,
                          max_var_width,
                          avg_var_width);
-      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
         print_verbose_msg ("  vars eff. width: %d %d %.1f",
                            min_var_eff_width,
@@ -5419,7 +5422,7 @@ btor_print_stats_btor (Btor *btor)
                          min_read_width,
                          max_read_width,
                          avg_read_width);
-      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
         print_verbose_msg ("  reads eff. width: %d %d %.1f",
                            min_read_eff_width,
@@ -5440,7 +5443,7 @@ btor_print_stats_btor (Btor *btor)
                          min_width,
                          max_width,
                          avg_width);
-      if (ua_mode == BTOR_UA_LOCAL_MODE)
+      if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
         print_verbose_msg ("  vars + reads eff. width: %d %d %.1f",
                            min_eff_width,
@@ -6428,19 +6431,20 @@ readd_under_approx_assumptions (Btor *btor)
 
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
 
-  if (btor->ua.mode == BTOR_UA_LOCAL_MODE)
+  if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
   {
+    if (btor->ua.global_last_e != 0)
+      btor_assume_sat (smgr, btor->ua.global_last_e);
+  }
+  else
+  {
+    assert (btor->ua.mode == BTOR_UA_LOCAL_MODE
+            || btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
     for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
     {
       data = (BtorUAData *) b->data.asPtr;
       if (data->last_e != 0) btor_assume_sat (smgr, data->last_e);
     }
-  }
-  else
-  {
-    assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE);
-    if (btor->ua.global_last_e != 0)
-      btor_assume_sat (smgr, btor->ua.global_last_e);
   }
 }
 
@@ -8455,15 +8459,61 @@ max_len_global_under_approx_vars (Btor *btor)
   return max;
 }
 
+static void
+update_local_under_approx_eff_width (Btor *btor, BtorExp *exp, BtorUAData *data)
+{
+  char *max_string;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (data != NULL);
+  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (BTOR_IS_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
+
+  max_string = "";
+
+  if (btor->ua.ref == BTOR_UA_REF_BY_INC_ONE)
+    data->eff_width++;
+  else
+  {
+    assert (btor->ua.ref == BTOR_UA_REF_BY_DOUBLING);
+    data->eff_width *= 2;
+  }
+
+  /* check also for overflow */
+  if (data->eff_width >= exp->len || data->eff_width <= 0)
+  {
+    max_string      = " (max)";
+    data->eff_width = exp->len;
+  }
+
+  data->updated_eff_width = 1;
+  data->refinements++;
+
+  if (btor->verbosity >= 3)
+  {
+    if (BTOR_IS_VAR_EXP (exp))
+      print_verbose_msg ("UA: setting effective bit-width of %s to %d%s",
+                         exp->symbol,
+                         data->eff_width,
+                         max_string);
+    else
+      print_verbose_msg ("UA: setting effective bit-width of read %d to %d%s",
+                         exp->id,
+                         data->eff_width,
+                         max_string);
+  }
+}
+
 static int
 update_under_approx_eff_width (Btor *btor)
 {
   BtorPtrHashBucket *b;
   BtorUARef ua_ref;
-  BtorExp *cur;
-  BtorUAData *data;
+  BtorExp *cur, *min_exp;
+  BtorUAData *data, *min_data;
   char *max_string;
-  int update, e, verbosity;
+  int update, e, verbosity, found_top;
 
   assert (btor != NULL);
   assert (btor->ua.enabled);
@@ -8471,6 +8521,9 @@ update_under_approx_eff_width (Btor *btor)
   ua_ref     = btor->ua.ref;
   verbosity  = btor->verbosity;
   update     = 0;
+  found_top  = 0;
+  min_data   = NULL;
+  min_exp    = NULL;
   max_string = "";
 
   if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
@@ -8500,9 +8553,8 @@ update_under_approx_eff_width (Btor *btor)
       update = 1;
     }
   }
-  else
+  else if (btor->ua.mode == BTOR_UA_LOCAL_MODE)
   {
-    assert (btor->ua.mode == BTOR_UA_LOCAL_MODE);
     for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
     {
       max_string = "";
@@ -8517,42 +8569,61 @@ update_under_approx_eff_width (Btor *btor)
 
       if (e != 0 && btor->unsat_core_lookup (e))
       {
-        if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
-          data->eff_width++;
-        else
-        {
-          assert (ua_ref == BTOR_UA_REF_BY_DOUBLING);
-          data->eff_width *= 2;
-        }
-
-        /* check also for overflow */
-        if (data->eff_width >= cur->len || data->eff_width <= 0)
-        {
-          max_string      = " (max)";
-          data->eff_width = cur->len;
-        }
-
-        update                  = 1;
-        data->updated_eff_width = 1;
-        data->refinements++;
-
-        if (verbosity >= 3)
-        {
-          if (BTOR_IS_VAR_EXP (cur))
-            print_verbose_msg ("UA: setting effective bit-width of %s to %d%s",
-                               cur->symbol,
-                               data->eff_width,
-                               max_string);
-          else
-            print_verbose_msg (
-                "UA: setting effective bit-width of read %d to %d%s",
-                cur->id,
-                data->eff_width,
-                max_string);
-        }
+        update = 1;
+        update_local_under_approx_eff_width (btor, cur, data);
       }
       else
         data->updated_eff_width = 0;
+    }
+  }
+  else
+  {
+    assert (btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
+    for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
+    {
+      max_string = "";
+
+      cur                     = (BtorExp *) b->key;
+      data                    = (BtorUAData *) b->data.asPtr;
+      data->updated_eff_width = 0;
+
+      assert (!BTOR_IS_INVERTED_EXP (cur));
+      assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+
+      e = data->last_e;
+
+      if (e == 0) continue;
+
+      if (picosat_deref_toplevel (e) == -1)
+      {
+        found_top = 1;
+        update    = 1;
+        update_local_under_approx_eff_width (btor, cur, data);
+      }
+      else if (!found_top && btor->unsat_core_lookup (e))
+      {
+        if (min_data == NULL || min_data->eff_width < data->eff_width)
+        {
+          min_exp  = cur;
+          min_data = data;
+        }
+      }
+    }
+
+    /* no assumption was top level assigned, so we refine the 'best fit' */
+    if (!found_top)
+    {
+      if (min_data != NULL)
+      {
+        assert (min_exp != NULL);
+        update = 1;
+        update_local_under_approx_eff_width (btor, min_exp, min_data);
+      }
+      else
+      {
+        assert (min_exp == NULL);
+        assert (update == 0);
+      }
     }
   }
 
@@ -8594,13 +8665,12 @@ encode_under_approx_const_extend (Btor *btor, int phase)
     aigs = cur->av->aigs;
     assert (aigs != NULL);
 
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       data = (BtorUAData *) b->data.asPtr;
       if (data->updated_eff_width == 0 && data->last_e != 0)
       {
-        /* variable was not in core and therefore has not been refined,
-         * reassume e */
+        /* variable has not been refined, reassume e */
         btor_assume_sat (smgr, data->last_e);
         encoded = 1;
         continue;
@@ -8639,7 +8709,8 @@ encode_under_approx_const_extend (Btor *btor, int phase)
       }
       else
       {
-        assert (ua_mode == BTOR_UA_LOCAL_MODE);
+        assert (ua_mode == BTOR_UA_LOCAL_MODE
+                || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
         if (!encoded_local)
         {
           under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
@@ -8662,7 +8733,8 @@ encode_under_approx_const_extend (Btor *btor, int phase)
 
     if (encoded_local)
     {
-      assert (ua_mode == BTOR_UA_LOCAL_MODE);
+      assert (ua_mode == BTOR_UA_LOCAL_MODE
+              || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
       btor_assume_sat (smgr, under_approx_e);
     }
   }
@@ -8718,13 +8790,12 @@ encode_under_approx_sign_extend (Btor *btor)
 
     assert (cur->av != NULL);
 
-    if (ua_mode == BTOR_UA_LOCAL_MODE)
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
     {
       data = (BtorUAData *) b->data.asPtr;
       if (data->updated_eff_width == 0 && data->last_e != 0)
       {
-        /* variable was not in core and therefore has not been refined,
-         * reassume e */
+        /* variable has not been refined, reassume e */
         btor_assume_sat (smgr, data->last_e);
         encoded = 1;
         continue;
@@ -8776,7 +8847,8 @@ encode_under_approx_sign_extend (Btor *btor)
       }
       else
       {
-        assert (ua_mode == BTOR_UA_LOCAL_MODE);
+        assert (ua_mode == BTOR_UA_LOCAL_MODE
+                || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
         if (!encoded_local)
         {
           under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
@@ -8801,7 +8873,8 @@ encode_under_approx_sign_extend (Btor *btor)
 
     if (encoded_local)
     {
-      assert (ua_mode == BTOR_UA_LOCAL_MODE);
+      assert (ua_mode == BTOR_UA_LOCAL_MODE
+              || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
       btor_assume_sat (smgr, under_approx_e);
     }
   }

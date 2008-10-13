@@ -87,11 +87,13 @@ do
   ((counter++))
 
   randomnumber=$RANDOM
-  ((randomnumber &= 1))
+  ((randomnumber %= 3))
   if [[ "$randomnumber" -eq 0 ]]; then
     uamode=uag
-  else
+  elif [[ "$randomnumber" -eq 1 ]]; then
     uamode=ual
+  else 
+    uamode=uali
   fi
 
   randomnumber=$RANDOM

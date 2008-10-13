@@ -172,6 +172,7 @@ static const char *g_usage =
     "(default)\n"
     "\n"
     "  -ual                             local refinement strategy\n"
+    "  -uali                            local individual refinement strategy\n"
     "  -uag                             global refinement strategy (default)\n"
     "\n"
     "  -uaz                             UA encoding by zero-extension\n"
@@ -650,6 +651,11 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-ual"))
     {
       app->ua_mode = BTOR_UA_LOCAL_MODE;
+      app->ua      = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-uali"))
+    {
+      app->ua_mode = BTOR_UA_LOCAL_INDIVIDUAL_MODE;
       app->ua      = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-uag"))

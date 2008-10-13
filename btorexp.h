@@ -205,7 +205,8 @@ typedef struct ConstraintStats ConstraintStats;
 enum BtorUAMode
 {
   BTOR_UA_GLOBAL_MODE = 0,
-  BTOR_UA_LOCAL_MODE
+  BTOR_UA_LOCAL_MODE,
+  BTOR_UA_LOCAL_INDIVIDUAL_MODE
 };
 
 typedef enum BtorUAMode BtorUAMode;
