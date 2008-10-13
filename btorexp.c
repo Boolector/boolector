@@ -8602,7 +8602,7 @@ update_under_approx_eff_width (Btor *btor)
       }
       else if (!found_top && btor->unsat_core_lookup (e))
       {
-        if (min_data == NULL || min_data->eff_width < data->eff_width)
+        if (min_data == NULL || data->eff_width < min_data->eff_width)
         {
           min_exp  = cur;
           min_data = data;
