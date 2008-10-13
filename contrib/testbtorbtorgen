@@ -2,7 +2,7 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [-i <id>] [-c <limit> [-n]]" 
+readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [-i <id>] [-c <limit> [-n] [-r]]" 
 readonly covdir="./covtests/"
 readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/testbtorbtorgen$$.btor"
@@ -39,6 +39,12 @@ if [[ -z "$btorgenjava" ]]; then
   exit 1
 fi
 
+boolector04=`which boolector-0.4`
+if [[ -z "$boolector04" ]]; then
+  echo "*** testbtorbtorgen: can not find 'boolector-0.4'" 1>&2
+  exit 1
+fi
+
 i=0
 counter=0
 last=btorgenjava
@@ -47,13 +53,15 @@ covlimit=0
 id=1
 covtestcounter=0
 covcleanup=1
+crosscheck=0
 
-while getopts "i:c:n" o
+while getopts "i:c:nr" o
 do
   case "$o" in
   i)	id=$OPTARG;;
   c)	cov=1; covlimit=$OPTARG;;
   n)	covcleanup=0;;
+  r)	crosscheck=1;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
@@ -167,6 +175,17 @@ do
 	echo "; error: $callstring" >> "$fileerror"
 	cleanup
 	exit 1
+      fi
+      if [[ "$crosscheck" -eq 1 ]]; then
+	$boolector04 $file &> /dev/null
+	retval=$?
+	if [[ $goldenretval -ne $retval ]]; then
+	  echo "ERROR"
+	  cp "$file" "$fileerror"
+	  echo "; error: $callstring boolector-0.4 yields other result" >> "$fileerror"
+	  cleanup
+	  exit 1
+	fi
       fi
     else
       if [[ "$retval" -ne "$goldenretval" ]]; then
