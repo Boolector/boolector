@@ -8882,6 +8882,167 @@ encode_under_approx_sign_extend (Btor *btor)
   return encoded;
 }
 
+static void
+encode_under_approx_eq_classes_aux (Btor *btor,
+                                    BtorExp *cur,
+                                    BtorUAData *data,
+                                    int high,
+                                    int low,
+                                    int classes,
+                                    int *under_approx_e,
+                                    int *encoded)
+{
+  BtorSATMgr *smgr;
+  BtorAIG **aigs;
+  int i, id1, id2, first_pos, mid;
+  BtorUAMode ua_mode;
+
+  assert (btor != NULL);
+  assert (cur != NULL);
+  assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE || data != NULL);
+  assert (low >= 0);
+  assert (high >= low);
+  assert (encoded != NULL);
+
+  if (classes <= 0) return;
+
+  if (classes == 1)
+  {
+    smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+    ua_mode = btor->ua.mode;
+    aigs    = cur->av->aigs;
+    assert (aigs != NULL);
+
+    first_pos = 0;
+    i         = high;
+    while (i >= low && (BTOR_IS_CONST_AIG (aigs[i]) || aigs[i]->cnf_id == 0))
+      i--;
+
+    if (i < 0) return;
+
+    first_pos = i;
+    id1       = aigs[first_pos]->cnf_id;
+    assert (id1 != 0);
+
+    for (i = first_pos - 1; i >= low; i--)
+    {
+      if (BTOR_IS_CONST_AIG (aigs[i])) continue;
+
+      id2 = aigs[i]->cnf_id;
+
+      if (id2 == 0) continue;
+
+      if (ua_mode == BTOR_UA_GLOBAL_MODE)
+      {
+        if (!*under_approx_e)
+        {
+          *under_approx_e        = btor_next_cnf_id_sat_mgr (smgr);
+          btor->ua.global_last_e = *under_approx_e;
+        }
+      }
+      else
+      {
+        assert (ua_mode == BTOR_UA_LOCAL_MODE
+                || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
+        if (!*under_approx_e)
+        {
+          *under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
+          assert (data->last_e == 0);
+          data->last_e = *under_approx_e;
+        }
+      }
+
+      *encoded = 1;
+
+      btor_add_sat (smgr, -id1);
+      btor_add_sat (smgr, id2);
+      btor_add_sat (smgr, -*under_approx_e);
+      btor_add_sat (smgr, 0);
+
+      btor_add_sat (smgr, id1);
+      btor_add_sat (smgr, -id2);
+      btor_add_sat (smgr, -*under_approx_e);
+      btor_add_sat (smgr, 0);
+    }
+  }
+  else
+  {
+    mid = low + ((high - low) >> 1);
+    classes >>= 1;
+    encode_under_approx_eq_classes_aux (
+        btor, cur, data, high, mid + 1, classes, under_approx_e, encoded);
+    encode_under_approx_eq_classes_aux (
+        btor, cur, data, mid, low, classes, under_approx_e, encoded);
+  }
+}
+
+static int
+encode_under_approx_eq_classes (Btor *btor)
+{
+  BtorSATMgr *smgr;
+  BtorPtrHashBucket *b;
+  BtorExp *cur;
+  int encoded, len, under_approx_e;
+  int eff_width = 0;
+  BtorUAMode ua_mode;
+  BtorUAData *data;
+
+  assert (btor != NULL);
+  assert (btor->ua.enabled);
+
+  encoded = 0;
+  data    = NULL;
+  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  ua_mode        = btor->ua.mode;
+  under_approx_e = 0;
+
+  if (ua_mode == BTOR_UA_GLOBAL_MODE) eff_width = btor->ua.global_eff_width;
+
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+
+    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
+
+    if (ua_mode != BTOR_UA_GLOBAL_MODE)
+    {
+      data = (BtorUAData *) b->data.asPtr;
+      if (data->updated_eff_width == 0 && data->last_e != 0)
+      {
+        /* variable has not been refined, reassume e */
+        btor_assume_sat (smgr, data->last_e);
+        encoded = 1;
+        continue;
+      }
+
+      eff_width = data->eff_width;
+
+      /* disable previous clauses */
+      if (data->last_e != 0)
+      {
+        btor_add_sat (smgr, -data->last_e);
+        btor_add_sat (smgr, 0);
+        data->last_e = 0;
+      }
+    }
+
+    len = cur->len;
+    if (eff_width >= len) continue;
+
+    if (ua_mode != BTOR_UA_GLOBAL_MODE) under_approx_e = 0;
+
+    encode_under_approx_eq_classes_aux (
+        btor, cur, data, len - 1, 0, eff_width, &under_approx_e, &encoded);
+
+    if (under_approx_e != 0 && ua_mode != BTOR_UA_GLOBAL_MODE)
+      btor_assume_sat (smgr, under_approx_e);
+  }
+
+  return encoded;
+}
+
 static int
 encode_under_approx (Btor *btor)
 {
@@ -8908,9 +9069,12 @@ encode_under_approx (Btor *btor)
     case BTOR_UA_ENC_ONE_EXTEND:
       encoded = encode_under_approx_one_extend (btor);
       break;
-    default:
-      assert (btor->ua.enc == BTOR_UA_ENC_SIGN_EXTEND);
+    case BTOR_UA_ENC_SIGN_EXTEND:
       encoded = encode_under_approx_sign_extend (btor);
+      break;
+    default:
+      assert (btor->ua.enc == BTOR_UA_ENC_EQ_CLASSES);
+      encoded = encode_under_approx_eq_classes (btor);
       break;
   }
 

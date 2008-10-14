@@ -177,6 +177,7 @@ static const char *g_usage =
     "\n"
     "  -uaz                             UA encoding by zero-extension\n"
     "  -uao                             UA encoding by one-extension\n"
+    "  -uac                             UA encoding by equivalence classes\n"
     "  -uas                             UA encoding by sign-extension "
     "(default)\n"
     "\n"
@@ -665,8 +666,16 @@ parse_commandline_arguments (BtorMainApp *app)
     }
     else if (!strcmp (app->argv[app->argpos], "-uai"))
     {
-      app->ua_ref = BTOR_UA_REF_BY_INC_ONE;
-      app->ua     = 1;
+      if (app->ua_enc == BTOR_UA_ENC_EQ_CLASSES)
+      {
+        print_err (app, "-uai and -uac cannot be combined\n");
+        app->err = 1;
+      }
+      else
+      {
+        app->ua_ref = BTOR_UA_REF_BY_INC_ONE;
+        app->ua     = 1;
+      }
     }
     else if (!strcmp (app->argv[app->argpos], "-uad"))
     {
@@ -682,6 +691,19 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       app->ua_enc = BTOR_UA_ENC_ONE_EXTEND;
       app->ua     = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-uac"))
+    {
+      if (app->ua_ref == BTOR_UA_REF_BY_INC_ONE)
+      {
+        print_err (app, "-uai and -uac cannot be combined\n");
+        app->err = 1;
+      }
+      else
+      {
+        app->ua_enc = BTOR_UA_ENC_EQ_CLASSES;
+        app->ua     = 1;
+      }
     }
     else if (!strcmp (app->argv[app->argpos], "-uas"))
     {

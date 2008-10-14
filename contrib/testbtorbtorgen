@@ -113,17 +113,21 @@ do
   fi
 
   randomnumber=$RANDOM
-  ((randomnumber %= 3))
+  ((randomnumber &= 3))
   if [[ "$randomnumber" -eq 0 ]]; then
     uaenc=uaz
   elif [[ "$randomnumber" -eq 1 ]]; then
     uaenc=uao
-  else
+  elif [[ "$randomnumber" -eq 2 ]]; then
     uaenc=uas
+  else 
+    uaenc=uac
+    # uac needs uad
+    uabwref=uad
   fi
 
-  uarwl=$RANDOM
-  ((uarwl &= 3))
+  ua=$RANDOM
+  ((ua &= 1))
 
   # when we create coverage tests,
   # we do not want to generate models
@@ -149,7 +153,7 @@ do
     echo -n "Test $i rwl$rwl: "
 
     callstring="-rwl$rwl $file"
-    if [[ "$uarwl" -eq 3 ]]; then
+    if [[ "$ua" -eq 1 ]]; then
       callstring="$callstring -$uamode -$uabwref -$uaenc"
     fi
     if [[ "$checkmodel" -eq 1 ]]; then
