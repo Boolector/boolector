@@ -8818,8 +8818,7 @@ encode_under_approx_sign_extend (Btor *btor)
     aigs = cur->av->aigs;
     assert (aigs != NULL);
 
-    first_pos = 0;
-    i         = len - eff_width;
+    i = len - eff_width;
     while (i >= 0 && (BTOR_IS_CONST_AIG (aigs[i]) || aigs[i]->cnf_id == 0)) i--;
 
     if (i < 0) continue;
@@ -8913,12 +8912,11 @@ encode_under_approx_eq_classes_aux (Btor *btor,
     aigs    = cur->av->aigs;
     assert (aigs != NULL);
 
-    first_pos = 0;
-    i         = high;
+    i = high;
     while (i >= low && (BTOR_IS_CONST_AIG (aigs[i]) || aigs[i]->cnf_id == 0))
       i--;
 
-    if (i < 0) return;
+    if (i < low) return;
 
     first_pos = i;
     id1       = aigs[first_pos]->cnf_id;
