@@ -2,12 +2,12 @@
 
 readonly homedir=/tmp/buildallsourcecov/
 
-if [[ ! -e ~/boolector ]] && [[ ! -d ~/boolector ]]; then
+if [[ ! -e ~/boolector ]] || [[ ! -d ~/boolector ]]; then
   echo "Could not find boolector source in home directory"
   exit 1
 fi
 
-if [[ ! -e ~/picosat ]] && [[ ! -d ~/picosat ]]; then
+if [[ ! -e ~/picosat ]] || [[ ! -d ~/picosat ]]; then
   echo "Could not find picosat source in home directory"
   exit 1
 fi
