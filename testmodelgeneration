@@ -20,6 +20,9 @@ do
   elif [[ $retval -eq 2 ]]; then
     echo " unexpected return value: $file"
     exitcode=1
+  elif [[ `cat $output | wc -l` -le 1 ]]; then
+    echo " empty model: $file"
+    exitcode=1
   fi
   ((i++))
 done
