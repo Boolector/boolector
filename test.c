@@ -25,6 +25,7 @@
 #endif
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #define BTOR_RUN_TESTS(name)         \
@@ -40,7 +41,8 @@ int
 main (int argc, char **argv)
 {
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
-  int i                   = 0;
+  int ret_val;
+  int i = 0;
 
   for (i = 1; i < argc; i++)
   {
@@ -89,6 +91,11 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (testcases);
   BTOR_RUN_TESTS (smtaxioms);
   BTOR_RUN_TESTS (inc);
-  finish_tests ();
+  printf ("Running model generation tests\n");
+  ret_val = system ("./testmodelgeneration");
+  if (ret_val != 0)
+    printf ("%sError in model generation%s\n", "\e[1;31m", "\e[0;39m");
+  else
+    finish_tests ();
   return 0;
 }
