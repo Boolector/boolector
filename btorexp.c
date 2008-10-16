@@ -9279,24 +9279,19 @@ btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
-  if ((!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))
-      && !real_exp->vread)
+  if (BTOR_IS_CONST_EXP (real_exp))
   {
     invert_bits = BTOR_IS_INVERTED_EXP (exp);
     if (invert_bits)
-      btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
     assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
     if (invert_bits)
-      btor_invert_const_3vl (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
+      btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
   }
-  else if (BTOR_IS_CONST_EXP (real_exp))
+  else if ((!real_exp->reachable || !BTOR_IS_SYNTH_EXP (real_exp))
+           && !real_exp->vread)
   {
-    invert_bits = BTOR_IS_INVERTED_EXP (exp);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
-    assignment = btor_copy_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
-    if (invert_bits)
-      btor_invert_const (btor->mm, BTOR_REAL_ADDR_EXP (exp)->bits);
+    assignment = btor_x_const_3vl (btor->mm, real_exp->len);
   }
   else
   {
