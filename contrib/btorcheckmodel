@@ -11,26 +11,44 @@ trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
 if [[ $# -ne 2 ]]; then
   echo "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
-  exit 1
+  exit 2
 fi
 
-cat "$1" > "$file"
+if [[ ! -e "$1" ]] || [[ ! -r "$1" ]] || [[ ! -e "$2" ]] || [[ ! -e "$2" ]]
+then
+  echo "Cannot read input file(s)"
+  exit 2
+fi
+
+rm -f "$file"
 
 id=`tail -n 1 "$1" | awk '{ print $1 }'`
 ((id++))
+rootarg=`tail -n 1 "$1" | awk '{ print $4 }'`
+numlines=`cat "$1" | wc -l`
+
+i=1
+while read line
+do
+  if [[ $i -lt $numlines ]]; then
+    echo $line >> "$file"
+  fi
+  ((i++))
+done < "$1"
+
+echo "$((id++)) const 1 1" >> "$file"
+((lastand = id - 1))
 
 first=0
-emptymodel=1
-cat "$2" | while read line
+while read line
 do
 if [[ "$first" -eq 0 ]]; then
   first=1
   if [[ "$line" != "sat" ]]; then
     echo "Formula is not SAT"
-    exit 1
+    exit 2
   fi
 else
-  emptymodel=0
   openbracketpos=`expr index "$line" "["`
   if [[ "$openbracketpos" -eq 0 ]]; then
     # bv model
@@ -47,10 +65,11 @@ else
       ass=${ass//x/1}
     fi
     echo "$((id++)) const $asslen $ass" >> "$file"
-    ((lastid= id - 1))
+    ((lastid = id - 1))
     echo "$((id++)) eq 1 $mid $lastid" >> "$file"
-    ((lastid= id - 1))
-    echo "$((id++)) root 1 $lastid" >> "$file"
+    ((lastid = id - 1))
+    echo "$((id++)) and 1 $lastand $lastid" >> "$file"
+    ((lastand = id - 1))
   else
     # array model
     ((temp = openbracketpos - 1))
@@ -61,41 +80,46 @@ else
     indexass=${line:openbracketpos:lenindexass}
     if [[ `expr index "$indexass" x` -ne 0 ]]; then
       echo "Unexpected index assignment"
-      exit 1
+      exit 2
     fi
     indexasslen=${#indexass}
 
     valueass=`echo "$line" | awk '{ print $2 }'`
     if [[ `expr index "$valueass" x` -ne 0 ]]; then
       echo "Unexpected value assignment"
-      exit 1
+      exit 2
     fi
     valueasslen=${#valueass}
 
     echo "$((id++)) const $indexasslen $indexass" >> "$file"
-    ((lastid= id - 1))
+    ((lastid = id - 1))
     indexid=$lastid
     echo "$((id++)) const $valueasslen $valueass" >> "$file"
-    ((lastid= id - 1))
+    ((lastid = id - 1))
     valueid=$lastid
     echo "$((id++)) read $valueasslen $arrayid $indexid" >> "$file"
-    ((lastid= id - 1))
+    ((lastid = id - 1))
     echo "$((id++)) eq 1 $valueid $lastid" >> "$file"
-    ((lastid= id - 1))
-    echo "$((id++)) root 1 $lastid" >> "$file"
+    ((lastid = id - 1))
+    echo "$((id++)) and 1 $lastand $lastid" >> "$file"
+    ((lastand = id - 1))
   fi 
 fi
-done
+done < "$2"
+
+echo "$((id++)) implies 1 $lastand $rootarg" >> "$file"
+((lastid = id - 1))
+echo "$((id++)) root 1 -$lastid" >> "$file"
 
 boolector "$file" &> /dev/null
 retval=$?
-if [[ "$retval" -eq 3 ]]; then
+if [[ "$retval" -eq 2 ]]; then
   echo "Invalid model"
   exit 1
-elif [[ "$retval" -ne 2 ]]; then
+elif [[ "$retval" -ne 3 ]]; then
   echo "Unexpected return value"
   exit 2
 fi
 
-cleanup
+#cleanup
 exit 0
