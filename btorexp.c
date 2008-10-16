@@ -7298,6 +7298,10 @@ slice_on_var_subst_rhs (
     btor_release_exp (btor, right);
   }
 
+  /* we have to make sure that the concat is also synthesized and reachable
+   * for model generation */
+  synthesize_exp (btor, result, NULL);
+
   return result;
 }
 
@@ -7520,6 +7524,11 @@ normalize_substitution (Btor *btor,
         const_exp = btor_zero_exp (btor, leadings);
         lambda    = lambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
+
+        /* we have to make sure that the concat is also synthesized
+         * and reachable for model generation */
+        synthesize_exp (btor, tmp, NULL);
+
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
@@ -7536,6 +7545,11 @@ normalize_substitution (Btor *btor,
         const_exp = btor_ones_exp (btor, leadings);
         lambda    = lambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
+
+        /* we have to make sure that the concat is also synthesized
+         * and reachable for model generation */
+        synthesize_exp (btor, tmp, NULL);
+
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
@@ -9249,7 +9263,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   return sat_result;
 }
 
-/*NOTE: works only for assignments to variables (RWL2 and RWL3 rules!) */
 char *
 btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
 {
