@@ -1,125 +1,163 @@
-#!/bin/bash
+#!/usr/bin/env python
+from __future__ import with_statement
+import sys, os, random
 
-readonly file="/tmp/btorcheckmodel$$.btor"
+def dec2bin(dec, len):
+  ret = os.popen ("echo \"ibase=10;obase=2; " + str(dec) + "\" | bc")
+  binary = ret.readline().strip()
+  evalstring= "%0" + str(len) + "d"
+  return evalstring % int(binary)
 
-function cleanup
-{
-  rm -f "$file"
-}
+pid = os.getpid();
+foutname = "/tmp/btorcheckmodel" + str(pid) +".btor"
 
-trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
+if len(sys.argv) != 3:
+  print "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
+  sys.exit(2)
 
-if [[ $# -ne 2 ]]; then
-  echo "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
-  exit 2
-fi
+fout = open (foutname, "w")
+arrays = {} 
+arrayass = {}
+constants = {}
+foundroot=False
+with open (sys.argv[1], "r") as fin:
+  for origline in fin:
+    line = origline.strip()
+    words = line.split()
 
-if [[ ! -e "$1" ]] || [[ ! -r "$1" ]] || [[ ! -e "$2" ]] || [[ ! -e "$2" ]]
-then
-  echo "Cannot read input file(s)"
-  exit 2
-fi
+    if words[1] == "root":
+      if foundroot:
+        print "Multiple roots are not supported"
+	sys.exit(2)
+      foundroot=True
+      id = int(words[0])
+      rootarg = words[3]
+    else:
+      if words[1] == "array":
+        if int(words[3]) > 8:
+	  print "Arrays with index len > 8 are not supported"
+	  sys.exit(2)
+        arrays[words[0]]=words[2] + " " + words[3]
+	arrayass[words[0]]={}
+	if constants.has_key(words[2]) == False:
+	  randnr = random.randint(0, (2 ** int(words[2])) - 1)
+          constants[words[2]]=dec2bin (randnr, int(words[2]))
+      fout.write (origline) 
 
-rm -f "$file"
+if foundroot == False:
+  print "Root is missing"
+  sys.exit(2)
 
-id=`tail -n 1 "$1" | awk '{ print $1 }'`
-((id++))
-rootarg=`tail -n 1 "$1" | awk '{ print $4 }'`
-numlines=`cat "$1" | wc -l`
+fout.write (str(id) + " const 1 1\n")
+lastand = id
+id = id + 1
 
-i=1
-while read line
-do
-  if [[ $i -lt $numlines ]]; then
-    echo $line >> "$file"
-  fi
-  ((i++))
-done < "$1"
+with open (sys.argv[2], "r") as fin:
+  origline = fin.readline()
 
-echo "$((id++)) const 1 1" >> "$file"
-((lastand = id - 1))
+  if origline.strip() != "sat":
+    print "Forumula is not SAT"
+    sys.exit(2)
 
-first=0
-while read line
-do
-if [[ "$first" -eq 0 ]]; then
-  first=1
-  if [[ "$line" != "sat" ]]; then
-    echo "Formula is not SAT"
-    exit 2
-  fi
-else
-  openbracketpos=`expr index "$line" "["`
-  if [[ "$openbracketpos" -eq 0 ]]; then
-    # bv model
-    mid=`echo "$line" | awk '{ print $1 }'`
-    ass=`echo "$line" | awk '{ print $2 }'`
-    asslen=${#ass}
-    randomnumber=$RANDOM
-    ((randomnumber %= 2))
-    if [[ "$randomnumber" -eq 0 ]]; then
-      #replace x's by 0 
-      ass=${ass//x/0}
-    else
-      #replace x's by 1 
-      ass=${ass//x/1}
-    fi
-    echo "$((id++)) const $asslen $ass" >> "$file"
-    ((lastid = id - 1))
-    echo "$((id++)) eq 1 $mid $lastid" >> "$file"
-    ((lastid = id - 1))
-    echo "$((id++)) and 1 $lastand $lastid" >> "$file"
-    ((lastand = id - 1))
-  else
-    # array model
-    ((temp = openbracketpos - 1))
-    closebracketpos=`expr index "$line" "]"`
-    arrayid=${line:0:temp}
-    ((lenindexass = closebracketpos - openbracketpos - 1))
+  for origline in fin:
+    line = origline.strip()
+    words = line.split()
+    opos = words[0].find("[")
+    if opos == -1:
+      #bv model
+      modelid= words[0]
+      ass = words[1]
+      assl = len(ass)
+      randnr = random.randint (0, 1)
+      ass = ass.replace("x", str(randnr))
+      fout.write (str(id) + " const " + str(assl) + " " + ass + "\n")
+      lastid = str(id)
+      id = id + 1
+      fout.write (str(id) + " eq 1 " + modelid + " " + lastid + "\n")
+      lastid = str(id)
+      id = id + 1
+      fout.write (str(id) + " and 1 " + str(lastand) + " " + lastid + "\n")
+      lastand = id
+      id = id + 1
+    else:
+      cpos = words[0].find("]")
 
-    indexass=${line:openbracketpos:lenindexass}
-    if [[ `expr index "$indexass" x` -ne 0 ]]; then
-      echo "Unexpected index assignment"
-      exit 2
-    fi
-    indexasslen=${#indexass}
+      if cpos == -1:
+        print "Invalid format of model file"
+        sys.exit(2)
 
-    valueass=`echo "$line" | awk '{ print $2 }'`
-    if [[ `expr index "$valueass" x` -ne 0 ]]; then
-      echo "Unexpected value assignment"
-      exit 2
-    fi
-    valueasslen=${#valueass}
+      aid=line[0:opos]
 
-    echo "$((id++)) const $indexasslen $indexass" >> "$file"
-    ((lastid = id - 1))
-    indexid=$lastid
-    echo "$((id++)) const $valueasslen $valueass" >> "$file"
-    ((lastid = id - 1))
-    valueid=$lastid
-    echo "$((id++)) read $valueasslen $arrayid $indexid" >> "$file"
-    ((lastid = id - 1))
-    echo "$((id++)) eq 1 $valueid $lastid" >> "$file"
-    ((lastid = id - 1))
-    echo "$((id++)) and 1 $lastand $lastid" >> "$file"
-    ((lastand = id - 1))
-  fi 
-fi
-done < "$2"
+      iass=line[opos + 1:cpos]
+      iassl=len(iass)
+      if iass.find("x") != -1:
+        print "Unexpected index assignment"
+	sys.exit(2)
 
-echo "$((id++)) implies 1 $lastand $rootarg" >> "$file"
-((lastid = id - 1))
-echo "$((id++)) root 1 -$lastid" >> "$file"
+      vass=words[1]
+      vassl=len(vass)
+      if vass.find("x") != -1:
+        print "Unexpected value assignment"
+	sys.exit(2)
+      
+      fout.write(str(id) + " const " + str(iassl) + " " + iass + "\n")
+      iid = lastid = str(id)
+      id = id + 1
+      fout.write(str(id) + " const " + str(vassl) + " " + vass + "\n")
+      vid = lastid = str(id)
+      id = id + 1
+      fout.write(str(id) + " read " + str(vassl) + " " + aid + " " + iid + "\n")
+      lastid = str(id)
+      id = id + 1
+      fout.write(str(id) + " eq 1 " + vid + " " + lastid + "\n")
+      lastid = str(id)
+      id = id + 1
+      fout.write (str(id) + " and 1 " + str(lastand) + " " + lastid + "\n")
+      lastand = id
+      id = id + 1
 
-boolector "$file" &> /dev/null
-retval=$?
-if [[ "$retval" -eq 2 ]]; then
-  echo "Invalid model"
-  exit 1
-elif [[ "$retval" -ne 3 ]]; then
-  echo "Unexpected return value"
-  exit 2
-fi
+      # remember assignment
+      arrayass[aid][iass] = vass
 
-#cleanup
-exit 0
+for key in arrays.iterkeys():
+  words = arrays[key].split()
+  vlen = words[0]
+  ilen = words[1]
+  looprange = range (0, 2 ** int(ilen))
+  ass = arrayass[key]
+  constant = constants[vlen]
+  for i in looprange:
+    binary = dec2bin (i, ilen)
+    if ass.has_key(binary) == False:
+      fout.write(str(id) + " const " + str(ilen) + " " + binary + "\n")
+      iid = lastid = str(id)
+      id = id + 1
+      fout.write(str(id) + " const " + str(vlen) + " " + constant + "\n")
+      vid = lastid = str(id)
+      id = id + 1
+      fout.write(str(id) + " read " + str(vlen) + " " + key + " " + iid + "\n")
+      lastid = str(id)
+      id = id + 1
+      fout.write(str(id) + " eq 1 " + vid + " " + lastid + "\n")
+      lastid = str(id)
+      id = id + 1
+      fout.write (str(id) + " and 1 " + str(lastand) + " " + lastid + "\n")
+      lastand = id
+      id = id + 1
+
+fout.write(str(id) + " implies 1 " + str(lastand) + " " + rootarg + "\n")
+lastid = id
+id = id + 1
+fout.write(str(id) + " root 1 -" + str(lastid) + "\n")
+fout.close()
+
+ret = os.popen ("boolector " + foutname)
+result = ret.readline().strip()
+if result == "sat":
+  print "Invalid model"
+  sys.exit(1)
+elif result != "unsat":
+  print "Unexpected result"
+  sys.exit(2)
+
+sys.exit(0)
