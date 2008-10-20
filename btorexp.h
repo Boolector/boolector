@@ -244,6 +244,7 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
+  int model_gen;
   struct /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */
@@ -392,6 +393,9 @@ Btor *btor_new_btor (void);
 
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
+
+/* Enables model generation. */
+void btor_enable_model_gen (Btor *btor);
 
 /* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and

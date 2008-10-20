@@ -47,6 +47,16 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 }
 
 void
+boolector_enable_model_gen (Btor *btor)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (
+      btor->id != 1,
+      "enabling model generation must be done before adding expressions");
+  btor_enable_model_gen (btor);
+}
+
+void
 boolector_set_verbosity (Btor *btor, int verbosity)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");

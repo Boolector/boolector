@@ -29,6 +29,9 @@ Btor *boolector_new (void);
 /* Sets rewrite level [0,2] */
 void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
 
+/* Enables model generation */
+void boolector_enable_model_gen (Btor *btor);
+
 /* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
  * does not print any output

@@ -1013,6 +1013,9 @@ btor_main (int argc, char **argv)
   {
     btor = btor_new_btor ();
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
+
+    if (app.print_model) btor_enable_model_gen (btor);
+
     if (app.ua)
     {
       btor_enable_under_approx (btor);

@@ -4860,6 +4860,14 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 }
 
 void
+btor_enable_model_gen (Btor *btor)
+{
+  assert (btor != NULL);
+  assert (btor->id == 1);
+  btor->model_gen = 1;
+}
+
+void
 btor_enable_under_approx (Btor *btor)
 {
   BtorMemMgr *mm;
@@ -7298,10 +7306,6 @@ slice_on_var_subst_rhs (
     btor_release_exp (btor, right);
   }
 
-  /* we have to make sure that the concat is also synthesized and reachable
-   * for model generation */
-  synthesize_exp (btor, result, NULL);
-
   return result;
 }
 
@@ -7384,6 +7388,17 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
     /* do not set constraint flag, as they are gone after substitution
      * and treated differently */
     btor->stats.constraints.varsubst++;
+
+    /* if model generation is enabled,
+     * we have to synthesize the right side, as the left side
+     * might not occur in the formula anymore afterwards */
+    if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
+    {
+      synthesize_exp (btor, right, NULL);
+      btor_aigvec_to_sat_both_phases (btor->avmgr,
+                                      BTOR_REAL_ADDR_EXP (right)->av);
+      BTOR_REAL_ADDR_EXP (right)->sat_both_phases = 1;
+    }
   }
   /* if v = t_1 is already in varsubst, we
    * have to synthesize v = t_2 */
@@ -7524,11 +7539,6 @@ normalize_substitution (Btor *btor,
         const_exp = btor_zero_exp (btor, leadings);
         lambda    = lambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
-
-        /* we have to make sure that the concat is also synthesized
-         * and reachable for model generation */
-        synthesize_exp (btor, tmp, NULL);
-
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
@@ -7545,11 +7555,6 @@ normalize_substitution (Btor *btor,
         const_exp = btor_ones_exp (btor, leadings);
         lambda    = lambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
-
-        /* we have to make sure that the concat is also synthesized
-         * and reachable for model generation */
-        synthesize_exp (btor, tmp, NULL);
-
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
         btor_release_exp (btor, lambda);
