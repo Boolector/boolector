@@ -7419,7 +7419,7 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   {
     if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
-      if (0 && BTOR_REAL_ADDR_EXP (right)->len > 1)
+      if (BTOR_REAL_ADDR_EXP (right)->len > 1)
       {
         synthesize_exp (btor, right, NULL);
         btor_aigvec_to_sat_both_phases (btor->avmgr,
