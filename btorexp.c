@@ -2436,7 +2436,7 @@ enlarge_exp_unique_table (Btor *btor)
 }
 
 static void
-btor_aux_mark_exp (Btor *btor, Btor *exp, int new_mark)
+mark_synth_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
 {
   BtorMemMgr *mm;
   BtorExpPtrStack stack;
@@ -2450,9 +2450,9 @@ btor_aux_mark_exp (Btor *btor, Btor *exp, int new_mark)
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    if (cur->aux_mark != new_mark)
+    if (cur->synth_mark != new_mark)
     {
-      cur->aux_mark = new_mark;
+      cur->synth_mark = new_mark;
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
     }
@@ -5707,13 +5707,13 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
-    assert (cur->aux_mark >= 0);
-    assert (cur->aux_mark <= 2);
-    if (!BTOR_IS_SYNTH_EXP (cur) && cur->aux_mark < 2)
+    assert (cur->synth_mark >= 0);
+    assert (cur->synth_mark <= 2);
+    if (!BTOR_IS_SYNTH_EXP (cur) && cur->synth_mark < 2)
     {
       count++;
 
-      if (cur->aux_mark == 0)
+      if (cur->synth_mark == 0)
       {
         cur->reachable = 1;
         if (BTOR_IS_CONST_EXP (cur))
@@ -5779,7 +5779,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           else
           {
             /* regular cases */
-            cur->aux_mark = 1;
+            cur->synth_mark = 1;
             BTOR_PUSH_STACK (mm, exp_stack, cur);
             for (i = cur->arity - 1; i >= 0; i--)
               BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
@@ -5788,8 +5788,8 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
       }
       else
       {
-        assert (cur->aux_mark == 1);
-        cur->aux_mark = 2;
+        assert (cur->synth_mark == 1);
+        cur->synth_mark = 2;
         assert (!BTOR_IS_READ_EXP (cur));
         switch (cur->arity)
         {
@@ -5928,7 +5928,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   } while (!BTOR_EMPTY_STACK (exp_stack));
 
   BTOR_RELEASE_STACK (mm, exp_stack);
-  btor_aux_mark_exp (btor, exp, 0);
+  mark_synth_mark_exp (btor, exp, 0);
 
   if (count > 0 && btor->verbosity > 2)
     print_verbose_msg ("synthesized %u expressions into AIG vectors", count);
@@ -7407,22 +7407,20 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   bucket = btor_find_in_ptr_hash_table (vsc, left);
   if (bucket == NULL)
   {
-    inc_exp_ref_counter (btor, left);
-    inc_exp_ref_counter (btor, right);
-    btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
-    /* do not set constraint flag, as they are gone after substitution
-     * and treated differently */
-    btor->stats.constraints.varsubst++;
-
-    /* if model generation is enabled,
-     * we have to synthesize the right side, as the left side
-     * might not occur in the formula anymore afterwards */
-    if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
+    if (btor->model_gen)
     {
-      synthesize_exp (btor, right, NULL);
-      btor_aigvec_to_sat_both_phases (btor->avmgr,
-                                      BTOR_REAL_ADDR_EXP (right)->av);
-      BTOR_REAL_ADDR_EXP (right)->sat_both_phases = 1;
+      eq = btor_eq_exp (btor, left, right);
+      insert_unsynthesized_constraint (btor, eq);
+      btor_release_exp (btor, eq);
+    }
+    else
+    {
+      inc_exp_ref_counter (btor, left);
+      inc_exp_ref_counter (btor, right);
+      btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
+      /* do not set constraint flag, as they are gone after substitution
+       * and treated differently */
+      btor->stats.constraints.varsubst++;
     }
   }
   /* if v = t_1 is already in varsubst, we

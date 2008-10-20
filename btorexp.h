@@ -66,8 +66,9 @@ typedef struct BtorExpPair BtorExpPair;
   {                                                                            \
     BtorExpKind kind : 5;        /* kind of expression */                      \
     unsigned int mark : 3;       /* for DAG traversal */                       \
-    unsigned int array_mark : 3; /* for bottom up array traversal */           \
-    unsigned int aux_mark : 3;   /* auxiallary mark flag */                    \
+    unsigned int array_mark : 2; /* for bottom up array traversal */           \
+    unsigned int aux_mark : 2;   /* auxiallary mark flag */                    \
+    unsigned int synth_mark : 2; /* mark for synthesize_exp */                 \
     unsigned int reachable : 1;  /* flag determines if expression              \
                                     is reachable from root */                  \
     unsigned int                                                               \
