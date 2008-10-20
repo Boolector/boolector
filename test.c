@@ -9,6 +9,7 @@
 #include "testlogic.h"
 #include "testmem.h"
 #include "testmisc.h"
+#include "testmodelgen.h"
 #include "testoverflow.h"
 #include "testqueue.h"
 #include "testrunner.h"
@@ -91,11 +92,15 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (testcases);
   BTOR_RUN_TESTS (smtaxioms);
   BTOR_RUN_TESTS (inc);
-  printf ("Running model generation tests\n");
-  ret_val = system ("./testmodelgeneration");
-  if (ret_val != 0)
-    printf ("%sError in model generation%s\n", "\e[1;31m", "\e[0;39m");
-  else
-    finish_tests ();
+  BTOR_RUN_TESTS (modelgen);
+  /*
+    printf ("Running model generation tests\n");
+    ret_val = system ("./testmodelgeneration");
+    if (ret_val != 0)
+      printf ("%sError in model generation%s\n", "\e[1;31m", "\e[0;39m");
+    else
+      finish_tests ();
+      */
+  finish_tests ();
   return 0;
 }
