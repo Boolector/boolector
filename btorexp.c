@@ -1847,6 +1847,14 @@ set_simplified_exp (Btor *btor,
   /* do we have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
 
+  if (exp->kind == BTOR_AEQ_EXP && exp->vreads)
+  {
+    btor_release_exp (btor, exp->vreads->exp2);
+    btor_release_exp (btor, exp->vreads->exp1);
+    BTOR_DELETE (btor->mm, exp->vreads);
+    exp->vreads = 0;
+  }
+
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp, 0);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
@@ -7411,7 +7419,7 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   {
     if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
-      if (BTOR_REAL_ADDR_EXP (right)->len > 1)
+      if (0 && BTOR_REAL_ADDR_EXP (right)->len > 1)
       {
         synthesize_exp (btor, right, NULL);
         btor_aigvec_to_sat_both_phases (btor->avmgr,
