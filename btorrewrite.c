@@ -1200,9 +1200,7 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
     /* NOT (a < b) && NOT (b < a) simplifies to a == b */
     if (BTOR_IS_INVERTED_EXP (e0) && BTOR_IS_INVERTED_EXP (e1)
         && real_e0->e[0] == real_e1->e[1] && real_e0->e[1] == real_e1->e[0])
-      return btor_eq_exp (btor,
-                          BTOR_REAL_ADDR_EXP (real_e0->e[0]),
-                          BTOR_REAL_ADDR_EXP (real_e0->e[1]));
+      return btor_eq_exp (btor, real_e0->e[0], real_e0->e[1]);
   }
 
   if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
