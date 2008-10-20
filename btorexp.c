@@ -7398,22 +7398,36 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   BtorExp *eq;
   BtorPtrHashTable *vsc;
   BtorPtrHashBucket *bucket;
+  int subst;
 
   assert (btor != NULL);
   assert (left != NULL);
   assert (right != NULL);
 
+  subst  = 1;
   vsc    = btor->varsubst_constraints;
   bucket = btor_find_in_ptr_hash_table (vsc, left);
   if (bucket == NULL)
   {
-    if (btor->model_gen)
+    if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
-      eq = btor_eq_exp (btor, left, right);
-      insert_unsynthesized_constraint (btor, eq);
-      btor_release_exp (btor, eq);
+      if (BTOR_REAL_ADDR_EXP (right)->len > 1)
+      {
+        synthesize_exp (btor, right, NULL);
+        btor_aigvec_to_sat_both_phases (btor->avmgr,
+                                        BTOR_REAL_ADDR_EXP (right)->av);
+        BTOR_REAL_ADDR_EXP (right)->sat_both_phases = 1;
+      }
+      else
+      {
+        eq = btor_eq_exp (btor, left, right);
+        insert_unsynthesized_constraint (btor, eq);
+        btor_release_exp (btor, eq);
+        subst = 0;
+      }
     }
-    else
+
+    if (subst)
     {
       inc_exp_ref_counter (btor, left);
       inc_exp_ref_counter (btor, right);
