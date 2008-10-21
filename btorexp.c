@@ -1855,6 +1855,16 @@ set_simplified_exp (Btor *btor,
     exp->vreads = 0;
   }
 
+  if (btor->model_gen)
+  {
+    if (btor_find_in_ptr_hash_table (btor->var_rhs, exp))
+    {
+      btor_remove_from_ptr_hash_table (btor->var_rhs, exp, NULL, NULL);
+      if (!btor_find_in_ptr_hash_table (btor->var_rhs, simplified))
+        btor_insert_in_ptr_hash_table (btor->var_rhs, simplified);
+    }
+  }
+
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp, 0);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
@@ -4897,7 +4907,14 @@ btor_enable_model_gen (Btor *btor)
 {
   assert (btor != NULL);
   assert (btor->id == 1);
-  btor->model_gen = 1;
+  if (!btor->model_gen)
+  {
+    btor->model_gen = 1;
+    btor->var_rhs =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+  }
 }
 
 void
@@ -5047,6 +5064,13 @@ btor_delete_btor (Btor *btor)
   for (b = btor->assumptions->first; b != NULL; b = b->next)
     btor_release_exp (btor, (BtorExp *) b->key);
   btor_delete_ptr_hash_table (btor->assumptions);
+
+  if (btor->model_gen)
+  {
+    /*      for (b = btor->var_rhs->first; b != NULL; b = b->next)
+            btor_release_exp (btor, (BtorExp *) b->key); */
+    btor_delete_ptr_hash_table (btor->var_rhs);
+  }
 
   for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
     btor_release_exp (btor, btor->replay_constraints.start[i]);
@@ -7415,35 +7439,21 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   subst  = 1;
   vsc    = btor->varsubst_constraints;
   bucket = btor_find_in_ptr_hash_table (vsc, left);
+
   if (bucket == NULL)
   {
     if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
-      if (BTOR_REAL_ADDR_EXP (right)->len > 1)
-      {
-        synthesize_exp (btor, right, NULL);
-        btor_aigvec_to_sat_both_phases (btor->avmgr,
-                                        BTOR_REAL_ADDR_EXP (right)->av);
-        BTOR_REAL_ADDR_EXP (right)->sat_both_phases = 1;
-      }
-      else
-      {
-        eq = btor_eq_exp (btor, left, right);
-        insert_unsynthesized_constraint (btor, eq);
-        btor_release_exp (btor, eq);
-        subst = 0;
-      }
+      assert (!btor_find_in_ptr_hash_table (btor->var_rhs, left));
+      btor_insert_in_ptr_hash_table (btor->var_rhs, left);
     }
 
-    if (subst)
-    {
-      inc_exp_ref_counter (btor, left);
-      inc_exp_ref_counter (btor, right);
-      btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
-      /* do not set constraint flag, as they are gone after substitution
-       * and treated differently */
-      btor->stats.constraints.varsubst++;
-    }
+    inc_exp_ref_counter (btor, left);
+    inc_exp_ref_counter (btor, right);
+    btor_insert_in_ptr_hash_table (vsc, left)->data.asPtr = right;
+    /* do not set constraint flag, as they are gone after substitution
+     * and treated differently */
+    btor->stats.constraints.varsubst++;
   }
   /* if v = t_1 is already in varsubst, we
    * have to synthesize v = t_2 */
@@ -9183,6 +9193,29 @@ synthesize_reads_and_writes_for_under_approx (Btor *btor)
   }
 }
 
+static void
+synthesize_all_var_rhs (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorExp *cur, *real_cur;
+
+  assert (btor != NULL);
+  assert (btor->model_gen);
+
+  for (b = btor->var_rhs->first; b != NULL; b = b->next)
+  {
+    cur      = (BtorExp *) b->key;
+    cur      = btor_pointer_chase_simplified_exp (btor, cur);
+    real_cur = BTOR_REAL_ADDR_EXP (cur);
+    if (!real_cur->reachable && !real_cur->vread)
+    {
+      synthesize_exp (btor, cur, NULL);
+      btor_aigvec_to_sat_both_phases (btor->avmgr, real_cur->av);
+      real_cur->sat_both_phases = 1;
+    }
+  }
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
@@ -9229,6 +9262,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   assert (check_all_hash_tables_proxy_free_dbg (btor));
 
   if (found_constraint_false) return BTOR_UNSAT;
+
+  if (btor->model_gen) synthesize_all_var_rhs (btor);
 
   assert (btor->unsynthesized_constraints->count == 0u);
 

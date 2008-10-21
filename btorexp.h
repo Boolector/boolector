@@ -268,6 +268,7 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
+  BtorPtrHashTable *var_rhs; /* only for model generation */
   BtorExpPtrStack arrays_with_model;
   BtorExpPtrStack replay_constraints;
   /* statistics */
