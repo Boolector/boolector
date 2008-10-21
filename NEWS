@@ -1,3 +1,8 @@
+news for release 0.6 since 0.5
+------------------------------
+* fixed model generation bugs
+* support for new under-approximation techniques
+
 news for release 0.5 since 0.4
 ------------------------------
 * faster model generation
