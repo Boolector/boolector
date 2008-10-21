@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 from __future__ import with_statement
-import sys, os, random
+import sys, os, random, signal
 
 def dec2bin(dec, len):
   ret = os.popen ("echo \"ibase=10;obase=2; " + str(dec) + "\" | bc")
@@ -11,10 +11,23 @@ def dec2bin(dec, len):
 pid = os.getpid();
 foutname = "/tmp/btorcheckmodel" + str(pid) +".btor"
 
+def cleanup():
+  try:
+    os.remove(foutname)
+  except:
+    pass # ignore exception
+
+def signalhandler(signum, frame):
+  cleanup()
+  sys.exit(0)
+
 if len(sys.argv) != 3:
   print "Usage: ./btorcheckmodel <btor-file> <btor-output-model-file>"
   sys.exit(2)
 
+signal.signal(signal.SIGINT, signalhandler)
+signal.signal(signal.SIGTERM, signalhandler)
+signal.signal(signal.SIGHUP, signalhandler)
 fout = open (foutname, "w")
 arrays = {} 
 arrayass = {}
@@ -160,4 +173,5 @@ elif result != "unsat":
   print "Unexpected result"
   sys.exit(2)
 
+cleanup()
 sys.exit(0)
