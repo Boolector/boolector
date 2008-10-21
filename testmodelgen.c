@@ -170,6 +170,12 @@ test_formula18_modelgen ()
   formula_modelgen_test ("modelgen18", 3);
 }
 
+static void
+test_formula19_modelgen ()
+{
+  formula_modelgen_test ("modelgen19", 2);
+}
+
 void
 run_modelgen_tests (int argc, char **argv)
 {
@@ -191,6 +197,7 @@ run_modelgen_tests (int argc, char **argv)
   BTOR_RUN_TEST (formula16_modelgen);
   BTOR_RUN_TEST (formula17_modelgen);
   BTOR_RUN_TEST (formula18_modelgen);
+  BTOR_RUN_TEST (formula19_modelgen);
 }
 
 void

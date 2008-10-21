@@ -7444,8 +7444,8 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   {
     if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
-      assert (!btor_find_in_ptr_hash_table (btor->var_rhs, left));
-      btor_insert_in_ptr_hash_table (btor->var_rhs, left);
+      if (!btor_find_in_ptr_hash_table (btor->var_rhs, left))
+        btor_insert_in_ptr_hash_table (btor->var_rhs, left);
     }
 
     inc_exp_ref_counter (btor, left);
