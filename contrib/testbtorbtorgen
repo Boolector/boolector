@@ -138,7 +138,9 @@ do
     btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file"
     last=btorgenjava
   else
-    btorgen 2> /dev/null | btorold2new > "$file"
+    n=$RANDOM
+    ((n &= 1023))
+    btorgen -n $n 2> /dev/null | btorold2new > "$file"
     last=btorgen
   fi
 
