@@ -47,13 +47,15 @@ formula_modelgen_test (const char *fname, int rwl)
   system (syscall_string);
   free (syscall_string);
 
-  syscall_string =
-      (char *) malloc (sizeof (char)
-                       * (len + 5 + len + 4 + strlen ("btorcheckmodel log/")
-                          + strlen (" log/") + 1));
+  syscall_string = (char *) malloc (sizeof (char)
+                                    * (len + 5 + len + 4
+                                       + strlen ("contrib/btorcheckmodel log/")
+                                       + strlen (" log/") + 1));
 
-  sprintf (
-      syscall_string, "btorcheckmodel log/%s log/%s", btor_fname, log_fname);
+  sprintf (syscall_string,
+           "contrib/btorcheckmodel log/%s log/%s",
+           btor_fname,
+           log_fname);
   ret_val = system (syscall_string);
   assert (ret_val == 0);
 
