@@ -1019,7 +1019,6 @@ btor_main (int argc, char **argv)
     if (app.ua)
     {
       btor_enable_under_approx (btor);
-      if (!app.ua_over_approximate_core) btor_enable_full_unsat_core (btor);
       btor_set_under_approx_initial_effective_width (btor,
                                                      app.ua_initial_eff_width);
       btor_set_under_approx_mode (btor, app.ua_mode);
@@ -1095,6 +1094,9 @@ btor_main (int argc, char **argv)
 #endif
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
+
+      if (app.ua && !app.ua_over_approximate_core)
+        btor_enable_full_unsat_core (btor);
 
       if (app.verbosity > 0)
       {
