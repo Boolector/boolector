@@ -1,9 +1,6 @@
 #!/bin/bash
 # integer square root algorithm, hacker's delight page 210
-# we try to show that x >= 0    =>    y^2 == x \/ (y^2 < x /\ (y+1)^2 >= x)
-# it seems that there is a counter example and the algorithm does
-# not always produce an appropriate solution, i.e. not the greatest
-# square root that is possible
+# we show that x >= 0    =>    y^2 == x \/ (y^2 < x /\ (y+1)^2 >= x)
 
 id=1
 echo "$((id++)) constd 32 1073741824"
@@ -57,4 +54,8 @@ echo "$((id++)) and 1 $idult $lastid"
 ((lastid = id - 1))
 echo "$((id++)) or 1 $ideq $lastid"
 ((idor = id - 1))
-echo "$((id++)) root 1 -$idor"
+echo "$((id++)) slice 1 $idxorig 31 31"
+((lastid = id - 1))
+echo "$((id++)) implies 1 -$lastid $idor"
+((lastid = id - 1))
+echo "$((id++)) root 1 -$lastid"
