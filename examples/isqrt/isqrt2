@@ -1,6 +1,6 @@
 #!/bin/bash
 # integer square root algorithm, hacker's delight page 210, withouth "if"
-# we show that x >= 0   =>   y^2 == x \/ (y^2 < x /\ (y+1)^2 > x (no overflow))
+# we show that x >= 0   =>   y^2 == x \/ (y^2 < x /\ (y+1)^2 > x)
 
 id=1
 echo "$((id++)) constd 32 1073741824"
