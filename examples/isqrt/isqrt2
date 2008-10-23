@@ -51,11 +51,7 @@ echo "$((id++)) ult 1 $idyy $idxorig"
 ((idult = id - 1))
 echo "$((id++)) ugt 1 $idyp1yp1 $idxorig"
 ((idugt = id - 1))
-echo "$((id++)) umulo 1 $idyp1yp1 $idyp1yp1"
-((lastid = id - 1))
-echo "$((id++)) or 1 $lastid $idugt"
-((lastid = id - 1))
-echo "$((id++)) and 1 $idult $lastid"
+echo "$((id++)) and 1 $idult $idugt"
 ((lastid = id - 1))
 echo "$((id++)) or 1 $ideq $lastid"
 ((idor = id - 1))
