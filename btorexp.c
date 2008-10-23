@@ -4945,7 +4945,7 @@ void
 btor_enable_full_unsat_core (Btor *btor)
 {
   assert (btor != NULL);
-  assert (btor->id == 1);
+  // assert (btor->id == 1);
   picosat_enable_trace_generation ();
   btor->unsat_core_lookup = picosat_corelit;
 }
