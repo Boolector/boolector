@@ -1,6 +1,6 @@
 #!/bin/bash
 # integer square root algorithm, hacker's delight page 210
-# we show that x >= 0    =>    y^2 == x \/ (y^2 < x /\ (y+1)^2 >= x)
+# we show that x >= 0   =>   y^2 == x \/ (y^2 < x /\ (y+1)^2 > x (no overflow))
 
 id=1
 echo "$((id++)) constd 32 1073741824"
@@ -10,7 +10,6 @@ echo "$((id++)) var 32 x"
 idxorig=$idx
 echo "$((id++)) zero 32"
 ((idy = id - 1))
-idzero=$idy
 echo "$((id++)) constd 5 1"
 ((id1 = id - 1))
 echo "$((id++)) constd 5 2"
@@ -44,11 +43,11 @@ echo "$((id++)) mul 32 $lastid $lastid"
 ((idyp1yp1 = id - 1))
 echo "$((id++)) ult 1 $idyy $idxorig"
 ((idult = id - 1))
-echo "$((id++)) ugte 1 $idyp1yp1 $idxorig"
-((idugte = id - 1))
+echo "$((id++)) ugt 1 $idyp1yp1 $idxorig"
+((idugt = id - 1))
 echo "$((id++)) umulo 1 $idyp1yp1 $idyp1yp1"
 ((lastid = id - 1))
-echo "$((id++)) or 1 $lastid $idugte"
+echo "$((id++)) or 1 $lastid $idugt"
 ((lastid = id - 1))
 echo "$((id++)) and 1 $idult $lastid"
 ((lastid = id - 1))
