@@ -10,7 +10,6 @@ echo "$((id++)) var 32 x"
 idxorig=$idx
 echo "$((id++)) zero 32"
 ((idy = id - 1))
-idzero=$idy
 echo "$((id++)) constd 5 1"
 ((id1 = id - 1))
 echo "$((id++)) constd 5 2"
