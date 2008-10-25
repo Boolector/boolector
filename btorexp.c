@@ -4858,7 +4858,6 @@ btor_new_btor (void)
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
-  btor->unsat_core_lookup = picosat_usedlit;
 
   btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -4939,15 +4938,6 @@ btor_enable_under_approx (Btor *btor)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-}
-
-void
-btor_enable_full_unsat_core (Btor *btor)
-{
-  assert (btor != NULL);
-  // assert (btor->id == 1);
-  picosat_enable_trace_generation ();
-  btor->unsat_core_lookup = picosat_corelit;
 }
 
 void
@@ -8602,7 +8592,7 @@ update_under_approx_eff_width (Btor *btor)
 
   if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
   {
-    if (btor->unsat_core_lookup (btor->ua.global_last_e))
+    if (picosat_failed_assumption (btor->ua.global_last_e))
     {
       if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
         btor->ua.global_eff_width++;
@@ -8641,7 +8631,7 @@ update_under_approx_eff_width (Btor *btor)
 
       e = data->last_e;
 
-      if (e != 0 && btor->unsat_core_lookup (e))
+      if (e != 0 && picosat_failed_assumption (e))
       {
         update = 1;
         update_local_under_approx_eff_width (btor, cur, data);
@@ -8674,7 +8664,7 @@ update_under_approx_eff_width (Btor *btor)
         update    = 1;
         update_local_under_approx_eff_width (btor, cur, data);
       }
-      else if (!found_top && btor->unsat_core_lookup (e))
+      else if (!found_top && picosat_failed_assumption (e))
       {
         if (min_data == NULL || data->eff_width < min_data->eff_width)
         {

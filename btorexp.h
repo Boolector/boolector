@@ -259,7 +259,6 @@ struct Btor
     BtorPtrHashTable *vars_reads;    /* bv variables and reads */
     BtorPtrHashTable *writes_aconds; /* array writes and array conds */
   } ua;
-  int (*unsat_core_lookup) (int); /* lookup function for UNSAT core */
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_ass_unequal_table; /* assignment unequal */
@@ -406,8 +405,6 @@ void btor_enable_model_gen (Btor *btor);
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
 void btor_enable_under_approx (Btor *btor);
-
-void btor_enable_full_unsat_core (Btor *btor);
 
 void btor_set_under_approx_initial_effective_width (Btor *btor,
                                                     int ua_start_width);
