@@ -59,7 +59,7 @@ if [[ $# -ne 1 ]]; then
 fi
 
 numbits=$1
-if [[ "$numbits" -lt 16 ]] || [[ ! `is_power_of_2 $numbits` -eq 1 ]]; then
+if [[ "$numbits" -lt 8 ]] || [[ ! `is_power_of_2 $numbits` -eq 1 ]]; then
   echo "Number of bits must be a power of 2 >= 16"
   exit 1
 fi
@@ -70,8 +70,10 @@ echo "$((id++)) zero $numbits"
 ((idzero = id - 1))
 echo "$((id++)) one $numbits"
 ((idone = id - 1))
-echo "$((id++)) constd $numbitslog 8"
-((ideight = id - 1))
+if [[ $numbits -gt 8 ]]; then
+  echo "$((id++)) constd $numbitslog 8"
+  ((ideight = id - 1))
+fi
 echo "$((id++)) var $numbits x"
 ((idx = id - 1))
 ((idsum = idx))
