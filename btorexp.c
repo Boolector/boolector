@@ -9298,7 +9298,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       assert (ua);
       assert (!under_approx_finished);
 
-      if (!update_under_approx_eff_width (btor))
+      if (picosat_inconsistent () || !update_under_approx_eff_width (btor))
       {
         if (verbosity >= 2)
         {
