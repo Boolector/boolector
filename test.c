@@ -42,8 +42,7 @@ int
 main (int argc, char **argv)
 {
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
-  int ret_val;
-  int i = 0;
+  int i                   = 0;
 
   for (i = 1; i < argc; i++)
   {
