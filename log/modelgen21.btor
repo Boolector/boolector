@@ -1,11 +1,11 @@
-1 var 4 v0
-2 var 4 v1
-3 var 4 v2
-4 var 2 e1
-5 var 2 e2
-6 var 1 Fresh__0
-7 var 1 Fresh__1
-8 var 1 Fresh__2
+1 var 4
+2 var 4
+3 var 4
+4 var 2
+5 var 2
+6 var 1
+7 var 1
+8 var 1
 9 slice 2 2 3 2
 10 eq 1 4 9
 11 const 1 1

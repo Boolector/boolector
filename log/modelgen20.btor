@@ -3,7 +3,7 @@
 3 var 2
 4 mul 2 2 3
 5 eq 1 1 4
-6 root 1 5
-7 ones 2
-8 eq 1 1 7
-9 root 1 -8
+6 ones 2
+7 ne 1 1 6
+8 and 1 5 7
+9 root 1 8
