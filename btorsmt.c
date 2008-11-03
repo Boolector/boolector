@@ -95,20 +95,21 @@ enum BtorSMTToken
   BTOR_SMTOK_BVUGE   = 306,
   BTOR_SMTOK_BVSGT   = 307,
   BTOR_SMTOK_BVSGE   = 308,
+  BTOR_SMTOK_BVCOMP  = 309,
 
-  BTOR_SMTOK_REPEAT       = 309,
-  BTOR_SMTOK_ZERO_EXTEND  = 310,
-  BTOR_SMTOK_SIGN_EXTEND  = 311,
-  BTOR_SMTOK_ROTATE_LEFT  = 312,
-  BTOR_SMTOK_ROTATE_RIGHT = 313,
+  BTOR_SMTOK_REPEAT       = 310,
+  BTOR_SMTOK_ZERO_EXTEND  = 311,
+  BTOR_SMTOK_SIGN_EXTEND  = 312,
+  BTOR_SMTOK_ROTATE_LEFT  = 313,
+  BTOR_SMTOK_ROTATE_RIGHT = 314,
 
-  BTOR_SMTOK_BVXOR  = 314,
-  BTOR_SMTOK_BVSREM = 315,
-  BTOR_SMTOK_BVSMOD = 316,
-  BTOR_SMTOK_BVXNOR = 317,
+  BTOR_SMTOK_BVXOR  = 315,
+  BTOR_SMTOK_BVSREM = 316,
+  BTOR_SMTOK_BVSMOD = 317,
+  BTOR_SMTOK_BVXNOR = 318,
 
-  BTOR_SMTOK_SELECT = 318,
-  BTOR_SMTOK_STORE  = 319,
+  BTOR_SMTOK_SELECT = 319,
+  BTOR_SMTOK_STORE  = 320,
 
   BTOR_SMTOK_UNSUPPORTED_KEYWORD = 512,
   BTOR_SMTOK_AXIOMS              = 512,
@@ -604,6 +605,7 @@ btor_new_smt_parser (Btor *btor, int verbosity)
   insert_symbol (res, "bvuge")->token  = BTOR_SMTOK_BVUGE;
   insert_symbol (res, "bvsgt")->token  = BTOR_SMTOK_BVSGT;
   insert_symbol (res, "bvsge")->token  = BTOR_SMTOK_BVSGE;
+  insert_symbol (res, "bvcomp")->token = BTOR_SMTOK_BVCOMP;
   insert_symbol (res, "bvxor")->token  = BTOR_SMTOK_BVXOR;
   insert_symbol (res, "bvsrem")->token = BTOR_SMTOK_BVSREM;
   insert_symbol (res, "bvsmod")->token = BTOR_SMTOK_BVSMOD;
@@ -2196,6 +2198,9 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         break;
       case BTOR_SMTOK_BVSGE:
         translate_binary (parser, node, "bvsge", btor_sgte_exp);
+        break;
+      case BTOR_SMTOK_BVCOMP:
+        translate_binary (parser, node, "bvcomp", btor_eq_exp);
         break;
       case BTOR_SMTOK_BVULT:
         translate_binary (parser, node, "bvult", btor_ult_exp);
