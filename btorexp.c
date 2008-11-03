@@ -9197,9 +9197,13 @@ synthesize_all_var_rhs (Btor *btor)
     cur      = (BtorExp *) b->key;
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_EXP (cur);
-    if (!real_cur->reachable && !real_cur->vread)
+
+    if (real_cur->vread) continue;
+
+    synthesize_exp (btor, cur, NULL);
+
+    if (!real_cur->sat_both_phases)
     {
-      synthesize_exp (btor, cur, NULL);
       btor_aigvec_to_sat_both_phases (btor->avmgr, real_cur->av);
       real_cur->sat_both_phases = 1;
     }
