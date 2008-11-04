@@ -16,7 +16,7 @@ init_modelgen_tests (void)
 }
 
 static void
-formula_modelgen_test (const char *fname, int rwl)
+modelgen_test (const char *fname, int rwl)
 {
   char *btor_fname, *log_fname, *syscall_string;
   size_t len;
@@ -65,155 +65,183 @@ formula_modelgen_test (const char *fname, int rwl)
 }
 
 static void
-test_formula1_modelgen ()
+test_modelgen1 ()
 {
-  formula_modelgen_test ("modelgen1", 1);
+  modelgen_test ("modelgen1", 1);
 }
 
 static void
-test_formula2_modelgen ()
+test_modelgen2 ()
 {
-  formula_modelgen_test ("modelgen2", 3);
+  modelgen_test ("modelgen2", 3);
 }
 
 static void
-test_formula3_modelgen ()
+test_modelgen3 ()
 {
-  formula_modelgen_test ("modelgen3", 3);
+  modelgen_test ("modelgen3", 3);
 }
 
 static void
-test_formula4_modelgen ()
+test_modelgen4 ()
 {
-  formula_modelgen_test ("modelgen4", 3);
+  modelgen_test ("modelgen4", 3);
 }
 
 static void
-test_formula5_modelgen ()
+test_modelgen5 ()
 {
-  formula_modelgen_test ("modelgen5", 3);
+  modelgen_test ("modelgen5", 3);
 }
 
 static void
-test_formula6_modelgen ()
+test_modelgen6 ()
 {
-  formula_modelgen_test ("modelgen6", 3);
+  modelgen_test ("modelgen6", 3);
 }
 
 static void
-test_formula7_modelgen ()
+test_modelgen7 ()
 {
-  formula_modelgen_test ("modelgen7", 3);
+  modelgen_test ("modelgen7", 3);
 }
 
 static void
-test_formula8_modelgen ()
+test_modelgen8 ()
 {
-  formula_modelgen_test ("modelgen8", 0);
+  modelgen_test ("modelgen8", 0);
 }
 
 static void
-test_formula9_modelgen ()
+test_modelgen9 ()
 {
-  formula_modelgen_test ("modelgen9", 3);
+  modelgen_test ("modelgen9", 3);
 }
 
 static void
-test_formula10_modelgen ()
+test_modelgen10 ()
 {
-  formula_modelgen_test ("modelgen10", 3);
+  modelgen_test ("modelgen10", 3);
 }
 
 static void
-test_formula11_modelgen ()
+test_modelgen11 ()
 {
-  formula_modelgen_test ("modelgen11", 3);
+  modelgen_test ("modelgen11", 3);
 }
 
 static void
-test_formula12_modelgen ()
+test_modelgen12 ()
 {
-  formula_modelgen_test ("modelgen12", 3);
+  modelgen_test ("modelgen12", 3);
 }
 
 static void
-test_formula13_modelgen ()
+test_modelgen13 ()
 {
-  formula_modelgen_test ("modelgen13", 3);
+  modelgen_test ("modelgen13", 3);
 }
 
 static void
-test_formula14_modelgen ()
+test_modelgen14 ()
 {
-  formula_modelgen_test ("modelgen14", 3);
+  modelgen_test ("modelgen14", 3);
 }
 
 static void
-test_formula15_modelgen ()
+test_modelgen15 ()
 {
-  formula_modelgen_test ("modelgen15", 3);
+  modelgen_test ("modelgen15", 3);
 }
 
 static void
-test_formula16_modelgen ()
+test_modelgen16 ()
 {
-  formula_modelgen_test ("modelgen16", 1);
+  modelgen_test ("modelgen16", 1);
 }
 
 static void
-test_formula17_modelgen ()
+test_modelgen17 ()
 {
-  formula_modelgen_test ("modelgen17", 1);
+  modelgen_test ("modelgen17", 1);
 }
 
 static void
-test_formula18_modelgen ()
+test_modelgen18 ()
 {
-  formula_modelgen_test ("modelgen18", 3);
+  modelgen_test ("modelgen18", 3);
 }
 
 static void
-test_formula19_modelgen ()
+test_modelgen19 ()
 {
-  formula_modelgen_test ("modelgen19", 2);
+  modelgen_test ("modelgen19", 2);
 }
 
 static void
-test_formula20_modelgen ()
+test_modelgen20 ()
 {
-  formula_modelgen_test ("modelgen20", 3);
+  modelgen_test ("modelgen20", 3);
 }
 
 static void
-test_formula21_modelgen ()
+test_modelgen21 ()
 {
-  formula_modelgen_test ("modelgen21", 3);
+  modelgen_test ("modelgen21", 3);
+}
+
+static void
+test_modelgen22 ()
+{
+  modelgen_test ("modelgen22", 3);
+}
+
+static void
+test_modelgen23 ()
+{
+  modelgen_test ("modelgen23", 3);
+}
+
+static void
+test_modelgen24 ()
+{
+  modelgen_test ("modelgen24", 3);
+}
+
+static void
+test_modelgen25 ()
+{
+  modelgen_test ("modelgen25", 3);
 }
 
 void
 run_modelgen_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (formula1_modelgen);
-  BTOR_RUN_TEST (formula2_modelgen);
-  BTOR_RUN_TEST (formula3_modelgen);
-  BTOR_RUN_TEST (formula4_modelgen);
-  BTOR_RUN_TEST (formula5_modelgen);
-  BTOR_RUN_TEST (formula6_modelgen);
-  BTOR_RUN_TEST (formula7_modelgen);
-  BTOR_RUN_TEST (formula8_modelgen);
-  BTOR_RUN_TEST (formula9_modelgen);
-  BTOR_RUN_TEST (formula10_modelgen);
-  BTOR_RUN_TEST (formula11_modelgen);
-  BTOR_RUN_TEST (formula12_modelgen);
-  BTOR_RUN_TEST (formula13_modelgen);
-  BTOR_RUN_TEST (formula14_modelgen);
-  BTOR_RUN_TEST (formula15_modelgen);
-  BTOR_RUN_TEST (formula16_modelgen);
-  BTOR_RUN_TEST (formula17_modelgen);
-  BTOR_RUN_TEST (formula18_modelgen);
-  BTOR_RUN_TEST (formula19_modelgen);
-  BTOR_RUN_TEST (formula20_modelgen);
-  BTOR_RUN_TEST (formula21_modelgen);
+  BTOR_RUN_TEST (modelgen1);
+  BTOR_RUN_TEST (modelgen2);
+  BTOR_RUN_TEST (modelgen3);
+  BTOR_RUN_TEST (modelgen4);
+  BTOR_RUN_TEST (modelgen5);
+  BTOR_RUN_TEST (modelgen6);
+  BTOR_RUN_TEST (modelgen7);
+  BTOR_RUN_TEST (modelgen8);
+  BTOR_RUN_TEST (modelgen9);
+  BTOR_RUN_TEST (modelgen10);
+  BTOR_RUN_TEST (modelgen11);
+  BTOR_RUN_TEST (modelgen12);
+  BTOR_RUN_TEST (modelgen13);
+  BTOR_RUN_TEST (modelgen14);
+  BTOR_RUN_TEST (modelgen15);
+  BTOR_RUN_TEST (modelgen16);
+  BTOR_RUN_TEST (modelgen17);
+  BTOR_RUN_TEST (modelgen18);
+  BTOR_RUN_TEST (modelgen19);
+  BTOR_RUN_TEST (modelgen20);
+  BTOR_RUN_TEST (modelgen21);
+  BTOR_RUN_TEST (modelgen22);
+  BTOR_RUN_TEST (modelgen23);
+  BTOR_RUN_TEST (modelgen24);
+  BTOR_RUN_TEST (modelgen25);
 }
 
 void
