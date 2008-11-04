@@ -1,59 +1,51 @@
 #!/bin/bash
+
+smtbvfuzzer=`which smtbvfuzzer`
+if [[ -z "$smtbvfuzzer" ]]; then
+  echo "*** crosscheckz3: can not find 'smtbvfuzzer'" 1>&2
+  exit 1
+fi
+
+z32008=`which z3-2008`
+if [[ -z "$z32008" ]]; then
+  echo "*** crosscheckz3: can not find 'z3-2008'" 1>&2
+  exit 1
+fi
+
 i=0
-file="/tmp/crosscheckz3$$.btor"
-smtfile="temp.smt"
-refinementlimit=100000
+file="/tmp/crosscheckz3$$.smt"
 while true 
 do 
   ((i++))
-  rwl=rwl2
-  echo -n "Test $i $rwl: "
-  btorgen 2> /dev/null | btorold2new  > $file 
-  boolector -$rwl -rl $refinementlimit $file
-  goldenretval=$?
-  if [[ $goldenretval -ne 2 ]] && [[ $goldenretval -ne 3 ]]; then
+  echo -n -e "Test $i:  Boolector:\t"
+  $smtbvfuzzer -n 2> /dev/null 1> $file 
+  boolectorresult=""
+  boolectorresult=`boolector $file`
+  if  [[ "$boolectorresult" != "sat" ]] && [[ "$boolectorresult" != "unsat" ]]
+  then
+    echo ""
     echo "ERROR"
-    cp $file ./error.btor
+    cp $file ./error.smt
     rm -f $file
-    exit
+    exit 2
   fi
+  echo -n "$boolectorresult"
 
-  if [[ $goldenretval -eq 2 ]]; then
-    status=sat
-  else
-    status=unsat
-  fi
-
-  for rwl in rwl1 rwl0
-  do
-    echo -n "Test $i $rwl: "
-    boolector -$rwl -rl $refinementlimit $file 
-    retval=$?
-    if [[ $retval -ne $goldenretval ]]; then
-      echo "ERROR"
-      cp $file ./error.btor
-      rm -f $file
-      exit
-    fi 
-  done
-
-  boolector $file -rwl0 -ds > $smtfile
-
-  z3result="`z3 $smtfile | tr -d '\r'`"
-  echo "Test $i Z3:   $z3result"
+  z3result=""
+  z3result="`cat $file | $z32008 | tr -d '\r'`"
+  echo -e "\t\tZ3:\t$z3result"
 
   if [[ "x$z3result" = x ]]; then
     echo "Z3 CRASH"
-    cp $file ./z3crash.btor
+    cp $file ./z3crash.smt
+    exit 2
   fi
 
-  if [[ "x$status" = xsat ]] && [[ "x$z3result" = xunsat ]]; then
-      echo "ERROR"
-      cp $file ./error.btor
+  if [[ "$boolectorresult" != "$z3result" ]]; then
+      echo "Found different result"
+      cp $file ./error.smt
       rm -f $file
-      exit
+      exit 1
   fi
-
-  echo ""
 
 done
