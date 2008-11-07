@@ -214,6 +214,18 @@ test_modelgen25 ()
   modelgen_test ("modelgen25", 3);
 }
 
+static void
+test_modelgen26 ()
+{
+  modelgen_test ("modelgen26", 3);
+}
+
+static void
+test_modelgen27 ()
+{
+  modelgen_test ("modelgen27", 3);
+}
+
 void
 run_modelgen_tests (int argc, char **argv)
 {
@@ -242,6 +254,8 @@ run_modelgen_tests (int argc, char **argv)
   BTOR_RUN_TEST (modelgen23);
   BTOR_RUN_TEST (modelgen24);
   BTOR_RUN_TEST (modelgen25);
+  BTOR_RUN_TEST (modelgen26);
+  BTOR_RUN_TEST (modelgen27);
 }
 
 void

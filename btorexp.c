@@ -1855,16 +1855,6 @@ set_simplified_exp (Btor *btor,
     exp->vreads = 0;
   }
 
-  if (btor->model_gen)
-  {
-    if (btor_find_in_ptr_hash_table (btor->var_rhs, exp))
-    {
-      btor_remove_from_ptr_hash_table (btor->var_rhs, exp, NULL, NULL);
-      if (!btor_find_in_ptr_hash_table (btor->var_rhs, simplified))
-        btor_insert_in_ptr_hash_table (btor->var_rhs, simplified);
-    }
-  }
-
   remove_from_unique_table_exp (btor, exp);
   erase_local_data_exp (btor, exp, 0);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
@@ -5057,8 +5047,8 @@ btor_delete_btor (Btor *btor)
 
   if (btor->model_gen)
   {
-    /*      for (b = btor->var_rhs->first; b != NULL; b = b->next)
-            btor_release_exp (btor, (BtorExp *) b->key); */
+    for (b = btor->var_rhs->first; b != NULL; b = b->next)
+      btor_release_exp (btor, (BtorExp *) b->key);
     btor_delete_ptr_hash_table (btor->var_rhs);
   }
 
@@ -7435,7 +7425,10 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
     if (btor->model_gen && !BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
       if (!btor_find_in_ptr_hash_table (btor->var_rhs, left))
+      {
         btor_insert_in_ptr_hash_table (btor->var_rhs, left);
+        inc_exp_ref_counter (btor, left);
+      }
     }
 
     inc_exp_ref_counter (btor, left);
