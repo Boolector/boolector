@@ -1,12 +1,13 @@
 news for release 0.7 since 0.6
 ------------------------------
 * fixed model generation bugs
-* fixed rewrite rule bug
+* improved under-approximation
 * added support for bvcomp (SMT-LIB)
 
 news for release 0.6 since 0.5
 ------------------------------
 * fixed model generation bugs
+* fixed rewriting bug
 * support for new under-approximation techniques
 
 news for release 0.5 since 0.4
