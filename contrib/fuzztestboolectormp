@@ -1,13 +1,13 @@
 #!/bin/bash
 
-# run multiple instances of testbtorbtorgen simultaneously
+# run multiple instances of fuzztestboolector simultaneously
 
 declare -a ids
 
-readonly usage="*** testmpbtorbtorgen: usage: ./testmpbtorbtorgen [-c <limit>] [-d] [-x] [-p <num-processes>]" 
+readonly usage="*** fuzztestboolectormp: usage: ./fuzztestboolectormp [-c <limit>] [-d] [-x] [-p <num-processes>]" 
 readonly covdir="./covtests/"
-readonly filecovhashes="./testbtorbtorgenhashes"
-readonly filecovlock="/var/lock/testmpbtorbtorgen$$lock"
+readonly filecovhashes="./fuzztestboolectorhashes"
+readonly filecovlock="/var/lock/fuzztestboolectormp$$lock"
 cov=0
 numerrors=0
 sleeptime=10
@@ -65,9 +65,9 @@ rm -f error*.btor
 for ((i = 1; i <= "$processes"; i++))
 do
   if [[ "$cov" -eq 1 ]]; then
-    ./testbtorbtorgen -i "$i" -c "$covlimit" -r -n > /dev/null &
+    ./fuzztestboolector -i "$i" -c "$covlimit" -r -n > /dev/null &
   else
-    ./testbtorbtorgen -i "$i" -r > /dev/null &
+    ./fuzztestboolector -i "$i" -r > /dev/null &
   fi
   ids[$i]=$!
   sleep 1

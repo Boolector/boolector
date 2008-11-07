@@ -2,15 +2,15 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-readonly usage="*** testbtorbtorgen: usage: ./testbtorbtorgen [-i <id>] [-c <limit> [-n] [-r]]" 
+readonly usage="*** fuzztestboolector: usage: ./fuzztestboolector [-i <id>] [-c <limit> [-n] [-r]]" 
 readonly covdir="./covtests/"
 readonly valgrindcheck=100 # every nth testcase we check with valgrind
-readonly file="/tmp/testbtorbtorgen$$.btor"
-readonly filedump="/tmp/testbtorbtorgen$$dump.btor"
-readonly filetmp="/tmp/testbtorbtorgen$$.tmp"
-readonly filecovhashes="./testbtorbtorgenhashes"
+readonly file="/tmp/fuzztestboolector$$.btor"
+readonly filedump="/tmp/fuzztestboolector$$dump.btor"
+readonly filetmp="/tmp/fuzztestboolector$$.tmp"
+readonly filecovhashes="./fuzztestboolectorhashes"
 readonly filecovlock="/var/lock/testmcbtorbtorgen${PPID}lock"
-readonly stdoutput="/tmp/testbtorbtorgen$$boolectorstdout.tmp"
+readonly stdoutput="/tmp/fuzztestboolector$$boolectorstdout.tmp"
 
 function cleanup
 {
@@ -28,20 +28,20 @@ trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
 btorgen=`which btorgen`
 if [[ -z "$btorgen" ]]; then
-  echo "*** testbtorbtorgen: can not find 'btorgen'" 1>&2
+  echo "*** fuzztestboolector: can not find 'btorgen'" 1>&2
   exit 1
 fi
 
 btorgenjava=`which btorgenjava`
 
 if [[ -z "$btorgenjava" ]]; then
-  echo "*** testbtorbtorgen: can not find 'btorgenjava'" 1>&2
+  echo "*** fuzztestboolector: can not find 'btorgenjava'" 1>&2
   exit 1
 fi
 
 boolector04=`which boolector-0.4`
 if [[ -z "$boolector04" ]]; then
-  echo "*** testbtorbtorgen: can not find 'boolector-0.4'" 1>&2
+  echo "*** fuzztestboolector: can not find 'boolector-0.4'" 1>&2
   exit 1
 fi
 
@@ -145,7 +145,7 @@ do
   fi
 
   if [[ ! -s "$file" ]]; then
-    echo "*** testbtorbtorgen: generated file is empty"
+    echo "*** fuzztestboolector: generated file is empty"
     cleanup
     exit 1
   fi 
