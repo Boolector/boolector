@@ -45,9 +45,14 @@ if [[ -z "$boolector04" ]]; then
   exit 1
 fi
 
+smtbvfuzzer=`which smtbvfuzzer`
+if [[ -z "$smtbvfuzzer" ]]; then
+  echo "*** fuzztestboolector: can not find 'smtbvfuzzer'" 1>&2
+  exit 1
+fi
+
 i=0
 counter=0
-last=btorgenjava
 cov=0
 covlimit=0
 id=1
@@ -134,14 +139,23 @@ do
   checkmodel=$RANDOM
   ((checkmodel = checkmodel & 1 & !cov))
 
-  if [[ "$last" = "btorgen" ]]; then
-    btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file"
-    last=btorgenjava
-  else
+  fuzzer=$RANDOM
+  ((fuzzer %= 3))
+
+  if [[ $fuzzer -eq 0 ]]; then
+    $btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file"
+  elif [[ $fuzzer -eq 1 ]]; then
     n=$RANDOM
     ((n &= 1023))
-    btorgen -n $n 2> /dev/null | btorold2new > "$file"
-    last=btorgen
+    $btorgen -n $n 2> /dev/null | btorold2new > "$file"
+  else
+    vars=$RANDOM
+    ((v &= 31))
+    # we need at least one variable
+    ((v++))
+    consts=$RANDOM
+    ((c &= 15))
+    $smtbvfuzzer -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
   fi
 
   if [[ ! -s "$file" ]]; then
@@ -166,7 +180,7 @@ do
       covbase=${covdir}cov_id${id}_test$covtestcounter
       stderror=${covbase}.err
     else
-     stderror=/dev/null
+      stderror=/dev/null
     fi
       
     echo $callstring
