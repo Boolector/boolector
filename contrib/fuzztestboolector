@@ -101,13 +101,11 @@ do
 
   randomnumber=$RANDOM
   ((randomnumber %= 3))
-  if [[ "$randomnumber" -eq 0 ]]; then
-    uamode=uag
-  elif [[ "$randomnumber" -eq 1 ]]; then
-    uamode=ual
-  else 
-    uamode=uali
-  fi
+  case $randomnumber in
+  0)	uamode=uag;;
+  1)	uamode=ual;;
+  2)	uamode=uali;;
+  esac
 
   randomnumber=$RANDOM
   ((randomnumber &= 1))
@@ -119,17 +117,12 @@ do
 
   randomnumber=$RANDOM
   ((randomnumber &= 3))
-  if [[ "$randomnumber" -eq 0 ]]; then
-    uaenc=uaz
-  elif [[ "$randomnumber" -eq 1 ]]; then
-    uaenc=uao
-  elif [[ "$randomnumber" -eq 2 ]]; then
-    uaenc=uas
-  else 
-    uaenc=uac
-    # uac needs uad
-    uabwref=uad
-  fi
+  case $randomnumber in
+  0)	uaenc=uaz;;
+  1)	uaenc=uao;;
+  2)	uaenc=uas;;
+  3)	uaenc=uac; uabwref=uad;;     # uac needs uad
+  esac
 
   ua=$RANDOM
   ((ua &= 1))
