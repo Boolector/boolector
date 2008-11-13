@@ -1209,7 +1209,7 @@ boolector_array_assignment (
   BTOR_ABORT_BOOLECTOR (size == NULL, "'size' must not be NULL");
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be a bit-vector");
-  return btor_array_assignment_exp (btor, exp, indices, values, size);
+  btor_array_assignment_exp (btor, exp, indices, values, size);
 }
 
 void
