@@ -39,7 +39,8 @@ struct BtorBTORParser
 
   FILE *file;
   int lineno;
-  int saved;
+  int saved; /* boolean flag */
+  int saved_char;
   const char *name;
   char *error;
 
@@ -129,7 +130,7 @@ nextch (BtorBTORParser *parser)
 
   if (parser->saved)
   {
-    ch            = parser->saved;
+    ch            = parser->saved_char;
     parser->saved = 0;
   }
   else
@@ -146,7 +147,8 @@ savech (BtorBTORParser *parser, int ch)
   assert (ch);
   assert (!parser->saved);
 
-  parser->saved = ch;
+  parser->saved_char = ch;
+  parser->saved      = 1;
 
   if (ch == '\n')
   {

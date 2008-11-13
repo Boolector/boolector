@@ -166,7 +166,8 @@ struct BtorSMTParser
   const char *name;
   FILE *file;
   int lineno;
-  int saved;
+  int saved; /* boolean flag */
+  int saved_char;
 
   unsigned long long bytes;
 
@@ -623,7 +624,7 @@ nextch (BtorSMTParser *parser)
 
   if (parser->saved)
   {
-    res           = parser->saved;
+    res           = parser->saved_char;
     parser->saved = 0;
   }
   else
@@ -643,7 +644,8 @@ savech (BtorSMTParser *parser, int ch)
   assert (ch);
   assert (!parser->saved);
 
-  parser->saved = ch;
+  parser->saved_char = ch;
+  parser->saved      = 1;
 
   if (ch == '\n')
   {
