@@ -641,7 +641,6 @@ nextch (BtorSMTParser *parser)
 static void
 savech (BtorSMTParser *parser, int ch)
 {
-  assert (ch);
   assert (!parser->saved);
 
   parser->saved_char = ch;

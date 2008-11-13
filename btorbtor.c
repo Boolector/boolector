@@ -144,7 +144,6 @@ nextch (BtorBTORParser *parser)
 static void
 savech (BtorBTORParser *parser, int ch)
 {
-  assert (ch);
   assert (!parser->saved);
 
   parser->saved_char = ch;
