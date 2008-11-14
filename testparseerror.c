@@ -17,16 +17,26 @@ init_parseerror_tests (void)
 }
 
 static void
-parseerror_test (const char *fname)
+parseerror_test (const char *fname, int btor)
 {
-  char *btor_fname, *syscall_string;
-  size_t len;
+  char *btor_fname, *syscall_string, *suffix;
+  size_t len, suffix_len;
   int ret_val;
 
   len = strlen (fname);
+  if (btor)
+  {
+    suffix     = ".btor";
+    suffix_len = 5;
+  }
+  else
+  {
+    suffix     = ".smt";
+    suffix_len = 4;
+  }
 
-  btor_fname = (char *) malloc (sizeof (char) * (len + 6));
-  sprintf (btor_fname, "%s.btor", fname);
+  btor_fname = (char *) malloc (sizeof (char) * (len + suffix_len + 1));
+  sprintf (btor_fname, "%s%s", fname, suffix);
   syscall_string = (char *) malloc (
       sizeof (char)
       * (strlen ("boolector log/") + len + 6 + strlen (" > /dev/null") + 1));
@@ -42,13 +52,41 @@ parseerror_test (const char *fname)
 static void
 test_parseerror1 ()
 {
-  parseerror_test ("parseerror1");
+  parseerror_test ("parseerror1", 1);
+}
+
+static void
+test_parseerror2 ()
+{
+  parseerror_test ("parseerror2", 0);
+}
+
+static void
+test_parseerror3 ()
+{
+  parseerror_test ("parseerror3", 0);
+}
+
+static void
+test_parseerror4 ()
+{
+  parseerror_test ("parseerror4", 0);
+}
+
+static void
+test_parseerror5 ()
+{
+  parseerror_test ("parseerror5", 0);
 }
 
 void
 run_parseerror_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (parseerror1);
+  BTOR_RUN_TEST (parseerror2);
+  BTOR_RUN_TEST (parseerror3);
+  BTOR_RUN_TEST (parseerror4);
+  BTOR_RUN_TEST (parseerror5);
 }
 
 void
