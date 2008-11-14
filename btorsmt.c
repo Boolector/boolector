@@ -1079,6 +1079,7 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
     datalen = atoi (p); /* TODO Overflow? */
+    if (!datalen) goto INVALID_SORT;
 
     symbol->exp = btor_var_exp (parser->btor, datalen, symbol->name);
     push_input (parser, symbol->exp);
@@ -1088,10 +1089,12 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     if (!(p = next_numeral (p))) goto INVALID_SORT;
 
     addrlen = atoi (p); /* TODO Overflow? */
+    if (!addrlen) goto INVALID_SORT;
 
     if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
     datalen = atoi (p); /* TODO Overflow? */
+    if (!datalen) goto INVALID_SORT;
 
     symbol->exp = btor_array_exp (parser->btor, datalen, addrlen, symbol->name);
     push_input (parser, symbol->exp);
