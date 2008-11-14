@@ -58,36 +58,24 @@ echo " $CC"
 
 echo -n "cflags ..."
 if [ X"$CFLAGS" = X ]; then
-  CFLAGS=""
-  case X"$CC" in
-    Xgcc*)
-      CFLAGS="$CFLAGS -W -Wall -Wextra"
-      [ $static = yes ] && CFLAGS="$CFLAGS -static"
-      [ $m32 = yes ] && CFLAGS="$CFLAGS -m32"
-      [ $m64 = yes ] && CFLAGS="$CFLAGS -m64"
-      if [ $debug = yes ]; then
-        CFLAGS="$CFLAGS -g3 -ggdb"
-      else
-	CFLAGS="$CFLAGS -DNDEBUG"
-        if [ $cov = yes ]; then
-          CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-	elif [ $o3 = yes ]; then
-	  CFLAGS="$CFLAGS -O3 -fomit-frame-pointer"
-	elif [ $o2 = yes ]; then
-	  CFLAGS="$CFLAGS -O2"
-        elif [ $o1 = yes ]; then
-	  CFLAGS="$CFLAGS -O1"
-	fi
-      fi
-      ;;
-    *)
-      if [ $debug = yes ]; then
-        CFLAGS="$CFLAGS -g"
-      else
-        CFLAGS="$CFLAGS -O"
-      fi
-      ;;
-  esac
+  CFLAGS="$CFLAGS -W -Wall -Wextra"
+  [ $static = yes ] && CFLAGS="$CFLAGS -static"
+  [ $m32 = yes ] && CFLAGS="$CFLAGS -m32"
+  [ $m64 = yes ] && CFLAGS="$CFLAGS -m64"
+  if [ $debug = yes ]; then
+    CFLAGS="$CFLAGS -g3 -ggdb"
+  else
+    CFLAGS="$CFLAGS -DNDEBUG"
+    if [ $cov = yes ]; then
+      CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
+    elif [ $o3 = yes ]; then
+      CFLAGS="$CFLAGS -O3 -fomit-frame-pointer"
+    elif [ $o2 = yes ]; then
+      CFLAGS="$CFLAGS -O2"
+    elif [ $o1 = yes ]; then
+      CFLAGS="$CFLAGS -O1"
+    fi
+  fi
 fi
 echo " $CFLAGS"
 
