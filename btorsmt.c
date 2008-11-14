@@ -1452,6 +1452,7 @@ translate_associative_binary (BtorSMTParser *parser,
     if (!(exp = node2nonarrayexp (parser, child)))
     {
     RELEASE_RES_CHECK_FOR_PARSE_ERROR_AND_RETURN:
+      btor_release_exp (parser->btor, res);
       assert (parser->error);
       goto CHECK_FOR_PARSE_ERROR_AND_RETURN;
     }
@@ -2130,11 +2131,14 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           if (symbol->token == BTOR_SMTOK_FVAR)
           {
             if (btor_get_exp_len (parser->btor, exp) != 1)
+            {
               return parse_error (parser, "flet assignment width not one");
+            }
           }
           else
             assert (symbol->token == BTOR_SMTOK_VAR);
 
+          assert (!symbol->exp);
           symbol->exp = btor_copy_exp (parser->btor, exp);
         }
         break;
