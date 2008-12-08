@@ -1,4 +1,5 @@
 regsmtparse0 -o log/regsmtparse0.log log/regsmtparse0.smt
+regsmtparse1 -o log/regsmtparse1.log log/regsmtparse1.smt
 smttrue -m -o log/smttrue.log log/smttrue.smt
 smtfalse -m -o log/smtfalse.log log/smtfalse.smt
 smtvar -m -o log/smtvar.log log/smtvar.smt

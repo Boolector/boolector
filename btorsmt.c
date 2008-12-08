@@ -2148,11 +2148,11 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         assert (symbol->token == BTOR_SMTOK_FVAR
                 || symbol->token == BTOR_SMTOK_VAR);
         assert (symbol->exp);
-        btor_release_exp (parser->btor, symbol->exp);
-        symbol->exp = 0;
-        body        = car (cdr (cdr (node)));
+        body = car (cdr (cdr (node)));
         if ((exp = node2exp (parser, body)))
           node->exp = btor_copy_exp (parser->btor, exp);
+        btor_release_exp (parser->btor, symbol->exp);
+        symbol->exp = 0;
         break;
       case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
       case BTOR_SMTOK_REPEAT: translate_repeat (parser, node); break;
@@ -2508,13 +2508,6 @@ NEXT_TOKEN:
     btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
     btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
     btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
-
-#if 0
-      /* TODO keep this for now until the parser really works.
-       */
-      if (parser->verbosity >= 3)
-	btorsmtpp (top);
-#endif
 
     if (translate_benchmark (parser, top, res))
     {
