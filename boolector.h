@@ -44,8 +44,10 @@ Btor *boolector_new (void);
 
 /**
  * Enables model generation. If you want Boolector to produce
- * a model in the satisfiable case, call this function after \ref boolector_new.
+ * a model in the satisfiable case, call this function
+ * after \ref boolector_new.
  * \param btor Boolector instance.
+ * \see boolector_sat
  */
 void boolector_enable_model_gen (Btor *btor);
 
@@ -736,6 +738,8 @@ int boolector_get_index_width (Btor *btor, BtorExp *e_array);
  * \param btor Boolector instance.
  * \param var Array or bit-vector variable.
  * \return Symbol of variable.
+ * \see boolector_var
+ * \see boolector_array
  */
 const char *boolector_get_symbol_of_var (Btor *btor, BtorExp *var);
 
@@ -785,7 +789,7 @@ void boolector_assert (Btor *btor, BtorExp *exp);
  * Adds assumption. Use this function to assume 'exp'.
  * In contrast to \ref boolector_assert the assumptions are
  * discarded after each call to \ref boolector_sat. Assumptions
- * and constraints are logically combined by boolean and.
+ * and assertions are logically combined by boolean and.
  * \param btor Boolector instance.
  * \param exp Bit-vector expression with bit-width one.
  */
@@ -801,6 +805,8 @@ void boolector_assume (Btor *btor, BtorExp *exp);
  * \return It returns \ref BTOR_SAT if the instance is satisfiable and
  * \ref BTOR_UNSAT if the instance is unsatisfiable. If Boolector cannot decide
  * the instance within the refinement limit, it returns \ref BTOR_UNKNOWN.
+ * \see boolector_bv_assignment
+ * \see boolector_array_assignment_
  **/
 int boolector_sat (Btor *btor, int refinement_limit);
 
@@ -845,6 +851,8 @@ void boolector_array_assignment (
  * Frees an assignment string for bit-vectors.
  * \param btor Boolector instance.
  * \param assignment String which has to be freed.
+ * \see boolector_bv_assignment
+ * \see boolector_array_assignment
  */
 void boolector_free_bv_assignment (Btor *btor, char *assignment);
 
