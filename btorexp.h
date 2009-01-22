@@ -88,7 +88,7 @@ typedef struct BtorExpPair BtorExpPair;
     char *bits;                    /* three valued bits */                     \
     int id;                        /* unique expression id */                  \
     int len;                       /* number of bits */                        \
-    unsigned int refs;             /* reference counter */                     \
+    int refs;                      /* reference counter */                     \
     union                                                                      \
     {                                                                          \
       BtorAIGVec *av;        /* synthesized AIG vector */                      \

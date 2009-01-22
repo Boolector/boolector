@@ -836,18 +836,18 @@ void boolector_release (Btor *btor, BtorExp *exp);
  * Bit-Precise Modelling of Word-Level Problems for Model Checking</a> for
  * details about the BTOR format. \param btor Boolector instance. \param file
  * File to which the expression should be dumped. The file must be have been
- * opened by the user before. \param root The expression which should be dumped.
+ * opened by the user before. \param exp The expression which should be dumped.
  */
-void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *root);
+void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp);
 
 /**
  * Recursively dumps expression to file. SMT-LIB 1.2 is used as format.
  * \param btor Boolector instance.
  * \param file File to which the expression should be dumped.
  * The file must be have been opened by the user before.
- * \param root The expression which should be dumped.
+ * \param exp The expression which should be dumped.
  */
-void boolector_dump_smt (Btor *btor, FILE *file, BtorExp *root);
+void boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp);
 
 /**
  * Adds constraint. Use this function to assert 'exp'.

@@ -352,7 +352,7 @@ inc_exp_ref_counter (Btor *btor, BtorExp *exp)
   assert (exp != NULL);
   (void) btor;
   real_exp = BTOR_REAL_ADDR_EXP (exp);
-  BTOR_ABORT_EXP (real_exp->refs == UINT_MAX, "Reference counter overflow");
+  BTOR_ABORT_EXP (real_exp->refs == INT_MAX, "Reference counter overflow");
   real_exp->refs++;
 }
 
@@ -768,7 +768,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
   assert (btor);
   assert (root);
   assert (BTOR_IS_REGULAR_EXP (root));
-  assert (root->refs == 1u);
+  assert (root->refs == 1);
 
   mm = btor->mm;
 
@@ -779,12 +779,12 @@ recursively_release_exp (Btor *btor, BtorExp *root)
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    if (cur->refs > 1u)
+    if (cur->refs > 1)
       cur->refs--;
     else
     {
     ENTER_WITHOUT_PUSH_AND_POP:
-      assert (cur->refs == 1u);
+      assert (cur->refs == 1);
 
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
@@ -825,9 +825,9 @@ btor_release_exp (Btor *btor, BtorExp *root)
 
   root = BTOR_REAL_ADDR_EXP (root);
 
-  assert (root->refs > 0u);
+  assert (root->refs > 0);
 
-  if (root->refs > 1u)
+  if (root->refs > 1)
     root->refs--;
   else
     recursively_release_exp (btor, root);
@@ -2035,7 +2035,7 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   exp->len       = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   return (BtorExp *) exp;
 }
@@ -2061,7 +2061,7 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   exp->len   = upper - lower + 1;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   return (BtorExp *) exp;
@@ -2112,7 +2112,7 @@ new_binary_exp_node (
   exp->len   = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
@@ -2139,7 +2139,7 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   exp->len   = 1;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   connect_child_exp (btor, exp, e0, 0);
   connect_child_exp (btor, exp, e1, 1);
@@ -2172,7 +2172,7 @@ new_ternary_exp_node (Btor *btor,
   exp->len   = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
@@ -2206,7 +2206,7 @@ new_write_exp_node (Btor *btor,
   exp->len       = BTOR_REAL_ADDR_EXP (e_value)->len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   /* append writes to the end of parrent list */
   connect_child_exp (btor, exp, e_array, 0);
@@ -2244,7 +2244,7 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   exp->len       = a_if->len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
@@ -2664,7 +2664,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->len    = len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
   if (btor->ua.enabled) hash_var_read_for_ua (btor, (BtorExp *) exp);
@@ -2692,7 +2692,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   exp->len       = elem_len;
   BTOR_ABORT_EXP (btor->id == INT_MAX, "expression id overflow");
   exp->id   = btor->id++;
-  exp->refs = 1u;
+  exp->refs = 1;
   exp->btor = btor;
   (void) btor_insert_in_ptr_hash_table (btor->arrays, exp);
   return (BtorExp *) exp;

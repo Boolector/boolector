@@ -153,6 +153,8 @@ boolector_not (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -164,6 +166,8 @@ boolector_neg (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -175,6 +179,8 @@ boolector_redor (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -186,6 +192,8 @@ boolector_redxor (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -197,6 +205,8 @@ boolector_redand (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -208,6 +218,8 @@ boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -223,6 +235,8 @@ boolector_uext (Btor *btor, BtorExp *exp, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -235,6 +249,8 @@ boolector_sext (Btor *btor, BtorExp *exp, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -248,6 +264,10 @@ boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -266,6 +286,10 @@ boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -284,6 +308,10 @@ boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -302,6 +330,10 @@ boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -320,6 +352,10 @@ boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -338,6 +374,10 @@ boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -356,6 +396,10 @@ boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -374,6 +418,10 @@ boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -395,6 +443,10 @@ boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0          = btor_pointer_chase_simplified_exp (btor, e0);
   e1          = btor_pointer_chase_simplified_exp (btor, e1);
   real_e0     = BTOR_REAL_ADDR_EXP (e0);
@@ -420,6 +472,10 @@ boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0          = btor_pointer_chase_simplified_exp (btor, e0);
   e1          = btor_pointer_chase_simplified_exp (btor, e1);
   real_e0     = BTOR_REAL_ADDR_EXP (e0);
@@ -441,6 +497,10 @@ boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -459,6 +519,10 @@ boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -477,6 +541,10 @@ boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -495,6 +563,10 @@ boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -513,6 +585,10 @@ boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -531,6 +607,10 @@ boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -549,6 +629,10 @@ boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -567,6 +651,10 @@ boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -585,6 +673,10 @@ boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -603,6 +695,10 @@ boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -621,6 +717,10 @@ boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -639,6 +739,10 @@ boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -657,6 +761,10 @@ boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -675,6 +783,10 @@ boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -694,6 +806,10 @@ boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -715,6 +831,10 @@ boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -736,6 +856,10 @@ boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -757,6 +881,10 @@ boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -778,6 +906,10 @@ boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -798,6 +930,10 @@ boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -816,6 +952,10 @@ boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -834,6 +974,10 @@ boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -852,6 +996,10 @@ boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -870,6 +1018,10 @@ boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -888,6 +1040,10 @@ boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -906,6 +1062,10 @@ boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -924,6 +1084,10 @@ boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -942,6 +1106,10 @@ boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -960,6 +1128,10 @@ boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e0 == NULL, "'e0' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e1 == NULL, "'e1' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e0)->refs < 1,
+                        "Reference counter of 'e0' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e1)->refs < 1,
+                        "Reference counter of 'e1' must not be < 1");
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
@@ -978,6 +1150,10 @@ boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_array == NULL, "'e_array' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_index == NULL, "'e_index' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_array)->refs < 1,
+                        "Reference counter of 'e_array' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_index)->refs < 1,
+                        "Reference counter of 'e_index' must not be < 1");
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
@@ -1000,6 +1176,12 @@ boolector_write (Btor *btor,
   BTOR_ABORT_BOOLECTOR (e_array == NULL, "'e_array' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_index == NULL, "'e_index' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_value == NULL, "'e_value' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_array)->refs < 1,
+                        "Reference counter of 'e_array' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_index)->refs < 1,
+                        "Reference counter of 'e_index' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_value)->refs < 1,
+                        "Reference counter of 'e_value' must not be < 1");
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   e_value = btor_pointer_chase_simplified_exp (btor, e_value);
@@ -1028,6 +1210,12 @@ boolector_cond (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   BTOR_ABORT_BOOLECTOR (e_cond == NULL, "'e_cond' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_if == NULL, "'e_if' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_else == NULL, "'e_else' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_cond)->refs < 1,
+                        "Reference counter of 'e_cond' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_if)->refs < 1,
+                        "Reference counter of 'e_if' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_else)->refs < 1,
+                        "Reference counter of 'e_else' must not be < 1");
   e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
   e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
   e_else = btor_pointer_chase_simplified_exp (btor, e_else);
@@ -1056,8 +1244,11 @@ boolector_inc (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'e0' must not be an array");
+                        "'exp' must not be an array");
   return btor_inc_exp (btor, exp);
 }
 
@@ -1066,8 +1257,11 @@ boolector_dec (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'e0' must not be an array");
+                        "'exp' must not be an array");
   return btor_dec_exp (btor, exp);
 }
 
@@ -1076,7 +1270,8 @@ boolector_get_width (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   return btor_get_exp_len (btor, exp);
 }
 
@@ -1085,6 +1280,8 @@ boolector_is_array (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   return btor_is_array_exp (btor, exp);
 }
@@ -1094,6 +1291,8 @@ boolector_get_width_index (Btor *btor, BtorExp *e_array)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (e_array == NULL, "'e_array' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_array)->refs < 1,
+                        "Reference counter of 'e_array' must not be < 1");
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
                         "'e_array' must not be a bit-vector");
@@ -1105,8 +1304,8 @@ boolector_get_symbol_of_var (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' has to be a variable");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   return (const char *) btor_get_symbol_exp (btor, exp);
 }
 
@@ -1115,6 +1314,8 @@ boolector_copy (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   return btor_copy_exp (btor, exp);
 }
 
@@ -1123,25 +1324,31 @@ boolector_release (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   btor_release_exp (btor, exp);
 }
 
 void
-boolector_dump_btor (Btor *btor, FILE *file, BtorExp *root)
+boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (file == NULL, "'file' must not be NULL");
-  BTOR_ABORT_BOOLECTOR (root == NULL, "'root' must not be NULL");
-  btor_dump_exp (btor, file, root);
+  BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'expt' must not be < 1");
+  btor_dump_exp (btor, file, exp);
 }
 
 void
-boolector_dump_smt (Btor *btor, FILE *file, BtorExp *root)
+boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (file == NULL, "'file' must not be NULL");
-  BTOR_ABORT_BOOLECTOR (root == NULL, "'root' must not be NULL");
-  btor_dump_smt (btor, file, root);
+  BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'expt' must not be < 1");
+  btor_dump_smt (btor, file, exp);
 }
 
 void
@@ -1149,6 +1356,8 @@ boolector_assert (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -1162,6 +1371,8 @@ boolector_assume (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
@@ -1184,9 +1395,13 @@ boolector_bv_assignment (Btor *btor, BtorExp *exp)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
+                        "Reference counter of 'exp' must not be < 1");
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
-  BTOR_ABORT_BOOLECTOR (!btor->model_gen, "model generation not enabled");
+  BTOR_ABORT_BOOLECTOR (!btor->model_gen,
+                        "model generation has not been enabled");
   return btor_bv_assignment_exp (btor, exp);
 }
 
@@ -1199,6 +1414,9 @@ boolector_array_assignment (
   BTOR_ABORT_BOOLECTOR (indices == NULL, "'indices' must not be NULL");
   BTOR_ABORT_BOOLECTOR (values == NULL, "'values' must not be NULL");
   BTOR_ABORT_BOOLECTOR (size == NULL, "'size' must not be NULL");
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_array)->refs < 1,
+                        "Reference counter of 'e_array' must not be < 1");
+  e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
                         "'e_array' must not be a bit-vector");
   BTOR_ABORT_BOOLECTOR (!btor->model_gen, "model generation not enabled");
