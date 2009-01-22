@@ -338,7 +338,7 @@ main (int argc, char **argv)
   else
   {
     /* add formula */
-    boolector_add_constraint (btor, formula);
+    boolector_assert (btor, formula);
 
     sat_result = boolector_sat (btor, INT_MAX);
     if (sat_result == BTOR_UNSAT)
