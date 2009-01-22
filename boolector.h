@@ -9,6 +9,68 @@
 /* PUBLIC INTERFACE                                                       */
 /*------------------------------------------------------------------------*/
 
+/**
+ * \mainpage Boolector 0.8 Documentation
+ * \section Introduction
+ * This is the documentation of Boolector's public interface. Boolector
+ * is an SMT solver for the quantifier-free theory of bit-vectors
+ * in combination with the quantifier-free extensional theory of arrays.
+ * Please visit our <a href="http://fmv.jku.at/boolector">website</a>.
+ * It contains:
+ * - the latest version
+ * - publications related to Boolector
+ * - a link to our discussion platform
+ * - news
+ *
+ * \section Interface
+ * Boolector can be used as stand-alone SMT solver which reads either BTOR
+ * or SMT-LIB 1.2. Furthermore, Boolector provides a public API in order
+ * to use Boolector as backend in other tools. The public interface
+ * is defined in \ref boolector.h.
+ *
+ * First of all, the user has to create
+ * a boolector instance by calling \ref boolector_new. This instance
+ * is needed by all other functions. After creating an instance, the
+ * rewrite level of the rewriting engine can be set by
+ * \ref boolector_set_rewrite_level and/or
+ * model generation can be enabled by \ref boolector_enable_model_gen. Then,
+ * the user can build expressions of bit-vectors and arrays. As the design of
+ * Boolector was motivated by real hardware, we do not distinguish between
+ * the type 'boolean' and the type 'bit-vector with bit-width one'.
+ * After building expressions the user can assert them by
+ * \ref boolector_assert and/or assume them by \ref boolector_assume.
+ * The resulting instance can be decided by \ref boolector_sat. Finally,
+ * if model generation has been enabled and the instance is satisfiable,
+ * the user can obtain assignments to bit-vectors resp. arrays by
+ * \ref boolector_bv_assignment resp. \ref boolector_array_assignment.
+ * The assignments are not limited to variables.
+ * They can be obtained for arbitrary expressions.
+ *
+ * \section Internals
+ * Internally, Boolector manages an expression DAG. This means that each
+ * expression has a reference counter which is initially set to one.
+ * Each sharing increments the reference counter. An expression can be
+ * copied by \ref boolector_copy which simply increments the reference counter.
+ * An expression can be released by \ref boolector_release which decreases
+ * the reference counter. If the reference counter reaches zero, then
+ * the expression node is deleted from memory.
+ *
+ * Already during construction of the expression DAG,
+ * rewriting is performed. This rewriting should simplify the DAG already
+ * during construction. When \ref boolector_sat is called, Boolector
+ * starts an extra rewriting phase to simplify the DAG.
+ * The rewrite level can be configured by \ref boolector_set_rewrite_level.
+ *
+ * Boolector internally uses a set of base operators.
+ * The set is documented in
+ *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
+ *Bit-Precise Modelling of Word-Level Problems for Model Checking</a>. Many
+ *operators that are available in the API are rewritten as combination of base
+ *operators internally. For example, two's complement is rewritten as one's
+ *complement and addition of 1.  This behavior is not influenced by the rewrite
+ *level.
+ */
+
 /*------------------------------------------------------------------------*/
 /* Declarations                                                           */
 /*------------------------------------------------------------------------*/
@@ -74,7 +136,7 @@ void boolector_delete (Btor *btor);
 /**
  * Bit-vector constant representing the bit-vector 'bits'.
  * \param btor Boolector instance.
- * \param bits Non-empty Nul-terminated string consisting of zeroes and/or ones.
+ * \param bits Non-empty and terminated string consisting of zeroes and/or ones.
  * representing the bit-vector constant specified by 'bits'.
  * \return Bit-vector constant with bit-width strlen('bits').
  */
@@ -191,6 +253,7 @@ BtorExp *boolector_neg (Btor *btor, BtorExp *exp);
  * \return Bit-vector with bit-width one.
  */
 BtorExp *boolector_redor (Btor *btor, BtorExp *exp);
+
 /**
  * Xor reduction. All bits are combined by xor.
  * \param btor Boolector instance.
@@ -474,7 +537,8 @@ BtorExp *boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Shift left.
+/**
+ * Shift left.
  * \param btor Boolector instance.
  * \param e0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
@@ -484,7 +548,8 @@ BtorExp *boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Shift right logical. Zeroes are shifted in.
+/**
+ * Shift right logical. Zeroes are shifted in.
  * \param btor Boolector instance.
  * \param e0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
@@ -494,7 +559,8 @@ BtorExp *boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Shift right arithmetic. Whether zeroes or ones are shifted in depends
+/**
+ * Shift right arithmetic. Whether zeroes or ones are shifted in depends
  * on the most significant bit of 'e0'.
  * \param btor Boolector instance.
  * \param e0 First bit-vector operand where the bit-width is a power of two
@@ -505,7 +571,8 @@ BtorExp *boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Rotate left.
+/**
+ * Rotate left.
  * \param btor Boolector instance.
  * \param e0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
@@ -515,7 +582,8 @@ BtorExp *boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Rotate right.
+/**
+ * Rotate right.
  * \param btor Boolector instance.
  * \param e0 First bit-vector operand where the bit-width is a power of two
  * and greater than 1.
@@ -645,7 +713,8 @@ BtorExp *boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Concatenation.
+/**
+ * Concatenation.
  * \param btor Boolector instance.
  * \param e0 First bit-vector operand.
  * \param e1 Second bit-vector operand.
@@ -653,7 +722,8 @@ BtorExp *boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1);
 
-/* Array read on array 'e_array' at position 'e_index'.
+/**
+ * Array read on array 'e_array' at position 'e_index'.
  * \param btor Boolector instance.
  * \param e_array Array operand.
  * \param e_index Bit-vector index. The bit-width of 'e_index' must have
@@ -662,7 +732,8 @@ BtorExp *boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1);
  */
 BtorExp *boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index);
 
-/* Array write on array 'e_array' at position 'e_index' with value 'e_value'.
+/**
+ * Array write on array 'e_array' at position 'e_index' with value 'e_value'.
  * The array is updated at one position. All other elements remain the same.
  * \param btor Boolector instance.
  * \param e_array Array operand.
@@ -677,7 +748,8 @@ BtorExp *boolector_write (Btor *btor,
                           BtorExp *e_index,
                           BtorExp *e_value);
 
-/* If-then-else. If the condition 'e_cond' is one, then
+/**
+ * If-then-else. If the condition 'e_cond' is one, then
  * 'e_if' is returned, otherwise 'e_else'.
  * Either 'e_if' and 'e_else' must be both arrays, or they must be both
  * bit-vectors.
@@ -760,10 +832,11 @@ void boolector_release (Btor *btor, BtorExp *exp);
 
 /**
  * Recursively dumps expression to file. BTOR 1.0 is used as format.
- * \param btor Boolector instance.
- * \param file File to which the expression should be dumped.
- * The file must be have been opened by the user before.
- * \param root The expression which should be dumped.
+ * See <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
+ * Bit-Precise Modelling of Word-Level Problems for Model Checking</a> for
+ * details about the BTOR format. \param btor Boolector instance. \param file
+ * File to which the expression should be dumped. The file must be have been
+ * opened by the user before. \param root The expression which should be dumped.
  */
 void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *root);
 
@@ -806,13 +879,13 @@ void boolector_assume (Btor *btor, BtorExp *exp);
  * \ref BTOR_UNSAT if the instance is unsatisfiable. If Boolector cannot decide
  * the instance within the refinement limit, it returns \ref BTOR_UNKNOWN.
  * \see boolector_bv_assignment
- * \see boolector_array_assignment_
+ * \see boolector_array_assignment
  **/
 int boolector_sat (Btor *btor, int refinement_limit);
 
 /**
  * Builds assignment string for bit-vector expression if \ref boolector_sat
- * has returned \ref BTOR_SAT and model generation is enabled.
+ * has returned \ref BTOR_SAT and model generation has been enabled.
  * The expression can be an arbitrary
  * bit-vector expression which occurs in an assertion or current assumption.
  * The assignment string has to be freed by \ref boolector_free_bv_assignment.
@@ -822,31 +895,34 @@ int boolector_sat (Btor *btor, int refinement_limit);
  * and a consistent assignment for arbitrary bit-vector expressions.
  * Each character of the string can be '0', '1' or 'x'. The latter
  * represents that the corresponding bit can be assigned arbitrarily.
+ * \see boolector_enable_model_gen
  */
 char *boolector_bv_assignment (Btor *btor, BtorExp *exp);
 
 /**
- * Builds a model for an array expression. The function creates and stores
+ * Builds a model for an array expression.
+ * if \ref boolector_sat
+ * has returned \ref BTOR_SAT and model generation has been enabled.
+ * The function creates and stores
  * the array of indices into 'indices' and the array of
  * corresponding values into 'values'. The
  * number size of 'indices' resp. 'values' is stored into 'size'. The array
  * model simply inspects the set of reads rho, which is associated with
  * each array expression. See our publication
- * "lemmas on demand for the extensional arrays" for details. At indices that
- * do not occur in the model, the array can have a unique default value, for
- * example 0 with the respective bit-width. The bit-vector assignments
- * to the indices and values have to be freed by
- * \ref boolector_free_bv_assignment. Furthermore, the user has to
- * free the array of indices and the array of values, respectively
- * of size 'size'.
- * \param btor Boolector instance.
- * \param e_array Array operand for which the array model should be built.
- * \param indices Pointer to array of index strings.
- * \param values Pointer to array of value strings.
- * \param size Pointer to size.
+ * <a href="http://fmv.jku.at/papers/BrummayerBiere-SMT08.pdf">Lemmas on Demand
+ * for the Extensional Theory of Arrays</a> for details. At indices that do not
+ * occur in the model, the array can have a unique default value, for example 0.
+ * The bit-vector assignments to the indices and values have to be freed by \ref
+ * boolector_free_bv_assignment. Furthermore, the user has to free the array of
+ * indices and the array of values, respectively of size 'size'. \param btor
+ * Boolector instance. \param e_array Array operand for which the array model
+ * should be built. \param indices Pointer to array of index strings. \param
+ * values Pointer to array of value strings. \param size Pointer to size. \see
+ * boolector_enable_model_gen
  */
 void boolector_array_assignment (
     Btor *btor, BtorExp *e_array, char ***indices, char ***values, int *size);
+
 /**
  * Frees an assignment string for bit-vectors.
  * \param btor Boolector instance.
