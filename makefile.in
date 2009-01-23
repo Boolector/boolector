@@ -30,7 +30,8 @@ merge: boolectormain.o merged.o
 	rm -f libboolector.a
 	ar rc libboolector.a merged.o $(PICOSATOBJ)
 	strip --strip-unneeded libboolector.a
-	$(CC) $(CFLAGS) -o boolector boolectormain.o -L. -lboolector $(LIBS)@STRIP@
+	$(CC) $(CFLAGS) -o boolector boolectormain.o -L. -lboolector $(LIBS)
+	strip boolector
 	@make -s size symbols
 seperate:
 	rm -f libboolector.a
