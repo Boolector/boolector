@@ -1,5 +1,14 @@
 #ifndef BOOLECTOR_H_INCLUDED
 #define BOOLECTOR_H_INCLUDED
+/*
+Boolector is copyrighted 2007 - 2009 by Robert Brummayer, Armin
+Biere, Institute for Formal Models and Verification, Johannes
+Kepler University, Linz, Austria. All rights reserved.
+Boolector is available for research and evaluation purposes in
+an academic environment only. It can not be used in a commercial
+environment, particularly as part of a commercial product, without
+written permission. Boolector is provided as is, without any warranty.
+*/
 
 #include "btorexp.h"
 
