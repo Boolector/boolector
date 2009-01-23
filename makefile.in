@@ -6,7 +6,7 @@ VERSION=$(shell cat VERSION)
 PICOSATOBJ=../picosat/picosat.o ../picosat/version.o @PICOPREP_OBJS@ 
 LIBOBJ= \
   $(addsuffix .o,$(basename $(wildcard btor*.c))) \
-  boolector.o $(PICOPREP_OBJS)
+  boolector.o $(PICOSATOBJ)
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@
@@ -25,8 +25,7 @@ merged.c: btorconfig.h *.c *.h makefile contrib/merge
 merged.o: merged.c
 	$(CC) $(CFLAGS) -c merged.c
 merged: boolectormain.o merged.o
-	$(CC) $(CFLAGS) -o $@ boolectormain.o merged.o \
-	  $(PICOSATOBJ) $(LIBS)@STRIP@
+	$(CC) $(CFLAGS) -o $@ boolectormain.o merged.o $(PICOSATOBJ) $(LIBS)@STRIP@
 test: $(TESTOBJ) libboolector.a 
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)@STRIP@
 
