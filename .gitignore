@@ -15,6 +15,7 @@ test
 dependencies
 deltabtor
 btorconfig.h
+merged.c
 *.btor
 *.smt
 run.sh
