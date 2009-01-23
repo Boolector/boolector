@@ -3,7 +3,10 @@
 	$(CC) $(CFLAGS) -c $<
 SHELL=/bin/sh
 VERSION=$(shell cat VERSION)
-LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o ../picosat/picosat.o ../picosat/version.o @PICOPREP_OBJS@ 
+PICOSATOBJ=../picosat/picosat.o ../picosat/version.o @PICOPREP_OBJS@ 
+LIBOBJ= \
+  $(addsuffix .o,$(basename $(wildcard btor*.c))) \
+  boolector.o $(PICOPREP_OBJS)
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 CC=@CC@
 CFLAGS=@CFLAGS@
@@ -15,10 +18,15 @@ all: libboolector.a boolector test synthebtor deltabtor basicbtor
 
 dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
-
 boolector: boolectormain.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)@STRIP@
-
+merged.c: btorconfig.h *.c *.h makefile contrib/merge
+	./contrib/merge
+merged.o: merged.c
+	$(CC) $(CFLAGS) -c merged.c
+merged: boolectormain.o merged.o
+	$(CC) $(CFLAGS) -o $@ boolectormain.o merged.o \
+	  $(PICOSATOBJ) $(LIBS)@STRIP@
 test: $(TESTOBJ) libboolector.a 
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)@STRIP@
 
@@ -47,5 +55,6 @@ clean:
 	rm -f *.tmp
 	rm -f makefile
 	rm -f btorconfig.h
+	rm -f merged.c
 
 .PHONY: all clean

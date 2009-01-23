@@ -17,7 +17,7 @@ static BtorCharPtrStack args;
 static void
 test_testcase (void)
 {
-  (void) btor_main (BTOR_COUNT_STACK (args), args.start);
+  (void) boolector_main (BTOR_COUNT_STACK (args), args.start);
 }
 
 void

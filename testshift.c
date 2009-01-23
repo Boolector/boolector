@@ -86,7 +86,7 @@ shift_test (char *(*func) (int, int, int),
         fprintf (f, "5 eq 1 3 4\n");
         fprintf (f, "6 root 1 5\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
         btor_freestr (g_mm, result);
       }

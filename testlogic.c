@@ -56,7 +56,7 @@ not_logic_test (int low, int high)
       fprintf (f, "3 eq 1 -1 2\n");
       fprintf (f, "4 root 1 3\n");
       fclose (f);
-      exit_code = btor_main (g_argc, g_argv);
+      exit_code = boolector_main (g_argc, g_argv);
       assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
       assert (exit_code == BTOR_SAT_EXIT);
     }
@@ -97,7 +97,7 @@ binary_logic_test (unsigned int (*func) (unsigned int, unsigned int),
         fprintf (f, "5 eq 1 3 4\n");
         fprintf (f, "6 root 1 5\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
         assert (exit_code == BTOR_SAT_EXIT);
       }
@@ -134,7 +134,7 @@ xnor_logic_test (int low, int high)
         fprintf (f, "5 eq 1 3 4\n");
         fprintf (f, "6 root 1 5\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
         assert (exit_code == BTOR_SAT_EXIT);
       }
@@ -170,7 +170,7 @@ red_logic_test (unsigned int (*func) (unsigned int, unsigned int),
       fprintf (f, "2 %s 1 1\n", func_name);
       fprintf (f, "3 root 1 2\n");
       fclose (f);
-      exit_code = btor_main (g_argc, g_argv);
+      exit_code = boolector_main (g_argc, g_argv);
       assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
       if (result)
         assert (exit_code == BTOR_SAT_EXIT);

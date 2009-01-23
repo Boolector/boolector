@@ -1015,7 +1015,7 @@ btor_sub_const (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 static char *
-sll_n_bits (BtorMemMgr *mm, const char *a, int n)
+btor_sll_n_bits_const (BtorMemMgr *mm, const char *a, int n)
 {
   char *result;
   int len, i;
@@ -1056,7 +1056,7 @@ mul_const (BtorMemMgr *mm, const char *a, const char *b)
     BTOR_NEWN (mm, and, len + 1);
     for (j = 0; j < len; j++) and[j] = BTOR_AND_CONST_3VL (a[j], b[i]);
     and[len] = '\0';
-    shift    = sll_n_bits (mm, and, len - 1 - i);
+    shift    = btor_sll_n_bits_const (mm, and, len - 1 - i);
     add      = add_const (mm, result, shift);
     btor_delete_const (mm, result);
     btor_delete_const (mm, and);
@@ -1080,7 +1080,7 @@ btor_mul_const (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 static char *
-srl_n_bits (BtorMemMgr *mm, const char *a, int n)
+btor_srl_n_bits_const (BtorMemMgr *mm, const char *a, int n)
 {
   char *result;
   int len, i;
@@ -1101,7 +1101,7 @@ srl_n_bits (BtorMemMgr *mm, const char *a, int n)
 }
 
 static void
-SC_GATE_CO (char *CO, char R, char D, char CI)
+btor_SC_GATE_CO_const (char *CO, char R, char D, char CI)
 {
   char D_or_CI, D_and_CI, M;
   D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
@@ -1111,7 +1111,7 @@ SC_GATE_CO (char *CO, char R, char D, char CI)
 }
 
 static void
-SC_GATE_S (char *S, char R, char D, char CI, char Q)
+btor_SC_GATE_S_const (char *S, char R, char D, char CI, char Q)
 {
   char D_and_CI, D_or_CI;
   char T2_or_R, T2_and_R;
@@ -1176,12 +1176,12 @@ udiv_urem_const (
     C[j][0] = '1';
 
     for (i = 0; i <= size - 1; i++)
-      SC_GATE_CO (&C[j][i + 1], S[j][i], nD[i], C[j][i]);
+      btor_SC_GATE_CO_const (&C[j][i + 1], S[j][i], nD[i], C[j][i]);
 
     Q[j] = BTOR_OR_CONST_3VL (C[j][size], S[j][size]);
 
     for (i = 0; i <= size - 1; i++)
-      SC_GATE_S (&S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q[j]);
+      btor_SC_GATE_S_const (&S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q[j]);
   }
 
   for (i = size; i >= 1; i--) R[size - i] = S[size][i];
@@ -1251,14 +1251,14 @@ sll_const (BtorMemMgr *mm, const char *a, const char *b)
 
   len = (int) strlen (b);
   if (b[len - 1] == '1')
-    result = sll_n_bits (mm, a, 1);
+    result = btor_sll_n_bits_const (mm, a, 1);
   else
     result = btor_copy_const (mm, a);
   for (i = len - 2; i >= 0; i--)
   {
     temp = result;
     if (b[i] == '1')
-      result = sll_n_bits (mm, temp, btor_pow_2_util (len - i - 1));
+      result = btor_sll_n_bits_const (mm, temp, btor_pow_2_util (len - i - 1));
     else
       result = btor_copy_const (mm, temp);
     btor_delete_const (mm, temp);
@@ -1298,14 +1298,14 @@ srl_const (BtorMemMgr *mm, const char *a, const char *b)
 
   len = (int) strlen (b);
   if (b[len - 1] == '1')
-    result = srl_n_bits (mm, a, 1);
+    result = btor_srl_n_bits_const (mm, a, 1);
   else
     result = btor_copy_const (mm, a);
   for (i = len - 2; i >= 0; i--)
   {
     temp = result;
     if (b[i] == '1')
-      result = srl_n_bits (mm, temp, btor_pow_2_util (len - i - 1));
+      result = btor_srl_n_bits_const (mm, temp, btor_pow_2_util (len - i - 1));
     else
       result = btor_copy_const (mm, temp);
     btor_delete_const (mm, temp);
@@ -1927,7 +1927,7 @@ btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
     len  = (int) strlen (a);
     temp = btor_x_const_3vl (mm, len);
     compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
-    result = sll_n_bits (mm, temp, min_shifts);
+    result = btor_sll_n_bits_const (mm, temp, min_shifts);
     for (i = 0; i < len; i++)
     {
       cur = a[i];
@@ -1971,7 +1971,7 @@ btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
     len  = (int) strlen (a);
     temp = btor_x_const_3vl (mm, len);
     compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
-    result = srl_n_bits (mm, temp, min_shifts);
+    result = btor_srl_n_bits_const (mm, temp, min_shifts);
     for (i = len - 1; i >= 0; i--)
     {
       cur = a[i];

@@ -65,12 +65,14 @@ struct BtorBTORParser
   int found_arrays;
 };
 
-static unsigned primes[4] = {111130391, 22237357, 33355519, 444476887};
+static unsigned btor_primes_btor[4] = {
+    111130391, 22237357, 33355519, 444476887};
 
-#define PRIMES ((sizeof primes) / sizeof primes[0])
+#define BTOR_PRIMES_BTOR \
+  ((sizeof btor_primes_btor) / sizeof btor_primes_btor[0])
 
 static void
-print_verbose_msg (char *fmt, ...)
+btor_msg_btor (char *fmt, ...)
 {
   va_list ap;
   fprintf (stdout, "[btorbtor] ");
@@ -87,14 +89,14 @@ hash_op (const char *str, unsigned salt)
   unsigned i, res;
   const char *p;
 
-  assert (salt < PRIMES);
+  assert (salt < BTOR_PRIMES_BTOR);
 
   res = 0;
   i   = salt;
   for (p = str; *p; p++)
   {
-    res += primes[i++] * (unsigned) *p;
-    if (i == PRIMES) i = 0;
+    res += btor_primes_btor[i++] * (unsigned) *p;
+    if (i == BTOR_PRIMES_BTOR) i = 0;
   }
 
   res &= SIZE_PARSERS - 1;
@@ -103,7 +105,7 @@ hash_op (const char *str, unsigned salt)
 }
 
 static const char *
-parse_error (BtorBTORParser *parser, const char *fmt, ...)
+btor_perr_btor (BtorBTORParser *parser, const char *fmt, ...)
 {
   size_t bytes;
   va_list ap;
@@ -124,7 +126,7 @@ parse_error (BtorBTORParser *parser, const char *fmt, ...)
 }
 
 static int
-nextch (BtorBTORParser *parser)
+btor_nextch_btor (BtorBTORParser *parser)
 {
   int ch;
 
@@ -142,7 +144,7 @@ nextch (BtorBTORParser *parser)
 }
 
 static void
-savech (BtorBTORParser *parser, int ch)
+btor_savech_btor (BtorBTORParser *parser, int ch)
 {
   assert (!parser->saved);
 
@@ -161,23 +163,24 @@ parse_non_negative_int (BtorBTORParser *parser, int *res_ptr)
 {
   int res, ch;
 
-  ch = nextch (parser);
-  if (!isdigit (ch)) return parse_error (parser, "expected digit");
+  ch = btor_nextch_btor (parser);
+  if (!isdigit (ch)) return btor_perr_btor (parser, "expected digit");
 
   if (ch == '0')
   {
     res = 0;
-    ch  = nextch (parser);
-    if (isdigit (ch)) return parse_error (parser, "digit after '0'");
+    ch  = btor_nextch_btor (parser);
+    if (isdigit (ch)) return btor_perr_btor (parser, "digit after '0'");
   }
   else
   {
     res = ch - '0';
 
-    while (isdigit (ch = nextch (parser))) res = 10 * res + (ch - '0');
+    while (isdigit (ch = btor_nextch_btor (parser)))
+      res = 10 * res + (ch - '0');
   }
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
   *res_ptr = res;
 
   return 0;
@@ -188,16 +191,16 @@ parse_positive_int (BtorBTORParser *parser, int *res_ptr)
 {
   int res, ch;
 
-  ch = nextch (parser);
-  if (!isdigit (ch)) return parse_error (parser, "expected digit");
+  ch = btor_nextch_btor (parser);
+  if (!isdigit (ch)) return btor_perr_btor (parser, "expected digit");
 
-  if (ch == '0') return parse_error (parser, "expected non zero digit");
+  if (ch == '0') return btor_perr_btor (parser, "expected non zero digit");
 
   res = ch - '0';
 
-  while (isdigit (ch = nextch (parser))) res = 10 * res + (ch - '0');
+  while (isdigit (ch = btor_nextch_btor (parser))) res = 10 * res + (ch - '0');
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
   *res_ptr = res;
 
   return 0;
@@ -208,28 +211,28 @@ parse_non_zero_int (BtorBTORParser *parser, int *res_ptr)
 {
   int res, sign, ch;
 
-  ch = nextch (parser);
+  ch = btor_nextch_btor (parser);
 
   if (ch == '-')
   {
     sign = -1;
-    ch   = nextch (parser);
+    ch   = btor_nextch_btor (parser);
 
     if (!isdigit (ch) || ch == '0')
-      return parse_error (parser, "expected non zero digit after '-'");
+      return btor_perr_btor (parser, "expected non zero digit after '-'");
   }
   else
   {
     sign = 1;
     if (!isdigit (ch) || ch == '0')
-      return parse_error (parser, "expected non zero digit or '-'");
+      return btor_perr_btor (parser, "expected non zero digit or '-'");
   }
 
   res = ch - '0';
 
-  while (isdigit (ch = nextch (parser))) res = 10 * res + (ch - '0');
+  while (isdigit (ch = btor_nextch_btor (parser))) res = 10 * res + (ch - '0');
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   res *= sign;
   *res_ptr = res;
@@ -252,13 +255,13 @@ parse_exp (BtorBTORParser *parser, int expected_len, int can_be_array)
   if (idx >= BTOR_COUNT_STACK (parser->exps)
       || !(res = parser->exps.start[idx]))
   {
-    (void) parse_error (parser, "literal '%d' undefined", lit);
+    (void) btor_perr_btor (parser, "literal '%d' undefined", lit);
     return 0;
   }
 
   if (!can_be_array && btor_is_array_exp (parser->btor, res))
   {
-    (void) parse_error (
+    (void) btor_perr_btor (
         parser, "literal '%d' refers to an unexpected array expression", lit);
     return 0;
   }
@@ -269,11 +272,11 @@ parse_exp (BtorBTORParser *parser, int expected_len, int can_be_array)
 
     if (expected_len != len_res)
     {
-      (void) parse_error (parser,
-                          "literal '%d' has length '%d' but expected '%d'",
-                          lit,
-                          len_res,
-                          expected_len);
+      (void) btor_perr_btor (parser,
+                             "literal '%d' has length '%d' but expected '%d'",
+                             lit,
+                             len_res,
+                             expected_len);
 
       return 0;
     }
@@ -292,17 +295,17 @@ parse_space (BtorBTORParser *parser)
 {
   int ch;
 
-  ch = nextch (parser);
+  ch = btor_nextch_btor (parser);
   if (ch != ' ' && ch != '\t')
-    return parse_error (parser, "expected space or tab");
+    return btor_perr_btor (parser, "expected space or tab");
 
 SKIP:
-  ch = nextch (parser);
+  ch = btor_nextch_btor (parser);
   if (ch == ' ' || ch == '\t') goto SKIP;
 
-  if (!ch) return parse_error (parser, "unexpected character");
+  if (!ch) return btor_perr_btor (parser, "unexpected character");
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   return 0;
 }
@@ -314,13 +317,13 @@ parse_symbol (BtorBTORParser *parser)
   const char *p;
   int ch;
 
-  while ((ch = nextch (parser)) == ' ' || ch == '\t')
+  while ((ch = btor_nextch_btor (parser)) == ' ' || ch == '\t')
     ;
 
   if (ch == EOF)
   {
   UNEXPECTED_EOF:
-    (void) parse_error (parser, "unexpected EOF");
+    (void) btor_perr_btor (parser, "unexpected EOF");
     return 0;
   }
 
@@ -335,7 +338,7 @@ parse_symbol (BtorBTORParser *parser)
   {
     BTOR_PUSH_STACK (parser->mem, parser->symbol, ch);
 
-    while (!isspace (ch = nextch (parser)))
+    while (!isspace (ch = btor_nextch_btor (parser)))
     {
       if (ch == EOF) goto UNEXPECTED_EOF;
 
@@ -343,7 +346,7 @@ parse_symbol (BtorBTORParser *parser)
     }
   }
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   BTOR_PUSH_STACK (parser->mem, parser->symbol, 0);
   BTOR_RESET_STACK (parser->symbol);
@@ -401,7 +404,7 @@ parse_array_exp (BtorBTORParser *parser, int len)
 
   if (btor_is_array_exp (parser->btor, res)) return res;
 
-  (void) parse_error (parser, "expected array expression");
+  (void) btor_perr_btor (parser, "expected array expression");
   btor_release_exp (parser->btor, res);
 
   return 0;
@@ -421,7 +424,7 @@ parse_next (BtorBTORParser *parser, int len)
   if (idx >= BTOR_COUNT_STACK (parser->exps)
       || !(current = parser->exps.start[idx]))
   {
-    (void) parse_error (parser, "invalid next index %d", idx);
+    (void) btor_perr_btor (parser, "invalid next index %d", idx);
     return 0;
   }
 
@@ -429,13 +432,13 @@ parse_next (BtorBTORParser *parser, int len)
 
   if (!info.var)
   {
-    (void) parse_error (parser, "next index %d is not a variable", idx);
+    (void) btor_perr_btor (parser, "next index %d is not a variable", idx);
     return 0;
   }
 
   if (info.next)
   {
-    (void) parse_error (parser, "next index %d already used", idx);
+    (void) btor_perr_btor (parser, "next index %d already used", idx);
     return 0;
   }
 
@@ -469,20 +472,20 @@ parse_anext (BtorBTORParser *parser, int len)
   if (idx >= BTOR_COUNT_STACK (parser->exps)
       || !(current = parser->exps.start[idx]))
   {
-    (void) parse_error (parser, "invalid next index %d", idx);
+    (void) btor_perr_btor (parser, "invalid next index %d", idx);
     return 0;
   }
 
   info = parser->info.start[idx];
   if (!info.array)
   {
-    (void) parse_error (parser, "next index %d is not an array", idx);
+    (void) btor_perr_btor (parser, "next index %d is not an array", idx);
     return 0;
   }
 
   if (info.next)
   {
-    (void) parse_error (parser, "next index %d already used", idx);
+    (void) btor_perr_btor (parser, "next index %d already used", idx);
     return 0;
   }
 
@@ -495,10 +498,10 @@ parse_anext (BtorBTORParser *parser, int len)
   if (idx_len != current_idx_len)
   {
     btor_release_exp (parser->btor, next);
-    (void) parse_error (parser,
-                        "arrays with different index width %d and %d",
-                        current_idx_len,
-                        idx_len);
+    (void) btor_perr_btor (parser,
+                           "arrays with different index width %d and %d",
+                           current_idx_len,
+                           idx_len);
     return 0;
   }
 
@@ -518,28 +521,28 @@ parse_const (BtorBTORParser *parser, int len)
   if (parse_space (parser)) return 0;
 
   assert (BTOR_EMPTY_STACK (parser->constant));
-  while (!isspace (ch = nextch (parser)) && ch != EOF && ch != ';')
+  while (!isspace (ch = btor_nextch_btor (parser)) && ch != EOF && ch != ';')
   {
     if (ch != '0' && ch != '1')
     {
-      (void) parse_error (parser, "expected '0' or '1'");
+      (void) btor_perr_btor (parser, "expected '0' or '1'");
       return 0;
     }
 
     BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
   }
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
   clen = BTOR_COUNT_STACK (parser->constant);
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
   if (clen != len)
   {
-    (void) parse_error (parser,
-                        "binary constant '%s' exceeds bit width %d",
-                        parser->constant.start,
-                        len);
+    (void) btor_perr_btor (parser,
+                           "binary constant '%s' exceeds bit width %d",
+                           parser->constant.start,
+                           len);
     return 0;
   }
 
@@ -559,18 +562,18 @@ parse_consth (BtorBTORParser *parser, int len)
 
   assert (BTOR_EMPTY_STACK (parser->constant));
 
-  while (!isspace (ch = nextch (parser)) && ch != EOF && ch != ';')
+  while (!isspace (ch = btor_nextch_btor (parser)) && ch != EOF && ch != ';')
   {
     if (!isxdigit (ch))
     {
-      (void) parse_error (parser, "expected hexidecimal digit");
+      (void) btor_perr_btor (parser, "expected hexidecimal digit");
       return 0;
     }
 
     BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
   }
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   clen = BTOR_COUNT_STACK (parser->constant);
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
@@ -581,10 +584,10 @@ parse_consth (BtorBTORParser *parser, int len)
 
   if (clen > len)
   {
-    (void) parse_error (parser,
-                        "hexadecimal constant '%s' exceeds bit width %d",
-                        parser->constant.start,
-                        len);
+    (void) btor_perr_btor (parser,
+                           "hexadecimal constant '%s' exceeds bit width %d",
+                           parser->constant.start,
+                           len);
 
     btor_freestr (parser->mem, tmp);
     return 0;
@@ -617,10 +620,10 @@ parse_constd (BtorBTORParser *parser, int len)
 
   assert (BTOR_EMPTY_STACK (parser->constant));
 
-  ch = nextch (parser);
+  ch = btor_nextch_btor (parser);
   if (!isdigit (ch))
   {
-    (void) parse_error (parser, "expected digit");
+    (void) btor_perr_btor (parser, "expected digit");
     return 0;
   }
 
@@ -628,11 +631,11 @@ parse_constd (BtorBTORParser *parser, int len)
 
   if (ch == '0')
   {
-    ch = nextch (parser);
+    ch = btor_nextch_btor (parser);
 
     if (isdigit (ch))
     {
-      (void) parse_error (parser, "digit after '0'");
+      (void) btor_perr_btor (parser, "digit after '0'");
       return 0;
     }
 
@@ -640,7 +643,7 @@ parse_constd (BtorBTORParser *parser, int len)
   }
   else
   {
-    while (isdigit (ch = nextch (parser)))
+    while (isdigit (ch = btor_nextch_btor (parser)))
       BTOR_PUSH_STACK (parser->mem, parser->constant, ch);
 
     clen = BTOR_COUNT_STACK (parser->constant);
@@ -651,15 +654,15 @@ parse_constd (BtorBTORParser *parser, int len)
   BTOR_PUSH_STACK (parser->mem, parser->constant, 0);
   BTOR_RESET_STACK (parser->constant);
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   clen = (int) strlen (tmp);
   if (clen > len)
   {
-    (void) parse_error (parser,
-                        "decimal constant '%s' exceeds bit width %d",
-                        parser->constant.start,
-                        len);
+    (void) btor_perr_btor (parser,
+                           "decimal constant '%s' exceeds bit width %d",
+                           parser->constant.start,
+                           len);
     btor_freestr (parser->mem, tmp);
     return 0;
   }
@@ -773,7 +776,8 @@ parse_redunary (BtorBTORParser *parser, int len, Unary f)
 
   if (btor_get_exp_len (parser->btor, tmp) == 1)
   {
-    (void) parse_error (parser, "argument of reduction operation of width 1");
+    (void) btor_perr_btor (parser,
+                           "argument of reduction operation of width 1");
     btor_release_exp (parser->btor, tmp);
     return 0;
   }
@@ -922,7 +926,7 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
 
   if (len != 1)
   {
-    (void) parse_error (parser, "logical operator bit width '%d'", len);
+    (void) btor_perr_btor (parser, "logical operator bit width '%d'", len);
     return 0;
   }
 
@@ -933,7 +937,7 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
   if (btor_get_exp_len (parser->btor, l) != 1)
   {
   BIT_WIDTH_ERROR_RELEASE_L_AND_RETURN:
-    (void) parse_error (parser, "expected argument of bit width '1'");
+    (void) btor_perr_btor (parser, "expected argument of bit width '1'");
   RELEASE_L_AND_RETURN_ERROR:
     btor_release_exp (parser->btor, l);
     return 0;
@@ -980,7 +984,7 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 
   if (len != 1)
   {
-    (void) parse_error (
+    (void) btor_perr_btor (
         parser, "comparison or overflow operator returns %d bits", len);
     return 0;
   }
@@ -1004,7 +1008,7 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 
   if (llen != rlen)
   {
-    (void) parse_error (
+    (void) btor_perr_btor (
         parser, "operands have different bit width %d and %d", llen, rlen);
   RELEASE_L_AND_R_AND_RETURN_ZERO:
     btor_release_exp (parser->btor, r);
@@ -1017,14 +1021,14 @@ parse_compare_and_overflow (BtorBTORParser *parser,
     if (btor_is_array_exp (parser->btor, l)
         && !btor_is_array_exp (parser->btor, r))
     {
-      (void) parse_error (parser, "first operand is array and second not");
+      (void) btor_perr_btor (parser, "first operand is array and second not");
       goto RELEASE_L_AND_R_AND_RETURN_ZERO;
     }
 
     if (!btor_is_array_exp (parser->btor, l)
         && btor_is_array_exp (parser->btor, r))
     {
-      (void) parse_error (parser, "second operand is array and first not");
+      (void) btor_perr_btor (parser, "second operand is array and first not");
       goto RELEASE_L_AND_R_AND_RETURN_ZERO;
     }
 
@@ -1036,7 +1040,7 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 
       if (llen != rlen)
       {
-        (void) parse_error (
+        (void) btor_perr_btor (
             parser,
             "array operands have different index width %d and %d",
             llen,
@@ -1182,11 +1186,11 @@ parse_concat (BtorBTORParser *parser, int len)
 
   if (llen + rlen != len)
   {
-    (void) parse_error (parser,
-                        "operands widths %d and %d do not add up to %d",
-                        llen,
-                        rlen,
-                        len);
+    (void) btor_perr_btor (parser,
+                           "operands widths %d and %d do not add up to %d",
+                           llen,
+                           rlen,
+                           len);
 
     btor_release_exp (parser->btor, r);
     btor_release_exp (parser->btor, l);
@@ -1212,7 +1216,7 @@ parse_shift (BtorBTORParser *parser, int len, Shift f)
 
   if (len != (1 << rlen))
   {
-    (void) parse_error (parser, "length %d is not a power of two", len);
+    (void) btor_perr_btor (parser, "length %d is not a power of two", len);
     return 0;
   }
 
@@ -1327,7 +1331,8 @@ parse_acond (BtorBTORParser *parser, int len)
 
   if (idxlen != btor_get_index_exp_len (parser->btor, t))
   {
-    (void) parse_error (parser, "mismatch of index bit width of 'then' array");
+    (void) btor_perr_btor (parser,
+                           "mismatch of index bit width of 'then' array");
   RELEASE_C_AND_T_AND_RETURN_ERROR:
     btor_release_exp (parser->btor, t);
     goto RELEASE_C_AND_RETURN_ERROR;
@@ -1340,7 +1345,8 @@ parse_acond (BtorBTORParser *parser, int len)
 
   if (idxlen != btor_get_index_exp_len (parser->btor, e))
   {
-    (void) parse_error (parser, "mismatch of index bit width of 'else' array");
+    (void) btor_perr_btor (parser,
+                           "mismatch of index bit width of 'else' array");
     btor_release_exp (parser->btor, e);
     goto RELEASE_C_AND_T_AND_RETURN_ERROR;
   }
@@ -1377,7 +1383,7 @@ parse_slice (BtorBTORParser *parser, int len)
 
   if (upper >= arglen)
   {
-    (void) parse_error (
+    (void) btor_perr_btor (
         parser, "upper index '%d' >= argument width '%d", upper, arglen);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
@@ -1389,7 +1395,7 @@ parse_slice (BtorBTORParser *parser, int len)
 
   if (upper < lower)
   {
-    (void) parse_error (
+    (void) btor_perr_btor (
         parser, "upper index '%d' smaller than lower index '%d'", upper, lower);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
@@ -1397,10 +1403,10 @@ parse_slice (BtorBTORParser *parser, int len)
   delta = upper - lower + 1;
   if (delta != len)
   {
-    (void) parse_error (parser,
-                        "slice width '%d' not equal to expected width '%d'",
-                        delta,
-                        len);
+    (void) btor_perr_btor (parser,
+                           "slice width '%d' not equal to expected width '%d'",
+                           delta,
+                           len);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
 
@@ -1505,11 +1511,11 @@ parse_ext (BtorBTORParser *parser, int len, Extend f)
 
   if (alen + elen != len)
   {
-    (void) parse_error (parser,
-                        "argument length of %d plus %d does not match %d",
-                        alen,
-                        elen,
-                        len);
+    (void) btor_perr_btor (parser,
+                           "argument length of %d plus %d does not match %d",
+                           alen,
+                           elen,
+                           len);
     goto RELEASE_ARG_AND_RETURN_ERROR;
   }
 
@@ -1536,7 +1542,7 @@ parse_uext (BtorBTORParser *parser, int len)
 static BtorExp *
 parse_not_implemented (BtorBTORParser * parser, int len)
 {
-  (void) parse_error (parser, "parser for '%s' not implemented", parser->op.start);
+  (void) btor_perr_btor (parser, "parser for '%s' not implemented", parser->op.start);
   return 0;
 }
 #endif
@@ -1743,7 +1749,7 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   assert (name);
   assert (file);
 
-  if (parser->verbosity > 0) print_verbose_msg ("parsing %s", name);
+  if (parser->verbosity > 0) btor_msg_btor ("parsing %s", name);
 
   parser->file   = file;
   parser->name   = name;
@@ -1753,7 +1759,7 @@ btor_parse_btor_parser (BtorBTORParser *parser,
 
 NEXT:
   assert (!parser->error);
-  ch = nextch (parser);
+  ch = btor_nextch_btor (parser);
   if (isspace (ch)) /* also skip empty lines */
     goto NEXT;
 
@@ -1783,9 +1789,9 @@ NEXT:
 
       if (parser->verbosity > 0)
       {
-        print_verbose_msg ("parsed %d inputs", res->ninputs);
-        print_verbose_msg ("parsed %d registers", res->nregs);
-        print_verbose_msg ("parsed %d outputs", res->noutputs);
+        btor_msg_btor ("parsed %d inputs", res->ninputs);
+        btor_msg_btor ("parsed %d registers", res->nregs);
+        btor_msg_btor ("parsed %d outputs", res->noutputs);
       }
     }
 
@@ -1795,15 +1801,15 @@ NEXT:
   if (ch == ';') /* skip comments */
   {
   COMMENTS:
-    while ((ch = nextch (parser)) != '\n')
+    while ((ch = btor_nextch_btor (parser)) != '\n')
       if (ch == EOF) goto DONE;
 
     goto NEXT;
   }
 
-  if (!isdigit (ch)) return parse_error (parser, "expected ';' or digit");
+  if (!isdigit (ch)) return btor_perr_btor (parser, "expected ';' or digit");
 
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   if (parse_positive_int (parser, &parser->idx)) return parser->error;
 
@@ -1816,24 +1822,24 @@ NEXT:
   }
 
   if (parser->exps.start[parser->idx])
-    return parse_error (parser, "'%d' defined twice", parser->idx);
+    return btor_perr_btor (parser, "'%d' defined twice", parser->idx);
 
   if (parse_space (parser)) return parser->error;
 
   assert (BTOR_EMPTY_STACK (parser->op));
-  while (!isspace (ch = nextch (parser)) && ch != EOF)
+  while (!isspace (ch = btor_nextch_btor (parser)) && ch != EOF)
     BTOR_PUSH_STACK (parser->mem, parser->op, ch);
 
   BTOR_PUSH_STACK (parser->mem, parser->op, 0);
   BTOR_RESET_STACK (parser->op);
-  savech (parser, ch);
+  btor_savech_btor (parser, ch);
 
   if (parse_space (parser)) return parser->error;
 
   if (parse_positive_int (parser, &len)) return parser->error;
 
   if (!(op_parser = find_parser (parser, parser->op.start)))
-    return parse_error (parser, "invalid operator '%s'", parser->op.start);
+    return btor_perr_btor (parser, "invalid operator '%s'", parser->op.start);
 
   if (!(e = op_parser (parser, len)))
   {
@@ -1845,20 +1851,20 @@ NEXT:
   parser->exps.start[parser->idx] = e;
 
 SKIP:
-  ch = nextch (parser);
+  ch = btor_nextch_btor (parser);
   if (ch == ' ' || ch == '\t') goto SKIP;
 
   if (ch == ';') goto COMMENTS; /* ... and force new line */
 
-  if (ch != '\n') return parse_error (parser, "expected new line");
+  if (ch != '\n') return btor_perr_btor (parser, "expected new line");
 
   goto NEXT;
 }
 
-static BtorParserAPI api = {
+static BtorParserAPI static_btor_btor_parser_api = {
     (BtorInitParser) btor_new_btor_parser,
     (BtorResetParser) btor_delete_btor_parser,
     (BtorParse) btor_parse_btor_parser,
 };
 
-const BtorParserAPI *btor_btor_parser_api = &api;
+const BtorParserAPI *btor_btor_parser_api = &static_btor_btor_parser_api;

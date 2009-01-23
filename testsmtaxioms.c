@@ -36,7 +36,8 @@ static char* axioms[] = {
 static void
 test_args_unsat (void)
 {
-  assert (btor_main (BTOR_COUNT_STACK (args), args.start) == BTOR_UNSAT_EXIT);
+  assert (boolector_main (BTOR_COUNT_STACK (args), args.start)
+          == BTOR_UNSAT_EXIT);
 }
 
 static void

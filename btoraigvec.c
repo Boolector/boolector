@@ -254,7 +254,10 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
 }
 
 static BtorAIGVec *
-sll_n_bits (BtorAIGVecMgr *avmgr, BtorAIGVec *av, int n, BtorAIG *shift)
+btor_sll_n_bits_aigvec (BtorAIGVecMgr *avmgr,
+                        BtorAIGVec *av,
+                        int n,
+                        BtorAIG *shift)
 {
   BtorAIGMgr *amgr;
   BtorAIGVec *result;
@@ -296,19 +299,22 @@ btor_sll_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (btor_is_power_of_2_util (av1->len));
   assert (btor_log_2_util (av1->len) == av2->len);
   len    = av2->len;
-  result = sll_n_bits (avmgr, av1, 1, av2->aigs[av2->len - 1]);
+  result = btor_sll_n_bits_aigvec (avmgr, av1, 1, av2->aigs[av2->len - 1]);
   for (i = len - 2; i >= 0; i--)
   {
-    temp = result;
-    result =
-        sll_n_bits (avmgr, temp, btor_pow_2_util (len - i - 1), av2->aigs[i]);
+    temp   = result;
+    result = btor_sll_n_bits_aigvec (
+        avmgr, temp, btor_pow_2_util (len - i - 1), av2->aigs[i]);
     btor_release_delete_aigvec (avmgr, temp);
   }
   return result;
 }
 
 static BtorAIGVec *
-srl_n_bits (BtorAIGVecMgr *avmgr, BtorAIGVec *av, int n, BtorAIG *shift)
+btor_srl_n_bits_aigvec (BtorAIGVecMgr *avmgr,
+                        BtorAIGVec *av,
+                        int n,
+                        BtorAIG *shift)
 {
   BtorAIGMgr *amgr;
   BtorAIGVec *result;
@@ -350,12 +356,12 @@ btor_srl_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (btor_is_power_of_2_util (av1->len));
   assert (btor_log_2_util (av1->len) == av2->len);
   len    = av2->len;
-  result = srl_n_bits (avmgr, av1, 1, av2->aigs[av2->len - 1]);
+  result = btor_srl_n_bits_aigvec (avmgr, av1, 1, av2->aigs[av2->len - 1]);
   for (i = len - 2; i >= 0; i--)
   {
-    temp = result;
-    result =
-        srl_n_bits (avmgr, temp, btor_pow_2_util (len - i - 1), av2->aigs[i]);
+    temp   = result;
+    result = btor_srl_n_bits_aigvec (
+        avmgr, temp, btor_pow_2_util (len - i - 1), av2->aigs[i]);
     btor_release_delete_aigvec (avmgr, temp);
   }
   return result;
@@ -591,7 +597,8 @@ udiv_urem_aigvec (BtorAIGVecMgr * avmgr,
 /* NOTE: seems to be fastest, needs 8786 AIG nodes */
 
 static void
-SC_GATE_CO (BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
+btor_SC_GATE_CO_aigvec (
+    BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
 {
   BtorAIG *D_or_CI, *D_and_CI, *M;
   D_or_CI  = btor_or_aig (amgr, D, CI);
@@ -604,12 +611,12 @@ SC_GATE_CO (BtorAIGMgr *amgr, BtorAIG **CO, BtorAIG *R, BtorAIG *D, BtorAIG *CI)
 }
 
 static void
-SC_GATE_S (BtorAIGMgr *amgr,
-           BtorAIG **S,
-           BtorAIG *R,
-           BtorAIG *D,
-           BtorAIG *CI,
-           BtorAIG *Q)
+btor_SC_GATE_S_aigvec (BtorAIGMgr *amgr,
+                       BtorAIG **S,
+                       BtorAIG *R,
+                       BtorAIG *D,
+                       BtorAIG *CI,
+                       BtorAIG *Q)
 {
 #if 1 /* xor at input of full adder (smaller) */
   BtorAIG *D_and_CI, *D_or_CI;
@@ -695,12 +702,13 @@ udiv_urem_aigvec (BtorAIGVecMgr *avmgr,
     C[j][0] = BTOR_AIG_TRUE;
 
     for (i = 0; i <= size - 1; i++)
-      SC_GATE_CO (amgr, &C[j][i + 1], S[j][i], nD[i], C[j][i]);
+      btor_SC_GATE_CO_aigvec (amgr, &C[j][i + 1], S[j][i], nD[i], C[j][i]);
 
     Q->aigs[j] = btor_or_aig (amgr, C[j][size], S[j][size]);
 
     for (i = 0; i <= size - 1; i++)
-      SC_GATE_S (amgr, &S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q->aigs[j]);
+      btor_SC_GATE_S_aigvec (
+          amgr, &S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q->aigs[j]);
 
 #if 0
       {

@@ -1,0 +1,22 @@
+#!/bin/sh
+rm -f merged.c
+for f in \
+  boolector.c \
+  btoraig.c \
+  btoraigvec.c \
+  btorbtor.c \
+  btorconst.c \
+  btorexp.c \
+  btorhash.c \
+  btormain.c \
+  btormem.c \
+  btorrand.c \
+  btorrewrite.c \
+  btorsat.c \
+  btorsmt.c \
+  btorutil.c \
+  ;
+do
+  echo "# line 1 \"$f\"" >> merged.c
+  cat $f >> merged.c
+done

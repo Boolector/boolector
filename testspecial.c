@@ -24,7 +24,7 @@ run_test (char *name, int expected)
   strcpy (full_name, "log/");
   strcat (full_name, name);
   char *argv[] = {"./boolector", "-q", full_name};
-  assert (btor_main (argc, argv) == expected);
+  assert (boolector_main (argc, argv) == expected);
   free (full_name);
 }
 

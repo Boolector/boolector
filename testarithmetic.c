@@ -77,7 +77,7 @@ u_arithmetic_test (int (*func) (int, int),
           fprintf (f, "%d eq 1 3 %d\n", const_id + 1, const_id);
           fprintf (f, "%d root 1 %d\n", const_id + 2, const_id + 1);
           fclose (f);
-          exit_code = btor_main (g_argc, g_argv);
+          exit_code = boolector_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT);
         }
       }
@@ -163,7 +163,7 @@ s_arithmetic_test (int (*func) (int, int),
               f, "%d eq 1 %d %d\n", const3_id + 1, const2_id + 1, const3_id);
           fprintf (f, "%d root 1 %d\n", const3_id + 2, const3_id + 1);
           fclose (f);
-          exit_code = btor_main (g_argc, g_argv);
+          exit_code = boolector_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT);
         }
       }

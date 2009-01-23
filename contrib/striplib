@@ -1,4 +1,8 @@
 #!/bin/sh
+lib=libboolector.a
+strip -w -N btor_\* $lib
+exit 0
+#alternative:
 symbols=/tmp/boolector.symbols
 rm -f $symbols
 grep boolector_ boolector.h | \
@@ -8,9 +12,8 @@ sed -e '/boolector_/!d' -e 's,.*\<boolector_,boolector_,' | \
 sort | uniq > $symbols
 num=`wc -l $symbols`
 echo "keeping $num symbols"
-strip="strip"
+strip="strip --strip-unneeded"
 for s in btor_main `cat $symbols`; do strip="$strip -K $s"; done
-lib=libboolector.a
 echo -n "size of $lib before stripping " 
 ls -l $lib|awk '{print $5}'
 $strip $lib

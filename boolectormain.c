@@ -3,5 +3,5 @@
 int
 main (int argc, char **argv)
 {
-  return btor_main (argc, argv);
+  return boolector_main (argc, argv);
 }

@@ -68,7 +68,7 @@ struct BtorSATMgr
 /*------------------------------------------------------------------------*/
 
 static void
-print_verbose_msg (const char *fmt, ...)
+btor_msg_sat (const char *fmt, ...)
 {
   va_list ap;
   assert (fmt != NULL);
@@ -148,7 +148,7 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   result = smgr->ss_inc_max_var ();
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
   if (smgr->verbosity > 2 && !(result % 100000))
-    print_verbose_msg ("reached CNF id %d\n", result);
+    btor_msg_sat ("reached CNF id %d\n", result);
   return result;
 }
 
@@ -182,9 +182,9 @@ btor_init_sat (BtorSATMgr *smgr)
   {
 #ifdef BTOR_USE_PICOPREP
     if (smgr->preproc_enabled)
-      print_verbose_msg ("PicoPrep Version %s\n", picoprep_version ());
+      btor_msg_sat ("PicoPrep Version %s\n", picoprep_version ());
 #endif
-    print_verbose_msg ("PicoSAT  Version %s\n", picosat_version ());
+    btor_msg_sat ("PicoSAT  Version %s\n", picosat_version ());
 
     fflush (stdout);
   }
@@ -270,8 +270,8 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
 
   if (smgr->verbosity > 2)
   {
-    print_verbose_msg ("calling SAT solver %s\n", smgr->ss_name);
-    print_verbose_msg ("original clauses: %d\n", smgr->ss_clauses ());
+    btor_msg_sat ("calling SAT solver %s\n", smgr->ss_name);
+    btor_msg_sat ("original clauses: %d\n", smgr->ss_clauses ());
   }
 
   return smgr->ss_sat (limit);
@@ -292,7 +292,7 @@ btor_reset_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  if (smgr->verbosity > 1) print_verbose_msg ("resetting %s\n", smgr->ss_name);
+  if (smgr->verbosity > 1) btor_msg_sat ("resetting %s\n", smgr->ss_name);
   smgr->ss_reset ();
   smgr->initialized = 0;
 }

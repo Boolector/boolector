@@ -122,8 +122,8 @@ btor_insert_in_ptr_hash_table (BtorPtrHashTable *p2iht, void *key)
   return res;
 }
 
-static unsigned primes[] = {111130391, 22237357, 33355519, 444476887};
-#define PRIMES ((sizeof primes) / sizeof *primes)
+static unsigned btor_hash_primes[] = {111130391, 22237357, 33355519, 444476887};
+#define BTOR_HASH_PRIMES ((sizeof btor_hash_primes) / sizeof *btor_hash_primes)
 
 unsigned
 btor_hashstr (const void *str)
@@ -137,8 +137,8 @@ btor_hashstr (const void *str)
 
   while ((ch = *p++))
   {
-    res += primes[i++] * (unsigned) ch;
-    if (i == PRIMES) i = 0;
+    res += btor_hash_primes[i++] * (unsigned) ch;
+    if (i == BTOR_HASH_PRIMES) i = 0;
   }
 
   return res;

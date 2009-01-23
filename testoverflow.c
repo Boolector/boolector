@@ -67,7 +67,7 @@ u_overflow_test (int (*func) (int, int),
         fprintf (f, "3 %s 1 1 2\n", func_name);
         fprintf (f, "4 root 1 3\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
         if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
         if (overflow_boolector) assert (overflow_test);
@@ -146,7 +146,7 @@ s_overflow_test (int (*func) (int, int),
                    const2_id);
           fprintf (f, "%d root 1 %d\n", const2_id + 2, const2_id + 1);
           fclose (f);
-          exit_code = btor_main (g_argc, g_argv);
+          exit_code = boolector_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT || exit_code == BTOR_UNSAT_EXIT);
           if (exit_code == BTOR_SAT_EXIT) overflow_boolector = 1;
           if (overflow_boolector) assert (overflow_test);

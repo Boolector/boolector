@@ -98,7 +98,7 @@ slice_test_misc (int low, int high)
         fprintf (f, "4 eq 1 2 3\n");
         fprintf (f, "5 root 1 4\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
         btor_freestr (g_mm, result);
       }
@@ -167,7 +167,7 @@ ext_test_misc (char *(*func) (int, int, int),
         fprintf (f, "4 eq 1 2 3\n");
         fprintf (f, "5 root 1 4\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
         btor_freestr (g_mm, result);
       }
@@ -224,7 +224,7 @@ concat_test_misc (int low, int high)
         fprintf (f, "5 eq 1 3 4\n");
         fprintf (f, "6 root 1 5\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
         btor_freestr (g_mm, result);
       }
@@ -265,7 +265,7 @@ cond_test_misc (int low, int high)
           fprintf (f, "6 eq 1 4 5\n");
           fprintf (f, "7 root 1 6\n");
           fclose (f);
-          exit_code = btor_main (g_argc, g_argv);
+          exit_code = boolector_main (g_argc, g_argv);
           assert (exit_code == BTOR_SAT_EXIT);
         }
       }
@@ -305,7 +305,7 @@ read_test_misc (int low, int high)
         fprintf (f, "10 and 1 8 9\n");
         fprintf (f, "11 root 1 10\n");
         fclose (f);
-        exit_code = btor_main (g_argc, g_argv);
+        exit_code = boolector_main (g_argc, g_argv);
         assert (exit_code == BTOR_SAT_EXIT);
       }
     }

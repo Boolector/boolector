@@ -333,7 +333,7 @@ btor_precond_cond_exp_dbg (const Btor *btor,
 #endif
 
 static void
-print_verbose_msg (char *fmt, ...)
+btor_msg_exp (char *fmt, ...)
 {
   va_list ap;
   fputs ("[btorexp] ", stdout);
@@ -5126,16 +5126,16 @@ report_constraint_stats (Btor *btor, int force)
     if (btor->verbosity == 3 && changes < 10) return;
   }
 
-  print_verbose_msg ("%d/%d/%d/%d constraints %d/%d/%d/%d %.1f MB",
-                     btor->stats.constraints.varsubst,
-                     btor->stats.constraints.embedded,
-                     btor->stats.constraints.unsynthesized,
-                     btor->stats.constraints.synthesized,
-                     btor->varsubst_constraints->count,
-                     btor->embedded_constraints->count,
-                     btor->unsynthesized_constraints->count,
-                     btor->synthesized_constraints->count,
-                     btor->mm->allocated / (double) (1 << 20));
+  btor_msg_exp ("%d/%d/%d/%d constraints %d/%d/%d/%d %.1f MB",
+                btor->stats.constraints.varsubst,
+                btor->stats.constraints.embedded,
+                btor->stats.constraints.unsynthesized,
+                btor->stats.constraints.synthesized,
+                btor->varsubst_constraints->count,
+                btor->embedded_constraints->count,
+                btor->unsynthesized_constraints->count,
+                btor->synthesized_constraints->count,
+                btor->mm->allocated / (double) (1 << 20));
 
   btor->stats.old.constraints.varsubst = btor->varsubst_constraints->count;
   btor->stats.old.constraints.embedded = btor->embedded_constraints->count;
@@ -5387,29 +5387,27 @@ btor_print_stats_btor (Btor *btor)
   verbosity = btor->verbosity;
 
   report_constraint_stats (btor, 1);
-  print_verbose_msg ("number of expressions: %lld", btor->stats.expressions);
-  print_verbose_msg ("variable substitutions: %d",
-                     btor->stats.var_substitutions);
-  print_verbose_msg ("array substitutions: %d",
-                     btor->stats.array_substitutions);
-  print_verbose_msg ("embedded constraint substitutions: %d",
-                     btor->stats.ec_substitutions);
+  btor_msg_exp ("number of expressions: %lld", btor->stats.expressions);
+  btor_msg_exp ("variable substitutions: %d", btor->stats.var_substitutions);
+  btor_msg_exp ("array substitutions: %d", btor->stats.array_substitutions);
+  btor_msg_exp ("embedded constraint substitutions: %d",
+                btor->stats.ec_substitutions);
 
-  print_verbose_msg ("array equalites: %s",
-                     btor->has_array_equalities ? "yes" : "no");
+  btor_msg_exp ("array equalites: %s",
+                btor->has_array_equalities ? "yes" : "no");
   if (btor->has_array_equalities)
-    print_verbose_msg ("virtual reads: %d", btor->stats.vreads);
+    btor_msg_exp ("virtual reads: %d", btor->stats.vreads);
 
-  print_verbose_msg ("assumptions: %u", btor->assumptions->count);
+  btor_msg_exp ("assumptions: %u", btor->assumptions->count);
 
   if (btor->ua.enabled)
   {
-    print_verbose_msg ("");
-    print_verbose_msg ("under-approximation (UA) statistics:");
-    print_verbose_msg (" UA refinements: %d", btor->stats.ua_refinements);
+    btor_msg_exp ("");
+    btor_msg_exp ("under-approximation (UA) statistics:");
+    btor_msg_exp (" UA refinements: %d", btor->stats.ua_refinements);
     if (ua_mode == BTOR_UA_GLOBAL_MODE)
-      print_verbose_msg (" global effective bit-width (final): %d",
-                         btor->ua.global_eff_width);
+      btor_msg_exp (" global effective bit-width (final): %d",
+                    btor->ua.global_eff_width);
 
     if (verbosity < 2) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
 
@@ -5441,93 +5439,92 @@ btor_print_stats_btor (Btor *btor)
                             &avg_width,
                             &avg_eff_width);
 
-    print_verbose_msg ("");
-    print_verbose_msg (" reachable vars (after rewriting): %d", num_vars);
+    btor_msg_exp ("");
+    btor_msg_exp (" reachable vars (after rewriting): %d", num_vars);
     if (num_vars > 0)
     {
-      print_verbose_msg ("  vars orig. width: %d %d %.1f",
-                         min_var_width,
-                         max_var_width,
-                         avg_var_width);
+      btor_msg_exp ("  vars orig. width: %d %d %.1f",
+                    min_var_width,
+                    max_var_width,
+                    avg_var_width);
       if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
-        print_verbose_msg ("  vars eff. width: %d %d %.1f",
-                           min_var_eff_width,
-                           max_var_eff_width,
-                           avg_var_eff_width);
-        print_verbose_msg ("  total number of refinements: %llu", sum_var_refs);
-        print_verbose_msg ("  avg refinements: %.1f", avg_var_refs);
+        btor_msg_exp ("  vars eff. width: %d %d %.1f",
+                      min_var_eff_width,
+                      max_var_eff_width,
+                      avg_var_eff_width);
+        btor_msg_exp ("  total number of refinements: %llu", sum_var_refs);
+        btor_msg_exp ("  avg refinements: %.1f", avg_var_refs);
       }
     }
 
-    print_verbose_msg ("");
-    print_verbose_msg (" reachable reads (after rewriting): %d", num_reads);
+    btor_msg_exp ("");
+    btor_msg_exp (" reachable reads (after rewriting): %d", num_reads);
     if (num_reads > 0)
     {
-      print_verbose_msg ("  reads orig. width: %d %d %.1f",
-                         min_read_width,
-                         max_read_width,
-                         avg_read_width);
+      btor_msg_exp ("  reads orig. width: %d %d %.1f",
+                    min_read_width,
+                    max_read_width,
+                    avg_read_width);
       if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
-        print_verbose_msg ("  reads eff. width: %d %d %.1f",
-                           min_read_eff_width,
-                           max_read_eff_width,
-                           avg_read_eff_width);
-        print_verbose_msg ("  total number of refinements: %llu",
-                           sum_read_refs);
-        print_verbose_msg ("  avg refinements: %.1f", avg_read_refs);
+        btor_msg_exp ("  reads eff. width: %d %d %.1f",
+                      min_read_eff_width,
+                      max_read_eff_width,
+                      avg_read_eff_width);
+        btor_msg_exp ("  total number of refinements: %llu", sum_read_refs);
+        btor_msg_exp ("  avg refinements: %.1f", avg_read_refs);
       }
     }
 
     if (num_vars != 0 && num_reads != 0)
     {
-      print_verbose_msg ("");
-      print_verbose_msg (" reachable vars + reads (after rewriting): %d",
-                         num_vars + num_reads);
-      print_verbose_msg ("  vars + reads orig. width: %d %d %.1f",
-                         min_width,
-                         max_width,
-                         avg_width);
+      btor_msg_exp ("");
+      btor_msg_exp (" reachable vars + reads (after rewriting): %d",
+                    num_vars + num_reads);
+      btor_msg_exp ("  vars + reads orig. width: %d %d %.1f",
+                    min_width,
+                    max_width,
+                    avg_width);
       if (ua_mode != BTOR_UA_GLOBAL_MODE)
       {
-        print_verbose_msg ("  vars + reads eff. width: %d %d %.1f",
-                           min_eff_width,
-                           max_eff_width,
-                           avg_eff_width);
-        print_verbose_msg ("  total number of refinements: %llu", sum_refs);
-        print_verbose_msg ("  avg refinements: %.1f", avg_refs);
+        btor_msg_exp ("  vars + reads eff. width: %d %d %.1f",
+                      min_eff_width,
+                      max_eff_width,
+                      avg_eff_width);
+        btor_msg_exp ("  total number of refinements: %llu", sum_refs);
+        btor_msg_exp ("  avg refinements: %.1f", avg_refs);
       }
     }
   }
 
 BTOR_CONTINUE_BASIC_STATS_OUTPUT:
-  print_verbose_msg ("");
-  print_verbose_msg ("lemmas on demand statistics:");
-  print_verbose_msg (" LOD refinements: %d", btor->stats.lod_refinements);
+  btor_msg_exp ("");
+  btor_msg_exp ("lemmas on demand statistics:");
+  btor_msg_exp (" LOD refinements: %d", btor->stats.lod_refinements);
   if (btor->stats.lod_refinements)
   {
-    print_verbose_msg (" array axiom 1 conflicts: %d",
-                       btor->stats.array_axiom_1_conflicts);
-    print_verbose_msg (" array axiom 2 conflicts: %d",
-                       btor->stats.array_axiom_2_conflicts);
-    print_verbose_msg (" average lemma size: %.1f",
-                       BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
-                                          btor->stats.lod_refinements));
-    print_verbose_msg (" average linking clause size: %.1f",
-                       BTOR_AVERAGE_UTIL (btor->stats.lclause_size_sum,
-                                          btor->stats.lod_refinements));
+    btor_msg_exp (" array axiom 1 conflicts: %d",
+                  btor->stats.array_axiom_1_conflicts);
+    btor_msg_exp (" array axiom 2 conflicts: %d",
+                  btor->stats.array_axiom_2_conflicts);
+    btor_msg_exp (" average lemma size: %.1f",
+                  BTOR_AVERAGE_UTIL (btor->stats.lemmas_size_sum,
+                                     btor->stats.lod_refinements));
+    btor_msg_exp (" average linking clause size: %.1f",
+                  BTOR_AVERAGE_UTIL (btor->stats.lclause_size_sum,
+                                     btor->stats.lod_refinements));
   }
-  print_verbose_msg ("");
+  btor_msg_exp ("");
 
-  print_verbose_msg ("linear constraint equations: %d",
-                     btor->stats.linear_equations);
-  print_verbose_msg ("add normalizations: %d", btor->stats.adds_normalized);
-  print_verbose_msg ("mul normalizations: %d", btor->stats.muls_normalized);
-  print_verbose_msg ("read over write propagations during construction: %d",
-                     btor->stats.read_props_construct);
-  print_verbose_msg ("synthesis assignment inconsistencies: %d",
-                     btor->stats.synthesis_assignment_inconsistencies);
+  btor_msg_exp ("linear constraint equations: %d",
+                btor->stats.linear_equations);
+  btor_msg_exp ("add normalizations: %d", btor->stats.adds_normalized);
+  btor_msg_exp ("mul normalizations: %d", btor->stats.muls_normalized);
+  btor_msg_exp ("read over write propagations during construction: %d",
+                btor->stats.read_props_construct);
+  btor_msg_exp ("synthesis assignment inconsistencies: %d",
+                btor->stats.synthesis_assignment_inconsistencies);
 }
 
 BtorMemMgr *
@@ -5944,7 +5941,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   mark_synth_mark_exp (btor, exp, 0);
 
   if (count > 0 && btor->verbosity > 2)
-    print_verbose_msg ("synthesized %u expressions into AIG vectors", count);
+    btor_msg_exp ("synthesized %u expressions into AIG vectors", count);
 }
 
 static BtorAIG *
@@ -8551,15 +8548,15 @@ update_local_under_approx_eff_width (Btor *btor, BtorExp *exp, BtorUAData *data)
   if (btor->verbosity >= 3)
   {
     if (BTOR_IS_VAR_EXP (exp))
-      print_verbose_msg ("UA: setting effective bit-width of %s to %d%s",
-                         exp->symbol,
-                         data->eff_width,
-                         max_string);
+      btor_msg_exp ("UA: setting effective bit-width of %s to %d%s",
+                    exp->symbol,
+                    data->eff_width,
+                    max_string);
     else
-      print_verbose_msg ("UA: setting effective bit-width of read %d to %d%s",
-                         exp->id,
-                         data->eff_width,
-                         max_string);
+      btor_msg_exp ("UA: setting effective bit-width of read %d to %d%s",
+                    exp->id,
+                    data->eff_width,
+                    max_string);
   }
 }
 
@@ -8605,9 +8602,9 @@ update_under_approx_eff_width (Btor *btor)
       }
 
       if (verbosity > 0)
-        print_verbose_msg ("UA: setting global effective bit-width to %d%s",
-                           btor->ua.global_eff_width,
-                           max_string);
+        btor_msg_exp ("UA: setting global effective bit-width to %d%s",
+                      btor->ua.global_eff_width,
+                      max_string);
       update = 1;
     }
   }
@@ -9224,7 +9221,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
-  if (verbosity > 0) print_verbose_msg ("calling SAT");
+  if (verbosity > 0) btor_msg_exp ("calling SAT");
 
   if (btor->rewrite_level > 1)
     substitute_vars_and_process_embedded_constraints (btor);
@@ -9300,10 +9297,10 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       {
         if (verbosity >= 2)
         {
-          print_verbose_msg (
+          btor_msg_exp (
               "early termination of under-approximation refinement in UNSAT "
               "case");
-          print_verbose_msg (
+          btor_msg_exp (
               "current under-approximation has not been used to conclude "
               "UNSAT");
         }

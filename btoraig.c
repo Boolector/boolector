@@ -74,7 +74,7 @@ struct BtorAIGMgr
 /*------------------------------------------------------------------------*/
 
 static void
-print_verbose_msg (char *msg)
+btor_msg_aigvec (char *msg)
 {
   assert (msg != NULL);
   fprintf (stdout, "[btoraig] %s", msg);
@@ -1039,7 +1039,7 @@ aig_to_sat_plaisted_greenbaum (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
   if (amgr->verbosity > 2)
-    print_verbose_msg (
+    btor_msg_aigvec (
         "transforming AIG into CNF using Plaisted-Greenbaum transformation\n");
   smgr = amgr->smgr;
   generate_cnf_ids (amgr, aig);
@@ -1184,7 +1184,7 @@ aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   assert (amgr != NULL);
   assert (!BTOR_IS_CONST_AIG (aig));
   if (amgr->verbosity > 2)
-    print_verbose_msg (
+    btor_msg_aigvec (
         "transforming AIG into CNF using Tseitin transformation\n");
   btor_aig_to_sat_both_phases (amgr, aig);
 }

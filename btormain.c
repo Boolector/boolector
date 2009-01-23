@@ -217,7 +217,7 @@ time_stamp (void)
 #endif
 
 static void
-print_verbose_msg (char *msg)
+btor_msg_main (char *msg)
 {
   assert (msg != NULL);
   fprintf (stdout, "[btrmain] %s", msg);
@@ -225,7 +225,7 @@ print_verbose_msg (char *msg)
 }
 
 static void
-print_verbose_msg_va_args (char *msg, ...)
+btor_msg_main_va_args (char *msg, ...)
 {
   va_list list;
   assert (msg != NULL);
@@ -916,7 +916,7 @@ stdin_starts_with_open_parenthesis (void)
 };
 
 int
-btor_main (int argc, char **argv)
+boolector_main (int argc, char **argv)
 {
   BtorMainApp app;
 #ifdef BTOR_HAVE_GETRUSAGE
@@ -991,13 +991,13 @@ btor_main (int argc, char **argv)
 
   if (app.verbosity > 0)
   {
-    print_verbose_msg_va_args ("Boolector Version %s\n", BTOR_VERSION);
-    print_verbose_msg_va_args ("%s %s\n", BTOR_CC, BTOR_CFLAGS);
-    if (*BTOR_CCVERSION) print_verbose_msg_va_args ("%s\n", BTOR_CCVERSION);
+    btor_msg_main_va_args ("Boolector Version %s\n", BTOR_VERSION);
+    btor_msg_main_va_args ("%s %s\n", BTOR_CC, BTOR_CFLAGS);
+    if (*BTOR_CCVERSION) btor_msg_main_va_args ("%s\n", BTOR_CCVERSION);
 
     /* Not really necessary?
      *
-     * print_verbose_msg_va_args ("%s\n", BTOR_OS);
+     * btor_msg_main_va_args ("%s\n", BTOR_OS);
      */
   }
 
@@ -1089,31 +1089,31 @@ btor_main (int argc, char **argv)
 
       if (app.verbosity > 0)
       {
-        print_verbose_msg_va_args ("parsed %d inputs and %d outputs\n",
-                                   parse_res.ninputs,
-                                   parse_res.noutputs);
+        btor_msg_main_va_args ("parsed %d inputs and %d outputs\n",
+                               parse_res.ninputs,
+                               parse_res.noutputs);
         if (parse_res.logic == BTOR_LOGIC_QF_BV)
-          print_verbose_msg ("logic QF_BV\n");
+          btor_msg_main ("logic QF_BV\n");
         else
         {
           assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
-          print_verbose_msg ("logic QF_AUFBV\n");
+          btor_msg_main ("logic QF_AUFBV\n");
         }
 
         if (parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
-          print_verbose_msg ("status sat\n");
+          btor_msg_main ("status sat\n");
         else if (parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
-          print_verbose_msg ("status unsat\n");
+          btor_msg_main ("status unsat\n");
         else
         {
           assert (parse_res.status == BTOR_PARSE_SAT_STATUS_UNKNOWN);
-          print_verbose_msg ("status unknown\n");
+          btor_msg_main ("status unknown\n");
         }
       }
 
       if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
 
-      if (app.verbosity >= 1) print_verbose_msg ("generating SAT instance\n");
+      if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 
       btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
 
@@ -1155,22 +1155,22 @@ btor_main (int argc, char **argv)
         app.app_mode = BTOR_APP_BMC_MODE;
         if (app.verbosity > 0)
         {
-          print_verbose_msg ("Solving BMC problem\n");
+          btor_msg_main ("Solving BMC problem\n");
           if (app.bmcadc)
-            print_verbose_msg ("Using all different constraints: yes\n");
+            btor_msg_main ("Using all different constraints: yes\n");
           else
-            print_verbose_msg ("Using all different constraints: no\n");
+            btor_msg_main ("Using all different constraints: no\n");
           if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
-            print_verbose_msg ("Checking base case only\n");
+            btor_msg_main ("Checking base case only\n");
           else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
-            print_verbose_msg ("Checking inductive case only\n");
+            btor_msg_main ("Checking inductive case only\n");
           else
           {
             assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
-            print_verbose_msg ("Checking base case and inductive case\n");
+            btor_msg_main ("Checking base case and inductive case\n");
           }
           if (app.bmcmaxk >= 0)
-            print_verbose_msg_va_args ("Max bound: %d\n", app.bmcmaxk);
+            btor_msg_main_va_args ("Max bound: %d\n", app.bmcmaxk);
         }
 
         BTOR_INIT_STACK (bv_regs);
@@ -1214,7 +1214,7 @@ btor_main (int argc, char **argv)
         for (bmck = 0; (app.bmcmaxk == -1 || bmck <= app.bmcmaxk) && !bmc_done;
              bmck++)
         {
-          if (app.verbosity > 0) print_verbose_msg_va_args ("k = %d:\n", bmck);
+          if (app.verbosity > 0) btor_msg_main_va_args ("k = %d:\n", bmck);
           input_inst =
               btor_new_ptr_hash_table (mem,
                                        (BtorHashPtr) btor_hash_exp_by_id,
@@ -1360,7 +1360,7 @@ btor_main (int argc, char **argv)
 
           if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
           {
-            if (app.verbosity > 0) print_verbose_msg ("Base case:\n");
+            if (app.verbosity > 0) btor_msg_main ("Base case:\n");
             if (bmck == 0) btor_add_constraint_exp (btor, regs_zero);
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor, app.refinement_limit);
@@ -1383,7 +1383,7 @@ btor_main (int argc, char **argv)
           }
           else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
           {
-            if (app.verbosity > 0) print_verbose_msg ("Inductive case:\n");
+            if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor, app.refinement_limit);
             if (app.verbosity > 0 || sat_result == BTOR_UNSAT
@@ -1406,7 +1406,7 @@ btor_main (int argc, char **argv)
           else
           {
             assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
-            if (app.verbosity > 0) print_verbose_msg ("Inductive case:\n");
+            if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor, app.refinement_limit);
             if (app.verbosity > 0 || sat_result == BTOR_UNSAT
@@ -1417,7 +1417,7 @@ btor_main (int argc, char **argv)
             else
             {
               assert (sat_result == BTOR_SAT);
-              if (app.verbosity > 0) print_verbose_msg ("Base case:\n");
+              if (app.verbosity > 0) btor_msg_main ("Base case:\n");
               btor_add_assumption_exp (btor, regs_zero);
               btor_add_assumption_exp (btor, bad);
               sat_result = btor_sat_btor (btor, app.refinement_limit);
@@ -1520,7 +1520,7 @@ btor_main (int argc, char **argv)
             constraints_reported = constraints_report_limit;
             constraints_report_limit += (19 + nconstraints) / 20;
             assert (nconstraints);
-            print_verbose_msg_va_args (
+            btor_msg_main_va_args (
                 "added %d outputs (%.0f%%)\n",
                 constraints_reported,
                 100.0 * constraints_reported / (double) nconstraints);
@@ -1529,7 +1529,7 @@ btor_main (int argc, char **argv)
         BTOR_RELEASE_STACK (mem, constraints);
 
         if (app.verbosity > 1 && constraints_reported < nconstraints)
-          print_verbose_msg_va_args ("added %d outputs (100%)\n", nconstraints);
+          btor_msg_main_va_args ("added %d outputs (100%)\n", nconstraints);
 
         sat_result = btor_sat_btor (btor, app.refinement_limit);
         print_sat_result (&app, sat_result);
@@ -1595,8 +1595,8 @@ btor_main (int argc, char **argv)
   if (!app.err && !app.done && app.verbosity > 0)
   {
     delta_time = time_stamp () - start_time;
-    print_verbose_msg_va_args ("%.1f seconds\n", delta_time);
-    print_verbose_msg_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
+    btor_msg_main_va_args ("%.1f seconds\n", delta_time);
+    btor_msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
   }
 #endif
   return return_val;

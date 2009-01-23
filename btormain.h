@@ -5,6 +5,6 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
-int btor_main (int argc, char **argv);
+int boolector_main (int argc, char **argv);
 
 #endif
