@@ -13,6 +13,8 @@ CFLAGS=@CFLAGS@
 LIBS=@LIBS@
 SRC=$(shell ls *.c *.h|grep -v merged)
 
+# Standard goal for internal builds: all.
+#
 all: libboolector.a boolector test synthebtor deltabtor basicbtor
 
 -include dependencies
@@ -21,11 +23,14 @@ dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 boolector: boolectormain.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)@STRIP@
-merged.c: btorconfig.h $(SRC) makefile contrib/merge
-	rm -f merged.c; ./contrib/merge > merged.c
-merged.o: merged.c
-	$(CC) $(CFLAGS) -c merged.c
-	strip --strip-unneeded $@
+
+# Merge all files into one compilation unit.
+#
+# NOTE you can NOT link the tests to this merged 'libboolector.a',
+# which is actually not a bug, but a feature.
+#
+# TODO same for picosat objects.
+#
 merge: boolectormain.o merged.o
 	rm -f libboolector.a
 	ar rc libboolector.a merged.o $(PICOSATOBJ)
@@ -33,10 +38,19 @@ merge: boolectormain.o merged.o
 	$(CC) $(CFLAGS) -o boolector boolectormain.o -L. -lboolector $(LIBS)
 	strip boolector
 	@make -s size symbols
+merged.c: btorconfig.h $(SRC) makefile contrib/merge
+	rm -f merged.c; ./contrib/merge > merged.c
+merged.o: merged.c
+	$(CC) $(CFLAGS) -c merged.c
+	strip --strip-unneeded $@
+
+# After merging switch back to seperate compilation units.
+#
 seperate:
 	rm -f libboolector.a merged.c
 	make all
 	@make -s size symbols
+
 size:
 	@ls -l libboolector.a boolector|awk '{print $$NF,$$5,"bytes"}'
 symbols:
@@ -46,6 +60,7 @@ symbols:
 test: $(TESTOBJ) libboolector.a 
 	@if [ -f merged.c ]; then \
 	echo "*** can not link 'test...' to merged 'libboolector.a'"; \
+	echo "*** (to switch to seperate compilation use 'make seperate')"; \
 	exit 1; fi
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)@STRIP@
 
