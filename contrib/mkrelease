@@ -1,0 +1,20 @@
+#!/bin/sh
+cd ~/boolector
+make clean
+./configure -r
+make
+rm -r -f doc
+doxygen
+version=`cat VERSION`
+target=/tmp/boolector-$version
+rm -r -f $target
+mkdir $target
+mkdir ${target}/bin
+mkdir ${target}/lib
+mkdir ${target}/include
+cp README $target
+cp LICENSE $target
+cp boolector ${target}/bin
+cp libboolector.a ${target}/lib
+cp boolector.h ${target}/include
+cp -r doc $target

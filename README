@@ -1,0 +1,22 @@
+/******************************************************************************
+ *                          BOOLECTOR                                         *
+ ******************************************************************************
+
+  This is a release of Boolector which is an efficient SMT solver for
+  the quantifier-free theory of bit-vectors in combination with
+  the quantifier-free extensional theory of arrays.
+  Boolector can either be used as stand-alone SMT solver or as 
+  library in a backend.
+
+  You can find the statically linked 32-bit x86 Linux binary
+  of the stand-alone solver in the subdirectory 'bin'. 
+ 
+  The header file of Boolector's public interface is located in the
+  directory 'include'. For a documentation of Boolector and its public 
+  interface see 'doc/index.html'. You can find the compiled library in the 
+  directory 'lib'. Finally, you can find examples in the sudirectory 
+  'examples'.
+
+  Please visit our website: http://fmv.jku.at/boolector.
+
+  See the file 'LICENSE'.
