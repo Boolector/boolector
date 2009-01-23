@@ -10,6 +10,6 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
-extern const BtorParserAPI* btor_smt_parser_api;
+const BtorParserAPI* btor_smt_parser_api ();
 
 #endif

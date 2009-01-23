@@ -1,5 +1,32 @@
 #!/bin/sh
 rm -f merged.c
+  for h in \
+  btorutil.h \
+  btorexit.h \
+  btorlogic.h \
+  btormem.h \
+  btorstack.h \
+  btorqueue.h \
+  btorhash.h \
+  btorconst.h \
+  btorsat.h \
+  btoraig.h \
+  btoraigvec.h \
+  btorexp.h \
+  btorrewrite.h \
+  btorparse.h \
+  btorbtor.h \
+  btorsmt.h \
+  boolector.h \
+  btorconfig.h \
+  btormain.h \
+  ;
+do
+  #echo "# line 1 \"$h\"" >> merged.c
+  sed -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
+      -e 's,^#include ",// #include ",' >> merged.c
+done
+
 for f in \
   boolector.c \
   btoraig.c \
@@ -10,13 +37,14 @@ for f in \
   btorhash.c \
   btormain.c \
   btormem.c \
-  btorrand.c \
   btorrewrite.c \
   btorsat.c \
   btorsmt.c \
   btorutil.c \
   ;
 do
-  echo "# line 1 \"$f\"" >> merged.c
-  cat $f >> merged.c
+  #echo "# line 1 \"$f\"" >> merged.c
+  sed -e 's,^btor_,static btor_,g' $f \
+      -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
+      -e 's,^#include ",// #include ",' >> merged.c
 done

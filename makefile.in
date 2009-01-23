@@ -20,7 +20,7 @@ dependencies: btorconfig.h *.c *.h makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 boolector: boolectormain.o libboolector.a
 	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)@STRIP@
-merged.c: btorconfig.h *.c *.h makefile contrib/merge
+merged.c: btorconfig.h $(ls *.c|grep -v merged.c) *.h makefile contrib/merge
 	./contrib/merge
 merged.o: merged.c
 	$(CC) $(CFLAGS) -c merged.c

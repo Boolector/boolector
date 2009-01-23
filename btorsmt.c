@@ -2572,4 +2572,8 @@ static BtorParserAPI static_btor_smt_parser_api = {
     (BtorParse) btor_parse_smt_parser,
 };
 
-const BtorParserAPI *btor_smt_parser_api = &static_btor_smt_parser_api;
+const BtorParserAPI *
+btor_smt_parser_api ()
+{
+  return &static_btor_smt_parser_api;
+}

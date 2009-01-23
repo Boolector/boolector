@@ -1025,16 +1025,16 @@ boolector_main (int argc, char **argv)
     amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
     smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-    parser_api = btor_btor_parser_api;
+    parser_api = btor_btor_parser_api ();
     if (app.force_smt_input)
-      parser_api = btor_smt_parser_api;
+      parser_api = btor_smt_parser_api ();
     else if (app.close_input_file)
     {
       if (has_suffix (app.input_file_name, ".smt"))
-        parser_api = btor_smt_parser_api;
+        parser_api = btor_smt_parser_api ();
     }
     else if (stdin_starts_with_open_parenthesis ())
-      parser_api = btor_smt_parser_api;
+      parser_api = btor_smt_parser_api ();
 
     parser = parser_api->init (btor, app.verbosity);
 

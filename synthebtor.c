@@ -96,10 +96,10 @@ main (int argc, char **argv)
   btor = btor_new_btor ();
   btor_set_verbosity_btor (btor, verbosity);
   btor_set_rewrite_level_btor (btor, 1);
-  parser = btor_btor_parser_api->init (btor, verbosity);
+  parser = btor_btor_parser_api ()->init (btor, verbosity);
 
   parse_error =
-      btor_btor_parser_api->parse (parser, input_file, input_name, &model);
+      btor_btor_parser_api ()->parse (parser, input_file, input_name, &model);
   if (parse_error) die (0, parse_error);
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);
@@ -192,7 +192,7 @@ main (int argc, char **argv)
 
   btor_delete_ptr_hash_table (back_annotation);
 
-  btor_btor_parser_api->reset (parser);
+  btor_btor_parser_api ()->reset (parser);
   btor_delete_btor (btor);
 
   if (close_input) fclose (input_file);

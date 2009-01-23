@@ -1867,4 +1867,8 @@ static BtorParserAPI static_btor_btor_parser_api = {
     (BtorParse) btor_parse_btor_parser,
 };
 
-const BtorParserAPI *btor_btor_parser_api = &static_btor_btor_parser_api;
+const BtorParserAPI *
+btor_btor_parser_api ()
+{
+  return &static_btor_btor_parser_api;
+}
