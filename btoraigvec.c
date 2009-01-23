@@ -242,7 +242,7 @@ btor_add_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av1, BtorAIGVec *av2)
   assert (av1->len > 0);
   amgr   = avmgr->amgr;
   result = new_aigvec (avmgr, av1->len);
-  cin    = BTOR_AIG_FALSE;
+  cout = cin = BTOR_AIG_FALSE; /* for 'cout' to avoid warning */
   for (i = av1->len - 1; i >= 0; i--)
   {
     result->aigs[i] = full_adder (amgr, av1->aigs[i], av2->aigs[i], cin, &cout);

@@ -236,10 +236,11 @@ print_verbose_msg_va_args (char *msg, ...)
 }
 
 static void
-print_msg (BtorMainApp *app, char *msg)
+print_msg (BtorMainApp *app, const char *msg)
 {
   assert (msg != NULL);
-  if (app->verbosity >= 0) fprintf (app->output_file, msg);
+  if (app->verbosity >= 0)
+    fputs (msg, app->output_file); /* no 'fprintf' to avoid warning */
 }
 
 static void
@@ -262,7 +263,7 @@ print_err (BtorMainApp *app, char *msg)
   if (app->verbosity >= 0)
   {
     fputs ("boolector: ", app->output_file);
-    fprintf (app->output_file, msg);
+    fputs (msg, app->output_file); /* no 'fprintf' to avoid warning */
   }
 }
 

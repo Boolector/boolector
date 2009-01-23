@@ -4595,8 +4595,9 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
 void
 btor_vis_exp (Btor *btor, BtorExp *exp)
 {
+  int save_res_to_avoid_warning;
   char cmd[100], *path;
-  static int idx = 0;
+  static int idx = 0; /* TODO: make this non static */
   FILE *file;
   sprintf (cmd, "btorvis ");
   path = cmd + strlen (cmd);
@@ -4605,7 +4606,7 @@ btor_vis_exp (Btor *btor, BtorExp *exp)
   btor_dump_exp (btor, file, exp);
   fclose (file);
   strcat (cmd, "&");
-  system (cmd);
+  save_res_to_avoid_warning = system (cmd);
 }
 
 static void

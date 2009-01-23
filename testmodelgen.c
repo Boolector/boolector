@@ -44,7 +44,7 @@ modelgen_test (const char *fname, int rwl)
            btor_fname,
            log_fname);
 
-  system (syscall_string);
+  ret_val = system (syscall_string); /* save to avoid warning */
   free (syscall_string);
 
   syscall_string = (char *) malloc (sizeof (char)
