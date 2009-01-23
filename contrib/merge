@@ -1,6 +1,5 @@
 #!/bin/sh
-rm -f merged.c
-  for h in \
+for h in \
   btorutil.h \
   btorexit.h \
   btorlogic.h \
@@ -22,9 +21,11 @@ rm -f merged.c
   btormain.h \
   ;
 do
-  #echo "# line 1 \"$h\"" >> merged.c
-  sed -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
-      -e 's,^#include ",// #include ",' >> merged.c
+  #echo "# line 1 \"$h\""
+  sed \
+  -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
+  -e 's,^#include ",// #include ",' \
+  $h
 done
 
 for f in \
@@ -43,8 +44,15 @@ for f in \
   btorutil.c \
   ;
 do
-  #echo "# line 1 \"$f\"" >> merged.c
-  sed -e 's,^btor_,static btor_,g' $f \
-      -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
-      -e 's,^#include ",// #include ",' >> merged.c
+  #echo "# line 1 \"$f\""
+  sed \
+  -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
+  -e 's,static static,static,g' \
+  -e 's,^#include "b,// #include "b,' \
+  $f \
+  | awk ' 
+  /^btor_[a-zA-Z0-9_]* *\(/{if(!static)printf ("static ")}
+  {print prev;prev=$0;static=($1 == "static")}
+  END{print prev}
+  '
 done
