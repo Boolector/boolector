@@ -18,4 +18,4 @@ btorconfig.h
 *.btor
 *.smt
 run.sh
-doc/
+doc
