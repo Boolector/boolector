@@ -1,5 +1,14 @@
 #ifndef BOOLECTOR_H_INCLUDED
 #define BOOLECTOR_H_INCLUDED
+/*
+Boolector is copyrighted 2007 - 2009 by Robert Brummayer, Armin
+Biere, Institute for Formal Models and Verification, Johannes
+Kepler University, Linz, Austria. All rights reserved.
+Boolector is available for research and evaluation purposes in
+an academic environment only. It can not be used in a commercial
+environment, particularly as part of a commercial product, without
+written permission. Boolector is provided as is, without any warranty.
+*/
 
 #include "btorexp.h"
 
@@ -10,7 +19,7 @@
 /*------------------------------------------------------------------------*/
 
 /**
- * \mainpage Boolector 0.8 Documentation
+ * \mainpage Boolector Documentation
  * \section Introduction
  * This is the documentation of Boolector's public interface. Boolector
  * is an SMT solver for the quantifier-free theory of bit-vectors
@@ -79,17 +88,17 @@
  * Preprocessor constant representing status 'satisfiable'.
  * \see boolector_sat
  */
-#define BTOR_SAT 10
+#define BOOLECTOR_SAT 10
 /**
  * Preprocessor constant representing status 'unsatisfiable'.
  * \see boolector_sat
  */
-#define BTOR_UNSAT 20
+#define BOOLECTOR_UNSAT 20
 /**
  * Preprocessor constant representing status 'unknown'.
  * \see boolector_sat
  */
-#define BTOR_UNKNOWN 0
+#define BOOLECTOR_UNKNOWN 0
 
 /*------------------------------------------------------------------------*/
 /* Boolector                                                              */
@@ -863,6 +872,7 @@ void boolector_assert (Btor *btor, BtorExp *exp);
  * In contrast to \ref boolector_assert the assumptions are
  * discarded after each call to \ref boolector_sat. Assumptions
  * and assertions are logically combined by boolean and.
+ * This is the same way of using assumptions as in MiniSAT.
  * \param btor Boolector instance.
  * \param exp Bit-vector expression with bit-width one.
  */
@@ -875,9 +885,10 @@ void boolector_assume (Btor *btor, BtorExp *exp);
  * \param btor Boolector instance.
  * \param refinement_limit Sets the maximum number of iterative refinements
  * which must be greater than or equal to zero. Use INT_MAX as default.
- * \return It returns \ref BTOR_SAT if the instance is satisfiable and
- * \ref BTOR_UNSAT if the instance is unsatisfiable. If Boolector cannot decide
- * the instance within the refinement limit, it returns \ref BTOR_UNKNOWN.
+ * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
+ * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
+ * If Boolector cannot decide * the instance within the refinement limit,
+ * it returns \ref BOOLECTOR_UNKNOWN.
  * \see boolector_bv_assignment
  * \see boolector_array_assignment
  **/
@@ -885,7 +896,7 @@ int boolector_sat (Btor *btor, int refinement_limit);
 
 /**
  * Builds assignment string for bit-vector expression if \ref boolector_sat
- * has returned \ref BTOR_SAT and model generation has been enabled.
+ * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
  * The expression can be an arbitrary
  * bit-vector expression which occurs in an assertion or current assumption.
  * The assignment string has to be freed by \ref boolector_free_bv_assignment.
@@ -902,7 +913,7 @@ char *boolector_bv_assignment (Btor *btor, BtorExp *exp);
 /**
  * Builds a model for an array expression.
  * if \ref boolector_sat
- * has returned \ref BTOR_SAT and model generation has been enabled.
+ * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
  * The function creates and stores
  * the array of indices into 'indices' and the array of
  * corresponding values into 'values'. The
