@@ -25,8 +25,23 @@ merged.c: btorconfig.h $(SRC) makefile contrib/merge
 	rm -f merged.c; ./contrib/merge > merged.c
 merged.o: merged.c
 	$(CC) $(CFLAGS) -c merged.c
-merged: boolectormain.o merged.o
-	$(CC) $(CFLAGS) -o $@ boolectormain.o merged.o $(PICOSATOBJ) $(LIBS)@STRIP@
+	strip --strip-unneeded $@
+merge: boolectormain.o merged.o
+	rm -f libboolector.a
+	ar rc libboolector.a merged.o $(PICOSATOBJ)
+	strip --strip-unneeded libboolector.a
+	$(CC) $(CFLAGS) -o boolector boolectormain.o -L. -lboolector $(LIBS)@STRIP@
+	@make -s size symbols
+seperate:
+	rm -f libboolector.a
+	make all
+	@make -s size symbols
+size:
+	@ls -l libboolector.a boolector|awk '{print $$NF,$$5,"bytes"}'
+symbols:
+	@symbols=`nm libboolector.a|wc -l`; \
+	echo "libboolector.a $$symbols symbols"
+
 test: $(TESTOBJ) libboolector.a 
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)@STRIP@
 
@@ -40,6 +55,7 @@ basicbtor: basicbtor.c makefile
 	$(CC) $(CFLAGS) -o $@ basicbtor.c@STRIP@
 
 libboolector.a: $(LIBOBJ)
+	rm -f $@
 	ar rc $@ $(LIBOBJ)
 	ranlib $@
 
@@ -57,4 +73,4 @@ clean:
 	rm -f btorconfig.h
 	rm -f merged.c
 
-.PHONY: all clean
+.PHONY: all clean merge seperate size symbols

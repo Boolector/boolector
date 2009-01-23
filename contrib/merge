@@ -29,19 +29,19 @@ do
 done
 
 for f in \
-  boolector.c \
+  btormem.c \
+  btorutil.c \
+  btorhash.c \
   btoraig.c \
   btoraigvec.c \
-  btorbtor.c \
   btorconst.c \
   btorexp.c \
-  btorhash.c \
-  btormain.c \
-  btormem.c \
   btorrewrite.c \
   btorsat.c \
   btorsmt.c \
-  btorutil.c \
+  btorbtor.c \
+  boolector.c \
+  btormain.c \
   ;
 do
   #echo "# line 1 \"$f\""
