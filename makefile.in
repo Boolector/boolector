@@ -34,7 +34,7 @@ merge: boolectormain.o merged.o
 	strip boolector
 	@make -s size symbols
 seperate:
-	rm -f libboolector.a
+	rm -f libboolector.a merged.c
 	make all
 	@make -s size symbols
 size:
@@ -44,6 +44,9 @@ symbols:
 	echo "libboolector.a $$symbols symbols"
 
 test: $(TESTOBJ) libboolector.a 
+	@if [ -f merged.c ]; then \
+	echo "*** can not link 'test...' to merged 'libboolector.a'"; \
+	exit 1; fi
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)@STRIP@
 
 synthebtor: synthebtor.o libboolector.a
@@ -56,7 +59,7 @@ basicbtor: basicbtor.c makefile
 	$(CC) $(CFLAGS) -o $@ basicbtor.c@STRIP@
 
 libboolector.a: $(LIBOBJ)
-	rm -f $@
+	rm -f $@ merged.c
 	ar rc $@ $(LIBOBJ)
 	ranlib $@
 
