@@ -6494,7 +6494,7 @@ readd_under_approx_assumptions (Btor *btor)
 /* updates SAT assignments, readds assumptions and
  * returns if an assignment has changed
  */
-int
+static int
 update_sat_assignments (Btor *btor)
 {
   int result, found_assumption_false;
@@ -7004,7 +7004,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
 }
 
 static void
-reset_assumptions (Btor *btor)
+btor_reset_assumptions (Btor *btor)
 {
   BtorPtrHashBucket *bucket;
   assert (btor != NULL);
@@ -7018,7 +7018,7 @@ reset_assumptions (Btor *btor)
 }
 
 static void
-reset_array_models (Btor *btor)
+btor_reset_array_models (Btor *btor)
 {
   BtorExp *cur;
   int i;
@@ -7038,12 +7038,12 @@ reset_array_models (Btor *btor)
 }
 
 static void
-reset_incremental_usage (Btor *btor)
+btor_reset_incremental_usage (Btor *btor)
 {
   assert (btor != NULL);
 
-  reset_assumptions (btor);
-  reset_array_models (btor);
+  btor_reset_assumptions (btor);
+  btor_reset_array_models (btor);
   btor->valid_assignments = 0;
 }
 
@@ -7811,7 +7811,7 @@ add_constraint (Btor *btor, BtorExp *exp)
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
   mm = btor->mm;
-  if (btor->valid_assignments) reset_incremental_usage (btor);
+  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
@@ -7902,7 +7902,7 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
   mm = btor->mm;
-  if (btor->valid_assignments) reset_incremental_usage (btor);
+  if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
@@ -9239,7 +9239,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
-  if (btor->valid_assignments == 1) reset_incremental_usage (btor);
+  if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));

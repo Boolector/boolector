@@ -29,11 +29,9 @@ boolector: boolectormain.o libboolector.a
 # NOTE you can NOT link the tests to this merged 'libboolector.a',
 # which is actually not a bug, but a feature.
 #
-# TODO same for picosat objects.
-#
 merge: boolectormain.o merged.o
 	rm -f libboolector.a
-	ar rc libboolector.a merged.o $(PICOSATOBJ)
+	ar rc libboolector.a merged.o
 	strip --strip-unneeded libboolector.a
 	$(CC) $(CFLAGS) -o boolector boolectormain.o -L. -lboolector $(LIBS)
 	strip boolector
