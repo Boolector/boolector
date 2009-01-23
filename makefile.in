@@ -1,3 +1,6 @@
+.SUFFIXES: .o .c
+.c.o:
+	$(CC) $(CFLAGS) -c $<
 SHELL=/bin/sh
 VERSION=$(shell cat VERSION)
 LIBOBJ=$(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o ../picosat/picosat.o ../picosat/version.o @PICOPREP_OBJS@ 
