@@ -36,10 +36,13 @@ merge: boolectormain.o merged.o
 	$(CC) $(CFLAGS) -o boolector boolectormain.o -L. -lboolector $(LIBS)
 	strip boolector
 	@make -s size symbols
-merged.c: btorconfig.h $(SRC) makefile contrib/merge
+merged.c: btorconfig.h $(SRC) \
+  ../picosat/picosat.h ../picosat/config.h \
+  ../picosat/picosat.c ../picosat/version.c \
+  makefile contrib/merge
 	rm -f merged.c; ./contrib/merge > merged.c
 merged.o: merged.c
-	$(CC) $(CFLAGS) -c merged.c
+	$(CC) $(CFLAGS) -Wno-unused-function -c merged.c
 	strip --strip-unneeded $@
 
 # After merging switch back to seperate compilation units.
