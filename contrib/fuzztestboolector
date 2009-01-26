@@ -24,7 +24,6 @@ function cleanup
   fi
 }
 
-trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
 btorgen=`which btorgen`
 if [[ -z "$btorgen" ]]; then
@@ -72,6 +71,8 @@ do
 done
 
 fileerror="error${id}.btor"
+
+trap 'cleanup; exit `ls $fileerror 2> /dev/null | wc -l`' SIGHUP SIGINT SIGTERM
 
 if [[ "$cov" -eq 1 ]]; then
   if [[ "$covlimit" -lt 1 ]]; then

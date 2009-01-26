@@ -13,6 +13,8 @@ numerrors=0
 sleeptime=10
 processes=`cat /proc/cpuinfo | grep processor | sort | tail -n 1 | awk '{ print $3 }'`
 ((processes++))
+# 2 processes per core
+((processes *= 2))
 
 function cleanup
 {
@@ -29,7 +31,7 @@ function cleanup
   fi
 }
 
-trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
+trap 'cleanup; if [[ `ls error*.btor 2> /dev/null | wc -l` -ne 0 ]]; then exit 1; else exit 0; fi' SIGHUP SIGINT SIGTERM
 
 while getopts "c:dxp:" o
 do
