@@ -1,9 +1,12 @@
 #!/bin/bash
-cd ~/boolector
-make clean
-./configure -r
+cd `dirname $0`
+cd ..
+cd ../picosat || exit 1
+./configure -O || exit 1
+make
+cd ../boolector
+./configure -r || exit 1
 make merge
-doxygen
 version=`cat VERSION`
 target=/tmp/boolector-$version
 rm -r -f $target
