@@ -30,12 +30,12 @@ written permission. Boolector is provided as is, without any warranty.
  * - publications related to Boolector
  * - a link to our discussion platform
  * - news
- *
- * \section Interface
  * Boolector can be used as stand-alone SMT solver which reads either BTOR
  * or SMT-LIB 1.2. Furthermore, Boolector provides a public API in order
- * to use Boolector as backend in other tools. The public interface
- * is defined in \ref boolector.h.
+ * to use Boolector as backend in other tools.
+ *
+ * \section Interface
+ * The public interface is defined in \ref boolector.h.
  *
  * First of all, the user has to create
  * a boolector instance by calling \ref boolector_new. This instance
@@ -54,6 +54,23 @@ written permission. Boolector is provided as is, without any warranty.
  * \ref boolector_bv_assignment resp. \ref boolector_array_assignment.
  * The assignments are not limited to variables.
  * They can be obtained for arbitrary expressions.
+ *
+ * \section Assertions
+ * Boolector uses two different kinds of assertions. Internally, Boolector
+ * heavily uses assertions as defined in the C library.
+ * To increase performance, these assertions are disabled in releases.
+ *
+ * The functions of Boolector's public interface are guarded by
+ * public assertions. Public assertions are always enabled. They check if
+ * the functions have been correctly called by the user.
+ * If not, then an error message is printed out and abort is called.
+ * For example, we call \ref boolector_var and
+ * pass NULL as symbol name. Then, we obtain the following error message:
+ *
+ * [boolector] boolector_var: 'symbol' must not be NULL
+ *
+ * This is not a bug. The user has violated the pre-conditions of the function,
+ * and therefore Boolector aborts.
  *
  * \section Internals
  * Internally, Boolector manages an expression DAG. This means that each
@@ -78,6 +95,7 @@ written permission. Boolector is provided as is, without any warranty.
  *operators internally. For example, two's complement is rewritten as one's
  *complement and addition of 1.  This behavior is not influenced by the rewrite
  *level.
+ *
  */
 
 /*------------------------------------------------------------------------*/
