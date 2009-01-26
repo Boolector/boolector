@@ -947,14 +947,14 @@ char *boolector_bv_assignment (Btor *btor, BtorExp *exp);
  * each array expression. See our publication
  * <a href="http://fmv.jku.at/papers/BrummayerBiere-SMT08.pdf">Lemmas on Demand
  * for the Extensional Theory of Arrays</a> for details. At indices that do not
- * occur in the model, the array can have a unique default value, for example 0.
- * The bit-vector assignments to the indices and values have to be freed by \ref
- * boolector_free_bv_assignment. Furthermore, the user has to free the array of
- * indices and the array of values, respectively of size 'size'. \param btor
- * Boolector instance. \param e_array Array operand for which the array model
- * should be built. \param indices Pointer to array of index strings. \param
- * values Pointer to array of value strings. \param size Pointer to size. \see
- * boolector_enable_model_gen
+ * occur in the model, it is assumed that the array stores a globally unique
+ * default value, for example 0. The bit-vector assignments to the indices and
+ * values have to be freed by \ref boolector_free_bv_assignment. Furthermore,
+ * the user has to free the array of indices and the array of values,
+ * respectively of size 'size'. \param btor Boolector instance. \param e_array
+ * Array operand for which the array model should be built. \param indices
+ * Pointer to array of index strings. \param values Pointer to array of value
+ * strings. \param size Pointer to size. \see boolector_enable_model_gen
  */
 void boolector_array_assignment (
     Btor *btor, BtorExp *e_array, char ***indices, char ***values, int *size);
