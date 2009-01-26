@@ -30,9 +30,13 @@ written permission. Boolector is provided as is, without any warranty.
  * - publications related to Boolector
  * - a link to our discussion platform
  * - news
- * Boolector can be used as stand-alone SMT solver which reads either BTOR
- * or SMT-LIB 1.2. Furthermore, Boolector provides a public API in order
- * to use Boolector as backend in other tools.
+ *
+ * Boolector can be used as stand-alone SMT solver which reads either
+ *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a>
+ * and <a
+ *href="http://goedel.cs.uiowa.edu/smtlib/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
+ *1.2</a>. Furthermore, Boolector provides a public API in order to use
+ *Boolector as backend in other tools.
  *
  * \section Interface
  * The public interface is defined in \ref boolector.h.
@@ -54,23 +58,6 @@ written permission. Boolector is provided as is, without any warranty.
  * \ref boolector_bv_assignment resp. \ref boolector_array_assignment.
  * The assignments are not limited to variables.
  * They can be obtained for arbitrary expressions.
- *
- * \section Assertions
- * Boolector uses two different kinds of assertions. Internally, Boolector
- * heavily uses assertions as defined in the C library.
- * To increase performance, these assertions are disabled in releases.
- *
- * The functions of Boolector's public interface are guarded by
- * public assertions. Public assertions are always enabled. They check if
- * the functions have been correctly called by the user.
- * If not, then an error message is printed out and abort is called.
- * For example, we call \ref boolector_var and
- * pass NULL as symbol name. Then, we obtain the following error message:
- *
- * [boolector] boolector_var: 'symbol' must not be NULL
- *
- * This is not a bug. The user has violated the pre-conditions of the function,
- * and therefore Boolector aborts.
  *
  * \section Internals
  * Internally, Boolector manages an expression DAG. This means that each
@@ -95,6 +82,23 @@ written permission. Boolector is provided as is, without any warranty.
  *operators internally. For example, two's complement is rewritten as one's
  *complement and addition of 1.  This behavior is not influenced by the rewrite
  *level.
+ *
+ * \subsection Assertions
+ * Boolector uses two different kinds of assertions. Internally, Boolector
+ * heavily uses assertions as defined in the C library.
+ * To increase performance, these assertions are disabled in releases.
+ *
+ * The functions of Boolector's public interface are guarded by
+ * public assertions. Public assertions are always enabled. They check if
+ * the functions have been correctly called by the user.
+ * If not, then an error message is printed out and abort is called.
+ * For example, we call \ref boolector_var and
+ * pass NULL as symbol name. Then, we obtain the following error message:
+ *
+ * [boolector] boolector_var: 'symbol' must not be NULL
+ *
+ * This is not a bug. The user has violated the pre-conditions of the function,
+ * and therefore Boolector aborts.
  *
  */
 
@@ -858,21 +862,24 @@ BtorExp *boolector_copy (Btor *btor, BtorExp *exp);
 void boolector_release (Btor *btor, BtorExp *exp);
 
 /**
- * Recursively dumps expression to file. BTOR 1.0 is used as format.
- * See <a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR:
- * Bit-Precise Modelling of Word-Level Problems for Model Checking</a> for
- * details about the BTOR format. \param btor Boolector instance. \param file
- * File to which the expression should be dumped. The file must be have been
- * opened by the user before. \param exp The expression which should be dumped.
- */
-void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp);
-
-/**
- * Recursively dumps expression to file. SMT-LIB 1.2 is used as format.
+ * Recursively dumps expression to file.
+ *<a href="http://fmv.jku.at/papers/BrummayerBiereLonsing-BPR08.pdf">BTOR</a> is
+ * used as format.
+ *
  * \param btor Boolector instance.
  * \param file File to which the expression should be dumped.
  * The file must be have been opened by the user before.
  * \param exp The expression which should be dumped.
+ */
+void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp);
+
+/**
+ * Recursively dumps expression to file.
+ *<a
+ *href="http://goedel.cs.uiowa.edu/smtlib/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
+ *1.2</a> is used as format. \param btor Boolector instance. \param file File to
+ *which the expression should be dumped. The file must be have been opened by
+ *the user before. \param exp The expression which should be dumped.
  */
 void boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp);
 
