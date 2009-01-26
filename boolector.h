@@ -100,6 +100,15 @@ written permission. Boolector is provided as is, without any warranty.
  * This is not a bug. The user has violated the pre-conditions of the function,
  * and therefore Boolector aborts.
  *
+ * \section Examples
+ * In the section <a href="examples.html">examples</a> you can
+ * find bit-vector and array examples. They demonstrate
+ * how Boolector's public interface can be used.
+ * \example bv1.c
+ * \example bv2.c
+ * \example array1.c
+ * \example array2.c
+ *
  */
 
 /*------------------------------------------------------------------------*/
