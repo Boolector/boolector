@@ -95,7 +95,7 @@ written permission. Boolector is provided as is, without any warranty.
  * For example, we call \ref boolector_var and
  * pass NULL as symbol name. Then, we obtain the following error message:
  *
- * [boolector] boolector_var: 'symbol' must not be NULL
+ * \verbatim [boolector] boolector_var: 'symbol' must not be NULL \endverbatim
  *
  * This is not a bug. The user has violated the pre-conditions of the function,
  * and therefore Boolector aborts.

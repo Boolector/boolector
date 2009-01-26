@@ -3,7 +3,6 @@ cd ~/boolector
 make clean
 ./configure -r
 make merge
-rm -r -f doc
 doxygen
 version=`cat VERSION`
 target=/tmp/boolector-$version
@@ -17,8 +16,9 @@ cp README $target
 cp LICENSE $target
 cp boolector ${target}/bin
 cp libboolector.a ${target}/lib
+
+#copy and adapt public interface header file
 sed -e 's/#include "btorexp.h"/typedef struct BtorExp BtorExp;\ntypedef struct Btor Btor;/g' boolector.h > ${target}/include/boolector.h
-cp -r doc $target
 
 # copy and adapt examples
 for dir in bv array
@@ -34,3 +34,9 @@ do
     sed -n '2,$p' examples/${dir}/$file >> ${target}/examples/${dir}/$file
   done
 done
+
+#generate documentation
+sed -e 's/boolector\.h/include/g' Doxyfile > ${target}/Doxyfile
+cd $target
+doxygen
+rm Doxyfile
