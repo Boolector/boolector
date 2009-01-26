@@ -14,8 +14,7 @@
   The header file of Boolector's public interface is located in the
   directory 'include'. For a documentation of Boolector and its public 
   interface see 'doc/index.html'. You can find the compiled library in the 
-  directory 'lib'. Finally, you can find examples in the sudirectory 
-  'examples'.
+  directory 'lib'. Finally, you can find examples in 'examples'.
 
   Please visit our website: http://fmv.jku.at/boolector.
 
