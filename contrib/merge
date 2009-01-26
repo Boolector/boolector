@@ -1,8 +1,11 @@
 #!/bin/sh
-echo "# line 1 \"../picosat/config.h\""
+
+debug=yes
+
+test $debug = no && echo "# line 1 \"../picosat/config.h\""
 sed -e 's,^#include ",// #include ",' ../picosat/config.h
 
-echo "# line 1 \"../picosat/picosat.h\""
+test $debug = no && echo "# line 1 \"../picosat/picosat.h\""
 sed -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<picosat_,static \1picosat_,g' $h \
 ../picosat/picosat.h
 
@@ -28,7 +31,7 @@ for h in \
   btormain.h \
   ;
 do
-  echo "# line 1 \"$h\""
+  test $debug = no && echo "# line 1 \"$h\""
   sed \
   -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
   -e 's,^#include ",// #include ",' \
@@ -40,7 +43,7 @@ for f in \
   ../picosat/version.c \
   ;
 do
-  echo "# line 1 \"$f\""
+  test $debug = no && echo "# line 1 \"$f\""
   sed \
   -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<picosat_,static \1picosat_,g' $h \
   -e 's,static static,static,g' \
@@ -70,7 +73,7 @@ for f in \
   btormain.c \
   ;
 do
-  echo "# line 1 \"$f\""
+  test $debug = no && echo "# line 1 \"$f\""
   sed \
   -e 's,^\([a-zA-Z][a-zA-Z0-9_\* ]*\)\<btor_,static \1btor_,g' $h \
   -e 's,static static,static,g' \
