@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 cd ~/boolector
 make clean
 ./configure -r
@@ -13,12 +13,23 @@ mkdir ${target}/bin
 mkdir ${target}/lib
 mkdir ${target}/include
 mkdir ${target}/examples
-mkdir ${target}/examples/bv
 cp README $target
 cp LICENSE $target
 cp boolector ${target}/bin
 cp libboolector.a ${target}/lib
 cp boolector.h ${target}/include
 cp -r doc $target
-echo '#include "../../include/boolector.h"' > ${target}/examples/bv/bv.c
-sed -n '2,$p' examples/bv/bv.c >> ${target}/examples/bv/bv.c
+
+# copy and adapt examples
+for dir in bv array
+do
+  mkdir ${target}/examples/$dir
+  cp examples/${dir}/makefile ${target}/examples/$dir
+  num=`ls examples/${dir}/*.c | wc -l`
+  for ((i = 1; i <= $num; i++))
+  do
+    file=${dir}${i}.c
+    echo '#include "../../include/boolector.h"' > ${target}/examples/${dir}/$file
+    sed -n '2,$p' examples/${dir}/$file >> ${target}/examples/${dir}/$file
+  done
+done
