@@ -1,14 +1,25 @@
 #!/bin/bash
+
+readonly fuzztestseconds=60
+readonly exampledirs="bv array"
+
+#get path
 cd `dirname $0`
 cd ..
+boolectordir=`pwd`
+
+#build picosat
 cd ../picosat || exit 1
 ./configure -O || exit 1
-make
+make || exit 1
+
+#build boolector
 cd ../boolector
 ./configure -r || exit 1
-make merge
+make merge || exit 1
 version=`cat VERSION`
-target=/tmp/boolector-$version
+boolectorstring=boolector-$version
+target=/tmp/$boolectorstring
 rm -r -f $target
 mkdir $target
 mkdir ${target}/bin
@@ -24,7 +35,7 @@ cp libboolector.a ${target}/lib
 sed -e 's/#include "btorexp.h"/typedef struct BtorExp BtorExp;\ntypedef struct Btor Btor;/g' boolector.h > ${target}/include/boolector.h
 
 # copy and adapt examples
-for dir in bv array
+for dir in $exampledirs
 do
   mkdir ${target}/examples/$dir
   echo 'LIBPATH=../../lib' > ${target}/examples/${dir}/makefile
@@ -41,5 +52,57 @@ done
 #generate documentation
 sed -e 's/boolector\.h/include/g' Doxyfile > ${target}/Doxyfile
 cd $target
-doxygen
+doxygen || exit 1
 rm Doxyfile
+
+#tar and zip
+cd /tmp
+tar cfzv ${boolectorstring}.tar.gz $boolectorstring
+rm -r -f $boolectorstring
+
+#extract for testing
+tar xfzv ${boolectorstring}.tar.gz
+cd $boolectorstring
+cd examples
+for dir in $exampledirs
+do
+  cd $dir
+  make || exit 1
+  for file in *.c
+  do
+    executable=${file%.c} 
+    ./$executable || exit 1
+  done
+  cd ..
+done
+
+#fuzz testing
+cd ${boolectordir}/contrib
+echo ""
+echo "Fuzz testing binary release of boolector for $fuzztestseconds seconds"
+echo ""
+sleep 2
+fuzztestboolector &
+pid=$!
+sleep $fuzztestseconds 
+kill $pid
+numerrors=`ls error*.btor 2> /dev/null | wc -l`
+if [[ $numerrors -ne 0 ]]; then
+  echo ""
+  echo "FUZZ TESTING FAILED"
+  echo ""
+  exit 1
+fi
+
+# check if fuzz-tested binary and generated binary are the same
+diff ../boolector ${target}/bin/boolector
+if [[ $? -ne 0 ]]; then
+  echo ""
+  echo "FUZZ-TESTED BINARY AND GENERATED BINARY DO NOT MATCH"
+  echo ""
+  exit 1
+fi
+
+echo ""
+echo "RELEASE $boolectorstring SUCCESSFUL"
+echo ""
