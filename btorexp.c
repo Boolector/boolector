@@ -723,6 +723,14 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
     btor_freestr (mm, exp->symbol);
     exp->symbol = 0;
   }
+  else if (BTOR_IS_ARRAY_EQ_EXP (exp))
+  {
+    if (exp->vreads)
+    {
+      BTOR_DELETE (mm, exp->vreads);
+      exp->vreads = 0;
+    }
+  }
 
   if (exp->av)
   {
@@ -800,8 +808,6 @@ recursively_release_exp (Btor *btor, BtorExp *root)
       {
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
-        BTOR_DELETE (mm, cur->vreads);
-        cur->vreads = 0;
       }
 
       remove_from_unique_table_exp (btor, cur);
