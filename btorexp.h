@@ -246,6 +246,7 @@ struct Btor
   int vread_index_id;
   int inconsistent;
   int model_gen;
+  int external_refs;
   struct /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */

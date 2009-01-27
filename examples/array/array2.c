@@ -109,6 +109,7 @@ main (void)
   boolector_release (btor, val2);
   boolector_release (btor, zero);
   boolector_release (btor, one);
+  assert (boolector_get_refs (btor) == 0);
   boolector_delete (btor);
   return 0;
 }

@@ -164,8 +164,22 @@ void boolector_enable_model_gen (Btor *btor);
 void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
 
 /**
+ * Returns the number of external references to the boolector library.
+ * Internally, Boolector manages an expression DAG with reference counting. Use
+ * \ref boolector_release to properly release an expression. Before
+ * you finally call \ref boolector_delete, \ref boolector_get_refs should
+ * return 0. In this case all expressions have been properly released.
+ * \param btor Boolector instance.
+ * \return Number of external references owned by the user.
+ */
+int boolector_get_refs (Btor *btor);
+
+/**
  * Deletes boolector instance and frees its resources.
  * \param btor Boolector instance.
+ * \remarks Expressions that have not been release properly will not be
+ * deleted from memory. Use \ref boolector_get_refs to debug reference
+ * counting.
  */
 void boolector_delete (Btor *btor);
 
@@ -249,6 +263,9 @@ BtorExp *boolector_int (Btor *btor, int i, int width);
  * \param symbol String symbol which can be used to identify the variable in
  * a model.
  * \return Bit-vector variable with bit-width 'width' and symbol 'symbol'.
+ * \remarks Internally, variables are \e not uniquely hashed. Therefore,
+ * each call to \ref boolector_var with the same arguments will return
+ * a fresh variable.
  */
 BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
 
@@ -264,6 +281,9 @@ BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
  * a model.
  * \return Bit-vector array of size 2 ^ 'index_width' with elements of
  * bit-width 'elem_width', and symbol 'symbol'.
+ * \remarks Internally, array variables are \e not uniquely hashed. Therefore,
+ * each call to \ref boolector_array with the same arguments will return
+ * a fresh variable.
  */
 BtorExp *boolector_array (Btor *btor,
                           int elem_width,

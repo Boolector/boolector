@@ -56,6 +56,13 @@ boolector_enable_model_gen (Btor *btor)
   btor_enable_model_gen (btor);
 }
 
+int
+boolector_get_refs (Btor *btor)
+{
+  BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  return btor->external_refs;
+}
+
 void
 boolector_delete (Btor *btor)
 {
@@ -69,6 +76,7 @@ boolector_const (Btor *btor, const char *bits)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (bits == NULL, "'bits' must not be NULL");
   BTOR_ABORT_BOOLECTOR (*bits == '\0', "'bits' must not be empty");
+  btor->external_refs++;
   return btor_const_exp (btor, bits);
 }
 
@@ -77,6 +85,7 @@ boolector_zero (Btor *btor, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  btor->external_refs++;
   return btor_zero_exp (btor, width);
 }
 
@@ -84,6 +93,7 @@ BtorExp *
 boolector_false (Btor *btor)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  btor->external_refs++;
   return btor_false_exp (btor);
 }
 
@@ -92,6 +102,7 @@ boolector_ones (Btor *btor, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  btor->external_refs++;
   return btor_ones_exp (btor, width);
 }
 
@@ -99,6 +110,7 @@ BtorExp *
 boolector_true (Btor *btor)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
+  btor->external_refs++;
   return btor_true_exp (btor);
 }
 
@@ -107,6 +119,7 @@ boolector_one (Btor *btor, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  btor->external_refs++;
   return btor_one_exp (btor, width);
 }
 
@@ -115,6 +128,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  btor->external_refs++;
   return btor_unsigned_to_exp (btor, u, width);
 }
 
@@ -123,6 +137,7 @@ boolector_int (Btor *btor, int i, int width)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+  btor->external_refs++;
   return btor_int_to_exp (btor, i, width);
 }
 
@@ -132,6 +147,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (symbol == NULL, "'symbol' must not be NULL");
+  btor->external_refs++;
   return btor_var_exp (btor, width, symbol);
 }
 
@@ -145,6 +161,7 @@ boolector_array (Btor *btor,
   BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (symbol == NULL, "'symbol' must not be NULL");
+  btor->external_refs++;
   return btor_array_exp (btor, elem_width, index_width, symbol);
 }
 
@@ -158,6 +175,7 @@ boolector_not (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_not_exp (btor, exp);
 }
 
@@ -171,6 +189,7 @@ boolector_neg (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_neg_exp (btor, exp);
 }
 
@@ -184,6 +203,7 @@ boolector_redor (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_redor_exp (btor, exp);
 }
 
@@ -197,6 +217,7 @@ boolector_redxor (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_redxor_exp (btor, exp);
 }
 
@@ -210,6 +231,7 @@ boolector_redand (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_redand_exp (btor, exp);
 }
 
@@ -227,6 +249,7 @@ boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower)
   BTOR_ABORT_BOOLECTOR (upper < lower, "'upper' must not be < 'lower'");
   BTOR_ABORT_BOOLECTOR (upper >= BTOR_REAL_ADDR_EXP (exp)->len,
                         "'upper' must not be >= width of 'exp'");
+  btor->external_refs++;
   return btor_slice_exp (btor, exp, upper, lower);
 }
 
@@ -241,6 +264,7 @@ boolector_uext (Btor *btor, BtorExp *exp, int width)
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
   BTOR_ABORT_BOOLECTOR (width < 0, "'width' must not be negative");
+  btor->external_refs++;
   return btor_uext_exp (btor, exp, width);
 }
 
@@ -255,6 +279,7 @@ boolector_sext (Btor *btor, BtorExp *exp, int width)
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
   BTOR_ABORT_BOOLECTOR (width < 0, "'width' must not be negative");
+  btor->external_refs++;
   return btor_sext_exp (btor, exp, width);
 }
 
@@ -277,6 +302,7 @@ boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
       "width of 'e0' and 'e1' must not be unequal to 1");
+  btor->external_refs++;
   return btor_implies_exp (btor, e0, e1);
 }
 
@@ -299,6 +325,7 @@ boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
       "width of 'e0' and 'e1' must not be unequal to 1");
+  btor->external_refs++;
   return btor_iff_exp (btor, e0, e1);
 }
 
@@ -321,6 +348,7 @@ boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_xor_exp (btor, e0, e1);
 }
 
@@ -343,6 +371,7 @@ boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_xnor_exp (btor, e0, e1);
 }
 
@@ -365,6 +394,7 @@ boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_and_exp (btor, e0, e1);
 }
 
@@ -387,6 +417,7 @@ boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_nand_exp (btor, e0, e1);
 }
 
@@ -409,6 +440,7 @@ boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_or_exp (btor, e0, e1);
 }
 
@@ -431,6 +463,7 @@ boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_nor_exp (btor, e0, e1);
 }
 
@@ -461,6 +494,7 @@ boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "arrays must not have unequal element width");
   BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0->index_len != real_e1->index_len,
                         "arrays must not have unequal index width");
+  btor->external_refs++;
   return btor_eq_exp (btor, e0, e1);
 }
 
@@ -488,6 +522,7 @@ boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "arrays must not have unequal element width");
   BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0->index_len != real_e1->index_len,
                         "arrays must not have unequal index width");
+  btor->external_refs++;
   return btor_ne_exp (btor, e0, e1);
 }
 
@@ -510,6 +545,7 @@ boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_add_exp (btor, e0, e1);
 }
 
@@ -532,6 +568,7 @@ boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_uaddo_exp (btor, e0, e1);
 }
 
@@ -554,6 +591,7 @@ boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_saddo_exp (btor, e0, e1);
 }
 
@@ -576,6 +614,7 @@ boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_mul_exp (btor, e0, e1);
 }
 
@@ -598,6 +637,7 @@ boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_umulo_exp (btor, e0, e1);
 }
 
@@ -620,6 +660,7 @@ boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_smulo_exp (btor, e0, e1);
 }
 
@@ -642,6 +683,7 @@ boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_ult_exp (btor, e0, e1);
 }
 
@@ -664,6 +706,7 @@ boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_slt_exp (btor, e0, e1);
 }
 
@@ -686,6 +729,7 @@ boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_ulte_exp (btor, e0, e1);
 }
 
@@ -708,6 +752,7 @@ boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_slte_exp (btor, e0, e1);
 }
 
@@ -730,6 +775,7 @@ boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_ugt_exp (btor, e0, e1);
 }
 
@@ -752,6 +798,7 @@ boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_sgt_exp (btor, e0, e1);
 }
 
@@ -774,6 +821,7 @@ boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_ugte_exp (btor, e0, e1);
 }
 
@@ -796,6 +844,7 @@ boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_sgte_exp (btor, e0, e1);
 }
 
@@ -821,6 +870,7 @@ boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
                         "width of 'e1' must be equal to log2(width of 'e0')");
+  btor->external_refs++;
   return btor_sll_exp (btor, e0, e1);
 }
 
@@ -846,6 +896,7 @@ boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
                         "width of 'e1' must be equal to log2(width of 'e0')");
+  btor->external_refs++;
   return btor_srl_exp (btor, e0, e1);
 }
 
@@ -871,6 +922,7 @@ boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
                         "width of 'e1' must be equal to log2(width of 'e0')");
+  btor->external_refs++;
   return btor_sra_exp (btor, e0, e1);
 }
 
@@ -896,6 +948,7 @@ boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
                         "width of 'e1' must be equal to log2(width of 'e0')");
+  btor->external_refs++;
   return btor_rol_exp (btor, e0, e1);
 }
 
@@ -921,6 +974,7 @@ boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1)
                         "width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
                         "width of 'e1' must be equal to log2(width of 'e0')");
+  btor->external_refs++;
   return btor_ror_exp (btor, e0, e1);
 }
 
@@ -943,6 +997,7 @@ boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_sub_exp (btor, e0, e1);
 }
 
@@ -965,6 +1020,7 @@ boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_usubo_exp (btor, e0, e1);
 }
 
@@ -987,6 +1043,7 @@ boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_ssubo_exp (btor, e0, e1);
 }
 
@@ -1009,6 +1066,7 @@ boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_udiv_exp (btor, e0, e1);
 }
 
@@ -1031,6 +1089,7 @@ boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_sdiv_exp (btor, e0, e1);
 }
 
@@ -1053,6 +1112,7 @@ boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_sdivo_exp (btor, e0, e1);
 }
 
@@ -1075,6 +1135,7 @@ boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_urem_exp (btor, e0, e1);
 }
 
@@ -1097,6 +1158,7 @@ boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_srem_exp (btor, e0, e1);
 }
 
@@ -1119,6 +1181,7 @@ boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
+  btor->external_refs++;
   return btor_smod_exp (btor, e0, e1);
 }
 
@@ -1141,6 +1204,7 @@ boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len > INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len,
       "width of result is too large");
+  btor->external_refs++;
   return btor_concat_exp (btor, e0, e1);
 }
 
@@ -1163,6 +1227,7 @@ boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   BTOR_ABORT_BOOLECTOR (
       e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
       "index width of 'e_array' and width of 'e_index' must not be unequal");
+  btor->external_refs++;
   return btor_read_exp (btor, e_array, e_index);
 }
 
@@ -1197,6 +1262,7 @@ boolector_write (Btor *btor,
   BTOR_ABORT_BOOLECTOR (
       e_array->len != BTOR_REAL_ADDR_EXP (e_value)->len,
       "element width of 'e_array' and width of 'e_value' must not be unequal");
+  btor->external_refs++;
   return btor_write_exp (btor, e_array, e_index, e_value);
 }
 
@@ -1236,6 +1302,7 @@ boolector_cond (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   BTOR_ABORT_BOOLECTOR (
       is_array_e_if && real_e_if->index_len != real_e_else->index_len,
       "arrays must not have unequal index width");
+  btor->external_refs++;
   return btor_cond_exp (btor, e_cond, e_if, e_else);
 }
 
@@ -1249,6 +1316,7 @@ boolector_inc (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_inc_exp (btor, exp);
 }
 
@@ -1262,6 +1330,7 @@ boolector_dec (Btor *btor, BtorExp *exp)
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
                         "'exp' must not be an array");
+  btor->external_refs++;
   return btor_dec_exp (btor, exp);
 }
 
@@ -1316,6 +1385,7 @@ boolector_copy (Btor *btor, BtorExp *exp)
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
                         "Reference counter of 'exp' must not be < 1");
+  btor->external_refs++;
   return btor_copy_exp (btor, exp);
 }
 
@@ -1326,6 +1396,7 @@ boolector_release (Btor *btor, BtorExp *exp)
   BTOR_ABORT_BOOLECTOR (exp == NULL, "'exp' must not be NULL");
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->refs < 1,
                         "Reference counter of 'exp' must not be < 1");
+  btor->external_refs--;
   btor_release_exp (btor, exp);
 }
 

@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -88,6 +89,7 @@ main (void)
   boolector_release (btor, v2_sgt_zero);
   boolector_release (btor, vars_sgt_zero);
   boolector_release (btor, add_sgt_zero);
+  assert (boolector_get_refs (btor) == 0);
   boolector_delete (btor);
   return 0;
 }
