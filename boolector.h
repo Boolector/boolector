@@ -126,6 +126,26 @@ written permission. Boolector is provided as is, without any warranty.
  */
 #define BOOLECTOR_UNSAT 20
 
+/**
+ * Default symbol for bit-vector variables
+ * returned by \ref boolector_var. If you are not interested in dumping
+ * expressions to file, then use this default symbol as variable name.
+ * \see boolector_var
+ * \see boolector_dump_btor
+ * \see boolector_dump_smt
+ */
+#define BOOLECTOR_VAR_SYMBOL "var"
+
+/**
+ * Default symbol for array variables
+ * returned by \ref boolector_array. If you are not interested in dumping
+ * expressions to files, then use this default symbol as variable name.
+ * \see boolector_array
+ * \see boolector_dump_btor
+ * \see boolector_dump_smt
+ */
+#define BOOLECTOR_ARRAY_SYMBOL "array"
+
 /*------------------------------------------------------------------------*/
 /* Boolector                                                              */
 /*------------------------------------------------------------------------*/
@@ -163,7 +183,7 @@ void boolector_set_rewrite_level (Btor *btor, int rewrite_level);
  * Internally, Boolector manages an expression DAG with reference counting. Use
  * \ref boolector_release to properly release an expression. Before
  * you finally call \ref boolector_delete, \ref boolector_get_refs should
- * return 0. In this case all expressions have been properly released.
+ * return 0.
  * \param btor Boolector instance.
  * \return Number of external references owned by the user.
  */
@@ -252,15 +272,17 @@ BtorExp *boolector_unsigned_int (Btor *btor, unsigned u, int width);
 BtorExp *boolector_int (Btor *btor, int i, int width);
 
 /**
- * Bit-vector variable with bit-width 'width'.
+ * Fresh bit-vector variable with bit-width 'width'.
  * \param btor Boolector instance.
  * \param width Number of bits which must be greater than zero.
- * \param symbol String symbol which can be used to identify the variable in
- * a model.
+ * \param symbol Name of variable.
  * \return Bit-vector variable with bit-width 'width' and symbol 'symbol'.
- * \remarks Internally, variables are \e not uniquely hashed. Therefore,
- * each call to \ref boolector_var with the same arguments will return
- * a fresh variable.
+ * \remarks Internally, variables are \e not uniquely hashed.
+ * Therefore, every call to this function returns a fresh variable.
+ * The symbol is only used as a simple way to identify variables
+ * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
+ * The user has to make sure that the symbols are unique. Otherwise, the
+ * dump may be incorrect.
  */
 BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
 
@@ -272,13 +294,16 @@ BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
  * greater than zero.
  * \param index_width Number of bits of array addresses. The parameter must be
  * greater than zero.
- * \param symbol String symbol which can be used to identify the array in
- * a model.
+ * \param symbol Name of variable.
  * \return Bit-vector array of size 2 ^ 'index_width' with elements of
  * bit-width 'elem_width', and symbol 'symbol'.
  * \remarks Internally, array variables are \e not uniquely hashed. Therefore,
  * each call to \ref boolector_array with the same arguments will return
  * a fresh variable.
+ ** The symbol is only used as a simple way to identify variables
+ * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
+ * The user has to make sure that the symbols are unique. Otherwise, the
+ * dump may be incorrect.
  */
 BtorExp *boolector_array (Btor *btor,
                           int elem_width,
