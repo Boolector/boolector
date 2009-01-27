@@ -27,9 +27,9 @@ main (void)
   val1   = boolector_int (btor, 3, ARRAY2_EXAMPLE_VALUE_BW);
   val2   = boolector_int (btor, 5, ARRAY2_EXAMPLE_VALUE_BW);
   array1 = boolector_array (
-      btor, ARRAY2_EXAMPLE_VALUE_BW, ARRAY2_EXAMPLE_INDEX_BW, "array1");
+      btor, ARRAY2_EXAMPLE_VALUE_BW, ARRAY2_EXAMPLE_INDEX_BW, NULL);
   array2 = boolector_array (
-      btor, ARRAY2_EXAMPLE_VALUE_BW, ARRAY2_EXAMPLE_INDEX_BW, "array2");
+      btor, ARRAY2_EXAMPLE_VALUE_BW, ARRAY2_EXAMPLE_INDEX_BW, NULL);
   write1 = boolector_write (btor, array1, zero, val1);
   write2 = boolector_write (btor, array2, one, val2);
   /* Note: we compare two arrays for equality ---> needs extensional theory */

@@ -126,26 +126,6 @@ written permission. Boolector is provided as is, without any warranty.
  */
 #define BOOLECTOR_UNSAT 20
 
-/**
- * Default symbol for bit-vector variables
- * returned by \ref boolector_var. If you are not interested in dumping
- * expressions to file, then use this default symbol as variable name.
- * \see boolector_var
- * \see boolector_dump_btor
- * \see boolector_dump_smt
- */
-#define BOOLECTOR_VAR_SYMBOL "var"
-
-/**
- * Default symbol for array variables
- * returned by \ref boolector_array. If you are not interested in dumping
- * expressions to files, then use this default symbol as variable name.
- * \see boolector_array
- * \see boolector_dump_btor
- * \see boolector_dump_smt
- */
-#define BOOLECTOR_ARRAY_SYMBOL "array"
-
 /*------------------------------------------------------------------------*/
 /* Boolector                                                              */
 /*------------------------------------------------------------------------*/
@@ -283,7 +263,7 @@ BtorExp *boolector_int (Btor *btor, int i, int width);
  * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
  * The user has to make sure that the symbols are unique. Otherwise, the
  * dump may be incorrect. If you are not interested in dumping expressons,
- * just use \ref BOOLECTOR_VAR_SYMBOL as default name.
+ * just pass NULL as symbol.
  */
 BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
 
@@ -306,7 +286,7 @@ BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
  * The user has to make sure that the symbols are unique. Otherwise, the
  * dump may be incorrect.
  * If you are not interested in dumping expressons,
- * just use \ref BOOLECTOR_ARRAY_SYMBOL as default name.
+ * just pass NULL as symbol.
  */
 BtorExp *boolector_array (Btor *btor,
                           int elem_width,

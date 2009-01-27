@@ -146,9 +146,11 @@ boolector_var (Btor *btor, int width, const char *symbol)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (symbol == NULL, "'symbol' must not be NULL");
   btor->external_refs++;
-  return btor_var_exp (btor, width, symbol);
+  if (symbol == NULL)
+    return btor_var_exp (btor, width, "DVN");
+  else
+    return btor_var_exp (btor, width, symbol);
 }
 
 BtorExp *
@@ -160,9 +162,11 @@ boolector_array (Btor *btor,
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
   BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (symbol == NULL, "'symbol' must not be NULL");
   btor->external_refs++;
-  return btor_array_exp (btor, elem_width, index_width, symbol);
+  if (symbol == NULL)
+    return btor_array_exp (btor, elem_width, index_width, "DAN");
+  else
+    return btor_array_exp (btor, elem_width, index_width, symbol);
 }
 
 BtorExp *

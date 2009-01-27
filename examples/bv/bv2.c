@@ -24,8 +24,8 @@ main (void)
   btor = boolector_new ();
   boolector_enable_model_gen (btor);
 
-  v1   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, "v1");
-  v2   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, "v2");
+  v1   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
+  v2   = boolector_var (btor, BV2_EXAMPLE_NUM_BITS, NULL);
   zero = boolector_zero (btor, BV2_EXAMPLE_NUM_BITS);
 
   v1_sgt_zero   = boolector_sgt (btor, v1, zero);

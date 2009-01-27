@@ -22,8 +22,8 @@ main (void)
   int result;
 
   btor = boolector_new ();
-  x    = boolector_var (btor, BV1_EXAMPLE_NUM_BITS, "v1");
-  y    = boolector_var (btor, BV1_EXAMPLE_NUM_BITS, "v2");
+  x    = boolector_var (btor, BV1_EXAMPLE_NUM_BITS, NULL);
+  y    = boolector_var (btor, BV1_EXAMPLE_NUM_BITS, NULL);
   /* remember initial values of x and y */
   old_x = boolector_copy (btor, x);
   old_y = boolector_copy (btor, y);

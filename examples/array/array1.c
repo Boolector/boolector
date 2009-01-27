@@ -41,7 +41,7 @@ main (void)
     indices[i] = boolector_int (btor, i, ARRAY1_EXAMPLE_INDEX_BW);
 
   array = boolector_array (
-      btor, ARRAY1_EXAMPLE_VALUE_BW, ARRAY1_EXAMPLE_INDEX_BW, "array");
+      btor, ARRAY1_EXAMPLE_VALUE_BW, ARRAY1_EXAMPLE_INDEX_BW, NULL);
   /* Current maximum is first element of array */
   max = boolector_read (btor, array, indices[0]);
   /* Symbolic loop unrolling */
@@ -59,7 +59,7 @@ main (void)
 
   /* Now we show that 'max' is indeed a maximum */
   /* We read at an arbitrary position */
-  index = boolector_var (btor, ARRAY1_EXAMPLE_INDEX_BW, "index");
+  index = boolector_var (btor, ARRAY1_EXAMPLE_INDEX_BW, NULL);
   read  = boolector_read (btor, array, index);
 
   /* We assume that it is possible that the read value is greater than 'max' */
