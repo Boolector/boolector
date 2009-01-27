@@ -1,6 +1,5 @@
 #include <assert.h>
 #include <ctype.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -340,7 +339,7 @@ main (int argc, char **argv)
     /* add formula */
     boolector_assert (btor, formula);
 
-    sat_result = boolector_sat (btor, INT_MAX);
+    sat_result = boolector_sat (btor);
     if (sat_result == BTOR_UNSAT)
       printf ("Sudoku instance is not solvable\n");
     else

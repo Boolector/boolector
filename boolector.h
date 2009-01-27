@@ -125,11 +125,6 @@ written permission. Boolector is provided as is, without any warranty.
  * \see boolector_sat
  */
 #define BOOLECTOR_UNSAT 20
-/**
- * Preprocessor constant representing status 'unknown'.
- * \see boolector_sat
- */
-#define BOOLECTOR_UNKNOWN 0
 
 /*------------------------------------------------------------------------*/
 /* Boolector                                                              */
@@ -925,7 +920,7 @@ void boolector_assert (Btor *btor, BtorExp *exp);
  * Adds assumption. Use this function to assume 'exp'.
  * In contrast to \ref boolector_assert the assumptions are
  * discarded after each call to \ref boolector_sat. Assumptions
- * and assertions are logically combined by boolean and.
+ * and assertions are logically combined by boolean 'and'.
  * This is the same way of using assumptions as in MiniSAT.
  * \param btor Boolector instance.
  * \param exp Bit-vector expression with bit-width one.
@@ -935,18 +930,14 @@ void boolector_assume (Btor *btor, BtorExp *exp);
 /**
  * Solves SAT instance represented by constraints and assumptions added
  * by \ref boolector_assert and \ref boolector_assume. Note that
- * assertions and assumptions are combined by boolean and.
+ * assertions and assumptions are combined by boolean 'and'.
  * \param btor Boolector instance.
- * \param refinement_limit Sets the maximum number of iterative refinements
- * which must be greater than or equal to zero. Use INT_MAX as default.
  * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
  * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
- * If Boolector cannot decide * the instance within the refinement limit,
- * it returns \ref BOOLECTOR_UNKNOWN.
  * \see boolector_bv_assignment
  * \see boolector_array_assignment
  **/
-int boolector_sat (Btor *btor, int refinement_limit);
+int boolector_sat (Btor *btor);
 
 /**
  * Builds assignment string for bit-vector expression if \ref boolector_sat

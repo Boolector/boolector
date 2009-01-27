@@ -1453,12 +1453,11 @@ boolector_assume (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_sat (Btor *btor, int refinement_limit)
+boolector_sat (Btor *btor)
 {
   BTOR_ABORT_BOOLECTOR (btor == NULL, "'btor' must not be NULL");
-  BTOR_ABORT_BOOLECTOR (refinement_limit < 0,
-                        "'refinement_limit' must not be negative");
-  return btor_sat_btor (btor, refinement_limit);
+  /* -1 represents no refinement limit */
+  return btor_sat_btor (btor, -1);
 }
 
 char *

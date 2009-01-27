@@ -17,7 +17,6 @@
 
 #include <assert.h>
 #include <ctype.h>
-#include <limits.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -983,7 +982,7 @@ boolector_main (int argc, char **argv)
   app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
   app.bmcadc               = 1;
   app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-  app.refinement_limit     = INT_MAX;
+  app.refinement_limit     = -1;
   app.force_smt_input      = 0;
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
 

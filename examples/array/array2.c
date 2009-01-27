@@ -1,4 +1,3 @@
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../boolector.h"
@@ -36,7 +35,7 @@ main (void)
   /* Note: we compare two arrays for equality ---> needs extensional theory */
   formula = boolector_eq (btor, write1, write2);
   boolector_assert (btor, formula);
-  result = boolector_sat (btor, INT_MAX);
+  result = boolector_sat (btor);
   if (result == BOOLECTOR_SAT)
     printf ("Formula is satisfiable\n");
   else

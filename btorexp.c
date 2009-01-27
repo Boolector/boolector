@@ -9219,7 +9219,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BtorMemMgr *mm;
 
   assert (btor != NULL);
-  assert (refinement_limit >= 0);
+  assert (refinement_limit >= -1);
 
   verbosity             = btor->verbosity;
   ua                    = btor->ua.enabled;
@@ -9277,7 +9277,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BTOR_INIT_STACK (top_arrays);
   search_top_arrays (btor, &top_arrays);
 
-  while ((lod_refinements + ua_refinements) < refinement_limit
+  while ((refinement_limit == -1
+          || (lod_refinements + ua_refinements) <= refinement_limit)
          && (sat_result == BTOR_SAT
              || (ua && !under_approx_finished && sat_result != BTOR_UNKNOWN)))
   {

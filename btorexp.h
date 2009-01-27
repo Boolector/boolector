@@ -854,7 +854,9 @@ void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
 
 /* Solves SAT instance.
  * The paramenter 'refinement_limit' sets the maximum number
- * of iterative refinments */
+ * of iterative refinments. If 'refinement_limit' is -1,
+ * then no refinement limit is set.
+ */
 int btor_sat_btor (Btor *btor, int refinement_limit);
 
 /* Builds current assignment string of expression (in the SAT case)

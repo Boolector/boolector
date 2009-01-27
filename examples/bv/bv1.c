@@ -1,5 +1,4 @@
 #include <assert.h>
-#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "../../boolector.h"
@@ -55,7 +54,7 @@ main (void)
 
   /* We assert the formula and call Boolector */
   boolector_assert (btor, formula);
-  result = boolector_sat (btor, INT_MAX);
+  result = boolector_sat (btor);
   if (result == BOOLECTOR_UNSAT)
     printf ("Formula is unsatisfiable\n");
   else
