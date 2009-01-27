@@ -282,7 +282,8 @@ BtorExp *boolector_int (Btor *btor, int i, int width);
  * The symbol is only used as a simple way to identify variables
  * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
  * The user has to make sure that the symbols are unique. Otherwise, the
- * dump may be incorrect.
+ * dump may be incorrect. If you are not interested in dumping expressons,
+ * just use \ref BOOLECTOR_VAR_SYMBOL as default name.
  */
 BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
 
@@ -304,6 +305,8 @@ BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
  * in file dumps of \ref boolector_dump_btor and \ref boolector_dump_smt.
  * The user has to make sure that the symbols are unique. Otherwise, the
  * dump may be incorrect.
+ * If you are not interested in dumping expressons,
+ * just use \ref BOOLECTOR_ARRAY_SYMBOL as default name.
  */
 BtorExp *boolector_array (Btor *btor,
                           int elem_width,
