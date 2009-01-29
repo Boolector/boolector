@@ -6,12 +6,12 @@
 #include <assert.h>
 
 /* Rewriting bounds */
-#define BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND 128
-#define BTOR_EQ_EXP_RW_BOUND 128
-#define BTOR_MUL_EXP_RW_BOUND 128
+#define BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND 256
+#define BTOR_EQ_EXP_RW_BOUND 256
+#define BTOR_MUL_EXP_RW_BOUND 256
 #define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 1024
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
-#define BTOR_COND_EXP_RW_BOUND 128
+#define BTOR_COND_EXP_RW_BOUND 256
 
 static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExp *, BtorExp *, BtorExp *, int *);
@@ -147,6 +147,15 @@ rewrite_slice_exp_bounded (
     result  = btor_const_exp (btor, bresult);
     result  = BTOR_COND_INVERT_EXP (exp, result);
     btor_delete_const (mm, bresult);
+  }
+  else if (real_exp->kind == BTOR_SLICE_EXP)
+  {
+    *calls += 1;
+    result = rewrite_slice_exp_bounded (btor,
+                                        real_exp->e[0],
+                                        real_exp->lower + upper,
+                                        real_exp->lower + lower,
+                                        calls);
   }
   /* check if slice and child of concat matches */
   else if (real_exp->kind == BTOR_CONCAT_EXP)
@@ -1606,16 +1615,10 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     else if (kind == BTOR_BEQ_EXP && *calls < BTOR_EQ_EXP_RW_BOUND)
     {
       /* push eq down over concats */
-      if ((real_e0->kind == BTOR_CONCAT_EXP && real_e1->kind == BTOR_CONCAT_EXP
-           && BTOR_REAL_ADDR_EXP (real_e0->e[0])->len
-                  == BTOR_REAL_ADDR_EXP (real_e1->e[0])->len)
-          || (real_e0->kind == BTOR_CONCAT_EXP && BTOR_IS_CONST_EXP (real_e1))
-          || (real_e1->kind == BTOR_CONCAT_EXP && BTOR_IS_CONST_EXP (real_e0)))
+      if ((real_e0->kind == BTOR_CONCAT_EXP
+           || real_e1->kind == BTOR_CONCAT_EXP))
       {
         *calls += 1;
-        assert (real_e0->kind == BTOR_CONCAT_EXP
-                || real_e1->kind == BTOR_CONCAT_EXP);
-
         upper = real_e0->len - 1;
         if (real_e0->kind == BTOR_CONCAT_EXP)
           lower = upper - BTOR_REAL_ADDR_EXP (real_e0->e[0])->len + 1;
