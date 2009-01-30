@@ -51,7 +51,7 @@
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
-#define BTOR_EXP_FAILED_EQ_LIMIT 1024
+#define BTOR_EXP_FAILED_EQ_LIMIT 4096
 
 struct BtorUAData
 {
@@ -9304,7 +9304,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int ua_refinements, lod_refinements, found_assumption_false;
-  int under_approx_finished, ua;
+  int under_approx_finished, ua, probed;
   BtorExpPtrStack top_arrays;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -9352,7 +9352,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   if (btor->rewrite_level > 1 && !btor->assumption_usage)
   {
-    if (probe_exps (btor))
+    probed = probe_exps (btor);
+    if (verbosity >= 2) btor_msg_exp ("finished probing: %d", probed);
+    if (probed)
     {
       substitute_vars_and_process_embedded_constraints (btor);
       if (btor->inconsistent) return BTOR_UNSAT;
