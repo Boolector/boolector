@@ -151,11 +151,12 @@ rewrite_slice_exp_bounded (
   else if (real_exp->kind == BTOR_SLICE_EXP)
   {
     *calls += 1;
-    result = rewrite_slice_exp_bounded (btor,
-                                        real_exp->e[0],
-                                        real_exp->lower + upper,
-                                        real_exp->lower + lower,
-                                        calls);
+    result =
+        rewrite_slice_exp_bounded (btor,
+                                   BTOR_COND_INVERT_EXP (exp, real_exp->e[0]),
+                                   real_exp->lower + upper,
+                                   real_exp->lower + lower,
+                                   calls);
   }
   /* check if slice and child of concat matches */
   else if (real_exp->kind == BTOR_CONCAT_EXP)

@@ -383,6 +383,8 @@ rw154 -rwl0 -o log/rw154.log log/rw154.btor
 rw154 -rwl1 -o log/rw154.log log/rw154.btor
 rw155 -rwl0 -o log/rw155.log log/rw155.btor
 rw155 -rwl1 -o log/rw155.log log/rw155.btor
+rw156 -rwl0 -o log/rw156.log log/rw156.btor
+rw156 -rwl1 -o log/rw156.log log/rw156.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
