@@ -247,7 +247,8 @@ struct Btor
   int inconsistent;
   int model_gen;
   int external_refs;
-  struct /* Under-approximation UA */
+  int assumption_usage; /* are assumptions used ? */
+  struct                /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */
     BtorUAMode mode;                 /* UA mode */
@@ -292,6 +293,8 @@ struct Btor
     int array_substitutions;
     /* embedded constraint substitutions */
     int ec_substitutions;
+    /* equalities found by probing */
+    int probed_equalities;
     /* number of virtual reads */
     int vreads;
     /* number of linear equations */

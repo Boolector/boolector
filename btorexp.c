@@ -51,6 +51,8 @@
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
+#define BTOR_EXP_FAILED_EQ_LIMIT 1024
+
 struct BtorUAData
 {
   int last_e;
@@ -5399,12 +5401,15 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp ("embedded constraint substitutions: %d",
                 btor->stats.ec_substitutions);
 
-  btor_msg_exp ("array equalites: %s",
-                btor->has_array_equalities ? "yes" : "no");
-  if (btor->has_array_equalities)
-    btor_msg_exp ("virtual reads: %d", btor->stats.vreads);
-
-  btor_msg_exp ("assumptions: %u", btor->assumptions->count);
+  if (!btor->assumption_usage)
+  {
+    btor_msg_exp ("assumptions: %u", btor->assumptions->count);
+    btor_msg_exp ("array equalites: %s",
+                  btor->has_array_equalities ? "yes" : "no");
+    if (btor->has_array_equalities)
+      btor_msg_exp ("virtual reads: %d", btor->stats.vreads);
+    btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
+  }
 
   if (btor->ua.enabled)
   {
@@ -7907,6 +7912,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
+  btor->assumption_usage = 1;
+
   mm = btor->mm;
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
@@ -9207,6 +9214,91 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
+static int
+probe_exps (Btor *btor)
+{
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+  BtorPtrHashBucket *b;
+  BtorExpPtrStack stack, new_constraints;
+  BtorExp *cur;
+  BtorMemMgr *mm;
+  int ret_val, id;
+
+  assert (btor != NULL);
+
+  mm      = btor->mm;
+  ret_val = 0;
+  amgr    = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr    = btor_get_sat_mgr_aig_mgr (amgr);
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (new_constraints);
+
+  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    BTOR_PUSH_STACK (mm, stack, cur);
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      assert (cur->mark == 0 || cur->mark == 1);
+
+      /* we only search through the boolean layer */
+      if (cur->mark || cur->len != 1) continue;
+      cur->mark = 1;
+
+      if (cur->kind == BTOR_AND_EXP)
+      {
+        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+      }
+      else if (cur->kind == BTOR_BEQ_EXP)
+      {
+        /* we try to set bit-vector equality to false
+         * if SAT solver can quickly decide
+         * that this leads to unsat, then
+         * the equality must be set to true
+         * which may enable further substitutions
+         * As our abstraction variables for reads
+         * are over-approximating abstractions, this
+         * also works for equalities between read values
+         */
+        assert (BTOR_IS_SYNTH_EXP (cur));
+        assert (cur->len == 1);
+        if (BTOR_IS_CONST_AIG (cur->av->aigs[0])) continue;
+
+        id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0]);
+        if (id)
+          btor_assume_sat (smgr, -id);
+        else
+        {
+          btor_aig_to_sat (amgr, cur->av->aigs[0]);
+          id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0]);
+          assert (id != 0);
+          btor_assume_sat (smgr, -id);
+        }
+        if (btor_sat_sat (smgr, BTOR_EXP_FAILED_EQ_LIMIT) == BTOR_UNSAT)
+        {
+          BTOR_PUSH_STACK (mm, new_constraints, cur);
+          btor->stats.probed_equalities++;
+        }
+      }
+    }
+  }
+
+  /* reset mark flags */
+  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
+    btor_mark_exp (btor, (BtorExp *) b->key, 0);
+
+  ret_val = (int) BTOR_COUNT_STACK (new_constraints);
+  while (!BTOR_EMPTY_STACK (new_constraints))
+    btor_add_constraint_exp (btor, BTOR_POP_STACK (new_constraints));
+
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, new_constraints);
+  return ret_val;
+}
+
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
 {
@@ -9257,6 +9349,19 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->model_gen) synthesize_all_var_rhs (btor);
 
   assert (btor->unsynthesized_constraints->count == 0u);
+
+  if (btor->rewrite_level > 1 && !btor->assumption_usage)
+  {
+    if (probe_exps (btor))
+    {
+      substitute_vars_and_process_embedded_constraints (btor);
+      if (btor->inconsistent) return BTOR_UNSAT;
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      found_constraint_false = process_unsynthesized_constraints (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      if (found_constraint_false) return BTOR_UNSAT;
+    }
+  }
 
   /* pointer chase assumptions */
   update_assumptions (btor);
