@@ -8,6 +8,9 @@ readonly usage="*** fuzztestboolectormp: usage: ./fuzztestboolectormp [-c <limit
 readonly covdir="./covtests/"
 readonly filecovhashes="./fuzztestboolectorhashes"
 readonly filecovlock="/var/lock/fuzztestboolectormp$$lock"
+readonly lockfile="lockfile"
+readonly shmfile="/dev/shm/fuzztestboolector"
+readonly update=10
 cov=0
 numerrors=0
 sleeptime=10
@@ -29,6 +32,8 @@ function cleanup
     rm -f "$filecovhashes"
     rm -f "$filecovlock"
   fi
+  rm -f $shmfile
+  rm -f $lockfile
 }
 
 trap 'cleanup; if [[ `ls error*.btor 2> /dev/null | wc -l` -ne 0 ]]; then exit 1; fi; exit 0' SIGHUP SIGINT SIGTERM
@@ -63,13 +68,15 @@ if [[ "$cov" -eq 1 ]]; then
 fi
 
 rm -f error*.btor
+rm -f $lockfile
+echo 0 > $shmfile
 
 for ((i = 1; i <= "$processes"; i++))
 do
   if [[ "$cov" -eq 1 ]]; then
-    ./fuzztestboolector -i "$i" -c "$covlimit" -r -n > /dev/null &
+    ./fuzztestboolector -i "$i" -c "$covlimit" -r -n -s $update> /dev/null &
   else
-    ./fuzztestboolector -i "$i" -r > /dev/null &
+    ./fuzztestboolector -i "$i" -r > /dev/null -s $update &
   fi
   ids[$i]=$!
   sleep 1
@@ -103,7 +110,10 @@ do
   fi
   ((i++))
   if [[ -z "$dialog" ]] && [[ "$i" -eq 6 ]]; then
-    echo ""
+    (
+      flock -x 200
+      echo "Fuzz-tested `cat $shmfile` formulas"
+    )200>$lockfile
     i=0
   fi
   sleep "$sleeptime"

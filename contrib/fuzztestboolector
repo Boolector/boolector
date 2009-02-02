@@ -2,7 +2,7 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-readonly usage="*** fuzztestboolector: usage: ./fuzztestboolector [-i <id>] [-c <limit> [-n] [-r]]" 
+readonly usage="*** fuzztestboolector: usage: ./fuzztestboolector [-i <id>] [-c <limit> [-n] [-r] [-s <update>]]" 
 readonly covdir="./covtests/"
 readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/fuzztestboolector$$.btor"
@@ -11,6 +11,8 @@ readonly filetmp="/tmp/fuzztestboolector$$.tmp"
 readonly filecovhashes="./fuzztestboolectorhashes"
 readonly filecovlock="/var/lock/testmcbtorbtorgen${PPID}lock"
 readonly stdoutput="/tmp/fuzztestboolector$$boolectorstdout.tmp"
+readonly lockfile="lockfile"
+readonly shmfile="/dev/shm/fuzztestboolector"
 
 function cleanup
 {
@@ -51,21 +53,25 @@ if [[ -z "$smtbvfuzzer" ]]; then
 fi
 
 i=0
-counter=0
+valgrindcounter=0
 cov=0
 covlimit=0
 id=1
 covtestcounter=0
 covcleanup=1
 crosscheck=0
+stats=0
+statscounter=0
+update=0
 
-while getopts "i:c:nr" o
+while getopts "i:c:nrs:" o
 do
   case "$o" in
   i)	id=$OPTARG;;
   c)	cov=1; covlimit=$OPTARG;;
   n)	covcleanup=0;;
   r)	crosscheck=1;;
+  s)    stats=1; update=$OPTARG;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
@@ -98,7 +104,8 @@ fi
 while true 
 do 
   ((i++))
-  ((counter++))
+  ((valgrindcounter++))
+  ((statscounter++))
 
   randomnumber=$RANDOM
   ((randomnumber %= 3))
@@ -278,8 +285,8 @@ do
     fi
   fi
 
-  if [[ "$counter" -eq "$valgrindcheck" ]]; then
-    counter=0
+  if [[ "$valgrindcounter" -eq "$valgrindcheck" ]]; then
+    valgrindcounter=0
     echo -n "Test $i valg: "
     memerr=`valgrind -q ../boolector "$file" 2>&1 | grep ==`
     if [[ -n "$memerr" ]]; then
@@ -293,6 +300,16 @@ do
     echo "OK"
   fi
 
+  if [[ "$statscounter" -eq "$update" ]]; then
+    (
+      flock -x 200
+      result=`cat $shmfile`
+      result=`echo "$result + $update" | bc`
+      echo $result
+      echo $result > $shmfile
+    )200>"$lockfile"
+    statscounter=0
+  fi
   echo ""
 
 done
