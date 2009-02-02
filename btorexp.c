@@ -9268,9 +9268,7 @@ probe_exps (Btor *btor)
         if (BTOR_IS_CONST_AIG (cur->av->aigs[0])) continue;
 
         id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0]);
-        /* id can be zero as btor_add_top_level_aig_to_sat' tries
-         * to simplify the aig to cnf encoding.
-         * we do not want to introduce new clauses on the cnf layer,
+        /* we do not want to introduce new clauses on the cnf layer,
          * so we skip probing here */
         if (!id) continue;
 
