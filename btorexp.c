@@ -9268,15 +9268,13 @@ probe_exps (Btor *btor)
         if (BTOR_IS_CONST_AIG (cur->av->aigs[0])) continue;
 
         id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0]);
-        if (id)
-          btor_assume_sat (smgr, -id);
-        else
-        {
-          btor_aig_to_sat (amgr, cur->av->aigs[0]);
-          id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0]);
-          assert (id != 0);
-          btor_assume_sat (smgr, -id);
-        }
+        /* id can be zero as btor_add_top_level_aig_to_sat' tries
+         * to simplify the aig to cnf encoding.
+         * we do not want to introduce new clauses on the cnf layer,
+         * so we skip probing here */
+        if (!id) continue;
+
+        btor_assume_sat (smgr, -id);
         if (btor_sat_sat (smgr, BTOR_EXP_FAILED_EQ_LIMIT) == BTOR_UNSAT)
         {
           BTOR_PUSH_STACK (mm, new_constraints, cur);
