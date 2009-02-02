@@ -9346,7 +9346,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   assert (btor->unsynthesized_constraints->count == 0u);
 
-  if (btor->rewrite_level > 1 && !btor->assumption_usage)
+  if (btor->rewrite_level > 2 && !btor->assumption_usage)
   {
     probed = probe_exps (btor);
     if (verbosity >= 2) btor_msg_exp ("finished probing: %d", probed);
