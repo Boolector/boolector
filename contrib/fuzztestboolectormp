@@ -127,4 +127,4 @@ do
   fi
   sleep "$sleeptime"
 done | eval "$pipecmd"
-leanup
+cleanup
