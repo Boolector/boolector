@@ -7981,6 +7981,7 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
 
+  assert (!btor->stand_alone_mode);
   assert (btor != NULL);
   assert (exp != NULL);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
@@ -9289,28 +9290,136 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
+#if 0
+/* we split slices into disjoint classes */
 static void
-split_slices (Btor *btor)
+normalize_slices (Btor * btor, BtorExpPtrStack *vars)
 {
+  BtorFullParentIterator it;
+  BtorExp *var, *cur, *slice1, *slice2;
+  BtorExpPtrStack slices, final_slices, new_slices;
+  BtorMemMgr *mm;
+  int i, j;
+
   assert (btor != NULL);
+  assert (vars != NULL);
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (slices);
+  BTOR_INIT_STACK (final_slices);
+  BTOR_INIT_STACK (new_slices);
+
+  for (i = 0; i < BTOR_COUNT_STACK (*vars); i++)
+    {
+      var = vars->start[i];
+      assert (BTOR_IS_REGULAR_EXP (var));
+      assert (BTOR_IS_VAR_EXP (var));
+      init_full_parent_iterator (&it, var);
+      /* find all slices on variable */
+      while (has_next_parent_full_parent_iterator (&it))
+        {
+	  cur = next_parent_full_parent_iterator (&it);
+	  assert (BTOR_IS_REGULAR_EXP (cur));
+	  if (cur->kind == BTOR_SLICE_EXP)
+	    BTOR_PUSH_STACK (mm, slices, cur);
+	}
+      while (!BTOR_EMPTY_STACK (slices))
+        {
+	  slice1 = BTOR_POP_STACK (slices, cur);
+	  for (j = 0; j < BTOR_COUNT_STACK (slices); j++)
+	    {
+	      slice2 = slices.start[j];
+	      assert (BTOR_IS_REGULAR_EXP (slice2));
+	      if (slice1->upper == slice2->upper && 
+	        slice1->lower > 0 && slice2->lower == 0)
+	        {
+		}
+	    }
+	}
+    }
+
 }
 
 static void
-find_bv_vars_in_unique_table (Btor *btor, BtorExpPtrStack *stack)
+find_bv_vars_and_consts_in_unsynth_constraints (Btor * btor, 
+                                                BtorExpPtrStack *vars, 
+						BtorExpPtrStack *consts)
 {
+  BtorPtrHashBucket *b;
+  BtorExpPtrStack stack;
+  BtorMemMgr *mm;
+  BtorExp *cur, *real_cur;
+  int i;
+
+  assert (btor != NULL);
+  assert (vars != NULL);
+  assert (consts != NULL);
+  assert (BTOR_EMPTY_STACK (*vars));
+  assert (BTOR_EMPTY_STACK (*consts));
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (stack);
+
+  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+    {
+      cur = (BtorExp *) b->key;
+      BTOR_PUSH_STACK (mm, stack, cur);
+      do
+	{
+	  cur = BTOR_POP_STACK (stack);
+	  real_cur = BTOR_REAL_ADDR_EXP (cur);
+
+	  assert (real_cur->mark == 0 || real_cur->mark == 1);
+	  if (real_cur->mark == 1)
+	    continue;
+
+	  real_cur->mark = 1;
+
+	  if (BTOR_IS_VAR_EXP (real_cur))
+	    BTOR_PUSH_STACK (mm, *vars, cur);
+	  else if (BTOR_IS_CONST_EXP (real_cur))
+	    BTOR_PUSH_STACK (mm, *consts, cur);
+	  else
+	    {
+	      for (i = real_cur->arity - 1; i >= 0; i--)
+		BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
+	    }
+	}
+      while (!BTOR_EMPTY_STACK (stack));
+    }
+  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+    btor_mark_exp (btor, (BtorExp *) b->key, 0);
+
+  BTOR_RELEASE_STACK (mm, stack);
 }
 
-static void
-handle_bvsce (Btor *btor)
+static void 
+handle_bvsce (Btor * btor)
 {
-  BtorExpPtrStack vars;
+  BtorMemMgr *mm;
+  BtorExpPtrStack vars, consts;
 
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
   assert (btor->bvsce);
-  split_slices (btor);
+  assert (btor->assumptions->count == 0u);
+  assert (btor->varsubst_constraints->count == 0u);
+  assert (btor->embedded_constraints->count == 0u);
+  assert (btor->synthesized_constraints->count == 0u);
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (vars);
+  BTOR_INIT_STACK (consts);
+  find_bv_vars_and_consts_in_unsynth_constraints (btor, &vars, &consts);
+  split_slices (btor, &vars);
+
+  /* cleanup */
+  BTOR_RELEASE_STACK (mm, vars);
+  BTOR_RELEASE_STACK (mm, consts);
 }
+#endif
 
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
@@ -9362,7 +9471,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     if (is_bvsce (btor))
     {
       btor->bvsce = 1;
-      handle_bvsce (btor);
+      /* handle_bvsce (btor); */
     }
   }
 
