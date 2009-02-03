@@ -61,11 +61,6 @@ typedef enum BtorExpKind BtorExpKind;
 
 #define BTOR_NUM_OPS_EXP 21
 
-static const char *op2string[] = {
-    "invalid", "const",  "var",  "array", "slice", "and",   "beq",
-    "aeq",     "add",    "mul",  "ult",   "sll",   "srl",   "udiv",
-    "urem",    "concat", "read", "write", "bcond", "acond", "proxy"};
-
 typedef struct BtorExpPair BtorExpPair;
 
 #define BTOR_BV_VAR_EXP                                                        \

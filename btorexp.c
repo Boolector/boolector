@@ -21,6 +21,11 @@
 /* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
+static const char *const g_op2string[] = {
+    "invalid", "const",  "var",  "array", "slice", "and",   "beq",
+    "aeq",     "add",    "mul",  "ult",   "sll",   "srl",   "udiv",
+    "urem",    "concat", "read", "write", "bcond", "acond", "proxy"};
+
 #define BTOR_ABORT_EXP(cond, msg)                   \
   do                                                \
   {                                                 \
@@ -5452,7 +5457,7 @@ btor_print_stats_btor (Btor *btor)
     btor_msg_exp ("number of final expressions: %d", num_final_ops);
     if (num_final_ops > 0)
       for (i = 1; i < BTOR_NUM_OPS_EXP - 1; i++)
-        if (btor->ops[i]) btor_msg_exp (" %s:%d", op2string[i], btor->ops[i]);
+        if (btor->ops[i]) btor_msg_exp (" %s:%d", g_op2string[i], btor->ops[i]);
   }
 
   if (btor->ua.enabled)
