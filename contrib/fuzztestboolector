@@ -151,11 +151,11 @@ do
     $btorgen -n $n 2> /dev/null | btorold2new > "$file"
   else
     vars=$RANDOM
-    ((v &= 31))
+    ((v &= 15))
     # we need at least one variable
     ((v++))
     consts=$RANDOM
-    ((c &= 15))
+    ((c &= 7))
     $smtbvfuzzer -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
   fi
 
