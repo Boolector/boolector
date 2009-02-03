@@ -4942,6 +4942,14 @@ btor_enable_model_gen (Btor *btor)
 }
 
 void
+btor_set_stand_alone_mode (Btor *btor)
+{
+  assert (btor != NULL);
+  assert (btor->btor_sat_btor_called == 0);
+  btor->stand_alone_mode = 1;
+}
+
+void
 btor_enable_under_approx (Btor *btor)
 {
   BtorMemMgr *mm;
@@ -9355,6 +9363,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   assert (btor != NULL);
   assert (refinement_limit >= -1);
+  assert (btor->btor_sat_btor_called >= 0);
+  assert (!btor->stand_alone_mode || btor->btor_sat_btor_called == 0);
+  btor->btor_sat_btor_called++;
 
   verbosity             = btor->verbosity;
   ua                    = btor->ua.enabled;

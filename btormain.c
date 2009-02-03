@@ -1499,7 +1499,8 @@ boolector_main (int argc, char **argv)
       }
       else
       {
-        /* Regular mode */
+        /* stand alone mode */
+        btor_set_stand_alone_mode (btor);
         parser_api->reset (parser);
         parser_api = 0;
 

@@ -248,8 +248,10 @@ struct Btor
   int inconsistent;
   int model_gen;
   int external_refs;
-  int assumption_usage; /* are assumptions used ? */
-  struct                /* Under-approximation UA */
+  int assumption_usage;     /* are assumptions used ? */
+  int stand_alone_mode;     /* btor_sat_btor can only be called once */
+  int btor_sat_btor_called; /* how often is btor_sat_btor been called */
+  struct                    /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */
     BtorUAMode mode;                 /* UA mode */
@@ -403,6 +405,12 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
+
+/* This enables further optimizations
+ * as Boolector is used as a standalone SMT
+ * solver which implies that btor_sat_btor
+ * is called only once */
+void btor_set_stand_alone_mode (Btor *btor);
 
 /* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
