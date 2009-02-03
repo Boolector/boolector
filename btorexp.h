@@ -25,6 +25,9 @@ BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
 
 /* NOTE: DO NOT REORDER THE INDICES.
  * CERTAIN MACROS DEPEND ON ORDER.
+ * Some code also depends on that BTOR_INVALID_EXP, BTOR_CONST_EXP
+ * and BTOR_VAR_EXP are at the beginning,
+ * and BTOR_PROXY_EXP is BTOR_NUM_OPS_EXP - 1
  */
 enum BtorExpKind
 {
@@ -251,6 +254,7 @@ struct Btor
   int assumption_usage;     /* are assumptions used ? */
   int stand_alone_mode;     /* btor_sat_btor can only be called once */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
+  int bvsce;                /* QF_BV with slice, concat and eq */
   struct                    /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */
@@ -297,8 +301,6 @@ struct Btor
     int array_substitutions;
     /* embedded constraint substitutions */
     int ec_substitutions;
-    /* equalities found by probing */
-    int probed_equalities;
     /* number of virtual reads */
     int vreads;
     /* number of linear equations */
