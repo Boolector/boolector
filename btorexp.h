@@ -59,6 +59,13 @@ enum BtorExpKind
 
 typedef enum BtorExpKind BtorExpKind;
 
+#define BTOR_NUM_OPS_EXP 21
+
+static const char *op2string[] = {
+    "invalid", "const",  "var",  "array", "slice", "and",   "beq",
+    "aeq",     "add",    "mul",  "ult",   "sll",   "srl",   "udiv",
+    "urem",    "concat", "read", "write", "bcond", "acond", "proxy"};
+
 typedef struct BtorExpPair BtorExpPair;
 
 #define BTOR_BV_VAR_EXP                                                        \
@@ -241,7 +248,6 @@ struct Btor
   int valid_assignments;
   int rewrite_level;
   int verbosity;
-  int has_array_equalities;
   int replay;
   int vread_index_id;
   int inconsistent;
@@ -273,6 +279,7 @@ struct Btor
   BtorExpPtrStack arrays_with_model;
   BtorExpPtrStack replay_constraints;
   /* statistics */
+  int ops[BTOR_NUM_OPS_EXP];
   struct
   {
     /* number of under-approximation refinements */

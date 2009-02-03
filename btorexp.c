@@ -675,6 +675,8 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
  *
  * Virtual reads and simplified expressions have to be handled by the
  * calling function, e.g. 'btor_release_exp', to avoid recursion.
+ *
+ * We use this function to update operator stats
  */
 static void
 erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
@@ -693,45 +695,52 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
 
   mm = btor->mm;
 
-  if (BTOR_IS_CONST_EXP (exp))
+  switch (exp->kind)
   {
-    btor_freestr (mm, exp->bits);
-    exp->bits = 0;
-  }
-
-  else if (BTOR_IS_ARRAY_EXP (exp))
-  {
-    if (exp->rho != NULL)
-    {
-      btor_delete_ptr_hash_table (exp->rho);
-      exp->rho = 0;
-    }
-
-    if (BTOR_IS_ATOMIC_ARRAY_EXP (exp) && free_symbol)
-    {
-      btor_freestr (mm, exp->symbol);
-      exp->symbol = 0;
-    }
-  }
-
-  else if (BTOR_IS_VAR_EXP (exp) && free_symbol)
-  {
-    btor_freestr (mm, exp->symbol);
-    exp->symbol = 0;
-  }
-
-  else if (BTOR_IS_PROXY_EXP (exp) && free_symbol && exp->symbol != NULL)
-  {
-    btor_freestr (mm, exp->symbol);
-    exp->symbol = 0;
-  }
-  else if (BTOR_IS_ARRAY_EQ_EXP (exp))
-  {
-    if (exp->vreads)
-    {
-      BTOR_DELETE (mm, exp->vreads);
-      exp->vreads = 0;
-    }
+    case BTOR_CONST_EXP:
+      btor_freestr (mm, exp->bits);
+      exp->bits = NULL;
+      break;
+    case BTOR_ARRAY_EXP:
+      if (free_symbol)
+      {
+        btor_freestr (mm, exp->symbol);
+        exp->symbol = NULL;
+      }
+      /* fall through wanted */
+    case BTOR_WRITE_EXP:
+    case BTOR_ACOND_EXP:
+      if (exp->rho != NULL)
+      {
+        btor_delete_ptr_hash_table (exp->rho);
+        exp->rho = NULL;
+      }
+      break;
+    case BTOR_VAR_EXP:
+      if (free_symbol)
+      {
+        btor_freestr (mm, exp->symbol);
+        exp->symbol = NULL;
+      }
+      break;
+    case BTOR_PROXY_EXP:
+      if (free_symbol && exp->symbol != NULL)
+      {
+        btor_freestr (mm, exp->symbol);
+        exp->symbol = NULL;
+      }
+      break;
+    case BTOR_AEQ_EXP:
+      if (exp->vreads)
+      {
+        BTOR_DELETE (mm, exp->vreads);
+        exp->vreads = 0;
+      }
+      break;
+    case BTOR_READ_EXP:
+      if (exp->vread) btor->stats.vreads--;
+      break;
+    default: break;
   }
 
   if (exp->av)
@@ -740,6 +749,7 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
     exp->av = 0;
   }
   exp->erased = 1;
+  btor->ops[exp->kind]--;
 }
 
 /* Delete expression from memory.
@@ -1864,7 +1874,9 @@ set_simplified_exp (Btor *btor,
   }
 
   remove_from_unique_table_exp (btor, exp);
+  /* also updates op stats */
   erase_local_data_exp (btor, exp, 0);
+  btor->ops[BTOR_PROXY_EXP]++;
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
   disconnect_children_exp (btor, exp);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
@@ -2035,6 +2047,7 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   assert (btor_is_const_2vl (btor->mm, bits));
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_CONST_EXP]++;
   exp->kind  = BTOR_CONST_EXP;
   exp->bytes = sizeof *exp;
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
@@ -2061,6 +2074,7 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
 
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_SLICE_EXP]++;
   exp->kind  = BTOR_SLICE_EXP;
   exp->bytes = sizeof *exp;
   exp->arity = 1;
@@ -2114,6 +2128,7 @@ new_binary_exp_node (
 
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
+  btor->ops[kind]++;
   exp->kind  = kind;
   exp->bytes = sizeof *exp;
   exp->arity = 2;
@@ -2141,6 +2156,7 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (e1 != NULL);
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_AEQ_EXP]++;
   exp->kind  = BTOR_AEQ_EXP;
   exp->bytes = sizeof *exp;
   exp->arity = 2;
@@ -2174,6 +2190,7 @@ new_ternary_exp_node (Btor *btor,
 
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
+  btor->ops[kind]++;
   exp->kind  = kind;
   exp->bytes = sizeof *exp;
   exp->arity = 3;
@@ -2207,6 +2224,7 @@ new_write_exp_node (Btor *btor,
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_WRITE_EXP]++;
   exp->kind      = BTOR_WRITE_EXP;
   exp->bytes     = sizeof *exp;
   exp->arity     = 3;
@@ -2245,6 +2263,7 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_ACOND_EXP]++;
   exp->kind      = BTOR_ACOND_EXP;
   exp->bytes     = sizeof *exp;
   exp->arity     = 3;
@@ -2666,6 +2685,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_VAR_EXP]++;
   exp->kind   = BTOR_VAR_EXP;
   exp->bytes  = sizeof *exp;
   exp->symbol = btor_strdup (mm, symbol);
@@ -2693,6 +2713,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
+  btor->ops[BTOR_ARRAY_EXP]++;
   exp->kind      = BTOR_ARRAY_EXP;
   exp->bytes     = sizeof *exp;
   exp->symbol    = btor_strdup (mm, symbol);
@@ -5375,6 +5396,19 @@ compute_basic_ua_stats (Btor *btor,
   }
 }
 
+/* we do not count proxies */
+static int
+number_of_ops (Btor *btor)
+{
+  int i, result;
+  assert (btor != NULL);
+
+  result = 0;
+  for (i = 1; i < BTOR_NUM_OPS_EXP - 1; i++) result += btor->ops[i];
+
+  return result;
+}
+
 void
 btor_print_stats_btor (Btor *btor)
 {
@@ -5385,7 +5419,8 @@ btor_print_stats_btor (Btor *btor)
   int max_var_width, max_read_width, min_var_width, min_read_width;
   int max_var_eff_width, max_read_eff_width, min_var_eff_width;
   int min_read_eff_width, verbosity, min_width;
-  int max_width, min_eff_width, max_eff_width;
+  int max_width, min_eff_width, max_eff_width, i;
+  int num_final_ops;
   BtorUAMode ua_mode;
 
   assert (btor != NULL);
@@ -5395,7 +5430,6 @@ btor_print_stats_btor (Btor *btor)
   verbosity = btor->verbosity;
 
   report_constraint_stats (btor, 1);
-  btor_msg_exp ("number of expressions: %lld", btor->stats.expressions);
   btor_msg_exp ("variable substitutions: %d", btor->stats.var_substitutions);
   btor_msg_exp ("array substitutions: %d", btor->stats.array_substitutions);
   btor_msg_exp ("embedded constraint substitutions: %d",
@@ -5404,11 +5438,21 @@ btor_print_stats_btor (Btor *btor)
   if (!btor->assumption_usage)
   {
     btor_msg_exp ("assumptions: %u", btor->assumptions->count);
-    btor_msg_exp ("array equalites: %s",
-                  btor->has_array_equalities ? "yes" : "no");
-    if (btor->has_array_equalities)
+    if (btor->ops[BTOR_AEQ_EXP])
       btor_msg_exp ("virtual reads: %d", btor->stats.vreads);
     btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
+  }
+
+  if (verbosity > 2)
+  {
+    btor_msg_exp ("number of expressions ever created: %lld",
+                  btor->stats.expressions);
+    num_final_ops = number_of_ops (btor);
+    assert (num_final_ops >= 0);
+    btor_msg_exp ("number of final expressions: %d", num_final_ops);
+    if (num_final_ops > 0)
+      for (i = 1; i < BTOR_NUM_OPS_EXP - 1; i++)
+        if (btor->ops[i]) btor_msg_exp (" %s:%d", op2string[i], btor->ops[i]);
   }
 
   if (btor->ua.enabled)
@@ -5635,11 +5679,7 @@ set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
         case 0: break;
         case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
         case 2:
-          if (BTOR_IS_ARRAY_EQ_EXP (cur))
-          {
-            btor->has_array_equalities = 1;
-            synthesize_array_equality (btor, cur);
-          }
+          if (BTOR_IS_ARRAY_EQ_EXP (cur)) synthesize_array_equality (btor, cur);
           BTOR_PUSH_STACK (mm, stack, cur->e[1]);
           BTOR_PUSH_STACK (mm, stack, cur->e[0]);
           break;
@@ -5789,7 +5829,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           }
           else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
-            btor->has_array_equalities = 1;
             /* generate virtual reads and create AIG
              * variable for array equality */
             synthesize_array_equality (btor, cur);
@@ -6110,8 +6149,9 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
   assert (BTOR_IS_ACC_EXP (acc));
   assert (BTOR_IS_REGULAR_EXP (array));
   assert (BTOR_IS_ARRAY_EXP (array));
-  found                = 0;
-  has_array_equalities = btor->has_array_equalities;
+  found = 0;
+  assert (btor->ops[BTOR_AEQ_EXP] >= 0);
+  has_array_equalities = btor->ops[BTOR_AEQ_EXP] > 0;
   mm                   = btor->mm;
   index                = BTOR_GET_INDEX_ACC_EXP (acc);
   amgr                 = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
@@ -6607,7 +6647,8 @@ process_working_stack (Btor *btor,
   assert (btor != NULL);
   assert (stack != NULL);
   assert (assignments_changed != NULL);
-  has_array_equalities = btor->has_array_equalities;
+  assert (btor->ops[BTOR_AEQ_EXP] >= 0);
+  has_array_equalities = btor->ops[BTOR_AEQ_EXP] > 0;
   mm                   = btor->mm;
   amgr                 = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   while (!BTOR_EMPTY_STACK (*stack))
@@ -6896,9 +6937,10 @@ check_and_resolve_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
   int found_conflict, changed_assignments, has_array_equalities;
   assert (btor != NULL);
   assert (top_arrays != NULL);
-  found_conflict       = 0;
-  mm                   = btor->mm;
-  has_array_equalities = btor->has_array_equalities;
+  found_conflict = 0;
+  mm             = btor->mm;
+  assert (btor->ops[BTOR_AEQ_EXP] >= 0);
+  has_array_equalities = btor->ops[BTOR_AEQ_EXP] > 0;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   assert (!found_conflict);
   changed_assignments = 0;
