@@ -2933,6 +2933,7 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   BtorExp **lookup;
   assert (btor != NULL);
   assert (exp != NULL);
+  int inv;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
 
@@ -2940,7 +2941,15 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   assert (lower >= 0);
   assert (upper >= lower);
   assert (upper < BTOR_REAL_ADDR_EXP (exp)->len);
-  exp    = btor_pointer_chase_simplified_exp (btor, exp);
+
+  if (btor->rewrite_level > 0 && BTOR_IS_INVERTED_EXP (exp))
+  {
+    inv = 1;
+    exp = BTOR_INVERT_EXP (exp);
+  }
+  else
+    inv = 0;
+
   lookup = find_slice_exp (btor, exp, upper, lower);
   if (*lookup == NULL)
   {
@@ -2959,6 +2968,7 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_EXP (*lookup));
+  if (inv) return BTOR_INVERT_EXP (*lookup);
   return *lookup;
 }
 

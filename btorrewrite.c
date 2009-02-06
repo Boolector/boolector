@@ -109,8 +109,14 @@ slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
 #ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
   {
-    if (result->bits == NULL)
-      result->bits = bits_3vl;
+    if (BTOR_REAL_ADDR_EXP (result)->bits == NULL)
+    {
+      /* compute_slice_3vl has already inverted it,
+       * if exp is inverted
+       * we have to invert it back */
+      if (BTOR_IS_INVERTED_EXP (exp)) btor_invert_const_3vl (mm, bits_3vl);
+      BTOR_REAL_ADDR_EXP (result)->bits = bits_3vl;
+    }
     else
       btor_delete_const (mm, bits_3vl);
   }
