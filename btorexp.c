@@ -451,6 +451,95 @@ has_only_vars_consts_slices_eqs_ands (Btor *btor)
   return 1;
 }
 
+static int
+is_restricted_bv (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorExpPtrStack stack;
+  BtorMemMgr *mm;
+  BtorExp *cur;
+  int result, i;
+
+  assert (btor != NULL);
+  assert (btor->stand_alone_mode);
+  assert (btor->rewrite_level > 2);
+  assert (btor->assumptions->count == 0u);
+  assert (btor->varsubst_constraints->count == 0u);
+  assert (btor->embedded_constraints->count == 0u);
+  assert (btor->synthesized_constraints->count == 0u);
+
+  if (!has_only_vars_consts_slices_eqs_ands (btor)) return 0;
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (stack);
+  result = 1;
+
+  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+  {
+    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
+    /* boolean root? */
+    if (cur->kind != BTOR_BEQ_EXP && cur->kind != BTOR_AND_EXP)
+    {
+      result = 0;
+      goto BTOR_IS_RESTRICTED_BV_CLEANUP;
+    }
+
+    BTOR_PUSH_STACK (mm, stack, cur);
+    do
+    {
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+
+      assert (cur->mark == 0 || cur->mark == 1);
+      if (cur->mark == 1) continue;
+
+      cur->mark = 1;
+      assert (cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP);
+
+      if (cur->kind == BTOR_AND_EXP)
+      {
+        for (i = 0; i < 2; i++)
+        {
+          if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_AND_EXP
+              && BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_BEQ_EXP)
+          {
+            result = 0;
+            goto BTOR_IS_RESTRICTED_BV_CLEANUP;
+          }
+          BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+        }
+      }
+      else
+      {
+        assert (cur->kind == BTOR_BEQ_EXP);
+        if (!((BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_CONST_EXP
+               || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_VAR_EXP
+               || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_SLICE_EXP)
+              && (BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_CONST_EXP
+                  || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_VAR_EXP
+                  || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_SLICE_EXP)))
+        {
+          result = 0;
+          goto BTOR_IS_RESTRICTED_BV_CLEANUP;
+        }
+
+        for (i = 0; i < 2; i++)
+        {
+          if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_AND_EXP
+              || BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_BEQ_EXP)
+            BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+        }
+      }
+    } while (!BTOR_EMPTY_STACK (stack));
+  }
+
+BTOR_IS_RESTRICTED_BV_CLEANUP:
+  BTOR_RELEASE_STACK (mm, stack);
+  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+    btor_mark_exp (btor, (BtorExp *) b->key, 0);
+
+  return result;
+}
+
 static void
 inc_exp_ref_counter (Btor *btor, BtorExp *exp)
 {
@@ -9549,8 +9638,6 @@ find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
 
       real_cur->mark = 1;
 
-      /* TODO: check that AND is used in boolean context only */
-
       if (BTOR_IS_VAR_EXP (real_cur))
         BTOR_PUSH_STACK (mm, *vars, real_cur);
       else if (BTOR_IS_CONST_EXP (real_cur))
@@ -9642,7 +9729,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   /* handle restricted BV theory if used as stand-alone solver */
   if (btor->stand_alone_mode && btor->rewrite_level > 2)
   {
-    if (has_only_vars_consts_slices_eqs_ands (btor))
+    if (is_restricted_bv (btor))
     {
       btor->restricted_bv = 1;
       handle_restricted_bv (btor);
