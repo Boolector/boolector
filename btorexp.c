@@ -90,6 +90,14 @@ struct BtorFullParentIterator
 
 typedef struct BtorFullParentIterator BtorFullParentIterator;
 
+struct Slice
+{
+  int upper;
+  int lower;
+};
+
+typedef struct Slice Slice;
+
 #define BTOR_NEXT_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->next_parent[BTOR_GET_TAG_EXP (exp)])
 
@@ -339,6 +347,18 @@ btor_precond_cond_exp_dbg (const Btor *btor,
 
 #endif
 
+static int
+compare_int_ptr (const void *p1, const void *p2)
+{
+  int v1 = *((int *) p1);
+  int v2 = *((int *) p2);
+  if (v1 < v2) return -1;
+
+  if (v1 > v2) return 1;
+
+  return 0;
+}
+
 static void
 btor_msg_exp (char *fmt, ...)
 {
@@ -351,10 +371,71 @@ btor_msg_exp (char *fmt, ...)
   fflush (stdout);
 }
 
-/* do we have a restricted bit-vector theory where only
- * slices, concats and equality is allowed ? */
+static Slice *
+new_slice (Btor *btor, int upper, int lower)
+{
+  Slice *result;
+
+  assert (btor != NULL);
+  assert (upper >= lower);
+  assert (lower >= 0);
+
+  BTOR_NEW (btor->mm, result);
+  result->upper = upper;
+  result->lower = lower;
+  return result;
+}
+
+static void
+delete_slice (Btor *btor, Slice *slice)
+{
+  assert (btor != NULL);
+  assert (slice != NULL);
+  BTOR_DELETE (btor->mm, slice);
+}
+
+static unsigned int
+hash_slice (Slice *slice)
+{
+  unsigned int result;
+
+  assert (slice != NULL);
+  assert (slice->upper >= slice->lower);
+  assert (slice->lower >= 0);
+
+  result = (unsigned int) slice->upper;
+  result += (unsigned int) slice->lower;
+  result *= 7334147u;
+  return result;
+}
+
 static int
-is_bvsce (Btor *btor)
+compare_slices (Slice *s1, Slice *s2)
+{
+  assert (s1 != NULL);
+  assert (s2 != NULL);
+  assert (s1->upper >= s1->lower);
+  assert (s1->lower >= 0);
+  assert (s2->upper >= s2->lower);
+  assert (s2->lower >= 0);
+
+  if (s1->upper < s2->upper) return -1;
+
+  if (s1->upper > s2->upper) return 1;
+
+  assert (s1->upper == s1->upper);
+  if (s1->lower < s2->lower) return -1;
+
+  if (s1->lower > s2->lower) return 1;
+
+  assert (s1->upper == s2->upper && s1->lower == s2->lower);
+  return 0;
+}
+
+/* do we have a restricted bit-vector theory ?
+ * note: concats should have already been eliminated by rewriting */
+static int
+has_only_vars_consts_slices_eqs_ands (Btor *btor)
 {
   int i;
 
@@ -363,11 +444,10 @@ is_bvsce (Btor *btor)
   for (i = 3; i < BTOR_NUM_OPS_EXP - 1; i++)
   {
     assert (btor->ops[i] >= 0);
-    if (i != BTOR_SLICE_EXP && i != BTOR_CONCAT_EXP && i != BTOR_BEQ_EXP
-        && i != BTOR_AND_EXP && btor->ops[i] > 0)
+    if (i != BTOR_SLICE_EXP && i != BTOR_BEQ_EXP && i != BTOR_AND_EXP
+        && btor->ops[i] > 0)
       return 0;
   }
-  /* TODO: check that BTOR_AND_EXP occurs only in boolean context */
   return 1;
 }
 
@@ -5477,7 +5557,8 @@ btor_print_stats_btor (Btor *btor)
 
   if (verbosity > 2)
   {
-    btor_msg_exp ("bvsce: %s", btor->bvsce ? "yes" : "no");
+    btor_msg_exp ("restricted BV theory: %s",
+                  btor->restricted_bv ? "yes" : "no");
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -9290,60 +9371,154 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
-#if 0
 /* we split slices into disjoint classes */
 static void
-normalize_slices (Btor * btor, BtorExpPtrStack *vars)
+normalize_slices (Btor *btor, BtorExpPtrStack *vars)
 {
   BtorFullParentIterator it;
-  BtorExp *var, *cur, *slice1, *slice2;
-  BtorExpPtrStack slices, final_slices, new_slices;
+  BtorPtrHashBucket *b1, *b2;
+  BtorExp *var, *cur;
+  Slice *s1, *s2, *new_s1, *new_s2, *new_s3;
+  BtorPtrHashTable *slices;
   BtorMemMgr *mm;
-  int i, j;
+  int i, min, max;
+  int vals[4];
 
   assert (btor != NULL);
   assert (vars != NULL);
 
   mm = btor->mm;
-  BTOR_INIT_STACK (slices);
-  BTOR_INIT_STACK (final_slices);
-  BTOR_INIT_STACK (new_slices);
 
   for (i = 0; i < BTOR_COUNT_STACK (*vars); i++)
+  {
+    slices = btor_new_ptr_hash_table (
+        mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
+    var = vars->start[i];
+    assert (BTOR_IS_REGULAR_EXP (var));
+    assert (BTOR_IS_VAR_EXP (var));
+    init_full_parent_iterator (&it, var);
+    /* find all slices on variable */
+    while (has_next_parent_full_parent_iterator (&it))
     {
-      var = vars->start[i];
-      assert (BTOR_IS_REGULAR_EXP (var));
-      assert (BTOR_IS_VAR_EXP (var));
-      init_full_parent_iterator (&it, var);
-      /* find all slices on variable */
-      while (has_next_parent_full_parent_iterator (&it))
-        {
-	  cur = next_parent_full_parent_iterator (&it);
-	  assert (BTOR_IS_REGULAR_EXP (cur));
-	  if (cur->kind == BTOR_SLICE_EXP)
-	    BTOR_PUSH_STACK (mm, slices, cur);
-	}
-      while (!BTOR_EMPTY_STACK (slices))
-        {
-	  slice1 = BTOR_POP_STACK (slices, cur);
-	  for (j = 0; j < BTOR_COUNT_STACK (slices); j++)
-	    {
-	      slice2 = slices.start[j];
-	      assert (BTOR_IS_REGULAR_EXP (slice2));
-	      if (slice1->upper == slice2->upper && 
-	        slice1->lower > 0 && slice2->lower == 0)
-	        {
-		}
-	    }
-	}
+      cur = next_parent_full_parent_iterator (&it);
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      if (cur->kind == BTOR_SLICE_EXP)
+      {
+        s1 = new_slice (btor, cur->upper, cur->lower);
+        assert (!btor_find_in_ptr_hash_table (slices, s1));
+        btor_insert_in_ptr_hash_table (slices, s1);
+      }
     }
 
+    /* add full slice */
+    s1 = new_slice (btor, var->len - 1, 0);
+    assert (!btor_find_in_ptr_hash_table (slices, s1));
+    btor_insert_in_ptr_hash_table (slices, s1);
+
+  BTOR_SPLIT_SLICES_RESTART:
+    for (b1 = slices->last; b1 != NULL; b1 = b1->prev)
+    {
+      s1 = (Slice *) b1->key;
+      for (b2 = b1->prev; b2 != NULL; b2 = b2->prev)
+      {
+        s2 = (Slice *) b2->key;
+
+        assert (compare_slices (s1, s2));
+
+        /* not overlapping? */
+        if ((s1->lower > s2->upper) || (s1->upper < s2->lower)
+            || (s2->lower > s1->upper) || (s2->upper < s1->lower))
+          continue;
+
+        if (s1->upper == s2->upper)
+        {
+          assert (s1->lower != s2->lower);
+          max    = BTOR_MAX_UTIL (s1->lower, s2->lower);
+          min    = BTOR_MIN_UTIL (s1->lower, s2->lower);
+          new_s1 = new_slice (btor, max - 1, min);
+          if (!btor_find_in_ptr_hash_table (slices, new_s1))
+            btor_insert_in_ptr_hash_table (slices, new_s1);
+          else
+            delete_slice (btor, new_s1);
+
+          if (min == s1->lower)
+          {
+            btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
+            delete_slice (btor, s1);
+          }
+          else
+          {
+            btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
+            delete_slice (btor, s2);
+          }
+          goto BTOR_SPLIT_SLICES_RESTART;
+        }
+
+        if (s1->lower == s2->lower)
+        {
+          assert (s1->upper != s2->upper);
+          max    = BTOR_MAX_UTIL (s1->upper, s2->upper);
+          min    = BTOR_MIN_UTIL (s1->upper, s2->upper);
+          new_s1 = new_slice (btor, max, min + 1);
+          if (!btor_find_in_ptr_hash_table (slices, new_s1))
+            btor_insert_in_ptr_hash_table (slices, new_s1);
+          else
+            delete_slice (btor, new_s1);
+          if (max == s1->upper)
+          {
+            btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
+            delete_slice (btor, s1);
+          }
+          else
+          {
+            btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
+            delete_slice (btor, s2);
+          }
+          goto BTOR_SPLIT_SLICES_RESTART;
+        }
+
+        /* regular overlapping case (overlapping at both ends) */
+        vals[0] = s1->upper;
+        vals[1] = s1->lower;
+        vals[2] = s2->upper;
+        vals[3] = s2->lower;
+        qsort (vals, 4, sizeof (int), compare_int_ptr);
+        new_s1 = new_slice (btor, vals[3], vals[2] + 1);
+        new_s2 = new_slice (btor, vals[2], vals[1] + 1);
+        new_s3 = new_slice (btor, vals[1], vals[0]);
+        btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
+        btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
+        delete_slice (btor, s1);
+        delete_slice (btor, s2);
+        if (!btor_find_in_ptr_hash_table (slices, new_s1))
+          btor_insert_in_ptr_hash_table (slices, new_s1);
+        else
+          delete_slice (btor, new_s1);
+        if (!btor_find_in_ptr_hash_table (slices, new_s2))
+          btor_insert_in_ptr_hash_table (slices, new_s2);
+        else
+          delete_slice (btor, new_s2);
+        if (!btor_find_in_ptr_hash_table (slices, new_s3))
+          btor_insert_in_ptr_hash_table (slices, new_s3);
+        else
+          delete_slice (btor, new_s3);
+        goto BTOR_SPLIT_SLICES_RESTART;
+      }
+    }
+    for (b1 = slices->first; b1 != NULL; b1 = b1->next)
+    {
+      s1 = (Slice *) b1->key;
+      /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
+      delete_slice (btor, s1);
+    }
+    btor_delete_ptr_hash_table (slices);
+  }
 }
 
 static void
-find_bv_vars_and_consts_in_unsynth_constraints (Btor * btor, 
-                                                BtorExpPtrStack *vars, 
-						BtorExpPtrStack *consts)
+find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
+                                                BtorExpPtrStack *vars,
+                                                BtorExpPtrStack *consts)
 {
   BtorPtrHashBucket *b;
   BtorExpPtrStack stack;
@@ -9361,40 +9536,40 @@ find_bv_vars_and_consts_in_unsynth_constraints (Btor * btor,
   BTOR_INIT_STACK (stack);
 
   for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    BTOR_PUSH_STACK (mm, stack, cur);
+    do
     {
-      cur = (BtorExp *) b->key;
-      BTOR_PUSH_STACK (mm, stack, cur);
-      do
-	{
-	  cur = BTOR_POP_STACK (stack);
-	  real_cur = BTOR_REAL_ADDR_EXP (cur);
+      cur      = BTOR_POP_STACK (stack);
+      real_cur = BTOR_REAL_ADDR_EXP (cur);
 
-	  assert (real_cur->mark == 0 || real_cur->mark == 1);
-	  if (real_cur->mark == 1)
-	    continue;
+      assert (real_cur->mark == 0 || real_cur->mark == 1);
+      if (real_cur->mark == 1) continue;
 
-	  real_cur->mark = 1;
+      real_cur->mark = 1;
 
-	  if (BTOR_IS_VAR_EXP (real_cur))
-	    BTOR_PUSH_STACK (mm, *vars, cur);
-	  else if (BTOR_IS_CONST_EXP (real_cur))
-	    BTOR_PUSH_STACK (mm, *consts, cur);
-	  else
-	    {
-	      for (i = real_cur->arity - 1; i >= 0; i--)
-		BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
-	    }
-	}
-      while (!BTOR_EMPTY_STACK (stack));
-    }
+      /* TODO: check that AND is used in boolean context only */
+
+      if (BTOR_IS_VAR_EXP (real_cur))
+        BTOR_PUSH_STACK (mm, *vars, real_cur);
+      else if (BTOR_IS_CONST_EXP (real_cur))
+        BTOR_PUSH_STACK (mm, *consts, cur);
+      else
+      {
+        for (i = real_cur->arity - 1; i >= 0; i--)
+          BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
+      }
+    } while (!BTOR_EMPTY_STACK (stack));
+  }
   for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
     btor_mark_exp (btor, (BtorExp *) b->key, 0);
 
   BTOR_RELEASE_STACK (mm, stack);
 }
 
-static void 
-handle_bvsce (Btor * btor)
+static void
+handle_restricted_bv (Btor *btor)
 {
   BtorMemMgr *mm;
   BtorExpPtrStack vars, consts;
@@ -9402,7 +9577,7 @@ handle_bvsce (Btor * btor)
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
-  assert (btor->bvsce);
+  assert (btor->restricted_bv);
   assert (btor->assumptions->count == 0u);
   assert (btor->varsubst_constraints->count == 0u);
   assert (btor->embedded_constraints->count == 0u);
@@ -9413,13 +9588,12 @@ handle_bvsce (Btor * btor)
   BTOR_INIT_STACK (vars);
   BTOR_INIT_STACK (consts);
   find_bv_vars_and_consts_in_unsynth_constraints (btor, &vars, &consts);
-  split_slices (btor, &vars);
+  normalize_slices (btor, &vars);
 
   /* cleanup */
   BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, consts);
 }
-#endif
 
 int
 btor_sat_btor (Btor *btor, int refinement_limit)
@@ -9465,13 +9639,13 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
 
-  /* handle QF_BVSCE if used as stand-alone solver*/
+  /* handle restricted BV theory if used as stand-alone solver */
   if (btor->stand_alone_mode && btor->rewrite_level > 2)
   {
-    if (is_bvsce (btor))
+    if (has_only_vars_consts_slices_eqs_ands (btor))
     {
-      btor->bvsce = 1;
-      /* handle_bvsce (btor); */
+      btor->restricted_bv = 1;
+      handle_restricted_bv (btor);
     }
   }
 

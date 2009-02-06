@@ -254,7 +254,7 @@ struct Btor
   int assumption_usage;     /* are assumptions used ? */
   int stand_alone_mode;     /* btor_sat_btor can only be called once */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
-  int bvsce;                /* QF_BV with slice, concat and eq */
+  int restricted_bv;        /* restricted BV theory ? */
   struct                    /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */
