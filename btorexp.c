@@ -432,6 +432,12 @@ compare_slices (Slice *s1, Slice *s2)
   return 0;
 }
 
+static int
+compare_slices_qsort (const void *p1, const void *p2)
+{
+  return compare_slices (*((Slice **) p1), *((Slice **) p2));
+}
+
 /* do we have a restricted bit-vector theory ?
  * note: concats should have already been eliminated by rewriting */
 static int
@@ -9467,10 +9473,10 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
   BtorFullParentIterator it;
   BtorPtrHashBucket *b1, *b2;
   BtorExp *var, *cur;
-  Slice *s1, *s2, *new_s1, *new_s2, *new_s3;
+  Slice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
   BtorPtrHashTable *slices;
   BtorMemMgr *mm;
-  int i, min, max;
+  int i, j, min, max;
   int vals[4];
 
   assert (btor != NULL);
@@ -9594,12 +9600,23 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
         goto BTOR_SPLIT_SLICES_RESTART;
       }
     }
+    /* copy slices to sort them */
+    BTOR_NEWN (mm, sorted_slices, slices->count);
+    j = 0;
     for (b1 = slices->first; b1 != NULL; b1 = b1->next)
     {
-      s1 = (Slice *) b1->key;
+      s1                 = (Slice *) b1->key;
+      sorted_slices[j++] = s1;
+    }
+    qsort (
+        sorted_slices, slices->count, sizeof (Slice *), compare_slices_qsort);
+    for (j = 0; j < (int) slices->count; j++)
+    {
+      s1 = sorted_slices[j];
       /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
       delete_slice (btor, s1);
     }
+    BTOR_DELETEN (mm, sorted_slices, slices->count);
     btor_delete_ptr_hash_table (slices);
   }
 }
