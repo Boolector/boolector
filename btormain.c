@@ -1049,6 +1049,7 @@ boolector_main (int argc, char **argv)
     {
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
+      btor_set_stand_alone_mode (btor);
       if (app.rewrite_level >= 2)
         btor_dump_exps_after_full_rewriting (
             btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
@@ -1059,6 +1060,7 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
+      btor_set_stand_alone_mode (btor);
       if (parse_res.noutputs != 1)
       {
         print_msg_va_args (&app,

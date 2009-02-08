@@ -115,6 +115,7 @@ typedef struct Slice Slice;
 
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_vars_and_process_embedded_constraints (Btor *);
+static void handle_restricted_bv (Btor *);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -4806,6 +4807,7 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
   BtorExp *temp, **new_roots;
   BtorPtrHashBucket *b;
   int new_nroots, i;
+  assert (btor->stand_alone_mode);
 
   for (i = 0; i < nroots; i++)
   {
@@ -4818,6 +4820,12 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
   }
 
   substitute_vars_and_process_embedded_constraints (btor);
+
+  if (btor->rewrite_level > 2 && is_restricted_bv (btor))
+  {
+    btor->restricted_bv = 1;
+    handle_restricted_bv (btor);
+  }
 
   if (btor->inconsistent)
   {
@@ -8643,7 +8651,7 @@ substitute_var_exps (Btor *btor)
  * each other.
  */
 static void
-substitute_and_rebuild_exp (Btor *btor, BtorPtrHashTable *table)
+substitute_and_rebuild_exps (Btor *btor, BtorPtrHashTable *table)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -8702,9 +8710,10 @@ substitute_and_rebuild_exp (Btor *btor, BtorPtrHashTable *table)
 
     if (cur->aux_mark == 0) continue;
 
+    /*
     assert (!BTOR_IS_CONST_EXP (cur));
     assert (!BTOR_IS_VAR_EXP (cur));
-    assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+    assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));*/
 
     if (cur->aux_mark == 1)
     {
@@ -8761,7 +8770,7 @@ substitute_embedded_constraints_and_rebuild (Btor *btor)
   /* embedded constraints have their simplified pointer set
    * to TRUE.
    */
-  substitute_and_rebuild_exp (btor, btor->embedded_constraints);
+  substitute_and_rebuild_exps (btor, btor->embedded_constraints);
 }
 
 static void
@@ -9517,9 +9526,9 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
 {
   BtorFullParentIterator it;
   BtorPtrHashBucket *b1, *b2;
-  BtorExp *var, *cur;
+  BtorExp *var, *cur, *result, *lambda_var, *temp;
   Slice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
-  BtorPtrHashTable *slices;
+  BtorPtrHashTable *slices, *subst;
   BtorMemMgr *mm;
   int i, j, min, max;
   int vals[4];
@@ -9527,7 +9536,10 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
   assert (btor != NULL);
   assert (vars != NULL);
 
-  mm = btor->mm;
+  mm    = btor->mm;
+  subst = btor_new_ptr_hash_table (mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
 
   for (i = 0; i < BTOR_COUNT_STACK (*vars); i++)
   {
@@ -9655,15 +9667,36 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     }
     qsort (
         sorted_slices, slices->count, sizeof (Slice *), compare_slices_qsort);
-    for (j = 0; j < (int) slices->count; j++)
+
+    assert (slices->count > 0u);
+    s1     = sorted_slices[(int) slices->count - 1];
+    result = lambda_var_exp (btor, s1->upper - s1->lower + 1);
+    delete_slice (btor, s1);
+    for (j = (int) slices->count - 2; j >= 0; j--)
     {
-      s1 = sorted_slices[j];
-      /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
+      s1         = sorted_slices[j];
+      lambda_var = lambda_var_exp (btor, s1->upper - s1->lower + 1);
+      temp       = btor_concat_exp (btor, result, lambda_var);
+      btor_release_exp (btor, result);
+      result = temp;
+      btor_release_exp (btor, lambda_var);
+      printf ("[%d:%d]\n", s1->upper, s1->lower);
       delete_slice (btor, s1);
     }
     BTOR_DELETEN (mm, sorted_slices, slices->count);
     btor_delete_ptr_hash_table (slices);
+
+    /* set simplified pointer of variable to result */
+    assert (var->simplified == NULL);
+    set_simplified_exp (btor, var, result, 0);
+    btor_release_exp (btor, result);
+
+    /* insert into hashtable for substitution */
+    btor_insert_in_ptr_hash_table (subst, var);
   }
+
+  substitute_and_rebuild_exps (btor, subst);
+  btor_delete_ptr_hash_table (subst);
 }
 
 static void
@@ -9722,6 +9755,8 @@ handle_restricted_bv (Btor *btor)
 {
   BtorMemMgr *mm;
   BtorExpPtrStack vars, consts;
+
+  return;
 
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
