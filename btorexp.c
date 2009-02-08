@@ -9660,9 +9660,10 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     BTOR_DELETEN (mm, sorted_slices, slices->count);
     btor_delete_ptr_hash_table (slices);
 
-    /* TODO Substitute */
+    insert_varsubst_constraint (btor, var, result);
     btor_release_exp (btor, result);
   }
+  substitute_vars_and_process_embedded_constraints (btor);
 }
 
 static void
