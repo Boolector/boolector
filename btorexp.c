@@ -9535,13 +9535,17 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
       }
     }
 
+    /* no splitting necessary? */
+    if (slices->count == 0u)
+    {
+      btor_delete_ptr_hash_table (slices);
+      continue;
+    }
+
     /* add full slice */
     s1 = new_slice (btor, var->len - 1, 0);
     assert (!btor_find_in_ptr_hash_table (slices, s1));
     btor_insert_in_ptr_hash_table (slices, s1);
-
-    /* no splitting necessary? */
-    if (slices->count == 1) continue;
 
   BTOR_SPLIT_SLICES_RESTART:
     for (b1 = slices->last; b1 != NULL; b1 = b1->prev)
@@ -9635,6 +9639,7 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     }
 
     /* copy slices to sort them */
+    assert (slices->count > 1u);
     BTOR_NEWN (mm, sorted_slices, slices->count);
     j = 0;
     for (b1 = slices->first; b1 != NULL; b1 = b1->next)
@@ -9645,7 +9650,6 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     qsort (
         sorted_slices, slices->count, sizeof (Slice *), compare_slices_qsort);
 
-    assert (slices->count > 0u);
     s1 = sorted_slices[(int) slices->count - 1];
     /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
     result = lambda_var_exp (btor, s1->upper - s1->lower + 1);
@@ -9668,7 +9672,9 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     insert_varsubst_constraint (btor, var, result);
     btor_release_exp (btor, result);
   }
-  substitute_vars_and_process_embedded_constraints (btor);
+
+  if (btor->varsubst_constraints > 0u)
+    substitute_vars_and_process_embedded_constraints (btor);
 }
 
 static void
