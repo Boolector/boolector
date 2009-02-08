@@ -9609,8 +9609,8 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
         vals[3] = s2->lower;
         qsort (vals, 4, sizeof (int), compare_int_ptr);
         new_s1 = new_slice (btor, vals[3], vals[2] + 1);
-        new_s2 = new_slice (btor, vals[2], vals[1] + 1);
-        new_s3 = new_slice (btor, vals[1], vals[0]);
+        new_s2 = new_slice (btor, vals[2], vals[1]);
+        new_s3 = new_slice (btor, vals[1] - 1, vals[0]);
         btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
         btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
         delete_slice (btor, s1);
@@ -9659,6 +9659,7 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     }
     BTOR_DELETEN (mm, sorted_slices, slices->count);
     btor_delete_ptr_hash_table (slices);
+    /* printf ("\n"); */
 
     insert_varsubst_constraint (btor, var, result);
     btor_release_exp (btor, result);
