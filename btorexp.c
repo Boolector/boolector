@@ -9540,6 +9540,9 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     assert (!btor_find_in_ptr_hash_table (slices, s1));
     btor_insert_in_ptr_hash_table (slices, s1);
 
+    /* no splitting necessary? */
+    if (slices->count == 1) continue;
+
   BTOR_SPLIT_SLICES_RESTART:
     for (b1 = slices->last; b1 != NULL; b1 = b1->prev)
     {
@@ -9630,6 +9633,7 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
         goto BTOR_SPLIT_SLICES_RESTART;
       }
     }
+
     /* copy slices to sort them */
     BTOR_NEWN (mm, sorted_slices, slices->count);
     j = 0;
