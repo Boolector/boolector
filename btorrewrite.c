@@ -191,19 +191,26 @@ rewrite_slice_exp_bounded (
       assert (btor->rewrite_level >= 3);
       /* concats are normalized at rewrite level 3 */
       /* we recursively check if slice and child of concat matches */
-      if (lower >= BTOR_REAL_ADDR_EXP (real_exp->e[1])->len)
+      len = BTOR_REAL_ADDR_EXP (real_exp->e[1])->len;
+      if (lower >= len)
       {
         *calls += 1;
-        len = BTOR_REAL_ADDR_EXP (real_exp->e[1])->len;
-        if (BTOR_IS_INVERTED_EXP (exp))
-          result = rewrite_slice_exp_bounded (btor,
-                                              BTOR_INVERT_EXP (real_exp->e[0]),
-                                              upper - len,
-                                              lower - len,
-                                              calls);
-        else
-          result = rewrite_slice_exp_bounded (
-              btor, real_exp->e[0], upper - len, lower - len, calls);
+        result = rewrite_slice_exp_bounded (
+            btor,
+            BTOR_COND_INVERT_EXP (exp, real_exp->e[0]),
+            upper - len,
+            lower - len,
+            calls);
+      }
+      else if (upper < len)
+      {
+        *calls += 1;
+        result = rewrite_slice_exp_bounded (
+            btor,
+            BTOR_COND_INVERT_EXP (exp, real_exp->e[1]),
+            upper,
+            lower,
+            calls);
       }
     }
   }
