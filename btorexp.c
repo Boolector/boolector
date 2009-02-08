@@ -499,41 +499,53 @@ is_restricted_bv (Btor *btor)
       if (cur->mark == 1) continue;
 
       cur->mark = 1;
-      assert (cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP);
+      assert (cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP
+              || cur->kind == BTOR_SLICE_EXP);
 
-      if (cur->kind == BTOR_AND_EXP)
+      switch (cur->kind)
       {
-        for (i = 0; i < 2; i++)
-        {
-          if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_AND_EXP
-              && BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_BEQ_EXP)
+        case BTOR_AND_EXP:
+          for (i = 0; i < 2; i++)
+          {
+            if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_AND_EXP
+                && BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_BEQ_EXP)
+            {
+              result = 0;
+              goto BTOR_IS_RESTRICTED_BV_CLEANUP;
+            }
+            BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+          }
+          break;
+        case BTOR_BEQ_EXP:
+          assert (cur->kind == BTOR_BEQ_EXP);
+          if (!((BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_CONST_EXP
+                 || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_VAR_EXP
+                 || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_SLICE_EXP)
+                && (BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_CONST_EXP
+                    || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_VAR_EXP
+                    || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_SLICE_EXP)))
           {
             result = 0;
             goto BTOR_IS_RESTRICTED_BV_CLEANUP;
           }
-          BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-        }
-      }
-      else
-      {
-        assert (cur->kind == BTOR_BEQ_EXP);
-        if (!((BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_CONST_EXP
-               || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_VAR_EXP
-               || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_SLICE_EXP)
-              && (BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_CONST_EXP
-                  || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_VAR_EXP
-                  || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_SLICE_EXP)))
-        {
-          result = 0;
-          goto BTOR_IS_RESTRICTED_BV_CLEANUP;
-        }
 
-        for (i = 0; i < 2; i++)
-        {
-          if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_AND_EXP
-              || BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_BEQ_EXP)
-            BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-        }
+          for (i = 0; i < 2; i++)
+          {
+            if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_AND_EXP
+                || BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_BEQ_EXP
+                || BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_SLICE_EXP)
+              BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+          }
+          break;
+        default:
+          if (BTOR_IS_INVERTED_EXP (cur->e[0])
+              || (cur->e[0]->kind != BTOR_VAR_EXP
+                  && (cur->e[0]->kind != BTOR_CONST_EXP)))
+          {
+            result = 0;
+            goto BTOR_IS_RESTRICTED_BV_CLEANUP;
+          }
+          break;
       }
     } while (!BTOR_EMPTY_STACK (stack));
   }
