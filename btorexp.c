@@ -8303,7 +8303,7 @@ update_assumptions (Btor *btor)
 /* we perform all variable substitutions in one pass and rebuild the formula
  * cyclic substitutions must have been deleted before! */
 static void
-rebuild_and_substitute_var_exps (Btor *btor, BtorPtrHashTable *substs)
+substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -8615,7 +8615,7 @@ substitute_var_exps (Btor *btor)
     }
 
     /* we rebuild and substiute variables in one pass */
-    rebuild_and_substitute_var_exps (btor, substs);
+    substitute_var_and_rebuild_exps (btor, substs);
 
     /* cleanup, we delete all substitution constraints */
     for (b = substs->first; b != NULL; b = b->next)
@@ -8637,9 +8637,13 @@ substitute_var_exps (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
-/* we substitute all embedded constraints by true and rebuild the formula */
+/* Simple substitution and rebuild of all involved expression.
+ * the simplified pointer has to be set before calling this
+ * function. The substitutions should be independent from
+ * each other.
+ */
 static void
-rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
+substitute_and_rebuild_exp (Btor *btor, BtorPtrHashTable *table)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -8647,27 +8651,22 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
+
   assert (btor != NULL);
-  assert (ec != NULL);
-  assert (ec->count > 0u);
+  assert (table != NULL);
+
+  if (table->count == 0u) return;
 
   mm = btor->mm;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (root_stack);
 
-  /* we push all embedded constraints on the search stack */
-  for (b = ec->first; b != NULL; b = b->next)
+  /* we push all elements on the search stack */
+  for (b = table->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
-    assert (BTOR_REAL_ADDR_EXP (cur)->constraint);
-    /* embedded constraints have possibly lost their parents,
-     * e.g. top conjunction of constraints that are released */
-    if (has_parents_exp (btor, cur))
-    {
-      btor->stats.ec_substitutions++;
-      BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
-    }
+    BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
   }
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -8741,6 +8740,30 @@ rebuild_and_substitute_embedded_constraints (Btor *btor, BtorPtrHashTable *ec)
   BTOR_RELEASE_STACK (mm, root_stack);
 }
 
+/* we substitute all embedded constraints by true and rebuild the formula */
+static void
+substitute_embedded_constraints_and_rebuild (Btor *btor)
+{
+  BtorExp *cur;
+  BtorPtrHashBucket *b;
+
+  assert (btor != NULL);
+  /* update stats */
+  for (b = btor->embedded_constraints->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_REAL_ADDR_EXP (cur)->constraint);
+    /* embedded constraints have possibly lost their parents,
+     * e.g. top conjunction of constraints that are released */
+    if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
+  }
+
+  /* embedded constraints have their simplified pointer set
+   * to TRUE.
+   */
+  substitute_and_rebuild_exp (btor, btor->embedded_constraints);
+}
+
 static void
 process_embedded_constraints (Btor *btor)
 {
@@ -8751,7 +8774,7 @@ process_embedded_constraints (Btor *btor)
   ec = btor->embedded_constraints;
   if (ec->count > 0u)
   {
-    rebuild_and_substitute_embedded_constraints (btor, ec);
+    substitute_embedded_constraints_and_rebuild (btor);
 
     while (ec->count > 0u)
     {
