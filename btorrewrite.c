@@ -130,7 +130,7 @@ rewrite_slice_exp_bounded (
     Btor *btor, BtorExp *exp, int upper, int lower, int *calls)
 {
   BtorMemMgr *mm;
-  BtorExp *real_exp, *result;
+  BtorExp *real_exp, *result, *tmp;
   char *bresult;
   int len, len_result;
 
@@ -211,6 +211,20 @@ rewrite_slice_exp_bounded (
             upper,
             lower,
             calls);
+      }
+      else if (lower == 0)
+      {
+        assert (upper >= len);
+        *calls += 1;
+        tmp = rewrite_slice_exp_bounded (
+            btor,
+            BTOR_COND_INVERT_EXP (exp, real_exp->e[0]),
+            upper - len,
+            0,
+            calls);
+        result = btor_concat_exp (
+            btor, tmp, BTOR_COND_INVERT_EXP (exp, real_exp->e[1]));
+        btor_release_exp (btor, tmp);
       }
     }
   }
