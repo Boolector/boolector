@@ -838,6 +838,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   }
   else if (BTOR_IS_BV_VAR_EXP (exp))
   {
+    btor_remove_from_ptr_hash_table (btor->bv_vars, exp, 0, 0);
     if (btor->ua.enabled)
     {
       btor_remove_from_ptr_hash_table (
@@ -847,7 +848,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   }
   else if (BTOR_IS_ARRAY_VAR_EXP (exp))
   {
-    btor_remove_from_ptr_hash_table (btor->arrays, exp, 0, 0);
+    btor_remove_from_ptr_hash_table (btor->array_vars, exp, 0, 0);
   }
   else
   {
@@ -2892,6 +2893,7 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
   if (btor->ua.enabled) hash_var_read_for_ua (btor, (BtorExp *) exp);
+  (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
   return (BtorExp *) exp;
 }
 
@@ -2919,7 +2921,7 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  (void) btor_insert_in_ptr_hash_table (btor->arrays, exp);
+  (void) btor_insert_in_ptr_hash_table (btor->array_vars, exp);
   return (BtorExp *) exp;
 }
 
@@ -5082,10 +5084,14 @@ btor_new_btor (void)
   BTOR_CNEW (mm, btor);
   btor->mm = mm;
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr             = btor_new_aigvec_mgr (mm);
-  btor->arrays            = btor_new_ptr_hash_table (mm,
-                                          (BtorHashPtr) btor_hash_exp_by_id,
-                                          (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->avmgr   = btor_new_aigvec_mgr (mm);
+  btor->bv_vars = btor_new_ptr_hash_table (mm,
+                                           (BtorHashPtr) btor_hash_exp_by_id,
+                                           (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->array_vars =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor->id                = 1;
   btor->lambda_id         = 1;
   btor->valid_assignments = 1;
@@ -5311,7 +5317,8 @@ btor_delete_btor (Btor *btor)
 
   assert (getenv ("BTORLEAKEXP") || btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor_delete_ptr_hash_table (btor->arrays);
+  btor_delete_ptr_hash_table (btor->bv_vars);
+  btor_delete_ptr_hash_table (btor->array_vars);
 
   if (btor->ua.enabled)
   {
@@ -7078,7 +7085,7 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
-  for (bucket = btor->arrays->first; bucket; bucket = bucket->next)
+  for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
   {
     cur_array = (BtorExp *) bucket->key;
     assert (BTOR_IS_ARRAY_VAR_EXP (cur_array));
