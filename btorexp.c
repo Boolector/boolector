@@ -624,7 +624,6 @@ remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
 static void
 disconnect_children_exp (Btor *btor, BtorExp *exp)
 {
-  BtorMemMgr *mm;
   BtorUAData *ua_data;
   int i;
 
@@ -638,8 +637,6 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   assert (!exp->unique);
   assert (exp->erased);
   assert (!exp->disconnected);
-
-  mm = btor->mm;
 
   if (BTOR_IS_PROXY_EXP (exp))
   {
