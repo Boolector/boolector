@@ -38,26 +38,26 @@ enum BtorExpKind
    */
   BTOR_INVALID_EXP = 0,
 
-  BTOR_CONST_EXP  = 1,
-  BTOR_VAR_EXP    = 2,
-  BTOR_ARRAY_EXP  = 3,
-  BTOR_SLICE_EXP  = 4,
-  BTOR_AND_EXP    = 5,
-  BTOR_BEQ_EXP    = 6, /* equality on bit vectors */
-  BTOR_AEQ_EXP    = 7, /* equality on arrays */
-  BTOR_ADD_EXP    = 8,
-  BTOR_MUL_EXP    = 9,
-  BTOR_ULT_EXP    = 10,
-  BTOR_SLL_EXP    = 11,
-  BTOR_SRL_EXP    = 12,
-  BTOR_UDIV_EXP   = 13,
-  BTOR_UREM_EXP   = 14,
-  BTOR_CONCAT_EXP = 15,
-  BTOR_READ_EXP   = 16,
-  BTOR_WRITE_EXP  = 17,
-  BTOR_BCOND_EXP  = 18, /* conditional on bit vectors */
-  BTOR_ACOND_EXP  = 19, /* conditional on arrays */
-  BTOR_PROXY_EXP  = 20, /* simplified expression without children */
+  BTOR_CONST_EXP     = 1,
+  BTOR_BV_VAR_EXP    = 2,
+  BTOR_ARRAY_VAR_EXP = 3,
+  BTOR_SLICE_EXP     = 4,
+  BTOR_AND_EXP       = 5,
+  BTOR_BEQ_EXP       = 6, /* equality on bit vectors */
+  BTOR_AEQ_EXP       = 7, /* equality on arrays */
+  BTOR_ADD_EXP       = 8,
+  BTOR_MUL_EXP       = 9,
+  BTOR_ULT_EXP       = 10,
+  BTOR_SLL_EXP       = 11,
+  BTOR_SRL_EXP       = 12,
+  BTOR_UDIV_EXP      = 13,
+  BTOR_UREM_EXP      = 14,
+  BTOR_CONCAT_EXP    = 15,
+  BTOR_READ_EXP      = 16,
+  BTOR_WRITE_EXP     = 17,
+  BTOR_BCOND_EXP     = 18, /* conditional on bit vectors */
+  BTOR_ACOND_EXP     = 19, /* conditional on arrays */
+  BTOR_PROXY_EXP     = 20, /* simplified expression without children */
 };
 
 typedef enum BtorExpKind BtorExpKind;
@@ -66,7 +66,7 @@ typedef enum BtorExpKind BtorExpKind;
 
 typedef struct BtorExpPair BtorExpPair;
 
-#define BTOR_BV_VAR_EXP                                                        \
+#define BTOR_BV_VAR_EXP_STRUCT                                                 \
   struct                                                                       \
   {                                                                            \
     BtorExpKind kind : 5;        /* kind of expression */                      \
@@ -107,7 +107,7 @@ typedef struct BtorExpPair BtorExpPair;
     struct BtorExp *last_parent;  /* tail of parent list */                    \
   }
 
-#define BTOR_BV_ADDITIONAL_EXP                                               \
+#define BTOR_BV_ADDITIONAL_EXP_STRUCT                                        \
   struct                                                                     \
   {                                                                          \
     union                                                                    \
@@ -128,7 +128,7 @@ typedef struct BtorExpPair BtorExpPair;
     struct BtorExp *next_parent[3]; /* next exp in parent list of child i */ \
   }
 
-#define BTOR_ARRAY_VAR_EXP                                                   \
+#define BTOR_ARRAY_VAR_EXP_STRUCT                                            \
   struct                                                                     \
   {                                                                          \
     int index_len;                          /* length of the index */        \
@@ -138,7 +138,7 @@ typedef struct BtorExpPair BtorExpPair;
                                                conditional in parent list */ \
   }
 
-#define BTOR_ARRAY_ADDITIONAL_EXP                                          \
+#define BTOR_ARRAY_ADDITIONAL_EXP_STRUCT                                   \
   struct                                                                   \
   {                                                                        \
     struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or    \
@@ -151,7 +151,7 @@ typedef struct BtorExpPair BtorExpPair;
 
 struct BtorBVVarExp
 {
-  BTOR_BV_VAR_EXP;
+  BTOR_BV_VAR_EXP_STRUCT;
   char *symbol;
 };
 
@@ -159,34 +159,34 @@ typedef struct BtorBVVarExp BtorBVVarExp;
 
 struct BtorBVConstExp
 {
-  BTOR_BV_VAR_EXP;
+  BTOR_BV_VAR_EXP_STRUCT;
 };
 
 typedef struct BtorBVConstExp BtorBVConstExp;
 
 struct BtorBVExp
 {
-  BTOR_BV_VAR_EXP;
-  BTOR_BV_ADDITIONAL_EXP;
+  BTOR_BV_VAR_EXP_STRUCT;
+  BTOR_BV_ADDITIONAL_EXP_STRUCT;
 };
 
 typedef struct BtorBVExp BtorBVExp;
 
 struct BtorArrayVarExp
 {
-  BTOR_BV_VAR_EXP;
-  BTOR_BV_ADDITIONAL_EXP;
-  BTOR_ARRAY_VAR_EXP;
+  BTOR_BV_VAR_EXP_STRUCT;
+  BTOR_BV_ADDITIONAL_EXP_STRUCT;
+  BTOR_ARRAY_VAR_EXP_STRUCT;
 };
 
 typedef struct BtorArrayVarExp BtorArrayVarExp;
 
 struct BtorExp
 {
-  BTOR_BV_VAR_EXP;
-  BTOR_BV_ADDITIONAL_EXP;
-  BTOR_ARRAY_VAR_EXP;
-  BTOR_ARRAY_ADDITIONAL_EXP;
+  BTOR_BV_VAR_EXP_STRUCT;
+  BTOR_BV_ADDITIONAL_EXP_STRUCT;
+  BTOR_ARRAY_VAR_EXP_STRUCT;
+  BTOR_ARRAY_ADDITIONAL_EXP_STRUCT;
 };
 
 struct BtorExpUniqueTable
@@ -326,15 +326,15 @@ struct Btor
 };
 
 #define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
-#define BTOR_IS_VAR_EXP_KIND(kind) ((kind) == BTOR_VAR_EXP)
+#define BTOR_IS_BV_VAR_EXP_KIND(kind) ((kind) == BTOR_BV_VAR_EXP)
 #define BTOR_IS_READ_EXP_KIND(kind) (kind == BTOR_READ_EXP)
 #define BTOR_IS_WRITE_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
 #define BTOR_IS_ARRAY_COND_EXP_KIND(kind) (kind == BTOR_ACOND_EXP)
 #define BTOR_IS_PROXY_EXP_KIND(kind) ((kind) == BTOR_PROXY_EXP)
 #define BTOR_IS_BV_COND_EXP_KIND(kind) (kind == BTOR_BCOND_EXP)
-#define BTOR_IS_ATOMIC_ARRAY_EXP_KIND(kind) (kind == BTOR_ARRAY_EXP)
-#define BTOR_IS_ARRAY_EXP_KIND(kind)                        \
-  (((kind) == BTOR_ARRAY_EXP) || ((kind) == BTOR_WRITE_EXP) \
+#define BTOR_IS_ARRAY_VAR_EXP_KIND(kind) (kind == BTOR_ARRAY_VAR_EXP)
+#define BTOR_IS_ARRAY_EXP_KIND(kind)                            \
+  (((kind) == BTOR_ARRAY_VAR_EXP) || ((kind) == BTOR_WRITE_EXP) \
    || ((kind) == BTOR_ACOND_EXP))
 #define BTOR_IS_ARRAY_EQ_EXP_KIND(kind) (kind == BTOR_AEQ_EXP)
 #define BTOR_IS_BV_EQ_EXP_KIND(kind) (kind == BTOR_BEQ_EXP)
@@ -347,7 +347,7 @@ struct Btor
   (((kind) >= BTOR_WRITE_EXP) && ((kind) <= BTOR_ACOND_EXP))
 
 #define BTOR_IS_CONST_EXP(exp) (BTOR_IS_CONST_EXP_KIND ((exp)->kind))
-#define BTOR_IS_VAR_EXP(exp) (BTOR_IS_VAR_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BV_VAR_EXP(exp) (BTOR_IS_BV_VAR_EXP_KIND ((exp)->kind))
 #define BTOR_IS_READ_EXP(exp) (BTOR_IS_READ_EXP_KIND ((exp)->kind))
 #define BTOR_IS_WRITE_EXP(exp) (BTOR_IS_WRITE_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_COND_EXP(exp) (BTOR_IS_ARRAY_COND_EXP_KIND ((exp)->kind))
@@ -355,8 +355,7 @@ struct Btor
 #define BTOR_IS_PROXY_EXP(exp) (BTOR_IS_PROXY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_OR_BV_COND_EXP(exp) \
   (BTOR_IS_ARRAY_COND_EXP (exp) || BTOR_IS_BV_COND_EXP (exp))
-#define BTOR_IS_ATOMIC_ARRAY_EXP(exp) \
-  (BTOR_IS_ATOMIC_ARRAY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_VAR_EXP(exp) (BTOR_IS_ARRAY_VAR_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_EXP(exp) (BTOR_IS_ARRAY_EXP_KIND ((exp)->kind))
 #define BTOR_IS_ARRAY_EQ_EXP(exp) (BTOR_IS_ARRAY_EQ_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BV_EQ_EXP(exp) (BTOR_IS_BV_EQ_EXP_KIND ((exp)->kind))

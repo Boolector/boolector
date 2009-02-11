@@ -627,8 +627,8 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
   assert (pos <= 2);
   assert (BTOR_IS_REGULAR_EXP (parent));
   assert (!BTOR_IS_CONST_EXP (parent));
-  assert (!BTOR_IS_VAR_EXP (parent));
-  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (parent));
+  assert (!BTOR_IS_BV_VAR_EXP (parent));
+  assert (!BTOR_IS_ARRAY_VAR_EXP (parent));
   (void) btor;
   tagged_parent = BTOR_TAG_EXP (parent, pos);
   /* special treatment of array children of aeq and acond */
@@ -736,8 +736,8 @@ compute_hash_exp (BtorExp *exp, int table_size)
   assert (table_size > 0);
   assert (btor_is_power_of_2_util (table_size));
   assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (!BTOR_IS_VAR_EXP (exp));
-  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (exp));
+  assert (!BTOR_IS_BV_VAR_EXP (exp));
+  assert (!BTOR_IS_ARRAY_VAR_EXP (exp));
   if (BTOR_IS_CONST_EXP (exp))
     hash = btor_hashstr ((void *) exp->bits);
   else
@@ -835,7 +835,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   {
     /* do nothing */
   }
-  else if (BTOR_IS_VAR_EXP (exp))
+  else if (BTOR_IS_BV_VAR_EXP (exp))
   {
     if (btor->ua.enabled)
     {
@@ -844,7 +844,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
       if (ua_data != NULL) delete_ua_data (btor, ua_data);
     }
   }
-  else if (BTOR_IS_ATOMIC_ARRAY_EXP (exp))
+  else if (BTOR_IS_ARRAY_VAR_EXP (exp))
   {
     btor_remove_from_ptr_hash_table (btor->arrays, exp, 0, 0);
   }
@@ -896,7 +896,7 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
       btor_freestr (mm, exp->bits);
       exp->bits = NULL;
       break;
-    case BTOR_ARRAY_EXP:
+    case BTOR_ARRAY_VAR_EXP:
       if (free_symbol)
       {
         btor_freestr (mm, exp->symbol);
@@ -911,7 +911,7 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
         exp->rho = NULL;
       }
       break;
-    case BTOR_VAR_EXP:
+    case BTOR_BV_VAR_EXP:
       if (free_symbol)
       {
         btor_freestr (mm, exp->symbol);
@@ -1754,7 +1754,7 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
 
   assert (read1->e[1] == read2->e[1]);
   assert (BTOR_IS_REGULAR_EXP (read1->e[1]));
-  assert (BTOR_IS_VAR_EXP (read1->e[1]));
+  assert (BTOR_IS_BV_VAR_EXP (read1->e[1]));
   assert (read1->len == read2->len);
 
   av1 = read1->av;
@@ -2292,7 +2292,7 @@ hash_var_read_for_ua (Btor *btor, BtorExp *exp)
   assert (btor != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_INVERTED_EXP (exp));
-  assert (BTOR_IS_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
+  assert (BTOR_IS_BV_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
   assert (btor->ua.enabled);
   assert (!btor_find_in_ptr_hash_table (btor->ua.vars_reads, exp));
 
@@ -2651,8 +2651,8 @@ enlarge_exp_unique_table (Btor *btor)
     while (cur != NULL)
     {
       assert (BTOR_IS_REGULAR_EXP (cur));
-      assert (!BTOR_IS_VAR_EXP (cur));
-      assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      assert (!BTOR_IS_BV_VAR_EXP (cur));
+      assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
       temp             = cur->next;
       hash             = compute_hash_exp (cur, new_size);
       cur->next        = new_chains[hash];
@@ -2880,8 +2880,8 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
-  btor->ops[BTOR_VAR_EXP]++;
-  exp->kind   = BTOR_VAR_EXP;
+  btor->ops[BTOR_BV_VAR_EXP]++;
+  exp->kind   = BTOR_BV_VAR_EXP;
   exp->bytes  = sizeof *exp;
   exp->symbol = btor_strdup (mm, symbol);
   exp->len    = len;
@@ -2908,8 +2908,8 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->stats.expressions++;
-  btor->ops[BTOR_ARRAY_EXP]++;
-  exp->kind      = BTOR_ARRAY_EXP;
+  btor->ops[BTOR_ARRAY_VAR_EXP]++;
+  exp->kind      = BTOR_ARRAY_VAR_EXP;
   exp->bytes     = sizeof *exp;
   exp->symbol    = btor_strdup (mm, symbol);
   exp->index_len = index_len;
@@ -4341,7 +4341,7 @@ btor_next_exp_bmc (Btor *btor,
             btor_copy_exp (btor, cur);
         cur->mark = 2;
       }
-      else if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      else if (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur))
       {
         bucket = btor_find_in_ptr_hash_table (reg_table, cur);
         if (bucket == NULL)
@@ -4353,7 +4353,7 @@ btor_next_exp_bmc (Btor *btor,
           bucket = btor_find_in_ptr_hash_table (input_table, cur);
           if (bucket == NULL)
           {
-            if (BTOR_IS_VAR_EXP (cur))
+            if (BTOR_IS_BV_VAR_EXP (cur))
             {
               assert (cur->symbol != NULL);
               var_name_len =
@@ -4365,7 +4365,7 @@ btor_next_exp_bmc (Btor *btor,
             }
             else
             {
-              assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+              assert (BTOR_IS_ARRAY_VAR_EXP (cur));
               var_name_len =
                   strlen (cur->symbol) + btor_num_digits_util (k) + 2;
               BTOR_NEWN (mm, var_name, var_name_len);
@@ -4417,8 +4417,8 @@ btor_next_exp_bmc (Btor *btor,
     else
     {
       assert (cur->mark == 1);
-      assert (!BTOR_IS_VAR_EXP (cur) && !BTOR_IS_CONST_EXP (cur)
-              && !BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      assert (!BTOR_IS_BV_VAR_EXP (cur) && !BTOR_IS_CONST_EXP (cur)
+              && !BTOR_IS_ARRAY_VAR_EXP (cur));
       switch (cur->arity)
       {
         case 1:
@@ -4695,7 +4695,7 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
                  e->lower);
         break;
 
-      case BTOR_ARRAY_EXP:
+      case BTOR_ARRAY_VAR_EXP:
         fprintf (file, "array %d %d", e->len, e->index_len);
         break;
 
@@ -4724,8 +4724,8 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
         break;
 
       default:
-      case BTOR_VAR_EXP:
-        assert (e->kind == BTOR_VAR_EXP);
+      case BTOR_BV_VAR_EXP:
+        assert (e->kind == BTOR_BV_VAR_EXP);
         fprintf (file, "var %d", e->len);
         sprintf (idbuffer, "%d", e->id);
         assert (e->symbol);
@@ -4860,7 +4860,7 @@ btor_dump_smt_id (BtorExp *e, FILE *file)
 
   if (u != e) fputs ("(bvnot ", file);
 
-  if (BTOR_IS_VAR_EXP (u))
+  if (BTOR_IS_BV_VAR_EXP (u))
   {
     sym = u->symbol;
     if (!isdigit (sym[0]))
@@ -4871,7 +4871,7 @@ btor_dump_smt_id (BtorExp *e, FILE *file)
 
     type = "v";
   }
-  else if (BTOR_IS_ATOMIC_ARRAY_EXP (u))
+  else if (BTOR_IS_ARRAY_VAR_EXP (u))
     type = "a";
   else
     type = "?e";
@@ -4911,9 +4911,9 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     if (BTOR_IS_CONST_EXP (e)) continue;
 
-    if (BTOR_IS_VAR_EXP (e)) continue;
+    if (BTOR_IS_BV_VAR_EXP (e)) continue;
 
-    if (BTOR_IS_ATOMIC_ARRAY_EXP (e))
+    if (BTOR_IS_ARRAY_VAR_EXP (e))
     {
       arrays = 1;
       continue;
@@ -4941,12 +4941,12 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (!BTOR_IS_VAR_EXP (e) && !BTOR_IS_ATOMIC_ARRAY_EXP (e)) continue;
+    if (!BTOR_IS_BV_VAR_EXP (e) && !BTOR_IS_ARRAY_VAR_EXP (e)) continue;
 
     fputs (":extrafuns ((", file);
     btor_dump_smt_id (e, file);
 
-    if (BTOR_IS_VAR_EXP (e))
+    if (BTOR_IS_BV_VAR_EXP (e))
       fprintf (file, " BitVec[%d]))\n", e->len);
     else
       fprintf (file, " Array[%d:%d]))\n", e->index_len, e->len);
@@ -4962,7 +4962,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (BTOR_IS_VAR_EXP (e) || BTOR_IS_ATOMIC_ARRAY_EXP (e)) continue;
+    if (BTOR_IS_BV_VAR_EXP (e) || BTOR_IS_ARRAY_VAR_EXP (e)) continue;
 
     lets++;
 
@@ -5528,7 +5528,7 @@ compute_basic_ua_stats (Btor *btor,
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
     if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
@@ -5548,7 +5548,7 @@ compute_basic_ua_stats (Btor *btor,
       *sum_refs += data->refinements;
     }
 
-    if (BTOR_IS_VAR_EXP (cur))
+    if (BTOR_IS_BV_VAR_EXP (cur))
     {
       sum_var_width += cur->len;
 
@@ -5976,7 +5976,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (!BTOR_IS_ATOMIC_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
+  assert (!BTOR_IS_ARRAY_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (!BTOR_IS_WRITE_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (!BTOR_IS_ARRAY_COND_EXP (BTOR_REAL_ADDR_EXP (exp)));
 
@@ -6000,7 +6000,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
         cur->reachable = 1;
         if (BTOR_IS_CONST_EXP (cur))
           cur->av = btor_const_aigvec (avmgr, cur->bits);
-        else if (BTOR_IS_VAR_EXP (cur))
+        else if (BTOR_IS_BV_VAR_EXP (cur))
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
           if (backannoation)
@@ -6035,7 +6035,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 
           /* atomic arrays and array conditionals
            * should also not be reached directly */
-          assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+          assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
           assert (!BTOR_IS_ARRAY_COND_EXP (cur));
 
           /* special cases */
@@ -7080,7 +7080,7 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
   for (bucket = btor->arrays->first; bucket; bucket = bucket->next)
   {
     cur_array = (BtorExp *) bucket->key;
-    assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur_array));
+    assert (BTOR_IS_ARRAY_VAR_EXP (cur_array));
     assert (cur_array->simplified == NULL);
     if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
   }
@@ -7380,8 +7380,8 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   switch (exp->kind)
   {
     case BTOR_CONST_EXP:
-    case BTOR_VAR_EXP:
-    case BTOR_ARRAY_EXP: return btor_copy_exp (btor, exp->simplified);
+    case BTOR_BV_VAR_EXP:
+    case BTOR_ARRAY_VAR_EXP: return btor_copy_exp (btor, exp->simplified);
     case BTOR_SLICE_EXP:
       return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
     case BTOR_AND_EXP: return btor_and_exp (btor, exp->e[0], exp->e[1]);
@@ -7514,7 +7514,7 @@ rewrite_linear_term_bounded (Btor *btor,
     *rhs_ptr = btor_mul_exp (btor, other, tmp);
     btor_release_exp (btor, tmp);
   }
-  else if (term->kind == BTOR_VAR_EXP)
+  else if (term->kind == BTOR_BV_VAR_EXP)
   {
     *lhs_ptr    = btor_copy_exp (btor, term);
     *rhs_ptr    = btor_zero_exp (btor, term->len);
@@ -7577,7 +7577,7 @@ slice_on_var_subst_rhs (
   assert (var != NULL);
   assert (e_const != NULL);
   assert (!BTOR_IS_INVERTED_EXP (var));
-  assert (BTOR_IS_VAR_EXP (var));
+  assert (BTOR_IS_BV_VAR_EXP (var));
   assert (btor_is_const_2vl (btor->mm, BTOR_REAL_ADDR_EXP (e_const)->bits));
   assert (upper < var->len);
   assert (upper >= lower);
@@ -7743,7 +7743,7 @@ normalize_substitution (Btor *btor,
 
   mm = btor->mm;
 
-  if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)))
+  if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (exp)))
   {
     assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
     if (BTOR_IS_INVERTED_EXP (exp))
@@ -7761,7 +7761,8 @@ normalize_substitution (Btor *btor,
   }
 
   if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_SLICE_EXP
-      && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
+      && BTOR_IS_BV_VAR_EXP (
+             BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
   {
     upper = BTOR_REAL_ADDR_EXP (exp)->upper;
     lower = BTOR_REAL_ADDR_EXP (exp)->lower;
@@ -7793,8 +7794,9 @@ normalize_substitution (Btor *btor,
   }
 
   if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_ULT_EXP
-      && (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0]))
-          || BTOR_IS_VAR_EXP (
+      && (BTOR_IS_BV_VAR_EXP (
+              BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0]))
+          || BTOR_IS_BV_VAR_EXP (
                  BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[1]))))
   {
     real_exp = BTOR_REAL_ADDR_EXP (exp);
@@ -7804,14 +7806,14 @@ normalize_substitution (Btor *btor,
     else
       comp = BTOR_SUBST_COMP_ULT_KIND;
 
-    if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_exp->e[0])))
+    if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_exp->e[0])))
     {
       var   = real_exp->e[0];
       right = real_exp->e[1];
     }
     else
     {
-      assert (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_exp->e[1])));
+      assert (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_exp->e[1])));
       var   = real_exp->e[1];
       right = real_exp->e[0];
       comp  = reverse_subst_comp_kind (btor, comp);
@@ -7884,14 +7886,14 @@ normalize_substitution (Btor *btor,
     left  = BTOR_REAL_ADDR_EXP (exp)->e[0];
     right = BTOR_REAL_ADDR_EXP (exp)->e[1];
 
-    if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (left)))
+    if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (left)))
     {
       *left_result  = btor_copy_exp (btor, left);
       *right_result = BTOR_INVERT_EXP (btor_copy_exp (btor, right));
       goto BTOR_NORMALIZE_SUBST_RESULT;
     }
 
-    if (BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (right)))
+    if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (right)))
     {
       *left_result  = btor_copy_exp (btor, right);
       *right_result = BTOR_INVERT_EXP (btor_copy_exp (btor, left));
@@ -7907,7 +7909,7 @@ normalize_substitution (Btor *btor,
   real_right = BTOR_REAL_ADDR_EXP (right);
 
   if (real_left->kind == BTOR_SLICE_EXP && BTOR_IS_CONST_EXP (real_right)
-      && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_left->e[0])))
+      && BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_left->e[0])))
   {
     upper = real_left->upper;
     lower = real_left->lower;
@@ -7930,7 +7932,7 @@ normalize_substitution (Btor *btor,
   }
 
   if (real_right->kind == BTOR_SLICE_EXP && BTOR_IS_CONST_EXP (real_left)
-      && BTOR_IS_VAR_EXP (BTOR_REAL_ADDR_EXP (real_right->e[0])))
+      && BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_right->e[0])))
   {
     upper = real_right->upper;
     lower = real_right->lower;
@@ -7952,9 +7954,9 @@ normalize_substitution (Btor *btor,
     return 1;
   }
 
-  if (!BTOR_IS_VAR_EXP (real_left) && !BTOR_IS_VAR_EXP (real_right)
-      && !BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
-      && !BTOR_IS_ATOMIC_ARRAY_EXP (real_right))
+  if (!BTOR_IS_BV_VAR_EXP (real_left) && !BTOR_IS_BV_VAR_EXP (real_right)
+      && !BTOR_IS_ARRAY_VAR_EXP (real_left)
+      && !BTOR_IS_ARRAY_VAR_EXP (real_right))
   {
     if (rewrite_linear_term (btor, left, &fc, left_result, &tmp))
       *right_result = btor_sub_exp (btor, right, tmp);
@@ -7975,9 +7977,9 @@ normalize_substitution (Btor *btor,
   }
   else
   {
-    if ((!BTOR_IS_VAR_EXP (real_left) && BTOR_IS_VAR_EXP (real_right))
-        || (!BTOR_IS_ATOMIC_ARRAY_EXP (real_left)
-            && BTOR_IS_ATOMIC_ARRAY_EXP (real_right)))
+    if ((!BTOR_IS_BV_VAR_EXP (real_left) && BTOR_IS_BV_VAR_EXP (real_right))
+        || (!BTOR_IS_ARRAY_VAR_EXP (real_left)
+            && BTOR_IS_ARRAY_VAR_EXP (real_right)))
     {
       *left_result  = right;
       *right_result = left;
@@ -8315,7 +8317,7 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   {
     cur = (BtorExp *) b->key;
     assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
     BTOR_PUSH_STACK (mm, stack, cur);
   }
   do
@@ -8357,7 +8359,7 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     {
       BTOR_PUSH_STACK (mm, stack, cur);
       cur->aux_mark = 2;
-      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      if (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur))
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b != NULL);
@@ -8376,7 +8378,7 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     {
       assert (cur->aux_mark == 2);
       cur->aux_mark = 0;
-      if (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+      if (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur))
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b != NULL);
@@ -8384,7 +8386,7 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
         rhs = (BtorExp *) b->data.asPtr;
         assert (rhs != NULL);
         rebuilt_exp = btor_copy_exp (btor, rhs);
-        if (BTOR_IS_VAR_EXP (cur))
+        if (BTOR_IS_BV_VAR_EXP (cur))
           btor->stats.var_substitutions++;
         else
           btor->stats.array_substitutions++;
@@ -8442,7 +8444,7 @@ substitute_var_exps (Btor *btor)
       b   = varsubst_constraints->first;
       cur = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
-      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
       btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
       btor_remove_from_ptr_hash_table (varsubst_constraints, cur, NULL, NULL);
     }
@@ -8454,7 +8456,7 @@ substitute_var_exps (Btor *btor)
     {
       cur = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
-      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
       BTOR_PUSH_STACK (mm, stack, (BtorExp *) cur);
 
       while (!BTOR_EMPTY_STACK (stack))
@@ -8465,7 +8467,7 @@ substitute_var_exps (Btor *btor)
         {
           cur = BTOR_POP_STACK (stack);
           assert (BTOR_IS_REGULAR_EXP (cur));
-          assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+          assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
           assert (btor_find_in_ptr_hash_table (order, cur) == NULL);
           btor_insert_in_ptr_hash_table (order, cur)->data.asInt = order_num++;
           continue;
@@ -8475,8 +8477,8 @@ substitute_var_exps (Btor *btor)
 
         cur->mark = 1;
 
-        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_VAR_EXP (cur)
-            || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur)
+            || BTOR_IS_ARRAY_VAR_EXP (cur))
         {
           b_temp = btor_find_in_ptr_hash_table (substs, cur);
           if (b_temp != NULL)
@@ -8505,8 +8507,8 @@ substitute_var_exps (Btor *btor)
     for (b = substs->first; b != NULL; b = b->next)
     {
       assert (BTOR_IS_REGULAR_EXP ((BtorExp *) b->key));
-      assert (BTOR_IS_VAR_EXP ((BtorExp *) b->key)
-              || BTOR_IS_ATOMIC_ARRAY_EXP ((BtorExp *) b->key));
+      assert (BTOR_IS_BV_VAR_EXP ((BtorExp *) b->key)
+              || BTOR_IS_ARRAY_VAR_EXP ((BtorExp *) b->key));
       btor_mark_exp (btor, (BtorExp *) b->key, 0);
       btor_mark_exp (btor, (BtorExp *) b->data.asPtr, 0);
     }
@@ -8516,7 +8518,7 @@ substitute_var_exps (Btor *btor)
     {
       cur = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
-      assert (BTOR_IS_VAR_EXP (cur) || BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+      assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
       BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
 
       /* we assume that there are no direct loops
@@ -8527,8 +8529,8 @@ substitute_var_exps (Btor *btor)
 
         if (cur->mark == 2) continue;
 
-        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_VAR_EXP (cur)
-            || BTOR_IS_ATOMIC_ARRAY_EXP (cur))
+        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur)
+            || BTOR_IS_ARRAY_VAR_EXP (cur))
         {
           assert (btor_find_in_ptr_hash_table (order, cur) != NULL);
           continue;
@@ -8570,7 +8572,7 @@ substitute_var_exps (Btor *btor)
     {
       left = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (left));
-      assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
+      assert (BTOR_IS_BV_VAR_EXP (left) || BTOR_IS_ARRAY_VAR_EXP (left));
       right = (BtorExp *) b->data.asPtr;
       btor_mark_exp (btor, left, 0);
       btor_mark_exp (btor, right, 0);
@@ -8590,7 +8592,7 @@ substitute_var_exps (Btor *btor)
     {
       left = BTOR_POP_STACK (stack);
       assert (BTOR_IS_REGULAR_EXP (left));
-      assert (BTOR_IS_VAR_EXP (left) || BTOR_IS_ATOMIC_ARRAY_EXP (left));
+      assert (BTOR_IS_BV_VAR_EXP (left) || BTOR_IS_ARRAY_VAR_EXP (left));
       right =
           (BtorExp *) btor_find_in_ptr_hash_table (substs, left)->data.asPtr;
       assert (right != NULL);
@@ -8694,8 +8696,8 @@ substitute_embedded_constr_and_rebuild (Btor *btor, BtorPtrHashTable *ec)
     if (cur->aux_mark == 0) continue;
 
     assert (!BTOR_IS_CONST_EXP (cur));
-    assert (!BTOR_IS_VAR_EXP (cur));
-    assert (!BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+    assert (!BTOR_IS_BV_VAR_EXP (cur));
+    assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
 
     if (cur->aux_mark == 1)
     {
@@ -8785,7 +8787,7 @@ max_len_global_under_approx_vars (Btor *btor)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
     if (cur->len > max) max = cur->len;
   }
   return max;
@@ -8800,7 +8802,7 @@ update_local_under_approx_eff_width (Btor *btor, BtorExp *exp, BtorUAData *data)
   assert (exp != NULL);
   assert (data != NULL);
   assert (!BTOR_IS_INVERTED_EXP (exp));
-  assert (BTOR_IS_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
+  assert (BTOR_IS_BV_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
 
   max_string = "";
 
@@ -8824,7 +8826,7 @@ update_local_under_approx_eff_width (Btor *btor, BtorExp *exp, BtorUAData *data)
 
   if (btor->verbosity >= 3)
   {
-    if (BTOR_IS_VAR_EXP (exp))
+    if (BTOR_IS_BV_VAR_EXP (exp))
       btor_msg_exp ("UA: setting effective bit-width of %s to %d%s",
                     exp->symbol,
                     data->eff_width,
@@ -8895,7 +8897,7 @@ update_under_approx_eff_width (Btor *btor)
       data = (BtorUAData *) b->data.asPtr;
 
       assert (!BTOR_IS_INVERTED_EXP (cur));
-      assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+      assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
       e = data->last_e;
 
@@ -8920,7 +8922,7 @@ update_under_approx_eff_width (Btor *btor)
       data->updated_eff_width = 0;
 
       assert (!BTOR_IS_INVERTED_EXP (cur));
-      assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+      assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
       e = data->last_e;
 
@@ -8988,7 +8990,7 @@ encode_under_approx_const_extend (Btor *btor, int phase)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
     if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
@@ -9116,7 +9118,7 @@ encode_under_approx_sign_extend (Btor *btor)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
     if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
@@ -9332,7 +9334,7 @@ encode_under_approx_eq_classes (Btor *btor)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
     if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
 
@@ -9429,7 +9431,7 @@ synthesize_reads_and_writes_for_under_approx (Btor *btor)
   {
     cur = (BtorExp *) b->key;
     assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
     if (cur->kind == BTOR_READ_EXP && (cur->reachable || cur->vread))
       lazy_synthesize_and_encode_acc_exp (btor, cur, 0);

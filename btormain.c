@@ -884,7 +884,7 @@ generate_regs_eq_zero (Btor *btor,
   {
     cur = bv_regs->start[i];
     assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_VAR_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur));
     bucket = btor_find_in_ptr_hash_table (inst_table, cur);
     assert (bucket != NULL);
     assert (bucket->data.asPtr != NULL);
@@ -1127,9 +1127,9 @@ boolector_main (int argc, char **argv)
         for (i = 0; i < parse_res.ninputs; i++)
         {
           assert (!BTOR_IS_INVERTED_EXP (parse_res.inputs[i]));
-          assert (BTOR_IS_VAR_EXP (parse_res.inputs[i])
-                  || BTOR_IS_ATOMIC_ARRAY_EXP (parse_res.inputs[i]));
-          if (BTOR_IS_VAR_EXP (parse_res.inputs[i]))
+          assert (BTOR_IS_BV_VAR_EXP (parse_res.inputs[i])
+                  || BTOR_IS_ARRAY_VAR_EXP (parse_res.inputs[i]));
+          if (BTOR_IS_BV_VAR_EXP (parse_res.inputs[i]))
             BTOR_PUSH_STACK (
                 mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
           else
@@ -1181,11 +1181,11 @@ boolector_main (int argc, char **argv)
         {
           cur = parse_res.regs[i];
           assert (BTOR_IS_REGULAR_EXP (cur));
-          if (BTOR_IS_VAR_EXP (cur))
+          if (BTOR_IS_BV_VAR_EXP (cur))
             BTOR_PUSH_STACK (mem, bv_regs, cur);
           else
           {
-            assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+            assert (BTOR_IS_ARRAY_VAR_EXP (cur));
             BTOR_PUSH_STACK (mem, array_regs, cur);
           }
         }
@@ -1227,7 +1227,7 @@ boolector_main (int argc, char **argv)
           {
             cur = bv_regs.start[i];
             assert (BTOR_IS_REGULAR_EXP (cur));
-            assert (BTOR_IS_VAR_EXP (cur));
+            assert (BTOR_IS_BV_VAR_EXP (cur));
             assert (cur->symbol != NULL);
             var_name_len =
                 strlen (cur->symbol) + btor_num_digits_util (bmck) + 2;
@@ -1262,7 +1262,7 @@ boolector_main (int argc, char **argv)
           {
             cur = array_regs.start[i];
             assert (BTOR_IS_REGULAR_EXP (cur));
-            assert (BTOR_IS_ATOMIC_ARRAY_EXP (cur));
+            assert (BTOR_IS_ARRAY_VAR_EXP (cur));
             assert (cur->symbol != NULL);
             var_name_len =
                 strlen (cur->symbol) + btor_num_digits_util (bmck) + 2;
@@ -1351,8 +1351,8 @@ boolector_main (int argc, char **argv)
                  bucket = bucket->next)
             {
               var = (BtorExp *) bucket->data.asPtr;
-              assert (BTOR_IS_VAR_EXP (var) || BTOR_IS_ATOMIC_ARRAY_EXP (var));
-              if (BTOR_IS_VAR_EXP (var))
+              assert (BTOR_IS_BV_VAR_EXP (var) || BTOR_IS_ARRAY_VAR_EXP (var));
+              if (BTOR_IS_BV_VAR_EXP (var))
                 BTOR_PUSH_STACK (mem, varstack, btor_copy_exp (btor, var));
               else
                 BTOR_PUSH_STACK (mem, arraystack, btor_copy_exp (btor, var));
