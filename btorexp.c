@@ -800,6 +800,46 @@ remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
   exp->unique = 0; /* NOTE: this is not debugging code ! */
 }
 
+static void
+remove_from_hash_tables (Btor *btor, BtorExp *exp)
+{
+  BtorUAData *ua_data;
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (exp->kind != BTOR_INVALID_EXP);
+
+  switch (exp->kind)
+  {
+    case BTOR_BV_VAR_EXP:
+      btor_remove_from_ptr_hash_table (btor->bv_vars, exp, 0, 0);
+      if (btor->ua.enabled)
+      {
+        btor_remove_from_ptr_hash_table (
+            btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
+        if (ua_data != NULL) delete_ua_data (btor, ua_data);
+      }
+      break;
+    case BTOR_ARRAY_VAR_EXP:
+      btor_remove_from_ptr_hash_table (btor->array_vars, exp, 0, 0);
+      break;
+    case BTOR_READ_EXP:
+      if (btor->ua.enabled)
+      {
+        btor_remove_from_ptr_hash_table (
+            btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
+        if (ua_data != NULL) delete_ua_data (btor, ua_data);
+      }
+      break;
+    case BTOR_WRITE_EXP:
+    case BTOR_ACOND_EXP:
+      if (btor->ua.enabled)
+        btor_remove_from_ptr_hash_table (btor->ua.writes_aconds, exp, 0, 0);
+      break;
+    default: break;
+  }
+}
+
 /* Disconnect children of expression in parent list and if applicable from
  * unique table.  Do not touch local data, nor any reference counts.  The
  * kind of the expression becomes 'BTOR_DISCONNECTED_EXP' in debugging mode.
@@ -815,8 +855,6 @@ remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
 static void
 disconnect_children_exp (Btor *btor, BtorExp *exp)
 {
-  BtorMemMgr *mm;
-  BtorUAData *ua_data;
   int i;
 
   assert (btor);
@@ -830,41 +868,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
   assert (exp->erased);
   assert (!exp->disconnected);
 
-  mm = btor->mm;
-
-  if (BTOR_IS_PROXY_EXP (exp))
-  {
-    /* do nothing */
-  }
-  else if (BTOR_IS_BV_VAR_EXP (exp))
-  {
-    btor_remove_from_ptr_hash_table (btor->bv_vars, exp, 0, 0);
-    if (btor->ua.enabled)
-    {
-      btor_remove_from_ptr_hash_table (
-          btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
-      if (ua_data != NULL) delete_ua_data (btor, ua_data);
-    }
-  }
-  else if (BTOR_IS_ARRAY_VAR_EXP (exp))
-  {
-    btor_remove_from_ptr_hash_table (btor->array_vars, exp, 0, 0);
-  }
-  else
-  {
-    if (btor->ua.enabled)
-    {
-      if (exp->kind == BTOR_READ_EXP)
-      {
-        btor_remove_from_ptr_hash_table (
-            btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
-        if (ua_data != NULL) delete_ua_data (btor, ua_data);
-      }
-      else if (BTOR_IS_WRITE_EXP (exp) || BTOR_IS_ARRAY_COND_EXP (exp))
-        btor_remove_from_ptr_hash_table (btor->ua.writes_aconds, exp, 0, 0);
-    }
-    for (i = 0; i < exp->arity; i++) disconnect_child_exp (btor, exp, i);
-  }
+  for (i = 0; i < exp->arity; i++) disconnect_child_exp (btor, exp, i);
   exp->disconnected = 1;
 }
 
@@ -1025,6 +1029,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
       /* It is safe to access the children here, since they are pushed
        * on the stack and will be release later if necessary.
        */
+      remove_from_hash_tables (btor, cur);
       disconnect_children_exp (btor, cur);
       really_deallocate_exp (btor, cur);
     }
@@ -2075,6 +2080,7 @@ set_simplified_exp (Btor *btor,
   erase_local_data_exp (btor, exp, 0);
   btor->ops[BTOR_PROXY_EXP]++;
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
+  remove_from_hash_tables (btor, exp);
   disconnect_children_exp (btor, exp);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
   exp->kind         = BTOR_PROXY_EXP;
