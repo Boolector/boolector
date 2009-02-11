@@ -495,7 +495,7 @@ is_restricted_bv (Btor *btor)
 
       cur->mark = 1;
 
-      assert (cur->kind == BTOR_VAR_EXP || cur->kind == BTOR_CONST_EXP
+      assert (cur->kind == BTOR_BV_VAR_EXP || cur->kind == BTOR_CONST_EXP
               || cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP
               || cur->kind == BTOR_SLICE_EXP);
 
@@ -519,7 +519,7 @@ is_restricted_bv (Btor *btor)
         case BTOR_SLICE_EXP:
           assert (cur->kind == BTOR_SLICE_EXP);
           if (BTOR_IS_INVERTED_EXP (cur->e[0])
-              || (cur->e[0]->kind != BTOR_VAR_EXP
+              || (cur->e[0]->kind != BTOR_BV_VAR_EXP
                   && (cur->e[0]->kind != BTOR_CONST_EXP)))
           {
             result = 0;
@@ -527,7 +527,7 @@ is_restricted_bv (Btor *btor)
           }
           break;
         default:
-          assert (cur->kind == BTOR_VAR_EXP || cur->kind == BTOR_CONST_EXP);
+          assert (cur->kind == BTOR_BV_VAR_EXP || cur->kind == BTOR_CONST_EXP);
           break;
       }
     } while (!BTOR_EMPTY_STACK (stack));
@@ -9504,7 +9504,7 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
     var = vars->start[i];
     assert (BTOR_IS_REGULAR_EXP (var));
-    assert (BTOR_IS_VAR_EXP (var));
+    assert (BTOR_IS_BV_VAR_EXP (var));
     init_full_parent_iterator (&it, var);
     /* find all slices on variable */
     while (has_next_parent_full_parent_iterator (&it))
@@ -9657,7 +9657,7 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     btor_release_exp (btor, result);
   }
 
-  if (btor->varsubst_constraints > 0u)
+  if (btor->varsubst_constraints->count > 0u)
     substitute_vars_and_process_embedded_constraints (btor);
 }
 
@@ -9695,7 +9695,7 @@ find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
 
       real_cur->mark = 1;
 
-      if (BTOR_IS_VAR_EXP (real_cur))
+      if (BTOR_IS_BV_VAR_EXP (real_cur))
         BTOR_PUSH_STACK (mm, *vars, real_cur);
       else if (BTOR_IS_CONST_EXP (real_cur))
         BTOR_PUSH_STACK (mm, *consts, cur);
