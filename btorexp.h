@@ -35,7 +35,7 @@ enum BtorExpKind
    */
   BTOR_INVALID_EXP = 0,
 
-  BTOR_CONST_EXP     = 1,
+  BTOR_BV_CONST_EXP  = 1,
   BTOR_BV_VAR_EXP    = 2,
   BTOR_ARRAY_VAR_EXP = 3,
   BTOR_SLICE_EXP     = 4,
@@ -323,7 +323,7 @@ struct Btor
   } stats;
 };
 
-#define BTOR_IS_CONST_EXP_KIND(kind) ((kind) == BTOR_CONST_EXP)
+#define BTOR_IS_BV_CONST_EXP_KIND(kind) ((kind) == BTOR_BV_CONST_EXP)
 #define BTOR_IS_BV_VAR_EXP_KIND(kind) ((kind) == BTOR_BV_VAR_EXP)
 #define BTOR_IS_READ_EXP_KIND(kind) (kind == BTOR_READ_EXP)
 #define BTOR_IS_WRITE_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
@@ -344,7 +344,7 @@ struct Btor
 #define BTOR_IS_TERNARY_EXP_KIND(kind) \
   (((kind) >= BTOR_WRITE_EXP) && ((kind) <= BTOR_ACOND_EXP))
 
-#define BTOR_IS_CONST_EXP(exp) (BTOR_IS_CONST_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BV_CONST_EXP(exp) (BTOR_IS_BV_CONST_EXP_KIND ((exp)->kind))
 #define BTOR_IS_BV_VAR_EXP(exp) (BTOR_IS_BV_VAR_EXP_KIND ((exp)->kind))
 #define BTOR_IS_READ_EXP(exp) (BTOR_IS_READ_EXP_KIND ((exp)->kind))
 #define BTOR_IS_WRITE_EXP(exp) (BTOR_IS_WRITE_EXP_KIND ((exp)->kind))

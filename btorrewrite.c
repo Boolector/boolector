@@ -31,7 +31,7 @@ is_const_one_exp (Btor *btor, BtorExp *exp)
    * constant 'one' has to be inverted */
   if (!BTOR_IS_INVERTED_EXP (exp)) return 0;
 
-  if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))) return 0;
+  if (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))) return 0;
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
   btor_invert_const (btor->mm, real_exp->bits);
@@ -141,7 +141,7 @@ rewrite_slice_exp_bounded (
 
   if (len == len_result) /* handles result->len == 1 */
     result = btor_copy_exp (btor, exp);
-  else if (BTOR_IS_CONST_EXP (real_exp))
+  else if (BTOR_IS_BV_CONST_EXP (real_exp))
   {
     bresult = btor_slice_const (mm, real_exp->bits, upper, lower);
     result  = btor_const_exp (btor, bresult);
@@ -357,7 +357,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   result  = NULL;
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
-  if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
+  if (BTOR_IS_BV_CONST_EXP (real_e0) && BTOR_IS_BV_CONST_EXP (real_e1))
   {
     same_children_mem = real_e0 == real_e1;
     if (same_children_mem)
@@ -404,7 +404,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     result = btor_const_exp (btor, bresult);
     btor_delete_const (mm, bresult);
   }
-  else if (BTOR_IS_CONST_EXP (real_e0) && !BTOR_IS_CONST_EXP (real_e1))
+  else if (BTOR_IS_BV_CONST_EXP (real_e0) && !BTOR_IS_BV_CONST_EXP (real_e1))
   {
     invert_b0 = BTOR_IS_INVERTED_EXP (e0);
     b0        = real_e0->bits;
@@ -456,7 +456,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
     }
   }
-  else if (!BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1))
+  else if (!BTOR_IS_BV_CONST_EXP (real_e0) && BTOR_IS_BV_CONST_EXP (real_e1))
   {
     invert_b1 = BTOR_IS_INVERTED_EXP (e1);
     b1        = real_e1->bits;
@@ -666,25 +666,26 @@ is_always_unequal (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   if (e0 == BTOR_INVERT_EXP (e1)) return 1;
 
-  if (BTOR_IS_CONST_EXP (real_e0) && BTOR_IS_CONST_EXP (real_e1) && e0 != e1)
+  if (BTOR_IS_BV_CONST_EXP (real_e0) && BTOR_IS_BV_CONST_EXP (real_e1)
+      && e0 != e1)
     return 1;
 
   if (real_e0->kind == BTOR_ADD_EXP)
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e0->e[0]))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e0->e[0]))
         && BTOR_COND_INVERT_EXP (e0, real_e0->e[1]) == e1)
       return 1;
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e0->e[1]))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e0->e[1]))
         && BTOR_COND_INVERT_EXP (e0, real_e0->e[0]) == e1)
       return 1;
   }
 
   if (real_e1->kind == BTOR_ADD_EXP)
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[0]))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[0]))
         && BTOR_COND_INVERT_EXP (e1, real_e1->e[1]) == e0)
       return 1;
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[1]))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (real_e1->e[1]))
         && BTOR_COND_INVERT_EXP (e1, real_e1->e[0]) == e0)
       return 1;
   }
@@ -1115,24 +1116,24 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* asymmetric rule of idempotency */
       if (e0->e[0] == e1 || e0->e[1] == e1) return btor_copy_exp (btor, e0);
 
-      if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)))
+      if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)))
       {
         /* recursion is no problem here, as one call leads to
          * folding of constants, and the other call can not
          * trigger the same kind of recursion anymore */
 
-        if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
+        if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
         {
-          assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+          assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
           temp   = btor_and_exp (btor, e1, e0->e[0]);
           result = btor_and_exp (btor, temp, e0->e[1]);
           btor_release_exp (btor, temp);
           return result;
         }
 
-        if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+        if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
         {
-          assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+          assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
           temp   = btor_and_exp (btor, e1, e0->e[1]);
           result = btor_and_exp (btor, temp, e0->e[0]);
           btor_release_exp (btor, temp);
@@ -1174,24 +1175,24 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       /* asymmetric rule of idempotency */
       if (e1->e[0] == e0 || e1->e[1] == e0) return btor_copy_exp (btor, e1);
 
-      if (BTOR_IS_CONST_EXP (real_e0))
+      if (BTOR_IS_BV_CONST_EXP (real_e0))
       {
         /* recursion is no problem here, as one call leads to
          * folding of constants, and the other call can not
          * trigger the same kind of recursion anymore */
 
-        if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
+        if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
         {
-          assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+          assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
           temp   = btor_and_exp (btor, e0, e1->e[0]);
           result = btor_and_exp (btor, temp, e1->e[1]);
           btor_release_exp (btor, temp);
           return result;
         }
 
-        if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+        if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
         {
-          assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+          assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
           temp   = btor_and_exp (btor, e0, e1->e[1]);
           result = btor_and_exp (btor, temp, e1->e[0]);
           btor_release_exp (btor, temp);
@@ -1758,25 +1759,25 @@ rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       && e0 == BTOR_INVERT_EXP (e1->e[0]) && is_const_one_exp (btor, e1->e[1]))
     return btor_zero_exp (btor, e1->len);
 
-  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)) && !BTOR_IS_INVERTED_EXP (e1)
-      && e1->kind == BTOR_ADD_EXP)
+  if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+      && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_ADD_EXP)
   {
     /* recursion is no problem here, as one call leads to
      * folding of constants, and the other call can not
      * trigger the same kind of recursion anymore */
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
       temp   = btor_add_exp (btor, e0, e1->e[0]);
       result = btor_add_exp (btor, temp, e1->e[1]);
       btor_release_exp (btor, temp);
       return result;
     }
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
       temp   = btor_add_exp (btor, e0, e1->e[1]);
       result = btor_add_exp (btor, temp, e1->e[0]);
       btor_release_exp (btor, temp);
@@ -1784,25 +1785,25 @@ rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
   }
 
-  else if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+  else if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
            && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_ADD_EXP)
   {
     /* recursion is no problem here, as one call leads to
      * folding of constants, and the other call can not
      * trigger the same kind of recursion anymore */
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
       temp   = btor_add_exp (btor, e1, e0->e[0]);
       result = btor_add_exp (btor, temp, e0->e[1]);
       btor_release_exp (btor, temp);
       return result;
     }
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
       temp   = btor_add_exp (btor, e1, e0->e[1]);
       result = btor_add_exp (btor, temp, e0->e[0]);
       btor_release_exp (btor, temp);
@@ -1928,21 +1929,22 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   /* boolean case */
   if (BTOR_REAL_ADDR_EXP (e0)->len == 1) return btor_and_exp (btor, e0, e1);
 
-  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)) && !BTOR_IS_INVERTED_EXP (e1)
-      && e1->kind == BTOR_MUL_EXP && *calls < BTOR_MUL_EXP_RW_BOUND)
+  if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+      && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_MUL_EXP
+      && *calls < BTOR_MUL_EXP_RW_BOUND)
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
       left   = rewrite_mul_exp_bounded (btor, e0, e1->e[0], calls);
       result = rewrite_mul_exp_bounded (btor, left, e1->e[1], calls);
       btor_release_exp (btor, left);
       return result;
     }
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
       left   = rewrite_mul_exp_bounded (btor, e0, e1->e[1], calls);
       result = rewrite_mul_exp_bounded (btor, left, e1->e[0], calls);
       btor_release_exp (btor, left);
@@ -1950,23 +1952,23 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     }
   }
 
-  else if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+  else if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
            && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_MUL_EXP
            && *calls < BTOR_MUL_EXP_RW_BOUND)
 
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
       left   = rewrite_mul_exp_bounded (btor, e1, e0->e[0], calls);
       result = rewrite_mul_exp_bounded (btor, left, e0->e[1], calls);
       btor_release_exp (btor, left);
       return result;
     }
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
     {
-      assert (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+      assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
       left   = rewrite_mul_exp_bounded (btor, e1, e0->e[1], calls);
       result = rewrite_mul_exp_bounded (btor, left, e0->e[0], calls);
       btor_release_exp (btor, left);
@@ -1977,10 +1979,10 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   /* const * (t + const) =recursively= const * t + const * const */
   if (btor->rewrite_level > 2 && *calls < BTOR_MUL_EXP_RW_BOUND)
   {
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0)) && BTOR_IS_REGULAR_EXP (e1)
-        && e1->kind == BTOR_ADD_EXP
-        && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
-            || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
+        && BTOR_IS_REGULAR_EXP (e1) && e1->kind == BTOR_ADD_EXP
+        && (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
+            || BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
     {
       *calls += 1;
       left   = rewrite_mul_exp_bounded (btor, e0, e1->e[0], calls);
@@ -1991,10 +1993,10 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       return result;
     }
 
-    if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1)) && BTOR_IS_REGULAR_EXP (e0)
-        && e0->kind == BTOR_ADD_EXP
-        && (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
-            || BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1]))))
+    if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+        && BTOR_IS_REGULAR_EXP (e0) && e0->kind == BTOR_ADD_EXP
+        && (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
+            || BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1]))))
     {
       *calls += 1;
       left   = rewrite_mul_exp_bounded (btor, e1, e0->e[0], calls);
@@ -2550,9 +2552,10 @@ btor_rewrite_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor_precond_concat_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
-  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
+  if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
       && BTOR_REAL_ADDR_EXP (e0)->kind == BTOR_CONCAT_EXP
-      && BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[1])))
+      && BTOR_IS_BV_CONST_EXP (
+             BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[1])))
   {
     /* recursion is no problem here, as one call leads to
      * folding of constants, and the other call can not
@@ -2932,7 +2935,7 @@ ternary_cond_exp_bounded (Btor *btor,
 
   if (e1 == e2) return btor_copy_exp (btor, e1);
 
-  if (BTOR_IS_CONST_EXP (e0))
+  if (BTOR_IS_BV_CONST_EXP (e0))
   {
     /* condtionals are normalized if rewrite level > 0 */
     assert (!BTOR_IS_INVERTED_EXP (e0));
