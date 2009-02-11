@@ -626,7 +626,7 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
   assert (pos >= 0);
   assert (pos <= 2);
   assert (BTOR_IS_REGULAR_EXP (parent));
-  assert (!BTOR_IS_CONST_EXP (parent));
+  assert (!BTOR_IS_BV_CONST_EXP (parent));
   assert (!BTOR_IS_BV_VAR_EXP (parent));
   assert (!BTOR_IS_ARRAY_VAR_EXP (parent));
   (void) btor;
@@ -738,7 +738,7 @@ compute_hash_exp (BtorExp *exp, int table_size)
   assert (BTOR_IS_REGULAR_EXP (exp));
   assert (!BTOR_IS_BV_VAR_EXP (exp));
   assert (!BTOR_IS_ARRAY_VAR_EXP (exp));
-  if (BTOR_IS_CONST_EXP (exp))
+  if (BTOR_IS_BV_CONST_EXP (exp))
     hash = btor_hashstr ((void *) exp->bits);
   else
   {
@@ -892,7 +892,7 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
 
   switch (exp->kind)
   {
-    case BTOR_CONST_EXP:
+    case BTOR_BV_CONST_EXP:
       btor_freestr (mm, exp->bits);
       exp->bits = NULL;
       break;
@@ -1272,7 +1272,7 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 
   assert (exp->len == 1);
   while (exp->simplified != NULL) exp = BTOR_REAL_ADDR_EXP (exp->simplified);
-  assert (BTOR_IS_CONST_EXP (exp));
+  assert (BTOR_IS_BV_CONST_EXP (exp));
 #else
   (void) btor;
   (void) exp;
@@ -2169,7 +2169,7 @@ merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b, int overwrite)
 
   if (rep_a == BTOR_INVERT_EXP (rep_b)) return 0;
 
-  if (BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (rep_a)))
+  if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (rep_a)))
     rep = rep_a;
   else
     rep = rep_b;
@@ -2242,8 +2242,8 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   assert (btor_is_const_2vl (btor->mm, bits));
   BTOR_CNEW (btor->mm, exp);
   btor->stats.expressions++;
-  btor->ops[BTOR_CONST_EXP]++;
-  exp->kind  = BTOR_CONST_EXP;
+  btor->ops[BTOR_BV_CONST_EXP]++;
+  exp->kind  = BTOR_BV_CONST_EXP;
   exp->bytes = sizeof *exp;
   BTOR_NEWN (btor->mm, exp->bits, len + 1);
   for (i = 0; i < len; i++) exp->bits[i] = bits[i];
@@ -2518,7 +2518,7 @@ find_const_exp (Btor *btor, const char *bits, int len)
   while (cur != NULL)
   {
     assert (BTOR_IS_REGULAR_EXP (cur));
-    if (BTOR_IS_CONST_EXP (cur) && cur->len == len
+    if (BTOR_IS_BV_CONST_EXP (cur) && cur->len == len
         && strcmp (cur->bits, bits) == 0)
       break;
     else
@@ -4335,7 +4335,7 @@ btor_next_exp_bmc (Btor *btor,
 
     if (cur->mark == 0)
     {
-      if (BTOR_IS_CONST_EXP (cur))
+      if (BTOR_IS_BV_CONST_EXP (cur))
       {
         btor_insert_in_ptr_hash_table (build_table, cur)->data.asPtr =
             btor_copy_exp (btor, cur);
@@ -4417,7 +4417,7 @@ btor_next_exp_bmc (Btor *btor,
     else
     {
       assert (cur->mark == 1);
-      assert (!BTOR_IS_BV_VAR_EXP (cur) && !BTOR_IS_CONST_EXP (cur)
+      assert (!BTOR_IS_BV_VAR_EXP (cur) && !BTOR_IS_BV_CONST_EXP (cur)
               && !BTOR_IS_ARRAY_VAR_EXP (cur));
       switch (cur->arity)
       {
@@ -4719,7 +4719,7 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
                  BTOR_GET_ID_EXP (e->e[2]));
         break;
 
-      case BTOR_CONST_EXP:
+      case BTOR_BV_CONST_EXP:
         fprintf (file, "const %d %s", e->len, e->bits);
         break;
 
@@ -4909,7 +4909,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
     assert (BTOR_IS_REGULAR_EXP (e));
     assert (e->mark);
 
-    if (BTOR_IS_CONST_EXP (e)) continue;
+    if (BTOR_IS_BV_CONST_EXP (e)) continue;
 
     if (BTOR_IS_BV_VAR_EXP (e)) continue;
 
@@ -4970,7 +4970,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
     btor_dump_smt_id (e, file);
     fputc (' ', file);
 
-    if (e->kind == BTOR_CONST_EXP)
+    if (e->kind == BTOR_BV_CONST_EXP)
     {
       tmp = btor_const_to_decimal (mm, e->bits);
       fprintf (file, "bv%s[%d]", tmp, e->len);
@@ -5998,7 +5998,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
       if (cur->synth_mark == 0)
       {
         cur->reachable = 1;
-        if (BTOR_IS_CONST_EXP (cur))
+        if (BTOR_IS_BV_CONST_EXP (cur))
           cur->av = btor_const_aigvec (avmgr, cur->bits);
         else if (BTOR_IS_BV_VAR_EXP (cur))
         {
@@ -6641,8 +6641,8 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
         {
           cond = cur->e[0];
           assert (btor->rewrite_level == 0
-                  || !BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
-          if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
+                  || !BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)));
+          if (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (cond)))
           {
             assignment = btor_get_assignment_aig (
                 amgr, BTOR_REAL_ADDR_EXP (cond)->av->aigs[0]);
@@ -7379,7 +7379,7 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   assert (BTOR_IS_REGULAR_EXP (exp));
   switch (exp->kind)
   {
-    case BTOR_CONST_EXP:
+    case BTOR_BV_CONST_EXP:
     case BTOR_BV_VAR_EXP:
     case BTOR_ARRAY_VAR_EXP: return btor_copy_exp (btor, exp->simplified);
     case BTOR_SLICE_EXP:
@@ -7411,7 +7411,7 @@ is_odd_constant (BtorExp *exp)
 {
   if (BTOR_IS_INVERTED_EXP (exp)) return 0;
 
-  if (exp->kind != BTOR_CONST_EXP) return 0;
+  if (exp->kind != BTOR_BV_CONST_EXP) return 0;
 
   return exp->bits[exp->len - 1] == '1';
 }
@@ -7835,7 +7835,7 @@ normalize_substitution (Btor *btor,
     if (btor_find_in_ptr_hash_table (btor->varsubst_constraints, var)) return 0;
 
 #ifdef BTOR_NO_3VL
-    if (!BTOR_IS_CONST_EXP (BTOR_REAL_ADDR_EXP (right))) return 0;
+    if (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (right))) return 0;
 #endif
 
     if (BTOR_IS_INVERTED_EXP (right))
@@ -7908,7 +7908,7 @@ normalize_substitution (Btor *btor,
   real_left  = BTOR_REAL_ADDR_EXP (left);
   real_right = BTOR_REAL_ADDR_EXP (right);
 
-  if (real_left->kind == BTOR_SLICE_EXP && BTOR_IS_CONST_EXP (real_right)
+  if (real_left->kind == BTOR_SLICE_EXP && BTOR_IS_BV_CONST_EXP (real_right)
       && BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_left->e[0])))
   {
     upper = real_left->upper;
@@ -7931,7 +7931,7 @@ normalize_substitution (Btor *btor,
     return 1;
   }
 
-  if (real_right->kind == BTOR_SLICE_EXP && BTOR_IS_CONST_EXP (real_left)
+  if (real_right->kind == BTOR_SLICE_EXP && BTOR_IS_BV_CONST_EXP (real_left)
       && BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_right->e[0])))
   {
     upper = real_right->upper;
@@ -8024,7 +8024,7 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
   exp      = btor_pointer_chase_simplified_exp (btor, exp);
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
-  if (BTOR_IS_CONST_EXP (real_exp))
+  if (BTOR_IS_BV_CONST_EXP (real_exp))
   {
     if ((BTOR_IS_INVERTED_EXP (exp) && real_exp->bits[0] == '1')
         || (!BTOR_IS_INVERTED_EXP (exp) && real_exp->bits[0] == '0'))
@@ -8353,7 +8353,7 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 
     if (cur->aux_mark == 0) continue;
 
-    assert (!BTOR_IS_CONST_EXP (cur));
+    assert (!BTOR_IS_BV_CONST_EXP (cur));
 
     if (cur->aux_mark == 1)
     {
@@ -8477,7 +8477,7 @@ substitute_var_exps (Btor *btor)
 
         cur->mark = 1;
 
-        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur)
+        if (BTOR_IS_BV_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur)
             || BTOR_IS_ARRAY_VAR_EXP (cur))
         {
           b_temp = btor_find_in_ptr_hash_table (substs, cur);
@@ -8529,7 +8529,7 @@ substitute_var_exps (Btor *btor)
 
         if (cur->mark == 2) continue;
 
-        if (BTOR_IS_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur)
+        if (BTOR_IS_BV_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur)
             || BTOR_IS_ARRAY_VAR_EXP (cur))
         {
           assert (btor_find_in_ptr_hash_table (order, cur) != NULL);
@@ -8695,7 +8695,7 @@ substitute_embedded_constr_and_rebuild (Btor *btor, BtorPtrHashTable *ec)
 
     if (cur->aux_mark == 0) continue;
 
-    assert (!BTOR_IS_CONST_EXP (cur));
+    assert (!BTOR_IS_BV_CONST_EXP (cur));
     assert (!BTOR_IS_BV_VAR_EXP (cur));
     assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
 
@@ -9901,7 +9901,7 @@ btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
 
-  if (BTOR_IS_CONST_EXP (real_exp))
+  if (BTOR_IS_BV_CONST_EXP (real_exp))
   {
     invert_bits = BTOR_IS_INVERTED_EXP (exp);
     if (invert_bits)
