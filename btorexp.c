@@ -442,7 +442,7 @@ compare_slices_qsort (const void *p1, const void *p2)
 /* do we have a restricted bit-vector theory ?
  * note: concats should have already been eliminated by rewriting */
 static int
-has_only_vars_consts_slices_eqs_ands (Btor *btor)
+has_at_most_vars_consts_slices_eqs_ands (Btor *btor)
 {
   int i;
 
@@ -475,7 +475,7 @@ is_restricted_bv (Btor *btor)
   assert (btor->embedded_constraints->count == 0u);
   assert (btor->synthesized_constraints->count == 0u);
 
-  if (!has_only_vars_consts_slices_eqs_ands (btor)) return 0;
+  if (!has_at_most_vars_consts_slices_eqs_ands (btor)) return 0;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
@@ -484,13 +484,7 @@ is_restricted_bv (Btor *btor)
   for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
   {
     cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
-    /* boolean root? */
-    if (cur->kind != BTOR_BEQ_EXP && cur->kind != BTOR_AND_EXP)
-    {
-      result = 0;
-      goto BTOR_IS_RESTRICTED_BV_CLEANUP;
-    }
-
+    assert (cur->len == 1);
     BTOR_PUSH_STACK (mm, stack, cur);
     do
     {
@@ -500,7 +494,9 @@ is_restricted_bv (Btor *btor)
       if (cur->mark == 1) continue;
 
       cur->mark = 1;
-      assert (cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP
+
+      assert (cur->kind == BTOR_VAR_EXP || cur->kind == BTOR_CONST_EXP
+              || cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP
               || cur->kind == BTOR_SLICE_EXP);
 
       switch (cur->kind)
@@ -508,8 +504,8 @@ is_restricted_bv (Btor *btor)
         case BTOR_AND_EXP:
           for (i = 0; i < 2; i++)
           {
-            if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_AND_EXP
-                && BTOR_REAL_ADDR_EXP (cur->e[i])->kind != BTOR_BEQ_EXP)
+            /* and may be used in boolean context only */
+            if (BTOR_REAL_ADDR_EXP (cur->e[i])->len != 1)
             {
               result = 0;
               goto BTOR_IS_RESTRICTED_BV_CLEANUP;
@@ -518,27 +514,10 @@ is_restricted_bv (Btor *btor)
           }
           break;
         case BTOR_BEQ_EXP:
-          assert (cur->kind == BTOR_BEQ_EXP);
-          if (!((BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_CONST_EXP
-                 || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_VAR_EXP
-                 || BTOR_REAL_ADDR_EXP (cur->e[0])->kind == BTOR_SLICE_EXP)
-                && (BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_CONST_EXP
-                    || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_VAR_EXP
-                    || BTOR_REAL_ADDR_EXP (cur->e[1])->kind == BTOR_SLICE_EXP)))
-          {
-            result = 0;
-            goto BTOR_IS_RESTRICTED_BV_CLEANUP;
-          }
-
-          for (i = 0; i < 2; i++)
-          {
-            if (BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_AND_EXP
-                || BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_BEQ_EXP
-                || BTOR_REAL_ADDR_EXP (cur->e[i])->kind == BTOR_SLICE_EXP)
-              BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-          }
+          for (i = 0; i < 2; i++) BTOR_PUSH_STACK (mm, stack, cur->e[i]);
           break;
-        default:
+        case BTOR_SLICE_EXP:
+          assert (cur->kind == BTOR_SLICE_EXP);
           if (BTOR_IS_INVERTED_EXP (cur->e[0])
               || (cur->e[0]->kind != BTOR_VAR_EXP
                   && (cur->e[0]->kind != BTOR_CONST_EXP)))
@@ -546,6 +525,9 @@ is_restricted_bv (Btor *btor)
             result = 0;
             goto BTOR_IS_RESTRICTED_BV_CLEANUP;
           }
+          break;
+        default:
+          assert (cur->kind == BTOR_VAR_EXP || cur->kind == BTOR_CONST_EXP);
           break;
       }
     } while (!BTOR_EMPTY_STACK (stack));
