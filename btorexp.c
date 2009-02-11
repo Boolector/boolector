@@ -495,7 +495,7 @@ is_restricted_bv (Btor *btor)
 
       cur->mark = 1;
 
-      assert (cur->kind == BTOR_BV_VAR_EXP || cur->kind == BTOR_CONST_EXP
+      assert (cur->kind == BTOR_BV_VAR_EXP || cur->kind == BTOR_BV_CONST_EXP
               || cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP
               || cur->kind == BTOR_SLICE_EXP);
 
@@ -520,14 +520,15 @@ is_restricted_bv (Btor *btor)
           assert (cur->kind == BTOR_SLICE_EXP);
           if (BTOR_IS_INVERTED_EXP (cur->e[0])
               || (cur->e[0]->kind != BTOR_BV_VAR_EXP
-                  && (cur->e[0]->kind != BTOR_CONST_EXP)))
+                  && (cur->e[0]->kind != BTOR_BV_CONST_EXP)))
           {
             result = 0;
             goto BTOR_IS_RESTRICTED_BV_CLEANUP;
           }
           break;
         default:
-          assert (cur->kind == BTOR_BV_VAR_EXP || cur->kind == BTOR_CONST_EXP);
+          assert (cur->kind == BTOR_BV_VAR_EXP
+                  || cur->kind == BTOR_BV_CONST_EXP);
           break;
       }
     } while (!BTOR_EMPTY_STACK (stack));
@@ -9697,7 +9698,7 @@ find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
 
       if (BTOR_IS_BV_VAR_EXP (real_cur))
         BTOR_PUSH_STACK (mm, *vars, real_cur);
-      else if (BTOR_IS_CONST_EXP (real_cur))
+      else if (BTOR_IS_BV_CONST_EXP (real_cur))
         BTOR_PUSH_STACK (mm, *consts, cur);
       else
       {
