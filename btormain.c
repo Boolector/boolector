@@ -1051,8 +1051,23 @@ boolector_main (int argc, char **argv)
       assert (app.rewrite_level <= 3);
       btor_set_stand_alone_mode (btor);
       if (app.rewrite_level >= 2)
-        btor_dump_exps_after_full_rewriting (
-            btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
+      {
+        for (i = 0; i < parse_res.noutputs; i++)
+        {
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
+          btor_add_constraint_exp (btor, root);
+          btor_release_exp (btor, root);
+        }
+        parser_api->reset (parser);
+        parser_api = NULL;
+        btor_dump_exps_after_full_rewriting (btor, app.exp_file);
+      }
       else
         btor_dump_exps (
             btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
@@ -1504,7 +1519,7 @@ boolector_main (int argc, char **argv)
         /* stand alone mode */
         btor_set_stand_alone_mode (btor);
         parser_api->reset (parser);
-        parser_api = 0;
+        parser_api = NULL;
 
         constraints_reported     = 0;
         nconstraints             = BTOR_COUNT_STACK (constraints);

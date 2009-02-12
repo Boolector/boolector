@@ -4688,25 +4688,12 @@ btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
 }
 
 void
-btor_dump_exps_after_full_rewriting (Btor *btor,
-                                     FILE *file,
-                                     BtorExp **roots,
-                                     int nroots)
+btor_dump_exps_after_full_rewriting (Btor *btor, FILE *file)
 {
   BtorExp *temp, **new_roots;
   BtorPtrHashBucket *b;
   int new_nroots, i;
   assert (btor->stand_alone_mode);
-
-  for (i = 0; i < nroots; i++)
-  {
-    if (BTOR_REAL_ADDR_EXP (roots[i])->len == 1)
-      temp = btor_copy_exp (btor, roots[i]);
-    else
-      temp = btor_redor_exp (btor, roots[i]);
-    add_constraint (btor, temp);
-    btor_release_exp (btor, temp);
-  }
 
   substitute_vars_and_process_embedded_constraints (btor);
   eliminate_slices_on_bv_vars (btor);
