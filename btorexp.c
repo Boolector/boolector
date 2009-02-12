@@ -9494,9 +9494,8 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
-/* we split slices into disjoint classes */
 static void
-normalize_slices_on_bv_vars (Btor *btor)
+eliminate_slices_on_bv_vars (Btor *btor)
 {
   BtorFullParentIterator it;
   BtorPtrHashBucket *b_var, *b1, *b2;
@@ -9719,11 +9718,78 @@ find_bv_consts_in_unsynth_constraints (Btor *btor, BtorExpPtrStack *consts)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+static int
+count_non_boolean_variables (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorExp *var;
+  int result;
+
+  assert (btor != NULL);
+
+  result = 0;
+  for (b = btor->bv_vars->first; b != NULL; b = b->next)
+  {
+    var = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (var));
+    assert (BTOR_IS_BV_VAR_EXP (var));
+    if (var->len > 1) result++;
+  }
+  return result;
+}
+
+static void
+restrict_domain_of_bv_variables (Btor *btor, int min_len)
+{
+  BtorMemMgr *mm;
+  BtorPtrHashBucket *b;
+  BtorExpPtrStack stack;
+  BtorExp *var, *zero, *lambda_var, *rhs;
+
+  assert (btor != NULL);
+  assert (min_len > 1);
+
+  mm = btor->mm;
+
+  /* make copy of variables */
+  BTOR_INIT_STACK (stack);
+  for (b = btor->bv_vars->first; b != NULL; b = b->next)
+  {
+    var = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (var));
+    assert (BTOR_IS_BV_VAR_EXP (var));
+    BTOR_PUSH_STACK (mm, stack, var);
+  }
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    var = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_EXP (var));
+    assert (BTOR_IS_BV_VAR_EXP (var));
+    if (min_len < var->len)
+    {
+      lambda_var = lambda_var_exp (btor, min_len);
+      zero       = btor_zero_exp (btor, var->len - min_len);
+      rhs        = btor_concat_exp (btor, zero, lambda_var);
+      insert_varsubst_constraint (btor, var, rhs);
+      btor_release_exp (btor, lambda_var);
+      btor_release_exp (btor, zero);
+      btor_release_exp (btor, rhs);
+    }
+  }
+
+  if (btor->varsubst_constraints->count > 0u)
+    substitute_vars_and_process_embedded_constraints (btor);
+
+  BTOR_RELEASE_STACK (mm, stack);
+}
+
 static void
 handle_restricted_bv (Btor *btor)
 {
   BtorMemMgr *mm;
   BtorExpPtrStack vars, consts;
+  int num_vars, min_len;
 
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
@@ -9738,8 +9804,18 @@ handle_restricted_bv (Btor *btor)
 
   BTOR_INIT_STACK (consts);
   find_bv_consts_in_unsynth_constraints (btor, &consts);
-  normalize_slices_on_bv_vars (btor);
-
+  if (!btor->model_gen || BTOR_COUNT_STACK (consts) == 0)
+  {
+    /* replace_consts_by_vars_restricted_bv (btor); */
+    eliminate_slices_on_bv_vars (btor);
+    num_vars = count_non_boolean_variables (btor);
+    if (num_vars > 0)
+    {
+      min_len = btor_log_2_util (btor_next_power_of_2_util (num_vars));
+      assert (min_len > 1);
+      restrict_domain_of_bv_variables (btor, min_len);
+    }
+  }
   /* cleanup */
   BTOR_RELEASE_STACK (mm, consts);
 }
