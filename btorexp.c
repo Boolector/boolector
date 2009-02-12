@@ -9724,10 +9724,15 @@ replace_consts_by_vars_restricted_bv (Btor *btor, BtorPtrHashTable *consts)
 }
 
 static void
-handle_restricted_bv (Btor *btor)
+abstract_domain_bv_variables (Btor *btor)
 {
-  BtorPtrHashTable *consts;
-  int num_vars, min_len;
+  BtorFullParentIterator it;
+  BtorMemMgr *mm;
+  BtorExpPtrStack stack, vars;
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *failed_table, *eq;
+  BtorExp *cur, *cur_parent, *next;
+  int num_vars, min_len, i, failed;
 
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
@@ -9737,25 +9742,124 @@ handle_restricted_bv (Btor *btor)
   assert (btor->embedded_constraints->count == 0u);
   assert (btor->synthesized_constraints->count == 0u);
 
-  consts = btor_new_ptr_hash_table (btor->mm,
-                                    (BtorHashPtr) btor_hash_exp_by_id,
-                                    (BtorCmpPtr) btor_compare_exp_by_id);
+  mm = btor->mm;
+  BTOR_INIT_STACK (vars);
+  BTOR_INIT_STACK (stack);
 
-  find_bv_consts_in_unsynth_constraints (btor, consts);
-  if (!btor->model_gen || consts->count == 0u)
+  for (b = btor->bv_vars->first; b != NULL; b = b->next)
   {
-    replace_consts_by_vars_restricted_bv (btor, consts);
-    eliminate_slices_on_bv_vars (btor);
-    num_vars = count_non_boolean_variables (btor);
-    if (num_vars > 1)
-    {
-      min_len = btor_log_2_util (btor_next_power_of_2_util (num_vars));
-      assert (min_len > 0);
-      restrict_domain_of_bv_variables (btor, min_len);
-    }
+    cur = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur));
+    BTOR_PUSH_STACK (mm, vars, cur);
   }
+
+  failed_table = btor_new_ptr_hash_table (mm,
+                                          (BtorHashPtr) btor_hash_exp_by_id,
+                                          (BtorCmpPtr) btor_compare_exp_by_id);
+
+  for (i = 0; i < BTOR_COUNT_STACK (vars); i++)
+  {
+    cur = vars.start[i];
+
+    /* boolean variables cannot be abstracted further */
+    if (cur->len == 1) continue;
+
+    if (btor_find_in_ptr_hash_table (failed_table, cur)) continue;
+
+    assert (BTOR_EMPTY_STACK (stack));
+    eq = btor_new_ptr_hash_table (mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
+    goto BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_LOOP_WITHOUT_POP;
+
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_POP_STACK (stack);
+      assert (BTOR_IS_REGULAR_EXP (cur));
+
+      if (btor_find_in_ptr_hash_table (failed_table, cur))
+      {
+        failed = 1;
+        break;
+      }
+
+      if (btor_find_in_ptr_hash_table (eq, cur))
+        continue;
+      else
+      {
+      BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_LOOP_WITHOUT_POP:
+        btor_insert_in_ptr_hash_table (eq, cur);
+      }
+
+      failed = 0;
+      init_full_parent_iterator (&it, cur);
+      while (has_next_parent_full_parent_iterator (&it))
+      {
+        cur_parent = next_parent_full_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        if (BTOR_IS_BV_EQ_EXP (cur_parent))
+        {
+          if (BTOR_REAL_ADDR_EXP (cur_parent->e[0]) == cur)
+          {
+            next = BTOR_REAL_ADDR_EXP (cur_parent->e[1]);
+          }
+          else
+          {
+            assert (BTOR_REAL_ADDR_EXP (cur_parent->e[1]) == cur);
+            next = BTOR_REAL_ADDR_EXP (cur_parent->e[0]);
+          }
+
+          if (BTOR_IS_BV_VAR_EXP (next) || BTOR_IS_BV_CONST_EXP (next))
+            BTOR_PUSH_STACK (mm, stack, next);
+          else
+          {
+            failed = 1;
+            goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
+          }
+        }
+        else
+        {
+          failed = 1;
+          goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
+        }
+      }
+    }
+
+    /* TODO: restrict variables in eq_class */
+
+  BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP:
+    if (failed)
+    {
+      BTOR_RESET_STACK (stack);
+      for (b = eq->first; b != NULL; b = b->next)
+      {
+        cur = (BtorExp *) b->key;
+        if (!btor_find_in_ptr_hash_table (failed_table, cur))
+          btor_insert_in_ptr_hash_table (failed_table, cur);
+      }
+    }
+    btor_delete_ptr_hash_table (eq);
+  }
+
+  /*
+  if (!btor->model_gen || consts->count == 0u)
+    {
+      replace_consts_by_vars_restricted_bv (btor, consts);
+      eliminate_slices_on_bv_vars (btor);
+      num_vars = count_non_boolean_variables (btor);
+      if (num_vars > 1)
+        {
+          min_len = btor_log_2_util (btor_next_power_of_2_util (num_vars));
+          assert (min_len > 0);
+          restrict_domain_of_bv_variables (btor, min_len);
+        }
+    }
+    */
   /* cleanup */
-  btor_delete_ptr_hash_table (consts);
+  btor_delete_ptr_hash_table (failed_table);
+  BTOR_RELEASE_STACK (mm, vars);
+  BTOR_RELEASE_STACK (mm, stack);
 }
 
 int
@@ -9806,6 +9910,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     eliminate_slices_on_bv_vars (btor);
     if (btor->inconsistent) return BTOR_UNSAT;
+    abstract_domain_bv_variables (btor);
   }
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
