@@ -116,6 +116,7 @@ typedef struct Slice Slice;
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_vars_and_process_embedded_constraints (Btor *);
 static void handle_restricted_bv (Btor *);
+static void eliminate_slices_on_bv_vars (Btor *);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -4811,12 +4812,15 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
   }
 
   substitute_vars_and_process_embedded_constraints (btor);
+  if (btor->rewrite_level > 2 && btor->stand_alone_mode)
+    eliminate_slices_on_bv_vars (btor);
 
+  /*
   if (btor->rewrite_level > 2 && is_restricted_bv (btor))
-  {
-    btor->restricted_bv = 1;
-    handle_restricted_bv (btor);
-  }
+    {
+      btor->restricted_bv = 1;
+      handle_restricted_bv (btor);
+    } */
 
   if (btor->inconsistent)
   {
@@ -9916,11 +9920,15 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   /* handle restricted BV theory if used as stand-alone solver */
   if (btor->stand_alone_mode && btor->rewrite_level > 2)
   {
+    eliminate_slices_on_bv_vars (btor);
+    if (btor->inconsistent) return BTOR_UNSAT;
+    /*
     if (is_restricted_bv (btor))
-    {
-      btor->restricted_bv = 1;
-      handle_restricted_bv (btor);
-    }
+      {
+        btor->restricted_bv = 1;
+        handle_restricted_bv (btor);
+      }
+      */
   }
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
