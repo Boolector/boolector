@@ -115,7 +115,6 @@ typedef struct Slice Slice;
 
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_vars_and_process_embedded_constraints (Btor *);
-static void handle_restricted_bv (Btor *);
 static void eliminate_slices_on_bv_vars (Btor *);
 
 /*------------------------------------------------------------------------*/
@@ -438,109 +437,6 @@ static int
 compare_slices_qsort (const void *p1, const void *p2)
 {
   return compare_slices (*((Slice **) p1), *((Slice **) p2));
-}
-
-/* do we have a restricted bit-vector theory ?
- * note: concats should have already been eliminated by rewriting */
-static int
-has_at_most_vars_consts_slices_eqs_ands (Btor *btor)
-{
-  int i;
-
-  assert (btor != NULL);
-
-  for (i = 3; i < BTOR_NUM_OPS_EXP - 1; i++)
-  {
-    assert (btor->ops[i] >= 0);
-    if (i != BTOR_SLICE_EXP && i != BTOR_BEQ_EXP && i != BTOR_AND_EXP
-        && btor->ops[i] > 0)
-      return 0;
-  }
-  return 1;
-}
-
-static int
-is_restricted_bv (Btor *btor)
-{
-  BtorPtrHashBucket *b;
-  BtorExpPtrStack stack;
-  BtorMemMgr *mm;
-  BtorExp *cur;
-  int result, i;
-
-  assert (btor != NULL);
-  assert (btor->stand_alone_mode);
-  assert (btor->rewrite_level > 2);
-  assert (btor->assumptions->count == 0u);
-  assert (btor->varsubst_constraints->count == 0u);
-  assert (btor->embedded_constraints->count == 0u);
-  assert (btor->synthesized_constraints->count == 0u);
-
-  if (!has_at_most_vars_consts_slices_eqs_ands (btor)) return 0;
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (stack);
-  result = 1;
-
-  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
-  {
-    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
-    assert (cur->len == 1);
-    BTOR_PUSH_STACK (mm, stack, cur);
-    do
-    {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-
-      assert (cur->mark == 0 || cur->mark == 1);
-      if (cur->mark == 1) continue;
-
-      cur->mark = 1;
-
-      assert (cur->kind == BTOR_BV_VAR_EXP || cur->kind == BTOR_BV_CONST_EXP
-              || cur->kind == BTOR_AND_EXP || cur->kind == BTOR_BEQ_EXP
-              || cur->kind == BTOR_SLICE_EXP);
-
-      switch (cur->kind)
-      {
-        case BTOR_AND_EXP:
-          for (i = 0; i < 2; i++)
-          {
-            /* and may be used in boolean context only */
-            if (BTOR_REAL_ADDR_EXP (cur->e[i])->len != 1)
-            {
-              result = 0;
-              goto BTOR_IS_RESTRICTED_BV_CLEANUP;
-            }
-            BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-          }
-          break;
-        case BTOR_BEQ_EXP:
-          for (i = 0; i < 2; i++) BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-          break;
-        case BTOR_SLICE_EXP:
-          assert (cur->kind == BTOR_SLICE_EXP);
-          if (BTOR_IS_INVERTED_EXP (cur->e[0])
-              || (cur->e[0]->kind != BTOR_BV_VAR_EXP
-                  && (cur->e[0]->kind != BTOR_BV_CONST_EXP)))
-          {
-            result = 0;
-            goto BTOR_IS_RESTRICTED_BV_CLEANUP;
-          }
-          break;
-        default:
-          assert (cur->kind == BTOR_BV_VAR_EXP
-                  || cur->kind == BTOR_BV_CONST_EXP);
-          break;
-      }
-    } while (!BTOR_EMPTY_STACK (stack));
-  }
-
-BTOR_IS_RESTRICTED_BV_CLEANUP:
-  BTOR_RELEASE_STACK (mm, stack);
-  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
-    btor_mark_exp (btor, (BtorExp *) b->key, 0);
-
-  return result;
 }
 
 static void
@@ -4812,15 +4708,7 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
   }
 
   substitute_vars_and_process_embedded_constraints (btor);
-  if (btor->rewrite_level > 2 && btor->stand_alone_mode)
-    eliminate_slices_on_bv_vars (btor);
-
-  /*
-  if (btor->rewrite_level > 2 && is_restricted_bv (btor))
-    {
-      btor->restricted_bv = 1;
-      handle_restricted_bv (btor);
-    } */
+  eliminate_slices_on_bv_vars (btor);
 
   if (btor->inconsistent)
   {
@@ -5682,8 +5570,6 @@ btor_print_stats_btor (Btor *btor)
 
   if (verbosity > 2)
   {
-    btor_msg_exp ("restricted BV theory: %s",
-                  btor->restricted_bv ? "yes" : "no");
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -9846,7 +9732,6 @@ handle_restricted_bv (Btor *btor)
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
-  assert (btor->restricted_bv);
   assert (btor->assumptions->count == 0u);
   assert (btor->varsubst_constraints->count == 0u);
   assert (btor->embedded_constraints->count == 0u);
@@ -9917,18 +9802,10 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
 
-  /* handle restricted BV theory if used as stand-alone solver */
   if (btor->stand_alone_mode && btor->rewrite_level > 2)
   {
     eliminate_slices_on_bv_vars (btor);
     if (btor->inconsistent) return BTOR_UNSAT;
-    /*
-    if (is_restricted_bv (btor))
-      {
-        btor->restricted_bv = 1;
-        handle_restricted_bv (btor);
-      }
-      */
   }
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
