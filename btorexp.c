@@ -9623,6 +9623,7 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
   BtorPtrHashBucket *b;
   BtorExp *cur, *lambda_var;
   int min_len;
+  BtorExp *zero, *rhs;
 
   assert (btor != NULL);
   assert (eq != NULL);
@@ -9644,7 +9645,11 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
     assert (BTOR_IS_BV_VAR_EXP (cur));
     assert (cur->len > 1);
     lambda_var = lambda_var_exp (btor, min_len);
-    insert_varsubst_constraint (btor, cur, lambda_var);
+    zero       = btor_zero_exp (btor, cur->len - min_len);
+    rhs        = btor_concat_exp (btor, zero, lambda_var);
+    insert_varsubst_constraint (btor, cur, rhs);
+    btor_release_exp (btor, rhs);
+    btor_release_exp (btor, zero);
     btor_release_exp (btor, lambda_var);
   }
   return 1;
