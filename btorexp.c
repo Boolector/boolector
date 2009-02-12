@@ -8437,6 +8437,9 @@ substitute_var_exps (Btor *btor)
 
   mm                   = btor->mm;
   varsubst_constraints = btor->varsubst_constraints;
+
+  if (varsubst_constraints == 0u) return;
+
   BTOR_INIT_STACK (stack);
 
   /* new equality constraints can be added during rebuild */
@@ -8643,8 +8646,10 @@ substitute_var_exps (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+/* Simple substitution by following simplified pointer.
+ */
 static void
-substitute_embedded_constr_and_rebuild (Btor *btor, BtorPtrHashTable *ec)
+substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -8654,26 +8659,20 @@ substitute_embedded_constr_and_rebuild (Btor *btor, BtorPtrHashTable *ec)
   int pushed, i;
 
   assert (btor != NULL);
-  assert (ec != NULL);
-  assert (ec->count > 0u);
+  assert (subst != NULL);
+
+  if (subst->count == 0u) return;
 
   mm = btor->mm;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (root_stack);
 
-  /* we push all constraints on the search stack */
-  for (b = ec->first; b != NULL; b = b->next)
+  /* we push all expressions on the search stack */
+  for (b = subst->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
-    assert (BTOR_REAL_ADDR_EXP (cur)->constraint);
-    /* embedded constraints have possibly lost their parents,
-     * e.g. top conjunction of constraints that are released */
-    if (has_parents_exp (btor, cur))
-    {
-      btor->stats.ec_substitutions++;
-      BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
-    }
+    BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
   }
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -8708,10 +8707,6 @@ substitute_embedded_constr_and_rebuild (Btor *btor, BtorPtrHashTable *ec)
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
 
     if (cur->aux_mark == 0) continue;
-
-    assert (!BTOR_IS_BV_CONST_EXP (cur));
-    assert (!BTOR_IS_BV_VAR_EXP (cur));
-    assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
 
     if (cur->aux_mark == 1)
     {
@@ -8748,6 +8743,25 @@ substitute_embedded_constr_and_rebuild (Btor *btor, BtorPtrHashTable *ec)
 }
 
 static void
+substitute_embedded_constraints (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorExp *cur;
+
+  assert (btor != NULL);
+
+  for (b = btor->embedded_constraints->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_REAL_ADDR_EXP (cur)->constraint);
+    /* embedded constraints have possibly lost their parents,
+     * e.g. top conjunction of constraints that are released */
+    if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
+  }
+  substitute_and_rebuild (btor, btor->embedded_constraints);
+}
+
+static void
 process_embedded_constraints (Btor *btor)
 {
   BtorPtrHashTable *ec;
@@ -8757,7 +8771,7 @@ process_embedded_constraints (Btor *btor)
   ec = btor->embedded_constraints;
   if (ec->count > 0u)
   {
-    substitute_embedded_constr_and_rebuild (btor, btor->embedded_constraints);
+    substitute_embedded_constraints (btor);
 
     while (ec->count > 0u)
     {
@@ -9669,8 +9683,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
     btor_release_exp (btor, result);
   }
 
-  if (btor->varsubst_constraints->count > 0u)
-    substitute_vars_and_process_embedded_constraints (btor);
+  substitute_vars_and_process_embedded_constraints (btor);
 }
 
 static void
@@ -9747,7 +9760,7 @@ restrict_domain_of_bv_variables (Btor *btor, int min_len)
   BtorExp *var, *zero, *lambda_var, *rhs;
 
   assert (btor != NULL);
-  assert (min_len > 1);
+  assert (min_len > 0);
 
   mm = btor->mm;
 
@@ -9778,8 +9791,7 @@ restrict_domain_of_bv_variables (Btor *btor, int min_len)
     }
   }
 
-  if (btor->varsubst_constraints->count > 0u)
-    substitute_vars_and_process_embedded_constraints (btor);
+  substitute_vars_and_process_embedded_constraints (btor);
 
   BTOR_RELEASE_STACK (mm, stack);
 }
@@ -9788,7 +9800,7 @@ static void
 handle_restricted_bv (Btor *btor)
 {
   BtorMemMgr *mm;
-  BtorExpPtrStack vars, consts;
+  BtorExpPtrStack consts;
   int num_vars, min_len;
 
   assert (btor != NULL);
@@ -9809,10 +9821,10 @@ handle_restricted_bv (Btor *btor)
     /* replace_consts_by_vars_restricted_bv (btor); */
     eliminate_slices_on_bv_vars (btor);
     num_vars = count_non_boolean_variables (btor);
-    if (num_vars > 0)
+    if (num_vars > 1)
     {
       min_len = btor_log_2_util (btor_next_power_of_2_util (num_vars));
-      assert (min_len > 1);
+      assert (min_len > 0);
       restrict_domain_of_bv_variables (btor, min_len);
     }
   }
