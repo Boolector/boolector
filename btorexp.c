@@ -9609,7 +9609,7 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
   BtorExpPtrStack consts;
   BtorPtrHashBucket *b;
   BtorExp *cur, *lambda_var;
-  int min_len, i, j;
+  int min_len, i, j, flag, len;
   BtorExp *zero, *rhs;
 
   assert (btor != NULL);
@@ -9627,14 +9627,18 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
   assert (BTOR_IS_REGULAR_EXP (cur));
   if (min_len >= cur->len) return 0;
 
+  /* perform non-uniform domain abstraction */
+  flag = 0;
+  len  = 1;
   for (b = eq->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_BV_CONST_EXP (cur));
     assert (cur->len > 1);
-    lambda_var = lambda_var_exp (btor, min_len);
-    zero       = btor_zero_exp (btor, cur->len - min_len);
+    assert (len <= min_len);
+    lambda_var = lambda_var_exp (btor, len);
+    zero       = btor_zero_exp (btor, cur->len - len);
     rhs        = btor_concat_exp (btor, zero, lambda_var);
     if (BTOR_IS_BV_VAR_EXP (cur))
       insert_varsubst_constraint (btor, cur, rhs);
@@ -9648,6 +9652,14 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
     btor_release_exp (btor, rhs);
     btor_release_exp (btor, zero);
     btor_release_exp (btor, lambda_var);
+    if (!flag)
+      flag = 1;
+    else
+    {
+      len++;
+      len  = BTOR_MIN_UTIL (len, min_len);
+      flag = 0;
+    }
   }
 
   /* encode that constants have different values */
