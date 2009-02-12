@@ -115,6 +115,7 @@ typedef struct Slice Slice;
 
 static void add_constraint (Btor *, BtorExp *);
 static void substitute_vars_and_process_embedded_constraints (Btor *);
+static void abstract_domain_bv_variables (Btor *);
 static void eliminate_slices_on_bv_vars (Btor *);
 
 /*------------------------------------------------------------------------*/
@@ -4709,6 +4710,7 @@ btor_dump_exps_after_full_rewriting (Btor *btor,
 
   substitute_vars_and_process_embedded_constraints (btor);
   eliminate_slices_on_bv_vars (btor);
+  abstract_domain_bv_variables (btor);
 
   if (btor->inconsistent)
   {
@@ -9577,116 +9579,6 @@ eliminate_slices_on_bv_vars (Btor *btor)
 }
 
 static void
-find_bv_consts_in_unsynth_constraints (Btor *btor, BtorPtrHashTable *consts)
-{
-  BtorPtrHashBucket *b;
-  BtorExpPtrStack stack;
-  BtorMemMgr *mm;
-  BtorExp *cur, *real_cur;
-  int i;
-
-  assert (btor != NULL);
-  assert (consts != NULL);
-  assert (consts->count == 0u);
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (stack);
-
-  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    BTOR_PUSH_STACK (mm, stack, cur);
-    do
-    {
-      cur      = BTOR_POP_STACK (stack);
-      real_cur = BTOR_REAL_ADDR_EXP (cur);
-
-      assert (real_cur->mark == 0 || real_cur->mark == 1);
-      if (real_cur->mark == 1) continue;
-
-      real_cur->mark = 1;
-
-      if (BTOR_IS_BV_CONST_EXP (real_cur))
-        btor_insert_in_ptr_hash_table (consts, cur);
-      else
-      {
-        for (i = real_cur->arity - 1; i >= 0; i--)
-          BTOR_PUSH_STACK (mm, stack, real_cur->e[i]);
-      }
-    } while (!BTOR_EMPTY_STACK (stack));
-  }
-  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
-    btor_mark_exp (btor, (BtorExp *) b->key, 0);
-
-  BTOR_RELEASE_STACK (mm, stack);
-}
-
-static int
-count_non_boolean_variables (Btor *btor)
-{
-  BtorPtrHashBucket *b;
-  BtorExp *var;
-  int result;
-
-  assert (btor != NULL);
-
-  result = 0;
-  for (b = btor->bv_vars->first; b != NULL; b = b->next)
-  {
-    var = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (var));
-    assert (BTOR_IS_BV_VAR_EXP (var));
-    if (var->len > 1) result++;
-  }
-  return result;
-}
-
-static void
-restrict_domain_of_bv_variables (Btor *btor, int min_len)
-{
-  BtorMemMgr *mm;
-  BtorPtrHashBucket *b;
-  BtorExpPtrStack stack;
-  BtorExp *var, *zero, *lambda_var, *rhs;
-
-  assert (btor != NULL);
-  assert (min_len > 0);
-
-  mm = btor->mm;
-
-  /* make copy of variables */
-  BTOR_INIT_STACK (stack);
-  for (b = btor->bv_vars->first; b != NULL; b = b->next)
-  {
-    var = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (var));
-    assert (BTOR_IS_BV_VAR_EXP (var));
-    BTOR_PUSH_STACK (mm, stack, var);
-  }
-
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    var = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_EXP (var));
-    assert (BTOR_IS_BV_VAR_EXP (var));
-    if (min_len < var->len)
-    {
-      lambda_var = lambda_var_exp (btor, min_len);
-      zero       = btor_zero_exp (btor, var->len - min_len);
-      rhs        = btor_concat_exp (btor, zero, lambda_var);
-      insert_varsubst_constraint (btor, var, rhs);
-      btor_release_exp (btor, lambda_var);
-      btor_release_exp (btor, zero);
-      btor_release_exp (btor, rhs);
-    }
-  }
-
-  substitute_vars_and_process_embedded_constraints (btor);
-
-  BTOR_RELEASE_STACK (mm, stack);
-}
-
-static void
 replace_consts_by_vars_restricted_bv (Btor *btor, BtorPtrHashTable *consts)
 {
   BtorMemMgr *mm;
@@ -9723,6 +9615,41 @@ replace_consts_by_vars_restricted_bv (Btor *btor, BtorPtrHashTable *consts)
   BTOR_RELEASE_STACK (mm, lambda_vars);
 }
 
+static int
+restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
+{
+  BtorMemMgr *mm;
+  BtorExpPtrStack consts;
+  BtorPtrHashBucket *b;
+  BtorExp *cur, *lambda_var;
+  int min_len;
+
+  assert (btor != NULL);
+  assert (eq != NULL);
+  assert (btor->stand_alone_mode);
+  assert (btor->rewrite_level > 2);
+
+  if (eq->count <= 1u) return 0;
+
+  mm = btor->mm;
+
+  min_len = btor_log_2_util (btor_next_power_of_2_util ((int) eq->count));
+  cur     = BTOR_REAL_ADDR_EXP ((BtorExp *) eq->first->key);
+  if (min_len >= cur->len) return 0;
+
+  for (b = eq->first; b != NULL; b = b->next)
+  {
+    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur));
+    assert (cur->len > 1);
+    lambda_var = lambda_var_exp (btor, min_len);
+    insert_varsubst_constraint (btor, cur, lambda_var);
+    btor_release_exp (btor, lambda_var);
+  }
+  return 1;
+}
+
 static void
 abstract_domain_bv_variables (Btor *btor)
 {
@@ -9730,9 +9657,9 @@ abstract_domain_bv_variables (Btor *btor)
   BtorMemMgr *mm;
   BtorExpPtrStack stack, vars;
   BtorPtrHashBucket *b;
-  BtorPtrHashTable *failed_table, *eq;
+  BtorPtrHashTable *eq, *restricted, *marked;
   BtorExp *cur, *cur_parent, *next;
-  int num_vars, min_len, i, failed;
+  int i, failed, has_const;
 
   assert (btor != NULL);
   assert (btor->stand_alone_mode);
@@ -9754,9 +9681,12 @@ abstract_domain_bv_variables (Btor *btor)
     BTOR_PUSH_STACK (mm, vars, cur);
   }
 
-  failed_table = btor_new_ptr_hash_table (mm,
-                                          (BtorHashPtr) btor_hash_exp_by_id,
-                                          (BtorCmpPtr) btor_compare_exp_by_id);
+  restricted = btor_new_ptr_hash_table (mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
+  marked     = btor_new_ptr_hash_table (mm,
+                                    (BtorHashPtr) btor_hash_exp_by_id,
+                                    (BtorCmpPtr) btor_compare_exp_by_id);
 
   for (i = 0; i < BTOR_COUNT_STACK (vars); i++)
   {
@@ -9765,12 +9695,13 @@ abstract_domain_bv_variables (Btor *btor)
     /* boolean variables cannot be abstracted further */
     if (cur->len == 1) continue;
 
-    if (btor_find_in_ptr_hash_table (failed_table, cur)) continue;
+    if (btor_find_in_ptr_hash_table (marked, cur)) continue;
 
     assert (BTOR_EMPTY_STACK (stack));
-    eq = btor_new_ptr_hash_table (mm,
+    eq        = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
+    has_const = 0;
     goto BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_LOOP_WITHOUT_POP;
 
     while (!BTOR_EMPTY_STACK (stack))
@@ -9778,7 +9709,7 @@ abstract_domain_bv_variables (Btor *btor)
       cur = BTOR_POP_STACK (stack);
       assert (BTOR_IS_REGULAR_EXP (cur));
 
-      if (btor_find_in_ptr_hash_table (failed_table, cur))
+      if (btor_find_in_ptr_hash_table (marked, cur))
       {
         failed = 1;
         break;
@@ -9811,7 +9742,10 @@ abstract_domain_bv_variables (Btor *btor)
           }
 
           if (BTOR_IS_BV_VAR_EXP (next) || BTOR_IS_BV_CONST_EXP (next))
+          {
+            if (BTOR_IS_BV_CONST_EXP (next)) has_const = 1;
             BTOR_PUSH_STACK (mm, stack, next);
+          }
           else
           {
             failed = 1;
@@ -9826,38 +9760,33 @@ abstract_domain_bv_variables (Btor *btor)
       }
     }
 
-    /* TODO: restrict variables in eq_class */
-
-  BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP:
-    if (failed)
+    if (!has_const && restrict_domain_of_eq_class (btor, eq))
     {
-      BTOR_RESET_STACK (stack);
       for (b = eq->first; b != NULL; b = b->next)
       {
         cur = (BtorExp *) b->key;
-        if (!btor_find_in_ptr_hash_table (failed_table, cur))
-          btor_insert_in_ptr_hash_table (failed_table, cur);
+        btor_insert_in_ptr_hash_table (restricted, cur);
       }
+    }
+
+  BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP:
+    if (failed) BTOR_RESET_STACK (stack);
+
+    for (b = eq->first; b != NULL; b = b->next)
+    {
+      cur = (BtorExp *) b->key;
+      if (!btor_find_in_ptr_hash_table (marked, cur))
+        btor_insert_in_ptr_hash_table (marked, cur);
     }
     btor_delete_ptr_hash_table (eq);
   }
 
-  /*
-  if (!btor->model_gen || consts->count == 0u)
-    {
-      replace_consts_by_vars_restricted_bv (btor, consts);
-      eliminate_slices_on_bv_vars (btor);
-      num_vars = count_non_boolean_variables (btor);
-      if (num_vars > 1)
-        {
-          min_len = btor_log_2_util (btor_next_power_of_2_util (num_vars));
-          assert (min_len > 0);
-          restrict_domain_of_bv_variables (btor, min_len);
-        }
-    }
-    */
+  /* we rebuild formula */
+  substitute_vars_and_process_embedded_constraints (btor);
+
   /* cleanup */
-  btor_delete_ptr_hash_table (failed_table);
+  btor_delete_ptr_hash_table (restricted);
+  btor_delete_ptr_hash_table (marked);
   BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, stack);
 }
@@ -9911,6 +9840,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     eliminate_slices_on_bv_vars (btor);
     if (btor->inconsistent) return BTOR_UNSAT;
     abstract_domain_bv_variables (btor);
+    if (btor->inconsistent) return BTOR_UNSAT;
   }
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
