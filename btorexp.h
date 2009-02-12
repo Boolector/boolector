@@ -157,9 +157,11 @@ struct BtorBVVarExp
 
 typedef struct BtorBVVarExp BtorBVVarExp;
 
+/* substitution code replaces consts by vars so we need the symbol */
 struct BtorBVConstExp
 {
   BTOR_BV_VAR_EXP_STRUCT;
+  char *symbol;
 };
 
 typedef struct BtorBVConstExp BtorBVConstExp;

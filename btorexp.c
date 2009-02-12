@@ -9565,43 +9565,6 @@ eliminate_slices_on_bv_vars (Btor *btor)
   substitute_vars_and_process_embedded_constraints (btor);
 }
 
-static void
-replace_consts_by_vars_restricted_bv (Btor *btor, BtorPtrHashTable *consts)
-{
-  BtorMemMgr *mm;
-  BtorPtrHashBucket *b;
-  BtorExpPtrStack lambda_vars;
-  BtorExp *lambda_var, *cur;
-  int i, j;
-
-  assert (btor != NULL);
-  assert (consts != NULL);
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (lambda_vars);
-  for (b = consts->first; b != NULL; b = b->next)
-  {
-    cur        = (BtorExp *) b->key;
-    lambda_var = lambda_var_exp (btor, BTOR_REAL_ADDR_EXP (cur)->len);
-    set_simplified_exp (btor, BTOR_REAL_ADDR_EXP (cur), lambda_var, 0);
-    BTOR_PUSH_STACK (mm, lambda_vars, lambda_var);
-  }
-  /* replace consts by fresh vars */
-  substitute_and_rebuild (btor, consts);
-  /* add additional constraints that vars are not equal */
-  for (i = 0; i < BTOR_COUNT_STACK (lambda_vars); i++)
-  {
-    for (j = i + 1; j < BTOR_COUNT_STACK (lambda_vars); j++)
-    {
-      cur = btor_ne_exp (btor, lambda_vars.start[i], lambda_vars.start[j]);
-      btor_add_constraint_exp (btor, cur);
-      btor_release_exp (btor, cur);
-    }
-    btor_release_exp (btor, lambda_vars.start[i]);
-  }
-  BTOR_RELEASE_STACK (mm, lambda_vars);
-}
-
 static int
 restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
 {
