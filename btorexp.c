@@ -9496,27 +9496,26 @@ synthesize_all_var_rhs (Btor *btor)
 
 /* we split slices into disjoint classes */
 static void
-normalize_slices (Btor *btor, BtorExpPtrStack *vars)
+normalize_slices_on_bv_vars (Btor *btor)
 {
   BtorFullParentIterator it;
-  BtorPtrHashBucket *b1, *b2;
+  BtorPtrHashBucket *b_var, *b1, *b2;
   BtorExp *var, *cur, *result, *lambda_var, *temp;
   Slice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
   BtorPtrHashTable *slices;
   BtorMemMgr *mm;
-  int i, j, min, max;
+  int i, min, max;
   int vals[4];
 
   assert (btor != NULL);
-  assert (vars != NULL);
 
   mm = btor->mm;
 
-  for (i = 0; i < BTOR_COUNT_STACK (*vars); i++)
+  for (b_var = btor->bv_vars->first; b_var != NULL; b_var = b_var->next)
   {
     slices = btor_new_ptr_hash_table (
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
-    var = vars->start[i];
+    var = (BtorExp *) b_var->key;
     assert (BTOR_IS_REGULAR_EXP (var));
     assert (BTOR_IS_BV_VAR_EXP (var));
     init_full_parent_iterator (&it, var);
@@ -9639,11 +9638,11 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     /* copy slices to sort them */
     assert (slices->count > 1u);
     BTOR_NEWN (mm, sorted_slices, slices->count);
-    j = 0;
+    i = 0;
     for (b1 = slices->first; b1 != NULL; b1 = b1->next)
     {
       s1                 = (Slice *) b1->key;
-      sorted_slices[j++] = s1;
+      sorted_slices[i++] = s1;
     }
     qsort (
         sorted_slices, slices->count, sizeof (Slice *), compare_slices_qsort);
@@ -9652,9 +9651,9 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
     /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
     result = lambda_var_exp (btor, s1->upper - s1->lower + 1);
     delete_slice (btor, s1);
-    for (j = (int) slices->count - 2; j >= 0; j--)
+    for (i = (int) slices->count - 2; i >= 0; i--)
     {
-      s1         = sorted_slices[j];
+      s1         = sorted_slices[i];
       lambda_var = lambda_var_exp (btor, s1->upper - s1->lower + 1);
       temp       = btor_concat_exp (btor, result, lambda_var);
       btor_release_exp (btor, result);
@@ -9676,9 +9675,7 @@ normalize_slices (Btor *btor, BtorExpPtrStack *vars)
 }
 
 static void
-find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
-                                                BtorExpPtrStack *vars,
-                                                BtorExpPtrStack *consts)
+find_bv_consts_in_unsynth_constraints (Btor *btor, BtorExpPtrStack *consts)
 {
   BtorPtrHashBucket *b;
   BtorExpPtrStack stack;
@@ -9687,9 +9684,7 @@ find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
   int i;
 
   assert (btor != NULL);
-  assert (vars != NULL);
   assert (consts != NULL);
-  assert (BTOR_EMPTY_STACK (*vars));
   assert (BTOR_EMPTY_STACK (*consts));
 
   mm = btor->mm;
@@ -9709,9 +9704,7 @@ find_bv_vars_and_consts_in_unsynth_constraints (Btor *btor,
 
       real_cur->mark = 1;
 
-      if (BTOR_IS_BV_VAR_EXP (real_cur))
-        BTOR_PUSH_STACK (mm, *vars, real_cur);
-      else if (BTOR_IS_BV_CONST_EXP (real_cur))
+      if (BTOR_IS_BV_CONST_EXP (real_cur))
         BTOR_PUSH_STACK (mm, *consts, cur);
       else
       {
@@ -9743,13 +9736,11 @@ handle_restricted_bv (Btor *btor)
 
   mm = btor->mm;
 
-  BTOR_INIT_STACK (vars);
   BTOR_INIT_STACK (consts);
-  find_bv_vars_and_consts_in_unsynth_constraints (btor, &vars, &consts);
-  normalize_slices (btor, &vars);
+  find_bv_consts_in_unsynth_constraints (btor, &consts);
+  normalize_slices_on_bv_vars (btor);
 
   /* cleanup */
-  BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, consts);
 }
 
