@@ -628,3 +628,5 @@ underapprox2 -rwl0 -uai -ual -uaz -o log/underapprox2.log log/underapprox2.btor
 underapprox3 -rwl0 -uai -ual -uas -o log/underapprox3.log log/underapprox3.btor
 underapprox4 -rwl0 -uai -ual -uas -o log/underapprox4.log log/underapprox4.btor
 underapprox4 -rwl0 -uai -uag -uas -o log/underapprox4.log log/underapprox4.btor
+regrdomabst1 -o log/regrdomabst1.log log/regrdomabst1.btor
+regrdomabst2 -o log/regrdomabst2.log log/regrdomabst2.btor

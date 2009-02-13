@@ -9582,13 +9582,13 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
 {
   BtorPtrHashBucket *b;
   BtorExp *cur, *lambda_var;
-  int min_len, flag, len;
-  BtorExp *zero, *rhs;
+  int min_len;
 
   assert (btor != NULL);
   assert (eq != NULL);
   assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
+  assert (!btor->model_gen);
 
   if (eq->count <= 1u) return 0;
 
@@ -9597,31 +9597,16 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
   assert (BTOR_IS_REGULAR_EXP (cur));
   if (min_len >= cur->len) return 0;
 
-  /* perform non-uniform domain abstraction */
-  flag = 0;
-  len  = 1;
+  /* perform uniform domain abstraction */
   for (b = eq->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur));
     assert (cur->len > 1);
-    assert (len <= min_len);
-    lambda_var = lambda_var_exp (btor, len);
-    zero       = btor_zero_exp (btor, cur->len - len);
-    rhs        = btor_concat_exp (btor, zero, lambda_var);
-    insert_varsubst_constraint (btor, cur, rhs);
-    btor_release_exp (btor, rhs);
-    btor_release_exp (btor, zero);
+    lambda_var = lambda_var_exp (btor, min_len);
+    insert_varsubst_constraint (btor, cur, lambda_var);
     btor_release_exp (btor, lambda_var);
-    if (!flag)
-      flag = 1;
-    else
-    {
-      len++;
-      len  = BTOR_MIN_UTIL (len, min_len);
-      flag = 0;
-    }
   }
 
   return 1;
@@ -9806,8 +9791,11 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     eliminate_slices_on_bv_vars (btor);
     if (btor->inconsistent) return BTOR_UNSAT;
-    abstract_domain_bv_variables (btor);
-    if (btor->inconsistent) return BTOR_UNSAT;
+    if (!btor->model_gen)
+    {
+      abstract_domain_bv_variables (btor);
+      if (btor->inconsistent) return BTOR_UNSAT;
+    }
   }
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
