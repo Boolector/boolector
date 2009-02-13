@@ -4696,8 +4696,11 @@ btor_dump_exps_after_full_rewriting (Btor *btor, FILE *file)
   assert (btor->stand_alone_mode);
 
   substitute_vars_and_process_embedded_constraints (btor);
-  eliminate_slices_on_bv_vars (btor);
-  abstract_domain_bv_variables (btor);
+  if (btor->rewrite_level > 2)
+  {
+    eliminate_slices_on_bv_vars (btor);
+    abstract_domain_bv_variables (btor);
+  }
 
   if (btor->inconsistent)
   {

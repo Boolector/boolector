@@ -1050,7 +1050,7 @@ boolector_main (int argc, char **argv)
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
       btor_set_stand_alone_mode (btor);
-      if (app.rewrite_level > 2)
+      if (app.rewrite_level >= 2)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
