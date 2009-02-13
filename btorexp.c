@@ -9393,6 +9393,7 @@ synthesize_all_var_rhs (Btor *btor)
 static void
 eliminate_slices_on_bv_vars (Btor *btor)
 {
+  BtorExpPtrStack vars;
   BtorFullParentIterator it;
   BtorPtrHashBucket *b_var, *b1, *b2;
   BtorExp *var, *cur, *result, *lambda_var, *temp;
@@ -9405,12 +9406,18 @@ eliminate_slices_on_bv_vars (Btor *btor)
   assert (btor != NULL);
 
   mm = btor->mm;
-
+  BTOR_INIT_STACK (vars);
   for (b_var = btor->bv_vars->first; b_var != NULL; b_var = b_var->next)
+  {
+    var = (BtorExp *) b_var->key;
+    BTOR_PUSH_STACK (mm, vars, var);
+  }
+
+  while (!BTOR_EMPTY_STACK (vars))
   {
     slices = btor_new_ptr_hash_table (
         mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
-    var = (BtorExp *) b_var->key;
+    var = BTOR_POP_STACK (vars);
     assert (BTOR_IS_REGULAR_EXP (var));
     assert (BTOR_IS_BV_VAR_EXP (var));
     init_full_parent_iterator (&it, var);
@@ -9566,6 +9573,8 @@ eliminate_slices_on_bv_vars (Btor *btor)
   }
 
   substitute_vars_and_process_embedded_constraints (btor);
+
+  BTOR_RELEASE_STACK (mm, vars);
 }
 
 static int
