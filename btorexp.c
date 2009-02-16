@@ -9593,22 +9593,22 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
   if (eq->count <= 1u) return 0;
 
   min_len = btor_log_2_util (btor_next_power_of_2_util ((int) eq->count));
-  cur     = (BtorExp *) eq->first->key;
-  assert (BTOR_IS_REGULAR_EXP (cur));
+  cur     = BTOR_REAL_ADDR_EXP ((BtorExp *) eq->first->key);
   if (min_len >= cur->len) return 0;
 
   /* perform uniform domain abstraction */
   for (b = eq->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur));
-    assert (cur->len > 1);
-    lambda_var = lambda_var_exp (btor, min_len);
-    insert_varsubst_constraint (btor, cur, lambda_var);
-    btor_release_exp (btor, lambda_var);
+    assert (BTOR_REAL_ADDR_EXP (cur)->len > 1);
+    if (!btor_find_in_ptr_hash_table (btor->varsubst_constraints,
+                                      BTOR_REAL_ADDR_EXP (cur)))
+    {
+      lambda_var = lambda_var_exp (btor, min_len);
+      insert_varsubst_constraint (btor, BTOR_REAL_ADDR_EXP (cur), lambda_var);
+      btor_release_exp (btor, lambda_var);
+    }
   }
-
   return 1;
 }
 
@@ -9666,8 +9666,8 @@ abstract_domain_bv_variables (Btor *btor)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_REGULAR_EXP (cur));
-      assert (BTOR_IS_BV_CONST_EXP (cur) || BTOR_IS_BV_VAR_EXP (cur));
+      assert (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (cur))
+              || BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (cur)));
 
       if (btor_find_in_ptr_hash_table (marked, cur))
       {
@@ -9691,19 +9691,24 @@ abstract_domain_bv_variables (Btor *btor)
         assert (BTOR_IS_REGULAR_EXP (cur_parent));
         if (BTOR_IS_BV_EQ_EXP (cur_parent))
         {
-          if (BTOR_REAL_ADDR_EXP (cur_parent->e[0]) == cur)
+          /* we assume that rewriting rules have already simplified
+           * x = x, and x = ~x
+           */
+          if (BTOR_REAL_ADDR_EXP (cur_parent->e[0]) == BTOR_REAL_ADDR_EXP (cur))
           {
-            next = BTOR_REAL_ADDR_EXP (cur_parent->e[1]);
+            next = cur_parent->e[1];
           }
           else
           {
-            assert (BTOR_REAL_ADDR_EXP (cur_parent->e[1]) == cur);
-            next = BTOR_REAL_ADDR_EXP (cur_parent->e[0]);
+            assert (BTOR_REAL_ADDR_EXP (cur_parent->e[1])
+                    == BTOR_REAL_ADDR_EXP (cur));
+            next = cur_parent->e[0];
           }
 
-          if (BTOR_IS_BV_VAR_EXP (next) || BTOR_IS_BV_CONST_EXP (next))
+          if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (next))
+              || BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (next)))
           {
-            if (BTOR_IS_BV_CONST_EXP (next)) has_const = 1;
+            if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (next))) has_const = 1;
             BTOR_PUSH_STACK (mm, stack, next);
           }
           else
