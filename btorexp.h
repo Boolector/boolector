@@ -309,6 +309,8 @@ struct Btor
     int adds_normalized;
     /* number of mul chains normalizations */
     int muls_normalized;
+    /* how many equalities have been successfully probed */
+    int probed_equalities;
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */
