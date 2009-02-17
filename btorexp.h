@@ -252,7 +252,6 @@ struct Btor
   int inconsistent;
   int model_gen;
   int external_refs;
-  int assumption_usage;     /* are assumptions used ? */
   int stand_alone_mode;     /* btor_sat_btor can only be called once */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   struct                    /* Under-approximation UA */
@@ -311,6 +310,8 @@ struct Btor
     int muls_normalized;
     /* how many equalities have been successfully probed */
     int probed_equalities;
+    /* domain abstractions */
+    int domain_abst;
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */

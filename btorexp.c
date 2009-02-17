@@ -5552,17 +5552,14 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp ("array substitutions: %d", btor->stats.array_substitutions);
   btor_msg_exp ("embedded constraint substitutions: %d",
                 btor->stats.ec_substitutions);
-
-  if (!btor->assumption_usage)
-  {
-    btor_msg_exp ("assumptions: %u", btor->assumptions->count);
-    if (btor->ops[BTOR_AEQ_EXP])
-      btor_msg_exp ("virtual reads: %d", btor->stats.vreads);
-    btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
-  }
+  btor_msg_exp ("assumptions: %u", btor->assumptions->count);
+  if (btor->ops[BTOR_AEQ_EXP])
+    btor_msg_exp ("virtual reads: %d", btor->stats.vreads);
 
   if (verbosity > 2)
   {
+    btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
+    btor_msg_exp ("domain abstractions: %d", btor->stats.domain_abst);
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -8075,8 +8072,6 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
-  btor->assumption_usage = 1;
-
   mm = btor->mm;
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
 
@@ -9689,6 +9684,7 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
       lambda_var = lambda_var_exp (btor, min_len);
       insert_varsubst_constraint (btor, BTOR_REAL_ADDR_EXP (cur), lambda_var);
       btor_release_exp (btor, lambda_var);
+      btor->stats.domain_abst++;
     }
   }
   return 1;
@@ -9895,7 +9891,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   assert (btor->unsynthesized_constraints->count == 0u);
 
-  if (btor->rewrite_level > 2 && !btor->assumption_usage)
+  if (btor->stand_alone_mode && btor->rewrite_level > 2)
   {
     if (probe_exps (btor))
     {
