@@ -54,7 +54,9 @@ do
     then
       header=0
     fi
-    echo "$line" >> $headerfile
+    if [[ ${line:0:7} != ':status' ]]; then
+      echo "$line" >> $headerfile
+    fi
   else 
     echo "$line" >> $bodyfile
   fi
