@@ -893,7 +893,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
 
   BTOR_INIT_STACK (stack);
   cur = root;
-  goto ENTER_WITHOUT_PUSH_AND_POP;
+  goto RECURSIVELY_RELEASE_EXP_ENTER_WITHOUT_PUSH_AND_POP;
 
   do
   {
@@ -902,7 +902,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
       cur->refs--;
     else
     {
-    ENTER_WITHOUT_PUSH_AND_POP:
+    RECURSIVELY_RELEASE_EXP_ENTER_WITHOUT_PUSH_AND_POP:
       assert (cur->refs == 1);
 
       for (i = cur->arity - 1; i >= 0; i--)
