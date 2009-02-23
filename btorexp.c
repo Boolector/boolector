@@ -893,7 +893,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
 
   BTOR_INIT_STACK (stack);
   cur = root;
-  goto RECURSIVELY_RELEASE_EXP_ENTER_WITHOUT_PUSH_AND_POP;
+  goto RECURSIVELY_RELEASE_EXP_ENTER_WITHOUT_POP;
 
   do
   {
@@ -902,7 +902,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
       cur->refs--;
     else
     {
-    RECURSIVELY_RELEASE_EXP_ENTER_WITHOUT_PUSH_AND_POP:
+    RECURSIVELY_RELEASE_EXP_ENTER_WITHOUT_POP:
       assert (cur->refs == 1);
 
       for (i = cur->arity - 1; i >= 0; i--)
@@ -2582,10 +2582,13 @@ mark_synth_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
   assert (exp != NULL);
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, exp);
+  cur = BTOR_REAL_ADDR_EXP (exp);
+  goto MARK_SYNTH_MARK_EXP_ENTER_WITHOUT_POP;
+
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+  MARK_SYNTH_MARK_EXP_ENTER_WITHOUT_POP:
     if (cur->synth_mark != new_mark)
     {
       cur->synth_mark = new_mark;
@@ -2607,10 +2610,13 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
   assert (exp != NULL);
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, exp);
+  cur = BTOR_REAL_ADDR_EXP (exp);
+  goto BTOR_MARK_EXP_ENTER_WITHOUT_POP;
+
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+  BTOR_MARK_EXP_ENTER_WITHOUT_POP:
     if (cur->mark != new_mark)
     {
       cur->mark = new_mark;
@@ -5879,10 +5885,13 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
   count = 0;
 
   BTOR_INIT_STACK (exp_stack);
-  BTOR_PUSH_STACK (mm, exp_stack, exp);
+  cur = BTOR_REAL_ADDR_EXP (exp);
+  goto SYNTHESIZE_EXP_ENTER_WITHOUT_POP;
+
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (exp_stack));
+  SYNTHESIZE_EXP_ENTER_WITHOUT_POP:
     assert (cur->synth_mark >= 0);
     assert (cur->synth_mark <= 2);
     if (!BTOR_IS_SYNTH_EXP (cur) && cur->synth_mark < 2)
@@ -7233,10 +7242,13 @@ occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  BTOR_PUSH_STACK (mm, stack, right);
+  cur = BTOR_REAL_ADDR_EXP (right);
+  goto OCCURRENCE_CHECK_ENTER_WITHOUT_POP;
+
   do
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+  OCCURRENCE_CHECK_ENTER_WITHOUT_POP:
     assert (cur->aux_mark == 0 || cur->aux_mark == 1);
     if (cur->aux_mark == 0)
     {
@@ -7986,10 +7998,13 @@ add_constraint (Btor *btor, BtorExp *exp)
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
     BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, exp);
+    cur = exp;
+    goto ADD_CONSTRAINT_ENTER_LOOP_WITHOUT_POP;
+
     do
     {
       cur = BTOR_POP_STACK (stack);
+    ADD_CONSTRAINT_ENTER_LOOP_WITHOUT_POP:
       assert (!BTOR_IS_INVERTED_EXP (cur));
       assert (cur->kind == BTOR_AND_EXP);
       assert (cur->mark == 0 || cur->mark == 1);
@@ -8078,10 +8093,13 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
   {
     BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, exp);
+    cur = exp;
+    goto BTOR_ADD_ASSUMPTION_EXP_ENTER_WITHOUT_POP;
+
     do
     {
       cur = BTOR_POP_STACK (stack);
+    BTOR_ADD_ASSUMPTION_EXP_ENTER_WITHOUT_POP:
       assert (!BTOR_IS_INVERTED_EXP (cur));
       assert (cur->kind == BTOR_AND_EXP);
       assert (cur->mark == 0 || cur->mark == 1);
@@ -9451,11 +9469,13 @@ probe_exps (Btor *btor)
 
   for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
   {
-    cur = (BtorExp *) b->key;
-    BTOR_PUSH_STACK (mm, stack, cur);
+    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
+    goto PROBE_EXPS_ENTER_WITHOUT_POP;
+
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    PROBE_EXPS_ENTER_WITHOUT_POP:
       assert (cur->mark == 0 || cur->mark == 1);
 
       /* we only search through the boolean layer */
@@ -9782,7 +9802,7 @@ abstract_domain_bv_variables (Btor *btor)
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
     has_const = 0;
-    goto BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_LOOP_WITHOUT_POP;
+    goto BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP;
 
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -9800,7 +9820,7 @@ abstract_domain_bv_variables (Btor *btor)
         continue;
       else
       {
-      BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_LOOP_WITHOUT_POP:
+      BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP:
         btor_insert_in_ptr_hash_table (eq, cur);
       }
 
