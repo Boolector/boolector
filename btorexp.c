@@ -114,7 +114,7 @@ typedef struct Slice Slice;
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
 static void add_constraint (Btor *, BtorExp *);
-static void substitute_vars_and_process_embedded_constraints (Btor *);
+static void substitute_vars_and_process_embedded_constraints (Btor *, int);
 static void abstract_domain_bv_variables (Btor *);
 static void eliminate_slices_on_bv_vars (Btor *);
 
@@ -4695,7 +4695,7 @@ btor_dump_exps_after_full_rewriting (Btor *btor, FILE *file)
   int new_nroots, i;
   assert (btor->stand_alone_mode);
 
-  substitute_vars_and_process_embedded_constraints (btor);
+  substitute_vars_and_process_embedded_constraints (btor, 1);
   if (btor->rewrite_level > 2)
   {
     eliminate_slices_on_bv_vars (btor);
@@ -8187,7 +8187,7 @@ update_assumptions (Btor *btor)
 /* we perform all variable substitutions in one pass and rebuild the formula
  * cyclic substitutions must have been deleted before! */
 static void
-substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
+substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -8197,7 +8197,8 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   int pushed, i;
   assert (btor != NULL);
   assert (substs != NULL);
-  assert (substs->count > 0u);
+
+  if (substs->count == 0u) return;
 
   mm = btor->mm;
 
@@ -8303,7 +8304,7 @@ substitute_var_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 }
 
 static void
-substitute_var_exps (Btor *btor)
+substitute_var_exps (Btor *btor, int check_cyclic)
 {
   int order_num, val, max, i;
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
@@ -8316,11 +8317,52 @@ substitute_var_exps (Btor *btor)
   mm                   = btor->mm;
   varsubst_constraints = btor->varsubst_constraints;
 
-  if (varsubst_constraints == 0u) return;
+  if (varsubst_constraints->count == 0u) return;
+
+  if (!check_cyclic)
+  {
+    assert (varsubst_constraints->count > 0u);
+    /* new equality constraints may be added during rebuild */
+    do
+    {
+      /* we copy the current substitution constraints into a local hash table,
+       * and empty the global substitution table */
+      substs = btor_new_ptr_hash_table (mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
+      assert (varsubst_constraints->count > 0u);
+      do
+      {
+        b   = varsubst_constraints->first;
+        cur = (BtorExp *) b->key;
+        assert (BTOR_IS_REGULAR_EXP (cur));
+        assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
+        btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
+        btor_remove_from_ptr_hash_table (varsubst_constraints, cur, NULL, NULL);
+      } while (varsubst_constraints->count > 0u);
+      assert (varsubst_constraints->count == 0u);
+      /* we rebuild and substiute variables in one pass */
+      substitute_vars_and_rebuild_exps (btor, substs);
+      /* cleanup, we delete all substitution constraints */
+      for (b = substs->first; b != NULL; b = b->next)
+      {
+        left = (BtorExp *) b->key;
+        assert (BTOR_IS_REGULAR_EXP (left));
+        assert (left->kind == BTOR_PROXY_EXP);
+        assert (left->simplified != NULL);
+        right = (BtorExp *) b->data.asPtr;
+        assert (right != NULL);
+        btor_release_exp (btor, left);
+        btor_release_exp (btor, right);
+      }
+      btor_delete_ptr_hash_table (substs);
+    } while (varsubst_constraints->count > 0u);
+    return;
+  }
 
   BTOR_INIT_STACK (stack);
 
-  /* new equality constraints can be added during rebuild */
+  /* new equality constraints may be added during rebuild */
   while (varsubst_constraints->count > 0u)
   {
     order_num = 1;
@@ -8502,7 +8544,7 @@ substitute_var_exps (Btor *btor)
     }
 
     /* we rebuild and substiute variables in one pass */
-    substitute_var_and_rebuild_exps (btor, substs);
+    substitute_vars_and_rebuild_exps (btor, substs);
 
     /* cleanup, we delete all substitution constraints */
     for (b = substs->first; b != NULL; b = b->next)
@@ -8663,14 +8705,15 @@ process_embedded_constraints (Btor *btor)
 }
 
 static void
-substitute_vars_and_process_embedded_constraints (Btor *btor)
+substitute_vars_and_process_embedded_constraints (Btor *btor,
+                                                  int check_var_subst_cyclic)
 {
   assert (btor != NULL);
   assert (btor->rewrite_level > 1);
   do
   {
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    substitute_var_exps (btor);
+    substitute_var_exps (btor, check_var_subst_cyclic);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     process_embedded_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -9649,7 +9692,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
     btor_release_exp (btor, result);
   }
 
-  substitute_vars_and_process_embedded_constraints (btor);
+  substitute_vars_and_process_embedded_constraints (btor, 0);
 
   BTOR_RELEASE_STACK (mm, vars);
 }
@@ -9818,7 +9861,7 @@ abstract_domain_bv_variables (Btor *btor)
   }
 
   /* substitue vars by abstractions */
-  substitute_vars_and_process_embedded_constraints (btor);
+  substitute_vars_and_process_embedded_constraints (btor, 0);
 
   /* cleanup */
   btor_delete_ptr_hash_table (marked);
@@ -9852,7 +9895,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (verbosity > 0) btor_msg_exp ("calling SAT");
 
   if (btor->rewrite_level > 1)
-    substitute_vars_and_process_embedded_constraints (btor);
+    substitute_vars_and_process_embedded_constraints (btor, 1);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
@@ -9895,7 +9938,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     if (probe_exps (btor))
     {
-      substitute_vars_and_process_embedded_constraints (btor);
+      substitute_vars_and_process_embedded_constraints (btor, 1);
       if (btor->inconsistent) return BTOR_UNSAT;
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       found_constraint_false = process_unsynthesized_constraints (btor);
