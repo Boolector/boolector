@@ -8886,13 +8886,6 @@ perform_headline_optimization (Btor *btor)
       switch (rebuilt_exp->kind)
       {
         case BTOR_BEQ_EXP:
-          if (hl[0] || hl[1])
-          {
-            btor->stats.headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, 1);
-          }
-          break;
         case BTOR_ADD_EXP:
           if (hl[0] || hl[1])
           {
@@ -8900,6 +8893,8 @@ perform_headline_optimization (Btor *btor)
             btor_release_exp (btor, rebuilt_exp);
             rebuilt_exp = lambda_var_exp (btor, len);
           }
+          break;
+        case BTOR_ULT_EXP:
         case BTOR_AND_EXP:
         case BTOR_MUL_EXP:
         case BTOR_SLL_EXP:
