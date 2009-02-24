@@ -581,6 +581,7 @@ regrunderapprox6 -rwl0 -uao -o log/regrunderapprox6.log log/regrunderapprox6.bto
 regrunderapprox7 -rwl0 -uad -uac -o log/regrunderapprox7.log log/regrunderapprox7.btor
 regrunderapprox8 -rwl1 -uali -o log/regrunderapprox8.log log/regrunderapprox8.btor
 regrunderapprox9 -rwl2 -ua -o log/regrunderapprox9.log log/regrunderapprox9.btor
+regrunderapprox10 -ua -m -o log/regrunderapprox10.log log/regrunderapprox10.btor
 3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
 3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
 3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
@@ -632,3 +633,4 @@ regrdomabst1 -o log/regrdomabst1.log log/regrdomabst1.btor
 regrdomabst2 -o log/regrdomabst2.log log/regrdomabst2.btor
 regrdomabst3 -o log/regrdomabst3.log log/regrdomabst3.btor
 regrdomabst4 -o log/regrdomabst4.log log/regrdomabst4.btor
+headline1 -o log/headline1.log log/headline1.btor

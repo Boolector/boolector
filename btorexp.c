@@ -10185,7 +10185,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   assert (btor->unsynthesized_constraints->count == 0u);
 
-  if (btor->stand_alone_mode && btor->rewrite_level > 2)
+  if (!ua && btor->stand_alone_mode && btor->rewrite_level > 2)
   {
     if (probe_exps (btor))
     {
