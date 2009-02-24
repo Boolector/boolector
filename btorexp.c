@@ -114,7 +114,7 @@ typedef struct Slice Slice;
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
 static void add_constraint (Btor *, BtorExp *);
-static void substitute_vars_and_process_embedded_constraints (Btor *, int);
+static void run_main_rewriting_engine (Btor *, int);
 static void abstract_domain_bv_variables (Btor *);
 static void eliminate_slices_on_bv_vars (Btor *);
 
@@ -1157,11 +1157,50 @@ static int
 has_parents_exp (Btor *btor, BtorExp *exp)
 {
   BtorFullParentIterator it;
+
   assert (btor != NULL);
   assert (exp != NULL);
   (void) btor;
+
   init_full_parent_iterator (&it, exp);
   return has_next_parent_full_parent_iterator (&it);
+}
+
+static int
+has_exactly_one_parent_exp (Btor *btor, BtorExp *exp)
+{
+  BtorFullParentIterator it;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  (void) btor;
+
+  init_full_parent_iterator (&it, exp);
+  if (!has_next_parent_full_parent_iterator (&it)) return 0;
+
+  (void) next_parent_full_parent_iterator (&it);
+  if (has_next_parent_full_parent_iterator (&it)) return 0;
+
+  return 1;
+}
+
+static BtorExp *
+get_parent_if_exactly_one_parent_exp (Btor *btor, BtorExp *exp)
+{
+  BtorExp *result;
+  BtorFullParentIterator it;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  (void) btor;
+
+  init_full_parent_iterator (&it, exp);
+  if (!has_next_parent_full_parent_iterator (&it)) return NULL;
+
+  result = next_parent_full_parent_iterator (&it);
+  if (has_next_parent_full_parent_iterator (&it)) return NULL;
+
+  return result;
 }
 
 static void
@@ -4701,7 +4740,7 @@ btor_dump_exps_after_full_rewriting (Btor *btor, FILE *file)
   int new_nroots, i;
   assert (btor->stand_alone_mode);
 
-  substitute_vars_and_process_embedded_constraints (btor, 1);
+  run_main_rewriting_engine (btor, 1);
   if (btor->rewrite_level > 2)
   {
     eliminate_slices_on_bv_vars (btor);
@@ -5566,6 +5605,7 @@ btor_print_stats_btor (Btor *btor)
   {
     btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
     btor_msg_exp ("domain abstractions: %d", btor->stats.domain_abst);
+    btor_msg_exp ("headline propagations: %d", btor->stats.headline_props);
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -8723,20 +8763,214 @@ process_embedded_constraints (Btor *btor)
 }
 
 static void
-substitute_vars_and_process_embedded_constraints (Btor *btor,
-                                                  int check_var_subst_cyclic)
+perform_headline_optimization (Btor *btor)
 {
+  BtorExpPtrStack stack, root_stack;
+  BtorPtrHashBucket *b;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
+  BtorMemMgr *mm;
+  BtorFullParentIterator it;
+  int pushed, i, len;
+  int hl[3]; /* is child at position i a headline? */
   assert (btor != NULL);
-  assert (btor->rewrite_level > 1);
-  do
+  assert (btor->stand_alone_mode);
+  assert (btor->rewrite_level > 2);
+  assert (!btor->model_gen);
+
+  if (btor->bv_vars->count == 0u) return;
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (root_stack);
+
+  /* select variables that may contribute to
+   * a headline propagation */
+  for (b = btor->bv_vars->first; b != NULL; b = b->next)
   {
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    substitute_var_exps (btor, check_var_subst_cyclic);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    process_embedded_constraints (btor);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-  } while (btor->varsubst_constraints->count > 0u
-           || btor->embedded_constraints->count > 0u);
+    cur = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur));
+    cur_parent = get_parent_if_exactly_one_parent_exp (btor, cur);
+    assert (BTOR_IS_REGULAR_EXP (cur_parent));
+    if (cur_parent != NULL && cur_parent->kind != BTOR_SLICE_EXP
+        && cur_parent->kind != BTOR_CONCAT_EXP
+        && cur_parent->kind != BTOR_READ_EXP
+        && cur_parent->kind != BTOR_WRITE_EXP
+        && cur_parent->kind != BTOR_ACOND_EXP)
+    {
+      /* we use the aux mark to remember whether
+       * the original node had exactly one parent
+       * this is necessary as we also rebuild
+       * the formula during traversal.
+       */
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (mm, stack, cur_parent);
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      /* we use the aux mark to remember whether
+       * the original node had exactly one parent
+       * this is necessary as we also rebuild
+       * the formula during traversal.
+       */
+      if (has_exactly_one_parent_exp (btor, cur))
+      {
+        assert (cur->aux_mark == 0);
+        cur->aux_mark = 1;
+      }
+
+      init_full_parent_iterator (&it, cur);
+      /* are we at a root ? */
+      pushed = 0;
+      while (has_next_parent_full_parent_iterator (&it))
+      {
+        cur_parent = next_parent_full_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        pushed = 1;
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
+      }
+      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
+    }
+  }
+
+  /* copy roots on substitution stack */
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++)
+    BTOR_PUSH_STACK (mm, stack, *temp);
+
+  /* perform headline optimization */
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+
+    if (cur->mark == 0) continue;
+
+    assert (!BTOR_IS_BV_CONST_EXP (cur));
+    assert (!BTOR_IS_BV_VAR_EXP (cur));
+    assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
+
+    if (cur->mark == 1)
+    {
+      BTOR_PUSH_STACK (mm, stack, cur);
+      cur->mark = 2;
+      for (i = cur->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+    }
+    else
+    {
+      assert (cur->mark == 2);
+      cur->mark   = 0;
+      rebuilt_exp = rebuild_exp (btor, cur);
+      len         = rebuilt_exp->len;
+      for (i = rebuilt_exp->arity - 1; i >= 0; i--)
+      {
+        if (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])->aux_mark)
+        {
+          BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])->aux_mark = 0;
+          if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
+            hl[i] = 1;
+          else
+            hl[i] = 0;
+        }
+        else
+          hl[i] = 0;
+      }
+      switch (rebuilt_exp->kind)
+      {
+        case BTOR_BEQ_EXP:
+          if (hl[0] || hl[1])
+          {
+            btor->stats.headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, 1);
+          }
+          break;
+        case BTOR_ADD_EXP:
+          if (hl[0] || hl[1])
+          {
+            btor->stats.headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+        case BTOR_AND_EXP:
+        case BTOR_MUL_EXP:
+        case BTOR_SLL_EXP:
+        case BTOR_SRL_EXP:
+        case BTOR_UDIV_EXP:
+        case BTOR_UREM_EXP:
+          if (hl[0] && hl[1])
+          {
+            btor->stats.headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+          break;
+        case BTOR_BCOND_EXP:
+          if (hl[1] && hl[2])
+          {
+            btor->stats.headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+        default: break;
+      }
+      assert (rebuilt_exp != NULL);
+
+      if (rebuilt_exp != cur)
+      {
+        simplified = btor_pointer_chase_simplified_exp (btor, rebuilt_exp);
+        set_simplified_exp (btor, cur, simplified, 1);
+      }
+      btor_release_exp (btor, rebuilt_exp);
+    }
+  }
+
+  BTOR_RELEASE_STACK (mm, stack);
+
+  top = root_stack.top;
+  for (temp = root_stack.start; temp != top; temp++)
+    btor_release_exp (btor, *temp);
+  BTOR_RELEASE_STACK (mm, root_stack);
+}
+
+static void
+run_main_rewriting_engine (Btor *btor, int check_var_subst_cyclic)
+{
+  int rewrite_level;
+
+  assert (btor != NULL);
+  rewrite_level = btor->rewrite_level;
+
+  if (rewrite_level > 1)
+  {
+    do
+    {
+      do
+      {
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        substitute_var_exps (btor, check_var_subst_cyclic);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        process_embedded_constraints (btor);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+      } while (btor->varsubst_constraints->count > 0u
+               || btor->embedded_constraints->count > 0u);
+
+      if (rewrite_level > 2 && btor->stand_alone_mode && !btor->model_gen)
+      {
+        perform_headline_optimization (btor);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+      }
+    } while (btor->varsubst_constraints->count > 0u
+             || btor->embedded_constraints->count > 0u);
+  }
 }
 
 static int
@@ -9712,7 +9946,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
     btor_release_exp (btor, result);
   }
 
-  substitute_vars_and_process_embedded_constraints (btor, 0);
+  run_main_rewriting_engine (btor, 0);
 
   BTOR_RELEASE_STACK (mm, vars);
 }
@@ -9881,7 +10115,7 @@ abstract_domain_bv_variables (Btor *btor)
   }
 
   /* substitue vars by abstractions */
-  substitute_vars_and_process_embedded_constraints (btor, 0);
+  run_main_rewriting_engine (btor, 0);
 
   /* cleanup */
   btor_delete_ptr_hash_table (marked);
@@ -9914,8 +10148,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   if (verbosity > 0) btor_msg_exp ("calling SAT");
 
-  if (btor->rewrite_level > 1)
-    substitute_vars_and_process_embedded_constraints (btor, 1);
+  run_main_rewriting_engine (btor, 1);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
@@ -9958,7 +10191,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     if (probe_exps (btor))
     {
-      substitute_vars_and_process_embedded_constraints (btor, 1);
+      run_main_rewriting_engine (btor, 1);
       if (btor->inconsistent) return BTOR_UNSAT;
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       found_constraint_false = process_unsynthesized_constraints (btor);

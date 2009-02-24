@@ -312,6 +312,8 @@ struct Btor
     int probed_equalities;
     /* domain abstractions */
     int domain_abst;
+    /* headline propagations */
+    int headline_props;
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */
