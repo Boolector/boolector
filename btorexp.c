@@ -8874,7 +8874,6 @@ perform_headline_optimization (Btor *btor)
       {
         if (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])->aux_mark)
         {
-          BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])->aux_mark = 0;
           if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
             hl[i] = 1;
           else
@@ -8918,6 +8917,10 @@ perform_headline_optimization (Btor *btor)
         default: break;
       }
       assert (rebuilt_exp != NULL);
+
+      /* clean aux_mark flags */
+      for (i = cur->arity - 1; i >= 0; i--)
+        BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark = 0;
 
       if (rebuilt_exp != cur)
       {
