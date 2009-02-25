@@ -416,7 +416,7 @@ void btor_enable_model_gen (Btor *btor);
  * and btor_sat_btor can be called more than once. Note that enabling this
  * feature turns off some optimizations which are not possible anymore.
  */
-void btor_enable_incremental_usage (Btor *btor);
+void btor_enable_inc_usage (Btor *btor);
 
 /* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and

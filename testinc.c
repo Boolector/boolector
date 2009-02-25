@@ -18,7 +18,7 @@ test_inc_true_false (void)
   BtorExp *tt = btor_true_exp (btor);
   int res;
 
-  btor_enable_incremental_usage (btor);
+  btor_enable_inc_usage (btor);
   btor_add_assumption_exp (btor, tt);
   res = btor_sat_btor (btor, INT_MAX);
   assert (res == BTOR_SAT);
@@ -44,7 +44,7 @@ test_inc_counter (int w, int nondet)
   assert (w > 0);
 
   btor = btor_new_btor ();
-  btor_enable_incremental_usage (btor);
+  btor_enable_inc_usage (btor);
   one     = btor_one_exp (btor, w);
   current = btor_zero_exp (btor, w);
   i       = 0;
@@ -165,7 +165,7 @@ test_inc_lt (int w)
   assert (w > 0);
 
   btor = btor_new_btor ();
-  btor_enable_incremental_usage (btor);
+  btor_enable_inc_usage (btor);
 
   i    = 0;
   prev = 0;
@@ -234,7 +234,7 @@ test_inc_assume_assert1 (void)
 {
   int sat_result;
   Btor *btor = btor_new_btor ();
-  btor_enable_incremental_usage (btor);
+  btor_enable_inc_usage (btor);
   btor_set_rewrite_level_btor (btor, 0);
   BtorExp *array    = btor_array_exp (btor, 1, 1, "array1");
   BtorExp *index1   = btor_var_exp (btor, 1, "index1");
@@ -266,7 +266,7 @@ test_inc_lemmas_on_demand_1 ()
 {
   int sat_result;
   Btor *btor = btor_new_btor ();
-  btor_enable_incremental_usage (btor);
+  btor_enable_inc_usage (btor);
   btor_set_rewrite_level_btor (btor, 0);
   BtorExp *array  = btor_array_exp (btor, 1, 1, "array1");
   BtorExp *index1 = btor_var_exp (btor, 1, "index1");

@@ -1167,7 +1167,7 @@ boolector_main (int argc, char **argv)
       if (parse_res.nregs > 0)
       {
         app.app_mode = BTOR_APP_BMC_MODE;
-        btor_enable_incremental_usage (btor);
+        btor_enable_inc_usage (btor);
         if (app.verbosity > 0)
         {
           btor_msg_main ("Solving BMC problem\n");

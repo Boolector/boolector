@@ -5092,7 +5092,7 @@ btor_enable_model_gen (Btor *btor)
 }
 
 void
-btor_enable_incremental_usage (Btor *btor)
+btor_enable_inc_usage (Btor *btor)
 {
   assert (btor != NULL);
   assert (btor->btor_sat_btor_called == 0);

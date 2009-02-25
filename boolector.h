@@ -49,15 +49,19 @@ written permission. Boolector is provided as is, without any warranty.
  * model generation can be enabled by \ref boolector_enable_model_gen. Then,
  * the user can build expressions of bit-vectors and arrays. As the design of
  * Boolector was motivated by real hardware, we do not distinguish between
- * the type 'boolean' and the type 'bit-vector with bit-width one'.
+ * the type 'boolean' and the type 'bit-vector of bit-width one'.
  * After building expressions the user can assert them by
- * \ref boolector_assert and/or assume them by \ref boolector_assume.
- * The resulting instance can be decided by \ref boolector_sat. Finally,
- * if model generation has been enabled and the instance is satisfiable,
- * the user can obtain assignments to bit-vectors resp. arrays by
+ * \ref boolector_assert. The resulting instance can be decided
+ * by \ref boolector_sat. If model generation has been enabled
+ * and the instance is satisfiable, the user can obtain assignments to
+ * bit-vectors resp. arrays by
  * \ref boolector_bv_assignment resp. \ref boolector_array_assignment.
  * The assignments are not limited to variables.
  * They can be obtained for arbitrary expressions.
+ * Finally, Boolector supports incremental usage with assumptions analogously
+ * to MiniSAT. The incremental usage can be enabled
+ * by \ref boolector_enable_inc_usage. Assumptions can be added by
+ * \ref boolector_assume.
  *
  * \section Internals
  * Internally, Boolector manages an expression DAG. This means that each
@@ -85,13 +89,13 @@ written permission. Boolector is provided as is, without any warranty.
  *
  * \subsection Assertions
  * Boolector uses two different kinds of assertions. Internally, Boolector
- * heavily uses assertions as defined in the C library.
+ * heavily uses assertions provided by the standard C library.
  * To increase performance, these assertions are disabled in releases.
  *
  * The functions of Boolector's public interface are guarded by
  * public assertions. Public assertions are always enabled. They check if
  * the functions have been correctly called by the user.
- * If not, then an error message is printed out and abort is called.
+ * If not, then an error message is printed out and 'abort' is called.
  * For example, we call \ref boolector_var and
  * pass NULL as symbol name. Then, we obtain the following error message:
  *
@@ -147,6 +151,15 @@ Btor *boolector_new (void);
  * \see boolector_sat
  */
 void boolector_enable_model_gen (Btor *btor);
+
+/**
+ * Enables incremental usage of Boolector. This allows to add assumptions
+ * by \ref boolector_assume and to call \ref boolector_sat multiple times.
+ * Note that this mode turns off some optimization techniques that cannot
+ * be applied anymore.
+ * \param btor Boolector instance.
+ */
+void boolector_enable_inc_usage (Btor *btor);
 
 /**
  * Sets the rewrite level of the rewriting engine.
@@ -926,6 +939,8 @@ void boolector_assert (Btor *btor, BtorExp *exp);
 
 /**
  * Adds assumption. Use this function to assume 'exp'.
+ * You must enable Boolector's incremental usage by calling
+ * \ref boolector_enable_inc_usage before.
  * In contrast to \ref boolector_assert the assumptions are
  * discarded after each call to \ref boolector_sat. Assumptions
  * and assertions are logically combined by boolean 'and'.
@@ -939,6 +954,10 @@ void boolector_assume (Btor *btor, BtorExp *exp);
  * Solves SAT instance represented by constraints and assumptions added
  * by \ref boolector_assert and \ref boolector_assume. Note that
  * assertions and assumptions are combined by boolean 'and'.
+ * If you want to call this function multiple times then you must enable
+ * Boolector's incremental usage mode by calling
+ * \ref boolector_enable_inc_usage before. Otherwise, this function can only
+ * be called once.
  * \param btor Boolector instance.
  * \return It returns \ref BOOLECTOR_SAT if the instance is satisfiable and
  * \ref BOOLECTOR_UNSAT if the instance is unsatisfiable.
