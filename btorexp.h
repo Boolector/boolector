@@ -250,9 +250,9 @@ struct Btor
   int replay;
   int vread_index_id;
   int inconsistent;
-  int model_gen;
-  int external_refs;
-  int stand_alone_mode;     /* btor_sat_btor can only be called once */
+  int model_gen;            /* model generation enabled */
+  int external_refs;        /* external references (library mode) */
+  int inc_enabled;          /* incremental usage enabled ? */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   struct                    /* Under-approximation UA */
   {
@@ -412,11 +412,11 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
 
-/* This enables further optimizations
- * as Boolector is used as a standalone SMT
- * solver which implies that btor_sat_btor
- * is called only once */
-void btor_set_stand_alone_mode (Btor *btor);
+/* Enables incremental usage which means that assumptions are enabled
+ * and btor_sat_btor can be called more than once. Note that enabling this
+ * feature turns off some optimizations which are not possible anymore.
+ */
+void btor_enable_incremental_usage (Btor *btor);
 
 /* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
@@ -854,7 +854,7 @@ void btor_release_exp (Btor *btor, BtorExp *exp);
 /* Dumps expression(s) to file in BTOR format. */
 void btor_dump_exp (Btor *btor, FILE *file, BtorExp *root);
 void btor_dump_exps (Btor *btor, FILE *file, BtorExp **exps, int nroots);
-void btor_dump_exps_after_full_rewriting (Btor *btor, FILE *file);
+void btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file);
 
 /* Dumps expression to file in SMT format. */
 void btor_dump_smt (Btor *btor, FILE *file, BtorExp *root);

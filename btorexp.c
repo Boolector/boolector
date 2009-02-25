@@ -4733,12 +4733,13 @@ btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
 }
 
 void
-btor_dump_exps_after_full_rewriting (Btor *btor, FILE *file)
+btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
 {
   BtorExp *temp, **new_roots;
   BtorPtrHashBucket *b;
   int new_nroots, i;
-  assert (btor->stand_alone_mode);
+  assert (!btor->inc_enabled);
+  assert (btor->rewrite_level > 1);
 
   run_main_rewriting_engine (btor, 1);
   if (btor->rewrite_level > 2)
@@ -5091,11 +5092,11 @@ btor_enable_model_gen (Btor *btor)
 }
 
 void
-btor_set_stand_alone_mode (Btor *btor)
+btor_enable_incremental_usage (Btor *btor)
 {
   assert (btor != NULL);
   assert (btor->btor_sat_btor_called == 0);
-  btor->stand_alone_mode = 1;
+  btor->inc_enabled = 1;
 }
 
 void
@@ -8120,8 +8121,8 @@ btor_add_assumption_exp (Btor *btor, BtorExp *exp)
   BtorExpPtrStack stack;
   BtorMemMgr *mm;
 
-  assert (!btor->stand_alone_mode);
   assert (btor != NULL);
+  assert (btor->inc_enabled);
   assert (exp != NULL);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
@@ -8773,8 +8774,8 @@ perform_headline_optimization (Btor *btor)
   int pushed, i, len;
   int hl[3]; /* is child at position i a headline? */
   assert (btor != NULL);
-  assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
+  assert (!btor->inc_enabled);
   assert (!btor->model_gen);
 
   if (btor->bv_vars->count == 0u) return;
@@ -8961,7 +8962,7 @@ run_main_rewriting_engine (Btor *btor, int check_var_subst_cyclic)
       } while (btor->varsubst_constraints->count > 0u
                || btor->embedded_constraints->count > 0u);
 
-      if (rewrite_level > 2 && btor->stand_alone_mode && !btor->model_gen)
+      if (rewrite_level > 2 && !btor->inc_enabled && !btor->model_gen)
       {
         perform_headline_optimization (btor);
         assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -9958,8 +9959,8 @@ restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
 
   assert (btor != NULL);
   assert (eq != NULL);
-  assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
+  assert (!btor->inc_enabled);
   assert (!btor->model_gen);
 
   if (eq->count <= 1u) return 0;
@@ -9997,8 +9998,9 @@ abstract_domain_bv_variables (Btor *btor)
   int i, failed, has_const;
 
   assert (btor != NULL);
-  assert (btor->stand_alone_mode);
   assert (btor->rewrite_level > 2);
+  assert (!btor->inc_enabled);
+  assert (!btor->model_gen);
   assert (btor->assumptions->count == 0u);
   assert (btor->varsubst_constraints->count == 0u);
   assert (btor->embedded_constraints->count == 0u);
@@ -10135,7 +10137,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   assert (btor != NULL);
   assert (refinement_limit >= -1);
   assert (btor->btor_sat_btor_called >= 0);
-  assert (!btor->stand_alone_mode || btor->btor_sat_btor_called == 0);
+  assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
   btor->btor_sat_btor_called++;
 
   verbosity             = btor->verbosity;
@@ -10164,7 +10166,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
 
-  if (btor->stand_alone_mode && btor->rewrite_level > 2)
+  if (!btor->inc_enabled && btor->rewrite_level > 2)
   {
     eliminate_slices_on_bv_vars (btor);
     if (btor->inconsistent) return BTOR_UNSAT;
@@ -10185,7 +10187,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   assert (btor->unsynthesized_constraints->count == 0u);
 
-  if (!ua && btor->stand_alone_mode && btor->rewrite_level > 2)
+  if (!ua && !btor->inc_enabled && btor->rewrite_level > 2)
   {
     if (probe_exps (btor))
     {

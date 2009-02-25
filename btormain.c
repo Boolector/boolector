@@ -1049,7 +1049,6 @@ boolector_main (int argc, char **argv)
     {
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
-      btor_set_stand_alone_mode (btor);
       if (app.rewrite_level >= 2)
       {
         for (i = 0; i < parse_res.noutputs; i++)
@@ -1066,7 +1065,7 @@ boolector_main (int argc, char **argv)
         }
         parser_api->reset (parser);
         parser_api = NULL;
-        btor_dump_exps_after_full_rewriting (btor, app.exp_file);
+        btor_dump_exps_after_global_rewriting (btor, app.exp_file);
       }
       else
         btor_dump_exps (
@@ -1075,7 +1074,6 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
-      btor_set_stand_alone_mode (btor);
       if (parse_res.noutputs != 1)
       {
         print_msg_va_args (&app,
@@ -1169,6 +1167,7 @@ boolector_main (int argc, char **argv)
       if (parse_res.nregs > 0)
       {
         app.app_mode = BTOR_APP_BMC_MODE;
+        btor_enable_incremental_usage (btor);
         if (app.verbosity > 0)
         {
           btor_msg_main ("Solving BMC problem\n");
@@ -1517,7 +1516,6 @@ boolector_main (int argc, char **argv)
       else
       {
         /* stand alone mode */
-        btor_set_stand_alone_mode (btor);
         parser_api->reset (parser);
         parser_api = NULL;
 
