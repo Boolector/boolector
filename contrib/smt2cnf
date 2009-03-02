@@ -1,0 +1,43 @@
+#!/bin/bash
+readonly tmpfilebtor=/tmp/smt2cnf$$.btor
+readonly usage='smt2cnf [--no-rewriting] <smt-file>'
+
+if [[ $# -ne 1 ]] && [[ $# -ne 2 ]]; then
+  echo $usage
+  exit 1
+fi
+
+file=$1
+rw=1
+if [[ $# -eq 2 ]]; then
+  if [[ $1 != "--no-rewriting" ]]; then 
+    echo $usage
+    exit 1
+  fi
+  rw=0
+  file=$2
+fi
+
+if [[ -d $file ]] || [[ ! -f $file ]] || [[ ! -r $file ]]; then
+  echo $usage
+  exit 1
+fi
+
+boolector=`which boolector`
+if [[ -z "$boolector" ]]; then
+  echo "can not find 'boolector'" 1>&2
+  exit 1
+fi
+
+btor2cnf=`which btor2cnf`
+if [[ -z "$btor2cnf" ]]; then
+  echo "can not find 'btor2cnf'" 1>&2
+  exit 1
+fi
+
+$boolector -rwl0 $file -de > $tmpfilebtor
+if [[ $rw -eq 0 ]]; then
+  $btor2cnf --no-rewriting $tmpfilebtor
+else
+  $btor2cnf $tmpfilebtor
+fi

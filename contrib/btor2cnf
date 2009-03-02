@@ -1,0 +1,62 @@
+#!/bin/bash
+readonly tmpfileaig=/tmp/btor2cnf$$.aig
+readonly tmpfileaag=/tmp/btor2cnf$$.aag
+readonly usage='btor2cnf [--no-rewriting] <btor-file>'
+
+if [[ $# -ne 1 ]] && [[ $# -ne 2 ]]; then
+  echo $usage
+  exit 1
+fi
+
+file=$1
+if [[ $# -eq 2 ]]; then
+  if [[ $1 != "--no-rewriting" ]]; then 
+    echo $usage
+    exit 1
+  fi
+  rw='-rwl0'
+  file=$2
+fi
+
+if [[ -d $file ]] || [[ ! -f $file ]] || [[ ! -r $file ]]; then
+  echo $usage
+  exit 1
+fi
+
+boolector=`which boolector`
+if [[ -z "$boolector" ]]; then
+  echo "can not find 'boolector'" 1>&2
+  exit 1
+fi
+
+synthebtor=`which synthebtor`
+if [[ -z "$synthebtor" ]]; then
+  echo "can not find 'synthebtor'" 1>&2
+  exit 1
+fi
+
+aigtoaig=`which aigtoaig`
+if [[ -z "$aigtoaig" ]]; then
+  echo "can not find 'aigtoaig'" 1>&2
+  exit 1
+fi
+
+aigtocnf=`which aigtocnf`
+if [[ -z "$aigtocnf" ]]; then
+  echo "can not find 'aigtocnf'" 1>&2
+  exit 1
+fi
+
+#check if btor file does not have arrays
+while read line
+do
+  keyword=`echo $line | awk '{print $2}'`
+  if [[ "$keyword" == "array" ]]; then
+    echo "arrays are not supported"
+    exit 1
+  fi
+done < $file
+
+$boolector $rw $file -de | $synthebtor -m > $tmpfileaig
+$aigtoaig $tmpfileaig $tmpfileaag
+$aigtocnf $tmpfileaag
