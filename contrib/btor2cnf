@@ -1,26 +1,17 @@
 #!/bin/bash
-readonly tmpfileaig=/tmp/btor2cnf$$.aig
-readonly tmpfileaag=/tmp/btor2cnf$$.aag
-readonly usage='btor2cnf [--no-rewriting] <btor-file>'
+readonly usage='btor2cnf [--no-rewriting]'
 
-if [[ $# -ne 1 ]] && [[ $# -ne 2 ]]; then
+if [[ $# -ne 0 ]] && [[ $# -ne 1 ]]; then
   echo $usage
   exit 1
 fi
 
-file=$1
-if [[ $# -eq 2 ]]; then
+if [[ $# -eq 1 ]]; then
   if [[ $1 != "--no-rewriting" ]]; then 
     echo $usage
     exit 1
   fi
   rw='-rwl0'
-  file=$2
-fi
-
-if [[ -d $file ]] || [[ ! -f $file ]] || [[ ! -r $file ]]; then
-  echo $usage
-  exit 1
 fi
 
 boolector=`which boolector`
@@ -47,16 +38,16 @@ if [[ -z "$aigtocnf" ]]; then
   exit 1
 fi
 
+cont=""
 #check if btor file does not have arrays
 while read line
 do
   keyword=`echo $line | awk '{print $2}'`
   if [[ "$keyword" == "array" ]]; then
-    echo "arrays are not supported"
+    echo "arrays are not supported" 1>&2
     exit 1
   fi
-done < $file
+  cont="$cont${line}\n"
+done
 
-$boolector $rw $file -de | $synthebtor -m > $tmpfileaig
-$aigtoaig $tmpfileaig $tmpfileaag
-$aigtocnf $tmpfileaag
+echo -e $cont | $boolector $rw -de | $synthebtor -m | $aigtoaig | $aigtocnf
