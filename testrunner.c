@@ -79,6 +79,10 @@ static const char *normaltests[] = {
     "hd4",
     "hd9",
     "hd11",
+    "headline1",
+    "headline6",
+    "headline7",
+    "headline8",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };

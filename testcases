@@ -640,3 +640,5 @@ headline3 -o log/headline3.log log/headline3.btor
 headline4 -o log/headline4.log log/headline4.btor
 headline5 -o log/headline5.log log/headline5.btor
 headline6 -o log/headline6.log log/headline6.btor
+headline7 -o log/headline7.log log/headline7.btor
+headline8 -o log/headline8.log log/headline8.btor

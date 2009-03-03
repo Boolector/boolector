@@ -8805,9 +8805,7 @@ perform_headline_optimization (Btor *btor)
     assert (BTOR_IS_BV_VAR_EXP (cur));
     cur_parent = get_parent_if_exactly_one_parent_exp (btor, cur);
     assert (BTOR_IS_REGULAR_EXP (cur_parent));
-    if (cur_parent != NULL && cur_parent->kind != BTOR_SLICE_EXP
-        && cur_parent->kind != BTOR_CONCAT_EXP
-        && cur_parent->kind != BTOR_READ_EXP
+    if (cur_parent != NULL && cur_parent->kind != BTOR_READ_EXP
         && cur_parent->kind != BTOR_WRITE_EXP
         && cur_parent->kind != BTOR_ACOND_EXP)
     {
@@ -8882,7 +8880,7 @@ perform_headline_optimization (Btor *btor)
       cur->mark   = 0;
       rebuilt_exp = rebuild_exp (btor, cur);
       len         = rebuilt_exp->len;
-      for (i = rebuilt_exp->arity - 1; i >= 0; i--)
+      for (i = BTOR_REAL_ADDR_EXP (rebuilt_exp)->arity - 1; i >= 0; i--)
       {
         if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
         {
@@ -8896,6 +8894,14 @@ perform_headline_optimization (Btor *btor)
       }
       switch (rebuilt_exp->kind)
       {
+        case BTOR_SLICE_EXP:
+          if (hl[0])
+          {
+            btor->stats.headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+          break;
         case BTOR_BEQ_EXP:
         case BTOR_ADD_EXP:
           if (hl[0] || hl[1])
@@ -8949,6 +8955,7 @@ perform_headline_optimization (Btor *btor)
             btor_release_exp (btor, ne);
           }
           break;
+        case BTOR_CONCAT_EXP:
         case BTOR_AND_EXP:
         case BTOR_MUL_EXP:
         case BTOR_SLL_EXP:
