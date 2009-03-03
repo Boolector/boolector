@@ -385,6 +385,7 @@ rw155 -rwl0 -o log/rw155.log log/rw155.btor
 rw155 -rwl1 -o log/rw155.log log/rw155.btor
 rw156 -rwl0 -o log/rw156.log log/rw156.btor
 rw156 -rwl1 -o log/rw156.log log/rw156.btor
+rw157 -o log/rw157.log log/rw157.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
@@ -638,3 +639,4 @@ headline2 -o log/headline2.log log/headline2.btor
 headline3 -o log/headline3.log log/headline3.btor
 headline4 -o log/headline4.log log/headline4.btor
 headline5 -o log/headline5.log log/headline5.btor
+headline6 -o log/headline6.log log/headline6.btor

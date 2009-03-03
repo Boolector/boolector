@@ -114,7 +114,7 @@ typedef struct Slice Slice;
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
 static void add_constraint (Btor *, BtorExp *);
-static void run_main_rewriting_engine (Btor *, int);
+static void run_rewrite_engine (Btor *, int);
 static void abstract_domain_bv_variables (Btor *);
 static void eliminate_slices_on_bv_vars (Btor *);
 
@@ -4741,13 +4741,7 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   assert (!btor->inc_enabled);
   assert (btor->rewrite_level > 1);
 
-  run_main_rewriting_engine (btor, 1);
-  if (btor->rewrite_level > 2)
-  {
-    eliminate_slices_on_bv_vars (btor);
-    abstract_domain_bv_variables (btor);
-  }
-
+  run_rewrite_engine (btor, 1);
   if (btor->inconsistent)
   {
     temp = btor_false_exp (btor);
@@ -8890,7 +8884,7 @@ perform_headline_optimization (Btor *btor)
       len         = rebuilt_exp->len;
       for (i = rebuilt_exp->arity - 1; i >= 0; i--)
       {
-        if (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])->aux_mark)
+        if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
         {
           if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
             hl[i] = 1;
@@ -9001,12 +8995,18 @@ perform_headline_optimization (Btor *btor)
 }
 
 static void
-run_main_rewriting_engine (Btor *btor, int check_var_subst_cyclic)
+run_rewrite_engine (Btor *btor, int full)
 {
-  int rewrite_level;
+  int rewrite_level, inc_enabled, model_gen, check_cyclic;
 
   assert (btor != NULL);
+
+  if (btor->inconsistent) return;
+
   rewrite_level = btor->rewrite_level;
+  inc_enabled   = btor->inc_enabled;
+  model_gen     = btor->model_gen;
+  check_cyclic  = 1;
 
   if (rewrite_level > 1)
   {
@@ -9014,21 +9014,51 @@ run_main_rewriting_engine (Btor *btor, int check_var_subst_cyclic)
     {
       do
       {
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        substitute_var_exps (btor, check_var_subst_cyclic);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        process_embedded_constraints (btor);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-      } while (btor->varsubst_constraints->count > 0u
-               || btor->embedded_constraints->count > 0u);
+        do
+        {
+          do
+          {
+            assert (check_all_hash_tables_proxy_free_dbg (btor));
+            substitute_var_exps (btor, check_cyclic);
+            assert (check_all_hash_tables_proxy_free_dbg (btor));
+            if (btor->inconsistent) return;
+            check_cyclic = 1;
 
-      if (rewrite_level > 2 && !btor->inc_enabled && !btor->model_gen)
+            process_embedded_constraints (btor);
+            assert (check_all_hash_tables_proxy_free_dbg (btor));
+            if (btor->inconsistent) return;
+          } while (btor->varsubst_constraints->count > 0u
+                   || btor->embedded_constraints->count > 0u);
+
+          if (!full) return;
+
+          if (rewrite_level > 2 && !inc_enabled && !model_gen)
+          {
+            perform_headline_optimization (btor);
+            assert (check_all_hash_tables_proxy_free_dbg (btor));
+            if (btor->inconsistent) return;
+            check_cyclic = 0;
+          }
+
+        } while (btor->varsubst_constraints->count > 0u);
+
+        if (rewrite_level > 2 && !inc_enabled)
+        {
+          eliminate_slices_on_bv_vars (btor);
+          if (btor->inconsistent) return;
+          check_cyclic = 1;
+        }
+
+      } while (btor->varsubst_constraints->count > 0u);
+
+      if (rewrite_level > 2 && !inc_enabled && !model_gen)
       {
-        perform_headline_optimization (btor);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        abstract_domain_bv_variables (btor);
+        if (btor->inconsistent) return;
+        check_cyclic = 0;
       }
-    } while (btor->varsubst_constraints->count > 0u
-             || btor->embedded_constraints->count > 0u);
+
+    } while (btor->varsubst_constraints->count > 0u);
   }
 }
 
@@ -10005,8 +10035,6 @@ eliminate_slices_on_bv_vars (Btor *btor)
     btor_release_exp (btor, result);
   }
 
-  run_main_rewriting_engine (btor, 0);
-
   BTOR_RELEASE_STACK (mm, vars);
 }
 
@@ -10174,9 +10202,6 @@ abstract_domain_bv_variables (Btor *btor)
     btor_delete_ptr_hash_table (eq);
   }
 
-  /* substitue vars by abstractions */
-  run_main_rewriting_engine (btor, 0);
-
   /* cleanup */
   btor_delete_ptr_hash_table (marked);
   BTOR_RELEASE_STACK (mm, vars);
@@ -10208,12 +10233,9 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   if (verbosity > 0) btor_msg_exp ("calling SAT");
 
-  run_main_rewriting_engine (btor, 1);
+  run_rewrite_engine (btor, 1);
 
   if (btor->inconsistent) return BTOR_UNSAT;
-
-  assert (btor->varsubst_constraints->count == 0u);
-  assert (btor->embedded_constraints->count == 0u);
 
   mm              = btor->mm;
   ua_refinements  = btor->stats.ua_refinements;
@@ -10225,17 +10247,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
-
-  if (!btor->inc_enabled && btor->rewrite_level > 2)
-  {
-    eliminate_slices_on_bv_vars (btor);
-    if (btor->inconsistent) return BTOR_UNSAT;
-    if (!btor->model_gen)
-    {
-      abstract_domain_bv_variables (btor);
-      if (btor->inconsistent) return BTOR_UNSAT;
-    }
-  }
 
   assert (check_all_hash_tables_proxy_free_dbg (btor));
   found_constraint_false = process_unsynthesized_constraints (btor);
@@ -10251,7 +10262,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   {
     if (probe_exps (btor))
     {
-      run_main_rewriting_engine (btor, 1);
+      run_rewrite_engine (btor, 0);
       if (btor->inconsistent) return BTOR_UNSAT;
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       found_constraint_false = process_unsynthesized_constraints (btor);
