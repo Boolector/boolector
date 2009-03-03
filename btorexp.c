@@ -1167,6 +1167,33 @@ has_parents_exp (Btor *btor, BtorExp *exp)
 }
 
 static int
+has_exactly_one_real_parent_array_exp (Btor *btor, BtorExp *exp)
+{
+  BtorFullParentIterator it;
+  BtorExp *cur;
+  int num_real_parents;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (BTOR_IS_REGULAR_EXP (exp));
+  assert (BTOR_IS_ARRAY_EXP (exp));
+  (void) btor;
+
+  num_real_parents = 0;
+  init_full_parent_iterator (&it, exp);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    cur = next_parent_full_parent_iterator (&it);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (!cur->vread) num_real_parents++;
+
+    if (num_real_parents > 1) return 0;
+  }
+
+  return num_real_parents == 1;
+}
+
+static int
 has_exactly_one_parent_exp (Btor *btor, BtorExp *exp)
 {
   BtorFullParentIterator it;
@@ -1174,6 +1201,9 @@ has_exactly_one_parent_exp (Btor *btor, BtorExp *exp)
   assert (btor != NULL);
   assert (exp != NULL);
   (void) btor;
+
+  if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)))
+    return has_exactly_one_real_parent_array_exp (btor, exp);
 
   init_full_parent_iterator (&it, exp);
   if (!has_next_parent_full_parent_iterator (&it)) return 0;
@@ -5023,7 +5053,8 @@ btor_new_btor (void)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
   btor->id                = 1;
-  btor->lambda_id         = 1;
+  btor->bv_lambda_id      = 1;
+  btor->array_lambda_id   = 1;
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
@@ -5600,7 +5631,10 @@ btor_print_stats_btor (Btor *btor)
   {
     btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
     btor_msg_exp ("domain abstractions: %d", btor->stats.domain_abst);
-    btor_msg_exp ("headline propagations: %d", btor->stats.headline_props);
+    btor_msg_exp ("bv headline propagations: %d",
+                  btor->stats.bv_headline_props);
+    btor_msg_exp ("array headline propagations: %d",
+                  btor->stats.array_headline_props);
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -7514,11 +7548,34 @@ lambda_var_exp (Btor *btor, int len)
 
   mm = btor->mm;
 
-  string_len = btor_num_digits_util (btor->lambda_id) + 9;
+  string_len = btor_num_digits_util (btor->bv_lambda_id) + 11;
   BTOR_NEWN (mm, name, string_len);
-  sprintf (name, "lambda_%d_", btor->lambda_id);
-  btor->lambda_id++;
+  sprintf (name, "bvlambda_%d_", btor->bv_lambda_id);
+  btor->bv_lambda_id++;
   result = btor_var_exp (btor, len, name);
+  BTOR_DELETEN (mm, name, string_len);
+  return result;
+}
+
+static BtorExp *
+lambda_array_exp (Btor *btor, int elem_len, int index_len)
+{
+  BtorExp *result;
+  char *name;
+  int string_len;
+  BtorMemMgr *mm;
+
+  assert (btor != NULL);
+  assert (elem_len > 0);
+  assert (index_len > 0);
+
+  mm = btor->mm;
+
+  string_len = btor_num_digits_util (btor->array_lambda_id) + 14;
+  BTOR_NEWN (mm, name, string_len);
+  sprintf (name, "arraylambda_%d_", btor->array_lambda_id);
+  btor->array_lambda_id++;
+  result = btor_array_exp (btor, elem_len, index_len, name);
   BTOR_DELETEN (mm, name, string_len);
   return result;
 }
@@ -8782,14 +8839,14 @@ perform_headline_optimization (Btor *btor)
   BtorExp *cv, *ne, *tmp;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
-  int pushed, i, len;
+  int pushed, i, len, index_len;
   int hl[3]; /* is child at position i a headline? */
   assert (btor != NULL);
   assert (btor->rewrite_level > 2);
   assert (!btor->inc_enabled);
   assert (!btor->model_gen);
 
-  if (btor->bv_vars->count == 0u) return;
+  if (btor->bv_vars->count == 0u && btor->array_vars->count == 0u) return;
 
   mm = btor->mm;
 
@@ -8814,6 +8871,20 @@ perform_headline_optimization (Btor *btor)
        * this is necessary as we also rebuild
        * the formula during traversal.
        */
+      cur->aux_mark = 1;
+      BTOR_PUSH_STACK (mm, stack, cur_parent);
+    }
+  }
+
+  for (b = btor->array_vars->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_ARRAY_VAR_EXP (cur));
+    cur_parent = get_parent_if_exactly_one_parent_exp (btor, cur);
+    assert (BTOR_IS_REGULAR_EXP (cur_parent));
+    if (cur_parent != NULL)
+    {
       cur->aux_mark = 1;
       BTOR_PUSH_STACK (mm, stack, cur_parent);
     }
@@ -8879,25 +8950,75 @@ perform_headline_optimization (Btor *btor)
       assert (cur->mark == 2);
       cur->mark   = 0;
       rebuilt_exp = rebuild_exp (btor, cur);
-      len         = rebuilt_exp->len;
+      len         = BTOR_REAL_ADDR_EXP (rebuilt_exp)->len;
+      if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp)))
+        index_len = BTOR_REAL_ADDR_EXP (rebuilt_exp)->index_len;
+
       for (i = BTOR_REAL_ADDR_EXP (rebuilt_exp)->arity - 1; i >= 0; i--)
       {
         if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
         {
-          if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
-            hl[i] = 1;
-          else
-            hl[i] = 0;
+          switch (BTOR_REAL_ADDR_EXP (rebuilt_exp)->kind)
+          {
+            case BTOR_AEQ_EXP:
+              if (BTOR_IS_ARRAY_VAR_EXP (rebuilt_exp->e[i]))
+                hl[i] = 1;
+              else
+                hl[i] = 0;
+              break;
+            case BTOR_ACOND_EXP:
+              if (i == 0)
+              {
+                if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
+                  hl[0] = 1;
+                else
+                  hl[0] = 0;
+              }
+              else
+              {
+                if (BTOR_IS_ARRAY_VAR_EXP (rebuilt_exp->e[i]))
+                  hl[i] = 1;
+                else
+                  hl[i] = 0;
+                break;
+              }
+              break;
+            case BTOR_READ_EXP:
+            case BTOR_WRITE_EXP:
+              if (i == 0)
+              {
+                if (BTOR_IS_ARRAY_VAR_EXP (rebuilt_exp->e[0]))
+                  hl[0] = 1;
+                else
+                  hl[0] = 0;
+                break;
+              }
+              /* fall through by intention */
+            default:
+              if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
+                hl[i] = 1;
+              else
+                hl[i] = 0;
+              break;
+          }
         }
         else
           hl[i] = 0;
       }
-      switch (rebuilt_exp->kind)
+      switch (BTOR_REAL_ADDR_EXP (rebuilt_exp)->kind)
       {
         case BTOR_SLICE_EXP:
           if (hl[0])
           {
-            btor->stats.headline_props++;
+            btor->stats.bv_headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+          break;
+        case BTOR_READ_EXP:
+          if (hl[0])
+          {
+            btor->stats.array_headline_props++;
             btor_release_exp (btor, rebuilt_exp);
             rebuilt_exp = lambda_var_exp (btor, len);
           }
@@ -8906,7 +9027,15 @@ perform_headline_optimization (Btor *btor)
         case BTOR_ADD_EXP:
           if (hl[0] || hl[1])
           {
-            btor->stats.headline_props++;
+            btor->stats.bv_headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+          break;
+        case BTOR_AEQ_EXP:
+          if (hl[0] || hl[1])
+          {
+            btor->stats.array_headline_props++;
             btor_release_exp (btor, rebuilt_exp);
             rebuilt_exp = lambda_var_exp (btor, len);
           }
@@ -8914,7 +9043,7 @@ perform_headline_optimization (Btor *btor)
         case BTOR_ULT_EXP:
           if (hl[0] && hl[1])
           {
-            btor->stats.headline_props++;
+            btor->stats.bv_headline_props++;
             btor_release_exp (btor, rebuilt_exp);
             rebuilt_exp = lambda_var_exp (btor, len);
           }
@@ -8929,7 +9058,7 @@ perform_headline_optimization (Btor *btor)
             /* 3vl optimization may find out */
             if (is_true_exp (btor, ne))
             {
-              btor->stats.headline_props++;
+              btor->stats.bv_headline_props++;
               btor_release_exp (btor, rebuilt_exp);
               rebuilt_exp = lambda_var_exp (btor, len);
             }
@@ -8947,7 +9076,7 @@ perform_headline_optimization (Btor *btor)
             /* 3vl optimization may find out */
             if (is_true_exp (btor, ne))
             {
-              btor->stats.headline_props++;
+              btor->stats.bv_headline_props++;
               btor_release_exp (btor, rebuilt_exp);
               rebuilt_exp = lambda_var_exp (btor, len);
             }
@@ -8964,18 +9093,35 @@ perform_headline_optimization (Btor *btor)
         case BTOR_UREM_EXP:
           if (hl[0] && hl[1])
           {
-            btor->stats.headline_props++;
+            btor->stats.bv_headline_props++;
             btor_release_exp (btor, rebuilt_exp);
             rebuilt_exp = lambda_var_exp (btor, len);
           }
           break;
         case BTOR_BCOND_EXP:
-          if (hl[1] && hl[2])
+          if (hl[1] && hl[2] || (hl[0] && (hl[1] || hl[2])))
           {
-            btor->stats.headline_props++;
+            btor->stats.bv_headline_props++;
             btor_release_exp (btor, rebuilt_exp);
             rebuilt_exp = lambda_var_exp (btor, len);
           }
+          break;
+        case BTOR_ACOND_EXP:
+          if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
+          {
+            btor->stats.array_headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_array_exp (btor, len, index_len);
+          }
+          break;
+        case BTOR_WRITE_EXP:
+          if (hl[0] && hl[2])
+          {
+            btor->stats.array_headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_array_exp (btor, len, index_len);
+          }
+          break;
         default: break;
       }
       assert (rebuilt_exp != NULL);

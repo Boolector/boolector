@@ -242,8 +242,9 @@ struct Btor
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
-  int id;        /* expression id counter */
-  int lambda_id; /* counter for lambda variables (subst) */
+  int id;              /* expression id counter */
+  int bv_lambda_id;    /* counter for lambda bv variables (subst) */
+  int array_lambda_id; /* counter for lambda array variables (subst) */
   int valid_assignments;
   int rewrite_level;
   int verbosity;
@@ -312,8 +313,10 @@ struct Btor
     int probed_equalities;
     /* domain abstractions */
     int domain_abst;
-    /* headline propagations */
-    int headline_props;
+    /* bit-vector headline propagations */
+    int bv_headline_props;
+    /* array headline propagations */
+    int array_headline_props;
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */
