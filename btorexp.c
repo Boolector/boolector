@@ -9099,7 +9099,7 @@ perform_headline_optimization (Btor *btor)
           }
           break;
         case BTOR_BCOND_EXP:
-          if (hl[1] && hl[2] || (hl[0] && (hl[1] || hl[2])))
+          if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
           {
             btor->stats.bv_headline_props++;
             btor_release_exp (btor, rebuilt_exp);
