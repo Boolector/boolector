@@ -634,3 +634,5 @@ regrdomabst2 -o log/regrdomabst2.log log/regrdomabst2.btor
 regrdomabst3 -o log/regrdomabst3.log log/regrdomabst3.btor
 regrdomabst4 -o log/regrdomabst4.log log/regrdomabst4.btor
 headline1 -o log/headline1.log log/headline1.btor
+headline2 -o log/headline2.log log/headline2.btor
+headline3 -o log/headline3.log log/headline3.btor

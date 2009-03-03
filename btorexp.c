@@ -7363,6 +7363,22 @@ is_odd_constant (BtorExp *exp)
   return exp->bits[exp->len - 1] == '1';
 }
 
+static int
+is_true_exp (Btor *btor, BtorExp *exp)
+{
+  assert (btor != NULL);
+  assert (exp != NULL);
+
+  if (BTOR_REAL_ADDR_EXP (exp)->len != 1) return 0;
+
+  if (BTOR_REAL_ADDR_EXP (exp)->kind != BTOR_BV_CONST_EXP) return 0;
+
+  if (BTOR_IS_INVERTED_EXP (exp))
+    return BTOR_REAL_ADDR_EXP (exp)->bits[0] == '0';
+
+  return exp->bits[0] == '1';
+}
+
 /* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
  * and 'factor' is odd?  We check whether this is possible but do not use
  * more than 'bound' recursive calls.
@@ -8768,7 +8784,8 @@ perform_headline_optimization (Btor *btor)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp_stack, **top, *simplified;
+  BtorExp *ones, *zero, *ne1, *ne2, *and, *tmp;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i, len;
@@ -8844,8 +8861,8 @@ perform_headline_optimization (Btor *btor)
 
   /* copy roots on substitution stack */
   top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++)
-    BTOR_PUSH_STACK (mm, stack, *temp);
+  for (temp_stack = root_stack.start; temp_stack != top; temp_stack++)
+    BTOR_PUSH_STACK (mm, stack, *temp_stack);
 
   /* perform headline optimization */
   while (!BTOR_EMPTY_STACK (stack))
@@ -8895,6 +8912,61 @@ perform_headline_optimization (Btor *btor)
           }
           break;
         case BTOR_ULT_EXP:
+          if (hl[0] && hl[1])
+          {
+            btor->stats.headline_props++;
+            btor_release_exp (btor, rebuilt_exp);
+            rebuilt_exp = lambda_var_exp (btor, len);
+          }
+          else if (hl[0])
+          {
+            /* if the other child cannot be MIN and MAX, we
+             * can propagate headline */
+            tmp  = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[1];
+            ones = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+            zero = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+            ne1  = btor_ne_exp (btor, ones, tmp);
+            ne2  = btor_ne_exp (btor, zero, tmp);
+            and  = btor_and_exp (btor, ne1, ne2);
+            assert (BTOR_REAL_ADDR_EXP (and)->len == 1);
+            /* 3vl optimization may find out */
+            if (is_true_exp (btor, and))
+            {
+              btor->stats.headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            btor_release_exp (btor, zero);
+            btor_release_exp (btor, ones);
+            btor_release_exp (btor, ne1);
+            btor_release_exp (btor, ne2);
+            btor_release_exp (btor, and);
+          }
+          else if (hl[1])
+          {
+            /* if the other child cannot be MIN and MAX, we
+             * can propagate headline */
+            tmp  = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[0];
+            ones = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+            zero = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+            ne1  = btor_ne_exp (btor, ones, tmp);
+            ne2  = btor_ne_exp (btor, zero, tmp);
+            and  = btor_and_exp (btor, ne1, ne2);
+            assert (BTOR_REAL_ADDR_EXP (and)->len == 1);
+            /* 3vl optimization may find out */
+            if (is_true_exp (btor, and))
+            {
+              btor->stats.headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            btor_release_exp (btor, zero);
+            btor_release_exp (btor, ones);
+            btor_release_exp (btor, ne1);
+            btor_release_exp (btor, ne2);
+            btor_release_exp (btor, and);
+          }
+          break;
         case BTOR_AND_EXP:
         case BTOR_MUL_EXP:
         case BTOR_SLL_EXP:
@@ -8935,8 +9007,8 @@ perform_headline_optimization (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 
   top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++)
-    btor_release_exp (btor, *temp);
+  for (temp_stack = root_stack.start; temp_stack != top; temp_stack++)
+    btor_release_exp (btor, *temp_stack);
   BTOR_RELEASE_STACK (mm, root_stack);
 }
 
