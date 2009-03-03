@@ -8785,7 +8785,7 @@ perform_headline_optimization (Btor *btor)
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
   BtorExp *cur, *cur_parent, *rebuilt_exp, **temp_stack, **top, *simplified;
-  BtorExp *ones, *zero, *ne1, *ne2, *and, *tmp;
+  BtorExp *cv, *ne, *tmp;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i, len;
@@ -8920,51 +8920,39 @@ perform_headline_optimization (Btor *btor)
           }
           else if (hl[0])
           {
-            /* if the other child cannot be MIN and MAX, we
-             * can propagate headline */
-            tmp  = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[1];
-            ones = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
-            zero = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
-            ne1  = btor_ne_exp (btor, ones, tmp);
-            ne2  = btor_ne_exp (btor, zero, tmp);
-            and  = btor_and_exp (btor, ne1, ne2);
-            assert (BTOR_REAL_ADDR_EXP (and)->len == 1);
+            /* if the other child cannot be zero, then
+             * we can propagate headline */
+            tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[1];
+            cv  = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+            ne  = btor_ne_exp (btor, cv, tmp);
+            assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
             /* 3vl optimization may find out */
-            if (is_true_exp (btor, and))
+            if (is_true_exp (btor, ne))
             {
               btor->stats.headline_props++;
               btor_release_exp (btor, rebuilt_exp);
               rebuilt_exp = lambda_var_exp (btor, len);
             }
-            btor_release_exp (btor, zero);
-            btor_release_exp (btor, ones);
-            btor_release_exp (btor, ne1);
-            btor_release_exp (btor, ne2);
-            btor_release_exp (btor, and);
+            btor_release_exp (btor, cv);
+            btor_release_exp (btor, ne);
           }
           else if (hl[1])
           {
-            /* if the other child cannot be MIN and MAX, we
-             * can propagate headline */
-            tmp  = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[0];
-            ones = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
-            zero = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
-            ne1  = btor_ne_exp (btor, ones, tmp);
-            ne2  = btor_ne_exp (btor, zero, tmp);
-            and  = btor_and_exp (btor, ne1, ne2);
-            assert (BTOR_REAL_ADDR_EXP (and)->len == 1);
+            /* if the other child cannot be MAX, then
+             * we can propagate headline */
+            tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[0];
+            cv  = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+            ne  = btor_ne_exp (btor, cv, tmp);
+            assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
             /* 3vl optimization may find out */
-            if (is_true_exp (btor, and))
+            if (is_true_exp (btor, ne))
             {
               btor->stats.headline_props++;
               btor_release_exp (btor, rebuilt_exp);
               rebuilt_exp = lambda_var_exp (btor, len);
             }
-            btor_release_exp (btor, zero);
-            btor_release_exp (btor, ones);
-            btor_release_exp (btor, ne1);
-            btor_release_exp (btor, ne2);
-            btor_release_exp (btor, and);
+            btor_release_exp (btor, cv);
+            btor_release_exp (btor, ne);
           }
           break;
         case BTOR_AND_EXP:
