@@ -46,9 +46,9 @@ if [[ -z "$boolector04" ]]; then
   exit 1
 fi
 
-smtbvfuzzer=`which smtbvfuzzer`
-if [[ -z "$smtbvfuzzer" ]]; then
-  echo "*** fuzztestboolector: can not find 'smtbvfuzzer'" 1>&2
+fuzzsmt=`which fuzzsmt`
+if [[ -z "$fuzzsmt" ]]; then
+  echo "*** fuzztestboolector: can not find 'fuzzsmt'" 1>&2
   exit 1
 fi
 
@@ -156,7 +156,7 @@ do
     ((v++))
     consts=$RANDOM
     ((c &= 7))
-    $smtbvfuzzer -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
+    $fuzzsmt -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
   fi
 
   if [[ ! -s "$file" ]]; then

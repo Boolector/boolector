@@ -1,8 +1,8 @@
 #!/bin/bash
 
-smtbvfuzzer=`which smtbvfuzzer`
-if [[ -z "$smtbvfuzzer" ]]; then
-  echo "*** crosscheckz3: can not find 'smtbvfuzzer'" 1>&2
+fuzzsmt=`which fuzzsmt`
+if [[ -z "$fuzzsmt" ]]; then
+  echo "*** crosscheckz3: can not find 'fuzzsmt'" 1>&2
   exit 1
 fi
 
@@ -18,7 +18,7 @@ while true
 do 
   ((i++))
   echo -n -e "Test $i:  Boolector:\t"
-  $smtbvfuzzer -n 2> /dev/null 1> $file 
+  $fuzzsmt -n 2> /dev/null 1> $file 
   boolectorresult=""
   boolectorresult=`boolector $file`
   if  [[ "$boolectorresult" != "sat" ]] && [[ "$boolectorresult" != "unsat" ]]
