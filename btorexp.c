@@ -7396,6 +7396,7 @@ is_true_exp (Btor *btor, BtorExp *exp)
 {
   assert (btor != NULL);
   assert (exp != NULL);
+  (void) btor;
 
   if (BTOR_REAL_ADDR_EXP (exp)->len != 1) return 0;
 
@@ -8839,7 +8840,8 @@ perform_headline_optimization (Btor *btor)
   BtorExp *cv, *ne, *tmp;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
-  int pushed, i, len, index_len;
+  int pushed, i, len;
+  int index_len = 0;
   int hl[3]; /* is child at position i a headline? */
   assert (btor != NULL);
   assert (btor->rewrite_level > 2);
