@@ -18,7 +18,7 @@ while true
 do 
   ((i++))
   echo -n -e "Test $i:  Boolector:\t"
-  $fuzzsmt -n -a 5 -w 25 -r 50 -e 2> /dev/null 1> $file 
+  $fuzzsmt -n -a 3 -w 5 -r 20 -e 2> /dev/null 1> $file 
   boolectorresult=""
   boolectorresult=`boolector $file`
   if  [[ "$boolectorresult" != "sat" ]] && [[ "$boolectorresult" != "unsat" ]]
