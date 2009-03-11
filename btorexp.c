@@ -5629,12 +5629,16 @@ btor_print_stats_btor (Btor *btor)
 
   if (verbosity > 2)
   {
-    btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
     btor_msg_exp ("domain abstractions: %d", btor->stats.domain_abst);
+#if BTOR_ENABLE_PROBING_OPT
+    btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
+#endif
+#if BTOR_ENABLE_HEADLINE_OPT
     btor_msg_exp ("bv headline propagations: %d",
                   btor->stats.bv_headline_props);
     btor_msg_exp ("array headline propagations: %d",
                   btor->stats.array_headline_props);
+#endif
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -8831,6 +8835,8 @@ process_embedded_constraints (Btor *btor)
   }
 }
 
+#if BTOR_ENABLE_HEADLINE_OPT
+
 static void
 perform_headline_optimization (Btor *btor)
 {
@@ -9149,6 +9155,8 @@ perform_headline_optimization (Btor *btor)
   BTOR_RELEASE_STACK (mm, root_stack);
 }
 
+#endif
+
 static void
 run_rewrite_engine (Btor *btor, int full)
 {
@@ -9187,6 +9195,7 @@ run_rewrite_engine (Btor *btor, int full)
 
           if (!full) return;
 
+#if BTOR_ENABLE_HEADLINE_OPT
           if (rewrite_level > 2 && !inc_enabled && !model_gen)
           {
             perform_headline_optimization (btor);
@@ -9194,6 +9203,7 @@ run_rewrite_engine (Btor *btor, int full)
             if (btor->inconsistent) return;
             check_cyclic = 0;
           }
+#endif
 
         } while (btor->varsubst_constraints->count > 0u);
 
@@ -9925,6 +9935,8 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
+#if BTOR_ENABLE_PROBING_OPT
+
 static int
 probe_exps (Btor *btor)
 {
@@ -10007,6 +10019,8 @@ probe_exps (Btor *btor)
   BTOR_RELEASE_STACK (mm, new_constraints);
   return ret_val;
 }
+
+#endif
 
 static void
 eliminate_slices_on_bv_vars (Btor *btor)
@@ -10413,6 +10427,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
 
   assert (btor->unsynthesized_constraints->count == 0u);
 
+#if BTOR_ENABLE_PROBING_OPT
   if (!ua && !btor->inc_enabled && btor->rewrite_level > 2)
   {
     if (probe_exps (btor))
@@ -10425,6 +10440,7 @@ btor_sat_btor (Btor *btor, int refinement_limit)
       if (found_constraint_false) return BTOR_UNSAT;
     }
   }
+#endif
 
   /* pointer chase assumptions */
   update_assumptions (btor);

@@ -12,6 +12,14 @@
 /*------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------*/
+/* Optimization switches                                                  */
+/*------------------------------------------------------------------------*/
+
+#define BTOR_ENABLE_PROBING_OPT 1
+
+#define BTOR_ENABLE_HEADLINE_OPT 1
+
+/*------------------------------------------------------------------------*/
 /* Declarations                                                           */
 /*------------------------------------------------------------------------*/
 
@@ -309,14 +317,18 @@ struct Btor
     int adds_normalized;
     /* number of mul chains normalizations */
     int muls_normalized;
-    /* how many equalities have been successfully probed */
-    int probed_equalities;
     /* domain abstractions */
     int domain_abst;
+#if BTOR_ENABLE_PROBING_OPT
+    /* how many equalities have been successfully probed */
+    int probed_equalities;
+#endif
+#if BTOR_ENABLE_HEADLINE_OPT
     /* bit-vector headline propagations */
     int bv_headline_props;
     /* array headline propagations */
     int array_headline_props;
+#endif
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */
