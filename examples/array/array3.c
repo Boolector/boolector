@@ -27,16 +27,16 @@ main ()
   /* we enforce that index1 is equal to index 2 */
   boolector_assert (btor, eq);
   sat_result = boolector_sat (btor);
-  assert (sat_result == BTOR_SAT);
+  assert (sat_result == BOOLECTOR_SAT);
   /* now we additionally assume that the read values differ
    * the instance is now unsatasfiable as read congruence is violated */
   boolector_assume (btor, ne);
   sat_result = boolector_sat (btor);
-  assert (sat_result == BTOR_UNSAT);
+  assert (sat_result == BOOLECTOR_UNSAT);
   /* after the SAT call the assumptions are gone
    * the instance is now satisfiable again */
   sat_result = boolector_sat (btor);
-  assert (sat_result == BTOR_SAT);
+  assert (sat_result == BOOLECTOR_SAT);
   boolector_release (btor, array);
   boolector_release (btor, index1);
   boolector_release (btor, index2);
