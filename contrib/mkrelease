@@ -2,6 +2,29 @@
 
 readonly fuzztestseconds=60
 readonly exampledirs="bv array"
+readonly usage="usage: mkrelease [-m32|-m64]"
+architecture=IA-32
+cflag=-m32
+
+if [[ $# -gt 1 ]]; then
+  echo $usage
+  exit 1
+fi
+
+if [[ $# -eq 1 ]]; then 
+  if [[ $1 != "-m32" ]] && [[ $1 != "-m64" ]]; then
+    echo $usage
+    exit 1
+  fi
+  if [[ $1 == "-m64" ]]; then
+    if [[ -z `uname -a | grep x86_64` ]]; then
+      echo "cannot compile for 64 bits"
+      exit 1
+    fi
+    architecture=IA-64
+    cflag=-m64
+  fi
+fi
 
 #get path
 cd `dirname $0`
@@ -10,15 +33,19 @@ boolectordir=`pwd`
 
 #build picosat
 cd ../picosat || exit 1
-./configure -O || exit 1
+if [[ $cflag == -m32 ]]; then
+  ./configure -O -m32 || exit 1
+else
+  ./configure -O || exit 1
+fi
 make || exit 1
 
 #build boolector
 cd ../boolector
-./configure -r || exit 1
+./configure $cflag -r || exit 1
 make merge || exit 1
 version=`cat VERSION`
-boolectorstring=boolector-$version
+boolectorstring=boolector-${version}-$architecture
 target=/tmp/$boolectorstring
 rm -r -f $target
 mkdir $target
@@ -82,7 +109,7 @@ echo ""
 echo "Fuzz testing binary release of boolector for $fuzztestseconds seconds"
 echo ""
 rm -f error*.*
-./fuzztestboolector -v 0 &
+./fuzztestboolector &
 pid=$!
 sleep $fuzztestseconds 
 kill $pid
