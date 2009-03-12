@@ -81,11 +81,12 @@ cd ${boolectordir}/contrib
 echo ""
 echo "Fuzz testing binary release of boolector for $fuzztestseconds seconds"
 echo ""
-./fuzztestboolector &
+rm -f error*.*
+./fuzztestboolector -v 0 &
 pid=$!
 sleep $fuzztestseconds 
 kill $pid
-if [[ `ls error*.btor 2> /dev/null | wc -l` -ne 0 ]]; then
+if [[ `ls error*.* 2> /dev/null | wc -l` -ne 0 ]]; then
   echo ""
   echo "FUZZ TESTING FAILED"
   echo ""

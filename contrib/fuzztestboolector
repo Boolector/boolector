@@ -2,9 +2,8 @@
 
 # ATTENTION: we use btorold2new filter as workaround for btorgen
 
-readonly usage="*** fuzztestboolector: usage: ./fuzztestboolector [-i <id>] [-c <limit> [-n] [-r] [-s <update>]]" 
+readonly usage="*** fuzztestboolector: usage: ./fuzztestboolector [-i <id>] [-c <limit> [-n] [-r] [-s <update>] [-v <valgrindchecks>]" 
 readonly covdir="./covtests/"
-readonly valgrindcheck=100 # every nth testcase we check with valgrind
 readonly file="/tmp/fuzztestboolector$$.btor"
 readonly filedump="/tmp/fuzztestboolector$$dump.btor"
 readonly filetmp="/tmp/fuzztestboolector$$.tmp"
@@ -54,6 +53,7 @@ fi
 
 i=0
 valgrindcounter=0
+valgrindcheck=100 # every nth testcase we check with valgrind
 cov=0
 covlimit=0
 id=1
@@ -64,7 +64,7 @@ stats=0
 statscounter=0
 update=0
 
-while getopts "i:c:nrs:" o
+while getopts "i:c:nrs:v:" o
 do
   case "$o" in
   i)	id=$OPTARG;;
@@ -72,6 +72,7 @@ do
   n)	covcleanup=0;;
   r)	crosscheck=1;;
   s)    stats=1; update=$OPTARG;;
+  v)    valgrindcheck=$OPTARG;;
   [?])	echo "$usage" 1>&2; exit 1;;
   esac
 done
