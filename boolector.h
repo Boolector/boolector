@@ -112,6 +112,7 @@ written permission. Boolector is provided as is, without any warranty.
  * \example bv2.c
  * \example array1.c
  * \example array2.c
+ * \example array3.c
  *
  */
 
