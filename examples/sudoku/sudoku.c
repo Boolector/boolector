@@ -253,7 +253,8 @@ main (int argc, char **argv)
   error = 0;
 
   btor = boolector_new ();
-  mm   = btor->mm;
+  boolector_enable_model_gen (btor);
+  mm = btor->mm;
 
   if (dump_formula) boolector_set_rewrite_level (btor, 0);
 
