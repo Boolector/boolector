@@ -8842,8 +8842,8 @@ perform_headline_optimization (Btor *btor)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp_stack, **top, *simplified;
-  BtorExp *cv, *ne, *tmp;
+  BtorExp *cur, *cur_parent, *rebuilt_exp, *real_rebuilt_exp;
+  BtorExp *cv, *ne, *tmp, **temp_stack, **top, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i, len;
@@ -8956,20 +8956,21 @@ perform_headline_optimization (Btor *btor)
     else
     {
       assert (cur->mark == 2);
-      cur->mark   = 0;
-      rebuilt_exp = rebuild_exp (btor, cur);
-      len         = BTOR_REAL_ADDR_EXP (rebuilt_exp)->len;
-      if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp)))
-        index_len = BTOR_REAL_ADDR_EXP (rebuilt_exp)->index_len;
+      cur->mark        = 0;
+      rebuilt_exp      = rebuild_exp (btor, cur);
+      real_rebuilt_exp = BTOR_REAL_ADDR_EXP (rebuilt_exp);
+      len              = real_rebuilt_exp->len;
+      if (BTOR_IS_ARRAY_EXP (real_rebuilt_exp))
+        index_len = real_rebuilt_exp->index_len;
 
-      for (i = BTOR_REAL_ADDR_EXP (rebuilt_exp)->arity - 1; i >= 0; i--)
+      for (i = real_rebuilt_exp->arity - 1; i >= 0; i--)
       {
         if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
         {
-          switch (BTOR_REAL_ADDR_EXP (rebuilt_exp)->kind)
+          switch (real_rebuilt_exp->kind)
           {
             case BTOR_AEQ_EXP:
-              if (BTOR_IS_ARRAY_VAR_EXP (rebuilt_exp->e[i]))
+              if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
                 hl[i] = 1;
               else
                 hl[i] = 0;
@@ -8977,14 +8978,15 @@ perform_headline_optimization (Btor *btor)
             case BTOR_ACOND_EXP:
               if (i == 0)
               {
-                if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
+                if (BTOR_IS_BV_VAR_EXP (
+                        BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
                   hl[0] = 1;
                 else
                   hl[0] = 0;
               }
               else
               {
-                if (BTOR_IS_ARRAY_VAR_EXP (rebuilt_exp->e[i]))
+                if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
                   hl[i] = 1;
                 else
                   hl[i] = 0;
@@ -8995,7 +8997,7 @@ perform_headline_optimization (Btor *btor)
             case BTOR_WRITE_EXP:
               if (i == 0)
               {
-                if (BTOR_IS_ARRAY_VAR_EXP (rebuilt_exp->e[0]))
+                if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[0]))
                   hl[0] = 1;
                 else
                   hl[0] = 0;
@@ -9003,7 +9005,8 @@ perform_headline_optimization (Btor *btor)
               }
               /* fall through by intention */
             default:
-              if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (rebuilt_exp->e[i])))
+              if (BTOR_IS_BV_VAR_EXP (
+                      BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
                 hl[i] = 1;
               else
                 hl[i] = 0;
@@ -9013,7 +9016,7 @@ perform_headline_optimization (Btor *btor)
         else
           hl[i] = 0;
       }
-      switch (BTOR_REAL_ADDR_EXP (rebuilt_exp)->kind)
+      switch (real_rebuilt_exp->kind)
       {
         case BTOR_SLICE_EXP:
           if (hl[0])
@@ -9133,6 +9136,7 @@ perform_headline_optimization (Btor *btor)
         default: break;
       }
       assert (rebuilt_exp != NULL);
+      real_rebuilt_exp = BTOR_REAL_ADDR_EXP (rebuilt_exp);
 
       /* clean aux_mark flags */
       for (i = cur->arity - 1; i >= 0; i--)
