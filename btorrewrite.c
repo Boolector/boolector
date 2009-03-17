@@ -208,28 +208,25 @@ static BtorExp *
 rewrite_slice_exp_bounded (Btor *btor, BtorExp *exp, int upper, int lower)
 
 {
-  BtorMemMgr *mm;
   BtorExp *real_exp, *result, *tmp;
   char *bresult;
-  int len, len_result;
+  int len;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
 
-  result     = NULL;
-  mm         = btor->mm;
-  real_exp   = BTOR_REAL_ADDR_EXP (exp);
-  len        = real_exp->len;
-  len_result = upper - lower + 1;
+  result   = NULL;
+  real_exp = BTOR_REAL_ADDR_EXP (exp);
+  len      = real_exp->len;
 
-  if (len == len_result) /* handles result->len == 1 */
+  if (len == upper - lower + 1) /* handles result->len == 1 */
     result = btor_copy_exp (btor, exp);
   else if (BTOR_IS_BV_CONST_EXP (real_exp))
   {
-    bresult = btor_slice_const (mm, real_exp->bits, upper, lower);
+    bresult = btor_slice_const (btor->mm, real_exp->bits, upper, lower);
     result  = btor_const_exp (btor, bresult);
     result  = BTOR_COND_INVERT_EXP (exp, result);
-    btor_delete_const (mm, bresult);
+    btor_delete_const (btor->mm, bresult);
   }
   else if (real_exp->kind == BTOR_SLICE_EXP)
   {
@@ -244,7 +241,8 @@ rewrite_slice_exp_bounded (Btor *btor, BtorExp *exp, int upper, int lower)
   /* check if slice and child of concat matches */
   else if (real_exp->kind == BTOR_CONCAT_EXP)
   {
-    if (lower == 0 && BTOR_REAL_ADDR_EXP (real_exp->e[1])->len == len_result)
+    if (lower == 0
+        && BTOR_REAL_ADDR_EXP (real_exp->e[1])->len == upper - lower + 1)
     {
       if (BTOR_IS_INVERTED_EXP (exp))
         result = BTOR_INVERT_EXP (btor_copy_exp (btor, real_exp->e[1]));
@@ -255,7 +253,7 @@ rewrite_slice_exp_bounded (Btor *btor, BtorExp *exp, int upper, int lower)
     {
       /* we look just one level down */
       if (upper == len - 1
-          && BTOR_REAL_ADDR_EXP (real_exp->e[0])->len == len_result)
+          && BTOR_REAL_ADDR_EXP (real_exp->e[0])->len == upper - lower + 1)
       {
         if (BTOR_IS_INVERTED_EXP (exp))
           result = BTOR_INVERT_EXP (btor_copy_exp (btor, real_exp->e[0]));
