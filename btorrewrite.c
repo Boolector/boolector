@@ -5,13 +5,15 @@
 
 #include <assert.h>
 
-/* Rewriting bounds */
+/* recursive rewriting bounds */
 #define BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND 256
 #define BTOR_EQ_EXP_RW_BOUND 256
 #define BTOR_MUL_EXP_RW_BOUND 256
-#define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 1024
-#define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
 #define BTOR_COND_EXP_RW_BOUND 256
+
+/* iterative rewriting bounds */
+#define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
+#define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 1024
 
 static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExp *, BtorExp *, BtorExp *, int *);
@@ -2076,6 +2078,7 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
+      *calls += 1;
       left   = rewrite_mul_exp_bounded (btor, e0, e1->e[0], calls);
       result = rewrite_mul_exp_bounded (btor, left, e1->e[1], calls);
       btor_release_exp (btor, left);
@@ -2085,6 +2088,7 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
+      *calls += 1;
       left   = rewrite_mul_exp_bounded (btor, e0, e1->e[1], calls);
       result = rewrite_mul_exp_bounded (btor, left, e1->e[0], calls);
       btor_release_exp (btor, left);
@@ -2100,6 +2104,7 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
+      *calls += 1;
       left   = rewrite_mul_exp_bounded (btor, e1, e0->e[0], calls);
       result = rewrite_mul_exp_bounded (btor, left, e0->e[1], calls);
       btor_release_exp (btor, left);
@@ -2109,6 +2114,7 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
+      *calls += 1;
       left   = rewrite_mul_exp_bounded (btor, e1, e0->e[1], calls);
       result = rewrite_mul_exp_bounded (btor, left, e0->e[0], calls);
       btor_release_exp (btor, left);
