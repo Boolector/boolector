@@ -2075,7 +2075,7 @@ mul_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 static BtorExp *
 rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result, *e0_norm, *e1_norm, *left, *right;
+  BtorExp *result, *left, *right;
   int normalized;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -2182,10 +2182,10 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1)
         && e0->kind == BTOR_ADD_EXP && e1->kind == BTOR_ADD_EXP)
     {
       /* normalize adds on demand */
-      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+      normalize_adds_exp (btor, e0, e1, &left, &right);
       normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
+      e0         = left;
+      e1         = right;
     }
   }
 
@@ -2194,8 +2194,8 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   if (normalized)
   {
-    btor_release_exp (btor, e0_norm);
-    btor_release_exp (btor, e1_norm);
+    btor_release_exp (btor, left);
+    btor_release_exp (btor, right);
   }
 
   return result;
