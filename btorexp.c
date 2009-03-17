@@ -5290,6 +5290,7 @@ btor_delete_btor (Btor *btor)
   }
 
   btor_delete_aigvec_mgr (btor->avmgr);
+  assert (btor->rec_rw_calls == 0);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
 }
