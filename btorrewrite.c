@@ -5,11 +5,8 @@
 
 #include <assert.h>
 
-/* recursive rewriting bounds */
-#define BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND 256
-#define BTOR_EQ_EXP_RW_BOUND 256
-#define BTOR_MUL_EXP_RW_BOUND 256
-#define BTOR_COND_EXP_RW_BOUND 256
+/* recursive rewriting bound */
+#define BTOR_REC_RW_BOUND 2048
 
 /* iterative rewriting bounds */
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
@@ -17,6 +14,21 @@
 
 static BtorExp *rewrite_cond_exp_bounded (
     Btor *, BtorExp *, BtorExp *, BtorExp *, int *);
+
+#define BTOR_INC_REC_RW_CALL(btor)                             \
+  do                                                           \
+  {                                                            \
+    (btor)->rec_rw_calls++;                                    \
+    if ((btor)->rec_rw_calls > (btor)->stats.max_rec_rw_calls) \
+      (btor)->stats.max_rec_rw_calls = (btor)->rec_rw_calls;   \
+  } while (0)
+
+#define BTOR_DEC_REC_RW_CALL(btor)     \
+  do                                   \
+  {                                    \
+    assert ((btor)->rec_rw_calls > 0); \
+    (btor)->rec_rw_calls--;            \
+  } while (0)
 
 static int
 is_const_one_exp (Btor *btor, BtorExp *exp)
@@ -193,8 +205,8 @@ slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
 }
 
 static BtorExp *
-rewrite_slice_exp_bounded (
-    Btor *btor, BtorExp *exp, int upper, int lower, int *calls)
+rewrite_slice_exp_bounded (Btor *btor, BtorExp *exp, int upper, int lower)
+
 {
   BtorMemMgr *mm;
   BtorExp *real_exp, *result, *tmp;
@@ -203,8 +215,6 @@ rewrite_slice_exp_bounded (
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
-  assert (calls != NULL);
-  assert (*calls >= 0);
 
   result     = NULL;
   mm         = btor->mm;
@@ -223,13 +233,13 @@ rewrite_slice_exp_bounded (
   }
   else if (real_exp->kind == BTOR_SLICE_EXP)
   {
-    *calls += 1;
+    BTOR_INC_REC_RW_CALL (btor);
     result =
         rewrite_slice_exp_bounded (btor,
                                    BTOR_COND_INVERT_EXP (exp, real_exp->e[0]),
                                    real_exp->lower + upper,
-                                   real_exp->lower + lower,
-                                   calls);
+                                   real_exp->lower + lower);
+    BTOR_DEC_REC_RW_CALL (btor);
   }
   /* check if slice and child of concat matches */
   else if (real_exp->kind == BTOR_CONCAT_EXP)
@@ -253,7 +263,7 @@ rewrite_slice_exp_bounded (
           result = btor_copy_exp (btor, real_exp->e[0]);
       }
     }
-    else if (*calls < BTOR_SLICE_OVER_CONCAT_EXP_RW_BOUND)
+    else if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
     {
       assert (btor->rewrite_level >= 3);
       /* concats are normalized at rewrite level 3 */
@@ -261,34 +271,28 @@ rewrite_slice_exp_bounded (
       len = BTOR_REAL_ADDR_EXP (real_exp->e[1])->len;
       if (lower >= len)
       {
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         result = rewrite_slice_exp_bounded (
             btor,
             BTOR_COND_INVERT_EXP (exp, real_exp->e[0]),
             upper - len,
-            lower - len,
-            calls);
+            lower - len);
+        BTOR_DEC_REC_RW_CALL (btor);
       }
       else if (upper < len)
       {
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         result = rewrite_slice_exp_bounded (
-            btor,
-            BTOR_COND_INVERT_EXP (exp, real_exp->e[1]),
-            upper,
-            lower,
-            calls);
+            btor, BTOR_COND_INVERT_EXP (exp, real_exp->e[1]), upper, lower);
+        BTOR_DEC_REC_RW_CALL (btor);
       }
       else if (lower == 0)
       {
         assert (upper >= len);
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         tmp = rewrite_slice_exp_bounded (
-            btor,
-            BTOR_COND_INVERT_EXP (exp, real_exp->e[0]),
-            upper - len,
-            0,
-            calls);
+            btor, BTOR_COND_INVERT_EXP (exp, real_exp->e[0]), upper - len, 0);
+        BTOR_DEC_REC_RW_CALL (btor);
         result = btor_concat_exp (
             btor, tmp, BTOR_COND_INVERT_EXP (exp, real_exp->e[1]));
         btor_release_exp (btor, tmp);
@@ -304,7 +308,6 @@ rewrite_slice_exp_bounded (
 BtorExp *
 btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
-  int calls;
   char *bits_3vl = NULL;
   BtorExp *result;
   BtorMemMgr *mm;
@@ -329,8 +332,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   }
 #endif
 
-  calls  = 0;
-  result = rewrite_slice_exp_bounded (btor, exp, upper, lower, &calls);
+  result = rewrite_slice_exp_bounded (btor, exp, upper, lower);
   assert (result != NULL);
 
   return result;
@@ -1471,7 +1473,7 @@ eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
-rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
+rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *left, *right, *e0_0, *e0_1, *e1_0, *e1_1, *result, *eq;
   BtorExp *e0_norm, *e1_norm, *real_e0, *real_e1;
@@ -1481,8 +1483,6 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
-  assert (calls != NULL);
-  assert (*calls >= 0);
 
   real_e0    = BTOR_REAL_ADDR_EXP (e0);
   real_e1    = BTOR_REAL_ADDR_EXP (e1);
@@ -1531,18 +1531,20 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       {
         if (e0->e[0] == e1)
         {
-          *calls += 1;
-          left   = btor_zero_exp (btor, e0->len);
-          result = rewrite_eq_exp_bounded (btor, left, e0->e[1], calls);
+          left = btor_zero_exp (btor, e0->len);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, left, e0->e[1]);
+          BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, left);
           return result;
         }
 
         if (e0->e[1] == e1)
         {
-          *calls += 1;
-          left   = btor_zero_exp (btor, e0->len);
-          result = rewrite_eq_exp_bounded (btor, left, e0->e[0], calls);
+          left = btor_zero_exp (btor, e0->len);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, left, e0->e[0]);
+          BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, left);
           return result;
         }
@@ -1553,8 +1555,9 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       {
         if (is_always_unequal (btor, e0->e[1], e1))
         {
-          *calls += 1;
-          eq     = rewrite_eq_exp_bounded (btor, e0->e[2], e1, calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          eq = rewrite_eq_exp_bounded (btor, e0->e[2], e1);
+          BTOR_DEC_REC_RW_CALL (btor);
           result = btor_and_exp (btor, BTOR_INVERT_EXP (e0->e[0]), eq);
           btor_release_exp (btor, eq);
           return result;
@@ -1562,8 +1565,9 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
         if (is_always_unequal (btor, e0->e[2], e1))
         {
-          *calls += 1;
-          eq     = rewrite_eq_exp_bounded (btor, e0->e[1], e1, calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          eq = rewrite_eq_exp_bounded (btor, e0->e[1], e1);
+          BTOR_DEC_REC_RW_CALL (btor);
           result = btor_and_exp (btor, e0->e[0], eq);
           btor_release_exp (btor, eq);
           return result;
@@ -1580,18 +1584,20 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       {
         if (e1->e[0] == e0)
         {
-          *calls += 1;
-          left   = btor_zero_exp (btor, e1->len);
-          result = rewrite_eq_exp_bounded (btor, left, e1->e[1], calls);
+          left = btor_zero_exp (btor, e1->len);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, left, e1->e[1]);
+          BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, left);
           return result;
         }
 
         if (e1->e[1] == e0)
         {
-          *calls += 1;
-          left   = btor_zero_exp (btor, e1->len);
-          result = rewrite_eq_exp_bounded (btor, left, e1->e[0], calls);
+          left = btor_zero_exp (btor, e1->len);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, left, e1->e[0]);
+          BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, left);
           return result;
         }
@@ -1602,8 +1608,9 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       {
         if (is_always_unequal (btor, e1->e[1], e0))
         {
-          *calls += 1;
-          eq     = rewrite_eq_exp_bounded (btor, e1->e[2], e0, calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          eq = rewrite_eq_exp_bounded (btor, e1->e[2], e0);
+          BTOR_DEC_REC_RW_CALL (btor);
           result = btor_and_exp (btor, BTOR_INVERT_EXP (e1->e[0]), eq);
           btor_release_exp (btor, eq);
           return result;
@@ -1611,8 +1618,9 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
         if (is_always_unequal (btor, e1->e[2], e0))
         {
-          *calls += 1;
-          eq     = rewrite_eq_exp_bounded (btor, e1->e[1], e0, calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          eq = rewrite_eq_exp_bounded (btor, e1->e[1], e0);
+          BTOR_DEC_REC_RW_CALL (btor);
           result = btor_and_exp (btor, e1->e[0], eq);
           btor_release_exp (btor, eq);
           return result;
@@ -1627,26 +1635,34 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
       {
         if (e0->e[0] == e1->e[0])
         {
-          *calls += 1;
-          return rewrite_eq_exp_bounded (btor, e0->e[1], e1->e[1], calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, e0->e[1], e1->e[1]);
+          BTOR_DEC_REC_RW_CALL (btor);
+          return result;
         }
 
         if (e0->e[0] == e1->e[1])
         {
-          *calls += 1;
-          return rewrite_eq_exp_bounded (btor, e0->e[1], e1->e[0], calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, e0->e[1], e1->e[0]);
+          BTOR_DEC_REC_RW_CALL (btor);
+          return result;
         }
 
         if (e0->e[1] == e1->e[0])
         {
-          *calls += 1;
-          return rewrite_eq_exp_bounded (btor, e0->e[0], e1->e[1], calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, e0->e[0], e1->e[1]);
+          BTOR_DEC_REC_RW_CALL (btor);
+          return result;
         }
 
         if (e0->e[1] == e1->e[1])
         {
-          *calls += 1;
-          return rewrite_eq_exp_bounded (btor, e0->e[0], e1->e[0], calls);
+          BTOR_INC_REC_RW_CALL (btor);
+          result = rewrite_eq_exp_bounded (btor, e0->e[0], e1->e[0]);
+          BTOR_DEC_REC_RW_CALL (btor);
+          return result;
         }
       }
     }
@@ -1654,79 +1670,85 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     /* a = b ? a : c is rewritten to  b OR a = c
      * a = ~(b ? a : c) is rewritten to  !b AND a = ~c
      */
-    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0) && *calls < BTOR_EQ_EXP_RW_BOUND)
+    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e0)
+        && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
     {
       if (real_e0->e[1] == e1)
       {
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         if (BTOR_IS_INVERTED_EXP (e0))
         {
           eq = rewrite_eq_exp_bounded (
-              btor, BTOR_INVERT_EXP (real_e0->e[2]), e1, calls);
+              btor, BTOR_INVERT_EXP (real_e0->e[2]), e1);
           result = btor_and_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
         }
         else
         {
-          eq     = rewrite_eq_exp_bounded (btor, real_e0->e[2], e1, calls);
+          eq     = rewrite_eq_exp_bounded (btor, real_e0->e[2], e1);
           result = btor_or_exp (btor, real_e0->e[0], eq);
         }
+        BTOR_DEC_REC_RW_CALL (btor);
         btor_release_exp (btor, eq);
         return result;
       }
 
       if (real_e0->e[2] == e1)
       {
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         if (BTOR_IS_INVERTED_EXP (e0))
         {
           eq = rewrite_eq_exp_bounded (
-              btor, BTOR_INVERT_EXP (real_e0->e[1]), e1, calls);
+              btor, BTOR_INVERT_EXP (real_e0->e[1]), e1);
           result = btor_and_exp (btor, real_e0->e[0], eq);
         }
         else
         {
-          eq     = rewrite_eq_exp_bounded (btor, real_e0->e[1], e1, calls);
+          eq     = rewrite_eq_exp_bounded (btor, real_e0->e[1], e1);
           result = btor_or_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), eq);
         }
+        BTOR_DEC_REC_RW_CALL (btor);
         btor_release_exp (btor, eq);
         return result;
       }
     }
 
-    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1) && *calls < BTOR_EQ_EXP_RW_BOUND)
+    if (BTOR_IS_ARRAY_OR_BV_COND_EXP (real_e1)
+        && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
     {
       if (real_e1->e[1] == e0)
       {
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         if (BTOR_IS_INVERTED_EXP (e1))
         {
           eq = rewrite_eq_exp_bounded (
-              btor, BTOR_INVERT_EXP (real_e1->e[2]), e0, calls);
+              btor, BTOR_INVERT_EXP (real_e1->e[2]), e0);
           result = btor_and_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
         }
         else
         {
-          eq     = rewrite_eq_exp_bounded (btor, real_e1->e[2], e0, calls);
+          eq     = rewrite_eq_exp_bounded (btor, real_e1->e[2], e0);
           result = btor_or_exp (btor, real_e1->e[0], eq);
         }
+        BTOR_DEC_REC_RW_CALL (btor);
         btor_release_exp (btor, eq);
         return result;
       }
 
       if (real_e1->e[2] == e0)
       {
-        *calls += 1;
+        BTOR_INC_REC_RW_CALL (btor);
         if (BTOR_IS_INVERTED_EXP (e1))
         {
           eq = rewrite_eq_exp_bounded (
-              btor, BTOR_INVERT_EXP (real_e1->e[1]), e0, calls);
+              btor, BTOR_INVERT_EXP (real_e1->e[1]), e0);
           result = btor_and_exp (btor, real_e1->e[0], eq);
         }
         else
         {
-          eq     = rewrite_eq_exp_bounded (btor, real_e1->e[1], e0, calls);
+          eq     = rewrite_eq_exp_bounded (btor, real_e1->e[1], e0);
           result = btor_or_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), eq);
         }
+        BTOR_DEC_REC_RW_CALL (btor);
         btor_release_exp (btor, eq);
         return result;
       }
@@ -1756,13 +1778,12 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
         e1         = e1_norm;
       }
     }
-    else if (kind == BTOR_BEQ_EXP && *calls < BTOR_EQ_EXP_RW_BOUND)
+    else if (kind == BTOR_BEQ_EXP && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
     {
       /* push eq down over concats */
       if ((real_e0->kind == BTOR_CONCAT_EXP
            || real_e1->kind == BTOR_CONCAT_EXP))
       {
-        *calls += 1;
         upper = real_e0->len - 1;
         if (real_e0->kind == BTOR_CONCAT_EXP)
           lower = upper - BTOR_REAL_ADDR_EXP (real_e0->e[0])->len + 1;
@@ -1772,10 +1793,14 @@ rewrite_eq_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
         e0_0 = btor_slice_exp (btor, e0, upper, lower);
         e1_0 = btor_slice_exp (btor, e1, upper, lower);
         lower--;
-        e0_1   = btor_slice_exp (btor, e0, lower, 0);
-        e1_1   = btor_slice_exp (btor, e1, lower, 0);
-        left   = rewrite_eq_exp_bounded (btor, e0_0, e1_0, calls);
-        right  = rewrite_eq_exp_bounded (btor, e0_1, e1_1, calls);
+        e0_1 = btor_slice_exp (btor, e0, lower, 0);
+        e1_1 = btor_slice_exp (btor, e1, lower, 0);
+
+        BTOR_INC_REC_RW_CALL (btor);
+        left  = rewrite_eq_exp_bounded (btor, e0_0, e1_0);
+        right = rewrite_eq_exp_bounded (btor, e0_1, e1_1);
+        BTOR_DEC_REC_RW_CALL (btor);
+
         result = btor_and_exp (btor, left, right);
 
         btor_release_exp (btor, left);
@@ -1807,7 +1832,6 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result;
   char *bits_3vl = NULL;
   BtorMemMgr *mm;
-  int calls;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -1833,8 +1857,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 #endif
 
-  calls  = 0;
-  result = rewrite_eq_exp_bounded (btor, e0, e1, &calls);
+  result = rewrite_eq_exp_bounded (btor, e0, e1);
   assert (result != NULL);
 
   return result;
@@ -2052,7 +2075,7 @@ mul_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
 }
 
 static BtorExp *
-rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
+rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *e0_norm, *e1_norm, *left, *right;
   int normalized;
@@ -2060,8 +2083,6 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  assert (calls != NULL);
-  assert (*calls >= 0);
 
   normalized = 0;
 
@@ -2073,14 +2094,15 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
   if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
       && !BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_MUL_EXP
-      && *calls < BTOR_MUL_EXP_RW_BOUND)
+      && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
   {
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])));
-      *calls += 1;
-      left   = rewrite_mul_exp_bounded (btor, e0, e1->e[0], calls);
-      result = rewrite_mul_exp_bounded (btor, left, e1->e[1], calls);
+      BTOR_INC_REC_RW_CALL (btor);
+      left   = rewrite_mul_exp_bounded (btor, e0, e1->e[0]);
+      result = rewrite_mul_exp_bounded (btor, left, e1->e[1]);
+      BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, left);
       return result;
     }
@@ -2088,9 +2110,10 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0])));
-      *calls += 1;
-      left   = rewrite_mul_exp_bounded (btor, e0, e1->e[1], calls);
-      result = rewrite_mul_exp_bounded (btor, left, e1->e[0], calls);
+      BTOR_INC_REC_RW_CALL (btor);
+      left   = rewrite_mul_exp_bounded (btor, e0, e1->e[1]);
+      result = rewrite_mul_exp_bounded (btor, left, e1->e[0]);
+      BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, left);
       return result;
     }
@@ -2098,15 +2121,16 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
 
   else if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1))
            && !BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_MUL_EXP
-           && *calls < BTOR_MUL_EXP_RW_BOUND)
+           && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
 
   {
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])));
-      *calls += 1;
-      left   = rewrite_mul_exp_bounded (btor, e1, e0->e[0], calls);
-      result = rewrite_mul_exp_bounded (btor, left, e0->e[1], calls);
+      BTOR_INC_REC_RW_CALL (btor);
+      left   = rewrite_mul_exp_bounded (btor, e1, e0->e[0]);
+      result = rewrite_mul_exp_bounded (btor, left, e0->e[1]);
+      BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, left);
       return result;
     }
@@ -2114,25 +2138,27 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1])))
     {
       assert (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0])));
-      *calls += 1;
-      left   = rewrite_mul_exp_bounded (btor, e1, e0->e[1], calls);
-      result = rewrite_mul_exp_bounded (btor, left, e0->e[0], calls);
+      BTOR_INC_REC_RW_CALL (btor);
+      left   = rewrite_mul_exp_bounded (btor, e1, e0->e[1]);
+      result = rewrite_mul_exp_bounded (btor, left, e0->e[0]);
+      BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, left);
       return result;
     }
   }
 
   /* const * (t + const) =recursively= const * t + const * const */
-  if (btor->rewrite_level > 2 && *calls < BTOR_MUL_EXP_RW_BOUND)
+  if (btor->rewrite_level > 2 && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
   {
     if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0))
         && BTOR_IS_REGULAR_EXP (e1) && e1->kind == BTOR_ADD_EXP
         && (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[0]))
             || BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e1->e[1]))))
     {
-      *calls += 1;
-      left   = rewrite_mul_exp_bounded (btor, e0, e1->e[0], calls);
-      right  = rewrite_mul_exp_bounded (btor, e0, e1->e[1], calls);
+      BTOR_INC_REC_RW_CALL (btor);
+      left  = rewrite_mul_exp_bounded (btor, e0, e1->e[0]);
+      right = rewrite_mul_exp_bounded (btor, e0, e1->e[1]);
+      BTOR_DEC_REC_RW_CALL (btor);
       result = btor_add_exp (btor, left, right);
       btor_release_exp (btor, left);
       btor_release_exp (btor, right);
@@ -2144,9 +2170,10 @@ rewrite_mul_exp_bounded (Btor *btor, BtorExp *e0, BtorExp *e1, int *calls)
         && (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[0]))
             || BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (e0->e[1]))))
     {
-      *calls += 1;
-      left   = rewrite_mul_exp_bounded (btor, e1, e0->e[0], calls);
-      right  = rewrite_mul_exp_bounded (btor, e1, e0->e[1], calls);
+      BTOR_INC_REC_RW_CALL (btor);
+      left  = rewrite_mul_exp_bounded (btor, e1, e0->e[0]);
+      right = rewrite_mul_exp_bounded (btor, e1, e0->e[1]);
+      BTOR_DEC_REC_RW_CALL (btor);
       result = btor_add_exp (btor, left, right);
       btor_release_exp (btor, left);
       btor_release_exp (btor, right);
@@ -2182,7 +2209,6 @@ btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *result;
   char *bits_3vl = NULL;
   BtorMemMgr *mm;
-  int calls;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2205,8 +2231,7 @@ btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 #endif
 
-  calls  = 0;
-  result = rewrite_mul_exp_bounded (btor, e0, e1, &calls);
+  result = rewrite_mul_exp_bounded (btor, e0, e1);
   assert (result != NULL);
 
   return result;
@@ -3093,7 +3118,7 @@ ternary_cond_exp_bounded (Btor *btor,
   }
 
   if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e1))
-      && *calls < BTOR_COND_EXP_RW_BOUND)
+      && *calls < BTOR_REC_RW_BOUND)
 
   {
     econd0 = BTOR_REAL_ADDR_EXP (e1)->e[0];
@@ -3129,7 +3154,7 @@ ternary_cond_exp_bounded (Btor *btor,
   }
 
   if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e2))
-      && *calls < BTOR_COND_EXP_RW_BOUND)
+      && *calls < BTOR_REC_RW_BOUND)
   {
     econd0 = BTOR_REAL_ADDR_EXP (e2)->e[0];
 
@@ -3198,7 +3223,7 @@ ternary_cond_exp_bounded (Btor *btor,
 
     if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e1)
         && !BTOR_IS_INVERTED_EXP (e2) && e1->kind == e2->kind
-        && *calls < BTOR_COND_EXP_RW_BOUND)
+        && *calls < BTOR_REC_RW_BOUND)
     {
       fptr = NULL;
       switch (e1->kind)

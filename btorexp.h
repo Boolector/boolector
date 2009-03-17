@@ -253,6 +253,7 @@ struct Btor
   int id;              /* expression id counter */
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
+  int rec_rw_calls;    /* calls for recursive rewriting */
   int valid_assignments;
   int rewrite_level;
   int verbosity;
@@ -291,6 +292,8 @@ struct Btor
   int ops[BTOR_NUM_OPS_EXP];
   struct
   {
+    /* maximum number of recursive rewrite calls */
+    int max_rec_rw_calls;
     /* number of under-approximation refinements */
     int ua_refinements;
     /* number of lemmas on demand refinements */
