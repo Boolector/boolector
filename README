@@ -10,7 +10,7 @@
   interface see 'doc/html/index.html'.
 
   A compiled version of the standalone solver is in the directory 'bin'.
-  It is a statically linked 32-bit binary for x86 Linux.
+  It is a dynamically linked 32-bit binary for x86 Linux.
  
   The directory 'include' contains the header file of Boolector's 
   public interface. You can find the compiled library 

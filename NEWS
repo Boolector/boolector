@@ -1,6 +1,8 @@
-news ror release 0.8 since 0.7
+news ror release 1.0 since 0.7
 ------------------------------
-* Improved SMT parser (:formula can now be an fvar).
+* public C API
+* documentation and examples
+* improved SMT parser (:formula can now be an fvar).
 
 news for release 0.7 since 0.6
 ------------------------------
