@@ -84,11 +84,11 @@ rm Doxyfile
 
 #tar and zip
 cd /tmp
-tar cfzv ${boolectorstring}.tar.gz $boolectorstring
+tar cfjv ${boolectorstring}.tar.bz2 $boolectorstring
 rm -r -f $boolectorstring
 
 #extract for testing
-tar xfzv ${boolectorstring}.tar.gz
+tar xfjv ${boolectorstring}.tar.bz2
 cd $boolectorstring
 cd examples
 for dir in $exampledirs
