@@ -1111,71 +1111,72 @@ btor_aig_to_sat_both_phases (BtorAIGMgr *amgr, BtorAIG *aig)
   BtorMemMgr *mm;
   int x, y, z;
   BtorAIG *cur, *left, *right;
+
   assert (amgr != NULL);
+
   smgr = amgr->smgr;
   mm   = amgr->mm;
-  if (!BTOR_IS_CONST_AIG (aig))
+
+  if (BTOR_IS_CONST_AIG (aig)) return;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_PUSH_STACK (mm, stack, aig);
+  while (!BTOR_EMPTY_STACK (stack))
   {
-    BTOR_INIT_STACK (stack);
-    BTOR_PUSH_STACK (mm, stack, aig);
-    while (!BTOR_EMPTY_STACK (stack))
+    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (BTOR_IS_VAR_AIG (cur))
     {
-      cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-      if (BTOR_IS_VAR_AIG (cur))
+      if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+    }
+    else if (cur->mark < 2)
+    {
+      assert (BTOR_IS_AND_AIG (cur));
+      if (cur->mark == 0)
       {
-        if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-      }
-      else if (cur->mark < 2)
-      {
-        if (cur->mark == 0)
+        if (!cur->neg_imp || !cur->pos_imp)
         {
-          assert (BTOR_IS_AND_AIG (cur));
-
-          /* TODO: Why not abort if 'neg_imp && pos_imp' ?? */
-
           cur->mark = 1;
           BTOR_PUSH_STACK (mm, stack, cur);
           BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
           BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
         }
-        else
+      }
+      else
+      {
+        assert (cur->mark == 1);
+        cur->mark = 2;
+        left      = BTOR_LEFT_CHILD_AIG (cur);
+        right     = BTOR_RIGHT_CHILD_AIG (cur);
+        if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        x = cur->cnf_id;
+        y = BTOR_GET_CNF_ID_AIG (left);
+        z = BTOR_GET_CNF_ID_AIG (right);
+        assert (x != 0);
+        assert (y != 0);
+        assert (z != 0);
+        if (!cur->neg_imp)
         {
-          assert (cur->mark == 1);
-          assert (BTOR_IS_AND_AIG (cur));
-          cur->mark = 2;
-          left      = BTOR_LEFT_CHILD_AIG (cur);
-          right     = BTOR_RIGHT_CHILD_AIG (cur);
-          if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-          x = cur->cnf_id;
-          y = BTOR_GET_CNF_ID_AIG (left);
-          z = BTOR_GET_CNF_ID_AIG (right);
-          assert (x != 0);
-          assert (y != 0);
-          assert (z != 0);
-          if (!cur->neg_imp)
-          {
-            btor_add_sat (smgr, -y);
-            btor_add_sat (smgr, -z);
-            btor_add_sat (smgr, x);
-            btor_add_sat (smgr, 0);
-            cur->neg_imp = 1;
-          }
-          if (!cur->pos_imp)
-          {
-            btor_add_sat (smgr, -x);
-            btor_add_sat (smgr, y);
-            btor_add_sat (smgr, 0);
-            btor_add_sat (smgr, -x);
-            btor_add_sat (smgr, z);
-            btor_add_sat (smgr, 0);
-            cur->pos_imp = 1;
-          }
+          btor_add_sat (smgr, -y);
+          btor_add_sat (smgr, -z);
+          btor_add_sat (smgr, x);
+          btor_add_sat (smgr, 0);
+          cur->neg_imp = 1;
+        }
+        if (!cur->pos_imp)
+        {
+          btor_add_sat (smgr, -x);
+          btor_add_sat (smgr, y);
+          btor_add_sat (smgr, 0);
+          btor_add_sat (smgr, -x);
+          btor_add_sat (smgr, z);
+          btor_add_sat (smgr, 0);
+          cur->pos_imp = 1;
         }
       }
     }
-    BTOR_RELEASE_STACK (mm, stack);
-    btor_mark_aig (amgr, aig, 0);
   }
+  BTOR_RELEASE_STACK (mm, stack);
+  btor_mark_aig (amgr, aig, 0);
 }
 
 static void

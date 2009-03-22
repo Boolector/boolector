@@ -659,3 +659,4 @@ headline10 -o log/headline10.log log/headline10.btor
 headline11 -o log/headline11.log log/headline11.btor
 headline12 -o log/headline12.log log/headline12.btor
 headline13 -o log/headline13.log log/headline13.smt
+problem_130 -m -o log/problem_130.log log/problem_130.smt

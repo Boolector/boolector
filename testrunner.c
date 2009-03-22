@@ -46,6 +46,7 @@ static const char *slowtests[] = {
     "mulassoc6",
     "hd10",
     "hd14",
+    "problem_130",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
