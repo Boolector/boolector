@@ -15,6 +15,7 @@ release=no
 competition=no
 picoprep=no
 strip=no
+cov=no
 
 while [ $# -gt 0 ]
 do
