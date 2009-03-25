@@ -2647,14 +2647,16 @@ mark_synth_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
   BtorExpPtrStack stack;
   BtorExp *cur;
   int i;
+
   assert (btor != NULL);
   assert (exp != NULL);
+
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
   cur = BTOR_REAL_ADDR_EXP (exp);
   goto MARK_SYNTH_MARK_EXP_ENTER_WITHOUT_POP;
 
-  do
+  while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
   MARK_SYNTH_MARK_EXP_ENTER_WITHOUT_POP:
@@ -2664,7 +2666,7 @@ mark_synth_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
     }
-  } while (!BTOR_EMPTY_STACK (stack));
+  }
   BTOR_RELEASE_STACK (mm, stack);
 }
 
@@ -2675,14 +2677,16 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
   BtorExpPtrStack stack;
   BtorExp *cur;
   int i;
+
   assert (btor != NULL);
   assert (exp != NULL);
+
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
   cur = BTOR_REAL_ADDR_EXP (exp);
   goto BTOR_MARK_EXP_ENTER_WITHOUT_POP;
 
-  do
+  while (!BTOR_EMPTY_STACK (stack))
   {
     cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
   BTOR_MARK_EXP_ENTER_WITHOUT_POP:
@@ -2692,7 +2696,7 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
     }
-  } while (!BTOR_EMPTY_STACK (stack));
+  }
   BTOR_RELEASE_STACK (mm, stack);
 }
 
