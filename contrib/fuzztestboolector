@@ -142,7 +142,12 @@ do
   ((checkmodel = checkmodel & 1 & !cov))
 
   fuzzer=$RANDOM
-  ((fuzzer %= 3))
+  # if we create coverage tests, we do not select fuzzsmt as fuzzer
+  if [[ $cov -eq 1 ]]; then
+    ((fuzzer %= 2))
+  else
+    ((fuzzer %= 3))
+  fi
 
   if [[ $fuzzer -eq 0 ]]; then
     $btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file"
