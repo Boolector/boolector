@@ -429,7 +429,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 {
   BtorMemMgr *mm;
   BtorExp *result, *real_e0, *real_e1, *temp, *zero, *one;
-  BtorExp *ones, *eq, *temp_left, *temp_right;
+  BtorExp *ones, *eq, *left, *right;
   BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
   char *b0, *b1, *bresult;
   int same_children_mem;
@@ -514,13 +514,32 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
               result = btor_not_exp (btor, e1);
             else if (is_xor_exp (btor, e1)) /* 0 == (a ^ b)  -->  a = b */
             {
-              result = btor_eq_exp (
-                  btor,
-                  BTOR_REAL_ADDR_EXP (
-                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[0]),
-                  BTOR_REAL_ADDR_EXP (
-                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])
-                          ->e[1]));
+              if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+              {
+                BTOR_INC_REC_RW_CALL (btor);
+                result = btor_eq_exp (
+                    btor,
+                    BTOR_REAL_ADDR_EXP (
+                        BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])
+                            ->e[0]),
+                    BTOR_REAL_ADDR_EXP (
+                        BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])
+                            ->e[1]));
+                BTOR_DEC_REC_RW_CALL (btor);
+              }
+            }
+            else if (BTOR_IS_INVERTED_EXP (e1) && real_e1->kind == BTOR_AND_EXP)
+            { /* 0 == a | b  -->  a == 0 && b == 0 */
+              if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+              {
+                BTOR_INC_REC_RW_CALL (btor);
+                left  = btor_eq_exp (btor, BTOR_INVERT_EXP (real_e1->e[0]), e0);
+                right = btor_eq_exp (btor, BTOR_INVERT_EXP (real_e1->e[1]), e0);
+                result = btor_and_exp (btor, left, right);
+                btor_release_exp (btor, left);
+                btor_release_exp (btor, right);
+                BTOR_DEC_REC_RW_CALL (btor);
+              }
             }
             break;
           case BTOR_ULT_EXP: /* 0 < a --> a != 0 */
@@ -558,14 +577,33 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       case BTOR_SPECIAL_CONST_ONES:
         if (kind == BTOR_BEQ_EXP)
         {
-          if (is_xnor_exp (btor, e1)) /* 1 == (a XNOR b)  -->  a = b */
+          if (is_xnor_exp (btor, e1)) /* 1+ == (a XNOR b)  -->  a = b */
           {
-            result = btor_eq_exp (
-                btor,
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[0]),
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[1]));
+            if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+            {
+              BTOR_INC_REC_RW_CALL (btor);
+              result = btor_eq_exp (
+                  btor,
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[0]),
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])
+                          ->e[1]));
+              BTOR_DEC_REC_RW_CALL (btor);
+            }
+          }
+          else if (!BTOR_IS_INVERTED_EXP (e1) && e1->kind == BTOR_AND_EXP)
+          { /* 1+ == a & b  -->  a == 1+ && b == 1+ */
+            if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+            {
+              BTOR_INC_REC_RW_CALL (btor);
+              left   = btor_eq_exp (btor, e1->e[0], e0);
+              right  = btor_eq_exp (btor, e1->e[1], e0);
+              result = btor_and_exp (btor, left, right);
+              btor_release_exp (btor, left);
+              btor_release_exp (btor, right);
+              BTOR_DEC_REC_RW_CALL (btor);
+            }
           }
         }
         else if (kind == BTOR_AND_EXP)
@@ -601,6 +639,19 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
                   BTOR_REAL_ADDR_EXP (
                       BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])
                           ->e[1]));
+            }
+            else if (BTOR_IS_INVERTED_EXP (e0) && real_e0->kind == BTOR_AND_EXP)
+            { /*  a | b == 0  -->  a == 0 && b == 0 */
+              if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+              {
+                BTOR_INC_REC_RW_CALL (btor);
+                left  = btor_eq_exp (btor, BTOR_INVERT_EXP (real_e0->e[0]), e1);
+                right = btor_eq_exp (btor, BTOR_INVERT_EXP (real_e0->e[1]), e1);
+                result = btor_and_exp (btor, left, right);
+                btor_release_exp (btor, left);
+                btor_release_exp (btor, right);
+                BTOR_DEC_REC_RW_CALL (btor);
+              }
             }
             break;
           case BTOR_SLL_EXP:
@@ -645,6 +696,19 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
                     BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[0]),
                 BTOR_REAL_ADDR_EXP (
                     BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[1]));
+          }
+          else if (!BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_AND_EXP)
+          { /* a & b == 1+ -->  a == 1+ && b == 1+ */
+            if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+            {
+              BTOR_INC_REC_RW_CALL (btor);
+              left   = btor_eq_exp (btor, e0->e[0], e1);
+              right  = btor_eq_exp (btor, e0->e[1], e1);
+              result = btor_and_exp (btor, left, right);
+              btor_release_exp (btor, left);
+              btor_release_exp (btor, right);
+              BTOR_DEC_REC_RW_CALL (btor);
+            }
           }
         }
         else if (kind == BTOR_AND_EXP)
@@ -737,15 +801,15 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         fptr = btor_udiv_exp;
         break;
     }
-    temp_left  = fptr (btor,
-                      BTOR_COND_INVERT_EXP (e0, real_e0->e[1]),
-                      BTOR_COND_INVERT_EXP (e0, real_e1->e[1]));
-    temp_right = fptr (btor,
-                       BTOR_COND_INVERT_EXP (e0, real_e0->e[2]),
-                       BTOR_COND_INVERT_EXP (e0, real_e1->e[2]));
-    result     = btor_cond_exp (btor, real_e0->e[0], temp_left, temp_right);
-    btor_release_exp (btor, temp_left);
-    btor_release_exp (btor, temp_right);
+    left   = fptr (btor,
+                 BTOR_COND_INVERT_EXP (e0, real_e0->e[1]),
+                 BTOR_COND_INVERT_EXP (e0, real_e1->e[1]));
+    right  = fptr (btor,
+                  BTOR_COND_INVERT_EXP (e0, real_e0->e[2]),
+                  BTOR_COND_INVERT_EXP (e0, real_e1->e[2]));
+    result = btor_cond_exp (btor, real_e0->e[0], left, right);
+    btor_release_exp (btor, left);
+    btor_release_exp (btor, right);
   }
 
   /* TODO: lots of word level simplifications:

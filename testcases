@@ -398,6 +398,10 @@ rw166 -rwl1 -o log/rw166.log log/rw166.btor
 rw167 -rwl1 -o log/rw167.log log/rw167.btor
 rw168 -rwl1 -o log/rw168.log log/rw168.btor
 rw169 -rwl1 -o log/rw169.log log/rw169.btor
+rw170 -rwl1 -o log/rw170.log log/rw170.btor
+rw171 -rwl1 -o log/rw171.log log/rw171.btor
+rw172 -rwl1 -o log/rw172.log log/rw172.btor
+rw173 -rwl1 -o log/rw173.log log/rw173.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
