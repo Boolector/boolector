@@ -38,11 +38,10 @@ is_const_one_exp (Btor *btor, BtorExp *exp)
   int result;
   BtorExp *real_exp;
 
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
-
   assert (btor != NULL);
   assert (exp != NULL);
   assert (btor->rewrite_level > 0);
+  assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
 
   /* constants are normalized and even,
    * constant 'one' has to be inverted */
@@ -63,10 +62,9 @@ is_xor_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *e0, *e1, *e0_0, *e0_1, *e1_0, *e1_1;
 
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
-
   assert (btor != NULL);
   assert (exp != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
 
   if (BTOR_REAL_ADDR_EXP (exp)->kind != BTOR_AND_EXP) return 0;
 
@@ -114,11 +112,9 @@ is_xor_exp (Btor *btor, BtorExp *exp)
 static int
 is_xnor_exp (Btor *btor, BtorExp *exp)
 {
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
-
   assert (btor != NULL);
   assert (exp != NULL);
-
+  assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
   return is_xor_exp (btor, BTOR_INVERT_EXP (exp));
 }
 
@@ -511,37 +507,41 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     switch (sc)
     {
       case BTOR_SPECIAL_CONST_ZERO:
-        if (kind == BTOR_BEQ_EXP)
+        switch (kind)
         {
-          if (real_e0->len == 1)
-            result = btor_not_exp (btor, e1);
-          else if (is_xor_exp (btor, e1)) /* 0 == (a ^ b)  -->  a = b */
-          {
-            result = btor_eq_exp (
-                btor,
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[0]),
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[1]));
-          }
-        }
-        else if (kind == BTOR_ULT_EXP) /* 0 < a --> a != 0 */
-          result = BTOR_INVERT_EXP (btor_eq_exp (btor, e0, e1));
-        else if (kind == BTOR_ADD_EXP)
-          result = btor_copy_exp (btor, e1);
-        else if (kind == BTOR_MUL_EXP || kind == BTOR_SLL_EXP
-                 || kind == BTOR_SRL_EXP || kind == BTOR_UREM_EXP
-                 || kind == BTOR_AND_EXP)
-          result = btor_zero_exp (btor, real_e0->len);
-        else if (kind == BTOR_UDIV_EXP)
-        {
-          zero   = btor_zero_exp (btor, real_e0->len);
-          ones   = btor_ones_exp (btor, real_e0->len);
-          eq     = btor_eq_exp (btor, e1, zero);
-          result = btor_cond_exp (btor, eq, ones, zero);
-          btor_release_exp (btor, zero);
-          btor_release_exp (btor, eq);
-          btor_release_exp (btor, ones);
+          case BTOR_BEQ_EXP:
+            if (real_e0->len == 1)
+              result = btor_not_exp (btor, e1);
+            else if (is_xor_exp (btor, e1)) /* 0 == (a ^ b)  -->  a = b */
+            {
+              result = btor_eq_exp (
+                  btor,
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])->e[0]),
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e1)->e[0])
+                          ->e[1]));
+            }
+            break;
+          case BTOR_ULT_EXP: /* 0 < a --> a != 0 */
+            result = BTOR_INVERT_EXP (btor_eq_exp (btor, e0, e1));
+            break;
+          case BTOR_ADD_EXP: result = btor_copy_exp (btor, e1); break;
+          case BTOR_MUL_EXP:
+          case BTOR_SLL_EXP:
+          case BTOR_SRL_EXP:
+          case BTOR_UREM_EXP:
+          case BTOR_AND_EXP: result = btor_zero_exp (btor, real_e0->len); break;
+          case BTOR_UDIV_EXP:
+            zero   = btor_zero_exp (btor, real_e0->len);
+            ones   = btor_ones_exp (btor, real_e0->len);
+            eq     = btor_eq_exp (btor, e1, zero);
+            result = btor_cond_exp (btor, eq, ones, zero);
+            btor_release_exp (btor, zero);
+            btor_release_exp (btor, eq);
+            btor_release_exp (btor, ones);
+            break;
+          default: break;
         }
         break;
       case BTOR_SPECIAL_CONST_ONE_ONES:
@@ -587,29 +587,34 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
     switch (sc)
     {
       case BTOR_SPECIAL_CONST_ZERO:
-        if (kind == BTOR_BEQ_EXP)
+        switch (kind)
         {
-          if (real_e0->len == 1)
-            result = btor_not_exp (btor, e0);
-          else if (is_xor_exp (btor, e0)) /* (a ^ b) == 0 -->  a = b */
-          {
-            result = btor_eq_exp (
-                btor,
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[0]),
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[1]));
-          }
+          case BTOR_BEQ_EXP:
+            if (real_e0->len == 1)
+              result = btor_not_exp (btor, e0);
+            else if (is_xor_exp (btor, e0)) /* (a ^ b) == 0 -->  a = b */
+            {
+              result = btor_eq_exp (
+                  btor,
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[0]),
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])
+                          ->e[1]));
+            }
+            break;
+          case BTOR_SLL_EXP:
+          case BTOR_SRL_EXP:
+          case BTOR_UREM_EXP:
+          case BTOR_ADD_EXP: result = btor_copy_exp (btor, e0); break;
+          case BTOR_MUL_EXP:
+          case BTOR_AND_EXP: result = btor_zero_exp (btor, real_e0->len); break;
+          case BTOR_ULT_EXP: /* x < 0 */ result = btor_false_exp (btor); break;
+          case BTOR_UDIV_EXP:
+            result = btor_ones_exp (btor, real_e0->len);
+            break;
+          default: break;
         }
-        else if (kind == BTOR_SLL_EXP || kind == BTOR_SRL_EXP
-                 || kind == BTOR_UREM_EXP || kind == BTOR_ADD_EXP)
-          result = btor_copy_exp (btor, e0);
-        else if (kind == BTOR_MUL_EXP || kind == BTOR_AND_EXP)
-          result = btor_zero_exp (btor, real_e0->len);
-        else if (kind == BTOR_ULT_EXP) /* x < 0 */
-          result = btor_false_exp (btor);
-        else if (kind == BTOR_UDIV_EXP)
-          result = btor_ones_exp (btor, real_e0->len);
         break;
       case BTOR_SPECIAL_CONST_ONE_ONES:
         assert (real_e1->len == 1);
