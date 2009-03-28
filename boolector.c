@@ -33,16 +33,40 @@
     }                                           \
   } while (0)
 
-#define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(arg)                    \
-  do                                                              \
-  {                                                               \
-    if (BTOR_REAL_ADDR_EXP ((arg))->refs < 1)                     \
-    {                                                             \
-      printf ("[boolector] %s: ", __func__);                      \
-      printf ("reference counter of '%s' must not be < 1", #arg); \
-      fflush (stdout);                                            \
-      exit (BTOR_ERR_EXIT);                                       \
-    }                                                             \
+#define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(arg)                      \
+  do                                                                \
+  {                                                                 \
+    if (BTOR_REAL_ADDR_EXP ((arg))->refs < 1)                       \
+    {                                                               \
+      printf ("[boolector] %s: ", __func__);                        \
+      printf ("reference counter of '%s' must not be < 1\n", #arg); \
+      fflush (stdout);                                              \
+      exit (BTOR_ERR_EXIT);                                         \
+    }                                                               \
+  } while (0)
+
+#define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                 \
+  do                                                    \
+  {                                                     \
+    if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP ((arg)))) \
+    {                                                   \
+      printf ("[boolector] %s: ", __func__);            \
+      printf ("'%s' must not be an array\n", #arg);     \
+      fflush (stdout);                                  \
+      exit (BTOR_ERR_EXIT);                             \
+    }                                                   \
+  } while (0)
+
+#define BTOR_ABORT_BV_BOLECTOR(arg)                      \
+  do                                                     \
+  {                                                      \
+    if (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP ((arg)))) \
+    {                                                    \
+      printf ("[boolector] %s: ", __func__);             \
+      printf ("'%s' must not be a bit-vector\n", #arg);  \
+      fflush (stdout);                                   \
+      exit (BTOR_ERR_EXIT);                              \
+    }                                                    \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -211,8 +235,7 @@ boolector_not (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   btor->external_refs++;
   return btor_not_exp (btor, exp);
 }
@@ -224,8 +247,7 @@ boolector_neg (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   btor->external_refs++;
   return btor_neg_exp (btor, exp);
 }
@@ -237,8 +259,7 @@ boolector_redor (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   btor->external_refs++;
   return btor_redor_exp (btor, exp);
 }
@@ -250,8 +271,7 @@ boolector_redxor (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   btor->external_refs++;
   return btor_redxor_exp (btor, exp);
 }
@@ -263,8 +283,7 @@ boolector_redand (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   btor->external_refs++;
   return btor_redand_exp (btor, exp);
 }
@@ -276,8 +295,7 @@ boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (lower < 0, "'lower' must not be negative");
   BTOR_ABORT_BOOLECTOR (upper < lower, "'upper' must not be < 'lower'");
   BTOR_ABORT_BOOLECTOR (upper >= BTOR_REAL_ADDR_EXP (exp)->len,
@@ -293,8 +311,7 @@ boolector_uext (Btor *btor, BtorExp *exp, int width)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (width < 0, "'width' must not be negative");
   btor->external_refs++;
   return btor_uext_exp (btor, exp, width);
@@ -307,8 +324,7 @@ boolector_sext (Btor *btor, BtorExp *exp, int width)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (width < 0, "'width' must not be negative");
   btor->external_refs++;
   return btor_sext_exp (btor, exp, width);
@@ -324,10 +340,8 @@ boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
       "width of 'e0' and 'e1' must not be unequal to 1");
@@ -345,10 +359,8 @@ boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
       "width of 'e0' and 'e1' must not be unequal to 1");
@@ -366,10 +378,8 @@ boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -387,10 +397,8 @@ boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -408,10 +416,8 @@ boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -429,10 +435,8 @@ boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -450,10 +454,8 @@ boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -471,10 +473,8 @@ boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -547,10 +547,8 @@ boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -568,10 +566,8 @@ boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -589,10 +585,8 @@ boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -610,10 +604,8 @@ boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -631,10 +623,8 @@ boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -653,10 +643,8 @@ boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -674,10 +662,8 @@ boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -695,10 +681,8 @@ boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -716,10 +700,8 @@ boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -737,10 +719,8 @@ boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -758,10 +738,8 @@ boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -779,10 +757,8 @@ boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -800,10 +776,8 @@ boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -821,10 +795,8 @@ boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -843,10 +815,8 @@ boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "width of 'e0' must be a power of 2");
@@ -867,10 +837,8 @@ boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "width of 'e0' must be a power of 2");
@@ -891,10 +859,8 @@ boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "width of 'e0' must be a power of 2");
@@ -915,10 +881,8 @@ boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "width of 'e0' must be a power of 2");
@@ -939,10 +903,8 @@ boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "width of 'e0' must be a power of 2");
@@ -962,10 +924,8 @@ boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -983,10 +943,8 @@ boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1004,10 +962,8 @@ boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1025,10 +981,8 @@ boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1046,10 +1000,8 @@ boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1067,10 +1019,8 @@ boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1088,10 +1038,8 @@ boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1109,10 +1057,8 @@ boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1130,10 +1076,8 @@ boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len != BTOR_REAL_ADDR_EXP (e1)->len,
       "width of 'e0' and 'e1' must not be unequal");
@@ -1151,10 +1095,8 @@ boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e0)),
-                        "'e0' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e1)),
-                        "'e1' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e0);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_EXP (e0)->len > INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len,
       "width of result is too large");
@@ -1172,10 +1114,8 @@ boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_index);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
-                        "'e_array' must not be a bit vector");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)),
-                        "'e_index' must not be an array");
+  BTOR_ABORT_BV_BOLECTOR (e_array);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e_index);
   BTOR_ABORT_BOOLECTOR (
       e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
       "index width of 'e_array' and width of 'e_index' must not be unequal");
@@ -1199,12 +1139,9 @@ boolector_write (Btor *btor,
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   e_value = btor_pointer_chase_simplified_exp (btor, e_value);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
-                        "'e_array' must not be a bit vector");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_index)),
-                        "'e_index' must not be an array");
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_value)),
-                        "'e_value' must not be a bit vector");
+  BTOR_ABORT_BV_BOLECTOR (e_array);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e_index);
+  BTOR_ABORT_ARRAY_BOOLECTOR (e_value);
   BTOR_ABORT_BOOLECTOR (
       e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
       "index width of 'e_array' and width of 'e_index' must not be unequal");
@@ -1231,8 +1168,7 @@ boolector_cond (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
   e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
   e_else = btor_pointer_chase_simplified_exp (btor, e_else);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)),
-                        "'e_cond' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (e_cond);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_cond)->len != 1,
                         "width of 'e_cond' must be equal to 1");
   real_e_if       = BTOR_REAL_ADDR_EXP (e_if);
@@ -1259,8 +1195,8 @@ boolector_inc (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
+
   btor->external_refs++;
   return btor_inc_exp (btor, exp);
 }
@@ -1272,8 +1208,8 @@ boolector_dec (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
+
   btor->external_refs++;
   return btor_dec_exp (btor, exp);
 }
@@ -1304,8 +1240,7 @@ boolector_get_width_index (Btor *btor, BtorExp *e_array)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
-                        "'e_array' must not be a bit-vector");
+  BTOR_ABORT_BV_BOLECTOR (e_array);
   return btor_get_index_exp_len (btor, e_array);
 }
 
@@ -1365,8 +1300,7 @@ boolector_assert (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->len != 1,
                         "'exp' must have width one");
   btor_add_constraint_exp (btor, exp);
@@ -1381,8 +1315,7 @@ boolector_assume (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->len != 1,
                         "'exp' must have bit-width one");
   btor_add_assumption_exp (btor, exp);
@@ -1406,8 +1339,7 @@ boolector_bv_assignment (Btor *btor, BtorExp *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)),
-                        "'exp' must not be an array");
+  BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   return btor_bv_assignment_exp (btor, exp);
@@ -1424,8 +1356,7 @@ boolector_array_assignment (
   BTOR_ABORT_ARG_NULL_BOOLECTOR (size);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_array)),
-                        "'e_array' must not be a bit-vector");
+  BTOR_ABORT_BV_BOLECTOR (e_array);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen, "model generation not enabled");
   btor_array_assignment_exp (btor, e_array, indices, values, size);
 }
