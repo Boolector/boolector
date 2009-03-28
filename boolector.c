@@ -1357,7 +1357,8 @@ boolector_array_assignment (
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   BTOR_ABORT_BV_BOLECTOR (e_array);
-  BTOR_ABORT_BOOLECTOR (!btor->model_gen, "model generation not enabled");
+  BTOR_ABORT_BOOLECTOR (!btor->model_gen,
+                        "model generation has not been enabled");
   btor_array_assignment_exp (btor, e_array, indices, values, size);
 }
 
