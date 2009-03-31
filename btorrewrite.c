@@ -65,6 +65,7 @@ is_xor_exp (Btor *btor, BtorExp *exp)
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
+  (void) btor;
 
   if (BTOR_REAL_ADDR_EXP (exp)->kind != BTOR_AND_EXP) return 0;
 
