@@ -15,7 +15,7 @@
 /* Optimization switches                                                  */
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ENABLE_PROBING_OPT 1
+#define BTOR_ENABLE_PROBING_OPT 0
 
 #define BTOR_ENABLE_HEADLINE_OPT 1
 
