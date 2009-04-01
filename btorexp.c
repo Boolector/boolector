@@ -7591,58 +7591,6 @@ lambda_array_exp (Btor *btor, int elem_len, int index_len)
   return result;
 }
 
-static BtorExp *
-slice_on_var_subst_rhs (
-    Btor *btor, BtorExp *var, int upper, int lower, BtorExp *e_const)
-{
-  int len_var, len_slice;
-  BtorExp *left, *right, *tmp, *result;
-
-  assert (btor != NULL);
-  assert (var != NULL);
-  assert (e_const != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (var));
-  assert (BTOR_IS_BV_VAR_EXP (var));
-  assert (btor_is_const_2vl (btor->mm, BTOR_REAL_ADDR_EXP (e_const)->bits));
-  assert (upper < var->len);
-  assert (upper >= lower);
-  assert (lower >= 0);
-
-  len_var   = var->len;
-  len_slice = upper - lower + 1;
-  assert (len_slice == BTOR_REAL_ADDR_EXP (e_const)->len);
-
-  if (lower == 0)
-  {
-    left   = lambda_var_exp (btor, len_var - len_slice);
-    result = btor_concat_exp (btor, left, e_const);
-    btor_release_exp (btor, left);
-  }
-  else if (upper == len_var - 1)
-  {
-    right  = lambda_var_exp (btor, len_var - len_slice);
-    result = btor_concat_exp (btor, e_const, right);
-    btor_release_exp (btor, right);
-  }
-  else
-  {
-    assert (upper > 0);
-    assert (upper < len_var - 1);
-
-    left  = lambda_var_exp (btor, len_var - len_slice - lower);
-    right = lambda_var_exp (btor, lower);
-
-    tmp    = btor_concat_exp (btor, left, e_const);
-    result = btor_concat_exp (btor, tmp, right);
-
-    btor_release_exp (btor, tmp);
-    btor_release_exp (btor, left);
-    btor_release_exp (btor, right);
-  }
-
-  return result;
-}
-
 enum BtorSubstCompKind
 {
   BTOR_SUBST_COMP_ULT_KIND,
@@ -7754,7 +7702,7 @@ normalize_substitution (Btor *btor,
 {
   BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
   BtorExp *const_exp, *real_exp;
-  int upper, lower, leadings;
+  int leadings;
   char *ic, *fc, *bits;
   BtorMemMgr *mm;
   BtorSubstCompKind comp;
@@ -7782,39 +7730,6 @@ normalize_substitution (Btor *btor,
       *right_result = btor_one_exp (btor, 1);
     }
     inc_exp_ref_counter (btor, *left_result);
-    return 1;
-  }
-
-  if (BTOR_REAL_ADDR_EXP (exp)->kind == BTOR_SLICE_EXP
-      && BTOR_IS_BV_VAR_EXP (
-             BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0])))
-  {
-    upper = BTOR_REAL_ADDR_EXP (exp)->upper;
-    lower = BTOR_REAL_ADDR_EXP (exp)->lower;
-
-    /* we push negation of slice down */
-    if (BTOR_IS_INVERTED_EXP (exp))
-      var = BTOR_INVERT_EXP (BTOR_REAL_ADDR_EXP (exp)->e[0]);
-    else
-      var = exp->e[0];
-
-    /* we do not create a lambda if variable is already in substitution
-     * table */
-    if (btor_find_in_ptr_hash_table (btor->varsubst_constraints,
-                                     BTOR_REAL_ADDR_EXP (var)))
-      return 0;
-
-    if (BTOR_IS_INVERTED_EXP (var))
-    {
-      tmp = btor_zero_exp (btor, 1);
-      var = BTOR_REAL_ADDR_EXP (var);
-    }
-    else
-      tmp = btor_one_exp (btor, 1);
-
-    *left_result  = btor_copy_exp (btor, var);
-    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, tmp);
-    btor_release_exp (btor, tmp);
     return 1;
   }
 
@@ -7932,52 +7847,6 @@ normalize_substitution (Btor *btor,
   right      = exp->e[1];
   real_left  = BTOR_REAL_ADDR_EXP (left);
   real_right = BTOR_REAL_ADDR_EXP (right);
-
-  if (real_left->kind == BTOR_SLICE_EXP && BTOR_IS_BV_CONST_EXP (real_right)
-      && BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_left->e[0])))
-  {
-    upper = real_left->upper;
-    lower = real_left->lower;
-
-    /* we push negation of slice down */
-    if (BTOR_IS_INVERTED_EXP (left))
-      var = BTOR_INVERT_EXP (real_left->e[0]);
-    else
-      var = left->e[0];
-
-    if (BTOR_IS_INVERTED_EXP (var))
-    {
-      right = BTOR_INVERT_EXP (right);
-      var   = BTOR_REAL_ADDR_EXP (var);
-    }
-
-    *left_result  = btor_copy_exp (btor, var);
-    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, right);
-    return 1;
-  }
-
-  if (real_right->kind == BTOR_SLICE_EXP && BTOR_IS_BV_CONST_EXP (real_left)
-      && BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (real_right->e[0])))
-  {
-    upper = real_right->upper;
-    lower = real_right->lower;
-
-    /* we push negation of slice down */
-    if (BTOR_IS_INVERTED_EXP (right))
-      var = BTOR_INVERT_EXP (real_right->e[0]);
-    else
-      var = right->e[0];
-
-    if (BTOR_IS_INVERTED_EXP (var))
-    {
-      left = BTOR_INVERT_EXP (left);
-      var  = BTOR_REAL_ADDR_EXP (var);
-    }
-
-    *left_result  = btor_copy_exp (btor, var);
-    *right_result = slice_on_var_subst_rhs (btor, var, upper, lower, left);
-    return 1;
-  }
 
   if (!BTOR_IS_BV_VAR_EXP (real_left) && !BTOR_IS_BV_VAR_EXP (real_right)
       && !BTOR_IS_ARRAY_VAR_EXP (real_left)
