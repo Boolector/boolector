@@ -429,14 +429,18 @@ static BtorExp *
 rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 {
   BtorMemMgr *mm;
-  BtorExp *result, *real_e0, *real_e1, *temp, *zero, *one;
-  BtorExp *ones, *eq, *left, *right;
+  BtorExp *result, *real_e0, *real_e1, *tmp1, *tmp2, *tmp3;
+  BtorExp *tmp4, *eq, *left, *right;
   BtorExp *(*fptr) (Btor *, BtorExp *, BtorExp *);
   char *b0, *b1, *bresult;
   int same_children_mem;
   int invert_b0 = 0;
   int invert_b1 = 0;
   BtorSpecialConst sc;
+  BtorExpPtrStack stack;
+  char *bv_const;
+  char tmpString[2] = {'\0', '\0'};
+  int pos, len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -553,13 +557,13 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
           case BTOR_UREM_EXP:
           case BTOR_AND_EXP: result = btor_zero_exp (btor, real_e0->len); break;
           case BTOR_UDIV_EXP:
-            zero   = btor_zero_exp (btor, real_e0->len);
-            ones   = btor_ones_exp (btor, real_e0->len);
-            eq     = btor_eq_exp (btor, e1, zero);
-            result = btor_cond_exp (btor, eq, ones, zero);
-            btor_release_exp (btor, zero);
+            tmp2   = btor_zero_exp (btor, real_e0->len);
+            tmp4   = btor_ones_exp (btor, real_e0->len);
+            eq     = btor_eq_exp (btor, e1, tmp2);
+            result = btor_cond_exp (btor, eq, tmp4, tmp2);
+            btor_release_exp (btor, tmp2);
             btor_release_exp (btor, eq);
-            btor_release_exp (btor, ones);
+            btor_release_exp (btor, tmp4);
             break;
           default: break;
         }
@@ -612,7 +616,120 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         else if (kind == BTOR_ULT_EXP) /* UNSIGNED_MAX < x */
           result = btor_false_exp (btor);
         break;
-      default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
+      default:
+        assert (sc == BTOR_SPECIAL_CONST_NONE);
+        if (kind == BTOR_BEQ_EXP && real_e1->kind == BTOR_AND_EXP
+            && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+        {
+          BTOR_INIT_STACK (stack);
+          if (BTOR_IS_INVERTED_EXP (e0))
+            bv_const = btor_not_const (btor->mm, real_e0->bits);
+          else
+            bv_const = btor_copy_const (btor->mm, real_e0->bits);
+
+          pos = 0;
+          /* const == a | b */
+          if (BTOR_IS_INVERTED_EXP (e1))
+          {
+            while (pos < real_e0->len)
+            {
+              tmpString[0] = bv_const[pos];
+              len          = (int) strspn (bv_const + pos, tmpString);
+              tmp1         = btor_slice_exp (btor,
+                                     BTOR_INVERT_EXP (real_e1->e[0]),
+                                     real_e0->len - 1 - pos,
+                                     real_e0->len - pos - len);
+              tmp2         = btor_slice_exp (btor,
+                                     BTOR_INVERT_EXP (real_e1->e[1]),
+                                     real_e0->len - 1 - pos,
+                                     real_e0->len - pos - len);
+              if (tmpString[0] == '0')
+              {
+                tmp3 = btor_zero_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp1, tmp3));
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp2, tmp3));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+              }
+              else
+              {
+                assert (tmpString[0] == '1');
+                tmp3 = btor_or_exp (btor, tmp1, tmp2);
+                tmp4 = btor_ones_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp3, tmp4));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+                btor_release_exp (btor, tmp4);
+              }
+              btor_release_exp (btor, tmp1);
+              btor_release_exp (btor, tmp2);
+              pos += len;
+            }
+          }
+          else
+          {
+            assert (!BTOR_IS_INVERTED_EXP (e1));
+            /* const == a & b */
+            while (pos < real_e0->len)
+            {
+              tmpString[0] = bv_const[pos];
+              len          = (int) strspn (bv_const + pos, tmpString);
+              tmp1         = btor_slice_exp (btor,
+                                     e1->e[0],
+                                     real_e0->len - 1 - pos,
+                                     real_e0->len - pos - len);
+              tmp2         = btor_slice_exp (btor,
+                                     e1->e[1],
+                                     real_e0->len - 1 - pos,
+                                     real_e0->len - pos - len);
+              if (tmpString[0] == '1')
+              {
+                tmp3 = btor_ones_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp1, tmp3));
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp2, tmp3));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+              }
+              else
+              {
+                assert (tmpString[0] == '0');
+                tmp3 = btor_and_exp (btor, tmp1, tmp2);
+                tmp4 = btor_zero_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp3, tmp4));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+                btor_release_exp (btor, tmp4);
+              }
+              btor_release_exp (btor, tmp1);
+              btor_release_exp (btor, tmp2);
+              pos += len;
+            }
+          }
+
+          result = btor_true_exp (btor);
+          assert (!BTOR_EMPTY_STACK (stack));
+          do
+          {
+            tmp1 = BTOR_POP_STACK (stack);
+            tmp2 = btor_and_exp (btor, result, tmp1);
+            btor_release_exp (btor, result);
+            result = tmp2;
+            btor_release_exp (btor, tmp1);
+          } while (!BTOR_EMPTY_STACK (stack));
+          btor_delete_const (btor->mm, bv_const);
+          BTOR_RELEASE_STACK (btor->mm, stack);
+        }
+        break;
     }
   }
   else if (!BTOR_IS_BV_CONST_EXP (real_e0) && BTOR_IS_BV_CONST_EXP (real_e1))
@@ -633,13 +750,19 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
               result = btor_not_exp (btor, e0);
             else if (is_xor_exp (btor, e0)) /* (a ^ b) == 0 -->  a = b */
             {
-              result = btor_eq_exp (
-                  btor,
-                  BTOR_REAL_ADDR_EXP (
-                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[0]),
-                  BTOR_REAL_ADDR_EXP (
-                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])
-                          ->e[1]));
+              if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+              {
+                BTOR_INC_REC_RW_CALL (btor);
+                result = btor_eq_exp (
+                    btor,
+                    BTOR_REAL_ADDR_EXP (
+                        BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])
+                            ->e[0]),
+                    BTOR_REAL_ADDR_EXP (
+                        BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])
+                            ->e[1]));
+                BTOR_DEC_REC_RW_CALL (btor);
+              }
             }
             else if (BTOR_IS_INVERTED_EXP (e0) && real_e0->kind == BTOR_AND_EXP)
             { /*  a | b == 0  -->  a == 0 && b == 0 */
@@ -681,9 +804,9 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
           result = btor_zero_exp (btor, real_e0->len);
         else if (kind == BTOR_ULT_EXP)
         {
-          temp   = btor_zero_exp (btor, real_e0->len);
-          result = btor_eq_exp (btor, e0, temp);
-          btor_release_exp (btor, temp);
+          tmp1   = btor_zero_exp (btor, real_e0->len);
+          result = btor_eq_exp (btor, e0, tmp1);
+          btor_release_exp (btor, tmp1);
         }
         break;
       case BTOR_SPECIAL_CONST_ONES:
@@ -691,12 +814,18 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         {
           if (is_xnor_exp (btor, e0)) /* (a XNOR b) == 1 -->  a = b */
           {
-            result = btor_eq_exp (
-                btor,
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[0]),
-                BTOR_REAL_ADDR_EXP (
-                    BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[1]));
+            if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+            {
+              BTOR_INC_REC_RW_CALL (btor);
+              result = btor_eq_exp (
+                  btor,
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])->e[0]),
+                  BTOR_REAL_ADDR_EXP (
+                      BTOR_REAL_ADDR_EXP (BTOR_REAL_ADDR_EXP (e0)->e[0])
+                          ->e[1]));
+              BTOR_DEC_REC_RW_CALL (btor);
+            }
           }
           else if (!BTOR_IS_INVERTED_EXP (e0) && e0->kind == BTOR_AND_EXP)
           { /* a & b == 1+ -->  a == 1+ && b == 1+ */
@@ -717,7 +846,120 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         else if (kind == BTOR_ULT_EXP)
           result = BTOR_INVERT_EXP (btor_eq_exp (btor, e0, e1));
         break;
-      default: assert (sc == BTOR_SPECIAL_CONST_NONE); break;
+      default:
+        assert (sc == BTOR_SPECIAL_CONST_NONE);
+        if (kind == BTOR_BEQ_EXP && real_e0->kind == BTOR_AND_EXP
+            && btor->rec_rw_calls < BTOR_REC_RW_BOUND)
+        {
+          BTOR_INIT_STACK (stack);
+          if (BTOR_IS_INVERTED_EXP (e1))
+            bv_const = btor_not_const (btor->mm, real_e1->bits);
+          else
+            bv_const = btor_copy_const (btor->mm, real_e1->bits);
+
+          pos = 0;
+          /* a | b == const */
+          if (BTOR_IS_INVERTED_EXP (e0))
+          {
+            while (pos < real_e1->len)
+            {
+              tmpString[0] = bv_const[pos];
+              len          = (int) strspn (bv_const + pos, tmpString);
+              tmp1         = btor_slice_exp (btor,
+                                     BTOR_INVERT_EXP (real_e0->e[0]),
+                                     real_e1->len - 1 - pos,
+                                     real_e1->len - pos - len);
+              tmp2         = btor_slice_exp (btor,
+                                     BTOR_INVERT_EXP (real_e0->e[1]),
+                                     real_e1->len - 1 - pos,
+                                     real_e1->len - pos - len);
+              if (tmpString[0] == '0')
+              {
+                tmp3 = btor_zero_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp1, tmp3));
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp2, tmp3));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+              }
+              else
+              {
+                assert (tmpString[0] == '1');
+                tmp3 = btor_or_exp (btor, tmp1, tmp2);
+                tmp4 = btor_ones_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp3, tmp4));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+                btor_release_exp (btor, tmp4);
+              }
+              btor_release_exp (btor, tmp1);
+              btor_release_exp (btor, tmp2);
+              pos += len;
+            }
+          }
+          else
+          {
+            assert (!BTOR_IS_INVERTED_EXP (e0));
+            /* a & b == const */
+            while (pos < real_e1->len)
+            {
+              tmpString[0] = bv_const[pos];
+              len          = (int) strspn (bv_const + pos, tmpString);
+              tmp1         = btor_slice_exp (btor,
+                                     e0->e[0],
+                                     real_e1->len - 1 - pos,
+                                     real_e1->len - pos - len);
+              tmp2         = btor_slice_exp (btor,
+                                     e0->e[1],
+                                     real_e1->len - 1 - pos,
+                                     real_e1->len - pos - len);
+              if (tmpString[0] == '1')
+              {
+                tmp3 = btor_ones_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp1, tmp3));
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp2, tmp3));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+              }
+              else
+              {
+                assert (tmpString[0] == '0');
+                tmp3 = btor_and_exp (btor, tmp1, tmp2);
+                tmp4 = btor_zero_exp (btor, len);
+                BTOR_INC_REC_RW_CALL (btor);
+                BTOR_PUSH_STACK (
+                    btor->mm, stack, btor_eq_exp (btor, tmp3, tmp4));
+                BTOR_DEC_REC_RW_CALL (btor);
+                btor_release_exp (btor, tmp3);
+                btor_release_exp (btor, tmp4);
+              }
+              btor_release_exp (btor, tmp1);
+              btor_release_exp (btor, tmp2);
+              pos += len;
+            }
+          }
+
+          result = btor_true_exp (btor);
+          assert (!BTOR_EMPTY_STACK (stack));
+          do
+          {
+            tmp1 = BTOR_POP_STACK (stack);
+            tmp2 = btor_and_exp (btor, result, tmp1);
+            btor_release_exp (btor, result);
+            result = tmp2;
+            btor_release_exp (btor, tmp1);
+          } while (!BTOR_EMPTY_STACK (stack));
+          btor_delete_const (btor->mm, bv_const);
+          BTOR_RELEASE_STACK (btor->mm, stack);
+        }
+        break;
     }
   }
   else if (real_e0 == real_e1
@@ -745,9 +987,9 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
       {
         if (real_e0->len >= 2)
         {
-          temp   = btor_int_to_exp (btor, 2, real_e0->len);
-          result = btor_mul_exp (btor, e0, temp);
-          btor_release_exp (btor, temp);
+          tmp1   = btor_int_to_exp (btor, 2, real_e0->len);
+          result = btor_mul_exp (btor, e0, tmp1);
+          btor_release_exp (btor, tmp1);
         }
       }
       else
@@ -766,15 +1008,15 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
         break;
         /* v / v is 1 if v != 0 and UINT_MAX otherwise */
       case BTOR_UDIV_EXP:
-        zero   = btor_zero_exp (btor, real_e0->len);
-        one    = btor_one_exp (btor, real_e0->len);
-        ones   = btor_ones_exp (btor, real_e0->len);
-        eq     = btor_eq_exp (btor, e0, zero);
-        result = btor_cond_exp (btor, eq, ones, one);
-        btor_release_exp (btor, zero);
+        tmp2   = btor_zero_exp (btor, real_e0->len);
+        tmp3   = btor_one_exp (btor, real_e0->len);
+        tmp4   = btor_ones_exp (btor, real_e0->len);
+        eq     = btor_eq_exp (btor, e0, tmp2);
+        result = btor_cond_exp (btor, eq, tmp4, tmp3);
+        btor_release_exp (btor, tmp2);
         btor_release_exp (btor, eq);
-        btor_release_exp (btor, ones);
-        btor_release_exp (btor, one);
+        btor_release_exp (btor, tmp4);
+        btor_release_exp (btor, tmp3);
         break;
       default:
         assert (kind == BTOR_UREM_EXP);
