@@ -8838,180 +8838,185 @@ perform_headline_optimization (Btor *btor)
       if (BTOR_IS_ARRAY_EXP (real_rebuilt_exp))
         index_len = real_rebuilt_exp->index_len;
 
-      for (i = real_rebuilt_exp->arity - 1; i >= 0; i--)
+      if (cur->kind == real_rebuilt_exp->kind)
       {
-        if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
+        for (i = real_rebuilt_exp->arity - 1; i >= 0; i--)
         {
-          switch (real_rebuilt_exp->kind)
+          if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
           {
-            case BTOR_AEQ_EXP:
-              if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
-                hl[i] = 1;
-              else
-                hl[i] = 0;
-              break;
-            case BTOR_ACOND_EXP:
-              if (i == 0)
-              {
-                if (BTOR_IS_BV_VAR_EXP (
-                        BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
-                  hl[0] = 1;
-                else
-                  hl[0] = 0;
-              }
-              else
-              {
+            switch (real_rebuilt_exp->kind)
+            {
+              case BTOR_AEQ_EXP:
                 if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
                   hl[i] = 1;
                 else
                   hl[i] = 0;
                 break;
-              }
-              break;
-            case BTOR_READ_EXP:
-            case BTOR_WRITE_EXP:
-              if (i == 0)
-              {
-                if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[0]))
-                  hl[0] = 1;
+              case BTOR_ACOND_EXP:
+                if (i == 0)
+                {
+                  if (BTOR_IS_BV_VAR_EXP (
+                          BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
+                    hl[0] = 1;
+                  else
+                    hl[0] = 0;
+                }
                 else
-                  hl[0] = 0;
+                {
+                  if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
+                    hl[i] = 1;
+                  else
+                    hl[i] = 0;
+                  break;
+                }
                 break;
-              }
-              /* fall through by intention */
-            default:
-              if (BTOR_IS_BV_VAR_EXP (
-                      BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
-                hl[i] = 1;
-              else
-                hl[i] = 0;
-              break;
+              case BTOR_READ_EXP:
+              case BTOR_WRITE_EXP:
+                if (i == 0)
+                {
+                  if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[0]))
+                    hl[0] = 1;
+                  else
+                    hl[0] = 0;
+                  break;
+                }
+                /* fall through by intention */
+              default:
+                if (BTOR_IS_BV_VAR_EXP (
+                        BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
+                  hl[i] = 1;
+                else
+                  hl[i] = 0;
+                break;
+            }
           }
+          else
+            hl[i] = 0;
         }
-        else
-          hl[i] = 0;
-      }
-      switch (real_rebuilt_exp->kind)
-      {
-        case BTOR_SLICE_EXP:
-          if (hl[0])
-          {
-            btor->stats.bv_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          break;
-        case BTOR_READ_EXP:
-          if (hl[0])
-          {
-            btor->stats.array_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          break;
-        case BTOR_BEQ_EXP:
-        case BTOR_ADD_EXP:
-          if (hl[0] || hl[1])
-          {
-            btor->stats.bv_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          break;
-        case BTOR_AEQ_EXP:
-          if (hl[0] || hl[1])
-          {
-            btor->stats.array_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          break;
-        case BTOR_ULT_EXP:
-          if (hl[0] && hl[1])
-          {
-            btor->stats.bv_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          else if (hl[0])
-          {
-            /* if the other child cannot be zero, then
-             * we can propagate headline */
-            tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[1];
-            cv  = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
-            ne  = btor_ne_exp (btor, cv, tmp);
-            assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
-            /* 3vl optimization may find out */
-            if (is_true_exp (btor, ne))
+        switch (real_rebuilt_exp->kind)
+        {
+#if 0
+		  case BTOR_SLICE_EXP:
+		    if (hl[0])
+		      {
+			btor->stats.bv_headline_props++;
+			btor_release_exp (btor, rebuilt_exp);
+			rebuilt_exp = lambda_var_exp (btor, len);
+		      }
+		    break;
+#endif
+          case BTOR_READ_EXP:
+            if (hl[0])
+            {
+              btor->stats.array_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            break;
+          case BTOR_BEQ_EXP:
+          case BTOR_ADD_EXP:
+            if (hl[0] || hl[1])
             {
               btor->stats.bv_headline_props++;
               btor_release_exp (btor, rebuilt_exp);
               rebuilt_exp = lambda_var_exp (btor, len);
             }
-            btor_release_exp (btor, cv);
-            btor_release_exp (btor, ne);
-          }
-          else if (hl[1])
-          {
-            /* if the other child cannot be MAX, then
-             * we can propagate headline */
-            tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[0];
-            cv  = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
-            ne  = btor_ne_exp (btor, cv, tmp);
-            assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
-            /* 3vl optimization may find out */
-            if (is_true_exp (btor, ne))
+            break;
+          case BTOR_AEQ_EXP:
+            if (hl[0] || hl[1])
+            {
+              btor->stats.array_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            break;
+          case BTOR_ULT_EXP:
+            if (hl[0] && hl[1])
             {
               btor->stats.bv_headline_props++;
               btor_release_exp (btor, rebuilt_exp);
               rebuilt_exp = lambda_var_exp (btor, len);
             }
-            btor_release_exp (btor, cv);
-            btor_release_exp (btor, ne);
-          }
-          break;
-        case BTOR_CONCAT_EXP:
-        case BTOR_AND_EXP:
-        case BTOR_MUL_EXP:
-        case BTOR_SLL_EXP:
-        case BTOR_SRL_EXP:
-        case BTOR_UDIV_EXP:
-        case BTOR_UREM_EXP:
-          if (hl[0] && hl[1])
-          {
-            btor->stats.bv_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          break;
-        case BTOR_BCOND_EXP:
-          if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
-          {
-            btor->stats.bv_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_var_exp (btor, len);
-          }
-          break;
-        case BTOR_ACOND_EXP:
-          if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
-          {
-            btor->stats.array_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_array_exp (btor, len, index_len);
-          }
-          break;
-        case BTOR_WRITE_EXP:
-          if (hl[0] && hl[2])
-          {
-            btor->stats.array_headline_props++;
-            btor_release_exp (btor, rebuilt_exp);
-            rebuilt_exp = lambda_array_exp (btor, len, index_len);
-          }
-          break;
-        default: break;
+            else if (hl[0])
+            {
+              /* if the other child cannot be zero, then
+               * we can propagate headline */
+              tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[1];
+              cv  = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+              ne  = btor_ne_exp (btor, cv, tmp);
+              assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
+              /* 3vl optimization may find out */
+              if (is_true_exp (btor, ne))
+              {
+                btor->stats.bv_headline_props++;
+                btor_release_exp (btor, rebuilt_exp);
+                rebuilt_exp = lambda_var_exp (btor, len);
+              }
+              btor_release_exp (btor, cv);
+              btor_release_exp (btor, ne);
+            }
+            else if (hl[1])
+            {
+              /* if the other child cannot be MAX, then
+               * we can propagate headline */
+              tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[0];
+              cv  = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
+              ne  = btor_ne_exp (btor, cv, tmp);
+              assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
+              /* 3vl optimization may find out */
+              if (is_true_exp (btor, ne))
+              {
+                btor->stats.bv_headline_props++;
+                btor_release_exp (btor, rebuilt_exp);
+                rebuilt_exp = lambda_var_exp (btor, len);
+              }
+              btor_release_exp (btor, cv);
+              btor_release_exp (btor, ne);
+            }
+            break;
+          case BTOR_CONCAT_EXP:
+          case BTOR_AND_EXP:
+          case BTOR_MUL_EXP:
+          case BTOR_SLL_EXP:
+          case BTOR_SRL_EXP:
+          case BTOR_UDIV_EXP:
+          case BTOR_UREM_EXP:
+            if (hl[0] && hl[1])
+            {
+              btor->stats.bv_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            break;
+          case BTOR_BCOND_EXP:
+            if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
+            {
+              btor->stats.bv_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            break;
+          case BTOR_ACOND_EXP:
+            if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
+            {
+              btor->stats.array_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_array_exp (btor, len, index_len);
+            }
+            break;
+          case BTOR_WRITE_EXP:
+            if (hl[0] && hl[2])
+            {
+              btor->stats.array_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_array_exp (btor, len, index_len);
+            }
+            break;
+          default: break;
+        }
+        assert (rebuilt_exp != NULL);
+        real_rebuilt_exp = BTOR_REAL_ADDR_EXP (rebuilt_exp);
       }
-      assert (rebuilt_exp != NULL);
-      real_rebuilt_exp = BTOR_REAL_ADDR_EXP (rebuilt_exp);
 
       /* clean aux_mark flags */
       for (i = cur->arity - 1; i >= 0; i--)
