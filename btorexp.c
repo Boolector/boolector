@@ -8895,16 +8895,14 @@ perform_headline_optimization (Btor *btor)
         }
         switch (real_rebuilt_exp->kind)
         {
-#if 0
-		  case BTOR_SLICE_EXP:
-		    if (hl[0])
-		      {
-			btor->stats.bv_headline_props++;
-			btor_release_exp (btor, rebuilt_exp);
-			rebuilt_exp = lambda_var_exp (btor, len);
-		      }
-		    break;
-#endif
+          case BTOR_SLICE_EXP:
+            if (hl[0])
+            {
+              btor->stats.bv_headline_props++;
+              btor_release_exp (btor, rebuilt_exp);
+              rebuilt_exp = lambda_var_exp (btor, len);
+            }
+            break;
           case BTOR_READ_EXP:
             if (hl[0])
             {
