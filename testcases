@@ -667,4 +667,6 @@ headline10 -o log/headline10.log log/headline10.btor
 headline11 -o log/headline11.log log/headline11.btor
 headline12 -o log/headline12.log log/headline12.btor
 headline13 -o log/headline13.log log/headline13.smt
+headline14 -o log/headline14.log log/headline14.btor
+headline15 -o log/headline15.log log/headline15.btor
 problem_130 -m -o log/problem_130.log log/problem_130.smt
