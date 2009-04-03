@@ -40,8 +40,8 @@ is_const_one_exp (Btor *btor, BtorExp *exp)
 
   assert (btor != NULL);
   assert (exp != NULL);
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor->rewrite_level > 0);
-  assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
 
   /* constants are normalized and even,
    * constant 'one' has to be inverted */
@@ -64,7 +64,7 @@ is_xor_exp (Btor *btor, BtorExp *exp)
 
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   (void) btor;
 
   if (BTOR_REAL_ADDR_EXP (exp)->kind != BTOR_AND_EXP) return 0;
@@ -115,7 +115,7 @@ is_xnor_exp (Btor *btor, BtorExp *exp)
 {
   assert (btor != NULL);
   assert (exp != NULL);
-  assert (BTOR_REAL_ADDR_EXP (exp)->simplified == NULL);
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
   return is_xor_exp (btor, BTOR_INVERT_EXP (exp));
 }
 
@@ -130,7 +130,7 @@ compute_slice_3vl (Btor *btor, BtorExp *e0, int upper, int lower)
 
   assert (btor != NULL);
   assert (e0 != NULL);
-  assert (BTOR_REAL_ADDR_EXP (e0)->simplified == NULL);
+  e0 = btor_pointer_chase_simplified_exp (btor, e0);
   assert (upper < BTOR_REAL_ADDR_EXP (e0)->len);
   assert (upper >= lower);
   assert (lower >= 0);
