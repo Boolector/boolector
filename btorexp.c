@@ -1166,54 +1166,6 @@ has_parents_exp (Btor *btor, BtorExp *exp)
   return has_next_parent_full_parent_iterator (&it);
 }
 
-static int
-has_exactly_one_real_parent_array_exp (Btor *btor, BtorExp *exp)
-{
-  BtorFullParentIterator it;
-  BtorExp *cur;
-  int num_real_parents;
-
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (BTOR_IS_REGULAR_EXP (exp));
-  assert (BTOR_IS_ARRAY_EXP (exp));
-  (void) btor;
-
-  num_real_parents = 0;
-  init_full_parent_iterator (&it, exp);
-  while (has_next_parent_full_parent_iterator (&it))
-  {
-    cur = next_parent_full_parent_iterator (&it);
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    if (!cur->vread) num_real_parents++;
-
-    if (num_real_parents > 1) return 0;
-  }
-
-  return num_real_parents == 1;
-}
-
-static int
-has_exactly_one_parent_exp (Btor *btor, BtorExp *exp)
-{
-  BtorFullParentIterator it;
-
-  assert (btor != NULL);
-  assert (exp != NULL);
-  (void) btor;
-
-  if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)))
-    return has_exactly_one_real_parent_array_exp (btor, exp);
-
-  init_full_parent_iterator (&it, exp);
-  if (!has_next_parent_full_parent_iterator (&it)) return 0;
-
-  (void) next_parent_full_parent_iterator (&it);
-  if (has_next_parent_full_parent_iterator (&it)) return 0;
-
-  return 1;
-}
-
 static BtorExp *
 get_parent_if_exactly_one_parent_exp (Btor *btor, BtorExp *exp)
 {
@@ -8716,14 +8668,15 @@ static void
 perform_headline_optimization (Btor *btor)
 {
   BtorExpPtrStack stack, root_stack;
+  BtorPtrHashTable *headlines;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, *real_rebuilt_exp;
+  BtorExp *cur, *cur_parent, *rebuilt_exp;
   BtorExp *cv, *ne, *tmp, **temp_stack, **top, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
-  int pushed, i, len;
-  int index_len = 0;
+  int pushed, i;
   int hl[3]; /* is child at position i a headline? */
+
   assert (btor != NULL);
   assert (btor->rewrite_level > 2);
   assert (!btor->inc_enabled);
@@ -8733,10 +8686,14 @@ perform_headline_optimization (Btor *btor)
 
   mm = btor->mm;
 
+  headlines = btor_new_ptr_hash_table (mm,
+                                       (BtorHashPtr) btor_hash_exp_by_id,
+                                       (BtorCmpPtr) btor_compare_exp_by_id);
+
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (root_stack);
 
-  /* select variables that may contribute to
+  /* select nodes that may contribute to
    * a headline propagation */
   for (b = btor->bv_vars->first; b != NULL; b = b->next)
   {
@@ -8749,12 +8706,7 @@ perform_headline_optimization (Btor *btor)
         && cur_parent->kind != BTOR_WRITE_EXP
         && cur_parent->kind != BTOR_ACOND_EXP)
     {
-      /* we use the aux mark to remember whether
-       * the original node had exactly one parent
-       * this is necessary as we also rebuild
-       * the formula during traversal.
-       */
-      cur->aux_mark = 1;
+      btor_insert_in_ptr_hash_table (headlines, cur);
       BTOR_PUSH_STACK (mm, stack, cur_parent);
     }
   }
@@ -8768,7 +8720,7 @@ perform_headline_optimization (Btor *btor)
     assert (BTOR_IS_REGULAR_EXP (cur_parent));
     if (cur_parent != NULL)
     {
-      cur->aux_mark = 1;
+      btor_insert_in_ptr_hash_table (headlines, cur);
       BTOR_PUSH_STACK (mm, stack, cur_parent);
     }
   }
@@ -8780,17 +8732,6 @@ perform_headline_optimization (Btor *btor)
     if (cur->mark == 0)
     {
       cur->mark = 1;
-      /* we use the aux mark to remember whether
-       * the original node had exactly one parent
-       * this is necessary as we also rebuild
-       * the formula during traversal.
-       */
-      if (has_exactly_one_parent_exp (btor, cur))
-      {
-        assert (cur->aux_mark == 0);
-        cur->aux_mark = 1;
-      }
-
       init_full_parent_iterator (&it, cur);
       /* are we at a root ? */
       pushed = 0;
@@ -8801,7 +8742,7 @@ perform_headline_optimization (Btor *btor)
         pushed = 1;
         BTOR_PUSH_STACK (mm, stack, cur_parent);
       }
-      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
+      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, cur);
     }
   }
 
@@ -8831,84 +8772,35 @@ perform_headline_optimization (Btor *btor)
     else
     {
       assert (cur->mark == 2);
-      cur->mark        = 0;
-      rebuilt_exp      = rebuild_exp (btor, cur);
-      real_rebuilt_exp = BTOR_REAL_ADDR_EXP (rebuilt_exp);
-      len              = real_rebuilt_exp->len;
-      if (BTOR_IS_ARRAY_EXP (real_rebuilt_exp))
-        index_len = real_rebuilt_exp->index_len;
+      cur->mark = 0;
 
-      if (cur->kind == real_rebuilt_exp->kind)
+      /* propagate headline ? */
+      if (get_parent_if_exactly_one_parent_exp (btor, cur)
+          || !has_parents_exp (btor, cur))
       {
-        for (i = real_rebuilt_exp->arity - 1; i >= 0; i--)
+        for (i = cur->arity - 1; i >= 0; i--)
         {
-          if (BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark)
-          {
-            switch (real_rebuilt_exp->kind)
-            {
-              case BTOR_AEQ_EXP:
-                if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
-                  hl[i] = 1;
-                else
-                  hl[i] = 0;
-                break;
-              case BTOR_ACOND_EXP:
-                if (i == 0)
-                {
-                  if (BTOR_IS_BV_VAR_EXP (
-                          BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
-                    hl[0] = 1;
-                  else
-                    hl[0] = 0;
-                }
-                else
-                {
-                  if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[i]))
-                    hl[i] = 1;
-                  else
-                    hl[i] = 0;
-                  break;
-                }
-                break;
-              case BTOR_READ_EXP:
-              case BTOR_WRITE_EXP:
-                if (i == 0)
-                {
-                  if (BTOR_IS_ARRAY_VAR_EXP (real_rebuilt_exp->e[0]))
-                    hl[0] = 1;
-                  else
-                    hl[0] = 0;
-                  break;
-                }
-                /* fall through by intention */
-              default:
-                if (BTOR_IS_BV_VAR_EXP (
-                        BTOR_REAL_ADDR_EXP (real_rebuilt_exp->e[i])))
-                  hl[i] = 1;
-                else
-                  hl[i] = 0;
-                break;
-            }
-          }
+          if (btor_find_in_ptr_hash_table (headlines,
+                                           BTOR_REAL_ADDR_EXP (cur->e[i])))
+            hl[i] = 1;
           else
             hl[i] = 0;
         }
-        switch (real_rebuilt_exp->kind)
+
+        switch (cur->kind)
         {
           case BTOR_SLICE_EXP:
             if (hl[0])
             {
               btor->stats.bv_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_READ_EXP:
             if (hl[0])
             {
               btor->stats.array_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_BEQ_EXP:
@@ -8916,30 +8808,27 @@ perform_headline_optimization (Btor *btor)
             if (hl[0] || hl[1])
             {
               btor->stats.bv_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_AEQ_EXP:
             if (hl[0] || hl[1])
             {
               btor->stats.array_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_ULT_EXP:
             if (hl[0] && hl[1])
             {
               btor->stats.bv_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             else if (hl[0])
             {
               /* if the other child cannot be zero, then
                * we can propagate headline */
-              tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[1];
+              tmp = cur->e[1];
               cv  = btor_zero_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
               ne  = btor_ne_exp (btor, cv, tmp);
               assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
@@ -8947,8 +8836,7 @@ perform_headline_optimization (Btor *btor)
               if (is_true_exp (btor, ne))
               {
                 btor->stats.bv_headline_props++;
-                btor_release_exp (btor, rebuilt_exp);
-                rebuilt_exp = lambda_var_exp (btor, len);
+                btor_insert_in_ptr_hash_table (headlines, cur);
               }
               btor_release_exp (btor, cv);
               btor_release_exp (btor, ne);
@@ -8957,7 +8845,7 @@ perform_headline_optimization (Btor *btor)
             {
               /* if the other child cannot be MAX, then
                * we can propagate headline */
-              tmp = BTOR_REAL_ADDR_EXP (rebuilt_exp)->e[0];
+              tmp = cur->e[0];
               cv  = btor_ones_exp (btor, BTOR_REAL_ADDR_EXP (tmp)->len);
               ne  = btor_ne_exp (btor, cv, tmp);
               assert (BTOR_REAL_ADDR_EXP (ne)->len == 1);
@@ -8965,8 +8853,7 @@ perform_headline_optimization (Btor *btor)
               if (is_true_exp (btor, ne))
               {
                 btor->stats.bv_headline_props++;
-                btor_release_exp (btor, rebuilt_exp);
-                rebuilt_exp = lambda_var_exp (btor, len);
+                btor_insert_in_ptr_hash_table (headlines, cur);
               }
               btor_release_exp (btor, cv);
               btor_release_exp (btor, ne);
@@ -8982,43 +8869,125 @@ perform_headline_optimization (Btor *btor)
             if (hl[0] && hl[1])
             {
               btor->stats.bv_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_BCOND_EXP:
             if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
             {
               btor->stats.bv_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_var_exp (btor, len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_ACOND_EXP:
             if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
             {
               btor->stats.array_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_array_exp (btor, len, index_len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           case BTOR_WRITE_EXP:
             if (hl[0] && hl[2])
             {
               btor->stats.array_headline_props++;
-              btor_release_exp (btor, rebuilt_exp);
-              rebuilt_exp = lambda_array_exp (btor, len, index_len);
+              btor_insert_in_ptr_hash_table (headlines, cur);
             }
             break;
           default: break;
         }
-        assert (rebuilt_exp != NULL);
-        real_rebuilt_exp = BTOR_REAL_ADDR_EXP (rebuilt_exp);
       }
+    }
+  }
 
-      /* clean aux_mark flags */
+  assert (BTOR_EMPTY_STACK (stack));
+  BTOR_RESET_STACK (root_stack);
+
+  /* headlines have been computed, now substitute */
+  for (b = btor->bv_vars->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur));
+    if (btor_find_in_ptr_hash_table (headlines, cur))
+    {
+      cur_parent = get_parent_if_exactly_one_parent_exp (btor, cur);
+      assert (cur_parent != NULL);
+      BTOR_PUSH_STACK (mm, stack, cur_parent);
+    }
+  }
+
+  for (b = btor->array_vars->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    assert (BTOR_IS_ARRAY_VAR_EXP (cur));
+    if (btor_find_in_ptr_hash_table (headlines, cur))
+    {
+      cur_parent = get_parent_if_exactly_one_parent_exp (btor, cur);
+      assert (cur_parent != NULL);
+      BTOR_PUSH_STACK (mm, stack, cur_parent);
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_POP_STACK (stack);
+    assert (BTOR_IS_REGULAR_EXP (cur));
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      init_full_parent_iterator (&it, cur);
+      /* are we at a root ? */
+      pushed = 0;
+      while (has_next_parent_full_parent_iterator (&it))
+      {
+        cur_parent = next_parent_full_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_EXP (cur_parent));
+        pushed = 1;
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
+      }
+      if (!pushed) BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
+    }
+  }
+
+  /* copy roots on substitution stack */
+  top = root_stack.top;
+  for (temp_stack = root_stack.start; temp_stack != top; temp_stack++)
+    BTOR_PUSH_STACK (mm, stack, *temp_stack);
+
+  /* substitute */
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+
+    if (cur->mark == 0) continue;
+
+    assert (!BTOR_IS_BV_CONST_EXP (cur));
+    assert (!BTOR_IS_BV_VAR_EXP (cur));
+    assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
+
+    if (cur->mark == 1)
+    {
+      BTOR_PUSH_STACK (mm, stack, cur);
+      cur->mark = 2;
       for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_REAL_ADDR_EXP (cur->e[i])->aux_mark = 0;
+        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+    }
+    else
+    {
+      assert (cur->mark == 2);
+      cur->mark = 0;
+      if (btor_find_in_ptr_hash_table (headlines, cur))
+      {
+        btor_remove_from_ptr_hash_table (headlines, cur, NULL, NULL);
+        if (BTOR_IS_ARRAY_EXP (cur))
+          rebuilt_exp = lambda_array_exp (btor, cur->len, cur->index_len);
+        else
+          rebuilt_exp = lambda_var_exp (btor, cur->len);
+      }
+      else
+        rebuilt_exp = rebuild_exp (btor, cur);
+      assert (rebuilt_exp != NULL);
 
       if (rebuilt_exp != cur)
       {
@@ -9035,6 +9004,7 @@ perform_headline_optimization (Btor *btor)
   for (temp_stack = root_stack.start; temp_stack != top; temp_stack++)
     btor_release_exp (btor, *temp_stack);
   BTOR_RELEASE_STACK (mm, root_stack);
+  btor_delete_ptr_hash_table (headlines);
 }
 
 #endif
