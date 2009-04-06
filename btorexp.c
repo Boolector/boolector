@@ -9094,6 +9094,7 @@ run_rewrite_engine (Btor *btor, int full)
 
         if (rewrite_level > 2 && !inc_enabled)
         {
+          /* needs recursive rewrite bound > 0 */
           eliminate_slices_on_bv_vars (btor);
           if (btor->inconsistent) return;
           check_cyclic = 1;
