@@ -6,7 +6,7 @@
 #include <assert.h>
 
 /* recursive rewriting bound */
-#define BTOR_REC_RW_BOUND 2048
+#define BTOR_REC_RW_BOUND 4096
 
 /* iterative rewriting bounds */
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
