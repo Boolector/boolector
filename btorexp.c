@@ -8984,6 +8984,7 @@ perform_headline_optimization (Btor *btor)
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      assert (cur->kind != BTOR_PROXY_EXP);
 
       if (cur->mark == 0) continue;
 
