@@ -51,6 +51,8 @@ typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
 #define BTOR_AIG_UNIQUE_TABLE_LIMIT 30
 #define BTOR_AIG_UNIQUE_TABLE_PRIME 2000000137u
 
+#define BTOR_FIND_AND_AIG_CONTRADICTION_LIMIT 8
+
 struct BtorAIGMgr
 {
   BtorMemMgr *mm;
@@ -354,11 +356,46 @@ btor_not_aig (BtorAIGMgr *amgr, BtorAIG *aig)
   return BTOR_INVERT_AIG (aig);
 }
 
+static int
+find_and_contradiction_aig (
+    BtorAIGMgr *amgr, BtorAIG *aig, BtorAIG *a0, BtorAIG *a1, int *calls)
+{
+  assert (amgr != NULL);
+  assert (aig != NULL);
+  assert (a0 != NULL);
+  assert (a1 != NULL);
+  assert (calls != NULL);
+  assert (*calls >= 0);
+  (void) amgr;
+
+  if (*calls >= BTOR_FIND_AND_AIG_CONTRADICTION_LIMIT) return 0;
+
+  if (!BTOR_IS_INVERTED_AIG (aig) && BTOR_IS_AND_AIG (aig))
+  {
+    if (BTOR_LEFT_CHILD_AIG (aig) == BTOR_INVERT_AIG (a0)
+        || BTOR_LEFT_CHILD_AIG (aig) == BTOR_INVERT_AIG (a1)
+        || BTOR_RIGHT_CHILD_AIG (aig) == BTOR_INVERT_AIG (a0)
+        || BTOR_RIGHT_CHILD_AIG (aig) == BTOR_INVERT_AIG (a1))
+      return 1;
+    *calls += 1;
+    return find_and_contradiction_aig (
+               amgr, BTOR_LEFT_CHILD_AIG (aig), a0, a1, calls)
+           || find_and_contradiction_aig (
+                  amgr, BTOR_RIGHT_CHILD_AIG (aig), a0, a1, calls);
+  }
+  return 0;
+}
+
 BtorAIG *
 btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
   BtorAIG **lookup, *real_left, *real_right;
+  int calls;
+
   assert (amgr != NULL);
+
+  calls = 0;
+
   if (left == BTOR_AIG_FALSE || right == BTOR_AIG_FALSE) return BTOR_AIG_FALSE;
   if (left == BTOR_AIG_TRUE) return inc_aig_ref_counter_and_return (right);
 BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
@@ -567,6 +604,11 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
       goto BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN;
     }
   }
+
+  if (find_and_contradiction_aig (amgr, left, left, right, &calls)
+      || find_and_contradiction_aig (amgr, right, left, right, &calls))
+    return BTOR_AIG_FALSE;
+
   lookup = find_and_aig (amgr, left, right);
   if (*lookup == NULL)
   {

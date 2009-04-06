@@ -12,6 +12,9 @@
 #define BTOR_WRITE_CHAIN_EXP_RW_BOUND 20
 #define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 1024
 
+/* other rewriting bounds */
+#define BTOR_FIND_AND_EXP_CONTRADICTION_LIMIT 8
+
 #define BTOR_INC_REC_RW_CALL(btor)                             \
   do                                                           \
   {                                                            \
@@ -1418,12 +1421,39 @@ and_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
+static int
+find_and_contradiction_exp (
+    Btor *btor, BtorExp *exp, BtorExp *e0, BtorExp *e1, int *calls)
+{
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (calls != NULL);
+  assert (*calls >= 0);
+  (void) btor;
+
+  if (*calls >= BTOR_FIND_AND_EXP_CONTRADICTION_LIMIT) return 0;
+
+  if (!BTOR_IS_INVERTED_EXP (exp) && exp->kind == BTOR_AND_EXP)
+  {
+    if (exp->e[0] == BTOR_INVERT_EXP (e0) || exp->e[0] == BTOR_INVERT_EXP (e1)
+        || exp->e[1] == BTOR_INVERT_EXP (e0)
+        || exp->e[1] == BTOR_INVERT_EXP (e1))
+      return 1;
+    *calls += 1;
+    return find_and_contradiction_exp (btor, exp->e[0], e0, e1, calls)
+           || find_and_contradiction_exp (btor, exp->e[1], e0, e1, calls);
+  }
+  return 0;
+}
+
 BtorExp *
 btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
   char *bits_3vl = NULL;
-  int normalized;
+  int normalized, calls;
   BtorMemMgr *mm;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -1433,6 +1463,7 @@ btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   mm         = btor->mm;
   normalized = 0;
+  calls      = 0;
 
 #ifndef BTOR_NO_3VL
   if (btor->rewrite_level > 1)
@@ -1748,6 +1779,10 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
       return result;
     }
   }
+
+  if (find_and_contradiction_exp (btor, e0, e0, e1, &calls)
+      || find_and_contradiction_exp (btor, e1, e0, e1, &calls))
+    return btor_zero_exp (btor, real_e0->len);
 
   if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
       && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
