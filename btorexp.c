@@ -9099,7 +9099,8 @@ run_rewrite_engine (Btor *btor, int full)
           }
 #endif
 
-        } while (btor->varsubst_constraints->count > 0u);
+        } while (btor->varsubst_constraints->count > 0u
+                 || btor->embedded_constraints->count > 0u);
 
         if (rewrite_level > 2 && !inc_enabled)
         {
@@ -9109,7 +9110,8 @@ run_rewrite_engine (Btor *btor, int full)
           check_cyclic = 1;
         }
 
-      } while (btor->varsubst_constraints->count > 0u);
+      } while (btor->varsubst_constraints->count > 0u
+               || btor->embedded_constraints->count > 0u);
 
       if (rewrite_level > 2 && !inc_enabled && !model_gen)
       {
@@ -9118,7 +9120,8 @@ run_rewrite_engine (Btor *btor, int full)
         check_cyclic = 0;
       }
 
-    } while (btor->varsubst_constraints->count > 0u);
+    } while (btor->varsubst_constraints->count > 0u
+             || btor->embedded_constraints->count > 0u);
   }
 }
 

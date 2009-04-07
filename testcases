@@ -1,4 +1,4 @@
-regsmtparse0 -o log/regsmtparse0.log log/regsmtparse0.smt
+wegsmtparse0 -o log/regsmtparse0.log log/regsmtparse0.smt
 regsmtparse1 -o log/regsmtparse1.log log/regsmtparse1.smt
 smttrue -m -o log/smttrue.log log/smttrue.smt
 smtfalse -m -o log/smtfalse.log log/smtfalse.smt
@@ -407,6 +407,7 @@ rw175 -rwl1 -o log/rw175.log log/rw175.btor
 rw176 -rwl1 -o log/rw176.log log/rw176.btor
 rw177 -rwl1 -o log/rw177.log log/rw177.btor
 rw178 -rwl3 -o log/rw178.log log/rw178.btor
+rw179 -rwl3 -o log/rw179.log log/rw179.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
