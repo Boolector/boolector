@@ -9008,8 +9008,9 @@ perform_headline_optimization (Btor *btor)
       {
         BTOR_PUSH_STACK (mm, stack, cur);
         cur->mark = 2;
-        for (i = cur->arity - 1; i >= 0; i--)
-          BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+        if (cur->kind != BTOR_PROXY_EXP)
+          for (i = cur->arity - 1; i >= 0; i--)
+            BTOR_PUSH_STACK (mm, stack, cur->e[i]);
       }
       else
       {
