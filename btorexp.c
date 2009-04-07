@@ -8980,6 +8980,19 @@ perform_headline_optimization (Btor *btor)
     for (temp_stack = root_stack.start; temp_stack != top; temp_stack++)
       BTOR_PUSH_STACK (mm, stack, *temp_stack);
 
+    /* set headlines */
+    for (b = headlines->first; b != NULL; b = b->next)
+    {
+      cur = (BtorExp *) b->key;
+      assert (BTOR_IS_REGULAR_EXP (cur));
+      if (BTOR_IS_ARRAY_EXP (cur))
+        rebuilt_exp = lambda_array_exp (btor, cur->len, cur->index_len);
+      else
+        rebuilt_exp = lambda_var_exp (btor, cur->len);
+      set_simplified_exp (btor, cur, rebuilt_exp, 1);
+      btor_release_exp (btor, rebuilt_exp);
+    }
+
     /* substitute */
     while (!BTOR_EMPTY_STACK (stack))
     {
@@ -9002,23 +9015,18 @@ perform_headline_optimization (Btor *btor)
       {
         assert (cur->mark == 2);
         cur->mark = 0;
-        if (btor_find_in_ptr_hash_table (headlines, cur))
+        if (cur->kind != BTOR_PROXY_EXP)
         {
-          if (BTOR_IS_ARRAY_EXP (cur))
-            rebuilt_exp = lambda_array_exp (btor, cur->len, cur->index_len);
-          else
-            rebuilt_exp = lambda_var_exp (btor, cur->len);
-        }
-        else
           rebuilt_exp = rebuild_exp (btor, cur);
-        assert (rebuilt_exp != NULL);
+          assert (rebuilt_exp != NULL);
 
-        if (rebuilt_exp != cur)
-        {
-          simp = btor_pointer_chase_simplified_exp (btor, rebuilt_exp);
-          set_simplified_exp (btor, cur, simp, 1);
+          if (rebuilt_exp != cur)
+          {
+            simp = btor_pointer_chase_simplified_exp (btor, rebuilt_exp);
+            set_simplified_exp (btor, cur, simp, 1);
+          }
+          btor_release_exp (btor, rebuilt_exp);
         }
-        btor_release_exp (btor, rebuilt_exp);
       }
     }
   }
