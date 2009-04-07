@@ -406,6 +406,7 @@ rw174 -rwl1 -o log/rw174.log log/rw174.btor
 rw175 -rwl1 -o log/rw175.log log/rw175.btor
 rw176 -rwl1 -o log/rw176.log log/rw176.btor
 rw177 -rwl1 -o log/rw177.log log/rw177.btor
+rw178 -rwl3 -o log/rw178.log log/rw178.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
