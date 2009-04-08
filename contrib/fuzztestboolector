@@ -219,6 +219,8 @@ do
 	echo "ERROR"
 	cp "$file" "$fileerror"
 	echo "; error: $callstring" >> "$fileerror"
+	echo "; golden return value: $goldenretval" >> "$fileerror"
+	echo "; actual return value: $retval" >> "$fileerror"
 	cleanup
 	exit 1
       fi
@@ -274,6 +276,8 @@ do
     echo "ERROR"
     cp "$file" "$fileerror"
     echo "; dump error" >> "$fileerror"
+    echo "; golden return value: $goldenretval" >> "$fileerror"
+    echo "; actual return value: $retval" >> "$fileerror"
     cleanup
     exit 1
   fi 
