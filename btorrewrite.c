@@ -2114,14 +2114,47 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
         }
       }
 
-      /* a & b == a & ~b  ---> a == 0 */
-
       /* commutative operators are normalized ignoring sign, so
        * we do not have to check cases like a & b ==  ~b & a as they
        * are represented as a & b == a & ~b */
 
       if (e0->kind == BTOR_AND_EXP && e1->kind == BTOR_AND_EXP)
       {
+        if (e0->e[0] == BTOR_INVERT_EXP (e1->e[0])
+            && e0->e[1] == BTOR_INVERT_EXP (e1->e[1]))
+        {
+          /* a & b == ~a & ~b   -->  a == ~b */
+          if (BTOR_IS_INVERTED_EXP (e0->e[0])
+              == BTOR_IS_INVERTED_EXP (e0->e[1]))
+          {
+            assert (BTOR_IS_INVERTED_EXP (e1->e[0])
+                    == BTOR_IS_INVERTED_EXP (e1->e[1]));
+            if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+              goto BTOR_REWRITE_EQ_EXP_NO_REWRITE;
+            BTOR_INC_REC_RW_CALL (btor);
+            result = btor_rewrite_eq_exp (
+                btor, e0->e[0], BTOR_INVERT_EXP (e0->e[1]));
+            BTOR_DEC_REC_RW_CALL (btor);
+            return result;
+          }
+
+          /* a~ & b == a & ~b   -->  a == b */
+          if (BTOR_IS_INVERTED_EXP (e0->e[0])
+              != BTOR_IS_INVERTED_EXP (e0->e[1]))
+          {
+            assert (BTOR_IS_INVERTED_EXP (e1->e[0])
+                    != BTOR_IS_INVERTED_EXP (e1->e[1]));
+            if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+              goto BTOR_REWRITE_EQ_EXP_NO_REWRITE;
+            BTOR_INC_REC_RW_CALL (btor);
+            result = btor_rewrite_eq_exp (btor,
+                                          BTOR_REAL_ADDR_EXP (e0->e[0]),
+                                          BTOR_REAL_ADDR_EXP (e0->e[1]));
+            BTOR_DEC_REC_RW_CALL (btor);
+            return result;
+          }
+        }
+        /* a & b == a & ~b  ---> a == 0 */
         if (e0->e[0] == e1->e[0] && e0->e[1] == BTOR_INVERT_EXP (e1->e[1]))
         {
           if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
@@ -2134,6 +2167,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
           return result;
         }
 
+        /* a & b == ~a & b ---> b == 0 */
         if (e0->e[1] == e1->e[1] && e0->e[0] == BTOR_INVERT_EXP (e1->e[0]))
         {
           if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
