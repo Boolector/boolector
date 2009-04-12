@@ -245,15 +245,15 @@ do
 	    exit 0
 	  fi 
 	) 200> "$filecovlock"
-	returnval=$?
+	retval=$?
 
-	if [[ "$returnval" -eq 2 ]]; then
+	if [[ "$retval" -eq 2 ]]; then
 	  cleanup
 	  rm "$stderror"
 	  exit 0
 	fi
 
-	if [[ "$returnval" -eq 1 ]]; then
+	if [[ "$retval" -eq 1 ]]; then
 	  cp "$filetmp" "$stderror"
 	  callfile=${covbase}.cs
 	  covtestfile=${covbase}.btor
