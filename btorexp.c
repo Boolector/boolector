@@ -10276,7 +10276,7 @@ abstract_domain_bv_variables (Btor *btor)
 }
 
 int
-btor_sat_btor (Btor *btor, int refinement_limit)
+btor_sat_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int ua_refinements, lod_refinements, found_assumption_false;
@@ -10287,7 +10287,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BtorMemMgr *mm;
 
   assert (btor != NULL);
-  assert (refinement_limit >= -1);
   assert (btor->btor_sat_btor_called >= 0);
   assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
   btor->btor_sat_btor_called++;
@@ -10359,10 +10358,8 @@ btor_sat_btor (Btor *btor, int refinement_limit)
   BTOR_INIT_STACK (top_arrays);
   search_top_arrays (btor, &top_arrays);
 
-  while ((refinement_limit == -1
-          || (lod_refinements + ua_refinements) <= refinement_limit)
-         && (sat_result == BTOR_SAT
-             || (ua && !under_approx_finished && sat_result != BTOR_UNKNOWN)))
+  while (sat_result == BTOR_SAT
+         || (ua && !under_approx_finished && sat_result != BTOR_UNKNOWN))
   {
     if (sat_result == BTOR_SAT)
     {
@@ -10411,9 +10408,6 @@ btor_sat_btor (Btor *btor, int refinement_limit)
     }
     sat_result = btor_sat_sat (smgr, INT_MAX);
   }
-
-  if (lod_refinements + ua_refinements == refinement_limit)
-    sat_result = BTOR_UNKNOWN;
 
   btor->stats.ua_refinements  = ua_refinements;
   btor->stats.lod_refinements = lod_refinements;

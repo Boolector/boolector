@@ -2,6 +2,7 @@ news ror release 1.1 since 1.0
 ------------------------------
 * fixed minor caching problem on AIG layer 
 * improved rewriting engine
+* removed command line switch for refinement limit
 
 news ror release 1.0 since 0.7
 ------------------------------

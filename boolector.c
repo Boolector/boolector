@@ -1287,8 +1287,7 @@ boolector_sat (Btor *btor)
   BTOR_ABORT_BOOLECTOR (!btor->inc_enabled && btor->btor_sat_btor_called > 0,
                         "incremental usage has not been enabled. "
                         "'boolector_sat' may only be called once");
-  /* -1 represents no refinement limit */
-  return btor_sat_btor (btor, -1);
+  return btor_sat_btor (btor);
 }
 
 char *

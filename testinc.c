@@ -20,11 +20,11 @@ test_inc_true_false (void)
 
   btor_enable_inc_usage (btor);
   btor_add_assumption_exp (btor, tt);
-  res = btor_sat_btor (btor, INT_MAX);
+  res = btor_sat_btor (btor);
   assert (res == BTOR_SAT);
 
   btor_add_assumption_exp (btor, ff);
-  res = btor_sat_btor (btor, INT_MAX);
+  res = btor_sat_btor (btor);
   assert (res == BTOR_UNSAT);
 
   btor_release_exp (btor, ff);
@@ -79,7 +79,7 @@ test_inc_counter (int w, int nondet)
     btor_add_assumption_exp (btor, allzero);
     btor_release_exp (btor, allzero);
 
-    res = btor_sat_btor (btor, INT_MAX);
+    res = btor_sat_btor (btor);
     if (res == BTOR_SAT) break;
 
     assert (res == BTOR_UNSAT);
@@ -186,7 +186,7 @@ test_inc_lt (int w)
 
     prev = next;
 
-    res = btor_sat_btor (btor, INT_MAX);
+    res = btor_sat_btor (btor);
     if (res == BTOR_UNSAT) break;
 
     assert (res == BTOR_SAT);
@@ -244,12 +244,12 @@ test_inc_assume_assert1 (void)
   BtorExp *eq_index = btor_eq_exp (btor, index1, index2);
   BtorExp *ne_read  = btor_ne_exp (btor, read1, read2);
   btor_add_constraint_exp (btor, ne_read);
-  sat_result = btor_sat_btor (btor, INT_MAX);
+  sat_result = btor_sat_btor (btor);
   assert (sat_result == BTOR_SAT);
   btor_add_assumption_exp (btor, eq_index);
-  sat_result = btor_sat_btor (btor, INT_MAX);
+  sat_result = btor_sat_btor (btor);
   assert (sat_result == BTOR_UNSAT);
-  sat_result = btor_sat_btor (btor, INT_MAX);
+  sat_result = btor_sat_btor (btor);
   assert (sat_result == BTOR_SAT);
   btor_release_exp (btor, array);
   btor_release_exp (btor, index1);
@@ -277,9 +277,9 @@ test_inc_lemmas_on_demand_1 ()
   BtorExp *ne     = btor_ne_exp (btor, read1, read2);
   btor_add_constraint_exp (btor, eq);
   btor_add_assumption_exp (btor, ne);
-  sat_result = btor_sat_btor (btor, INT_MAX);
+  sat_result = btor_sat_btor (btor);
   assert (sat_result == BTOR_UNSAT);
-  sat_result = btor_sat_btor (btor, INT_MAX);
+  sat_result = btor_sat_btor (btor);
   assert (sat_result == BTOR_SAT);
   btor_release_exp (btor, array);
   btor_release_exp (btor, index1);

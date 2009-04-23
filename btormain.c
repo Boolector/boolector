@@ -122,7 +122,6 @@ struct BtorMainApp
   int bmcmaxk;
   int bmcadc;
   BtorCNFEnc cnf_enc;
-  int refinement_limit;
   int force_smt_input;
   BtorPrintModel print_model;
 };
@@ -153,8 +152,6 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  -rl <n>|--refinement limit <n>   iterative refinement limit\n"
-    "\n"
     "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding "
     "(default)\n"
@@ -732,19 +729,6 @@ parse_commandline_arguments (BtorMainApp *app)
 
       app->basis = BTOR_DECIMAL_BASIS;
     }
-    else if (!strcmp (app->argv[app->argpos], "-rl")
-             || !strcmp (app->argv[app->argpos], "--refinement-limit"))
-    {
-      if (app->argpos < app->argc - 1)
-      {
-        app->refinement_limit = atoi (app->argv[++app->argpos]);
-        if (app->refinement_limit < 0)
-        {
-          print_err_va_args (app, "refinement limit must not be negative\n");
-          app->err = 1;
-        }
-      }
-    }
     else if (!strcmp (app->argv[app->argpos], "-o")
              || !strcmp (app->argv[app->argpos], "--output"))
     {
@@ -982,7 +966,6 @@ boolector_main (int argc, char **argv)
   app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
   app.bmcadc               = 1;
   app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-  app.refinement_limit     = -1;
   app.force_smt_input      = 0;
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
 
@@ -1378,7 +1361,7 @@ boolector_main (int argc, char **argv)
             if (app.verbosity > 0) btor_msg_main ("Base case:\n");
             if (bmck == 0) btor_add_constraint_exp (btor, regs_zero);
             btor_add_assumption_exp (btor, bad);
-            sat_result = btor_sat_btor (btor, app.refinement_limit);
+            sat_result = btor_sat_btor (btor);
             if (app.verbosity > 0 || sat_result == BTOR_SAT
                 || sat_result == BTOR_UNKNOWN)
               print_sat_result (&app, sat_result);
@@ -1400,7 +1383,7 @@ boolector_main (int argc, char **argv)
           {
             if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
-            sat_result = btor_sat_btor (btor, app.refinement_limit);
+            sat_result = btor_sat_btor (btor);
             if (app.verbosity > 0 || sat_result == BTOR_UNSAT
                 || sat_result == BTOR_UNKNOWN)
               print_sat_result (&app, sat_result);
@@ -1423,7 +1406,7 @@ boolector_main (int argc, char **argv)
             assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
             if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
-            sat_result = btor_sat_btor (btor, app.refinement_limit);
+            sat_result = btor_sat_btor (btor);
             if (app.verbosity > 0 || sat_result == BTOR_UNSAT
                 || sat_result == BTOR_UNKNOWN)
               print_sat_result (&app, sat_result);
@@ -1435,7 +1418,7 @@ boolector_main (int argc, char **argv)
               if (app.verbosity > 0) btor_msg_main ("Base case:\n");
               btor_add_assumption_exp (btor, regs_zero);
               btor_add_assumption_exp (btor, bad);
-              sat_result = btor_sat_btor (btor, app.refinement_limit);
+              sat_result = btor_sat_btor (btor);
               if (app.verbosity > 0 || sat_result == BTOR_SAT
                   || sat_result == BTOR_UNKNOWN)
                 print_sat_result (&app, sat_result);
@@ -1546,7 +1529,7 @@ boolector_main (int argc, char **argv)
         if (app.verbosity > 1 && constraints_reported < nconstraints)
           btor_msg_main_va_args ("added %d outputs (100%)\n", nconstraints);
 
-        sat_result = btor_sat_btor (btor, app.refinement_limit);
+        sat_result = btor_sat_btor (btor);
         print_sat_result (&app, sat_result);
 
         /* check if status is equal to benchmark status */
