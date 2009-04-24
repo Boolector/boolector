@@ -198,11 +198,12 @@ fout.close()
 ret = os.popen ("boolector -rwl0 " + foutname)
 result = ret.readline().strip()
 if result == "sat":
-  print "Invalid model"
+  print "Invalid"
   sys.exit(1)
 elif result != "unsat":
   print "Unexpected result"
   sys.exit(2)
 
 cleanup()
+print "Valid"
 sys.exit(0)

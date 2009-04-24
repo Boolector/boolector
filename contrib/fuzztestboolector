@@ -192,11 +192,11 @@ do
       
     echo $callstring
     boolector $callstring 1> "$stdoutput" 2> "$stderror"
-    retval=$?
-    cat "$stdoutput" | head -n 1
+    result=`cat "$stdoutput" | head -n 1`
+    echo $result
     if [[ "$rwl" -eq 3 ]]; then 
-      goldenretval=$retval
-      if [[ "$goldenretval" -ne 2 ]] && [[ "$goldenretval" -ne 3 ]]; then
+      goldenresult=$result
+      if [[ "$goldenresult" != sat ]] && [[ "$goldenresult" != unsat ]]; then
 	echo "ERROR"
 	cp "$file" "$fileerror"
 	echo "; error: $callstring" >> "$fileerror"
@@ -204,9 +204,8 @@ do
 	exit 1
       fi
       if [[ "$crosscheck" -eq 1 ]]; then
-	$boolector04 $file &> /dev/null
-	retval=$?
-	if [[ $goldenretval -ne $retval ]]; then
+	result=`$boolector04 $file 2> /dev/null`
+	if [[ $goldenresult != $result ]]; then
 	  echo "ERROR"
 	  cp "$file" "$fileerror"
 	  echo "; error: $callstring boolector-0.4 yields other result" >> "$fileerror"
@@ -215,12 +214,12 @@ do
 	fi
       fi
     else
-      if [[ "$retval" -ne "$goldenretval" ]]; then
+      if [[ "$goldenresult" != "$result" ]]; then
 	echo "ERROR"
 	cp "$file" "$fileerror"
 	echo "; error: $callstring" >> "$fileerror"
-	echo "; golden return value: $goldenretval" >> "$fileerror"
-	echo "; actual return value: $retval" >> "$fileerror"
+	echo "; golden result: $goldenresult" >> "$fileerror"
+	echo "; actual result: $result" >> "$fileerror"
 	cleanup
 	exit 1
       fi
@@ -268,24 +267,23 @@ do
 
   done
 
-  echo -n "Test $i dump: "
+  echo "Test $i dump: "
   boolector "$file" -de 1> "$filedump" 2> /dev/null
-  boolector "$filedump" 2> /dev/null
-  retval=$?
-  if [[ "$retval" -ne "$goldenretval" ]]; then
+  result=`boolector "$filedump" 2> /dev/null`
+  echo $result
+  if [[ "$goldenresult" != "$result" ]]; then
     echo "ERROR"
     cp "$file" "$fileerror"
     echo "; dump error" >> "$fileerror"
-    echo "; golden return value: $goldenretval" >> "$fileerror"
-    echo "; actual return value: $retval" >> "$fileerror"
+    echo "; golden result: $goldenresult" >> "$fileerror"
+    echo "; actual result: $result" >> "$fileerror"
     cleanup
     exit 1
   fi 
 
-  if [[ "$checkmodel" -eq 1 ]] && [[ "$retval" -eq 2 ]]; then
-    btorcheckmodel "$file" "$stdoutput"
-    retval=$?
-    if [[ "$retval" -ne 0 ]]; then
+  if [[ "$checkmodel" -eq 1 ]] && [[ "$result" == sat ]]; then
+    modelresult=`btorcheckmodel "$file" "$stdoutput"`
+    if [[ "$modelresult" != Valid ]]; then
       echo "ERROR"
       cp "$file" "$fileerror"
       cp "$stdoutput" "${fileerror}.model"

@@ -68,6 +68,7 @@ if [[ "$cov" -eq 1 ]]; then
 fi
 
 rm -f error*.btor
+rm -f error*.btor.model
 rm -f $lockfile
 echo 0 > $shmfile
 
