@@ -205,7 +205,7 @@ do
       fi
       if [[ "$crosscheck" -eq 1 ]]; then
 	result=`$boolector04 $file 2> /dev/null`
-	if [[ $goldenresult != $result ]]; then
+	if [[ "$goldenresult" != "$result" ]]; then
 	  echo "ERROR"
 	  cp "$file" "$fileerror"
 	  echo "; error: $callstring boolector-0.4 yields other result" >> "$fileerror"
