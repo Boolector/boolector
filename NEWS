@@ -1,5 +1,6 @@
 news ror release 1.1 since 1.0
 ------------------------------
+* improved handling of unconstrained variables and arrays
 * fixed bug where Boolector could report 'unknown' in regular (non-bmc) mode
 * fixed minor caching problem on AIG layer 
 * improved rewriting engine

@@ -5591,12 +5591,9 @@ btor_print_stats_btor (Btor *btor)
 #if BTOR_ENABLE_PROBING_OPT
     btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
 #endif
-#if BTOR_ENABLE_HEADLINE_OPT
-    btor_msg_exp ("bv headline propagations: %d",
-                  btor->stats.bv_headline_props);
-    btor_msg_exp ("array headline propagations: %d",
-                  btor->stats.array_headline_props);
-#endif
+    btor_msg_exp ("unconstrained bv propagations: %d", btor->stats.bv_uc_props);
+    btor_msg_exp ("unconstrained array propagations: %d",
+                  btor->stats.array_uc_props);
     btor_msg_exp ("number of expressions ever created: %lld",
                   btor->stats.expressions);
     num_final_ops = number_of_ops (btor);
@@ -8662,10 +8659,8 @@ process_embedded_constraints (Btor *btor)
   }
 }
 
-#if BTOR_ENABLE_HEADLINE_OPT
-
 static void
-perform_headline_optimization (Btor *btor)
+perform_unconstrained_optimization (Btor *btor)
 {
   BtorExpPtrStack stack, root_stack;
   BtorPtrHashTable *headlines;
@@ -8792,7 +8787,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_SLICE_EXP:
             if (hl[0])
             {
-              btor->stats.bv_headline_props++;
+              btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8801,7 +8796,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_READ_EXP:
             if (hl[0])
             {
-              btor->stats.array_headline_props++;
+              btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8811,7 +8806,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_ADD_EXP:
             if (hl[0] || hl[1])
             {
-              btor->stats.bv_headline_props++;
+              btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8820,7 +8815,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_AEQ_EXP:
             if (hl[0] || hl[1])
             {
-              btor->stats.array_headline_props++;
+              btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8829,7 +8824,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_ULT_EXP:
             if (hl[0] && hl[1])
             {
-              btor->stats.bv_headline_props++;
+              btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8845,7 +8840,7 @@ perform_headline_optimization (Btor *btor)
               /* 3vl optimization may find out */
               if (is_true_exp (btor, ne))
               {
-                btor->stats.bv_headline_props++;
+                btor->stats.bv_uc_props++;
                 btor_insert_in_ptr_hash_table (headlines, cur);
                 inc_exp_ref_counter (btor, cur);
                 found_new_headline = 1;
@@ -8864,7 +8859,7 @@ perform_headline_optimization (Btor *btor)
               /* 3vl optimization may find out */
               if (is_true_exp (btor, ne))
               {
-                btor->stats.bv_headline_props++;
+                btor->stats.bv_uc_props++;
                 btor_insert_in_ptr_hash_table (headlines, cur);
                 inc_exp_ref_counter (btor, cur);
                 found_new_headline = 1;
@@ -8882,7 +8877,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_UREM_EXP:
             if (hl[0] && hl[1])
             {
-              btor->stats.bv_headline_props++;
+              btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8891,7 +8886,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_BCOND_EXP:
             if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
             {
-              btor->stats.bv_headline_props++;
+              btor->stats.bv_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8900,7 +8895,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_ACOND_EXP:
             if ((hl[1] && hl[2]) || (hl[0] && (hl[1] || hl[2])))
             {
-              btor->stats.array_headline_props++;
+              btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -8909,7 +8904,7 @@ perform_headline_optimization (Btor *btor)
           case BTOR_WRITE_EXP:
             if (hl[0] && hl[2])
             {
-              btor->stats.array_headline_props++;
+              btor->stats.array_uc_props++;
               btor_insert_in_ptr_hash_table (headlines, cur);
               inc_exp_ref_counter (btor, cur);
               found_new_headline = 1;
@@ -9049,8 +9044,6 @@ perform_headline_optimization (Btor *btor)
   BTOR_RELEASE_STACK (mm, root_stack);
 }
 
-#endif
-
 static void
 run_rewrite_engine (Btor *btor, int full)
 {
@@ -9089,15 +9082,13 @@ run_rewrite_engine (Btor *btor, int full)
 
           if (!full) return;
 
-#if BTOR_ENABLE_HEADLINE_OPT
           if (rewrite_level > 2 && !inc_enabled && !model_gen)
           {
-            perform_headline_optimization (btor);
+            perform_unconstrained_optimization (btor);
             assert (check_all_hash_tables_proxy_free_dbg (btor));
             if (btor->inconsistent) return;
             check_cyclic = 0;
           }
-#endif
 
         } while (btor->varsubst_constraints->count > 0u
                  || btor->embedded_constraints->count > 0u);

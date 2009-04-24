@@ -17,8 +17,6 @@
 
 #define BTOR_ENABLE_PROBING_OPT 0
 
-#define BTOR_ENABLE_HEADLINE_OPT 1
-
 /*------------------------------------------------------------------------*/
 /* Declarations                                                           */
 /*------------------------------------------------------------------------*/
@@ -326,12 +324,10 @@ struct Btor
     /* how many equalities have been successfully probed */
     int probed_equalities;
 #endif
-#if BTOR_ENABLE_HEADLINE_OPT
-    /* bit-vector headline propagations */
-    int bv_headline_props;
-    /* array headline propagations */
-    int array_headline_props;
-#endif
+    /* unconstrained bit-vector propagations */
+    int bv_uc_props;
+    /* unconstrained array propagations */
+    int array_uc_props;
     /*  how often have we pushed a read over write during construction */
     int read_props_construct;
     /* sum of the size of all added lemmas */
