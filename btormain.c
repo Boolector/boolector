@@ -1362,6 +1362,7 @@ boolector_main (int argc, char **argv)
             if (bmck == 0) btor_add_constraint_exp (btor, regs_zero);
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor);
+            assert (sat_result != BTOR_UNKNOWN);
             if (app.verbosity > 0 || sat_result == BTOR_SAT
                 || sat_result == BTOR_UNKNOWN)
               print_sat_result (&app, sat_result);
@@ -1384,6 +1385,7 @@ boolector_main (int argc, char **argv)
             if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor);
+            assert (sat_result != BTOR_UNKNOWN);
             if (app.verbosity > 0 || sat_result == BTOR_UNSAT
                 || sat_result == BTOR_UNKNOWN)
               print_sat_result (&app, sat_result);
@@ -1407,6 +1409,7 @@ boolector_main (int argc, char **argv)
             if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
             btor_add_assumption_exp (btor, bad);
             sat_result = btor_sat_btor (btor);
+            assert (sat_result != BTOR_UNKNOWN);
             if (app.verbosity > 0 || sat_result == BTOR_UNSAT
                 || sat_result == BTOR_UNKNOWN)
               print_sat_result (&app, sat_result);
@@ -1419,6 +1422,7 @@ boolector_main (int argc, char **argv)
               btor_add_assumption_exp (btor, regs_zero);
               btor_add_assumption_exp (btor, bad);
               sat_result = btor_sat_btor (btor);
+              assert (sat_result != BTOR_UNKNOWN);
               if (app.verbosity > 0 || sat_result == BTOR_SAT
                   || sat_result == BTOR_UNKNOWN)
                 print_sat_result (&app, sat_result);
@@ -1530,6 +1534,7 @@ boolector_main (int argc, char **argv)
           btor_msg_main_va_args ("added %d outputs (100%)\n", nconstraints);
 
         sat_result = btor_sat_btor (btor);
+        assert (sat_result != BTOR_UNKNOWN);
         print_sat_result (&app, sat_result);
 
         /* check if status is equal to benchmark status */

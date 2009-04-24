@@ -41,7 +41,7 @@ struct BtorSATMgr
   const char *ss_name;
 
   void (*ss_init) ();
-  void (*ss_add) (int);
+  int (*ss_add) (int);
   int (*ss_sat) (int);
   int (*ss_deref) (int);
   void (*ss_reset) ();
@@ -243,7 +243,7 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->ss_add (lit);
+  (void) smgr->ss_add (lit);
 #if 0
   if (lit != 0)
     printf ("%d ", lit);

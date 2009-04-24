@@ -6709,7 +6709,7 @@ update_sat_assignments (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   found_assumption_false = readd_assumptions (btor);
   assert (!found_assumption_false);
-  result = btor_sat_sat (smgr, INT_MAX);
+  result = btor_sat_sat (smgr, -1);
   assert (result == BTOR_SAT);
   return btor_changed_assignments_sat (smgr);
 }
@@ -9844,7 +9844,7 @@ probe_exps (Btor *btor)
   BtorExpPtrStack stack, new_constraints;
   BtorExp *cur;
   BtorMemMgr *mm;
-  int ret_val, id;
+  int ret_val, id, sat_result;
 
   assert (btor != NULL);
 
@@ -9896,7 +9896,9 @@ probe_exps (Btor *btor)
         if (!id) continue;
 
         btor_assume_sat (smgr, -id);
-        if (btor_sat_sat (smgr, BTOR_EXP_FAILED_EQ_LIMIT) == BTOR_UNSAT)
+        sat_result = btor_sat_sat (smgr, BTOR_EXP_FAILED_EQ_LIMIT);
+        assert (sat_result != BTOR_UNKNOWN);
+        if (sat_result == BTOR_UNSAT)
         {
           BTOR_PUSH_STACK (mm, new_constraints, cur);
           btor->stats.probed_equalities++;
@@ -10353,7 +10355,8 @@ btor_sat_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  sat_result = btor_sat_sat (smgr, INT_MAX);
+  sat_result = btor_sat_sat (smgr, -1);
+  assert (sat_result != BTOR_UNKNOWN);
 
   BTOR_INIT_STACK (top_arrays);
   search_top_arrays (btor, &top_arrays);
@@ -10406,13 +10409,16 @@ btor_sat_btor (Btor *btor)
         fflush (stdout);
       }
     }
-    sat_result = btor_sat_sat (smgr, INT_MAX);
+    sat_result = btor_sat_sat (smgr, -1);
+    assert (sat_result != BTOR_UNKNOWN);
   }
 
   btor->stats.ua_refinements  = ua_refinements;
   btor->stats.lod_refinements = lod_refinements;
 
   BTOR_RELEASE_STACK (mm, top_arrays);
+  BTOR_ABORT_EXP (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
+                  "result must be sat or unsat");
   return sat_result;
 }
 
