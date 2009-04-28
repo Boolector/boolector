@@ -47,13 +47,13 @@ modelgen_test (const char *fname, int rwl)
   ret_val = system (syscall_string); /* save to avoid warning */
   free (syscall_string);
 
-  syscall_string = (char *) malloc (sizeof (char)
-                                    * (len + 5 + len + 4
-                                       + strlen ("contrib/btorcheckmodel log/")
-                                       + strlen (" log/") + 1));
+  syscall_string = (char *) malloc (
+      sizeof (char)
+      * (len + 5 + len + 4 + strlen ("contrib/btorcheckmodel log/")
+         + strlen (" log/") + strlen (" > /dev/null") + 1));
 
   sprintf (syscall_string,
-           "contrib/btorcheckmodel log/%s log/%s",
+           "contrib/btorcheckmodel log/%s log/%s > /dev/null",
            btor_fname,
            log_fname);
   ret_val = system (syscall_string);
