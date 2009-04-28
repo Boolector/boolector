@@ -1,12 +1,13 @@
-news ror release 1.1 since 1.0
+news for release 1.1 since 1.0
 ------------------------------
 * improved handling of unconstrained variables and arrays
-* fixed bug where Boolector could report 'unknown' in regular (non-bmc) mode
-* fixed minor caching problem on AIG layer 
 * improved rewriting engine
 * removed command line switch for refinement limit
+* fixed bug where Boolector could report 'unknown' in regular (non-bmc) mode
+* fixed minor caching problem on AIG layer 
+* fixed domain abstraction bug
 
-news ror release 1.0 since 0.7
+news for release 1.0 since 0.7
 ------------------------------
 * public C API
 * documentation and examples
