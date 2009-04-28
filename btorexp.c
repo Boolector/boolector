@@ -10143,7 +10143,7 @@ abstract_domain_bv_variables (Btor *btor)
   BtorPtrHashBucket *b;
   BtorPtrHashTable *eq, *marked;
   BtorExp *cur, *cur_parent, *next;
-  int i, failed, has_const;
+  int i;
 
   assert (btor != NULL);
   assert (btor->rewrite_level > 2);
@@ -10180,33 +10180,22 @@ abstract_domain_bv_variables (Btor *btor)
     if (btor_find_in_ptr_hash_table (marked, cur)) continue;
 
     assert (BTOR_EMPTY_STACK (stack));
-    eq        = btor_new_ptr_hash_table (mm,
+    eq = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
                                   (BtorCmpPtr) btor_compare_exp_by_id);
-    has_const = 0;
+    btor_insert_in_ptr_hash_table (eq, cur);
     goto BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP;
 
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (cur))
-              || BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (cur)));
+      assert (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (cur)));
 
       if (btor_find_in_ptr_hash_table (marked, cur))
-      {
-        failed = 1;
-        break;
-      }
+        goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
 
-      if (btor_find_in_ptr_hash_table (eq, cur))
-        continue;
-      else
-      {
-      BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP:
-        btor_insert_in_ptr_hash_table (eq, cur);
-      }
-
-      failed = 0;
+    BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP:
+      assert (btor_find_in_ptr_hash_table (eq, cur));
       init_full_parent_iterator (&it, cur);
       while (has_next_parent_full_parent_iterator (&it))
       {
@@ -10228,30 +10217,26 @@ abstract_domain_bv_variables (Btor *btor)
             next = cur_parent->e[0];
           }
 
-          if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (next))
-              || BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (next)))
+          if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (next)))
           {
-            if (BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (next))) has_const = 1;
-            BTOR_PUSH_STACK (mm, stack, next);
+            if (!btor_find_in_ptr_hash_table (eq, next))
+            {
+              btor_insert_in_ptr_hash_table (eq, next);
+              BTOR_PUSH_STACK (mm, stack, next);
+            }
           }
           else
-          {
-            failed = 1;
             goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
-          }
         }
         else
-        {
-          failed = 1;
           goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
-        }
       }
     }
 
-    if (!has_const) restrict_domain_of_eq_class (btor, eq);
+    restrict_domain_of_eq_class (btor, eq);
 
   BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP:
-    if (failed) BTOR_RESET_STACK (stack);
+    BTOR_RESET_STACK (stack);
 
     for (b = eq->first; b != NULL; b = b->next)
     {
