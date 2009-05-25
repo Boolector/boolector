@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sys, string
+import sys, string, getopt
 
 # NOTE: This script converts from BTOR to SMT format. It does NOT 
 # perform all necessary syntax checks and does NOT support all BTOR operators. 
@@ -25,16 +25,45 @@ class ArrayNode:
     self.elem_bw = elem_bw
     self.name = name
 
+def usage ():
+  print "usage: btor2smt [-C <comment-file>] [-s|-u] [-c|-i] [-h]"
+
 # dictonaries for bit-vector and array variables
 vars = {}
 arrays = {}
 
 # other variables
+comment_file_name = ""
+category = ""
+status = "unknown"
 declaration = True
 line_nr = 0
 var_name_counter = 0
 par_counter = 0
 found_root = False
+
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "C:sucih")
+except getopt.GetoptError, err:
+  print str(err)
+  usage()
+  sys.exit(1)
+
+for o, a in opts:
+  if o in ("-h"):
+    usage()
+    sys.exit(0)
+  elif o in ("-C"):
+    include_comment = True
+    comment_file_name = a
+  elif o in ("-i"):
+    category = "industrial"
+  elif o in ("-c"):
+    category = "crafted"
+  elif o in ("-s"):
+    status = "sat"
+  elif o in ("-u"):
+    status = "unsat"
 
 def log2 (x):
   result = 0 
@@ -108,8 +137,30 @@ for line in sys.stdin.readlines():
   else: 
     # write preamble
     if declaration:
-        
+      declaration = False
+
       print "(benchmark btor2smt"
+
+      if comment_file_name != "":
+	print ":source {"
+	try:
+	  comment_file = open(comment_file_name, 'r')
+	  for line in comment_file:
+	    line = line.strip()
+	    print line
+	  print "}"
+	except Exception, e:
+	  print "could not read comment file"
+	  sys.exit (1)
+        comment_file.close ()
+
+      assert (status == "sat" or status == "unsat" or status == "unknown")
+      print ":status " + status
+
+      if category != "":
+        assert (category == "crafted" or category == "industrial")
+        print ":category { " + category + " }"
+
       if len(arrays) != 0:
 	print ":logic QF_AUFBV"
       else:
@@ -120,10 +171,7 @@ for line in sys.stdin.readlines():
       for val in arrays.itervalues():
 	print ":extrafuns ((" + val.name + " Array[" + val.index_bw + ":" + \
 	      val.elem_bw + "]))"
-
-      print ":status unknown"
       print ":formula"
-      declaration = False
 
     # constant declarations
     if op == "const":
