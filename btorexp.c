@@ -5586,7 +5586,7 @@ btor_print_stats_btor (Btor *btor)
 
   if (verbosity > 2)
   {
-    btor_msg_exp ("max rec. RW: %d\n", btor->stats.max_rec_rw_calls);
+    btor_msg_exp ("max rec. RW: %d", btor->stats.max_rec_rw_calls);
     btor_msg_exp ("domain abstractions: %d", btor->stats.domain_abst);
 #if BTOR_ENABLE_PROBING_OPT
     btor_msg_exp ("probed equalites: %d", btor->stats.probed_equalities);
