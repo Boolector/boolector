@@ -26,7 +26,7 @@ class ArrayNode:
     self.name = name
 
 def usage ():
-  print "usage: btor2smt [-C <comment-file>] [-s|-u] [-c|-i] [-h]"
+  print "usage: btor2smt [-n name] [-C <comment-file>] [-s|-u] [-c|-i] [-h]"
 
 # dictonaries for bit-vector and array variables
 vars = {}
@@ -41,9 +41,10 @@ line_nr = 0
 var_name_counter = 0
 par_counter = 0
 found_root = False
+bench_name = "smt2btor"
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "C:sucih")
+  opts, args = getopt.getopt(sys.argv[1:], "n:C:sucih")
 except getopt.GetoptError, err:
   print str(err)
   usage()
@@ -53,6 +54,8 @@ for o, a in opts:
   if o in ("-h"):
     usage()
     sys.exit(0)
+  elif o in ("-n"):
+    bench_name = a
   elif o in ("-C"):
     include_comment = True
     comment_file_name = a
@@ -141,7 +144,7 @@ for line in sys.stdin:
     if declaration:
       declaration = False
 
-      print "(benchmark btor2smt"
+      print "(benchmark " + bench_name
 
       if comment_file_name != "":
 	print ":source {"
