@@ -45,15 +45,15 @@ fi
 numbitslog=`log_2 $numbits`
 id=1
 
+echo "$((id++)) var $numbits x"
+((idx = id - 1))
+((idxorig = idx))
 echo "$((id++)) zero $numbits"
 ((idzero = id - 1))
 echo "$((id++)) one $numbits"
 ((idone = id - 1))
 echo "$((id++)) constd $numbits $numbits"
 ((idn = id - 1))
-echo "$((id++)) var $numbits x"
-((idx = id - 1))
-((idxorig = idx))
 for ((i = $numbits / 2; i > 0; i /= 2))
 do
   echo "$((id++)) constd $numbitslog $i"

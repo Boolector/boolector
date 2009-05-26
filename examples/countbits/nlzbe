@@ -45,6 +45,12 @@ fi
 numbitslog=`log_2 $numbits`
 id=1
 
+echo "$((id++)) var $numbits result1init"
+((idresult1 = id - 1))
+echo "$((id++)) var $numbits x"
+((idx = id - 1))
+((idxorig = idx))
+((idy = idx))
 echo "$((id++)) zero 1"
 ((idzero1 = id - 1))
 ((idterminate = idzero1))
@@ -57,12 +63,6 @@ echo "$((id++)) one $numbitslog"
 ((idonelog = id - 1))
 echo "$((id++)) constd $numbits $numbits"
 ((idnumbits = id - 1))
-echo "$((id++)) var $numbits result1init"
-((idresult1 = id - 1))
-echo "$((id++)) var $numbits x"
-((idx = id - 1))
-((idxorig = idx))
-((idy = idx))
 for ((i = 0; i < $numbits / 2 + 1; i++))
 do
   echo "$((id++)) eq 1 $idy $idzero"
