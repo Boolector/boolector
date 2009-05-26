@@ -283,7 +283,8 @@ for line in sys.stdin:
       op1 = get_operand (words[3])
       op2 = get_operand (words[4])
       op3 = get_operand (words[5])
-      print "(let (?e" + id + " (ite " + op1 + " " + op2 + " " + op3 + "))"
+      print "(let (?e" + id + " (ite (= bv1[1] " + op1 + ") " + \
+	    op2 + " " + op3 + "))"
     # read
     elif op == "read":
       op1 = get_operand (words[3])
