@@ -94,7 +94,7 @@ def get_operand (id):
   return result
 
 # read from stdin
-for line in sys.stdin.readlines():
+for line in sys.stdin:
   line_nr += 1;
 
   #ignore comments
