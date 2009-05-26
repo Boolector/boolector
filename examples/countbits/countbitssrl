@@ -1,7 +1,7 @@
 #!/bin/bash
-# Count bits pop(x) algorithm, shift right and subtract method,
+# Count bits pop(x) algorithm, shift right and subtract method
 # hacker's delight, page 70
-# we verifiy it by cross-checking with the obvios method of counting bits
+# we verify it by cross-checking with the obvious method of counting bits
 #    for (s = i = 0; i < n; i++)
 #      if (x & (1 << i))
 #        s++;
@@ -42,16 +42,16 @@ fi
 numbitslog=`log_2 $numbits`
 id=1
 
+echo "$((id++)) var $numbits x"
+((idx = id - 1))
+((idsum = idx))
+((idxorig = idx))
 echo "$((id++)) zero $numbits"
 ((idzero = id - 1))
 echo "$((id++)) one $numbits"
 ((idone = id - 1))
 echo "$((id++)) one $numbitslog"
 ((idonelog = id - 1))
-echo "$((id++)) var $numbits x"
-((idx = id - 1))
-((idsum = idx))
-((idxorig = idx))
 for ((i = 0; i < $numbits; i++))
 do
   echo "$((id++)) ne 1 $idx $idzero"

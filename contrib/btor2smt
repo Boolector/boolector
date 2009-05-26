@@ -116,6 +116,7 @@ for line in sys.stdin:
   if op == "var":
     if not declaration:
       print "variables and arrays must be declared before any other operation"
+      sys.exit (1)
     if len(words) == 4:
       name = words[3]
     else:
@@ -128,6 +129,7 @@ for line in sys.stdin:
   elif op == "array":
     if not declaration:
       print "variables and arrays must be declared before any other operation"
+      sys.exit (1)
     index_bw = words[3]
     if id in arrays:
       print >>sys.stderr, str(line_nr) + ": redeclaration of array variable"
@@ -146,7 +148,7 @@ for line in sys.stdin:
 	try:
 	  comment_file = open(comment_file_name, 'r')
 	  for line in comment_file:
-	    line = line.strip()
+	    line = line.rstrip("\n")
 	    print line
 	  print "}"
 	except Exception, e:
@@ -297,6 +299,7 @@ for line in sys.stdin:
     elif op == "root":
       if found_root:
         print str(line_nr) + ": only one root supported"
+	sys.exit (1)
       found_root = True
       op1 = get_operand (words[3])
       print "(not (= " + op1 + " bv0[1]))"
