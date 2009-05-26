@@ -60,7 +60,7 @@ fi
 
 numbits=$1
 if [[ "$numbits" -lt 8 ]] || [[ ! `is_power_of_2 $numbits` -eq 1 ]]; then
-  echo "Number of bits must be a power of 2 >= 16"
+  echo "Number of bits must be a power of 2 >= 8"
   exit 1
 fi
 numbitslog=`log_2 $numbits`
