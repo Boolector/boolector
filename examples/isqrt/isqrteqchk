@@ -1,6 +1,6 @@
 #!/bin/bash
 # integer square root algorithm, hacker's delight page 210
-# we show that x >= 0   =>   y^2 == x \/ (y^2 < x /\ (y+1)^2 > x)
+# equality check of the original algorithm and the variant without "if"
 
 id=1
 echo "$((id++)) var 32 x"
