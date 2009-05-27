@@ -66,6 +66,12 @@ fi
 numbitslog=`log_2 $numbits`
 id=1
 
+echo "$((id++)) var $numbits x"
+((idx = id - 1))
+((idsum = idx))
+((idxorig = idx))
+echo "$((id++)) array 8 8"
+((idarray = id - 1))
 echo "$((id++)) zero $numbits"
 ((idzero = id - 1))
 echo "$((id++)) one $numbits"
@@ -74,12 +80,6 @@ if [[ $numbits -gt 8 ]]; then
   echo "$((id++)) constd $numbitslog 8"
   ((ideight = id - 1))
 fi
-echo "$((id++)) var $numbits x"
-((idx = id - 1))
-((idsum = idx))
-((idxorig = idx))
-echo "$((id++)) array 8 8"
-((idarray = id - 1))
 for ((i = 0; i < 256; i++))
 do
   binrep="`dec2binbyte $i`"
