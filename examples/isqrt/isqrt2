@@ -3,11 +3,11 @@
 # we show that x >= 0   =>   y^2 == x \/ (y^2 < x /\ (y+1)^2 > x)
 
 id=1
-echo "$((id++)) constd 32 1073741824"
-((idm = id - 1))
 echo "$((id++)) var 32 x"
 ((idx = id - 1))
 idxorig=$idx
+echo "$((id++)) constd 32 1073741824"
+((idm = id - 1))
 echo "$((id++)) zero 32"
 ((idy = id - 1))
 echo "$((id++)) constd 5 1"
