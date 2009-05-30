@@ -8697,12 +8697,13 @@ perform_unconstrained_optimization (Btor *btor)
     assert (BTOR_IS_BV_VAR_EXP (cur));
     cur_parent = get_parent_if_exactly_one_parent_exp (btor, cur);
     assert (BTOR_IS_REGULAR_EXP (cur_parent));
-    if (cur_parent != NULL && cur_parent->kind != BTOR_READ_EXP
-        && cur_parent->kind != BTOR_WRITE_EXP
-        && cur_parent->kind != BTOR_ACOND_EXP)
+    if (cur_parent != NULL)
     {
       btor_insert_in_ptr_hash_table (headlines, btor_copy_exp (btor, cur));
-      BTOR_PUSH_STACK (mm, stack, cur_parent);
+      if (cur_parent->kind != BTOR_READ_EXP
+          && cur_parent->kind != BTOR_WRITE_EXP
+          && cur_parent->kind != BTOR_ACOND_EXP)
+        BTOR_PUSH_STACK (mm, stack, cur_parent);
     }
   }
 
