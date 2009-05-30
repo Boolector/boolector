@@ -28,7 +28,7 @@ main (int argc, char **argv)
     printf ("2: maxAND(a,b,c,d) = ~minOR(~b,~a,~d,~c)\n");
     printf ("3: minXOR(a,b,c,d) = minAND(a,b,~d,~c) | minAND(~b,~a,c,d)\n");
     printf (
-        "4: maxXOR(a,b,c,d) = maxOR(0, maxAND(a,b,~d~c), 0, "
+        "4: maxXOR(a,b,c,d) = maxOR(0, maxAND(a,b,~d,~c), 0, "
         "maxAND(~b,~a,c,d)\n");
     return 1;
   }
