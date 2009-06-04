@@ -1868,6 +1868,58 @@ eq_exp_node_3vl (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
+/* This function tries to rewrite a * b + a * c into a * (b + c)
+ * it returns NULL when it has not succeeded */
+static BtorExp *
+try_rewrite_add_mul_distrib (Btor *btor, BtorExp *e0, BtorExp *e1)
+{
+  BtorExp *result, *add, *mul;
+
+  assert (btor != NULL);
+  assert (e0 != NULL);
+  assert (e1 != NULL);
+  assert (btor->rewrite_level > 2);
+
+  result = NULL;
+  add    = NULL;
+  mul    = NULL;
+
+  if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+      && e0->kind == BTOR_MUL_EXP && e1->kind == BTOR_MUL_EXP)
+  {
+    if (e0->e[0] == e1->e[0])
+    {
+      add = btor_rewrite_add_exp (btor, e0->e[1], e1->e[1]);
+      mul = e0->e[0];
+    }
+    else if (e0->e[0] == e1->e[1])
+    {
+      add = btor_rewrite_add_exp (btor, e0->e[1], e1->e[0]);
+      mul = e0->e[0];
+    }
+    else if (e0->e[1] == e1->e[0])
+    {
+      add = btor_rewrite_add_exp (btor, e0->e[0], e1->e[1]);
+      mul = e0->e[1];
+    }
+    else if (e0->e[1] == e1->e[1])
+    {
+      add = btor_rewrite_add_exp (btor, e0->e[0], e1->e[0]);
+      mul = e0->e[1];
+    }
+
+    if (add != NULL)
+    {
+      assert (mul != NULL);
+      result = btor_rewrite_mul_exp (btor, mul, add);
+      btor_release_exp (btor, add);
+      /* mul owns no reference */
+    }
+  }
+
+  return result;
+}
+
 BtorExp *
 btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
@@ -2278,27 +2330,55 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
 
     /* normalize adds and muls on demand */
-    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
-        && (e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
-        && e0->kind == e1->kind)
-
+    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
     {
-      if (e0->kind == BTOR_ADD_EXP)
+      if ((e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
+          && e0->kind == e1->kind)
       {
-        assert (e1->kind == BTOR_ADD_EXP);
-        normalize_adds_exp (btor, e0, e1, &tmp1, &tmp2);
-        normalized = 1;
-        e0         = tmp1;
-        e1         = tmp2;
+        if (e0->kind == BTOR_ADD_EXP)
+        {
+          assert (e1->kind == BTOR_ADD_EXP);
+          normalize_adds_exp (btor, e0, e1, &tmp1, &tmp2);
+          normalized = 1;
+          e0         = tmp1;
+          e1         = tmp2;
+        }
+        else
+        {
+          assert (e0->kind == BTOR_MUL_EXP);
+          assert (e1->kind == BTOR_MUL_EXP);
+          normalize_muls_exp (btor, e0, e1, &tmp1, &tmp2);
+          normalized = 1;
+          e0         = tmp1;
+          e1         = tmp2;
+        }
       }
-      else
+      /* find out distributivity from mul and add */
+      else if (e0->kind == BTOR_MUL_EXP && e1->kind == BTOR_ADD_EXP)
       {
-        assert (e0->kind == BTOR_MUL_EXP);
-        assert (e1->kind == BTOR_MUL_EXP);
-        normalize_muls_exp (btor, e0, e1, &tmp1, &tmp2);
-        normalized = 1;
-        e0         = tmp1;
-        e1         = tmp2;
+        tmp1 = try_rewrite_add_mul_distrib (btor, e1->e[0], e1->e[1]);
+        if (tmp1 != NULL)
+        {
+          if (tmp1 == e0)
+          {
+            btor_release_exp (btor, tmp1);
+            return btor_true_exp (btor);
+          }
+          btor_release_exp (btor, tmp1);
+        }
+      }
+      else if (e1->kind == BTOR_MUL_EXP && e0->kind == BTOR_ADD_EXP)
+      {
+        tmp1 = try_rewrite_add_mul_distrib (btor, e0->e[0], e0->e[1]);
+        if (tmp1 != NULL)
+        {
+          if (tmp1 == e1)
+          {
+            btor_release_exp (btor, tmp1);
+            return btor_true_exp (btor);
+          }
+          btor_release_exp (btor, tmp1);
+        }
       }
     }
     else if (kind == BTOR_BEQ_EXP)

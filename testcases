@@ -681,3 +681,11 @@ headline14 -o log/headline14.log log/headline14.btor
 headline15 -o log/headline15.log log/headline15.btor
 headline16 -o log/headline16.log log/headline16.btor
 problem_130 -m -o log/problem_130.log log/problem_130.smt
+distri1 -o log/distri1.log log/distri1.btor
+distri2 -o log/distri2.log log/distri2.btor
+distri3 -o log/distri3.log log/distri3.btor
+distri4 -o log/distri4.log log/distri4.btor
+distri5 -o log/distri5.log log/distri5.btor
+distri6 -o log/distri6.log log/distri6.btor
+distri7 -o log/distri7.log log/distri7.btor
+distri8 -o log/distri8.log log/distri8.btor
