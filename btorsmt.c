@@ -503,7 +503,7 @@ btor_new_smt_parser (Btor *btor, int verbosity)
   for (ch = 'a'; ch <= 'z'; ch++) res->types[ch] |= type;
   for (ch = 'A'; ch <= 'Z'; ch++) res->types[ch] |= type;
 
-  res->types['_'] |= BTOR_SMTCC_IDENTIFIER_MIDDLE;
+  res->types['_'] |= type;
   res->types['.'] |= BTOR_SMTCC_IDENTIFIER_MIDDLE;
   res->types['\''] |= BTOR_SMTCC_IDENTIFIER_MIDDLE;
 
@@ -1310,6 +1310,24 @@ node2nonarrayexp (BtorSMTParser *parser, BtorSMTNode *node)
   }
 
   return res;
+}
+
+static void
+translate_symbol (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  BtorSMTNode *c;
+  BtorExp *a;
+
+  assert (!node->exp);
+  if (!is_list_of_length (node, 1))
+  {
+    (void) btor_perr_smt (parser, "symbolic head with argument");
+    return;
+  }
+
+  c = car (node);
+  if ((a = node2nonarrayexp (parser, c)))
+    node->exp = btor_copy_exp (parser->btor, a);
 }
 
 static void
@@ -2262,9 +2280,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         break;
       case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
       case BTOR_SMTOK_STORE: translate_store (parser, node); break;
-      default:
-        return btor_perr_smt (
-            parser, "unsupported list head '%s'", symbol->name);
+      default: translate_symbol (parser, node); break;
     }
 
     if (parser->error) return parser->error;
