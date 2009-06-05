@@ -532,7 +532,7 @@ btor_new_smt_parser (Btor *btor, int verbosity)
   res->types[' '] |= BTOR_SMTCC_SPACE;
   res->types['\t'] |= BTOR_SMTCC_SPACE;
   res->types['\n'] |= BTOR_SMTCC_SPACE;
-  res->types[0x13] |= BTOR_SMTCC_SPACE;
+  res->types[0xd] |= BTOR_SMTCC_SPACE;
 
   res->types[':'] |= BTOR_SMTCC_IDENTIFIER_PREFIX;
   res->types['?'] |= BTOR_SMTCC_IDENTIFIER_PREFIX;
