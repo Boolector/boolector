@@ -2111,176 +2111,188 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
     child = car (node);
 
-    if (!child || !isleaf (child))
-      return btor_perr_smt (parser, "list as head");
+    if (!child) return btor_perr_smt (parser, "empty list");
 
-    symbol = strip (child);
-
-    switch (symbol->token)
+    if (isleaf (child))
     {
-      case BTOR_SMTOK_NOT:
-        translate_unary (parser, node, "not", btor_not_exp);
-        break;
-      case BTOR_SMTOK_AND:
-        translate_associative_binary (parser, node, "and", btor_and_exp);
-        break;
-      case BTOR_SMTOK_OR:
-        translate_associative_binary (parser, node, "or", btor_or_exp);
-        break;
-      case BTOR_SMTOK_IMPLIES:
-        translate_binary (parser, node, "implies", btor_implies_exp);
-        break;
-      case BTOR_SMTOK_XOR:
-        translate_associative_binary (parser, node, "xor", btor_xor_exp);
-        break;
-      case BTOR_SMTOK_IFF:
-        translate_associative_binary (parser, node, "iff", btor_xnor_exp);
-        break;
+      symbol = strip (child);
 
-      case BTOR_SMTOK_EQ: translate_eq (parser, node); break;
+      switch (symbol->token)
+      {
+        case BTOR_SMTOK_NOT:
+          translate_unary (parser, node, "not", btor_not_exp);
+          break;
+        case BTOR_SMTOK_AND:
+          translate_associative_binary (parser, node, "and", btor_and_exp);
+          break;
+        case BTOR_SMTOK_OR:
+          translate_associative_binary (parser, node, "or", btor_or_exp);
+          break;
+        case BTOR_SMTOK_IMPLIES:
+          translate_binary (parser, node, "implies", btor_implies_exp);
+          break;
+        case BTOR_SMTOK_XOR:
+          translate_associative_binary (parser, node, "xor", btor_xor_exp);
+          break;
+        case BTOR_SMTOK_IFF:
+          translate_associative_binary (parser, node, "iff", btor_xnor_exp);
+          break;
 
-      case BTOR_SMTOK_DISTINCT:
-        translate_binary (parser, node, "distinct", btor_ne_exp);
-        break;
-      case BTOR_SMTOK_ITE: translate_cond (parser, node, "ite"); break;
-      case BTOR_SMTOK_IF_THEN_ELSE:
-        translate_cond (parser, node, "if_then_else");
-        break;
-      case BTOR_SMTOK_BIND:
-        assert (cdr (node));
-        assert (cdr (cdr (node)));
-        assert (!cdr (cdr (cdr (node))));
-        assert (isleaf (car (cdr (node))));
-        symbol = strip (car (cdr (node)));
-        if (symbol->exp)
-          return btor_perr_smt (parser, "unsupported nested '[f]let'");
-        body = car (cdr (cdr (node)));
-        if ((exp = node2exp (parser, body)))
-        {
-          if (symbol->token == BTOR_SMTOK_FVAR)
+        case BTOR_SMTOK_EQ: translate_eq (parser, node); break;
+
+        case BTOR_SMTOK_DISTINCT:
+          translate_binary (parser, node, "distinct", btor_ne_exp);
+          break;
+        case BTOR_SMTOK_ITE: translate_cond (parser, node, "ite"); break;
+        case BTOR_SMTOK_IF_THEN_ELSE:
+          translate_cond (parser, node, "if_then_else");
+          break;
+        case BTOR_SMTOK_BIND:
+          assert (cdr (node));
+          assert (cdr (cdr (node)));
+          assert (!cdr (cdr (cdr (node))));
+          assert (isleaf (car (cdr (node))));
+          symbol = strip (car (cdr (node)));
+          if (symbol->exp)
+            return btor_perr_smt (parser, "unsupported nested '[f]let'");
+          body = car (cdr (cdr (node)));
+          if ((exp = node2exp (parser, body)))
           {
-            if (btor_get_exp_len (parser->btor, exp) != 1)
+            if (symbol->token == BTOR_SMTOK_FVAR)
             {
-              return btor_perr_smt (parser, "flet assignment width not one");
+              if (btor_get_exp_len (parser->btor, exp) != 1)
+              {
+                return btor_perr_smt (parser, "flet assignment width not one");
+              }
             }
-          }
-          else
-            assert (symbol->token == BTOR_SMTOK_VAR);
+            else
+              assert (symbol->token == BTOR_SMTOK_VAR);
 
-          assert (!symbol->exp);
-          symbol->exp = btor_copy_exp (parser->btor, exp);
-        }
-        break;
-      case BTOR_SMTOK_LET:
-      case BTOR_SMTOK_FLET:
-        symbol = strip (car (car (cdr (node))));
-        assert (symbol->token == BTOR_SMTOK_FVAR
-                || symbol->token == BTOR_SMTOK_VAR);
-        assert (symbol->exp);
-        body = car (cdr (cdr (node)));
-        if ((exp = node2exp (parser, body)))
+            assert (!symbol->exp);
+            symbol->exp = btor_copy_exp (parser->btor, exp);
+          }
+          break;
+        case BTOR_SMTOK_LET:
+        case BTOR_SMTOK_FLET:
+          symbol = strip (car (car (cdr (node))));
+          assert (symbol->token == BTOR_SMTOK_FVAR
+                  || symbol->token == BTOR_SMTOK_VAR);
+          assert (symbol->exp);
+          body = car (cdr (cdr (node)));
+          if ((exp = node2exp (parser, body)))
+            node->exp = btor_copy_exp (parser->btor, exp);
+          btor_release_exp (parser->btor, symbol->exp);
+          symbol->exp = 0;
+          break;
+        case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
+        case BTOR_SMTOK_REPEAT: translate_repeat (parser, node); break;
+        case BTOR_SMTOK_ZERO_EXTEND:
+          translate_extend (parser, node, btor_uext_exp);
+          break;
+        case BTOR_SMTOK_SIGN_EXTEND:
+          translate_extend (parser, node, btor_sext_exp);
+          break;
+        case BTOR_SMTOK_ROTATE_RIGHT:
+        case BTOR_SMTOK_ROTATE_LEFT: translate_rotate (parser, node); break;
+        case BTOR_SMTOK_CONCAT: translate_concat (parser, node); break;
+        case BTOR_SMTOK_BVNOT:
+          translate_unary (parser, node, "bvnot", btor_not_exp);
+          break;
+        case BTOR_SMTOK_BVNEG:
+          translate_unary (parser, node, "bvneg", btor_neg_exp);
+          break;
+        case BTOR_SMTOK_BVADD:
+          translate_associative_binary (parser, node, "bvadd", btor_add_exp);
+          break;
+        case BTOR_SMTOK_BVSUB:
+          translate_binary (parser, node, "bvsub", btor_sub_exp);
+          break;
+        case BTOR_SMTOK_BVSDIV:
+          translate_binary (parser, node, "bvsdiv", btor_sdiv_exp);
+          break;
+        case BTOR_SMTOK_BVUDIV:
+          translate_binary (parser, node, "bvudiv", btor_udiv_exp);
+          break;
+        case BTOR_SMTOK_BVUREM:
+          translate_binary (parser, node, "bvurem", btor_urem_exp);
+          break;
+        case BTOR_SMTOK_BVSREM:
+          translate_binary (parser, node, "bvsrem", btor_srem_exp);
+          break;
+        case BTOR_SMTOK_BVSMOD:
+          translate_binary (parser, node, "bvsmod", btor_smod_exp);
+          break;
+        case BTOR_SMTOK_BVMUL:
+          translate_associative_binary (parser, node, "bvmul", btor_mul_exp);
+          break;
+        case BTOR_SMTOK_BVULE:
+          translate_binary (parser, node, "bvule", btor_ulte_exp);
+          break;
+        case BTOR_SMTOK_BVSLE:
+          translate_binary (parser, node, "bvsle", btor_slte_exp);
+          break;
+        case BTOR_SMTOK_BVSGT:
+          translate_binary (parser, node, "bvsgt", btor_sgt_exp);
+          break;
+        case BTOR_SMTOK_BVSGE:
+          translate_binary (parser, node, "bvsge", btor_sgte_exp);
+          break;
+        case BTOR_SMTOK_BVCOMP:
+          translate_binary (parser, node, "bvcomp", btor_eq_exp);
+          break;
+        case BTOR_SMTOK_BVULT:
+          translate_binary (parser, node, "bvult", btor_ult_exp);
+          break;
+        case BTOR_SMTOK_BVUGT:
+          translate_binary (parser, node, "bvugt", btor_ugt_exp);
+          break;
+        case BTOR_SMTOK_BVUGE:
+          translate_binary (parser, node, "bvuge", btor_ugte_exp);
+          break;
+        case BTOR_SMTOK_BVSLT:
+          translate_binary (parser, node, "bvslt", btor_slt_exp);
+          break;
+        case BTOR_SMTOK_BVAND:
+          translate_binary (parser, node, "bvand", btor_and_exp);
+          break;
+        case BTOR_SMTOK_BVOR:
+          translate_binary (parser, node, "bvor", btor_or_exp);
+          break;
+        case BTOR_SMTOK_BVXOR:
+          translate_binary (parser, node, "bvxor", btor_xor_exp);
+          break;
+        case BTOR_SMTOK_BVXNOR:
+          translate_binary (parser, node, "bvxnor", btor_xnor_exp);
+          break;
+        case BTOR_SMTOK_BVNOR:
+          translate_binary (parser, node, "bvnor", btor_nor_exp);
+          break;
+        case BTOR_SMTOK_BVNAND:
+          translate_binary (parser, node, "bvnand", btor_nand_exp);
+          break;
+        case BTOR_SMTOK_BVLSHR:
+          translate_shift (parser, node, "bvlshr", btor_srl_exp);
+          break;
+        case BTOR_SMTOK_BVASHR:
+          translate_shift (parser, node, "bvashr", btor_sra_exp);
+          break;
+        case BTOR_SMTOK_BVSHL:
+          translate_shift (parser, node, "bvshl", btor_sll_exp);
+          break;
+        case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
+        case BTOR_SMTOK_STORE: translate_store (parser, node); break;
+        default: translate_symbol (parser, node); break;
+      }
+    }
+    else
+    {
+      if (is_list_of_length (node, 1))
+      {
+        if ((exp = node2exp (parser, child)))
           node->exp = btor_copy_exp (parser->btor, exp);
-        btor_release_exp (parser->btor, symbol->exp);
-        symbol->exp = 0;
-        break;
-      case BTOR_SMTOK_EXTRACT: translate_extract (parser, node); break;
-      case BTOR_SMTOK_REPEAT: translate_repeat (parser, node); break;
-      case BTOR_SMTOK_ZERO_EXTEND:
-        translate_extend (parser, node, btor_uext_exp);
-        break;
-      case BTOR_SMTOK_SIGN_EXTEND:
-        translate_extend (parser, node, btor_sext_exp);
-        break;
-      case BTOR_SMTOK_ROTATE_RIGHT:
-      case BTOR_SMTOK_ROTATE_LEFT: translate_rotate (parser, node); break;
-      case BTOR_SMTOK_CONCAT: translate_concat (parser, node); break;
-      case BTOR_SMTOK_BVNOT:
-        translate_unary (parser, node, "bvnot", btor_not_exp);
-        break;
-      case BTOR_SMTOK_BVNEG:
-        translate_unary (parser, node, "bvneg", btor_neg_exp);
-        break;
-      case BTOR_SMTOK_BVADD:
-        translate_associative_binary (parser, node, "bvadd", btor_add_exp);
-        break;
-      case BTOR_SMTOK_BVSUB:
-        translate_binary (parser, node, "bvsub", btor_sub_exp);
-        break;
-      case BTOR_SMTOK_BVSDIV:
-        translate_binary (parser, node, "bvsdiv", btor_sdiv_exp);
-        break;
-      case BTOR_SMTOK_BVUDIV:
-        translate_binary (parser, node, "bvudiv", btor_udiv_exp);
-        break;
-      case BTOR_SMTOK_BVUREM:
-        translate_binary (parser, node, "bvurem", btor_urem_exp);
-        break;
-      case BTOR_SMTOK_BVSREM:
-        translate_binary (parser, node, "bvsrem", btor_srem_exp);
-        break;
-      case BTOR_SMTOK_BVSMOD:
-        translate_binary (parser, node, "bvsmod", btor_smod_exp);
-        break;
-      case BTOR_SMTOK_BVMUL:
-        translate_associative_binary (parser, node, "bvmul", btor_mul_exp);
-        break;
-      case BTOR_SMTOK_BVULE:
-        translate_binary (parser, node, "bvule", btor_ulte_exp);
-        break;
-      case BTOR_SMTOK_BVSLE:
-        translate_binary (parser, node, "bvsle", btor_slte_exp);
-        break;
-      case BTOR_SMTOK_BVSGT:
-        translate_binary (parser, node, "bvsgt", btor_sgt_exp);
-        break;
-      case BTOR_SMTOK_BVSGE:
-        translate_binary (parser, node, "bvsge", btor_sgte_exp);
-        break;
-      case BTOR_SMTOK_BVCOMP:
-        translate_binary (parser, node, "bvcomp", btor_eq_exp);
-        break;
-      case BTOR_SMTOK_BVULT:
-        translate_binary (parser, node, "bvult", btor_ult_exp);
-        break;
-      case BTOR_SMTOK_BVUGT:
-        translate_binary (parser, node, "bvugt", btor_ugt_exp);
-        break;
-      case BTOR_SMTOK_BVUGE:
-        translate_binary (parser, node, "bvuge", btor_ugte_exp);
-        break;
-      case BTOR_SMTOK_BVSLT:
-        translate_binary (parser, node, "bvslt", btor_slt_exp);
-        break;
-      case BTOR_SMTOK_BVAND:
-        translate_binary (parser, node, "bvand", btor_and_exp);
-        break;
-      case BTOR_SMTOK_BVOR:
-        translate_binary (parser, node, "bvor", btor_or_exp);
-        break;
-      case BTOR_SMTOK_BVXOR:
-        translate_binary (parser, node, "bvxor", btor_xor_exp);
-        break;
-      case BTOR_SMTOK_BVXNOR:
-        translate_binary (parser, node, "bvxnor", btor_xnor_exp);
-        break;
-      case BTOR_SMTOK_BVNOR:
-        translate_binary (parser, node, "bvnor", btor_nor_exp);
-        break;
-      case BTOR_SMTOK_BVNAND:
-        translate_binary (parser, node, "bvnand", btor_nand_exp);
-        break;
-      case BTOR_SMTOK_BVLSHR:
-        translate_shift (parser, node, "bvlshr", btor_srl_exp);
-        break;
-      case BTOR_SMTOK_BVASHR:
-        translate_shift (parser, node, "bvashr", btor_sra_exp);
-        break;
-      case BTOR_SMTOK_BVSHL:
-        translate_shift (parser, node, "bvshl", btor_sll_exp);
-        break;
-      case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
-      case BTOR_SMTOK_STORE: translate_store (parser, node); break;
-      default: translate_symbol (parser, node); break;
+      }
+      else
+        (void) btor_perr_smt (parser, "invalid list expression");
     }
 
     if (parser->error) return parser->error;
