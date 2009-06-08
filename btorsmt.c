@@ -2201,7 +2201,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_unary (parser, node, "bvneg", btor_neg_exp);
         break;
       case BTOR_SMTOK_BVADD:
-        translate_binary (parser, node, "bvadd", btor_add_exp);
+        translate_associative_binary (parser, node, "bvadd", btor_add_exp);
         break;
       case BTOR_SMTOK_BVSUB:
         translate_binary (parser, node, "bvsub", btor_sub_exp);
@@ -2222,7 +2222,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         translate_binary (parser, node, "bvsmod", btor_smod_exp);
         break;
       case BTOR_SMTOK_BVMUL:
-        translate_binary (parser, node, "bvmul", btor_mul_exp);
+        translate_associative_binary (parser, node, "bvmul", btor_mul_exp);
         break;
       case BTOR_SMTOK_BVULE:
         translate_binary (parser, node, "bvule", btor_ulte_exp);
