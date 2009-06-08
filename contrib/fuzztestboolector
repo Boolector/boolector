@@ -45,9 +45,9 @@ if [[ -z "$boolector04" ]]; then
   exit 1
 fi
 
-fuzzsmt=`which fuzzsmt`
-if [[ -z "$fuzzsmt" ]]; then
-  echo "*** fuzztestboolector: can not find 'fuzzsmt'" 1>&2
+fuzzsmtbv=`which fuzzsmtbv`
+if [[ -z "$fuzzsmtbv" ]]; then
+  echo "*** fuzztestboolector: can not find 'fuzzsmtbv'" 1>&2
   exit 1
 fi
 
@@ -142,7 +142,7 @@ do
   ((checkmodel = checkmodel & 1 & !cov))
 
   fuzzer=$RANDOM
-  # if we create coverage tests, we do not select fuzzsmt as fuzzer
+  # if we create coverage tests, we do not select fuzzsmtbv as fuzzer
   if [[ $cov -eq 1 ]]; then
     ((fuzzer %= 2))
   else
@@ -162,7 +162,7 @@ do
     ((v++))
     consts=$RANDOM
     ((c &= 7))
-    $fuzzsmt -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
+    $fuzzsmtbv -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
   fi
 
   if [[ ! -s "$file" ]]; then
