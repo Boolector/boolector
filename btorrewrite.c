@@ -2330,7 +2330,11 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     }
 
     /* normalize adds and muls on demand */
-    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1))
+    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+        && (((e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
+             && e0->kind == e1->kind)
+            || (e0->kind == BTOR_ADD_EXP && e1->kind == BTOR_MUL_EXP)
+            || (e1->kind == BTOR_ADD_EXP && e0->kind == BTOR_MUL_EXP)))
     {
       if ((e0->kind == BTOR_ADD_EXP || e0->kind == BTOR_MUL_EXP)
           && e0->kind == e1->kind)
