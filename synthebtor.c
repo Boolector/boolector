@@ -162,7 +162,7 @@ main (int argc, char **argv)
     btor_release_delete_aigvec (avmgr, av);
   }
 
-  if (merged) BTOR_PUSH_STACK (mem, aigs, merged);
+  if (merge) BTOR_PUSH_STACK (mem, aigs, merged);
 
 #ifdef BTOR_HAVE_ISATTY
   if (close_output || !isatty (1)) binary = 1;
