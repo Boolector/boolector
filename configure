@@ -14,6 +14,7 @@ gpt=no
 release=no
 competition=no
 picoprep=no
+precosat=no
 strip=no
 cov=no
 
@@ -31,7 +32,8 @@ do
     -m64) m64=yes;;
     -s) strip=yes;;
     -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no;;
-    -pp) picoprep=yes;;
+    -picoprep) picoprep=yes;precosat=no;;
+    -precosat) picoprep=no;precosat=yes;;
     -r) competition=no; release=yes; static=no; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
     -c) competition=yes; release=no; static=yes; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
     *) cat <<EOF
@@ -78,6 +80,13 @@ if [ $picoprep = yes ]; then
   LIBS="-lz"
 fi
 
+PRECOSAT_OBJS=""
+if [ $precosat = yes ]; then
+  CFLAGS=$CFLAGS" -DBTOR_USE_PRECOSAT"
+  PRECOSAT_OBJS="btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
+  LIBS="-lz"
+fi
+
 if [ $strip = yes ]
 then
   STRIP='; strip $@'
@@ -100,6 +109,7 @@ echo "m32 ... $m32"
 echo "m64 ... $m64"
 echo "gpt ... $gpt"
 echo "picoprep ... $picoprep"
+echo "precosat ... $precosat"
 echo "strip ... $strip"
 
 
@@ -111,5 +121,6 @@ sed \
   -e "s,@LIBS@,$LIBS," \
   -e "s,@STRIP@,$STRIP," \
   -e "s,@PICOPREP_OBJS@,$PICOPREP_OBJS," \
+  -e "s,@PRECOSAT_OBJS@,$PRECOSAT_OBJS," \
   makefile.in > makefile
 echo " done"

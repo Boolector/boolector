@@ -4,6 +4,10 @@
 #include "../picoprep/picoprep.h"
 #endif
 
+#ifdef BTOR_USE_PRECOSAT
+#include "btorpreco.h"
+#endif
+
 #include "btorexit.h"
 #include "btorsat.h"
 
@@ -335,6 +339,9 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
 
   smgr->preproc_enabled = 1;
 
+#endif
+
+#ifdef BTOR_USE_PRECOSAT
 #endif
 }
 /*------------------------------------------------------------------------*/
