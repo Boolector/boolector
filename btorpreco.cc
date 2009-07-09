@@ -1,4 +1,5 @@
 #ifdef BTOR_USE_PRECOSAT
+#include "../precosat/precobnr.hh"
 #include "../precosat/precosat.hh"
 extern "C" {
 #include "btorpreco.h"
