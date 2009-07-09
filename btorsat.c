@@ -322,10 +322,10 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
                   "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
 
-#ifdef BTOR_USE_PICOPREP
-
-  smgr->ss_name = "PicoPrep";
-
+#ifdef BTOR_USE_PRECOSAT
+  smgr->preproc_enabled = 1;
+#elif defined(BTOR_USE_PICOPREP)
+  smgr->ss_name        = "PicoPrep";
   smgr->ss_init        = picoprep_init;
   smgr->ss_add         = picoprep_add;
   smgr->ss_sat         = picoprep_sat;
@@ -342,7 +342,6 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_stats       = picoprep_stats;
 
   smgr->preproc_enabled = 1;
-
 #endif
 
 #ifdef BTOR_USE_PRECOSAT
