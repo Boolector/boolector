@@ -1075,12 +1075,15 @@ boolector_main (int argc, char **argv)
     }
     else
     {
-#ifdef BTOR_USE_PICOPREP
-      /* we enable the preprocessor for pure bit-vector logic */
-      if (parse_res.logic == BTOR_LOGIC_QF_BV && !parse_res.nregs
-          && !getenv ("NPICOPREP"))
-        btor_enable_preproc_sat (smgr);
+      if (parse_res.logic == BTOR_LOGIC_QF_BV && !parse_res.nregs)
+      {
+#ifdef BTOR_USE_PRECOSAT
+        if (!getenv ("NPRECOSAT"))
+#elif defined(BTOR_USE_PICOPREP)
+        if (!getenv ("NPICOPREP"))
 #endif
+          btor_enable_preproc_sat (smgr);
+      }
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
 

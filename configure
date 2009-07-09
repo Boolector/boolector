@@ -45,6 +45,8 @@ exit 1
 shift
 done
 
+[ $precosat = yes -a $picoprep = yes ] && \
+  die "can not use both '-precosat' and '-picoprep'"
 
 if [ X"$CFLAGS" = X ]; then
   CFLAGS="$CFLAGS -W -Wall -Wextra"
@@ -84,7 +86,7 @@ PRECOSAT_OBJS=""
 if [ $precosat = yes ]; then
   CFLAGS=$CFLAGS" -DBTOR_USE_PRECOSAT"
   PRECOSAT_OBJS="btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
-  LIBS="-lz"
+  LIBS="-lz -lstdc++"
 fi
 
 if [ $strip = yes ]

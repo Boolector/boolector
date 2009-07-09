@@ -188,6 +188,10 @@ btor_init_sat (BtorSATMgr *smgr)
     if (smgr->preproc_enabled)
       btor_msg_sat ("PicoPrep Version %s\n", picoprep_version ());
 #endif
+#ifdef BTOR_USE_PRECOSAT
+    if (smgr->preproc_enabled)
+      btor_msg_sat ("PrecoSAT Version %s\n", btor_precosat_version ());
+#endif
     btor_msg_sat ("PicoSAT  Version %s\n", picosat_version ());
 
     fflush (stdout);
