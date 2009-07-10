@@ -37,7 +37,7 @@ do
     -r) competition=no; release=yes; static=no; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
     -c) competition=yes; release=no; static=yes; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
     *) cat <<EOF
-*** usage: ./configure [-g][-s][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-pp][-r][-c]
+*** usage: ./configure [-g][-s][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-picoprep][-precosat][-r][-c]
 EOF
 exit 1
 ;;
