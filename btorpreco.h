@@ -20,6 +20,7 @@ void btor_precosat_set_delete (void *, void (*) (void *, void *, size_t));
 void btor_precosat_set_resize (void *,
                                void *(*) (void *, void *, size_t, size_t));
 void btor_precosat_stats (void);
+int btor_precosat_added_original_clauses (void);
 
 const char *btor_precosat_version (void);
 
