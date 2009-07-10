@@ -911,6 +911,7 @@ boolector_main (int argc, char **argv)
   int i          = 0;
   int bmc_done   = 0;
   int root_len, var_name_len;
+  int enable_preproc = 1;
   int constraints_reported, constraints_report_limit, nconstraints, bmck;
   const char *parse_error = NULL;
   char *var_name;
@@ -1075,7 +1076,10 @@ boolector_main (int argc, char **argv)
     }
     else
     {
-      if (parse_res.logic == BTOR_LOGIC_QF_BV && !parse_res.nregs)
+      if (app.ua || parse_res.logic != BTOR_LOGIC_QF_BV || parse_res.nregs)
+        enable_preproc = 0;
+
+      if (enable_preproc)
       {
 #ifdef BTOR_USE_PRECOSAT
         if (!getenv ("NPRECOSAT"))
