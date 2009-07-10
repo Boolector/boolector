@@ -12,6 +12,7 @@ int btor_precosat_deref (int);
 void btor_precosat_reset ();
 void btor_precosat_set_output (FILE *);
 void btor_precosat_set_prefix (const char *);
+void btor_precosat_enable_verbosity ();
 int btor_precosat_inc_max_var ();
 int btor_precosat_variables ();
 int btor_precosat_clauses ();

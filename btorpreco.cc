@@ -11,10 +11,16 @@ static void (*delete_for_precosat) (void *, void *, size_t);
 static void *(*resize_for_precosat) (void *, void *, size_t, size_t);
 static int added_original_clauses;
 
+static int
+btor_precosat_lsbsign_lit (int lit)
+{
+  return 2 * abs (lit) + (lit < 0);
+}
+
 const char *
 btor_precosat_version (void)
 {
-  return "btor_precosat_version not implemented yet";
+  return precosat_version ();
 }
 
 void
@@ -38,7 +44,7 @@ btor_precosat_add (int lit)
   int res;
 
   res = added_original_clauses;
-  solver->add (lit);
+  solver->add (btor_precosat_lsbsign_lit (lit));
   if (!lit) added_original_clauses++;
 
   return res;
@@ -61,7 +67,7 @@ btor_precosat_sat (int limit)
 int
 btor_precosat_deref (int lit)
 {
-  return solver->val (lit);
+  return solver->val (btor_precosat_lsbsign_lit (lit));
 }
 
 void
@@ -87,6 +93,14 @@ void
 btor_precosat_set_prefix (const char *newprfx)
 {
   solver->setprfx (newprfx);
+}
+
+void
+btor_precosat_enable_verbosity (void)
+{
+  bool res;
+  res = solver->set ("verbose", 1);
+  assert (res);
 }
 
 int

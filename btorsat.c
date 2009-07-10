@@ -51,6 +51,7 @@ struct BtorSATMgr
   void (*ss_reset) ();
   void (*ss_set_output) (FILE *);
   void (*ss_set_prefix) (const char *);
+  void (*ss_enable_verbosity) ();
   int (*ss_inc_max_var) ();
   int (*ss_variables) ();
   int (*ss_clauses) ();
@@ -90,6 +91,12 @@ btor_picosat_init (void)
   picosat_set_global_default_phase (-1);
 }
 
+static void
+btor_picosat_enable_verbosity (void)
+{
+  picosat_set_verbosity (1);
+}
+
 /*------------------------------------------------------------------------*/
 /* BtorSAT                                                                */
 /*------------------------------------------------------------------------*/
@@ -110,20 +117,21 @@ btor_new_sat_mgr (BtorMemMgr *mm)
 
   smgr->ss_name = "PicoSAT";
 
-  smgr->ss_init        = btor_picosat_init;
-  smgr->ss_add         = picosat_add;
-  smgr->ss_sat         = picosat_sat;
-  smgr->ss_deref       = picosat_deref;
-  smgr->ss_reset       = picosat_reset;
-  smgr->ss_set_output  = picosat_set_output;
-  smgr->ss_set_prefix  = picosat_set_prefix;
-  smgr->ss_inc_max_var = picosat_inc_max_var;
-  smgr->ss_variables   = picosat_variables;
-  smgr->ss_clauses     = picosat_added_original_clauses;
-  smgr->ss_set_new     = picosat_set_new;
-  smgr->ss_set_delete  = picosat_set_delete;
-  smgr->ss_set_resize  = picosat_set_resize;
-  smgr->ss_stats       = picosat_stats;
+  smgr->ss_init             = btor_picosat_init;
+  smgr->ss_add              = picosat_add;
+  smgr->ss_sat              = picosat_sat;
+  smgr->ss_deref            = picosat_deref;
+  smgr->ss_reset            = picosat_reset;
+  smgr->ss_set_output       = picosat_set_output;
+  smgr->ss_set_prefix       = picosat_set_prefix;
+  smgr->ss_enable_verbosity = btor_picosat_enable_verbosity;
+  smgr->ss_inc_max_var      = picosat_inc_max_var;
+  smgr->ss_variables        = picosat_variables;
+  smgr->ss_clauses          = picosat_added_original_clauses;
+  smgr->ss_set_new          = picosat_set_new;
+  smgr->ss_set_delete       = picosat_set_delete;
+  smgr->ss_set_resize       = picosat_set_resize;
+  smgr->ss_stats            = picosat_stats;
 
   return smgr;
 }
@@ -191,9 +199,8 @@ btor_init_sat (BtorSATMgr *smgr)
 #ifdef BTOR_USE_PRECOSAT
     if (smgr->preproc_enabled)
       btor_msg_sat ("PrecoSAT Version %s\n", btor_precosat_version ());
-    else
 #endif
-      btor_msg_sat ("PicoSAT Version %s\n", picosat_version ());
+    btor_msg_sat ("PicoSAT Version %s\n", picosat_version ());
     fflush (stdout);
   }
 
@@ -233,7 +240,7 @@ btor_enable_verbosity_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  picosat_enable_verbosity ();
+  smgr->ss_enable_verbosity ();
 }
 
 void
@@ -321,42 +328,43 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
-
 #ifdef BTOR_USE_PRECOSAT
-  smgr->ss_name         = "PrecoSAT";
-  smgr->ss_init         = btor_precosat_init;
-  smgr->ss_add          = btor_precosat_add;
-  smgr->ss_sat          = btor_precosat_sat;
-  smgr->ss_deref        = btor_precosat_deref;
-  smgr->ss_reset        = btor_precosat_reset;
-  smgr->ss_set_output   = btor_precosat_set_output;
-  smgr->ss_set_prefix   = btor_precosat_set_prefix;
-  smgr->ss_inc_max_var  = btor_precosat_inc_max_var;
-  smgr->ss_variables    = btor_precosat_variables;
-  smgr->ss_clauses      = btor_precosat_added_original_clauses;
-  smgr->ss_set_new      = btor_precosat_set_new;
-  smgr->ss_set_delete   = btor_precosat_set_delete;
-  smgr->ss_set_resize   = btor_precosat_set_resize;
-  smgr->ss_stats        = btor_precosat_stats;
-  smgr->preproc_enabled = 1;
+  smgr->ss_name             = "PrecoSAT";
+  smgr->ss_init             = btor_precosat_init;
+  smgr->ss_add              = btor_precosat_add;
+  smgr->ss_sat              = btor_precosat_sat;
+  smgr->ss_deref            = btor_precosat_deref;
+  smgr->ss_reset            = btor_precosat_reset;
+  smgr->ss_set_output       = btor_precosat_set_output;
+  smgr->ss_set_prefix       = btor_precosat_set_prefix;
+  smgr->ss_enable_verbosity = btor_precosat_enable_verbosity;
+  smgr->ss_inc_max_var      = btor_precosat_inc_max_var;
+  smgr->ss_variables        = btor_precosat_variables;
+  smgr->ss_clauses          = btor_precosat_added_original_clauses;
+  smgr->ss_set_new          = btor_precosat_set_new;
+  smgr->ss_set_delete       = btor_precosat_set_delete;
+  smgr->ss_set_resize       = btor_precosat_set_resize;
+  smgr->ss_stats            = btor_precosat_stats;
+  smgr->preproc_enabled     = 1;
 #endif
 #ifdef BTOR_USE_PICOPREP
-  smgr->ss_name         = "PicoPrep";
-  smgr->ss_init         = picoprep_init;
-  smgr->ss_add          = picoprep_add;
-  smgr->ss_sat          = picoprep_sat;
-  smgr->ss_deref        = picoprep_deref;
-  smgr->ss_reset        = picoprep_reset;
-  smgr->ss_set_output   = picoprep_set_output;
-  smgr->ss_set_prefix   = picoprep_set_prefix;
-  smgr->ss_inc_max_var  = picoprep_inc_max_var;
-  smgr->ss_variables    = picoprep_variables;
-  smgr->ss_clauses      = picoprep_added_original_clauses;
-  smgr->ss_set_new      = picoprep_set_new;
-  smgr->ss_set_delete   = picoprep_set_delete;
-  smgr->ss_set_resize   = picoprep_set_resize;
-  smgr->ss_stats        = picoprep_stats;
-  smgr->preproc_enabled = 1;
+  smgr->ss_name             = "PicoPrep";
+  smgr->ss_init             = picoprep_init;
+  smgr->ss_add              = picoprep_add;
+  smgr->ss_sat              = picoprep_sat;
+  smgr->ss_deref            = picoprep_deref;
+  smgr->ss_reset            = picoprep_reset;
+  smgr->ss_set_output       = picoprep_set_output;
+  smgr->ss_set_prefix       = picoprep_set_prefix;
+  smgr->ss_enable_verbosity = picoprep_enable_verbosity;
+  smgr->ss_inc_max_var      = picoprep_inc_max_var;
+  smgr->ss_variables        = picoprep_variables;
+  smgr->ss_clauses          = picoprep_added_original_clauses;
+  smgr->ss_set_new          = picoprep_set_new;
+  smgr->ss_set_delete       = picoprep_set_delete;
+  smgr->ss_set_resize       = picoprep_set_resize;
+  smgr->ss_stats            = picoprep_stats;
+  smgr->preproc_enabled     = 1;
 #endif
 }
 /*------------------------------------------------------------------------*/
