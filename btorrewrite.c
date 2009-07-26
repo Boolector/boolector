@@ -2921,24 +2921,50 @@ btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
     return result;
   }
 
-  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e0)
-      && !BTOR_IS_INVERTED_EXP (e1) && e0->kind == e1->kind)
+  if (btor->rewrite_level > 2)
   {
-    if (e0->kind == BTOR_ADD_EXP)
+    if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
+        && e0->kind == e1->kind)
     {
-      assert (e1->kind == BTOR_ADD_EXP);
-      normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
-    }
-    else if (e0->kind == BTOR_MUL_EXP)
-    {
-      assert (e1->kind == BTOR_MUL_EXP);
-      normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
-      normalized = 1;
-      e0         = e0_norm;
-      e1         = e1_norm;
+      switch (e0->kind)
+      {
+        case BTOR_CONCAT_EXP:
+          assert (e1->kind == BTOR_CONCAT_EXP);
+          if (e0->e[0] == e1->e[0])
+          {
+            if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+              goto BTOR_REWRITE_ULT_EXP_NO_REWRITE;
+            BTOR_INC_REC_RW_CALL (btor);
+            result = btor_rewrite_ult_exp (btor, e0->e[1], e1->e[1]);
+            BTOR_DEC_REC_RW_CALL (btor);
+            return result;
+          }
+          else if (e0->e[1] == e1->e[1])
+          {
+            if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+              goto BTOR_REWRITE_ULT_EXP_NO_REWRITE;
+            BTOR_INC_REC_RW_CALL (btor);
+            result = btor_rewrite_ult_exp (btor, e0->e[0], e1->e[0]);
+            BTOR_DEC_REC_RW_CALL (btor);
+            return result;
+          }
+          break;
+        case BTOR_ADD_EXP:
+          assert (e1->kind == BTOR_ADD_EXP);
+          normalize_adds_exp (btor, e0, e1, &e0_norm, &e1_norm);
+          normalized = 1;
+          e0         = e0_norm;
+          e1         = e1_norm;
+          break;
+        case BTOR_MUL_EXP:
+          assert (e1->kind == BTOR_MUL_EXP);
+          normalize_muls_exp (btor, e0, e1, &e0_norm, &e1_norm);
+          normalized = 1;
+          e0         = e0_norm;
+          e1         = e1_norm;
+          break;
+        default: break;
+      }
     }
   }
 
