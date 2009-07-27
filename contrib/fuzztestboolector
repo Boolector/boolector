@@ -51,6 +51,12 @@ if [[ -z "$fuzzsmtbv" ]]; then
   exit 1
 fi
 
+fuzzsmt=`which fuzzsmt`
+if [[ -z "$fuzzsmt" ]]; then
+  echo "*** fuzztestboolector: can not find 'fuzzsmt'" 1>&2
+  exit 1
+fi
+
 i=0
 valgrindcounter=0
 valgrindcheck=100 # every nth testcase we check with valgrind
@@ -142,28 +148,58 @@ do
   ((checkmodel = checkmodel & 1 & !cov))
 
   fuzzer=$RANDOM
-  # if we create coverage tests, we do not select fuzzsmtbv as fuzzer
+  # if we create coverage tests, we do not select fuzzsmtbv and fuzzsmt as fuzzers
   if [[ $cov -eq 1 ]]; then
     ((fuzzer %= 2))
   else
-    ((fuzzer %= 3))
+    ((fuzzer %= 4))
   fi
 
-  if [[ $fuzzer -eq 0 ]]; then
-    $btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file"
-  elif [[ $fuzzer -eq 1 ]]; then
-    n=$RANDOM
-    ((n &= 1023))
-    $btorgen -n $n 2> /dev/null | btorold2new > "$file"
-  else
-    vars=$RANDOM
-    ((v &= 15))
-    # we need at least one variable
-    ((v++))
-    consts=$RANDOM
-    ((c &= 7))
-    $fuzzsmtbv -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
-  fi
+  case $fuzzer in
+    0)$btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file";;
+    1)n=$RANDOM 
+      ((n &= 1023)) 
+      $btorgen -n $n 2> /dev/null | btorold2new > "$file";;
+    2)vars=$RANDOM
+      ((v &= 15))
+      # we need at least one variable
+      ((v++))
+      c=$RANDOM
+      ((c &= 7))
+      $fuzzsmtbv -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file";;
+    3)vars=$RANDOM
+      ((v &= 15))
+      # we need at least one variable
+      ((v++))
+      c=$RANDOM
+      ((c &= 7))
+      randflag=$RANDOM
+      ((randflag &= 1))
+      if [[ $randflag -eq 1 ]]; then
+        $fuzzsmt QF_BV -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
+      else
+        #checkmodel script does does not support bit-width > 8
+        bw=$RANDOM
+        ((bw &= 7))
+        ((bw++))
+        a=$RANDOM
+        # we need at least one array 
+        ((a &= 7))
+        ((a++))
+        r=$RANDOM
+        ((r &= 15))
+        ((r++))
+        w=$RANDOM
+        ((w &= 15))
+        randflag=$RANDOM
+        ((randflag &= 1))
+        if [[ $randflag -eq 1 ]]; then
+          $fuzzsmt QF_AUFBV -M $bw -x -v $v -c $c -a $a -r $r -w $w 2> /dev/null | boolector -rwl0 -de > "$file"
+        else
+          $fuzzsmt QF_AUFBV -M $bw -v $v -c $c -a $a -r $r -w $w 2> /dev/null | boolector -rwl0 -de > "$file"
+        fi
+      fi
+  esac
 
   if [[ ! -s "$file" ]]; then
     echo "*** fuzztestboolector: generated file is empty"
