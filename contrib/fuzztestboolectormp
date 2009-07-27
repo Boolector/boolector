@@ -68,7 +68,9 @@ if [[ "$cov" -eq 1 ]]; then
 fi
 
 rm -f error*.btor
-rm -f error*.btor.model
+rm -f error*.smt
+rm -f error*.model
+rm -f error*.txt
 rm -f $lockfile
 echo 0 > $shmfile
 
@@ -95,7 +97,7 @@ numcovtests=0
 while [[ "$numerrors" -lt "$processes" ]] && \
       ([[ "$cov" -eq 0 ]] || [[ "$numcovtests" -lt "$covlimit" ]])
 do
-  numerrors=`ls error*.btor 2> /dev/null | wc -l`
+  numerrors=`ls error*.btor error*.smt 2> /dev/null | wc -l`
   if [[ -z "$dialog" ]]; then
     echo "Errors: $numerrors"
   fi

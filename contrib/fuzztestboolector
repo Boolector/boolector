@@ -4,7 +4,7 @@
 
 readonly usage="*** fuzztestboolector: usage: ./fuzztestboolector [-i <id>] [-c <limit> [-n] [-r] [-s <update>] [-v <valgrindchecks>]" 
 readonly covdir="./covtests/"
-readonly file="/tmp/fuzztestboolector$$.btor"
+readonly filename="/tmp/fuzztestboolector$$"
 readonly filedump="/tmp/fuzztestboolector$$dump.btor"
 readonly filetmp="/tmp/fuzztestboolector$$.tmp"
 readonly filecovhashes="./fuzztestboolectorhashes"
@@ -83,9 +83,9 @@ do
   esac
 done
 
-fileerror="error${id}.btor"
+trap 'cleanup; exit 0' SIGHUP SIGINT SIGTERM
 
-trap 'cleanup; exit `ls $fileerror 2> /dev/null | wc -l`' SIGHUP SIGINT SIGTERM
+errtxtfile=error${id}.txt
 
 if [[ "$cov" -eq 1 ]]; then
   if [[ "$covlimit" -lt 1 ]]; then
@@ -148,7 +148,8 @@ do
   ((checkmodel = checkmodel & 1 & !cov))
 
   fuzzer=$RANDOM
-  # if we create coverage tests, we do not select fuzzsmtbv and fuzzsmt as fuzzers
+  # if we create coverage tests, we do not select 
+  # fuzzsmtbv and fuzzsmt as fuzzers as they produce smt files
   if [[ $cov -eq 1 ]]; then
     ((fuzzer %= 2))
   else
@@ -156,18 +157,26 @@ do
   fi
 
   case $fuzzer in
-    0)$btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file";;
-    1)n=$RANDOM 
+    0)suffix=btor 
+      file=${filename}.${suffix}
+      $btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file";;
+    1)suffix=btor 
+      file=${filename}.${suffix}
+      n=$RANDOM 
       ((n &= 1023)) 
       $btorgen -n $n 2> /dev/null | btorold2new > "$file";;
-    2)vars=$RANDOM
+    2)suffix=smt
+      file=${filename}.${suffix}
+      v=$RANDOM
       ((v &= 15))
       # we need at least one variable
       ((v++))
       c=$RANDOM
       ((c &= 7))
-      $fuzzsmtbv -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file";;
-    3)vars=$RANDOM
+      $fuzzsmtbv -v $v -c $c 2> /dev/null > "$file";;
+    3)suffix=smt
+      file=${filename}.${suffix}
+      v=$RANDOM
       ((v &= 15))
       # we need at least one variable
       ((v++))
@@ -176,7 +185,7 @@ do
       randflag=$RANDOM
       ((randflag &= 1))
       if [[ $randflag -eq 1 ]]; then
-        $fuzzsmt QF_BV -v $v -c $c 2> /dev/null | boolector -rwl0 -de > "$file"
+        $fuzzsmt QF_BV -v $v -c $c 2> /dev/null > "$file"
       else
         #checkmodel script does does not support bit-width > 8
         bw=$RANDOM
@@ -194,9 +203,9 @@ do
         randflag=$RANDOM
         ((randflag &= 1))
         if [[ $randflag -eq 1 ]]; then
-          $fuzzsmt QF_AUFBV -M $bw -x -v $v -c $c -a $a -r $r -w $w 2> /dev/null | boolector -rwl0 -de > "$file"
+          $fuzzsmt QF_AUFBV -M $bw -x -v $v -c $c -a $a -r $r -w $w 2> /dev/null > "$file"
         else
-          $fuzzsmt QF_AUFBV -M $bw -v $v -c $c -a $a -r $r -w $w 2> /dev/null | boolector -rwl0 -de > "$file"
+          $fuzzsmt QF_AUFBV -M $bw -v $v -c $c -a $a -r $r -w $w 2> /dev/null > "$file"
         fi
       fi
   esac
@@ -234,17 +243,28 @@ do
       goldenresult=$result
       if [[ "$goldenresult" != sat ]] && [[ "$goldenresult" != unsat ]]; then
 	echo "ERROR"
-	cp "$file" "$fileerror"
-	echo "; error: $callstring" >> "$fileerror"
+	cp "$file" error${id}.$suffix
+	echo "error: $callstring" > $errtxtfile
 	cleanup
 	exit 1
       fi
       if [[ "$crosscheck" -eq 1 ]]; then
-	result=`$boolector04 $file 2> /dev/null`
+        if [[ $suffix == smt ]]; then
+          result=`boolector $file -de | $boolector04 2> /dev/null`
+        elif [[ $suffix == btor ]]; then
+          result=`$boolector04 $file 2> /dev/null`
+        else
+          echo "INTERNAL ERROR"
+          exit 1
+        fi
 	if [[ "$goldenresult" != "$result" ]]; then
 	  echo "ERROR"
-	  cp "$file" "$fileerror"
-	  echo "; error: $callstring boolector-0.4 yields other result" >> "$fileerror"
+	  cp "$file" error${id}.$suffix
+	  echo "error: $callstring" > "$errtxtfile"
+          echo "boolector-0.4 yields different result" >> "$errtxtfile"
+          if [[ $suffix != btor ]]; then
+            echo "after converting file to BTOR" >> "$errtxtfile"
+          fi
 	  cleanup
 	  exit 1
 	fi
@@ -252,10 +272,10 @@ do
     else
       if [[ "$goldenresult" != "$result" ]]; then
 	echo "ERROR"
-	cp "$file" "$fileerror"
-	echo "; error: $callstring" >> "$fileerror"
-	echo "; golden result: $goldenresult" >> "$fileerror"
-	echo "; actual result: $result" >> "$fileerror"
+	cp "$file" error${id}.$suffix
+	echo "error: $callstring" > "$errtxtfile"
+	echo "golden result: $goldenresult" >> "$errtxtfile"
+	echo "actual result: $result" >> "$errtxtfile"
 	cleanup
 	exit 1
       fi
@@ -309,21 +329,22 @@ do
   echo $result
   if [[ "$goldenresult" != "$result" ]]; then
     echo "ERROR"
-    cp "$file" "$fileerror"
-    echo "; dump error" >> "$fileerror"
-    echo "; golden result: $goldenresult" >> "$fileerror"
-    echo "; actual result: $result" >> "$fileerror"
+    cp "$file" error${id}.$suffix
+    echo "dump error" > "$errtxtfile"
+    echo "golden result: $goldenresult" >> "$errtxtfile"
+    echo "actual result: $result" >> "$errtxtfile"
     cleanup
     exit 1
   fi 
 
-  if [[ "$checkmodel" -eq 1 ]] && [[ "$result" == sat ]]; then
+  if [[ "$checkmodel" -eq 1 ]] && [[ "$result" == sat ]] && \
+     [[ "$suffix" == btor ]]; then
     modelresult=`btorcheckmodel "$file" "$stdoutput"`
     if [[ "$modelresult" != Valid ]]; then
       echo "ERROR"
-      cp "$file" "$fileerror"
-      cp "$stdoutput" "${fileerror}.model"
-      echo "; error: $callstring" >> "$fileerror"
+      cp "$file" error${id}.$suffix
+      cp "$stdoutput" "error${id}.model"
+      echo "error: $callstring" > "$errtxtfile"
       cleanup
       exit 1
     fi
@@ -336,8 +357,8 @@ do
     if [[ -n "$memerr" ]]; then
       echo ""
       echo "ERROR"
-      cp "$file" "$fileerror"
-      echo "; valgrind error" >> "$fileerror"
+      cp "$file" error${id}.$suffix
+      echo "valgrind error" > "$errtxtfile"
       cleanup
       exit 1
     fi 
