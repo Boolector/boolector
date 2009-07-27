@@ -3747,21 +3747,41 @@ btor_rewrite_cond_exp (Btor *btor,
     e_else = tmp1;
   }
 
+  assert (!BTOR_IS_INVERTED_EXP (e_cond));
+
   if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_if))) kind = BTOR_ACOND_EXP;
 
   if (e_if == e_else)
-    result = btor_copy_exp (btor, e_if);
-  else if (BTOR_IS_BV_CONST_EXP (e_cond))
   {
-    /* condtionals are normalized if rewrite level > 0 */
-    assert (!BTOR_IS_INVERTED_EXP (e_cond));
+    result = btor_copy_exp (btor, e_if);
+    return result;
+  }
+
+  if (BTOR_IS_BV_CONST_EXP (e_cond))
+  {
     if (e_cond->bits[0] == '1')
       result = btor_copy_exp (btor, e_if);
     else
       result = btor_copy_exp (btor, e_else);
+    return result;
   }
-  else if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e_if)))
+
+  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e_if)))
   {
+    if (BTOR_REAL_ADDR_EXP (e_if)->e[0] == e_cond)
+    {
+      if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+        goto BTOR_REWRITE_COND_EXP_NO_REWRITE;
+      BTOR_INC_REC_RW_CALL (btor);
+      result = btor_rewrite_cond_exp (
+          btor,
+          e_cond,
+          BTOR_COND_INVERT_EXP (e_if, BTOR_REAL_ADDR_EXP (e_if)->e[1]),
+          e_else);
+      BTOR_DEC_REC_RW_CALL (btor);
+      return result;
+    }
+
     tmp1 = BTOR_REAL_ADDR_EXP (e_if)->e[0];
 
     if (BTOR_IS_INVERTED_EXP (e_if))
@@ -3784,8 +3804,9 @@ btor_rewrite_cond_exp (Btor *btor,
       result = btor_rewrite_cond_exp (btor, tmp4, tmp3, e_else);
       BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, tmp4);
+      return result;
     }
-    else if (tmp3 == e_else)
+    if (tmp3 == e_else)
     {
       if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
         goto BTOR_REWRITE_COND_EXP_NO_REWRITE;
@@ -3794,10 +3815,26 @@ btor_rewrite_cond_exp (Btor *btor,
       result = btor_rewrite_cond_exp (btor, tmp4, tmp2, e_else);
       BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, tmp4);
+      return result;
     }
   }
-  else if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e_else)))
+
+  if (BTOR_IS_ARRAY_OR_BV_COND_EXP (BTOR_REAL_ADDR_EXP (e_else)))
   {
+    if (BTOR_REAL_ADDR_EXP (e_else)->e[0] == e_cond)
+    {
+      if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+        goto BTOR_REWRITE_COND_EXP_NO_REWRITE;
+      BTOR_INC_REC_RW_CALL (btor);
+      result = btor_rewrite_cond_exp (
+          btor,
+          e_cond,
+          e_if,
+          BTOR_COND_INVERT_EXP (e_else, BTOR_REAL_ADDR_EXP (e_else)->e[2]));
+      BTOR_DEC_REC_RW_CALL (btor);
+      return result;
+    }
+
     tmp1 = BTOR_REAL_ADDR_EXP (e_else)->e[0];
 
     if (BTOR_IS_INVERTED_EXP (e_else))
@@ -3821,6 +3858,7 @@ btor_rewrite_cond_exp (Btor *btor,
       result = btor_rewrite_cond_exp (btor, tmp4, tmp3, e_if);
       BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, tmp4);
+      return result;
     }
     else if (tmp3 == e_if)
     {
@@ -3831,9 +3869,11 @@ btor_rewrite_cond_exp (Btor *btor,
       result = btor_rewrite_cond_exp (btor, tmp4, tmp2, e_if);
       BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, tmp4);
+      return result;
     }
   }
-  else if (kind == BTOR_BCOND_EXP)
+
+  if (kind == BTOR_BCOND_EXP)
   {
     if (BTOR_REAL_ADDR_EXP (e_if)->len == 1)
     {
