@@ -15,8 +15,7 @@ readonly update=10
 cov=0
 numerrors=0
 sleeptime=10
-processes=`cat /proc/cpuinfo | grep processor | sort | tail -n 1 | awk '{ print $3 }'`
-((processes++))
+processes=`cat /proc/cpuinfo | grep processor | wc -l`
 # 1 process per core
 
 function cleanup
