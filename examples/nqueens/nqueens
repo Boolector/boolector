@@ -1,0 +1,188 @@
+#!/usr/bin/env python
+import sys
+
+def usage():
+  print "usage: nqueens <size>"
+  sys.exit(0)
+
+def die(msg):
+  assert msg != None
+  print msg
+  sys.exit(1)
+
+def is_power_of_2 (x):
+  assert x > 0
+  return (x & (x - 1)) == 0
+
+def next_power_of_2 (x):
+  assert x > 0
+  x -= 1
+  i = 1
+  while i < 32:
+    x = x | (x >> i)
+    i *= 2
+  return x + 1
+
+def log2 (x):
+  result = 0
+  assert x > 0
+  assert is_power_of_2 (x)
+  while x > 1:
+    x >>= 1
+    result += 1
+  assert result >= 0
+  return result
+
+def board_field (x, y):
+  assert x >= 0
+  assert y >= 0
+  return "board" + str(x) + "_" + str(y)
+
+if len(sys.argv) != 2:
+  usage()
+
+size = int(sys.argv[1])
+if size < 4:
+  die ("size must be >= 4")
+num_bits_size = log2 (next_power_of_2 (size + 1))
+id = 1
+constraints = [] 
+
+print "(benchmark nqueens" + str(size) + "x" + str(size)
+print ":source {"
+print "Bit-vector encoding of n-queens problem with " + str(size) + " queens"
+print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
+print "}"
+print ":status sat"
+print ":logic QF_BV"
+for i in range(size):
+  for j in range(size):
+    print ":extrafuns ((" + board_field(i, j) + " BitVec[1]))"
+print ":formula"
+
+# generate row constraints 
+for i in range(size):
+  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+        "] " + board_field(i, 0) + "))"
+  last = "?e" + str(id)
+  id += 1
+  for j in range(1, size):
+    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+          str(num_bits_size - 1) + "] " + board_field(i, j) + ")))"
+    last = "?e" + str(id)
+    id += 1
+  print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+        str(num_bits_size) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
+
+# generate col constraints 
+for i in range(size):
+  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+        "] " + board_field(0, i) + "))"
+  last = "?e" + str(id)
+  id += 1
+  for j in range(1, size):
+    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+          str(num_bits_size - 1) + "] " + board_field(j, i) + ")))"
+    last = "?e" + str(id)
+    id += 1
+  print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+        str(num_bits_size) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
+
+#generate diagonal constraints
+for i in range(1, size):
+  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+        "] " + board_field(i, 0) + "))"
+  last = "?e" + str(id)
+  id += 1
+  row = i - 1
+  col = 1
+  assert row >= 0 and col < size 
+  while row >= 0 and col < size:
+    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    last = "?e" + str(id)
+    id += 1
+    row -= 1
+    col += 1
+  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+        str(num_bits_size) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
+
+for i in range(1, size - 1):
+  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+        "] " + board_field(size - 1, i) + "))"
+  last = "?e" + str(id)
+  id += 1
+  row = size - 1 - 1
+  col = i + 1
+  assert row >= 0 and col < size 
+  while row >= 0 and col < size: 
+    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    last = "?e" + str(id)
+    id += 1
+    row -= 1
+    col += 1
+  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+        str(num_bits_size) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
+
+for i in range(1, size):
+  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+        "] " + board_field(i, size - 1) + "))"
+  last = "?e" + str(id)
+  id += 1
+  row = i - 1
+  col = size - 1 - 1
+  assert row >= 0 and col >= 0 
+  while row >= 0 and col >= 0:
+    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    last = "?e" + str(id)
+    id += 1
+    row -= 1
+    col -= 1
+  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+        str(num_bits_size) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
+
+for i in range(1, size - 1):
+  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+        "] " + board_field(size - 1, size - 1 - i) + "))"
+  last = "?e" + str(id)
+  id += 1
+  row = size - 1 - 1
+  col = size - 1 - i - 1 
+  assert row >= 0 and col >= 0 
+  while row >= 0 and col >= 0: 
+    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    last = "?e" + str(id)
+    id += 1
+    row -= 1
+    col -= 1
+  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+        str(num_bits_size) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
+
+
+# combine all constraints by AND
+assert len(constraints) >= 2
+last = constraints[0]
+for i in range(1, len(constraints)):
+  print "(flet ($e" + str(id) + " (and " + last + " " + constraints[i] + "))" 
+  last = "$e" + str(id)
+  id += 1
+print last
+pars = ""
+for i in range(id):
+  pars = pars + ")"
+print pars
