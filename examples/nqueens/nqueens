@@ -2,11 +2,12 @@
 import sys, getopt
 
 REGULAR_MODE = 0
-PIGEON_HOLE_MODE_NP1 = 1
-PIGEON_HOLE_MODE_GTN = 2
+FEWER_QUEENS_MODE = 1
+PIGEON_HOLE_MODE_NP1 = 2
+PIGEON_HOLE_MODE_GTN = 3
 
 def usage():
-  print "usage: nqueens [-h] [-s <size>] [-p <mode>]"
+  print "usage: nqueens [-h] [-s <size>] [-m <mode>]"
   sys.exit(0)
 
 def die(msg):
@@ -48,7 +49,7 @@ id = 1
 constraints = [] 
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "hp:s:")
+  opts, args = getopt.getopt(sys.argv[1:], "hm:s:")
 except getopt.GetoptError, err:
   print str(err)
   usage()
@@ -56,10 +57,14 @@ except getopt.GetoptError, err:
 for o, a in opts:
   if o in ("-h"):
     usage()
-  elif o in ("-p"):
-    if a == "1":
-      mode = PIGEON_HOLE_MODE_NP1
+  elif o in ("-m"):
+    if a == "0":
+      mode = REGULAR_MODE
+    elif a == "1":
+      mode = FEWER_QUEENS_MODE 
     elif a == "2":
+      mode = PIGEON_HOLE_MODE_NP1
+    elif a == "3":
       mode = PIGEON_HOLE_MODE_GTN
     else:
       die ("mode must be 1 or 2")
@@ -68,18 +73,22 @@ for o, a in opts:
     if size < 4:
       die ("size must be >= 4")
 
+fields = size * size;
 num_bits_size = log2 (next_power_of_2 (size + 1))
+num_bits_fields = log2 (next_power_of_2 (fields + 1))
 
 print "(benchmark nqueens" + str(size) + "x" + str(size)
 print ":source {"
 print "Bit-vector encoding of n-queens problem with " + str(size) + " queens"
-if mode == PIGEON_HOLE_MODE_NP1: 
+if mode == FEWER_QUEENS_MODE: 
+  print "We try to place m queens on an n x n board with m <= n and m >= 1"
+elif mode == PIGEON_HOLE_MODE_NP1: 
   print "We try to place n + 1 queens on an n x n board"
 elif mode == PIGEON_HOLE_MODE_GTN:
-  print "We try to place m queens on an n x n board with m > n"
+  print "We try to place m queens on an n x n board with m > n and m <= n * n"
 print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
 print "}"
-if mode == REGULAR_MODE:
+if mode == REGULAR_MODE or mode == FEWER_QUEENS_MODE:
   print ":status sat"
 else:
   print ":status unsat"
@@ -100,8 +109,12 @@ for i in range(size):
           str(num_bits_size - 1) + "] " + board_field(i, j) + ")))"
     last = "?e" + str(id)
     id += 1
-  print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
+  if mode == FEWER_QUEENS_MODE:
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+  else:
+    print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -116,8 +129,13 @@ for i in range(size):
           str(num_bits_size - 1) + "] " + board_field(j, i) + ")))"
     last = "?e" + str(id)
     id += 1
-  print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
+  if mode == FEWER_QUEENS_MODE:
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+  else:
+    print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -202,12 +220,10 @@ for i in range(1, size - 1):
   constraints.append ("$e" + str(id))
   id += 1
 
-# generate pigeon hole constraint
-if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN:
-  fields = size * size;
-  num_bits_fields = log2 (next_power_of_2 (fields + 1))
+# generate additional constraints
+if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN or mode == FEWER_QUEENS_MODE:
   print "(let (?e" + str(id) + " bv0[" + str(num_bits_fields) + "])"
-  last = "?e" + str(id)
+  zero = last = "?e" + str(id)
   id += 1
   for i in range(size):
     for j in range(size):
@@ -218,10 +234,16 @@ if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN:
   if mode == PIGEON_HOLE_MODE_NP1:
     print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
            "[" + str(num_bits_fields) + "]))"
-  else:
-    assert mode == PIGEON_HOLE_MODE_GTN
+  elif mode == PIGEON_HOLE_MODE_GTN:
     print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
            "[" + str(num_bits_fields) + "]))"
+  else:
+    assert mode == FEWER_QUEENS_MODE
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv" + str(size) + \
+           "[" + str(num_bits_fields) + "]))"
+    constraints.append ("$e" + str(id))
+    id += 1
+    print "(flet ($e" + str(id) + " (bvugt " + last + " " + zero + "))"
   constraints.append ("$e" + str(id))
   id += 1
 
