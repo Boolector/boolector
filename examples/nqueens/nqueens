@@ -1,8 +1,12 @@
 #!/usr/bin/env python
-import sys
+import sys, getopt
+
+REGULAR_MODE = 0
+PIGEON_HOLE_MODE_NP1 = 1
+PIGEON_HOLE_MODE_GTN = 2
 
 def usage():
-  print "usage: nqueens <size>"
+  print "usage: nqueens [-h] [-s <size>] [-p <mode>]"
   sys.exit(0)
 
 def die(msg):
@@ -38,22 +42,47 @@ def board_field (x, y):
   assert y >= 0
   return "board" + str(x) + "_" + str(y)
 
-if len(sys.argv) != 2:
-  usage()
-
-size = int(sys.argv[1])
-if size < 4:
-  die ("size must be >= 4")
-num_bits_size = log2 (next_power_of_2 (size + 1))
+mode = REGULAR_MODE
+size = 8
 id = 1
 constraints = [] 
+
+try:
+  opts, args = getopt.getopt(sys.argv[1:], "hp:s:")
+except getopt.GetoptError, err:
+  print str(err)
+  usage()
+
+for o, a in opts:
+  if o in ("-h"):
+    usage()
+  elif o in ("-p"):
+    if a == "1":
+      mode = PIGEON_HOLE_MODE_NP1
+    elif a == "2":
+      mode = PIGEON_HOLE_MODE_GTN
+    else:
+      die ("mode must be 1 or 2")
+  elif o in ("-s"):
+    size = int (a)
+    if size < 4:
+      die ("size must be >= 4")
+
+num_bits_size = log2 (next_power_of_2 (size + 1))
 
 print "(benchmark nqueens" + str(size) + "x" + str(size)
 print ":source {"
 print "Bit-vector encoding of n-queens problem with " + str(size) + " queens"
+if mode == PIGEON_HOLE_MODE_NP1: 
+  print "We try to place n + 1 queens on an n x n board"
+elif mode == PIGEON_HOLE_MODE_GTN:
+  print "We try to place m queens on an n x n board with m > n"
 print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
 print "}"
-print ":status sat"
+if mode == REGULAR_MODE:
+  print ":status sat"
+else:
+  print ":status unsat"
 print ":logic QF_BV"
 for i in range(size):
   for j in range(size):
@@ -173,6 +202,28 @@ for i in range(1, size - 1):
   constraints.append ("$e" + str(id))
   id += 1
 
+# generate pigeon hole constraint
+if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN:
+  fields = size * size;
+  num_bits_fields = log2 (next_power_of_2 (fields + 1))
+  print "(let (?e" + str(id) + " bv0[" + str(num_bits_fields) + "])"
+  last = "?e" + str(id)
+  id += 1
+  for i in range(size):
+    for j in range(size):
+      print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
+            str(num_bits_fields - 1) + "] " + board_field(i, j) + ")))"
+      last = "?e" + str(id)
+      id += 1
+  if mode == PIGEON_HOLE_MODE_NP1:
+    print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
+           "[" + str(num_bits_fields) + "]))"
+  else:
+    assert mode == PIGEON_HOLE_MODE_GTN
+    print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
+           "[" + str(num_bits_fields) + "]))"
+  constraints.append ("$e" + str(id))
+  id += 1
 
 # combine all constraints by AND
 assert len(constraints) >= 2
