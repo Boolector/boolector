@@ -1,5 +1,5 @@
 #!/bin/bash
-# converts a boolector model to queens format that can be read by queensgui
+# converts a boolector model to queens format, which is read by queensgui
 declare -a positions
 
 read line

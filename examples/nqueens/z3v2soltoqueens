@@ -1,5 +1,5 @@
 #!/bin/bash
-# converts a z3 2.0 model to queens format that can be read by queensgui
+# converts a z3 2.0 model to queens format, which is read by queensgui
 declare -a positions
 
 numqueens=0
