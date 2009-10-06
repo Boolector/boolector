@@ -2,11 +2,15 @@
 import sys, getopt
 
 REGULAR_MODE = 0
-PIGEON_HOLE_MODE_NP1 = 1
-PIGEON_HOLE_MODE_GTN = 2
+FEWER_QUEENS_MODE = 1
+PIGEON_HOLE_MODE_NP1 = 2
+PIGEON_HOLE_MODE_GTN = 3
+
+BV_ENCODING = 0
+LIA_ENCODING = 1
 
 def usage():
-  print "usage: nqueens [-h] [-s <size>] [-p <mode>]"
+  print "usage: nqueens [-h] [-s <size>] [-m <mode>] [-l]"
   sys.exit(0)
 
 def die(msg):
@@ -43,12 +47,13 @@ def board_field (x, y):
   return "board" + str(x) + "_" + str(y)
 
 mode = REGULAR_MODE
+encoding = BV_ENCODING
 size = 8
 id = 1
 constraints = [] 
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "hp:s:")
+  opts, args = getopt.getopt(sys.argv[1:], "hm:s:l")
 except getopt.GetoptError, err:
   print str(err)
   usage()
@@ -56,10 +61,16 @@ except getopt.GetoptError, err:
 for o, a in opts:
   if o in ("-h"):
     usage()
-  elif o in ("-p"):
-    if a == "1":
-      mode = PIGEON_HOLE_MODE_NP1
+  elif o in ("-l"):
+    encoding = LIA_ENCODING
+  elif o in ("-m"):
+    if a == "0":
+      mode = REGULAR_MODE
+    elif a == "1":
+      mode = FEWER_QUEENS_MODE 
     elif a == "2":
+      mode = PIGEON_HOLE_MODE_NP1
+    elif a == "3":
       mode = PIGEON_HOLE_MODE_GTN
     else:
       die ("mode must be 1 or 2")
@@ -68,162 +79,308 @@ for o, a in opts:
     if size < 4:
       die ("size must be >= 4")
 
+fields = size * size;
 num_bits_size = log2 (next_power_of_2 (size + 1))
+num_bits_fields = log2 (next_power_of_2 (fields + 1))
 
 print "(benchmark nqueens" + str(size) + "x" + str(size)
 print ":source {"
-print "Bit-vector encoding of n-queens problem with " + str(size) + " queens"
-if mode == PIGEON_HOLE_MODE_NP1: 
+if encoding == BV_ENCODING:
+  print "Bit-vector encoding of n-queens problem with " + str(size) + " queens"
+else:
+  assert encoding == LIA_ENCODING
+  print "Integer encoding of n-queens problem with " + str(size) + " queens"
+if mode == FEWER_QUEENS_MODE: 
+  print "We try to place m queens on an n x n board with m <= n and m >= 1"
+elif mode == PIGEON_HOLE_MODE_NP1: 
   print "We try to place n + 1 queens on an n x n board"
 elif mode == PIGEON_HOLE_MODE_GTN:
-  print "We try to place m queens on an n x n board with m > n"
+  print "We try to place m queens on an n x n board with m > n and m <= n * n"
 print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
 print "}"
-if mode == REGULAR_MODE:
+if mode == REGULAR_MODE or mode == FEWER_QUEENS_MODE:
   print ":status sat"
 else:
   print ":status unsat"
-print ":logic QF_BV"
+if encoding == BV_ENCODING:
+  var_type = "BitVec[1]"
+  print ":logic QF_BV"
+else:
+  assert encoding == LIA_ENCODING
+  var_type = "Int"
+  print ":logic QF_LIA"
 for i in range(size):
   for j in range(size):
-    print ":extrafuns ((" + board_field(i, j) + " BitVec[1]))"
+    print ":extrafuns ((" + board_field(i, j) + " " + var_type + "))"
 print ":formula"
 
 # generate row constraints 
-for i in range(size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(i, 0) + "))"
-  last = "?e" + str(id)
-  id += 1
-  for j in range(1, size):
-    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(i, j) + ")))"
+if encoding == BV_ENCODING:
+  for i in range(size):
+    print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+          "] " + board_field(i, 0) + "))"
     last = "?e" + str(id)
     id += 1
-  print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
-  constraints.append ("$e" + str(id))
-  id += 1
+    for j in range(1, size):
+      print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+            str(num_bits_size - 1) + "] " + board_field(i, j) + ")))"
+      last = "?e" + str(id)
+      id += 1
+    if mode == FEWER_QUEENS_MODE:
+      print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+            str(num_bits_size) + "]))"
+    else:
+      print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+            str(num_bits_size) + "]))"
+    constraints.append ("$e" + str(id))
+    id += 1
+else:
+  assert encoding == LIA_ENCODING
+  for i in range(size):
+    last = board_field(i, 0) 
+    for j in range(1, size):
+      print "(let (?e" + str(id) + " (+ " + last + " " + board_field(i,j) + "))"
+      last = "?e" + str(id)
+      id += 1
+    if mode == FEWER_QUEENS_MODE:
+      print "(flet ($e" + str(id) + " (<= " + last + " 1))"
+    else:
+      print "(flet ($e" + str(id) + " (= " + last + " 1))"
+    constraints.append ("$e" + str(id))
+    id += 1
 
 # generate col constraints 
-for i in range(size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(0, i) + "))"
-  last = "?e" + str(id)
-  id += 1
-  for j in range(1, size):
-    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(j, i) + ")))"
+if encoding == BV_ENCODING:
+  for i in range(size):
+    print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+          "] " + board_field(0, i) + "))"
     last = "?e" + str(id)
     id += 1
-  print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
-  constraints.append ("$e" + str(id))
-  id += 1
+    for j in range(1, size):
+      print "(let (?e" + str(id) + " (bvadd " + last +  " (zero_extend[" + \
+            str(num_bits_size - 1) + "] " + board_field(j, i) + ")))"
+      last = "?e" + str(id)
+      id += 1
+    if mode == FEWER_QUEENS_MODE:
+      print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+            str(num_bits_size) + "]))"
+    else:
+      print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
+            str(num_bits_size) + "]))"
+
+    constraints.append ("$e" + str(id))
+    id += 1
+else:
+  assert encoding == LIA_ENCODING
+  for i in range(size):
+    last = board_field(0, i) 
+    for j in range(1, size):
+      print "(let (?e" + str(id) + " (+ " + last + " " + board_field(j,i) + "))"
+      last = "?e" + str(id)
+      id += 1
+    if mode == FEWER_QUEENS_MODE:
+      print "(flet ($e" + str(id) + " (<= " + last + " 1))"
+    else:
+      print "(flet ($e" + str(id) + " (= " + last + " 1))"
+    constraints.append ("$e" + str(id))
+    id += 1
 
 #generate diagonal constraints
 for i in range(1, size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(i, 0) + "))"
-  last = "?e" + str(id)
-  id += 1
+  if encoding == BV_ENCODING:
+    print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+          "] " + board_field(i, 0) + "))"
+    last = "?e" + str(id)
+    id += 1
+  else:
+    assert encoding == LIA_ENCODING
+    last = board_field(i, 0)
   row = i - 1
   col = 1
   assert row >= 0 and col < size 
   while row >= 0 and col < size:
-    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    if encoding == BV_ENCODING:
+      print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+            str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(let (?e" + str(id) + " (+ " + last + " " + \
+             board_field(row, col) + "))"
     last = "?e" + str(id)
     id += 1
     row -= 1
     col += 1
-  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
+  if encoding == BV_ENCODING:
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+  else:
+    assert encoding == LIA_ENCODING
+    print "(flet ($e" + str(id) + " (<= " + last + " 1))"
   constraints.append ("$e" + str(id))
   id += 1
 
 for i in range(1, size - 1):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(size - 1, i) + "))"
-  last = "?e" + str(id)
-  id += 1
+  if encoding == BV_ENCODING:
+    print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+          "] " + board_field(size - 1, i) + "))"
+    last = "?e" + str(id)
+    id += 1
+  else:
+    assert encoding == LIA_ENCODING
+    last = board_field(size - 1, i)
   row = size - 1 - 1
   col = i + 1
   assert row >= 0 and col < size 
   while row >= 0 and col < size: 
-    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    if encoding == BV_ENCODING:
+      print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+            str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(let (?e" + str(id) + " (+ " + last + " " + \
+            board_field(row, col) + "))"
     last = "?e" + str(id)
     id += 1
     row -= 1
     col += 1
-  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
+  if encoding == BV_ENCODING:
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+  else:
+    assert encoding == LIA_ENCODING
+    print "(flet ($e" + str(id) + " (<= " + last + " 1))"
   constraints.append ("$e" + str(id))
   id += 1
 
 for i in range(1, size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(i, size - 1) + "))"
-  last = "?e" + str(id)
-  id += 1
+  if encoding == BV_ENCODING:
+    print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+          "] " + board_field(i, size - 1) + "))"
+    last = "?e" + str(id)
+    id += 1
+  else:
+    assert encoding == LIA_ENCODING
+    last = board_field(i, size - 1)
   row = i - 1
   col = size - 1 - 1
   assert row >= 0 and col >= 0 
   while row >= 0 and col >= 0:
-    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    if encoding == BV_ENCODING:
+      print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+            str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(let (?e" + str(id) + " (+ " + last + " " + \
+            board_field(row, col) + "))"
     last = "?e" + str(id)
     id += 1
     row -= 1
     col -= 1
-  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
+  if encoding == BV_ENCODING:
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+  else:
+    assert encoding == LIA_ENCODING
+    print "(flet ($e" + str(id) + " (<= " + last + " 1))"
   constraints.append ("$e" + str(id))
   id += 1
 
 for i in range(1, size - 1):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(size - 1, size - 1 - i) + "))"
-  last = "?e" + str(id)
-  id += 1
+  if encoding == BV_ENCODING:
+    print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
+          "] " + board_field(size - 1, size - 1 - i) + "))"
+    last = "?e" + str(id)
+    id += 1
+  else:
+    assert encoding == LIA_ENCODING
+    last = board_field(size - 1, size - 1 - i)
   row = size - 1 - 1
   col = size - 1 - i - 1 
   assert row >= 0 and col >= 0 
   while row >= 0 and col >= 0: 
-    print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    if encoding == BV_ENCODING:
+      print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+            str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(let (?e" + str(id) + " (+ " + last + " " + \
+            board_field(row, col) + "))"
     last = "?e" + str(id)
     id += 1
     row -= 1
     col -= 1
-  print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-        str(num_bits_size) + "]))"
+  if encoding == BV_ENCODING:
+    print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
+          str(num_bits_size) + "]))"
+  else:
+    assert encoding == LIA_ENCODING
+    print "(flet ($e" + str(id) + " (<= " + last + " 1))"
+
   constraints.append ("$e" + str(id))
   id += 1
 
-# generate pigeon hole constraint
-if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN:
-  fields = size * size;
-  num_bits_fields = log2 (next_power_of_2 (fields + 1))
-  print "(let (?e" + str(id) + " bv0[" + str(num_bits_fields) + "])"
-  last = "?e" + str(id)
+# generate additional constraints
+if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN or \
+   mode == FEWER_QUEENS_MODE:
+  if encoding == BV_ENCODING:
+    print "(let (?e" + str(id) + " bv0[" + str(num_bits_fields) + "])"
+  else:
+    assert encoding == LIA_ENCODING
+    print "(let (?e" + str(id) + " 0)"
+  zero = last = "?e" + str(id)
   id += 1
   for i in range(size):
     for j in range(size):
-      print "(let (?e" + str(id) + " (bvadd " + last + " " + "(zero_extend[" + \
-            str(num_bits_fields - 1) + "] " + board_field(i, j) + ")))"
+      if encoding == BV_ENCODING:
+        print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+              str(num_bits_fields - 1) + "] " + board_field(i, j) + ")))"
+      else:
+        assert encoding == LIA_ENCODING
+        print "(let (?e" + str(id) + " (+ " + last + " " + \
+              board_field(i, j) + "))"
       last = "?e" + str(id)
       id += 1
   if mode == PIGEON_HOLE_MODE_NP1:
-    print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
-           "[" + str(num_bits_fields) + "]))"
+    if encoding == BV_ENCODING:
+      print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
+             "[" + str(num_bits_fields) + "]))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(flet ($e" + str(id) + " (= " + last + " " + str(size + 1) + "))"
+  elif mode == PIGEON_HOLE_MODE_GTN:
+    if encoding == BV_ENCODING:
+      print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
+             "[" + str(num_bits_fields) + "]))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(flet ($e" + str(id) + " (> " + last + " " + str(size) + "))"
   else:
-    assert mode == PIGEON_HOLE_MODE_GTN
-    print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
-           "[" + str(num_bits_fields) + "]))"
+    assert mode == FEWER_QUEENS_MODE
+    if encoding == BV_ENCODING:
+      print "(flet ($e" + str(id) + " (bvule " + last + " bv" + str(size) + \
+             "[" + str(num_bits_fields) + "]))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(flet ($e" + str(id) + " (<= " + last + " " + str(size) + "))"
+    constraints.append ("$e" + str(id))
+    id += 1
+    if encoding == BV_ENCODING:
+      print "(flet ($e" + str(id) + " (bvugt " + last + " " + zero + "))"
+    else:
+      assert encoding == LIA_ENCODING
+      print "(flet ($e" + str(id) + " (> " + last + " 0))"
   constraints.append ("$e" + str(id))
   id += 1
+
+# generate domain constraints for integer variables
+if encoding == LIA_ENCODING:
+  for i in range(size):
+    for j in range(size):
+      print "(flet ($e" + str(id) + " (or (= " + board_field(i, j) + \
+             " 0) (= " + board_field(i, j) + " 1)))"
+      constraints.append ("$e" + str(id))
+      id += 1 
+
 
 # combine all constraints by AND
 assert len(constraints) >= 2
