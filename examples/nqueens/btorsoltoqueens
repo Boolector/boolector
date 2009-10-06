@@ -18,11 +18,11 @@ do
     ((numqueens++))
   fi
 done
-echo $numqueens
 if [[ $numqueens -le 0 ]]; then
   echo "invalid format"
   exit 1
 fi
+echo $numqueens
 for ((i = 0; i < $numqueens; i++))
 do
   posstring=${positions[$i]}
