@@ -11,7 +11,7 @@ BV_ENCODING = 0
 LIA_ENCODING = 1
 
 def usage():
-  print "usage: nqueens [-h] [-s <size>] [-m <mode>] [-n <num-queens-for-no-three-in-line>] [-l]"
+  print "usage: nqueens [-h] [-s <size>] [-m <mode>] [-l]"
   sys.exit(0)
 
 def die(msg):
@@ -55,7 +55,7 @@ constraints = []
 num_queens_no_three_in_line = -1
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "hm:s:ln:")
+  opts, args = getopt.getopt(sys.argv[1:], "hm:s:l")
 except getopt.GetoptError, err:
   print str(err)
   usage()
@@ -82,31 +82,33 @@ for o, a in opts:
     size = int (a)
     if size < 4:
       die ("size must be >= 4")
-  elif o in ("-n"):
-    num_queens_no_three_in_line = int (a)
-    if num_queens_no_three_in_line < 1:
-      die ("number of queens for no-three-in-line-mode must be >= 1")
-
 
 fields = size * size;
 num_bits_size = log2 (next_power_of_2 (size + 1))
 num_bits_fields = log2 (next_power_of_2 (fields + 1))
 
 if mode == NO_THREE_IN_LINE_MODE: 
-  if num_queens_no_three_in_line == -1:
-    die ("number of queens not specified for no-three-in-line mode (use -n)")
-  if num_queens_no_three_in_line > fields:
-    die ("number of queens for no-three-in-line mode must not be > " + \
-         "number of fields ")
-
-print "(benchmark nqueens" + str(size) + "x" + str(size)
+  num_queens_no_three_in_line = 2 * size;
+  print "(benchmark queensNoThreeInLine" + str(size * size) + "_" + \
+        str(num_queens_no_three_in_line)
+else:
+  print "(benchmark queens" + str(size) + "x" + str(size)
 print ":source {"
 if encoding == BV_ENCODING:
-  print "Bit-vector encoding of n-queens problem with " + str(size) + " queens"
+  if mode == NO_THREE_IN_LINE_MODE:
+    print "BV encoding of no three-in-line problem"
+  else:
+    print "BV encoding of n-queens problem with " + str(size) + " queens"
 else:
   assert encoding == LIA_ENCODING
-  print "Integer encoding of n-queens problem with " + str(size) + " queens"
-if mode == FEWER_QUEENS_MODE: 
+  if mode == NO_THREE_IN_LINE_MODE:
+    print "LIA encoding of no-three-in-line problem"
+  else:
+    print "LIA encoding of n-queens problem with " + str(size) + " queens"
+if mode == NO_THREE_IN_LINE_MODE:
+  print "We try to place " + str(num_queens_no_three_in_line) + \
+        " queens on a " + str(size) + " x " + str(size) + " board"
+elif mode == FEWER_QUEENS_MODE: 
   print "We try to place m queens on an n x n board with m <= n and m >= 1"
 elif mode == PIGEON_HOLE_MODE_NP1: 
   print "We try to place n + 1 queens on an n x n board"
