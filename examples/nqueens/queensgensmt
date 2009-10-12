@@ -157,7 +157,7 @@ if encoding == BV_ENCODING:
       id += 1
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
+      print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
             str(num_bits_size) + "]))"
     else:
       print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
@@ -174,7 +174,7 @@ else:
       id += 1
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (< " + last + " 3))"
+      print "(flet ($e" + str(id) + " (= " + last + " 2))"
     else:
       print "(flet ($e" + str(id) + " (= " + last + " 1))"
     constraints.append ("$e" + str(id))
@@ -194,7 +194,7 @@ if encoding == BV_ENCODING:
       id += 1
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
+      print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
             str(num_bits_size) + "]))"
     else:
       print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
@@ -212,7 +212,7 @@ else:
       id += 1
     if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
        mode == NO_THREE_IN_LINE_MODE_GT2N:
-      print "(flet ($e" + str(id) + " (< " + last + " 3))"
+      print "(flet ($e" + str(id) + " (= " + last + " 2))"
     else:
       print "(flet ($e" + str(id) + " (= " + last + " 1))"
     constraints.append ("$e" + str(id))
@@ -390,8 +390,7 @@ for i in range(1, size - 1):
 
 # generate additional constraints
 if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN or \
-   mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
-   mode == NO_THREE_IN_LINE_MODE_GT2N:
+   mode ==  NO_THREE_IN_LINE_MODE_2NP1 or mode == NO_THREE_IN_LINE_MODE_GT2N:
   if encoding == BV_ENCODING:
     print "(let (?e" + str(id) + " bv0[" + str(num_bits_fields) + "])"
   else:
@@ -424,15 +423,6 @@ if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN or \
     else:
       assert encoding == LIA_ENCODING
       print "(flet ($e" + str(id) + " (> " + last + " " + str(size) + "))"
-  elif mode == NO_THREE_IN_LINE_MODE:
-    if encoding == BV_ENCODING:
-      print "(flet ($e" + str(id) + " (= " + last + " bv" + \
-            str(2 * size) + "[" + str(num_bits_fields) + \
-            "]))"
-    else:
-      assert encoding == LIA_ENCODING
-      print "(flet ($e" + str(id) + " (= " + last + " " + \
-             str(2 * size) + "))"
   elif mode == NO_THREE_IN_LINE_MODE_2NP1:
     if encoding == BV_ENCODING:
       print "(flet ($e" + str(id) + " (= " + last + " bv" + \
@@ -442,7 +432,6 @@ if mode == PIGEON_HOLE_MODE_NP1 or mode == PIGEON_HOLE_MODE_GTN or \
       assert encoding == LIA_ENCODING
       print "(flet ($e" + str(id) + " (= " + last + " " + \
              str(2 * size + 1) + "))"
-
   else:
     assert mode == NO_THREE_IN_LINE_MODE_GT2N
     if encoding == BV_ENCODING:
