@@ -49,6 +49,26 @@ mode = QUEENS_MODE
 size = 8
 id = 1
 constraints = [] 
+num_bits_size = 0
+num_bits_fields = 0
+
+def add_lin (list, ext):
+  global id
+
+  assert list != None
+  assert len (list) >= 2
+  assert ext >= 0
+
+  print "(let (?e" + str(id) + " (zero_extend[" + str(ext) + \
+        "] " + list[0] + "))"
+  last = "?e" + str(id)
+  id += 1
+  for i in range(1, len(list)):
+    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
+          str(ext) + "] " + list[i] + ")))"
+    last = "?e" + str(id)
+    id += 1
+  return last
 
 try:
   opts, args = getopt.getopt(sys.argv[1:], "hm:s:")
@@ -124,15 +144,10 @@ print ":formula"
 
 # generate row constraints 
 for i in range(size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(i, 0) + "))"
-  last = "?e" + str(id)
-  id += 1
-  for j in range(1, size):
-    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(i, j) + ")))"
-    last = "?e" + str(id)
-    id += 1
+  list = []
+  for j in range(size):
+    list.append(board_field(i, j)) 
+  last = add_lin (list, num_bits_size - 1) 
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
@@ -145,15 +160,10 @@ for i in range(size):
 
 # generate col constraints 
 for i in range(size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(0, i) + "))"
-  last = "?e" + str(id)
-  id += 1
-  for j in range(1, size):
-    print "(let (?e" + str(id) + " (bvadd " + last +  " (zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(j, i) + ")))"
-    last = "?e" + str(id)
-    id += 1
+  list = []
+  for j in range(size):
+    list.append(board_field(j, i))
+  last = add_lin (list, num_bits_size - 1) 
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
@@ -166,20 +176,16 @@ for i in range(size):
 
 #generate diagonal constraints
 for i in range(1, size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(i, 0) + "))"
-  last = "?e" + str(id)
-  id += 1
+  list = []
+  list.append (board_field(i, 0))
   row = i - 1
   col = 1
   assert row >= 0 and col < size 
   while row >= 0 and col < size:
-    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
-    last = "?e" + str(id)
-    id += 1
+    list.append(board_field(row, col))
     row -= 1
     col += 1
+  last = add_lin (list, num_bits_size - 1)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
@@ -191,20 +197,16 @@ for i in range(1, size):
   id += 1
 
 for i in range(1, size - 1):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(size - 1, i) + "))"
-  last = "?e" + str(id)
-  id += 1
+  list = []
+  list.append(board_field(size - 1, i))
   row = size - 1 - 1
   col = i + 1
   assert row >= 0 and col < size 
   while row >= 0 and col < size: 
-    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
-    last = "?e" + str(id)
-    id += 1
+    list.append(board_field(row, col))
     row -= 1
     col += 1
+  last = add_lin (list, num_bits_size - 1)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
@@ -216,20 +218,16 @@ for i in range(1, size - 1):
   id += 1
 
 for i in range(1, size):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(i, size - 1) + "))"
-  last = "?e" + str(id)
-  id += 1
+  list = []
+  list.append (board_field(i, size - 1))
   row = i - 1
   col = size - 1 - 1
   assert row >= 0 and col >= 0 
   while row >= 0 and col >= 0:
-    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
-    last = "?e" + str(id)
-    id += 1
+    list.append (board_field(row, col))
     row -= 1
     col -= 1
+  last = add_lin(list, num_bits_size - 1)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
@@ -241,20 +239,16 @@ for i in range(1, size):
   id += 1
 
 for i in range(1, size - 1):
-  print "(let (?e" + str(id) + " (zero_extend[" + str(num_bits_size - 1) + \
-        "] " + board_field(size - 1, size - 1 - i) + "))"
-  last = "?e" + str(id)
-  id += 1
+  list = []
+  list.append (board_field(size - 1, size - 1 - i))
   row = size - 1 - 1
   col = size - 1 - i - 1 
   assert row >= 0 and col >= 0 
   while row >= 0 and col >= 0: 
-    print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-          str(num_bits_size - 1) + "] " + board_field(row, col) + ")))"
-    last = "?e" + str(id)
-    id += 1
+    list.append (board_field(row, col))
     row -= 1
     col -= 1
+  last = add_lin (list, num_bits_size - 1)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
@@ -268,16 +262,11 @@ for i in range(1, size - 1):
 # generate additional constraints
 if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
    mode ==  NO_THREE_IN_LINE_MODE_2NP1 or mode == NO_THREE_IN_LINE_MODE_GT2N:
-  if encoding == BV_ENCODING:
-    print "(let (?e" + str(id) + " bv0[" + str(num_bits_fields) + "])"
-  last = "?e" + str(id)
-  id += 1
+  list = []
   for i in range(size):
     for j in range(size):
-      print "(let (?e" + str(id) + " (bvadd " + last + " (zero_extend[" + \
-            str(num_bits_fields - 1) + "] " + board_field(i, j) + ")))"
-      last = "?e" + str(id)
-      id += 1
+      list.append (board_field(i, j))
+  last = add_lin (list, num_bits_fields - 1)
   if mode == QUEENS_MODE_NP1:
     print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
            "[" + str(num_bits_fields) + "]))"
