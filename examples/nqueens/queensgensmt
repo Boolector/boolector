@@ -52,7 +52,6 @@ encoding = BV_ENCODING
 size = 8
 id = 1
 constraints = [] 
-num_queens_no_three_in_line = -1
 
 try:
   opts, args = getopt.getopt(sys.argv[1:], "hm:s:l")
