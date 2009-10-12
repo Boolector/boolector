@@ -51,7 +51,7 @@ id = 1
 constraints = [] 
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "hm:s")
+  opts, args = getopt.getopt(sys.argv[1:], "hm:s:")
 except getopt.GetoptError, err:
   print str(err)
   usage()
