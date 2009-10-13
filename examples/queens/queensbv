@@ -420,6 +420,7 @@ for i in range(1, size - 1):
   constraints.append ("$e" + str(id))
   id += 1
 
+# ITE encoding explodes for further constraints, switch to parallel encoding
 if encoding == ITE_ENCODING:
   encoding = PAR_ADDER_ENCODING
 
