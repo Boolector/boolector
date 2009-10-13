@@ -8,8 +8,11 @@ NO_THREE_IN_LINE_MODE = 3
 NO_THREE_IN_LINE_MODE_2NP1 = 4
 NO_THREE_IN_LINE_MODE_GT2N = 5
 
+SEQ_ADDER_ENCODING = 0
+PAR_ADDER_ENCODING = 1
+
 def usage():
-  print "usage: queensbv [-h] [-s <size>] [-m <mode>]"
+  print "usage: queensbv [-h] [-s <size>] [-m <mode>] [-e <encoding>]"
   sys.exit(0)
 
 def die(msg):
@@ -46,13 +49,14 @@ def board_field (x, y):
   return "board" + str(x) + "_" + str(y)
 
 mode = QUEENS_MODE
+encoding = SEQ_ADDER_ENCODING
 size = 8
 id = 1
 constraints = [] 
 num_bits_size = 0
 num_bits_fields = 0
 
-def add_lin (list, ext):
+def add_seq (list, ext):
   global id
 
   assert list != None
@@ -68,10 +72,34 @@ def add_lin (list, ext):
           str(ext) + "] " + list[i] + ")))"
     last = "?e" + str(id)
     id += 1
-  return last
+  return last, ext + 1
+
+def add_par (list):
+  global id
+  bw = 1
+
+  assert list != None
+  assert len (list) >= 2
+
+  while len(list) != 1:
+    i = 0
+    next = []
+    while i < len(list):
+      if i != len(list) - 1:
+        print "(let (?e" + str(id) + " (bvadd (zero_extend[1] " + \
+              list[i] + ") (zero_extend[1] " + list[i + 1] + ")))"
+      else:
+        print "(let (?e" + str(id) + " (zero_extend[1] " + list[i] + "))" 
+      last = "?e" + str(id)
+      next.append(last)
+      id += 1
+      i += 2
+    list = next
+    bw += 1
+  return last, bw 
 
 try:
-  opts, args = getopt.getopt(sys.argv[1:], "hm:s:")
+  opts, args = getopt.getopt(sys.argv[1:], "hm:s:e:")
 except getopt.GetoptError, err:
   print str(err)
   usage()
@@ -94,6 +122,13 @@ for o, a in opts:
       mode = NO_THREE_IN_LINE_MODE_GT2N
     else:
       die ("mode must be >= 0 and <= 5")
+  elif o in ("-e"):
+    if a == "0":
+      encoding = SEQ_ADDER_ENCODING
+    elif a == "1":
+      encoding = PAR_ADDER_ENCODING
+    else:
+      die ("encoding must be >= 0 and <= 1")
   elif o in ("-s"):
     size = int (a)
     if size < 4:
@@ -147,14 +182,18 @@ for i in range(size):
   list = []
   for j in range(size):
     list.append(board_field(i, j)) 
-  last = add_lin (list, num_bits_size - 1) 
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_size - 1) 
+  else: 
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list) 
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   else:
     print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -163,14 +202,18 @@ for i in range(size):
   list = []
   for j in range(size):
     list.append(board_field(j, i))
-  last = add_lin (list, num_bits_size - 1) 
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_size - 1) 
+  else:
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list) 
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (= " + last + " bv2[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   else:
     print "(flet ($e" + str(id) + " (= " + last + " bv1[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -185,14 +228,18 @@ for i in range(1, size):
     list.append(board_field(row, col))
     row -= 1
     col += 1
-  last = add_lin (list, num_bits_size - 1)
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_size - 1)
+  else:
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   else:
     print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -206,14 +253,18 @@ for i in range(1, size - 1):
     list.append(board_field(row, col))
     row -= 1
     col += 1
-  last = add_lin (list, num_bits_size - 1)
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_size - 1)
+  else:
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   else:
     print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -227,14 +278,18 @@ for i in range(1, size):
     list.append (board_field(row, col))
     row -= 1
     col -= 1
-  last = add_lin(list, num_bits_size - 1)
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_size - 1)
+  else:
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   else:
     print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -248,14 +303,18 @@ for i in range(1, size - 1):
     list.append (board_field(row, col))
     row -= 1
     col -= 1
-  last = add_lin (list, num_bits_size - 1)
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_size - 1)
+  else:
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list)
   if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
      mode == NO_THREE_IN_LINE_MODE_GT2N:
     print "(flet ($e" + str(id) + " (bvult " + last + " bv3[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   else:
     print "(flet ($e" + str(id) + " (bvule " + last + " bv1[" + \
-          str(num_bits_size) + "]))"
+          str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
@@ -266,20 +325,24 @@ if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
   for i in range(size):
     for j in range(size):
       list.append (board_field(i, j))
-  last = add_lin (list, num_bits_fields - 1)
+  if encoding == SEQ_ADDER_ENCODING:
+    last, bw_adder = add_seq (list, num_bits_fields - 1)
+  else:
+    assert encoding == PAR_ADDER_ENCODING
+    last, bw_adder = add_par (list)
   if mode == QUEENS_MODE_NP1:
     print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
-           "[" + str(num_bits_fields) + "]))"
+           "[" + str(bw_adder) + "]))"
   elif mode == QUEENS_MODE_GTN:
     print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
-           "[" + str(num_bits_fields) + "]))"
+           "[" + str(bw_adder) + "]))"
   elif mode == NO_THREE_IN_LINE_MODE_2NP1:
     print "(flet ($e" + str(id) + " (= " + last + " bv" + \
-          str(2 * size + 1) + "[" + str(num_bits_fields) + "]))"
+          str(2 * size + 1) + "[" + str(bw_adder) + "]))"
   else:
     assert mode == NO_THREE_IN_LINE_MODE_GT2N
     print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + \
-          str(2 * size) + "[" + str(num_bits_fields) + "]))"
+          str(2 * size) + "[" + str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
