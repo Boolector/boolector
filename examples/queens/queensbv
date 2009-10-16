@@ -434,10 +434,6 @@ for i in range(1, size - 1):
   constraints.append ("$e" + str(id))
   id += 1
 
-# ITE encoding explodes for further constraints, switch to parallel encoding
-if encoding == ITE_ENCODING:
-  encoding = PAR_ADDER_ENCODING
-
 # generate additional constraints
 if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
    mode ==  NO_THREE_IN_LINE_MODE_2NP1 or mode == NO_THREE_IN_LINE_MODE_GT2N:
@@ -445,24 +441,35 @@ if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
   for i in range(size):
     for j in range(size):
       list.append (board_field(i, j))
-  if encoding == SEQ_ADDER_ENCODING:
-    last, bw_adder = add_seq (list, num_bits_fields - 1)
+  if encoding == ITE_ENCODING:
+    if mode == QUEENS_MODE_NP1:
+      ite_encode_eq (list, size + 1)
+    elif mode == QUEENS_MODE_GTN:
+      ite_encode_ge (list, size + 1)
+    elif mode == NO_THREE_IN_LINE_MODE_2NP1:
+      ite_encode_eq (list, 2 * size + 1)
+    else:
+      ite_encode_ge (list, 2 * size + 1)
+      assert mode == NO_THREE_IN_LINE_MODE_GT2N
   else:
-    assert encoding == PAR_ADDER_ENCODING
-    last, bw_adder = add_par (list)
-  if mode == QUEENS_MODE_NP1:
-    print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
-           "[" + str(bw_adder) + "]))"
-  elif mode == QUEENS_MODE_GTN:
-    print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
-           "[" + str(bw_adder) + "]))"
-  elif mode == NO_THREE_IN_LINE_MODE_2NP1:
-    print "(flet ($e" + str(id) + " (= " + last + " bv" + \
-          str(2 * size + 1) + "[" + str(bw_adder) + "]))"
-  else:
-    assert mode == NO_THREE_IN_LINE_MODE_GT2N
-    print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + \
-          str(2 * size) + "[" + str(bw_adder) + "]))"
+    if encoding == SEQ_ADDER_ENCODING:
+      last, bw_adder = add_seq (list, num_bits_fields - 1)
+    else:
+      assert encoding == PAR_ADDER_ENCODING
+      last, bw_adder = add_par (list)
+    if mode == QUEENS_MODE_NP1:
+      print "(flet ($e" + str(id) + " (= " + last + " bv" + str(size + 1) + \
+             "[" + str(bw_adder) + "]))"
+    elif mode == QUEENS_MODE_GTN:
+      print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + str(size) + \
+             "[" + str(bw_adder) + "]))"
+    elif mode == NO_THREE_IN_LINE_MODE_2NP1:
+      print "(flet ($e" + str(id) + " (= " + last + " bv" + \
+            str(2 * size + 1) + "[" + str(bw_adder) + "]))"
+    else:
+      assert mode == NO_THREE_IN_LINE_MODE_GT2N
+      print "(flet ($e" + str(id) + " (bvugt " + last + " bv" + \
+            str(2 * size) + "[" + str(bw_adder) + "]))"
   constraints.append ("$e" + str(id))
   id += 1
 
