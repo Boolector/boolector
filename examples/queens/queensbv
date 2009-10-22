@@ -305,7 +305,7 @@ elif encoding == PAR_ADDER_ENCODING:
 elif encoding == ITE_ENCODING:
   print "Cardinality constraints are encoded by ITEs"
 else:
-  assert encoding == LOOKUP_ENCODING:
+  assert encoding == LOOKUP_ENCODING
   print "Cardinality constraints are encoded by lookups and parallel adders"
 print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
 print "}"
