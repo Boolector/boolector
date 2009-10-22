@@ -144,7 +144,6 @@ def concat_list_8 (list):
   id += 1
   return last
 
-
 def add_lookup_8_4 (list):
   global id
   global lookup
@@ -230,7 +229,6 @@ def ite_encode_ge (list, k):
   result = ite_encode_lt_rec (list, 0, 0, k)
   sys.stdout.write("(flet ($e" + str(id) + " (not " + result +"))\n")
 
-
 try:
   opts, args = getopt.getopt(sys.argv[1:], "hm:s:e:")
 except getopt.GetoptError, err:
@@ -300,6 +298,15 @@ elif mode == NO_THREE_IN_LINE_MODE_2NP1:
         " queens on a " + str(size) + " x " + str(size) + " board"
 elif mode == NO_THREE_IN_LINE_MODE_GT2N:
   print "We try to place m queens on an n x n board with m > 2n"
+if encoding == SEQ_ADDER_ENCODING:
+  print "Cardinality constraints are encoded by simple adder circuits"
+elif encoding == PAR_ADDER_ENCODING:
+  print "Cardinality constraints are encoded by parallel adder circuits"
+elif encoding == ITE_ENCODING:
+  print "Cardinality constraints are encoded by ITEs"
+else 
+  assert encoding == LOOKUP_ENCODING:
+  print "Cardinality constraints are encoded by lookups and parallel adders"
 print "Contributed by Robert Brummayer (robert.brummayer@gmail.com)"
 print "}"
 if mode == QUEENS_MODE:
