@@ -322,6 +322,38 @@ def shift_encode_eq_2 (list, shiftvarlist):
   id += 1
   print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
 
+def shift_encode_eq_k (list, shiftvarlist, k):
+  global id
+
+  assert list != None
+  assert len(list) >= 2
+  assert shiftvarlist != None
+  assert k > 2
+  assert len(shiftvarlist) >= k
+
+  listlen = len(list)
+  log2listlen = log2(listlen)
+  orlist = []
+  for i in range (k):
+    print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+          "(zero_extend[" + str(listlen - log2listlen) + "] " + \
+          shiftvarlist.pop() + ")))"
+    last = "?e" + str(id)
+    id += 1
+    orlist.append (last)
+  orshift = or_par (orlist, listlen)
+  vec = concat_lin (list)
+  print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
+  and1 = "$e" + str(id)
+  id += 1
+  print "(flet ($e" + str(id) + " (distinct",
+  for i in range(len(orlist)):
+    print orlist[i],
+  print "))"
+  and2 = "$e" + str(id)
+  id += 1
+  print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
+
 def shift_encode_le_1 (list, shiftvarlist):
   global id
 
@@ -415,8 +447,9 @@ if encoding == SHIFTER_ENCODING:
     die ("shifter encoding needs that the board size is a power of two")
   logsize = log2(size)
 
+sizesqr = size * size
 num_bits_size = log2 (next_power_of_2 (size + 1))
-num_bits_fields = log2 (next_power_of_2 (size * size + 1))
+num_bits_fields = log2 (next_power_of_2 (sizesqr + 1))
 
 if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
    mode == NO_THREE_IN_LINE_MODE_GT2N:
@@ -486,22 +519,35 @@ if encoding == SHIFTER_ENCODING:
         shiftvarscounter += 1
         varlist.append(var)
     shiftvarslistmap[str(logsize)] = varlist
-    for j in range (2, size + 1):
-      jstring = str(j)
-      if shiftvarslistmap.has_key (jstring):
-        varlist = shiftvarslistmap[jstring]
+    for i in range (2, size + 1):
+      istring = str(i)
+      if shiftvarslistmap.has_key (istring):
+        varlist = shiftvarslistmap[istring]
       else:
         varlist = []
-      if j == size:
+      if i == size:
         limit = 2
       else:
         limit = 4
-      for k in range (limit):
+      for j in range(limit):
         var = "v" + str(shiftvarscounter)
-        print ":extrafuns ((" + var + " BitVec[" + jstring + "]))"
+        print ":extrafuns ((" + var + " BitVec[" + istring + "]))"
         shiftvarscounter += 1
         varlist.append(var)
-      shiftvarslistmap[jstring] = varlist
+      shiftvarslistmap[istring] = varlist
+
+    if mode == QUEENS_MODE_NP1:
+      log2sizesqr = log2 (sizesqr)
+      if shiftvarslistmap.has_key (str(log2sizesqr)):
+        varlist = shiftvarslistmap[str(log2sizesqr)]
+      else:
+        varlist = []
+      for i in range(size + 1):
+        var = "v" + str(shiftvarscounter)
+        print ":extrafuns ((" + var + " BitVec[" + str(log2sizesqr) + "]))"
+        shiftvarscounter += 1
+        varlist.append(var)
+      shiftvarslistmap[str(log2sizesqr)] = varlist
 
 
 print ":formula"
@@ -790,6 +836,16 @@ if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
     else:
       ite_encode_ge (list, 2 * size + 1)
       assert mode == NO_THREE_IN_LINE_MODE_GT2N
+  elif encoding == SHIFTER_ENCODING:
+    if mode == QUEENS_MODE_NP1:
+      shift_encode_eq_k (list, shiftvarslistmap[str(log2(sizesqr))], size + 1)
+    elif mode == QUEENS_MODE_GTN:
+      assert false
+    elif mode == NO_THREE_IN_LINE_MODE_2NP1:
+      assert false
+    else:
+      assert mode == NO_THREE_IN_LINE_MODE_GT2N
+      assert false
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_fields - 1)
