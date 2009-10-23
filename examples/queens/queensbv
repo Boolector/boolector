@@ -120,6 +120,30 @@ def add_par (list, bw):
     bw += 1
   return last, bw 
 
+def or_par (list, bw):
+  global id
+
+  assert list != None
+  assert len (list) >= 2
+  assert bw > 0
+
+  while len(list) != 1:
+    i = 0
+    next = []
+    while i < len(list):
+      if i != len(list) - 1:
+        print "(let (?e" + str(id) + " (bvor " + list[i] + " " + list[i + 1] + \
+              "))"
+      else:
+        print "(let (?e" + str(id) + " (bvor " + list[i] + " " + \
+              "bv0[" + str(bw) + "]))"
+      last = "?e" + str(id)
+      next.append(last)
+      id += 1
+      i += 2
+    list = next
+  return last 
+
 def concat_list_8 (list):
   global id
 
@@ -298,6 +322,51 @@ def shift_encode_eq_2 (list, shiftvarlist):
   id += 1
   print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
 
+def shift_encode_le_1 (list, shiftvarlist):
+  global id
+
+  assert list != None
+  assert len(list) >= 2
+  assert shiftvarlist != None
+  assert len(shiftvarlist) >= 1
+
+  listlen = len(list)
+  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+        shiftvarlist.pop() + "))"
+  last = "?e" + str(id)
+  id += 1
+  vec = concat_lin (list)
+  print "(flet ($e" + str(id) + " (= " + last + " " + vec + "))"
+
+def shift_encode_le_2 (list, shiftvarlist):
+  global id
+
+  assert list != None
+  assert len(list) >= 2
+  assert shiftvarlist != None
+  assert len(shiftvarlist) >= 1
+  
+  listlen = len(list)
+  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+        shiftvarlist.pop() + "))"
+  shift1 = "?e" + str(id)
+  id += 1
+  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+        shiftvarlist.pop() + "))"
+  shift2 = "?e" + str(id)
+  id += 1
+  print "(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" 
+  orshift = "?e" + str(id)
+  id += 1
+  vec = concat_lin (list)
+  print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
+  and1 = "$e" + str(id)
+  id += 1
+  print "(flet ($e" + str(id) + " (not (= " + shift1 + " " + shift2 + ")))"
+  and2 = "$e" + str(id)
+  id += 1
+  print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
+
 
 try:
   opts, args = getopt.getopt(sys.argv[1:], "hm:s:e:")
@@ -405,16 +474,35 @@ for i in range(size):
 
 #generate additional variables for shifters
 if encoding == SHIFTER_ENCODING:
-  varlist = [] 
-  #generate variables for rows and cols
-  assert is_power_of_2 (size)
-  for i in range(2):
-    for j in range (size):
-      var = "v" + str(shiftvarscounter)
-      print ":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))"
-      shiftvarscounter += 1
-      varlist.append(var)
-  shiftvarslistmap[str(logsize)] = varlist
+  if mode == QUEENS_MODE or mode == QUEENS_MODE_NP1 or \
+     mode == QUEENS_MODE_GTN:
+    varlist = [] 
+    #generate variables for rows and cols
+    assert is_power_of_2 (size)
+    for i in range(2):
+      for j in range (size):
+        var = "v" + str(shiftvarscounter)
+        print ":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))"
+        shiftvarscounter += 1
+        varlist.append(var)
+    shiftvarslistmap[str(logsize)] = varlist
+    for j in range (2, size + 1):
+      jstring = str(j)
+      if shiftvarslistmap.has_key (jstring):
+        varlist = shiftvarslistmap[jstring]
+      else:
+        varlist = []
+      if j == size:
+        limit = 2
+      else:
+        limit = 4
+      for k in range (limit):
+        var = "v" + str(shiftvarscounter)
+        print ":extrafuns ((" + var + " BitVec[" + jstring + "]))"
+        shiftvarscounter += 1
+        varlist.append(var)
+      shiftvarslistmap[jstring] = varlist
+
 
 print ":formula"
 
@@ -532,6 +620,12 @@ for i in range(1, size):
       ite_encode_lt (list, 3)
     else:
       ite_encode_lt (list, 2)
+  elif encoding == SHIFTER_ENCODING:
+    if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
+       mode == NO_THREE_IN_LINE_MODE_GT2N:
+      shift_encode_le_2 (list, shiftvarslistmap[str(len(list))])
+    else:
+      shift_encode_le_1 (list, shiftvarslistmap[str(len(list))])
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_size - 1)
@@ -569,6 +663,12 @@ for i in range(1, size - 1):
       ite_encode_lt (list, 3)
     else:
       ite_encode_lt (list, 2)
+  elif encoding == SHIFTER_ENCODING:
+    if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
+       mode == NO_THREE_IN_LINE_MODE_GT2N:
+      shift_encode_le_2 (list, shiftvarslistmap[str(len(list))])
+    else:
+      shift_encode_le_1 (list, shiftvarslistmap[str(len(list))])
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_size - 1)
@@ -606,6 +706,12 @@ for i in range(1, size):
       ite_encode_lt (list, 3)
     else:
       ite_encode_lt (list, 2)
+  elif encoding == SHIFTER_ENCODING:
+    if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
+       mode == NO_THREE_IN_LINE_MODE_GT2N:
+      shift_encode_le_2 (list, shiftvarslistmap[str(len(list))])
+    else:
+      shift_encode_le_1 (list, shiftvarslistmap[str(len(list))])
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_size - 1)
@@ -643,6 +749,12 @@ for i in range(1, size - 1):
       ite_encode_lt (list, 3)
     else:
       ite_encode_lt (list, 2)
+  elif encoding == SHIFTER_ENCODING:
+    if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
+       mode == NO_THREE_IN_LINE_MODE_GT2N:
+      shift_encode_le_2 (list, shiftvarslistmap[str(len(list))])
+    else:
+      shift_encode_le_1 (list, shiftvarslistmap[str(len(list))])
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_size - 1)
