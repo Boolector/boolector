@@ -144,6 +144,33 @@ def or_par (list, bw):
     list = next
   return last 
 
+def and_par (list, bw):
+  global id
+
+  assert list != None
+  assert len (list) >= 2
+  assert bw > 0
+
+  bits = ""
+  for i in range(bw):
+    bits += "1"
+  while len(list) != 1:
+    i = 0
+    next = []
+    while i < len(list):
+      if i != len(list) - 1:
+        print "(let (?e" + str(id) + " (bvand " + list[i] + " " + \
+              list[i + 1] + "))"
+      else:
+        print "(let (?e" + str(id) + " (bvand " + list[i] + " " + \
+              "bv" + str(int(bits, 2)) + "[" + str(bw) + "]))"
+      last = "?e" + str(id)
+      next.append(last)
+      id += 1
+      i += 2
+    list = next
+  return last 
+
 def concat_list_8 (list):
   global id
 
@@ -354,6 +381,40 @@ def shift_encode_eq_k (list, shiftvarlist, k):
   id += 1
   print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
 
+def shift_encode_gt_k (list, shiftvarlist, shiftvarlistone, k):
+  global id
+
+  assert list != None
+  assert len(list) >= 2
+  assert shiftvarlist != None
+  assert shiftvarlistone != None
+  assert len(shiftvarlistone) > 0
+  assert k > 2
+  assert len(shiftvarlist) >= len(list) - k - 1 - 1
+
+  listlen = len(list)
+  log2listlen = log2(listlen)
+  andlist = []
+  bits = "10"
+  for i in range(2, listlen):
+    bits += "1"
+
+  print "(let (?e" + str(id) + " (concat " + shiftvarlistone.pop() + " bv" + \
+        str(2 ** (listlen - 2)) + "[" + str(listlen - 1) + "]))"
+  last = "?e" + str(id)
+  id += 1
+  andlist.append (last)
+
+  for i in range (1, len(list) - k - 1):
+    print "(let (?e" + str(id) + " (bvashr bv" + str(int(bits, 2)) + "[" + \
+          str(listlen) + "] " + shiftvarlist.pop() + "))"
+    last = "?e" + str(id)
+    id += 1
+    andlist.append (last)
+  andshift = and_par (andlist, listlen)
+  vec = concat_lin (list)
+  print "(flet ($e" + str(id) + " (= " + andshift + " " + vec + "))"
+
 def shift_encode_le_1 (list, shiftvarlist):
   global id
 
@@ -484,7 +545,7 @@ elif encoding == PAR_ADDER_ENCODING:
 elif encoding == ITE_ENCODING:
   print "Cardinality constraints are encoded by ITEs"
 elif encoding == SHIFTER_ENCODING:
-  print "Cardinality constraints are encoded by shifter and OR circuits"
+  print "Cardinality constraints are encoded by shifters"
 else:
   assert encoding == LOOKUP_ENCODING
   print "Cardinality constraints are encoded by lookups and parallel adders"
@@ -548,6 +609,28 @@ if encoding == SHIFTER_ENCODING:
         shiftvarscounter += 1
         varlist.append(var)
       shiftvarslistmap[str(log2sizesqr)] = varlist
+    else:
+      assert mode == QUEENS_MODE_GTN
+      if shiftvarslistmap.has_key ("1"):
+        varlist = shiftvarslistmap["1"]
+      else:
+        varlist = []
+      var = "v" + str(shiftvarscounter)
+      print ":extrafuns ((" + var + " BitVec[1]))"
+      shiftvarscounter += 1
+      varlist.append(var)
+      shiftvarslistmap["1"] = varlist
+
+      if shiftvarslistmap.has_key (str(sizesqr)):
+        varlist = shiftvarslistmap[str(sizesqr)]
+      else:
+        varlist = []
+      for i in range(1, sizesqr - size - 1):
+        var = "v" + str(shiftvarscounter)
+        print ":extrafuns ((" + var + " BitVec[" + str(sizesqr) + "]))"
+        shiftvarscounter += 1
+        varlist.append(var)
+      shiftvarslistmap[str(sizesqr)] = varlist
 
 
 print ":formula"
@@ -840,7 +923,8 @@ if mode == QUEENS_MODE_NP1 or mode == QUEENS_MODE_GTN or \
     if mode == QUEENS_MODE_NP1:
       shift_encode_eq_k (list, shiftvarslistmap[str(log2(sizesqr))], size + 1)
     elif mode == QUEENS_MODE_GTN:
-      assert false
+      shift_encode_gt_k (list, shiftvarslistmap[str(sizesqr)], \
+                         shiftvarslistmap["1"], size)
     elif mode == NO_THREE_IN_LINE_MODE_2NP1:
       assert false
     else:
