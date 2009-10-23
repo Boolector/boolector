@@ -12,6 +12,7 @@ SEQ_ADDER_ENCODING = 0
 PAR_ADDER_ENCODING = 1
 ITE_ENCODING = 2
 LOOKUP_ENCODING = 3
+SHIFTER_ENCODING = 4
 
 def usage():
   print "usage: queensbv [-h] [-s <size>] [-m <mode>] [-e <encoding>]"
@@ -29,6 +30,7 @@ def usage():
   print "   1:  parallel adder encoding"
   print "   2:  if-then-else encoding"
   print "   3:  lookup encoding"
+  print "   4:  shifter encoding"
   print ""
   sys.exit(0)
 
@@ -72,6 +74,9 @@ id = 1
 constraints = [] 
 num_bits_size = 0
 num_bits_fields = 0
+shiftvarslistmap = {}
+shiftvarscounter = 0
+logsize = -1 
 
 def add_seq (list, ext):
   global id
@@ -229,6 +234,71 @@ def ite_encode_ge (list, k):
   result = ite_encode_lt_rec (list, 0, 0, k)
   sys.stdout.write("(flet ($e" + str(id) + " (not " + result +"))\n")
 
+def concat_lin (list):
+  global id
+
+  assert list != None
+  assert len(list) >= 2
+  print "(let (?e" + str(id) + " (concat " + list[0] + " " + list[1] + "))"
+  last = "?e" + str(id)
+  id += 1
+  for i in range (2, len(list)):
+    print "(let (?e" + str(id) + " (concat " + last + " " + list[i] + "))"
+    last = "?e" + str(id)
+    id += 1
+  return last
+
+def shift_encode_eq_1 (list, shiftvarlist):
+  global id
+  global logsize
+
+  assert list != None
+  assert len(list) >= 2
+  assert shiftvarlist != None
+  assert len(shiftvarlist) >= 1
+  
+  listlen = len(list)
+  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+        "(zero_extend[" + str(listlen - logsize) + "] " + \
+        shiftvarlist.pop() + ")))"
+  last = "?e" + str(id)
+  id += 1
+  vec = concat_lin (list)
+  print "(flet ($e" + str(id) + " (= " + last + " " + vec + "))"
+
+def shift_encode_eq_2 (list, shiftvarlist):
+  global id
+  global logsize
+
+  assert list != None
+  assert len(list) >= 2
+  assert shiftvarlist != None
+  assert len(shiftvarlist) >= 1
+  
+  listlen = len(list)
+  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+        "(zero_extend[" + str(listlen - logsize) + "] " + \
+        shiftvarlist.pop() + ")))"
+  shift1 = "?e" + str(id)
+  id += 1
+  print "(let (?e" + str(id) + " (bvshl bv1[" + str(listlen) + "] " + \
+        "(zero_extend[" + str(listlen - logsize) + "] " + \
+        shiftvarlist.pop() + ")))"
+  shift2 = "?e" + str(id)
+  id += 1
+  print "(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" 
+  orshift = "?e" + str(id)
+  id += 1
+  vec = concat_lin (list)
+  print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
+  and1 = "$e" + str(id)
+  id += 1
+  print "(flet ($e" + str(id) + " (not (= " + shift1 + " " + shift2 + ")))"
+  and2 = "$e" + str(id)
+  id += 1
+  print "(flet ($e" + str(id) + " (and " + and1 + " " + and2 + "))"
+
+
 try:
   opts, args = getopt.getopt(sys.argv[1:], "hm:s:e:")
 except getopt.GetoptError, err:
@@ -262,12 +332,19 @@ for o, a in opts:
       encoding = ITE_ENCODING
     elif a == "3":
       encoding = LOOKUP_ENCODING
+    elif a == "4":
+      encoding = SHIFTER_ENCODING
     else:
-      die ("encoding must be >= 0 and <= 3")
+      die ("encoding must be >= 0 and <= 4")
   elif o in ("-s"):
     size = int (a)
     if size < 4:
       die ("size must be >= 4")
+
+if encoding == SHIFTER_ENCODING:  
+  if not is_power_of_2 (size):
+    die ("shifter encoding needs that the board size is a power of two")
+  logsize = log2(size)
 
 num_bits_size = log2 (next_power_of_2 (size + 1))
 num_bits_fields = log2 (next_power_of_2 (size * size + 1))
@@ -304,6 +381,8 @@ elif encoding == PAR_ADDER_ENCODING:
   print "Cardinality constraints are encoded by parallel adder circuits"
 elif encoding == ITE_ENCODING:
   print "Cardinality constraints are encoded by ITEs"
+elif encoding == SHIFTER_ENCODING:
+  print "Cardinality constraints are encoded by shifter and OR circuits"
 else:
   assert encoding == LOOKUP_ENCODING
   print "Cardinality constraints are encoded by lookups and parallel adders"
@@ -323,6 +402,20 @@ else:
 for i in range(size):
   for j in range(size):
     print ":extrafuns ((" + board_field(i, j) + " BitVec[1]))"
+
+#generate additional variables for shifters
+if encoding == SHIFTER_ENCODING:
+  varlist = [] 
+  #generate variables for rows and cols
+  assert is_power_of_2 (size)
+  for i in range(2):
+    for j in range (size):
+      var = "v" + str(shiftvarscounter)
+      print ":extrafuns ((" + var + " BitVec[" + str(logsize) + "]))"
+      shiftvarscounter += 1
+      varlist.append(var)
+  shiftvarslistmap[str(logsize)] = varlist
+
 print ":formula"
 
 #generate lookup table
@@ -360,6 +453,12 @@ for i in range(size):
       ite_encode_eq (list, 2);
     else:
       ite_encode_eq (list, 1);
+  elif encoding == SHIFTER_ENCODING:
+    if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
+       mode == NO_THREE_IN_LINE_MODE_GT2N:
+      shift_encode_eq_2 (list, shiftvarslistmap[str(logsize)]);
+    else:
+      shift_encode_eq_1 (list, shiftvarslistmap[str(logsize)]);
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_size - 1) 
@@ -389,6 +488,12 @@ for i in range(size):
       ite_encode_eq (list, 2)
     else:
       ite_encode_eq (list, 1)
+  elif encoding == SHIFTER_ENCODING:
+    if mode == NO_THREE_IN_LINE_MODE or mode == NO_THREE_IN_LINE_MODE_2NP1 or \
+       mode == NO_THREE_IN_LINE_MODE_GT2N:
+      shift_encode_eq_2 (list, shiftvarslistmap[str(logsize)]);
+    else:
+      shift_encode_eq_1 (list, shiftvarslistmap[str(logsize)]);
   else:
     if encoding == SEQ_ADDER_ENCODING:
       last, bw_adder = add_seq (list, num_bits_size - 1) 
