@@ -171,35 +171,6 @@ def and_par (list, bw):
     list = next
   return last 
 
-def concat_list_8 (list):
-  global id
-
-  assert list != None
-  assert len(list) == 8
-
-  print "(let (?e" + str(id) + " (concat " + list[0] + " " + list[1] + "))"
-  c1 = "?e" + str(id)
-  id += 1
-  print "(let (?e" + str(id) + " (concat " + list[2] + " " + list[3] + "))"
-  c2 = "?e" + str(id)
-  id += 1
-  print "(let (?e" + str(id) + " (concat " + list[4] + " " + list[5] + "))"
-  c3 = "?e" + str(id)
-  id += 1
-  print "(let (?e" + str(id) + " (concat " + list[6] + " " + list[7] + "))"
-  c4 = "?e" + str(id)
-  id += 1
-  print "(let (?e" + str(id) + " (concat " + c1 + " " + c2 + "))" 
-  c5 = "?e" + str(id)
-  id += 1
-  print "(let (?e" + str(id) + " (concat " + c3 + " " + c4 + "))" 
-  c6 = "?e" + str(id)
-  id += 1
-  print "(let (?e" + str(id) + " (concat " + c5 + " " + c6 + "))" 
-  last = "?e" + str(id)
-  id += 1
-  return last
-
 def add_lookup_8_4 (list):
   global id
   global lookup
@@ -218,7 +189,7 @@ def add_lookup_8_4 (list):
         concatlist.append (list[i * 8 + j])
       else:
         concatlist.append ("bv0[1]")
-    last = concat_list_8 (concatlist)
+    last = concat_list (concatlist)
     print "(let (?e" + str(id) + " (select " + lookup + " " + last + "))"
     last = "?e" + str(id)
     id += 1
@@ -285,19 +256,28 @@ def ite_encode_ge (list, k):
   result = ite_encode_lt_rec (list, 0, 0, k)
   sys.stdout.write("(flet ($e" + str(id) + " (not " + result +"))\n")
 
-def concat_lin (list):
+def concat_list (list):
   global id
 
   assert list != None
   assert len(list) >= 2
-  print "(let (?e" + str(id) + " (concat " + list[0] + " " + list[1] + "))"
-  last = "?e" + str(id)
-  id += 1
-  for i in range (2, len(list)):
-    print "(let (?e" + str(id) + " (concat " + last + " " + list[i] + "))"
-    last = "?e" + str(id)
-    id += 1
-  return last
+
+  while len(list) != 1:
+    i = 0
+    next = []
+    while i < len(list):
+      if i != len(list) - 1:
+        print "(let (?e" + str(id) + " (concat " + list[i] + " " + \
+                list[i + 1] + "))"
+      else:
+        next.pop()
+        print "(let (?e" + str(id) + " (concat " + last + " " + list[i] + "))" 
+      last = "?e" + str(id)
+      next.append(last)
+      id += 1
+      i += 2
+    list = next
+  return last 
 
 def shift_encode_eq_1 (list, shiftvarlist):
   global id
@@ -314,7 +294,7 @@ def shift_encode_eq_1 (list, shiftvarlist):
         shiftvarlist.pop() + ")))"
   last = "?e" + str(id)
   id += 1
-  vec = concat_lin (list)
+  vec = concat_list (list)
   print "(flet ($e" + str(id) + " (= " + last + " " + vec + "))"
 
 def shift_encode_eq_2 (list, shiftvarlist):
@@ -340,7 +320,7 @@ def shift_encode_eq_2 (list, shiftvarlist):
   print "(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" 
   orshift = "?e" + str(id)
   id += 1
-  vec = concat_lin (list)
+  vec = concat_list (list)
   print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
   and1 = "$e" + str(id)
   id += 1
@@ -369,7 +349,7 @@ def shift_encode_eq_k (list, shiftvarlist, k):
     id += 1
     orlist.append (last)
   orshift = or_par (orlist, listlen)
-  vec = concat_lin (list)
+  vec = concat_list (list)
   print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
   and1 = "$e" + str(id)
   id += 1
@@ -412,7 +392,7 @@ def shift_encode_gt_k (list, shiftvarlist, shiftvarlistone, k):
     id += 1
     andlist.append (last)
   andshift = and_par (andlist, listlen)
-  vec = concat_lin (list)
+  vec = concat_list (list)
   print "(flet ($e" + str(id) + " (= " + andshift + " " + vec + "))"
 
 def shift_encode_le_1 (list, shiftvarlist):
@@ -428,7 +408,7 @@ def shift_encode_le_1 (list, shiftvarlist):
         shiftvarlist.pop() + "))"
   last = "?e" + str(id)
   id += 1
-  vec = concat_lin (list)
+  vec = concat_list (list)
   print "(flet ($e" + str(id) + " (= " + last + " " + vec + "))"
 
 def shift_encode_le_2 (list, shiftvarlist):
@@ -451,7 +431,7 @@ def shift_encode_le_2 (list, shiftvarlist):
   print "(let (?e" + str(id) + " (bvor " + shift1 + " " + shift2 + "))" 
   orshift = "?e" + str(id)
   id += 1
-  vec = concat_lin (list)
+  vec = concat_list (list)
   print "(flet ($e" + str(id) + " (= " + orshift + " " + vec + "))"
   and1 = "$e" + str(id)
   id += 1
