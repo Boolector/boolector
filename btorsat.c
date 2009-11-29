@@ -88,7 +88,7 @@ static void
 btor_picosat_init (void)
 {
   picosat_init ();
-  picosat_set_global_default_phase (-1);
+  picosat_set_global_default_phase (0);
 }
 
 static void
