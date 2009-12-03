@@ -5749,16 +5749,18 @@ static BtorExp *
 vread_index_exp (Btor *btor, int len)
 {
   char *symbol;
+  size_t bytes;
   BtorExp *result;
   assert (btor != NULL);
   assert (len > 0);
   BTOR_ABORT_EXP (btor->id == INT_MAX, "vread index id overflow");
-  symbol = (char *) malloc (
-      sizeof (char) * (6 + btor_num_digits_util (btor->vread_index_id) + 1));
+  bytes = 6 + btor_num_digits_util (btor->vread_index_id) + 1;
+  bytes *= sizeof (char);
+  symbol = (char *) btor_malloc (btor->mm, bytes);
   sprintf (symbol, "vindex%d", btor->vread_index_id);
   btor->vread_index_id++;
   result = btor_var_exp (btor, len, symbol);
-  free (symbol);
+  btor_free (btor->mm, symbol, bytes);
   return result;
 }
 
