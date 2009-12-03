@@ -26,7 +26,7 @@ btor_precosat_version (void)
 void
 btor_precosat_init (void)
 {
-  assert (!solver);
+  if (solver) solver.reset ();
   assert (emgr);
   assert (new_for_precosat);
   assert (delete_for_precosat);
@@ -77,7 +77,6 @@ btor_precosat_reset (void)
   resize_for_precosat    = 0;
   added_original_clauses = 0;
   solver.reset ();
-  memset (&solver, 0, sizeof solver);
 }
 
 void
