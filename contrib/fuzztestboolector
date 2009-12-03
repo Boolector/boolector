@@ -162,10 +162,12 @@ do
       $btorgenjava 2> /dev/null | sed -e 's,nego,redxor,g' | btorold2new > "$file";;
     1)suffix=btor 
       file=${filename}.${suffix}
+      file=${filename}.${suffix}
       n=$RANDOM 
       ((n &= 1023)) 
       $btorgen -n $n 2> /dev/null | btorold2new > "$file";;
     2)suffix=smt
+      file=${filename}.${suffix}
       file=${filename}.${suffix}
       v=$RANDOM
       ((v &= 15))
@@ -176,37 +178,17 @@ do
       $fuzzsmtbv -v $v -c $c 2> /dev/null > "$file";;
     3)suffix=smt
       file=${filename}.${suffix}
-      v=$RANDOM
-      ((v &= 15))
-      # we need at least one variable
-      ((v++))
-      c=$RANDOM
-      ((c &= 7))
+      file=${filename}.${suffix}
       randflag=$RANDOM
       ((randflag &= 1))
       if [[ $randflag -eq 1 ]]; then
-        $fuzzsmt QF_BV -v $v -c $c 2> /dev/null > "$file"
+        $fuzzsmt QF_BV 2> /dev/null > "$file"
       else
         #checkmodel script does does not support bit-width > 8
         bw=$RANDOM
         ((bw &= 7))
         ((bw++))
-        a=$RANDOM
-        # we need at least one array 
-        ((a &= 7))
-        ((a++))
-        r=$RANDOM
-        ((r &= 15))
-        ((r++))
-        w=$RANDOM
-        ((w &= 15))
-        randflag=$RANDOM
-        ((randflag &= 1))
-        if [[ $randflag -eq 1 ]]; then
-          $fuzzsmt QF_AUFBV -M $bw -x -v $v -c $c -a $a -r $r -w $w 2> /dev/null > "$file"
-        else
-          $fuzzsmt QF_AUFBV -M $bw -v $v -c $c -a $a -r $r -w $w 2> /dev/null > "$file"
-        fi
+        $fuzzsmt QF_AUFBV -Mbw $bw -Mxn 5 2> /dev/null > "$file"
       fi
   esac
 
