@@ -34,9 +34,9 @@ extract the sources in the same directory, rename the PrecoSAT directory
 and compile.  For version 456 of PrecoSAT this works as follows:
 
   cd <directory-where-you-extracted-boolector-sources>
-  wget http://fmv.jku.at/precosat/precosat-465-02807a3-100208.tar.gz
-  tar xf precosat-465-02807a3-100208.tar.gz
-  ln -s precosat-465-02807a3-100208 precosat
+  wget http://fmv.jku.at/precosat/precosat-465r2-02807a3-100208.tar.gz
+  tar xf precosat-465r2-02807a3-100208.tar.gz
+  ln -s precosat-465r2-02807a3-100208 precosat
   cd precosat
   ./configure
   make
