@@ -1,3 +1,8 @@
+news for release 1.3 since 1.2
+------------------------------
+* first source code release
+* fixed a rewriting bug by uncommenting simplification code
+
 news for release 1.2 since 1.1
 ------------------------------
 * improved rewriting 

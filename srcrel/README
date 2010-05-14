@@ -1,0 +1,75 @@
+Boolector @VERSION@ 
+
+@DATE@
+
+Source code release of Boolector. 
+
+Boolector is an efficient SMT solver for the quantifier-free theory of
+bit-vectors in combination with the quantifier-free extensional theory of
+arrays.
+
+For compilation please obtain the latest source code of PicoSAT from
+  
+  http://fmv.jku.at/picosat
+
+Then extract from the archive the PicoSAT sources in the same directory
+in which you extracted the Boolector sources.  Rename or link the
+PicoSAT source directory to 'picosat'.  Then compile PicoSAT.  For
+version 935 of PicoSAT this works as follows:
+
+  cd <directory-where-you-extracted-boolector-sources>
+  wget http://fmv.jku.at/picosat/picosat-935.tar.gz
+  tar xf picosat-935.tar.gz
+  ln -s picosat-935 picosat
+  cd picosat
+  ./configure -O           # this will improve performance
+  make
+
+You may want to do the same with 'PrecoSAT', e.g. get the latest
+PrecoSAT sources from
+
+  http://fmv.jku.at/precosat
+
+extract the sources in the same directory, rename the PrecoSAT directory
+and compile.  For version 456 of PrecoSAT this works as follows:
+
+  cd <directory-where-you-extracted-boolector-sources>
+  wget http://fmv.jku.at/precosat/precosat-465-02807a3-100208.tar.gz
+  tar xf precosat-465-02807a3-100208.tar.gz
+  ln -s precosat-465-02807a3-100208 precosat
+  cd precosat
+  ./configure
+  make
+
+Note, that PicoSAT is required in any case, but PrecoSAT is optional, but
+it can give you substantial performance improvement for plain BV formulas.
+
+Then issue
+
+  ./configure
+  make
+
+or
+  
+  ./configure -precosat
+  make
+
+if you want to use PrecoSAT.
+
+This will produce the library 'libboolector.a' with its API
+'boolector.h', the stand-alone SMT solver 'boolector', a
+simple delta debugger 'deltabtor', and small tool 'synthebtor',
+which can be used to synthesize AIGs in Aiger format from BV.
+
+FIX: For a documentation of Boolector and its public interface
+see 'doc/html/index.html'.
+
+You may find more information on Booleactor at the website
+
+ http://fmv.jku.at/boolector
+
+Also see the file 'LICENSE' for license information.
+
+Robert Daniel Brummayer, Armin,
+Johannes Kepler University.
+Linz, Austria

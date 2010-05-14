@@ -1,0 +1,86 @@
+#!/bin/sh
+
+test=no
+force=no
+
+die () {
+  echo "*** mksrcrel: $*" 1>&2
+  exit 1
+}
+
+[ -f boolector.h ] || \
+die "can not find 'boolector.h' (call from boolector base directory)"
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h) echo "usage: mksrcrel [-f][-h][-t]";exit 0;;
+    -f) force=yes;;
+    -t) test=yes;;
+    *) die "invalid command line option '$1'";;
+  esac
+  shift
+done
+
+date=`date +%y%m%d`
+version=`cat VERSION`
+gitid=`./getgitid|sed -e 's,^.*\.,,' -e 's,\",,' -e 's,^\(.......\).*,\1,'`
+
+id="$version-$gitid-$date"
+name=boolector-$id
+if [ $test = yes ]
+then
+  dir=/tmp/boolector-test-mksrcrel
+else
+  dir="/tmp/$name"
+fi
+
+if [ -d $dir ]
+then
+  [ $force = no ] && die "$dir already exists (use '-f')"
+fi
+
+if [ $test = yes ]
+then
+  if [ ! -d $dir ]; then mkdir $dir || exit 1; fi
+  rm -rf $dir/*
+else
+  rm -rf $dir
+  mkdir $dir || exit 1
+fi
+
+cp -p \
+  VERSION \
+  LICENSE \
+  NEWS \
+  srcrel/configure \
+  boolector.[ch] \
+  boolectormain.[ch] \
+  btor*.[ch] \
+  btorpreco.cc \
+  deltabtor.c \
+  synthebtor.c \
+$dir/
+
+sed -e '/makefile.test/d' srcrel/makefile.in > $dir/makefile.in
+
+date=`date`
+sed -e 's,@VERSION@,'"`cat VERSION`," \
+    -e 's,@DATE@,'"$date," \
+srcrel/README > $dir/README
+
+sed -e '/#CUTHERE/,$d' mkconfig > $dir/mkconfig
+echo 'cat<<EOF' >> $dir/mkconfig
+echo "#define BTOR_RELEASED \"$date\"" >> $dir/mkconfig
+echo "#define BTOR_VERSION \"`cat VERSION`\"" >> $dir/mkconfig
+echo "#define BTOR_ID \"`./getgitid`\"" >> $dir/mkconfig
+echo EOF >>$dir/mkconfig
+chmod 755 $dir/mkconfig
+
+[ $test = yes ] && exit 0
+
+cd /tmp/
+rm -f $name.tar.gz
+tar zcf $name.tar.gz $name
+ls -l /tmp/$name.tar.gz | awk '{print $5, $NF}'
+rm -rf $dir

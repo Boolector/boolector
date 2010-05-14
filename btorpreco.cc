@@ -24,6 +24,7 @@ extern "C" {
 #include "btorpreco.h"
 using namespace PrecoSat;
 static Solver solver;
+static bool initialized;
 static void *emgr;
 static void *(*new_for_precosat) (void *, size_t);
 static void (*delete_for_precosat) (void *, void *, size_t);
@@ -45,7 +46,7 @@ btor_precosat_version (void)
 void
 btor_precosat_init (void)
 {
-  if (solver) solver.reset ();
+  if (initialized) solver.reset ();
   assert (emgr);
   assert (new_for_precosat);
   assert (delete_for_precosat);
@@ -53,6 +54,7 @@ btor_precosat_init (void)
   solver.set (emgr, new_for_precosat, delete_for_precosat, resize_for_precosat);
   solver.init ();
   solver.fxopts ();
+  initialized = true;
 }
 
 int

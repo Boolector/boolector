@@ -1,0 +1,67 @@
+#!/bin/sh
+
+debug=no
+precosat=no
+
+die () {
+  echo "*** configure: $*" 1>&2
+  exit 1
+}
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h) echo "usage: configure [-h][-g][-precosat]"; exit 0;;
+    -g) debug=yes;;
+    -precosat) precosat=yes;;
+    -*) die "invalid command line option '$1' (try '-h')";;
+  esac
+  shift
+done
+
+check () {
+ [ -f $1 ] || die "can not find '$1'" 
+}
+
+check ../picosat/picosat.h
+check ../picosat/version.o
+check ../picosat/picosat.o
+echo "picosat backend"
+
+if [ $precosat = yes ]
+then
+  check ../precosat/precosat.hh
+  check ../precosat/precosat.o
+  check ../precosat/precobnr.o
+  echo "precosat backend"
+fi
+
+CC=gcc
+CFLAGS=-Wall
+if [ $debug = yes ]
+then
+  CFLAGS="$CFLAGS -g"
+else
+  CFLAGS="$CFLAGS -O3 -DNDEBUG"
+fi
+
+if [ $precosat = yes ]
+then
+  CFLAGS="$CFLAGS -DBTOR_USE_PRECOSAT"
+  PRECOSAT="btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
+  LIBS="-lz -lstdc++"
+else
+  PRECOSAT=""
+  LIBS=""
+fi
+
+rm -f makefile
+sed \
+-e "s,@CC@,$CC," \
+-e "s,@CFLAGS@,$CFLAGS," \
+-e "s,@LIBS@,$LIBS," \
+-e "s,@PRECOSAT@,$PRECOSAT," \
+makefile.in > makefile
+
+echo "generated makefile"
+echo "run 'make' or 'make install'"

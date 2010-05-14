@@ -87,7 +87,7 @@ if [ $precosat = yes ]; then
   CFLAGS=$CFLAGS" -DBTOR_USE_PRECOSAT"
   PRECOSAT_OBJS="btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
   LIBS=$LIBS" -lz"
-  if [ x"`echo "$LIBS" | grep 'lstdc++'`" = x ]]; then
+  if [ x"`echo "$LIBS" | grep 'lstdc++'`" = x ]; then
     LIBS=$LIBS" -lstdc++"
   fi
 fi
