@@ -11,6 +11,7 @@ LIBS=@LIBS@
 SRC=$(shell ls *.c *.h)
 all: libboolector.a boolector deltabtor synthebtor
 -include dependencies
+btorpreco.o: btorpreco.cc makefile
 dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 boolector: boolectormain.o libboolector.a

@@ -98,6 +98,7 @@ btor_precosat_reset (void)
   resize_for_precosat    = 0;
   added_original_clauses = 0;
   solver.reset ();
+  initialized = false;
 }
 
 void
