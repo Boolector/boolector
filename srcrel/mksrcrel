@@ -63,7 +63,7 @@ cp -p \
   Doxyfile \
 $dir/
 
-tar cf - examples | ( cd $dir; tar xf -; )
+tar cf - examples/array examples/bv | ( cd $dir; tar xf -; )
 
 sed -e '/makefile.test/d' srcrel/makefile.in > $dir/makefile.in
 
