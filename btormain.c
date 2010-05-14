@@ -994,7 +994,8 @@ boolector_main (int argc, char **argv)
   if (app.verbosity > 0)
   {
     btor_msg_main_va_args ("Boolector %s %s\n", BTOR_VERSION, BTOR_ID);
-    btor_msg_main_va_args ("%s %s\n", BTOR_CC, BTOR_CFLAGS);
+    btor_msg_main_va_args ("%s\n", BTOR_CC);
+    btor_msg_main_va_args ("%s\n", BTOR_CFLAGS);
     btor_msg_main_va_args ("released %s\n", BTOR_RELEASED);
     btor_msg_main_va_args ("compiled %s\n", BTOR_COMPILED);
     if (*BTOR_CC) btor_msg_main_va_args ("%s\n", BTOR_CC);

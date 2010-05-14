@@ -60,7 +60,10 @@ cp -p \
   btorpreco.cc \
   deltabtor.c \
   synthebtor.c \
+  Doxyfile \
 $dir/
+
+tar cf - examples | ( cd $dir; tar xf -; )
 
 sed -e '/makefile.test/d' srcrel/makefile.in > $dir/makefile.in
 

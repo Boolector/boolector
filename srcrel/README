@@ -61,15 +61,23 @@ This will produce the library 'libboolector.a' with its API
 simple delta debugger 'deltabtor', and small tool 'synthebtor',
 which can be used to synthesize AIGs in Aiger format from BV.
 
-FIX: For a documentation of Boolector and its public interface
-see 'doc/html/index.html'.
+You find generators for mostly crafted benchmarks in the 'examples'
+sub-directory.  There are also some examples for using the API,
+which are described in the API documentation.  You can generate
+documentation on the API with 'doxygen'.  Run
+
+  doxygen
+
+in the top level source directory.  Then point your browser at
+
+  firefox doc/html/index.html 
 
 You may find more information on Booleactor at the website
 
  http://fmv.jku.at/boolector
 
-Also see the file 'LICENSE' for license information.
+See the 'LICENSE' file for license information.
 
-Robert Daniel Brummayer, Armin,
+Robert Daniel Brummayer, Armin Biere,
 Johannes Kepler University.
-Linz, Austria
+Linz, Austria, 2010.
