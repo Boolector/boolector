@@ -54,7 +54,14 @@ or
   ./configure -precosat
   make
 
-if you want to use PrecoSAT.
+if you want to use PrecoSAT.  Also note that PrecoSAT needs the
+development version 'zlib'.  On Ubuntu you can install it with
+
+  sudo aptitude install zlib1g-dev
+
+Using PrecoSAT will force 'libboolector.a' to depend not only on
+'libz.so' but also on 'libstdc++.so'.  Thus if you want to link
+'libboolector.a' against you own programs.  Then
 
 This will produce the library 'libboolector.a' with its API
 'boolector.h', the stand-alone SMT solver 'boolector', a
@@ -77,6 +84,14 @@ You may find more information on Booleactor at the website
  http://fmv.jku.at/boolector
 
 See the 'LICENSE' file for license information.
+
+In particular, this version of Boolector uses GPL. 
+In essence you can not distribute a program that uses
+this version of Boolector unless you make your program
+available under GPL as well.  If you need another license
+in order to use Boolector as part of a program which
+is not going to be distributed under GPL, please contact
+Armin Biere <biere@jku.at>.
 
 Robert Daniel Brummayer, Armin Biere,
 Johannes Kepler University.
