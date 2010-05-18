@@ -61,7 +61,8 @@ development version 'zlib'.  On Ubuntu you can install it with
 
 Using PrecoSAT will force 'libboolector.a' to depend not only on
 'libz.so' but also on 'libstdc++.so'.  Thus if you want to link
-'libboolector.a' against you own programs.  Then
+'libboolector.a' with PrecoSAT backend against you own programs,
+then you need to use '-lz -lstdc++' as linking options.
 
 This will produce the library 'libboolector.a' with its API
 'boolector.h', the stand-alone SMT solver 'boolector', a
