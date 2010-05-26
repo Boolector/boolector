@@ -51,7 +51,7 @@ fi
 
 cp -p \
   VERSION \
-  LICENSE \
+  COPYING \
   NEWS \
   srcrel/configure \
   boolector.[ch] \
