@@ -83,7 +83,7 @@ You may find more information on Booleactor at the website
 
  http://fmv.jku.at/boolector
 
-See the 'LICENSE' file for license information.
+See the COPYING file for license and copying information.
 
 In particular, this version of Boolector uses GPL. 
 In essence you can not distribute a program that uses
