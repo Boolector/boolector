@@ -41,7 +41,7 @@ and compile.  For version 456 of PrecoSAT this works as follows:
   ./configure
   make
 
-Note, that PicoSAT is required in any case, but PrecoSAT is optional, but
+Note, that PicoSAT is required in any case and PrecoSAT is optional, but
 it can give you substantial performance improvement for plain BV formulas.
 
 Then issue
@@ -55,18 +55,18 @@ or
   make
 
 if you want to use PrecoSAT.  Also note that PrecoSAT needs the
-development version 'zlib'.  On Ubuntu you can install it with
+development version of 'zlib'.  On Ubuntu you can install it with
 
   sudo aptitude install zlib1g-dev
 
 Using PrecoSAT will force 'libboolector.a' to depend not only on
 'libz.so' but also on 'libstdc++.so'.  Thus if you want to link
-'libboolector.a' with PrecoSAT backend against you own programs,
+'libboolector.a' with PrecoSAT backend against your own programs,
 then you need to use '-lz -lstdc++' as linking options.
 
 This will produce the library 'libboolector.a' with its API
 'boolector.h', the stand-alone SMT solver 'boolector', a
-simple delta debugger 'deltabtor', and small tool 'synthebtor',
+simple delta debugger 'deltabtor', and a small tool 'synthebtor',
 which can be used to synthesize AIGs in Aiger format from BV.
 
 In the 'examples' sub-directory you find two examples for using
