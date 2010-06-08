@@ -1774,6 +1774,12 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   parser->name   = name;
   parser->lineno = 1;
 
+  if (feof (file))
+  {
+    parser->saved      = 1;
+    parser->saved_char = EOF;
+  }
+
   BTOR_CLR (res);
 
 NEXT:

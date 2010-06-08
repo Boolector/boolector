@@ -2527,6 +2527,12 @@ parse (BtorSMTParser *parser,
   parser->lineno = 1;
   parser->saved  = 0;
 
+  if (feof (file))
+  {
+    parser->saved      = 1;
+    parser->saved_char = EOF;
+  }
+
   BTOR_CLR (res);
 
   assert (BTOR_EMPTY_STACK (parser->stack));
