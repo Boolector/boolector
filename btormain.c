@@ -210,14 +210,11 @@ static const char *g_copyright =
     "Copyright (c) 2007 - 2008, Robert Brummayer, Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
-    "\n"
-    "All rights reserved.\n"
-    "This version can only be used in a research environment.\n"
-    "Commercial usage is prohibited.\n";
+    "Licensed under the GNU Public License Version 3\n"
 
 #ifdef BTOR_HAVE_GETRUSAGE
-static double
-time_stamp (void)
+    static double
+    time_stamp (void)
 {
   double res = -1;
   struct rusage u;

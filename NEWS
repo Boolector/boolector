@@ -1,3 +1,8 @@
+news for release 1.4 since 1.3
+------------------------------
+* fixed EOF issue reading an empty file from stdin
+* removed old license references
+
 news for release 1.3 since 1.2
 ------------------------------
 * first source code release
