@@ -120,6 +120,15 @@ btor_picosat_enable_verbosity (void)
 /* BtorSAT                                                                */
 /*------------------------------------------------------------------------*/
 
+/* Avoid compile time warning with older versions of PicoSAT */
+
+static int
+my_picosat_add (int lit)
+{
+  (void) picosat_add (lit);
+  return 0;
+}
+
 BtorSATMgr *
 btor_new_sat_mgr (BtorMemMgr *mm)
 {
@@ -137,7 +146,7 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_name = "PicoSAT";
 
   smgr->ss_init             = btor_picosat_init;
-  smgr->ss_add              = picosat_add;
+  smgr->ss_add              = my_picosat_add;
   smgr->ss_sat              = picosat_sat;
   smgr->ss_deref            = picosat_deref;
   smgr->ss_reset            = picosat_reset;
