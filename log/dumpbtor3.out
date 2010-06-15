@@ -1,2 +1,7 @@
-12 const 1 0
-13 root 1 -12
+1 var 8
+2 var 8
+4 const 8 00000000
+5 eq 1 1 4
+7 eq 1 2 4
+8 root 1 -5
+9 root 1 -7
