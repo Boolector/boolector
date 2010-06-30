@@ -85,7 +85,7 @@ BtorMemMgr *btor_new_mem_mgr (void);
 
 void *btor_malloc (BtorMemMgr *mm, size_t size);
 
-void *btor_realloc (BtorMemMgr *mm, void *, size_t old, size_t new);
+void *btor_realloc (BtorMemMgr *mm, void *, size_t oldsz, size_t newsz);
 
 void *btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size);
 
