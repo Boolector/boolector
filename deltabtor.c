@@ -792,8 +792,9 @@ expand (void)
 static int
 run (void)
 {
+  int tmp = system (cmd), res = WEXITSTATUS (tmp);
   runs++;
-  return WEXITSTATUS (system (cmd));
+  return res;
 }
 
 static int
