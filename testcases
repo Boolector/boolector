@@ -690,22 +690,6 @@ regrdomabst1 -o log/regrdomabst1.log log/regrdomabst1.btor
 regrdomabst2 -o log/regrdomabst2.log log/regrdomabst2.btor
 regrdomabst3 -o log/regrdomabst3.log log/regrdomabst3.btor
 regrdomabst4 -o log/regrdomabst4.log log/regrdomabst4.btor
-headline1 -o log/headline1.log log/headline1.btor
-headline2 -o log/headline2.log log/headline2.btor
-headline3 -o log/headline3.log log/headline3.btor
-headline4 -o log/headline4.log log/headline4.btor
-headline5 -o log/headline5.log log/headline5.btor
-headline6 -o log/headline6.log log/headline6.btor
-headline7 -o log/headline7.log log/headline7.btor
-headline8 -o log/headline8.log log/headline8.btor
-headline9 -o log/headline9.log log/headline9.btor
-headline10 -o log/headline10.log log/headline10.btor
-headline11 -o log/headline11.log log/headline11.btor
-headline12 -o log/headline12.log log/headline12.btor
-headline13 -o log/headline13.log log/headline13.smt
-headline14 -o log/headline14.log log/headline14.btor
-headline15 -o log/headline15.log log/headline15.btor
-headline16 -o log/headline16.log log/headline16.btor
 problem_130 -m -o log/problem_130.log log/problem_130.smt
 distri1 -o log/distri1.log log/distri1.btor
 distri2 -o log/distri2.log log/distri2.btor
