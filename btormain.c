@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -143,6 +145,12 @@ struct BtorMainApp
   BtorCNFEnc cnf_enc;
   int force_smt_input;
   BtorPrintModel print_model;
+#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
+  int force_picosat;
+#endif
+#if defined(BTOR_USE_PRECOSAT)
+  int force_precosat;
+#endif
 };
 
 typedef struct BtorMainApp BtorMainApp;
@@ -175,6 +183,15 @@ static const char *g_usage =
     "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding "
     "(default)\n"
 
+    "\n"
+#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
+    "  -picosat                         enforce usage of PicoSAT as SAT "
+    "solver\n"
+#endif
+#if defined(BTOR_USE_PRECOSAT)
+    "  -precosat                        enforce usage of PrecoSAT as SAT "
+    "solver\n"
+#endif
     "\n"
     "Under-approximation options:\n"
     "  -ua                              enable under-approximation (UA)\n"
@@ -646,6 +663,18 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity = -1;
     }
+#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
+    else if (!strcmp (app->argv[app->argpos], "-picosat"))
+    {
+      app->force_picosat = 1;
+    }
+#endif
+#if defined(BTOR_USE_PRECOSAT)
+    else if (!strcmp (app->argv[app->argpos], "-precosat"))
+    {
+      app->force_precosat = 0;
+    }
+#endif
     else if (!strcmp (app->argv[app->argpos], "-ua"))
       app->ua = 1;
     else if (strstr (app->argv[app->argpos], "-uaw=") == app->argv[app->argpos]
@@ -951,6 +980,8 @@ boolector_main (int argc, char **argv)
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack *array_states = NULL;
 
+  memset (&app, 0, sizeof app);
+
   app.verbosity            = 0;
   app.force                = 0;
   app.output_file          = stdout;
@@ -985,6 +1016,12 @@ boolector_main (int argc, char **argv)
   app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   app.force_smt_input      = 0;
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
+#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
+  app.force_picosat = 0;
+#endif
+#if defined(BTOR_USE_PRECOSAT)
+  app.force_precosat = 0;
+#endif
 
   parse_commandline_arguments (&app);
 
@@ -1100,12 +1137,7 @@ boolector_main (int argc, char **argv)
 
       if (enable_preproc)
       {
-#ifdef BTOR_USE_PRECOSAT
-        if (!getenv ("NPRECOSAT"))
-#elif defined(BTOR_USE_PICOPREP)
-        if (!getenv ("NPICOPREP"))
-#endif
-          btor_enable_preproc_sat (smgr);
+        btor_enable_preproc_sat (smgr);
       }
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);

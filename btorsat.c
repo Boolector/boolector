@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -358,8 +360,6 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
-#ifdef BTOR_USE_LINGELING
-#endif
 #ifdef BTOR_USE_PRECOSAT
   smgr->ss_name             = "PrecoSAT";
   smgr->ss_init             = btor_precosat_init;
@@ -377,25 +377,6 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_set_delete       = btor_precosat_set_delete;
   smgr->ss_set_resize       = btor_precosat_set_resize;
   smgr->ss_stats            = btor_precosat_stats;
-  smgr->preproc_enabled     = 1;
-#endif
-#ifdef BTOR_USE_PICOPREP
-  smgr->ss_name             = "PicoPrep";
-  smgr->ss_init             = picoprep_init;
-  smgr->ss_add              = picoprep_add;
-  smgr->ss_sat              = picoprep_sat;
-  smgr->ss_deref            = picoprep_deref;
-  smgr->ss_reset            = picoprep_reset;
-  smgr->ss_set_output       = picoprep_set_output;
-  smgr->ss_set_prefix       = picoprep_set_prefix;
-  smgr->ss_enable_verbosity = picoprep_enable_verbosity;
-  smgr->ss_inc_max_var      = picoprep_inc_max_var;
-  smgr->ss_variables        = picoprep_variables;
-  smgr->ss_clauses          = picoprep_added_original_clauses;
-  smgr->ss_set_new          = picoprep_set_new;
-  smgr->ss_set_delete       = picoprep_set_delete;
-  smgr->ss_set_resize       = picoprep_set_resize;
-  smgr->ss_stats            = picoprep_stats;
   smgr->preproc_enabled     = 1;
 #endif
 }
