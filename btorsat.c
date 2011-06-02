@@ -69,7 +69,7 @@ struct BtorSATMgr
 
   const char *ss_name;
 
-  void *(*ss_init) ();
+  void *(*ss_init) (struct BtorSATMgr *);
   int (*ss_add) (void *, int);
   int (*ss_sat) (void *);
   int (*ss_deref) (void *, int);
@@ -80,11 +80,6 @@ struct BtorSATMgr
   int (*ss_inc_max_var) (void *);
   int (*ss_variables) (void *);
   int (*ss_clauses) (void *);
-  void (*ss_set_new) (void *, void *, void *(*) (void *, size_t));
-  void (*ss_set_delete) (void *, void *, void (*) (void *, void *, size_t));
-  void (*ss_set_resize) (void *,
-                         void *,
-                         void *(*) (void *, void *, size_t, size_t));
   void (*ss_stats) (void *);
 };
 
@@ -112,8 +107,12 @@ btor_msg_sat (const char *fmt, ...)
 }
 
 static void *
-btor_picosat_init (void)
+btor_picosat_init (BtorSATMgr *smgr)
 {
+  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
+  picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
+  picosat_set_resize (
+      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
   picosat_init ();
   picosat_set_global_default_phase (0);
   return 0;
@@ -191,33 +190,6 @@ btor_picosat_clauses (void *dummy)
 }
 
 static void
-btor_picosat_set_new (void *dummy,
-                      void *memmgr,
-                      void *(*newfun) (void *, size_t))
-{
-  (void) dummy;
-  picosat_set_new (memmgr, newfun);
-}
-
-static void
-btor_picosat_set_delete (void *dummy,
-                         void *memmgr,
-                         void (*delfun) (void *, void *, size_t))
-{
-  (void) dummy;
-  picosat_set_delete (memmgr, delfun);
-}
-
-static void
-btor_picosat_set_resize (void *dummy,
-                         void *memmgr,
-                         void *(*rszfun) (void *, void *, size_t, size_t))
-{
-  (void) dummy;
-  picosat_set_resize (memmgr, rszfun);
-}
-
-static void
 btor_picosat_stats (void *dummy)
 {
   (void) dummy;
@@ -255,9 +227,6 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_inc_max_var      = btor_picosat_inc_max_var;
   smgr->ss_variables        = btor_picosat_variables;
   smgr->ss_clauses          = btor_picosat_clauses;
-  smgr->ss_set_new          = btor_picosat_set_new;
-  smgr->ss_set_delete       = btor_picosat_set_delete;
-  smgr->ss_set_resize       = btor_picosat_set_resize;
   smgr->ss_stats            = btor_picosat_stats;
 
   return smgr;
@@ -333,17 +302,7 @@ btor_init_sat (BtorSATMgr *smgr)
     fflush (stdout);
   }
 
-  smgr->solver = smgr->ss_init ();
-
-  smgr->ss_set_new (
-      smgr->solver, smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
-  smgr->ss_set_delete (
-      smgr->solver, smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
-  smgr->ss_set_resize (
-      smgr->solver,
-      smgr->mm,
-      (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
-
+  smgr->solver      = smgr->ss_init (smgr);
   smgr->initialized = 1;
 }
 
@@ -470,9 +429,6 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
   smgr->ss_inc_max_var      = btor_precosat_inc_max_var;
   smgr->ss_variables        = btor_precosat_variables;
   smgr->ss_clauses          = btor_precosat_added_original_clauses;
-  smgr->ss_set_new          = btor_precosat_set_new;
-  smgr->ss_set_delete       = btor_precosat_set_delete;
-  smgr->ss_set_resize       = btor_precosat_set_resize;
   smgr->ss_stats            = btor_precosat_stats;
   smgr->preproc_enabled     = 1;
 }
@@ -501,9 +457,6 @@ static void btor_lin
   smgr->ss_inc_max_var      = btor_lingeling_inc_max_var;
   smgr->ss_variables        = btor_lingeling_variables;
   smgr->ss_clauses          = btor_lingeling_added_original_clauses;
-  smgr->ss_set_new          = btor_lingeling_set_new;
-  smgr->ss_set_delete       = btor_lingeling_set_delete;
-  smgr->ss_set_resize       = btor_lingeling_set_resize;
   smgr->ss_stats            = btor_lingeling_stats;
   smgr->preproc_enabled     = 1;
 }

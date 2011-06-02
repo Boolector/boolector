@@ -78,7 +78,7 @@ void btor_add_sat (BtorSATMgr *smgr, int lit);
 void btor_assume_sat (BtorSATMgr *smgr, int lit);
 
 /* Solves the SAT instance. */
-int btor_sat (BtorSATMgr *smgr);
+int btor_sat_sat (BtorSATMgr *smgr);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_sat.
