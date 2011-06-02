@@ -310,6 +310,7 @@ btor_init_sat (BtorSATMgr *smgr)
 
   smgr->solver      = smgr->ss_init (smgr);
   smgr->initialized = 1;
+  smgr->output      = stdout;
 }
 
 void
@@ -356,7 +357,6 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
-  (void) smgr;
   (void) smgr->ss_add (smgr->solver, lit);
 }
 
@@ -442,10 +442,87 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
 
 #ifdef BTOR_USE_LINGELING
 
-static void btor_lin
+static void *
+btor_lingeling_init (BtorSATMgr *mgr)
+{
+  return lglminit (mgr->mm,
+                   (lglalloc) btor_malloc,
+                   (lglrealloc) btor_realloc,
+                   (lgldealloc) btor_free);
+}
 
-    void
-    btor_enable_lingeling_sat (BtorSATMgr *smgr)
+static int
+btor_lingeling_add (void *ptr, int lit)
+{
+  LGL *lgl = ptr;
+  lgladd (lgl, lit);
+  return 0;
+}
+
+static int
+btor_lingeling_sat (void *ptr)
+{
+  return lglsat (ptr);
+}
+
+static int
+btor_lingeling_deref (void *ptr, int lit)
+{
+  return lglderef (ptr, lit);
+}
+
+static void
+btor_lingeling_reset (void *ptr)
+{
+  lglrelease (ptr);
+}
+
+static void
+btor_lingeling_set_output (void *ptr, FILE *output)
+{
+  lglsetout (ptr, output);
+}
+
+static void
+btor_lingeling_set_prefix (void *ptr, const char *prefix)
+{
+  lglsetprefix (ptr, prefix);
+}
+
+static void
+btor_lingeling_enable_verbosity (void *ptr)
+{
+  lglsetopt (ptr, "verbose", 1);
+}
+
+static int
+btor_lingeling_inc_max_var (void *ptr)
+{
+  return lglmaxvar (ptr) + 1;
+}
+
+static int
+btor_lingeling_variables (void *ptr)
+{
+  (void) ptr;
+  return 0;
+}
+
+static int
+btor_lingeling_clauses (void *ptr)
+{
+  (void) ptr;
+  return 0;
+}
+
+static void
+btor_lingeling_stats (void *ptr)
+{
+  lglstats (ptr);
+}
+
+void
+btor_enable_lingeling_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   BTOR_ABORT_SAT (smgr->initialized,
@@ -462,7 +539,7 @@ static void btor_lin
   smgr->ss_enable_verbosity = btor_lingeling_enable_verbosity;
   smgr->ss_inc_max_var      = btor_lingeling_inc_max_var;
   smgr->ss_variables        = btor_lingeling_variables;
-  smgr->ss_clauses          = btor_lingeling_added_original_clauses;
+  smgr->ss_clauses          = btor_lingeling_clauses;
   smgr->ss_stats            = btor_lingeling_stats;
   smgr->preproc_enabled     = 1;
 }
