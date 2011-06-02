@@ -13,8 +13,8 @@ m64=no
 gpt=no
 release=no
 competition=no
-picoprep=no
 precosat=no
+lingeling=no
 strip=no
 cov=no
 
@@ -32,21 +32,37 @@ do
     -m64) m64=yes;;
     -s) strip=yes;;
     -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no;;
-    -picoprep) picoprep=yes;precosat=no;;
-    -precosat) picoprep=no;precosat=yes;;
-    -r) competition=no; release=yes; precosat=yes; picoprep=no; static=no; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
-    -c) competition=yes; release=no; precosat=yes; picoprep=no; static=yes; debug=no; cov=no; o1=no; o2=no; o3=yes; strip=yes;;
+    -precosat) precosat=yes;lingeling=no;;
+    -lingeling) precosat=no;lingeling=yes;;
+    -r) competition=no;release=yes;precosat=no;lingeling=yes;
+        static=no;debug=no;cov=no;o1=no;o2=no;o3=yes;strip=yes
+	;;
+    -c) competition=yes;release=no;precosat=no;lingeling=yes;
+        static=yes;debug=no;cov=no;o1=no;o2=no;o3=yes;strip=yes
+	;;
     *) cat <<EOF
-*** usage: ./configure [-g][-s][-cov][-O[1-3]][-no-opt][-static][-m{32,64}][-gpt][-picoprep][-precosat][-r][-c]
+*** usage: ./configure [<option> ...]
+
+where <option> is one of the following:
+
+  -g          compile with debugging support
+  -s          strip symbols
+  -cov        generate coverage
+  -O[1-3]     optimization level
+  -no-opt     no optimization
+  -static     static linking
+  -m{32,64}   32-bit or 64-bit compilation
+  -gpt        link with perftools
+  -precosat   link with PrecoSAT
+  -lingeling  link with Lingeling
+  -r          release configuration
+  -c          competition configuration
 EOF
 exit 1
 ;;
   esac
 shift
 done
-
-[ $precosat = yes -a $picoprep = yes ] && \
-  die "can not use both '-precosat' and '-picoprep'"
 
 if [ X"$CFLAGS" = X ]; then
   CFLAGS="$CFLAGS -W -Wall -Wextra"
@@ -75,13 +91,6 @@ elif [ $gpt = yes ]; then
   LIBS=$LIBS" -ltcmalloc -lprofiler"
 fi
 
-PICOPREP_OBJS=""
-if [ $picoprep = yes ]; then
-  CFLAGS=$CFLAGS" -DBTOR_USE_PICOPREP"
-  PICOPREP_OBJS="../picoprep/libpicoprep.o ../picoprep/version.o"
-  LIBS=$LIBS" -lz"
-fi
-
 PRECOSAT_OBJS=""
 if [ $precosat = yes ]; then
   CFLAGS=$CFLAGS" -DBTOR_USE_PRECOSAT"
@@ -90,6 +99,12 @@ if [ $precosat = yes ]; then
   if [ x"`echo "$LIBS" | grep 'lstdc++'`" = x ]; then
     LIBS=$LIBS" -lstdc++"
   fi
+fi
+
+if [ $lingeling = yes ]; then
+  CFLAGS=$CFLAGS" -DBTOR_USE_LINGELING"
+  LIBS=$LIBS" -L../lingeling -llgl -lm"
+  LDEPS=$LDEPS" ../lingeling/liblgl.a"
 fi
 
 if [ $strip = yes ]
@@ -113,10 +128,9 @@ echo "static ... $static"
 echo "m32 ... $m32"
 echo "m64 ... $m64"
 echo "gpt ... $gpt"
-echo "picoprep ... $picoprep"
 echo "precosat ... $precosat"
+echo "lingeling ... $lingeling"
 echo "strip ... $strip"
-
 
 echo -n "makefile ..."
 rm -f makefile
@@ -124,8 +138,8 @@ sed \
   -e "s,@CC@,$CC," \
   -e "s,@CFLAGS@,$CFLAGS," \
   -e "s,@LIBS@,$LIBS," \
+  -e "s,@LDEPS@,$LDEPS," \
   -e "s,@STRIP@,$STRIP," \
-  -e "s,@PICOPREP_OBJS@,$PICOPREP_OBJS," \
   -e "s,@PRECOSAT_OBJS@,$PRECOSAT_OBJS," \
   makefile.in > makefile
 echo " done"

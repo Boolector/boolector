@@ -19,12 +19,12 @@
 
 #include "../picosat/picosat.h"
 
-#ifdef BTOR_USE_PICOPREP
-#include "../picoprep/picoprep.h"
-#endif
-
 #ifdef BTOR_USE_PRECOSAT
 #include "btorpreco.h"
+#endif
+
+#ifdef BTOR_USE_LINGELING
+#include "../lingeling/lglib.h"
 #endif
 
 #include "btorexit.h"
@@ -220,12 +220,13 @@ btor_init_sat (BtorSATMgr *smgr)
 
   if (smgr->verbosity > 0)
   {
-#ifdef BTOR_USE_PICOPREP
-    if (smgr->preproc_enabled)
-      btor_msg_sat ("PicoPrep Version %s\n", picoprep_version ());
+#ifdef BTOR_USE_LINGELING
+    if (1)
+      btor_msg_sat ("Lingeling Version %s\n", lglversion ());
+    else
 #endif
 #ifdef BTOR_USE_PRECOSAT
-    if (smgr->preproc_enabled)
+        if (smgr->preproc_enabled)
       btor_msg_sat ("PrecoSAT Version %s\n", btor_precosat_version ());
     else
 #endif
@@ -357,6 +358,8 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_preprocessor_sat'");
+#ifdef BTOR_USE_LINGELING
+#endif
 #ifdef BTOR_USE_PRECOSAT
   smgr->ss_name             = "PrecoSAT";
   smgr->ss_init             = btor_precosat_init;
