@@ -32,8 +32,8 @@ do
     -m64) m64=yes;;
     -s) strip=yes;;
     -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no;;
-    -precosat) precosat=yes;lingeling=no;;
-    -lingeling) precosat=no;lingeling=yes;;
+    -precosat) precosat=yes;;
+    -lingeling) lingeling=yes;;
     -r) competition=no;release=yes;precosat=no;lingeling=yes;
         static=no;debug=no;cov=no;o1=no;o2=no;o3=yes;strip=yes
 	;;
