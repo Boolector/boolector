@@ -79,7 +79,6 @@ struct BtorSATMgr
   void (*ss_enable_verbosity) (void *);
   int (*ss_inc_max_var) (void *);
   int (*ss_variables) (void *);
-  int (*ss_clauses) (void *);
   void (*ss_stats) (void *);
 };
 
@@ -182,13 +181,6 @@ btor_picosat_variables (void *dummy)
   return picosat_variables ();
 }
 
-static int
-btor_picosat_clauses (void *dummy)
-{
-  (void) dummy;
-  return picosat_added_original_clauses ();
-}
-
 static void
 btor_picosat_stats (void *dummy)
 {
@@ -226,7 +218,6 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_enable_verbosity = btor_picosat_enable_verbosity;
   smgr->ss_inc_max_var      = btor_picosat_inc_max_var;
   smgr->ss_variables        = btor_picosat_variables;
-  smgr->ss_clauses          = btor_picosat_clauses;
   smgr->ss_stats            = btor_picosat_stats;
 
   return smgr;
@@ -377,10 +368,7 @@ btor_sat_sat (BtorSATMgr *smgr)
   (void) smgr;
 
   if (smgr->verbosity > 2)
-  {
     btor_msg_sat ("calling SAT solver %s\n", smgr->ss_name);
-    btor_msg_sat ("original clauses: %d\n", smgr->ss_clauses (smgr->solver));
-  }
 
   return smgr->ss_sat (smgr->solver);
 }
@@ -434,7 +422,6 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
   smgr->ss_enable_verbosity = btor_precosat_enable_verbosity;
   smgr->ss_inc_max_var      = btor_precosat_inc_max_var;
   smgr->ss_variables        = btor_precosat_variables;
-  smgr->ss_clauses          = btor_precosat_added_original_clauses;
   smgr->ss_stats            = btor_precosat_stats;
   smgr->preproc_enabled     = 1;
 }
@@ -504,15 +491,7 @@ btor_lingeling_inc_max_var (void *ptr)
 static int
 btor_lingeling_variables (void *ptr)
 {
-  (void) ptr;
-  return 0;
-}
-
-static int
-btor_lingeling_clauses (void *ptr)
-{
-  (void) ptr;
-  return 0;
+  return lglmaxvar (ptr);
 }
 
 static void
@@ -539,7 +518,6 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->ss_enable_verbosity = btor_lingeling_enable_verbosity;
   smgr->ss_inc_max_var      = btor_lingeling_inc_max_var;
   smgr->ss_variables        = btor_lingeling_variables;
-  smgr->ss_clauses          = btor_lingeling_clauses;
   smgr->ss_stats            = btor_lingeling_stats;
   smgr->preproc_enabled     = 1;
 }

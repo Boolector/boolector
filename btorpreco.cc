@@ -137,13 +137,6 @@ btor_precosat_variables (void *ptr)
   return solver->getMaxVar ();
 }
 
-int
-btor_precosat_added_original_clauses (void *ptr)
-{
-  Solver *solver = (Solver *) ptr;
-  return solver->getAddedOrigClauses ();
-}
-
 void
 btor_precosat_stats (void *ptr)
 {

@@ -38,9 +38,7 @@ void btor_precosat_set_prefix (void *, const char *);
 void btor_precosat_enable_verbosity (void *);
 int btor_precosat_inc_max_var (void *);
 int btor_precosat_variables (void *);
-int btor_precosat_clauses (void *);
 void btor_precosat_stats (void *);
-int btor_precosat_added_original_clauses (void *);
 
 const char *btor_precosat_version (void);
 
