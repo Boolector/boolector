@@ -29,31 +29,27 @@ extern "C" {
 
 using namespace PrecoSat;
 
-static void *(*new_for_precosat) (void *, size_t);
-static void (*delete_for_precosat) (void *, void *, size_t);
-static void *(*resize_for_precosat) (void *, void *, size_t, size_t);
-
 static int
 btor_precosat_lsbsign_lit (int lit)
 {
   return 2 * abs (lit) + (lit < 0);
 }
 
-const char *
+const char*
 btor_precosat_version (void)
 {
   return precosat_version ();
 }
 
-void *
-btor_precosat_init (BtorSATMgr *smgr)
+void*
+btor_precosat_init (BtorSATMgr* smgr)
 {
-  Solver *solver = new Solver;
+  Solver* solver = new Solver;
 
   solver->set (btor_mem_mgr_sat (smgr),
-               new_for_precosat,
-               delete_for_precosat,
-               resize_for_precosat);
+               (Mem::NewFun) btor_malloc,
+               (Mem::DeleteFun) btor_free,
+               (Mem::ResizeFun) btor_realloc);
   solver->init ();
   solver->fxopts ();
 
@@ -61,17 +57,17 @@ btor_precosat_init (BtorSATMgr *smgr)
 }
 
 int
-btor_precosat_add (void *ptr, int lit)
+btor_precosat_add (void* ptr, int lit)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   solver->add (btor_precosat_lsbsign_lit (lit));
   return solver->getAddedOrigClauses ();
 }
 
 int
-btor_precosat_sat (void *ptr)
+btor_precosat_sat (void* ptr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   int res;
 
   res = solver->solve ();
@@ -85,62 +81,61 @@ btor_precosat_sat (void *ptr)
 }
 
 int
-btor_precosat_deref (void *ptr, int lit)
+btor_precosat_deref (void* ptr, int lit)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   return solver->val (btor_precosat_lsbsign_lit (lit));
 }
 
 void
-btor_precosat_reset (void *ptr)
+btor_precosat_reset (void* ptr)
 {
-  Solver *solver   = (Solver *) ptr;
-  new_for_precosat = 0;
+  Solver* solver = (Solver*) ptr;
   solver->reset ();
   delete solver;
 }
 
 void
-btor_precosat_set_output (void *ptr, FILE *file)
+btor_precosat_set_output (void* ptr, FILE* file)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   solver->set (file);
 }
 
 void
-btor_precosat_set_prefix (void *ptr, const char *newprfx)
+btor_precosat_set_prefix (void* ptr, const char* newprfx)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   solver->setprfx (newprfx);
 }
 
 void
-btor_precosat_enable_verbosity (void *ptr)
+btor_precosat_enable_verbosity (void* ptr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   bool res;
   res = solver->set ("verbose", 1);
   assert (res);
 }
 
 int
-btor_precosat_inc_max_var (void *ptr)
+btor_precosat_inc_max_var (void* ptr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   return solver->next ();
 }
 
 int
-btor_precosat_variables (void *ptr)
+btor_precosat_variables (void* ptr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   return solver->getMaxVar ();
 }
 
 void
-btor_precosat_stats (void *ptr)
+btor_precosat_stats (void* ptr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) ptr;
   solver->prstats ();
 }
 };
