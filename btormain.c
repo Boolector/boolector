@@ -148,7 +148,7 @@ struct BtorMainApp
 #if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
   int force_picosat;
 #endif
-#if defined(BTOR_USE_PRECOSAT)
+#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
   int force_precosat;
 #endif
 };
@@ -669,10 +669,10 @@ parse_commandline_arguments (BtorMainApp *app)
       app->force_picosat = 1;
     }
 #endif
-#if defined(BTOR_USE_PRECOSAT)
+#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
     else if (!strcmp (app->argv[app->argpos], "-precosat"))
     {
-      app->force_precosat = 0;
+      app->force_precosat = 1;
     }
 #endif
     else if (!strcmp (app->argv[app->argpos], "-ua"))
@@ -1019,7 +1019,7 @@ boolector_main (int argc, char **argv)
 #if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
   app.force_picosat = 0;
 #endif
-#if defined(BTOR_USE_PRECOSAT)
+#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
   app.force_precosat = 0;
 #endif
 
@@ -1137,7 +1137,27 @@ boolector_main (int argc, char **argv)
 
       if (enable_preproc)
       {
-        btor_enable_preproc_sat (smgr);
+#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
+        if (app.force_picosat)
+        {
+          /* DO NOTHING USE PicoSAT */
+        }
+#endif
+#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+        else if (app.force_precosat)
+        {
+          btor_enable_precosat_sat (smgr);
+        }
+#endif
+#if defined(BTOR_USE_LINGELING)
+        else
+        {
+          btor_enable_lingeling_sat (smgr);
+        }
+#endif
+#if !defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+        else { btor_enable_precosat_sat (smgr); }
+#endif
       }
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);

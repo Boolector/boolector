@@ -23,7 +23,6 @@
 
 #include <stdio.h>
 
-void btor_precosat_init (void);
 void btor_precosat_init ();
 int btor_precosat_add (int);
 int btor_precosat_sat (int);

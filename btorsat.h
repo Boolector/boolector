@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -76,7 +78,7 @@ void btor_add_sat (BtorSATMgr *smgr, int lit);
 void btor_assume_sat (BtorSATMgr *smgr, int lit);
 
 /* Solves the SAT instance. */
-int btor_sat_sat (BtorSATMgr *smgr, int limit);
+int btor_sat (BtorSATMgr *smgr);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_sat.
@@ -91,7 +93,14 @@ void btor_reset_sat (BtorSATMgr *smgr);
  */
 int btor_changed_assignments_sat (BtorSATMgr *smgr);
 
-/* Enables the SAT preprocessor. */
-void btor_enable_preproc_sat (BtorSATMgr *smgr);
+#ifdef BTOR_USE_LINGELING
+/* Enables Lingeling as SAT preprocessor. */
+void btor_enable_lingeling_sat (BtorSATMgr *smgr);
+#endif
+
+#ifdef BTOR_USE_PRECOSAT
+/* Enables PrecoSAT as SAT preprocessor. */
+void btor_enable_precosat_sat (BtorSATMgr *smgr);
+#endif
 
 #endif

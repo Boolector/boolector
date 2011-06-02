@@ -6733,7 +6733,7 @@ update_sat_assignments (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   found_assumption_false = readd_assumptions (btor);
   assert (!found_assumption_false);
-  result = btor_sat_sat (smgr, -1);
+  result = btor_sat_sat (smgr);
   assert (result == BTOR_SAT);
   return btor_changed_assignments_sat (smgr);
 }

@@ -58,28 +58,34 @@
 
 struct BtorSATMgr
 {
+  void *solver;
+
   int verbosity;
   BtorMemMgr *mm;
   int initialized;
   int preproc_enabled;
 
+  FILE *output;
+
   const char *ss_name;
 
-  void (*ss_init) ();
-  int (*ss_add) (int);
-  int (*ss_sat) (int);
-  int (*ss_deref) (int);
-  void (*ss_reset) ();
-  void (*ss_set_output) (FILE *);
-  void (*ss_set_prefix) (const char *);
-  void (*ss_enable_verbosity) ();
-  int (*ss_inc_max_var) ();
-  int (*ss_variables) ();
-  int (*ss_clauses) ();
-  void (*ss_set_new) (void *, void *(*) (void *, size_t));
-  void (*ss_set_delete) (void *, void (*) (void *, void *, size_t));
-  void (*ss_set_resize) (void *, void *(*) (void *, void *, size_t, size_t));
-  void (*ss_stats) (void);
+  void *(*ss_init) ();
+  int (*ss_add) (void *, int);
+  int (*ss_sat) (void *);
+  int (*ss_deref) (void *, int);
+  void (*ss_reset) (void *);
+  void (*ss_set_output) (void *, FILE *);
+  void (*ss_set_prefix) (void *, const char *);
+  void (*ss_enable_verbosity) (void *);
+  int (*ss_inc_max_var) (void *);
+  int (*ss_variables) (void *);
+  int (*ss_clauses) (void *);
+  void (*ss_set_new) (void *, void *, void *(*) (void *, size_t));
+  void (*ss_set_delete) (void *, void *, void (*) (void *, void *, size_t));
+  void (*ss_set_resize) (void *,
+                         void *,
+                         void *(*) (void *, void *, size_t, size_t));
+  void (*ss_stats) (void *);
 };
 
 /*------------------------------------------------------------------------*/
@@ -105,31 +111,122 @@ btor_msg_sat (const char *fmt, ...)
   fflush (stdout);
 }
 
-static void
+static void *
 btor_picosat_init (void)
 {
   picosat_init ();
   picosat_set_global_default_phase (0);
+  return 0;
+}
+
+static int
+btor_picosat_add (void *dummy, int lit)
+{
+  (void) dummy;
+  (void) picosat_add (lit);
+  return 0;
+}
+
+static int
+btor_picosat_sat (void *dummy)
+{
+  (void) dummy;
+  return picosat_sat (-1);
+}
+
+static int
+btor_picosat_deref (void *dummy, int lit)
+{
+  (void) dummy;
+  return picosat_deref (lit);
 }
 
 static void
-btor_picosat_enable_verbosity (void)
+btor_picosat_reset (void *dummy)
 {
+  (void) dummy;
+  picosat_reset ();
+}
+
+static void
+btor_picosat_set_output (void *dummy, FILE *output)
+{
+  (void) dummy;
+  picosat_set_output (output);
+}
+
+static void
+btor_picosat_set_prefix (void *dummy, const char *prefix)
+{
+  (void) dummy;
+  picosat_set_prefix (prefix);
+}
+
+static void
+btor_picosat_enable_verbosity (void *dummy)
+{
+  (void) dummy;
   picosat_set_verbosity (1);
+}
+
+static int
+btor_picosat_inc_max_var (void *dummy)
+{
+  (void) dummy;
+  return picosat_inc_max_var ();
+}
+
+static int
+btor_picosat_variables (void *dummy)
+{
+  (void) dummy;
+  return picosat_variables ();
+}
+
+static int
+btor_picosat_clauses (void *dummy)
+{
+  (void) dummy;
+  return picosat_added_original_clauses ();
+}
+
+static void
+btor_picosat_set_new (void *dummy,
+                      void *memmgr,
+                      void *(*newfun) (void *, size_t))
+{
+  (void) dummy;
+  picosat_set_new (memmgr, newfun);
+}
+
+static void
+btor_picosat_set_delete (void *dummy,
+                         void *memmgr,
+                         void (*delfun) (void *, void *, size_t))
+{
+  (void) dummy;
+  picosat_set_delete (memmgr, delfun);
+}
+
+static void
+btor_picosat_set_resize (void *dummy,
+                         void *memmgr,
+                         void *(*rszfun) (void *, void *, size_t, size_t))
+{
+  (void) dummy;
+  picosat_set_resize (memmgr, rszfun);
+}
+
+static void
+btor_picosat_stats (void *dummy)
+{
+  (void) dummy;
+  picosat_stats ();
 }
 
 /*------------------------------------------------------------------------*/
 /* BtorSAT                                                                */
 /*------------------------------------------------------------------------*/
-
-/* Avoid compile time warning with older versions of PicoSAT */
-
-static int
-my_picosat_add (int lit)
-{
-  (void) picosat_add (lit);
-  return 0;
-}
 
 BtorSATMgr *
 btor_new_sat_mgr (BtorMemMgr *mm)
@@ -148,20 +245,20 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->ss_name = "PicoSAT";
 
   smgr->ss_init             = btor_picosat_init;
-  smgr->ss_add              = my_picosat_add;
-  smgr->ss_sat              = picosat_sat;
-  smgr->ss_deref            = picosat_deref;
-  smgr->ss_reset            = picosat_reset;
-  smgr->ss_set_output       = picosat_set_output;
-  smgr->ss_set_prefix       = picosat_set_prefix;
+  smgr->ss_add              = btor_picosat_add;
+  smgr->ss_sat              = btor_picosat_sat;
+  smgr->ss_deref            = btor_picosat_deref;
+  smgr->ss_reset            = btor_picosat_reset;
+  smgr->ss_set_output       = btor_picosat_set_output;
+  smgr->ss_set_prefix       = btor_picosat_set_prefix;
   smgr->ss_enable_verbosity = btor_picosat_enable_verbosity;
-  smgr->ss_inc_max_var      = picosat_inc_max_var;
-  smgr->ss_variables        = picosat_variables;
-  smgr->ss_clauses          = picosat_added_original_clauses;
-  smgr->ss_set_new          = picosat_set_new;
-  smgr->ss_set_delete       = picosat_set_delete;
-  smgr->ss_set_resize       = picosat_set_resize;
-  smgr->ss_stats            = picosat_stats;
+  smgr->ss_inc_max_var      = btor_picosat_inc_max_var;
+  smgr->ss_variables        = btor_picosat_variables;
+  smgr->ss_clauses          = btor_picosat_clauses;
+  smgr->ss_set_new          = btor_picosat_set_new;
+  smgr->ss_set_delete       = btor_picosat_set_delete;
+  smgr->ss_set_resize       = btor_picosat_set_resize;
+  smgr->ss_stats            = btor_picosat_stats;
 
   return smgr;
 }
@@ -187,7 +284,7 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   assert (smgr);
   assert (smgr->initialized);
   (void) smgr;
-  result = smgr->ss_inc_max_var ();
+  result = smgr->ss_inc_max_var (smgr->solver);
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
   if (smgr->verbosity > 2 && !(result % 100000))
     btor_msg_sat ("reached CNF id %d\n", result);
@@ -200,7 +297,7 @@ btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  return smgr->ss_variables ();
+  return smgr->ss_variables (smgr->solver);
 }
 
 void
@@ -236,12 +333,16 @@ btor_init_sat (BtorSATMgr *smgr)
     fflush (stdout);
   }
 
-  smgr->ss_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
-  smgr->ss_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
-  smgr->ss_set_resize (
-      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
+  smgr->solver = smgr->ss_init ();
 
-  smgr->ss_init ();
+  smgr->ss_set_new (
+      smgr->solver, smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
+  smgr->ss_set_delete (
+      smgr->solver, smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
+  smgr->ss_set_resize (
+      smgr->solver,
+      smgr->mm,
+      (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
 
   smgr->initialized = 1;
 }
@@ -256,13 +357,14 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
   assert (smgr->initialized);
   assert (output != NULL);
   (void) smgr;
-  smgr->ss_set_output (output);
+  smgr->ss_set_output (smgr->solver, output);
+  smgr->output = output;
 
   prefix = btor_malloc (smgr->mm, strlen (smgr->ss_name) + 4);
   sprintf (prefix, "[%s] ", smgr->ss_name);
   q = prefix + 1;
   for (p = smgr->ss_name; *p; p++) *q++ = tolower (*p);
-  smgr->ss_set_prefix (prefix);
+  smgr->ss_set_prefix (smgr->solver, prefix);
   btor_free (smgr->mm, prefix, strlen (smgr->ss_name) + 4);
 }
 
@@ -272,7 +374,7 @@ btor_enable_verbosity_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->ss_enable_verbosity ();
+  smgr->ss_enable_verbosity (smgr->solver);
 }
 
 void
@@ -281,7 +383,7 @@ btor_print_stats_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->ss_stats ();
+  smgr->ss_stats (smgr->solver);
 }
 
 void
@@ -290,13 +392,7 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  (void) smgr->ss_add (lit);
-#if 0
-  if (lit != 0)
-    printf ("%d ", lit);
-  else
-    printf ("0\n");
-#endif
+  (void) smgr->ss_add (smgr->solver, lit);
 }
 
 void
@@ -309,7 +405,7 @@ btor_assume_sat (BtorSATMgr *smgr, int lit)
 }
 
 int
-btor_sat_sat (BtorSATMgr *smgr, int limit)
+btor_sat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
@@ -318,10 +414,10 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   if (smgr->verbosity > 2)
   {
     btor_msg_sat ("calling SAT solver %s\n", smgr->ss_name);
-    btor_msg_sat ("original clauses: %d\n", smgr->ss_clauses ());
+    btor_msg_sat ("original clauses: %d\n", smgr->ss_clauses (smgr->solver));
   }
 
-  return smgr->ss_sat (limit);
+  return smgr->ss_sat (smgr->solver);
 }
 
 int
@@ -330,7 +426,7 @@ btor_deref_sat (BtorSATMgr *smgr, int lit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  return smgr->ss_deref (lit);
+  return smgr->ss_deref (smgr->solver, lit);
 }
 
 void
@@ -340,7 +436,8 @@ btor_reset_sat (BtorSATMgr *smgr)
   assert (smgr->initialized);
   (void) smgr;
   if (smgr->verbosity > 1) btor_msg_sat ("resetting %s\n", smgr->ss_name);
-  smgr->ss_reset ();
+  smgr->ss_reset (smgr->solver);
+  smgr->solver      = 0;
   smgr->initialized = 0;
 }
 
@@ -353,14 +450,14 @@ btor_changed_assignments_sat (BtorSATMgr *smgr)
   return picosat_changed ();
 }
 
+#ifdef BTOR_USE_PRECOSAT
 void
-btor_enable_preproc_sat (BtorSATMgr *smgr)
+btor_enable_precosat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
-                  "'btor_enable_preprocessor_sat'");
-#ifdef BTOR_USE_PRECOSAT
+                  "'btor_enable_precosat_sat'");
   smgr->ss_name             = "PrecoSAT";
   smgr->ss_init             = btor_precosat_init;
   smgr->ss_add              = btor_precosat_add;
@@ -378,8 +475,40 @@ btor_enable_preproc_sat (BtorSATMgr *smgr)
   smgr->ss_set_resize       = btor_precosat_set_resize;
   smgr->ss_stats            = btor_precosat_stats;
   smgr->preproc_enabled     = 1;
-#endif
 }
+#endif
+
+#ifdef BTOR_USE_LINGELING
+
+static void btor_lin
+
+    void
+    btor_enable_lingeling_sat (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+  BTOR_ABORT_SAT (smgr->initialized,
+                  "'btor_init_sat' called before "
+                  "'btor_enable_lingeling_sat'");
+  smgr->ss_name             = "Lingeling";
+  smgr->ss_init             = btor_lingeling_init;
+  smgr->ss_add              = btor_lingeling_add;
+  smgr->ss_sat              = btor_lingeling_sat;
+  smgr->ss_deref            = btor_lingeling_deref;
+  smgr->ss_reset            = btor_lingeling_reset;
+  smgr->ss_set_output       = btor_lingeling_set_output;
+  smgr->ss_set_prefix       = btor_lingeling_set_prefix;
+  smgr->ss_enable_verbosity = btor_lingeling_enable_verbosity;
+  smgr->ss_inc_max_var      = btor_lingeling_inc_max_var;
+  smgr->ss_variables        = btor_lingeling_variables;
+  smgr->ss_clauses          = btor_lingeling_added_original_clauses;
+  smgr->ss_set_new          = btor_lingeling_set_new;
+  smgr->ss_set_delete       = btor_lingeling_set_delete;
+  smgr->ss_set_resize       = btor_lingeling_set_resize;
+  smgr->ss_stats            = btor_lingeling_stats;
+  smgr->preproc_enabled     = 1;
+}
+#endif
+
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/
