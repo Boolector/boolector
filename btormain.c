@@ -38,6 +38,7 @@
 
 #include <assert.h>
 #include <ctype.h>
+#include <signal.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -228,6 +229,65 @@ static const char *g_copyright =
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
     "Licensed under the GNU Public License Version 3\n";
+
+static int btor_static_verbosity;
+static BtorSATMgr *btor_static_smgr;
+static Btor *btor_static_btor;
+static int btor_static_catched_sig;
+
+static void (*btor_sig_int_handler) (int);
+static void (*btor_sig_segv_handler) (int);
+static void (*btor_sig_abrt_handler) (int);
+static void (*btor_sig_term_handler) (int);
+static void (*btor_sig_bus_handler) (int);
+
+static void
+btor_reset_sig_handlers (void)
+{
+  (void) signal (SIGINT, btor_sig_int_handler);
+  (void) signal (SIGSEGV, btor_sig_segv_handler);
+  (void) signal (SIGABRT, btor_sig_abrt_handler);
+  (void) signal (SIGTERM, btor_sig_term_handler);
+  (void) signal (SIGBUS, btor_sig_bus_handler);
+}
+
+static void
+caughtsigmsg (int sig)
+{
+  if (!btor_static_verbosity) return;
+  printf ("c\nc CAUGHT SIGNAL %d\nc\n", sig);
+  fflush (stdout);
+}
+
+static void
+btor_catch_sig (int sig)
+{
+  if (!btor_static_catched_sig)
+  {
+    btor_static_catched_sig = 1;
+    caughtsigmsg (sig);
+    fputs ("unknown\n", stdout);
+    fflush (stdout);
+    if (btor_static_verbosity)
+    {
+      if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
+      if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
+      caughtsigmsg (sig);
+    }
+  }
+  btor_reset_sig_handlers ();
+  exit (1);
+}
+
+static void
+btor_set_sig_handlers (void)
+{
+  btor_sig_int_handler  = signal (SIGINT, btor_catch_sig);
+  btor_sig_segv_handler = signal (SIGSEGV, btor_catch_sig);
+  btor_sig_abrt_handler = signal (SIGABRT, btor_catch_sig);
+  btor_sig_term_handler = signal (SIGTERM, btor_catch_sig);
+  btor_sig_bus_handler  = signal (SIGBUS, btor_catch_sig);
+}
 
 #ifdef BTOR_HAVE_GETRUSAGE
 static double
@@ -1042,7 +1102,8 @@ boolector_main (int argc, char **argv)
 
   if (!app.done && !app.err)
   {
-    btor = btor_new_btor ();
+    btor_static_btor = btor = btor_new_btor ();
+    btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
     if (app.print_model) btor_enable_model_gen (btor);
@@ -1060,9 +1121,11 @@ boolector_main (int argc, char **argv)
     btor_set_replay_btor (btor, app.replay_mode != BTOR_APP_REPLAY_MODE_NONE);
     mem = btor->mm;
 
-    avmgr = btor->avmgr;
-    amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-    smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+    avmgr            = btor->avmgr;
+    amgr             = btor_get_aig_mgr_aigvec_mgr (avmgr);
+    btor_static_smgr = smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
+    btor_set_sig_handlers ();
 
     parser_api = btor_btor_parser_api ();
     if (app.force_smt_input)
@@ -1633,9 +1696,11 @@ boolector_main (int argc, char **argv)
               &app, btor, arraystack.start, BTOR_COUNT_STACK (arraystack));
       }
 
-      if (app.verbosity > 0) btor_print_stats_sat (smgr);
-
-      if (app.verbosity > 0) btor_print_stats_btor (btor);
+      if (app.verbosity > 0)
+      {
+        btor_print_stats_sat (smgr);
+        btor_print_stats_btor (btor);
+      }
 
       for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
         btor_release_exp (btor, varstack.start[i]);
@@ -1645,13 +1710,18 @@ boolector_main (int argc, char **argv)
         btor_release_exp (btor, arraystack.start[i]);
       BTOR_RELEASE_STACK (mem, arraystack);
 
+      btor_static_smgr = 0;
       btor_reset_sat (smgr);
     }
 
     if (parser_api) parser_api->reset (parser);
 
     maxallocated = mem->maxallocated;
+
+    btor_static_btor = 0;
     btor_delete_btor (btor);
+
+    btor_reset_sig_handlers ();
   }
 
   if (app.close_input_file) fclose (app.input_file);
