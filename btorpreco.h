@@ -21,27 +21,26 @@
 
 #ifndef BTORPRECO_H_INCLUDED
 #define BTORPRECO_H_INCLUDED
+
 #ifdef BTOR_USE_PRECOSAT
 
 #include <stdio.h>
 
-void btor_precosat_init ();
-int btor_precosat_add (int);
-int btor_precosat_sat (int);
-int btor_precosat_deref (int);
-void btor_precosat_reset ();
-void btor_precosat_set_output (FILE *);
-void btor_precosat_set_prefix (const char *);
-void btor_precosat_enable_verbosity ();
-int btor_precosat_inc_max_var ();
-int btor_precosat_variables ();
-int btor_precosat_clauses ();
-void btor_precosat_set_new (void *, void *(*) (void *, size_t));
-void btor_precosat_set_delete (void *, void (*) (void *, void *, size_t));
-void btor_precosat_set_resize (void *,
-                               void *(*) (void *, void *, size_t, size_t));
-void btor_precosat_stats (void);
-int btor_precosat_added_original_clauses (void);
+struct BtorSATMgr;
+
+void btor_precosat_init (struct BtorSATMgr *);
+int btor_precosat_add (void *, int);
+int btor_precosat_sat (void *, int);
+int btor_precosat_deref (void *, int);
+void btor_precosat_reset (void *);
+void btor_precosat_set_output (void *, FILE *);
+void btor_precosat_set_prefix (void *, const char *);
+void btor_precosat_enable_verbosity (void *);
+int btor_precosat_inc_max_var (void *);
+int btor_precosat_variables (void *);
+int btor_precosat_clauses (void *);
+void btor_precosat_stats (void *);
+int btor_precosat_added_original_clauses (void *);
 
 const char *btor_precosat_version (void);
 
