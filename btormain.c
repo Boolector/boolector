@@ -1633,7 +1633,7 @@ boolector_main (int argc, char **argv)
               &app, btor, arraystack.start, BTOR_COUNT_STACK (arraystack));
       }
 
-      if (app.verbosity > 1) btor_print_stats_sat (smgr);
+      if (app.verbosity > 0) btor_print_stats_sat (smgr);
 
       if (app.verbosity > 0) btor_print_stats_btor (btor);
 
