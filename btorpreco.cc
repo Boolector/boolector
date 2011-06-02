@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -21,15 +23,15 @@
 #include "../precosat/precobnr.hh"
 #include "../precosat/precosat.hh"
 extern "C" {
+
 #include "btorpreco.h"
+#include "btorsat.h"
+
 using namespace PrecoSat;
-static Solver solver;
-static bool initialized;
-static void *emgr;
+
 static void *(*new_for_precosat) (void *, size_t);
 static void (*delete_for_precosat) (void *, void *, size_t);
 static void *(*resize_for_precosat) (void *, void *, size_t, size_t);
-static int added_original_clauses;
 
 static int
 btor_precosat_lsbsign_lit (int lit)
@@ -43,37 +45,41 @@ btor_precosat_version (void)
   return precosat_version ();
 }
 
-void
-btor_precosat_init (void)
+void *
+btor_precosat_init (BtorSATMgr *smgr)
 {
-  if (initialized) solver.reset ();
-  assert (emgr);
-  assert (new_for_precosat);
-  assert (delete_for_precosat);
-  assert (resize_for_precosat);
-  solver.set (emgr, new_for_precosat, delete_for_precosat, resize_for_precosat);
-  solver.init ();
-  solver.fxopts ();
-  initialized = true;
+  Solver *solver;
+
+  solver->set (btor_mem_mgr_sat (smgr),
+               new_for_precosat,
+               delete_for_precosat,
+               resize_for_precosat);
+  solver->init ();
+  solver->fxopts ();
+
+  return solver;
 }
 
 int
-btor_precosat_add (int lit)
+btor_precosat_add (void *ptr, int lit)
 {
+  Solver *solver = (Solver *) ptr;
   int res;
 
   res = added_original_clauses;
-  solver.add (btor_precosat_lsbsign_lit (lit));
+  solver->add (btor_precosat_lsbsign_lit (lit));
   if (!lit) added_original_clauses++;
 
   return res;
 }
 
 int
-btor_precosat_sat (int limit)
+btor_precosat_sat (void *ptr, int limit)
 {
+  Solver *solver = (Solver *) ptr;
   int res;
-  res = solver.solve (limit < 0 ? INT_MAX : limit);
+
+  res = solver->solve (limit < 0 ? INT_MAX : limit);
   if (res < 0)
     res = 20;
   else if (res > 0)
@@ -84,92 +90,74 @@ btor_precosat_sat (int limit)
 }
 
 int
-btor_precosat_deref (int lit)
+btor_precosat_deref (void *ptr, int lit)
 {
-  return solver.val (btor_precosat_lsbsign_lit (lit));
+  Solver *solver = (Solver *) ptr;
+  return solver->val (btor_precosat_lsbsign_lit (lit));
 }
 
 void
-btor_precosat_reset (void)
+btor_precosat_reset (void *ptr)
 {
+  Solver *solver         = (Solver *) ptr;
   emgr                   = 0;
   new_for_precosat       = 0;
   delete_for_precosat    = 0;
   resize_for_precosat    = 0;
   added_original_clauses = 0;
-  solver.reset ();
-  initialized = false;
+  solver->reset ();
+  delete solver;
 }
 
 void
-btor_precosat_set_output (FILE *file)
+btor_precosat_set_output (void *ptr, FILE *file)
 {
-  solver.set (file);
+  Solver *solver = (Solver *) ptr;
+  solver->set (file);
 }
 
 void
-btor_precosat_set_prefix (const char *newprfx)
+btor_precosat_set_prefix (void *ptr, const char *newprfx)
 {
-  solver.setprfx (newprfx);
+  Solver *solver = (Solver *) ptr;
+  solver->setprfx (newprfx);
 }
 
 void
-btor_precosat_enable_verbosity (void)
+btor_precosat_enable_verbosity (void *ptr)
 {
+  Solver *solver = (Solver *) ptr;
   bool res;
-  res = solver.set ("verbose", 1);
+  res = solver->set ("verbose", 1);
   assert (res);
 }
 
 int
-btor_precosat_inc_max_var (void)
+btor_precosat_inc_max_var (void *ptr)
 {
-  return solver.next ();
+  Solver *solver = (Solver *) ptr;
+  return solver->next ();
 }
 
 int
-btor_precosat_variables (void)
+btor_precosat_variables (void *ptr)
 {
-  return solver.getMaxVar ();
+  Solver *solver = (Solver *) ptr;
+  return solver->getMaxVar ();
 }
 
 int
-btor_precosat_added_original_clauses (void)
+btor_precosat_added_original_clauses (void *ptr)
 {
+  Solver *solver = (Solver *) ptr;
   return added_original_clauses;
 }
 
 void
-btor_precosat_set_new (void *e, void *(n) (void *, size_t))
+btor_precosat_stats (void *ptr)
 {
-  assert (!emgr || emgr == e);
-  assert (!new_for_precosat);
-  emgr             = e;
-  new_for_precosat = n;
-}
-
-void
-btor_precosat_set_delete (void *e, void(d) (void *, void *, size_t))
-{
-  assert (!emgr || emgr == e);
-  assert (!delete_for_precosat);
-  emgr                = e;
-  delete_for_precosat = d;
-}
-
-void
-btor_precosat_set_resize (void *e, void *(r) (void *, void *, size_t, size_t))
-{
-  assert (!emgr || emgr == e);
-  assert (!resize_for_precosat);
-  emgr                = e;
-  resize_for_precosat = r;
-}
-
-void
-btor_precosat_stats (void)
-{
-  solver.prstats ();
+  Solver *solver = (Solver *) ptr;
+  solver->prstats ();
 }
 };
 #endif
