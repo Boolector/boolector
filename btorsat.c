@@ -232,6 +232,12 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   return smgr;
 }
 
+BtorMemMgr *
+btor_mem_mgr_sat (BtorSATMgr *smgr)
+{
+  return smgr->mm;
+}
+
 void
 btor_set_verbosity_sat_mgr (BtorSATMgr *smgr, int verbosity)
 {

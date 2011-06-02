@@ -48,7 +48,7 @@ btor_precosat_version (void)
 void *
 btor_precosat_init (BtorSATMgr *smgr)
 {
-  Solver *solver;
+  Solver *solver = new Solver;
 
   solver->set (btor_mem_mgr_sat (smgr),
                new_for_precosat,
@@ -64,22 +64,17 @@ int
 btor_precosat_add (void *ptr, int lit)
 {
   Solver *solver = (Solver *) ptr;
-  int res;
-
-  res = added_original_clauses;
   solver->add (btor_precosat_lsbsign_lit (lit));
-  if (!lit) added_original_clauses++;
-
-  return res;
+  return solver->getAddedOrigClauses ();
 }
 
 int
-btor_precosat_sat (void *ptr, int limit)
+btor_precosat_sat (void *ptr)
 {
   Solver *solver = (Solver *) ptr;
   int res;
 
-  res = solver->solve (limit < 0 ? INT_MAX : limit);
+  res = solver->solve ();
   if (res < 0)
     res = 20;
   else if (res > 0)
@@ -99,12 +94,8 @@ btor_precosat_deref (void *ptr, int lit)
 void
 btor_precosat_reset (void *ptr)
 {
-  Solver *solver         = (Solver *) ptr;
-  emgr                   = 0;
-  new_for_precosat       = 0;
-  delete_for_precosat    = 0;
-  resize_for_precosat    = 0;
-  added_original_clauses = 0;
+  Solver *solver   = (Solver *) ptr;
+  new_for_precosat = 0;
   solver->reset ();
   delete solver;
 }
@@ -150,7 +141,7 @@ int
 btor_precosat_added_original_clauses (void *ptr)
 {
   Solver *solver = (Solver *) ptr;
-  return added_original_clauses;
+  return solver->getAddedOrigClauses ();
 }
 
 void
