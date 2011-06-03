@@ -60,7 +60,7 @@ int btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr);
 int btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr);
 
 /* Inits the SAT solver. */
-void btor_init_sat (BtorSATMgr *smgr);
+void btor_init_sat (BtorSATMgr *smgr, int incremental);
 
 /* Sets the output file of the SAT solver. */
 void btor_set_output_sat (BtorSATMgr *smgr, FILE *output);
