@@ -430,7 +430,7 @@ btor_lingeling_init (BtorSATMgr *smgr)
 {
   LGL *res;
   btor_msg_sat (smgr, 1, "Lingeling Version %s\n", lglversion ());
-  res = lglminit (mgr->mm,
+  res = lglminit (smgr->mm,
                   (lglalloc) btor_malloc,
                   (lglrealloc) btor_realloc,
                   (lgldealloc) btor_free);
