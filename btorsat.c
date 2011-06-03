@@ -436,7 +436,7 @@ btor_lingeling_init (BtorSATMgr *mgr)
                        (lglalloc) btor_malloc,
                        (lglrealloc) btor_realloc,
                        (lgldealloc) btor_free);
-  lglsetopt (lgl, "boost", 0);
+  lglsetopt (res, "boost", 0);
   return res;
 }
 
