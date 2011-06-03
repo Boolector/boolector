@@ -94,6 +94,12 @@ int btor_sat_sat (BtorSATMgr *smgr);
  */
 int btor_deref_sat (BtorSATMgr *smgr, int lit);
 
+/* Gets assignment of a literal (in the SAT case)
+ * similar to 'deref', but only consider top level.
+ * Do not call before calling btor_sat_sat.
+ */
+int btor_fixed_sat (BtorSATMgr *smgr, int lit);
+
 /* Resets the status of the SAT solver. */
 void btor_reset_sat (BtorSATMgr *smgr);
 
@@ -101,6 +107,10 @@ void btor_reset_sat (BtorSATMgr *smgr);
  * as constraints have been added.
  */
 int btor_changed_sat (BtorSATMgr *smgr);
+
+/* Determine wether SAT solver is already inconsistent.
+ */
+int btor_inconsistent_sat (BtorSATMgr *smgr);
 
 #ifdef BTOR_USE_LINGELING
 /* Enables Lingeling as SAT preprocessor. */

@@ -1233,6 +1233,9 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 static int
 assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
 {
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
@@ -1242,6 +1245,10 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
   assert (btor != NULL);
   assert (pair != NULL);
   assert (hashed_pair != NULL);
+
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
   *hashed_pair = 0;
 
@@ -1267,7 +1274,7 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
     else if (aig1 == BTOR_AIG_FALSE)
       val1 = -1;
     else
-      val1 = picosat_deref_toplevel (BTOR_GET_CNF_ID_AIG (aig1));
+      val1 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig1));
 
     if (val1 != 0) /*  not toplevel assigned or const  */
     {
@@ -1276,7 +1283,7 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
       else if (aig2 == BTOR_AIG_FALSE)
         val2 = -1;
       else
-        val2 = picosat_deref_toplevel (BTOR_GET_CNF_ID_AIG (aig2));
+        val2 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig2));
 
       if (val2 != 0 && val1 != val2)
       {
@@ -1657,7 +1664,7 @@ encode_lemma (Btor *btor,
   {
     k = BTOR_POP_STACK (linking_clause);
     assert (k != 0);
-    if (!picosat_deref_toplevel (k)) btor_add_sat (smgr, k);
+    if (!btor_fixed_sat (smgr, k)) btor_add_sat (smgr, k);
   }
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, linking_clause);
@@ -8919,7 +8926,7 @@ update_under_approx_eff_width (Btor *btor)
 
       if (e == 0) continue;
 
-      if (picosat_deref_toplevel (e) == -1)
+      if (btor_fixed_sat (smgr, e) == -1)
       {
         found_top = 1;
         update    = 1;
@@ -10005,7 +10012,7 @@ btor_sat_btor (Btor *btor)
       assert (ua);
       assert (!under_approx_finished);
 
-      if (picosat_inconsistent () || !update_under_approx_eff_width (btor))
+      if (btor_inconsistent_sat (smgr) || !update_under_approx_eff_width (btor))
       {
         if (verbosity >= 2)
         {
