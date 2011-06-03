@@ -8832,6 +8832,8 @@ update_under_approx_eff_width (Btor *btor)
   BtorUARef ua_ref;
   BtorExp *cur, *min_exp;
   BtorUAData *data, *min_data;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
   char *max_string;
   int update, e, verbosity, found_top;
 
@@ -8846,9 +8848,12 @@ update_under_approx_eff_width (Btor *btor)
   min_exp    = NULL;
   max_string = "";
 
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
   if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
   {
-    if (picosat_failed_assumption (btor->ua.global_last_e))
+    if (btor_failed_sat (smgr, btor->ua.global_last_e))
     {
       if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
         btor->ua.global_eff_width++;
@@ -8887,7 +8892,7 @@ update_under_approx_eff_width (Btor *btor)
 
       e = data->last_e;
 
-      if (e != 0 && picosat_failed_assumption (e))
+      if (e != 0 && btor_failed_sat (smgr, e))
       {
         update = 1;
         update_local_under_approx_eff_width (btor, cur, data);
@@ -8920,7 +8925,7 @@ update_under_approx_eff_width (Btor *btor)
         update    = 1;
         update_local_under_approx_eff_width (btor, cur, data);
       }
-      else if (!found_top && picosat_failed_assumption (e))
+      else if (!found_top && btor_failed_sat (smgr, e))
       {
         if (min_data == NULL || data->eff_width < min_data->eff_width)
         {

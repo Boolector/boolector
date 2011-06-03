@@ -76,8 +76,15 @@ void btor_print_stats_sat (BtorSATMgr *smgr);
  */
 void btor_add_sat (BtorSATMgr *smgr, int lit);
 
-/* Adds assumption to SAT solver. */
+/* Adds assumption to SAT solver.
+ * Requires that SAT solver supports this.
+ */
 void btor_assume_sat (BtorSATMgr *smgr, int lit);
+
+/* Checks whether an assumption failed during
+ * the last SAT solver call 'btor_sat_sat'.
+ */
+int btor_failed_sat (BtorSATMgr *smgr, int lit);
 
 /* Solves the SAT instance. */
 int btor_sat_sat (BtorSATMgr *smgr);
@@ -104,5 +111,8 @@ void btor_enable_lingeling_sat (BtorSATMgr *smgr);
 /* Enables PrecoSAT as SAT preprocessor. */
 void btor_enable_precosat_sat (BtorSATMgr *smgr);
 #endif
+
+/* Only used for debugging purposes */
+int btor_incremental_sat (BtorSATMgr *smgr);
 
 #endif

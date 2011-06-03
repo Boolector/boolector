@@ -1016,7 +1016,7 @@ boolector_main (int argc, char **argv)
   int i          = 0;
   int bmc_done   = 0;
   int root_len, var_name_len;
-  int enable_preproc = 1;
+  int incremental = 0;
   int constraints_reported, constraints_report_limit, nconstraints, bmck;
   const char *parse_error = NULL;
   char *var_name;
@@ -1196,9 +1196,9 @@ boolector_main (int argc, char **argv)
     else
     {
       if (app.ua || parse_res.logic != BTOR_LOGIC_QF_BV || parse_res.nregs)
-        enable_preproc = 0;
+        incremental = 1;
 
-      if (enable_preproc)
+      if (!incremental)
       {
 #if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
         if (app.force_picosat)
@@ -1222,6 +1222,15 @@ boolector_main (int argc, char **argv)
         else { btor_enable_precosat_sat (smgr); }
 #endif
       }
+#if defined(BTOR_USE_LINGELING)
+      else
+      {
+        assert (incremental);
+        btor_enable_lingeling_sat (smgr);
+      }
+#endif
+      assert (incremental == btor_incremental_sat (smgr));
+
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
 

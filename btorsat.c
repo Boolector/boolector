@@ -63,7 +63,7 @@ struct BtorSATMgr
   int verbosity;
   BtorMemMgr *mm;
   int initialized;
-  int preproc_enabled;
+  int incremental;
 
   int clauses, maxvar;
 
@@ -73,8 +73,10 @@ struct BtorSATMgr
 
   void *(*ss_init) (struct BtorSATMgr *);
   int (*ss_add) (void *, int);
+  int (*ss_assume) (void *, int);
   int (*ss_sat) (void *);
   int (*ss_deref) (void *, int);
+  int (*ss_failed) (void *, int);
   void (*ss_reset) (void *);
   void (*ss_set_output) (void *, FILE *);
   void (*ss_set_prefix) (void *, const char *);
@@ -134,6 +136,14 @@ btor_picosat_add (void *dummy, int lit)
 }
 
 static int
+btor_picosat_assume (void *dummy, int lit)
+{
+  (void) dummy;
+  (void) picosat_assume (lit);
+  return 0;
+}
+
+static int
 btor_picosat_sat (void *dummy)
 {
   (void) dummy;
@@ -145,6 +155,13 @@ btor_picosat_deref (void *dummy, int lit)
 {
   (void) dummy;
   return picosat_deref (lit);
+}
+
+static int
+btor_picosat_failed (void *dummy, int lit)
+{
+  (void) dummy;
+  return picosat_failed_assumption (lit);
 }
 
 static void
@@ -199,11 +216,20 @@ btor_picosat_stats (void *dummy)
 static void
 btor_enable_picosat_sat (BtorSATMgr *smgr)
 {
-  smgr->ss_name             = "PicoSAT";
+  assert (smgr != NULL);
+
+  BTOR_ABORT_SAT (smgr->initialized,
+                  "'btor_init_sat' called before "
+                  "'btor_enable_picosat_sat'");
+
+  smgr->ss_name = "PicoSAT";
+
   smgr->ss_init             = btor_picosat_init;
   smgr->ss_add              = btor_picosat_add;
+  smgr->ss_assume           = btor_picosat_assume;
   smgr->ss_sat              = btor_picosat_sat;
   smgr->ss_deref            = btor_picosat_deref;
+  smgr->ss_failed           = btor_picosat_failed;
   smgr->ss_reset            = btor_picosat_reset;
   smgr->ss_set_output       = btor_picosat_set_output;
   smgr->ss_set_prefix       = btor_picosat_set_prefix;
@@ -211,7 +237,8 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->ss_inc_max_var      = btor_picosat_inc_max_var;
   smgr->ss_variables        = btor_picosat_variables;
   smgr->ss_stats            = btor_picosat_stats;
-  smgr->preproc_enabled     = 0;
+
+  smgr->incremental = 1;
 }
 
 /*------------------------------------------------------------------------*/
@@ -356,16 +383,17 @@ btor_assume_sat (BtorSATMgr *smgr, int lit)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
-  (void) smgr;
-  picosat_assume (lit);
+  assert (abs (lit) <= smgr->maxvar);
+  assert (smgr->ss_assume);
+  (void) smgr->ss_assume (smgr->solver, lit);
 }
 
 int
 btor_sat_sat (BtorSATMgr *smgr)
 {
+  (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
-  (void) smgr;
   btor_msg_sat (smgr, 2, "calling SAT solver %s\n", smgr->ss_name);
   return smgr->ss_sat (smgr->solver);
 }
@@ -373,10 +401,22 @@ btor_sat_sat (BtorSATMgr *smgr)
 int
 btor_deref_sat (BtorSATMgr *smgr, int lit)
 {
+  (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
-  (void) smgr;
+  assert (abs (lit) <= smgr->maxvar);
   return smgr->ss_deref (smgr->solver, lit);
+}
+
+int
+btor_failed_sat (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  assert (smgr != NULL);
+  assert (smgr->initialized);
+  assert (abs (lit) <= smgr->maxvar);
+  assert (smgr->ss_failed);
+  return smgr->ss_failed (smgr->solver, lit);
 }
 
 void
@@ -399,19 +439,31 @@ btor_changed_assignments_sat (BtorSATMgr *smgr)
   return picosat_changed ();
 }
 
+int
+btor_incremental_sat (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+  return smgr->incremental;
+}
+
 #ifdef BTOR_USE_PRECOSAT
 void
 btor_enable_precosat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
+
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_precosat_sat'");
-  smgr->ss_name             = "PrecoSAT";
+
+  smgr->ss_name = "PrecoSAT";
+
   smgr->ss_init             = btor_precosat_init;
   smgr->ss_add              = btor_precosat_add;
+  smgr->ss_assume           = 0;
   smgr->ss_sat              = btor_precosat_sat;
   smgr->ss_deref            = btor_precosat_deref;
+  smgr->ss_failed           = 0;
   smgr->ss_reset            = btor_precosat_reset;
   smgr->ss_set_output       = btor_precosat_set_output;
   smgr->ss_set_prefix       = btor_precosat_set_prefix;
@@ -420,6 +472,8 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
   smgr->ss_variables        = btor_precosat_variables;
   smgr->ss_stats            = btor_precosat_stats;
   smgr->preproc_enabled     = 1;
+
+  smgr->incremental = 0;
 }
 #endif
 
@@ -447,6 +501,14 @@ btor_lingeling_add (void *ptr, int lit)
 }
 
 static int
+btor_lingeling_assume (void *ptr, int lit)
+{
+  LGL *lgl = ptr;
+  lglassume (lgl, lit);
+  return 0;
+}
+
+static int
 btor_lingeling_sat (void *ptr)
 {
   return lglsat (ptr);
@@ -456,6 +518,12 @@ static int
 btor_lingeling_deref (void *ptr, int lit)
 {
   return lglderef (ptr, lit);
+}
+
+static int
+btor_lingeling_failed (void *ptr, int lit)
+{
+  return lglfailed (ptr, lit);
 }
 
 static void
@@ -504,14 +572,19 @@ void
 btor_enable_lingeling_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
+
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before "
                   "'btor_enable_lingeling_sat'");
-  smgr->ss_name             = "Lingeling";
+
+  smgr->ss_name = "Lingeling";
+
   smgr->ss_init             = btor_lingeling_init;
   smgr->ss_add              = btor_lingeling_add;
+  smgr->ss_assume           = btor_lingeling_assume;
   smgr->ss_sat              = btor_lingeling_sat;
   smgr->ss_deref            = btor_lingeling_deref;
+  smgr->ss_failed           = btor_lingeling_failed;
   smgr->ss_reset            = btor_lingeling_reset;
   smgr->ss_set_output       = btor_lingeling_set_output;
   smgr->ss_set_prefix       = btor_lingeling_set_prefix;
@@ -519,7 +592,8 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->ss_inc_max_var      = btor_lingeling_inc_max_var;
   smgr->ss_variables        = btor_lingeling_variables;
   smgr->ss_stats            = btor_lingeling_stats;
-  smgr->preproc_enabled     = 1;
+
+  smgr->incremental = 1;
 }
 #endif
 
