@@ -485,7 +485,7 @@ btor_lingeling_enable_verbosity (void *ptr)
 static int
 btor_lingeling_inc_max_var (void *ptr)
 {
-  return lglmaxvar (ptr) + 1;
+  return lglincvar (ptr);
 }
 
 static int
