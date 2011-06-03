@@ -428,11 +428,14 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
 static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
+  LGL *res;
   btor_msg_sat (smgr, 1, "Lingeling Version %s\n", lglversion ());
-  return lglminit (smgr->mm,
-                   (lglalloc) btor_malloc,
-                   (lglrealloc) btor_realloc,
-                   (lgldealloc) btor_free);
+  res = lglminit (mgr->mm,
+                  (lglalloc) btor_malloc,
+                  (lglrealloc) btor_realloc,
+                  (lgldealloc) btor_free);
+  lglsetopt (res, "boost", 0);
+  return res;
 }
 
 static int

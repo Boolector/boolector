@@ -1,7 +1,7 @@
 #!/bin/sh
-a=`./boolector $1`
+a="`./boolector $1`"
 echo $a
-b=`./boolector $1 -picosat`
+b="`./boolector $1 -picosat`"
 echo $b
-[ $a = $b ] && exit 0
+[ X"$a" = X"$b" ] && exit 0
 exit 1
