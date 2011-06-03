@@ -1229,7 +1229,7 @@ boolector_main (int argc, char **argv)
         btor_enable_lingeling_sat (smgr);
       }
 #endif
-      assert (incremental == btor_incremental_sat (smgr));
+      assert (incremental <= btor_incremental_sat (smgr));
 
       btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
@@ -1727,7 +1727,8 @@ boolector_main (int argc, char **argv)
 
     maxallocated = mem->maxallocated;
 
-    btor_static_btor = 0;
+    btor_static_btor      = 0;
+    btor_static_verbosity = 0;
     btor_delete_btor (btor);
 
     btor_reset_sig_handlers ();

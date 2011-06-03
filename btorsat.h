@@ -100,7 +100,7 @@ void btor_reset_sat (BtorSATMgr *smgr);
 /* Determines if assignments have been changed
  * as constraints have been added.
  */
-int btor_changed_assignments_sat (BtorSATMgr *smgr);
+int btor_changed_sat (BtorSATMgr *smgr);
 
 #ifdef BTOR_USE_LINGELING
 /* Enables Lingeling as SAT preprocessor. */

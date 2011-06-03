@@ -75,6 +75,7 @@ struct BtorSATMgr
   int (*ss_add) (void *, int);
   int (*ss_assume) (void *, int);
   int (*ss_sat) (void *);
+  int (*ss_changed) (void *);
   int (*ss_deref) (void *, int);
   int (*ss_failed) (void *, int);
   void (*ss_reset) (void *);
@@ -148,6 +149,13 @@ btor_picosat_sat (void *dummy)
 {
   (void) dummy;
   return picosat_sat (-1);
+}
+
+static int
+btor_picosat_changed (void *dummy)
+{
+  (void) dummy;
+  return picosat_changed ();
 }
 
 static int
@@ -228,6 +236,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->ss_add              = btor_picosat_add;
   smgr->ss_assume           = btor_picosat_assume;
   smgr->ss_sat              = btor_picosat_sat;
+  smgr->ss_sat              = btor_picosat_changed;
   smgr->ss_deref            = btor_picosat_deref;
   smgr->ss_failed           = btor_picosat_failed;
   smgr->ss_reset            = btor_picosat_reset;
@@ -431,12 +440,13 @@ btor_reset_sat (BtorSATMgr *smgr)
 }
 
 int
-btor_changed_assignments_sat (BtorSATMgr *smgr)
+btor_changed_sat (BtorSATMgr *smgr)
 {
+  (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
-  (void) smgr;
-  return picosat_changed ();
+  assert (smgr->ss_changed);
+  return smgr->ss_changed (smgr->solver);
 }
 
 int
@@ -462,6 +472,7 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
   smgr->ss_add              = btor_precosat_add;
   smgr->ss_assume           = 0;
   smgr->ss_sat              = btor_precosat_sat;
+  smgr->ss_changed          = 0;
   smgr->ss_deref            = btor_precosat_deref;
   smgr->ss_failed           = 0;
   smgr->ss_reset            = btor_precosat_reset;
@@ -515,6 +526,13 @@ btor_lingeling_sat (void *ptr)
 }
 
 static int
+btor_lingeling_changed (void *ptr)
+{
+  (void) ptr;
+  return 1;  // TODO add such a function to Lingeling
+}
+
+static int
 btor_lingeling_deref (void *ptr, int lit)
 {
   return lglderef (ptr, lit);
@@ -553,7 +571,9 @@ btor_lingeling_enable_verbosity (void *ptr)
 static int
 btor_lingeling_inc_max_var (void *ptr)
 {
-  return lglincvar (ptr);
+  int res = lglincvar (ptr);
+  lglfreeze (ptr, res);  // TODO what?
+  return res;
 }
 
 static int
@@ -583,6 +603,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->ss_add              = btor_lingeling_add;
   smgr->ss_assume           = btor_lingeling_assume;
   smgr->ss_sat              = btor_lingeling_sat;
+  smgr->ss_changed          = btor_lingeling_changed;
   smgr->ss_deref            = btor_lingeling_deref;
   smgr->ss_failed           = btor_lingeling_failed;
   smgr->ss_reset            = btor_lingeling_reset;

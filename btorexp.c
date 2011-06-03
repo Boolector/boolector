@@ -6737,7 +6737,7 @@ update_sat_assignments (Btor *btor)
   assert (!found_assumption_false);
   result = btor_sat_sat (smgr);
   assert (result == BTOR_SAT);
-  return btor_changed_assignments_sat (smgr);
+  return btor_changed_sat (smgr);
 }
 
 /* synthesizes and fully encodes index and value of access expression into SAT
