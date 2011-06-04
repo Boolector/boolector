@@ -1198,36 +1198,34 @@ boolector_main (int argc, char **argv)
       if (app.ua || parse_res.logic != BTOR_LOGIC_QF_BV || parse_res.nregs)
         need_incremental_sat_solver = 1;
 
-      if (!need_incremental_sat_solver)
-      {
 #if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
-        if (app.force_picosat)
-        {
-          /* DO NOTHING USE PicoSAT */
-        }
+      if (app.force_picosat)
+      {
+        /* DO NOTHING USE PicoSAT */
+      }
 #endif
 #if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
-        else if (app.force_precosat)
+      else if (app.force_precosat)
+      {
+        if (need_incremental_sat_solver)
         {
-          btor_enable_precosat_sat (smgr);
+          print_msg_va_args (&app,
+                             "can not use PrecoSAT (incremental SAT required)");
+          app.err = 1;
+          goto DONE;
         }
-#endif
-#if defined(BTOR_USE_LINGELING)
         else
-        {
-          btor_enable_lingeling_sat (smgr);
-        }
-#endif
-#if !defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
-        else { btor_enable_precosat_sat (smgr); }
-#endif
+          btor_enable_precosat_sat (smgr);
       }
+#endif
 #if defined(BTOR_USE_LINGELING)
       else
       {
-        assert (need_incremental_sat_solver);
         btor_enable_lingeling_sat (smgr);
       }
+#endif
+#if !defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+      else { btor_enable_precosat_sat (smgr); }
 #endif
       assert (need_incremental_sat_solver
               <= btor_provides_incremental_sat (smgr));
@@ -1724,6 +1722,9 @@ boolector_main (int argc, char **argv)
       btor_reset_sat (smgr);
     }
 
+#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+  DONE:
+#endif
     if (parser_api) parser_api->reset (parser);
 
     maxallocated = mem->maxallocated;
