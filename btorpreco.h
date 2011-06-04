@@ -29,16 +29,16 @@
 struct BtorSATMgr;
 
 void *btor_precosat_init (struct BtorSATMgr *);
-int btor_precosat_add (void *, int);
-int btor_precosat_sat (void *);
-int btor_precosat_deref (void *, int);
-void btor_precosat_reset (void *);
-void btor_precosat_set_output (void *, FILE *);
-void btor_precosat_set_prefix (void *, const char *);
-void btor_precosat_enable_verbosity (void *);
-int btor_precosat_inc_max_var (void *);
-int btor_precosat_variables (void *);
-void btor_precosat_stats (void *);
+int btor_precosat_add (struct BtorSATMgr *, int);
+int btor_precosat_sat (struct BtorSATMgr *);
+int btor_precosat_deref (struct BtorSATMgr *, int);
+void btor_precosat_reset (struct BtorSATMgr *);
+void btor_precosat_set_output (struct BtorSATMgr *, FILE *);
+void btor_precosat_set_prefix (struct BtorSATMgr *, const char *);
+void btor_precosat_enable_verbosity (struct BtorSATMgr *);
+int btor_precosat_inc_max_var (struct BtorSATMgr *);
+int btor_precosat_variables (struct BtorSATMgr *);
+void btor_precosat_stats (struct BtorSATMgr *);
 
 const char *btor_precosat_version (void);
 

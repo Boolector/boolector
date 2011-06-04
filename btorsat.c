@@ -337,7 +337,7 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   assert (smgr);
   assert (smgr->initialized);
   (void) smgr;
-  result = smgr->api.inc_max_var (smgr->solver);
+  result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
   if (smgr->verbosity > 2 && !(result % 100000))
@@ -351,7 +351,7 @@ btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  return smgr->api.variables (smgr->solver);
+  return smgr->api.variables (smgr);
 }
 
 void
@@ -397,14 +397,14 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
   assert (smgr->initialized);
   assert (output != NULL);
   (void) smgr;
-  smgr->api.set_output (smgr->solver, output);
+  smgr->api.set_output (smgr, output);
   smgr->output = output;
 
   prefix = btor_malloc (smgr->mm, strlen (smgr->name) + 4);
   sprintf (prefix, "[%s] ", smgr->name);
   q = prefix + 1;
   for (p = smgr->name; *p; p++) *q++ = tolower (*p);
-  smgr->api.set_prefix (smgr->solver, prefix);
+  smgr->api.set_prefix (smgr, prefix);
   btor_free (smgr->mm, prefix, strlen (smgr->name) + 4);
 }
 
@@ -414,7 +414,7 @@ btor_enable_verbosity_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->api.enable_verbosity (smgr->solver);
+  smgr->api.enable_verbosity (smgr);
 }
 
 void
@@ -423,7 +423,7 @@ btor_print_stats_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->api.stats (smgr->solver);
+  smgr->api.stats (smgr);
 }
 
 void
@@ -434,7 +434,7 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   assert ((smgr->inc.need && smgr->inc.provides) || !smgr->satcalls);
   assert (abs (lit) <= smgr->maxvar);
   if (!lit) smgr->clauses++;
-  (void) smgr->api.add (smgr->solver, lit);
+  (void) smgr->api.add (smgr, lit);
 }
 
 int
@@ -445,7 +445,7 @@ btor_sat_sat (BtorSATMgr *smgr)
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "calling SAT solver %s\n", smgr->name);
   smgr->satcalls++;
-  return smgr->api.sat (smgr->solver);
+  return smgr->api.sat (smgr);
 }
 
 int
@@ -455,7 +455,7 @@ btor_deref_sat (BtorSATMgr *smgr, int lit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (abs (lit) <= smgr->maxvar);
-  return smgr->api.deref (smgr->solver, lit);
+  return smgr->api.deref (smgr, lit);
 }
 
 void
@@ -464,7 +464,7 @@ btor_reset_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "resetting %s\n", smgr->name);
-  smgr->api.reset (smgr->solver);
+  smgr->api.reset (smgr);
   smgr->solver      = 0;
   smgr->initialized = 0;
 }
@@ -475,7 +475,7 @@ btor_changed_sat (BtorSATMgr *smgr)
   (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
-  return smgr->api.changed (smgr->solver);
+  return smgr->api.changed (smgr);
 }
 
 int
@@ -495,7 +495,7 @@ btor_assume_sat (BtorSATMgr *smgr, int lit)
   assert (abs (lit) <= smgr->maxvar);
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
-  (void) smgr->inc.api.assume (smgr->solver, lit);
+  (void) smgr->inc.api.assume (smgr, lit);
 }
 
 int
@@ -507,7 +507,7 @@ btor_failed_sat (BtorSATMgr *smgr, int lit)
   assert (abs (lit) <= smgr->maxvar);
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
-  return smgr->inc.api.failed (smgr->solver, lit);
+  return smgr->inc.api.failed (smgr, lit);
 }
 
 int
@@ -519,7 +519,7 @@ btor_fixed_sat (BtorSATMgr *smgr, int lit)
   assert (abs (lit) <= smgr->maxvar);
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
-  return smgr->inc.api.fixed (smgr->solver, lit);
+  return smgr->inc.api.fixed (smgr, lit);
 }
 
 int
@@ -530,7 +530,7 @@ btor_inconsistent_sat (BtorSATMgr *smgr)
   assert (smgr->initialized);
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
-  return smgr->inc.api.inconsistent (smgr->solver);
+  return smgr->inc.api.inconsistent (smgr);
 }
 
 /*------------------------------------------------------------------------*/
