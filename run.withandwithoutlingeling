@@ -3,5 +3,8 @@ a="`./boolector $1`"
 echo $a
 b="`./boolector $1 -picosat`"
 echo $b
-[ X"$a" = X"$b" ] && exit 0
+if [ X"$a" = X"$b" ]
+then
+  exit 0
+fi
 exit 1
