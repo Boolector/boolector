@@ -536,6 +536,7 @@ btor_inconsistent_sat (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_USE_PRECOSAT
+
 void
 btor_enable_precosat_sat (BtorSATMgr *smgr)
 {
@@ -563,11 +564,13 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
   smgr->stats            = btor_precosat_stats;
   smgr->preproc_enabled  = 1;
 
-  smgr->incremental = 0;
+  memset (&smgr->inc, 0, sizeof smgr->inc);
 
   btor_msg_sat (smgr, 1, "PrecoSAT allows only non-incremental mode");
 }
 #endif
+
+/*------------------------------------------------------------------------*/
 
 #ifdef BTOR_USE_LINGELING
 
@@ -592,13 +595,6 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 }
 
 static int
-btor_lingeling_assume (BtorSATMgr *smgr, int lit)
-{
-  lglassume (smgr->solver, lit);
-  return 0;
-}
-
-static int
 btor_lingeling_sat (BtorSATMgr *smgr)
 {
   return lglsat (smgr->solver);
@@ -615,12 +611,6 @@ static int
 btor_lingeling_deref (BtorSATMgr *smgr, int lit)
 {
   return lglderef (smgr->solver, lit);
-}
-
-static int
-btor_lingeling_failed (BtorSATMgr *smgr, int lit)
-{
-  return lglfailed (smgr->solver, lit);
 }
 
 static void
@@ -667,6 +657,35 @@ btor_lingeling_stats (BtorSATMgr *smgr)
   lglstats (smgr->solver);
 }
 
+/*------------------------------------------------------------------------*/
+
+static int
+btor_lingeling_assume (BtorSATMgr *smgr, int lit)
+{
+  lglassume (smgr->solver, lit);
+  return 0;
+}
+
+static int
+btor_lingeling_failed (BtorSATMgr *smgr, int lit)
+{
+  return lglfailed (smgr->solver, lit);
+}
+
+static int
+btor_lingeling_fixed (BtorSATMgr *smgr, int lit)
+{
+  return lglfixed (smgr->solver, lit);
+}
+
+static int
+btor_lingeling_inconsistent (BtorSATMgr *smgr)
+{
+  return lglinconsistent (smgr->solver);
+}
+
+/*------------------------------------------------------------------------*/
+
 void
 btor_enable_lingeling_sat (BtorSATMgr *smgr)
 {
@@ -690,9 +709,11 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->api.variables        = btor_lingeling_variables;
   smgr->api.stats            = btor_lingeling_stats;
 
-  smgr->inc.provides   = 1;
-  smgr->inc.api.assume = btor_lingeling_assume;
-  smgr->inc.api.failed = btor_lingeling_failed;
+  smgr->inc.provides         = 1;
+  smgr->inc.api.assume       = btor_lingeling_assume;
+  smgr->inc.api.failed       = btor_lingeling_failed;
+  smgr->inc.api.fixed        = btor_lingeling_fixed;
+  smgr->inc.api.inconsistent = btor_lingeling_inconsistent;
 
   btor_msg_sat (
       smgr, 1, "Lingeling allows both incremental and non-incremental mode");
