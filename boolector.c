@@ -1304,7 +1304,7 @@ boolector_sat (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (!btor->inc_enabled && btor->btor_sat_btor_called > 0,
-                        "incremental usage has not been enabled. "
+                        "incremental usage has not been enabled."
                         "'boolector_sat' may only be called once");
   return btor_sat_btor (btor);
 }

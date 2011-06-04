@@ -60,7 +60,7 @@ int btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr);
 int btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr);
 
 /* Inits the SAT solver. */
-void btor_init_sat (BtorSATMgr *smgr, int incremental);
+void btor_init_sat (BtorSATMgr *smgr, int need_incremental_solver);
 
 /* Sets the output file of the SAT solver. */
 void btor_set_output_sat (BtorSATMgr *smgr, FILE *output);
@@ -122,7 +122,7 @@ void btor_enable_lingeling_sat (BtorSATMgr *smgr);
 void btor_enable_precosat_sat (BtorSATMgr *smgr);
 #endif
 
-/* Only used for debugging purposes */
-int btor_incremental_sat (BtorSATMgr *smgr);
+/* Only used for debugging purposes at this point */
+int btor_provides_incremental_sat (BtorSATMgr *smgr);
 
 #endif

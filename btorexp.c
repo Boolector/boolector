@@ -9941,7 +9941,7 @@ btor_sat_btor (Btor *btor)
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
+  if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr, btor->inc_enabled);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
