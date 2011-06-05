@@ -74,7 +74,6 @@ struct BtorSATMgr
     void *(*init) (BtorSATMgr *);
     int (*add) (BtorSATMgr *, int);
     int (*sat) (BtorSATMgr *);
-    int (*changed) (BtorSATMgr *);
     int (*deref) (BtorSATMgr *, int);
     void (*reset) (BtorSATMgr *);
     void (*set_output) (BtorSATMgr *, FILE *);
@@ -92,6 +91,7 @@ struct BtorSATMgr
     {
       int (*fixed) (BtorSATMgr *, int);
       int (*inconsistent) (BtorSATMgr *);
+      int (*changed) (BtorSATMgr *);
       int (*assume) (BtorSATMgr *, int);
       int (*failed) (BtorSATMgr *, int);
     } api;
@@ -268,7 +268,6 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->api.init             = btor_picosat_init;
   smgr->api.add              = btor_picosat_add;
   smgr->api.sat              = btor_picosat_sat;
-  smgr->api.changed          = btor_picosat_changed;
   smgr->api.deref            = btor_picosat_deref;
   smgr->api.reset            = btor_picosat_reset;
   smgr->api.set_output       = btor_picosat_set_output;
@@ -283,6 +282,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->inc.api.failed       = btor_picosat_failed;
   smgr->inc.api.fixed        = btor_picosat_fixed;
   smgr->inc.api.inconsistent = btor_picosat_inconsistent;
+  smgr->inc.api.changed      = btor_picosat_changed;
 
   btor_msg_sat (
       smgr, 1, "PicoSAT allows both incremental and non-incremental mode");
@@ -317,6 +317,12 @@ BtorMemMgr *
 btor_mem_mgr_sat (BtorSATMgr *smgr)
 {
   return smgr->mm;
+}
+
+void *
+btor_get_solver_sat (BtorSATMgr *smgr)
+{
+  return smgr->solver;
 }
 
 void
@@ -473,15 +479,6 @@ btor_reset_sat (BtorSATMgr *smgr)
 }
 
 int
-btor_changed_sat (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  assert (smgr != NULL);
-  assert (smgr->initialized);
-  return smgr->api.changed (smgr);
-}
-
-int
 btor_provides_incremental_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
@@ -537,6 +534,17 @@ btor_inconsistent_sat (BtorSATMgr *smgr)
   return smgr->inc.api.inconsistent (smgr);
 }
 
+int
+btor_changed_sat (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  assert (smgr != NULL);
+  assert (smgr->initialized);
+  assert (smgr->inc.need);
+  assert (smgr->inc.provides);
+  return smgr->inc.api.changed (smgr);
+}
+
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_USE_PRECOSAT
@@ -552,21 +560,17 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
 
   smgr->name = "PrecoSAT";
 
-  smgr->init             = btor_precosat_init;
-  smgr->add              = btor_precosat_add;
-  smgr->assume           = 0;
-  smgr->sat              = btor_precosat_sat;
-  smgr->changed          = 0;
-  smgr->deref            = btor_precosat_deref;
-  smgr->failed           = 0;
-  smgr->reset            = btor_precosat_reset;
-  smgr->set_output       = btor_precosat_set_output;
-  smgr->set_prefix       = btor_precosat_set_prefix;
-  smgr->enable_verbosity = btor_precosat_enable_verbosity;
-  smgr->inc_max_var      = btor_precosat_inc_max_var;
-  smgr->variables        = btor_precosat_variables;
-  smgr->stats            = btor_precosat_stats;
-  smgr->preproc_enabled  = 1;
+  smgr->api.init             = btor_precosat_init;
+  smgr->api.add              = btor_precosat_add;
+  smgr->api.sat              = btor_precosat_sat;
+  smgr->api.deref            = btor_precosat_deref;
+  smgr->api.reset            = btor_precosat_reset;
+  smgr->api.set_output       = btor_precosat_set_output;
+  smgr->api.set_prefix       = btor_precosat_set_prefix;
+  smgr->api.enable_verbosity = btor_precosat_enable_verbosity;
+  smgr->api.inc_max_var      = btor_precosat_inc_max_var;
+  smgr->api.variables        = btor_precosat_variables;
+  smgr->api.stats            = btor_precosat_stats;
 
   memset (&smgr->inc, 0, sizeof smgr->inc);
 
@@ -703,7 +707,6 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->api.init             = btor_lingeling_init;
   smgr->api.add              = btor_lingeling_add;
   smgr->api.sat              = btor_lingeling_sat;
-  smgr->api.changed          = btor_lingeling_changed;
   smgr->api.deref            = btor_lingeling_deref;
   smgr->api.reset            = btor_lingeling_reset;
   smgr->api.set_output       = btor_lingeling_set_output;
@@ -718,6 +721,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->inc.api.failed       = btor_lingeling_failed;
   smgr->inc.api.fixed        = btor_lingeling_fixed;
   smgr->inc.api.inconsistent = btor_lingeling_inconsistent;
+  smgr->inc.api.changed      = btor_lingeling_changed;
 
   btor_msg_sat (
       smgr, 1, "Lingeling allows both incremental and non-incremental mode");

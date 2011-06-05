@@ -35,18 +35,16 @@ btor_precosat_lsbsign_lit (int lit)
   return 2 * abs (lit) + (lit < 0);
 }
 
-const char *
+const char*
 btor_precosat_version (void)
 {
   return precosat_version ();
 }
 
-void btor_msg_sat (BtorSATMgr *, int, const char *, ...);
-
-void *
-btor_precosat_init (BtorSATMgr *smgr)
+void*
+btor_precosat_init (BtorSATMgr* smgr)
 {
-  Solver *solver;
+  Solver* solver;
 
   btor_msg_sat (smgr, 1, "PrecoSAT Version %s\n", btor_precosat_version ());
   solver = new Solver;
@@ -61,17 +59,17 @@ btor_precosat_init (BtorSATMgr *smgr)
 }
 
 int
-btor_precosat_add (void *ptr, int lit)
+btor_precosat_add (BtorSATMgr* smgr, int lit)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   solver->add (btor_precosat_lsbsign_lit (lit));
   return solver->getAddedOrigClauses ();
 }
 
 int
-btor_precosat_sat (void *ptr)
+btor_precosat_sat (BtorSATMgr* smgr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   int res;
 
   res = solver->solve ();
@@ -85,61 +83,61 @@ btor_precosat_sat (void *ptr)
 }
 
 int
-btor_precosat_deref (void *ptr, int lit)
+btor_precosat_deref (BtorSATMgr* smgr, int lit)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   return solver->val (btor_precosat_lsbsign_lit (lit));
 }
 
 void
-btor_precosat_reset (void *ptr)
+btor_precosat_reset (BtorSATMgr* smgr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   solver->reset ();
   delete solver;
 }
 
 void
-btor_precosat_set_output (void *ptr, FILE *file)
+btor_precosat_set_output (BtorSATMgr* smgr, FILE* file)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   solver->set (file);
 }
 
 void
-btor_precosat_set_prefix (void *ptr, const char *newprfx)
+btor_precosat_set_prefix (BtorSATMgr* smgr, const char* newprfx)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   solver->setprfx (newprfx);
 }
 
 void
-btor_precosat_enable_verbosity (void *ptr)
+btor_precosat_enable_verbosity (BtorSATMgr* smgr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   bool res;
   res = solver->set ("verbose", 1);
   assert (res);
 }
 
 int
-btor_precosat_inc_max_var (void *ptr)
+btor_precosat_inc_max_var (BtorSATMgr* smgr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   return solver->next ();
 }
 
 int
-btor_precosat_variables (void *ptr)
+btor_precosat_variables (BtorSATMgr* smgr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   return solver->getMaxVar ();
 }
 
 void
-btor_precosat_stats (void *ptr)
+btor_precosat_stats (BtorSATMgr* smgr)
 {
-  Solver *solver = (Solver *) ptr;
+  Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   solver->prstats ();
 }
 };

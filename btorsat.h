@@ -43,6 +43,10 @@ BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm);
 
 BtorMemMgr *btor_mem_mgr_sat (BtorSATMgr *smgr);
 
+void *btor_get_solver_sat (BtorSATMgr *smgr);
+
+void btor_msg_sat (BtorSATMgr *, int, const char *, ...);
+
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_sat_mgr (BtorSATMgr *smgr, int verbosity);
 
