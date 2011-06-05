@@ -119,6 +119,7 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
+  putc ('\n', stdout);
   fflush (stdout);
 }
 
@@ -343,7 +344,7 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
   if (smgr->verbosity > 2 && !(result % 100000))
-    btor_msg_sat (smgr, 2, "reached CNF id %d\n", result);
+    btor_msg_sat (smgr, 2, "reached CNF id %d", result);
   return result;
 }
 
@@ -445,7 +446,7 @@ btor_sat_sat (BtorSATMgr *smgr)
   (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
-  btor_msg_sat (smgr, 2, "calling SAT solver %s\n", smgr->name);
+  btor_msg_sat (smgr, 2, "calling SAT solver %s", smgr->name);
   smgr->satcalls++;
   return smgr->api.sat (smgr);
 }
@@ -465,7 +466,7 @@ btor_reset_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
-  btor_msg_sat (smgr, 2, "resetting %s\n", smgr->name);
+  btor_msg_sat (smgr, 2, "resetting %s", smgr->name);
   smgr->api.reset (smgr);
   smgr->solver      = 0;
   smgr->initialized = 0;
