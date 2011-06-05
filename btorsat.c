@@ -246,8 +246,10 @@ btor_picosat_inconsistent (BtorSATMgr *smgr)
 static int
 btor_picosat_fixed (BtorSATMgr *smgr, int lit)
 {
+  int res;
   (void) smgr;
-  return picosat_deref_toplevel (lit);
+  res = picosat_deref_toplevel (lit);
+  return res;
 }
 
 /*------------------------------------------------------------------------*/
@@ -513,13 +515,14 @@ btor_failed_sat (BtorSATMgr *smgr, int lit)
 int
 btor_fixed_sat (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
+  int res;
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (abs (lit) <= smgr->maxvar);
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
-  return smgr->inc.api.fixed (smgr, lit);
+  res = smgr->inc.api.fixed (smgr, lit);
+  return res;
 }
 
 int

@@ -1,9 +1,0 @@
-2 array 2 2
-3 zero 2
-4 write 2 2 2 3 3
-5 array 2 2
-6 write 2 2 5 3 3
-7 eq 1 4 6
-9 eq 1 2 5
-10 eq 1 7 9
-11 root 1 -10
