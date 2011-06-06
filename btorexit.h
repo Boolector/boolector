@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -24,9 +26,9 @@ enum BtorExitCode
 {
   BTOR_SUCC_EXIT    = 0,
   BTOR_ERR_EXIT     = 1,
-  BTOR_SAT_EXIT     = 2,
-  BTOR_UNSAT_EXIT   = 3,
-  BTOR_UNKNOWN_EXIT = 4
+  BTOR_SAT_EXIT     = 10,
+  BTOR_UNSAT_EXIT   = 20,
+  BTOR_UNKNOWN_EXIT = 0
 };
 
 typedef enum BtorExitCode BtorExitCode;

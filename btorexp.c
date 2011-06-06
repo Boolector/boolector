@@ -6185,7 +6185,8 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
         }
 
 #ifndef BTOR_NO_3VL
-        if (btor->rewrite_level > 1) propagate_3vl_to_aigvec (btor, cur);
+        if (btor->rewrite_level > 1 && !BTOR_IS_ARRAY_EXP (cur))
+          propagate_3vl_to_aigvec (btor, cur);
 #endif
       }
     }
