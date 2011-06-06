@@ -128,7 +128,7 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
-  btor_msg_sat (smgr, 1, "PicoSAT Version %s\n", picosat_version ());
+  btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
 
   picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
   picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
@@ -585,7 +585,7 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   LGL *res;
-  btor_msg_sat (smgr, 1, "Lingeling Version %s\n", lglversion ());
+  btor_msg_sat (smgr, 1, "Lingeling Version %s", lglversion ());
   res = lglminit (smgr->mm,
                   (lglalloc) btor_malloc,
                   (lglrealloc) btor_realloc,
