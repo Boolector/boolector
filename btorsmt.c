@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -189,6 +191,8 @@ struct BtorSMTParser
   int saved_char;
 
   unsigned long long bytes;
+
+  BtorLogic required_logic;
 
   char *error;
   BtorCharStack buffer;
@@ -516,6 +520,8 @@ btor_new_smt_parser (Btor *btor, int verbosity)
 
   res->mem  = mem;
   res->btor = btor;
+
+  res->required_logic = BTOR_LOGIC_QF_BV;
 
   type = BTOR_SMTCC_IDENTIFIER_START | BTOR_SMTCC_IDENTIFIER_MIDDLE;
 
@@ -1121,6 +1127,13 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
     if (!datalen) goto INVALID_SORT;
 
     symbol->exp = btor_array_exp (parser->btor, datalen, addrlen, symbol->name);
+
+    if (parser->required_logic == BTOR_LOGIC_QF_BV)
+    {
+      btor_smt_message (parser, 2, "requires QF_AUFBV");
+      parser->required_logic = BTOR_LOGIC_QF_AUFBV;
+    }
+
     push_input (parser, symbol->exp);
 
     /* TODO what about 'symbol->name' back annotation? */
@@ -2500,6 +2513,17 @@ translate_benchmark (BtorSMTParser *parser,
 
       default: break;
     }
+  }
+
+  if (parser->required_logic == BTOR_LOGIC_QF_AUFBV
+      && res->logic == BTOR_LOGIC_QF_BV)
+    return btor_perr_smt (parser, "need QF_AUFBV but only QF_BV specified");
+
+  if (parser->required_logic == BTOR_LOGIC_QF_BV
+      && res->logic == BTOR_LOGIC_QF_AUFBV)
+  {
+    btor_smt_message (parser, 1, "no arrays founds, so only need QF_BV");
+    res->logic = BTOR_LOGIC_QF_BV;
   }
 
   assert (!parser->error);
