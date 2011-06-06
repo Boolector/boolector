@@ -276,7 +276,8 @@ btor_catch_sig (int sig)
     }
   }
   btor_reset_sig_handlers ();
-  exit (1);
+  raise (sig);
+  exit (sig);
 }
 
 static void

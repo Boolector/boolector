@@ -5604,7 +5604,7 @@ btor_print_stats_btor (Btor *btor)
   BtorUAMode ua_mode;
 
   assert (btor != NULL);
-  assert (btor->verbosity > 0);
+  // assert (btor->verbosity > 0);
 
   ua_mode   = btor->ua.mode;
   verbosity = btor->verbosity;
@@ -5843,8 +5843,9 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   btor_release_exp (btor, read2);
 }
 
+#if 0
 static void
-set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
+set_flags_and_synth_aeq (Btor * btor, BtorExp * exp)
 {
   BtorExpPtrStack stack;
   BtorExp *cur;
@@ -5855,31 +5856,37 @@ set_flags_and_synth_aeq (Btor *btor, BtorExp *exp)
   BTOR_INIT_STACK (stack);
   BTOR_PUSH_STACK (mm, stack, exp);
   do
-  {
-    cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    if (!cur->reachable)
     {
-      cur->reachable = 1;
-      switch (cur->arity)
-      {
-        case 0: break;
-        case 1: BTOR_PUSH_STACK (mm, stack, cur->e[0]); break;
-        case 2:
-          if (BTOR_IS_ARRAY_EQ_EXP (cur)) synthesize_array_equality (btor, cur);
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-          break;
-        default:
-          assert (cur->arity = 3);
-          BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-          break;
-      }
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+      if (!cur->reachable)
+        {
+          cur->reachable = 1;
+          switch (cur->arity)
+            {
+            case 0:
+              break;
+            case 1:
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+            case 2:
+              if (BTOR_IS_ARRAY_EQ_EXP (cur))
+		synthesize_array_equality (btor, cur);
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+            default:
+              assert (cur->arity = 3);
+              BTOR_PUSH_STACK (mm, stack, cur->e[2]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+              break;
+            }
+        }
     }
-  } while (!BTOR_EMPTY_STACK (stack));
+  while (!BTOR_EMPTY_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
 }
+#endif
 
 #ifndef BTOR_NO_3VL
 
@@ -5987,6 +5994,15 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             btor_free (mm, indexed_name, len);
           }
         }
+        else if (BTOR_IS_ARRAY_VAR_EXP (cur))
+        {
+          /* nothing to synthesize for array base case */
+        }
+        else if (BTOR_IS_WRITE_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur)
+                 || BTOR_IS_ARRAY_COND_EXP (cur))
+        {
+          goto REGULAR_CASE;
+        }
         else
         {
           /* writes cannot be reached directly
@@ -6012,21 +6028,20 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             cur->av = btor_var_aigvec (avmgr, cur->len);
             assert (BTOR_IS_REGULAR_EXP (cur->e[0]));
             assert (BTOR_IS_ARRAY_EXP (cur->e[0]));
-            /* mark children recursively as reachable */
-            set_flags_and_synth_aeq (btor, cur->e[1]);
-            set_flags_and_synth_aeq (btor, cur->e[0]);
+            goto REGULAR_CASE;
           }
           else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
             /* generate virtual reads and create AIG
              * variable for array equality */
             synthesize_array_equality (btor, cur);
-            /* mark children recursively as reachable */
-            set_flags_and_synth_aeq (btor, cur->e[1]);
-            set_flags_and_synth_aeq (btor, cur->e[0]);
+            BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+            BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+            goto REGULAR_CASE;
           }
           else
           {
+          REGULAR_CASE:
             /* regular cases */
             cur->synth_mark = 1;
             BTOR_PUSH_STACK (mm, exp_stack, cur);
