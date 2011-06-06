@@ -6775,8 +6775,6 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = NULL;
 
-  abort ();  // TODO before removing it ....
-
   assert (btor != NULL);
   assert (acc != NULL);
   assert (BTOR_IS_REGULAR_EXP (acc));
@@ -6786,16 +6784,24 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
   avmgr               = btor->avmgr;
   index               = BTOR_GET_INDEX_ACC_EXP (acc);
   value               = BTOR_GET_VALUE_ACC_EXP (acc);
+
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (index)))
+  {
+    abort ();  // TODO before removing it ....
     synthesize_exp (btor, index, NULL);
+  }
   if (!BTOR_REAL_ADDR_EXP (index)->sat_both_phases)
   {
+    // abort (); // TODO before removing it ....
     update = 1;
     btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
     BTOR_REAL_ADDR_EXP (index)->sat_both_phases = 1;
   }
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (value)))
+  {
+    abort ();  // TODO before removing it ....
     synthesize_exp (btor, value, NULL);
+  }
   if (!BTOR_REAL_ADDR_EXP (value)->sat_both_phases)
   {
     update = 1;
@@ -6817,8 +6823,6 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr;
 
-  abort ();  // TODO before removing it ....
-
   avmgr = btor->avmgr;
   assert (btor != NULL);
   assert (acond != NULL);
@@ -6829,9 +6833,13 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   cond                = acond->e[0];
   assert (cond != NULL);
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)))
+  {
+    abort ();  // TODO before removing it ....
     synthesize_exp (btor, cond, NULL);
+  }
   if (!BTOR_REAL_ADDR_EXP (cond)->sat_both_phases)
   {
+    abort ();  // TODO before removing it ....
     update = 1;
     btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
     BTOR_REAL_ADDR_EXP (cond)->sat_both_phases = 1;

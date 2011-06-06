@@ -252,10 +252,9 @@ btor_reset_sig_handlers (void)
 }
 
 static void
-caughtsigmsg (int sig)
+btor_catched_sig_msg (int sig)
 {
-  if (!btor_static_verbosity) return;
-  printf ("c\nc CAUGHT SIGNAL %d\nc\n", sig);
+  printf ("[boolector] CAUGHT SIGNAL %d\n", sig);
   fflush (stdout);
 }
 
@@ -265,14 +264,14 @@ btor_catch_sig (int sig)
   if (!btor_static_catched_sig)
   {
     btor_static_catched_sig = 1;
-    caughtsigmsg (sig);
+    btor_catched_sig_msg (sig);
     fputs ("unknown\n", stdout);
     fflush (stdout);
     if (btor_static_verbosity)
     {
       if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
       if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
-      caughtsigmsg (sig);
+      btor_catched_sig_msg (sig);
     }
   }
   btor_reset_sig_handlers ();
@@ -1074,7 +1073,7 @@ boolector_main (int argc, char **argv)
   app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
   app.bmcadc               = 1;
-  app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
+  app.cnf_enc              = BTOR_TSEITIN_CNF_ENC;
   app.force_smt_input      = 0;
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
 #if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
