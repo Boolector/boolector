@@ -6774,6 +6774,9 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
   BtorExp *index, *value;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = NULL;
+
+  abort ();  // TODO before removing it ....
+
   assert (btor != NULL);
   assert (acc != NULL);
   assert (BTOR_IS_REGULAR_EXP (acc));
@@ -6813,6 +6816,9 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   BtorExp *cond;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr;
+
+  abort ();  // TODO before removing it ....
+
   avmgr = btor->avmgr;
   assert (btor != NULL);
   assert (acond != NULL);
