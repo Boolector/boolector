@@ -136,7 +136,6 @@ btor_picosat_init (BtorSATMgr *smgr)
       smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
 
   picosat_init ();
-
   picosat_set_global_default_phase (0);
 
   return 0;
@@ -592,6 +591,7 @@ btor_lingeling_init (BtorSATMgr *smgr)
                   (lglrealloc) btor_realloc,
                   (lgldealloc) btor_free);
   lglsetopt (res, "boost", 0);
+  lglsetopt (res, "phase", -1);
   return res;
 }
 
