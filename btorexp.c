@@ -5328,11 +5328,11 @@ report_constraint_stats (Btor *btor, int force)
 
     changes = constraints_stats_changes (btor);
 
-    if (btor->verbosity == 1 && changes < 1000) return;
+    if (btor->verbosity == 1 && changes < 10000) return;
 
-    if (btor->verbosity == 2 && changes < 100) return;
+    if (btor->verbosity == 2 && changes < 1000) return;
 
-    if (btor->verbosity == 3 && changes < 10) return;
+    if (btor->verbosity == 3 && changes < 100) return;
   }
 
   btor_msg_exp ("%d/%d/%d/%d constraints %d/%d/%d/%d %.1f MB",

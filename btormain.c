@@ -1257,7 +1257,7 @@ boolector_main (int argc, char **argv)
         }
       }
 
-      if (app.verbosity >= 3) btor_enable_verbosity_sat (smgr);
+      if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 
