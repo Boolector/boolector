@@ -4,7 +4,7 @@
 .cc.o:
 	$(CC) $(CFLAGS) -c $<
 OBJ=boolector.o $(addsuffix .o,$(basename $(wildcard btor*.c))) \
-  ../picosat/picosat.o ../picosat/version.o @PRECOSAT@
+  ../picosat/picosat.o ../picosat/version.o @OBJS@
 CC=@CC@
 CFLAGS=@CFLAGS@
 LIBS=@LIBS@
