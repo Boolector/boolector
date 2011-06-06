@@ -2522,7 +2522,10 @@ translate_benchmark (BtorSMTParser *parser,
   if (parser->required_logic == BTOR_LOGIC_QF_BV
       && res->logic == BTOR_LOGIC_QF_AUFBV)
   {
-    btor_smt_message (parser, 1, "no arrays founds, so only need QF_BV");
+    btor_smt_message (
+        parser,
+        1,
+        "no arrays found: only need QF_BV (even though QF_AUFBV specified)");
     res->logic = BTOR_LOGIC_QF_BV;
   }
 
