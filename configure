@@ -6,6 +6,11 @@ lingeling=unknown
 minisat=unknown
 arch=unknown
 
+onlyprecosat=no
+onlylingeling=no
+onlyminisat=no
+
+#--------------------------------------------------------------------------#
 
 die () {
   echo "*** configure: $*" 1>&2
@@ -16,33 +21,46 @@ msg () {
   echo "[configure] $*"
 }
 
+#--------------------------------------------------------------------------#
+
 usage () {
 cat <<EOF
 usage: ./configure [<option> ...]
 
 where <option> is one of the following:
 
-  -O              optimized compilation (default)
-  -g              compile with debugging support
-  -m{32,64}       force 32-bit or 64-bit compilation
+  -O                optimized compilation (default)
+  -g                compile with debugging support
+  -m{32,64}         force 32-bit or 64-bit compilation
 
 By default all supported SAT solvers are used and linked into
 the binary if they can be found in the parent directory.
 
-  --precosat      use and link with PrecoSAT
-  --lingeling     use and link with Lingeling
-  --minisat       use and linke with MiniSAT
+By specifying one of them 'configure' fails if it can not be used.
+
+  --precosat        use and link with PrecoSAT
+  --lingeling       use and link with Lingeling
+  --minisat         use and link with MiniSAT
 
 To disable some of them use the following options:
 
-  --no-precosat   do not use PrecoSAT
-  --no-lingeling  do not use Lingeling
-  --no-minisat    do not use Lingeling
+  --no-precosat     do not use PrecoSAT
+  --no-lingeling    do not use Lingeling
+  --no-minisat      do not use Lingeling
 
 In addition PicoSAT is always required as default back end SAT solver.
+
+  --only-precosat   only use and link with PrecoSAT
+  --only-lingeling  only use and link with Lingeling
+  --only-minisat    only use and link with MiniSAT
+
+You also just want to explicitly use one in addition to PicoSAT
+
 EOF
   exit 0
 }
+
+#--------------------------------------------------------------------------#
 
 while [ $# -gt 0 ]
 do
@@ -57,12 +75,51 @@ do
     -no-precosat|--no-precosat) precosat=no;;
     -no-lingeling|--no-lingeling) lingeling=no;;
     -no-minisat|--no-minisat) minisat=no;;
+    -only-precosat|--only-precosat) onlyprecosat=yes;;
+    -only-lingeling|--only-lingeling) onlylingeling=yes;;
+    -only-minisat|--only-minisat) onlyminisat=yes;;
     -h|-help|--help) usage;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
 done
 
+#--------------------------------------------------------------------------#
+
+if [ $onlylingeling = yes ]
+then
+  [ $precosat = yes ] && \
+    die "can not combine '--only-lingeling' with '--precosat'"
+  [ $minisat = yes ] && \
+    die "can not combine '--only-lingeling' with '--minisat'"
+  lingeling=yes
+  precosat=no
+  minisat=no
+fi
+
+if [ $onlyprecosat = yes ]
+then
+  [ $lingeling = yes ] && \
+    die "can not combine '--only-precosat' with '--lingeling'"
+  [ $minisat = yes ] && \
+    die "can not combine '--only-precosat' with '--minisat'"
+  lingeling=no
+  precosat=yes
+  minisat=no
+fi
+
+if [ $onlyminisat = yes ]
+then
+  [ $lingeling = yes ] && \
+    die "can not combine '--only-minisat' with '--lingeling'"
+  [ $precosat = yes ] && \
+    die "can not combine '--only-minisat' with '--precosat'"
+  lingeling=no
+  precosat=no
+  minisat=yes
+fi
+
+#--------------------------------------------------------------------------#
 addstcpp () {
   if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
   then

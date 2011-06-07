@@ -40,7 +40,7 @@ extern "C" {
 
 using namespace Minisat;
 
-class BtorMiniSAT : public SimpSolver
+class BtorMiniSAT : public Solver
 {
   vec<Lit> assumptions, clause;
   signed char *fmap;
