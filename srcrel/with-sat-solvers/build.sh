@@ -1,6 +1,6 @@
 #!/bin/sh
 
-for component in boolector picosat precosat lingeling
+for component in boolector picosat precosat lingeling minisat
 do
   archive=`ls archives/${component}-*.tar.gz`
   name=`basename $archive .tar.gz`
@@ -19,8 +19,13 @@ do
   cd ..
 done
 
+echo "building minisat"
+cd minisat
+make r >/dev/null || exit 1
+cd ..
+
 echo "building boolector"
 cd boolector
-./configure -precosat -lingeling >/dev/null || exit 1
+./configure >/dev/null || exit 1
 make >/dev/null || exit 1
 cd ..
