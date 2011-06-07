@@ -4165,9 +4165,9 @@ BtorExp *
 btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1, *cond_e0, *cond_e1;
-  BtorExp *cond_case1, *cond_case2, *cond_case3, *cond_case4, *urem;
+  BtorExp *neg_e0_and_e1, *neg_e0_and_neg_e1, *zero, *e0_zero, *other_cases;
   BtorExp *neg_urem, *add1, *add2, *or1, *or2, *e0_and_e1, *e0_and_neg_e1;
-  BtorExp *neg_e0_and_e1, *neg_e0_and_neg_e1, *zero;
+  BtorExp *cond_case1, *cond_case2, *cond_case3, *cond_case4, *urem;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -4176,6 +4176,7 @@ btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   len     = BTOR_REAL_ADDR_EXP (e0)->len;
   zero    = btor_zero_exp (btor, len);
+  e0_zero = btor_eq_exp (btor, zero, e0);
   sign_e0 = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e1 = btor_slice_exp (btor, e1, len - 1, len - 1);
   neg_e0  = btor_neg_exp (btor, e0);
@@ -4186,26 +4187,29 @@ btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   neg_e0_and_e1     = btor_and_exp (btor, sign_e0, BTOR_INVERT_EXP (sign_e1));
   neg_e0_and_neg_e1 = btor_and_exp (btor, sign_e0, sign_e1);
   /* normalize e0 and e1 if necessary */
-  cond_e0    = btor_cond_exp (btor, sign_e0, neg_e0, e0);
-  cond_e1    = btor_cond_exp (btor, sign_e1, neg_e1, e1);
-  urem       = btor_urem_exp (btor, cond_e0, cond_e1);
-  neg_urem   = btor_neg_exp (btor, urem);
-  add1       = btor_add_exp (btor, neg_urem, e1);
-  add2       = btor_add_exp (btor, urem, e1);
-  cond_case1 = btor_cond_exp (btor, e0_and_e1, urem, zero);
-  cond_case2 = btor_cond_exp (btor, neg_e0_and_e1, add1, zero);
-  cond_case3 = btor_cond_exp (btor, e0_and_neg_e1, add2, zero);
-  cond_case4 = btor_cond_exp (btor, neg_e0_and_neg_e1, neg_urem, zero);
-  or1        = btor_or_exp (btor, cond_case1, cond_case2);
-  or2        = btor_or_exp (btor, cond_case3, cond_case4);
-  result     = btor_or_exp (btor, or1, or2);
+  cond_e0     = btor_cond_exp (btor, sign_e0, neg_e0, e0);
+  cond_e1     = btor_cond_exp (btor, sign_e1, neg_e1, e1);
+  urem        = btor_urem_exp (btor, cond_e0, cond_e1);
+  neg_urem    = btor_neg_exp (btor, urem);
+  add1        = btor_add_exp (btor, neg_urem, e1);
+  add2        = btor_add_exp (btor, urem, e1);
+  cond_case1  = btor_cond_exp (btor, e0_and_e1, urem, zero);
+  cond_case2  = btor_cond_exp (btor, neg_e0_and_e1, add1, zero);
+  cond_case3  = btor_cond_exp (btor, e0_and_neg_e1, add2, zero);
+  cond_case4  = btor_cond_exp (btor, neg_e0_and_neg_e1, neg_urem, zero);
+  or1         = btor_or_exp (btor, cond_case1, cond_case2);
+  or2         = btor_or_exp (btor, cond_case3, cond_case4);
+  other_cases = btor_or_exp (btor, or1, or2);
+  result      = btor_cond_exp (btor, e0_zero, zero, other_cases);
   btor_release_exp (btor, zero);
+  btor_release_exp (btor, e0_zero);
   btor_release_exp (btor, sign_e0);
   btor_release_exp (btor, sign_e1);
   btor_release_exp (btor, neg_e0);
   btor_release_exp (btor, neg_e1);
   btor_release_exp (btor, cond_e0);
   btor_release_exp (btor, cond_e1);
+  btor_release_exp (btor, other_cases);
   btor_release_exp (btor, cond_case1);
   btor_release_exp (btor, cond_case2);
   btor_release_exp (btor, cond_case3);

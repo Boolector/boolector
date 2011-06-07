@@ -1,145 +1,112 @@
 #!/bin/sh
 
-LIBS=""
+debug=unknown
+precosat=unknown
+lingeling=unknown
+forcearch=no
 
-debug=no
+die () {
+  echo "*** configure: $*" 1>&2
+  exit 1
+}
 
-o1=no
-o2=yes
-o3=no
-static=no
-m32=no
-m64=no
-gpt=no
-release=no
-competition=no
-precosat=no
-lingeling=no
-strip=no
-cov=no
+usage () {
+cat <<EOF
+usage: ./configure [<option> ...]
+
+where <option> is one of the following:
+
+  -O              optimized compilation (default)
+  -g              compile with debugging support
+  -m{32,64}       force 32-bit or 64-bit compilation
+  --precosat      use and link with PrecoSAT (default if found)
+  --lingeling     use and link with Lingeling (default if found)
+  --no-precosat   do not use PrecoSAT
+  --no-lingeling  do not use Lingeling
+EOF
+  exit 0
+}
 
 while [ $# -gt 0 ]
 do
   case $1 in
-    -g) debug=yes; cov=no; o1=no; o2=no; o3=no;;
-    -cov) debug=no; cov=yes; o1=no; o2=no; o3=no;;
-    -O1) debug=no; cov=no; o1=yes; o2=no; o3=no;;
-    -O2) debug=no; cov=no; o1=no; o2=yes; o3=no;;
-    -O3) debug=no; cov=no; o1=no; o2=no; o3=yes;;
-    -no-opt) o1=no; o2=no; o3=no;;
-    -static) static=yes;;
-    -m32) m32=yes;;
-    -m64) m64=yes;;
-    -s) strip=yes;;
-    -gpt) gpt=yes; debug=no; cov=no; o1=no; o2=yes; o3=no;;
-    -precosat) precosat=yes;;
-    -lingeling) lingeling=yes;;
-    -r) competition=no;release=yes;precosat=no;lingeling=yes;
-        static=no;debug=no;cov=no;o1=no;o2=no;o3=yes;strip=yes
-	;;
-    -c) competition=yes;release=no;precosat=no;lingeling=yes;
-        static=yes;debug=no;cov=no;o1=no;o2=no;o3=yes;strip=yes
-	;;
-    *) cat <<EOF
-*** usage: ./configure [<option> ...]
-
-where <option> is one of the following:
-
-  -g          compile with debugging support
-  -s          strip symbols
-  -cov        generate coverage
-  -O[1-3]     optimization level
-  -no-opt     no optimization
-  -static     static linking
-  -m{32,64}   32-bit or 64-bit compilation
-  -gpt        link with perftools
-  -precosat   link with PrecoSAT
-  -lingeling  link with Lingeling
-  -r          release configuration
-  -c          competition configuration
-EOF
-exit 1
-;;
+    -g) debug=yes;;
+    -O) debug=no;;
+    -m32|--m32) forcearch=32;;
+    -m64|--m64) forcearch=64;;
+    --precosat) precosat=yes;;
+    --lingeling) lingeling=yes;;
+    --no-precosat) precosat=no;;
+    --no-lingeling) lingeling=no;;
+    -h|--help) usage;;
+    -*) die "invalid option '$1' (try '-h')";;
   esac
-shift
+  shift
 done
 
-if [ X"$CFLAGS" = X ]; then
+if [ X"$CFLAGS" = X ]
+then
+  [ $debug = unknown ] && debug=no
   CFLAGS="$CFLAGS -W -Wall -Wextra"
-  [ $static = yes ] && CFLAGS="$CFLAGS -static"
-  [ $m32 = yes ] && CFLAGS="$CFLAGS -m32"
-  [ $m64 = yes ] && CFLAGS="$CFLAGS -m64"
-  if [ $debug = yes ]; then
+  [ $forcearch = 32 ] && CFLAGS="$CFLAGS -m32"
+  [ $forcearch = 64 ] && CFLAGS="$CFLAGS -m64"
+  if [ $debug = yes ]
+  then
     CFLAGS="$CFLAGS -g3 -ggdb"
   else
-    CFLAGS="$CFLAGS -DNDEBUG"
-    if [ $cov = yes ]; then
-      CFLAGS="$CFLAGS -fprofile-arcs -ftest-coverage"
-    elif [ $o3 = yes ]; then
-      CFLAGS="$CFLAGS -O3 -fomit-frame-pointer"
-    elif [ $o2 = yes ]; then
-      CFLAGS="$CFLAGS -O2"
-    elif [ $o1 = yes ]; then
-      CFLAGS="$CFLAGS -O1"
-    fi
+    CFLAGS="$CFLAGS -DNDEBUG -O3"
   fi
-fi
-
-if [ $competition = yes  -o $release = yes -a $gpt = yes ]; then
-  LIBS=$LIBS" -ltcmalloc -lstdc++ -lpthread"
-elif [ $gpt = yes ]; then
-  LIBS=$LIBS" -ltcmalloc -lprofiler"
-fi
-
-PRECOSAT_OBJS=""
-if [ $precosat = yes ]; then
-  CFLAGS=$CFLAGS" -DBTOR_USE_PRECOSAT"
-  PRECOSAT_OBJS="btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
-  LIBS=$LIBS" -lz"
-  if [ x"`echo "$LIBS" | grep 'lstdc++'`" = x ]; then
-    LIBS=$LIBS" -lstdc++"
-  fi
-fi
-
-if [ $lingeling = yes ]; then
-  CFLAGS=$CFLAGS" -DBTOR_USE_LINGELING"
-  LIBS=$LIBS" -L../lingeling -llgl -lm"
-  LDEPS=$LDEPS" ../lingeling/liblgl.a"
-fi
-
-if [ $strip = yes ]
+elif [ $debug = yes ]
 then
-  STRIP='; strip $@'
-else
-  STRIP=""
+  die "CFLAGS environment variable defined and '-g' used"
+elif [ $debug = no ]
+then
+  die "CFLAGS environment variable defined and '-O' used"
+fi
+
+LIBS=""
+OBJS=""
+
+if [ $precosat = yes ]
+then
+  [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+  [ X"$OBJS" = X ] || OBJS="$OBJS "
+  [ X"$LIBS" = X ] || LIBS="$LIBS "
+  CFLAGS="${CFLAGS}-DBTOR_USE_PRECOSAT"
+  OBJS="${OBJS}btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
+  LIBS="${LIBS}-lz"
+  if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
+  then
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    LIBS="${LIBS}-lstdc++"
+  fi
+fi
+
+if [ $lingeling = yes ]
+then
+  [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+  [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+  [ X"$LIBS" = X ] || LIBS="$LIBS "
+  CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
+  LIBS="${LIBS}-L../lingeling -llgl -lm"
+  LDEPS="${LDEPS}../lingeling/liblgl.a"
 fi
 
 [ "X$CC" = X ] && CC=gcc
 
-echo "cc ... $CC"
-echo "cflags ... $CFLAGS"
-echo "libs ... $LIBS"
-echo "debug ... $debug"
-echo "coverage ... $cov"
-echo "O1 ... $o1"
-echo "O2 ... $o2"
-echo "O3 ... $o3"
-echo "static ... $static"
-echo "m32 ... $m32"
-echo "m64 ... $m64"
-echo "gpt ... $gpt"
-echo "precosat ... $precosat"
-echo "lingeling ... $lingeling"
-echo "strip ... $strip"
+echo "[configure] debug ... $debug"
+echo "[configure] CC ... $CC"
+echo "[configure] CFLAGS ... $CFLAGS"
+echo "[configure] LIBS ... $LIBS"
+echo "[configure] OBJS ... $OBJS"
 
-echo -n "makefile ..."
+echo -n "[configure] makefile ..."
 rm -f makefile
 sed \
   -e "s,@CC@,$CC," \
   -e "s,@CFLAGS@,$CFLAGS," \
   -e "s,@LIBS@,$LIBS," \
   -e "s,@LDEPS@,$LDEPS," \
-  -e "s,@STRIP@,$STRIP," \
-  -e "s,@PRECOSAT_OBJS@,$PRECOSAT_OBJS," \
+  -e "s,@OBJS@,$OBJS," \
   makefile.in > makefile
 echo " done"
