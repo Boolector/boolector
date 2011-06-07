@@ -18,7 +18,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifdef BTOR_USE_PRECOSAT
+#ifdef BTOR_USE_MINISAT
 
 #ifndef __STDC_LIMIT_MACROS
 #define __STDC_LIMIT_MACROS
@@ -72,7 +72,7 @@ class BtorMiniSAT : public SimpSolver
   int inc ()
   {
     int res = newVar ();
-    assert (res == nVars ());
+    assert (0 <= res && res == nVars () - 1);
     return res + 1;
   }
   void assume (int lit) { assumptions.push (import (lit)); }
@@ -97,6 +97,26 @@ class BtorMiniSAT : public SimpSolver
     assert (0 <= tmp && tmp < nVars ());
     return map[tmp];
   }
+  int deref (int lit)
+  {
+    lbool val = modelValue (import (lit));
+    if (val == l_True) return 1;
+    if (val == l_False) return -1;
+    return 0;
+  }
+  int fixed (int lit)
+  {
+    Var v   = var (import (lit));
+    int idx = v, res;
+    assert (0 <= idx && idx < nVars ());
+    lbool val = assigns[idx];
+    if (val == l_Undef || level (v))
+      res = 0;
+    else
+      res = (val == l_True) ? 1 : -1;
+    if (lit < 0) res = -res;
+    return res;
+  }
 };
 
 void *
@@ -112,20 +132,24 @@ btor_minisat_version (void)
 }
 
 void
-btor_minisat_add (BtorSATMgr *smgr, int)
+btor_minisat_add (BtorSATMgr *smgr, int lit)
 {
+  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  solver->add (lit);
 }
 
 int
 btor_minisat_sat (BtorSATMgr *smgr)
 {
+  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  return solver->sat ();
 }
 
 int
 btor_minisat_deref (BtorSATMgr *smgr, int lit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
-  return 1;
+  return solver->deref (lit);
 }
 
 void
@@ -133,26 +157,6 @@ btor_minisat_reset (BtorSATMgr *smgr)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
   delete solver;
-}
-
-void
-btor_minisat_set_output (BtorSATMgr *smgr, FILE *file)
-{
-  (void) smgr;
-  (void) file;
-}
-
-void
-btor_minisat_set_prefix (BtorSATMgr *smgr, const char *prefix)
-{
-  (void) smgr;
-  (void) prefix;
-}
-
-void
-btor_minisat_enable_verbosity (BtorSATMgr *smgr)
-{
-  (void) smgr;
 }
 
 int
@@ -170,16 +174,17 @@ btor_minisat_variables (BtorSATMgr *smgr)
 }
 
 void
-btor_minisat_stats (BtorSATMgr *smgr)
-{
-  (void) smgr;
-}
-
-void
 btor_minisat_assume (BtorSATMgr *smgr, int lit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
   solver->assume (lit);
+}
+
+int
+btor_minisat_fixed (BtorSATMgr *smgr, int lit)
+{
+  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  solver->fixed (lit);
 }
 
 int
@@ -189,10 +194,24 @@ btor_minisat_failed (BtorSATMgr *smgr, int lit)
   return solver->failed (lit);
 }
 
-int
-btor_minisat_fixed (BtorSATMgr *, int)
+void
+btor_minisat_set_output (BtorSATMgr *, FILE *)
 {
-  return 0;
+}
+
+void
+btor_minisat_set_prefix (BtorSATMgr *, const char *)
+{
+}
+
+void
+btor_minisat_enable_verbosity (BtorSATMgr *)
+{
+}
+
+void
+btor_minisat_stats (BtorSATMgr *)
+{
 }
 
 int

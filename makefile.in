@@ -17,6 +17,7 @@ all: libboolector.a boolector test synthebtor deltabtor basicbtor
 -include dependencies
 btorpreco.o: btorsat.h btorpreco.h btorpreco.cc makefile
 btorminisat.o: btorsat.h btorminisat.h btorminisat.cc makefile
+	$(CC) $(shell echo '$(CFLAGS)'|sed -e 's,-Wall -Wextra ,,') -c btorminisat.cc
 dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
 boolector: boolectormain.o libboolector.a $(LDEPS)

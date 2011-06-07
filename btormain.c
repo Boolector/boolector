@@ -146,11 +146,15 @@ struct BtorMainApp
   BtorCNFEnc cnf_enc;
   int force_smt_input;
   BtorPrintModel print_model;
-#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
   int force_picosat;
-#endif
-#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+#ifdef BTOR_USE_PRECOSAT
   int force_precosat;
+#endif
+#ifdef BTOR_USE_LINGELING
+  int force_lingeling;
+#endif
+#ifdef BTOR_USE_MINISAT
+  int force_minisat;
 #endif
 };
 
@@ -185,12 +189,18 @@ static const char *g_usage =
     "(default)\n"
 
     "\n"
-#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
     "  -picosat                         enforce usage of PicoSAT as SAT "
     "solver\n"
-#endif
-#if defined(BTOR_USE_PRECOSAT)
+#ifdef BTOR_USE_PRECOSAT
     "  -precosat                        enforce usage of PrecoSAT as SAT "
+    "solver\n"
+#endif
+#ifdef BTOR_USE_LINGELING
+    "  -lingeling                       enforce usage of Lingeling as SAT "
+    "solver\n"
+#endif
+#ifdef BTOR_USE_MINISAT
+    "  -minisat                         enforce usage of MiniSAT as SAT "
     "solver\n"
 #endif
     "\n"
@@ -723,16 +733,26 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity = -1;
     }
-#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
     else if (!strcmp (app->argv[app->argpos], "-picosat"))
     {
       app->force_picosat = 1;
     }
-#endif
-#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+#ifdef BTOR_USE_PRECOSAT
     else if (!strcmp (app->argv[app->argpos], "-precosat"))
     {
       app->force_precosat = 1;
+    }
+#endif
+#ifdef BTOR_USE_LINGELING
+    else if (!strcmp (app->argv[app->argpos], "-lingeling"))
+    {
+      app->force_lingeling = 1;
+    }
+#endif
+#ifdef BTOR_USE_MINISAT
+    else if (!strcmp (app->argv[app->argpos], "-minisat"))
+    {
+      app->force_minisat = 1;
     }
 #endif
     else if (!strcmp (app->argv[app->argpos], "-ua"))
@@ -1076,11 +1096,15 @@ boolector_main (int argc, char **argv)
   app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   app.force_smt_input      = 0;
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
-#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
-  app.force_picosat = 0;
-#endif
-#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+  app.force_picosat        = 0;
+#ifdef BTOR_USE_PRECOSAT
   app.force_precosat = 0;
+#endif
+#ifdef BTOR_USE_LINGELING
+  app.force_lingeling = 0;
+#endif
+#ifdef BTOR_USE_MINISAT
+  app.force_minisat = 0;
 #endif
 
   parse_commandline_arguments (&app);
@@ -1198,13 +1222,11 @@ boolector_main (int argc, char **argv)
       if (app.ua || parse_res.logic != BTOR_LOGIC_QF_BV || parse_res.nregs)
         need_incremental_sat_solver = 1;
 
-#if defined(BTOR_USE_LINGELING) || defined(BTOR_USE_PRECOSAT)
       if (app.force_picosat)
       {
-        /* DO NOTHING USE PicoSAT */
+        /* do nothing use PicoSAT */
       }
-#endif
-#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+#ifdef BTOR_USE_PRECOSAT
       else if (app.force_precosat)
       {
         if (need_incremental_sat_solver)
@@ -1218,14 +1240,46 @@ boolector_main (int argc, char **argv)
           btor_enable_precosat_sat (smgr);
       }
 #endif
-#if defined(BTOR_USE_LINGELING)
+#ifdef BTOR_USE_MINISAT
+      else if (app.force_minisat)
+      {
+#if 0
+		if (need_incremental_sat_solver)
+		  {
+		    print_msg_va_args (&app,
+		      "can not use MinisatSAT (incremental SAT required)");
+		    app.err = 1;
+		    goto DONE;
+		  }
+		else
+#endif
+        btor_enable_minisat_sat (smgr);
+      }
+#endif
+#ifdef BTOR_USE_LINGELING
       else
       {
         btor_enable_lingeling_sat (smgr);
       }
 #endif
 #if !defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
-      else { btor_enable_precosat_sat (smgr); }
+      else if (!need_incremental_sat_solver)
+      {
+        btor_enable_precosat_sat (smgr);
+      }
+#ifdef BTOR_USE_MINISAT
+      else
+#if 0
+	    if (!need_incremental_sat_solver)
+#endif
+      {
+        btor_enable_minisat_sat (smgr);
+      }
+#endif
+#endif
+#if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PRECOSAT) \
+    && defined(BTOR_USE_MINISAT)
+      else if (!need_incremental_sat_solver) { btor_enable_minisat_sat (smgr); }
 #endif
       assert (need_incremental_sat_solver
               <= btor_provides_incremental_sat (smgr));
@@ -1722,7 +1776,7 @@ boolector_main (int argc, char **argv)
       btor_reset_sat (smgr);
     }
 
-#if defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
+#if defined(BTOR_USE_PRECOSAT) || defined(BTOR_USE_MINISAT)
   DONE:
 #endif
     if (parser_api) parser_api->reset (parser);
