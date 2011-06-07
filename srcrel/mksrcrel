@@ -53,11 +53,11 @@ cp -p \
   VERSION \
   COPYING \
   NEWS \
-  srcrel/configure \
+  configure \
   boolector.[ch] \
   boolectormain.[ch] \
   btor*.[ch] \
-  btorpreco.cc \
+  btor*.cc \
   deltabtor.c \
   synthebtor.c \
   Doxyfile \
@@ -65,7 +65,13 @@ $dir/
 
 tar cf - examples/array examples/bv | ( cd $dir; tar xf -; )
 
-sed -e '/makefile.test/d' srcrel/makefile.in > $dir/makefile.in
+sed \
+  -e '/makefile.test/d' \
+  -e '/TESTOBJ/d' \
+  -e '/basicbtor\.c/d' \
+  -e 's,\<test ,,' \
+  -e 's, basicbtor$,,' \
+  makefile.in > $dir/makefile.in
 
 date=`date`
 sed -e 's,@VERSION@,'"`cat VERSION`," \

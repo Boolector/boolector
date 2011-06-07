@@ -1,5 +1,6 @@
-news for release 1.5.6 since 1.4.1
+news for release 1.5.11 since 1.4.1
 ----------------------------------
+* integration of MiniSAT
 * SMT parser demotes logic if possible
 * better control of best suitable solver in main application
 * generic incremental SAT glue logic
