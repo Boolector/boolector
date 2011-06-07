@@ -43,8 +43,9 @@ using namespace Minisat;
 class BtorMiniSAT : public SimpSolver
 {
   vec<Lit> assumptions, clause;
-  int szmap;
-  unsigned char *map;
+  signed char *fmap;
+  int szfmap;
+  bool nomodel;
   Lit import (int lit)
   {
     assert (0 < abs (lit) && abs (lit) <= nVars ());
@@ -52,22 +53,22 @@ class BtorMiniSAT : public SimpSolver
   }
   void reset ()
   {
-    if (map) delete[] map, map = 0, szmap = 0;
+    if (fmap) delete[] fmap, fmap = 0, szfmap = 0;
   }
   void ana ()
   {
-    map = new unsigned char[nVars ()];
-    memset (map, 0, nVars ());
+    fmap = new signed char[szfmap = nVars ()];
+    memset (fmap, 0, szfmap);
     for (int i = 0; i < conflict.size (); i++)
     {
       int tmp = var (conflict[i]);
-      assert (0 <= tmp && tmp < nVars ());
-      map[tmp] = 1;
+      assert (0 <= tmp && tmp < szfmap);
+      fmap[tmp] = 1;
     }
   }
 
  public:
-  BtorMiniSAT () : szmap (0), map (0) {}
+  BtorMiniSAT () : szfmap (0), fmap (0), nomodel (true) {}
   ~BtorMiniSAT () { reset (); }
   int inc ()
   {
@@ -75,9 +76,14 @@ class BtorMiniSAT : public SimpSolver
     assert (0 <= res && res == nVars () - 1);
     return res + 1;
   }
-  void assume (int lit) { assumptions.push (import (lit)); }
+  void assume (int lit)
+  {
+    nomodel = true;
+    assumptions.push (import (lit));
+  }
   void add (int lit)
   {
+    nomodel = true;
     if (lit)
       clause.push (import (lit));
     else
@@ -88,21 +94,15 @@ class BtorMiniSAT : public SimpSolver
     reset ();
     bool res = solve (assumptions);
     assumptions.clear ();
+    nomodel = !res;
     return res ? 10 : 20;
   }
   int failed (int lit)
   {
-    if (!map) ana ();
+    if (!fmap) ana ();
     int tmp = var (import (lit));
     assert (0 <= tmp && tmp < nVars ());
-    return map[tmp];
-  }
-  int deref (int lit)
-  {
-    lbool val = modelValue (import (lit));
-    if (val == l_True) return 1;
-    if (val == l_False) return -1;
-    return 0;
+    return fmap[tmp];
   }
   int fixed (int lit)
   {
@@ -116,6 +116,12 @@ class BtorMiniSAT : public SimpSolver
       res = (val == l_True) ? 1 : -1;
     if (lit < 0) res = -res;
     return res;
+  }
+  int deref (int lit)
+  {
+    if (nomodel) return fixed (lit);
+    lbool res = modelValue (import (lit));
+    return (res == l_True) ? 1 : -1;
   }
 };
 
