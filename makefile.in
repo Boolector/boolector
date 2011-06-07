@@ -4,6 +4,7 @@
 .cc.o:
 	$(CC) $(CFLAGS) -c $<
 CC=@CC@
+INCS=@INCS@
 CFLAGS=@CFLAGS@
 OBJS=@OBJS@
 LIBS=@LIBS@

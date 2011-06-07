@@ -6,6 +6,7 @@ lingeling=unknown
 minisat=unknown
 arch=unknown
 
+
 die () {
   echo "*** configure: $*" 1>&2
   exit 1
@@ -100,8 +101,14 @@ then
   die "CFLAGS environment variable defined and '-O' used"
 fi
 
+#--------------------------------------------------------------------------#
+
 LIBS=""
 OBJS=""
+
+LIBZ=no
+LIBM=no
+LIBSTDCPP=no
 
 #--------------------------------------------------------------------------#
 
@@ -161,11 +168,10 @@ else
   then
     [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
     [ X"$OBJS" = X ] || OBJS="$OBJS "
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PRECOSAT"
     OBJS="${OBJS}btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
-    LIBS="${LIBS}-lz"
-    addstcpp
+    LIBSTDCPP=yes
+    LIBZ=yes
   fi
 
 fi
@@ -205,8 +211,9 @@ else
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
-    LIBS="${LIBS}-L../lingeling -llgl -lm"
+    LIBS="${LIBS}-L../lingeling -llgl"
     LDEPS="${LDEPS}../lingeling/liblgl.a"
+    LIBM=yes
   fi
 
 fi
@@ -231,8 +238,9 @@ else
   if [ $path = allfound ]
   then
     for path in \
-      ../minisat/build/release/SimpSolver.h \
+      ../minisat/minisat/simp/SimpSolver.h \
       ../minisat/build/release/lib/libminisat.a \
+      allfound
     do
       [ -f $path ] || break
     done
@@ -253,13 +261,40 @@ else
   then
     [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
     [ X"$OBJS" = X ] || OBJS="$OBJS "
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
+    CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT -I../minisat"
     OBJS="${OBJS}btorminisat.o"
-    LIBS="${LIBS}-lz -L../minisat/build/release/lib -Lminisat"
-    addstcpp
+    LIBS="${LIBS}-L../minisat/build/release/lib -Lminisat"
+    LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
+    LIBSTDCPP=yes
+    LIBZ=yes
   fi
 
+fi
+
+#--------------------------------------------------------------------------#
+
+
+if [ $LIBSTDCPP = yes ]
+then
+  [ X"$LIBS" = X ] || LIBS="$LIBS "
+  LIBS="${LIBS}-lstdc++"
+  msg "linking against 'libstdc++'"
+fi
+
+if [ $LIBZ = yes ]
+then
+  [ X"$LIBS" = X ] || LIBS="$LIBS "
+  LIBS="${LIBS}-lz"
+  msg "linking against 'libz'"
+fi
+
+if [ $LIBM = yes ]
+then
+  [ X"$LIBS" = X ] || LIBS="$LIBS "
+  LIBS="${LIBS}-lm"
+  msg "linking against 'libm'"
 fi
 
 #--------------------------------------------------------------------------#
@@ -274,6 +309,7 @@ msg "OBJS=$OBJS"
 rm -f makefile
 sed \
   -e "s,@CC@,$CC," \
+  -e "s,@INCS@,$INCS," \
   -e "s,@CFLAGS@,$CFLAGS," \
   -e "s,@LIBS@,$LIBS," \
   -e "s,@LDEPS@,$LDEPS," \
