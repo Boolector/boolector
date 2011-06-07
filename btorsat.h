@@ -126,6 +126,11 @@ void btor_enable_lingeling_sat (BtorSATMgr *smgr);
 void btor_enable_precosat_sat (BtorSATMgr *smgr);
 #endif
 
+#ifdef BTOR_USE_MINISAT
+/* Enables MiniSAT as SAT preprocessor. */
+void btor_enable_minisat_sat (BtorSATMgr *smgr);
+#endif
+
 /* Only used for debugging purposes at this point */
 int btor_provides_incremental_sat (BtorSATMgr *smgr);
 

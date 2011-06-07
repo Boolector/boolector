@@ -60,12 +60,12 @@ btor_precosat_init (BtorSATMgr* smgr)
   return solver;
 }
 
-int
+void
 btor_precosat_add (BtorSATMgr* smgr, int lit)
 {
   Solver* solver = (Solver*) btor_get_solver_sat (smgr);
   solver->add (btor_precosat_lsbsign_lit (lit));
-  return solver->getAddedOrigClauses ();
+  // return solver->getAddedOrigClauses ();
 }
 
 int

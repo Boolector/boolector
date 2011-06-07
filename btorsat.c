@@ -29,6 +29,10 @@
 #include "../lingeling/lglib.h"
 #endif
 
+#ifdef BTOR_USE_MINISAT
+#include "btorminisat.h"
+#endif
+
 #include "btorexit.h"
 #include "btorsat.h"
 
@@ -72,7 +76,7 @@ struct BtorSATMgr
   struct
   {
     void *(*init) (BtorSATMgr *);
-    int (*add) (BtorSATMgr *, int);
+    void (*add) (BtorSATMgr *, int);
     int (*sat) (BtorSATMgr *);
     int (*deref) (BtorSATMgr *, int);
     void (*reset) (BtorSATMgr *);
@@ -92,7 +96,7 @@ struct BtorSATMgr
       int (*fixed) (BtorSATMgr *, int);
       int (*inconsistent) (BtorSATMgr *);
       int (*changed) (BtorSATMgr *);
-      int (*assume) (BtorSATMgr *, int);
+      void (*assume) (BtorSATMgr *, int);
       int (*failed) (BtorSATMgr *, int);
     } api;
   } inc;
@@ -141,12 +145,11 @@ btor_picosat_init (BtorSATMgr *smgr)
   return 0;
 }
 
-static int
+static void
 btor_picosat_add (BtorSATMgr *smgr, int lit)
 {
   (void) smgr;
   (void) picosat_add (lit);
-  return 0;
 }
 
 static int
@@ -221,12 +224,11 @@ btor_picosat_stats (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-static int
+static void
 btor_picosat_assume (BtorSATMgr *smgr, int lit)
 {
   (void) smgr;
   (void) picosat_assume (lit);
-  return 0;
 }
 
 static int
@@ -494,7 +496,7 @@ btor_assume_sat (BtorSATMgr *smgr, int lit)
   assert (abs (lit) <= smgr->maxvar);
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
-  (void) smgr->inc.api.assume (smgr, lit);
+  smgr->inc.api.assume (smgr, lit);
 }
 
 int
@@ -595,11 +597,10 @@ btor_lingeling_init (BtorSATMgr *smgr)
   return res;
 }
 
-static int
+static void
 btor_lingeling_add (BtorSATMgr *smgr, int lit)
 {
   lgladd (smgr->solver, lit);
-  return 0;
 }
 
 static int
@@ -667,11 +668,10 @@ btor_lingeling_stats (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-static int
+static void
 btor_lingeling_assume (BtorSATMgr *smgr, int lit)
 {
   lglassume (smgr->solver, lit);
-  return 0;
 }
 
 static int
@@ -726,6 +726,47 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   btor_msg_sat (
       smgr, 1, "Lingeling allows both incremental and non-incremental mode");
 }
+#endif
+
+/*------------------------------------------------------------------------*/
+
+#ifdef BTOR_USE_MINISAT
+
+/*------------------------------------------------------------------------*/
+
+void
+btor_enable_minisat_sat (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+
+  BTOR_ABORT_SAT (smgr->initialized,
+                  "'btor_init_sat' called before 'btor_enable_minisat_sat'");
+
+  smgr->name = "MiniSAT";
+
+  smgr->api.init             = btor_minisat_init;
+  smgr->api.add              = btor_minisat_add;
+  smgr->api.sat              = btor_minisat_sat;
+  smgr->api.deref            = btor_minisat_deref;
+  smgr->api.reset            = btor_minisat_reset;
+  smgr->api.set_output       = btor_minisat_set_output;
+  smgr->api.set_prefix       = btor_minisat_set_prefix;
+  smgr->api.enable_verbosity = btor_minisat_enable_verbosity;
+  smgr->api.inc_max_var      = btor_minisat_inc_max_var;
+  smgr->api.variables        = btor_minisat_variables;
+  smgr->api.stats            = btor_minisat_stats;
+
+  smgr->inc.provides         = 1;
+  smgr->inc.api.assume       = btor_minisat_assume;
+  smgr->inc.api.failed       = btor_minisat_failed;
+  smgr->inc.api.fixed        = btor_minisat_fixed;
+  smgr->inc.api.inconsistent = btor_minisat_inconsistent;
+  smgr->inc.api.changed      = btor_minisat_changed;
+
+  btor_msg_sat (
+      smgr, 1, "MiniSAT allows both incremental and non-incremental mode");
+}
+
 #endif
 
 /*------------------------------------------------------------------------*/

@@ -28,7 +28,7 @@
 struct BtorSATMgr;
 
 void *btor_minisat_init (struct BtorSATMgr *);
-int btor_minisat_add (struct BtorSATMgr *, int);
+void btor_minisat_add (struct BtorSATMgr *, int);
 int btor_minisat_sat (struct BtorSATMgr *);
 int btor_minisat_deref (struct BtorSATMgr *, int);
 void btor_minisat_reset (struct BtorSATMgr *);
@@ -38,6 +38,12 @@ void btor_minisat_enable_verbosity (struct BtorSATMgr *);
 int btor_minisat_inc_max_var (struct BtorSATMgr *);
 int btor_minisat_variables (struct BtorSATMgr *);
 void btor_minisat_stats (struct BtorSATMgr *);
+
+void btor_minisat_assume (struct BtorSATMgr *, int);
+int btor_minisat_failed (struct BtorSATMgr *, int);
+int btor_minisat_fixed (struct BtorSATMgr *, int);
+int btor_minisat_changed (struct BtorSATMgr *);
+int btor_minisat_inconsistent (struct BtorSATMgr *);
 
 const char *btor_minisat_version (void);
 

@@ -265,7 +265,7 @@ else
     [ X"$LIBS" = X ] || LIBS="$LIBS "
     CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT -I../minisat"
     OBJS="${OBJS}btorminisat.o"
-    LIBS="${LIBS}-L../minisat/build/release/lib -Lminisat"
+    LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
     LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
     LIBSTDCPP=yes
     LIBZ=yes
