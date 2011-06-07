@@ -3,9 +3,9 @@
 	$(CC) $(CFLAGS) -c $<
 .cc.o:
 	$(CC) $(CFLAGS) -c $<
-OBJS=../picosat/picosat.o ../picosat/version.o @OBJS@
 CC=@CC@
 CFLAGS=@CFLAGS@
+OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)

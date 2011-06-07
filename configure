@@ -3,11 +3,15 @@
 debug=unknown
 precosat=unknown
 lingeling=unknown
-forcearch=no
+arch=unknown
 
 die () {
   echo "*** configure: $*" 1>&2
   exit 1
+}
+
+msg () {
+  echo "[configure] $*"
 }
 
 usage () {
@@ -41,24 +45,33 @@ do
   case $1 in
     -g) debug=yes;;
     -O) debug=no;;
-    -m32|--m32) forcearch=32;;
-    -m64|--m64) forcearch=64;;
-    --precosat) precosat=yes;;
-    --lingeling) lingeling=yes;;
-    --no-precosat) precosat=no;;
-    --no-lingeling) lingeling=no;;
-    -h|--help) usage;;
+    -m32|--m32) arch=32;;
+    -m64|--m64) arch=64;;
+    -precosat|--precosat) precosat=yes;;
+    -lingeling|--lingeling) lingeling=yes;;
+    -no-precosat|--no-precosat) precosat=no;;
+    -no-lingeling|--no-lingeling) lingeling=no;;
+    -h|-help|--help) usage;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
 done
 
+#--------------------------------------------------------------------------#
+
+if [ $debug = yes ]
+then
+  msg "compiling for debugging"
+else
+  msg "optimized compilation without debugging symbols"
+fi
+
 if [ X"$CFLAGS" = X ]
 then
   [ $debug = unknown ] && debug=no
-  CFLAGS="$CFLAGS -W -Wall -Wextra"
-  [ $forcearch = 32 ] && CFLAGS="$CFLAGS -m32"
-  [ $forcearch = 64 ] && CFLAGS="$CFLAGS -m64"
+  CFLAGS="-W -Wall -Wextra"
+  [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
+  [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
   if [ $debug = yes ]
   then
     CFLAGS="$CFLAGS -g3 -ggdb"
@@ -76,40 +89,127 @@ fi
 LIBS=""
 OBJS=""
 
-if [ $precosat = yes ]
+#--------------------------------------------------------------------------#
+
+if [ -d ../picosat ]
 then
-  [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-  [ X"$OBJS" = X ] || OBJS="$OBJS "
-  [ X"$LIBS" = X ] || LIBS="$LIBS "
-  CFLAGS="${CFLAGS}-DBTOR_USE_PRECOSAT"
-  OBJS="${OBJS}btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
-  LIBS="${LIBS}-lz"
-  if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
-  then
-    [ X"$LIBS" = X ] || LIBS="$LIBS "
-    LIBS="${LIBS}-lstdc++"
-  fi
+  for path in ../picosat/picosat.o ../picosat/version.o allfound
+  do
+    [ -f $path ] || break
+  done
+else
+  path=../picosat
 fi
 
-if [ $lingeling = yes ]
+if [ $path = allfound ]
 then
-  [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-  [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
-  [ X"$LIBS" = X ] || LIBS="$LIBS "
-  CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
-  LIBS="${LIBS}-L../lingeling -llgl -lm"
-  LDEPS="${LDEPS}../lingeling/liblgl.a"
+  msg "using PicoSAT in '../picosat'"
+  [ X"$OBJS" = X ] || OBJS="$OBJS "
+  OBJS="${OBJS}../picosat/picosat.o ../picosat/version.o"
+else
+  die "PicoSAT not found: '$path' missing"
 fi
+
+#--------------------------------------------------------------------------#
+
+if [ $precosat = no ]
+then
+  msg "not using PrecoSAT as requested by command line option"
+else
+
+  if [ -d ../precosat ]
+  then
+    for path in \
+      ../precosat/precosat.hh \
+      ../precosat/precosat.o \
+      ../precosat/precobnr.o \
+      allfound
+    do
+      [ -f $path ] || break
+    done
+  else
+    path=../precosat
+  fi
+
+  if [ $path = allfound ]
+  then
+    msg "using PrecoSAT in '../precosat'"
+    precosat=yes
+  elif [ $precosat = yes ]
+  then
+    die "impossible to use PrecoSAT: '$path' missing"
+  else
+    msg "disabling PrecoSAT: '$path' missing"
+    precosat=no
+  fi
+
+  if [ $precosat = yes ]
+  then
+    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+    [ X"$OBJS" = X ] || OBJS="$OBJS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    CFLAGS="${CFLAGS}-DBTOR_USE_PRECOSAT"
+    OBJS="${OBJS}btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
+    LIBS="${LIBS}-lz"
+    if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
+    then
+      [ X"$LIBS" = X ] || LIBS="$LIBS "
+      LIBS="${LIBS}-lstdc++"
+    fi
+  fi
+
+fi
+
+#--------------------------------------------------------------------------#
+
+if [ $lingeling = no ]
+then
+  msg "not using Lingeling as requested by command line option"
+else
+
+  if [ -d ../lingeling ]
+  then
+    for path in ../lingeling/lglib.h ../lingeling/liblgl.a allfound
+    do
+      [ -f $path ] || break
+    done
+  else
+    path=../lingeling
+  fi
+
+  if [ $path = allfound ]
+  then
+    msg "using Lingeling in '../lingeling'"
+    lingeling=yes
+  elif [ $lingeling = yes ]
+  then
+    die "impossible to use Lingeling: '$path' missing"
+  else
+    msg "disabling Lingeling: '$path' missing"
+    lingeling=no
+  fi
+
+  if [ $lingeling = yes ]
+  then
+    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+    [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
+    LIBS="${LIBS}-L../lingeling -llgl -lm"
+    LDEPS="${LDEPS}../lingeling/liblgl.a"
+  fi
+
+fi
+
+#--------------------------------------------------------------------------#
 
 [ "X$CC" = X ] && CC=gcc
 
-echo "[configure] debug ... $debug"
-echo "[configure] CC ... $CC"
-echo "[configure] CFLAGS ... $CFLAGS"
-echo "[configure] LIBS ... $LIBS"
-echo "[configure] OBJS ... $OBJS"
+msg "CC=$CC"
+msg "CFLAGS=$CFLAGS"
+msg "LIBS=$LIBS"
+msg "OBJS=$OBJS"
 
-echo -n "[configure] makefile ..."
 rm -f makefile
 sed \
   -e "s,@CC@,$CC," \
@@ -118,4 +218,4 @@ sed \
   -e "s,@LDEPS@,$LDEPS," \
   -e "s,@OBJS@,$OBJS," \
   makefile.in > makefile
-echo " done"
+msg "makefile generated"
