@@ -1,0 +1,21 @@
+This is a source release of Boolector together with supported SAT solvers.  
+For COPYING respectively LICENSE see the individual archives in 'archives'.
+
+Run 'make' or './build.sh' to build Boolector.
+
+This will extract and compile all SAT solvers and then
+compile and link Boolector against them.
+
+The 'boolector' binary can then be found in
+
+  ./boolector/boolector
+
+To clean-up the build process run 'make clean' or './clean.sh'.
+
+The most recent version of Boolector can be found at 
+
+  http://fmv.jku.at/boolector
+
+This site also contains papers and documentation related to Boolector.
+
+Armin Biere, FMV, JKU, June, 2011.
