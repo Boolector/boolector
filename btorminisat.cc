@@ -43,8 +43,8 @@ using namespace Minisat;
 class BtorMiniSAT : public SimpSolver
 {
   vec<Lit> assumptions, clause;
-  signed char *fmap;
   int szfmap;
+  signed char *fmap;
   bool nomodel;
   Lit import (int lit)
   {
@@ -120,7 +120,7 @@ class BtorMiniSAT : public SimpSolver
   }
   int deref (int lit)
   {
-    if (nomodel) return 0;  // fixed (lit);
+    if (nomodel) return fixed (lit);
     lbool res = modelValue (import (lit));
     return (res == l_True) ? 1 : -1;
   }
@@ -191,7 +191,7 @@ int
 btor_minisat_fixed (BtorSATMgr *smgr, int lit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  solver->fixed (lit);
+  return solver->fixed (lit);
 }
 
 int
