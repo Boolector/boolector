@@ -1,6 +1,10 @@
 #!/bin/sh
 a="`./boolector $1`"
 echo $a
+case X"$a" in
+  Xsat|Xunsat);;
+  *) exit 0;;
+esac
 b="`./boolector $1 -picosat`"
 echo $b
 case X"$a"X"$b" in
