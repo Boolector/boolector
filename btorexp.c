@@ -9946,8 +9946,7 @@ int
 btor_sat_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
-  int ua_refinements, lod_refinements, found_assumption_false;
-  int under_approx_finished, ua;
+  int found_assumption_false, under_approx_finished, ua;
   BtorExpPtrStack top_arrays;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -9970,9 +9969,7 @@ btor_sat_btor (Btor *btor)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
-  mm              = btor->mm;
-  ua_refinements  = btor->stats.ua_refinements;
-  lod_refinements = btor->stats.lod_refinements;
+  mm = btor->mm;
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
@@ -10035,7 +10032,7 @@ btor_sat_btor (Btor *btor)
 
       if (!found_conflict) break;
 
-      lod_refinements++;
+      btor->stats.lod_refinements++;
       found_assumption_false = readd_assumptions (btor);
       assert (!found_assumption_false);
 
@@ -10062,24 +10059,22 @@ btor_sat_btor (Btor *btor)
       }
 
       under_approx_finished = !encode_under_approx (btor);
-      ua_refinements++;
+      btor->stats.ua_refinements++;
     }
     if (verbosity > 1)
     {
-      if (verbosity > 2 || !((lod_refinements + ua_refinements) % 10))
+      if (verbosity > 2
+          || !((btor->stats.lod_refinements + btor->stats.ua_refinements) % 10))
       {
         fprintf (stdout,
                  "[btorsat] refinement iteration %d\n",
-                 lod_refinements + ua_refinements);
+                 btor->stats.lod_refinements + btor->stats.ua_refinements);
         fflush (stdout);
       }
     }
     sat_result = btor_sat_sat (smgr);
     assert (sat_result != BTOR_UNKNOWN);
   }
-
-  btor->stats.ua_refinements  = ua_refinements;
-  btor->stats.lod_refinements = lod_refinements;
 
   BTOR_RELEASE_STACK (mm, top_arrays);
   BTOR_ABORT_EXP (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
