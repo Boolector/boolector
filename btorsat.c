@@ -558,8 +558,7 @@ btor_lingeling_sat (BtorSATMgr *smgr)
 static int
 btor_lingeling_changed (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return 1;  // TODO add such a function to Lingeling
+  return lglchanged (smgr->solver);
 }
 
 static int
