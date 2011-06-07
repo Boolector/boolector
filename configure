@@ -3,6 +3,7 @@
 debug=unknown
 precosat=unknown
 lingeling=unknown
+minisat=unknown
 arch=unknown
 
 die () {
@@ -29,11 +30,13 @@ the binary if they can be found in the parent directory.
 
   --precosat      use and link with PrecoSAT
   --lingeling     use and link with Lingeling
+  --minisat       use and linke with MiniSAT
 
 To disable some of them use the following options:
 
   --no-precosat   do not use PrecoSAT
   --no-lingeling  do not use Lingeling
+  --no-minisat    do not use Lingeling
 
 In addition PicoSAT is always required as default back end SAT solver.
 EOF
@@ -49,13 +52,24 @@ do
     -m64|--m64) arch=64;;
     -precosat|--precosat) precosat=yes;;
     -lingeling|--lingeling) lingeling=yes;;
+    -minisat|--minisat) minisat=yes;;
     -no-precosat|--no-precosat) precosat=no;;
     -no-lingeling|--no-lingeling) lingeling=no;;
+    -no-minisat|--no-minisat) minisat=no;;
     -h|-help|--help) usage;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
   shift
 done
+
+addstcpp () {
+  if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
+  then
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    LIBS="${LIBS}-lstdc++"
+    msg "need to link against 'libstdc++'"
+  fi
+}
 
 #--------------------------------------------------------------------------#
 
@@ -151,11 +165,7 @@ else
     CFLAGS="${CFLAGS}-DBTOR_USE_PRECOSAT"
     OBJS="${OBJS}btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
     LIBS="${LIBS}-lz"
-    if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
-    then
-      [ X"$LIBS" = X ] || LIBS="$LIBS "
-      LIBS="${LIBS}-lstdc++"
-    fi
+    addstcpp
   fi
 
 fi
@@ -197,6 +207,57 @@ else
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
     LIBS="${LIBS}-L../lingeling -llgl -lm"
     LDEPS="${LDEPS}../lingeling/liblgl.a"
+  fi
+
+fi
+
+#--------------------------------------------------------------------------#
+
+if [ $minisat = no ]
+then
+  msg "not using MiniSAT as requested by command line option"
+else
+
+  for path in \
+    ../minisat \
+    ../minisat/minisat \
+    ../minisat/minisat/simp \
+    ../minisat/build/release \
+    allfound
+  do
+    [ -d $path ] || break
+  done
+
+  if [ $path = allfound ]
+  then
+    for path in \
+      ../minisat/build/release/SimpSolver.h \
+      ../minisat/build/release/lib/libminisat.a \
+    do
+      [ -f $path ] || break
+    done
+  fi
+
+  if [ $path = allfound ]
+  then
+    msg "using MiniSAT in '../minisat'"
+    minisat=yes
+  elif [ $minisat = yes ]
+  then
+    die "impossible to use MiniSAT: '$path' missing"
+  else
+    msg "disabling MiniSAT: '$path' missing"
+  fi
+
+  if [ $minisat = yes ]
+  then
+    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+    [ X"$OBJS" = X ] || OBJS="$OBJS "
+    [ X"$LIBS" = X ] || LIBS="$LIBS "
+    CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
+    OBJS="${OBJS}btorminisat.o"
+    LIBS="${LIBS}-lz -L../minisat/build/release/lib -Lminisat"
+    addstcpp
   fi
 
 fi
