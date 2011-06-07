@@ -27,6 +27,7 @@ smtsignextend -o log/smtsignextend.log log/smtsignextend.smt
 smtrotate -o log/smtrotate.log log/smtrotate.smt
 uremudivaxiom4 -o log/uremudivaxiom4.log log/uremudivaxiom4.btor
 uremudivaxiom4no -o log/uremudivaxiom4no.log log/uremudivaxiom4no.btor
+regsmod1 -o log/regsmod1.log log/regsmod1.smt
 gtewithsub -o log/gtewithsub.log log/gtewithsub.btor
 smtaxiommccarthy -o log/smtaxiommccarthy.log log/smtaxiommccarthy.smt
 mulassoc4 -o log/mulassoc4.log log/mulassoc4.smt
