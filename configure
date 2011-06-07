@@ -19,10 +19,19 @@ where <option> is one of the following:
   -O              optimized compilation (default)
   -g              compile with debugging support
   -m{32,64}       force 32-bit or 64-bit compilation
-  --precosat      use and link with PrecoSAT (default if found)
-  --lingeling     use and link with Lingeling (default if found)
+
+By default all supported SAT solvers are used and linked into
+the binary if they can be found in the parent directory.
+
+  --precosat      use and link with PrecoSAT
+  --lingeling     use and link with Lingeling
+
+To disable some of them use the following options:
+
   --no-precosat   do not use PrecoSAT
   --no-lingeling  do not use Lingeling
+
+In addition PicoSAT is always required as default back end SAT solver.
 EOF
   exit 0
 }
