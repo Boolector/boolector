@@ -25,7 +25,7 @@
 
 #include <stdio.h>
 
-struct BtorSATMgr;
+#include "btorsat.h"
 
 void *btor_minisat_init (struct BtorSATMgr *);
 void btor_minisat_add (struct BtorSATMgr *, int);

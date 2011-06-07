@@ -27,14 +27,63 @@
 #include <stdio.h>
 
 /*------------------------------------------------------------------------*/
-/* PRIVATE INTERFACE                                                      */
-/*------------------------------------------------------------------------*/
 
 typedef struct BtorSATMgr BtorSATMgr;
 
-#define BTOR_UNKNOWN 0
+struct BtorSATMgr
+{
+  void *solver;
+
+  int verbosity;
+  BtorMemMgr *mm;
+  const char *name;
+  FILE *output;
+
+  int satcalls;
+  int initialized;
+  int clauses, maxvar;
+
+  struct
+  {
+    void *(*init) (BtorSATMgr *);
+    void (*add) (BtorSATMgr *, int);
+    int (*sat) (BtorSATMgr *);
+    int (*deref) (BtorSATMgr *, int);
+    void (*reset) (BtorSATMgr *);
+    void (*set_output) (BtorSATMgr *, FILE *);
+    void (*set_prefix) (BtorSATMgr *, const char *);
+    void (*enable_verbosity) (BtorSATMgr *);
+    int (*inc_max_var) (BtorSATMgr *);
+    int (*variables) (BtorSATMgr *);
+    void (*stats) (BtorSATMgr *);
+  } api;
+
+  struct
+  {
+    int need, provides;
+    struct
+    {
+      int (*fixed) (BtorSATMgr *, int);
+      int (*inconsistent) (BtorSATMgr *);
+      int (*changed) (BtorSATMgr *);
+      void (*assume) (BtorSATMgr *, int);
+      int (*failed) (BtorSATMgr *, int);
+    } api;
+  } inc;
+};
+
+/*------------------------------------------------------------------------*/
+
+#define BTOR_MEM_MGR_SAT(SMGR) ((SMGR)->mm)
+#define BTOR_GET_SOLVER_SAT(SMGR) ((SMGR)->solver)
+
+/*------------------------------------------------------------------------*/
+
 #define BTOR_SAT 10
 #define BTOR_UNSAT 20
+#define BTOR_UNKNOWN 0
+
+/*------------------------------------------------------------------------*/
 
 /* Creates new SAT manager.
  * A SAT manager is used by nearly all functions of the SAT layer.

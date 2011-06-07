@@ -60,48 +60,6 @@
     }                                               \
   } while (0)
 
-struct BtorSATMgr
-{
-  void *solver;
-
-  int verbosity;
-  BtorMemMgr *mm;
-  const char *name;
-  FILE *output;
-
-  int satcalls;
-  int initialized;
-  int clauses, maxvar;
-
-  struct
-  {
-    void *(*init) (BtorSATMgr *);
-    void (*add) (BtorSATMgr *, int);
-    int (*sat) (BtorSATMgr *);
-    int (*deref) (BtorSATMgr *, int);
-    void (*reset) (BtorSATMgr *);
-    void (*set_output) (BtorSATMgr *, FILE *);
-    void (*set_prefix) (BtorSATMgr *, const char *);
-    void (*enable_verbosity) (BtorSATMgr *);
-    int (*inc_max_var) (BtorSATMgr *);
-    int (*variables) (BtorSATMgr *);
-    void (*stats) (BtorSATMgr *);
-  } api;
-
-  struct
-  {
-    int need, provides;
-    struct
-    {
-      int (*fixed) (BtorSATMgr *, int);
-      int (*inconsistent) (BtorSATMgr *);
-      int (*changed) (BtorSATMgr *);
-      void (*assume) (BtorSATMgr *, int);
-      int (*failed) (BtorSATMgr *, int);
-    } api;
-  } inc;
-};
-
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
 /*------------------------------------------------------------------------*/
@@ -312,18 +270,6 @@ btor_new_sat_mgr (BtorMemMgr *mm)
 
   btor_enable_picosat_sat (smgr);
   return smgr;
-}
-
-BtorMemMgr *
-btor_mem_mgr_sat (BtorSATMgr *smgr)
-{
-  return smgr->mm;
-}
-
-void *
-btor_get_solver_sat (BtorSATMgr *smgr)
-{
-  return smgr->solver;
 }
 
 void

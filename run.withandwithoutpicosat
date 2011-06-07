@@ -1,0 +1,11 @@
+#!/bin/sh
+a="`./boolector $1`"
+echo $a
+b="`./boolector $1 -picosat`"
+echo $b
+case X"$a"X"$b" in
+  XsatXsat) exit 10;;
+  XunsatXunsat) exit 20;;
+  XunknownXunknown) exit 0;;
+  *) exit 1;;
+esac

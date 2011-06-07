@@ -37,7 +37,7 @@ do
   res=$?
   case $res in
     10|20)
-      echo -n "                                                                         \r"
+echo -n "                                                                       \r"
     ;;
     *)
       bug=bug-${count}.btor

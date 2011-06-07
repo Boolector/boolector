@@ -134,63 +134,63 @@ btor_minisat_version (void)
 void
 btor_minisat_add (BtorSATMgr *smgr, int lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   solver->add (lit);
 }
 
 int
 btor_minisat_sat (BtorSATMgr *smgr)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   return solver->sat ();
 }
 
 int
 btor_minisat_deref (BtorSATMgr *smgr, int lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   return solver->deref (lit);
 }
 
 void
 btor_minisat_reset (BtorSATMgr *smgr)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   delete solver;
 }
 
 int
 btor_minisat_inc_max_var (BtorSATMgr *smgr)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   return solver->inc ();
 }
 
 int
 btor_minisat_variables (BtorSATMgr *smgr)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   return solver->nVars ();
 }
 
 void
 btor_minisat_assume (BtorSATMgr *smgr, int lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   solver->assume (lit);
 }
 
 int
 btor_minisat_fixed (BtorSATMgr *smgr, int lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   solver->fixed (lit);
 }
 
 int
 btor_minisat_failed (BtorSATMgr *smgr, int lit)
 {
-  BtorMiniSAT *solver = (BtorMiniSAT *) btor_get_solver_sat (smgr);
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   return solver->failed (lit);
 }
 

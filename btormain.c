@@ -733,24 +733,28 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity = -1;
     }
-    else if (!strcmp (app->argv[app->argpos], "-picosat"))
+    else if (!strcmp (app->argv[app->argpos], "-picosat")
+             || !strcmp (app->argv[app->argpos], "--picosat"))
     {
       app->force_picosat = 1;
     }
 #ifdef BTOR_USE_PRECOSAT
-    else if (!strcmp (app->argv[app->argpos], "-precosat"))
+    else if (!strcmp (app->argv[app->argpos], "-precosat")
+             || !strcmp (app->argv[app->argpos], "--precosat"))
     {
       app->force_precosat = 1;
     }
 #endif
 #ifdef BTOR_USE_LINGELING
-    else if (!strcmp (app->argv[app->argpos], "-lingeling"))
+    else if (!strcmp (app->argv[app->argpos], "-lingeling")
+             || !strcmp (app->argv[app->argpos], "--lingeling"))
     {
       app->force_lingeling = 1;
     }
 #endif
 #ifdef BTOR_USE_MINISAT
-    else if (!strcmp (app->argv[app->argpos], "-minisat"))
+    else if (!strcmp (app->argv[app->argpos], "-minisat")
+             || !strcmp (app->argv[app->argpos], "--minisat"))
     {
       app->force_minisat = 1;
     }
