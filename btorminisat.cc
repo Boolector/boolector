@@ -28,7 +28,7 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
-#include "minisat/simp/SimpSolver.h"
+#include "../minisat/minisat/simp/SimpSolver.h"
 
 extern "C" {
 
@@ -40,7 +40,7 @@ extern "C" {
 
 using namespace Minisat;
 
-class BtorMiniSAT : public Solver
+class BtorMiniSAT : public SimpSolver
 {
   vec<Lit> assumptions, clause;
   signed char *fmap;
@@ -72,6 +72,7 @@ class BtorMiniSAT : public Solver
   ~BtorMiniSAT () { reset (); }
   int inc ()
   {
+    nomodel = true;
     int res = newVar ();
     assert (0 <= res && res == nVars () - 1);
     return res + 1;
@@ -89,10 +90,10 @@ class BtorMiniSAT : public Solver
     else
       addClause (clause), clause.clear ();
   }
-  int sat ()
+  int sat (bool needinc)
   {
     reset ();
-    bool res = solve (assumptions);
+    bool res = solve (assumptions, !needinc);
     assumptions.clear ();
     nomodel = !res;
     return res ? 10 : 20;
@@ -119,7 +120,7 @@ class BtorMiniSAT : public Solver
   }
   int deref (int lit)
   {
-    if (nomodel) return fixed (lit);
+    if (nomodel) return 0;  // fixed (lit);
     lbool res = modelValue (import (lit));
     return (res == l_True) ? 1 : -1;
   }
@@ -148,7 +149,7 @@ int
 btor_minisat_sat (BtorSATMgr *smgr)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  return solver->sat ();
+  return solver->sat (smgr->inc.need);
 }
 
 int
