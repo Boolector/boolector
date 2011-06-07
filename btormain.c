@@ -1279,7 +1279,13 @@ boolector_main (int argc, char **argv)
 #endif
 #if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PRECOSAT) \
     && defined(BTOR_USE_MINISAT)
-      else if (!need_incremental_sat_solver) { btor_enable_minisat_sat (smgr); }
+      else
+#if 0
+	    if (!need_incremental_sat_solver)
+#endif
+      {
+        btor_enable_minisat_sat (smgr);
+      }
 #endif
       assert (need_incremental_sat_solver
               <= btor_provides_incremental_sat (smgr));
