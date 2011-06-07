@@ -1247,7 +1247,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
       else if (app.force_minisat)
       {
-#if 0
+#if 0  // TODO incremenal MiniSAT glue logic seems to work: so remove
 		if (need_incremental_sat_solver)
 		  {
 		    print_msg_va_args (&app,
@@ -1273,7 +1273,7 @@ boolector_main (int argc, char **argv)
       }
 #ifdef BTOR_USE_MINISAT
       else
-#if 0
+#if 0  // TODO incremenal MiniSAT glue logic seems to work: so remove
 	    if (!need_incremental_sat_solver)
 #endif
       {
@@ -1284,7 +1284,7 @@ boolector_main (int argc, char **argv)
 #if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PRECOSAT) \
     && defined(BTOR_USE_MINISAT)
       else
-#if 0
+#if 0  // TODO incremenal MiniSAT glue logic seems to work: so remove
 	    if (!need_incremental_sat_solver)
 #endif
       {
@@ -1786,7 +1786,7 @@ boolector_main (int argc, char **argv)
       btor_reset_sat (smgr);
     }
 
-#if defined(BTOR_USE_PRECOSAT) || defined(BTOR_USE_MINISAT)
+#if defined(BTOR_USE_PRECOSAT)
   DONE:
 #endif
     if (parser_api) parser_api->reset (parser);
