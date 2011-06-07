@@ -19,6 +19,7 @@ do
   cd ..
 done
 
+echo "building boolector"
 cd boolector
 ./configure -precosat -lingeling >/dev/null || exit 1
 make >/dev/null || exit 1
