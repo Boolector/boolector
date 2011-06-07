@@ -1,5 +1,10 @@
 #!/bin/sh
 
+die () {
+  echo "*** build.sh: $*" 1>&2
+  exit 1
+}
+
 for component in boolector picosat precosat lingeling minisat
 do
   archive=`ls archives/${component}-*.tar.gz`
@@ -10,22 +15,16 @@ do
   echo "extracted $component"
 done
 
-for component in picosat precosat lingeling
+echo "building minisat"
+cd minisat
+make r >/dev/null || die "'make r' failed in 'minisat'"
+cd ..
+
+for component in picosat precosat lingeling boolector
 do
   echo "building $component"
   cd $component
-  ./configure -O >/dev/null || exit 1
-  make >/dev/null || exit 1
+  ./configure >/dev/null || die "'./configure' failed in '$component'"
+  make >/dev/null || die "'make' failed in '$component'"
   cd ..
 done
-
-echo "building minisat"
-cd minisat
-make r >/dev/null || exit 1
-cd ..
-
-echo "building boolector"
-cd boolector
-./configure >/dev/null || exit 1
-make >/dev/null || exit 1
-cd ..
