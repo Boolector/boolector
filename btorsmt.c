@@ -2035,7 +2035,7 @@ translate_store (BtorSMTParser *parser, BtorSMTNode *node)
   node->exp = btor_write_exp (parser->btor, a0, a1, a2);
 }
 
-static char *
+static BtorExp *
 translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 {
   BtorSMTNode *node, *child, *p, **s, **t, *tmp;
@@ -2075,7 +2075,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             || (token != BTOR_SMTOK_FVAR && token != BTOR_SMTOK_VAR)
             || !cdr (assignment) || cdr (cdr (assignment)) || !cdr (cdr (node))
             || cdr (cdr (cdr (node))))
-          return btor_perr_smt (parser, "illformed 'let' or 'flet'");
+          return btor_perr_smt (parser, "illformed 'let' or 'flet'"),
+                 (BtorExp *) 0;
 
         body = car (cdr (cdr (node)));
 
@@ -2146,7 +2147,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
 
     child = car (node);
 
-    if (!child) return btor_perr_smt (parser, "empty list");
+    if (!child) return btor_perr_smt (parser, "empty list"), (BtorExp *) 0;
 
     if (isleaf (child))
     {
@@ -2189,7 +2190,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           assert (isleaf (car (cdr (node))));
           symbol = strip (car (cdr (node)));
           if (symbol->exp)
-            return btor_perr_smt (parser, "unsupported nested '[f]let'");
+            return btor_perr_smt (parser, "unsupported nested '[f]let'"),
+                   (BtorExp *) 0;
           body = car (cdr (cdr (node)));
           if ((exp = node2exp (parser, body)))
           {
@@ -2197,7 +2199,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             {
               if (btor_get_exp_len (parser->btor, exp) != 1)
               {
-                return btor_perr_smt (parser, "flet assignment width not one");
+                return btor_perr_smt (parser, "flet assignment width not one"),
+                       (BtorExp *) 0;
               }
             }
             else
@@ -2330,7 +2333,7 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
         (void) btor_perr_smt (parser, "invalid list expression");
     }
 
-    if (parser->error) return parser->error;
+    if (parser->error) return (BtorExp *) 0;
   }
 
   BTOR_RESET_STACK (parser->work);
@@ -2338,18 +2341,17 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   if (!(exp = node2exp (parser, root)))
   {
     assert (parser->error);
-    return parser->error;
+    return (BtorExp *) 0;
   }
 
   if (btor_get_exp_len (parser->btor, exp) != 1)
-    return btor_perr_smt (parser, "non boolean formula");
-
-  BTOR_PUSH_STACK (
-      parser->mem, parser->outputs, btor_copy_exp (parser->btor, exp));
+    return btor_perr_smt (parser, "non boolean formula"), (BtorExp *) 0;
 
   assert (!parser->error);
 
-  return 0;
+  assert (exp);
+
+  return btor_copy_exp (parser->btor, exp);
 }
 
 static char *
@@ -2358,9 +2360,10 @@ translate_benchmark (BtorSMTParser *parser,
                      BtorParseResult *res)
 {
   BtorSMTSymbol *symbol, *logic, *benchmark;
-  const char *attrstr;
   BtorSMTNode *p, *node;
+  const char *attrstr;
   BtorSMTToken status;
+  BtorExp *exp;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
@@ -2501,12 +2504,14 @@ translate_benchmark (BtorSMTParser *parser,
         if (!p)
           return btor_perr_smt (parser, "argument to '%s' missing", attrstr);
 
-        if (translate_formula (parser, car (p)))
+        exp = translate_formula (parser, car (p));
+        if (!exp)
         {
           assert (parser->error);
           return parser->error;
         }
 
+        BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         break;
 
       case BTOR_SMTOK_EXTRASORTS:
