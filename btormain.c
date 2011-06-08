@@ -120,6 +120,7 @@ struct BtorMainApp
   int close_replay_file;
   BtorAppReplayMode replay_mode;
   int verbosity;
+  int incremental;
   int force;
   int done;
   int err;
@@ -173,6 +174,9 @@ static const char *g_usage =
     "  -fm|--full-model                 print full model (BV) in the SAT case\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
+    "\n"
+    "  -i|--inc[remental]               experimental incremental mode (SMT "
+    "only)\n"
     "\n"
     "  --smt                            force SMT lib format input\n"
     "\n"
@@ -716,6 +720,12 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity++;
     }
+    else if (!strcmp (app->argv[app->argpos], "-i")
+             || !strcmp (app->argv[app->argpos], "--inc")
+             || !strcmp (app->argv[app->argpos], "--incremental"))
+    {
+      app->incremental = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-V")
              || !strcmp (app->argv[app->argpos], "--version"))
     {
@@ -1067,6 +1077,7 @@ boolector_main (int argc, char **argv)
   memset (&app, 0, sizeof app);
 
   app.verbosity            = 0;
+  app.incremental          = 0;
   app.force                = 0;
   app.output_file          = stdout;
   app.close_output_file    = 0;
@@ -1166,18 +1177,69 @@ boolector_main (int argc, char **argv)
     else if (stdin_starts_with_open_parenthesis ())
       parser_api = btor_smt_parser_api ();
 
-    parser = parser_api->init (btor, app.verbosity);
+    parser = parser_api->init (btor, app.verbosity, app.incremental);
 
-    parse_error = parser_api->parse (
-        parser, app.input_file, app.input_file_name, &parse_res);
+    if (app.incremental)
+    {
+      if (app.force_picosat)
+      {
+        /* do nothing use PicoSAT */
+      }
+#ifdef BTOR_USE_MINISAT
+      else if (app.force_minisat)
+      {
+        btor_enable_minisat_sat (smgr);
+      }
+#endif
+#ifdef BTOR_USE_LINGELING
+      else
+      {
+        btor_enable_lingeling_sat (smgr);
+      }
+#endif
+      assert (btor_provides_incremental_sat (smgr));
 
-    if (parse_error)
+      btor_init_sat (smgr, need_incremental_sat_solver);
+      btor_set_output_sat (smgr, stdout);
+
+      if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
+
+      if (app.verbosity >= 1)
+        btor_msg_main ("starting incremental BTOR mode\n");
+
+      btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
+
+      sat_result = BTOR_UNKNOWN;
+
+      if (app.verbosity > 0)
+      {
+        btor_print_stats_sat (smgr);
+        btor_print_stats_btor (btor);
+      }
+
+      if ((parse_error = parser_api->parse (
+               parser, app.input_file, app.input_file_name, &parse_res)))
+      {
+        print_msg_va_args (&app, "%s\n", parse_error);
+        app.err = 1;
+      }
+      else
+      {
+      }
+
+      btor_static_smgr = 0;
+      btor_reset_sat (smgr);
+    }
+    else if ((parse_error = parser_api->parse (
+                  parser, app.input_file, app.input_file_name, &parse_res)))
     {
       print_msg_va_args (&app, "%s\n", parse_error);
       app.err = 1;
     }
     else if (app.dump_exp)
     {
+      if (app.verbosity) btor_msg_main_va_args ("dumping BTOR expressions\n");
+
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
       if (app.rewrite_level >= 2)
@@ -1217,13 +1279,18 @@ boolector_main (int argc, char **argv)
       }
       else
       {
+        if (app.verbosity) btor_msg_main_va_args ("dumping in SMT format\n");
+
         app.done = 1;
         btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
       }
     }
     else
     {
-      if (app.ua || parse_res.logic != BTOR_LOGIC_QF_BV || parse_res.nregs)
+      assert (!app.incremental);
+
+      if (app.ua || app.incremental || parse_res.logic != BTOR_LOGIC_QF_BV
+          || parse_res.nregs)
         need_incremental_sat_solver = 1;
 
       if (app.force_picosat)
@@ -1247,16 +1314,6 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
       else if (app.force_minisat)
       {
-#if 0  // TODO incremenal MiniSAT glue logic seems to work: so remove
-		if (need_incremental_sat_solver)
-		  {
-		    print_msg_va_args (&app,
-		      "can not use MinisatSAT (incremental SAT required)");
-		    app.err = 1;
-		    goto DONE;
-		  }
-		else
-#endif
         btor_enable_minisat_sat (smgr);
       }
 #endif
@@ -1272,24 +1329,12 @@ boolector_main (int argc, char **argv)
         btor_enable_precosat_sat (smgr);
       }
 #ifdef BTOR_USE_MINISAT
-      else
-#if 0  // TODO incremenal MiniSAT glue logic seems to work: so remove
-	    if (!need_incremental_sat_solver)
-#endif
-      {
-        btor_enable_minisat_sat (smgr);
-      }
+      else { btor_enable_minisat_sat (smgr); }
 #endif
 #endif
 #if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PRECOSAT) \
     && defined(BTOR_USE_MINISAT)
-      else
-#if 0  // TODO incremenal MiniSAT glue logic seems to work: so remove
-	    if (!need_incremental_sat_solver)
-#endif
-      {
-        btor_enable_minisat_sat (smgr);
-      }
+      else { btor_enable_minisat_sat (smgr); }
 #endif
       assert (need_incremental_sat_solver
               <= btor_provides_incremental_sat (smgr));

@@ -185,6 +185,10 @@ struct BtorSMTParser
   int verbosity;
   int parsed;
 
+  int incremental;
+  int constraints;
+  int assumptions;
+
   const char *name;
   FILE *file;
   int lineno;
@@ -504,7 +508,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 }
 
 static BtorSMTParser *
-btor_new_smt_parser (Btor *btor, int verbosity)
+btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
 {
   BtorMemMgr *mem = btor->mm;
   BtorSMTSymbol *bind;
@@ -517,7 +521,11 @@ btor_new_smt_parser (Btor *btor, int verbosity)
 
   res->verbosity = verbosity;
 
+  res->incremental = incremental;
+
   btor_smt_message (res, 2, "initializing SMT parser");
+  if (incremental)
+    btor_smt_message (res, 2, "incremental checking of SMT benchmark");
 
   res->mem  = mem;
   res->btor = btor;
@@ -2361,9 +2369,9 @@ translate_benchmark (BtorSMTParser *parser,
 {
   BtorSMTSymbol *symbol, *logic, *benchmark;
   BtorSMTNode *p, *node;
-  const char *attrstr;
   BtorSMTToken status;
   BtorExp *exp;
+  int satres;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
@@ -2458,13 +2466,12 @@ translate_benchmark (BtorSMTParser *parser,
     node = car (p);
   }
 
-  for (p = top; p; p = cdr (p))
+  for (p = top; res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN && p; p = cdr (p))
   {
     node = car (p);
     if (!isleaf (node)) continue;
 
-    symbol  = strip (node);
-    attrstr = ":formula";
+    symbol = strip (node);
 
     switch (symbol->token)
     {
@@ -2496,13 +2503,9 @@ translate_benchmark (BtorSMTParser *parser,
         break;
 
       case BTOR_SMTOK_ASSUMPTION:
-        attrstr = ":assumption";
-        /* FALL THROUGH */
-      case BTOR_SMTOK_FORMULA:
-
         p = cdr (p);
         if (!p)
-          return btor_perr_smt (parser, "argument to '%s' missing", attrstr);
+          return btor_perr_smt (parser, "argument to ':assumption' missing");
 
         exp = translate_formula (parser, car (p));
         if (!exp)
@@ -2511,7 +2514,58 @@ translate_benchmark (BtorSMTParser *parser,
           return parser->error;
         }
 
-        BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+        if (parser->incremental)
+        {
+          btor_smt_message (
+              parser, 3, "adding constraint %d", parser->constraints);
+          btor_add_constraint_exp (parser->btor, exp);
+          btor_dec_exp (parser->btor, exp);
+        }
+        else
+        {
+          BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+        }
+
+        break;
+
+      case BTOR_SMTOK_FORMULA:
+
+        p = cdr (p);
+        if (!p) return btor_perr_smt (parser, "argument to ':formula' missing");
+
+        exp = translate_formula (parser, car (p));
+        if (!exp)
+        {
+          assert (parser->error);
+          return parser->error;
+        }
+
+        if (parser->incremental)
+        {
+          btor_smt_message (
+              parser, 3, "adding assumption %d", parser->assumptions);
+          btor_add_assumption_exp (parser->btor, exp);
+          btor_dec_exp (parser->btor, exp);
+          satres = btor_sat_btor (parser->btor);
+          if (satres == BTOR_SAT)
+          {
+            btor_smt_message (
+                parser, 0, "assumption %d SAT", parser->assumptions);
+            assert (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN);
+            res->result = BTOR_PARSE_SAT_STATUS_SAT;
+          }
+          else
+          {
+            assert (satres == BTOR_UNSAT);
+            btor_smt_message (
+                parser, 0, "assumption %d SAT", parser->assumptions);
+          }
+        }
+        else
+        {
+          BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+        }
+
         break;
 
       case BTOR_SMTOK_EXTRASORTS:
@@ -2567,6 +2621,9 @@ parse (BtorSMTParser *parser,
   }
 
   BTOR_CLR (res);
+
+  res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+  res->result = BTOR_PARSE_SAT_STATUS_UNKNOWN;
 
   assert (BTOR_EMPTY_STACK (parser->stack));
   assert (BTOR_EMPTY_STACK (parser->heads));

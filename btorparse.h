@@ -28,7 +28,7 @@
 typedef struct BtorParser BtorParser;
 typedef struct BtorParseResult BtorParseResult;
 typedef struct BtorParserAPI BtorParserAPI;
-typedef BtorParser *(*BtorInitParser) (Btor *, int verbosity);
+typedef BtorParser *(*BtorInitParser) (Btor *, int verbosity, int incremental);
 typedef void (*BtorResetParser) (void *);
 
 typedef char *(*BtorParse) (BtorParser *,
@@ -49,6 +49,7 @@ struct BtorParseResult
 {
   BtorLogic logic;
   BtorParseSATStatus status;
+  BtorParseSATStatus result;
 
   int ninputs;
   BtorExp **inputs;
