@@ -1181,6 +1181,8 @@ boolector_main (int argc, char **argv)
 
     if (app.incremental)
     {
+      btor_enable_inc_usage (btor);
+
       if (app.force_picosat)
       {
         /* do nothing use PicoSAT */
@@ -1199,7 +1201,7 @@ boolector_main (int argc, char **argv)
 #endif
       assert (btor_provides_incremental_sat (smgr));
 
-      btor_init_sat (smgr, need_incremental_sat_solver);
+      btor_init_sat (smgr, 1);
       btor_set_output_sat (smgr, stdout);
 
       if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
@@ -1211,12 +1213,6 @@ boolector_main (int argc, char **argv)
 
       sat_result = BTOR_UNKNOWN;
 
-      if (app.verbosity > 0)
-      {
-        btor_print_stats_sat (smgr);
-        btor_print_stats_btor (btor);
-      }
-
       if ((parse_error = parser_api->parse (
                parser, app.input_file, app.input_file_name, &parse_res)))
       {
@@ -1225,6 +1221,11 @@ boolector_main (int argc, char **argv)
       }
       else
       {
+        if (app.verbosity > 0)
+        {
+          btor_print_stats_sat (smgr);
+          btor_print_stats_btor (btor);
+        }
       }
 
       btor_static_smgr = 0;
