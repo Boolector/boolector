@@ -7,7 +7,11 @@ die () {
 
 for component in boolector picosat precosat lingeling minisat
 do
-  archive=`ls archives/${component}-*.tar.gz`
+  archive="`ls archives/${component}-*.tar.gz 2>/dev/null`"
+  case x$archive in
+    x$component) ;;
+    *) continue;;
+  esac
   name=`basename $archive .tar.gz`
   tar xf $archive
   rm -rf $component
@@ -15,13 +19,17 @@ do
   echo "extracted $component"
 done
 
-echo "building minisat"
-cd minisat
-make r >/dev/null || die "'make r' failed in 'minisat'"
-cd ..
+if [ -d minisat ]
+then
+  echo "building minisat"
+  cd minisat
+  make r >/dev/null || die "'make r' failed in 'minisat'"
+  cd ..
+fi
 
 for component in picosat precosat lingeling boolector
 do
+  [ -d $component ] || continue
   echo "building $component"
   cd $component
   ./configure >/dev/null || die "'./configure' failed in '$component'"
