@@ -9,7 +9,7 @@ for component in boolector picosat precosat lingeling minisat
 do
   archive="`ls archives/${component}-*.tar.gz 2>/dev/null`"
   case x$archive in
-    x$component) ;;
+    xarchives/$component*) ;;
     *) continue;;
   esac
   name=`basename $archive .tar.gz`

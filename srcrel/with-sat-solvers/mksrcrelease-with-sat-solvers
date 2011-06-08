@@ -18,6 +18,7 @@ do
       die "invalid command line option"
       ;;
   esac
+  shift
 done
 version=`cat ../../VERSION`
 name=boolector-${version}-with-sat-solvers
