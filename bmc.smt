@@ -1,0 +1,15 @@
+(benchmark bmc
+:logic QF_BV
+:extrafuns ((s0 BitVec[2]))
+:extrafuns ((s1 BitVec[2]))
+:extrafuns ((s2 BitVec[2]))
+:extrafuns ((zero BitVec[2]))
+:extrafuns ((one BitVec[2]))
+:extrafuns ((goal BitVec[2]))
+:assumption (= zero bv0[2])
+:assumption (= one bv1[2])
+:assumption (= goal bv3[2])
+:assumption (bvule s0 s1)
+:assumption (let ?d0 (bvsub s1 s0) (= (bvand d0 (bvsub d0 one)) zero))
+:formula (= s1 goal)
+)
