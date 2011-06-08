@@ -4,14 +4,17 @@
  :extrafuns ((t BitVec[7]))
  :formula (not (=
     (bvsmod s t) 
-      (ite (= s bv0[7]) bv0[7]
       (let (?msb_s (extract[6:6] s))
       (let (?msb_t (extract[6:6] t))
+      (let (?nrm_s (ite ?msb_s (bvneg s) s))
+      (let (?nrm_t (ite ?msb_t (bvneg t) t))
+      (let (?nurem (bvurem ?nrm_s ?nrm_t))
+      (let (?nuremzero (= ?nurem bv0[7]))
       (ite (and (= ?msb_s bit0) (= ?msb_t bit0))
-           (bvurem s t)
+           ?nurem
       (ite (and (= ?msb_s bit1) (= ?msb_t bit0))
-           (bvadd (bvneg (bvurem (bvneg s) t)) t)
+           (ite ?nuremzero bv0[7] (bvadd (bvneg ?nurem) t))
       (ite (and (= ?msb_s bit0) (= ?msb_t bit1))
-           (bvadd (bvurem s (bvneg t)) t)
-           (bvneg (bvurem (bvneg s) (bvneg t)))))))))
+           (ite ?nuremzero bv0[7] (bvadd ?nurem t))
+           (bvneg ?nurem))))))))))
 )))
