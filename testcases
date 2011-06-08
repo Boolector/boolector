@@ -28,6 +28,14 @@ smtrotate -o log/smtrotate.log log/smtrotate.smt
 uremudivaxiom4 -o log/uremudivaxiom4.log log/uremudivaxiom4.btor
 uremudivaxiom4no -o log/uremudivaxiom4no.log log/uremudivaxiom4no.btor
 regsmod1 -o log/regsmod1.log log/regsmod1.smt
+regr-5smod3 -o log/regr-5smod3.log log/regr-5smod3.btor -m -d
+regr-5srem3 -o log/regr-5srem3.log log/regr-5srem3.btor -m -d
+regr5smod-3 -o log/regr5smod-3.log log/regr5smod-3.btor -m -d
+regr5srem-3 -o log/regr5srem-3.log log/regr5srem-3.btor -m -d
+regr-6smod3 -o log/regr-6smod3.log log/regr-6smod3.btor -m -d
+regr-6srem3 -o log/regr-6srem3.log log/regr-6srem3.btor -m -d
+regr6smod-3 -o log/regr6smod-3.log log/regr6smod-3.btor -m -d
+regr6srem-3 -o log/regr6srem-3.log log/regr6srem-3.btor -m -d
 gtewithsub -o log/gtewithsub.log log/gtewithsub.btor
 smtaxiommccarthy -o log/smtaxiommccarthy.log log/smtaxiommccarthy.smt
 mulassoc4 -o log/mulassoc4.log log/mulassoc4.smt
