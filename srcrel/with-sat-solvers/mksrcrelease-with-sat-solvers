@@ -1,4 +1,24 @@
 #!/bin/sh
+die () {
+  echo "*** mksrcrelease-with-sat-solver: $*" 1>&2
+  exit 1
+}
+minisat=yes
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) 
+      echo "usage: mksrcrelease-with-sat-solvers [-h][--no-minisat]"
+      exit 0
+      ;;
+    --no-minisat)
+      minisat=no
+      ;;
+    *) 
+      die "invalid command line option"
+      ;;
+  esac
+done
 version=`cat ../../VERSION`
 name=boolector-${version}-with-sat-solvers
 tmp=/tmp/$name
@@ -19,10 +39,13 @@ do
   archive=`grep ${solver}- $log|awk '{print $NF}'`
   mv $archive $tmp/archives
 done
-cd ../minisat
-date=`date +%Y%m%d`
-git archive --format=tar --prefix=minisat-${date}/ HEAD | \
-  gzip -c > $tmp/archives/minisat-${date}.tar.gz
+if [ $minisat = yes ]
+then
+  cd ../minisat
+  date=`date +%Y%m%d`
+  git archive --format=tar --prefix=minisat-${date}/ HEAD | \
+    gzip -c > $tmp/archives/minisat-${date}.tar.gz
+fi
 cd /tmp/
 tar zcf $tar $name
 ls -l $tar|awk '{print $5, $NF}'
