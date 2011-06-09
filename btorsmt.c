@@ -2522,7 +2522,7 @@ translate_benchmark (BtorSMTParser *parser,
           btor_smt_message (
               parser, 3, "adding ':assumption' %d", parser->constraints);
           btor_add_constraint_exp (parser->btor, exp);
-          btor_dec_exp (parser->btor, exp);
+          btor_release_exp (parser->btor, exp);
         }
         else
         {
@@ -2550,7 +2550,7 @@ translate_benchmark (BtorSMTParser *parser,
           btor_smt_message (
               parser, 3, "adding ':formula' %d", parser->assumptions);
           btor_add_assumption_exp (parser->btor, exp);
-          btor_dec_exp (parser->btor, exp);
+          btor_release_exp (parser->btor, exp);
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)
           {
