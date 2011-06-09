@@ -188,8 +188,8 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  -tcnf|--tseitin-cnf              use Tseitin CNF encoding\n"
-    "  -pgcnf|--plaisted-greenbaum-cnf  use Plaisted-Greenbaum CNF encoding "
+    "  -tcnf|--tseitin-cnf              Tseitin CNF encoding\n"
+    "  -pgcnf|--plaisted-greenbaum-cnf  Plaisted-Greenbaum CNF encoding "
     "(default)\n"
 
     "\n"
@@ -210,8 +210,8 @@ static const char *g_usage =
     "\n"
     "Under-approximation options:\n"
     "  -ua                              enable under-approximation (UA)\n"
-    "  -uaw=<n>                         set initial effecitve bit-width "
-    "(default n=1)\n"
+    "  -uaw=<n>                         initial effecitve bit-width (default "
+    "n=1)\n"
     "\n"
     "  -uai                             eff. width refinement by incrementing\n"
     "  -uad                             eff. width refinement by doubling "
@@ -721,7 +721,9 @@ parse_commandline_arguments (BtorMainApp *app)
         app->verbosity++;
     }
     else if (!strcmp (app->argv[app->argpos], "-i")
+             || !strcmp (app->argv[app->argpos], "-inc")
              || !strcmp (app->argv[app->argpos], "--inc")
+             || !strcmp (app->argv[app->argpos], "-incremental")
              || !strcmp (app->argv[app->argpos], "--incremental"))
     {
       app->incremental = 1;
@@ -1221,6 +1223,37 @@ boolector_main (int argc, char **argv)
       }
       else
       {
+        if (parse_res.result == BTOR_PARSE_SAT_STATUS_SAT)
+        {
+          if (app.verbosity >= 1)
+            btor_msg_main ("one forumla SAT in incremental mode\n");
+
+          sat_result = BTOR_SAT;
+        }
+        else if (parse_res.result == BTOR_PARSE_SAT_STATUS_UNSAT)
+        {
+          if (app.verbosity >= 1)
+            btor_msg_main ("all forumlas UNSAT in incremental mode\n");
+
+          sat_result = BTOR_UNSAT;
+        }
+        else
+          sat_result = BTOR_UNKNOWN;
+
+        print_sat_result (&app, sat_result);
+
+        if (sat_result == BTOR_SAT)
+        {
+          for (i = 0; i < parse_res.ninputs; i++)
+          {
+            var = parse_res.inputs[i];
+            if (BTOR_IS_BV_VAR_EXP (var))
+              print_bv_assignment (&app, btor, var);
+            else
+              print_array_assignment (&app, btor, var);
+          }
+        }
+
         if (app.verbosity > 0)
         {
           btor_print_stats_sat (smgr);
