@@ -7,48 +7,55 @@
   Formulas are only checked individually and not asserted permanently
   Start with all bits zero state.
 
-  To have the incremental idea working uncomment the
-  commented ':formula' lines.  You also need support
-  from your SMT solver for that.
+  The input vectors i0, i1, ... have the same size as the state s0, s1, ...
+  vectors and are simply added to them to get the next state.
 
   Toggle at most one bit per step using the Hacker Delight trick
-  '(x & (x-1)) == 0' iff x has exactly one bit set.
-
-  This is enforced for the difference between two consecutive states.
+  '(i & (i-1)) == 0' iff i has exactly one bit set.
 }
 :logic QF_BV
 ;------------------------------------ bad
 :extrafuns ((goal BitVec[4]))
 :assumption (= goal bv15[4])
-;------------------------------------ global
+;------------------------------------ global constant
 :extrafuns ((zero BitVec[4]))
 :extrafuns ((one BitVec[4]))
 :assumption (= zero bv0[4])
 :assumption (= one bv1[4])
 ;------------------------------------ s0
 :extrafuns ((s0 BitVec[4]))
-:assumption (= s0 zero);
+:assumption (= s0 zero) ; INIT
 :formula (= s0 goal)
 ;------------------------------------ s1
-:extrafuns ((s1 BitVec[4]))
-:assumption (let (?d1 (bvsub s1 s0)) (= (bvand ?d1 (bvsub ?d1 one)) zero))
-:formula (= s1 goal)                     
+:extrafuns ((i0 BitVec[4])); input i0 (global)
+:assumption ; INVAR: force i0 to have at most one bit set
+(let (?d (bvsub i0 one)) ; dec = unshared among time frames
+(let (?a (bvand i0 ?d)) ; and = unshared among time frames
+(= ?a zero)))
+:extrafuns ((s1 BitVec[4])); state i1 (global)
+:assumption ; TRANS: add i0 to s0 to get s1
+(let (?n (bvadd s0 i0)) ; next = unshared among time frames
+(= s1 ?n))
+:formula (= s1 goal)
 ;------------------------------------ s2
-:extrafuns ((s2 BitVec[4]))
-; For a change we use a globally visible variable instead of let
-; which would actually more efficient.  The variable is in scope
-; for the rest of the file.  So to me it seems better to encode
-; all the next state and checking logic only with 'let'.
-:extrafuns ((d2 BitVec[4]))
-:assumption (= d2 (bvsub s2 s1))
-:assumption (= (bvand d2 (bvsub d2 one)) zero)
+;
+; shorter version without redundant lets
+;
+:extrafuns ((i1 BitVec[4]))
+:extrafuns ((s2 BitVec[4]));
+:assumption (= (bvand i1 (bvsub i1 one)) zero)
+:assumption (= s2 (bvadd s1 i1))
 :formula (= s2 goal)
 ;------------------------------------ s3
-:extrafuns ((s3 BitVec[4]))
-:assumption (let (?d3 (bvsub s3 s2)) (= (bvand ?d3 (bvsub ?d3 one)) zero))
-:formula (= s3 goal)                     
+:extrafuns ((i2 BitVec[4]))
+:extrafuns ((s3 BitVec[4]));
+:assumption (= (bvand i2 (bvsub i2 one)) zero)
+:assumption (= s3 (bvadd s2 i2))
+:formula (= s3 goal)
 ;------------------------------------ s4
-:extrafuns ((s4 BitVec[4]))
-:assumption (let (?d4 (bvsub s4 s3)) (= (bvand ?d4 (bvsub ?d4 one)) zero))
-:formula (= s4 goal)                     
+:extrafuns ((i3 BitVec[4]))
+:extrafuns ((s4 BitVec[4]));
+:assumption (= (bvand i3 (bvsub i3 one)) zero)
+:assumption (= s4 (bvadd s3 i3))
+:formula (= s4 goal)
 )
