@@ -1,5 +1,6 @@
-news for release 1.5.11 since 1.4.1
+news for release 1.5.13 since 1.4.1
 ----------------------------------
+* new incremental mode for multiple formulas in SMT benchmarks
 * integration of MiniSAT
 * SMT parser demotes logic if possible
 * better control of best suitable solver in main application
