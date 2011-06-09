@@ -44,15 +44,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define BTOR_HAVE_GETRUSAGE
 #define BTOR_HAVE_STAT
 #define BTOR_HAVE_ISATTY
-
-#ifdef BTOR_HAVE_GETRUSAGE
-#include <sys/resource.h>
-#include <sys/time.h>
-#include <unistd.h>
-#endif
 
 #ifdef BTOR_HAVE_STAT
 #include <sys/stat.h>
@@ -175,8 +168,8 @@ static const char *g_usage =
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
     "\n"
-    "  -i|--inc[remental]               experimental incremental mode (SMT "
-    "only)\n"
+    "  -i|--inc[remental]               incremental mode (SMT only)\n"
+    "  -I                               same but solve all\n"
     "\n"
     "  --smt                            force SMT lib format input\n"
     "\n"
@@ -302,22 +295,6 @@ btor_set_sig_handlers (void)
   btor_sig_term_handler = signal (SIGTERM, btor_catch_sig);
   btor_sig_bus_handler  = signal (SIGBUS, btor_catch_sig);
 }
-
-#ifdef BTOR_HAVE_GETRUSAGE
-static double
-time_stamp (void)
-{
-  double res = -1;
-  struct rusage u;
-  res = 0;
-  if (!getrusage (RUSAGE_SELF, &u))
-  {
-    res += u.ru_utime.tv_sec + 1e-6 * u.ru_utime.tv_usec;
-    res += u.ru_stime.tv_sec + 1e-6 * u.ru_stime.tv_usec;
-  }
-  return res;
-}
-#endif
 
 static void
 btor_msg_main (char *msg)
@@ -728,6 +705,10 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       app->incremental = 1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-I"))
+    {
+      app->incremental = 2;
+    }
     else if (!strcmp (app->argv[app->argpos], "-V")
              || !strcmp (app->argv[app->argpos], "--version"))
     {
@@ -1044,7 +1025,7 @@ boolector_main (int argc, char **argv)
 {
   BtorMainApp app;
 #ifdef BTOR_HAVE_GETRUSAGE
-  double start_time = time_stamp ();
+  double start_time = btor_time_stamp ();
   double delta_time = 0.0;
 #endif
   int return_val = 0;
@@ -1898,13 +1879,13 @@ boolector_main (int argc, char **argv)
     assert (sat_result == BTOR_UNKNOWN);
     return_val = BTOR_UNKNOWN_EXIT;
   }
-#ifdef BTOR_HAVE_GETRUSAGE
   if (!app.err && !app.done && app.verbosity > 0)
   {
-    delta_time = time_stamp () - start_time;
+#ifdef BTOR_HAVE_GETRUSAGE
+    delta_time = btor_time_stamp () - start_time;
     btor_msg_main_va_args ("%.1f seconds\n", delta_time);
+#endif
     btor_msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
   }
-#endif
   return return_val;
 }

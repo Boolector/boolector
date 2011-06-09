@@ -24,6 +24,7 @@
 #include "btorconst.h"
 #include "btormem.h"
 #include "btorstack.h"
+#include "btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -284,7 +285,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
-  fputc ('\n', stdout);
+  fprintf (stdout, " after %.2f seconds\n", btor_time_stamp ());
   fflush (stdout);
 }
 
@@ -525,7 +526,13 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
 
   btor_smt_message (res, 2, "initializing SMT parser");
   if (incremental)
+  {
     btor_smt_message (res, 2, "incremental checking of SMT benchmark");
+    if (incremental == 1)
+      btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
+    else
+      btor_smt_message (res, 2, "check all ':formula' for satisfiability");
+  }
 
   res->mem  = mem;
   res->btor = btor;
@@ -2466,7 +2473,10 @@ translate_benchmark (BtorSMTParser *parser,
     node = car (p);
   }
 
-  for (p = top; res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN && p; p = cdr (p))
+  for (p = top;
+       (parser->incremental != 1 || res->result != BTOR_PARSE_SAT_STATUS_SAT)
+       && p;
+       p = cdr (p))
   {
     node = car (p);
     if (!isleaf (node)) continue;
@@ -2556,7 +2566,6 @@ translate_benchmark (BtorSMTParser *parser,
           {
             btor_smt_message (
                 parser, 0, "':formula' %d SAT", parser->assumptions);
-            assert (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN);
             res->result = BTOR_PARSE_SAT_STATUS_SAT;
           }
           else
@@ -2564,6 +2573,8 @@ translate_benchmark (BtorSMTParser *parser,
             assert (satres == BTOR_UNSAT);
             btor_smt_message (
                 parser, 0, "':formula' %d UNSAT", parser->assumptions);
+            if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
+              res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
           }
         }
         else

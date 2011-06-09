@@ -58,4 +58,10 @@
 :assumption (= (bvand i3 (bvsub i3 one)) zero)
 :assumption (= s4 (bvadd s3 i3))
 :formula (= s4 goal)
+;------------------------------------ s5
+:extrafuns ((i4 BitVec[4]))
+:extrafuns ((s5 BitVec[4]));
+:assumption (= (bvand i4 (bvsub i4 one)) zero)
+:assumption (= s5 (bvadd s4 i4))
+:formula (= s5 goal)
 )
