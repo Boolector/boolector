@@ -5275,7 +5275,8 @@ btor_delete_btor (Btor *btor)
 
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
-  assert (getenv ("BTORLEAKEXP") || btor->table.num_elements == 0);
+  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
+          || btor->table.num_elements == 0);
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);

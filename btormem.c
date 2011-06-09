@@ -149,7 +149,7 @@ void
 btor_delete_mem_mgr (BtorMemMgr *mm)
 {
   assert (mm != NULL);
-  assert (getenv ("BTORLEAKMEM") || mm->allocated == 0);
+  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKMEM") || mm->allocated == 0);
   free (mm);
 }
 

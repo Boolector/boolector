@@ -1048,7 +1048,8 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 {
   BtorMemMgr *mm;
   assert (amgr != NULL);
-  assert (getenv ("BTORLEAKEXP") || amgr->table.num_elements == 0);
+  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKAIG")
+          || amgr->table.num_elements == 0);
   mm = amgr->mm;
   BTOR_RELEASE_AIG_UNIQUE_TABLE (mm, amgr->table);
   btor_delete_sat_mgr (amgr->smgr);

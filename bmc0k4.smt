@@ -7,11 +7,14 @@
   Formulas are only checked individually and not asserted permanently
   Start with all bits zero state.
 
+  To have the incremental idea working uncomment the
+  commented ':formula' lines.  You also need support
+  from your SMT solver for that.
+
   Toggle at most one bit per step using the Hacker Delight trick
   '(x & (x-1)) == 0' iff x has exactly one bit set.
 
-  This is enforced for the difference between two consecutive states,
-  which is the input 'i' at state 's'.
+  This is enforced for the difference between two consecutive states.
 }
 :logic QF_BV
 ;------------------------------------ bad
@@ -24,12 +27,10 @@
 :assumption (= one bv1[4])
 ;------------------------------------ s0
 :extrafuns ((s0 BitVec[4]))
-:assumption (= s0 zero);		; initial
+:assumption (= s0 zero);
 :formula (= s0 goal)
 ;------------------------------------ s1
-:extrafuns ((i0 BitVec[4]))		; input at s0
 :extrafuns ((s1 BitVec[4]))
-:assumption (= s1 (bvadd
 :assumption (let (?d1 (bvsub s1 s0)) (= (bvand ?d1 (bvsub ?d1 one)) zero))
 :formula (= s1 goal)                     
 ;------------------------------------ s2
