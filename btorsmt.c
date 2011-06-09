@@ -2503,6 +2503,9 @@ translate_benchmark (BtorSMTParser *parser,
         break;
 
       case BTOR_SMTOK_ASSUMPTION:
+
+        parser->constraints++;
+
         p = cdr (p);
         if (!p)
           return btor_perr_smt (parser, "argument to ':assumption' missing");
@@ -2517,7 +2520,7 @@ translate_benchmark (BtorSMTParser *parser,
         if (parser->incremental)
         {
           btor_smt_message (
-              parser, 3, "adding constraint %d", parser->constraints);
+              parser, 3, "adding ':assumption' %d", parser->constraints);
           btor_add_constraint_exp (parser->btor, exp);
           btor_dec_exp (parser->btor, exp);
         }
@@ -2529,6 +2532,8 @@ translate_benchmark (BtorSMTParser *parser,
         break;
 
       case BTOR_SMTOK_FORMULA:
+
+        parser->assumptions++;
 
         p = cdr (p);
         if (!p) return btor_perr_smt (parser, "argument to ':formula' missing");
@@ -2543,14 +2548,14 @@ translate_benchmark (BtorSMTParser *parser,
         if (parser->incremental)
         {
           btor_smt_message (
-              parser, 3, "adding assumption %d", parser->assumptions);
+              parser, 3, "adding ':formula' %d", parser->assumptions);
           btor_add_assumption_exp (parser->btor, exp);
           btor_dec_exp (parser->btor, exp);
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)
           {
             btor_smt_message (
-                parser, 0, "assumption %d SAT", parser->assumptions);
+                parser, 0, "':formula' %d SAT", parser->assumptions);
             assert (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN);
             res->result = BTOR_PARSE_SAT_STATUS_SAT;
           }
@@ -2558,7 +2563,7 @@ translate_benchmark (BtorSMTParser *parser,
           {
             assert (satres == BTOR_UNSAT);
             btor_smt_message (
-                parser, 0, "assumption %d SAT", parser->assumptions);
+                parser, 0, "':formula' %d UNSAT", parser->assumptions);
           }
         }
         else

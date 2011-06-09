@@ -1242,7 +1242,7 @@ boolector_main (int argc, char **argv)
 
         print_sat_result (&app, sat_result);
 
-        if (sat_result == BTOR_SAT)
+        if (app.print_model && sat_result == BTOR_SAT)
         {
           for (i = 0; i < parse_res.ninputs; i++)
           {
