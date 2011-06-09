@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -1046,7 +1048,7 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 {
   BtorMemMgr *mm;
   assert (amgr != NULL);
-  assert (amgr->table.num_elements == 0);
+  assert (getenv ("BTORLEAKEXP") || amgr->table.num_elements == 0);
   mm = amgr->mm;
   BTOR_RELEASE_AIG_UNIQUE_TABLE (mm, amgr->table);
   btor_delete_sat_mgr (amgr->smgr);
