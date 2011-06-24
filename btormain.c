@@ -140,7 +140,9 @@ struct BtorMainApp
   BtorCNFEnc cnf_enc;
   int force_smt_input;
   BtorPrintModel print_model;
+#ifdef BTOR_USE_PICOSAT
   int force_picosat;
+#endif
 #ifdef BTOR_USE_PRECOSAT
   int force_precosat;
 #endif
@@ -726,11 +728,13 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity = -1;
     }
+#ifdef BTOR_USE_PICOSAT
     else if (!strcmp (app->argv[app->argpos], "-picosat")
              || !strcmp (app->argv[app->argpos], "--picosat"))
     {
       app->force_picosat = 1;
     }
+#endif
 #ifdef BTOR_USE_PRECOSAT
     else if (!strcmp (app->argv[app->argpos], "-precosat")
              || !strcmp (app->argv[app->argpos], "--precosat"))
@@ -1094,7 +1098,9 @@ boolector_main (int argc, char **argv)
   app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
   app.force_smt_input      = 0;
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
-  app.force_picosat        = 0;
+#ifdef BTOR_USE_PICOSAT
+  app.force_picosat = 0;
+#endif
 #ifdef BTOR_USE_PRECOSAT
   app.force_precosat = 0;
 #endif
@@ -1166,10 +1172,15 @@ boolector_main (int argc, char **argv)
     {
       btor_enable_inc_usage (btor);
 
+#ifdef BTOR_USE_MINISAT
       if (app.force_picosat)
       {
-        /* do nothing use PicoSAT */
+        btor_enable_picosat_sat (smgr);
       }
+#else
+      if (1)
+        ;
+#endif
 #ifdef BTOR_USE_MINISAT
       else if (app.force_minisat)
       {
@@ -1309,10 +1320,15 @@ boolector_main (int argc, char **argv)
           || parse_res.nregs)
         need_incremental_sat_solver = 1;
 
+#ifdef BTOR_USE_PICOSAT
       if (app.force_picosat)
       {
         /* do nothing use PicoSAT */
       }
+#else
+      if (1)
+        ;
+#endif
 #ifdef BTOR_USE_PRECOSAT
       else if (app.force_precosat)
       {

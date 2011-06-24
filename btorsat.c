@@ -19,7 +19,9 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#ifdef BTOR_USE_PICOSAT
 #include "../picosat/picosat.h"
+#endif
 
 #ifdef BTOR_USE_PRECOSAT
 #include "btorpreco.h"
@@ -86,169 +88,20 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 }
 
 /*------------------------------------------------------------------------*/
-
-static void *
-btor_picosat_init (BtorSATMgr *smgr)
-{
-  btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
-
-  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
-  picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
-  picosat_set_resize (
-      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
-
-  picosat_init ();
-  picosat_set_global_default_phase (0);
-
-  return 0;
-}
-
-static void
-btor_picosat_add (BtorSATMgr *smgr, int lit)
-{
-  (void) smgr;
-  (void) picosat_add (lit);
-}
-
-static int
-btor_picosat_sat (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  return picosat_sat (-1);
-}
-
-static int
-btor_picosat_changed (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  return picosat_changed ();
-}
-
-static int
-btor_picosat_deref (BtorSATMgr *smgr, int lit)
-{
-  (void) smgr;
-  return picosat_deref (lit);
-}
-
-static void
-btor_picosat_reset (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  picosat_reset ();
-}
-
-static void
-btor_picosat_set_output (BtorSATMgr *smgr, FILE *output)
-{
-  (void) smgr;
-  picosat_set_output (output);
-}
-
-static void
-btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
-{
-  (void) smgr;
-  picosat_set_prefix (prefix);
-}
-
-static void
-btor_picosat_enable_verbosity (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  picosat_set_verbosity (1);
-}
-
-static int
-btor_picosat_inc_max_var (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  return picosat_inc_max_var ();
-}
-
-static int
-btor_picosat_variables (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  return picosat_variables ();
-}
-
-static void
-btor_picosat_stats (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  picosat_stats ();
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-btor_picosat_assume (BtorSATMgr *smgr, int lit)
-{
-  (void) smgr;
-  (void) picosat_assume (lit);
-}
-
-static int
-btor_picosat_failed (BtorSATMgr *smgr, int lit)
-{
-  (void) smgr;
-  return picosat_failed_assumption (lit);
-}
-
-static int
-btor_picosat_inconsistent (BtorSATMgr *smgr)
-{
-  (void) smgr;
-  return picosat_inconsistent ();
-}
-
-static int
-btor_picosat_fixed (BtorSATMgr *smgr, int lit)
-{
-  int res;
-  (void) smgr;
-  res = picosat_deref_toplevel (lit);
-  return res;
-}
-
-/*------------------------------------------------------------------------*/
-
-static void
-btor_enable_picosat_sat (BtorSATMgr *smgr)
-{
-  assert (smgr != NULL);
-
-  BTOR_ABORT_SAT (smgr->initialized,
-                  "'btor_init_sat' called before 'btor_enable_picosat_sat'");
-
-  smgr->name = "PicoSAT";
-
-  smgr->api.init             = btor_picosat_init;
-  smgr->api.add              = btor_picosat_add;
-  smgr->api.sat              = btor_picosat_sat;
-  smgr->api.deref            = btor_picosat_deref;
-  smgr->api.reset            = btor_picosat_reset;
-  smgr->api.set_output       = btor_picosat_set_output;
-  smgr->api.set_prefix       = btor_picosat_set_prefix;
-  smgr->api.enable_verbosity = btor_picosat_enable_verbosity;
-  smgr->api.inc_max_var      = btor_picosat_inc_max_var;
-  smgr->api.variables        = btor_picosat_variables;
-  smgr->api.stats            = btor_picosat_stats;
-
-  smgr->inc.provides         = 1;
-  smgr->inc.api.assume       = btor_picosat_assume;
-  smgr->inc.api.failed       = btor_picosat_failed;
-  smgr->inc.api.fixed        = btor_picosat_fixed;
-  smgr->inc.api.inconsistent = btor_picosat_inconsistent;
-  smgr->inc.api.changed      = btor_picosat_changed;
-
-  btor_msg_sat (
-      smgr, 1, "PicoSAT allows both incremental and non-incremental mode");
-}
-
-/*------------------------------------------------------------------------*/
 /* BtorSAT                                                                */
+/*------------------------------------------------------------------------*/
+
+#ifdef BTOR_USE_LINGELING
+void btor_enable_lingeling_sat (BtorSATMgr *);
+#define btor_enable_default_sat btor_enable_lingeling_sat
+#else
+#ifndef BTOR_USE_PICOSAT
+#error "can not compile without incremental SAT solver"
+#endif
+void btor_enable_picosat_sat (BtorSATMgr *);
+#define btor_enable_default_sat btor_enable_picosat_sat
+#endif
+
 /*------------------------------------------------------------------------*/
 
 BtorSATMgr *
@@ -268,7 +121,8 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   smgr->clauses = smgr->maxvar = 0;
   smgr->output                 = stdout;
 
-  btor_enable_picosat_sat (smgr);
+  btor_enable_default_sat (smgr);
+
   return smgr;
 }
 
@@ -523,6 +377,172 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
 
   btor_msg_sat (smgr, 1, "PrecoSAT allows only non-incremental mode");
 }
+#endif
+
+/*------------------------------------------------------------------------*/
+
+#ifdef BTOR_USE_PICOSAT
+
+static void *
+btor_picosat_init (BtorSATMgr *smgr)
+{
+  btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
+
+  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
+  picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
+  picosat_set_resize (
+      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
+
+  picosat_init ();
+  picosat_set_global_default_phase (0);
+
+  return 0;
+}
+
+static void
+btor_picosat_add (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  (void) picosat_add (lit);
+}
+
+static int
+btor_picosat_sat (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  return picosat_sat (-1);
+}
+
+static int
+btor_picosat_changed (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  return picosat_changed ();
+}
+
+static int
+btor_picosat_deref (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  return picosat_deref (lit);
+}
+
+static void
+btor_picosat_reset (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  picosat_reset ();
+}
+
+static void
+btor_picosat_set_output (BtorSATMgr *smgr, FILE *output)
+{
+  (void) smgr;
+  picosat_set_output (output);
+}
+
+static void
+btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
+{
+  (void) smgr;
+  picosat_set_prefix (prefix);
+}
+
+static void
+btor_picosat_enable_verbosity (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  picosat_set_verbosity (1);
+}
+
+static int
+btor_picosat_inc_max_var (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  return picosat_inc_max_var ();
+}
+
+static int
+btor_picosat_variables (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  return picosat_variables ();
+}
+
+static void
+btor_picosat_stats (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  picosat_stats ();
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+btor_picosat_assume (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  (void) picosat_assume (lit);
+}
+
+static int
+btor_picosat_failed (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  return picosat_failed_assumption (lit);
+}
+
+static int
+btor_picosat_inconsistent (BtorSATMgr *smgr)
+{
+  (void) smgr;
+  return picosat_inconsistent ();
+}
+
+static int
+btor_picosat_fixed (BtorSATMgr *smgr, int lit)
+{
+  int res;
+  (void) smgr;
+  res = picosat_deref_toplevel (lit);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+btor_enable_picosat_sat (BtorSATMgr *smgr)
+{
+  assert (smgr != NULL);
+
+  BTOR_ABORT_SAT (smgr->initialized,
+                  "'btor_init_sat' called before 'btor_enable_picosat_sat'");
+
+  smgr->name = "PicoSAT";
+
+  smgr->api.init             = btor_picosat_init;
+  smgr->api.add              = btor_picosat_add;
+  smgr->api.sat              = btor_picosat_sat;
+  smgr->api.deref            = btor_picosat_deref;
+  smgr->api.reset            = btor_picosat_reset;
+  smgr->api.set_output       = btor_picosat_set_output;
+  smgr->api.set_prefix       = btor_picosat_set_prefix;
+  smgr->api.enable_verbosity = btor_picosat_enable_verbosity;
+  smgr->api.inc_max_var      = btor_picosat_inc_max_var;
+  smgr->api.variables        = btor_picosat_variables;
+  smgr->api.stats            = btor_picosat_stats;
+
+  smgr->inc.provides         = 1;
+  smgr->inc.api.assume       = btor_picosat_assume;
+  smgr->inc.api.failed       = btor_picosat_failed;
+  smgr->inc.api.fixed        = btor_picosat_fixed;
+  smgr->inc.api.inconsistent = btor_picosat_inconsistent;
+  smgr->inc.api.changed      = btor_picosat_changed;
+
+  btor_msg_sat (
+      smgr, 1, "PicoSAT allows both incremental and non-incremental mode");
+}
+
 #endif
 
 /*------------------------------------------------------------------------*/
