@@ -510,7 +510,7 @@ btor_picosat_fixed (BtorSATMgr *smgr, int lit)
 
 /*------------------------------------------------------------------------*/
 
-static void
+void
 btor_enable_picosat_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);

@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  Institute for Formal Models and Verification,
  *  Johannes Kepler University, Linz, Austria.
