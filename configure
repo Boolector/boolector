@@ -231,8 +231,8 @@ else
 
   if [ $picosat = yes ]
   then
-    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS"
-    [ X"$OBJS" = X ] || OBJS="$OBJS"
+    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
+    [ X"$OBJS" = X ] || OBJS="$OBJS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
     OBJS="${OBJS}../picosat/picosat.o ../picosat/version.o"
   fi

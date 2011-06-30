@@ -166,6 +166,11 @@ int btor_changed_sat (BtorSATMgr *smgr);
 int btor_inconsistent_sat (BtorSATMgr *smgr);
 
 #ifdef BTOR_USE_LINGELING
+/* Enables PicoSAT as SAT preprocessor. */
+void btor_enable_picosat_sat (BtorSATMgr *smgr);
+#endif
+
+#ifdef BTOR_USE_LINGELING
 /* Enables Lingeling as SAT preprocessor. */
 void btor_enable_lingeling_sat (BtorSATMgr *smgr);
 #endif
