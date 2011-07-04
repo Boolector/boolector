@@ -27,19 +27,23 @@
 typedef enum BtorSMT2TagClass
 {
   BTOR_CLASS_BITS_SMT2 = 6,
-  BTOR_CLASS_MASK_SMT2 = ((1 << BTOR_CLASS_BITS_SMT2) - 1),
+  BTOR_CLASS_SIZE_SMT2 = (1 << BTOR_CLASS_BITS_SMT2),
+  BTOR_CLASS_MASK_SMT2 = (BTOR_CLASS_SIZE_SMT2 - 1),
 
-  BTOR_CONSTANT_TAG_CLASS_SMT2 = (1 << (BTOR_CLASS_BITS_SMT2 + 0)),
-  BTOR_RESERVED_TAG_CLASS_SMT2 = (1 << (BTOR_CLASS_BITS_SMT2 + 1)),
-  BTOR_COMMAND_TAG_CLASS_SMT2  = (1 << (BTOR_CLASS_BITS_SMT2 + 2)),
-  BTOR_KEYWORD_CLASS_SMT2      = (1 << (BTOR_CLASS_BITS_SMT2 + 3)),
-  BTOR_CORE_TAG_CLASS_SMT2     = (1 << (BTOR_CLASS_BITS_SMT2 + 4)),
-  BTOR_ARRAY_TAG_CLASS_SMT2    = (1 << (BTOR_CLASS_BITS_SMT2 + 5)),
-  BTOR_BITVEC_TAG_CLASS_SMT2   = (1 << (BTOR_CLASS_BITS_SMT2 + 6)),
+  BTOR_SYMBOL_TAG_CLASS_SMT2   = 0,
+  BTOR_CONSTANT_TAG_CLASS_SMT2 = (BTOR_CLASS_SIZE_SMT2 << 0),
+  BTOR_RESERVED_TAG_CLASS_SMT2 = (BTOR_CLASS_SIZE_SMT2 << 1),
+  BTOR_COMMAND_TAG_CLASS_SMT2  = (BTOR_CLASS_SIZE_SMT2 << 2),
+  BTOR_KEYWORD_TAG_CLASS_SMT2  = (BTOR_CLASS_SIZE_SMT2 << 3),
+  BTOR_CORE_TAG_CLASS_SMT2     = (BTOR_CLASS_SIZE_SMT2 << 4),
+  BTOR_ARRAY_TAG_CLASS_SMT2    = (BTOR_CLASS_SIZE_SMT2 << 5),
+  BTOR_BITVEC_TAG_CLASS_SMT2   = (BTOR_CLASS_SIZE_SMT2 << 6),
 } BtorSMT2TagClass;
 
 typedef enum BtorSMT2Tag
 {
+
+  BTOR_SYMBOL_TAG_SMT2 = 0 + BTOR_SYMBOL_TAG_CLASS_SMT2,
 
   BTOR_NUMERAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
@@ -78,51 +82,50 @@ typedef enum BtorSMT2Tag
   BTOR_GET_INFO_TAG_SMT2       = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_EXIT_TAG_SMT2           = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
-  BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_AXIOMS_TAG_SMT2                 = 2 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_CHAINABLE_TAG_SMT2              = 3 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_DEFINITION_TAG_SMT2             = 4 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_DIAGN_OUTPUT_CHANNEL_TAG_SMT2   = 5 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_ERROR_BEHAVIOR_TAG_SMT2         = 6 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_EXPAND_DEFINITIONS_TAG_SMT2     = 7 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_EXTENSIONS_TAG_SMT2             = 8 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_FUNS_TAG_SMT2                   = 9 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_FUNS_DESCRIPTION_TAG_SMT2       = 10 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_INTERACTIVE_MODE_TAG_SMT2       = 11 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_LANGUAGE_TAG_SMT2               = 12 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_LEFT_ASSOC_TAG_SMT2             = 13 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_NAME_TAG_SMT2                   = 14 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_NAMED_TAG_SMT2                  = 15 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_NOTES_TAG_SMT2                  = 16 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_PRINT_SUCCESS_TAG_SMT2          = 17 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_PRODUCE_ASSIGNMENTS_TAG_SMT2    = 18 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_PRODUCE_MODELS_TAG_SMT2         = 19 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_PRODUCE_PROOFS_TAG_SMT2         = 20 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_PRODUCE_UNSAT_CORES_TAG_SMT2    = 21 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_RANDOM_SEED_TAG_SMT2            = 22 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_REASON_UNKNOWN_TAG_SMT2         = 23 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2 = 24 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_RIGHT_ASSOC_TAG_SMT2            = 25 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_SORTS_TAG_SMT2                  = 26 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_SORTS_DESCRIPTION_TAG_SMT2      = 27 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_STATUS_TAG_SMT2                 = 28 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_THEORIES_TAG_SMT2               = 29 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_VALUES_TAG_SMT2                 = 30 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_KEYWORD_CLASS_SMT2,
-  BTOR_VERSION_TAG_SMT2                = 32 + BTOR_KEYWORD_CLASS_SMT2,
+  BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_AXIOMS_TAG_SMT2                 = 2 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_CHAINABLE_TAG_SMT2              = 3 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_DEFINITION_TAG_SMT2             = 4 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_DIAGN_OUTPUT_CHANNEL_TAG_SMT2   = 5 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_ERROR_BEHAVIOR_TAG_SMT2         = 6 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_EXPAND_DEFINITIONS_TAG_SMT2     = 7 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_EXTENSIONS_TAG_SMT2             = 8 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_FUNS_TAG_SMT2                   = 9 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_FUNS_DESCRIPTION_TAG_SMT2       = 10 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_INTERACTIVE_MODE_TAG_SMT2       = 11 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_LANGUAGE_TAG_SMT2               = 12 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_LEFT_ASSOC_TAG_SMT2             = 13 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_NAME_TAG_SMT2                   = 14 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_NAMED_TAG_SMT2                  = 15 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_NOTES_TAG_SMT2                  = 16 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRINT_SUCCESS_TAG_SMT2          = 17 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_ASSIGNMENTS_TAG_SMT2    = 18 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_MODELS_TAG_SMT2         = 19 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_PROOFS_TAG_SMT2         = 20 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_UNSAT_CORES_TAG_SMT2    = 21 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_RANDOM_SEED_TAG_SMT2            = 22 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_REASON_UNKNOWN_TAG_SMT2         = 23 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2 = 24 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_RIGHT_ASSOC_TAG_SMT2            = 25 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_SORTS_TAG_SMT2                  = 26 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_SORTS_DESCRIPTION_TAG_SMT2      = 27 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_STATUS_TAG_SMT2                 = 28 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_THEORIES_TAG_SMT2               = 29 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_VALUES_TAG_SMT2                 = 30 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_VERSION_TAG_SMT2                = 32 + BTOR_KEYWORD_TAG_CLASS_SMT2,
 
-  BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_TRUE_TAG_SMT2     = 1 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_FALSE_TAG_SMT2    = 2 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_NOT_TAG_SMT2      = 3 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_IMPLIES_TAG_SMT2  = 4 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_AND_TAG_SMT2      = 5 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_OR_TAG_SMT2       = 6 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_XOR_TAG_SMT2      = 7 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_EQUAL_TAG_SMT2    = 8 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_DISTINCT_TAG_SMT2 = 9 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_ITE_TAG_SMT2      = 10 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_TRUE_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_FALSE_TAG_SMT2    = 1 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_NOT_TAG_SMT2      = 2 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_IMPLIES_TAG_SMT2  = 3 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_AND_TAG_SMT2      = 4 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_OR_TAG_SMT2       = 5 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_XOR_TAG_SMT2      = 6 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_EQUAL_TAG_SMT2    = 7 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_DISTINCT_TAG_SMT2 = 8 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_ITE_TAG_SMT2      = 9 + BTOR_CORE_TAG_CLASS_SMT2,
 
   BTOR_ARRAY_TAG_SMT2  = 0 + BTOR_ARRAY_TAG_CLASS_SMT2,
   BTOR_SELECT_TAG_SMT2 = 1 + BTOR_ARRAY_TAG_CLASS_SMT2,
@@ -164,7 +167,6 @@ typedef enum BtorSMT2Tag
   BTOR_BVSLE_TAG_SMT2        = 33 + BTOR_BITVEC_TAG_CLASS_SMT2,
   BTOR_BVSGT_TAG_SMT2        = 34 + BTOR_BITVEC_TAG_CLASS_SMT2,
   BTOR_BVSGE_TAG_SMT2        = 35 + BTOR_BITVEC_TAG_CLASS_SMT2,
-  BTOR_X_TAG_SMT2            = 36 + BTOR_BITVEC_TAG_CLASS_SMT2,
 
 } BtorSMT2Tag;
 
@@ -175,6 +177,37 @@ typedef struct BtorSMT2Symbol
   struct BtorSMT2Symbol* next;
   int lineno;
 } BtorSMT2Symbol;
+
+static const char* btor_printable_ascii_chars_smt2 =
+    "!\"#$%&'()*+,-./"
+    "0123456789"
+    ":;<=>?@"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "[\\]^_`"
+    "abcdefghijklmnopqrstuvwxyz"
+    "{|}~";
+
+static const char* btor_letters_smt2 =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "abcdefghijklmnopqrstuvwxyz";
+
+static const char* btor_decimal_digits_smt2 = "0123456789";
+
+static const char* btor_hexadecimal_digits_smt2 = "0123456789abcdefABCDEF";
+
+static const char* btor_extra_symbol_chars_smt2 = "+-/*=%?!.$~&^<>@";
+
+static const char* btor_extra_keyword_chars_smt2 = "+-/*=%?!.$~&^<>@";
+
+typedef enum BtorSMT2CharClass
+{
+  BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2     = (1 << 0),
+  BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2 = (1 << 1),
+  BTOR_STRING_CHAR_CLASS_SMT2            = (1 << 2),
+  BTOR_SYMBOL_CHAR_CLASS_SMT2            = (1 << 3),
+  BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2     = (1 << 4),
+  BTOR_KEYWORD_CHAR_CLASS_SMT2           = (1 << 5),
+} BtorSMT2CharClass;
 
 typedef struct BtorSMT2Parser
 {
@@ -190,6 +223,7 @@ typedef struct BtorSMT2Parser
     unsigned size, count;
     BtorSMT2Symbol** table;
   } symbol;
+  unsigned char cc[256];
 } BtorSMT2Parser;
 
 static char*
@@ -210,6 +244,42 @@ btor_perr_smt2 (BtorSMT2Parser* parser, const char* fmt, ...)
   return parser->error;
 }
 
+static void
+btor_init_char_classes_smt2 (BtorSMT2Parser* parser)
+{
+  unsigned char* cc = parser->cc;
+  const char* p;
+
+  BTOR_CLRN (cc, 256);
+
+  for (p = btor_decimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2;
+
+  for (p = btor_hexadecimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2;
+
+  for (p = btor_printable_ascii_chars_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_STRING_CHAR_CLASS_SMT2;
+
+  for (p = btor_letters_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
+  for (p = btor_decimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
+  for (p = btor_extra_symbol_chars_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
+
+  for (p = btor_printable_ascii_chars_smt2; *p; p++)
+    if (*p != '\\' && *p != '|')
+      cc[(unsigned char) *p] |= BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2;
+
+  for (p = btor_letters_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
+  for (p = btor_decimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
+  for (p = btor_extra_keyword_chars_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
+}
+
 static BtorSMT2Parser*
 btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
 {
@@ -220,6 +290,9 @@ btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
   res->incremental = incremental;
   res->btor        = btor;
   res->mem         = btor->mm;
+
+  btor_init_char_classes_smt2 (res);
+
   return res;
 }
 
