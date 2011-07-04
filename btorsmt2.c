@@ -22,6 +22,7 @@
  */
 
 #include "btorsmt2.h"
+#include "btorexp.h"
 #include "btormem.h"
 
 typedef enum BtorSMT2TagClass
@@ -43,7 +44,7 @@ typedef enum BtorSMT2TagClass
 typedef enum BtorSMT2Tag
 {
 
-  BTOR_NODE_TAG_SMT2   = 0 + BTOR_SYMBOL_TAG_CLASS_SMT2,
+  BTOR_PARENT_TAG_SMT2 = 0 + BTOR_SYMBOL_TAG_CLASS_SMT2,
   BTOR_SYMBOL_TAG_SMT2 = 1 + BTOR_SYMBOL_TAG_CLASS_SMT2,
 
   BTOR_NUMERAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
@@ -88,7 +89,7 @@ typedef enum BtorSMT2Tag
   BTOR_AXIOMS_TAG_SMT2                 = 2 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_CHAINABLE_TAG_SMT2              = 3 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_DEFINITION_TAG_SMT2             = 4 + BTOR_KEYWORD_TAG_CLASS_SMT2,
-  BTOR_DIAGN_OUTPUT_CHANNEL_TAG_SMT2   = 5 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_DIAG_OUTPUT_CHANNEL_TAG_SMT2    = 5 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_ERROR_BEHAVIOR_TAG_SMT2         = 6 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_EXPAND_DEFINITIONS_TAG_SMT2     = 7 + BTOR_KEYWORD_TAG_CLASS_SMT2,
   BTOR_EXTENSIONS_TAG_SMT2             = 8 + BTOR_KEYWORD_TAG_CLASS_SMT2,
@@ -175,6 +176,7 @@ typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
   int lineno;
+  BtorExp* exp;
   union
   {
     struct
@@ -184,7 +186,8 @@ typedef struct BtorSMT2Node
     };
     struct
     {
-      struct BtorSMT2Node *head, *tail;
+      struct BtorSMT2Node* child;
+      int size;
     };
   };
 } BtorSMT2Node;
@@ -255,58 +258,6 @@ btor_perr_smt2 (BtorSMT2Parser* parser, const char* fmt, ...)
   return parser->error;
 }
 
-static void
-btor_init_char_classes_smt2 (BtorSMT2Parser* parser)
-{
-  unsigned char* cc = parser->cc;
-  const char* p;
-
-  BTOR_CLRN (cc, 256);
-
-  for (p = btor_decimal_digits_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2;
-
-  for (p = btor_hexadecimal_digits_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2;
-
-  for (p = btor_printable_ascii_chars_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_STRING_CHAR_CLASS_SMT2;
-
-  for (p = btor_letters_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
-  for (p = btor_decimal_digits_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
-  for (p = btor_extra_symbol_chars_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
-
-  for (p = btor_printable_ascii_chars_smt2; *p; p++)
-    if (*p != '\\' && *p != '|')
-      cc[(unsigned char) *p] |= BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2;
-
-  for (p = btor_letters_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
-  for (p = btor_decimal_digits_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
-  for (p = btor_extra_keyword_chars_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
-}
-
-static BtorSMT2Parser*
-btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
-{
-  BtorSMT2Parser* res;
-  BTOR_NEW (btor->mm, res);
-  BTOR_CLR (res);
-  res->verbosity   = verbosity;
-  res->incremental = incremental;
-  res->btor        = btor;
-  res->mem         = btor->mm;
-
-  btor_init_char_classes_smt2 (res);
-
-  return res;
-}
-
 static unsigned btor_primes_smt2[] = {
     1000000007u, 2000000011u, 3000000019u, 4000000007u};
 
@@ -346,6 +297,7 @@ btor_enlarge_symbol_table_smt2 (BtorSMT2Parser* parser)
   BtorSMT2Node **old_table = parser->symbol.table, *p, *next, **q;
   unsigned h, i;
   BTOR_NEWN (parser->mem, parser->symbol.table, new_size);
+  BTOR_CLRN (parser->symbol.table, new_size);
   parser->symbol.size = new_size;
   for (i = 0; i < old_size; i++)
     for (p = old_table[i]; p; p = next)
@@ -365,7 +317,7 @@ btor_insert_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Node* symbol)
   if (parser->symbol.size >= parser->symbol.count)
     btor_enlarge_symbol_table_smt2 (parser);
   p = btor_symbol_position_smt2 (parser, symbol->name);
-  assert (*p);
+  assert (!*p);
   *p = symbol;
 }
 
@@ -375,9 +327,21 @@ btor_find_symbol_smt2 (BtorSMT2Parser* parser, const char* name)
   return *btor_symbol_position_smt2 (parser, name);
 }
 
+static BtorSMT2Node*
+btor_new_node_smt2 (BtorSMT2Parser* parser, BtorSMT2Tag tag)
+{
+  BtorSMT2Node* res;
+  BTOR_NEW (parser->mem, res);
+  BTOR_CLR (res);
+  res->tag = tag;
+  return res;
+}
+
 static void
 btor_release_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Node* symbol)
 {
+  assert (symbol->tag != BTOR_PARENT_TAG_SMT2);
+  if (symbol->exp) btor_release_exp (parser->btor, symbol->exp);
   btor_freestr (parser->mem, symbol->name);
   BTOR_DELETE (parser->mem, symbol);
 }
@@ -391,6 +355,120 @@ btor_release_symbols_smt2 (BtorSMT2Parser* parser)
     for (p = parser->symbol.table[i]; p; p = next)
       next = p->next, btor_release_symbol_smt2 (parser, p);
   BTOR_DELETEN (parser->mem, parser->symbol.table, parser->symbol.size);
+}
+
+static void
+btor_init_char_classes_smt2 (BtorSMT2Parser* parser)
+{
+  unsigned char* cc = parser->cc;
+  const char* p;
+
+  BTOR_CLRN (cc, 256);
+
+  for (p = btor_decimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2;
+
+  for (p = btor_hexadecimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2;
+
+  for (p = btor_printable_ascii_chars_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_STRING_CHAR_CLASS_SMT2;
+
+  for (p = btor_letters_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
+  for (p = btor_decimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
+  for (p = btor_extra_symbol_chars_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_SYMBOL_CHAR_CLASS_SMT2;
+
+  for (p = btor_printable_ascii_chars_smt2; *p; p++)
+    if (*p != '\\' && *p != '|')
+      cc[(unsigned char) *p] |= BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2;
+
+  for (p = btor_letters_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
+  for (p = btor_decimal_digits_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
+  for (p = btor_extra_keyword_chars_smt2; *p; p++)
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
+}
+
+#define KEYWORD(STR, TAG)                                    \
+  do                                                         \
+  {                                                          \
+    BtorSMT2Node* NODE = btor_new_node_smt2 (parser, (TAG)); \
+    NODE->name         = btor_strdup (parser->mem, (STR));   \
+    btor_insert_symbol_smt2 (parser, NODE);                  \
+  } while (0)
+
+static void
+btor_insert_keywords_smt2 (BtorSMT2Parser* parser)
+{
+  KEYWORD (":all-statistics", BTOR_ALL_STATISTICS_TAG_SMT2);
+  KEYWORD (":authors", BTOR_AUTHORS_TAG_SMT2);
+  KEYWORD (":axioms", BTOR_AXIOMS_TAG_SMT2);
+  KEYWORD (":chainable", BTOR_CHAINABLE_TAG_SMT2);
+  KEYWORD (":definition", BTOR_DEFINITION_TAG_SMT2);
+  KEYWORD (":diagnostic-output-channel", BTOR_DIAG_OUTPUT_CHANNEL_TAG_SMT2);
+  KEYWORD (":error-behavior", BTOR_ERROR_BEHAVIOR_TAG_SMT2);
+  KEYWORD (":expand-definitions", BTOR_EXPAND_DEFINITIONS_TAG_SMT2);
+  KEYWORD (":extensions", BTOR_EXTENSIONS_TAG_SMT2);
+  KEYWORD (":funs", BTOR_FUNS_TAG_SMT2);
+  KEYWORD (":funs-description", BTOR_FUNS_DESCRIPTION_TAG_SMT2);
+  KEYWORD (":interactive-mode", BTOR_INTERACTIVE_MODE_TAG_SMT2);
+  KEYWORD (":language", BTOR_LANGUAGE_TAG_SMT2);
+  KEYWORD (":left-assoc", BTOR_LEFT_ASSOC_TAG_SMT2);
+  KEYWORD (":name", BTOR_NAME_TAG_SMT2);
+  KEYWORD (":named", BTOR_NAMED_TAG_SMT2);
+  KEYWORD (":notes", BTOR_NOTES_TAG_SMT2);
+  KEYWORD (":print-success", BTOR_PRINT_SUCCESS_TAG_SMT2);
+  KEYWORD (":produce-assignments", BTOR_PRODUCE_ASSIGNMENTS_TAG_SMT2);
+  KEYWORD (":produce-models", BTOR_PRODUCE_MODELS_TAG_SMT2);
+  KEYWORD (":produce-proofs", BTOR_PRODUCE_PROOFS_TAG_SMT2);
+  KEYWORD (":produce-unsat-cores", BTOR_PRODUCE_UNSAT_CORES_TAG_SMT2);
+  KEYWORD (":random-seed", BTOR_RANDOM_SEED_TAG_SMT2);
+  KEYWORD (":reason-unknown", BTOR_REASON_UNKNOWN_TAG_SMT2);
+  KEYWORD (":regular-output-channel", BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2);
+  KEYWORD (":right-assoc", BTOR_RIGHT_ASSOC_TAG_SMT2);
+  KEYWORD (":sorts", BTOR_SORTS_TAG_SMT2);
+  KEYWORD (":sorts-description", BTOR_SORTS_DESCRIPTION_TAG_SMT2);
+  KEYWORD (":status", BTOR_STATUS_TAG_SMT2);
+  KEYWORD (":theories", BTOR_THEORIES_TAG_SMT2);
+  KEYWORD (":values", BTOR_VALUES_TAG_SMT2);
+  KEYWORD (":verbosity", BTOR_VERBOSITY_TAG_SMT2);
+  KEYWORD (":version", BTOR_VERSION_TAG_SMT2);
+}
+
+static void
+btor_insert_reserved_words_smt2 (BtorSMT2Parser* parser)
+{
+  (void) parser;
+}
+
+static void
+btor_insert_commands_smt2 (BtorSMT2Parser* parser)
+{
+  (void) parser;
+}
+
+static BtorSMT2Parser*
+btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
+{
+  BtorSMT2Parser* res;
+  BTOR_NEW (btor->mm, res);
+  BTOR_CLR (res);
+  res->verbosity   = verbosity;
+  res->incremental = incremental;
+  res->btor        = btor;
+  res->mem         = btor->mm;
+
+  btor_init_char_classes_smt2 (res);
+
+  btor_insert_keywords_smt2 (res);
+  btor_insert_reserved_words_smt2 (res);
+  btor_insert_commands_smt2 (res);
+
+  return res;
 }
 
 static void
