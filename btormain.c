@@ -1060,6 +1060,7 @@ boolector_main (int argc, char **argv)
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack *array_states = NULL;
+  BtorCharStack prefix;
 
   memset (&app, 0, sizeof app);
 
@@ -1110,6 +1111,8 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
 #endif
+
+  BTOR_INIT_STACK (prefix);
 
   parse_commandline_arguments (&app);
 
@@ -1207,8 +1210,11 @@ boolector_main (int argc, char **argv)
 
       sat_result = BTOR_UNKNOWN;
 
-      if ((parse_error = parser_api->parse (
-               parser, app.input_file, app.input_file_name, &parse_res)))
+      if ((parse_error = parser_api->parse (parser,
+                                            &prefix,
+                                            app.input_file,
+                                            app.input_file_name,
+                                            &parse_res)))
       {
         print_msg_va_args (&app, "%s\n", parse_error);
         app.err = 1;
@@ -1257,8 +1263,11 @@ boolector_main (int argc, char **argv)
       btor_static_smgr = 0;
       btor_reset_sat (smgr);
     }
-    else if ((parse_error = parser_api->parse (
-                  parser, app.input_file, app.input_file_name, &parse_res)))
+    else if ((parse_error = parser_api->parse (parser,
+                                               &prefix,
+                                               app.input_file,
+                                               app.input_file_name,
+                                               &parse_res)))
     {
       print_msg_va_args (&app, "%s\n", parse_error);
       app.err = 1;

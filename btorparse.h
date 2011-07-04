@@ -24,6 +24,7 @@
 
 #include "btorexp.h"
 #include "btorlogic.h"
+#include "btorstack.h"
 
 #include <stdio.h>
 
@@ -34,6 +35,7 @@ typedef BtorParser *(*BtorInitParser) (Btor *, int verbosity, int incremental);
 typedef void (*BtorResetParser) (void *);
 
 typedef char *(*BtorParse) (BtorParser *,
+                            BtorCharStack *prefix,
                             FILE *,
                             const char *,
                             BtorParseResult *);

@@ -231,6 +231,8 @@ typedef struct BtorSMT2Parser
   char* name;
   int lineno;
   FILE* file;
+  int nprefix;
+  BtorCharStack* prefix;
   char* error;
   struct
   {
@@ -511,14 +513,17 @@ btor_delete_smt2_parser (BtorSMT2Parser* parser)
 
 static const char*
 btor_parse_smt2_parser (BtorSMT2Parser* parser,
+                        BtorCharStack* prefix,
                         FILE* file,
                         const char* name,
                         BtorParseResult* res)
 {
   (void) res;
-  parser->name   = btor_strdup (parser->mem, name);
-  parser->lineno = 1;
-  parser->file   = file;
+  parser->name    = btor_strdup (parser->mem, name);
+  parser->nprefix = 0;
+  parser->prefix  = prefix;
+  parser->lineno  = 1;
+  parser->file    = file;
   return 0;
 }
 

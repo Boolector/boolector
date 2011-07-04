@@ -191,6 +191,8 @@ struct BtorSMTParser
   int assumptions;
 
   const char *name;
+  int nprefix;
+  BtorCharStack *prefix;
   FILE *file;
   int lineno;
   int saved; /* boolean flag */
@@ -670,6 +672,12 @@ btor_nextch_smt (BtorSMTParser *parser)
   {
     res           = parser->saved_char;
     parser->saved = 0;
+  }
+  else if (parser->prefix
+           && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
+  {
+    parser->bytes++;
+    res = parser->prefix->start[parser->nprefix++];
   }
   else
   {
@@ -2643,6 +2651,7 @@ translate_benchmark (BtorSMTParser *parser,
 
 static const char *
 parse (BtorSMTParser *parser,
+       BtorCharStack *prefix,
        FILE *file,
        const char *name,
        BtorParseResult *res)
@@ -2656,16 +2665,12 @@ parse (BtorSMTParser *parser,
 
   btor_smt_message (parser, 1, "parsing SMT file %s", name);
 
-  parser->name   = name;
-  parser->file   = file;
-  parser->lineno = 1;
-  parser->saved  = 0;
-
-  if (feof (file))
-  {
-    parser->saved      = 1;
-    parser->saved_char = EOF;
-  }
+  parser->name    = name;
+  parser->nprefix = 0;
+  parser->prefix  = prefix;
+  parser->file    = file;
+  parser->lineno  = 1;
+  parser->saved   = 0;
 
   BTOR_CLR (res);
 
@@ -2750,11 +2755,12 @@ NEXT_TOKEN:
 
 static const char *
 btor_parse_smt_parser (BtorSMTParser *parser,
+                       BtorCharStack *prefix,
                        FILE *file,
                        const char *name,
                        BtorParseResult *res)
 {
-  (void) parse (parser, file, name, res);
+  (void) parse (parser, prefix, file, name, res);
   btor_release_smt_internals (parser);
   return parser->error;
 }
