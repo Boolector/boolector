@@ -1153,15 +1153,33 @@ boolector_main (int argc, char **argv)
     btor_set_sig_handlers ();
 
     if (app.force_smt_input == -1)
+    {
       parser_api = btor_btor_parser_api ();
+      btor_msg_main_va_args ("forced BTOR parsing through command line option");
+    }
     else if (app.force_smt_input == 1)
+    {
       parser_api = btor_smt_parser_api ();
+      btor_msg_main_va_args (
+          "forced SMTLIB version 1 parsing through command line option");
+    }
     else if (app.force_smt_input == 2)
+    {
       parser_api = btor_smt2_parser_api ();
+      btor_msg_main_va_args (
+          "forced SMTLIB version 2 parsing through command line option");
+    }
     else if (app.close_input_file && has_suffix (app.input_file_name, ".btor"))
+    {
       parser_api = btor_btor_parser_api ();
+      btor_msg_main_va_args ("assuming BTOR parsing because of '.btor' suffix");
+    }
     else if (app.close_input_file && has_suffix (app.input_file_name, ".smt2"))
+    {
       parser_api = btor_smt2_parser_api ();
+      btor_msg_main_va_args (
+          "assuming SMTLIB version 2 parsing because of '.smt2' suffix");
+    }
     else
     {
       int ch;
@@ -1175,12 +1193,30 @@ boolector_main (int argc, char **argv)
           {
             BTOR_PUSH_STACK (mem, prefix, ch);
             if (ch == 'b')
+            {
               parser_api = btor_smt_parser_api ();
+              btor_msg_main_va_args (
+                  "assuming SMTLIB version 1 parsing because of '(b' prefix");
+            }
             else if (ch == 's')
+            {
               parser_api = btor_smt2_parser_api ();
+              btor_msg_main_va_args (
+                  "assuming SMTLIB version 2 parsing because of '(s' prefix");
+            }
           }
+          else
+            btor_msg_main_va_args (
+                "assuming BTOR parsing because end of file after '('");
         }
+        else
+          btor_msg_main_va_args (
+              "assuming BTOR parsing because first character different from "
+              "'('");
       }
+      else
+        btor_msg_main_va_args (
+            "assuming BTOR parsing because end of file found");
     }
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
