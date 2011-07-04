@@ -1155,30 +1155,32 @@ boolector_main (int argc, char **argv)
     if (app.force_smt_input == -1)
     {
       parser_api = btor_btor_parser_api ();
-      btor_msg_main_va_args ("forced BTOR parsing through command line option");
+      btor_msg_main_va_args (
+          "forced BTOR parsing through command line option\n");
     }
     else if (app.force_smt_input == 1)
     {
       parser_api = btor_smt_parser_api ();
       btor_msg_main_va_args (
-          "forced SMTLIB version 1 parsing through command line option");
+          "forced SMTLIB version 1 parsing through command line option\n");
     }
     else if (app.force_smt_input == 2)
     {
       parser_api = btor_smt2_parser_api ();
       btor_msg_main_va_args (
-          "forced SMTLIB version 2 parsing through command line option");
+          "forced SMTLIB version 2 parsing through command line option\n");
     }
     else if (app.close_input_file && has_suffix (app.input_file_name, ".btor"))
     {
       parser_api = btor_btor_parser_api ();
-      btor_msg_main_va_args ("assuming BTOR parsing because of '.btor' suffix");
+      btor_msg_main_va_args (
+          "assuming BTOR parsing because of '.btor' suffix\n");
     }
     else if (app.close_input_file && has_suffix (app.input_file_name, ".smt2"))
     {
       parser_api = btor_smt2_parser_api ();
       btor_msg_main_va_args (
-          "assuming SMTLIB version 2 parsing because of '.smt2' suffix");
+          "assuming SMTLIB version 2 parsing because of '.smt2' suffix\n");
     }
     else
     {
@@ -1196,27 +1198,27 @@ boolector_main (int argc, char **argv)
             {
               parser_api = btor_smt_parser_api ();
               btor_msg_main_va_args (
-                  "assuming SMTLIB version 1 parsing because of '(b' prefix");
+                  "assuming SMTLIB version 1 parsing because of '(b' prefix\n");
             }
             else if (ch == 's')
             {
               parser_api = btor_smt2_parser_api ();
               btor_msg_main_va_args (
-                  "assuming SMTLIB version 2 parsing because of '(s' prefix");
+                  "assuming SMTLIB version 2 parsing because of '(s' prefix\n");
             }
           }
           else
             btor_msg_main_va_args (
-                "assuming BTOR parsing because end of file after '('");
+                "assuming BTOR parsing because end of file after '('\n");
         }
         else
           btor_msg_main_va_args (
               "assuming BTOR parsing because first character different from "
-              "'('");
+              "'('\n");
       }
       else
         btor_msg_main_va_args (
-            "assuming BTOR parsing because end of file found");
+            "assuming BTOR parsing because end of file found\n");
     }
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
