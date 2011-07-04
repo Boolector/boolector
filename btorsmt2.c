@@ -238,6 +238,7 @@ typedef struct BtorSMT2Parser
     BtorSMT2Node** table;
   } symbol;
   unsigned char cc[256];
+  BtorCharStack buffer;
 } BtorSMT2Parser;
 
 static char*
@@ -504,6 +505,7 @@ btor_delete_smt2_parser (BtorSMT2Parser* parser)
   btor_release_symbols_smt2 (parser);
   if (parser->name) btor_freestr (mem, parser->name);
   if (parser->error) btor_freestr (mem, parser->error);
+  BTOR_RELEASE_STACK (mem, parser->buffer);
   BTOR_DELETE (mem, parser);
 }
 
