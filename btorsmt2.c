@@ -27,8 +27,32 @@
 typedef struct BtorSMT2Parser
 {
   Btor* btor;
+  BtorMemMgr* mem;
   int verbosity, incremental;
+  char* name;
+  int lineno;
+  FILE* file;
+  char* error;
 } BtorSMT2Parser;
+
+static char*
+btor_perr_smt2 (BtorSMT2Parser* parser, const char* fmt, ...)
+{
+  size_t bytes;
+  va_list ap;
+  if (!parser->error)
+  {
+    va_start (ap, fmt);
+    bytes = btor_parse_error_message_length (parser->name, fmt, ap);
+    va_end (ap);
+
+    va_start (ap, fmt);
+    parser->error = btor_parse_error_message (
+        parser->mem, parser->name, parser->lineno, fmt, ap, bytes);
+    va_end (ap);
+  }
+  return parser->error;
+}
 
 static BtorSMT2Parser*
 btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
@@ -39,13 +63,17 @@ btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
   res->verbosity   = verbosity;
   res->incremental = incremental;
   res->btor        = btor;
+  res->mem         = btor->mm;
   return res;
 }
 
 static void
 btor_delete_smt2_parser (BtorSMT2Parser* parser)
 {
-  BTOR_DELETE (parser->btor->mm, parser);
+  BtorMemMgr* mem = parser->mem;
+  if (parser->name) btor_freestr (mem, parser->name);
+  if (parser->error) btor_freestr (mem, parser->error);
+  BTOR_DELETE (mem, parser);
 }
 
 static const char*
@@ -58,6 +86,9 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
   (void) file;
   (void) name;
   (void) res;
+  parser->name   = btor_strdup (parser->mem, name);
+  parser->lineno = 1;
+  parser->file   = file;
   return 0;
 }
 
