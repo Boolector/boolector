@@ -231,6 +231,8 @@ typedef struct BtorSMT2Parser
   char* name;
   int lineno;
   FILE* file;
+  int saved;
+  char savedch;
   int nprefix;
   BtorCharStack* prefix;
   char* error;
@@ -290,6 +292,29 @@ btor_symbol_position_smt2 (BtorSMT2Parser* parser, const char* name)
        p = &s->next)
     ;
   return p;
+}
+
+static int
+btor_nextch_smt2 (BtorSMT2Parser* parser)
+{
+  int res;
+  if (parser->saved)
+    res = parser->savedch, parser->saved = 0;
+  else if (parser->prefix
+           && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
+    res = parser->prefix->start[parser->nprefix++];
+  else
+    res = getc (parser->file);
+  if (res == '\n') parser->lineno++;
+  return res;
+}
+
+static void
+btor_savech_smt2 (BtorSMT2Parser* parser, char ch)
+{
+  assert (!parser->saved);
+  parser->saved   = 1;
+  parser->savedch = ch;
 }
 
 static void
@@ -524,6 +549,7 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
   parser->prefix  = prefix;
   parser->lineno  = 1;
   parser->file    = file;
+  parser->saved   = 0;
   return 0;
 }
 
