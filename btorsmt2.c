@@ -43,7 +43,8 @@ typedef enum BtorSMT2TagClass
 typedef enum BtorSMT2Tag
 {
 
-  BTOR_SYMBOL_TAG_SMT2 = 0 + BTOR_SYMBOL_TAG_CLASS_SMT2,
+  BTOR_NODE_TAG_SMT2   = 0 + BTOR_SYMBOL_TAG_CLASS_SMT2,
+  BTOR_SYMBOL_TAG_SMT2 = 1 + BTOR_SYMBOL_TAG_CLASS_SMT2,
 
   BTOR_NUMERAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
@@ -170,13 +171,23 @@ typedef enum BtorSMT2Tag
 
 } BtorSMT2Tag;
 
-typedef struct BtorSMT2Symbol
+typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
-  char* name;
-  struct BtorSMT2Symbol* next;
   int lineno;
-} BtorSMT2Symbol;
+  union
+  {
+    struct
+    {
+      char* name;
+      struct BtorSMT2Node* next;
+    };
+    struct
+    {
+      struct BtorSMT2Node *head, *tail;
+    };
+  };
+} BtorSMT2Node;
 
 static const char* btor_printable_ascii_chars_smt2 =
     "!\"#$%&'()*+,-./"
@@ -221,7 +232,7 @@ typedef struct BtorSMT2Parser
   struct
   {
     unsigned size, count;
-    BtorSMT2Symbol** table;
+    BtorSMT2Node** table;
   } symbol;
   unsigned char cc[256];
 } BtorSMT2Parser;
@@ -316,11 +327,11 @@ btor_hash_name_smt2 (BtorSMT2Parser* parser, const char* name)
   return res & (parser->symbol.size - 1);
 }
 
-static BtorSMT2Symbol**
+static BtorSMT2Node**
 btor_symbol_position_smt2 (BtorSMT2Parser* parser, const char* name)
 {
   unsigned h = btor_hash_name_smt2 (parser, name);
-  BtorSMT2Symbol **p, *s;
+  BtorSMT2Node **p, *s;
   for (p = parser->symbol.table + h; (s = *p) && strcmp (s->name, name);
        p = &s->next)
     ;
@@ -330,9 +341,9 @@ btor_symbol_position_smt2 (BtorSMT2Parser* parser, const char* name)
 static void
 btor_enlarge_symbol_table_smt2 (BtorSMT2Parser* parser)
 {
-  unsigned old_size          = parser->symbol.size;
-  unsigned new_size          = old_size ? 2 * old_size : 1;
-  BtorSMT2Symbol **old_table = parser->symbol.table, *p, *next, **q;
+  unsigned old_size        = parser->symbol.size;
+  unsigned new_size        = old_size ? 2 * old_size : 1;
+  BtorSMT2Node **old_table = parser->symbol.table, *p, *next, **q;
   unsigned h, i;
   BTOR_NEWN (parser->mem, parser->symbol.table, new_size);
   parser->symbol.size = new_size;
@@ -348,9 +359,9 @@ btor_enlarge_symbol_table_smt2 (BtorSMT2Parser* parser)
 }
 
 static void
-btor_insert_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Symbol* symbol)
+btor_insert_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Node* symbol)
 {
-  BtorSMT2Symbol** p;
+  BtorSMT2Node** p;
   if (parser->symbol.size >= parser->symbol.count)
     btor_enlarge_symbol_table_smt2 (parser);
   p = btor_symbol_position_smt2 (parser, symbol->name);
@@ -358,14 +369,14 @@ btor_insert_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Symbol* symbol)
   *p = symbol;
 }
 
-static BtorSMT2Symbol*
+static BtorSMT2Node*
 btor_find_symbol_smt2 (BtorSMT2Parser* parser, const char* name)
 {
   return *btor_symbol_position_smt2 (parser, name);
 }
 
 static void
-btor_release_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Symbol* symbol)
+btor_release_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Node* symbol)
 {
   btor_freestr (parser->mem, symbol->name);
   BTOR_DELETE (parser->mem, symbol);
@@ -374,7 +385,7 @@ btor_release_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Symbol* symbol)
 static void
 btor_release_symbols_smt2 (BtorSMT2Parser* parser)
 {
-  BtorSMT2Symbol *p, *next;
+  BtorSMT2Node *p, *next;
   unsigned i;
   for (i = 0; i < parser->symbol.size; i++)
     for (p = parser->symbol.table[i]; p; p = next)
