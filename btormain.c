@@ -33,6 +33,7 @@
 #include "btorparse.h"
 #include "btorsat.h"
 #include "btorsmt.h"
+#include "btorsmt2.h"
 #include "btorstack.h"
 #include "btorutil.h"
 
@@ -173,7 +174,9 @@ static const char *g_usage =
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
     "\n"
-    "  --smt                            force SMT lib format input\n"
+    "  --btor                           force BTOR format input\n"
+    "  --smt|--smt1                     force SMTLIB version 1 format input\n"
+    "  --smt2                           force SMTLIB version 2 format input\n"
     "\n"
     "  -x|--hex                         hexadecimal output\n"
     "  -d|--dec                         decimal output\n"
@@ -643,8 +646,13 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "--dump-smt"))
       handle_dump_file (
           app, &app->dump_smt, &app->close_smt_file, "SMT", &app->smt_file);
-    else if (!strcmp (app->argv[app->argpos], "--smt"))
+    else if (!strcmp (app->argv[app->argpos], "--btor"))
+      app->force_smt_input = -1;
+    else if (!strcmp (app->argv[app->argpos], "--smt")
+             || !strcmp (app->argv[app->argpos], "--smt1"))
       app->force_smt_input = 1;
+    else if (!strcmp (app->argv[app->argpos], "--smt2"))
+      app->force_smt_input = 2;
     else if ((strstr (app->argv[app->argpos], "-rwl") == app->argv[app->argpos]
               && strlen (app->argv[app->argpos]) == strlen ("-rlw") + 1)
              || (strstr (app->argv[app->argpos], "--rewrite-level")
@@ -1010,20 +1018,6 @@ generate_regs_eq_zero (Btor *btor,
   return result;
 }
 
-static int
-stdin_starts_with_open_parenthesis (void)
-{
-  int ch, res;
-
-  while (isspace ((ch = getc (stdin))))
-    ;
-
-  res = (ch == '(');
-  if (ch != EOF) ungetc (ch, stdin);
-
-  return res;
-};
-
 int
 boolector_main (int argc, char **argv)
 {
@@ -1112,8 +1106,6 @@ boolector_main (int argc, char **argv)
   app.force_minisat = 0;
 #endif
 
-  BTOR_INIT_STACK (prefix);
-
   parse_commandline_arguments (&app);
 
   if (app.verbosity > 0)
@@ -1133,6 +1125,8 @@ boolector_main (int argc, char **argv)
 
   if (!app.done && !app.err)
   {
+    BTOR_INIT_STACK (prefix);
+
     btor_static_btor = btor = btor_new_btor ();
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
@@ -1158,16 +1152,20 @@ boolector_main (int argc, char **argv)
 
     btor_set_sig_handlers ();
 
-    parser_api = btor_btor_parser_api ();
-    if (app.force_smt_input)
+    if (app.force_smt_input == -1)
+      parser_api = btor_btor_parser_api ();
+    else if (app.force_smt_input == 1)
       parser_api = btor_smt_parser_api ();
-    else if (app.close_input_file)
+    else if (app.force_smt_input == 2)
+      parser_api = btor_smt2_parser_api ();
+    else if (app.close_input_file && has_suffix (app.input_file_name, ".btor"))
+      parser_api = btor_btor_parser_api ();
+    else if (app.close_input_file && has_suffix (app.input_file_name, ".smt2"))
+      parser_api = btor_smt2_parser_api ();
+    else
     {
-      if (has_suffix (app.input_file_name, ".smt"))
-        parser_api = btor_smt_parser_api ();
+      parser_api = btor_btor_parser_api ();
     }
-    else if (stdin_starts_with_open_parenthesis ())
-      parser_api = btor_smt_parser_api ();
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
 
@@ -1881,6 +1879,7 @@ boolector_main (int argc, char **argv)
 
     btor_static_btor      = 0;
     btor_static_verbosity = 0;
+    BTOR_RELEASE_STACK (mem, prefix);
     btor_delete_btor (btor);
 
     btor_reset_sig_handlers ();
