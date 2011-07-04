@@ -1164,7 +1164,23 @@ boolector_main (int argc, char **argv)
       parser_api = btor_smt2_parser_api ();
     else
     {
+      int ch;
       parser_api = btor_btor_parser_api ();
+      if ((ch = getc (app.input_file)) != EOF)
+      {
+        BTOR_PUSH_STACK (mem, prefix, ch);
+        if (ch == '(')
+        {
+          if ((ch = getc (app.input_file)) != EOF)
+          {
+            BTOR_PUSH_STACK (mem, prefix, ch);
+            if (ch == 'b')
+              parser_api = btor_smt_parser_api ();
+            else if (ch == 's')
+              parser_api = btor_smt2_parser_api ();
+          }
+        }
+      }
     }
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
