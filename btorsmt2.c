@@ -22,3 +22,52 @@
  */
 
 #include "btorsmt2.h"
+#include "btormem.h"
+
+typedef struct BtorSMT2Parser
+{
+  Btor* btor;
+  int verbosity, incremental;
+} BtorSMT2Parser;
+
+static BtorSMT2Parser*
+btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
+{
+  BtorSMT2Parser* res;
+  BTOR_NEW (btor->mm, res);
+  BTOR_CLR (res);
+  res->verbosity   = verbosity;
+  res->incremental = incremental;
+  res->btor        = btor;
+  return res;
+}
+
+static void
+btor_delete_smt2_parser (BtorSMT2Parser* parser)
+{
+  BTOR_DELETE (parser->btor->mm, parser);
+}
+
+static const char*
+btor_parse_smt2_parser (BtorSMT2Parser* parser,
+                        FILE* file,
+                        const char* name,
+                        BtorParseResult* res)
+{
+  (void) parser;
+  (void) file;
+  (void) name;
+  (void) res;
+  return 0;
+}
+
+static BtorParserAPI static_btor_smt2_parser_api = {
+    (BtorInitParser) btor_new_smt2_parser,
+    (BtorResetParser) btor_delete_smt2_parser,
+    (BtorParse) btor_parse_smt2_parser};
+
+const BtorParserAPI*
+btor_smt2_parser_api ()
+{
+  return &static_btor_smt2_parser_api;
+}
