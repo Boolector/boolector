@@ -775,6 +775,7 @@ RESTART:
         return !btor_perr_smt2 (parser, "unexpected end-of-file after '0.'");
       if (!(btor_cc_smt2 (parser, ch) & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2))
         return !btor_perr_smt2 (parser, "expected decimal digit after '0.'");
+      btor_pushch_smt2 (parser, ch);
       for (;;)
       {
         ch = btor_nextch_smt2 (parser);
@@ -812,6 +813,7 @@ RESTART:
         return !btor_perr_smt2 (
             parser, "expected decimal digit after '%s'", parser->token.start);
       }
+      btor_pushch_smt2 (parser, ch);
       for (;;)
       {
         ch = btor_nextch_smt2 (parser);
