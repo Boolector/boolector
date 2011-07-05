@@ -212,7 +212,8 @@ static const char* btor_printable_ascii_chars_smt2 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     "[\\]^_`"
     "abcdefghijklmnopqrstuvwxyz"
-    "{|}~";
+    "{|}~"
+    " \t\r\n";
 
 static const char* btor_letters_smt2 =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -602,7 +603,7 @@ btor_read_token_smt2 (BtorSMT2Parser* parser)
   BtorSMT2Node* node;
   unsigned char cc;
   int ch;
-  assert (!BTOR_INVALID_TAG_SMT2);  // error code: 0
+  assert (!BTOR_INVALID_TAG_SMT2);  // error code:		0
   BTOR_RESET_STACK (parser->token);
   parser->last_node = 0;
 RESTART:
@@ -612,7 +613,7 @@ RESTART:
     {
       printf ("[btorsmt2] <end-of-file>\n");
       assert (EOF < 0);
-      return EOF;  // end of tokens: EOF
+      return EOF;  // end of tokens:	EOF
     }
   } while (btor_isspace_smt2 (ch));
   if (ch == ';')
@@ -708,6 +709,7 @@ RESTART:
   }
   else if (ch == '|')
   {
+    btor_pushch_smt2 (parser, '|');
     for (;;)
     {
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
@@ -719,7 +721,9 @@ RESTART:
         btor_pushch_smt2 (parser, 0);
         if (!(node = btor_find_symbol_smt2 (parser, parser->token.start)))
         {
-          return !btor_perr_smt2 (parser, "quoted symbols not implemented yet");
+          node       = btor_new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+          node->name = btor_strdup (parser->mem, parser->token.start);
+          btor_insert_symbol_smt2 (parser, node);
         }
         parser->last_node = node;
         return BTOR_SYMBOL_TAG_SMT2;
@@ -789,7 +793,6 @@ RESTART:
         break;
       btor_pushch_smt2 (parser, ch);
     }
-    btor_savech_smt2 (parser, ch);
     if (ch == '.')
     {
       btor_pushch_smt2 (parser, '.');
@@ -853,6 +856,7 @@ btor_read_tokens_smt2 (BtorSMT2Parser* parser)
   {
     assert (!BTOR_EMPTY_STACK (parser->token));
     assert (!parser->token.top[-1]);
+    if (parser->verbosity < 2) continue;
     printf ("[btorsmt2] token %08x %s\n", tag, parser->token.start);
     fflush (stdout);
   }
