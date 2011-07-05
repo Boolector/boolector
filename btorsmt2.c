@@ -24,6 +24,10 @@
 #include "btorsmt2.h"
 #include "btorexp.h"
 #include "btormem.h"
+#include "btorutil.h"
+
+#include <ctype.h>
+#include <stdarg.h>
 
 typedef enum BtorSMT2TagClass
 {
@@ -31,7 +35,8 @@ typedef enum BtorSMT2TagClass
   BTOR_CLASS_SIZE_SMT2 = (1 << BTOR_CLASS_BITS_SMT2),
   BTOR_CLASS_MASK_SMT2 = (BTOR_CLASS_SIZE_SMT2 - 1),
 
-  BTOR_SYMBOL_TAG_CLASS_SMT2   = 0,
+  BTOR_OTHER_TAG_CLASS_SMT2 = 0,
+
   BTOR_CONSTANT_TAG_CLASS_SMT2 = (BTOR_CLASS_SIZE_SMT2 << 0),
   BTOR_RESERVED_TAG_CLASS_SMT2 = (BTOR_CLASS_SIZE_SMT2 << 1),
   BTOR_COMMAND_TAG_CLASS_SMT2  = (BTOR_CLASS_SIZE_SMT2 << 2),
@@ -44,8 +49,11 @@ typedef enum BtorSMT2TagClass
 typedef enum BtorSMT2Tag
 {
 
-  BTOR_PARENT_TAG_SMT2 = 0 + BTOR_SYMBOL_TAG_CLASS_SMT2,
-  BTOR_SYMBOL_TAG_SMT2 = 1 + BTOR_SYMBOL_TAG_CLASS_SMT2,
+  BTOR_INVALID_TAG_SMT2 = 0 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_LPAR_TAG_SMT2    = 1 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_RPAR_TAG_SMT2    = 2 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_SYMBOL_TAG_SMT2  = 3 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_PARENT_TAG_SMT2  = 4 + BTOR_OTHER_TAG_CLASS_SMT2,
 
   BTOR_NUMERAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
@@ -242,7 +250,7 @@ typedef struct BtorSMT2Parser
     BtorSMT2Node** table;
   } symbol;
   unsigned char cc[256];
-  BtorCharStack buffer;
+  BtorCharStack token;
 } BtorSMT2Parser;
 
 static char*
@@ -315,6 +323,7 @@ btor_savech_smt2 (BtorSMT2Parser* parser, char ch)
   assert (!parser->saved);
   parser->saved   = 1;
   parser->savedch = ch;
+  if (ch == '\n') assert (parser->lineno > 1), parser->lineno--;
 }
 
 static void
@@ -532,8 +541,148 @@ btor_delete_smt2_parser (BtorSMT2Parser* parser)
   btor_release_symbols_smt2 (parser);
   if (parser->name) btor_freestr (mem, parser->name);
   if (parser->error) btor_freestr (mem, parser->error);
-  BTOR_RELEASE_STACK (mem, parser->buffer);
+  BTOR_RELEASE_STACK (mem, parser->token);
   BTOR_DELETE (mem, parser);
+}
+
+static void
+btor_msg_smt2 (BtorSMT2Parser* parser, int level, const char* fmt, ...)
+{
+  va_list ap;
+  if (parser->verbosity < level) return;
+  printf ("[btorsmt2] ");
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+  fprintf (stdout, " after %.2f seconds\n", btor_time_stamp ());
+  fflush (stdout);
+}
+
+static int
+btor_isspace_smt2 (int ch)
+{
+  return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
+}
+
+static int
+btor_read_token_smt2 (BtorSMT2Parser* parser)
+{
+  unsigned char cc;
+  int ch;
+  BTOR_RESET_STACK (parser->token);
+RESTART:
+  do
+  {
+    if ((ch = btor_nextch_smt2 (parser)) == EOF)
+    {
+      printf ("[btorsmt2] <end-of-file>\n");
+      return EOF;
+    }
+  } while (btor_isspace_smt2 (ch));
+  if (ch == ';')
+  {
+    while ((ch = btor_nextch_smt2 (parser)) != '\n')
+      if (ch == EOF)
+      {
+        assert (!BTOR_INVALID_TAG_SMT2);
+        return !btor_perr_smt2 (parser, "unexpected end-of-file in comment");
+      }
+    goto RESTART;
+  }
+  assert (0 <= ch && ch < 256);
+  cc = parser->cc[(unsigned char) ch];
+  if (ch == '(') return BTOR_LPAR_TAG_SMT2;
+  if (ch == ')') return BTOR_RPAR_TAG_SMT2;
+  if (ch == '#')
+  {
+    if ((ch = btor_nextch_smt2 (parser)) == EOF)
+      return !btor_perr_smt2 (parser, "unexpected end-of-file after '#'");
+    if (ch != 'b' && ch != 'x')
+      return !btor_perr_smt2 (parser, "expected 'x' or 'b' after '#'");
+  }
+  else if (ch == '"')
+  {
+    for (;;)
+    {
+      if ((ch = btor_nextch_smt2 (parser)) == EOF)
+        return !btor_perr_smt2 (parser, "unexpected end-of-file in string");
+      if (ch == '"')
+      {
+        BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+        return BTOR_STRING_CONSTANT_TAG_SMT2;
+      }
+      if (ch == '\\')
+      {
+        if ((ch = btor_nextch_smt2 (parser)) == EOF)
+          return !btor_perr_smt2 (parser, "unexpected end-of-file after '\\'");
+        if (ch != '"' && ch != '\\')
+          return !btor_perr_smt2 (parser, "expected '\"' or '\\' after '\\'");
+      }
+      else
+      {
+        assert (0 <= ch && ch < 256);
+        if (!(parser->cc[(unsigned char) ch] & BTOR_STRING_CHAR_CLASS_SMT2))
+          return !btor_perr_smt2 (
+              parser, "invalid character code 0x%02x in string", ch);
+      }
+      BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+    }
+  }
+  else if (ch == '|')
+  {
+    for (;;)
+    {
+      if ((ch == btor_nextch_smt2 (parser)) == EOF)
+        return !btor_perr_smt2 (parser,
+                                "unexpected end-of-file in quoted symbol");
+      if (ch == '|')
+      {
+        BTOR_PUSH_STACK (parser->mem, parser->token, '|');
+        BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+        return BTOR_SYMBOL_TAG_SMT2;
+      }
+      assert (0 <= ch && ch < 256);
+      if (!(parser->cc[(unsigned char) ch]
+            & BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2))
+        return !btor_perr_smt2 (
+            parser, "invalid character code 0x%02x in quoted symbol", ch);
+      BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+    }
+  }
+  else if (ch == ':')
+  {
+  }
+  else if (ch == '0')
+  {
+  }
+  else if (cc & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2)
+  {
+  }
+  else if (cc & BTOR_STRING_CHAR_CLASS_SMT2)
+  {
+  }
+  else
+  {
+    assert (!BTOR_INVALID_TAG_SMT2);
+    if (isprint (ch))
+      return !btor_perr_smt2 (parser, "unexpected character '%c'", ch);
+    return !btor_perr_smt2 (
+        parser, "unexpected non-printable character code 0x%02x", ch);
+  }
+}
+
+static void
+btor_read_tokens_smt2 (BtorSMT2Parser* parser)
+{
+  int tag;
+  assert (!BTOR_INVALID_TAG_SMT2);
+  while ((tag = btor_read_token_smt2 (parser)) && tag != EOF)
+  {
+    if (BTOR_EMPTY_STACK (parser->token))
+      BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+    printf ("[btorsmt2] token %d %s\n", tag, parser->token.start);
+    fflush (stdout);
+  }
 }
 
 static const char*
@@ -543,14 +692,14 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
                         const char* name,
                         BtorParseResult* res)
 {
-  (void) res;
   parser->name    = btor_strdup (parser->mem, name);
   parser->nprefix = 0;
   parser->prefix  = prefix;
   parser->lineno  = 1;
   parser->file    = file;
   parser->saved   = 0;
-  return 0;
+  BTOR_CLR (res);
+  return parser->error;
 }
 
 static BtorParserAPI static_btor_smt2_parser_api = {
