@@ -44,16 +44,18 @@ typedef enum BtorSMT2TagClass
   BTOR_CORE_TAG_CLASS_SMT2     = (BTOR_CLASS_SIZE_SMT2 << 4),
   BTOR_ARRAY_TAG_CLASS_SMT2    = (BTOR_CLASS_SIZE_SMT2 << 5),
   BTOR_BITVEC_TAG_CLASS_SMT2   = (BTOR_CLASS_SIZE_SMT2 << 6),
+  BTOR_LOGIC_TAG_CLASS_SMT2    = (BTOR_CLASS_SIZE_SMT2 << 7),
 } BtorSMT2TagClass;
 
 typedef enum BtorSMT2Tag
 {
 
-  BTOR_INVALID_TAG_SMT2 = 0 + BTOR_OTHER_TAG_CLASS_SMT2,
-  BTOR_LPAR_TAG_SMT2    = 1 + BTOR_OTHER_TAG_CLASS_SMT2,
-  BTOR_RPAR_TAG_SMT2    = 2 + BTOR_OTHER_TAG_CLASS_SMT2,
-  BTOR_SYMBOL_TAG_SMT2  = 3 + BTOR_OTHER_TAG_CLASS_SMT2,
-  BTOR_PARENT_TAG_SMT2  = 4 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_INVALID_TAG_SMT2   = 0 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_PARENT_TAG_SMT2    = 1 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_LPAR_TAG_SMT2      = 2 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_RPAR_TAG_SMT2      = 3 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_SYMBOL_TAG_SMT2    = 4 + BTOR_OTHER_TAG_CLASS_SMT2,
+  BTOR_ATTRIBUTE_TAG_SMT2 = 5 + BTOR_OTHER_TAG_CLASS_SMT2,
 
   BTOR_NUMERAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
   BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
@@ -178,6 +180,9 @@ typedef enum BtorSMT2Tag
   BTOR_BVSGT_TAG_SMT2        = 34 + BTOR_BITVEC_TAG_CLASS_SMT2,
   BTOR_BVSGE_TAG_SMT2        = 35 + BTOR_BITVEC_TAG_CLASS_SMT2,
 
+  BTOR_QF_BV_TAG_SMT2    = 0 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_QF_AUFBV_TAG_SMT2 = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
+
 } BtorSMT2Tag;
 
 typedef struct BtorSMT2Node
@@ -217,9 +222,9 @@ static const char* btor_decimal_digits_smt2 = "0123456789";
 
 static const char* btor_hexadecimal_digits_smt2 = "0123456789abcdefABCDEF";
 
-static const char* btor_extra_symbol_chars_smt2 = "+-/*=%?!.$~&^<>@";
+static const char* btor_extra_symbol_chars_smt2 = "+-/*=%?!.$_~&^<>@";
 
-static const char* btor_extra_keyword_chars_smt2 = "+-/*=%?!.$~&^<>@";
+static const char* btor_extra_keyword_chars_smt2 = "+-/*=%?!.$_~&^<>@";
 
 typedef enum BtorSMT2CharClass
 {
@@ -228,7 +233,7 @@ typedef enum BtorSMT2CharClass
   BTOR_STRING_CHAR_CLASS_SMT2            = (1 << 2),
   BTOR_SYMBOL_CHAR_CLASS_SMT2            = (1 << 3),
   BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2     = (1 << 4),
-  BTOR_INSERT_CHAR_CLASS_SMT2            = (1 << 5),
+  BTOR_KEYWORD_CHAR_CLASS_SMT2           = (1 << 5),
 } BtorSMT2CharClass;
 
 typedef struct BtorSMT2Parser
@@ -241,6 +246,7 @@ typedef struct BtorSMT2Parser
   FILE* file;
   int saved;
   char savedch;
+  BtorSMT2Node* last_node;
   int nprefix;
   BtorCharStack* prefix;
   char* error;
@@ -351,11 +357,13 @@ static void
 btor_insert_symbol_smt2 (BtorSMT2Parser* parser, BtorSMT2Node* symbol)
 {
   BtorSMT2Node** p;
-  if (parser->symbol.size >= parser->symbol.count)
+  if (parser->symbol.size <= parser->symbol.count)
     btor_enlarge_symbol_table_smt2 (parser);
   p = btor_symbol_position_smt2 (parser, symbol->name);
   assert (!*p);
   *p = symbol;
+  parser->symbol.count++;
+  assert (parser->symbol.count > 0);
 }
 
 static BtorSMT2Node*
@@ -423,11 +431,11 @@ btor_init_char_classes_smt2 (BtorSMT2Parser* parser)
       cc[(unsigned char) *p] |= BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2;
 
   for (p = btor_letters_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_INSERT_CHAR_CLASS_SMT2;
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
   for (p = btor_decimal_digits_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_INSERT_CHAR_CLASS_SMT2;
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
   for (p = btor_extra_keyword_chars_smt2; *p; p++)
-    cc[(unsigned char) *p] |= BTOR_INSERT_CHAR_CLASS_SMT2;
+    cc[(unsigned char) *p] |= BTOR_KEYWORD_CHAR_CLASS_SMT2;
 }
 
 #define INSERT(STR, TAG)                                     \
@@ -514,6 +522,13 @@ btor_insert_commands_smt2 (BtorSMT2Parser* parser)
   INSERT ("set-option", BTOR_SET_OPTION_TAG_SMT2);
 }
 
+static void
+btor_insert_logics_smt2 (BtorSMT2Parser* parser)
+{
+  INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
+  INSERT ("QF_AUFBV", BTOR_QF_AUFBV_TAG_SMT2);
+}
+
 static BtorSMT2Parser*
 btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
 {
@@ -530,6 +545,7 @@ btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
   btor_insert_keywords_smt2 (res);
   btor_insert_reserved_words_smt2 (res);
   btor_insert_commands_smt2 (res);
+  btor_insert_logics_smt2 (res);
 
   return res;
 }
@@ -545,9 +561,9 @@ btor_delete_smt2_parser (BtorSMT2Parser* parser)
   BTOR_DELETE (mem, parser);
 }
 
-static void
-btor_msg_smt2 (BtorSMT2Parser* parser, int level, const char* fmt, ...)
-{
+#if 0
+static void btor_msg_smt2 (BtorSMT2Parser * parser,
+                           int level, const char * fmt, ...) {
   va_list ap;
   if (parser->verbosity < level) return;
   printf ("[btorsmt2] ");
@@ -557,6 +573,7 @@ btor_msg_smt2 (BtorSMT2Parser* parser, int level, const char* fmt, ...)
   fprintf (stdout, " after %.2f seconds\n", btor_time_stamp ());
   fflush (stdout);
 }
+#endif
 
 static int
 btor_isspace_smt2 (int ch)
@@ -564,19 +581,38 @@ btor_isspace_smt2 (int ch)
   return ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n';
 }
 
+static unsigned
+btor_cc_smt2 (BtorSMT2Parser* parser, int ch)
+{
+  if (ch == EOF) return 0;
+  assert (0 <= ch && ch < 256);
+  return parser->cc[(unsigned char) ch];
+}
+
+static void
+btor_pushch_smt2 (BtorSMT2Parser* parser, int ch)
+{
+  assert (ch != EOF);
+  BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+}
+
 static int
 btor_read_token_smt2 (BtorSMT2Parser* parser)
 {
+  BtorSMT2Node* node;
   unsigned char cc;
   int ch;
+  assert (!BTOR_INVALID_TAG_SMT2);  // error code: 0
   BTOR_RESET_STACK (parser->token);
+  parser->last_node = 0;
 RESTART:
   do
   {
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
     {
       printf ("[btorsmt2] <end-of-file>\n");
-      return EOF;
+      assert (EOF < 0);
+      return EOF;  // end of tokens: EOF
     }
   } while (btor_isspace_smt2 (ch));
   if (ch == ';')
@@ -589,15 +625,61 @@ RESTART:
       }
     goto RESTART;
   }
-  assert (0 <= ch && ch < 256);
-  cc = parser->cc[(unsigned char) ch];
-  if (ch == '(') return BTOR_LPAR_TAG_SMT2;
-  if (ch == ')') return BTOR_RPAR_TAG_SMT2;
+  cc = btor_cc_smt2 (parser, ch);
+  if (ch == '(')
+  {
+    btor_pushch_smt2 (parser, '(');
+    btor_pushch_smt2 (parser, 0);
+    return BTOR_LPAR_TAG_SMT2;
+  }
+  if (ch == ')')
+  {
+    btor_pushch_smt2 (parser, ')');
+    btor_pushch_smt2 (parser, 0);
+    return BTOR_RPAR_TAG_SMT2;
+  }
   if (ch == '#')
   {
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
       return !btor_perr_smt2 (parser, "unexpected end-of-file after '#'");
-    if (ch != 'b' && ch != 'x')
+    if (ch == 'b')
+    {
+      if ((ch = btor_nextch_smt2 (parser)) == EOF)
+        return !btor_perr_smt2 (parser, "unexpected end-of-file after '#b'");
+      if (ch != '0' && ch != '1')
+        return !btor_perr_smt2 (parser, "expected '0' or '1' after '#b'");
+      btor_pushch_smt2 (parser, ch);
+      for (;;)
+      {
+        ch = btor_nextch_smt2 (parser);
+        if (ch != '0' && ch != '1') break;
+        btor_pushch_smt2 (parser, ch);
+      }
+      btor_savech_smt2 (parser, ch);
+      btor_pushch_smt2 (parser, 0);
+      return BTOR_BINARY_CONSTANT_TAG_SMT2;
+    }
+    else if (ch == 'x')
+    {
+      if ((ch = btor_nextch_smt2 (parser)) == EOF)
+        return !btor_perr_smt2 (parser, "unexpected end-of-file after '#x'");
+      if (!(ch & BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2))
+        return !btor_perr_smt2 (parser,
+                                "expected hexa-decimal digit after '#x'");
+      btor_pushch_smt2 (parser, ch);
+      for (;;)
+      {
+        ch = btor_nextch_smt2 (parser);
+        if (!(btor_cc_smt2 (parser, ch)
+              & BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2))
+          break;
+        btor_pushch_smt2 (parser, ch);
+      }
+      btor_savech_smt2 (parser, ch);
+      btor_savech_smt2 (parser, 0);
+      return BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2;
+    }
+    else
       return !btor_perr_smt2 (parser, "expected 'x' or 'b' after '#'");
   }
   else if (ch == '"')
@@ -608,7 +690,7 @@ RESTART:
         return !btor_perr_smt2 (parser, "unexpected end-of-file in string");
       if (ch == '"')
       {
-        BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+        btor_pushch_smt2 (parser, 0);
         return BTOR_STRING_CONSTANT_TAG_SMT2;
       }
       if (ch == '\\')
@@ -618,57 +700,148 @@ RESTART:
         if (ch != '"' && ch != '\\')
           return !btor_perr_smt2 (parser, "expected '\"' or '\\' after '\\'");
       }
-      else
-      {
-        assert (0 <= ch && ch < 256);
-        if (!(parser->cc[(unsigned char) ch] & BTOR_STRING_CHAR_CLASS_SMT2))
-          return !btor_perr_smt2 (
-              parser, "invalid character code 0x%02x in string", ch);
-      }
-      BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+      else if (!(btor_cc_smt2 (parser, ch) & BTOR_STRING_CHAR_CLASS_SMT2))
+        return !btor_perr_smt2 (
+            parser, "invalid character code %d in string", ch);
+      btor_pushch_smt2 (parser, ch);
     }
   }
   else if (ch == '|')
   {
     for (;;)
     {
-      if ((ch == btor_nextch_smt2 (parser)) == EOF)
+      if ((ch = btor_nextch_smt2 (parser)) == EOF)
         return !btor_perr_smt2 (parser,
                                 "unexpected end-of-file in quoted symbol");
       if (ch == '|')
       {
-        BTOR_PUSH_STACK (parser->mem, parser->token, '|');
-        BTOR_PUSH_STACK (parser->mem, parser->token, 0);
+        btor_pushch_smt2 (parser, '|');
+        btor_pushch_smt2 (parser, 0);
+        if (!(node = btor_find_symbol_smt2 (parser, parser->token.start)))
+        {
+          return !btor_perr_smt2 (parser, "quoted symbols not implemented yet");
+        }
+        parser->last_node = node;
         return BTOR_SYMBOL_TAG_SMT2;
       }
-      assert (0 <= ch && ch < 256);
-      if (!(parser->cc[(unsigned char) ch]
-            & BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2))
+      if (!(btor_cc_smt2 (parser, ch) & BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2))
         return !btor_perr_smt2 (
-            parser, "invalid character code 0x%02x in quoted symbol", ch);
-      BTOR_PUSH_STACK (parser->mem, parser->token, ch);
+            parser, "invalid character code %d in quoted symbol", ch);
+      btor_pushch_smt2 (parser, ch);
     }
   }
   else if (ch == ':')
   {
+    btor_pushch_smt2 (parser, ':');
+    if ((ch = btor_nextch_smt2 (parser)) == EOF)
+      return !btor_perr_smt2 (parser, "unexpected end-of-file after ':'");
+    if (!(btor_cc_smt2 (parser, ch) & BTOR_KEYWORD_CHAR_CLASS_SMT2))
+      return !btor_perr_smt2 (
+          parser, "unexpected character code %d after ':'", ch);
+    btor_pushch_smt2 (parser, ch);
+    while ((btor_cc_smt2 (parser, ch = btor_nextch_smt2 (parser))
+            & BTOR_KEYWORD_CHAR_CLASS_SMT2))
+    {
+      assert (ch != EOF);
+      btor_pushch_smt2 (parser, ch);
+    }
+    btor_savech_smt2 (parser, ch);
+    btor_pushch_smt2 (parser, 0);
+    if (!(node = btor_find_symbol_smt2 (parser, parser->token.start)))
+    {
+      node       = btor_new_node_smt2 (parser, BTOR_ATTRIBUTE_TAG_SMT2);
+      node->name = btor_strdup (parser->mem, parser->token.start);
+      btor_insert_symbol_smt2 (parser, node);
+    }
+    parser->last_node = node;
+    return node->tag;
   }
   else if (ch == '0')
   {
+    btor_pushch_smt2 (parser, '0');
+    ch = btor_nextch_smt2 (parser);
+    if (ch == '.')
+    {
+      btor_pushch_smt2 (parser, '.');
+      if ((ch = btor_nextch_smt2 (parser)) == EOF)
+        return !btor_perr_smt2 (parser, "unexpected end-of-file after '0.'");
+      if (!(btor_cc_smt2 (parser, ch) & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2))
+        return !btor_perr_smt2 (parser, "expected decimal digit after '0.'");
+      for (;;)
+      {
+        ch = btor_nextch_smt2 (parser);
+        if (!(btor_cc_smt2 (parser, ch) & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2))
+          break;
+        btor_pushch_smt2 (parser, ch);
+      }
+    }
+    btor_savech_smt2 (parser, ch);
+    btor_pushch_smt2 (parser, 0);
+    return BTOR_DECIMAL_CONSTANT_TAG_SMT2;
   }
   else if (cc & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2)
   {
+    btor_pushch_smt2 (parser, ch);
+    for (;;)
+    {
+      ch = btor_nextch_smt2 (parser);
+      if (!(btor_cc_smt2 (parser, ch) & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2))
+        break;
+      btor_pushch_smt2 (parser, ch);
+    }
+    btor_savech_smt2 (parser, ch);
+    if (ch == '.')
+    {
+      btor_pushch_smt2 (parser, '.');
+      if ((ch = btor_nextch_smt2 (parser)) == EOF)
+      {
+        btor_pushch_smt2 (parser, 0);
+        return !btor_perr_smt2 (
+            parser, "unexpected end-of-file after '%s'", parser->token.start);
+      }
+      if (!(btor_cc_smt2 (parser, ch) & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2))
+      {
+        btor_pushch_smt2 (parser, 0);
+        return !btor_perr_smt2 (
+            parser, "expected decimal digit after '%s'", parser->token.start);
+      }
+      for (;;)
+      {
+        ch = btor_nextch_smt2 (parser);
+        if (!(btor_cc_smt2 (parser, ch) & BTOR_DECIMAL_DIGIT_CHAR_CLASS_SMT2))
+          break;
+        btor_pushch_smt2 (parser, ch);
+      }
+    }
+    btor_savech_smt2 (parser, ch);
+    btor_pushch_smt2 (parser, 0);
+    return BTOR_DECIMAL_CONSTANT_TAG_SMT2;
   }
-  else if (cc & BTOR_STRING_CHAR_CLASS_SMT2)
+  else if (cc & BTOR_SYMBOL_CHAR_CLASS_SMT2)
   {
+    btor_pushch_smt2 (parser, ch);
+    for (;;)
+    {
+      ch = btor_nextch_smt2 (parser);
+      if (!(btor_cc_smt2 (parser, ch) & BTOR_SYMBOL_CHAR_CLASS_SMT2)) break;
+      btor_pushch_smt2 (parser, ch);
+    }
+    btor_savech_smt2 (parser, ch);
+    btor_pushch_smt2 (parser, 0);
+    if (!strcmp (parser->token.start, "_")) return BTOR_UNDERSCORE_TAG_SMT2;
+    if (!(node = btor_find_symbol_smt2 (parser, parser->token.start)))
+    {
+      node       = btor_new_node_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+      node->name = btor_strdup (parser->mem, parser->token.start);
+      btor_insert_symbol_smt2 (parser, node);
+    }
+    parser->last_node = node;
+    return node->tag;
   }
   else
-  {
-    assert (!BTOR_INVALID_TAG_SMT2);
-    if (isprint (ch))
-      return !btor_perr_smt2 (parser, "unexpected character '%c'", ch);
-    return !btor_perr_smt2 (
-        parser, "unexpected non-printable character code 0x%02x", ch);
-  }
+    return !btor_perr_smt2 (parser, "unexpected character code %d", ch);
+
+  // return !btor_perr_smt2 (parser, "internal token reading error");
 }
 
 static void
@@ -678,9 +851,9 @@ btor_read_tokens_smt2 (BtorSMT2Parser* parser)
   assert (!BTOR_INVALID_TAG_SMT2);
   while ((tag = btor_read_token_smt2 (parser)) && tag != EOF)
   {
-    if (BTOR_EMPTY_STACK (parser->token))
-      BTOR_PUSH_STACK (parser->mem, parser->token, 0);
-    printf ("[btorsmt2] token %d %s\n", tag, parser->token.start);
+    assert (!BTOR_EMPTY_STACK (parser->token));
+    assert (!parser->token.top[-1]);
+    printf ("[btorsmt2] token %08x %s\n", tag, parser->token.start);
     fflush (stdout);
   }
 }
@@ -699,6 +872,7 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
   parser->file    = file;
   parser->saved   = 0;
   BTOR_CLR (res);
+  btor_read_tokens_smt2 (parser);
   return parser->error;
 }
 
