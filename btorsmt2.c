@@ -611,7 +611,11 @@ RESTART:
   {
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
     {
-      printf ("[btorsmt2] <end-of-file>\n");
+      if (parser->verbosity >= 2)
+      {
+        printf ("[btorsmt2] <end-of-file>\n");
+        fflush (stdout);
+      }
       assert (EOF < 0);
       return EOF;  // end of tokens:	EOF
     }
