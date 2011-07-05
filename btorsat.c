@@ -231,8 +231,7 @@ void
 btor_print_stats_sat (BtorSATMgr *smgr)
 {
   assert (smgr != NULL);
-  assert (smgr->initialized);
-  (void) smgr;
+  if (!smgr->initialized) return;
   smgr->api.stats (smgr);
 }
 

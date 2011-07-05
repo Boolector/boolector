@@ -33,6 +33,7 @@
 #include "btorparse.h"
 #include "btorsat.h"
 #include "btorsmt.h"
+#include "btorsmt2.h"
 #include "btorstack.h"
 #include "btorutil.h"
 
@@ -173,7 +174,9 @@ static const char *g_usage =
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
     "\n"
-    "  --smt                            force SMT lib format input\n"
+    "  --btor                           force BTOR format input\n"
+    "  --smt|--smt1                     force SMTLIB version 1 format input\n"
+    "  --smt2                           force SMTLIB version 2 format input\n"
     "\n"
     "  -x|--hex                         hexadecimal output\n"
     "  -d|--dec                         decimal output\n"
@@ -643,8 +646,13 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "--dump-smt"))
       handle_dump_file (
           app, &app->dump_smt, &app->close_smt_file, "SMT", &app->smt_file);
-    else if (!strcmp (app->argv[app->argpos], "--smt"))
+    else if (!strcmp (app->argv[app->argpos], "--btor"))
+      app->force_smt_input = -1;
+    else if (!strcmp (app->argv[app->argpos], "--smt")
+             || !strcmp (app->argv[app->argpos], "--smt1"))
       app->force_smt_input = 1;
+    else if (!strcmp (app->argv[app->argpos], "--smt2"))
+      app->force_smt_input = 2;
     else if ((strstr (app->argv[app->argpos], "-rwl") == app->argv[app->argpos]
               && strlen (app->argv[app->argpos]) == strlen ("-rlw") + 1)
              || (strstr (app->argv[app->argpos], "--rewrite-level")
@@ -1010,20 +1018,6 @@ generate_regs_eq_zero (Btor *btor,
   return result;
 }
 
-static int
-stdin_starts_with_open_parenthesis (void)
-{
-  int ch, res;
-
-  while (isspace ((ch = getc (stdin))))
-    ;
-
-  res = (ch == '(');
-  if (ch != EOF) ungetc (ch, stdin);
-
-  return res;
-};
-
 int
 boolector_main (int argc, char **argv)
 {
@@ -1060,6 +1054,7 @@ boolector_main (int argc, char **argv)
   BtorPtrHashTable *reg_inst, *input_inst;
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack *array_states = NULL;
+  BtorCharStack prefix;
 
   memset (&app, 0, sizeof app);
 
@@ -1130,6 +1125,8 @@ boolector_main (int argc, char **argv)
 
   if (!app.done && !app.err)
   {
+    BTOR_INIT_STACK (prefix);
+
     btor_static_btor = btor = btor_new_btor ();
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
@@ -1155,16 +1152,83 @@ boolector_main (int argc, char **argv)
 
     btor_set_sig_handlers ();
 
-    parser_api = btor_btor_parser_api ();
-    if (app.force_smt_input)
-      parser_api = btor_smt_parser_api ();
-    else if (app.close_input_file)
+    if (app.force_smt_input == -1)
     {
-      if (has_suffix (app.input_file_name, ".smt"))
-        parser_api = btor_smt_parser_api ();
+      parser_api = btor_btor_parser_api ();
+      if (app.verbosity > 0)
+        btor_msg_main_va_args (
+            "forced BTOR parsing through command line option\n");
     }
-    else if (stdin_starts_with_open_parenthesis ())
+    else if (app.force_smt_input == 1)
+    {
       parser_api = btor_smt_parser_api ();
+      if (app.verbosity > 0)
+        btor_msg_main_va_args (
+            "forced SMTLIB version 1 parsing through command line option\n");
+    }
+    else if (app.force_smt_input == 2)
+    {
+      parser_api = btor_smt2_parser_api ();
+      if (app.verbosity > 0)
+        btor_msg_main_va_args (
+            "forced SMTLIB version 2 parsing through command line option\n");
+    }
+    else if (app.close_input_file && has_suffix (app.input_file_name, ".btor"))
+    {
+      parser_api = btor_btor_parser_api ();
+      if (app.verbosity > 0)
+        btor_msg_main_va_args (
+            "assuming BTOR parsing because of '.btor' suffix\n");
+    }
+    else if (app.close_input_file && has_suffix (app.input_file_name, ".smt2"))
+    {
+      parser_api = btor_smt2_parser_api ();
+      if (app.verbosity > 0)
+        btor_msg_main_va_args (
+            "assuming SMTLIB version 2 parsing because of '.smt2' suffix\n");
+    }
+    else
+    {
+      int ch;
+      parser_api = btor_btor_parser_api ();
+      if ((ch = getc (app.input_file)) != EOF)
+      {
+        BTOR_PUSH_STACK (mem, prefix, ch);
+        if (ch == '(')
+        {
+          if ((ch = getc (app.input_file)) != EOF)
+          {
+            BTOR_PUSH_STACK (mem, prefix, ch);
+            if (ch == 'b')
+            {
+              parser_api = btor_smt_parser_api ();
+              if (app.verbosity > 0)
+                btor_msg_main_va_args (
+                    "assuming SMTLIB version 1 parsing because of '(b' "
+                    "prefix\n");
+            }
+            else if (ch == 's')
+            {
+              parser_api = btor_smt2_parser_api ();
+              if (app.verbosity > 0)
+                btor_msg_main_va_args (
+                    "assuming SMTLIB version 2 parsing because of '(s' "
+                    "prefix\n");
+            }
+          }
+          else if (app.verbosity > 0)
+            btor_msg_main_va_args (
+                "assuming BTOR parsing because end of file after '('\n");
+        }
+        else if (app.verbosity > 0)
+          btor_msg_main_va_args (
+              "assuming BTOR parsing because first character different from "
+              "'('\n");
+      }
+      else if (app.verbosity > 0)
+        btor_msg_main_va_args (
+            "assuming BTOR parsing because end of file found\n");
+    }
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
 
@@ -1207,8 +1271,11 @@ boolector_main (int argc, char **argv)
 
       sat_result = BTOR_UNKNOWN;
 
-      if ((parse_error = parser_api->parse (
-               parser, app.input_file, app.input_file_name, &parse_res)))
+      if ((parse_error = parser_api->parse (parser,
+                                            &prefix,
+                                            app.input_file,
+                                            app.input_file_name,
+                                            &parse_res)))
       {
         print_msg_va_args (&app, "%s\n", parse_error);
         app.err = 1;
@@ -1257,8 +1324,11 @@ boolector_main (int argc, char **argv)
       btor_static_smgr = 0;
       btor_reset_sat (smgr);
     }
-    else if ((parse_error = parser_api->parse (
-                  parser, app.input_file, app.input_file_name, &parse_res)))
+    else if ((parse_error = parser_api->parse (parser,
+                                               &prefix,
+                                               app.input_file,
+                                               app.input_file_name,
+                                               &parse_res)))
     {
       print_msg_va_args (&app, "%s\n", parse_error);
       app.err = 1;
@@ -1872,6 +1942,7 @@ boolector_main (int argc, char **argv)
 
     btor_static_btor      = 0;
     btor_static_verbosity = 0;
+    BTOR_RELEASE_STACK (mem, prefix);
     btor_delete_btor (btor);
 
     btor_reset_sig_handlers ();

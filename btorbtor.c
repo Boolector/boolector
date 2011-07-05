@@ -56,6 +56,8 @@ struct BtorBTORParser
   BtorMemMgr *mem;
   Btor *btor;
 
+  int nprefix;
+  BtorCharStack *prefix;
   FILE *file;
   int lineno;
   int saved; /* boolean flag */
@@ -153,6 +155,11 @@ btor_nextch_btor (BtorBTORParser *parser)
   {
     ch            = parser->saved_char;
     parser->saved = 0;
+  }
+  else if (parser->prefix
+           && parser->nprefix < BTOR_COUNT_STACK (*parser->prefix))
+  {
+    ch = parser->prefix->start[parser->nprefix++];
   }
   else
     ch = getc (parser->file);
@@ -1757,6 +1764,7 @@ remove_regs_from_vars (BtorBTORParser *parser)
 
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
+                        BtorCharStack *prefix,
                         FILE *file,
                         const char *name,
                         BtorParseResult *res)
@@ -1770,15 +1778,12 @@ btor_parse_btor_parser (BtorBTORParser *parser,
 
   if (parser->verbosity > 0) btor_msg_btor ("parsing %s", name);
 
-  parser->file   = file;
-  parser->name   = name;
-  parser->lineno = 1;
-
-  if (feof (file))
-  {
-    parser->saved      = 1;
-    parser->saved_char = EOF;
-  }
+  parser->nprefix = 0;
+  parser->prefix  = prefix;
+  parser->file    = file;
+  parser->name    = name;
+  parser->lineno  = 1;
+  parser->saved   = 0;
 
   BTOR_CLR (res);
 

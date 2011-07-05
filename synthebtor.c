@@ -117,8 +117,8 @@ main (int argc, char **argv)
   btor_set_rewrite_level_btor (btor, 1);
   parser = btor_btor_parser_api ()->init (btor, verbosity, 0);
 
-  parse_error =
-      btor_btor_parser_api ()->parse (parser, input_file, input_name, &model);
+  parse_error = btor_btor_parser_api ()->parse (
+      parser, 0, input_file, input_name, &model);
   if (parse_error) die (0, parse_error);
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);

@@ -21,10 +21,14 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "boolector.h"
+#ifndef BTORSMT2_H_INLCUDED
+#define BTORSMT2_H_INLCUDED
 
-int
-main (int argc, char** argv)
-{
-  return 0;
-}
+#include "btorexp.h"
+#include "btorparse.h"
+
+#include <stdio.h>
+
+const BtorParserAPI* btor_smt2_parser_api ();
+
+#endif
