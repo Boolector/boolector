@@ -681,7 +681,7 @@ RESTART:
         btor_pushch_smt2 (parser, ch);
       }
       btor_savech_smt2 (parser, ch);
-      btor_savech_smt2 (parser, 0);
+      btor_pushch_smt2 (parser, 0);
       return BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2;
     }
     else
