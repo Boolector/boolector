@@ -1090,9 +1090,14 @@ boolector_main (int argc, char **argv)
   app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
   app.bmcadc               = 1;
-  app.cnf_enc              = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-  app.force_smt_input      = 0;
-  app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
+#if 0
+  // TODO try Tseitin as well
+  app.cnf_enc = BTOR_TSEITIN_CNF_ENC;
+#else
+  app.cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
+#endif
+  app.force_smt_input = 0;
+  app.print_model     = BTOR_APP_PRINT_MODEL_NONE;
 #ifdef BTOR_USE_PICOSAT
   app.force_picosat = 0;
 #endif
