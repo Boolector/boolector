@@ -870,6 +870,49 @@ static void btor_read_tokens_smt2 (BtorSMT2Parser * parser) {
 #endif
 
 static int
+btor_read_rpar_smt2 (BtorSMT2Parser* parser, const char* before)
+{
+  int tag = btor_read_token_smt2 (parser);
+  if (tag == EOF)
+    return !btor_perr_smt2 (
+        parser, "expected ')' at end-of-file after '%s'", before);
+  if (tag == BTOR_INVALID_TAG_SMT2)
+  {
+    assert (parser->error);
+    return 0;
+  }
+  if (tag != BTOR_RPAR_TAG_SMT2)
+    return !btor_perr_smt2 (parser, "expected ')' after '%s'", before);
+  return 1;
+}
+
+static int
+btor_skip_sexprs (BtorSMT2Parser* parser, int initial)
+{
+  int tag, open = initial;
+  while (open > 0)
+  {
+    tag = btor_read_token_smt2 (parser);
+    if (tag == EOF)
+    {
+      if (open > 0)
+        return !btor_perr_smt2 (parser, "')' missing at end-of-file");
+      return 1;
+    }
+    if (tag == BTOR_INVALID_TAG_SMT2)
+    {
+      assert (parser->error);
+      return 0;
+    }
+    else if (tag == BTOR_LPAR_TAG_SMT2)
+      open++;
+    else if (tag == BTOR_RPAR_TAG_SMT2)
+      open--;
+  }
+  return 1;
+}
+
+static int
 btor_read_command_smt2 (BtorSMT2Parser* parser)
 {
   int tag = btor_read_token_smt2 (parser);
@@ -910,40 +953,27 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
         assert (tag == BTOR_QF_AUFBV_TAG_SMT2);
         parser->res->logic = BTOR_LOGIC_QF_AUFBV;
       }
+      btor_msg_smt2 (parser, 1, "logic %s", parser->token.start);
+      if (!btor_read_rpar_smt2 (parser, "set-logic command")) return 0;
       if (parser->set_logic_commands++)
         btor_msg_smt2 (parser, 0, "WARNING additional 'set-logic' command");
-      btor_msg_smt2 (parser, 1, "logic %s", parser->token.start);
       break;
 
     case BTOR_CHECK_SAT_TAG_SMT2:
-      tag = btor_read_token_smt2 (parser);
-      if (tag == EOF)
-        return !btor_perr_smt2 (parser,
-                                "unexpected end-of-file after 'check-sat'");
-      if (tag == BTOR_INVALID_TAG_SMT2)
-      {
-        assert (parser->error);
-        return 0;
-      }
-      if (tag != BTOR_RPAR_TAG_SMT2)
-        return !btor_perr_smt2 (parser, "expected ')' after 'check-sat'");
+      if (!btor_read_rpar_smt2 (parser, "check-sat")) return 0;
       if (parser->check_sat_commands++)
         btor_msg_smt2 (parser, 0, "WARNING additional 'check-sat' command");
       break;
 
     case BTOR_EXIT_TAG_SMT2:
       tag = btor_read_token_smt2 (parser);
-      if (tag == EOF)
-        return !btor_perr_smt2 (parser, "unexpected end-of-file after 'exit'");
-      if (tag == BTOR_INVALID_TAG_SMT2)
-      {
-        assert (parser->error);
-        return 0;
-      }
-      if (tag != BTOR_RPAR_TAG_SMT2)
-        return !btor_perr_smt2 (parser, "expected ')' after 'exit'");
+      if (!btor_read_rpar_smt2 (parser, "exit")) return 0;
       if (parser->exit_commands++)
         btor_msg_smt2 (parser, 0, "WARNING additional 'exit' command");
+      break;
+
+    case BTOR_SET_INFO_TAG_SMT2:
+      if (!btor_skip_sexprs (parser, 1)) return 0;
       break;
 
     default:
