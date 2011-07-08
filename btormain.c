@@ -1090,7 +1090,7 @@ boolector_main (int argc, char **argv)
   app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
   app.bmcadc               = 1;
-#if 1
+#if 0
   // TODO try Tseitin as well
   app.cnf_enc = BTOR_TSEITIN_CNF_ENC;
 #else
