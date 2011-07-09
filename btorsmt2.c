@@ -129,16 +129,17 @@ typedef enum BtorSMT2Tag
   BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_INSERT_TAG_CLASS_SMT2,
   BTOR_VERSION_TAG_SMT2                = 32 + BTOR_INSERT_TAG_CLASS_SMT2,
 
-  BTOR_TRUE_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_FALSE_TAG_SMT2    = 1 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_NOT_TAG_SMT2      = 2 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_IMPLIES_TAG_SMT2  = 3 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_AND_TAG_SMT2      = 4 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_OR_TAG_SMT2       = 5 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_XOR_TAG_SMT2      = 6 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_EQUAL_TAG_SMT2    = 7 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_DISTINCT_TAG_SMT2 = 8 + BTOR_CORE_TAG_CLASS_SMT2,
-  BTOR_ITE_TAG_SMT2      = 9 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_TRUE_TAG_SMT2     = 1 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_FALSE_TAG_SMT2    = 2 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_NOT_TAG_SMT2      = 3 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_IMPLIES_TAG_SMT2  = 4 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_AND_TAG_SMT2      = 5 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_OR_TAG_SMT2       = 6 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_XOR_TAG_SMT2      = 7 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_EQUAL_TAG_SMT2    = 8 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_DISTINCT_TAG_SMT2 = 9 + BTOR_CORE_TAG_CLASS_SMT2,
+  BTOR_ITE_TAG_SMT2      = 10 + BTOR_CORE_TAG_CLASS_SMT2,
 
   BTOR_ARRAY_TAG_SMT2  = 0 + BTOR_ARRAY_TAG_CLASS_SMT2,
   BTOR_SELECT_TAG_SMT2 = 1 + BTOR_ARRAY_TAG_CLASS_SMT2,
@@ -544,6 +545,7 @@ btor_insert_commands_smt2 (BtorSMT2Parser* parser)
 static void
 btor_insert_core_symbols_smt2 (BtorSMT2Parser* parser)
 {
+  INSERT ("Bool", BTOR_BOOL_TAG_SMT2);
   INSERT ("true", BTOR_TRUE_TAG_SMT2);
   INSERT ("false", BTOR_FALSE_TAG_SMT2);
   INSERT ("not", BTOR_NOT_TAG_SMT2);
@@ -979,7 +981,7 @@ btor_read_rpar_smt2 (BtorSMT2Parser* parser, const char* msg)
   }
   if (tag != BTOR_RPAR_TAG_SMT2)
     return !btor_perr_smt2 (
-        parser, "expected ')'%s at %s", msg ? msg : "", parser->token.start);
+        parser, "expected ')'%s at '%s'", msg ? msg : "", parser->token.start);
   return 1;
 }
 
@@ -997,7 +999,7 @@ btor_read_lpar_smt2 (BtorSMT2Parser* parser, const char* msg)
   }
   if (tag != BTOR_LPAR_TAG_SMT2)
     return !btor_perr_smt2 (
-        parser, "expected '('%s at %s", msg ? msg : "", parser->token.start);
+        parser, "expected '('%s at '%s'", msg ? msg : "", parser->token.start);
   return 1;
 }
 
@@ -1128,7 +1130,19 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
   fun->lineno = parser->lineno;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
   if (!btor_read_rpar_smt2 (parser, " after '('")) return 0;
-  if (!btor_read_lpar_smt2 (parser, " after '()'")) return 0;
+  tag = btor_read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !btor_perr_smt2 (parser,
+                            "reached end-of-file expecting '(' or 'Bool'");
+  if (tag == BTOR_BOOL_TAG_SMT2)
+  {
+    fun->sort.width = 1;
+    goto BITVEC;
+  }
+  else if (tag != BTOR_LPAR_TAG_SMT2)
+    return !btor_perr_smt2 (
+        parser, "expected '(' or 'Bool' at '%s'", parser->token.start);
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
@@ -1137,6 +1151,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
   if (tag == BTOR_UNDERSCORE_TAG_SMT2)
   {
     if (!btor_parse_bitvec_sort_smt2 (parser, 1, &fun->sort.width)) return 0;
+  BITVEC:
     fun->sort.tag = BTOR_BITVEC_SORT_SMT2;
     fun->exp      = btor_var_exp (parser->btor, fun->sort.width, fun->name);
     btor_msg_smt2 (parser,
@@ -1167,6 +1182,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
   else
     return !btor_perr_smt2 (
         parser, "expected '_' or 'Array' at '%s'", parser->token.start);
+DONE:
   return btor_read_rpar_smt2 (parser, " for closing declaration");
 }
 
@@ -1313,9 +1329,11 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
   if (!parser->set_logic_commands)
     return btor_perr_smt2 (parser, "'set-logic' command missing");
   if (!parser->check_sat_commands)
-    btor_msg_smt2 (parser, 0, "WARNING 'check-sat' command missing");
+    btor_msg_smt2 (
+        parser, 0, "WARNING 'check-sat' command missing in '%s'", parser->name);
   if (!parser->assert_commands)
-    btor_msg_smt2 (parser, 0, "WARNING no 'assert' command");
+    btor_msg_smt2 (
+        parser, 0, "WARNING no 'assert' command in '%s'", parser->name);
   return 0;
 }
 

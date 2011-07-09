@@ -1459,8 +1459,8 @@ boolector_main (int argc, char **argv)
       else { btor_enable_minisat_sat (smgr); }
 #endif
 #endif
-#if !defined(BTOR_USE_LINGELING) && !defined(BTOR_USE_PRECOSAT) \
-    && defined(BTOR_USE_MINISAT)
+#if defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_LINGELING) \
+    && !defined(BTOR_USE_PRECOSAT)
       else { btor_enable_minisat_sat (smgr); }
 #endif
       assert (need_incremental_sat_solver
@@ -1925,16 +1925,20 @@ boolector_main (int argc, char **argv)
         if (sat_result == BTOR_SAT
             && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
-          print_msg (&app,
-                     "[boolector] ERROR: got 'sat' but status of benchmark is "
-                     "'unsat'\n");
+          print_msg_va_args (
+              &app,
+              "[boolector] ERROR: "
+              "'sat' but status of benchmark in '%s' is 'unsat'\n",
+              app.input_file_name);
         }
         else if (sat_result == BTOR_UNSAT
                  && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
         {
-          print_msg (&app,
-                     "[boolector] ERROR: got 'unsat' but status of benchmark "
-                     "is 'sat'\n");
+          print_msg_va_args (
+              &app,
+              "[boolector] ERROR: "
+              "'unsat' but status of benchmark in '%s' is 'sat'\n",
+              app.input_file_name);
         }
         else
           print_sat_result (&app, sat_result);
