@@ -13,7 +13,7 @@ exec ./boolector \$*
 EOF
 chmod 755 $dir/run
 cp $HOME/papers/boolector-sc2011/boolector-sc2011.pdf $dir
-cd /tmp
-tar jcf $tar $name
+cd $dir
+tar jcf $tar .
 rm -rf $dir
 ls -l $tar
