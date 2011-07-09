@@ -542,6 +542,70 @@ btor_insert_commands_smt2 (BtorSMT2Parser* parser)
 }
 
 static void
+btor_insert_core_symbols_smt2 (BtorSMT2Parser* parser)
+{
+  INSERT ("true", BTOR_TRUE_TAG_SMT2);
+  INSERT ("false", BTOR_FALSE_TAG_SMT2);
+  INSERT ("not", BTOR_NOT_TAG_SMT2);
+  INSERT ("=>", BTOR_IMPLIES_TAG_SMT2);
+  INSERT ("and", BTOR_AND_TAG_SMT2);
+  INSERT ("or", BTOR_OR_TAG_SMT2);
+  INSERT ("xor", BTOR_XOR_TAG_SMT2);
+  INSERT ("=", BTOR_EQUAL_TAG_SMT2);
+  INSERT ("distinct", BTOR_DISTINCT_TAG_SMT2);
+  INSERT ("ite", BTOR_ITE_TAG_SMT2);
+}
+
+static void
+btor_insert_array_symbols_smt2 (BtorSMT2Parser* parser)
+{
+  INSERT ("Array", BTOR_ARRAY_TAG_SMT2);
+  INSERT ("select", BTOR_SELECT_TAG_SMT2);
+  INSERT ("store", BTOR_STORE_TAG_SMT2);
+}
+
+static void
+btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser* parser)
+{
+  INSERT ("BitVec", BTOR_BITVEC_TAG_SMT2);
+  INSERT ("concat", BTOR_CONCAT_TAG_SMT2);
+  INSERT ("extract", BTOR_EXTRACT_TAG_SMT2);
+  INSERT ("bvnot", BTOR_BVNOT_TAG_SMT2);
+  INSERT ("bvneg", BTOR_BVNEG_TAG_SMT2);
+  INSERT ("bvand", BTOR_BVAND_TAG_SMT2);
+  INSERT ("bvor", BTOR_BVOR_TAG_SMT2);
+  INSERT ("bvadd", BTOR_BVADD_TAG_SMT2);
+  INSERT ("bvmul", BTOR_BVMUL_TAG_SMT2);
+  INSERT ("bvudiv", BTOR_BVUDIV_TAG_SMT2);
+  INSERT ("bvurem", BTOR_BVUREM_TAG_SMT2);
+  INSERT ("bvshl", BTOR_BVSHL_TAG_SMT2);
+  INSERT ("bvlshr", BTOR_BVLSHR_TAG_SMT2);
+  INSERT ("bvult", BTOR_BVULT_TAG_SMT2);
+  INSERT ("bvnand", BTOR_BVNAND_TAG_SMT2);
+  INSERT ("bvnor", BTOR_BVNOR_TAG_SMT2);
+  INSERT ("bvxor", BTOR_BVXOR_TAG_SMT2);
+  INSERT ("bvxnor", BTOR_BVXNOR_TAG_SMT2);
+  INSERT ("bvcomp", BTOR_BVCOMP_TAG_SMT2);
+  INSERT ("bvsub", BTOR_BVSUB_TAG_SMT2);
+  INSERT ("bvsdiv", BTOR_BVSDIV_TAG_SMT2);
+  INSERT ("bvsrem", BTOR_BVSREM_TAG_SMT2);
+  INSERT ("bvsmod", BTOR_BVSMOD_TAG_SMT2);
+  INSERT ("bvashr", BTOR_BVASHR_TAG_SMT2);
+  INSERT ("repeat", BTOR_REPEAT_TAG_SMT2);
+  INSERT ("zero_extend", BTOR_ZERO_EXTEND_TAG_SMT2);
+  INSERT ("sign_extend", BTOR_SIGN_EXTEND_TAG_SMT2);
+  INSERT ("rotate_left", BTOR_ROTATE_LEFT_TAG_SMT2);
+  INSERT ("rotate_right", BTOR_ROTATE_RIGHT_TAG_SMT2);
+  INSERT ("bvule", BTOR_BVULE_TAG_SMT2);
+  INSERT ("bvugt", BTOR_BVUGT_TAG_SMT2);
+  INSERT ("bvuge", BTOR_BVUGE_TAG_SMT2);
+  INSERT ("bvslt", BTOR_BVSLT_TAG_SMT2);
+  INSERT ("bvsle", BTOR_BVSLE_TAG_SMT2);
+  INSERT ("bvsgt", BTOR_BVSGT_TAG_SMT2);
+  INSERT ("bvsge", BTOR_BVSGE_TAG_SMT2);
+}
+
+static void
 btor_insert_logics_smt2 (BtorSMT2Parser* parser)
 {
   INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
@@ -565,6 +629,9 @@ btor_new_smt2_parser (Btor* btor, int verbosity, int incremental)
   btor_insert_keywords_smt2 (res);
   btor_insert_reserved_words_smt2 (res);
   btor_insert_commands_smt2 (res);
+  btor_insert_core_symbols_smt2 (res);
+  btor_insert_array_symbols_smt2 (res);
+  btor_insert_bitvec_symbols_smt2 (res);
   btor_insert_logics_smt2 (res);
 
   return res;
