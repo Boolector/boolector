@@ -666,7 +666,7 @@ RESTART:
     {
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
         return !btor_perr_smt2 (parser, "unexpected end-of-file after '#x'");
-      if (!(ch & BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2))
+      if (!(btor_cc_smt2 (parser, ch) & BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2))
         return !btor_perr_smt2 (parser,
                                 "expected hexa-decimal digit after '#x'");
       btor_pushch_smt2 (parser, ch);
@@ -935,6 +935,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
 static int
 btor_assert_smt2 (BtorSMT2Parser* parser)
 {
+  parser->assert_commands++;
   return btor_skip_sexprs (parser, 1);
 }
 
