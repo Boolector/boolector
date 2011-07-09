@@ -1064,7 +1064,7 @@ btor_str2int32_smt2 (BtorSMT2Parser* parser, const char* str, int* resptr)
     res *= 10;
     digit = ch - '0';
     if (INT_MAX - digit < res) goto INVALID;
-    res += 10;
+    res += digit;
   }
   *resptr = res;
   return 1;
@@ -1087,7 +1087,7 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser* parser, int skiplu, int* resptr)
   if (tag == EOF)
     return !btor_perr_smt2 (parser,
                             "expected 'BitVec' but reached end-of-file");
-  if (tag != BTOR_SYMBOL_TAG_SMT2 || strcmp (parser->last_node->name, "BitVec"))
+  if (tag != BTOR_BITVEC_TAG_SMT2)
     return !btor_perr_smt2 (
         parser, "expected 'BitVec' at '%s'", parser->token.start);
   tag = btor_read_token_smt2 (parser);
@@ -1146,8 +1146,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
                    fun->sort.width,
                    fun->lineno);
   }
-  else if (tag == BTOR_SYMBOL_TAG_SMT2
-           && !strcmp (parser->last_node->name, "Array"))
+  else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &fun->sort.domain)) return 0;
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &fun->sort.width)) return 0;

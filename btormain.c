@@ -1926,13 +1926,15 @@ boolector_main (int argc, char **argv)
             && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
           print_msg (&app,
-                     "ERROR: got 'sat' but status of benchmark is 'unsat'\n");
+                     "[boolector] ERROR: got 'sat' but status of benchmark is "
+                     "'unsat'\n");
         }
         else if (sat_result == BTOR_UNSAT
                  && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
         {
           print_msg (&app,
-                     "ERROR: got 'unsat' but status of benchmark is 'sat'\n");
+                     "[boolector] ERROR: got 'unsat' but status of benchmark "
+                     "is 'sat'\n");
         }
         else
           print_sat_result (&app, sat_result);
