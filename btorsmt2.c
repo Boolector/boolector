@@ -181,7 +181,8 @@ typedef enum BtorSMT2Tag
   BTOR_BVSGE_TAG_SMT2        = 35 + BTOR_BITVEC_TAG_CLASS_SMT2,
 
   BTOR_QF_BV_TAG_SMT2    = 0 + BTOR_LOGIC_TAG_CLASS_SMT2,
-  BTOR_QF_AUFBV_TAG_SMT2 = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_QF_ABV_TAG_SMT2   = 1 + BTOR_LOGIC_TAG_CLASS_SMT2,
+  BTOR_QF_AUFBV_TAG_SMT2 = 2 + BTOR_LOGIC_TAG_CLASS_SMT2,
 
 } BtorSMT2Tag;
 
@@ -529,6 +530,7 @@ static void
 btor_insert_logics_smt2 (BtorSMT2Parser* parser)
 {
   INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
+  INSERT ("QF_ABV", BTOR_QF_ABV_TAG_SMT2);
   INSERT ("QF_AUFBV", BTOR_QF_AUFBV_TAG_SMT2);
 }
 
@@ -974,7 +976,7 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
         parser->res->logic = BTOR_LOGIC_QF_BV;
       else
       {
-        assert (tag == BTOR_QF_AUFBV_TAG_SMT2);
+        assert (tag == BTOR_QF_AUFBV_TAG_SMT2 || tag == BTOR_QF_ABV_TAG_SMT2);
         parser->res->logic = BTOR_LOGIC_QF_AUFBV;
       }
       btor_msg_smt2 (parser, 1, "logic %s", parser->token.start);
