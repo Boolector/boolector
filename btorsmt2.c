@@ -904,14 +904,15 @@ btor_read_rpar_smt2 (BtorSMT2Parser* parser, const char* msg)
   int tag = btor_read_token_smt2 (parser);
   if (tag == EOF)
     return !btor_perr_smt2 (
-        parser, "expected ')' at end-of-file%s", msg ? msg : "");
+        parser, "expected ')'%s at end-of-file", msg ? msg : "");
   if (tag == BTOR_INVALID_TAG_SMT2)
   {
     assert (parser->error);
     return 0;
   }
   if (tag != BTOR_RPAR_TAG_SMT2)
-    return !btor_perr_smt2 (parser, "expected ')' %s", msg ? msg : "");
+    return !btor_perr_smt2 (
+        parser, "expected ')'%s at %s", msg ? msg : "", parser->token.start);
   return 1;
 }
 
@@ -921,14 +922,15 @@ btor_read_lpar_smt2 (BtorSMT2Parser* parser, const char* msg)
   int tag = btor_read_token_smt2 (parser);
   if (tag == EOF)
     return !btor_perr_smt2 (
-        parser, "expected '(' at end-of-file after '%s'", msg);
+        parser, "expected '('%s at end-of-file", msg ? msg : "");
   if (tag == BTOR_INVALID_TAG_SMT2)
   {
     assert (parser->error);
     return 0;
   }
-  if (tag != BTOR_RPAR_TAG_SMT2)
-    return !btor_perr_smt2 (parser, "expected '(' after '%s'", msg);
+  if (tag != BTOR_LPAR_TAG_SMT2)
+    return !btor_perr_smt2 (
+        parser, "expected '('%s at %s", msg ? msg : "", parser->token.start);
   return 1;
 }
 
