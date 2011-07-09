@@ -8,7 +8,7 @@ mkdir $dir
 install -s boolector $dir/
 cat >$dir/run <<EOF
 #!/bin/sh
-exec boolector \$*
+exec ./boolector \$*
 EOF
 chmod 755 $dir/run
 cd /tmp
