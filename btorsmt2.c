@@ -257,7 +257,7 @@ typedef struct BtorSMT2Parser
 {
   Btor* btor;
   BtorMemMgr* mem;
-  int verbosity, incremental;
+  int verbosity, incremental, need_arrays;
   char* name;
   int lineno;
   FILE* file;
@@ -1086,6 +1086,15 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
     fun->sort.tag = BTOR_ARRAY_SORT_SMT2;
     fun->exp      = btor_array_exp (
         parser->btor, fun->sort.width, fun->sort.domain, fun->name);
+    btor_msg_smt2 (
+        parser,
+        2,
+        "declared bit-vector array '%s' index/element width %d/%d at line %d",
+        fun->name,
+        fun->sort.domain,
+        fun->sort.width,
+        fun->lineno);
+    parser->need_arrays = 1;
   }
   else
     return !btor_perr_smt2 (
