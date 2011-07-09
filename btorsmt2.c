@@ -1109,6 +1109,7 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser* parser, int skiplu, int* resptr)
   if (strchr (parser->token.start, '.'))
     return !btor_perr_smt2 (
         parser, "invalid floating point bit-width '%s'", parser->token.start);
+  res = 0;
   if (!btor_str2int32_smt2 (parser, parser->token.start, &res)) return 0;
   *resptr = res;
   btor_msg_smt2 (parser, 3, "parsed bit-vector sort of width %d", res);
@@ -1120,6 +1121,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
 {
   BtorSMT2Node* fun;
   int tag;
+  fun = 0;
   if (!btor_read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
   if (fun->sort.tag != BTOR_UNDEFINED_SORT_SMT2)
@@ -1182,7 +1184,6 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
   else
     return !btor_perr_smt2 (
         parser, "expected '_' or 'Array' at '%s'", parser->token.start);
-DONE:
   return btor_read_rpar_smt2 (parser, " for closing declaration");
 }
 
