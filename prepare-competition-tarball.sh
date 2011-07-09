@@ -5,12 +5,14 @@ dir=/tmp/$name
 tar=/tmp/${name}.tar.bz2
 rm -rf $dir $tar
 mkdir $dir
-install -s boolector $dir/
+strip boolector
+cp boolector $dir/
 cat >$dir/run <<EOF
 #!/bin/sh
 exec ./boolector \$*
 EOF
 chmod 755 $dir/run
+cp $HOME/papers/boolector-sc2011/boolector-sc2011.pdf $dir
 cd /tmp
 tar jcf $tar $name
 rm -rf $dir
