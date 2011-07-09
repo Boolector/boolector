@@ -940,6 +940,42 @@ btor_assert_smt2 (BtorSMT2Parser* parser)
 }
 
 static int
+btor_set_info_smt2 (BtorSMT2Parser* parser)
+{
+  int tag = btor_read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !btor_perr_smt2 (parser, "unexpected end-of-file after 'set-info'");
+  if (tag == BTOR_RPAR_TAG_SMT2)
+    return !btor_perr_smt2 (parser, "keyword after 'set-info' missing");
+  if (tag == BTOR_STATUS_TAG_SMT2)
+  {
+    if ((tag = btor_read_token_smt2 (parser)) == BTOR_INVALID_TAG_SMT2)
+      return 0;
+    if (tag == EOF)
+      return !btor_perr_smt2 (parser, "unexpected end-of-file after ':status'");
+    if (tag == BTOR_RPAR_TAG_SMT2)
+      return !btor_perr_smt2 (parser, "value after ':status' missing");
+    if (tag != BTOR_SYMBOL_TAG_SMT2)
+    INVALID_STATUS_VALUE:
+      return !btor_perr_smt2 (
+          parser, "invalid value '%s' after ':status'", parser->token.start);
+    if (!strcmp (parser->token.start, "sat"))
+      parser->res->status = BTOR_PARSE_SAT_STATUS_SAT;
+    else if (!strcmp (parser->token.start, "unsat"))
+      parser->res->status = BTOR_PARSE_SAT_STATUS_UNSAT;
+    else if (!strcmp (parser->token.start, "unknown"))
+      parser->res->status = BTOR_PARSE_SAT_STATUS_UNKNOWN;
+    else
+      goto INVALID_STATUS_VALUE;
+
+    btor_msg_smt2 (parser, 2, "parsed status %s", parser->token.start);
+    return btor_read_rpar_smt2 (parser, "set-logic");
+  }
+  return btor_skip_sexprs (parser, 1);
+}
+
+static int
 btor_read_command_smt2 (BtorSMT2Parser* parser)
 {
   int tag = btor_read_token_smt2 (parser);
@@ -980,7 +1016,7 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
         assert (tag == BTOR_QF_AUFBV_TAG_SMT2 || tag == BTOR_QF_ABV_TAG_SMT2);
         parser->res->logic = BTOR_LOGIC_QF_AUFBV;
       }
-      btor_msg_smt2 (parser, 1, "logic %s", parser->token.start);
+      btor_msg_smt2 (parser, 2, "logic %s", parser->token.start);
       if (!btor_read_rpar_smt2 (parser, "set-logic command")) return 0;
       if (parser->set_logic_commands++)
         btor_msg_smt2 (parser, 0, "WARNING additional 'set-logic' command");
@@ -1007,7 +1043,7 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:
-      if (!btor_skip_sexprs (parser, 1)) return 0;
+      if (!btor_set_info_smt2 (parser)) return 0;
       break;
 
     default:

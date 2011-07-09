@@ -1,4 +1,5 @@
 (set-logic QF_BV)
+(set-info :status unknown)
 (declare-fun x () (_ BitVec 32))
 (declare-fun y () (_ BitVec 16))
 (declare-fun z () (_ BitVec 20))

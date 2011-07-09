@@ -14,6 +14,6 @@ EOF
 chmod 755 $dir/run
 cp $HOME/papers/boolector-sc2011/boolector-sc2011.pdf $dir
 cd $dir
-tar jcf $tar .
+tar jcf $tar *
 rm -rf $dir
 ls -l $tar
