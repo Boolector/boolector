@@ -1196,7 +1196,27 @@ boolector_main (int argc, char **argv)
     {
       int ch;
       parser_api = btor_btor_parser_api ();
-      if ((ch = getc (app.input_file)) != EOF)
+      while ((ch = getc (app.input_file)) != EOF)
+      {
+        if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
+        {
+          BTOR_PUSH_STACK (mem, prefix, ch);
+        }
+        else if (ch == ';')
+        {
+          BTOR_PUSH_STACK (mem, prefix, ';');
+          do
+          {
+            ch = getc (app.input_file);
+            if (ch == EOF) break;
+            BTOR_PUSH_STACK (mem, prefix, ch);
+          } while (ch != '\n');
+          if (ch == EOF) break;
+        }
+        else
+          break;
+      }
+      if (ch != EOF)
       {
         BTOR_PUSH_STACK (mem, prefix, ch);
         if (ch == '(')
