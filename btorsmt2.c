@@ -1157,7 +1157,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
     btor_msg_smt2 (
         parser,
         2,
-        "declared bit-vector array '%s' index/element width %d/%d at line %d",
+        "declared bit-vector array '%s' index element width %d %d at line %d",
         fun->name,
         fun->sort.domain,
         fun->sort.width,
