@@ -1106,7 +1106,10 @@ btor_read_symbol (BtorSMT2Parser* parser,
 }
 
 static int
-btor_str2posint32_smt2 (BtorSMT2Parser* parser, const char* str, int* resptr)
+btor_str2int32_smt2 (BtorSMT2Parser* parser,
+                     int posonly,
+                     const char* str,
+                     int* resptr)
 {
   int res, ch, digit;
   const char* p;
@@ -1123,7 +1126,7 @@ btor_str2posint32_smt2 (BtorSMT2Parser* parser, const char* str, int* resptr)
     if (INT_MAX - digit < res) goto INVALID;
     res += digit;
   }
-  if (!res)
+  if (posonly && !res)
     return !btor_perr_smt2 (
         parser, "expected positive non-zero 32-bit integer at '%s'", str);
   *resptr = res;
@@ -1207,6 +1210,20 @@ btor_prev_item_was_lpar_smt2 (BtorSMT2Parser* parser)
 }
 
 static int
+btor_parse_int32_smt2 (BtorSMT2Parser* parser, int posonly, int* resptr)
+{
+  int tag = btor_read_token_smt2 (parser);
+  if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+  if (tag == EOF)
+    return !btor_perr_smt2 (
+        parser, "expected decimal constant but reached end-of-file");
+  if (tag != BTOR_DECIMAL_CONSTANT_TAG_SMT2)
+    return !btor_perr_smt2 (
+        parser, "expected decimal constant at '%s'", parser->token.start);
+  return btor_str2int32_smt2 (parser, posonly, parser->token.start, resptr);
+}
+
+static int
 btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
 {
   int tag, width, open = 0;
@@ -1256,36 +1273,55 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
           }
           else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
           {
+            const char* read_rpar_msg = 0;
+            BtorSMT2Node* node        = 0;
             if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
-            tag = btor_read_token_smt2 (parser);
+            tag  = btor_read_token_smt2 (parser);
+            node = parser->last_node;
             if (tag == BTOR_INVALID_TAG_SMT2) return 0;
             if (tag == EOF)
               return !btor_perr_smt2 (parser,
                                       "unexpected end-of-file after '_'");
             if (tag == BTOR_REPEAT_TAG_SMT2)
             {
-              if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
-              // TODO
+              assert (node && node->tag == tag);
+              read_rpar_msg = "to close '(repeat'";
+            ONE_FIXED_NUM_PARAMETRIC:
+              if (BTOR_COUNT_STACK (parser->work) < 3
+                  || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+                return !btor_perr_smt2 (
+                    parser, "expected two '(' before '_ %s'", node->name);
+              if (!btor_parse_int32_smt2 (parser, 0, &width)) return 0;
+              assert (p > parser->work.start);
+              p--, parser->work.top--;
+              assert (p->tag == BTOR_LPAR_TAG_SMT2);
+              assert (open > 0);
+              open--;
+              p->tag = tag;
+              ;
+              p->num  = width;
+              p->node = node;
+              if (!btor_read_rpar_smt2 (parser, read_rpar_msg)) return 0;
             }
             else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
             {
-              if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
-              // TODO
+              read_rpar_msg = "to close 'zero_extend'";
+              goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
             {
-              if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
-              // TODO
+              read_rpar_msg = "to close 'sign_extend'";
+              goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
             {
-              if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
-              // TODO
+              read_rpar_msg = "to close 'rotate_left'";
+              goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
             {
-              if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
-              // TODO
+              read_rpar_msg = "to close 'rotate_right'";
+              goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_SYMBOL_TAG_SMT2
                      && btor_bvconst_str_smt2 (parser->token.start))
@@ -1295,24 +1331,9 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
               exp = 0;
               constr =
                   btor_decimal_to_const (parser->mem, parser->token.start + 2);
+              if (!btor_parse_int32_smt2 (parser, 1, &width))
+                goto UNDERSCORE_DONE;
               len = (int) strlen (constr);
-              tag = btor_read_token_smt2 (parser);
-              if (tag == BTOR_INVALID_TAG_SMT2) goto UNDERSCORE_DONE;
-              if (tag == EOF)
-              {
-                (void) btor_perr_smt2 (
-                    parser,
-                    "expected decimal constant but reached end-of-file");
-                goto UNDERSCORE_DONE;
-              }
-              if (tag != BTOR_DECIMAL_CONSTANT_TAG_SMT2)
-              {
-                (void) btor_perr_smt2 (
-                    parser, "expected decimal at '%s'", parser->token.start);
-                goto UNDERSCORE_DONE;
-              }
-              if (!btor_str2posint32_smt2 (parser, parser->token.start, &width))
-                goto UNDERSCORE_DONE;
               if (len > width)
               {
                 (void) btor_perr_smt2 (parser,
@@ -1335,6 +1356,7 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
               btor_delete_const (parser->mem, constr);
               if (!exp) return 0;
               assert (btor_get_exp_len (parser->btor, exp) == width);
+
               assert (p > parser->work.start);
               p--, parser->work.top--;
               assert (p->tag == BTOR_LPAR_TAG_SMT2);
@@ -1470,7 +1492,7 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser* parser, int skiplu, int* resptr)
     return !btor_perr_smt2 (
         parser, "invalid floating point bit-width '%s'", parser->token.start);
   res = 0;
-  if (!btor_str2posint32_smt2 (parser, parser->token.start, &res)) return 0;
+  if (!btor_str2int32_smt2 (parser, 1, parser->token.start, &res)) return 0;
   *resptr = res;
   btor_msg_smt2 (parser, 3, "parsed bit-vector sort of width %d", res);
   return btor_read_rpar_smt2 (parser, " to close bit-vector sort");
