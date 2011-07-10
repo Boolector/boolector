@@ -1270,6 +1270,7 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
           }
           else if (tag == BTOR_UNDERSCORE_TAG_SMT2)
           {
+            if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
             tag = btor_read_token_smt2 (parser);
             if (tag == BTOR_INVALID_TAG_SMT2) return 0;
             if (tag == EOF)
@@ -1305,8 +1306,7 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
             {
               char* constr;
               int len;
-              exp = 0;
-              if (!btor_prev_item_was_lpar_smt2 (parser)) return 0;
+              exp    = 0;
               len    = strlen (parser->token.start + 2);
               constr = btor_decimal_to_const_n (
                   parser->mem, parser->token.start + 2, len);
