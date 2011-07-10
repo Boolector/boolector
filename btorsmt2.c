@@ -294,6 +294,7 @@ typedef struct BtorSMT2Parser
   BtorSMT2ItemStack work;
   BtorParseResult* res;
   int set_logic_commands, assert_commands, check_sat_commands, exit_commands;
+  int binding;
 } BtorSMT2Parser;
 
 static char*
@@ -689,17 +690,23 @@ static void
 btor_delete_smt2_parser (BtorSMT2Parser* parser)
 {
   BtorMemMgr* mem = parser->mem;
+
   btor_release_symbols_smt2 (parser);
   btor_release_work_smt2 (parser);
+
   if (parser->name) btor_freestr (mem, parser->name);
   if (parser->error) btor_freestr (mem, parser->error);
+
   while (!BTOR_EMPTY_STACK (parser->inputs))
     btor_release_exp (parser->btor, BTOR_POP_STACK (parser->inputs));
-  BTOR_RELEASE_STACK (mem, parser->outputs);
+  BTOR_RELEASE_STACK (mem, parser->inputs);
+
   while (!BTOR_EMPTY_STACK (parser->outputs))
     btor_release_exp (parser->btor, BTOR_POP_STACK (parser->outputs));
   BTOR_RELEASE_STACK (mem, parser->outputs);
+
   BTOR_RELEASE_STACK (mem, parser->token);
+
   BTOR_DELETE (mem, parser);
 }
 
@@ -1173,6 +1180,7 @@ btor_item2str_smt2 (BtorSMT2Item* item)
   if (btor_item_with_node_smt2 (item))
   {
     assert (item->node);
+    assert (item->node->name);
     return item->node->name;
   }
   else if (item->tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
@@ -1217,7 +1225,30 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
       if (tag == BTOR_LPAR_TAG_SMT2)
         open++;
       else if (btor_item_with_node_smt2 (p))
+      {
         p->node = parser->last_node;
+        if (tag & BTOR_COMMAND_TAG_CLASS_SMT2)
+          return !btor_perr_smt2 (
+              parser, "unexpected command '%s'", p->node->name);
+        if (tag & BTOR_KEYWORD_TAG_CLASS_SMT2)
+          return !btor_perr_smt2 (
+              parser, "unexpected keyword '%s'", p->node->name);
+        if (!parser->binding && tag == BTOR_SYMBOL_TAG_SMT2)
+          return !btor_perr_smt2 (
+              parser, "undeclared function '%s'", p->node->name);
+        if (tag == BTOR_TRUE_TAG_SMT2)
+        {
+          p->tag  = BTOR_EXP_TAG_SMT2;
+          p->node = 0;
+          p->exp  = btor_true_exp (parser->btor);
+        }
+        else if (tag == BTOR_FALSE_TAG_SMT2)
+        {
+          p->tag  = BTOR_EXP_TAG_SMT2;
+          p->node = 0;
+          p->exp  = btor_false_exp (parser->btor);
+        }
+      }
       else if (tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
         p->str = btor_strdup (parser->mem, parser->token.start);
     }
@@ -1518,7 +1549,8 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
     ;
   if (parser->error) return parser->error;
   if (!parser->set_logic_commands)
-    return btor_perr_smt2 (parser, "'set-logic' command missing");
+    btor_msg_smt2 (
+        parser, 0, "WARNING 'set-logic' command missing in '%s'", parser->name);
   if (!parser->check_sat_commands)
     btor_msg_smt2 (
         parser, 0, "WARNING 'check-sat' command missing in '%s'", parser->name);
