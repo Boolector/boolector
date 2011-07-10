@@ -1285,7 +1285,7 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
             if (tag == BTOR_REPEAT_TAG_SMT2)
             {
               assert (node && node->tag == tag);
-              read_rpar_msg = "to close '(repeat'";
+              read_rpar_msg = " to close '(repeat'";
             ONE_FIXED_NUM_PARAMETRIC:
               if (BTOR_COUNT_STACK (parser->work) < 3
                   || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
@@ -1305,22 +1305,22 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
             }
             else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
             {
-              read_rpar_msg = "to close 'zero_extend'";
+              read_rpar_msg = " to close 'zero_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
             {
-              read_rpar_msg = "to close 'sign_extend'";
+              read_rpar_msg = " to close 'sign_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
             {
-              read_rpar_msg = "to close 'rotate_left'";
+              read_rpar_msg = " to close 'rotate_left'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
             {
-              read_rpar_msg = "to close 'rotate_right'";
+              read_rpar_msg = " to close 'rotate_right'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_SYMBOL_TAG_SMT2
