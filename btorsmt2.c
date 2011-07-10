@@ -293,7 +293,10 @@ typedef struct BtorSMT2Parser
   BtorCharStack token;
   BtorSMT2ItemStack work;
   BtorParseResult* res;
-  int set_logic_commands, assert_commands, check_sat_commands, exit_commands;
+  struct
+  {
+    int all, set_logic, asserts, check_sat, exits;
+  } commands;
   int binding;
 } BtorSMT2Parser;
 
@@ -1455,6 +1458,11 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
   switch (tag)
   {
     case BTOR_SET_LOGIC_TAG_SMT2:
+      if (parser->commands.all)
+        btor_msg_smt2 (parser,
+                       0,
+                       "WARNING 'set-logic' not first command in '%s'",
+                       parser->name);
       tag = btor_read_token_smt2 (parser);
       if (tag == EOF)
         return !btor_perr_smt2 (parser,
@@ -1477,13 +1485,13 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
       }
       btor_msg_smt2 (parser, 2, "logic %s", parser->token.start);
       if (!btor_read_rpar_smt2 (parser, " after logic")) return 0;
-      if (parser->set_logic_commands++)
+      if (parser->commands.set_logic++)
         btor_msg_smt2 (parser, 0, "WARNING additional 'set-logic' command");
       break;
 
     case BTOR_CHECK_SAT_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
-      if (parser->check_sat_commands++)
+      if (parser->commands.check_sat++)
         btor_msg_smt2 (parser, 0, "WARNING additional 'check-sat' command");
       break;
 
@@ -1509,13 +1517,21 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
       }
       if (!btor_read_rpar_smt2 (parser, " after assert term")) return 0;
       assert (!parser->error);
-      parser->assert_commands++;
+      parser->commands.asserts++;
       break;
 
     case BTOR_EXIT_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'exit'")) return 0;
-      if (parser->exit_commands++)
-        btor_msg_smt2 (parser, 0, "WARNING additional 'exit' command");
+      assert (!parser->commands.exits);
+      parser->commands.exits++;
+      tag = btor_read_token_smt2 (parser);
+      if (tag == BTOR_INVALID_TAG_SMT2) return 0;
+      if (tag != EOF)
+        return !btor_perr_smt2 (
+            parser,
+            "expected end-of-file after 'exit' command at '%s'",
+            parser->token.start);
+      goto DONE;
       break;
 
     case BTOR_SET_INFO_TAG_SMT2:
@@ -1527,6 +1543,8 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
           parser, "unsupported command '%s'", parser->token.start);
       break;
   }
+DONE:
+  parser->commands.all++;
   return 1;
 }
 
@@ -1548,19 +1566,32 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
   while (btor_read_command_smt2 (parser))
     ;
   if (parser->error) return parser->error;
-  if (!parser->set_logic_commands)
-    btor_msg_smt2 (
-        parser, 0, "WARNING 'set-logic' command missing in '%s'", parser->name);
-  if (!parser->check_sat_commands)
-    btor_msg_smt2 (
-        parser, 0, "WARNING 'check-sat' command missing in '%s'", parser->name);
-  if (!parser->assert_commands)
-    btor_msg_smt2 (
-        parser, 0, "WARNING no 'assert' command in '%s'", parser->name);
+  if (!parser->commands.all)
+    btor_msg_smt2 (parser, 0, "WARNING no commands in in '%s'", parser->name);
+  else
+  {
+    if (!parser->commands.set_logic)
+      btor_msg_smt2 (parser,
+                     0,
+                     "WARNING 'set-logic' command missing in '%s'",
+                     parser->name);
+    if (!parser->commands.asserts)
+      btor_msg_smt2 (
+          parser, 0, "WARNING no 'assert' command in '%s'", parser->name);
+    if (!parser->commands.check_sat)
+      btor_msg_smt2 (parser,
+                     0,
+                     "WARNING 'check-sat' command missing in '%s'",
+                     parser->name);
+    if (!parser->commands.exits)
+      btor_msg_smt2 (
+          parser, 0, "WARNING no 'exit' command at end of '%s'", parser->name);
+  }
   parser->res->inputs   = parser->inputs.start;
   parser->res->outputs  = parser->outputs.start;
   parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
   parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
+  btor_msg_smt2 (parser, 1, "parsed %d commands", parser->commands.all);
   return 0;
 }
 
