@@ -41,7 +41,7 @@ typedef enum BtorSMT2TagClass
   BTOR_CONSTANT_TAG_CLASS_SMT2 = (BTOR_CLASS_SIZE_SMT2 << 0),
   BTOR_RESERVED_TAG_CLASS_SMT2 = (BTOR_CLASS_SIZE_SMT2 << 1),
   BTOR_COMMAND_TAG_CLASS_SMT2  = (BTOR_CLASS_SIZE_SMT2 << 2),
-  BTOR_INSERT_TAG_CLASS_SMT2   = (BTOR_CLASS_SIZE_SMT2 << 3),
+  BTOR_KEYWORD_TAG_CLASS_SMT2  = (BTOR_CLASS_SIZE_SMT2 << 3),
   BTOR_CORE_TAG_CLASS_SMT2     = (BTOR_CLASS_SIZE_SMT2 << 4),
   BTOR_ARRAY_TAG_CLASS_SMT2    = (BTOR_CLASS_SIZE_SMT2 << 5),
   BTOR_BITVEC_TAG_CLASS_SMT2   = (BTOR_CLASS_SIZE_SMT2 << 6),
@@ -59,11 +59,10 @@ typedef enum BtorSMT2Tag
   BTOR_ATTRIBUTE_TAG_SMT2 = 5 + BTOR_OTHER_TAG_CLASS_SMT2,
   BTOR_EXP_TAG_SMT2       = 6 + BTOR_OTHER_TAG_CLASS_SMT2,
 
-  BTOR_NUMERAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
-  BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
-  BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2 = 2 + BTOR_CONSTANT_TAG_CLASS_SMT2,
-  BTOR_BINARY_CONSTANT_TAG_SMT2      = 3 + BTOR_CONSTANT_TAG_CLASS_SMT2,
-  BTOR_STRING_CONSTANT_TAG_SMT2      = 4 + BTOR_CONSTANT_TAG_CLASS_SMT2,
+  BTOR_DECIMAL_CONSTANT_TAG_SMT2     = 0 + BTOR_CONSTANT_TAG_CLASS_SMT2,
+  BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2 = 1 + BTOR_CONSTANT_TAG_CLASS_SMT2,
+  BTOR_BINARY_CONSTANT_TAG_SMT2      = 2 + BTOR_CONSTANT_TAG_CLASS_SMT2,
+  BTOR_STRING_CONSTANT_TAG_SMT2      = 3 + BTOR_CONSTANT_TAG_CLASS_SMT2,
 
   BTOR_PAR_TAG_SMT2                   = 0 + BTOR_RESERVED_TAG_CLASS_SMT2,
   BTOR_NUMERAL_RESERVED_WORD_TAG_SMT2 = 1 + BTOR_RESERVED_TAG_CLASS_SMT2,
@@ -96,39 +95,39 @@ typedef enum BtorSMT2Tag
   BTOR_GET_INFO_TAG_SMT2       = 17 + BTOR_COMMAND_TAG_CLASS_SMT2,
   BTOR_EXIT_TAG_SMT2           = 18 + BTOR_COMMAND_TAG_CLASS_SMT2,
 
-  BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_AXIOMS_TAG_SMT2                 = 2 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_CHAINABLE_TAG_SMT2              = 3 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_DEFINITION_TAG_SMT2             = 4 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_DIAG_OUTPUT_CHANNEL_TAG_SMT2    = 5 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_ERROR_BEHAVIOR_TAG_SMT2         = 6 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_EXPAND_DEFINITIONS_TAG_SMT2     = 7 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_EXTENSIONS_TAG_SMT2             = 8 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_FUNS_TAG_SMT2                   = 9 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_FUNS_DESCRIPTION_TAG_SMT2       = 10 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_INTERACTIVE_MODE_TAG_SMT2       = 11 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_LANGUAGE_TAG_SMT2               = 12 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_LEFT_ASSOC_TAG_SMT2             = 13 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_NAME_TAG_SMT2                   = 14 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_NAMED_TAG_SMT2                  = 15 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_NOTES_TAG_SMT2                  = 16 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_PRINT_SUCCESS_TAG_SMT2          = 17 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_PRODUCE_ASSIGNMENTS_TAG_SMT2    = 18 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_PRODUCE_MODELS_TAG_SMT2         = 19 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_PRODUCE_PROOFS_TAG_SMT2         = 20 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_PRODUCE_UNSAT_CORES_TAG_SMT2    = 21 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_RANDOM_SEED_TAG_SMT2            = 22 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_REASON_UNKNOWN_TAG_SMT2         = 23 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2 = 24 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_RIGHT_ASSOC_TAG_SMT2            = 25 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_SORTS_TAG_SMT2                  = 26 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_SORTS_DESCRIPTION_TAG_SMT2      = 27 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_STATUS_TAG_SMT2                 = 28 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_THEORIES_TAG_SMT2               = 29 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_VALUES_TAG_SMT2                 = 30 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_INSERT_TAG_CLASS_SMT2,
-  BTOR_VERSION_TAG_SMT2                = 32 + BTOR_INSERT_TAG_CLASS_SMT2,
+  BTOR_ALL_STATISTICS_TAG_SMT2         = 0 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_AUTHORS_TAG_SMT2                = 1 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_AXIOMS_TAG_SMT2                 = 2 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_CHAINABLE_TAG_SMT2              = 3 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_DEFINITION_TAG_SMT2             = 4 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_DIAG_OUTPUT_CHANNEL_TAG_SMT2    = 5 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_ERROR_BEHAVIOR_TAG_SMT2         = 6 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_EXPAND_DEFINITIONS_TAG_SMT2     = 7 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_EXTENSIONS_TAG_SMT2             = 8 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_FUNS_TAG_SMT2                   = 9 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_FUNS_DESCRIPTION_TAG_SMT2       = 10 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_INTERACTIVE_MODE_TAG_SMT2       = 11 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_LANGUAGE_TAG_SMT2               = 12 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_LEFT_ASSOC_TAG_SMT2             = 13 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_NAME_TAG_SMT2                   = 14 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_NAMED_TAG_SMT2                  = 15 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_NOTES_TAG_SMT2                  = 16 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRINT_SUCCESS_TAG_SMT2          = 17 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_ASSIGNMENTS_TAG_SMT2    = 18 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_MODELS_TAG_SMT2         = 19 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_PROOFS_TAG_SMT2         = 20 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_PRODUCE_UNSAT_CORES_TAG_SMT2    = 21 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_RANDOM_SEED_TAG_SMT2            = 22 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_REASON_UNKNOWN_TAG_SMT2         = 23 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_REGULAR_OUTPUT_CHANNEL_TAG_SMT2 = 24 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_RIGHT_ASSOC_TAG_SMT2            = 25 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_SORTS_TAG_SMT2                  = 26 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_SORTS_DESCRIPTION_TAG_SMT2      = 27 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_STATUS_TAG_SMT2                 = 28 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_THEORIES_TAG_SMT2               = 29 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_VALUES_TAG_SMT2                 = 30 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_VERBOSITY_TAG_SMT2              = 31 + BTOR_KEYWORD_TAG_CLASS_SMT2,
+  BTOR_VERSION_TAG_SMT2                = 32 + BTOR_KEYWORD_TAG_CLASS_SMT2,
 
   BTOR_BOOL_TAG_SMT2     = 0 + BTOR_CORE_TAG_CLASS_SMT2,
   BTOR_TRUE_TAG_SMT2     = 1 + BTOR_CORE_TAG_CLASS_SMT2,
@@ -227,13 +226,12 @@ typedef struct BtorSMT2Node
 typedef struct BtorSMT2Item
 {
   BtorSMT2Tag tag;
-  int lineno;
+  int lineno, num;
   union
   {
     BtorSMT2Node* node;
     BtorExp* exp;
     char* str;
-    int num;
   };
 } BtorSMT2Item;
 
@@ -277,7 +275,7 @@ typedef struct BtorSMT2Parser
   BtorMemMgr* mem;
   int verbosity, incremental, need_arrays;
   char* name;
-  int lineno;
+  int lineno, perrlineno;
   FILE* file;
   int saved;
   char savedch;
@@ -291,6 +289,7 @@ typedef struct BtorSMT2Parser
     BtorSMT2Node** table;
   } symbol;
   unsigned char cc[256];
+  BtorExpPtrStack outputs, inputs;
   BtorCharStack token;
   BtorSMT2ItemStack work;
   BtorParseResult* res;
@@ -309,7 +308,12 @@ btor_perr_smt2 (BtorSMT2Parser* parser, const char* fmt, ...)
     va_end (ap);
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, fmt, ap, bytes);
+        parser->mem,
+        parser->name,
+        (parser->perrlineno ? parser->perrlineno : parser->lineno),
+        fmt,
+        ap,
+        bytes);
     va_end (ap);
   }
   return parser->error;
@@ -689,6 +693,12 @@ btor_delete_smt2_parser (BtorSMT2Parser* parser)
   btor_release_work_smt2 (parser);
   if (parser->name) btor_freestr (mem, parser->name);
   if (parser->error) btor_freestr (mem, parser->error);
+  while (!BTOR_EMPTY_STACK (parser->inputs))
+    btor_release_exp (parser->btor, BTOR_POP_STACK (parser->inputs));
+  BTOR_RELEASE_STACK (mem, parser->outputs);
+  while (!BTOR_EMPTY_STACK (parser->outputs))
+    btor_release_exp (parser->btor, BTOR_POP_STACK (parser->outputs));
+  BTOR_RELEASE_STACK (mem, parser->outputs);
   BTOR_RELEASE_STACK (mem, parser->token);
   BTOR_DELETE (mem, parser);
 }
@@ -770,10 +780,12 @@ RESTART:
   }
   if (ch == '#')
   {
+    btor_pushch_smt2 (parser, '#');
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
       return !btor_perr_smt2 (parser, "unexpected end-of-file after '#'");
     if (ch == 'b')
     {
+      btor_pushch_smt2 (parser, 'b');
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
         return !btor_perr_smt2 (parser, "unexpected end-of-file after '#b'");
       if (ch != '0' && ch != '1')
@@ -791,6 +803,7 @@ RESTART:
     }
     else if (ch == 'x')
     {
+      btor_pushch_smt2 (parser, 'x');
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
         return !btor_perr_smt2 (parser, "unexpected end-of-file after '#x'");
       if (!(btor_cc_smt2 (parser, ch) & BTOR_HEXADECIMAL_DIGIT_CHAR_CLASS_SMT2))
@@ -814,12 +827,14 @@ RESTART:
   }
   else if (ch == '"')
   {
+    btor_pushch_smt2 (parser, '"');
     for (;;)
     {
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
         return !btor_perr_smt2 (parser, "unexpected end-of-file in string");
       if (ch == '"')
       {
+        btor_pushch_smt2 (parser, '"');
         btor_pushch_smt2 (parser, 0);
         return BTOR_STRING_CONSTANT_TAG_SMT2;
       }
@@ -1137,11 +1152,44 @@ btor_last_lpar_smt2 (BtorSMT2Parser* parser)
   return p;
 }
 
+#define BTOR_NODE_TAG_CLASS_MASK_SMT2                         \
+  (BTOR_RESERVED_TAG_CLASS_SMT2 | BTOR_COMMAND_TAG_CLASS_SMT2 \
+   | BTOR_KEYWORD_TAG_CLASS_SMT2 | BTOR_CORE_TAG_CLASS_SMT2   \
+   | BTOR_ARRAY_TAG_CLASS_SMT2 | BTOR_BITVEC_TAG_CLASS_SMT2   \
+   | BTOR_LOGIC_TAG_CLASS_SMT2)
+
 static int
-btor_parse_term_smt2 (BtorSMT2Parser* parser)
+btor_item_with_node_smt2 (BtorSMT2Item* item)
 {
-  BtorSMT2Item* p;
+  if (item->tag == BTOR_SYMBOL_TAG_SMT2) return 1;
+  if (item->tag == BTOR_ATTRIBUTE_TAG_SMT2) return 1;
+  if (item->tag & BTOR_NODE_TAG_CLASS_MASK_SMT2) return 1;
+  return 0;
+}
+
+static const char*
+btor_item2str_smt2 (BtorSMT2Item* item)
+{
+  if (btor_item_with_node_smt2 (item))
+  {
+    assert (item->node);
+    return item->node->name;
+  }
+  else if (item->tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
+  {
+    assert (item->str);
+    return item->str;
+  }
+  else
+    return "<non-printable-item>";
+}
+
+static int
+btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
+{
   int tag, open = 0;
+  BtorSMT2Item* p;
+  BtorExp* res;
   assert (BTOR_EMPTY_STACK (parser->work));
   do
   {
@@ -1168,11 +1216,34 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser)
       p = btor_push_item_smt2 (parser, tag);
       if (tag == BTOR_LPAR_TAG_SMT2)
         open++;
+      else if (btor_item_with_node_smt2 (p))
+        p->node = parser->last_node;
       else if (tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
         p->str = btor_strdup (parser->mem, parser->token.start);
     }
   } while (open);
+  if (BTOR_COUNT_STACK (parser->work) != 1)
+  {
+    parser->perrlineno = p->lineno;
+    // TODO remove?
+    return !btor_perr_smt2 (parser,
+                            "internal parse error: worker stack of size %d",
+                            BTOR_COUNT_STACK (parser->work));
+  }
+  p = parser->work.start;
+  if (p->tag != BTOR_EXP_TAG_SMT2)
+  {
+    parser->perrlineno = p->lineno;
+    // TODO more specific ...
+    return !btor_perr_smt2 (
+        parser,
+        "internal parse error: failed to parse term at '%s'",
+        btor_item2str_smt2 (p));
+  }
+  res        = btor_copy_exp (parser->btor, p->exp);
+  *linenoptr = p->lineno;
   btor_release_work_smt2 (parser);
+  *resptr = res;
   return 1;
 }
 
@@ -1288,6 +1359,8 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
   else
     return !btor_perr_smt2 (
         parser, "expected '_' or 'Array' at '%s'", parser->token.start);
+  (void) btor_copy_exp (parser->btor, fun->exp);
+  BTOR_PUSH_STACK (parser->mem, parser->inputs, fun->exp);
   return btor_read_rpar_smt2 (parser, " for closing declaration");
 }
 
@@ -1330,7 +1403,9 @@ btor_set_info_smt2 (BtorSMT2Parser* parser)
 static int
 btor_read_command_smt2 (BtorSMT2Parser* parser)
 {
-  int tag = btor_read_token_smt2 (parser);
+  int tag, lineno = 0;
+  BtorExp* exp = 0;
+  tag          = btor_read_token_smt2 (parser);
   if (tag == EOF || tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag != BTOR_LPAR_TAG_SMT2)
     return !btor_perr_smt2 (
@@ -1386,7 +1461,21 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
       break;
 
     case BTOR_ASSERT_TAG_SMT2:
-      if (!btor_parse_term_smt2 (parser)) return 0;
+      if (!btor_parse_term_smt2 (parser, &exp, &lineno)) return 0;
+      BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+      if (btor_is_array_exp (parser->btor, exp))
+      {
+        parser->perrlineno = lineno;
+        return !btor_perr_smt2 (
+            parser, "assert argument is an array and not a formula");
+      }
+      if (btor_get_exp_len (parser->btor, exp) != 1)
+      {
+        parser->perrlineno = lineno;
+        return !btor_perr_smt2 (parser,
+                                "assert argument is a bit-vector of length %d",
+                                btor_get_exp_len (parser->btor, exp));
+      }
       if (!btor_read_rpar_smt2 (parser, " after assert term")) return 0;
       assert (!parser->error);
       parser->assert_commands++;
@@ -1436,6 +1525,10 @@ btor_parse_smt2_parser (BtorSMT2Parser* parser,
   if (!parser->assert_commands)
     btor_msg_smt2 (
         parser, 0, "WARNING no 'assert' command in '%s'", parser->name);
+  parser->res->inputs   = parser->inputs.start;
+  parser->res->outputs  = parser->outputs.start;
+  parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
+  parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
   return 0;
 }
 

@@ -1232,27 +1232,35 @@ boolector_main (int argc, char **argv)
                     "assuming SMTLIB version 1 parsing because of '(b' "
                     "prefix\n");
             }
-            else if (ch == 's')
+            else
             {
               parser_api = btor_smt2_parser_api ();
               if (app.verbosity > 0)
-                btor_msg_main_va_args (
-                    "assuming SMTLIB version 2 parsing because of '(s' "
-                    "prefix\n");
+              {
+                if (isprint (ch))
+                  btor_msg_main_va_args (
+                      "assuming SMTLIB version 2 parsing because of '(%c' "
+                      "prefix\n",
+                      ch);
+                else
+                  btor_msg_main_va_args (
+                      "assuming SMTLIB version 2 parsing because of '(' but "
+                      "not '(b' prefix\n");
+              }
             }
           }
           else if (app.verbosity > 0)
             btor_msg_main_va_args (
-                "assuming BTOR parsing because end of file after '('\n");
+                "assuming BTOR parsing because end-of-file after '('\n");
         }
         else if (app.verbosity > 0)
           btor_msg_main_va_args (
-              "assuming BTOR parsing because first character different from "
+              "assuming BTOR parsing because first character differs from "
               "'('\n");
       }
       else if (app.verbosity > 0)
         btor_msg_main_va_args (
-            "assuming BTOR parsing because end of file found\n");
+            "assuming BTOR parsing because end-of-file found\n");
     }
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
