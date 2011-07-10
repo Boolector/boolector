@@ -14,6 +14,7 @@ LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o $(OBJS)
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 SRC=$(shell ls *.c *.h *.cc)
 all: libboolector.a boolector test synthebtor deltabtor basicbtor
+all: dimacs2smt2
 -include dependencies
 btorpreco.o: btorsat.h btorpreco.h btorpreco.cc makefile
 btorminisat.o: btorsat.h btorminisat.h btorminisat.cc makefile
@@ -30,6 +31,8 @@ deltabtor: deltabtor.c makefile $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
 basicbtor: basicbtor.c makefile $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ basicbtor.c
+dimacs2smt2: dimacs2smt2.c makefile
+	$(CC) $(CFLAGS) -o $@ dimacs2smt2.c
 libboolector.a: $(LIBOBJ)
 	rm -f $@
 	ar rc $@ $(LIBOBJ)
