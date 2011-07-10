@@ -24,8 +24,7 @@
 
 enum BtorLogic
 {
-  BTOR_LOGIC_INVALID = 0,
-  BTOR_LOGIC_QF_BV,
+  BTOR_LOGIC_QF_BV = 0,
   BTOR_LOGIC_QF_AUFBV,
 };
 

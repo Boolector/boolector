@@ -1022,20 +1022,6 @@ btor_read_token_smt2 (BtorSMT2Parser* parser)
   return res;
 }
 
-#if 0
-static void btor_read_tokens_smt2 (BtorSMT2Parser * parser) {
-  int tag;
-  assert (!BTOR_INVALID_TAG_SMT2);
-  while ((tag = btor_read_token_smt2 (parser)) && tag != EOF) {
-    assert (!BTOR_EMPTY_STACK (parser->token));
-    assert (!parser->token.top[-1]);
-    if (parser->verbosity < 2) continue;
-    printf ("[btorsmt2] token %08x %s\n", tag, parser->token.start);
-    fflush (stdout);
-  }
-}
-#endif
-
 static int
 btor_read_rpar_smt2 (BtorSMT2Parser* parser, const char* msg)
 {
@@ -1306,10 +1292,9 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
             {
               char* constr;
               int len;
-              exp    = 0;
-              len    = strlen (parser->token.start + 2);
-              constr = btor_decimal_to_const_n (
-                  parser->mem, parser->token.start + 2, len);
+              exp = 0;
+              constr =
+                  btor_decimal_to_const (parser->mem, parser->token.start + 2);
               len = (int) strlen (constr);
               tag = btor_read_token_smt2 (parser);
               if (tag == BTOR_INVALID_TAG_SMT2) goto UNDERSCORE_DONE;
@@ -1341,16 +1326,10 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
                 exp = btor_const_exp (parser->btor, constr);
               else
               {
-                char* longerconstr = btor_malloc (parser->mem, width + 1);
-                char *cp, *lp;
-                assert (len < width);
-                for (lp = longerconstr; lp < longerconstr + (width - len); lp++)
-                  *lp = '0';
-                for (cp = constr; *cp; cp++) *lp++ = *cp++;
-                *lp = 0;
-                assert (lp - longerconstr == width);
-                exp = btor_const_exp (parser->btor, longerconstr);
-                btor_freestr (parser->mem, longerconstr);
+                char* uconstr =
+                    btor_uext_const (parser->mem, constr, (len - width));
+                exp = btor_const_exp (parser->btor, uconstr);
+                btor_freestr (parser->mem, uconstr);
               }
             UNDERSCORE_DONE:
               btor_delete_const (parser->mem, constr);
@@ -1402,8 +1381,26 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser, BtorExp** resptr, int* linenoptr)
               "internal parser error: unsupported node item '%s'",
               btor_item2str_smt2 (p));
       }
-      else if (tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
-        p->str = btor_strdup (parser->mem, parser->token.start);
+      else if (tag == BTOR_BINARY_CONSTANT_TAG_SMT2)
+      {
+        p->tag = BTOR_EXP_TAG_SMT2;
+        p->exp = btor_const_exp (parser->btor, parser->token.start + 2);
+      }
+      else if (tag == BTOR_HEXADECIMAL_CONSTANT_TAG_SMT2)
+      {
+        char* constr = btor_hex_to_const (parser->mem, parser->token.start + 2);
+        int len = strlen (constr), width = strlen (parser->token.start + 2) * 4;
+        char* uconstr;
+        assert (len <= width);
+        if (len == width)
+          uconstr = constr;
+        else
+          uconstr = btor_uext_const (parser->mem, constr, width - len);
+        p->tag = BTOR_EXP_TAG_SMT2;
+        p->exp = btor_const_exp (parser->btor, uconstr);
+        if (uconstr != constr) btor_delete_const (parser->mem, uconstr);
+        btor_delete_const (parser->mem, constr);
+      }
       else
         return !btor_perr_smt2 (parser,
                                 "internal parse error: unsupported token '%s'",
