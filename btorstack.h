@@ -1,5 +1,10 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
+ *
+ *  Institute for Formal Models and Verification,
+ *  Johannes Kepler University, Linz, Austria.
  *
  *  This file is part of Boolector.
  *
@@ -77,6 +82,8 @@
   } while (0)
 
 #define BTOR_POP_STACK(stack) (*--(stack).top)
+
+#define BTOR_TOP_STACK(stack) ((stack).top[-1])
 
 BTOR_DECLARE_STACK (Int, int);
 BTOR_DECLARE_STACK (Char, char);
