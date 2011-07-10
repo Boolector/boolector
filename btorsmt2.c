@@ -678,6 +678,7 @@ btor_release_work_smt2 (BtorSMT2Parser* parser)
     item = BTOR_POP_STACK (parser->work);
     btor_release_item_smt2 (parser, &item);
   }
+  BTOR_RELEASE_STACK (parser->mem, parser->work);
 }
 
 static void
@@ -1157,17 +1158,21 @@ btor_parse_term_smt2 (BtorSMT2Parser* parser)
           "unexpected end-of-file since '(' at line %d still open",
           p->lineno);
     }
-    if (tag == BTOR_LPAR_TAG_SMT2)
+    if (tag == BTOR_RPAR_TAG_SMT2)
     {
-      btor_push_item_smt2 (parser, tag);
-      open++;
+      assert (open > 0);
+      open--;
     }
-    else if (tag == BTOR_RPAR_TAG_SMT2)
+    else
     {
-      open++;
+      p = btor_push_item_smt2 (parser, tag);
+      if (tag == BTOR_LPAR_TAG_SMT2)
+        open++;
+      else if (tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
+        p->str = btor_strdup (parser->mem, parser->token.start);
     }
   } while (open);
-  assert (BTOR_COUNT_STACK (parser->work) == 1);
+  btor_release_work_smt2 (parser);
   return 1;
 }
 
@@ -1287,13 +1292,6 @@ btor_declare_fun_smt2 (BtorSMT2Parser* parser)
 }
 
 static int
-btor_assert_smt2 (BtorSMT2Parser* parser)
-{
-  parser->assert_commands++;
-  return btor_skip_sexprs (parser, 1);
-}
-
-static int
 btor_set_info_smt2 (BtorSMT2Parser* parser)
 {
   int tag = btor_read_token_smt2 (parser);
@@ -1388,7 +1386,10 @@ btor_read_command_smt2 (BtorSMT2Parser* parser)
       break;
 
     case BTOR_ASSERT_TAG_SMT2:
-      if (!btor_assert_smt2 (parser)) return 0;
+      if (!btor_parse_term_smt2 (parser)) return 0;
+      if (!btor_read_rpar_smt2 (parser, " after assert term")) return 0;
+      assert (!parser->error);
+      parser->assert_commands++;
       break;
 
     case BTOR_EXIT_TAG_SMT2:
