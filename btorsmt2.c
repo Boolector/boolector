@@ -612,7 +612,7 @@ btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
   INSERT ("bvnor", BTOR_BVNOR_TAG_SMT2);
   INSERT ("bvxor", BTOR_BVXOR_TAG_SMT2);
   INSERT ("bvxnor", BTOR_BVXNOR_TAG_SMT2);
-  INSERT ("bvcomp", BTOR_BVCOMP_TAG_SMT2);
+  INSERT ("bveq", BTOR_BVCOMP_TAG_SMT2);
   INSERT ("bvsub", BTOR_BVSUB_TAG_SMT2);
   INSERT ("bvsdiv", BTOR_BVSDIV_TAG_SMT2);
   INSERT ("bvsrem", BTOR_BVSREM_TAG_SMT2);
@@ -1364,10 +1364,15 @@ btor_check_nargs_smt2 (BtorSMT2Parser *parser,
                        int actual,
                        int required)
 {
-  if (actual < required)
-    return !btor_perr_smt2 (parser, "arguments to '%s' missing", op);
-  if (actual > required)
-    return !btor_perr_smt2 (parser, "too many arguments to '%s'", op);
+  int diff = required - actual;
+  if (diff == -1)
+    return !btor_perr_smt2 (parser, "one argument to '%s' missing", op);
+  if (diff < 0)
+    return !btor_perr_smt2 (parser, "%d arguments to '%s' missing", -diff, op);
+  if (diff == 1)
+    return !btor_perr_smt2 (parser, "'%s' has one argument too much", op);
+  if (diff > 0)
+    return !btor_perr_smt2 (parser, "'%s' has %d arguments too much", op, diff);
   return 1;
 }
 
@@ -1384,14 +1389,127 @@ btor_check_not_array_args_smt2 (BtorSMT2Parser *parser,
   return 1;
 }
 
+static BtorExp *
+btor_translate_shift_smt2 (Btor *btor,
+                           BtorExp *a0,
+                           BtorExp *a1,
+                           BtorExp *(*f) (Btor *, BtorExp *, BtorExp *) )
+{
+  BtorExp *c, *e, *t, *e0, *u, *l, *tmp, *res;
+  int len, l0, l1, p0, p1;
+
+  len = btor_get_exp_len (btor, a0);
+
+  assert (len == btor_get_exp_len (btor, a1));
+
+  l1 = 0;
+  for (l0 = 1; l0 < len; l0 *= 2) l1++;
+
+  assert (l0 == (1 << l1));
+
+  if (len == 1)
+  {
+    assert (l0 == 1);
+    assert (l1 == 0);
+
+    if (f != btor_sra_exp)
+    {
+      tmp = btor_not_exp (btor, a1);
+      res = btor_and_exp (btor, a0, tmp);
+      btor_release_exp (btor, tmp);
+    }
+    else
+      res = btor_copy_exp (btor, a0);
+  }
+  else
+  {
+    assert (len >= 1);
+
+    p0 = l0 - len;
+    p1 = len - l1;
+
+    assert (p0 >= 0);
+    assert (p1 > 0);
+
+    u = btor_slice_exp (btor, a1, len - 1, len - p1);
+    l = btor_slice_exp (btor, a1, l1 - 1, 0);
+
+    assert (btor_get_exp_len (btor, u) == p1);
+    assert (btor_get_exp_len (btor, l) == l1);
+
+    if (p1 > 1)
+      c = btor_redor_exp (btor, u);
+    else
+      c = btor_copy_exp (btor, u);
+
+    btor_release_exp (btor, u);
+
+    if (f == btor_sra_exp)
+    {
+      tmp = btor_slice_exp (btor, a0, len - 1, len - 1);
+      t   = btor_sext_exp (btor, tmp, len - 1);
+      btor_release_exp (btor, tmp);
+    }
+    else
+      t = btor_zero_exp (btor, len);
+
+    if (!p0)
+      e0 = btor_copy_exp (btor, a0);
+    else if (f == btor_sra_exp)
+      e0 = btor_sext_exp (btor, a0, p0);
+    else
+      e0 = btor_uext_exp (btor, a0, p0);
+
+    assert (btor_get_exp_len (btor, e0) == l0);
+
+    e = f (btor, e0, l);
+    btor_release_exp (btor, e0);
+    btor_release_exp (btor, l);
+
+    if (p0 > 0)
+    {
+      tmp = btor_slice_exp (btor, e, len - 1, 0);
+      btor_release_exp (btor, e);
+      e = tmp;
+    }
+
+    res = btor_cond_exp (btor, c, t, e);
+
+    btor_release_exp (btor, c);
+    btor_release_exp (btor, t);
+    btor_release_exp (btor, e);
+  }
+  return res;
+}
+
+static BtorExp *
+btor_shl_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
+{
+  return btor_translate_shift_smt2 (btor, a, b, btor_sll_exp);
+}
+
+static BtorExp *
+btor_ashr_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
+{
+  return btor_translate_shift_smt2 (btor, a, b, btor_sra_exp);
+}
+
+static BtorExp *
+btor_lshr_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
+{
+  return btor_translate_shift_smt2 (btor, a, b, btor_srl_exp);
+}
+
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
   int tag, width, domain, len, nargs, i, j, open = 0;
   BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
+  BtorExp *(*unaryfun) (Btor *, BtorExp *);
   BtorExp *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
-  binfun = 0;
+  unaryfun = 0;
+  binfun   = 0;
   assert (BTOR_EMPTY_STACK (parser->work));
   do
   {
@@ -1623,6 +1741,190 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
                                   width);
         exp = btor_slice_exp (parser->btor, p[1].exp, p->hi, p->lo);
         goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_BVNOT_TAG_SMT2)
+      {
+        unaryfun = btor_not_exp;
+      UNARY_BV_FUN:
+        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        exp = unaryfun (parser->btor, p[1].exp);
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_BVAND_TAG_SMT2)
+      {
+        binfun = btor_and_exp;
+      BINARY_BV_FUN:
+        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 2)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        exp = binfun (parser->btor, p[1].exp, p[2].exp);
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_BVOR_TAG_SMT2)
+      {
+        binfun = btor_or_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVNEG_TAG_SMT2)
+      {
+        unaryfun = btor_neg_exp;
+        goto UNARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVADD_TAG_SMT2)
+      {
+        binfun = btor_add_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVMUL_TAG_SMT2)
+      {
+        binfun = btor_mul_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVUDIV_TAG_SMT2)
+      {
+        binfun = btor_udiv_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVUREM_TAG_SMT2)
+      {
+        binfun = btor_urem_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSHL_TAG_SMT2)
+      {
+        binfun = btor_shl_smt2;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVLSHR_TAG_SMT2)
+      {
+        binfun = btor_lshr_smt2;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVULT_TAG_SMT2)
+      {
+        binfun = btor_ult_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVNAND_TAG_SMT2)
+      {
+        binfun = btor_nand_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVNOR_TAG_SMT2)
+      {
+        binfun = btor_nor_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVXOR_TAG_SMT2)
+      {
+        binfun = btor_xor_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVXNOR_TAG_SMT2)
+      {
+        binfun = btor_xnor_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVCOMP_TAG_SMT2)
+      {
+        binfun = btor_eq_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSUB_TAG_SMT2)
+      {
+        binfun = btor_sub_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSDIV_TAG_SMT2)
+      {
+        binfun = btor_sdiv_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSREM_TAG_SMT2)
+      {
+        binfun = btor_srem_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSMOD_TAG_SMT2)
+      {
+        binfun = btor_smod_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVASHR_TAG_SMT2)
+      {
+        binfun = btor_ashr_smt2;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_REPEAT_TAG_SMT2)
+      {
+        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        width = btor_get_exp_len (parser->btor, p[1].exp);
+        if (p->num && INT_MAX / p->num < width)
+        {
+          parser->perrlineno = p->lineno;
+          return !btor_perr_smt2 (parser,
+                                  "resulting bit-width of 'repeat' too large");
+        }
+        exp = btor_copy_exp (parser->btor, p[1].exp);
+        for (i = 1; i < p->num; i++)
+        {
+          old = exp;
+          exp = btor_concat_exp (parser->btor, old, p[1].exp);
+          btor_release_exp (parser->btor, old);
+        }
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
+      {
+        // TODO
+      }
+      else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
+      {
+        // TODO
+      }
+      else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
+      {
+        // TODO
+      }
+      else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
+      {
+        // TODO
+      }
+      else if (tag == BTOR_BVULE_TAG_SMT2)
+      {
+        binfun = btor_ulte_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVUGT_TAG_SMT2)
+      {
+        binfun = btor_ugt_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVUGE_TAG_SMT2)
+      {
+        binfun = btor_ugte_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSLT_TAG_SMT2)
+      {
+        binfun = btor_slt_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSLE_TAG_SMT2)
+      {
+        binfun = btor_slte_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSGT_TAG_SMT2)
+      {
+        binfun = btor_sgt_exp;
+        goto BINARY_BV_FUN;
+      }
+      else if (tag == BTOR_BVSGE_TAG_SMT2)
+      {
+        binfun = btor_sgte_exp;
+        goto BINARY_BV_FUN;
       }
       else if (tag == BTOR_LET_TAG_SMT2)
       {
