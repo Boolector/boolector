@@ -1489,6 +1489,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           old = exp;
           exp = btor_and_exp (parser->btor, old, tmp);
           btor_release_exp (parser->btor, old);
+          btor_release_exp (parser->btor, tmp);
         }
         goto RELEASE_EXP_AND_OVERWRITE;
       }
