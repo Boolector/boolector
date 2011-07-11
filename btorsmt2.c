@@ -1344,17 +1344,18 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           if (btor_is_array_exp (parser->btor, tmp))
           {
             if (exp) btor_release_exp (parser->btor, exp);
-            return !btor_perr_smt2 (
-                parser,
-                "unexpected array expression as first argument to '%s'",
-                p->node->name);
+            return !btor_perr_smt2 (parser,
+                                    "argument %d of '%s' is an array term",
+                                    i,
+                                    p->node->name);
           }
           if ((width = btor_get_exp_len (parser->btor, tmp)) != 1)
           {
             if (exp) btor_release_exp (parser->btor, exp);
             return !btor_perr_smt2 (
                 parser,
-                "unexpected bit-vector of width %d as first argument to '%s'",
+                "argument %d of '%s' is a bit-vector of width %d",
+                i,
                 width,
                 p->node->name);
           }
@@ -1382,6 +1383,11 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
       {
         binfun = btor_xor_exp;
         goto BIN_LEFT_ASSOCIATIVE_CORE;
+      }
+      else if (tag == BTOR_EQUAL_TAG_SMT2)
+      {
+        if (!nargs)
+          return !btor_perr_smt2 (parser,
       }
       else
         return !btor_perr_smt2 (
