@@ -2214,7 +2214,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
               else
               {
                 char *uconstr =
-                    btor_uext_const (parser->mem, constr, (len - width));
+                    btor_uext_const (parser->mem, constr, width - len);
                 exp = btor_const_exp (parser->btor, uconstr);
                 btor_freestr (parser->mem, uconstr);
               }
