@@ -1309,7 +1309,7 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
 }
 
 static int
-btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Parser *p)
+btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 {
   int domain, width, len;
   assert (p->tag == BTOR_ITE_TAG_SMT2);
@@ -1519,8 +1519,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           return !btor_perr_smt2 (parser, "arguments to 'ite' missing");
         if (nargs > 3)
           return !btor_perr_smt2 (parser, "too many arguments to 'ite'");
-        //
-        int finish;
+        if (!btor_check_ite_args_sorts_match_smt2 (parser, p)) return 0;
       }
       else
         return !btor_perr_smt2 (
