@@ -1351,9 +1351,22 @@ btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
 }
 
 static int
+btor_check_nargs_smt2 (BtorSMT2Parser *parser,
+                       const char *op,
+                       int actual,
+                       int required)
+{
+  if (actual < required)
+    return !btor_perr_smt2 (parser, "arguments to '%s' missing", op);
+  if (actual > required)
+    return !btor_perr_smt2 (parser, "too many arguments to '%s'", op);
+  return 1;
+}
+
+static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
-  int tag, width, nargs, i, j, open = 0;
+  int tag, width, domain, len, nargs, i, j, open = 0;
   BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
   BtorExp *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
@@ -1510,12 +1523,63 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
       }
       else if (tag == BTOR_ITE_TAG_SMT2)
       {
-        if (nargs < 3)
-          return !btor_perr_smt2 (parser, "arguments to 'ite' missing");
-        if (nargs > 3)
-          return !btor_perr_smt2 (parser, "too many arguments to 'ite'");
+        if (!btor_check_nargs_smt2 (parser, "ite", nargs, 3)) return 0;
         if (!btor_check_ite_args_sorts_match_smt2 (parser, p)) return 0;
         exp = btor_cond_exp (parser->btor, p[1].exp, p[2].exp, p[3].exp);
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_SELECT_TAG_SMT2)
+      {
+        if (!btor_check_nargs_smt2 (parser, "select", nargs, 2)) return 0;
+        if (!btor_is_array_exp (parser->btor, p[1].exp))
+          return !btor_perr_smt2 (parser,
+                                  "first argument of 'select' is not an array");
+        if (btor_is_array_exp (parser->btor, p[2].exp))
+          return !btor_perr_smt2 (parser,
+                                  "second argument of 'select' is an array");
+        width  = btor_get_exp_len (parser->btor, p[2].exp);
+        domain = btor_get_index_exp_len (parser->btor, p[1].exp);
+        if (width != domain)
+          return !btor_perr_smt2 (
+              parser,
+              "array argument of 'select' has index bit-width %d "
+              "but the index argument has bit-width %d",
+              domain,
+              width);
+        exp = btor_read_exp (parser->btor, p[1].exp, p[2].exp);
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_STORE_TAG_SMT2)
+      {
+        if (!btor_check_nargs_smt2 (parser, "store", nargs, 3)) return 0;
+        if (!btor_is_array_exp (parser->btor, p[1].exp))
+          return !btor_perr_smt2 (parser,
+                                  "first argument of 'store' is not an array");
+        if (btor_is_array_exp (parser->btor, p[2].exp))
+          return !btor_perr_smt2 (parser,
+                                  "second argument of 'store' is an array");
+        if (btor_is_array_exp (parser->btor, p[3].exp))
+          return !btor_perr_smt2 (parser,
+                                  "third argument of 'store' is an array");
+        width  = btor_get_exp_len (parser->btor, p[2].exp);
+        domain = btor_get_index_exp_len (parser->btor, p[1].exp);
+        if (width != domain)
+          return !btor_perr_smt2 (
+              parser,
+              "array argument of 'store' has index bit-width %d "
+              "but the index argument has bit-width %d",
+              domain,
+              width);
+        width = btor_get_exp_len (parser->btor, p[1].exp);
+        len   = btor_get_exp_len (parser->btor, p[3].exp);
+        if (width != len)
+          return !btor_perr_smt2 (
+              parser,
+              "array argument of 'store' has element bit-width %d "
+              "but the stored bit-vector argument has bit-width %d",
+              width,
+              len);
+        exp = btor_write_exp (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_LET_TAG_SMT2)
@@ -1720,6 +1784,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
               }
               else if (len == width)
                 exp = btor_const_exp (parser->btor, constr);
+              else if (!len)
+                exp = btor_zero_exp (parser->btor, width);
               else
               {
                 char *uconstr =
