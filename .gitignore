@@ -12,6 +12,7 @@ boolector
 boolector2
 synthebtor
 basicbtor
+dimacs2smt2
 test
 dependencies
 deltabtor
