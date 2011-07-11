@@ -1372,7 +1372,9 @@ btor_check_nargs_smt2 (BtorSMT2Parser *parser,
 }
 
 static int
-btor_check_not_array_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p, int nargs)
+btor_check_not_array_args_smt2 (BtorSMT2Parser *parser,
+                                BtorSMT2Item *p,
+                                int nargs)
 {
   int i;
   for (i = 1; i <= nargs; i++)
@@ -1601,10 +1603,17 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         exp = btor_write_exp (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
+      else if (tag == BTOR_CONCAT_TAG_SMT2)
+      {
+        if (!btor_check_nargs_smt2 (parser, "concat", nargs, 2)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        exp = btor_concat_exp (parser->btor, p[1].exp, p[2].exp);
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
       else if (tag == BTOR_EXTRACT_TAG_SMT2)
       {
         if (!btor_check_nargs_smt2 (parser, "extract", nargs, 1)) return 0;
-        if (!btor_check_not_array_smt2 (parser, p, nargs)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (width <= p->hi)
           return !btor_perr_smt2 (parser,
