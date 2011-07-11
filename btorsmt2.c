@@ -1311,7 +1311,7 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
-  int tag, width, nargs, i, open = 0;
+  int tag, width, nargs, i, j, open = 0;
   BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
   BtorExp *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
@@ -1440,6 +1440,30 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           exp = btor_and_exp (parser->btor, old, tmp);
           btor_release_exp (parser->btor, old);
           btor_release_exp (parser->btor, tmp);
+        }
+        for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
+        parser->work.top = p;
+        l->tag           = BTOR_EXP_TAG_SMT2;
+        l->exp           = exp;
+      }
+      else if (tag == BTOR_DISTINCT_TAG_SMT2)
+      {
+        if (!nargs)
+          return !btor_perr_smt2 (parser, "arguments to 'distinct' missing");
+        if (nargs == 1)
+          return !btor_perr_smt2 (parser, "only one argument to 'distinct'");
+        if (!btor_check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
+        exp = btor_true_exp (parser->btor);
+        for (i = 1; i < nargs; i++)
+        {
+          for (j = i + 1; j <= nargs; j++)
+          {
+            tmp = btor_ne_exp (parser->btor, p[i].exp, p[j].exp);
+            old = exp;
+            exp = btor_and_exp (parser->btor, old, tmp);
+            btor_release_exp (parser->btor, old);
+            btor_release_exp (parser->btor, tmp);
+          }
         }
         for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
         parser->work.top = p;
