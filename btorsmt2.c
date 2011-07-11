@@ -1309,6 +1309,58 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
 }
 
 static int
+btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Parser *p)
+{
+  int domain, width, len;
+  assert (p->tag == BTOR_ITE_TAG_SMT2);
+  if (btor_is_array_exp (parser->btor, p[1].exp))
+    return !btor_perr_smt2 (parser, "first argument of 'ite' is an array");
+  if ((len = btor_get_exp_len (parser->btor, p[1].exp)) != 1)
+    return !btor_perr_smt2 (parser, "first argument of 'ite' is non-boolean");
+  if (btor_is_array_exp (parser->btor, p[2].exp))
+  {
+    if (!btor_is_array_exp (parser->btor, p[3].exp))
+      return !btor_perr_smt2 (
+          parser, "second argument of 'ite' is an array but third not");
+    width = btor_get_exp_len (parser->btor, p[2].exp);
+    len   = btor_get_exp_len (parser->btor, p[3].exp);
+    if (width != len)
+      return !btor_perr_smt2 (
+          parser,
+          "second argument of 'ite' is array of bit-vectors of width %d and "
+          "third argument is array of bit-vectors of width %d",
+          width,
+          len);
+    domain = btor_get_index_exp_len (parser->btor, p[2].exp);
+    len    = btor_get_index_exp_len (parser->btor, p[3].exp);
+    if (domain != len)
+      return !btor_perr_smt2 (
+          parser,
+          "second argument of 'ite' is array with index bit-vectors of width "
+          "%d and "
+          "third argument is array with index bit-vectors of width %d",
+          domain,
+          len);
+  }
+  else
+  {
+    if (btor_is_array_exp (parser->btor, p[3].exp))
+      return !btor_perr_smt2 (
+          parser, "third argument of 'ite' is an array but second not");
+    width = btor_get_exp_len (parser->btor, p[2].exp);
+    len   = btor_get_exp_len (parser->btor, p[3].exp);
+    if (width != len)
+      return !btor_perr_smt2 (
+          parser,
+          "second argument of 'ite' is bit-vector of width %d and "
+          "third argument is bit-vector of width %d",
+          width,
+          len);
+  }
+  return 1;
+}
+
+static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
   int tag, width, nargs, i, j, open = 0;
@@ -1390,8 +1442,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           old = exp;
           exp = btor_implies_exp (parser->btor, p[i].exp, old);
           btor_release_exp (parser->btor, old);
-          btor_release_exp (parser->btor, p[i].exp);
         }
+      RELEASE_EXP_AND_OVERWRITE:
+        for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
         l->exp           = exp;
@@ -1410,11 +1463,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           old = exp;
           exp = binfun (parser->btor, old, p[i].exp);
           btor_release_exp (parser->btor, old);
-          btor_release_exp (parser->btor, p[i].exp);
         }
-        parser->work.top = p;
-        l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp           = exp;
+        goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_OR_TAG_SMT2)
       {
@@ -1439,12 +1489,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           old = exp;
           exp = btor_and_exp (parser->btor, old, tmp);
           btor_release_exp (parser->btor, old);
-          btor_release_exp (parser->btor, tmp);
         }
-        for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
-        parser->work.top = p;
-        l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp           = exp;
+        goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_DISTINCT_TAG_SMT2)
       {
@@ -1465,10 +1511,16 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
             btor_release_exp (parser->btor, tmp);
           }
         }
-        for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
-        parser->work.top = p;
-        l->tag           = BTOR_EXP_TAG_SMT2;
-        l->exp           = exp;
+        goto RELEASE_EXP_AND_OVERWRITE;
+      }
+      else if (tag == BTOR_ITE_TAG_SMT2)
+      {
+        if (nargs < 3)
+          return !btor_perr_smt2 (parser, "arguments to 'ite' missing");
+        if (nargs > 3)
+          return !btor_perr_smt2 (parser, "too many arguments to 'ite'");
+        //
+        int finish;
       }
       else
         return !btor_perr_smt2 (
