@@ -1500,11 +1500,56 @@ btor_lshr_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
   return btor_translate_shift_smt2 (btor, a, b, btor_srl_exp);
 }
 
+static BtorExp *
+btor_translate_rotate_smt2 (Btor *btor, BtorExp *exp, int shift, int left)
+{
+  BtorExp *l, *r, *res;
+  int len;
+
+  assert (shift >= 0);
+
+  len = btor_get_exp_len (btor, exp);
+  assert (len > 0);
+  shift %= len;
+
+  if (shift)
+  {
+    if (left) shift = len - shift;
+
+    assert (1 <= shift && shift < len);
+
+    l = btor_slice_exp (btor, exp, shift - 1, 0);
+    r = btor_slice_exp (btor, exp, len - 1, shift);
+
+    res = btor_concat_exp (btor, l, r);
+
+    btor_release_exp (btor, l);
+    btor_release_exp (btor, r);
+  }
+  else
+    res = btor_copy_exp (btor, exp);
+  assert (btor_get_exp_len (btor, res) == len);
+  return res;
+}
+
+static BtorExp *
+btor_rotate_left_smt2 (Btor *btor, BtorExp *exp, int shift)
+{
+  return btor_translate_rotate_smt2 (btor, exp, shift, 1);
+}
+
+static BtorExp *
+btor_rotate_right_smt2 (Btor *btor, BtorExp *exp, int shift)
+{
+  return btor_translate_rotate_smt2 (btor, exp, shift, 0);
+}
+
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
   int tag, width, domain, len, nargs, i, j, open = 0;
   BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
+  BtorExp *(*extfun) (Btor *, BtorExp *, int);
   BtorExp *(*unaryfun) (Btor *, BtorExp *);
   BtorExp *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
@@ -1860,7 +1905,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
-        if (p->num && INT_MAX / p->num < width)
+        if (p->num && ((INT_MAX / p->num) < width))
         {
           parser->perrlineno = p->lineno;
           return !btor_perr_smt2 (parser,
@@ -1877,19 +1922,34 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
       }
       else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
       {
-        // TODO
+        extfun = btor_uext_exp;
+      EXTEND_BV_FUN:
+        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        width = btor_get_exp_len (parser->btor, p[1].exp);
+        if (INT_MAX - p->num < width)
+        {
+          parser->perrlineno = p->lineno;
+          return !btor_perr_smt2 (
+              parser, "resulting bit-width of '%s' too large", p->node->name);
+        }
+        exp = extfun (parser->btor, p[1].exp, p->num);
+        goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
       {
-        // TODO
+        extfun = btor_sext_exp;
+        goto EXTEND_BV_FUN;
       }
       else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
       {
-        // TODO
+        extfun = btor_rotate_left_smt2;
+        goto EXTEND_BV_FUN;
       }
       else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
       {
-        // TODO
+        extfun = btor_rotate_right_smt2;
+        goto EXTEND_BV_FUN;
       }
       else if (tag == BTOR_BVULE_TAG_SMT2)
       {
