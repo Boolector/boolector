@@ -1520,6 +1520,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         if (nargs > 3)
           return !btor_perr_smt2 (parser, "too many arguments to 'ite'");
         if (!btor_check_ite_args_sorts_match_smt2 (parser, p)) return 0;
+        exp = btor_cond_exp (parser->btor, p[1].exp, p[2].exp, p[3].exp);
+        goto RELEASE_EXP_AND_OVERWRITE;
       }
       else
         return !btor_perr_smt2 (
@@ -1764,6 +1766,9 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser *parser, int skiplu, int *resptr)
     if (tag == BTOR_INVALID_TAG_SMT2) return 0;
     if (tag == EOF)
       return !btor_perr_smt2 (parser, "expected '_' but reached end-of-file");
+    if (tag != BTOR_UNDERSCORE_TAG_SMT2)
+      return !btor_perr_smt2 (
+          parser, "expected '_' at '%s'", parser->token.start);
   }
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
