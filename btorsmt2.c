@@ -1226,8 +1226,8 @@ btor_parse_int32_smt2 (BtorSMT2Parser *parser, int posonly, int *resptr)
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
+  int tag, width, domain, nargs, len, i, j, open = 0;
   BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
-  int tag, width, nargs, i, open = 0;
   BtorExp *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
   binfun = 0;
@@ -1386,8 +1386,66 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
       }
       else if (tag == BTOR_EQUAL_TAG_SMT2)
       {
-        if (!nargs)
-          return !btor_perr_smt2 (parser,
+        if (!nargs) return !btor_perr_smt2 (parser, "arguments to '=' missing");
+        if (nargs == 1)
+          return !btor_perr_smt2 (parser, "only one argument to '='");
+        if (btor_is_array_exp (parser->btor, p[1].exp))
+        {
+          width  = btor_get_exp_len (parser->btor, p[1].exp);
+          domain = btor_get_index_exp_len (parser->btor, p[1].exp);
+          for (i = 2; i <= nargs; i++)
+          {
+            if (!btor_is_array_exp (parser->btor, p[i].exp))
+              return !btor_perr_smt2 (
+                  parser,
+                  "first argument of '=' is an array but argument %d not",
+                  i);
+            if ((len = btor_get_exp_len (parser->btor, p[i].exp)) != width)
+              return !btor_perr_smt2 (
+                  parser,
+                  "first argument of '=' is an array of bit-vectors of width "
+                  "%d "
+                  "but argument %d is an array of bit-vectors of width %d",
+                  width,
+                  i,
+                  len);
+            if ((len = btor_get_index_exp_len (parser->btor, p[i].exp))
+                != domain)
+              return !btor_perr_smt2 (parser,
+                                      "first argument of '=' is an array with "
+                                      "index bit-vectors of width %d "
+                                      "but argument %d is an array with index "
+                                      "bit-vectors of width %d",
+                                      domain,
+                                      i,
+                                      len);
+          }
+        }
+        else
+        {
+          for (i = 1; i <= nargs; i++)
+            if ((len = btor_get_exp_len (parser->btor, p[i].exp)) != width)
+              return !btor_perr_smt2 (
+                  parser,
+                  "first argument of '=' is bit-vector of width %d "
+                  "but argument %d is a bit-vector of width %d",
+                  width,
+                  i,
+                  len);
+        }
+        exp = btor_true_exp (parser->btor);
+        for (i = 1; i < nargs; i++)
+        {
+          tmp = btor_eq_exp (parser->btor, p[i].exp, p[i + 1].exp);
+          old = exp;
+          exp = btor_and_exp (parser->btor, old, tmp);
+          btor_release_exp (parser->btor, old);
+          btor_release_exp (parser->btor, tmp);
+        }
+        for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
+        parser->work.top = p;
+        l->tag           = BTOR_EXP_TAG_SMT2;
+        l->exp           = exp;
       }
       else
         return !btor_perr_smt2 (
