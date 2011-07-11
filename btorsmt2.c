@@ -1627,13 +1627,18 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
               parser, "argument to '%s' missing", p->node->name);
         if (!btor_check_boolean_args_smt2 (parser, p, nargs)) return 0;
         exp = 0;
-        exp = btor_true_exp (parser->btor);
         for (i = nargs; i >= 1; i--)
         {
-          old = exp;
-          exp = btor_implies_exp (parser->btor, p[i].exp, old);
-          btor_release_exp (parser->btor, old);
+          if (exp)
+          {
+            old = exp;
+            exp = btor_implies_exp (parser->btor, p[i].exp, old);
+            btor_release_exp (parser->btor, old);
+          }
+          else
+            exp = btor_copy_exp (parser->btor, p[i].exp);
         }
+        assert (exp);
       RELEASE_EXP_AND_OVERWRITE:
         for (i = 1; i <= nargs; i++) btor_release_exp (parser->btor, p[i].exp);
         parser->work.top = p;
