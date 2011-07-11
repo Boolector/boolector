@@ -1224,6 +1224,27 @@ btor_parse_int32_smt2 (BtorSMT2Parser *parser, int posonly, int *resptr)
 }
 
 static int
+btor_check_boolean_args_smt2 (BtorSMT2Parser *parser,
+                              BtorSMT2Item *p,
+                              int nargs)
+{
+  int i, width;
+  for (i = 1; i <= nargs; i++)
+  {
+    if (btor_is_array_exp (parser->btor, p[i].exp))
+      return !btor_perr_smt2 (
+          parser, "argument %d of '%s' is an array term", i, p->node->name);
+    if ((width = btor_get_exp_len (parser->btor, p[i].exp)) != 1)
+      return !btor_perr_smt2 (parser,
+                              "argument %d of '%s' is a bit-vector of width %d",
+                              i,
+                              width,
+                              p->node->name);
+  }
+  return 1;
+}
+
+static int
 btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
                                  BtorSMT2Item *p,
                                  int nargs)
@@ -1266,6 +1287,13 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
   else
   {
     for (i = 1; i <= nargs; i++)
+    {
+      if (btor_is_array_exp (parser->btor, p[i].exp))
+        return !btor_perr_smt2 (
+            parser,
+            "argument %d of '%s' is an array but first argument not",
+            i,
+            p->node->name);
       if ((len = btor_get_exp_len (parser->btor, p[i].exp)) != width)
         return !btor_perr_smt2 (
             parser,
@@ -1275,6 +1303,7 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
             width,
             i,
             len);
+    }
   }
   return 1;
 }
@@ -1353,34 +1382,15 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         if (!nargs)
           return !btor_perr_smt2 (
               parser, "argument to '%s' missing", p->node->name);
+        if (!btor_check_boolean_args_smt2 (parser, p, nargs)) return 0;
         exp = 0;
+        exp = btor_true_exp (parser->btor);
         for (i = nargs; i >= 1; i--)
         {
-          tmp = p[i].exp;
-          if (btor_is_array_exp (parser->btor, tmp))
-          {
-            if (exp) btor_release_exp (parser->btor, exp);
-            return !btor_perr_smt2 (
-                parser,
-                "unexpected array expression as first argument to '=>'");
-          }
-          if ((width = btor_get_exp_len (parser->btor, tmp)) != 1)
-          {
-            if (exp) btor_release_exp (parser->btor, exp);
-            return !btor_perr_smt2 (
-                parser,
-                "unexpected bit-vector of width %d as first argument to '=>'");
-          }
-          if (exp)
-          {
-            old = exp;
-            exp = btor_implies_exp (parser->btor, tmp, old);
-            btor_release_exp (parser->btor, old);
-          }
-          else
-            exp = btor_copy_exp (parser->btor, tmp);
-          btor_release_exp (parser->btor, tmp);
-          p[i].exp = 0;
+          old = exp;
+          exp = btor_implies_exp (parser->btor, p[i].exp, old);
+          btor_release_exp (parser->btor, old);
+          btor_release_exp (parser->btor, p[i].exp);
         }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
@@ -1393,38 +1403,14 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         if (!nargs)
           return !btor_perr_smt2 (
               parser, "argument to '%s' missing", p->node->name);
-        exp = 0;
+        if (!btor_check_boolean_args_smt2 (parser, p, nargs)) return 0;
+        exp = btor_true_exp (parser->btor);
         for (i = 1; i <= nargs; i++)
         {
-          tmp = p[i].exp;
-          if (btor_is_array_exp (parser->btor, tmp))
-          {
-            if (exp) btor_release_exp (parser->btor, exp);
-            return !btor_perr_smt2 (parser,
-                                    "argument %d of '%s' is an array term",
-                                    i,
-                                    p->node->name);
-          }
-          if ((width = btor_get_exp_len (parser->btor, tmp)) != 1)
-          {
-            if (exp) btor_release_exp (parser->btor, exp);
-            return !btor_perr_smt2 (
-                parser,
-                "argument %d of '%s' is a bit-vector of width %d",
-                i,
-                width,
-                p->node->name);
-          }
-          if (exp)
-          {
-            old = exp;
-            exp = binfun (parser->btor, old, tmp);
-            btor_release_exp (parser->btor, old);
-          }
-          else
-            exp = btor_copy_exp (parser->btor, tmp);
-          btor_release_exp (parser->btor, tmp);
-          p[i].exp = 0;
+          old = exp;
+          exp = binfun (parser->btor, old, p[i].exp);
+          btor_release_exp (parser->btor, old);
+          btor_release_exp (parser->btor, p[i].exp);
         }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
