@@ -190,24 +190,11 @@ typedef enum BtorSMT2Tag
 
 } BtorSMT2Tag;
 
-typedef enum BtorSMT2SortTag
-{
-  BTOR_UNDEFINED_SORT_SMT2 = 0,
-  BTOR_BITVEC_SORT_SMT2    = 1,
-  BTOR_ARRAY_SORT_SMT2     = 2,
-} BtorSMT2SortTag;
-
-typedef struct BtorSMT2Sort
-{
-  BtorSMT2SortTag tag;
-  int width, domain;
-} BtorSMT2Sort;
-
 typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
-  int lineno;
-  BtorSMT2Sort sort;
+  unsigned tobebound : 1;
+  int lineno : 31;
   BtorExp *exp;
   union
   {
@@ -1806,12 +1793,13 @@ btor_parse_bitvec_sort_smt2 (BtorSMT2Parser *parser, int skiplu, int *resptr)
 static int
 btor_declare_fun_smt2 (BtorSMT2Parser *parser)
 {
+  int tag, domain, width;
   BtorSMT2Node *fun;
-  int tag;
-  fun = 0;
+  fun   = 0;
+  width = domain = 0;
   if (!btor_read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
-  if (fun->sort.tag != BTOR_UNDEFINED_SORT_SMT2)
+  if (fun->lineno)
     return !btor_perr_smt2 (parser,
                             "symbol '%s' already defined at line %d",
                             fun->name,
@@ -1826,7 +1814,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
                             "reached end-of-file expecting '(' or 'Bool'");
   if (tag == BTOR_BOOL_TAG_SMT2)
   {
-    fun->sort.width = 1;
+    width = 1;
     goto BITVEC;
   }
   else if (tag != BTOR_LPAR_TAG_SMT2)
@@ -1839,34 +1827,31 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
                             "reached end-of-file expecting '_' or 'Array'");
   if (tag == BTOR_UNDERSCORE_TAG_SMT2)
   {
-    if (!btor_parse_bitvec_sort_smt2 (parser, 1, &fun->sort.width)) return 0;
+    if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width)) return 0;
   BITVEC:
-    fun->sort.tag = BTOR_BITVEC_SORT_SMT2;
-    fun->exp      = btor_var_exp (parser->btor, fun->sort.width, fun->name);
+    fun->exp = btor_var_exp (parser->btor, width, fun->name);
     btor_msg_smt2 (parser,
                    2,
                    "declared '%s' as bit-vector of width %d at line %d",
                    fun->name,
-                   fun->sort.width,
+                   width,
                    fun->lineno);
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
     if (parser->commands.set_logic && parser->res->logic == BTOR_LOGIC_QF_BV)
       return !btor_perr_smt2 (parser, "'Array' invalid for logic 'QF_BV'");
-    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &fun->sort.domain)) return 0;
-    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &fun->sort.width)) return 0;
+    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &domain)) return 0;
+    if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
     if (!btor_read_rpar_smt2 (parser, " after element sort")) return 0;
-    fun->sort.tag = BTOR_ARRAY_SORT_SMT2;
-    fun->exp      = btor_array_exp (
-        parser->btor, fun->sort.width, fun->sort.domain, fun->name);
+    fun->exp = btor_array_exp (parser->btor, width, domain, fun->name);
     btor_msg_smt2 (
         parser,
         2,
         "declared bit-vector array '%s' index element width %d %d at line %d",
         fun->name,
-        fun->sort.domain,
-        fun->sort.width,
+        domain,
+        width,
         fun->lineno);
     parser->need_arrays = 1;
   }
