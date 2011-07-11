@@ -1226,7 +1226,7 @@ btor_parse_int32_smt2 (BtorSMT2Parser *parser, int posonly, int *resptr)
 static int
 btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
 {
-  int tag, width, domain, nargs, len, i, j, open = 0;
+  int tag, width, domain, nargs, len, i, open = 0;
   BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
   BtorExp *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
@@ -1772,6 +1772,8 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
+    if (parser->commands.set_logic && parser->res->logic == BTOR_LOGIC_QF_BV)
+      return !btor_perr_smt2 (parser, "'Array' invalid for logic 'QF_BV'");
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &fun->sort.domain)) return 0;
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &fun->sort.width)) return 0;
     if (!btor_read_rpar_smt2 (parser, " after element sort")) return 0;
@@ -1990,6 +1992,23 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
   parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
   btor_msg_smt2 (parser, 1, "parsed %d commands", parser->commands.all);
+
+  if (parser->commands.set_logic)
+  {
+    assert (!parser->need_arrays || parser->res->logic == BTOR_LOGIC_QF_AUFBV);
+    if (!parser->need_arrays && parser->res->logic == BTOR_LOGIC_QF_AUFBV)
+    {
+      btor_msg_smt2 (
+          parser, 1, "no arrays found thus restricting logic to 'QF_BV'");
+      parser->res->logic = BTOR_LOGIC_QF_BV;
+    }
+  }
+  else if (parser->need_arrays)
+  {
+    btor_msg_smt2 (parser, 1, "found arrays thus using 'QF_AUFBV' logic");
+    assert (parser->res->logic == BTOR_LOGIC_QF_BV);
+    parser->res->logic = BTOR_LOGIC_QF_AUFBV;
+  }
   return 0;
 }
 

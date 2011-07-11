@@ -6697,7 +6697,7 @@ find_array_axiom_2_conflict (Btor *btor,
   return 0;
 }
 
-/* readds assumptions to the SAT solver */
+/* reads assumptions to the SAT solver */
 static int
 readd_assumptions (Btor *btor)
 {
@@ -6757,7 +6757,7 @@ readd_under_approx_assumptions (Btor *btor)
   }
 }
 
-/* updates SAT assignments, readds assumptions and
+/* updates SAT assignments, reads assumptions and
  * returns if an assignment has changed
  */
 static int
