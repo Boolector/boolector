@@ -193,22 +193,10 @@ typedef enum BtorSMT2Tag
 typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
-  unsigned tobebound : 1;
-  int lineno : 31;
+  int lineno;
+  char *name;
   BtorExp *exp;
-  union
-  {
-    struct
-    {
-      char *name;
-      struct BtorSMT2Node *next;
-    };
-    struct
-    {
-      struct BtorSMT2Node *child;
-      int size;
-    };
-  };
+  struct BtorSMT2Node *next;
 } BtorSMT2Node;
 
 typedef struct BtorSMT2Item
