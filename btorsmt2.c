@@ -2246,7 +2246,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
             else
               return !btor_perr_smt2 (parser,
                                       "invalid parametric term '_ %s'",
-                                      parser->token.start);  // TODO
+                                      parser->token.start);
           }
           else
           {
@@ -2274,26 +2274,29 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
           p->tag = BTOR_EXP_TAG_SMT2;
           p->exp = btor_false_exp (parser->btor);
         }
+        else if (tag == BTOR_ATTRIBUTE_TAG_SMT2)
+        {
+          return !btor_perr_smt2 (
+              parser, "unexpected attribute '%s'", parser->token.start);
+        }
         else if (tag & BTOR_CORE_TAG_CLASS_SMT2)
         {
           if (tag == BTOR_BOOL_TAG_SMT2)
-            return !btor_perr_smt2 (parser, "unexpected 'Bool");
+            return !btor_perr_smt2 (parser, "unexpected 'Bool'");
         }
         else if (tag & BTOR_ARRAY_TAG_CLASS_SMT2)
         {
           if (tag == BTOR_ARRAY_TAG_SMT2)
-            return !btor_perr_smt2 (parser, "unexpected 'Array");
+            return !btor_perr_smt2 (parser, "unexpected 'Array'");
         }
         else if (tag & BTOR_BITVEC_TAG_CLASS_SMT2)
         {
           if (tag == BTOR_BITVEC_TAG_SMT2)
-            return !btor_perr_smt2 (parser, "unexpected 'BitVec");
+            return !btor_perr_smt2 (parser, "unexpected 'BitVec'");
         }
         else
           return !btor_perr_smt2 (
-              parser,
-              "internal parser error: unsupported node item '%s'",
-              btor_item2str_smt2 (p));
+              parser, "unexpected token '%s'", btor_item2str_smt2 (p));
       }
       else if (tag == BTOR_BINARY_CONSTANT_TAG_SMT2)
       {
@@ -2316,15 +2319,15 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         btor_delete_const (parser->mem, constr);
       }
       else
-        return !btor_perr_smt2 (parser,
-                                "internal parse error: unsupported token '%s'",
-                                parser->token.start);
+        return !btor_perr_smt2 (
+            parser, "unexpected token '%s'", parser->token.start);
     }
   } while (open);
   if (BTOR_COUNT_STACK (parser->work) != 1)
   {
     parser->perrlineno = p->lineno;
-    // TODO remove?
+    // This should not occur, but we keep it as a bad style of
+    // defensive programming for future extensions of the parser.
     return !btor_perr_smt2 (parser,
                             "internal parse error: worker stack of size %d",
                             BTOR_COUNT_STACK (parser->work));
@@ -2333,10 +2336,10 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
   if (p->tag != BTOR_EXP_TAG_SMT2)
   {
     parser->perrlineno = p->lineno;
-    // TODO more specific ...
+    // Dito, same comment wrt defensive programming an future use.
     return !btor_perr_smt2 (
         parser,
-        "internal parse error: failed to parse term at '%s'",
+        "internal parse error: failed to translate parsed term at '%s'",
         btor_item2str_smt2 (p));
   }
   res        = btor_copy_exp (parser->btor, p->exp);
