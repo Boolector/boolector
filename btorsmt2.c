@@ -2499,7 +2499,7 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
     else
       goto INVALID_STATUS_VALUE;
 
-    btor_msg_smt2 (parser, 2, "parsed status %s", parser->token.start);
+    btor_msg_smt2 (parser, 2, "parsed status '%s'", parser->token.start);
     return btor_read_rpar_smt2 (parser, " after 'set-logic'");
   }
   return btor_skip_sexprs (parser, 1);
@@ -2626,6 +2626,7 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
                         const char *name,
                         BtorParseResult *res)
 {
+  double start    = btor_time_stamp (), delta;
   parser->name    = btor_strdup (parser->mem, name);
   parser->nprefix = 0;
   parser->prefix  = prefix;
@@ -2662,7 +2663,13 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   parser->res->outputs  = parser->outputs.start;
   parser->res->ninputs  = BTOR_COUNT_STACK (parser->inputs);
   parser->res->noutputs = BTOR_COUNT_STACK (parser->outputs);
-  btor_msg_smt2 (parser, 1, "parsed %d commands", parser->commands.all);
+  delta                 = btor_time_stamp () - start;
+  if (delta < 0) delta = 0;
+  btor_msg_smt2 (parser,
+                 1,
+                 "parsed %d commands in %.2f seconds",
+                 parser->commands.all,
+                 delta);
 
   if (parser->commands.set_logic)
   {
