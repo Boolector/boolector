@@ -552,7 +552,11 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   LGL *res;
-  btor_msg_sat (smgr, 1, "Lingeling Version %s", lglversion ());
+  if (smgr->verbosity >= 1)
+  {
+    lglbnr ("Lingeling", "[lingeling] ", stdout);
+    fflush (stdout);
+  }
   res = lglminit (smgr->mm,
                   (lglalloc) btor_malloc,
                   (lglrealloc) btor_realloc,
