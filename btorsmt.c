@@ -1129,7 +1129,12 @@ extrafun (BtorSMTParser *parser, BtorSMTNode *fdecl)
 
   p = sortsymbol->name;
 
-  if (has_prefix (p, "BitVec"))
+  if (!strcmp (p, "Bool"))
+  {
+    symbol->exp = btor_var_exp (parser->btor, 1, symbol->name);
+    push_input (parser, symbol->exp);
+  }
+  else if (has_prefix (p, "BitVec"))
   {
     if (!(p = next_numeral (p)) || next_numeral (p)) goto INVALID_SORT;
 
