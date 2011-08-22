@@ -309,6 +309,7 @@ static void (*btor_sig_alrm_handler) (int);
 static void
 btor_reset_alarm (void)
 {
+  alarm (0);
   (void) signal (SIGALRM, btor_sig_alrm_handler);
 }
 
@@ -340,6 +341,8 @@ static void
 btor_set_alarm (void)
 {
   btor_sig_alrm_handler = signal (SIGALRM, btor_catch_alarm);
+  assert (btor_static_set_alarm > 0);
+  alarm (btor_static_set_alarm);
 }
 
 static void
@@ -1214,12 +1217,12 @@ boolector_main (int argc, char **argv)
     amgr             = btor_get_aig_mgr_aigvec_mgr (avmgr);
     btor_static_smgr = smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
-    if (app.verbosity > 0) btor_msg_main ("setting signal handlers");
+    if (app.verbosity > 0) btor_msg_main ("setting signal handlers\n");
     btor_set_sig_handlers ();
     if (btor_static_set_alarm >= 0)
     {
       if (app.verbosity > 0)
-        btor_msg_main_va_args ("setting time limit to %d seconds",
+        btor_msg_main_va_args ("setting time limit to %d seconds\n",
                                btor_static_set_alarm);
       btor_set_alarm ();
     }
