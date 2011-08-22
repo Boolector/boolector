@@ -1,3 +1,8 @@
+news for release 1.5.XX since 1.5.13
+------------------------------------
+* time out option
+* SMTLIB 2 support
+
 news for release 1.5.13 since 1.4.1
 ----------------------------------
 * new incremental mode for multiple formulas in SMT benchmarks
