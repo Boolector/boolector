@@ -174,6 +174,8 @@ static const char *g_usage =
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
     "\n"
+    "  -t <time out in seconds>         set time limit\n"
+    "\n"
     "  --btor                           force BTOR format input\n"
     "  --smt|--smt1                     force SMTLIB version 1 format input\n"
     "  --smt2                           force SMTLIB version 2 format input\n"
@@ -246,6 +248,7 @@ static int btor_static_verbosity;
 static BtorSATMgr *btor_static_smgr;
 static Btor *btor_static_btor;
 static int btor_static_catched_sig;
+static int btor_static_set_alarm;
 
 static void (*btor_sig_int_handler) (int);
 static void (*btor_sig_segv_handler) (int);
@@ -299,6 +302,44 @@ btor_set_sig_handlers (void)
   btor_sig_abrt_handler = signal (SIGABRT, btor_catch_sig);
   btor_sig_term_handler = signal (SIGTERM, btor_catch_sig);
   btor_sig_bus_handler  = signal (SIGBUS, btor_catch_sig);
+}
+
+static void (*btor_sig_alrm_handler) (int);
+
+static void
+btor_reset_alarm (void)
+{
+  (void) signal (SIGALRM, btor_sig_alrm_handler);
+}
+
+static void
+btor_catch_alarm (int sig)
+{
+  assert (sig == SIGALRM);
+  if (!btor_static_catched_sig)
+  {
+    btor_static_catched_sig = 1;
+    if (btor_static_verbosity > 0)
+      printf ("[boolector] CAUGHT SIGNAL %d (probably time limit reached)\n",
+              SIGALRM);
+    fputs ("unknown\n", stdout);
+    fflush (stdout);
+    if (btor_static_verbosity)
+    {
+      if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
+      if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
+    }
+  }
+  btor_reset_sig_handlers ();
+  btor_reset_alarm ();
+  raise (sig);
+  exit (sig);
+}
+
+static void
+btor_set_alarm (void)
+{
+  btor_sig_alrm_handler = signal (SIGALRM, btor_catch_alarm);
 }
 
 static void
@@ -719,6 +760,23 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       app->incremental = 2;
     }
+    else if (!strcmp (app->argv[app->argpos], "-t"))
+    {
+      if (app->argpos + 1 < app->argc)
+      {
+        btor_static_set_alarm = atoi (app->argv[++app->argpos]);
+        if (btor_static_set_alarm <= 0)
+        {
+          print_err (app, "argument to '-t' invalid (should be positive)");
+          app->err = 1;
+        }
+      }
+      else
+      {
+        print_err (app, "argument to '-t' option missing");
+        app->err = 1;
+      }
+    }
     else if (!strcmp (app->argv[app->argpos], "-V")
              || !strcmp (app->argv[app->argpos], "--version"))
     {
@@ -1110,6 +1168,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
 #endif
+  btor_static_set_alarm = -1;
 
   parse_commandline_arguments (&app);
 
@@ -1155,27 +1214,36 @@ boolector_main (int argc, char **argv)
     amgr             = btor_get_aig_mgr_aigvec_mgr (avmgr);
     btor_static_smgr = smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
+    if (app.verbosity > 0) btor_msg_main ("setting signal handlers");
     btor_set_sig_handlers ();
+    if (btor_static_set_alarm >= 0)
+    {
+      if (app.verbosity > 0)
+        btor_msg_main_va_args ("setting time limit to %d seconds",
+                               btor_static_set_alarm);
+      btor_set_alarm ();
+    }
+    else if (app.verbosity > 0)
+      btor_msg_main ("no time limit");
 
     if (app.force_smt_input == -1)
     {
       parser_api = btor_btor_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main_va_args (
-            "forced BTOR parsing through command line option\n");
+        btor_msg_main ("forced BTOR parsing through command line option\n");
     }
     else if (app.force_smt_input == 1)
     {
       parser_api = btor_smt_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main_va_args (
+        btor_msg_main (
             "forced SMTLIB version 1 parsing through command line option\n");
     }
     else if (app.force_smt_input == 2)
     {
       parser_api = btor_smt2_parser_api ();
       if (app.verbosity > 0)
-        btor_msg_main_va_args (
+        btor_msg_main (
             "forced SMTLIB version 2 parsing through command line option\n");
     }
     else if (app.close_input_file && has_suffix (app.input_file_name, ".btor"))
