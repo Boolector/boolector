@@ -239,7 +239,8 @@ static const char *g_usage =
     "  -bmc-replay <file>               turn replay on\n";
 
 static const char *g_copyright =
-    "Copyright (c) 2007 - 2008, Robert Brummayer, Armin Biere\n"
+    "Copyright (c) 2007 - 2008, Robert Brummayer\n"
+    "Copyright (c) 2007 - 2011, Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
     "Licensed under the GNU Public License Version 3\n";
