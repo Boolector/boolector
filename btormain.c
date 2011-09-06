@@ -1250,7 +1250,7 @@ boolector_main (int argc, char **argv)
       btor_set_alarm ();
     }
     else if (app.verbosity > 0)
-      btor_msg_main ("no time limit");
+      btor_msg_main ("no time limit\n");
 
     if (app.force_smt_input == -1)
     {
