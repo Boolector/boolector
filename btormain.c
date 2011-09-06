@@ -1001,7 +1001,7 @@ parse_commandline_arguments (BtorMainApp *app)
     }
     else
     {
-      const char *name = app->argv[app->argpos];
+      char *name = app->argv[app->argpos];
       if (has_suffix (name, ".gz"))
       {
         char *cmd = malloc (strlen (name) + 20);
