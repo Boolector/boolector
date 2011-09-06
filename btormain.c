@@ -489,11 +489,20 @@ handle_dump_file (BtorMainApp *app,
 static int
 has_suffix (const char *str, const char *suffix)
 {
-  const char *p;
+  int l = strlen (str), k = strlen (suffix), d = l - k;
+  if (d < 0) return 0;
+  return !strcmp (str + d, suffix);
+}
 
-  for (p = str; *p; p++)
-    if (!strcmp (p, suffix)) return 1;
-
+static int
+file_name_has_suffix (const char *str, const char *suffix)
+{
+  int l = strlen (str), k = strlen (suffix), d = l - k;
+  if (d < 0) return 0;
+  if (!strcmp (str + d, suffix)) return 1;
+  if (d - 3 >= 0 && !strcmp (str + l - 3, ".gz")
+      && !strncmp (str + d - 3, suffix, k))
+    return 1;
   return 0;
 }
 
@@ -990,16 +999,30 @@ parse_commandline_arguments (BtorMainApp *app)
       print_err_va_args (app, "multiple input files\n");
       app->err = 1;
     }
-    else if (!(temp_file = fopen (app->argv[app->argpos], "r")))
-    {
-      print_err_va_args (app, "can not read '%s'\n", app->argv[app->argpos]);
-      app->err = 1;
-    }
     else
     {
-      app->input_file_name  = app->argv[app->argpos];
-      app->input_file       = temp_file;
-      app->close_input_file = 1;
+      char *name = app->argv[app->argpos];
+      if (has_suffix (name, ".gz"))
+      {
+        char *cmd = malloc (strlen (name) + 20);
+        sprintf (cmd, "gunzip -c %s", name);
+        if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+      }
+      else
+      {
+        if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
+      }
+
+      if (temp_file)
+      {
+        app->input_file_name = name;
+        app->input_file      = temp_file;
+      }
+      else
+      {
+        print_err_va_args (app, "can not read '%s'\n", name);
+        app->err = 1;
+      }
     }
   }
 
@@ -1227,7 +1250,7 @@ boolector_main (int argc, char **argv)
       btor_set_alarm ();
     }
     else if (app.verbosity > 0)
-      btor_msg_main ("no time limit");
+      btor_msg_main ("no time limit\n");
 
     if (app.force_smt_input == -1)
     {
@@ -1249,14 +1272,16 @@ boolector_main (int argc, char **argv)
         btor_msg_main (
             "forced SMTLIB version 2 parsing through command line option\n");
     }
-    else if (app.close_input_file && has_suffix (app.input_file_name, ".btor"))
+    else if (app.close_input_file
+             && file_name_has_suffix (app.input_file_name, ".btor"))
     {
       parser_api = btor_btor_parser_api ();
       if (app.verbosity > 0)
         btor_msg_main_va_args (
             "assuming BTOR parsing because of '.btor' suffix\n");
     }
-    else if (app.close_input_file && has_suffix (app.input_file_name, ".smt2"))
+    else if (app.close_input_file
+             && file_name_has_suffix (app.input_file_name, ".smt2"))
     {
       parser_api = btor_smt2_parser_api ();
       if (app.verbosity > 0)
@@ -2065,8 +2090,9 @@ boolector_main (int argc, char **argv)
     btor_reset_sig_handlers ();
   }
 
-  if (app.close_input_file) fclose (app.input_file);
-  if (app.close_output_file) fclose (app.output_file);
+  if (app.close_input_file == 1) fclose (app.input_file);
+  if (app.close_output_file)
+    if (app.close_input_file == 2) pclose (app.output_file);
   if (app.close_exp_file) fclose (app.exp_file);
   if (app.close_smt_file) fclose (app.smt_file);
   if (app.close_replay_file) fclose (app.replay_file);
