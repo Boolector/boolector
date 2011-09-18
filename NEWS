@@ -1,5 +1,6 @@
 news for release 1.5.XX since 1.5.13
 ------------------------------------
+* gzip compressed input files
 * time out option
 * SMTLIB 2 support
 
