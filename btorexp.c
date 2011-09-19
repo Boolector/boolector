@@ -6699,7 +6699,7 @@ find_array_axiom_2_conflict (Btor *btor,
 
 /* reads assumptions to the SAT solver */
 static int
-read_assumptions (Btor *btor)
+add_again_assumptions (Btor *btor)
 {
   BtorExp *exp;
   BtorPtrHashBucket *b;
@@ -6767,7 +6767,7 @@ update_sat_assignments (Btor *btor)
   BtorSATMgr *smgr = NULL;
   assert (btor != NULL);
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  found_assumption_false = read_assumptions (btor);
+  found_assumption_false = add_again_assumptions (btor);
   assert (!found_assumption_false);
   result = btor_sat_sat (smgr);
   assert (result == BTOR_SAT);
@@ -10012,7 +10012,7 @@ btor_sat_btor (Btor *btor)
   /* pointer chase assumptions */
   update_assumptions (btor);
 
-  found_assumption_false = read_assumptions (btor);
+  found_assumption_false = add_again_assumptions (btor);
   if (found_assumption_false) return BTOR_UNSAT;
 
   if (ua)
@@ -10039,7 +10039,7 @@ btor_sat_btor (Btor *btor)
       if (!found_conflict) break;
 
       btor->stats.lod_refinements++;
-      found_assumption_false = read_assumptions (btor);
+      found_assumption_false = add_again_assumptions (btor);
       assert (!found_assumption_false);
 
       if (ua && !under_approx_finished) read_under_approx_assumptions (btor);
@@ -10078,8 +10078,14 @@ btor_sat_btor (Btor *btor)
         fflush (stdout);
       }
     }
-    sat_result = btor_sat_sat (smgr);
-    assert (sat_result != BTOR_UNKNOWN);
+    found_assumption_false = add_again_assumptions (btor);
+    if (found_assumption_false)
+      sat_result = BTOR_UNSAT;
+    else
+    {
+      sat_result = btor_sat_sat (smgr);
+      assert (sat_result != BTOR_UNKNOWN);
+    }
   }
 
   BTOR_RELEASE_STACK (mm, top_arrays);

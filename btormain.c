@@ -1022,10 +1022,9 @@ parse_commandline_arguments (BtorMainApp *app)
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
       }
       else
-        else
-        {
-          if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
-        }
+      {
+        if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
+      }
 
       if (temp_file)
       {
