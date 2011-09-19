@@ -1372,14 +1372,11 @@ boolector_main (int argc, char **argv)
     {
       btor_enable_inc_usage (btor);
 
-#ifdef BTOR_USE_MINISAT
+#ifdef BTOR_USE_PICOSAT
       if (app.force_picosat)
       {
         btor_enable_picosat_sat (smgr);
       }
-#else
-      if (1)
-        ;
 #endif
 #ifdef BTOR_USE_MINISAT
       else if (app.force_minisat)
