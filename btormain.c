@@ -1015,10 +1015,17 @@ parse_commandline_arguments (BtorMainApp *app)
         sprintf (cmd, "bzcat %s", name);
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
       }
-      else
+      else if (has_suffix (name, ".7z"))
       {
-        if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
+        char *cmd = malloc (strlen (name) + 30);
+        sprintf (cmd, "7z x -so %s 2>/dev/null", name);
+        if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
       }
+      else
+        else
+        {
+          if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
+        }
 
       if (temp_file)
       {
