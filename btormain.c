@@ -1391,7 +1391,9 @@ boolector_main (int argc, char **argv)
       }
 #endif
 #ifdef BTOR_USE_LINGELING
+#if defined(BTOR_USE_PICOSAT) || defined(BTOR_USE_MINISAT)
       else
+#endif
       {
         btor_enable_lingeling_sat (smgr);
       }
