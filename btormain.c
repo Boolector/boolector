@@ -1009,6 +1009,12 @@ parse_commandline_arguments (BtorMainApp *app)
         sprintf (cmd, "gunzip -c %s", name);
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
       }
+      else if (has_suffix (name, ".bz2"))
+      {
+        char *cmd = malloc (strlen (name) + 20);
+        sprintf (cmd, "bzcat %s", name);
+        if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+      }
       else
       {
         if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
