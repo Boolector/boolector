@@ -1143,7 +1143,7 @@ boolector_main (int argc, char **argv)
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state;
+  BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state, *tmp, *all;
   BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
   BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
   BtorExp *diff_arrays = NULL;
@@ -1505,23 +1505,51 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
-      if (parse_res.noutputs != 1)
-      {
-        print_msg_va_args (&app,
-                           "%s: found %d outputs "
-                           "but expected exactly one "
-                           "when dumping smt\n",
-                           app.input_file_name,
-                           parse_res.noutputs);
-        app.err = 1;
-      }
-      else
-      {
-        if (app.verbosity) btor_msg_main_va_args ("dumping in SMT format\n");
+#if 0
+          if (parse_res.noutputs != 1)
+            {
+              print_msg_va_args (&app,
+                                 "%s: found %d outputs "
+                                 "but expected exactly one "
+                                 "when dumping smt\n",
+                                 app.input_file_name, parse_res.noutputs);
+              app.err = 1;
+            }
+          else
+            {
+	      if (app.verbosity)
+		btor_msg_main_va_args ("dumping in SMT format\n");
 
-        app.done = 1;
-        btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
+              app.done = 1;
+              btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
+            }
+#else
+      all = 0;
+      for (i = 0; i < parse_res.noutputs; i++)
+      {
+        root     = parse_res.outputs[i];
+        root_len = btor_get_exp_len (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = btor_redor_exp (btor, root);
+        else
+          root = btor_copy_exp (btor, root);
+        if (all)
+        {
+          tmp = btor_and_exp (btor, all, root);
+          btor_release_exp (btor, root);
+          btor_release_exp (btor, all);
+          all = tmp;
+        }
+        else
+          all = root;
       }
+      if (app.verbosity) btor_msg_main_va_args ("dumping in SMT format\n");
+
+      app.done = 1;
+      btor_dump_smt (btor, app.smt_file, all);
+      btor_release_exp (btor, all);
+#endif
     }
     else
     {
