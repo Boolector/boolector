@@ -239,7 +239,8 @@ static const char *g_usage =
     "  -bmc-replay <file>               turn replay on\n";
 
 static const char *g_copyright =
-    "Copyright (c) 2007 - 2008, Robert Brummayer, Armin Biere\n"
+    "Copyright (c) 2007 - 2008, Robert Brummayer\n"
+    "Copyright (c) 2007 - 2011, Armin Biere\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n"
     "Licensed under the GNU Public License Version 3\n";
@@ -1008,6 +1009,18 @@ parse_commandline_arguments (BtorMainApp *app)
         sprintf (cmd, "gunzip -c %s", name);
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
       }
+      else if (has_suffix (name, ".bz2"))
+      {
+        char *cmd = malloc (strlen (name) + 20);
+        sprintf (cmd, "bzcat %s", name);
+        if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+      }
+      else if (has_suffix (name, ".7z"))
+      {
+        char *cmd = malloc (strlen (name) + 30);
+        sprintf (cmd, "7z x -so %s 2>/dev/null", name);
+        if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+      }
       else
       {
         if ((temp_file = fopen (name, "r"))) app->close_input_file = 1;
@@ -1130,7 +1143,7 @@ boolector_main (int argc, char **argv)
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
   size_t maxallocated             = 0;
-  BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state;
+  BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state, *tmp, *all;
   BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
   BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
   BtorExp *diff_arrays = NULL;
@@ -1172,7 +1185,7 @@ boolector_main (int argc, char **argv)
   app.ua_mode              = BTOR_UA_GLOBAL_MODE;
   app.ua_ref               = BTOR_UA_REF_BY_DOUBLING;
   app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
-  app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
+  app.bmcmaxk              = -1;
   app.bmcadc               = 1;
 #if 0
   // TODO try Tseitin as well
@@ -1365,14 +1378,11 @@ boolector_main (int argc, char **argv)
     {
       btor_enable_inc_usage (btor);
 
-#ifdef BTOR_USE_MINISAT
+#ifdef BTOR_USE_PICOSAT
       if (app.force_picosat)
       {
         btor_enable_picosat_sat (smgr);
       }
-#else
-      if (1)
-        ;
 #endif
 #ifdef BTOR_USE_MINISAT
       else if (app.force_minisat)
@@ -1381,7 +1391,9 @@ boolector_main (int argc, char **argv)
       }
 #endif
 #ifdef BTOR_USE_LINGELING
+#if defined(BTOR_USE_PICOSAT) || defined(BTOR_USE_MINISAT)
       else
+#endif
       {
         btor_enable_lingeling_sat (smgr);
       }
@@ -1493,23 +1505,31 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
-      if (parse_res.noutputs != 1)
+      all = 0;
+      for (i = 0; i < parse_res.noutputs; i++)
       {
-        print_msg_va_args (&app,
-                           "%s: found %d outputs "
-                           "but expected exactly one "
-                           "when dumping smt\n",
-                           app.input_file_name,
-                           parse_res.noutputs);
-        app.err = 1;
+        root     = parse_res.outputs[i];
+        root_len = btor_get_exp_len (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = btor_redor_exp (btor, root);
+        else
+          root = btor_copy_exp (btor, root);
+        if (all)
+        {
+          tmp = btor_and_exp (btor, all, root);
+          btor_release_exp (btor, root);
+          btor_release_exp (btor, all);
+          all = tmp;
+        }
+        else
+          all = root;
       }
-      else
-      {
-        if (app.verbosity) btor_msg_main_va_args ("dumping in SMT format\n");
+      if (app.verbosity) btor_msg_main_va_args ("dumping in SMT format\n");
 
-        app.done = 1;
-        btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
-      }
+      app.done = 1;
+      btor_dump_smt (btor, app.smt_file, all);
+      btor_release_exp (btor, all);
     }
     else
     {
