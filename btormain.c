@@ -1185,7 +1185,7 @@ boolector_main (int argc, char **argv)
   app.ua_mode              = BTOR_UA_GLOBAL_MODE;
   app.ua_ref               = BTOR_UA_REF_BY_DOUBLING;
   app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
-  app.bmcmaxk              = -1; /* -1 means it has not been set by the user */
+  app.bmcmaxk              = -1;
   app.bmcadc               = 1;
 #if 0
   // TODO try Tseitin as well
@@ -1505,25 +1505,6 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
-#if 0
-          if (parse_res.noutputs != 1)
-            {
-              print_msg_va_args (&app,
-                                 "%s: found %d outputs "
-                                 "but expected exactly one "
-                                 "when dumping smt\n",
-                                 app.input_file_name, parse_res.noutputs);
-              app.err = 1;
-            }
-          else
-            {
-	      if (app.verbosity)
-		btor_msg_main_va_args ("dumping in SMT format\n");
-
-              app.done = 1;
-              btor_dump_smt (btor, app.smt_file, parse_res.outputs[0]);
-            }
-#else
       all = 0;
       for (i = 0; i < parse_res.noutputs; i++)
       {
@@ -1549,7 +1530,6 @@ boolector_main (int argc, char **argv)
       app.done = 1;
       btor_dump_smt (btor, app.smt_file, all);
       btor_release_exp (btor, all);
-#endif
     }
     else
     {
