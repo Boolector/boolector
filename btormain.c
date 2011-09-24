@@ -2111,8 +2111,8 @@ boolector_main (int argc, char **argv)
   }
 
   if (app.close_input_file == 1) fclose (app.input_file);
-  if (app.close_output_file)
-    if (app.close_input_file == 2) pclose (app.output_file);
+  if (app.close_input_file == 2) pclose (app.input_file);
+  if (app.close_output_file) fclose (app.output_file);
   if (app.close_exp_file) fclose (app.exp_file);
   if (app.close_smt_file) fclose (app.smt_file);
   if (app.close_replay_file) fclose (app.replay_file);
