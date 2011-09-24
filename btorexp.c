@@ -2112,7 +2112,7 @@ btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
 }
 
 static int
-merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b, int overwrite)
+merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b)
 {
   BtorExp *rep_a, *rep_b, *rep;
   assert (btor != NULL);
@@ -2133,9 +2133,9 @@ merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b, int overwrite)
   else
     rep = rep_b;
 
-  if (a != rep) set_simplified_exp (btor, a, rep, overwrite);
+  if (a != rep) set_simplified_exp (btor, a, rep, 0);
 
-  if (b != rep) set_simplified_exp (btor, b, rep, overwrite);
+  if (b != rep) set_simplified_exp (btor, b, rep, 0);
 
   return 1;
 }
@@ -7980,7 +7980,7 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
       else
       {
         exp_true = btor_true_exp (btor);
-        if (merge_simplified_exp_const (btor, exp, exp_true, 0))
+        if (merge_simplified_exp_const (btor, exp, exp_true))
         {
           if (is_embedded_constraint_exp (btor, exp))
             insert_embedded_constraint (btor, exp);
