@@ -7668,14 +7668,14 @@ insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 static void
 insert_embedded_constraint (Btor *btor, BtorExp *exp)
 {
-  BtorPtrHashTable *ec;
+  BtorPtrHashTable *embedded_constraints;
   assert (btor != NULL);
   assert (exp != NULL);
-  ec = btor->embedded_constraints;
-  if (!btor_find_in_ptr_hash_table (ec, exp))
+  embedded_constraints = btor->embedded_constraints;
+  if (!btor_find_in_ptr_hash_table (embedded_constraints, exp))
   {
     inc_exp_ref_counter (btor, exp);
-    (void) btor_insert_in_ptr_hash_table (ec, exp);
+    (void) btor_insert_in_ptr_hash_table (embedded_constraints, exp);
     BTOR_REAL_ADDR_EXP (exp)->constraint = 1;
     btor->stats.constraints.embedded++;
   }
@@ -8722,21 +8722,21 @@ substitute_embedded_constraints (Btor *btor)
 static void
 process_embedded_constraints (Btor *btor)
 {
-  BtorPtrHashTable *ec;
+  BtorPtrHashTable *embedded_constraints;
   BtorPtrHashBucket *b;
   BtorExp *cur;
   assert (btor != NULL);
-  ec = btor->embedded_constraints;
-  if (ec->count > 0u)
+  embedded_constraints = btor->embedded_constraints;
+  if (embedded_constraints->count > 0u)
   {
     substitute_embedded_constraints (btor);
 
-    while (ec->count > 0u)
+    while (embedded_constraints->count > 0u)
     {
-      b   = ec->first;
+      b   = embedded_constraints->first;
       cur = (BtorExp *) b->key;
       insert_unsynthesized_constraint (btor, cur);
-      btor_remove_from_ptr_hash_table (ec, cur, NULL, NULL);
+      btor_remove_from_ptr_hash_table (embedded_constraints, cur, NULL, NULL);
       btor_release_exp (btor, cur);
     }
   }
