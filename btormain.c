@@ -138,7 +138,6 @@ struct BtorMainApp
   BtorUAEnc ua_enc;
   int bmcmaxk;
   int bmcadc;
-  BtorCNFEnc cnf_enc;
   int force_smt_input;
   BtorPrintModel print_model;
 #ifdef BTOR_USE_PICOSAT
@@ -191,10 +190,6 @@ static const char *g_usage =
     "  -f|--force                       overwrite existing output file\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  -tcnf|--tseitin-cnf              Tseitin CNF encoding\n"
-    "  -pgcnf|--plaisted-greenbaum-cnf  Plaisted-Greenbaum CNF encoding "
-    "(default)\n"
-
     "\n"
     "  -picosat                         enforce usage of PicoSAT as SAT "
     "solver\n"
@@ -916,12 +911,6 @@ parse_commandline_arguments (BtorMainApp *app)
       app->ua_enc = BTOR_UA_ENC_SIGN_EXTEND;
       app->ua     = 1;
     }
-    else if (!strcmp (app->argv[app->argpos], "-tcnf")
-             || !strcmp (app->argv[app->argpos], "--tseitin-cnf"))
-      app->cnf_enc = BTOR_TSEITIN_CNF_ENC;
-    else if (!strcmp (app->argv[app->argpos], "-pgcnf")
-             || !strcmp (app->argv[app->argpos], "--plaisted-greenbaum-cnf"))
-      app->cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
     else if (!strcmp (app->argv[app->argpos], "-x")
              || !strcmp (app->argv[app->argpos], "--hex"))
     {
@@ -1208,14 +1197,8 @@ boolector_main (int argc, char **argv)
   app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
   app.bmcmaxk              = -1;
   app.bmcadc               = 1;
-#if 0
-  // TODO try Tseitin as well
-  app.cnf_enc = BTOR_TSEITIN_CNF_ENC;
-#else
-  app.cnf_enc = BTOR_PLAISTED_GREENBAUM_CNF_ENC;
-#endif
-  app.force_smt_input = 0;
-  app.print_model     = BTOR_APP_PRINT_MODEL_NONE;
+  app.force_smt_input      = 0;
+  app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
 #ifdef BTOR_USE_PICOSAT
   app.force_picosat = 0;
 #endif
@@ -1428,8 +1411,6 @@ boolector_main (int argc, char **argv)
 
       if (app.verbosity >= 1)
         btor_msg_main ("starting incremental BTOR mode\n");
-
-      btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
 
       sat_result = BTOR_UNKNOWN;
 

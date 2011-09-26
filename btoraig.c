@@ -81,7 +81,6 @@ struct BtorAIGMgr
   int id;
   int verbosity;
   BtorSATMgr *smgr;
-  BtorCNFEnc cnf_enc;
 };
 
 /*------------------------------------------------------------------------*/
@@ -1344,13 +1343,6 @@ btor_add_toplevel_aig_to_sat (BtorAIGMgr *amgr, BtorAIG *root)
     }
   }
   BTOR_RELEASE_STACK (mm, stack);
-}
-
-void
-btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc)
-{
-  assert (amgr != NULL);
-  amgr->cnf_enc = cnf_enc;
 }
 
 BtorSATMgr *

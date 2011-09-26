@@ -31,14 +31,6 @@
 /* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
-enum BtorCNFEnc
-{
-  BTOR_TSEITIN_CNF_ENC,
-  BTOR_PLAISTED_GREENBAUM_CNF_ENC
-};
-
-typedef enum BtorCNFEnc BtorCNFEnc;
-
 struct BtorAIG
 {
   int id;
@@ -161,9 +153,6 @@ void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
 /* Solves SAT instance with root AIG aig. */
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
-
-/* Sets CNF encoding strategy. */
-void btor_set_cnf_enc_aig_mgr (BtorAIGMgr *amgr, BtorCNFEnc cnf_enc);
 
 /* Gets current assignment of AIG aig (in the SAT case).
  * Do not call before calling btor_sat_aig.
