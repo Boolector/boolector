@@ -186,6 +186,7 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
+  int sat_calls;
   int constraints;
   int assumptions;
 
@@ -284,6 +285,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
+  if (parser->incremental) printf ("%d : ", parser->sat_calls);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -2619,6 +2621,7 @@ translate_benchmark (BtorSMTParser *parser,
             if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
               res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
           }
+          parser->sat_calls++;
         }
         else
         {

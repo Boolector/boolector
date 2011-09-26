@@ -576,7 +576,7 @@ BtorExp *btor_redxor_exp (Btor *btor, BtorExp *exp);
  */
 BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
 
-/* Slice a sub-vector from 'upper' to 'lower'.
+/* BtorSlice a sub-vector from 'upper' to 'lower'.
  * upper < len(exp)
  * lower >= 0
  * upper >= lower

@@ -1,10 +1,10 @@
 #!/bin/sh
 
 debug=unknown
-precosat=unknown
-lingeling=unknown
-minisat=unknown
-picosat=unknown
+precosat=no
+lingeling=yes
+minisat=no
+picosat=no
 arch=unknown
 
 onlyprecosat=no
@@ -40,27 +40,12 @@ the binary if they can be found in the parent directory.
 
 By specifying one of them 'configure' fails if it can not be used.
 
+  --lingeling       use and link with Lingeling (default)
   --picosat         use and link with PicoSAT
   --precosat        use and link with PrecoSAT
-  --lingeling       use and link with Lingeling
   --minisat         use and link with MiniSAT
 
-To disable some of them use the following options:
-
-  --no-picosat      do not use PicoSAT
-  --no-precosat     do not use PrecoSAT
   --no-lingeling    do not use Lingeling
-  --no-minisat      do not use Lingeling
-
-In addition PicoSAT is always required as default back end SAT solver.
-
-  --only-picosat    only use and link with PicoSAT
-  --only-precosat   only use and link with PrecoSAT
-  --only-lingeling  only use and link with Lingeling
-  --only-minisat    only use and link with MiniSAT
-
-You also just want to explicitly use one in addition to PicoSAT
-
 EOF
   exit 0
 }
@@ -78,14 +63,7 @@ do
     -precosat|--precosat) precosat=yes;;
     -lingeling|--lingeling) lingeling=yes;;
     -minisat|--minisat) minisat=yes;;
-    -no-picosat|--no-picosat) picosat=no;;
-    -no-precosat|--no-precosat) precosat=no;;
     -no-lingeling|--no-lingeling) lingeling=no;;
-    -no-minisat|--no-minisat) minisat=no;;
-    -only-picosat|--only-picosat) onlypicosat=yes;;
-    -only-precosat|--only-precosat) onlyprecosat=yes;;
-    -only-lingeling|--only-lingeling) onlylingeling=yes;;
-    -only-minisat|--only-minisat) onlyminisat=yes;;
     -h|-help|--help) usage;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
@@ -94,63 +72,6 @@ done
 
 #--------------------------------------------------------------------------#
 
-if [ $onlypicosat = yes ]
-then
-  [ $picosat = yes ] && \
-    die "can not combine '--only-picosat' with '--picosat'"
-  [ $precosat = yes ] && \
-    die "can not combine '--only-picosat' with '--precosat'"
-  [ $minisat = yes ] && \
-    die "can not combine '--only-picosat' with '--minisat'"
-  picosat=yes;
-  precosat=no
-  lingeling=no
-  minisat=no
-fi
-
-if [ $onlylingeling = yes ]
-then
-  [ $picosat = yes ] && \
-    die "can not combine '--only-lingeling' with '--picosat'"
-  [ $precosat = yes ] && \
-    die "can not combine '--only-lingeling' with '--precosat'"
-  [ $minisat = yes ] && \
-    die "can not combine '--only-lingeling' with '--minisat'"
-  picosat=no;
-  lingeling=yes
-  precosat=no
-  minisat=no
-fi
-
-if [ $onlyprecosat = yes ]
-then
-  [ $picosat = yes ] && \
-    die "can not combine '--only-precosat' with '--picosat'"
-  [ $lingeling = yes ] && \
-    die "can not combine '--only-precosat' with '--lingeling'"
-  [ $minisat = yes ] && \
-    die "can not combine '--only-precosat' with '--minisat'"
-  picosat=no;
-  lingeling=no
-  precosat=yes
-  minisat=no
-fi
-
-if [ $onlyminisat = yes ]
-then
-  [ $picosat = yes ] && \
-    die "can not combine '--only-minisat' with '--picosat'"
-  [ $lingeling = yes ] && \
-    die "can not combine '--only-minisat' with '--lingeling'"
-  [ $precosat = yes ] && \
-    die "can not combine '--only-minisat' with '--precosat'"
-  picosat=no;
-  lingeling=no
-  precosat=no
-  minisat=yes
-fi
-
-#--------------------------------------------------------------------------#
 addstcpp () {
   if [ X"`echo "$LIBS" | grep 'lstdc++'`" = X ]
   then
@@ -202,8 +123,7 @@ LIBSTDCPP=no
 
 if [ $picosat = no ]
 then
-  msg "not using PicoSAT as requested by command line option"
-
+  msg "not using PicoSAT"
 else
 
   if [ -d ../picosat ]
@@ -242,7 +162,7 @@ fi
 
 if [ $precosat = no ]
 then
-  msg "not using PrecoSAT as requested by command line option"
+  msg "not using PrecoSAT"
 else
 
   if [ -d ../precosat ]
@@ -329,7 +249,7 @@ fi
 
 if [ $minisat = no ]
 then
-  msg "not using MiniSAT as requested by command line option"
+  msg "not using MiniSAT"
 else
 
   for path in \

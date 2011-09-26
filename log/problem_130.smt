@@ -1,5 +1,4 @@
-(
-benchmark smt
+(benchmark smt
 :source {Minkeyrink Solver}
 :difficulty {1}
 :category {industrial}
