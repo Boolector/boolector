@@ -9532,6 +9532,8 @@ btor_reset_effective_bit_widths (Btor *btor)
 
   if (!btor->ua.enabled) return;
 
+  assert (btor->ua.vars_reads);
+
   count = 0;
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
@@ -9539,7 +9541,7 @@ btor_reset_effective_bit_widths (Btor *btor)
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
     ua_data = b->data.asPtr;
-    if (ua_data->eff_width > btor->ua.initial_eff_width)
+    if (ua_data && ua_data->eff_width > btor->ua.initial_eff_width)
     {
       ua_data->last_e    = 0;
       ua_data->eff_width = btor->ua.initial_eff_width;
@@ -10007,8 +10009,8 @@ abstract_domain_bv_variables (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
-int
-btor_sat_btor (Btor *btor)
+static int
+btor_sat_aux_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, under_approx_finished, ua;
@@ -10018,9 +10020,6 @@ btor_sat_btor (Btor *btor)
   BtorMemMgr *mm;
 
   assert (btor != NULL);
-  assert (btor->btor_sat_btor_called >= 0);
-  assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
-  btor->btor_sat_btor_called++;
 
   verbosity             = btor->verbosity;
   ua                    = btor->ua.enabled;
@@ -10151,6 +10150,18 @@ btor_sat_btor (Btor *btor)
   BTOR_ABORT_EXP (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                   "result must be sat or unsat");
   return sat_result;
+}
+
+int
+btor_sat_btor (Btor *btor)
+{
+  int res;
+  assert (btor);
+  assert (btor->btor_sat_btor_called >= 0);
+  assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
+  res = btor_sat_aux_btor (btor);
+  btor->btor_sat_btor_called++;
+  return res;
 }
 
 char *
