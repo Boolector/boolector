@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU
+ *  Copyright (C) 2010-2011, Armin Biere, FMV, JKU
  *
  *  This file is part of Boolector.
  *
@@ -38,9 +40,8 @@ struct BtorAIG
   unsigned int refs;
   int cnf_id;
   struct BtorAIG *next;
+  unsigned int dead : 1;
   unsigned int mark : 2;
-  unsigned int pos_imp : 1; /* has positive implication been generated? */
-  unsigned int neg_imp : 1; /* has negative implication been generated? */
 };
 
 typedef struct BtorAIG BtorAIG;
@@ -78,6 +79,15 @@ BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
 /* Deletes AIG manager from memory. */
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 
+/* Keep dead nodes on a death row. */
+void btor_use_death_row_aig (BtorAIGMgr *);
+
+/* Flush dead nodes and release its CNF indices.
+ * Return number of flushed nodes on death row.
+ * Disable keeping nodes on death row.
+ */
+int btor_flush_dead_row_aig (BtorAIGMgr *);
+
 /* Variable representing 1 bit. */
 BtorAIG *btor_var_aig (BtorAIGMgr *amgr);
 
@@ -108,7 +118,8 @@ BtorAIG *btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Releases AIG (decrements reference counter).
  * If reference counter reaches 0,
  * then also the children are released
- * and AIG is deleted from memory.
+ * and AIG is deleted from memory unless keeping
+ * dead AIG nodes on a death row is enabled.
  */
 void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 

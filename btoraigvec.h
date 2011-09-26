@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2010  Robert Daniel Brummayer, FMV, JKU
- *  Copyright (C) 2010-2011 Armin Bier, FMV, JKU
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU
  *
  *  This file is part of Boolector.
  *
@@ -52,6 +52,9 @@ BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr);
 
 /* Deletes AIG vector manager from memory. */
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
+
+/* Rebuild AIG vector and dump dead nodes to death row. */
+void btor_rebuild_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 /* Implicit precondition of all functions taking AIG vectors as inputs:
  * The length of all input AIG vectors have to be greater than zero.
