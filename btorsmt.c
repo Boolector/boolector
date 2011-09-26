@@ -2621,6 +2621,7 @@ translate_benchmark (BtorSMTParser *parser,
             if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
               res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
           }
+          if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
           parser->sat_calls++;
         }
         else
