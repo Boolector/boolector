@@ -5821,7 +5821,7 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 }
 
 void
-btor_aigvec_to_sat_both_phases (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
   BtorAIGMgr *amgr;
   int i, len;
@@ -5829,7 +5829,7 @@ btor_aigvec_to_sat_both_phases (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   assert (av != NULL);
   amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
   len  = av->len;
-  for (i = 0; i < len; i++) btor_aig_to_sat_both_phases (amgr, av->aigs[i]);
+  for (i = 0; i < len; i++) btor_aig_to_sat_tseitin (amgr, av->aigs[i]);
 }
 
 void

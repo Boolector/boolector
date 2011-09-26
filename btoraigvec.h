@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010  Robert Daniel Brummayer, FMV, JKU
+ *  Copyright (C) 2010-2011 Armin Bier, FMV, JKU
  *
  *  This file is part of Boolector.
  *
@@ -181,7 +183,7 @@ BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
 BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 /* Translates every AIG of the AIG vector into SAT in both phases  */
-void btor_aigvec_to_sat_both_phases (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 /* Release all AIGs of the AIG vector and delete AIG vector from memory. */
 void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);

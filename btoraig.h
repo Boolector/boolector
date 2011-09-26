@@ -146,7 +146,7 @@ void btor_add_toplevel_aig_to_sat (BtorAIGMgr *, BtorAIG *);
  * The function guarantees that after finishing every reachable AIG
  * has a CNF id.
  */
-void btor_aig_to_sat_both_phases (BtorAIGMgr *amgr, BtorAIG *aig);
+void btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig);
 
 /* Marks all reachable AIGs with new mark. */
 void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);

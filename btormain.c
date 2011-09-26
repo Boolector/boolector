@@ -1623,8 +1623,6 @@ boolector_main (int argc, char **argv)
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 
-      btor_set_cnf_enc_aig_mgr (amgr, app.cnf_enc);
-
       BTOR_INIT_STACK (varstack);
       BTOR_INIT_STACK (arraystack);
       BTOR_INIT_STACK (constraints);

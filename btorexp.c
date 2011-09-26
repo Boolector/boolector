@@ -1723,11 +1723,11 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
 
   /* assign aig cnf indices as there are only variables,
    * no SAT constraints are generated */
-  btor_aigvec_to_sat_both_phases (avmgr, aeq->av);
+  btor_aigvec_to_sat_tseitin (avmgr, aeq->av);
   aeq->sat_both_phases = 1;
-  btor_aigvec_to_sat_both_phases (avmgr, av1);
+  btor_aigvec_to_sat_tseitin (avmgr, av1);
   read1->sat_both_phases = 1;
-  btor_aigvec_to_sat_both_phases (avmgr, av2);
+  btor_aigvec_to_sat_tseitin (avmgr, av2);
   read2->sat_both_phases = 1;
 
   /* encode !e => r1 != r2 */
@@ -6822,25 +6822,22 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
 
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (index)))
   {
-    // abort (); // TODO before removing it ....
     synthesize_exp (btor, index, NULL);
   }
   if (!BTOR_REAL_ADDR_EXP (index)->sat_both_phases)
   {
-    // abort (); // TODO before removing it ....
     update = 1;
-    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
+    btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
     BTOR_REAL_ADDR_EXP (index)->sat_both_phases = 1;
   }
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (value)))
   {
-    // abort (); // TODO before removing it ....
     synthesize_exp (btor, value, NULL);
   }
   if (!BTOR_REAL_ADDR_EXP (value)->sat_both_phases)
   {
     update = 1;
-    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (value)->av);
+    btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (value)->av);
     BTOR_REAL_ADDR_EXP (value)->sat_both_phases = 1;
   }
   /* update assignments if necessary */
@@ -6876,7 +6873,7 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   {
     // abort (); // TODO before removing it ....
     update = 1;
-    btor_aigvec_to_sat_both_phases (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
+    btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
     BTOR_REAL_ADDR_EXP (cond)->sat_both_phases = 1;
   }
   /* update assignments if necessary */
@@ -9572,7 +9569,7 @@ synthesize_all_var_rhs (Btor *btor)
 
     if (!real_cur->sat_both_phases)
     {
-      btor_aigvec_to_sat_both_phases (btor->avmgr, real_cur->av);
+      btor_aigvec_to_sat_tseitin (btor->avmgr, real_cur->av);
       real_cur->sat_both_phases = 1;
     }
   }
