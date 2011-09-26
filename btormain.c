@@ -173,6 +173,9 @@ static const char *g_usage =
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
+    "  -uaincreset                      reset under approximation bit-width\n"
+    "                                   in incremental under-approximation "
+    "mode\n"
     "\n"
     "  -t <time out in seconds>         set time limit\n"
     "\n"
@@ -767,11 +770,15 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "-incremental")
              || !strcmp (app->argv[app->argpos], "--incremental"))
     {
-      app->incremental = 1;
+      app->incremental |= 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-I"))
     {
-      app->incremental = 2;
+      app->incremental |= 2;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-uaincreset"))
+    {
+      app->incremental |= 4;
     }
     else if (!strcmp (app->argv[app->argpos], "-t"))
     {
@@ -1037,6 +1044,20 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
+  }
+
+  if (!app->err && (app->incremental & 4) && !(app->incremental & 3))
+  {
+    print_err_va_args (
+        app, "Can only use '-uaincreset' in combination with '-i' or '-I");
+    app->err = 1;
+  }
+
+  if (!app->err && (app->incremental & 4) && !(app->ua))
+  {
+    print_err_va_args (
+        app, "Can only use '-uaincreset' in combination with '-ua' etc");
+    app->err = 1;
   }
 
   if (!app->err)

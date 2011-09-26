@@ -522,6 +522,8 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
   unsigned char type;
   int ch;
 
+  assert (!(incremental & 4) || (incremental & 3));
+
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
@@ -530,13 +532,17 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
   res->incremental = incremental;
 
   btor_smt_message (res, 2, "initializing SMT parser");
-  if (incremental)
+  if (incremental & 3)
   {
     btor_smt_message (res, 2, "incremental checking of SMT benchmark");
-    if (incremental == 1)
+    if (incremental & 1)
       btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
-    else
+    else if (incremental & 2)
       btor_smt_message (res, 2, "check all ':formula' for satisfiability");
+
+    if (incremental & 4)
+      btor_smt_message (
+          res, 2, "resetting effective bit-width at each incremental step");
   }
 
   res->mem  = mem;
@@ -2606,6 +2612,8 @@ translate_benchmark (BtorSMTParser *parser,
               parser, 3, "adding ':formula' %d", parser->assumptions);
           btor_add_assumption_exp (parser->btor, exp);
           btor_release_exp (parser->btor, exp);
+          if (parser->incremental & 4)
+            btor_reset_effective_bit_widths (parser->btor);
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)
           {

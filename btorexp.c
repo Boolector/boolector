@@ -9520,6 +9520,35 @@ synthesize_reads_and_writes_for_under_approx (Btor *btor)
   }
 }
 
+void
+btor_reset_effective_bit_widths (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorUAData *ua_data;
+  BtorExp *cur;
+  int count;
+
+  assert (btor != NULL);
+
+  if (!btor->ua.enabled) return;
+
+  count = 0;
+  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
+  {
+    cur = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (cur));
+    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
+    ua_data = b->data.asPtr;
+    if (ua_data->eff_width > btor->ua.initial_eff_width)
+    {
+      ua_data->last_e    = 0;
+      ua_data->eff_width = btor->ua.initial_eff_width;
+      count++;
+    }
+  }
+  btor_msg_exp (btor, "reset bit-width of %d reads and variables", count);
+}
+
 static void
 synthesize_all_var_rhs (Btor *btor)
 {

@@ -459,6 +459,8 @@ void btor_set_verbosity_btor (Btor *btor, int verbosity);
 
 void btor_enable_under_approx (Btor *btor);
 
+void btor_reset_effective_bit_widths (Btor *btor);
+
 void btor_set_under_approx_initial_effective_width (Btor *btor,
                                                     int ua_start_width);
 
