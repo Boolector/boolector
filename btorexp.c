@@ -5339,11 +5339,13 @@ report_constraint_stats (Btor *btor, int force)
 
     changes = constraints_stats_changes (btor);
 
-    if (btor->verbosity == 1 && changes < 10000) return;
+    if (btor->verbosity == 1 && changes < 100000) return;
 
-    if (btor->verbosity == 2 && changes < 1000) return;
+    if (btor->verbosity == 2 && changes < 10000) return;
 
-    if (btor->verbosity == 3 && changes < 100) return;
+    if (btor->verbosity == 3 && changes < 1000) return;
+
+    if (btor->verbosity == 4 && changes < 100) return;
   }
 
   btor_msg_exp (btor,
@@ -5877,51 +5879,6 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   btor_release_exp (btor, read1);
   btor_release_exp (btor, read2);
 }
-
-#if 0
-static void
-set_flags_and_synth_aeq (Btor * btor, BtorExp * exp)
-{
-  BtorExpPtrStack stack;
-  BtorExp *cur;
-  BtorMemMgr *mm;
-  assert (btor != NULL);
-  assert (exp != NULL);
-  mm = btor->mm;
-  BTOR_INIT_STACK (stack);
-  BTOR_PUSH_STACK (mm, stack, exp);
-  do
-    {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-      if (!cur->reachable)
-        {
-          cur->reachable = 1;
-          switch (cur->arity)
-            {
-            case 0:
-              break;
-            case 1:
-              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-              break;
-            case 2:
-              if (BTOR_IS_ARRAY_EQ_EXP (cur))
-		synthesize_array_equality (btor, cur);
-              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-              break;
-            default:
-              assert (cur->arity = 3);
-              BTOR_PUSH_STACK (mm, stack, cur->e[2]);
-              BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-              BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-              break;
-            }
-        }
-    }
-  while (!BTOR_EMPTY_STACK (stack));
-  BTOR_RELEASE_STACK (mm, stack);
-}
-#endif
 
 #ifndef BTOR_NO_3VL
 

@@ -168,7 +168,7 @@ static const char *g_usage =
     "  -[p]m|--[partial-]model          print partial model in the SAT case\n"
     "  -fm|--full-model                 print full model (BV) in the SAT case\n"
     "  -q|--quiet                       do not print any output\n"
-    "  -v|--verbose                     increase verbosity (0 default, 3 max)\n"
+    "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
@@ -751,9 +751,9 @@ parse_commandline_arguments (BtorMainApp *app)
         print_err (app, "'-q' and '-v' can not be combined\n");
         app->err = 1;
       }
-      else if (app->verbosity == 3)
+      else if (app->verbosity == 4)
       {
-        print_err (app, "can not increase verbosity beyond '3'\n");
+        print_err (app, "can not increase verbosity beyond '4'\n");
         app->err = 1;
       }
       else
