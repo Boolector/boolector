@@ -256,14 +256,14 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
 }
 
 int
-btor_sat_sat (BtorSATMgr *smgr)
+btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
   (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "calling SAT solver %s", smgr->name);
   smgr->satcalls++;
-  return smgr->api.sat (smgr);
+  return smgr->api.sat (smgr, limit);
 }
 
 int
@@ -415,9 +415,10 @@ btor_picosat_add (BtorSATMgr *smgr, int lit)
 }
 
 static int
-btor_picosat_sat (BtorSATMgr *smgr)
+btor_picosat_sat (BtorSATMgr *smgr, int limit)
 {
   (void) smgr;
+  (void) limit;
   return picosat_sat (-1);
 }
 
@@ -571,10 +572,8 @@ btor_lingeling_init (BtorSATMgr *smgr)
                   (lglalloc) btor_malloc,
                   (lglrealloc) btor_realloc,
                   (lgldealloc) btor_free);
-#if 0
   lglsetopt (res, "boost", 0);
-  lglsetopt (res, "phase", -1);
-#endif
+  lglsetopt (res, "turbo", 0);
   return res;
 }
 

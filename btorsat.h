@@ -47,7 +47,7 @@ struct BtorSATMgr
   {
     void *(*init) (BtorSATMgr *);
     void (*add) (BtorSATMgr *, int);
-    int (*sat) (BtorSATMgr *);
+    int (*sat) (BtorSATMgr *, int);
     int (*deref) (BtorSATMgr *, int);
     void (*reset) (BtorSATMgr *);
     void (*set_output) (BtorSATMgr *, FILE *);
@@ -143,8 +143,10 @@ void btor_assume_sat (BtorSATMgr *smgr, int lit);
  */
 int btor_failed_sat (BtorSATMgr *smgr, int lit);
 
-/* Solves the SAT instance. */
-int btor_sat_sat (BtorSATMgr *smgr);
+/* Solves the SAT instance.
+ * limit < 0 -> no limit.
+ */
+int btor_sat_sat (BtorSATMgr *smgr, int limit);
 
 /* Gets assignment of a literal (in the SAT case).
  * Do not call before calling btor_sat_sat.

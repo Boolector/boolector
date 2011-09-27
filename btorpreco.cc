@@ -69,10 +69,12 @@ btor_precosat_add (BtorSATMgr* smgr, int lit)
 }
 
 int
-btor_precosat_sat (BtorSATMgr* smgr)
+btor_precosat_sat (BtorSATMgr* smgr, int limit)
 {
   Solver* solver = (Solver*) BTOR_GET_SOLVER_SAT (smgr);
   int res;
+
+  (void) dummy;
 
   res = solver->solve ();
   if (res < 0)

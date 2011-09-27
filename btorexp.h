@@ -315,6 +315,8 @@ struct Btor
     int ua_refinements;
     /* number of lemmas on demand refinements */
     int lod_refinements;
+    /* number of SAT solver decision limit hit */
+    int decision_limit_refinements;
     /* number of restarts as a result of lazy synthesis */
     int synthesis_assignment_inconsistencies;
     /* number of array axiom 1 conflicts:

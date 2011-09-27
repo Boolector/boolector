@@ -146,9 +146,10 @@ btor_minisat_add (BtorSATMgr *smgr, int lit)
 }
 
 int
-btor_minisat_sat (BtorSATMgr *smgr)
+btor_minisat_sat (BtorSATMgr *smgr, int limit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  (void) limit;
   return solver->sat (smgr->inc.need);
 }
 

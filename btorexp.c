@@ -5770,6 +5770,10 @@ btor_print_stats_btor (Btor *btor)
 BTOR_CONTINUE_BASIC_STATS_OUTPUT:
 
   btor_msg_exp (btor, "");
+  btor_msg_exp (btor,
+                "SAT solver decision limit refinements: %d",
+                btor->stats.decision_limit_refinements);
+  btor_msg_exp (btor, "");
   btor_msg_exp (btor, "lemmas on demand statistics:");
   btor_msg_exp (btor, " LOD refinements: %d", btor->stats.lod_refinements);
   if (btor->stats.lod_refinements)
@@ -6751,7 +6755,7 @@ update_sat_assignments (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   found_assumption_false = add_again_assumptions (btor);
   assert (!found_assumption_false);
-  result = btor_sat_sat (smgr);
+  result = btor_sat_sat (smgr, -1);
   assert (result == BTOR_SAT);
   return btor_changed_sat (smgr);
 }
@@ -9969,6 +9973,7 @@ btor_sat_aux_btor (Btor *btor)
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, under_approx_finished, ua;
   BtorExpPtrStack top_arrays;
+  int limit, refinements;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
@@ -10035,15 +10040,23 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  sat_result = btor_sat_sat (smgr);
-  assert (sat_result != BTOR_UNKNOWN);
+  limit      = 0;
+  sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
   search_top_arrays (btor, &top_arrays);
 
-  while (sat_result == BTOR_SAT
-         || (ua && !under_approx_finished && sat_result != BTOR_UNKNOWN))
+  while (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN
+         || (ua && !under_approx_finished))
   {
+    if (sat_result == BTOR_UNKNOWN)
+    {
+      btor->stats.decision_limit_refinements++;
+      limit = limit ? 2 * limit : 1000;
+    }
+    else
+      limit = 2 * limit / 3;
+
     if (sat_result == BTOR_SAT)
     {
       found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
@@ -10056,9 +10069,9 @@ btor_sat_aux_btor (Btor *btor)
 
       if (ua && !under_approx_finished) read_under_approx_assumptions (btor);
     }
-    else
+
+    if (sat_result == BTOR_UNSAT)
     {
-      assert (sat_result == BTOR_UNSAT);
       assert (ua);
       assert (!under_approx_finished);
 
@@ -10079,25 +10092,25 @@ btor_sat_aux_btor (Btor *btor)
       under_approx_finished = !encode_under_approx (btor);
       btor->stats.ua_refinements++;
     }
+
     if (verbosity > 1)
     {
-      if (verbosity > 2
-          || !((btor->stats.lod_refinements + btor->stats.ua_refinements) % 10))
+      refinements = btor->stats.lod_refinements;
+      refinements += btor->stats.ua_refinements;
+      refinements += btor->stats.decision_limit_refinements;
+
+      if (verbosity > 2 || !(refinements % 10))
       {
-        fprintf (stdout,
-                 "[btorsat] refinement iteration %d\n",
-                 btor->stats.lod_refinements + btor->stats.ua_refinements);
+        fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
         fflush (stdout);
       }
     }
+
     found_assumption_false = add_again_assumptions (btor);
     if (found_assumption_false)
       sat_result = BTOR_UNSAT;
     else
-    {
-      sat_result = btor_sat_sat (smgr);
-      assert (sat_result != BTOR_UNKNOWN);
-    }
+      sat_result = btor_sat_sat (smgr, limit);
   }
 
   BTOR_RELEASE_STACK (mm, top_arrays);
