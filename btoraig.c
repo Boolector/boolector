@@ -659,9 +659,10 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
       lookup = find_and_aig (amgr, left, right);
     }
     if (real_right->id < real_left->id)
-      *lookup = new_and_aig (amgr, right, left);
+      res = new_and_aig (amgr, right, left);
     else
-      *lookup = new_and_aig (amgr, left, right);
+      res = new_and_aig (amgr, left, right);
+    *lookup = res;
     inc_aig_ref_counter (left);
     inc_aig_ref_counter (right);
     assert (amgr->table.num_elements < INT_MAX);
