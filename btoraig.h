@@ -40,7 +40,7 @@ struct BtorAIG
   unsigned int refs;
   int cnf_id;
   struct BtorAIG *next;
-  unsigned int dead : 1;
+  unsigned int on_death_row : 1;
   unsigned int mark : 2;
 };
 
@@ -86,7 +86,7 @@ void btor_use_death_row_aig (BtorAIGMgr *);
  * Return number of flushed nodes on death row.
  * Disable keeping nodes on death row.
  */
-int btor_flush_dead_row_aig (BtorAIGMgr *);
+void btor_flush_dead_row_aig (BtorAIGMgr *);
 
 /* Variable representing 1 bit. */
 BtorAIG *btor_var_aig (BtorAIGMgr *amgr);
