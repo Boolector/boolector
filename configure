@@ -303,7 +303,7 @@ fi
 #--------------------------------------------------------------------------#
 
 [ $picosat = no -a $lingeling = no ] && \
-  die "could not find PicoSAT nor Lingeling in parent directory"
+  die "either need PicoSAT or Lingeling"
 
 #--------------------------------------------------------------------------#
 
