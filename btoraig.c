@@ -314,7 +314,7 @@ btor_use_death_row_aig (BtorAIGMgr *amgr)
 {
   if (amgr->keep_dead) return;
   amgr->keep_dead = 1;
-  if (amgr->verbosity >= 2) btor_msg_aig ("using death row");
+  if (amgr->verbosity >= 2) btor_msg_aig ("using death row\n");
 }
 
 static void
@@ -325,7 +325,7 @@ btor_compact_death_row_aig (BtorAIGMgr *amgr)
   assert (amgr->keep_dead);
   size = BTOR_COUNT_STACK (amgr->death_row);
   if (amgr->verbosity >= 3)
-    btor_msg_aig ("compacting death row of size %d", size);
+    btor_msg_aig ("compacting death row of size %d\n", size);
   j     = 0;
   count = 0;
   for (i = 0; i < size; i++)
@@ -344,7 +344,7 @@ btor_compact_death_row_aig (BtorAIGMgr *amgr)
   }
   amgr->death_row.top = amgr->death_row.start + j;
   if (amgr->verbosity >= 3)
-    btor_msg_aig ("resurrected %d nodes from death row", count);
+    btor_msg_aig ("removed %d resurrected nodes from death row\n", count);
 }
 
 void
@@ -360,7 +360,21 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
     cur = BTOR_REAL_ADDR_AIG (aig);
     assert (cur->refs > 0u);
     if (cur->refs > 1u)
+    {
       cur->refs--;
+      if (cur->refs == 1u && cur->on_death_row) amgr->really_dead++;
+    }
+    else if (amgr->keep_dead)
+    {
+      assert (cur->refs == 1u);
+      assert (!cur->on_death_row);
+      BTOR_PUSH_STACK (mm, amgr->death_row, cur);
+      cur->on_death_row = 1;
+      amgr->really_dead++;
+
+      if (amgr->really_dead < BTOR_COUNT_STACK (amgr->death_row))
+        btor_compact_death_row_aig (amgr);
+    }
     else
     {
       assert (cur->refs == 1u);
@@ -375,30 +389,16 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
         else
         {
         BTOR_RELEASE_AIG_WITHOUT_POP:
-          if (amgr->keep_dead)
-          {
-            if (!cur->on_death_row)
-            {
-              BTOR_PUSH_STACK (mm, amgr->death_row, cur);
-              cur->on_death_row = 1;
-              amgr->really_dead++;
-            }
-
-            if (amgr->really_dead < BTOR_COUNT_STACK (amgr->death_row))
-              btor_compact_death_row_aig (amgr);
-          }
+          assert (cur->refs == 1u);
+          assert (!cur->on_death_row);
+          if (BTOR_IS_VAR_AIG (cur))
+            delete_aig_node (amgr, cur);
           else
           {
-            assert (cur->refs == 1u);
-            if (BTOR_IS_VAR_AIG (cur))
-              delete_aig_node (amgr, cur);
-            else
-            {
-              assert (BTOR_IS_AND_AIG (cur));
-              BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-              BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
-              delete_aig_unique_table_entry (amgr, cur);
-            }
+            assert (BTOR_IS_AND_AIG (cur));
+            BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
+            BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+            delete_aig_unique_table_entry (amgr, cur);
           }
         }
       }
@@ -408,7 +408,7 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 }
 
 void
-btor_flush_dead_row_aig (BtorAIGMgr *amgr)
+btor_flush_death_row_aig (BtorAIGMgr *amgr)
 {
   int count, before, after, total;
   BtorAIG *root;
@@ -420,8 +420,9 @@ btor_flush_dead_row_aig (BtorAIGMgr *amgr)
   }
 
   if (amgr->verbosity >= 2)
-    btor_msg_aig ("flushing %d dead root nodes from death row",
-                  amgr->really_dead);
+    btor_msg_aig ("flushing %d dead root nodes from death row of size %d\n",
+                  amgr->really_dead,
+                  BTOR_COUNT_STACK (amgr->death_row));
 
   before          = amgr->table.num_elements;
   amgr->keep_dead = 0;
@@ -431,13 +432,16 @@ btor_flush_dead_row_aig (BtorAIGMgr *amgr)
     root = BTOR_POP_STACK (amgr->death_row);
     assert (!BTOR_IS_INVERTED_AIG (root));
     assert (root->on_death_row);
-    if (root->refs > 1u)
-      ;
-    count++;
+    root->on_death_row = 0;
+    assert (root->refs >= 1ul);
+    if (root->refs == 1ul) count++;
+    btor_release_aig (amgr, root);
   }
   assert (count == amgr->really_dead);
-
   amgr->really_dead = 0;
+
+  if (amgr->verbosity >= 2)
+    btor_msg_aig ("flushed %d dead root nodes from death row\n", count);
 }
 
 BtorAIG *
@@ -741,12 +745,10 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   else
   {
     inc_aig_ref_counter (res);
-    if (res->dead)
+    if (res->on_death_row && amgr->refs == 2ul)
     {
-      assert (amgr->refs == 1ul);
       assert (amgr->really_dead > 0);
       amgr->really_dead--;
-      res->dead = 0;
     }
   }
   return res;

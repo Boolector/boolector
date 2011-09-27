@@ -86,7 +86,7 @@ void btor_use_death_row_aig (BtorAIGMgr *);
  * Return number of flushed nodes on death row.
  * Disable keeping nodes on death row.
  */
-void btor_flush_dead_row_aig (BtorAIGMgr *);
+void btor_flush_death_row_aig (BtorAIGMgr *);
 
 /* Variable representing 1 bit. */
 BtorAIG *btor_var_aig (BtorAIGMgr *amgr);
