@@ -67,6 +67,7 @@ struct BtorSATMgr
       int (*inconsistent) (BtorSATMgr *);
       int (*changed) (BtorSATMgr *);
       void (*assume) (BtorSATMgr *, int);
+      void (*melt) (BtorSATMgr *, int);
       int (*failed) (BtorSATMgr *, int);
     } api;
   } inc;
@@ -108,6 +109,9 @@ void btor_delete_sat_mgr (BtorSATMgr *smgr);
 /* Generates fresh CNF indices.
  * Indices are generated in consecutive order. */
 int btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr);
+
+/* Mark old CNF index as not used anymore. */
+void btor_release_cnf_id_sat_mgr (BtorSATMgr *smgr, int);
 
 /* Returns the last CNF index that has been generated. */
 int btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr);

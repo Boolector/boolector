@@ -136,8 +136,11 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 static void
 delete_aig_node (BtorAIGMgr *amgr, BtorAIG *aig)
 {
+  assert (!BTOR_IS_INVERTED_AIG (aig));
   assert (amgr != NULL);
-  if (!BTOR_IS_CONST_AIG (aig)) BTOR_DELETE (amgr->mm, aig);
+  if (BTOR_IS_CONST_AIG (aig)) return;
+  if (aig->cnf_id) btor_release_cnf_id_sat_mgr (amgr->smgr, aig->cnf_id);
+  BTOR_DELETE (amgr->mm, aig);
 }
 
 static unsigned int

@@ -146,13 +146,22 @@ btor_next_cnf_id_sat_mgr (BtorSATMgr *smgr)
   int result;
   assert (smgr);
   assert (smgr->initialized);
-  (void) smgr;
   result = smgr->api.inc_max_var (smgr);
   if (abs (result) > smgr->maxvar) smgr->maxvar = abs (result);
   BTOR_ABORT_SAT (result <= 0, "CNF id overflow");
   if (smgr->verbosity > 2 && !(result % 100000))
     btor_msg_sat (smgr, 2, "reached CNF id %d", result);
   return result;
+}
+
+void
+btor_release_cnf_id_sat_mgr (BtorSATMgr *smgr, int lit)
+{
+  assert (smgr);
+  if (!smgr->initialized) return;
+  assert ((smgr->inc.need && smgr->inc.provides) || !smgr->satcalls);
+  assert (abs (lit) <= smgr->maxvar);
+  if (smgr->inc.api.melt) smgr->inc.api.melt (smgr, lit);
 }
 
 int
@@ -533,6 +542,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
   smgr->inc.provides         = 1;
   smgr->inc.api.assume       = btor_picosat_assume;
+  smgr->inc.api.melt         = 0;
   smgr->inc.api.failed       = btor_picosat_failed;
   smgr->inc.api.fixed        = btor_picosat_fixed;
   smgr->inc.api.inconsistent = btor_picosat_inconsistent;
@@ -642,6 +652,12 @@ btor_lingeling_assume (BtorSATMgr *smgr, int lit)
   lglassume (smgr->solver, lit);
 }
 
+static void
+btor_lingeling_melt (BtorSATMgr *smgr, int lit)
+{
+  lglmelt (smgr->solver, lit);
+}
+
 static int
 btor_lingeling_failed (BtorSATMgr *smgr, int lit)
 {
@@ -686,6 +702,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
 
   smgr->inc.provides         = 1;
   smgr->inc.api.assume       = btor_lingeling_assume;
+  smgr->inc.api.melt         = btor_lingeling_melt;
   smgr->inc.api.failed       = btor_lingeling_failed;
   smgr->inc.api.fixed        = btor_lingeling_fixed;
   smgr->inc.api.inconsistent = btor_lingeling_inconsistent;
@@ -726,6 +743,7 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 
   smgr->inc.provides         = 1;
   smgr->inc.api.assume       = btor_minisat_assume;
+  smgr->inc.api.melt         = 0;
   smgr->inc.api.failed       = btor_minisat_failed;
   smgr->inc.api.fixed        = btor_minisat_fixed;
   smgr->inc.api.inconsistent = btor_minisat_inconsistent;
