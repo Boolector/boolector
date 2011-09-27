@@ -418,8 +418,7 @@ static int
 btor_picosat_sat (BtorSATMgr *smgr, int limit)
 {
   (void) smgr;
-  (void) limit;
-  return picosat_sat (-1);
+  return picosat_sat (limit);
 }
 
 static int
@@ -586,6 +585,7 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
+  lglsetopt (smgr->solver, "limit", limit);
   return lglsat (smgr->solver);
 }
 
