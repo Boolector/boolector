@@ -440,8 +440,10 @@ btor_flush_death_row_aig (BtorAIGMgr *amgr)
   assert (count == amgr->really_dead);
   amgr->really_dead = 0;
 
-  if (amgr->verbosity >= 2)
-    btor_msg_aig ("flushed %d dead root nodes from death row\n", count);
+  after = amgr->table.num_elements;
+  assert (after <= before);
+  total = before - after;
+  if (amgr->verbosity >= 2) btor_msg_aig ("flushed %d dead nodes\n", total);
 }
 
 BtorAIG *
@@ -458,6 +460,7 @@ btor_var_aig (BtorAIGMgr *amgr)
   aig->cnf_id                = 0;
   aig->next                  = NULL;
   aig->mark                  = 0;
+  aig->on_death_row          = 0;
   return aig;
 }
 
@@ -745,7 +748,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   else
   {
     inc_aig_ref_counter (res);
-    if (res->on_death_row && amgr->refs == 2ul)
+    if (res->on_death_row && res->refs == 2ul)
     {
       assert (amgr->really_dead > 0);
       amgr->really_dead--;
