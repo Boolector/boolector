@@ -584,7 +584,7 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 }
 
 static int
-btor_lingeling_sat (BtorSATMgr *smgr)
+btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   return lglsat (smgr->solver);
 }
