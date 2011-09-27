@@ -573,6 +573,7 @@ btor_lingeling_init (BtorSATMgr *smgr)
                   (lgldealloc) btor_free);
   lglsetopt (res, "boost", 0);
   lglsetopt (res, "turbo", 0);
+  lglsetopt (res, "phase", -1);
   return res;
 }
 
