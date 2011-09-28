@@ -1189,9 +1189,10 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   {
     cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
   BTOR_AIG_TO_SAT_BOTH_PHASES_WITHOUT_POP:
+    if (cur->cnf_id) continue;
     if (BTOR_IS_VAR_AIG (cur))
     {
-      if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
     }
     else if (cur->mark < 2)
     {
@@ -1209,10 +1210,9 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
         cur->mark = 2;
         left      = BTOR_LEFT_CHILD_AIG (cur);
         right     = BTOR_RIGHT_CHILD_AIG (cur);
-        if (cur->cnf_id == 0) cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        x = cur->cnf_id;
-        y = BTOR_GET_CNF_ID_AIG (left);
-        z = BTOR_GET_CNF_ID_AIG (right);
+        x = cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+        y               = BTOR_GET_CNF_ID_AIG (left);
+        z               = BTOR_GET_CNF_ID_AIG (right);
         assert (x != 0);
         assert (y != 0);
         assert (z != 0);
