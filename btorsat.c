@@ -558,6 +558,12 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
 #ifdef BTOR_USE_LINGELING
 
+static void
+btor_lingeling_set_opt (LGL *lgl, const char *name, int val)
+{
+  if (lglhasopt (lgl, name)) lglsetopt (lgl, name, val);
+}
+
 static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
@@ -571,9 +577,9 @@ btor_lingeling_init (BtorSATMgr *smgr)
                   (lglalloc) btor_malloc,
                   (lglrealloc) btor_realloc,
                   (lgldealloc) btor_free);
-  lglsetopt (res, "boost", 0);
-  lglsetopt (res, "turbo", 0);
-  lglsetopt (res, "phase", -1);
+  btor_lingeling_set_opt (res, "boost", 0);
+  btor_lingeling_set_opt (res, "turbo", 0);
+  btor_lingeling_set_opt (res, "phase", -1);
   return res;
 }
 
@@ -586,7 +592,7 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  // lglsetopt (smgr->solver, "clim", limit);
+  btor_lingeling_set_opt (smgr->solver, "clim", limit);
   return lglsat (smgr->solver);
 }
 
