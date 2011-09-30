@@ -285,7 +285,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
-  if (parser->incremental) printf ("%d : ", parser->sat_calls);
+  if (parser->incremental) printf ("%d : ", parser->sat_calls + 1);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
