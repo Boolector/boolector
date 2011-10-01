@@ -102,7 +102,7 @@ typedef struct BtorExpPair BtorExpPair;
     unsigned int reachable : 1;  /* flag determines if expression              \
                                     is reachable from root */                  \
     unsigned int                                                               \
-        sat_both_phases : 1;       /* flag determines if expression has been   \
+        tseitin_encoded : 1;       /* flag determines if expression has been   \
                                       encoded into SAT in both phases */       \
     unsigned int vread : 1;        /* flag determines if expression            \
                                       is a virtual read */                     \
@@ -294,8 +294,14 @@ struct Btor
     BtorPtrHashTable *vars_reads;    /* bv variables and reads */
     BtorPtrHashTable *writes_aconds; /* array writes and array conds */
   } ua;
+
+#if 0
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
+#else
+  BtorPtrHashTable *exp_pair_eq_table;
+#endif
+
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;
   BtorPtrHashTable *unsynthesized_constraints;

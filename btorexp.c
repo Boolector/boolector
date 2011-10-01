@@ -1309,7 +1309,7 @@ encode_lemma (Btor *btor,
   BtorAIG *aig1, *aig2;
   BtorExp *w_index, *cur_write, *aeq, *acond, *cond;
   BtorExpPair *pair;
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table, *exp_pair_cnf_eq_id_table;
+  BtorPtrHashTable *exp_pair_eq_table;
   BtorPtrHashBucket *bucket, *bucket_temp;
   BtorIntStack clauses;
   BtorIntStack linking_clause;
@@ -1333,21 +1333,22 @@ encode_lemma (Btor *btor,
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (i)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (a)));
-  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (b)));
 
-  btor->stats.lemmas_size_sum +=
-      writes->count + aeqs->count + aconds_sel1->count + aconds_sel2->count + 2;
+  btor->stats.lemmas_size_sum += writes->count;
+  btor->stats.lemmas_size_sum += aeqs->count;
+  btor->stats.lemmas_size_sum += aconds_sel1->count;
+  btor->stats.lemmas_size_sum += aconds_sel2->count;
+  btor->stats.lemmas_size_sum += 2;
 
-  exp_pair_cnf_diff_id_table = btor->exp_pair_cnf_diff_id_table;
-  exp_pair_cnf_eq_id_table   = btor->exp_pair_cnf_eq_id_table;
-  mm                         = btor->mm;
-  avmgr                      = btor->avmgr;
-  amgr                       = btor_get_aig_mgr_aigvec_mgr (avmgr);
-  smgr                       = btor_get_sat_mgr_aig_mgr (amgr);
-  av_i                       = BTOR_REAL_ADDR_EXP (i)->av;
-  av_j                       = BTOR_REAL_ADDR_EXP (j)->av;
-  av_a                       = BTOR_REAL_ADDR_EXP (a)->av;
-  av_b                       = BTOR_REAL_ADDR_EXP (b)->av;
+  exp_pair_eq_table = btor->exp_pair_eq_table;
+  mm                = btor->mm;
+  avmgr             = btor->avmgr;
+  amgr              = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr              = btor_get_sat_mgr_aig_mgr (amgr);
+  av_i              = BTOR_REAL_ADDR_EXP (i)->av;
+  av_j              = BTOR_REAL_ADDR_EXP (j)->av;
+  av_a              = BTOR_REAL_ADDR_EXP (a)->av;
+  av_b              = BTOR_REAL_ADDR_EXP (b)->av;
   assert (av_i != NULL);
   assert (av_j != NULL);
   assert (av_a != NULL);
@@ -1359,9 +1360,9 @@ encode_lemma (Btor *btor,
 
   /* i and j have to be synthesized and translated to SAT before */
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (i)));
-  assert (BTOR_REAL_ADDR_EXP (i)->sat_both_phases);
+  assert (BTOR_REAL_ADDR_EXP (i)->tseitin_encoded);
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (j)));
-  assert (BTOR_REAL_ADDR_EXP (j)->sat_both_phases);
+  assert (BTOR_REAL_ADDR_EXP (j)->tseitin_encoded);
 
   BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
@@ -1373,16 +1374,15 @@ encode_lemma (Btor *btor,
   if (i != j && !assignment_always_unequal (btor, pair))
   {
     /* already encoded i != j into SAT ? */
-    bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair);
+    bucket = btor_find_in_ptr_hash_table (exp_pair_eq_table, pair);
     /* no? */
     if (bucket == NULL)
     {
       /* hash starting cnf id - 1 for d_k */
       d_k = btor_get_last_cnf_id_sat_mgr (smgr);
       assert (d_k != 0);
-      btor_insert_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair)
-          ->data.asInt = d_k;
-      hashed_pair      = 1;
+      btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair)->data.asInt = d_k;
+      hashed_pair                                                         = 1;
       for (k = 0; k < len_i_j_w; k++)
       {
         aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
@@ -1441,20 +1441,19 @@ encode_lemma (Btor *btor,
   /* encode a = b */
   /* a and b have to be synthesized and translated to SAT before */
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (a)));
-  assert (BTOR_REAL_ADDR_EXP (a)->sat_both_phases);
+  assert (BTOR_REAL_ADDR_EXP (a)->tseitin_encoded);
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (b)));
-  assert (BTOR_REAL_ADDR_EXP (b)->sat_both_phases);
+  assert (BTOR_REAL_ADDR_EXP (b)->tseitin_encoded);
 
   pair = new_exp_pair (btor, a, b);
   /* already encoded a = b ? */
-  bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
+  bucket = btor_find_in_ptr_hash_table (exp_pair_eq_table, pair);
   /* no ? */
   if (bucket == NULL)
   {
     e = btor_next_cnf_id_sat_mgr (smgr);
     /* hash e */
-    btor_insert_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair)->data.asInt =
-        e;
+    btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair)->data.asInt = e;
     for (k = 0; k < len_a_b; k++)
     {
       aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
@@ -1510,22 +1509,20 @@ encode_lemma (Btor *btor,
 
     /* write index has to be synthesized and translated to SAT before */
     assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (w_index)));
-    assert (BTOR_REAL_ADDR_EXP (w_index)->sat_both_phases);
+    assert (BTOR_REAL_ADDR_EXP (w_index)->tseitin_encoded);
 
     hashed_pair = 0;
     pair        = new_exp_pair (btor, i, w_index);
     if (!assignment_always_unequal (btor, pair))
     {
       /* already encoded i != w_index into SAT ? */
-      bucket_temp =
-          btor_find_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair);
+      bucket_temp = btor_find_in_ptr_hash_table (exp_pair_eq_table, pair);
       /* no ? */
       if (bucket_temp == NULL)
       {
         e = btor_next_cnf_id_sat_mgr (smgr);
-        btor_insert_in_ptr_hash_table (exp_pair_cnf_eq_id_table, pair)
-            ->data.asInt = e;
-        hashed_pair      = 1;
+        btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair)->data.asInt = e;
+        hashed_pair                                                         = 1;
         for (k = 0; k < len_i_j_w; k++)
         {
           aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
@@ -1680,7 +1677,7 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   assert (aeq != NULL);
   assert (BTOR_IS_REGULAR_EXP (aeq));
   assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
-  assert (!aeq->sat_both_phases);
+  assert (!aeq->tseitin_encoded);
   assert (aeq->vreads != NULL);
   mm     = btor->mm;
   avmgr  = btor->avmgr;
@@ -1692,13 +1689,13 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   assert (BTOR_IS_REGULAR_EXP (read1));
   assert (BTOR_IS_READ_EXP (read1));
   assert (BTOR_IS_SYNTH_EXP (read1));
-  assert (!read1->sat_both_phases);
+  assert (!read1->tseitin_encoded);
 
   read2 = vreads->exp2;
   assert (BTOR_IS_REGULAR_EXP (read2));
   assert (BTOR_IS_READ_EXP (read2));
   assert (BTOR_IS_SYNTH_EXP (read2));
-  assert (!read2->sat_both_phases);
+  assert (!read2->tseitin_encoded);
 
   assert (read1->e[1] == read2->e[1]);
   assert (BTOR_IS_REGULAR_EXP (read1->e[1]));
@@ -1713,11 +1710,11 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
   /* assign aig cnf indices as there are only variables,
    * no SAT constraints are generated */
   btor_aigvec_to_sat_tseitin (avmgr, aeq->av);
-  aeq->sat_both_phases = 1;
+  aeq->tseitin_encoded = 1;
   btor_aigvec_to_sat_tseitin (avmgr, av1);
-  read1->sat_both_phases = 1;
+  read1->tseitin_encoded = 1;
   btor_aigvec_to_sat_tseitin (avmgr, av2);
-  read2->sat_both_phases = 1;
+  read2->tseitin_encoded = 1;
 
   /* encode !e => r1 != r2 */
 
@@ -5048,9 +5045,7 @@ btor_new_btor (void)
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
 
-  btor->exp_pair_cnf_diff_id_table = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
+  btor->exp_pair_eq_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->varsubst_constraints =
       btor_new_ptr_hash_table (mm,
@@ -5213,15 +5208,12 @@ btor_delete_btor (Btor *btor)
 
   mm = btor->mm;
 
-  for (b = btor->exp_pair_cnf_diff_id_table->first; b != NULL; b = b->next)
+  for (b = btor->exp_pair_eq_table->first; b != NULL; b = b->next)
+  {
     delete_exp_pair (btor, (BtorExpPair *) b->key);
-  btor_delete_ptr_hash_table (btor->exp_pair_cnf_diff_id_table);
-
-  for (b = btor->exp_pair_cnf_eq_id_table->first; b != NULL; b = b->next)
-    delete_exp_pair (btor, (BtorExpPair *) b->key);
-  btor_delete_ptr_hash_table (btor->exp_pair_cnf_eq_id_table);
-
-  /* delete constraints and assumptions */
+    btor_release_exp (btor, (BtorExp *) b->data.asPtr);
+  }
+  btor_delete_ptr_hash_table (btor->exp_pair_eq_table);
 
   for (b = btor->varsubst_constraints->first; b != NULL; b = b->next)
   {
@@ -6362,11 +6354,11 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       break;
     }
 
-    /* lazy_synthesize_and_encode_acc_exp sets the 'sat_both_phases' flag.
+    /* lazy_synthesize_and_encode_acc_exp sets the 'tseitin_encoded' flag.
      * If this flag is not set, we have to find an other way
      * to the conflict. */
     if (BTOR_IS_WRITE_EXP (cur) && cur->e[0]->mark == 0
-        && BTOR_REAL_ADDR_EXP (cur->e[1])->sat_both_phases
+        && BTOR_REAL_ADDR_EXP (cur->e[1])->tseitin_encoded
         && compare_assignments (cur->e[1], index) != 0)
     {
       assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cur->e[1])));
@@ -6376,11 +6368,11 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    /* lazy_synthesize_and_encode_acond_exp sets the 'sat_both_phases' flag.
+    /* lazy_synthesize_and_encode_acond_exp sets the 'tseitin_encoded' flag.
      * If this flag is not set, we have to find an other way
      * to the conflict. */
     else if (BTOR_IS_ARRAY_COND_EXP (cur)
-             && BTOR_REAL_ADDR_EXP (cur->e[0])->sat_both_phases)
+             && BTOR_REAL_ADDR_EXP (cur->e[0])->tseitin_encoded)
     {
       assert (BTOR_IS_SYNTH_EXP (cur->e[0]));
       /* check assignment to determine which array to choose */
@@ -6415,7 +6407,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         {
           /* array equalities are synthesized eagerly */
           assert (BTOR_IS_SYNTH_EXP (cur_aeq));
-          assert (cur_aeq->sat_both_phases);
+          assert (cur_aeq->tseitin_encoded);
           assert (cur_aeq->len == 1);
           if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
           {
@@ -6447,11 +6439,11 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
         assert (BTOR_IS_ARRAY_EXP (next));
         assert (next->simplified == NULL);
         /* lazy_synthesize_and_encode_acc_exp sets the
-         * 'sat_both_phases' flag.
+         * 'tseitin_encoded' flag.
          * If this flag is not set, we have to find an other way
          * to the conflict. */
         if (next->reachable && next->mark == 0
-            && BTOR_REAL_ADDR_EXP (next->e[0])->sat_both_phases)
+            && BTOR_REAL_ADDR_EXP (next->e[0])->tseitin_encoded)
         {
           cond       = next->e[0];
           assignment = btor_get_assignment_aig (
@@ -6481,7 +6473,7 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
           /* search upwards only if write has been synthesized and
            * assignments to the indices are unequal
            */
-          if (BTOR_REAL_ADDR_EXP (next->e[1])->sat_both_phases
+          if (BTOR_REAL_ADDR_EXP (next->e[1])->tseitin_encoded
               && compare_assignments (next->e[1], index) != 0)
           {
             next->mark   = 1;
@@ -6768,21 +6760,21 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
   {
     synthesize_exp (btor, index, NULL);
   }
-  if (!BTOR_REAL_ADDR_EXP (index)->sat_both_phases)
+  if (!BTOR_REAL_ADDR_EXP (index)->tseitin_encoded)
   {
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (index)->av);
-    BTOR_REAL_ADDR_EXP (index)->sat_both_phases = 1;
+    BTOR_REAL_ADDR_EXP (index)->tseitin_encoded = 1;
   }
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (value)))
   {
     synthesize_exp (btor, value, NULL);
   }
-  if (!BTOR_REAL_ADDR_EXP (value)->sat_both_phases)
+  if (!BTOR_REAL_ADDR_EXP (value)->tseitin_encoded)
   {
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (value)->av);
-    BTOR_REAL_ADDR_EXP (value)->sat_both_phases = 1;
+    BTOR_REAL_ADDR_EXP (value)->tseitin_encoded = 1;
   }
   /* update assignments if necessary */
   if (update && force_update)
@@ -6813,12 +6805,12 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
     // abort (); // TODO before removing it ....
     synthesize_exp (btor, cond, NULL);
   }
-  if (!BTOR_REAL_ADDR_EXP (cond)->sat_both_phases)
+  if (!BTOR_REAL_ADDR_EXP (cond)->tseitin_encoded)
   {
     // abort (); // TODO before removing it ....
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
-    BTOR_REAL_ADDR_EXP (cond)->sat_both_phases = 1;
+    BTOR_REAL_ADDR_EXP (cond)->tseitin_encoded = 1;
   }
   /* update assignments if necessary */
   if (update && force_update)
@@ -6960,7 +6952,7 @@ process_working_stack (Btor *btor,
         if (cur_aeq->reachable)
         {
           assert (BTOR_IS_SYNTH_EXP (cur_aeq));
-          assert (cur_aeq->sat_both_phases);
+          assert (cur_aeq->tseitin_encoded);
           assert (!BTOR_IS_INVERTED_AIG (cur_aeq->av->aigs[0]));
           assert (!BTOR_IS_CONST_AIG (cur_aeq->av->aigs[0]));
           assert (BTOR_IS_VAR_AIG (cur_aeq->av->aigs[0]));
@@ -9511,10 +9503,10 @@ synthesize_all_var_rhs (Btor *btor)
 
     synthesize_exp (btor, cur, NULL);
 
-    if (!real_cur->sat_both_phases)
+    if (!real_cur->tseitin_encoded)
     {
       btor_aigvec_to_sat_tseitin (btor->avmgr, real_cur->av);
-      real_cur->sat_both_phases = 1;
+      real_cur->tseitin_encoded = 1;
     }
   }
 }
