@@ -1245,18 +1245,26 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair)
   assert (btor != NULL);
   assert (pair != NULL);
 
+  exp1 = pair->exp1;
+  exp2 = pair->exp2;
+
+  if (!BTOR_IS_SYNTH_EXP (exp1)) return 0;
+
+  if (!BTOR_IS_SYNTH_EXP (exp2)) return 0;
+
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-  exp1 = pair->exp1;
-  exp2 = pair->exp2;
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp2)));
   assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
 
   av1 = BTOR_REAL_ADDR_EXP (exp1)->av;
   av2 = BTOR_REAL_ADDR_EXP (exp2)->av;
+
+  if (!av1 || !av2) return 0;
+
   len = av1->len;
   for (i = 0; i < len; i++)
   {
@@ -1267,6 +1275,8 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair)
       val1 = 1;
     else if (aig1 == BTOR_AIG_FALSE)
       val1 = -1;
+    else if (!BTOR_REAL_ADDR_AIG (aig1)->cnf_id)
+      val1 = 0;
     else
       val1 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig1));
 
@@ -1276,6 +1286,8 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair)
         val2 = 1;
       else if (aig2 == BTOR_AIG_FALSE)
         val2 = -1;
+      else if (!BTOR_REAL_ADDR_AIG (aig2)->cnf_id)
+        val2 = 0;
       else
         val2 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig2));
 
@@ -1299,18 +1311,25 @@ assignment_always_equal (Btor *btor, BtorExpPair *pair)
   assert (btor != NULL);
   assert (pair != NULL);
 
+  exp1 = pair->exp1;
+  exp2 = pair->exp2;
+
+  if (!BTOR_IS_SYNTH_EXP (exp1)) return 0;
+
+  if (!BTOR_IS_SYNTH_EXP (exp2)) return 0;
+
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
-  exp1 = pair->exp1;
-  exp2 = pair->exp2;
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp2)));
   assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
 
   av1 = BTOR_REAL_ADDR_EXP (exp1)->av;
   av2 = BTOR_REAL_ADDR_EXP (exp2)->av;
+  if (!av1 || !av2) return 0;
+
   len = av1->len;
   for (i = 0; i < len; i++)
   {
@@ -1321,6 +1340,8 @@ assignment_always_equal (Btor *btor, BtorExpPair *pair)
       val1 = 1;
     else if (aig1 == BTOR_AIG_FALSE)
       val1 = -1;
+    else if (!BTOR_REAL_ADDR_AIG (aig1)->cnf_id)
+      return 0;
     else
       val1 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig1));
 
@@ -1330,6 +1351,8 @@ assignment_always_equal (Btor *btor, BtorExpPair *pair)
       val2 = 1;
     else if (aig2 == BTOR_AIG_FALSE)
       val2 = -1;
+    else if (!BTOR_REAL_ADDR_AIG (aig2)->cnf_id)
+      return 0;
     else
       val2 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig2));
 
@@ -3234,10 +3257,14 @@ btor_concat_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_read_exp_node (Btor *btor, BtorExp *e_array, BtorExp *e_index)
 {
+  BtorExp *result;
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
-  return binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
+  result = binary_exp (btor, BTOR_READ_EXP, e_array, e_index, e_array->len);
+  if (result->bits == NULL)
+    result->bits = btor_x_const_3vl (btor->mm, e_array->len);
+  return result;
 }
 
 static BtorExp *
