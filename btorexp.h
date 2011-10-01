@@ -296,7 +296,6 @@ struct Btor
   } ua;
   BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
   BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
-  BtorPtrHashTable *exp_pair_ass_unequal_table; /* assignment unequal */
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;
   BtorPtrHashTable *unsynthesized_constraints;

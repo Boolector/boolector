@@ -1232,7 +1232,7 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 }
 
 static int
-assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
+assignment_always_unequal (Btor *btor, BtorExpPair *pair)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -1241,20 +1241,13 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
   BtorExp *exp1, *exp2;
-  BtorPtrHashTable *exp_pair_ass_unequal_table;
 
   assert (btor != NULL);
   assert (pair != NULL);
-  assert (hashed_pair != NULL);
 
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-  *hashed_pair = 0;
-
-  exp_pair_ass_unequal_table = btor->exp_pair_ass_unequal_table;
-  if (btor_find_in_ptr_hash_table (exp_pair_ass_unequal_table, pair)) return 1;
 
   exp1 = pair->exp1;
   exp2 = pair->exp2;
@@ -1277,7 +1270,7 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
     else
       val1 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig1));
 
-    if (val1 != 0) /*  not toplevel assigned or const  */
+    if (val1 != 0) /* toplevel assigned or const */
     {
       if (aig2 == BTOR_AIG_TRUE)
         val2 = 1;
@@ -1286,12 +1279,7 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair, int *hashed_pair)
       else
         val2 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig2));
 
-      if (val2 != 0 && val1 != val2)
-      {
-        (void) btor_insert_in_ptr_hash_table (exp_pair_ass_unequal_table, pair);
-        *hashed_pair = 1;
-        return 1;
-      }
+      if (val2 != 0 && val1 != val2) return 1;
     }
   }
   return 0;
@@ -1378,10 +1366,11 @@ encode_lemma (Btor *btor,
   BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
 
-  /* encode i != j */
-  pair        = new_exp_pair (btor, i, j);
   hashed_pair = 0;
-  if (i != j && !assignment_always_unequal (btor, pair, &hashed_pair))
+
+  /* encode i != j */
+  pair = new_exp_pair (btor, i, j);
+  if (i != j && !assignment_always_unequal (btor, pair))
   {
     /* already encoded i != j into SAT ? */
     bucket = btor_find_in_ptr_hash_table (exp_pair_cnf_diff_id_table, pair);
@@ -1525,7 +1514,7 @@ encode_lemma (Btor *btor,
 
     hashed_pair = 0;
     pair        = new_exp_pair (btor, i, w_index);
-    if (!assignment_always_unequal (btor, pair, &hashed_pair))
+    if (!assignment_always_unequal (btor, pair))
     {
       /* already encoded i != w_index into SAT ? */
       bucket_temp =
@@ -5063,8 +5052,6 @@ btor_new_btor (void)
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->exp_pair_cnf_eq_id_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  btor->exp_pair_ass_unequal_table = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->varsubst_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
@@ -5233,10 +5220,6 @@ btor_delete_btor (Btor *btor)
   for (b = btor->exp_pair_cnf_eq_id_table->first; b != NULL; b = b->next)
     delete_exp_pair (btor, (BtorExpPair *) b->key);
   btor_delete_ptr_hash_table (btor->exp_pair_cnf_eq_id_table);
-
-  for (b = btor->exp_pair_ass_unequal_table->first; b != NULL; b = b->next)
-    delete_exp_pair (btor, (BtorExpPair *) b->key);
-  btor_delete_ptr_hash_table (btor->exp_pair_ass_unequal_table);
 
   /* delete constraints and assumptions */
 
@@ -9967,6 +9950,11 @@ abstract_domain_bv_variables (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+static void
+btor_rebuild_aigs_exp (Btor *btor)
+{
+}
+
 static int
 btor_sat_aux_btor (Btor *btor)
 {
@@ -10051,6 +10039,7 @@ btor_sat_aux_btor (Btor *btor)
   {
     if (sat_result == BTOR_UNKNOWN)
     {
+      btor_rebuild_aigs_exp (btor);
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : 10000;
     }
