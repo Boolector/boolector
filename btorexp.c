@@ -10052,7 +10052,7 @@ btor_sat_aux_btor (Btor *btor)
     if (sat_result == BTOR_UNKNOWN)
     {
       btor->stats.decision_limit_refinements++;
-      limit = limit ? 2 * limit : 1000;
+      limit = limit ? 2 * limit : 10000;
     }
     else
       limit = 2 * limit / 3;
