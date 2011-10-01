@@ -1168,11 +1168,12 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 void
 btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  BtorAIGPtrStack stack;
+  BtorAIGPtrStack stack, tree, leafs;
+  BtorAIG *root, *cur;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
-  int x, y, z;
-  BtorAIG *cur, *left, *right;
+  BtorAIG **p;
+  int x, y;
 
   assert (amgr != NULL);
 
@@ -1182,54 +1183,84 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   if (BTOR_IS_CONST_AIG (aig)) return;
 
   BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (tree);
+  BTOR_INIT_STACK (leafs);
+
   cur = BTOR_REAL_ADDR_AIG (aig);
-  goto BTOR_AIG_TO_SAT_BOTH_PHASES_WITHOUT_POP;
+  BTOR_PUSH_STACK (mm, stack, cur);
 
   while (!BTOR_EMPTY_STACK (stack))
   {
-    cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
-  BTOR_AIG_TO_SAT_BOTH_PHASES_WITHOUT_POP:
-    if (cur->cnf_id) continue;
-    if (BTOR_IS_VAR_AIG (cur))
+    root = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+    if (root->cnf_id) continue;
+
+    if (BTOR_IS_VAR_AIG (root))
     {
-      cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      root->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      continue;
     }
-    else if (cur->mark < 2)
+
+    if (root->mark == 2) continue;
+
+    assert (root->mark < 2);
+    assert (BTOR_IS_AND_AIG (root));
+    assert (BTOR_EMPTY_STACK (tree));
+    assert (BTOR_EMPTY_STACK (leafs));
+
+    BTOR_PUSH_STACK (mm, tree, BTOR_RIGHT_CHILD_AIG (root));
+    BTOR_PUSH_STACK (mm, tree, BTOR_LEFT_CHILD_AIG (root));
+
+    while (!BTOR_EMPTY_STACK (tree))
     {
-      assert (BTOR_IS_AND_AIG (cur));
-      if (cur->mark == 0)
+      cur = BTOR_POP_STACK (tree);
+
+      if (BTOR_IS_INVERTED_AIG (cur) || BTOR_IS_VAR_AIG (cur) || cur->refs > 1u
+          || cur->cnf_id)
       {
-        cur->mark = 1;
-        BTOR_PUSH_STACK (mm, stack, cur);
-        BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-        BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (mm, leafs, cur);
       }
       else
       {
-        assert (cur->mark == 1);
-        cur->mark = 2;
-        left      = BTOR_LEFT_CHILD_AIG (cur);
-        right     = BTOR_RIGHT_CHILD_AIG (cur);
-        x = cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
-        y               = BTOR_GET_CNF_ID_AIG (left);
-        z               = BTOR_GET_CNF_ID_AIG (right);
-        assert (x != 0);
-        assert (y != 0);
-        assert (z != 0);
+        BTOR_PUSH_STACK (mm, tree, BTOR_RIGHT_CHILD_AIG (cur));
+        BTOR_PUSH_STACK (mm, tree, BTOR_LEFT_CHILD_AIG (cur));
+      }
+    }
+
+    if (root->mark == 0)
+    {
+      cur->mark = 1;
+      for (p = leafs.start; p < leafs.top; p++) BTOR_PUSH_STACK (mm, stack, *p);
+    }
+    else
+    {
+      assert (cur->mark == 1);
+      cur->mark = 2;
+
+      x = cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+
+      for (p = leafs.start; p < leafs.top; p++)
+      {
+        cur = *p;
+        y   = BTOR_GET_CNF_ID_AIG (cur);
         btor_add_sat (smgr, -y);
-        btor_add_sat (smgr, -z);
-        btor_add_sat (smgr, x);
-        btor_add_sat (smgr, 0);
+      }
+      btor_add_sat (smgr, x);
+      btor_add_sat (smgr, 0);
+
+      for (p = leafs.start; p < leafs.top; p++)
+      {
+        cur = *p;
+        y   = BTOR_GET_CNF_ID_AIG (cur);
         btor_add_sat (smgr, -x);
         btor_add_sat (smgr, y);
         btor_add_sat (smgr, 0);
-        btor_add_sat (smgr, -x);
-        btor_add_sat (smgr, z);
-        btor_add_sat (smgr, 0);
       }
     }
+    BTOR_RESET_STACK (leafs);
   }
   BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, leafs);
+  BTOR_RELEASE_STACK (mm, tree);
   btor_mark_aig (amgr, aig, 0);
 }
 
