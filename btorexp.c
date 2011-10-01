@@ -1447,7 +1447,6 @@ encode_lemma (Btor *btor,
   BtorIntStack linking_clause;
   int len_a_b, len_i_j_w;
   int k, val;
-  int *lit;
   assert (btor != NULL);
   assert (writes != NULL);
   assert (aeqs != NULL);
