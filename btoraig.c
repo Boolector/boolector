@@ -1166,28 +1166,29 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 }
 
 void
-btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
+btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 {
-  BtorAIGPtrStack stack, tree, leafs;
+  BtorAIGPtrStack stack, tree, leafs, release;
   BtorAIG *root, *cur;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
   BtorAIG **p;
   int x, y;
 
+  if (BTOR_IS_CONST_AIG (start)) return;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (tree);
+  BTOR_INIT_STACK (leafs);
+  BTOR_INIT_STACK (release);
+
   assert (amgr != NULL);
 
   smgr = amgr->smgr;
   mm   = amgr->mm;
 
-  if (BTOR_IS_CONST_AIG (aig)) return;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (tree);
-  BTOR_INIT_STACK (leafs);
-
-  cur = BTOR_REAL_ADDR_AIG (aig);
-  BTOR_PUSH_STACK (mm, stack, cur);
+  start = BTOR_REAL_ADDR_AIG (start);
+  BTOR_PUSH_STACK (mm, stack, start);
 
   while (!BTOR_EMPTY_STACK (stack))
   {
@@ -1240,6 +1241,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
       x = root->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       assert (x);
 
+      if (root != start && root->refs == 1) BTOR_PUSH_STACK (mm, release, root);
+
       for (p = leafs.start; p < leafs.top; p++)
       {
         cur = *p;
@@ -1264,7 +1267,21 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
   BTOR_RELEASE_STACK (mm, stack);
   BTOR_RELEASE_STACK (mm, leafs);
   BTOR_RELEASE_STACK (mm, tree);
-  btor_mark_aig (amgr, aig, 0);
+
+  btor_mark_aig (amgr, start, 0);
+
+  while (!BTOR_EMPTY_STACK (release))
+  {
+    cur = BTOR_POP_STACK (release);
+    assert (BTOR_IS_AND_AIG (cur));
+    assert (!BTOR_IS_INVERTED_AIG (cur));
+    assert (cur->cnf_id);
+    assert (cur->refs == 1);
+    assert (cur != root);
+    btor_release_cnf_id_sat_mgr (smgr, cur->cnf_id);
+    cur->cnf_id = 0;
+  }
+  BTOR_RELEASE_STACK (mm, release);
 }
 
 static void
