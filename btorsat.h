@@ -42,7 +42,7 @@ struct BtorSATMgr
   int satcalls;
   int initialized;
   int clauses;
-  int truelit;
+  int true_lit;
   int maxvar;
 
   struct

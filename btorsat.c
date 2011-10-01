@@ -161,6 +161,7 @@ btor_release_cnf_id_sat_mgr (BtorSATMgr *smgr, int lit)
   if (!smgr->initialized) return;
   assert ((smgr->inc.need && smgr->inc.provides) || !smgr->satcalls);
   assert (abs (lit) <= smgr->maxvar);
+  if (abs (lit) == smgr->true_lit) return;
   if (smgr->inc.api.melt) smgr->inc.api.melt (smgr, lit);
 }
 
@@ -206,8 +207,8 @@ btor_init_sat (BtorSATMgr *smgr, int incremental)
     smgr->inc.need = 0;
   }
 
-  smgr->truelit = btor_next_cnf_id_sat_mgr (smgr);
-  btor_add_sat (smgr, smgr->truelit);
+  smgr->true_lit = btor_next_cnf_id_sat_mgr (smgr);
+  btor_add_sat (smgr, smgr->true_lit);
   btor_add_sat (smgr, 0);
 }
 

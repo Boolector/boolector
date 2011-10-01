@@ -1285,6 +1285,139 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair)
   return 0;
 }
 
+static int
+assignment_always_equal (Btor *btor, BtorExpPair *pair)
+{
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+  int i, len, val1, val2;
+  BtorAIGVec *av1, *av2;
+  BtorAIG *aig1, *aig2;
+  BtorExp *exp1, *exp2;
+
+  assert (btor != NULL);
+  assert (pair != NULL);
+
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+  exp1 = pair->exp1;
+  exp2 = pair->exp2;
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp1)));
+  assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp2)));
+  assert (BTOR_REAL_ADDR_EXP (exp1)->len == BTOR_REAL_ADDR_EXP (exp2)->len);
+
+  av1 = BTOR_REAL_ADDR_EXP (exp1)->av;
+  av2 = BTOR_REAL_ADDR_EXP (exp2)->av;
+  len = av1->len;
+  for (i = 0; i < len; i++)
+  {
+    aig1 = BTOR_COND_INVERT_AIG_EXP (exp1, av1->aigs[i]);
+    aig2 = BTOR_COND_INVERT_AIG_EXP (exp2, av2->aigs[i]);
+
+    if (aig1 == BTOR_AIG_TRUE)
+      val1 = 1;
+    else if (aig1 == BTOR_AIG_FALSE)
+      val1 = -1;
+    else
+      val1 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig1));
+
+    if (!val1) return 0;
+
+    if (aig2 == BTOR_AIG_TRUE)
+      val2 = 1;
+    else if (aig2 == BTOR_AIG_FALSE)
+      val2 = -1;
+    else
+      val2 = btor_fixed_sat (smgr, BTOR_GET_CNF_ID_AIG (aig2));
+
+    if (!val2) return 0;
+
+    if (val1 != val2) return 0;
+  }
+  return 1;
+}
+
+static int exp_to_cnf_lit (Btor *, BtorExp *);
+
+static void
+add_eq_or_neq_exp_to_clause (
+    Btor *btor, BtorExp *a, BtorExp *b, BtorIntStack *linking_clause, int sign)
+{
+  BtorPtrHashTable *table = btor->exp_pair_eq_table;
+  int lit, true_lit, false_lit, hashed_pair;
+  BtorPtrHashBucket *bucket;
+  BtorExpPair *pair;
+  BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
+  BtorExp *eq;
+
+  assert (sign == 1 || sign == -1);
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
+  true_lit  = smgr->true_lit;
+  false_lit = -true_lit;
+
+  a = btor_pointer_chase_simplified_exp (btor, a);
+  b = btor_pointer_chase_simplified_exp (btor, b);
+
+  if (a == b)
+    lit = true_lit;
+  else if (a == BTOR_INVERT_EXP (b))
+    lit = false_lit;
+  else
+  {
+    hashed_pair = 0;
+    pair        = new_exp_pair (btor, a, b);
+    if (assignment_always_unequal (btor, pair))
+      lit = false_lit;
+    else if (assignment_always_equal (btor, pair))
+      lit = true_lit;
+    else
+    {
+      bucket = btor_find_in_ptr_hash_table (table, pair);
+      if (bucket)
+      {
+        eq = bucket->data.asPtr;
+        eq = btor_pointer_chase_simplified_exp (btor, eq);
+      }
+      else
+      {
+        eq                 = btor_eq_exp (btor, a, b);
+        bucket             = btor_insert_in_ptr_hash_table (table, pair);
+        bucket->data.asPtr = eq;
+        hashed_pair        = 1;
+      }
+      lit = exp_to_cnf_lit (btor, eq);
+    }
+    if (!hashed_pair) delete_exp_pair (btor, pair);
+  }
+  lit *= sign;
+  if (lit != false_lit) BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
+}
+
+static void
+add_eq_exp_to_clause (Btor *btor,
+                      BtorExp *a,
+                      BtorExp *b,
+                      BtorIntStack *linking_clause)
+{
+  add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, 1);
+}
+
+static void
+add_neq_exp_to_clause (Btor *btor,
+                       BtorExp *a,
+                       BtorExp *b,
+                       BtorIntStack *linking_clause)
+{
+  add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
+}
+
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
  * The stack 'aeqs' contains intermediate array equalities (true).
@@ -1314,11 +1447,8 @@ encode_lemma (Btor *btor,
   BtorIntStack clauses;
   BtorIntStack linking_clause;
   int len_a_b, len_i_j_w, e, hashed_pair;
-  int k, d_k;
-  int a_k = 0;
-  int b_k = 0;
+  int k;
   int i_k = 0;
-  int j_k = 0;
   int w_k = 0;
   int *lit;
   assert (btor != NULL);
@@ -1367,78 +1497,84 @@ encode_lemma (Btor *btor,
   BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
 
-  hashed_pair = 0;
-
+  add_neq_exp_to_clause (btor, i, j, &linking_clause);
+#if 0
   /* encode i != j */
+  hashed_pair = 0;
   pair = new_exp_pair (btor, i, j);
   if (i != j && !assignment_always_unequal (btor, pair))
-  {
-    /* already encoded i != j into SAT ? */
-    bucket = btor_find_in_ptr_hash_table (exp_pair_eq_table, pair);
-    /* no? */
-    if (bucket == NULL)
     {
-      /* hash starting cnf id - 1 for d_k */
-      d_k = btor_get_last_cnf_id_sat_mgr (smgr);
-      assert (d_k != 0);
-      bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
-      bucket->data.asInt = d_k;
-      hashed_pair        = 1;
-      for (k = 0; k < len_i_j_w; k++)
-      {
-        aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
-        aig2 = BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]);
-        if (!BTOR_IS_CONST_AIG (aig1))
+      /* already encoded i != j into SAT ? */
+      bucket = btor_find_in_ptr_hash_table (exp_pair_eq_table, pair);
+      /* no? */
+      if (bucket == NULL)
         {
-          i_k = BTOR_GET_CNF_ID_AIG (aig1);
-          assert (i_k != 0);
+          /* hash starting cnf id - 1 for d_k */
+          d_k = btor_get_last_cnf_id_sat_mgr (smgr);
+          assert (d_k != 0);
+          bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
+	  bucket->data.asInt = d_k;
+	  hashed_pair = 1;
+          for (k = 0; k < len_i_j_w; k++)
+            {
+              aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
+              aig2 = BTOR_COND_INVERT_AIG_EXP (j, av_j->aigs[k]);
+              if (!BTOR_IS_CONST_AIG (aig1))
+                {
+                  i_k = BTOR_GET_CNF_ID_AIG (aig1);
+                  assert (i_k != 0);
+                }
+              if (!BTOR_IS_CONST_AIG (aig2))
+                {
+                  j_k = BTOR_GET_CNF_ID_AIG (aig2);
+                  assert (j_k != 0);
+                }
+              /* AIGs cannot be inverse of each other as this would imply
+               * that i != j which is in contradiction to the conflict that 
+               * has been detected.
+               */
+              assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2))
+                      != 1ul);
+              d_k = btor_next_cnf_id_sat_mgr (smgr);
+              assert (d_k != 0);
+              BTOR_PUSH_STACK (mm, linking_clause, d_k);
+              if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
+                {
+                  if (!BTOR_IS_CONST_AIG (aig1))
+                    BTOR_PUSH_STACK (mm, clauses, i_k);
+                  if (!BTOR_IS_CONST_AIG (aig2))
+                    BTOR_PUSH_STACK (mm, clauses, j_k);
+                  BTOR_PUSH_STACK (mm, clauses, -d_k);
+                  BTOR_PUSH_STACK (mm, clauses, 0);
+                }
+              if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
+                {
+                  if (!BTOR_IS_CONST_AIG (aig1))
+                    BTOR_PUSH_STACK (mm, clauses, -i_k);
+                  if (!BTOR_IS_CONST_AIG (aig2))
+                    BTOR_PUSH_STACK (mm, clauses, -j_k);
+                  BTOR_PUSH_STACK (mm, clauses, -d_k);
+                  BTOR_PUSH_STACK (mm, clauses, 0);
+                }
+            }
         }
-        if (!BTOR_IS_CONST_AIG (aig2))
+      else
         {
-          j_k = BTOR_GET_CNF_ID_AIG (aig2);
-          assert (j_k != 0);
+          /* we have already encoded i != j,
+           * we simply reuse all diffs for the linking clause */
+          d_k = bucket->data.asInt;
+          assert (d_k != 0);
+          for (k = 0; k < len_i_j_w; k++)
+            {
+              d_k++;
+              BTOR_PUSH_STACK (mm, linking_clause, d_k);
+            }
         }
-        /* AIGs cannot be inverse of each other as this would imply
-         * that i != j which is in contradiction to the conflict that
-         * has been detected.
-         */
-        assert ((((unsigned long int) aig1) ^ ((unsigned long int) aig2))
-                != 1ul);
-        d_k = btor_next_cnf_id_sat_mgr (smgr);
-        assert (d_k != 0);
-        BTOR_PUSH_STACK (mm, linking_clause, d_k);
-        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_TRUE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, j_k);
-          BTOR_PUSH_STACK (mm, clauses, -d_k);
-          BTOR_PUSH_STACK (mm, clauses, 0);
-        }
-        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_FALSE)
-        {
-          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, -i_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, -j_k);
-          BTOR_PUSH_STACK (mm, clauses, -d_k);
-          BTOR_PUSH_STACK (mm, clauses, 0);
-        }
-      }
-    }
-    else
-    {
-      /* we have already encoded i != j,
-       * we simply reuse all diffs for the linking clause */
-      d_k = bucket->data.asInt;
-      assert (d_k != 0);
-      for (k = 0; k < len_i_j_w; k++)
-      {
-        d_k++;
-        BTOR_PUSH_STACK (mm, linking_clause, d_k);
-      }
-    }
-  }
+#endif
 
-  if (!hashed_pair) delete_exp_pair (btor, pair);
+  add_eq_exp_to_clause (btor, a, b, &linking_clause);
 
+#if 0
   /* encode a = b */
   /* a and b have to be synthesized and translated to SAT before */
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (a)));
@@ -1451,54 +1587,60 @@ encode_lemma (Btor *btor,
   bucket = btor_find_in_ptr_hash_table (exp_pair_eq_table, pair);
   /* no ? */
   if (bucket == NULL)
-  {
-    e = btor_next_cnf_id_sat_mgr (smgr);
-    /* hash e */
-    bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
-    bucket->data.asInt = e;
-    for (k = 0; k < len_a_b; k++)
     {
-      aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
-      aig2 = BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]);
-      /* if AIGs are equal then the clauses are satisfied */
-      if (aig1 != aig2)
-      {
-        if (!BTOR_IS_CONST_AIG (aig1))
+      e = btor_next_cnf_id_sat_mgr (smgr);
+      /* hash e */
+      bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
+      bucket->data.asInt = e;
+      for (k = 0; k < len_a_b; k++)
         {
-          a_k = BTOR_GET_CNF_ID_AIG (aig1);
-          assert (a_k != 0);
+          aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
+          aig2 = BTOR_COND_INVERT_AIG_EXP (b, av_b->aigs[k]);
+          /* if AIGs are equal then the clauses are satisfied */
+          if (aig1 != aig2)
+            {
+              if (!BTOR_IS_CONST_AIG (aig1))
+                {
+                  a_k = BTOR_GET_CNF_ID_AIG (aig1);
+                  assert (a_k != 0);
+                }
+              if (!BTOR_IS_CONST_AIG (aig2))
+                {
+                  b_k = BTOR_GET_CNF_ID_AIG (aig2);
+                  assert (b_k != 0);
+                }
+              if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
+                {
+                  BTOR_PUSH_STACK (mm, clauses, -e);
+                  if (!BTOR_IS_CONST_AIG (aig1))
+                    BTOR_PUSH_STACK (mm, clauses, a_k);
+                  if (!BTOR_IS_CONST_AIG (aig2))
+                    BTOR_PUSH_STACK (mm, clauses, -b_k);
+                  BTOR_PUSH_STACK (mm, clauses, 0);
+                }
+              if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
+                {
+                  BTOR_PUSH_STACK (mm, clauses, -e);
+                  if (!BTOR_IS_CONST_AIG (aig1))
+                    BTOR_PUSH_STACK (mm, clauses, -a_k);
+                  if (!BTOR_IS_CONST_AIG (aig2))
+                    BTOR_PUSH_STACK (mm, clauses, b_k);
+                  BTOR_PUSH_STACK (mm, clauses, 0);
+                }
+            }
         }
-        if (!BTOR_IS_CONST_AIG (aig2))
-        {
-          b_k = BTOR_GET_CNF_ID_AIG (aig2);
-          assert (b_k != 0);
-        }
-        if (aig1 != BTOR_AIG_TRUE && aig2 != BTOR_AIG_FALSE)
-        {
-          BTOR_PUSH_STACK (mm, clauses, -e);
-          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, a_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, -b_k);
-          BTOR_PUSH_STACK (mm, clauses, 0);
-        }
-        if (aig1 != BTOR_AIG_FALSE && aig2 != BTOR_AIG_TRUE)
-        {
-          BTOR_PUSH_STACK (mm, clauses, -e);
-          if (!BTOR_IS_CONST_AIG (aig1)) BTOR_PUSH_STACK (mm, clauses, -a_k);
-          if (!BTOR_IS_CONST_AIG (aig2)) BTOR_PUSH_STACK (mm, clauses, b_k);
-          BTOR_PUSH_STACK (mm, clauses, 0);
-        }
-      }
     }
-  }
   else
-  {
-    /* we have already encoded a = b into SAT
-     * we simply reuse e for the linking clause */
-    e = bucket->data.asInt;
-    delete_exp_pair (btor, pair);
-  }
+    {
+      /* we have already encoded a = b into SAT
+       * we simply reuse e for the linking clause */
+      e = bucket->data.asInt;
+      delete_exp_pair (btor, pair);
+    }
   assert (e != 0);
   BTOR_PUSH_STACK (mm, linking_clause, e);
+#endif
+
   /* encode i != write index premisses */
   for (bucket = writes->last; bucket != NULL; bucket = bucket->prev)
   {
@@ -6206,12 +6348,67 @@ exp_to_aig (Btor *btor, BtorExp *exp)
   return result;
 }
 
+static int
+exp_to_cnf_lit (Btor *btor, BtorExp *exp)
+{
+  BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
+  int res, sign;
+  BtorAIG *aig;
+
+  assert (btor != NULL);
+  assert (exp != NULL);
+  assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
+
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+
+  sign = 1;
+
+  if (BTOR_IS_INVERTED_EXP (exp))
+  {
+    exp = BTOR_INVERT_EXP (exp);
+    sign *= -1;
+  }
+
+  aig = exp_to_aig (btor, exp);
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
+  if (BTOR_IS_CONST_AIG (aig))
+  {
+    res = smgr->true_lit;
+    if (aig == BTOR_AIG_FALSE) sign *= -1;
+  }
+  else
+  {
+    if (BTOR_IS_INVERTED_AIG (aig))
+    {
+      aig = BTOR_INVERT_AIG (aig);
+      sign *= -1;
+    }
+
+    if (!aig->cnf_id)
+    {
+      assert (!exp->tseitin_encoded);
+      btor_aig_to_sat_tseitin (amgr, aig);
+      exp->tseitin_encoded = 1;
+    }
+
+    res = aig->cnf_id;
+    btor_release_aig (amgr, aig);
+  }
+  res *= sign;
+
+  return res;
+}
+
 BtorAIGVec *
 btor_exp_to_aigvec (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannotation)
 {
-  BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *result;
+  BtorMemMgr *mm;
 
   assert (exp != NULL);
 
