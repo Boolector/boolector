@@ -585,7 +585,7 @@ btor_lingeling_init (BtorSATMgr *smgr)
                   (lgldealloc) btor_free);
   btor_lingeling_set_opt (res, "boost", 0);
   btor_lingeling_set_opt (res, "turbo", 0);
-  btor_lingeling_set_opt (res, "phase", -1);
+  // btor_lingeling_set_opt (res, "phase", -1);
   return res;
 }
 
