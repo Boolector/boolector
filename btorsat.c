@@ -194,6 +194,7 @@ btor_init_sat (BtorSATMgr *smgr, int incremental)
 
   smgr->solver      = smgr->api.init (smgr);
   smgr->initialized = 1;
+
   if (incremental)
   {
     assert (smgr->inc.provides);
@@ -204,6 +205,10 @@ btor_init_sat (BtorSATMgr *smgr, int incremental)
     btor_msg_sat (smgr, 1, "switching to non-incremental mode");
     smgr->inc.need = 0;
   }
+
+  smgr->truelit = btor_next_cnf_id_sat_mgr (smgr);
+  btor_add_sat (smgr, smgr->truelit);
+  btor_add_sat (smgr, 0);
 }
 
 void

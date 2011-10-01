@@ -1381,8 +1381,9 @@ encode_lemma (Btor *btor,
       /* hash starting cnf id - 1 for d_k */
       d_k = btor_get_last_cnf_id_sat_mgr (smgr);
       assert (d_k != 0);
-      btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair)->data.asInt = d_k;
-      hashed_pair                                                         = 1;
+      bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
+      bucket->data.asInt = d_k;
+      hashed_pair        = 1;
       for (k = 0; k < len_i_j_w; k++)
       {
         aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
@@ -1453,7 +1454,8 @@ encode_lemma (Btor *btor,
   {
     e = btor_next_cnf_id_sat_mgr (smgr);
     /* hash e */
-    btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair)->data.asInt = e;
+    bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
+    bucket->data.asInt = e;
     for (k = 0; k < len_a_b; k++)
     {
       aig1 = BTOR_COND_INVERT_AIG_EXP (a, av_a->aigs[k]);
@@ -1520,9 +1522,10 @@ encode_lemma (Btor *btor,
       /* no ? */
       if (bucket_temp == NULL)
       {
-        e = btor_next_cnf_id_sat_mgr (smgr);
-        btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair)->data.asInt = e;
-        hashed_pair                                                         = 1;
+        e      = btor_next_cnf_id_sat_mgr (smgr);
+        bucket = btor_insert_in_ptr_hash_table (exp_pair_eq_table, pair);
+        bucket->data.asInt = e;
+        hashed_pair        = 1;
         for (k = 0; k < len_i_j_w; k++)
         {
           aig1 = BTOR_COND_INVERT_AIG_EXP (i, av_i->aigs[k]);
@@ -1651,7 +1654,7 @@ encode_lemma (Btor *btor,
   {
     k = BTOR_POP_STACK (linking_clause);
     assert (k != 0);
-    if (!btor_fixed_sat (smgr, k)) btor_add_sat (smgr, k);
+    if (btor_fixed_sat (smgr, k) >= 0) btor_add_sat (smgr, k);
   }
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, linking_clause);
