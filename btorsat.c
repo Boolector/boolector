@@ -669,7 +669,7 @@ btor_lingeling_assume (BtorSATMgr *smgr, int lit)
 static void
 btor_lingeling_melt (BtorSATMgr *smgr, int lit)
 {
-  lglmelt (smgr->solver, lit);
+  if (smgr->inc.need) lglmelt (smgr->solver, lit);
 }
 
 static int

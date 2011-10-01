@@ -1168,7 +1168,7 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 void
 btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 {
-  BtorAIGPtrStack stack, tree, leafs, release;
+  BtorAIGPtrStack stack, tree, leafs, release, marked;
   BtorAIG *root, *cur;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
@@ -1181,6 +1181,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   BTOR_INIT_STACK (tree);
   BTOR_INIT_STACK (leafs);
   BTOR_INIT_STACK (release);
+  BTOR_INIT_STACK (marked);
 
   assert (amgr != NULL);
 
@@ -1193,6 +1194,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   while (!BTOR_EMPTY_STACK (stack))
   {
     root = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+
     if (root->cnf_id) continue;
 
     if (BTOR_IS_VAR_AIG (root))
@@ -1200,8 +1202,6 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
       root->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       continue;
     }
-
-    if (root->mark == 2) continue;
 
     assert (root->mark < 2);
     assert (BTOR_IS_AND_AIG (root));
@@ -1230,6 +1230,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     if (root->mark == 0)
     {
       root->mark = 1;
+      BTOR_PUSH_STACK (mm, marked, root);
       BTOR_PUSH_STACK (mm, stack, root);
       for (p = leafs.start; p < leafs.top; p++) BTOR_PUSH_STACK (mm, stack, *p);
     }
@@ -1268,7 +1269,13 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   BTOR_RELEASE_STACK (mm, leafs);
   BTOR_RELEASE_STACK (mm, tree);
 
-  btor_mark_aig (amgr, start, 0);
+  while (!BTOR_EMPTY_STACK (marked))
+  {
+    cur = BTOR_POP_STACK (marked);
+    assert (cur->mark > 0);
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, marked);
 
   while (!BTOR_EMPTY_STACK (release))
   {
@@ -1277,7 +1284,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (cur->cnf_id);
     assert (cur->refs == 1);
-    assert (cur != root);
+    assert (cur != start);
     btor_release_cnf_id_sat_mgr (smgr, cur->cnf_id);
     cur->cnf_id = 0;
   }
