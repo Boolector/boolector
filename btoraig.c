@@ -1228,20 +1228,23 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig)
 
     if (root->mark == 0)
     {
-      cur->mark = 1;
+      root->mark = 1;
+      BTOR_PUSH_STACK (mm, stack, root);
       for (p = leafs.start; p < leafs.top; p++) BTOR_PUSH_STACK (mm, stack, *p);
     }
     else
     {
-      assert (cur->mark == 1);
-      cur->mark = 2;
+      assert (root->mark == 1);
+      root->mark = 2;
 
-      x = cur->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      x = root->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
+      assert (x);
 
       for (p = leafs.start; p < leafs.top; p++)
       {
         cur = *p;
         y   = BTOR_GET_CNF_ID_AIG (cur);
+        assert (y);
         btor_add_sat (smgr, -y);
       }
       btor_add_sat (smgr, x);
