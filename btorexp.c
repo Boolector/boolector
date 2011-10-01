@@ -1443,10 +1443,10 @@ encode_lemma (Btor *btor,
   BtorExp *w_index, *cur_write, *aeq, *acond, *cond;
   BtorPtrHashTable *exp_pair_eq_table;
   BtorPtrHashBucket *bucket;
-  BtorIntStack clauses;
+  // BtorIntStack clauses;
   BtorIntStack linking_clause;
   int len_a_b, len_i_j_w;
-  int k;
+  int k, val;
   int *lit;
   assert (btor != NULL);
   assert (writes != NULL);
@@ -1491,7 +1491,7 @@ encode_lemma (Btor *btor,
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (j)));
   assert (BTOR_REAL_ADDR_EXP (j)->tseitin_encoded);
 
-  BTOR_INIT_STACK (clauses);
+  // BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
 
   add_neq_exp_to_clause (btor, i, j, &linking_clause);
@@ -1637,14 +1637,14 @@ encode_lemma (Btor *btor,
   BTOR_PUSH_STACK (mm, linking_clause, e);
 #endif
 
-  /* encode i != write index premisses */
+  /* encode i = write index premisses */
   for (bucket = writes->last; bucket != NULL; bucket = bucket->prev)
   {
     cur_write = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (cur_write));
     assert (BTOR_IS_WRITE_EXP (cur_write));
     w_index = cur_write->e[1];
-    add_neq_exp_to_clause (btor, i, w_index, &linking_clause);
+    add_eq_exp_to_clause (btor, i, w_index, &linking_clause);
 #if 0
       av_w = BTOR_REAL_ADDR_EXP (w_index)->av;
       assert (av_w->len == len_i_j_w);
@@ -1723,6 +1723,7 @@ encode_lemma (Btor *btor,
   /* add array equalites in the premisse to linking clause */
   for (bucket = aeqs->last; bucket != NULL; bucket = bucket->prev)
   {
+    // TODO replace by 'exp_to_cnf_lit'
     aeq = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (aeq));
     assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
@@ -1737,6 +1738,7 @@ encode_lemma (Btor *btor,
 
   for (bucket = aconds_sel1->last; bucket != NULL; bucket = bucket->prev)
   {
+    // TODO replace by 'exp_to_cnf_lit'
     acond = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
@@ -1760,6 +1762,7 @@ encode_lemma (Btor *btor,
 
   for (bucket = aconds_sel2->last; bucket != NULL; bucket = bucket->prev)
   {
+    // TODO replace by 'exp_to_cnf_lit'
     acond = (BtorExp *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
@@ -1781,25 +1784,23 @@ encode_lemma (Btor *btor,
     }
   }
 
-#ifndef NDEBUG
-  /* linking clause must not be true */
-  for (lit = linking_clause.start; lit != linking_clause.top; lit++)
-    assert (btor_deref_sat (smgr, *lit) != 1);
-#endif
-
-  btor->stats.lclause_size_sum += BTOR_COUNT_STACK (linking_clause);
-
+#if 0
   /* add clauses */
   for (lit = clauses.start; lit != clauses.top; lit++)
     btor_add_sat (smgr, *lit);
   BTOR_RELEASE_STACK (mm, clauses);
+#endif
 
   /* add linking clause */
   while (!BTOR_EMPTY_STACK (linking_clause))
   {
     k = BTOR_POP_STACK (linking_clause);
     assert (k != 0);
-    if (btor_fixed_sat (smgr, k) >= 0) btor_add_sat (smgr, k);
+    val = btor_fixed_sat (smgr, k);
+    if (val < 0) continue;
+    assert (!val);
+    btor_add_sat (smgr, k);
+    btor->stats.lclause_size_sum++;
   }
   btor_add_sat (smgr, 0);
   BTOR_RELEASE_STACK (mm, linking_clause);
@@ -6354,9 +6355,9 @@ exp_to_aig (Btor *btor, BtorExp *exp)
 static int
 exp_to_cnf_lit (Btor *btor, BtorExp *exp)
 {
+  int res, sign, val;
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
-  int res, sign;
   BtorAIG *aig;
 
   assert (btor != NULL);
@@ -6400,6 +6401,12 @@ exp_to_cnf_lit (Btor *btor, BtorExp *exp)
 
     res = aig->cnf_id;
     btor_release_aig (amgr, aig);
+
+    if ((val = btor_fixed_sat (smgr, res)))
+    {
+      res = smgr->true_lit;
+      if (val < 0) sign *= -1;
+    }
   }
   res *= sign;
 
