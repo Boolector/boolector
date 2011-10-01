@@ -510,14 +510,24 @@ BtorAIG *
 btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 {
   BtorAIG *res, **lookup, *real_left, *real_right;
-  int calls;
+  int calls, lit, val;
 
   assert (amgr != NULL);
+
+  lit = BTOR_GET_CNF_ID_AIG (left);
+  if (lit && (val = btor_fixed_sat (amgr->smgr, lit)))
+    left = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+
+  lit = BTOR_GET_CNF_ID_AIG (right);
+  if (lit && (val = btor_fixed_sat (amgr->smgr, lit)))
+    right = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
 
   calls = 0;
 
   if (left == BTOR_AIG_FALSE || right == BTOR_AIG_FALSE) return BTOR_AIG_FALSE;
+
   if (left == BTOR_AIG_TRUE) return inc_aig_ref_counter_and_return (right);
+
 BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   if (right == BTOR_AIG_TRUE || (left == right))
     return inc_aig_ref_counter_and_return (left);
