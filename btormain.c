@@ -191,8 +191,10 @@ static const char *g_usage =
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
     "\n"
+#ifdef BTOR_USE_PICOSAT
     "  -picosat                         enforce usage of PicoSAT as SAT "
     "solver\n"
+#endif
 #ifdef BTOR_USE_PRECOSAT
     "  -precosat                        enforce usage of PrecoSAT as SAT "
     "solver\n"
