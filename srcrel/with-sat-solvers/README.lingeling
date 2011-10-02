@@ -1,0 +1,22 @@
+This is a source release of Boolector together with Lingeling.
+
+For COPYING respectively LICENSE see the individual archives in 'archives'.
+
+Run 'make' to build Boolector.
+
+This will extract and compile the Lingeling and then
+compile and link Boolector against it.
+
+The 'boolector' binary can then be found in
+
+  ./boolector/boolector
+
+To clean-up run 'make clean'.
+
+The most recent version of Boolector can be found at 
+
+  http://fmv.jku.at/boolector
+
+This site also contains papers and documentation related to Boolector.
+
+Armin Biere, FMV, JKU, October, 2011.
