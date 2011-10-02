@@ -20,7 +20,6 @@
  */
 
 #include "btorexp.h"
-#include "../picosat/picosat.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorconfig.h"
