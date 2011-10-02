@@ -1,0 +1,11 @@
+all:
+	tar xf archives/lingeling*.tar.gz
+	cd lingeling && ./configure && make
+	tar xf archives/boolector*.tar.gz
+	cd boolector && ./configure && make
+clean:
+	make -C lingeling clean
+	make -C boolector clean
+distclean:
+	rm -rf lingeling boolector
+.PHONY: all clean distclean
