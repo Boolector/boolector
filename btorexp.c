@@ -9961,6 +9961,7 @@ abstract_domain_bv_variables (Btor *btor)
 static void
 btor_rebuild_aigs_exp (Btor *btor)
 {
+  (void) btor;
 }
 
 static int

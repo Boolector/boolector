@@ -264,7 +264,6 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
 int
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
-  (void) smgr;
   assert (smgr != NULL);
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "calling SAT solver %s", smgr->name);
@@ -598,6 +597,7 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
+  (void) limit;
   // btor_lingeling_set_opt (smgr->solver, "clim", limit);
   return lglsat (smgr->solver);
 }
