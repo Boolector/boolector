@@ -5774,7 +5774,7 @@ static void insert_unsynthesized_constraint (Btor *, BtorExp *);
 static void
 synthesize_array_equality (Btor *btor, BtorExp *aeq)
 {
-  BtorExp *index, *read1, *read2, *eq, *tmp, *impl;
+  BtorExp *index, *read1, *read2, *eq, *impl;
   BtorAIGVecMgr *avmgr;
   assert (btor != NULL);
   assert (aeq != NULL);
@@ -5800,10 +5800,9 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
 
   aeq->vreads = new_exp_pair (btor, read1, read2);
 
-  eq  = btor_eq_exp (btor, read1, read2);
-  tmp = btor_and_exp_node (btor, BTOR_INVERT_EXP (aeq), eq);
+  eq   = btor_eq_exp (btor, read1, read2);
+  impl = btor_implies_exp (btor, BTOR_INVERT_EXP (aeq), BTOR_INVERT_EXP (eq));
   btor_release_exp (btor, eq);
-  impl = BTOR_INVERT_EXP (tmp);
   insert_unsynthesized_constraint (btor, impl);
   btor_release_exp (btor, impl);
 
@@ -10006,15 +10005,17 @@ btor_sat_aux_btor (Btor *btor)
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
   btor->valid_assignments = 1;
 
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
-  found_constraint_false = process_unsynthesized_constraints (btor);
-  assert (check_all_hash_tables_proxy_free_dbg (btor));
+  do
+  {
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
+    found_constraint_false = process_unsynthesized_constraints (btor);
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
 
-  if (found_constraint_false) return BTOR_UNSAT;
+    if (found_constraint_false) return BTOR_UNSAT;
 
-  if (btor->model_gen) synthesize_all_var_rhs (btor);
+    if (btor->model_gen) synthesize_all_var_rhs (btor);
 
-  assert (btor->unsynthesized_constraints->count == 0u);
+  } while (btor->unsynthesized_constraints->count > 0);
 
 #if BTOR_ENABLE_PROBING_OPT
   if (!ua && !btor->inc_enabled && btor->rewrite_level > 2)
