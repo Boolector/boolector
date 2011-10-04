@@ -1191,18 +1191,18 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   l = BTOR_LEFT_CHILD_AIG (aig);
   if (!BTOR_IS_INVERTED_AIG (l)) return 0;
   l = BTOR_REAL_ADDR_AIG (l);
-  if (l->refs > 1) return 0;  // TODO
+  if (l->refs > 1) return 0;
 
   r = BTOR_RIGHT_CHILD_AIG (aig);
   if (!BTOR_IS_INVERTED_AIG (r)) return 0;
   r = BTOR_REAL_ADDR_AIG (r);
-  if (r->refs > 1) return 0;  // TODO
+  if (r->refs > 1) return 0;
 
   ll = BTOR_LEFT_CHILD_AIG (l);
-  lr = BTOR_LEFT_CHILD_AIG (l);
+  lr = BTOR_RIGHT_CHILD_AIG (l);
 
   rl = BTOR_LEFT_CHILD_AIG (r);
-  rr = BTOR_LEFT_CHILD_AIG (r);
+  rr = BTOR_RIGHT_CHILD_AIG (r);
 
   if (ll == BTOR_INVERT_AIG (rl) && lr == BTOR_INVERT_AIG (rr))
   {
