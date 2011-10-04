@@ -7940,7 +7940,7 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
     }
   }
 
-  // if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
+  if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp))
   {
     if (btor->rewrite_level > 1)
     {
