@@ -514,13 +514,16 @@ btor_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 
   assert (amgr != NULL);
 
-  lit = BTOR_GET_CNF_ID_AIG (left);
-  if (lit && (val = btor_fixed_sat (amgr->smgr, lit)))
-    left = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+  if (amgr->smgr->initialized)
+  {
+    lit = BTOR_GET_CNF_ID_AIG (left);
+    if (lit && (val = btor_fixed_sat (amgr->smgr, lit)))
+      left = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
 
-  lit = BTOR_GET_CNF_ID_AIG (right);
-  if (lit && (val = btor_fixed_sat (amgr->smgr, lit)))
-    right = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+    lit = BTOR_GET_CNF_ID_AIG (right);
+    if (lit && (val = btor_fixed_sat (amgr->smgr, lit)))
+      right = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+  }
 
   calls = 0;
 
@@ -1252,7 +1255,8 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
       x = root->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       assert (x);
 
-      if (root != start && root->refs == 1) BTOR_PUSH_STACK (mm, release, root);
+      if (root != start)  // && root->refs == 1)
+        BTOR_PUSH_STACK (mm, release, root);
 
       for (p = leafs.start; p < leafs.top; p++)
       {
