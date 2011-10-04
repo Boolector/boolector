@@ -295,12 +295,7 @@ struct Btor
     BtorPtrHashTable *writes_aconds; /* array writes and array conds */
   } ua;
 
-#if 0
-  BtorPtrHashTable *exp_pair_cnf_diff_id_table; /* hash table for CNF ids */
-  BtorPtrHashTable *exp_pair_cnf_eq_id_table;   /* hash table for CNF ids */
-#else
   BtorPtrHashTable *exp_pair_eq_table;
-#endif
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;

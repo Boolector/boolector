@@ -5769,10 +5769,12 @@ vread_index_exp (Btor *btor, int len)
   return result;
 }
 
+static void insert_unsynthesized_constraint (Btor *, BtorExp *);
+
 static void
 synthesize_array_equality (Btor *btor, BtorExp *aeq)
 {
-  BtorExp *index, *read1, *read2;
+  BtorExp *index, *read1, *read2, *eq, *tmp, *impl;
   BtorAIGVecMgr *avmgr;
   assert (btor != NULL);
   assert (aeq != NULL);
@@ -5785,9 +5787,9 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   index              = vread_index_exp (btor, aeq->e[0]->index_len);
   index->vread_index = 1;
 
-  /* we do not want read optimizations for the virtual
-   * reads (e.g. rewriting of reads on array conditionals),
-   * so we call 'btor_read_exp_node' directly
+  /* we do not want optimizations for the virtual reads
+   * and the equality, e.g. rewriting of reads on array
+   * conditionals, so we call 'btor_read_exp_node' directly.
    */
   read1 = btor_read_exp_node (btor, aeq->e[0], index);
   read2 = btor_read_exp_node (btor, aeq->e[1], index);
@@ -5797,6 +5799,13 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   read2->vread = 1;
 
   aeq->vreads = new_exp_pair (btor, read1, read2);
+
+  eq  = btor_eq_exp (btor, read1, read2);
+  tmp = btor_and_exp_node (btor, BTOR_INVERT_EXP (aeq), eq);
+  btor_release_exp (btor, eq);
+  impl = BTOR_INVERT_EXP (tmp);
+  insert_unsynthesized_constraint (btor, impl);
+  btor_release_exp (btor, impl);
 
   read1->av = btor_var_aigvec (avmgr, read1->len);
   btor->stats.vreads++;
