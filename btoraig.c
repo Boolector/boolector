@@ -1306,7 +1306,7 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     cur->local = 0;
     if (cur == start) continue;
     assert (cur->refs >= local);
-    if (cur->refs > cur->local + 1) continue;
+    if (cur->refs > local) continue;
     btor_release_cnf_id_sat_mgr (smgr, cur->cnf_id);
     cur->cnf_id = 0;
   }
