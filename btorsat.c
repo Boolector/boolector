@@ -299,6 +299,17 @@ btor_provides_incremental_sat (BtorSATMgr *smgr)
   return smgr->inc.provides;
 }
 
+int
+btor_fixed_sat (BtorSATMgr *smgr, int lit)
+{
+  int res;
+  assert (smgr != NULL);
+  assert (smgr->initialized);
+  assert (abs (lit) <= smgr->maxvar);
+  res = smgr->api.fixed (smgr, lit);
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 void
@@ -322,19 +333,6 @@ btor_failed_sat (BtorSATMgr *smgr, int lit)
   assert (smgr->inc.need);
   assert (smgr->inc.provides);
   return smgr->inc.api.failed (smgr, lit);
-}
-
-int
-btor_fixed_sat (BtorSATMgr *smgr, int lit)
-{
-  int res;
-  assert (smgr != NULL);
-  assert (smgr->initialized);
-  assert (abs (lit) <= smgr->maxvar);
-  assert (smgr->inc.need);
-  assert (smgr->inc.provides);
-  res = smgr->inc.api.fixed (smgr, lit);
-  return res;
 }
 
 int
@@ -489,6 +487,15 @@ btor_picosat_stats (BtorSATMgr *smgr)
   picosat_stats ();
 }
 
+static int
+btor_picosat_fixed (BtorSATMgr *smgr, int lit)
+{
+  int res;
+  (void) smgr;
+  res = picosat_deref_toplevel (lit);
+  return res;
+}
+
 /*------------------------------------------------------------------------*/
 
 static void
@@ -510,15 +517,6 @@ btor_picosat_inconsistent (BtorSATMgr *smgr)
 {
   (void) smgr;
   return picosat_inconsistent ();
-}
-
-static int
-btor_picosat_fixed (BtorSATMgr *smgr, int lit)
-{
-  int res;
-  (void) smgr;
-  res = picosat_deref_toplevel (lit);
-  return res;
 }
 
 /*------------------------------------------------------------------------*/
@@ -706,6 +704,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->api.add              = btor_lingeling_add;
   smgr->api.sat              = btor_lingeling_sat;
   smgr->api.deref            = btor_lingeling_deref;
+  smgr->api.fixed            = btor_lingeling_fixed;
   smgr->api.reset            = btor_lingeling_reset;
   smgr->api.set_output       = btor_lingeling_set_output;
   smgr->api.set_prefix       = btor_lingeling_set_prefix;
@@ -718,7 +717,6 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
   smgr->inc.api.assume       = btor_lingeling_assume;
   smgr->inc.api.melt         = btor_lingeling_melt;
   smgr->inc.api.failed       = btor_lingeling_failed;
-  smgr->inc.api.fixed        = btor_lingeling_fixed;
   smgr->inc.api.inconsistent = btor_lingeling_inconsistent;
   smgr->inc.api.changed      = btor_lingeling_changed;
 
@@ -747,6 +745,7 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   smgr->api.add              = btor_minisat_add;
   smgr->api.sat              = btor_minisat_sat;
   smgr->api.deref            = btor_minisat_deref;
+  smgr->api.fixed            = btor_minisat_fixed;
   smgr->api.reset            = btor_minisat_reset;
   smgr->api.set_output       = btor_minisat_set_output;
   smgr->api.set_prefix       = btor_minisat_set_prefix;
@@ -759,7 +758,6 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   smgr->inc.api.assume       = btor_minisat_assume;
   smgr->inc.api.melt         = 0;
   smgr->inc.api.failed       = btor_minisat_failed;
-  smgr->inc.api.fixed        = btor_minisat_fixed;
   smgr->inc.api.inconsistent = btor_minisat_inconsistent;
   smgr->inc.api.changed      = btor_minisat_changed;
 

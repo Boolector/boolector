@@ -130,6 +130,7 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig->next                  = NULL;
   aig->mark                  = 0;
   aig->on_death_row          = 0;
+  aig->local                 = 0;
   return aig;
 }
 
@@ -464,6 +465,7 @@ btor_var_aig (BtorAIGMgr *amgr)
   aig->next                  = NULL;
   aig->mark                  = 0;
   aig->on_death_row          = 0;
+  aig->local                 = 0;
   return aig;
 }
 
@@ -1181,10 +1183,11 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
 void
 btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 {
-  BtorAIGPtrStack stack, tree, leafs, release, marked;
+  BtorAIGPtrStack stack, tree, leafs, marked;
   BtorAIG *root, *cur;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
+  unsigned local;
   BtorAIG **p;
   int x, y;
 
@@ -1193,7 +1196,6 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (tree);
   BTOR_INIT_STACK (leafs);
-  BTOR_INIT_STACK (release);
   BTOR_INIT_STACK (marked);
 
   assert (amgr != NULL);
@@ -1207,6 +1209,14 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   while (!BTOR_EMPTY_STACK (stack))
   {
     root = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+
+    if (root->mark == 2)
+    {
+      assert (root->cnf_id);
+      assert (root->local < root->refs);
+      root->local++;
+      continue;
+    }
 
     if (root->cnf_id) continue;
 
@@ -1243,6 +1253,9 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
     if (root->mark == 0)
     {
       root->mark = 1;
+      assert (root->refs >= 1);
+      assert (!root->local);
+      root->local = 1;
       BTOR_PUSH_STACK (mm, marked, root);
       BTOR_PUSH_STACK (mm, stack, root);
       for (p = leafs.start; p < leafs.top; p++) BTOR_PUSH_STACK (mm, stack, *p);
@@ -1254,9 +1267,6 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
 
       x = root->cnf_id = btor_next_cnf_id_sat_mgr (smgr);
       assert (x);
-
-      if (root != start)  // && root->refs == 1)
-        BTOR_PUSH_STACK (mm, release, root);
 
       for (p = leafs.start; p < leafs.top; p++)
       {
@@ -1286,23 +1296,21 @@ btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *start)
   while (!BTOR_EMPTY_STACK (marked))
   {
     cur = BTOR_POP_STACK (marked);
+    assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (cur->mark > 0);
     cur->mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, marked);
-
-  while (!BTOR_EMPTY_STACK (release))
-  {
-    cur = BTOR_POP_STACK (release);
-    assert (BTOR_IS_AND_AIG (cur));
-    assert (!BTOR_IS_INVERTED_AIG (cur));
     assert (cur->cnf_id);
-    assert (cur->refs == 1);
-    assert (cur != start);
+    assert (BTOR_IS_AND_AIG (cur));
+    local = cur->local;
+    assert (local > 0);
+    cur->local = 0;
+    if (cur == start) continue;
+    assert (cur->refs >= local);
+    if (cur->refs > cur->local + 1) continue;
     btor_release_cnf_id_sat_mgr (smgr, cur->cnf_id);
     cur->cnf_id = 0;
   }
-  BTOR_RELEASE_STACK (mm, release);
+  BTOR_RELEASE_STACK (mm, marked);
 }
 
 static void

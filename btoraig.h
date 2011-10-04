@@ -36,12 +36,13 @@
 struct BtorAIG
 {
   int id;
-  struct BtorAIG *children[2];
   unsigned int refs;
-  int cnf_id;
+  struct BtorAIG *children[2];
   struct BtorAIG *next;
+  int cnf_id;
   unsigned int on_death_row : 1;
   unsigned int mark : 2;
+  unsigned int local;
 };
 
 typedef struct BtorAIG BtorAIG;

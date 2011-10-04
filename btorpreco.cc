@@ -73,9 +73,7 @@ btor_precosat_sat (BtorSATMgr* smgr, int limit)
 {
   Solver* solver = (Solver*) BTOR_GET_SOLVER_SAT (smgr);
   int res;
-
-  (void) dummy;
-
+  (void) limit;
   res = solver->solve ();
   if (res < 0)
     res = 20;
@@ -91,6 +89,14 @@ btor_precosat_deref (BtorSATMgr* smgr, int lit)
 {
   Solver* solver = (Solver*) BTOR_GET_SOLVER_SAT (smgr);
   return solver->val (btor_precosat_lsbsign_lit (lit));
+}
+
+int
+btor_precosat_fixed (BtorSATMgr* smgr, int lit)
+{
+  (void) smgr;
+  (void) lit;
+  return 0;
 }
 
 void

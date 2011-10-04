@@ -51,6 +51,7 @@ struct BtorSATMgr
     void (*add) (BtorSATMgr *, int);
     int (*sat) (BtorSATMgr *, int);
     int (*deref) (BtorSATMgr *, int);
+    int (*fixed) (BtorSATMgr *, int);
     void (*reset) (BtorSATMgr *);
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
@@ -65,7 +66,6 @@ struct BtorSATMgr
     int need, provides;
     struct
     {
-      int (*fixed) (BtorSATMgr *, int);
       int (*inconsistent) (BtorSATMgr *);
       int (*changed) (BtorSATMgr *);
       void (*assume) (BtorSATMgr *, int);
