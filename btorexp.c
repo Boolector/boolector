@@ -5774,7 +5774,10 @@ static void insert_unsynthesized_constraint (Btor *, BtorExp *);
 static void
 synthesize_array_equality (Btor *btor, BtorExp *aeq)
 {
-  BtorExp *index, *read1, *read2, *eq, *impl;
+  BtorExp *index, *read1, *read2;
+#if 0
+  BtorExp *eq, * impl;
+#endif
   BtorAIGVecMgr *avmgr;
   assert (btor != NULL);
   assert (aeq != NULL);
@@ -5800,11 +5803,14 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
 
   aeq->vreads = new_exp_pair (btor, read1, read2);
 
-  eq   = btor_eq_exp (btor, read1, read2);
-  impl = btor_implies_exp (btor, BTOR_INVERT_EXP (aeq), BTOR_INVERT_EXP (eq));
+#if 0
+  eq = btor_eq_exp (btor, read1, read2);
+  impl = btor_implies_exp (btor, 
+           BTOR_INVERT_EXP (aeq), BTOR_INVERT_EXP(eq));
   btor_release_exp (btor, eq);
   insert_unsynthesized_constraint (btor, impl);
   btor_release_exp (btor, impl);
+#endif
 
   read1->av = btor_var_aigvec (avmgr, read1->len);
   btor->stats.vreads++;
