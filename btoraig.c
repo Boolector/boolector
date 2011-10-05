@@ -1207,7 +1207,7 @@ btor_is_xor_aig (BtorAIGMgr *amgr, BtorAIG *aig, BtorAIGPtrStack *leafs)
   if (ll == BTOR_INVERT_AIG (rl) && lr == BTOR_INVERT_AIG (rr))
   {
     BTOR_PUSH_STACK (amgr->mm, *leafs, rr);
-    BTOR_PUSH_STACK (amgr->mm, *leafs, BTOR_INVERT_AIG (ll));
+    BTOR_PUSH_STACK (amgr->mm, *leafs, ll);
     return 1;
   }
 
