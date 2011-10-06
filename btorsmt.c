@@ -186,7 +186,7 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
-  int sat_calls;
+  int formula;
   int constraints;
   int assumptions;
 
@@ -285,7 +285,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
-  if (parser->incremental) printf ("%d : ", parser->sat_calls + 1);
+  if (parser->incremental) printf ("%d : ", parser->formula);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -2592,8 +2592,6 @@ translate_benchmark (BtorSMTParser *parser,
 
       case BTOR_SMTOK_FORMULA:
 
-        parser->assumptions++;
-
         p = cdr (p);
         if (!p) return btor_perr_smt (parser, "argument to ':formula' missing");
 
@@ -2608,8 +2606,7 @@ translate_benchmark (BtorSMTParser *parser,
 
         if (parser->incremental)
         {
-          btor_smt_message (
-              parser, 3, "adding ':formula' %d", parser->assumptions);
+          btor_smt_message (parser, 3, "adding ':formula' %d", parser->formula);
           btor_add_assumption_exp (parser->btor, exp);
           btor_release_exp (parser->btor, exp);
           if (parser->incremental & 4)
@@ -2617,25 +2614,26 @@ translate_benchmark (BtorSMTParser *parser,
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)
           {
-            btor_smt_message (
-                parser, 0, "':formula' %d SAT", parser->assumptions);
+            btor_smt_message (parser, 0, "':formula' %d SAT", parser->formula);
             res->result = BTOR_PARSE_SAT_STATUS_SAT;
           }
           else
           {
             assert (satres == BTOR_UNSAT);
             btor_smt_message (
-                parser, 0, "':formula' %d UNSAT", parser->assumptions);
+                parser, 0, "':formula' %d UNSAT", parser->formula);
             if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
               res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
           }
           if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
-          parser->sat_calls++;
+          parser->formula++;
         }
         else
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
+
+        parser->assumptions++;
 
         break;
 
