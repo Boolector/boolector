@@ -271,6 +271,42 @@ cons (BtorSMTParser *parser, void *h, void *t)
 }
 
 static void
+btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
+{
+  if (!node) return;
+
+  assert (parser->nodes > 0);
+  parser->nodes--;
+
+  assert (parser->first);
+  assert (parser->last);
+
+  if (node->exp) btor_release_exp (parser->btor, node->exp);
+
+  if (node->next)
+  {
+    node->next->prev = node->prev;
+  }
+  else
+  {
+    assert (parser->last == node);
+    parser->last = node->prev;
+  }
+
+  if (node->prev)
+  {
+    node->prev->next = node->next;
+  }
+  else
+  {
+    assert (parser->first == node);
+    parser->first = node->next;
+  }
+
+  BTOR_DELETE (parser->mem, node);
+}
+
+static void
 btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 {
   va_list ap;
@@ -2405,8 +2441,11 @@ flush_translated (BtorSMTParser *parser)
   {
     node = BTOR_POP_STACK (parser->translated);
     assert (node->exp);
-    btor_release_exp (parser->btor, node->exp);
-    node->exp = 0;
+#if 0
+      btor_release_exp (parser->btor, node->exp);
+      node->exp = 0;
+#endif
+    btor_delete_smt_node (parser, node);
   }
 }
 
