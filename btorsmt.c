@@ -155,17 +155,10 @@ typedef enum BtorSMTToken BtorSMTToken;
 
 struct BtorSMTNode
 {
-  BtorExp *exp;
   void *head;
   void *tail;
-};
-
-#define BTOR_SMT_NODES 10000
-
-struct BtorSMTNodes
-{
-  BtorSMTNodes *next;
-  BtorSMTNode nodes[BTOR_SMT_NODES];
+  BtorExp *exp;
+  struct BtorSMTNode *prev, *next;
 };
 
 BTOR_DECLARE_STACK (SMTNodePtr, BtorSMTNode *);
@@ -221,8 +214,7 @@ struct BtorSMTParser
   BtorSMTNodePtrStack translated;
   BtorIntStack heads;
 
-  BtorSMTNodes *chunks;
-  BtorSMTNode *free;
+  BtorSMTNode *first;
   BtorSMTNode *last;
   unsigned nodes;
 
@@ -250,24 +242,28 @@ cdr (BtorSMTNode *node)
 static BtorSMTNode *
 cons (BtorSMTParser *parser, void *h, void *t)
 {
-  BtorSMTNodes *chunk;
   BtorSMTNode *res;
 
-  if (parser->free == parser->last)
-  {
-    BTOR_NEW (parser->mem, chunk);
-    BTOR_CLR (chunk);
-    chunk->next    = parser->chunks;
-    parser->chunks = chunk;
+  BTOR_NEW (parser->mem, res);
+  BTOR_CLR (res);
 
-    parser->free = chunk->nodes;
-    parser->last = chunk->nodes + BTOR_SMT_NODES;
+  if (parser->last)
+  {
+    assert (parser->first);
+    parser->last->next = res;
+  }
+  else
+  {
+    assert (!parser->first);
+    parser->first = res;
   }
 
-  res = parser->free++;
-  parser->nodes++;
+  res->prev    = parser->last;
+  parser->last = res;
 
-  res->exp  = 0;
+  parser->nodes++;
+  assert (parser->nodes > 0);
+
   res->head = h;
   res->tail = t;
 
@@ -347,21 +343,19 @@ btor_release_smt_symbols (BtorSMTParser *parser)
 static void
 btor_release_smt_nodes (BtorSMTParser *parser)
 {
-  BtorSMTNodes *p, *next;
+  BtorSMTNode *p, *prev;
   BtorExp *e;
-  unsigned i;
 
-  for (p = parser->chunks; p; p = next)
+  for (p = parser->last; p; p = prev)
   {
-    next = p->next;
-
-    for (i = 0; i < BTOR_SMT_NODES; i++)
-      if ((e = p->nodes[i].exp)) btor_release_exp (parser->btor, e);
-
+    assert (parser->nodes > 0);
+    parser->nodes--;
+    prev = p->prev;
+    if ((e = p->exp)) btor_release_exp (parser->btor, e);
     BTOR_DELETE (parser->mem, p);
   }
-
-  parser->chunks = 0;
+  assert (!parser->nodes);
+  parser->first = parser->last = 0;
 }
 
 static void
