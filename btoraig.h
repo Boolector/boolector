@@ -39,11 +39,12 @@ struct BtorAIG
   unsigned int refs;
   struct BtorAIG *children[2];
   struct BtorAIG *next;
-  struct BtorAig *map;
-  int cnf_id;
+  struct BtorAIG *map;
+  int cnf_id : 30;
   unsigned int on_death_row : 1;
+  unsigned int mapped : 1;
   unsigned int mark : 2;
-  unsigned int local;
+  unsigned int local : 30;
 };
 
 typedef struct BtorAIG BtorAIG;
@@ -176,5 +177,8 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  * Do not call before calling btor_sat_aig.
  */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+
+void btor_rebuild_all_aig (BtorAIGMgr *mgr);
+void btor_release_map_aig (BtorAIGMgr *mgr);
 
 #endif

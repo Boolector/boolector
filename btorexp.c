@@ -9976,9 +9976,12 @@ btor_rebuild_aigs_exp (Btor *btor)
 {
   BtorPtrHashBucket *b;
   BtorPtrHashTable *synthesized_constraints;
+  BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  btor_rebuild_all_aig (amgr);
   synthesized_constraints = btor->synthesized_constraints;
   for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
     ;
+  btor_release_map_aig (amgr);
 }
 
 static int

@@ -130,6 +130,8 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig->next                  = NULL;
   aig->mark                  = 0;
   aig->on_death_row          = 0;
+  aig->map                   = 0;
+  aig->mapped                = 0;
   aig->local                 = 0;
   return aig;
 }
@@ -465,6 +467,8 @@ btor_var_aig (BtorAIGMgr *amgr)
   aig->next                  = NULL;
   aig->mark                  = 0;
   aig->on_death_row          = 0;
+  aig->map                   = 0;
+  aig->mapped                = 0;
   aig->local                 = 0;
   return aig;
 }
@@ -1568,6 +1572,102 @@ btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig)
   if (BTOR_IS_INVERTED_AIG (aig))
     return -btor_deref_sat (amgr->smgr, BTOR_REAL_ADDR_AIG (aig)->cnf_id);
   return btor_deref_sat (amgr->smgr, aig->cnf_id);
+}
+
+#if 0
+static int
+btor_mapped_aig (BtorAIG * aig)
+{
+  return BTOR_REAL_ADDR_AIG (aig)->mapped;
+}
+#endif
+
+static BtorAIG *
+btor_map_aig (BtorAIG *aig)
+{
+  int inverted = BTOR_IS_INVERTED_AIG (aig);
+  BtorAIG *res;
+  if (inverted) aig = BTOR_INVERT_AIG (aig);
+  res = aig->mapped ? aig->map : aig;
+  if (inverted) res = BTOR_INVERT_AIG (res);
+  return res;
+}
+
+void
+btor_rebuild_all_aig (BtorAIGMgr *amgr)
+{
+  BtorAIG *root, *node, *l, *r;
+  BtorAIGPtrStack stack;
+  int i, val;
+
+  BTOR_INIT_STACK (stack);
+  for (i = 0; i < amgr->table.size; i++)
+    for (root = amgr->table.chains[i]; root; root = root->next)
+      BTOR_PUSH_STACK (amgr->mm, stack, root);
+  for (root = amgr->table.chains[i]; root; root = root->next)
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      node = BTOR_POP_STACK (stack);
+
+      if (node)
+      {
+        assert (!BTOR_IS_INVERTED_AIG (node));
+        if (node->mapped) continue;
+
+        if (node->cnf_id && (val = btor_fixed_sat (amgr->smgr, node->cnf_id)))
+        {
+          node->mapped = 1;
+          node->map    = val < 0 ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+          continue;
+        }
+
+        node->mapped = 1;
+        node->map    = node;
+        BTOR_PUSH_STACK (amgr->mm, stack, node);
+        BTOR_PUSH_STACK (amgr->mm, stack, 0);
+
+        l = BTOR_REAL_ADDR_AIG (node->children[0]);
+        r = BTOR_REAL_ADDR_AIG (node->children[1]);
+        BTOR_PUSH_STACK (amgr->mm, stack, r);
+        BTOR_PUSH_STACK (amgr->mm, stack, l);
+      }
+      else
+      {
+        node = BTOR_POP_STACK (stack);
+        assert (node->mapped);
+        assert (node->map == node);
+        if (BTOR_IS_VAR_AIG (node))
+        {
+          node->map = btor_copy_aig (amgr, node);
+        }
+        else
+        {
+          l         = btor_map_aig (node->children[0]);
+          r         = btor_map_aig (node->children[1]);
+          node->map = btor_and_aig (amgr, l, r);
+        }
+      }
+    }
+  BTOR_RELEASE_STACK (amgr->mm, stack);
+}
+
+void
+btor_release_map_aig (BtorAIGMgr *amgr)
+{
+  BtorAIG *node;
+  int i;
+
+  for (i = 0; i < amgr->table.size; i++)
+  {
+    for (node = amgr->table.chains[i]; node; node = node->next)
+    {
+      if (!node->mapped) continue;
+
+      node->mapped = 0;
+      btor_release_aig (amgr, node->map);
+      node->map = 0;
+    }
+  }
 }
 
 /*------------------------------------------------------------------------*/
