@@ -53,9 +53,6 @@ BtorAIGMgr *btor_get_aig_mgr_aigvec_mgr (const BtorAIGVecMgr *avmgr);
 /* Deletes AIG vector manager from memory. */
 void btor_delete_aigvec_mgr (BtorAIGVecMgr *avmgr);
 
-/* Rebuild AIG vector and dump dead nodes to death row. */
-void btor_rebuild_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
-
 /* Implicit precondition of all functions taking AIG vectors as inputs:
  * The length of all input AIG vectors have to be greater than zero.
  */
@@ -195,5 +192,9 @@ void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
  * and returns it.
  */
 char *btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+
+/* Map AIG vector (requires call to 'btor_rebuild_all_aig').
+ */
+void btor_rebuild_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
 #endif

@@ -82,8 +82,6 @@ struct BtorAIGMgr
   int id;
   int verbosity;
   BtorSATMgr *smgr;
-  int keep_dead, really_dead;
-  BtorAIGPtrStack death_row;
 };
 
 /*------------------------------------------------------------------------*/
@@ -129,7 +127,6 @@ new_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
   aig->cnf_id                = 0;
   aig->next                  = NULL;
   aig->mark                  = 0;
-  aig->on_death_row          = 0;
   aig->map                   = 0;
   aig->mapped                = 0;
   aig->local                 = 0;
@@ -316,44 +313,6 @@ btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark)
 }
 
 void
-btor_use_death_row_aig (BtorAIGMgr *amgr)
-{
-  if (amgr->keep_dead) return;
-  amgr->keep_dead = 1;
-  if (amgr->verbosity >= 2) btor_msg_aig ("using death row\n");
-}
-
-static void
-btor_compact_death_row_aig (BtorAIGMgr *amgr)
-{
-  int i, j, size, count;
-  BtorAIG *aig;
-  assert (amgr->keep_dead);
-  size = BTOR_COUNT_STACK (amgr->death_row);
-  if (amgr->verbosity >= 3)
-    btor_msg_aig ("compacting death row of size %d\n", size);
-  j     = 0;
-  count = 0;
-  for (i = 0; i < size; i++)
-  {
-    aig = amgr->death_row.start[i];
-    assert (!BTOR_IS_INVERTED_AIG (aig));
-    assert (aig->on_death_row);
-    assert (aig->refs >= 1ul);
-    if (aig->refs == 1ul)
-      amgr->death_row.start[j++] = aig;
-    else
-    {
-      aig->on_death_row = 0;
-      count++;
-    }
-  }
-  amgr->death_row.top = amgr->death_row.start + j;
-  if (amgr->verbosity >= 3)
-    btor_msg_aig ("removed %d resurrected nodes from death row\n", count);
-}
-
-void
 btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   BtorMemMgr *mm;
@@ -368,18 +327,6 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
     if (cur->refs > 1u)
     {
       cur->refs--;
-      if (cur->refs == 1u && cur->on_death_row) amgr->really_dead++;
-    }
-    else if (amgr->keep_dead)
-    {
-      assert (cur->refs == 1u);
-      assert (!cur->on_death_row);
-      BTOR_PUSH_STACK (mm, amgr->death_row, cur);
-      cur->on_death_row = 1;
-      amgr->really_dead++;
-
-      if (amgr->really_dead < BTOR_COUNT_STACK (amgr->death_row))
-        btor_compact_death_row_aig (amgr);
     }
     else
     {
@@ -396,7 +343,6 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
         {
         BTOR_RELEASE_AIG_WITHOUT_POP:
           assert (cur->refs == 1u);
-          assert (!cur->on_death_row);
           if (BTOR_IS_VAR_AIG (cur))
             delete_aig_node (amgr, cur);
           else
@@ -413,45 +359,6 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
   }
 }
 
-void
-btor_flush_death_row_aig (BtorAIGMgr *amgr)
-{
-  int count, before, after, total;
-  BtorAIG *root;
-
-  if (!amgr->keep_dead)
-  {
-    assert (BTOR_EMPTY_STACK (amgr->death_row));
-    return;
-  }
-
-  if (amgr->verbosity >= 2)
-    btor_msg_aig ("flushing %d dead root nodes from death row of size %d\n",
-                  amgr->really_dead,
-                  BTOR_COUNT_STACK (amgr->death_row));
-
-  before          = amgr->table.num_elements;
-  amgr->keep_dead = 0;
-
-  while (!BTOR_EMPTY_STACK (amgr->death_row))
-  {
-    root = BTOR_POP_STACK (amgr->death_row);
-    assert (!BTOR_IS_INVERTED_AIG (root));
-    assert (root->on_death_row);
-    root->on_death_row = 0;
-    assert (root->refs >= 1ul);
-    if (root->refs == 1ul) count++;
-    btor_release_aig (amgr, root);
-  }
-  assert (count == amgr->really_dead);
-  amgr->really_dead = 0;
-
-  after = amgr->table.num_elements;
-  assert (after <= before);
-  total = before - after;
-  if (amgr->verbosity >= 2) btor_msg_aig ("flushed %d dead nodes\n", total);
-}
-
 BtorAIG *
 btor_var_aig (BtorAIGMgr *amgr)
 {
@@ -466,7 +373,6 @@ btor_var_aig (BtorAIGMgr *amgr)
   aig->cnf_id                = 0;
   aig->next                  = NULL;
   aig->mark                  = 0;
-  aig->on_death_row          = 0;
   aig->map                   = 0;
   aig->mapped                = 0;
   aig->local                 = 0;
@@ -770,11 +676,6 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   else
   {
     inc_aig_ref_counter (res);
-    if (res->on_death_row && res->refs == 2ul)
-    {
-      assert (amgr->really_dead > 0);
-      amgr->really_dead--;
-    }
   }
   return res;
 }
@@ -1154,11 +1055,9 @@ btor_new_aig_mgr (BtorMemMgr *mm)
   BTOR_NEW (mm, amgr);
   amgr->mm = mm;
   BTOR_INIT_AIG_UNIQUE_TABLE (mm, amgr->table);
-  amgr->id          = 1;
-  amgr->verbosity   = 0;
-  amgr->smgr        = btor_new_sat_mgr (mm);
-  amgr->really_dead = amgr->keep_dead = 0;
-  BTOR_INIT_STACK (amgr->death_row);
+  amgr->id        = 1;
+  amgr->verbosity = 0;
+  amgr->smgr      = btor_new_sat_mgr (mm);
   return amgr;
 }
 
@@ -1178,7 +1077,6 @@ btor_delete_aig_mgr (BtorAIGMgr *amgr)
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKAIG")
           || amgr->table.num_elements == 0);
   mm = amgr->mm;
-  BTOR_RELEASE_STACK (mm, amgr->death_row);
   BTOR_RELEASE_AIG_UNIQUE_TABLE (mm, amgr->table);
   btor_delete_sat_mgr (amgr->smgr);
   BTOR_DELETE (mm, amgr);

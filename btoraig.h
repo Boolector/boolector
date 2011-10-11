@@ -41,7 +41,6 @@ struct BtorAIG
   struct BtorAIG *next;
   struct BtorAIG *map;
   int cnf_id : 30;
-  unsigned int on_death_row : 1;
   unsigned int mapped : 1;
   unsigned int mark : 2;
   unsigned int local : 30;
@@ -87,15 +86,6 @@ BtorSATMgr *btor_get_sat_mgr_aig_mgr (const BtorAIGMgr *amgr);
 /* Deletes AIG manager from memory. */
 void btor_delete_aig_mgr (BtorAIGMgr *amgr);
 
-/* Keep dead nodes on a death row. */
-void btor_use_death_row_aig (BtorAIGMgr *);
-
-/* Flush dead nodes and release its CNF indices.
- * Return number of flushed nodes on death row.
- * Disable keeping nodes on death row.
- */
-void btor_flush_death_row_aig (BtorAIGMgr *);
-
 /* Variable representing 1 bit. */
 BtorAIG *btor_var_aig (BtorAIGMgr *amgr);
 
@@ -126,8 +116,7 @@ BtorAIG *btor_copy_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 /* Releases AIG (decrements reference counter).
  * If reference counter reaches 0,
  * then also the children are released
- * and AIG is deleted from memory unless keeping
- * dead AIG nodes on a death row is enabled.
+ * and AIG is deleted from memory.
  */
 void btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
