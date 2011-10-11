@@ -273,7 +273,7 @@ btor_reset_sig_handlers (void)
 static void
 btor_catched_sig_msg (int sig)
 {
-  printf ("[btrmain] CAUGHT SIGNAL %d\n", sig);
+  printf ("[btormain] CAUGHT SIGNAL %d\n", sig);
   fflush (stdout);
 }
 
@@ -281,7 +281,7 @@ static void
 btor_msg_main (char *msg)
 {
   assert (msg != NULL);
-  fprintf (stdout, "[btrmain] %s", msg);
+  fprintf (stdout, "[btormain] %s", msg);
   fflush (stdout);
 }
 
@@ -291,7 +291,7 @@ btor_msg_main_va_args (char *msg, ...)
   va_list list;
   assert (msg != NULL);
   va_start (list, msg);
-  fprintf (stdout, "[btrmain] ");
+  fprintf (stdout, "[btormain] ");
   vfprintf (stdout, msg, list);
   va_end (list);
 }
@@ -359,7 +359,7 @@ btor_catch_alarm (int sig)
   {
     btor_static_catched_sig = 1;
     if (btor_static_verbosity > 0)
-      printf ("[btrmain] CAUGHT SIGNAL %d (probably time limit reached)\n",
+      printf ("[btormain] CAUGHT SIGNAL %d (probably time limit reached)\n",
               SIGALRM);
     fputs ("unknown\n", stdout);
     fflush (stdout);
@@ -2079,7 +2079,7 @@ boolector_main (int argc, char **argv)
         {
           print_msg_va_args (
               &app,
-              "[btrmain] ERROR: "
+              "[btormain] ERROR: "
               "'sat' but status of benchmark in '%s' is 'unsat'\n",
               app.input_file_name);
         }
@@ -2088,7 +2088,7 @@ boolector_main (int argc, char **argv)
         {
           print_msg_va_args (
               &app,
-              "[btrmain] ERROR: "
+              "[btormain] ERROR: "
               "'unsat' but status of benchmark in '%s' is 'sat'\n",
               app.input_file_name);
         }

@@ -1,6 +1,9 @@
 news for release 1.5.XX since 1.5.13
 ------------------------------------
-* gzip compressed input files
+* more compact SMTLIB1 parsing
+* symbolic lemmas instead of direct CNF encoding
+* more compact AIG to CNF translation
+* gzip/bzip2/7z compressed input files
 * time out option
 * SMTLIB 2 support
 
