@@ -250,6 +250,9 @@ static BtorSATMgr *btor_static_smgr;
 static Btor *btor_static_btor;
 static int btor_static_catched_sig;
 static int btor_static_set_alarm;
+#ifdef BTOR_HAVE_GETRUSAGE
+static double btor_static_start_time;
+#endif
 
 static void (*btor_sig_int_handler) (int);
 static void (*btor_sig_segv_handler) (int);
@@ -270,8 +273,41 @@ btor_reset_sig_handlers (void)
 static void
 btor_catched_sig_msg (int sig)
 {
-  printf ("[boolector] CAUGHT SIGNAL %d\n", sig);
+  printf ("[btrmain] CAUGHT SIGNAL %d\n", sig);
   fflush (stdout);
+}
+
+static void
+btor_msg_main (char *msg)
+{
+  assert (msg != NULL);
+  fprintf (stdout, "[btrmain] %s", msg);
+  fflush (stdout);
+}
+
+static void
+btor_msg_main_va_args (char *msg, ...)
+{
+  va_list list;
+  assert (msg != NULL);
+  va_start (list, msg);
+  fprintf (stdout, "[btrmain] ");
+  vfprintf (stdout, msg, list);
+  va_end (list);
+}
+
+static void
+btor_print_static_stats (void)
+{
+  size_t maxallocated;
+#ifdef BTOR_HAVE_GETRUSAGE
+  double delta_time = delta_time = btor_time_stamp () - btor_static_start_time;
+  btor_msg_main_va_args ("%.1f seconds\n", delta_time);
+#else
+  btor_msg_main ("can not determine run-time in secons (no getrusage)");
+#endif
+  maxallocated = btor_static_btor ? btor_static_btor->mm->maxallocated : 0;
+  btor_msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
 }
 
 static void
@@ -287,6 +323,7 @@ btor_catch_sig (int sig)
     {
       if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
       if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
+      btor_print_static_stats ();
       btor_catched_sig_msg (sig);
     }
   }
@@ -322,7 +359,7 @@ btor_catch_alarm (int sig)
   {
     btor_static_catched_sig = 1;
     if (btor_static_verbosity > 0)
-      printf ("[boolector] CAUGHT SIGNAL %d (probably time limit reached)\n",
+      printf ("[btrmain] CAUGHT SIGNAL %d (probably time limit reached)\n",
               SIGALRM);
     fputs ("unknown\n", stdout);
     fflush (stdout);
@@ -344,25 +381,6 @@ btor_set_alarm (void)
   btor_sig_alrm_handler = signal (SIGALRM, btor_catch_alarm);
   assert (btor_static_set_alarm > 0);
   alarm (btor_static_set_alarm);
-}
-
-static void
-btor_msg_main (char *msg)
-{
-  assert (msg != NULL);
-  fprintf (stdout, "[btrmain] %s", msg);
-  fflush (stdout);
-}
-
-static void
-btor_msg_main_va_args (char *msg, ...)
-{
-  va_list list;
-  assert (msg != NULL);
-  va_start (list, msg);
-  fprintf (stdout, "[btrmain] ");
-  vfprintf (stdout, msg, list);
-  va_end (list);
 }
 
 static void
@@ -1131,10 +1149,6 @@ int
 boolector_main (int argc, char **argv)
 {
   BtorMainApp app;
-#ifdef BTOR_HAVE_GETRUSAGE
-  double start_time = btor_time_stamp ();
-  double delta_time = 0.0;
-#endif
   int return_val = 0;
   int sat_result = 0;
   int i          = 0;
@@ -1154,7 +1168,6 @@ boolector_main (int argc, char **argv)
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorMemMgr *mem                 = NULL;
-  size_t maxallocated             = 0;
   BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state, *tmp, *all;
   BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
   BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
@@ -1164,6 +1177,8 @@ boolector_main (int argc, char **argv)
   BtorPtrHashBucket *bucket;
   BtorExpPtrStack *array_states = NULL;
   BtorCharStack prefix;
+
+  btor_static_start_time = btor_time_stamp ();
 
   memset (&app, 0, sizeof app);
 
@@ -2064,7 +2079,7 @@ boolector_main (int argc, char **argv)
         {
           print_msg_va_args (
               &app,
-              "[boolector] ERROR: "
+              "[btrmain] ERROR: "
               "'sat' but status of benchmark in '%s' is 'unsat'\n",
               app.input_file_name);
         }
@@ -2073,7 +2088,7 @@ boolector_main (int argc, char **argv)
         {
           print_msg_va_args (
               &app,
-              "[boolector] ERROR: "
+              "[btrmain] ERROR: "
               "'unsat' but status of benchmark in '%s' is 'sat'\n",
               app.input_file_name);
         }
@@ -2113,7 +2128,7 @@ boolector_main (int argc, char **argv)
 #endif
     if (parser_api) parser_api->reset (parser);
 
-    maxallocated = mem->maxallocated;
+    if (!app.err && !app.done && app.verbosity > 0) btor_print_static_stats ();
 
     btor_static_btor      = 0;
     btor_static_verbosity = 0;
@@ -2141,14 +2156,6 @@ boolector_main (int argc, char **argv)
   {
     assert (sat_result == BTOR_UNKNOWN);
     return_val = BTOR_UNKNOWN_EXIT;
-  }
-  if (!app.err && !app.done && app.verbosity > 0)
-  {
-#ifdef BTOR_HAVE_GETRUSAGE
-    delta_time = btor_time_stamp () - start_time;
-    btor_msg_main_va_args ("%.1f seconds\n", delta_time);
-#endif
-    btor_msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
   }
   return return_val;
 }
