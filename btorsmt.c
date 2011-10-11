@@ -147,13 +147,15 @@ enum BtorSMTToken
   BTOR_SMTOK_THEORY              = 522,
   BTOR_SMTOK_THEORYATTR          = 523,
 
-  BTOR_SMTOK_INTERNAL = 1024,
-  BTOR_SMTOK_BIND     = 1024,
+  BTOR_SMTOK_INTERNAL   = 1024,
+  BTOR_SMTOK_BIND       = 1024,
+  BTOR_SMTOK_TRANSLATED = 1025,  // TODO ...
 };
 
 typedef enum BtorSMTToken BtorSMTToken;
 
-/* Uncomment the following line to find leaking nodes
+/* Uncomment the following line to find leaking nodes during debugging
+ * of the this SMTLIB1 parser.
  *
 #define BTOR_FIND_LEAKING_SMT_NODES
  */
@@ -162,7 +164,7 @@ struct BtorSMTNode
 {
   void *head;
   void *tail;
-  BtorExp *exp;  // TODO overlay with head?
+  BtorExp *exp;  // TODO overlay with tail/head?
 #ifdef BTOR_FIND_LEAKING_SMT_NODES
   struct BtorSMTNode *prev, *next;
 #endif
@@ -175,6 +177,7 @@ struct BtorSMTSymbol
   char *name;
   BtorSMTToken token;
   BtorSMTSymbol *next;
+  BtorSMTNode *last;
   BtorExp *exp;
 };
 
@@ -186,6 +189,7 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
+  int model;
   int formula;
   int constraints;
   int assumptions;
@@ -215,6 +219,7 @@ struct BtorSMTParser
   unsigned constants;
 
   BtorSMTNode *bind;
+  BtorSMTNode *translated;
 
   BtorSMTNodePtrStack stack;
   BtorSMTNodePtrStack work;
@@ -248,10 +253,15 @@ cdr (BtorSMTNode *node)
   return node->tail;
 }
 
+#define isleaf(l) (1lu & (unsigned long) (l))
+#define leaf(l) ((void *) (1lu | (unsigned long) (l)))
+#define strip(l) ((BtorSMTSymbol *) ((~1lu) & (unsigned long) (l)))
+
 static BtorSMTNode *
 cons (BtorSMTParser *parser, void *h, void *t)
 {
   BtorSMTNode *res;
+  BtorSMTSymbol *s;
 
   BTOR_NEW (parser->mem, res);
   BTOR_CLR (res);
@@ -278,18 +288,93 @@ cons (BtorSMTParser *parser, void *h, void *t)
   res->head = h;
   res->tail = t;
 
+  assert (!isleaf (t));
+
+  if (isleaf (h))
+  {
+    s       = strip (h);
+    s->last = res;
+  }
+
   return res;
+}
+
+static unsigned
+hash_name (const char *name)
+{
+  unsigned i, res;
+  const char *p;
+  char ch;
+
+  i   = 0;
+  res = 0;
+
+  for (p = name; (ch = *p); p++)
+  {
+    res += btor_smt_primes[i++] * (unsigned) ch;
+
+    if (i == BTOR_SMT_PRIMES) i = 0;
+
+    res = (res << 4) | (res >> 28);
+  }
+
+  return res;
+}
+
+static BtorSMTSymbol **
+find_symbol_position (BtorSMTParser *parser, const char *name)
+{
+  unsigned h = hash_name (name) & (parser->szsymtab - 1);
+  BtorSMTSymbol **p, *s;
+
+  for (p = parser->symtab + h; (s = *p) && strcmp (name, s->name); p = &s->next)
+    ;
+
+  return p;
+}
+
+static void
+delete_symbol (BtorSMTParser *parser, BtorSMTSymbol *symbol)
+{
+  BtorExp *exp;
+
+  assert (parser->symbols > 0);
+  parser->symbols--;
+
+  btor_freestr (parser->mem, symbol->name);
+
+  if ((exp = symbol->exp)) btor_release_exp (parser->btor, exp);
+
+  BTOR_DELETE (parser->mem, symbol);
+}
+
+static void
+remove_and_delete_symbol (BtorSMTParser *parser, BtorSMTSymbol *symbol)
+{
+  BtorSMTSymbol **p;
+
+  p = find_symbol_position (parser, symbol->name);
+  assert (*p == symbol);
+
+  *p = symbol->next;
+  delete_symbol (parser, symbol);
 }
 
 static void
 btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 {
+  BtorSMTSymbol *s;
+
   if (!node) return;
 
   assert (parser->nodes > 0);
   parser->nodes--;
 
   if (node->exp) btor_release_exp (parser->btor, node->exp);
+
+  if (!parser->model && isleaf (car (node))
+      && (s = strip (car (node)))->last == node)
+    remove_and_delete_symbol (parser, s);
 
 #ifdef BTOR_FIND_LEAKING_SMT_NODES
   assert (parser->first);
@@ -337,10 +422,6 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
   fprintf (stdout, " after %.2f seconds\n", btor_time_stamp ());
   fflush (stdout);
 }
-
-#define isleaf(l) (1lu & (unsigned long) (l))
-#define leaf(l) ((void *) (1lu | (unsigned long) (l)))
-#define strip(l) ((BtorSMTSymbol *) ((~1lu) & (unsigned long) (l)))
 
 static void
 btor_recursively_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *root)
@@ -399,7 +480,6 @@ static void
 btor_release_smt_symbols (BtorSMTParser *parser)
 {
   BtorSMTSymbol *p, *next;
-  BtorExp *e;
   unsigned i;
 
   for (i = 0; i < parser->szsymtab; i++)
@@ -407,12 +487,7 @@ btor_release_smt_symbols (BtorSMTParser *parser)
     for (p = parser->symtab[i]; p; p = next)
     {
       next = p->next;
-
-      btor_freestr (parser->mem, p->name);
-
-      if ((e = p->exp)) btor_release_exp (parser->btor, e);
-
-      BTOR_DELETE (parser->mem, p);
+      delete_symbol (parser, p);
     }
   }
   BTOR_DELETEN (parser->mem, parser->symtab, parser->szsymtab);
@@ -470,8 +545,8 @@ btor_release_smt_nodes (BtorSMTParser *parser)
 static void
 btor_release_smt_internals (BtorSMTParser *parser)
 {
-  btor_release_smt_symbols (parser);
   btor_release_smt_nodes (parser);
+  btor_release_smt_symbols (parser);
 
   BTOR_RELEASE_STACK (parser->mem, parser->stack);
   BTOR_RELEASE_STACK (parser->mem, parser->work);
@@ -529,28 +604,6 @@ btor_perr_smt (BtorSMTParser *parser, const char *fmt, ...)
   return parser->error;
 }
 
-static unsigned
-hash_name (const char *name)
-{
-  unsigned i, res;
-  const char *p;
-  char ch;
-
-  i   = 0;
-  res = 0;
-
-  for (p = name; (ch = *p); p++)
-  {
-    res += btor_smt_primes[i++] * (unsigned) ch;
-
-    if (i == BTOR_SMT_PRIMES) i = 0;
-
-    res = (res << 4) | (res >> 28);
-  }
-
-  return res;
-}
-
 static void
 enlarge_symtab (BtorSMTParser *parser)
 {
@@ -581,18 +634,6 @@ enlarge_symtab (BtorSMTParser *parser)
   parser->szsymtab = new_size;
 }
 
-static BtorSMTSymbol **
-find_symbol_position (BtorSMTParser *parser, const char *name)
-{
-  unsigned h = hash_name (name) & (parser->szsymtab - 1);
-  BtorSMTSymbol **p, *s;
-
-  for (p = parser->symtab + h; (s = *p) && strcmp (name, s->name); p = &s->next)
-    ;
-
-  return p;
-}
-
 static BtorSMTSymbol *
 insert_symbol (BtorSMTParser *parser, const char *name)
 {
@@ -617,10 +658,10 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 }
 
 static BtorSMTParser *
-btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
+btor_new_smt_parser (Btor *btor, int verbosity, int incremental, int model)
 {
+  BtorSMTSymbol *bind, *translated;
   BtorMemMgr *mem = btor->mm;
-  BtorSMTSymbol *bind;
   BtorSMTParser *res;
   unsigned char type;
   int ch;
@@ -630,9 +671,9 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity = verbosity;
-
+  res->verbosity   = verbosity;
   res->incremental = incremental;
+  res->model       = model;
 
   btor_smt_message (res, 2, "initializing SMT parser");
   if (incremental & 3)
@@ -731,9 +772,13 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental)
   insert_symbol (res, "unsat")->token        = BTOR_SMTOK_UNSAT;
   insert_symbol (res, "xor")->token          = BTOR_SMTOK_XOR;
 
-  bind        = insert_symbol (res, "_bind_");
+  bind        = insert_symbol (res, "<internal bind symbol>");
   bind->token = BTOR_SMTOK_BIND;
   res->bind   = leaf (bind);
+
+  translated        = insert_symbol (res, "<internal translated symbol>");
+  translated->token = BTOR_SMTOK_TRANSLATED;
+  res->translated   = leaf (translated);
 
   insert_symbol (res, "=")->token      = BTOR_SMTOK_EQ;
   insert_symbol (res, "concat")->token = BTOR_SMTOK_CONCAT;
@@ -1169,8 +1214,9 @@ btorsmtpp (BtorSMTNode *node)
 static void
 push_input (BtorSMTParser *parser, BtorExp *v)
 {
-  BTOR_PUSH_STACK (
-      parser->mem, parser->inputs, btor_copy_exp (parser->btor, v));
+  if (parser->model)
+    BTOR_PUSH_STACK (
+        parser->mem, parser->inputs, btor_copy_exp (parser->btor, v));
 }
 
 static const char *
@@ -2361,6 +2407,8 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
             assert (!symbol->exp);
             symbol->exp = btor_copy_exp (parser->btor, exp);
           }
+          /* Prevent leaking of 'bind' nodes.
+           */
           *s = 0;
           btor_delete_smt_node (parser, node);
           break;
@@ -2473,7 +2521,10 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
           break;
         case BTOR_SMTOK_SELECT: translate_select (parser, node); break;
         case BTOR_SMTOK_STORE: translate_store (parser, node); break;
-        default: translate_symbol (parser, node); break;
+        default:
+          assert (symbol->token != BTOR_SMTOK_TRANSLATED);
+          translate_symbol (parser, node);
+          break;
       }
     }
     else

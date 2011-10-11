@@ -1623,10 +1623,13 @@ find_parser (BtorBTORParser *parser, const char *op)
 }
 
 static BtorBTORParser *
-btor_new_btor_parser (Btor *btor, int verbosity)
+btor_new_btor_parser (Btor *btor, int verbosity, int incremental, int model)
 {
   BtorMemMgr *mem = btor->mm;
   BtorBTORParser *res;
+
+  (void) incremental;
+  (void) model;  // TODO use this!
 
   assert (verbosity >= -1);
 

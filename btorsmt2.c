@@ -260,7 +260,7 @@ typedef struct BtorSMT2Parser
 {
   Btor *btor;
   BtorMemMgr *mem;
-  int verbosity, incremental, need_arrays;
+  int verbosity, incremental, model, need_arrays;
   char *name;
   int lineno, perrlineno;
   FILE *file;
@@ -642,13 +642,14 @@ btor_insert_logics_smt2 (BtorSMT2Parser *parser)
 }
 
 static BtorSMT2Parser *
-btor_new_smt2_parser (Btor *btor, int verbosity, int incremental)
+btor_new_smt2_parser (Btor *btor, int verbosity, int incremental, int model)
 {
   BtorSMT2Parser *res;
   BTOR_NEW (btor->mm, res);
   BTOR_CLR (res);
   res->verbosity   = verbosity;
   res->incremental = incremental;
+  res->model       = model;
   res->btor        = btor;
   res->mem         = btor->mm;
 
