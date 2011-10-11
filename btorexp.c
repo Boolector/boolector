@@ -8350,8 +8350,8 @@ substitute_var_exps (Btor *btor, int check_cyclic)
     /* new equality constraints may be added during rebuild */
     do
     {
-      /* we copy the current substitution constraints into a local hash table,
-       * and empty the global substitution table */
+      /* we copy the current substitution constraints into a local hash
+       * table, and empty the global substitution table */
       substs = btor_new_ptr_hash_table (mm,
                                         (BtorHashPtr) btor_hash_exp_by_id,
                                         (BtorCmpPtr) btor_compare_exp_by_id);
@@ -9974,7 +9974,11 @@ abstract_domain_bv_variables (Btor *btor)
 static void
 btor_rebuild_aigs_exp (Btor *btor)
 {
-  (void) btor;
+  BtorPtrHashBucket *b;
+  BtorPtrHashTable *synthesized_constraints;
+  synthesized_constraints = btor->synthesized_constraints;
+  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
+    ;
 }
 
 static int

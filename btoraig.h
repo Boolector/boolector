@@ -39,6 +39,7 @@ struct BtorAIG
   unsigned int refs;
   struct BtorAIG *children[2];
   struct BtorAIG *next;
+  struct BtorAig *map;
   int cnf_id;
   unsigned int on_death_row : 1;
   unsigned int mark : 2;
