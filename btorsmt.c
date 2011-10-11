@@ -288,11 +288,15 @@ cons (BtorSMTParser *parser, void *h, void *t)
   res->head = h;
   res->tail = t;
 
-  assert (!isleaf (t));
-
   if (isleaf (h))
   {
     s       = strip (h);
+    s->last = res;
+  }
+
+  if (isleaf (t))
+  {
+    s       = strip (t);
     s->last = res;
   }
 
