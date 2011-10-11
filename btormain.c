@@ -1309,10 +1309,14 @@ boolector_main (int argc, char **argv)
     }
     else
     {
-      int ch;
+      int ch, first, second;
       parser_api = btor_btor_parser_api ();
-      while ((ch = getc (app.input_file)) != EOF)
+      first = second = 0;
+      for (;;)
       {
+        ch = getc (app.input_file);
+        BTOR_PUSH_STACK (mem, prefix, ch);
+        if (!ch || ch == EOF) break;
         if (ch == ' ' || ch == '\t' || ch == '\r' || ch == '\n')
         {
           BTOR_PUSH_STACK (mem, prefix, ch);
@@ -1328,45 +1332,42 @@ boolector_main (int argc, char **argv)
           } while (ch != '\n');
           if (ch == EOF) break;
         }
+        else if (!first)
+          first = ch;
         else
-          break;
-      }
-      if (ch != EOF)
-      {
-        BTOR_PUSH_STACK (mem, prefix, ch);
-        if (ch == '(')
         {
-          if ((ch = getc (app.input_file)) != EOF)
+          second = ch;
+          break;
+        }
+      }
+      if (ch != EOF && ch)
+      {
+        assert (first && second);
+        if (first == '(')
+        {
+          if (second == 'b')
           {
-            BTOR_PUSH_STACK (mem, prefix, ch);
-            if (ch == 'b')
+            parser_api = btor_smt_parser_api ();
+            if (app.verbosity > 0)
+              btor_msg_main_va_args (
+                  "assuming SMTLIB version 1 parsing because of '(b' prefix\n");
+          }
+          else
+          {
+            parser_api = btor_smt2_parser_api ();
+            if (app.verbosity > 0)
             {
-              parser_api = btor_smt_parser_api ();
-              if (app.verbosity > 0)
+              if (isprint (second))
                 btor_msg_main_va_args (
-                    "assuming SMTLIB version 1 parsing because of '(b' "
-                    "prefix\n");
-            }
-            else
-            {
-              parser_api = btor_smt2_parser_api ();
-              if (app.verbosity > 0)
-              {
-                if (isprint (ch))
-                  btor_msg_main_va_args (
-                      "assuming SMTLIB version 2 parsing because of '(%c' "
-                      "prefix\n",
-                      ch);
-                else
-                  btor_msg_main_va_args (
-                      "assuming SMTLIB version 2 parsing because of '(' but "
-                      "not '(b' prefix\n");
-              }
+                    "assuming SMTLIB version 2 parsing because of '(%c' "
+                    "prefix\n",
+                    second);
+              else
+                btor_msg_main_va_args (
+                    "assuming SMTLIB version 2 parsing because of '(' but not "
+                    "'(b' prefix\n");
             }
           }
-          else if (app.verbosity > 0)
-            btor_msg_main_va_args (
-                "assuming BTOR parsing because end-of-file after '('\n");
         }
         else if (app.verbosity > 0)
           btor_msg_main_va_args (
@@ -1374,8 +1375,17 @@ boolector_main (int argc, char **argv)
               "'('\n");
       }
       else if (app.verbosity > 0)
-        btor_msg_main_va_args (
-            "assuming BTOR parsing because end-of-file found\n");
+      {
+        if (ch == EOF)
+          btor_msg_main_va_args (
+              "assuming BTOR parsing because end-of-file found\n");
+        else
+        {
+          assert (!ch);
+          btor_msg_main_va_args (
+              "assuming BTOR parsing because zero byte found\n");
+        }
+      }
     }
 
     parser = parser_api->init (btor, app.verbosity, app.incremental);
