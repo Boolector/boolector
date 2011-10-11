@@ -153,12 +153,19 @@ enum BtorSMTToken
 
 typedef enum BtorSMTToken BtorSMTToken;
 
+/* Uncomment the following line to find leaking nodes
+ *
+#define BTOR_FIND_LEAKING_SMT_NODES
+ */
+
 struct BtorSMTNode
 {
   void *head;
   void *tail;
-  BtorExp *exp;
+  BtorExp *exp;  // TODO overlay with head?
+#ifdef BTOR_FIND_LEAKING_SMT_NODES
   struct BtorSMTNode *prev, *next;
+#endif
 };
 
 BTOR_DECLARE_STACK (SMTNodePtr, BtorSMTNode *);
@@ -214,9 +221,11 @@ struct BtorSMTParser
   BtorSMTNodePtrStack delete;
   BtorIntStack heads;
 
+  unsigned nodes;
+#ifdef BTOR_FIND_LEAKING_SMT_NODES
   BtorSMTNode *first;
   BtorSMTNode *last;
-  unsigned nodes;
+#endif
 
   BtorExpPtrStack inputs;
   BtorExpPtrStack outputs;
@@ -247,6 +256,7 @@ cons (BtorSMTParser *parser, void *h, void *t)
   BTOR_NEW (parser->mem, res);
   BTOR_CLR (res);
 
+#ifdef BTOR_FIND_LEAKING_SMT_NODES
   if (parser->last)
   {
     assert (parser->first);
@@ -260,6 +270,7 @@ cons (BtorSMTParser *parser, void *h, void *t)
 
   res->prev    = parser->last;
   parser->last = res;
+#endif
 
   parser->nodes++;
   assert (parser->nodes > 0);
@@ -278,10 +289,11 @@ btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
   assert (parser->nodes > 0);
   parser->nodes--;
 
+  if (node->exp) btor_release_exp (parser->btor, node->exp);
+
+#ifdef BTOR_FIND_LEAKING_SMT_NODES
   assert (parser->first);
   assert (parser->last);
-
-  if (node->exp) btor_release_exp (parser->btor, node->exp);
 
   if (node->next)
   {
@@ -302,6 +314,7 @@ btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
     assert (parser->first == node);
     parser->first = node->next;
   }
+#endif
 
   BTOR_DELETE (parser->mem, node);
 }
@@ -410,8 +423,7 @@ btor_release_smt_symbols (BtorSMTParser *parser)
 static void
 btor_release_smt_nodes (BtorSMTParser *parser)
 {
-  BtorSMTNode *p, *prev, *node;
-  BtorExp *e;
+  BtorSMTNode *node;
 
   while (!BTOR_EMPTY_STACK (parser->stack))
   {
@@ -431,18 +443,28 @@ btor_release_smt_nodes (BtorSMTParser *parser)
   }
 
   assert (!parser->nodes);
-  assert (!parser->last);
 
-  for (p = parser->last; p; p = prev)  // TODO became redundant!!!
+#ifdef BTOR_FIND_LEAKING_SMT_NODES
   {
-    assert (parser->nodes > 0);
-    parser->nodes--;
-    prev = p->prev;
-    if ((e = p->exp)) btor_release_exp (parser->btor, e);
-    BTOR_DELETE (parser->mem, p);
+    /* Became redundant, keep it for debugging BTOR_FIND_LEAKING_SMT_NODES.
+     */
+    BtorSMTNode *p, *prev;
+    BtorExp *e;
+
+    assert (!parser->last);
+
+    for (p = parser->last; p; p = prev)
+    {
+      assert (parser->nodes > 0);
+      parser->nodes--;
+      prev = p->prev;
+      if ((e = p->exp)) btor_release_exp (parser->btor, e);
+      BTOR_DELETE (parser->mem, p);
+    }
+    assert (!parser->nodes);
+    parser->first = parser->last = 0;
   }
-  assert (!parser->nodes);
-  parser->first = parser->last = 0;
+#endif
 }
 
 static void
