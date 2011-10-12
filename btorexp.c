@@ -10005,8 +10005,7 @@ rebuild_synthesized_constraints (Btor *btor)
       inconsistent = 1;
     if (trivial)
     {
-      btor_remove_from_ptr_hash_table (cs, c, 0, 0);
-      btor_release_exp (btor, c);
+      // TODO can not remove from constraints right now ...
     }
     else if (!inconsistent)
     {

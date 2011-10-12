@@ -1530,7 +1530,7 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
 
       if (node->cnf_id && (val = btor_fixed_sat (amgr->smgr, node->cnf_id)))
       {
-        node->map = val < 0 ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+        node->map = (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
         continue;
       }
 
@@ -1551,22 +1551,16 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
       node = BTOR_POP_STACK (stack);
       assert (node->mapped);
       assert (node->map == node);
-      if (BTOR_IS_VAR_AIG (node))
+      assert (!BTOR_IS_VAR_AIG (node));
+      l   = btor_map_aig (node->children[0]);
+      r   = btor_map_aig (node->children[1]);
+      map = btor_and_aig (amgr, l, r);
+      if (map == node)
       {
-        node->map = btor_copy_aig (amgr, node);
+        assert (map->refs > 1);
+        map->refs--;
       }
-      else
-      {
-        l   = btor_map_aig (node->children[0]);
-        r   = btor_map_aig (node->children[1]);
-        map = btor_and_aig (amgr, l, r);
-        if (map == node)
-        {
-          assert (map->refs > 1);
-          map->refs--;
-        }
-        node->map = map;
-      }
+      node->map = map;
     }
   }
   BTOR_RELEASE_STACK (amgr->mm, stack);
