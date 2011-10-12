@@ -159,7 +159,8 @@ btor_release_cnf_id_sat_mgr (BtorSATMgr *smgr, int lit)
 {
   assert (smgr);
   if (!smgr->initialized) return;
-  assert ((smgr->inc.need && smgr->inc.provides) || !smgr->satcalls);
+  // TODO remove?
+  // assert ((smgr->inc.need && smgr->inc.provides) || !smgr->satcalls);
   assert (abs (lit) <= smgr->maxvar);
   if (abs (lit) == smgr->true_lit) return;
   if (smgr->inc.api.melt) smgr->inc.api.melt (smgr, lit);
@@ -640,7 +641,9 @@ static int
 btor_lingeling_inc_max_var (BtorSATMgr *smgr)
 {
   int res = lglincvar (smgr->solver);
-  if (smgr->inc.need) lglfreeze (smgr->solver, res);
+  // TODO what about this?
+  // if (smgr->inc.need)
+  lglfreeze (smgr->solver, res);
   return res;
 }
 

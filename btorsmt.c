@@ -290,14 +290,14 @@ cons (BtorSMTParser *parser, void *h, void *t)
 
   if (isleaf (h))
   {
-    s       = strip (h);
-    s->last = res;
+    s = strip (h);
+    if (s->token == BTOR_SMTOK_IDENTIFIER) s->last = res;
   }
 
   if (isleaf (t))
   {
-    s       = strip (t);
-    s->last = res;
+    s = strip (t);
+    if (s->token == BTOR_SMTOK_IDENTIFIER) s->last = res;
   }
 
   return res;
