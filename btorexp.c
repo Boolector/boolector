@@ -10098,7 +10098,6 @@ btor_sat_aux_btor (Btor *btor)
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
-  search_top_arrays (btor, &top_arrays);
 
   while (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN
          || (ua && !under_approx_finished))
@@ -10106,7 +10105,11 @@ btor_sat_aux_btor (Btor *btor)
     if (sat_result == BTOR_UNKNOWN)
     {
       rebuild_synthesized_constraints (btor);
-      if (btor->inconsistent) sat_result = BTOR_UNSAT;
+      if (btor->inconsistent)
+      {
+        sat_result = BTOR_UNSAT;
+        break;
+      }
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : 10000;
     }
@@ -10115,15 +10118,23 @@ btor_sat_aux_btor (Btor *btor)
 
     if (sat_result == BTOR_SAT)
     {
+      assert (BTOR_EMPTY_STACK (top_arrays));
+      search_top_arrays (btor, &top_arrays);
+
       found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
 
+      if (found_conflict)
+      {
+        btor->stats.lod_refinements++;
+        found_assumption_false = add_again_assumptions (btor);
+        assert (!found_assumption_false);
+
+        if (ua && !under_approx_finished) read_under_approx_assumptions (btor);
+      }
+
+      BTOR_RELEASE_STACK (mm, top_arrays);
+
       if (!found_conflict) break;
-
-      btor->stats.lod_refinements++;
-      found_assumption_false = add_again_assumptions (btor);
-      assert (!found_assumption_false);
-
-      if (ua && !under_approx_finished) read_under_approx_assumptions (btor);
     }
 
     if (sat_result == BTOR_UNSAT)
@@ -10169,7 +10180,6 @@ btor_sat_aux_btor (Btor *btor)
       sat_result = btor_sat_sat (smgr, limit);
   }
 
-  BTOR_RELEASE_STACK (mm, top_arrays);
   BTOR_ABORT_EXP (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                   "result must be sat or unsat");
   return sat_result;

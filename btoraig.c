@@ -358,8 +358,11 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
             delete_aig_unique_table_entry (amgr, cur);
           }
 
-          if (cur->mapped && (m = cur->map) != cur)
+          if (cur->mapped && (m = cur->map) != cur && !BTOR_IS_CONST_AIG (m))
+          {
+            m = BTOR_REAL_ADDR_AIG (m);
             BTOR_PUSH_STACK (mm, stack, m);
+          }
 
           delete_aig_node (amgr, cur);
         }
