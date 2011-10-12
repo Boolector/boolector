@@ -1512,9 +1512,11 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
   int i, val;
 
   BTOR_INIT_STACK (stack);
+
   for (i = 0; i < amgr->table.size; i++)
     for (root = amgr->table.chains[i]; root; root = root->next)
       BTOR_PUSH_STACK (amgr->mm, stack, root);
+
   while (!BTOR_EMPTY_STACK (stack))
   {
     node = BTOR_POP_STACK (stack);
@@ -1524,15 +1526,18 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
       assert (!BTOR_IS_INVERTED_AIG (node));
       if (node->mapped) continue;
 
+      node->mapped = 1;
+
       if (node->cnf_id && (val = btor_fixed_sat (amgr->smgr, node->cnf_id)))
       {
-        node->mapped = 1;
-        node->map    = val < 0 ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+        node->map = val < 0 ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
         continue;
       }
 
-      node->mapped = 1;
-      node->map    = node;
+      node->map = node;
+
+      if (BTOR_IS_VAR_AIG (node)) continue;
+
       BTOR_PUSH_STACK (amgr->mm, stack, node);
       BTOR_PUSH_STACK (amgr->mm, stack, 0);
 
