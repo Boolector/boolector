@@ -193,8 +193,4 @@ void btor_release_delete_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
  */
 char *btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
 
-/* Map AIG vector (requires call to 'btor_rebuild_all_aig').
- */
-void btor_rebuild_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
-
 #endif

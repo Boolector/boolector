@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010  Robert Daniel Brummayer, JKU.
+ *  Copyright (C) 2010-2011, Armin Biere, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -85,7 +87,9 @@ BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *,
 /* Remove from hash table the bucke with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
  * to which the given key was mapped is copied to this location.   The same
- * applies to 'stored_key_ptr'.
+ * applies to 'stored_key_ptr'.  If you traverse/iterate a hash table
+ * through the chronological chains, then you can remove elements while
+ * traversing the hash table.
  */
 void btor_remove_from_ptr_hash_table (BtorPtrHashTable *,
                                       void *key,

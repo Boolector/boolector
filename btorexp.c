@@ -9972,15 +9972,31 @@ abstract_domain_bv_variables (Btor *btor)
 }
 
 static void
-btor_rebuild_aigs_exp (Btor *btor)
+rebuild_synthesized_constraints (Btor *btor)
 {
+  BtorAIGMgr *amgr     = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  BtorPtrHashTable *cs = btor->synthesized_constraints;
+  BtorAIG *old_aig, *new_aig;
+  int trivial, inconsistent;
   BtorPtrHashBucket *b;
-  BtorPtrHashTable *synthesized_constraints;
-  BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  BtorExp *c;
+
+  assert (!btor->inconsistent);
   btor_rebuild_all_aig (amgr);
-  synthesized_constraints = btor->synthesized_constraints;
-  for (b = btor->unsynthesized_constraints->first; b != NULL; b = b->next)
-    ;
+
+  inconsistent = 0;
+  for (b = cs->first; !inconsistent && b != NULL; b = b->next)
+  {
+    c = (BtorExp *) b->key;
+    assert (!BTOR_IS_INVERTED_EXP (c));
+    assert (c->av);
+    assert (c->av->len == 1);
+    assert (c->av->aigs[0] != BTOR_AIG_FALSE);
+    assert (c->av->aigs[0] != BTOR_AIG_FALSE);
+      if (c->av
+      btor_release_exp (btor, c);
+      btor_remove_from_ptr_hash_table (cs, c, 0, 0);
+  }
   btor_release_map_aig (amgr);
 }
 
@@ -10070,7 +10086,7 @@ btor_sat_aux_btor (Btor *btor)
   {
     if (sat_result == BTOR_UNKNOWN)
     {
-      btor_rebuild_aigs_exp (btor);
+      rebuild_synthesized_constraints (btor);
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : 10000;
     }
