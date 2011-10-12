@@ -180,7 +180,6 @@ delete_aig_unique_table_entry (BtorAIGMgr *amgr, BtorAIG *aig)
   else
     prev->next = cur->next;
   amgr->table.num_elements--;
-  delete_aig_node (amgr, cur);
 }
 
 static void
@@ -315,11 +314,13 @@ btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark)
 void
 btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 {
-  BtorMemMgr *mm;
+  BtorAIG *cur, *l, *r, *m;
   BtorAIGPtrStack stack;
-  BtorAIG *cur;
+  BtorMemMgr *mm;
+
   assert (amgr != NULL);
   mm = amgr->mm;
+
   if (!BTOR_IS_CONST_AIG (aig))
   {
     cur = BTOR_REAL_ADDR_AIG (aig);
@@ -336,22 +337,31 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
 
       while (!BTOR_EMPTY_STACK (stack))
       {
-        cur = BTOR_REAL_ADDR_AIG (BTOR_POP_STACK (stack));
+        cur = BTOR_POP_STACK (stack);
+        cur = BTOR_REAL_ADDR_AIG (cur);
+
         if (cur->refs > 1u)
+        {
           cur->refs--;
+        }
         else
         {
         BTOR_RELEASE_AIG_WITHOUT_POP:
           assert (cur->refs == 1u);
-          if (BTOR_IS_VAR_AIG (cur))
-            delete_aig_node (amgr, cur);
-          else
+          if (!BTOR_IS_VAR_AIG (cur))
           {
             assert (BTOR_IS_AND_AIG (cur));
-            BTOR_PUSH_STACK (mm, stack, BTOR_RIGHT_CHILD_AIG (cur));
-            BTOR_PUSH_STACK (mm, stack, BTOR_LEFT_CHILD_AIG (cur));
+            l = BTOR_LEFT_CHILD_AIG (cur);
+            r = BTOR_RIGHT_CHILD_AIG (cur);
+            BTOR_PUSH_STACK (mm, stack, r);
+            BTOR_PUSH_STACK (mm, stack, l);
             delete_aig_unique_table_entry (amgr, cur);
           }
+
+          if (cur->mapped && (m = cur->map) != cur)
+            BTOR_PUSH_STACK (mm, stack, m);
+
+          delete_aig_node (amgr, cur);
         }
       }
       BTOR_RELEASE_STACK (mm, stack);
@@ -1480,7 +1490,7 @@ btor_mapped_aig (BtorAIG * aig)
 }
 #endif
 
-static BtorAIG *
+BtorAIG *
 btor_map_aig (BtorAIG *aig)
 {
   int inverted = BTOR_IS_INVERTED_AIG (aig);
@@ -1494,7 +1504,7 @@ btor_map_aig (BtorAIG *aig)
 void
 btor_rebuild_all_aig (BtorAIGMgr *amgr)
 {
-  BtorAIG *root, *node, *l, *r;
+  BtorAIG *root, *node, *map, *l, *r;
   BtorAIGPtrStack stack;
   int i, val;
 
@@ -1540,9 +1550,15 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
         }
         else
         {
-          l         = btor_map_aig (node->children[0]);
-          r         = btor_map_aig (node->children[1]);
-          node->map = btor_and_aig (amgr, l, r);
+          l   = btor_map_aig (node->children[0]);
+          r   = btor_map_aig (node->children[1]);
+          map = btor_and_aig (amgr, l, r);
+          if (map == node)
+          {
+            assert (map->refs > 1);
+            map->refs--;
+          }
+          node->map = map;
         }
       }
     }
@@ -1552,7 +1568,7 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
 void
 btor_release_map_aig (BtorAIGMgr *amgr)
 {
-  BtorAIG *node;
+  BtorAIG *node, *map;
   int i;
 
   for (i = 0; i < amgr->table.size; i++)
@@ -1562,7 +1578,8 @@ btor_release_map_aig (BtorAIGMgr *amgr)
       if (!node->mapped) continue;
 
       node->mapped = 0;
-      btor_release_aig (amgr, node->map);
+      map          = node->map;
+      if (map != node) btor_release_aig (amgr, map);
       node->map = 0;
     }
   }

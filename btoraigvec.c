@@ -5912,6 +5912,26 @@ btor_assignment_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   return result;
 }
 
+void
+btor_rebuild_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
+{
+  BtorAIG *old_aig, *new_aig;
+  BtorAIGMgr *amgr;
+  int i, len;
+  assert (avmgr);
+  assert (av);
+  assert (av->len > 0);
+  len  = av->len;
+  amgr = avmgr->amgr;
+  for (i = 0; i < len; i++)
+  {
+    old_aig     = av->aigs[i];
+    new_aig     = btor_map_aig (old_aig);
+    av->aigs[i] = btor_copy_aig (amgr, new_aig);
+    btor_release_aig (amgr, old_aig);
+  }
+}
+
 /*------------------------------------------------------------------------*/
 /* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/

@@ -167,7 +167,19 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Rebuild all AIGs after at least one incremental run of the
+ * SAT solver.  You might need to translate the resulting AIGs
+ * to CNF again.
+ */
 void btor_rebuild_all_aig (BtorAIGMgr *mgr);
+
+/* Map the original to its rebuild version.  Does not increase
+ * the reference count, so you might need to copy the result.
+ */
+BtorAIG *btor_map_aig (BtorAIG *aig);
+
+/* Release the map information.
+ */
 void btor_release_map_aig (BtorAIGMgr *mgr);
 
 #endif
