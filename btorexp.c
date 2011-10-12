@@ -9976,28 +9976,46 @@ rebuild_synthesized_constraints (Btor *btor)
 {
   BtorAIGMgr *amgr     = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BtorPtrHashTable *cs = btor->synthesized_constraints;
-  BtorAIG *old_aig, *new_aig;
+  BtorAIG *old_aig, *new_aig, *aig_true, *aig_false;
   int trivial, inconsistent;
   BtorPtrHashBucket *b;
-  BtorExp *c;
+  BtorExp *c, *r;
 
   assert (!btor->inconsistent);
   btor_rebuild_all_aig (amgr);
 
   inconsistent = 0;
-  for (b = cs->first; !inconsistent && b != NULL; b = b->next)
+  for (b = cs->first; !inconsistent && b; b = b->next)
   {
     c = (BtorExp *) b->key;
-    assert (!BTOR_IS_INVERTED_EXP (c));
-    assert (c->av);
-    assert (c->av->len == 1);
-    assert (c->av->aigs[0] != BTOR_AIG_FALSE);
-    assert (c->av->aigs[0] != BTOR_AIG_FALSE);
-      if (c->av
+    r = BTOR_REAL_ADDR_EXP (c);
+    assert (r->av);
+    assert (r->av->len == 1);
+    old_aig   = r->av->aigs[0];
+    aig_true  = (r == c) ? BTOR_AIG_TRUE : BTOR_AIG_FALSE;
+    aig_false = BTOR_INVERT_AIG (aig_true);
+    trivial   = 0;
+    if (old_aig == aig_false)
+      inconsistent = 1;
+    else if (old_aig == aig_true
+             || ((new_aig = btor_map_aig (old_aig)) == aig_true))
+      trivial = 1;
+    else if (new_aig == aig_false)
+      inconsistent = 1;
+    if (trivial)
+    {
       btor_release_exp (btor, c);
       btor_remove_from_ptr_hash_table (cs, c, 0, 0);
+    }
+    else if (!inconsistent)
+    {
+      r->av->aigs[0] = btor_copy_aig (amgr, new_aig);
+      btor_release_aig (amgr, old_aig);
+      if (r->tseitin_encoded) btor_aig_to_sat_tseitin (amgr, new_aig);
+    }
   }
   btor_release_map_aig (amgr);
+  if (inconsistent) btor->inconsistent = 1;
 }
 
 static int
@@ -10087,6 +10105,7 @@ btor_sat_aux_btor (Btor *btor)
     if (sat_result == BTOR_UNKNOWN)
     {
       rebuild_synthesized_constraints (btor);
+      if (btor->inconsistent) sat_result = BTOR_UNSAT;
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : 10000;
     }
