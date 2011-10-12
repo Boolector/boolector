@@ -9977,18 +9977,19 @@ rebuild_synthesized_constraints (Btor *btor)
   BtorAIGMgr *amgr     = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BtorPtrHashTable *cs = btor->synthesized_constraints;
   BtorAIG *old_aig, *new_aig, *aig_true, *aig_false;
+  BtorPtrHashBucket *b, *next;
   int trivial, inconsistent;
-  BtorPtrHashBucket *b;
   BtorExp *c, *r;
 
   assert (!btor->inconsistent);
   btor_rebuild_all_aig (amgr);
 
   inconsistent = 0;
-  for (b = cs->first; !inconsistent && b; b = b->next)
+  for (b = cs->first; !inconsistent && b; b = next)
   {
-    c = (BtorExp *) b->key;
-    r = BTOR_REAL_ADDR_EXP (c);
+    next = b->next;
+    c    = (BtorExp *) b->key;
+    r    = BTOR_REAL_ADDR_EXP (c);
     assert (r->av);
     assert (r->av->len == 1);
     old_aig   = r->av->aigs[0];
@@ -10004,8 +10005,8 @@ rebuild_synthesized_constraints (Btor *btor)
       inconsistent = 1;
     if (trivial)
     {
-      btor_release_exp (btor, c);
       btor_remove_from_ptr_hash_table (cs, c, 0, 0);
+      btor_release_exp (btor, c);
     }
     else if (!inconsistent)
     {

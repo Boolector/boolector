@@ -1512,56 +1512,55 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
   for (i = 0; i < amgr->table.size; i++)
     for (root = amgr->table.chains[i]; root; root = root->next)
       BTOR_PUSH_STACK (amgr->mm, stack, root);
-  for (root = amgr->table.chains[i]; root; root = root->next)
-    while (!BTOR_EMPTY_STACK (stack))
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    node = BTOR_POP_STACK (stack);
+
+    if (node)
+    {
+      assert (!BTOR_IS_INVERTED_AIG (node));
+      if (node->mapped) continue;
+
+      if (node->cnf_id && (val = btor_fixed_sat (amgr->smgr, node->cnf_id)))
+      {
+        node->mapped = 1;
+        node->map    = val < 0 ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
+        continue;
+      }
+
+      node->mapped = 1;
+      node->map    = node;
+      BTOR_PUSH_STACK (amgr->mm, stack, node);
+      BTOR_PUSH_STACK (amgr->mm, stack, 0);
+
+      l = BTOR_REAL_ADDR_AIG (node->children[0]);
+      r = BTOR_REAL_ADDR_AIG (node->children[1]);
+      BTOR_PUSH_STACK (amgr->mm, stack, r);
+      BTOR_PUSH_STACK (amgr->mm, stack, l);
+    }
+    else
     {
       node = BTOR_POP_STACK (stack);
-
-      if (node)
+      assert (node->mapped);
+      assert (node->map == node);
+      if (BTOR_IS_VAR_AIG (node))
       {
-        assert (!BTOR_IS_INVERTED_AIG (node));
-        if (node->mapped) continue;
-
-        if (node->cnf_id && (val = btor_fixed_sat (amgr->smgr, node->cnf_id)))
-        {
-          node->mapped = 1;
-          node->map    = val < 0 ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
-          continue;
-        }
-
-        node->mapped = 1;
-        node->map    = node;
-        BTOR_PUSH_STACK (amgr->mm, stack, node);
-        BTOR_PUSH_STACK (amgr->mm, stack, 0);
-
-        l = BTOR_REAL_ADDR_AIG (node->children[0]);
-        r = BTOR_REAL_ADDR_AIG (node->children[1]);
-        BTOR_PUSH_STACK (amgr->mm, stack, r);
-        BTOR_PUSH_STACK (amgr->mm, stack, l);
+        node->map = btor_copy_aig (amgr, node);
       }
       else
       {
-        node = BTOR_POP_STACK (stack);
-        assert (node->mapped);
-        assert (node->map == node);
-        if (BTOR_IS_VAR_AIG (node))
+        l   = btor_map_aig (node->children[0]);
+        r   = btor_map_aig (node->children[1]);
+        map = btor_and_aig (amgr, l, r);
+        if (map == node)
         {
-          node->map = btor_copy_aig (amgr, node);
+          assert (map->refs > 1);
+          map->refs--;
         }
-        else
-        {
-          l   = btor_map_aig (node->children[0]);
-          r   = btor_map_aig (node->children[1]);
-          map = btor_and_aig (amgr, l, r);
-          if (map == node)
-          {
-            assert (map->refs > 1);
-            map->refs--;
-          }
-          node->map = map;
-        }
+        node->map = map;
       }
     }
+  }
   BTOR_RELEASE_STACK (amgr->mm, stack);
 }
 
