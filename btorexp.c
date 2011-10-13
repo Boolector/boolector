@@ -10099,7 +10099,7 @@ btor_sat_aux_btor (Btor *btor)
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, under_approx_finished, ua;
   BtorExpPtrStack top_arrays;
-  const int min_limit = 4000;
+  const int min_limit = 100;
   int limit, refinements;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
