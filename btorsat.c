@@ -577,13 +577,11 @@ btor_lingeling_init (BtorSATMgr *smgr)
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
   }
-  res = lglminit (smgr->mm,
+  res                    = lglminit (smgr->mm,
                   (lglalloc) btor_malloc,
                   (lglrealloc) btor_realloc,
                   (lgldealloc) btor_free);
-  btor_lingeling_set_opt (res, "boost", 0);
-  btor_lingeling_set_opt (res, "turbo", 0);
-  // btor_lingeling_set_opt (res, "phase", -1);
+  smgr->lingeling.forked = 0;
   return res;
 }
 
@@ -596,9 +594,26 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  (void) limit;
-  btor_lingeling_set_opt (smgr->solver, "clim", limit);
-  return lglsat (smgr->solver);
+  char name[80];
+  LGL *forked;
+  int res;
+  if (limit >= 200)
+  {
+    forked = lglfork (smgr->solver);
+    sprintf (name, "[lingeling-fork-%d] ", smgr->lingeling.forked++);
+    lglsetprefix (forked, name);
+    lglsetout (forked, smgr->output);
+    if (lglgetopt (smgr->solver, "verbose")) lglsetopt (forked, "verbose", 1);
+    btor_lingeling_set_opt (forked, "clim", limit);
+    res = lglsat (forked);
+    lgljoin (smgr->solver, forked);
+  }
+  else
+  {
+    btor_lingeling_set_opt (smgr->solver, "clim", limit);
+    res = lglsat (smgr->solver);
+  }
+  return res;
 }
 
 static int

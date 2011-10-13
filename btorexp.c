@@ -10099,6 +10099,7 @@ btor_sat_aux_btor (Btor *btor)
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, under_approx_finished, ua;
   BtorExpPtrStack top_arrays;
+  const int min_limit = 100;
   int limit, refinements;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -10229,9 +10230,9 @@ btor_sat_aux_btor (Btor *btor)
         break;
       }
       btor->stats.decision_limit_refinements++;
-      limit = limit ? 2 * limit : 4000;
+      limit = limit ? 2 * limit : min_limit;
     }
-    else if (sat_result == BTOR_SAT && limit > 4000)
+    else if (sat_result == BTOR_SAT && limit > min_limit)
       limit /= 2;
 
     if (verbosity > 1)
