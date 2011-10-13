@@ -10110,10 +10110,10 @@ btor_sat_aux_btor (Btor *btor)
         break;
       }
       btor->stats.decision_limit_refinements++;
-      limit = limit ? 2 * limit : 10000;
+      limit = limit ? 2 * limit : 2000;
     }
     else
-      limit = 2 * limit / 3;
+      ;  // TODO limit = 2*limit / 3;
 
     if (sat_result == BTOR_SAT)
     {
