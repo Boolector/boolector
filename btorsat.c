@@ -597,7 +597,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   char name[80];
   LGL *forked;
   int res;
-  if (limit >= 200)
+  if (limit >= 100000)
   {
     forked = lglfork (smgr->solver);
     sprintf (name, "[lingeling-fork-%d] ", smgr->lingeling.forked++);
