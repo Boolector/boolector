@@ -76,7 +76,7 @@ static const char *const g_op2string[] = {
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
-#define BTOR_EXP_FAILED_EQ_LIMIT 4096
+#define BTOR_EXP_FAILED_EQ_LIMIT 128
 
 struct BtorUAData
 {
