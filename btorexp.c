@@ -9971,8 +9971,83 @@ abstract_domain_bv_variables (Btor *btor)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
+static int
+rebuild_synthesized_exps (Btor *btor)
+{
+  BtorExpPtrStack stack, new_constraints;
+  BtorPtrHashBucket *b;
+  BtorExp *cur, *newcs;
+  int res, id, i, val;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+  BtorMemMgr *mm;
+  BtorAIG *aig;
+
+  assert (btor);
+
+  mm   = btor->mm;
+  res  = 0;
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (new_constraints);
+
+  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
+  {
+    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
+    goto PROBE_EXPS_ENTER_WITHOUT_POP;
+
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
+    PROBE_EXPS_ENTER_WITHOUT_POP:
+      assert (cur->mark == 0 || cur->mark == 1);
+
+      if (cur->mark) continue;
+
+      cur->mark = 1;
+
+      if (cur->len == 1 && cur->av)
+      {
+        assert (cur->av);
+        assert (cur->av->len == 1);
+        aig = cur->av->aigs[0];
+        if (aig == BTOR_AIG_TRUE)
+          newcs = cur;
+        else if (aig == BTOR_AIG_FALSE)
+          newcs = BTOR_INVERT_EXP (cur);
+        else if (!(id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0])))
+          newcs = 0;
+        else if ((val = btor_fixed_sat (smgr, id)) > 0)
+          newcs = cur;
+        else if (val < 0)
+          newcs = BTOR_INVERT_EXP (cur);
+        else
+          newcs = 0;
+
+        if (newcs) BTOR_PUSH_STACK (mm, new_constraints, newcs);
+      }
+
+      for (i = cur->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+    }
+  }
+
+  /* reset mark flags */
+  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
+    btor_mark_exp (btor, (BtorExp *) b->key, 0);
+
+  res = (int) BTOR_COUNT_STACK (new_constraints);
+  while (!BTOR_EMPTY_STACK (new_constraints))
+    btor_add_constraint_exp (btor, BTOR_POP_STACK (new_constraints));
+
+  BTOR_RELEASE_STACK (mm, stack);
+  BTOR_RELEASE_STACK (mm, new_constraints);
+  return res;
+}
+
 static void
-rebuild_synthesized_constraints (Btor *btor)
+rebuild_synthesized_aigs (Btor *btor)
 {
   BtorAIGMgr *amgr     = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   BtorPtrHashTable *cs = btor->synthesized_constraints;
@@ -10147,7 +10222,7 @@ btor_sat_aux_btor (Btor *btor)
 
     if (sat_result == BTOR_UNKNOWN)
     {
-      rebuild_synthesized_constraints (btor);
+      rebuild_synthesized_aigs (btor);
       if (btor->inconsistent)
       {
         sat_result = BTOR_UNSAT;
