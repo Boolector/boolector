@@ -10101,20 +10101,6 @@ btor_sat_aux_btor (Btor *btor)
   while (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN
          || (ua && !under_approx_finished))
   {
-    if (sat_result == BTOR_UNKNOWN)
-    {
-      rebuild_synthesized_constraints (btor);
-      if (btor->inconsistent)
-      {
-        sat_result = BTOR_UNSAT;
-        break;
-      }
-      btor->stats.decision_limit_refinements++;
-      limit = limit ? 2 * limit : 4000;
-    }
-    else
-      ;  // TODO limit = 2*limit / 3;
-
     if (sat_result == BTOR_SAT)
     {
       assert (BTOR_EMPTY_STACK (top_arrays));
@@ -10157,6 +10143,20 @@ btor_sat_aux_btor (Btor *btor)
 
       under_approx_finished = !encode_under_approx (btor);
       btor->stats.ua_refinements++;
+    }
+    else
+    {
+      rebuild_synthesized_constraints (btor);
+      if (btor->inconsistent)
+      {
+        sat_result = BTOR_UNSAT;
+        break;
+      }
+      btor->stats.decision_limit_refinements++;
+      if (sat_result == BTOR_UNKNOWN)
+        limit = limit ? 2 * limit : 4000;
+      else if (limit > 4000)
+        limit /= 2;
     }
 
     if (verbosity > 1)
