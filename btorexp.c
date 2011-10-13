@@ -10144,7 +10144,8 @@ btor_sat_aux_btor (Btor *btor)
       under_approx_finished = !encode_under_approx (btor);
       btor->stats.ua_refinements++;
     }
-    else
+
+    if (sat_result == BTOR_UNKNOWN)
     {
       rebuild_synthesized_constraints (btor);
       if (btor->inconsistent)
@@ -10153,11 +10154,10 @@ btor_sat_aux_btor (Btor *btor)
         break;
       }
       btor->stats.decision_limit_refinements++;
-      if (sat_result == BTOR_UNKNOWN)
-        limit = limit ? 2 * limit : 4000;
-      else if (limit > 4000)
-        limit /= 2;
+      limit = limit ? 2 * limit : 4000;
     }
+    else if (sat_result == BTOR_SAT && limit > 4000)
+      limit /= 2;
 
     if (verbosity > 1)
     {
