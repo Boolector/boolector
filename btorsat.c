@@ -562,6 +562,12 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
 #ifdef BTOR_USE_LINGELING
 
+#if 0
+#define BTOR_LINGELING_FORK_LIMIT 50000
+#else
+#define BTOR_LINGELING_FORK_LIMIT 200
+#endif
+
 static void
 btor_lingeling_set_opt (LGL *lgl, const char *name, int val)
 {
@@ -597,7 +603,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   char name[80];
   LGL *forked;
   int res;
-  if (limit >= 100000)
+  if (limit >= BTOR_LINGELING_FORK_LIMIT)
   {
     forked = lglfork (smgr->solver);
     sprintf (name, "[lglfork%d] ", smgr->lingeling.forked++);

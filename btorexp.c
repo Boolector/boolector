@@ -75,8 +75,15 @@ static const char *const g_op2string[] = {
 
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
+#if 0
+#define BTOR_SAT_MIN_LIMIT 4000
+#else
+#define BTOR_SAT_MIN_LIMIT 100
+#endif
 
+#ifdef BTOR_ENABLE_PROBING_OPT
 #define BTOR_EXP_FAILED_EQ_LIMIT 128
+#endif
 
 struct BtorUAData
 {
@@ -10099,7 +10106,6 @@ btor_sat_aux_btor (Btor *btor)
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, under_approx_finished, ua;
   BtorExpPtrStack top_arrays;
-  const int min_limit = 4000;
   int limit, refinements;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -10230,9 +10236,9 @@ btor_sat_aux_btor (Btor *btor)
         break;
       }
       btor->stats.decision_limit_refinements++;
-      limit = limit ? 2 * limit : min_limit;
+      limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
-    else if (sat_result == BTOR_SAT && limit > min_limit)
+    else if (limit > BTOR_SAT_MIN_LIMIT)
       limit /= 2;
 
     if (verbosity > 1)

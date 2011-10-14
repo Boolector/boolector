@@ -1456,14 +1456,14 @@ boolector_main (int argc, char **argv)
         if (parse_res.result == BTOR_PARSE_SAT_STATUS_SAT)
         {
           if (app.verbosity >= 1)
-            btor_msg_main ("one forumla SAT in incremental mode\n");
+            btor_msg_main ("one formula SAT in incremental mode\n");
 
           sat_result = BTOR_SAT;
         }
         else if (parse_res.result == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
           if (app.verbosity >= 1)
-            btor_msg_main ("all forumlas UNSAT in incremental mode\n");
+            btor_msg_main ("all formulas UNSAT in incremental mode\n");
 
           sat_result = BTOR_UNSAT;
         }
