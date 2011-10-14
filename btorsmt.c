@@ -2801,6 +2801,8 @@ translate_benchmark (BtorSMTParser *parser,
 
           assert (parser->btor->msgtick == parser->formulas.handled);
           parser->btor->msgtick++;
+          if (parser->btor->msgtick == parser->formulas.parsed)
+            parser->btor->mstick = -1;
         }
         else
         {
