@@ -190,7 +190,6 @@ struct BtorSMTParser
 
   int incremental;
   int model;
-  int formula;
 
   struct
   {
@@ -422,7 +421,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
-  if (parser->incremental) printf ("%d : ", parser->formula);
+  if (parser->incremental) printf ("%d : ", parser->formulas.handled);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -2786,14 +2785,15 @@ translate_benchmark (BtorSMTParser *parser,
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)
           {
-            btor_smt_message (parser, 0, "':formula' %d SAT", parser->formula);
+            btor_smt_message (
+                parser, 0, "':formula' %d SAT", parser->formulas.handled);
             res->result = BTOR_PARSE_SAT_STATUS_SAT;
           }
           else
           {
             assert (satres == BTOR_UNSAT);
             btor_smt_message (
-                parser, 0, "':formula' %d UNSAT", parser->formula);
+                parser, 0, "':formula' %d UNSAT", parser->formulas.handled);
             if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
               res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
           }
