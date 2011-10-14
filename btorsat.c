@@ -562,11 +562,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
 #ifdef BTOR_USE_LINGELING
 
-#if 0
 #define BTOR_LINGELING_FORK_LIMIT 50000
-#else
-#define BTOR_LINGELING_FORK_LIMIT 200
-#endif
 
 static void
 btor_lingeling_set_opt (LGL *lgl, const char *name, int val)

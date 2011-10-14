@@ -75,11 +75,7 @@ static const char *const g_op2string[] = {
 
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
-#if 0
 #define BTOR_SAT_MIN_LIMIT 4000
-#else
-#define BTOR_SAT_MIN_LIMIT 100
-#endif
 
 #ifdef BTOR_ENABLE_PROBING_OPT
 #define BTOR_EXP_FAILED_EQ_LIMIT 128
@@ -393,7 +389,7 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
 {
   va_list ap;
   fputs ("[btorexp] ", stdout);
-  if (btor->inc_enabled) printf ("%d : ", btor->btor_sat_btor_called);
+  if (btor->inc_enabled && btor->msgtick >= 0) printf ("%d : ", btor->msgtick);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -5005,6 +5001,7 @@ btor_new_btor (void)
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
+  btor->msgtick           = -1;
 
   btor->exp_pair_eq_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);

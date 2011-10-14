@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
  *
  *  This file is part of Boolector.
  *
@@ -34,7 +36,7 @@
 /* Optimization switches                                                  */
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ENABLE_PROBING_OPT 0
+#define BTOR_ENABLE_PROBING_OPT 0 /* not really an optimization keep it 0 */
 
 /*------------------------------------------------------------------------*/
 /* Declarations                                                           */
@@ -281,6 +283,7 @@ struct Btor
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
+  int msgtick;              /* message tick in incremental mode */
   struct                    /* Under-approximation UA */
   {
     int enabled;                     /* UA enabled */

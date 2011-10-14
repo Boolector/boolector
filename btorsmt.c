@@ -191,8 +191,11 @@ struct BtorSMTParser
   int incremental;
   int model;
   int formula;
-  int constraints;
-  int assumptions;
+
+  struct
+  {
+    int parsed, handled;
+  } assumptions, formulas;
 
   const char *name;
   int nprefix;
@@ -678,6 +681,8 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental, int model)
   res->verbosity   = verbosity;
   res->incremental = incremental;
   res->model       = model;
+
+  if (incremental) btor->msgtick = 0;
 
   btor_smt_message (res, 2, "initializing SMT parser");
   if (incremental & 3)
@@ -2709,8 +2714,6 @@ translate_benchmark (BtorSMTParser *parser,
 
       case BTOR_SMTOK_ASSUMPTION:
 
-        parser->constraints++;
-
         p = cdr (p);
         if (!p)
           return btor_perr_smt (parser, "argument to ':assumption' missing");
@@ -2728,7 +2731,7 @@ translate_benchmark (BtorSMTParser *parser,
         if (parser->incremental)
         {
           btor_smt_message (
-              parser, 3, "adding ':assumption' %d", parser->constraints);
+              parser, 3, "adding ':assumption' %d", parser->assumptions);
           btor_add_constraint_exp (parser->btor, exp);
           btor_release_exp (parser->btor, exp);
         }
@@ -2736,6 +2739,8 @@ translate_benchmark (BtorSMTParser *parser,
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
+
+        parser->assumptions.handled++;
 
         break;
 
@@ -2756,9 +2761,26 @@ translate_benchmark (BtorSMTParser *parser,
 
         if (parser->incremental)
         {
-          btor_smt_message (parser, 3, "adding ':formula' %d", parser->formula);
-          btor_add_assumption_exp (parser->btor, exp);
+          assert (parser->formulas.handled < parser->formulas.parsed);
+          if (parser->formulas.handled + 1 == parser->formulas.parsed)
+          {
+            btor_smt_message (parser,
+                              3,
+                              "adding last ':formula' %d permanently",
+                              parser->formulas.handled);
+            btor_add_constraint_exp (parser->btor, exp);
+          }
+          else
+          {
+            btor_smt_message (parser,
+                              3,
+                              "adding ':formula' %d as assumption",
+                              parser->formulas.handled);
+            btor_add_assumption_exp (parser->btor, exp);
+          }
+
           btor_release_exp (parser->btor, exp);
+
           if (parser->incremental & 4)
             btor_reset_effective_bit_widths (parser->btor);
           satres = btor_sat_btor (parser->btor);
@@ -2776,14 +2798,16 @@ translate_benchmark (BtorSMTParser *parser,
               res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
           }
           if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
-          parser->formula++;
+
+          assert (parser->btor->msgtick == parser->formulas.handled);
+          parser->btor->msgtick++;
         }
         else
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
 
-        parser->assumptions++;
+        parser->formulas.handled++;
 
         break;
 
@@ -2820,6 +2844,28 @@ translate_benchmark (BtorSMTParser *parser,
   assert (!parser->error);
 
   return 0;
+}
+
+static void
+count_assumptions_and_formulas (BtorSMTParser *parser, BtorSMTNode *top)
+{
+  BtorSMTNode *p, *n;
+  BtorSMTSymbol *s;
+
+  parser->formulas.parsed = parser->assumptions.parsed = 0;
+
+  for (p = top; p; p = cdr (p))
+  {
+    n = car (p);
+
+    if (!isleaf (n)) continue;
+
+    s = strip (n);
+
+    if (s->token == BTOR_SMTOK_FORMULA) parser->formulas.parsed++;
+
+    if (s->token == BTOR_SMTOK_ASSUMPTION) parser->assumptions.parsed++;
+  }
 }
 
 static const char *
@@ -2892,6 +2938,13 @@ NEXT_TOKEN:
     btor_smt_message (parser, 2, "read %llu bytes", parser->bytes);
     btor_smt_message (parser, 2, "found %u symbols", parser->symbols);
     btor_smt_message (parser, 2, "generated %u nodes", parser->nodes);
+
+    count_assumptions_and_formulas (parser, top);
+
+    btor_smt_message (
+        parser, 1, "found %d assumptions", parser->assumptions.parsed);
+
+    btor_smt_message (parser, 1, "found %d formulas", parser->formulas.parsed);
 
     err = translate_benchmark (parser, top, res);
     btor_recursively_delete_smt_node (parser, top);
