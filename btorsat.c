@@ -606,7 +606,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   if (limit >= BTOR_LINGELING_FORK_LIMIT)
   {
     forked = lglfork (smgr->solver);
-    sprintf (name, "[lglfork%d] ", smgr->lingeling.forked++);
+    lglsetopt (forked, "seed", smgr->lingeling.forked);
+    sprintf (name, "[lglfork%d] ", smgr->lingeling.forked);
     lglsetprefix (forked, name);
     lglsetout (forked, smgr->output);
     if (lglgetopt (smgr->solver, "verbose")) lglsetopt (forked, "verbose", 1);
@@ -614,6 +615,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     res = lglsat (forked);
     if (smgr->verbosity > 0) lglstats (forked);
     lgljoin (smgr->solver, forked);
+    smgr->lingeling.forked++;
   }
   else
   {
