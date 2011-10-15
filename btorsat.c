@@ -564,6 +564,14 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 
 #define BTOR_LINGELING_FORK_LIMIT 50000
 
+typedef struct BtorLGL BtorLGL;
+
+struct BtorLGL
+{
+  LGL *lgl, *forked;
+  int nforked;
+};
+
 static void
 btor_lingeling_set_opt (LGL *lgl, const char *name, int val)
 {
@@ -573,50 +581,52 @@ btor_lingeling_set_opt (LGL *lgl, const char *name, int val)
 static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
-  LGL *res;
+  BtorLGL *res;
   if (smgr->verbosity >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
   }
-  res                    = lglminit (smgr->mm,
-                  (lglalloc) btor_malloc,
-                  (lglrealloc) btor_realloc,
-                  (lgldealloc) btor_free);
-  smgr->lingeling.forked = 0;
+  BTOR_CNEW (smgr->mm, res);
+  res->lgl = lglminit (smgr->mm,
+                       (lglalloc) btor_malloc,
+                       (lglrealloc) btor_realloc,
+                       (lgldealloc) btor_free);
   return res;
 }
 
 static void
 btor_lingeling_add (BtorSATMgr *smgr, int lit)
 {
-  lgladd (smgr->solver, lit);
+  BtorLGL *blgl = smgr->solver;
+  lgladd (blgl->lgl, lit);
 }
 
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
+  BtorLGL *blgl = smgr->solver;
+  LGL *forked, *lgl = blgl->lgl;
   char name[80];
-  LGL *forked;
   int res;
   if (limit >= BTOR_LINGELING_FORK_LIMIT)
   {
-    forked = lglfork (smgr->solver);
-    lglsetopt (forked, "seed", smgr->lingeling.forked);
-    sprintf (name, "[lglfork%d] ", smgr->lingeling.forked);
+    forked = lglfork (lgl);
+    lglsetopt (forked, "seed", blgl->nforked);
+    sprintf (name, "[lglfork%d] ", blgl->nforked);
     lglsetprefix (forked, name);
     lglsetout (forked, smgr->output);
-    if (lglgetopt (smgr->solver, "verbose")) lglsetopt (forked, "verbose", 1);
+    if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
     btor_lingeling_set_opt (forked, "clim", limit);
     res = lglsat (forked);
     if (smgr->verbosity > 0) lglstats (forked);
-    lgljoin (smgr->solver, forked);
-    smgr->lingeling.forked++;
+    lgljoin (lgl, forked);
+    blgl->nforked++;
   }
   else
   {
-    btor_lingeling_set_opt (smgr->solver, "clim", limit);
-    res = lglsat (smgr->solver);
+    btor_lingeling_set_opt (lgl, "clim", limit);
+    res = lglsat (lgl);
   }
   return res;
 }
@@ -624,59 +634,69 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 static int
 btor_lingeling_changed (BtorSATMgr *smgr)
 {
-  return lglchanged (smgr->solver);
+  BtorLGL *blgl = smgr->solver;
+  return lglchanged (blgl->lgl);
 }
 
 static int
 btor_lingeling_deref (BtorSATMgr *smgr, int lit)
 {
-  return lglderef (smgr->solver, lit);
+  BtorLGL *blgl = smgr->solver;
+  return lglderef (blgl->lgl, lit);
 }
 
 static void
 btor_lingeling_reset (BtorSATMgr *smgr)
 {
-  lglrelease (smgr->solver);
+  BtorLGL *blgl = smgr->solver;
+  lglrelease (blgl->lgl);
+  BTOR_DELETE (smgr->mm, blgl);
 }
 
 static void
 btor_lingeling_set_output (BtorSATMgr *smgr, FILE *output)
 {
-  lglsetout (smgr->solver, output);
+  BtorLGL *blgl = smgr->solver;
+  lglsetout (blgl->lgl, output);
 }
 
 static void
 btor_lingeling_set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
-  lglsetprefix (smgr->solver, prefix);
+  BtorLGL *blgl = smgr->solver;
+  lglsetprefix (blgl->lgl, prefix);
 }
 
 static void
 btor_lingeling_enable_verbosity (BtorSATMgr *smgr)
 {
-  lglsetopt (smgr->solver, "verbose", 1);
+  BtorLGL *blgl = smgr->solver;
+  lglsetopt (blgl->lgl, "verbose", 1);
 }
 
 static int
 btor_lingeling_inc_max_var (BtorSATMgr *smgr)
 {
-  int res = lglincvar (smgr->solver);
+  BtorLGL *blgl = smgr->solver;
+  int res       = lglincvar (blgl->lgl);
   // TODO what about this?
   // if (smgr->inc.need)
-  lglfreeze (smgr->solver, res);
+  lglfreeze (blgl->lgl, res);
   return res;
 }
 
 static int
 btor_lingeling_variables (BtorSATMgr *smgr)
 {
-  return lglmaxvar (smgr->solver);
+  BtorLGL *blgl = smgr->solver;
+  return lglmaxvar (blgl->lgl);
 }
 
 static void
 btor_lingeling_stats (BtorSATMgr *smgr)
 {
-  lglstats (smgr->solver);
+  BtorLGL *blgl = smgr->solver;
+  lglstats (blgl->lgl);
 }
 
 /*------------------------------------------------------------------------*/
@@ -684,31 +704,36 @@ btor_lingeling_stats (BtorSATMgr *smgr)
 static void
 btor_lingeling_assume (BtorSATMgr *smgr, int lit)
 {
-  lglassume (smgr->solver, lit);
+  BtorLGL *blgl = smgr->solver;
+  lglassume (blgl->lgl, lit);
 }
 
 static void
 btor_lingeling_melt (BtorSATMgr *smgr, int lit)
 {
-  if (smgr->inc.need) lglmelt (smgr->solver, lit);
+  BtorLGL *blgl = smgr->solver;
+  if (smgr->inc.need) lglmelt (blgl->lgl, lit);
 }
 
 static int
 btor_lingeling_failed (BtorSATMgr *smgr, int lit)
 {
-  return lglfailed (smgr->solver, lit);
+  BtorLGL *blgl = smgr->solver;
+  return lglfailed (blgl->lgl, lit);
 }
 
 static int
 btor_lingeling_fixed (BtorSATMgr *smgr, int lit)
 {
-  return lglfixed (smgr->solver, lit);
+  BtorLGL *blgl = smgr->solver;
+  return lglfixed (blgl->lgl, lit);
 }
 
 static int
 btor_lingeling_inconsistent (BtorSATMgr *smgr)
 {
-  return lglinconsistent (smgr->solver);
+  BtorLGL *blgl = smgr->solver;
+  return lglinconsistent (blgl->lgl);
 }
 
 /*------------------------------------------------------------------------*/

@@ -45,14 +45,6 @@ struct BtorSATMgr
   int true_lit;
   int maxvar;
 
-  union
-  {
-    struct
-    {
-      int forked;
-    } lingeling;
-  };
-
   struct
   {
     void *(*init) (BtorSATMgr *);
