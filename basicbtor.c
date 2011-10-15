@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer
+ *  Copyright (C) 2010-2011 Armin Biere
  *
  *  This file is part of Boolector.
  *
@@ -148,7 +150,7 @@ spaceortab (char ch)
 int
 main (int argc, char **argv)
 {
-  int i, ch, line, immediate, arg, sign, last, first, pc, usarg, res;
+  int i, ch, line, immediate, arg, last, first, pc, usarg, res;
   int nextpcid, nextaccuid, nextflagid, nextregsid, nextmemid, atthispcid;
   int regindexids[26], regwriteids[26], regreadids[26];
   int id, pcid, regsid, memid, accuid, flagid;
@@ -401,13 +403,7 @@ NEXTLINE:
 
   if (op == PRINT) perr ("expected string argument");
 
-  if (ch == '-')
-  {
-    sign = -1;
-    if (!isdigit (ch = next ())) perr ("expected digit after '-'");
-  }
-  else
-    sign = 1;
+  if (ch == '-') perr ("can not handle signs");
 
   if (isdigit (ch))
   {

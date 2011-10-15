@@ -48,10 +48,10 @@ int
 main (int argc, char **argv)
 {
   int i, j, verbosity, close_input, close_output, binary, merge;
-  const char *input_name, *output_name;
   FILE *input_file, *output_file, *file;
   BtorAIG *aig, *tmp, *merged, **p;
   BtorPtrHashTable *back_annotation;
+  const char *input_name;
   const char *parse_error;
   BtorPtrHashBucket *b;
   BtorParseResult model;
@@ -71,7 +71,6 @@ main (int argc, char **argv)
   binary       = 0;
   merge        = 0;
   input_name   = "<stdin>";
-  output_name  = "<stdout>";
   input_file   = stdin;
   output_file  = stdout;
 
@@ -99,7 +98,6 @@ main (int argc, char **argv)
         die (1, "can not write '%s'", argv[i]);
 
       output_file  = file;
-      output_name  = argv[i];
       close_output = 1;
     }
     else if (!(file = fopen (argv[i], "r")))

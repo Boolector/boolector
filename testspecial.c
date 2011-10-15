@@ -1198,7 +1198,7 @@ test_andopt17_special ()
   run_unsat_test ("andopt17.btor");
 }
 
-static void
+static int
 run_verbose_test (char *name, int verbosity)
 {
   char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
@@ -1209,7 +1209,7 @@ run_verbose_test (char *name, int verbosity)
   char *v3_str        = "-v -v -v";
   char *v_str;
   char *syscall_str;
-  int save_ret_val_to_avoid_warning;
+  int res;
   strcpy (full_name, "log/");
   strcat (full_name, name);
   assert (verbosity > 0);
@@ -1239,9 +1239,10 @@ run_verbose_test (char *name, int verbosity)
    * are always written to stdout and we have
    * to redirect them.
    */
-  save_ret_val_to_avoid_warning = system (syscall_str);
+  res = system (syscall_str);
   free (syscall_str);
   free (full_name);
+  return res;
 }
 
 static void

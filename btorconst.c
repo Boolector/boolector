@@ -689,8 +689,9 @@ btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
       p = b + blen;
       r = res + blen;
 
-      while (res < r)
+      while (res < r && b < p)
       {
+        assert (p < b);
         x  = *--p;
         y  = *--r;
         s  = x ^ y ^ c;
@@ -1016,7 +1017,6 @@ char *
 btor_sub_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *result, *neg_b;
-  int len;
 
   assert (mm != NULL);
   assert (a != NULL);
@@ -1026,7 +1026,6 @@ btor_sub_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_valid_const (a));
   assert (is_valid_const (b));
 
-  len    = (int) strlen (a);
   neg_b  = btor_neg_const (mm, b);
   result = btor_add_const (mm, a, neg_b);
   btor_delete_const (mm, neg_b);

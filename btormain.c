@@ -593,14 +593,11 @@ static void
 print_bv_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 {
   char *pretty, *assignment;
-  BtorMemMgr *mm = NULL;
 
   assert (app != NULL);
   assert (btor != NULL);
   assert (exp != NULL);
   assert (!BTOR_IS_INVERTED_EXP (exp));
-
-  mm = btor->mm;
 
   assignment = btor_bv_assignment_exp (btor, exp);
   assert (assignment != NULL);
