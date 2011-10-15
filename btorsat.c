@@ -617,7 +617,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     lglsetprefix (forked, name);
     lglsetout (forked, smgr->output);
     if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
-    btor_lingeling_set_opt (forked, "clim", limit);
+    // TODO consider to keep 'forked' instead of using 'clim'
+    // btor_lingeling_set_opt (forked, "clim", limit);
     res = lglsat (forked);
     if (smgr->verbosity > 0) lglstats (forked);
     lgljoin (lgl, forked);
