@@ -691,7 +691,7 @@ btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
 
       while (res < r && b < p)
       {
-        assert (p < b);
+        assert (b < p);
         x  = *--p;
         y  = *--r;
         s  = x ^ y ^ c;

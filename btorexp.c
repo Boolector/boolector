@@ -75,7 +75,12 @@ static const char *const g_op2string[] = {
 
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
+
+#if 1
 #define BTOR_SAT_MIN_LIMIT 4000
+#else
+#define BTOR_SAT_MIN_LIMIT 1
+#endif
 
 #ifdef BTOR_ENABLE_PROBING_OPT
 #define BTOR_EXP_FAILED_EQ_LIMIT 128
@@ -1488,8 +1493,6 @@ encode_lemma (Btor *btor,
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-  assert (av_a->len == av_b->len);
-  assert (av_i->len == av_j->len);
 
   /* i and j have to be synthesized and translated to SAT before */
   assert (BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (i)));

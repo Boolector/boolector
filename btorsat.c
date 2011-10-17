@@ -563,7 +563,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 #ifdef BTOR_USE_LINGELING
 
 #if 1
-#define BTOR_LINGELING_FORK_LIMIT 30000
+#define BTOR_LINGELING_FORK_LIMIT 50000
 #else
 #define BTOR_LINGELING_FORK_LIMIT INT_MAX
 #endif
@@ -625,7 +625,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     // btor_lingeling_set_opt (forked, "clim", limit);
     res = lglsat (forked);
     if (smgr->verbosity > 0) lglstats (forked);
-    lgljoin (lgl, forked);
+    res = lgljoin (lgl, forked);
     blgl->nforked++;
   }
   else
