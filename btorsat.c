@@ -563,17 +563,19 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 #ifdef BTOR_USE_LINGELING
 
 #if 1
-#define BTOR_LINGELING_FORK_LIMIT 50000
+#define BTOR_LINGELING_FORK_LIMIT 20000
+#define BTOR_LINGELING_BFORK_LIMIT 60000
 #else
-#define BTOR_LINGELING_FORK_LIMIT INT_MAX
+#define BTOR_LINGELING_FORK_LIMIT INT_MAX / 2
+#define BTOR_LINGELING_BFORK_LIMIT INT_MAX
 #endif
 
 typedef struct BtorLGL BtorLGL;
 
 struct BtorLGL
 {
-  LGL *lgl, *forked;
-  int nforked;
+  LGL *lgl;
+  int nforked, nbforked;
 };
 
 static void
@@ -610,9 +612,9 @@ static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl = smgr->solver;
-  LGL *forked, *lgl = blgl->lgl;
+  LGL *lgl      = blgl->lgl, *forked, *bforked;
+  int res, fres, bfres;
   char name[80];
-  int res;
   if (limit >= BTOR_LINGELING_FORK_LIMIT)
   {
     forked = lglfork (lgl);
@@ -621,12 +623,29 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     lglsetprefix (forked, name);
     lglsetout (forked, smgr->output);
     if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
-    // TODO consider to keep 'forked' instead of using 'clim'
-    // btor_lingeling_set_opt (forked, "clim", limit);
+    lglsetopt (forked, "clim", BTOR_LINGELING_BFORK_LIMIT);
     res = lglsat (forked);
     if (smgr->verbosity > 0) lglstats (forked);
-    res = lgljoin (lgl, forked);
+    fres = lgljoin (lgl, forked);
+    assert (!res || fres == res);
+    res = fres;
     blgl->nforked++;
+    if (!res)
+    {
+      bforked = lglfork (lgl);
+      lglsetopt (bforked, "seed", blgl->nbforked);
+      sprintf (name, "[lglfork%d] ", blgl->nbforked);
+      lglsetprefix (bforked, name);
+      lglsetout (bforked, smgr->output);
+      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
+      res = lglsat (bforked);
+      assert (res);
+      if (smgr->verbosity > 0) lglstats (bforked);
+      bfres = lgljoin (lgl, bforked);
+      assert (bfres == res);
+      res = bfres;
+      blgl->nbforked++;
+    }
   }
   else
   {
@@ -702,6 +721,8 @@ btor_lingeling_stats (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglstats (blgl->lgl);
+  btor_msg_sat (
+      smgr, 1, "%d forked, %d brute forked", blgl->nforked, blgl->nbforked);
 }
 
 /*------------------------------------------------------------------------*/
