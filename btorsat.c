@@ -634,7 +634,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     {
       bforked = lglfork (lgl);
       lglsetopt (bforked, "seed", blgl->nbforked);
-      sprintf (name, "[lglfork%d] ", blgl->nbforked);
+      sprintf (name, "[lglbrutefork%d] ", blgl->nbforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
       if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
