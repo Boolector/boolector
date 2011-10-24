@@ -710,4 +710,5 @@ distri7 -o log/distri7.log log/distri7.btor
 distri8 -o log/distri8.log log/distri8.btor
 redor3 -o log/redor3.log log/redor3.btor
 redand3twice -o log/redand3twice.log log/redand3twice.btor
-painc -q -i -o log/painc.log log/painc.smt
+painc -q -I -o log/painc.log log/painc.smt
+sult -o log/sult.log log/sult.btor

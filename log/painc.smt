@@ -7,4 +7,5 @@
 :assumption (= one bv1[32])
 :assumption (bvsge x n)
 :assumption (= next_x (bvadd x one))
-:formula (bvslt next_x n))
+:formula (bvslt next_x n)
+:formula (bvsge next_x n))
