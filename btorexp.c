@@ -3661,8 +3661,9 @@ btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 BtorExp *
 btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
-  BtorExp *result, *sign_e1, *sign_e2, *rest_e1, *rest_e2, *ult;
-  BtorExp *e1_signed_only, *e1_e2_pos, *e1_e2_signed, *and1, *and2, * or ;
+  BtorExp *determined_by_sign, *eq_sign, *ult, *eq_sign_and_ult;
+  BtorExp *res, *s0, *s1, *r0, *r1;
+
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3671,6 +3672,10 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (len == 1) return btor_and_exp (btor, e0, BTOR_INVERT_EXP (e1));
+#if 0
+  BtorExp *result, *sign_e1, *sign_e2, *rest_e1, *rest_e2, *ult;
+  BtorExp *e1_signed_only, *e1_e2_pos, *e1_e2_signed, *and1, *and2, *or;
+
   sign_e1 = btor_slice_exp (btor, e0, len - 1, len - 1);
   sign_e2 = btor_slice_exp (btor, e1, len - 1, len - 1);
   /* rest_e1: e0 without sign bit */
@@ -3683,13 +3688,13 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   e1_signed_only = btor_and_exp (btor, sign_e1, BTOR_INVERT_EXP (sign_e2));
   /* e1_e2_pos: e0 and e1 are positive */
   e1_e2_pos =
-      btor_and_exp (btor, BTOR_INVERT_EXP (sign_e1), BTOR_INVERT_EXP (sign_e2));
+    btor_and_exp (btor, BTOR_INVERT_EXP (sign_e1), BTOR_INVERT_EXP (sign_e2));
   /* e1_e2_signed: e0 and e1 are negative */
   e1_e2_signed = btor_and_exp (btor, sign_e1, sign_e2);
-  and1         = btor_and_exp (btor, e1_e2_pos, ult);
-  and2         = btor_and_exp (btor, e1_e2_signed, ult);
-  or           = btor_or_exp (btor, and1, and2);
-  result       = btor_or_exp (btor, e1_signed_only, or);
+  and1 = btor_and_exp (btor, e1_e2_pos, ult);
+  and2 = btor_and_exp (btor, e1_e2_signed, ult);
+  or = btor_or_exp (btor, and1, and2);
+  result = btor_or_exp (btor, e1_signed_only, or);
   btor_release_exp (btor, sign_e1);
   btor_release_exp (btor, sign_e2);
   btor_release_exp (btor, rest_e1);
@@ -3701,7 +3706,26 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   btor_release_exp (btor, and1);
   btor_release_exp (btor, and2);
   btor_release_exp (btor, or);
-  return result;
+#else
+  s0                 = btor_slice_exp (btor, e0, len - 1, len - 1);
+  s1                 = btor_slice_exp (btor, e1, len - 1, len - 1);
+  r0                 = btor_slice_exp (btor, e0, len - 2, 0);
+  r1                 = btor_slice_exp (btor, e1, len - 2, 0);
+  ult                = btor_ult_exp (btor, r0, r1);
+  eq_sign            = btor_eq_exp (btor, s0, s1);
+  eq_sign_and_ult    = btor_and_exp (btor, eq_sign, ult);
+  determined_by_sign = btor_and_exp (btor, s0, BTOR_INVERT_EXP (s1));
+  res                = btor_or_exp (btor, determined_by_sign, eq_sign_and_ult);
+  btor_release_exp (btor, s0);
+  btor_release_exp (btor, s1);
+  btor_release_exp (btor, r0);
+  btor_release_exp (btor, r1);
+  btor_release_exp (btor, ult);
+  btor_release_exp (btor, eq_sign);
+  btor_release_exp (btor, eq_sign_and_ult);
+  btor_release_exp (btor, determined_by_sign);
+#endif
+  return res;
 }
 
 BtorExp *
