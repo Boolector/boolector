@@ -712,3 +712,4 @@ redor3 -o log/redor3.log log/redor3.btor
 redand3twice -o log/redand3twice.log log/redand3twice.btor
 painc -q -I -o log/painc.log log/painc.smt
 sult -o log/sult.log log/sult.btor
+sult2 -o log/sult2.log log/sult2.btor

@@ -3662,7 +3662,7 @@ BtorExp *
 btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *determined_by_sign, *eq_sign, *ult, *eq_sign_and_ult;
-  BtorExp *res, *s0, *s1, *r0, *r1;
+  BtorExp *res, *s0, *s1, *r0, *r1, *l, *r;
 
   int len;
 
@@ -3712,18 +3712,22 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   r0                 = btor_slice_exp (btor, e0, len - 2, 0);
   r1                 = btor_slice_exp (btor, e1, len - 2, 0);
   ult                = btor_ult_exp (btor, r0, r1);
-  eq_sign            = btor_eq_exp (btor, s0, s1);
-  eq_sign_and_ult    = btor_and_exp (btor, eq_sign, ult);
   determined_by_sign = btor_and_exp (btor, s0, BTOR_INVERT_EXP (s1));
-  res                = btor_or_exp (btor, determined_by_sign, eq_sign_and_ult);
+  l                  = btor_copy_exp (btor, determined_by_sign);
+  r                  = btor_and_exp (btor, BTOR_INVERT_EXP (s0), s1);
+  eq_sign = btor_and_exp (btor, BTOR_INVERT_EXP (l), BTOR_INVERT_EXP (r));
+  eq_sign_and_ult = btor_and_exp (btor, eq_sign, ult);
+  res             = btor_or_exp (btor, determined_by_sign, eq_sign_and_ult);
   btor_release_exp (btor, s0);
   btor_release_exp (btor, s1);
   btor_release_exp (btor, r0);
   btor_release_exp (btor, r1);
   btor_release_exp (btor, ult);
+  btor_release_exp (btor, determined_by_sign);
+  btor_release_exp (btor, l);
+  btor_release_exp (btor, r);
   btor_release_exp (btor, eq_sign);
   btor_release_exp (btor, eq_sign_and_ult);
-  btor_release_exp (btor, determined_by_sign);
 #endif
   return res;
 }
