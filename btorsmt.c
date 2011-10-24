@@ -2729,8 +2729,10 @@ translate_benchmark (BtorSMTParser *parser,
 
         if (parser->incremental)
         {
-          btor_smt_message (
-              parser, 3, "adding ':assumption' %d", parser->assumptions);
+          btor_smt_message (parser,
+                            3,
+                            "adding ':assumption' %d",
+                            parser->assumptions.handled);
           btor_add_constraint_exp (parser->btor, exp);
           btor_release_exp (parser->btor, exp);
         }
