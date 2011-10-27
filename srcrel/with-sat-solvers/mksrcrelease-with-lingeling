@@ -22,7 +22,7 @@ lglversion=`cat ../../../lingeling/VERSION`
 name=boolector-${btorversion}-with-lingeling-${lglversion}
 tmp=/tmp/$name
 log=$tmp.log
-tar=${tmp}.tar.gz
+tar=${tmp}.tar.bz2
 rm -rf $tmp $tar $log
 mkdir $tmp || exit 1
 cp makefile.lingeling $tmp/makefile
@@ -40,6 +40,6 @@ do
   mv $archive $tmp/archives
 done
 cd /tmp/
-tar zcf $tar $name
+tar jcf $tar $name
 ls -l $tar|awk '{print $5, $NF}'
 rm -rf $tmp $log
