@@ -3,6 +3,7 @@
 	$(CC) $(CFLAGS) -c $<
 .cc.o:
 	$(CC) $(CFLAGS) -c $<
+MAKEFLAGS=-j $(if $(CORES),$(CORES),1)
 CC=@CC@
 INCS=@INCS@
 CFLAGS=@CFLAGS@
