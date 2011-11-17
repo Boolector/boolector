@@ -520,11 +520,14 @@ boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1)
   is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
   BTOR_ABORT_BOOLECTOR (is_array_e0 != is_array_e1,
                         "array must not be compared to bit-vector");
-  BTOR_ABORT_BOOLECTOR (!is_array_e0 && real_e0->len != real_e1->len,
-                        "bit-vectors must not have unequal bit-width");
-  BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0->len != real_e1->len,
-                        "arrays must not have unequal element bit-width");
-  BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0->index_len != real_e1->index_len,
+  BTOR_ABORT_BOOLECTOR (
+      !is_array_e0 && real_e0 && real_e1 && real_e0->len != real_e1->len,
+      "bit-vectors must not have unequal bit-width");
+  BTOR_ABORT_BOOLECTOR (
+      is_array_e0 && real_e0 && real_e1 && real_e0->len != real_e1->len,
+      "arrays must not have unequal element bit-width");
+  BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0 && real_e1
+                            && real_e0->index_len != real_e1->index_len,
                         "arrays must not have unequal index bit-width");
   btor->external_refs++;
   return btor_eq_exp (btor, e0, e1);
@@ -1155,13 +1158,15 @@ boolector_cond (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   is_array_e_else = BTOR_IS_ARRAY_EXP (real_e_else);
   BTOR_ABORT_BOOLECTOR (is_array_e_if != is_array_e_else,
                         "array must not be combined with bit-vector");
-  BTOR_ABORT_BOOLECTOR (!is_array_e_if && real_e_if->len != real_e_else->len,
+  BTOR_ABORT_BOOLECTOR (!is_array_e_if && real_e_if && real_e_else
+                            && real_e_if->len != real_e_else->len,
                         "bit-vectors must not have unequal bit-width");
-  BTOR_ABORT_BOOLECTOR (is_array_e_if && real_e_if->len != real_e_else->len,
+  BTOR_ABORT_BOOLECTOR (is_array_e_if && real_e_if && real_e_else
+                            && real_e_if->len != real_e_else->len,
                         "arrays must not have unequal element bit-width");
-  BTOR_ABORT_BOOLECTOR (
-      is_array_e_if && real_e_if->index_len != real_e_else->index_len,
-      "arrays must not have unequal index bit-width");
+  BTOR_ABORT_BOOLECTOR (is_array_e_if && real_e_if && real_e_else
+                            && real_e_if->index_len != real_e_else->index_len,
+                        "arrays must not have unequal index bit-width");
   btor->external_refs++;
   return btor_cond_exp (btor, e_cond, e_if, e_else);
 }

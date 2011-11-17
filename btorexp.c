@@ -664,7 +664,7 @@ compute_hash_exp (BtorExp *exp, int table_size)
   assert (!BTOR_IS_ARRAY_VAR_EXP (exp));
   if (BTOR_IS_BV_CONST_EXP (exp))
     hash = btor_hashstr ((void *) exp->bits);
-  else
+  else if (exp)
   {
     switch (exp->arity)
     {
@@ -685,6 +685,8 @@ compute_hash_exp (BtorExp *exp, int table_size)
         break;
     }
   }
+  else
+    hash = 0;
   hash = (hash * BTOR_EXP_UNIQUE_TABLE_PRIME) & (table_size - 1);
   return hash;
 }
