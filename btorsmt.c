@@ -189,13 +189,17 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
-  int window;
+  int max_window_size;
   int model;
 
   struct
   {
     int parsed, handled;
-  } assumptions, formulas;
+  } assumptions;
+  struct
+  {
+    int parsed, handled, checkd;
+  } formulas;
 
   const char *name;
   int nprefix;
@@ -237,6 +241,7 @@ struct BtorSMTParser
 
   BtorExpPtrStack inputs;
   BtorExpPtrStack outputs;
+  BtorExpPtrStack window;
 };
 
 static unsigned btor_smt_primes[] = {1001311, 2517041, 3543763, 4026227};
@@ -587,6 +592,10 @@ btor_delete_smt_parser (BtorSMTParser *parser)
     btor_release_exp (parser->btor, *p);
   BTOR_RELEASE_STACK (parser->mem, parser->outputs);
 
+  for (p = parser->window.start; p != parser->window.top; p++)
+    btor_release_exp (parser->btor, *p);
+  BTOR_RELEASE_STACK (parser->mem, parser->window);
+
   BTOR_DELETE (parser->mem, parser);
 }
 
@@ -683,10 +692,10 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity   = opts->verbosity;
-  res->incremental = opts->incremental;
-  res->window      = opts->window;
-  res->model       = opts->need_model;
+  res->verbosity       = opts->verbosity;
+  res->incremental     = opts->incremental;
+  res->max_window_size = opts->window;
+  res->model           = opts->need_model;
 
   if (opts->incremental) btor->msgtick = 0;
 
@@ -704,6 +713,24 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
     if (opts->incremental & BTOR_PARSE_MODE_UAINCRESET)
       btor_smt_message (
           res, 2, "resetting effective bit-width at each incremental step");
+
+    if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
+      btor_smt_message (res,
+                        2,
+                        "incremental in-depth mode with window size %d",
+                        res->max_window_size);
+
+    if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD)
+      btor_smt_message (res,
+                        2,
+                        "incremental look-ahead mode with window size %d",
+                        res->max_window_size);
+
+    if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
+      btor_smt_message (res,
+                        2,
+                        "incremental interval mode with window size %d",
+                        res->max_window_size);
   }
 
   res->mem  = mem;
@@ -2765,7 +2792,38 @@ translate_benchmark (BtorSMTParser *parser,
         btor_recursively_delete_smt_node (parser, p->head);
         p->head = 0;
 
-        if (parser->incremental)
+        if (!parser->incremental)
+        {
+          BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+        }
+        else if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
+        {
+          int count_window = BTOR_COUNT_STACK (parser->window);
+          int missing      = parser->max_window_size - count_window;
+
+          assert (missing >= 0);
+
+          if (!missing
+              || parser->formulas.handled + 1 == parser->formulas.parsed)
+          {
+            int finish this;
+            BTOR_PUSH_STACK (parser->mem, parser->window, exp);
+            parser->formulas.checked++;
+          }
+          else
+          {
+            btor_smt_message (
+                parser,
+                3,
+                "saving ':formula' %d at window position %d still %d missing",
+                parser->formulas.handled,
+                count_window,
+                missing);
+
+            BTOR_PUSH_STACK (parser->mem, parser->window, exp);
+          }
+        }
+        else
         {
           assert (parser->formulas.handled < parser->formulas.parsed);
           if (parser->formulas.handled + 1 == parser->formulas.parsed)
@@ -2787,8 +2845,9 @@ translate_benchmark (BtorSMTParser *parser,
 
           btor_release_exp (parser->btor, exp);
 
-          if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+          if (parser->incremental & BTOR_PARSE_MODE_UAINCRESET)
             btor_reset_effective_bit_widths (parser->btor);
+
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)
           {
@@ -2809,10 +2868,8 @@ translate_benchmark (BtorSMTParser *parser,
           assert (parser->btor->msgtick == parser->formulas.handled);
           if (++parser->btor->msgtick == parser->formulas.parsed)
             parser->btor->msgtick = -1;
-        }
-        else
-        {
-          BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
+
+          parser->formulas.checked++;
         }
 
         parser->formulas.handled++;
