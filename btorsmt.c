@@ -2666,11 +2666,6 @@ translate_benchmark (BtorSMTParser *parser,
       goto INVALID_STATUS_ARGUMENT;
   }
 
-  for (p = top; p; p = cdr (p))
-  {
-    node = car (p);
-  }
-
   for (p = top;
        (parser->incremental != 1 || res->result != BTOR_PARSE_SAT_STATUS_SAT)
        && p;

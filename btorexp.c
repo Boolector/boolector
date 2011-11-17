@@ -1955,9 +1955,11 @@ set_simplified_exp (Btor *btor,
   /* also updates op stats */
   erase_local_data_exp (btor, exp, 0);
   btor->ops[BTOR_PROXY_EXP]++;
+  assert (exp->arity <= 3);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
   remove_from_hash_tables (btor, exp);
   disconnect_children_exp (btor, exp);
+  assert (exp->arity <= 3);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
   exp->kind         = BTOR_PROXY_EXP;
   exp->disconnected = 0;
@@ -8251,6 +8253,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   }
   do
   {
+    assert (!BTOR_EMPTY_STACK (stack));
     cur = BTOR_POP_STACK (stack);
     assert (BTOR_IS_REGULAR_EXP (cur));
     if (cur->aux_mark == 0)
@@ -8931,8 +8934,6 @@ update_under_approx_eff_width (Btor *btor)
   {
     for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
     {
-      max_string = "";
-
       cur  = (BtorExp *) b->key;
       data = (BtorUAData *) b->data.asPtr;
 
@@ -8955,8 +8956,6 @@ update_under_approx_eff_width (Btor *btor)
     assert (btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
     for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
     {
-      max_string = "";
-
       cur                     = (BtorExp *) b->key;
       data                    = (BtorUAData *) b->data.asPtr;
       data->updated_eff_width = 0;
@@ -9998,7 +9997,6 @@ rebuild_synthesized_exps (Btor *btor)
   assert (btor);
 
   mm   = btor->mm;
-  res  = 0;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   BTOR_INIT_STACK (stack);

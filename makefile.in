@@ -18,7 +18,7 @@ all: libboolector.a boolector test synthebtor deltabtor basicbtor
 all: dimacs2smt2
 -include dependencies
 analyze:
-	clang --analyze $(SRC)
+	clang --analyze $(CFLAGS) $(SRC)
 btorpreco.o: btorsat.h btorpreco.h btorpreco.cc makefile
 btorminisat.o: btorsat.h btorminisat.h btorminisat.cc makefile
 	$(CC) $(shell echo '$(CFLAGS)'|sed -e 's,-Wall -Wextra ,,') -c btorminisat.cc

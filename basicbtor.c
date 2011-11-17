@@ -351,8 +351,7 @@ NEXTLINE:
 
   if (!spaceortab (next ())) goto INVALIDOP;
 
-  immediate = 0;
-  ch        = next ();
+  ch = next ();
 
   if (ch == '"')
   {

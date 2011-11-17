@@ -2005,7 +2005,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
         assert (p[nargs].tag == BTOR_EXP_TAG_SMT2);
         l[0].tag = BTOR_EXP_TAG_SMT2;
         l[0].exp = p[nargs].exp;
-        exp      = p[nargs].exp;
         for (i = 1; i < nargs; i++)
         {
           assert (p[i].tag == BTOR_SYMBOL_TAG_SMT2);

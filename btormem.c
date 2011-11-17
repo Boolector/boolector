@@ -73,6 +73,7 @@ void *
 btor_malloc (BtorMemMgr *mm, size_t size)
 {
   void *result;
+  if (!size) return 0;
   assert (mm != NULL);
   LIMIT (size);
   result = malloc (size);

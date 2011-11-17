@@ -686,7 +686,7 @@ print (void)
     count++;
   }
 
-  sorted = malloc (count * sizeof *sorted);
+  sorted = count ? malloc (count * sizeof *sorted) : 0;
 
   j = 0;
   for (i = 1; i < nexps; i++)

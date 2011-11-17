@@ -64,6 +64,7 @@ modelgen_test (const char *fname, int rwl)
            log_fname);
 
   ret_val = system (syscall_string); /* save to avoid warning */
+  assert (ret_val);
   free (syscall_string);
 
   syscall_string = (char *) malloc (
