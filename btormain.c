@@ -1352,17 +1352,17 @@ boolector_main (int argc, char **argv)
     if (app.indepth)
     {
       parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
-      parse_opt.width = app.indepth;
+      parse_opt.window = app.indepth;
     }
     else if (app.lookahead)
     {
       parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
-      parse_opt.width = app.lookahead;
+      parse_opt.window = app.lookahead;
     }
     else if (app.interval)
     {
       parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
-      parse_opt.width = app.interval;
+      parse_opt.window = app.interval;
     }
     parse_opt.need_model = app.print_model;
 

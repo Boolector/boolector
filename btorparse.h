@@ -70,7 +70,7 @@ struct BtorParseOpt
   BtorParseMode incremental;
   int verbosity;
   int need_model;
-  int width;
+  int window;
 };
 
 struct BtorParseResult

@@ -189,6 +189,7 @@ struct BtorSMTParser
   int parsed;
 
   int incremental;
+  int window;
   int model;
 
   struct
@@ -684,6 +685,7 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
 
   res->verbosity   = opts->verbosity;
   res->incremental = opts->incremental;
+  res->window      = opts->window;
   res->model       = opts->need_model;
 
   if (opts->incremental) btor->msgtick = 0;
