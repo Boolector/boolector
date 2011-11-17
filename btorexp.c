@@ -8829,6 +8829,7 @@ max_len_global_under_approx_vars (Btor *btor)
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
     if (cur->len > max) max = cur->len;
@@ -8945,6 +8946,7 @@ update_under_approx_eff_width (Btor *btor)
       cur  = (BtorExp *) b->key;
       data = (BtorUAData *) b->data.asPtr;
 
+      assert (cur);
       assert (!BTOR_IS_INVERTED_EXP (cur));
       assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -8968,6 +8970,7 @@ update_under_approx_eff_width (Btor *btor)
       data                    = (BtorUAData *) b->data.asPtr;
       data->updated_eff_width = 0;
 
+      assert (cur);
       assert (!BTOR_IS_INVERTED_EXP (cur));
       assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -9036,6 +9039,7 @@ encode_under_approx_const_extend (Btor *btor, int phase)
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -9164,6 +9168,7 @@ encode_under_approx_sign_extend (Btor *btor)
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -9380,6 +9385,7 @@ encode_under_approx_eq_classes (Btor *btor)
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -9477,6 +9483,7 @@ synthesize_reads_and_writes_for_under_approx (Btor *btor)
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -9487,6 +9494,7 @@ synthesize_reads_and_writes_for_under_approx (Btor *btor)
   for (b = btor->ua.writes_aconds->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_WRITE_EXP (cur) || BTOR_IS_ARRAY_COND_EXP (cur));
 
@@ -9518,6 +9526,7 @@ btor_reset_effective_bit_widths (Btor *btor)
   {
 #ifndef NDEBUG
     BtorExp *cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP ((BtorExp *) b->key));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 #endif
@@ -10304,6 +10313,7 @@ btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
 
   real_exp = BTOR_REAL_ADDR_EXP (exp);
+  assert (real_exp);
 
   if (BTOR_IS_BV_CONST_EXP (real_exp))
   {

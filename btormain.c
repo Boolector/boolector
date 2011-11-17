@@ -115,6 +115,9 @@ struct BtorMainApp
   BtorAppReplayMode replay_mode;
   int verbosity;
   int incremental;
+  int indepth;
+  int lookahead;
+  int interval;
   int force;
   int done;
   int err;
@@ -148,6 +151,8 @@ struct BtorMainApp
 #endif
 #ifdef BTOR_USE_LINGELING
   int force_lingeling;
+  const char *lingeling_options;
+  int lingeling_options_invalid;
 #endif
 #ifdef BTOR_USE_MINISAT
   int force_minisat;
@@ -172,9 +177,9 @@ static const char *g_usage =
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
-    "  --in-depth <w>                   incremental in-depth mode width <w>\n"
-    "  --look-ahead <w>                 incremental lookahead mode width <w>\n"
-    "  --interval <w>                   incremental interval mode width <w>\n"
+    "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
+    "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
+    "  -interval=<w>                    incremental interval mode width <w>\n"
     "  -uaincreset                      reset under approximation bit-width\n"
     "                                   in incremental under-approximation "
     "mode\n"
@@ -203,7 +208,7 @@ static const char *g_usage =
     "solver\n"
 #endif
 #ifdef BTOR_USE_LINGELING
-    "  -lingeling[,<opt>=<val>]*        enforce usage of Lingeling as SAT "
+    "  -lingeling                       enforce usage of Lingeling as SAT "
     "solver\n"
     "  -l[,<opt>=<val>]*                set lingeling option(s) "
     "'--<opt>=<val>\n"
@@ -679,6 +684,21 @@ print_array_assignments (BtorMainApp *app,
   for (i = 0; i < narrays; i++) print_array_assignment (app, btor, arrays[i]);
 }
 
+static int
+parse_option_with_int_value (BtorMainApp *app, const char *name, int *resptr)
+{
+  const char *p, *q;
+  p = app->argv[app->argpos];
+  if (*p++ != '-') return 0;
+  for (q = name; *q; q++, p++)
+    if (*p != *q) return 0;
+  if (*p++ != '=') return 0;
+  if (!*p) return 0;
+  assert (resptr);
+  *resptr = atoi (p);
+  return 1;
+}
+
 static void
 parse_commandline_arguments (BtorMainApp *app)
 {
@@ -792,6 +812,30 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-I"))
     {
       app->incremental |= 2;
+    }
+    else if (parse_option_with_int_value (app, "in-depth", &app->indepth))
+    {
+      if (app->indepth < 1)
+      {
+        print_err (app, "argument to '-in-depth' smaller than 1\n");
+        app->err = 1;
+      }
+    }
+    else if (parse_option_with_int_value (app, "look-ahead", &app->lookahead))
+    {
+      if (app->lookahead < 1)
+      {
+        print_err (app, "argument to '-look-ahead' smaller than 1\n");
+        app->err = 1;
+      }
+    }
+    else if (parse_option_with_int_value (app, "interval", &app->interval))
+    {
+      if (app->interval < 1)
+      {
+        print_err (app, "argument to '-interval' smaller than 1\n");
+        app->err = 1;
+      }
     }
     else if (!strcmp (app->argv[app->argpos], "-uaincreset"))
     {
@@ -1008,6 +1052,22 @@ parse_commandline_arguments (BtorMainApp *app)
         }
       }
     }
+    else if (app->argv[app->argpos][0] == '-'
+             && app->argv[app->argpos][1] == 'l')
+    {
+#ifndef BTOR_USE_LINGELING
+      print_err (app, "can not use '-l' without Lingeling support\n");
+      app->err = 1;
+#else
+      if (app->lingeling_options)
+      {
+        print_err (app, "multiple '-l'\n");
+        app->err = 1;
+      }
+      else
+        app->lingeling_options = app->argv[app->argpos] + 2;
+#endif
+    }
     else if (app->argv[app->argpos][0] == '-')
     {
       print_err_va_args (app, "invalid option '%s'\n", app->argv[app->argpos]);
@@ -1057,6 +1117,12 @@ parse_commandline_arguments (BtorMainApp *app)
     }
   }
 
+  if (!app->err && !app->incremental
+      && (app->indepth || app->lookahead || app->interval))
+  {
+    app->incremental = 1;
+  }
+
   if (!app->err && (app->incremental & 4) && !(app->incremental & 3))
   {
     print_err_va_args (
@@ -1071,6 +1137,16 @@ parse_commandline_arguments (BtorMainApp *app)
     app->err = 1;
   }
 
+  if (!app->err
+      && (app->indepth != 0) + (app->lookahead != 0) + (app->interval != 0)
+             >= 2)
+  {
+    print_err_va_args (
+        app,
+        "Can only use one out of '-in-depth', '-look-ahead', or '-interval'");
+    app->err = 1;
+  }
+
   if (!app->err)
   {
     if (app->replay_mode != BTOR_APP_REPLAY_MODE_NONE
@@ -1081,6 +1157,16 @@ parse_commandline_arguments (BtorMainApp *app)
       app->err = 1;
     }
   }
+
+  if (!app->err && app->verbosity && app->incremental)
+    btor_msg_main ("incremental mode through command line option");
+  if (!app->err && app->verbosity && app->indepth)
+    btor_msg_main_va_args ("incremental in-depth window of %d", app->indepth);
+  if (!app->err && app->verbosity && app->lookahead)
+    btor_msg_main_va_args ("incremental look-ahead window of %d",
+                           app->lookahead);
+  if (!app->err && app->verbosity && app->interval)
+    btor_msg_main_va_args ("incremental interval window of %d", app->interval);
 }
 
 static void
@@ -1186,6 +1272,9 @@ boolector_main (int argc, char **argv)
 
   app.verbosity            = 0;
   app.incremental          = 0;
+  app.indepth              = 0;
+  app.lookahead            = 0;
+  app.interval             = 0;
   app.force                = 0;
   app.output_file          = stdout;
   app.close_output_file    = 0;
@@ -1225,7 +1314,9 @@ boolector_main (int argc, char **argv)
   app.force_precosat = 0;
 #endif
 #ifdef BTOR_USE_LINGELING
-  app.force_lingeling = 0;
+  app.force_lingeling           = 0;
+  app.lingeling_options         = 0;
+  app.lingeling_options_invalid = 0;
 #endif
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
@@ -1429,7 +1520,14 @@ boolector_main (int argc, char **argv)
       else
 #endif
       {
-        btor_enable_lingeling_sat (smgr);
+        if (!btor_enable_lingeling_sat (smgr, app.lingeling_options))
+        {
+          app.lingeling_options_invalid = 1;
+          print_err_va_args (&app,
+                             "invalid Lingeling options '-l%s'\n",
+                             app.lingeling_options);
+          app.err = 1;
+        }
       }
 #endif
       assert (btor_provides_incremental_sat (smgr));
@@ -1444,11 +1542,18 @@ boolector_main (int argc, char **argv)
 
       sat_result = BTOR_UNKNOWN;
 
-      if ((parse_error = parser_api->parse (parser,
-                                            &prefix,
-                                            app.input_file,
-                                            app.input_file_name,
-                                            &parse_res)))
+      if (app.err)
+      {
+        /* problem with '-l 'option
+         */
+        assert (app.lingeling_options);
+        assert (app.lingeling_options_invalid);
+      }
+      else if ((parse_error = parser_api->parse (parser,
+                                                 &prefix,
+                                                 app.input_file,
+                                                 app.input_file_name,
+                                                 &parse_res)))
       {
         print_msg_va_args (&app, "%s\n", parse_error);
         app.err = 1;
@@ -1576,9 +1681,6 @@ boolector_main (int argc, char **argv)
       {
         /* do nothing use PicoSAT */
       }
-#else
-      if (1)
-        ;
 #endif
 #ifdef BTOR_USE_PRECOSAT
       else if (app.force_precosat)
@@ -1603,7 +1705,15 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_LINGELING
       else
       {
-        btor_enable_lingeling_sat (smgr);
+        if (!btor_enable_lingeling_sat (smgr, app.lingeling_options))
+        {
+          assert (app.lingeling_options);
+          print_err_va_args (&app,
+                             "invalid Lingeling options '-l%s'\n",
+                             app.lingeling_options);
+          app.err = 1;
+          goto DONE;
+        }
       }
 #endif
 #if !defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
@@ -2125,7 +2235,7 @@ boolector_main (int argc, char **argv)
       btor_reset_sat (smgr);
     }
 
-#if defined(BTOR_USE_PRECOSAT)
+#if defined(BTOR_USE_PRECOSAT) || defined(BTOR_USE_LINGELING)
   DONE:
 #endif
     if (parser_api) parser_api->reset (parser);

@@ -37,6 +37,7 @@ struct BtorSATMgr
   int verbosity;
   BtorMemMgr *mm;
   const char *name;
+  const char *optstr;
   FILE *output;
 
   int satcalls;
@@ -180,7 +181,7 @@ void btor_enable_picosat_sat (BtorSATMgr *smgr);
 
 #ifdef BTOR_USE_LINGELING
 /* Enables Lingeling as SAT preprocessor. */
-void btor_enable_lingeling_sat (BtorSATMgr *smgr);
+int btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *options);
 #endif
 
 #ifdef BTOR_USE_PRECOSAT

@@ -92,8 +92,12 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 /*------------------------------------------------------------------------*/
 
 #ifdef BTOR_USE_LINGELING
-void btor_enable_lingeling_sat (BtorSATMgr *);
-#define btor_enable_default_sat btor_enable_lingeling_sat
+int btor_enable_lingeling_sat (BtorSATMgr *, const char *optstr);
+#define btor_enable_default_sat(SMGR)      \
+  do                                       \
+  {                                        \
+    btor_enable_lingeling_sat ((SMGR), 0); \
+  } while (0)
 #else
 #ifndef BTOR_USE_PICOSAT
 #error "can not compile without incremental SAT solver"
@@ -371,7 +375,8 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
                   "'btor_init_sat' called before "
                   "'btor_enable_precosat_sat'");
 
-  smgr->name = "PrecoSAT";
+  smgr->name   = "PrecoSAT";
+  smgr->optstr = 0;
 
   smgr->api.init             = btor_precosat_init;
   smgr->api.add              = btor_precosat_add;
@@ -530,7 +535,8 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before 'btor_enable_picosat_sat'");
 
-  smgr->name = "PicoSAT";
+  smgr->name   = "PicoSAT";
+  smgr->optstr = 0;
 
   smgr->api.init             = btor_picosat_init;
   smgr->api.add              = btor_picosat_add;
@@ -584,6 +590,108 @@ btor_lingeling_set_opt (LGL *lgl, const char *name, int val)
   if (lglhasopt (lgl, name)) lglsetopt (lgl, name, val);
 }
 
+static int
+btor_passdown_lingeling_options (BtorSATMgr *smgr,
+                                 const char *optstr,
+                                 LGL *external_lgl)
+{
+  char *str, *p, *next, *eq, *opt, *val;
+  LGL *lgl = external_lgl ? external_lgl : 0;
+  int len, valid, res = 1;
+
+  assert (optstr);
+  len = strlen (optstr);
+
+  BTOR_NEWN (smgr->mm, str, len + 1);
+  strcpy (str, optstr);
+
+  res = 1;
+
+  for (p = str; *p; p = next)
+  {
+    if (*p == ',')
+      next = p + 1;
+    else
+    {
+      opt = p;
+      while (*p != ',' && *p) p++;
+
+      if (*p)
+      {
+        assert (*p == ',');
+        *p   = 0;
+        next = p + 1;
+      }
+      else
+        next = p;
+
+      valid = 1;
+      val = eq = 0;
+
+      if (!isalpha (*opt))
+        valid = 0;
+      else
+      {
+        for (p = opt + 1; isalnum (*p); p++)
+          ;
+
+        if (*p == '=')
+        {
+          *(eq = p++) = 0;
+          val         = p;
+          if (*p == '-') p++;
+          if (isdigit (*p))
+          {
+            while (isdigit (*p)) p++;
+
+            valid = !*p;
+          }
+          else
+            valid = 0;
+        }
+        else
+          valid = 0;
+      }
+
+      if (valid)
+      {
+        if (!lgl)
+        {
+          assert (!external_lgl);
+          lgl = lglinit ();
+        }
+
+        if (lglhasopt (lgl, opt))
+        {
+          if (external_lgl && val)
+          {
+            assert (lgl == external_lgl);
+            btor_msg_sat (
+                smgr, 2, "setting Lingeling option --%s=%s", opt, val);
+            lglsetopt (lgl, opt, atoi (val));
+          }
+        }
+        else
+          valid = 0;
+      }
+
+      if (!valid) res = 0;
+      if (valid || external_lgl) continue;
+
+      if (eq) *eq = '=';
+      btor_msg_sat (smgr,
+                    0,
+                    "*** can not pass down to Lingeling invalid option '%s'",
+                    optstr);
+    }
+  }
+
+  BTOR_DELETEN (smgr->mm, str, len + 1);
+  if (lgl && !external_lgl) lglrelease (lgl);
+
+  return res;
+}
+
 static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
@@ -598,6 +706,9 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_malloc,
                        (lglrealloc) btor_realloc,
                        (lgldealloc) btor_free);
+  assert (res);
+  if (smgr->optstr)
+    btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
   return res;
 }
 
@@ -764,13 +875,17 @@ btor_lingeling_inconsistent (BtorSATMgr *smgr)
 
 /*------------------------------------------------------------------------*/
 
-void
-btor_enable_lingeling_sat (BtorSATMgr *smgr)
+int
+btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr)
 {
   assert (smgr != NULL);
 
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before 'btor_enable_lingeling_sat'");
+
+  if ((smgr->optstr = optstr)
+      && !btor_passdown_lingeling_options (smgr, optstr, 0))
+    return 0;
 
   smgr->name = "Lingeling";
 
@@ -796,6 +911,8 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr)
 
   btor_msg_sat (
       smgr, 1, "Lingeling allows both incremental and non-incremental mode");
+
+  return 1;
 }
 #endif
 
@@ -813,7 +930,8 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   BTOR_ABORT_SAT (smgr->initialized,
                   "'btor_init_sat' called before 'btor_enable_minisat_sat'");
 
-  smgr->name = "MiniSAT";
+  smgr->name   = "MiniSAT";
+  smgr->optstr = 0;
 
   smgr->api.init             = btor_minisat_init;
   smgr->api.add              = btor_minisat_add;
