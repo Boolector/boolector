@@ -172,6 +172,9 @@ static const char *g_usage =
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
+    "  --in-depth <w>                   incremental in-depth mode width <w>\n"
+    "  --look-ahead <w>                 incremental lookahead mode width <w>\n"
+    "  --interval <w>                   incremental interval mode width <w>\n"
     "  -uaincreset                      reset under approximation bit-width\n"
     "                                   in incremental under-approximation "
     "mode\n"
@@ -200,8 +203,10 @@ static const char *g_usage =
     "solver\n"
 #endif
 #ifdef BTOR_USE_LINGELING
-    "  -lingeling                       enforce usage of Lingeling as SAT "
+    "  -lingeling[,<opt>=<val>]*        enforce usage of Lingeling as SAT "
     "solver\n"
+    "  -l[,<opt>=<val>]*                set lingeling option(s) "
+    "'--<opt>=<val>\n"
 #endif
 #ifdef BTOR_USE_MINISAT
     "  -minisat                         enforce usage of MiniSAT as SAT "
