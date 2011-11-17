@@ -1956,10 +1956,10 @@ set_simplified_exp (Btor *btor,
   erase_local_data_exp (btor, exp, 0);
   btor->ops[BTOR_PROXY_EXP]++;
   assert (exp->arity <= 3);
+  memset (e, 0, sizeof e);
   for (i = 0; i < exp->arity; i++) e[i] = exp->e[i];
   remove_from_hash_tables (btor, exp);
   disconnect_children_exp (btor, exp);
-  assert (exp->arity <= 3);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
   exp->kind         = BTOR_PROXY_EXP;
   exp->disconnected = 0;
