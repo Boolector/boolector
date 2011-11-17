@@ -1623,15 +1623,15 @@ find_parser (BtorBTORParser *parser, const char *op)
 }
 
 static BtorBTORParser *
-btor_new_btor_parser (Btor *btor, int verbosity, int incremental, int model)
+btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorMemMgr *mem = btor->mm;
   BtorBTORParser *res;
 
-  (void) incremental;
-  (void) model;  // TODO use this!
+  (void) opts->incremental;  // TODO what about incremental?
+  (void) opts->need_model;   // TODO use at least this
 
-  assert (verbosity >= -1);
+  assert (opts->verbosity >= -1);
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
@@ -1709,7 +1709,7 @@ btor_new_btor_parser (Btor *btor, int verbosity, int incremental, int model)
   new_parser (res, parse_xor, "xor");
   new_parser (res, parse_zero, "zero");
 
-  res->verbosity = verbosity;
+  res->verbosity = opts->verbosity;
 
   return res;
 }

@@ -28,13 +28,13 @@
 
 #include <stdio.h>
 
+typedef struct BtorParseOpt BtorParseOpt;
 typedef struct BtorParser BtorParser;
 typedef struct BtorParseResult BtorParseResult;
 typedef struct BtorParserAPI BtorParserAPI;
-typedef BtorParser *(*BtorInitParser) (Btor *,
-                                       int verbosity,
-                                       int incremental,
-                                       int needmodel);
+
+typedef BtorParser *(*BtorInitParser) (Btor *, BtorParseOpt *);
+
 typedef void (*BtorResetParser) (void *);
 
 typedef char *(*BtorParse) (BtorParser *,
@@ -51,6 +51,27 @@ enum BtorParseSATStatus
 };
 
 typedef enum BtorParseSATStatus BtorParseSATStatus;
+
+enum BtorParseMode
+{
+  BTOR_PARSE_MODE_BASIC_INCREMENTAL        = 1,
+  BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE = 2,
+  BTOR_PARSE_MODE_UAINCRESET               = 4,
+  BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH     = 8,
+  BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD   = 16,
+  BTOR_PARSE_MODE_INCREMENTAL_INTERVAL     = 32,
+  BTOR_PARSE_MODE_INCREMENTAL_WITH_WINDOW  = (8 | 16 | 32),
+};
+
+typedef enum BtorParseMode BtorParseMode;
+
+struct BtorParseOpt
+{
+  BtorParseMode incremental;
+  int verbosity;
+  int need_model;
+  int width;
+};
 
 struct BtorParseResult
 {

@@ -664,7 +664,7 @@ insert_symbol (BtorSMTParser *parser, const char *name)
 }
 
 static BtorSMTParser *
-btor_new_smt_parser (Btor *btor, int verbosity, int incremental, int model)
+btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMTSymbol *bind, *translated;
   BtorMemMgr *mem = btor->mm;
@@ -672,27 +672,34 @@ btor_new_smt_parser (Btor *btor, int verbosity, int incremental, int model)
   unsigned char type;
   int ch;
 
-  assert (!(incremental & 4) || (incremental & 3));
+#ifndef NDEBUG
+  if ((opts->incremental & BTOR_PARSE_MODE_UAINCRESET))
+    assert ((opts->incremental
+             & (BTOR_PARSE_MODE_BASIC_INCREMENTAL
+                | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)));
+#endif
 
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
-  res->verbosity   = verbosity;
-  res->incremental = incremental;
-  res->model       = model;
+  res->verbosity   = opts->verbosity;
+  res->incremental = opts->incremental;
+  res->model       = opts->need_model;
 
-  if (incremental) btor->msgtick = 0;
+  if (opts->incremental) btor->msgtick = 0;
 
   btor_smt_message (res, 2, "initializing SMT parser");
-  if (incremental & 3)
+  if (opts->incremental
+      & (BTOR_PARSE_MODE_BASIC_INCREMENTAL
+         | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE))
   {
     btor_smt_message (res, 2, "incremental checking of SMT benchmark");
-    if (incremental & 1)
+    if (opts->incremental & BTOR_PARSE_MODE_BASIC_INCREMENTAL)
       btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
-    else if (incremental & 2)
+    else if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
       btor_smt_message (res, 2, "check all ':formula' for satisfiability");
 
-    if (incremental & 4)
+    if (opts->incremental & BTOR_PARSE_MODE_UAINCRESET)
       btor_smt_message (
           res, 2, "resetting effective bit-width at each incremental step");
   }
@@ -2667,7 +2674,8 @@ translate_benchmark (BtorSMTParser *parser,
   }
 
   for (p = top;
-       (parser->incremental != 1 || res->result != BTOR_PARSE_SAT_STATUS_SAT)
+       ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+        || res->result != BTOR_PARSE_SAT_STATUS_SAT)
        && p;
        p = cdr (p))
   {
@@ -2777,7 +2785,7 @@ translate_benchmark (BtorSMTParser *parser,
 
           btor_release_exp (parser->btor, exp);
 
-          if (parser->incremental & 4)
+          if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
             btor_reset_effective_bit_widths (parser->btor);
           satres = btor_sat_btor (parser->btor);
           if (satres == BTOR_SAT)

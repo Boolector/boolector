@@ -807,11 +807,11 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "-incremental")
              || !strcmp (app->argv[app->argpos], "--incremental"))
     {
-      app->incremental |= 1;
+      app->incremental |= BTOR_PARSE_MODE_BASIC_INCREMENTAL;
     }
     else if (!strcmp (app->argv[app->argpos], "-I"))
     {
-      app->incremental |= 2;
+      app->incremental |= BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
     }
     else if (parse_option_with_int_value (app, "in-depth", &app->indepth))
     {
@@ -839,7 +839,7 @@ parse_commandline_arguments (BtorMainApp *app)
     }
     else if (!strcmp (app->argv[app->argpos], "-uaincreset"))
     {
-      app->incremental |= 4;
+      app->incremental |= BTOR_PARSE_MODE_UAINCRESET;
     }
     else if (!strcmp (app->argv[app->argpos], "-t"))
     {
@@ -1120,17 +1120,21 @@ parse_commandline_arguments (BtorMainApp *app)
   if (!app->err && !app->incremental
       && (app->indepth || app->lookahead || app->interval))
   {
-    app->incremental = 1;
+    app->incremental = BTOR_PARSE_MODE_BASIC_INCREMENTAL;
   }
 
-  if (!app->err && (app->incremental & 4) && !(app->incremental & 3))
+  if (!app->err && (app->incremental & BTOR_PARSE_MODE_UAINCRESET)
+      && !(app->incremental
+           & (BTOR_PARSE_MODE_BASIC_INCREMENTAL
+              | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)))
   {
     print_err_va_args (
         app, "Can only use '-uaincreset' in combination with '-i' or '-I");
     app->err = 1;
   }
 
-  if (!app->err && (app->incremental & 4) && !(app->ua))
+  if (!app->err && (app->incremental & BTOR_PARSE_MODE_UAINCRESET)
+      && !(app->ua))
   {
     print_err_va_args (
         app, "Can only use '-uaincreset' in combination with '-ua' etc");
@@ -1255,7 +1259,8 @@ boolector_main (int argc, char **argv)
   BtorExpPtrStack arraystack;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
-  BtorMemMgr *mem                 = NULL;
+  BtorParseOpt parse_opt;
+  BtorMemMgr *mem = NULL;
   BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state, *tmp, *all;
   BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
   BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
@@ -1342,6 +1347,25 @@ boolector_main (int argc, char **argv)
 
   if (!app.done && !app.err)
   {
+    parse_opt.verbosity   = app.verbosity;
+    parse_opt.incremental = app.incremental;
+    if (app.indepth)
+    {
+      parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
+      parse_opt.width = app.indepth;
+    }
+    else if (app.lookahead)
+    {
+      parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
+      parse_opt.width = app.lookahead;
+    }
+    else if (app.interval)
+    {
+      parse_opt.incremental |= BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
+      parse_opt.width = app.interval;
+    }
+    parse_opt.need_model = app.print_model;
+
     BTOR_INIT_STACK (prefix);
 
     btor_static_btor = btor = btor_new_btor ();
@@ -1496,8 +1520,7 @@ boolector_main (int argc, char **argv)
       }
     }
 
-    parser = parser_api->init (
-        btor, app.verbosity, app.incremental, app.print_model);
+    parser = parser_api->init (btor, &parse_opt);
 
     if (app.incremental)
     {

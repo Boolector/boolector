@@ -59,6 +59,7 @@ main (int argc, char **argv)
   BtorAIGPtrStack regs;
   BtorAIGPtrStack nexts;
   BtorAIGPtrStack aigs;
+  BtorParseOpt parse_opt;
   BtorParser *parser;
   BtorAIGMgr *amgr;
   BtorMemMgr *mem;
@@ -113,7 +114,10 @@ main (int argc, char **argv)
   btor = btor_new_btor ();
   btor_set_verbosity_btor (btor, verbosity);
   btor_set_rewrite_level_btor (btor, 1);
-  parser = btor_btor_parser_api ()->init (btor, verbosity, 0, 0);
+
+  BTOR_CLR (&parse_opt);
+
+  parser = btor_btor_parser_api ()->init (btor, &parse_opt);
 
   parse_error = btor_btor_parser_api ()->parse (
       parser, 0, input_file, input_name, &model);

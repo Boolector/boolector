@@ -642,14 +642,14 @@ btor_insert_logics_smt2 (BtorSMT2Parser *parser)
 }
 
 static BtorSMT2Parser *
-btor_new_smt2_parser (Btor *btor, int verbosity, int incremental, int model)
+btor_new_smt2_parser (Btor *btor, BtorParseOpt *opts)
 {
   BtorSMT2Parser *res;
   BTOR_NEW (btor->mm, res);
   BTOR_CLR (res);
-  res->verbosity   = verbosity;
-  res->incremental = incremental;
-  res->model       = model;
+  res->verbosity   = opts->verbosity;
+  res->incremental = opts->incremental;
+  res->model       = opts->need_model;
   res->btor        = btor;
   res->mem         = btor->mm;
 
