@@ -228,6 +228,8 @@ btor_precond_eq_exp_dbg (const Btor *btor, const BtorExp *e0, const BtorExp *e1)
   is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
   is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
 
+  assert (real_e0);
+  assert (real_e1);
   assert (real_e0->simplified == NULL);
   assert (real_e1->simplified == NULL);
   assert (is_array_e0 == is_array_e1);
@@ -4797,7 +4799,7 @@ btor_dump_smt_id (BtorExp *e, FILE *file)
   else
     type = "?e";
 
-  fprintf (file, "%s%d", type, u->id);
+  fprintf (file, "%s%d", type, u ? u->id : -1);
 
 CLOSE:
   if (u != e) fputc (')', file);
@@ -4883,7 +4885,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
 
     assert (BTOR_IS_REGULAR_EXP (e));
 
-    if (BTOR_IS_BV_VAR_EXP (e) || BTOR_IS_ARRAY_VAR_EXP (e)) continue;
+    if (!e || BTOR_IS_BV_VAR_EXP (e) || BTOR_IS_ARRAY_VAR_EXP (e)) continue;
 
     lets++;
 
@@ -5449,6 +5451,7 @@ compute_basic_ua_stats (Btor *btor,
   for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
   {
     cur = (BtorExp *) b->key;
+    assert (cur);
     assert (!BTOR_IS_INVERTED_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
 
@@ -6619,7 +6622,7 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
   {
     bfs (btor, acc, array);
     prev = NULL;
-    for (cur = array; cur != acc; cur = cur->parent)
+    for (cur = array; cur && cur != acc; cur = cur->parent)
     {
       assert (cur != NULL);
       assert (BTOR_IS_REGULAR_EXP (cur));
@@ -8495,9 +8498,11 @@ substitute_var_exps (Btor *btor, int check_cyclic)
     /* we look for cycles */
     for (b = substs->first; b != NULL; b = b->next)
     {
+#ifndef NDEBUG
       cur = (BtorExp *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
+#endif
       BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
 
       /* we assume that there are no direct loops
