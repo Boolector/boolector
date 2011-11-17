@@ -168,7 +168,7 @@ delete_aig_unique_table_entry (BtorAIGMgr *amgr, BtorAIG *aig)
   prev = NULL;
   hash = compute_aig_hash (aig, amgr->table.size);
   cur  = amgr->table.chains[hash];
-  while (cur != aig && cur != NULL)
+  while (cur != aig)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
     prev = cur;

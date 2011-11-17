@@ -706,7 +706,7 @@ remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
   hash = compute_hash_exp (exp, btor->table.size);
   prev = NULL;
   cur  = btor->table.chains[hash];
-  while (cur != exp && cur != NULL)
+  while (cur != exp)
   {
     assert (BTOR_IS_REGULAR_EXP (cur));
     prev = cur;
@@ -4582,7 +4582,8 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
 
-  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
+  if (stack.start)
+    qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
