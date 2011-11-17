@@ -17,6 +17,8 @@ SRC=$(shell ls *.c *.h *.cc)
 all: libboolector.a boolector test synthebtor deltabtor basicbtor
 all: dimacs2smt2
 -include dependencies
+analyze:
+	clang --analyze $(SRC)
 btorpreco.o: btorsat.h btorpreco.h btorpreco.cc makefile
 btorminisat.o: btorsat.h btorminisat.h btorminisat.cc makefile
 	$(CC) $(shell echo '$(CFLAGS)'|sed -e 's,-Wall -Wextra ,,') -c btorminisat.cc
@@ -46,4 +48,4 @@ clean:
 	rm -f *.gcda *.gcno *.gcov 
 	rm -f log/*.log *.tmp
 	rm -f dependencies makefile btorconfig.h
-.PHONY: all clean
+.PHONY: all analyze clean
