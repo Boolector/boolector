@@ -83,6 +83,18 @@
 
 #define BTOR_POP_STACK(stack) (*--(stack).top)
 
+#define BTOR_DEQUEUE_STACK(stack, dequeued)   \
+  do                                          \
+  {                                           \
+    typeof((stack).start[0]) *BTOR_DEQUEUE_P; \
+    assert (!BTOR_EMPTY_STACK (stack));       \
+    (dequeued)     = (stack).start[0];        \
+    BTOR_DEQUEUE_P = (stack).start;           \
+    while (++BTOR_DEQUEUE_P < (stack).top)    \
+      BTOR_DEQUEUE_P[-1] = BTOR_DEQUEUE_P[0]; \
+    (stack).top--;                            \
+  } while (0)
+
 #define BTOR_TOP_STACK(stack) ((stack).top[-1])
 
 BTOR_DECLARE_STACK (Int, int);

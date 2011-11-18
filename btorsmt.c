@@ -198,7 +198,7 @@ struct BtorSMTParser
   } assumptions;
   struct
   {
-    int parsed, handled, checkd;
+    int parsed, handled, checked;
   } formulas;
 
   const char *name;
@@ -427,7 +427,7 @@ btor_smt_message (BtorSMTParser *parser, int level, const char *fmt, ...)
 
   fflush (stdout);
   fprintf (stdout, "[btorsmt] ");
-  if (parser->incremental) printf ("%d : ", parser->formulas.handled);
+  if (parser->incremental) printf ("%d : ", parser->formulas.checked);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -2603,6 +2603,57 @@ translate_formula (BtorSMTParser *parser, BtorSMTNode *root)
   return btor_copy_exp (parser->btor, exp);
 }
 
+static void
+btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
+                                     BtorParseResult *res,
+                                     BtorExp *exp)
+{
+  int satres;
+  assert (parser->formulas.checked < parser->formulas.parsed);
+  if (parser->formulas.checked + 1 == parser->formulas.parsed)
+  {
+    btor_smt_message (parser,
+                      3,
+                      "adding last ':formula' %d permanently",
+                      parser->formulas.checked);
+    btor_add_constraint_exp (parser->btor, exp);
+  }
+  else
+  {
+    btor_smt_message (parser,
+                      3,
+                      "adding ':formula' %d as assumption",
+                      parser->formulas.checked);
+    btor_add_assumption_exp (parser->btor, exp);
+  }
+  btor_release_exp (parser->btor, exp);
+
+  if (parser->incremental & BTOR_PARSE_MODE_UAINCRESET)
+    btor_reset_effective_bit_widths (parser->btor);
+
+  satres = btor_sat_btor (parser->btor);
+  if (satres == BTOR_SAT)
+  {
+    btor_smt_message (parser, 0, "':formula' %d SAT", parser->formulas.checked);
+    res->result = BTOR_PARSE_SAT_STATUS_SAT;
+  }
+  else
+  {
+    assert (satres == BTOR_UNSAT);
+    btor_smt_message (
+        parser, 0, "':formula' %d UNSAT", parser->formulas.checked);
+    if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
+      res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
+  }
+  if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
+
+  assert (parser->btor->msgtick == parser->formulas.checked);
+  if (++parser->btor->msgtick == parser->formulas.parsed)
+    parser->btor->msgtick = -1;
+
+  parser->formulas.checked++;
+}
+
 static char *
 translate_benchmark (BtorSMTParser *parser,
                      BtorSMTNode *top,
@@ -2612,7 +2663,6 @@ translate_benchmark (BtorSMTParser *parser,
   BtorSMTNode *p, *node, *q;
   BtorSMTToken status;
   BtorExp *exp;
-  int satres;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
@@ -2804,11 +2854,12 @@ translate_benchmark (BtorSMTParser *parser,
           assert (missing >= 0);
 
           if (!missing
-              || parser->formulas.handled + 1 == parser->formulas.parsed)
+              || parser->formulas.checked + 1 == parser->formulas.parsed)
           {
-            int finish this;
+            BtorExp *next;
             BTOR_PUSH_STACK (parser->mem, parser->window, exp);
-            parser->formulas.checked++;
+            BTOR_DEQUEUE_STACK (parser->window, next);
+            btor_smt_parser_inc_add_release_sat (parser, res, next);
           }
           else
           {
@@ -2824,53 +2875,7 @@ translate_benchmark (BtorSMTParser *parser,
           }
         }
         else
-        {
-          assert (parser->formulas.handled < parser->formulas.parsed);
-          if (parser->formulas.handled + 1 == parser->formulas.parsed)
-          {
-            btor_smt_message (parser,
-                              3,
-                              "adding last ':formula' %d permanently",
-                              parser->formulas.handled);
-            btor_add_constraint_exp (parser->btor, exp);
-          }
-          else
-          {
-            btor_smt_message (parser,
-                              3,
-                              "adding ':formula' %d as assumption",
-                              parser->formulas.handled);
-            btor_add_assumption_exp (parser->btor, exp);
-          }
-
-          btor_release_exp (parser->btor, exp);
-
-          if (parser->incremental & BTOR_PARSE_MODE_UAINCRESET)
-            btor_reset_effective_bit_widths (parser->btor);
-
-          satres = btor_sat_btor (parser->btor);
-          if (satres == BTOR_SAT)
-          {
-            btor_smt_message (
-                parser, 0, "':formula' %d SAT", parser->formulas.handled);
-            res->result = BTOR_PARSE_SAT_STATUS_SAT;
-          }
-          else
-          {
-            assert (satres == BTOR_UNSAT);
-            btor_smt_message (
-                parser, 0, "':formula' %d UNSAT", parser->formulas.handled);
-            if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
-              res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
-          }
-          if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
-
-          assert (parser->btor->msgtick == parser->formulas.handled);
-          if (++parser->btor->msgtick == parser->formulas.parsed)
-            parser->btor->msgtick = -1;
-
-          parser->formulas.checked++;
-        }
+          btor_smt_parser_inc_add_release_sat (parser, res, exp);
 
         parser->formulas.handled++;
 
@@ -2892,9 +2897,49 @@ translate_benchmark (BtorSMTParser *parser,
     }
   }
 
+  if (!BTOR_EMPTY_STACK (parser->window))
+  {
+    assert (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_WINDOW);
+    if ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+        || res->result != BTOR_PARSE_SAT_STATUS_SAT)
+    {
+      btor_smt_message (parser,
+                        1,
+                        "finished parsing + added all assumptions in "
+                        "incremental window %d mode",
+                        parser->max_window_size);
+      btor_smt_message (parser,
+                        1,
+                        "still need to work on %d remaining unchecked formulas",
+                        BTOR_COUNT_STACK (parser->window));
+      while (
+          !BTOR_EMPTY_STACK (parser->window)
+          && ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
+              || res->result != BTOR_PARSE_SAT_STATUS_SAT))
+      {
+        BtorExp *next;
+        BTOR_DEQUEUE_STACK (parser->window, next);
+        btor_smt_parser_inc_add_release_sat (parser, res, next);
+      }
+    }
+  }
+
   if (parser->required_logic == BTOR_LOGIC_QF_AUFBV
       && res->logic == BTOR_LOGIC_QF_BV)
-    return btor_perr_smt (parser, "need QF_AUFBV but only QF_BV specified");
+  {
+    if (parser->incremental)
+    {
+      btor_smt_message (
+          parser,
+          0,
+          "need QF_AUFBV but only QF_BV specified in incremental mode");
+      res->logic = BTOR_LOGIC_QF_AUFBV;
+    }
+    else
+      return btor_perr_smt (
+          parser,
+          "need QF_AUFBV but only QF_BV specified in non-incremental mode");
+  }
 
   if (parser->required_logic == BTOR_LOGIC_QF_BV
       && res->logic == BTOR_LOGIC_QF_AUFBV)

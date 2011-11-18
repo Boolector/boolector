@@ -828,6 +828,11 @@ parse_commandline_arguments (BtorMainApp *app)
         print_err (app, "argument to '-look-ahead' smaller than 1\n");
         app->err = 1;
       }
+
+      print_err (
+          app,
+          "option '-loook-ahead' not fully working yet (only '-in-depth')");
+      app->err = 1;
     }
     else if (parse_option_with_int_value (app, "interval", &app->interval))
     {
@@ -836,6 +841,10 @@ parse_commandline_arguments (BtorMainApp *app)
         print_err (app, "argument to '-interval' smaller than 1\n");
         app->err = 1;
       }
+
+      print_err (app,
+                 "option '-interval' not fully working yet (only '-in-depth')");
+      app->err = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-uaincreset"))
     {
