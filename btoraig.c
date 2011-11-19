@@ -1609,7 +1609,10 @@ btor_rebuild_all_aig (BtorAIGMgr *amgr)
         map = btor_and_aig (amgr, l, r);
       }
       else
+      {
         map = btor_map_aig (repr);
+        inc_aig_ref_counter (map);
+      }
 
       if (map == node)
       {
