@@ -100,6 +100,23 @@ test_functionality_stack (void)
 }
 
 static void
+test_fit_stack (void)
+{
+  BtorIntStack stack;
+  int i;
+  BTOR_INIT_STACK (stack);
+  for (i = 0; i < 100; i++)
+  {
+    BTOR_FIT_STACK (g_mm, stack, i);
+    stack.start[i] = i;
+  }
+  for (i = 0; i < 100; i++) assert (stack.start[i] == i);
+  BTOR_FIT_STACK (g_mm, stack, 999);
+  for (i = 100; i < 1000; i++) assert (!stack.start[i]);
+  BTOR_RELEASE_STACK (g_mm, stack);
+}
+
+static void
 test_reset_stack (void)
 {
   BtorIntStack stack;
@@ -125,6 +142,7 @@ run_stack_tests (int argc, char **argv)
   BTOR_RUN_TEST (init_release_stack);
   BTOR_RUN_TEST (functionality_stack);
   BTOR_RUN_TEST (reset_stack);
+  BTOR_RUN_TEST (fit_stack);
 }
 
 void

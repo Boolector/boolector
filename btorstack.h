@@ -28,6 +28,7 @@
 #include "btormem.h"
 
 #include <assert.h>
+#include <stdlib.h>
 
 #define BTOR_DECLARE_STACK(name, type)                \
   typedef struct Btor##name##Stack Btor##name##Stack; \
@@ -67,11 +68,26 @@
 #define BTOR_ENLARGE_STACK(mm, stack)                       \
   do                                                        \
   {                                                         \
-    int old_size  = BTOR_SIZE_STACK (stack), new_size;      \
-    int old_count = BTOR_COUNT_STACK (stack);               \
+    size_t old_size  = BTOR_SIZE_STACK (stack), new_size;   \
+    size_t old_count = BTOR_COUNT_STACK (stack);            \
     BTOR_ENLARGE ((mm), (stack).start, old_size, new_size); \
     (stack).top = (stack).start + old_count;                \
     (stack).end = (stack).start + new_size;                 \
+  } while (0)
+
+#define BTOR_FIT_STACK(mm, stack, idx)                              \
+  do                                                                \
+  {                                                                 \
+    size_t old_size = BTOR_SIZE_STACK (stack), old_count, new_size; \
+    if (old_size > (size_t) (idx)) break;                           \
+    old_count = BTOR_COUNT_STACK (stack);                           \
+    new_size  = old_size ? 2 * old_size : 1;                        \
+    while (new_size <= (size_t) (idx)) new_size *= 2;               \
+    assert ((new_size) > (size_t) (idx));                           \
+    BTOR_REALLOC ((mm), (stack).start, old_size, new_size);         \
+    (stack).top = (stack).start + old_count;                        \
+    (stack).end = (stack).start + new_size;                         \
+    BTOR_CLRN ((stack).top + old_size, new_size - old_size);        \
   } while (0)
 
 #define BTOR_PUSH_STACK(mm, stack, elem)                               \
