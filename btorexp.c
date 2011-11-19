@@ -77,7 +77,7 @@ static const char *const g_op2string[] = {
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
 #if 1
-#define BTOR_SAT_MIN_LIMIT 10000
+#define BTOR_SAT_MIN_LIMIT 20000
 #else
 #define BTOR_SAT_MIN_LIMIT 1
 #endif
@@ -10195,7 +10195,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = 0;  // BTOR_SAT_MIN_LIMIT;
+  limit      = BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
