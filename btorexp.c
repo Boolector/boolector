@@ -77,7 +77,7 @@ static const char *const g_op2string[] = {
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
 #if 1
-#define BTOR_SAT_MIN_LIMIT 00000
+#define BTOR_SAT_MIN_LIMIT 10000
 #else
 #define BTOR_SAT_MIN_LIMIT 1
 #endif
