@@ -456,7 +456,7 @@ btor_simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
   if ((sign = (repr < 0))) repr = -repr;
   assert (repr < BTOR_SIZE_STACK (amgr->id2aig));
   res = amgr->id2aig.start[repr];
-  assert (res);
+  if (!res) return aig;
   if (sign) res = BTOR_INVERT_AIG (res);
   return res;
 }
