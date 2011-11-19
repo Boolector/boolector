@@ -31,6 +31,7 @@ void *btor_minisat_init (struct BtorSATMgr *);
 void btor_minisat_add (struct BtorSATMgr *, int);
 int btor_minisat_sat (struct BtorSATMgr *, int);
 int btor_minisat_deref (struct BtorSATMgr *, int);
+int btor_minisat_repr (struct BtorSATMgr *, int);
 void btor_minisat_reset (struct BtorSATMgr *);
 void btor_minisat_set_output (struct BtorSATMgr *, FILE *);
 void btor_minisat_set_prefix (struct BtorSATMgr *, const char *);

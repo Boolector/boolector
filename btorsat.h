@@ -52,6 +52,7 @@ struct BtorSATMgr
     void (*add) (BtorSATMgr *, int);
     int (*sat) (BtorSATMgr *, int);
     int (*deref) (BtorSATMgr *, int);
+    int (*repr) (BtorSATMgr *, int);
     int (*fixed) (BtorSATMgr *, int);
     void (*reset) (BtorSATMgr *);
     void (*set_output) (BtorSATMgr *, FILE *);
@@ -155,6 +156,13 @@ int btor_sat_sat (BtorSATMgr *smgr, int limit);
  * Do not call before calling btor_sat_sat.
  */
 int btor_deref_sat (BtorSATMgr *smgr, int lit);
+
+/* Gets equivalence class represenative of a literal
+ * or the literal itself if it is in a singleton
+ * equivalence, fixed or eliminated.
+ * Do not call before calling btor_sat_sat.
+ */
+int btor_repr_sat (BtorSATMgr *smgr, int lit);
 
 /* Gets assignment of a literal (in the SAT case)
  * similar to 'deref', but only consider top level.

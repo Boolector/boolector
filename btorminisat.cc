@@ -160,6 +160,13 @@ btor_minisat_deref (BtorSATMgr *smgr, int lit)
   return solver->deref (lit);
 }
 
+int
+btor_minisat_deref (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  return lit;
+}
+
 void
 btor_minisat_reset (BtorSATMgr *smgr)
 {

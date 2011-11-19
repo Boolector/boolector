@@ -32,6 +32,7 @@ void *btor_precosat_init (struct BtorSATMgr *);
 void btor_precosat_add (struct BtorSATMgr *, int);
 int btor_precosat_sat (struct BtorSATMgr *, int);
 int btor_precosat_deref (struct BtorSATMgr *, int);
+int btor_precosat_repr (struct BtorSATMgr *, int);
 int btor_precosat_fixed (struct BtorSATMgr *, int);
 void btor_precosat_reset (struct BtorSATMgr *);
 void btor_precosat_set_output (struct BtorSATMgr *, FILE *);

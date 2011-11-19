@@ -286,6 +286,16 @@ btor_deref_sat (BtorSATMgr *smgr, int lit)
   return smgr->api.deref (smgr, lit);
 }
 
+int
+btor_repr_sat (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  assert (smgr != NULL);
+  assert (smgr->initialized);
+  assert (abs (lit) <= smgr->maxvar);
+  return smgr->api.repr (smgr, lit);
+}
+
 void
 btor_reset_sat (BtorSATMgr *smgr)
 {
@@ -382,6 +392,7 @@ btor_enable_precosat_sat (BtorSATMgr *smgr)
   smgr->api.add              = btor_precosat_add;
   smgr->api.sat              = btor_precosat_sat;
   smgr->api.deref            = btor_precosat_deref;
+  smgr->api.repr             = btor_precosat_repr;
   smgr->api.reset            = btor_precosat_reset;
   smgr->api.set_output       = btor_precosat_set_output;
   smgr->api.set_prefix       = btor_precosat_set_prefix;
@@ -442,6 +453,13 @@ btor_picosat_deref (BtorSATMgr *smgr, int lit)
 {
   (void) smgr;
   return picosat_deref (lit);
+}
+
+static int
+btor_picosat_repr (BtorSATMgr *smgr, int lit)
+{
+  (void) smgr;
+  return lit;
 }
 
 static void
@@ -542,6 +560,7 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
   smgr->api.add              = btor_picosat_add;
   smgr->api.sat              = btor_picosat_sat;
   smgr->api.deref            = btor_picosat_deref;
+  smgr->api.repr             = btor_picosat_repr;
   smgr->api.reset            = btor_picosat_reset;
   smgr->api.set_output       = btor_picosat_set_output;
   smgr->api.set_prefix       = btor_picosat_set_prefix;
@@ -780,6 +799,13 @@ btor_lingeling_deref (BtorSATMgr *smgr, int lit)
   return lglderef (blgl->lgl, lit);
 }
 
+static int
+btor_lingeling_repr (BtorSATMgr *smgr, int lit)
+{
+  BtorLGL *blgl = smgr->solver;
+  return lglrepr (blgl->lgl, lit);
+}
+
 static void
 btor_lingeling_reset (BtorSATMgr *smgr)
 {
@@ -893,6 +919,7 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr)
   smgr->api.add              = btor_lingeling_add;
   smgr->api.sat              = btor_lingeling_sat;
   smgr->api.deref            = btor_lingeling_deref;
+  smgr->api.repr             = btor_lingeling_repr;
   smgr->api.fixed            = btor_lingeling_fixed;
   smgr->api.reset            = btor_lingeling_reset;
   smgr->api.set_output       = btor_lingeling_set_output;
@@ -937,6 +964,7 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
   smgr->api.add              = btor_minisat_add;
   smgr->api.sat              = btor_minisat_sat;
   smgr->api.deref            = btor_minisat_deref;
+  smgr->api.repr             = btor_minisat_repr;
   smgr->api.fixed            = btor_minisat_fixed;
   smgr->api.reset            = btor_minisat_reset;
   smgr->api.set_output       = btor_minisat_set_output;

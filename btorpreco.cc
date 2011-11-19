@@ -92,6 +92,13 @@ btor_precosat_deref (BtorSATMgr* smgr, int lit)
 }
 
 int
+btor_precosat_repr (BtorSATMgr* smgr, int lit)
+{
+  (void) smgr;
+  return lit;
+}
+
+int
 btor_precosat_fixed (BtorSATMgr* smgr, int lit)
 {
   (void) smgr;
