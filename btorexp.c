@@ -10195,7 +10195,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = BTOR_SAT_MIN_LIMIT;
+  limit      = 0;  // BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
