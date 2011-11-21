@@ -144,8 +144,13 @@ typedef struct BtorSlice BtorSlice;
 
 static void add_constraint (Btor *, BtorExp *);
 static void run_rewrite_engine (Btor *, int);
-static void abstract_domain_bv_variables (Btor *);
 static void eliminate_slices_on_bv_vars (Btor *);
+
+#define BTOR_NADBV
+
+#ifndef BTOR_NADBV
+static void abstract_domain_bv_variables (Btor *);
+#endif
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -8698,7 +8703,7 @@ process_embedded_constraints (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor, int full)
 {
-  int rewrite_level, inc_enabled, model_gen, check_cyclic;
+  int rewrite_level, inc_enabled, check_cyclic;
 
   assert (btor != NULL);
 
@@ -8706,7 +8711,6 @@ run_rewrite_engine (Btor *btor, int full)
 
   rewrite_level = btor->rewrite_level;
   inc_enabled   = btor->inc_enabled;
-  model_gen     = btor->model_gen;
   check_cyclic  = 1;
 
   if (rewrite_level > 1)
@@ -8747,13 +8751,14 @@ run_rewrite_engine (Btor *btor, int full)
       } while (btor->varsubst_constraints->count > 0u
                || btor->embedded_constraints->count > 0u);
 
-      if (rewrite_level > 2 && !inc_enabled && !model_gen)
+#ifndef BTOR_NADBV
+      if (rewrite_level > 2 && !inc_enabled && !btor->model_gen)
       {
         abstract_domain_bv_variables (btor);
         if (btor->inconsistent) return;
         check_cyclic = 0;
       }
-
+#endif
     } while (btor->varsubst_constraints->count > 0u
              || btor->embedded_constraints->count > 0u);
   }
@@ -9788,6 +9793,8 @@ eliminate_slices_on_bv_vars (Btor *btor)
   BTOR_RELEASE_STACK (mm, vars);
 }
 
+#ifndef BTOR_NADBV
+
 static int
 restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
 {
@@ -9942,6 +9949,7 @@ abstract_domain_bv_variables (Btor *btor)
   BTOR_RELEASE_STACK (mm, vars);
   BTOR_RELEASE_STACK (mm, stack);
 }
+#endif
 
 static int
 rebuild_synthesized_exps (Btor *btor)
