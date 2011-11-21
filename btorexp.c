@@ -10194,15 +10194,20 @@ btor_sat_aux_btor (Btor *btor)
       rebuild_synthesized_aigs (btor);
       if (btor->inconsistent)
       {
+      UNSAT_BREAK:
         sat_result = BTOR_UNSAT;
         break;
       }
+
       rebuild_synthesized_exps (btor);
-      if (btor->inconsistent)
-      {
-        sat_result = BTOR_UNSAT;
-        break;
-      }
+      run_rewrite_engine (btor, 0);
+      if (btor->inconsistent) goto UNSAT_BREAK;
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      found_constraint_false = process_unsynthesized_constraints (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      if (found_constraint_false) goto UNSAT_BREAK;
+      assert (!btor->inconsistent);
+
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
