@@ -5,6 +5,8 @@
 *.o
 *.a
 *.baf
+*.gch
+*.plist
 cscope.out
 *~
 makefile
