@@ -1,5 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU Linz.
+ *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU Linz.
  *
  *  This file is part of Boolector.
  *
@@ -153,21 +155,65 @@ is_xnor_exp (Btor *btor, BtorExp *exp)
 
 #ifndef BTOR_NO_3VL
 
+static void
+propagate_units_to_3vl (Btor *btor, BtorExp *e)
+{
+  BtorAIG *a, *c, **q;
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorAIGVec *av;
+  char *b, *p;
+
+  e = BTOR_REAL_ADDR_EXP (e);
+
+  if (!(av = e->av)) return;
+
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+
+  b = e->bits;
+  for (p = b, q = av->aigs; *p; p++, q++)
+  {
+    assert (q - av->aigs < av->len);
+    a = *q;
+    c = btor_fixed_aig (amgr, a);
+    if (c == BTOR_AIG_FALSE)
+    {
+      if (*b == 'x')
+        *b = '0';
+      else
+        assert (*b == '0');
+    }
+    else if (c == BTOR_AIG_TRUE)
+    {
+      if (*b == 'x')
+        *b = '1';
+      else
+        assert (*b == '1');
+    }
+  }
+}
+
 static char *
-compute_slice_3vl (Btor *btor, BtorExp *e0, int upper, int lower)
+compute_slice_3vl (Btor *btor, BtorExp *u0, int upper, int lower)
 {
   int invert_e0;
   char *b0, *result;
   BtorMemMgr *mm;
+  BtorExp *e0;
+
+  e0 = btor_pointer_chase_simplified_exp (btor, u0);
+  assert (e0 == u0);
 
   assert (btor != NULL);
   assert (e0 != NULL);
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
   assert (upper < BTOR_REAL_ADDR_EXP (e0)->len);
   assert (upper >= lower);
   assert (lower >= 0);
   assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
   assert (btor->rewrite_level > 1);
+
+  propagate_units_to_3vl (btor, e0);
 
   mm        = btor->mm;
   b0        = BTOR_REAL_ADDR_EXP (e0)->bits;
@@ -364,11 +410,17 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 #ifndef BTOR_NO_3VL
 
 static char *
-compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
+compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *u0, BtorExp *u1)
 {
   int invert_e0, invert_e1, same_children_mem;
   char *b0, *b1, *result;
+  BtorExp *e0, *e1;
   BtorMemMgr *mm;
+
+  e0 = btor_pointer_chase_simplified_exp (btor, u0);
+  e1 = btor_pointer_chase_simplified_exp (btor, u1);
+  assert (e0 == u0);
+  assert (e1 == u1);
 
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -382,6 +434,9 @@ compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
   assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
   assert (btor->rewrite_level > 1);
+
+  propagate_units_to_3vl (btor, e0);
+  propagate_units_to_3vl (btor, e1);
 
   mm        = btor->mm;
   b0        = BTOR_REAL_ADDR_EXP (e0)->bits;
@@ -3592,12 +3647,20 @@ btor_rewrite_write_exp (Btor *btor,
 #ifndef BTOR_NO_3VL
 
 static char *
-compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
+compute_bcond_3vl (Btor *btor, BtorExp *u0, BtorExp *u1, BtorExp *u2)
 {
   int invert_e0, invert_e1, invert_e2;
   char *b0, *b1, *b2, *result;
+  BtorExp *e0, *e1, *e2;
   int same_children_mem;
   BtorMemMgr *mm;
+
+  e0 = btor_pointer_chase_simplified_exp (btor, u0);
+  e1 = btor_pointer_chase_simplified_exp (btor, u1);
+  e2 = btor_pointer_chase_simplified_exp (btor, u2);
+  assert (e0 == u0);
+  assert (e1 == u1);
+  assert (e2 == u2);
 
   assert (btor != NULL);
   assert (e0 != NULL);
@@ -3613,6 +3676,10 @@ compute_bcond_3vl (Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp *e2)
   assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
   assert (BTOR_REAL_ADDR_EXP (e2)->bits != NULL);
   assert (btor->rewrite_level > 1);
+
+  propagate_units_to_3vl (btor, e0);
+  propagate_units_to_3vl (btor, e1);
+  propagate_units_to_3vl (btor, e2);
 
   mm                = btor->mm;
   b0                = BTOR_REAL_ADDR_EXP (e0)->bits;

@@ -167,6 +167,11 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+/* Return a constant aig if the argument aig is fixed to
+ * a constant value.  Otherwise return the original argument.
+ */
+BtorAIG *btor_fixed_aig (BtorAIGMgr *amgr, BtorAIG *aig);
+
 /* Rebuild all AIGs after at least one incremental run of the
  * SAT solver.  You might need to translate the resulting AIGs
  * to CNF again.
