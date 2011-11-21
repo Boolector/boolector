@@ -10137,7 +10137,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = BTOR_SAT_MIN_LIMIT;
+  limit      = 0;  // BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
@@ -10199,15 +10199,16 @@ btor_sat_aux_btor (Btor *btor)
         break;
       }
 
+#if 1
       rebuild_synthesized_exps (btor);
-      run_rewrite_engine (btor, 0);
+      run_rewrite_engine (btor, 1);
       if (btor->inconsistent) goto UNSAT_BREAK;
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       found_constraint_false = process_unsynthesized_constraints (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       if (found_constraint_false) goto UNSAT_BREAK;
       assert (!btor->inconsistent);
-
+#endif
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
