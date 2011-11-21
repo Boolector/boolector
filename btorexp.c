@@ -3678,41 +3678,6 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   len = BTOR_REAL_ADDR_EXP (e0)->len;
   if (len == 1) return btor_and_exp (btor, e0, BTOR_INVERT_EXP (e1));
-#if 0
-  BtorExp *result, *sign_e1, *sign_e2, *rest_e1, *rest_e2, *ult;
-  BtorExp *e1_signed_only, *e1_e2_pos, *e1_e2_signed, *and1, *and2, *or;
-
-  sign_e1 = btor_slice_exp (btor, e0, len - 1, len - 1);
-  sign_e2 = btor_slice_exp (btor, e1, len - 1, len - 1);
-  /* rest_e1: e0 without sign bit */
-  rest_e1 = btor_slice_exp (btor, e0, len - 2, 0);
-  /* rest_e2: e1 without sign bit */
-  rest_e2 = btor_slice_exp (btor, e1, len - 2, 0);
-  /* ult: is rest of e0 < rest of e1 ? */
-  ult = btor_ult_exp (btor, rest_e1, rest_e2);
-  /* e1_signed_only: only e0 is negative */
-  e1_signed_only = btor_and_exp (btor, sign_e1, BTOR_INVERT_EXP (sign_e2));
-  /* e1_e2_pos: e0 and e1 are positive */
-  e1_e2_pos =
-    btor_and_exp (btor, BTOR_INVERT_EXP (sign_e1), BTOR_INVERT_EXP (sign_e2));
-  /* e1_e2_signed: e0 and e1 are negative */
-  e1_e2_signed = btor_and_exp (btor, sign_e1, sign_e2);
-  and1 = btor_and_exp (btor, e1_e2_pos, ult);
-  and2 = btor_and_exp (btor, e1_e2_signed, ult);
-  or = btor_or_exp (btor, and1, and2);
-  result = btor_or_exp (btor, e1_signed_only, or);
-  btor_release_exp (btor, sign_e1);
-  btor_release_exp (btor, sign_e2);
-  btor_release_exp (btor, rest_e1);
-  btor_release_exp (btor, rest_e2);
-  btor_release_exp (btor, ult);
-  btor_release_exp (btor, e1_signed_only);
-  btor_release_exp (btor, e1_e2_pos);
-  btor_release_exp (btor, e1_e2_signed);
-  btor_release_exp (btor, and1);
-  btor_release_exp (btor, and2);
-  btor_release_exp (btor, or);
-#else
   s0                 = btor_slice_exp (btor, e0, len - 1, len - 1);
   s1                 = btor_slice_exp (btor, e1, len - 1, len - 1);
   r0                 = btor_slice_exp (btor, e0, len - 2, 0);
@@ -3734,7 +3699,6 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   btor_release_exp (btor, r);
   btor_release_exp (btor, eq_sign);
   btor_release_exp (btor, eq_sign_and_ult);
-#endif
   return res;
 }
 
@@ -5797,9 +5761,6 @@ static void
 synthesize_array_equality (Btor *btor, BtorExp *aeq)
 {
   BtorExp *index, *read1, *read2;
-#if 0
-  BtorExp *eq, * impl;
-#endif
   BtorAIGVecMgr *avmgr;
   assert (btor != NULL);
   assert (aeq != NULL);
@@ -5824,15 +5785,6 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   read2->vread = 1;
 
   aeq->vreads = new_exp_pair (btor, read1, read2);
-
-#if 0
-  eq = btor_eq_exp (btor, read1, read2);
-  impl = btor_implies_exp (btor, 
-           BTOR_INVERT_EXP (aeq), BTOR_INVERT_EXP(eq));
-  btor_release_exp (btor, eq);
-  insert_unsynthesized_constraint (btor, impl);
-  btor_release_exp (btor, impl);
-#endif
 
   read1->av = btor_var_aigvec (avmgr, read1->len);
   btor->stats.vreads++;
