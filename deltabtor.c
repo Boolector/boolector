@@ -163,6 +163,8 @@ isarrayop (const char* op)
 
   if (!strcmp (op, "write")) return 1;
 
+  if (!strcmp (op, "anext")) return 1;
+
   return 0;
 }
 
@@ -584,6 +586,7 @@ static void
 cone (void)
 {
   int i, true_roots = 0, false_roots = 0, non_trivial_roots = 0, skip;
+  int changed;
 
   rexps = 0;
 
@@ -621,6 +624,18 @@ cone (void)
 
       if (!skip) dfs (i);
     }
+
+  do
+  {
+    changed = 0;
+    for (i = 1; i < nexps; i++)
+      if ((!strcmp (exps[i].op, "anext") || !strcmp (exps[i].op, "next"))
+          && !exps[i].idx && exps[exps[i].child[0]].idx)
+      {
+        dfs (i);
+        changed = 1;
+      }
+  } while (changed);
 }
 
 static void
@@ -803,6 +818,18 @@ min (int a, int b)
   return a < b ? a : b;
 }
 
+static void
+permanent (void)
+{
+  FILE *to = fopen (output_name, "w"), *from = fopen (tmp, "r");
+  int ch;
+  if (!from) die ("can not read '%s'", tmp);
+  if (!to) die ("can not write '%s'", output_name);
+  while ((ch = getc (from)) != EOF) fputc (ch, to);
+  fclose (from);
+  fclose (to);
+}
+
 int
 main (int argc, char** argv)
 {
@@ -890,7 +917,11 @@ main (int argc, char** argv)
   golden = run ();
   msg (1, "golden exit code %d", golden);
 
+#if 0
   rename (tmp, output_name);
+#else
+  permanent ();
+#endif
 
   rounds = 0;
   fixed  = 0;
@@ -974,7 +1005,11 @@ main (int argc, char** argv)
             fixed += overwritten;
 
             msg (2, "fixed %d expressions", overwritten);
-            rename (tmp, output_name);
+#if 0
+		  rename (tmp, output_name);
+#else
+            permanent ();
+#endif
             oexps = rexps;
             msg (2, "saved %d expressions in '%s'", rexps, output_name);
           }

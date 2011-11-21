@@ -76,7 +76,7 @@ static const char *const g_op2string[] = {
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
-#if 1
+#if 0
 #define BTOR_SAT_MIN_LIMIT 20000
 #else
 #define BTOR_SAT_MIN_LIMIT 1
@@ -5918,19 +5918,16 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
         }
         else
         {
-          /* writes cannot be reached directly
-           * we stop the synthesis as soon
-           * we reach reads or array equalities.
-           * if we synthesize writes later,
-           * we only synthesize its index
-           * and value, but not the write itself
-           * if there are no reads or array
-           * equalities on a write, then
-           * it is not reachable
+          /* Writes cannot be reached directly we stop the synthesis
+           * as soon we reach reads or array equalities.  If we
+           * synthesize writes later, we only synthesize its index
+           * and value, but not the write itself if there are no
+           * reads or array equalities on a write, then it is not
+           * reachable.
            */
           assert (!BTOR_IS_WRITE_EXP (cur));
 
-          /* atomic arrays and array conditionals
+          /* Atomic arrays and array conditionals
            * should also not be reached directly */
           assert (!BTOR_IS_ARRAY_VAR_EXP (cur));
           assert (!BTOR_IS_ARRAY_COND_EXP (cur));
@@ -5945,8 +5942,9 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           }
           else if (BTOR_IS_ARRAY_EQ_EXP (cur))
           {
-            /* generate virtual reads and create AIG
-             * variable for array equality */
+            /* Generate virtual reads and create AIG
+             * variable for array equality.
+             */
             synthesize_array_equality (btor, cur);
             BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
             BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
@@ -5955,7 +5953,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
           else
           {
           REGULAR_CASE:
-            /* regular cases */
             cur->synth_mark = 1;
             BTOR_PUSH_STACK (mm, exp_stack, cur);
             for (i = cur->arity - 1; i >= 0; i--)
@@ -5976,18 +5973,15 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             av0        = BTOR_REAL_ADDR_EXP (cur->e[0])->av;
             if (invert_av0) btor_invert_aigvec (avmgr, av0);
             cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
-            /* invert back if necessary */
             if (invert_av0) btor_invert_aigvec (avmgr, av0);
             break;
           case 2:
-            /* we have to check if the children are
-             * in the same memory place
-             * if they are in the same memory place,
-             * then we need to allocate memory for the
-             * AIG vectors
-             * if they are not, then we can invert them
-             * in place and invert them back afterwards
-             * (only if necessary)  */
+            /* We have to check if the children are in the same memory
+             * place if they are in the same memory place. Then we
+             * need to allocate memory for the AIG vectors if they are
+             * not, then we can invert them in place and invert them
+             * back afterwards (only if necessary) .
+             */
             same_children_mem = BTOR_REAL_ADDR_EXP (cur->e[0])
                                 == BTOR_REAL_ADDR_EXP (cur->e[1]);
             if (same_children_mem)
@@ -6046,7 +6040,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             else
             {
-              /* invert back if necessary */
               if (invert_av0) btor_invert_aigvec (avmgr, av0);
               if (invert_av1) btor_invert_aigvec (avmgr, av1);
             }
@@ -6088,7 +6081,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
               }
               else
               {
-                /* invert back if necessary */
                 if (invert_av0) btor_invert_aigvec (avmgr, av0);
                 if (invert_av1) btor_invert_aigvec (avmgr, av1);
                 if (invert_av2) btor_invert_aigvec (avmgr, av2);
@@ -6096,7 +6088,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             break;
         }
-
 #ifndef BTOR_NO_3VL
         if (btor->rewrite_level > 1 && !BTOR_IS_ARRAY_EXP (cur))
           propagate_3vl_to_aigvec (btor, cur);
@@ -6303,8 +6294,8 @@ hash_assignment (BtorExp *exp)
   return hash;
 }
 
-/* This function breath first searches the shortest path from a read to an array
- * After the function is completed the parent pointers can be followed
+/* This function breath first searches the shortest path from a read to an
+ * array After the function is completed the parent pointers can be followed
  * from the array to the read
  */
 static void
@@ -9971,15 +9962,14 @@ rebuild_synthesized_exps (Btor *btor)
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (new_constraints);
 
-  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
+  for (b = btor->synthesized_constraints->first; b; b = b->next)
   {
     cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
-    goto PROBE_EXPS_ENTER_WITHOUT_POP;
+    BTOR_PUSH_STACK (mm, stack, cur);
 
     while (!BTOR_EMPTY_STACK (stack))
     {
       cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    PROBE_EXPS_ENTER_WITHOUT_POP:
       assert (cur->mark == 0 || cur->mark == 1);
 
       if (cur->mark) continue;
@@ -10202,6 +10192,12 @@ btor_sat_aux_btor (Btor *btor)
     if (sat_result == BTOR_UNKNOWN)
     {
       rebuild_synthesized_aigs (btor);
+      if (btor->inconsistent)
+      {
+        sat_result = BTOR_UNSAT;
+        break;
+      }
+      rebuild_synthesized_exps (btor);
       if (btor->inconsistent)
       {
         sat_result = BTOR_UNSAT;
