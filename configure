@@ -2,13 +2,11 @@
 
 debug=unknown
 flto=no
-precosat=no
 lingeling=yes
 minisat=no
 picosat=no
 arch=unknown
 
-onlyprecosat=no
 onlylingeling=no
 onlyminisat=no
 onlypicosat=no
@@ -44,7 +42,6 @@ By specifying one of them 'configure' fails if it can not be used.
 
   --lingeling       use and link with Lingeling (default)
   --picosat         use and link with PicoSAT
-  --precosat        use and link with PrecoSAT
   --minisat         use and link with MiniSAT
 
   --no-lingeling    do not use Lingeling
@@ -63,7 +60,6 @@ do
     -m64|--m64) arch=64;;
     -flto) flto=yes;;
     -picosat|--picosat) picosat=yes;;
-    -precosat|--precosat) precosat=yes;;
     -lingeling|--lingeling) lingeling=yes;;
     -minisat|--minisat) minisat=yes;;
     -no-lingeling|--no-lingeling) lingeling=no;;
@@ -160,51 +156,6 @@ else
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
     OBJS="${OBJS}../picosat/picosat.o ../picosat/version.o"
   fi
-fi
-
-#--------------------------------------------------------------------------#
-
-if [ $precosat = no ]
-then
-  msg "not using PrecoSAT"
-else
-
-  if [ -d ../precosat ]
-  then
-    for path in \
-      ../precosat/precosat.hh \
-      ../precosat/precosat.o \
-      ../precosat/precobnr.o \
-      allfound
-    do
-      [ -f $path ] || break
-    done
-  else
-    path=../precosat
-  fi
-
-  if [ $path = allfound ]
-  then
-    msg "using PrecoSAT in '../precosat'"
-    precosat=yes
-  elif [ $precosat = yes ]
-  then
-    die "impossible to use PrecoSAT: '$path' missing"
-  else
-    msg "disabling PrecoSAT: '$path' missing"
-    precosat=no
-  fi
-
-  if [ $precosat = yes ]
-  then
-    [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
-    [ X"$OBJS" = X ] || OBJS="$OBJS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_PRECOSAT"
-    OBJS="${OBJS}btorpreco.o ../precosat/precosat.o ../precosat/precobnr.o"
-    LIBSTDCPP=yes
-    LIBZ=yes
-  fi
-
 fi
 
 #--------------------------------------------------------------------------#
@@ -306,8 +257,8 @@ fi
 
 #--------------------------------------------------------------------------#
 
-[ $picosat = no -a $lingeling = no ] && \
-  die "either need PicoSAT or Lingeling"
+[ $picosat = no -a $lingeling = no -a $minisat = no] && \
+  die "either need MiniSAT, PicoSAT or Lingeling"
 
 #--------------------------------------------------------------------------#
 

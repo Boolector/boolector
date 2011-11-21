@@ -90,10 +90,10 @@ class BtorMiniSAT : public SimpSolver
     else
       addClause (clause), clause.clear ();
   }
-  int sat (bool needinc)
+  int sat ()
   {
     reset ();
-    bool res = solve (assumptions, !needinc);
+    bool res = solve (assumptions, 0);  // TODO use preprocessor as well
     assumptions.clear ();
     nomodel = !res;
     return res ? 10 : 20;
@@ -150,7 +150,7 @@ btor_minisat_sat (BtorSATMgr *smgr, int limit)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   (void) limit;
-  return solver->sat (smgr->inc.need);
+  return solver->sat ();
 }
 
 int
@@ -161,7 +161,7 @@ btor_minisat_deref (BtorSATMgr *smgr, int lit)
 }
 
 int
-btor_minisat_deref (BtorSATMgr *smgr, int lit)
+btor_minisat_repr (BtorSATMgr *smgr, int lit)
 {
   (void) smgr;
   return lit;

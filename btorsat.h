@@ -48,33 +48,26 @@ struct BtorSATMgr
 
   struct
   {
-    void *(*init) (BtorSATMgr *);
     void (*add) (BtorSATMgr *, int);
-    int (*sat) (BtorSATMgr *, int);
+    void (*assume) (BtorSATMgr *, int);
+    int (*changed) (BtorSATMgr *);
     int (*deref) (BtorSATMgr *, int);
-    int (*repr) (BtorSATMgr *, int);
+    void (*enable_verbosity) (BtorSATMgr *);
+    int (*failed) (BtorSATMgr *, int);
     int (*fixed) (BtorSATMgr *, int);
+    int (*inc_max_var) (BtorSATMgr *);
+    int (*inconsistent) (BtorSATMgr *);
+    void *(*init) (BtorSATMgr *);
+    void (*melt) (BtorSATMgr *, int);
+    int (*repr) (BtorSATMgr *, int);
     void (*reset) (BtorSATMgr *);
+    int (*sat) (BtorSATMgr *, int);
     void (*set_output) (BtorSATMgr *, FILE *);
     void (*set_prefix) (BtorSATMgr *, const char *);
-    void (*enable_verbosity) (BtorSATMgr *);
-    int (*inc_max_var) (BtorSATMgr *);
-    int (*variables) (BtorSATMgr *);
     void (*stats) (BtorSATMgr *);
-  } api;
+    int (*variables) (BtorSATMgr *);
 
-  struct
-  {
-    int need, provides;
-    struct
-    {
-      int (*inconsistent) (BtorSATMgr *);
-      int (*changed) (BtorSATMgr *);
-      void (*assume) (BtorSATMgr *, int);
-      void (*melt) (BtorSATMgr *, int);
-      int (*failed) (BtorSATMgr *, int);
-    } api;
-  } inc;
+  } api;
 };
 
 /*------------------------------------------------------------------------*/
@@ -121,7 +114,7 @@ void btor_release_cnf_id_sat_mgr (BtorSATMgr *smgr, int);
 int btor_get_last_cnf_id_sat_mgr (BtorSATMgr *smgr);
 
 /* Inits the SAT solver. */
-void btor_init_sat (BtorSATMgr *smgr, int need_incremental_solver);
+void btor_init_sat (BtorSATMgr *smgr);
 
 /* Sets the output file of the SAT solver. */
 void btor_set_output_sat (BtorSATMgr *smgr, FILE *output);
@@ -182,7 +175,7 @@ int btor_changed_sat (BtorSATMgr *smgr);
  */
 int btor_inconsistent_sat (BtorSATMgr *smgr);
 
-#ifdef BTOR_USE_LINGELING
+#ifdef BTOR_USE_PICOSAT
 /* Enables PicoSAT as SAT preprocessor. */
 void btor_enable_picosat_sat (BtorSATMgr *smgr);
 #endif
@@ -190,11 +183,6 @@ void btor_enable_picosat_sat (BtorSATMgr *smgr);
 #ifdef BTOR_USE_LINGELING
 /* Enables Lingeling as SAT preprocessor. */
 int btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *options);
-#endif
-
-#ifdef BTOR_USE_PRECOSAT
-/* Enables PrecoSAT as SAT preprocessor. */
-void btor_enable_precosat_sat (BtorSATMgr *smgr);
 #endif
 
 #ifdef BTOR_USE_MINISAT

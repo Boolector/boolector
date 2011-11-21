@@ -1,5 +1,9 @@
 news for release 1.5.XX since 1.5.13
 ------------------------------------
+* removed PrecoSAT
+* added MiniSAT support
+* incremental SMTIB1 interface
+* rebuilding AIGs / Expressions
 * more compact SMTLIB1 parsing
 * symbolic lemmas instead of direct CNF encoding
 * more compact AIG to CNF translation

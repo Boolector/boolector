@@ -146,9 +146,6 @@ struct BtorMainApp
 #ifdef BTOR_USE_PICOSAT
   int force_picosat;
 #endif
-#ifdef BTOR_USE_PRECOSAT
-  int force_precosat;
-#endif
 #ifdef BTOR_USE_LINGELING
   int force_lingeling;
   const char *lingeling_options;
@@ -201,10 +198,6 @@ static const char *g_usage =
     "\n"
 #ifdef BTOR_USE_PICOSAT
     "  -picosat                         enforce usage of PicoSAT as SAT "
-    "solver\n"
-#endif
-#ifdef BTOR_USE_PRECOSAT
-    "  -precosat                        enforce usage of PrecoSAT as SAT "
     "solver\n"
 #endif
 #ifdef BTOR_USE_LINGELING
@@ -876,26 +869,13 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-q")
              || !strcmp (app->argv[app->argpos], "--quiet"))
     {
-      if (app->verbosity > 0)
-      {
-        print_err (app, "'-q' and '-v' can not be combined\n");
-        app->err = 1;
-      }
-      else
-        app->verbosity = -1;
+      app->verbosity = -1;
     }
 #ifdef BTOR_USE_PICOSAT
     else if (!strcmp (app->argv[app->argpos], "-picosat")
              || !strcmp (app->argv[app->argpos], "--picosat"))
     {
       app->force_picosat = 1;
-    }
-#endif
-#ifdef BTOR_USE_PRECOSAT
-    else if (!strcmp (app->argv[app->argpos], "-precosat")
-             || !strcmp (app->argv[app->argpos], "--precosat"))
-    {
-      app->force_precosat = 1;
     }
 #endif
 #ifdef BTOR_USE_LINGELING
@@ -1246,6 +1226,102 @@ generate_regs_eq_zero (Btor *btor,
   return result;
 }
 
+static int
+setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
+{
+  int forced_solvers = 0, used_solvers = 0;
+#ifdef BTOR_USE_PICOSAT
+  int use_picosat = 0;
+#endif
+#ifdef BTOR_USE_MINISAT
+  int use_minisat = 0;
+#endif
+#ifdef BTOR_USE_LINGELING
+  int use_lingeling = 0;
+#endif
+#ifdef BTOR_USE_PICOSAT
+  if (app->force_picosat)
+  {
+    forced_solvers++;
+    use_picosat = 1;
+    used_solvers++;
+  }
+#endif
+#ifdef BTOR_USE_MINISAT
+  if (app->force_minisat)
+  {
+    forced_solvers++;
+    use_minisat = 1;
+    used_solvers++;
+  }
+#endif
+#ifdef BTOR_USE_LINGELING
+  if (app->force_lingeling)
+  {
+    forced_solvers++;
+    use_lingeling = 1;
+    used_solvers++;
+  }
+#endif
+  if (forced_solvers >= 2)
+  {
+    print_err (app, "can not force more than two solvers\n");
+    app->err = 1;
+    return 0;
+  }
+
+#ifdef BTOR_USE_LINGELING
+  if (!used_solvers)
+  {
+    use_lingeling = 1;
+    used_solvers++;
+  }
+#endif
+#ifdef BTOR_USE_MINISAT
+  if (!used_solvers)
+  {
+    use_minisat = 1;
+    used_solvers++;
+  }
+#endif
+#ifdef BTOR_USE_PICOSAT
+  if (!used_solvers)
+  {
+    use_picosat = 1;
+    used_solvers++;
+  }
+#endif
+  assert (used_solvers <= 1);
+
+  if (!used_solvers)  // TODO make this a compile time error
+  {
+    print_err (app, "no usable SAT solver compiled in");
+    app->err = 1;
+    return 0;
+  }
+  assert (used_solvers == 1);
+#ifdef BTOR_USE_PICOSAT
+  if (use_picosat) btor_enable_picosat_sat (smgr);
+#endif
+#ifdef BTOR_USE_MINISAT
+  if (use_minisat) btor_enable_minisat_sat (smgr);
+#endif
+#ifdef BTOR_USE_LINGELING
+  if (use_lingeling)
+  {
+    if (!btor_enable_lingeling_sat (smgr, app->lingeling_options))
+    {
+      app->lingeling_options_invalid = 1;
+      print_err_va_args (
+          app, "invalid Lingeling options '-l%s'\n", app->lingeling_options);
+      app->err = 1;
+      return 0;
+    }
+  }
+#endif
+  return 1;
+}
+
 int
 boolector_main (int argc, char **argv)
 {
@@ -1255,7 +1331,6 @@ boolector_main (int argc, char **argv)
   int i          = 0;
   int bmc_done   = 0;
   int root_len, var_name_len;
-  int need_incremental_sat_solver = 0;
   int constraints_reported, constraints_report_limit, nconstraints, bmck;
   const char *parse_error = NULL;
   char *var_name;
@@ -1323,9 +1398,6 @@ boolector_main (int argc, char **argv)
   app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
 #ifdef BTOR_USE_PICOSAT
   app.force_picosat = 0;
-#endif
-#ifdef BTOR_USE_PRECOSAT
-  app.force_precosat = 0;
 #endif
 #ifdef BTOR_USE_LINGELING
   app.force_lingeling           = 0;
@@ -1531,40 +1603,15 @@ boolector_main (int argc, char **argv)
 
     parser = parser_api->init (btor, &parse_opt);
 
+    if (!setup_sat (&app, smgr)) goto DONE;
+
+    btor_init_sat (smgr);
+    btor_set_output_sat (smgr, stdout);
+
     if (app.incremental)
     {
       btor_enable_inc_usage (btor);
-
-#ifdef BTOR_USE_PICOSAT
-      if (app.force_picosat)
-      {
-        btor_enable_picosat_sat (smgr);
-      }
-#endif
-#ifdef BTOR_USE_MINISAT
-      else if (app.force_minisat)
-      {
-        btor_enable_minisat_sat (smgr);
-      }
-#endif
-#ifdef BTOR_USE_LINGELING
-#if defined(BTOR_USE_PICOSAT) || defined(BTOR_USE_MINISAT)
-      else
-#endif
-      {
-        if (!btor_enable_lingeling_sat (smgr, app.lingeling_options))
-        {
-          app.lingeling_options_invalid = 1;
-          print_err_va_args (&app,
-                             "invalid Lingeling options '-l%s'\n",
-                             app.lingeling_options);
-          app.err = 1;
-        }
-      }
-#endif
-      assert (btor_provides_incremental_sat (smgr));
-
-      btor_init_sat (smgr, 1);
+      btor_init_sat (smgr);
       btor_set_output_sat (smgr, stdout);
 
       if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
@@ -1576,10 +1623,7 @@ boolector_main (int argc, char **argv)
 
       if (app.err)
       {
-        /* problem with '-l 'option
-         */
-        assert (app.lingeling_options);
-        assert (app.lingeling_options_invalid);
+        /* do nothing */
       }
       else if ((parse_error = parser_api->parse (parser,
                                                  &prefix,
@@ -1630,9 +1674,6 @@ boolector_main (int argc, char **argv)
           btor_print_stats_btor (btor);
         }
       }
-
-      btor_static_smgr = 0;
-      btor_reset_sat (smgr);
     }
     else if ((parse_error = parser_api->parse (parser,
                                                &prefix,
@@ -1703,69 +1744,12 @@ boolector_main (int argc, char **argv)
     else
     {
       assert (!app.incremental);
-
-      if (app.ua || app.incremental || parse_res.logic != BTOR_LOGIC_QF_BV
-          || parse_res.nregs)
-        need_incremental_sat_solver = 1;
-
-#ifdef BTOR_USE_PICOSAT
-      if (app.force_picosat)
-      {
-        /* do nothing use PicoSAT */
-      }
+#if 0
+	  if (!setup_sat (&app, smgr))
+	    goto DONE;
+          btor_init_sat (smgr);
+          btor_set_output_sat (smgr, stdout);
 #endif
-#ifdef BTOR_USE_PRECOSAT
-      else if (app.force_precosat)
-      {
-        if (need_incremental_sat_solver)
-        {
-          print_msg_va_args (&app,
-                             "can not use PrecoSAT (incremental SAT required)");
-          app.err = 1;
-          goto DONE;
-        }
-        else
-          btor_enable_precosat_sat (smgr);
-      }
-#endif
-#ifdef BTOR_USE_MINISAT
-      else if (app.force_minisat)
-      {
-        btor_enable_minisat_sat (smgr);
-      }
-#endif
-#ifdef BTOR_USE_LINGELING
-      else
-      {
-        if (!btor_enable_lingeling_sat (smgr, app.lingeling_options))
-        {
-          assert (app.lingeling_options);
-          print_err_va_args (&app,
-                             "invalid Lingeling options '-l%s'\n",
-                             app.lingeling_options);
-          app.err = 1;
-          goto DONE;
-        }
-      }
-#endif
-#if !defined(BTOR_USE_LINGELING) && defined(BTOR_USE_PRECOSAT)
-      else if (!need_incremental_sat_solver)
-      {
-        btor_enable_precosat_sat (smgr);
-      }
-#ifdef BTOR_USE_MINISAT
-      else { btor_enable_minisat_sat (smgr); }
-#endif
-#endif
-#if defined(BTOR_USE_MINISAT) && !defined(BTOR_USE_LINGELING) \
-    && !defined(BTOR_USE_PRECOSAT)
-      else { btor_enable_minisat_sat (smgr); }
-#endif
-      assert (need_incremental_sat_solver
-              <= btor_provides_incremental_sat (smgr));
-
-      btor_init_sat (smgr, need_incremental_sat_solver);
-      btor_set_output_sat (smgr, stdout);
 
       if (app.verbosity > 0)
       {
@@ -2262,15 +2246,16 @@ boolector_main (int argc, char **argv)
       for (i = 0; i < BTOR_COUNT_STACK (arraystack); i++)
         btor_release_exp (btor, arraystack.start[i]);
       BTOR_RELEASE_STACK (mem, arraystack);
-
-      btor_static_smgr = 0;
-      btor_reset_sat (smgr);
     }
 
-#if defined(BTOR_USE_PRECOSAT) || defined(BTOR_USE_LINGELING)
+    btor_static_smgr = 0;
+    btor_reset_sat (smgr);
   DONE:
-#endif
-    if (parser_api) parser_api->reset (parser);
+    if (parser_api)
+    {
+      assert (parser);
+      parser_api->reset (parser);
+    }
 
     if (!app.err && !app.done && app.verbosity > 0) btor_print_static_stats ();
 
