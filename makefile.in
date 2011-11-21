@@ -45,7 +45,7 @@ btorconfig.h: makefile VERSION mkconfig
 clean:
 	rm -f test boolector deltabtor synthebtor basicbtor
 	rm -f *.o *.a
-	rm -f *.gcda *.gcno *.gcov 
+	rm -f *.gcda *.gcno *.gcov  *.gch *.plist
 	rm -f log/*.log *.tmp
 	rm -f dependencies makefile btorconfig.h
 .PHONY: all analyze clean
