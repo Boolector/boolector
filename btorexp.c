@@ -9985,7 +9985,7 @@ rebuild_synthesized_exps (Btor *btor)
 
       cur->mark = 1;
 
-      if (cur->len == 1 && cur->av)
+      if (!BTOR_IS_ARRAY_EXP (cur) && cur->len == 2 && cur->av)
       {
         assert (cur->av);
         assert (cur->av->len == 1);
