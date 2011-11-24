@@ -1,6 +1,7 @@
 #!/bin/sh
 
 debug=unknown
+check=no
 flto=no
 lingeling=yes
 minisat=no
@@ -33,6 +34,7 @@ where <option> is one of the following:
   -O                optimized compilation (default)
   -flto             enable link time optimization
   -g                compile with debugging support
+  -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
 
 By default all supported SAT solvers are used and linked into
@@ -56,6 +58,7 @@ do
   case $1 in
     -g) debug=yes;;
     -O) debug=no;;
+    -c) check=yes;;
     -m32|--m32) arch=32;;
     -m64|--m64) arch=64;;
     -flto) flto=yes;;
@@ -99,7 +102,8 @@ then
   then
     CFLAGS="$CFLAGS -g3 -ggdb"
   else
-    CFLAGS="$CFLAGS -DNDEBUG -O3"
+    CFLAGS="$CFLAGS -O3"
+    [ $check = no ] && CFLAGS="$CFLAGS -DNDEBUG"
     [ $flto = yes ] && CFLAGS="$CFLAGS -flto"
   fi
 elif [ $debug = yes ]

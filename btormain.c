@@ -1607,14 +1607,11 @@ boolector_main (int argc, char **argv)
 
     btor_init_sat (smgr);
     btor_set_output_sat (smgr, stdout);
+    if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
 
     if (app.incremental)
     {
       btor_enable_inc_usage (btor);
-      btor_init_sat (smgr);
-      btor_set_output_sat (smgr, stdout);
-
-      if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
 
       if (app.verbosity >= 1)
         btor_msg_main ("starting incremental BTOR mode\n");
@@ -1744,13 +1741,6 @@ boolector_main (int argc, char **argv)
     else
     {
       assert (!app.incremental);
-#if 0
-	  if (!setup_sat (&app, smgr))
-	    goto DONE;
-          btor_init_sat (smgr);
-          btor_set_output_sat (smgr, stdout);
-#endif
-
       if (app.verbosity > 0)
       {
         btor_msg_main_va_args ("parsed %d inputs and %d outputs\n",
@@ -1774,8 +1764,6 @@ boolector_main (int argc, char **argv)
           btor_msg_main ("status unknown\n");
         }
       }
-
-      if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 

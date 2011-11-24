@@ -164,6 +164,8 @@ propagate_units_to_3vl (Btor *btor, BtorExp *e)
   BtorAIGVec *av;
   char *b, *p;
 
+  return;
+
   e = BTOR_REAL_ADDR_EXP (e);
 
   if (!(av = e->av)) return;
@@ -179,17 +181,17 @@ propagate_units_to_3vl (Btor *btor, BtorExp *e)
     c = btor_fixed_aig (amgr, a);
     if (c == BTOR_AIG_FALSE)
     {
-      if (*b == 'x')
-        *b = '0';
+      if (*p == 'x')
+        *p = '0';
       else
-        assert (*b == '0');
+        assert (*p == '0');
     }
     else if (c == BTOR_AIG_TRUE)
     {
-      if (*b == 'x')
-        *b = '1';
+      if (*p == 'x')
+        *p = '1';
       else
-        assert (*b == '1');
+        assert (*p == '1');
     }
   }
 }
