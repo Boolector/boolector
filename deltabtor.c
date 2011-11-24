@@ -629,8 +629,9 @@ cone (void)
   {
     changed = 0;
     for (i = 1; i < nexps; i++)
-      if ((!strcmp (exps[i].op, "anext") || !strcmp (exps[i].op, "next"))
-          && !exps[i].idx && exps[exps[i].child[0]].idx)
+      if (exps[i].ref && !exps[i].idx
+          && (!strcmp (exps[i].op, "anext") || !strcmp (exps[i].op, "next"))
+          && exps[exps[i].child[0]].idx)
       {
         dfs (i);
         changed = 1;
