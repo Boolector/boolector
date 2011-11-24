@@ -257,7 +257,7 @@ fi
 
 #--------------------------------------------------------------------------#
 
-[ $picosat = no -a $lingeling = no -a $minisat = no] && \
+[ $picosat = no -a $lingeling = no -a $minisat = no ] && \
   die "either need MiniSAT, PicoSAT or Lingeling"
 
 #--------------------------------------------------------------------------#
