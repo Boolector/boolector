@@ -76,7 +76,7 @@ static const char *const g_op2string[] = {
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
-#if 0
+#if 1
 #define BTOR_SAT_MIN_LIMIT 20000
 #else
 #warning "#define BTOR_SAT_MIN_LIMIT = 1"
@@ -119,14 +119,6 @@ struct BtorFullParentIterator
 
 typedef struct BtorFullParentIterator BtorFullParentIterator;
 
-struct BtorSlice
-{
-  int upper;
-  int lower;
-};
-
-typedef struct BtorSlice BtorSlice;
-
 #define BTOR_NEXT_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->next_parent[BTOR_GET_TAG_EXP (exp)])
 
@@ -144,12 +136,24 @@ typedef struct BtorSlice BtorSlice;
 
 static void add_constraint (Btor *, BtorExp *);
 static void run_rewrite_engine (Btor *, int);
-static void eliminate_slices_on_bv_vars (Btor *);
 
 #define BTOR_NADBV
+#define BTOR_NELIMSLICES
 
 #ifndef BTOR_NADBV
 static void abstract_domain_bv_variables (Btor *);
+#endif
+
+#ifndef BTOR_NELIMSLICES
+static void eliminate_slices_on_bv_vars (Btor *);
+
+struct BtorSlice
+{
+  int upper;
+  int lower;
+};
+
+typedef struct BtorSlice BtorSlice;
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -385,6 +389,8 @@ btor_precond_cond_exp_dbg (const Btor *btor,
 
 #endif
 
+#ifndef BTOR_NELIMSLICES
+
 static int
 compare_int_ptr (const void *p1, const void *p2)
 {
@@ -396,6 +402,8 @@ compare_int_ptr (const void *p1, const void *p2)
 
   return 0;
 }
+
+#endif
 
 static void
 btor_msg_exp (Btor *btor, char *fmt, ...)
@@ -409,6 +417,8 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
   fputc ('\n', stdout);
   fflush (stdout);
 }
+
+#ifndef BTOR_NELIMSLICES
 
 static BtorSlice *
 new_slice (Btor *btor, int upper, int lower)
@@ -476,6 +486,8 @@ compare_slices_qsort (const void *p1, const void *p2)
 {
   return compare_slices (*((BtorSlice **) p1), *((BtorSlice **) p2));
 }
+
+#endif
 
 static void
 inc_exp_ref_counter (Btor *btor, BtorExp *exp)
@@ -8703,14 +8715,13 @@ process_embedded_constraints (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor, int full)
 {
-  int rewrite_level, inc_enabled, check_cyclic;
+  int rewrite_level, check_cyclic;
 
   assert (btor != NULL);
 
   if (btor->inconsistent) return;
 
   rewrite_level = btor->rewrite_level;
-  inc_enabled   = btor->inc_enabled;
   check_cyclic  = 1;
 
   if (rewrite_level > 1)
@@ -8740,19 +8751,20 @@ run_rewrite_engine (Btor *btor, int full)
         } while (btor->varsubst_constraints->count > 0u
                  || btor->embedded_constraints->count > 0u);
 
-        if (rewrite_level > 2 && !inc_enabled)
+#ifndef BTOR_NELIMSLICES
+        if (rewrite_level > 2 && !btor->inc_enabled)
         {
           /* needs recursive rewrite bound > 0 */
           eliminate_slices_on_bv_vars (btor);
           if (btor->inconsistent) return;
           check_cyclic = 1;
         }
-
+#endif
       } while (btor->varsubst_constraints->count > 0u
                || btor->embedded_constraints->count > 0u);
 
 #ifndef BTOR_NADBV
-      if (rewrite_level > 2 && !inc_enabled && !btor->model_gen)
+      if (rewrite_level > 2 && !btor->inc_enabled && !btor->model_gen)
       {
         abstract_domain_bv_variables (btor);
         if (btor->inconsistent) return;
@@ -9606,6 +9618,8 @@ probe_exps (Btor *btor)
 
 #endif
 
+#ifndef BTOR_NELIMSLICES
+
 static void
 eliminate_slices_on_bv_vars (Btor *btor)
 {
@@ -9792,6 +9806,8 @@ eliminate_slices_on_bv_vars (Btor *btor)
 
   BTOR_RELEASE_STACK (mm, vars);
 }
+
+#endif
 
 #ifndef BTOR_NADBV
 
@@ -10146,7 +10162,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = 0;  // BTOR_SAT_MIN_LIMIT;
+  limit      = BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
@@ -10209,14 +10225,16 @@ btor_sat_aux_btor (Btor *btor)
       }
 
 #if 1
-      rebuild_synthesized_exps (btor);
-      run_rewrite_engine (btor, 1);
-      if (btor->inconsistent) goto UNSAT_BREAK;
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      found_constraint_false = process_unsynthesized_constraints (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      if (found_constraint_false) goto UNSAT_BREAK;
-      assert (!btor->inconsistent);
+      {
+        rebuild_synthesized_exps (btor);
+        run_rewrite_engine (btor, 1);
+        if (btor->inconsistent) goto UNSAT_BREAK;
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        found_constraint_false = process_unsynthesized_constraints (btor);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        if (found_constraint_false) goto UNSAT_BREAK;
+        assert (!btor->inconsistent);
+      }
 #endif
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
