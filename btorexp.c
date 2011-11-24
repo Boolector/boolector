@@ -6814,13 +6814,9 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   cond                = acond->e[0];
   assert (cond != NULL);
   if (!BTOR_IS_SYNTH_EXP (BTOR_REAL_ADDR_EXP (cond)))
-  {
-    // abort (); // TODO before removing it ....
     synthesize_exp (btor, cond, NULL);
-  }
   if (!BTOR_REAL_ADDR_EXP (cond)->tseitin_encoded)
   {
-    // abort (); // TODO before removing it ....
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_EXP (cond)->av);
     BTOR_REAL_ADDR_EXP (cond)->tseitin_encoded = 1;
