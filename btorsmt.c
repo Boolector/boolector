@@ -2608,22 +2608,26 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                      BtorParseResult *res,
                                      BtorExp *exp)
 {
+  char formula[40];
   int satres;
   assert (parser->formulas.checked < parser->formulas.parsed);
+  if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
+    sprintf (formula,
+             "%d - %d",
+             parser->formulas.checked,
+             parser->formulas.checked + parser->max_window_size - 1);
+  else
+    sprintf (formula, "%d", parser->formulas.checked);
+
   if (parser->formulas.checked + 1 == parser->formulas.parsed)
   {
-    btor_smt_message (parser,
-                      3,
-                      "adding last ':formula' %d permanently",
-                      parser->formulas.checked);
+    btor_smt_message (
+        parser, 3, "adding last ':formula' %s permanently", formula);
     btor_add_constraint_exp (parser->btor, exp);
   }
   else
   {
-    btor_smt_message (parser,
-                      3,
-                      "adding ':formula' %d as assumption",
-                      parser->formulas.checked);
+    btor_smt_message (parser, 3, "adding ':formula' %s as assumption", formula);
     btor_add_assumption_exp (parser->btor, exp);
   }
   btor_release_exp (parser->btor, exp);
@@ -2634,24 +2638,33 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   satres = btor_sat_btor (parser->btor);
   if (satres == BTOR_SAT)
   {
-    btor_smt_message (parser, 0, "':formula' %d SAT", parser->formulas.checked);
+    btor_smt_message (parser, 0, "':formula' %s SAT", formula);
     res->result = BTOR_PARSE_SAT_STATUS_SAT;
   }
   else
   {
     assert (satres == BTOR_UNSAT);
-    btor_smt_message (
-        parser, 0, "':formula' %d UNSAT", parser->formulas.checked);
+    btor_smt_message (parser, 0, "':formula' %s UNSAT", formula);
     if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
       res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
   }
   if (parser->verbosity >= 2) btor_print_stats_btor (parser->btor);
 
   assert (parser->btor->msgtick == parser->formulas.checked);
-  if (++parser->btor->msgtick == parser->formulas.parsed)
-    parser->btor->msgtick = -1;
 
-  parser->formulas.checked++;
+  if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
+  {
+    parser->formulas.checked += parser->max_window_size;
+    parser->btor->msgtick += parser->max_window_size;
+  }
+  else
+  {
+    parser->formulas.checked++;
+    parser->btor->msgtick++;
+  }
+
+  if (parser->btor->msgtick == parser->formulas.parsed)
+    parser->btor->msgtick = -1;
 }
 
 static int
@@ -2928,7 +2941,7 @@ translate_benchmark (BtorSMTParser *parser,
           BTOR_PUSH_STACK (parser->mem, parser->window, exp);
 
           if (parser->formulas.checked + 1 == parser->formulas.parsed)
-            missing = 0;
+            count_window = missing = 0;
           else
           {
             count_window = BTOR_COUNT_STACK (parser->window);
@@ -2949,7 +2962,6 @@ translate_benchmark (BtorSMTParser *parser,
           {
             next = or_and_flush_window (parser);
             btor_smt_parser_inc_add_release_sat (parser, res, next);
-            // TODO need different 'inc_add'
           }
         }
         else
