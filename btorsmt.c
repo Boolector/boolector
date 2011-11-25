@@ -2846,7 +2846,7 @@ translate_benchmark (BtorSMTParser *parser,
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
-        else if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
+        else if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD)
         {
           int count_window = BTOR_COUNT_STACK (parser->window);
           int missing      = parser->max_window_size - count_window;

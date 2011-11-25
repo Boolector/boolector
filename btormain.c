@@ -174,8 +174,8 @@ static const char *g_usage =
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT only)\n"
     "  -I                               same but solve all\n"
-    "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
     "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
+    "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
     "  -interval=<w>                    incremental interval mode width <w>\n"
     "  -uaincreset                      reset under approximation bit-width\n"
     "                                   in incremental under-approximation "
@@ -821,11 +821,6 @@ parse_commandline_arguments (BtorMainApp *app)
         print_err (app, "argument to '-look-ahead' smaller than 1\n");
         app->err = 1;
       }
-
-      print_err (
-          app,
-          "option '-loook-ahead' not fully working yet (only '-in-depth')");
-      app->err = 1;
     }
     else if (parse_option_with_int_value (app, "interval", &app->interval))
     {
