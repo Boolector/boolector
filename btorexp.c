@@ -10115,7 +10115,6 @@ btor_sat_aux_btor (Btor *btor)
   if (!btor_is_initialized_sat (smgr)) btor_init_sat (smgr);
 
   if (btor->valid_assignments == 1) btor_reset_incremental_usage (btor);
-  btor->valid_assignments = 1;
 
   do
   {
@@ -10123,7 +10122,12 @@ btor_sat_aux_btor (Btor *btor)
     found_constraint_false = process_unsynthesized_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
 
-    if (found_constraint_false) return BTOR_UNSAT;
+    if (found_constraint_false)
+    {
+    UNSAT:
+      sat_result = BTOR_UNSAT;
+      goto DONE;
+    }
 
     if (btor->model_gen) synthesize_all_var_rhs (btor);
 
@@ -10135,11 +10139,11 @@ btor_sat_aux_btor (Btor *btor)
     if (probe_exps (btor))
     {
       run_rewrite_engine (btor, 0);
-      if (btor->inconsistent) return BTOR_UNSAT;
+      if (btor->inconsistent) goto UNSAT;
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       found_constraint_false = process_unsynthesized_constraints (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
-      if (found_constraint_false) return BTOR_UNSAT;
+      if (found_constraint_false) goto UNSAT;
     }
   }
 #endif
@@ -10148,7 +10152,7 @@ btor_sat_aux_btor (Btor *btor)
   update_assumptions (btor);
 
   found_assumption_false = add_again_assumptions (btor);
-  if (found_assumption_false) return BTOR_UNSAT;
+  if (found_assumption_false) goto UNSAT;
 
   if (ua)
   {
@@ -10158,7 +10162,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = 0;  // BTOR_SAT_MIN_LIMIT;
+  limit      = BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
@@ -10213,31 +10217,21 @@ btor_sat_aux_btor (Btor *btor)
     if (sat_result == BTOR_UNKNOWN)
     {
       rebuild_synthesized_aigs (btor);
-      if (btor->inconsistent)
-      {
-      UNSAT_BREAK:
-        sat_result = BTOR_UNSAT;
-        break;
-      }
-
+      if (btor->inconsistent) goto UNSAT;
 #if 1
       {
         rebuild_synthesized_exps (btor);
         run_rewrite_engine (btor, 1);
-        if (btor->inconsistent) goto UNSAT_BREAK;
+        if (btor->inconsistent) goto UNSAT;
         assert (check_all_hash_tables_proxy_free_dbg (btor));
         found_constraint_false = process_unsynthesized_constraints (btor);
         assert (check_all_hash_tables_proxy_free_dbg (btor));
-        if (found_constraint_false) goto UNSAT_BREAK;
+        if (found_constraint_false) goto UNSAT;
         assert (!btor->inconsistent);
       }
 #endif
       btor->stats.decision_limit_refinements++;
-#if 0
-	  limit = limit ? 2*limit : BTOR_SAT_MIN_LIMIT;
-#else
-      limit = 1;
-#endif
+      limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
     else if (limit > BTOR_SAT_MIN_LIMIT)
       limit /= 2;
@@ -10262,6 +10256,8 @@ btor_sat_aux_btor (Btor *btor)
       sat_result = btor_sat_sat (smgr, limit);
   }
 
+DONE:
+  btor->valid_assignments = 1;
   BTOR_ABORT_EXP (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                   "result must be sat or unsat");
   return sat_result;
