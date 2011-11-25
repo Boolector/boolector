@@ -5043,7 +5043,7 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 void
 btor_enable_rebuild_exps (Btor *btor)
 {
-  btor->rebuild_synthesized_exps = 1;
+  btor->rebuild_exps = 1;
 }
 
 void
@@ -10225,7 +10225,7 @@ btor_sat_aux_btor (Btor *btor)
       rebuild_synthesized_aigs (btor);
       if (btor->inconsistent) goto UNSAT;
 
-      if (btor->rebuild_synthesized_exps)
+      if (btor->rebuild_exps)
       {
         rebuild_synthesized_exps (btor);
         run_rewrite_engine (btor, 1);
