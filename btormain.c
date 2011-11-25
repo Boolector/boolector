@@ -835,9 +835,11 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
 
-      print_err (app,
-                 "option '-interval' not fully working yet (only '-in-depth')");
-      app->err = 1;
+#if 0
+	  print_err (app, 
+	    "option '-interval' not fully working yet (only '-in-depth')\n");
+	  app->err = 1;
+#endif
     }
     else if (!strcmp (app->argv[app->argpos], "-uaincreset"))
     {
