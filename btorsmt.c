@@ -190,6 +190,7 @@ struct BtorSMTParser
 
   int incremental;
   int max_window_size;
+  int in_depth_mode;
   int model;
 
   struct
@@ -732,6 +733,14 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
                         "incremental interval mode with window size %d",
                         res->max_window_size);
   }
+
+  if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
+  {
+    btor_smt_message (res, 3, "starting with increasing in-depth mode");
+    res->in_depth_mode = 1;
+  }
+  else
+    res->in_depth_mode = 0;
 
   res->mem  = mem;
   res->btor = btor;
@@ -2661,8 +2670,9 @@ translate_benchmark (BtorSMTParser *parser,
 {
   BtorSMTSymbol *symbol, *logic, *benchmark;
   BtorSMTNode *p, *node, *q;
+  int count_window, missing;
+  BtorExp *exp, *next;
   BtorSMTToken status;
-  BtorExp *exp;
 
   btor_smt_message (parser, 2, "extracting expressions");
 
@@ -2846,20 +2856,52 @@ translate_benchmark (BtorSMTParser *parser,
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
-        else if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD)
+        else if (parser->in_depth_mode < 0)
         {
-          int count_window = BTOR_COUNT_STACK (parser->window);
-          int missing      = parser->max_window_size - count_window;
+          count_window = BTOR_COUNT_STACK (parser->window);
+          assert (count_window > 0);
+          if (count_window == 1)
+            btor_smt_message (
+                parser,
+                3,
+                "checking last formula from current in-depth window");
+          BTOR_DEQUEUE_STACK (parser->window, next);
+          btor_smt_parser_inc_add_release_sat (parser, res, next);
+          if (count_window == 1)
+          {
+            btor_smt_message (
+                parser, 3, "switching to increasing in-depth mode");
+            parser->in_depth_mode = 1;
+          }
+          else
+            btor_smt_message (
+                parser,
+                3,
+                "%d formulas from current in-depth window remains",
+                count_window - 1);
+        }
+        else if (parser->in_depth_mode > 0
+                 || (parser->incremental
+                     & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD))
+        {
+          count_window = BTOR_COUNT_STACK (parser->window);
+          missing      = parser->max_window_size - count_window;
 
           assert (missing >= 0);
 
           if (!missing
               || parser->formulas.checked + 1 == parser->formulas.parsed)
           {
-            BtorExp *next;
             BTOR_PUSH_STACK (parser->mem, parser->window, exp);
             BTOR_DEQUEUE_STACK (parser->window, next);
             btor_smt_parser_inc_add_release_sat (parser, res, next);
+
+            if (parser->in_depth_mode)
+            {
+              btor_smt_message (
+                  parser, 3, "switching to decreasing in-depth mode");
+              parser->in_depth_mode = -1;
+            }
           }
           else
           {
