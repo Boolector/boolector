@@ -2661,12 +2661,35 @@ continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
   return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
 }
 
+static BtorExp *
+or_and_flush_window (BtorSMTParser *parser)
+{
+  BtorExp *next, *res, *tmp;
+
+  res = 0;
+  while (!BTOR_EMPTY_STACK (parser->window))
+  {
+    next = BTOR_POP_STACK (parser->window);
+    if (tmp)
+    {
+      tmp = btor_or_exp (parser->btor, next, res);
+      btor_release_exp (parser->btor, res);
+      btor_release_exp (parser->btor, next);
+      res = tmp;
+    }
+    else
+      res = next;
+  }
+  assert (res);
+  return res;
+}
+
 static char *
 translate_benchmark (BtorSMTParser *parser,
                      BtorSMTNode *top,
                      BtorParseResult *res)
 {
-  int count_window, missing, indepth, lookahead;
+  int count_window, missing, indepth, lookahead, interval;
   BtorSMTSymbol *symbol, *logic, *benchmark;
   BtorSMTNode *p, *node, *q;
   BtorExp *exp, *next;
@@ -2692,6 +2715,7 @@ translate_benchmark (BtorSMTParser *parser,
 
   indepth   = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
   lookahead = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
+  interval  = parser->interval & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL;
 
   symbol = 0;
 
@@ -2899,8 +2923,38 @@ translate_benchmark (BtorSMTParser *parser,
             BTOR_PUSH_STACK (parser->mem, parser->window, exp);
           }
         }
+        else if (interval)
+        {
+          BTOR_PUSH_STACK (parser->mem, parser->window, exp);
+
+          count_window = BTOR_COUNT_STACK (parser->window);
+          if (parser->formulas.checked + 1 == parser->formulas.parsed)
+            missing = 0;
+          else
+            missing = parser->max_window_size - count_window;
+
+          assert (missing >= 0);
+
+          if (missing)
+            btor_smt_message (
+                parser,
+                3,
+                "saving ':formula' %d at window position %d still %d missing",
+                parser->formulas.handled,
+                count_window,
+                missing);
+          else
+          {
+            next = or_and_flush_window (parser);
+            btor_smt_parser_inc_add_release_sat (parser, res, exp);
+            // TODO need different 'inc_add'
+          }
+        }
         else
+        {
+          assert (!parser->incremental);
           btor_smt_parser_inc_add_release_sat (parser, res, exp);
+        }
 
         parser->formulas.handled++;
 
