@@ -190,7 +190,6 @@ struct BtorSMTParser
 
   int incremental;
   int max_window_size;
-  int in_depth_mode;
   int model;
 
   struct
@@ -733,14 +732,6 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
                         "incremental interval mode with window size %d",
                         res->max_window_size);
   }
-
-  if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
-  {
-    btor_smt_message (res, 3, "starting with increasing in-depth mode");
-    res->in_depth_mode = 1;
-  }
-  else
-    res->in_depth_mode = 0;
 
   res->mem  = mem;
   res->btor = btor;
@@ -2663,14 +2654,21 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   parser->formulas.checked++;
 }
 
+static int
+continue_parsing (BtorSMTParser *parser, BtorParseResult *res)
+{
+  if (res->result != BTOR_PARSE_SAT_STATUS_SAT) return 1;
+  return parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE;
+}
+
 static char *
 translate_benchmark (BtorSMTParser *parser,
                      BtorSMTNode *top,
                      BtorParseResult *res)
 {
+  int count_window, missing, indepth, lookahead;
   BtorSMTSymbol *symbol, *logic, *benchmark;
   BtorSMTNode *p, *node, *q;
-  int count_window, missing;
   BtorExp *exp, *next;
   BtorSMTToken status;
 
@@ -2691,6 +2689,9 @@ translate_benchmark (BtorSMTParser *parser,
   benchmark = strip (benchmark);
 
   btor_smt_message (parser, 2, "benchmark %s", benchmark->name);
+
+  indepth   = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH;
+  lookahead = parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD;
 
   symbol = 0;
 
@@ -2762,11 +2763,7 @@ translate_benchmark (BtorSMTParser *parser,
       goto INVALID_STATUS_ARGUMENT;
   }
 
-  for (p = top;
-       ((parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
-        || res->result != BTOR_PARSE_SAT_STATUS_SAT)
-       && p;
-       p = cdr (p))
+  for (p = top; p && continue_parsing (parser, res); p = cdr (p))
   {
     q    = p;
     node = car (p);
@@ -2856,33 +2853,7 @@ translate_benchmark (BtorSMTParser *parser,
         {
           BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
         }
-        else if (parser->in_depth_mode < 0)
-        {
-          count_window = BTOR_COUNT_STACK (parser->window);
-          assert (count_window > 0);
-          if (count_window == 1)
-            btor_smt_message (
-                parser,
-                3,
-                "checking last formula from current in-depth window");
-          BTOR_DEQUEUE_STACK (parser->window, next);
-          btor_smt_parser_inc_add_release_sat (parser, res, next);
-          if (count_window == 1)
-          {
-            btor_smt_message (
-                parser, 3, "switching to increasing in-depth mode");
-            parser->in_depth_mode = 1;
-          }
-          else
-            btor_smt_message (
-                parser,
-                3,
-                "%d formulas from current in-depth window remains",
-                count_window - 1);
-        }
-        else if (parser->in_depth_mode > 0
-                 || (parser->incremental
-                     & BTOR_PARSE_MODE_INCREMENTAL_LOOK_AHEAD))
+        else if (indepth || lookahead)
         {
           count_window = BTOR_COUNT_STACK (parser->window);
           missing      = parser->max_window_size - count_window;
@@ -2892,16 +2863,28 @@ translate_benchmark (BtorSMTParser *parser,
           if (!missing
               || parser->formulas.checked + 1 == parser->formulas.parsed)
           {
-            BTOR_PUSH_STACK (parser->mem, parser->window, exp);
-            BTOR_DEQUEUE_STACK (parser->window, next);
-            btor_smt_parser_inc_add_release_sat (parser, res, next);
-
-            if (parser->in_depth_mode)
-            {
+            if (indepth)
               btor_smt_message (
-                  parser, 3, "switching to decreasing in-depth mode");
-              parser->in_depth_mode = -1;
-            }
+                  parser,
+                  3,
+                  "found last in-depth ':formula' %d at window position %d",
+                  parser->formulas.handled,
+                  count_window);
+            else
+              btor_smt_message (parser,
+                                3,
+                                "saving next ':formula' %d outside of current "
+                                "look-ahead window",
+                                parser->formulas.handled + 1);
+
+            BTOR_PUSH_STACK (parser->mem, parser->window, exp);
+
+            do
+            {
+              BTOR_DEQUEUE_STACK (parser->window, next);
+              btor_smt_parser_inc_add_release_sat (parser, res, next);
+            } while (indepth && continue_parsing (parser, res)
+                     && !BTOR_EMPTY_STACK (parser->window));
           }
           else
           {
