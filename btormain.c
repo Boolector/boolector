@@ -115,6 +115,7 @@ struct BtorMainApp
   BtorAppReplayMode replay_mode;
   int verbosity;
   int incremental;
+  int rebuildexps;
   int indepth;
   int lookahead;
   int interval;
@@ -180,6 +181,8 @@ static const char *g_usage =
     "  -uaincreset                      reset under approximation bit-width\n"
     "                                   in incremental under-approximation "
     "mode\n"
+    "\n"
+    "  -r                               rebuild synthesized expresions\n"
     "\n"
     "  -t <time out in seconds>         set time limit\n"
     "\n"
@@ -740,6 +743,8 @@ parse_commandline_arguments (BtorMainApp *app)
       app->force_smt_input = 1;
     else if (!strcmp (app->argv[app->argpos], "--smt2"))
       app->force_smt_input = 2;
+    else if (!strcmp (app->argv[app->argpos], "-r"))
+      app->rebuildexps = 1;
     else if ((strstr (app->argv[app->argpos], "-rwl") == app->argv[app->argpos]
               && strlen (app->argv[app->argpos]) == strlen ("-rlw") + 1)
              || (strstr (app->argv[app->argpos], "--rewrite-level")
@@ -1447,6 +1452,8 @@ boolector_main (int argc, char **argv)
     btor_static_btor = btor = btor_new_btor ();
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
+
+    if (app.rebuildexps) btor_enable_rebuild_exps (btor);
 
     if (app.print_model) btor_enable_model_gen (btor);
 

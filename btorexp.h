@@ -282,6 +282,7 @@ struct Btor
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
+  int rebuild_exps;         /* rebuild synthesized expressions */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   struct                    /* Under-approximation UA */
@@ -470,6 +471,8 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
+
+void btor_enable_rebuild_exps (Btor *btor);
 
 /* Enables incremental usage which means that assumptions are enabled
  * and btor_sat_btor can be called more than once. Note that enabling this

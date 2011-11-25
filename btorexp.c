@@ -5041,6 +5041,12 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 }
 
 void
+btor_enable_rebuild_exps (Btor *btor)
+{
+  btor->rebuild_synthesized_exps = 1;
+}
+
+void
 btor_enable_model_gen (Btor *btor)
 {
   assert (btor != NULL);
@@ -10218,18 +10224,19 @@ btor_sat_aux_btor (Btor *btor)
     {
       rebuild_synthesized_aigs (btor);
       if (btor->inconsistent) goto UNSAT;
-#if 0
-	{
-	  rebuild_synthesized_exps (btor);
-	  run_rewrite_engine (btor, 1);
-	  if (btor->inconsistent) goto UNSAT;
-	  assert (check_all_hash_tables_proxy_free_dbg (btor));
-	  found_constraint_false = process_unsynthesized_constraints (btor);
-	  assert (check_all_hash_tables_proxy_free_dbg (btor));
-	  if (found_constraint_false) goto UNSAT;
-	  assert (!btor->inconsistent);
-	}
-#endif
+
+      if (btor->rebuild_synthesized_exps)
+      {
+        rebuild_synthesized_exps (btor);
+        run_rewrite_engine (btor, 1);
+        if (btor->inconsistent) goto UNSAT;
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        found_constraint_false = process_unsynthesized_constraints (btor);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        if (found_constraint_false) goto UNSAT;
+        assert (!btor->inconsistent);
+      }
+
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
