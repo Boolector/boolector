@@ -718,7 +718,7 @@ print (void)
 
   assert (j == count);
 
-  if (!nosort) qsort (sorted, count, sizeof *sorted, cmp_by_idx);
+  if (!nosort && sorted) qsort (sorted, count, sizeof *sorted, cmp_by_idx);
 
   for (i = 0; i < count; i++)
   {

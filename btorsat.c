@@ -566,7 +566,6 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
       else
         next = p;
 
-      valid = 1;
       val = eq = 0;
 
       if (!isalpha (*opt))
