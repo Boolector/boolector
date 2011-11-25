@@ -10158,7 +10158,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = BTOR_SAT_MIN_LIMIT;
+  limit      = 0;  // BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
@@ -10233,7 +10233,11 @@ btor_sat_aux_btor (Btor *btor)
       }
 #endif
       btor->stats.decision_limit_refinements++;
-      limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
+#if 0
+	  limit = limit ? 2*limit : BTOR_SAT_MIN_LIMIT;
+#else
+      limit = 1;
+#endif
     }
     else if (limit > BTOR_SAT_MIN_LIMIT)
       limit /= 2;

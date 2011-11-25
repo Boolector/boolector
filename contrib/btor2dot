@@ -57,6 +57,14 @@
   } else if ($2 == "root"){
     printf "%d [shape=none, label=\"\"];\n", $1
     print_unary_child_arrow($1, $4)
+  } else if ($2 == "next"){
+    printf "%d [style=filled, fillcolor=yellow, label=\"next\"];\n", $1
+    print_child_arrow($1, $4, 1)
+    print_child_arrow($1, $5, 2)
+  } else if ($2 == "anext"){
+    printf "%d [style=filled, fillcolor=yellow, label=\"anext\"];\n", $1
+    print_child_arrow($1, $5, 1)
+    print_child_arrow($1, $6, 2)
   } else if ($2 == "read"){
     printf "%d [style=filled, fillcolor=lightyellow, label=\"read\"];\n", $1
     print_child_arrow($1, $4, 1)
