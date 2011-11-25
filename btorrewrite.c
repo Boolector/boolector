@@ -537,6 +537,7 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
   result  = NULL;
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
+  if (!real_e0 || !real_e1) abort ();  // make static anlayzer happy
   if (BTOR_IS_BV_CONST_EXP (real_e0) && BTOR_IS_BV_CONST_EXP (real_e1))
   {
     same_children_mem = real_e0 == real_e1;
@@ -1186,6 +1187,8 @@ is_always_unequal (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
+
+  if (!real_e0 || !real_e1) return 0;
 
   if (BTOR_IS_ARRAY_EXP (real_e0))
   {
