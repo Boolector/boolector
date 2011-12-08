@@ -2609,15 +2609,25 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
                                      BtorExp *exp)
 {
   char formula[40];
-  int satres;
+  int satres, maxformula, checked;
   assert (parser->formulas.checked < parser->formulas.parsed);
   if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
+  {
+    maxformula = parser->formulas.checked;
+    maxformula += parser->max_window_size - 1;
+    if (maxformula >= parser->formulas.parsed)
+      maxformula = parser->formulas.parsed - 1;
     sprintf (formula,
              "%d - %d",
              parser->formulas.checked,
-             parser->formulas.checked + parser->max_window_size - 1);
+             parser->formulas.checked + maxformula);
+    checked = maxformula - parser->formulas.checked + 1;
+  }
   else
+  {
     sprintf (formula, "%d", parser->formulas.checked);
+    checked = 1;
+  }
 
   if (parser->formulas.checked + 1 == parser->formulas.parsed)
   {
@@ -2652,16 +2662,8 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
 
   assert (parser->btor->msgtick == parser->formulas.checked);
 
-  if (parser->incremental & BTOR_PARSE_MODE_INCREMENTAL_INTERVAL)
-  {
-    parser->formulas.checked += parser->max_window_size;
-    parser->btor->msgtick += parser->max_window_size;
-  }
-  else
-  {
-    parser->formulas.checked++;
-    parser->btor->msgtick++;
-  }
+  parser->formulas.checked += checked;
+  parser->btor->msgtick += checked;
 
   if (parser->btor->msgtick == parser->formulas.parsed)
     parser->btor->msgtick = -1;
@@ -3008,7 +3010,13 @@ translate_benchmark (BtorSMTParser *parser,
               || res->result != BTOR_PARSE_SAT_STATUS_SAT))
       {
         BtorExp *next;
-        BTOR_DEQUEUE_STACK (parser->window, next);
+        if (interval)
+        {
+          next = or_and_flush_window (parser);
+          assert (BTOR_EMPTY_STACK (parser->window));
+        }
+        else
+          BTOR_DEQUEUE_STACK (parser->window, next);
         btor_smt_parser_inc_add_release_sat (parser, res, next);
       }
     }
