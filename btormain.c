@@ -337,7 +337,7 @@ btor_catch_sig (int sig)
     btor_catched_sig_msg (sig);
     fputs ("unknown\n", stdout);
     fflush (stdout);
-    if (btor_static_verbosity)
+    if (btor_static_verbosity > 0)
     {
       if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
       if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
@@ -381,7 +381,7 @@ btor_catch_alarm (int sig)
               SIGALRM);
     fputs ("unknown\n", stdout);
     fflush (stdout);
-    if (btor_static_verbosity)
+    if (btor_static_verbosity > 0)
     {
       if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
       if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
@@ -1173,14 +1173,14 @@ parse_commandline_arguments (BtorMainApp *app)
     }
   }
 
-  if (!app->err && app->verbosity && app->incremental)
+  if (!app->err && app->verbosity > 0 && app->incremental)
     btor_msg_main ("incremental mode through command line option");
-  if (!app->err && app->verbosity && app->indepth)
+  if (!app->err && app->verbosity > 0 && app->indepth)
     btor_msg_main_va_args ("incremental in-depth window of %d", app->indepth);
-  if (!app->err && app->verbosity && app->lookahead)
+  if (!app->err && app->verbosity > 0 && app->lookahead)
     btor_msg_main_va_args ("incremental look-ahead window of %d",
                            app->lookahead);
-  if (!app->err && app->verbosity && app->interval)
+  if (!app->err && app->verbosity > 0 && app->interval)
     btor_msg_main_va_args ("incremental interval window of %d", app->interval);
 }
 
@@ -1710,7 +1710,8 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_exp)
     {
-      if (app.verbosity) btor_msg_main_va_args ("dumping BTOR expressions\n");
+      if (app.verbosity > 0)
+        btor_msg_main_va_args ("dumping BTOR expressions\n");
 
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
@@ -1759,7 +1760,7 @@ boolector_main (int argc, char **argv)
         else
           all = root;
       }
-      if (app.verbosity) btor_msg_main_va_args ("dumping in SMT format\n");
+      if (app.verbosity > 0) btor_msg_main_va_args ("dumping in SMT format\n");
 
       app.done = 1;
       btor_dump_smt (btor, app.smt_file, all);
