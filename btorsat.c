@@ -669,7 +669,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   LGL *lgl      = blgl->lgl, *forked, *bforked;
   int res, fres, bfres;
   char name[80];
-  if (!smgr->nofork && limit < INT_MAX && limit >= BTOR_LINGELING_FORK_LIMIT)
+  if (!smgr->nofork && limit >= BTOR_LINGELING_FORK_LIMIT)
   {
     forked = lglfork (lgl);
     lglsetopt (forked, "seed", blgl->nforked);
