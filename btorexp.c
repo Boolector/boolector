@@ -5041,12 +5041,6 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 }
 
 void
-btor_enable_rebuild_exps (Btor *btor)
-{
-  btor->rebuild_exps = 1;
-}
-
-void
 btor_enable_model_gen (Btor *btor)
 {
   assert (btor != NULL);
@@ -10168,7 +10162,7 @@ btor_sat_aux_btor (Btor *btor)
     under_approx_finished = !encode_under_approx (btor);
   }
 
-  limit      = BTOR_SAT_MIN_LIMIT;
+  limit      = btor->norestarts ? INT_MAX : BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);

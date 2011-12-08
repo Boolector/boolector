@@ -116,6 +116,11 @@ struct BtorMainApp
   int verbosity;
   int incremental;
   int rebuildexps;
+  int norestarts;
+#ifdef BTOR_USE_LINGELING
+  int nofork;
+  int nobrutefork;
+#endif
   int indepth;
   int lookahead;
   int interval;
@@ -182,7 +187,14 @@ static const char *g_usage =
     "                                   in incremental under-approximation "
     "mode\n"
     "\n"
-    "  -r                               rebuild synthesized expresions\n"
+    "  -n                               do not restart at all\n"
+    "                                   (and thus do not even rebuild AIGs)\n"
+    "\n"
+    "  -r                               rebuild expressions during restarts\n"
+#ifdef BTOR_USE_LINGELING
+    "  --no-fork                        do not use 'fork' for Lingeling\n"
+    "  --no-brute-fork                  do not use 'brute fork' for Lingeling\n"
+#endif
     "\n"
     "  -t <time out in seconds>         set time limit\n"
     "\n"
@@ -743,8 +755,16 @@ parse_commandline_arguments (BtorMainApp *app)
       app->force_smt_input = 1;
     else if (!strcmp (app->argv[app->argpos], "--smt2"))
       app->force_smt_input = 2;
+    else if (!strcmp (app->argv[app->argpos], "-n"))
+      app->norestarts = 1;
     else if (!strcmp (app->argv[app->argpos], "-r"))
       app->rebuildexps = 1;
+#ifdef BTOR_USE_LINGELING
+    else if (!strcmp (app->argv[app->argpos], "--no-fork"))
+      app->nofork = 1;
+    else if (!strcmp (app->argv[app->argpos], "--no-brute-fork"))
+      app->nobrutefork = 1;
+#endif
     else if ((strstr (app->argv[app->argpos], "-rwl") == app->argv[app->argpos]
               && strlen (app->argv[app->argpos]) == strlen ("-rlw") + 1)
              || (strstr (app->argv[app->argpos], "--rewrite-level")
@@ -1311,7 +1331,8 @@ setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
 #ifdef BTOR_USE_LINGELING
   if (use_lingeling)
   {
-    if (!btor_enable_lingeling_sat (smgr, app->lingeling_options))
+    if (!btor_enable_lingeling_sat (
+            smgr, app->lingeling_options, app->nofork, app->nobrutefork))
     {
       app->lingeling_options_invalid = 1;
       print_err_va_args (
@@ -1455,7 +1476,9 @@ boolector_main (int argc, char **argv)
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
-    if (app.rebuildexps) btor_enable_rebuild_exps (btor);
+    if (app.rebuildexps) btor->rebuild_exps = 1;
+
+    if (app.norestarts) btor->norestarts = 1;
 
     if (app.print_model) btor_enable_model_gen (btor);
 

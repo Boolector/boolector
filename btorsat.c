@@ -88,11 +88,14 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
-int btor_enable_lingeling_sat (BtorSATMgr *, const char *optstr);
-#define btor_enable_default_sat(SMGR)      \
-  do                                       \
-  {                                        \
-    btor_enable_lingeling_sat ((SMGR), 0); \
+int btor_enable_lingeling_sat (BtorSATMgr *,
+                               const char *optstr,
+                               int nofork,
+                               int nobrutefork);
+#define btor_enable_default_sat(SMGR)            \
+  do                                             \
+  {                                              \
+    btor_enable_lingeling_sat ((SMGR), 0, 0, 0); \
   } while (0)
 #elif defined(BTOR_USE_PICOSAT)
 void btor_enable_picosat_sat (BtorSATMgr *);
@@ -666,7 +669,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   LGL *lgl      = blgl->lgl, *forked, *bforked;
   int res, fres, bfres;
   char name[80];
-  if (limit >= BTOR_LINGELING_FORK_LIMIT)
+  if (!smgr->nofork && limit < INT_MAX && limit >= BTOR_LINGELING_FORK_LIMIT)
   {
     forked = lglfork (lgl);
     lglsetopt (forked, "seed", blgl->nforked);
@@ -674,8 +677,10 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     lglsetprefix (forked, name);
     lglsetout (forked, smgr->output);
     if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
-    lglsetopt (forked, "clim", BTOR_LINGELING_BFORK_LIMIT);
+    if (!smgr->nobrutefork)
+      lglsetopt (forked, "clim", BTOR_LINGELING_BFORK_LIMIT);
     res = lglsat (forked);
+    assert (!smgr->nobrutefork || res);
     if (smgr->verbosity > 0) lglstats (forked);
     fres = lgljoin (lgl, forked);
     assert (!res || fres == res);
@@ -700,7 +705,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   }
   else
   {
-    btor_lingeling_set_opt (lgl, "clim", limit);
+    if (limit < INT_MAX) btor_lingeling_set_opt (lgl, "clim", limit);
     res = lglsat (lgl);
   }
   return res;
@@ -823,7 +828,10 @@ btor_lingeling_inconsistent (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 int
-btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr)
+btor_enable_lingeling_sat (BtorSATMgr *smgr,
+                           const char *optstr,
+                           int nofork,
+                           int nobrutefork)
 {
   assert (smgr != NULL);
 
@@ -834,7 +842,9 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr)
       && !btor_passdown_lingeling_options (smgr, optstr, 0))
     return 0;
 
-  smgr->name = "Lingeling";
+  smgr->name        = "Lingeling";
+  smgr->nofork      = nofork;
+  smgr->nobrutefork = nobrutefork;
 
   smgr->api.add              = btor_lingeling_add;
   smgr->api.assume           = btor_lingeling_assume;
