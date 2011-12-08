@@ -671,6 +671,13 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   char name[80];
   if (!smgr->nofork && limit >= BTOR_LINGELING_FORK_LIMIT)
   {
+    if (limit == INT_MAX)
+    {
+      btor_lingeling_set_opt (lgl, "clim", 140000);
+      res = lglsat (lgl);
+      if (res) return res;
+    }
+
     forked = lglfork (lgl);
     lglsetopt (forked, "seed", blgl->nforked);
     sprintf (name, "[lglfork%d] ", blgl->nforked);
