@@ -29,6 +29,7 @@ echo ":assumption (= goal bv$m[$n])"
 echo ":assumption (= zero bv0[$n])"
 echo ":assumption (= one bv1[$n])"
 echo ":assumption (= s0 zero)"
+echo ":formula (= s0 goal)"
 prev=0
 i=1
 while [ $i -le $m ]
