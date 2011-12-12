@@ -716,4 +716,4 @@ sult2 -o log/sult2.log log/sult2.btor
 count02inc -q -look-ahead=2 -o log/count02inc.log log/count02inc.smt
 count02incuns -q -interval=4 -o log/count02incuns.log log/count02incuns.smt
 count03inc -q -in-depth=3 -o log/count03inc.log log/count03inc.smt
-count03to7 -interval=3 -o log/count03to7.log log/count03to7.smt
+count03to6 -q -interval=3 -o log/count03to6.log log/count03to6.smt

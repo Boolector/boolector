@@ -2617,10 +2617,7 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
     maxformula += parser->max_window_size - 1;
     if (maxformula >= parser->formulas.parsed)
       maxformula = parser->formulas.parsed - 1;
-    sprintf (formula,
-             "%d - %d",
-             parser->formulas.checked,
-             parser->formulas.checked + maxformula);
+    sprintf (formula, "%d - %d", parser->formulas.checked, maxformula);
     checked = maxformula - parser->formulas.checked + 1;
   }
   else
