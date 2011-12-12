@@ -2914,7 +2914,7 @@ translate_benchmark (BtorSMTParser *parser,
                                 3,
                                 "saving next ':formula' %d outside of current "
                                 "look-ahead window",
-                                parser->formulas.handled + 1);
+                                parser->formulas.handled);
 
             BTOR_PUSH_STACK (parser->mem, parser->window, exp);
 
