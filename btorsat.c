@@ -678,7 +678,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       if (res) return res;
     }
 
-    forked = lglfork (lgl);
+    forked = lglfork (lgl, 0);
     lglsetopt (forked, "seed", blgl->nforked);
     sprintf (name, "[lglfork%d] ", blgl->nforked);
     lglsetprefix (forked, name);
@@ -695,7 +695,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     blgl->nforked++;
     if (!res)
     {
-      bforked = lglfork (lgl);
+      bforked = lglbrutefork (lgl, 0);
       lglsetopt (bforked, "seed", blgl->nbforked);
       sprintf (name, "[lglbrutefork%d] ", blgl->nbforked);
       lglsetprefix (bforked, name);
