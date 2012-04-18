@@ -1,6 +1,6 @@
 news for release 1.5.XX since 1.5.13
 ------------------------------------
-* removed PrecoSAT
+* removed PrecoSAT, basicbtor
 * in-depth, look-ahead, interval
 * incremental SMTLIB1 interface
 * added MiniSAT support

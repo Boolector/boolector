@@ -14,7 +14,7 @@ VERSION=$(shell cat VERSION)
 LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o $(OBJS)
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
 SRC=$(shell ls *.c *.h *.cc)
-all: libboolector.a boolector test synthebtor deltabtor basicbtor
+all: libboolector.a boolector test synthebtor deltabtor
 all: dimacs2smt2
 -include dependencies
 analyze:
@@ -32,8 +32,6 @@ synthebtor: synthebtor.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
 deltabtor: deltabtor.c makefile $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
-basicbtor: basicbtor.c makefile $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ basicbtor.c
 dimacs2smt2: dimacs2smt2.c makefile
 	$(CC) $(CFLAGS) -o $@ dimacs2smt2.c
 libboolector.a: $(LIBOBJ)
@@ -43,9 +41,9 @@ libboolector.a: $(LIBOBJ)
 btorconfig.h: makefile VERSION mkconfig
 	rm -f $@; ./mkconfig > $@
 clean:
-	rm -f test boolector deltabtor synthebtor basicbtor
-	rm -f *.o *.a
+	rm -f test boolector deltabtor synthebtor
+	rm -f dependencies makefile btorconfig.h
 	rm -f *.gcda *.gcno *.gcov  *.gch *.plist
 	rm -f log/*.log *.tmp
-	rm -f dependencies makefile btorconfig.h
+	rm -f *.o *.a
 .PHONY: all analyze clean

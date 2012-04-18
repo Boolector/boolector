@@ -110,9 +110,6 @@ struct BtorMainApp
   FILE *input_file;
   char *input_file_name;
   int close_input_file;
-  FILE *replay_file;
-  int close_replay_file;
-  BtorAppReplayMode replay_mode;
   int verbosity;
   int incremental;
   int rebuildexps;
@@ -132,7 +129,6 @@ struct BtorMainApp
   char **argv;
   BtorBasis basis;
   BtorAppMode app_mode;
-  BtorAppBMCMode bmc_mode;
   int dump_exp;
   FILE *exp_file;
   int close_exp_file;
@@ -140,13 +136,6 @@ struct BtorMainApp
   FILE *smt_file;
   int close_smt_file;
   int rewrite_level;
-  int ua;
-  int ua_initial_eff_width;
-  BtorUAMode ua_mode;
-  BtorUARef ua_ref;
-  BtorUAEnc ua_enc;
-  int bmcmaxk;
-  int bmcadc;
   int force_smt_input;
   BtorPrintModel print_model;
 #ifdef BTOR_USE_PICOSAT
@@ -183,9 +172,6 @@ static const char *g_usage =
     "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
     "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
     "  -interval=<w>                    incremental interval mode width <w>\n"
-    "  -uaincreset                      reset under approximation bit-width\n"
-    "                                   in incremental under-approximation "
-    "mode\n"
     "\n"
     "  -n                               do not restart at all\n"
     "                                   (and thus do not even rebuild AIGs)\n"
@@ -225,36 +211,7 @@ static const char *g_usage =
     "  -minisat                         enforce usage of MiniSAT as SAT "
     "solver\n"
 #endif
-    "\n"
-    "Under-approximation options:\n"
-    "  -ua                              enable under-approximation (UA)\n"
-    "  -uaw=<n>                         initial effecitve bit-width (default "
-    "n=1)\n"
-    "\n"
-    "  -uai                             eff. width refinement by incrementing\n"
-    "  -uad                             eff. width refinement by doubling "
-    "(default)\n"
-    "\n"
-    "  -ual                             local refinement strategy\n"
-    "  -uali                            local individual refinement strategy\n"
-    "  -uag                             global refinement strategy (default)\n"
-    "\n"
-    "  -uaz                             UA encoding by zero-extension\n"
-    "  -uao                             UA encoding by one-extension\n"
-    "  -uac                             UA encoding by equivalence classes\n"
-    "  -uas                             UA encoding by sign-extension "
-    "(default)\n"
-    "\n"
-    "\n"
-    "BMC options:\n"
-    "  -bmc-maxk=<k>                    sets maximum bound for model checking\n"
-    "  -bmc-adc                         use all different constraints "
-    "(default)\n"
-    "  -bmc-no-adc                      disable all different constraints\n"
-    "  -bmc-base-only                   base case (search for wittnesses, no "
-    "adc)\n"
-    "  -bmc-induct-only                 inductive case only\n"
-    "  -bmc-replay <file>               turn replay on\n";
+    ;
 
 static const char *g_copyright =
     "Copyright (c) 2007 - 2008, Robert Brummayer\n"
@@ -782,43 +739,6 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
-    else if (strstr (app->argv[app->argpos], "-bmc-maxk=")
-             == app->argv[app->argpos])
-    {
-      app->bmcmaxk = atoi (app->argv[app->argpos] + 10);
-      if (app->bmcmaxk < 0)
-      {
-        print_err (app, "invalid k\n");
-        app->err = 1;
-      }
-    }
-    else if (!strcmp (app->argv[app->argpos], "-bmc-adc"))
-      app->bmcadc = 1;
-    else if (!strcmp (app->argv[app->argpos], "-bmc-no-adc"))
-      app->bmcadc = 0;
-    else if (!strcmp (app->argv[app->argpos], "-bmc-base-only"))
-    {
-      app->bmc_mode = BTOR_APP_BMC_MODE_BASE_ONLY;
-      app->bmcadc   = 0;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-bmc-induct-only"))
-      app->bmc_mode = BTOR_APP_BMC_MODE_INDUCT_ONLY;
-    else if (!strcmp (app->argv[app->argpos], "-v")
-             || !strcmp (app->argv[app->argpos], "--verbose"))
-    {
-      if (app->verbosity < 0)
-      {
-        print_err (app, "'-q' and '-v' can not be combined\n");
-        app->err = 1;
-      }
-      else if (app->verbosity == 4)
-      {
-        print_err (app, "can not increase verbosity beyond '4'\n");
-        app->err = 1;
-      }
-      else
-        app->verbosity++;
-    }
     else if (!strcmp (app->argv[app->argpos], "-i")
              || !strcmp (app->argv[app->argpos], "-inc")
              || !strcmp (app->argv[app->argpos], "--inc")
@@ -854,16 +774,6 @@ parse_commandline_arguments (BtorMainApp *app)
         print_err (app, "argument to '-interval' smaller than 1\n");
         app->err = 1;
       }
-
-#if 0
-	  print_err (app, 
-	    "option '-interval' not fully working yet (only '-in-depth')\n");
-	  app->err = 1;
-#endif
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uaincreset"))
-    {
-      app->incremental |= BTOR_PARSE_MODE_UAINCRESET;
     }
     else if (!strcmp (app->argv[app->argpos], "-t"))
     {
@@ -914,80 +824,6 @@ parse_commandline_arguments (BtorMainApp *app)
       app->force_minisat = 1;
     }
 #endif
-    else if (!strcmp (app->argv[app->argpos], "-ua"))
-      app->ua = 1;
-    else if (strstr (app->argv[app->argpos], "-uaw=") == app->argv[app->argpos]
-             && strlen (app->argv[app->argpos]) > strlen ("-uaw="))
-    {
-      app->ua_initial_eff_width = atoi (app->argv[app->argpos] + 5);
-      app->ua                   = 1;
-      if (app->ua_initial_eff_width < 1)
-      {
-        print_err (app, "UA start width must be greater than zero\n");
-        app->err = 1;
-      }
-    }
-    else if (!strcmp (app->argv[app->argpos], "-ual"))
-    {
-      app->ua_mode = BTOR_UA_LOCAL_MODE;
-      app->ua      = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uali"))
-    {
-      app->ua_mode = BTOR_UA_LOCAL_INDIVIDUAL_MODE;
-      app->ua      = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uag"))
-    {
-      app->ua_mode = BTOR_UA_GLOBAL_MODE;
-      app->ua      = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uai"))
-    {
-      if (app->ua_enc == BTOR_UA_ENC_EQ_CLASSES)
-      {
-        print_err (app, "-uai and -uac cannot be combined\n");
-        app->err = 1;
-      }
-      else
-      {
-        app->ua_ref = BTOR_UA_REF_BY_INC_ONE;
-        app->ua     = 1;
-      }
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uad"))
-    {
-      app->ua_ref = BTOR_UA_REF_BY_DOUBLING;
-      app->ua     = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uaz"))
-    {
-      app->ua_enc = BTOR_UA_ENC_ZERO_EXTEND;
-      app->ua     = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uao"))
-    {
-      app->ua_enc = BTOR_UA_ENC_ONE_EXTEND;
-      app->ua     = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uac"))
-    {
-      if (app->ua_ref == BTOR_UA_REF_BY_INC_ONE)
-      {
-        print_err (app, "-uai and -uac cannot be combined\n");
-        app->err = 1;
-      }
-      else
-      {
-        app->ua_enc = BTOR_UA_ENC_EQ_CLASSES;
-        app->ua     = 1;
-      }
-    }
-    else if (!strcmp (app->argv[app->argpos], "-uas"))
-    {
-      app->ua_enc = BTOR_UA_ENC_SIGN_EXTEND;
-      app->ua     = 1;
-    }
     else if (!strcmp (app->argv[app->argpos], "-x")
              || !strcmp (app->argv[app->argpos], "--hex"))
     {
@@ -1032,34 +868,6 @@ parse_commandline_arguments (BtorMainApp *app)
           }
           else
             app->close_output_file = 1;
-        }
-      }
-    }
-    else if (!strcmp (app->argv[app->argpos], "-bmc-replay"))
-    {
-      if (app->argpos < app->argc - 1)
-      {
-        if (app->close_replay_file)
-        {
-          fclose (app->replay_file);
-          app->close_replay_file = 0;
-          print_err_va_args (app, "multiple replay\n");
-          app->err = 1;
-        }
-        else
-        {
-          app->replay_file = fopen (app->argv[++app->argpos], "w");
-          if (app->replay_file == NULL)
-          {
-            print_err_va_args (
-                app, "can not create '%s'\n", app->argv[app->argpos]);
-            app->err = 1;
-          }
-          else
-          {
-            app->close_replay_file = 1;
-            app->replay_mode       = BTOR_APP_REPLAY_MODE_FULL;
-          }
         }
       }
     }
@@ -1134,24 +942,6 @@ parse_commandline_arguments (BtorMainApp *app)
     app->incremental = BTOR_PARSE_MODE_BASIC_INCREMENTAL;
   }
 
-  if (!app->err && (app->incremental & BTOR_PARSE_MODE_UAINCRESET)
-      && !(app->incremental
-           & (BTOR_PARSE_MODE_BASIC_INCREMENTAL
-              | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)))
-  {
-    print_err_va_args (
-        app, "Can only use '-uaincreset' in combination with '-i' or '-I");
-    app->err = 1;
-  }
-
-  if (!app->err && (app->incremental & BTOR_PARSE_MODE_UAINCRESET)
-      && !(app->ua))
-  {
-    print_err_va_args (
-        app, "Can only use '-uaincreset' in combination with '-ua' etc");
-    app->err = 1;
-  }
-
   if (!app->err
       && (app->indepth != 0) + (app->lookahead != 0) + (app->interval != 0)
              >= 2)
@@ -1160,17 +950,6 @@ parse_commandline_arguments (BtorMainApp *app)
         app,
         "Can only use one out of '-in-depth', '-look-ahead', or '-interval'");
     app->err = 1;
-  }
-
-  if (!app->err)
-  {
-    if (app->replay_mode != BTOR_APP_REPLAY_MODE_NONE
-        && app->bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT)
-    {
-      print_err_va_args (
-          app, "Replay for 'base-and-induct' BMC mode is not supported\n");
-      app->err = 1;
-    }
   }
 
   if (!app->err && app->verbosity > 0 && app->incremental)
@@ -1197,55 +976,6 @@ print_sat_result (BtorMainApp *app, int sat_result)
     assert (sat_result == BTOR_UNKNOWN);
     print_msg (app, "unknown\n");
   }
-}
-
-static BtorExp *
-disjunct_constraints (Btor *btor, BtorExpPtrStack *constraints)
-{
-  int i;
-  BtorExp *temp, *result;
-  assert (btor != NULL);
-  assert (constraints != NULL);
-  result = btor_false_exp (btor);
-  for (i = 0; i < BTOR_COUNT_STACK (*constraints); i++)
-  {
-    temp = btor_or_exp (btor, result, constraints->start[i]);
-    btor_release_exp (btor, result);
-    result = temp;
-  }
-  return result;
-}
-
-static BtorExp *
-generate_regs_eq_zero (Btor *btor,
-                       BtorPtrHashTable *inst_table,
-                       const BtorExpPtrStack *bv_regs)
-{
-  int i;
-  BtorExp *result, *temp, *zero, *eq, *cur, *inst;
-  BtorPtrHashBucket *bucket;
-  assert (btor != NULL);
-  assert (inst_table != NULL);
-  assert (bv_regs != NULL);
-  result = btor_true_exp (btor);
-  for (i = 0; i < BTOR_COUNT_STACK (*bv_regs); i++)
-  {
-    cur = bv_regs->start[i];
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur));
-    bucket = btor_find_in_ptr_hash_table (inst_table, cur);
-    assert (bucket != NULL);
-    assert (bucket->data.asPtr != NULL);
-    inst = (BtorExp *) bucket->data.asPtr;
-    zero = btor_zero_exp (btor, btor_get_exp_len (btor, inst));
-    eq   = btor_eq_exp (btor, inst, zero);
-    temp = btor_and_exp (btor, result, eq);
-    btor_release_exp (btor, result);
-    result = temp;
-    btor_release_exp (btor, zero);
-    btor_release_exp (btor, eq);
-  }
-  return result;
 }
 
 static int
@@ -1352,73 +1082,55 @@ boolector_main (int argc, char **argv)
   int return_val = 0;
   int sat_result = 0;
   int i          = 0;
-  int bmc_done   = 0;
-  int root_len, var_name_len;
-  int constraints_reported, constraints_report_limit, nconstraints, bmck;
+  int root_len;
+  int constraints_reported, constraints_report_limit, nconstraints;
   const char *parse_error = NULL;
-  char *var_name;
-  Btor *btor           = NULL;
-  BtorAIGMgr *amgr     = NULL;
-  BtorAIGVecMgr *avmgr = NULL;
-  BtorSATMgr *smgr     = NULL;
+  Btor *btor              = NULL;
+  BtorAIGMgr *amgr        = NULL;
+  BtorAIGVecMgr *avmgr    = NULL;
+  BtorSATMgr *smgr        = NULL;
   BtorParseResult parse_res;
-  BtorExpPtrStack varstack, constraints, bv_states, bv_regs, array_regs;
+  BtorExpPtrStack varstack, constraints;
   BtorExpPtrStack arraystack;
   const BtorParserAPI *parser_api = NULL;
   BtorParser *parser              = NULL;
   BtorParseOpt parse_opt;
   BtorMemMgr *mem = NULL;
-  BtorExp *root, **p, *disjuncted_constraints, *bad, *bv_state, *tmp, *all;
-  BtorExp **old_insts, **new_insts, *eq, *cur, *var, *temp;
-  BtorExp *ne, *diff, *diff_bv, *diff_array, *not_bad;
-  BtorExp *diff_arrays = NULL;
-  BtorExp *regs_zero   = NULL;
-  BtorPtrHashTable *reg_inst, *input_inst;
-  BtorPtrHashBucket *bucket;
-  BtorExpPtrStack *array_states = NULL;
+  BtorExp *root, **p, *tmp, *all;
+  BtorExp *var, *temp;
   BtorCharStack prefix;
 
   btor_static_start_time = btor_time_stamp ();
 
   memset (&app, 0, sizeof app);
 
-  app.verbosity            = 0;
-  app.incremental          = 0;
-  app.indepth              = 0;
-  app.lookahead            = 0;
-  app.interval             = 0;
-  app.force                = 0;
-  app.output_file          = stdout;
-  app.close_output_file    = 0;
-  app.input_file           = stdin;
-  app.input_file_name      = "<stdin>";
-  app.close_input_file     = 0;
-  app.close_replay_file    = 0;
-  app.replay_mode          = BTOR_APP_REPLAY_MODE_NONE;
-  app.argc                 = argc;
-  app.argv                 = argv;
-  app.argpos               = 0;
-  app.done                 = 0;
-  app.err                  = 0;
-  app.basis                = BTOR_BINARY_BASIS;
-  app.app_mode             = BTOR_APP_REGULAR_MODE;
-  app.bmc_mode             = BTOR_APP_BMC_MODE_BASE_INDUCT;
-  app.dump_exp             = 0;
-  app.exp_file             = stdout;
-  app.close_exp_file       = 0;
-  app.dump_smt             = 0;
-  app.smt_file             = stdout;
-  app.close_smt_file       = 0;
-  app.rewrite_level        = 3;
-  app.ua                   = 0;
-  app.ua_initial_eff_width = 1;
-  app.ua_mode              = BTOR_UA_GLOBAL_MODE;
-  app.ua_ref               = BTOR_UA_REF_BY_DOUBLING;
-  app.ua_enc               = BTOR_UA_ENC_SIGN_EXTEND;
-  app.bmcmaxk              = -1;
-  app.bmcadc               = 1;
-  app.force_smt_input      = 0;
-  app.print_model          = BTOR_APP_PRINT_MODEL_NONE;
+  app.verbosity         = 0;
+  app.incremental       = 0;
+  app.indepth           = 0;
+  app.lookahead         = 0;
+  app.interval          = 0;
+  app.force             = 0;
+  app.output_file       = stdout;
+  app.close_output_file = 0;
+  app.input_file        = stdin;
+  app.input_file_name   = "<stdin>";
+  app.close_input_file  = 0;
+  app.argc              = argc;
+  app.argv              = argv;
+  app.argpos            = 0;
+  app.done              = 0;
+  app.err               = 0;
+  app.basis             = BTOR_BINARY_BASIS;
+  app.app_mode          = BTOR_APP_REGULAR_MODE;
+  app.dump_exp          = 0;
+  app.exp_file          = stdout;
+  app.close_exp_file    = 0;
+  app.dump_smt          = 0;
+  app.smt_file          = stdout;
+  app.close_smt_file    = 0;
+  app.rewrite_level     = 3;
+  app.force_smt_input   = 0;
+  app.print_model       = BTOR_APP_PRINT_MODEL_NONE;
 #ifdef BTOR_USE_PICOSAT
   app.force_picosat = 0;
 #endif
@@ -1482,17 +1194,7 @@ boolector_main (int argc, char **argv)
 
     if (app.print_model) btor_enable_model_gen (btor);
 
-    if (app.ua)
-    {
-      btor_enable_under_approx (btor);
-      btor_set_under_approx_initial_effective_width (btor,
-                                                     app.ua_initial_eff_width);
-      btor_set_under_approx_mode (btor, app.ua_mode);
-      btor_set_under_approx_ref (btor, app.ua_ref);
-      btor_set_under_approx_enc (btor, app.ua_enc);
-    }
     btor_set_verbosity_btor (btor, app.verbosity);
-    btor_set_replay_btor (btor, app.replay_mode != BTOR_APP_REPLAY_MODE_NONE);
     mem = btor->mm;
 
     avmgr            = btor->avmgr;
@@ -1766,6 +1468,11 @@ boolector_main (int argc, char **argv)
       btor_dump_smt (btor, app.smt_file, all);
       btor_release_exp (btor, all);
     }
+    else if (parse_res.nregs > 0)
+    {
+      print_msg_va_args (&app, "removed support for sequential models");
+      app.err = 1;
+    }
     else
     {
       assert (!app.incremental);
@@ -1830,356 +1537,8 @@ boolector_main (int argc, char **argv)
       /* BMC ? */
       if (parse_res.nregs > 0)
       {
-        app.app_mode = BTOR_APP_BMC_MODE;
-        btor_enable_inc_usage (btor);
-        if (app.verbosity > 0)
-        {
-          btor_msg_main ("Solving BMC problem\n");
-          if (app.bmcadc)
-            btor_msg_main ("Using all different constraints: yes\n");
-          else
-            btor_msg_main ("Using all different constraints: no\n");
-          if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
-            btor_msg_main ("Checking base case only\n");
-          else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
-            btor_msg_main ("Checking inductive case only\n");
-          else
-          {
-            assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
-            btor_msg_main ("Checking base case and inductive case\n");
-          }
-          if (app.bmcmaxk >= 0)
-            btor_msg_main_va_args ("Max bound: %d\n", app.bmcmaxk);
-        }
-
-        BTOR_INIT_STACK (bv_regs);
-        BTOR_INIT_STACK (array_regs);
-
-        for (i = 0; i < parse_res.nregs; i++)
-        {
-          cur = parse_res.regs[i];
-          assert (BTOR_IS_REGULAR_EXP (cur));
-          if (BTOR_IS_BV_VAR_EXP (cur))
-            BTOR_PUSH_STACK (mem, bv_regs, cur);
-          else
-          {
-            assert (BTOR_IS_ARRAY_VAR_EXP (cur));
-            BTOR_PUSH_STACK (mem, array_regs, cur);
-          }
-        }
-
-        assert (BTOR_COUNT_STACK (bv_regs) + BTOR_COUNT_STACK (array_regs)
-                == parse_res.nregs);
-
-        if (BTOR_COUNT_STACK (array_regs) > 0)
-        {
-          BTOR_NEWN (mem, array_states, BTOR_COUNT_STACK (array_regs));
-          for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
-            BTOR_INIT_STACK (array_states[i]);
-        }
-
-        disjuncted_constraints = disjunct_constraints (btor, &constraints);
-        reg_inst =
-            btor_new_ptr_hash_table (mem,
-                                     (BtorHashPtr) btor_hash_exp_by_id,
-                                     (BtorCmpPtr) btor_compare_exp_by_id);
-        BTOR_INIT_STACK (bv_states);
-        BTOR_CNEWN (mem, old_insts, parse_res.nregs);
-        BTOR_CNEWN (mem, new_insts, parse_res.nregs);
-
-        for (i = 0; i < parse_res.nregs; i++)
-          btor_insert_in_ptr_hash_table (reg_inst, parse_res.regs[i])
-              ->data.asPtr = NULL;
-        for (bmck = 0; (app.bmcmaxk == -1 || bmck <= app.bmcmaxk) && !bmc_done;
-             bmck++)
-        {
-          if (app.verbosity > 0) btor_msg_main_va_args ("k = %d:\n", bmck);
-          input_inst =
-              btor_new_ptr_hash_table (mem,
-                                       (BtorHashPtr) btor_hash_exp_by_id,
-                                       (BtorCmpPtr) btor_compare_exp_by_id);
-
-          /* we generate new variable instantiations for bv-vars */
-          bv_state = NULL;
-          for (i = 0; i < BTOR_COUNT_STACK (bv_regs); i++)
-          {
-            cur = bv_regs.start[i];
-            assert (BTOR_IS_REGULAR_EXP (cur));
-            assert (BTOR_IS_BV_VAR_EXP (cur));
-            assert (cur->symbol != NULL);
-            var_name_len =
-                strlen (cur->symbol) + btor_num_digits_util (bmck) + 2;
-            BTOR_NEWN (mem, var_name, var_name_len);
-            sprintf (var_name, "%s_%d", cur->symbol, bmck);
-            var = btor_var_exp (btor, cur->len, var_name);
-            BTOR_DELETEN (mem, var_name, var_name_len);
-            bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
-            assert (bucket != NULL);
-            bucket->data.asPtr = var;
-
-            if (app.print_model)
-              BTOR_PUSH_STACK (mem, varstack, btor_copy_exp (btor, var));
-
-            /* bit-vector state for all different constraint */
-            if (app.bmcadc)
-            {
-              if (bv_state == NULL)
-                bv_state = btor_copy_exp (btor, var);
-              else
-              {
-                temp = btor_concat_exp (btor, bv_state, var);
-                btor_release_exp (btor, bv_state);
-                bv_state = temp;
-              }
-            }
-          }
-
-          /* we generate new variable instantiations for arrays */
-          if (app.bmcadc) diff_arrays = btor_false_exp (btor);
-          for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
-          {
-            cur = array_regs.start[i];
-            assert (BTOR_IS_REGULAR_EXP (cur));
-            assert (BTOR_IS_ARRAY_VAR_EXP (cur));
-            assert (cur->symbol != NULL);
-            var_name_len =
-                strlen (cur->symbol) + btor_num_digits_util (bmck) + 2;
-            BTOR_NEWN (mem, var_name, var_name_len);
-            sprintf (var_name, "%s_%d", cur->symbol, bmck);
-            var = btor_array_exp (btor, cur->len, cur->index_len, var_name);
-            BTOR_DELETEN (mem, var_name, var_name_len);
-            bucket = btor_find_in_ptr_hash_table (reg_inst, cur);
-            assert (bucket != NULL);
-            bucket->data.asPtr = var;
-
-            if (app.print_model)
-              BTOR_PUSH_STACK (mem, arraystack, btor_copy_exp (btor, var));
-
-            /* all different constraint */
-            if (app.bmcadc)
-            {
-              diff_array = btor_true_exp (btor);
-              for (p = array_states[i].start; p != array_states[i].top; p++)
-              {
-                ne   = btor_ne_exp (btor, *p, var);
-                temp = btor_and_exp (btor, diff_array, ne);
-                btor_release_exp (btor, diff_array);
-                diff_array = temp;
-                btor_release_exp (btor, ne);
-              }
-              temp = btor_or_exp (btor, diff_arrays, diff_array);
-              btor_release_exp (btor, diff_arrays);
-              diff_arrays = temp;
-              BTOR_PUSH_STACK (mem, array_states[i], btor_copy_exp (btor, var));
-              btor_release_exp (btor, diff_array);
-            }
-          }
-
-          /* we generate expression that bv-instantiations@0 are zero */
-          if (bmck == 0)
-            regs_zero = generate_regs_eq_zero (btor, reg_inst, &bv_regs);
-
-          /* incremental all different constraint */
-          if (app.bmcadc)
-          {
-            diff_bv = btor_true_exp (btor);
-            for (p = bv_states.start; p != bv_states.top; p++)
-            {
-              ne   = btor_ne_exp (btor, *p, bv_state);
-              temp = btor_and_exp (btor, diff_bv, ne);
-              btor_release_exp (btor, diff_bv);
-              diff_bv = temp;
-              btor_release_exp (btor, ne);
-            }
-
-            if (BTOR_COUNT_STACK (bv_regs) > 0)
-              BTOR_PUSH_STACK (mem, bv_states, bv_state);
-
-            diff = btor_or_exp (btor, diff_arrays, diff_bv);
-            btor_add_constraint_exp (btor, diff);
-            btor_release_exp (btor, diff_bv);
-            btor_release_exp (btor, diff_arrays);
-            btor_release_exp (btor, diff);
-          }
-
-          /* we set instantiations equal to last 'next' application */
-          for (i = 0; i < parse_res.nregs; i++)
-          {
-            new_insts[i] = btor_next_exp_bmc (
-                btor, reg_inst, parse_res.nexts[i], bmck, input_inst);
-            if (bmck > 0)
-            {
-              bucket =
-                  btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
-              assert (bucket != NULL);
-              assert (bucket->data.asPtr != NULL);
-              eq = btor_eq_exp (
-                  btor, old_insts[i], (BtorExp *) bucket->data.asPtr);
-              btor_add_constraint_exp (btor, eq);
-              btor_release_exp (btor, eq);
-            }
-          }
-
-          bad = btor_next_exp_bmc (
-              btor, reg_inst, disjuncted_constraints, bmck, input_inst);
-
-          if (app.print_model)
-          {
-            for (bucket = input_inst->first; bucket != NULL;
-                 bucket = bucket->next)
-            {
-              var = (BtorExp *) bucket->data.asPtr;
-              assert (BTOR_IS_BV_VAR_EXP (var) || BTOR_IS_ARRAY_VAR_EXP (var));
-              if (BTOR_IS_BV_VAR_EXP (var))
-                BTOR_PUSH_STACK (mem, varstack, btor_copy_exp (btor, var));
-              else
-                BTOR_PUSH_STACK (mem, arraystack, btor_copy_exp (btor, var));
-            }
-          }
-
-          if (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_ONLY)
-          {
-            if (app.verbosity > 0) btor_msg_main ("Base case:\n");
-            if (bmck == 0) btor_add_constraint_exp (btor, regs_zero);
-            btor_add_assumption_exp (btor, bad);
-            sat_result = btor_sat_btor (btor);
-            assert (sat_result != BTOR_UNKNOWN);
-            if (app.verbosity > 0 || sat_result == BTOR_SAT
-                || sat_result == BTOR_UNKNOWN)
-              print_sat_result (&app, sat_result);
-            if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
-              bmc_done = 1;
-            else
-            {
-              assert (sat_result == BTOR_UNSAT);
-              /* we add NOT Bad_k, except in the last iteration */
-              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
-              {
-                not_bad = btor_not_exp (btor, bad);
-                btor_add_constraint_exp (btor, not_bad);
-                btor_release_exp (btor, not_bad);
-              }
-            }
-          }
-          else if (app.bmc_mode == BTOR_APP_BMC_MODE_INDUCT_ONLY)
-          {
-            if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
-            btor_add_assumption_exp (btor, bad);
-            sat_result = btor_sat_btor (btor);
-            assert (sat_result != BTOR_UNKNOWN);
-            if (app.verbosity > 0 || sat_result == BTOR_UNSAT
-                || sat_result == BTOR_UNKNOWN)
-              print_sat_result (&app, sat_result);
-            if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
-              bmc_done = 1;
-            else
-            {
-              assert (sat_result == BTOR_SAT);
-              if (!(app.bmcmaxk != -1 && bmck == app.bmcmaxk))
-              /* we add NOT Bad_k, except in the last iteration */
-              {
-                not_bad = btor_not_exp (btor, bad);
-                btor_add_constraint_exp (btor, not_bad);
-                btor_release_exp (btor, not_bad);
-              }
-            }
-          }
-          else
-          {
-            assert (app.bmc_mode == BTOR_APP_BMC_MODE_BASE_INDUCT);
-            if (app.verbosity > 0) btor_msg_main ("Inductive case:\n");
-            btor_add_assumption_exp (btor, bad);
-            sat_result = btor_sat_btor (btor);
-            assert (sat_result != BTOR_UNKNOWN);
-            if (app.verbosity > 0 || sat_result == BTOR_UNSAT
-                || sat_result == BTOR_UNKNOWN)
-              print_sat_result (&app, sat_result);
-            if (sat_result == BTOR_UNSAT || sat_result == BTOR_UNKNOWN)
-              bmc_done = 1;
-            else
-            {
-              assert (sat_result == BTOR_SAT);
-              if (app.verbosity > 0) btor_msg_main ("Base case:\n");
-              btor_add_assumption_exp (btor, regs_zero);
-              btor_add_assumption_exp (btor, bad);
-              sat_result = btor_sat_btor (btor);
-              assert (sat_result != BTOR_UNKNOWN);
-              if (app.verbosity > 0 || sat_result == BTOR_SAT
-                  || sat_result == BTOR_UNKNOWN)
-                print_sat_result (&app, sat_result);
-              if (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
-                bmc_done = 1;
-              else
-              {
-                assert (sat_result == BTOR_UNSAT);
-                /* we add NOT Bad_k */
-                not_bad = btor_not_exp (btor, bad);
-                btor_add_constraint_exp (btor, not_bad);
-                btor_release_exp (btor, not_bad);
-              }
-            }
-          }
-
-          for (i = 0; i < parse_res.nregs; i++)
-          {
-            if (bmck > 0) btor_release_exp (btor, old_insts[i]);
-            old_insts[i] = new_insts[i];
-            new_insts[i] = NULL;
-            bucket = btor_find_in_ptr_hash_table (reg_inst, parse_res.regs[i]);
-            btor_release_exp (btor, (BtorExp *) bucket->data.asPtr);
-            bucket->data.asPtr = NULL;
-          }
-
-          /* cleanup */
-          for (bucket = input_inst->first; bucket != NULL;
-               bucket = bucket->next)
-            btor_release_exp (btor, (BtorExp *) bucket->data.asPtr);
-          btor_delete_ptr_hash_table (input_inst);
-
-          btor_release_exp (btor, bad);
-        }
-
-        if (app.replay_mode != BTOR_APP_REPLAY_MODE_NONE)
-          btor_replay_btor (btor, app.replay_file);
-
-        if (!bmc_done)
-        {
-          sat_result = BTOR_UNKNOWN;
-          print_sat_result (&app, sat_result);
-        }
-
-        /* cleanup */
-        btor_delete_ptr_hash_table (reg_inst);
-
-        btor_release_exp (btor, disjuncted_constraints);
-        btor_release_exp (btor, regs_zero);
-        for (p = constraints.start; p < constraints.top; p++)
-          btor_release_exp (btor, *p);
-        BTOR_RELEASE_STACK (mem, constraints);
-
-        for (i = 0; i < parse_res.nregs; i++)
-          btor_release_exp (btor, old_insts[i]);
-        BTOR_DELETEN (mem, old_insts, parse_res.nregs);
-
-        BTOR_DELETEN (mem, new_insts, parse_res.nregs);
-
-        for (p = bv_states.start; p < bv_states.top; p++)
-          btor_release_exp (btor, *p);
-        BTOR_RELEASE_STACK (mem, bv_states);
-
-        if (BTOR_COUNT_STACK (array_regs) > 0)
-        {
-          for (i = 0; i < BTOR_COUNT_STACK (array_regs); i++)
-          {
-            for (p = array_states[i].start; p != array_states[i].top; p++)
-              btor_release_exp (btor, *p);
-            BTOR_RELEASE_STACK (mem, array_states[i]);
-          }
-          BTOR_DELETEN (mem, array_states, BTOR_COUNT_STACK (array_regs));
-        }
-
-        BTOR_RELEASE_STACK (mem, bv_regs);
-        BTOR_RELEASE_STACK (mem, array_regs);
+        print_msg_va_args (&app, "removed support for sequential models");
+        app.err = 1;
       }
       else
       {
@@ -2288,7 +1647,6 @@ boolector_main (int argc, char **argv)
   if (app.close_output_file) fclose (app.output_file);
   if (app.close_exp_file) fclose (app.exp_file);
   if (app.close_smt_file) fclose (app.smt_file);
-  if (app.close_replay_file) fclose (app.replay_file);
   if (app.err)
     return_val = BTOR_ERR_EXIT;
   else if (app.done)

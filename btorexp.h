@@ -1,22 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
- *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #ifndef BTOREXP_H_INCLUDED
@@ -276,7 +266,6 @@ struct Btor
   int valid_assignments;
   int rewrite_level;
   int verbosity;
-  int replay;
   int vread_index_id;
   int inconsistent;
   int model_gen;            /* model generation enabled */
@@ -286,19 +275,6 @@ struct Btor
   int norestarts;           /* disable restarts totally */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
-  struct                    /* Under-approximation UA */
-  {
-    int enabled;                     /* UA enabled */
-    BtorUAMode mode;                 /* UA mode */
-    BtorUARef ref;                   /* UA refinement strategy */
-    BtorUAEnc enc;                   /* UA encoding strategy */
-    int initial_eff_width;           /* UA initial effective bit-width */
-    int global_eff_width;            /* global effective bit-width  */
-    int global_max_eff_width;        /* maximum necessary effective bit-width */
-    int global_last_e;               /* last global UA e for CNF */
-    BtorPtrHashTable *vars_reads;    /* bv variables and reads */
-    BtorPtrHashTable *writes_aconds; /* array writes and array conds */
-  } ua;
 
   BtorPtrHashTable *exp_pair_eq_table;
 
@@ -309,64 +285,38 @@ struct Btor
   BtorPtrHashTable *assumptions;
   BtorPtrHashTable *var_rhs; /* only for model generation */
   BtorExpPtrStack arrays_with_model;
-  BtorExpPtrStack replay_constraints;
   /* statistics */
   int ops[BTOR_NUM_OPS_EXP];
   struct
   {
-    /* maximum number of recursive rewrite calls */
-    int max_rec_rw_calls;
-    /* number of under-approximation refinements */
-    int ua_refinements;
-    /* number of lemmas on demand refinements */
-    int lod_refinements;
-    /* number of SAT solver decision limit hit */
-    int decision_limit_refinements;
-    /* number of restarts as a result of lazy synthesis */
-    int synthesis_assignment_inconsistencies;
-    /* number of array axiom 1 conflicts:
-     * a = b /\ i = j => read(a, i) = read(b, j) */
-    int array_axiom_1_conflicts;
-    /* number of array axiom 2 conflicts:
-     * i = j => read(write(a, i, e), j) = e */
-    int array_axiom_2_conflicts;
-    /* number of variables that have been substituted */
-    int var_substitutions;
-    /* number of array variables that have been substituted */
-    int array_substitutions;
-    /* embedded constraint substitutions */
-    int ec_substitutions;
-    /* number of virtual reads */
-    int vreads;
-    /* number of linear equations */
-    int linear_equations;
-    /* number of add chains normalizations */
-    int adds_normalized;
-    /* number of mul chains normalizations */
-    int muls_normalized;
-    /* domain abstractions */
-    int domain_abst;
-#if BTOR_ENABLE_PROBING_OPT
-    /* how many equalities have been successfully probed */
-    int probed_equalities;
-#endif
-    /* unconstrained bit-vector propagations */
-    int bv_uc_props;
-    /* unconstrained array propagations */
-    int array_uc_props;
-    /*  how often have we pushed a read over write during construction */
-    int read_props_construct;
-    /* sum of the size of all added lemmas */
-    long long int lemmas_size_sum;
-    /* sum of the size of all linking clauses */
-    long long int lclause_size_sum;
-    /* constraint statistics */
-    ConstraintStats constraints;
+    int max_rec_rw_calls; /* maximum number of recursive rewrite calls */
+    int lod_refinements;  /* number of lemmas on demand refinements */
+    int decision_limit_refinements; /* number of SAT solver decision limit hit
+                                     */
+    int synthesis_assignment_inconsistencies; /* number of restarts as a result
+                                                 of lazy synthesis */
+    int array_axiom_1_conflicts; /* number of array axiom 1 conflicts: a = b /\
+                                    i = j => read(a, i) = read(b, j) */
+    int array_axiom_2_conflicts; /* number of array axiom 2 conflicts: i = j =>
+                                    read(write(a, i, e), j) = e */
+    int var_substitutions; /* number of variables that have been substituted */
+    int array_substitutions;       /* number of array variables that have been
+                                      substituted */
+    int ec_substitutions;          /* embedded constraint substitutions */
+    int vreads;                    /* number of virtual reads */
+    int linear_equations;          /* number of linear equations */
+    int adds_normalized;           /* number of add chains normalizations */
+    int muls_normalized;           /* number of mul chains normalizations */
+    int read_props_construct;      /* how often have we pushed a read over write
+                                      during construction */
+    long long int lemmas_size_sum; /* sum of the size of all added lemmas */
+    long long int lclause_size_sum; /* sum of the size of all linking clauses */
+    ConstraintStats constraints;    /* constraint statistics */
+    long long expressions;
     struct
     {
       ConstraintStats constraints;
     } old;
-    long long expressions;
   } stats;
 };
 
@@ -467,6 +417,9 @@ struct Btor
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
 
+/* Clone an existing boolector instance. */
+Btor *btor_clone_btor (Btor *);
+
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
@@ -484,22 +437,6 @@ void btor_enable_inc_usage (Btor *btor);
  * does not print any output.
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
-
-void btor_enable_under_approx (Btor *btor);
-
-void btor_reset_effective_bit_widths (Btor *btor);
-
-void btor_set_under_approx_initial_effective_width (Btor *btor,
-                                                    int ua_start_width);
-
-void btor_set_under_approx_mode (Btor *btor, BtorUAMode mode);
-
-void btor_set_under_approx_ref (Btor *btor, BtorUARef ua_ref);
-
-void btor_set_under_approx_enc (Btor *btor, BtorUAEnc ua_bw_enc);
-
-/* Turns replay on or off. */
-void btor_set_replay_btor (Btor *btor, int replay);
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
@@ -924,9 +861,6 @@ void btor_dump_smt (Btor *btor, FILE *file, BtorExp *root);
 
 /* Adds top level constraint. */
 void btor_add_constraint_exp (Btor *btor, BtorExp *exp);
-
-/* Dump added constraints and current assumptions to file 'file'. */
-void btor_replay_btor (Btor *btor, FILE *file);
 
 /* Adds assumption. */
 void btor_add_assumption_exp (Btor *btor, BtorExp *exp);

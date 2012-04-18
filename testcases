@@ -57,7 +57,6 @@ dumpbtor2 -rwl0 -f -de log/dumpbtor2.log log/dumpbtor2.btor
 dumpbtor3 -f -de log/dumpbtor3.log log/dumpbtor3.btor
 dumpsmt1 -rwl0 -f -ds log/dumpsmt1.log log/dumpsmt1.btor
 dumpsmt2 -rwl0 -f -ds log/dumpsmt2.log log/dumpsmt2.btor
-dumpreplay1 -q -rwl0 -f -bmc-base-only -bmc-maxk=2 -bmc-replay log/dumpreplay1.log log/dumpreplay1.btor
 smtextarrayaxiom1uf -o log/smtextarrayaxiom1uf.log log/smtextarrayaxiom1uf.smt
 smtextarrayaxiom1 -o log/smtextarrayaxiom1.log log/smtextarrayaxiom1.smt
 smtextarray1sat0 -o log/smtextarray1sat0.log log/smtextarray1sat0.smt
@@ -508,26 +507,26 @@ nextpoweroftwo016 -o log/nextpoweroftwo016.log log/nextpoweroftwo016.smt
 memcpy02 -o log/memcpy02.log log/memcpy02.smt
 regrw8simp -o log/regrw8simp.log log/regrw8simp.btor
 regprim11simp -o log/regprim11simp.log log/regprim11simp.btor
-regexit0basic -o log/regexit0basic.log log/regexit0basic.btor
-nextcounter1 -o log/nextcounter1.log log/nextcounter1.btor
-nextcounter2 -o log/nextcounter2.log log/nextcounter2.btor
-nextcounter3 -o log/nextcounter3.log log/nextcounter3.btor
-nextcounter4 -o log/nextcounter4.log log/nextcounter4.btor
-nextcounter5 -o log/nextcounter5.log log/nextcounter5.btor
-nextautomata1 -o log/nextautomata1.log log/nextautomata1.btor
-nextautomata2 -o log/nextautomata2.log log/nextautomata2.btor
-nextautomata3 -o log/nextautomata3.log log/nextautomata3.btor
-nextautomata4 -o log/nextautomata4.log log/nextautomata4.btor
-nextarray1 -o log/nextarray1.log log/nextarray1.btor
-nextarray2 -o log/nextarray2.log log/nextarray2.btor
-nextarray3 -o log/nextarray3.log log/nextarray3.btor
-nextarray4 -o log/nextarray4.log log/nextarray4.btor
-nextarray5 -o log/nextarray5.log log/nextarray5.btor
-nextarray6 -o log/nextarray6.log log/nextarray6.btor
-nextarray7 -o log/nextarray7.log log/nextarray7.btor
-nextarray8 -o log/nextarray8.log log/nextarray8.btor
-nextarray8 -rwl0 -o log/nextarray8.log log/nextarray8.btor
-nextarrayinput1 -rwl0 -o log/nextarrayinput1.log log/nextarrayinput1.btor
+#regexit0basic -o log/regexit0basic.log log/regexit0basic.btor
+#nextcounter1 -o log/nextcounter1.log log/nextcounter1.btor
+#nextcounter2 -o log/nextcounter2.log log/nextcounter2.btor
+#nextcounter3 -o log/nextcounter3.log log/nextcounter3.btor
+#nextcounter4 -o log/nextcounter4.log log/nextcounter4.btor
+#nextcounter5 -o log/nextcounter5.log log/nextcounter5.btor
+#nextautomata1 -o log/nextautomata1.log log/nextautomata1.btor
+#nextautomata2 -o log/nextautomata2.log log/nextautomata2.btor
+#nextautomata3 -o log/nextautomata3.log log/nextautomata3.btor
+#nextautomata4 -o log/nextautomata4.log log/nextautomata4.btor
+#nextarray1 -o log/nextarray1.log log/nextarray1.btor
+#nextarray2 -o log/nextarray2.log log/nextarray2.btor
+#nextarray3 -o log/nextarray3.log log/nextarray3.btor
+#nextarray4 -o log/nextarray4.log log/nextarray4.btor
+#nextarray5 -o log/nextarray5.log log/nextarray5.btor
+#nextarray6 -o log/nextarray6.log log/nextarray6.btor
+#nextarray7 -o log/nextarray7.log log/nextarray7.btor
+#nextarray8 -o log/nextarray8.log log/nextarray8.btor
+#nextarray8 -rwl0 -o log/nextarray8.log log/nextarray8.btor
+#nextarrayinput1 -rwl0 -o log/nextarrayinput1.log log/nextarrayinput1.btor
 regpicoprepsqrt4 -o log/regpicoprepsqrt4.log log/regpicoprepsqrt4.btor
 substcyclic1 -o log/substcyclic1.log log/substcyclic1.btor
 lin0 -o log/lin0.log log/lin0.btor
@@ -638,16 +637,6 @@ regrexpleak2 -rwl2 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrexpleak2 -rwl1 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrexpleak2 -rwl0 -o log/regrexpleak2.log log/regrexpleak2.btor
 regrpointerchasing1 -o log/regrpointerchasing1.log log/regrpointerchasing1.btor
-regrunderapprox1 -rwl0 -uad -o log/regrunderapprox1.log log/regrunderapprox1.btor
-regrunderapprox2 -rwl0 -uai -o log/regrunderapprox2.log log/regrunderapprox2.btor
-regrunderapprox3 -rwl0 -uai -o log/regrunderapprox3.log log/regrunderapprox3.btor
-regrunderapprox4 -rwl0 -ual -o log/regrunderapprox4.log log/regrunderapprox4.btor
-regrunderapprox5 -rwl0 -uaz -o log/regrunderapprox5.log log/regrunderapprox5.btor
-regrunderapprox6 -rwl0 -uao -o log/regrunderapprox6.log log/regrunderapprox6.btor
-regrunderapprox7 -rwl0 -uad -uac -o log/regrunderapprox7.log log/regrunderapprox7.btor
-regrunderapprox8 -rwl1 -uali -o log/regrunderapprox8.log log/regrunderapprox8.btor
-regrunderapprox9 -rwl2 -ua -o log/regrunderapprox9.log log/regrunderapprox9.btor
-regrunderapprox10 -ua -m -o log/regrunderapprox10.log log/regrunderapprox10.btor
 3vl1 -rwl2 -o log/3vl1.log log/3vl1.btor
 3vl1 -rwl0 -o log/3vl1.log log/3vl1.btor
 3vl2 -rwl2 -o log/3vl2.log log/3vl2.btor
@@ -683,18 +672,6 @@ ultsubst9 -rwl0 -o log/ultsubst9.log log/ultsubst9.btor
 ultsubst9 -rwl2 -o log/ultsubst9.log log/ultsubst9.btor
 slicesubst1 -rwl0 -o log/slicesubst1.log log/slicesubst1.btor
 slicesubst1 -rwl2 -o log/slicesubst1.log log/slicesubst1.btor
-underapprox1 -rwl0 -uad -uag -uas -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -rwl0 -uai -uag -uas -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -uad -uag -uas -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -rwl0 -uad -uag -uaz -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -rwl0 -uai -uag -uaz -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -uad -uag -uas -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -rwl0 -uai -uag -uao -o log/underapprox1.log log/underapprox1.btor
-underapprox1 -rwl0 -uad -uag -uao -o log/underapprox1.log log/underapprox1.btor
-underapprox2 -rwl0 -uai -ual -uaz -o log/underapprox2.log log/underapprox2.btor
-underapprox3 -rwl0 -uai -ual -uas -o log/underapprox3.log log/underapprox3.btor
-underapprox4 -rwl0 -uai -ual -uas -o log/underapprox4.log log/underapprox4.btor
-underapprox4 -rwl0 -uai -uag -uas -o log/underapprox4.log log/underapprox4.btor
 regrdomabst1 -o log/regrdomabst1.log log/regrdomabst1.btor
 regrdomabst2 -o log/regrdomabst2.log log/regrdomabst2.btor
 regrdomabst3 -o log/regrdomabst3.log log/regrdomabst3.btor
@@ -717,4 +694,4 @@ count02inc -q -look-ahead=2 -o log/count02inc.log log/count02inc.smt
 count02incuns -q -interval=4 -o log/count02incuns.log log/count02incuns.smt
 count03inc -q -in-depth=3 -o log/count03inc.log log/count03inc.smt
 count03to6 -q -interval=3 -o log/count03to6.log log/count03to6.smt
-count03plus2inc -interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt
+count03plus2inc -q -interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt

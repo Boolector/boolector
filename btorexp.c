@@ -1,22 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
- *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "btorexp.h"
@@ -38,13 +28,13 @@
 #include <string.h>
 
 /*------------------------------------------------------------------------*/
-/* BEGIN OF DECLARATIONS                                                  */
-/*------------------------------------------------------------------------*/
 
 static const char *const g_op2string[] = {
     "invalid", "const",  "var",  "array", "slice", "and",   "beq",
     "aeq",     "add",    "mul",  "ult",   "sll",   "srl",   "udiv",
     "urem",    "concat", "read", "write", "bcond", "acond", "proxy"};
+
+/*------------------------------------------------------------------------*/
 
 #define BTOR_ABORT_EXP(cond, msg)                   \
   do                                                \
@@ -73,29 +63,9 @@ static const char *const g_op2string[] = {
     BTOR_DELETEN (mm, (table).chains, (table).size); \
   } while (0)
 
+#define BTOR_SAT_MIN_LIMIT 50000
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
-
-#if 1
-#define BTOR_SAT_MIN_LIMIT 50000
-#else
-#warning "#define BTOR_SAT_MIN_LIMIT = 1"
-#define BTOR_SAT_MIN_LIMIT 1
-#endif
-
-#ifdef BTOR_ENABLE_PROBING_OPT
-#define BTOR_EXP_FAILED_EQ_LIMIT 128
-#endif
-
-struct BtorUAData
-{
-  int last_e;
-  int eff_width;
-  int updated_eff_width; /* boolean flag */
-  int refinements;
-};
-
-typedef struct BtorUAData BtorUAData;
 
 struct BtorExpPair
 {
@@ -135,26 +105,7 @@ typedef struct BtorFullParentIterator BtorFullParentIterator;
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
 static void add_constraint (Btor *, BtorExp *);
-static void run_rewrite_engine (Btor *, int);
-
-#define BTOR_NADBV
-#define BTOR_NELIMSLICES
-
-#ifndef BTOR_NADBV
-static void abstract_domain_bv_variables (Btor *);
-#endif
-
-#ifndef BTOR_NELIMSLICES
-static void eliminate_slices_on_bv_vars (Btor *);
-
-struct BtorSlice
-{
-  int upper;
-  int lower;
-};
-
-typedef struct BtorSlice BtorSlice;
-#endif
+static void run_rewrite_engine (Btor *);
 
 /*------------------------------------------------------------------------*/
 /* END OF DECLARATIONS                                                    */
@@ -389,22 +340,6 @@ btor_precond_cond_exp_dbg (const Btor *btor,
 
 #endif
 
-#ifndef BTOR_NELIMSLICES
-
-static int
-compare_int_ptr (const void *p1, const void *p2)
-{
-  int v1 = *((int *) p1);
-  int v2 = *((int *) p2);
-  if (v1 < v2) return -1;
-
-  if (v1 > v2) return 1;
-
-  return 0;
-}
-
-#endif
-
 static void
 btor_msg_exp (Btor *btor, char *fmt, ...)
 {
@@ -417,77 +352,6 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
   fputc ('\n', stdout);
   fflush (stdout);
 }
-
-#ifndef BTOR_NELIMSLICES
-
-static BtorSlice *
-new_slice (Btor *btor, int upper, int lower)
-{
-  BtorSlice *result;
-
-  assert (btor != NULL);
-  assert (upper >= lower);
-  assert (lower >= 0);
-
-  BTOR_NEW (btor->mm, result);
-  result->upper = upper;
-  result->lower = lower;
-  return result;
-}
-
-static void
-delete_slice (Btor *btor, BtorSlice *slice)
-{
-  assert (btor != NULL);
-  assert (slice != NULL);
-  BTOR_DELETE (btor->mm, slice);
-}
-
-static unsigned int
-hash_slice (BtorSlice *slice)
-{
-  unsigned int result;
-
-  assert (slice != NULL);
-  assert (slice->upper >= slice->lower);
-  assert (slice->lower >= 0);
-
-  result = (unsigned int) slice->upper;
-  result += (unsigned int) slice->lower;
-  result *= 7334147u;
-  return result;
-}
-
-static int
-compare_slices (BtorSlice *s1, BtorSlice *s2)
-{
-  assert (s1 != NULL);
-  assert (s2 != NULL);
-  assert (s1->upper >= s1->lower);
-  assert (s1->lower >= 0);
-  assert (s2->upper >= s2->lower);
-  assert (s2->lower >= 0);
-
-  if (s1->upper < s2->upper) return -1;
-
-  if (s1->upper > s2->upper) return 1;
-
-  assert (s1->upper == s1->upper);
-  if (s1->lower < s2->lower) return -1;
-
-  if (s1->lower > s2->lower) return 1;
-
-  assert (s1->upper == s2->upper && s1->lower == s2->lower);
-  return 0;
-}
-
-static int
-compare_slices_qsort (const void *p1, const void *p2)
-{
-  return compare_slices (*((BtorSlice **) p1), *((BtorSlice **) p2));
-}
-
-#endif
 
 static void
 inc_exp_ref_counter (Btor *btor, BtorExp *exp)
@@ -508,31 +372,6 @@ btor_copy_exp (Btor *btor, BtorExp *exp)
   assert (exp != NULL);
   inc_exp_ref_counter (btor, exp);
   return exp;
-}
-
-static BtorUAData *
-new_ua_data (Btor *btor, int eff_width)
-{
-  BtorUAData *result;
-
-  assert (btor != NULL);
-  assert (eff_width >= 0);
-
-  BTOR_NEW (btor->mm, result);
-  result->last_e            = 0;
-  result->eff_width         = eff_width;
-  result->updated_eff_width = 0;
-  result->refinements       = 0;
-
-  return result;
-}
-
-static void
-delete_ua_data (Btor *btor, BtorUAData *ua_data)
-{
-  assert (btor != NULL);
-  assert (ua_data != NULL);
-  BTOR_DELETE (btor->mm, ua_data);
 }
 
 /* Creates an expression pair which can be compared with
@@ -748,7 +587,6 @@ remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
 static void
 remove_from_hash_tables (Btor *btor, BtorExp *exp)
 {
-  BtorUAData *ua_data;
   assert (btor != NULL);
   assert (exp != NULL);
   assert (BTOR_IS_REGULAR_EXP (exp));
@@ -758,29 +596,13 @@ remove_from_hash_tables (Btor *btor, BtorExp *exp)
   {
     case BTOR_BV_VAR_EXP:
       btor_remove_from_ptr_hash_table (btor->bv_vars, exp, 0, 0);
-      if (btor->ua.enabled)
-      {
-        btor_remove_from_ptr_hash_table (
-            btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
-        if (ua_data != NULL) delete_ua_data (btor, ua_data);
-      }
       break;
     case BTOR_ARRAY_VAR_EXP:
       btor_remove_from_ptr_hash_table (btor->array_vars, exp, 0, 0);
       break;
-    case BTOR_READ_EXP:
-      if (btor->ua.enabled)
-      {
-        btor_remove_from_ptr_hash_table (
-            btor->ua.vars_reads, exp, 0, (BtorPtrHashData *) (void *) &ua_data);
-        if (ua_data != NULL) delete_ua_data (btor, ua_data);
-      }
-      break;
+    case BTOR_READ_EXP: break;
     case BTOR_WRITE_EXP:
-    case BTOR_ACOND_EXP:
-      if (btor->ua.enabled)
-        btor_remove_from_ptr_hash_table (btor->ua.writes_aconds, exp, 0, 0);
-      break;
+    case BTOR_ACOND_EXP: break;
     default: break;
   }
 }
@@ -1212,29 +1034,6 @@ has_parents_exp (Btor *btor, BtorExp *exp)
   init_full_parent_iterator (&it, exp);
   return has_next_parent_full_parent_iterator (&it);
 }
-
-#if 0
-static BtorExp * 
-get_parent_if_exactly_one_parent_exp (Btor * btor, BtorExp *exp)
-{
-  BtorExp *result;
-  BtorFullParentIterator it;
-
-  assert (btor != NULL);
-  assert (exp != NULL);
-  (void) btor;
-
-  init_full_parent_iterator (&it, exp);
-  if (!has_next_parent_full_parent_iterator(&it))
-    return NULL;
-
-  result = next_parent_full_parent_iterator (&it);
-  if (has_next_parent_full_parent_iterator (&it))
-    return NULL;
-
-  return result;
-}
-#endif
 
 static void
 check_not_simplified_or_const (Btor *btor, BtorExp *exp)
@@ -2192,30 +1991,6 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   return (BtorExp *) exp;
 }
 
-static void
-hash_var_read_for_ua (Btor *btor, BtorExp *exp)
-{
-  BtorUAData *ua_data;
-
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
-  assert (BTOR_IS_BV_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
-  assert (btor->ua.enabled);
-  assert (!btor_find_in_ptr_hash_table (btor->ua.vars_reads, exp));
-
-  if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-    btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp);
-  else
-  {
-    assert (btor->ua.mode == BTOR_UA_LOCAL_MODE
-            || btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-    ua_data = new_ua_data (btor, btor->ua.initial_eff_width);
-    btor_insert_in_ptr_hash_table (btor->ua.vars_reads, exp)->data.asPtr =
-        ua_data;
-  }
-}
-
 static BtorExp *
 new_binary_exp_node (
     Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
@@ -2242,9 +2017,6 @@ new_binary_exp_node (
   exp->btor = btor;
   connect_child_exp (btor, (BtorExp *) exp, e0, 0);
   connect_child_exp (btor, (BtorExp *) exp, e1, 1);
-
-  if (btor->ua.enabled && kind == BTOR_READ_EXP)
-    hash_var_read_for_ua (btor, (BtorExp *) exp);
 
   return (BtorExp *) exp;
 }
@@ -2342,9 +2114,6 @@ new_write_exp_node (Btor *btor,
   connect_child_exp (btor, exp, e_index, 1);
   connect_child_exp (btor, exp, e_value, 2);
 
-  if (btor->ua.enabled)
-    btor_insert_in_ptr_hash_table (btor->ua.writes_aconds, exp);
-
   return exp;
 }
 
@@ -2379,9 +2148,6 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
   connect_child_exp (btor, exp, a_else, 2);
-
-  if (btor->ua.enabled)
-    btor_insert_in_ptr_hash_table (btor->ua.writes_aconds, exp);
 
   return exp;
 }
@@ -2808,7 +2574,6 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->refs = 1;
   exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
-  if (btor->ua.enabled) hash_var_read_for_ua (btor, (BtorExp *) exp);
   (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
   return (BtorExp *) exp;
 }
@@ -4711,7 +4476,7 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   assert (!btor->model_gen);
   assert (btor->rewrite_level > 1);
 
-  run_rewrite_engine (btor, 1);
+  run_rewrite_engine (btor);
 
   if (btor->inconsistent)
   {
@@ -4982,11 +4747,16 @@ btor_new_btor (void)
 {
   BtorMemMgr *mm;
   Btor *btor;
+
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, btor);
+
   btor->mm = mm;
+
   BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-  btor->avmgr   = btor_new_aigvec_mgr (mm);
+
+  btor->avmgr = btor_new_aigvec_mgr (mm);
+
   btor->bv_vars = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
@@ -5026,7 +4796,65 @@ btor_new_btor (void)
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
   BTOR_INIT_STACK (btor->arrays_with_model);
-  BTOR_INIT_STACK (btor->replay_constraints);
+
+  return btor;
+}
+
+Btor *
+btor_clone_btor (Btor *orig)
+{
+  BtorMemMgr *mm;
+  Btor *btor;
+
+  (void) orig;
+
+  mm = btor_new_mem_mgr ();
+  BTOR_CNEW (mm, btor);
+
+  btor->mm = mm;
+
+#if 0
+  BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
+
+  btor->avmgr = btor_new_aigvec_mgr (mm);
+
+  btor->bv_vars =
+    btor_new_ptr_hash_table (mm,
+                             (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->array_vars =
+    btor_new_ptr_hash_table (mm,
+                             (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->id = 1;
+  btor->bv_lambda_id = 1;
+  btor->array_lambda_id = 1;
+  btor->valid_assignments = 1;
+  btor->rewrite_level = 3;
+  btor->vread_index_id = 1;
+  btor->msgtick = -1;
+
+  btor->exp_pair_eq_table =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) hash_exp_pair,
+                             (BtorCmpPtr) compare_exp_pair);
+  btor->varsubst_constraints =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->embedded_constraints =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->unsynthesized_constraints =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->synthesized_constraints =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->assumptions =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
+                             (BtorCmpPtr) btor_compare_exp_by_id);
+
+  BTOR_INIT_STACK (btor->arrays_with_model);
+#endif
   return btor;
 }
 
@@ -5064,76 +4892,6 @@ btor_enable_inc_usage (Btor *btor)
 }
 
 void
-btor_enable_under_approx (Btor *btor)
-{
-  BtorMemMgr *mm;
-
-  assert (btor != NULL);
-  assert (btor->id == 1);
-  assert (!btor->ua.enabled);
-
-  mm = btor->mm;
-
-  btor->ua.enabled           = 1;
-  btor->ua.initial_eff_width = 1;
-  btor->ua.global_eff_width  = 1;
-  btor->ua.vars_reads =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->ua.writes_aconds =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
-}
-
-void
-btor_set_under_approx_initial_effective_width (Btor *btor,
-                                               int initial_eff_width)
-{
-  assert (btor != NULL);
-  assert (btor->id == 1);
-  assert (initial_eff_width > 0);
-  btor->ua.initial_eff_width = initial_eff_width;
-  btor->ua.global_eff_width  = initial_eff_width;
-}
-
-void
-btor_set_under_approx_mode (Btor *btor, BtorUAMode mode)
-{
-  assert (btor != NULL);
-  assert (btor->id == 1);
-  btor->ua.mode = mode;
-}
-
-void
-btor_set_under_approx_ref (Btor *btor, BtorUARef ref)
-{
-  assert (btor != NULL);
-  assert (btor->id == 1);
-  btor->ua.ref = ref;
-}
-
-void
-btor_set_under_approx_enc (Btor *btor, BtorUAEnc enc)
-{
-  assert (btor != NULL);
-  assert (btor->id == 1);
-  btor->ua.enc = enc;
-}
-
-void
-btor_set_replay_btor (Btor *btor, int replay)
-{
-  assert (btor != NULL);
-  assert (btor->varsubst_constraints->count + btor->embedded_constraints->count
-              + btor->unsynthesized_constraints->count
-              + btor->synthesized_constraints->count + btor->assumptions->count
-          == 0u);
-  btor->replay = replay;
-}
-
-void
 btor_set_verbosity_btor (Btor *btor, int verbosity)
 {
   BtorAIGVecMgr *avmgr;
@@ -5159,7 +4917,6 @@ btor_delete_btor (Btor *btor)
 {
   BtorMemMgr *mm;
   BtorPtrHashBucket *b;
-  int i;
 
   assert (btor != NULL);
 
@@ -5202,27 +4959,18 @@ btor_delete_btor (Btor *btor)
     btor_delete_ptr_hash_table (btor->var_rhs);
   }
 
-  for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
-    btor_release_exp (btor, btor->replay_constraints.start[i]);
-  BTOR_RELEASE_STACK (mm, btor->replay_constraints);
-
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
           || btor->table.num_elements == 0);
+
   BTOR_RELEASE_EXP_UNIQUE_TABLE (mm, btor->table);
+
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
 
-  if (btor->ua.enabled)
-  {
-    assert (btor->ua.vars_reads->count == 0u);
-    btor_delete_ptr_hash_table (btor->ua.vars_reads);
-    assert (btor->ua.writes_aconds->count == 0u);
-    btor_delete_ptr_hash_table (btor->ua.writes_aconds);
-  }
-
   btor_delete_aigvec_mgr (btor->avmgr);
+
   assert (btor->rec_rw_calls == 0);
   BTOR_DELETE (mm, btor);
   btor_delete_mem_mgr (mm);
@@ -5300,229 +5048,6 @@ report_constraint_stats (Btor *btor, int force)
       btor->synthesized_constraints->count;
 }
 
-static void
-update_max_basic_ua_stats (Btor *btor, int *max, int val)
-{
-  assert (btor != NULL);
-  assert (max != NULL);
-  assert (*max >= 0);
-  assert (val > 0);
-  (void) btor;
-
-  if (val > *max) *max = val;
-}
-
-static void
-update_min_basic_ua_stats (Btor *btor, int *min, int val)
-{
-  assert (btor != NULL);
-  assert (min != NULL);
-  assert (*min >= 0);
-  assert (val > 0);
-  (void) btor;
-
-  if (val < *min || *min == 0) *min = val;
-}
-
-static void
-compute_basic_ua_stats (Btor *btor,
-                        unsigned int *num_vars,
-                        unsigned int *num_reads,
-                        unsigned long long int *sum_var_refs,
-                        unsigned long long int *sum_read_refs,
-                        unsigned long long int *sum_refs,
-                        double *avg_var_refs,
-                        double *avg_read_refs,
-                        double *avg_refs,
-                        int *max_var_width,
-                        int *max_read_width,
-                        int *max_width,
-                        int *min_var_width,
-                        int *min_read_width,
-                        int *min_width,
-                        int *max_var_eff_width,
-                        int *max_read_eff_width,
-                        int *max_eff_width,
-                        int *min_var_eff_width,
-                        int *min_read_eff_width,
-                        int *min_eff_width,
-                        double *avg_var_width,
-                        double *avg_read_width,
-                        double *avg_var_eff_width,
-                        double *avg_read_eff_width,
-                        double *avg_width,
-                        double *avg_eff_width)
-{
-  BtorPtrHashBucket *b;
-  BtorExp *cur;
-  BtorUAData *data = NULL;
-  BtorUAMode ua_mode;
-  unsigned long long int sum_var_width;
-  unsigned long long int sum_read_width;
-  unsigned long long int sum_var_eff_width;
-  unsigned long long int sum_read_eff_width;
-
-  assert (btor != NULL);
-  assert (num_vars != NULL);
-  assert (num_reads != NULL);
-  assert (sum_var_refs != NULL);
-  assert (sum_read_refs != NULL);
-  assert (sum_refs != NULL);
-  assert (avg_var_refs != NULL);
-  assert (avg_read_refs != NULL);
-  assert (avg_refs != NULL);
-  assert (max_var_width != NULL);
-  assert (max_read_width != NULL);
-  assert (max_width != NULL);
-  assert (min_var_width != NULL);
-  assert (min_read_width != NULL);
-  assert (min_width != NULL);
-
-  assert (max_var_eff_width != NULL);
-  assert (max_read_eff_width != NULL);
-  assert (max_eff_width != NULL);
-  assert (min_var_eff_width != NULL);
-  assert (min_read_eff_width != NULL);
-  assert (min_eff_width != NULL);
-
-  assert (avg_var_width != NULL);
-  assert (avg_read_width != NULL);
-  assert (avg_var_eff_width != NULL);
-  assert (avg_read_eff_width != NULL);
-  assert (avg_width != NULL);
-  assert (avg_eff_width != NULL);
-
-  assert (btor->ua.enabled);
-
-  ua_mode = btor->ua.mode;
-
-  sum_var_width      = 0llu;
-  sum_read_width     = 0llu;
-  sum_var_eff_width  = 0llu;
-  sum_read_eff_width = 0llu;
-
-  *num_vars       = 0u;
-  *num_reads      = 0u;
-  *sum_var_refs   = 0llu;
-  *sum_read_refs  = 0llu;
-  *sum_refs       = 0llu;
-  *max_var_width  = 0;
-  *max_read_width = 0;
-  *max_width      = 0;
-  *min_var_width  = 0;
-  *min_read_width = 0;
-  *min_width      = 0;
-
-  *max_var_eff_width  = 0;
-  *max_read_eff_width = 0;
-  *max_eff_width      = 0;
-  *min_var_eff_width  = 0;
-  *min_read_eff_width = 0;
-  *min_eff_width      = 0;
-
-  *avg_var_refs       = 0.0;
-  *avg_read_refs      = 0.0;
-  *avg_refs           = 0.0;
-  *avg_var_width      = 0.0;
-  *avg_read_width     = 0.0;
-  *avg_var_eff_width  = 0.0;
-  *avg_read_eff_width = 0.0;
-  *avg_width          = 0.0;
-  *avg_eff_width      = 0.0;
-
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
-
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      data = (BtorUAData *) b->data.asPtr;
-      assert (data != NULL);
-    }
-
-    update_min_basic_ua_stats (btor, min_width, cur->len);
-    update_max_basic_ua_stats (btor, max_width, cur->len);
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      update_min_basic_ua_stats (btor, min_eff_width, data->eff_width);
-      update_max_basic_ua_stats (btor, max_eff_width, data->eff_width);
-
-      *sum_refs += data->refinements;
-    }
-
-    if (BTOR_IS_BV_VAR_EXP (cur))
-    {
-      sum_var_width += cur->len;
-
-      update_min_basic_ua_stats (btor, min_var_width, cur->len);
-      update_max_basic_ua_stats (btor, max_var_width, cur->len);
-      if (ua_mode != BTOR_UA_GLOBAL_MODE)
-      {
-        update_min_basic_ua_stats (btor, min_var_eff_width, data->eff_width);
-        update_max_basic_ua_stats (btor, max_var_eff_width, data->eff_width);
-
-        sum_var_eff_width += data->eff_width;
-        *sum_var_refs += data->refinements;
-      }
-      *num_vars += 1;
-    }
-    else
-    {
-      sum_read_width += cur->len;
-
-      update_min_basic_ua_stats (btor, min_read_width, cur->len);
-      update_max_basic_ua_stats (btor, max_read_width, cur->len);
-
-      if (ua_mode != BTOR_UA_GLOBAL_MODE)
-      {
-        update_min_basic_ua_stats (btor, min_read_eff_width, data->eff_width);
-        update_max_basic_ua_stats (btor, max_read_eff_width, data->eff_width);
-
-        sum_read_eff_width += data->eff_width;
-        *sum_read_refs += data->refinements;
-      }
-      *num_reads += 1;
-    }
-  }
-
-  if (*num_vars)
-  {
-    *avg_var_width = (double) sum_var_width / (double) *num_vars;
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      *avg_var_refs      = (double) *sum_var_refs / (double) *num_vars;
-      *avg_var_eff_width = (double) sum_var_eff_width / (double) *num_vars;
-    }
-  }
-
-  if (*num_reads)
-  {
-    *avg_read_width = (double) sum_read_width / (double) *num_reads;
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      *avg_read_refs      = (double) *sum_read_refs / (double) *num_reads;
-      *avg_read_eff_width = (double) sum_read_eff_width / (double) *num_reads;
-    }
-  }
-
-  if (*num_vars || *num_reads)
-  {
-    *avg_width = (double) (sum_var_width + sum_read_width)
-                 / (double) (*num_vars + *num_reads);
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      *avg_eff_width = (double) (sum_var_eff_width + sum_read_eff_width)
-                       / (double) (*num_vars + *num_reads);
-      *avg_refs = (double) *sum_refs / (double) (*num_vars + *num_reads);
-    }
-  }
-}
-
 /* we do not count proxies */
 static int
 number_of_ops (Btor *btor)
@@ -5539,21 +5064,10 @@ number_of_ops (Btor *btor)
 void
 btor_print_stats_btor (Btor *btor)
 {
-  double avg_var_refs, avg_read_refs, avg_var_width, avg_read_width, avg_refs;
-  double avg_var_eff_width, avg_read_eff_width, avg_width, avg_eff_width;
-  unsigned int num_vars, num_reads;
-  unsigned long long int sum_var_refs, sum_read_refs, sum_refs;
-  int max_var_width, max_read_width, min_var_width, min_read_width;
-  int max_var_eff_width, max_read_eff_width, min_var_eff_width;
-  int min_read_eff_width, verbosity, min_width;
-  int max_width, min_eff_width, max_eff_width, i;
-  int num_final_ops;
-  BtorUAMode ua_mode;
+  int num_final_ops, verbosity, i;
 
   assert (btor != NULL);
-  // assert (btor->verbosity > 0);
 
-  ua_mode   = btor->ua.mode;
   verbosity = btor->verbosity;
 
   report_constraint_stats (btor, 1);
@@ -5571,15 +5085,6 @@ btor_print_stats_btor (Btor *btor)
   if (verbosity > 2)
   {
     btor_msg_exp (btor, "max rec. RW: %d", btor->stats.max_rec_rw_calls);
-    btor_msg_exp (btor, "domain abstractions: %d", btor->stats.domain_abst);
-#if BTOR_ENABLE_PROBING_OPT
-    btor_msg_exp (btor, "probed equalites: %d", btor->stats.probed_equalities);
-#endif
-    btor_msg_exp (
-        btor, "unconstrained bv propagations: %d", btor->stats.bv_uc_props);
-    btor_msg_exp (btor,
-                  "unconstrained array propagations: %d",
-                  btor->stats.array_uc_props);
     btor_msg_exp (btor,
                   "number of expressions ever created: %lld",
                   btor->stats.expressions);
@@ -5591,116 +5096,6 @@ btor_print_stats_btor (Btor *btor)
         if (btor->ops[i])
           btor_msg_exp (btor, " %s:%d", g_op2string[i], btor->ops[i]);
   }
-
-  if (btor->ua.enabled)
-  {
-    btor_msg_exp (btor, "");
-    btor_msg_exp (btor, "under-approximation (UA) statistics:");
-    btor_msg_exp (btor, " UA refinements: %d", btor->stats.ua_refinements);
-    if (ua_mode == BTOR_UA_GLOBAL_MODE)
-      btor_msg_exp (btor,
-                    " global effective bit-width (final): %d",
-                    btor->ua.global_eff_width);
-
-    if (verbosity < 2) goto BTOR_CONTINUE_BASIC_STATS_OUTPUT;
-
-    compute_basic_ua_stats (btor,
-                            &num_vars,
-                            &num_reads,
-                            &sum_var_refs,
-                            &sum_read_refs,
-                            &sum_refs,
-                            &avg_var_refs,
-                            &avg_read_refs,
-                            &avg_refs,
-                            &max_var_width,
-                            &max_read_width,
-                            &max_width,
-                            &min_var_width,
-                            &min_read_width,
-                            &min_width,
-                            &max_var_eff_width,
-                            &max_read_eff_width,
-                            &max_eff_width,
-                            &min_var_eff_width,
-                            &min_read_eff_width,
-                            &min_eff_width,
-                            &avg_var_width,
-                            &avg_read_width,
-                            &avg_var_eff_width,
-                            &avg_read_eff_width,
-                            &avg_width,
-                            &avg_eff_width);
-
-    btor_msg_exp (btor, "");
-    btor_msg_exp (btor, " reachable vars (after rewriting): %d", num_vars);
-    if (num_vars > 0)
-    {
-      btor_msg_exp (btor,
-                    "  vars orig. width: %d %d %.1f",
-                    min_var_width,
-                    max_var_width,
-                    avg_var_width);
-      if (ua_mode != BTOR_UA_GLOBAL_MODE)
-      {
-        btor_msg_exp (btor,
-                      "  vars eff. width: %d %d %.1f",
-                      min_var_eff_width,
-                      max_var_eff_width,
-                      avg_var_eff_width);
-        btor_msg_exp (
-            btor, "  total number of refinements: %llu", sum_var_refs);
-        btor_msg_exp (btor, "  avg refinements: %.1f", avg_var_refs);
-      }
-    }
-
-    btor_msg_exp (btor, "");
-    btor_msg_exp (btor, " reachable reads (after rewriting): %d", num_reads);
-    if (num_reads > 0)
-    {
-      btor_msg_exp (btor,
-                    "  reads orig. width: %d %d %.1f",
-                    min_read_width,
-                    max_read_width,
-                    avg_read_width);
-      if (ua_mode != BTOR_UA_GLOBAL_MODE)
-      {
-        btor_msg_exp (btor,
-                      "  reads eff. width: %d %d %.1f",
-                      min_read_eff_width,
-                      max_read_eff_width,
-                      avg_read_eff_width);
-        btor_msg_exp (
-            btor, "  total number of refinements: %llu", sum_read_refs);
-        btor_msg_exp (btor, "  avg refinements: %.1f", avg_read_refs);
-      }
-    }
-
-    if (num_vars != 0 && num_reads != 0)
-    {
-      btor_msg_exp (btor, "");
-      btor_msg_exp (btor,
-                    " reachable vars + reads (after rewriting): %d",
-                    num_vars + num_reads);
-      btor_msg_exp (btor,
-                    "  vars + reads orig. width: %d %d %.1f",
-                    min_width,
-                    max_width,
-                    avg_width);
-      if (ua_mode != BTOR_UA_GLOBAL_MODE)
-      {
-        btor_msg_exp (btor,
-                      "  vars + reads eff. width: %d %d %.1f",
-                      min_eff_width,
-                      max_eff_width,
-                      avg_eff_width);
-        btor_msg_exp (btor, "  total number of refinements: %llu", sum_refs);
-        btor_msg_exp (btor, "  avg refinements: %.1f", avg_refs);
-      }
-    }
-  }
-
-BTOR_CONTINUE_BASIC_STATS_OUTPUT:
 
   btor_msg_exp (btor, "");
   btor_msg_exp (btor,
@@ -6701,35 +6096,6 @@ add_again_assumptions (Btor *btor)
   return 0;
 }
 
-static void
-read_under_approx_assumptions (Btor *btor)
-{
-  BtorSATMgr *smgr;
-  BtorUAData *data;
-  BtorPtrHashBucket *b;
-
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-
-  if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-  {
-    if (btor->ua.global_last_e != 0)
-      btor_assume_sat (smgr, btor->ua.global_last_e);
-  }
-  else
-  {
-    assert (btor->ua.mode == BTOR_UA_LOCAL_MODE
-            || btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-    for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-    {
-      data = (BtorUAData *) b->data.asPtr;
-      if (data->last_e != 0) btor_assume_sat (smgr, data->last_e);
-    }
-  }
-}
-
 /* updates SAT assignments, reads assumptions and
  * returns if an assignment has changed
  */
@@ -7394,27 +6760,6 @@ is_odd_constant (BtorExp *exp)
   return exp->bits[exp->len - 1] == '1';
 }
 
-#if 0
-static int
-is_true_exp (Btor *btor, BtorExp * exp)
-{
-  assert (btor != NULL);
-  assert (exp != NULL);
-  (void) btor;
-
-  if (BTOR_REAL_ADDR_EXP (exp)->len != 1)
-    return 0;
-
-  if (BTOR_REAL_ADDR_EXP (exp)->kind != BTOR_BV_CONST_EXP)
-    return 0;
-
-  if (BTOR_IS_INVERTED_EXP (exp))
-    return BTOR_REAL_ADDR_EXP (exp)->bits[0] == '0';
-
-  return exp->bits[0] == '1';
-}
-#endif
-
 /* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
  * and 'factor' is odd?  We check whether this is possible but do not use
  * more than 'bound' recursive calls.
@@ -7564,31 +6909,6 @@ lambda_var_exp (Btor *btor, int len)
   BTOR_DELETEN (mm, name, string_len);
   return result;
 }
-
-#if 0
-static BtorExp *
-lambda_array_exp (Btor * btor, int elem_len, int index_len)
-{
-  BtorExp *result;
-  char *name;
-  int string_len;
-  BtorMemMgr *mm;
-
-  assert (btor != NULL);
-  assert (elem_len > 0);
-  assert (index_len > 0);
-
-  mm = btor->mm;
-
-  string_len = btor_num_digits_util (btor->array_lambda_id) + 14;
-  BTOR_NEWN (mm, name, string_len);
-  sprintf (name, "arraylambda_%d_", btor->array_lambda_id);
-  btor->array_lambda_id++;
-  result = btor_array_exp (btor, elem_len, index_len, name);
-  BTOR_DELETEN (mm, name, string_len);
-  return result;
-}
-#endif
 
 enum BtorSubstCompKind
 {
@@ -8024,38 +7344,7 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (exp)));
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
 
-  if (btor->replay)
-    BTOR_PUSH_STACK (
-        btor->mm, btor->replay_constraints, btor_copy_exp (btor, exp));
-
   add_constraint (btor, exp);
-}
-
-void
-btor_replay_btor (Btor *btor, FILE *file)
-{
-  BtorExp *result, *temp;
-  BtorPtrHashBucket *b;
-  int i;
-
-  assert (btor != NULL);
-  assert (file != NULL);
-
-  result = btor_true_exp (btor);
-  for (i = 0; i < BTOR_COUNT_STACK (btor->replay_constraints); i++)
-  {
-    temp = btor_and_exp (btor, result, btor->replay_constraints.start[i]);
-    btor_release_exp (btor, result);
-    result = temp;
-  }
-  for (b = btor->assumptions->first; b != NULL; b = b->next)
-  {
-    temp = btor_and_exp (btor, result, (BtorExp *) b->key);
-    btor_release_exp (btor, result);
-    result = temp;
-  }
-  btor_dump_exp (btor, file, result);
-  btor_release_exp (btor, result);
 }
 
 void
@@ -8709,7 +7998,7 @@ process_embedded_constraints (Btor *btor)
 }
 
 static void
-run_rewrite_engine (Btor *btor, int full)
+run_rewrite_engine (Btor *btor)
 {
   int rewrite_level, check_cyclic;
 
@@ -8720,782 +8009,21 @@ run_rewrite_engine (Btor *btor, int full)
   rewrite_level = btor->rewrite_level;
   check_cyclic  = 1;
 
-  if (rewrite_level > 1)
+  if (rewrite_level <= 1) return;
+
+  do
   {
-    do
-    {
-      do
-      {
-        do
-        {
-          do
-          {
-            assert (check_all_hash_tables_proxy_free_dbg (btor));
-            substitute_var_exps (btor, check_cyclic);
-            assert (check_all_hash_tables_proxy_free_dbg (btor));
-            if (btor->inconsistent) return;
-            check_cyclic = 1;
-
-            process_embedded_constraints (btor);
-            assert (check_all_hash_tables_proxy_free_dbg (btor));
-            if (btor->inconsistent) return;
-          } while (btor->varsubst_constraints->count > 0u
-                   || btor->embedded_constraints->count > 0u);
-
-          if (!full) return;
-
-        } while (btor->varsubst_constraints->count > 0u
-                 || btor->embedded_constraints->count > 0u);
-
-#ifndef BTOR_NELIMSLICES
-        if (rewrite_level > 2 && !btor->inc_enabled)
-        {
-          /* needs recursive rewrite bound > 0 */
-          eliminate_slices_on_bv_vars (btor);
-          if (btor->inconsistent) return;
-          check_cyclic = 1;
-        }
-#endif
-      } while (btor->varsubst_constraints->count > 0u
-               || btor->embedded_constraints->count > 0u);
-
-#ifndef BTOR_NADBV
-      if (rewrite_level > 2 && !btor->inc_enabled && !btor->model_gen)
-      {
-        abstract_domain_bv_variables (btor);
-        if (btor->inconsistent) return;
-        check_cyclic = 0;
-      }
-#endif
-    } while (btor->varsubst_constraints->count > 0u
-             || btor->embedded_constraints->count > 0u);
-  }
-}
-
-static int
-max_len_global_under_approx_vars (Btor *btor)
-{
-  BtorPtrHashBucket *b;
-  int max;
-  BtorExp *cur;
-
-  assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE);
-
-  max = 0;
-
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-    if (cur->len > max) max = cur->len;
-  }
-  return max;
-}
-
-static void
-update_local_under_approx_eff_width (Btor *btor, BtorExp *exp, BtorUAData *data)
-{
-  char *max_string;
-
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (data != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
-  assert (BTOR_IS_BV_VAR_EXP (exp) || exp->kind == BTOR_READ_EXP);
-
-  max_string = "";
-
-  if (btor->ua.ref == BTOR_UA_REF_BY_INC_ONE)
-    data->eff_width++;
-  else
-  {
-    assert (btor->ua.ref == BTOR_UA_REF_BY_DOUBLING);
-    data->eff_width *= 2;
-  }
-
-  /* check also for overflow */
-  if (data->eff_width >= exp->len || data->eff_width <= 0)
-  {
-    max_string      = " (max)";
-    data->eff_width = exp->len;
-  }
-
-  data->updated_eff_width = 1;
-  data->refinements++;
-
-  if (btor->verbosity >= 3)
-  {
-    if (BTOR_IS_BV_VAR_EXP (exp))
-      btor_msg_exp (btor,
-                    "UA: setting effective bit-width of %s to %d%s",
-                    exp->symbol,
-                    data->eff_width,
-                    max_string);
-    else
-      btor_msg_exp (btor,
-                    "UA: setting effective bit-width of read %d to %d%s",
-                    exp->id,
-                    data->eff_width,
-                    max_string);
-  }
-}
-
-static int
-update_under_approx_eff_width (Btor *btor)
-{
-  BtorPtrHashBucket *b;
-  BtorUARef ua_ref;
-  BtorExp *cur, *min_exp;
-  BtorUAData *data, *min_data;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
-  char *max_string;
-  int update, e, verbosity, found_top;
-
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-
-  ua_ref     = btor->ua.ref;
-  verbosity  = btor->verbosity;
-  update     = 0;
-  found_top  = 0;
-  min_data   = NULL;
-  min_exp    = NULL;
-  max_string = "";
-
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
-
-  if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-  {
-    if (btor_failed_sat (smgr, btor->ua.global_last_e))
-    {
-      if (ua_ref == BTOR_UA_REF_BY_INC_ONE)
-        btor->ua.global_eff_width++;
-      else
-      {
-        assert (ua_ref == BTOR_UA_REF_BY_DOUBLING);
-        btor->ua.global_eff_width *= 2;
-      }
-
-      /* check also for overflow */
-      if (btor->ua.global_eff_width >= btor->ua.global_max_eff_width
-          || btor->ua.global_eff_width <= 0)
-      {
-        max_string                = " (max)";
-        btor->ua.global_eff_width = btor->ua.global_max_eff_width;
-      }
-
-      if (verbosity > 0)
-        btor_msg_exp (btor,
-                      "UA: setting global effective bit-width to %d%s",
-                      btor->ua.global_eff_width,
-                      max_string);
-      update = 1;
-    }
-  }
-  else if (btor->ua.mode == BTOR_UA_LOCAL_MODE)
-  {
-    for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-    {
-      cur  = (BtorExp *) b->key;
-      data = (BtorUAData *) b->data.asPtr;
-
-      assert (cur);
-      assert (!BTOR_IS_INVERTED_EXP (cur));
-      assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-      e = data->last_e;
-
-      if (e != 0 && btor_failed_sat (smgr, e))
-      {
-        update = 1;
-        update_local_under_approx_eff_width (btor, cur, data);
-      }
-      else
-        data->updated_eff_width = 0;
-    }
-  }
-  else
-  {
-    assert (btor->ua.mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-    for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-    {
-      cur                     = (BtorExp *) b->key;
-      data                    = (BtorUAData *) b->data.asPtr;
-      data->updated_eff_width = 0;
-
-      assert (cur);
-      assert (!BTOR_IS_INVERTED_EXP (cur));
-      assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-      e = data->last_e;
-
-      if (e == 0) continue;
-
-      if (btor_fixed_sat (smgr, e) == -1)
-      {
-        found_top = 1;
-        update    = 1;
-        update_local_under_approx_eff_width (btor, cur, data);
-      }
-      else if (!found_top && btor_failed_sat (smgr, e))
-      {
-        if (min_data == NULL || data->eff_width < min_data->eff_width)
-        {
-          min_exp  = cur;
-          min_data = data;
-        }
-      }
-    }
-
-    /* no assumption was top level assigned, so we refine the 'best fit' */
-    if (!found_top)
-    {
-      if (min_data != NULL)
-      {
-        assert (min_exp != NULL);
-        update = 1;
-        update_local_under_approx_eff_width (btor, min_exp, min_data);
-      }
-      else
-      {
-        assert (min_exp == NULL);
-        assert (update == 0);
-      }
-    }
-  }
-
-  return update;
-}
-
-static int
-encode_under_approx_const_extend (Btor *btor, int phase)
-{
-  BtorSATMgr *smgr;
-  BtorPtrHashBucket *b;
-  BtorExp *cur;
-  BtorAIG **aigs;
-  int id, i, len, encoded, encoded_local;
-  int eff_width      = 0;
-  int under_approx_e = 0;
-  BtorUAMode ua_mode;
-  BtorUAData *data = NULL;
-
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-
-  encoded = 0;
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  ua_mode = btor->ua.mode;
-
-  if (ua_mode == BTOR_UA_GLOBAL_MODE) eff_width = btor->ua.global_eff_width;
-
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
-
-    assert (cur->av != NULL);
-
-    aigs = cur->av->aigs;
-    assert (aigs != NULL);
-
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      data = (BtorUAData *) b->data.asPtr;
-      if (data->updated_eff_width == 0 && data->last_e != 0)
-      {
-        /* variable has not been refined, reassume e */
-        btor_assume_sat (smgr, data->last_e);
-        encoded = 1;
-        continue;
-      }
-
-      eff_width = data->eff_width;
-
-      /* disable previous clauses */
-      if (data->last_e != 0)
-      {
-        btor_add_sat (smgr, -data->last_e);
-        btor_add_sat (smgr, 0);
-        data->last_e = 0;
-      }
-    }
-
-    len = cur->len;
-    if (eff_width >= len) continue;
-
-    encoded_local = 0;
-    for (i = len - eff_width - 1; i >= 0; i--)
-    {
-      if (BTOR_IS_CONST_AIG (aigs[i])) continue;
-
-      id = aigs[i]->cnf_id;
-
-      if (id == 0) continue;
-
-      if (ua_mode == BTOR_UA_GLOBAL_MODE)
-      {
-        if (!encoded)
-        {
-          under_approx_e         = btor_next_cnf_id_sat_mgr (smgr);
-          btor->ua.global_last_e = under_approx_e;
-        }
-      }
-      else
-      {
-        assert (ua_mode == BTOR_UA_LOCAL_MODE
-                || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-        if (!encoded_local)
-        {
-          under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
-          assert (data->last_e == 0);
-          data->last_e  = under_approx_e;
-          encoded_local = 1;
-        }
-      }
-
-      encoded = 1;
-
-      if (phase)
-        btor_add_sat (smgr, id);
-      else
-        btor_add_sat (smgr, -id);
-
-      btor_add_sat (smgr, -under_approx_e);
-      btor_add_sat (smgr, 0);
-    }
-
-    if (encoded_local)
-    {
-      assert (ua_mode == BTOR_UA_LOCAL_MODE
-              || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-      btor_assume_sat (smgr, under_approx_e);
-    }
-  }
-
-  return encoded;
-}
-
-static int
-encode_under_approx_zero_extend (Btor *btor)
-{
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-  return encode_under_approx_const_extend (btor, 0);
-}
-
-static int
-encode_under_approx_one_extend (Btor *btor)
-{
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-  return encode_under_approx_const_extend (btor, 1);
-}
-
-static int
-encode_under_approx_sign_extend (Btor *btor)
-{
-  BtorSATMgr *smgr;
-  BtorPtrHashBucket *b;
-  BtorExp *cur;
-  BtorAIG **aigs;
-  int encoded, encoded_local, len, i, id1, id2, first_pos;
-  int eff_width      = 0;
-  int under_approx_e = 0;
-  BtorUAMode ua_mode;
-  BtorUAData *data = NULL;
-
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-
-  encoded = 0;
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  ua_mode = btor->ua.mode;
-
-  if (ua_mode == BTOR_UA_GLOBAL_MODE) eff_width = btor->ua.global_eff_width;
-
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
-
-    assert (cur->av != NULL);
-
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      data = (BtorUAData *) b->data.asPtr;
-      if (data->updated_eff_width == 0 && data->last_e != 0)
-      {
-        /* variable has not been refined, reassume e */
-        btor_assume_sat (smgr, data->last_e);
-        encoded = 1;
-        continue;
-      }
-
-      eff_width = data->eff_width;
-
-      /* disable previous clauses */
-      if (data->last_e != 0)
-      {
-        btor_add_sat (smgr, -data->last_e);
-        btor_add_sat (smgr, 0);
-        data->last_e = 0;
-      }
-    }
-
-    len = cur->len;
-    if (eff_width >= len) continue;
-
-    aigs = cur->av->aigs;
-    assert (aigs != NULL);
-
-    i = len - eff_width;
-    while (i >= 0 && (BTOR_IS_CONST_AIG (aigs[i]) || aigs[i]->cnf_id == 0)) i--;
-
-    if (i < 0) continue;
-
-    first_pos = i;
-    id1       = aigs[first_pos]->cnf_id;
-    assert (id1 != 0);
-
-    encoded_local = 0;
-    for (i = first_pos - 1; i >= 0; i--)
-    {
-      if (BTOR_IS_CONST_AIG (aigs[i])) continue;
-
-      id2 = aigs[i]->cnf_id;
-
-      if (id2 == 0) continue;
-
-      if (ua_mode == BTOR_UA_GLOBAL_MODE)
-      {
-        if (!encoded)
-        {
-          under_approx_e         = btor_next_cnf_id_sat_mgr (smgr);
-          btor->ua.global_last_e = under_approx_e;
-        }
-      }
-      else
-      {
-        assert (ua_mode == BTOR_UA_LOCAL_MODE
-                || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-        if (!encoded_local)
-        {
-          under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
-          assert (data->last_e == 0);
-          data->last_e  = under_approx_e;
-          encoded_local = 1;
-        }
-      }
-
-      encoded = 1;
-
-      btor_add_sat (smgr, -id1);
-      btor_add_sat (smgr, id2);
-      btor_add_sat (smgr, -under_approx_e);
-      btor_add_sat (smgr, 0);
-
-      btor_add_sat (smgr, id1);
-      btor_add_sat (smgr, -id2);
-      btor_add_sat (smgr, -under_approx_e);
-      btor_add_sat (smgr, 0);
-    }
-
-    if (encoded_local)
-    {
-      assert (ua_mode == BTOR_UA_LOCAL_MODE
-              || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-      btor_assume_sat (smgr, under_approx_e);
-    }
-  }
-
-  return encoded;
-}
-
-static void
-encode_under_approx_eq_classes_aux (Btor *btor,
-                                    BtorExp *cur,
-                                    BtorUAData *data,
-                                    int high,
-                                    int low,
-                                    int classes,
-                                    int *under_approx_e,
-                                    int *encoded)
-{
-  BtorSATMgr *smgr;
-  BtorAIG **aigs;
-  int i, id1, id2, first_pos, mid;
-  BtorUAMode ua_mode;
-
-  assert (btor != NULL);
-  assert (cur != NULL);
-  assert (btor->ua.mode == BTOR_UA_GLOBAL_MODE || data != NULL);
-  assert (low >= 0);
-  assert (high >= low);
-  assert (encoded != NULL);
-
-  if (classes <= 0) return;
-
-  if (classes == 1)
-  {
-    smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-    ua_mode = btor->ua.mode;
-    aigs    = cur->av->aigs;
-    assert (aigs != NULL);
-
-    i = high;
-    while (i >= low && (BTOR_IS_CONST_AIG (aigs[i]) || aigs[i]->cnf_id == 0))
-      i--;
-
-    if (i < low) return;
-
-    first_pos = i;
-    id1       = aigs[first_pos]->cnf_id;
-    assert (id1 != 0);
-
-    for (i = first_pos - 1; i >= low; i--)
-    {
-      if (BTOR_IS_CONST_AIG (aigs[i])) continue;
-
-      id2 = aigs[i]->cnf_id;
-
-      if (id2 == 0) continue;
-
-      if (ua_mode == BTOR_UA_GLOBAL_MODE)
-      {
-        if (!*under_approx_e)
-        {
-          *under_approx_e        = btor_next_cnf_id_sat_mgr (smgr);
-          btor->ua.global_last_e = *under_approx_e;
-        }
-      }
-      else
-      {
-        assert (ua_mode == BTOR_UA_LOCAL_MODE
-                || ua_mode == BTOR_UA_LOCAL_INDIVIDUAL_MODE);
-        if (!*under_approx_e)
-        {
-          *under_approx_e = btor_next_cnf_id_sat_mgr (smgr);
-          assert (data->last_e == 0);
-          data->last_e = *under_approx_e;
-        }
-      }
-
-      *encoded = 1;
-
-      btor_add_sat (smgr, -id1);
-      btor_add_sat (smgr, id2);
-      btor_add_sat (smgr, -*under_approx_e);
-      btor_add_sat (smgr, 0);
-
-      btor_add_sat (smgr, id1);
-      btor_add_sat (smgr, -id2);
-      btor_add_sat (smgr, -*under_approx_e);
-      btor_add_sat (smgr, 0);
-    }
-  }
-  else
-  {
-    mid = low + ((high - low) >> 1);
-    classes >>= 1;
-    encode_under_approx_eq_classes_aux (
-        btor, cur, data, high, mid + 1, classes, under_approx_e, encoded);
-    encode_under_approx_eq_classes_aux (
-        btor, cur, data, mid, low, classes, under_approx_e, encoded);
-  }
-}
-
-static int
-encode_under_approx_eq_classes (Btor *btor)
-{
-  BtorSATMgr *smgr;
-  BtorPtrHashBucket *b;
-  BtorExp *cur;
-  int encoded, len, under_approx_e;
-  int eff_width = 0;
-  BtorUAMode ua_mode;
-  BtorUAData *data;
-
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-
-  encoded = 0;
-  data    = NULL;
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-  ua_mode        = btor->ua.mode;
-  under_approx_e = 0;
-
-  if (ua_mode == BTOR_UA_GLOBAL_MODE) eff_width = btor->ua.global_eff_width;
-
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-    if (!cur->reachable && !cur->vread && !cur->vread_index) continue;
-
-    if (ua_mode != BTOR_UA_GLOBAL_MODE)
-    {
-      data = (BtorUAData *) b->data.asPtr;
-      if (data->updated_eff_width == 0 && data->last_e != 0)
-      {
-        /* variable has not been refined, reassume e */
-        btor_assume_sat (smgr, data->last_e);
-        encoded = 1;
-        continue;
-      }
-
-      eff_width = data->eff_width;
-
-      /* disable previous clauses */
-      if (data->last_e != 0)
-      {
-        btor_add_sat (smgr, -data->last_e);
-        btor_add_sat (smgr, 0);
-        data->last_e = 0;
-      }
-    }
-
-    len = cur->len;
-    if (eff_width >= len) continue;
-
-    if (ua_mode != BTOR_UA_GLOBAL_MODE) under_approx_e = 0;
-
-    encode_under_approx_eq_classes_aux (
-        btor, cur, data, len - 1, 0, eff_width, &under_approx_e, &encoded);
-
-    if (under_approx_e != 0 && ua_mode != BTOR_UA_GLOBAL_MODE)
-      btor_assume_sat (smgr, under_approx_e);
-  }
-
-  return encoded;
-}
-
-static int
-encode_under_approx (Btor *btor)
-{
-  int encoded;
-  BtorSATMgr *smgr;
-
-  assert (btor != NULL);
-  assert (btor->ua.enabled);
-
-  smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
-
-  /* disable previous clauses */
-  if (btor->ua.mode == BTOR_UA_GLOBAL_MODE && btor->ua.global_last_e != 0)
-  {
-    btor_add_sat (smgr, -btor->ua.global_last_e);
-    btor_add_sat (smgr, 0);
-  }
-
-  switch (btor->ua.enc)
-  {
-    case BTOR_UA_ENC_ZERO_EXTEND:
-      encoded = encode_under_approx_zero_extend (btor);
-      break;
-    case BTOR_UA_ENC_ONE_EXTEND:
-      encoded = encode_under_approx_one_extend (btor);
-      break;
-    case BTOR_UA_ENC_SIGN_EXTEND:
-      encoded = encode_under_approx_sign_extend (btor);
-      break;
-    default:
-      assert (btor->ua.enc == BTOR_UA_ENC_EQ_CLASSES);
-      encoded = encode_under_approx_eq_classes (btor);
-      break;
-  }
-
-  if (encoded)
-  {
-    if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-      btor_assume_sat (smgr, btor->ua.global_last_e);
-  }
-
-  return encoded;
-}
-
-static void
-synthesize_reads_and_writes_for_under_approx (Btor *btor)
-{
-  BtorPtrHashBucket *b;
-  BtorExp *cur;
-
-  assert (btor != NULL);
-
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-
-    if (cur->kind == BTOR_READ_EXP && (cur->reachable || cur->vread))
-      lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
-  }
-
-  for (b = btor->ua.writes_aconds->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP (cur));
-    assert (BTOR_IS_WRITE_EXP (cur) || BTOR_IS_ARRAY_COND_EXP (cur));
-
-    if (cur->reachable)
-    {
-      if (BTOR_IS_WRITE_EXP (cur))
-        lazy_synthesize_and_encode_acc_exp (btor, cur, 0);
-      else
-        lazy_synthesize_and_encode_acond_exp (btor, cur, 0);
-    }
-  }
-}
-
-void
-btor_reset_effective_bit_widths (Btor *btor)
-{
-  BtorPtrHashBucket *b;
-  BtorUAData *ua_data;
-  int count;
-
-  assert (btor != NULL);
-
-  if (!btor->ua.enabled) return;
-
-  assert (btor->ua.vars_reads);
-
-  count = 0;
-  for (b = btor->ua.vars_reads->first; b != NULL; b = b->next)
-  {
-#ifndef NDEBUG
-    BtorExp *cur = (BtorExp *) b->key;
-    assert (cur);
-    assert (!BTOR_IS_INVERTED_EXP ((BtorExp *) b->key));
-    assert (BTOR_IS_BV_VAR_EXP (cur) || cur->kind == BTOR_READ_EXP);
-#endif
-    ua_data = b->data.asPtr;
-    if (ua_data && ua_data->eff_width > btor->ua.initial_eff_width)
-    {
-      ua_data->last_e    = 0;
-      ua_data->eff_width = btor->ua.initial_eff_width;
-      count++;
-    }
-  }
-  btor_msg_exp (btor, "reset bit-width of %d reads and variables", count);
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
+    substitute_var_exps (btor, check_cyclic);
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
+    if (btor->inconsistent) return;
+    check_cyclic = 1;
+
+    process_embedded_constraints (btor);
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
+    if (btor->inconsistent) return;
+  } while (btor->varsubst_constraints->count
+           || btor->embedded_constraints->count);
 }
 
 static void
@@ -9524,444 +8052,6 @@ synthesize_all_var_rhs (Btor *btor)
     }
   }
 }
-
-#if BTOR_ENABLE_PROBING_OPT
-
-static int
-probe_exps (Btor *btor)
-{
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
-  BtorPtrHashBucket *b;
-  BtorExpPtrStack stack, new_constraints;
-  BtorExp *cur;
-  BtorMemMgr *mm;
-  int ret_val, id, sat_result;
-
-  assert (btor != NULL);
-
-  mm      = btor->mm;
-  ret_val = 0;
-  amgr    = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr    = btor_get_sat_mgr_aig_mgr (amgr);
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (new_constraints);
-
-  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
-  {
-    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
-    goto PROBE_EXPS_ENTER_WITHOUT_POP;
-
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-    PROBE_EXPS_ENTER_WITHOUT_POP:
-      assert (cur->mark == 0 || cur->mark == 1);
-
-      /* we only search through the boolean layer */
-      if (cur->mark || cur->len != 1) continue;
-      cur->mark = 1;
-
-      if (cur->kind == BTOR_AND_EXP)
-      {
-        BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-      }
-      else if (cur->kind == BTOR_BEQ_EXP)
-      {
-        /* we try to set bit-vector equality to false
-         * if SAT solver can quickly decide
-         * that this leads to unsat, then
-         * the equality must be set to true
-         * which may enable further substitutions
-         * As our abstraction variables for reads
-         * are over-approximating abstractions, this
-         * also works for equalities between read values
-         */
-        assert (BTOR_IS_SYNTH_EXP (cur));
-        assert (cur->len == 1);
-        if (BTOR_IS_CONST_AIG (cur->av->aigs[0])) continue;
-
-        id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0]);
-        /* we do not want to introduce new clauses on the cnf layer,
-         * so we skip probing here */
-        if (!id) continue;
-
-        btor_assume_sat (smgr, -id);
-        sat_result = btor_sat_sat (smgr, BTOR_EXP_FAILED_EQ_LIMIT);
-        assert (sat_result != BTOR_UNKNOWN);
-        if (sat_result == BTOR_UNSAT)
-        {
-          BTOR_PUSH_STACK (mm, new_constraints, cur);
-          btor->stats.probed_equalities++;
-        }
-      }
-    }
-  }
-
-  /* reset mark flags */
-  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
-    btor_mark_exp (btor, (BtorExp *) b->key, 0);
-
-  ret_val = (int) BTOR_COUNT_STACK (new_constraints);
-  while (!BTOR_EMPTY_STACK (new_constraints))
-    btor_add_constraint_exp (btor, BTOR_POP_STACK (new_constraints));
-
-  BTOR_RELEASE_STACK (mm, stack);
-  BTOR_RELEASE_STACK (mm, new_constraints);
-  return ret_val;
-}
-
-#endif
-
-#ifndef BTOR_NELIMSLICES
-
-static void
-eliminate_slices_on_bv_vars (Btor *btor)
-{
-  BtorExpPtrStack vars;
-  BtorFullParentIterator it;
-  BtorPtrHashBucket *b_var, *b1, *b2;
-  BtorExp *var, *cur, *result, *lambda_var, *temp;
-  BtorSlice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
-  BtorPtrHashTable *slices;
-  BtorMemMgr *mm;
-  int i, min, max;
-  int vals[4];
-
-  assert (btor != NULL);
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (vars);
-  for (b_var = btor->bv_vars->first; b_var != NULL; b_var = b_var->next)
-  {
-    var = (BtorExp *) b_var->key;
-    BTOR_PUSH_STACK (mm, vars, var);
-  }
-
-  while (!BTOR_EMPTY_STACK (vars))
-  {
-    slices = btor_new_ptr_hash_table (
-        mm, (BtorHashPtr) hash_slice, (BtorCmpPtr) compare_slices);
-    var = BTOR_POP_STACK (vars);
-    assert (BTOR_IS_REGULAR_EXP (var));
-    assert (BTOR_IS_BV_VAR_EXP (var));
-    init_full_parent_iterator (&it, var);
-    /* find all slices on variable */
-    while (has_next_parent_full_parent_iterator (&it))
-    {
-      cur = next_parent_full_parent_iterator (&it);
-      assert (BTOR_IS_REGULAR_EXP (cur));
-      if (cur->kind == BTOR_SLICE_EXP)
-      {
-        s1 = new_slice (btor, cur->upper, cur->lower);
-        assert (!btor_find_in_ptr_hash_table (slices, s1));
-        btor_insert_in_ptr_hash_table (slices, s1);
-      }
-    }
-
-    /* no splitting necessary? */
-    if (slices->count == 0u)
-    {
-      btor_delete_ptr_hash_table (slices);
-      continue;
-    }
-
-    /* add full slice */
-    s1 = new_slice (btor, var->len - 1, 0);
-    assert (!btor_find_in_ptr_hash_table (slices, s1));
-    btor_insert_in_ptr_hash_table (slices, s1);
-
-  BTOR_SPLIT_SLICES_RESTART:
-    for (b1 = slices->last; b1 != NULL; b1 = b1->prev)
-    {
-      s1 = (BtorSlice *) b1->key;
-      for (b2 = b1->prev; b2 != NULL; b2 = b2->prev)
-      {
-        s2 = (BtorSlice *) b2->key;
-
-        assert (compare_slices (s1, s2));
-
-        /* not overlapping? */
-        if ((s1->lower > s2->upper) || (s1->upper < s2->lower)
-            || (s2->lower > s1->upper) || (s2->upper < s1->lower))
-          continue;
-
-        if (s1->upper == s2->upper)
-        {
-          assert (s1->lower != s2->lower);
-          max    = BTOR_MAX_UTIL (s1->lower, s2->lower);
-          min    = BTOR_MIN_UTIL (s1->lower, s2->lower);
-          new_s1 = new_slice (btor, max - 1, min);
-          if (!btor_find_in_ptr_hash_table (slices, new_s1))
-            btor_insert_in_ptr_hash_table (slices, new_s1);
-          else
-            delete_slice (btor, new_s1);
-
-          if (min == s1->lower)
-          {
-            btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
-            delete_slice (btor, s1);
-          }
-          else
-          {
-            btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
-            delete_slice (btor, s2);
-          }
-          goto BTOR_SPLIT_SLICES_RESTART;
-        }
-
-        if (s1->lower == s2->lower)
-        {
-          assert (s1->upper != s2->upper);
-          max    = BTOR_MAX_UTIL (s1->upper, s2->upper);
-          min    = BTOR_MIN_UTIL (s1->upper, s2->upper);
-          new_s1 = new_slice (btor, max, min + 1);
-          if (!btor_find_in_ptr_hash_table (slices, new_s1))
-            btor_insert_in_ptr_hash_table (slices, new_s1);
-          else
-            delete_slice (btor, new_s1);
-          if (max == s1->upper)
-          {
-            btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
-            delete_slice (btor, s1);
-          }
-          else
-          {
-            btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
-            delete_slice (btor, s2);
-          }
-          goto BTOR_SPLIT_SLICES_RESTART;
-        }
-
-        /* regular overlapping case (overlapping at both ends) */
-        vals[0] = s1->upper;
-        vals[1] = s1->lower;
-        vals[2] = s2->upper;
-        vals[3] = s2->lower;
-        qsort (vals, 4, sizeof (int), compare_int_ptr);
-        new_s1 = new_slice (btor, vals[3], vals[2] + 1);
-        new_s2 = new_slice (btor, vals[2], vals[1]);
-        new_s3 = new_slice (btor, vals[1] - 1, vals[0]);
-        btor_remove_from_ptr_hash_table (slices, s1, NULL, NULL);
-        btor_remove_from_ptr_hash_table (slices, s2, NULL, NULL);
-        delete_slice (btor, s1);
-        delete_slice (btor, s2);
-        if (!btor_find_in_ptr_hash_table (slices, new_s1))
-          btor_insert_in_ptr_hash_table (slices, new_s1);
-        else
-          delete_slice (btor, new_s1);
-        if (!btor_find_in_ptr_hash_table (slices, new_s2))
-          btor_insert_in_ptr_hash_table (slices, new_s2);
-        else
-          delete_slice (btor, new_s2);
-        if (!btor_find_in_ptr_hash_table (slices, new_s3))
-          btor_insert_in_ptr_hash_table (slices, new_s3);
-        else
-          delete_slice (btor, new_s3);
-        goto BTOR_SPLIT_SLICES_RESTART;
-      }
-    }
-
-    /* copy slices to sort them */
-    assert (slices->count > 1u);
-    BTOR_NEWN (mm, sorted_slices, slices->count);
-    i = 0;
-    for (b1 = slices->first; b1 != NULL; b1 = b1->next)
-    {
-      s1                 = (BtorSlice *) b1->key;
-      sorted_slices[i++] = s1;
-    }
-    qsort (sorted_slices,
-           slices->count,
-           sizeof (BtorSlice *),
-           compare_slices_qsort);
-
-    s1 = sorted_slices[(int) slices->count - 1];
-    /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
-    result = lambda_var_exp (btor, s1->upper - s1->lower + 1);
-    delete_slice (btor, s1);
-    for (i = (int) slices->count - 2; i >= 0; i--)
-    {
-      s1         = sorted_slices[i];
-      lambda_var = lambda_var_exp (btor, s1->upper - s1->lower + 1);
-      temp       = btor_concat_exp (btor, result, lambda_var);
-      btor_release_exp (btor, result);
-      result = temp;
-      btor_release_exp (btor, lambda_var);
-      /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
-      delete_slice (btor, s1);
-    }
-    BTOR_DELETEN (mm, sorted_slices, slices->count);
-    btor_delete_ptr_hash_table (slices);
-    /* printf ("\n"); */
-
-    insert_varsubst_constraint (btor, var, result);
-    btor_release_exp (btor, result);
-  }
-
-  BTOR_RELEASE_STACK (mm, vars);
-}
-
-#endif
-
-#ifndef BTOR_NADBV
-
-static int
-restrict_domain_of_eq_class (Btor *btor, BtorPtrHashTable *eq)
-{
-  BtorPtrHashBucket *b;
-  BtorExp *cur, *lambda_var;
-  int min_len;
-
-  assert (btor != NULL);
-  assert (eq != NULL);
-  assert (btor->rewrite_level > 2);
-  assert (!btor->inc_enabled);
-  assert (!btor->model_gen);
-
-  if (eq->count <= 1u) return 0;
-
-  min_len = btor_log_2_util (btor_next_power_of_2_util ((int) eq->count));
-  cur     = BTOR_REAL_ADDR_EXP ((BtorExp *) eq->first->key);
-  if (min_len >= cur->len) return 0;
-
-  /* perform uniform domain abstraction */
-  for (b = eq->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_REAL_ADDR_EXP (cur)->len > 1);
-    if (!btor_find_in_ptr_hash_table (btor->varsubst_constraints,
-                                      BTOR_REAL_ADDR_EXP (cur)))
-    {
-      lambda_var = lambda_var_exp (btor, min_len);
-      insert_varsubst_constraint (btor, BTOR_REAL_ADDR_EXP (cur), lambda_var);
-      btor_release_exp (btor, lambda_var);
-      btor->stats.domain_abst++;
-    }
-  }
-  return 1;
-}
-
-static void
-abstract_domain_bv_variables (Btor *btor)
-{
-  BtorFullParentIterator it;
-  BtorMemMgr *mm;
-  BtorExpPtrStack stack, vars;
-  BtorPtrHashBucket *b;
-  BtorPtrHashTable *eq, *marked;
-  BtorExp *cur, *cur_parent, *next;
-  int i;
-
-  assert (btor != NULL);
-  assert (btor->rewrite_level > 2);
-  assert (!btor->inc_enabled);
-  assert (!btor->model_gen);
-  assert (btor->assumptions->count == 0u);
-  assert (btor->varsubst_constraints->count == 0u);
-  assert (btor->embedded_constraints->count == 0u);
-  assert (btor->synthesized_constraints->count == 0u);
-
-  mm = btor->mm;
-  BTOR_INIT_STACK (vars);
-  BTOR_INIT_STACK (stack);
-
-  for (b = btor->bv_vars->first; b != NULL; b = b->next)
-  {
-    cur = (BtorExp *) b->key;
-    assert (BTOR_IS_REGULAR_EXP (cur));
-    assert (BTOR_IS_BV_VAR_EXP (cur));
-    BTOR_PUSH_STACK (mm, vars, cur);
-  }
-
-  marked = btor_new_ptr_hash_table (mm,
-                                    (BtorHashPtr) btor_hash_exp_by_id,
-                                    (BtorCmpPtr) btor_compare_exp_by_id);
-
-  for (i = 0; i < BTOR_COUNT_STACK (vars); i++)
-  {
-    cur = vars.start[i];
-
-    /* boolean variables cannot be abstracted further */
-    if (cur->len == 1) continue;
-
-    if (btor_find_in_ptr_hash_table (marked, cur)) continue;
-
-    assert (BTOR_EMPTY_STACK (stack));
-    eq = btor_new_ptr_hash_table (mm,
-                                  (BtorHashPtr) btor_hash_exp_by_id,
-                                  (BtorCmpPtr) btor_compare_exp_by_id);
-    btor_insert_in_ptr_hash_table (eq, cur);
-    goto BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP;
-
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (cur)));
-
-      if (btor_find_in_ptr_hash_table (marked, cur))
-        goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
-
-    BTOR_ABSTRACT_DOMAIN_BV_VARS_ENTER_WITHOUT_POP:
-      assert (btor_find_in_ptr_hash_table (eq, cur));
-      init_full_parent_iterator (&it, cur);
-      while (has_next_parent_full_parent_iterator (&it))
-      {
-        cur_parent = next_parent_full_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_EXP (cur_parent));
-        if (BTOR_IS_BV_EQ_EXP (cur_parent))
-        {
-          /* we assume that rewriting rules have already simplified
-           * x = x, and x = ~x
-           */
-          if (BTOR_REAL_ADDR_EXP (cur_parent->e[0]) == BTOR_REAL_ADDR_EXP (cur))
-          {
-            next = cur_parent->e[1];
-          }
-          else
-          {
-            assert (BTOR_REAL_ADDR_EXP (cur_parent->e[1])
-                    == BTOR_REAL_ADDR_EXP (cur));
-            next = cur_parent->e[0];
-          }
-
-          if (BTOR_IS_BV_VAR_EXP (BTOR_REAL_ADDR_EXP (next)))
-          {
-            if (!btor_find_in_ptr_hash_table (eq, next))
-            {
-              btor_insert_in_ptr_hash_table (eq, next);
-              BTOR_PUSH_STACK (mm, stack, next);
-            }
-          }
-          else
-            goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
-        }
-        else
-          goto BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP;
-      }
-    }
-
-    restrict_domain_of_eq_class (btor, eq);
-
-  BTOR_ABSTRACT_DOMAIN_BV_VARS_CLEANUP:
-    BTOR_RESET_STACK (stack);
-
-    for (b = eq->first; b != NULL; b = b->next)
-    {
-      cur = (BtorExp *) b->key;
-      if (!btor_find_in_ptr_hash_table (marked, cur))
-        btor_insert_in_ptr_hash_table (marked, cur);
-    }
-    btor_delete_ptr_hash_table (eq);
-  }
-
-  /* cleanup */
-  btor_delete_ptr_hash_table (marked);
-  BTOR_RELEASE_STACK (mm, vars);
-  BTOR_RELEASE_STACK (mm, stack);
-}
-#endif
 
 static int
 rebuild_synthesized_exps (Btor *btor)
@@ -10087,7 +8177,7 @@ static int
 btor_sat_aux_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
-  int found_assumption_false, under_approx_finished, ua;
+  int found_assumption_false;
   BtorExpPtrStack top_arrays;
   int limit, refinements;
   BtorAIGMgr *amgr;
@@ -10096,15 +8186,13 @@ btor_sat_aux_btor (Btor *btor)
 
   assert (btor != NULL);
 
-  verbosity             = btor->verbosity;
-  ua                    = btor->ua.enabled;
-  under_approx_finished = 0;
+  verbosity = btor->verbosity;
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
   if (verbosity > 0) btor_msg_exp (btor, "calling SAT");
 
-  run_rewrite_engine (btor, 1);
+  run_rewrite_engine (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
@@ -10133,42 +8221,18 @@ btor_sat_aux_btor (Btor *btor)
 
   } while (btor->unsynthesized_constraints->count > 0);
 
-#if BTOR_ENABLE_PROBING_OPT
-  if (!ua && !btor->inc_enabled && btor->rewrite_level > 2)
-  {
-    if (probe_exps (btor))
-    {
-      run_rewrite_engine (btor, 0);
-      if (btor->inconsistent) goto UNSAT;
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      found_constraint_false = process_unsynthesized_constraints (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      if (found_constraint_false) goto UNSAT;
-    }
-  }
-#endif
-
   /* pointer chase assumptions */
   update_assumptions (btor);
 
   found_assumption_false = add_again_assumptions (btor);
   if (found_assumption_false) goto UNSAT;
 
-  if (ua)
-  {
-    synthesize_reads_and_writes_for_under_approx (btor);
-    if (btor->ua.mode == BTOR_UA_GLOBAL_MODE)
-      btor->ua.global_max_eff_width = max_len_global_under_approx_vars (btor);
-    under_approx_finished = !encode_under_approx (btor);
-  }
-
   limit      = btor->norestarts ? INT_MAX : BTOR_SAT_MIN_LIMIT;
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
 
-  while (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN
-         || (ua && !under_approx_finished))
+  while (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
   {
     if (sat_result == BTOR_SAT)
     {
@@ -10182,8 +8246,6 @@ btor_sat_aux_btor (Btor *btor)
         btor->stats.lod_refinements++;
         found_assumption_false = add_again_assumptions (btor);
         assert (!found_assumption_false);
-
-        if (ua && !under_approx_finished) read_under_approx_assumptions (btor);
       }
 
       BTOR_RELEASE_STACK (mm, top_arrays);
@@ -10193,25 +8255,8 @@ btor_sat_aux_btor (Btor *btor)
 
     if (sat_result == BTOR_UNSAT)
     {
-      assert (ua);
-      assert (!under_approx_finished);
-
-      if (btor_inconsistent_sat (smgr) || !update_under_approx_eff_width (btor))
-      {
-        if (verbosity >= 2)
-        {
-          btor_msg_exp (btor,
-                        "early termination of under-approximation refinement "
-                        "in UNSAT case");
-          btor_msg_exp (btor,
-                        "current under-approximation has not been used to "
-                        "conclude UNSAT");
-        }
-        break;
-      }
-
-      under_approx_finished = !encode_under_approx (btor);
-      btor->stats.ua_refinements++;
+      assert (btor_inconsistent_sat (smgr));
+      break;
     }
 
     if (sat_result == BTOR_UNKNOWN)
@@ -10222,7 +8267,7 @@ btor_sat_aux_btor (Btor *btor)
       if (btor->rebuild_exps)
       {
         rebuild_synthesized_exps (btor);
-        run_rewrite_engine (btor, 1);
+        run_rewrite_engine (btor);
         if (btor->inconsistent) goto UNSAT;
         assert (check_all_hash_tables_proxy_free_dbg (btor));
         found_constraint_false = process_unsynthesized_constraints (btor);
@@ -10240,7 +8285,6 @@ btor_sat_aux_btor (Btor *btor)
     if (verbosity > 1)
     {
       refinements = btor->stats.lod_refinements;
-      refinements += btor->stats.ua_refinements;
       refinements += btor->stats.decision_limit_refinements;
 
       if (verbosity > 2 || !(refinements % 10))

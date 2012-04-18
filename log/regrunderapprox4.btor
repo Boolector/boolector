@@ -1,9 +1,0 @@
-1 const 4 0111
-2 var 8
-3 var 3
-4 sll 8 2 3
-5 slice 4 4 5 2
-6 one 4
-7 add 4 5 6
-8 eq 1 1 7
-9 root 1 8

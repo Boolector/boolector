@@ -682,13 +682,6 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
   unsigned char type;
   int ch;
 
-#ifndef NDEBUG
-  if ((opts->incremental & BTOR_PARSE_MODE_UAINCRESET))
-    assert ((opts->incremental
-             & (BTOR_PARSE_MODE_BASIC_INCREMENTAL
-                | BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)));
-#endif
-
   BTOR_NEW (mem, res);
   BTOR_CLR (res);
 
@@ -709,10 +702,6 @@ btor_new_smt_parser (Btor *btor, BtorParseOpt *opts)
       btor_smt_message (res, 2, "stop after first satisfiable ':formula'");
     else if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_BUT_CONTINUE)
       btor_smt_message (res, 2, "check all ':formula' for satisfiability");
-
-    if (opts->incremental & BTOR_PARSE_MODE_UAINCRESET)
-      btor_smt_message (
-          res, 2, "resetting effective bit-width at each incremental step");
 
     if (opts->incremental & BTOR_PARSE_MODE_INCREMENTAL_IN_DEPTH)
       btor_smt_message (res,
@@ -2638,9 +2627,6 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
     btor_add_assumption_exp (parser->btor, exp);
   }
   btor_release_exp (parser->btor, exp);
-
-  if (parser->incremental & BTOR_PARSE_MODE_UAINCRESET)
-    btor_reset_effective_bit_widths (parser->btor);
 
   satres = btor_sat_btor (parser->btor);
   if (satres == BTOR_SAT)

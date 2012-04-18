@@ -1,7 +1,0 @@
-1 var 8 
-2 var 8 
-3 constd 8 128
-4 ugt 1 1 2
-5 eq 1 2 3
-6 and 1 4 5
-7 root 1 6
