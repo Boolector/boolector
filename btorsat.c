@@ -1,22 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
- *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #ifdef BTOR_USE_PICOSAT
@@ -41,11 +31,6 @@
 #include <stdlib.h>
 
 /*------------------------------------------------------------------------*/
-/* BEGIN OF DECLARATIONS                                                  */
-/*------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------*/
-/* BtorSATMgr                                                             */
-/*------------------------------------------------------------------------*/
 
 #define BTOR_ABORT_SAT(cond, msg)                   \
   do                                                \
@@ -58,15 +43,6 @@
     }                                               \
   } while (0)
 
-/*------------------------------------------------------------------------*/
-/* END OF DECLARATIONS                                                    */
-/*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
-/* BEGIN OF IMPLEMENTATION                                                */
-/*------------------------------------------------------------------------*/
-/*------------------------------------------------------------------------*/
-/* Auxilliary                                                             */
 /*------------------------------------------------------------------------*/
 
 void
@@ -83,8 +59,6 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
   fflush (stdout);
 }
 
-/*------------------------------------------------------------------------*/
-/* BtorSAT                                                                */
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
@@ -678,21 +652,25 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       if (res) return res;
     }
 
-    forked = lglfork (lgl, 0);
-    lglsetopt (forked, "seed", blgl->nforked);
-    sprintf (name, "[lglfork%d] ", blgl->nforked);
-    lglsetprefix (forked, name);
-    lglsetout (forked, smgr->output);
-    if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
-    if (!smgr->nobrutefork)
-      lglsetopt (forked, "clim", BTOR_LINGELING_BFORK_LIMIT);
-    res = lglsat (forked);
-    assert (!smgr->nobrutefork || res);
-    if (smgr->verbosity > 0) lglstats (forked);
-    fres = lgljoin (lgl, forked);
-    assert (!res || fres == res);
-    res = fres;
-    blgl->nforked++;
+#if 0
+      forked = lglfork (lgl, 0);
+      lglsetopt (forked, "seed", blgl->nforked);
+      sprintf (name, "[lglfork%d] ", blgl->nforked);
+      lglsetprefix (forked, name);
+      lglsetout (forked, smgr->output);
+      if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
+      if (!smgr->nobrutefork)
+	lglsetopt (forked, "clim", BTOR_LINGELING_BFORK_LIMIT);
+      res = lglsat (forked);
+      assert (!smgr->nobrutefork || res);
+      if (smgr->verbosity > 0) lglstats (forked);
+      fres = lgljoin (lgl, forked);
+      assert (!res || fres == res);
+      res = fres;
+      blgl->nforked++;
+#else
+    res = 0;
+#endif
     if (!res)
     {
       bforked = lglbrutefork (lgl, 0);
@@ -921,6 +899,4 @@ btor_enable_minisat_sat (BtorSATMgr *smgr)
 
 #endif
 
-/*------------------------------------------------------------------------*/
-/* END OF IMPLEMENTATION                                                  */
 /*------------------------------------------------------------------------*/
