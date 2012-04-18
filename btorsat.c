@@ -630,13 +630,13 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  BtorLGL *blgl = smgr->solver;
-  LGL *lgl      = blgl->lgl, *forked, *bforked;
-  int res, fres, bfres;
+  BtorLGL *blgl    = smgr->solver;
+  LGL *lgl         = blgl->lgl, *bforked;
   const int blimit = 20000;
+  int res, bfres;
   char name[80];
 
-  if (!smgr->nofork || (limit >= 0 && (limit < blimit)))
+  if (smgr->nofork || (0 <= limit && limit < blimit))
   {
     if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
@@ -653,7 +653,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
       if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
-      if (limit >= 0 && limit < INT_MAX) lglsetopt (bforked, "clim", limit);
+      if (0 <= limit && limit < INT_MAX) lglsetopt (bforked, "clim", limit);
       res = lglsat (bforked);
       if (smgr->verbosity > 0) lglstats (bforked);
       bfres = lgljoin (lgl, bforked);
