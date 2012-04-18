@@ -4,23 +4,17 @@
  *  Copyright (C) 2010-2012 Armin Biere.
  *
  *  All rights reserved.
-
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
-
 #ifndef BOOLECTOR_H_INCLUDED
 #define BOOLECTOR_H_INCLUDED
-/*
-Boolector is copyrighted 2007 - 2009 by Robert Brummayer, Armin
-*/
 
 #include "btorexp.h"
 
 #include <stdio.h>
 
-/*------------------------------------------------------------------------*/
-/* PUBLIC INTERFACE                                                       */
 /*------------------------------------------------------------------------*/
 
 /**
@@ -122,8 +116,6 @@ Boolector is copyrighted 2007 - 2009 by Robert Brummayer, Armin
  */
 
 /*------------------------------------------------------------------------*/
-/* Declarations                                                           */
-/*------------------------------------------------------------------------*/
 
 /**
  * Preprocessor constant representing status 'satisfiable'.
@@ -137,8 +129,6 @@ Boolector is copyrighted 2007 - 2009 by Robert Brummayer, Armin
 #define BOOLECTOR_UNSAT 20
 
 /*------------------------------------------------------------------------*/
-/* Boolector                                                              */
-/*------------------------------------------------------------------------*/
 
 /**
  * Creates new instance of Boolector.
@@ -148,6 +138,7 @@ Btor *boolector_new (void);
 
 /**
  * Clones an instance of Boolector.
+ * \param btor original Boolector instance.
  * \return New Boolector instance.
  */
 Btor *boolector_clone (Btor *);
@@ -200,8 +191,6 @@ int boolector_get_refs (Btor *btor);
  */
 void boolector_delete (Btor *btor);
 
-/*------------------------------------------------------------------------*/
-/* BtorExpression                                                         */
 /*------------------------------------------------------------------------*/
 
 /**

@@ -4,7 +4,7 @@
  *  Copyright (C) 2010-2012 Armin Biere.
  *
  *  All rights reserved.
-
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
@@ -17,8 +17,6 @@
 #include <limits.h>
 #include <stdio.h>
 
-/*------------------------------------------------------------------------*/
-/* BEGIN OF DECLARATIONS                                                  */
 /*------------------------------------------------------------------------*/
 
 #define BTOR_ABORT_BOOLECTOR(cond, msg)               \
@@ -92,12 +90,6 @@
     }                                                                         \
   } while (0)
 
-/*------------------------------------------------------------------------*/
-/* END OF DECLARATIONS                                                    */
-/*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
-/* BEGIN OF IMPLEMENTATION                                                */
 /*------------------------------------------------------------------------*/
 
 Btor *
@@ -1349,7 +1341,3 @@ boolector_free_bv_assignment (Btor *btor, char *assignment)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_free_bv_assignment_exp (btor, assignment);
 }
-
-/*------------------------------------------------------------------------*/
-/* END OF IMPLEMENTATION                                                  */
-/*------------------------------------------------------------------------*/

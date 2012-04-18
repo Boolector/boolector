@@ -739,6 +739,22 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
+    else if (!strcmp (app->argv[app->argpos], "-v")
+             || !strcmp (app->argv[app->argpos], "--verbose"))
+    {
+      if (app->verbosity < 0)
+      {
+        print_err (app, "'-q' and '-v' can not be combined\n");
+        app->err = 1;
+      }
+      else if (app->verbosity == 4)
+      {
+        print_err (app, "can not increase verbosity beyond '4'\n");
+        app->err = 1;
+      }
+      else
+        app->verbosity++;
+    }
     else if (!strcmp (app->argv[app->argpos], "-i")
              || !strcmp (app->argv[app->argpos], "-inc")
              || !strcmp (app->argv[app->argpos], "--inc")
