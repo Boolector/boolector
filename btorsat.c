@@ -632,7 +632,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl    = smgr->solver;
   LGL *lgl         = blgl->lgl, *bforked;
-  const int blimit = 20000;
+  const int blimit = 1000;
   int res, bfres;
   char name[80];
 
