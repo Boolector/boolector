@@ -1,20 +1,13 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
  *
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
+
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
+ *  This file is part of Boolector.
  */
 
 #include "btormem.h"
@@ -42,30 +35,13 @@
     if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
   } while (0)
 
-#define LIMIT(inc)                                                             \
-  do                                                                           \
-  {                                                                            \
-    BTOR_ABORT_MEM (                                                           \
-        inc > 0 && mm->limited && mm->allocated + (inc) >= mm->limitallocated, \
-        "memory limit reached");                                               \
-  } while (0)
-
 BtorMemMgr *
 btor_new_mem_mgr (void)
 {
-  const char *limit_str_in_mb;
   BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
   BTOR_ABORT_MEM (mm == NULL, "out of memory in 'btor_new_mem_mgr'");
   mm->allocated    = 0;
   mm->maxallocated = 0;
-  if ((limit_str_in_mb = getenv ("BTORMEMLIMIT")))
-  {
-    mm->limited        = 1;
-    mm->limitallocated = ((size_t) atoi (limit_str_in_mb)) << 20;
-  }
-  else
-    mm->limited = 0;
-
   return mm;
 }
 
@@ -75,7 +51,6 @@ btor_malloc (BtorMemMgr *mm, size_t size)
   void *result;
   if (!size) return 0;
   assert (mm != NULL);
-  LIMIT (size);
   result = malloc (size);
   BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_malloc'");
   mm->allocated += size;
@@ -90,7 +65,6 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (mm != NULL);
   assert (!p == !old_size);
   assert (mm->allocated >= old_size);
-  LIMIT (new_size - old_size);
   result = realloc (p, new_size);
   BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_realloc'");
   mm->allocated -= old_size;
@@ -105,7 +79,6 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
   size_t bytes = nobj * size;
   void *result;
   assert (mm != NULL);
-  LIMIT (bytes);
   result = calloc (nobj, size);
   BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_calloc'");
   mm->allocated += bytes;
