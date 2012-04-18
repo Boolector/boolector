@@ -499,12 +499,6 @@ struct BtorLGL
   int nforked, nbforked;
 };
 
-static void
-btor_lingeling_set_opt (LGL *lgl, const char *name, int val)
-{
-  if (lglhasopt (lgl, name)) lglsetopt (lgl, name, val);
-}
-
 static int
 btor_passdown_lingeling_options (BtorSATMgr *smgr,
                                  const char *optstr,
@@ -638,18 +632,18 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl = smgr->solver;
   LGL *lgl      = blgl->lgl, *forked, *bforked;
-  int res, fres, bfres, flimit;
+  int res, fres, bfres;
   const int blimit = 20000;
   char name[80];
 
   if (!smgr->nofork || (limit >= 0 && (limit < blimit)))
   {
-    if (limit < INT_MAX) btor_lingeling_set_opt (lgl, "clim", limit);
+    if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
   }
   else
   {
-    btor_lingeling_set_opt (lgl, "clim", blimit);
+    lglsetopt (lgl, "clim", blimit);
     if (!(res = lglsat (lgl)))
     {
       blgl->nbforked++;
