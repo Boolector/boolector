@@ -8238,7 +8238,7 @@ btor_sat_aux_btor (Btor *btor)
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
-    else if (limit > BTOR_SAT_MIN_LIMIT)
+    else if (limit > BTOR_SAT_MIN_LIMIT && limit != INT_MAX)
       limit /= 2;
 
     if (verbosity > 1)
