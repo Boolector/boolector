@@ -63,7 +63,6 @@ static const char *const g_op2string[] = {
     BTOR_DELETEN (mm, (table).chains, (table).size); \
   } while (0)
 
-#define BTOR_SAT_MIN_LIMIT 50000
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
 
@@ -5050,10 +5049,6 @@ btor_print_stats_btor (Btor *btor)
   }
 
   btor_msg_exp (btor, "");
-  btor_msg_exp (btor,
-                "SAT solver decision limit refinements: %d",
-                btor->stats.decision_limit_refinements);
-  btor_msg_exp (btor, "");
   btor_msg_exp (btor, "lemmas on demand statistics:");
   btor_msg_exp (btor, " LOD refinements: %d", btor->stats.lod_refinements);
   if (btor->stats.lod_refinements)
@@ -8006,132 +8001,11 @@ synthesize_all_var_rhs (Btor *btor)
 }
 
 static int
-rebuild_synthesized_exps (Btor *btor)
-{
-  BtorExpPtrStack stack, new_constraints;
-  BtorPtrHashBucket *b;
-  BtorExp *cur, *newcs;
-  int res, id, i, val;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
-  BtorMemMgr *mm;
-  BtorAIG *aig;
-
-  assert (btor);
-
-  mm   = btor->mm;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (new_constraints);
-
-  for (b = btor->synthesized_constraints->first; b; b = b->next)
-  {
-    cur = BTOR_REAL_ADDR_EXP ((BtorExp *) b->key);
-    BTOR_PUSH_STACK (mm, stack, cur);
-
-    while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_REAL_ADDR_EXP (BTOR_POP_STACK (stack));
-      assert (cur->mark == 0 || cur->mark == 1);
-
-      if (cur->mark) continue;
-
-      cur->mark = 1;
-
-      if (!BTOR_IS_ARRAY_EXP (cur) && cur->len == 1 && cur->av)
-      {
-        assert (cur->av);
-        assert (cur->av->len == 1);
-        aig = cur->av->aigs[0];
-        if (aig == BTOR_AIG_TRUE)
-          newcs = cur;
-        else if (aig == BTOR_AIG_FALSE)
-          newcs = BTOR_INVERT_EXP (cur);
-        else if (!(id = BTOR_GET_CNF_ID_AIG (cur->av->aigs[0])))
-          newcs = 0;
-        else if ((val = btor_fixed_sat (smgr, id)) > 0)
-          newcs = cur;
-        else if (val < 0)
-          newcs = BTOR_INVERT_EXP (cur);
-        else
-          newcs = 0;
-
-        if (newcs) BTOR_PUSH_STACK (mm, new_constraints, newcs);
-      }
-
-      for (i = cur->arity - 1; i >= 0; i--)
-        BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-    }
-  }
-
-  /* reset mark flags */
-  for (b = btor->synthesized_constraints->first; b != NULL; b = b->next)
-    btor_mark_exp (btor, (BtorExp *) b->key, 0);
-
-  res = (int) BTOR_COUNT_STACK (new_constraints);
-  while (!BTOR_EMPTY_STACK (new_constraints))
-    btor_add_constraint_exp (btor, BTOR_POP_STACK (new_constraints));
-
-  BTOR_RELEASE_STACK (mm, stack);
-  BTOR_RELEASE_STACK (mm, new_constraints);
-  return res;
-}
-
-static void
-rebuild_synthesized_aigs (Btor *btor)
-{
-  BtorAIGMgr *amgr     = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  BtorPtrHashTable *cs = btor->synthesized_constraints;
-  BtorAIG *old_aig, *new_aig, *aig_true, *aig_false;
-  BtorPtrHashBucket *b, *next;
-  int trivial, inconsistent;
-  BtorExp *c, *r;
-
-  assert (!btor->inconsistent);
-  btor_rebuild_all_aig (amgr);
-
-  inconsistent = 0;
-  for (b = cs->first; !inconsistent && b; b = next)
-  {
-    next = b->next;
-    c    = (BtorExp *) b->key;
-    r    = BTOR_REAL_ADDR_EXP (c);
-    assert (r->av);
-    assert (r->av->len == 1);
-    old_aig   = r->av->aigs[0];
-    aig_true  = (r == c) ? BTOR_AIG_TRUE : BTOR_AIG_FALSE;
-    aig_false = BTOR_INVERT_AIG (aig_true);
-    trivial   = 0;
-    if (old_aig == aig_false)
-      inconsistent = 1;
-    else if (old_aig == aig_true
-             || ((new_aig = btor_map_aig (old_aig)) == aig_true))
-      trivial = 1;
-    else if (new_aig == aig_false)
-      inconsistent = 1;
-    if (trivial)
-    {
-      // TODO can not remove from constraints right now ...
-    }
-    else if (!inconsistent)
-    {
-      r->av->aigs[0] = btor_copy_aig (amgr, new_aig);
-      btor_release_aig (amgr, old_aig);
-      if (r->tseitin_encoded) btor_aig_to_sat_tseitin (amgr, new_aig);
-    }
-  }
-  btor_release_map_aig (amgr);
-  if (inconsistent) btor->inconsistent = 1;
-}
-
-static int
 btor_sat_aux_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
-  int found_assumption_false;
+  int found_assumption_false, refinements;
   BtorExpPtrStack top_arrays;
-  int limit, refinements;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
@@ -8173,87 +8047,34 @@ btor_sat_aux_btor (Btor *btor)
 
   } while (btor->unsynthesized_constraints->count > 0);
 
-  /* pointer chase assumptions */
   update_assumptions (btor);
 
   found_assumption_false = add_again_assumptions (btor);
   if (found_assumption_false) goto UNSAT;
 
-#if 0
-  limit = btor->norestarts ? INT_MAX : BTOR_SAT_MIN_LIMIT;
-#else
-  limit = INT_MAX;
-#endif
-  sat_result = btor_sat_sat (smgr, limit);
-
   BTOR_INIT_STACK (top_arrays);
 
-  while (sat_result == BTOR_SAT || sat_result == BTOR_UNKNOWN)
+  while (sat_result == BTOR_SAT)
   {
-    if (sat_result == BTOR_SAT)
+    assert (BTOR_EMPTY_STACK (top_arrays));
+    search_top_arrays (btor, &top_arrays);
+
+    found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
+
+    if (found_conflict)
     {
-      assert (BTOR_EMPTY_STACK (top_arrays));
-      search_top_arrays (btor, &top_arrays);
-
-      found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
-
-      if (found_conflict)
-      {
-        btor->stats.lod_refinements++;
-        found_assumption_false = add_again_assumptions (btor);
-        assert (!found_assumption_false);
-      }
-
-      BTOR_RELEASE_STACK (mm, top_arrays);
-
-      if (!found_conflict) break;
+      btor->stats.lod_refinements++;
+      found_assumption_false = add_again_assumptions (btor);
+      assert (!found_assumption_false);
     }
 
-    assert (sat_result != BTOR_UNSAT);
-    if (sat_result == BTOR_UNSAT)
-    {
-      assert (btor_inconsistent_sat (smgr));
-      break;
-    }
+    BTOR_RELEASE_STACK (mm, top_arrays);
 
-    if (sat_result == BTOR_UNKNOWN)
-    {
-#if 0
-	  rebuild_synthesized_aigs (btor);
-	  if (btor->inconsistent)
-	    goto UNSAT;
-
-	  if (btor->rebuild_exps)
-	    {
-	      rebuild_synthesized_exps (btor);
-	      run_rewrite_engine (btor);
-	      if (btor->inconsistent) goto UNSAT;
-	      assert (check_all_hash_tables_proxy_free_dbg (btor));
-	      found_constraint_false = process_unsynthesized_constraints (btor);
-	      assert (check_all_hash_tables_proxy_free_dbg (btor));
-	      if (found_constraint_false) goto UNSAT;
-	      assert (!btor->inconsistent);
-	    }
-#endif
-      btor->stats.decision_limit_refinements++;
-      if (!limit)
-        limit = BTOR_SAT_MIN_LIMIT;
-      else if (limit < INT_MAX / 2)
-        limit *= 2;
-      else
-        limit = INT_MAX;
-    }
-    else if (limit > BTOR_SAT_MIN_LIMIT && limit != INT_MAX)
-    {
-      limit /= 2;
-      if (limit < BTOR_SAT_MIN_LIMIT) limit = BTOR_SAT_MIN_LIMIT;
-    }
+    if (!found_conflict) break;
 
     if (verbosity > 1)
     {
       refinements = btor->stats.lod_refinements;
-      refinements += btor->stats.decision_limit_refinements;
-
       if (verbosity > 2 || !(refinements % 10))
       {
         fprintf (stdout, "[btorsat] refinement iteration %d\n", refinements);
@@ -8265,10 +8086,11 @@ btor_sat_aux_btor (Btor *btor)
     if (found_assumption_false)
       sat_result = BTOR_UNSAT;
     else
-      sat_result = btor_sat_sat (smgr, limit);
+      sat_result = btor_sat_sat (smgr, -1);
   }
 
 DONE:
+
   btor->valid_assignments = 1;
   BTOR_ABORT_EXP (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                   "result must be sat or unsat");

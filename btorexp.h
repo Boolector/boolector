@@ -291,25 +291,22 @@ struct Btor
   {
     int max_rec_rw_calls; /* maximum number of recursive rewrite calls */
     int lod_refinements;  /* number of lemmas on demand refinements */
-    int decision_limit_refinements; /* number of SAT solver decision limit hit
-                                     */
-    int synthesis_assignment_inconsistencies; /* number of restarts as a result
-                                                 of lazy synthesis */
-    int array_axiom_1_conflicts; /* number of array axiom 1 conflicts: a = b /\
-                                    i = j => read(a, i) = read(b, j) */
-    int array_axiom_2_conflicts; /* number of array axiom 2 conflicts: i = j =>
-                                    read(write(a, i, e), j) = e */
-    int var_substitutions; /* number of variables that have been substituted */
-    int array_substitutions;       /* number of array variables that have been
-                                      substituted */
-    int ec_substitutions;          /* embedded constraint substitutions */
-    int vreads;                    /* number of virtual reads */
-    int linear_equations;          /* number of linear equations */
-    int adds_normalized;           /* number of add chains normalizations */
-    int muls_normalized;           /* number of mul chains normalizations */
-    int read_props_construct;      /* how often have we pushed a read over write
-                                      during construction */
-    long long int lemmas_size_sum; /* sum of the size of all added lemmas */
+    int synthesis_assignment_inconsistencies; /* number of restarts as a
+                                                 result of lazy synthesis */
+    int array_axiom_1_conflicts;    /* number of array axiom 1 conflicts:
+                                       a = b /\ i = j => read(a, i) = read(b, j) */
+    int array_axiom_2_conflicts;    /* array axiom 2 confs:
+                                       i = j => read(write(a, i, e), j) = e */
+    int var_substitutions;          /* number substituted vars (non array) */
+    int array_substitutions;        /* num substituted array vars */
+    int ec_substitutions;           /* embedded constraint substitutions */
+    int vreads;                     /* number of virtual reads */
+    int linear_equations;           /* number of linear equations */
+    int adds_normalized;            /* number of add chains normalizations */
+    int muls_normalized;            /* number of mul chains normalizations */
+    int read_props_construct;       /* how often have we pushed a read over
+                                               write during construction */
+    long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints;    /* constraint statistics */
     long long expressions;
