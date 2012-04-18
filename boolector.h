@@ -141,7 +141,7 @@ Btor *boolector_new (void);
  * \param btor original Boolector instance.
  * \return New Boolector instance.
  */
-Btor *boolector_clone (Btor *);
+Btor *boolector_clone (Btor *btor);
 
 /**
  * Enables model generation. If you want Boolector to produce

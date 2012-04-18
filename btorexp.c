@@ -108,12 +108,6 @@ static void add_constraint (Btor *, BtorExp *);
 static void run_rewrite_engine (Btor *);
 
 /*------------------------------------------------------------------------*/
-/* END OF DECLARATIONS                                                    */
-/*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
-/* BEGIN OF IMPLEMENTATION                                                */
-/*------------------------------------------------------------------------*/
 
 #ifndef NDEBUG
 
@@ -4813,48 +4807,6 @@ btor_clone_btor (Btor *orig)
 
   btor->mm = mm;
 
-#if 0
-  BTOR_INIT_EXP_UNIQUE_TABLE (mm, btor->table);
-
-  btor->avmgr = btor_new_aigvec_mgr (mm);
-
-  btor->bv_vars =
-    btor_new_ptr_hash_table (mm,
-                             (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->array_vars =
-    btor_new_ptr_hash_table (mm,
-                             (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->id = 1;
-  btor->bv_lambda_id = 1;
-  btor->array_lambda_id = 1;
-  btor->valid_assignments = 1;
-  btor->rewrite_level = 3;
-  btor->vread_index_id = 1;
-  btor->msgtick = -1;
-
-  btor->exp_pair_eq_table =
-    btor_new_ptr_hash_table (mm, (BtorHashPtr) hash_exp_pair,
-                             (BtorCmpPtr) compare_exp_pair);
-  btor->varsubst_constraints =
-    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->embedded_constraints =
-    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->unsynthesized_constraints =
-    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->synthesized_constraints =
-    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->assumptions =
-    btor_new_ptr_hash_table (mm, (BtorHashPtr) btor_hash_exp_by_id,
-                             (BtorCmpPtr) btor_compare_exp_by_id);
-
-  BTOR_INIT_STACK (btor->arrays_with_model);
-#endif
   return btor;
 }
 
@@ -8253,6 +8205,7 @@ btor_sat_aux_btor (Btor *btor)
       if (!found_conflict) break;
     }
 
+    assert (sat_result != BTOR_UNSAT);
     if (sat_result == BTOR_UNSAT)
     {
       assert (btor_inconsistent_sat (smgr));
@@ -8261,21 +8214,23 @@ btor_sat_aux_btor (Btor *btor)
 
     if (sat_result == BTOR_UNKNOWN)
     {
-      rebuild_synthesized_aigs (btor);
-      if (btor->inconsistent) goto UNSAT;
+#if 0
+	  rebuild_synthesized_aigs (btor);
+	  if (btor->inconsistent)
+	    goto UNSAT;
 
-      if (btor->rebuild_exps)
-      {
-        rebuild_synthesized_exps (btor);
-        run_rewrite_engine (btor);
-        if (btor->inconsistent) goto UNSAT;
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        found_constraint_false = process_unsynthesized_constraints (btor);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        if (found_constraint_false) goto UNSAT;
-        assert (!btor->inconsistent);
-      }
-
+	  if (btor->rebuild_exps)
+	    {
+	      rebuild_synthesized_exps (btor);
+	      run_rewrite_engine (btor);
+	      if (btor->inconsistent) goto UNSAT;
+	      assert (check_all_hash_tables_proxy_free_dbg (btor));
+	      found_constraint_false = process_unsynthesized_constraints (btor);
+	      assert (check_all_hash_tables_proxy_free_dbg (btor));
+	      if (found_constraint_false) goto UNSAT;
+	      assert (!btor->inconsistent);
+	    }
+#endif
       btor->stats.decision_limit_refinements++;
       limit = limit ? 2 * limit : BTOR_SAT_MIN_LIMIT;
     }
@@ -8422,7 +8377,3 @@ btor_version (Btor *btor)
   (void) btor;
   return BTOR_VERSION;
 }
-
-/*------------------------------------------------------------------------*/
-/* END OF IMPLEMENTATION                                                  */
-/*------------------------------------------------------------------------*/
