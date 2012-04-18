@@ -636,10 +636,10 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  BtorLGL *blgl = smgr->solver;
-  LGL *lgl      = blgl->lgl, *forked, *bforked;
-  int res, fres, bfres, flimit;
+  BtorLGL *blgl    = smgr->solver;
+  LGL *lgl         = blgl->lgl, *bforked;
   const int blimit = 20000;
+  int res, bfres;
   char name[80];
 
   if (!smgr->nofork || (limit >= 0 && (limit < blimit)))
