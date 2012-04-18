@@ -491,9 +491,6 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_LINGELING
 
-#define BTOR_LINGELING_FORK_LIMIT 100000
-#define BTOR_LINGELING_BFORK_LIMIT 200000
-
 typedef struct BtorLGL BtorLGL;
 
 struct BtorLGL
@@ -641,57 +638,34 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl = smgr->solver;
   LGL *lgl      = blgl->lgl, *forked, *bforked;
-  int res, fres, bfres;
+  int res, fres, bfres, flimit;
+  const int blimit = 20000;
   char name[80];
-  if (!smgr->nofork && limit >= BTOR_LINGELING_FORK_LIMIT)
-  {
-    if (limit == INT_MAX)
-    {
-      btor_lingeling_set_opt (lgl, "clim", 140000);
-      res = lglsat (lgl);
-      if (res) return res;
-    }
 
-#if 0
-      forked = lglfork (lgl, 0);
-      lglsetopt (forked, "seed", blgl->nforked);
-      sprintf (name, "[lglfork%d] ", blgl->nforked);
-      lglsetprefix (forked, name);
-      lglsetout (forked, smgr->output);
-      if (lglgetopt (lgl, "verbose")) lglsetopt (forked, "verbose", 1);
-      if (!smgr->nobrutefork)
-	lglsetopt (forked, "clim", BTOR_LINGELING_BFORK_LIMIT);
-      res = lglsat (forked);
-      assert (!smgr->nobrutefork || res);
-      if (smgr->verbosity > 0) lglstats (forked);
-      fres = lgljoin (lgl, forked);
-      assert (!res || fres == res);
-      res = fres;
-      blgl->nforked++;
-#else
-    res = 0;
-#endif
-    if (!res)
+  if (!smgr->nofork || (limit >= 0 && (limit < blimit)))
+  {
+    if (limit < INT_MAX) btor_lingeling_set_opt (lgl, "clim", limit);
+    res = lglsat (lgl);
+  }
+  else
+  {
+    btor_lingeling_set_opt (lgl, "clim", blimit);
+    if (!(res = lglsat (lgl)))
     {
+      blgl->nbforked++;
       bforked = lglbrutefork (lgl, 0);
       lglsetopt (bforked, "seed", blgl->nbforked);
       sprintf (name, "[lglbrutefork%d] ", blgl->nbforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
       if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
+      if (limit >= 0 && limit < INT_MAX) lglsetopt (bforked, "clim", limit);
       res = lglsat (bforked);
-      assert (res);
       if (smgr->verbosity > 0) lglstats (bforked);
       bfres = lgljoin (lgl, bforked);
-      assert (bfres == res);
+      assert (!res || bfres == res);
       res = bfres;
-      blgl->nbforked++;
     }
-  }
-  else
-  {
-    if (limit < INT_MAX) btor_lingeling_set_opt (lgl, "clim", limit);
-    res = lglsat (lgl);
   }
   return res;
 }

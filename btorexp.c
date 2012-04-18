@@ -8053,6 +8053,7 @@ btor_sat_aux_btor (Btor *btor)
   if (found_assumption_false) goto UNSAT;
 
   BTOR_INIT_STACK (top_arrays);
+  sat_result = btor_sat_sat (smgr, -1);
 
   while (sat_result == BTOR_SAT)
   {
