@@ -8179,7 +8179,11 @@ btor_sat_aux_btor (Btor *btor)
   found_assumption_false = add_again_assumptions (btor);
   if (found_assumption_false) goto UNSAT;
 
-  limit      = btor->norestarts ? INT_MAX : BTOR_SAT_MIN_LIMIT;
+#if 0
+  limit = btor->norestarts ? INT_MAX : BTOR_SAT_MIN_LIMIT;
+#else
+  limit = INT_MAX;
+#endif
   sat_result = btor_sat_sat (smgr, limit);
 
   BTOR_INIT_STACK (top_arrays);
