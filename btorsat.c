@@ -632,7 +632,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl    = smgr->solver;
   LGL *lgl         = blgl->lgl, *bforked;
-  const int blimit = 150000000;
+  const int blimit = 150000000, clone = 1;
   int res, bfres;
   char name[80];
 
@@ -647,7 +647,10 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     if (!(res = lglsat (lgl)))
     {
       blgl->nbforked++;
-      bforked = lglbrutefork (lgl, 0);
+      if (clone)
+        bforked = lglclone (lgl);
+      else
+        bforked = lglbrutefork (lgl, 0);
       lglsetopt (bforked, "seed", blgl->nbforked);
       sprintf (name, "[lglbrutefork%d] ", blgl->nbforked);
       lglsetprefix (bforked, name);
@@ -656,7 +659,10 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       if (0 <= limit && limit < INT_MAX) lglsetopt (bforked, "clim", limit);
       res = lglsat (bforked);
       if (smgr->verbosity > 0) lglstats (bforked);
-      bfres = lgljoin (lgl, bforked);
+      if (clone)
+        bfres = lglunclone (lgl, bforked);
+      else
+        bfres = lgljoin (lgl, bforked);
       assert (!res || bfres == res);
       res = bfres;
     }
