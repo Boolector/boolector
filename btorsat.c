@@ -496,7 +496,7 @@ typedef struct BtorLGL BtorLGL;
 struct BtorLGL
 {
   LGL *lgl;
-  int nforked, nbforked;
+  int nforked, nbforked, blimit;
 };
 
 static int
@@ -610,10 +610,11 @@ btor_lingeling_init (BtorSATMgr *smgr)
     fflush (stdout);
   }
   BTOR_CNEW (smgr->mm, res);
-  res->lgl = lglminit (smgr->mm,
+  res->lgl    = lglminit (smgr->mm,
                        (lglalloc) btor_malloc,
                        (lglrealloc) btor_realloc,
                        (lgldealloc) btor_free);
+  res->blimit = 1000;
   assert (res);
   if (smgr->optstr)
     btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
@@ -630,20 +631,23 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  BtorLGL *blgl    = smgr->solver;
-  LGL *lgl         = blgl->lgl, *bforked;
-  const int blimit = 10, clone = 1;
+  BtorLGL *blgl   = smgr->solver;
+  LGL *lgl        = blgl->lgl, *bforked;
+  const int clone = 1;
   int res, bfres;
   char name[80];
 
-  if (smgr->nofork || (0 <= limit && limit < blimit))
+  if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
     if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
   }
   else
   {
-    lglsetopt (lgl, "clim", blimit);
+    btor_msg_sat (smgr, 1, "blimit = %d", blgl->blimit);
+    lglsetopt (lgl, "clim", blgl->blimit);
+    blgl->blimit *= 2;
+    if (blgl->blimit > (1 << 17)) blgl->blimit = (1 << 17);
     if (!(res = lglsat (lgl)))
     {
       blgl->nbforked++;
