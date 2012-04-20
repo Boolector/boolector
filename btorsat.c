@@ -600,6 +600,9 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
+#define BTOR_LGL_MIN_BLIMIT 1000
+#define BTOR_LGL_MAX_BLIMIT 100000
+
 static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
@@ -614,7 +617,7 @@ btor_lingeling_init (BtorSATMgr *smgr)
                        (lglalloc) btor_malloc,
                        (lglrealloc) btor_realloc,
                        (lgldealloc) btor_free);
-  res->blimit = 1000;
+  res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)
     btor_passdown_lingeling_options (smgr, smgr->optstr, res->lgl);
@@ -646,10 +649,11 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   {
     btor_msg_sat (smgr, 1, "blimit = %d", blgl->blimit);
     lglsetopt (lgl, "clim", blgl->blimit);
-    blgl->blimit *= 2;
-    if (blgl->blimit > (1 << 17)) blgl->blimit = (1 << 17);
     if (!(res = lglsat (lgl)))
     {
+      blgl->blimit *= 2;
+      if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
+        blgl->blimit = BTOR_LGL_MAX_BLIMIT;
       blgl->nbforked++;
       if (clone)
         bforked = lglclone (lgl);
@@ -676,6 +680,12 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         bfres = lgljoin (lgl, bforked);
       assert (!res || bfres == res);
       res = bfres;
+    }
+    else
+    {
+      blgl->blimit = 9 * (blgl->blimit / 10);
+      if (blgl->blimit < BTOR_LGL_MIN_BLIMIT)
+        blgl->blimit = BTOR_LGL_MIN_BLIMIT;
     }
   }
   return res;
