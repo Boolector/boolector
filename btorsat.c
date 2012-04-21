@@ -600,7 +600,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
-#define BTOR_LGL_MIN_BLIMIT 1000
+#define BTOR_LGL_MIN_BLIMIT 100
 #define BTOR_LGL_MAX_BLIMIT 100000
 
 static void *
@@ -637,6 +637,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   BtorLGL *blgl   = smgr->solver;
   LGL *lgl        = blgl->lgl, *bforked;
   const int clone = 1;
+  const char *str;
   int res, bfres;
   char name[80];
 
@@ -656,15 +657,16 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
       blgl->nbforked++;
       if (clone)
-        bforked = lglclone (lgl);
-      else
       {
-        bforked = lglbrutefork (lgl, 0);
+        bforked = lglclone (lgl);
         lglfixate (bforked);
         lglmeltall (bforked);
+        str = "clone";
       }
+      else
+        bforked = lglbrutefork (lgl, 0);
       lglsetopt (bforked, "seed", blgl->nbforked);
-      sprintf (name, "[lglbrutefork%d] ", blgl->nbforked);
+      sprintf (name, "[lgl%s%d] ", str, blgl->nbforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
       if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
