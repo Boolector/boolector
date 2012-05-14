@@ -154,8 +154,6 @@ propagate_units_to_3vl (Btor *btor, BtorExp *e)
   BtorAIGVec *av;
   char *b, *p;
 
-  return;
-
   e = BTOR_REAL_ADDR_EXP (e);
 
   if (!(av = e->av)) return;
