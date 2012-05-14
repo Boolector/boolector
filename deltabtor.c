@@ -918,11 +918,7 @@ main (int argc, char** argv)
   golden = run ();
   msg (1, "golden exit code %d", golden);
 
-#if 0
-  rename (tmp, output_name);
-#else
   permanent ();
-#endif
 
   rounds = 0;
   fixed  = 0;
@@ -1006,11 +1002,7 @@ main (int argc, char** argv)
             fixed += overwritten;
 
             msg (2, "fixed %d expressions", overwritten);
-#if 0
-		  rename (tmp, output_name);
-#else
             permanent ();
-#endif
             oexps = rexps;
             msg (2, "saved %d expressions in '%s'", rexps, output_name);
           }

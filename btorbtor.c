@@ -1566,15 +1566,6 @@ parse_uext (BtorBTORParser *parser, int len)
   return parse_ext (parser, len, btor_uext_exp);
 }
 
-#if 0
-static BtorExp *
-parse_not_implemented (BtorBTORParser * parser, int len)
-{
-  (void) btor_perr_btor (parser, "parser for '%s' not implemented", parser->op.start);
-  return 0;
-}
-#endif
-
 static void
 new_parser (BtorBTORParser *parser, BtorOpParser op_parser, const char *op)
 {

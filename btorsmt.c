@@ -1715,15 +1715,6 @@ translate_associative_binary (BtorSMTParser *parser,
 
   assert (!node->exp);
 
-#if 0
-  if (length (node) < 3)
-    {
-      (void) btor_perr_smt (parser, 
-			  "expected at least two arguments to '%s'", name);
-      return;
-    }
-#endif
-
   child = car (cdr (node));
 
   if (!(exp = node2nonarrayexp (parser, child)))

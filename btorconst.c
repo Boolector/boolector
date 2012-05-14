@@ -2049,9 +2049,6 @@ is_unequal_zero_3vl (BtorMemMgr *mm, const char *b)
 char *
 btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 {
-#if 0
-  int i, len;
-#endif
   char *quotient, *remainder;
 
   assert (mm != NULL);
@@ -2064,24 +2061,6 @@ btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 
   udiv_urem_const (mm, a, b, &quotient, &remainder);
   btor_delete_const (mm, remainder);
-
-/* it seems like this optimization is not necessary here,
- * as the division circuit propagates the known bits
- * quite well */
-#if 0
-  /* optimization: b != 0 => a udiv b <= a */
-  if (is_unequal_zero_3vl(mm, b) == '1')
-    {
-      len = (int) strlen (a);
-      for (i = 0; i < len; i++)
-        {
-	  if (a[i] == '0')
-	    quotient[i] = '0';
-	  else
-	    break;
-	}
-    }
-#endif
 
   return quotient;
 }
