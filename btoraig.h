@@ -39,9 +39,7 @@ struct BtorAIG
   unsigned int refs;
   struct BtorAIG *children[2];
   struct BtorAIG *next;
-  struct BtorAIG *map;
-  int cnf_id : 30;
-  unsigned int mapped : 1;
+  int cnf_id;
   unsigned int mark : 2;
   unsigned int local : 30;
 };
@@ -167,24 +165,11 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
+#if 0
 /* Return a constant aig if the argument aig is fixed to
  * a constant value.  Otherwise return the original argument.
  */
-BtorAIG *btor_fixed_aig (BtorAIGMgr *amgr, BtorAIG *aig);
-
-/* Rebuild all AIGs after at least one incremental run of the
- * SAT solver.  You might need to translate the resulting AIGs
- * to CNF again.
- */
-void btor_rebuild_all_aig (BtorAIGMgr *mgr);
-
-/* Map the original to its rebuild version.  Does not increase
- * the reference count, so you might need to copy the result.
- */
-BtorAIG *btor_map_aig (BtorAIG *aig);
-
-/* Release the map information.
- */
-void btor_release_map_aig (BtorAIGMgr *mgr);
+BtorAIG * btor_fixed_aig (BtorAIGMgr * amgr, BtorAIG * aig);
+#endif
 
 #endif
