@@ -153,11 +153,4 @@ int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);
  */
 int btor_get_assignment_aig (BtorAIGMgr *amgr, BtorAIG *aig);
 
-#if 1
-/* Return a constant aig if the argument aig is fixed to
- * a constant value.  Otherwise return the original argument.
- */
-BtorAIG *btor_fixed_aig (BtorAIGMgr *amgr, BtorAIG *aig);
-#endif
-
 #endif

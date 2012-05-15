@@ -145,47 +145,6 @@ is_xnor_exp (Btor *btor, BtorExp *exp)
 
 #ifndef BTOR_NO_3VL
 
-static void
-propagate_units_to_3vl (Btor *btor, BtorExp *e)
-{
-  BtorAIG *a, *c, **q;
-  BtorAIGVecMgr *avmgr;
-  BtorAIGMgr *amgr;
-  BtorAIGVec *av;
-  char *b, *p;
-
-  return;
-
-  e = BTOR_REAL_ADDR_EXP (e);
-
-  if (!(av = e->av)) return;
-
-  avmgr = btor->avmgr;
-  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
-
-  b = e->bits;
-  for (p = b, q = av->aigs; *p; p++, q++)
-  {
-    assert (q - av->aigs < av->len);
-    a = *q;
-    c = btor_fixed_aig (amgr, a);
-    if (c == BTOR_AIG_FALSE)
-    {
-      if (*p == 'x')
-        *p = '0';
-      else
-        assert (*p == '0');
-    }
-    else if (c == BTOR_AIG_TRUE)
-    {
-      if (*p == 'x')
-        *p = '1';
-      else
-        assert (*p == '1');
-    }
-  }
-}
-
 static char *
 compute_slice_3vl (Btor *btor, BtorExp *u0, int upper, int lower)
 {
@@ -204,8 +163,6 @@ compute_slice_3vl (Btor *btor, BtorExp *u0, int upper, int lower)
   assert (lower >= 0);
   assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
   assert (btor->rewrite_level > 1);
-
-  propagate_units_to_3vl (btor, e0);
 
   mm        = btor->mm;
   b0        = BTOR_REAL_ADDR_EXP (e0)->bits;
@@ -426,9 +383,6 @@ compute_binary_3vl (Btor *btor, BtorExpKind kind, BtorExp *u0, BtorExp *u1)
   assert (BTOR_REAL_ADDR_EXP (e0)->bits != NULL);
   assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
   assert (btor->rewrite_level > 1);
-
-  propagate_units_to_3vl (btor, e0);
-  propagate_units_to_3vl (btor, e1);
 
   mm        = btor->mm;
   b0        = BTOR_REAL_ADDR_EXP (e0)->bits;
@@ -3671,10 +3625,6 @@ compute_bcond_3vl (Btor *btor, BtorExp *u0, BtorExp *u1, BtorExp *u2)
   assert (BTOR_REAL_ADDR_EXP (e1)->bits != NULL);
   assert (BTOR_REAL_ADDR_EXP (e2)->bits != NULL);
   assert (btor->rewrite_level > 1);
-
-  propagate_units_to_3vl (btor, e0);
-  propagate_units_to_3vl (btor, e1);
-  propagate_units_to_3vl (btor, e2);
 
   mm                = btor->mm;
   b0                = BTOR_REAL_ADDR_EXP (e0)->bits;

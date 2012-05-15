@@ -411,18 +411,6 @@ find_and_contradiction_aig (
   return 0;
 }
 
-#if 1
-BtorAIG *
-btor_fixed_aig (BtorAIGMgr *amgr, BtorAIG *aig)
-{
-  int lit = BTOR_GET_CNF_ID_AIG (aig), val;
-  if (!lit) return aig;
-  if ((val = btor_fixed_sat (amgr->smgr, lit)))
-    return (val < 0) ? BTOR_AIG_FALSE : BTOR_AIG_TRUE;
-  return aig;
-}
-#endif
-
 static BtorAIG *
 btor_simp_aig_by_sat (BtorAIGMgr *amgr, BtorAIG *aig)
 {
