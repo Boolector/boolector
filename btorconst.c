@@ -50,6 +50,8 @@ static const char *digit2const_table[10] = {
     "1001",
 };
 
+#ifndef NDEBUG
+
 static int
 is_valid_const (const char *c)
 {
@@ -62,8 +64,6 @@ is_valid_const (const char *c)
     if (ch != '0' && ch != '1') return 0;
   return 1;
 }
-
-#ifndef NDEBUG
 
 static int
 is_valid_const_3vl (const char *c)
