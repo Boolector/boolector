@@ -29,11 +29,6 @@
 
 /*------------------------------------------------------------------------*/
 
-static const char *const g_op2string[] = {
-    "invalid", "const",  "var",  "array", "slice", "and",   "beq",
-    "aeq",     "add",    "mul",  "ult",   "sll",   "srl",   "udiv",
-    "urem",    "concat", "read", "write", "bcond", "acond", "proxy"};
-
 struct BtorExpPair
 {
   BtorExp *exp1;
@@ -55,6 +50,16 @@ struct BtorFullParentIterator
 };
 
 typedef struct BtorFullParentIterator BtorFullParentIterator;
+
+enum BtorSubstCompKind
+{
+  BTOR_SUBST_COMP_ULT_KIND,
+  BTOR_SUBST_COMP_ULTE_KIND,
+  BTOR_SUBST_COMP_UGT_KIND,
+  BTOR_SUBST_COMP_UGTE_KIND
+};
+
+typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 /*------------------------------------------------------------------------*/
 
@@ -110,6 +115,13 @@ static void add_constraint (Btor *, BtorExp *);
 static void run_rewrite_engine (Btor *);
 
 static int exp_to_cnf_lit (Btor *, BtorExp *);
+
+/*------------------------------------------------------------------------*/
+
+static const char *const g_op2string[] = {
+    "invalid", "const",  "var",  "array", "slice", "and",   "beq",
+    "aeq",     "add",    "mul",  "ult",   "sll",   "srl",   "udiv",
+    "urem",    "concat", "read", "write", "bcond", "acond", "proxy"};
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -6583,16 +6595,6 @@ lambda_var_exp (Btor *btor, int len)
   BTOR_DELETEN (mm, name, string_len);
   return result;
 }
-
-enum BtorSubstCompKind
-{
-  BTOR_SUBST_COMP_ULT_KIND,
-  BTOR_SUBST_COMP_ULTE_KIND,
-  BTOR_SUBST_COMP_UGT_KIND,
-  BTOR_SUBST_COMP_UGTE_KIND
-};
-
-typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 static BtorSubstCompKind
 reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
