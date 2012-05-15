@@ -5161,48 +5161,6 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   btor_release_exp (btor, read2);
 }
 
-// #define BTOR_NO_3VL
-#ifndef BTOR_NO_3VL
-
-static void
-propagate_3vl_to_aigvec (Btor *btor, BtorExp *exp)
-{
-  BtorAIGVec *av;
-  BtorAIGMgr *amgr;
-  char *bits;
-  int i, len;
-
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
-  assert (exp->bits != NULL);
-  assert (exp->av != NULL);
-  assert (btor->rewrite_level > 1);
-
-  av   = exp->av;
-  len  = av->len;
-  bits = exp->bits;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-
-  for (i = 0; i < len; i++)
-  {
-    assert (!(av->aigs[i] == BTOR_AIG_TRUE && bits[i] == '0'));
-    assert (!(av->aigs[i] == BTOR_AIG_FALSE && bits[i] == '1'));
-    assert (bits[i] == '0' || bits[i] == '1' || bits[i] == 'x');
-
-    if (!BTOR_IS_CONST_AIG (av->aigs[i]) && bits[i] != 'x')
-    {
-      btor_release_aig (amgr, av->aigs[i]);
-      if (bits[i] == '0')
-        av->aigs[i] = BTOR_AIG_FALSE;
-      else
-        av->aigs[i] = BTOR_AIG_TRUE;
-    }
-  }
-}
-
-#endif
-
 static void
 synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 {
@@ -5449,10 +5407,6 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
             }
             break;
         }
-#ifndef BTOR_NO_3VL
-        if (btor->rewrite_level > 1 && !BTOR_IS_ARRAY_EXP (cur))
-          propagate_3vl_to_aigvec (btor, cur);
-#endif
       }
     }
   } while (!BTOR_EMPTY_STACK (exp_stack));
@@ -7039,9 +6993,7 @@ normalize_substitution (Btor *btor,
     assert (!BTOR_IS_INVERTED_EXP (var));
     if (btor_find_in_ptr_hash_table (btor->varsubst_constraints, var)) return 0;
 
-#ifdef BTOR_NO_3VL
     if (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (right))) return 0;
-#endif
 
     if (BTOR_IS_INVERTED_EXP (right))
       bits = btor_not_const_3vl (mm, BTOR_REAL_ADDR_EXP (right)->bits);
