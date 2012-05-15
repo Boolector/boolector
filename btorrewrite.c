@@ -150,9 +150,7 @@ slice_exp_node_3vl (Btor *btor, BtorExp *exp, int upper, int lower)
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
-
   result = btor_slice_exp_node (btor, exp, upper, lower);
-  assert (result != NULL);
 
   return result;
 }
