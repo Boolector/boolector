@@ -20,26 +20,6 @@
 
 /*------------------------------------------------------------------------*/
 
-static char *btor_add_unbounded_const (BtorMemMgr *,
-                                       const char *,
-                                       const char *);
-
-static char *btor_mult_unbounded_const (BtorMemMgr *,
-                                        const char *,
-                                        const char *);
-
-#if 0
-static char *
-btor_sub_unbounded_const (BtorMemMgr *, const char *, const char *);
-#endif
-
-static char *btor_udiv_unbounded_const (BtorMemMgr *,
-                                        const char *,
-                                        const char *,
-                                        char **rest_ptr);
-
-/*------------------------------------------------------------------------*/
-
 static const char *digit2const_table[10] = {
     "",
     "1",
@@ -57,9 +37,10 @@ static const char *digit2const_table[10] = {
 
 #define BTOR_NOT_CONST_3VL(a) ((a) == 'x' ? 'x' : (a) ^ 1)
 
-#define BTOR_AND_CONST_3VL(a, b) #endif
-(((a) == '0' || (b) == '0') ? '0'
-                            : (((a) == 'x' || (b) == 'x') ? 'x' : (a) & (b)))
+#define BTOR_AND_CONST_3VL(a, b) \
+  (((a) == '0' || (b) == '0')    \
+       ? '0'                     \
+       : (((a) == 'x' || (b) == 'x') ? 'x' : (a) & (b)))
 
 #define BTOR_OR_CONST_3VL(a, b) \
   (((a) == '1' || (b) == '1')   \
@@ -70,9 +51,10 @@ static const char *digit2const_table[10] = {
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
-    /*------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------*/
 
-    static int is_valid_const (const char *c)
+static int
+is_valid_const (const char *c)
 {
   const char *p;
   char ch;
@@ -119,6 +101,298 @@ strip_zeroes (const char *a)
   while (*a == '0') a++;
 
   return a;
+}
+
+static void
+btor_SC_GATE_CO_const (char *CO, char R, char D, char CI)
+{
+  char D_or_CI, D_and_CI, M;
+  D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
+  D_and_CI = BTOR_AND_CONST_3VL (D, CI);
+  M        = BTOR_AND_CONST_3VL (D_or_CI, R);
+  *CO      = BTOR_OR_CONST_3VL (M, D_and_CI);
+}
+
+static void
+btor_SC_GATE_S_const (char *S, char R, char D, char CI, char Q)
+{
+  char D_and_CI, D_or_CI;
+  char T2_or_R, T2_and_R;
+  char T1, T2;
+  D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
+  D_and_CI = BTOR_AND_CONST_3VL (D, CI);
+  T1       = BTOR_AND_CONST_3VL (D_or_CI, BTOR_NOT_CONST_3VL (D_and_CI));
+  T2       = BTOR_AND_CONST_3VL (T1, Q);
+  T2_or_R  = BTOR_OR_CONST_3VL (T2, R);
+  T2_and_R = BTOR_AND_CONST_3VL (T2, R);
+  *S       = BTOR_AND_CONST_3VL (T2_or_R, BTOR_NOT_CONST_3VL (T2_and_R));
+}
+
+static void
+udiv_urem_const (
+    BtorMemMgr *mm, const char *Ain, const char *Din, char **Qptr, char **Rptr)
+{
+  char *A, *nD, **S, **C;
+  char *Q, *R;
+  int size, i, j;
+
+  assert (mm != NULL);
+  assert (Ain != NULL);
+  assert (Din != NULL);
+  assert (Qptr != NULL);
+  assert (Rptr != NULL);
+  assert (is_valid_const_3vl (Ain));
+  assert (is_valid_const_3vl (Din));
+  assert (strlen (Ain) == strlen (Din));
+
+  size = (int) strlen (Ain);
+  assert (size > 0);
+
+  BTOR_NEWN (mm, A, size);
+  for (i = 0; i < size; i++) A[i] = Ain[size - 1 - i];
+
+  BTOR_NEWN (mm, nD, size);
+  for (i = 0; i < size; i++) nD[i] = BTOR_NOT_CONST_3VL (Din[size - 1 - i]);
+
+  BTOR_NEWN (mm, S, size + 1);
+  for (j = 0; j <= size; j++)
+  {
+    BTOR_NEWN (mm, S[j], size + 1);
+    for (i = 0; i <= size; i++) S[j][i] = '0';
+  }
+
+  BTOR_NEWN (mm, C, size + 1);
+  for (j = 0; j <= size; j++)
+  {
+    BTOR_NEWN (mm, C[j], size + 1);
+    for (i = 0; i <= size; i++) C[j][i] = '0';
+  }
+
+  BTOR_NEWN (mm, R, size + 1);
+  BTOR_NEWN (mm, Q, size + 1);
+  R[size] = '\0';
+  Q[size] = '\0';
+
+  for (j = 0; j <= size - 1; j++)
+  {
+    S[j][0] = A[size - j - 1];
+    C[j][0] = '1';
+
+    for (i = 0; i <= size - 1; i++)
+      btor_SC_GATE_CO_const (&C[j][i + 1], S[j][i], nD[i], C[j][i]);
+
+    Q[j] = BTOR_OR_CONST_3VL (C[j][size], S[j][size]);
+
+    for (i = 0; i <= size - 1; i++)
+      btor_SC_GATE_S_const (&S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q[j]);
+  }
+
+  for (i = size; i >= 1; i--) R[size - i] = S[size][i];
+
+  for (j = 0; j <= size; j++) BTOR_DELETEN (mm, C[j], size + 1);
+  BTOR_DELETEN (mm, C, size + 1);
+
+  for (j = 0; j <= size; j++) BTOR_DELETEN (mm, S[j], size + 1);
+  BTOR_DELETEN (mm, S, size + 1);
+
+  BTOR_DELETEN (mm, nD, size);
+  BTOR_DELETEN (mm, A, size);
+
+  *Qptr = Q;
+  *Rptr = R;
+}
+
+static char *
+btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *res, *r, c, x, y, s, *tmp;
+  int alen, blen, rlen;
+  const char *p, *q;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
+  a = strip_zeroes (a);
+  b = strip_zeroes (b);
+
+  if (!*a) return btor_strdup (mm, b);
+
+  if (!*b) return btor_strdup (mm, a);
+
+  alen = (int) strlen (a);
+  blen = (int) strlen (b);
+  rlen = (alen < blen) ? blen : alen;
+  rlen++;
+
+  BTOR_NEWN (mm, res, rlen + 1);
+
+  p = a + alen;
+  q = b + blen;
+
+  c = '0';
+
+  r  = res + rlen;
+  *r = 0;
+
+  while (res < r)
+  {
+    x    = (a < p) ? *--p : '0';
+    y    = (b < q) ? *--q : '0';
+    s    = x ^ y ^ c;
+    c    = (x & y) | (x & c) | (y & c);
+    *--r = s;
+  }
+
+  p = strip_zeroes (res);
+  if ((p != res))
+  {
+    tmp = btor_copy_const (mm, p);
+    btor_delete_const (mm, res);
+    res = tmp;
+  }
+
+  return res;
+}
+
+static char *
+btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
+{
+  char *res, *r, c, x, y, s, m;
+  int alen, blen, rlen, i;
+  const char *p;
+
+  assert (mm != NULL);
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
+  a = strip_zeroes (a);
+
+  if (!*a) return btor_strdup (mm, "");
+
+  if (a[0] == '1' && !a[1]) return btor_strdup (mm, b);
+
+  b = strip_zeroes (b);
+
+  if (!*b) return btor_strdup (mm, "");
+
+  if (b[0] == '1' && !b[1]) return btor_strdup (mm, a);
+
+  alen = (int) strlen (a);
+  blen = (int) strlen (b);
+  rlen = alen + blen;
+  BTOR_NEWN (mm, res, rlen + 1);
+  res[rlen] = 0;
+
+  for (r = res; r < res + blen; r++) *r = '0';
+
+  for (p = a; p < a + alen; p++) *r++ = *p;
+
+  assert (r == res + rlen);
+
+  for (i = 0; i < alen; i++)
+  {
+    m = res[rlen - 1];
+    c = '0';
+
+    if (m == '1')
+    {
+      p = b + blen;
+      r = res + blen;
+
+      while (res < r && b < p)
+      {
+        assert (b < p);
+        x  = *--p;
+        y  = *--r;
+        s  = x ^ y ^ c;
+        c  = (x & y) | (x & c) | (y & c);
+        *r = s;
+      }
+    }
+
+    memmove (res + 1, res, rlen - 1);
+    res[0] = c;
+  }
+
+  return res;
+}
+
+static char *
+btor_udiv_unbounded_const (BtorMemMgr *mem,
+                           const char *dividend,
+                           const char *divisor,
+                           char **rem_ptr)
+{
+  char *quotient, *rest, *extended_divisor, *tmp;
+  int delta, plen, qlen;
+  const char *p, *q;
+
+  assert (mem != NULL);
+  assert (dividend != NULL);
+  assert (divisor != NULL);
+  assert (is_valid_const (dividend));
+  assert (is_valid_const (divisor));
+
+  dividend = strip_zeroes (dividend);
+  divisor  = strip_zeroes (divisor);
+
+  for (p = dividend; *p && *p == '0'; p++)
+    ;
+
+  for (q = divisor; *q && *q == '0'; q++)
+    ;
+
+  assert (*q); /* in any case even if 'dividend == 0' */
+
+  if (!*p || btor_cmp_const (p, q) < 0)
+  {
+    if (rem_ptr) *rem_ptr = btor_strdup (mem, p); /* copy divident */
+
+    return btor_strdup (mem, "");
+  }
+
+  plen  = (int) strlen (p);
+  qlen  = (int) strlen (q);
+  delta = plen - qlen;
+  assert (delta >= 0);
+
+  BTOR_NEWN (mem, extended_divisor, plen + 1);
+  memset (extended_divisor, '0', delta);
+  strcpy (extended_divisor + delta, divisor);
+
+  udiv_urem_const (mem, dividend, extended_divisor, &quotient, &rest);
+
+  btor_delete_const (mem, extended_divisor);
+
+  tmp = btor_strdup (mem, strip_zeroes (quotient));
+  btor_delete_const (mem, quotient);
+  quotient = tmp;
+
+  tmp = btor_strdup (mem, strip_zeroes (rest));
+  btor_delete_const (mem, rest);
+  rest = tmp;
+
+  assert (btor_cmp_const (rest, divisor) < 0);
+#ifndef NDEBUG
+  {
+    char *tmp1 = btor_mult_unbounded_const (mem, quotient, divisor);
+    char *tmp2 = btor_add_unbounded_const (mem, tmp1, rest);
+    assert (!btor_cmp_const (dividend, tmp2));
+    btor_freestr (mem, tmp1);
+    btor_freestr (mem, tmp2);
+  }
+#endif
+  if (rem_ptr)
+    *rem_ptr = rest;
+  else
+    btor_delete_const (mem, rest);
+
+  return quotient;
 }
 
 #define MSB_INT ((int) (sizeof (int) * 8 - 1))
@@ -608,126 +882,6 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
   return slice_const (mm, a, upper, lower);
 }
 
-static char *
-btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
-{
-  char *res, *r, c, x, y, s, *tmp;
-  int alen, blen, rlen;
-  const char *p, *q;
-
-  assert (mm != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
-
-  a = strip_zeroes (a);
-  b = strip_zeroes (b);
-
-  if (!*a) return btor_strdup (mm, b);
-
-  if (!*b) return btor_strdup (mm, a);
-
-  alen = (int) strlen (a);
-  blen = (int) strlen (b);
-  rlen = (alen < blen) ? blen : alen;
-  rlen++;
-
-  BTOR_NEWN (mm, res, rlen + 1);
-
-  p = a + alen;
-  q = b + blen;
-
-  c = '0';
-
-  r  = res + rlen;
-  *r = 0;
-
-  while (res < r)
-  {
-    x    = (a < p) ? *--p : '0';
-    y    = (b < q) ? *--q : '0';
-    s    = x ^ y ^ c;
-    c    = (x & y) | (x & c) | (y & c);
-    *--r = s;
-  }
-
-  p = strip_zeroes (res);
-  if ((p != res))
-  {
-    tmp = btor_copy_const (mm, p);
-    btor_delete_const (mm, res);
-    res = tmp;
-  }
-
-  return res;
-}
-
-char *
-btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
-{
-  char *res, *r, c, x, y, s, m;
-  int alen, blen, rlen, i;
-  const char *p;
-
-  assert (mm != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
-
-  a = strip_zeroes (a);
-
-  if (!*a) return btor_strdup (mm, "");
-
-  if (a[0] == '1' && !a[1]) return btor_strdup (mm, b);
-
-  b = strip_zeroes (b);
-
-  if (!*b) return btor_strdup (mm, "");
-
-  if (b[0] == '1' && !b[1]) return btor_strdup (mm, a);
-
-  alen = (int) strlen (a);
-  blen = (int) strlen (b);
-  rlen = alen + blen;
-  BTOR_NEWN (mm, res, rlen + 1);
-  res[rlen] = 0;
-
-  for (r = res; r < res + blen; r++) *r = '0';
-
-  for (p = a; p < a + alen; p++) *r++ = *p;
-
-  assert (r == res + rlen);
-
-  for (i = 0; i < alen; i++)
-  {
-    m = res[rlen - 1];
-    c = '0';
-
-    if (m == '1')
-    {
-      p = b + blen;
-      r = res + blen;
-
-      while (res < r && b < p)
-      {
-        assert (b < p);
-        x  = *--p;
-        y  = *--r;
-        s  = x ^ y ^ c;
-        c  = (x & y) | (x & c) | (y & c);
-        *r = s;
-      }
-    }
-
-    memmove (res + 1, res, rlen - 1);
-    res[0] = c;
-  }
-
-  return res;
-}
-
 int
 btor_cmp_const (const char *a, const char *b)
 {
@@ -768,72 +922,6 @@ btor_cmp_const (const char *a, const char *b)
 
   return strcmp (p, q);
 }
-
-#if 0
-static char *
-btor_sub_unbounded_const (BtorMemMgr * mem, const char *a, const char *b)
-{
-  char *res, *tmp, *r, c, x, y, s;
-  int alen, blen, rlen;
-  const char *p, *q;
-
-  assert (mem != NULL);
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
-  assert (btor_cmp_const (b, a) <= 0);
-
-  a = strip_zeroes (a);
-  b = strip_zeroes (b);
-  if (!*b)
-    return btor_strdup (mem, a);
-
-  alen = (int) strlen (a);
-  blen = (int) strlen (b);
-
-  assert (alen >= blen);
-  rlen = alen;
-
-  BTOR_NEWN (mem, res, rlen + 1);
-
-  p = a + alen;
-  q = b + blen;
-
-  c = '0';
-  r = res + rlen;
-  *r = 0;
-
-  while (res < r)
-    {
-      assert (a < p);
-      x = *--p;
-
-      y = (b < q) ? *--q : '0';
-
-      s = x ^ y ^ c;
-      c = ((1 ^ x) & c) | ((1 ^ x) & y) | (y & c);
-
-      *--r = s;
-    }
-
-  assert (c == '0');
-
-#ifndef NDEBUG
-  {
-    tmp = btor_add_unbounded_const (mem, res, b);
-    assert (!btor_cmp_const (tmp, a));
-    btor_freestr (mem, tmp);
-  }
-#endif
-
-  tmp = btor_strdup (mem, strip_zeroes (res));
-  btor_freestr (mem, res);
-  res = tmp;
-
-  return res;
-}
-#endif
 
 static void
 invert_const (BtorMemMgr *mm, char *a)
@@ -1142,105 +1230,6 @@ btor_srl_n_bits_const (BtorMemMgr *mm, const char *a, int n)
   return result;
 }
 
-static void
-btor_SC_GATE_CO_const (char *CO, char R, char D, char CI)
-{
-  char D_or_CI, D_and_CI, M;
-  D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
-  D_and_CI = BTOR_AND_CONST_3VL (D, CI);
-  M        = BTOR_AND_CONST_3VL (D_or_CI, R);
-  *CO      = BTOR_OR_CONST_3VL (M, D_and_CI);
-}
-
-static void
-btor_SC_GATE_S_const (char *S, char R, char D, char CI, char Q)
-{
-  char D_and_CI, D_or_CI;
-  char T2_or_R, T2_and_R;
-  char T1, T2;
-  D_or_CI  = BTOR_OR_CONST_3VL (D, CI);
-  D_and_CI = BTOR_AND_CONST_3VL (D, CI);
-  T1       = BTOR_AND_CONST_3VL (D_or_CI, BTOR_NOT_CONST_3VL (D_and_CI));
-  T2       = BTOR_AND_CONST_3VL (T1, Q);
-  T2_or_R  = BTOR_OR_CONST_3VL (T2, R);
-  T2_and_R = BTOR_AND_CONST_3VL (T2, R);
-  *S       = BTOR_AND_CONST_3VL (T2_or_R, BTOR_NOT_CONST_3VL (T2_and_R));
-}
-
-static void
-udiv_urem_const (
-    BtorMemMgr *mm, const char *Ain, const char *Din, char **Qptr, char **Rptr)
-{
-  char *A, *nD, **S, **C;
-  char *Q, *R;
-  int size, i, j;
-
-  assert (mm != NULL);
-  assert (Ain != NULL);
-  assert (Din != NULL);
-  assert (Qptr != NULL);
-  assert (Rptr != NULL);
-  assert (is_valid_const_3vl (Ain));
-  assert (is_valid_const_3vl (Din));
-  assert (strlen (Ain) == strlen (Din));
-
-  size = (int) strlen (Ain);
-  assert (size > 0);
-
-  BTOR_NEWN (mm, A, size);
-  for (i = 0; i < size; i++) A[i] = Ain[size - 1 - i];
-
-  BTOR_NEWN (mm, nD, size);
-  for (i = 0; i < size; i++) nD[i] = BTOR_NOT_CONST_3VL (Din[size - 1 - i]);
-
-  BTOR_NEWN (mm, S, size + 1);
-  for (j = 0; j <= size; j++)
-  {
-    BTOR_NEWN (mm, S[j], size + 1);
-    for (i = 0; i <= size; i++) S[j][i] = '0';
-  }
-
-  BTOR_NEWN (mm, C, size + 1);
-  for (j = 0; j <= size; j++)
-  {
-    BTOR_NEWN (mm, C[j], size + 1);
-    for (i = 0; i <= size; i++) C[j][i] = '0';
-  }
-
-  BTOR_NEWN (mm, R, size + 1);
-  BTOR_NEWN (mm, Q, size + 1);
-  R[size] = '\0';
-  Q[size] = '\0';
-
-  for (j = 0; j <= size - 1; j++)
-  {
-    S[j][0] = A[size - j - 1];
-    C[j][0] = '1';
-
-    for (i = 0; i <= size - 1; i++)
-      btor_SC_GATE_CO_const (&C[j][i + 1], S[j][i], nD[i], C[j][i]);
-
-    Q[j] = BTOR_OR_CONST_3VL (C[j][size], S[j][size]);
-
-    for (i = 0; i <= size - 1; i++)
-      btor_SC_GATE_S_const (&S[j + 1][i + 1], S[j][i], nD[i], C[j][i], Q[j]);
-  }
-
-  for (i = size; i >= 1; i--) R[size - i] = S[size][i];
-
-  for (j = 0; j <= size; j++) BTOR_DELETEN (mm, C[j], size + 1);
-  BTOR_DELETEN (mm, C, size + 1);
-
-  for (j = 0; j <= size; j++) BTOR_DELETEN (mm, S[j], size + 1);
-  BTOR_DELETEN (mm, S, size + 1);
-
-  BTOR_DELETEN (mm, nD, size);
-  BTOR_DELETEN (mm, A, size);
-
-  *Qptr = Q;
-  *Rptr = R;
-}
-
 char *
 btor_udiv_const (BtorMemMgr *mm, const char *a, const char *b)
 {
@@ -1422,79 +1411,6 @@ btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
   assert (is_valid_const (a));
   assert (is_valid_const (b));
   return concat_const (mm, a, b);
-}
-
-static char *
-btor_udiv_unbounded_const (BtorMemMgr *mem,
-                           const char *dividend,
-                           const char *divisor,
-                           char **rem_ptr)
-{
-  char *quotient, *rest, *extended_divisor, *tmp;
-  int delta, plen, qlen;
-  const char *p, *q;
-
-  assert (mem != NULL);
-  assert (dividend != NULL);
-  assert (divisor != NULL);
-  assert (is_valid_const (dividend));
-  assert (is_valid_const (divisor));
-
-  dividend = strip_zeroes (dividend);
-  divisor  = strip_zeroes (divisor);
-
-  for (p = dividend; *p && *p == '0'; p++)
-    ;
-
-  for (q = divisor; *q && *q == '0'; q++)
-    ;
-
-  assert (*q); /* in any case even if 'dividend == 0' */
-
-  if (!*p || btor_cmp_const (p, q) < 0)
-  {
-    if (rem_ptr) *rem_ptr = btor_strdup (mem, p); /* copy divident */
-
-    return btor_strdup (mem, "");
-  }
-
-  plen  = (int) strlen (p);
-  qlen  = (int) strlen (q);
-  delta = plen - qlen;
-  assert (delta >= 0);
-
-  BTOR_NEWN (mem, extended_divisor, plen + 1);
-  memset (extended_divisor, '0', delta);
-  strcpy (extended_divisor + delta, divisor);
-
-  udiv_urem_const (mem, dividend, extended_divisor, &quotient, &rest);
-
-  btor_delete_const (mem, extended_divisor);
-
-  tmp = btor_strdup (mem, strip_zeroes (quotient));
-  btor_delete_const (mem, quotient);
-  quotient = tmp;
-
-  tmp = btor_strdup (mem, strip_zeroes (rest));
-  btor_delete_const (mem, rest);
-  rest = tmp;
-
-  assert (btor_cmp_const (rest, divisor) < 0);
-#ifndef NDEBUG
-  {
-    char *tmp1 = btor_mult_unbounded_const (mem, quotient, divisor);
-    char *tmp2 = btor_add_unbounded_const (mem, tmp1, rest);
-    assert (!btor_cmp_const (dividend, tmp2));
-    btor_freestr (mem, tmp1);
-    btor_freestr (mem, tmp2);
-  }
-#endif
-  if (rem_ptr)
-    *rem_ptr = rest;
-  else
-    btor_delete_const (mem, rest);
-
-  return quotient;
 }
 
 char *
