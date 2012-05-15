@@ -969,14 +969,15 @@ parse_commandline_arguments (BtorMainApp *app)
   }
 
   if (!app->err && app->verbosity > 0 && app->incremental)
-    btor_msg_main ("incremental mode through command line option");
+    btor_msg_main ("incremental mode through command line option\n");
   if (!app->err && app->verbosity > 0 && app->indepth)
-    btor_msg_main_va_args ("incremental in-depth window of %d", app->indepth);
+    btor_msg_main_va_args ("incremental in-depth window of %d\n", app->indepth);
   if (!app->err && app->verbosity > 0 && app->lookahead)
-    btor_msg_main_va_args ("incremental look-ahead window of %d",
+    btor_msg_main_va_args ("incremental look-ahead window of %d\n",
                            app->lookahead);
   if (!app->err && app->verbosity > 0 && app->interval)
-    btor_msg_main_va_args ("incremental interval window of %d", app->interval);
+    btor_msg_main_va_args ("incremental interval window of %d\n",
+                           app->interval);
 }
 
 static void
