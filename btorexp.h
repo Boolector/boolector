@@ -301,23 +301,37 @@ struct Btor
 };
 
 #define BTOR_IS_BV_CONST_EXP_KIND(kind) ((kind) == BTOR_BV_CONST_EXP)
+
 #define BTOR_IS_BV_VAR_EXP_KIND(kind) ((kind) == BTOR_BV_VAR_EXP)
+
 #define BTOR_IS_READ_EXP_KIND(kind) (kind == BTOR_READ_EXP)
+
 #define BTOR_IS_WRITE_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
+
 #define BTOR_IS_ARRAY_COND_EXP_KIND(kind) (kind == BTOR_ACOND_EXP)
+
 #define BTOR_IS_PROXY_EXP_KIND(kind) ((kind) == BTOR_PROXY_EXP)
+
 #define BTOR_IS_BV_COND_EXP_KIND(kind) (kind == BTOR_BCOND_EXP)
+
 #define BTOR_IS_ARRAY_VAR_EXP_KIND(kind) (kind == BTOR_ARRAY_VAR_EXP)
+
 #define BTOR_IS_ARRAY_EXP_KIND(kind)                            \
   (((kind) == BTOR_ARRAY_VAR_EXP) || ((kind) == BTOR_WRITE_EXP) \
    || ((kind) == BTOR_ACOND_EXP))
+
 #define BTOR_IS_ARRAY_EQ_EXP_KIND(kind) (kind == BTOR_AEQ_EXP)
+
 #define BTOR_IS_BV_EQ_EXP_KIND(kind) (kind == BTOR_BEQ_EXP)
+
 #define BTOR_IS_UNARY_EXP_KIND(kind) ((kind) == BTOR_SLICE_EXP)
+
 #define BTOR_IS_BINARY_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
+
 #define BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND(kind) \
   (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_MUL_EXP))
+
 #define BTOR_IS_TERNARY_EXP_KIND(kind) \
   (((kind) >= BTOR_WRITE_EXP) && ((kind) <= BTOR_ACOND_EXP))
 
@@ -362,16 +376,21 @@ struct Btor
   ((exp) && BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))
 
 #define BTOR_INVERT_EXP(exp) ((BtorExp *) (1ul ^ (unsigned long int) (exp)))
+
 #define BTOR_IS_INVERTED_EXP(exp) (1ul & (unsigned long int) (exp))
+
 #define BTOR_COND_INVERT_EXP(cond_exp, exp)           \
   ((BtorExp *) (((unsigned long int) (cond_exp) &1ul) \
                 ^ (unsigned long int) (exp)))
+
 #define BTOR_GET_ID_EXP(exp) \
   (BTOR_IS_INVERTED_EXP (exp) ? -BTOR_REAL_ADDR_EXP (exp)->id : exp->id)
+
 #define BTOR_AIGVEC_EXP(btor, exp)                                     \
   (BTOR_IS_INVERTED_EXP (exp)                                          \
        ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_EXP (exp)->av) \
        : btor_copy_aigvec ((btor)->avmgr, exp->av))
+
 #define BTOR_BITS_EXP(mm, exp)                               \
   (BTOR_IS_INVERTED_EXP (exp)                                \
        ? btor_not_const (mm, BTOR_REAL_ADDR_EXP (exp)->bits) \
@@ -379,15 +398,22 @@ struct Btor
 
 #define BTOR_TAG_EXP(exp, tag) \
   ((BtorExp *) ((unsigned long int) tag | (unsigned long int) (exp)))
+
 #define BTOR_GET_TAG_EXP(exp) ((int) (3ul & (unsigned long int) (exp)))
+
 #define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
+
 #define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
 
 #define BTOR_IS_ACC_EXP(exp) (BTOR_IS_READ_EXP (exp) || BTOR_IS_WRITE_EXP (exp))
+
 #define BTOR_GET_INDEX_ACC_EXP(exp) ((exp)->e[1])
+
 #define BTOR_GET_VALUE_ACC_EXP(exp) \
   (BTOR_IS_READ_EXP (exp) ? (exp) : (exp)->e[2])
+
 #define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
+
 #define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
 
 /*------------------------------------------------------------------------*/
