@@ -272,7 +272,9 @@ struct Btor
   BtorPtrHashTable *assumptions;
   BtorPtrHashTable *var_rhs; /* only for model generation */
   BtorExpPtrStack arrays_with_model;
+
   /* statistics */
+
   int ops[BTOR_NUM_OPS_EXP];
   struct
   {
