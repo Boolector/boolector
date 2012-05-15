@@ -1673,8 +1673,9 @@ btor_x_const_3vl (BtorMemMgr *mm, int len)
   return res;
 }
 
+#if 0
 void
-btor_invert_const_3vl (BtorMemMgr *mm, char *a)
+btor_invert_const_3vl (BtorMemMgr * mm, char *a)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -1682,6 +1683,7 @@ btor_invert_const_3vl (BtorMemMgr *mm, char *a)
   assert (is_valid_const_3vl (a));
   invert_const (mm, a);
 }
+#endif
 
 char *
 btor_not_const_3vl (BtorMemMgr *mm, const char *a)
@@ -1693,8 +1695,9 @@ btor_not_const_3vl (BtorMemMgr *mm, const char *a)
   return not_const (mm, a);
 }
 
+#if 0
 char *
-btor_and_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_and_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -1707,7 +1710,7 @@ btor_and_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 char *
-btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_eq_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -1720,8 +1723,8 @@ btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 static void
-ult_const_0_x_or_x_1_case (
-    const char *a, const char *b, int len, int i, char *result)
+ult_const_0_x_or_x_1_case (const char *a, const char *b, int len, int i,
+                           char *result)
 {
   assert (a != NULL);
   assert (b != NULL);
@@ -1735,27 +1738,31 @@ ult_const_0_x_or_x_1_case (
   result[0] = 'x';
 
   for (i = i + 1; i < len; i++)
-  {
-    if (a[i] == '0' && b[i] == 'x') continue;
-
-    if (a[i] == 'x' && b[i] == '1') continue;
-
-    if (a[i] == '0' && b[i] == '1')
     {
-      result[0] = '1';
-      break;
-    }
 
-    if (a[i] == b[i] && a[i] != 'x' && b[i] != 'x')
-      continue;
-    else
-      break;
-  }
+      if (a[i] == '0' && b[i] == 'x')
+        continue;
+
+      if (a[i] == 'x' && b[i] == '1')
+        continue;
+
+      if (a[i] == '0' && b[i] == '1')
+        {
+          result[0] = '1';
+          break;
+        }
+
+      if (a[i] == b[i] && a[i] != 'x' && b[i] != 'x')
+        continue;
+      else
+        break;
+
+    }
 }
 
 static void
-ult_const_1_x_or_x_0_case (
-    const char *a, const char *b, int len, int i, char *result)
+ult_const_1_x_or_x_0_case (const char *a, const char *b, int len, int i,
+                           char *result)
 {
   assert (a != NULL);
   assert (b != NULL);
@@ -1769,41 +1776,44 @@ ult_const_1_x_or_x_0_case (
   result[0] = '0';
 
   for (i = i + 1; i < len; i++)
-  {
-    if (a[i] == '0')
     {
-      if (b[i] == '0')
-        continue;
-      else
-      {
-        result[0] = 'x';
-        break;
-      }
+
+      if (a[i] == '0')
+        {
+          if (b[i] == '0')
+            continue;
+          else
+            {
+              result[0] = 'x';
+              break;
+            }
+        }
+
+      if (a[i] == '1')
+        {
+          if (b[i] == '0')
+            break;
+          else
+            continue;
+        }
+
+      if (a[i] == 'x')
+        {
+          if (b[i] == '0')
+            continue;
+          else
+            {
+              result[0] = 'x';
+              break;
+            }
+        }
+
     }
 
-    if (a[i] == '1')
-    {
-      if (b[i] == '0')
-        break;
-      else
-        continue;
-    }
-
-    if (a[i] == 'x')
-    {
-      if (b[i] == '0')
-        continue;
-      else
-      {
-        result[0] = 'x';
-        break;
-      }
-    }
-  }
 }
 
 char *
-btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_ult_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   char *result;
   int i, len;
@@ -1822,66 +1832,68 @@ btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   result[1] = '\0';
 
   for (i = 0; i < len; i++)
-  {
-    if (a[i] == '0')
     {
-      if (b[i] == 'x')
-      {
-        ult_const_0_x_or_x_1_case (a, b, len, i, result);
-        break;
-      }
-      else if (b[i] == '1')
-      {
-        result[0] = '1';
-        break;
-      }
-      else
-        continue;
-    }
 
-    if (a[i] == '1')
-    {
-      if (b[i] == 'x')
-      {
-        ult_const_1_x_or_x_0_case (a, b, len, i, result);
-        break;
-      }
-      else if (b[i] == '0')
-      {
-        result[0] = '0';
-        break;
-      }
-      else
-        continue;
-    }
+      if (a[i] == '0')
+        {
+          if (b[i] == 'x')
+            {
+              ult_const_0_x_or_x_1_case (a, b, len, i, result);
+              break;
+            }
+          else if (b[i] == '1')
+            {
+              result[0] = '1';
+              break;
+            }
+          else
+            continue;
+        }
 
-    if (a[i] == 'x')
-    {
-      if (b[i] == '1')
-      {
-        ult_const_0_x_or_x_1_case (a, b, len, i, result);
-        break;
-      }
-      else if (b[i] == '0')
-      {
-        ult_const_1_x_or_x_0_case (a, b, len, i, result);
-        break;
-      }
-      else
-      {
-        result[0] = 'x';
-        break;
-      }
-    }
+      if (a[i] == '1')
+        {
+          if (b[i] == 'x')
+            {
+              ult_const_1_x_or_x_0_case (a, b, len, i, result);
+              break;
+            }
+          else if (b[i] == '0')
+            {
+              result[0] = '0';
+              break;
+            }
+          else
+            continue;
+        }
 
-    assert (a[i] == b[i] && a[i] != 'x' && b[i] != 'x');
-  }
+      if (a[i] == 'x')
+        {
+          if (b[i] == '1')
+            {
+              ult_const_0_x_or_x_1_case (a, b, len, i, result);
+              break;
+            }
+          else if (b[i] == '0')
+            {
+              ult_const_1_x_or_x_0_case (a, b, len, i, result);
+              break;
+            }
+          else
+            {
+              result[0] = 'x';
+              break;
+            }
+        }
+
+      assert (a[i] == b[i] && a[i] != 'x' && b[i] != 'x');
+    }
 
   return result;
+
 }
 
 char *
-btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_add_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -1893,10 +1905,8 @@ btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   return add_const (mm, a, b);
 }
 
-static void
-compute_min_max_num_shifts (BtorMemMgr *mm,
-                            const char *b,
-                            int *min_shifts,
+static void 
+compute_min_max_num_shifts (BtorMemMgr * mm, const char *b, int *min_shifts,
                             int *max_shifts)
 {
   int len, i, shifts;
@@ -1906,25 +1916,25 @@ compute_min_max_num_shifts (BtorMemMgr *mm,
   assert (max_shifts != NULL);
   (void) mm;
 
-  len         = (int) strlen (b);
+  len = (int) strlen (b);
   *min_shifts = 0;
   *max_shifts = 0;
 
   for (i = 0; i < len; i++)
-  {
-    if (b[i] == '1')
     {
-      shifts = btor_pow_2_util (len - i - 1);
-      *min_shifts += shifts;
-      *max_shifts += shifts;
+      if (b[i] == '1')
+        {
+	  shifts = btor_pow_2_util (len - i - 1);
+          *min_shifts += shifts;
+          *max_shifts += shifts;
+        }
+      else if (b[i] == 'x')
+	*max_shifts += btor_pow_2_util (len - i - 1);
     }
-    else if (b[i] == 'x')
-      *max_shifts += btor_pow_2_util (len - i - 1);
-  }
 }
 
 char *
-btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_sll_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   int min_shifts, max_shifts, len, found, i, j;
   char cur, *result, *temp;
@@ -1941,35 +1951,37 @@ btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   if (is_valid_const (b))
     result = sll_const (mm, a, b);
   else
-  {
-    len  = (int) strlen (a);
-    temp = btor_x_const_3vl (mm, len);
-    compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
-    result = btor_sll_n_bits_const (mm, temp, min_shifts);
-    for (i = 0; i < len; i++)
     {
-      cur = a[i];
-      if (cur != 'x')
-      {
-        found = 0;
-        for (j = i + 1; j < len; j++)
+      len = (int) strlen (a);
+      temp = btor_x_const_3vl (mm, len);
+      compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
+      result = btor_sll_n_bits_const (mm, temp, min_shifts);
+      for (i = 0; i < len; i++)
         {
-          if (a[j] == cur)
-            found++;
-          else
-            break;
-        }
-        if (found >= max_shifts) result[i] = cur;
-      }
+	  cur = a[i];
+	  if (cur != 'x')
+	    {
+	      found = 0;
+	      for (j = i + 1; j < len; j++)
+		{
+		  if (a[j] == cur)
+		    found++;
+		  else
+		   break;
+		}
+	      if (found >= max_shifts)
+		result[i] = cur;
+	    }
+	}
+      btor_delete_const (mm, temp);
     }
-    btor_delete_const (mm, temp);
-  }
   return result;
 }
 
 char *
-btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_srl_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
+
   int min_shifts, max_shifts, len, found, i, j;
   char *result, *temp, cur;
 
@@ -1985,34 +1997,35 @@ btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   if (is_valid_const (b))
     result = srl_const (mm, a, b);
   else
-  {
-    len  = (int) strlen (a);
-    temp = btor_x_const_3vl (mm, len);
-    compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
-    result = btor_srl_n_bits_const (mm, temp, min_shifts);
-    for (i = len - 1; i >= 0; i--)
     {
-      cur = a[i];
-      if (cur != 'x')
-      {
-        found = 0;
-        for (j = i - 1; j >= 0; j--)
+      len = (int) strlen (a);
+      temp = btor_x_const_3vl (mm, len);
+      compute_min_max_num_shifts (mm, b, &min_shifts, &max_shifts);
+      result = btor_srl_n_bits_const (mm, temp, min_shifts);
+      for (i = len - 1; i >= 0; i--)
         {
-          if (a[j] == cur)
-            found++;
-          else
-            break;
-        }
-        if (found >= max_shifts) result[i] = cur;
-      }
+	  cur = a[i];
+	  if (cur != 'x')
+	    {
+	      found = 0;
+	      for (j = i - 1; j >= 0; j--)
+		{
+		  if (a[j] == cur)
+		    found++;
+		  else
+		   break;
+		}
+	      if (found >= max_shifts)
+		result[i] = cur;
+	    }
+	}
+      btor_delete_const (mm, temp);
     }
-    btor_delete_const (mm, temp);
-  }
   return result;
 }
 
 char *
-btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_mul_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -2024,8 +2037,8 @@ btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   return mul_const (mm, a, b);
 }
 
-static char
-is_unequal_zero_3vl (BtorMemMgr *mm, const char *b)
+static char 
+is_unequal_zero_3vl (BtorMemMgr * mm, const char * b)
 {
   int found_x;
   const char *p;
@@ -2035,19 +2048,20 @@ is_unequal_zero_3vl (BtorMemMgr *mm, const char *b)
 
   found_x = 0;
   for (p = b; *p; p++)
-  {
-    if (*p == '1')
-      return '1';
-    else if (*p == 'x')
-      found_x = 1;
-  }
+    {
+      if (*p == '1')
+	return '1';
+      else if (*p == 'x')
+	found_x = 1;
+    }
 
-  if (found_x) return 'x';
+  if (found_x)
+    return 'x';
   return '0';
 }
 
 char *
-btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_udiv_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   char *quotient, *remainder;
 
@@ -2066,7 +2080,7 @@ btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
 }
 
 char *
-btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_urem_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   int i, len, skip_a, skip_b;
   char *quotient, *remainder;
@@ -2083,36 +2097,36 @@ btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   btor_delete_const (mm, quotient);
 
   /* optimization: b != 0 => a urem b <= a  /\ a urem b <= b,
-   * this optimization is necessary, as the urem circuit
-   * does not propagate the known bits well */
+   * this optimization is necessary, as the urem circuit 
+   * does not propagate the known bits well */ 
   skip_a = 0;
   skip_b = 0;
-  if (is_unequal_zero_3vl (mm, b) == '1')
-  {
-    len = (int) strlen (a);
-    for (i = 0; i < len; i++)
+  if (is_unequal_zero_3vl(mm, b) == '1')
     {
-      if (!skip_a && a[i] == '0')
-        remainder[i] = '0';
-      else if (!skip_b)
-        skip_a = 1;
-      else
-        break;
+      len = (int) strlen (a);
+      for (i = 0; i < len; i++)
+        {
+	  if (!skip_a && a[i] == '0')
+	    remainder[i] = '0';
+	  else if (!skip_b)
+	    skip_a = 1;
+	  else
+	    break;
 
-      if (!skip_b && b[i] == '0')
-        remainder[i] = '0';
-      else if (!skip_a)
-        skip_b = 1;
-      else
-        break;
+	  if (!skip_b && b[i] == '0')
+	    remainder[i] = '0';
+	  else if (!skip_a)
+	    skip_b = 1;
+	  else
+	    break;
+	}
     }
-  }
 
   return remainder;
 }
 
 char *
-btor_concat_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
+btor_concat_const_3vl (BtorMemMgr * mm, const char *a, const char *b)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -2124,17 +2138,8 @@ btor_concat_const_3vl (BtorMemMgr *mm, const char *a, const char *b)
   return concat_const (mm, a, b);
 }
 
-int
-btor_is_const_2vl (BtorMemMgr *mm, const char *c)
-{
-  assert (mm != NULL);
-  assert (c != NULL);
-  (void) mm;
-  return strchr (c, 'x') == NULL;
-}
-
 char *
-btor_slice_const_3vl (BtorMemMgr *mm, const char *a, int upper, int lower)
+btor_slice_const_3vl (BtorMemMgr * mm, const char *a, int upper, int lower)
 {
   assert (mm != NULL);
   assert (a != NULL);
@@ -2148,9 +2153,7 @@ btor_slice_const_3vl (BtorMemMgr *mm, const char *a, int upper, int lower)
 }
 
 char *
-btor_cond_const_3vl (BtorMemMgr *mm,
-                     const char *a,
-                     const char *b,
+btor_cond_const_3vl (BtorMemMgr * mm, const char *a, const char *b,
                      const char *c)
 {
   char *result;
@@ -2169,17 +2172,27 @@ btor_cond_const_3vl (BtorMemMgr *mm,
   else if (a[0] == '0')
     result = btor_copy_const (mm, c);
   else
-  {
-    len = (int) strlen (b);
-    BTOR_NEWN (mm, result, len + 1);
-    for (i = 0; i < len; i++)
     {
-      if (b[i] != 'x' && c[i] != 'x' && b[i] == c[i])
-        result[i] = b[i];
-      else
-        result[i] = 'x';
+      len = (int) strlen (b);
+      BTOR_NEWN (mm, result, len + 1);
+      for (i = 0; i < len; i++)
+        {
+          if (b[i] != 'x' && c[i] != 'x' && b[i] == c[i])
+            result[i] = b[i];
+          else
+            result[i] = 'x';
+        }
+      result[i] = '\0';
     }
-    result[i] = '\0';
-  }
   return result;
+}
+#endif
+
+int
+btor_is_const_2vl (BtorMemMgr *mm, const char *c)
+{
+  assert (mm != NULL);
+  assert (c != NULL);
+  (void) mm;
+  return strchr (c, 'x') == NULL;
 }

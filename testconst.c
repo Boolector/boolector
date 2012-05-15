@@ -1472,10 +1472,11 @@ test_x_const_3vl (void)
   btor_delete_const (g_mm, result);
 }
 
+#if 0
 static void
 test_invert_const_3vl (void)
 {
-  char x_const[5] = {'0', '1', 'x', '0', '\0'};
+  char x_const[5] = { '0', '1', 'x', '0', '\0' };
   btor_invert_const_3vl (g_mm, x_const);
   assert (strcmp (x_const, "10x1") == 0);
 
@@ -1489,6 +1490,7 @@ test_invert_const_3vl (void)
   btor_invert_const_3vl (g_mm, x_const);
   assert (strcmp (x_const, "x1x0") == 0);
 }
+#endif
 
 static void
 check_const_3vl_compatible (const char *c_3vl, const char *c)
@@ -1509,6 +1511,7 @@ check_const_3vl_compatible (const char *c_3vl, const char *c)
   }
 }
 
+#if 0
 static void
 test_invert_const_3vl_exhaustive_range (void)
 {
@@ -1519,28 +1522,29 @@ test_invert_const_3vl_exhaustive_range (void)
   BTOR_INIT_STACK (consts_3vl);
   BTOR_INIT_STACK (consts_concrete);
   for (i = BTOR_TEST_CONST_3VL_LOW; i <= BTOR_TEST_CONST_3VL_HIGH; i++)
-  {
-    assert (BTOR_EMPTY_STACK (consts_3vl));
-    generate_all_3vl_consts (i, &consts_3vl);
-    while (!BTOR_EMPTY_STACK (consts_3vl))
     {
-      const_3vl = BTOR_POP_STACK (consts_3vl);
-      assert (BTOR_EMPTY_STACK (consts_concrete));
-      generate_consts_from_3vl_const (const_3vl, &consts_concrete);
-      btor_invert_const_3vl (g_mm, const_3vl);
-      while (!BTOR_EMPTY_STACK (consts_concrete))
-      {
-        const_concrete = BTOR_POP_STACK (consts_concrete);
-        btor_invert_const (g_mm, const_concrete);
-        check_const_3vl_compatible (const_3vl, const_concrete);
-        btor_freestr (g_mm, const_concrete);
-      }
-      btor_freestr (g_mm, const_3vl);
+      assert (BTOR_EMPTY_STACK (consts_3vl));
+      generate_all_3vl_consts (i, &consts_3vl);
+      while (!BTOR_EMPTY_STACK (consts_3vl))
+        {
+          const_3vl = BTOR_POP_STACK (consts_3vl);
+          assert (BTOR_EMPTY_STACK (consts_concrete));
+          generate_consts_from_3vl_const (const_3vl, &consts_concrete);
+          btor_invert_const_3vl (g_mm, const_3vl);
+          while (!BTOR_EMPTY_STACK (consts_concrete))
+            {
+              const_concrete = BTOR_POP_STACK (consts_concrete);
+              btor_invert_const (g_mm, const_concrete);
+              check_const_3vl_compatible (const_3vl, const_concrete);
+              btor_freestr (g_mm, const_concrete);
+            }
+          btor_freestr (g_mm, const_3vl);
+        }
     }
-  }
   BTOR_RELEASE_STACK (g_mm, consts_3vl);
   BTOR_RELEASE_STACK (g_mm, consts_concrete);
 }
+#endif
 
 static void
 test_not_const_3vl (void)
@@ -1597,13 +1601,13 @@ test_not_const_3vl_exhaustive_range (void)
   BTOR_RELEASE_STACK (g_mm, consts_concrete);
 }
 
+#if 0
 static void
 check_binary_3vl_compatible (const char *result_3vl,
-                             const BtorCharPtrStack *consts_a,
-                             const BtorCharPtrStack *consts_b,
-                             char *(*f) (BtorMemMgr *,
-                                         const char *,
-                                         const char *) )
+                             const BtorCharPtrStack * consts_a,
+                             const BtorCharPtrStack * consts_b,
+                             char *(*f) (BtorMemMgr *, const char *,
+                                         const char *))
 {
   char *a, *b, *result;
   int i, j;
@@ -1616,22 +1620,24 @@ check_binary_3vl_compatible (const char *result_3vl,
   assert (!BTOR_EMPTY_STACK (*consts_b));
 
   for (i = 0; i < BTOR_COUNT_STACK (*consts_a); i++)
-  {
-    a = consts_a->start[i];
-    for (j = 0; j < BTOR_COUNT_STACK (*consts_b); j++)
     {
-      b      = consts_b->start[j];
-      result = f (g_mm, a, b);
-      check_const_3vl_compatible (result_3vl, result);
-      btor_freestr (g_mm, result);
+      a = consts_a->start[i];
+      for (j = 0; j < BTOR_COUNT_STACK (*consts_b); j++)
+        {
+          b = consts_b->start[j];
+          result = f (g_mm, a, b);
+          check_const_3vl_compatible (result_3vl, result);
+          btor_freestr (g_mm, result);
+        }
     }
-  }
 }
 
 static void
-test_binary_const_3vl_exhaustive_range (
-    char *(*f_3vl) (BtorMemMgr *, const char *, const char *),
-    char *(*f) (BtorMemMgr *, const char *, const char *) )
+test_binary_const_3vl_exhaustive_range (char
+                                        *(*f_3vl) (BtorMemMgr *, const char *,
+                                                   const char *),
+                                        char *(*f) (BtorMemMgr *, const char *,
+                                                    const char *))
 {
   BtorCharPtrStack consts_3vl_a, consts_3vl_b, consts_a, consts_b;
   char *const_3vl_a, *const_3vl_b, *result_3vl;
@@ -1646,50 +1652,53 @@ test_binary_const_3vl_exhaustive_range (
   BTOR_INIT_STACK (consts_b);
 
   for (i = BTOR_TEST_CONST_3VL_LOW; i <= BTOR_TEST_CONST_3VL_HIGH; i++)
-  {
-    if ((f_3vl == btor_sll_const_3vl || f_3vl == btor_srl_const_3vl)
-        && (i == 1 || !btor_is_power_of_2_util (i)))
-      continue;
-
-    assert (BTOR_EMPTY_STACK (consts_3vl_a));
-    generate_all_3vl_consts (i, &consts_3vl_a);
-    while (!BTOR_EMPTY_STACK (consts_3vl_a))
     {
-      const_3vl_a = BTOR_POP_STACK (consts_3vl_a);
-      assert (BTOR_EMPTY_STACK (consts_a));
-      generate_consts_from_3vl_const (const_3vl_a, &consts_a);
-      assert (BTOR_EMPTY_STACK (consts_3vl_b));
 
-      if (f_3vl == btor_sll_const_3vl || f_3vl == btor_srl_const_3vl)
-        generate_all_3vl_consts (btor_log_2_util (i), &consts_3vl_b);
-      else
-        generate_all_3vl_consts (i, &consts_3vl_b);
+      if ((f_3vl == btor_sll_const_3vl || f_3vl == btor_srl_const_3vl)
+          && (i == 1 || !btor_is_power_of_2_util (i)))
+        continue;
 
-      while (!BTOR_EMPTY_STACK (consts_3vl_b))
-      {
-        const_3vl_b = BTOR_POP_STACK (consts_3vl_b);
-        result_3vl  = f_3vl (g_mm, const_3vl_a, const_3vl_b);
-        assert (BTOR_EMPTY_STACK (consts_b));
-        generate_consts_from_3vl_const (const_3vl_b, &consts_b);
-        check_binary_3vl_compatible (result_3vl, &consts_a, &consts_b, f);
-        btor_freestr (g_mm, result_3vl);
-        btor_freestr (g_mm, const_3vl_b);
-        while (!BTOR_EMPTY_STACK (consts_b))
-          btor_freestr (g_mm, BTOR_POP_STACK (consts_b));
-      }
-      btor_freestr (g_mm, const_3vl_a);
+      assert (BTOR_EMPTY_STACK (consts_3vl_a));
+      generate_all_3vl_consts (i, &consts_3vl_a);
+      while (!BTOR_EMPTY_STACK (consts_3vl_a))
+        {
+          const_3vl_a = BTOR_POP_STACK (consts_3vl_a);
+          assert (BTOR_EMPTY_STACK (consts_a));
+          generate_consts_from_3vl_const (const_3vl_a, &consts_a);
+          assert (BTOR_EMPTY_STACK (consts_3vl_b));
 
-      while (!BTOR_EMPTY_STACK (consts_a))
-        btor_freestr (g_mm, BTOR_POP_STACK (consts_a));
+          if (f_3vl == btor_sll_const_3vl || f_3vl == btor_srl_const_3vl)
+            generate_all_3vl_consts (btor_log_2_util (i), &consts_3vl_b);
+          else
+            generate_all_3vl_consts (i, &consts_3vl_b);
+
+          while (!BTOR_EMPTY_STACK (consts_3vl_b))
+            {
+              const_3vl_b = BTOR_POP_STACK (consts_3vl_b);
+              result_3vl = f_3vl (g_mm, const_3vl_a, const_3vl_b);
+              assert (BTOR_EMPTY_STACK (consts_b));
+              generate_consts_from_3vl_const (const_3vl_b, &consts_b);
+              check_binary_3vl_compatible (result_3vl, &consts_a, &consts_b, f);
+              btor_freestr (g_mm, result_3vl);
+              btor_freestr (g_mm, const_3vl_b);
+              while (!BTOR_EMPTY_STACK (consts_b))
+                btor_freestr (g_mm, BTOR_POP_STACK (consts_b));
+            }
+          btor_freestr (g_mm, const_3vl_a);
+
+          while (!BTOR_EMPTY_STACK (consts_a))
+            btor_freestr (g_mm, BTOR_POP_STACK (consts_a));
+        }
     }
-  }
 
   BTOR_RELEASE_STACK (g_mm, consts_3vl_a);
   BTOR_RELEASE_STACK (g_mm, consts_3vl_b);
   BTOR_RELEASE_STACK (g_mm, consts_a);
   BTOR_RELEASE_STACK (g_mm, consts_b);
 }
+#endif
 
+#if 0
 static void
 test_and_const_3vl (void)
 {
@@ -1801,6 +1810,7 @@ test_ult_const_3vl (void)
   assert (strcmp (result, "0") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_ult_const_3vl (g_mm, "00", "1x");
   assert (strcmp (result, "1") == 0);
   btor_delete_const (g_mm, result);
@@ -1832,6 +1842,7 @@ test_ult_const_3vl (void)
   result = btor_ult_const_3vl (g_mm, "x1", "1x");
   assert (strcmp (result, "x") == 0);
   btor_delete_const (g_mm, result);
+
 
   result = btor_ult_const_3vl (g_mm, "00", "x0");
   assert (strcmp (result, "x") == 0);
@@ -1865,6 +1876,7 @@ test_ult_const_3vl (void)
   assert (strcmp (result, "x") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_ult_const_3vl (g_mm, "00", "x1");
   assert (strcmp (result, "1") == 0);
   btor_delete_const (g_mm, result);
@@ -1896,6 +1908,7 @@ test_ult_const_3vl (void)
   result = btor_ult_const_3vl (g_mm, "x1", "x1");
   assert (strcmp (result, "x") == 0);
   btor_delete_const (g_mm, result);
+
 
   result = btor_ult_const_3vl (g_mm, "0x1", "x10");
   assert (strcmp (result, "x") == 0);
@@ -1933,6 +1946,8 @@ test_ult_const_3vl (void)
   assert (strcmp (result, "1") == 0);
   btor_delete_const (g_mm, result);
 
+
+
   result = btor_ult_const_3vl (g_mm, "1x0", "x01");
   assert (strcmp (result, "x") == 0);
   btor_delete_const (g_mm, result);
@@ -1949,6 +1964,7 @@ test_ult_const_3vl (void)
   assert (strcmp (result, "x") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_ult_const_3vl (g_mm, "1x1", "x00");
   assert (strcmp (result, "0") == 0);
   btor_delete_const (g_mm, result);
@@ -1964,6 +1980,7 @@ test_ult_const_3vl (void)
   result = btor_ult_const_3vl (g_mm, "1x1x", "x00x");
   assert (strcmp (result, "0") == 0);
   btor_delete_const (g_mm, result);
+
 }
 
 static void
@@ -2007,6 +2024,7 @@ test_add_const_3vl (void)
   assert (strcmp (result, "xx") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_add_const_3vl (g_mm, "00", "1x");
   assert (strcmp (result, "1x") == 0);
   btor_delete_const (g_mm, result);
@@ -2039,6 +2057,7 @@ test_add_const_3vl (void)
   assert (strcmp (result, "xx") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_add_const_3vl (g_mm, "00", "x0");
   assert (strcmp (result, "x0") == 0);
   btor_delete_const (g_mm, result);
@@ -2070,6 +2089,7 @@ test_add_const_3vl (void)
   result = btor_add_const_3vl (g_mm, "x1", "x0");
   assert (strcmp (result, "x1") == 0);
   btor_delete_const (g_mm, result);
+
 
   result = btor_add_const_3vl (g_mm, "00", "x1");
   assert (strcmp (result, "x1") == 0);
@@ -2129,6 +2149,7 @@ test_sll_const_3vl (void)
   assert (strcmp (result, "xx000000") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_sll_const_3vl (g_mm, "10101001", "0x0");
   assert (strcmp (result, "xxxxxxxx") == 0);
   btor_delete_const (g_mm, result);
@@ -2144,6 +2165,7 @@ test_sll_const_3vl (void)
   result = btor_sll_const_3vl (g_mm, "10101001", "1x1");
   assert (strcmp (result, "xxx00000") == 0);
   btor_delete_const (g_mm, result);
+
 
   result = btor_sll_const_3vl (g_mm, "10101001", "1xx");
   assert (strcmp (result, "xxxx0000") == 0);
@@ -2161,6 +2183,7 @@ test_sll_const_3vl (void)
   assert (strcmp (result, "xxxxxxx0") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_sll_const_3vl (g_mm, "xxxxxxxx", "111");
   assert (strcmp (result, "x0000000") == 0);
   btor_delete_const (g_mm, result);
@@ -2177,6 +2200,7 @@ test_sll_const_3vl (void)
   assert (strcmp (result, "10000000") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_sll_const_3vl (g_mm, "111001xx", "00x");
   assert (strcmp (result, "11x0xxxx") == 0);
   btor_delete_const (g_mm, result);
@@ -2192,6 +2216,7 @@ test_sll_const_3vl (void)
   result = btor_sll_const_3vl (g_mm, "0xxxxxx1", "1xx");
   assert (strcmp (result, "xxxx0000") == 0);
   btor_delete_const (g_mm, result);
+
 }
 
 static void
@@ -2219,6 +2244,7 @@ test_srl_const_3vl (void)
   assert (strcmp (result, "000000xx") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_srl_const_3vl (g_mm, "10101001", "0x0");
   assert (strcmp (result, "xxxxxxxx") == 0);
   btor_delete_const (g_mm, result);
@@ -2234,6 +2260,7 @@ test_srl_const_3vl (void)
   result = btor_srl_const_3vl (g_mm, "10101001", "1x1");
   assert (strcmp (result, "00000xxx") == 0);
   btor_delete_const (g_mm, result);
+
 
   result = btor_srl_const_3vl (g_mm, "10101001", "1xx");
   assert (strcmp (result, "0000xxxx") == 0);
@@ -2251,6 +2278,7 @@ test_srl_const_3vl (void)
   assert (strcmp (result, "0xxxxxxx") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_srl_const_3vl (g_mm, "xxxxxxxx", "111");
   assert (strcmp (result, "0000000x") == 0);
   btor_delete_const (g_mm, result);
@@ -2267,6 +2295,7 @@ test_srl_const_3vl (void)
   assert (strcmp (result, "0000000x") == 0);
   btor_delete_const (g_mm, result);
 
+
   result = btor_srl_const_3vl (g_mm, "111001xx", "00x");
   assert (strcmp (result, "x11x0xxx") == 0);
   btor_delete_const (g_mm, result);
@@ -2282,6 +2311,7 @@ test_srl_const_3vl (void)
   result = btor_srl_const_3vl (g_mm, "0xxxxxx1", "1xx");
   assert (strcmp (result, "0000xxxx") == 0);
   btor_delete_const (g_mm, result);
+
 }
 
 static void
@@ -2339,10 +2369,12 @@ test_udiv_const_3vl (void)
   btor_delete_const (g_mm, result);
 }
 
+
 static void
 test_udiv_const_3vl_exhaustive_range (void)
 {
-  test_binary_const_3vl_exhaustive_range (btor_udiv_const_3vl, btor_udiv_const);
+  test_binary_const_3vl_exhaustive_range (btor_udiv_const_3vl,
+                                          btor_udiv_const);
 }
 
 static void
@@ -2360,7 +2392,8 @@ test_urem_const_3vl (void)
 static void
 test_urem_const_3vl_exhaustive_range (void)
 {
-  test_binary_const_3vl_exhaustive_range (btor_urem_const_3vl, btor_urem_const);
+  test_binary_const_3vl_exhaustive_range (btor_urem_const_3vl,
+                                          btor_urem_const);
 }
 
 static void
@@ -2393,9 +2426,9 @@ test_slice_const_3vl (void)
 
 static void
 check_cond_const_3vl_compatible (const char *result_3vl,
-                                 const BtorCharPtrStack *consts_a,
-                                 const BtorCharPtrStack *consts_b,
-                                 const BtorCharPtrStack *consts_c)
+                                 const BtorCharPtrStack * consts_a,
+                                 const BtorCharPtrStack * consts_b,
+                                 const BtorCharPtrStack * consts_c)
 {
   char *a, *b, *c, *result;
   int i, j, k;
@@ -2409,24 +2442,25 @@ check_cond_const_3vl_compatible (const char *result_3vl,
   assert (!BTOR_EMPTY_STACK (*consts_c));
 
   for (i = 0; i < BTOR_COUNT_STACK (*consts_a); i++)
-  {
-    a = consts_a->start[i];
-    assert (*a == '0' || *a == '1');
-    for (j = 0; j < BTOR_COUNT_STACK (*consts_b); j++)
     {
-      b = consts_b->start[j];
-      for (k = 0; k < BTOR_COUNT_STACK (*consts_c); k++)
-      {
-        c = consts_c->start[k];
-        if (*a == '1')
-          result = b;
-        else
-          result = c;
-        check_const_3vl_compatible (result_3vl, result);
-      }
+      a = consts_a->start[i];
+      assert (*a == '0' || *a == '1');
+      for (j = 0; j < BTOR_COUNT_STACK (*consts_b); j++)
+        {
+          b = consts_b->start[j];
+          for (k = 0; k < BTOR_COUNT_STACK (*consts_c); k++)
+            {
+              c = consts_c->start[k];
+              if (*a == '1')
+                result = b;
+              else
+                result = c;
+              check_const_3vl_compatible (result_3vl, result);
+            }
+        }
     }
-  }
 }
+
 
 static void
 test_cond_const_3vl (void)
@@ -2480,48 +2514,50 @@ test_cond_const_3vl_exhaustive_range ()
   BTOR_INIT_STACK (consts_c);
 
   for (i = BTOR_TEST_CONST_3VL_LOW; i <= BTOR_TEST_CONST_3VL_HIGH; i++)
-  {
-    assert (BTOR_EMPTY_STACK (consts_3vl_a));
-    generate_all_3vl_consts (1, &consts_3vl_a);
-    while (!BTOR_EMPTY_STACK (consts_3vl_a))
     {
-      const_3vl_a = BTOR_POP_STACK (consts_3vl_a);
-      assert (BTOR_EMPTY_STACK (consts_a));
-      generate_consts_from_3vl_const (const_3vl_a, &consts_a);
-      assert (BTOR_EMPTY_STACK (consts_3vl_b));
-      generate_all_3vl_consts (i, &consts_3vl_b);
-      while (!BTOR_EMPTY_STACK (consts_3vl_b))
-      {
-        const_3vl_b = BTOR_POP_STACK (consts_3vl_b);
-        assert (BTOR_EMPTY_STACK (consts_b));
-        generate_consts_from_3vl_const (const_3vl_b, &consts_b);
-        assert (BTOR_EMPTY_STACK (consts_3vl_c));
-        generate_all_3vl_consts (i, &consts_3vl_c);
-        while (!BTOR_EMPTY_STACK (consts_3vl_c))
+
+      assert (BTOR_EMPTY_STACK (consts_3vl_a));
+      generate_all_3vl_consts (1, &consts_3vl_a);
+      while (!BTOR_EMPTY_STACK (consts_3vl_a))
         {
-          const_3vl_c = BTOR_POP_STACK (consts_3vl_c);
-          result_3vl =
-              btor_cond_const_3vl (g_mm, const_3vl_a, const_3vl_b, const_3vl_c);
-          assert (BTOR_EMPTY_STACK (consts_c));
-          generate_consts_from_3vl_const (const_3vl_c, &consts_c);
-          check_cond_const_3vl_compatible (
-              result_3vl, &consts_a, &consts_b, &consts_c);
-          btor_freestr (g_mm, result_3vl);
-          btor_freestr (g_mm, const_3vl_c);
-          while (!BTOR_EMPTY_STACK (consts_c))
-            btor_freestr (g_mm, BTOR_POP_STACK (consts_c));
+          const_3vl_a = BTOR_POP_STACK (consts_3vl_a);
+          assert (BTOR_EMPTY_STACK (consts_a));
+          generate_consts_from_3vl_const (const_3vl_a, &consts_a);
+          assert (BTOR_EMPTY_STACK (consts_3vl_b));
+          generate_all_3vl_consts (i, &consts_3vl_b);
+          while (!BTOR_EMPTY_STACK (consts_3vl_b))
+            {
+              const_3vl_b = BTOR_POP_STACK (consts_3vl_b);
+              assert (BTOR_EMPTY_STACK (consts_b));
+              generate_consts_from_3vl_const (const_3vl_b, &consts_b);
+              assert (BTOR_EMPTY_STACK (consts_3vl_c));
+              generate_all_3vl_consts (i, &consts_3vl_c);
+              while (!BTOR_EMPTY_STACK (consts_3vl_c))
+                {
+                  const_3vl_c = BTOR_POP_STACK (consts_3vl_c);
+                  result_3vl =
+                    btor_cond_const_3vl (g_mm, const_3vl_a, const_3vl_b,
+                                         const_3vl_c);
+                  assert (BTOR_EMPTY_STACK (consts_c));
+                  generate_consts_from_3vl_const (const_3vl_c, &consts_c);
+                  check_cond_const_3vl_compatible (result_3vl, &consts_a,
+                                                   &consts_b, &consts_c);
+                  btor_freestr (g_mm, result_3vl);
+                  btor_freestr (g_mm, const_3vl_c);
+                  while (!BTOR_EMPTY_STACK (consts_c))
+                    btor_freestr (g_mm, BTOR_POP_STACK (consts_c));
+                }
+              btor_freestr (g_mm, const_3vl_b);
+
+              while (!BTOR_EMPTY_STACK (consts_b))
+                btor_freestr (g_mm, BTOR_POP_STACK (consts_b));
+            }
+
+          btor_freestr (g_mm, const_3vl_a);
+          while (!BTOR_EMPTY_STACK (consts_a))
+            btor_freestr (g_mm, BTOR_POP_STACK (consts_a));
         }
-        btor_freestr (g_mm, const_3vl_b);
-
-        while (!BTOR_EMPTY_STACK (consts_b))
-          btor_freestr (g_mm, BTOR_POP_STACK (consts_b));
-      }
-
-      btor_freestr (g_mm, const_3vl_a);
-      while (!BTOR_EMPTY_STACK (consts_a))
-        btor_freestr (g_mm, BTOR_POP_STACK (consts_a));
     }
-  }
 
   BTOR_RELEASE_STACK (g_mm, consts_3vl_a);
   BTOR_RELEASE_STACK (g_mm, consts_3vl_b);
@@ -2530,6 +2566,7 @@ test_cond_const_3vl_exhaustive_range ()
   BTOR_RELEASE_STACK (g_mm, consts_b);
   BTOR_RELEASE_STACK (g_mm, consts_c);
 }
+#endif
 
 static void
 test_get_num_leading_zeros_const (void)
@@ -2594,38 +2631,13 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (decimal_to_const);
   BTOR_RUN_TEST_CHECK_LOG (slice_const);
   BTOR_RUN_TEST_CHECK_LOG (inverse_const);
-  BTOR_RUN_TEST (generate_concrete_consts_from_3vl_const);
   BTOR_RUN_TEST (generate_all_3vl_consts);
   BTOR_RUN_TEST (x_const_3vl);
-  BTOR_RUN_TEST (invert_const_3vl);
-  BTOR_RUN_TEST (invert_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (not_const_3vl);
   BTOR_RUN_TEST (not_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (and_const_3vl);
-  BTOR_RUN_TEST (and_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (eq_const_3vl);
-  BTOR_RUN_TEST (eq_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (ult_const_3vl);
-  BTOR_RUN_TEST (ult_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (add_const_3vl);
-  BTOR_RUN_TEST (add_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (sll_const_3vl);
-  BTOR_RUN_TEST (sll_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (srl_const_3vl);
-  BTOR_RUN_TEST (srl_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (mul_const_3vl);
-  BTOR_RUN_TEST (mul_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (concat_const_3vl);
-  BTOR_RUN_TEST (concat_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (udiv_const_3vl);
-  BTOR_RUN_TEST (udiv_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (urem_const_3vl);
-  BTOR_RUN_TEST (urem_const_3vl_exhaustive_range);
-  BTOR_RUN_TEST (slice_const_3vl);
-  BTOR_RUN_TEST (cond_const_3vl);
-  BTOR_RUN_TEST (cond_const_3vl_exhaustive_range);
   BTOR_RUN_TEST (get_num_leading_zeros_const);
   BTOR_RUN_TEST (get_num_leading_ones_const);
+  BTOR_RUN_TEST (generate_concrete_consts_from_3vl_const);
 }
 
 void

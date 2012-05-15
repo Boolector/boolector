@@ -1,20 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #ifndef BTORCONST_H_INCLUDED
@@ -22,8 +14,6 @@
 
 #include "btormem.h"
 
-/*------------------------------------------------------------------------*/
-/* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
 enum BtorSpecialConst
@@ -116,42 +106,37 @@ char *btor_inverse_const (BtorMemMgr *mm, const char *a);
 /*------------------------------------------------------------------------*/
 /* Three valued logic.
  */
-
 char *btor_x_const_3vl (BtorMemMgr *mm, int len);
 
-void btor_invert_const_3vl (BtorMemMgr *mm, char *a);
+// void btor_invert_const_3vl (BtorMemMgr * mm, char *a);
 
 char *btor_not_const_3vl (BtorMemMgr *mm, const char *a);
 
-char *btor_and_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+// char *btor_and_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
 char *btor_eq_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
 
-char *btor_ult_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+#if 0
+char *btor_ult_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_add_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_add_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_mul_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_mul_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_sll_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_sll_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_srl_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_srl_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_udiv_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_udiv_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_urem_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_urem_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_concat_const_3vl (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_concat_const_3vl (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_slice_const_3vl (BtorMemMgr *mm,
-                            const char *a,
-                            int upper,
-                            int lower);
+char *btor_slice_const_3vl (BtorMemMgr * mm, const char * a, int upper, int lower);
 
-char *btor_cond_const_3vl (BtorMemMgr *mm,
-                           const char *a,
-                           const char *b,
-                           const char *c);
+char *btor_cond_const_3vl (BtorMemMgr * mm, const char * a, const char * b, const char * c);
+#endif
 
 int btor_is_const_2vl (BtorMemMgr *mm, const char *c);
 
