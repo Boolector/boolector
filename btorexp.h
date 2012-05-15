@@ -19,18 +19,6 @@
 #include "btorstack.h"
 
 /*------------------------------------------------------------------------*/
-/* PRIVATE INTERFACE                                                      */
-/*------------------------------------------------------------------------*/
-
-/*------------------------------------------------------------------------*/
-/* Optimization switches                                                  */
-/*------------------------------------------------------------------------*/
-
-#define BTOR_ENABLE_PROBING_OPT 0 /* not really an optimization keep it 0 */
-
-/*------------------------------------------------------------------------*/
-/* Declarations                                                           */
-/*------------------------------------------------------------------------*/
 
 typedef struct BtorExp BtorExp;
 
@@ -75,11 +63,10 @@ enum BtorExpKind
   BTOR_BCOND_EXP     = 18, /* conditional on bit vectors */
   BTOR_ACOND_EXP     = 19, /* conditional on arrays */
   BTOR_PROXY_EXP     = 20, /* simplified expression without children */
+  BTOR_NUM_OPS_EXP   = 21
 };
 
 typedef enum BtorExpKind BtorExpKind;
-
-#define BTOR_NUM_OPS_EXP 21
 
 typedef struct BtorExpPair BtorExpPair;
 
@@ -308,12 +295,8 @@ struct Btor
                                                write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
-    ConstraintStats constraints;    /* constraint statistics */
+    ConstraintStats constraints, oldconstraints;
     long long expressions;
-    struct
-    {
-      ConstraintStats constraints;
-    } old;
   } stats;
 };
 
@@ -408,8 +391,6 @@ struct Btor
 #define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
 
 /*------------------------------------------------------------------------*/
-/* Btor                                                                   */
-/*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
@@ -445,9 +426,6 @@ const char *btor_version (Btor *btor);
 void btor_print_stats_btor (Btor *btor);
 
 /*------------------------------------------------------------------------*/
-/* BtorExp                                                                */
-/*------------------------------------------------------------------------*/
-
 /* Implicit precondition of all functions taking expressions as inputs:
  * The length 'len' of all input expressions have to be greater than zero.
  */
@@ -880,8 +858,6 @@ void btor_array_assignment_exp (
 void btor_free_bv_assignment_exp (Btor *btor, char *assignment);
 
 /*------------------------------------------------------------------------*/
-/* Low-level BtorExp                                                      */
-/*------------------------------------------------------------------------*/
 
 BtorExp *btor_slice_exp_node (Btor *btor, BtorExp *exp, int upper, int lower);
 
@@ -918,8 +894,6 @@ BtorExp *btor_cond_exp_node (Btor *btor,
                              BtorExp *e_else);
 
 /*------------------------------------------------------------------------*/
-/* Misc                                                                   */
-/*------------------------------------------------------------------------*/
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string
  * back annotation to the hash table, if the hash table is a non zero ptr.
@@ -930,40 +904,30 @@ BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
                                 BtorExp *exp,
                                 BtorPtrHashTable *table);
 
-/* Marks all reachable expressions with new mark. */
-void btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark);
-
-/* Symbolically applies next function for model checking */
-BtorExp *btor_next_exp_bmc (Btor *btor,
-                            BtorPtrHashTable *reg_table,
-                            BtorExp *root,
-                            int k,
-                            BtorPtrHashTable *input_table);
+/* Compares two expression pairs by ID */
+int btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1);
 
 /* Hashes expression by ID */
 unsigned int btor_hash_exp_by_id (BtorExp *exp);
-
-/* Compares two expression pairs by ID */
-int btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1);
 
 /* Finds most simplified expression and shortens path to it */
 BtorExp *btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp);
 
 /*------------------------------------------------------------------------*/
-/* Debugging                                                              */
-/*------------------------------------------------------------------------*/
-
 #ifndef NDEBUG
+/*------------------------------------------------------------------------*/
 
 int btor_precond_slice_exp_dbg (const Btor *btor,
                                 const BtorExp *exp,
                                 int upper,
                                 int lower);
 
-int btor_precond_ext_exp_dbg (const Btor *btor, const BtorExp *exp, int len);
-
 int btor_precond_regular_unary_bv_exp_dbg (const Btor *btor,
                                            const BtorExp *exp);
+
+int btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
+                                            const BtorExp *e0,
+                                            const BtorExp *e1);
 
 int btor_precond_eq_exp_dbg (const Btor *btor,
                              const BtorExp *e0,
@@ -976,10 +940,6 @@ int btor_precond_shift_exp_dbg (const Btor *btor,
 int btor_precond_concat_exp_dbg (const Btor *btor,
                                  const BtorExp *e0,
                                  const BtorExp *e1);
-
-int btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
-                                            const BtorExp *e0,
-                                            const BtorExp *e1);
 
 int btor_precond_read_exp_dbg (const Btor *btor,
                                const BtorExp *e_array,
@@ -995,6 +955,8 @@ int btor_precond_cond_exp_dbg (const Btor *btor,
                                const BtorExp *e_if,
                                const BtorExp *e_else);
 
+/*------------------------------------------------------------------------*/
 #endif
+/*------------------------------------------------------------------------*/
 
 #endif
