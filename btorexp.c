@@ -5161,6 +5161,7 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
   btor_release_exp (btor, read2);
 }
 
+// #define BTOR_NO_3VL
 #ifndef BTOR_NO_3VL
 
 static void

@@ -143,6 +143,7 @@ is_xnor_exp (Btor *btor, BtorExp *exp)
   return is_xor_exp (btor, BTOR_INVERT_EXP (exp));
 }
 
+//#define BTOR_NO_3VL
 #ifndef BTOR_NO_3VL
 
 static char *
