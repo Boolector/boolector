@@ -28,22 +28,37 @@ struct BtorAIG
   struct BtorAIG *children[2];
   struct BtorAIG *next;
   int cnf_id;
-  unsigned int mark : 2;
-  unsigned int local : 30;
+  unsigned mark;
+  unsigned local;
 };
 
 typedef struct BtorAIG BtorAIG;
 
+typedef struct BtorAIGMgr BtorAIGMgr;
+
+BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
+
+/*------------------------------------------------------------------------*/
+
 #define BTOR_AIG_FALSE ((BtorAIG *) 0ul)
+
 #define BTOR_AIG_TRUE ((BtorAIG *) 1ul)
+
 #define BTOR_IS_CONST_AIG(aig) \
   (((aig) == BTOR_AIG_TRUE) || ((aig) == BTOR_AIG_FALSE))
+
 #define BTOR_INVERT_AIG(aig) ((BtorAIG *) (1ul ^ (unsigned long int) (aig)))
+
 #define BTOR_IS_INVERTED_AIG(aig) (1ul & (unsigned long int) (aig))
+
 #define BTOR_REAL_ADDR_AIG(aig) ((BtorAIG *) (~1ul & (unsigned long int) (aig)))
-#define BTOR_IS_VAR_AIG(aig) ((aig)->children[0] == NULL)
-#define BTOR_IS_AND_AIG(aig) ((aig)->children[0] != NULL)
+
+#define BTOR_IS_VAR_AIG(aig) (!(aig)->children[0])
+
+#define BTOR_IS_AND_AIG(aig) ((aig)->children[0])
+
 #define BTOR_LEFT_CHILD_AIG(aig) ((aig)->children[0])
+
 #define BTOR_RIGHT_CHILD_AIG(aig) ((aig)->children[1])
 
 #define BTOR_GET_CNF_ID_AIG(aig)                                             \
@@ -54,9 +69,7 @@ typedef struct BtorAIG BtorAIG;
                                          ? -BTOR_REAL_ADDR_AIG (aig)->cnf_id \
                                          : (aig)->cnf_id)))
 
-typedef struct BtorAIGMgr BtorAIGMgr;
-
-BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
+/*------------------------------------------------------------------------*/
 
 /* Creates new AIG manager. An AIG manager is used by nearly all functions
  * of the AIG layer.
@@ -86,9 +99,6 @@ BtorAIG *btor_or_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
 /* Logical EQUIVALENCE. */
 BtorAIG *btor_eq_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
-
-/* Logical XOR. */
-BtorAIG *btor_xor_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right);
 
 /* If then Else. */
 BtorAIG *btor_cond_aig (BtorAIGMgr *amgr,
@@ -141,9 +151,6 @@ void btor_add_toplevel_aig_to_sat (BtorAIGMgr *, BtorAIG *);
  * has a CNF id.
  */
 void btor_aig_to_sat_tseitin (BtorAIGMgr *amgr, BtorAIG *aig);
-
-/* Marks all reachable AIGs with new mark. */
-void btor_mark_aig (BtorAIGMgr *amgr, BtorAIG *aig, int new_mark);
 
 /* Solves SAT instance with root AIG aig. */
 int btor_sat_aig (BtorAIGMgr *amgr, BtorAIG *aig);

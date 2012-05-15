@@ -134,12 +134,6 @@ test_eq_aig (void)
 }
 
 static void
-test_xor_aig (void)
-{
-  binary_commutative_aig_test (btor_xor_aig, "log/xor_aig.log");
-}
-
-static void
 test_cond_aig (void)
 {
   FILE *fout       = fopen ("log/cond_aig.log", "w");
@@ -196,7 +190,6 @@ run_aig_tests (int argc, char **argv)
   BTOR_RUN_TEST_CHECK_LOG (and_aig);
   BTOR_RUN_TEST_CHECK_LOG (or_aig);
   BTOR_RUN_TEST_CHECK_LOG (eq_aig);
-  BTOR_RUN_TEST_CHECK_LOG (xor_aig);
   BTOR_RUN_TEST_CHECK_LOG (cond_aig);
   BTOR_RUN_TEST (aig_to_sat);
 }
