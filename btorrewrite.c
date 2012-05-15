@@ -143,20 +143,6 @@ is_xnor_exp (Btor *btor, BtorExp *exp)
   return is_xor_exp (btor, BTOR_INVERT_EXP (exp));
 }
 
-#if 0
-static BtorExp *
-slice_exp_node_3vl (Btor * btor, BtorExp * exp, int upper, int lower)
-{
-  BtorExp *result;
-
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
-  assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
-  result = btor_slice_exp_node (btor, exp, upper, lower);
-
-  return result;
-}
-#endif
-
 BtorExp *
 btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
@@ -1206,21 +1192,6 @@ normalize_muls_exp (
       btor, e0, e1, e0_norm, e1_norm, btor_rewrite_mul_exp, BTOR_MUL_EXP);
 }
 
-#if 0
-static BtorExp *
-and_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  result = btor_and_exp_node (btor, e0, e1);
-
-  return result;
-}
-#endif
-
 static int
 find_and_contradiction_exp (
     Btor *btor, BtorExp *exp, BtorExp *e0, BtorExp *e1, int *calls)
@@ -1604,23 +1575,6 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
 
   return result;
 }
-
-#if 0
-static BtorExp *
-eq_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_eq_exp_dbg (btor, e0, e1));
-
-  result = btor_eq_exp_node (btor, e0, e1);
-
-  return result;
-
-}
-#endif
 
 /* This function tries to rewrite a * b + a * c into a * (b + c)
  * it returns NULL when it has not succeeded */
@@ -2174,21 +2128,6 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-#if 0
-static BtorExp *
-add_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  result = btor_add_exp_node (btor, e0, e1);
-
-  return result;
-}
-#endif
-
 BtorExp *
 btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
@@ -2314,21 +2253,6 @@ btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   return result;
 }
-
-#if 0
-static BtorExp *
-mul_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  result = btor_mul_exp_node (btor, e0, e1);
-
-  return result;
-}
-#endif
 
 BtorExp *
 btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
@@ -2481,21 +2405,6 @@ btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-#if 0
-static BtorExp *
-ult_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  result = btor_ult_exp_node (btor, e0, e1);
-
-  return result;
-}
-#endif
-
 BtorExp *
 btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
@@ -2620,21 +2529,6 @@ btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-#if 0
-static BtorExp *
-udiv_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  result = btor_udiv_exp_node (btor, e0, e1);
-
-  return result;
-}
-#endif
-
 BtorExp *
 btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
@@ -2700,21 +2594,6 @@ btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   return result;
 }
-
-#if 0
-static BtorExp *
-urem_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
-  result = btor_urem_exp_node (btor, e0, e1);
-
-  return result;
-}
-#endif
 
 BtorExp *
 btor_rewrite_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
@@ -3003,22 +2882,6 @@ btor_rewrite_write_exp (Btor *btor,
 
   return result;
 }
-
-#if 0
-static BtorExp *
-cond_exp_node_3vl (Btor * btor, BtorExp * e0, BtorExp * e1, BtorExp * e2)
-{
-  BtorExp *result;
-
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  e2 = btor_pointer_chase_simplified_exp (btor, e2);
-  assert (btor_precond_cond_exp_dbg (btor, e0, e1, e2));
-  result = btor_cond_exp_node (btor, e0, e1, e2);
-
-  return result;
-}
-#endif
 
 BtorExp *
 btor_rewrite_cond_exp (Btor *btor,
