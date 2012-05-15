@@ -1,22 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010  Robert Daniel Brummayer, JKU.
- *  Copyright (C) 2010-2011, Armin Biere, JKU.
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #ifndef BTOR_HASH_H_INCLUDED
@@ -26,6 +16,8 @@
 #include "btormem.h"
 
 #include <assert.h>
+
+/*------------------------------------------------------------------------*/
 
 typedef struct BtorPtrHashTable BtorPtrHashTable;
 typedef struct BtorPtrHashBucket BtorPtrHashBucket;
@@ -73,6 +65,8 @@ struct BtorPtrHashTable
   BtorPtrHashBucket *last;  /* chronologically */
 };
 
+/*------------------------------------------------------------------------*/
+
 BtorPtrHashTable *btor_new_ptr_hash_table (BtorMemMgr *,
                                            BtorHashPtr,
                                            BtorCmpPtr);
@@ -81,8 +75,7 @@ void btor_delete_ptr_hash_table (BtorPtrHashTable *);
 
 BtorPtrHashBucket *btor_find_in_ptr_hash_table (BtorPtrHashTable *, void *);
 
-BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *,
-                                                  void *key);
+BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *, void *);
 
 /* Remove from hash table the bucke with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
