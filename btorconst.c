@@ -1,20 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "btorconst.h"
@@ -26,16 +18,27 @@
 #include <limits.h>
 #include <string.h>
 
-#define BTOR_NOT_CONST_3VL(a) ((a) == 'x' ? 'x' : (a) ^ 1)
-#define BTOR_AND_CONST_3VL(a, b) \
-  (((a) == '0' || (b) == '0')    \
-       ? '0'                     \
-       : (((a) == 'x' || (b) == 'x') ? 'x' : (a) & (b)))
-#define BTOR_OR_CONST_3VL(a, b) \
-  (((a) == '1' || (b) == '1')   \
-       ? '1'                    \
-       : (((a) == 'x' || (b) == 'x') ? 'x' : (a) | (b)))
-#define BTOR_XOR_CONST_3VL(a, b) (((a) == 'x' || (b) == 'x') ? 'x' : (a) ^ (b))
+/*------------------------------------------------------------------------*/
+
+static char *btor_add_unbounded_const (BtorMemMgr *,
+                                       const char *,
+                                       const char *);
+
+static char *btor_mult_unbounded_const (BtorMemMgr *,
+                                        const char *,
+                                        const char *);
+
+#if 0
+static char *
+btor_sub_unbounded_const (BtorMemMgr *, const char *, const char *);
+#endif
+
+static char *btor_udiv_unbounded_const (BtorMemMgr *,
+                                        const char *,
+                                        const char *,
+                                        char **rest_ptr);
+
+/*------------------------------------------------------------------------*/
 
 static const char *digit2const_table[10] = {
     "",
@@ -50,10 +53,26 @@ static const char *digit2const_table[10] = {
     "1001",
 };
 
-#ifndef NDEBUG
+/*------------------------------------------------------------------------*/
 
-static int
-is_valid_const (const char *c)
+#define BTOR_NOT_CONST_3VL(a) ((a) == 'x' ? 'x' : (a) ^ 1)
+
+#define BTOR_AND_CONST_3VL(a, b) #endif
+(((a) == '0' || (b) == '0') ? '0'
+                            : (((a) == 'x' || (b) == 'x') ? 'x' : (a) & (b)))
+
+#define BTOR_OR_CONST_3VL(a, b) \
+  (((a) == '1' || (b) == '1')   \
+       ? '1'                    \
+       : (((a) == 'x' || (b) == 'x') ? 'x' : (a) | (b)))
+
+#define BTOR_XOR_CONST_3VL(a, b) (((a) == 'x' || (b) == 'x') ? 'x' : (a) ^ (b))
+
+/*------------------------------------------------------------------------*/
+#ifndef NDEBUG
+    /*------------------------------------------------------------------------*/
+
+    static int is_valid_const (const char *c)
 {
   const char *p;
   char ch;
@@ -78,7 +97,9 @@ is_valid_const_3vl (const char *c)
   return 1;
 }
 
+/*------------------------------------------------------------------------*/
 #endif
+/*------------------------------------------------------------------------*/
 
 static const char *
 digit2const (char ch)
@@ -587,7 +608,7 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
   return slice_const (mm, a, upper, lower);
 }
 
-char *
+static char *
 btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
 {
   char *res, *r, c, x, y, s, *tmp;
@@ -748,8 +769,9 @@ btor_cmp_const (const char *a, const char *b)
   return strcmp (p, q);
 }
 
-char *
-btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
+#if 0
+static char *
+btor_sub_unbounded_const (BtorMemMgr * mem, const char *a, const char *b)
 {
   char *res, *tmp, *r, c, x, y, s;
   int alen, blen, rlen;
@@ -764,7 +786,8 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
 
   a = strip_zeroes (a);
   b = strip_zeroes (b);
-  if (!*b) return btor_strdup (mem, a);
+  if (!*b)
+    return btor_strdup (mem, a);
 
   alen = (int) strlen (a);
   blen = (int) strlen (b);
@@ -777,22 +800,22 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
   p = a + alen;
   q = b + blen;
 
-  c  = '0';
-  r  = res + rlen;
+  c = '0';
+  r = res + rlen;
   *r = 0;
 
   while (res < r)
-  {
-    assert (a < p);
-    x = *--p;
+    {
+      assert (a < p);
+      x = *--p;
 
-    y = (b < q) ? *--q : '0';
+      y = (b < q) ? *--q : '0';
 
-    s = x ^ y ^ c;
-    c = ((1 ^ x) & c) | ((1 ^ x) & y) | (y & c);
+      s = x ^ y ^ c;
+      c = ((1 ^ x) & c) | ((1 ^ x) & y) | (y & c);
 
-    *--r = s;
-  }
+      *--r = s;
+    }
 
   assert (c == '0');
 
@@ -810,6 +833,7 @@ btor_sub_unbounded_const (BtorMemMgr *mem, const char *a, const char *b)
 
   return res;
 }
+#endif
 
 static void
 invert_const (BtorMemMgr *mm, char *a)
@@ -1400,7 +1424,7 @@ btor_concat_const (BtorMemMgr *mm, const char *a, const char *b)
   return concat_const (mm, a, b);
 }
 
-char *
+static char *
 btor_udiv_unbounded_const (BtorMemMgr *mem,
                            const char *dividend,
                            const char *divisor,

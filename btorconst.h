@@ -53,20 +53,21 @@ int btor_is_ones_const (const char *str);
 
 BtorSpecialConst btor_is_special_const (const char *str);
 
+#if 0
 /*------------------------------------------------------------------------*/
 /* Unbounded bit width operators.
  */
-char *btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_add_unbounded_const (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_mult_unbounded_const (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_sub_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
+char *btor_sub_unbounded_const (BtorMemMgr * mm, const char *a, const char *b);
 
-char *btor_udiv_unbounded_const (BtorMemMgr *mm,
-                                 const char *a,
-                                 const char *b,
-                                 char **rest_ptr);
+char *btor_udiv_unbounded_const (BtorMemMgr * mm,
+                                 const char *a, const char *b,
+				 char **rest_ptr);
 
+#endif
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
  */
