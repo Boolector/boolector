@@ -47,8 +47,8 @@ is_const_one_exp (Btor *btor, BtorExp *exp)
   int result;
   BtorExp *real_exp;
 
-  assert (btor != NULL);
-  assert (exp != NULL);
+  assert (btor);
+  assert (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
 
   if (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))) return 0;
@@ -67,8 +67,8 @@ is_const_zero_exp (Btor *btor, BtorExp *exp)
   int result;
   BtorExp *real_exp;
 
-  assert (btor != NULL);
-  assert (exp != NULL);
+  assert (btor);
+  assert (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
 
   if (!BTOR_IS_BV_CONST_EXP (BTOR_REAL_ADDR_EXP (exp))) return 0;
@@ -86,8 +86,8 @@ is_xor_exp (Btor *btor, BtorExp *exp)
 {
   BtorExp *e0, *e1, *e0_0, *e0_1, *e1_0, *e1_1;
 
-  assert (btor != NULL);
-  assert (exp != NULL);
+  assert (btor);
+  assert (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   (void) btor;
 
@@ -137,8 +137,8 @@ is_xor_exp (Btor *btor, BtorExp *exp)
 static int
 is_xnor_exp (Btor *btor, BtorExp *exp)
 {
-  assert (btor != NULL);
-  assert (exp != NULL);
+  assert (btor);
+  assert (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   return is_xor_exp (btor, BTOR_INVERT_EXP (exp));
 }
@@ -146,7 +146,7 @@ is_xnor_exp (Btor *btor, BtorExp *exp)
 BtorExp *
 btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
 {
-  char *bits = NULL;
+  char *bits = 0;
   int len;
   BtorExp *result, *tmp, *real_exp;
   BtorMemMgr *mm;
@@ -156,7 +156,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   assert (btor->rewrite_level > 0);
 
   mm       = btor->mm;
-  result   = NULL;
+  result   = 0;
   real_exp = BTOR_REAL_ADDR_EXP (exp);
   len      = real_exp->len;
 
@@ -246,7 +246,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
     }
   }
 
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_SLICE_EXP_NO_REWRITE:
     result = btor_slice_exp_node (btor, exp, upper, lower);
@@ -274,14 +274,14 @@ rewrite_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor != NULL);
+  assert (btor);
   assert (btor->rewrite_level > 0);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
-  assert (e0 != NULL);
-  assert (e1 != NULL);
+  assert (e0);
+  assert (e1);
 
   mm      = btor->mm;
-  result  = NULL;
+  result  = 0;
   real_e0 = BTOR_REAL_ADDR_EXP (e0);
   real_e1 = BTOR_REAL_ADDR_EXP (e1);
   if (!real_e0 || !real_e1) abort ();  // make static anlayzer happy
@@ -921,9 +921,9 @@ is_always_unequal (Btor *btor, BtorExp *e0, BtorExp *e1)
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
+  assert (btor);
+  assert (e0);
+  assert (e1);
   /* we need this so that a + 0 is rewritten to a,
    * and constants are normalized (all inverted constants are odd) */
   assert (btor->rewrite_level > 0);
@@ -989,14 +989,14 @@ normalize_binary_comm_ass_exp (Btor *btor,
   int i;
   BtorPtrHashTable *left, *right, *comm;
   BtorPtrHashBucket *b;
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (BTOR_REAL_ADDR_EXP (e0)->simplified == NULL);
-  assert (BTOR_REAL_ADDR_EXP (e1)->simplified == NULL);
-  assert (e0_norm != NULL);
-  assert (e1_norm != NULL);
-  assert (fptr != NULL);
+  assert (btor);
+  assert (e0);
+  assert (e1);
+  assert (!BTOR_REAL_ADDR_EXP (e0)->simplified);
+  assert (!BTOR_REAL_ADDR_EXP (e1)->simplified);
+  assert (e0_norm);
+  assert (e1_norm);
+  assert (fptr);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
   assert (!BTOR_IS_INVERTED_EXP (e0));
   assert (!BTOR_IS_INVERTED_EXP (e1));
@@ -1028,7 +1028,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
     else
     {
       b = btor_find_in_ptr_hash_table (left, cur);
-      if (b == NULL)
+      if (!b)
         btor_insert_in_ptr_hash_table (left, cur)->data.asInt = 1;
       else
         b->data.asInt++;
@@ -1047,7 +1047,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
     else
     {
       b = btor_find_in_ptr_hash_table (left, cur);
-      if (b != NULL)
+      if (b)
       {
         /* we found one common operand */
 
@@ -1057,12 +1057,12 @@ normalize_binary_comm_ass_exp (Btor *btor,
         else
         {
           assert (b->data.asInt == 1);
-          btor_remove_from_ptr_hash_table (left, cur, NULL, NULL);
+          btor_remove_from_ptr_hash_table (left, cur, 0, 0);
         }
 
         /* insert into common table */
         b = btor_find_in_ptr_hash_table (comm, cur);
-        if (b == NULL)
+        if (!b)
           btor_insert_in_ptr_hash_table (comm, cur)->data.asInt = 1;
         else
           b->data.asInt++;
@@ -1071,7 +1071,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
       {
         /* operand is not common */
         b = btor_find_in_ptr_hash_table (right, cur);
-        if (b == NULL)
+        if (!b)
           btor_insert_in_ptr_hash_table (right, cur)->data.asInt = 1;
         else
           b->data.asInt++;
@@ -1107,7 +1107,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
     b->data.asInt--;
   else
     b = b->next;
-  while (b != NULL)
+  while (b)
   {
     cur = b->key;
     for (i = 0; i < b->data.asInt; i++)
@@ -1121,7 +1121,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
 
   /* normalize left side */
   result = btor_copy_exp (btor, common);
-  for (b = left->first; b != NULL; b = b->next)
+  for (b = left->first; b; b = b->next)
   {
     cur = b->key;
     for (i = 0; i < b->data.asInt; i++)
@@ -1135,7 +1135,7 @@ normalize_binary_comm_ass_exp (Btor *btor,
 
   /* normalize right side */
   result = btor_copy_exp (btor, common);
-  for (b = right->first; b != NULL; b = b->next)
+  for (b = right->first; b; b = b->next)
   {
     cur = b->key;
     for (i = 0; i < b->data.asInt; i++)
@@ -1158,13 +1158,13 @@ static void
 normalize_adds_exp (
     Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp **e0_norm, BtorExp **e1_norm)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (BTOR_REAL_ADDR_EXP (e0)->simplified == NULL);
-  assert (BTOR_REAL_ADDR_EXP (e1)->simplified == NULL);
-  assert (e0_norm != NULL);
-  assert (e1_norm != NULL);
+  assert (btor);
+  assert (e0);
+  assert (e1);
+  assert (!BTOR_REAL_ADDR_EXP (e0)->simplified);
+  assert (!BTOR_REAL_ADDR_EXP (e1)->simplified);
+  assert (e0_norm);
+  assert (e1_norm);
   assert (!BTOR_IS_INVERTED_EXP (e0));
   assert (!BTOR_IS_INVERTED_EXP (e1));
   assert (e0->kind == BTOR_ADD_EXP);
@@ -1177,13 +1177,13 @@ static void
 normalize_muls_exp (
     Btor *btor, BtorExp *e0, BtorExp *e1, BtorExp **e0_norm, BtorExp **e1_norm)
 {
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (BTOR_REAL_ADDR_EXP (e0)->simplified == NULL);
-  assert (BTOR_REAL_ADDR_EXP (e1)->simplified == NULL);
-  assert (e0_norm != NULL);
-  assert (e1_norm != NULL);
+  assert (btor);
+  assert (e0);
+  assert (e1);
+  assert (!BTOR_REAL_ADDR_EXP (e0)->simplified);
+  assert (!BTOR_REAL_ADDR_EXP (e1)->simplified);
+  assert (e0_norm);
+  assert (e1_norm);
   assert (!BTOR_IS_INVERTED_EXP (e0));
   assert (!BTOR_IS_INVERTED_EXP (e1));
   assert (e0->kind == BTOR_MUL_EXP);
@@ -1196,11 +1196,11 @@ static int
 find_and_contradiction_exp (
     Btor *btor, BtorExp *exp, BtorExp *e0, BtorExp *e1, int *calls)
 {
-  assert (btor != NULL);
-  assert (exp != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
-  assert (calls != NULL);
+  assert (btor);
+  assert (exp);
+  assert (e0);
+  assert (e1);
+  assert (calls);
   assert (*calls >= 0);
   (void) btor;
 
@@ -1561,7 +1561,7 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
 
   result = rewrite_binary_exp (btor, BTOR_AND_EXP, e0, e1);
 
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_AND_EXP_NO_REWRITE:
     result = btor_and_exp_node (btor, e0, e1);
@@ -1577,20 +1577,20 @@ BTOR_EXP_TWO_LEVEL_OPT_TRY_AGAIN:
 }
 
 /* This function tries to rewrite a * b + a * c into a * (b + c)
- * it returns NULL when it has not succeeded */
+ * it returns 0 when it has not succeeded */
 static BtorExp *
 try_rewrite_add_mul_distrib (Btor *btor, BtorExp *e0, BtorExp *e1)
 {
   BtorExp *result, *add, *mul;
 
-  assert (btor != NULL);
-  assert (e0 != NULL);
-  assert (e1 != NULL);
+  assert (btor);
+  assert (e0);
+  assert (e1);
   assert (btor->rewrite_level > 2);
 
-  result = NULL;
-  add    = NULL;
-  mul    = NULL;
+  result = 0;
+  add    = 0;
+  mul    = 0;
 
   if (!BTOR_IS_INVERTED_EXP (e0) && !BTOR_IS_INVERTED_EXP (e1)
       && e0->kind == BTOR_MUL_EXP && e1->kind == BTOR_MUL_EXP)
@@ -1616,9 +1616,9 @@ try_rewrite_add_mul_distrib (Btor *btor, BtorExp *e0, BtorExp *e1)
       mul = e0->e[1];
     }
 
-    if (add != NULL)
+    if (add)
     {
-      assert (mul != NULL);
+      assert (mul);
       result = btor_rewrite_mul_exp (btor, mul, add);
       btor_release_exp (btor, add);
       /* mul owns no reference */
@@ -2051,7 +2051,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       else if (e0->kind == BTOR_MUL_EXP && e1->kind == BTOR_ADD_EXP)
       {
         tmp1 = try_rewrite_add_mul_distrib (btor, e1->e[0], e1->e[1]);
-        if (tmp1 != NULL)
+        if (tmp1)
         {
           if (tmp1 == e0)
           {
@@ -2064,7 +2064,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       else if (e1->kind == BTOR_MUL_EXP && e0->kind == BTOR_ADD_EXP)
       {
         tmp1 = try_rewrite_add_mul_distrib (btor, e0->e[0], e0->e[1]);
-        if (tmp1 != NULL)
+        if (tmp1)
         {
           if (tmp1 == e1)
           {
@@ -2113,7 +2113,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, kind, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_EQ_EXP_NO_REWRITE:
     result = btor_eq_exp_node (btor, e0, e1);
@@ -2239,7 +2239,7 @@ btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, BTOR_ADD_EXP, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_ADD_EXP_NO_REWRITE:
     result = btor_add_exp_node (btor, e0, e1);
@@ -2390,7 +2390,7 @@ btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, BTOR_MUL_EXP, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_MUL_EXP_NO_REWRITE:
     result = btor_mul_exp_node (btor, e0, e1);
@@ -2485,7 +2485,7 @@ btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, BTOR_ULT_EXP, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_ULT_EXP_NO_REWRITE:
     result = btor_ult_exp_node (btor, e0, e1);
@@ -2510,7 +2510,7 @@ btor_rewrite_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
   result = rewrite_binary_exp (btor, BTOR_SLL_EXP, e0, e1);
-  if (result == NULL) result = btor_sll_exp_node (btor, e0, e1);
+  if (!result) result = btor_sll_exp_node (btor, e0, e1);
 
   return result;
 }
@@ -2524,7 +2524,7 @@ btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
   result = rewrite_binary_exp (btor, BTOR_SRL_EXP, e0, e1);
-  if (result == NULL) result = btor_srl_exp_node (btor, e0, e1);
+  if (!result) result = btor_srl_exp_node (btor, e0, e1);
 
   return result;
 }
@@ -2580,7 +2580,7 @@ btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, BTOR_UDIV_EXP, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_UDIV_EXP_NO_REWRITE:
     result = btor_udiv_exp_node (btor, e0, e1);
@@ -2645,7 +2645,7 @@ btor_rewrite_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, BTOR_UREM_EXP, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_UREM_EXP_NO_REWRITE:
     result = btor_urem_exp_node (btor, e0, e1);
@@ -2752,7 +2752,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   }
 
   result = rewrite_binary_exp (btor, BTOR_CONCAT_EXP, e0, e1);
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_CONCAT_EXP_NO_REWRITE:
     result = btor_concat_exp_node (btor, e0, e1);
@@ -2811,7 +2811,7 @@ btor_rewrite_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   else
     result = btor_read_exp_node (btor, e_array, e_index);
 
-  assert (result != NULL);
+  assert (result);
 
   return result;
 }
@@ -2834,7 +2834,7 @@ btor_rewrite_write_exp (Btor *btor,
   assert (btor_precond_write_exp_dbg (btor, e_array, e_index, e_value));
   assert (btor->rewrite_level > 0);
 
-  result = NULL;
+  result = 0;
 
   if (btor->rewrite_level > 2 && BTOR_IS_WRITE_EXP (e_array))
   {
@@ -2877,8 +2877,7 @@ btor_rewrite_write_exp (Btor *btor,
     }
   }
 
-  if (result == NULL)
-    result = btor_write_exp_node (btor, e_array, e_index, e_value);
+  if (!result) result = btor_write_exp_node (btor, e_array, e_index, e_value);
 
   return result;
 }
@@ -2899,7 +2898,7 @@ btor_rewrite_cond_exp (Btor *btor,
   assert (btor_precond_cond_exp_dbg (btor, e_cond, e_if, e_else));
   assert (btor->rewrite_level > 0);
 
-  result = NULL;
+  result = 0;
   kind   = BTOR_BCOND_EXP;
 
   /* normalization: ~e0 ? e1 : e2 is the same as e0 ? e2: e1 */
@@ -3081,7 +3080,7 @@ btor_rewrite_cond_exp (Btor *btor,
     else if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_EXP (e_if)
              && !BTOR_IS_INVERTED_EXP (e_else) && e_if->kind == e_else->kind)
     {
-      fptr = NULL;
+      fptr = 0;
       switch (e_if->kind)
       {
         case BTOR_ADD_EXP: fptr = btor_rewrite_add_exp; break;
@@ -3092,7 +3091,7 @@ btor_rewrite_cond_exp (Btor *btor,
         default: break;
       }
 
-      if (fptr != NULL)
+      if (fptr)
       {
         if (e_if->e[0] == e_else->e[0])
         {
@@ -3144,7 +3143,7 @@ btor_rewrite_cond_exp (Btor *btor,
     }
   }
 
-  if (result == NULL)
+  if (!result)
   {
   BTOR_REWRITE_COND_EXP_NO_REWRITE:
     result = btor_cond_exp_node (btor, e_cond, e_if, e_else);
