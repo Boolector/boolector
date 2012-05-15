@@ -27,6 +27,8 @@ enum BtorSpecialConst
 
 typedef enum BtorSpecialConst BtorSpecialConst;
 
+/*------------------------------------------------------------------------*/
+
 char *btor_zero_const (BtorMemMgr *mm, int len);
 
 char *btor_one_const (BtorMemMgr *mm, int len);
@@ -53,21 +55,6 @@ int btor_is_ones_const (const char *str);
 
 BtorSpecialConst btor_is_special_const (const char *str);
 
-#if 0
-/*------------------------------------------------------------------------*/
-/* Unbounded bit width operators.
- */
-char *btor_add_unbounded_const (BtorMemMgr * mm, const char *a, const char *b);
-
-char *btor_mult_unbounded_const (BtorMemMgr * mm, const char *a, const char *b);
-
-char *btor_sub_unbounded_const (BtorMemMgr * mm, const char *a, const char *b);
-
-char *btor_udiv_unbounded_const (BtorMemMgr * mm,
-                                 const char *a, const char *b,
-				 char **rest_ptr);
-
-#endif
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
  */
@@ -127,8 +114,6 @@ void btor_delete_const (BtorMemMgr *mm, char *c);
 int btor_get_num_leading_zeros_const (BtorMemMgr *mm, const char *c);
 
 int btor_get_num_leading_ones_const (BtorMemMgr *mm, const char *c);
-
-int btor_cmp_const (const char *a, const char *b);
 
 char *btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower);
 

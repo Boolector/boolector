@@ -322,6 +322,47 @@ btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b)
   return res;
 }
 
+static int
+btor_cmp_const (const char *a, const char *b)
+{
+  const char *p, *q, *s;
+  int l, k, delta;
+
+  assert (a != NULL);
+  assert (b != NULL);
+  assert (is_valid_const (a));
+  assert (is_valid_const (b));
+
+  a = strip_zeroes (a);
+  b = strip_zeroes (b);
+
+  l = (int) strlen (a);
+  k = (int) strlen (b);
+
+  delta = (l - k);
+
+  if (delta < 0)
+  {
+    p = a;
+    s = b - delta;
+
+    for (q = b; q < s; q++)
+      if (*q == '1') return -1;
+  }
+  else
+  {
+    s = a + delta;
+    q = b;
+
+    for (p = a; p < s; p++)
+      if (*p == '1') return 1;
+  }
+
+  assert (strlen (p) == strlen (q));
+
+  return strcmp (p, q);
+}
+
 static char *
 btor_udiv_unbounded_const (BtorMemMgr *mem,
                            const char *dividend,
@@ -880,47 +921,6 @@ btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower)
   assert (is_valid_const (a));
 
   return slice_const (mm, a, upper, lower);
-}
-
-int
-btor_cmp_const (const char *a, const char *b)
-{
-  const char *p, *q, *s;
-  int l, k, delta;
-
-  assert (a != NULL);
-  assert (b != NULL);
-  assert (is_valid_const (a));
-  assert (is_valid_const (b));
-
-  a = strip_zeroes (a);
-  b = strip_zeroes (b);
-
-  l = (int) strlen (a);
-  k = (int) strlen (b);
-
-  delta = (l - k);
-
-  if (delta < 0)
-  {
-    p = a;
-    s = b - delta;
-
-    for (q = b; q < s; q++)
-      if (*q == '1') return -1;
-  }
-  else
-  {
-    s = a + delta;
-    q = b;
-
-    for (p = a; p < s; p++)
-      if (*p == '1') return 1;
-  }
-
-  assert (strlen (p) == strlen (q));
-
-  return strcmp (p, q);
 }
 
 static void

@@ -434,46 +434,6 @@ test_unsigned_to_const (void)
   btor_delete_const (g_mm, result);
 }
 
-static void
-test_cmp_const_aux (FILE *fout, const char *a, const char *b)
-{
-  int res = btor_cmp_const (a, b);
-  fprintf (fout, "%s %c %s\n", a, (res ? ((res < 0) ? '<' : '>') : '='), b);
-}
-
-static void
-test_cmp_const (void)
-{
-  FILE *fout = fopen ("log/cmp_const.log", "w");
-  test_cmp_const_aux (fout, "01", "1");
-  test_cmp_const_aux (fout, "", "");
-  test_cmp_const_aux (fout, "0", "");
-  test_cmp_const_aux (fout, "", "0");
-  test_cmp_const_aux (fout, "1", "");
-  test_cmp_const_aux (fout, "", "1");
-  test_cmp_const_aux (fout, "0", "0");
-  test_cmp_const_aux (fout, "0", "1");
-  test_cmp_const_aux (fout, "1", "0");
-  test_cmp_const_aux (fout, "1", "1");
-  test_cmp_const_aux (fout, "10", "");
-  test_cmp_const_aux (fout, "10", "0");
-  test_cmp_const_aux (fout, "10", "1");
-  test_cmp_const_aux (fout, "10", "01");
-  test_cmp_const_aux (fout, "10", "10");
-  test_cmp_const_aux (fout, "10", "010");
-  test_cmp_const_aux (fout, "10", "00010");
-  test_cmp_const_aux (fout, "10", "00011");
-  test_cmp_const_aux (fout, "", "10");
-  test_cmp_const_aux (fout, "0", "10");
-  test_cmp_const_aux (fout, "1", "10");
-  test_cmp_const_aux (fout, "01", "10");
-  test_cmp_const_aux (fout, "10", "10");
-  test_cmp_const_aux (fout, "010", "10");
-  test_cmp_const_aux (fout, "00010", "10");
-  test_cmp_const_aux (fout, "00011", "10");
-  fclose (fout);
-}
-
 static int not(int x) { return ~x; }
 
 static int
@@ -1441,7 +1401,6 @@ run_const_tests (int argc, char **argv)
   BTOR_RUN_TEST (is_special_const);
   BTOR_RUN_TEST (int_to_const);
   BTOR_RUN_TEST (unsigned_to_const);
-  BTOR_RUN_TEST_CHECK_LOG (cmp_const);
   BTOR_RUN_TEST (invert_const);
   BTOR_RUN_TEST (not_const);
   BTOR_RUN_TEST (neg_const);
