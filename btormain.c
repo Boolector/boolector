@@ -1,22 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer, FMV, JKU.
- *  Copyright (C) 2010-2011 Armin Biere, FMV, JKU.
+ *  Copyright (C) 2010 Robert Daniel Brummayer.
+ *  Copyright (C) 2010-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
 
 #include "btormain.h"
@@ -58,7 +48,7 @@
 #include <unistd.h>
 #endif
 
-#define BTOR_MAIN_DEFAULT_MAXK 32
+/*------------------------------------------------------------------------*/
 
 enum BtorBasis
 {
@@ -153,6 +143,8 @@ struct BtorMainApp
 
 typedef struct BtorMainApp BtorMainApp;
 
+/*------------------------------------------------------------------------*/
+
 static const char *g_usage =
     "usage: boolector [<option>...][<input>]\n"
     "\n"
@@ -235,6 +227,8 @@ static void (*btor_sig_abrt_handler) (int);
 static void (*btor_sig_term_handler) (int);
 static void (*btor_sig_bus_handler) (int);
 
+/*------------------------------------------------------------------------*/
+
 static void
 btor_reset_sig_handlers (void)
 {
@@ -255,7 +249,7 @@ btor_catched_sig_msg (int sig)
 static void
 btor_msg_main (char *msg)
 {
-  assert (msg != NULL);
+  assert (msg);
   fprintf (stdout, "[btormain] %s", msg);
   fflush (stdout);
 }
@@ -264,7 +258,7 @@ static void
 btor_msg_main_va_args (char *msg, ...)
 {
   va_list list;
-  assert (msg != NULL);
+  assert (msg);
   va_start (list, msg);
   fprintf (stdout, "[btormain] ");
   vfprintf (stdout, msg, list);
@@ -361,7 +355,7 @@ btor_set_alarm (void)
 static void
 print_msg (BtorMainApp *app, const char *msg)
 {
-  assert (msg != NULL);
+  assert (msg);
   if (app->verbosity >= 0)
     fputs (msg, app->output_file); /* no 'fprintf' to avoid warning */
 }
@@ -370,7 +364,7 @@ static void
 print_msg_va_args (BtorMainApp *app, char *msg, ...)
 {
   va_list list;
-  assert (msg != NULL);
+  assert (msg);
   if (app->verbosity >= 0)
   {
     va_start (list, msg);
@@ -382,7 +376,7 @@ print_msg_va_args (BtorMainApp *app, char *msg, ...)
 static void
 print_err (BtorMainApp *app, char *msg)
 {
-  assert (msg != NULL);
+  assert (msg);
   if (app->verbosity >= 0)
   {
     fputs ("boolector: ", app->output_file);
@@ -394,7 +388,7 @@ static void
 print_err_va_args (BtorMainApp *app, char *msg, ...)
 {
   va_list list;
-  assert (msg != NULL);
+  assert (msg);
   if (app->verbosity >= 0)
   {
     fputs ("boolector: ", app->output_file);
@@ -433,10 +427,10 @@ handle_dump_file (BtorMainApp *app,
 {
   const char *file_name;
 
-  assert (dump_file != NULL);
-  assert (close_file != NULL);
-  assert (file_kind != NULL);
-  assert (file != NULL);
+  assert (dump_file);
+  assert (close_file);
+  assert (file_kind);
+  assert (file);
 
   *dump_file = 1;
 
@@ -444,7 +438,7 @@ handle_dump_file (BtorMainApp *app,
   {
     if (*close_file)
     {
-      assert (*file != NULL);
+      assert (*file);
       fclose (*file);
       *close_file = 0;
       print_err_va_args (app, "multiple %s files\n", file_kind);
@@ -467,7 +461,7 @@ handle_dump_file (BtorMainApp *app,
       else
       {
         *file = fopen (file_name, "w");
-        if (*file == NULL)
+        if (!*file)
         {
           print_err_va_args (
               app, "can not create '%s'\n", app->argv[app->argpos]);
@@ -503,8 +497,8 @@ file_name_has_suffix (const char *str, const char *suffix)
 static int
 has_only_x (const char *str)
 {
-  const char *cur = NULL;
-  assert (str != NULL);
+  const char *cur = 0;
+  assert (str);
   for (cur = str; *cur; cur++)
     if (*cur != 'x') return 0;
   return 1;
@@ -515,7 +509,7 @@ convert_to_full_assignment (char *assignment)
 {
   char *p;
 
-  assert (assignment != NULL);
+  assert (assignment);
 
   for (p = assignment; *p; p++)
   {
@@ -532,9 +526,9 @@ format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
   int not_binary;
   BtorMemMgr *mm;
 
-  assert (app != NULL);
-  assert (btor != NULL);
-  assert (assignment != NULL);
+  assert (app);
+  assert (btor);
+  assert (assignment);
 
   basis = app->basis;
   not_binary =
@@ -569,13 +563,13 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 {
   char *pretty, *assignment;
 
-  assert (app != NULL);
-  assert (btor != NULL);
-  assert (exp != NULL);
+  assert (app);
+  assert (btor);
+  assert (exp);
   assert (!BTOR_IS_INVERTED_EXP (exp));
 
   assignment = btor_bv_assignment_exp (btor, exp);
-  assert (assignment != NULL);
+  assert (assignment);
 
   if (app->print_model == BTOR_APP_PRINT_MODEL_FULL || !has_only_x (assignment))
   {
@@ -595,9 +589,9 @@ print_variable_assignments (BtorMainApp *app,
 {
   int i;
 
-  assert (app != NULL);
-  assert (btor != NULL);
-  assert (vars != NULL);
+  assert (app);
+  assert (btor);
+  assert (vars);
   assert (nvars >= 0);
 
   for (i = 0; i < nvars; i++) print_bv_assignment (app, btor, vars[i]);
@@ -610,9 +604,9 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
   char *pretty_index, *pretty_value;
   int i, size;
 
-  assert (app != NULL);
-  assert (btor != NULL);
-  assert (exp != NULL);
+  assert (app);
+  assert (btor);
+  assert (exp);
   assert (!BTOR_IS_INVERTED_EXP (exp));
   btor_array_assignment_exp (btor, exp, &indices, &values, &size);
   if (size > 0)
@@ -641,9 +635,9 @@ print_array_assignments (BtorMainApp *app,
 {
   int i;
 
-  assert (app != NULL);
-  assert (btor != NULL);
-  assert (arrays != NULL);
+  assert (app);
+  assert (btor);
+  assert (arrays);
   assert (narrays >= 0);
 
   for (i = 0; i < narrays; i++) print_array_assignment (app, btor, arrays[i]);
@@ -875,7 +869,7 @@ parse_commandline_arguments (BtorMainApp *app)
         else
         {
           app->output_file = fopen (app->argv[++app->argpos], "w");
-          if (app->output_file == NULL)
+          if (!app->output_file)
           {
             app->output_file = stdout;
             print_err_va_args (
@@ -983,7 +977,7 @@ parse_commandline_arguments (BtorMainApp *app)
 static void
 print_sat_result (BtorMainApp *app, int sat_result)
 {
-  assert (app != NULL);
+  assert (app);
   if (sat_result == BTOR_UNSAT)
     print_msg (app, "unsat\n");
   else if (sat_result == BTOR_SAT)
@@ -1101,18 +1095,18 @@ boolector_main (int argc, char **argv)
   int i          = 0;
   int root_len;
   int constraints_reported, constraints_report_limit, nconstraints;
-  const char *parse_error = NULL;
-  Btor *btor              = NULL;
-  BtorAIGMgr *amgr        = NULL;
-  BtorAIGVecMgr *avmgr    = NULL;
-  BtorSATMgr *smgr        = NULL;
+  const char *parse_error = 0;
+  Btor *btor              = 0;
+  BtorAIGMgr *amgr        = 0;
+  BtorAIGVecMgr *avmgr    = 0;
+  BtorSATMgr *smgr        = 0;
   BtorParseResult parse_res;
   BtorExpPtrStack varstack, constraints;
   BtorExpPtrStack arraystack;
-  const BtorParserAPI *parser_api = NULL;
-  BtorParser *parser              = NULL;
+  const BtorParserAPI *parser_api = 0;
+  BtorParser *parser              = 0;
   BtorParseOpt parse_opt;
-  BtorMemMgr *mem = NULL;
+  BtorMemMgr *mem = 0;
   BtorExp *root, **p, *tmp, *all;
   BtorExp *var, *temp;
   BtorCharStack prefix;
@@ -1171,11 +1165,6 @@ boolector_main (int argc, char **argv)
     btor_msg_main_va_args ("released %s\n", BTOR_RELEASED);
     btor_msg_main_va_args ("compiled %s\n", BTOR_COMPILED);
     if (*BTOR_CC) btor_msg_main_va_args ("%s\n", BTOR_CC);
-
-    /* Not really necessary?
-     *
-     * btor_msg_main_va_args ("%s\n", BTOR_OS);
-     */
   }
 
   if (!app.done && !app.err)
@@ -1449,7 +1438,7 @@ boolector_main (int argc, char **argv)
           btor_release_exp (btor, root);
         }
         parser_api->reset (parser);
-        parser_api = NULL;
+        parser_api = 0;
         btor_dump_exps_after_global_rewriting (btor, app.exp_file);
       }
       else
@@ -1561,7 +1550,7 @@ boolector_main (int argc, char **argv)
       {
         /* stand alone mode */
         parser_api->reset (parser);
-        parser_api = NULL;
+        parser_api = 0;
 
         constraints_reported     = 0;
         nconstraints             = BTOR_COUNT_STACK (constraints);
