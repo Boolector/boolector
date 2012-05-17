@@ -600,7 +600,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
-#define BTOR_LGL_MIN_BLIMIT 10000
+#define BTOR_LGL_MIN_BLIMIT 20000
 #define BTOR_LGL_MAX_BLIMIT 200000
 
 static void *
