@@ -35,7 +35,9 @@
   } while (0)
 
 #define BTOR_COUNT_STACK(stack) ((stack).top - (stack).start)
+
 #define BTOR_EMPTY_STACK(stack) ((stack).top == (stack).start)
+
 #define BTOR_RESET_STACK(stack)  \
   do                             \
   {                              \
@@ -43,6 +45,7 @@
   } while (0)
 
 #define BTOR_SIZE_STACK(stack) ((stack).end - (stack).start)
+
 #define BTOR_FULL_STACK(stack) ((stack).top == (stack).end)
 
 #define BTOR_RELEASE_STACK(mm, stack)                              \
@@ -99,6 +102,16 @@
   } while (0)
 
 #define BTOR_TOP_STACK(stack) ((stack).top[-1])
+
+#define BTOR_PEEK_STACK(stack, idx) \
+  (assert ((idx) < BTOR_COUNT_STACK (stack)), (stack).start[idx])
+
+#define BTOR_POKE_STACK(stack, idx, elem)      \
+  do                                           \
+  {                                            \
+    assert ((idx) < BTOR_COUNT_STACK (stack)); \
+    (stack).start[idx] = (elem);               \
+  } while (0)
 
 BTOR_DECLARE_STACK (Int, int);
 BTOR_DECLARE_STACK (Char, char);

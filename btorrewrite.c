@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+/*------------------------------------------------------------------------*/
+
 /* recursive rewriting bound */
 #define BTOR_REC_RW_BOUND 4096
 
@@ -40,6 +42,8 @@
     assert ((btor)->rec_rw_calls > 0); \
     (btor)->rec_rw_calls--;            \
   } while (0)
+
+/*------------------------------------------------------------------------*/
 
 static int
 is_const_one_exp (Btor *btor, BtorNode *exp)
