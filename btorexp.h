@@ -12,6 +12,7 @@
 #ifndef BTOREXP_H_INCLUDED
 #define BTOREXP_H_INCLUDED
 
+#include "boolector.h"
 #include "btoraigvec.h"
 #include "btorhash.h"
 #include "btormem.h"
@@ -19,11 +20,6 @@
 #include "btorstack.h"
 
 /*------------------------------------------------------------------------*/
-
-typedef struct BtorExp BtorExp;
-typedef struct BtorExpNode BtorExpNode;
-
-typedef struct Btor Btor;
 
 BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
 

@@ -11,9 +11,14 @@
 #ifndef BOOLECTOR_H_INCLUDED
 #define BOOLECTOR_H_INCLUDED
 
-#include "btorexp.h"
+/*------------------------------------------------------------------------*/
 
 #include <stdio.h>
+
+/*------------------------------------------------------------------------*/
+
+typedef struct BtorExp BtorExp;
+typedef struct Btor Btor;
 
 /*------------------------------------------------------------------------*/
 

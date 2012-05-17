@@ -12,7 +12,6 @@
 #ifndef BTORBTOR_H_INCLUDED
 #define BTORBTOR_H_INCLUDED
 
-#include "btorexp.h"
 #include "btorparse.h"
 
 #include <stdio.h>
