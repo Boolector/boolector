@@ -751,6 +751,10 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
   assert (exp->disconnected);
   assert (exp->erased);
 
+  assert (exp->id);
+  assert (BTOR_PEEK_STACK (btor->id_table, exp->id) == exp);
+  BTOR_POKE_STACK (btor->id_table, exp->id, 0);
+
   mm = btor->mm;
 
   exp->kind = BTOR_INVALID_NODE;
