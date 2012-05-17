@@ -16,41 +16,43 @@
 
 /*------------------------------------------------------------------------*/
 
-BtorExp *btor_rewrite_slice_exp (Btor *btor,
-                                 BtorExp *exp,
-                                 int upper,
-                                 int lower);
+BtorNode *btor_rewrite_slice_exp (Btor *btor,
+                                  BtorNode *exp,
+                                  int upper,
+                                  int lower);
 
-BtorExp *btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_rewrite_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index);
+BtorNode *btor_rewrite_read_exp (Btor *btor,
+                                 BtorNode *e_array,
+                                 BtorNode *e_index);
 
-BtorExp *btor_rewrite_write_exp (Btor *btor,
-                                 BtorExp *e_array,
-                                 BtorExp *e_index,
-                                 BtorExp *e_value);
+BtorNode *btor_rewrite_write_exp (Btor *btor,
+                                  BtorNode *e_array,
+                                  BtorNode *e_index,
+                                  BtorNode *e_value);
 
-BtorExp *btor_rewrite_cond_exp (Btor *btor,
-                                BtorExp *e_cond,
-                                BtorExp *e_if,
-                                BtorExp *e_else);
+BtorNode *btor_rewrite_cond_exp (Btor *btor,
+                                 BtorNode *e_cond,
+                                 BtorNode *e_if,
+                                 BtorNode *e_else);
 
 #endif

@@ -17,7 +17,7 @@
 
 /*------------------------------------------------------------------------*/
 
-typedef struct BtorExp BtorExp;
+typedef struct BtorNode BtorNode;
 typedef struct Btor Btor;
 
 /*------------------------------------------------------------------------*/
@@ -205,7 +205,7 @@ void boolector_delete (Btor *btor);
  * representing the bit-vector constant specified by 'bits'.
  * \return Bit-vector constant with bit-width strlen('bits').
  */
-BtorExp *boolector_const (Btor *btor, const char *bits);
+BtorNode *boolector_const (Btor *btor, const char *bits);
 
 /**
  * Bit-vector constant zero.
@@ -213,14 +213,14 @@ BtorExp *boolector_const (Btor *btor, const char *bits);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant zero with bit-width 'width'.
  */
-BtorExp *boolector_zero (Btor *btor, int width);
+BtorNode *boolector_zero (Btor *btor, int width);
 
 /**
  * Bit-vector constant zero with bit-width one.
  * \param btor Boolector instance.
  * \return Bit-vector constant zero with bit-width one.
  */
-BtorExp *boolector_false (Btor *btor);
+BtorNode *boolector_false (Btor *btor);
 
 /**
  * Binary constant representing 'width' ones.
@@ -228,14 +228,14 @@ BtorExp *boolector_false (Btor *btor);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant -1 with bit-width 'width'.
  */
-BtorExp *boolector_ones (Btor *btor, int width);
+BtorNode *boolector_ones (Btor *btor, int width);
 
 /**
  * Bit-vector constant one with bit-width one.
  * \param btor Boolector instance.
  * \return Bit-vector constant one with bit-width one.
  */
-BtorExp *boolector_true (Btor *btor);
+BtorNode *boolector_true (Btor *btor);
 
 /**
  * Bit-vector constant one.
@@ -243,7 +243,7 @@ BtorExp *boolector_true (Btor *btor);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant one with bit-width 'width'.
  */
-BtorExp *boolector_one (Btor *btor, int width);
+BtorNode *boolector_one (Btor *btor, int width);
 
 /**
  * Binary constant representing the unsigned integer 'u' with bit-width 'width'.
@@ -254,7 +254,7 @@ BtorExp *boolector_one (Btor *btor, int width);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant with bit-width 'width'.
  */
-BtorExp *boolector_unsigned_int (Btor *btor, unsigned u, int width);
+BtorNode *boolector_unsigned_int (Btor *btor, unsigned u, int width);
 
 /**
  * Binary constant representing the signed integer 'i' with bit-width 'width'.
@@ -265,7 +265,7 @@ BtorExp *boolector_unsigned_int (Btor *btor, unsigned u, int width);
  * \param width Number of bits which must be greater than zero.
  * \return Bit-vector constant with bit-width 'width'.
  */
-BtorExp *boolector_int (Btor *btor, int i, int width);
+BtorNode *boolector_int (Btor *btor, int i, int width);
 
 /**
  * Fresh bit-vector variable with bit-width 'width'.
@@ -281,7 +281,7 @@ BtorExp *boolector_int (Btor *btor, int i, int width);
  * dump may be incorrect. If you are not interested in dumping expressions,
  * just pass NULL as symbol.
  */
-BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
+BtorNode *boolector_var (Btor *btor, int width, const char *symbol);
 
 /**
  * One-dimensional bit-vector array of size 2 ^ 'index_width' with elements of
@@ -304,10 +304,10 @@ BtorExp *boolector_var (Btor *btor, int width, const char *symbol);
  * If you are not interested in dumping expressions,
  * just pass NULL as symbol.
  */
-BtorExp *boolector_array (Btor *btor,
-                          int elem_width,
-                          int index_width,
-                          const char *symbol);
+BtorNode *boolector_array (Btor *btor,
+                           int elem_width,
+                           int index_width,
+                           const char *symbol);
 
 /**
  * One's complement.
@@ -315,7 +315,7 @@ BtorExp *boolector_array (Btor *btor,
  * \param exp Bit-vector operand.
  * \return Bit-vector with the same bit-width as 'exp'.
  */
-BtorExp *boolector_not (Btor *btor, BtorExp *exp);
+BtorNode *boolector_not (Btor *btor, BtorNode *exp);
 
 /**
  * Two's complement.
@@ -323,7 +323,7 @@ BtorExp *boolector_not (Btor *btor, BtorExp *exp);
  * \param exp Bit-vector operand.
  * \return Bit-vector with the same bit-width as 'exp'.
  */
-BtorExp *boolector_neg (Btor *btor, BtorExp *exp);
+BtorNode *boolector_neg (Btor *btor, BtorNode *exp);
 
 /**
  * Or reduction. All bits are combined by or.
@@ -331,7 +331,7 @@ BtorExp *boolector_neg (Btor *btor, BtorExp *exp);
  * \param exp Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_redor (Btor *btor, BtorExp *exp);
+BtorNode *boolector_redor (Btor *btor, BtorNode *exp);
 
 /**
  * Xor reduction. All bits are combined by xor.
@@ -339,7 +339,7 @@ BtorExp *boolector_redor (Btor *btor, BtorExp *exp);
  * \param exp Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_redxor (Btor *btor, BtorExp *exp);
+BtorNode *boolector_redxor (Btor *btor, BtorNode *exp);
 
 /**
  * And reduction. All bits are combined by and.
@@ -347,7 +347,7 @@ BtorExp *boolector_redxor (Btor *btor, BtorExp *exp);
  * \param exp Bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_redand (Btor *btor, BtorExp *exp);
+BtorNode *boolector_redand (Btor *btor, BtorNode *exp);
 
 /**
  * Bit-vector slice of 'exp' from index 'upper' to index 'lower'.
@@ -359,7 +359,7 @@ BtorExp *boolector_redand (Btor *btor, BtorExp *exp);
  * less than or equal to 'upper'.
  * \return Bit-vector with bit-width 'upper' - 'lower' + 1.
  */
-BtorExp *boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower);
+BtorNode *boolector_slice (Btor *btor, BtorNode *exp, int upper, int lower);
 
 /**
  * Unsigned extension. The operand 'exp' is padded with 'width' zeroes.
@@ -368,7 +368,7 @@ BtorExp *boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower);
  * \param width Number of zeroes to pad.
  * \return Bit-vector with bit-width: bit-width of 'exp' + 'width'.
  */
-BtorExp *boolector_uext (Btor *btor, BtorExp *exp, int width);
+BtorNode *boolector_uext (Btor *btor, BtorNode *exp, int width);
 
 /**
  * Signed extension. The operand 'exp' is padded with 'width' bits. If zeroes
@@ -378,7 +378,7 @@ BtorExp *boolector_uext (Btor *btor, BtorExp *exp, int width);
  * \param width Number of bits to pad.
  * \return Bit-vector with bit-width: bit-width of 'exp' + 'width'.
  */
-BtorExp *boolector_sext (Btor *btor, BtorExp *exp, int width);
+BtorNode *boolector_sext (Btor *btor, BtorNode *exp, int width);
 
 /**
  * Implication. The parameters * 'e0' and 'e1' must have bit-width one.
@@ -387,7 +387,7 @@ BtorExp *boolector_sext (Btor *btor, BtorExp *exp, int width);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_implies (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Equivalence. The parameters 'e0' and 'e1' must have bit-width one.
@@ -396,7 +396,7 @@ BtorExp *boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_iff (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Xor. The parameters 'e0' and 'e1' must have the same bit-width.
@@ -405,7 +405,7 @@ BtorExp *boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_xor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Xnor. The parameters 'e0' and 'e1' must have the same bit-width.
@@ -414,7 +414,7 @@ BtorExp *boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_xnor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * And. The parameters 'e0' and 'e1' must have the same bit-width.
@@ -423,7 +423,7 @@ BtorExp *boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_and (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Nand. The parameters 'e0' and 'e1' must have the same bit-width.
@@ -432,7 +432,7 @@ BtorExp *boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_nand (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Or. The parameters 'e0' and 'e1' must have the same bit-width.
@@ -441,7 +441,7 @@ BtorExp *boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_or (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Nor. The parameters 'e0' and 'e1' must have the same bit-width.
@@ -450,7 +450,7 @@ BtorExp *boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /** Equality. Either both operands are bit-vectors with the same
  * bit-with or both operands are arrays of the same type.
@@ -459,7 +459,7 @@ BtorExp *boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_eq (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /** Inequality. Either both operands are bit-vectors with the same
  * bit-with or both operands are arrays of the same type.
@@ -468,7 +468,7 @@ BtorExp *boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ne (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Addition.
@@ -478,7 +478,7 @@ BtorExp *boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_add (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned addition overflow detection. The result represents if the addition
@@ -489,7 +489,7 @@ BtorExp *boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed addition overflow detection. The result represents if the addition
@@ -500,7 +500,7 @@ BtorExp *boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_saddo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Multiplication.
@@ -510,7 +510,7 @@ BtorExp *boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_mul (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned multiplication overflow detection.
@@ -522,7 +522,7 @@ BtorExp *boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_umulo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed multiplication overflow detection.
@@ -534,7 +534,7 @@ BtorExp *boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_smulo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned less than.
@@ -544,7 +544,7 @@ BtorExp *boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ult (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed less than.
@@ -554,7 +554,7 @@ BtorExp *boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_slt (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned less than or equal.
@@ -564,7 +564,7 @@ BtorExp *boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ulte (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed less than or equal.
@@ -574,7 +574,7 @@ BtorExp *boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_slte (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned greater than.
@@ -584,7 +584,7 @@ BtorExp *boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ugt (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed greater than.
@@ -594,7 +594,7 @@ BtorExp *boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sgt (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned greater than or equal.
@@ -604,7 +604,7 @@ BtorExp *boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ugte (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed greater than or equal.
@@ -614,7 +614,7 @@ BtorExp *boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sgte (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Shift left.
@@ -625,7 +625,7 @@ BtorExp *boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1);
  * the bit-width of 'e0'.
  * \return Bit-vector with the same bit-width as 'e0'.
  */
-BtorExp *boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sll (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Shift right logical. Zeroes are shifted in.
@@ -636,7 +636,7 @@ BtorExp *boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1);
  * the bit-width of 'e0'.
  * \return Bit-vector with the same bit-width as 'e0'.
  */
-BtorExp *boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_srl (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Shift right arithmetic. Whether zeroes or ones are shifted in depends
@@ -648,7 +648,7 @@ BtorExp *boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1);
  * the bit-width of 'e0'.
  * \return Bit-vector with the same bit-width as 'e0'.
  */
-BtorExp *boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sra (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Rotate left.
@@ -659,7 +659,7 @@ BtorExp *boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1);
  * the bit-width of 'e0'.
  * \return Bit-vector with the same bit-width as 'e0'.
  */
-BtorExp *boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_rol (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Rotate right.
@@ -670,7 +670,7 @@ BtorExp *boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1);
  * the bit-width of 'e0'.
  * \return Bit-vector with the same bit-width as 'e0'.
  */
-BtorExp *boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ror (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Subtraction.
@@ -680,7 +680,7 @@ BtorExp *boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with the same bit-width as the operands.
  */
-BtorExp *boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sub (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned subtraction overflow detection.
@@ -692,7 +692,7 @@ BtorExp *boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_usubo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed subtraction overflow detection.
@@ -704,7 +704,7 @@ BtorExp *boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width one.
  */
-BtorExp *boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned division.
@@ -720,7 +720,7 @@ BtorExp *boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * real circuits where division by zero cannot be uninterpreted and of course
  * returns a result.
  */
-BtorExp *boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_udiv (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed division.
@@ -736,7 +736,7 @@ BtorExp *boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1);
  * is applied to the result if the sign bits of 'e0' and 'e1' are different.
  * Therefore, the behavior upon dividing zero depends on \ref boolector_udiv.
  */
-BtorExp *boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed division overflow detection.
@@ -750,7 +750,7 @@ BtorExp *boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \return Bit-vector with bit-width one.
  * \remarks Unsigned division cannot overflow.
  */
-BtorExp *boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Unsigned remainder.
@@ -765,7 +765,7 @@ BtorExp *boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1);
  * is handled as uninterpreted. Our semantics are motivated by
  * real circuits where results cannot be uninterpreted.
  */
-BtorExp *boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_urem (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed remainder.
@@ -779,7 +779,7 @@ BtorExp *boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1);
  * unsigned remainder and the sign bits of 'e0' and 'e1'.
  * Therefore, if 'e1' is zero, the result depends on \ref boolector_urem.
  */
-BtorExp *boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_srem (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Signed remainder where sign follows divisor.
@@ -790,7 +790,7 @@ BtorExp *boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \return Bit-vector with the same bit-width as the operands.
  * \remarks The behavior, if 'e1' is zero depends on \ref boolector_urem.
  */
-BtorExp *boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_smod (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Concatenation.
@@ -799,7 +799,7 @@ BtorExp *boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1);
  * \param e1 Second bit-vector operand.
  * \return Bit-vector with bit-width: bit-width of 'e0' + bit-width of 'e1'.
  */
-BtorExp *boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *boolector_concat (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /**
  * Array read on array 'e_array' at position 'e_index'.
@@ -809,7 +809,7 @@ BtorExp *boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1);
  * the same bit-width as the indices of 'e_array'.
  * return Bit-vector with the same bit-width as the elements of 'e_array'.
  */
-BtorExp *boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index);
+BtorNode *boolector_read (Btor *btor, BtorNode *e_array, BtorNode *e_index);
 
 /**
  * Array write on array 'e_array' at position 'e_index' with value 'e_value'.
@@ -822,10 +822,10 @@ BtorExp *boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index);
  * the same bit-width as the elements of 'e_array'.
  * \return Array where the value at one specific index has been updated.
  */
-BtorExp *boolector_write (Btor *btor,
-                          BtorExp *e_array,
-                          BtorExp *e_index,
-                          BtorExp *e_value);
+BtorNode *boolector_write (Btor *btor,
+                           BtorNode *e_array,
+                           BtorNode *e_index,
+                           BtorNode *e_value);
 
 /**
  * If-then-else. If the condition 'e_cond' is one, then
@@ -838,10 +838,10 @@ BtorExp *boolector_write (Btor *btor,
  * \param e_else Operand returned in the else case.
  * \return Result with the same type as 'e_if' and 'e_else'.
  */
-BtorExp *boolector_cond (Btor *btor,
-                         BtorExp *e_cond,
-                         BtorExp *e_if,
-                         BtorExp *e_else);
+BtorNode *boolector_cond (Btor *btor,
+                          BtorNode *e_cond,
+                          BtorNode *e_if,
+                          BtorNode *e_else);
 
 /**
  * Increments bit-vector by one.
@@ -849,7 +849,7 @@ BtorExp *boolector_cond (Btor *btor,
  * \param exp Bit-vector operand.
  * \result Bit-vector with the same bit-width as 'exp'.
  */
-BtorExp *boolector_inc (Btor *btor, BtorExp *exp);
+BtorNode *boolector_inc (Btor *btor, BtorNode *exp);
 
 /**
  * Decrements bit-vector by one.
@@ -857,7 +857,7 @@ BtorExp *boolector_inc (Btor *btor, BtorExp *exp);
  * \param exp Bit-vector operand.
  * \result Bit-vector with the same bit-width as 'exp'.
  */
-BtorExp *boolector_dec (Btor *btor, BtorExp *exp);
+BtorNode *boolector_dec (Btor *btor, BtorNode *exp);
 
 /**
  * Determines if expression is an array. If not, expression is a bit-vector.
@@ -865,7 +865,7 @@ BtorExp *boolector_dec (Btor *btor, BtorExp *exp);
  * \param exp Operand.
  * \result True if expression is an array, and false otherwise.
  */
-int boolector_is_array (Btor *btor, BtorExp *exp);
+int boolector_is_array (Btor *btor, BtorNode *exp);
 
 /**
  * Gets the bit-width of an expression. If the expression
@@ -874,7 +874,7 @@ int boolector_is_array (Btor *btor, BtorExp *exp);
  * \param exp Operand.
  * \return bit-width of 'exp'.
  */
-int boolector_get_width (Btor *btor, BtorExp *exp);
+int boolector_get_width (Btor *btor, BtorNode *exp);
 
 /**
  * Gets the bit-width of indices of 'e_array'.
@@ -882,7 +882,7 @@ int boolector_get_width (Btor *btor, BtorExp *exp);
  * \param e_array Array operand.
  * \return bit-width of indices of 'e_array'.
  */
-int boolector_get_index_width (Btor *btor, BtorExp *e_array);
+int boolector_get_index_width (Btor *btor, BtorNode *e_array);
 
 /**
  * Gets the symbol of a variable.
@@ -892,7 +892,7 @@ int boolector_get_index_width (Btor *btor, BtorExp *e_array);
  * \see boolector_var
  * \see boolector_array
  */
-const char *boolector_get_symbol_of_var (Btor *btor, BtorExp *var);
+const char *boolector_get_symbol_of_var (Btor *btor, BtorNode *var);
 
 /**
  * Copies expression (increments reference counter).
@@ -900,14 +900,14 @@ const char *boolector_get_symbol_of_var (Btor *btor, BtorExp *var);
  * \param exp Operand.
  * \return The expression 'exp'.
  */
-BtorExp *boolector_copy (Btor *btor, BtorExp *exp);
+BtorNode *boolector_copy (Btor *btor, BtorNode *exp);
 
 /**
  * Releases expression (decrements reference counter).
  * \param btor Boolector instance.
  * \param exp Operand.
  */
-void boolector_release (Btor *btor, BtorExp *exp);
+void boolector_release (Btor *btor, BtorNode *exp);
 
 /**
  * Recursively dumps expression to file.
@@ -919,7 +919,7 @@ void boolector_release (Btor *btor, BtorExp *exp);
  * The file must be have been opened by the user before.
  * \param exp The expression which should be dumped.
  */
-void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp);
+void boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp);
 
 /**
  * Recursively dumps expression to file.
@@ -929,7 +929,7 @@ void boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp);
  *which the expression should be dumped. The file must be have been opened by
  *the user before. \param exp The expression which should be dumped.
  */
-void boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp);
+void boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp);
 
 /**
  * Adds constraint. Use this function to assert 'exp'.
@@ -938,7 +938,7 @@ void boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp);
  * \param btor Boolector instance.
  * \param exp Bit-vector expression with bit-width one.
  */
-void boolector_assert (Btor *btor, BtorExp *exp);
+void boolector_assert (Btor *btor, BtorNode *exp);
 
 /**
  * Adds assumption. Use this function to assume 'exp'.
@@ -951,7 +951,7 @@ void boolector_assert (Btor *btor, BtorExp *exp);
  * \param btor Boolector instance.
  * \param exp Bit-vector expression with bit-width one.
  */
-void boolector_assume (Btor *btor, BtorExp *exp);
+void boolector_assume (Btor *btor, BtorNode *exp);
 
 /**
  * Solves SAT instance represented by constraints and assumptions added
@@ -983,7 +983,7 @@ int boolector_sat (Btor *btor);
  * represents that the corresponding bit can be assigned arbitrarily.
  * \see boolector_enable_model_gen
  */
-char *boolector_bv_assignment (Btor *btor, BtorExp *exp);
+char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
 
 /**
  * Builds a model for an array expression.
@@ -1007,7 +1007,7 @@ char *boolector_bv_assignment (Btor *btor, BtorExp *exp);
  * strings. \param size Pointer to size. \see boolector_enable_model_gen
  */
 void boolector_array_assignment (
-    Btor *btor, BtorExp *e_array, char ***indices, char ***values, int *size);
+    Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size);
 
 /**
  * Frees an assignment string for bit-vectors.

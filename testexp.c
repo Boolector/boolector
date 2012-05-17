@@ -43,11 +43,11 @@ test_new_delete_btor (void)
 static void
 test_const_exp (void)
 {
-  FILE *fout    = fopen ("log/const_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_const_exp (btor, "00010011");
-  BtorExp *exp2 = btor_const_exp (btor, "00010011");
-  BtorExp *exp3 = btor_const_exp (btor, "0000000000010011");
+  FILE *fout     = fopen ("log/const_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_const_exp (btor, "00010011");
+  BtorNode *exp2 = btor_const_exp (btor, "00010011");
+  BtorNode *exp3 = btor_const_exp (btor, "0000000000010011");
   assert (exp1 == exp2);
   assert (exp2 != exp3);
   assert (btor_get_exp_len (btor, exp1) == 8);
@@ -64,10 +64,10 @@ test_const_exp (void)
 static void
 test_zero_exp (void)
 {
-  FILE *fout    = fopen ("log/zero_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_zero_exp (btor, 8);
-  BtorExp *exp2 = btor_const_exp (btor, "00000000");
+  FILE *fout     = fopen ("log/zero_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_zero_exp (btor, 8);
+  BtorNode *exp2 = btor_const_exp (btor, "00000000");
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
@@ -81,10 +81,10 @@ test_zero_exp (void)
 static void
 test_ones_exp (void)
 {
-  FILE *fout    = fopen ("log/ones_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_ones_exp (btor, 8);
-  BtorExp *exp2 = btor_const_exp (btor, "11111111");
+  FILE *fout     = fopen ("log/ones_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_ones_exp (btor, 8);
+  BtorNode *exp2 = btor_const_exp (btor, "11111111");
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
@@ -98,10 +98,10 @@ test_ones_exp (void)
 static void
 test_one_exp (void)
 {
-  FILE *fout    = fopen ("log/one_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_one_exp (btor, 8);
-  BtorExp *exp2 = btor_const_exp (btor, "00000001");
+  FILE *fout     = fopen ("log/one_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_one_exp (btor, 8);
+  BtorNode *exp2 = btor_const_exp (btor, "00000001");
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
@@ -115,16 +115,16 @@ test_one_exp (void)
 static void
 test_unsigned_to_exp (void)
 {
-  FILE *fout    = fopen ("log/unsigned_to_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_unsigned_to_exp (btor, 32u, 8);
-  BtorExp *exp2 = btor_unsigned_to_exp (btor, 49u, 8);
-  BtorExp *exp3 = btor_unsigned_to_exp (btor, 3u, 8);
-  BtorExp *exp4 = btor_unsigned_to_exp (btor, 57u, 8);
-  BtorExp *exp5 = btor_const_exp (btor, "00100000");
-  BtorExp *exp6 = btor_const_exp (btor, "00110001");
-  BtorExp *exp7 = btor_const_exp (btor, "00000011");
-  BtorExp *exp8 = btor_const_exp (btor, "00111001");
+  FILE *fout     = fopen ("log/unsigned_to_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_unsigned_to_exp (btor, 32u, 8);
+  BtorNode *exp2 = btor_unsigned_to_exp (btor, 49u, 8);
+  BtorNode *exp3 = btor_unsigned_to_exp (btor, 3u, 8);
+  BtorNode *exp4 = btor_unsigned_to_exp (btor, 57u, 8);
+  BtorNode *exp5 = btor_const_exp (btor, "00100000");
+  BtorNode *exp6 = btor_const_exp (btor, "00110001");
+  BtorNode *exp7 = btor_const_exp (btor, "00000011");
+  BtorNode *exp8 = btor_const_exp (btor, "00111001");
   assert (exp1 == exp5);
   assert (exp2 == exp6);
   assert (exp3 == exp7);
@@ -153,10 +153,10 @@ test_unsigned_to_exp (void)
 static void
 test_var_exp (void)
 {
-  FILE *fout    = fopen ("log/var_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
-  BtorExp *exp2 = btor_copy_exp (btor, exp1);
+  FILE *fout     = fopen ("log/var_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorNode *exp2 = btor_copy_exp (btor, exp1);
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
@@ -170,11 +170,11 @@ test_var_exp (void)
 static void
 test_array_exp (void)
 {
-  FILE *fout    = fopen ("log/array_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_array_exp (btor, 32, 8, "array1");
-  BtorExp *exp2 = btor_copy_exp (btor, exp1);
-  BtorExp *exp3 = btor_array_exp (btor, 32, 8, "array2");
+  FILE *fout     = fopen ("log/array_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_array_exp (btor, 32, 8, "array1");
+  BtorNode *exp2 = btor_copy_exp (btor, exp1);
+  BtorNode *exp3 = btor_array_exp (btor, 32, 8, "array2");
   assert (exp1 == exp2);
   assert (exp1 != exp3);
   assert (btor_get_exp_len (btor, exp1) == 32);
@@ -192,13 +192,13 @@ test_array_exp (void)
 }
 
 static void
-unary_exp_test (BtorExp *(*func) (Btor *, BtorExp *), char *log)
+unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *), char *log)
 {
-  FILE *fout    = fopen (log, "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
-  BtorExp *exp2 = func (btor, exp1);
-  BtorExp *exp3 = func (btor, exp1);
+  FILE *fout     = fopen (log, "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorNode *exp2 = func (btor, exp1);
+  BtorNode *exp3 = func (btor, exp1);
   assert (exp2 == exp3);
   assert (btor_get_exp_len (btor, exp1) == 8);
   if (func == btor_not_exp || func == btor_neg_exp)
@@ -252,11 +252,11 @@ test_redand_exp (void)
 static void
 test_slice_exp (void)
 {
-  FILE *fout    = fopen ("log/slice_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 32, "v1");
-  BtorExp *exp2 = btor_slice_exp (btor, exp1, 31, 30);
-  BtorExp *exp3 = btor_slice_exp (btor, exp1, 31, 30);
+  FILE *fout     = fopen ("log/slice_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 32, "v1");
+  BtorNode *exp2 = btor_slice_exp (btor, exp1, 31, 30);
+  BtorNode *exp3 = btor_slice_exp (btor, exp1, 31, 30);
   assert (exp2 == exp3);
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
@@ -267,13 +267,13 @@ test_slice_exp (void)
 }
 
 static void
-ext_exp_test (BtorExp *(*func) (Btor *, BtorExp *, int), char *log)
+ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, int), char *log)
 {
-  FILE *fout    = fopen (log, "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 32, "v1");
-  BtorExp *exp2 = func (btor, exp1, 32);
-  BtorExp *exp3 = func (btor, exp1, 32);
+  FILE *fout     = fopen (log, "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 32, "v1");
+  BtorNode *exp2 = func (btor, exp1, 32);
+  BtorNode *exp3 = func (btor, exp1, 32);
   assert (exp2 == exp3);
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
@@ -296,16 +296,16 @@ test_sext_exp (void)
 }
 
 static void
-binary_commutative_exp_test (BtorExp *(*func) (Btor *, BtorExp *, BtorExp *),
+binary_commutative_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *),
                              char *log)
 {
-  FILE *fout    = fopen (log, "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
-  BtorExp *exp2 = btor_var_exp (btor, 8, "v2");
-  BtorExp *exp3 = func (btor, exp1, exp2);
-  BtorExp *exp4 = func (btor, exp1, exp2);
-  BtorExp *exp5 = func (btor, exp2, exp1);
+  FILE *fout     = fopen (log, "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorNode *exp2 = btor_var_exp (btor, 8, "v2");
+  BtorNode *exp3 = func (btor, exp1, exp2);
+  BtorNode *exp4 = func (btor, exp1, exp2);
+  BtorNode *exp5 = func (btor, exp2, exp1);
   assert (exp3 == exp4);
   assert (exp4 == exp5);
   assert (btor_get_exp_len (btor, exp1) == 8);
@@ -395,15 +395,15 @@ test_mul_exp (void)
 
 static void
 binary_non_commutative_exp_test (
-    BtorExp *(*func) (Btor *, BtorExp *, BtorExp *), char *log)
+    BtorNode *(*func) (Btor *, BtorNode *, BtorNode *), char *log)
 {
-  FILE *fout    = fopen (log, "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 32, "v1");
-  BtorExp *exp2 = btor_var_exp (btor, 32, "v2");
-  BtorExp *exp3 = func (btor, exp1, exp2);
-  BtorExp *exp4 = func (btor, exp1, exp2);
-  BtorExp *exp5 = func (btor, exp2, exp1);
+  FILE *fout     = fopen (log, "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 32, "v1");
+  BtorNode *exp2 = btor_var_exp (btor, 32, "v2");
+  BtorNode *exp3 = func (btor, exp1, exp2);
+  BtorNode *exp4 = func (btor, exp1, exp2);
+  BtorNode *exp5 = func (btor, exp2, exp1);
   assert (exp3 == exp4);
   assert (exp4 != exp5);
   if (func == btor_sub_exp || func == btor_udiv_exp || func == btor_sdiv_exp
@@ -545,15 +545,15 @@ test_concat_exp (void)
 }
 
 static void
-mulo_exp_test (BtorExp *(*func) (Btor *, BtorExp *, BtorExp *), char *log)
+mulo_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *), char *log)
 {
-  FILE *fout    = fopen (log, "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 3, "v1");
-  BtorExp *exp2 = btor_var_exp (btor, 3, "v2");
-  BtorExp *exp3 = func (btor, exp1, exp2);
-  BtorExp *exp4 = func (btor, exp1, exp2);
-  BtorExp *exp5 = func (btor, exp2, exp1);
+  FILE *fout     = fopen (log, "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 3, "v1");
+  BtorNode *exp2 = btor_var_exp (btor, 3, "v2");
+  BtorNode *exp3 = func (btor, exp1, exp2);
+  BtorNode *exp4 = func (btor, exp1, exp2);
+  BtorNode *exp5 = func (btor, exp2, exp1);
   assert (exp3 == exp4);
   if (func == btor_umulo_exp)
     assert (exp4 != exp5);
@@ -586,14 +586,14 @@ test_smulo_exp (void)
 }
 
 static void
-shift_exp_test (BtorExp *(*func) (Btor *, BtorExp *, BtorExp *), char *log)
+shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *), char *log)
 {
-  FILE *fout    = fopen (log, "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 32, "v1");
-  BtorExp *exp2 = btor_var_exp (btor, 5, "v2");
-  BtorExp *exp3 = func (btor, exp1, exp2);
-  BtorExp *exp4 = func (btor, exp1, exp2);
+  FILE *fout     = fopen (log, "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 32, "v1");
+  BtorNode *exp2 = btor_var_exp (btor, 5, "v2");
+  BtorNode *exp3 = func (btor, exp1, exp2);
+  BtorNode *exp4 = func (btor, exp1, exp2);
   assert (exp3 == exp4);
   assert (btor_get_exp_len (btor, exp1) == 32);
   assert (btor_get_exp_len (btor, exp2) == 5);
@@ -641,12 +641,12 @@ test_ror_exp (void)
 static void
 test_read_exp (void)
 {
-  FILE *fout    = fopen ("log/read_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_array_exp (btor, 32, 8, "array1");
-  BtorExp *exp2 = btor_var_exp (btor, 8, "v1");
-  BtorExp *exp3 = btor_read_exp (btor, exp1, exp2);
-  BtorExp *exp4 = btor_read_exp (btor, exp1, exp2);
+  FILE *fout     = fopen ("log/read_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_array_exp (btor, 32, 8, "array1");
+  BtorNode *exp2 = btor_var_exp (btor, 8, "v1");
+  BtorNode *exp3 = btor_read_exp (btor, exp1, exp2);
+  BtorNode *exp4 = btor_read_exp (btor, exp1, exp2);
   assert (exp4 == exp3);
   assert (btor_get_exp_len (btor, exp1) == 32);
   assert (btor_get_index_exp_len (btor, exp1) == 8);
@@ -665,14 +665,14 @@ test_read_exp (void)
 static void
 test_cond_exp (void)
 {
-  FILE *fout    = fopen ("log/cond_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 1, "v1");
-  BtorExp *exp2 = btor_var_exp (btor, 32, "v2");
-  BtorExp *exp3 = btor_const_exp (btor, "00110111001101010001010100110100");
-  BtorExp *exp4 = btor_cond_exp (btor, exp1, exp2, exp3);
-  BtorExp *exp5 = btor_cond_exp (btor, exp1, exp2, exp3);
-  BtorExp *exp6 = btor_cond_exp (btor, exp1, exp3, exp2);
+  FILE *fout     = fopen ("log/cond_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 1, "v1");
+  BtorNode *exp2 = btor_var_exp (btor, 32, "v2");
+  BtorNode *exp3 = btor_const_exp (btor, "00110111001101010001010100110100");
+  BtorNode *exp4 = btor_cond_exp (btor, exp1, exp2, exp3);
+  BtorNode *exp5 = btor_cond_exp (btor, exp1, exp2, exp3);
+  BtorNode *exp6 = btor_cond_exp (btor, exp1, exp3, exp2);
   assert (exp4 == exp5);
   assert (exp4 != exp6);
   assert (btor_get_exp_len (btor, exp1) == 1);
@@ -695,15 +695,15 @@ test_cond_exp (void)
 static void
 test_write_exp (void)
 {
-  FILE *fout    = fopen ("log/write_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_array_exp (btor, 1, 1, "array1");
-  BtorExp *exp2 = btor_var_exp (btor, 1, "v1");
-  BtorExp *exp3 = btor_var_exp (btor, 1, "v2");
-  BtorExp *exp4 = btor_write_exp (btor, exp1, exp2, exp3);
-  BtorExp *exp5 = btor_write_exp (btor, exp1, exp2, exp3);
-  BtorExp *exp6 = btor_write_exp (btor, exp1, exp3, exp2);
-  BtorExp *exp7 = btor_read_exp (btor, exp5, exp2);
+  FILE *fout     = fopen ("log/write_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_array_exp (btor, 1, 1, "array1");
+  BtorNode *exp2 = btor_var_exp (btor, 1, "v1");
+  BtorNode *exp3 = btor_var_exp (btor, 1, "v2");
+  BtorNode *exp4 = btor_write_exp (btor, exp1, exp2, exp3);
+  BtorNode *exp5 = btor_write_exp (btor, exp1, exp2, exp3);
+  BtorNode *exp6 = btor_write_exp (btor, exp1, exp3, exp2);
+  BtorNode *exp7 = btor_read_exp (btor, exp5, exp2);
   assert (exp4 == exp5);
   assert (exp4 != exp6);
   assert (btor_get_exp_len (btor, exp1) == 1);
@@ -728,11 +728,11 @@ test_write_exp (void)
 static void
 test_inc_exp (void)
 {
-  FILE *fout    = fopen ("log/inc_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
-  BtorExp *exp2 = btor_inc_exp (btor, exp1);
-  BtorExp *exp3 = btor_inc_exp (btor, exp1);
+  FILE *fout     = fopen ("log/inc_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorNode *exp2 = btor_inc_exp (btor, exp1);
+  BtorNode *exp3 = btor_inc_exp (btor, exp1);
   assert (exp2 == exp3);
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
@@ -745,11 +745,11 @@ test_inc_exp (void)
 static void
 test_dec_exp (void)
 {
-  FILE *fout    = fopen ("log/dec_exp.log", "w");
-  Btor *btor    = btor_new_btor ();
-  BtorExp *exp1 = btor_var_exp (btor, 8, "v1");
-  BtorExp *exp2 = btor_dec_exp (btor, exp1);
-  BtorExp *exp3 = btor_dec_exp (btor, exp1);
+  FILE *fout     = fopen ("log/dec_exp.log", "w");
+  Btor *btor     = btor_new_btor ();
+  BtorNode *exp1 = btor_var_exp (btor, 8, "v1");
+  BtorNode *exp2 = btor_dec_exp (btor, exp1);
+  BtorNode *exp3 = btor_dec_exp (btor, exp1);
   assert (exp2 == exp3);
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);

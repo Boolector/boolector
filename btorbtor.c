@@ -24,11 +24,11 @@
 
 typedef struct BtorBTORParser BtorBTORParser;
 
-typedef BtorExp *(*BtorOpParser) (BtorBTORParser *, int len);
-typedef BtorExp *(*Unary) (Btor *, BtorExp *);
-typedef BtorExp *(*Binary) (Btor *, BtorExp *, BtorExp *);
-typedef BtorExp *(*Shift) (Btor *, BtorExp *, BtorExp *);
-typedef BtorExp *(*Extend) (Btor *, BtorExp *, int);
+typedef BtorNode *(*BtorOpParser) (BtorBTORParser *, int len);
+typedef BtorNode *(*Unary) (Btor *, BtorNode *);
+typedef BtorNode *(*Binary) (Btor *, BtorNode *, BtorNode *);
+typedef BtorNode *(*Shift) (Btor *, BtorNode *, BtorNode *);
+typedef BtorNode *(*Extend) (Btor *, BtorNode *, int);
 
 #define SIZE_PARSERS 128
 
@@ -57,13 +57,13 @@ struct BtorBTORParser
   const char *name;
   char *error;
 
-  BtorExpPtrStack exps;
+  BtorNodePtrStack exps;
   BtorInfoStack info;
 
-  BtorExpPtrStack inputs;
-  BtorExpPtrStack outputs;
-  BtorExpPtrStack regs;
-  BtorExpPtrStack nexts;
+  BtorNodePtrStack inputs;
+  BtorNodePtrStack outputs;
+  BtorNodePtrStack regs;
+  BtorNodePtrStack nexts;
 
   BtorCharStack op;
   BtorCharStack constant;
@@ -258,11 +258,11 @@ parse_non_zero_int (BtorBTORParser *parser, int *res_ptr)
   return 0;
 }
 
-static BtorExp *
+static BtorNode *
 parse_exp (BtorBTORParser *parser, int expected_len, int can_be_array)
 {
   int lit, idx, len_res;
-  BtorExp *res;
+  BtorNode *res;
 
   lit = 0;
   if (parse_non_zero_int (parser, &lit)) return 0;
@@ -372,10 +372,10 @@ parse_symbol (BtorBTORParser *parser)
   return 1;
 }
 
-static BtorExp *
+static BtorNode *
 parse_var (BtorBTORParser *parser, int len)
 {
-  BtorExp *res;
+  BtorNode *res;
 
   if (!parse_symbol (parser)) return 0;
 
@@ -386,10 +386,10 @@ parse_var (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_array (BtorBTORParser *parser, int len)
 {
-  BtorExp *res;
+  BtorNode *res;
   int idx_len, symbol_len;
   char *id_symbol;
 
@@ -412,10 +412,10 @@ parse_array (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_array_exp (BtorBTORParser *parser, int len)
 {
-  BtorExp *res;
+  BtorNode *res;
 
   res = parse_exp (parser, len, 1);
   if (!res) return 0;
@@ -428,11 +428,11 @@ parse_array_exp (BtorBTORParser *parser, int len)
   return 0;
 }
 
-static BtorExp *
+static BtorNode *
 parse_next (BtorBTORParser *parser, int len)
 {
   int idx;
-  BtorExp *current, *next;
+  BtorNode *current, *next;
   Info info;
 
   if (parse_space (parser)) return 0;
@@ -472,11 +472,11 @@ parse_next (BtorBTORParser *parser, int len)
   return next;
 }
 
-static BtorExp *
+static BtorNode *
 parse_anext (BtorBTORParser *parser, int len)
 {
   int idx, current_idx_len, idx_len;
-  BtorExp *current, *next;
+  BtorNode *current, *next;
   Info info;
 
   if (parse_space (parser)) return 0;
@@ -530,10 +530,10 @@ parse_anext (BtorBTORParser *parser, int len)
   return next;
 }
 
-static BtorExp *
+static BtorNode *
 parse_const (BtorBTORParser *parser, int len)
 {
-  BtorExp *res;
+  BtorNode *res;
   int ch, clen;
 
   if (parse_space (parser)) return 0;
@@ -569,11 +569,11 @@ parse_const (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_consth (BtorBTORParser *parser, int len)
 {
   char *tmp, *extended;
-  BtorExp *res;
+  BtorNode *res;
   int ch, clen;
 
   if (parse_space (parser)) return 0;
@@ -627,11 +627,11 @@ parse_consth (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_constd (BtorBTORParser *parser, int len)
 {
   char ch, *tmp, *extended;
-  BtorExp *res;
+  BtorNode *res;
   int clen;
 
   if (parse_space (parser)) return 0;
@@ -701,28 +701,28 @@ parse_constd (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_zero (BtorBTORParser *parser, int len)
 {
   return btor_zero_exp (parser->btor, len);
 }
 
-static BtorExp *
+static BtorNode *
 parse_one (BtorBTORParser *parser, int len)
 {
   return btor_one_exp (parser->btor, len);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ones (BtorBTORParser *parser, int len)
 {
   return btor_ones_exp (parser->btor, len);
 }
 
-static BtorExp *
+static BtorNode *
 parse_root (BtorBTORParser *parser, int len)
 {
-  BtorExp *res;
+  BtorNode *res;
 
   if (parse_space (parser)) return 0;
 
@@ -733,10 +733,10 @@ parse_root (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_unary (BtorBTORParser *parser, int len, Unary f)
 {
-  BtorExp *tmp, *res;
+  BtorNode *tmp, *res;
 
   assert (len);
   if (parse_space (parser)) return 0;
@@ -750,40 +750,40 @@ parse_unary (BtorBTORParser *parser, int len, Unary f)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_not (BtorBTORParser *parser, int len)
 {
   return parse_unary (parser, len, btor_not_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_neg (BtorBTORParser *parser, int len)
 {
   return parse_unary (parser, len, btor_neg_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_inc (BtorBTORParser *parser, int len)
 {
   return parse_unary (parser, len, btor_inc_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_dec (BtorBTORParser *parser, int len)
 {
   return parse_unary (parser, len, btor_dec_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_proxy (BtorBTORParser *parser, int len)
 {
   return parse_unary (parser, len, btor_copy_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_redunary (BtorBTORParser *parser, int len, Unary f)
 {
-  BtorExp *tmp, *res;
+  BtorNode *tmp, *res;
 
   (void) len;
   assert (len == 1);
@@ -807,28 +807,28 @@ parse_redunary (BtorBTORParser *parser, int len, Unary f)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_redand (BtorBTORParser *parser, int len)
 {
   return parse_redunary (parser, len, btor_redand_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_redor (BtorBTORParser *parser, int len)
 {
   return parse_redunary (parser, len, btor_redor_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_redxor (BtorBTORParser *parser, int len)
 {
   return parse_redunary (parser, len, btor_redxor_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_binary (BtorBTORParser *parser, int len, Binary f)
 {
-  BtorExp *l, *r, *res;
+  BtorNode *l, *r, *res;
 
   assert (len);
 
@@ -853,94 +853,94 @@ parse_binary (BtorBTORParser *parser, int len, Binary f)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_add (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_add_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_and (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_and_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_smod (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_smod_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_srem (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_srem_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_mul (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_mul_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sub (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_sub_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_udiv (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_udiv_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_urem (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_urem_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_xor (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_xor_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_xnor (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_xnor_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_or (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_or_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_nor (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_nor_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_nand (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_nand_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sdiv (BtorBTORParser *parser, int len)
 {
   return parse_binary (parser, len, btor_sdiv_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_logical (BtorBTORParser *parser, int len, Binary f)
 {
-  BtorExp *l, *r, *res;
+  BtorNode *l, *r, *res;
 
   if (len != 1)
   {
@@ -979,25 +979,25 @@ parse_logical (BtorBTORParser *parser, int len, Binary f)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_implies (BtorBTORParser *parser, int len)
 {
   return parse_logical (parser, len, btor_implies_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_iff (BtorBTORParser *parser, int len)
 {
   return parse_logical (parser, len, btor_iff_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_compare_and_overflow (BtorBTORParser *parser,
                             int len,
                             Binary f,
                             int can_be_array)
 {
-  BtorExp *l, *r, *res;
+  BtorNode *l, *r, *res;
   int llen, rlen;
 
   if (len != 1)
@@ -1078,112 +1078,112 @@ parse_compare_and_overflow (BtorBTORParser *parser,
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_eq (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_eq_exp, 1);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ne (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_ne_exp, 1);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sgt (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_sgt_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sgte (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_sgte_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_slt (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_slt_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_slte (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_slte_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ugt (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_ugt_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ugte (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_ugte_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ult (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_ult_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ulte (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_ulte_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_saddo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_saddo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ssubo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_ssubo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_smulo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_smulo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sdivo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_sdivo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_uaddo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_uaddo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_usubo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_usubo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_umulo (BtorBTORParser *parser, int len)
 {
   return parse_compare_and_overflow (parser, len, btor_umulo_exp, 0);
 }
 
-static BtorExp *
+static BtorNode *
 parse_concat (BtorBTORParser *parser, int len)
 {
-  BtorExp *l, *r, *res;
+  BtorNode *l, *r, *res;
   int llen, rlen;
 
   if (parse_space (parser)) return 0;
@@ -1223,10 +1223,10 @@ parse_concat (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_shift (BtorBTORParser *parser, int len, Shift f)
 {
-  BtorExp *l, *r, *res;
+  BtorNode *l, *r, *res;
   int rlen;
 
   for (rlen = 1; rlen <= 30 && len != (1 << rlen); rlen++)
@@ -1259,40 +1259,40 @@ parse_shift (BtorBTORParser *parser, int len, Shift f)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_rol (BtorBTORParser *parser, int len)
 {
   return parse_shift (parser, len, btor_rol_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_ror (BtorBTORParser *parser, int len)
 {
   return parse_shift (parser, len, btor_ror_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sll (BtorBTORParser *parser, int len)
 {
   return parse_shift (parser, len, btor_sll_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_sra (BtorBTORParser *parser, int len)
 {
   return parse_shift (parser, len, btor_sra_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_srl (BtorBTORParser *parser, int len)
 {
   return parse_shift (parser, len, btor_srl_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_cond (BtorBTORParser *parser, int len)
 {
-  BtorExp *c, *t, *e, *res;
+  BtorNode *c, *t, *e, *res;
 
   if (parse_space (parser)) return 0;
 
@@ -1324,10 +1324,10 @@ parse_cond (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_acond (BtorBTORParser *parser, int len)
 {
-  BtorExp *c, *t, *e, *res;
+  BtorNode *c, *t, *e, *res;
   int idxlen;
 
   if (parse_space (parser)) return 0;
@@ -1377,11 +1377,11 @@ parse_acond (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_slice (BtorBTORParser *parser, int len)
 {
   int arglen, upper, lower, delta;
-  BtorExp *res, *arg;
+  BtorNode *res, *arg;
 
   if (parse_space (parser)) return 0;
 
@@ -1434,10 +1434,10 @@ parse_slice (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_read (BtorBTORParser *parser, int len)
 {
-  BtorExp *array, *idx, *res;
+  BtorNode *array, *idx, *res;
   int idxlen;
 
   if (parse_space (parser)) return 0;
@@ -1462,10 +1462,10 @@ parse_read (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_write (BtorBTORParser *parser, int len)
 {
-  BtorExp *array, *idx, *val, *res;
+  BtorNode *array, *idx, *val, *res;
   int idxlen, vallen;
 
   if (parse_space (parser)) return 0;
@@ -1506,10 +1506,10 @@ parse_write (BtorBTORParser *parser, int len)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_ext (BtorBTORParser *parser, int len, Extend f)
 {
-  BtorExp *res, *arg;
+  BtorNode *res, *arg;
   int alen, elen;
 
   if (parse_space (parser)) return 0;
@@ -1544,13 +1544,13 @@ parse_ext (BtorBTORParser *parser, int len, Extend f)
   return res;
 }
 
-static BtorExp *
+static BtorNode *
 parse_sext (BtorBTORParser *parser, int len)
 {
   return parse_ext (parser, len, btor_sext_exp);
 }
 
-static BtorExp *
+static BtorNode *
 parse_uext (BtorBTORParser *parser, int len)
 {
   return parse_ext (parser, len, btor_uext_exp);
@@ -1698,7 +1698,7 @@ btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
 static void
 btor_delete_btor_parser (BtorBTORParser *parser)
 {
-  BtorExp *e;
+  BtorNode *e;
   int i;
 
   for (i = 0; i < BTOR_COUNT_STACK (parser->exps); i++)
@@ -1726,7 +1726,7 @@ btor_delete_btor_parser (BtorBTORParser *parser)
 static void
 remove_regs_from_vars (BtorBTORParser *parser)
 {
-  BtorExp **p, **q, *e;
+  BtorNode **p, **q, *e;
   Info info;
   int i;
   return;
@@ -1757,7 +1757,7 @@ btor_parse_btor_parser (BtorBTORParser *parser,
 {
   BtorOpParser op_parser;
   int ch, len;
-  BtorExp *e;
+  BtorNode *e;
 
   assert (name);
   assert (file);

@@ -29,23 +29,23 @@
 
 /*------------------------------------------------------------------------*/
 
-struct BtorExpPair
+struct BtorNodePair
 {
-  BtorExp *exp1;
-  BtorExp *exp2;
+  BtorNode *exp1;
+  BtorNode *exp2;
 };
 
 struct BtorPartialParentIterator
 {
-  BtorExp *cur;
+  BtorNode *cur;
 };
 
 typedef struct BtorPartialParentIterator BtorPartialParentIterator;
 
 struct BtorFullParentIterator
 {
-  BtorExp *cur;
-  BtorExp *exp;
+  BtorNode *cur;
+  BtorNode *exp;
   int regular_parents_done;
 };
 
@@ -111,11 +111,11 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 /*------------------------------------------------------------------------*/
 
-static void add_constraint (Btor *, BtorExp *);
+static void add_constraint (Btor *, BtorNode *);
 
 static void run_rewrite_engine (Btor *);
 
-static int exp_to_cnf_lit (Btor *, BtorExp *);
+static int exp_to_cnf_lit (Btor *, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 
@@ -151,7 +151,7 @@ check_all_hash_tables_proxy_free_dbg (const Btor *btor)
 
 int
 btor_precond_slice_exp_dbg (const Btor *btor,
-                            const BtorExp *exp,
+                            const BtorNode *exp,
                             int upper,
                             int lower)
 {
@@ -167,7 +167,7 @@ btor_precond_slice_exp_dbg (const Btor *btor,
 }
 
 static int
-btor_precond_ext_exp_dbg (const Btor *btor, const BtorExp *exp, int len)
+btor_precond_ext_exp_dbg (const Btor *btor, const BtorNode *exp, int len)
 {
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
   assert (len >= 0);
@@ -175,7 +175,7 @@ btor_precond_ext_exp_dbg (const Btor *btor, const BtorExp *exp, int len)
 }
 
 int
-btor_precond_regular_unary_bv_exp_dbg (const Btor *btor, const BtorExp *exp)
+btor_precond_regular_unary_bv_exp_dbg (const Btor *btor, const BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -186,10 +186,12 @@ btor_precond_regular_unary_bv_exp_dbg (const Btor *btor, const BtorExp *exp)
 }
 
 int
-btor_precond_eq_exp_dbg (const Btor *btor, const BtorExp *e0, const BtorExp *e1)
+btor_precond_eq_exp_dbg (const Btor *btor,
+                         const BtorNode *e0,
+                         const BtorNode *e1)
 {
   int is_array_e0, is_array_e1;
-  BtorExp *real_e0, *real_e1;
+  BtorNode *real_e0, *real_e1;
 
   assert (btor);
   assert (e0);
@@ -216,8 +218,8 @@ btor_precond_eq_exp_dbg (const Btor *btor, const BtorExp *e0, const BtorExp *e1)
 
 int
 btor_precond_concat_exp_dbg (const Btor *btor,
-                             const BtorExp *e0,
-                             const BtorExp *e1)
+                             const BtorNode *e0,
+                             const BtorNode *e1)
 {
   assert (btor);
   assert (e0);
@@ -235,8 +237,8 @@ btor_precond_concat_exp_dbg (const Btor *btor,
 
 int
 btor_precond_shift_exp_dbg (const Btor *btor,
-                            const BtorExp *e0,
-                            const BtorExp *e1)
+                            const BtorNode *e0,
+                            const BtorNode *e1)
 {
   assert (btor);
   assert (e0);
@@ -255,8 +257,8 @@ btor_precond_shift_exp_dbg (const Btor *btor,
 
 int
 btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
-                                        const BtorExp *e0,
-                                        const BtorExp *e1)
+                                        const BtorNode *e0,
+                                        const BtorNode *e1)
 {
   assert (btor);
   assert (e0);
@@ -272,8 +274,8 @@ btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
 
 int
 btor_precond_read_exp_dbg (const Btor *btor,
-                           const BtorExp *e_array,
-                           const BtorExp *e_index)
+                           const BtorNode *e_array,
+                           const BtorNode *e_index)
 {
   assert (btor);
   assert (e_array);
@@ -291,9 +293,9 @@ btor_precond_read_exp_dbg (const Btor *btor,
 
 int
 btor_precond_write_exp_dbg (const Btor *btor,
-                            const BtorExp *e_array,
-                            const BtorExp *e_index,
-                            const BtorExp *e_value)
+                            const BtorNode *e_array,
+                            const BtorNode *e_index,
+                            const BtorNode *e_value)
 {
   assert (btor);
   assert (e_array);
@@ -315,11 +317,11 @@ btor_precond_write_exp_dbg (const Btor *btor,
 
 int
 btor_precond_cond_exp_dbg (const Btor *btor,
-                           const BtorExp *e_cond,
-                           const BtorExp *e_if,
-                           const BtorExp *e_else)
+                           const BtorNode *e_cond,
+                           const BtorNode *e_if,
+                           const BtorNode *e_else)
 {
-  BtorExp *real_e_if, *real_e_else;
+  BtorNode *real_e_if, *real_e_else;
   int is_array_e_if, is_array_e_else;
 
   assert (btor);
@@ -367,9 +369,9 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
 }
 
 static void
-inc_exp_ref_counter (Btor *btor, BtorExp *exp)
+inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 {
-  BtorExp *real_exp;
+  BtorNode *real_exp;
   assert (btor);
   assert (exp);
   (void) btor;
@@ -378,8 +380,8 @@ inc_exp_ref_counter (Btor *btor, BtorExp *exp)
   real_exp->refs++;
 }
 
-BtorExp *
-btor_copy_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_copy_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -391,11 +393,11 @@ btor_copy_exp (Btor *btor, BtorExp *exp)
  * other expression pairs via the function
  * 'compare_exp_pair'
  */
-static BtorExpPair *
-new_exp_pair (Btor *btor, BtorExp *exp1, BtorExp *exp2)
+static BtorNodePair *
+new_exp_pair (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
   int id1, id2;
-  BtorExpPair *result;
+  BtorNodePair *result;
   assert (btor);
   assert (exp1);
   assert (exp2);
@@ -417,10 +419,10 @@ new_exp_pair (Btor *btor, BtorExp *exp1, BtorExp *exp2)
 
 /* Disconnects a child from its parent and updates its parent list */
 static void
-disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
+disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
 {
-  BtorExp *first_parent, *last_parent;
-  BtorExp *child, *real_child, *tagged_parent;
+  BtorNode *first_parent, *last_parent;
+  BtorNode *child, *real_child, *tagged_parent;
   assert (btor);
   assert (parent);
   assert (pos >= 0);
@@ -525,7 +527,7 @@ disconnect_child_exp (Btor *btor, BtorExp *parent, int pos)
 
 /* Computes hash value of expresssion by children ids */
 static unsigned int
-compute_hash_exp (BtorExp *exp, int table_size)
+compute_hash_exp (BtorNode *exp, int table_size)
 {
   unsigned int hash;
   assert (exp);
@@ -564,10 +566,10 @@ compute_hash_exp (BtorExp *exp, int table_size)
 }
 
 static void
-remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
+remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
 {
   unsigned int hash;
-  BtorExp *cur, *prev;
+  BtorNode *cur, *prev;
 
   assert (exp);
   assert (BTOR_IS_REGULAR_EXP (exp));
@@ -598,7 +600,7 @@ remove_from_unique_table_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-remove_from_hash_tables (Btor *btor, BtorExp *exp)
+remove_from_hash_tables (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -633,7 +635,7 @@ remove_from_hash_tables (Btor *btor, BtorExp *exp)
  * if an expression is rewritten and reused as PROXY.
  */
 static void
-disconnect_children_exp (Btor *btor, BtorExp *exp)
+disconnect_children_exp (Btor *btor, BtorNode *exp)
 {
   int i;
 
@@ -660,7 +662,7 @@ disconnect_children_exp (Btor *btor, BtorExp *exp)
  * We use this function to update operator stats
  */
 static void
-erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
+erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
 {
   BtorMemMgr *mm;
 
@@ -736,7 +738,7 @@ erase_local_data_exp (Btor *btor, BtorExp *exp, int free_symbol)
 /* Delete expression from memory.
  */
 static void
-really_deallocate_exp (Btor *btor, BtorExp *exp)
+really_deallocate_exp (Btor *btor, BtorNode *exp)
 {
   BtorMemMgr *mm;
 
@@ -759,11 +761,11 @@ really_deallocate_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-recursively_release_exp (Btor *btor, BtorExp *root)
+recursively_release_exp (Btor *btor, BtorNode *root)
 {
   BtorMemMgr *mm;
-  BtorExpPtrStack stack;
-  BtorExp *cur;
+  BtorNodePtrStack stack;
+  BtorNode *cur;
   int i;
 
   assert (btor);
@@ -818,7 +820,7 @@ recursively_release_exp (Btor *btor, BtorExp *root)
 }
 
 void
-btor_release_exp (Btor *btor, BtorExp *root)
+btor_release_exp (Btor *btor, BtorNode *root)
 {
   assert (btor);
   assert (root);
@@ -834,7 +836,7 @@ btor_release_exp (Btor *btor, BtorExp *root)
 }
 
 static void
-delete_exp_pair (Btor *btor, BtorExpPair *pair)
+delete_exp_pair (Btor *btor, BtorNodePair *pair)
 {
   assert (btor);
   assert (pair);
@@ -844,7 +846,7 @@ delete_exp_pair (Btor *btor, BtorExpPair *pair)
 }
 
 static unsigned int
-hash_exp_pair (BtorExpPair *pair)
+hash_exp_pair (BtorNodePair *pair)
 {
   unsigned int result;
   assert (pair);
@@ -855,7 +857,7 @@ hash_exp_pair (BtorExpPair *pair)
 }
 
 static int
-compare_exp_pair (BtorExpPair *pair1, BtorExpPair *pair2)
+compare_exp_pair (BtorNodePair *pair1, BtorNodePair *pair2)
 {
   int result;
   assert (pair1);
@@ -869,7 +871,7 @@ compare_exp_pair (BtorExpPair *pair1, BtorExpPair *pair2)
 }
 
 static void
-init_read_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
+init_read_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -877,7 +879,7 @@ init_read_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
 }
 
 static void
-init_write_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
+init_write_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -885,7 +887,7 @@ init_write_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
 }
 
 static void
-init_aeq_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
+init_aeq_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -893,7 +895,7 @@ init_aeq_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
 }
 
 static void
-init_acond_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
+init_acond_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -901,7 +903,7 @@ init_acond_parent_iterator (BtorPartialParentIterator *it, BtorExp *exp)
 }
 
 static void
-init_full_parent_iterator (BtorFullParentIterator *it, BtorExp *exp)
+init_full_parent_iterator (BtorFullParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -921,10 +923,10 @@ init_full_parent_iterator (BtorFullParentIterator *it, BtorExp *exp)
   }
 }
 
-static BtorExp *
+static BtorNode *
 next_parent_read_parent_iterator (BtorPartialParentIterator *it)
 {
-  BtorExp *result;
+  BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
@@ -935,10 +937,10 @@ next_parent_read_parent_iterator (BtorPartialParentIterator *it)
   return result;
 }
 
-static BtorExp *
+static BtorNode *
 next_parent_write_parent_iterator (BtorPartialParentIterator *it)
 {
-  BtorExp *result;
+  BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
@@ -949,10 +951,10 @@ next_parent_write_parent_iterator (BtorPartialParentIterator *it)
   return result;
 }
 
-static BtorExp *
+static BtorNode *
 next_parent_aeq_parent_iterator (BtorPartialParentIterator *it)
 {
-  BtorExp *result;
+  BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
@@ -961,10 +963,10 @@ next_parent_aeq_parent_iterator (BtorPartialParentIterator *it)
   return BTOR_REAL_ADDR_EXP (result);
 }
 
-static BtorExp *
+static BtorNode *
 next_parent_acond_parent_iterator (BtorPartialParentIterator *it)
 {
-  BtorExp *result;
+  BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
@@ -973,10 +975,10 @@ next_parent_acond_parent_iterator (BtorPartialParentIterator *it)
   return BTOR_REAL_ADDR_EXP (result);
 }
 
-static BtorExp *
+static BtorNode *
 next_parent_full_parent_iterator (BtorFullParentIterator *it)
 {
-  BtorExp *result;
+  BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
@@ -1035,7 +1037,7 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
 }
 
 static int
-has_parents_exp (Btor *btor, BtorExp *exp)
+has_parents_exp (Btor *btor, BtorNode *exp)
 {
   BtorFullParentIterator it;
 
@@ -1048,7 +1050,7 @@ has_parents_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-check_not_simplified_or_const (Btor *btor, BtorExp *exp)
+check_not_simplified_or_const (Btor *btor, BtorNode *exp)
 {
 #ifndef NDEBUG
   assert (btor);
@@ -1068,7 +1070,7 @@ check_not_simplified_or_const (Btor *btor, BtorExp *exp)
 }
 
 static int
-assignment_always_unequal (Btor *btor, BtorExpPair *pair)
+assignment_always_unequal (Btor *btor, BtorNodePair *pair)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -1076,7 +1078,7 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair)
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
-  BtorExp *exp1, *exp2;
+  BtorNode *exp1, *exp2;
 
   assert (btor);
   assert (pair);
@@ -1134,7 +1136,7 @@ assignment_always_unequal (Btor *btor, BtorExpPair *pair)
 }
 
 static int
-assignment_always_equal (Btor *btor, BtorExpPair *pair)
+assignment_always_equal (Btor *btor, BtorNodePair *pair)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -1142,7 +1144,7 @@ assignment_always_equal (Btor *btor, BtorExpPair *pair)
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
-  BtorExp *exp1, *exp2;
+  BtorNode *exp1, *exp2;
 
   assert (btor);
   assert (pair);
@@ -1200,16 +1202,19 @@ assignment_always_equal (Btor *btor, BtorExpPair *pair)
 }
 
 static void
-add_eq_or_neq_exp_to_clause (
-    Btor *btor, BtorExp *a, BtorExp *b, BtorIntStack *linking_clause, int sign)
+add_eq_or_neq_exp_to_clause (Btor *btor,
+                             BtorNode *a,
+                             BtorNode *b,
+                             BtorIntStack *linking_clause,
+                             int sign)
 {
   BtorPtrHashTable *table = btor->exp_pair_eq_table;
   int lit, true_lit, false_lit, hashed_pair;
   BtorPtrHashBucket *bucket;
-  BtorExpPair *pair;
+  BtorNodePair *pair;
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
-  BtorExp *eq;
+  BtorNode *eq;
 
   assert (sign == 1 || sign == -1);
 
@@ -1259,8 +1264,8 @@ add_eq_or_neq_exp_to_clause (
 
 static void
 add_eq_exp_to_clause (Btor *btor,
-                      BtorExp *a,
-                      BtorExp *b,
+                      BtorNode *a,
+                      BtorNode *b,
                       BtorIntStack *linking_clause)
 {
   add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, 1);
@@ -1268,8 +1273,8 @@ add_eq_exp_to_clause (Btor *btor,
 
 static void
 add_neq_exp_to_clause (Btor *btor,
-                       BtorExp *a,
-                       BtorExp *b,
+                       BtorNode *a,
+                       BtorNode *b,
                        BtorIntStack *linking_clause)
 {
   add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
@@ -1286,17 +1291,17 @@ encode_lemma (Btor *btor,
               BtorPtrHashTable *aeqs,
               BtorPtrHashTable *aconds_sel1,
               BtorPtrHashTable *aconds_sel2,
-              BtorExp *i,
-              BtorExp *j,
-              BtorExp *a,
-              BtorExp *b)
+              BtorNode *i,
+              BtorNode *j,
+              BtorNode *a,
+              BtorNode *b)
 {
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorAIG *aig1;
-  BtorExp *w_index, *cur_write, *aeq, *acond, *cond;
+  BtorNode *w_index, *cur_write, *aeq, *acond, *cond;
   BtorPtrHashBucket *bucket;
   // BtorIntStack clauses;
   BtorIntStack linking_clause;
@@ -1340,7 +1345,7 @@ encode_lemma (Btor *btor,
   /* encode i = write index premisses */
   for (bucket = writes->last; bucket; bucket = bucket->prev)
   {
-    cur_write = (BtorExp *) bucket->key;
+    cur_write = (BtorNode *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (cur_write));
     assert (BTOR_IS_WRITE_EXP (cur_write));
     w_index = cur_write->e[1];
@@ -1351,7 +1356,7 @@ encode_lemma (Btor *btor,
   for (bucket = aeqs->last; bucket; bucket = bucket->prev)
   {
     // TODO replace by 'exp_to_cnf_lit'
-    aeq = (BtorExp *) bucket->key;
+    aeq = (BtorNode *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (aeq));
     assert (BTOR_IS_ARRAY_EQ_EXP (aeq));
     assert (BTOR_IS_SYNTH_EXP (aeq));
@@ -1366,7 +1371,7 @@ encode_lemma (Btor *btor,
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
     // TODO replace by 'exp_to_cnf_lit'
-    acond = (BtorExp *) bucket->key;
+    acond = (BtorNode *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
     cond = acond->e[0];
@@ -1390,7 +1395,7 @@ encode_lemma (Btor *btor,
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
     // TODO replace by 'exp_to_cnf_lit'
-    acond = (BtorExp *) bucket->key;
+    acond = (BtorNode *) bucket->key;
     assert (BTOR_IS_REGULAR_EXP (acond));
     assert (BTOR_IS_ARRAY_COND_EXP (acond));
     cond = acond->e[0];
@@ -1430,10 +1435,10 @@ encode_lemma (Btor *btor,
  * array1 != array2 <=> EXISTS(i): read(array1, i) != read(array2, i)
  */
 static void
-encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
+encode_array_inequality_virtual_reads (Btor *btor, BtorNode *aeq)
 {
-  BtorExpPair *vreads;
-  BtorExp *read1, *read2;
+  BtorNodePair *vreads;
+  BtorNode *read1, *read2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
   BtorAIGVecMgr *avmgr;
@@ -1546,9 +1551,9 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorExp *aeq)
  * Writes are appended to the end of the regular parent list.
  */
 static void
-connect_array_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
+connect_array_child_write_exp (Btor *btor, BtorNode *parent, BtorNode *child)
 {
-  BtorExp *last_parent;
+  BtorNode *last_parent;
   int tag;
   assert (btor);
   assert (parent);
@@ -1586,11 +1591,11 @@ connect_array_child_write_exp (Btor *btor, BtorExp *parent, BtorExp *child)
  */
 static void
 connect_array_child_acond_exp (Btor *btor,
-                               BtorExp *parent,
-                               BtorExp *child,
+                               BtorNode *parent,
+                               BtorNode *child,
                                int pos)
 {
-  BtorExp *last_parent, *tagged_parent;
+  BtorNode *last_parent, *tagged_parent;
   int tag;
   assert (btor);
   assert (parent);
@@ -1631,11 +1636,11 @@ connect_array_child_acond_exp (Btor *btor,
  */
 static void
 connect_array_child_aeq_exp (Btor *btor,
-                             BtorExp *parent,
-                             BtorExp *child,
+                             BtorNode *parent,
+                             BtorNode *child,
                              int pos)
 {
-  BtorExp *first_parent, *tagged_parent;
+  BtorNode *first_parent, *tagged_parent;
   int tag;
   assert (btor);
   assert (parent);
@@ -1671,11 +1676,11 @@ connect_array_child_aeq_exp (Btor *btor,
 }
 
 static void
-update_constraints (Btor *btor, BtorExp *exp)
+update_constraints (Btor *btor, BtorNode *exp)
 {
   BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints;
   BtorPtrHashTable *embedded_constraints, *pos, *neg;
-  BtorExp *simplified, *not_simplified, *not_exp;
+  BtorNode *simplified, *not_simplified, *not_exp;
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_EXP (exp));
@@ -1747,11 +1752,11 @@ update_constraints (Btor *btor, BtorExp *exp)
 
 static void
 set_simplified_exp (Btor *btor,
-                    BtorExp *exp,
-                    BtorExp *simplified,
+                    BtorNode *exp,
+                    BtorNode *simplified,
                     int overwrite)
 {
-  BtorExp *e[3];
+  BtorNode *e[3];
   int i;
   assert (btor);
   assert (exp);
@@ -1799,10 +1804,10 @@ set_simplified_exp (Btor *btor,
 }
 
 /* Finds most simplified expression and shortens path to it */
-static BtorExp *
-recursively_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
+static BtorNode *
+recursively_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *real_exp, *cur, *simplified, *not_simplified, *next;
+  BtorNode *real_exp, *cur, *simplified, *not_simplified, *next;
   int invert;
 
   assert (btor);
@@ -1845,10 +1850,10 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
   return simplified;
 }
 
-BtorExp *
-btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *real_exp;
+  BtorNode *real_exp;
 
   assert (btor);
   assert (exp);
@@ -1870,9 +1875,9 @@ btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp)
 }
 
 static int
-merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b)
+merge_simplified_exp_const (Btor *btor, BtorNode *a, BtorNode *b)
 {
-  BtorExp *rep_a, *rep_b, *rep;
+  BtorNode *rep_a, *rep_b, *rep;
   assert (btor);
   assert (a);
   assert (b);
@@ -1902,9 +1907,9 @@ merge_simplified_exp_const (Btor *btor, BtorExp *a, BtorExp *b)
  * Expressions are inserted at the beginning of the regular parent list
  */
 static void
-connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
+connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 {
-  BtorExp *real_child, *first_parent, *tagged_parent;
+  BtorNode *real_child, *first_parent, *tagged_parent;
   int tag;
   (void) btor;
   assert (btor);
@@ -1947,10 +1952,10 @@ connect_child_exp (Btor *btor, BtorExp *parent, BtorExp *child, int pos)
   }
 }
 
-static BtorExp *
+static BtorNode *
 new_const_exp_node (Btor *btor, const char *bits, int len)
 {
-  BtorBVConstExp *exp;
+  BtorBVConstNode *exp;
   int i;
   assert (btor);
   assert (bits);
@@ -1970,13 +1975,13 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  return (BtorExp *) exp;
+  return (BtorNode *) exp;
 }
 
-static BtorExp *
-new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
+static BtorNode *
+new_slice_exp_node (Btor *btor, BtorNode *e0, int upper, int lower)
 {
-  BtorBVExp *exp = 0;
+  BtorBVNode *exp = 0;
 
   assert (btor);
   assert (e0);
@@ -1997,15 +2002,15 @@ new_slice_exp_node (Btor *btor, BtorExp *e0, int upper, int lower)
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  connect_child_exp (btor, (BtorExp *) exp, e0, 0);
-  return (BtorExp *) exp;
+  connect_child_exp (btor, (BtorNode *) exp, e0, 0);
+  return (BtorNode *) exp;
 }
 
-static BtorExp *
+static BtorNode *
 new_binary_exp_node (
-    Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
+    Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
 {
-  BtorBVExp *exp;
+  BtorBVNode *exp;
 
   assert (btor);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
@@ -2025,17 +2030,17 @@ new_binary_exp_node (
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  connect_child_exp (btor, (BtorExp *) exp, e0, 0);
-  connect_child_exp (btor, (BtorExp *) exp, e1, 1);
+  connect_child_exp (btor, (BtorNode *) exp, e0, 0);
+  connect_child_exp (btor, (BtorNode *) exp, e1, 1);
 
-  return (BtorExp *) exp;
+  return (BtorNode *) exp;
 }
 
-static BtorExp *
-new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+static BtorNode *
+new_aeq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  /* we need aeq and acond next and prev fields -> type is BtorExp */
-  BtorExp *exp;
+  /* we need aeq and acond next and prev fields -> type is BtorNode */
+  BtorNode *exp;
   assert (btor);
   assert (e0);
   assert (e1);
@@ -2055,15 +2060,15 @@ new_aeq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return exp;
 }
 
-static BtorExp *
+static BtorNode *
 new_ternary_exp_node (Btor *btor,
-                      BtorExpKind kind,
-                      BtorExp *e0,
-                      BtorExp *e1,
-                      BtorExp *e2,
+                      BtorNodeKind kind,
+                      BtorNode *e0,
+                      BtorNode *e1,
+                      BtorNode *e2,
                       int len)
 {
-  BtorBVExp *exp;
+  BtorBVNode *exp;
 
   assert (btor);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
@@ -2084,20 +2089,20 @@ new_ternary_exp_node (Btor *btor,
   exp->id   = btor->id++;
   exp->refs = 1;
   exp->btor = btor;
-  connect_child_exp (btor, (BtorExp *) exp, e0, 0);
-  connect_child_exp (btor, (BtorExp *) exp, e1, 1);
-  connect_child_exp (btor, (BtorExp *) exp, e2, 2);
-  return (BtorExp *) exp;
+  connect_child_exp (btor, (BtorNode *) exp, e0, 0);
+  connect_child_exp (btor, (BtorNode *) exp, e1, 1);
+  connect_child_exp (btor, (BtorNode *) exp, e2, 2);
+  return (BtorNode *) exp;
 }
 
-static BtorExp *
+static BtorNode *
 new_write_exp_node (Btor *btor,
-                    BtorExp *e_array,
-                    BtorExp *e_index,
-                    BtorExp *e_value)
+                    BtorNode *e_array,
+                    BtorNode *e_index,
+                    BtorNode *e_value)
 {
   BtorMemMgr *mm;
-  BtorExp *exp;
+  BtorNode *exp;
   assert (btor);
   assert (e_array);
   assert (e_index);
@@ -2127,11 +2132,14 @@ new_write_exp_node (Btor *btor,
   return exp;
 }
 
-static BtorExp *
-new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
+static BtorNode *
+new_acond_exp_node (Btor *btor,
+                    BtorNode *e_cond,
+                    BtorNode *a_if,
+                    BtorNode *a_else)
 {
   BtorMemMgr *mm;
-  BtorExp *exp;
+  BtorNode *exp;
   assert (btor);
   assert (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP (e_cond)));
   assert (BTOR_IS_REGULAR_EXP (a_if));
@@ -2164,7 +2172,7 @@ new_acond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *a_if, BtorExp *a_else)
 
 /* Computes hash value of expression by id */
 unsigned int
-btor_hash_exp_by_id (BtorExp *exp)
+btor_hash_exp_by_id (BtorNode *exp)
 {
   assert (exp);
   return (unsigned int) BTOR_REAL_ADDR_EXP (exp)->id * 7334147u;
@@ -2172,7 +2180,7 @@ btor_hash_exp_by_id (BtorExp *exp)
 
 /* Compares expressions by id */
 int
-btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1)
+btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1)
 {
   int id0, id1;
   assert (exp0);
@@ -2186,10 +2194,10 @@ btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1)
 
 /* Finds constant expression in hash table. Returns 0 if it could not be
  * found. */
-static BtorExp **
+static BtorNode **
 find_const_exp (Btor *btor, const char *bits, int len)
 {
-  BtorExp *cur, **result;
+  BtorNode *cur, **result;
   unsigned int hash;
   assert (btor);
   assert (bits);
@@ -2216,10 +2224,10 @@ find_const_exp (Btor *btor, const char *bits, int len)
 
 /* Finds slice expression in hash table. Returns 0 if it could not be
  * found. */
-static BtorExp **
-find_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower)
+static BtorNode **
+find_slice_exp (Btor *btor, BtorNode *e0, int upper, int lower)
 {
-  BtorExp *cur, **result;
+  BtorNode *cur, **result;
   unsigned int hash;
   assert (btor);
   assert (e0);
@@ -2248,10 +2256,10 @@ find_slice_exp (Btor *btor, BtorExp *e0, int upper, int lower)
 
 /* Finds binary expression in hash table. Returns 0 if it could not be
  * found. */
-static BtorExp **
-find_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
+static BtorNode **
+find_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *cur, **result;
+  BtorNode *cur, **result;
   unsigned int hash;
   assert (btor);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
@@ -2282,11 +2290,11 @@ find_binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1)
 
 /* Finds ternary expression in hash table. Returns 0 if it could not be
  * found. */
-static BtorExp **
+static BtorNode **
 find_ternary_exp (
-    Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, BtorExp *e2)
+    Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
-  BtorExp *cur, **result;
+  BtorNode *cur, **result;
   unsigned int hash;
   assert (btor);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
@@ -2322,7 +2330,7 @@ enlarge_exp_unique_table (Btor *btor)
   BtorMemMgr *mm;
   int size, new_size, i;
   unsigned int hash;
-  BtorExp *cur, *temp, **new_chains;
+  BtorNode *cur, *temp, **new_chains;
   assert (btor);
   mm       = btor->mm;
   size     = btor->table.size;
@@ -2350,11 +2358,11 @@ enlarge_exp_unique_table (Btor *btor)
 }
 
 static void
-mark_synth_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
+mark_synth_mark_exp (Btor *btor, BtorNode *exp, int new_mark)
 {
   BtorMemMgr *mm;
-  BtorExpPtrStack stack;
-  BtorExp *cur;
+  BtorNodePtrStack stack;
+  BtorNode *cur;
   int i;
 
   assert (btor);
@@ -2380,11 +2388,11 @@ mark_synth_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
 }
 
 static void
-btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
+btor_mark_exp (Btor *btor, BtorNode *exp, int new_mark)
 {
   BtorMemMgr *mm;
-  BtorExpPtrStack stack;
-  BtorExp *cur;
+  BtorNodePtrStack stack;
+  BtorNode *cur;
   int i;
 
   assert (btor);
@@ -2409,10 +2417,10 @@ btor_mark_exp (Btor *btor, BtorExp *exp, int new_mark)
   BTOR_RELEASE_STACK (mm, stack);
 }
 
-BtorExp *
+BtorNode *
 btor_const_exp (Btor *btor, const char *bits)
 {
-  BtorExp **lookup;
+  BtorNode **lookup;
   int inv, len;
   char *lookupbits;
 
@@ -2458,11 +2466,11 @@ btor_const_exp (Btor *btor, const char *bits)
   return *lookup;
 }
 
-static BtorExp *
+static BtorNode *
 int_min_exp (Btor *btor, int len)
 {
   char *string;
-  BtorExp *result;
+  BtorNode *result;
   assert (btor);
   assert (len > 0);
   string    = btor_zero_const (btor->mm, len);
@@ -2472,11 +2480,11 @@ int_min_exp (Btor *btor, int len)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_zero_exp (Btor *btor, int len)
 {
   char *string;
-  BtorExp *result;
+  BtorNode *result;
 
   assert (btor);
   assert (len > 0);
@@ -2487,18 +2495,18 @@ btor_zero_exp (Btor *btor, int len)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_false_exp (Btor *btor)
 {
   assert (btor);
   return btor_zero_exp (btor, 1);
 }
 
-BtorExp *
+BtorNode *
 btor_ones_exp (Btor *btor, int len)
 {
   char *string;
-  BtorExp *result;
+  BtorNode *result;
 
   assert (btor);
   assert (len > 0);
@@ -2509,11 +2517,11 @@ btor_ones_exp (Btor *btor, int len)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_one_exp (Btor *btor, int len)
 {
   char *string;
-  BtorExp *result;
+  BtorNode *result;
 
   assert (btor);
   assert (len > 0);
@@ -2524,11 +2532,11 @@ btor_one_exp (Btor *btor, int len)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_int_to_exp (Btor *btor, int i, int len)
 {
   char *string;
-  BtorExp *result;
+  BtorNode *result;
 
   assert (btor);
   assert (len > 0);
@@ -2539,11 +2547,11 @@ btor_int_to_exp (Btor *btor, int i, int len)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_unsigned_to_exp (Btor *btor, unsigned int u, int len)
 {
   char *string;
-  BtorExp *result;
+  BtorNode *result;
 
   assert (btor);
   assert (len > 0);
@@ -2554,18 +2562,18 @@ btor_unsigned_to_exp (Btor *btor, unsigned int u, int len)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_true_exp (Btor *btor)
 {
   assert (btor);
   return btor_one_exp (btor, 1);
 }
 
-BtorExp *
+BtorNode *
 btor_var_exp (Btor *btor, int len, const char *symbol)
 {
   BtorMemMgr *mm;
-  BtorBVVarExp *exp;
+  BtorBVVarNode *exp;
 
   assert (btor);
   assert (len > 0);
@@ -2585,14 +2593,14 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
   (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
-  return (BtorExp *) exp;
+  return (BtorNode *) exp;
 }
 
-BtorExp *
+BtorNode *
 btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
 {
   BtorMemMgr *mm;
-  BtorArrayVarExp *exp;
+  BtorArrayVarNode *exp;
 
   assert (btor);
   assert (elem_len > 0);
@@ -2613,13 +2621,13 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   exp->refs = 1;
   exp->btor = btor;
   (void) btor_insert_in_ptr_hash_table (btor->array_vars, exp);
-  return (BtorExp *) exp;
+  return (BtorNode *) exp;
 }
 
-static BtorExp *
-unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
+static BtorNode *
+unary_exp_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
 {
-  BtorExp **lookup;
+  BtorNode **lookup;
   assert (btor);
   assert (exp);
   int inv;
@@ -2661,18 +2669,18 @@ unary_exp_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   return *lookup;
 }
 
-BtorExp *
-btor_slice_exp_node (Btor *btor, BtorExp *exp, int upper, int lower)
+BtorNode *
+btor_slice_exp_node (Btor *btor, BtorNode *exp, int upper, int lower)
 {
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
   return unary_exp_slice_exp (btor, exp, upper, lower);
 }
 
-static BtorExp *
-binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
+static BtorNode *
+binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
 {
-  BtorExp **lookup, *temp;
+  BtorNode **lookup, *temp;
   assert (btor);
   assert (BTOR_IS_BINARY_EXP_KIND (kind));
   assert (e0);
@@ -2717,8 +2725,8 @@ binary_exp (Btor *btor, BtorExpKind kind, BtorExp *e0, BtorExp *e1, int len)
   return *lookup;
 }
 
-BtorExp *
-btor_and_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2726,10 +2734,10 @@ btor_and_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_AND_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_eq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExpKind kind;
+  BtorNodeKind kind;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2743,8 +2751,8 @@ btor_eq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, kind, e0, e1, 1);
 }
 
-BtorExp *
-btor_add_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_add_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2752,8 +2760,8 @@ btor_add_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_ADD_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_mul_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_mul_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2761,8 +2769,8 @@ btor_mul_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_MUL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_ult_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ult_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2770,8 +2778,8 @@ btor_ult_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_ULT_EXP, e0, e1, 1);
 }
 
-BtorExp *
-btor_sll_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sll_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2779,8 +2787,8 @@ btor_sll_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_SLL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_srl_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_srl_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2788,8 +2796,8 @@ btor_srl_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_SRL_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_udiv_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_udiv_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2797,8 +2805,8 @@ btor_udiv_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_UDIV_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_urem_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_urem_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2806,8 +2814,8 @@ btor_urem_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
   return binary_exp (btor, BTOR_UREM_EXP, e0, e1, BTOR_REAL_ADDR_EXP (e0)->len);
 }
 
-BtorExp *
-btor_concat_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2820,10 +2828,10 @@ btor_concat_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1)
       BTOR_REAL_ADDR_EXP (e0)->len + BTOR_REAL_ADDR_EXP (e1)->len);
 }
 
-BtorExp *
-btor_read_exp_node (Btor *btor, BtorExp *e_array, BtorExp *e_index)
+BtorNode *
+btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
-  BtorExp *result;
+  BtorNode *result;
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
@@ -2832,15 +2840,15 @@ btor_read_exp_node (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   return result;
 }
 
-static BtorExp *
+static BtorNode *
 ternary_exp (Btor *btor,
-             BtorExpKind kind,
-             BtorExp *e0,
-             BtorExp *e1,
-             BtorExp *e2,
+             BtorNodeKind kind,
+             BtorNode *e0,
+             BtorNode *e1,
+             BtorNode *e2,
              int len)
 {
-  BtorExp **lookup;
+  BtorNode **lookup;
   assert (btor);
   assert (BTOR_IS_TERNARY_EXP_KIND (kind));
   assert (e0);
@@ -2886,11 +2894,11 @@ ternary_exp (Btor *btor,
   return *lookup;
 }
 
-BtorExp *
+BtorNode *
 btor_write_exp_node (Btor *btor,
-                     BtorExp *e_array,
-                     BtorExp *e_index,
-                     BtorExp *e_value)
+                     BtorNode *e_array,
+                     BtorNode *e_index,
+                     BtorNode *e_value)
 {
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
@@ -2899,10 +2907,13 @@ btor_write_exp_node (Btor *btor,
   return ternary_exp (btor, BTOR_WRITE_EXP, e_array, e_index, e_value, 0);
 }
 
-BtorExp *
-btor_cond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
+BtorNode *
+btor_cond_exp_node (Btor *btor,
+                    BtorNode *e_cond,
+                    BtorNode *e_if,
+                    BtorNode *e_else)
 {
-  BtorExpKind kind;
+  BtorNodeKind kind;
 
   e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
   e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
@@ -2918,8 +2929,8 @@ btor_cond_exp_node (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
       btor, kind, e_cond, e_if, e_else, BTOR_REAL_ADDR_EXP (e_if)->len);
 }
 
-BtorExp *
-btor_not_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_not_exp (Btor *btor, BtorNode *exp)
 {
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
@@ -2929,10 +2940,10 @@ btor_not_exp (Btor *btor, BtorExp *exp)
   return BTOR_INVERT_EXP (exp);
 }
 
-BtorExp *
-btor_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2947,10 +2958,10 @@ btor_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_neg_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_neg_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *result, *one;
+  BtorNode *result, *one;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
@@ -2961,10 +2972,10 @@ btor_neg_exp (Btor *btor, BtorExp *exp)
   return result;
 }
 
-BtorExp *
-btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
+BtorNode *
+btor_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
@@ -2978,8 +2989,8 @@ btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower)
   return result;
 }
 
-BtorExp *
-btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_or_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -2988,10 +2999,10 @@ btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
       btor_and_exp (btor, BTOR_INVERT_EXP (e0), BTOR_INVERT_EXP (e1)));
 }
 
-BtorExp *
-btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3006,10 +3017,10 @@ btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3024,10 +3035,10 @@ btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, * or, *and;
+  BtorNode *result, * or, *and;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3041,8 +3052,8 @@ btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3050,10 +3061,10 @@ btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return BTOR_INVERT_EXP (btor_xor_exp (btor, e0, e1));
 }
 
-BtorExp *
-btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3068,10 +3079,10 @@ btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
+BtorNode *
+btor_cond_exp (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
   e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
@@ -3087,10 +3098,10 @@ btor_cond_exp (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   return result;
 }
 
-BtorExp *
-btor_redor_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_redor_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *result, *zero;
+  BtorNode *result, *zero;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
@@ -3101,10 +3112,10 @@ btor_redor_exp (Btor *btor, BtorExp *exp)
   return result;
 }
 
-BtorExp *
-btor_redxor_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_redxor_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *result, *slice, *xor;
+  BtorNode *result, *slice, *xor;
   int i, len;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
@@ -3124,10 +3135,10 @@ btor_redxor_exp (Btor *btor, BtorExp *exp)
   return result;
 }
 
-BtorExp *
-btor_redand_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_redand_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *result, *ones;
+  BtorNode *result, *ones;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
@@ -3138,10 +3149,10 @@ btor_redand_exp (Btor *btor, BtorExp *exp)
   return result;
 }
 
-BtorExp *
-btor_uext_exp (Btor *btor, BtorExp *exp, int len)
+BtorNode *
+btor_uext_exp (Btor *btor, BtorNode *exp, int len)
 {
-  BtorExp *result, *zero;
+  BtorNode *result, *zero;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_ext_exp_dbg (btor, exp, len));
@@ -3158,10 +3169,10 @@ btor_uext_exp (Btor *btor, BtorExp *exp, int len)
   return result;
 }
 
-BtorExp *
-btor_sext_exp (Btor *btor, BtorExp *exp, int len)
+BtorNode *
+btor_sext_exp (Btor *btor, BtorNode *exp, int len)
 {
-  BtorExp *result, *zero, *ones, *neg, *cond;
+  BtorNode *result, *zero, *ones, *neg, *cond;
   int exp_len;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
@@ -3186,8 +3197,8 @@ btor_sext_exp (Btor *btor, BtorExp *exp, int len)
   return result;
 }
 
-BtorExp *
-btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_nand_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3195,8 +3206,8 @@ btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return BTOR_INVERT_EXP (btor_and_exp (btor, e0, e1));
 }
 
-BtorExp *
-btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_nor_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3204,8 +3215,8 @@ btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return BTOR_INVERT_EXP (btor_or_exp (btor, e0, e1));
 }
 
-BtorExp *
-btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_implies_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3214,8 +3225,8 @@ btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return BTOR_INVERT_EXP (btor_and_exp (btor, e0, BTOR_INVERT_EXP (e1)));
 }
 
-BtorExp *
-btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_iff_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3224,8 +3235,8 @@ btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_eq_exp (btor, e0, e1);
 }
 
-BtorExp *
-btor_ne_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ne_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3233,10 +3244,10 @@ btor_ne_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return BTOR_INVERT_EXP (btor_eq_exp (btor, e0, e1));
 }
 
-BtorExp *
-btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_uaddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *uext_e1, *uext_e2, *add;
+  BtorNode *result, *uext_e1, *uext_e2, *add;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3254,11 +3265,11 @@ btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_saddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sign_e1, *sign_e2, *sign_result;
-  BtorExp *add, *and1, *and2, *or1, *or2;
+  BtorNode *result, *sign_e1, *sign_e2, *sign_result;
+  BtorNode *add, *and1, *and2, *or1, *or2;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3287,10 +3298,10 @@ btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3305,10 +3316,10 @@ btor_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_umulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_umulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *uext_e1, *uext_e2, *mul, *slice, *and, * or, **temps_e2;
+  BtorNode *result, *uext_e1, *uext_e2, *mul, *slice, *and, * or, **temps_e2;
   int i, len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3354,12 +3365,12 @@ btor_umulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_smulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sext_e1, *sext_e2, *sign_e1, *sign_e2, *sext_sign_e1;
-  BtorExp *sext_sign_e2, *xor_sign_e1, *xor_sign_e2, *mul, *slice, *slice_n;
-  BtorExp *slice_n_minus_1, *xor, *and, * or, **temps_e2;
+  BtorNode *result, *sext_e1, *sext_e2, *sign_e1, *sign_e2, *sext_sign_e1;
+  BtorNode *sext_sign_e2, *xor_sign_e1, *xor_sign_e2, *mul, *slice, *slice_n;
+  BtorNode *slice_n_minus_1, *xor, *and, * or, **temps_e2;
   int i, len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3438,10 +3449,10 @@ btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3456,11 +3467,11 @@ btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_slt_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *determined_by_sign, *eq_sign, *ult, *eq_sign_and_ult;
-  BtorExp *res, *s0, *s1, *r0, *r1, *l, *r;
+  BtorNode *determined_by_sign, *eq_sign, *ult, *eq_sign_and_ult;
+  BtorNode *res, *s0, *s1, *r0, *r1, *l, *r;
 
   int len;
 
@@ -3494,10 +3505,10 @@ btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return res;
 }
 
-BtorExp *
-btor_ulte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ulte_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *ult;
+  BtorNode *result, *ult;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3509,10 +3520,10 @@ btor_ulte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_slte_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *slt;
+  BtorNode *result, *slt;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3524,8 +3535,8 @@ btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ugt_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3533,8 +3544,8 @@ btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ult_exp (btor, e1, e0);
 }
 
-BtorExp *
-btor_sgt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sgt_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3542,10 +3553,10 @@ btor_sgt_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_slt_exp (btor, e1, e0);
 }
 
-BtorExp *
-btor_ugte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ugte_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *ult;
+  BtorNode *result, *ult;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3557,10 +3568,10 @@ btor_ugte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_sgte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sgte_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *slt;
+  BtorNode *result, *slt;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3572,10 +3583,10 @@ btor_sgte_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3590,10 +3601,10 @@ btor_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3608,10 +3619,10 @@ btor_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_sra_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sra_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sign_e1, *srl1, *srl2;
+  BtorNode *result, *sign_e1, *srl1, *srl2;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3629,10 +3640,10 @@ btor_sra_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_rol_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_rol_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sll, *neg_e2, *srl;
+  BtorNode *result, *sll, *neg_e2, *srl;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3648,10 +3659,10 @@ btor_rol_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_ror_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ror_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *srl, *neg_e2, *sll;
+  BtorNode *result, *srl, *neg_e2, *sll;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3667,10 +3678,10 @@ btor_ror_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sub_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *neg_e2;
+  BtorNode *result, *neg_e2;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3682,10 +3693,10 @@ btor_sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_usubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_usubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *uext_e1, *uext_e2, *add1, *add2, *one;
+  BtorNode *result, *uext_e1, *uext_e2, *add1, *add2, *one;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3708,11 +3719,11 @@ btor_usubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_ssubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_ssubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sign_e1, *sign_e2, *sign_result;
-  BtorExp *sub, *and1, *and2, *or1, *or2;
+  BtorNode *result, *sign_e1, *sign_e2, *sign_result;
+  BtorNode *sub, *and1, *and2, *or1, *or2;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3740,10 +3751,10 @@ btor_ssubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3758,11 +3769,11 @@ btor_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_sdiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sdiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sign_e1, *sign_e2, *xor, *neg_e1, *neg_e2;
-  BtorExp *cond_e1, *cond_e2, *udiv, *neg_udiv;
+  BtorNode *result, *sign_e1, *sign_e2, *xor, *neg_e1, *neg_e2;
+  BtorNode *cond_e1, *cond_e2, *udiv, *neg_udiv;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3799,10 +3810,10 @@ btor_sdiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_sdivo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_sdivo_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *int_min, *ones, *eq1, *eq2;
+  BtorNode *result, *int_min, *ones, *eq1, *eq2;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3820,10 +3831,10 @@ btor_sdivo_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
@@ -3838,11 +3849,11 @@ btor_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_srem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_srem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1;
-  BtorExp *cond_e0, *cond_e1, *urem, *neg_urem;
+  BtorNode *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1;
+  BtorNode *cond_e0, *cond_e1, *urem, *neg_urem;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3876,14 +3887,14 @@ btor_srem_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+btor_smod_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1, *cond_e0, *cond_e1;
-  BtorExp *neg_e0_and_e1, *neg_e0_and_neg_e1, *zero, *e0_zero;
-  BtorExp *neg_urem, *add1, *add2, *or1, *or2, *e0_and_e1, *e0_and_neg_e1;
-  BtorExp *cond_case1, *cond_case2, *cond_case3, *cond_case4, *urem;
-  BtorExp *urem_zero, *gadd1, *gadd2;
+  BtorNode *result, *sign_e0, *sign_e1, *neg_e0, *neg_e1, *cond_e0, *cond_e1;
+  BtorNode *neg_e0_and_e1, *neg_e0_and_neg_e1, *zero, *e0_zero;
+  BtorNode *neg_urem, *add1, *add2, *or1, *or2, *e0_and_e1, *e0_and_neg_e1;
+  BtorNode *cond_case1, *cond_case2, *cond_case3, *cond_case4, *urem;
+  BtorNode *urem_zero, *gadd1, *gadd2;
   int len;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
@@ -3947,10 +3958,10 @@ btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   return result;
 }
 
-BtorExp *
-btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
+BtorNode *
+btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
@@ -3965,13 +3976,13 @@ btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   return result;
 }
 
-BtorExp *
+BtorNode *
 btor_write_exp (Btor *btor,
-                BtorExp *e_array,
-                BtorExp *e_index,
-                BtorExp *e_value)
+                BtorNode *e_array,
+                BtorNode *e_index,
+                BtorNode *e_value)
 {
-  BtorExp *result;
+  BtorNode *result;
 
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
@@ -3987,10 +3998,10 @@ btor_write_exp (Btor *btor,
   return result;
 }
 
-BtorExp *
-btor_inc_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_inc_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *one, *result;
+  BtorNode *one, *result;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
@@ -4001,10 +4012,10 @@ btor_inc_exp (Btor *btor, BtorExp *exp)
   return result;
 }
 
-BtorExp *
-btor_dec_exp (Btor *btor, BtorExp *exp)
+BtorNode *
+btor_dec_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *one, *result;
+  BtorNode *one, *result;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_regular_unary_bv_exp_dbg (btor, exp));
@@ -4016,7 +4027,7 @@ btor_dec_exp (Btor *btor, BtorExp *exp)
 }
 
 int
-btor_get_exp_len (Btor *btor, BtorExp *exp)
+btor_get_exp_len (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -4025,7 +4036,7 @@ btor_get_exp_len (Btor *btor, BtorExp *exp)
 }
 
 int
-btor_is_array_exp (Btor *btor, BtorExp *exp)
+btor_is_array_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -4034,7 +4045,7 @@ btor_is_array_exp (Btor *btor, BtorExp *exp)
 }
 
 int
-btor_get_index_exp_len (Btor *btor, BtorExp *e_array)
+btor_get_index_exp_len (Btor *btor, BtorNode *e_array)
 {
   assert (btor);
   assert (e_array);
@@ -4045,7 +4056,7 @@ btor_get_index_exp_len (Btor *btor, BtorExp *e_array)
 }
 
 char *
-btor_get_symbol_exp (Btor *btor, BtorExp *exp)
+btor_get_symbol_exp (Btor *btor, BtorNode *exp)
 {
   /* do not pointer-chase! */
   assert (btor);
@@ -4054,30 +4065,30 @@ btor_get_symbol_exp (Btor *btor, BtorExp *exp)
   return BTOR_REAL_ADDR_EXP (exp)->symbol;
 }
 
-#define BTOR_PUSH_EXP_IF_NOT_MARKED(e)         \
-  do                                           \
-  {                                            \
-    BtorExp *child = BTOR_REAL_ADDR_EXP ((e)); \
-    if (child->mark) break;                    \
-    child->mark = 1;                           \
-    BTOR_PUSH_STACK (mm, stack, child);        \
+#define BTOR_PUSH_EXP_IF_NOT_MARKED(e)          \
+  do                                            \
+  {                                             \
+    BtorNode *child = BTOR_REAL_ADDR_EXP ((e)); \
+    if (child->mark) break;                     \
+    child->mark = 1;                            \
+    BTOR_PUSH_STACK (mm, stack, child);         \
   } while (0)
 
 static int
 btor_cmp_id (const void *p, const void *q)
 {
-  BtorExp *a = *(BtorExp **) p;
-  BtorExp *b = *(BtorExp **) q;
+  BtorNode *a = *(BtorNode **) p;
+  BtorNode *b = *(BtorNode **) q;
   return a->id - b->id;
 }
 
 static void
-dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
+dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
   int next, i, j, maxid, id;
-  BtorExpPtrStack stack;
-  BtorExp *e, *root;
+  BtorNodePtrStack stack;
+  BtorNode *e, *root;
   char idbuffer[20];
   const char *op;
 
@@ -4224,7 +4235,7 @@ dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 }
 
 void
-btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
+btor_dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
 #ifndef NDEBUG
   int i;
@@ -4239,7 +4250,7 @@ btor_dump_exps (Btor *btor, FILE *file, BtorExp **roots, int nroots)
 }
 
 void
-btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
+btor_dump_exp (Btor *btor, FILE *file, BtorNode *root)
 {
   assert (btor);
   assert (file);
@@ -4250,7 +4261,7 @@ btor_dump_exp (Btor *btor, FILE *file, BtorExp *root)
 void
 btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
 {
-  BtorExp *temp, **new_roots;
+  BtorNode *temp, **new_roots;
   BtorPtrHashBucket *b;
   int new_nroots, i;
   assert (!btor->inc_enabled);
@@ -4277,14 +4288,14 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
     BTOR_NEWN (btor->mm, new_roots, new_nroots);
     i = 0;
     for (b = btor->unsynthesized_constraints->first; b; b = b->next)
-      new_roots[i++] = (BtorExp *) b->key;
+      new_roots[i++] = (BtorNode *) b->key;
     dump_exps (btor, file, new_roots, new_nroots);
     BTOR_DELETEN (btor->mm, new_roots, new_nroots);
   }
 }
 
 int
-btor_vis_exp (Btor *btor, BtorExp *exp)
+btor_vis_exp (Btor *btor, BtorNode *exp)
 {
   char cmd[100], *path;
   static int idx = 0; /* TODO: make this non static */
@@ -4302,10 +4313,10 @@ btor_vis_exp (Btor *btor, BtorExp *exp)
 }
 
 static void
-btor_dump_smt_id (BtorExp *e, FILE *file)
+btor_dump_smt_id (BtorNode *e, FILE *file)
 {
   const char *type, *sym;
-  BtorExp *u;
+  BtorNode *u;
 
   u = BTOR_REAL_ADDR_EXP (e);
 
@@ -4334,14 +4345,14 @@ CLOSE:
 }
 
 void
-btor_dump_smt (Btor *btor, FILE *file, BtorExp *root)
+btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
 {
   int next, i, j, arrays, lets, pad;
   BtorMemMgr *mm = btor->mm;
-  BtorExpPtrStack stack;
+  BtorNodePtrStack stack;
   const char *op;
   char *tmp;
-  BtorExp *e;
+  BtorNode *e;
 
   assert (btor);
   assert (file);
@@ -4663,38 +4674,38 @@ btor_delete_btor (Btor *btor)
 
   for (b = btor->exp_pair_eq_table->first; b; b = b->next)
   {
-    delete_exp_pair (btor, (BtorExpPair *) b->key);
-    btor_release_exp (btor, (BtorExp *) b->data.asPtr);
+    delete_exp_pair (btor, (BtorNodePair *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
   }
   btor_delete_ptr_hash_table (btor->exp_pair_eq_table);
 
   for (b = btor->varsubst_constraints->first; b; b = b->next)
   {
-    btor_release_exp (btor, (BtorExp *) b->key);
-    btor_release_exp (btor, (BtorExp *) b->data.asPtr);
+    btor_release_exp (btor, (BtorNode *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
   }
   btor_delete_ptr_hash_table (btor->varsubst_constraints);
 
   for (b = btor->embedded_constraints->first; b; b = b->next)
-    btor_release_exp (btor, (BtorExp *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->embedded_constraints);
 
   for (b = btor->unsynthesized_constraints->first; b; b = b->next)
-    btor_release_exp (btor, (BtorExp *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->unsynthesized_constraints);
 
   for (b = btor->synthesized_constraints->first; b; b = b->next)
-    btor_release_exp (btor, (BtorExp *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->synthesized_constraints);
 
   for (b = btor->assumptions->first; b; b = b->next)
-    btor_release_exp (btor, (BtorExp *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->assumptions);
 
   if (btor->model_gen)
   {
     for (b = btor->var_rhs->first; b; b = b->next)
-      btor_release_exp (btor, (BtorExp *) b->key);
+      btor_release_exp (btor, (BtorNode *) b->key);
     btor_delete_ptr_hash_table (btor->var_rhs);
   }
 
@@ -4884,12 +4895,12 @@ btor_get_aigvec_mgr_btor (const Btor *btor)
   return btor->avmgr;
 }
 
-static BtorExp *
+static BtorNode *
 vread_index_exp (Btor *btor, int len)
 {
   char *symbol;
   size_t bytes;
-  BtorExp *result;
+  BtorNode *result;
   assert (btor);
   assert (len > 0);
   BTOR_ABORT_EXP (btor->id == INT_MAX, "vread index id overflow");
@@ -4903,12 +4914,12 @@ vread_index_exp (Btor *btor, int len)
   return result;
 }
 
-static void insert_unsynthesized_constraint (Btor *, BtorExp *);
+static void insert_unsynthesized_constraint (Btor *, BtorNode *);
 
 static void
-synthesize_array_equality (Btor *btor, BtorExp *aeq)
+synthesize_array_equality (Btor *btor, BtorNode *aeq)
 {
-  BtorExp *index, *read1, *read2;
+  BtorNode *index, *read1, *read2;
   BtorAIGVecMgr *avmgr;
   assert (btor);
   assert (aeq);
@@ -4950,10 +4961,10 @@ synthesize_array_equality (Btor *btor, BtorExp *aeq)
 }
 
 static void
-synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
+synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannoation)
 {
-  BtorExpPtrStack exp_stack;
-  BtorExp *cur;
+  BtorNodePtrStack exp_stack;
+  BtorNode *cur;
   BtorAIGVec *av0, *av1, *av2;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -5207,7 +5218,7 @@ synthesize_exp (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannoation)
 }
 
 static BtorAIG *
-exp_to_aig (Btor *btor, BtorExp *exp)
+exp_to_aig (Btor *btor, BtorNode *exp)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -5238,7 +5249,7 @@ exp_to_aig (Btor *btor, BtorExp *exp)
 }
 
 static int
-exp_to_cnf_lit (Btor *btor, BtorExp *exp)
+exp_to_cnf_lit (Btor *btor, BtorNode *exp)
 {
   int res, sign, val;
   BtorSATMgr *smgr;
@@ -5299,7 +5310,7 @@ exp_to_cnf_lit (Btor *btor, BtorExp *exp)
 }
 
 BtorAIGVec *
-btor_exp_to_aigvec (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannotation)
+btor_exp_to_aigvec (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *result;
@@ -5322,7 +5333,7 @@ btor_exp_to_aigvec (Btor *btor, BtorExp *exp, BtorPtrHashTable *backannotation)
 
 /* Compares the assignments of two expressions. */
 static int
-compare_assignments (BtorExp *exp1, BtorExp *exp2)
+compare_assignments (BtorNode *exp1, BtorNode *exp2)
 {
   int return_val, val1, val2, i, len;
   Btor *btor;
@@ -5373,12 +5384,12 @@ compare_assignments (BtorExp *exp1, BtorExp *exp2)
 }
 
 static unsigned int
-hash_assignment (BtorExp *exp)
+hash_assignment (BtorNode *exp)
 {
   unsigned int hash;
   Btor *btor;
   BtorAIGVecMgr *avmgr;
-  BtorExp *real_exp;
+  BtorNode *real_exp;
   BtorAIGVec *av;
   int invert_av;
   char *assignment;
@@ -5402,13 +5413,13 @@ hash_assignment (BtorExp *exp)
  * from the array to the read
  */
 static void
-bfs (Btor *btor, BtorExp *acc, BtorExp *array)
+bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 {
-  BtorExp *cur, *next, *cur_aeq, *cond, *index;
+  BtorNode *cur, *next, *cur_aeq, *cond, *index;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
-  BtorExpPtrQueue queue;
-  BtorExpPtrStack unmark_stack;
+  BtorNodePtrQueue queue;
+  BtorNodePtrStack unmark_stack;
   BtorPartialParentIterator it;
   int assignment, has_array_equalities;
 #ifndef NDEBUG
@@ -5598,9 +5609,9 @@ bfs (Btor *btor, BtorExp *acc, BtorExp *array)
 }
 
 static int
-propagated_upwards (Btor *btor, BtorExp *exp)
+propagated_upwards (Btor *btor, BtorNode *exp)
 {
-  BtorExp *parent;
+  BtorNode *parent;
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_EXP (exp));
@@ -5628,10 +5639,10 @@ propagated_upwards (Btor *btor, BtorExp *exp)
  * 'array' is the array where the conflict has been detected
  */
 static void
-add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
+add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
 {
   BtorPtrHashTable *writes, *aeqs, *aconds_sel1, *aconds_sel2;
-  BtorExp *cur, *cond, *prev, *acc;
+  BtorNode *cur, *cond, *prev, *acc;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   int assignment;
@@ -5735,8 +5746,8 @@ add_lemma (Btor *btor, BtorExp *array, BtorExp *acc1, BtorExp *acc2)
 /* checks array axiom 2 */
 static int
 find_array_axiom_2_conflict (Btor *btor,
-                             BtorExp *acc,
-                             BtorExp *write,
+                             BtorNode *acc,
+                             BtorNode *write,
                              int *indices_equal)
 {
   assert (btor);
@@ -5759,7 +5770,7 @@ find_array_axiom_2_conflict (Btor *btor,
 static int
 add_again_assumptions (Btor *btor)
 {
-  BtorExp *exp;
+  BtorNode *exp;
   BtorPtrHashBucket *b;
   BtorAIG *aig;
   BtorSATMgr *smgr;
@@ -5769,8 +5780,8 @@ add_again_assumptions (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
   for (b = btor->assumptions->first; b; b = b->next)
   {
-    assert (BTOR_REAL_ADDR_EXP ((BtorExp *) b->key)->len == 1);
-    exp = (BtorExp *) b->key;
+    assert (BTOR_REAL_ADDR_EXP ((BtorNode *) b->key)->len == 1);
+    exp = (BtorNode *) b->key;
     exp = btor_pointer_chase_simplified_exp (btor, exp);
     aig = exp_to_aig (btor, exp);
     if (aig == BTOR_AIG_FALSE) return 1;
@@ -5809,9 +5820,9 @@ update_sat_assignments (Btor *btor)
  * it returns if encoding changed assignments made so far
  */
 static int
-lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
+lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
 {
-  BtorExp *index, *value;
+  BtorNode *index, *value;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr = 0;
 
@@ -5853,10 +5864,10 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorExp *acc, int force_update)
 
 static int
 lazy_synthesize_and_encode_acond_exp (Btor *btor,
-                                      BtorExp *acond,
+                                      BtorNode *acond,
                                       int force_update)
 {
-  BtorExp *cond;
+  BtorNode *cond;
   int changed_assignments, update;
   BtorAIGVecMgr *avmgr;
 
@@ -5885,13 +5896,13 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
 
 static int
 process_working_stack (Btor *btor,
-                       BtorExpPtrStack *stack,
-                       BtorExpPtrStack *cleanup_stack,
+                       BtorNodePtrStack *stack,
+                       BtorNodePtrStack *cleanup_stack,
                        int *assignments_changed)
 {
   BtorPartialParentIterator it;
-  BtorExp *acc, *index, *value, *array, *hashed_acc, *hashed_value;
-  BtorExp *cur_aeq, *cond, *next;
+  BtorNode *acc, *index, *value, *array, *hashed_acc, *hashed_value;
+  BtorNode *cur_aeq, *cond, *next;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
@@ -5934,7 +5945,7 @@ process_working_stack (Btor *btor,
       bucket = btor_find_in_ptr_hash_table (array->rho, index);
       if (bucket)
       {
-        hashed_acc = (BtorExp *) bucket->data.asPtr;
+        hashed_acc = (BtorNode *) bucket->data.asPtr;
         assert (BTOR_IS_REGULAR_EXP (hashed_acc));
         assert (BTOR_IS_ACC_EXP (hashed_acc));
         hashed_value = BTOR_GET_VALUE_ACC_EXP (hashed_acc);
@@ -6094,11 +6105,11 @@ process_working_stack (Btor *btor,
  * and pushes them on the stack
  */
 static void
-search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
+search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
 {
   BtorPartialParentIterator it;
-  BtorExp *cur_array, *cur_parent;
-  BtorExpPtrStack stack, unmark_stack;
+  BtorNode *cur_array, *cur_parent;
+  BtorNodePtrStack stack, unmark_stack;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   int found_top;
@@ -6110,7 +6121,7 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
   BTOR_INIT_STACK (unmark_stack);
   for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
   {
-    cur_array = (BtorExp *) bucket->key;
+    cur_array = (BtorNode *) bucket->key;
     assert (BTOR_IS_ARRAY_VAR_EXP (cur_array));
     assert (!cur_array->simplified);
     if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
@@ -6180,12 +6191,12 @@ search_top_arrays (Btor *btor, BtorExpPtrStack *top_arrays)
 }
 
 static int
-check_and_resolve_conflicts (Btor *btor, BtorExpPtrStack *top_arrays)
+check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
 {
-  BtorExpPtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
+  BtorNodePtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorPartialParentIterator it;
   BtorMemMgr *mm;
-  BtorExp *cur_array, *cur_parent, **top, **temp;
+  BtorNode *cur_array, *cur_parent, **top, **temp;
   int found_conflict, changed_assignments, has_array_equalities;
   assert (btor);
   assert (top_arrays);
@@ -6314,7 +6325,7 @@ btor_reset_assumptions (Btor *btor)
   BtorPtrHashBucket *bucket;
   assert (btor);
   for (bucket = btor->assumptions->first; bucket; bucket = bucket->next)
-    btor_release_exp (btor, (BtorExp *) bucket->key);
+    btor_release_exp (btor, (BtorNode *) bucket->key);
   btor_delete_ptr_hash_table (btor->assumptions);
   btor->assumptions =
       btor_new_ptr_hash_table (btor->mm,
@@ -6325,7 +6336,7 @@ btor_reset_assumptions (Btor *btor)
 static void
 btor_reset_array_models (Btor *btor)
 {
-  BtorExp *cur;
+  BtorNode *cur;
   int i;
 
   assert (btor);
@@ -6354,10 +6365,10 @@ btor_reset_incremental_usage (Btor *btor)
 
 /* check if left does not occur on the right side */
 static int
-occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
+occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
 {
-  BtorExp *cur, *real_left;
-  BtorExpPtrStack stack, unmark_stack;
+  BtorNode *cur, *real_left;
+  BtorNodePtrStack stack, unmark_stack;
   int is_cyclic, i;
   BtorMemMgr *mm;
   assert (btor);
@@ -6405,8 +6416,8 @@ occurrence_check (Btor *btor, BtorExp *left, BtorExp *right)
   return is_cyclic;
 }
 
-static BtorExp *
-rebuild_exp (Btor *btor, BtorExp *exp)
+static BtorNode *
+rebuild_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -6439,7 +6450,7 @@ rebuild_exp (Btor *btor, BtorExp *exp)
 }
 
 static int
-is_odd_constant (BtorExp *exp)
+is_odd_constant (BtorNode *exp)
 {
   if (BTOR_IS_INVERTED_EXP (exp)) return 0;
 
@@ -6454,13 +6465,13 @@ is_odd_constant (BtorExp *exp)
  */
 static int
 rewrite_linear_term_bounded (Btor *btor,
-                             BtorExp *term,
+                             BtorNode *term,
                              char **factor_ptr,
-                             BtorExp **lhs_ptr,
-                             BtorExp **rhs_ptr,
+                             BtorNode **lhs_ptr,
+                             BtorNode **rhs_ptr,
                              int *bound_ptr)
 {
-  BtorExp *tmp, *other;
+  BtorNode *tmp, *other;
   char *factor;
 
   if (*bound_ptr <= 0) return 0;
@@ -6560,7 +6571,7 @@ rewrite_linear_term_bounded (Btor *btor,
 
 static int
 rewrite_linear_term (
-    Btor *btor, BtorExp *term, char **fp, BtorExp **lp, BtorExp **rp)
+    Btor *btor, BtorNode *term, char **fp, BtorNode **lp, BtorNode **rp)
 {
   int bound = 100, res;
   res       = rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
@@ -6569,17 +6580,17 @@ rewrite_linear_term (
 }
 
 static int
-is_embedded_constraint_exp (Btor *btor, BtorExp *exp)
+is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
   return BTOR_REAL_ADDR_EXP (exp)->len == 1 && has_parents_exp (btor, exp);
 }
 
-static BtorExp *
+static BtorNode *
 lambda_var_exp (Btor *btor, int len)
 {
-  BtorExp *result;
+  BtorNode *result;
   char *name;
   int string_len;
   BtorMemMgr *mm;
@@ -6615,7 +6626,7 @@ reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
 }
 
 static void
-insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
+insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
 {
   BtorPtrHashTable *uc;
   assert (btor);
@@ -6631,7 +6642,7 @@ insert_unsynthesized_constraint (Btor *btor, BtorExp *exp)
 }
 
 static void
-insert_embedded_constraint (Btor *btor, BtorExp *exp)
+insert_embedded_constraint (Btor *btor, BtorNode *exp)
 {
   BtorPtrHashTable *embedded_constraints;
   assert (btor);
@@ -6647,9 +6658,9 @@ insert_embedded_constraint (Btor *btor, BtorExp *exp)
 }
 
 static void
-insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
+insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 {
-  BtorExp *eq;
+  BtorNode *eq;
   BtorPtrHashTable *vsc;
   BtorPtrHashBucket *bucket;
 
@@ -6680,7 +6691,7 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
   }
   /* if v = t_1 is already in varsubst, we
    * have to synthesize v = t_2 */
-  else if (right != (BtorExp *) bucket->data.asPtr)
+  else if (right != (BtorNode *) bucket->data.asPtr)
   {
     eq = btor_eq_exp (btor, left, right);
     insert_unsynthesized_constraint (btor, eq);
@@ -6691,12 +6702,12 @@ insert_varsubst_constraint (Btor *btor, BtorExp *left, BtorExp *right)
 /* checks if we can substitute and normalizes arguments to substitution */
 static int
 normalize_substitution (Btor *btor,
-                        BtorExp *exp,
-                        BtorExp **left_result,
-                        BtorExp **right_result)
+                        BtorNode *exp,
+                        BtorNode **left_result,
+                        BtorNode **right_result)
 {
-  BtorExp *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
-  BtorExp *const_exp, *real_exp;
+  BtorNode *left, *right, *real_left, *real_right, *tmp, *inv, *var, *lambda;
+  BtorNode *const_exp, *real_exp;
   int leadings;
   char *ic, *fc, *bits;
   BtorMemMgr *mm;
@@ -6901,9 +6912,9 @@ BTOR_NORMALIZE_SUBST_RESULT:
 }
 
 static void
-insert_new_constraint (Btor *btor, BtorExp *exp)
+insert_new_constraint (Btor *btor, BtorNode *exp)
 {
-  BtorExp *left, *right, *exp_true, *real_exp;
+  BtorNode *left, *right, *exp_true, *real_exp;
   assert (btor);
   assert (exp);
   assert (BTOR_REAL_ADDR_EXP (exp)->len == 1);
@@ -6963,10 +6974,10 @@ insert_new_constraint (Btor *btor, BtorExp *exp)
 }
 
 static void
-add_constraint (Btor *btor, BtorExp *exp)
+add_constraint (Btor *btor, BtorNode *exp)
 {
-  BtorExp *cur, *child;
-  BtorExpPtrStack stack;
+  BtorNode *cur, *child;
+  BtorNodePtrStack stack;
   BtorMemMgr *mm;
 
   assert (btor);
@@ -7014,7 +7025,7 @@ add_constraint (Btor *btor, BtorExp *exp)
 }
 
 void
-btor_add_constraint_exp (Btor *btor, BtorExp *exp)
+btor_add_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -7026,10 +7037,10 @@ btor_add_constraint_exp (Btor *btor, BtorExp *exp)
 }
 
 void
-btor_add_assumption_exp (Btor *btor, BtorExp *exp)
+btor_add_assumption_exp (Btor *btor, BtorNode *exp)
 {
-  BtorExp *cur, *child;
-  BtorExpPtrStack stack;
+  BtorNode *cur, *child;
+  BtorNodePtrStack stack;
   BtorMemMgr *mm;
 
   assert (btor);
@@ -7096,7 +7107,7 @@ process_unsynthesized_constraints (Btor *btor)
 {
   BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints;
   BtorPtrHashBucket *bucket;
-  BtorExp *cur;
+  BtorNode *cur;
   BtorAIG *aig;
   BtorAIGMgr *amgr;
   assert (btor);
@@ -7107,7 +7118,7 @@ process_unsynthesized_constraints (Btor *btor)
   {
     bucket = unsynthesized_constraints->first;
     assert (bucket);
-    cur = (BtorExp *) bucket->key;
+    cur = (BtorNode *) bucket->key;
 
     if (!btor_find_in_ptr_hash_table (synthesized_constraints, cur))
     {
@@ -7136,11 +7147,11 @@ static void
 update_assumptions (Btor *btor)
 {
   BtorPtrHashBucket *bucket;
-  BtorExp *cur, *simp;
+  BtorNode *cur, *simp;
   assert (btor);
   for (bucket = btor->assumptions->first; bucket; bucket = bucket->next)
   {
-    cur = (BtorExp *) bucket->key;
+    cur = (BtorNode *) bucket->key;
     if (cur->simplified)
     {
       simp =
@@ -7156,9 +7167,9 @@ update_assumptions (Btor *btor)
 static void
 substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 {
-  BtorExpPtrStack stack, root_stack;
+  BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs, *simplified;
+  BtorNode *cur, *cur_parent, *rebuilt_exp, **temp, **top, *rhs, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -7175,7 +7186,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
   /* we push all left sides on the search stack */
   for (b = substs->first; b; b = b->next)
   {
-    cur = (BtorExp *) b->key;
+    cur = (BtorNode *) b->key;
     assert (BTOR_IS_REGULAR_EXP (cur));
     assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
     BTOR_PUSH_STACK (mm, stack, cur);
@@ -7224,8 +7235,8 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b);
-        assert (cur == (BtorExp *) b->key);
-        rhs = (BtorExp *) b->data.asPtr;
+        assert (cur == (BtorNode *) b->key);
+        rhs = (BtorNode *) b->data.asPtr;
         assert (rhs);
         BTOR_PUSH_STACK (mm, stack, rhs);
       }
@@ -7243,8 +7254,8 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
       {
         b = btor_find_in_ptr_hash_table (substs, cur);
         assert (b);
-        assert (cur == (BtorExp *) b->key);
-        rhs = (BtorExp *) b->data.asPtr;
+        assert (cur == (BtorNode *) b->key);
+        rhs = (BtorNode *) b->data.asPtr;
         assert (rhs);
         rebuilt_exp = btor_copy_exp (btor, rhs);
         if (BTOR_IS_BV_VAR_EXP (cur))
@@ -7277,9 +7288,9 @@ substitute_var_exps (Btor *btor, int check_cyclic)
   int order_num, val, max, i;
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
   BtorPtrHashBucket *b, *b_temp;
-  BtorExpPtrStack stack;
+  BtorNodePtrStack stack;
   BtorMemMgr *mm;
-  BtorExp *cur, *constraint, *left, *right, *child;
+  BtorNode *cur, *constraint, *left, *right, *child;
   assert (btor);
 
   mm                   = btor->mm;
@@ -7302,7 +7313,7 @@ substitute_var_exps (Btor *btor, int check_cyclic)
       do
       {
         b   = varsubst_constraints->first;
-        cur = (BtorExp *) b->key;
+        cur = (BtorNode *) b->key;
         assert (BTOR_IS_REGULAR_EXP (cur));
         assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
         btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
@@ -7314,11 +7325,11 @@ substitute_var_exps (Btor *btor, int check_cyclic)
       /* cleanup, we delete all substitution constraints */
       for (b = substs->first; b; b = b->next)
       {
-        left = (BtorExp *) b->key;
+        left = (BtorNode *) b->key;
         assert (BTOR_IS_REGULAR_EXP (left));
         assert (left->kind == BTOR_PROXY_EXP);
         assert (left->simplified);
-        right = (BtorExp *) b->data.asPtr;
+        right = (BtorNode *) b->data.asPtr;
         assert (right);
         btor_release_exp (btor, left);
         btor_release_exp (btor, right);
@@ -7347,7 +7358,7 @@ substitute_var_exps (Btor *btor, int check_cyclic)
     while (varsubst_constraints->count > 0u)
     {
       b   = varsubst_constraints->first;
-      cur = (BtorExp *) b->key;
+      cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
       btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
@@ -7359,10 +7370,10 @@ substitute_var_exps (Btor *btor, int check_cyclic)
      * and map the substitutions to an ordering number */
     for (b = substs->first; b; b = b->next)
     {
-      cur = (BtorExp *) b->key;
+      cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
-      BTOR_PUSH_STACK (mm, stack, (BtorExp *) cur);
+      BTOR_PUSH_STACK (mm, stack, (BtorNode *) cur);
 
       while (!BTOR_EMPTY_STACK (stack))
       {
@@ -7390,7 +7401,7 @@ substitute_var_exps (Btor *btor, int check_cyclic)
           {
             BTOR_PUSH_STACK (mm, stack, cur);
             BTOR_PUSH_STACK (mm, stack, 0);
-            BTOR_PUSH_STACK (mm, stack, (BtorExp *) b_temp->data.asPtr);
+            BTOR_PUSH_STACK (mm, stack, (BtorNode *) b_temp->data.asPtr);
           }
           else
           {
@@ -7411,22 +7422,22 @@ substitute_var_exps (Btor *btor, int check_cyclic)
     /* intermediate cleanup of mark flags */
     for (b = substs->first; b; b = b->next)
     {
-      assert (BTOR_IS_REGULAR_EXP ((BtorExp *) b->key));
-      assert (BTOR_IS_BV_VAR_EXP ((BtorExp *) b->key)
-              || BTOR_IS_ARRAY_VAR_EXP ((BtorExp *) b->key));
-      btor_mark_exp (btor, (BtorExp *) b->key, 0);
-      btor_mark_exp (btor, (BtorExp *) b->data.asPtr, 0);
+      assert (BTOR_IS_REGULAR_EXP ((BtorNode *) b->key));
+      assert (BTOR_IS_BV_VAR_EXP ((BtorNode *) b->key)
+              || BTOR_IS_ARRAY_VAR_EXP ((BtorNode *) b->key));
+      btor_mark_exp (btor, (BtorNode *) b->key, 0);
+      btor_mark_exp (btor, (BtorNode *) b->data.asPtr, 0);
     }
 
     /* we look for cycles */
     for (b = substs->first; b; b = b->next)
     {
 #ifndef NDEBUG
-      cur = (BtorExp *) b->key;
+      cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_EXP (cur));
       assert (BTOR_IS_BV_VAR_EXP (cur) || BTOR_IS_ARRAY_VAR_EXP (cur));
 #endif
-      BTOR_PUSH_STACK (mm, stack, (BtorExp *) b->data.asPtr);
+      BTOR_PUSH_STACK (mm, stack, (BtorNode *) b->data.asPtr);
 
       /* we assume that there are no direct loops
        * as a result of occurrence check */
@@ -7477,10 +7488,10 @@ substitute_var_exps (Btor *btor, int check_cyclic)
     /* we eliminate cyclic substitutions, and reset mark flags */
     for (b = substs->first; b; b = b->next)
     {
-      left = (BtorExp *) b->key;
+      left = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_EXP (left));
       assert (BTOR_IS_BV_VAR_EXP (left) || BTOR_IS_ARRAY_VAR_EXP (left));
-      right = (BtorExp *) b->data.asPtr;
+      right = (BtorNode *) b->data.asPtr;
       btor_mark_exp (btor, left, 0);
       btor_mark_exp (btor, right, 0);
       b_temp = btor_find_in_ptr_hash_table (order, left);
@@ -7501,7 +7512,7 @@ substitute_var_exps (Btor *btor, int check_cyclic)
       assert (BTOR_IS_REGULAR_EXP (left));
       assert (BTOR_IS_BV_VAR_EXP (left) || BTOR_IS_ARRAY_VAR_EXP (left));
       right =
-          (BtorExp *) btor_find_in_ptr_hash_table (substs, left)->data.asPtr;
+          (BtorNode *) btor_find_in_ptr_hash_table (substs, left)->data.asPtr;
       assert (right);
 
       constraint = btor_eq_exp (btor, left, right);
@@ -7519,11 +7530,11 @@ substitute_var_exps (Btor *btor, int check_cyclic)
     /* cleanup, we delete all substitution constraints */
     for (b = substs->first; b; b = b->next)
     {
-      left = (BtorExp *) b->key;
+      left = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_EXP (left));
       assert (left->kind == BTOR_PROXY_EXP);
       assert (left->simplified);
-      right = (BtorExp *) b->data.asPtr;
+      right = (BtorNode *) b->data.asPtr;
       assert (right);
       btor_release_exp (btor, left);
       btor_release_exp (btor, right);
@@ -7541,9 +7552,9 @@ substitute_var_exps (Btor *btor, int check_cyclic)
 static void
 substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 {
-  BtorExpPtrStack stack, root_stack;
+  BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorExp *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
+  BtorNode *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -7561,7 +7572,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
   /* we push all expressions on the search stack */
   for (b = subst->first; b; b = b->next)
   {
-    cur = (BtorExp *) b->key;
+    cur = (BtorNode *) b->key;
     BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_EXP (cur));
   }
   while (!BTOR_EMPTY_STACK (stack))
@@ -7636,13 +7647,13 @@ static void
 substitute_embedded_constraints (Btor *btor)
 {
   BtorPtrHashBucket *b;
-  BtorExp *cur;
+  BtorNode *cur;
 
   assert (btor);
 
   for (b = btor->embedded_constraints->first; b; b = b->next)
   {
-    cur = (BtorExp *) b->key;
+    cur = (BtorNode *) b->key;
     assert (BTOR_REAL_ADDR_EXP (cur)->constraint);
     /* embedded constraints have possibly lost their parents,
      * e.g. top conjunction of constraints that are released */
@@ -7656,7 +7667,7 @@ process_embedded_constraints (Btor *btor)
 {
   BtorPtrHashTable *embedded_constraints;
   BtorPtrHashBucket *b;
-  BtorExp *cur;
+  BtorNode *cur;
   assert (btor);
   embedded_constraints = btor->embedded_constraints;
   if (embedded_constraints->count > 0u)
@@ -7666,7 +7677,7 @@ process_embedded_constraints (Btor *btor)
     while (embedded_constraints->count > 0u)
     {
       b   = embedded_constraints->first;
-      cur = (BtorExp *) b->key;
+      cur = (BtorNode *) b->key;
       insert_unsynthesized_constraint (btor, cur);
       btor_remove_from_ptr_hash_table (embedded_constraints, cur, 0, 0);
       btor_release_exp (btor, cur);
@@ -7707,14 +7718,14 @@ static void
 synthesize_all_var_rhs (Btor *btor)
 {
   BtorPtrHashBucket *b;
-  BtorExp *cur, *real_cur;
+  BtorNode *cur, *real_cur;
 
   assert (btor);
   assert (btor->model_gen);
 
   for (b = btor->var_rhs->first; b; b = b->next)
   {
-    cur      = (BtorExp *) b->key;
+    cur      = (BtorNode *) b->key;
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_EXP (cur);
 
@@ -7735,7 +7746,7 @@ btor_sat_aux_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, refinements;
-  BtorExpPtrStack top_arrays;
+  BtorNodePtrStack top_arrays;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
@@ -7841,11 +7852,11 @@ btor_sat_btor (Btor *btor)
 }
 
 char *
-btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
+btor_bv_assignment_exp (Btor *btor, BtorNode *exp)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
-  BtorExp *real_exp;
+  BtorNode *real_exp;
   char *assignment;
   int invert_av, invert_bits;
 
@@ -7887,10 +7898,10 @@ btor_bv_assignment_exp (Btor *btor, BtorExp *exp)
 
 void
 btor_array_assignment_exp (
-    Btor *btor, BtorExp *exp, char ***indices, char ***values, int *size)
+    Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size)
 {
   BtorPtrHashBucket *b;
-  BtorExp *index, *value;
+  BtorNode *index, *value;
   int i;
 
   assert (btor);
@@ -7918,8 +7929,8 @@ btor_array_assignment_exp (
 
     for (b = exp->rho->first; b; b = b->next)
     {
-      index         = (BtorExp *) b->key;
-      value         = BTOR_GET_VALUE_ACC_EXP ((BtorExp *) b->data.asPtr);
+      index         = (BtorNode *) b->key;
+      value         = BTOR_GET_VALUE_ACC_EXP ((BtorNode *) b->data.asPtr);
       (*indices)[i] = btor_bv_assignment_exp (btor, index);
       (*values)[i]  = btor_bv_assignment_exp (btor, value);
       i++;

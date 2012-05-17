@@ -559,7 +559,7 @@ format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
 }
 
 static void
-print_bv_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
+print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
 {
   char *pretty, *assignment;
 
@@ -584,7 +584,7 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 static void
 print_variable_assignments (BtorMainApp *app,
                             Btor *btor,
-                            BtorExp **vars,
+                            BtorNode **vars,
                             int nvars)
 {
   int i;
@@ -598,7 +598,7 @@ print_variable_assignments (BtorMainApp *app,
 }
 
 static void
-print_array_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
+print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
 {
   char **indices, **values;
   char *pretty_index, *pretty_value;
@@ -630,7 +630,7 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorExp *exp)
 static void
 print_array_assignments (BtorMainApp *app,
                          Btor *btor,
-                         BtorExp **arrays,
+                         BtorNode **arrays,
                          int narrays)
 {
   int i;
@@ -1101,14 +1101,14 @@ boolector_main (int argc, char **argv)
   BtorAIGVecMgr *avmgr    = 0;
   BtorSATMgr *smgr        = 0;
   BtorParseResult parse_res;
-  BtorExpPtrStack varstack, constraints;
-  BtorExpPtrStack arraystack;
+  BtorNodePtrStack varstack, constraints;
+  BtorNodePtrStack arraystack;
   const BtorParserAPI *parser_api = 0;
   BtorParser *parser              = 0;
   BtorParseOpt parse_opt;
   BtorMemMgr *mem = 0;
-  BtorExp *root, **p, *tmp, *all;
-  BtorExp *var, *temp;
+  BtorNode *root, **p, *tmp, *all;
+  BtorNode *var, *temp;
   BtorCharStack prefix;
 
   btor_static_start_time = btor_time_stamp ();

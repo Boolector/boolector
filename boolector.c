@@ -150,7 +150,7 @@ boolector_delete (Btor *btor)
   btor_delete_btor (btor);
 }
 
-BtorExp *
+BtorNode *
 boolector_const (Btor *btor, const char *bits)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -160,7 +160,7 @@ boolector_const (Btor *btor, const char *bits)
   return btor_const_exp (btor, bits);
 }
 
-BtorExp *
+BtorNode *
 boolector_zero (Btor *btor, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -169,7 +169,7 @@ boolector_zero (Btor *btor, int width)
   return btor_zero_exp (btor, width);
 }
 
-BtorExp *
+BtorNode *
 boolector_false (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -177,7 +177,7 @@ boolector_false (Btor *btor)
   return btor_false_exp (btor);
 }
 
-BtorExp *
+BtorNode *
 boolector_ones (Btor *btor, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -186,7 +186,7 @@ boolector_ones (Btor *btor, int width)
   return btor_ones_exp (btor, width);
 }
 
-BtorExp *
+BtorNode *
 boolector_true (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -194,7 +194,7 @@ boolector_true (Btor *btor)
   return btor_true_exp (btor);
 }
 
-BtorExp *
+BtorNode *
 boolector_one (Btor *btor, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -203,7 +203,7 @@ boolector_one (Btor *btor, int width)
   return btor_one_exp (btor, width);
 }
 
-BtorExp *
+BtorNode *
 boolector_unsigned_int (Btor *btor, unsigned int u, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -212,7 +212,7 @@ boolector_unsigned_int (Btor *btor, unsigned int u, int width)
   return btor_unsigned_to_exp (btor, u, width);
 }
 
-BtorExp *
+BtorNode *
 boolector_int (Btor *btor, int i, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -221,7 +221,7 @@ boolector_int (Btor *btor, int i, int width)
   return btor_int_to_exp (btor, i, width);
 }
 
-BtorExp *
+BtorNode *
 boolector_var (Btor *btor, int width, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -233,7 +233,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
     return btor_var_exp (btor, width, symbol);
 }
 
-BtorExp *
+BtorNode *
 boolector_array (Btor *btor,
                  int elem_width,
                  int index_width,
@@ -249,8 +249,8 @@ boolector_array (Btor *btor,
     return btor_array_exp (btor, elem_width, index_width, symbol);
 }
 
-BtorExp *
-boolector_not (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_not (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -261,8 +261,8 @@ boolector_not (Btor *btor, BtorExp *exp)
   return btor_not_exp (btor, exp);
 }
 
-BtorExp *
-boolector_neg (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_neg (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -273,8 +273,8 @@ boolector_neg (Btor *btor, BtorExp *exp)
   return btor_neg_exp (btor, exp);
 }
 
-BtorExp *
-boolector_redor (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_redor (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -285,8 +285,8 @@ boolector_redor (Btor *btor, BtorExp *exp)
   return btor_redor_exp (btor, exp);
 }
 
-BtorExp *
-boolector_redxor (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_redxor (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -297,8 +297,8 @@ boolector_redxor (Btor *btor, BtorExp *exp)
   return btor_redxor_exp (btor, exp);
 }
 
-BtorExp *
-boolector_redand (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_redand (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -309,8 +309,8 @@ boolector_redand (Btor *btor, BtorExp *exp)
   return btor_redand_exp (btor, exp);
 }
 
-BtorExp *
-boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower)
+BtorNode *
+boolector_slice (Btor *btor, BtorNode *exp, int upper, int lower)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -325,8 +325,8 @@ boolector_slice (Btor *btor, BtorExp *exp, int upper, int lower)
   return btor_slice_exp (btor, exp, upper, lower);
 }
 
-BtorExp *
-boolector_uext (Btor *btor, BtorExp *exp, int width)
+BtorNode *
+boolector_uext (Btor *btor, BtorNode *exp, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -338,8 +338,8 @@ boolector_uext (Btor *btor, BtorExp *exp, int width)
   return btor_uext_exp (btor, exp, width);
 }
 
-BtorExp *
-boolector_sext (Btor *btor, BtorExp *exp, int width)
+BtorNode *
+boolector_sext (Btor *btor, BtorNode *exp, int width)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -351,8 +351,8 @@ boolector_sext (Btor *btor, BtorExp *exp, int width)
   return btor_sext_exp (btor, exp, width);
 }
 
-BtorExp *
-boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_implies (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -370,8 +370,8 @@ boolector_implies (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_implies_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_iff (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -389,8 +389,8 @@ boolector_iff (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_iff_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_xor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -406,8 +406,8 @@ boolector_xor (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_xor_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_xnor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -423,8 +423,8 @@ boolector_xnor (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_xnor_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_and (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -440,8 +440,8 @@ boolector_and (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_and_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_nand (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -457,8 +457,8 @@ boolector_nand (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_nand_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_or (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -474,8 +474,8 @@ boolector_or (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_or_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -491,10 +491,10 @@ boolector_nor (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_nor_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *real_e0, *real_e1;
+  BtorNode *real_e0, *real_e1;
   int is_array_e0, is_array_e1;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -523,10 +523,10 @@ boolector_eq (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_eq_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ne (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorExp *real_e0, *real_e1;
+  BtorNode *real_e0, *real_e1;
   int is_array_e0, is_array_e1;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -549,8 +549,8 @@ boolector_ne (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ne_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_add (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -566,8 +566,8 @@ boolector_add (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_add_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_uaddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -583,8 +583,8 @@ boolector_uaddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_uaddo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_saddo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -600,8 +600,8 @@ boolector_saddo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_saddo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_mul (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -617,8 +617,8 @@ boolector_mul (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_mul_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_umulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -634,8 +634,8 @@ boolector_umulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_umulo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_smulo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -652,8 +652,8 @@ boolector_smulo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_smulo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ult (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -669,8 +669,8 @@ boolector_ult (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ult_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_slt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -686,8 +686,8 @@ boolector_slt (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_slt_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ulte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -703,8 +703,8 @@ boolector_ulte (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ulte_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_slte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -720,8 +720,8 @@ boolector_slte (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_slte_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ugt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -737,8 +737,8 @@ boolector_ugt (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ugt_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sgt (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -754,8 +754,8 @@ boolector_sgt (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sgt_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ugte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -771,8 +771,8 @@ boolector_ugte (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ugte_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sgte (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -788,8 +788,8 @@ boolector_sgte (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sgte_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int len;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -811,8 +811,8 @@ boolector_sll (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sll_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int len;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -834,8 +834,8 @@ boolector_srl (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_srl_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int len;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -857,8 +857,8 @@ boolector_sra (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sra_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_rol (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int len;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -880,8 +880,8 @@ boolector_rol (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_rol_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   int len;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -903,8 +903,8 @@ boolector_ror (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ror_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sub (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -920,8 +920,8 @@ boolector_sub (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sub_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_usubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -937,8 +937,8 @@ boolector_usubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_usubo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_ssubo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -954,8 +954,8 @@ boolector_ssubo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_ssubo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_udiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -971,8 +971,8 @@ boolector_udiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_udiv_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sdiv (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -988,8 +988,8 @@ boolector_sdiv (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sdiv_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_sdivo (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -1005,8 +1005,8 @@ boolector_sdivo (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_sdivo_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_urem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -1022,8 +1022,8 @@ boolector_urem (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_urem_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_srem (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -1039,8 +1039,8 @@ boolector_srem (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_srem_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_smod (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -1056,8 +1056,8 @@ boolector_smod (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_smod_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1)
+BtorNode *
+boolector_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e0);
@@ -1075,8 +1075,8 @@ boolector_concat (Btor *btor, BtorExp *e0, BtorExp *e1)
   return btor_concat_exp (btor, e0, e1);
 }
 
-BtorExp *
-boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index)
+BtorNode *
+boolector_read (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
@@ -1094,11 +1094,11 @@ boolector_read (Btor *btor, BtorExp *e_array, BtorExp *e_index)
   return btor_read_exp (btor, e_array, e_index);
 }
 
-BtorExp *
+BtorNode *
 boolector_write (Btor *btor,
-                 BtorExp *e_array,
-                 BtorExp *e_index,
-                 BtorExp *e_value)
+                 BtorNode *e_array,
+                 BtorNode *e_index,
+                 BtorNode *e_value)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
@@ -1123,10 +1123,10 @@ boolector_write (Btor *btor,
   return btor_write_exp (btor, e_array, e_index, e_value);
 }
 
-BtorExp *
-boolector_cond (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
+BtorNode *
+boolector_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 {
-  BtorExp *real_e_if, *real_e_else;
+  BtorNode *real_e_if, *real_e_else;
   int is_array_e_if, is_array_e_else;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -1161,8 +1161,8 @@ boolector_cond (Btor *btor, BtorExp *e_cond, BtorExp *e_if, BtorExp *e_else)
   return btor_cond_exp (btor, e_cond, e_if, e_else);
 }
 
-BtorExp *
-boolector_inc (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_inc (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1174,8 +1174,8 @@ boolector_inc (Btor *btor, BtorExp *exp)
   return btor_inc_exp (btor, exp);
 }
 
-BtorExp *
-boolector_dec (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_dec (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1188,7 +1188,7 @@ boolector_dec (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_get_width (Btor *btor, BtorExp *exp)
+boolector_get_width (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1197,7 +1197,7 @@ boolector_get_width (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_is_array (Btor *btor, BtorExp *exp)
+boolector_is_array (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1207,7 +1207,7 @@ boolector_is_array (Btor *btor, BtorExp *exp)
 }
 
 int
-boolector_get_width_index (Btor *btor, BtorExp *e_array)
+boolector_get_width_index (Btor *btor, BtorNode *e_array)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
@@ -1218,7 +1218,7 @@ boolector_get_width_index (Btor *btor, BtorExp *e_array)
 }
 
 const char *
-boolector_get_symbol_of_var (Btor *btor, BtorExp *exp)
+boolector_get_symbol_of_var (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1226,8 +1226,8 @@ boolector_get_symbol_of_var (Btor *btor, BtorExp *exp)
   return (const char *) btor_get_symbol_exp (btor, exp);
 }
 
-BtorExp *
-boolector_copy (Btor *btor, BtorExp *exp)
+BtorNode *
+boolector_copy (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1237,7 +1237,7 @@ boolector_copy (Btor *btor, BtorExp *exp)
 }
 
 void
-boolector_release (Btor *btor, BtorExp *exp)
+boolector_release (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1247,7 +1247,7 @@ boolector_release (Btor *btor, BtorExp *exp)
 }
 
 void
-boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp)
+boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
@@ -1257,7 +1257,7 @@ boolector_dump_btor (Btor *btor, FILE *file, BtorExp *exp)
 }
 
 void
-boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp)
+boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
@@ -1267,7 +1267,7 @@ boolector_dump_smt (Btor *btor, FILE *file, BtorExp *exp)
 }
 
 void
-boolector_assert (Btor *btor, BtorExp *exp)
+boolector_assert (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1280,7 +1280,7 @@ boolector_assert (Btor *btor, BtorExp *exp)
 }
 
 void
-boolector_assume (Btor *btor, BtorExp *exp)
+boolector_assume (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (!btor->inc_enabled,
@@ -1305,7 +1305,7 @@ boolector_sat (Btor *btor)
 }
 
 char *
-boolector_bv_assignment (Btor *btor, BtorExp *exp)
+boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
@@ -1319,7 +1319,7 @@ boolector_bv_assignment (Btor *btor, BtorExp *exp)
 
 void
 boolector_array_assignment (
-    Btor *btor, BtorExp *e_array, char ***indices, char ***values, int *size)
+    Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);

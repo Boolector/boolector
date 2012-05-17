@@ -187,7 +187,7 @@ typedef struct BtorSMT2Node
   unsigned bound : 1;
   int lineno;
   char *name;
-  BtorExp *exp;
+  BtorNode *exp;
   struct BtorSMT2Node *next;
 } BtorSMT2Node;
 
@@ -206,7 +206,7 @@ typedef struct BtorSMT2Item
   union
   {
     BtorSMT2Node *node;
-    BtorExp *exp;
+    BtorNode *exp;
     char *str;
   };
 } BtorSMT2Item;
@@ -267,7 +267,7 @@ typedef struct BtorSMT2Parser
     BtorSMT2Node **table;
   } symbol;
   unsigned char cc[256];
-  BtorExpPtrStack outputs, inputs;
+  BtorNodePtrStack outputs, inputs;
   BtorCharStack token;
   BtorSMT2ItemStack work;
   BtorParseResult *res;
@@ -1381,13 +1381,13 @@ btor_check_not_array_args_smt2 (BtorSMT2Parser *parser,
   return 1;
 }
 
-static BtorExp *
+static BtorNode *
 btor_translate_shift_smt2 (Btor *btor,
-                           BtorExp *a0,
-                           BtorExp *a1,
-                           BtorExp *(*f) (Btor *, BtorExp *, BtorExp *) )
+                           BtorNode *a0,
+                           BtorNode *a1,
+                           BtorNode *(*f) (Btor *, BtorNode *, BtorNode *) )
 {
-  BtorExp *c, *e, *t, *e0, *u, *l, *tmp, *res;
+  BtorNode *c, *e, *t, *e0, *u, *l, *tmp, *res;
   int len, l0, l1, p0, p1;
 
   len = btor_get_exp_len (btor, a0);
@@ -1474,28 +1474,28 @@ btor_translate_shift_smt2 (Btor *btor,
   return res;
 }
 
-static BtorExp *
-btor_shl_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
+static BtorNode *
+btor_shl_smt2 (Btor *btor, BtorNode *a, BtorNode *b)
 {
   return btor_translate_shift_smt2 (btor, a, b, btor_sll_exp);
 }
 
-static BtorExp *
-btor_ashr_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
+static BtorNode *
+btor_ashr_smt2 (Btor *btor, BtorNode *a, BtorNode *b)
 {
   return btor_translate_shift_smt2 (btor, a, b, btor_sra_exp);
 }
 
-static BtorExp *
-btor_lshr_smt2 (Btor *btor, BtorExp *a, BtorExp *b)
+static BtorNode *
+btor_lshr_smt2 (Btor *btor, BtorNode *a, BtorNode *b)
 {
   return btor_translate_shift_smt2 (btor, a, b, btor_srl_exp);
 }
 
-static BtorExp *
-btor_translate_rotate_smt2 (Btor *btor, BtorExp *exp, int shift, int left)
+static BtorNode *
+btor_translate_rotate_smt2 (Btor *btor, BtorNode *exp, int shift, int left)
 {
-  BtorExp *l, *r, *res;
+  BtorNode *l, *r, *res;
   int len;
 
   assert (shift >= 0);
@@ -1524,26 +1524,26 @@ btor_translate_rotate_smt2 (Btor *btor, BtorExp *exp, int shift, int left)
   return res;
 }
 
-static BtorExp *
-btor_rotate_left_smt2 (Btor *btor, BtorExp *exp, int shift)
+static BtorNode *
+btor_rotate_left_smt2 (Btor *btor, BtorNode *exp, int shift)
 {
   return btor_translate_rotate_smt2 (btor, exp, shift, 1);
 }
 
-static BtorExp *
-btor_rotate_right_smt2 (Btor *btor, BtorExp *exp, int shift)
+static BtorNode *
+btor_rotate_right_smt2 (Btor *btor, BtorNode *exp, int shift)
 {
   return btor_translate_rotate_smt2 (btor, exp, shift, 0);
 }
 
 static int
-btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorExp **resptr, int *linenoptr)
+btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
 {
   int tag, width, domain, len, nargs, i, j, open = 0;
-  BtorExp *(*binfun) (Btor *, BtorExp *, BtorExp *);
-  BtorExp *(*extfun) (Btor *, BtorExp *, int);
-  BtorExp *(*unaryfun) (Btor *, BtorExp *);
-  BtorExp *res, *exp, *tmp, *old;
+  BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *);
+  BtorNode *(*extfun) (Btor *, BtorNode *, int);
+  BtorNode *(*unaryfun) (Btor *, BtorNode *);
+  BtorNode *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
   unaryfun = 0;
   binfun   = 0;
@@ -2500,8 +2500,8 @@ static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
   int tag, lineno = 0;
-  BtorExp *exp = 0;
-  tag          = btor_read_token_smt2 (parser);
+  BtorNode *exp = 0;
+  tag           = btor_read_token_smt2 (parser);
   if (tag == EOF || tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag != BTOR_LPAR_TAG_SMT2)
     return !btor_perr_smt2 (

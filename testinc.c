@@ -32,9 +32,9 @@
 static void
 test_inc_true_false (void)
 {
-  Btor *btor  = btor_new_btor ();
-  BtorExp *ff = btor_false_exp (btor);
-  BtorExp *tt = btor_true_exp (btor);
+  Btor *btor   = btor_new_btor ();
+  BtorNode *ff = btor_false_exp (btor);
+  BtorNode *tt = btor_true_exp (btor);
   int res;
 
   btor_enable_inc_usage (btor);
@@ -54,8 +54,8 @@ test_inc_true_false (void)
 static void
 test_inc_counter (int w, int nondet)
 {
-  BtorExp *nonzero, *allzero, *one, *oracle;
-  BtorExp *current, *next, *inc;
+  BtorNode *nonzero, *allzero, *one, *oracle;
+  BtorNode *current, *next, *inc;
   Btor *btor;
   char name[100];
   int i, res;
@@ -176,7 +176,7 @@ test_inc_count8nondet (void)
 static void
 test_inc_lt (int w)
 {
-  BtorExp *prev, *next, *lt;
+  BtorNode *prev, *next, *lt;
   Btor *btor;
   char name[100];
   int i, res;
@@ -255,13 +255,13 @@ test_inc_assume_assert1 (void)
   Btor *btor = btor_new_btor ();
   btor_enable_inc_usage (btor);
   btor_set_rewrite_level_btor (btor, 0);
-  BtorExp *array    = btor_array_exp (btor, 1, 1, "array1");
-  BtorExp *index1   = btor_var_exp (btor, 1, "index1");
-  BtorExp *index2   = btor_var_exp (btor, 1, "index2");
-  BtorExp *read1    = btor_read_exp (btor, array, index1);
-  BtorExp *read2    = btor_read_exp (btor, array, index2);
-  BtorExp *eq_index = btor_eq_exp (btor, index1, index2);
-  BtorExp *ne_read  = btor_ne_exp (btor, read1, read2);
+  BtorNode *array    = btor_array_exp (btor, 1, 1, "array1");
+  BtorNode *index1   = btor_var_exp (btor, 1, "index1");
+  BtorNode *index2   = btor_var_exp (btor, 1, "index2");
+  BtorNode *read1    = btor_read_exp (btor, array, index1);
+  BtorNode *read2    = btor_read_exp (btor, array, index2);
+  BtorNode *eq_index = btor_eq_exp (btor, index1, index2);
+  BtorNode *ne_read  = btor_ne_exp (btor, read1, read2);
   btor_add_constraint_exp (btor, ne_read);
   sat_result = btor_sat_btor (btor);
   assert (sat_result == BTOR_SAT);
@@ -287,13 +287,13 @@ test_inc_lemmas_on_demand_1 ()
   Btor *btor = btor_new_btor ();
   btor_enable_inc_usage (btor);
   btor_set_rewrite_level_btor (btor, 0);
-  BtorExp *array  = btor_array_exp (btor, 1, 1, "array1");
-  BtorExp *index1 = btor_var_exp (btor, 1, "index1");
-  BtorExp *index2 = btor_var_exp (btor, 1, "index2");
-  BtorExp *read1  = btor_read_exp (btor, array, index1);
-  BtorExp *read2  = btor_read_exp (btor, array, index2);
-  BtorExp *eq     = btor_eq_exp (btor, index1, index2);
-  BtorExp *ne     = btor_ne_exp (btor, read1, read2);
+  BtorNode *array  = btor_array_exp (btor, 1, 1, "array1");
+  BtorNode *index1 = btor_var_exp (btor, 1, "index1");
+  BtorNode *index2 = btor_var_exp (btor, 1, "index2");
+  BtorNode *read1  = btor_read_exp (btor, array, index1);
+  BtorNode *read2  = btor_read_exp (btor, array, index2);
+  BtorNode *eq     = btor_eq_exp (btor, index1, index2);
+  BtorNode *ne     = btor_ne_exp (btor, read1, read2);
   btor_add_constraint_exp (btor, eq);
   btor_add_assumption_exp (btor, ne);
   sat_result = btor_sat_btor (btor);

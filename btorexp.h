@@ -21,9 +21,9 @@
 
 /*------------------------------------------------------------------------*/
 
-BTOR_DECLARE_STACK (ExpPtr, BtorExp *);
+BTOR_DECLARE_STACK (NodePtr, BtorNode *);
 
-BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
+BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
 
 /* NOTE: DO NOT REORDER THE INDICES.
  * CERTAIN MACROS DEPEND ON ORDER.
@@ -31,7 +31,7 @@ BTOR_DECLARE_QUEUE (ExpPtr, BtorExp *);
  * and BTOR_VAR_EXP are at the beginning,
  * and BTOR_PROXY_EXP is BTOR_NUM_OPS_EXP - 1
  */
-enum BtorExpKind
+enum BtorNodeKind
 {
   /* Even though the following is just for debugging purposes,
    * we should not put '#ifndef NDEBUG' around.  This would
@@ -63,14 +63,14 @@ enum BtorExpKind
   BTOR_NUM_OPS_EXP   = 21
 };
 
-typedef enum BtorExpKind BtorExpKind;
+typedef enum BtorNodeKind BtorNodeKind;
 
-typedef struct BtorExpPair BtorExpPair;
+typedef struct BtorNodePair BtorNodePair;
 
 #define BTOR_BV_VAR_EXP_STRUCT                                                 \
   struct                                                                       \
   {                                                                            \
-    BtorExpKind kind : 5;        /* kind of expression */                      \
+    BtorNodeKind kind : 5;       /* kind of expression */                      \
     unsigned int mark : 3;       /* for DAG traversal */                       \
     unsigned int array_mark : 2; /* for bottom up array traversal */           \
     unsigned int aux_mark : 2;   /* auxiallary mark flag */                    \
@@ -100,89 +100,89 @@ typedef struct BtorExpPair BtorExpPair;
       BtorAIGVec *av;        /* synthesized AIG vector */                      \
       BtorPtrHashTable *rho; /* used for finding array conflicts */            \
     };                                                                         \
-    struct BtorExp *next;         /* next element in unique table */           \
-    struct BtorExp *parent;       /* parent pointer for BFS */                 \
-    struct BtorExp *simplified;   /* equivalent simplified expression */       \
-    Btor *btor;                   /* boolector */                              \
-    struct BtorExp *first_parent; /* head of parent list */                    \
-    struct BtorExp *last_parent;  /* tail of parent list */                    \
+    BtorNode *next;         /* next element in unique table */                 \
+    BtorNode *parent;       /* parent pointer for BFS */                       \
+    BtorNode *simplified;   /* equivalent simplified expression */             \
+    Btor *btor;             /* boolector */                                    \
+    BtorNode *first_parent; /* head of parent list */                          \
+    BtorNode *last_parent;  /* tail of parent list */                          \
   }
 
-#define BTOR_BV_ADDITIONAL_EXP_STRUCT                                        \
-  struct                                                                     \
-  {                                                                          \
-    union                                                                    \
-    {                                                                        \
-      struct                                                                 \
-      {                                                                      \
-        char *symbol; /* symbol for output */                                \
-        int upper;    /* upper index for slices */                           \
-        union                                                                \
-        {                                                                    \
-          int lower;           /* lower index for slices */                  \
-          BtorExpPair *vreads; /* virtual reads for array equalites */       \
-        };                                                                   \
-      };                                                                     \
-      struct BtorExp *e[3]; /* three expression children */                  \
-    };                                                                       \
-    struct BtorExp *prev_parent[3]; /* prev exp in parent list of child i */ \
-    struct BtorExp *next_parent[3]; /* next exp in parent list of child i */ \
+#define BTOR_BV_ADDITIONAL_EXP_STRUCT                                   \
+  struct                                                                \
+  {                                                                     \
+    union                                                               \
+    {                                                                   \
+      struct                                                            \
+      {                                                                 \
+        char *symbol; /* symbol for output */                           \
+        int upper;    /* upper index for slices */                      \
+        union                                                           \
+        {                                                               \
+          int lower;            /* lower index for slices */            \
+          BtorNodePair *vreads; /* virtual reads for array equalites */ \
+        };                                                              \
+      };                                                                \
+      BtorNode *e[3]; /* three expression children */                   \
+    };                                                                  \
+    BtorNode *prev_parent[3]; /* prev exp in parent list of child i */  \
+    BtorNode *next_parent[3]; /* next exp in parent list of child i */  \
   }
 
 #define BTOR_ARRAY_VAR_EXP_STRUCT                                            \
   struct                                                                     \
   {                                                                          \
-    int index_len;                          /* length of the index */        \
-    struct BtorExp *first_aeq_acond_parent; /* first array equality or array \
+    int index_len;                    /* length of the index */              \
+    BtorNode *first_aeq_acond_parent; /* first array equality or array       \
                                                conditional in parent list */ \
-    struct BtorExp *last_aeq_acond_parent;  /* last array equality or array  \
+    BtorNode *last_aeq_acond_parent;  /* last array equality or array        \
                                                conditional in parent list */ \
   }
 
 #define BTOR_ARRAY_ADDITIONAL_EXP_STRUCT                                   \
   struct                                                                   \
   {                                                                        \
-    struct BtorExp *prev_aeq_acond_parent[3]; /* prev array equality or    \
+    BtorNode *prev_aeq_acond_parent[3]; /* prev array equality or          \
                                                  conditional in aeq acond  \
                                                  parent list of child i */ \
-    struct BtorExp *next_aeq_acond_parent[3]; /* next array equality or    \
+    BtorNode *next_aeq_acond_parent[3]; /* next array equality or          \
                                                  conditional in aeq acond  \
                                                  parent list of child i */ \
   }
 
-struct BtorBVVarExp
+struct BtorBVVarNode
 {
   BTOR_BV_VAR_EXP_STRUCT;
   char *symbol;
 };
 
-typedef struct BtorBVVarExp BtorBVVarExp;
+typedef struct BtorBVVarNode BtorBVVarNode;
 
-struct BtorBVConstExp
+struct BtorBVConstNode
 {
   BTOR_BV_VAR_EXP_STRUCT;
 };
 
-typedef struct BtorBVConstExp BtorBVConstExp;
+typedef struct BtorBVConstNode BtorBVConstNode;
 
-struct BtorBVExp
+struct BtorBVNode
 {
   BTOR_BV_VAR_EXP_STRUCT;
   BTOR_BV_ADDITIONAL_EXP_STRUCT;
 };
 
-typedef struct BtorBVExp BtorBVExp;
+typedef struct BtorBVNode BtorBVNode;
 
-struct BtorArrayVarExp
+struct BtorArrayVarNode
 {
   BTOR_BV_VAR_EXP_STRUCT;
   BTOR_BV_ADDITIONAL_EXP_STRUCT;
   BTOR_ARRAY_VAR_EXP_STRUCT;
 };
 
-typedef struct BtorArrayVarExp BtorArrayVarExp;
+typedef struct BtorArrayVarNode BtorArrayVarNode;
 
-struct BtorExp
+struct BtorNode
 {
   BTOR_BV_VAR_EXP_STRUCT;
   BTOR_BV_ADDITIONAL_EXP_STRUCT;
@@ -190,14 +190,14 @@ struct BtorExp
   BTOR_ARRAY_ADDITIONAL_EXP_STRUCT;
 };
 
-struct BtorExpUniqueTable
+struct BtorNodeUniqueTable
 {
   int size;
   int num_elements;
-  struct BtorExp **chains;
+  BtorNode **chains;
 };
 
-typedef struct BtorExpUniqueTable BtorExpUniqueTable;
+typedef struct BtorNodeUniqueTable BtorNodeUniqueTable;
 
 struct ConstraintStats
 {
@@ -239,7 +239,7 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
-  BtorExpUniqueTable table;
+  BtorNodeUniqueTable table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
@@ -268,7 +268,7 @@ struct Btor
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
   BtorPtrHashTable *var_rhs; /* only for model generation */
-  BtorExpPtrStack arrays_with_model;
+  BtorNodePtrStack arrays_with_model;
   /* statistics */
   int ops[BTOR_NUM_OPS_EXP];
   struct
@@ -373,15 +373,16 @@ struct Btor
 #define BTOR_IS_TERNARY_EXP(exp) \
   ((exp) && BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))
 
-#define BTOR_INVERT_EXP(exp) ((BtorExp *) (1ul ^ (unsigned long int) (exp)))
+#define BTOR_INVERT_EXP(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
 
 #define BTOR_IS_INVERTED_EXP(exp) (1ul & (unsigned long int) (exp))
 
-#define BTOR_COND_INVERT_EXP(cond_exp, exp)           \
-  ((BtorExp *) (((unsigned long int) (cond_exp) &1ul) \
-                ^ (unsigned long int) (exp)))
+#define BTOR_COND_INVERT_EXP(cond_exp, exp)            \
+  ((BtorNode *) (((unsigned long int) (cond_exp) &1ul) \
+                 ^ (unsigned long int) (exp)))
 
-#define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
+#define BTOR_REAL_ADDR_EXP(exp) \
+  ((BtorNode *) (~3ul & (unsigned long int) (exp)))
 
 #define BTOR_GET_ID_EXP(exp) \
   (BTOR_IS_INVERTED_EXP (exp) ? -BTOR_REAL_ADDR_EXP (exp)->id : exp->id)
@@ -397,7 +398,7 @@ struct Btor
        : btor_copy_const (mm, exp->bits))
 
 #define BTOR_TAG_EXP(exp, tag) \
-  ((BtorExp *) ((unsigned long int) tag | (unsigned long int) (exp)))
+  ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
 
 #define BTOR_GET_TAG_EXP(exp) ((int) (3ul & (unsigned long int) (exp)))
 
@@ -458,89 +459,89 @@ void btor_print_stats_btor (Btor *btor);
  * strlen(bits) > 0
  * len(result) = strlen(bits)
  */
-BtorExp *btor_const_exp (Btor *btor, const char *bits);
+BtorNode *btor_const_exp (Btor *btor, const char *bits);
 
 /* Binary constant representing 'len' zeros.
  * len > 0
  * len(result) = len
  */
-BtorExp *btor_zero_exp (Btor *btor, int len);
+BtorNode *btor_zero_exp (Btor *btor, int len);
 
 /* Constant respresenting FALSE
  * len(result) = 1
  */
-BtorExp *btor_false_exp (Btor *btor);
+BtorNode *btor_false_exp (Btor *btor);
 
 /* Binary constant representing 'len' ones.
  * len > 0
  * len(result) = len
  */
-BtorExp *btor_ones_exp (Btor *btor, int len);
+BtorNode *btor_ones_exp (Btor *btor, int len);
 
 /* Constant respresenting TRUE
  * len(result) = 1
  */
-BtorExp *btor_true_exp (Btor *btor);
+BtorNode *btor_true_exp (Btor *btor);
 
 /* Binary constant representing 1 with 'len' bits.
  * len > 0
  * len(result) = len
  */
-BtorExp *btor_one_exp (Btor *btor, int len);
+BtorNode *btor_one_exp (Btor *btor, int len);
 
 /* Binary constant representing the unsigned integer.
  * The constant is obtained by either truncating bits
  * or by unsigned extension (padding with zeroes).
  * len > 0
  */
-BtorExp *btor_unsigned_to_exp (Btor *btor, unsigned u, int len);
+BtorNode *btor_unsigned_to_exp (Btor *btor, unsigned u, int len);
 
 /* Binary constant representing the signed integer.
  * The constant is obtained by either truncating bits
  * or by signed extension (padding with ones).
  * len > 0
  */
-BtorExp *btor_int_to_exp (Btor *emg, int i, int len);
+BtorNode *btor_int_to_exp (Btor *emg, int i, int len);
 
 /* Variable representing 'len' bits.
  * len > 0
  * len(result) = len
  */
-BtorExp *btor_var_exp (Btor *btor, int len, const char *symbol);
+BtorNode *btor_var_exp (Btor *btor, int len, const char *symbol);
 
 /* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
  * index_len > 0
  */
-BtorExp *btor_array_exp (Btor *btor,
-                         int elem_len,
-                         int index_len,
-                         const char *symbol);
+BtorNode *btor_array_exp (Btor *btor,
+                          int elem_len,
+                          int index_len,
+                          const char *symbol);
 
 /* One's complement.
  * len(result) = len(exp)
  */
-BtorExp *btor_not_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_not_exp (Btor *btor, BtorNode *exp);
 
 /* Two's complement.
  * len(result) = len(exp)
  */
-BtorExp *btor_neg_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_neg_exp (Btor *btor, BtorNode *exp);
 
 /* OR reduction.
  * len(result) = 1
  */
-BtorExp *btor_redor_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_redor_exp (Btor *btor, BtorNode *exp);
 
 /* XOR reduction.
  * len(result) = 1
  */
-BtorExp *btor_redxor_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_redxor_exp (Btor *btor, BtorNode *exp);
 
 /* AND reduction.
  * len(result) = 1
  */
-BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_redand_exp (Btor *btor, BtorNode *exp);
 
 /* BtorSlice a sub-vector from 'upper' to 'lower'.
  * upper < len(exp)
@@ -548,321 +549,321 @@ BtorExp *btor_redand_exp (Btor *btor, BtorExp *exp);
  * upper >= lower
  * len(result) = upper - lower + 1
  */
-BtorExp *btor_slice_exp (Btor *btor, BtorExp *exp, int upper, int lower);
+BtorNode *btor_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower);
 
 /* Unsigned extension of 'len' bits.
  * len >= 0
  * len(result) = len(exp) + len
  */
-BtorExp *btor_uext_exp (Btor *btor, BtorExp *exp, int len);
+BtorNode *btor_uext_exp (Btor *btor, BtorNode *exp, int len);
 
 /* Signed extension of 'len' bits (keep sign).
  * len >= 0
  * len(result) = len(exp) + len
  */
-BtorExp *btor_sext_exp (Btor *btor, BtorExp *exp, int len);
+BtorNode *btor_sext_exp (Btor *btor, BtorNode *exp, int len);
 
 /* Logical IMPLICATION.
  * len(e0) = len(e1) = 1
  * len(result) = 1
  */
-BtorExp *btor_implies_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_implies_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical EQUIVALENCE.
  * len(e0) = len(e1) = 1
  * len(result) = 1
  */
-BtorExp *btor_iff_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_iff_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector XOR.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_xor_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_xor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector XNOR.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_xnor_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_xnor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector AND.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector NAND.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_nand_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_nand_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector OR.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_or_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_or_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Logical and bit-vector NOR.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_nor_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_nor_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Bit-vector or array equality.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_eq_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Bit-vector or array inequality.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ne_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ne_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Adder.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_add_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two unsigned operands leads to an overflow.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_uaddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_uaddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if adding two signed operands leads to an overflow.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_saddo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_saddo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Multiplier.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_mul_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if multiplying two unsigned operands leads to an overflow.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_umulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_umulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if multiplying two signed operands leads to an overflow.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_smulo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_smulo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned less than.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ult_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed less than.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_slt_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_slt_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned less than or equal.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ulte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ulte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed less than or equal.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_slte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_slte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned greater than.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ugt_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ugt_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed greater than.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_sgt_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sgt_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned greater than or equal.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ugte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ugte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed greater than or equal.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_sgte_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sgte_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift left logical.
  * is_power_of_2(len(e0))
  * len(e1) = log2(len(e0))
  * len(result) len(e0)
  */
-BtorExp *btor_sll_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift right logical.
  * is_power_of_2(len(e0))
  * len(e1) = log2(len(e0))
  * len(result) = len(e0)
  */
-BtorExp *btor_srl_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Shift right arithmetic.
  * is_power_of_2(len(e0))
  * len(e1) = log2(len(e0))
  * len(result) = len(e0)
  */
-BtorExp *btor_sra_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sra_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Rotate left.
  * is_power_of_2(len(e0))
  * len(e1) = log2(len(e0))
  * len(result) = len(e0)
  */
-BtorExp *btor_rol_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_rol_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Rotate right.
  * is_power_of_2(len(e0))
  * len(e1) = log2(len(e0))
  * len(result) = len(e0)
  */
-BtorExp *btor_ror_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ror_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Subtractor.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_sub_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sub_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 - e1 leads to an overflow if both are unsigned.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_usubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_usubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 - e1 leads to an overflow if both are signed.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_ssubo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ssubo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned divider.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_udiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed divider.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_sdiv_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sdiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Result represents if e0 / e1 leads to an overflow if both are signed.
  * For example INT_MIN / -1.
  * len(e0) = len(e1)
  * len(result) = 1
  */
-BtorExp *btor_sdivo_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sdivo_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Unsigned modulo.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_urem_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed modulo.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_srem_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_srem_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Signed modulo variant.
  * len(e0) = len(e1)
  * len(result) = len(e0) = len(e1)
  */
-BtorExp *btor_smod_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_smod_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Concatenation.
  * len(result) = len(e0) + len(e1)
  */
-BtorExp *btor_concat_exp (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /* Array read on array 'e_array' at position 'e_index'.
  * index_len(e_array) = len(e_index)
  * len(result) = elem_len(e_array)
  */
-BtorExp *btor_read_exp (Btor *btor, BtorExp *e_array, BtorExp *e_index);
+BtorNode *btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index);
 
 /* Array write on array 'e_array' at position 'e_index' with value 'e_value'.
  * index_len(e_array) = len(e_index)
  * elem_len(e_array) = len(e_value)
  */
-BtorExp *btor_write_exp (Btor *btor,
-                         BtorExp *e_array,
-                         BtorExp *e_index,
-                         BtorExp *e_value);
+BtorNode *btor_write_exp (Btor *btor,
+                          BtorNode *e_array,
+                          BtorNode *e_index,
+                          BtorNode *e_value);
 
 /* If-then-else.
  * len(e_cond) = 1
  * len(e_if) = len(e_else)
  * len(result) = len(e_if) = len(e_else)
  */
-BtorExp *btor_cond_exp (Btor *btor,
-                        BtorExp *e_cond,
-                        BtorExp *e_if,
-                        BtorExp *e_else);
+BtorNode *btor_cond_exp (Btor *btor,
+                         BtorNode *e_cond,
+                         BtorNode *e_if,
+                         BtorNode *e_else);
 
 /* Increments bit-vector expression by one */
-BtorExp *btor_inc_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 
 /* Decrements bit-vector expression by one */
-BtorExp *btor_dec_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the length of an expression representing the number of bits. */
-int btor_get_exp_len (Btor *btor, BtorExp *exp);
+int btor_get_exp_len (Btor *btor, BtorNode *exp);
 
 /* Determines if expression is an array or not. */
-int btor_is_array_exp (Btor *btor, BtorExp *exp);
+int btor_is_array_exp (Btor *btor, BtorNode *exp);
 
 /* Gets the number of bits used by indices on 'e_array'. */
-int btor_get_index_exp_len (Btor *btor, BtorExp *e_array);
+int btor_get_index_exp_len (Btor *btor, BtorNode *e_array);
 
 /* Gets the symbol of a variable. */
-char *btor_get_symbol_exp (Btor *btor, BtorExp *exp);
+char *btor_get_symbol_exp (Btor *btor, BtorNode *exp);
 
 /* Copies expression (increments reference counter). */
-BtorExp *btor_copy_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 
 /* Releases expression (decrements reference counter). */
-void btor_release_exp (Btor *btor, BtorExp *exp);
+void btor_release_exp (Btor *btor, BtorNode *exp);
 
 /* Dumps expression(s) to file in BTOR format. */
-void btor_dump_exp (Btor *btor, FILE *file, BtorExp *root);
-void btor_dump_exps (Btor *btor, FILE *file, BtorExp **exps, int nroots);
+void btor_dump_exp (Btor *btor, FILE *file, BtorNode *root);
+void btor_dump_exps (Btor *btor, FILE *file, BtorNode **exps, int nroots);
 void btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file);
 
 /* Dumps expression to file in SMT format. */
-void btor_dump_smt (Btor *btor, FILE *file, BtorExp *root);
+void btor_dump_smt (Btor *btor, FILE *file, BtorNode *root);
 
 /* Adds top level constraint. */
-void btor_add_constraint_exp (Btor *btor, BtorExp *exp);
+void btor_add_constraint_exp (Btor *btor, BtorNode *exp);
 
 /* Adds assumption. */
-void btor_add_assumption_exp (Btor *btor, BtorExp *exp);
+void btor_add_assumption_exp (Btor *btor, BtorNode *exp);
 
 /* Solves SAT instance.
  */
@@ -873,49 +874,49 @@ int btor_sat_btor (Btor *btor);
  * Do not call before calling btor_sat_exp.
  * strlen(result) = len(exp)
  */
-char *btor_bv_assignment_exp (Btor *btor, BtorExp *exp);
+char *btor_bv_assignment_exp (Btor *btor, BtorNode *exp);
 
 void btor_array_assignment_exp (
-    Btor *btor, BtorExp *exp, char ***indices, char ***values, int *size);
+    Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size);
 
 /* Frees BV assignment obtained by calling 'btor_assignment_exp' */
 void btor_free_bv_assignment_exp (Btor *btor, char *assignment);
 
 /*------------------------------------------------------------------------*/
 
-BtorExp *btor_slice_exp_node (Btor *btor, BtorExp *exp, int upper, int lower);
+BtorNode *btor_slice_exp_node (Btor *btor, BtorNode *exp, int upper, int lower);
 
-BtorExp *btor_and_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_and_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_eq_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_eq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_add_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_add_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_mul_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_mul_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_ult_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_ult_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_sll_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_sll_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_srl_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_srl_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_udiv_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_udiv_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_urem_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_urem_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_concat_exp_node (Btor *btor, BtorExp *e0, BtorExp *e1);
+BtorNode *btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1);
 
-BtorExp *btor_read_exp_node (Btor *btor, BtorExp *e_array, BtorExp *e_index);
+BtorNode *btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index);
 
-BtorExp *btor_write_exp_node (Btor *btor,
-                              BtorExp *e_array,
-                              BtorExp *e_index,
-                              BtorExp *e_value);
+BtorNode *btor_write_exp_node (Btor *btor,
+                               BtorNode *e_array,
+                               BtorNode *e_index,
+                               BtorNode *e_value);
 
-BtorExp *btor_cond_exp_node (Btor *btor,
-                             BtorExp *e_cond,
-                             BtorExp *e_if,
-                             BtorExp *e_else);
+BtorNode *btor_cond_exp_node (Btor *btor,
+                              BtorNode *e_cond,
+                              BtorNode *e_if,
+                              BtorNode *e_else);
 
 /*------------------------------------------------------------------------*/
 
@@ -925,59 +926,59 @@ BtorExp *btor_cond_exp_node (Btor *btor,
  * is a map from AIG variables to strings.
  */
 BtorAIGVec *btor_exp_to_aigvec (Btor *btor,
-                                BtorExp *exp,
+                                BtorNode *exp,
                                 BtorPtrHashTable *table);
 
 /* Compares two expression pairs by ID */
-int btor_compare_exp_by_id (BtorExp *exp0, BtorExp *exp1);
+int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
 
 /* Hashes expression by ID */
-unsigned int btor_hash_exp_by_id (BtorExp *exp);
+unsigned int btor_hash_exp_by_id (BtorNode *exp);
 
 /* Finds most simplified expression and shortens path to it */
-BtorExp *btor_pointer_chase_simplified_exp (Btor *btor, BtorExp *exp);
+BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
 
 int btor_precond_slice_exp_dbg (const Btor *btor,
-                                const BtorExp *exp,
+                                const BtorNode *exp,
                                 int upper,
                                 int lower);
 
 int btor_precond_regular_unary_bv_exp_dbg (const Btor *btor,
-                                           const BtorExp *exp);
+                                           const BtorNode *exp);
 
 int btor_precond_regular_binary_bv_exp_dbg (const Btor *btor,
-                                            const BtorExp *e0,
-                                            const BtorExp *e1);
+                                            const BtorNode *e0,
+                                            const BtorNode *e1);
 
 int btor_precond_eq_exp_dbg (const Btor *btor,
-                             const BtorExp *e0,
-                             const BtorExp *e1);
+                             const BtorNode *e0,
+                             const BtorNode *e1);
 
 int btor_precond_shift_exp_dbg (const Btor *btor,
-                                const BtorExp *e0,
-                                const BtorExp *e1);
+                                const BtorNode *e0,
+                                const BtorNode *e1);
 
 int btor_precond_concat_exp_dbg (const Btor *btor,
-                                 const BtorExp *e0,
-                                 const BtorExp *e1);
+                                 const BtorNode *e0,
+                                 const BtorNode *e1);
 
 int btor_precond_read_exp_dbg (const Btor *btor,
-                               const BtorExp *e_array,
-                               const BtorExp *e_index);
+                               const BtorNode *e_array,
+                               const BtorNode *e_index);
 
 int btor_precond_write_exp_dbg (const Btor *btor,
-                                const BtorExp *e_array,
-                                const BtorExp *e_index,
-                                const BtorExp *e_value);
+                                const BtorNode *e_array,
+                                const BtorNode *e_index,
+                                const BtorNode *e_value);
 
 int btor_precond_cond_exp_dbg (const Btor *btor,
-                               const BtorExp *e_cond,
-                               const BtorExp *e_if,
-                               const BtorExp *e_else);
+                               const BtorNode *e_cond,
+                               const BtorNode *e_if,
+                               const BtorNode *e_else);
 
 /*------------------------------------------------------------------------*/
 #endif
