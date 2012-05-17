@@ -1225,10 +1225,12 @@ btor_rewrite_and_exp (Btor *btor, BtorExp *e0, BtorExp *e1)
   BtorExp *real_e0, *real_e1, *result, *e0_norm, *e1_norm, *temp;
   int normalized, calls;
 
+#if 0
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
+#endif
 
   normalized = 0;
   calls      = 0;

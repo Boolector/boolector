@@ -21,6 +21,7 @@
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorExp BtorExp;
+typedef struct BtorExpNode BtorExpNode;
 
 typedef struct Btor Btor;
 
@@ -289,6 +290,7 @@ struct Btor
     int ec_substitutions;           /* embedded constraint substitutions */
     int vreads;                     /* number of virtual reads */
     int linear_equations;           /* number of linear equations */
+    int gaussian_eliminations;      /* number of gaussian eliminations */
     int adds_normalized;            /* number of add chains normalizations */
     int muls_normalized;            /* number of mul chains normalizations */
     int read_props_construct;       /* how often have we pushed a read over
@@ -383,6 +385,8 @@ struct Btor
   ((BtorExp *) (((unsigned long int) (cond_exp) &1ul) \
                 ^ (unsigned long int) (exp)))
 
+#define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
+
 #define BTOR_GET_ID_EXP(exp) \
   (BTOR_IS_INVERTED_EXP (exp) ? -BTOR_REAL_ADDR_EXP (exp)->id : exp->id)
 
@@ -401,7 +405,6 @@ struct Btor
 
 #define BTOR_GET_TAG_EXP(exp) ((int) (3ul & (unsigned long int) (exp)))
 
-#define BTOR_REAL_ADDR_EXP(exp) ((BtorExp *) (~3ul & (unsigned long int) (exp)))
 #define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
 
 #define BTOR_IS_ACC_EXP(exp) (BTOR_IS_READ_EXP (exp) || BTOR_IS_WRITE_EXP (exp))
@@ -413,7 +416,7 @@ struct Btor
 
 #define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
 
-#define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != NULL)
+#define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != 0)
 
 /*------------------------------------------------------------------------*/
 

@@ -93,6 +93,7 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 #define BTOR_EXP_UNIQUE_TABLE_LIMIT 30
 
 #define BTOR_EXP_UNIQUE_TABLE_PRIME 2000000137u
+
 #define BTOR_NEXT_PARENT(exp) \
   (BTOR_REAL_ADDR_EXP (exp)->next_parent[BTOR_GET_TAG_EXP (exp)])
 
@@ -4856,6 +4857,9 @@ btor_print_stats_btor (Btor *btor)
 
   btor_msg_exp (
       btor, "linear constraint equations: %d", btor->stats.linear_equations);
+  btor_msg_exp (btor,
+                "gaussian elimination in linear equations: %d",
+                btor->stats.gaussian_eliminations);
   btor_msg_exp (btor, "add normalizations: %d", btor->stats.adds_normalized);
   btor_msg_exp (btor, "mul normalizations: %d", btor->stats.muls_normalized);
   btor_msg_exp (btor,
@@ -6434,8 +6438,6 @@ rebuild_exp (Btor *btor, BtorExp *exp)
   }
 }
 
-/* TODO move to 'btorconst.c' ?
- */
 static int
 is_odd_constant (BtorExp *exp)
 {
@@ -6849,6 +6851,8 @@ normalize_substitution (Btor *btor,
       *right_result = btor_sub_exp (btor, left, tmp);
     else
       return 0;
+
+    btor->stats.gaussian_eliminations++;
 
     btor_release_exp (btor, tmp);
     ic = btor_inverse_const (btor->mm, fc);
