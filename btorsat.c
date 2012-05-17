@@ -664,7 +664,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         str = "clone";
       }
       else
-        bforked = lglbrutefork (lgl, 0);
+        bforked = lglbrutefork (lgl, 0), str = "fork";
       lglsetopt (bforked, "seed", blgl->nbforked);
       sprintf (name, "[lgl%s%d] ", str, blgl->nbforked);
       lglsetprefix (bforked, name);
