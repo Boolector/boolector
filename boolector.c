@@ -112,7 +112,7 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
   BTOR_ABORT_BOOLECTOR (rewrite_level < 0 || rewrite_level > 3,
                         "'rewrite_level' has to be in [0,3]");
   BTOR_ABORT_BOOLECTOR (
-      btor->id != 1,
+      !BTOR_EMPTY_STACK (btor->id_table),
       "setting rewrite level must be done before creating expressions");
   btor_set_rewrite_level_btor (btor, rewrite_level);
 }
@@ -122,7 +122,7 @@ boolector_enable_model_gen (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->id != 1,
+      !BTOR_EMPTY_STACK (btor->id_table),
       "enabling model generation must be done before creating expressions");
   btor_enable_model_gen (btor);
 }

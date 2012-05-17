@@ -239,11 +239,11 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
-  BtorNodeUniqueTable table;
+  BtorNodePtrStack id_table;
+  BtorNodeUniqueTable unique_table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
-  int id;              /* expression id counter */
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
   int rec_rw_calls;    /* calls for recursive rewriting */
