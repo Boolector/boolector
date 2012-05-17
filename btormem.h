@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer.
- *  Copyright (C) 2010-2012 Armin Biere.
+ *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2012 Armin Biere.
  *
  *  All rights reserved.
 
@@ -16,8 +16,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/*------------------------------------------------------------------------*/
-/* PRIVATE INTERFACE                                                      */
 /*------------------------------------------------------------------------*/
 
 #define BTOR_NEWN(mm, ptr, nelems)                        \
@@ -51,8 +49,11 @@
   } while (0)
 
 #define BTOR_NEW(mm, ptr) BTOR_NEWN ((mm), (ptr), 1)
+
 #define BTOR_CNEW(mm, ptr) BTOR_CNEWN ((mm), (ptr), 1)
+
 #define BTOR_CLR(ptr) BTOR_CLRN ((ptr), 1)
+
 #define BTOR_DELETE(mm, ptr) BTOR_DELETEN ((mm), (ptr), 1)
 
 #define BTOR_ENLARGE(mm, p, o, n)             \
@@ -63,6 +64,8 @@
     (n) = internaln;                          \
   } while (0)
 
+/*------------------------------------------------------------------------*/
+
 struct BtorMemMgr
 {
   size_t allocated;
@@ -70,6 +73,8 @@ struct BtorMemMgr
 };
 
 typedef struct BtorMemMgr BtorMemMgr;
+
+/*------------------------------------------------------------------------*/
 
 BtorMemMgr *btor_new_mem_mgr (void);
 

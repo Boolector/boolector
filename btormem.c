@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer.
- *  Copyright (C) 2010-2012 Armin Biere.
+ *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2012 Armin Biere.
  *
  *  All rights reserved.
 
@@ -19,6 +19,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+/*------------------------------------------------------------------------*/
+
 #define BTOR_ABORT_MEM(cond, msg)            \
   do                                         \
   {                                          \
@@ -35,11 +37,13 @@
     if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
   } while (0)
 
+/*------------------------------------------------------------------------*/
+
 BtorMemMgr *
 btor_new_mem_mgr (void)
 {
   BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
-  BTOR_ABORT_MEM (mm == NULL, "out of memory in 'btor_new_mem_mgr'");
+  BTOR_ABORT_MEM (!mm, "out of memory in 'btor_new_mem_mgr'");
   mm->allocated    = 0;
   mm->maxallocated = 0;
   return mm;
@@ -50,9 +54,9 @@ btor_malloc (BtorMemMgr *mm, size_t size)
 {
   void *result;
   if (!size) return 0;
-  assert (mm != NULL);
+  assert (mm);
   result = malloc (size);
-  BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_malloc'");
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_malloc'");
   mm->allocated += size;
   ADJUST ();
   return result;
@@ -62,11 +66,11 @@ void *
 btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 {
   void *result;
-  assert (mm != NULL);
+  assert (mm);
   assert (!p == !old_size);
   assert (mm->allocated >= old_size);
   result = realloc (p, new_size);
-  BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_realloc'");
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_realloc'");
   mm->allocated -= old_size;
   mm->allocated += new_size;
   ADJUST ();
@@ -78,9 +82,9 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 {
   size_t bytes = nobj * size;
   void *result;
-  assert (mm != NULL);
+  assert (mm);
   result = calloc (nobj, size);
-  BTOR_ABORT_MEM (result == NULL, "out of memory in 'btor_calloc'");
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_calloc'");
   mm->allocated += bytes;
   ADJUST ();
   return result;
@@ -89,7 +93,7 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
 void
 btor_free (BtorMemMgr *mm, void *p, size_t freed)
 {
-  assert (mm != NULL);
+  assert (mm);
   assert (!p == !freed);
   assert (mm->allocated >= freed);
   mm->allocated -= freed;
@@ -122,8 +126,8 @@ btor_freestr (BtorMemMgr *mm, char *str)
 void
 btor_delete_mem_mgr (BtorMemMgr *mm)
 {
-  assert (mm != NULL);
-  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKMEM") || mm->allocated == 0);
+  assert (mm);
+  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKMEM") || !mm->allocated);
   free (mm);
 }
 

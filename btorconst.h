@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2010 Robert Daniel Brummayer.
- *  Copyright (C) 2010-2012 Armin Biere.
+ *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2012 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -26,6 +26,8 @@ enum BtorSpecialConst
 };
 
 typedef enum BtorSpecialConst BtorSpecialConst;
+
+/*------------------------------------------------------------------------*/
 
 char *btor_zero_const (BtorMemMgr *mm, int len);
 
@@ -52,20 +54,6 @@ int btor_is_one_const (const char *str);
 int btor_is_ones_const (const char *str);
 
 BtorSpecialConst btor_is_special_const (const char *str);
-
-/*------------------------------------------------------------------------*/
-/* Unbounded bit width operators.
- */
-char *btor_add_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
-
-char *btor_mult_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
-
-char *btor_sub_unbounded_const (BtorMemMgr *mm, const char *a, const char *b);
-
-char *btor_udiv_unbounded_const (BtorMemMgr *mm,
-                                 const char *a,
-                                 const char *b,
-                                 char **rest_ptr);
 
 /*------------------------------------------------------------------------*/
 /* Fixed width operators.  The arguments and the result have the same width.
@@ -126,8 +114,6 @@ void btor_delete_const (BtorMemMgr *mm, char *c);
 int btor_get_num_leading_zeros_const (BtorMemMgr *mm, const char *c);
 
 int btor_get_num_leading_ones_const (BtorMemMgr *mm, const char *c);
-
-int btor_cmp_const (const char *a, const char *b);
 
 char *btor_slice_const (BtorMemMgr *mm, const char *a, int upper, int lower);
 
