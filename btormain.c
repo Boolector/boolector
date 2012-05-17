@@ -566,7 +566,7 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   assert (app);
   assert (btor);
   assert (exp);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (!BTOR_IS_INVERTED_NODE (exp));
 
   assignment = btor_bv_assignment_exp (btor, exp);
   assert (assignment);
@@ -607,7 +607,7 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   assert (app);
   assert (btor);
   assert (exp);
-  assert (!BTOR_IS_INVERTED_EXP (exp));
+  assert (!BTOR_IS_INVERTED_NODE (exp));
   btor_array_assignment_exp (btor, exp, &indices, &values, &size);
   if (size > 0)
   {
@@ -1393,7 +1393,7 @@ boolector_main (int argc, char **argv)
           {
             var  = parse_res.inputs[i];
             temp = btor_pointer_chase_simplified_exp (btor, var);
-            if (BTOR_IS_ARRAY_EXP (temp))
+            if (BTOR_IS_ARRAY_NODE (temp))
               print_array_assignment (&app, btor, var);
             else
               print_bv_assignment (&app, btor, var);
@@ -1516,10 +1516,10 @@ boolector_main (int argc, char **argv)
       {
         for (i = 0; i < parse_res.ninputs; i++)
         {
-          assert (!BTOR_IS_INVERTED_EXP (parse_res.inputs[i]));
-          assert (BTOR_IS_BV_VAR_EXP (parse_res.inputs[i])
-                  || BTOR_IS_ARRAY_VAR_EXP (parse_res.inputs[i]));
-          if (BTOR_IS_BV_VAR_EXP (parse_res.inputs[i]))
+          assert (!BTOR_IS_INVERTED_NODE (parse_res.inputs[i]));
+          assert (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i])
+                  || BTOR_IS_ARRAY_VAR_NODE (parse_res.inputs[i]));
+          if (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i]))
             BTOR_PUSH_STACK (
                 mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
           else

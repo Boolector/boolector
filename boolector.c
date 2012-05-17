@@ -45,7 +45,7 @@
 #define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(arg)                      \
   do                                                                \
   {                                                                 \
-    if (BTOR_REAL_ADDR_EXP ((arg))->refs < 1)                       \
+    if (BTOR_REAL_ADDR_NODE ((arg))->refs < 1)                      \
     {                                                               \
       printf ("[boolector] %s: ", __func__);                        \
       printf ("reference counter of '%s' must not be < 1\n", #arg); \
@@ -54,40 +54,41 @@
     }                                                               \
   } while (0)
 
-#define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                 \
-  do                                                    \
-  {                                                     \
-    if (BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP ((arg)))) \
-    {                                                   \
-      printf ("[boolector] %s: ", __func__);            \
-      printf ("'%s' must not be an array\n", #arg);     \
-      fflush (stdout);                                  \
-      exit (BTOR_ERR_EXIT);                             \
-    }                                                   \
+#define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                   \
+  do                                                      \
+  {                                                       \
+    if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg)))) \
+    {                                                     \
+      printf ("[boolector] %s: ", __func__);              \
+      printf ("'%s' must not be an array\n", #arg);       \
+      fflush (stdout);                                    \
+      exit (BTOR_ERR_EXIT);                               \
+    }                                                     \
   } while (0)
 
-#define BTOR_ABORT_BV_BOLECTOR(arg)                      \
-  do                                                     \
-  {                                                      \
-    if (!BTOR_IS_ARRAY_EXP (BTOR_REAL_ADDR_EXP ((arg)))) \
-    {                                                    \
-      printf ("[boolector] %s: ", __func__);             \
-      printf ("'%s' must not be a bit-vector\n", #arg);  \
-      fflush (stdout);                                   \
-      exit (BTOR_ERR_EXIT);                              \
-    }                                                    \
+#define BTOR_ABORT_BV_BOLECTOR(arg)                        \
+  do                                                       \
+  {                                                        \
+    if (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg)))) \
+    {                                                      \
+      printf ("[boolector] %s: ", __func__);               \
+      printf ("'%s' must not be a bit-vector\n", #arg);    \
+      fflush (stdout);                                     \
+      exit (BTOR_ERR_EXIT);                                \
+    }                                                      \
   } while (0)
 
-#define BTOR_ABORT_NE_BW(arg1, arg2)                                          \
-  do                                                                          \
-  {                                                                           \
-    if (BTOR_REAL_ADDR_EXP ((arg1))->len != BTOR_REAL_ADDR_EXP ((arg2))->len) \
-    {                                                                         \
-      printf ("[boolector] %s: ", __func__);                                  \
-      printf (                                                                \
-          "bit-width of '%s' and '%s' must not be unequal\n", #arg1, #arg2);  \
-      exit (BTOR_ERR_EXIT);                                                   \
-    }                                                                         \
+#define BTOR_ABORT_NE_BW(arg1, arg2)                                         \
+  do                                                                         \
+  {                                                                          \
+    if (BTOR_REAL_ADDR_NODE ((arg1))->len                                    \
+        != BTOR_REAL_ADDR_NODE ((arg2))->len)                                \
+    {                                                                        \
+      printf ("[boolector] %s: ", __func__);                                 \
+      printf (                                                               \
+          "bit-width of '%s' and '%s' must not be unequal\n", #arg1, #arg2); \
+      exit (BTOR_ERR_EXIT);                                                  \
+    }                                                                        \
   } while (0)
 
 /*------------------------------------------------------------------------*/
@@ -319,7 +320,7 @@ boolector_slice (Btor *btor, BtorNode *exp, int upper, int lower)
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (lower < 0, "'lower' must not be negative");
   BTOR_ABORT_BOOLECTOR (upper < lower, "'upper' must not be < 'lower'");
-  BTOR_ABORT_BOOLECTOR (upper >= BTOR_REAL_ADDR_EXP (exp)->len,
+  BTOR_ABORT_BOOLECTOR (upper >= BTOR_REAL_ADDR_NODE (exp)->len,
                         "'upper' must not be >= width of 'exp'");
   btor->external_refs++;
   return btor_slice_exp (btor, exp, upper, lower);
@@ -364,7 +365,7 @@ boolector_implies (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
-      BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
+      BTOR_REAL_ADDR_NODE (e0)->len != 1 || BTOR_REAL_ADDR_NODE (e1)->len != 1,
       "bit-width of 'e0' and 'e1' must not be unequal to 1");
   btor->external_refs++;
   return btor_implies_exp (btor, e0, e1);
@@ -383,7 +384,7 @@ boolector_iff (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
-      BTOR_REAL_ADDR_EXP (e0)->len != 1 || BTOR_REAL_ADDR_EXP (e1)->len != 1,
+      BTOR_REAL_ADDR_NODE (e0)->len != 1 || BTOR_REAL_ADDR_NODE (e1)->len != 1,
       "bit-width of 'e0' and 'e1' must not be unequal to 1");
   btor->external_refs++;
   return btor_iff_exp (btor, e0, e1);
@@ -504,10 +505,10 @@ boolector_eq (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0          = btor_pointer_chase_simplified_exp (btor, e0);
   e1          = btor_pointer_chase_simplified_exp (btor, e1);
-  real_e0     = BTOR_REAL_ADDR_EXP (e0);
-  real_e1     = BTOR_REAL_ADDR_EXP (e1);
-  is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
-  is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
+  real_e0     = BTOR_REAL_ADDR_NODE (e0);
+  real_e1     = BTOR_REAL_ADDR_NODE (e1);
+  is_array_e0 = BTOR_IS_ARRAY_NODE (real_e0);
+  is_array_e1 = BTOR_IS_ARRAY_NODE (real_e1);
   BTOR_ABORT_BOOLECTOR (is_array_e0 != is_array_e1,
                         "array must not be compared to bit-vector");
   BTOR_ABORT_BOOLECTOR (
@@ -535,10 +536,10 @@ boolector_ne (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e1);
   e0          = btor_pointer_chase_simplified_exp (btor, e0);
   e1          = btor_pointer_chase_simplified_exp (btor, e1);
-  real_e0     = BTOR_REAL_ADDR_EXP (e0);
-  real_e1     = BTOR_REAL_ADDR_EXP (e1);
-  is_array_e0 = BTOR_IS_ARRAY_EXP (real_e0);
-  is_array_e1 = BTOR_IS_ARRAY_EXP (real_e1);
+  real_e0     = BTOR_REAL_ADDR_NODE (e0);
+  real_e1     = BTOR_REAL_ADDR_NODE (e1);
+  is_array_e0 = BTOR_IS_ARRAY_NODE (real_e0);
+  is_array_e1 = BTOR_IS_ARRAY_NODE (real_e1);
   BTOR_ABORT_BOOLECTOR (is_array_e0 != is_array_e1,
                         "array must not be compared to bit-vector");
   BTOR_ABORT_BOOLECTOR (is_array_e0 && real_e0->len != real_e1->len,
@@ -801,11 +802,11 @@ boolector_sll (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
-  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  len = BTOR_REAL_ADDR_NODE (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (e1)->len,
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   btor->external_refs++;
   return btor_sll_exp (btor, e0, e1);
@@ -824,11 +825,11 @@ boolector_srl (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
-  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  len = BTOR_REAL_ADDR_NODE (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (e1)->len,
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   btor->external_refs++;
   return btor_srl_exp (btor, e0, e1);
@@ -847,11 +848,11 @@ boolector_sra (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
-  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  len = BTOR_REAL_ADDR_NODE (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (e1)->len,
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   btor->external_refs++;
   return btor_sra_exp (btor, e0, e1);
@@ -870,11 +871,11 @@ boolector_rol (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
-  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  len = BTOR_REAL_ADDR_NODE (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (e1)->len,
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   btor->external_refs++;
   return btor_rol_exp (btor, e0, e1);
@@ -893,11 +894,11 @@ boolector_ror (Btor *btor, BtorNode *e0, BtorNode *e1)
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
-  len = BTOR_REAL_ADDR_EXP (e0)->len;
+  len = BTOR_REAL_ADDR_NODE (e0)->len;
   BTOR_ABORT_BOOLECTOR (!btor_is_power_of_2_util (len),
                         "bit-width of 'e0' must be a power of 2");
   BTOR_ABORT_BOOLECTOR (
-      btor_log_2_util (len) != BTOR_REAL_ADDR_EXP (e1)->len,
+      btor_log_2_util (len) != BTOR_REAL_ADDR_NODE (e1)->len,
       "bit-width of 'e1' must be equal to log2(bit-width of 'e0')");
   btor->external_refs++;
   return btor_ror_exp (btor, e0, e1);
@@ -1069,7 +1070,7 @@ boolector_concat (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_ABORT_ARRAY_BOOLECTOR (e0);
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
-      BTOR_REAL_ADDR_EXP (e0)->len > INT_MAX - BTOR_REAL_ADDR_EXP (e1)->len,
+      BTOR_REAL_ADDR_NODE (e0)->len > INT_MAX - BTOR_REAL_ADDR_NODE (e1)->len,
       "bit-width of result is too large");
   btor->external_refs++;
   return btor_concat_exp (btor, e0, e1);
@@ -1087,9 +1088,10 @@ boolector_read (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   BTOR_ABORT_BV_BOLECTOR (e_array);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_index);
-  BTOR_ABORT_BOOLECTOR (e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
-                        "index bit-width of 'e_array' and bit-width of "
-                        "'e_index' must not be unequal");
+  BTOR_ABORT_BOOLECTOR (
+      e_array->index_len != BTOR_REAL_ADDR_NODE (e_index)->len,
+      "index bit-width of 'e_array' and bit-width of 'e_index' must not be "
+      "unequal");
   btor->external_refs++;
   return btor_read_exp (btor, e_array, e_index);
 }
@@ -1113,10 +1115,11 @@ boolector_write (Btor *btor,
   BTOR_ABORT_BV_BOLECTOR (e_array);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_index);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_value);
-  BTOR_ABORT_BOOLECTOR (e_array->index_len != BTOR_REAL_ADDR_EXP (e_index)->len,
-                        "index bit-width of 'e_array' and bit-width of "
-                        "'e_index' must not be unequal");
-  BTOR_ABORT_BOOLECTOR (e_array->len != BTOR_REAL_ADDR_EXP (e_value)->len,
+  BTOR_ABORT_BOOLECTOR (
+      e_array->index_len != BTOR_REAL_ADDR_NODE (e_index)->len,
+      "index bit-width of 'e_array' and bit-width of 'e_index' must not be "
+      "unequal");
+  BTOR_ABORT_BOOLECTOR (e_array->len != BTOR_REAL_ADDR_NODE (e_value)->len,
                         "element bit-width of 'e_array' and bit-width of "
                         "'e_value' must not be unequal");
   btor->external_refs++;
@@ -1140,12 +1143,12 @@ boolector_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
   e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
   e_else = btor_pointer_chase_simplified_exp (btor, e_else);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_cond);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (e_cond)->len != 1,
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (e_cond)->len != 1,
                         "bit-width of 'e_cond' must be equal to 1");
-  real_e_if       = BTOR_REAL_ADDR_EXP (e_if);
-  real_e_else     = BTOR_REAL_ADDR_EXP (e_else);
-  is_array_e_if   = BTOR_IS_ARRAY_EXP (real_e_if);
-  is_array_e_else = BTOR_IS_ARRAY_EXP (real_e_else);
+  real_e_if       = BTOR_REAL_ADDR_NODE (e_if);
+  real_e_else     = BTOR_REAL_ADDR_NODE (e_else);
+  is_array_e_if   = BTOR_IS_ARRAY_NODE (real_e_if);
+  is_array_e_else = BTOR_IS_ARRAY_NODE (real_e_else);
   BTOR_ABORT_BOOLECTOR (is_array_e_if != is_array_e_else,
                         "array must not be combined with bit-vector");
   BTOR_ABORT_BOOLECTOR (!is_array_e_if && real_e_if && real_e_else
@@ -1274,7 +1277,7 @@ boolector_assert (Btor *btor, BtorNode *exp)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->len != 1,
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
                         "'exp' must have bit-width one");
   btor_add_constraint_exp (btor, exp);
 }
@@ -1289,7 +1292,7 @@ boolector_assume (Btor *btor, BtorNode *exp)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   BTOR_ABORT_ARRAY_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_EXP (exp)->len != 1,
+  BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (exp)->len != 1,
                         "'exp' must have bit-width one");
   btor_add_assumption_exp (btor, exp);
 }

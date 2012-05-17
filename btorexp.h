@@ -27,9 +27,9 @@ BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
 
 /* NOTE: DO NOT REORDER THE INDICES.
  * CERTAIN MACROS DEPEND ON ORDER.
- * Some code also depends on that BTOR_INVALID_EXP, BTOR_CONST_EXP
- * and BTOR_VAR_EXP are at the beginning,
- * and BTOR_PROXY_EXP is BTOR_NUM_OPS_EXP - 1
+ * Some code also depends on that BTOR_INVALID_NODE, BTOR_CONST_NODE
+ * and BTOR_VAR_NODE are at the beginning,
+ * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
  */
 enum BtorNodeKind
 {
@@ -38,36 +38,36 @@ enum BtorNodeKind
    * make delta debugging of Heisenbugs in release mode more
    * difficult.
    */
-  BTOR_INVALID_EXP = 0,
+  BTOR_INVALID_NODE = 0,
 
-  BTOR_BV_CONST_EXP  = 1,
-  BTOR_BV_VAR_EXP    = 2,
-  BTOR_ARRAY_VAR_EXP = 3,
-  BTOR_SLICE_EXP     = 4,
-  BTOR_AND_EXP       = 5,
-  BTOR_BEQ_EXP       = 6, /* equality on bit vectors */
-  BTOR_AEQ_EXP       = 7, /* equality on arrays */
-  BTOR_ADD_EXP       = 8,
-  BTOR_MUL_EXP       = 9,
-  BTOR_ULT_EXP       = 10,
-  BTOR_SLL_EXP       = 11,
-  BTOR_SRL_EXP       = 12,
-  BTOR_UDIV_EXP      = 13,
-  BTOR_UREM_EXP      = 14,
-  BTOR_CONCAT_EXP    = 15,
-  BTOR_READ_EXP      = 16,
-  BTOR_WRITE_EXP     = 17,
-  BTOR_BCOND_EXP     = 18, /* conditional on bit vectors */
-  BTOR_ACOND_EXP     = 19, /* conditional on arrays */
-  BTOR_PROXY_EXP     = 20, /* simplified expression without children */
-  BTOR_NUM_OPS_EXP   = 21
+  BTOR_BV_CONST_NODE  = 1,
+  BTOR_BV_VAR_NODE    = 2,
+  BTOR_ARRAY_VAR_NODE = 3,
+  BTOR_SLICE_NODE     = 4,
+  BTOR_AND_NODE       = 5,
+  BTOR_BEQ_NODE       = 6, /* equality on bit vectors */
+  BTOR_AEQ_NODE       = 7, /* equality on arrays */
+  BTOR_ADD_NODE       = 8,
+  BTOR_MUL_NODE       = 9,
+  BTOR_ULT_NODE       = 10,
+  BTOR_SLL_NODE       = 11,
+  BTOR_SRL_NODE       = 12,
+  BTOR_UDIV_NODE      = 13,
+  BTOR_UREM_NODE      = 14,
+  BTOR_CONCAT_NODE    = 15,
+  BTOR_READ_NODE      = 16,
+  BTOR_WRITE_NODE     = 17,
+  BTOR_BCOND_NODE     = 18, /* conditional on bit vectors */
+  BTOR_ACOND_NODE     = 19, /* conditional on arrays */
+  BTOR_PROXY_NODE     = 20, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE   = 21
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
-#define BTOR_BV_VAR_EXP_STRUCT                                                 \
+#define BTOR_BV_VAR_NODE_STRUCT                                                \
   struct                                                                       \
   {                                                                            \
     BtorNodeKind kind : 5;       /* kind of expression */                      \
@@ -108,7 +108,7 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *last_parent;  /* tail of parent list */                          \
   }
 
-#define BTOR_BV_ADDITIONAL_EXP_STRUCT                                   \
+#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                  \
   struct                                                                \
   {                                                                     \
     union                                                               \
@@ -129,7 +129,7 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *next_parent[3]; /* next exp in parent list of child i */  \
   }
 
-#define BTOR_ARRAY_VAR_EXP_STRUCT                                            \
+#define BTOR_ARRAY_VAR_NODE_STRUCT                                           \
   struct                                                                     \
   {                                                                          \
     int index_len;                    /* length of the index */              \
@@ -139,7 +139,7 @@ typedef struct BtorNodePair BtorNodePair;
                                                conditional in parent list */ \
   }
 
-#define BTOR_ARRAY_ADDITIONAL_EXP_STRUCT                                   \
+#define BTOR_ARRAY_ADDITIONAL_NODE_STRUCT                                  \
   struct                                                                   \
   {                                                                        \
     BtorNode *prev_aeq_acond_parent[3]; /* prev array equality or          \
@@ -152,7 +152,7 @@ typedef struct BtorNodePair BtorNodePair;
 
 struct BtorBVVarNode
 {
-  BTOR_BV_VAR_EXP_STRUCT;
+  BTOR_BV_VAR_NODE_STRUCT;
   char *symbol;
 };
 
@@ -160,34 +160,34 @@ typedef struct BtorBVVarNode BtorBVVarNode;
 
 struct BtorBVConstNode
 {
-  BTOR_BV_VAR_EXP_STRUCT;
+  BTOR_BV_VAR_NODE_STRUCT;
 };
 
 typedef struct BtorBVConstNode BtorBVConstNode;
 
 struct BtorBVNode
 {
-  BTOR_BV_VAR_EXP_STRUCT;
-  BTOR_BV_ADDITIONAL_EXP_STRUCT;
+  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
 
 typedef struct BtorBVNode BtorBVNode;
 
 struct BtorArrayVarNode
 {
-  BTOR_BV_VAR_EXP_STRUCT;
-  BTOR_BV_ADDITIONAL_EXP_STRUCT;
-  BTOR_ARRAY_VAR_EXP_STRUCT;
+  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  BTOR_ARRAY_VAR_NODE_STRUCT;
 };
 
 typedef struct BtorArrayVarNode BtorArrayVarNode;
 
 struct BtorNode
 {
-  BTOR_BV_VAR_EXP_STRUCT;
-  BTOR_BV_ADDITIONAL_EXP_STRUCT;
-  BTOR_ARRAY_VAR_EXP_STRUCT;
-  BTOR_ARRAY_ADDITIONAL_EXP_STRUCT;
+  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  BTOR_ARRAY_VAR_NODE_STRUCT;
+  BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
 };
 
 struct BtorNodeUniqueTable
@@ -270,7 +270,7 @@ struct Btor
   BtorPtrHashTable *var_rhs; /* only for model generation */
   BtorNodePtrStack arrays_with_model;
   /* statistics */
-  int ops[BTOR_NUM_OPS_EXP];
+  int ops[BTOR_NUM_OPS_NODE];
   struct
   {
     int max_rec_rw_calls; /* maximum number of recursive rewrite calls */
@@ -298,122 +298,126 @@ struct Btor
   } stats;
 };
 
-#define BTOR_IS_BV_CONST_EXP_KIND(kind) ((kind) == BTOR_BV_CONST_EXP)
+#define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
 
-#define BTOR_IS_BV_VAR_EXP_KIND(kind) ((kind) == BTOR_BV_VAR_EXP)
+#define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
 
-#define BTOR_IS_READ_EXP_KIND(kind) (kind == BTOR_READ_EXP)
+#define BTOR_IS_READ_NODE_KIND(kind) (kind == BTOR_READ_NODE)
 
-#define BTOR_IS_WRITE_EXP_KIND(kind) (kind == BTOR_WRITE_EXP)
+#define BTOR_IS_WRITE_NODE_KIND(kind) (kind == BTOR_WRITE_NODE)
 
-#define BTOR_IS_ARRAY_COND_EXP_KIND(kind) (kind == BTOR_ACOND_EXP)
+#define BTOR_IS_ARRAY_COND_NODE_KIND(kind) (kind == BTOR_ACOND_NODE)
 
-#define BTOR_IS_PROXY_EXP_KIND(kind) ((kind) == BTOR_PROXY_EXP)
+#define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
 
-#define BTOR_IS_BV_COND_EXP_KIND(kind) (kind == BTOR_BCOND_EXP)
+#define BTOR_IS_BV_COND_NODE_KIND(kind) (kind == BTOR_BCOND_NODE)
 
-#define BTOR_IS_ARRAY_VAR_EXP_KIND(kind) (kind == BTOR_ARRAY_VAR_EXP)
+#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
 
-#define BTOR_IS_ARRAY_EXP_KIND(kind)                            \
-  (((kind) == BTOR_ARRAY_VAR_EXP) || ((kind) == BTOR_WRITE_EXP) \
-   || ((kind) == BTOR_ACOND_EXP))
+#define BTOR_IS_ARRAY_NODE_KIND(kind)                             \
+  (((kind) == BTOR_ARRAY_VAR_NODE) || ((kind) == BTOR_WRITE_NODE) \
+   || ((kind) == BTOR_ACOND_NODE))
 
-#define BTOR_IS_ARRAY_EQ_EXP_KIND(kind) (kind == BTOR_AEQ_EXP)
+#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
 
-#define BTOR_IS_BV_EQ_EXP_KIND(kind) (kind == BTOR_BEQ_EXP)
+#define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
 
-#define BTOR_IS_UNARY_EXP_KIND(kind) ((kind) == BTOR_SLICE_EXP)
+#define BTOR_IS_UNARY_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
 
-#define BTOR_IS_BINARY_EXP_KIND(kind) \
-  (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_READ_EXP))
+#define BTOR_IS_BINARY_NODE_KIND(kind) \
+  (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_READ_NODE))
 
-#define BTOR_IS_BINARY_COMMUTATIVE_EXP_KIND(kind) \
-  (((kind) >= BTOR_AND_EXP) && ((kind) <= BTOR_MUL_EXP))
+#define BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND(kind) \
+  (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_MUL_NODE))
 
-#define BTOR_IS_TERNARY_EXP_KIND(kind) \
-  (((kind) >= BTOR_WRITE_EXP) && ((kind) <= BTOR_ACOND_EXP))
+#define BTOR_IS_TERNARY_NODE_KIND(kind) \
+  (((kind) >= BTOR_WRITE_NODE) && ((kind) <= BTOR_ACOND_NODE))
 
-#define BTOR_IS_BV_CONST_EXP(exp) \
-  ((exp) && BTOR_IS_BV_CONST_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BV_CONST_NODE(exp) \
+  ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_VAR_EXP(exp) ((exp) && BTOR_IS_BV_VAR_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BV_VAR_NODE(exp) \
+  ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_READ_EXP(exp) ((exp) && BTOR_IS_READ_EXP_KIND ((exp)->kind))
+#define BTOR_IS_READ_NODE(exp) ((exp) && BTOR_IS_READ_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_WRITE_EXP(exp) ((exp) && BTOR_IS_WRITE_EXP_KIND ((exp)->kind))
+#define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_COND_EXP(exp) \
-  ((exp) && BTOR_IS_ARRAY_COND_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_COND_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_COND_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_COND_EXP(exp) \
-  ((exp) && BTOR_IS_BV_COND_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BV_COND_NODE(exp) \
+  ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_PROXY_EXP(exp) ((exp) && BTOR_IS_PROXY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_OR_BV_COND_EXP(exp) \
-  ((exp) && (BTOR_IS_ARRAY_COND_EXP (exp) || BTOR_IS_BV_COND_EXP (exp)))
+#define BTOR_IS_ARRAY_OR_BV_COND_NODE(exp) \
+  ((exp) && (BTOR_IS_ARRAY_COND_NODE (exp) || BTOR_IS_BV_COND_NODE (exp)))
 
-#define BTOR_IS_ARRAY_VAR_EXP(exp) \
-  ((exp) && BTOR_IS_ARRAY_VAR_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_VAR_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_EXP(exp) ((exp) && BTOR_IS_ARRAY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_NODE(exp) ((exp) && BTOR_IS_ARRAY_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_EQ_EXP(exp) \
-  ((exp) && BTOR_IS_ARRAY_EQ_EXP_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_EQ_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_EQ_EXP(exp) ((exp) && BTOR_IS_BV_EQ_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_ARRAY_OR_BV_EQ_EXP(exp) \
-  ((exp) && (BTOR_IS_ARRAY_EQ_EXP (exp) || BTOR_IS_BV_EQ_EXP (exp)))
+#define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
+  ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
 
-#define BTOR_IS_UNARY_EXP(exp) ((exp) && BTOR_IS_UNARY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_UNARY_NODE(exp) ((exp) && BTOR_IS_UNARY_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BINARY_EXP(exp) ((exp) && BTOR_IS_BINARY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_BINARY_NODE(exp) \
+  ((exp) && BTOR_IS_BINARY_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_TERNARY_EXP(exp) \
-  ((exp) && BTOR_IS_TERNARY_EXP_KIND ((exp)->kind))
+#define BTOR_IS_TERNARY_NODE(exp) \
+  ((exp) && BTOR_IS_TERNARY_NODE_KIND ((exp)->kind))
 
-#define BTOR_INVERT_EXP(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
+#define BTOR_INVERT_NODE(exp) ((BtorNode *) (1ul ^ (unsigned long int) (exp)))
 
-#define BTOR_IS_INVERTED_EXP(exp) (1ul & (unsigned long int) (exp))
+#define BTOR_IS_INVERTED_NODE(exp) (1ul & (unsigned long int) (exp))
 
-#define BTOR_COND_INVERT_EXP(cond_exp, exp)            \
+#define BTOR_COND_INVERT_NODE(cond_exp, exp)           \
   ((BtorNode *) (((unsigned long int) (cond_exp) &1ul) \
                  ^ (unsigned long int) (exp)))
 
-#define BTOR_REAL_ADDR_EXP(exp) \
+#define BTOR_REAL_ADDR_NODE(exp) \
   ((BtorNode *) (~3ul & (unsigned long int) (exp)))
 
-#define BTOR_GET_ID_EXP(exp) \
-  (BTOR_IS_INVERTED_EXP (exp) ? -BTOR_REAL_ADDR_EXP (exp)->id : exp->id)
+#define BTOR_GET_ID_NODE(exp) \
+  (BTOR_IS_INVERTED_NODE (exp) ? -BTOR_REAL_ADDR_NODE (exp)->id : exp->id)
 
-#define BTOR_AIGVEC_EXP(btor, exp)                                     \
-  (BTOR_IS_INVERTED_EXP (exp)                                          \
-       ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_EXP (exp)->av) \
+#define BTOR_AIGVEC_NODE(btor, exp)                                     \
+  (BTOR_IS_INVERTED_NODE (exp)                                          \
+       ? btor_not_aigvec ((btor)->avmgr, BTOR_REAL_ADDR_NODE (exp)->av) \
        : btor_copy_aigvec ((btor)->avmgr, exp->av))
 
-#define BTOR_BITS_EXP(mm, exp)                               \
-  (BTOR_IS_INVERTED_EXP (exp)                                \
-       ? btor_not_const (mm, BTOR_REAL_ADDR_EXP (exp)->bits) \
+#define BTOR_BITS_NODE(mm, exp)                               \
+  (BTOR_IS_INVERTED_NODE (exp)                                \
+       ? btor_not_const (mm, BTOR_REAL_ADDR_NODE (exp)->bits) \
        : btor_copy_const (mm, exp->bits))
 
-#define BTOR_TAG_EXP(exp, tag) \
+#define BTOR_TAG_NODE(exp, tag) \
   ((BtorNode *) ((unsigned long int) tag | (unsigned long int) (exp)))
 
-#define BTOR_GET_TAG_EXP(exp) ((int) (3ul & (unsigned long int) (exp)))
+#define BTOR_GET_TAG_NODE(exp) ((int) (3ul & (unsigned long int) (exp)))
 
-#define BTOR_IS_REGULAR_EXP(exp) (!(3ul & (unsigned long int) (exp)))
+#define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
-#define BTOR_IS_ACC_EXP(exp) (BTOR_IS_READ_EXP (exp) || BTOR_IS_WRITE_EXP (exp))
+#define BTOR_IS_ACC_NODE(exp) \
+  (BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp))
 
-#define BTOR_GET_INDEX_ACC_EXP(exp) ((exp)->e[1])
+#define BTOR_GET_INDEX_ACC_NODE(exp) ((exp)->e[1])
 
-#define BTOR_GET_VALUE_ACC_EXP(exp) \
-  (BTOR_IS_READ_EXP (exp) ? (exp) : (exp)->e[2])
+#define BTOR_GET_VALUE_ACC_NODE(exp) \
+  (BTOR_IS_READ_NODE (exp) ? (exp) : (exp)->e[2])
 
-#define BTOR_ACC_TARGET_EXP(exp) (BTOR_IS_READ_EXP (exp) ? (exp)->e[0] : (exp))
+#define BTOR_ACC_TARGET_NODE(exp) \
+  (BTOR_IS_READ_NODE (exp) ? (exp)->e[0] : (exp))
 
-#define BTOR_IS_SYNTH_EXP(exp) ((exp)->av != 0)
+#define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
 /*------------------------------------------------------------------------*/
 

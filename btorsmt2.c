@@ -1145,7 +1145,7 @@ btor_last_lpar_smt2 (BtorSMT2Parser *parser)
   return p;
 }
 
-#define BTOR_NODE_TAG_CLASS_MASK_SMT2                         \
+#define BTOR_TAG_CLASS_MASK_SMT2                              \
   (BTOR_RESERVED_TAG_CLASS_SMT2 | BTOR_COMMAND_TAG_CLASS_SMT2 \
    | BTOR_KEYWORD_TAG_CLASS_SMT2 | BTOR_CORE_TAG_CLASS_SMT2   \
    | BTOR_ARRAY_TAG_CLASS_SMT2 | BTOR_BITVEC_TAG_CLASS_SMT2   \
@@ -1156,7 +1156,7 @@ btor_item_with_node_smt2 (BtorSMT2Item *item)
 {
   if (item->tag == BTOR_SYMBOL_TAG_SMT2) return 1;
   if (item->tag == BTOR_ATTRIBUTE_TAG_SMT2) return 1;
-  if (item->tag & BTOR_NODE_TAG_CLASS_MASK_SMT2) return 1;
+  if (item->tag & BTOR_TAG_CLASS_MASK_SMT2) return 1;
   return 0;
 }
 
