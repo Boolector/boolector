@@ -114,8 +114,11 @@
   } while (0)
 
 BTOR_DECLARE_STACK (Int, int);
+
 BTOR_DECLARE_STACK (Char, char);
+
 BTOR_DECLARE_STACK (CharPtr, char *);
+
 BTOR_DECLARE_STACK (VoidPtr, void *);
 
 #endif

@@ -1963,9 +1963,10 @@ add_node_to_id_table (Btor *btor, void *ptr)
   assert (!exp->id);
   id = BTOR_COUNT_STACK (btor->id_table);
   BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
-  exp->id = id + 1;
+  exp->id = id;
   BTOR_PUSH_STACK (btor->mm, btor->id_table, exp);
-  assert (BTOR_COUNT_STACK (btor->id_table) == exp->id);
+  assert (BTOR_COUNT_STACK (btor->id_table) == exp->id + 1);
+  assert (BTOR_PEEK_STACK (btor->id_table, exp->id) == exp);
 }
 
 static BtorNode *
@@ -4581,6 +4582,8 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
 
+  BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
+
   btor->exp_pair_eq_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->varsubst_constraints =
@@ -4631,7 +4634,7 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor);
   assert (btor->rewrite_level >= 0);
   assert (btor->rewrite_level <= 3);
-  assert (BTOR_EMPTY_STACK (btor->id_table));
+  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->rewrite_level = rewrite_level;
 }
 
@@ -4639,7 +4642,7 @@ void
 btor_enable_model_gen (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_EMPTY_STACK (btor->id_table));
+  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   if (!btor->model_gen)
   {
     btor->model_gen = 1;
@@ -4668,7 +4671,7 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
   assert (btor);
   assert (btor->verbosity >= -1);
   assert (btor->verbosity <= 3);
-  assert (BTOR_EMPTY_STACK (btor->id_table));
+  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->verbosity = verbosity;
 
   avmgr = btor->avmgr;
