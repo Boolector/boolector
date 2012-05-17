@@ -1332,9 +1332,9 @@ encode_lemma (Btor *btor,
 
   /* i and j have to be synthesized and translated to SAT before */
   assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (i)));
-  assert (BTOR_REAL_ADDR_NODE (i)->tseitin_encoded);
+  assert (BTOR_REAL_ADDR_NODE (i)->tseitin);
   assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (j)));
-  assert (BTOR_REAL_ADDR_NODE (j)->tseitin_encoded);
+  assert (BTOR_REAL_ADDR_NODE (j)->tseitin);
 
   // BTOR_INIT_STACK (clauses);
   BTOR_INIT_STACK (linking_clause);
@@ -1451,7 +1451,7 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorNode *aeq)
   assert (aeq);
   assert (BTOR_IS_REGULAR_NODE (aeq));
   assert (BTOR_IS_ARRAY_EQ_NODE (aeq));
-  assert (!aeq->tseitin_encoded);
+  assert (!aeq->tseitin);
   assert (aeq->vreads);
   mm     = btor->mm;
   avmgr  = btor->avmgr;
@@ -1463,13 +1463,13 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorNode *aeq)
   assert (BTOR_IS_REGULAR_NODE (read1));
   assert (BTOR_IS_READ_NODE (read1));
   assert (BTOR_IS_SYNTH_NODE (read1));
-  assert (!read1->tseitin_encoded);
+  assert (!read1->tseitin);
 
   read2 = vreads->exp2;
   assert (BTOR_IS_REGULAR_NODE (read2));
   assert (BTOR_IS_READ_NODE (read2));
   assert (BTOR_IS_SYNTH_NODE (read2));
-  assert (!read2->tseitin_encoded);
+  assert (!read2->tseitin);
 
   assert (read1->e[1] == read2->e[1]);
   assert (BTOR_IS_REGULAR_NODE (read1->e[1]));
@@ -1484,11 +1484,11 @@ encode_array_inequality_virtual_reads (Btor *btor, BtorNode *aeq)
   /* assign aig cnf indices as there are only variables,
    * no SAT constraints are generated */
   btor_aigvec_to_sat_tseitin (avmgr, aeq->av);
-  aeq->tseitin_encoded = 1;
+  aeq->tseitin = 1;
   btor_aigvec_to_sat_tseitin (avmgr, av1);
-  read1->tseitin_encoded = 1;
+  read1->tseitin = 1;
   btor_aigvec_to_sat_tseitin (avmgr, av2);
-  read2->tseitin_encoded = 1;
+  read2->tseitin = 1;
 
   /* encode !e => r1 != r2 */
 
@@ -5309,9 +5309,9 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
 
     if (!aig->cnf_id)
     {
-      assert (!exp->tseitin_encoded);
+      assert (!exp->tseitin);
       btor_aig_to_sat_tseitin (amgr, aig);
-      exp->tseitin_encoded = 1;
+      exp->tseitin = 1;
     }
 
     res = aig->cnf_id;
@@ -5481,11 +5481,11 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       break;
     }
 
-    /* lazy_synthesize_and_encode_acc_exp sets the 'tseitin_encoded' flag.
+    /* lazy_synthesize_and_encode_acc_exp sets the 'tseitin' flag.
      * If this flag is not set, we have to find an other way
      * to the conflict. */
     if (BTOR_IS_WRITE_NODE (cur) && cur->e[0]->mark == 0
-        && BTOR_REAL_ADDR_NODE (cur->e[1])->tseitin_encoded
+        && BTOR_REAL_ADDR_NODE (cur->e[1])->tseitin
         && compare_assignments (cur->e[1], index) != 0)
     {
       assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur->e[1])));
@@ -5495,11 +5495,11 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    /* lazy_synthesize_and_encode_acond_exp sets the 'tseitin_encoded' flag.
+    /* lazy_synthesize_and_encode_acond_exp sets the 'tseitin' flag.
      * If this flag is not set, we have to find an other way
      * to the conflict. */
     else if (BTOR_IS_ARRAY_COND_NODE (cur)
-             && BTOR_REAL_ADDR_NODE (cur->e[0])->tseitin_encoded)
+             && BTOR_REAL_ADDR_NODE (cur->e[0])->tseitin)
     {
       assert (BTOR_IS_SYNTH_NODE (cur->e[0]));
       /* check assignment to determine which array to choose */
@@ -5534,7 +5534,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         {
           /* array equalities are synthesized eagerly */
           assert (BTOR_IS_SYNTH_NODE (cur_aeq));
-          assert (cur_aeq->tseitin_encoded);
+          assert (cur_aeq->tseitin);
           assert (cur_aeq->len == 1);
           if (btor_get_assignment_aig (amgr, cur_aeq->av->aigs[0]) == 1)
           {
@@ -5566,11 +5566,11 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         assert (BTOR_IS_ARRAY_NODE (next));
         assert (!next->simplified);
         /* lazy_synthesize_and_encode_acc_exp sets the
-         * 'tseitin_encoded' flag.
+         * 'tseitin' flag.
          * If this flag is not set, we have to find an other way
          * to the conflict. */
         if (next->reachable && next->mark == 0
-            && BTOR_REAL_ADDR_NODE (next->e[0])->tseitin_encoded)
+            && BTOR_REAL_ADDR_NODE (next->e[0])->tseitin)
         {
           cond       = next->e[0];
           assignment = btor_get_assignment_aig (
@@ -5600,7 +5600,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
           /* search upwards only if write has been synthesized and
            * assignments to the indices are unequal
            */
-          if (BTOR_REAL_ADDR_NODE (next->e[1])->tseitin_encoded
+          if (BTOR_REAL_ADDR_NODE (next->e[1])->tseitin
               && compare_assignments (next->e[1], index) != 0)
           {
             next->mark   = 1;
@@ -5861,21 +5861,21 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   {
     synthesize_exp (btor, index, 0);
   }
-  if (!BTOR_REAL_ADDR_NODE (index)->tseitin_encoded)
+  if (!BTOR_REAL_ADDR_NODE (index)->tseitin)
   {
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (index)->av);
-    BTOR_REAL_ADDR_NODE (index)->tseitin_encoded = 1;
+    BTOR_REAL_ADDR_NODE (index)->tseitin = 1;
   }
   if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (value)))
   {
     synthesize_exp (btor, value, 0);
   }
-  if (!BTOR_REAL_ADDR_NODE (value)->tseitin_encoded)
+  if (!BTOR_REAL_ADDR_NODE (value)->tseitin)
   {
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (value)->av);
-    BTOR_REAL_ADDR_NODE (value)->tseitin_encoded = 1;
+    BTOR_REAL_ADDR_NODE (value)->tseitin = 1;
   }
   /* update assignments if necessary */
   if (update && force_update)
@@ -5903,11 +5903,11 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   assert (cond);
   if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)))
     synthesize_exp (btor, cond, 0);
-  if (!BTOR_REAL_ADDR_NODE (cond)->tseitin_encoded)
+  if (!BTOR_REAL_ADDR_NODE (cond)->tseitin)
   {
     update = 1;
     btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (cond)->av);
-    BTOR_REAL_ADDR_NODE (cond)->tseitin_encoded = 1;
+    BTOR_REAL_ADDR_NODE (cond)->tseitin = 1;
   }
   /* update assignments if necessary */
   if (update && force_update)
@@ -6049,7 +6049,7 @@ process_working_stack (Btor *btor,
         if (cur_aeq->reachable)
         {
           assert (BTOR_IS_SYNTH_NODE (cur_aeq));
-          assert (cur_aeq->tseitin_encoded);
+          assert (cur_aeq->tseitin);
           assert (!BTOR_IS_INVERTED_AIG (cur_aeq->av->aigs[0]));
           assert (!BTOR_IS_CONST_AIG (cur_aeq->av->aigs[0]));
           assert (BTOR_IS_VAR_AIG (cur_aeq->av->aigs[0]));
@@ -7759,10 +7759,10 @@ synthesize_all_var_rhs (Btor *btor)
 
     synthesize_exp (btor, cur, 0);
 
-    if (!real_cur->tseitin_encoded)
+    if (!real_cur->tseitin)
     {
       btor_aigvec_to_sat_tseitin (btor->avmgr, real_cur->av);
-      real_cur->tseitin_encoded = 1;
+      real_cur->tseitin = 1;
     }
   }
 }
