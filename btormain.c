@@ -508,23 +508,6 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   btor_free_bv_assignment_exp (btor, assignment);
 }
 
-#if 0
-static void
-print_variable_assignments (BtorMainApp * app, 
-                            Btor * btor, BtorNode ** vars, int nvars)
-{
-  int i;
-
-  assert (app);
-  assert (btor);
-  assert (vars);
-  assert (nvars >= 0);
-
-  for (i = 0; i < nvars; i++)
-    print_bv_assignment (app, btor, vars[i]);
-}
-#endif
-
 static void
 print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
 {
@@ -554,23 +537,6 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
     BTOR_DELETEN (btor->mm, values, size);
   }
 }
-
-#if 0
-static void
-print_array_assignments (BtorMainApp * app, 
-                         Btor * btor, BtorNode ** arrays, int narrays)
-{
-  int i;
-
-  assert (app);
-  assert (btor);
-  assert (arrays);
-  assert (narrays >= 0);
-
-  for (i = 0; i < narrays; i++)
-    print_array_assignment (app, btor, arrays[i]);
-}
-#endif
 
 static void
 print_assignment (BtorMainApp *app, Btor *btor, BtorParseResult *parse_res)
@@ -1423,40 +1389,6 @@ boolector_main (int argc, char **argv)
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 
-#if 0
-	  BTOR_INIT_STACK (varstack);
-	  BTOR_INIT_STACK (arraystack);
-	  BTOR_INIT_STACK (constraints);
-
-	  if (app.print_model)
-	    {
-	      for (i = 0; i < parse_res.ninputs; i++)
-		{
-		  assert (!BTOR_IS_INVERTED_NODE (parse_res.inputs[i]));
-		  assert (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i])
-			  || BTOR_IS_ARRAY_VAR_NODE (parse_res.inputs[i]));
-		  if (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i]))
-		    BTOR_PUSH_STACK (mem, varstack,
-		      btor_copy_exp (btor, parse_res.inputs[i]));
-		  else
-		    BTOR_PUSH_STACK (mem, arraystack,
-		      btor_copy_exp (btor, parse_res.inputs[i]));
-		}
-	    }
-
-	  for (i = 0; i < parse_res.noutputs; i++)
-	    {
-	      root = parse_res.outputs[i];
-	      root_len = btor_get_exp_len (btor, root);
-	      assert (root_len >= 1);
-	      if (root_len > 1)
-		root = btor_redor_exp (btor, root);
-	      else
-		root = btor_copy_exp (btor, root);
-	      BTOR_PUSH_STACK (mem, constraints, root);
-	    }
-#endif
-
       if (parse_res.nregs > 0)
       {
         print_msg_va_args (&app, "removed support for sequential models");
@@ -1514,35 +1446,13 @@ boolector_main (int argc, char **argv)
       }
 
       if (sat_result == BTOR_SAT && app.print_model)
-#if 0
-	    {
-	      if (BTOR_COUNT_STACK (varstack) > 0)
-		print_variable_assignments (&app, btor, varstack.start,
-					    BTOR_COUNT_STACK (varstack));
-
-	      if (BTOR_COUNT_STACK (arraystack) > 0)
-		print_array_assignments (&app, btor, arraystack.start,
-					 BTOR_COUNT_STACK (arraystack));
-	    }
-#else
         print_assignment (&app, btor, &parse_res);
-#endif
 
-        if (app.verbosity > 0)
-        {
-          btor_print_stats_sat (smgr);
-          btor_print_stats_btor (btor);
-        }
-
-#if 0
-	  for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
-	    btor_release_exp (btor, varstack.start[i]);
-	  BTOR_RELEASE_STACK (mem, varstack);
-
-	  for (i = 0; i < BTOR_COUNT_STACK (arraystack); i++)
-	    btor_release_exp (btor, arraystack.start[i]);
-	  BTOR_RELEASE_STACK (mem, arraystack);
-#endif
+      if (app.verbosity > 0)
+      {
+        btor_print_stats_sat (smgr);
+        btor_print_stats_btor (btor);
+      }
     }
 
     btor_static_smgr = 0;
