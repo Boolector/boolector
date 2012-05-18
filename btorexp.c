@@ -1996,9 +1996,6 @@ new_const_exp_node (Btor *btor, const char *bits, int len)
   exp->bits[len] = '\0';
   exp->len       = len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   return (BtorNode *) exp;
 }
 
@@ -2022,9 +2019,6 @@ new_slice_exp_node (Btor *btor, BtorNode *e0, int upper, int lower)
   exp->lower = lower;
   exp->len   = upper - lower + 1;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   connect_child_exp (btor, (BtorNode *) exp, e0, 0);
   return (BtorNode *) exp;
 }
@@ -2049,9 +2043,6 @@ new_binary_exp_node (
   exp->arity = 2;
   exp->len   = len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   connect_child_exp (btor, (BtorNode *) exp, e0, 0);
   connect_child_exp (btor, (BtorNode *) exp, e1, 1);
 
@@ -2073,9 +2064,6 @@ new_aeq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
   exp->arity = 2;
   exp->len   = 1;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   connect_child_exp (btor, exp, e0, 0);
   connect_child_exp (btor, exp, e1, 1);
   return exp;
@@ -2106,9 +2094,6 @@ new_ternary_exp_node (Btor *btor,
   exp->arity = 3;
   exp->len   = len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   connect_child_exp (btor, (BtorNode *) exp, e0, 0);
   connect_child_exp (btor, (BtorNode *) exp, e1, 1);
   connect_child_exp (btor, (BtorNode *) exp, e2, 2);
@@ -2140,9 +2125,6 @@ new_write_exp_node (Btor *btor,
   exp->index_len = BTOR_REAL_ADDR_NODE (e_index)->len;
   exp->len       = BTOR_REAL_ADDR_NODE (e_value)->len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   /* append writes to the end of parrent list */
   connect_child_exp (btor, exp, e_array, 0);
   connect_child_exp (btor, exp, e_index, 1);
@@ -2178,9 +2160,6 @@ new_acond_exp_node (Btor *btor,
   exp->index_len = a_if->index_len;
   exp->len       = a_if->len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
   connect_child_exp (btor, exp, a_else, 2);
@@ -2606,9 +2585,6 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
   exp->symbol = btor_strdup (mm, symbol);
   exp->len    = len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   exp->bits = btor_x_const_3vl (btor->mm, len);
   (void) btor_insert_in_ptr_hash_table (btor->bv_vars, exp);
   return (BtorNode *) exp;
@@ -2634,9 +2610,6 @@ btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
   exp->index_len = index_len;
   exp->len       = elem_len;
   setup_node_and_add_to_id_table (btor, exp);
-  btor->stats.expressions++;
-  exp->refs = 1;
-  exp->btor = btor;
   (void) btor_insert_in_ptr_hash_table (btor->array_vars, exp);
   return (BtorNode *) exp;
 }
