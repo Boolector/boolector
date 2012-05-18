@@ -59,13 +59,6 @@ enum BtorBasis
 
 typedef enum BtorBasis BtorBasis;
 
-enum BtorPrintModel
-{
-  BTOR_APP_PRINT_MODEL_NONE = 0,
-  BTOR_APP_PRINT_MODEL_PARTIAL,
-  BTOR_APP_PRINT_MODEL_FULL
-};
-
 typedef enum BtorPrintModel BtorPrintModel;
 
 struct BtorMainApp
@@ -98,7 +91,7 @@ struct BtorMainApp
   int close_smt_file;
   int rewrite_level;
   int force_smt_input;
-  BtorPrintModel print_model;
+  int print_model;
 #ifdef BTOR_USE_PICOSAT
   int force_picosat;
 #endif
@@ -125,12 +118,11 @@ static const char *g_usage =
     "  -c|--copyright                   print copyright and exit\n"
     "  -V|--version                     print version and exit\n"
     "\n"
-    "  -[p]m|--[partial-]model          print partial model in the SAT case\n"
-    "  -fm|--full-model                 print full model (BV) in the SAT case\n"
+    "  -m|--model                       print model in the SAT case\n"
     "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
     "\n"
-    "  -i|--inc[remental]               incremental mode (SMT only)\n"
+    "  -i|--inc[remental]               incremental mode (SMT1 only)\n"
     "  -I                               same but solve all\n"
     "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
     "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
@@ -460,30 +452,6 @@ file_name_has_suffix (const char *str, const char *suffix)
   return 0;
 }
 
-static int
-has_only_x (const char *str)
-{
-  const char *cur = 0;
-  assert (str);
-  for (cur = str; *cur; cur++)
-    if (*cur != 'x') return 0;
-  return 1;
-}
-
-static void
-convert_to_full_assignment (char *assignment)
-{
-  char *p;
-
-  assert (assignment);
-
-  for (p = assignment; *p; p++)
-  {
-    assert (*p == 'x' || *p == '0' || *p == '1');
-    if (*p == 'x') *p = '0';
-  }
-}
-
 static char *
 format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
 {
@@ -500,9 +468,6 @@ format_assignment (BtorMainApp *app, Btor *btor, char *assignment)
   not_binary =
       (basis == BTOR_HEXADECIMAL_BASIS) || (basis == BTOR_DECIMAL_BASIS);
   mm = btor->mm;
-
-  if (app->print_model == BTOR_APP_PRINT_MODEL_FULL)
-    convert_to_full_assignment (assignment);
 
   if (not_binary)
   {
@@ -537,13 +502,9 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   assignment = btor_bv_assignment_exp (btor, exp);
   assert (assignment);
 
-  if (app->print_model == BTOR_APP_PRINT_MODEL_FULL || !has_only_x (assignment))
-  {
-    pretty = format_assignment (app, btor, assignment);
-    print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
-    btor_free_bv_assignment_exp (btor, pretty);
-  }
-
+  pretty = format_assignment (app, btor, assignment);
+  print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
+  btor_free_bv_assignment_exp (btor, pretty);
   btor_free_bv_assignment_exp (btor, assignment);
 }
 
@@ -654,13 +615,8 @@ parse_commandline_arguments (BtorMainApp *app)
                         "expression",
                         &app->exp_file);
     else if (!strcmp (app->argv[app->argpos], "-m")
-             || (!strcmp (app->argv[app->argpos], "-pm")
-                 || !strcmp (app->argv[app->argpos], "--model"))
-             || !strcmp (app->argv[app->argpos], "--partial-model"))
-      app->print_model = BTOR_APP_PRINT_MODEL_PARTIAL;
-    else if (!strcmp (app->argv[app->argpos], "-fm")
-             || !strcmp (app->argv[app->argpos], "--full-model"))
-      app->print_model = BTOR_APP_PRINT_MODEL_FULL;
+             || !strcmp (app->argv[app->argpos], "--model"))
+      app->print_model = 1;
     else if (!strcmp (app->argv[app->argpos], "-ds")
              || !strcmp (app->argv[app->argpos], "--dump-smt"))
       handle_dump_file (
@@ -1099,7 +1055,7 @@ boolector_main (int argc, char **argv)
   app.close_smt_file    = 0;
   app.rewrite_level     = 3;
   app.force_smt_input   = 0;
-  app.print_model       = BTOR_APP_PRINT_MODEL_NONE;
+  app.print_model       = 0;
 #ifdef BTOR_USE_PICOSAT
   app.force_picosat = 0;
 #endif
@@ -1558,11 +1514,13 @@ boolector_main (int argc, char **argv)
         else
           print_sat_result (&app, sat_result);
       }
+
       if (sat_result == BTOR_SAT && app.print_model)
       {
         if (BTOR_COUNT_STACK (varstack) > 0)
           print_variable_assignments (
               &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+
         if (BTOR_COUNT_STACK (arraystack) > 0)
           print_array_assignments (
               &app, btor, arraystack.start, BTOR_COUNT_STACK (arraystack));

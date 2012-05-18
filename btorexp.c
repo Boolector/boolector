@@ -4987,7 +4987,7 @@ synthesize_array_equality (Btor *btor, BtorNode *aeq)
 }
 
 static void
-synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannoation)
+synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
   BtorNodePtrStack exp_stack;
   BtorNode *cur;
@@ -5035,14 +5035,14 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannoation)
         else if (BTOR_IS_BV_VAR_NODE (cur))
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
-          if (backannoation)
+          if (backannotation)
           {
             name         = btor_get_symbol_exp (btor, cur);
             len          = (int) strlen (name) + 40;
             indexed_name = btor_malloc (mm, len);
             for (i = 0; i < cur->av->len; i++)
             {
-              b = btor_insert_in_ptr_hash_table (backannoation,
+              b = btor_insert_in_ptr_hash_table (backannotation,
                                                  cur->av->aigs[i]);
               assert (b->key == cur->av->aigs[i]);
               sprintf (indexed_name, "%s[%d]", name, i);
