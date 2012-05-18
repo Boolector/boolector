@@ -1034,8 +1034,6 @@ boolector_main (int argc, char **argv)
   BtorAIGVecMgr *avmgr    = 0;
   BtorSATMgr *smgr        = 0;
   BtorParseResult parse_res;
-  BtorNodePtrStack varstack, constraints;
-  BtorNodePtrStack arraystack;
   const BtorParserAPI *parser_api = 0;
   BtorParser *parser              = 0;
   BtorParseOpt parse_opt;
@@ -1425,27 +1423,27 @@ boolector_main (int argc, char **argv)
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 
-      BTOR_INIT_STACK (varstack);
-      BTOR_INIT_STACK (arraystack);
-      BTOR_INIT_STACK (constraints);
-
-      if (app.print_model)
-      {
-        for (i = 0; i < parse_res.ninputs; i++)
-        {
-          assert (!BTOR_IS_INVERTED_NODE (parse_res.inputs[i]));
-          assert (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i])
-                  || BTOR_IS_ARRAY_VAR_NODE (parse_res.inputs[i]));
-          if (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i]))
-            BTOR_PUSH_STACK (
-                mem, varstack, btor_copy_exp (btor, parse_res.inputs[i]));
-          else
-            BTOR_PUSH_STACK (
-                mem, arraystack, btor_copy_exp (btor, parse_res.inputs[i]));
-        }
-      }
-
 #if 0
+	  BTOR_INIT_STACK (varstack);
+	  BTOR_INIT_STACK (arraystack);
+	  BTOR_INIT_STACK (constraints);
+
+	  if (app.print_model)
+	    {
+	      for (i = 0; i < parse_res.ninputs; i++)
+		{
+		  assert (!BTOR_IS_INVERTED_NODE (parse_res.inputs[i]));
+		  assert (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i])
+			  || BTOR_IS_ARRAY_VAR_NODE (parse_res.inputs[i]));
+		  if (BTOR_IS_BV_VAR_NODE (parse_res.inputs[i]))
+		    BTOR_PUSH_STACK (mem, varstack,
+		      btor_copy_exp (btor, parse_res.inputs[i]));
+		  else
+		    BTOR_PUSH_STACK (mem, arraystack,
+		      btor_copy_exp (btor, parse_res.inputs[i]));
+		}
+	    }
+
 	  for (i = 0; i < parse_res.noutputs; i++)
 	    {
 	      root = parse_res.outputs[i];
@@ -1536,13 +1534,15 @@ boolector_main (int argc, char **argv)
           btor_print_stats_btor (btor);
         }
 
-      for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
-        btor_release_exp (btor, varstack.start[i]);
-      BTOR_RELEASE_STACK (mem, varstack);
+#if 0
+	  for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
+	    btor_release_exp (btor, varstack.start[i]);
+	  BTOR_RELEASE_STACK (mem, varstack);
 
-      for (i = 0; i < BTOR_COUNT_STACK (arraystack); i++)
-        btor_release_exp (btor, arraystack.start[i]);
-      BTOR_RELEASE_STACK (mem, arraystack);
+	  for (i = 0; i < BTOR_COUNT_STACK (arraystack); i++)
+	    btor_release_exp (btor, arraystack.start[i]);
+	  BTOR_RELEASE_STACK (mem, arraystack);
+#endif
     }
 
     btor_static_smgr = 0;
