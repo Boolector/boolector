@@ -129,7 +129,7 @@ static const char *g_usage =
     "  -interval=<w>                    incremental interval mode width <w>\n"
     "\n"
 #ifdef BTOR_USE_LINGELING
-    "  --no-fork                        do not use 'fork' for Lingeling\n"
+    "  --no-fork                        do not use 'fork/clone' for Lingeling\n"
 #endif
     "\n"
     "  -t <time out in seconds>         set time limit\n"
