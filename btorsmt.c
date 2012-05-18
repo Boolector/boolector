@@ -262,7 +262,9 @@ static BtorSMTNode *
 cons (BtorSMTParser *parser, void *h, void *t)
 {
   BtorSMTNode *res;
-  BtorSMTSymbol *s;
+#if 0
+  BtorSMTSymbol * s;
+#endif
 
   BTOR_NEW (parser->mem, res);
   BTOR_CLR (res);
@@ -289,17 +291,21 @@ cons (BtorSMTParser *parser, void *h, void *t)
   res->head = h;
   res->tail = t;
 
+#if 0
   if (isleaf (h))
-  {
-    s = strip (h);
-    if (s->token == BTOR_SMTOK_IDENTIFIER) s->last = res;
-  }
+    {
+      s = strip (h);
+      if (s->token == BTOR_SMTOK_IDENTIFIER)
+	s->last = res;
+    }
 
   if (isleaf (t))
-  {
-    s = strip (t);
-    if (s->token == BTOR_SMTOK_IDENTIFIER) s->last = res;
-  }
+    {
+      s = strip (t);
+      if (s->token == BTOR_SMTOK_IDENTIFIER)
+	s->last = res;
+    }
+#endif
 
   return res;
 }
@@ -377,9 +383,11 @@ btor_delete_smt_node (BtorSMTParser *parser, BtorSMTNode *node)
 
   if (node->exp) btor_release_exp (parser->btor, node->exp);
 
-  if (!parser->model && isleaf (car (node))
-      && (s = strip (car (node)))->last == node)
-    remove_and_delete_symbol (parser, s);
+  if (!parser->model && isleaf (car (node)))
+  {
+    s = strip (car (node));
+    if (s->last == node) remove_and_delete_symbol (parser, s);
+  }
 
 #ifdef BTOR_FIND_LEAKING_SMT_NODES
   assert (parser->first);
@@ -3043,6 +3051,47 @@ count_assumptions_and_formulas (BtorSMTParser *parser, BtorSMTNode *top)
   }
 }
 
+static void
+set_last_occurrence_of_symbols (BtorSMTParser *parser, BtorSMTNode *top)
+{
+  BtorSMTNode *n, *h, *t;
+  BtorSMTSymbol *s;
+  int occs = 0;
+
+  assert (BTOR_EMPTY_STACK (parser->stack));
+
+  BTOR_PUSH_STACK (parser->mem, parser->stack, top);
+  while (!BTOR_EMPTY_STACK (parser->stack))
+  {
+    n = BTOR_POP_STACK (parser->stack);
+    if (isleaf (n)) continue;
+
+    h = car (n);
+    t = cdr (n);
+
+    if (t)
+    {
+      assert (!isleaf (t));
+      BTOR_PUSH_STACK (parser->mem, parser->stack, t);
+    }
+
+    assert (h);
+    if (isleaf (h))
+    {
+      s = strip (h);
+      if (s->token == BTOR_SMTOK_IDENTIFIER)
+      {
+        s->last = n;
+        occs++;
+      }
+    }
+    else
+      BTOR_PUSH_STACK (parser->mem, parser->stack, h);
+  }
+
+  btor_smt_message (parser, 1, "found %d occurrences of symbols", occs);
+}
+
 static const char *
 parse (BtorSMTParser *parser,
        BtorCharStack *prefix,
@@ -3120,6 +3169,8 @@ NEXT_TOKEN:
         parser, 1, "found %d assumptions", parser->assumptions.parsed);
 
     btor_smt_message (parser, 1, "found %d formulas", parser->formulas.parsed);
+
+    set_last_occurrence_of_symbols (parser, top);
 
     err = translate_benchmark (parser, top, res);
     btor_recursively_delete_smt_node (parser, top);

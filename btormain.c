@@ -508,11 +508,10 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   btor_free_bv_assignment_exp (btor, assignment);
 }
 
+#if 0
 static void
-print_variable_assignments (BtorMainApp *app,
-                            Btor *btor,
-                            BtorNode **vars,
-                            int nvars)
+print_variable_assignments (BtorMainApp * app, 
+                            Btor * btor, BtorNode ** vars, int nvars)
 {
   int i;
 
@@ -521,8 +520,10 @@ print_variable_assignments (BtorMainApp *app,
   assert (vars);
   assert (nvars >= 0);
 
-  for (i = 0; i < nvars; i++) print_bv_assignment (app, btor, vars[i]);
+  for (i = 0; i < nvars; i++)
+    print_bv_assignment (app, btor, vars[i]);
 }
+#endif
 
 static void
 print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
@@ -554,11 +555,10 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   }
 }
 
+#if 0
 static void
-print_array_assignments (BtorMainApp *app,
-                         Btor *btor,
-                         BtorNode **arrays,
-                         int narrays)
+print_array_assignments (BtorMainApp * app, 
+                         Btor * btor, BtorNode ** arrays, int narrays)
 {
   int i;
 
@@ -567,7 +567,26 @@ print_array_assignments (BtorMainApp *app,
   assert (arrays);
   assert (narrays >= 0);
 
-  for (i = 0; i < narrays; i++) print_array_assignment (app, btor, arrays[i]);
+  for (i = 0; i < narrays; i++)
+    print_array_assignment (app, btor, arrays[i]);
+}
+#endif
+
+static void
+print_assignment (BtorMainApp *app, Btor *btor, BtorParseResult *parse_res)
+{
+  BtorNode *var, *temp;
+  int i;
+
+  for (i = 0; i < parse_res->ninputs; i++)
+  {
+    var  = parse_res->inputs[i];
+    temp = btor_pointer_chase_simplified_exp (btor, var);
+    if (BTOR_IS_ARRAY_NODE (temp))
+      print_array_assignment (app, btor, var);
+    else
+      print_bv_assignment (app, btor, var);
+  }
 }
 
 static int
@@ -1009,7 +1028,6 @@ boolector_main (int argc, char **argv)
   int sat_result = 0;
   int i          = 0;
   int root_len;
-  int constraints_reported, constraints_report_limit, nconstraints;
   const char *parse_error = 0;
   Btor *btor              = 0;
   BtorAIGMgr *amgr        = 0;
@@ -1022,8 +1040,7 @@ boolector_main (int argc, char **argv)
   BtorParser *parser              = 0;
   BtorParseOpt parse_opt;
   BtorMemMgr *mem = 0;
-  BtorNode *root, **p, *tmp, *all;
-  BtorNode *var, *temp;
+  BtorNode *root, *tmp, *all;
   BtorCharStack prefix;
 
   btor_static_start_time = btor_time_stamp ();
@@ -1298,17 +1315,7 @@ boolector_main (int argc, char **argv)
         print_sat_result (&app, sat_result);
 
         if (app.print_model && sat_result == BTOR_SAT)
-        {
-          for (i = 0; i < parse_res.ninputs; i++)
-          {
-            var  = parse_res.inputs[i];
-            temp = btor_pointer_chase_simplified_exp (btor, var);
-            if (BTOR_IS_ARRAY_NODE (temp))
-              print_array_assignment (&app, btor, var);
-            else
-              print_bv_assignment (&app, btor, var);
-          }
-        }
+          print_assignment (&app, btor, &parse_res);
 
         if (app.verbosity > 0)
         {
@@ -1438,19 +1445,20 @@ boolector_main (int argc, char **argv)
         }
       }
 
-      for (i = 0; i < parse_res.noutputs; i++)
-      {
-        root     = parse_res.outputs[i];
-        root_len = btor_get_exp_len (btor, root);
-        assert (root_len >= 1);
-        if (root_len > 1)
-          root = btor_redor_exp (btor, root);
-        else
-          root = btor_copy_exp (btor, root);
-        BTOR_PUSH_STACK (mem, constraints, root);
-      }
+#if 0
+	  for (i = 0; i < parse_res.noutputs; i++)
+	    {
+	      root = parse_res.outputs[i];
+	      root_len = btor_get_exp_len (btor, root);
+	      assert (root_len >= 1);
+	      if (root_len > 1)
+		root = btor_redor_exp (btor, root);
+	      else
+		root = btor_copy_exp (btor, root);
+	      BTOR_PUSH_STACK (mem, constraints, root);
+	    }
+#endif
 
-      /* BMC ? */
       if (parse_res.nregs > 0)
       {
         print_msg_va_args (&app, "removed support for sequential models");
@@ -1458,36 +1466,28 @@ boolector_main (int argc, char **argv)
       }
       else
       {
-        /* stand alone mode */
-        parser_api->reset (parser);
-        parser_api = 0;
-
-        constraints_reported     = 0;
-        nconstraints             = BTOR_COUNT_STACK (constraints);
-        constraints_report_limit = (19 + nconstraints) / 20;
-
-        for (p = constraints.start; p < constraints.top; p++)
+        for (i = 0; i < parse_res.noutputs; i++)
         {
-          root = *p;
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
           btor_add_constraint_exp (btor, root);
           btor_release_exp (btor, root);
-
-          if (app.verbosity > 1
-              && p - constraints.start == constraints_report_limit)
-          {
-            constraints_reported = constraints_report_limit;
-            constraints_report_limit += (19 + nconstraints) / 20;
-            assert (nconstraints);
-            btor_msg_main_va_args (
-                "added %d outputs (%.0f%%)\n",
-                constraints_reported,
-                100.0 * constraints_reported / (double) nconstraints);
-          }
         }
-        BTOR_RELEASE_STACK (mem, constraints);
 
-        if (app.verbosity > 1 && constraints_reported < nconstraints)
-          btor_msg_main_va_args ("added %d outputs (100%)\n", nconstraints);
+        if (!app.print_model)
+        {
+          parser_api->reset (parser);
+          parser_api = 0;
+        }
+
+        if (app.verbosity > 1)
+          btor_msg_main_va_args ("added %d outputs (100%)\n",
+                                 parse_res.noutputs);
 
         sat_result = btor_sat_btor (btor);
         assert (sat_result != BTOR_UNKNOWN);
@@ -1516,21 +1516,25 @@ boolector_main (int argc, char **argv)
       }
 
       if (sat_result == BTOR_SAT && app.print_model)
-      {
-        if (BTOR_COUNT_STACK (varstack) > 0)
-          print_variable_assignments (
-              &app, btor, varstack.start, BTOR_COUNT_STACK (varstack));
+#if 0
+	    {
+	      if (BTOR_COUNT_STACK (varstack) > 0)
+		print_variable_assignments (&app, btor, varstack.start,
+					    BTOR_COUNT_STACK (varstack));
 
-        if (BTOR_COUNT_STACK (arraystack) > 0)
-          print_array_assignments (
-              &app, btor, arraystack.start, BTOR_COUNT_STACK (arraystack));
-      }
+	      if (BTOR_COUNT_STACK (arraystack) > 0)
+		print_array_assignments (&app, btor, arraystack.start,
+					 BTOR_COUNT_STACK (arraystack));
+	    }
+#else
+        print_assignment (&app, btor, &parse_res);
+#endif
 
-      if (app.verbosity > 0)
-      {
-        btor_print_stats_sat (smgr);
-        btor_print_stats_btor (btor);
-      }
+        if (app.verbosity > 0)
+        {
+          btor_print_stats_sat (smgr);
+          btor_print_stats_btor (btor);
+        }
 
       for (i = 0; i < BTOR_COUNT_STACK (varstack); i++)
         btor_release_exp (btor, varstack.start[i]);
