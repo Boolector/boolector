@@ -249,8 +249,6 @@ struct Btor
   int model_gen;            /* model generation enabled */
   int external_refs;        /* external references (library mode) */
   int inc_enabled;          /* incremental usage enabled ? */
-  int rebuild_exps;         /* rebuild synthesized expressions */
-  int norestarts;           /* disable restarts totally */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
 

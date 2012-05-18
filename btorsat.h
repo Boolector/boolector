@@ -178,8 +178,7 @@ void btor_enable_picosat_sat (BtorSATMgr *smgr);
 /* Enables Lingeling as SAT preprocessor. */
 int btor_enable_lingeling_sat (BtorSATMgr *smgr,
                                const char *options,
-                               int nofork,
-                               int nobrutefork);
+                               int nofork);
 #endif
 
 #ifdef BTOR_USE_MINISAT

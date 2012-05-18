@@ -62,14 +62,11 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
-int btor_enable_lingeling_sat (BtorSATMgr *,
-                               const char *optstr,
-                               int nofork,
-                               int nobrutefork);
-#define btor_enable_default_sat(SMGR)            \
-  do                                             \
-  {                                              \
-    btor_enable_lingeling_sat ((SMGR), 0, 0, 0); \
+int btor_enable_lingeling_sat (BtorSATMgr *, const char *optstr, int nofork);
+#define btor_enable_default_sat(SMGR)         \
+  do                                          \
+  {                                           \
+    btor_enable_lingeling_sat ((SMGR), 0, 0); \
   } while (0)
 #elif defined(BTOR_USE_PICOSAT)
 void btor_enable_picosat_sat (BtorSATMgr *);
@@ -496,7 +493,7 @@ typedef struct BtorLGL BtorLGL;
 struct BtorLGL
 {
   LGL *lgl;
-  int nforked, nbforked, blimit;
+  int nforked, blimit;
 };
 
 static int
@@ -655,7 +652,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       blgl->blimit *= 2;
       if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
-      blgl->nbforked++;
+      blgl->nforked++;
       if (clone)
       {
         bforked = lglclone (lgl);
@@ -665,8 +662,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       }
       else
         bforked = lglbrutefork (lgl, 0), str = "fork";
-      lglsetopt (bforked, "seed", blgl->nbforked);
-      sprintf (name, "[lgl%s%d] ", str, blgl->nbforked);
+      lglsetopt (bforked, "seed", blgl->nforked);
+      sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
       if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
@@ -766,8 +763,7 @@ btor_lingeling_stats (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   lglstats (blgl->lgl);
-  btor_msg_sat (
-      smgr, 1, "%d forked, %d brute forked", blgl->nforked, blgl->nbforked);
+  btor_msg_sat (smgr, 1, "%d forked", blgl->nforked);
 }
 
 /*------------------------------------------------------------------------*/
@@ -810,10 +806,7 @@ btor_lingeling_inconsistent (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 
 int
-btor_enable_lingeling_sat (BtorSATMgr *smgr,
-                           const char *optstr,
-                           int nofork,
-                           int nobrutefork)
+btor_enable_lingeling_sat (BtorSATMgr *smgr, const char *optstr, int nofork)
 {
   assert (smgr != NULL);
 
@@ -824,9 +817,8 @@ btor_enable_lingeling_sat (BtorSATMgr *smgr,
       && !btor_passdown_lingeling_options (smgr, optstr, 0))
     return 0;
 
-  smgr->name        = "Lingeling";
-  smgr->nofork      = nofork;
-  smgr->nobrutefork = nobrutefork;
+  smgr->name   = "Lingeling";
+  smgr->nofork = nofork;
 
   smgr->api.add              = btor_lingeling_add;
   smgr->api.assume           = btor_lingeling_assume;
