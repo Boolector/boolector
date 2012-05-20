@@ -597,7 +597,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
-#define BTOR_LGL_MIN_BLIMIT 20000
+#define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
 
 static void *
@@ -633,7 +633,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl   = smgr->solver;
   LGL *lgl        = blgl->lgl, *bforked;
-  const int clone = 0;  // TODO?
+  const int clone = 1;  // TODO?
   const char *str;
   int res, bfres;
   char name[80];
