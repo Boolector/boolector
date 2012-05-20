@@ -76,7 +76,6 @@ struct BtorMainApp
   int indepth;
   int lookahead;
   int interval;
-  int force;
   int done;
   int err;
   int argpos;
@@ -84,11 +83,7 @@ struct BtorMainApp
   char **argv;
   BtorBasis basis;
   int dump_exp;
-  FILE *exp_file;
-  int close_exp_file;
   int dump_smt;
-  FILE *smt_file;
-  int close_smt_file;
   int rewrite_level;
   int force_smt_input;
   int print_model;
@@ -140,10 +135,9 @@ static const char *g_usage =
     "\n"
     "  -x|--hex                         hexadecimal output\n"
     "  -d|--dec                         decimal output\n"
-    "  -o|--output <file>               set output file\n"
-    "  -de|--dump-exp <file>            dump expression in BTOR format\n"
-    "  -ds|--dump-smt <file>            dump expression in SMT format\n"
-    "  -f|--force                       overwrite existing output file\n"
+    "  -de|--dump-exp                   dump expression in BTOR format\n"
+    "  -ds|--dump-smt                   dump expression in SMT format\n"
+    "  -o|--output <file>               set output file for dumping\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
     "\n"
@@ -313,8 +307,7 @@ static void
 print_msg (BtorMainApp *app, const char *msg)
 {
   assert (msg);
-  if (app->verbosity >= 0)
-    fputs (msg, app->output_file); /* no 'fprintf' to avoid warning */
+  if (app->verbosity >= 0) fputs (msg, stdout);
 }
 
 static void
@@ -325,7 +318,7 @@ print_msg_va_args (BtorMainApp *app, char *msg, ...)
   if (app->verbosity >= 0)
   {
     va_start (list, msg);
-    vfprintf (app->output_file, msg, list);
+    vprintf (msg, list);
     va_end (list);
   }
 }
@@ -336,8 +329,8 @@ print_err (BtorMainApp *app, char *msg)
   assert (msg);
   if (app->verbosity >= 0)
   {
-    fputs ("boolector: ", app->output_file);
-    fputs (msg, app->output_file); /* no 'fprintf' to avoid warning */
+    fputs ("boolector: ", stdout);
+    fputs (msg, stdout);
   }
 }
 
@@ -348,86 +341,10 @@ print_err_va_args (BtorMainApp *app, char *msg, ...)
   assert (msg);
   if (app->verbosity >= 0)
   {
-    fputs ("boolector: ", app->output_file);
+    fputs ("boolector: ", stdout);
     va_start (list, msg);
-    vfprintf (app->output_file, msg, list);
+    vprintf (msg, list);
     va_end (list);
-  }
-}
-
-static int
-file_already_exists (const char *file_name)
-{
-#ifdef BTOR_HAVE_STAT
-  struct stat buf;
-  return !stat (file_name, &buf);
-#else
-  FILE *file = fopen (file_name, "r");
-  int res;
-  if (file)
-  {
-    fclose (file);
-    res = 1;
-  }
-  else
-    res = 1;
-  return res;
-#endif
-}
-
-static void
-handle_dump_file (BtorMainApp *app,
-                  int *dump_file,
-                  int *close_file,
-                  const char *file_kind,
-                  FILE **file)
-{
-  const char *file_name;
-
-  assert (dump_file);
-  assert (close_file);
-  assert (file_kind);
-  assert (file);
-
-  *dump_file = 1;
-
-  if (app->argpos < app->argc - 1)
-  {
-    if (*close_file)
-    {
-      assert (*file);
-      fclose (*file);
-      *close_file = 0;
-      print_err_va_args (app, "multiple %s files\n", file_kind);
-      app->err = 1;
-    }
-    else
-    {
-      file_name = app->argv[++app->argpos];
-
-      if (file_already_exists (file_name) && !app->force)
-      {
-        print_err_va_args (
-            app,
-            "will not overwrite existing %s file '%s' without '-f'\n",
-            file_kind,
-            file_name);
-
-        app->err = 1;
-      }
-      else
-      {
-        *file = fopen (file_name, "w");
-        if (!*file)
-        {
-          print_err_va_args (
-              app, "can not create '%s'\n", app->argv[app->argpos]);
-          app->err = 1;
-        }
-        else
-          *close_file = 1;
-      }
-    }
   }
 }
 
@@ -588,23 +505,15 @@ parse_commandline_arguments (BtorMainApp *app)
       print_msg_va_args (app, "%s", g_copyright);
       app->done = 1;
     }
-    else if (!strcmp (app->argv[app->argpos], "-f")
-             || !strcmp (app->argv[app->argpos], "--force"))
-      app->force = 1;
     else if (!strcmp (app->argv[app->argpos], "-de")
              || !strcmp (app->argv[app->argpos], "--dump-exp"))
-      handle_dump_file (app,
-                        &app->dump_exp,
-                        &app->close_exp_file,
-                        "expression",
-                        &app->exp_file);
+      app->dump_exp = 1;
+    else if (!strcmp (app->argv[app->argpos], "-ds")
+             || !strcmp (app->argv[app->argpos], "--dump-smt"))
+      app->dump_smt = 1;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
       app->print_model = 1;
-    else if (!strcmp (app->argv[app->argpos], "-ds")
-             || !strcmp (app->argv[app->argpos], "--dump-smt"))
-      handle_dump_file (
-          app, &app->dump_smt, &app->close_smt_file, "SMT", &app->smt_file);
     else if (!strcmp (app->argv[app->argpos], "--btor"))
       app->force_smt_input = -1;
     else if (!strcmp (app->argv[app->argpos], "--smt")
@@ -760,9 +669,6 @@ parse_commandline_arguments (BtorMainApp *app)
       {
         if (app->close_output_file)
         {
-          fclose (app->output_file);
-          app->close_output_file = 0;
-          app->output_file       = stdout;
           print_err_va_args (app, "multiple output files\n");
           app->err = 1;
         }
@@ -771,7 +677,6 @@ parse_commandline_arguments (BtorMainApp *app)
           app->output_file = fopen (app->argv[++app->argpos], "w");
           if (!app->output_file)
           {
-            app->output_file = stdout;
             print_err_va_args (
                 app, "can not create '%s'\n", app->argv[app->argpos]);
             app->err = 1;
@@ -1015,7 +920,6 @@ boolector_main (int argc, char **argv)
   app.indepth           = 0;
   app.lookahead         = 0;
   app.interval          = 0;
-  app.force             = 0;
   app.output_file       = stdout;
   app.close_output_file = 0;
   app.input_file        = stdin;
@@ -1028,11 +932,7 @@ boolector_main (int argc, char **argv)
   app.err               = 0;
   app.basis             = BTOR_BINARY_BASIS;
   app.dump_exp          = 0;
-  app.exp_file          = stdout;
-  app.close_exp_file    = 0;
   app.dump_smt          = 0;
-  app.smt_file          = stdout;
-  app.close_smt_file    = 0;
   app.rewrite_level     = 3;
   app.force_smt_input   = 0;
   app.print_model       = 0;
@@ -1319,11 +1219,11 @@ boolector_main (int argc, char **argv)
         }
         parser_api->reset (parser);
         parser_api = 0;
-        btor_dump_exps_after_global_rewriting (btor, app.exp_file);
+        btor_dump_exps_after_global_rewriting (btor, app.output_file);
       }
       else
         btor_dump_exps (
-            btor, app.exp_file, parse_res.outputs, parse_res.noutputs);
+            btor, app.output_file, parse_res.outputs, parse_res.noutputs);
       app.done = 1;
     }
     else if (app.dump_smt)
@@ -1351,7 +1251,7 @@ boolector_main (int argc, char **argv)
       if (app.verbosity > 0) btor_msg_main_va_args ("dumping in SMT format\n");
 
       app.done = 1;
-      btor_dump_smt (btor, app.smt_file, all);
+      btor_dump_smt (btor, app.output_file, all);
       btor_release_exp (btor, all);
     }
     else if (parse_res.nregs > 0)
@@ -1476,8 +1376,6 @@ boolector_main (int argc, char **argv)
   if (app.close_input_file == 1) fclose (app.input_file);
   if (app.close_input_file == 2) pclose (app.input_file);
   if (app.close_output_file) fclose (app.output_file);
-  if (app.close_exp_file) fclose (app.exp_file);
-  if (app.close_smt_file) fclose (app.smt_file);
   if (app.err)
     return_val = BTOR_ERR_EXIT;
   else if (app.done)

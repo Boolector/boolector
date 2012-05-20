@@ -6690,13 +6690,18 @@ insert_varsubst_constraint (Btor *btor, BtorNode *left, BtorNode *right)
 
   if (!bucket)
   {
-    if (btor->model_gen && !BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (right)))
+    if (btor->model_gen && !BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (right))
+        && !btor_find_in_ptr_hash_table (btor->var_rhs, left))
     {
-      if (!btor_find_in_ptr_hash_table (btor->var_rhs, left))
-      {
-        btor_insert_in_ptr_hash_table (btor->var_rhs, left);
-        inc_exp_ref_counter (btor, left);
-      }
+      btor_insert_in_ptr_hash_table (btor->var_rhs, left);
+      inc_exp_ref_counter (btor, left);
+    }
+
+    if (btor->model_gen && BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (right))
+        && !btor_find_in_ptr_hash_table (btor->array_rhs, left))
+    {
+      btor_insert_in_ptr_hash_table (btor->array_rhs, left);
+      inc_exp_ref_counter (btor, left);
     }
 
     inc_exp_ref_counter (btor, left);
@@ -7763,7 +7768,7 @@ static void
 synthesize_all_array_rhs (Btor *btor)
 {
   BtorPtrHashBucket *b;
-  BtorNode *cur, *real_cur;
+  BtorNode *cur;
 
   assert (btor);
   assert (btor->model_gen);
@@ -7772,7 +7777,7 @@ synthesize_all_array_rhs (Btor *btor)
   {
     cur = (BtorNode *) b->key;
     cur = btor_pointer_chase_simplified_exp (btor, cur);
-    assert (BTOR_IS_ARRAY_NODE (cur));
+    assert (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (cur)));
     synthesize_exp (btor, cur, 0);
   }
 }
@@ -7820,7 +7825,11 @@ btor_sat_aux_btor (Btor *btor)
       goto DONE;
     }
 
-    if (btor->model_gen) synthesize_all_var_rhs (btor);
+    if (btor->model_gen)
+    {
+      synthesize_all_var_rhs (btor);
+      synthesize_all_array_rhs (btor);
+    }
 
   } while (btor->unsynthesized_constraints->count > 0);
 
