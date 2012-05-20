@@ -390,24 +390,19 @@ static BtorNode *
 parse_array (BtorBTORParser *parser, int len)
 {
   BtorNode *res;
-  int idx_len, symbol_len;
-  char *id_symbol;
+  int idx_len;
 
   if (parse_space (parser)) return 0;
 
   if (parse_positive_int (parser, &idx_len)) return 0;
 
-  symbol_len = btor_num_digits_util (parser->idx);
-  BTOR_NEWN (parser->btor->mm, id_symbol, symbol_len + 1);
-  sprintf (id_symbol, "%d", parser->idx);
+  if (!parse_symbol (parser)) return 0;
 
-  res = btor_array_exp (parser->btor, len, idx_len, id_symbol);
+  res = btor_array_exp (parser->btor, len, idx_len, parser->symbol.start);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, res);
   parser->info.start[parser->idx].array = 1;
 
   parser->found_arrays = 1;
-
-  BTOR_DELETEN (parser->btor->mm, id_symbol, symbol_len + 1);
 
   return res;
 }
