@@ -4990,9 +4990,11 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   assert (btor);
   assert (exp);
+#if 0
   assert (!BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (!BTOR_IS_WRITE_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (!BTOR_IS_ARRAY_COND_NODE (BTOR_REAL_ADDR_NODE (exp)));
+#endif
 
   mm    = btor->mm;
   avmgr = btor->avmgr;
