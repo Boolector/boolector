@@ -5434,7 +5434,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack;
   BtorPartialParentIterator it;
-  int assignment, has_array_equalities;
+  int assignment, propagate_writes_as_reads;
 #ifndef NDEBUG
   int found = 0;
 #endif
@@ -5446,11 +5446,11 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
   assert (BTOR_IS_REGULAR_NODE (array));
   assert (BTOR_IS_ARRAY_NODE (array));
   assert (btor->ops[BTOR_AEQ_NODE] >= 0);
-  has_array_equalities = btor->ops[BTOR_AEQ_NODE] > 0;
-  mm                   = btor->mm;
-  index                = BTOR_GET_INDEX_ACC_NODE (acc);
-  amgr                 = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  cur                  = BTOR_ACC_TARGET_NODE (acc);
+  propagate_writes_as_reads = (btor->ops[BTOR_AEQ_NODE] > 0) || btor->model_gen;
+  mm                        = btor->mm;
+  index                     = BTOR_GET_INDEX_ACC_NODE (acc);
+  amgr                      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  cur                       = BTOR_ACC_TARGET_NODE (acc);
   assert (BTOR_IS_REGULAR_NODE (cur));
   assert (BTOR_IS_ARRAY_NODE (cur));
   assert (cur->mark == 0);
@@ -5514,7 +5514,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
-    if (has_array_equalities)
+    if (propagate_writes_as_reads)
     {
       /* enqueue all arrays which are reachable via equality
        * where equality is set to true by the SAT solver */
@@ -5921,14 +5921,14 @@ process_working_stack (Btor *btor,
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
-  int assignment, indices_equal, has_array_equalities;
+  int assignment, indices_equal, propagate_writes_as_reads;
   assert (btor);
   assert (stack);
   assert (assignments_changed);
   assert (btor->ops[BTOR_AEQ_NODE] >= 0);
-  has_array_equalities = btor->ops[BTOR_AEQ_NODE] > 0;
-  mm                   = btor->mm;
-  amgr                 = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  propagate_writes_as_reads = (btor->ops[BTOR_AEQ_NODE] > 0) || btor->model_gen;
+  amgr                      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  mm                        = btor->mm;
   while (!BTOR_EMPTY_STACK (*stack))
   {
     array = BTOR_POP_STACK (*stack);
@@ -6031,7 +6031,7 @@ process_working_stack (Btor *btor,
     assert (array->rho);
     /* insert into hash table */
     btor_insert_in_ptr_hash_table (array->rho, index)->data.asPtr = acc;
-    if (has_array_equalities)
+    if (propagate_writes_as_reads)
     {
       /* propagate pairs wich are reachable via array equality */
       init_aeq_parent_iterator (&it, array);
@@ -6212,13 +6212,13 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
   BtorPartialParentIterator it;
   BtorMemMgr *mm;
   BtorNode *cur_array, *cur_parent, **top, **temp;
-  int found_conflict, changed_assignments, has_array_equalities;
+  int found_conflict, changed_assignments, propagate_writes_as_reads;
   assert (btor);
   assert (top_arrays);
   found_conflict = 0;
   mm             = btor->mm;
   assert (btor->ops[BTOR_AEQ_NODE] >= 0);
-  has_array_equalities = btor->ops[BTOR_AEQ_NODE] > 0;
+  propagate_writes_as_reads = (btor->ops[BTOR_AEQ_NODE] > 0) || btor->model_gen;
 BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   assert (!found_conflict);
   changed_assignments = 0;
@@ -6254,7 +6254,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       if (BTOR_IS_WRITE_NODE (cur_array))
       {
         BTOR_PUSH_STACK (mm, array_stack, cur_array->e[0]);
-        if (has_array_equalities)
+        if (propagate_writes_as_reads)
         {
           /* propagate writes as reads if there are array equalities */
           BTOR_PUSH_STACK (mm, working_stack, cur_array);
