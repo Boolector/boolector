@@ -244,6 +244,7 @@ struct Btor
   int valid_assignments;
   int rewrite_level;
   int verbosity;
+  int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
   int model_gen;            /* model generation enabled */

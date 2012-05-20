@@ -1963,7 +1963,6 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   int id;
   exp->refs = 1;
   exp->btor = btor;
-  // exp->reachable = 1;
   btor->stats.expressions++;
   assert (btor);
   assert (exp);
@@ -4298,12 +4297,11 @@ int
 btor_vis_exp (Btor *btor, BtorNode *exp)
 {
   char cmd[100], *path;
-  static int idx = 0; /* TODO: make this non static */
   FILE *file;
   int res;
   sprintf (cmd, "btorvis ");
   path = cmd + strlen (cmd);
-  sprintf (path, "/tmp/btorvisexp.%d.btor", idx++);
+  sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);
   file = fopen (path, "w");
   btor_dump_exp (btor, file, exp);
   fclose (file);
@@ -4991,227 +4989,227 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   count = 0;
 
   BTOR_INIT_STACK (exp_stack);
-  cur = BTOR_REAL_ADDR_NODE (exp);
-  goto SYNTHESIZE_NODE_ENTER_WITHOUT_POP;
+  BTOR_PUSH_STACK (mm, exp_stack, exp);
 
-  do
+  while (!BTOR_EMPTY_STACK (exp_stack))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (exp_stack));
-  SYNTHESIZE_NODE_ENTER_WITHOUT_POP:
+
     assert (cur->synth_mark >= 0);
     assert (cur->synth_mark <= 2);
-    if (!BTOR_IS_SYNTH_NODE (cur) && cur->synth_mark < 2)
-    {
-      count++;
 
-      if (cur->synth_mark == 0)
+    if (BTOR_IS_SYNTH_NODE (cur)) continue;
+
+    if (cur->synth_mark >= 2) continue;
+
+    count++;
+
+    if (cur->synth_mark == 0)
+    {
+      cur->reachable = 1;
+      if (BTOR_IS_BV_CONST_NODE (cur))
+        cur->av = btor_const_aigvec (avmgr, cur->bits);
+      else if (BTOR_IS_BV_VAR_NODE (cur))
       {
-        cur->reachable = 1;
-        if (BTOR_IS_BV_CONST_NODE (cur))
-          cur->av = btor_const_aigvec (avmgr, cur->bits);
-        else if (BTOR_IS_BV_VAR_NODE (cur))
+        cur->av = btor_var_aigvec (avmgr, cur->len);
+        if (backannotation)
+        {
+          name         = btor_get_symbol_exp (btor, cur);
+          len          = (int) strlen (name) + 40;
+          indexed_name = btor_malloc (mm, len);
+          for (i = 0; i < cur->av->len; i++)
+          {
+            b = btor_insert_in_ptr_hash_table (backannotation,
+                                               cur->av->aigs[i]);
+            assert (b->key == cur->av->aigs[i]);
+            sprintf (indexed_name, "%s[%d]", name, i);
+            b->data.asStr = btor_strdup (mm, indexed_name);
+          }
+          btor_free (mm, indexed_name, len);
+        }
+      }
+      else if (BTOR_IS_ARRAY_VAR_NODE (cur))
+      {
+        /* nothing to synthesize for array base case */
+      }
+      else if (BTOR_IS_WRITE_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
+               || BTOR_IS_ARRAY_COND_NODE (cur))
+      {
+        goto REGULAR_CASE;
+      }
+      else
+      {
+        /* Writes cannot be reached directly we stop the synthesis as
+         * soon we reach reads or array equalities.  If we synthesize
+         * writes later, we only synthesize its index and value, but
+         * not the write itself if there are no reads or array
+         * equalities on a write, then it is not reachable.
+         */
+        assert (!BTOR_IS_WRITE_NODE (cur));
+
+        /* Atomic arrays and array conditionals should also not be
+         * reached directly.
+         */
+        assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
+        assert (!BTOR_IS_ARRAY_COND_NODE (cur));
+
+        /* special cases */
+        if (BTOR_IS_READ_NODE (cur))
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
-          if (backannotation)
-          {
-            name         = btor_get_symbol_exp (btor, cur);
-            len          = (int) strlen (name) + 40;
-            indexed_name = btor_malloc (mm, len);
-            for (i = 0; i < cur->av->len; i++)
-            {
-              b = btor_insert_in_ptr_hash_table (backannotation,
-                                                 cur->av->aigs[i]);
-              assert (b->key == cur->av->aigs[i]);
-              sprintf (indexed_name, "%s[%d]", name, i);
-              b->data.asStr = btor_strdup (mm, indexed_name);
-            }
-            btor_free (mm, indexed_name, len);
-          }
+          assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
+          assert (BTOR_IS_ARRAY_NODE (cur->e[0]));
+          goto REGULAR_CASE;
         }
-        else if (BTOR_IS_ARRAY_VAR_NODE (cur))
+        else if (BTOR_IS_ARRAY_EQ_NODE (cur))
         {
-          /* nothing to synthesize for array base case */
-        }
-        else if (BTOR_IS_WRITE_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
-                 || BTOR_IS_ARRAY_COND_NODE (cur))
-        {
+          /* Generate virtual reads and create AIG variable for
+           * array equality.
+           */
+          synthesize_array_equality (btor, cur);
+          BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+          BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
           goto REGULAR_CASE;
         }
         else
         {
-          /* Writes cannot be reached directly we stop the synthesis
-           * as soon we reach reads or array equalities.  If we
-           * synthesize writes later, we only synthesize its index
-           * and value, but not the write itself if there are no
-           * reads or array equalities on a write, then it is not
-           * reachable.
-           */
-          assert (!BTOR_IS_WRITE_NODE (cur));
+        REGULAR_CASE:
+          cur->synth_mark = 1;
+          BTOR_PUSH_STACK (mm, exp_stack, cur);
+          for (i = cur->arity - 1; i >= 0; i--)
+            BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
+        }
+      }
+    }
+    else
+    {
+      assert (cur->synth_mark == 1);
+      cur->synth_mark = 2;
+      assert (!BTOR_IS_READ_NODE (cur));
 
-          /* Atomic arrays and array conditionals
-           * should also not be reached directly */
-          assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
-          assert (!BTOR_IS_ARRAY_COND_NODE (cur));
+      if (cur->arity == 1)
+      {
+        assert (cur->kind == BTOR_SLICE_NODE);
+        invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
+        av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
+        if (invert_av0) btor_invert_aigvec (avmgr, av0);
+        cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
+        if (invert_av0) btor_invert_aigvec (avmgr, av0);
+      }
+      else if (cur->arity == 2)
+      {
+        /* We have to check if the children are in the same memory
+         * place if they are in the same memory place. Then we need to
+         * allocate memory for the AIG vectors if they are not, then
+         * we can invert them in place and invert them back afterwards
+         * (only if necessary) .
+         */
+        same_children_mem =
+            BTOR_REAL_ADDR_NODE (cur->e[0]) == BTOR_REAL_ADDR_NODE (cur->e[1]);
+        if (same_children_mem)
+        {
+          av0 = BTOR_AIGVEC_NODE (btor, cur->e[0]);
+          av1 = BTOR_AIGVEC_NODE (btor, cur->e[1]);
+        }
+        else
+        {
+          invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
+          av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
+          if (invert_av0) btor_invert_aigvec (avmgr, av0);
+          invert_av1 = BTOR_IS_INVERTED_NODE (cur->e[1]);
+          av1        = BTOR_REAL_ADDR_NODE (cur->e[1])->av;
+          if (invert_av1) btor_invert_aigvec (avmgr, av1);
+        }
+        switch (cur->kind)
+        {
+          case BTOR_AND_NODE:
+            cur->av = btor_and_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_BEQ_NODE: cur->av = btor_eq_aigvec (avmgr, av0, av1); break;
+          case BTOR_ADD_NODE:
+            cur->av = btor_add_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_MUL_NODE:
+            cur->av = btor_mul_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_ULT_NODE:
+            cur->av = btor_ult_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_SLL_NODE:
+            cur->av = btor_sll_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_SRL_NODE:
+            cur->av = btor_srl_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_UDIV_NODE:
+            cur->av = btor_udiv_aigvec (avmgr, av0, av1);
+            break;
+          case BTOR_UREM_NODE:
+            cur->av = btor_urem_aigvec (avmgr, av0, av1);
+            break;
+          default:
+            assert (cur->kind == BTOR_CONCAT_NODE);
+            cur->av = btor_concat_aigvec (avmgr, av0, av1);
+            break;
+        }
 
-          /* special cases */
-          if (BTOR_IS_READ_NODE (cur))
-          {
-            cur->av = btor_var_aigvec (avmgr, cur->len);
-            assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
-            assert (BTOR_IS_ARRAY_NODE (cur->e[0]));
-            goto REGULAR_CASE;
-          }
-          else if (BTOR_IS_ARRAY_EQ_NODE (cur))
-          {
-            /* Generate virtual reads and create AIG
-             * variable for array equality.
-             */
-            synthesize_array_equality (btor, cur);
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-            BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-            goto REGULAR_CASE;
-          }
-          else
-          {
-          REGULAR_CASE:
-            cur->synth_mark = 1;
-            BTOR_PUSH_STACK (mm, exp_stack, cur);
-            for (i = cur->arity - 1; i >= 0; i--)
-              BTOR_PUSH_STACK (mm, exp_stack, cur->e[i]);
-          }
+        if (same_children_mem)
+        {
+          btor_release_delete_aigvec (avmgr, av0);
+          btor_release_delete_aigvec (avmgr, av1);
+        }
+        else
+        {
+          if (invert_av0) btor_invert_aigvec (avmgr, av0);
+          if (invert_av1) btor_invert_aigvec (avmgr, av1);
         }
       }
       else
       {
-        assert (cur->synth_mark == 1);
-        cur->synth_mark = 2;
-        assert (!BTOR_IS_READ_NODE (cur));
-        switch (cur->arity)
+        assert (cur->arity == 3);
+        if (BTOR_IS_BV_COND_NODE (cur))
         {
-          case 1:
-            assert (cur->kind == BTOR_SLICE_NODE);
+          same_children_mem =
+              BTOR_REAL_ADDR_NODE (cur->e[0]) == BTOR_REAL_ADDR_NODE (cur->e[1])
+              || BTOR_REAL_ADDR_NODE (cur->e[0])
+                     == BTOR_REAL_ADDR_NODE (cur->e[2])
+              || BTOR_REAL_ADDR_NODE (cur->e[1])
+                     == BTOR_REAL_ADDR_NODE (cur->e[2]);
+          if (same_children_mem)
+          {
+            av0 = BTOR_AIGVEC_NODE (btor, cur->e[0]);
+            av1 = BTOR_AIGVEC_NODE (btor, cur->e[1]);
+            av2 = BTOR_AIGVEC_NODE (btor, cur->e[2]);
+          }
+          else
+          {
             invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
             av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
             if (invert_av0) btor_invert_aigvec (avmgr, av0);
-            cur->av = btor_slice_aigvec (avmgr, av0, cur->upper, cur->lower);
+            invert_av1 = BTOR_IS_INVERTED_NODE (cur->e[1]);
+            av1        = BTOR_REAL_ADDR_NODE (cur->e[1])->av;
+            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+            invert_av2 = BTOR_IS_INVERTED_NODE (cur->e[2]);
+            av2        = BTOR_REAL_ADDR_NODE (cur->e[2])->av;
+            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+          }
+          cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
+          if (same_children_mem)
+          {
+            btor_release_delete_aigvec (avmgr, av2);
+            btor_release_delete_aigvec (avmgr, av1);
+            btor_release_delete_aigvec (avmgr, av0);
+          }
+          else
+          {
             if (invert_av0) btor_invert_aigvec (avmgr, av0);
-            break;
-          case 2:
-            /* We have to check if the children are in the same memory
-             * place if they are in the same memory place. Then we
-             * need to allocate memory for the AIG vectors if they are
-             * not, then we can invert them in place and invert them
-             * back afterwards (only if necessary) .
-             */
-            same_children_mem = BTOR_REAL_ADDR_NODE (cur->e[0])
-                                == BTOR_REAL_ADDR_NODE (cur->e[1]);
-            if (same_children_mem)
-            {
-              av0 = BTOR_AIGVEC_NODE (btor, cur->e[0]);
-              av1 = BTOR_AIGVEC_NODE (btor, cur->e[1]);
-            }
-            else
-            {
-              invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
-              av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
-              if (invert_av0) btor_invert_aigvec (avmgr, av0);
-              invert_av1 = BTOR_IS_INVERTED_NODE (cur->e[1]);
-              av1        = BTOR_REAL_ADDR_NODE (cur->e[1])->av;
-              if (invert_av1) btor_invert_aigvec (avmgr, av1);
-            }
-            switch (cur->kind)
-            {
-              case BTOR_AND_NODE:
-                cur->av = btor_and_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_BEQ_NODE:
-                cur->av = btor_eq_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_ADD_NODE:
-                cur->av = btor_add_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_MUL_NODE:
-                cur->av = btor_mul_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_ULT_NODE:
-                cur->av = btor_ult_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_SLL_NODE:
-                cur->av = btor_sll_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_SRL_NODE:
-                cur->av = btor_srl_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_UDIV_NODE:
-                cur->av = btor_udiv_aigvec (avmgr, av0, av1);
-                break;
-              case BTOR_UREM_NODE:
-                cur->av = btor_urem_aigvec (avmgr, av0, av1);
-                break;
-              default:
-                assert (cur->kind == BTOR_CONCAT_NODE);
-                cur->av = btor_concat_aigvec (avmgr, av0, av1);
-                break;
-            }
-
-            if (same_children_mem)
-            {
-              btor_release_delete_aigvec (avmgr, av0);
-              btor_release_delete_aigvec (avmgr, av1);
-            }
-            else
-            {
-              if (invert_av0) btor_invert_aigvec (avmgr, av0);
-              if (invert_av1) btor_invert_aigvec (avmgr, av1);
-            }
-            break;
-          default:
-            assert (cur->arity == 3);
-            if (BTOR_IS_BV_COND_NODE (cur))
-            {
-              same_children_mem = BTOR_REAL_ADDR_NODE (cur->e[0])
-                                      == BTOR_REAL_ADDR_NODE (cur->e[1])
-                                  || BTOR_REAL_ADDR_NODE (cur->e[0])
-                                         == BTOR_REAL_ADDR_NODE (cur->e[2])
-                                  || BTOR_REAL_ADDR_NODE (cur->e[1])
-                                         == BTOR_REAL_ADDR_NODE (cur->e[2]);
-              if (same_children_mem)
-              {
-                av0 = BTOR_AIGVEC_NODE (btor, cur->e[0]);
-                av1 = BTOR_AIGVEC_NODE (btor, cur->e[1]);
-                av2 = BTOR_AIGVEC_NODE (btor, cur->e[2]);
-              }
-              else
-              {
-                invert_av0 = BTOR_IS_INVERTED_NODE (cur->e[0]);
-                av0        = BTOR_REAL_ADDR_NODE (cur->e[0])->av;
-                if (invert_av0) btor_invert_aigvec (avmgr, av0);
-                invert_av1 = BTOR_IS_INVERTED_NODE (cur->e[1]);
-                av1        = BTOR_REAL_ADDR_NODE (cur->e[1])->av;
-                if (invert_av1) btor_invert_aigvec (avmgr, av1);
-                invert_av2 = BTOR_IS_INVERTED_NODE (cur->e[2]);
-                av2        = BTOR_REAL_ADDR_NODE (cur->e[2])->av;
-                if (invert_av2) btor_invert_aigvec (avmgr, av2);
-              }
-              cur->av = btor_cond_aigvec (avmgr, av0, av1, av2);
-              if (same_children_mem)
-              {
-                btor_release_delete_aigvec (avmgr, av2);
-                btor_release_delete_aigvec (avmgr, av1);
-                btor_release_delete_aigvec (avmgr, av0);
-              }
-              else
-              {
-                if (invert_av0) btor_invert_aigvec (avmgr, av0);
-                if (invert_av1) btor_invert_aigvec (avmgr, av1);
-                if (invert_av2) btor_invert_aigvec (avmgr, av2);
-              }
-            }
-            break;
+            if (invert_av1) btor_invert_aigvec (avmgr, av1);
+            if (invert_av2) btor_invert_aigvec (avmgr, av2);
+          }
         }
       }
     }
-  } while (!BTOR_EMPTY_STACK (exp_stack));
+  }
 
   BTOR_RELEASE_STACK (mm, exp_stack);
   mark_synth_mark_exp (btor, exp, 0);
