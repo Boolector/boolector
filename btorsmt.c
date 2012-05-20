@@ -262,9 +262,6 @@ static BtorSMTNode *
 cons (BtorSMTParser *parser, void *h, void *t)
 {
   BtorSMTNode *res;
-#if 0
-  BtorSMTSymbol * s;
-#endif
 
   BTOR_NEW (parser->mem, res);
   BTOR_CLR (res);
@@ -290,22 +287,6 @@ cons (BtorSMTParser *parser, void *h, void *t)
 
   res->head = h;
   res->tail = t;
-
-#if 0
-  if (isleaf (h))
-    {
-      s = strip (h);
-      if (s->token == BTOR_SMTOK_IDENTIFIER)
-	s->last = res;
-    }
-
-  if (isleaf (t))
-    {
-      s = strip (t);
-      if (s->token == BTOR_SMTOK_IDENTIFIER)
-	s->last = res;
-    }
-#endif
 
   return res;
 }
