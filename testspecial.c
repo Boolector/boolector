@@ -38,11 +38,11 @@ init_special_tests (void)
 static void
 run_test (char *name, int expected)
 {
-  int argc        = 3;
+  int argc        = 4;
   char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
   strcpy (full_name, "log/");
   strcat (full_name, name);
-  char *argv[] = {"./boolector", "-q", full_name};
+  char *argv[] = {"./boolector", "-o", "/dev/null", full_name};
   assert (boolector_main (argc, argv) == expected);
   free (full_name);
 }

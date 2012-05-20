@@ -114,7 +114,6 @@ static const char *g_usage =
     "  -V|--version                     print version and exit\n"
     "\n"
     "  -m|--model                       print model in the SAT case\n"
-    "  -q|--quiet                       do not print any output\n"
     "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT1 only)\n"
@@ -304,26 +303,6 @@ btor_set_alarm (void)
 }
 
 static void
-print_msg (BtorMainApp *app, const char *msg)
-{
-  assert (msg);
-  if (app->verbosity >= 0) fputs (msg, stdout);
-}
-
-static void
-print_msg_va_args (BtorMainApp *app, char *msg, ...)
-{
-  va_list list;
-  assert (msg);
-  if (app->verbosity >= 0)
-  {
-    va_start (list, msg);
-    vprintf (msg, list);
-    va_end (list);
-  }
-}
-
-static void
 print_err (BtorMainApp *app, char *msg)
 {
   assert (msg);
@@ -419,7 +398,8 @@ print_bv_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
   assert (assignment);
 
   pretty = format_assignment (app, btor, assignment);
-  print_msg_va_args (app, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
+  fprintf (
+      app->output_file, "%s %s\n", btor_get_symbol_exp (btor, exp), pretty);
   btor_free_bv_assignment_exp (btor, pretty);
   btor_free_bv_assignment_exp (btor, assignment);
 }
@@ -442,8 +422,11 @@ print_array_assignment (BtorMainApp *app, Btor *btor, BtorNode *exp)
     {
       pretty_index = format_assignment (app, btor, indices[i]);
       pretty_value = format_assignment (app, btor, values[i]);
-      print_msg_va_args (
-          app, "%s[%s] %s\n", exp->symbol, pretty_index, pretty_value);
+      fprintf (app->output_file,
+               "%s[%s] %s\n",
+               exp->symbol,
+               pretty_index,
+               pretty_value);
       btor_free_bv_assignment_exp (btor, pretty_index);
       btor_free_bv_assignment_exp (btor, pretty_value);
       btor_free_bv_assignment_exp (btor, indices[i]);
@@ -496,13 +479,13 @@ parse_commandline_arguments (BtorMainApp *app)
     if (!strcmp (app->argv[app->argpos], "-h")
         || !strcmp (app->argv[app->argpos], "--help"))
     {
-      print_msg_va_args (app, "%s\n", g_usage);
+      fprintf (app->output_file, "%s\n", g_usage);
       app->done = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-c")
              || !strcmp (app->argv[app->argpos], "--copyright"))
     {
-      print_msg_va_args (app, "%s", g_copyright);
+      fprintf (app->output_file, "%s", g_copyright);
       app->done = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-de")
@@ -614,13 +597,8 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-V")
              || !strcmp (app->argv[app->argpos], "--version"))
     {
-      print_msg_va_args (app, "%s\n", BTOR_VERSION);
+      fprintf (app->output_file, "%s\n", BTOR_VERSION);
       app->done = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-q")
-             || !strcmp (app->argv[app->argpos], "--quiet"))
-    {
-      app->verbosity = -1;
     }
 #ifdef BTOR_USE_PICOSAT
     else if (!strcmp (app->argv[app->argpos], "-picosat")
@@ -784,13 +762,13 @@ print_sat_result (BtorMainApp *app, int sat_result)
 {
   assert (app);
   if (sat_result == BTOR_UNSAT)
-    print_msg (app, "unsat\n");
+    fprintf (app->output_file, "unsat\n");
   else if (sat_result == BTOR_SAT)
-    print_msg (app, "sat\n");
+    fprintf (app->output_file, "sat\n");
   else
   {
     assert (sat_result == BTOR_UNKNOWN);
-    print_msg (app, "unknown\n");
+    fprintf (app->output_file, "unknown\n");
   }
 }
 
@@ -1153,7 +1131,7 @@ boolector_main (int argc, char **argv)
                                                  app.input_file_name,
                                                  &parse_res)))
       {
-        print_msg_va_args (&app, "%s\n", parse_error);
+        fprintf (app.output_file, "%s\n", parse_error);
         app.err = 1;
       }
       else
@@ -1193,7 +1171,7 @@ boolector_main (int argc, char **argv)
                                                app.input_file_name,
                                                &parse_res)))
     {
-      print_msg_va_args (&app, "%s\n", parse_error);
+      fprintf (app.output_file, "%s\n", parse_error);
       app.err = 1;
     }
     else if (app.dump_exp)
@@ -1256,7 +1234,7 @@ boolector_main (int argc, char **argv)
     }
     else if (parse_res.nregs > 0)
     {
-      print_msg_va_args (&app, "removed support for sequential models");
+      fprintf (app.output_file, "removed support for sequential models");
       app.err = 1;
     }
     else
@@ -1290,7 +1268,7 @@ boolector_main (int argc, char **argv)
 
       if (parse_res.nregs > 0)
       {
-        print_msg_va_args (&app, "removed support for sequential models");
+        fprintf (app.output_file, "removed support for sequential models");
         app.err = 1;
       }
       else
@@ -1325,20 +1303,18 @@ boolector_main (int argc, char **argv)
         if (sat_result == BTOR_SAT
             && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
-          print_msg_va_args (
-              &app,
-              "[btormain] ERROR: "
-              "'sat' but status of benchmark in '%s' is 'unsat'\n",
-              app.input_file_name);
+          fprintf (app.output_file,
+                   "[btormain] ERROR: "
+                   "'sat' but status of benchmark in '%s' is 'unsat'\n",
+                   app.input_file_name);
         }
         else if (sat_result == BTOR_UNSAT
                  && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
         {
-          print_msg_va_args (
-              &app,
-              "[btormain] ERROR: "
-              "'unsat' but status of benchmark in '%s' is 'sat'\n",
-              app.input_file_name);
+          fprintf (app.output_file,
+                   "[btormain] ERROR: "
+                   "'unsat' but status of benchmark in '%s' is 'sat'\n",
+                   app.input_file_name);
         }
         else
           print_sat_result (&app, sat_result);

@@ -39,9 +39,15 @@
 #define BTOR_TEST_MISC_LOW 1
 #define BTOR_TEST_MISC_HIGH 4
 
-static int g_argc     = 4;
+static int g_argc = 5;
+
 static char *g_argv[] = {
-    "./boolector", "-q", BTOR_TEST_MISC_TEMP_FILE_NAME, "-rwl1"};
+    "./boolector",
+    "-rwl1",
+    "-o",
+    "/dev/null",
+    BTOR_TEST_MISC_TEMP_FILE_NAME,
+};
 
 static BtorMemMgr *g_mm;
 
