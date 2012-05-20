@@ -2604,13 +2604,13 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   satres = btor_sat_btor (parser->btor);
   if (satres == BTOR_SAT)
   {
-    btor_smt_message (parser, 0, "':formula' %s SAT", formula);
+    btor_smt_message (parser, 1, "':formula' %s SAT", formula);
     res->result = BTOR_PARSE_SAT_STATUS_SAT;
   }
   else
   {
     assert (satres == BTOR_UNSAT);
-    btor_smt_message (parser, 0, "':formula' %s UNSAT", formula);
+    btor_smt_message (parser, 1, "':formula' %s UNSAT", formula);
     if (res->result == BTOR_PARSE_SAT_STATUS_UNKNOWN)
       res->result = BTOR_PARSE_SAT_STATUS_UNSAT;
   }
@@ -2985,7 +2985,7 @@ translate_benchmark (BtorSMTParser *parser,
     {
       btor_smt_message (
           parser,
-          0,
+          1,
           "need QF_AUFBV but only QF_BV specified in incremental mode");
       res->logic = BTOR_LOGIC_QF_AUFBV;
     }
