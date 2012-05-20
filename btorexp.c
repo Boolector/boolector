@@ -4625,7 +4625,13 @@ btor_enable_model_gen (Btor *btor)
   if (!btor->model_gen)
   {
     btor->model_gen = 1;
+
     btor->var_rhs =
+        btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+
+    btor->array_rhs =
         btor_new_ptr_hash_table (btor->mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
@@ -4706,6 +4712,10 @@ btor_delete_btor (Btor *btor)
     for (b = btor->var_rhs->first; b; b = b->next)
       btor_release_exp (btor, (BtorNode *) b->key);
     btor_delete_ptr_hash_table (btor->var_rhs);
+
+    for (b = btor->array_rhs->first; b; b = b->next)
+      btor_release_exp (btor, (BtorNode *) b->key);
+    btor_delete_ptr_hash_table (btor->array_rhs);
   }
 
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
@@ -7736,7 +7746,7 @@ synthesize_all_var_rhs (Btor *btor)
     cur      = (BtorNode *) b->key;
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-
+    assert (!BTOR_IS_ARRAY_NODE (real_cur));
     if (real_cur->vread) continue;
 
     synthesize_exp (btor, cur, 0);
@@ -7746,6 +7756,24 @@ synthesize_all_var_rhs (Btor *btor)
       btor_aigvec_to_sat_tseitin (btor->avmgr, real_cur->av);
       real_cur->tseitin = 1;
     }
+  }
+}
+
+static void
+synthesize_all_array_rhs (Btor *btor)
+{
+  BtorPtrHashBucket *b;
+  BtorNode *cur, *real_cur;
+
+  assert (btor);
+  assert (btor->model_gen);
+
+  for (b = btor->array_rhs->first; b; b = b->next)
+  {
+    cur = (BtorNode *) b->key;
+    cur = btor_pointer_chase_simplified_exp (btor, cur);
+    assert (BTOR_IS_ARRAY_NODE (cur));
+    synthesize_exp (btor, cur, 0);
   }
 }
 

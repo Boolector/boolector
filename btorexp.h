@@ -260,7 +260,8 @@ struct Btor
   BtorPtrHashTable *unsynthesized_constraints;
   BtorPtrHashTable *synthesized_constraints;
   BtorPtrHashTable *assumptions;
-  BtorPtrHashTable *var_rhs; /* only for model generation */
+  BtorPtrHashTable *var_rhs;   /* only for model generation */
+  BtorPtrHashTable *array_rhs; /* only for model generation */
   BtorNodePtrStack arrays_with_model;
   /* statistics */
   int ops[BTOR_NUM_OPS_NODE];
