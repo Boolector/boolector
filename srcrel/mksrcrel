@@ -59,7 +59,6 @@ cp -p \
   btor*.[ch] \
   btor*.cc \
   deltabtor.c \
-  dimacs2smt2.c \
   synthebtor.c \
   Doxyfile \
 $dir/
