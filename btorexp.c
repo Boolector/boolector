@@ -1700,14 +1700,13 @@ update_constraints (Btor *btor, BtorNode *exp)
   synthesized_constraints   = btor->synthesized_constraints;
   pos = neg = 0;
 
-  /* variable  substitution constraints are handled in a different way */
-
   if (btor_find_in_ptr_hash_table (unsynthesized_constraints, exp))
   {
     add_constraint (btor, simplified);
     assert (!pos);
     pos = unsynthesized_constraints;
   }
+
   if (btor_find_in_ptr_hash_table (unsynthesized_constraints, not_exp))
   {
     add_constraint (btor, not_simplified);
@@ -1721,6 +1720,7 @@ update_constraints (Btor *btor, BtorNode *exp)
     assert (!pos);
     pos = embedded_constraints;
   }
+
   if (btor_find_in_ptr_hash_table (embedded_constraints, not_exp))
   {
     add_constraint (btor, not_simplified);
@@ -1734,6 +1734,7 @@ update_constraints (Btor *btor, BtorNode *exp)
     assert (!pos);
     pos = synthesized_constraints;
   }
+
   if (btor_find_in_ptr_hash_table (synthesized_constraints, not_exp))
   {
     add_constraint (btor, not_simplified);
@@ -1746,11 +1747,13 @@ update_constraints (Btor *btor, BtorNode *exp)
     btor_remove_from_ptr_hash_table (pos, exp, 0, 0);
     btor_release_exp (btor, exp);
   }
+
   if (neg)
   {
     btor_remove_from_ptr_hash_table (neg, not_exp, 0, 0);
     btor_release_exp (btor, not_exp);
   }
+
   exp->constraint = 0;
 }
 
@@ -7308,7 +7311,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 }
 
 static void
-substitute_var_exps (Btor *btor, int check_cyclic)
+substitute_var_exps (Btor *btor)
 {
   int order_num, val, max, i;
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
@@ -7322,47 +7325,6 @@ substitute_var_exps (Btor *btor, int check_cyclic)
   varsubst_constraints = btor->varsubst_constraints;
 
   if (varsubst_constraints->count == 0u) return;
-
-  if (!check_cyclic)
-  {
-    assert (varsubst_constraints->count > 0u);
-    /* new equality constraints may be added during rebuild */
-    do
-    {
-      /* we copy the current substitution constraints into a local hash
-       * table, and empty the global substitution table */
-      substs = btor_new_ptr_hash_table (mm,
-                                        (BtorHashPtr) btor_hash_exp_by_id,
-                                        (BtorCmpPtr) btor_compare_exp_by_id);
-      assert (varsubst_constraints->count > 0u);
-      do
-      {
-        b   = varsubst_constraints->first;
-        cur = (BtorNode *) b->key;
-        assert (BTOR_IS_REGULAR_NODE (cur));
-        assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
-        btor_insert_in_ptr_hash_table (substs, cur)->data.asPtr = b->data.asPtr;
-        btor_remove_from_ptr_hash_table (varsubst_constraints, cur, 0, 0);
-      } while (varsubst_constraints->count > 0u);
-      assert (varsubst_constraints->count == 0u);
-      /* we rebuild and substiute variables in one pass */
-      substitute_vars_and_rebuild_exps (btor, substs);
-      /* cleanup, we delete all substitution constraints */
-      for (b = substs->first; b; b = b->next)
-      {
-        left = (BtorNode *) b->key;
-        assert (BTOR_IS_REGULAR_NODE (left));
-        assert (left->kind == BTOR_PROXY_NODE);
-        assert (left->simplified);
-        right = (BtorNode *) b->data.asPtr;
-        assert (right);
-        btor_release_exp (btor, left);
-        btor_release_exp (btor, right);
-      }
-      btor_delete_ptr_hash_table (substs);
-    } while (varsubst_constraints->count > 0u);
-    return;
-  }
 
   BTOR_INIT_STACK (stack);
 
@@ -7711,28 +7673,35 @@ process_embedded_constraints (Btor *btor)
 }
 
 static void
+process_skeleton (Btor *btor)
+{
+}
+
+static void
 run_rewrite_engine (Btor *btor)
 {
-  int rewrite_level, check_cyclic;
+  int rewrite_level;
 
   assert (btor);
 
   if (btor->inconsistent) return;
 
   rewrite_level = btor->rewrite_level;
-  check_cyclic  = 1;
 
   if (rewrite_level <= 1) return;
 
   do
   {
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    substitute_var_exps (btor, check_cyclic);
+    substitute_var_exps (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     if (btor->inconsistent) return;
-    check_cyclic = 1;
 
     process_embedded_constraints (btor);
+    assert (check_all_hash_tables_proxy_free_dbg (btor));
+    if (btor->inconsistent) return;
+
+    process_skeleton (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     if (btor->inconsistent) return;
   } while (btor->varsubst_constraints->count
