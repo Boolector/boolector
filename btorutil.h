@@ -34,4 +34,6 @@ int btor_num_digits_util (int x);
 double btor_time_stamp (void);
 #endif
 
+int btor_file_exists (const char *);
+
 #endif

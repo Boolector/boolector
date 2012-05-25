@@ -98,3 +98,24 @@ btor_time_stamp (void)
   return res;
 }
 #endif
+
+#define BTOR_HAVE_STAT
+
+#ifdef BTOR_HAVE_STAT
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+int
+btor_file_exists (const char* path)
+{
+  struct stat buf;
+  return !stat (path, &buf);
+}
+#else
+int
+btor_file_exists (const char* path)
+{
+  (void) path;
+  return -1;
+}
+#endif

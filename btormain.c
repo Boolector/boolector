@@ -34,19 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-#define BTOR_HAVE_STAT
-#define BTOR_HAVE_ISATTY
-
-#ifdef BTOR_HAVE_STAT
-#include <sys/stat.h>
-#include <sys/types.h>
 #include <unistd.h>
-#endif
-
-#ifdef BTOR_HAVE_ISATTY
-#include <unistd.h>
-#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -223,7 +211,7 @@ btor_print_static_stats (void)
   double delta_time = delta_time = btor_time_stamp () - btor_static_start_time;
   btor_msg_main_va_args ("%.1f seconds\n", delta_time);
 #else
-  btor_msg_main ("can not determine run-time in secons (no getrusage)");
+  btor_msg_main ("can not determine run-time in seconds (no getrusage)");
 #endif
   maxallocated = btor_static_btor ? btor_static_btor->mm->maxallocated : 0;
   btor_msg_main_va_args ("%.1f MB\n", maxallocated / (double) (1 << 20));
@@ -693,23 +681,30 @@ parse_commandline_arguments (BtorMainApp *app)
     else
     {
       char *name = app->argv[app->argpos];
-      if (has_suffix (name, ".gz"))
+      if (!btor_file_exists (name))
       {
-        char *cmd = malloc (strlen (name) + 20);
+        temp_file = 0;
+      }
+      else if (has_suffix (name, ".gz"))
+      {
+        char *cmd = malloc (strlen (name) + 40);
         sprintf (cmd, "gunzip -c %s", name);
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+        free (cmd);
       }
       else if (has_suffix (name, ".bz2"))
       {
-        char *cmd = malloc (strlen (name) + 20);
+        char *cmd = malloc (strlen (name) + 40);
         sprintf (cmd, "bzcat %s", name);
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+        free (cmd);
       }
       else if (has_suffix (name, ".7z"))
       {
-        char *cmd = malloc (strlen (name) + 30);
+        char *cmd = malloc (strlen (name) + 40);
         sprintf (cmd, "7z x -so %s 2>/dev/null", name);
         if ((temp_file = popen (cmd, "r"))) app->close_input_file = 2;
+        free (cmd);
       }
       else
       {
