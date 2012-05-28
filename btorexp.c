@@ -7697,9 +7697,13 @@ run_rewrite_engine (Btor *btor)
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     if (btor->inconsistent) return;
 
+    if (btor->varsubst_constraints->count) continue;
+
     process_embedded_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     if (btor->inconsistent) return;
+
+    if (btor->varsubst_constraints->count) continue;
 
     process_skeleton (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
