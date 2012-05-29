@@ -105,7 +105,7 @@ static const char *g_usage =
     "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
     "\n"
     "  -i|--inc[remental]               incremental mode (SMT1 only)\n"
-    "  -I                               same but solve all\n"
+    "  -I                               same as '-i' but solve all formulas\n"
     "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
     "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
     "  -interval=<w>                    incremental interval mode width <w>\n"
@@ -136,7 +136,7 @@ static const char *g_usage =
     "  -lingeling                       enforce usage of Lingeling as SAT "
     "solver\n"
     "  -l[,<opt>=<val>]*                set lingeling option(s) "
-    "'--<opt>=<val>\n"
+    "'--<opt>=<val>'\n"
 #endif
 #ifdef BTOR_USE_MINISAT
     "  -minisat                         enforce usage of MiniSAT as SAT "
