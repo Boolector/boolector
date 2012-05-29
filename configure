@@ -46,7 +46,11 @@ By specifying one of them 'configure' fails if it can not be used.
   --picosat         use and link with PicoSAT
   --minisat         use and link with MiniSAT
 
+Disable compilation of specific SAT solver back-ends:
+
   --no-lingeling    do not use Lingeling
+  --no-picosat      do not use PicoSAT
+  --no-minisat      do not use MiniSAT
 EOF
   exit 0
 }
@@ -63,9 +67,11 @@ do
     -m64|--m64) arch=64;;
     -flto) flto=yes;;
     -picosat|--picosat) picosat=yes;;
+    -no-picosat|--no-picosat) picosat=no;;
     -lingeling|--lingeling) lingeling=yes;;
-    -minisat|--minisat) minisat=yes;;
     -no-lingeling|--no-lingeling) lingeling=no;;
+    -minisat|--minisat) minisat=yes;;
+    -no-minisat|--no-minisat) minisat=no;;
     -h|-help|--help) usage;;
     -*) die "invalid option '$1' (try '-h')";;
   esac
