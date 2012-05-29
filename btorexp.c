@@ -4793,11 +4793,11 @@ report_constraint_stats (Btor *btor, int force)
 
     if (btor->verbosity == 1 && changes < 100000) return;
 
-    if (btor->verbosity == 2 && changes < 10000) return;
+    if (btor->verbosity == 2 && changes < 1000) return;
 
-    if (btor->verbosity == 3 && changes < 1000) return;
+    if (btor->verbosity == 3 && changes < 10) return;
 
-    if (btor->verbosity == 4 && changes < 100) return;
+    if (!changes) return;
   }
 
   btor_msg_exp (btor,
@@ -4895,6 +4895,8 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor,
                 "gaussian elimination in linear equations: %d",
                 btor->stats.gaussian_eliminations);
+  btor_msg_exp (
+      btor, "eliminated sliced variables: %d", btor->stats.eliminated_slices);
   btor_msg_exp (btor, "add normalizations: %d", btor->stats.adds_normalized);
   btor_msg_exp (btor, "mul normalizations: %d", btor->stats.muls_normalized);
   btor_msg_exp (btor,
@@ -5239,7 +5241,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   BTOR_RELEASE_STACK (mm, exp_stack);
   mark_synth_mark_exp (btor, exp, 0);
 
-  if (count > 0 && btor->verbosity > 2)
+  if (count > 0 && btor->verbosity > 3)
     btor_msg_exp (btor, "synthesized %u expressions into AIG vectors", count);
 }
 
@@ -7934,8 +7936,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
            sizeof (BtorSlice *),
            compare_slices_qsort);
 
-    s1 = sorted_slices[(int) slices->count - 1];
-    /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
+    s1     = sorted_slices[(int) slices->count - 1];
     result = lambda_var_exp (btor, s1->upper - s1->lower + 1);
     delete_slice (btor, s1);
     for (i = (int) slices->count - 2; i >= 0; i--)
@@ -7946,13 +7947,12 @@ eliminate_slices_on_bv_vars (Btor *btor)
       btor_release_exp (btor, result);
       result = temp;
       btor_release_exp (btor, lambda_var);
-      /* printf ("[%d:%d]\n", s1->upper, s1->lower); */
       delete_slice (btor, s1);
     }
     BTOR_DELETEN (mm, sorted_slices, slices->count);
     btor_delete_ptr_hash_table (slices);
-    /* printf ("\n"); */
 
+    btor->stats.eliminated_slices++;
     insert_varsubst_constraint (btor, var, result);
     btor_release_exp (btor, result);
   }

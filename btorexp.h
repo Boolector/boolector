@@ -281,6 +281,7 @@ struct Btor
     int vreads;                     /* number of virtual reads */
     int linear_equations;           /* number of linear equations */
     int gaussian_eliminations;      /* number of gaussian eliminations */
+    int eliminated_slices;          /* number of eliminated slices */
     int adds_normalized;            /* number of add chains normalizations */
     int muls_normalized;            /* number of mul chains normalizations */
     int read_props_construct;       /* how often have we pushed a read over
