@@ -24,13 +24,14 @@ struct BtorSATMgr
 {
   void *solver;
 
-  int verbosity;
   BtorMemMgr *mm;
   const char *name;
   const char *optstr;
+  int verbosity;
+  int inc_required;
+  int used_that_inc_was_not_required;
 #ifdef BTOR_USE_LINGELING
   int nofork;
-  int nobrutefork;
 #endif
   FILE *output;
 

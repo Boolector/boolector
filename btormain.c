@@ -1241,7 +1241,9 @@ boolector_main (int argc, char **argv)
                                parse_res.ninputs,
                                parse_res.noutputs);
         if (parse_res.logic == BTOR_LOGIC_QF_BV)
+        {
           btor_msg_main ("logic QF_BV\n");
+        }
         else
         {
           assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
@@ -1257,6 +1259,21 @@ boolector_main (int argc, char **argv)
           assert (parse_res.status == BTOR_PARSE_SAT_STATUS_UNKNOWN);
           btor_msg_main ("status unknown\n");
         }
+      }
+
+      if (parse_res.logic == BTOR_LOGIC_QF_BV)
+      {
+        if (app.verbosity)
+          btor_msg_main ("no need for incremental SAT solving\n");
+        smgr->inc_required = 0;
+      }
+      else
+      {
+        assert (parse_res.logic == BTOR_LOGIC_QF_AUFBV);
+        assert (smgr->inc_required);
+        if (app.verbosity)
+          btor_msg_main ("requiring incremental SAT solving\n");
+        smgr->inc_required = 1;
       }
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");

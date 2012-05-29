@@ -167,9 +167,11 @@ btor_init_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   assert (!smgr->initialized);
 
-  smgr->solver      = smgr->api.init (smgr);
-  smgr->initialized = 1;
-  smgr->true_lit    = btor_next_cnf_id_sat_mgr (smgr);
+  smgr->solver                         = smgr->api.init (smgr);
+  smgr->initialized                    = 1;
+  smgr->inc_required                   = 1;
+  smgr->used_that_inc_was_not_required = 0;
+  smgr->true_lit                       = btor_next_cnf_id_sat_mgr (smgr);
   btor_add_sat (smgr, smgr->true_lit);
   btor_add_sat (smgr, 0);
 }
@@ -218,6 +220,7 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (abs (lit) <= smgr->maxvar);
+  assert (!smgr->satcalls || smgr->inc_required);
   if (!lit) smgr->clauses++;
   (void) smgr->api.add (smgr, lit);
 }
@@ -228,6 +231,7 @@ btor_sat_sat (BtorSATMgr *smgr, int limit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "calling SAT solver %s", smgr->name);
+  assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
   return smgr->api.sat (smgr, limit);
 }
@@ -282,6 +286,7 @@ btor_assume_sat (BtorSATMgr *smgr, int lit)
   assert (smgr != NULL);
   assert (smgr->initialized);
   assert (abs (lit) <= smgr->maxvar);
+  assert (!smgr->satcalls || smgr->inc_required);
   smgr->api.assume (smgr, lit);
 }
 
@@ -638,7 +643,12 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   int res, bfres;
   char name[80];
 
-  if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
+  if (!smgr->inc_required)
+  {
+    lglsetopt (lgl, "clim", -1);
+    res = lglsat (lgl);
+  }
+  else if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
     if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);
@@ -745,9 +755,10 @@ btor_lingeling_inc_max_var (BtorSATMgr *smgr)
 {
   BtorLGL *blgl = smgr->solver;
   int res       = lglincvar (blgl->lgl);
-  // TODO what about this?
-  // if (smgr->need)
-  lglfreeze (blgl->lgl, res);
+  if (smgr->inc_required)
+    lglfreeze (blgl->lgl, res);
+  else
+    smgr->used_that_inc_was_not_required = 1;
   return res;
 }
 
@@ -779,7 +790,11 @@ static void
 btor_lingeling_melt (BtorSATMgr *smgr, int lit)
 {
   BtorLGL *blgl = smgr->solver;
-  lglmelt (blgl->lgl, lit);
+  if (smgr->inc_required)
+  {
+    assert (!smgr->used_that_inc_was_not_required);
+    lglmelt (blgl->lgl, lit);
+  }
 }
 
 static int
