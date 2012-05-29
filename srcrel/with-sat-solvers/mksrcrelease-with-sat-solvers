@@ -33,7 +33,7 @@ cd ../..
 ./srcrel/mksrcrel >> $log
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
-for solver in picosat precosat lingeling
+for solver in picosat lingeling
 do
   cd ../$solver
   ./mkrelease >> $log
