@@ -4,8 +4,8 @@ debug=unknown
 check=no
 flto=no
 lingeling=yes
-minisat=no
-picosat=no
+minisat=unknown
+picosat=unknown
 arch=unknown
 
 onlylingeling=no
