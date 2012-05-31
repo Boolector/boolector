@@ -999,7 +999,7 @@ static int
 btor_read_token_smt2 (BtorSMT2Parser *parser)
 {
   int res = btor_read_token_aux_smt2 (parser);
-  if (parser->verbosity >= 3)
+  if (parser->verbosity >= 4)
   {
     printf ("[btorsmt2] line %08d token %08x %s\n",
             parser->lineno,
