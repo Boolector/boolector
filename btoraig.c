@@ -203,12 +203,14 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
          & (amgr->table.size - 1);
   result = amgr->table.chains + hash;
   cur    = *result;
+#if 1
   if (BTOR_REAL_ADDR_AIG (right)->id < BTOR_REAL_ADDR_AIG (left)->id)
   {
     temp  = left;
     left  = right;
     right = temp;
   }
+#endif
   while (cur)
   {
     assert (!BTOR_IS_INVERTED_AIG (cur));
@@ -423,6 +425,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
   if (left == BTOR_INVERT_AIG (right)) return BTOR_AIG_FALSE;
   real_left  = BTOR_REAL_ADDR_AIG (left);
   real_right = BTOR_REAL_ADDR_AIG (right);
+
   /* 2 level minimization rules for AIGs */
   /* first rule of contradiction */
   if (BTOR_IS_AND_AIG (real_left) && !BTOR_IS_INVERTED_AIG (left))
