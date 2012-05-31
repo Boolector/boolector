@@ -47,7 +47,7 @@ die (int prefix, const char *fmt, ...)
 int
 main (int argc, char **argv)
 {
-  int i, j, verbosity, close_input, close_output, binary, merge;
+  int i, j, verbosity, close_input, close_output, binary, merge, rwl;
   FILE *input_file, *output_file, *file;
   BtorAIG *aig, *tmp, *merged, **p;
   BtorPtrHashTable *back_annotation;
@@ -74,18 +74,21 @@ main (int argc, char **argv)
   input_name   = "<stdin>";
   input_file   = stdin;
   output_file  = stdout;
+  rwl          = 1;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: synthebor [-h][-v][-m][<input>[<output>]]\n");
+      printf ("usage: synthebor [-h][-v][-m][-rwl0][<input>[<output>]]\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
       verbosity++;
     else if (!strcmp (argv[i], "-m"))
       merge = 1;
+    else if (!strcmp (argv[i], "-rwl0"))
+      rwl = 0;
     else if (argv[i][0] == '-')
       die (1, "invalid command line option '%s'", argv[i]);
     else if (close_output)
@@ -114,7 +117,7 @@ main (int argc, char **argv)
   btor = btor_new_btor ();
 
   btor_set_verbosity_btor (btor, verbosity);
-  btor_set_rewrite_level_btor (btor, 1);
+  btor_set_rewrite_level_btor (btor, rwl);
 
   BTOR_CLR (&parse_opt);
 
