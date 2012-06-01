@@ -19,14 +19,14 @@
 /*------------------------------------------------------------------------*/
 
 /* recursive rewriting bound */
-#define BTOR_REC_RW_BOUND 8192
+#define BTOR_REC_RW_BOUND (1 << 12)
 
 /* iterative rewriting bounds */
-#define BTOR_WRITE_CHAIN_NODE_RW_BOUND 40
-#define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT 2048
+#define BTOR_WRITE_CHAIN_NODE_RW_BOUND (1 << 5)
+#define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT (1 << 11)
 
 /* other rewriting bounds */
-#define BTOR_FIND_AND_NODE_CONTRADICTION_LIMIT 16
+#define BTOR_FIND_AND_NODE_CONTRADICTION_LIMIT (1 << 4)
 
 #define BTOR_INC_REC_RW_CALL(btor)                             \
   do                                                           \
