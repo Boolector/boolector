@@ -177,6 +177,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
   {
     if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
       goto BTOR_REWRITE_SLICE_NODE_NO_REWRITE;
+
     BTOR_INC_REC_RW_CALL (btor);
     result =
         btor_rewrite_slice_exp (btor,
@@ -252,6 +253,9 @@ btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
   }
   else if (btor->rewrite_level >= 3 && real_exp->kind == BTOR_AND_NODE)
   {
+    if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+      goto BTOR_REWRITE_SLICE_NODE_NO_REWRITE;
+    BTOR_INC_REC_RW_CALL (btor);
     left   = btor_slice_exp (btor, real_exp->e[0], upper, lower);
     right  = btor_slice_exp (btor, real_exp->e[1], upper, lower);
     result = btor_and_exp (btor, left, right);
@@ -261,6 +265,9 @@ btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
   }
   else if (btor->rewrite_level >= 3 && real_exp->kind == BTOR_BCOND_NODE)
   {
+    if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+      goto BTOR_REWRITE_SLICE_NODE_NO_REWRITE;
+    BTOR_INC_REC_RW_CALL (btor);
     t      = btor_slice_exp (btor, real_exp->e[1], upper, lower);
     e      = btor_slice_exp (btor, real_exp->e[2], upper, lower);
     result = btor_cond_exp (btor, real_exp->e[0], t, e);
@@ -2792,9 +2799,13 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
 
+  if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+    goto BTOR_REWRITE_CONCAT_NODE_NO_REWRITE;
+
   if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e0)
       && e0->kind == BTOR_AND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     left   = btor_concat_exp (btor, e0->e[0], e1);
     right  = btor_concat_exp (btor, e0->e[1], e1);
     result = btor_and_exp (btor, left, right);
@@ -2806,6 +2817,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e0)
       && e0->kind == BTOR_BCOND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     t      = btor_concat_exp (btor, e0->e[1], e1);
     e      = btor_concat_exp (btor, e0->e[2], e1);
     result = btor_cond_exp (btor, e0->e[0], t, e);
@@ -2817,6 +2829,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
       && (real_e0 = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_AND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     left   = btor_concat_exp (btor, real_e0->e[0], BTOR_INVERT_NODE (e1));
     right  = btor_concat_exp (btor, real_e0->e[1], BTOR_INVERT_NODE (e1));
     result = btor_and_exp (btor, left, right);
@@ -2829,6 +2842,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
       && (real_e0 = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_BCOND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     t      = btor_concat_exp (btor, BTOR_INVERT_NODE (real_e0->e[1]), e1);
     e      = btor_concat_exp (btor, BTOR_INVERT_NODE (real_e0->e[2]), e1);
     result = btor_cond_exp (btor, real_e0->e[0], t, e);
@@ -2840,6 +2854,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e1)
       && e1->kind == BTOR_AND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     left   = btor_concat_exp (btor, e0, e1->e[0]);
     right  = btor_concat_exp (btor, e0, e1->e[1]);
     result = btor_and_exp (btor, left, right);
@@ -2851,6 +2866,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e1)
       && e1->kind == BTOR_BCOND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     t      = btor_concat_exp (btor, e0, e1->e[1]);
     e      = btor_concat_exp (btor, e0, e1->e[2]);
     result = btor_cond_exp (btor, e1->e[0], t, e);
@@ -2862,6 +2878,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
       && (real_e1 = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_AND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     left   = btor_concat_exp (btor, BTOR_INVERT_NODE (e0), real_e1->e[0]);
     right  = btor_concat_exp (btor, BTOR_INVERT_NODE (e0), real_e1->e[1]);
     result = btor_and_exp (btor, left, right);
@@ -2874,6 +2891,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
       && (real_e1 = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_BCOND_NODE)
   {
+    BTOR_INC_REC_RW_CALL (btor);
     t      = btor_concat_exp (btor, e0, BTOR_INVERT_NODE (real_e1->e[1]));
     e      = btor_concat_exp (btor, e0, BTOR_INVERT_NODE (real_e1->e[2]));
     result = btor_cond_exp (btor, real_e1->e[0], t, e);
