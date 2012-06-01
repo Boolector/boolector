@@ -150,10 +150,10 @@ is_xnor_exp (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
 {
-  char *bits = 0;
-  int len;
   BtorNode *result, *tmp, *real_exp;
   BtorMemMgr *mm;
+  char *bits = 0;
+  int len;
 
   exp = btor_pointer_chase_simplified_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
@@ -247,6 +247,10 @@ btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
             btor, tmp, BTOR_COND_INVERT_NODE (exp, real_exp->e[1]));
         BTOR_DEC_REC_RW_CALL (btor);
         btor_release_exp (btor, tmp);
+      }
+      else
+      {
+        /* TODO: push slices down */
       }
     }
   }
@@ -2097,8 +2101,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     else if (kind == BTOR_BEQ_NODE)
     {
       /* push eq down over concats */
-      if ((real_e0->kind == BTOR_CONCAT_NODE
-           || real_e1->kind == BTOR_CONCAT_NODE))
+      if (real_e0->kind == BTOR_CONCAT_NODE
+          || real_e1->kind == BTOR_CONCAT_NODE)
       {
         if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
           goto BTOR_REWRITE_EQ_NODE_NO_REWRITE;
@@ -2682,7 +2686,7 @@ btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorNode *result, *temp, *cur;
+  BtorNode *result, *temp, *cur, *left, *right, *real_e0, *real_e1;
   BtorNodePtrStack stack, po_stack;
   BtorMemMgr *mm;
   int i;
@@ -2754,6 +2758,7 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     assert (BTOR_COUNT_STACK (po_stack) >= 3);
     result =
         btor_rewrite_concat_exp (btor, po_stack.start[0], po_stack.start[1]);
+
     for (i = 2; i < BTOR_COUNT_STACK (po_stack); i++)
     {
       cur = po_stack.start[i];
@@ -2767,6 +2772,52 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     BTOR_RELEASE_STACK (mm, po_stack);
 
     BTOR_DEC_REC_RW_CALL (btor);
+    return result;
+  }
+
+  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e0)
+      && e0->kind == BTOR_AND_NODE)
+  {
+    left   = btor_concat_exp (btor, e0->e[0], e1);
+    right  = btor_concat_exp (btor, e0->e[1], e1);
+    result = btor_and_exp (btor, left, right);
+    btor_release_exp (btor, right);
+    btor_release_exp (btor, left);
+    return result;
+  }
+
+  if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e0)
+      && (real_e0 = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_AND_NODE)
+  {
+    left   = btor_concat_exp (btor, real_e0->e[0], BTOR_INVERT_NODE (e1));
+    right  = btor_concat_exp (btor, real_e0->e[1], BTOR_INVERT_NODE (e1));
+    result = btor_and_exp (btor, left, right);
+    result = BTOR_INVERT_NODE (result);
+    btor_release_exp (btor, right);
+    btor_release_exp (btor, left);
+    return result;
+  }
+
+  if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e1)
+      && e1->kind == BTOR_AND_NODE)
+  {
+    left   = btor_concat_exp (btor, e0, e1->e[0]);
+    right  = btor_concat_exp (btor, e0, e1->e[1]);
+    result = btor_and_exp (btor, left, right);
+    btor_release_exp (btor, right);
+    btor_release_exp (btor, left);
+    return result;
+  }
+
+  if (btor->rewrite_level > 2 && BTOR_IS_INVERTED_NODE (e1)
+      && (real_e1 = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_AND_NODE)
+  {
+    left   = btor_concat_exp (btor, BTOR_INVERT_NODE (e0), real_e1->e[0]);
+    right  = btor_concat_exp (btor, BTOR_INVERT_NODE (e0), real_e1->e[1]);
+    result = btor_and_exp (btor, left, right);
+    result = BTOR_INVERT_NODE (result);
+    btor_release_exp (btor, right);
+    btor_release_exp (btor, left);
     return result;
   }
 
