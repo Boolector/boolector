@@ -153,6 +153,7 @@ btor_slice_simplifiable (BtorNode *exp)
   BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
   switch (real_exp->kind)
   {
+    case BTOR_BV_VAR_NODE:
     case BTOR_BV_CONST_NODE:
     case BTOR_SLICE_NODE: return 1;
   }
@@ -2728,6 +2729,7 @@ btor_concat_simplifiable (BtorNode *exp)
   BtorNode *real_exp = BTOR_REAL_ADDR_NODE (exp);
   switch (real_exp->kind)
   {
+    case BTOR_BV_VAR_NODE:
     case BTOR_BV_CONST_NODE: return 1;
   }
   return 0;
