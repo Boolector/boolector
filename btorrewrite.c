@@ -2729,6 +2729,8 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
 
+  // TODO concat over two consecutive slices
+
   /* normalize concats --> left-associative */
   if (btor->rewrite_level > 2
       && BTOR_REAL_ADDR_NODE (e1)->kind == BTOR_CONCAT_NODE)
