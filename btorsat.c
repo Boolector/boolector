@@ -647,8 +647,12 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   {
     lglsetopt (lgl, "clim", -1);
     res = lglsat (lgl);
+    return res;
   }
-  else if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
+
+  lglsetopt (lgl, "flipping", 0);
+
+  if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
     if (limit < INT_MAX) lglsetopt (lgl, "clim", limit);
     res = lglsat (lgl);

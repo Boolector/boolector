@@ -80,8 +80,10 @@ class BtorMiniSAT : public SimpSolver
     else
       addClause (clause), clause.clear ();
   }
+  unsigned long long calls;
   int sat ()
   {
+    calls++;
     reset ();
     bool res = solve (assumptions, 0);  // TODO use preprocessor as well
     assumptions.clear ();
@@ -210,8 +212,10 @@ btor_minisat_set_prefix (BtorSATMgr *, const char *)
 }
 
 void
-btor_minisat_enable_verbosity (BtorSATMgr *)
+btor_minisat_enable_verbosity (BtorSATMgr *smgr)
 {
+  BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
+  solver->verbosity   = 1;
 }
 
 void
@@ -219,10 +223,12 @@ btor_minisat_stats (BtorSATMgr *smgr)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
   printf (
+      "[minisat] calls %llu\n"
       "[minisat] restarts %llu\n"
       "[minisat] conflicts %llu\n"
       "[minisat] decisions %llu\n"
       "[minisat] propagations %llu\n",
+      (unsigned long long) solver->calls,
       (unsigned long long) solver->starts,
       (unsigned long long) solver->conflicts,
       (unsigned long long) solver->decisions,
