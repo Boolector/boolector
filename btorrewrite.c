@@ -150,7 +150,7 @@ is_xnor_exp (Btor *btor, BtorNode *exp)
 BtorNode *
 btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
 {
-  BtorNode *result, *tmp, *real_exp;
+  BtorNode *result, *tmp, *real_exp, *left, *right;
   BtorMemMgr *mm;
   char *bits = 0;
   int len;
@@ -248,11 +248,16 @@ btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
         BTOR_DEC_REC_RW_CALL (btor);
         btor_release_exp (btor, tmp);
       }
-      else
-      {
-        /* TODO: push slices down */
-      }
     }
+  }
+  else if (btor->rewrite_level >= 3 && real_exp->kind == BTOR_AND_NODE)
+  {
+    left   = btor_slice_exp (btor, real_exp->e[0], upper, lower);
+    right  = btor_slice_exp (btor, real_exp->e[1], upper, lower);
+    result = btor_and_exp (btor, left, right);
+    btor_release_exp (btor, right);
+    btor_release_exp (btor, left);
+    if (BTOR_IS_INVERTED_NODE (exp)) result = BTOR_INVERT_NODE (result);
   }
 
   if (!result)
