@@ -1693,6 +1693,7 @@ try_rewrite_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
 static BtorNode *
 normalize_negated_add (Btor *btor, BtorNode *exp)
 {
+  BtorNode *tmp, *res, *one;
   BtorNode *real_exp;
 
   if (!BTOR_IS_INVERTED_NODE (exp)) return btor_copy_exp (btor, exp);
@@ -1700,17 +1701,24 @@ normalize_negated_add (Btor *btor, BtorNode *exp)
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   if (real_exp->kind != BTOR_ADD_NODE) return btor_copy_exp (btor, exp);
 
-  return btor_copy_exp (btor, exp);
+  tmp = btor_add_exp (btor,
+                      BTOR_INVERT_NODE (real_exp->e[0]),
+                      BTOR_INVERT_NODE (real_exp->e[1]));
+  one = btor_one_exp (btor, real_exp->len);
+  res = btor_add_exp (btor, tmp, one);
+  btor_release_exp (btor, one);
+  btor_release_exp (btor, tmp);
+
+  return res;
 }
 
 BtorNode *
 btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
-  BtorNode *tmp1, *tmp2, *result;
-  BtorNode *tmp3, *tmp4;
+  BtorNode *tmp1, *tmp2, *tmp3, *tmp4, *result;
   BtorNode *real_e0, *real_e1;
-  int upper, lower;
   BtorNodeKind kind;
+  int upper, lower;
 
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
