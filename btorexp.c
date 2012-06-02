@@ -5005,11 +5005,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   assert (btor);
   assert (exp);
-#if 0
-  assert (!BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (exp)));
-  assert (!BTOR_IS_WRITE_NODE (BTOR_REAL_ADDR_NODE (exp)));
-  assert (!BTOR_IS_ARRAY_COND_NODE (BTOR_REAL_ADDR_NODE (exp)));
-#endif
 
   mm    = btor->mm;
   avmgr = btor->avmgr;
@@ -7159,6 +7154,35 @@ process_unsynthesized_constraints (Btor *btor)
     bucket = unsynthesized_constraints->first;
     assert (bucket);
     cur = (BtorNode *) bucket->key;
+
+#ifndef NDEBUG
+    if (btor->rewrite_level > 2)
+    {
+      BtorNode *real_cur = BTOR_REAL_ADDR_NODE (cur);
+      if (real_cur->kind == BTOR_BEQ_NODE)
+      {
+        BtorNode *left  = real_cur->e[0];
+        BtorNode *right = real_cur->e[1];
+        BtorNode *other;
+
+        if (BTOR_REAL_ADDR_NODE (left)->kind == BTOR_BV_CONST_NODE)
+          other = right;
+        else if (BTOR_REAL_ADDR_NODE (right)->kind == BTOR_BV_CONST_NODE)
+          other = left;
+        else
+          other = 0;
+
+        if (other && !BTOR_IS_INVERTED_NODE (other)
+            && other->kind == BTOR_ADD_NODE)
+        {
+          assert (BTOR_REAL_ADDR_NODE (other->e[0])->kind
+                  != BTOR_BV_CONST_NODE);
+          assert (BTOR_REAL_ADDR_NODE (other->e[1])->kind
+                  != BTOR_BV_CONST_NODE);
+        }
+      }
+    }
+#endif
 
     if (!btor_find_in_ptr_hash_table (synthesized_constraints, cur))
     {
