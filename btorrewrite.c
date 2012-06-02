@@ -1695,12 +1695,12 @@ normalize_negated_add (Btor *btor, BtorNode *exp)
 {
   BtorNode *real_exp;
 
-  if (!BTOR_IS_INVERTED_NODE (exp)) return btor_inc_exp (btor, exp);
+  if (!BTOR_IS_INVERTED_NODE (exp)) return btor_copy_exp (btor, exp);
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  if (real_exp->kind != BTOR_ADD_NODE) return btor_inc_exp (btor, exp);
+  if (real_exp->kind != BTOR_ADD_NODE) return btor_copy_exp (btor, exp);
 
-  return btor_inc_exp (btor, exp);
+  return btor_copy_exp (btor, exp);
 }
 
 BtorNode *
