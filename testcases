@@ -697,3 +697,5 @@ count03plus2inc -interval=2 -o log/count03plus2inc.log log/count03plus2inc.smt
 concatslice1 -rwl1 -de -o log/concatslice1.log log/concatslice1.btor
 concatslice2 -rwl1 -de -o log/concatslice2.log log/concatslice2.btor
 regaddnorm1 -de -o log/regaddnorm1.log log/regaddnorm1.btor
+regaddnorm2 -de -o log/regaddnorm2.log log/regaddnorm2.btor
+regnegadd1 -de -o log/regnegadd1.log log/regnegadd1.btor
