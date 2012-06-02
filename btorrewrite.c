@@ -1690,6 +1690,15 @@ try_rewrite_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
+#if 0
+static BtorNode *
+normalize_negated_add (Btor * btor, BtorNode * exp)
+{
+  if (!BTOR_IS_INVERTED_NODE (exp))
+    return exp;
+}
+#endif
+
 BtorNode *
 btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
@@ -1739,12 +1748,14 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
   if (e0 == e1)
   {
-    return btor_true_exp (btor);
+    result = btor_true_exp (btor);
+    goto DONE;
   }
 
   if (is_always_unequal (btor, e0, e1))
   {
-    return btor_false_exp (btor);
+    result = btor_false_exp (btor);
+    goto DONE;
   }
 
   if (btor->rewrite_level > 2)
@@ -1765,7 +1776,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_eq_exp (btor, tmp1, e0->e[1]);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
 
         if (e0->e[1] == e1)
@@ -1777,7 +1788,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_eq_exp (btor, tmp1, e0->e[0]);
           btor_release_exp (btor, tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
-          return result;
+          goto DONE;
         }
       }
 
@@ -1794,7 +1805,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
               btor_rewrite_and_exp (btor, BTOR_INVERT_NODE (e0->e[0]), tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
 
         if (is_always_unequal (btor, e0->e[2], e1))
@@ -1806,7 +1817,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_and_exp (btor, e0->e[0], tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
       }
     }
@@ -1827,7 +1838,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_eq_exp (btor, tmp1, e1->e[1]);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
 
         if (e1->e[1] == e0)
@@ -1839,7 +1850,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_eq_exp (btor, tmp1, e1->e[0]);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
       }
 
@@ -1856,7 +1867,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
               btor_rewrite_and_exp (btor, BTOR_INVERT_NODE (e1->e[0]), tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
 
         if (is_always_unequal (btor, e1->e[2], e0))
@@ -1868,7 +1879,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_and_exp (btor, e1->e[0], tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
       }
     }
@@ -1885,7 +1896,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_eq_exp (btor, e0->e[1], e1->e[1]);
           BTOR_DEC_REC_RW_CALL (btor);
-          return result;
+          goto DONE;
         }
 
         if (e0->e[0] == e1->e[1])
@@ -1895,7 +1906,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_eq_exp (btor, e0->e[1], e1->e[0]);
           BTOR_DEC_REC_RW_CALL (btor);
-          return result;
+          goto DONE;
         }
 
         if (e0->e[1] == e1->e[0])
@@ -1905,7 +1916,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_eq_exp (btor, e0->e[0], e1->e[1]);
           BTOR_DEC_REC_RW_CALL (btor);
-          return result;
+          goto DONE;
         }
 
         if (e0->e[1] == e1->e[1])
@@ -1915,7 +1926,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           BTOR_INC_REC_RW_CALL (btor);
           result = btor_rewrite_eq_exp (btor, e0->e[0], e1->e[0]);
           BTOR_DEC_REC_RW_CALL (btor);
-          return result;
+          goto DONE;
         }
       }
 
@@ -1940,7 +1951,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
             result = btor_rewrite_eq_exp (
                 btor, e0->e[0], BTOR_INVERT_NODE (e0->e[1]));
             BTOR_DEC_REC_RW_CALL (btor);
-            return result;
+            goto DONE;
           }
 
           /* a~ & b == a & ~b   -->  a == b */
@@ -1956,7 +1967,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
                                           BTOR_REAL_ADDR_NODE (e0->e[0]),
                                           BTOR_REAL_ADDR_NODE (e0->e[1]));
             BTOR_DEC_REC_RW_CALL (btor);
-            return result;
+            goto DONE;
           }
         }
         /* a & b == a & ~b  ---> a == 0 */
@@ -1969,7 +1980,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_eq_exp (btor, e0->e[0], tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
 
         /* a & b == ~a & b ---> b == 0 */
@@ -1982,7 +1993,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           result = btor_rewrite_eq_exp (btor, e0->e[1], tmp1);
           BTOR_DEC_REC_RW_CALL (btor);
           btor_release_exp (btor, tmp1);
-          return result;
+          goto DONE;
         }
       }
     }
@@ -2011,7 +2022,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
         btor_release_exp (btor, tmp1);
         BTOR_DEC_REC_RW_CALL (btor);
-        return result;
+        goto DONE;
       }
 
       if (real_e0->e[2] == e1)
@@ -2032,7 +2043,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
         btor_release_exp (btor, tmp1);
         BTOR_DEC_REC_RW_CALL (btor);
-        return result;
+        goto DONE;
       }
     }
 
@@ -2057,7 +2068,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
         btor_release_exp (btor, tmp1);
         BTOR_DEC_REC_RW_CALL (btor);
-        return result;
+        goto DONE;
       }
 
       if (real_e1->e[2] == e0)
@@ -2078,7 +2089,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
         btor_release_exp (btor, tmp1);
         BTOR_DEC_REC_RW_CALL (btor);
-        return result;
+        goto DONE;
       }
     }
 
@@ -2119,7 +2130,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           if (tmp1 == e0)
           {
             btor_release_exp (btor, tmp1);
-            return btor_true_exp (btor);
+            result = btor_true_exp (btor);
+            goto DONE;
           }
           btor_release_exp (btor, tmp1);
         }
@@ -2132,7 +2144,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
           if (tmp1 == e1)
           {
             btor_release_exp (btor, tmp1);
-            return btor_true_exp (btor);
+            result = btor_true_exp (btor);
+            goto DONE;
           }
           btor_release_exp (btor, tmp1);
         }
@@ -2170,7 +2183,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         btor_release_exp (btor, tmp3);
         btor_release_exp (btor, tmp4);
         BTOR_DEC_REC_RW_CALL (btor);
-        return result;
+        goto DONE;
       }
     }
   }
@@ -2181,6 +2194,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_REWRITE_EQ_NODE_NO_REWRITE:
     result = btor_eq_exp_node (btor, e0, e1);
   }
+
+DONE:
 
   if (normalized)
   {
