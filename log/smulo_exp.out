@@ -2,22 +2,29 @@
 2 var 3 v2
 3 slice 1 1 2 2
 4 slice 1 2 2 2
-20 slice 1 2 1 1
-22 and 1 -4 -20
-24 and 1 4 20
-25 and 1 -22 -24
-26 slice 1 1 1 1
-28 and 1 -3 -26
-30 and 1 3 26
-31 and 1 -28 -30
-32 and 1 25 31
-34 concat 4 3 1
-36 concat 4 4 2
-37 mul 4 34 36
-38 slice 1 37 3 3
-39 slice 1 37 2 2
-40 and 1 -38 -39
-41 and 1 38 39
-42 and 1 -40 -41
-43 and 1 -32 -42
-44 root 1 -43
+5 const 2 00
+7 concat 3 -5 3
+8 concat 3 5 3
+9 cond 3 3 7 8
+11 concat 3 -5 4
+12 concat 3 5 4
+13 cond 3 4 11 12
+14 and 3 -1 -9
+15 and 3 1 9
+16 and 3 -14 -15
+17 and 3 -2 -13
+18 and 3 2 13
+19 and 3 -17 -18
+20 slice 1 19 1 1
+21 slice 1 16 1 1
+22 and 1 20 21
+24 concat 4 3 1
+26 concat 4 4 2
+27 mul 4 24 26
+28 slice 1 27 3 3
+29 slice 1 27 2 2
+30 and 1 -28 -29
+31 and 1 28 29
+32 and 1 -30 -31
+33 and 1 -22 -32
+34 root 1 -33

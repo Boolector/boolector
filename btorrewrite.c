@@ -2777,7 +2777,19 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     return result;
   }
 
-  // TODO concat over two consecutive slices
+  if (btor->rewrite_level > 0
+      && (BTOR_IS_INVERTED_NODE (e0) == BTOR_IS_INVERTED_NODE (e1))
+      && (real_e0 = BTOR_REAL_ADDR_NODE (e0))->kind == BTOR_SLICE_NODE
+      && (real_e1 = BTOR_REAL_ADDR_NODE (e1))->kind == BTOR_SLICE_NODE
+      && real_e0->e[0] == real_e1->e[0] && real_e0->lower == real_e1->upper + 1)
+  {
+    BTOR_INC_REC_RW_CALL (btor);
+    result =
+        btor_slice_exp (btor, real_e0->e[0], real_e0->upper, real_e1->lower);
+    BTOR_DEC_REC_RW_CALL (btor);
+    if (BTOR_IS_INVERTED_NODE (e0)) result = BTOR_INVERT_NODE (result);
+    return result;
+  }
 
   /* normalize concats --> left-associative */
   if (btor->rewrite_level > 2
