@@ -1824,12 +1824,12 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
   real_e1 = BTOR_REAL_ADDR_NODE (e1);
 
-  /* We do not rewrite eq in the boolean case, as we
-   * cannot extract the resulting XNOR on top level again and
-   * would therefore loose substitutions.
-   * Additionally, we do not rewrite eq in the boolean case, as
-   * we rewrite a != b to a = ~b and substitute.
-   * */
+  /* We do not rewrite eq in the boolean case, as we cannot extract the
+   * resulting XNOR on top level again and would therefore loose substitutions.
+   *
+   * Additionally, we do not rewrite eq in the boolean case, as we rewrite a !=
+   * b to a = ~b and substitute.
+   */
 
   if (e0 == e1)
   {
@@ -1848,8 +1848,9 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     if (!BTOR_IS_INVERTED_NODE (e0))
     {
       /* a + b = a ----> b = 0,
-       * this rule does not lead to less substitutions. 'a' cannot
-       * be substituted as the occurrence check would fail */
+       * This rule does not lead to less substitutions. 'a' cannot
+       * be substituted as the occurrence check would fail
+       */
       if (e0->kind == BTOR_ADD_NODE)
       {
         if (e0->e[0] == e1)
@@ -1910,8 +1911,9 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     if (!BTOR_IS_INVERTED_NODE (e1))
     {
       /* a = a + b  ----> b = 0,
-       * this rule does not lead to less substitutions. 'a' cannot
-       * be substituted as the occurrence check would fail */
+       * This rule does not lead to less substitutions. 'a' cannot
+       * be substituted as the occurrence check would fail.
+       */
       if (e1->kind == BTOR_ADD_NODE)
       {
         if (e1->e[0] == e0)
@@ -2015,10 +2017,10 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         }
       }
 
-      /* commutative operators are normalized ignoring sign, so
-       * we do not have to check cases like a & b ==  ~b & a as they
-       * are represented as a & b == a & ~b */
-
+      /* Commutative operators are normalized ignoring signs, so we do not
+       * have to check cases like a & b ==  ~b & a as they are represented as
+       * a & b == a & ~b
+       */
       if (e0->kind == BTOR_AND_NODE && e1->kind == BTOR_AND_NODE)
       {
         if (e0->e[0] == BTOR_INVERT_NODE (e1->e[0])
