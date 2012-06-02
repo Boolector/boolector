@@ -73,14 +73,42 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
 
   assert (btor);
   assert (exp);
+
   exp = btor_pointer_chase_simplified_exp (btor, exp);
 
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
-  real_exp = BTOR_REAL_ADDR_NODE (exp);
-  if (BTOR_IS_INVERTED_NODE (exp)) btor_invert_const (btor->mm, real_exp->bits);
-  result = btor_is_special_const (real_exp->bits) == BTOR_SPECIAL_CONST_ZERO;
-  if (BTOR_IS_INVERTED_NODE (exp)) btor_invert_const (btor->mm, real_exp->bits);
+  if (BTOR_IS_INVERTED_NODE (exp))
+  {
+    real_exp = BTOR_REAL_ADDR_NODE (exp);
+    result   = btor_is_ones_const (real_exp->bits);
+  }
+  else
+    result = btor_is_zero_const (exp->bits);
+
+  return result;
+}
+
+static int
+is_const_ones_exp (Btor *btor, BtorNode *exp)
+{
+  int result;
+  BtorNode *real_exp;
+
+  assert (btor);
+  assert (exp);
+
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
+
+  if (BTOR_IS_INVERTED_NODE (exp))
+  {
+    real_exp = BTOR_REAL_ADDR_NODE (exp);
+    result   = btor_is_zero_const (real_exp->bits);
+  }
+  else
+    result = btor_is_ones_const (exp->bits);
 
   return result;
 }
@@ -714,7 +742,8 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
             }
           }
           else if (!BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_AND_NODE)
-          { /* a & b == 1+ -->  a == 1+ && b == 1+ */
+          {
+            /* a & b == 1+ -->  a == 1+ && b == 1+ */
             if (btor->rec_rw_calls < BTOR_REC_RW_BOUND)
             {
               BTOR_INC_REC_RW_CALL (btor);
@@ -933,6 +962,48 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
     result = btor_rewrite_cond_exp (btor, real_e0->e[0], left, right);
     btor_release_exp (btor, left);
     btor_release_exp (btor, right);
+  }
+  else if (kind == BTOR_AND_NODE && !BTOR_IS_INVERTED_NODE (e0)
+           && !BTOR_IS_INVERTED_NODE (e1) && e0->kind == BTOR_CONCAT_NODE
+           && e1->kind == BTOR_CONCAT_NODE
+           && BTOR_REAL_ADDR_NODE (e0->e[0])->len
+                  == BTOR_REAL_ADDR_NODE (e1->e[0])->len
+           && is_const_ones_exp (btor, e0->e[1])
+           && is_const_ones_exp (btor, e1->e[0]))
+  {
+    result = btor_concat_exp (btor, real_e0->e[0], real_e1->e[1]);
+  }
+  else if (kind == BTOR_AND_NODE && !BTOR_IS_INVERTED_NODE (e0)
+           && !BTOR_IS_INVERTED_NODE (e1) && e0->kind == BTOR_CONCAT_NODE
+           && e1->kind == BTOR_CONCAT_NODE
+           && BTOR_REAL_ADDR_NODE (e0->e[0])->len
+                  == BTOR_REAL_ADDR_NODE (e1->e[0])->len
+           && is_const_zero_exp (btor, e0->e[0])
+           && is_const_zero_exp (btor, e1->e[1]))
+  {
+    result = btor_concat_exp (btor, e1->e[0], e0->e[1]);
+  }
+  else if (kind == BTOR_AND_NODE && BTOR_IS_INVERTED_NODE (e0)
+           && BTOR_IS_INVERTED_NODE (e1) && real_e0->kind == BTOR_CONCAT_NODE
+           && real_e1->kind == BTOR_CONCAT_NODE
+           && BTOR_REAL_ADDR_NODE (real_e0->e[0])->len
+                  == BTOR_REAL_ADDR_NODE (real_e1->e[0])->len
+           && is_const_zero_exp (btor, real_e0->e[1])
+           && is_const_zero_exp (btor, real_e1->e[0]))
+  {
+    result = btor_concat_exp (btor, real_e0->e[0], real_e1->e[1]);
+    result = BTOR_INVERT_NODE (result);
+  }
+  else if (kind == BTOR_AND_NODE && BTOR_IS_INVERTED_NODE (e0)
+           && BTOR_IS_INVERTED_NODE (e1) && real_e0->kind == BTOR_CONCAT_NODE
+           && real_e1->kind == BTOR_CONCAT_NODE
+           && BTOR_REAL_ADDR_NODE (real_e0->e[0])->len
+                  == BTOR_REAL_ADDR_NODE (real_e1->e[0])->len
+           && is_const_zero_exp (btor, real_e0->e[0])
+           && is_const_zero_exp (btor, real_e1->e[1]))
+  {
+    result = btor_concat_exp (btor, real_e1->e[0], real_e0->e[1]);
+    result = BTOR_INVERT_NODE (result);
   }
 
   /* TODO: lots of word level simplifications:
