@@ -1869,7 +1869,11 @@ normalize_eq_adds_exp (Btor *btor,
 
   assert (BTOR_REAL_ADDR_NODE (leftconst)->kind == BTOR_BV_CONST_NODE);
 
-  if (is_const_zero_exp (btor, res0))
+  if (is_const_zero_exp (btor, leftconst))
+  {
+    /* nothing to be done */
+  }
+  else if (is_const_zero_exp (btor, res0))
   {
     btor_release_exp (btor, res0);
     res0 = btor_copy_exp (btor, leftconst);
@@ -2386,8 +2390,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
       }
     }
 
-    if ((BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_ADD_NODE)
-        || (BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE))
+    if ((!BTOR_IS_INVERTED_NODE (e0) && e0->kind == BTOR_ADD_NODE)
+        || (!BTOR_IS_INVERTED_NODE (e1) && e1->kind == BTOR_ADD_NODE))
     {
       normalize_eq_adds_exp (btor, e0, e1, &tmp1, &tmp2);
       btor_release_exp (btor, e0);
