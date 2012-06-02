@@ -1,5 +1,6 @@
 news for release 1.5.XX since 1.5.13
 ------------------------------------
+* added some more rewriting
 * removed 3VL code
 * removed PrecoSAT, basicbtor
 * in-depth, look-ahead, interval
