@@ -1690,14 +1690,18 @@ try_rewrite_add_mul_distrib (Btor *btor, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-#if 0
 static BtorNode *
-normalize_negated_add (Btor * btor, BtorNode * exp)
+normalize_negated_add (Btor *btor, BtorNode *exp)
 {
-  if (!BTOR_IS_INVERTED_NODE (exp))
-    return exp;
+  BtorNode *real_exp;
+
+  if (!BTOR_IS_INVERTED_NODE (exp)) return btor_inc_exp (btor, exp);
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  if (real_exp->kind != BTOR_ADD_NODE) return btor_inc_exp (btor, exp);
+
+  return btor_inc_exp (btor, exp);
 }
-#endif
 
 BtorNode *
 btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
@@ -1705,7 +1709,6 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *tmp1, *tmp2, *result;
   BtorNode *tmp3, *tmp4;
   BtorNode *real_e0, *real_e1;
-  int normalized;
   int upper, lower;
   BtorNodeKind kind;
 
@@ -1714,10 +1717,7 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
-  normalized = 0;
-  real_e0    = BTOR_REAL_ADDR_NODE (e0);
-  real_e1    = BTOR_REAL_ADDR_NODE (e1);
-  if (BTOR_IS_ARRAY_NODE (real_e0))
+  if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (e0)))
     kind = BTOR_AEQ_NODE;
   else
     kind = BTOR_BEQ_NODE;
@@ -1732,6 +1732,9 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     kind = BTOR_BEQ_NODE;
   }
 
+  e0 = normalize_negated_add (btor, e0);
+  e1 = normalize_negated_add (btor, e1);
+
   /* ~e0 == ~e1 is the same as e0 == e1 */
   if (BTOR_IS_INVERTED_NODE (e0) && BTOR_IS_INVERTED_NODE (e1))
   {
@@ -1739,10 +1742,13 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     e1 = BTOR_REAL_ADDR_NODE (e1);
   }
 
-  /* we do not rewrite eq in the boolean case, as we
+  real_e0 = BTOR_REAL_ADDR_NODE (e0);
+  real_e1 = BTOR_REAL_ADDR_NODE (e1);
+
+  /* We do not rewrite eq in the boolean case, as we
    * cannot extract the resulting XNOR on top level again and
-   * would therefore lose substitutions
-   * additionally, we do not rewrite eq in the boolean case, as
+   * would therefore loose substitutions.
+   * Additionally, we do not rewrite eq in the boolean case, as
    * we rewrite a != b to a = ~b and substitute.
    * */
 
@@ -2107,19 +2113,19 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
         {
           assert (e1->kind == BTOR_ADD_NODE);
           normalize_adds_exp (btor, e0, e1, &tmp1, &tmp2);
-          normalized = 1;
-          e0         = tmp1;
-          e1         = tmp2;
         }
         else
         {
           assert (e0->kind == BTOR_MUL_NODE);
           assert (e1->kind == BTOR_MUL_NODE);
           normalize_muls_exp (btor, e0, e1, &tmp1, &tmp2);
-          normalized = 1;
-          e0         = tmp1;
-          e1         = tmp2;
         }
+        btor_release_exp (btor, e0);
+        btor_release_exp (btor, e1);
+        e0      = tmp1;
+        e1      = tmp2;
+        real_e0 = BTOR_REAL_ADDR_NODE (e0);
+        real_e1 = BTOR_REAL_ADDR_NODE (e1);
       }
       /* find out distributivity from mul and add */
       else if (e0->kind == BTOR_MUL_NODE && e1->kind == BTOR_ADD_NODE)
@@ -2197,11 +2203,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 
 DONE:
 
-  if (normalized)
-  {
-    btor_release_exp (btor, tmp1);
-    btor_release_exp (btor, tmp2);
-  }
+  btor_release_exp (btor, e0);
+  btor_release_exp (btor, e1);
 
   return result;
 }
