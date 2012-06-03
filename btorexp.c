@@ -8013,7 +8013,11 @@ process_skeleton (Btor *btor)
     btor_insert_in_ptr_hash_table (ids, exp)->data.asInt = ++nids;
   }
   assert (ids->count == (unsigned) nids);
-  if (btor->verbosity) btor_msg_exp (btor, "found %d skeleton ilterals", nids);
+  if (btor->verbosity)
+    btor_msg_exp (btor,
+                  "found %d skeleton literals out of %u",
+                  nids,
+                  btor->synthesized_constraints->count);
 
   btor_delete_ptr_hash_table (ids);
 }
