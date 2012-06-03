@@ -31,7 +31,7 @@
 
 // #define BTOR_DO_NOT_ELIMINATE_SLICES
 
-#define BTOR_DO_NOT_PROCESS_SKELETON
+// #define BTOR_DO_NOT_PROCESS_SKELETON
 
 /*------------------------------------------------------------------------*/
 
@@ -4683,8 +4683,8 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 void
 btor_delete_btor (Btor *btor)
 {
-  BtorMemMgr *mm;
   BtorPtrHashBucket *b;
+  BtorMemMgr *mm;
 
   assert (btor);
 
@@ -7995,6 +7995,27 @@ eliminate_slices_on_bv_vars (Btor *btor)
 static void
 process_skeleton (Btor *btor)
 {
+  BtorMemMgr *mm = btor->mm;
+  BtorPtrHashTable *ids;
+  BtorPtrHashBucket *b;
+  BtorNode *exp;
+  int nids = 0;
+
+  ids = btor_new_ptr_hash_table (mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+
+  for (b = btor->synthesized_constraints->first; b; b = b->next)
+  {
+    exp = b->key;
+    exp = BTOR_REAL_ADDR_NODE (exp);
+    if (exp->len != 1) continue;
+    btor_insert_in_ptr_hash_table (ids, exp)->data.asInt = ++nids;
+  }
+  assert (ids->count == (unsigned) nids);
+  if (btor->verbosity) btor_msg_exp (btor, "found %d skeleton ilterals", nids);
+
+  btor_delete_ptr_hash_table (ids);
 }
 
 /*------------------------------------------------------------------------*/
