@@ -8216,11 +8216,11 @@ process_skeleton (Btor *btor)
                   ids->count,
                   count);
 
-#if 1
+#if 0
   lglsetopt (lgl, "clim", 10000);
   res = lglsat (lgl);
 #else
-  res = lglsimp (lgl, 1);
+  res = lglsimp (lgl, 0);
 #endif
 
   if (btor->verbosity)
