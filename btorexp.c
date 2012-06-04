@@ -4836,6 +4836,12 @@ number_of_ops (Btor *btor)
   return result;
 }
 
+static double
+percent (double a, double b)
+{
+  return b ? 100.0 * a / b : 0.0;
+}
+
 void
 btor_print_stats_btor (Btor *btor)
 {
@@ -4912,6 +4918,33 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor,
                 "synthesis assignment inconsistencies: %d",
                 btor->stats.synthesis_assignment_inconsistencies);
+
+  btor_msg_exp (btor, "");
+  btor_msg_exp (btor, "%.2f seconds in rewriting engine", btor->time.rewrite);
+  btor_msg_exp (btor, "%.2f seconds in pure SAT solving", btor->time.sat);
+  btor_msg_exp (btor, "");
+  btor_msg_exp (
+      btor,
+      "%.2f seconds in variable substitution during rewriting (%.0f%%)",
+      btor->time.subst,
+      percent (btor->time.subst, btor->time.rewrite));
+  btor_msg_exp (
+      btor,
+      "%.2f seconds in embedded constraint replacing during rewriting (%.0f%%)",
+      btor->time.slicing,
+      percent (btor->time.slicing, btor->time.rewrite));
+#ifndef BTOR_DO_NOT_ELIMINATE_SLICES
+  btor_msg_exp (btor,
+                "%.2f seconds in slicing during rewriting (%.0f%%)",
+                btor->time.slicing,
+                percent (btor->time.slicing, btor->time.rewrite));
+#endif
+#ifndef BTOR_DO_NOT_PROCESS_SKELETON
+  btor_msg_exp (btor,
+                "%.2f seconds in slicing during rewriting (%.0f%%)",
+                btor->time.skel,
+                percent (btor->time.skel, btor->time.rewrite));
+#endif
 }
 
 BtorMemMgr *
@@ -5829,6 +5862,22 @@ add_again_assumptions (Btor *btor)
   return 0;
 }
 
+static int
+btor_timed_sat_sat (Btor *btor, int limit)
+{
+  double start, delta;
+  BtorSATMgr *smgr;
+  int res;
+  smgr  = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
+  start = btor_time_stamp ();
+  res   = btor_sat_sat (smgr, limit);
+  delta = btor_time_stamp () - start;
+  btor->time.sat += delta;
+  if (btor->verbosity)
+    btor_msg_exp (btor, "SAT solver returns %d after %.1f seconds", res, delta);
+  return res;
+}
+
 /* updates SAT assignments, reads assumptions and
  * returns if an assignment has changed
  */
@@ -5841,7 +5890,7 @@ update_sat_assignments (Btor *btor)
   smgr = btor_get_sat_mgr_aig_mgr (btor_get_aig_mgr_aigvec_mgr (btor->avmgr));
   found_assumption_false = add_again_assumptions (btor);
   assert (!found_assumption_false);
-  result = btor_sat_sat (smgr, -1);
+  result = btor_timed_sat_sat (btor, -1);
   assert (result == BTOR_SAT);
   return found_assumption_false || (result != BTOR_SAT)
          || btor_changed_sat (smgr);
@@ -7356,22 +7405,27 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
 static void
 substitute_var_exps (Btor *btor)
 {
-  int order_num, val, max, i;
   BtorPtrHashTable *varsubst_constraints, *order, *substs;
-  BtorPtrHashBucket *b, *b_temp;
-  BtorNodePtrStack stack;
-  BtorMemMgr *mm;
   BtorNode *cur, *constraint, *left, *right, *child;
-  assert (btor);
+  BtorPtrHashBucket *b, *b_temp;
+  int order_num, val, max, i;
+  BtorNodePtrStack stack;
+  double start, delta;
+  unsigned count;
+  BtorMemMgr *mm;
 
+  assert (btor);
   mm                   = btor->mm;
   varsubst_constraints = btor->varsubst_constraints;
 
   if (varsubst_constraints->count == 0u) return;
 
+  start = btor_time_stamp ();
+
   BTOR_INIT_STACK (stack);
 
   /* new equality constraints may be added during rebuild */
+  count = 0;
   while (varsubst_constraints->count > 0u)
   {
     order_num = 1;
@@ -7387,6 +7441,7 @@ substitute_var_exps (Btor *btor)
      * and empty the global substitution table */
     while (varsubst_constraints->count > 0u)
     {
+      count++;
       b   = varsubst_constraints->first;
       cur = (BtorNode *) b->key;
       assert (BTOR_IS_REGULAR_NODE (cur));
@@ -7575,6 +7630,11 @@ substitute_var_exps (Btor *btor)
   }
 
   BTOR_RELEASE_STACK (mm, stack);
+  delta = btor_time_stamp () - start;
+  btor->time.subst += delta;
+  if (btor->verbosity)
+    btor_msg_exp (
+        btor, "%d variables substituted in %.1f seconds", count, delta);
 }
 
 /* Simple substitution by following simplified pointer.
@@ -7697,21 +7757,33 @@ process_embedded_constraints (Btor *btor)
 {
   BtorPtrHashTable *embedded_constraints;
   BtorPtrHashBucket *b;
+  double start, delta;
   BtorNode *cur;
+  int count;
   assert (btor);
   embedded_constraints = btor->embedded_constraints;
   if (embedded_constraints->count > 0u)
   {
+    start = btor_time_stamp ();
+    count = 0;
     substitute_embedded_constraints (btor);
 
     while (embedded_constraints->count > 0u)
     {
+      count++;
       b   = embedded_constraints->first;
       cur = (BtorNode *) b->key;
       insert_unsynthesized_constraint (btor, cur);
       btor_remove_from_ptr_hash_table (embedded_constraints, cur, 0, 0);
       btor_release_exp (btor, cur);
     }
+    delta = btor_time_stamp () - start;
+    btor->time.embedded += delta;
+    if (btor->verbosity)
+      btor_msg_exp (btor,
+                    "replaced %d embedded constraints in %1.f seconds",
+                    count,
+                    delta);
   }
 }
 
@@ -7809,17 +7881,21 @@ compare_int_ptr (const void *p1, const void *p2)
 static void
 eliminate_slices_on_bv_vars (Btor *btor)
 {
-  BtorNodePtrStack vars;
-  BtorFullParentIterator it;
-  BtorPtrHashBucket *b_var, *b1, *b2;
   BtorNode *var, *cur, *result, *lambda_var, *temp;
   BtorSlice *s1, *s2, *new_s1, *new_s2, *new_s3, **sorted_slices;
+  BtorPtrHashBucket *b_var, *b1, *b2;
+  BtorFullParentIterator it;
   BtorPtrHashTable *slices;
+  int i, min, max, count;
+  BtorNodePtrStack vars;
+  double start, delta;
   BtorMemMgr *mm;
-  int i, min, max;
   int vals[4];
 
   assert (btor != NULL);
+
+  start = btor_time_stamp ();
+  count = 0;
 
   mm = btor->mm;
   BTOR_INIT_STACK (vars);
@@ -7983,12 +8059,18 @@ eliminate_slices_on_bv_vars (Btor *btor)
     BTOR_DELETEN (mm, sorted_slices, slices->count);
     btor_delete_ptr_hash_table (slices);
 
+    count++;
     btor->stats.eliminated_slices++;
     insert_varsubst_constraint (btor, var, result);
     btor_release_exp (btor, result);
   }
 
   BTOR_RELEASE_STACK (mm, vars);
+
+  delta = btor_time_stamp () - start;
+  btor->time.embedded += delta;
+  if (btor->verbosity)
+    btor_msg_exp (btor, "sliced %d variables in %1.f seconds", count, delta);
 }
 
 /*------------------------------------------------------------------------*/
@@ -8160,9 +8242,12 @@ process_skeleton (Btor *btor)
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
   BtorPtrHashBucket *b;
+  double start, delta;
   int res, lit, val;
   BtorNode *exp;
   LGL *lgl;
+
+  start = btor_time_stamp ();
 
   ids = btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
@@ -8229,6 +8314,8 @@ process_skeleton (Btor *btor)
     lglstats (lgl);
   }
 
+  fixed = 0;
+
   if (res == 20)
   {
     btor_msg_exp (btor, "skeleton inconsistent");
@@ -8237,7 +8324,6 @@ process_skeleton (Btor *btor)
   else
   {
     assert (res == 0 || res == 10);
-    fixed = 0;
     for (b = ids->first; b; b = b->next)
     {
       exp = b->key;
@@ -8264,13 +8350,19 @@ process_skeleton (Btor *btor)
                                               exp));
       }
     }
-    if (btor->verbosity)
-      btor_msg_exp (
-          btor, "skeleton preprocessing produced %d new constraints", fixed);
   }
 
   btor_delete_ptr_hash_table (ids);
   lglrelease (lgl);
+
+  delta = btor_time_stamp () - start;
+  btor->time.skel += delta;
+  if (btor->verbosity)
+    btor_msg_exp (
+        btor,
+        "skeleton preprocessing produced %d new constraints in %.1f seconds",
+        fixed,
+        delta);
 }
 
 /*------------------------------------------------------------------------*/
@@ -8280,28 +8372,30 @@ process_skeleton (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor)
 {
-  int rewrite_level;
+  double start, delta;
+  int rounds;
 
   assert (btor);
-
   if (btor->inconsistent) return;
 
-  rewrite_level = btor->rewrite_level;
+  if (btor->rewrite_level <= 1) return;
 
-  if (rewrite_level <= 1) return;
+  rounds = 0;
+  start  = btor_time_stamp ();
 
   do
   {
+    rounds++;
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     substitute_var_exps (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    if (btor->inconsistent) return;
+    if (btor->inconsistent) break;
 
-    if (btor->varsubst_constraints->count) continue;
+    if (btor->varsubst_constraints->count) break;
 
     process_embedded_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    if (btor->inconsistent) return;
+    if (btor->inconsistent) break;
 
     if (btor->varsubst_constraints->count) continue;
 
@@ -8309,7 +8403,7 @@ run_rewrite_engine (Btor *btor)
     if (btor->rewrite_level > 2 && !btor->inc_enabled)
     {
       eliminate_slices_on_bv_vars (btor);
-      if (btor->inconsistent) return;
+      if (btor->inconsistent) break;
 
       if (btor->varsubst_constraints->count) continue;
 
@@ -8320,10 +8414,15 @@ run_rewrite_engine (Btor *btor)
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
     process_skeleton (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    if (btor->inconsistent) return;
+    if (btor->inconsistent) break;
 #endif
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
+
+  delta = btor_time_stamp () - start;
+  btor->time.rewrite += delta;
+  if (btor->verbosity)
+    btor_msg_exp (btor, "%d rewriting rounds in %.1f seconds", rounds, delta);
 }
 
 static void
@@ -8428,7 +8527,7 @@ btor_sat_aux_btor (Btor *btor)
   if (found_assumption_false) goto UNSAT;
 
   BTOR_INIT_STACK (top_arrays);
-  sat_result = btor_sat_sat (smgr, -1);
+  sat_result = btor_timed_sat_sat (btor, -1);
 
   while (sat_result == BTOR_SAT)
   {
@@ -8462,7 +8561,7 @@ btor_sat_aux_btor (Btor *btor)
     if (found_assumption_false)
       sat_result = BTOR_UNSAT;
     else
-      sat_result = btor_sat_sat (smgr, -1);
+      sat_result = btor_timed_sat_sat (btor, -1);
   }
 
 DONE:

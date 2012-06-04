@@ -41,6 +41,8 @@ struct BtorSATMgr
   int true_lit;
   int maxvar;
 
+  double sat_time;
+
   struct
   {
     void (*add) (BtorSATMgr *, int);

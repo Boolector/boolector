@@ -292,6 +292,16 @@ struct Btor
     ConstraintStats constraints, oldconstraints;
     long long expressions;
   } stats;
+
+  struct
+  {
+    double rewrite;
+    double sat;
+    double subst;
+    double embedded;
+    double slicing;
+    double skel;
+  } time;
 };
 
 #define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)

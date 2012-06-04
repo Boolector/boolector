@@ -23,6 +23,7 @@
 
 #include "btorexit.h"
 #include "btorsat.h"
+#include "btorutil.h"
 
 #include <assert.h>
 #include <ctype.h>
@@ -170,6 +171,7 @@ btor_init_sat (BtorSATMgr *smgr)
   smgr->solver                         = smgr->api.init (smgr);
   smgr->initialized                    = 1;
   smgr->inc_required                   = 1;
+  smgr->sat_time                       = 0;
   smgr->used_that_inc_was_not_required = 0;
   smgr->true_lit                       = btor_next_cnf_id_sat_mgr (smgr);
   btor_add_sat (smgr, smgr->true_lit);
@@ -212,6 +214,8 @@ btor_print_stats_sat (BtorSATMgr *smgr)
   assert (smgr != NULL);
   if (!smgr->initialized) return;
   smgr->api.stats (smgr);
+  btor_msg_sat (
+      smgr, 0, "%d SAT calls in %.1f seconds", smgr->satcalls, smgr->sat_time);
 }
 
 void
@@ -228,12 +232,16 @@ btor_add_sat (BtorSATMgr *smgr, int lit)
 int
 btor_sat_sat (BtorSATMgr *smgr, int limit)
 {
+  double start = btor_time_stamp ();
+  int res;
   assert (smgr != NULL);
   assert (smgr->initialized);
   btor_msg_sat (smgr, 2, "calling SAT solver %s", smgr->name);
   assert (!smgr->satcalls || smgr->inc_required);
   smgr->satcalls++;
-  return smgr->api.sat (smgr, limit);
+  res = smgr->api.sat (smgr, limit);
+  smgr->sat_time += btor_time_stamp () - start;
+  return res;
 }
 
 int
