@@ -271,21 +271,22 @@ struct Btor
     int lod_refinements;  /* number of lemmas on demand refinements */
     int synthesis_assignment_inconsistencies; /* number of restarts as a
                                                  result of lazy synthesis */
-    int array_axiom_1_conflicts;    /* number of array axiom 1 conflicts:
-                                       a = b /\ i = j => read(a, i) = read(b, j) */
-    int array_axiom_2_conflicts;    /* array axiom 2 confs:
-                                       i = j => read(write(a, i, e), j) = e */
-    int var_substitutions;          /* number substituted vars (non array) */
-    int array_substitutions;        /* num substituted array vars */
-    int ec_substitutions;           /* embedded constraint substitutions */
-    int vreads;                     /* number of virtual reads */
-    int linear_equations;           /* number of linear equations */
-    int gaussian_eliminations;      /* number of gaussian eliminations */
-    int eliminated_slices;          /* number of eliminated slices */
-    int adds_normalized;            /* number of add chains normalizations */
-    int muls_normalized;            /* number of mul chains normalizations */
-    int read_props_construct;       /* how often have we pushed a read over
-                                               write during construction */
+    int array_axiom_1_conflicts; /* number of array axiom 1 conflicts:
+                                    a = b /\ i = j => read(a, i) = read(b, j) */
+    int array_axiom_2_conflicts; /* array axiom 2 confs:
+                                    i = j => read(write(a, i, e), j) = e */
+    int var_substitutions;       /* number substituted vars (non array) */
+    int array_substitutions;     /* num substituted array vars */
+    int ec_substitutions;        /* embedded constraint substitutions */
+    int vreads;                  /* number of virtual reads */
+    int linear_equations;        /* number of linear equations */
+    int gaussian_eliminations;   /* number of gaussian eliminations */
+    int eliminated_slices;       /* number of eliminated slices */
+    int skeleton_constraints;    /* number of extracted skeleton constraints */
+    int adds_normalized;         /* number of add chains normalizations */
+    int muls_normalized;         /* number of mul chains normalizations */
+    int read_props_construct;    /* how often have we pushed a read over
+                                            write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints, oldconstraints;

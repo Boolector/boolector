@@ -31,7 +31,11 @@
 
 // #define BTOR_DO_NOT_ELIMINATE_SLICES
 
+#ifndef BTOR_USE_LINGELING
+#define BTOR_DO_NOT_PROCESS_SKELETON
+#else
 // #define BTOR_DO_NOT_PROCESS_SKELETON
+#endif
 
 /*------------------------------------------------------------------------*/
 
@@ -4897,6 +4901,9 @@ btor_print_stats_btor (Btor *btor)
                 btor->stats.gaussian_eliminations);
   btor_msg_exp (
       btor, "eliminated sliced variables: %d", btor->stats.eliminated_slices);
+  btor_msg_exp (btor,
+                "extracted skeleton constraints: %d",
+                btor->stats.skeleton_constraints);
   btor_msg_exp (btor, "add normalizations: %d", btor->stats.adds_normalized);
   btor_msg_exp (btor, "mul normalizations: %d", btor->stats.muls_normalized);
   btor_msg_exp (btor,
@@ -7992,6 +7999,8 @@ eliminate_slices_on_bv_vars (Btor *btor)
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 /*------------------------------------------------------------------------*/
 
+#include "../lingeling/lglib.h"
+
 static int
 process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
 {
@@ -8013,13 +8022,14 @@ process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
 
 static void
 process_skeleton_tseitin (Btor *btor,
+                          LGL *lgl,
                           BtorNodePtrStack *work_stack,
                           BtorNodePtrStack *unmark_stack,
                           BtorPtrHashTable *ids,
                           BtorNode *root)
 {
+  int i, lhs, rhs[3];
   BtorNode *exp;
-  int i;
 
   BTOR_PUSH_STACK (btor->mm, *work_stack, BTOR_REAL_ADDR_NODE (root));
 
@@ -8040,7 +8050,98 @@ process_skeleton_tseitin (Btor *btor,
     else if (exp->mark == 1)
     {
       exp->mark = 2;
-      if (exp->len == 1) (void) process_skeleton_tseitin_lit (ids, exp);
+      if (exp->len != 1) continue;
+
+#ifndef NDEBUG
+      for (i = 0; i < exp->arity; i++)
+      {
+        BtorNode *child = exp->e[i];
+        child           = BTOR_REAL_ADDR_NODE (child);
+        assert (child->mark == 2);
+        if (child->len == 1) assert (btor_find_in_ptr_hash_table (ids, child));
+      }
+#endif
+      lhs = process_skeleton_tseitin_lit (ids, exp);
+
+      switch (exp->kind)
+      {
+        case BTOR_AND_NODE:
+          rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
+          rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
+
+          lgladd (lgl, -lhs);
+          lgladd (lgl, rhs[0]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, -lhs);
+          lgladd (lgl, rhs[1]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, lhs);
+          lgladd (lgl, -rhs[0]);
+          lgladd (lgl, -rhs[1]);
+          lgladd (lgl, 0);
+          break;
+
+        case BTOR_BEQ_NODE:
+          if (BTOR_REAL_ADDR_NODE (exp->e[0])->len != 1) break;
+          assert (BTOR_REAL_ADDR_NODE (exp->e[1])->len == 1);
+          rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
+          rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
+
+          lgladd (lgl, -lhs);
+          lgladd (lgl, -rhs[0]);
+          lgladd (lgl, rhs[1]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, -lhs);
+          lgladd (lgl, rhs[0]);
+          lgladd (lgl, -rhs[1]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, lhs);
+          lgladd (lgl, rhs[0]);
+          lgladd (lgl, rhs[1]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, lhs);
+          lgladd (lgl, -rhs[0]);
+          lgladd (lgl, -rhs[1]);
+          lgladd (lgl, 0);
+
+          break;
+
+        case BTOR_BCOND_NODE:
+          assert (BTOR_REAL_ADDR_NODE (exp->e[0])->len == 1);
+          if (BTOR_REAL_ADDR_NODE (exp->e[1])->len != 1) break;
+          assert (BTOR_REAL_ADDR_NODE (exp->e[2])->len == 1);
+          rhs[0] = process_skeleton_tseitin_lit (ids, exp->e[0]);
+          rhs[1] = process_skeleton_tseitin_lit (ids, exp->e[1]);
+          rhs[2] = process_skeleton_tseitin_lit (ids, exp->e[2]);
+
+          lgladd (lgl, -lhs);
+          lgladd (lgl, -rhs[0]);
+          lgladd (lgl, rhs[1]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, -lhs);
+          lgladd (lgl, rhs[0]);
+          lgladd (lgl, rhs[2]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, lhs);
+          lgladd (lgl, -rhs[0]);
+          lgladd (lgl, -rhs[1]);
+          lgladd (lgl, 0);
+
+          lgladd (lgl, lhs);
+          lgladd (lgl, rhs[0]);
+          lgladd (lgl, -rhs[2]);
+          lgladd (lgl, 0);
+          break;
+
+        default: assert (exp->kind != BTOR_PROXY_NODE); break;
+      }
     }
   } while (!BTOR_EMPTY_STACK (*work_stack));
 }
@@ -8048,39 +8149,49 @@ process_skeleton_tseitin (Btor *btor,
 static void
 process_skeleton (Btor *btor)
 {
+  BtorPtrHashTable *ids, *table;
   BtorNodePtrStack unmark_stack;
+  int constraints, count, fixed;
   BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
-  BtorPtrHashTable *ids;
   BtorPtrHashBucket *b;
+  int res, lit, val;
   BtorNode *exp;
-  int count;
+  LGL *lgl;
 
   ids = btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
+
+  lgl = lglinit ();
+  lglsetprefix (lgl, "[lglskel] ");
+  if (btor->verbosity)
+  {
+    lglsetopt (lgl, "verbose", 1);
+    lglbnr ("Lingeling", "[lglskel] ", stdout);
+    fflush (stdout);
+  }
 
   count = 0;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  for (b = btor->synthesized_constraints->first; b; b = b->next)
+  for (constraints = 0; constraints <= 1; constraints++)
   {
-    count++;
-    exp = b->key;
-    exp = BTOR_REAL_ADDR_NODE (exp);
-    assert (exp->len == 1);
-    process_skeleton_tseitin (btor, &work_stack, &unmark_stack, ids, exp);
-  }
-
-  for (b = btor->unsynthesized_constraints->first; b; b = b->next)
-  {
-    count++;
-    exp = b->key;
-    exp = BTOR_REAL_ADDR_NODE (exp);
-    assert (exp->len == 1);
-    process_skeleton_tseitin (btor, &work_stack, &unmark_stack, ids, exp);
+    table = constraints ? btor->synthesized_constraints
+                        : btor->unsynthesized_constraints;
+    for (b = table->first; b; b = b->next)
+    {
+      count++;
+      exp = b->key;
+      exp = BTOR_REAL_ADDR_NODE (exp);
+      assert (exp->len == 1);
+      process_skeleton_tseitin (
+          btor, lgl, &work_stack, &unmark_stack, ids, exp);
+      lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
+      lgladd (lgl, 0);
+    }
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
@@ -8101,7 +8212,61 @@ process_skeleton (Btor *btor)
                   ids->count,
                   count);
 
+#if 0
+  lglsetopt (lgl, "clim", 10000);
+  res = lglsat (lgl);
+#else
+  res = lglsimp (lgl, 1);
+#endif
+
+  if (btor->verbosity)
+  {
+    btor_msg_exp (btor, "skeleton preprocessing result %d", res);
+    lglstats (lgl);
+  }
+
+  if (res == 20)
+  {
+    btor_msg_exp (btor, "skeleton inconsistent");
+    btor->inconsistent = 1;
+  }
+  else
+  {
+    assert (res == 0 || res == 10);
+    fixed = 0;
+    for (b = ids->first; b; b = b->next)
+    {
+      exp = b->key;
+      assert (!BTOR_IS_INVERTED_NODE (exp));
+      lit = process_skeleton_tseitin_lit (ids, exp);
+      val = lglfixed (lgl, lit);
+      if (val)
+      {
+        if (!btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp)
+            && !btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                             exp))
+        {
+          if (val < 0) exp = BTOR_INVERT_NODE (exp);
+          add_constraint (btor, exp);
+          btor->stats.skeleton_constraints++;
+          fixed++;
+        }
+      }
+      else
+      {
+        assert (
+            !btor_find_in_ptr_hash_table (btor->synthesized_constraints, exp));
+        assert (!btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                              exp));
+      }
+    }
+    if (btor->verbosity)
+      btor_msg_exp (
+          btor, "skeleton preprocessing produced %d new constraints", fixed);
+  }
+
   btor_delete_ptr_hash_table (ids);
+  lglrelease (lgl);
 }
 
 /*------------------------------------------------------------------------*/
