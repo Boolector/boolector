@@ -8010,11 +8010,16 @@ process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   assert (real_exp->len == 1);
-  b   = btor_insert_in_ptr_hash_table (ids, real_exp);
-  res = b->data.asInt;
-  if (!res) res = b->data.asInt = (int) ids->count;
+  b = btor_find_in_ptr_hash_table (ids, real_exp);
+  if (!b)
+  {
+    b             = btor_insert_in_ptr_hash_table (ids, real_exp);
+    b->data.asInt = (int) ids->count;
+  }
 
+  res = b->data.asInt;
   assert (res > 0);
+
   if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
 
   return res;
@@ -8031,7 +8036,7 @@ process_skeleton_tseitin (Btor *btor,
   int i, lhs, rhs[3];
   BtorNode *exp;
 
-  BTOR_PUSH_STACK (btor->mm, *work_stack, BTOR_REAL_ADDR_NODE (root));
+  BTOR_PUSH_STACK (btor->mm, *work_stack, root);
 
   do
   {
@@ -8185,8 +8190,7 @@ process_skeleton (Btor *btor)
     {
       count++;
       exp = b->key;
-      exp = BTOR_REAL_ADDR_NODE (exp);
-      assert (exp->len == 1);
+      assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
       process_skeleton_tseitin (
           btor, lgl, &work_stack, &unmark_stack, ids, exp);
       lgladd (lgl, process_skeleton_tseitin_lit (ids, exp));
