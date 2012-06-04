@@ -8084,6 +8084,38 @@ eliminate_slices_on_bv_vars (Btor *btor)
 #include "../lingeling/lglib.h"
 
 static int
+btor_fixed_exp (Btor *btor, BtorNode *exp)
+{
+  BtorNode *real_exp;
+  BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
+  BtorAIG *aig;
+  int res, id;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  assert (real_exp->len == 1);
+  if (!BTOR_IS_SYNTH_NODE (real_exp)) return 0;
+  assert (real_exp->av);
+  assert (real_exp->av->len == 1);
+  assert (real_exp->av->aigs);
+  aig = real_exp->av->aigs[0];
+  if (aig == BTOR_AIG_TRUE)
+    res = 1;
+  else if (aig == BTOR_AIG_FALSE)
+    res = -1;
+  else
+  {
+    id = BTOR_GET_CNF_ID_AIG (aig);
+    if (!id) return 0;
+    amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+    smgr = btor_get_sat_mgr_aig_mgr (amgr);
+    res  = btor_fixed_sat (smgr, id);
+  }
+  if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
+  return res;
+}
+
+static int
 process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
 {
   BtorPtrHashBucket *b;
@@ -8115,7 +8147,7 @@ process_skeleton_tseitin (Btor *btor,
                           BtorPtrHashTable *ids,
                           BtorNode *root)
 {
-  int i, lhs, rhs[3];
+  int i, lhs, rhs[3], fixed;
   BtorNode *exp;
 
   BTOR_PUSH_STACK (btor->mm, *work_stack, root);
@@ -8148,7 +8180,13 @@ process_skeleton_tseitin (Btor *btor,
         if (child->len == 1) assert (btor_find_in_ptr_hash_table (ids, child));
       }
 #endif
-      lhs = process_skeleton_tseitin_lit (ids, exp);
+      lhs   = process_skeleton_tseitin_lit (ids, exp);
+      fixed = btor_fixed_exp (btor, exp);
+      if (fixed)
+      {
+        lgladd (lgl, (fixed > 0) ? lhs : -lhs);
+        lgladd (lgl, 0);
+      }
 
       switch (exp->kind)
       {
