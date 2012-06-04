@@ -4941,7 +4941,7 @@ btor_print_stats_btor (Btor *btor)
 #endif
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   btor_msg_exp (btor,
-                "%.2f seconds in slicing during rewriting (%.0f%%)",
+                "%.2f seconds skeleton preprocessing during rewriting (%.0f%%)",
                 btor->time.skel,
                 percent (btor->time.skel, btor->time.rewrite));
 #endif
