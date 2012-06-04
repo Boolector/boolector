@@ -8216,7 +8216,7 @@ process_skeleton (Btor *btor)
                   ids->count,
                   count);
 
-#if 0
+#if 1
   lglsetopt (lgl, "clim", 10000);
   res = lglsat (lgl);
 #else
