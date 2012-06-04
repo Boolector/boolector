@@ -8372,16 +8372,16 @@ process_skeleton (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor)
 {
+  int rounds, skelrounds;
   double start, delta;
-  int rounds;
 
   assert (btor);
   if (btor->inconsistent) return;
 
   if (btor->rewrite_level <= 1) return;
 
-  rounds = 0;
-  start  = btor_time_stamp ();
+  skelrounds = rounds = 0;
+  start               = btor_time_stamp ();
 
   do
   {
@@ -8412,9 +8412,16 @@ run_rewrite_engine (Btor *btor)
 #endif
 
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
-    process_skeleton (btor);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    if (btor->inconsistent) break;
+    if (btor->rewrite_level > 2)
+    {
+      skelrounds++;
+      if (skelrounds <= 1)  // TODO only one?
+      {
+        process_skeleton (btor);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
+        if (btor->inconsistent) break;
+      }
+    }
 #endif
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
