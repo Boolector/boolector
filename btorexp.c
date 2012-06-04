@@ -777,8 +777,8 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 static void
 recursively_release_exp (Btor *btor, BtorNode *root)
 {
-  BtorMemMgr *mm;
   BtorNodePtrStack stack;
+  BtorMemMgr *mm;
   BtorNode *cur;
   int i;
 
@@ -7992,28 +7992,86 @@ eliminate_slices_on_bv_vars (Btor *btor)
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 /*------------------------------------------------------------------------*/
 
+static int
+process_skeleton_tseitin_lit (BtorPtrHashTable *ids, BtorNode *exp)
+{
+  BtorPtrHashBucket *b;
+  BtorNode *real_exp;
+  int res;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  assert (real_exp->len == 1);
+  b   = btor_insert_in_ptr_hash_table (ids, real_exp);
+  res = b->data.asInt;
+  if (!res) res = b->data.asInt = (int) ids->count;
+
+  assert (res > 0);
+  if (BTOR_IS_INVERTED_NODE (exp)) res = -res;
+
+  return res;
+}
+
+static void
+process_skeleton_tseitin (Btor *btor,
+                          BtorNodePtrStack *work_stack,
+                          BtorNodePtrStack *unmark_stack,
+                          BtorPtrHashTable *ids,
+                          BtorNode *root)
+{
+  BtorNode *exp;
+  int i;
+
+  BTOR_PUSH_STACK (btor->mm, *work_stack, BTOR_REAL_ADDR_NODE (root));
+
+  do
+  {
+    exp = BTOR_POP_STACK (*work_stack);
+    assert (exp);
+    exp = BTOR_REAL_ADDR_NODE (exp);
+    if (!exp->mark)
+    {
+      exp->mark = 1;
+      BTOR_PUSH_STACK (btor->mm, *unmark_stack, exp);
+
+      BTOR_PUSH_STACK (btor->mm, *work_stack, exp);
+      for (i = exp->arity - 1; i >= 0; i--)
+        BTOR_PUSH_STACK (btor->mm, *work_stack, exp->e[i]);
+    }
+    else if (exp->mark == 1)
+    {
+      exp->mark = 2;
+      if (exp->len == 1) (void) process_skeleton_tseitin_lit (ids, exp);
+    }
+  } while (!BTOR_EMPTY_STACK (*work_stack));
+}
+
 static void
 process_skeleton (Btor *btor)
 {
+  BtorNodePtrStack unmark_stack;
+  BtorNodePtrStack work_stack;
   BtorMemMgr *mm = btor->mm;
   BtorPtrHashTable *ids;
   BtorPtrHashBucket *b;
-  int nids, count;
   BtorNode *exp;
+  int count;
 
   ids = btor_new_ptr_hash_table (mm,
                                  (BtorHashPtr) btor_hash_exp_by_id,
                                  (BtorCmpPtr) btor_compare_exp_by_id);
 
-  nids = count = 0;
+  count = 0;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
 
   for (b = btor->synthesized_constraints->first; b; b = b->next)
   {
     count++;
     exp = b->key;
     exp = BTOR_REAL_ADDR_NODE (exp);
-    if (exp->len != 1) continue;
-    btor_insert_in_ptr_hash_table (ids, exp)->data.asInt = ++nids;
+    assert (exp->len == 1);
+    process_skeleton_tseitin (btor, &work_stack, &unmark_stack, ids, exp);
   }
 
   for (b = btor->unsynthesized_constraints->first; b; b = b->next)
@@ -8021,13 +8079,27 @@ process_skeleton (Btor *btor)
     count++;
     exp = b->key;
     exp = BTOR_REAL_ADDR_NODE (exp);
-    if (exp->len != 1) continue;
-    btor_insert_in_ptr_hash_table (ids, exp)->data.asInt = ++nids;
+    assert (exp->len == 1);
+    process_skeleton_tseitin (btor, &work_stack, &unmark_stack, ids, exp);
   }
 
-  assert (ids->count == (unsigned) nids);
+  BTOR_RELEASE_STACK (mm, work_stack);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    exp = BTOR_POP_STACK (unmark_stack);
+    assert (!BTOR_IS_INVERTED_NODE (exp));
+    assert (exp->mark);
+    exp->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+
   if (btor->verbosity)
-    btor_msg_exp (btor, "found %d skeleton literals out of %u", nids, count);
+    btor_msg_exp (btor,
+                  "found %u skeleton literals in %d constraints",
+                  ids->count,
+                  count);
 
   btor_delete_ptr_hash_table (ids);
 }
