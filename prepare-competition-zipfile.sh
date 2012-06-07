@@ -10,4 +10,5 @@ rm -f $zipfile
 echo "--------------------------------------------------"
 echo zip $zipfile run
 zip $zipfile run
+rm -f run
 ls -l $zipfile
