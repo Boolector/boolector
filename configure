@@ -3,6 +3,7 @@
 debug=unknown
 check=no
 flto=no
+static=no
 lingeling=yes
 minisat=unknown
 picosat=unknown
@@ -33,6 +34,7 @@ where <option> is one of the following:
 
   -O                optimized compilation (default)
   -flto             enable link time optimization
+  -static           static compilation
   -g                compile with debugging support
   -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
@@ -66,6 +68,7 @@ do
     -m32|--m32) arch=32;;
     -m64|--m64) arch=64;;
     -flto) flto=yes;;
+    -static) static=yes;;
     -picosat|--picosat) picosat=yes;;
     -no-picosat|--no-picosat) picosat=no;;
     -lingeling|--lingeling) lingeling=yes;;
@@ -104,6 +107,7 @@ then
   CFLAGS="-W -Wall -Wextra"
   [ $arch = 32 ] && CFLAGS="$CFLAGS -m32"
   [ $arch = 64 ] && CFLAGS="$CFLAGS -m64"
+  [ $static = yes ] && CFLAGS="$CFLAGS -static"
   if [ $debug = yes ]
   then
     CFLAGS="$CFLAGS -g3 -ggdb"
