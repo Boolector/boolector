@@ -669,10 +669,10 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   {
     btor_msg_sat (smgr, 1, "blimit = %d", blgl->blimit);
     lglsetopt (lgl, "clim", blgl->blimit);
-    // if (smgr->inc_required) lglsetopt (lgl, "plain", 1); // TODO?
+    if (smgr->inc_required) lglsetopt (lgl, "plain", 1);
     if (!(res = lglsat (lgl)))
     {
-      // lglsetopt (lgl, "plain", 0); // TODO?
+      lglsetopt (lgl, "plain", 0);
       blgl->blimit *= 2;
       if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
