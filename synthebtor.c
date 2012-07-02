@@ -1,22 +1,12 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2010  Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2007-2012 Armin Biere.
+ *
+ *  All rights reserved.
  *
  *  This file is part of Boolector.
- *
- *  Boolector is free software: you can redistribute it and/or modify
- *  it under the terms of the GNU General Public License as published by
- *  the Free Software Foundation, either version 3 of the License, or
- *  (at your option) any later version.
- *
- *  Boolector is distributed in the hope that it will be useful,
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *  GNU General Public License for more details.
- *
- *  You should have received a copy of the GNU General Public License
- *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *  See COPYING for more information on using this software.
  */
-
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbtor.h"
@@ -74,7 +64,7 @@ main (int argc, char **argv)
   input_name   = "<stdin>";
   input_file   = stdin;
   output_file  = stdout;
-  rwl          = 1;
+  rwl          = 3;
 
   for (i = 1; i < argc; i++)
   {
@@ -89,6 +79,12 @@ main (int argc, char **argv)
       merge = 1;
     else if (!strcmp (argv[i], "-rwl0"))
       rwl = 0;
+    else if (!strcmp (argv[i], "-rwl1"))
+      rwl = 1;
+    else if (!strcmp (argv[i], "-rwl2"))
+      rwl = 2;
+    else if (!strcmp (argv[i], "-rwl3"))
+      rwl = 3;
     else if (argv[i][0] == '-')
       die (1, "invalid command line option '%s'", argv[i]);
     else if (close_output)
