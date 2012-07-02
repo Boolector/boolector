@@ -767,7 +767,6 @@ btor_dump_aiger (BtorAIGMgr *amgr,
   /* First add latches and inputs to hash tables.
    */
   for (i = nregs - 1; i >= 0; i--)
-
   {
     aig = regs[i];
     assert (!BTOR_IS_CONST_AIG (aig));
@@ -995,21 +994,18 @@ btor_dump_aiger (BtorAIGMgr *amgr,
       aig = p->key;
       if (!BTOR_IS_VAR_AIG (aig)) break;
 
-      if (btor_find_in_ptr_hash_table (latches, aig)) continue;
-
       b = btor_find_in_ptr_hash_table (backannotation, aig);
 
-      /* If there is back annotation then we assume that all the
-       * variables have back annotation.
-       */
-      assert (b);
+      if (!b) continue;
 
       assert (b->key == aig);
       assert (b->data.asStr);
-
       assert (p->data.asInt == i + 1);
 
-      fprintf (file, "i%d %s\n", i++, b->data.asStr);
+      if (btor_find_in_ptr_hash_table (latches, aig))
+        fprintf (file, "l%d %s\n", i++, b->data.asStr);
+      else
+        fprintf (file, "i%d %s\n", i++, b->data.asStr);
     }
   }
 
