@@ -603,7 +603,7 @@ btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
   INSERT ("bvnor", BTOR_BVNOR_TAG_SMT2);
   INSERT ("bvxor", BTOR_BVXOR_TAG_SMT2);
   INSERT ("bvxnor", BTOR_BVXNOR_TAG_SMT2);
-  INSERT ("bveq", BTOR_BVCOMP_TAG_SMT2);
+  INSERT ("bvcomp", BTOR_BVCOMP_TAG_SMT2);
   INSERT ("bvsub", BTOR_BVSUB_TAG_SMT2);
   INSERT ("bvsdiv", BTOR_BVSDIV_TAG_SMT2);
   INSERT ("bvsrem", BTOR_BVSREM_TAG_SMT2);
