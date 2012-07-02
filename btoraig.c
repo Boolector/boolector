@@ -752,7 +752,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
   BtorPtrHashTable *table, *latches;
   BtorAIG *aig, *left, *right;
   BtorPtrHashBucket *p, *b;
-  int M, I, L, O, A, i;
+  int M, I, L, O, A, i, l;
   BtorAIGPtrStack stack;
   unsigned char ch;
   BtorMemMgr *mm;
@@ -986,7 +986,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
   /* If we have back annotation add a symbol table.
    */
-  i = 0;
+  i = l = 0;
   if (backannotation)
   {
     for (p = table->first; p; p = p->next)
@@ -1000,12 +1000,17 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
       assert (b->key == aig);
       assert (b->data.asStr);
-      assert (p->data.asInt == i + 1);
 
       if (btor_find_in_ptr_hash_table (latches, aig))
-        fprintf (file, "l%d %s\n", i++, b->data.asStr);
+      {
+        assert (p->data.asInt == i + l + 1);
+        fprintf (file, "l%d %s\n", l++, b->data.asStr);
+      }
       else
+      {
+        assert (p->data.asInt == i + l + 1);
         fprintf (file, "i%d %s\n", i++, b->data.asStr);
+      }
     }
   }
 

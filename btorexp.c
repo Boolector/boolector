@@ -5076,18 +5076,29 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         cur->av = btor_var_aigvec (avmgr, cur->len);
         if (backannotation)
         {
-          name         = btor_get_symbol_exp (btor, cur);
-          len          = (int) strlen (name) + 40;
-          indexed_name = btor_malloc (mm, len);
-          for (i = 0; i < cur->av->len; i++)
+          name = btor_get_symbol_exp (btor, cur);
+          len  = (int) strlen (name) + 40;
+          if (cur->len > 1)
           {
-            b = btor_insert_in_ptr_hash_table (backannotation,
-                                               cur->av->aigs[i]);
-            assert (b->key == cur->av->aigs[i]);
-            sprintf (indexed_name, "%s[%d]", name, i);
-            b->data.asStr = btor_strdup (mm, indexed_name);
+            indexed_name = btor_malloc (mm, len);
+            for (i = 0; i < cur->av->len; i++)
+            {
+              b = btor_insert_in_ptr_hash_table (backannotation,
+                                                 cur->av->aigs[i]);
+              assert (b->key == cur->av->aigs[i]);
+              sprintf (indexed_name, "%s[%d]", name, i);
+              b->data.asStr = btor_strdup (mm, indexed_name);
+            }
+            btor_free (mm, indexed_name, len);
           }
-          btor_free (mm, indexed_name, len);
+          else
+          {
+            assert (cur->len == 1);
+            b = btor_insert_in_ptr_hash_table (backannotation,
+                                               cur->av->aigs[0]);
+            assert (b->key == cur->av->aigs[0]);
+            b->data.asStr = btor_strdup (mm, name);
+          }
         }
       }
       else if (BTOR_IS_ARRAY_VAR_NODE (cur))
