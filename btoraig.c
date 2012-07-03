@@ -915,34 +915,24 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
     if (btor_find_in_ptr_hash_table (latches, aig)) continue;
 
-    if (binary)
-      assert (p->data.asInt == i + 1);
-    else
-      fprintf (file, "%d\n", 2 * p->data.asInt);
+    if (!binary) fprintf (file, "%d\n", 2 * p->data.asInt);
 
     i++;
   }
-  assert (i == I);  // TODO remove
 
   /* Now the latches aka regs.
    */
   for (i = 0; i < nregs; i++)
   {
-    if (binary)
-      assert (btor_aiger_encode_aig (table, regs[i])
-              == (unsigned) 2 * (I + i + 1));
-    else
-      fprintf (file, "%u ", btor_aiger_encode_aig (table, regs[i]));
+    if (!binary) fprintf (file, "%u ", btor_aiger_encode_aig (table, regs[i]));
 
     fprintf (file, "%u\n", btor_aiger_encode_aig (table, nexts[i]));
   }
-  assert (i == L);  // TODO remove
 
   /* Then the outputs ...
    */
   for (i = 0; i < naigs; i++)
     fprintf (file, "%u\n", btor_aiger_encode_aig (table, aigs[i]));
-  assert (i == O);  // TODO remove
 
   /* And finally all the AND gates.
    */
