@@ -766,7 +766,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
   /* First add latches and inputs to hash tables.
    */
-  for (i = nregs - 1; i >= 0; i--)
+  for (i = 0; i < nregs; i++)
   {
     aig = regs[i];
     assert (!BTOR_IS_CONST_AIG (aig));
@@ -903,6 +903,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
   /* Only need to print inputs in non binary mode.
    */
+  i = 0;
   for (p = table->first; p; p = p->next)
   {
     aig = p->key;
@@ -914,22 +915,34 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
     if (btor_find_in_ptr_hash_table (latches, aig)) continue;
 
-    if (!binary) fprintf (file, "%d\n", 2 * p->data.asInt);
+    if (binary)
+      assert (p->data.asInt == i + 1);
+    else
+      fprintf (file, "%d\n", 2 * p->data.asInt);
+
+    i++;
   }
+  assert (i == I);  // TODO remove
 
   /* Now the latches aka regs.
    */
   for (i = 0; i < nregs; i++)
   {
-    if (!binary) fprintf (file, "%u ", btor_aiger_encode_aig (table, regs[i]));
+    if (binary)
+      assert (btor_aiger_encode_aig (table, regs[i])
+              == (unsigned) 2 * (I + i + 1));
+    else
+      fprintf (file, "%u ", btor_aiger_encode_aig (table, regs[i]));
 
     fprintf (file, "%u\n", btor_aiger_encode_aig (table, nexts[i]));
   }
+  assert (i == L);  // TODO remove
 
   /* Then the outputs ...
    */
   for (i = 0; i < naigs; i++)
     fprintf (file, "%u\n", btor_aiger_encode_aig (table, aigs[i]));
+  assert (i == O);  // TODO remove
 
   /* And finally all the AND gates.
    */
