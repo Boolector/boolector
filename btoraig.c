@@ -766,7 +766,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
 
   /* First add latches and inputs to hash tables.
    */
-  for (i = 0; i < nregs; i++)
+  for (i = nregs - 1; i >= 0; i--)
   {
     aig = regs[i];
     assert (!BTOR_IS_CONST_AIG (aig));
@@ -821,7 +821,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
     }
   }
 
-  for (i = nregs - 1; i >= 0; i--)
+  for (i = 0; i < nregs; i++)
   {
     aig = regs[i];
     assert (!BTOR_IS_CONST_AIG (aig));

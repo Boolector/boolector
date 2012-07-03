@@ -1229,7 +1229,7 @@ boolector_main (int argc, char **argv)
     }
     else if (parse_res.nregs > 0)
     {
-      fprintf (app.output_file, "removed support for sequential models");
+      fprintf (app.output_file, "*** removed support for sequential models\n");
       app.err = 1;
     }
     else
@@ -1280,7 +1280,7 @@ boolector_main (int argc, char **argv)
 
       if (parse_res.nregs > 0)
       {
-        fprintf (app.output_file, "removed support for sequential models");
+        fprintf (app.output_file, "** removed support for sequential models\n");
         app.err = 1;
       }
       else
