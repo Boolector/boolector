@@ -8367,7 +8367,7 @@ process_skeleton (Btor *btor)
 
   if (res == 20)
   {
-    btor_msg_exp (btor, "skeleton inconsistent");
+    if (btor->verbosity) btor_msg_exp (btor, "skeleton inconsistent");
     btor->inconsistent = 1;
   }
   else
