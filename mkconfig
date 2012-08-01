@@ -15,10 +15,10 @@ EOF
 
 if [ ! x"`grep '^CC=gcc$' makefile`" =  x ]
 then
-patchgccversion="`gcc --version|head -1`"
-patchgccversion="s,\"gcc\",\"$patchgccversion\","
+  patchgccversion="`gcc --version|head -1`"
+  patchgccversion="s/gcc/$patchgccversion/"
 else
-patchgccversion="s,DUMMY,DUMMY,"
+  patchgccversion="s,DUMMY,DUMMY,"
 fi
 
 sed \
@@ -26,7 +26,7 @@ sed \
   -e 's,^,#define BTOR_,' \
   -e 's,= *, ",' \
   -e 's,$,",' \
-  makefile | sed -e "$patchgccversion"
+  makefile | sed "$patchgccversion"
 
 echo "#define BTOR_OS \"`uname -srmn`\""
 echo "#define BTOR_COMPILED \"`date`\""
