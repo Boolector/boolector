@@ -27,23 +27,23 @@ do
     ./writechains $aarg $numbits | boolector -rwl0 -ds | while read line
     do
       if [[ $header -eq 1 ]]; then
-	echo "(benchmark $filename" > $filename
-	echo ":source {" >> $filename
-	echo "This benchmark generates write chain permutations and tries to show" >> $filename
-	echo "via extensionality that they are equal." >> $filename
-	echo "" >> $filename
-	echo -n "Contributed by Armin Biere " >> $filename
-	echo "(armin.biere@jku.at)." >> $filename
-	echo "}" >> $filename
-	if [[ $a -eq 1 ]]; then
-	  echo ":status unsat" >> $filename
-	else
-	  echo ":status sat" >> $filename
-	fi
-	echo ":category { crafted }" >> $filename
-	header=0
+        echo "(benchmark $filename" > $filename
+        echo ":source {" >> $filename
+        echo "This benchmark generates write chain permutations and tries to show" >> $filename
+        echo "via extensionality that they are equal." >> $filename
+        echo "" >> $filename
+        echo -n "Contributed by Armin Biere " >> $filename
+        echo "(armin.biere@jku.at)." >> $filename
+        echo "}" >> $filename
+        if [[ $a -eq 1 ]]; then
+          echo ":status unsat" >> $filename
+        else
+          echo ":status sat" >> $filename
+        fi
+        echo ":category { crafted }" >> $filename
+        header=0
       else
-	echo $line >> $filename
+        echo $line >> $filename
       fi
     done
     if [[ $numbits -eq 20 ]]; then

@@ -27,30 +27,30 @@ for ((overlap=0;overlap<=1;overlap+=1))
     do
       if [[ $header -eq 1 ]]; then
         echo "(benchmark $filename" > $filename
-	echo ":source {" >> $filename
-	echo "We swap two byte sequences of length $size twice in memory." >> $filename
-	if [[ $overlap -eq 1 ]]; then
-	  echo "The sequences can overlap, hence it is not always the case" >> $filename
-	else
-	  echo "The sequences can not overlap, hence it is always the case" >> $filename
-	fi
-	echo "that swapping them twice yields the initial memory." >> $filename
-	echo "" >> $filename
-	echo "Swapping is done via XOR in the following way:" >> $filename
-	echo "x ^= y;" >> $filename 
-	echo "y ^= x;" >> $filename
-	echo "x ^= y;" >> $filename
-	echo "" >> $filename
-	echo -n "Contributed by Robert Brummayer " >> $filename
-	echo "(robert.brummayer@gmail.com)." >> $filename
-	echo "}" >> $filename
-	if [[ $overlap -eq 1 ]]; then
-	  echo ":status sat" >> $filename
-	else
-	  echo ":status unsat" >> $filename
-	fi
-	echo ":category { crafted }" >> $filename
-	header=0
+        echo ":source {" >> $filename
+        echo "We swap two byte sequences of length $size twice in memory." >> $filename
+        if [[ $overlap -eq 1 ]]; then
+          echo "The sequences can overlap, hence it is not always the case" >> $filename
+        else
+          echo "The sequences can not overlap, hence it is always the case" >> $filename
+        fi
+        echo "that swapping them twice yields the initial memory." >> $filename
+        echo "" >> $filename
+        echo "Swapping is done via XOR in the following way:" >> $filename
+        echo "x ^= y;" >> $filename 
+        echo "y ^= x;" >> $filename
+        echo "x ^= y;" >> $filename
+        echo "" >> $filename
+        echo -n "Contributed by Robert Brummayer " >> $filename
+        echo "(robert.brummayer@gmail.com)." >> $filename
+        echo "}" >> $filename
+        if [[ $overlap -eq 1 ]]; then
+          echo ":status sat" >> $filename
+        else
+          echo ":status unsat" >> $filename
+        fi
+        echo ":category { crafted }" >> $filename
+        header=0
       else
         echo $line >> $filename
       fi

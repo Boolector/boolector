@@ -73,13 +73,13 @@ update=0
 while getopts "i:c:nrs:v:" o
 do
   case "$o" in
-  i)	id=$OPTARG;;
-  c)	cov=1; covlimit=$OPTARG;;
-  n)	covcleanup=0;;
-  r)	crosscheck=1;;
+  i)    id=$OPTARG;;
+  c)    cov=1; covlimit=$OPTARG;;
+  n)    covcleanup=0;;
+  r)    crosscheck=1;;
   s)    stats=1; update=$OPTARG;;
   v)    valgrindcheck=$OPTARG;;
-  [?])	echo "$usage" 1>&2; exit 1;;
+  [?])  echo "$usage" 1>&2; exit 1;;
   esac
 done
 
@@ -117,9 +117,9 @@ do
   randomnumber=$RANDOM
   ((randomnumber %= 3))
   case $randomnumber in
-  0)	uamode=uag;;
-  1)	uamode=ual;;
-  2)	uamode=uali;;
+  0)    uamode=uag;;
+  1)    uamode=ual;;
+  2)    uamode=uali;;
   esac
 
   randomnumber=$RANDOM
@@ -133,10 +133,10 @@ do
   randomnumber=$RANDOM
   ((randomnumber &= 3))
   case $randomnumber in
-  0)	uaenc=uaz;;
-  1)	uaenc=uao;;
-  2)	uaenc=uas;;
-  3)	uaenc=uac; uabwref=uad;;     # uac needs uad
+  0)    uaenc=uaz;;
+  1)    uaenc=uao;;
+  2)    uaenc=uas;;
+  3)    uaenc=uac; uabwref=uad;;     # uac needs uad
   esac
 
   ua=$RANDOM
@@ -224,11 +224,11 @@ do
     if [[ "$rwl" -eq 3 ]]; then 
       goldenresult=$result
       if [[ "$goldenresult" != sat ]] && [[ "$goldenresult" != unsat ]]; then
-	echo "ERROR"
-	cp "$file" error${id}.$suffix
-	echo "error: $callstring" > $errtxtfile
-	cleanup
-	exit 1
+        echo "ERROR"
+        cp "$file" error${id}.$suffix
+        echo "error: $callstring" > $errtxtfile
+        cleanup
+        exit 1
       fi
       if [[ "$crosscheck" -eq 1 ]]; then
         if [[ $suffix == smt ]]; then
@@ -239,67 +239,67 @@ do
           echo "INTERNAL ERROR"
           exit 1
         fi
-	if [[ "$goldenresult" != "$result" ]]; then
-	  echo "ERROR"
-	  cp "$file" error${id}.$suffix
-	  echo "error: $callstring" > "$errtxtfile"
+        if [[ "$goldenresult" != "$result" ]]; then
+          echo "ERROR"
+          cp "$file" error${id}.$suffix
+          echo "error: $callstring" > "$errtxtfile"
           echo "boolector-0.4 yields different result" >> "$errtxtfile"
           if [[ $suffix != btor ]]; then
             echo "after converting file to BTOR" >> "$errtxtfile"
           fi
-	  cleanup
-	  exit 1
-	fi
+          cleanup
+          exit 1
+        fi
       fi
     else
       if [[ "$goldenresult" != "$result" ]]; then
-	echo "ERROR"
-	cp "$file" error${id}.$suffix
-	echo "error: $callstring" > "$errtxtfile"
-	echo "golden result: $goldenresult" >> "$errtxtfile"
-	echo "actual result: $result" >> "$errtxtfile"
-	cleanup
-	exit 1
+        echo "ERROR"
+        cp "$file" error${id}.$suffix
+        echo "error: $callstring" > "$errtxtfile"
+        echo "golden result: $goldenresult" >> "$errtxtfile"
+        echo "actual result: $result" >> "$errtxtfile"
+        cleanup
+        exit 1
       fi
     fi 
 
     if [[ "$cov" -eq 1 ]]; then
       if [[ ! -s "$stderror" ]]; then
-	rm "$stderror"
+        rm "$stderror"
       else
         cat "$stderror" | sort | uniq > "$filetmp"
-	hashsum=`md5sum "$filetmp" | awk '{ print $1 }'`
+        hashsum=`md5sum "$filetmp" | awk '{ print $1 }'`
         # synchronization for parallel usage
-	( flock -x 200 
-	  numcovtests=`cat "$filecovhashes" | wc -l`
-	  if [[ "$numcovtests" -eq "$covlimit" ]]; then
-	    exit 2
-	  fi
-	  if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
-	    echo "$hashsum" >> "$filecovhashes"
-	    exit 1
-	  else
-	    exit 0
-	  fi 
-	) 200> "$filecovlock"
-	retval=$?
+        ( flock -x 200 
+          numcovtests=`cat "$filecovhashes" | wc -l`
+          if [[ "$numcovtests" -eq "$covlimit" ]]; then
+            exit 2
+          fi
+          if [[ `grep -c "^$hashsum" "$filecovhashes"` -eq 0 ]]; then
+            echo "$hashsum" >> "$filecovhashes"
+            exit 1
+          else
+            exit 0
+          fi 
+        ) 200> "$filecovlock"
+        retval=$?
 
-	if [[ "$retval" -eq 2 ]]; then
-	  cleanup
-	  rm "$stderror"
-	  exit 0
-	fi
+        if [[ "$retval" -eq 2 ]]; then
+          cleanup
+          rm "$stderror"
+          exit 0
+        fi
 
-	if [[ "$retval" -eq 1 ]]; then
-	  cp "$filetmp" "$stderror"
-	  callfile=${covbase}.cs
-	  covtestfile=${covbase}.btor
-	  echo ${callstring/" $file"/""} > "$callfile"
-	  cp "$file" "$covtestfile"
-	  ((covtestcounter++))
-	else
-	  rm "$stderror"
-	fi
+        if [[ "$retval" -eq 1 ]]; then
+          cp "$filetmp" "$stderror"
+          callfile=${covbase}.cs
+          covtestfile=${covbase}.btor
+          echo ${callstring/" $file"/""} > "$callfile"
+          cp "$file" "$covtestfile"
+          ((covtestcounter++))
+        else
+          rm "$stderror"
+        fi
       fi
     fi
 

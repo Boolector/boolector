@@ -36,8 +36,8 @@ id=1
 while getopts "i:" o
 do
   case "$o" in
-  i)	id=$OPTARG;;
-  [?])	echo "$usage" 1>&2; exit 1;;
+  i)    id=$OPTARG;;
+  [?])  echo "$usage" 1>&2; exit 1;;
   esac
 done
 

@@ -9,10 +9,10 @@
   function print_child_arrow (id, child_id, op) {
     if (child_id < 0)
       printf "%d -> %d [arrowhead = \"dot\", taillabel=\"%d\"];\n", id,
-					       -child_id, op
+                                               -child_id, op
     else 
       printf "%d -> %d [arrowhead = \"normal\", taillabel=\"%d\"];\n", 
-						id, child_id, op
+                                                id, child_id, op
   }
 
   BEGIN { print "digraph G {" } 

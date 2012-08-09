@@ -30,9 +30,9 @@ do
       echo "(robert.brummayer@gmail.com)." >> $filename
       echo "}" >> $filename
       if [[ $overlap -eq 1 ]]; then
-	echo ":status sat" >> $filename
+        echo ":status sat" >> $filename
       else
-	echo ":status unsat" >> $filename
+        echo ":status unsat" >> $filename
       fi
       echo ":category { crafted }" >> $filename
       header=0

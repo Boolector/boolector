@@ -1,26 +1,98 @@
 #!/bin/sh
-if [ $# -gt 1 ]; then
-  echo "Usage: ./btorvis.sh <filename>"
-  exit 1
-fi
-temp=/tmp/btorvis$$
-pstemp=$temp".ps"
-pdftemp=$temp".pdf"
+
+readonly TMPDIR=/tmp
+readonly TMPFILE_NAME=btorvis$$
+
+readonly tmpfile_pdf="$TMPDIR/$tmpfile_name".pdf
+readonly tmpfile_ps="$TMPFILE_NAME".ps
+
+inputfile=unknown
+pdfreader=unknown
+ps2pdf=ps2pdf
 btor2dot=unknown
-for d in `echo $PATH|sed -e 's,:, ,g'` .
-do
-  file=$d/btor2dot
-  [ -d $d ] || continue
-  [ -f $file ] || continue
-  btor2dot=$file
-  break
-done
-if [ $btor2dot = unknown ]
-then
-  echo "*** btorvis: can not find 'btor2dot'" 1>&2
+
+
+function info
+{
+  echo "*** btorvis: $1"
+}
+
+function die
+{
+  info "$1"
   exit 1
+}
+       
+while [ $# -gt 0 ]
+do
+  case $1 in
+        -h|--help) echo -e "usage: btorvis [ -h | --help ] <file> \n"
+                   exit 0;;
+        *)         break;;
+  esac
+  shift
+done
+
+if [ $# -gt 1 ]; then
+  die "invalid number of arguments: '$#'"
 fi
-cat $*|$btor2dot | dot -Tps2 > $pstemp
-ps2pdf $pstemp $pdftemp || exit 1
-acroread $pdftemp
-rm -f $pstemp $pdftemp
+
+inputfile="$*"
+if [ ! -f $inputfile ]; then
+  die "invalid input file: '$inputfile'"
+fi
+
+btor2dot=$(readlink -f "./btor2dot")
+if [ ! -f $btor2dot ]; then
+  btor2dot=$(readlink -f "./contrib/btor2dot")
+  if [ ! -f $btor2dot ]; then
+    for d in `echo $PATH|sed -e 's,:, ,g'` .
+    do
+      file=$d/btor2dot
+      [ -d $d ] || continue
+      [ -f $file ] || continue
+      btor2dot=$file
+      break
+    done
+  fi
+  if [ ! -f $btor2dot ]; then
+    die "could not find 'btor2dot'"
+  fi
+fi
+
+ps2pdf=$(which "$ps2pdf")
+
+if [ $? = 1 ]; then
+  die "could not find 'ps2pdf'"
+fi
+
+for pdfreader in "evince" "acroread"; do
+  which "$pdfreader"
+  if [ $? = 0 ]; then
+    break
+  fi
+done
+
+if [ x"$pdfreader" = xunknown ]; then
+  die "no pdf reader found"
+fi
+
+
+## run
+
+info "generating dot file"
+cat "$inputfile" | $btor2dot | dot -Tps2 > $tmpfile_ps
+
+info "generation pdf file"
+$ps2pdf $tmpfile_ps $tmpfile_pdf
+if [ $? = 1 ]; then
+  die "failed to generate pdf file"
+fi
+
+"$pdfreader" $tmpfile_pdf
+
+
+## cleanup
+
+rm -f $tmpfile_ps $tmpfile_pdf
+exit 0

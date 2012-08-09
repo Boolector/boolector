@@ -40,11 +40,11 @@ trap 'cleanup; if [[ `ls error*.btor 2> /dev/null | wc -l` -ne 0 ]]; then exit 1
 while getopts "c:dxp:" o
 do
   case "$o" in
-  c)	cov=1; covlimit=$OPTARG;;
-  d)	dialog=dialog;;
-  x)	dialog=Xdialog;;
+  c)    cov=1; covlimit=$OPTARG;;
+  d)    dialog=dialog;;
+  x)    dialog=Xdialog;;
   p)    processes=$OPTARG;;
-  [?])	echo "$usage" 1>&2; exit 1;;
+  [?])  echo "$usage" 1>&2; exit 1;;
   esac
 done
 

@@ -147,16 +147,16 @@ for line in sys.stdin:
       print "(benchmark " + bench_name
 
       if comment_file_name != "":
-	print ":source {"
-	try:
-	  comment_file = open(comment_file_name, 'r')
-	  for line in comment_file:
-	    line = line.rstrip("\n")
-	    print line
-	  print "}"
-	except Exception, e:
-	  print >>sys.stderr, "could not read comment file"
-	  sys.exit (1)
+        print ":source {"
+        try:
+          comment_file = open(comment_file_name, 'r')
+          for line in comment_file:
+            line = line.rstrip("\n")
+            print line
+          print "}"
+        except Exception, e:
+          print >>sys.stderr, "could not read comment file"
+          sys.exit (1)
         comment_file.close ()
 
       assert (status == "sat" or status == "unsat" or status == "unknown")
@@ -167,34 +167,34 @@ for line in sys.stdin:
         print ":category { " + category + " }"
 
       if len(arrays) != 0:
-	print ":logic QF_AUFBV"
+        print ":logic QF_AUFBV"
       else:
-	print ":logic QF_BV"
+        print ":logic QF_BV"
 
       for val in vars.itervalues():
-	print ":extrafuns ((" + val.name + " BitVec[" + val.bw + "]))"
+        print ":extrafuns ((" + val.name + " BitVec[" + val.bw + "]))"
       for val in arrays.itervalues():
-	print ":extrafuns ((" + val.name + " Array[" + val.index_bw + ":" + \
-	      val.elem_bw + "]))"
+        print ":extrafuns ((" + val.name + " Array[" + val.index_bw + ":" + \
+              val.elem_bw + "]))"
       print ":formula"
 
     # constant declarations
     if op == "const":
       if int(bw) != len(words[3]):
-	print >>sys.stderr, str(line_nr) + ": syntax error"
-	sys.exit (1)
+        print >>sys.stderr, str(line_nr) + ": syntax error"
+        sys.exit (1)
       try:
-	val = int(words[3], 2)
+        val = int(words[3], 2)
       except Exception, e:
-	print >>sys.stderr, str(line_nr) + ": syntax error"
-	sys.exit (1)
+        print >>sys.stderr, str(line_nr) + ": syntax error"
+        sys.exit (1)
       print "(let (?e" + id + " bv" + str(val) + "[" + bw + "])"
     elif op == "consth":
       try:
-	val = int(words[3], 16)
+        val = int(words[3], 16)
       except Exception, e:
-	print >>sys.stderr, str(line_nr) + ": syntax error"
-	sys.exit (1)
+        print >>sys.stderr, str(line_nr) + ": syntax error"
+        sys.exit (1)
       print "(let (?e" + id + " bv" + str(val) + "[" + bw + "])"
     elif op == "constd":
       print "(let (?e" + id + " bv" + words[3] + "[" + bw + "])"
@@ -228,9 +228,9 @@ for line in sys.stdin:
       print "(let (?e" + id + " (sign_extend[" + words[4] + "] " + op1 + "))"
     # regular binary bit-vector operators
     elif op == "and" or op == "nand" or op == "or" or op == "nor" or \
-	 op == "xor" or op == "xnor" or op == "add" or op == "sub" or \
-	 op == "mul" or op == "udiv" or op == "sdiv" or op == "urem" or \
-	 op == "srem" or op == "smod":
+         op == "xor" or op == "xnor" or op == "add" or op == "sub" or \
+         op == "mul" or op == "udiv" or op == "sdiv" or op == "urem" or \
+         op == "srem" or op == "smod":
       op1 = get_operand (words[3])
       op2 = get_operand (words[4])
       print "(let (?e" + id + " (bv" + op + " " + op1 + " " + op2 + "))"
@@ -241,11 +241,11 @@ for line in sys.stdin:
       print "(let (?e" + id + " (concat " + op1 + " " + op2 + "))"
     # bit-vector predicates 
     elif op == "ult" or op == "ulte" or op == "ugt" or op == "ugte" or \
-	 op == "slt" or op == "slte" or op == "sgt" or op == "sgte":
+         op == "slt" or op == "slte" or op == "sgt" or op == "sgte":
       op1 = get_operand (words[3])
       op2 = get_operand (words[4])
       if len(op) == 4:
-	op_a = op.replace("t", "")
+        op_a = op.replace("t", "")
       else:
         op_a = op
       print "(let (?e" + id + " (ite (bv" + op_a + " " + op1 + " " + op2 + \
@@ -273,21 +273,21 @@ for line in sys.stdin:
       op2 = get_operand (words[4])
       bwext = str (int(bw) - log2 (int(bw)))
       if op == "sll":
-	op_a = "bvshl"
+        op_a = "bvshl"
       elif op == "srl":
         op_a = "bvlshr"
       else:
         assert (op == "sra")
         op_a = "bvashr"
       print "(let (?e" + id + " (" + op_a + " " + op1 + " (zero_extend[" + \
-	    bwext + "] " + op2 +")))"
+            bwext + "] " + op2 +")))"
     # cond 
     elif op == "cond" or op == "acond":
       op1 = get_operand (words[3])
       op2 = get_operand (words[4])
       op3 = get_operand (words[5])
       print "(let (?e" + id + " (ite (= bv1[1] " + op1 + ") " + \
-	    op2 + " " + op3 + "))"
+            op2 + " " + op3 + "))"
     # read
     elif op == "read":
       op1 = get_operand (words[3])
@@ -303,7 +303,7 @@ for line in sys.stdin:
     elif op == "root":
       if found_root:
         print str(line_nr) + ": only one root supported"
-	sys.exit (1)
+        sys.exit (1)
       found_root = True
       op1 = get_operand (words[3])
       print "(not (= " + op1 + " bv0[1]))"

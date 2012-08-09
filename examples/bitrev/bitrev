@@ -65,8 +65,8 @@ do
       mask2=$mask2$((!val))
       ((counter++))
       if [[ $counter -eq $i ]]; then
-	((val = ! val))
-	counter=0
+        ((val = ! val))
+        counter=0
       fi
     done
     echo "$((id++)) const $bits $mask1"
