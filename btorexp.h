@@ -30,6 +30,10 @@ BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
  * Some code also depends on that BTOR_INVALID_NODE, BTOR_CONST_NODE
  * and BTOR_VAR_NODE are at the beginning,
  * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
+ * FURTHER NOTE:
+ * binary nodes: [BTOR_AND_NODE, ..., BTOR_LAMBDA_NODE]
+ * ternary nodes: [BTOR_WRITE_NODE, ..., BTOR_ACOND_NODE]
+ * commutative nodes: [BTOR_AND_NODE, ..., BTOR_MUL_NODE]
  */
 enum BtorNodeKind
 {
@@ -40,27 +44,29 @@ enum BtorNodeKind
    */
   BTOR_INVALID_NODE = 0,
 
-  BTOR_BV_CONST_NODE  = 1,
-  BTOR_BV_VAR_NODE    = 2,
-  BTOR_ARRAY_VAR_NODE = 3,
-  BTOR_SLICE_NODE     = 4,
-  BTOR_AND_NODE       = 5,
-  BTOR_BEQ_NODE       = 6, /* equality on bit vectors */
-  BTOR_AEQ_NODE       = 7, /* equality on arrays */
-  BTOR_ADD_NODE       = 8,
-  BTOR_MUL_NODE       = 9,
-  BTOR_ULT_NODE       = 10,
-  BTOR_SLL_NODE       = 11,
-  BTOR_SRL_NODE       = 12,
-  BTOR_UDIV_NODE      = 13,
-  BTOR_UREM_NODE      = 14,
-  BTOR_CONCAT_NODE    = 15,
-  BTOR_READ_NODE      = 16,
-  BTOR_WRITE_NODE     = 17,
-  BTOR_BCOND_NODE     = 18, /* conditional on bit vectors */
-  BTOR_ACOND_NODE     = 19, /* conditional on arrays */
-  BTOR_PROXY_NODE     = 20, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 21
+  BTOR_BV_CONST_NODE   = 1,
+  BTOR_BV_VAR_NODE     = 2,
+  BTOR_ARRAY_VAR_NODE  = 3,
+  BTOR_LAMBDA_VAR_NODE = 4, /* lambda variable in lambda expressions */
+  BTOR_SLICE_NODE      = 5,
+  BTOR_AND_NODE        = 6,
+  BTOR_BEQ_NODE        = 7, /* equality on bit vectors */
+  BTOR_AEQ_NODE        = 8, /* equality on arrays */
+  BTOR_ADD_NODE        = 9,
+  BTOR_MUL_NODE        = 10,
+  BTOR_ULT_NODE        = 11,
+  BTOR_SLL_NODE        = 12,
+  BTOR_SRL_NODE        = 13,
+  BTOR_UDIV_NODE       = 14,
+  BTOR_UREM_NODE       = 15,
+  BTOR_CONCAT_NODE     = 16,
+  BTOR_READ_NODE       = 17,
+  BTOR_LAMBDA_NODE     = 18, /* lambda expression */
+  BTOR_WRITE_NODE      = 19,
+  BTOR_BCOND_NODE      = 20, /* conditional on bit vectors */
+  BTOR_ACOND_NODE      = 21, /* conditional on arrays */
+  BTOR_PROXY_NODE      = 22, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE    = 23
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
@@ -151,6 +157,7 @@ struct BtorBVVarNode
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
+typedef struct BtorBVVarNode BtorLambdaVarNode;
 
 struct BtorBVConstNode
 {
@@ -304,6 +311,10 @@ struct Btor
   } time;
 };
 
+#define BTOR_IS_LAMBDA_VAR_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_VAR_NODE)
+
+#define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
+
 #define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
@@ -322,7 +333,7 @@ struct Btor
 
 #define BTOR_IS_ARRAY_NODE_KIND(kind)                             \
   (((kind) == BTOR_ARRAY_VAR_NODE) || ((kind) == BTOR_WRITE_NODE) \
-   || ((kind) == BTOR_ACOND_NODE))
+   || ((kind) == BTOR_ACOND_NODE) || ((kind) == BTOR_LAMBDA_NODE))
 
 #define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
 
@@ -331,13 +342,19 @@ struct Btor
 #define BTOR_IS_UNARY_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
 
 #define BTOR_IS_BINARY_NODE_KIND(kind) \
-  (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_READ_NODE))
+  ((((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_LAMBDA_NODE)))
 
 #define BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND(kind) \
   (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_MUL_NODE))
 
 #define BTOR_IS_TERNARY_NODE_KIND(kind) \
   (((kind) >= BTOR_WRITE_NODE) && ((kind) <= BTOR_ACOND_NODE))
+
+#define BTOR_IS_LAMBDA_VAR_NODE(exp) \
+  ((exp) && BTOR_IS_LAMDA_VAR_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_LAMBDA_NODE(exp) \
+  ((exp) && BTOR_IS_LAMDA_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_CONST_NODE(exp) \
   ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
@@ -518,6 +535,20 @@ BtorNode *btor_int_to_exp (Btor *emg, int i, int len);
  * len(result) = len
  */
 BtorNode *btor_var_exp (Btor *btor, int len, const char *symbol);
+
+/* Lambda variable representing 'len' bits.
+ * len > 0
+ * len(result) = len
+ */
+BtorNode *btor_lambda_var_exp (Btor *btor, int len, const char *symbol);
+
+/* Lambda expression representing array of size 2 ^ 'index_len' with elements
+ * of length 'elem_len'.
+ * elem_len > 0
+ * index_len > 0
+ */
+BtorNode *btor_lambda_exp (
+    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp);
 
 /* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
@@ -927,6 +958,9 @@ BtorNode *btor_cond_exp_node (Btor *btor,
                               BtorNode *e_cond,
                               BtorNode *e_if,
                               BtorNode *e_else);
+
+BtorNode *btor_lambda_exp_node (
+    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp);
 
 /*------------------------------------------------------------------------*/
 

@@ -482,7 +482,7 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
       child->last_aeq_acond_parent = parent->prev_aeq_acond_parent[pos];
       BTOR_NEXT_AEQ_ACOND_PARENT (child->last_aeq_acond_parent) = 0;
     }
-    /* hang out parent from list */
+    /* detach parent from list */
     else
     {
       assert (parent->next_aeq_acond_parent[pos]);
@@ -2607,6 +2607,46 @@ btor_var_exp (Btor *btor, int len, const char *symbol)
 }
 
 BtorNode *
+btor_lambda_var_exp (Btor *btor, int len, const char *symbol)
+{
+  BtorMemMgr *mm;
+  BtorLambdaVarNode *exp;
+
+  assert (btor);
+  assert (len > 0);
+  assert (symbol);
+
+  mm = btor->mm;
+  BTOR_CNEW (mm, exp);
+  btor->ops[BTOR_LAMBDA_VAR_NODE]++;
+  exp->kind   = BTOR_LAMBDA_VAR_NODE;
+  exp->bytes  = sizeof *exp;
+  exp->symbol = btor_strdup (mm, symbol);
+  exp->len    = len;
+  setup_node_and_add_to_id_table (btor, exp);
+  //  exp->bits = btor_x_const_3vl (mm, len);  // TODO: do we need that?
+  return (BtorNode *) exp;
+}
+
+BtorNode *
+btor_lambda_exp (
+    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp)
+{
+  assert (btor);
+  assert (elem_len > 0);
+  assert (index_len > 0);
+  assert (BTOR_IS_LAMBDA_VAR_NODE (e_lvar));
+  //  assert (BTOR_REAL_ADDR_NODE (e_lvar)->len <= index_len);
+  assert (!BTOR_REAL_ADDR_NODE (e_lvar)->simplified);
+  assert (e_exp);
+  assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
+
+  e_exp = btor_pointer_chase_simplified_exp (btor, e_exp);
+
+  return btor_lambda_exp_node (btor, elem_len, index_len, e_lvar, e_exp);
+}
+
+BtorNode *
 btor_array_exp (Btor *btor, int elem_len, int index_len, const char *symbol)
 {
   BtorMemMgr *mm;
@@ -2943,6 +2983,27 @@ btor_cond_exp_node (Btor *btor,
 
   return ternary_exp (
       btor, kind, e_cond, e_if, e_else, BTOR_REAL_ADDR_NODE (e_if)->len);
+}
+
+BtorNode *
+btor_lambda_exp_node (
+    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp)
+{
+  BtorNode *lambda_exp;
+
+  BTOR_CNEW (btor->mm, lambda_exp);
+  btor->ops[BTOR_LAMBDA_NODE]++;
+  lambda_exp->kind      = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes     = sizeof *lambda_exp;
+  lambda_exp->arity     = 2;
+  lambda_exp->len       = elem_len;
+  lambda_exp->index_len = index_len;
+  setup_node_and_add_to_id_table (btor, lambda_exp);
+  connect_child_exp (btor, lambda_exp, e_lvar, 0);
+  connect_child_exp (btor, lambda_exp, e_exp, 1);
+
+  // TODO: insert into btor->lambda_exps?
+  return lambda_exp;
 }
 
 BtorNode *
@@ -6675,6 +6736,51 @@ rewrite_linear_term (
   return res;
 }
 
+static void
+rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
+{
+  //  BtorMemMgr *mm;
+  BtorNode *lambda_exp, *lambda_var, *cond_exp, *e_cond, *e_if, *e_else;
+  BtorNode *cur_parent;
+  BtorFullParentIterator it;
+  int pos;
+  //  char *lambda_var_name;
+  //  int name_len;
+
+  assert (btor);
+  assert (write);
+  assert (BTOR_IS_WRITE_NODE (write));
+
+  write = BTOR_REAL_ADDR_NODE (write);
+
+  //  /* digits + len("lambdavar_")  */
+  //  name_len = btor_num_digits_util (BTOR_REAL_ADDR_NODE (write)->id) + 10;
+  //  lambda_var = btor_lambda_var_exp (btor, lambda_var_name, name_len);
+
+  /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
+  lambda_var = btor_lambda_var_exp (btor, write->e[1]->len, 0);
+  e_else     = btor_read_exp (btor, write->e[0], lambda_var);
+  e_if       = btor_copy_exp (btor, write->e[2]);
+  e_cond     = btor_eq_exp (btor, lambda_var, write->e[1]);
+  cond_exp   = btor_cond_exp (btor, e_cond, e_if, e_else);
+  lambda_exp = btor_lambda_exp (
+      btor, write->len, write->index_len, lambda_var, cond_exp);
+
+  /* replace write node with new lambda_exp */
+  init_full_parent_iterator (&it, write);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    cur_parent = next_parent_full_parent_iterator (&it);
+    pos        = BTOR_GET_TAG_NODE (cur_parent);
+    assert (BTOR_REAL_ADDR_NODE (cur_parent->e[pos]) == write);
+    disconnect_child_exp (btor, cur_parent, pos);
+    connect_child_exp (btor, cur_parent, lambda_exp, pos);
+  }
+
+  assert (write->refs == 0);
+  btor_release_exp (btor, write);
+}
+
 static int
 is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
@@ -6684,7 +6790,7 @@ is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 }
 
 static BtorNode *
-lambda_var_exp (Btor *btor, int len)
+bvlambda_var_exp (Btor *btor, int len)
 {
   BtorNode *result;
   char *name;
@@ -6894,7 +7000,7 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         const_exp = btor_zero_exp (btor, leadings);
-        lambda    = lambda_var_exp (btor, var->len - leadings);
+        lambda    = bvlambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -6910,7 +7016,7 @@ normalize_substitution (Btor *btor,
       if (leadings > 0)
       {
         const_exp = btor_ones_exp (btor, leadings);
-        lambda    = lambda_var_exp (btor, var->len - leadings);
+        lambda    = bvlambda_var_exp (btor, var->len - leadings);
         tmp       = btor_concat_exp (btor, const_exp, lambda);
         insert_varsubst_constraint (btor, var, tmp);
         btor_release_exp (btor, const_exp);
@@ -8055,12 +8161,12 @@ eliminate_slices_on_bv_vars (Btor *btor)
            compare_slices_qsort);
 
     s1     = sorted_slices[(int) slices->count - 1];
-    result = lambda_var_exp (btor, s1->upper - s1->lower + 1);
+    result = bvlambda_var_exp (btor, s1->upper - s1->lower + 1);
     delete_slice (btor, s1);
     for (i = (int) slices->count - 2; i >= 0; i--)
     {
       s1         = sorted_slices[i];
-      lambda_var = lambda_var_exp (btor, s1->upper - s1->lower + 1);
+      lambda_var = bvlambda_var_exp (btor, s1->upper - s1->lower + 1);
       temp       = btor_concat_exp (btor, result, lambda_var);
       btor_release_exp (btor, result);
       result = temp;
