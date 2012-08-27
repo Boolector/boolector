@@ -91,7 +91,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int unique : 1;       /* in unique table? */              \
     unsigned int bytes : 8;        /* allocated bytes */               \
     unsigned int arity : 2;        /* arity of operator */             \
-    char *bits;                    /* three valued bits */             \
+    char *bits;                    /* three-valued bits */             \
     int id;                        /* unique expression id */          \
     int len;                       /* number of bits */                \
     int refs;                      /* reference counter */             \
