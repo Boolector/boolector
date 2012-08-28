@@ -959,9 +959,6 @@ BtorNode *btor_cond_exp_node (Btor *btor,
                               BtorNode *e_if,
                               BtorNode *e_else);
 
-BtorNode *btor_lambda_exp_node (
-    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp);
-
 /*------------------------------------------------------------------------*/
 
 /* Synthesizes expression of arbitrary length to an AIG vector. Adds string

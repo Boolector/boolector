@@ -2090,6 +2090,30 @@ new_aeq_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 static BtorNode *
+new_lambda_exp_node (Btor *btor, BtorNode *e_lvar, BtorNode *e_exp, int len)
+{
+  BtorNode *lambda_exp;
+
+  assert (btor);
+  assert (e_lvar);
+  assert (e_exp);
+  assert (len > 0);
+
+  BTOR_CNEW (btor->mm, lambda_exp);
+  btor->ops[BTOR_LAMBDA_NODE]++;
+  lambda_exp->kind      = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes     = sizeof *lambda_exp;
+  lambda_exp->arity     = 2;
+  lambda_exp->len       = len;
+  lambda_exp->index_len = BTOR_REAL_ADDR_NODE (e_lvar)->len;
+  setup_node_and_add_to_id_table (btor, lambda_exp);
+  connect_child_exp (btor, lambda_exp, e_lvar, 0);
+  connect_child_exp (btor, lambda_exp, e_exp, 1);
+
+  return lambda_exp;
+}
+
+static BtorNode *
 new_ternary_exp_node (Btor *btor,
                       BtorNodeKind kind,
                       BtorNode *e0,
@@ -2628,26 +2652,8 @@ btor_lambda_var_exp (Btor *btor, int len, const char *symbol)
   exp->symbol = btor_strdup (mm, symbol);
   exp->len    = len;
   setup_node_and_add_to_id_table (btor, exp);
-  //  exp->bits = btor_x_const_3vl (mm, len);  // TODO: do we need that?
+  //  exp->bits = btor_x_const_3vl (mm, len);
   return (BtorNode *) exp;
-}
-
-BtorNode *
-btor_lambda_exp (
-    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp)
-{
-  assert (btor);
-  assert (elem_len > 0);
-  assert (index_len > 0);
-  assert (BTOR_IS_LAMBDA_VAR_NODE (e_lvar));
-  //  assert (BTOR_REAL_ADDR_NODE (e_lvar)->len <= index_len);
-  assert (!BTOR_REAL_ADDR_NODE (e_lvar)->simplified);
-  assert (e_exp);
-  assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
-
-  e_exp = btor_pointer_chase_simplified_exp (btor, e_exp);
-
-  return btor_lambda_exp_node (btor, elem_len, index_len, e_lvar, e_exp);
 }
 
 BtorNode *
@@ -2763,6 +2769,8 @@ binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
     }
     if (kind == BTOR_AEQ_NODE)
       *lookup = new_aeq_exp_node (btor, e0, e1);
+    else if (kind == BTOR_LAMBDA_NODE)
+      *lookup = new_lambda_exp_node (btor, e0, e1, len);
     else
       *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
     inc_exp_ref_counter (btor, e0);
@@ -2899,6 +2907,31 @@ btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   return result;
 }
 
+BtorNode *
+btor_lambda_exp (
+    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp)
+{
+  BtorNode *lambda_exp;
+
+  assert (btor);
+  assert (elem_len > 0);
+  assert (index_len > 0);
+  assert (BTOR_IS_LAMBDA_VAR_NODE (e_lvar));
+  assert (BTOR_REAL_ADDR_NODE (e_lvar)->len == index_len);
+  assert (!BTOR_REAL_ADDR_NODE (e_lvar)->simplified);
+  assert (e_exp);
+  assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
+
+  e_exp = btor_pointer_chase_simplified_exp (btor, e_exp);
+
+  lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_lvar, e_exp, elem_len);
+
+  assert (lambda_exp->index_len == index_len);
+  assert (lambda_exp->len = elem_len);
+
+  return lambda_exp;
+}
+
 static BtorNode *
 ternary_exp (Btor *btor,
              BtorNodeKind kind,
@@ -2987,27 +3020,6 @@ btor_cond_exp_node (Btor *btor,
 
   return ternary_exp (
       btor, kind, e_cond, e_if, e_else, BTOR_REAL_ADDR_NODE (e_if)->len);
-}
-
-BtorNode *
-btor_lambda_exp_node (
-    Btor *btor, int elem_len, int index_len, BtorNode *e_lvar, BtorNode *e_exp)
-{
-  BtorNode *lambda_exp;
-
-  BTOR_CNEW (btor->mm, lambda_exp);
-  btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind      = BTOR_LAMBDA_NODE;
-  lambda_exp->bytes     = sizeof *lambda_exp;
-  lambda_exp->arity     = 2;
-  lambda_exp->len       = elem_len;
-  lambda_exp->index_len = index_len;
-  setup_node_and_add_to_id_table (btor, lambda_exp);
-  connect_child_exp (btor, lambda_exp, e_lvar, 0);
-  connect_child_exp (btor, lambda_exp, e_exp, 1);
-
-  // TODO: insert into btor->lambda_exps?
-  return lambda_exp;
 }
 
 BtorNode *
@@ -4237,6 +4249,17 @@ dump_node (FILE *file, BtorNode *node)
       fprintf (file, "const %d %s", node->len, node->bits);
       break;
 
+    case BTOR_LAMBDA_VAR_NODE: fprintf (file, "lvar %d", node->len); break;
+
+    case BTOR_LAMBDA_NODE:
+      fprintf (file,
+               "lambda %d %d %d %d",
+               node->len,
+               node->index_len,
+               BTOR_GET_ID_NODE (node->e[0]),
+               BTOR_GET_ID_NODE (node->e[1]));
+      break;
+
     default:
     case BTOR_BV_VAR_NODE:
       assert (node->kind == BTOR_BV_VAR_NODE);
@@ -4457,6 +4480,7 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   BtorNodePtrStack stack;
   BTOR_INIT_STACK (stack);
   collect_writes (btor, &stack);
+  BTOR_RELEASE_STACK (btor->mm, stack);
   /* end debug */
 
   if (btor->inconsistent)
@@ -6855,9 +6879,9 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   BtorNode *lambda_exp, *lambda_var, *cond_exp, *e_cond, *e_if, *e_else;
   BtorNode *cur_parent;
   BtorFullParentIterator it;
-  int pos;
-  //  char *lambda_var_name;
-  //  int name_len;
+  int pos;  //, num_parents = 0;
+            //  char *lambda_var_name;
+            //  int name_len;
 
   assert (btor);
   assert (write);
@@ -6870,27 +6894,37 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   //  lambda_var = btor_lambda_var_exp (btor, lambda_var_name, name_len);
 
   /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
-  lambda_var = btor_lambda_var_exp (btor, write->e[1]->len, 0);
-  e_else     = btor_read_exp (btor, write->e[0], lambda_var);
-  e_if       = btor_copy_exp (btor, write->e[2]);
+  lambda_var =
+      btor_lambda_var_exp (btor, BTOR_REAL_ADDR_NODE (write->e[1])->len, "0");
+  e_else = btor_read_exp (btor, write->e[0], lambda_var);
+  e_if   = btor_copy_exp (btor, write->e[2]);
+  // TODO: segfault
   e_cond     = btor_eq_exp (btor, lambda_var, write->e[1]);
   cond_exp   = btor_cond_exp (btor, e_cond, e_if, e_else);
   lambda_exp = btor_lambda_exp (
       btor, write->len, write->index_len, lambda_var, cond_exp);
 
+  fprintf (stderr, "write %d refs: %d\n", write->id, write->refs);
+
   /* replace write node with new lambda_exp */
   init_full_parent_iterator (&it, write);
   while (has_next_parent_full_parent_iterator (&it))
   {
+    assert (write->refs > 0);
     cur_parent = next_parent_full_parent_iterator (&it);
     pos        = BTOR_GET_TAG_NODE (cur_parent);
     assert (BTOR_REAL_ADDR_NODE (cur_parent->e[pos]) == write);
     disconnect_child_exp (btor, cur_parent, pos);
     connect_child_exp (btor, cur_parent, lambda_exp, pos);
+
+    //    if (num_parents > 1)
+    inc_exp_ref_counter (btor, lambda_exp);
+    btor_release_exp (btor, write);
+    //    num_parents++;
   }
 
-  assert (write->refs == 0);
-  btor_release_exp (btor, write);
+  /* write not referenced anymore -> really deallocated */
+  assert (write->kind == BTOR_INVALID_NODE);
 }
 
 static int
@@ -8689,7 +8723,7 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
 
         /* debug */
         if (BTOR_IS_WRITE_NODE_KIND (exp->kind))
-          BTOR_PUSH_STACK (btor->mm, writes_stack, exp);
+          BTOR_PUSH_STACK (btor->mm, *result_stack, exp);
         /* end debug */
 
         // TODO rewrite
@@ -8697,8 +8731,12 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
     } while (!BTOR_EMPTY_STACK (work_stack));
   }
 
+  BTOR_RELEASE_STACK (btor->mm, work_stack);
+
   /* reset marks */
   for (b = roots->first; b; b = b->next) btor_mark_exp (btor, b->key, 0);
+
+  writes_stack = *result_stack;
 
   /* debug */
   printf ("***** writes count: %ld\n\n", BTOR_COUNT_STACK (writes_stack));
@@ -8708,8 +8746,10 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
   {
     exp = *p;
     assert (exp->kind == BTOR_WRITE_NODE);
-    //    btor_dump_exp (btor, stdout, exp);
+    btor_dump_exp (btor, stdout, exp);
     dump_node (stdout, exp);
+
+    rewrite_write_to_lambda_exp (btor, exp);
   }
   printf ("***** writes dump end\n\n");
   /* end debug */
@@ -8847,6 +8887,7 @@ btor_sat_aux_btor (Btor *btor)
   BtorNodePtrStack stack;
   BTOR_INIT_STACK (stack);
   collect_writes (btor, &stack);
+  BTOR_RELEASE_STACK (btor->mm, stack);
   //////
 
   if (btor->inconsistent) return BTOR_UNSAT;

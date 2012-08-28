@@ -334,10 +334,11 @@ btor_picosat_init (BtorSATMgr *smgr)
 {
   btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
 
-  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
-  picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
+  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_sat_malloc);
+  picosat_set_delete (smgr->mm,
+                      (void (*) (void *, void *, size_t)) btor_sat_free);
   picosat_set_resize (
-      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
+      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_sat_realloc);
 
   picosat_init ();
   picosat_set_global_default_phase (0);
@@ -624,9 +625,9 @@ btor_lingeling_init (BtorSATMgr *smgr)
   }
   BTOR_CNEW (smgr->mm, res);
   res->lgl    = lglminit (smgr->mm,
-                       (lglalloc) btor_malloc,
-                       (lglrealloc) btor_realloc,
-                       (lgldealloc) btor_free);
+                       (lglalloc) btor_sat_malloc,
+                       (lglrealloc) btor_sat_realloc,
+                       (lgldealloc) btor_sat_free);
   res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)
