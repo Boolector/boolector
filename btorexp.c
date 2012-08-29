@@ -71,8 +71,6 @@ enum BtorSubstCompKind
 
 typedef enum BtorSubstCompKind BtorSubstCompKind;
 
-static void dump_node (FILE *file, BtorNode *node);
-
 /*------------------------------------------------------------------------*/
 
 #define BTOR_ABORT_NODE(cond, msg)                  \
@@ -136,6 +134,8 @@ static void eliminate_slices_on_bv_vars (Btor *);
 /* debug */
 static void collect_writes (Btor *, BtorNodePtrStack *);
 /* end debug */
+
+static void dump_node (FILE *file, BtorNode *node);
 
 /*------------------------------------------------------------------------*/
 
@@ -596,8 +596,6 @@ remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
 
   if (!exp->unique) return;
 
-  dump_node (stderr, exp);  // debug
-
   assert (btor);
   assert (btor->unique_table.num_elements > 0);
 
@@ -605,8 +603,6 @@ remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
   prev = 0;
   cur  = btor->unique_table.chains[hash];
 
-  fprintf (stderr, "*** cur %p\n", cur);
-  fprintf (stderr, "*** remove %d chain %p: ", hash, cur->next);
   while (cur != exp)
   {
     assert (cur);
