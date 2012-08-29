@@ -141,8 +141,6 @@ void
 btor_sat_free (BtorMemMgr *mm, void *p, size_t freed)
 {
   assert (mm);
-  // assert (!p == !freed);
-  // assert (mm->sat_allocated >= freed);
   if (p) mm->sat_allocated -= freed;
   free (p);
 }
@@ -174,10 +172,6 @@ void
 btor_delete_mem_mgr (BtorMemMgr *mm)
 {
   assert (mm);
-  fprintf (stderr, "allocated %lu\n", mm->allocated);
-  fprintf (stderr, "maxallocated %lu\n", mm->maxallocated);
-  fprintf (stderr, "sat_allocated %lu\n", mm->sat_allocated);
-  fprintf (stderr, "sat_maxallocated %lu\n", mm->sat_maxallocated);
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKMEM") || !mm->allocated);
   free (mm);
 }

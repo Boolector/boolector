@@ -725,8 +725,8 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
         exp->rho = 0;
       }
       break;
-    case BTOR_BV_VAR_NODE:
     case BTOR_LAMBDA_VAR_NODE:
+    case BTOR_BV_VAR_NODE:
       if (free_symbol)
       {
         btor_freestr (mm, exp->symbol);
@@ -2105,6 +2105,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_lvar, BtorNode *e_exp, int len)
 
   assert (btor);
   assert (e_lvar);
+  assert (BTOR_IS_LAMBDA_VAR_NODE (e_lvar));
   assert (e_exp);
   assert (len > 0);
 
@@ -6883,13 +6884,11 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   BtorNode *lambda_exp, *lambda_var, *cond_exp, *e_cond, *e_if, *e_else;
   BtorNode *tagged_parent, *parent, **lookup;
   BtorFullParentIterator it;
-  int cnt, pos;
+  int pos, cnt_parents = 0;
 
   assert (btor);
-  assert (write);
   assert (BTOR_IS_WRITE_NODE (write));
-
-  write = BTOR_REAL_ADDR_NODE (write);
+  assert (BTOR_IS_REGULAR_NODE (write));
 
   /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
   lambda_var =
@@ -6897,16 +6896,17 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   e_if   = btor_copy_exp (btor, write->e[2]);
   e_else = btor_read_exp (btor, write->e[0], lambda_var);
-  fprintf (stderr, "*** created read %p\n", e_else);
   e_cond = btor_eq_exp (btor, lambda_var, write->e[1]);
+
+  assert (e_else->e[0] == write->e[0]);
+  assert (e_else->e[1] == lambda_var);
 
   cond_exp = btor_cond_exp (btor, e_cond, e_if, e_else);
 
   lambda_exp = btor_lambda_exp (
       btor, write->len, write->index_len, lambda_var, cond_exp);
 
-  /* replace write with lambda_exp */
-  cnt = 0;
+  /* replace write node with new lambda_exp */
   init_full_parent_iterator (&it, write);
   while (has_next_parent_full_parent_iterator (&it))
   {
@@ -6916,12 +6916,15 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     parent        = BTOR_REAL_ADDR_NODE (tagged_parent);
 
     remove_from_unique_table_exp (btor, parent);
+    /* as we reuse cur_parent, we have to reset next pointer  */
     parent->next = 0;
 
     pos = BTOR_GET_TAG_NODE (tagged_parent);
     assert (parent->e[pos] == write);
 
+    /* disconnect write from its parent  */
     disconnect_child_exp (btor, parent, pos);
+    /* connect lambda expression at position of write  */
     connect_child_exp (btor, parent, lambda_exp, pos);
 
     assert (BTOR_IS_BINARY_NODE (parent) || BTOR_IS_TERNARY_NODE (parent));
@@ -6931,13 +6934,21 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     else
       lookup = find_ternary_exp (
           btor, parent->kind, parent->e[0], parent->e[1], parent->e[2]);
+
     assert (!*lookup);
+    assert (!parent->next);
+    assert (!parent->unique);
+
+    /* no enlarge unique table required */
     *lookup = parent;
     assert (btor->unique_table.num_elements < INT_MAX);
     btor->unique_table.num_elements++;
     (*lookup)->unique = 1;
 
-    if (++cnt > 1) inc_exp_ref_counter (btor, lambda_exp);
+    assert (parent->unique);
+    assert (BTOR_IS_REGULAR_NODE (*lookup));
+
+    if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
 
     btor_release_exp (btor, write);
   }
@@ -8712,7 +8723,7 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
   BtorPtrHashTable *roots = btor->unsynthesized_constraints;
   BtorPtrHashBucket *b;
   BtorNode *exp;
-  BtorNodePtrStack work_stack, writes_stack = *result_stack;
+  BtorNodePtrStack work_stack;
 
   BTOR_INIT_STACK (work_stack);
 
@@ -8759,23 +8770,12 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
   /* reset marks */
   for (b = roots->first; b; b = b->next) btor_mark_exp (btor, b->key, 0);
 
-  writes_stack = *result_stack;
-
-  /* debug */
-  printf ("***** writes count: %ld\n\n", BTOR_COUNT_STACK (writes_stack));
-  printf ("***** writes dump start\n");
-  // BtorNode **p;
-  // for (p = writes_stack.start; p < writes_stack.top; p++)
-  while (!BTOR_EMPTY_STACK (writes_stack))
+  while (!BTOR_EMPTY_STACK (*result_stack))
   {
-    exp = BTOR_POP_STACK (writes_stack);
+    exp = BTOR_POP_STACK (*result_stack);
     assert (exp->kind == BTOR_WRITE_NODE);
-    dump_node (stdout, exp);
-
     rewrite_write_to_lambda_exp (btor, exp);
   }
-  printf ("***** writes dump end\n\n");
-  /* end debug */
 }
 
 static void
