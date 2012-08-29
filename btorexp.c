@@ -71,6 +71,8 @@ enum BtorSubstCompKind
 
 typedef enum BtorSubstCompKind BtorSubstCompKind;
 
+static void dump_node (FILE *file, BtorNode *node);
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_ABORT_NODE(cond, msg)                  \
@@ -594,14 +596,20 @@ remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
 
   if (!exp->unique) return;
 
+  dump_node (stderr, exp);  // debug
+
   assert (btor);
   assert (btor->unique_table.num_elements > 0);
 
   hash = compute_hash_exp (exp, btor->unique_table.size);
   prev = 0;
   cur  = btor->unique_table.chains[hash];
+
+  fprintf (stderr, "*** cur %p\n", cur);
+  fprintf (stderr, "*** remove %d chain %p: ", hash, cur->next);
   while (cur != exp)
   {
+    assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
     prev = cur;
     cur  = cur->next;
@@ -718,6 +726,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       }
       break;
     case BTOR_BV_VAR_NODE:
+    case BTOR_LAMBDA_VAR_NODE:
       if (free_symbol)
       {
         btor_freestr (mm, exp->symbol);
@@ -2233,8 +2242,7 @@ btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1)
   return 0;
 }
 
-/* Finds constant expression in hash table. Returns 0 if it could not be
- * found. */
+/* Search for constant expression in hash table. Returns 0 if not found. */
 static BtorNode **
 find_const_exp (Btor *btor, const char *bits, int len)
 {
@@ -2263,8 +2271,7 @@ find_const_exp (Btor *btor, const char *bits, int len)
   return result;
 }
 
-/* Finds slice expression in hash table. Returns 0 if it could not be
- * found. */
+/* Search for slice expression in hash table. Returns 0 if not found. */
 static BtorNode **
 find_slice_exp (Btor *btor, BtorNode *e0, int upper, int lower)
 {
@@ -2295,8 +2302,7 @@ find_slice_exp (Btor *btor, BtorNode *e0, int upper, int lower)
   return result;
 }
 
-/* Finds binary expression in hash table. Returns 0 if it could not be
- * found. */
+/* Search for binary expression in hash table. Returns 0 if not found. */
 static BtorNode **
 find_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
 {
@@ -2329,8 +2335,7 @@ find_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
   return result;
 }
 
-/* Finds ternary expression in hash table. Returns 0 if it could not be
- * found. */
+/* Search for ternary expression in hash table. Returns 0 if not found. */
 static BtorNode **
 find_ternary_exp (
     Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, BtorNode *e2)
@@ -6875,13 +6880,10 @@ rewrite_linear_term (
 static void
 rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 {
-  //  BtorMemMgr *mm;
   BtorNode *lambda_exp, *lambda_var, *cond_exp, *e_cond, *e_if, *e_else;
-  BtorNode *cur_parent;
+  BtorNode *tagged_parent, *parent, **lookup;
   BtorFullParentIterator it;
-  int pos;  //, num_parents = 0;
-            //  char *lambda_var_name;
-            //  int name_len;
+  int cnt, pos;
 
   assert (btor);
   assert (write);
@@ -6889,42 +6891,62 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   write = BTOR_REAL_ADDR_NODE (write);
 
-  //  /* digits + len("lambdavar_")  */
-  //  name_len = btor_num_digits_util (BTOR_REAL_ADDR_NODE (write)->id) + 10;
-  //  lambda_var = btor_lambda_var_exp (btor, lambda_var_name, name_len);
-
   /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
   lambda_var =
       btor_lambda_var_exp (btor, BTOR_REAL_ADDR_NODE (write->e[1])->len, "0");
-  e_else = btor_read_exp (btor, write->e[0], lambda_var);
+
   e_if   = btor_copy_exp (btor, write->e[2]);
-  // TODO: segfault
-  e_cond     = btor_eq_exp (btor, lambda_var, write->e[1]);
-  cond_exp   = btor_cond_exp (btor, e_cond, e_if, e_else);
+  e_else = btor_read_exp (btor, write->e[0], lambda_var);
+  fprintf (stderr, "*** created read %p\n", e_else);
+  e_cond = btor_eq_exp (btor, lambda_var, write->e[1]);
+
+  cond_exp = btor_cond_exp (btor, e_cond, e_if, e_else);
+
   lambda_exp = btor_lambda_exp (
       btor, write->len, write->index_len, lambda_var, cond_exp);
 
-  fprintf (stderr, "write %d refs: %d\n", write->id, write->refs);
-
-  /* replace write node with new lambda_exp */
+  /* replace write with lambda_exp */
+  cnt = 0;
   init_full_parent_iterator (&it, write);
   while (has_next_parent_full_parent_iterator (&it))
   {
     assert (write->refs > 0);
-    cur_parent = next_parent_full_parent_iterator (&it);
-    pos        = BTOR_GET_TAG_NODE (cur_parent);
-    assert (BTOR_REAL_ADDR_NODE (cur_parent->e[pos]) == write);
-    disconnect_child_exp (btor, cur_parent, pos);
-    connect_child_exp (btor, cur_parent, lambda_exp, pos);
 
-    //    if (num_parents > 1)
-    inc_exp_ref_counter (btor, lambda_exp);
+    tagged_parent = next_parent_full_parent_iterator (&it);
+    parent        = BTOR_REAL_ADDR_NODE (tagged_parent);
+
+    remove_from_unique_table_exp (btor, parent);
+    parent->next = 0;
+
+    pos = BTOR_GET_TAG_NODE (tagged_parent);
+    assert (parent->e[pos] == write);
+
+    disconnect_child_exp (btor, parent, pos);
+    connect_child_exp (btor, parent, lambda_exp, pos);
+
+    assert (BTOR_IS_BINARY_NODE (parent) || BTOR_IS_TERNARY_NODE (parent));
+
+    if (BTOR_IS_BINARY_NODE (parent))
+      lookup = find_binary_exp (btor, parent->kind, parent->e[0], parent->e[1]);
+    else
+      lookup = find_ternary_exp (
+          btor, parent->kind, parent->e[0], parent->e[1], parent->e[2]);
+    assert (!*lookup);
+    *lookup = parent;
+    assert (btor->unique_table.num_elements < INT_MAX);
+    btor->unique_table.num_elements++;
+    (*lookup)->unique = 1;
+
+    if (++cnt > 1) inc_exp_ref_counter (btor, lambda_exp);
+
     btor_release_exp (btor, write);
-    //    num_parents++;
   }
 
-  /* write not referenced anymore -> really deallocated */
-  assert (write->kind == BTOR_INVALID_NODE);
+  btor_release_exp (btor, e_if);
+  btor_release_exp (btor, e_else);
+  btor_release_exp (btor, e_cond);
+  btor_release_exp (btor, cond_exp);
+  btor_release_exp (btor, lambda_var);
 }
 
 static int
@@ -8685,6 +8707,7 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
   assert (btor->unsynthesized_constraints);
   assert (btor->synthesized_constraints->count == 0);  // TODO ?
 
+  // TODO stack untangle and cleanup
   int i;
   BtorPtrHashTable *roots = btor->unsynthesized_constraints;
   BtorPtrHashBucket *b;
@@ -8741,12 +8764,12 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
   /* debug */
   printf ("***** writes count: %ld\n\n", BTOR_COUNT_STACK (writes_stack));
   printf ("***** writes dump start\n");
-  BtorNode **p;
-  for (p = writes_stack.start; p < writes_stack.top; p++)
+  // BtorNode **p;
+  // for (p = writes_stack.start; p < writes_stack.top; p++)
+  while (!BTOR_EMPTY_STACK (writes_stack))
   {
-    exp = *p;
+    exp = BTOR_POP_STACK (writes_stack);
     assert (exp->kind == BTOR_WRITE_NODE);
-    btor_dump_exp (btor, stdout, exp);
     dump_node (stdout, exp);
 
     rewrite_write_to_lambda_exp (btor, exp);

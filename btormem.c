@@ -141,9 +141,9 @@ void
 btor_sat_free (BtorMemMgr *mm, void *p, size_t freed)
 {
   assert (mm);
-  assert (!p == !freed);
-  assert (mm->sat_allocated >= freed);
-  mm->sat_allocated -= freed;
+  // assert (!p == !freed);
+  // assert (mm->sat_allocated >= freed);
+  if (p) mm->sat_allocated -= freed;
   free (p);
 }
 
