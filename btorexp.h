@@ -354,7 +354,7 @@ struct Btor
   ((exp) && BTOR_IS_LAMBDA_VAR_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
-  ((exp) && BTOR_IS_LAMDA_NODE_KIND ((exp)->kind))
+  ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_BV_CONST_NODE(exp) \
   ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
