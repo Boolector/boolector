@@ -1,0 +1,33 @@
+#!/bin/bash
+
+die () {
+  echo "*** runfuzzsmtbv: $*" 1>&2
+  exit 1
+}
+
+tmp=/tmp/runfuzzsmtbv-$$.btor
+trap "rm -f $tmp" 2
+
+count=0
+while true
+do
+  rm -f $tmp
+  fuzzsmtbv $opts | boolector -de > $tmp
+  res=$?
+  case $res in
+    0|10|20) echo "${count}" ;;
+    *)
+      bug=bug-${count}.btor
+      cp $tmp $bug
+      echo -n " $bug"
+      red=red-${count}.btor
+      deltabtor $bug $red "boolector -de"
+      lines=`wc -l $red|awk '{print $1}'`
+      echo " $red $lines"
+      exit
+    ;;
+  esac
+  count=`expr $count + 1`
+done
+
+rm -f $tmp
