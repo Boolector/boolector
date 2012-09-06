@@ -132,7 +132,7 @@ static void eliminate_slices_on_bv_vars (Btor *);
 #endif
 
 /* debug */
-static void collect_writes (Btor *, BtorNodePtrStack *);
+static void rewrite_writes_to_lambda_exp (Btor *);
 /* end debug */
 
 static void dump_node (FILE *file, BtorNode *node);
@@ -4279,11 +4279,9 @@ static void
 dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
-  int next, i, /*j,*/ maxid, id;
+  int next, i, maxid, id;
   BtorNodePtrStack stack;
   BtorNode *e, *root;
-  // char idbuffer[20];
-  // const char *op;
 
   assert (btor);
   assert (file);
@@ -4327,99 +4325,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     assert (BTOR_IS_REGULAR_NODE (e));
 
     dump_node (file, e);
-    //      fprintf (file, "%d ", e->id);
-    //
-    //      switch (e->kind)
-    //        {
-    //        case BTOR_ADD_NODE:
-    //          op = "add";
-    //          goto PRINT;
-    //        case BTOR_AND_NODE:
-    //          op = "and";
-    //          goto PRINT;
-    //        case BTOR_CONCAT_NODE:
-    //          op = "concat";
-    //          goto PRINT;
-    //        case BTOR_BCOND_NODE:
-    //          op = "cond";
-    //          goto PRINT;
-    //        case BTOR_BEQ_NODE:
-    //        case BTOR_AEQ_NODE:
-    //          op = "eq";
-    //          goto PRINT;
-    //        case BTOR_MUL_NODE:
-    //          op = "mul";
-    //          goto PRINT;
-    //        case BTOR_PROXY_NODE:
-    //          op = "proxy";
-    //          goto PRINT;
-    //        case BTOR_READ_NODE:
-    //          op = "read";
-    //          goto PRINT;
-    //        case BTOR_SLL_NODE:
-    //          op = "sll";
-    //          goto PRINT;
-    //        case BTOR_SRL_NODE:
-    //          op = "srl";
-    //          goto PRINT;
-    //        case BTOR_UDIV_NODE:
-    //          op = "udiv";
-    //          goto PRINT;
-    //        case BTOR_ULT_NODE:
-    //          op = "ult";
-    //          goto PRINT;
-    //        case BTOR_UREM_NODE:
-    //          op = "urem";
-    //        PRINT:
-    //          fputs (op, file);
-    //          fprintf (file, " %d", e->len);
-    //
-    //          if (e->kind == BTOR_PROXY_NODE)
-    //            fprintf (file, " %d", BTOR_GET_ID_NODE (e->simplified));
-    //          else
-    //            for (j = 0; j < e->arity; j++)
-    //              fprintf (file, " %d", BTOR_GET_ID_NODE (e->e[j]));
-    //          break;
-    //
-    //        case BTOR_SLICE_NODE:
-    //          fprintf (file,
-    //                   "slice %d %d %d %d",
-    //                   e->len, BTOR_GET_ID_NODE (e->e[0]), e->upper,
-    //                   e->lower);
-    //          break;
-    //
-    //        case BTOR_ARRAY_VAR_NODE:
-    //          fprintf (file, "array %d %d", e->len, e->index_len);
-    //          break;
-    //
-    //        case BTOR_WRITE_NODE:
-    //          fprintf (file, "write %d %d %d %d %d", e->len, e->index_len,
-    //                   BTOR_GET_ID_NODE (e->e[0]), BTOR_GET_ID_NODE (e->e[1]),
-    //                   BTOR_GET_ID_NODE (e->e[2]));
-    //          break;
-    //
-    //        case BTOR_ACOND_NODE:
-    //          fprintf (file, "acond %d %d %d %d %d", e->len, e->index_len,
-    //                   BTOR_GET_ID_NODE (e->e[0]), BTOR_GET_ID_NODE (e->e[1]),
-    //                   BTOR_GET_ID_NODE (e->e[2]));
-    //          break;
-    //
-    //        case BTOR_BV_CONST_NODE:
-    //          fprintf (file, "const %d %s", e->len, e->bits);
-    //          break;
-    //
-    //        default:
-    //        case BTOR_BV_VAR_NODE:
-    //          assert (e->kind == BTOR_BV_VAR_NODE);
-    //          fprintf (file, "var %d", e->len);
-    //          sprintf (idbuffer, "%d", e->id);
-    //          assert (e->symbol);
-    //          if (strcmp (e->symbol, idbuffer))
-    //            fprintf (file, " %s", e->symbol);
-    //          break;
-    //        }
-    //
-    //      fputc ('\n', file);
   }
 
   BTOR_RELEASE_STACK (mm, stack);
@@ -4478,12 +4383,7 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
 
   run_rewrite_engine (btor);
 
-  /* debug */
-  BtorNodePtrStack stack;
-  BTOR_INIT_STACK (stack);
-  collect_writes (btor, &stack);
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  /* end debug */
+  rewrite_writes_to_lambda_exp (btor);
 
   if (btor->inconsistent)
   {
@@ -5305,7 +5205,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         /* nothing to synthesize for array base case */
       }
       else if (BTOR_IS_WRITE_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur)
-               || BTOR_IS_ARRAY_COND_NODE (cur))
+               ||  // TODO redundant?
+               BTOR_IS_ARRAY_COND_NODE (cur))
       {
         goto REGULAR_CASE;
       }
@@ -8706,15 +8607,13 @@ process_skeleton (Btor *btor)
 /*------------------------------------------------------------------------*/
 
 static void
-collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
+rewrite_writes_to_lambda_exp (Btor *btor)
 {
   assert (btor);
-  assert (result_stack);
 
   assert (btor->unsynthesized_constraints);
   assert (btor->synthesized_constraints->count == 0);  // TODO ?
 
-  // TODO stack untangle and cleanup
   int i;
   BtorPtrHashTable *roots = btor->unsynthesized_constraints;
   BtorPtrHashBucket *b;
@@ -8751,12 +8650,8 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
         assert (exp->mark == 1);
         exp->mark = 2;
 
-        /* debug */
         if (BTOR_IS_WRITE_NODE_KIND (exp->kind))
-          BTOR_PUSH_STACK (btor->mm, *result_stack, exp);
-        /* end debug */
-
-        // TODO rewrite
+          rewrite_write_to_lambda_exp (btor, exp);
       }
     } while (!BTOR_EMPTY_STACK (work_stack));
   }
@@ -8765,13 +8660,6 @@ collect_writes (Btor *btor, BtorNodePtrStack *result_stack)
 
   /* reset marks */
   for (b = roots->first; b; b = b->next) btor_mark_exp (btor, b->key, 0);
-
-  while (!BTOR_EMPTY_STACK (*result_stack))
-  {
-    exp = BTOR_POP_STACK (*result_stack);
-    assert (exp->kind == BTOR_WRITE_NODE);
-    rewrite_write_to_lambda_exp (btor, exp);
-  }
 }
 
 static void
@@ -8902,12 +8790,7 @@ btor_sat_aux_btor (Btor *btor)
 
   run_rewrite_engine (btor);
 
-  // TODO where??
-  BtorNodePtrStack stack;
-  BTOR_INIT_STACK (stack);
-  collect_writes (btor, &stack);
-  BTOR_RELEASE_STACK (btor->mm, stack);
-  //////
+  rewrite_writes_to_lambda_exp (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
