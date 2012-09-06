@@ -6,7 +6,7 @@ readonly TMPFILE_NAME=btorvis$$
 readonly tmpfile_pdf="$TMPDIR/$tmpfile_name".pdf
 readonly tmpfile_ps="$TMPFILE_NAME".ps
 
-inputfile=unknown
+inputfile=/dev/stdin
 pdfreader=unknown
 ps2pdf=ps2pdf
 btor2dot=unknown
@@ -26,7 +26,7 @@ function die
 while [ $# -gt 0 ]
 do
   case $1 in
-        -h|--help) echo -e "usage: btorvis [ -h | --help ] <file> \n"
+        -h|--help) echo -e "usage: btorvis [ -h | --help ] [<file>] \n"
                    exit 0;;
         *)         break;;
   esac
@@ -37,9 +37,11 @@ if [ $# -gt 1 ]; then
   die "invalid number of arguments: '$#'"
 fi
 
-inputfile="$*"
-if [ ! -f $inputfile ]; then
-  die "invalid input file: '$inputfile'"
+if [ $# -eq 1 ]; then
+  inputfile="$*"
+  if [ ! -f $inputfile ]; then
+    die "invalid input file: '$inputfile'"
+  fi
 fi
 
 btor2dot=$(readlink -f "./btor2dot")
