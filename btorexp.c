@@ -2932,6 +2932,8 @@ btor_lambda_exp (
   assert (lambda_exp->index_len == index_len);
   assert (lambda_exp->len = elem_len);
 
+  (void) btor_insert_in_ptr_hash_table (btor->lambda_exps, lambda_exp);
+
   return lambda_exp;
 }
 
@@ -4673,6 +4675,10 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
+  btor->lambda_exps =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor->bv_lambda_id      = 1;
   btor->array_lambda_id   = 1;
   btor->valid_assignments = 1;
@@ -4848,6 +4854,7 @@ btor_delete_btor (Btor *btor)
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
+  btor_delete_ptr_hash_table (btor->lambda_exps);
 
   btor_delete_aigvec_mgr (btor->avmgr);
 
