@@ -79,7 +79,7 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNodeKind kind : 5;         /* kind of expression */            \
     unsigned int mark : 3;         /* for DAG traversal */             \
     unsigned int array_mark : 2;   /* for bottom up array traversal */ \
-    unsigned int aux_mark : 2;     /* auxiallary mark flag */          \
+    unsigned int aux_mark : 2;     /* auxiliary mark flag */           \
     unsigned int synth_mark : 2;   /* mark for synthesize_exp */       \
     unsigned int reachable : 1;    /* reachable from root ? */         \
     unsigned int tseitin : 1;      /* tseiting encoded into SAT ? */   \
