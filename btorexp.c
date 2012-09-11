@@ -6809,14 +6809,16 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   {
     assert (write->refs > 0);
 
-    tagged_parent = next_parent_full_parent_iterator (&it);
-    parent        = BTOR_REAL_ADDR_NODE (tagged_parent);
+    tagged_parent = it.cur;
+    assert (tagged_parent);
+    /* parent is already masked in next_parent_full_parent_iterator  */
+    parent = next_parent_full_parent_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (parent));
 
     remove_from_unique_table_exp (btor, parent);
-    /* as we reuse cur_parent, we have to reset next pointer  */
+    /* we reuse the parent, so we have to reset the next pointer  */
     parent->next = 0;
-
-    pos = BTOR_GET_TAG_NODE (tagged_parent);
+    pos          = BTOR_GET_TAG_NODE (tagged_parent);
     assert (parent->e[pos] == write);
 
     /* disconnect write from its parent  */
@@ -8618,9 +8620,11 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   BtorPtrHashTable *roots = btor->unsynthesized_constraints;
   BtorPtrHashBucket *b;
   BtorNode *exp;
-  BtorNodePtrStack work_stack;
+  BtorNodePtrStack work_stack, writes_stack, unmark_stack;
 
   BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (writes_stack);
+  BTOR_INIT_STACK (unmark_stack);
 
   for (b = roots->first; b; b = b->next)
   {
@@ -8628,30 +8632,26 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 
     BTOR_PUSH_STACK (btor->mm, work_stack, exp);
 
+    /* collect writes  */
     do
     {
       exp = BTOR_POP_STACK (work_stack);
       assert (exp);
       exp = BTOR_REAL_ADDR_NODE (exp);
 
-      if (exp->mark == 2) continue;
+      if (exp->mark == 1) continue;
 
       if (exp->mark == 0)
       {
         exp->mark = 1; /* visited */
 
-        BTOR_PUSH_STACK (btor->mm, work_stack, exp);
+        BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
+
+        if (BTOR_IS_WRITE_NODE (exp))
+          BTOR_PUSH_STACK (btor->mm, writes_stack, exp);
 
         for (i = exp->arity - 1; i >= 0; i--)
           BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
-      }
-      else
-      {
-        assert (exp->mark == 1);
-        exp->mark = 2;
-
-        if (BTOR_IS_WRITE_NODE_KIND (exp->kind))
-          rewrite_write_to_lambda_exp (btor, exp);
       }
     } while (!BTOR_EMPTY_STACK (work_stack));
   }
@@ -8659,7 +8659,16 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   BTOR_RELEASE_STACK (btor->mm, work_stack);
 
   /* reset marks */
-  for (b = roots->first; b; b = b->next) btor_mark_exp (btor, b->key, 0);
+  for (i = 0; i < BTOR_COUNT_STACK (unmark_stack); i++)
+    unmark_stack.start[i]->mark = 0;
+
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+
+  /* rewrite writes  */
+  for (i = 0; i < BTOR_COUNT_STACK (writes_stack); i++)
+    rewrite_write_to_lambda_exp (btor, writes_stack.start[i]);
+
+  BTOR_RELEASE_STACK (btor->mm, writes_stack);
 }
 
 static void
