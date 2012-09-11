@@ -2924,12 +2924,14 @@ btor_lambda_exp (
   assert (e_exp);
   assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
 
-  e_exp = btor_pointer_chase_simplified_exp (btor, e_exp);
-
+  e_exp      = btor_pointer_chase_simplified_exp (btor, e_exp);
   lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_lvar, e_exp, elem_len);
 
   assert (lambda_exp->index_len == index_len);
   assert (lambda_exp->len = elem_len);
+  /* set lambda expression for lambda variable  */
+  assert (!((BtorLambdaVarNode *) e_lvar)->lambda_exp);
+  ((BtorLambdaVarNode *) e_lvar)->lambda_exp = lambda_exp;
 
   return lambda_exp;
 }
@@ -6365,6 +6367,21 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
           BTOR_PUSH_STACK (mm, stack, cur_parent);
         }
       }
+      /* push lambda expressions on stack */
+      init_read_parent_iterator (&it, cur_array);
+      while (has_next_parent_read_parent_iterator (&it))
+      {
+        cur_parent = next_parent_read_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_NODE (cur_parent));
+        assert (!cur_parent->simplified);
+        if (cur_parent->reachable && BTOR_IS_LAMBDA_VAR_NODE (cur_parent->e[1]))
+        {
+          found_top = 0;
+          assert (cur_parent->array_mark == 0);
+          BTOR_PUSH_STACK (
+              mm, stack, ((BtorLambdaVarNode *) cur_parent->e[1])->lambda_exp);
+        }
+      }
       if (found_top) BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
     }
   }
@@ -6380,6 +6397,11 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
     cur_array->array_mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
+
+  fprintf (stderr, "  found %ld top arrays\n", BTOR_COUNT_STACK (*top_arrays));
+  int i;
+  for (i = 0; i < BTOR_COUNT_STACK (*top_arrays); i++)
+    fprintf (stderr, "  top_array: %d\n", top_arrays->start[i]->id);
 }
 
 static int
@@ -8843,7 +8865,9 @@ btor_sat_aux_btor (Btor *btor)
   while (sat_result == BTOR_SAT)
   {
     assert (BTOR_EMPTY_STACK (top_arrays));
+    fprintf (stderr, "search top arrays start\n");
     search_top_arrays (btor, &top_arrays);
+    fprintf (stderr, "search top arrays end\n");
 
     found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
 
