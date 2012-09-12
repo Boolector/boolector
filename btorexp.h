@@ -163,6 +163,7 @@ struct BtorLambdaVarNode
   BTOR_BV_VAR_NODE_STRUCT;
   char *symbol;
   BtorNode *lambda_exp;
+  BtorNode *inst_exp;
 };
 
 typedef struct BtorLambdaVarNode BtorLambdaVarNode;
