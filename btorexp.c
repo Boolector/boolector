@@ -5653,7 +5653,7 @@ hash_assignment (BtorNode *exp)
   return hash;
 }
 
-/* This function breath first searches the shortest path from a read to an
+/* This function breadth first searches the shortest path from a read to an
  * array After the function is completed the parent pointers can be followed
  * from the array to the read
  */
