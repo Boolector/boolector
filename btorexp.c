@@ -6623,6 +6623,14 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
     assert (!cur_array->simplified);
     if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
   }
+  /* add lambda expressions  */
+  for (bucket = btor->lambda_exps->first; bucket; bucket = bucket->next)
+  {
+    cur_array = (BtorNode *) bucket->key;
+    assert (BTOR_IS_LAMBDA_NODE (cur_array));
+    assert (!cur_array->simplified);
+    if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
+  }
   while (!BTOR_EMPTY_STACK (stack))
   {
     cur_array = BTOR_POP_STACK (stack);
