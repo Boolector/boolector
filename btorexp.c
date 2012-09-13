@@ -6625,10 +6625,11 @@ process_working_stack (Btor *btor,
           lambda_value = instantiate_lambda_exp (btor, lambda_exp, next->e[1]);
           assert (BTOR_IS_REGULAR_NODE (lambda_value));
 
-          /* if the instantiated lambda expression returns 'next' as value,
-             we propagate 'next' up to 'lambda_exp' as the element on the
-             read index of 'array' is not overwritten by 'lambda_exp'. */
-          if (lambda_value == next)
+          /* if the instantiated lambda expression returns 'lambda_read' as
+             value, we propagate 'next' up to 'lambda_exp' as the element
+             on the read index of 'array' is not overwritten by
+             'lambda_exp'. */
+          if (lambda_value == lambda_read)
           {
             fprintf (stderr, "[debug] lambda prop. upwards:\n");
             fprintf (stderr, "[debug]   access: ");
