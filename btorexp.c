@@ -6246,46 +6246,94 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   return changed_assignments;
 }
 
-static int
-eval_eq (BtorNode *eq)
-{
-  assert (eq);
-  assert (BTOR_IS_BV_EQ_NODE (eq));
+static BtorNode *eval_exp (BtorNode *, int *);
 
-  BtorNode *real_eq;
+static int
+eval_beq (BtorNode *exp)
+{
+  assert (exp);
+  assert (BTOR_IS_BV_EQ_NODE (exp));
+
+  BtorNode *real_exp, *left, *right;
   int is_equal;
 
-  real_eq = BTOR_REAL_ADDR_NODE (eq);
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
 
-  if (BTOR_IS_LAMBDA_VAR_NODE (real_eq->e[0]))
-    is_equal =
-        compare_assignments (real_eq->e[1],
-                             ((BtorLambdaVarNode *) real_eq->e[0])->inst_exp)
-        == 0;
-  else
-  {
-    assert (BTOR_IS_LAMBDA_VAR_NODE (real_eq->e[1]));
-    is_equal =
-        compare_assignments (real_eq->e[0],
-                             ((BtorLambdaVarNode *) real_eq->e[1])->inst_exp)
-        == 0;
-  }
+  left = eval_exp (real_exp->e[0], NULL);
+  assert (left);
+  right = eval_exp (real_exp->e[1], NULL);
+  assert (right);
 
-  if (is_equal) return BTOR_IS_INVERTED_NODE (eq) ? 0 : 1;
+  is_equal = compare_assignments (left, right) == 0;
 
-  return BTOR_IS_INVERTED_NODE (eq) ? 1 : 0;
+  if (is_equal) return BTOR_IS_INVERTED_NODE (exp) ? 0 : 1;
+
+  return BTOR_IS_INVERTED_NODE (exp) ? 1 : 0;
 }
 
 static BtorNode *
-eval_cond (BtorNode *cond)
+eval_lambda_var (BtorNode *exp)
 {
-  assert (cond);
-  assert (BTOR_IS_REGULAR_NODE (cond));
-  assert (BTOR_IS_BV_COND_NODE (cond));
+  assert (exp);
+  assert (BTOR_IS_LAMBDA_VAR_NODE (exp));
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (((BtorLambdaVarNode *) exp)->inst_exp);
 
-  if (eval_eq (cond->e[0])) return cond->e[1];
+  return ((BtorLambdaVarNode *) exp)->inst_exp;
+}
 
-  return cond->e[2];
+static BtorNode *
+eval_bcond (BtorNode *exp)
+{
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_BV_COND_NODE (exp));
+
+  int result = -1;
+  BtorNode *e_cond, *e_if, *e_else;
+
+  e_cond = eval_exp (exp->e[0], &result);
+  assert (!e_cond);
+  assert (result == 0 || result == 1);
+
+  if (result)
+  {
+    e_if = eval_exp (exp->e[1], &result);
+    assert (e_if);
+    return e_if;
+  }
+
+  e_else = eval_exp (exp->e[2], &result);
+  assert (e_else);
+  return e_else;
+}
+
+static BtorNode *
+eval_exp (BtorNode *exp, int *bool_result)
+{
+  assert (exp);
+
+  BtorNode *result = 0, *real_exp;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+
+  switch (real_exp->kind)
+  {
+    case BTOR_BV_CONST_NODE:
+    case BTOR_BV_VAR_NODE:
+    case BTOR_ARRAY_VAR_NODE:
+    case BTOR_READ_NODE: result = exp; break;
+
+    case BTOR_LAMBDA_VAR_NODE: result = eval_lambda_var (exp); break;
+
+    case BTOR_BCOND_NODE: result = eval_bcond (exp); break;
+
+    case BTOR_BEQ_NODE: *bool_result = eval_beq (exp); break;
+
+    default: assert (0);
+  }
+
+  return result;
 }
 
 static BtorNode *
@@ -6304,7 +6352,7 @@ instantiate_lambda_exp (Btor *btor, BtorNode *lambda_exp, BtorNode *index)
   lvar = (BtorLambdaVarNode *) lambda_exp->e[0];
   assert (!lvar->inst_exp);
   lvar->inst_exp = index;
-  result         = eval_cond (lambda_exp->e[1]);
+  result         = eval_exp (lambda_exp->e[1], NULL);
   lvar->inst_exp = 0;
 
   assert (BTOR_IS_READ_NODE (result) || BTOR_IS_BV_CONST_NODE (result)
