@@ -15,8 +15,8 @@ EOF
 
 if [ ! x"`grep '^CC=gcc$' makefile`" =  x ]
 then
-  patchgccversion="`gcc --version|head -1`"
-  patchgccversion="s,\"gcc\",\"$pathgccversion\",g"
+  patchgccversion="`gcc --version|head -1|sed -e 's/,/ /g'`"
+  patchgccversion="s,gcc,$patchgccversion,g"
 else
   patchgccversion="s,DUMMY,DUMMY,"
 fi
