@@ -5746,6 +5746,15 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
+    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin)
+    {
+      // instantiate lambda node with parent index
+      // push cur->e[1]
+    }
+    else
+    {
+      // skip write, acond and lambda nodes
+    }
     if (propagate_writes_as_reads)
     {
       /* enqueue all arrays which are reachable via equality
