@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 readonly TMPDIR=/tmp
 readonly TMPFILE_NAME=btorvis$$
@@ -9,7 +9,8 @@ readonly tmpfile_ps="$TMPFILE_NAME".ps
 inputfile=/dev/stdin
 pdfreader=unknown
 ps2pdf=ps2pdf
-btor2dot=unknown
+contribdir=$(dirname $(readlink -f $0))
+btor2dot=$(readlink -f "$contribdir/btor2dot")
 
 
 function info
@@ -44,22 +45,8 @@ if [ $# -eq 1 ]; then
   fi
 fi
 
-btor2dot=$(readlink -f "./btor2dot")
 if [ ! -f $btor2dot ]; then
-  btor2dot=$(readlink -f "./contrib/btor2dot")
-  if [ ! -f $btor2dot ]; then
-    for d in `echo $PATH|sed -e 's,:, ,g'` .
-    do
-      file=$d/btor2dot
-      [ -d $d ] || continue
-      [ -f $file ] || continue
-      btor2dot=$file
-      break
-    done
-  fi
-  if [ ! -f $btor2dot ]; then
-    die "could not find 'btor2dot'"
-  fi
+  die "could not find 'btor2dot'"
 fi
 
 ps2pdf=$(which "$ps2pdf")
