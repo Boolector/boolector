@@ -70,7 +70,7 @@ main (int argc, char **argv)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("usage: synthebor [-h][-v][-m][-rwl0][<input>[<output>]]\n");
+      printf ("usage: synthebor [-h][-v][-m][-rwl[0123]][<input>[<output>]]\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
