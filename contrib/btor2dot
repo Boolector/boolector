@@ -21,7 +21,7 @@
       printf "%d [shape=box, label=\"%s\\n%s\"];\n", $1, $2, $4
     } else if ($2 == "zero" || $2 == "one" || $2 == "ones") {
       printf "%d [shape=box, label=\"%s\\n\"];\n", $1, $2
-    } else if ($2 == "var" || $2 == "lvar") {
+    } else if ($2 == "var" || $2 == "param") {
     if (NF == 3)
       printf "%d [shape=box, label=\"%s\\n%d\"];\n", $1, $2, $3
     else if (NF > 3)
