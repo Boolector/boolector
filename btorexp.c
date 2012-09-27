@@ -6130,6 +6130,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
       cur = BTOR_POP_STACK (work_stack);
       assert (cur);
       assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (!BTOR_IS_WRITE_NODE (cur));
+      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
       // debug
       fprintf (stderr, "cur: ");
@@ -6148,6 +6150,9 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
         fprintf (stderr, "push 2: ");
         dump_node (stderr, cur);
         // end debug
+
+        if (BTOR_IS_READ_NODE (cur)) continue;
+
         for (j = 0; j < cur->arity; j++)
         {
           BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[j]));
