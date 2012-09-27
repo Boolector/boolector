@@ -5656,7 +5656,7 @@ hash_assignment (BtorNode *exp)
   return hash;
 }
 
-/* This function breath first searches the shortest path from a read to an
+/* This function breadth first searches the shortest path from a read to an
  * array After the function is completed the parent pointers can be followed
  * from the array to the read
  */
@@ -6213,78 +6213,123 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   assert (btor);
   assert (lambda_exp);
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
-  assert (BTOR_IS_SYNTH_NODE (lambda_exp));
+  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
 
-  int changed_assignments, update, i;
-  BtorNodePtrStack work_stack, enc_stack, unmark_stack;
-  BtorNode *exp;
+  int changed_assignments, update, i, j;
+  // BtorNodePtrStack work_stack, enc_stack, unmark_stack;
+  BtorNodePtrStack work_stack, unmark_stack;
+  BtorNode *cur;
+  BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
 
+  mm                  = btor->mm;
   avmgr               = btor->avmgr;
   changed_assignments = 0;
   update              = 0;
 
   BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (enc_stack);
   BTOR_INIT_STACK (unmark_stack);
+
+  // debug
   fprintf (stderr, "[debug] lazy synthesize lambda: ");
   dump_node (stderr, lambda_exp);
+  // end debug
 
   for (i = 0; i < lambda_exp->arity; i++)
   {
-    BTOR_PUSH_STACK (btor->mm, work_stack, lambda_exp->e[i]);
+    BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[i]));
+    // debug
+    fprintf (stderr, "push 1: ");
+    dump_node (stderr, BTOR_REAL_ADDR_NODE (lambda_exp->e[i]));
+    // end debug
 
-    do
+    while (!BTOR_EMPTY_STACK (work_stack))
     {
-      exp = BTOR_POP_STACK (work_stack);
-      assert (exp);
-      exp = BTOR_REAL_ADDR_NODE (exp);
-      // TODO: also skip write nodes?
-      // TODO: skip read nodes?
-      if (BTOR_IS_PARAM_NODE (exp) || BTOR_IS_LAMBDA_NODE (exp)
-          || BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp))
-        continue;
+      cur = BTOR_POP_STACK (work_stack);
+      assert (cur);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (!BTOR_IS_WRITE_NODE (cur));
+      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
-      if (exp->mark == 1) continue;
+      // debug
+      fprintf (stderr, "cur: ");
+      dump_node (stderr, cur);
+      // end debug
 
-      if (exp->mark == 0)
+      if (cur->mark == 2) continue;
+
+      if (BTOR_IS_PARAM_NODE (cur)) continue;
+
+      if (cur->mark == 0)
       {
-        exp->mark = 1;
+        cur->mark = 1;
+        BTOR_PUSH_STACK (mm, work_stack, cur);
+        // debug
+        fprintf (stderr, "push 2: ");
+        dump_node (stderr, cur);
+        // end debug
 
-        if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_BV_CONST_NODE (exp))
-          BTOR_PUSH_STACK (btor->mm, enc_stack, BTOR_REAL_ADDR_NODE (exp));
+        if (BTOR_IS_READ_NODE (cur)) continue;
 
-        for (i = 0; i < exp->arity; i++)
-          BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
+        for (j = 0; j < cur->arity; j++)
+        {
+          BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[j]));
+          // debug
+          fprintf (stderr, "push 1: ");
+          dump_node (stderr, BTOR_REAL_ADDR_NODE (cur->e[j]));
+          // end debug
+        }
       }
-    } while (!BTOR_EMPTY_STACK (work_stack));
-  }
+      else
+      {
+        assert (cur->mark == 1);
+        assert (cur->aux_mark == 0);
 
-  for (i = 0; i < BTOR_COUNT_STACK (unmark_stack); i++)
-    unmark_stack.start[i]->mark = 0;
+        cur->mark = 2;
 
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-  BTOR_RELEASE_STACK (btor->mm, work_stack);
+        if (BTOR_IS_PARAMETERIZED_NODE (cur)
+            || (cur->arity >= 1 && BTOR_REAL_ADDR_NODE (cur->e[0])->aux_mark)
+            || (cur->arity >= 2 && BTOR_REAL_ADDR_NODE (cur->e[1])->aux_mark)
+            || (cur->arity == 3 && BTOR_REAL_ADDR_NODE (cur->e[2])->aux_mark))
+        {
+          cur->aux_mark = 1;
+        }
+        else
+        {
+          assert (!cur->aux_mark);
 
-  for (i = 0; i < BTOR_COUNT_STACK (enc_stack); i++)
-  {
-    exp = enc_stack.start[i];
-    if (!BTOR_IS_SYNTH_NODE (exp)) synthesize_exp (btor, exp, 0);
+          if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
 
-    if (!exp->tseitin)
-    {
-      update = 1;
-      btor_aigvec_to_sat_tseitin (avmgr, exp->av);
-      exp->tseitin = 1;
-      fprintf (stderr, "[debug]  enc: ");
-      dump_node (stderr, enc_stack.start[i]);
+          if (cur->av && !cur->tseitin)
+          {
+            update = 1;
+            btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+            cur->tseitin = 1;
+            // debug
+            fprintf (stderr, "[debug] encode: ");
+            dump_node (stderr, cur);
+            // end debug
+          }
+        }
+      }
     }
   }
 
-  BTOR_RELEASE_STACK (btor->mm, enc_stack);
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (cur->mark);
+    cur->mark     = 0;
+    cur->aux_mark = 0;
+  }
 
-  // TODO: set tseitin flag of lambda expression to indicate, that it was
-  //       already lazily synthesized?
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, work_stack);
+
+  /* set tseitin flag of lambda expression to indicate that it has been
+   * lazily synthesized already */
+  lambda_exp->tseitin = 1;
 
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
