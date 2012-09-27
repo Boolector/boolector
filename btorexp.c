@@ -136,6 +136,9 @@ static void rewrite_writes_to_lambda_exp (Btor *);
 /* end debug */
 
 static void dump_node (FILE *file, BtorNode *node);
+static void assign_param (BtorNode *, BtorNode *);
+static void unassign_param (BtorNode *);
+static BtorNode *eval_exp (BtorNode *, int *);
 
 /*------------------------------------------------------------------------*/
 
@@ -1311,7 +1314,7 @@ add_neq_exp_to_clause (Btor *btor,
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
  * The stack 'aeqs' contains intermediate array equalities (true).
- * The stacks 'aconds' constain intermediate array conditionals.
+ * The stacks 'aconds' contain intermediate array conditionals.
  */
 static void
 encode_lemma (Btor *btor,
@@ -5746,15 +5749,61 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
-    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin)
+    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin && cur->mark == 0)
     {
-      // instantiate lambda node with parent index
-      // push cur->e[1]
+      assign_param (cur, BTOR_GET_INDEX_ACC_NODE (acc));
+      next = cur->e[1];
+
+      assert (next->mark == 0);
+      next->mark   = 1;
+      next->parent = cur;
+      BTOR_ENQUEUE (mm, queue, next);
+      BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    else
+    /* traverse nodes in lambda expression */
+    else if (!BTOR_IS_WRITE_NODE (cur) && !BTOR_IS_ARRAY_COND_NODE (cur)
+             && !BTOR_IS_LAMBDA_NODE (cur))
     {
-      // skip write, acond and lambda nodes
+      /* reads on lambda expressions can only be propagated along bv-conds
+       * with parameterized reads as leaves */
+      assert (BTOR_IS_BV_COND_NODE (cur) || BTOR_IS_READ_NODE (cur));
+
+      if (BTOR_IS_BV_COND_NODE (cur))
+      {
+        int bool_result = 0;
+
+        cond = cur->e[0];
+        eval_exp (cond, &bool_result);
+
+        if (bool_result)
+          next = cur->e[1];
+        else
+          next = cur->e[2];
+
+        if (next->mark == 0)
+        {
+          next->mark   = 1;
+          next->parent = cur;
+          BTOR_ENQUEUE (mm, queue, next);
+          BTOR_PUSH_STACK (mm, unmark_stack, next);
+        }
+      }
+      else
+      {
+        /* cur is read node */
+        assert (BTOR_IS_PARAM_NODE (cur->e[1]));
+        next         = cur->e[0];
+        next->mark   = 1;
+        next->parent = cur;
+        BTOR_ENQUEUE (mm, queue, next);
+        BTOR_PUSH_STACK (mm, unmark_stack, next);
+
+        // TODO: unassign param here or in unmark loop?
+        //       use unassign function?
+        ((BtorParamNode *) cur->e[1])->assigned_exp = 0;
+      }
     }
+
     if (propagate_writes_as_reads)
     {
       /* enqueue all arrays which are reachable via equality
@@ -5845,6 +5894,50 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
           }
         }
       }
+      /* propagate upwards lambda expressions:
+       * find all parent reads of array, that read on a lambda var index */
+      //          init_read_parent_iterator (&it, cur);
+      //          while (has_next_parent_read_parent_iterator (&it))
+      //          {
+      //            next = next_parent_read_parent_iterator (&it);
+      //            assert (BTOR_IS_REGULAR_NODE (next));
+      //            assert (BTOR_IS_READ_NODE (next));
+      //            assert (!next->simplified);
+      //            if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
+      //            {
+      //              lambda_read = BTOR_POP_STACK (read_stack);
+      //              assert (BTOR_IS_PARAM_NODE (lambda_read->e[1]));
+      //              lambda_exp = ((BtorParamNode *)
+      //              lambda_read->e[1])->lambda_exp;
+      //
+      //              init_read_parent_iterator (&it, array);
+      //              while (has_next_parent_read_parent_iterator (&it))
+      //              {
+      //                next = next_parent_read_parent_iterator (&it);
+      //                assert (BTOR_IS_REGULAR_NODE (next));
+      //                /* instantiate lambda expression with read index */
+      //                lambda_value = apply_beta_reduction (lambda_exp,
+      //                next->e[1]); assert (BTOR_IS_REGULAR_NODE
+      //                (lambda_value));
+      //
+      //                /* if the instantiated lambda expression returns
+      //                'lambda_read'
+      //                   as value, we propagate 'next' up to 'lambda_exp' as
+      //                   the element on the read index of 'array' is not
+      //                   overwritten by 'lambda_exp'. */
+      //                if (lambda_value == lambda_read)
+      //                {
+      //                  fprintf (stderr, "[debug] lambda prop. upwards:\n");
+      //                  fprintf (stderr, "[debug]   access: ");
+      //                  dump_node (stderr, next);
+      //                  fprintf (stderr, "[debug]   array: ");
+      //                  dump_node (stderr, lambda_exp);
+      //                  BTOR_PUSH_STACK (mm, *stack, next);
+      //                  BTOR_PUSH_STACK (mm, *stack, lambda_exp);
+      //                }
+      //              }
+      //            }
+      //          }
     }
   } while (!BTOR_EMPTY_QUEUE (queue));
   assert (found);
@@ -5896,7 +5989,8 @@ propagated_upwards (Btor *btor, BtorNode *exp)
 static void
 add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
 {
-  BtorPtrHashTable *writes, *aeqs, *aconds_sel1, *aconds_sel2;
+  BtorPtrHashTable *writes, *aeqs, *aconds_sel1, *aconds_sel2, *bconds_sel1;
+  BtorPtrHashTable *bconds_sel2;
   BtorNode *cur, *cond, *prev, *acc;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
@@ -5927,6 +6021,12 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
   aconds_sel2 = btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
+  bconds_sel1 = btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
+  bconds_sel2 = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
@@ -5978,6 +6078,22 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
             }
           }
         }
+        //              // TODO: check for read node with param in order to get
+        //              lambda_exp else if (BTOR_IS_BV_COND_NODE (cur))
+        //              {
+        //                /* acc is current access on lambda expression
+        //                 *   assign formal param if necessary */
+        //                cond = cur->e[0];
+        //                assert (btor->rewrite_level == 0 ||
+        //                        !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE
+        //                        (cond)));
+        //                if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE
+        //                (cond)))
+        //                {
+        //
+        //                }
+        //
+        //              }
       }
       prev = cur;
     }
@@ -5996,6 +6112,8 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
   btor_delete_ptr_hash_table (aeqs);
   btor_delete_ptr_hash_table (aconds_sel1);
   btor_delete_ptr_hash_table (aconds_sel2);
+  btor_delete_ptr_hash_table (bconds_sel1);
+  btor_delete_ptr_hash_table (bconds_sel2);
 }
 
 /* checks array axiom 2 */
@@ -6255,8 +6373,6 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   return changed_assignments;
 }
 
-static BtorNode *eval_exp (BtorNode *, int *);
-
 static int
 eval_beq (BtorNode *exp)
 {
@@ -6345,26 +6461,50 @@ eval_exp (BtorNode *exp, int *bool_result)
   return result;
 }
 
-static BtorNode *
-apply_beta_reduction (Btor *btor, BtorNode *lambda_exp, BtorNode *index)
+static void
+assign_param (BtorNode *lambda_exp, BtorNode *index)
 {
-  assert (btor);
   assert (lambda_exp);
   assert (index);
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
+  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
+  assert (BTOR_IS_PARAM_NODE (lambda_exp->e[0]));
   assert (BTOR_IS_REGULAR_NODE (index));
+  assert (!BTOR_IS_PARAM_NODE (index));
 
   BtorParamNode *param;
-  BtorNode *result;
 
-  assert (BTOR_IS_PARAM_NODE (lambda_exp->e[0]));
   param = (BtorParamNode *) lambda_exp->e[0];
-
   assert (!param->assigned_exp);
   param->assigned_exp = index;
+}
 
-  result              = eval_exp (lambda_exp->e[1], NULL);
+static void
+unassign_param (BtorNode *lambda_exp)
+{
+  assert (lambda_exp);
+  assert (BTOR_IS_REGULAR_NODE (lambda_exp));
+  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
+  assert (BTOR_IS_PARAM_NODE (lambda_exp->e[0]));
+
+  BtorParamNode *param;
+
+  param = (BtorParamNode *) lambda_exp->e[0];
+  assert (param->assigned_exp);
   param->assigned_exp = 0;
+}
+
+static BtorNode *
+apply_beta_reduction (BtorNode *lambda_exp, BtorNode *index)
+{
+  assert (lambda_exp);
+  assert (index);
+
+  BtorNode *result;
+
+  assign_param (lambda_exp, index);
+  result = eval_exp (lambda_exp->e[1], NULL);
+  unassign_param (lambda_exp);
 
   assert (BTOR_IS_READ_NODE (result) || BTOR_IS_BV_CONST_NODE (result)
           || BTOR_IS_BV_VAR_NODE (result));
@@ -6534,7 +6674,7 @@ process_working_stack (Btor *btor,
           lazy_synthesize_and_encode_lambda_exp (btor, array, 1);
       if (*assignments_changed) return 0;
 
-      lambda_value = apply_beta_reduction (btor, array, index);
+      lambda_value = apply_beta_reduction (array, index);
 
       /* propagate down  */
       if (BTOR_IS_READ_NODE (lambda_value))
@@ -6681,7 +6821,7 @@ process_working_stack (Btor *btor,
           next = next_parent_read_parent_iterator (&it);
           assert (BTOR_IS_REGULAR_NODE (next));
           /* instantiate lambda expression with read index */
-          lambda_value = apply_beta_reduction (btor, lambda_exp, next->e[1]);
+          lambda_value = apply_beta_reduction (lambda_exp, next->e[1]);
           assert (BTOR_IS_REGULAR_NODE (lambda_value));
 
           /* if the instantiated lambda expression returns 'lambda_read' as
