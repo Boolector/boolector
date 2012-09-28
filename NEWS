@@ -1,3 +1,8 @@
+news for release 1.5.1XX since 1.5.115
+--------------------------------------
+* fixed assertions in 'booolector.c'
+* support for new reentrant PicoSAT API (since PicoSAT version 953)
+
 news for release 1.5.115 since 1.5.13
 ------------------------------------
 * added 'bvcomp'
