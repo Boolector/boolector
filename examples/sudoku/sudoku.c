@@ -14,13 +14,13 @@
 #define SUDOKU_SIZE_SQRT 3
 #define SUDOKU_NUM_FIELDS (SUDOKU_SIZE * SUDOKU_SIZE)
 
-BtorExp **indices, **values, **vars;
+BtorNode **indices, **values, **vars;
 
-static BtorExp *
-generate_value_constraints (Btor *btor, BtorExp *matrix)
+static BtorNode *
+generate_value_constraints (Btor *btor, BtorNode *matrix)
 {
   int i;
-  BtorExp *lte, *gt, *and, *result, *cur, *temp;
+  BtorNode *lte, *gt, *and, *result, *cur, *temp;
   assert (btor != NULL);
   assert (matrix != NULL);
   result = boolector_true (btor);
@@ -41,11 +41,11 @@ generate_value_constraints (Btor *btor, BtorExp *matrix)
   return result;
 }
 
-static BtorExp *
-generate_row_constraint (Btor *btor, BtorExp *matrix, int line)
+static BtorNode *
+generate_row_constraint (Btor *btor, BtorNode *matrix, int line)
 {
   int i, j;
-  BtorExp *result, *temp, *read1, *read2, *ne;
+  BtorNode *result, *temp, *read1, *read2, *ne;
   assert (btor != NULL);
   assert (matrix != NULL);
   assert (line >= 0);
@@ -69,11 +69,11 @@ generate_row_constraint (Btor *btor, BtorExp *matrix, int line)
   return result;
 }
 
-static BtorExp *
-generate_row_constraints (Btor *btor, BtorExp *matrix)
+static BtorNode *
+generate_row_constraints (Btor *btor, BtorNode *matrix)
 {
   int i;
-  BtorExp *result, *temp, *constraint;
+  BtorNode *result, *temp, *constraint;
   assert (btor != NULL);
   assert (matrix != NULL);
   result = boolector_true (btor);
@@ -88,11 +88,11 @@ generate_row_constraints (Btor *btor, BtorExp *matrix)
   return result;
 }
 
-static BtorExp *
-generate_col_constraint (Btor *btor, BtorExp *matrix, int col)
+static BtorNode *
+generate_col_constraint (Btor *btor, BtorNode *matrix, int col)
 {
   int i, j;
-  BtorExp *result, *temp, *read1, *read2, *ne;
+  BtorNode *result, *temp, *read1, *read2, *ne;
   assert (btor != NULL);
   assert (matrix != NULL);
   assert (col >= 0);
@@ -116,11 +116,11 @@ generate_col_constraint (Btor *btor, BtorExp *matrix, int col)
   return result;
 }
 
-static BtorExp *
-generate_col_constraints (Btor *btor, BtorExp *matrix)
+static BtorNode *
+generate_col_constraints (Btor *btor, BtorNode *matrix)
 {
   int i;
-  BtorExp *result, *temp, *constraint;
+  BtorNode *result, *temp, *constraint;
   assert (btor != NULL);
   assert (matrix != NULL);
   result = boolector_true (btor);
@@ -135,12 +135,12 @@ generate_col_constraints (Btor *btor, BtorExp *matrix)
   return result;
 }
 
-static BtorExp *
-generate_square_constraint (Btor *btor, BtorExp *matrix, int line, int col)
+static BtorNode *
+generate_square_constraint (Btor *btor, BtorNode *matrix, int line, int col)
 {
   int i, j, x, y, counter;
   int pos[SUDOKU_SIZE];
-  BtorExp *result, *temp, *read1, *read2, *ne;
+  BtorNode *result, *temp, *read1, *read2, *ne;
   assert (btor != NULL);
   assert (matrix != NULL);
   assert (line == 0 || line == 3 || line == 6);
@@ -181,11 +181,11 @@ generate_square_constraint (Btor *btor, BtorExp *matrix, int line, int col)
   return result;
 }
 
-static BtorExp *
-generate_square_constraints (Btor *btor, BtorExp *matrix)
+static BtorNode *
+generate_square_constraints (Btor *btor, BtorNode *matrix)
 {
   int i, j;
-  BtorExp *result, *temp, *constraint;
+  BtorNode *result, *temp, *constraint;
   assert (btor != NULL);
   assert (matrix != NULL);
   result = boolector_true (btor);
@@ -203,11 +203,11 @@ generate_square_constraints (Btor *btor, BtorExp *matrix)
   return result;
 }
 
-static BtorExp *
-generate_var_read_relations (Btor *btor, BtorExp *matrix)
+static BtorNode *
+generate_var_read_relations (Btor *btor, BtorNode *matrix)
 {
   int i;
-  BtorExp *cur, *eq, *result, *temp;
+  BtorNode *cur, *eq, *result, *temp;
   assert (btor != NULL);
   assert (matrix != NULL);
   result = boolector_true (btor);
@@ -232,7 +232,7 @@ main (int argc, char **argv)
   char *assignment, *assignment_dec;
   Btor *btor;
   BtorMemMgr *mm;
-  BtorExp *matrix, *temp, *formula, *constraint;
+  BtorNode *matrix, *temp, *formula, *constraint;
 
   if ((argc != 2 && argc != 1)
       || (argc == 2 && strcmp (argv[1], "--dump-formula") != 0))
@@ -258,15 +258,15 @@ main (int argc, char **argv)
 
   if (dump_formula) boolector_set_rewrite_level (btor, 0);
 
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
+  indices = (BtorNode **) malloc (sizeof (BtorNode *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
     indices[i] = boolector_unsigned_int (btor, i, SUDOKU_NUM_BITS_INDEX);
 
-  values = (BtorExp **) malloc (sizeof (BtorExp *) * 10);
+  values = (BtorNode **) malloc (sizeof (BtorNode *) * 10);
   for (i = 0; i <= 9; i++)
     values[i] = boolector_unsigned_int (btor, i, SUDOKU_NUM_BITS_VAL);
 
-  vars = (BtorExp **) malloc (sizeof (BtorExp *) * SUDOKU_NUM_FIELDS);
+  vars = (BtorNode **) malloc (sizeof (BtorNode *) * SUDOKU_NUM_FIELDS);
   for (i = 0; i < SUDOKU_NUM_FIELDS; i++)
   {
     sprintf (varname, "var%d", i);

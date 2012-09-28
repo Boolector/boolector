@@ -8,22 +8,22 @@
 
 /* maxAND algorithm from hacker's delight, page 61 */
 
-BtorExp *
+BtorNode *
 btor_maxand (Btor *btor,
-             BtorExp *a_in,
-             BtorExp *b_in,
-             BtorExp *c_in,
-             BtorExp *d_in,
-             BtorExp *m_in,
+             BtorNode *a_in,
+             BtorNode *b_in,
+             BtorNode *c_in,
+             BtorNode *d_in,
+             BtorNode *m_in,
              int num_bits)
 {
-  BtorExp *temp_1, *temp_2, *m, *zero;
-  BtorExp *tmp, *a, *b, *c, *d, *not_b, *not_d, *not_m, *m_minus_1;
-  BtorExp *b_and_not_d, *b_and_not_d_and_m, *b_and_not_d_and_m_ne_zero;
-  BtorExp *b_and_not_m, *not_b_and_d, *not_b_and_d_and_m, *d_and_not_m;
-  BtorExp *not_b_and_d_and_m_ne_zero, *temp_1_ugte_a, *temp_2_ugte_c;
-  BtorExp *result, *cond_if, *cond_else_1, *cond_else_2;
-  BtorExp *one_log_bits, *one_full_bits;
+  BtorNode *temp_1, *temp_2, *m, *zero;
+  BtorNode *tmp, *a, *b, *c, *d, *not_b, *not_d, *not_m, *m_minus_1;
+  BtorNode *b_and_not_d, *b_and_not_d_and_m, *b_and_not_d_and_m_ne_zero;
+  BtorNode *b_and_not_m, *not_b_and_d, *not_b_and_d_and_m, *d_and_not_m;
+  BtorNode *not_b_and_d_and_m_ne_zero, *temp_1_ugte_a, *temp_2_ugte_c;
+  BtorNode *result, *cond_if, *cond_else_1, *cond_else_2;
+  BtorNode *one_log_bits, *one_full_bits;
   int i;
 
   assert (btor != NULL);

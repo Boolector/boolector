@@ -4,14 +4,14 @@
 #include <string.h>
 #include "../../boolector.h"
 
-static BtorExp *
+static BtorNode *
 swap_with_xor (Btor *btor,
-               BtorExp *mem,
+               BtorNode *mem,
                int num_elements,
-               BtorExp *start1,
-               BtorExp *start2)
+               BtorNode *start1,
+               BtorNode *start2)
 {
-  BtorExp *x, *y, *result, *temp, *xor, *pos1, *pos2, *one;
+  BtorNode *x, *y, *result, *temp, *xor, *pos1, *pos2, *one;
   int i;
   assert (btor != NULL);
   assert (mem != NULL);
@@ -75,9 +75,9 @@ main (int argc, char **argv)
 {
   int num_elements, overlap;
   Btor *btor;
-  BtorExp *mem, *orig_mem, *formula, *start1, *start2, *num_elements_exp;
-  BtorExp *add1, *add2, *ugte1, *ugte2, *temp, * or, *uaddo1, *uaddo2;
-  BtorExp *not_uaddo1, *not_uaddo2, *premisse_part1, *premisse_part2;
+  BtorNode *mem, *orig_mem, *formula, *start1, *start2, *num_elements_exp;
+  BtorNode *add1, *add2, *ugte1, *ugte2, *temp, * or, *uaddo1, *uaddo2;
+  BtorNode *not_uaddo1, *not_uaddo2, *premisse_part1, *premisse_part2;
   if ((argc != 2 && argc != 3)
       || (argc == 2
           && (strcmp (argv[1], "-h") == 0 || strcmp (argv[1], "--help") == 0))

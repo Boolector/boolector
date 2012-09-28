@@ -986,6 +986,14 @@ int boolector_sat (Btor *btor);
 char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
 
 /**
+ * Frees an assignment string for bit-vectors.
+ * \param btor Boolector instance.
+ * \param assignment String which has to be freed.
+ * \see boolector_bv_assignment
+ */
+void boolector_free_bv_assignment (Btor *btor, char *assignment);
+
+/**
  * Builds a model for an array expression.
  * if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
@@ -1010,12 +1018,16 @@ void boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size);
 
 /**
- * Frees an assignment string for bit-vectors.
+ * Frees an assignment string for arrays of bit-vectors.
  * \param btor Boolector instance.
- * \param assignment String which has to be freed.
- * \see boolector_bv_assignment
+ * \param indices Array of index strings of size
+ * \param array of index strings of size
+ * \param array of values strings of size
  * \see boolector_array_assignment
  */
-void boolector_free_bv_assignment (Btor *btor, char *assignment);
+void boolector_free_array_assignment (Btor *btor,
+                                      char **indices,
+                                      char **values,
+                                      int size);
 
 #endif

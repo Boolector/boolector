@@ -36,10 +36,10 @@ isint (const char *str)
 int
 main (int argc, char **argv)
 {
-  BtorExp *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
-  BtorExp *mem, *assumption, *alternative, *cmp, *root, *v;
+  BtorNode *src, *dst, *eos, *eod, *p, *q, *tmp, *n, *j, *zero, *one;
+  BtorNode *mem, *assumption, *alternative, *cmp, *root, *v;
   int i, len, havelen, overlapping, signed_size_t;
-  BtorExp *old, *new;
+  BtorNode *old, *new;
   Btor *btor;
 
   len           = 0;

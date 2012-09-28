@@ -25,8 +25,8 @@ main (int argc, char **argv)
 {
   int num_bits, i;
   Btor *btor;
-  BtorExp *var, *var_shift, *zero, *one, *onelog, *formula;
-  BtorExp *result1, *result2, *and, *temp, *sgt, *eq, *ne;
+  BtorNode *var, *var_shift, *zero, *one, *onelog, *formula;
+  BtorNode *result1, *result2, *and, *temp, *sgt, *eq, *ne;
   if (argc != 2)
   {
     printf ("Usage: ./ispowerof2 <num-bits>\n");

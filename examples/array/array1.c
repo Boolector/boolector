@@ -31,8 +31,8 @@ int
 main (void)
 {
   Btor *btor;
-  BtorExp *array, *read, *max, *temp, *ugt, *formula, *index;
-  BtorExp *indices[ARRAY1_EXAMPLE_ARRAY_SIZE];
+  BtorNode *array, *read, *max, *temp, *ugt, *formula, *index;
+  BtorNode *indices[ARRAY1_EXAMPLE_ARRAY_SIZE];
   int i, result;
 
   btor = boolector_new ();

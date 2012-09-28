@@ -15,8 +15,8 @@ int
 main (void)
 {
   Btor *btor;
-  BtorExp *array1, *array2, *zero, *one, *val1, *val2;
-  BtorExp *write1, *write2, *formula;
+  BtorNode *array1, *array2, *zero, *one, *val1, *val2;
+  BtorNode *write1, *write2, *formula;
   char **indices, **values;
   int result, size, i;
 
@@ -53,7 +53,7 @@ main (void)
       boolector_free_bv_assignment (btor, indices[i]);
       boolector_free_bv_assignment (btor, values[i]);
     }
-    free (indices);
+    btor_free (indices);
     free (values);
   }
 

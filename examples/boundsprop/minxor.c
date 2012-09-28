@@ -8,21 +8,21 @@
 
 /* minXOR algorithm from hacker's delight, page 62 */
 
-BtorExp *
+BtorNode *
 btor_minxor (Btor *btor,
-             BtorExp *a_in,
-             BtorExp *b_in,
-             BtorExp *c_in,
-             BtorExp *d_in,
-             BtorExp *m_in,
+             BtorNode *a_in,
+             BtorNode *b_in,
+             BtorNode *c_in,
+             BtorNode *d_in,
+             BtorNode *m_in,
              int num_bits)
 {
-  BtorExp *temp_1, *temp_2, *m, *zero;
-  BtorExp *tmp, *a, *b, *c, *d, *not_a, *not_c, *neg_m;
-  BtorExp *not_a_and_c, *not_a_and_c_and_m, *a_or_m, *temp_1_ulte_b;
-  BtorExp *a_and_not_c, *a_and_not_c_and_m, *c_or_m, *temp_2_ulte_d;
-  BtorExp *not_a_and_c_and_m_ne_zero, *a_and_not_c_and_m_ne_zero, *result;
-  BtorExp *cond_if, *cond_else_1, *cond_else_2, *one_log_bits;
+  BtorNode *temp_1, *temp_2, *m, *zero;
+  BtorNode *tmp, *a, *b, *c, *d, *not_a, *not_c, *neg_m;
+  BtorNode *not_a_and_c, *not_a_and_c_and_m, *a_or_m, *temp_1_ulte_b;
+  BtorNode *a_and_not_c, *a_and_not_c_and_m, *c_or_m, *temp_2_ulte_d;
+  BtorNode *not_a_and_c_and_m_ne_zero, *a_and_not_c_and_m_ne_zero, *result;
+  BtorNode *cond_if, *cond_else_1, *cond_else_2, *one_log_bits;
   int i;
 
   assert (btor != NULL);

@@ -3,12 +3,12 @@
 
 #include "../../boolector.h"
 
-BtorExp *btor_minxor (Btor *btor,
-                      BtorExp *a_in,
-                      BtorExp *b_in,
-                      BtorExp *c_in,
-                      BtorExp *d_in,
-                      BtorExp *m_in,
-                      int num_bits);
+BtorNode *btor_minxor (Btor *btor,
+                       BtorNode *a_in,
+                       BtorNode *b_in,
+                       BtorNode *c_in,
+                       BtorNode *d_in,
+                       BtorNode *m_in,
+                       int num_bits);
 
 #endif
