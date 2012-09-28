@@ -33,8 +33,6 @@
 
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
-#else
-// #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
 /*------------------------------------------------------------------------*/
