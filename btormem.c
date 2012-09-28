@@ -37,7 +37,10 @@
     if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
   } while (0)
 
-#if 1
+/*------------------------------------------------------------------------*/
+/* This enables logging of all memory allocations.
+ */
+#if 0
 #define BTOR_LOG_MEM(FMT, ARGS...)   \
   do                                 \
   {                                  \

@@ -48,13 +48,8 @@ main (void)
   {
     printf ("Array1:\n");
     for (i = 0; i < size; i++)
-    {
       printf ("Array1[%s] = %s\n", indices[i], values[i]);
-      boolector_free_bv_assignment (btor, indices[i]);
-      boolector_free_bv_assignment (btor, values[i]);
-    }
-    btor_free (indices);
-    free (values);
+    boolector_free_array_assignment (btor, indices, values, size);
   }
 
   boolector_array_assignment (btor, array2, &indices, &values, &size);
@@ -62,13 +57,8 @@ main (void)
   {
     printf ("\nArray2:\n");
     for (i = 0; i < size; i++)
-    {
       printf ("Array2[%s] = %s\n", indices[i], values[i]);
-      boolector_free_bv_assignment (btor, indices[i]);
-      boolector_free_bv_assignment (btor, values[i]);
-    }
-    free (indices);
-    free (values);
+    boolector_free_array_assignment (btor, indices, values, size);
   }
 
   boolector_array_assignment (btor, write1, &indices, &values, &size);
@@ -76,13 +66,8 @@ main (void)
   {
     printf ("\nWrite1:\n");
     for (i = 0; i < size; i++)
-    {
       printf ("Write1[%s] = %s\n", indices[i], values[i]);
-      boolector_free_bv_assignment (btor, indices[i]);
-      boolector_free_bv_assignment (btor, values[i]);
-    }
-    free (indices);
-    free (values);
+    boolector_free_array_assignment (btor, indices, values, size);
   }
 
   boolector_array_assignment (btor, write2, &indices, &values, &size);
@@ -90,13 +75,8 @@ main (void)
   {
     printf ("\nWrite2:\n");
     for (i = 0; i < size; i++)
-    {
       printf ("Write2[%s] = %s\n", indices[i], values[i]);
-      boolector_free_bv_assignment (btor, indices[i]);
-      boolector_free_bv_assignment (btor, values[i]);
-    }
-    free (indices);
-    free (values);
+    boolector_free_array_assignment (btor, indices, values, size);
   }
 
   /* clean up */
