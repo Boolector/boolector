@@ -1,5 +1,5 @@
 include ../makefile.common
 all:
-	$(CC) $(CFLAGS) -o $@ binarysearch.c $(LIBS)
+	$(CC) $(CFLAGS) -o binarysearch binarysearch.c $(LIBS)
 clean:
 	rm -f binarysearch
