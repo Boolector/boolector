@@ -8419,16 +8419,19 @@ process_skeleton (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor)
 {
-  int rounds, skelrounds;
+  int rounds;
   double start, delta;
+#ifndef BTOR_DO_NOT_PROCESS_SKELETON
+  int skelrounds = 0;
+#endif
 
   assert (btor);
   if (btor->inconsistent) return;
 
   if (btor->rewrite_level <= 1) return;
 
-  skelrounds = rounds = 0;
-  start               = btor_time_stamp ();
+  rounds = 0;
+  start  = btor_time_stamp ();
 
   do
   {
