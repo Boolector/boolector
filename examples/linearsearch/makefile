@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-linearsearch: linearsearch.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ linearsearch.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o $@ linearsearch.c $(LIBS)
 clean:
 	rm -f linearsearch

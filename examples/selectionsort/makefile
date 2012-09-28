@@ -1,7 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-
-all: selectionsort.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o selectionsort selectionsort.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o selectionsort selectionsort.c $(LIBS)
 clean:
 	rm -f selectionsort

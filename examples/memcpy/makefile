@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-memcpy: memcpy.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ memcpy.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o $@ memcpy.c $(LIBS)
 clean:
 	rm -f memcpy

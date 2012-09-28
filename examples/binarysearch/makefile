@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-binarysearch: binarysearch.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ binarysearch.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o $@ binarysearch.c $(LIBS)
 clean:
 	rm -f binarysearch

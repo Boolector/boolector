@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-matrixmultcomm: matrixmultcomm.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ matrixmultcomm.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o $@ matrixmultcomm.c $(LIBS)
 clean:
 	rm -f matrixmultcomm

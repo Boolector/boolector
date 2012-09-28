@@ -1,35 +1,34 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
+include ../makefile.common
 
 all:
-	$(MAKE) minor
-	$(MAKE) maxor
-	$(MAKE) minand
-	$(MAKE) maxand
-	$(MAKE) minxor
-	$(MAKE) maxxor
-	$(MAKE) theorems
+	$(MAKE) all-minor
+	$(MAKE) all-maxor
+	$(MAKE) all-minand
+	$(MAKE) all-maxand
+	$(MAKE) all-minxor
+	$(MAKE) all-maxxor
+	$(MAKE) all-theorems
 
-minor: minormain.c minor.c minor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ minor.c minormain.c -L../.. -lboolector
+all-minor:
+	$(CC) $(CFLAGS) -o $@ minor.c minormain.c $(LIBS)
 
-maxor: maxormain.c maxor.c maxor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ maxor.c maxormain.c -L../.. -lboolector
+all-maxor:
+	$(CC) $(CFLAGS) -o $@ maxor.c maxormain.c $(LIBS)
 
-minand: minandmain.c minand.c minand.h ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ minand.c minandmain.c -L../.. -lboolector
+all-minand:
+	$(CC) $(CFLAGS) -o $@ minand.c minandmain.c $(LIBS)
 
-maxand: maxandmain.c maxand.c maxand.h ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ maxand.c maxandmain.c -L../.. -lboolector
+all-maxand:
+	$(CC) $(CFLAGS) -o $@ maxand.c maxandmain.c $(LIBS)
 
-minxor: minxormain.c minxor.c minxor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ minxor.c minxormain.c -L../.. -lboolector
+all-minxor:
+	$(CC) $(CFLAGS) -o $@ minxor.c minxormain.c $(LIBS)
 
-maxxor: maxxormain.c maxxor.c maxxor.h ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ maxxor.c maxxormain.c -L../.. -lboolector
+all-maxxor:
+	$(CC) $(CFLAGS) -o $@ maxxor.c maxxormain.c $(LIBS)
 
-theorems: theorems.c minor maxor minand maxand minxor maxxor
-	$(CC) $(CFLAGS) -o $@ theorems.c minor.c minand.c maxor.c maxand.c minxor.c maxxor.c -L../.. -lboolector
+all-theorems:
+	$(CC) $(CFLAGS) -o $@ theorems.c minor.c minand.c maxor.c maxand.c minxor.c maxxor.c $(LIBS)
 
 clean:
 	rm -f minor maxor minand maxand minxor maxxor theorems
