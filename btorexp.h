@@ -321,33 +321,37 @@ struct Btor
   } time;
 };
 
-#define BTOR_IS_PARAM_NODE_KIND(kind) ((kind) == BTOR_PARAM_NODE)
-
-#define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
-
 #define BTOR_IS_BV_CONST_NODE_KIND(kind) ((kind) == BTOR_BV_CONST_NODE)
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
 
+#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
+
+#define BTOR_IS_PARAM_NODE_KIND(kind) ((kind) == BTOR_PARAM_NODE)
+
+#define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
+
+#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
+
+#define BTOR_IS_ADD_NODE_KIND(kind) (kind == BTOR_ADD_NODE)
+
+#define BTOR_IS_MUL_NODE_KIND(kind) (kind == BTOR_MUL_NODE)
+
 #define BTOR_IS_READ_NODE_KIND(kind) (kind == BTOR_READ_NODE)
+
+#define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
 #define BTOR_IS_WRITE_NODE_KIND(kind) (kind == BTOR_WRITE_NODE)
 
 #define BTOR_IS_ARRAY_COND_NODE_KIND(kind) (kind == BTOR_ACOND_NODE)
 
-#define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
-
 #define BTOR_IS_BV_COND_NODE_KIND(kind) (kind == BTOR_BCOND_NODE)
 
-#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
+#define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
 
 #define BTOR_IS_ARRAY_NODE_KIND(kind)                             \
   (((kind) == BTOR_ARRAY_VAR_NODE) || ((kind) == BTOR_WRITE_NODE) \
    || ((kind) == BTOR_ACOND_NODE) || ((kind) == BTOR_LAMBDA_NODE))
-
-#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
-
-#define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
 
 #define BTOR_IS_UNARY_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
 
@@ -359,6 +363,15 @@ struct Btor
 
 #define BTOR_IS_TERNARY_NODE_KIND(kind) \
   (((kind) >= BTOR_WRITE_NODE) && ((kind) <= BTOR_ACOND_NODE))
+
+#define BTOR_IS_BV_CONST_NODE(exp) \
+  ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BV_VAR_NODE(exp) \
+  ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_ARRAY_VAR_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
 
@@ -372,16 +385,22 @@ struct Btor
        || (exp->arity == 3                                          \
            && BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp->e[2])))))
 
-#define BTOR_IS_LAMBDA_NODE(exp) \
-  ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
+#define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_CONST_NODE(exp) \
-  ((exp) && BTOR_IS_BV_CONST_NODE_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_EQ_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_BV_VAR_NODE(exp) \
-  ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
+#define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
+  ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
+
+#define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_READ_NODE(exp) ((exp) && BTOR_IS_READ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_LAMBDA_NODE(exp) \
+  ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
 
@@ -391,23 +410,12 @@ struct Btor
 #define BTOR_IS_BV_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
-
 #define BTOR_IS_ARRAY_OR_BV_COND_NODE(exp) \
   ((exp) && (BTOR_IS_ARRAY_COND_NODE (exp) || BTOR_IS_BV_COND_NODE (exp)))
 
-#define BTOR_IS_ARRAY_VAR_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
+#define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARRAY_NODE(exp) ((exp) && BTOR_IS_ARRAY_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_EQ_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
-  ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
 
 #define BTOR_IS_UNARY_NODE(exp) ((exp) && BTOR_IS_UNARY_NODE_KIND ((exp)->kind))
 
