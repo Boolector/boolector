@@ -5222,19 +5222,18 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       }
       else if (BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
       {
-        /* nothing to synthesize for array base case and
-         * lambda variables */
+        /* nothing to synthesize for array base case and parameters */
       }
       else if (BTOR_IS_LAMBDA_NODE (cur))
       {
-        /* do not synthesize subexpressions with lambda variables */
+        /* do not synthesize subexpressions with parameters */
 
         assert (BTOR_EMPTY_STACK (work_stack));
 
         BtorFullParentIterator it;
         BtorNode *tcur, *parent;
 
-        tcur = cur->e[0]; /* lambda var */
+        tcur = cur->e[0]; /* param */
         assert (BTOR_IS_REGULAR_NODE (tcur));
         BTOR_PUSH_STACK (mm, work_stack, tcur);
 
@@ -5958,7 +5957,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         }
       }
       /* TODO propagate upwards lambda expressions:
-       * find all parent reads of array, that read on a lambda var index */
+       * find all parent reads of array, that read on a param index */
       //          init_read_parent_iterator (&it, cur);
       //          while (has_next_parent_read_parent_iterator (&it))
       //          {
@@ -6131,7 +6130,7 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
                 amgr, BTOR_REAL_ADDR_NODE (cond)->av->aigs[0]);
             assert (assignment == 1 || assignment == -1);
             if (BTOR_IS_INVERTED_NODE (cond)) assignment = -assignment;
-            // TODO: why not comparing with children and prev?
+            // TODO: why not compare with children and prev?
             //       evaluation was already done in bfs
             if (assignment == 1)
             {
@@ -6916,7 +6915,7 @@ process_working_stack (Btor *btor,
       }
       /* propagate upwards lambda expressions */
 
-      /* find all parent reads of array, that read on a lambda var index */
+      /* find all parent reads of array, that read on a param index */
       BTOR_INIT_STACK (read_stack);
       init_read_parent_iterator (&it, array);
       while (has_next_parent_read_parent_iterator (&it))
