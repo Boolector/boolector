@@ -1311,6 +1311,174 @@ add_neq_exp_to_clause (Btor *btor,
   add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
 }
 
+// static void
+// add_lambda_exp_to_clause (Btor *btor, Btor *lambda_exp,
+//                          BtorIntStack *linking_clause)
+//{
+//
+//}
+//
+// static void
+// encode_lemma_new (Btor *btor, BtorPtrHashTable *writes, BtorPtrHashTable
+// *aeqs,
+//                  BtorPtrHashTable *aconds_sel1, BtorPtrHashTable
+//                  *aconds_sel2, BtorNode *acc1, BtorNode *acc2)
+//{
+//  assert (btor);
+//  assert (writes);
+//  assert (aeqs);
+//  assert (aconds_sel1);
+//  assert (aconds_sel2);
+//  assert (bconds_sel1);
+//  assert (bconds_sel2);
+//  assert (acc1);
+//  assert (acc2);
+//  assert (BTOR_IS_REGULAR_NODE (acc1));
+//  assert (BTOR_IS_REGULAR_NODE (acc2));
+//  assert (!BTOR_IS_ARRAY_NODE (acc1));
+//
+//  int k;
+//  BtorMemMgr *mm;
+//  BtorAIGVecMgr *avmgr;
+//  BtorAIGMgr *amgr;
+//  BtorSATMgr *smgr;
+//  BtorNode *i, *j, *a, *b, *cur_write, *w_index, *aeq, *acond, *bcond;
+//  BtorIntStack linking_clause;
+//  BtorPtrHashBucket *bucket;
+//
+//  mm = btor->mm;
+//  avmgr = btor->avmgr;
+//  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
+//  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+//
+//  i = BTOR_GET_INDEX_ACC_NODE (acc1);
+//  a = BTOR_GET_VALUE_ACC_NODE (acc1);
+//
+//  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (i)));
+//  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (a)));
+//  assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (i)));
+//  assert (BTOR_REAL_ADDR_NODE (i)->tseitin);
+//
+//  BTOR_INIT_STACK (linking_clause);
+//
+//  /* array axiom 2 conflict (lambda expression) - array == acc2 */
+//  if (BTOR_IS_LAMBDA_NODE (acc2))
+//  {
+//    /* get value at position i */
+//    b = apply_beta_reduction (acc2, i);
+//
+//    assign_param (acc2, i);
+//    add_lambda_exp_to_clause (btor, acc2, &linking_clause);
+//    unassign_param (acc2);
+//  }
+//  else
+//  {
+//    j = BTOR_GET_INDEX_ACC_NODE (acc2);
+//    b = BTOR_GET_VALUE_ACC_NODE (acc2);
+//
+//    assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (j)));
+//    assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (j)));
+//    assert (BTOR_REAL_ADDR_NODE (j)->tseitin);
+//
+//    add_neq_exp_to_clause (btor, i, j, &linking_clause);
+//  }
+//
+//  add_eq_exp_to_clause (btor, a, b, &linking_clause);
+//
+//  /* encode i = write index premisses */
+//  for (bucket = writes->last; bucket; bucket = bucket->prev)
+//  {
+//    cur_write = (BtorNode *) bucket->key;
+//    assert (BTOR_IS_REGULAR_NODE (cur_write));
+//    assert (BTOR_IS_WRITE_NODE (cur_write));
+//    w_index = cur_write->e[1];
+//    add_eq_exp_to_clause (btor, i, w_index, &linking_clause);
+//  }
+//
+//  /* add array equalites in the premisse to linking clause */
+//  for (bucket = aeqs->last; bucket; bucket = bucket->prev)
+//    {
+//      // TODO replace by 'exp_to_cnf_lit'
+//      aeq = (BtorNode *) bucket->key;
+//      assert (BTOR_IS_REGULAR_NODE (aeq));
+//      assert (BTOR_IS_ARRAY_EQ_NODE (aeq));
+//      assert (BTOR_IS_SYNTH_NODE (aeq));
+//      assert (aeq->av->len == 1);
+//      assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
+//      assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
+//      assert (BTOR_IS_VAR_AIG (aeq->av->aigs[0]));
+//      k = -aeq->av->aigs[0]->cnf_id;
+//      BTOR_PUSH_STACK (mm, linking_clause, k);
+//    }
+//
+//  for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
+//    {
+//      // TODO replace by 'exp_to_cnf_lit'
+//      acond = (BtorNode *) bucket->key;
+//      assert (BTOR_IS_REGULAR_NODE (acond));
+//      assert (BTOR_IS_ARRAY_COND_NODE (acond));
+//      cond = acond->e[0];
+//      assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
+//      assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
+//      aig1 = BTOR_REAL_ADDR_NODE (cond)->av->aigs[0];
+//      /* if AIG is constant (e.g. as a result of AIG optimizations),
+//       * then we do not have to include it in the premisse */
+//      if (!BTOR_IS_CONST_AIG (aig1))
+//        {
+//          if (BTOR_IS_INVERTED_NODE (cond))
+//            aig1 = BTOR_INVERT_AIG (aig1);
+//          if (BTOR_IS_INVERTED_AIG (aig1))
+//            k = BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+//          else
+//            k = -aig1->cnf_id;
+//          assert (k != 0);
+//          BTOR_PUSH_STACK (mm, linking_clause, k);
+//        }
+//    }
+//
+//  for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
+//    {
+//      // TODO replace by 'exp_to_cnf_lit'
+//      acond = (BtorNode *) bucket->key;
+//      assert (BTOR_IS_REGULAR_NODE (acond));
+//      assert (BTOR_IS_ARRAY_COND_NODE (acond));
+//      cond = acond->e[0];
+//      assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
+//      assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
+//      aig1 = BTOR_REAL_ADDR_NODE (cond)->av->aigs[0];
+//      /* if AIG is constant (e.g. as a result of AIG optimizations),
+//       * then we do not have to include it in the premisse */
+//      if (!BTOR_IS_CONST_AIG (aig1))
+//        {
+//          if (BTOR_IS_INVERTED_NODE (cond))
+//            aig1 = BTOR_INVERT_AIG (aig1);
+//          if (BTOR_IS_INVERTED_AIG (aig1))
+//            k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
+//          else
+//            k = aig1->cnf_id;
+//          assert (k != 0);
+//          BTOR_PUSH_STACK (mm, linking_clause, k);
+//        }
+//    }
+//
+//  /* add linking clause */
+//  while (!BTOR_EMPTY_STACK (linking_clause))
+//    {
+//      k = BTOR_POP_STACK (linking_clause);
+//      assert (k != 0);
+//      val = btor_fixed_sat (smgr, k);
+//      if (val < 0) continue;
+//      assert (!val);
+//      btor_add_sat (smgr, k);
+//      btor->stats.lclause_size_sum++;
+//    }
+//  btor_add_sat (smgr, 0);
+//  BTOR_RELEASE_STACK (mm, linking_clause);
+//
+//
+//
+//}
+
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
  * The stack 'aeqs' contains intermediate array equalities (true).
@@ -5143,7 +5311,7 @@ synthesize_array_equality (Btor *btor, BtorNode *aeq)
 static void
 synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
-  BtorNodePtrStack exp_stack, unmark_stack, work_stack;
+  BtorNodePtrStack exp_stack;
   BtorNode *cur;
   BtorAIGVec *av0, *av1, *av2;
   BtorMemMgr *mm;
@@ -5164,8 +5332,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
   avmgr = btor->avmgr;
   count = 0;
 
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
   fprintf (stderr, "[debug] synthesize exp: ");
@@ -5189,12 +5355,12 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       cur->reachable = 1;
       if (BTOR_IS_BV_CONST_NODE (cur))
         cur->av = btor_const_aigvec (avmgr, cur->bits);
-      else if (BTOR_IS_BV_VAR_NODE (cur))
+      else if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
       {
         cur->av = btor_var_aigvec (avmgr, cur->len);
         if (backannotation)
         {
-          // TODO lambda handling
+          // TODO param handling?
           name = btor_get_symbol_exp (btor, cur);
           len  = (int) strlen (name) + 40;
           if (cur->len > 1)
@@ -5220,43 +5386,12 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           }
         }
       }
-      else if (BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
+      else if (BTOR_IS_ARRAY_VAR_NODE (cur))
       {
-        /* nothing to synthesize for array base case and parameters */
+        /* nothing to synthesize for array base case */
       }
-      else if (BTOR_IS_LAMBDA_NODE (cur))
-      {
-        /* do not synthesize subexpressions with parameters */
-
-        assert (BTOR_EMPTY_STACK (work_stack));
-
-        BtorFullParentIterator it;
-        BtorNode *tcur, *parent;
-
-        tcur = cur->e[0]; /* param */
-        assert (BTOR_IS_REGULAR_NODE (tcur));
-        BTOR_PUSH_STACK (mm, work_stack, tcur);
-
-        while (!BTOR_EMPTY_STACK (work_stack))
-        {
-          if ((tcur = BTOR_POP_STACK (work_stack)) == cur) continue;
-
-          init_full_parent_iterator (&it, tcur);
-          while (has_next_parent_full_parent_iterator (&it))
-          {
-            parent = next_parent_full_parent_iterator (&it);
-            assert (BTOR_IS_REGULAR_NODE (parent));
-            if (!parent->aux_mark)
-            {
-              parent->aux_mark = 1;
-              BTOR_PUSH_STACK (mm, unmark_stack, parent);
-              BTOR_PUSH_STACK (mm, work_stack, parent);
-            }
-          }
-        }
-        goto REGULAR_CASE;
-      }
-      else if (BTOR_IS_WRITE_NODE (cur) || BTOR_IS_ARRAY_COND_NODE (cur))
+      else if (BTOR_IS_WRITE_NODE (cur) || BTOR_IS_LAMBDA_NODE (cur)
+               || BTOR_IS_ARRAY_COND_NODE (cur))
       {
         goto REGULAR_CASE;
       }
@@ -5281,13 +5416,9 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         /* special cases */
         if (BTOR_IS_READ_NODE (cur))
         {
+          cur->av = btor_var_aigvec (avmgr, cur->len);
           assert (BTOR_IS_REGULAR_NODE (cur->e[0]));
           assert (BTOR_IS_ARRAY_NODE (cur->e[0]));
-          if (!cur->aux_mark)
-          {
-            assert (!BTOR_IS_PARAM_NODE (cur->e[0]));
-            cur->av = btor_var_aigvec (avmgr, cur->len);
-          }
           goto REGULAR_CASE;
         }
         else if (BTOR_IS_ARRAY_EQ_NODE (cur))
@@ -5303,9 +5434,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         else
         {
         REGULAR_CASE:
-          /* skip lambda subexpressions we do not synthesize */
-          if (cur->aux_mark)
-            cur->synth_mark = 2;
+          if (BTOR_IS_LAMBDA_NODE (cur))
+            cur->synth_mark = 2; /* always skip lambda nodes */
           else
             cur->synth_mark = 1;
 
@@ -5318,9 +5448,9 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
     else
     {
       assert (cur->synth_mark == 1);
-      assert (!cur->aux_mark);
       cur->synth_mark = 2;
       assert (!BTOR_IS_READ_NODE (cur));
+      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
       if (cur->arity == 1)
       {
@@ -5403,7 +5533,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         assert (cur->arity == 3);
 
-        if (BTOR_IS_BV_COND_NODE (cur) && !cur->aux_mark)
+        if (BTOR_IS_BV_COND_NODE (cur))
         {
           same_children_mem =
               BTOR_REAL_ADDR_NODE (cur->e[0]) == BTOR_REAL_ADDR_NODE (cur->e[1])
@@ -5449,16 +5579,6 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   BTOR_RELEASE_STACK (mm, exp_stack);
   mark_synth_mark_exp (btor, exp, 0);
-
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    exp = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (exp));
-    assert (exp->aux_mark);
-    exp->aux_mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, unmark_stack);
-  BTOR_RELEASE_STACK (mm, work_stack);
 
   if (count > 0 && btor->verbosity > 3)
     btor_msg_exp (btor, "synthesized %u expressions into AIG vectors", count);
@@ -6068,6 +6188,7 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
   assert (BTOR_IS_ARRAY_NODE (array));
   assert (BTOR_IS_ACC_NODE (acc1));
   assert (BTOR_IS_ACC_NODE (acc2) || BTOR_IS_LAMBDA_NODE (acc2));
+  assert (!BTOR_IS_LAMBDA_NODE (acc2) || array == acc2);
 
   mm   = btor->mm;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
@@ -6146,7 +6267,6 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
         }
         else if (BTOR_IS_BV_COND_NODE (cur))
         {
-          cond = cur->e[0];
           assert (btor->rewrite_level == 0
                   || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
           if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
@@ -6156,14 +6276,14 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
             /* determine resp. branch that was taken in bfs */
             if (cur->e[1] == prev)
             {
-              if (!btor_find_in_ptr_hash_table (bconds_sel1, cond))
-                btor_insert_in_ptr_hash_table (bconds_sel1, cond);
+              if (!btor_find_in_ptr_hash_table (bconds_sel1, cur))
+                btor_insert_in_ptr_hash_table (bconds_sel1, cur);
             }
             else
             {
               assert (cur->e[2] == prev);
-              if (!btor_find_in_ptr_hash_table (bconds_sel2, cond))
-                btor_insert_in_ptr_hash_table (bconds_sel2, cond);
+              if (!btor_find_in_ptr_hash_table (bconds_sel2, cur))
+                btor_insert_in_ptr_hash_table (bconds_sel2, cur);
             }
           }
         }
@@ -6181,6 +6301,11 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
                 BTOR_GET_INDEX_ACC_NODE (acc2),
                 BTOR_GET_VALUE_ACC_NODE (acc1),
                 BTOR_GET_VALUE_ACC_NODE (acc2));
+
+  //  encode_lemma_new (btor, writes, aeqs, aconds_sel1, aconds_sel2,
+  //  bconds_sel1,
+  //                    bconds_sel2, acc1, acc2);
+
   btor_delete_ptr_hash_table (writes);
   btor_delete_ptr_hash_table (aeqs);
   btor_delete_ptr_hash_table (aconds_sel1);
