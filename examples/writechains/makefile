@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-writechains: writechains.c ../../boolector.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ writechains.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o writechains writechains.c $(LIBS)
 clean:
 	rm -f writechains

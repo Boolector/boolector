@@ -1,10 +1,7 @@
-LIBPATH=../..
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-
+include ../makefile.common
 all:
-	$(CC) $(CFLAGS)  array1.c -L$(LIBPATH) -lboolector -o array1 
-	$(CC) $(CFLAGS)  array2.c -L$(LIBPATH) -lboolector -o array2 
-	$(CC) $(CFLAGS)  array3.c -L$(LIBPATH) -lboolector -o array3 
+	$(CC) $(CFLAGS) array1.c -o array1 $(LIBS)
+	$(CC) $(CFLAGS) array2.c -o array2 $(LIBS)
+	$(CC) $(CFLAGS) array3.c -o array3 $(LIBS)
 clean:
 	rm -f array1 array2 array3

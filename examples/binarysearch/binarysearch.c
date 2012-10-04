@@ -8,9 +8,9 @@ main (int argc, char **argv)
 {
   int num_bits, num_bits_index, num_elements, i, num_iterations;
   Btor *btor;
-  BtorExp **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1;
-  BtorExp *read2, *formula, *val, *index, *found, *sorted, *low, *high;
-  BtorExp *two, *one, *mid, *sub, *udiv, *inc, *dec;
+  BtorNode **indices, *array, *eq, *ult, *ulte, *ugt, *temp, *read1;
+  BtorNode *read2, *formula, *val, *index, *found, *sorted, *low, *high;
+  BtorNode *two, *one, *mid, *sub, *udiv, *inc, *dec;
   if (argc != 3)
   {
     printf ("Usage: ./binarysearch <num-bits> <num-elements>\n");
@@ -38,7 +38,7 @@ main (int argc, char **argv)
   num_iterations = num_bits_index + 1;
   btor           = boolector_new ();
   boolector_set_rewrite_level (btor, 0);
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
   array = boolector_array (btor, num_bits, num_bits_index, "array");

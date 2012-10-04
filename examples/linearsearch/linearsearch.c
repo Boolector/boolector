@@ -8,7 +8,7 @@ main (int argc, char **argv)
 {
   int num_bits, num_bits_index, num_elements, i;
   Btor *btor;
-  BtorExp **indices, *array, *eq, *temp, *read, *formula, *val, *index, *found;
+  BtorNode **indices, *array, *eq, *temp, *read, *formula, *val, *index, *found;
   if (argc != 3)
   {
     printf ("Usage: ./linearsearch <num-bits> <num-elements>\n");
@@ -34,7 +34,7 @@ main (int argc, char **argv)
   num_bits_index = btor_log_2_util (num_elements);
   btor           = boolector_new ();
   boolector_set_rewrite_level (btor, 0);
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
   array = boolector_array (btor, num_bits, num_bits_index, "array");

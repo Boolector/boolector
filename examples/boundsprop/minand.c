@@ -8,21 +8,21 @@
 
 /* minAND algorithm from hacker's delight, page 61 */
 
-BtorExp *
+BtorNode *
 btor_minand (Btor *btor,
-             BtorExp *a_in,
-             BtorExp *b_in,
-             BtorExp *c_in,
-             BtorExp *d_in,
-             BtorExp *m_in,
+             BtorNode *a_in,
+             BtorNode *b_in,
+             BtorNode *c_in,
+             BtorNode *d_in,
+             BtorNode *m_in,
              int num_bits)
 {
-  BtorExp *temp_1, *temp_2, *m, *zero;
-  BtorExp *tmp, *a, *b, *c, *d, *neg_m, *not_a, *not_c;
-  BtorExp *one_log_bits, *a_or_m, *c_or_m;
-  BtorExp *temp_1_ulte_b, *temp_2_ulte_d, *not_a_and_not_c;
-  BtorExp *not_a_and_not_c_and_m, *not_a_and_not_c_and_m_ne_zero;
-  BtorExp *cond_1, *cond_2, *result, *and_break, *cond_3, *cond_4, *_break;
+  BtorNode *temp_1, *temp_2, *m, *zero;
+  BtorNode *tmp, *a, *b, *c, *d, *neg_m, *not_a, *not_c;
+  BtorNode *one_log_bits, *a_or_m, *c_or_m;
+  BtorNode *temp_1_ulte_b, *temp_2_ulte_d, *not_a_and_not_c;
+  BtorNode *not_a_and_not_c_and_m, *not_a_and_not_c_and_m_ne_zero;
+  BtorNode *cond_1, *cond_2, *result, *and_break, *cond_3, *cond_4, *_break;
   int i;
 
   assert (btor != NULL);

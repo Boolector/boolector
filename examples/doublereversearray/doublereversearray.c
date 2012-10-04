@@ -5,14 +5,14 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
-static BtorExp *
+static BtorNode *
 reverse_array_mem_xor (Btor *btor,
-                       BtorExp *mem,
+                       BtorNode *mem,
                        int num_elements,
-                       BtorExp *start)
+                       BtorNode *start)
 {
-  BtorExp *num_elements_m_1, *one, *bottom_exp, *top_exp;
-  BtorExp *temp, *result, *x, *y, *xor;
+  BtorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
+  BtorNode *temp, *result, *x, *y, *xor;
   int top, bottom;
   assert (btor != NULL);
   assert (mem != NULL);
@@ -72,11 +72,11 @@ reverse_array_mem_xor (Btor *btor,
   return result;
 }
 
-static BtorExp *
-reverse_array_mem (Btor *btor, BtorExp *mem, int num_elements, BtorExp *start)
+static BtorNode *
+reverse_array_mem (Btor *btor, BtorNode *mem, int num_elements, BtorNode *start)
 {
-  BtorExp *num_elements_m_1, *one, *bottom_exp, *top_exp;
-  BtorExp *temp, *result, *x, *y;
+  BtorNode *num_elements_m_1, *one, *bottom_exp, *top_exp;
+  BtorNode *temp, *result, *x, *y;
   int top, bottom;
   assert (btor != NULL);
   assert (mem != NULL);
@@ -130,7 +130,7 @@ main (int argc, char **argv)
   int num_elements, i;
   char *string;
   Btor *btor;
-  BtorExp *mem1, *mem2, *orig_mem, *formula, *start;
+  BtorNode *mem1, *mem2, *orig_mem, *formula, *start;
   if (argc != 2)
   {
     printf ("Usage: ./doublereversearray <num-elements>\n");

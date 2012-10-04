@@ -8,11 +8,11 @@ main (int argc, char **argv)
 {
   int num_elements, i, j;
   Btor *btor;
-  BtorExp *mem, *ne, *ugte, *ulte, *ult, *ugt, *temp, *read1;
-  BtorExp *read2, *cond1, *cond2, *sorted, *pos, *pos_p_1;
-  BtorExp *no_diff_element, *formula, *index, *old_element;
-  BtorExp *num_elements_exp, *start, *top, *one, *range_index;
-  BtorExp *implies;
+  BtorNode *mem, *ne, *ugte, *ulte, *ult, *ugt, *temp, *read1;
+  BtorNode *read2, *cond1, *cond2, *sorted, *pos, *pos_p_1;
+  BtorNode *no_diff_element, *formula, *index, *old_element;
+  BtorNode *num_elements_exp, *start, *top, *one, *range_index;
+  BtorNode *implies;
   if (argc != 2)
   {
     printf ("Usage: ./bubblesortmem <num-elements>\n");

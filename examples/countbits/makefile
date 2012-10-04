@@ -1,7 +1,5 @@
-CC=gcc
-CFLAGS=-Wall -g
-countbits: countbits.c makefile
-	$(CC) $(CFLAGS) -o $@ countbits.c
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o countbits countbits.c $(LIBS)
 clean:
 	rm -f countbits
-.PHONY: clean

@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-swapmem: swapmem.c ../../boolector.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ swapmem.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o swapmem swapmem.c $(LIBS)
 clean:
 	rm -f swapmem

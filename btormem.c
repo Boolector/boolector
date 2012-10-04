@@ -38,6 +38,24 @@
   } while (0)
 
 /*------------------------------------------------------------------------*/
+/* This enables logging of all memory allocations.
+ */
+#if 0
+#define BTOR_LOG_MEM(FMT, ARGS...)   \
+  do                                 \
+  {                                  \
+    fputs ("[btorlogmem] ", stdout); \
+    printf (FMT, ##ARGS);            \
+    fflush (stdout);                 \
+  } while (0)
+#else
+#define BTOR_LOG_MEM(...) \
+  do                      \
+  {                       \
+  } while (0)
+#endif
+
+/*------------------------------------------------------------------------*/
 
 BtorMemMgr *
 btor_new_mem_mgr (void)
@@ -59,6 +77,7 @@ btor_malloc (BtorMemMgr *mm, size_t size)
   BTOR_ABORT_MEM (!result, "out of memory in 'btor_malloc'");
   mm->allocated += size;
   ADJUST ();
+  BTOR_LOG_MEM ("%p malloc %10ld\n", result, size);
   return result;
 }
 
@@ -69,11 +88,13 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   assert (mm);
   assert (!p == !old_size);
   assert (mm->allocated >= old_size);
+  BTOR_LOG_MEM ("%p free   %10ld (realloc)\n", p, old_size);
   result = realloc (p, new_size);
   BTOR_ABORT_MEM (!result, "out of memory in 'btor_realloc'");
   mm->allocated -= old_size;
   mm->allocated += new_size;
   ADJUST ();
+  BTOR_LOG_MEM ("%p malloc %10ld (realloc)\n", result, new_size);
   return result;
 }
 
@@ -87,6 +108,7 @@ btor_calloc (BtorMemMgr *mm, size_t nobj, size_t size)
   BTOR_ABORT_MEM (!result, "out of memory in 'btor_calloc'");
   mm->allocated += bytes;
   ADJUST ();
+  BTOR_LOG_MEM ("%p malloc %10ld (calloc)\n", result, bytes);
   return result;
 }
 
@@ -97,6 +119,7 @@ btor_free (BtorMemMgr *mm, void *p, size_t freed)
   assert (!p == !freed);
   assert (mm->allocated >= freed);
   mm->allocated -= freed;
+  BTOR_LOG_MEM ("%p free   %10ld\n", p, freed);
   free (p);
 }
 

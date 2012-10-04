@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-sudoku: sudoku.c ../../boolector.h ../../btormem.h ../../btorexp.h ../../btorconst.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ sudoku.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o sudoku sudoku.c $(LIBS)
 clean:
 	rm -f sudoku 

@@ -112,7 +112,7 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
   BTOR_ABORT_BOOLECTOR (rewrite_level < 0 || rewrite_level > 3,
                         "'rewrite_level' has to be in [0,3]");
   BTOR_ABORT_BOOLECTOR (
-      !BTOR_EMPTY_STACK (btor->id_table),
+      BTOR_COUNT_STACK (btor->id_table) > 1,
       "setting rewrite level must be done before creating expressions");
   btor_set_rewrite_level_btor (btor, rewrite_level);
 }
@@ -122,7 +122,7 @@ boolector_enable_model_gen (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      !BTOR_EMPTY_STACK (btor->id_table),
+      BTOR_COUNT_STACK (btor->id_table) > 1,
       "enabling model generation must be done before creating expressions");
   btor_enable_model_gen (btor);
 }
@@ -1321,6 +1321,14 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
 }
 
 void
+boolector_free_bv_assignment (Btor *btor, char *assignment)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
+  btor_free_bv_assignment_exp (btor, assignment);
+}
+
+void
 boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
@@ -1338,9 +1346,28 @@ boolector_array_assignment (
 }
 
 void
-boolector_free_bv_assignment (Btor *btor, char *assignment)
+boolector_free_array_assignment (Btor *btor,
+                                 char **indices,
+                                 char **values,
+                                 int size)
 {
+  int i;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
-  btor_free_bv_assignment_exp (btor, assignment);
+  BTOR_ABORT_BOOLECTOR (size < 0, "negative size");
+  if (size)
+  {
+    BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
+    BTOR_ABORT_ARG_NULL_BOOLECTOR (values);
+  }
+  else
+  {
+    BTOR_ABORT_BOOLECTOR (indices, "non zero 'indices' but 'size == 0'");
+    BTOR_ABORT_BOOLECTOR (values, "non zero 'values' but 'size == 0'");
+  }
+
+  for (i = 0; i < size; i++) boolector_free_bv_assignment (btor, indices[i]);
+  btor_free (btor->mm, indices, size * sizeof *indices);
+
+  for (i = 0; i < size; i++) boolector_free_bv_assignment (btor, values[i]);
+  btor_free (btor->mm, values, size * sizeof *values);
 }
