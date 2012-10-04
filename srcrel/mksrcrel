@@ -63,7 +63,12 @@ cp -p \
   Doxyfile \
 $dir/
 
-tar cf - examples/array examples/bv | ( cd $dir; tar xf -; )
+tar cf - \
+  examples/array \
+  examples/bv \
+  examples/Makefile \
+  examples/makefile.common | \
+( cd $dir; tar xf -; )
 
 sed \
   -e '/makefile.test/d' \

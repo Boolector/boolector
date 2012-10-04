@@ -20,18 +20,18 @@ Lingeling source directory to 'lingeling'.  Then compile Lingeling.
 
   cd <directory-where-you-extracted-boolector-sources>
   wget http://fmv.jku.at/lingeling/lingeling-al6-080d45d-120922.tar.gz
-  tar xf http://fmv.jku.at/lingeling/lingeling-al6-080d45d-120922.tar.gz
+  tar xf lingeling-al6-080d45d-120922.tar.gz
   ln -s  lingeling-al6-080d45d-120922 lingeling
   cd lingeling
   ./configure
   make
 
-In the same way you can optionally include version 951 of PicoSAT:
+In the same way you can optionally include version 953 of PicoSAT:
 
   cd <directory-where-you-extracted-boolector-sources>
-  wget http://fmv.jku.at/picosat/picosat-951.tar.gz
-  tar xf picosat-951.tar.gz
-  ln -s picosat-951 picosat
+  wget http://fmv.jku.at/picosat/picosat-953.tar.gz
+  tar xf picosat-953.tar.gz
+  ln -s picosat-953 picosat
   cd picosat
   ./configure -O           # this will improve performance
   make
