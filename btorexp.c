@@ -4876,6 +4876,11 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     if (e->id > maxid) maxid = e->id;
   }
 
+  /* also consider newly created nodes like lambdas etc. */
+  // TODO: is there a better solution?
+  if (BTOR_COUNT_STACK (btor->id_table) - 1 > maxid)
+    maxid = BTOR_COUNT_STACK (btor->id_table) - 1;
+
   for (i = 0; i < nroots; i++)
   {
     id = maxid + i;
@@ -7132,11 +7137,11 @@ process_working_stack (Btor *btor,
 {
   BtorPartialParentIterator it;
   BtorNode *acc, *index, *value, *array, *hashed_acc, *hashed_value;
-  BtorNode *cur_aeq, *cond, *next, *lambda_value, *lambda_read, *lambda_exp;
+  BtorNode *cur_aeq, *cond, *next, *lambda_value, *lambda_exp;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
-  BtorNodePtrStack read_stack;
+  BtorNodePtrStack param_read_stack;
   int assignment, indices_equal, propagate_writes_as_reads;
   assert (btor);
   assert (stack);
@@ -7292,6 +7297,10 @@ process_working_stack (Btor *btor,
       fprintf (stderr, "[debug]   value:        %s ", a);
       dump_node (stderr, value);
       btor_free_bv_assignment_exp (btor, a);
+      a = btor_bv_assignment_exp (btor, index);
+      fprintf (stderr, "[debug]   index:        %s ", a);
+      dump_node (stderr, index);
+      btor_free_bv_assignment_exp (btor, a);
       a = btor_bv_assignment_exp (btor, lambda_value);
       fprintf (stderr, "[debug]   lambda_value: %s ", a);
       dump_node (stderr, lambda_value);
@@ -7417,10 +7426,9 @@ process_working_stack (Btor *btor,
         }
       }
       /* propagate upwards lambda expressions */
-
-      /* find all parent reads of array, that read on a param index */
-      BTOR_INIT_STACK (read_stack);
+      BTOR_INIT_STACK (param_read_stack);
       init_read_parent_iterator (&it, array);
+      /* get all parameterized reads on array */
       while (has_next_parent_read_parent_iterator (&it))
       {
         next = next_parent_read_parent_iterator (&it);
@@ -7428,41 +7436,35 @@ process_working_stack (Btor *btor,
         assert (BTOR_IS_READ_NODE (next));
         assert (!next->simplified);
         if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
-          BTOR_PUSH_STACK (mm, read_stack, next);
+          BTOR_PUSH_STACK (mm, param_read_stack, next);
       }
 
-      while (!BTOR_EMPTY_STACK (read_stack))
+      while (!BTOR_EMPTY_STACK (param_read_stack))
       {
-        lambda_read = BTOR_POP_STACK (read_stack);
-        assert (BTOR_IS_PARAM_NODE (lambda_read->e[1]));
-        lambda_exp = ((BtorParamNode *) lambda_read->e[1])->lambda_exp;
+        next = BTOR_POP_STACK (param_read_stack);
+        assert (BTOR_IS_REGULAR_NODE (next));
+        assert (BTOR_IS_PARAM_NODE (next->e[1]));
+        lambda_exp = ((BtorParamNode *) next->e[1])->lambda_exp;
+        /* instantiate lambda expressions with read index of acc */
+        lambda_value = apply_beta_reduction (lambda_exp, index);
+        assert (BTOR_IS_REGULAR_NODE (lambda_value));
 
-        init_read_parent_iterator (&it, array);
-        while (has_next_parent_read_parent_iterator (&it))
+        /* if the instantiated lambda expression returns 'lambda_read' as
+           value, we propagate 'next' up to 'lambda_exp' as the element
+           on the read index of 'array' is not overwritten by
+           'lambda_exp'. */
+        if (lambda_value == next)
         {
-          next = next_parent_read_parent_iterator (&it);
-          assert (BTOR_IS_REGULAR_NODE (next));
-          /* instantiate lambda expression with read index */
-          lambda_value = apply_beta_reduction (lambda_exp, next->e[1]);
-          assert (BTOR_IS_REGULAR_NODE (lambda_value));
-
-          /* if the instantiated lambda expression returns 'lambda_read' as
-             value, we propagate 'next' up to 'lambda_exp' as the element
-             on the read index of 'array' is not overwritten by
-             'lambda_exp'. */
-          if (lambda_value == lambda_read)
-          {
-            fprintf (stderr, "[debug] lambda prop. upwards:\n");
-            fprintf (stderr, "[debug]   access: ");
-            dump_node (stderr, next);
-            fprintf (stderr, "[debug]   array: ");
-            dump_node (stderr, lambda_exp);
-            BTOR_PUSH_STACK (mm, *stack, next);
-            BTOR_PUSH_STACK (mm, *stack, lambda_exp);
-          }
+          fprintf (stderr, "[debug] lambda prop. upwards:\n");
+          fprintf (stderr, "[debug]   access: ");
+          dump_node (stderr, acc);
+          fprintf (stderr, "[debug]   array: ");
+          dump_node (stderr, lambda_exp);
+          BTOR_PUSH_STACK (mm, *stack, acc);
+          BTOR_PUSH_STACK (mm, *stack, lambda_exp);
         }
       }
-      BTOR_RELEASE_STACK (mm, read_stack);
+      BTOR_RELEASE_STACK (mm, param_read_stack);
     }
   }
   return 0;
