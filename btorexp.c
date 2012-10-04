@@ -1344,13 +1344,14 @@ add_param_cond_to_clause (Btor *btor,
   fprintf (stderr, "[debug] add_param_cond_to_clause: ");
   dump_node (stderr, cond);
 
-  BTOR_PUSH_STACK (mm, work_stack, cond);
+  BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cond));
 
   do
   {
     cur = BTOR_POP_STACK (work_stack);
     assert (cur);
-    assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cur)));
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_SYNTH_NODE (cur));
 
     if (cur->mark == 2 || BTOR_IS_ARRAY_NODE (cur)) continue;
 
@@ -1414,13 +1415,11 @@ add_param_cond_to_clause (Btor *btor,
   // TODO: hash instantiated parameterized nodes -> do not encode multiple times
   //       see add_eq_exp_to... for more detail
 
-  // TODO: check if encoding is correct
-
-  fprintf (stderr, "[debug] exp_to_cnf_lit: ");
-  dump_node (stderr, cond);
   lit = exp_to_cnf_lit (btor, cond);
   lit *= sign;
   false_lit = -smgr->true_lit;
+  fprintf (stderr, "[debug] exp_to_cnf_lit (%d): ", lit);
+  dump_node (stderr, cond);
 
   if (lit != false_lit) BTOR_PUSH_STACK (mm, *linking_clause, lit);
 
@@ -1653,21 +1652,13 @@ encode_lemma_new (Btor *btor,
           if (cur->e[1] == prev)
           {
             if (!btor_find_in_ptr_hash_table (bconds_sel1, cur))
-            {
               btor_insert_in_ptr_hash_table (bconds_sel1, cur);
-              fprintf (stderr, "[debug] enc_lemma bcond1: ");
-              dump_node (stderr, cur);
-            }
           }
           else
           {
             assert (cur->e[2] == prev);
             if (!btor_find_in_ptr_hash_table (bconds_sel2, cur))
-            {
               btor_insert_in_ptr_hash_table (bconds_sel2, cur);
-              fprintf (stderr, "[debug] enc_lemma bcond1: ");
-              dump_node (stderr, cur);
-            }
           }
         }
       }
@@ -1694,6 +1685,7 @@ encode_lemma_new (Btor *btor,
     assert (BTOR_REAL_ADDR_NODE (j)->tseitin);
 
     add_neq_exp_to_clause (btor, i, j, &linking_clause);
+    btor->stats.lemmas_size_sum += 1; /* i != j */
     print_encoded_lemma_dbg (writes,
                              aeqs,
                              aconds_sel1,
@@ -1714,7 +1706,7 @@ encode_lemma_new (Btor *btor,
   btor->stats.lemmas_size_sum += aconds_sel2->count;
   btor->stats.lemmas_size_sum += bconds_sel1->count;
   btor->stats.lemmas_size_sum += bconds_sel2->count;
-  btor->stats.lemmas_size_sum += 2;
+  btor->stats.lemmas_size_sum += 1; /* a == b */
 
   /* encode i = write index premisses */
   for (bucket = writes->last; bucket; bucket = bucket->prev)
@@ -1798,7 +1790,7 @@ encode_lemma_new (Btor *btor,
     cond = bcond->e[0];
     assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
     assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-    add_param_cond_to_clause (btor, cond, i, &linking_clause, 1);
+    add_param_cond_to_clause (btor, cond, i, &linking_clause, -1);
   }
 
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
@@ -1809,7 +1801,7 @@ encode_lemma_new (Btor *btor,
     cond = bcond->e[0];
     assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
     assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-    add_param_cond_to_clause (btor, cond, i, &linking_clause, -1);
+    add_param_cond_to_clause (btor, cond, i, &linking_clause, 1);
   }
 
   fprintf (stderr, "[debug] add linking clause: ");
@@ -1822,9 +1814,11 @@ encode_lemma_new (Btor *btor,
     if (val < 0) continue;
     assert (!val);
     btor_add_sat (smgr, k);
+    fprintf (stderr, "%d ", k);
     btor->stats.lclause_size_sum++;
   }
   btor_add_sat (smgr, 0);
+  fprintf (stderr, "0\n");
   BTOR_RELEASE_STACK (mm, linking_clause);
 }
 
@@ -7143,7 +7137,7 @@ process_working_stack (Btor *btor,
     acc = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_NODE (acc));
     assert (BTOR_IS_ACC_NODE (acc));
-    fprintf (stderr, "[debug] *** process_working_stack:\n");
+    fprintf (stderr, "\n[debug] *** process_working_stack:\n");
     fprintf (stderr, "[debug] array: ");
     dump_node (stderr, array);
     fprintf (stderr, "[debug] access: ");
@@ -7277,10 +7271,12 @@ process_working_stack (Btor *btor,
       lambda_value = apply_beta_reduction (array, index);
 
       char *a = btor_bv_assignment_exp (btor, value);
-      fprintf (stderr, "[debug]   value:        %s\n", a);
+      fprintf (stderr, "[debug]   value:        %s ", a);
+      dump_node (stderr, value);
       btor_free_bv_assignment_exp (btor, a);
       a = btor_bv_assignment_exp (btor, lambda_value);
-      fprintf (stderr, "[debug]   lambad_value: %s\n", a);
+      fprintf (stderr, "[debug]   lambda_value: %s ", a);
+      dump_node (stderr, lambda_value);
       btor_free_bv_assignment_exp (btor, a);
 
       /* propagate down  */
