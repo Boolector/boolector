@@ -332,45 +332,42 @@ btor_changed_sat (BtorSATMgr *smgr)
 static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
+  PicoSAT *res;
+
   btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
 
-  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_malloc);
-  picosat_set_delete (smgr->mm, (void (*) (void *, void *, size_t)) btor_free);
-  picosat_set_resize (
-      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_realloc);
+  res = picosat_minit (smgr->mm,
+                       (picosat_malloc) btor_malloc,
+                       (picosat_realloc) btor_realloc,
+                       (picosat_free) btor_free);
 
-  picosat_init ();
-  picosat_set_global_default_phase (0);
+  picosat_set_global_default_phase (res, 0);
 
-  return 0;
+  return res;
 }
 
 static void
 btor_picosat_add (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  (void) picosat_add (lit);
+  (void) picosat_add (smgr->solver, lit);
 }
 
 static int
 btor_picosat_sat (BtorSATMgr *smgr, int limit)
 {
-  (void) smgr;
-  return picosat_sat (limit);
+  return picosat_sat (smgr->solver, limit);
 }
 
 static int
 btor_picosat_changed (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_changed ();
+  return picosat_changed (smgr->solver);
 }
 
 static int
 btor_picosat_deref (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  return picosat_deref (lit);
+  return picosat_deref (smgr->solver, lit);
 }
 
 static int
@@ -383,58 +380,51 @@ btor_picosat_repr (BtorSATMgr *smgr, int lit)
 static void
 btor_picosat_reset (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  picosat_reset ();
+  picosat_reset (smgr->solver);
+  smgr->solver = 0;
 }
 
 static void
 btor_picosat_set_output (BtorSATMgr *smgr, FILE *output)
 {
-  (void) smgr;
-  picosat_set_output (output);
+  picosat_set_output (smgr->solver, output);
 }
 
 static void
 btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
-  (void) smgr;
-  picosat_set_prefix (prefix);
+  picosat_set_prefix (smgr->solver, prefix);
 }
 
 static void
 btor_picosat_enable_verbosity (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  picosat_set_verbosity (1);
+  picosat_set_verbosity (smgr->solver, 1);
 }
 
 static int
 btor_picosat_inc_max_var (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_inc_max_var ();
+  return picosat_inc_max_var (smgr->solver);
 }
 
 static int
 btor_picosat_variables (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_variables ();
+  return picosat_variables (smgr->solver);
 }
 
 static void
 btor_picosat_stats (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  picosat_stats ();
+  picosat_stats (smgr->solver);
 }
 
 static int
 btor_picosat_fixed (BtorSATMgr *smgr, int lit)
 {
   int res;
-  (void) smgr;
-  res = picosat_deref_toplevel (lit);
+  res = picosat_deref_toplevel (smgr->solver, lit);
   return res;
 }
 
@@ -443,22 +433,19 @@ btor_picosat_fixed (BtorSATMgr *smgr, int lit)
 static void
 btor_picosat_assume (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  (void) picosat_assume (lit);
+  (void) picosat_assume (smgr->solver, lit);
 }
 
 static int
 btor_picosat_failed (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  return picosat_failed_assumption (lit);
+  return picosat_failed_assumption (smgr->solver, lit);
 }
 
 static int
 btor_picosat_inconsistent (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_inconsistent ();
+  return picosat_inconsistent (smgr->solver);
 }
 
 /*------------------------------------------------------------------------*/
