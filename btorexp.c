@@ -3713,6 +3713,24 @@ btor_cond_exp (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 }
 
 BtorNode *
+btor_cond_exp_no_rewrite (Btor *btor,
+                          BtorNode *e_cond,
+                          BtorNode *e_if,
+                          BtorNode *e_else)
+{
+  BtorNode *result;
+
+  e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
+  e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
+  e_else = btor_pointer_chase_simplified_exp (btor, e_else);
+  assert (btor_precond_cond_exp_dbg (btor, e_cond, e_if, e_else));
+
+  result = btor_cond_exp_node (btor, e_cond, e_if, e_else);
+  assert (result);
+  return result;
+}
+
+BtorNode *
 btor_redor_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *result, *zero;
@@ -7977,7 +7995,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (e_else->e[0] == write->e[0]);
   assert (e_else->e[1] == param);
 
-  cond_exp = btor_cond_exp (btor, e_cond, e_if, e_else);
+  cond_exp = btor_cond_exp_no_rewrite (btor, e_cond, e_if, e_else);
+  assert (BTOR_IS_BV_COND_NODE (cond_exp)); /* no rewriting allowed  */
 
   lambda_exp =
       btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
