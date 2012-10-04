@@ -27,7 +27,8 @@ function die
 while [ $# -gt 0 ]
 do
   case $1 in
-        -h|--help) echo -e "usage: btorvis [ -h | --help ] [<file>] \n"
+        --ids)     btor2dot=$(readlink -f "$contribdir/btorids2dot");;
+        -h|--help) echo -e "usage: btorvis [ -h | --help | --ids] [<file>] \n"
                    exit 0;;
         *)         break;;
   esac
