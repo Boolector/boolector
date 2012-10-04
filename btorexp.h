@@ -333,10 +333,6 @@ struct Btor
 
 #define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
 
-#define BTOR_IS_ADD_NODE_KIND(kind) (kind == BTOR_ADD_NODE)
-
-#define BTOR_IS_MUL_NODE_KIND(kind) (kind == BTOR_MUL_NODE)
-
 #define BTOR_IS_READ_NODE_KIND(kind) (kind == BTOR_READ_NODE)
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
@@ -392,10 +388,6 @@ struct Btor
 
 #define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
   ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
-
-#define BTOR_IS_ADD_NODE(exp) ((exp) && BTOR_IS_ADD_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_MUL_NODE(exp) ((exp) && BTOR_IS_MUL_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_READ_NODE(exp) ((exp) && BTOR_IS_READ_NODE_KIND ((exp)->kind))
 
