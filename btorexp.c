@@ -4876,6 +4876,11 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     if (e->id > maxid) maxid = e->id;
   }
 
+  /* also consider newly created nodes like lambdas etc. */
+  // TODO: is there a better solution?
+  if (BTOR_COUNT_STACK (btor->id_table) - 1 > maxid)
+    maxid = BTOR_COUNT_STACK (btor->id_table) - 1;
+
   for (i = 0; i < nroots; i++)
   {
     id = maxid + i;
