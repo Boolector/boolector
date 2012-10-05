@@ -41,9 +41,9 @@ static int g_argc = 5;
 
 static char *g_argv[] = {
     "./boolector",
-    "-rwl1",
     "-o",
     "/dev/null",
+    "-rwl1",
     BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME,
 };
 
