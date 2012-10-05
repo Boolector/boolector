@@ -597,7 +597,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
-#define BTOR_LGL_SIMP_DELAY 10000
+#define BTOR_LGL_SIMP_DELAY 2000
 #define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
 
