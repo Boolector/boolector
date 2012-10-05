@@ -661,7 +661,6 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     lglsetopt (lgl, "clim", blgl->blimit);
     if (!(res = lglsat (lgl)))
     {
-      lglsetopt (lgl, "simpdelay", 0);
       blgl->blimit *= 2;
       if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
@@ -677,6 +676,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         bforked = lglbrutefork (lgl, 0), str = "fork";
       lglsetopt (bforked, "seed", blgl->nforked);
       lglsetopt (bforked, "flipping", 1);
+      lglsetopt (bforked, "simpdelay", 0);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
