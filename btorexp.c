@@ -1288,6 +1288,8 @@ add_eq_or_neq_exp_to_clause (Btor *btor,
         hashed_pair        = 1;
       }
       lit = exp_to_cnf_lit (btor, eq);
+      fprintf (stderr, "[debug] exp_to_cnf_lit (%d): ", lit);
+      dump_node (stderr, eq);
     }
     if (!hashed_pair) delete_exp_pair (btor, pair);
   }
@@ -1328,14 +1330,18 @@ add_param_cond_to_clause (Btor *btor,
 
   int i, lit, false_lit;
   BtorMemMgr *mm;
+  BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNodePtrStack work_stack, unmark_stack, param_stack;
   BtorNode *cur, *param = 0;
+  BtorAIG *aig;
+  BtorAIGVec *av;
 
-  mm   = btor->mm;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  mm    = btor->mm;
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -1405,16 +1411,28 @@ add_param_cond_to_clause (Btor *btor,
   assert (param);
   assert (BTOR_COUNT_STACK (param_stack) > 0);
   assert (!param->tseitin);
+  assert (index->tseitin);
 
   /* substitute cnf_ids of param with index cnf_ids */
   assert (param->av->len == index->av->len);
   param->tseitin = index->tseitin;
+
+  av = btor_copy_aigvec (avmgr, param->av);
   for (i = 0; i < index->av->len; i++)
-    param->av->aigs[i]->cnf_id = index->av->aigs[i]->cnf_id;
+  {
+    aig = index->av->aigs[i];
+
+    if (BTOR_IS_CONST_AIG (aig))
+      param->av->aigs[i] = aig;
+    else
+      param->av->aigs[i]->cnf_id = aig->cnf_id;
+  }
 
   // TODO: hash instantiated parameterized nodes -> do not encode multiple times
   //       see add_eq_exp_to... for more detail
 
+  // TODO: hack?
+  // TODO: if index is const, we have to rewrite eq etc.
   lit = exp_to_cnf_lit (btor, cond);
   lit *= sign;
   false_lit = -smgr->true_lit;
@@ -1426,7 +1444,12 @@ add_param_cond_to_clause (Btor *btor,
   /* reset cnf_ids of param */
   assert (param->tseitin);
   param->tseitin = 0;
-  for (i = 0; i < index->av->len; i++) param->av->aigs[i]->cnf_id = 0;
+  for (i = 0; i < index->av->len; i++)
+  {
+    param->av->aigs[i]         = av->aigs[i];
+    param->av->aigs[i]->cnf_id = 0;
+  }
+  btor_release_delete_aigvec (avmgr, av);
 
   /* reset tseitin flag/cnf_id for parameterized nodes */
   while (!BTOR_EMPTY_STACK (param_stack))
@@ -6338,7 +6361,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
-    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin && cur->mark == 0)
+    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin
+             && BTOR_REAL_ADDR_NODE (cur->e[1])->mark == 0)
     {
       if (bfs_lambda (btor, cur, acc, array, &next))
       {
@@ -6351,10 +6375,12 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       /* already set in bfs_lambda */
       assert (next);
       assert (next->mark == 1);
-      cur->mark = 1;
+      BTOR_REAL_ADDR_NODE (cur->e[1])->mark = 1;
+      cur->mark                             = 1;
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
       BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      BTOR_PUSH_STACK (mm, unmark_stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
     }
 
     if (propagate_writes_as_reads)
@@ -6469,7 +6495,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         lambda_exp = ((BtorParamNode *) param_read->e[1])->lambda_exp;
 
         /* already processed */
-        if (lambda_exp->mark == 1) continue;
+        if (BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark == 1) continue;
 
         /* instantiate lambda expressions with read index of acc */
         lambda_value = apply_beta_reduction (lambda_exp, index);
@@ -6488,12 +6514,14 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
           /* always has to return 1, i.e., next is 0 */
           assert (!next);
 
-          lambda_exp->mark = 1;
-          cur->mark        = 1;
-          cur->parent      = lambda_value;
+          BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark = 1;
+
+          cur->mark   = 1;
+          cur->parent = lambda_value;
           BTOR_ENQUEUE (mm, queue, lambda_exp);
           BTOR_PUSH_STACK (mm, unmark_stack, cur);
-          BTOR_PUSH_STACK (mm, unmark_stack, lambda_exp);
+          BTOR_PUSH_STACK (
+              mm, unmark_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
         }
       }
       BTOR_RELEASE_STACK (mm, param_read_stack);
@@ -6508,7 +6536,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_ARRAY_NODE (cur) || BTOR_IS_ARRAY_EQ_NODE (cur)
-            || BTOR_IS_ARRAY_COND_NODE (cur));
+            || BTOR_IS_ARRAY_COND_NODE (cur)
+            || BTOR_IS_LAMBDA_NODE (cur->parent));
     cur->mark = 0;
   } while (!BTOR_EMPTY_STACK (unmark_stack));
   BTOR_RELEASE_STACK (mm, unmark_stack);
