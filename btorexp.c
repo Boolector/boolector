@@ -6249,11 +6249,12 @@ bfs_lambda (Btor *btor,
 static void
 bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 {
-  BtorNode *cur, *next, *cur_aeq, *cond, *index;
+  BtorNode *cur, *next, *cur_aeq, *cond, *index, *param_read, *lambda_exp;
+  BtorNode *lambda_value;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorNodePtrQueue queue;
-  BtorNodePtrStack unmark_stack;
+  BtorNodePtrStack unmark_stack, param_read_stack;
   BtorPartialParentIterator it;
   int assignment, propagate_writes_as_reads;
 #ifndef NDEBUG
@@ -6337,7 +6338,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
     }
-    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin)
+    else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin && cur->mark == 0)
     {
       if (bfs_lambda (btor, cur, acc, array, &next))
       {
@@ -6350,8 +6351,10 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       /* already set in bfs_lambda */
       assert (next);
       assert (next->mark == 1);
+      cur->mark = 1;
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
+      BTOR_PUSH_STACK (mm, unmark_stack, cur);
     }
 
     if (propagate_writes_as_reads)
@@ -6444,50 +6447,56 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
           }
         }
       }
-      /* TODO propagate upwards lambda expressions:
-       * find all parent reads of array, that read on a param index */
-      //          init_read_parent_iterator (&it, cur);
-      //          while (has_next_parent_read_parent_iterator (&it))
-      //          {
-      //            next = next_parent_read_parent_iterator (&it);
-      //            assert (BTOR_IS_REGULAR_NODE (next));
-      //            assert (BTOR_IS_READ_NODE (next));
-      //            assert (!next->simplified);
-      //            if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
-      //            {
-      //              lambda_read = BTOR_POP_STACK (read_stack);
-      //              assert (BTOR_IS_PARAM_NODE (lambda_read->e[1]));
-      //              lambda_exp = ((BtorParamNode *)
-      //              lambda_read->e[1])->lambda_exp;
-      //
-      //              init_read_parent_iterator (&it, array);
-      //              while (has_next_parent_read_parent_iterator (&it))
-      //              {
-      //                next = next_parent_read_parent_iterator (&it);
-      //                assert (BTOR_IS_REGULAR_NODE (next));
-      //                /* instantiate lambda expression with read index */
-      //                lambda_value = apply_beta_reduction (lambda_exp,
-      //                next->e[1]); assert (BTOR_IS_REGULAR_NODE
-      //                (lambda_value));
-      //
-      //                /* if the instantiated lambda expression returns
-      //                'lambda_read'
-      //                   as value, we propagate 'next' up to 'lambda_exp' as
-      //                   the element on the read index of 'array' is not
-      //                   overwritten by 'lambda_exp'. */
-      //                if (lambda_value == lambda_read)
-      //                {
-      //                  fprintf (stderr, "[debug] lambda prop. upwards:\n");
-      //                  fprintf (stderr, "[debug]   access: ");
-      //                  dump_node (stderr, next);
-      //                  fprintf (stderr, "[debug]   array: ");
-      //                  dump_node (stderr, lambda_exp);
-      //                  BTOR_PUSH_STACK (mm, *stack, next);
-      //                  BTOR_PUSH_STACK (mm, *stack, lambda_exp);
-      //                }
-      //              }
-      //            }
-      //          }
+      /* search upwards lambda expressions */
+      BTOR_INIT_STACK (param_read_stack);
+      init_read_parent_iterator (&it, cur);
+      /* get all parameterized reads on cur */
+      while (has_next_parent_read_parent_iterator (&it))
+      {
+        next = next_parent_read_parent_iterator (&it);
+        assert (BTOR_IS_REGULAR_NODE (next));
+        assert (BTOR_IS_READ_NODE (next));
+        assert (!next->simplified);
+        if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
+          BTOR_PUSH_STACK (mm, param_read_stack, next);
+      }
+
+      while (!BTOR_EMPTY_STACK (param_read_stack))
+      {
+        param_read = BTOR_POP_STACK (param_read_stack);
+        assert (BTOR_IS_REGULAR_NODE (param_read));
+        assert (BTOR_IS_PARAM_NODE (param_read->e[1]));
+        lambda_exp = ((BtorParamNode *) param_read->e[1])->lambda_exp;
+
+        /* already processed */
+        if (lambda_exp->mark == 1) continue;
+
+        /* instantiate lambda expressions with read index of acc */
+        lambda_value = apply_beta_reduction (lambda_exp, index);
+        assert (BTOR_IS_REGULAR_NODE (lambda_value));
+
+        /* if the instantiated lambda expression returns 'lambda_read' as
+           value, we propagated 'acc' up to 'lambda_exp' as the element
+           on the read index of 'cur' is not overwritten by
+           'lambda_exp'. */
+        if (lambda_value == param_read)
+        {
+          /* we search from lambda_exp down to lambda_value since acc was
+           * propagated upwards from lambda_value to lambda_exp */
+          next = 0;
+          bfs_lambda (btor, lambda_exp, acc, lambda_value, &next);
+          /* always has to return 1, i.e., next is 0 */
+          assert (!next);
+
+          lambda_exp->mark = 1;
+          cur->mark        = 1;
+          cur->parent      = lambda_value;
+          BTOR_ENQUEUE (mm, queue, lambda_exp);
+          BTOR_PUSH_STACK (mm, unmark_stack, cur);
+          BTOR_PUSH_STACK (mm, unmark_stack, lambda_exp);
+        }
+      }
+      BTOR_RELEASE_STACK (mm, param_read_stack);
     }
   } while (!BTOR_EMPTY_QUEUE (queue));
   assert (found);
@@ -7150,6 +7159,7 @@ process_working_stack (Btor *btor,
   propagate_writes_as_reads = (btor->ops[BTOR_AEQ_NODE] > 0) || btor->model_gen;
   amgr                      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   mm                        = btor->mm;
+
   while (!BTOR_EMPTY_STACK (*stack))
   {
     array = BTOR_POP_STACK (*stack);
@@ -7209,7 +7219,10 @@ process_working_stack (Btor *btor,
         /* in the other case we have already dealt with a representative
          * with same index assignment and same value assignment */
         else
+        {
+          fprintf (stderr, "[debug] skip\n");
           continue;
+        }
       }
     }
     if (BTOR_IS_WRITE_NODE (array))
@@ -7587,8 +7600,9 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
 {
   BtorNodePtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorPartialParentIterator it;
+  BtorFullParentIterator it_full;
   BtorMemMgr *mm;
-  BtorNode *cur_array, *cur_parent, **top, **temp;
+  BtorNode *cur_array, *cur_parent, **top, **temp, *param;
   int found_conflict, changed_assignments, propagate_writes_as_reads;
   assert (btor);
   assert (top_arrays);
@@ -7647,11 +7661,33 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         BTOR_PUSH_STACK (mm, array_stack, cur_array->e[2]);
         BTOR_PUSH_STACK (mm, array_stack, cur_array->e[1]);
       }
+      // TODO: we maybe have to search all reads in the lambda expression
+      //       and push the arrays onto the stack
+      else if (BTOR_IS_LAMBDA_NODE (cur_array))
+      {
+        param = cur_array->e[0];
+        assert (BTOR_IS_PARAM_NODE (param));
+
+        /* push all arrays onto stack that are overwritten by lambda exp */
+        init_full_parent_iterator (&it_full, param);
+        while (has_next_parent_full_parent_iterator (&it_full))
+        {
+          cur_parent = next_parent_full_parent_iterator (&it_full);
+          if (!BTOR_IS_READ_NODE (cur_parent)) continue;
+
+          assert (BTOR_IS_REGULAR_NODE (cur_parent));
+          BTOR_PUSH_STACK (mm, array_stack, cur_parent->e[0]);
+        }
+      }
       init_read_parent_iterator (&it, cur_array);
       while (has_next_parent_read_parent_iterator (&it))
       {
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
+
+        /* skip parameterized reads */
+        if (BTOR_IS_PARAMETERIZED_NODE (cur_parent)) continue;
+
         /* we only process reachable or virtual reads */
         check_not_simplified_or_const (btor, cur_parent);
         if (cur_parent->reachable || cur_parent->vread)
