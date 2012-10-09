@@ -7689,7 +7689,6 @@ process_working_stack (Btor *btor,
         //          fprintf (stderr, "[debug]  array: ");
         //          dump_node (stderr, lambda_value->e[0]);
         //          fprintf (stderr, "[debug]  acc: "); dump_node (stderr, acc);
-        btor_release_exp (btor, lambda_value);
       }
       else
       {
@@ -7712,6 +7711,7 @@ process_working_stack (Btor *btor,
           return 1;
         }
       }
+      btor_release_exp (btor, lambda_value);
     }
     assert (array->rho);
     /* insert into hash table */
