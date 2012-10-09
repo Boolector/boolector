@@ -138,7 +138,6 @@ static void rewrite_writes_to_lambda_exp (Btor *);
 static void dump_node (FILE *file, BtorNode *node);
 static void assign_param (BtorNode *, BtorNode *);
 static void unassign_param (BtorNode *);
-// static BtorNode * eval_exp (BtorNode *, int *);
 static const char *eval_exp (Btor *, BtorNode *);
 static BtorNode *apply_beta_reduction (Btor *, BtorNode *, BtorNode *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, int);
@@ -6182,7 +6181,8 @@ bfs_lambda (Btor *btor,
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
   assert (BTOR_IS_READ_NODE (acc));
 
-  int found = 0, bool_result;
+  int found = 0;
+  const char *res;
   BtorMemMgr *mm;
   BtorNode *cur, *next, *index, *cond;
   BtorNodePtrQueue queue;
@@ -6222,18 +6222,13 @@ bfs_lambda (Btor *btor,
 
     if (BTOR_IS_BV_COND_NODE (cur))
     {
-      //      bool_result = 0;
       cond = cur->e[0];
-      //      eval_exp (cond, &bool_result);
-
-      const char *res = eval_exp (btor, cond);
-      if (res[0] == '1')  // bool_result)
-        next = cur->e[1];
-      else
-        next = cur->e[2];
+      res  = eval_exp (btor, cond);
+      next = res[0] == '1' ? cur->e[1] : cur->e[2];
+      btor_freestr (mm, (char *) res);
 
       assert (next->mark == 0);
-      if (next == array) next->mark = 1;
+      next->mark   = 1;
       next->parent = cur;
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
@@ -6503,7 +6498,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         if (BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark == 1) continue;
 
         /* instantiate lambda expressions with read index of acc */
-        lambda_value = apply_beta_reduction (lambda_exp, index);
+        lambda_value = apply_beta_reduction (btor, lambda_exp, index);
         assert (BTOR_IS_REGULAR_NODE (lambda_value));
 
         /* if the instantiated lambda expression returns 'lambda_read' as
@@ -7033,221 +7028,112 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   return changed_assignments;
 }
 
-// static int
-// eval_beq (BtorNode *exp)
+// static const char *
+// eval_exp (Btor * btor, BtorNode * exp)
 //{
-//  assert (exp);
-//  assert (BTOR_IS_BV_EQ_NODE (exp));
-//
-//  BtorNode *real_exp, *left, *right;
-//  int is_equal;
-//
-//  real_exp = BTOR_REAL_ADDR_NODE (exp);
-//
-//  left = eval_exp (real_exp->e[0], NULL);
-//  assert (left);
-//  right = eval_exp (real_exp->e[1], NULL);
-//  assert (right);
-//
-//  is_equal = compare_assignments (left, right) == 0;
-//
-//  if (is_equal)
-//    return BTOR_IS_INVERTED_NODE (exp) ? 0 : 1;
-//
-//  return BTOR_IS_INVERTED_NODE (exp) ? 1 : 0;
-//}
-
-// static BtorNode *
-// eval_param (BtorNode *exp)
-//{
-//  assert (exp);
-//  assert (BTOR_IS_PARAM_NODE (exp));
-//  assert (BTOR_IS_REGULAR_NODE (exp));
-//  assert (((BtorParamNode *) exp)->assigned_exp);
-//
-//  return ((BtorParamNode *) exp)->assigned_exp;
-//}
-//
-// static BtorNode *
-// eval_bcond (BtorNode *exp)
-//{
+//  assert (btor);
+//  assert (btor->mm);
+//  assert (btor->avmgr);
 //  assert (exp);
 //  assert (BTOR_IS_REGULAR_NODE (exp));
-//  assert (BTOR_IS_BV_COND_NODE (exp));
 //
-//  int result = -1;
-//  BtorNode *e_cond, *e_if, *e_else;
+//  int i;
+//  const char *result = 0, *e[3];
 //
-//  e_cond = eval_exp (exp->e[0], &result);
-//  assert (!e_cond);
-//  assert (result == 0 || result == 1);
-//
-//  if (result)
-//  {
-//    e_if = eval_exp (exp->e[1], &result);
-//    assert (e_if);
-//    return e_if;
-//  }
-//
-//  e_else = eval_exp (exp->e[2], &result);
-//  assert (e_else);
-//  return e_else;
-//}
-
-// static BtorNode *
-// eval_exp (BtorNode *exp, int *bool_result)
-//{
-//  assert (exp);
-//
-//  BtorNode *result = 0, *real_exp;
-//
-//  real_exp = BTOR_REAL_ADDR_NODE (exp);
-//
-//  switch (real_exp->kind)
+//  fprintf (stderr, "eval_exp start alloc: %lu\n", btor->mm->allocated);
+//  switch (exp->kind)
 //  {
 //    case BTOR_BV_CONST_NODE:
+//      result = BTOR_BITS_NODE (btor->mm, exp); break;
 //    case BTOR_BV_VAR_NODE:
-//    case BTOR_ARRAY_VAR_NODE:
-//    case BTOR_READ_NODE:
-//      result = exp;
-//      break;
-//
+//      {
+//        assert (exp->tseitin);
+//        assert (exp->av);
+//        if (BTOR_IS_INVERTED_NODE (exp))
+//          result = btor_not_const (btor->mm,
+//                     btor_assignment_aigvec (btor->avmgr, exp->av));
+//        else
+//          result = btor_assignment_aigvec (btor->avmgr, exp->av);
+//        break;
+//      }
 //    case BTOR_PARAM_NODE:
-//      result = eval_param (exp);
-//      break;
-//
-//    case BTOR_BCOND_NODE:
-//      result = eval_bcond (exp);
-//      break;
-//
-//    case BTOR_BEQ_NODE:
-//      *bool_result = eval_beq (exp);
-//      break;
-//
+//      result = eval_exp (btor, ((BtorParamNode *) exp)->assigned_exp); break;
+//    case BTOR_READ_NODE:
+//      {
+//        assert (exp->tseitin);
+//        assert (exp->av);
+//        result = btor_assignment_aigvec (btor->avmgr, exp->av);
+//        break;
+//      }
 //    default:
-//      assert (0);
-//  }
+//      {
+//        if (exp->tseitin)
+//        {
+//          assert (exp->av);
+//          result = btor_assignment_aigvec (btor->avmgr, exp->av);
+//          break;
+//        }
 //
+//        if (exp->kind != BTOR_SLICE_NODE)
+//        {
+//          for (i = 0; i < exp->arity; i++)
+//            e[i] = eval_exp (btor, BTOR_REAL_ADDR_NODE (exp->e[i]));
+//        }
+//
+//        switch (exp->kind)
+//        {
+//          case BTOR_SLICE_NODE:
+//            result = btor_slice_const (btor->mm,
+//                       eval_exp (btor, BTOR_REAL_ADDR_NODE (exp->e[0])),
+//                       exp->upper, exp->lower);
+//            break;
+//          case BTOR_AND_NODE:
+//            result =  btor_and_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_BEQ_NODE:
+//            result = btor_eq_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_ADD_NODE:
+//            result = btor_add_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_MUL_NODE:
+//            result = btor_mul_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_ULT_NODE:
+//            result = btor_ult_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_SLL_NODE:
+//            result =  btor_sll_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_SRL_NODE:
+//            result = btor_srl_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_UDIV_NODE:
+//            result = btor_udiv_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_UREM_NODE:
+//            result = btor_urem_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_CONCAT_NODE:
+//            result = btor_concat_const (btor->mm, e[0], e[1]); break;
+//          case BTOR_BCOND_NODE:
+//            if (e[0][0] == '1')
+//              result = btor_copy_const (btor->mm, e[1]);
+//            else
+//              result = btor_copy_const (btor->mm, e[2]);
+//            break;
+//          default:
+//            {
+//              /* should be unreachable */
+//              assert (!BTOR_IS_ARRAY_EQ_NODE (exp));
+//              assert (!BTOR_IS_ARRAY_COND_NODE (exp));
+//              assert (!BTOR_IS_ARRAY_NODE (exp));
+//              assert (!BTOR_IS_PROXY_NODE (exp));
+//            }
+//        }
+//
+//        if (exp->kind != BTOR_SLICE_NODE)
+//        {
+//          for (i = 0; i < exp->arity; i++)
+//            btor_freestr (btor->mm, (char *) e[i]);
+//        }
+//      }
+//  }
+//  fprintf (stderr, "eval_exp end alloc: %lu\n", btor->mm->allocated);
+//  assert (result);
 //  return result;
 //}
-
-static const char *
-eval_exp (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (btor->mm);
-  assert (btor->avmgr);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  int i;
-  const char *result = 0, *e[3];
-
-  fprintf (stderr, "eval_exp start alloc: %lu\n", btor->mm->allocated);
-  switch (exp->kind)
-  {
-    case BTOR_BV_CONST_NODE: result = BTOR_BITS_NODE (btor->mm, exp); break;
-    case BTOR_BV_VAR_NODE:
-    {
-      assert (exp->tseitin);
-      assert (exp->av);
-      if (BTOR_IS_INVERTED_NODE (exp))
-        result = btor_assignment_aigvec (btor->avmgr, exp->av);
-      else
-        result = btor_not_const (btor->mm,
-                                 btor_assignment_aigvec (btor->avmgr, exp->av));
-      break;
-    }
-    case BTOR_PARAM_NODE:
-      result = eval_exp (btor, ((BtorParamNode *) exp)->assigned_exp);
-      break;
-    case BTOR_READ_NODE:
-    {
-      assert (exp->tseitin);
-      assert (exp->av);
-      result = btor_assignment_aigvec (btor->avmgr, exp->av);
-      break;
-    }
-    default:
-    {
-      if (exp->tseitin)
-      {
-        assert (exp->av);
-        result = btor_assignment_aigvec (btor->avmgr, exp->av);
-        break;
-      }
-
-      if (exp->kind != BTOR_SLICE_NODE)
-      {
-        for (i = 0; i < exp->arity; i++)
-          e[i] = eval_exp (btor, BTOR_REAL_ADDR_NODE (exp->e[i]));
-      }
-
-      switch (exp->kind)
-      {
-        case BTOR_SLICE_NODE:
-          result = btor_slice_const (
-              btor->mm,
-              eval_exp (btor, BTOR_REAL_ADDR_NODE (exp->e[0])),
-              exp->upper,
-              exp->lower);
-          break;
-        case BTOR_AND_NODE:
-          result = btor_and_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_BEQ_NODE:
-          result = btor_eq_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_ADD_NODE:
-          result = btor_add_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_MUL_NODE:
-          result = btor_mul_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_ULT_NODE:
-          result = btor_ult_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_SLL_NODE:
-          result = btor_sll_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_SRL_NODE:
-          result = btor_srl_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_UDIV_NODE:
-          result = btor_udiv_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_UREM_NODE:
-          result = btor_urem_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_CONCAT_NODE:
-          result = btor_concat_const (btor->mm, e[0], e[1]);
-          break;
-        case BTOR_BCOND_NODE:
-          if (e[0][0] == '1')
-            result = btor_copy_const (btor->mm, e[1]);
-          else
-            result = btor_copy_const (btor->mm, e[2]);
-          break;
-        default:
-        {
-          /* should be unreachable */
-          assert (!BTOR_IS_ARRAY_EQ_NODE (exp));
-          assert (!BTOR_IS_ARRAY_COND_NODE (exp));
-          assert (!BTOR_IS_ARRAY_NODE (exp));
-          assert (!BTOR_IS_PROXY_NODE (exp));
-        }
-      }
-
-      if (exp->kind != BTOR_SLICE_NODE)
-      {
-        for (i = 0; i < exp->arity; i++) btor_freestr (btor->mm, (char *) e[i]);
-      }
-    }
-  }
-  fprintf (stderr, "eval_exp end alloc: %lu\n", btor->mm->allocated);
-  assert (result);
-  return result;
-}
 
 static void
 assign_param (BtorNode *lambda_exp, BtorNode *index)
@@ -7282,49 +7168,6 @@ unassign_param (BtorNode *lambda_exp)
   param->assigned_exp = 0;
 }
 
-// static BtorNode *
-// apply_beta_reduction (BtorNode *lambda_exp, BtorNode *index)
-//{
-//  assert (lambda_exp);
-//  assert (index);
-//
-//  BtorNode *result;
-//
-//  assign_param (lambda_exp, index);
-//  result = eval_exp (lambda_exp->e[1], NULL);
-//  unassign_param (lambda_exp);
-//
-//  assert (BTOR_IS_READ_NODE (result) || BTOR_IS_BV_CONST_NODE (result)
-//          || BTOR_IS_BV_VAR_NODE (result));
-//
-//  return result;
-//}
-
-// static BtorNode *
-// apply_beta_reduction (BtorNode * lambda_exp, BtorNode * index)
-//{
-//  assert (lambda_exp);
-//  assert (index);
-//
-//  BtorNode *e1, *result;
-//
-//  e1 = BTOR_REAL_ADDR_NODE (lambda_exp->e[1]);
-//  assert (e1);
-//  assign_param (lambda_exp, index);
-//
-//  assert (!BTOR_IS_ARRAY_EQ_NODE (exp));
-//  assert (!BTOR_IS_ARRAY_COND_NODE (exp));
-//  assert (!BTOR_IS_ARRAY_NODE (exp));
-//  assert (!BTOR_IS_PROXY_NODE (exp));
-//
-//  if (BTOR_IS_BV_COND_NODE (lambda_exp))
-//  {
-//  }
-//  else
-//  {
-//  }
-//}
-
 static BtorNode *
 apply_beta_reduction (Btor *btor, BtorNode *lambda_exp, BtorNode *index)
 {
@@ -7338,6 +7181,144 @@ apply_beta_reduction (Btor *btor, BtorNode *lambda_exp, BtorNode *index)
   result = beta_reduce (btor, lambda_exp->e[1], 1);
   unassign_param (lambda_exp);
 
+  return result;
+}
+
+static const char *
+eval_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  int i;
+  const char *result, *e[3];
+  BtorMemMgr *mm;
+  BtorNodePtrStack work_stack, unmark_stack;
+  BtorCharPtrStack arg_stack;
+  BtorNode *cur, *real_cur;
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (arg_stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  BTOR_PUSH_STACK (mm, work_stack, exp);
+
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur      = BTOR_POP_STACK (work_stack);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+
+    if (real_cur->mark == 0)
+    {
+      real_cur->mark = 1;
+
+      BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
+
+      if (BTOR_IS_PARAM_NODE (real_cur))
+      {
+        assert (((BtorParamNode *) real_cur)->assigned_exp);
+        BTOR_PUSH_STACK (
+            mm, work_stack, ((BtorParamNode *) real_cur)->assigned_exp);
+      }
+      else
+      {
+        BTOR_PUSH_STACK (mm, work_stack, cur);
+
+        for (i = 0; i < real_cur->arity; i++)
+          BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
+      }
+    }
+    else
+    {
+      assert (!BTOR_IS_PARAM_NODE (real_cur));
+      assert (!BTOR_IS_LAMBDA_NODE (real_cur));
+      assert (!BTOR_IS_PROXY_NODE (real_cur));
+      real_cur->mark = 2;
+
+      if (BTOR_IS_BV_CONST_NODE (real_cur))
+      {
+        result = BTOR_BITS_NODE (btor->mm, real_cur);
+      }
+      //      else if (BTOR_IS_BV_VAR_NODE (real_cur) ||
+      //               BTOR_IS_READ_NODE (real_cur))
+      else if (real_cur->tseitin)
+      {
+        //        assert (real_cur->tseitin);
+        assert (real_cur->av);
+        result = btor_assignment_aigvec (btor->avmgr, real_cur->av);
+      }
+      else
+      {
+        assert (!BTOR_IS_ARRAY_EQ_NODE (exp));
+        assert (!BTOR_IS_ARRAY_COND_NODE (exp));
+        assert (!BTOR_IS_ARRAY_NODE (exp));
+        assert (!BTOR_IS_PROXY_NODE (exp));
+        assert (!BTOR_IS_UNARY_NODE (real_cur)
+                || BTOR_COUNT_STACK (arg_stack) >= 1);
+        assert (!BTOR_IS_BINARY_NODE (real_cur)
+                || BTOR_COUNT_STACK (arg_stack) >= 2);
+        assert (!BTOR_IS_TERNARY_NODE (real_cur)
+                || BTOR_COUNT_STACK (arg_stack) >= 3);
+
+        for (i = 0; i < real_cur->arity; i++) e[i] = BTOR_POP_STACK (arg_stack);
+
+        switch (real_cur->kind)
+        {
+          case BTOR_SLICE_NODE:
+            result =
+                btor_slice_const (mm, e[0], real_cur->upper, real_cur->lower);
+            break;
+          case BTOR_AND_NODE: result = btor_and_const (mm, e[0], e[1]); break;
+          case BTOR_BEQ_NODE: result = btor_eq_const (mm, e[0], e[1]); break;
+          case BTOR_ADD_NODE: result = btor_add_const (mm, e[0], e[1]); break;
+          case BTOR_MUL_NODE: result = btor_mul_const (mm, e[0], e[1]); break;
+          case BTOR_ULT_NODE: result = btor_ult_const (mm, e[0], e[1]); break;
+          case BTOR_SLL_NODE: result = btor_sll_const (mm, e[0], e[1]); break;
+          case BTOR_SRL_NODE: result = btor_srl_const (mm, e[0], e[1]); break;
+          case BTOR_UDIV_NODE: result = btor_udiv_const (mm, e[0], e[1]); break;
+          case BTOR_UREM_NODE: result = btor_urem_const (mm, e[0], e[1]); break;
+          case BTOR_CONCAT_NODE:
+            result = btor_concat_const (mm, e[0], e[1]);
+            break;
+          case BTOR_BCOND_NODE:
+            if (e[0][0] == '1')
+              result = btor_copy_const (mm, e[1]);
+            else
+              result = btor_copy_const (mm, e[2]);
+            break;
+          default:
+            /* should be unreachable */
+            assert (0);
+        }
+
+        for (i = 0; i < exp->arity; i++) btor_freestr (btor->mm, (char *) e[i]);
+      }
+
+      if (BTOR_IS_INVERTED_NODE (cur)) result = btor_not_const (mm, result);
+
+      BTOR_PUSH_STACK (mm, arg_stack, (char *) result);
+    }
+  }
+  assert (BTOR_COUNT_STACK (arg_stack) == 1);
+
+  result = BTOR_POP_STACK (arg_stack);
+  assert (result);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (cur->mark);
+    cur->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (mm, arg_stack);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+
+  fprintf (stderr, "[debug] eval_exp result: %s\n", result);
   return result;
 }
 
@@ -7375,58 +7356,67 @@ beta_reduce (Btor *btor, BtorNode *exp, int eval_assignments)
       real_cur->mark = 1;
 
       BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
-      BTOR_PUSH_STACK (mm, work_stack, cur);
 
-      if (eval_assignments
-          && (BTOR_IS_BV_COND_NODE (real_cur)
-              || BTOR_IS_ARRAY_COND_NODE (real_cur)))
+      if (BTOR_IS_PARAM_NODE (real_cur))
       {
-        res = eval_exp (btor, real_cur->e[0]);
-        if (res[0] == '1')
-        {
-          fprintf (stderr, "  e[1]: ");
-          dump_node (stderr, real_cur->e[1]);
-          BTOR_PUSH_STACK (mm, work_stack, real_cur->e[1]);
-        }
-        else
-        {
-          fprintf (stderr, "  e[2]: ");
-          dump_node (stderr, real_cur->e[2]);
-          BTOR_PUSH_STACK (mm, work_stack, real_cur->e[2]);
-        }
-        btor_freestr (mm, (char *) res);
+        assert (((BtorParamNode *) real_cur)->assigned_exp);
+        BTOR_PUSH_STACK (
+            mm, work_stack, ((BtorParamNode *) real_cur)->assigned_exp);
       }
       else
       {
-        for (i = 0; i < real_cur->arity; i++)
+        BTOR_PUSH_STACK (mm, work_stack, cur);
+
+        if (eval_assignments
+            && (BTOR_IS_BV_COND_NODE (real_cur)
+                || BTOR_IS_ARRAY_COND_NODE (real_cur)))
         {
-          fprintf (stderr, "  e[%d]: ", i);
-          dump_node (stderr, real_cur->e[i]);
-          BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
+          res = eval_exp (btor, real_cur->e[0]);
+
+          if (res[0] == '1')
+          {
+            fprintf (stderr, "  e[1]: ");
+            dump_node (stderr, real_cur->e[1]);
+            BTOR_PUSH_STACK (mm, work_stack, real_cur->e[1]);
+          }
+          else
+          {
+            fprintf (stderr, "  e[2]: ");
+            dump_node (stderr, real_cur->e[2]);
+            BTOR_PUSH_STACK (mm, work_stack, real_cur->e[2]);
+          }
+          btor_freestr (mm, (char *) res);
+          fprintf (stderr, "beta reduce freestr alloc: %lu\n", mm->allocated);
+        }
+        else
+        {
+          for (i = 0; i < real_cur->arity; i++)
+          {
+            fprintf (stderr, "  e[%d]: ", i);
+            dump_node (stderr, real_cur->e[i]);
+            BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
+          }
         }
       }
     }
     else
     {
+      assert (!BTOR_IS_PARAM_NODE (real_cur));
+      assert (!BTOR_IS_LAMBDA_NODE (real_cur));
+      assert (!BTOR_IS_PROXY_NODE (real_cur));
       real_cur->mark = 2;
 
-      if (BTOR_IS_PARAM_NODE (real_cur))
+      //      if (BTOR_IS_PARAM_NODE (real_cur))
+      //      {
+      //        result =
+      //          btor_copy_exp (btor, ((BtorParamNode *)
+      //          real_cur)->assigned_exp);
+      //      }
+      //      else
+      if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
+          || BTOR_IS_ARRAY_VAR_NODE (real_cur))
       {
-        fprintf (stderr, "  push arg: ");
-        dump_node (stderr, ((BtorParamNode *) real_cur)->assigned_exp);
-        assert (((BtorParamNode *) real_cur)->assigned_exp);
-        BTOR_PUSH_STACK (
-            mm,
-            arg_stack,
-            btor_copy_exp (btor, ((BtorParamNode *) real_cur)->assigned_exp));
-      }
-      else if (BTOR_IS_BV_CONST_NODE (real_cur)
-               || BTOR_IS_BV_VAR_NODE (real_cur)
-               || BTOR_IS_ARRAY_VAR_NODE (real_cur))
-      {
-        fprintf (stderr, "  push arg: ");
-        dump_node (stderr, real_cur);
-        BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, real_cur));
+        result = btor_copy_exp (btor, real_cur);
       }
       else
       {
@@ -7487,19 +7477,17 @@ beta_reduce (Btor *btor, BtorNode *exp, int eval_assignments)
               break;
             default:
               /* should be unreachable */
-              assert (!BTOR_IS_LAMBDA_NODE (real_cur));
-              assert (!BTOR_IS_PROXY_NODE (real_cur));
               assert (0);
           }
         }
-
-        if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
-
-        BTOR_PUSH_STACK (mm, arg_stack, result);
-        fprintf (stderr, "push arg: ");
-        dump_node (stderr, result);
-        fprintf (stderr, "  tseitin: %d\n", result->tseitin);
       }
+
+      if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
+
+      BTOR_PUSH_STACK (mm, arg_stack, result);
+      fprintf (stderr, "push arg: ");
+      dump_node (stderr, result);
+      fprintf (stderr, "  tseitin: %d\n", result->tseitin);
     }
   }
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
