@@ -1779,16 +1779,8 @@ encode_lemma_new (Btor *btor,
       }
       prev = cur;
     }
-    print_encoded_lemma_dbg (writes,
-                             aeqs,
-                             aconds_sel1,
-                             aconds_sel2,
-                             bconds_sel1,
-                             bconds_sel2,
-                             i,
-                             NULL,
-                             a,
-                             b);
+    //    print_encoded_lemma_dbg (writes, aeqs, aconds_sel1, aconds_sel2,
+    //                             bconds_sel1, bconds_sel2, i, NULL, a, b);
   }
   else
   {
@@ -1801,16 +1793,8 @@ encode_lemma_new (Btor *btor,
 
     add_neq_exp_to_clause (btor, i, j, &linking_clause);
     btor->stats.lemmas_size_sum += 1; /* i != j */
-    print_encoded_lemma_dbg (writes,
-                             aeqs,
-                             aconds_sel1,
-                             aconds_sel2,
-                             bconds_sel1,
-                             bconds_sel2,
-                             i,
-                             j,
-                             a,
-                             b);
+    //    print_encoded_lemma_dbg (writes, aeqs, aconds_sel1, aconds_sel2,
+    //                             bconds_sel1, bconds_sel2, i, j, a, b);
   }
 
   add_eq_exp_to_clause (btor, a, b, &linking_clause);
@@ -7945,9 +7929,9 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
       {
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
-        assert (!cur_parent->simplified);
         if (cur_parent->reachable && BTOR_IS_PARAM_NODE (cur_parent->e[1]))
         {
+          assert (!cur_parent->simplified);
           found_top = 0;
           assert (cur_parent->array_mark == 0);
           BTOR_PUSH_STACK (
