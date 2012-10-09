@@ -6590,24 +6590,27 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
            value, we propagated 'acc' up to 'lambda_exp' as the element
            on the read index of 'cur' is not overwritten by
            'lambda_exp'. */
-        if (lambda_value == param_read)
+        if (BTOR_IS_READ_NODE (lambda_value)
+            && lambda_value->e[0] == param_read->e[0]
+            && lambda_value->e[1] == index)
         {
-          /* we search from lambda_exp down to lambda_value since acc was
-           * propagated upwards from lambda_value to lambda_exp */
+          /* we search from lambda_exp down to param_read since acc was
+           * propagated upwards from param_read to lambda_exp */
           next = 0;
-          bfs_lambda (btor, lambda_exp, acc, lambda_value, &next);
+          bfs_lambda (btor, lambda_exp, acc, param_read, &next);
           /* always has to return 1, i.e., next is 0 */
           assert (!next);
 
           BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark = 1;
 
           cur->mark   = 1;
-          cur->parent = lambda_value;
+          cur->parent = param_read;  // lambda_value;
           BTOR_ENQUEUE (mm, queue, lambda_exp);
           BTOR_PUSH_STACK (mm, unmark_stack, cur);
           BTOR_PUSH_STACK (
               mm, unmark_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
         }
+        btor_release_exp (btor, lambda_value);
       }
       BTOR_RELEASE_STACK (mm, param_read_stack);
     }
@@ -7127,8 +7130,6 @@ assign_param (BtorNode *lambda_exp, BtorNode *index)
   BtorParamNode *param;
 
   param = (BtorParamNode *) lambda_exp->e[0];
-  fprintf (stderr, "assign_param: ");
-  dump_node (stderr, (BtorNode *) param);
   assert (!param->assigned_exp);
   param->assigned_exp = index;
 }
@@ -7144,8 +7145,6 @@ unassign_param (BtorNode *lambda_exp)
   BtorParamNode *param;
 
   param = (BtorParamNode *) lambda_exp->e[0];
-  fprintf (stderr, "unassign_param: ");
-  dump_node (stderr, (BtorNode *) param);
   assert (param->assigned_exp);
   param->assigned_exp = 0;
 }
@@ -7173,7 +7172,7 @@ eval_exp (Btor *btor, BtorNode *exp)
   assert (exp);
 
   int i;
-  const char *result, *e[3];
+  const char *result, *inv_result, *e[3];
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, unmark_stack;
   BtorCharPtrStack arg_stack;
@@ -7221,7 +7220,7 @@ eval_exp (Btor *btor, BtorNode *exp)
 
       if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
-        result = BTOR_BITS_NODE (btor->mm, real_cur);
+        result = btor_copy_const (mm, real_cur->bits);
       }
       else if (real_cur->tseitin)
       {
@@ -7272,11 +7271,15 @@ eval_exp (Btor *btor, BtorNode *exp)
             assert (0);
         }
 
-        for (i = 0; i < real_cur->arity; i++)
-          btor_freestr (btor->mm, (char *) e[i]);
+        for (i = 0; i < real_cur->arity; i++) btor_freestr (mm, (char *) e[i]);
       }
 
-      if (BTOR_IS_INVERTED_NODE (cur)) result = btor_not_const (mm, result);
+      if (BTOR_IS_INVERTED_NODE (cur))
+      {
+        inv_result = btor_not_const (mm, result);
+        btor_freestr (mm, (char *) result);
+        result = inv_result;
+      }
 
       BTOR_PUSH_STACK (mm, arg_stack, (char *) result);
     }
@@ -7322,6 +7325,7 @@ beta_reduce (Btor *btor,
   BtorNode *cur, *real_cur, *e[3], *result;
 
   mm = btor->mm;
+  fprintf (stderr, "beta reduce start alloc: %lu\n", mm->allocated);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -7494,7 +7498,9 @@ beta_reduce (Btor *btor,
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
   fprintf (stderr, "beta reduce end alloc: %lu\n", mm->allocated);
-  fprintf (stderr, "[debug] beta reduce result: ");
+  fprintf (stderr,
+           "[debug] beta reduce result (%d): ",
+           BTOR_REAL_ADDR_NODE (result)->refs);
   dump_node (stderr, result);
 
   // TODO: copy already existing nodes (not created by beta_reduce) in order
@@ -7502,6 +7508,8 @@ beta_reduce (Btor *btor,
   if (BTOR_IS_BV_CONST_NODE (result) || BTOR_IS_BV_VAR_NODE (result)
       || BTOR_IS_ARRAY_VAR_NODE (result))
     result = btor_copy_exp (btor, result);
+
+  assert (!BTOR_IS_LAMBDA_NODE (result));
 
   return result;
 }
@@ -7688,10 +7696,12 @@ process_working_stack (Btor *btor,
       btor_free_bv_assignment_exp (btor, a);
 
       /* propagate down  */
+      // TODO: only propgate beta reduced reads or all?
       if (BTOR_IS_READ_NODE (lambda_value))
       {
         assert (BTOR_IS_REGULAR_NODE (lambda_value));
         assert (BTOR_IS_ARRAY_NODE (lambda_value->e[0]));
+        assert (lambda_value->e[1] == index);
         assert (!lambda_value->e[0]->simplified);
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, lambda_value->e[0]);
@@ -7836,7 +7846,8 @@ process_working_stack (Btor *btor,
            value, we propagate 'next' up to 'lambda_exp' as the element
            on the read index of 'array' is not overwritten by
            'lambda_exp'. */
-        if (lambda_value == next)
+        if (BTOR_IS_READ_NODE (lambda_value) && lambda_value->e[0] == next->e[0]
+            && lambda_value->e[1] == index)
         {
           fprintf (stderr, "[debug] lambda prop. upwards:\n");
           fprintf (stderr, "[debug]   access: ");
