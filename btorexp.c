@@ -7702,8 +7702,13 @@ process_working_stack (Btor *btor,
       /* propagate down  */
       // FIXME: we assume that the reduced value is the instantiated read if
       //        the indices are equal - we need the param read to check
+      //        maybe we should check if returned read is synthesized
+      //          -> if yes, given read was no param read
+      //          -> if no, given read was created in beta_reduce which can
+      //             be the case if it was instantiated
       if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
-          && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index)
+          && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index
+          && !BTOR_IS_SYNTH_NODE (lambda_value))
       //        if (BTOR_IS_READ_NODE (lambda_value)
       //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[0] ==
       //            param_read->e[0]
