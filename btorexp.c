@@ -10405,9 +10405,9 @@ btor_sat_aux_btor (Btor *btor)
 
   run_rewrite_engine (btor);
 
-  if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
-
   if (btor->inconsistent) return BTOR_UNSAT;
+
+  if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
 
   mm = btor->mm;
 
