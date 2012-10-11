@@ -6604,7 +6604,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 
         /* instantiate lambda expressions with read index of acc */
         lambda_value = apply_beta_reduction (btor, lambda_exp, index);
-        assert (BTOR_IS_REGULAR_NODE (lambda_value));
+        lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
         /* if the instantiated lambda expression returns 'lambda_read' as
            value, we propagated 'acc' up to 'lambda_exp' as the element
@@ -7753,9 +7753,9 @@ process_working_stack (Btor *btor,
       //       btor_free_bv_assignment_exp (btor, a);
 
       /* propagate down  */
-      if (BTOR_IS_READ_NODE (lambda_value))
+      if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value)))
       {
-        assert (BTOR_IS_REGULAR_NODE (lambda_value));
+        lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
         assert (BTOR_IS_ARRAY_NODE (lambda_value->e[0]));
         //          if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE
         //          (lambda_value->e[1])))
@@ -7895,7 +7895,7 @@ process_working_stack (Btor *btor,
         next = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (next));
         assert (BTOR_IS_READ_NODE (next));
-        assert (!next->simplified);
+        //            assert (!next->simplified);
         if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
           BTOR_PUSH_STACK (mm, param_read_stack, next);
       }
@@ -7923,7 +7923,7 @@ process_working_stack (Btor *btor,
 
         /* instantiate lambda expressions with read index of acc */
         lambda_value = apply_beta_reduction (btor, lambda_exp, index);
-        assert (BTOR_IS_REGULAR_NODE (lambda_value));
+        lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
         /* if the instantiated lambda expression returns 'lambda_read' as
            value, we propagate 'next' up to 'lambda_exp' as the element
