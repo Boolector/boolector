@@ -118,13 +118,6 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 }
 
 void
-boolector_enable_rewrite_writes (Btor *btor)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  btor_enable_rewrite_writes (btor);
-}
-
-void
 boolector_enable_model_gen (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);

@@ -5322,6 +5322,7 @@ btor_new_btor (void)
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
+  btor->rewrite_writes    = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
 
@@ -5380,10 +5381,10 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 }
 
 void
-btor_enable_rewrite_writes (Btor *btor)
+btor_disable_rewrite_writes (Btor *btor)
 {
   assert (btor);
-  btor->rewrite_writes = 1;
+  btor->rewrite_writes = 0;
 }
 
 void
