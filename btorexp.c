@@ -5025,7 +5025,7 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
 
   run_rewrite_engine (btor);
 
-  rewrite_writes_to_lambda_exp (btor);
+  if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
 
   if (btor->inconsistent)
   {
@@ -5377,6 +5377,13 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor->rewrite_level <= 3);
   assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->rewrite_level = rewrite_level;
+}
+
+void
+btor_enable_rewrite_writes (Btor *btor)
+{
+  assert (btor);
+  btor->rewrite_writes = 1;
 }
 
 void
@@ -10398,7 +10405,7 @@ btor_sat_aux_btor (Btor *btor)
 
   run_rewrite_engine (btor);
 
-  rewrite_writes_to_lambda_exp (btor);
+  if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 

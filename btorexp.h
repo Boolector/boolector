@@ -269,6 +269,7 @@ struct Btor
   int inc_enabled;          /* incremental usage enabled ? */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
+  int rewrite_writes;       /* rewrite writes to lambda expressions */
 
   BtorPtrHashTable *exp_pair_eq_table;
 
