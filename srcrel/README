@@ -16,22 +16,22 @@ Then extract from the archive the Lingeling sources in the same directory
 in which you extracted the Boolector sources.  Rename or link the
 Lingeling source directory to 'lingeling'.  Then compile Lingeling.
 
-  For version al6 of Lingeling this works as follows:
+  For the current version of Lingeling this works as follows:
 
   cd <directory-where-you-extracted-boolector-sources>
-  wget http://fmv.jku.at/lingeling/lingeling-al6-080d45d-120922.tar.gz
-  tar xf lingeling-al6-080d45d-120922.tar.gz
-  ln -s  lingeling-al6-080d45d-120922 lingeling
+  wget http://fmv.jku.at/lingeling/lingeling-current.tar.gz
+  tar xf lingeling-current.tar.gz
+  ln -s  lingeling-current lingeling
   cd lingeling
   ./configure
   make
 
-In the same way you can optionally include version 953 of PicoSAT:
+In the same way you can optionally include the current PicoSAT:
 
   cd <directory-where-you-extracted-boolector-sources>
-  wget http://fmv.jku.at/picosat/picosat-953.tar.gz
-  tar xf picosat-953.tar.gz
-  ln -s picosat-953 picosat
+  wget http://fmv.jku.at/picosat/picosat-current.tar.gz
+  tar xf picosat-current.tar.gz
+  ln -s picosat-current picosat
   cd picosat
   ./configure -O           # this will improve performance
   make
@@ -91,4 +91,4 @@ Armin Biere <biere@jku.at>.
 
 Robert Daniel Brummayer, Armin Biere,
 Johannes Kepler University.
-Linz, Austria, 2010.
+Linz, Austria, 2012.
