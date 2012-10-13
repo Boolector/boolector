@@ -136,6 +136,16 @@ boolector_enable_inc_usage (Btor *btor)
       "enabling incremental usage must be done before calling 'boolector_sat'");
   btor_enable_inc_usage (btor);
 }
+int
+boolector_set_sat_solver (Btor *btor, const char *solver)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (solver);
+  BTOR_ABORT_BOOLECTOR (
+      btor->btor_sat_btor_called > 0,
+      "setting the SAT solver must be done before calling 'boolector_sat'");
+  return btor_set_sat_solver (btor, solver);
+}
 
 int
 boolector_get_refs (Btor *btor)
