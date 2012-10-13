@@ -1,3 +1,8 @@
+news for release 1.5.117 since 1.5.116
+--------------------------------------
+* '--solver=...' command line option and 'boolector_set_sat_solver'
+* delayed Lingeling preprocessing using 'simpdelay'
+
 news for release 1.5.116 since 1.5.115
 --------------------------------------
 * examples compilable again
