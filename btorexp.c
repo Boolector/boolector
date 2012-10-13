@@ -4632,6 +4632,53 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   btor->rewrite_level = rewrite_level;
 }
 
+int
+btor_set_sat_solver (Btor *btor, const char *solver)
+{
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+
+  assert (btor);
+  assert (solver);
+
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+  if (!strcasecmp (solver, "lingeling"))
+#ifdef BTOR_USE_LINGELING
+  {
+    btor_enable_lingeling_sat (smgr, 0, 0);
+    return 1;
+  }
+#else
+    return 0;
+#endif
+
+#ifdef BTOR_USE_MINISAT
+  if (!strcasecmp (solver, "minisat"))
+  {
+    btor_enable_minisat_sat (smgr);
+    return 1;
+  }
+#else
+  return 0;
+#endif
+
+#ifdef BTOR_USE_PICOSAT
+  if (!strcasecmp (solver, "picosat"))
+  {
+    btor_enable_picosat_sat (smgr);
+    return 1;
+  }
+#else
+  return 0;
+#endif
+
+  return 0;
+}
+
 void
 btor_enable_model_gen (Btor *btor)
 {

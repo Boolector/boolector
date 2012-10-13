@@ -167,6 +167,16 @@ void boolector_enable_model_gen (Btor *btor);
 void boolector_enable_inc_usage (Btor *btor);
 
 /**
+ * Sets the SAT solver to use.
+ * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
+ * value of \para solver ignoring the case of characters.  This is however
+ * only possible if at compile time the corresponding solvers were enabled.
+ * The return value is non-zero if setting the SAT solver call was
+ * successful.  Call this function after \ref boolector_new.
+ */
+int boolector_set_sat_solver (Btor *btor, const char *solver);
+
+/**
  * Sets the rewrite level of the rewriting engine.
  * Boolector uses rewrite level 3 per default. Call this function
  * before creating any expressions.

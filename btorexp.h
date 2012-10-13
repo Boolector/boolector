@@ -445,6 +445,8 @@ void btor_enable_model_gen (Btor *btor);
  */
 void btor_enable_inc_usage (Btor *btor);
 
+int btor_set_sat_solver (Btor *, const char *);
+
 /* Sets verbosity [-1,3] of btor and all sub-components
  * if verbosity is set to -1, then boolector is in "quiet mode" and
  * does not print any output.
