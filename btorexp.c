@@ -145,13 +145,15 @@ static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
 // debug
-//#define DBG_P(msg, node, ...) do {} while (0)
-#define DBG_P(msg, node, ...)                        \
-  do                                                 \
-  {                                                  \
-    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
-    if (node) dump_node (stderr, node);              \
+#define DBG_P(msg, node, ...) \
+  do                          \
+  {                           \
   } while (0)
+//#define DBG_P(msg, node, ...)\
+//  do {\
+//    fprintf (stderr, "[debug] " msg, ## __VA_ARGS__);\
+//    if (node) dump_node (stderr, node); \
+//  } while (0)
 // debug
 
 /*------------------------------------------------------------------------*/
@@ -1394,17 +1396,19 @@ add_param_cond_to_clause (Btor *btor,
 
   /* we currently expect cond to be parameterized */
   // TODO: pass assigned_exp to beta_reduce instead of instantiating param?
+  //       -> we do not have to search for param
+  //       beta_cond = beta_reduce (btor, cond, 0, 0, index);
   if (param)
   {
     assert (!param->assigned_exp);
     param->assigned_exp = index;
-    beta_cond           = beta_reduce (btor, cond, 0, 0);
+    beta_cond           = beta_reduce (btor, cond, 1, 0);
     param->assigned_exp = 0;
   }
   else
   {
     assert (BTOR_REAL_ADDR_NODE (cond)->len == 1);
-    beta_cond = beta_reduce (btor, cond, 0, 0);
+    beta_cond = beta_reduce (btor, cond, 1, 0);
   }
 
   lit = exp_to_cnf_lit (btor, beta_cond);
@@ -1755,7 +1759,9 @@ encode_lemma_new (Btor *btor,
     lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
     /* lambda_value must not be parameterized, otherwise the conflict would not
        have occured at acc2 */
-    assert (!BTOR_IS_PARAMETERIZED_NODE (lambda_value));
+    assert (BTOR_IS_SYNTH_NODE (lambda_value));
+    assert (lambda_value->tseitin);
+    //    assert (!BTOR_IS_PARAMETERIZED_NODE (lambda_value));
 
     // TODO: searching for b might be a problem if returned value is an
     //       assigned param, e.g., lambda j . j
@@ -7243,7 +7249,7 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
         BTOR_PUSH_STACK (mm, work_stack, cur);
 
         /* if current node already has an assignment, skip children */
-        if (cur->tseitin) continue;
+        if (real_cur->tseitin) continue;
 
         for (i = 0; i < real_cur->arity; i++)
           BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
@@ -7323,7 +7329,6 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
     }
   }
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
-
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
 
@@ -7501,6 +7506,7 @@ beta_reduce (Btor *btor,
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
+  assert (!BTOR_IS_LAMBDA_NODE (result));
 
   while (!BTOR_EMPTY_STACK (unmark_stack))
   {
@@ -7516,19 +7522,6 @@ beta_reduce (Btor *btor,
 
   DBG_P (
       "beta_reduce result (%d): ", result, BTOR_REAL_ADDR_NODE (result)->refs);
-
-  // TODO: copy already existing nodes (not created by beta_reduce) in order
-  //       to prevent that they get released afterwards
-  //  if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (result)) ||
-  //      BTOR_IS_BV_VAR_NODE (BTOR_REAL_ADDR_NODE (result)) ||
-  //      BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (result)))
-  //  {
-  //    result = btor_copy_exp (btor, result);
-  //  }
-  // TODO: if result is a result of rewriting and is a bv_const, bv_var etc,
-  // then we should not copy the exp
-
-  assert (!BTOR_IS_LAMBDA_NODE (result));
 
   return result;
 }
@@ -7567,8 +7560,8 @@ process_working_stack (Btor *btor,
     assert (BTOR_IS_ACC_NODE (acc));
     DBG_P ("\n", 0);
     DBG_P ("*** process_working_stack\n", 0);
-    DBG_P ("array:", array);
-    DBG_P ("access:", acc);
+    DBG_P ("array: ", array);
+    DBG_P ("access: ", acc);
     check_not_simplified_or_const (btor, acc);
     /* synthesize index and value if necessary */
     *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc, 1);
@@ -7707,7 +7700,7 @@ process_working_stack (Btor *btor,
       //          -> if no, given read was created in beta_reduce which can
       //             be the case if it was instantiated
       if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
-          && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index
+          //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index
           && !BTOR_IS_SYNTH_NODE (lambda_value))
       //        if (BTOR_IS_READ_NODE (lambda_value)
       //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[0] ==
@@ -7715,7 +7708,9 @@ process_working_stack (Btor *btor,
       //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index)
       {
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
+        assert (lambda_value->e[1] == index);
         assert (BTOR_IS_ARRAY_NODE (lambda_value->e[0]));
+
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, lambda_value->e[0]);
         DBG_P ("lambda exp prop. down:\n", 0);
