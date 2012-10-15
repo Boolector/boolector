@@ -1,3 +1,7 @@
+news for release 1.5.120 since 1.5.119
+--------------------------------------
+* added missing semantic checks in SMT2 parser
+
 news for release 1.5.119 since 1.5.118
 --------------------------------------
 * fixed '{boolector,btor}_set_sat_solver 
