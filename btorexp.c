@@ -4656,24 +4656,24 @@ btor_set_sat_solver (Btor *btor, const char *solver)
     return 0;
 #endif
 
-#ifdef BTOR_USE_MINISAT
   if (!strcasecmp (solver, "minisat"))
+#ifdef BTOR_USE_MINISAT
   {
     btor_enable_minisat_sat (smgr);
     return 1;
   }
 #else
-  return 0;
+    return 0;
 #endif
 
-#ifdef BTOR_USE_PICOSAT
   if (!strcasecmp (solver, "picosat"))
+#ifdef BTOR_USE_PICOSAT
   {
     btor_enable_picosat_sat (smgr);
     return 1;
   }
 #else
-  return 0;
+    return 0;
 #endif
 
   return 0;
