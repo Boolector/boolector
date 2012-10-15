@@ -1803,7 +1803,11 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
       {
         binfun = btor_and_exp;
       BINARY_BV_FUN:
+#if 1
+        if (!btor_check_arg_sorts_match_smt2 (parser, p, 2)) return 0;
+#else
         if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 2)) return 0;
+#endif
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         exp = binfun (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
