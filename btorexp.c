@@ -145,15 +145,13 @@ static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
 // debug
-#define DBG_P(msg, node, ...) \
-  do                          \
-  {                           \
+//#define DBG_P(msg, node, ...) do {} while (0)
+#define DBG_P(msg, node, ...)                        \
+  do                                                 \
+  {                                                  \
+    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
+    if (node) dump_node (stderr, node);              \
   } while (0)
-//#define DBG_P(msg, node, ...)\
-//  do {\
-//    fprintf (stderr, "[debug] " msg, ## __VA_ARGS__);\
-//    if (node) dump_node (stderr, node); \
-//  } while (0)
 // debug
 
 /*------------------------------------------------------------------------*/
@@ -7157,8 +7155,7 @@ assign_param (BtorNode *lambda_exp, BtorNode *index)
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
   assert (BTOR_IS_PARAM_NODE (lambda_exp->e[0]));
-  assert (BTOR_IS_REGULAR_NODE (index));
-  assert (!BTOR_IS_PARAM_NODE (index));
+  assert (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (index)));
 
   BtorParamNode *param;
 
