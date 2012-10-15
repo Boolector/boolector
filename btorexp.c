@@ -7223,6 +7223,7 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur      = BTOR_POP_STACK (work_stack);
+    cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
     if (real_cur->mark == 0)
@@ -7378,6 +7379,7 @@ beta_reduce (Btor *btor,
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur      = BTOR_POP_STACK (work_stack);
+    cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
     if (real_cur->mark == 0)
