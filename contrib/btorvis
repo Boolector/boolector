@@ -22,5 +22,5 @@ then
 fi
 cat $*|$btor2dot | dot -Tps2 > $pstemp
 ps2pdf $pstemp $pdftemp || exit 1
-acroread $pdftemp
+evince $pdftemp
 rm -f $pstemp $pdftemp
