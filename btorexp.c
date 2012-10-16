@@ -4717,7 +4717,6 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 
   assert (btor);
   assert (btor->verbosity >= -1);
-  assert (btor->verbosity <= 3);
   assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->verbosity = verbosity;
 

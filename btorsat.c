@@ -105,7 +105,7 @@ btor_new_sat_mgr (BtorMemMgr *mm)
 void
 btor_set_verbosity_sat_mgr (BtorSATMgr *smgr, int verbosity)
 {
-  assert (verbosity >= -1 && verbosity <= 3);
+  assert (verbosity >= -1);
   smgr->verbosity = verbosity;
 }
 

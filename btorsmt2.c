@@ -1271,7 +1271,8 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
 {
   int i, domain, width, len;
   assert (nargs >= 1);
-  width = btor_get_exp_len (parser->btor, p[1].exp);
+  width           = btor_get_exp_len (parser->btor, p[1].exp);
+  parser->perrcoo = p->coo;
   if (btor_is_array_exp (parser->btor, p[1].exp))
   {
     domain = btor_get_index_exp_len (parser->btor, p[1].exp);
@@ -1325,6 +1326,7 @@ btor_check_arg_sorts_match_smt2 (BtorSMT2Parser *parser,
             len);
     }
   }
+  parser->perrcoo.x = 0;
   return 1;
 }
 
