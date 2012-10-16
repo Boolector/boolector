@@ -181,11 +181,16 @@ typedef enum BtorSMT2Tag
 
 } BtorSMT2Tag;
 
+typedef struct BtorSMT2Coo
+{
+  int x, y;
+} BtorSMT2Coo;
+
 typedef struct BtorSMT2Node
 {
   BtorSMT2Tag tag;
   unsigned bound : 1;
-  int lineno;
+  BtorSMT2Coo coo;
   char *name;
   BtorNode *exp;
   struct BtorSMT2Node *next;
@@ -194,7 +199,7 @@ typedef struct BtorSMT2Node
 typedef struct BtorSMT2Item
 {
   BtorSMT2Tag tag;
-  int lineno;
+  BtorSMT2Coo coo;
   union
   {
     int num;
@@ -253,10 +258,11 @@ typedef struct BtorSMT2Parser
   BtorMemMgr *mem;
   int verbosity, incremental, model, need_arrays;
   char *name;
-  int lineno, perrlineno;
+  BtorSMT2Coo coo, perrcoo;
   FILE *file;
   int saved;
   char savedch;
+  int last_end_of_line_ycoo;
   BtorSMT2Node *last_node;
   int nprefix;
   BtorCharStack *prefix;
@@ -278,6 +284,18 @@ typedef struct BtorSMT2Parser
   int binding;
 } BtorSMT2Parser;
 
+static int
+btor_xcoo_smt2 (BtorSMT2Parser *parser)
+{
+  return parser->perrcoo.x ? parser->perrcoo.x : parser->coo.x;
+}
+
+static int
+btor_ycoo_smt2 (BtorSMT2Parser *parser)
+{
+  return parser->perrcoo.x ? parser->perrcoo.y : parser->coo.y;
+}
+
 static char *
 btor_perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
 {
@@ -289,14 +307,13 @@ btor_perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
     bytes = btor_parse_error_message_length (parser->name, fmt, ap);
     va_end (ap);
     va_start (ap, fmt);
-    parser->error = btor_parse_error_message (
-        parser->mem,
-        parser->name,
-        (parser->perrlineno ? parser->perrlineno : parser->lineno),
-        -1,
-        fmt,
-        ap,
-        bytes);
+    parser->error = btor_parse_error_message (parser->mem,
+                                              parser->name,
+                                              btor_xcoo_smt2 (parser),
+                                              btor_ycoo_smt2 (parser),
+                                              fmt,
+                                              ap,
+                                              bytes);
     va_end (ap);
   }
   return parser->error;
@@ -344,7 +361,15 @@ btor_nextch_smt2 (BtorSMT2Parser *parser)
     res = parser->prefix->start[parser->nprefix++];
   else
     res = getc (parser->file);
-  if (res == '\n') parser->lineno++;
+  if (res == '\n')
+  {
+    parser->coo.x++;
+    assert (parser->coo.x > 0);
+    parser->last_end_of_line_ycoo = parser->coo.y;
+    parser->coo.y                 = 0;
+  }
+  else
+    parser->coo.y++, assert (parser->coo.y > 0);
   return res;
 }
 
@@ -354,7 +379,10 @@ btor_savech_smt2 (BtorSMT2Parser *parser, char ch)
   assert (!parser->saved);
   parser->saved   = 1;
   parser->savedch = ch;
-  if (ch == '\n') assert (parser->lineno > 1), parser->lineno--;
+  if (ch != '\n') return;
+  assert (parser->coo.x > 1);
+  parser->coo.x--;
+  parser->coo.y = parser->last_end_of_line_ycoo;
 }
 
 static void
@@ -1002,8 +1030,9 @@ btor_read_token_smt2 (BtorSMT2Parser *parser)
   int res = btor_read_token_aux_smt2 (parser);
   if (parser->verbosity >= 4)
   {
-    printf ("[btorsmt2] line %08d token %08x %s\n",
-            parser->lineno,
+    printf ("[btorsmt2] line %d column %d token %08x %s\n",
+            parser->coo.x,
+            parser->coo.y,
             res,
             res == EOF ? "<end-of-file>"
                        : res == BTOR_INVALID_TAG_SMT2 ? "<error>"
@@ -1129,8 +1158,8 @@ btor_push_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Tag tag)
 {
   BtorSMT2Item item;
   BTOR_CLR (&item);
-  item.lineno = parser->lineno;
-  item.tag    = tag;
+  item.coo = parser->coo;
+  item.tag = tag;
   BTOR_PUSH_STACK (parser->mem, parser->work, item);
   return &BTOR_TOP_STACK (parser->work);
 }
@@ -1538,7 +1567,9 @@ btor_rotate_right_smt2 (Btor *btor, BtorNode *exp, int shift)
 }
 
 static int
-btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
+btor_parse_term_smt2 (BtorSMT2Parser *parser,
+                      BtorNode **resptr,
+                      BtorSMT2Coo *cooptr)
 {
   int tag, width, domain, len, nargs, i, j, open = 0;
   BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *);
@@ -1561,8 +1592,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
                                 "expected term but reached end-of-file");
       return !btor_perr_smt2 (
           parser,
-          "unexpected end-of-file since '(' at line %d still open",
-          l->lineno);
+          "unexpected end-of-file since '(' at line %d column %d still open",
+          l->coo.x,
+          l->coo.y);
     }
     if (tag == BTOR_RPAR_TAG_SMT2)
     {
@@ -1583,12 +1615,12 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
       {
         if (nargs)
         {
-          parser->perrlineno = l->lineno;
+          parser->perrcoo = l->coo;
           return !btor_perr_smt2 (
               parser, "list with %d expressions", nargs + 1);
         }
-        p->lineno = l->lineno;
-        *l        = *p;
+        p->coo = l->coo;
+        *l     = *p;
         parser->work.top--;
         assert (l + 1 == parser->work.top);
       }
@@ -1912,7 +1944,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (p->num && ((INT_MAX / p->num) < width))
         {
-          parser->perrlineno = p->lineno;
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (parser,
                                   "resulting bit-width of 'repeat' too large");
         }
@@ -1934,7 +1966,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (INT_MAX - p->num < width)
         {
-          parser->perrlineno = p->lineno;
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser, "resulting bit-width of '%s' too large", p->node->name);
         }
@@ -2003,7 +2035,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
           assert (p[i].tag == BTOR_SYMBOL_TAG_SMT2);
           s = p[i].node;
           assert (s);
-          assert (s->lineno);
+          assert (s->coo.x);
           assert (s->tag == BTOR_SYMBOL_TAG_SMT2);
           btor_remove_symbol_smt2 (parser, s);
         }
@@ -2077,16 +2109,17 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
                 parser->token.start);
           s = parser->last_node;
           assert (s);
-          if (s->lineno)
+          if (s->coo.x)
             return !btor_perr_smt2 (
                 parser,
-                "symbol '%s' to be bound already %s at line %d",
+                "symbol '%s' to be bound already %s at line %d column %d",
                 s->name,
                 s->bound ? "bound with 'let'" : "declared as function",
-                s->lineno);
-          s->lineno = parser->lineno;
-          q         = btor_push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
-          q->node   = s;
+                s->coo.x,
+                s->coo.y);
+          s->coo  = parser->coo;
+          q       = btor_push_item_smt2 (parser, BTOR_SYMBOL_TAG_SMT2);
+          q->node = s;
         }
         open++;
       }
@@ -2318,7 +2351,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
   } while (open);
   if (BTOR_COUNT_STACK (parser->work) != 1)
   {
-    parser->perrlineno = p->lineno;
+    parser->perrcoo = p->coo;
     // This should not occur, but we keep it as a bad style of
     // defensive programming for future extensions of the parser.
     return !btor_perr_smt2 (parser,
@@ -2328,15 +2361,15 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
   p = parser->work.start;
   if (p->tag != BTOR_EXP_TAG_SMT2)
   {
-    parser->perrlineno = p->lineno;
+    parser->perrcoo = p->coo;
     // Dito, same comment wrt defensive programming an future use.
     return !btor_perr_smt2 (
         parser,
         "internal parse error: failed to translate parsed term at '%s'",
         btor_item2str_smt2 (p));
   }
-  res        = btor_copy_exp (parser->btor, p->exp);
-  *linenoptr = p->lineno;
+  res     = btor_copy_exp (parser->btor, p->exp);
+  *cooptr = p->coo;
   btor_release_work_smt2 (parser);
   *resptr = res;
   return 1;
@@ -2398,12 +2431,13 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
   width = domain = 0;
   if (!btor_read_symbol (parser, " after 'declare-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
-  if (fun->lineno)
+  if (fun->coo.x)
     return !btor_perr_smt2 (parser,
-                            "symbol '%s' already defined at line %d",
+                            "symbol '%s' already defined at line %d column %d",
                             fun->name,
-                            fun->lineno);
-  fun->lineno = parser->lineno;
+                            fun->coo.x,
+                            fun->coo.y);
+  fun->coo = parser->coo;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
   if (!btor_read_rpar_smt2 (parser, " after '('")) return 0;
   tag = btor_read_token_smt2 (parser);
@@ -2429,12 +2463,14 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
     if (!btor_parse_bitvec_sort_smt2 (parser, 1, &width)) return 0;
   BITVEC:
     fun->exp = btor_var_exp (parser->btor, width, fun->name);
-    btor_msg_smt2 (parser,
-                   2,
-                   "declared '%s' as bit-vector of width %d at line %d",
-                   fun->name,
-                   width,
-                   fun->lineno);
+    btor_msg_smt2 (
+        parser,
+        2,
+        "declared '%s' as bit-vector of width %d at line %d column %d",
+        fun->name,
+        width,
+        fun->coo.x,
+        fun->coo.y);
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
@@ -2444,14 +2480,15 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
     if (!btor_read_rpar_smt2 (parser, " after element sort")) return 0;
     fun->exp = btor_array_exp (parser->btor, width, domain, fun->name);
-    btor_msg_smt2 (
-        parser,
-        2,
-        "declared bit-vector array '%s' index element width %d %d at line %d",
-        fun->name,
-        domain,
-        width,
-        fun->lineno);
+    btor_msg_smt2 (parser,
+                   2,
+                   "declared bit-vector array '%s' "
+                   "index element width %d %d at line %d column %d",
+                   fun->name,
+                   domain,
+                   width,
+                   fun->coo.x,
+                   fun->coo.y);
     parser->need_arrays = 1;
   }
   else
@@ -2501,8 +2538,10 @@ btor_set_info_smt2 (BtorSMT2Parser *parser)
 static int
 btor_read_command_smt2 (BtorSMT2Parser *parser)
 {
-  int tag, lineno = 0;
   BtorNode *exp = 0;
+  BtorSMT2Coo coo;
+  int tag;
+  coo.x = coo.y = 0;
   tag           = btor_read_token_smt2 (parser);
   if (tag == EOF || tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag != BTOR_LPAR_TAG_SMT2)
@@ -2564,17 +2603,17 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       break;
 
     case BTOR_ASSERT_TAG_SMT2:
-      if (!btor_parse_term_smt2 (parser, &exp, &lineno)) return 0;
+      if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
       BTOR_PUSH_STACK (parser->mem, parser->outputs, exp);
       if (btor_is_array_exp (parser->btor, exp))
       {
-        parser->perrlineno = lineno;
+        parser->perrcoo = coo;
         return !btor_perr_smt2 (
             parser, "assert argument is an array and not a formula");
       }
       if (btor_get_exp_len (parser->btor, exp) != 1)
       {
-        parser->perrlineno = lineno;
+        parser->perrcoo = coo;
         return !btor_perr_smt2 (parser,
                                 "assert argument is a bit-vector of length %d",
                                 btor_get_exp_len (parser->btor, exp));
@@ -2623,7 +2662,8 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
   parser->name    = btor_strdup (parser->mem, name);
   parser->nprefix = 0;
   parser->prefix  = prefix;
-  parser->lineno  = 1;
+  parser->coo.x   = 1;
+  parser->coo.y   = 1;
   parser->file    = file;
   parser->saved   = 0;
   BTOR_CLR (res);
