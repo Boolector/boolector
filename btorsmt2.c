@@ -381,7 +381,7 @@ btor_savech_smt2 (BtorSMT2Parser *parser, char ch)
   parser->savedch = ch;
   if (ch == '\n')
   {
-    assert (parser->coo.x > 1);
+    assert (parser->nextcoo.x > 1);
     parser->nextcoo.x--;
     parser->nextcoo.y = parser->last_end_of_line_ycoo;
   }
