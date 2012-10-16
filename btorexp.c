@@ -145,13 +145,19 @@ static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
 // debug
-//#define DBG_P(msg, node, ...) do {} while (0)
+#if 1
+#define DBG_P(msg, node, ...) \
+  do                          \
+  {                           \
+  } while (0)
+#else
 #define DBG_P(msg, node, ...)                        \
   do                                                 \
   {                                                  \
     fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
     if (node) dump_node (stderr, node);              \
   } while (0)
+#endif
 // debug
 
 /*------------------------------------------------------------------------*/
@@ -1593,110 +1599,80 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
   BtorPtrHashBucket *bucket;
   BtorNode *cur;
 
-  fprintf (stderr, "encoded lemma (premisses):\n");
+  DBG_P ("encoded lemma (premisses):\n", 0);
 
   if (j != NULL)
   {
-    fprintf (stderr, "  indices:\n");
-    fprintf (stderr, "    eq:\n");
-    fprintf (stderr, "      ");
-    dump_node (stderr, i);
-    fprintf (stderr, "      ");
-    dump_node (stderr, j);
+    DBG_P ("  indices:\n", 0);
+    DBG_P ("    eq:\n", 0);
+    DBG_P ("      ", i);
+    DBG_P ("      ", j);
   }
 
-  fprintf (stderr, "  writes:\n");
+  DBG_P ("  writes:\n", 0);
   for (bucket = writes->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[1];
-    fprintf (stderr, "    index = ");
-    dump_node (stderr, cur);
+    DBG_P ("    index = ", cur);
   }
 
-  fprintf (stderr, "  aeqs:\n");
+  DBG_P ("  aeqs:\n", 0);
   for (bucket = aeqs->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
-    fprintf (stderr, "    ");
-    dump_node (stderr, cur);
+    DBG_P ("    ", cur);
   }
 
-  fprintf (stderr, "  aconds_sel1 (then):\n");
+  DBG_P ("  aconds_sel1 (then):\n", 0);
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
 
     if (BTOR_IS_INVERTED_NODE (cur))
-    {
-      fprintf (stderr, "    not ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    not ", cur);
     else
-    {
-      fprintf (stderr, "    ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    ", cur);
   }
 
-  fprintf (stderr, "  aconds_sel2 (else):\n");
+  DBG_P ("  aconds_sel2 (else):\n", 0);
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
     if (BTOR_IS_INVERTED_NODE (cur))
-    {
-      fprintf (stderr, "    ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    ", cur);
     else
-    {
-      fprintf (stderr, "    not ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    not ", cur);
   }
 
-  fprintf (stderr, "  bconds_sel1 (then):\n");
+  DBG_P ("  bconds_sel1 (then):\n", 0);
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
     if (BTOR_IS_INVERTED_NODE (cur))
-    {
-      fprintf (stderr, "    not ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    not ", cur);
     else
-    {
-      fprintf (stderr, "    ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    ", cur);
   }
 
-  fprintf (stderr, "  bconds_sel2 (else):\n");
+  DBG_P ("  bconds_sel2 (else):\n", 0);
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
     if (BTOR_IS_INVERTED_NODE (cur))
-    {
-      fprintf (stderr, "    ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    ", cur);
     else
-    {
-      fprintf (stderr, "    not ");
-      dump_node (stderr, cur);
-    }
+      DBG_P ("    not ", cur);
   }
 
-  fprintf (stderr, "encoded lemma (conclusion):\n");
-  fprintf (stderr, "  eq of:\n");
-  fprintf (stderr, "    ");
-  dump_node (stderr, a);
-  fprintf (stderr, "    ");
-  dump_node (stderr, b);
+  DBG_P ("encoded lemma (conclusion):\n", 0);
+  DBG_P ("  eq of:\n", 0);
+  DBG_P ("    ", a);
+  DBG_P ("    ", b);
 }
 
 static void
@@ -1797,8 +1773,16 @@ encode_lemma_new (Btor *btor,
       }
       prev = cur;
     }
-    //    print_encoded_lemma_dbg (writes, aeqs, aconds_sel1, aconds_sel2,
-    //                             bconds_sel1, bconds_sel2, i, NULL, a, b);
+    print_encoded_lemma_dbg (writes,
+                             aeqs,
+                             aconds_sel1,
+                             aconds_sel2,
+                             bconds_sel1,
+                             bconds_sel2,
+                             i,
+                             NULL,
+                             a,
+                             b);
   }
   else
   {
@@ -1811,8 +1795,16 @@ encode_lemma_new (Btor *btor,
 
     add_neq_exp_to_clause (btor, i, j, &linking_clause);
     btor->stats.lemmas_size_sum += 1; /* i != j */
-    //    print_encoded_lemma_dbg (writes, aeqs, aconds_sel1, aconds_sel2,
-    //                             bconds_sel1, bconds_sel2, i, j, a, b);
+    print_encoded_lemma_dbg (writes,
+                             aeqs,
+                             aconds_sel1,
+                             aconds_sel2,
+                             bconds_sel1,
+                             bconds_sel2,
+                             i,
+                             j,
+                             a,
+                             b);
   }
 
   add_eq_exp_to_clause (btor, a, b, &linking_clause);
@@ -6597,8 +6589,10 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         next = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (next));
         assert (BTOR_IS_READ_NODE (next));
-        assert (!next->simplified);
+        //            assert (!next->simplified);
+        // TODO: do we need special handling of simplified reads?
         if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
+          //                && !next->simplified)
           BTOR_PUSH_STACK (mm, param_read_stack, next);
       }
 
@@ -6624,6 +6618,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
             && lambda_value->e[0] == param_read->e[0]
             && lambda_value->e[1] == index)
         {
+          assert (!BTOR_IS_SYNTH_NODE (lambda_value));
           /* we search from lambda_exp down to param_read since acc was
            * propagated upwards from param_read to lambda_exp */
           next = 0;
@@ -6996,7 +6991,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
       assert (cur);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (!BTOR_IS_WRITE_NODE (cur));
-      assert (!BTOR_IS_LAMBDA_NODE (cur));
+      //      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
       if (cur->mark == 2) continue;
 
@@ -7207,7 +7202,7 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, unmark_stack;
   BtorCharPtrStack arg_stack;
-  BtorNode *cur, *real_cur;
+  BtorNode *cur, *real_cur, *tmp;
 
   mm = btor->mm;
 
@@ -7235,11 +7230,15 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
             (param_assignment && !(((BtorParamNode *) real_cur)->assigned_exp))
             || (!param_assignment
                 && (((BtorParamNode *) real_cur)->assigned_exp)));
+
         if (param_assignment)
-          BTOR_PUSH_STACK (mm, work_stack, param_assignment);
+          tmp = param_assignment;
         else
-          BTOR_PUSH_STACK (
-              mm, work_stack, ((BtorParamNode *) real_cur)->assigned_exp);
+          tmp = ((BtorParamNode *) real_cur)->assigned_exp;
+
+        if (BTOR_IS_INVERTED_NODE (cur)) tmp = BTOR_INVERT_NODE (tmp);
+
+        BTOR_PUSH_STACK (mm, work_stack, tmp);
       }
       else
       {
@@ -7320,6 +7319,7 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
         inv_result = btor_not_const (mm, result);
         btor_freestr (mm, (char *) result);
         result = inv_result;
+        DBG_P ("invert: ", real_cur);
       }
 
       BTOR_PUSH_STACK (mm, arg_stack, (char *) result);
@@ -7386,8 +7386,14 @@ beta_reduce (Btor *btor,
       if (BTOR_IS_PARAM_NODE (real_cur))
       {
         assert (((BtorParamNode *) real_cur)->assigned_exp);
-        BTOR_PUSH_STACK (
-            mm, work_stack, ((BtorParamNode *) real_cur)->assigned_exp);
+        if (BTOR_IS_INVERTED_NODE (cur))
+          BTOR_PUSH_STACK (
+              mm,
+              work_stack,
+              BTOR_INVERT_NODE (((BtorParamNode *) real_cur)->assigned_exp));
+        else
+          BTOR_PUSH_STACK (
+              mm, work_stack, ((BtorParamNode *) real_cur)->assigned_exp);
       }
       else
       {
@@ -7517,6 +7523,7 @@ beta_reduce (Btor *btor,
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
+  DBG_P ("beta reduced: ", exp);
   DBG_P (
       "beta_reduce result (%d): ", result, BTOR_REAL_ADDR_NODE (result)->refs);
 
@@ -7764,6 +7771,9 @@ process_working_stack (Btor *btor,
             assert (!next->simplified);
             BTOR_PUSH_STACK (mm, *stack, acc);
             BTOR_PUSH_STACK (mm, *stack, next);
+            DBG_P ("aeq exp prop.:\n", 0);
+            DBG_P ("  array: ", next);
+            DBG_P ("  acc: ", acc);
           }
         }
       }
