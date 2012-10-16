@@ -258,7 +258,7 @@ typedef struct BtorSMT2Parser
   BtorMemMgr *mem;
   int verbosity, incremental, model, need_arrays;
   char *name;
-  BtorSMT2Coo coo, perrcoo;
+  BtorSMT2Coo coo, nextcoo, perrcoo;
   FILE *file;
   int saved;
   char savedch;
@@ -363,13 +363,13 @@ btor_nextch_smt2 (BtorSMT2Parser *parser)
     res = getc (parser->file);
   if (res == '\n')
   {
-    parser->coo.x++;
-    assert (parser->coo.x > 0);
-    parser->last_end_of_line_ycoo = parser->coo.y;
-    parser->coo.y                 = 0;
+    parser->nextcoo.x++;
+    assert (parser->nextcoo.x > 0);
+    parser->last_end_of_line_ycoo = parser->nextcoo.y;
+    parser->nextcoo.y             = 1;
   }
   else
-    parser->coo.y++, assert (parser->coo.y > 0);
+    parser->nextcoo.y++, assert (parser->nextcoo.y > 0);
   return res;
 }
 
@@ -379,10 +379,17 @@ btor_savech_smt2 (BtorSMT2Parser *parser, char ch)
   assert (!parser->saved);
   parser->saved   = 1;
   parser->savedch = ch;
-  if (ch != '\n') return;
-  assert (parser->coo.x > 1);
-  parser->coo.x--;
-  parser->coo.y = parser->last_end_of_line_ycoo;
+  if (ch == '\n')
+  {
+    assert (parser->coo.x > 1);
+    parser->nextcoo.x--;
+    parser->nextcoo.y = parser->last_end_of_line_ycoo;
+  }
+  else
+  {
+    assert (parser->nextcoo.y > 1);
+    parser->nextcoo.y--;
+  }
 }
 
 static void
@@ -779,6 +786,7 @@ btor_read_token_aux_smt2 (BtorSMT2Parser *parser)
 RESTART:
   do
   {
+    parser->coo = parser->nextcoo;
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
     {
       assert (EOF < 0);
@@ -1030,7 +1038,7 @@ btor_read_token_smt2 (BtorSMT2Parser *parser)
   int res = btor_read_token_aux_smt2 (parser);
   if (parser->verbosity >= 4)
   {
-    printf ("[btorsmt2] line %d column %d token %08x %s\n",
+    printf ("[btorsmt2] line %-8d column %-4d token %08x %s\n",
             parser->coo.x,
             parser->coo.y,
             res,
@@ -2660,14 +2668,14 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
                         const char *name,
                         BtorParseResult *res)
 {
-  double start    = btor_time_stamp (), delta;
-  parser->name    = btor_strdup (parser->mem, name);
-  parser->nprefix = 0;
-  parser->prefix  = prefix;
-  parser->coo.x   = 1;
-  parser->coo.y   = 1;
-  parser->file    = file;
-  parser->saved   = 0;
+  double start      = btor_time_stamp (), delta;
+  parser->name      = btor_strdup (parser->mem, name);
+  parser->nprefix   = 0;
+  parser->prefix    = prefix;
+  parser->nextcoo.x = 1;
+  parser->nextcoo.y = 1;
+  parser->file      = file;
+  parser->saved     = 0;
   BTOR_CLR (res);
   parser->res = res;
   while (btor_read_command_smt2 (parser))
