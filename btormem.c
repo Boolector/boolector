@@ -157,7 +157,7 @@ btor_delete_mem_mgr (BtorMemMgr *mm)
 size_t
 btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
 {
-  size_t bytes = strlen (name) + 20; /* care for ':: \0' and lineno */
+  size_t bytes = strlen (name) + 30; /* care for ':: \0' and lineno */
   const char *p;
 
   for (p = fmt; *p; p++)
@@ -193,6 +193,7 @@ char *
 btor_parse_error_message (BtorMemMgr *mem,
                           const char *name,
                           int lineno,
+                          int columno,
                           const char *fmt,
                           va_list ap,
                           size_t bytes)
@@ -201,7 +202,10 @@ btor_parse_error_message (BtorMemMgr *mem,
   char *tmp;
 
   tmp = btor_malloc (mem, bytes);
-  sprintf (tmp, "%s:%d: ", name, lineno);
+  if (columno > 0)
+    sprintf (tmp, "%s:%d:%d: ", name, lineno, columno);
+  else
+    sprintf (tmp, "%s:%d: ", name, lineno);
   assert (strlen (tmp) + 1 < bytes);
   vsprintf (tmp + strlen (tmp), fmt, ap);
   res = btor_strdup (mem, tmp);

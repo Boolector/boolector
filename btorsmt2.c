@@ -293,6 +293,7 @@ btor_perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
         parser->mem,
         parser->name,
         (parser->perrlineno ? parser->perrlineno : parser->lineno),
+        -1,
         fmt,
         ap,
         bytes);
