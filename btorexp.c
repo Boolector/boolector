@@ -6610,15 +6610,14 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         lambda_value = apply_beta_reduction (btor, lambda_exp, index);
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
-        /* if the instantiated lambda expression returns 'lambda_read' as
-           value, we propagated 'acc' up to 'lambda_exp' as the element
-           on the read index of 'cur' is not overwritten by
-           'lambda_exp'. */
+        /* if the lambda expression is reduced to an unsynthesized read,
+           we propagated 'acc' up to 'lambda_exp' since the element on
+           cur[index] is not overwritten by 'lambda_exp' */
         if (BTOR_IS_READ_NODE (lambda_value)
-            && lambda_value->e[0] == param_read->e[0]
-            && lambda_value->e[1] == index)
+            && !BTOR_IS_SYNTH_NODE (lambda_value))
         {
-          assert (!BTOR_IS_SYNTH_NODE (lambda_value));
+          assert (lambda_value->e[0] == param_read->e[0]);
+          assert (lambda_value->e[1] == index);
           /* we search from lambda_exp down to param_read since acc was
            * propagated upwards from param_read to lambda_exp */
           next = 0;
@@ -6630,7 +6629,6 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 
           cur->mark          = 1;
           param_read->parent = cur;
-          //              cur->parent = param_read; //lambda_value;
           BTOR_ENQUEUE (mm, queue, lambda_exp);
           BTOR_PUSH_STACK (mm, unmark_stack, cur);
           BTOR_PUSH_STACK (
@@ -7699,19 +7697,8 @@ process_working_stack (Btor *btor,
       //       btor_free_bv_assignment_exp (btor, a);
 
       /* propagate down  */
-      // FIXME: we assume that the reduced value is the instantiated read if
-      //        the indices are equal - we need the param read to check
-      //        maybe we should check if returned read is synthesized
-      //          -> if yes, given read was no param read
-      //          -> if no, given read was created in beta_reduce which can
-      //             be the case if it was instantiated
       if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
-          //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index
-          && !BTOR_IS_SYNTH_NODE (lambda_value))
-      //        if (BTOR_IS_READ_NODE (lambda_value)
-      //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[0] ==
-      //            param_read->e[0]
-      //            && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index)
+          && !BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (lambda_value)))
       {
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
         assert (lambda_value->e[1] == index);
