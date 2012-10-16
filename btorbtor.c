@@ -131,7 +131,7 @@ btor_perr_btor (BtorBTORParser *parser, const char *fmt, ...)
 
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, fmt, ap, bytes);
+        parser->mem, parser->name, parser->lineno, 0, fmt, ap, bytes);
     va_end (ap);
   }
 
