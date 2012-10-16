@@ -157,7 +157,12 @@ btor_delete_mem_mgr (BtorMemMgr *mm)
 size_t
 btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
 {
-  size_t bytes = strlen (name) + 30; /* care for ':: \0' and lineno */
+  /* Additional characters for:
+
+  "<name>:<lineno>:[<columno>:] "
+
+  */
+  size_t bytes = strlen (name) + 25;
   const char *p;
 
   for (p = fmt; *p; p++)
