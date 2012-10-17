@@ -1,5 +1,6 @@
-news for release 1.5.120 since 1.5.119
+news for release 1.5.1XX since 1.5.119
 --------------------------------------
+* improved quality of SMT2 parse error messages
 * added missing semantic checks in SMT2 parser
 
 news for release 1.5.119 since 1.5.118
