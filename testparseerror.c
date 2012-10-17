@@ -204,9 +204,9 @@ run_parseerror_tests (int argc, char **argv)
     base       = strdup (name);
     if (!(dotptr = strchr (base, '.'))) continue;
     *dotptr = 0;
-    if (hasprefix (name, "parseerror") && hassuffix (name, ".smt"))
+    if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
       run_test_case (argc, argv, 0, run_parse_error_smt_test, base, 1);
-    else if (hasprefix (name, "perr") && hassuffix (name, ".smt2"))
+    else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
       run_test_case (argc, argv, 0, run_parse_error_smt2_test, base, 1);
     free (base);
   }
