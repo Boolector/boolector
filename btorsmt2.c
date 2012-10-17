@@ -338,25 +338,75 @@ btor_perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
   return parser->error;
 }
 
+static void
+btor_savech_smt2 (BtorSMT2Parser *parser, char ch)
+{
+  assert (!parser->saved);
+  parser->saved   = 1;
+  parser->savedch = ch;
+  if (ch == '\n')
+  {
+    assert (parser->nextcoo.x > 1);
+    parser->nextcoo.x--;
+    parser->nextcoo.y = parser->last_end_of_line_ycoo;
+  }
+  else
+  {
+    assert (parser->nextcoo.y > 1);
+    parser->nextcoo.y--;
+  }
+}
+
 static char *
 btor_cerr_smt2 (BtorSMT2Parser *parser, const char *p, char ch, const char *s)
 {
-  const char *d;
+  const char *d, *n;
 
-  if (isprint (ch))
+  if (!parser->saved) btor_savech_smt2 (parser, ch);
+  parser->perrcoo = parser->nextcoo;
+
+  if (ch == EOF)
+    return btor_perr_smt2 (
+        parser, "%s end-of-file%s%s", p, (s ? " " : ""), (s ? s : ""));
+  if (isprint (ch) && ch != '\\')
     return btor_perr_smt2 (
         parser, "%s character '%c'%s%s", p, ch, (s ? " " : ""), (s ? s : ""));
 
   switch (ch)
   {
-    case '\n': d = "\\n"; break;
-    case '\t': d = "\\t"; break;
-    case '\r': d = "\\r"; break;
-    default: d = 0; break;
+    case '\\':
+      n = "backslash ";
+      d = "\\\\";
+      break;
+    case '\n':
+      n = "new line ";
+      d = "\\n";
+      break;
+    case '\t':
+      n = "horizontal tabulator ";
+      d = "\\t";
+      break;
+    case '\r':
+      n = "carriage return ";
+      d = "\\r";
+      break;
+    default:
+      n = "";
+      d = 0;
+      break;
   }
+
   if (d)
-    return btor_perr_smt2 (
-        parser, "%s character '%s'%s%s", p, d, (s ? " " : ""), (s ? s : ""));
+  {
+    assert (n);
+    return btor_perr_smt2 (parser,
+                           "%s %scharacter '%s'%s%s",
+                           p,
+                           n,
+                           d,
+                           (s ? " " : ""),
+                           (s ? s : ""));
+  }
 
   return btor_perr_smt2 (parser,
                          "%s (non-printable) character (code %d)%s%s",
@@ -418,25 +468,6 @@ btor_nextch_smt2 (BtorSMT2Parser *parser)
   else
     parser->nextcoo.y++, assert (parser->nextcoo.y > 0);
   return res;
-}
-
-static void
-btor_savech_smt2 (BtorSMT2Parser *parser, char ch)
-{
-  assert (!parser->saved);
-  parser->saved   = 1;
-  parser->savedch = ch;
-  if (ch == '\n')
-  {
-    assert (parser->nextcoo.x > 1);
-    parser->nextcoo.x--;
-    parser->nextcoo.y = parser->last_end_of_line_ycoo;
-  }
-  else
-  {
-    assert (parser->nextcoo.y > 1);
-    parser->nextcoo.y--;
-  }
 }
 
 static void
@@ -941,8 +972,7 @@ RESTART:
     for (;;)
     {
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
-        return !btor_perr_smt2 (parser,
-                                "unexpected end-of-file in quoted symbol");
+        return !btor_cerr_smt2 (parser, "unexpected", ch, "in quoted symbol");
       if (ch == '|')
       {
         btor_pushch_smt2 (parser, '|');
@@ -967,7 +997,7 @@ RESTART:
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
       return !btor_perr_smt2 (parser, "unexpected end-of-file after ':'");
     if (!(btor_cc_smt2 (parser, ch) & BTOR_KEYWORD_CHAR_CLASS_SMT2))
-      return !btor_cerr_smt2 (parser, "unexpected", ch, " after ':'");
+      return !btor_cerr_smt2 (parser, "unexpected", ch, "after ':'");
     btor_pushch_smt2 (parser, ch);
     while ((btor_cc_smt2 (parser, ch = btor_nextch_smt2 (parser))
             & BTOR_KEYWORD_CHAR_CLASS_SMT2))
