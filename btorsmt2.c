@@ -2520,7 +2520,8 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
   fun->coo = parser->coo;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
   if (!btor_read_rpar_smt2 (parser,
-                            " since only constants are supported after '('"))
+                            " (only constants and no uninterpreted functions "
+                            "are supported) after '('"))
     return 0;
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
