@@ -280,7 +280,7 @@ typedef struct BtorSMT2Parser
   BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
   FILE *file;
   int saved;
-  char savedch;
+  int savedch;
   int last_end_of_line_ycoo;
   BtorSMT2Node *last_node;
   int nprefix;
@@ -358,7 +358,7 @@ btor_savech_smt2 (BtorSMT2Parser *parser, char ch)
 }
 
 static char *
-btor_cerr_smt2 (BtorSMT2Parser *parser, const char *p, char ch, const char *s)
+btor_cerr_smt2 (BtorSMT2Parser *parser, const char *p, int ch, const char *s)
 {
   const char *d, *n;
 
@@ -375,38 +375,30 @@ btor_cerr_smt2 (BtorSMT2Parser *parser, const char *p, char ch, const char *s)
   switch (ch)
   {
     case '\\':
-      n = "backslash ";
+      n = "backslash";
       d = "\\\\";
       break;
     case '\n':
-      n = "new line ";
+      n = "new line";
       d = "\\n";
       break;
     case '\t':
-      n = "horizontal tabulator ";
+      n = "horizontal tabulator";
       d = "\\t";
       break;
     case '\r':
-      n = "carriage return ";
+      n = "carriage return";
       d = "\\r";
       break;
     default:
-      n = "";
+      n = "character";
       d = 0;
       break;
   }
 
   if (d)
-  {
-    assert (n);
-    return btor_perr_smt2 (parser,
-                           "%s %scharacter '%s'%s%s",
-                           p,
-                           n,
-                           d,
-                           (s ? " " : ""),
-                           (s ? s : ""));
-  }
+    return btor_perr_smt2 (
+        parser, "%s %s '%s'%s%s", p, n, d, (s ? " " : ""), (s ? s : ""));
 
   return btor_perr_smt2 (parser,
                          "%s (non-printable) character (code %d)%s%s",
@@ -947,7 +939,7 @@ RESTART:
     for (;;)
     {
       if ((ch = btor_nextch_smt2 (parser)) == EOF)
-        return !btor_perr_smt2 (parser, "unexpected end-of-file in string");
+        return !btor_cerr_smt2 (parser, "unexpected", ch, "in string");
       if (ch == '"')
       {
         btor_pushch_smt2 (parser, '"');
@@ -956,13 +948,15 @@ RESTART:
       }
       if (ch == '\\')
       {
-        if ((ch = btor_nextch_smt2 (parser)) == EOF)
-          return !btor_perr_smt2 (parser, "unexpected end-of-file after '\\'");
-        if (ch != '"' && ch != '\\')
-          return !btor_perr_smt2 (parser, "expected '\"' or '\\' after '\\'");
+        if ((ch = btor_nextch_smt2 (parser)) != '"' && ch != '\\')
+          return !btor_cerr_smt2 (
+              parser, "unexpected", ch, "after backslash '\\\\' in string");
       }
       else if (!(btor_cc_smt2 (parser, ch) & BTOR_STRING_CHAR_CLASS_SMT2))
+      {
+        // TODO unreachable?
         return !btor_cerr_smt2 (parser, "invalid", ch, "in string");
+      }
       btor_pushch_smt2 (parser, ch);
     }
   }
@@ -2525,12 +2519,14 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
                             fun->coo.y);
   fun->coo = parser->coo;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
-  if (!btor_read_rpar_smt2 (parser, " after '('")) return 0;
+  if (!btor_read_rpar_smt2 (parser,
+                            " since only constants are supported after '('"))
+    return 0;
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_INVALID_TAG_SMT2) return 0;
   if (tag == EOF)
     return !btor_perr_smt2 (parser,
-                            "reached end-of-file expecting '(' or 'Bool'");
+                            "reached end-of-file but expected '(' or 'Bool'");
   if (tag == BTOR_BOOL_TAG_SMT2)
   {
     width = 1;
@@ -2564,7 +2560,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
       return !btor_perr_smt2 (parser, "'Array' invalid for logic 'QF_BV'");
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &domain)) return 0;
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
-    if (!btor_read_rpar_smt2 (parser, " after element sort")) return 0;
+    if (!btor_read_rpar_smt2 (parser, " after element sort of Array")) return 0;
     fun->exp = btor_array_exp (parser->btor, width, domain, fun->name);
     btor_msg_smt2 (parser,
                    2,
@@ -2582,7 +2578,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
         parser, "expected '_' or 'Array' at '%s'", parser->token.start);
   (void) btor_copy_exp (parser->btor, fun->exp);
   BTOR_PUSH_STACK (parser->mem, parser->inputs, fun->exp);
-  return btor_read_rpar_smt2 (parser, " for closing declaration");
+  return btor_read_rpar_smt2 (parser, " to close declaration");
 }
 
 static int
