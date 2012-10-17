@@ -35,6 +35,7 @@ init_parseerror_tests (void)
 {
 }
 
+#if 0
 static void
 parseerror_test (const char *fname, int btor)
 {
@@ -42,28 +43,28 @@ parseerror_test (const char *fname, int btor)
   size_t len, suffix_len;
   int ret_val;
 
-  len = strlen (fname);
+  len = strlen(fname);
   if (btor)
-  {
-    suffix     = ".btor";
-    suffix_len = 5;
-  }
+    {
+      suffix = ".btor";
+      suffix_len = 5;
+    }
   else
-  {
-    suffix     = ".smt";
-    suffix_len = 4;
-  }
+    {
+      suffix = ".smt";
+      suffix_len = 4;
+    }
 
-  btor_fname = (char *) malloc (sizeof (char) * (len + suffix_len + 1));
+  btor_fname = (char * ) malloc (sizeof (char) * (len + suffix_len + 1));
   sprintf (btor_fname, "%s%s", fname, suffix);
-  syscall_string = (char *) malloc (
-      sizeof (char)
-      * (strlen ("boolector log/") + len + 6 + strlen (" > /dev/null") + 1));
-
+  syscall_string = (char *) malloc (sizeof (char) * 
+                   (strlen ("boolector log/") + len + 6 +
+		    strlen(" > /dev/null") + 1));
+	
   sprintf (syscall_string, "boolector log/%s > /dev/null", btor_fname);
   ret_val = system (syscall_string);
-  assert (WEXITSTATUS (ret_val) == 1);
-
+  assert (WEXITSTATUS(ret_val) == 1);
+  
   free (syscall_string);
   free (btor_fname);
 }
@@ -98,6 +99,7 @@ test_parseerror5 ()
   parseerror_test ("parseerror5", 0);
 }
 
+
 void
 run_parseerror_tests (int argc, char **argv)
 {
@@ -107,6 +109,108 @@ run_parseerror_tests (int argc, char **argv)
   BTOR_RUN_TEST (parseerror4);
   BTOR_RUN_TEST (parseerror5);
 }
+
+#else
+
+#include "btormain.h"
+
+#include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+static int
+file_exists (const char *path)
+{
+  struct stat buf;
+  return !stat (path, &buf);
+}
+
+static void
+run_parse_error_smt_test (const char *name)
+{
+  char *base   = strdup (name);
+  char *dotptr = strchr (base, '.');
+  char *inpath, *logpath;
+  char *argv[4];
+  int res;
+  assert (dotptr);
+  *dotptr = 0;
+  inpath  = malloc (strlen (name) + 20);
+  logpath = malloc (strlen (name) + 20);
+  sprintf (inpath, "log/%s.smt", base);
+  assert (file_exists (inpath));
+  sprintf (logpath, "log/%s.log", base);
+  argv[0] = "test_parse_error_smt_test";
+  argv[1] = inpath;
+  argv[2] = "-o";
+  argv[3] = logpath;
+  res     = boolector_main (4, argv);
+  if (res != 1)
+  {
+    FILE *file = fopen (logpath, "a");
+    fprintf (file, "test_parse_error_smt_test: exit code %d != 1\n", res);
+    fclose (file);
+  }
+  free (inpath);
+  free (logpath);
+  free (base);
+}
+
+static void
+run_parse_error_smt2_test (const char *name)
+{
+  char *base   = strdup (name);
+  char *dotptr = strchr (base, '.');
+  char *inpath, *logpath;
+  char *argv[4];
+  int res;
+  assert (dotptr);
+  *dotptr = 0;
+  inpath  = malloc (strlen (name) + 20);
+  logpath = malloc (strlen (name) + 20);
+  sprintf (inpath, "log/%s.smt", base);
+  assert (file_exists (inpath));
+  sprintf (logpath, "log/%s.log", base);
+  argv[0] = "test_parse_error_smt2_test";
+  argv[1] = inpath;
+  argv[2] = "-o";
+  argv[3] = logpath;
+  res     = boolector_main (4, argv);
+  if (res != 1)
+  {
+    FILE *file = fopen (logpath, "a");
+    fprintf (file, "test_parse_error_smt2_test: exit code %d != 1\n", res);
+    fclose (file);
+  }
+  free (inpath);
+  free (logpath);
+  free (base);
+}
+
+static int
+hasprefix (const char *str, const char *prefix)
+{
+  return !strncmp (str, prefix, strlen (prefix));
+}
+
+void
+run_parseerror_tests (int argc, char **argv)
+{
+  DIR *dir = opendir ("log/");
+  struct dirent *de;
+  while ((de = readdir (dir)))
+  {
+    char *name = de->d_name;
+    if (hasprefix (name, "parseerroor"))
+      run_test_case (argc, argv, run_parse_error_smt_test, name, 1);
+    else if (hasprefix (name, "perr"))
+      run_test_case (argc, argv, run_parse_error_smt2_test, name, 1);
+  }
+  closedir (dir);
+}
+
+#endif
 
 void
 finish_parseerror_tests (void)

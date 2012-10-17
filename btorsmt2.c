@@ -258,7 +258,7 @@ typedef struct BtorSMT2Parser
   BtorMemMgr *mem;
   int verbosity, incremental, model, need_arrays;
   char *name;
-  BtorSMT2Coo coo, nextcoo, perrcoo;
+  BtorSMT2Coo coo, lastcoo, nextcoo, perrcoo;
   FILE *file;
   int saved;
   char savedch;
@@ -1035,7 +1035,9 @@ RESTART:
 static int
 btor_read_token_smt2 (BtorSMT2Parser *parser)
 {
-  int res = btor_read_token_aux_smt2 (parser);
+  int res;
+  parser->lastcoo = parser->coo;
+  res             = btor_read_token_aux_smt2 (parser);
   if (parser->verbosity >= 4)
   {
     printf ("[btorsmt2] line %-8d column %-4d token %08x %s\n",
@@ -2559,7 +2561,10 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
         parser, "expected '(' at '%s'", parser->token.start);
   tag = btor_read_token_smt2 (parser);
   if (tag == EOF)
+  {
+    parser->perrcoo = parser->lastcoo;
     return !btor_perr_smt2 (parser, "unexpected end-of-file after '('");
+  }
   if (tag == BTOR_INVALID_TAG_SMT2)
   {
     assert (parser->error);
@@ -2573,13 +2578,16 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
     case BTOR_SET_LOGIC_TAG_SMT2:
       if (parser->commands.all)
         btor_msg_smt2 (parser,
-                       0,
+                       1,
                        "WARNING 'set-logic' not first command in '%s'",
                        parser->name);
       tag = btor_read_token_smt2 (parser);
       if (tag == EOF)
+      {
+        parser->perrcoo = parser->lastcoo;
         return !btor_perr_smt2 (parser,
                                 "unexpected end-of-file after 'set-logic'");
+      }
       if (tag == BTOR_INVALID_TAG_SMT2)
       {
         assert (parser->error);
@@ -2599,13 +2607,13 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       btor_msg_smt2 (parser, 2, "logic %s", parser->token.start);
       if (!btor_read_rpar_smt2 (parser, " after logic")) return 0;
       if (parser->commands.set_logic++)
-        btor_msg_smt2 (parser, 0, "WARNING additional 'set-logic' command");
+        btor_msg_smt2 (parser, 1, "WARNING additional 'set-logic' command");
       break;
 
     case BTOR_CHECK_SAT_TAG_SMT2:
       if (!btor_read_rpar_smt2 (parser, " after 'check-sat'")) return 0;
       if (parser->commands.check_sat++)
-        btor_msg_smt2 (parser, 0, "WARNING additional 'check-sat' command");
+        btor_msg_smt2 (parser, 1, "WARNING additional 'check-sat' command");
       break;
 
     case BTOR_DECLARE_FUN_TAG_SMT2:
@@ -2682,25 +2690,25 @@ btor_parse_smt2_parser (BtorSMT2Parser *parser,
     ;
   if (parser->error) return parser->error;
   if (!parser->commands.all)
-    btor_msg_smt2 (parser, 0, "WARNING no commands in in '%s'", parser->name);
+    btor_msg_smt2 (parser, 1, "WARNING no commands in '%s'", parser->name);
   else
   {
     if (!parser->commands.set_logic)
       btor_msg_smt2 (parser,
-                     0,
+                     1,
                      "WARNING 'set-logic' command missing in '%s'",
                      parser->name);
     if (!parser->commands.asserts)
       btor_msg_smt2 (
-          parser, 0, "WARNING no 'assert' command in '%s'", parser->name);
+          parser, 1, "WARNING no 'assert' command in '%s'", parser->name);
     if (!parser->commands.check_sat)
       btor_msg_smt2 (parser,
-                     0,
+                     1,
                      "WARNING 'check-sat' command missing in '%s'",
                      parser->name);
     if (!parser->commands.exits)
       btor_msg_smt2 (
-          parser, 0, "WARNING no 'exit' command at end of '%s'", parser->name);
+          parser, 1, "WARNING no 'exit' command at end of '%s'", parser->name);
   }
   parser->res->inputs   = parser->inputs.start;
   parser->res->outputs  = parser->outputs.start;
