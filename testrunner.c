@@ -233,8 +233,12 @@ match (const char *str, const char *pattern)
 }
 
 void
-run_test_case (
-    int argc, char **argv, void (*funcp) (), char *name, int check_log_file)
+run_test_case (int argc,
+               char **argv,
+               void (*fun_without_name) (),
+               void (*fun_with_name) (const char *name),
+               char *name,
+               int check_log_file)
 {
   int skip = 0, count;
   const char **p;
@@ -271,7 +275,8 @@ run_test_case (
     fflush (stdout);
     fflush (stdout); /* for assertions failures */
 
-    funcp ();
+    if (fun_without_name) fun_without_name ();
+    if (fun_with_name) fun_with_name (name);
 
     if (check_log_file) check_log (name);
   }

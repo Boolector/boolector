@@ -74,7 +74,7 @@ test_smtaxiom (BtorMemMgr* mem, int argc, char** argv, char* p, int i)
   sprintf (buffer, "log/%s.smt", name);
   BTOR_PUSH_STACK (mem, args, buffer);
 
-  run_test_case (argc, argv, test_args_unsat, name, 0);
+  run_test_case (argc, argv, test_args_unsat, 0, name, 0);
 
   BTOR_RESET_STACK (args);
 }

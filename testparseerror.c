@@ -129,18 +129,14 @@ file_exists (const char *path)
 static void
 run_parse_error_smt_test (const char *name)
 {
-  char *base   = strdup (name);
-  char *dotptr = strchr (base, '.');
   char *inpath, *logpath;
   char *argv[4];
   int res;
-  assert (dotptr);
-  *dotptr = 0;
   inpath  = malloc (strlen (name) + 20);
   logpath = malloc (strlen (name) + 20);
-  sprintf (inpath, "log/%s.smt", base);
+  sprintf (inpath, "log/%s.smt", name);
   assert (file_exists (inpath));
-  sprintf (logpath, "log/%s.log", base);
+  sprintf (logpath, "log/%s.log", name);
   argv[0] = "test_parse_error_smt_test";
   argv[1] = inpath;
   argv[2] = "-o";
@@ -154,24 +150,19 @@ run_parse_error_smt_test (const char *name)
   }
   free (inpath);
   free (logpath);
-  free (base);
 }
 
 static void
 run_parse_error_smt2_test (const char *name)
 {
-  char *base   = strdup (name);
-  char *dotptr = strchr (base, '.');
   char *inpath, *logpath;
   char *argv[4];
   int res;
-  assert (dotptr);
-  *dotptr = 0;
   inpath  = malloc (strlen (name) + 20);
   logpath = malloc (strlen (name) + 20);
-  sprintf (inpath, "log/%s.smt", base);
+  sprintf (inpath, "log/%s.smt2", name);
   assert (file_exists (inpath));
-  sprintf (logpath, "log/%s.log", base);
+  sprintf (logpath, "log/%s.log", name);
   argv[0] = "test_parse_error_smt2_test";
   argv[1] = inpath;
   argv[2] = "-o";
@@ -185,7 +176,6 @@ run_parse_error_smt2_test (const char *name)
   }
   free (inpath);
   free (logpath);
-  free (base);
 }
 
 static int
@@ -194,18 +184,31 @@ hasprefix (const char *str, const char *prefix)
   return !strncmp (str, prefix, strlen (prefix));
 }
 
+static int
+hassuffix (const char *str, const char *suffix)
+{
+  int difflen = strlen (str) - strlen (suffix);
+  if (difflen < 0) return 0;
+  return !strcmp (str + difflen, suffix);
+}
+
 void
 run_parseerror_tests (int argc, char **argv)
 {
   DIR *dir = opendir ("log/");
   struct dirent *de;
+  char *base;
   while ((de = readdir (dir)))
   {
-    char *name = de->d_name;
-    if (hasprefix (name, "parseerroor"))
-      run_test_case (argc, argv, run_parse_error_smt_test, name, 1);
-    else if (hasprefix (name, "perr"))
-      run_test_case (argc, argv, run_parse_error_smt2_test, name, 1);
+    char *name = de->d_name, *dotptr;
+    base       = strdup (name);
+    if (!(dotptr = strchr (base, '.'))) continue;
+    *dotptr = 0;
+    if (hasprefix (name, "parseerror") && hassuffix (name, ".smt"))
+      run_test_case (argc, argv, 0, run_parse_error_smt_test, base, 1);
+    else if (hasprefix (name, "perr") && hassuffix (name, ".smt2"))
+      run_test_case (argc, argv, 0, run_parse_error_smt2_test, base, 1);
+    free (base);
   }
   closedir (dir);
 }

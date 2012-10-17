@@ -701,10 +701,3 @@ regaddnorm2 -de -o log/regaddnorm2.log log/regaddnorm2.btor
 regnegadd1 -de -o log/regnegadd1.log log/regnegadd1.btor
 sc12fuzzcheck2 -o log/sc12fuzzcheck2.log log/sc12fuzzcheck2.smt2
 regmismatch -o log/regmismatch.log log/regmismatch.smt2
-perr000 -o log/perr000.log log/perr000.smt2
-perr001 -o log/perr001.log log/perr001.smt2
-perr002 -o log/perr002.log log/perr002.smt2
-perr003 -o log/perr003.log log/perr003.smt2
-perr004 -o log/perr004.log log/perr004.smt2
-perr005 -o log/perr005.log log/perr005.smt2
-perr006 -o log/perr006.log log/perr006.smt2

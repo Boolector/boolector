@@ -1028,7 +1028,7 @@ RESTART:
   else
     return !btor_perr_smt2 (parser, "unexpected character code %d", ch);
 
-  // should be dead code ...
+  // TODO should be dead code ...?
   return !btor_perr_smt2 (parser, "internal token reading error");
 }
 
