@@ -338,6 +338,34 @@ btor_perr_smt2 (BtorSMT2Parser *parser, const char *fmt, ...)
   return parser->error;
 }
 
+static char *
+btor_cerr_smt2 (BtorSMT2Parser *parser, const char *p, char ch, const char *s)
+{
+  const char *d;
+
+  if (isprint (ch))
+    return btor_perr_smt2 (
+        parser, "%s character '%c'%s%s", p, ch, (s ? " " : ""), (s ? s : ""));
+
+  switch (ch)
+  {
+    case '\n': d = "\\n"; break;
+    case '\t': d = "\\t"; break;
+    case '\r': d = "\\r"; break;
+    default: d = 0; break;
+  }
+  if (d)
+    return btor_perr_smt2 (
+        parser, "%s character '%s'%s%s", p, d, (s ? " " : ""), (s ? s : ""));
+
+  return btor_perr_smt2 (parser,
+                         "%s (non-printable) character (code %d)%s%s",
+                         p,
+                         ch,
+                         (s ? " " : ""),
+                         (s ? s : ""));
+}
+
 static unsigned btor_primes_smt2[] = {
     1000000007u, 2000000011u, 3000000019u, 4000000007u};
 
@@ -903,8 +931,7 @@ RESTART:
           return !btor_perr_smt2 (parser, "expected '\"' or '\\' after '\\'");
       }
       else if (!(btor_cc_smt2 (parser, ch) & BTOR_STRING_CHAR_CLASS_SMT2))
-        return !btor_perr_smt2 (
-            parser, "invalid character code %d in string", ch);
+        return !btor_cerr_smt2 (parser, "invalid", ch, "in string");
       btor_pushch_smt2 (parser, ch);
     }
   }
@@ -930,8 +957,7 @@ RESTART:
         return BTOR_SYMBOL_TAG_SMT2;
       }
       if (!(btor_cc_smt2 (parser, ch) & BTOR_QUOTED_SYMBOL_CHAR_CLASS_SMT2))
-        return !btor_perr_smt2 (
-            parser, "invalid character code %d in quoted symbol", ch);
+        return !btor_cerr_smt2 (parser, "invalid", ch, "in quoted symbol");
       btor_pushch_smt2 (parser, ch);
     }
   }
@@ -941,8 +967,7 @@ RESTART:
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
       return !btor_perr_smt2 (parser, "unexpected end-of-file after ':'");
     if (!(btor_cc_smt2 (parser, ch) & BTOR_KEYWORD_CHAR_CLASS_SMT2))
-      return !btor_perr_smt2 (
-          parser, "unexpected character code %d after ':'", ch);
+      return !btor_cerr_smt2 (parser, "unexpected", ch, " after ':'");
     btor_pushch_smt2 (parser, ch);
     while ((btor_cc_smt2 (parser, ch = btor_nextch_smt2 (parser))
             & BTOR_KEYWORD_CHAR_CLASS_SMT2))
@@ -1045,7 +1070,7 @@ RESTART:
     return node->tag;
   }
   else
-    return !btor_perr_smt2 (parser, "unexpected character code %d", ch);
+    return !btor_cerr_smt2 (parser, "illegal", ch, 0);
 
   // TODO should be dead code ...?
   return !btor_perr_smt2 (parser, "internal token reading error");
