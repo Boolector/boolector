@@ -1707,19 +1707,28 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_NOT_TAG_SMT2)
       {
         if (nargs != 1)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
               "'not' with %d arguments but expected exactly one",
               nargs);
+        }
         tmp = p[1].exp;
         if (btor_is_array_exp (parser->btor, tmp))
+        {
+          parser->perrcoo = p[1].coo;
           return !btor_perr_smt2 (
               parser, "unexpected array expression as argument to 'not'");
+        }
         if ((width = btor_get_exp_len (parser->btor, tmp)) != 1)
+        {
+          parser->perrcoo = p[1].coo;
           return !btor_perr_smt2 (
               parser,
               "unexpected bit-vector of width %d as argument to 'not'",
               width);
+        }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
         l->exp           = btor_not_exp (parser->btor, tmp);
