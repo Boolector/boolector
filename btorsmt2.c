@@ -1735,7 +1735,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         btor_release_exp (parser->btor, tmp);
       }
       else if (tag == BTOR_IMPLIES_TAG_SMT2)
-      {
+      {  // TODO perr from here!
         if (!nargs)
           return !btor_perr_smt2 (
               parser, "argument to '%s' missing", p->node->name);
