@@ -449,7 +449,7 @@ struct Btor
 
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
-// TODO: lambda handling here is a temporary measure in order to make
+// FIXME lambda handling here is a temporary measure in order to make
 // extensionality for writes rewritten as lambdas work again
 // -> will have to do this properly for the general case
 #define BTOR_IS_ACC_NODE(exp)                          \

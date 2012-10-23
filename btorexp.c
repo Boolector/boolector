@@ -8177,7 +8177,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
           assert (BTOR_IS_REGULAR_NODE (cur_parent));
           BTOR_PUSH_STACK (mm, array_stack, cur_parent->e[0]);
         }
-        // TODO: this is a temporary measure in order to make
+        // FIXME this is a temporary measure in order to make
         // extensionality for writes rewritten as lambdas work again
         // -> will have to do this properly for the general case
         if (propagate_writes_as_reads)
