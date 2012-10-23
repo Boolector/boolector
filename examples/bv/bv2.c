@@ -16,8 +16,8 @@ int
 main (void)
 {
   Btor *btor;
-  BtorExp *v1, *v2, *add, *zero, *vars_sgt_zero, *impl;
-  BtorExp *v1_sgt_zero, *v2_sgt_zero, *add_sgt_zero, *formula;
+  BtorNode *v1, *v2, *add, *zero, *vars_sgt_zero, *impl;
+  BtorNode *v1_sgt_zero, *v2_sgt_zero, *add_sgt_zero, *formula;
   char *assignments[10];
   int result, i;
 

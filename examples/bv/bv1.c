@@ -18,7 +18,7 @@ int
 main (void)
 {
   Btor *btor;
-  BtorExp *x, *y, *temp, *old_x, *old_y, *eq1, *eq2, *and, *formula;
+  BtorNode *x, *y, *temp, *old_x, *old_y, *eq1, *eq2, *and, *formula;
   int result;
 
   btor = boolector_new ();

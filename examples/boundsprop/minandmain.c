@@ -10,9 +10,10 @@ main (int argc, char **argv)
 {
   int num_bits;
   Btor *btor;
-  BtorExp *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
-  BtorExp *result, *one, *x_and_y;
-  BtorExp *premisse, *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y, *concl;
+  BtorNode *formula, *zero_num_bits_m_1, *tmp, *a, *b, *c, *d, *m;
+  BtorNode *result, *one, *x_and_y;
+  BtorNode *premisse, *a_ulte_x, *x_ulte_b, *c_ulte_y, *y_ulte_d, *x, *y,
+      *concl;
 
   if (argc != 2)
   {

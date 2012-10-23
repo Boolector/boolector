@@ -1,7 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-
-all: bubblesortmem.c ../../boolector.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o bubblesortmem bubblesortmem.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o bubblesortmem bubblesortmem.c $(LIBS)
 clean:
 	rm -f bubblesortmem

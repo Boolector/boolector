@@ -33,8 +33,6 @@
 
 #ifndef BTOR_USE_LINGELING
 #define BTOR_DO_NOT_PROCESS_SKELETON
-#else
-// #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
 /*------------------------------------------------------------------------*/
@@ -4973,7 +4971,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   for (i = 0; i < nroots; i++)
   {
     root = roots[i];
-    e    = BTOR_REAL_ADDR_NODE (root);
+    e = BTOR_REAL_ADDR_NODE (root);
     if (e->id > maxid) maxid = e->id;
   }
 
@@ -5382,6 +5380,53 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor->rewrite_level <= 3);
   assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->rewrite_level = rewrite_level;
+}
+
+int
+btor_set_sat_solver (Btor *btor, const char *solver)
+{
+  BtorAIGVecMgr *avmgr;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+
+  assert (btor);
+  assert (solver);
+
+  avmgr = btor->avmgr;
+  amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
+  smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+  if (!strcasecmp (solver, "lingeling"))
+#ifdef BTOR_USE_LINGELING
+  {
+    btor_enable_lingeling_sat (smgr, 0, 0);
+    return 1;
+  }
+#else
+    return 0;
+#endif
+
+#ifdef BTOR_USE_MINISAT
+  if (!strcasecmp (solver, "minisat"))
+  {
+    btor_enable_minisat_sat (smgr);
+    return 1;
+  }
+#else
+  return 0;
+#endif
+
+#ifdef BTOR_USE_PICOSAT
+  if (!strcasecmp (solver, "picosat"))
+  {
+    btor_enable_picosat_sat (smgr);
+    return 1;
+  }
+#else
+  return 0;
+#endif
+
+  return 0;
 }
 
 void
@@ -10367,16 +10412,19 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor)
 {
-  int rounds, skelrounds;
+  int rounds;
   double start, delta;
+#ifndef BTOR_DO_NOT_PROCESS_SKELETON
+  int skelrounds = 0;
+#endif
 
   assert (btor);
   if (btor->inconsistent) return;
 
   if (btor->rewrite_level <= 1) return;
 
-  skelrounds = rounds = 0;
-  start               = btor_time_stamp ();
+  rounds = 0;
+  start  = btor_time_stamp ();
 
   do
   {

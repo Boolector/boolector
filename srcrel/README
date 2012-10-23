@@ -8,41 +8,43 @@ Boolector is an efficient SMT solver for the quantifier-free theory of
 bit-vectors in combination with the quantifier-free extensional theory of
 arrays.
 
-For compilation please obtain the latest source code of PicoSAT from
+For compilation please obtain the latest source code of Lingeling from
   
-  http://fmv.jku.at/picosat
+  http://fmv.jku.at/lingeling
 
-Then extract from the archive the PicoSAT sources in the same directory
+Then extract from the archive the Lingeling sources in the same directory
 in which you extracted the Boolector sources.  Rename or link the
-PicoSAT source directory to 'picosat'.  Then compile PicoSAT.  For
-version 935 of PicoSAT this works as follows:
+Lingeling source directory to 'lingeling'.  Then compile Lingeling.
+
+  For the current version of Lingeling this works as follows
+  (replace <current> in the following by the actual version):
 
   cd <directory-where-you-extracted-boolector-sources>
-  wget http://fmv.jku.at/picosat/picosat-935.tar.gz
-  tar xf picosat-935.tar.gz
-  ln -s picosat-935 picosat
+  wget http://fmv.jku.at/lingeling/lingeling-<current>.tar.gz
+  tar xf lingeling-<current>.tar.gz
+  ln -s  lingeling-<current> lingeling
+  cd lingeling
+  ./configure
+  make
+
+In the same way you can optionally include the current PicoSAT:
+
+  cd <directory-where-you-extracted-boolector-sources>
+  wget http://fmv.jku.at/picosat/picosat-<current>.tar.gz
+  tar xf picosat-<current>.tar.gz
+  ln -s picosat-<current> picosat
   cd picosat
   ./configure -O           # this will improve performance
   make
 
-You may want to do the same with 'PrecoSAT', e.g. get the latest
-PrecoSAT sources from
-
-  http://fmv.jku.at/precosat
-
-extract the sources in the same directory, rename the PrecoSAT directory
-and compile.  For version 456 of PrecoSAT this works as follows:
+For additionally using MiniSAT as back-end do the following:
 
   cd <directory-where-you-extracted-boolector-sources>
-  wget http://fmv.jku.at/precosat/precosat-465r2-2ce82ba-100514.tar.gz
-  tar xf precosat-465r2-2ce82ba-100514.tar.gz
-  ln -s precosat-465r2-2ce82ba-100514 precosat
-  cd precosat
-  ./configure
+  git clone https://github.com/niklasso/minisat.git
+  cd minisat
   make
 
-Note, that PicoSAT is required in any case and PrecoSAT is optional, but
-it can give you substantial performance improvement for plain BV formulas.
+You need Lingeling, while PicoSAT and MiniSAT are optional.
 
 Then issue
 
@@ -54,14 +56,9 @@ or
   ./configure -precosat
   make
 
-if you want to use PrecoSAT.  Also note that PrecoSAT needs the
-development version of 'zlib'.  On Ubuntu you can install it with
-
-  sudo aptitude install zlib1g-dev
-
-Using PrecoSAT will force 'libboolector.a' to depend not only on
+Using MiniSAT will force 'libboolector.a' to depend not only on
 'libz.so' but also on 'libstdc++.so'.  Thus if you want to link
-'libboolector.a' with PrecoSAT backend against your own programs,
+'libboolector.a' with MiniSAT backend against your own programs,
 then you need to use '-lz -lstdc++' as linking options.
 
 This will produce the library 'libboolector.a' with its API
@@ -95,4 +92,4 @@ Armin Biere <biere@jku.at>.
 
 Robert Daniel Brummayer, Armin Biere,
 Johannes Kepler University.
-Linz, Austria, 2010.
+Linz, Austria, 2012.

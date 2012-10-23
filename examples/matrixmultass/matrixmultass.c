@@ -4,19 +4,19 @@
 #include "../../boolector.h"
 #include "../../btorutil.h"
 
-BtorExp **indices;
+BtorNode **indices;
 
-static BtorExp *
+static BtorNode *
 matrix_mult (Btor *btor,
-             BtorExp *m1,
-             BtorExp *m2,
+             BtorNode *m1,
+             BtorNode *m2,
              int size,
              int num_bits,
              int num_bits_index,
              const char *symbol)
 {
   int i, j, k;
-  BtorExp *temp, *result, *zero, *read1, *read2, *read3, *mult, *add;
+  BtorNode *temp, *result, *zero, *read1, *read2, *read3, *mult, *add;
   assert (btor != NULL);
   assert (m1 != NULL);
   assert (m2 != NULL);
@@ -62,7 +62,7 @@ main (int argc, char **argv)
 {
   int num_bits, num_bits_index, size, i, num_elements;
   Btor *btor;
-  BtorExp *A, *B, *C, *A_x_B, *B_x_C, *AB_x_C, *A_x_BC, *formula, *temp;
+  BtorNode *A, *B, *C, *A_x_B, *B_x_C, *AB_x_C, *A_x_BC, *formula, *temp;
   if (argc != 3)
   {
     printf ("Usage: ./matrixmultass <num-bits> <size>\n");
@@ -84,7 +84,7 @@ main (int argc, char **argv)
   num_bits_index = btor_log_2_util (btor_next_power_of_2_util (num_elements));
   btor           = boolector_new ();
   boolector_set_rewrite_level (btor, 0);
-  indices = (BtorExp **) malloc (sizeof (BtorExp *) * num_elements);
+  indices = (BtorNode **) malloc (sizeof (BtorNode *) * num_elements);
   for (i = 0; i < num_elements; i++)
     indices[i] = boolector_int (btor, i, num_bits_index);
   A      = boolector_array (btor, num_bits, num_bits_index, "A");

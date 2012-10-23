@@ -15,10 +15,10 @@ int
 main (int argc, char **argv)
 {
   Btor *btor;
-  BtorExp *one, *zero_num_bits_m_1, *a, *b, *c, *d, *m, *formula, *tmp;
-  BtorExp *not_a, *not_b, *not_c, *not_d, *min_and, *max_and, *min_or, *max_or;
-  BtorExp *min_and_1, *min_and_2, * or, *min_xor, *max_xor, *eq, *premisse;
-  BtorExp *a_ulte_b, *c_ulte_d, *max_and_1, *max_and_2, *zero;
+  BtorNode *one, *zero_num_bits_m_1, *a, *b, *c, *d, *m, *formula, *tmp;
+  BtorNode *not_a, *not_b, *not_c, *not_d, *min_and, *max_and, *min_or, *max_or;
+  BtorNode *min_and_1, *min_and_2, * or, *min_xor, *max_xor, *eq, *premisse;
+  BtorNode *a_ulte_b, *c_ulte_d, *max_and_1, *max_and_2, *zero;
   int theorem_number, num_bits;
   if (argc != 3)
   {

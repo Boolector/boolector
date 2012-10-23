@@ -332,46 +332,42 @@ btor_changed_sat (BtorSATMgr *smgr)
 static void *
 btor_picosat_init (BtorSATMgr *smgr)
 {
+  PicoSAT *res;
+
   btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
 
-  picosat_set_new (smgr->mm, (void *(*) (void *, size_t)) btor_sat_malloc);
-  picosat_set_delete (smgr->mm,
-                      (void (*) (void *, void *, size_t)) btor_sat_free);
-  picosat_set_resize (
-      smgr->mm, (void *(*) (void *, void *, size_t, size_t)) btor_sat_realloc);
+  res = picosat_minit (smgr->mm,
+                       (picosat_malloc) btor_sat_malloc,
+                       (picosat_realloc) btor_sat_realloc,
+                       (picosat_free) btor_sat_free);
 
-  picosat_init ();
-  picosat_set_global_default_phase (0);
+  picosat_set_global_default_phase (res, 0);
 
-  return 0;
+  return res;
 }
 
 static void
 btor_picosat_add (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  (void) picosat_add (lit);
+  (void) picosat_add (smgr->solver, lit);
 }
 
 static int
 btor_picosat_sat (BtorSATMgr *smgr, int limit)
 {
-  (void) smgr;
-  return picosat_sat (limit);
+  return picosat_sat (smgr->solver, limit);
 }
 
 static int
 btor_picosat_changed (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_changed ();
+  return picosat_changed (smgr->solver);
 }
 
 static int
 btor_picosat_deref (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  return picosat_deref (lit);
+  return picosat_deref (smgr->solver, lit);
 }
 
 static int
@@ -384,58 +380,51 @@ btor_picosat_repr (BtorSATMgr *smgr, int lit)
 static void
 btor_picosat_reset (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  picosat_reset ();
+  picosat_reset (smgr->solver);
+  smgr->solver = 0;
 }
 
 static void
 btor_picosat_set_output (BtorSATMgr *smgr, FILE *output)
 {
-  (void) smgr;
-  picosat_set_output (output);
+  picosat_set_output (smgr->solver, output);
 }
 
 static void
 btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 {
-  (void) smgr;
-  picosat_set_prefix (prefix);
+  picosat_set_prefix (smgr->solver, prefix);
 }
 
 static void
 btor_picosat_enable_verbosity (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  picosat_set_verbosity (1);
+  picosat_set_verbosity (smgr->solver, 1);
 }
 
 static int
 btor_picosat_inc_max_var (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_inc_max_var ();
+  return picosat_inc_max_var (smgr->solver);
 }
 
 static int
 btor_picosat_variables (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_variables ();
+  return picosat_variables (smgr->solver);
 }
 
 static void
 btor_picosat_stats (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  picosat_stats ();
+  picosat_stats (smgr->solver);
 }
 
 static int
 btor_picosat_fixed (BtorSATMgr *smgr, int lit)
 {
   int res;
-  (void) smgr;
-  res = picosat_deref_toplevel (lit);
+  res = picosat_deref_toplevel (smgr->solver, lit);
   return res;
 }
 
@@ -444,22 +433,19 @@ btor_picosat_fixed (BtorSATMgr *smgr, int lit)
 static void
 btor_picosat_assume (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  (void) picosat_assume (lit);
+  (void) picosat_assume (smgr->solver, lit);
 }
 
 static int
 btor_picosat_failed (BtorSATMgr *smgr, int lit)
 {
-  (void) smgr;
-  return picosat_failed_assumption (lit);
+  return picosat_failed_assumption (smgr->solver, lit);
 }
 
 static int
 btor_picosat_inconsistent (BtorSATMgr *smgr)
 {
-  (void) smgr;
-  return picosat_inconsistent ();
+  return picosat_inconsistent (smgr->solver);
 }
 
 /*------------------------------------------------------------------------*/
@@ -611,6 +597,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
+#define BTOR_LGL_SIMP_DELAY 2000
 #define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
 
@@ -652,6 +639,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   int res, bfres;
   char name[80];
 
+  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+
   if (!smgr->inc_required)
   {
     lglsetopt (lgl, "clim", -1);
@@ -670,10 +659,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   {
     btor_msg_sat (smgr, 1, "blimit = %d", blgl->blimit);
     lglsetopt (lgl, "clim", blgl->blimit);
-    if (smgr->inc_required) lglsetopt (lgl, "plain", 1);
     if (!(res = lglsat (lgl)))
     {
-      lglsetopt (lgl, "plain", 0);
       blgl->blimit *= 2;
       if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
@@ -689,6 +676,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         bforked = lglbrutefork (lgl, 0), str = "fork";
       lglsetopt (bforked, "seed", blgl->nforked);
       lglsetopt (bforked, "flipping", 1);
+      lglsetopt (bforked, "simpdelay", 0);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);

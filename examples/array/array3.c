@@ -9,7 +9,7 @@ int
 main ()
 {
   int sat_result;
-  BtorExp *array, *index1, *index2, *read1, *read2, *eq, *ne;
+  BtorNode *array, *index1, *index2, *read1, *read2, *eq, *ne;
   Btor *btor;
 
   btor = boolector_new ();

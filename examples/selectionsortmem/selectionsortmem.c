@@ -8,11 +8,11 @@ main (int argc, char **argv)
 {
   int num_elements, i, j;
   Btor *btor;
-  BtorExp *mem, *ne, *ugte, *ulte, *ult, *temp, *read1;
-  BtorExp *read2, *sorted, *pos, *pos_p_1, *min_index;
-  BtorExp *no_diff_element, *formula, *index, *old_element;
-  BtorExp *num_elements_exp, *start, *top, *one, *range_index;
-  BtorExp *implies, *i_pos, *j_pos, *cur_element, *min_element;
+  BtorNode *mem, *ne, *ugte, *ulte, *ult, *temp, *read1;
+  BtorNode *read2, *sorted, *pos, *pos_p_1, *min_index;
+  BtorNode *no_diff_element, *formula, *index, *old_element;
+  BtorNode *num_elements_exp, *start, *top, *one, *range_index;
+  BtorNode *implies, *i_pos, *j_pos, *cur_element, *min_element;
   if (argc != 2)
   {
     printf ("Usage: ./selectionsortmem <num-elements>\n");

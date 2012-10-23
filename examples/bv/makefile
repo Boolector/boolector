@@ -1,9 +1,6 @@
-LIBPATH=../..
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-
+include ../makefile.common
 all:
-	$(CC) $(CFLAGS)  bv1.c -L$(LIBPATH) -lboolector -o bv1
-	$(CC) $(CFLAGS)  bv2.c -L$(LIBPATH) -lboolector -o bv2
+	$(CC) $(CFLAGS)  bv1.c -o bv1 $(LIBS)
+	$(CC) $(CFLAGS)  bv2.c -o bv2 $(LIBS)
 clean:
 	rm -f bv1 bv2

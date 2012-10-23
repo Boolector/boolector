@@ -167,6 +167,16 @@ void boolector_enable_model_gen (Btor *btor);
 void boolector_enable_inc_usage (Btor *btor);
 
 /**
+ * Sets the SAT solver to use.
+ * Currently, we support 'Lingeling', 'PicoSAT', and 'MiniSAT' as string
+ * value of \para solver ignoring the case of characters.  This is however
+ * only possible if at compile time the corresponding solvers were enabled.
+ * The return value is non-zero if setting the SAT solver call was
+ * successful.  Call this function after \ref boolector_new.
+ */
+int boolector_set_sat_solver (Btor *btor, const char *solver);
+
+/**
  * Sets the rewrite level of the rewriting engine.
  * Boolector uses rewrite level 3 per default. Call this function
  * before creating any expressions.
@@ -986,6 +996,14 @@ int boolector_sat (Btor *btor);
 char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
 
 /**
+ * Frees an assignment string for bit-vectors.
+ * \param btor Boolector instance.
+ * \param assignment String which has to be freed.
+ * \see boolector_bv_assignment
+ */
+void boolector_free_bv_assignment (Btor *btor, char *assignment);
+
+/**
  * Builds a model for an array expression.
  * if \ref boolector_sat
  * has returned \ref BOOLECTOR_SAT and model generation has been enabled.
@@ -1010,12 +1028,16 @@ void boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size);
 
 /**
- * Frees an assignment string for bit-vectors.
+ * Frees an assignment string for arrays of bit-vectors.
  * \param btor Boolector instance.
- * \param assignment String which has to be freed.
- * \see boolector_bv_assignment
+ * \param indices Array of index strings of size
+ * \param array of index strings of size
+ * \param array of values strings of size
  * \see boolector_array_assignment
  */
-void boolector_free_bv_assignment (Btor *btor, char *assignment);
+void boolector_free_array_assignment (Btor *btor,
+                                      char **indices,
+                                      char **values,
+                                      int size);
 
 #endif

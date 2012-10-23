@@ -76,13 +76,14 @@ struct BtorMainApp
   int rewrite_level;
   int force_smt_input;
   int print_model;
+  const char *forced_sat_solver_name;
+  int forced_sat_solvers;
 #ifdef BTOR_USE_PICOSAT
   int force_picosat;
 #endif
 #ifdef BTOR_USE_LINGELING
   int force_lingeling;
   const char *lingeling_options;
-  int lingeling_options_invalid;
 #endif
 #ifdef BTOR_USE_MINISAT
   int force_minisat;
@@ -460,10 +461,40 @@ parse_option_with_int_value (BtorMainApp *app, const char *name, int *resptr)
   return 1;
 }
 
+static const char *
+match_long_opt (const char *opt, const char *pattern)
+{
+  const char *p, *q;
+
+  assert (opt);
+  assert (pattern);
+
+  if (opt[0] != '-' || opt[1] != '-') return 0;
+
+  for (p = opt + 2, q = pattern; *q && (*p == *q); p++, q++)
+    ;
+
+  if (*q || p[0] != '=' || !p[1]) return 0;
+
+  return p + 1;
+}
+
+static void
+inc_forced_sat_solver (BtorMainApp *app)
+{
+  if (app->forced_sat_solvers++)
+  {
+    print_err (app, "can not force more than one SAT solver");
+    app->err = 1;
+  }
+}
+
 static void
 parse_commandline_arguments (BtorMainApp *app)
 {
+  const char *matched_arg_str;
   FILE *temp_file;
+
   for (app->argpos = 1; !app->done && !app->err && app->argpos < app->argc;
        app->argpos++)
   {
@@ -595,10 +626,17 @@ parse_commandline_arguments (BtorMainApp *app)
       fprintf (app->output_file, "%s\n", BTOR_VERSION);
       app->done = 1;
     }
+    else if ((matched_arg_str =
+                  match_long_opt (app->argv[app->argpos], "solver")))
+    {
+      inc_forced_sat_solver (app);
+      app->forced_sat_solver_name = matched_arg_str;
+    }
 #ifdef BTOR_USE_PICOSAT
     else if (!strcmp (app->argv[app->argpos], "-picosat")
              || !strcmp (app->argv[app->argpos], "--picosat"))
     {
+      inc_forced_sat_solver (app);
       app->force_picosat = 1;
     }
 #endif
@@ -606,6 +644,7 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-lingeling")
              || !strcmp (app->argv[app->argpos], "--lingeling"))
     {
+      inc_forced_sat_solver (app);
       app->force_lingeling = 1;
     }
 #endif
@@ -613,6 +652,7 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-minisat")
              || !strcmp (app->argv[app->argpos], "--minisat"))
     {
+      inc_forced_sat_solver (app);
       app->force_minisat = 1;
     }
 #endif
@@ -774,6 +814,20 @@ print_sat_result (BtorMainApp *app, int sat_result)
   }
 }
 
+#ifdef BTOR_USE_LINGELING
+static int
+setup_lingeling (BtorMainApp *app, BtorSATMgr *smgr)
+{
+  if (btor_enable_lingeling_sat (smgr, app->lingeling_options, app->nofork))
+    return 1;
+
+  print_err_va_args (
+      app, "invalid Lingeling options '-l%s'\n", app->lingeling_options);
+  app->err = 1;
+  return 0;
+}
+#endif
+
 static int
 setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
 {
@@ -811,9 +865,13 @@ setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
     used_solvers++;
   }
 #endif
+  assert (forced_solvers <= 1);
+
+  // TODO remove the following defensive programming idiom.
+
   if (forced_solvers >= 2)
   {
-    print_err (app, "can not force more than two solvers\n");
+    print_err (app, "can not force more than two SAT solvers\n");
     app->err = 1;
     return 0;
   }
@@ -847,6 +905,7 @@ setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
     app->err = 1;
     return 0;
   }
+
   assert (used_solvers == 1);
 #ifdef BTOR_USE_PICOSAT
   if (use_picosat) btor_enable_picosat_sat (smgr);
@@ -855,17 +914,7 @@ setup_sat (BtorMainApp *app, BtorSATMgr *smgr)
   if (use_minisat) btor_enable_minisat_sat (smgr);
 #endif
 #ifdef BTOR_USE_LINGELING
-  if (use_lingeling)
-  {
-    if (!btor_enable_lingeling_sat (smgr, app->lingeling_options, app->nofork))
-    {
-      app->lingeling_options_invalid = 1;
-      print_err_va_args (
-          app, "invalid Lingeling options '-l%s'\n", app->lingeling_options);
-      app->err = 1;
-      return 0;
-    }
-  }
+  if (use_lingeling) return setup_lingeling (app, smgr);
 #endif
   return 1;
 }
@@ -895,35 +944,36 @@ boolector_main (int argc, char **argv)
 
   memset (&app, 0, sizeof app);
 
-  app.verbosity         = 0;
-  app.incremental       = 0;
-  app.indepth           = 0;
-  app.lookahead         = 0;
-  app.interval          = 0;
-  app.output_file       = stdout;
-  app.close_output_file = 0;
-  app.input_file        = stdin;
-  app.input_file_name   = "<stdin>";
-  app.close_input_file  = 0;
-  app.argc              = argc;
-  app.argv              = argv;
-  app.argpos            = 0;
-  app.done              = 0;
-  app.err               = 0;
-  app.basis             = BTOR_BINARY_BASIS;
-  app.dump_exp          = 0;
-  app.dump_smt          = 0;
-  app.rewrite_level     = 3;
-  app.force_smt_input   = 0;
-  app.print_model       = 0;
-  app.rewrite_writes    = 1;  // TODO: only for debug?
+  app.verbosity              = 0;
+  app.incremental            = 0;
+  app.indepth                = 0;
+  app.lookahead              = 0;
+  app.interval               = 0;
+  app.output_file            = stdout;
+  app.close_output_file      = 0;
+  app.input_file             = stdin;
+  app.input_file_name        = "<stdin>";
+  app.close_input_file       = 0;
+  app.argc                   = argc;
+  app.argv                   = argv;
+  app.argpos                 = 0;
+  app.done                   = 0;
+  app.err                    = 0;
+  app.basis                  = BTOR_BINARY_BASIS;
+  app.dump_exp               = 0;
+  app.dump_smt               = 0;
+  app.rewrite_level          = 3;
+  app.force_smt_input        = 0;
+  app.print_model            = 0;
+  app.rewrite_writes         = 1;  // TODO: only for debug?
+  app.forced_sat_solver_name = 0;
+  app.forced_sat_solvers     = 0;
 #ifdef BTOR_USE_PICOSAT
   app.force_picosat = 0;
 #endif
 #ifdef BTOR_USE_LINGELING
-  app.force_lingeling           = 0;
-  app.lingeling_options         = 0;
-  app.lingeling_options_invalid = 0;
+  app.force_lingeling   = 0;
+  app.lingeling_options = 0;
 #endif
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
@@ -1111,7 +1161,27 @@ boolector_main (int argc, char **argv)
 
     parser = parser_api->init (btor, &parse_opt);
 
-    if (!setup_sat (&app, smgr)) goto DONE;
+    if (app.forced_sat_solver_name)
+    {
+#ifdef BTOR_USE_LINGELING
+      if (!strcasecmp (app.forced_sat_solver_name, "lingeling"))
+      {
+        if (!setup_lingeling (&app, smgr)) goto DONE;
+      }
+      else
+#endif
+          if (!boolector_set_sat_solver (btor, app.forced_sat_solver_name))
+      {
+        print_err_va_args (&app,
+                           "invalid SAT solver in '--solver=%s'\n",
+                           app.forced_sat_solver_name);
+        app.err = 1;
+        goto DONE;
+      }
+      // else SAT solver properly set up ...
+    }
+    else if (!setup_sat (&app, smgr))
+      goto DONE;
 
     btor_init_sat (smgr);
     btor_set_output_sat (smgr, stdout);

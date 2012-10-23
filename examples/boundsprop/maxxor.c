@@ -8,20 +8,20 @@
 
 /* maxXOR algorithm from hacker's delight, page 62 */
 
-BtorExp *
+BtorNode *
 btor_maxxor (Btor *btor,
-             BtorExp *a_in,
-             BtorExp *b_in,
-             BtorExp *c_in,
-             BtorExp *d_in,
-             BtorExp *m_in,
+             BtorNode *a_in,
+             BtorNode *b_in,
+             BtorNode *c_in,
+             BtorNode *d_in,
+             BtorNode *m_in,
              int num_bits)
 {
-  BtorExp *temp_1, *temp_2, *m, *zero;
-  BtorExp *tmp, *a, *b, *c, *d, *m_minus_1, *b_minus_m;
-  BtorExp *d_minus_m, *one_log_bits, *b_and_d;
-  BtorExp *b_and_d_and_m, *temp_1_ugte_a, *temp_2_ugte_c;
-  BtorExp *b_and_d_and_m_ne_zero, *cond_1, *cond_2, *result, *cond_3;
+  BtorNode *temp_1, *temp_2, *m, *zero;
+  BtorNode *tmp, *a, *b, *c, *d, *m_minus_1, *b_minus_m;
+  BtorNode *d_minus_m, *one_log_bits, *b_and_d;
+  BtorNode *b_and_d_and_m, *temp_1_ugte_a, *temp_2_ugte_c;
+  BtorNode *b_and_d_and_m_ne_zero, *cond_1, *cond_2, *result, *cond_3;
   int i;
 
   assert (btor != NULL);

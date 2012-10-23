@@ -22,9 +22,9 @@ main (int argc, char **argv)
 {
   int i, num_bits, num_bits_log_2;
   Btor *btor;
-  BtorExp *formula, *next_power, *next_smallest_power, *one, *temp;
-  BtorExp *shift, *cur_const, *x, *eq, *gte, *lte, *gt;
-  BtorExp **powers;
+  BtorNode *formula, *next_power, *next_smallest_power, *one, *temp;
+  BtorNode *shift, *cur_const, *x, *eq, *gte, *lte, *gt;
+  BtorNode **powers;
   char *const_string;
   if (argc != 2)
   {
@@ -45,8 +45,8 @@ main (int argc, char **argv)
 
   num_bits_log_2 = btor_log_2_util (num_bits);
 
-  powers                 = (BtorExp **) malloc (sizeof (BtorExp *) * num_bits);
-  const_string           = (char *) malloc (sizeof (char) * (num_bits + 1));
+  powers       = (BtorNode **) malloc (sizeof (BtorNode *) * num_bits);
+  const_string = (char *) malloc (sizeof (char) * (num_bits + 1));
   const_string[num_bits] = '\0';
   btor                   = boolector_new ();
   boolector_set_rewrite_level (btor, 0);

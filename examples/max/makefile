@@ -1,6 +1,5 @@
-CC=gcc
-CFLAGS=-g -Wall -W -Wextra
-max: max.c ../../boolector.h ../../btorutil.h ../../libboolector.a
-	$(CC) $(CFLAGS) -o $@ max.c -L../.. -lboolector
+include ../makefile.common
+all:
+	$(CC) $(CFLAGS) -o max max.c $(LIBS)
 clean:
 	rm -f max
