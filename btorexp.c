@@ -1671,8 +1671,14 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
 
   DBG_P ("encoded lemma (conclusion):\n", 0);
   DBG_P ("  eq of:\n", 0);
-  DBG_P ("    ", a);
-  DBG_P ("    ", b);
+  if (BTOR_IS_INVERTED_NODE (a))
+    DBG_P ("    not ", a);
+  else
+    DBG_P ("    ", a);
+  if (BTOR_IS_INVERTED_NODE (b))
+    DBG_P ("    not ", b);
+  else
+    DBG_P ("    ", b);
 }
 
 static void
@@ -6290,13 +6296,13 @@ bfs_lambda (Btor *btor,
   if (propagate_upwards)
   {
     lambda_exp->parent = cur;
-    DBG_P ("[bfs_lambda] ", lambda_exp);
+    DBG_P ("[bfs_lambda %d] ", lambda_exp, propagate_upwards);
     DBG_P ("  -> ", cur);
   }
   else
   {
     cur->parent = lambda_exp;
-    DBG_P ("[bfs_lambda] ", cur);
+    DBG_P ("[bfs_lambda %d] ", cur, propagate_upwards);
     DBG_P ("  -> ", lambda_exp);
   }
   cur->mark = 1;
@@ -6333,20 +6339,22 @@ bfs_lambda (Btor *btor,
       if (propagate_upwards)
       {
         cur->parent = next;
-        DBG_P ("[bfs_lambda] ", cur);
+        DBG_P ("[bfs_lambda %d] ", cur, propagate_upwards);
         DBG_P ("  -> ", next);
       }
       else
       {
         next->parent = cur;
-        DBG_P ("[bfs_lambda] ", next);
+        DBG_P ("[bfs_lambda %d] ", next, propagate_upwards);
         DBG_P ("  -> ", cur);
       }
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
     /* we leave the lambda expression with a parameterized read */
-    else if (BTOR_IS_READ_NODE (cur) && BTOR_IS_PARAM_NODE (cur->e[1]))
+    // FIXME: more general approach?
+    else if (BTOR_IS_READ_NODE (cur))
+    //             && BTOR_IS_PARAM_NODE (cur->e[1]))
     {
       next = cur->e[0];
       assert (BTOR_IS_ARRAY_NODE (next));
@@ -6354,14 +6362,14 @@ bfs_lambda (Btor *btor,
       if (propagate_upwards)
       {
         cur->parent = next;
-        DBG_P ("[bfs_lambda] ", cur);
+        DBG_P ("[bfs_lambda %d] ", cur, propagate_upwards);
         DBG_P ("  -> ", next);
         *result = lambda_exp;
       }
       else
       {
         next->parent = cur;
-        DBG_P ("[bfs_lambda] ", next);
+        DBG_P ("[bfs_lambda %d] ", next, propagate_upwards);
         DBG_P ("  -> ", cur);
         *result = next;
       }
@@ -6508,8 +6516,11 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       {
         assert (BTOR_IS_ARRAY_NODE (next));
         assert (BTOR_IS_REGULAR_NODE (next));
-        next->mark                            = 1;
+
+        next->mark = 1;
+        /* mark lambda expression as visited */
         BTOR_REAL_ADDR_NODE (cur->e[1])->mark = 1;
+
         BTOR_ENQUEUE (mm, queue, next);
         BTOR_PUSH_STACK (mm, unmark_stack, next);
         BTOR_PUSH_STACK (mm, unmark_stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
@@ -6654,10 +6665,12 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
            * propagated upwards from param_read to lambda_exp */
           bfs_lambda (btor, lambda_exp, acc, param_read->e[0], &next, 1);
           assert (next == lambda_exp);
+          assert (BTOR_IS_REGULAR_NODE (next));
           assert (cur->mark);
 
-          next->mark                                   = 1;
-          BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark = 1;
+          next->mark = 1;
+          /* mark lambda expression as visited */
+          BTOR_REAL_ADDR_NODE (next->e[1])->mark = 1;
 
           BTOR_ENQUEUE (mm, queue, next);
           BTOR_PUSH_STACK (mm, unmark_stack, next);
@@ -7634,6 +7647,12 @@ process_working_stack (Btor *btor,
          * with same index assignment and same value assignment */
         else
         {
+          char *a = btor_bv_assignment_exp (btor, value);
+          DBG_P ("   value: %s, ", value, a);
+          btor_free_bv_assignment_exp (btor, a);
+          a = btor_bv_assignment_exp (btor, index);
+          DBG_P ("   index: %s, ", index, a);
+          btor_free_bv_assignment_exp (btor, a);
           DBG_P ("skip\n", 0);
           continue;
         }
@@ -7710,24 +7729,23 @@ process_working_stack (Btor *btor,
 
       lambda_value = apply_beta_reduction (btor, array, index);
 
-      //       char *a = btor_bv_assignment_exp (btor, value);
-      //       fprintf (stderr, "[debug]   value:        %s ", a);
-      //       dump_node (stderr, value);
-      //       btor_free_bv_assignment_exp (btor, a);
-      //       a = btor_bv_assignment_exp (btor, index);
-      //       fprintf (stderr, "[debug]   index:        %s ", a);
-      //       dump_node (stderr, index);
-      //       btor_free_bv_assignment_exp (btor, a);
-      //       a = btor_bv_assignment_exp (btor, lambda_value);
-      //       fprintf (stderr, "[debug]   lambda_value: %s ", a);
-      //       dump_node (stderr, lambda_value);
-      //       btor_free_bv_assignment_exp (btor, a);
+      char *a = btor_bv_assignment_exp (btor, value);
+      DBG_P ("   value: %s, ", value, a);
+      btor_free_bv_assignment_exp (btor, a);
+      a = btor_bv_assignment_exp (btor, index);
+      DBG_P ("   index: %s, ", index, a);
+      btor_free_bv_assignment_exp (btor, a);
+      a = btor_bv_assignment_exp (btor, lambda_value);
+      DBG_P ("   lambda value: %s, ", BTOR_REAL_ADDR_NODE (lambda_value), a);
+      btor_free_bv_assignment_exp (btor, a);
 
       /* propagate down  */
       // FIXME: what if lambda_value is no new node but already an existing
       //        one?
       if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
-          && !BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (lambda_value)))
+          //            && !BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE
+          //            (lambda_value)))
+          && !BTOR_REAL_ADDR_NODE (lambda_value)->tseitin)
       {
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
         //          assert (lambda_value->e[1] == index);
