@@ -1,9 +1,9 @@
 #!/bin/bash
 
 readonly TMPDIR=/tmp
-readonly TMPFILE_NAME=btorvis$$
+readonly TMPFILE_NAME="btorvis$$"
 
-readonly tmpfile_pdf="$TMPDIR/$tmpfile_name".pdf
+readonly tmpfile_pdf="$TMPDIR/$TMPFILE_NAME".pdf
 readonly tmpfile_ps="$TMPFILE_NAME".ps
 
 inputfile=/dev/stdin
@@ -70,6 +70,7 @@ fi
 
 ## run
 
+info "temp file: $tmpfile_pdf"
 info "generating dot file"
 cat "$inputfile" | $btor2dot | dot -Tps2 > $tmpfile_ps
 
