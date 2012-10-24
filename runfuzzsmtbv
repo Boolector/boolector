@@ -50,7 +50,9 @@ do
            ;;
     *)     mkdir -p "$BUG_DIR"
            bug="$BUG_DIR"/bug-${count}.btor
-           cp "$tmp" "$bug"
+           echo "; fuzzer:  $(basename $0) $opts" > "$bug"
+           echo "; command: $cmd" >> "$bug"
+           cat "$tmp" >> "$bug"
            echo -en "\t"
            echo -n $(basename "$bug")
            red="$BUG_DIR"/red-${count}.btor
