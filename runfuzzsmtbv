@@ -30,7 +30,7 @@ count=0
 while true
 do
   rm -f $tmp
-  fuzzsmtbv $opts |boolector -de > $tmp
+  fuzzsmtbv $opts |boolector --no-rewrite-writes -de > $tmp
   lines=`wc -l $tmp|awk '{print $1}'`
   echo -n "$count $lines"
   $cmd $tmp > /dev/null 2>/dev/null
