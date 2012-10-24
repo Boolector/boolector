@@ -1,19 +1,26 @@
 #!/bin/sh
 
+readonly FUZZSMTBV="fuzzsmtbv"
+
 die () {
   echo "*** runfuzzsmtbv: $*" 1>&2
   exit 1
 }
 
 tmp=/tmp/runfuzzsmtbv-$$.btor
-trap "rm -f $tmp" 2
+trap "rm -f $tmp; exit" 2 9
 
 opts=""
 cmd=""
 while [ $# -gt 0 ]
 do
   case $1 in
-    -*|[0-9]*) opts="$opts $1";;
+    -h|--help) echo -n "usage: $(basename $0) "
+               echo -e "[ -h | --help | <fuzzsmtbv_options>] [<file>]\n"
+               exit
+               ;;
+    -*|[0-9]*) opts="$opts $1"
+               ;;
     *) break;;
   esac
   shift
@@ -30,24 +37,22 @@ count=0
 while true
 do
   rm -f $tmp
-  fuzzsmtbv $opts |boolector --no-rewrite-writes -de > $tmp
+  "$FUZZSMTBV" "$opts" |boolector --no-rewrite-writes -de > $tmp
   lines=`wc -l $tmp|awk '{print $1}'`
-  echo -n "$count $lines"
+  echo -n "count: $count lines: $lines"
   $cmd $tmp > /dev/null 2>/dev/null
   res=$?
   case $res in
-    10|20)
-echo -n "                                                                       \r"
-    ;;
-    *)
-      bug=bug-${count}.btor
-      cp $tmp $bug
-      echo -n " $bug"
-      red=red-${count}.btor
-      deltabtor $bug $red $cmd
-      lines=`wc -l $red|awk '{print $1}'`
-      echo " $red $lines"
-    ;;
+    10|20) echo
+           ;;
+    *)     bug=bug-${count}.btor
+           cp $tmp $bug
+           echo -n " $bug"
+           red=red-${count}.btor
+           deltabtor $bug $red $cmd
+           lines=`wc -l $red|awk '{print $1}'`
+           echo " $red $lines"
+           ;;
   esac
   count=`expr $count + 1`
 done
