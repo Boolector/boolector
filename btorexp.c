@@ -7069,7 +7069,6 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
       assert (cur);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (!BTOR_IS_WRITE_NODE (cur));
-      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
       if (cur->mark == 2) continue;
 
