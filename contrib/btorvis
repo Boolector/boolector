@@ -4,14 +4,15 @@ readonly TMPDIR=/tmp
 readonly TMPFILE_NAME="btorvis$$"
 
 readonly tmpfile_pdf="$TMPDIR/$TMPFILE_NAME".pdf
-readonly tmpfile_ps="$TMPFILE_NAME".ps
+readonly tmpfile_ps="$TMPDIR/$TMPFILE_NAME".ps
 
 inputfile=/dev/stdin
 pdfreader=unknown
 ps2pdf=ps2pdf
-contribdir=$(dirname $(readlink -f $0))
+contribdir=$(dirname "$(readlink -f $0)")
 btor2dot=$(readlink -f "$contribdir/btor2dot")
 
+trap "rm -f $tmpfile_ps $tmpfile_pdf; exit" SIGHUP SIGINT SIGTERM
 
 function info
 {
@@ -28,7 +29,8 @@ while [ $# -gt 0 ]
 do
   case $1 in
         --ids)     btor2dot=$(readlink -f "$contribdir/btorids2dot");;
-        -h|--help) echo -e "usage: btorvis [ -h | --help | --ids] [<file>] \n"
+        -h|--help) echo -n "usage: $(basename $0)"
+                   echo -e " [ -h | --help | --ids] [<file>]\n"
                    exit 0;;
         *)         break;;
   esac
@@ -41,12 +43,12 @@ fi
 
 if [ $# -eq 1 ]; then
   inputfile="$*"
-  if [ ! -f $inputfile ]; then
+  if [ ! -f "$inputfile" ]; then
     die "invalid input file: '$inputfile'"
   fi
 fi
 
-if [ ! -f $btor2dot ]; then
+if [ ! -f "$btor2dot" ]; then
   die "could not find 'btor2dot'"
 fi
 
@@ -72,18 +74,18 @@ fi
 
 info "temp file: $tmpfile_pdf"
 info "generating dot file"
-cat "$inputfile" | $btor2dot | dot -Tps2 > $tmpfile_ps
+cat "$inputfile" | "$btor2dot" | dot -Tps2 > "$tmpfile_ps"
 
 info "generation pdf file"
-$ps2pdf $tmpfile_ps $tmpfile_pdf
+"$ps2pdf" "$tmpfile_ps" "$tmpfile_pdf"
 if [ $? = 1 ]; then
   die "failed to generate pdf file"
 fi
 
-"$pdfreader" $tmpfile_pdf
+"$pdfreader" "$tmpfile_pdf"
 
 
 ## cleanup
 
-rm -f $tmpfile_ps $tmpfile_pdf
+rm -f "$tmpfile_ps" "$tmpfile_pdf"
 exit 0
