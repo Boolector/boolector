@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2
 import sys, string, getopt
 
 # NOTE: This script converts from BTOR to SMT format. It does NOT 
