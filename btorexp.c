@@ -3157,6 +3157,7 @@ binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
   e0 = btor_pointer_chase_simplified_exp (btor, e0);
   e1 = btor_pointer_chase_simplified_exp (btor, e1);
 
+  // TODO: obsolete?
   if (btor->rewrite_level > 0 && BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (kind)
       && BTOR_REAL_ADDR_NODE (e1)->id < BTOR_REAL_ADDR_NODE (e0)->id)
   {
@@ -7068,7 +7069,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
       assert (cur);
       assert (BTOR_IS_REGULAR_NODE (cur));
       assert (!BTOR_IS_WRITE_NODE (cur));
-      //      assert (!BTOR_IS_LAMBDA_NODE (cur));
+      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
       if (cur->mark == 2) continue;
 
@@ -7658,9 +7659,13 @@ process_working_stack (Btor *btor,
     DBG_P ("access: ", acc);
     check_not_simplified_or_const (btor, acc);
     /* synthesize index and value if necessary */
-    *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc, 1);
-    index                = BTOR_GET_INDEX_ACC_NODE (acc);
-    value                = BTOR_GET_VALUE_ACC_NODE (acc);
+    if (BTOR_IS_LAMBDA_NODE (acc))
+      *assignments_changed =
+          lazy_synthesize_and_encode_lambda_exp (btor, acc, 1);
+    else
+      *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc, 1);
+    index = BTOR_GET_INDEX_ACC_NODE (acc);
+    value = BTOR_GET_VALUE_ACC_NODE (acc);
     check_not_simplified_or_const (btor, index);
     check_not_simplified_or_const (btor, value);
     if (*assignments_changed) return 0;
@@ -8517,6 +8522,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
   BtorNode *tagged_parent, *parent, **lookup;
   BtorFullParentIterator it;
+  BtorNodePtrStack parent_stack;
   int pos, cnt_parents = 0;
 
   assert (btor);
@@ -8528,7 +8534,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   e_if   = btor_copy_exp (btor, write->e[2]);
   e_else = btor_read_exp (btor, write->e[0], param);
-  e_cond = btor_eq_exp (btor, param, write->e[1]);
+  e_cond = btor_eq_exp_node (btor, param, write->e[1]); /* no rewriting */
+  assert (BTOR_IS_BV_EQ_NODE (e_cond));
 
   assert (e_else->e[0] == write->e[0]);
   assert (e_else->e[1] == param);
@@ -8539,7 +8546,9 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   lambda_exp =
       btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
 
-  /* replace write node with new lambda_exp */
+  BTOR_INIT_STACK (parent_stack);
+
+  /* disconnect write node from all of its parent nodes */
   init_full_parent_iterator (&it, write);
   while (has_next_parent_full_parent_iterator (&it))
   {
@@ -8559,6 +8568,19 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
     /* disconnect write from its parent  */
     disconnect_child_exp (btor, parent, pos);
+
+    BTOR_PUSH_STACK (btor->mm, parent_stack, tagged_parent);
+    btor_release_exp (btor, write);
+  }
+
+  /* connect lambda exp to parents of write node */
+  while (!BTOR_EMPTY_STACK (parent_stack))
+  {
+    tagged_parent = BTOR_POP_STACK (parent_stack);
+    assert (tagged_parent);
+    parent = BTOR_REAL_ADDR_NODE (tagged_parent);
+    pos    = BTOR_GET_TAG_NODE (tagged_parent);
+
     /* connect lambda expression at position of write  */
     connect_child_exp (btor, parent, lambda_exp, pos);
 
@@ -8596,8 +8618,6 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     assert (BTOR_IS_REGULAR_NODE (*lookup));
 
     if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
-
-    btor_release_exp (btor, write);
   }
 
   btor_release_exp (btor, e_if);
@@ -8605,6 +8625,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   btor_release_exp (btor, e_cond);
   btor_release_exp (btor, cond_exp);
   btor_release_exp (btor, param);
+  BTOR_RELEASE_STACK (btor->mm, parent_stack);
 }
 
 static int
