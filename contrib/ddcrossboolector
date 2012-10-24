@@ -12,7 +12,7 @@ $btor_dev $inputfile > /dev/null 2>&1
 result=$?
 #echo "result: $result"
 
-# we do not want assertions erros for now
+# we do not want assertions errors for now
 if [[ $result != 10 && $result != 20 ]]; then
   exit 0
 fi
