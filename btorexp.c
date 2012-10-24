@@ -1381,17 +1381,17 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
   BtorPtrHashBucket *bucket;
   BtorNode *cur;
 
-  DBG_P ("encoded lemma (premisses):\n", 0);
+  DBG_P ("encoded lemma (premisses):", 0);
 
   if (j != NULL)
   {
-    DBG_P ("  indices:\n", 0);
-    DBG_P ("    eq:\n", 0);
+    DBG_P ("  indices:", 0);
+    DBG_P ("    eq:", 0);
     DBG_P ("      ", i);
     DBG_P ("      ", j);
   }
 
-  DBG_P ("  writes:\n", 0);
+  DBG_P ("  writes:", 0);
   for (bucket = writes->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
@@ -1399,14 +1399,14 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
     DBG_P ("    index = ", cur);
   }
 
-  DBG_P ("  aeqs:\n", 0);
+  DBG_P ("  aeqs:", 0);
   for (bucket = aeqs->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     DBG_P ("    ", cur);
   }
 
-  DBG_P ("  aconds_sel1 (then):\n", 0);
+  DBG_P ("  aconds_sel1 (then):", 0);
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
@@ -1418,7 +1418,7 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
       DBG_P ("    ", cur);
   }
 
-  DBG_P ("  aconds_sel2 (else):\n", 0);
+  DBG_P ("  aconds_sel2 (else):", 0);
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
@@ -1429,7 +1429,7 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
       DBG_P ("    not ", cur);
   }
 
-  DBG_P ("  bconds_sel1 (then):\n", 0);
+  DBG_P ("  bconds_sel1 (then):", 0);
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
@@ -1440,7 +1440,7 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
       DBG_P ("    ", cur);
   }
 
-  DBG_P ("  bconds_sel2 (else):\n", 0);
+  DBG_P ("  bconds_sel2 (else):", 0);
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
@@ -1451,8 +1451,8 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
       DBG_P ("    not ", cur);
   }
 
-  DBG_P ("encoded lemma (conclusion):\n", 0);
-  DBG_P ("  eq of:\n", 0);
+  DBG_P ("encoded lemma (conclusion):", 0);
+  DBG_P ("  eq of:", 0);
   if (BTOR_IS_INVERTED_NODE (a))
     DBG_P ("    not ", a);
   else
@@ -5879,6 +5879,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       cur->reachable = 1;
       if (BTOR_IS_BV_CONST_NODE (cur))
         cur->av = btor_const_aigvec (avmgr, cur->bits);
+      // TODO: we do not need param->av anymore
       else if (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
       {
         cur->av = btor_var_aigvec (avmgr, cur->len);
@@ -6835,7 +6836,7 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
 
   for (acc = acc1; acc; acc = acc == acc1 ? acc2 : 0)
   {
-    DBG_P ("bfs:\n", 0);
+    DBG_P ("bfs:", 0);
     DBG_P ("  acc: ", acc);
     DBG_P ("  arr: ", array);
     bfs (btor, acc, array);
@@ -7289,10 +7290,6 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   BTOR_INIT_STACK (arg_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  DBG_P ("eval_exp: ", exp);
-  for (i = 0; i < BTOR_REAL_ADDR_NODE (exp)->arity; i++)
-    DBG_P ("eval_exp: e[%d]: ", BTOR_REAL_ADDR_NODE (exp)->e[i], i);
-
   BTOR_PUSH_STACK (mm, work_stack, exp);
 
   while (!BTOR_EMPTY_STACK (work_stack))
@@ -7304,9 +7301,6 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
     if (real_cur->mark == 0)
     {
       real_cur->mark = 1;
-      DBG_P ("mark 1: ", real_cur);
-      for (i = 0; i < real_cur->arity; i++)
-        DBG_P ("mark 1: e[%d]: ", real_cur->e[i], i);
 
       BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
@@ -7326,7 +7320,6 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
         if (BTOR_IS_INVERTED_NODE (cur))
           assigned_exp = BTOR_INVERT_NODE (assigned_exp);
 
-        DBG_P ("param push: ", assigned_exp);
         BTOR_PUSH_STACK (mm, work_stack, assigned_exp);
       }
       else
@@ -7366,8 +7359,6 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
                 || BTOR_COUNT_STACK (arg_stack) >= 1);
         assert (!BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_COUNT_STACK (arg_stack) >= 2);
-        DBG_P ("asdf ", real_cur);
-        DBG_P ("asdf arg stack: %ld\n", 0, BTOR_COUNT_STACK (arg_stack));
         assert (!BTOR_IS_TERNARY_NODE (real_cur)
                 || BTOR_COUNT_STACK (arg_stack) >= 3);
 
@@ -7497,6 +7488,11 @@ beta_reduce (Btor *btor,
       {
         BTOR_PUSH_STACK (mm, work_stack, cur);
 
+        /* do not reduce full expression:
+         * stop at subsequent lambda and write nodes */
+        // TODO: special handling required
+        if (!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur)) continue;
+
         if (eval_assignments
             && (BTOR_IS_BV_COND_NODE (real_cur)
                 || BTOR_IS_ARRAY_COND_NODE (real_cur)))
@@ -7512,14 +7508,6 @@ beta_reduce (Btor *btor,
         }
         else
         {
-          /* do not reduce full expression:
-           * stop at subsequent lambda and write nodes */
-          // TODO: special handling required
-          if (!reduce_full_exp
-              && (BTOR_IS_LAMBDA_NODE (real_cur)
-                  || BTOR_IS_WRITE_NODE (real_cur)))
-            continue;
-
           for (i = 0; i < real_cur->arity; i++)
             BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
         }
@@ -7534,7 +7522,7 @@ beta_reduce (Btor *btor,
 
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
           || BTOR_IS_ARRAY_VAR_NODE (real_cur)
-          || (!reduce_full_exp && BTOR_IS_LAMBDA_NODE (real_cur)))
+          || (!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur)))
       {
         result = btor_copy_exp (btor, real_cur);
       }
@@ -7664,8 +7652,8 @@ process_working_stack (Btor *btor,
     acc = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_NODE (acc));
     assert (BTOR_IS_ACC_NODE (acc));
-    DBG_P ("\n", 0);
-    DBG_P ("*** process_working_stack\n", 0);
+    DBG_P ("", 0);
+    DBG_P ("*** process_working_stack", 0);
     DBG_P ("array: ", array);
     DBG_P ("access: ", acc);
     check_not_simplified_or_const (btor, acc);
@@ -7679,7 +7667,6 @@ process_working_stack (Btor *btor,
     /* hash table lookup */
     if (!array->rho)
     {
-      DBG_P ("compare assignments: process_working_stack1", 0);
       array->rho = btor_new_ptr_hash_table (
           mm, (BtorHashPtr) hash_assignment, (BtorCmpPtr) compare_assignments);
       BTOR_PUSH_STACK (mm, *cleanup_stack, array);
@@ -7698,7 +7685,7 @@ process_working_stack (Btor *btor,
         if (compare_assignments (hashed_value, value) != 0)
         {
           DBG_P ("array axiom 1 conflict in array expression: ", array);
-          DBG_P ("add_lemma:\n", 0);
+          DBG_P ("add_lemma:", 0);
           DBG_P ("  array: ", array);
           DBG_P ("  acc1: ", hashed_acc);
           DBG_P ("  acc2: ", acc);
@@ -7716,7 +7703,7 @@ process_working_stack (Btor *btor,
           a = btor_bv_assignment_exp (btor, index);
           DBG_P ("   index: %s, ", index, a);
           btor_free_bv_assignment_exp (btor, a);
-          DBG_P ("skip\n", 0);
+          DBG_P ("skip", 0);
           continue;
         }
       }
@@ -7730,7 +7717,7 @@ process_working_stack (Btor *btor,
       if (find_array_axiom_2_conflict (btor, acc, array, &indices_equal))
       {
         DBG_P ("array axiom 2 conflict in array expression: ", array);
-        DBG_P ("add_lemma:\n", 0);
+        DBG_P ("add_lemma:", 0);
         DBG_P ("  array: ", array);
         DBG_P ("  acc1: ", acc);
         DBG_P ("  acc2: ", array);
@@ -7746,7 +7733,7 @@ process_working_stack (Btor *btor,
         assert (!array->e[0]->simplified);
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, array->e[0]);
-        DBG_P ("write exp prop. down:\n", 0);
+        DBG_P ("write exp prop. down:", 0);
         DBG_P ("  array: ", array->e[0]);
         DBG_P ("  acc: ", acc);
       }
@@ -7765,7 +7752,7 @@ process_working_stack (Btor *btor,
       if (BTOR_IS_INVERTED_NODE (cond)) assignment = -assignment;
       /* propagate down */
       BTOR_PUSH_STACK (mm, *stack, acc);
-      DBG_P ("array cond prop. down:\n", 0);
+      DBG_P ("array cond prop. down:", 0);
       DBG_P ("  acc: ", acc);
       if (assignment == 1)
       {
@@ -7815,7 +7802,7 @@ process_working_stack (Btor *btor,
 
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, lambda_value->e[0]);
-        DBG_P ("lambda exp prop. down:\n", 0);
+        DBG_P ("lambda exp prop. down:", 0);
         DBG_P ("  array: ", lambda_value->e[0]);
         DBG_P ("  acc: ", acc);
       }
@@ -7825,7 +7812,7 @@ process_working_stack (Btor *btor,
         if (compare_assignments (value, lambda_value) != 0)
         {
           DBG_P ("array axiom 2 conflict in lambda expression: ", array);
-          DBG_P (" add_lemma:\n", 0);
+          DBG_P (" add_lemma:", 0);
           DBG_P ("   array: ", array);
           DBG_P ("   acc1: ", acc);
           DBG_P ("   acc2: ", array);
@@ -7869,7 +7856,7 @@ process_working_stack (Btor *btor,
             assert (!next->simplified);
             BTOR_PUSH_STACK (mm, *stack, acc);
             BTOR_PUSH_STACK (mm, *stack, next);
-            DBG_P ("aeq exp prop.:\n", 0);
+            DBG_P ("aeq exp prop.:", 0);
             DBG_P ("  array: ", next);
             DBG_P ("  acc: ", acc);
           }
@@ -7968,7 +7955,7 @@ process_working_stack (Btor *btor,
         if (BTOR_IS_READ_NODE (lambda_value) && lambda_value->e[0] == next->e[0]
             && lambda_value->e[1] == index)
         {
-          DBG_P ("lambda prop. upwards:\n", 0);
+          DBG_P ("lambda prop. upwards:", 0);
           DBG_P ("  access: ", acc);
           DBG_P ("  array: ", lambda_exp);
           BTOR_PUSH_STACK (mm, *stack, acc);
