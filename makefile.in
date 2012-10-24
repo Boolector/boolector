@@ -33,7 +33,6 @@ boolector: boolectormain.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
 
 test: $(TESTOBJ) libboolector.a  $(LDEPS)
-	@echo $(TESTOBJ)
 	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)
 
 synthebtor: synthebtor.o libboolector.a $(LDEPS)
