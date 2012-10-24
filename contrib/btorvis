@@ -12,7 +12,7 @@ ps2pdf=ps2pdf
 contribdir=$(dirname "$(readlink -f $0)")
 btor2dot=$(readlink -f "$contribdir/btor2dot")
 
-trap "rm -f $tmpfile_ps $tmpfile_pdf; exit" 2 9
+trap "rm -f $tmpfile_ps $tmpfile_pdf; exit" SIGHUP SIGINT SIGTERM
 
 function info
 {
