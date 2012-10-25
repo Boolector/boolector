@@ -7581,6 +7581,13 @@ beta_reduce (Btor *btor,
         // TODO: special handling required
         if (!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur)) continue;
 
+        // FIXME: for now we have to skip not parameterized nodes, otherwise
+        //        we may create new nodes that do not have an assignment yet,
+        //        but need it for comparison (compare_assignments)
+        //        we have to use the const comparison functions for that in
+        //        order to handle those cases
+        if (!real_cur->parameterized) continue;
+
         /* only evaluate conditionals if condition is either encoded or
            parameterized */
         if (eval_assignments
@@ -7614,7 +7621,8 @@ beta_reduce (Btor *btor,
 
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
           || BTOR_IS_ARRAY_VAR_NODE (real_cur)
-          || (!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur)))
+          || (!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur))
+          || !real_cur->parameterized)
       {
         result = btor_copy_exp (btor, real_cur);
       }
