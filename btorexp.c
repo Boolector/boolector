@@ -7377,7 +7377,6 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    DBG_P ("real_cur %d: ", real_cur, real_cur->tseitin);
 
     if (real_cur->mark == 0)
     {
@@ -7575,9 +7574,13 @@ beta_reduce (Btor *btor,
         // TODO: special handling required
         if (!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur)) continue;
 
+        /* only evaluate conditionals if condition is either encoded or
+           parameterized */
         if (eval_assignments
             && (BTOR_IS_BV_COND_NODE (real_cur)
-                || BTOR_IS_ARRAY_COND_NODE (real_cur)))
+                || BTOR_IS_ARRAY_COND_NODE (real_cur))
+            && (BTOR_REAL_ADDR_NODE (real_cur->e[0])->tseitin
+                || BTOR_REAL_ADDR_NODE (real_cur->e[0])->parameterized))
         {
           res = eval_exp (btor, real_cur->e[0], 0);
 
@@ -7616,7 +7619,9 @@ beta_reduce (Btor *btor,
         /* in case conditionals are evaluated */
         if (eval_assignments
             && (BTOR_IS_BV_COND_NODE (real_cur)
-                || BTOR_IS_ARRAY_COND_NODE (real_cur)))
+                || BTOR_IS_ARRAY_COND_NODE (real_cur))
+            && (BTOR_REAL_ADDR_NODE (real_cur->e[0])->tseitin
+                || BTOR_REAL_ADDR_NODE (real_cur->e[0])->parameterized))
         {
           result = BTOR_POP_STACK (arg_stack);
         }
