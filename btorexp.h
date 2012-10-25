@@ -73,39 +73,40 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
-#define BTOR_BV_VAR_NODE_STRUCT                                        \
-  struct                                                               \
-  {                                                                    \
-    BtorNodeKind kind : 5;         /* kind of expression */            \
-    unsigned int mark : 3;         /* for DAG traversal */             \
-    unsigned int array_mark : 2;   /* for bottom up array traversal */ \
-    unsigned int aux_mark : 2;     /* auxiliary mark flag */           \
-    unsigned int synth_mark : 2;   /* mark for synthesize_exp */       \
-    unsigned int reachable : 1;    /* reachable from root ? */         \
-    unsigned int tseitin : 1;      /* tseiting encoded into SAT ? */   \
-    unsigned int vread : 1;        /* virtual read ? */                \
-    unsigned int vread_index : 1;  /* index for two virtual reads ? */ \
-    unsigned int constraint : 1;   /* top level constraint ? */        \
-    unsigned int erased : 1;       /* for debugging purposes */        \
-    unsigned int disconnected : 1; /* for debugging purposes */        \
-    unsigned int unique : 1;       /* in unique table? */              \
-    unsigned int bytes : 8;        /* allocated bytes */               \
-    unsigned int arity : 2;        /* arity of operator */             \
-    char *bits;                    /* three-valued bits */             \
-    int id;                        /* unique expression id */          \
-    int len;                       /* number of bits */                \
-    int refs;                      /* reference counter */             \
-    union                                                              \
-    {                                                                  \
-      BtorAIGVec *av;        /* synthesized AIG vector */              \
-      BtorPtrHashTable *rho; /* for finding array conflicts */         \
-    };                                                                 \
-    BtorNode *next;         /* next in unique table */                 \
-    BtorNode *parent;       /* parent pointer for BFS */               \
-    BtorNode *simplified;   /* simplified expression */                \
-    Btor *btor;             /* boolector */                            \
-    BtorNode *first_parent; /* head of parent list */                  \
-    BtorNode *last_parent;  /* tail of parent list */                  \
+#define BTOR_BV_VAR_NODE_STRUCT                                             \
+  struct                                                                    \
+  {                                                                         \
+    BtorNodeKind kind : 5;          /* kind of expression */                \
+    unsigned int mark : 3;          /* for DAG traversal */                 \
+    unsigned int array_mark : 1;    /* for bottom up array traversal */     \
+    unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
+    unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
+    unsigned int reachable : 1;     /* reachable from root ? */             \
+    unsigned int tseitin : 1;       /* tseiting encoded into SAT ? */       \
+    unsigned int vread : 1;         /* virtual read ? */                    \
+    unsigned int vread_index : 1;   /* index for two virtual reads ? */     \
+    unsigned int constraint : 1;    /* top level constraint ? */            \
+    unsigned int erased : 1;        /* for debugging purposes */            \
+    unsigned int disconnected : 1;  /* for debugging purposes */            \
+    unsigned int unique : 1;        /* in unique table? */                  \
+    unsigned int bytes : 8;         /* allocated bytes */                   \
+    unsigned int arity : 2;         /* arity of operator */                 \
+    unsigned int parameterized : 1; /* at least one children is a param? */ \
+    char *bits;                     /* three-valued bits */                 \
+    int id;                         /* unique expression id */              \
+    int len;                        /* number of bits */                    \
+    int refs;                       /* reference counter */                 \
+    union                                                                   \
+    {                                                                       \
+      BtorAIGVec *av;        /* synthesized AIG vector */                   \
+      BtorPtrHashTable *rho; /* for finding array conflicts */              \
+    };                                                                      \
+    BtorNode *next;         /* next in unique table */                      \
+    BtorNode *parent;       /* parent pointer for BFS */                    \
+    BtorNode *simplified;   /* simplified expression */                     \
+    Btor *btor;             /* boolector */                                 \
+    BtorNode *first_parent; /* head of parent list */                       \
+    BtorNode *last_parent;  /* tail of parent list */                       \
   }
 
 #define BTOR_BV_ADDITIONAL_NODE_STRUCT                                  \
