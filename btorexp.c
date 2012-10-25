@@ -143,7 +143,7 @@ static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
 // debug
-#if 0
+#if 1
 #define DBG_P(msg, node, ...) \
   do                          \
   {                           \
@@ -7540,12 +7540,19 @@ beta_reduce (Btor *btor,
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
+    DBG_P ("reduce %d: ", real_cur, real_cur->mark);
 
-    if (real_cur->mark == 0)
+    // FIXME: if a node is referenced multiple times within the reduced
+    //        expression, we always need the reduced node on the argument stack
+    //        before reducing its parent. hence, we have to reduce the child
+    //        node again. can this be avoided without caching already reduced
+    //        nodes? log/random3.btor
+    if (real_cur->mark == 0 || real_cur->mark == 2)
     {
-      real_cur->mark = 1;
+      /* push only once onto unmark stack */
+      if (real_cur->mark == 0) BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
-      BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
+      real_cur->mark = 1;
 
       if (BTOR_IS_PARAM_NODE (real_cur))
       {
@@ -7613,7 +7620,7 @@ beta_reduce (Btor *btor,
       }
       else
       {
-        assert (BTOR_IS_BINARY_NODE (real_cur)
+        assert (BTOR_IS_UNARY_NODE (real_cur) || BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_IS_TERNARY_NODE (real_cur));
 
         /* in case conditionals are evaluated */
@@ -7679,6 +7686,7 @@ beta_reduce (Btor *btor,
 
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
+      DBG_P ("push arg: ", result);
       BTOR_PUSH_STACK (mm, arg_stack, result);
     }
   }
