@@ -270,6 +270,8 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   int rewrite_writes;       /* rewrite writes to lambda expressions */
+  int no_pprint;            /* do not reindex exps for dumping if
+                               rewrite_writes enabled */
 
   BtorPtrHashTable *exp_pair_eq_table;
 

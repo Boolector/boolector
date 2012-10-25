@@ -59,6 +59,7 @@ struct BtorMainApp
   int verbosity;
   int incremental;
   int rewrite_writes;
+  int no_pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
 #endif
@@ -129,8 +130,9 @@ static const char *g_usage =
     "  -o|--output <file>               set output file for dumping\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  --no-rewrite-writes              do not rewrite writes to lambda "
+    "  -nrw|--no-rewrite-writes         do not rewrite writes to lambda "
     "expressions\n"
+    // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
     "  -picosat                         enforce usage of PicoSAT as SAT "
@@ -547,9 +549,15 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
-    else if (!strcmp (app->argv[app->argpos], "--no-rewrite-writes"))
+    else if (!strcmp (app->argv[app->argpos], "-nrw")
+             || !strcmp (app->argv[app->argpos], "--no-rewrite-writes"))
     {
       app->rewrite_writes = 0;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-npp")
+             || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
+    {
+      app->no_pprint = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-v")
              || !strcmp (app->argv[app->argpos], "--verbose"))
@@ -966,6 +974,7 @@ boolector_main (int argc, char **argv)
   app.force_smt_input        = 0;
   app.print_model            = 0;
   app.rewrite_writes         = 1;  // TODO: only for debug?
+  app.no_pprint              = 0;  // TODO: debug only
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
 #ifdef BTOR_USE_PICOSAT
@@ -1020,6 +1029,8 @@ boolector_main (int argc, char **argv)
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
     if (!app.rewrite_writes) btor_disable_rewrite_writes (btor);
+
+    if (app.no_pprint) btor_disable_pretty_print (btor);
 
     if (app.print_model) btor_enable_model_gen (btor);
 
