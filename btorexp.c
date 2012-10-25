@@ -4727,10 +4727,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   if (btor->rewrite_writes && !btor->no_pprint) pprint = 1;
 
-  DBG_P ("** pretty print: %d (btor) %d (dump_exps)\n",
-         0,
-         btor->no_pprint,
-         pprint);
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
 
@@ -4789,22 +4785,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   BTOR_RELEASE_STACK (mm, work_stack);
 
-  // debug
-  if (pprint)
-  {
-    for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
-      DBG_P ("old: ", const_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (bvvar_stack); i++)
-      DBG_P ("old: ", bvvar_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (avar_stack); i++)
-      DBG_P ("old: ", avar_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (param_stack); i++)
-      DBG_P ("old: ", param_stack.start[i]);
-  }
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-    DBG_P ("old: ", stack.start[i]);
-  // end debug
-
   if (pprint)
   {
     /* unmark and assign ids in order of DFS traversal - var, const and param
@@ -4847,22 +4827,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     if (stack.start)
       qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof cur, btor_cmp_id);
   }
-
-  // debug
-  if (pprint)
-  {
-    for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
-      DBG_P ("new: ", const_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (bvvar_stack); i++)
-      DBG_P ("new: ", bvvar_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (avar_stack); i++)
-      DBG_P ("new: ", avar_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (param_stack); i++)
-      DBG_P ("new: ", param_stack.start[i]);
-  }
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-    DBG_P ("new: ", stack.start[i]);
-  // end debug
 
   if (pprint)
   {
@@ -4927,22 +4891,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
       stack.start[i]->id = id_stack.start[stack.start[i]->id - 1];
   }
-
-  // debug
-  if (pprint)
-  {
-    for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
-      DBG_P ("reset: ", const_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (bvvar_stack); i++)
-      DBG_P ("reset: ", bvvar_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (avar_stack); i++)
-      DBG_P ("reset: ", avar_stack.start[i]);
-    for (i = 0; i < BTOR_COUNT_STACK (param_stack); i++)
-      DBG_P ("reset: ", param_stack.start[i]);
-  }
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-    DBG_P ("reset: ", stack.start[i]);
-  // end debug
 
   BTOR_RELEASE_STACK (mm, stack);
   if (pprint)
