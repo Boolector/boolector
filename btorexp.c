@@ -7122,8 +7122,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
 
-  int changed_assignments, update, i, j;
-  // BtorNodePtrStack work_stack, enc_stack, unmark_stack;
+  int changed_assignments, update, i;
   BtorNodePtrStack work_stack, unmark_stack;
   BtorNode *cur;
   BtorMemMgr *mm;
@@ -7139,58 +7138,49 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   DBG_P ("lazy_synthesize_and_encode_lambda_exp: ", lambda_exp);
 
-  for (i = 0; i < lambda_exp->arity; i++)
+  BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
+
+  while (!BTOR_EMPTY_STACK (work_stack))
   {
-    BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[i]));
+    cur = BTOR_POP_STACK (work_stack);
+    assert (cur);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (!BTOR_IS_WRITE_NODE (cur));
 
-    while (!BTOR_EMPTY_STACK (work_stack))
+    if (cur->mark == 2) continue;
+
+    /* do not encode array vars */
+    if (BTOR_IS_ARRAY_VAR_NODE (cur)) continue;
+
+    if (cur->mark == 0)
     {
-      cur = BTOR_POP_STACK (work_stack);
-      assert (cur);
-      assert (BTOR_IS_REGULAR_NODE (cur));
+      cur->mark = 1;
+      BTOR_PUSH_STACK (mm, work_stack, cur);
+      BTOR_PUSH_STACK (mm, unmark_stack, cur);
+
+      if (BTOR_IS_READ_NODE (cur)) continue;
+
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+    }
+    else
+    {
+      assert (!BTOR_IS_LAMBDA_NODE (cur));
       assert (!BTOR_IS_WRITE_NODE (cur));
+      assert (!BTOR_IS_ARRAY_COND_NODE (cur));
+      assert (cur->mark == 1);
+      cur->mark = 2;
 
-      if (cur->mark == 2) continue;
-
-      if (BTOR_IS_PARAM_NODE (cur)) continue;
-
-      if (cur->mark == 0)
+      if (!cur->parameterized)
       {
-        cur->mark = 1;
-        BTOR_PUSH_STACK (mm, work_stack, cur);
-        BTOR_PUSH_STACK (mm, unmark_stack, cur);
+        if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
 
-        if (BTOR_IS_READ_NODE (cur)) continue;
-
-        for (j = 0; j < cur->arity; j++)
-          BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[j]));
-      }
-      else
-      {
-        assert (cur->mark == 1);
-        assert (cur->aux_mark == 0);
-
-        cur->mark = 2;
-
-        if (BTOR_IS_PARAMETERIZED_NODE (cur)
-            || (cur->arity >= 1 && BTOR_REAL_ADDR_NODE (cur->e[0])->aux_mark)
-            || (cur->arity >= 2 && BTOR_REAL_ADDR_NODE (cur->e[1])->aux_mark)
-            || (cur->arity == 3 && BTOR_REAL_ADDR_NODE (cur->e[2])->aux_mark))
+        if (!cur->tseitin)
         {
-          cur->aux_mark = 1;
-        }
-        else
-        {
-          assert (!cur->aux_mark);
-
-          if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
-
-          if (cur->av && !cur->tseitin)
-          {
-            update = 1;
-            btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-            cur->tseitin = 1;
-          }
+          update = 1;
+          DBG_P ("encode: ", cur);
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+          cur->tseitin = 1;
         }
       }
     }
@@ -7201,8 +7191,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (cur->mark);
-    cur->mark     = 0;
-    cur->aux_mark = 0;
+    cur->mark = 0;
+    //    cur->aux_mark = 0;
   }
 
   BTOR_RELEASE_STACK (mm, unmark_stack);
@@ -8292,7 +8282,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
 
         /* skip parameterized reads */
-        if (BTOR_IS_PARAMETERIZED_NODE (cur_parent)) continue;
+        if (cur_parent->parameterized) continue;
 
         /* we only process reachable or virtual reads */
         check_not_simplified_or_const (btor, cur_parent);

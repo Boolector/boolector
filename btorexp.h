@@ -373,16 +373,6 @@ struct Btor
 
 #define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_PARAMETERIZED_NODE(exp)                             \
-  ((exp)                                                            \
-   && (BTOR_IS_PARAM_NODE (exp)                                     \
-       || (exp->arity >= 1                                          \
-           && BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp->e[0]))) \
-       || (exp->arity >= 2                                          \
-           && BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp->e[1]))) \
-       || (exp->arity == 3                                          \
-           && BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp->e[2])))))
-
 #define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARRAY_EQ_NODE(exp) \
