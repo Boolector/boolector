@@ -1527,10 +1527,12 @@ encode_lemma_new (Btor *btor,
 
     // TODO: searching for b might be a problem if returned value is an
     //       assigned param, e.g., lambda j . j
-#ifdef NDEBUG
-    bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0);
-#else
-    assert (bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0));
+#ifndef NDEBUG
+    int found =
+#endif
+        bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0);
+#ifndef NDEBUG
+    assert (found);
 #endif
 
     prev = NULL;
@@ -7540,7 +7542,7 @@ beta_reduce (Btor *btor,
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    DBG_P ("reduce %d: ", real_cur, real_cur->mark);
+    //    DBG_P ("reduce %d: ", real_cur, real_cur->mark);
 
     // FIXME: if a node is referenced multiple times within the reduced
     //        expression, we always need the reduced node on the argument stack
@@ -7694,7 +7696,7 @@ beta_reduce (Btor *btor,
 
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      DBG_P ("push arg: ", result);
+      //      DBG_P ("push arg: ", result);
       BTOR_PUSH_STACK (mm, arg_stack, result);
     }
   }
@@ -7897,15 +7899,12 @@ process_working_stack (Btor *btor,
       btor_free_bv_assignment_exp (btor, a);
 
       /* propagate down  */
-      // FIXME: what if lambda_value is no new node but already an existing
-      //        one?
-      if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
-          //            && !BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE
-          //            (lambda_value)))
-          && !BTOR_REAL_ADDR_NODE (lambda_value)->tseitin)
+
+      /* as soon as we encounter a read, we propagate acc down */
+      if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value)))
       {
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
-        //          assert (lambda_value->e[1] == index);
+        assert (lambda_value->e[1] == index);
 
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, lambda_value->e[0]);
