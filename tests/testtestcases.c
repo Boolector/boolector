@@ -53,7 +53,7 @@ run_testcases_tests (int argc, char** argv)
   FILE* file;
   int ch;
 
-  assert ((file = fopen ("testcases", "r")));
+  assert ((file = fopen ("tests/testcases", "r")));
 
   mem = btor_new_mem_mgr ();
 
