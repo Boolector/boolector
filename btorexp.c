@@ -143,7 +143,7 @@ static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
 // debug
-#if 0
+#if 1
 #define DBG_P(msg, node, ...) \
   do                          \
   {                           \
@@ -7166,6 +7166,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
       assert (cur->mark == 1);
       cur->mark = 2;
 
+      // TODO: lazy encode lambdas, writes and aconds?
+      //         -> may occur without reads
       if (!cur->parameterized)
       {
         if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
@@ -7889,7 +7891,6 @@ process_working_stack (Btor *btor,
       if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value)))
       {
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
-        assert (lambda_value->e[1] == index);
 
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, lambda_value->e[0]);
