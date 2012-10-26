@@ -1784,8 +1784,8 @@ normalize_negated_add (Btor *btor, BtorNode *exp)
 }
 
 #if 0
-static void normalize_eq_adds_exp (Btor * btor, 
-				   BtorNode * e0, BtorNode * e1, 
+static void normalize_eq_adds_exp (Btor * btor,
+				   BtorNode * e0, BtorNode * e1,
 				   BtorNode ** res0ptr, BtorNode ** res1ptr)
 {
   BtorNode * cur, * leftconst, * tmp, * res0, * res1, * one;
@@ -1833,7 +1833,7 @@ static void normalize_eq_adds_exp (Btor * btor,
     }
   while (!BTOR_EMPTY_STACK (stack));
 
-  BTOR_PUSH_STACK (mm, stack, e1); 
+  BTOR_PUSH_STACK (mm, stack, e1);
   do
     {
       cur = BTOR_POP_STACK (stack);
@@ -1878,7 +1878,7 @@ static void normalize_eq_adds_exp (Btor * btor,
       btor_release_exp (btor, res0);
       res0 = btor_copy_exp (btor, leftconst);
     }
-  else if (is_const_zero_exp (btor, res1)) 
+  else if (is_const_zero_exp (btor, res1))
     {
       btor_release_exp (btor, res1);
       res1 = btor_neg_exp (btor, leftconst);
