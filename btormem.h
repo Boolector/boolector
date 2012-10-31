@@ -70,6 +70,8 @@ struct BtorMemMgr
 {
   size_t allocated;
   size_t maxallocated;
+  size_t sat_allocated;
+  size_t sat_maxallocated;
 };
 
 typedef struct BtorMemMgr BtorMemMgr;
@@ -77,6 +79,12 @@ typedef struct BtorMemMgr BtorMemMgr;
 /*------------------------------------------------------------------------*/
 
 BtorMemMgr *btor_new_mem_mgr (void);
+
+void *btor_sat_malloc (BtorMemMgr *mm, size_t size);
+
+void *btor_sat_realloc (BtorMemMgr *mm, void *, size_t oldsz, size_t newsz);
+
+void btor_sat_free (BtorMemMgr *mm, void *p, size_t freed);
 
 void *btor_malloc (BtorMemMgr *mm, size_t size);
 

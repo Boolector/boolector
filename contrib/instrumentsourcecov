@@ -51,22 +51,22 @@ do
        [[ `expr "$line" : '.*\(:\)'` != ":" ]]; then
 
       if [[ `expr match "$lastline" "if"` -eq 2 ]] || \
-	 [[ `expr match "$lastline" "else"` -eq 4 ]] || \
-	 [[ `expr match "$lastline" "while"` -eq 5 ]] || \
-	 [[ `expr match "$lastline" "do"` -eq 2 ]] || \
-	 [[ `expr match "$lastline" "switch"` -eq 6 ]] || \
-	 [[ `expr match "$lastline" "for"` -eq 3 ]]; then
-	 echo -n "{ fprintf(stderr, \"%d\\n\", $id); " >> "$output"
-	 echo "$line }" >> "$output"
+         [[ `expr match "$lastline" "else"` -eq 4 ]] || \
+         [[ `expr match "$lastline" "while"` -eq 5 ]] || \
+         [[ `expr match "$lastline" "do"` -eq 2 ]] || \
+         [[ `expr match "$lastline" "switch"` -eq 6 ]] || \
+         [[ `expr match "$lastline" "for"` -eq 3 ]]; then
+         echo -n "{ fprintf(stderr, \"%d\\n\", $id); " >> "$output"
+         echo "$line }" >> "$output"
       else
-	echo "fprintf(stderr, \"%d\\n\", $id);" >> "$output"
-	echo "$line" >> "$output"
+        echo "fprintf(stderr, \"%d\\n\", $id);" >> "$output"
+        echo "$line" >> "$output"
       fi
      ((id++))
 
     else
       echo "$line" >> "$output"
-    fi	
+    fi  
 
     if [[ "$i" -lt "$len" ]]; then
       ((i++))

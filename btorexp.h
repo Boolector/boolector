@@ -30,6 +30,10 @@ BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
  * Some code also depends on that BTOR_INVALID_NODE, BTOR_CONST_NODE
  * and BTOR_VAR_NODE are at the beginning,
  * and BTOR_PROXY_NODE is BTOR_NUM_OPS_NODE - 1
+ * FURTHER NOTE:
+ * binary nodes: [BTOR_AND_NODE, ..., BTOR_LAMBDA_NODE]
+ * ternary nodes: [BTOR_WRITE_NODE, ..., BTOR_ACOND_NODE]
+ * commutative nodes: [BTOR_AND_NODE, ..., BTOR_MUL_NODE]
  */
 enum BtorNodeKind
 {
@@ -43,63 +47,66 @@ enum BtorNodeKind
   BTOR_BV_CONST_NODE  = 1,
   BTOR_BV_VAR_NODE    = 2,
   BTOR_ARRAY_VAR_NODE = 3,
-  BTOR_SLICE_NODE     = 4,
-  BTOR_AND_NODE       = 5,
-  BTOR_BEQ_NODE       = 6, /* equality on bit vectors */
-  BTOR_AEQ_NODE       = 7, /* equality on arrays */
-  BTOR_ADD_NODE       = 8,
-  BTOR_MUL_NODE       = 9,
-  BTOR_ULT_NODE       = 10,
-  BTOR_SLL_NODE       = 11,
-  BTOR_SRL_NODE       = 12,
-  BTOR_UDIV_NODE      = 13,
-  BTOR_UREM_NODE      = 14,
-  BTOR_CONCAT_NODE    = 15,
-  BTOR_READ_NODE      = 16,
-  BTOR_WRITE_NODE     = 17,
-  BTOR_BCOND_NODE     = 18, /* conditional on bit vectors */
-  BTOR_ACOND_NODE     = 19, /* conditional on arrays */
-  BTOR_PROXY_NODE     = 20, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 21
+  BTOR_PARAM_NODE     = 4, /* parameter for lambda expressions */
+  BTOR_SLICE_NODE     = 5,
+  BTOR_AND_NODE       = 6,
+  BTOR_BEQ_NODE       = 7, /* equality on bit vectors */
+  BTOR_AEQ_NODE       = 8, /* equality on arrays */
+  BTOR_ADD_NODE       = 9,
+  BTOR_MUL_NODE       = 10,
+  BTOR_ULT_NODE       = 11,
+  BTOR_SLL_NODE       = 12,
+  BTOR_SRL_NODE       = 13,
+  BTOR_UDIV_NODE      = 14,
+  BTOR_UREM_NODE      = 15,
+  BTOR_CONCAT_NODE    = 16,
+  BTOR_READ_NODE      = 17,
+  BTOR_LAMBDA_NODE    = 18, /* lambda expression */
+  BTOR_WRITE_NODE     = 19,
+  BTOR_BCOND_NODE     = 20, /* conditional on bit vectors */
+  BTOR_ACOND_NODE     = 21, /* conditional on arrays */
+  BTOR_PROXY_NODE     = 22, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE   = 23
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
-#define BTOR_BV_VAR_NODE_STRUCT                                        \
-  struct                                                               \
-  {                                                                    \
-    BtorNodeKind kind : 5;         /* kind of expression */            \
-    unsigned int mark : 3;         /* for DAG traversal */             \
-    unsigned int array_mark : 2;   /* for bottom up array traversal */ \
-    unsigned int aux_mark : 2;     /* auxiallary mark flag */          \
-    unsigned int synth_mark : 2;   /* mark for synthesize_exp */       \
-    unsigned int reachable : 1;    /* reachable from root ? */         \
-    unsigned int tseitin : 1;      /* tseiting encoded into SAT ? */   \
-    unsigned int vread : 1;        /* virtual read ? */                \
-    unsigned int vread_index : 1;  /* index for two virtual reads ? */ \
-    unsigned int constraint : 1;   /* top level constraint ? */        \
-    unsigned int erased : 1;       /* for debugging purposes */        \
-    unsigned int disconnected : 1; /* for debugging purposes */        \
-    unsigned int unique : 1;       /* in unique table? */              \
-    unsigned int bytes : 8;        /* allocated bytes */               \
-    unsigned int arity : 2;        /* arity of operator */             \
-    char *bits;                    /* three valued bits */             \
-    int id;                        /* unique expression id */          \
-    int len;                       /* number of bits */                \
-    int refs;                      /* reference counter */             \
-    union                                                              \
-    {                                                                  \
-      BtorAIGVec *av;        /* synthesized AIG vector */              \
-      BtorPtrHashTable *rho; /* for finding array conflicts */         \
-    };                                                                 \
-    BtorNode *next;         /* next in unique table */                 \
-    BtorNode *parent;       /* parent pointer for BFS */               \
-    BtorNode *simplified;   /* simplified expression */                \
-    Btor *btor;             /* boolector */                            \
-    BtorNode *first_parent; /* head of parent list */                  \
-    BtorNode *last_parent;  /* tail of parent list */                  \
+#define BTOR_BV_VAR_NODE_STRUCT                                             \
+  struct                                                                    \
+  {                                                                         \
+    BtorNodeKind kind : 5;          /* kind of expression */                \
+    unsigned int mark : 3;          /* for DAG traversal */                 \
+    unsigned int array_mark : 1;    /* for bottom up array traversal */     \
+    unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
+    unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
+    unsigned int reachable : 1;     /* reachable from root ? */             \
+    unsigned int tseitin : 1;       /* tseiting encoded into SAT ? */       \
+    unsigned int vread : 1;         /* virtual read ? */                    \
+    unsigned int vread_index : 1;   /* index for two virtual reads ? */     \
+    unsigned int constraint : 1;    /* top level constraint ? */            \
+    unsigned int erased : 1;        /* for debugging purposes */            \
+    unsigned int disconnected : 1;  /* for debugging purposes */            \
+    unsigned int unique : 1;        /* in unique table? */                  \
+    unsigned int bytes : 8;         /* allocated bytes */                   \
+    unsigned int arity : 2;         /* arity of operator */                 \
+    unsigned int parameterized : 1; /* at least one children is a param? */ \
+    char *bits;                     /* three-valued bits */                 \
+    int id;                         /* unique expression id */              \
+    int len;                        /* number of bits */                    \
+    int refs;                       /* reference counter */                 \
+    union                                                                   \
+    {                                                                       \
+      BtorAIGVec *av;        /* synthesized AIG vector */                   \
+      BtorPtrHashTable *rho; /* for finding array conflicts */              \
+    };                                                                      \
+    BtorNode *next;         /* next in unique table */                      \
+    BtorNode *parent;       /* parent pointer for BFS */                    \
+    BtorNode *simplified;   /* simplified expression */                     \
+    Btor *btor;             /* boolector */                                 \
+    BtorNode *first_parent; /* head of parent list */                       \
+    BtorNode *last_parent;  /* tail of parent list */                       \
   }
 
 #define BTOR_BV_ADDITIONAL_NODE_STRUCT                                  \
@@ -151,6 +158,16 @@ struct BtorBVVarNode
 };
 
 typedef struct BtorBVVarNode BtorBVVarNode;
+
+struct BtorParamNode
+{
+  BTOR_BV_VAR_NODE_STRUCT;
+  char *symbol;
+  BtorNode *lambda_exp;   /* 1:1 relation param:lambda_exp */
+  BtorNode *assigned_exp; /* is assigned before beta-reduction */
+};
+
+typedef struct BtorParamNode BtorParamNode;
 
 struct BtorBVConstNode
 {
@@ -238,6 +255,7 @@ struct Btor
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
+  BtorPtrHashTable *lambda_exps;
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
   int rec_rw_calls;    /* calls for recursive rewriting */
@@ -252,6 +270,9 @@ struct Btor
   int inc_enabled;          /* incremental usage enabled ? */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
+  int rewrite_writes;       /* rewrite writes to lambda expressions */
+  int no_pprint;            /* do not reindex exps for dumping if
+                               rewrite_writes enabled */
 
   BtorPtrHashTable *exp_pair_eq_table;
 
@@ -308,30 +329,34 @@ struct Btor
 
 #define BTOR_IS_BV_VAR_NODE_KIND(kind) ((kind) == BTOR_BV_VAR_NODE)
 
+#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
+
+#define BTOR_IS_PARAM_NODE_KIND(kind) ((kind) == BTOR_PARAM_NODE)
+
+#define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
+
+#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
+
 #define BTOR_IS_READ_NODE_KIND(kind) (kind == BTOR_READ_NODE)
+
+#define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
 #define BTOR_IS_WRITE_NODE_KIND(kind) (kind == BTOR_WRITE_NODE)
 
 #define BTOR_IS_ARRAY_COND_NODE_KIND(kind) (kind == BTOR_ACOND_NODE)
 
-#define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
-
 #define BTOR_IS_BV_COND_NODE_KIND(kind) (kind == BTOR_BCOND_NODE)
 
-#define BTOR_IS_ARRAY_VAR_NODE_KIND(kind) (kind == BTOR_ARRAY_VAR_NODE)
+#define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
 
 #define BTOR_IS_ARRAY_NODE_KIND(kind)                             \
   (((kind) == BTOR_ARRAY_VAR_NODE) || ((kind) == BTOR_WRITE_NODE) \
-   || ((kind) == BTOR_ACOND_NODE))
-
-#define BTOR_IS_ARRAY_EQ_NODE_KIND(kind) (kind == BTOR_AEQ_NODE)
-
-#define BTOR_IS_BV_EQ_NODE_KIND(kind) (kind == BTOR_BEQ_NODE)
+   || ((kind) == BTOR_ACOND_NODE) || ((kind) == BTOR_LAMBDA_NODE))
 
 #define BTOR_IS_UNARY_NODE_KIND(kind) ((kind) == BTOR_SLICE_NODE)
 
 #define BTOR_IS_BINARY_NODE_KIND(kind) \
-  (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_READ_NODE))
+  ((((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_LAMBDA_NODE)))
 
 #define BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND(kind) \
   (((kind) >= BTOR_AND_NODE) && ((kind) <= BTOR_MUL_NODE))
@@ -345,7 +370,23 @@ struct Btor
 #define BTOR_IS_BV_VAR_NODE(exp) \
   ((exp) && BTOR_IS_BV_VAR_NODE_KIND ((exp)->kind))
 
+#define BTOR_IS_ARRAY_VAR_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_PARAM_NODE(exp) ((exp) && BTOR_IS_PARAM_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_ARRAY_EQ_NODE(exp) \
+  ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
+  ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
+
 #define BTOR_IS_READ_NODE(exp) ((exp) && BTOR_IS_READ_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_LAMBDA_NODE(exp) \
+  ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_WRITE_NODE(exp) ((exp) && BTOR_IS_WRITE_NODE_KIND ((exp)->kind))
 
@@ -355,23 +396,12 @@ struct Btor
 #define BTOR_IS_BV_COND_NODE(exp) \
   ((exp) && BTOR_IS_BV_COND_NODE_KIND ((exp)->kind))
 
-#define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
-
 #define BTOR_IS_ARRAY_OR_BV_COND_NODE(exp) \
   ((exp) && (BTOR_IS_ARRAY_COND_NODE (exp) || BTOR_IS_BV_COND_NODE (exp)))
 
-#define BTOR_IS_ARRAY_VAR_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_VAR_NODE_KIND ((exp)->kind))
+#define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARRAY_NODE(exp) ((exp) && BTOR_IS_ARRAY_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_EQ_NODE(exp) \
-  ((exp) && BTOR_IS_ARRAY_EQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_BV_EQ_NODE(exp) ((exp) && BTOR_IS_BV_EQ_NODE_KIND ((exp)->kind))
-
-#define BTOR_IS_ARRAY_OR_BV_EQ_NODE(exp) \
-  ((exp) && (BTOR_IS_ARRAY_EQ_NODE (exp) || BTOR_IS_BV_EQ_NODE (exp)))
 
 #define BTOR_IS_UNARY_NODE(exp) ((exp) && BTOR_IS_UNARY_NODE_KIND ((exp)->kind))
 
@@ -412,16 +442,48 @@ struct Btor
 
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
-#define BTOR_IS_ACC_NODE(exp) \
-  (BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp))
+// FIXME lambda handling here is a temporary measure in order to make
+// extensionality for writes rewritten as lambdas work again
+// -> will have to do this properly for the general case
+#define BTOR_IS_ACC_NODE(exp)                          \
+  (BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp) \
+   || BTOR_IS_LAMBDA_NODE (                            \
+          exp))  //  (BTOR_IS_READ_NODE(exp) || BTOR_IS_WRITE_NODE(exp))
 
-#define BTOR_GET_INDEX_ACC_NODE(exp) ((exp)->e[1])
+#define BTOR_GET_INDEX_LAMBDA_NODE(exp)                                    \
+  (BTOR_IS_PARAM_NODE (                                                    \
+       BTOR_REAL_ADDR_NODE (                                               \
+           BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[0])    \
+           ->e[0])                                                         \
+       ? (BTOR_REAL_ADDR_NODE (                                            \
+              BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[0]) \
+              ->e[1])                                                      \
+       : (BTOR_REAL_ADDR_NODE (                                            \
+              BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[0]) \
+              ->e[0]))
 
-#define BTOR_GET_VALUE_ACC_NODE(exp) \
-  (BTOR_IS_READ_NODE (exp) ? (exp) : (exp)->e[2])
+#define BTOR_GET_VALUE_LAMBDA_NODE(exp) \
+  (BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[1])
+
+#define BTOR_LAMBDA_TARGET_NODE(exp) (exp)
+
+#define BTOR_GET_INDEX_ACC_NODE(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) ? BTOR_GET_INDEX_LAMBDA_NODE (exp) : (exp)->e[1])
+//((exp)->e[1])
+
+#define BTOR_GET_VALUE_ACC_NODE(exp)             \
+  (BTOR_IS_READ_NODE (exp)                       \
+       ? (exp)                                   \
+       : (BTOR_IS_WRITE_NODE (exp) ? (exp)->e[2] \
+                                   : BTOR_GET_VALUE_LAMBDA_NODE (exp)))
+//  (BTOR_IS_READ_NODE(exp) ? (exp) : (exp)->e[2])
 
 #define BTOR_ACC_TARGET_NODE(exp) \
-  (BTOR_IS_READ_NODE (exp) ? (exp)->e[0] : (exp))
+  (BTOR_IS_READ_NODE (exp)        \
+       ? (exp)->e[0]              \
+       : (BTOR_IS_WRITE_NODE (exp) ? (exp) : BTOR_LAMBDA_TARGET_NODE (exp)))
+//  (BTOR_IS_READ_NODE(exp) ? (exp)->e[0] : (exp))
+///////
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
@@ -520,6 +582,23 @@ BtorNode *btor_int_to_exp (Btor *emg, int i, int len);
  * len(result) = len
  */
 BtorNode *btor_var_exp (Btor *btor, int len, const char *symbol);
+
+/* Lambda variable representing 'len' bits.
+ * len > 0
+ * len(result) = len
+ */
+BtorNode *btor_param_exp (Btor *btor, int len, const char *symbol);
+
+/* Lambda expression representing array of size 2 ^ 'index_len' with elements
+ * of length 'elem_len'.
+ * elem_len > 0
+ * index_len > 0
+ */
+BtorNode *btor_lambda_exp (Btor *btor,
+                           int elem_len,
+                           int index_len,
+                           BtorNode *e_param,
+                           BtorNode *e_exp);
 
 /* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
@@ -991,6 +1070,14 @@ int btor_precond_cond_exp_dbg (const Btor *btor,
                                const BtorNode *e_cond,
                                const BtorNode *e_if,
                                const BtorNode *e_else);
+
+/*------------------------------------------------------------------------*/
+
+// Debugging support for Lambda path ...
+
+void btor_disable_rewrite_writes (Btor *btor);
+
+void btor_disable_pretty_print (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 #endif

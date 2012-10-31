@@ -337,9 +337,9 @@ btor_picosat_init (BtorSATMgr *smgr)
   btor_msg_sat (smgr, 1, "PicoSAT Version %s", picosat_version ());
 
   res = picosat_minit (smgr->mm,
-                       (picosat_malloc) btor_malloc,
-                       (picosat_realloc) btor_realloc,
-                       (picosat_free) btor_free);
+                       (picosat_malloc) btor_sat_malloc,
+                       (picosat_realloc) btor_sat_realloc,
+                       (picosat_free) btor_sat_free);
 
   picosat_set_global_default_phase (res, 0);
 
@@ -612,9 +612,9 @@ btor_lingeling_init (BtorSATMgr *smgr)
   }
   BTOR_CNEW (smgr->mm, res);
   res->lgl    = lglminit (smgr->mm,
-                       (lglalloc) btor_malloc,
-                       (lglrealloc) btor_realloc,
-                       (lgldealloc) btor_free);
+                       (lglalloc) btor_sat_malloc,
+                       (lglrealloc) btor_sat_realloc,
+                       (lgldealloc) btor_sat_free);
   res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)

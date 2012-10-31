@@ -1,0 +1,19 @@
+#!/bin/bash
+
+btor=boolector
+inputfile=$1
+assertfile=$2
+
+asserterror=$($btor $inputfile 2>&1 | grep Assertion)
+
+# initialize assertion error file
+if [ ! -e $assertfile ]; then
+  echo $asserterror > $assertfile
+fi
+
+expected_asserterror=$(cat $assertfile)
+if [ "$asserterror" = "$expected_asserterror" ]; then
+  exit 1
+else
+  exit 0
+fi

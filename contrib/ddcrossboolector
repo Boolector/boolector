@@ -1,0 +1,26 @@
+#!/bin/bash
+
+btor_dev=boolector
+btor_stable="boolector --no-rewrite-writes"
+inputfile=$1
+
+trap "exit" SIGHUP SIGINT SIGTERM
+
+$btor_stable $inputfile > /dev/null 2>&1
+expected_result=$?
+#echo "expected result: $expected_result"
+
+$btor_dev $inputfile > /dev/null 2>&1
+result=$?
+#echo "result: $result"
+
+# we do not want assertions errors for now
+if [[ $result != 10 && $result != 20 ]]; then
+  exit 0
+fi
+
+if [ $result -eq $expected_result ]; then
+  exit 0
+else
+  exit 1
+fi

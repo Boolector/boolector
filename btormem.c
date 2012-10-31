@@ -37,6 +37,13 @@
     if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
   } while (0)
 
+#define SAT_ADJUST()                              \
+  do                                              \
+  {                                               \
+    if (mm->sat_maxallocated < mm->sat_allocated) \
+      mm->sat_maxallocated = mm->sat_allocated;   \
+  } while (0)
+
 /*------------------------------------------------------------------------*/
 /* This enables logging of all memory allocations.
  */
@@ -62,8 +69,10 @@ btor_new_mem_mgr (void)
 {
   BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
   BTOR_ABORT_MEM (!mm, "out of memory in 'btor_new_mem_mgr'");
-  mm->allocated    = 0;
-  mm->maxallocated = 0;
+  mm->allocated        = 0;
+  mm->maxallocated     = 0;
+  mm->sat_allocated    = 0;
+  mm->sat_maxallocated = 0;
   return mm;
 }
 
@@ -82,6 +91,19 @@ btor_malloc (BtorMemMgr *mm, size_t size)
 }
 
 void *
+btor_sat_malloc (BtorMemMgr *mm, size_t size)
+{
+  void *result;
+  if (!size) return 0;
+  assert (mm);
+  result = malloc (size);
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_sat_malloc'");
+  mm->sat_allocated += size;
+  SAT_ADJUST ();
+  return result;
+}
+
+void *
 btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 {
   void *result;
@@ -95,6 +117,21 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   mm->allocated += new_size;
   ADJUST ();
   BTOR_LOG_MEM ("%p malloc %10ld (realloc)\n", result, new_size);
+  return result;
+}
+
+void *
+btor_sat_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
+{
+  void *result;
+  assert (mm);
+  assert (!p == !old_size);
+  assert (mm->sat_allocated >= old_size);
+  result = realloc (p, new_size);
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_sat_realloc'");
+  mm->sat_allocated -= old_size;
+  mm->sat_allocated += new_size;
+  SAT_ADJUST ();
   return result;
 }
 
@@ -120,6 +157,14 @@ btor_free (BtorMemMgr *mm, void *p, size_t freed)
   assert (mm->allocated >= freed);
   mm->allocated -= freed;
   BTOR_LOG_MEM ("%p free   %10ld\n", p, freed);
+  free (p);
+}
+
+void
+btor_sat_free (BtorMemMgr *mm, void *p, size_t freed)
+{
+  assert (mm);
+  if (p) mm->sat_allocated -= freed;
   free (p);
 }
 

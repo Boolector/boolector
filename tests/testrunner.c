@@ -44,11 +44,11 @@ static struct
   char nl[100];
 } terminal;
 
-/* By default a test is 'fast'.  Test that are a little bit slower
- * but still can be run in a regression run within a minute are 'normal' and
- * are listed below in 'normaltests'.  Slow tests take considerable more
- * time and are listed in 'slowtests', as rule of thumb a slow test
- * takes defintely more than 10 seconds to run.
+/* By default a test is 'fast'.  Tests that are a little bit slower but can
+ * still be run in a regression run within a minute are 'normal' and are
+ * listed below in 'normaltests'.  Slow tests take considerable more time
+ * and are listed in 'slowtests'.  As a rule of thumb a slow test takes
+ * defintely more than 10 seconds to run.
  */
 
 static const char *slowtests[] = {
