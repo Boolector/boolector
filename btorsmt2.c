@@ -850,7 +850,7 @@ btor_read_token_aux_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Node *node;
   unsigned char cc;
   int ch;
-  assert (!BTOR_INVALID_TAG_SMT2);  // error code:		0
+  assert (!BTOR_INVALID_TAG_SMT2);  // error code:          0
   BTOR_RESET_STACK (parser->token);
   parser->last_node = 0;
 RESTART:
@@ -860,7 +860,7 @@ RESTART:
     if ((ch = btor_nextch_smt2 (parser)) == EOF)
     {
       assert (EOF < 0);
-      return EOF;  // end of tokens:	EOF
+      return EOF;  // end of tokens:       EOF
     }
   } while (btor_isspace_smt2 (ch));
   if (ch == ';')
