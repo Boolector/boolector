@@ -296,7 +296,7 @@ void
 run_comp_tests (int argc, char **argv)
 {
   run_all_tests (argc, argv);
-  g_argv[3] = "-rwl0";
+  g_argv[1] = "-rwl0";
   run_all_tests (argc, argv);
 }
 
