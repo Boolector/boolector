@@ -2465,12 +2465,14 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
       assert (cur->mark == 1);
       cur->mark = 2;
 
+      /* do not set lambda nodes as parameterized */
+      if (BTOR_IS_LAMBDA_NODE (cur)) continue;
+
       if ((cur->arity >= 1 && BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized)
           || (cur->arity >= 2 && BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized)
           || (cur->arity == 3
               && BTOR_REAL_ADDR_NODE (cur->e[2])->parameterized))
       {
-        DBG_P ("parameterized: ", cur);
         cur->parameterized = 1;
       }
     }
@@ -2592,12 +2594,12 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
 
   BTOR_CNEW (btor->mm, lambda_exp);
   btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind          = BTOR_LAMBDA_NODE;
-  lambda_exp->bytes         = sizeof *lambda_exp;
-  lambda_exp->arity         = 2;
-  lambda_exp->len           = len;
-  lambda_exp->index_len     = BTOR_REAL_ADDR_NODE (e_param)->len;
-  lambda_exp->parameterized = 1;
+  lambda_exp->kind      = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes     = sizeof *lambda_exp;
+  lambda_exp->arity     = 2;
+  lambda_exp->len       = len;
+  lambda_exp->index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
+  //  lambda_exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, lambda_exp);
   connect_child_exp (btor, lambda_exp, e_param, 0);
   connect_child_exp (btor, lambda_exp, e_exp, 1);
@@ -7107,104 +7109,6 @@ update_sat_assignments (Btor *btor)
          || btor_changed_sat (smgr);
 }
 
-static int
-lazy_synthesize_and_encode_lambda_exp (Btor *btor,
-                                       BtorNode *lambda_exp,
-                                       int force_update)
-{
-  assert (btor);
-  assert (lambda_exp);
-  assert (BTOR_IS_REGULAR_NODE (lambda_exp));
-  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
-
-  int changed_assignments, update, i;
-  BtorNodePtrStack work_stack, unmark_stack;
-  BtorNode *cur;
-  BtorMemMgr *mm;
-  BtorAIGVecMgr *avmgr;
-
-  mm                  = btor->mm;
-  avmgr               = btor->avmgr;
-  changed_assignments = 0;
-  update              = 0;
-
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (unmark_stack);
-
-  DBG_P ("lazy_synthesize_and_encode_lambda_exp: ", lambda_exp);
-
-  BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
-
-  while (!BTOR_EMPTY_STACK (work_stack))
-  {
-    cur = BTOR_POP_STACK (work_stack);
-    assert (cur);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (!BTOR_IS_WRITE_NODE (cur));
-
-    if (cur->mark == 2) continue;
-
-    /* do not encode array vars */
-    if (BTOR_IS_ARRAY_VAR_NODE (cur)) continue;
-
-    if (cur->mark == 0)
-    {
-      cur->mark = 1;
-      BTOR_PUSH_STACK (mm, work_stack, cur);
-      BTOR_PUSH_STACK (mm, unmark_stack, cur);
-
-      if (BTOR_IS_READ_NODE (cur)) continue;
-
-      for (i = 0; i < cur->arity; i++)
-        BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
-    }
-    else
-    {
-      assert (!BTOR_IS_LAMBDA_NODE (cur));
-      assert (!BTOR_IS_WRITE_NODE (cur));
-      assert (!BTOR_IS_ARRAY_COND_NODE (cur));
-      assert (cur->mark == 1);
-      cur->mark = 2;
-
-      // TODO: lazy encode lambdas, writes and aconds?
-      //         -> may occur without reads
-      if (!cur->parameterized)
-      {
-        if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
-
-        if (!cur->tseitin)
-        {
-          update = 1;
-          DBG_P ("encode: ", cur);
-          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
-          cur->tseitin = 1;
-        }
-      }
-    }
-  }
-
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (cur->mark);
-    cur->mark = 0;
-    //    cur->aux_mark = 0;
-  }
-
-  BTOR_RELEASE_STACK (mm, unmark_stack);
-  BTOR_RELEASE_STACK (mm, work_stack);
-
-  /* set tseitin flag of lambda expression to indicate that it has been
-   * lazily synthesized already */
-  lambda_exp->tseitin = 1;
-
-  if (update && force_update)
-    changed_assignments = update_sat_assignments (btor);
-
-  return changed_assignments;
-}
-
 /* synthesizes and fully encodes index and value of access expression into SAT
  * (if necessary)
  * it returns if encoding changed assignments made so far
@@ -7283,6 +7187,106 @@ lazy_synthesize_and_encode_acond_exp (Btor *btor,
   /* update assignments if necessary */
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
+  return changed_assignments;
+}
+
+static int
+lazy_synthesize_and_encode_lambda_exp (Btor *btor,
+                                       BtorNode *lambda_exp,
+                                       int force_update)
+{
+  assert (btor);
+  assert (lambda_exp);
+  assert (BTOR_IS_REGULAR_NODE (lambda_exp));
+  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
+
+  int changed_assignments, update, i;
+  BtorNodePtrStack work_stack, unmark_stack;
+  BtorNode *cur;
+  BtorMemMgr *mm;
+  BtorAIGVecMgr *avmgr;
+
+  mm                  = btor->mm;
+  avmgr               = btor->avmgr;
+  changed_assignments = 0;
+  update              = 0;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  DBG_P ("lazy_synthesize_and_encode_lambda_exp: ", lambda_exp);
+
+  BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
+
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur = BTOR_POP_STACK (work_stack);
+    assert (cur);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (!BTOR_IS_WRITE_NODE (cur));
+
+    if (cur->mark == 2) continue;
+
+    /* do not encode array vars */
+    if (BTOR_IS_ARRAY_VAR_NODE (cur)) continue;
+
+    if (cur->mark == 0)
+    {
+      cur->mark = 1;
+      BTOR_PUSH_STACK (mm, work_stack, cur);
+      BTOR_PUSH_STACK (mm, unmark_stack, cur);
+
+      if (BTOR_IS_READ_NODE (cur)) continue;
+
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+    }
+    else
+    {
+      /* lambdas, writes and array conditionals are only reachable over array
+         equalities, we do not need to synthesize array nodes */
+      if (BTOR_IS_LAMBDA_NODE (cur) || BTOR_IS_WRITE_NODE (cur)
+          || BTOR_IS_ARRAY_COND_NODE (cur))
+        continue;
+
+      //      assert (!BTOR_IS_LAMBDA_NODE (cur));
+      //      assert (!BTOR_IS_WRITE_NODE (cur));
+      //      assert (!BTOR_IS_ARRAY_COND_NODE (cur));
+      assert (cur->mark == 1);
+      cur->mark = 2;
+
+      if (!cur->parameterized)
+      {
+        if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
+
+        if (!cur->tseitin)
+        {
+          update = 1;
+          btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+          cur->tseitin = 1;
+        }
+      }
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (cur->mark);
+    cur->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, work_stack);
+
+  /* set tseitin flag of lambda expression to indicate that it has been
+   * lazily synthesized already */
+  lambda_exp->tseitin = 1;
+
+  if (update && force_update)
+    changed_assignments = update_sat_assignments (btor);
+
   return changed_assignments;
 }
 
