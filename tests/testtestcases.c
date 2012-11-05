@@ -45,12 +45,12 @@ init_testcases_tests (void)
 }
 
 void
-run_testcases_tests (int argc, char** argv)
+run_testcases_tests (int argc, char **argv)
 {
   BtorCharStack buffer;
-  BtorMemMgr* mem;
-  char* token;
-  FILE* file;
+  BtorMemMgr *mem;
+  char *token;
+  FILE *file;
   int ch;
 
   assert ((file = fopen ("tests/testcases", "r")));

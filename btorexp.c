@@ -27,6 +27,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+// debug
+#if 1
+#define DBG_P(msg, node, ...) \
+  do                          \
+  {                           \
+  } while (0)
+#else
+#define DBG_P(msg, node, ...)                        \
+  do                                                 \
+  {                                                  \
+    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
+    if (node)                                        \
+      dump_node (stderr, node);                      \
+    else                                             \
+      fprintf (stderr, "\n");                        \
+  } while (0)
+#endif
+// debug
+
 /*------------------------------------------------------------------------*/
 
 // #define BTOR_DO_NOT_ELIMINATE_SLICES
@@ -141,25 +160,6 @@ static BtorNode *apply_beta_reduction (Btor *, BtorNode *, BtorNode *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, BtorNode *, int, int);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
-
-// debug
-#if 0
-#define DBG_P(msg, node, ...) \
-  do                          \
-  {                           \
-  } while (0)
-#else
-#define DBG_P(msg, node, ...)                        \
-  do                                                 \
-  {                                                  \
-    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
-    if (node)                                        \
-      dump_node (stderr, node);                      \
-    else                                             \
-      fprintf (stderr, "\n");                        \
-  } while (0)
-#endif
-// debug
 
 /*------------------------------------------------------------------------*/
 
@@ -4804,6 +4804,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (mm);
 
   if (btor->rewrite_writes && !btor->no_pprint) pprint = 1;
+
+  DBG_P ("pprint %d\n", 0, pprint);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);

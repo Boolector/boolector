@@ -53,6 +53,7 @@ test_const_exp (void)
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
   assert (btor_get_exp_len (btor, exp3) == 16);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp2);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -71,6 +72,7 @@ test_zero_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp1);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -88,6 +90,7 @@ test_ones_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp1);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -105,6 +108,7 @@ test_one_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp1);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -137,6 +141,7 @@ test_unsigned_to_exp (void)
   assert (btor_get_exp_len (btor, exp6) == 8);
   assert (btor_get_exp_len (btor, exp7) == 8);
   assert (btor_get_exp_len (btor, exp8) == 8);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp4);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -160,6 +165,7 @@ test_var_exp (void)
   assert (exp1 == exp2);
   assert (btor_get_exp_len (btor, exp1) == 8);
   assert (btor_get_exp_len (btor, exp2) == 8);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp2);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -183,6 +189,7 @@ test_array_exp (void)
   assert (btor_get_index_exp_len (btor, exp1) == 8);
   assert (btor_get_index_exp_len (btor, exp2) == 8);
   assert (btor_get_index_exp_len (btor, exp3) == 8);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp2);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -211,6 +218,7 @@ unary_exp_test (BtorNode *(*func) (Btor *, BtorNode *), char *log)
     assert (btor_get_exp_len (btor, exp2) == 1);
     assert (btor_get_exp_len (btor, exp3) == 1);
   }
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -258,6 +266,7 @@ test_slice_exp (void)
   BtorNode *exp2 = btor_slice_exp (btor, exp1, 31, 30);
   BtorNode *exp3 = btor_slice_exp (btor, exp1, 31, 30);
   assert (exp2 == exp3);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -275,6 +284,7 @@ ext_exp_test (BtorNode *(*func) (Btor *, BtorNode *, int), char *log)
   BtorNode *exp2 = func (btor, exp1, 32);
   BtorNode *exp3 = func (btor, exp1, 32);
   assert (exp2 == exp3);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -323,6 +333,7 @@ binary_commutative_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *),
     assert (btor_get_exp_len (btor, exp4) == 8);
     assert (btor_get_exp_len (btor, exp5) == 8);
   }
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -426,6 +437,7 @@ binary_non_commutative_exp_test (
     assert (btor_get_exp_len (btor, exp4) == 1);
     assert (btor_get_exp_len (btor, exp5) == 1);
   }
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp4);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -562,6 +574,7 @@ mulo_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *), char *log)
   assert (btor_get_exp_len (btor, exp3) == 1);
   assert (btor_get_exp_len (btor, exp4) == 1);
   assert (btor_get_exp_len (btor, exp5) == 1);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp4);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -599,6 +612,7 @@ shift_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *), char *log)
   assert (btor_get_exp_len (btor, exp2) == 5);
   assert (btor_get_exp_len (btor, exp3) == 32);
   assert (btor_get_exp_len (btor, exp4) == 32);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp4);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -653,6 +667,7 @@ test_read_exp (void)
   assert (btor_get_exp_len (btor, exp2) == 8);
   assert (btor_get_exp_len (btor, exp3) == 32);
   assert (btor_get_exp_len (btor, exp4) == 32);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp4);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -681,6 +696,7 @@ test_cond_exp (void)
   assert (btor_get_exp_len (btor, exp4) == 32);
   assert (btor_get_exp_len (btor, exp5) == 32);
   assert (btor_get_exp_len (btor, exp6) == 32);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp4);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -713,6 +729,7 @@ test_write_exp (void)
   assert (btor_get_exp_len (btor, exp5) == 1);
   assert (btor_get_exp_len (btor, exp6) == 1);
   assert (btor_get_exp_len (btor, exp7) == 1);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp7);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -734,6 +751,7 @@ test_inc_exp (void)
   BtorNode *exp2 = btor_inc_exp (btor, exp1);
   BtorNode *exp3 = btor_inc_exp (btor, exp1);
   assert (exp2 == exp3);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
@@ -751,6 +769,7 @@ test_dec_exp (void)
   BtorNode *exp2 = btor_dec_exp (btor, exp1);
   BtorNode *exp3 = btor_dec_exp (btor, exp1);
   assert (exp2 == exp3);
+  btor->rewrite_writes = 0;
   btor_dump_exp (btor, fout, exp3);
   btor_release_exp (btor, exp1);
   btor_release_exp (btor, exp2);
