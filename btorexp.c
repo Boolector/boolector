@@ -1540,7 +1540,8 @@ encode_lemma_new (Btor *btor,
     for (cur = lambda_value; cur && cur != acc2; cur = cur->parent)
     {
       assert (BTOR_IS_REGULAR_NODE (cur));
-      if (BTOR_IS_BV_COND_NODE (cur))
+      /* skip lambda_value if it is a bv conditional (no conds to collect) */
+      if (BTOR_IS_BV_COND_NODE (cur) && cur != lambda_value)
       {
         cond = cur->e[0];
         if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
