@@ -508,6 +508,12 @@ Btor *btor_clone_btor (Btor *);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
+/* Disable rewriting writes to Lambda expressions.  */
+void btor_disable_rewrite_writes (Btor *btor);
+
+/* Disable pretty printing when dumping and rewriting of writes is enabled.  */
+void btor_disable_pretty_print (Btor *btor);
+
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
 
