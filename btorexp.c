@@ -522,6 +522,8 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
       BTOR_NEXT_AEQ_ACOND_PARENT (parent->prev_aeq_acond_parent[pos]) =
           parent->next_aeq_acond_parent[pos];
     }
+    parent->next_aeq_acond_parent[pos] = 0;
+    parent->prev_aeq_acond_parent[pos] = 0;
   }
   else
   {
@@ -563,10 +565,10 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
       BTOR_PREV_PARENT (parent->next_parent[pos]) = parent->prev_parent[pos];
       BTOR_NEXT_PARENT (parent->prev_parent[pos]) = parent->next_parent[pos];
     }
+    parent->next_parent[pos] = 0;
+    parent->prev_parent[pos] = 0;
   }
-  parent->next_parent[pos] = 0;
-  parent->prev_parent[pos] = 0;
-  parent->e[pos]           = 0;
+  parent->e[pos] = 0;
 }
 
 /* Computes hash value of expresssion by children ids */
@@ -2058,6 +2060,8 @@ connect_array_child_acond_exp (Btor *btor,
   /* append at the end of the list */
   else
   {
+    assert (!parent->prev_aeq_acond_parent[pos]);
+    assert (!parent->next_aeq_acond_parent[pos]);
     last_parent = child->last_aeq_acond_parent;
     assert (last_parent);
     parent->prev_aeq_acond_parent[pos] = last_parent;
@@ -2103,6 +2107,8 @@ connect_array_child_aeq_exp (Btor *btor,
   /* add parent at the beginning of the list */
   else
   {
+    assert (!parent->prev_aeq_acond_parent[pos]);
+    assert (!parent->next_aeq_acond_parent[pos]);
     first_parent = child->first_aeq_acond_parent;
     assert (first_parent);
     parent->next_aeq_acond_parent[pos] = first_parent;
@@ -8612,7 +8618,7 @@ static void
 rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 {
   BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
-  BtorNode *tagged_parent, *parent, **lookup;
+  BtorNode *tagged_parent, *parent, **lookup, *e0, *e1, *e2;
   BtorFullParentIterator it;
   BtorNodePtrStack parent_stack;
   int pos, cnt_parents = 0;
@@ -8668,6 +8674,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   /* connect lambda exp to parents of write node */
   while (!BTOR_EMPTY_STACK (parent_stack))
   {
+    if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
+
     tagged_parent = BTOR_POP_STACK (parent_stack);
     assert (tagged_parent);
     parent = BTOR_REAL_ADDR_NODE (tagged_parent);
@@ -8678,23 +8686,47 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
     assert (BTOR_IS_BINARY_NODE (parent) || BTOR_IS_TERNARY_NODE (parent));
 
+    /* with -rwl0 it is possible to have parents that have 'write' multiple
+     * times as child,
+     * e.g., an array equality (write = write), acond (cond, write, write).
+     * if we encounter such a case we have to wait until all children of
+     * 'parent' are connected before inserting 'parent' into the unique table.
+     */
+    e0 = parent->e[0];
+    e1 = parent->e[1];
     if (BTOR_IS_BINARY_NODE (parent))
     {
-      if (BTOR_REAL_ADDR_NODE (parent->e[0])->id
-          > BTOR_REAL_ADDR_NODE (parent->e[1])->id)
+      assert (e0 || e1);
+
+      if (!e0 || !e1)
       {
-        lookup =
-            find_binary_exp (btor, parent->kind, parent->e[1], parent->e[0]);
+        assert (BTOR_IS_ARRAY_EQ_NODE (parent));
+        continue; /* not all children connected yet */
       }
-      else
+
+      if (BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
       {
-        lookup =
-            find_binary_exp (btor, parent->kind, parent->e[0], parent->e[1]);
+        e2 = e0;
+        e0 = e1;
+        e1 = e2;
       }
+
+      lookup = find_binary_exp (btor, parent->kind, e0, e1);
     }
     else
-      lookup = find_ternary_exp (
-          btor, parent->kind, parent->e[0], parent->e[1], parent->e[2]);
+    {
+      assert (e0);
+      e2 = parent->e[2];
+      assert (e1 || e2);
+
+      if (!e1 || !e2)
+      {
+        assert (BTOR_IS_ARRAY_COND_NODE (parent));
+        continue; /* not all children connected yet */
+      }
+
+      lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
+    }
 
     assert (!*lookup);
     assert (!parent->next);
@@ -8708,8 +8740,6 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
     assert (parent->unique);
     assert (BTOR_IS_REGULAR_NODE (*lookup));
-
-    if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
   }
 
   btor_release_exp (btor, e_if);
