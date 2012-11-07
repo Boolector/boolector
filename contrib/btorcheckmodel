@@ -3,8 +3,7 @@ from __future__ import with_statement
 import sys, os, random, signal
 
 def dec2bin(dec, len):
-  ret = os.popen ("echo \"ibase=10;obase=2; " + str(dec) + "\" | bc")
-  binary = ret.readline().strip()
+  binary = bin(dec).split('b')[1]
   evalstring= "%0" + str(len) + "d"
   return evalstring % int(binary)
 
