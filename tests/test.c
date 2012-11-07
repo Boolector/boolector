@@ -59,18 +59,19 @@
     finish_##name##_tests ();        \
   } while (0)
 
-#define USAGE                                                              \
-  "usage: test [options] [patterns]\n\n"                                   \
-  "  options:\n"                                                           \
-  "    -h, --help       print this message and exit\n"                     \
-  "    -n, --norww      run boolector with rewriting of writes disabled\n" \
-  "    -s, --slow       run 'slow' testcases also\n"                       \
-  "    -f, --fast       run 'fast' testcases only\n"                       \
-  "                     default: run 'fast' and 'normal' testcases\n"      \
-  "  patterns:\n"                                                          \
-  "    a valid pattern is a substring of the following expressions:\n"     \
-  "      aig, aigvec, arithmetic, comp, const, exp, hash, inc, logic,\n"   \
-  "      mem, misc, modelgen, overflow, parseerror, queue, sat, shift,\n"  \
+#define USAGE                                                                \
+  "usage: test [options] [patterns]\n\n"                                     \
+  "  options:\n"                                                             \
+  "    -h, --help       print this message and exit\n"                       \
+  "    -n, --norww      run boolector with rewriting of writes disabled\n"   \
+  "    -s, --slow       run 'slow' testcases also\n"                         \
+  "    -f, --fast       run 'fast' testcases only\n"                         \
+  "                     (default: run 'fast' and 'normal' testcases)\n"      \
+  "  patterns:\n"                                                            \
+  "    a valid pattern is a substring of an existing test case out of the\n" \
+  "    following test case sets:\n"                                          \
+  "      aig, aigvec, arithmetic, comp, const, exp, hash, inc, logic,\n"     \
+  "      mem, misc, modelgen, overflow, parseerror, queue, sat, shift,\n"    \
   "      smtaxioms, special, stack, util, testcases\n"
 
 int

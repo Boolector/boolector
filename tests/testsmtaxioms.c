@@ -70,6 +70,8 @@ test_smtaxiom (BtorMemMgr* mem, int argc, char** argv, char* p, int i)
   BTOR_PUSH_STACK (mem, g_args, "-o");
   BTOR_PUSH_STACK (mem, g_args, "/dev/null");
 
+  if (!g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-nrw");
+
   sprintf (name, "smtaxiom%s%d", p, i);
   sprintf (buffer, "log/%s.smt", name);
   BTOR_PUSH_STACK (mem, g_args, buffer);

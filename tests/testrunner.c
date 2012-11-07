@@ -326,8 +326,8 @@ run_test_case (
       {
         /* "log/" + name + "_rww" + ".log" or ".out" + \0 */
         len          = 4 + strlen (name) + 4 + 4 + 1;
-        logfile_name = malloc (len);
-        outfile_name = malloc (len);
+        logfile_name = (char *) malloc (len);
+        outfile_name = (char *) malloc (len);
         sprintf (logfile_name, "%s%s%s.log", "log/", name, "_rww");
         sprintf (outfile_name, "%s%s%s.out", "log/", name, "_rww");
       }
@@ -335,8 +335,8 @@ run_test_case (
       {
         /* "log/" + name + ".log" or ".out" + \0 */
         len          = 4 + strlen (name) + 4 + 1;
-        logfile_name = malloc (len);
-        outfile_name = malloc (len);
+        logfile_name = (char *) malloc (len);
+        outfile_name = (char *) malloc (len);
         sprintf (logfile_name, "%s%s.log", "log/", name);
         sprintf (outfile_name, "%s%s.out", "log/", name);
       }
