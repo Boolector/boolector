@@ -17,30 +17,30 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "testconst.h"
+#include "testexp.h"
+#include "testhash.h"
+#include "testmem.h"
+#include "testqueue.h"
+#include "testrunner.h"
+#include "teststack.h"
+#include "testutil.h"
+//#include "testexprww.h"
 #include "testaig.h"
 #include "testaigvec.h"
 #include "testarithmetic.h"
 #include "testcomp.h"
-#include "testconst.h"
-#include "testexp.h"
-#include "testexprww.h"
-#include "testhash.h"
 #include "testinc.h"
 #include "testlogic.h"
-#include "testmem.h"
 #include "testmisc.h"
 #include "testmodelgen.h"
 #include "testoverflow.h"
 #include "testparseerror.h"
-#include "testqueue.h"
-#include "testrunner.h"
 #include "testsat.h"
 #include "testshift.h"
 #include "testsmtaxioms.h"
 #include "testspecial.h"
-#include "teststack.h"
 #include "testtestcases.h"
-#include "testutil.h"
 
 #ifdef NDEBUG
 #undef NDEBUG
@@ -119,10 +119,10 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);
-  if (rewrite_writes)
-    BTOR_RUN_TESTS (exp_rww);
-  else
-    BTOR_RUN_TESTS (exp);
+  // if (rewrite_writes)
+  //   BTOR_RUN_TESTS (exp_rww);
+  // else
+  BTOR_RUN_TESTS (exp);
   BTOR_RUN_TESTS (logic);
   BTOR_RUN_TESTS (comp);
   BTOR_RUN_TESTS (arithmetic);
