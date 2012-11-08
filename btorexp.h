@@ -487,6 +487,11 @@ struct Btor
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
+#define BTOR_IS_PARAMETERIZED_NODE(exp)                                       \
+  (((exp)->arity >= 1 && BTOR_REAL_ADDR_NODE ((exp)->e[0])->parameterized)    \
+   || ((exp)->arity >= 2 && BTOR_REAL_ADDR_NODE ((exp)->e[1])->parameterized) \
+   || ((exp)->arity == 3 && BTOR_REAL_ADDR_NODE ((exp)->e[2])->parameterized))
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */
