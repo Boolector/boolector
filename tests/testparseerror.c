@@ -38,34 +38,32 @@ init_parseerror_tests (void)
 static void
 parseerror_test (const char *fname, int btor)
 {
-  char *btor_fname, *syscall_string, *suffix;
-  size_t len, suffix_len;
-  int ret_val;
+  char *suffix, *opt = NULL, *syscall_string;
+  int len_opt = 0, ret_val;
 
-  len = strlen (fname);
+  if (g_rwwrites) opt = "-nrw";
+
   if (btor)
-  {
-    suffix     = ".btor";
-    suffix_len = 5;
-  }
+    suffix = ".btor";
   else
-  {
-    suffix     = ".smt";
-    suffix_len = 4;
-  }
+    suffix = ".smt";
 
-  btor_fname = (char *) malloc (sizeof (char) * (len + suffix_len + 1));
-  sprintf (btor_fname, "%s%s", fname, suffix);
+  if (opt) len_opt = strlen (opt);
+
   syscall_string = (char *) malloc (
       sizeof (char)
-      * (strlen ("boolector log/") + len + 6 + strlen (" > /dev/null") + 1));
+      * (strlen ("./boolector log/") + strlen (fname) + strlen (suffix)
+         + len_opt + strlen (" > /dev/null") + 1));
 
-  sprintf (syscall_string, "boolector log/%s > /dev/null", btor_fname);
+  if (opt)
+    sprintf (syscall_string, "./boolector log/%s %s > /dev/null", fname, opt);
+  else
+    sprintf (syscall_string, "./boolector log/%s > /dev/null", fname);
+
   ret_val = system (syscall_string);
   assert (WEXITSTATUS (ret_val) == 1);
 
   free (syscall_string);
-  free (btor_fname);
 }
 
 static void

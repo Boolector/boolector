@@ -730,90 +730,77 @@ test_srl_const (void)
 }
 
 static void
-test_const_to_hex_aux (FILE *fout, const char *c)
+test_const_to_hex_aux (FILE *g_logfile, const char *c)
 {
   char *h = btor_const_to_hex (g_mm, c);
-  fprintf (fout, "2'%s = 16'%s\n", c, h);
+  fprintf (g_logfile, "2'%s = 16'%s\n", c, h);
   btor_freestr (g_mm, h);
 }
 
 static void
 test_const_to_hex (void)
 {
-  FILE *fout = fopen ("log/const_to_hex.log", "w");
-  test_const_to_hex_aux (fout, "");
-  test_const_to_hex_aux (fout, "1");
-  test_const_to_hex_aux (fout, "10");
-  test_const_to_hex_aux (fout, "11");
-  test_const_to_hex_aux (fout, "100");
-  test_const_to_hex_aux (fout, "101");
-  test_const_to_hex_aux (fout, "110");
-  test_const_to_hex_aux (fout, "111");
-  test_const_to_hex_aux (fout, "1000");
-  test_const_to_hex_aux (fout, "1001");
-  test_const_to_hex_aux (fout, "1010");
-  test_const_to_hex_aux (fout, "1011");
-  test_const_to_hex_aux (fout, "1100");
-  test_const_to_hex_aux (fout, "1101");
-  test_const_to_hex_aux (fout, "1110");
-  test_const_to_hex_aux (fout, "1111");
-  test_const_to_hex_aux (fout, "10000");
-  test_const_to_hex_aux (fout, "10001");
-  test_const_to_hex_aux (fout, "1111111111111111");
-  test_const_to_hex_aux (fout, "11111111111111111");
-  test_const_to_hex_aux (fout, "00001111111111111111");
-  test_const_to_hex_aux (fout, "000011111111111111111");
-  fclose (fout);
+  test_const_to_hex_aux (g_logfile, "");
+  test_const_to_hex_aux (g_logfile, "1");
+  test_const_to_hex_aux (g_logfile, "10");
+  test_const_to_hex_aux (g_logfile, "11");
+  test_const_to_hex_aux (g_logfile, "100");
+  test_const_to_hex_aux (g_logfile, "101");
+  test_const_to_hex_aux (g_logfile, "110");
+  test_const_to_hex_aux (g_logfile, "111");
+  test_const_to_hex_aux (g_logfile, "1000");
+  test_const_to_hex_aux (g_logfile, "1001");
+  test_const_to_hex_aux (g_logfile, "1010");
+  test_const_to_hex_aux (g_logfile, "1011");
+  test_const_to_hex_aux (g_logfile, "1100");
+  test_const_to_hex_aux (g_logfile, "1101");
+  test_const_to_hex_aux (g_logfile, "1110");
+  test_const_to_hex_aux (g_logfile, "1111");
+  test_const_to_hex_aux (g_logfile, "10000");
+  test_const_to_hex_aux (g_logfile, "10001");
+  test_const_to_hex_aux (g_logfile, "1111111111111111");
+  test_const_to_hex_aux (g_logfile, "11111111111111111");
+  test_const_to_hex_aux (g_logfile, "00001111111111111111");
+  test_const_to_hex_aux (g_logfile, "000011111111111111111");
 }
 
 static void
-test_const_to_dec_aux (FILE *fout, const char *c)
+test_const_to_dec_aux (FILE *g_logfile, const char *c)
 {
   char *d = btor_const_to_decimal (g_mm, c);
-  fprintf (fout, "2'%s = 10'%s\n", c, d);
+  fprintf (g_logfile, "2'%s = 10'%s\n", c, d);
   btor_freestr (g_mm, d);
 }
 
 static void
 test_const_to_dec (void)
 {
-  FILE *fout = fopen ("log/const_to_dec.log", "w");
-  test_const_to_dec_aux (fout, "");
-  test_const_to_dec_aux (fout, "1");
-  test_const_to_dec_aux (fout, "10");
-  test_const_to_dec_aux (fout, "11");
-  test_const_to_dec_aux (fout, "100");
-  test_const_to_dec_aux (fout, "101");
-  test_const_to_dec_aux (fout, "110");
-  test_const_to_dec_aux (fout, "111");
-  test_const_to_dec_aux (fout, "1000");
-  test_const_to_dec_aux (fout, "1001");
-  test_const_to_dec_aux (fout, "1010");
-  test_const_to_dec_aux (fout, "1011");
-  test_const_to_dec_aux (fout, "1100");
-  test_const_to_dec_aux (fout, "1101");
-  test_const_to_dec_aux (fout, "1110");
-  test_const_to_dec_aux (fout, "1111");
-  test_const_to_dec_aux (fout, "10000");
-  test_const_to_dec_aux (fout, "10001");
-  test_const_to_dec_aux (fout, "10000000000000000");
-  test_const_to_dec_aux (fout,
+  test_const_to_dec_aux (g_logfile, "");
+  test_const_to_dec_aux (g_logfile, "1");
+  test_const_to_dec_aux (g_logfile, "10");
+  test_const_to_dec_aux (g_logfile, "11");
+  test_const_to_dec_aux (g_logfile, "100");
+  test_const_to_dec_aux (g_logfile, "101");
+  test_const_to_dec_aux (g_logfile, "110");
+  test_const_to_dec_aux (g_logfile, "111");
+  test_const_to_dec_aux (g_logfile, "1000");
+  test_const_to_dec_aux (g_logfile, "1001");
+  test_const_to_dec_aux (g_logfile, "1010");
+  test_const_to_dec_aux (g_logfile, "1011");
+  test_const_to_dec_aux (g_logfile, "1100");
+  test_const_to_dec_aux (g_logfile, "1101");
+  test_const_to_dec_aux (g_logfile, "1110");
+  test_const_to_dec_aux (g_logfile, "1111");
+  test_const_to_dec_aux (g_logfile, "10000");
+  test_const_to_dec_aux (g_logfile, "10001");
+  test_const_to_dec_aux (g_logfile, "10000000000000000");
+  test_const_to_dec_aux (g_logfile,
                          "1"
                          "00000000"
                          "00000000"
                          "00000000"
                          "00000000");
-  test_const_to_dec_aux (fout,
-                         "1"
-                         "00000000"
-                         "00000000"
-                         "00000000"
-                         "00000000"
-                         "00000000"
-                         "00000000"
-                         "00000000"
-                         "00000000");
-  test_const_to_dec_aux (fout,
+  test_const_to_dec_aux (g_logfile,
                          "1"
                          "00000000"
                          "00000000"
@@ -822,6 +809,16 @@ test_const_to_dec (void)
                          "00000000"
                          "00000000"
                          "00000000"
+                         "00000000");
+  test_const_to_dec_aux (g_logfile,
+                         "1"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
+                         "00000000"
                          "00000000"
                          "00000000"
                          "00000000"
@@ -831,127 +828,116 @@ test_const_to_dec (void)
                          "00000000"
                          "00000000"
                          "00000000");
-  fclose (fout);
 }
 
 static void
-test_hex_to_const_aux (FILE *file, const char *h)
+test_hex_to_const_aux (FILE *g_logfile, const char *h)
 {
   char *c = btor_hex_to_const (g_mm, h);
-  fprintf (file, "16'%s = 2'%s\n", h, c);
+  fprintf (g_logfile, "16'%s = 2'%s\n", h, c);
   btor_freestr (g_mm, c);
 }
 
 static void
 test_hex_to_const (void)
 {
-  FILE *file = fopen ("log/hex_to_const.log", "w");
-  test_hex_to_const_aux (file, "");
-  test_hex_to_const_aux (file, "1");
-  test_hex_to_const_aux (file, "2");
-  test_hex_to_const_aux (file, "3");
-  test_hex_to_const_aux (file, "4");
-  test_hex_to_const_aux (file, "5");
-  test_hex_to_const_aux (file, "6");
-  test_hex_to_const_aux (file, "7");
-  test_hex_to_const_aux (file, "8");
-  test_hex_to_const_aux (file, "9");
-  test_hex_to_const_aux (file, "a");
-  test_hex_to_const_aux (file, "A");
-  test_hex_to_const_aux (file, "b");
-  test_hex_to_const_aux (file, "B");
-  test_hex_to_const_aux (file, "c");
-  test_hex_to_const_aux (file, "C");
-  test_hex_to_const_aux (file, "d");
-  test_hex_to_const_aux (file, "D");
-  test_hex_to_const_aux (file, "e");
-  test_hex_to_const_aux (file, "E");
-  test_hex_to_const_aux (file, "f");
-  test_hex_to_const_aux (file, "F");
-  test_hex_to_const_aux (file, "10");
-  test_hex_to_const_aux (file, "13");
-  test_hex_to_const_aux (file, "2e");
-  test_hex_to_const_aux (file, "ff");
-  fclose (file);
+  test_hex_to_const_aux (g_logfile, "");
+  test_hex_to_const_aux (g_logfile, "1");
+  test_hex_to_const_aux (g_logfile, "2");
+  test_hex_to_const_aux (g_logfile, "3");
+  test_hex_to_const_aux (g_logfile, "4");
+  test_hex_to_const_aux (g_logfile, "5");
+  test_hex_to_const_aux (g_logfile, "6");
+  test_hex_to_const_aux (g_logfile, "7");
+  test_hex_to_const_aux (g_logfile, "8");
+  test_hex_to_const_aux (g_logfile, "9");
+  test_hex_to_const_aux (g_logfile, "a");
+  test_hex_to_const_aux (g_logfile, "A");
+  test_hex_to_const_aux (g_logfile, "b");
+  test_hex_to_const_aux (g_logfile, "B");
+  test_hex_to_const_aux (g_logfile, "c");
+  test_hex_to_const_aux (g_logfile, "C");
+  test_hex_to_const_aux (g_logfile, "d");
+  test_hex_to_const_aux (g_logfile, "D");
+  test_hex_to_const_aux (g_logfile, "e");
+  test_hex_to_const_aux (g_logfile, "E");
+  test_hex_to_const_aux (g_logfile, "f");
+  test_hex_to_const_aux (g_logfile, "F");
+  test_hex_to_const_aux (g_logfile, "10");
+  test_hex_to_const_aux (g_logfile, "13");
+  test_hex_to_const_aux (g_logfile, "2e");
+  test_hex_to_const_aux (g_logfile, "ff");
 }
 
 static void
-test_decimal_to_const_aux (FILE *file, const char *d)
+test_decimal_to_const_aux (FILE *g_logfile, const char *d)
 {
   char *c = btor_decimal_to_const (g_mm, d);
-  fprintf (file, "10'%s = 2'%s\n", d, c);
+  fprintf (g_logfile, "10'%s = 2'%s\n", d, c);
   btor_freestr (g_mm, c);
 }
 
 static void
 test_decimal_to_const (void)
 {
-  FILE *file = fopen ("log/decimal_to_const.log", "w");
-  test_decimal_to_const_aux (file, "");
-  test_decimal_to_const_aux (file, "256");
-  test_decimal_to_const_aux (file, "100");
-  test_decimal_to_const_aux (file, "65537");
-  test_decimal_to_const_aux (file, "4294967296");
-  test_decimal_to_const_aux (file, "18446744073709551616");
-  fclose (file);
+  test_decimal_to_const_aux (g_logfile, "");
+  test_decimal_to_const_aux (g_logfile, "256");
+  test_decimal_to_const_aux (g_logfile, "100");
+  test_decimal_to_const_aux (g_logfile, "65537");
+  test_decimal_to_const_aux (g_logfile, "4294967296");
+  test_decimal_to_const_aux (g_logfile, "18446744073709551616");
 }
 
 static void
-test_slice_const_aux (FILE *file, const char *c, int upper, int lower)
+test_slice_const_aux (FILE *g_logfile, const char *c, int upper, int lower)
 {
   char *r = btor_slice_const (g_mm, c, upper, lower);
-  fprintf (file, "%s[%d:%d] = %s\n", c, upper, lower, r);
+  fprintf (g_logfile, "%s[%d:%d] = %s\n", c, upper, lower, r);
   btor_delete_const (g_mm, r);
 }
 
 static void
 test_slice_const (void)
 {
-  FILE *file = fopen ("log/slice_const.log", "w");
+  test_slice_const_aux (g_logfile, "01", 0, 0);
+  test_slice_const_aux (g_logfile, "01", 1, 0);
+  test_slice_const_aux (g_logfile, "01", 1, 1);
 
-  test_slice_const_aux (file, "01", 0, 0);
-  test_slice_const_aux (file, "01", 1, 0);
-  test_slice_const_aux (file, "01", 1, 1);
+  test_slice_const_aux (g_logfile, "101", 0, 0);
+  test_slice_const_aux (g_logfile, "101", 1, 0);
+  test_slice_const_aux (g_logfile, "101", 2, 0);
+  test_slice_const_aux (g_logfile, "101", 1, 1);
+  test_slice_const_aux (g_logfile, "101", 2, 1);
+  test_slice_const_aux (g_logfile, "101", 2, 2);
 
-  test_slice_const_aux (file, "101", 0, 0);
-  test_slice_const_aux (file, "101", 1, 0);
-  test_slice_const_aux (file, "101", 2, 0);
-  test_slice_const_aux (file, "101", 1, 1);
-  test_slice_const_aux (file, "101", 2, 1);
-  test_slice_const_aux (file, "101", 2, 2);
-
-  test_slice_const_aux (file, "11110000", 7, 4);
-  test_slice_const_aux (file, "11110000", 5, 2);
-  test_slice_const_aux (file, "11110000", 3, 0);
-
-  fclose (file);
+  test_slice_const_aux (g_logfile, "11110000", 7, 4);
+  test_slice_const_aux (g_logfile, "11110000", 5, 2);
+  test_slice_const_aux (g_logfile, "11110000", 3, 0);
 }
 
 static void
-test_inverse_const_aux (FILE *file, const char *c)
+test_inverse_const_aux (FILE *g_logfile, const char *c)
 {
   char *i = btor_inverse_const (g_mm, c);
-  fprintf (file, "1 / %s = %s mod 2^%ld\n", c, i, (long) strlen (c));
+  fprintf (g_logfile, "1 / %s = %s mod 2^%ld\n", c, i, (long) strlen (c));
   btor_delete_const (g_mm, i);
 }
 
 static void
 test_inverse_const (void)
 {
-  FILE *file = fopen ("log/inverse_const.log", "w");
-  test_inverse_const_aux (file, "1");
-  test_inverse_const_aux (file, "01");
-  test_inverse_const_aux (file, "001");
-  test_inverse_const_aux (file, "0001");
-  test_inverse_const_aux (file, "11");
-  test_inverse_const_aux (file, "101");
-  test_inverse_const_aux (file, "111");
-  test_inverse_const_aux (file, "1001");
-  test_inverse_const_aux (file, "1011");
-  test_inverse_const_aux (file, "1101");
-  test_inverse_const_aux (file, "1111");
-  test_inverse_const_aux (file, "01010101010101010101010101010101");
-  fclose (file);
+  test_inverse_const_aux (g_logfile, "1");
+  test_inverse_const_aux (g_logfile, "01");
+  test_inverse_const_aux (g_logfile, "001");
+  test_inverse_const_aux (g_logfile, "0001");
+  test_inverse_const_aux (g_logfile, "11");
+  test_inverse_const_aux (g_logfile, "101");
+  test_inverse_const_aux (g_logfile, "111");
+  test_inverse_const_aux (g_logfile, "1001");
+  test_inverse_const_aux (g_logfile, "1011");
+  test_inverse_const_aux (g_logfile, "1101");
+  test_inverse_const_aux (g_logfile, "1111");
+  test_inverse_const_aux (g_logfile, "01010101010101010101010101010101");
 }
 
 static void

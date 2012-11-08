@@ -20,6 +20,12 @@
 #ifndef TESTRUNNER_H_INCLUDED
 #define TESTRUNNER_H_INCLUDED
 
+#include <btorexp.h>
+#include <stdio.h>
+
+extern int g_rwwrites;
+extern FILE *g_logfile;
+
 #define BTOR_RUN_TEST_CHECK_LOG(name) \
   run_test_case (argc, argv, test_##name, #name, 1)
 

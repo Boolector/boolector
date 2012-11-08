@@ -27,6 +27,25 @@
 #include <stdlib.h>
 #include <string.h>
 
+// debug
+#if 1
+#define DBG_P(msg, node, ...) \
+  do                          \
+  {                           \
+  } while (0)
+#else
+#define DBG_P(msg, node, ...)                        \
+  do                                                 \
+  {                                                  \
+    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
+    if (node)                                        \
+      dump_node (stderr, node);                      \
+    else                                             \
+      fprintf (stderr, "\n");                        \
+  } while (0)
+#endif
+// debug
+
 /*------------------------------------------------------------------------*/
 
 // #define BTOR_DO_NOT_ELIMINATE_SLICES
@@ -141,25 +160,6 @@ static BtorNode *apply_beta_reduction (Btor *, BtorNode *, BtorNode *, int *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, BtorNode *, int, int, int);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
-
-// debug
-#if 1
-#define DBG_P(msg, node, ...) \
-  do                          \
-  {                           \
-  } while (0)
-#else
-#define DBG_P(msg, node, ...)                        \
-  do                                                 \
-  {                                                  \
-    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
-    if (node)                                        \
-      dump_node (stderr, node);                      \
-    else                                             \
-      fprintf (stderr, "\n");                        \
-  } while (0)
-#endif
-// debug
 
 /*------------------------------------------------------------------------*/
 
@@ -4803,6 +4803,8 @@ dump_exps (Btor * btor, FILE * file, BtorNode ** roots, int nroots)
 
   if (btor->rewrite_writes && !btor->no_pprint)
     pprint = 1;
+
+  DBG_P ("pprint %d\n", 0, pprint);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
@@ -10564,10 +10566,9 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   assert (btor);
 
   assert (btor->unsynthesized_constraints);
-  assert (btor->synthesized_constraints->count == 0);  // TODO ?
 
   int i;
-  BtorPtrHashTable *roots = btor->unsynthesized_constraints;
+  BtorPtrHashTable *roots = NULL;
   BtorPtrHashBucket *b;
   BtorNode *exp;
   BtorNodePtrStack work_stack, writes_stack, unmark_stack;
@@ -10576,34 +10577,44 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   BTOR_INIT_STACK (writes_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  for (b = roots->first; b; b = b->next)
+  for (;;)
   {
-    exp = b->key;
+    if (roots == NULL)
+      roots = btor->unsynthesized_constraints;
+    else if (roots == btor->unsynthesized_constraints)
+      roots = btor->synthesized_constraints;
+    else
+      break;
 
-    BTOR_PUSH_STACK (btor->mm, work_stack, exp);
-
-    /* collect writes  */
-    do
+    for (b = roots->first; b; b = b->next)
     {
-      exp = BTOR_POP_STACK (work_stack);
-      assert (exp);
-      exp = BTOR_REAL_ADDR_NODE (exp);
+      exp = b->key;
 
-      if (exp->mark == 1) continue;
+      BTOR_PUSH_STACK (btor->mm, work_stack, exp);
 
-      if (exp->mark == 0)
+      /* collect writes  */
+      do
       {
-        exp->mark = 1; /* visited */
+        exp = BTOR_POP_STACK (work_stack);
+        assert (exp);
+        exp = BTOR_REAL_ADDR_NODE (exp);
 
-        BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
+        if (exp->mark == 1) continue;
 
-        if (BTOR_IS_WRITE_NODE (exp))
-          BTOR_PUSH_STACK (btor->mm, writes_stack, exp);
+        if (exp->mark == 0)
+        {
+          exp->mark = 1; /* visited */
 
-        for (i = exp->arity - 1; i >= 0; i--)
-          BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
-      }
-    } while (!BTOR_EMPTY_STACK (work_stack));
+          BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
+
+          if (BTOR_IS_WRITE_NODE (exp))
+            BTOR_PUSH_STACK (btor->mm, writes_stack, exp);
+
+          for (i = exp->arity - 1; i >= 0; i--)
+            BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
+        }
+      } while (!BTOR_EMPTY_STACK (work_stack));
+    }
   }
 
   BTOR_RELEASE_STACK (btor->mm, work_stack);
