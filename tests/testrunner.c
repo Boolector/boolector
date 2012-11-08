@@ -134,12 +134,25 @@ static const char *dumptests[] = {
     "xnor_exp",        "xor_exp",   "zero_exp"};
 
 /* Testcases tests.  Note: maintain sorted alphabetically (binary search)!! */
-static int testcases_nrw_size = 3;
-static int testcases_rww_size = 3;
+static int testcases_nrw_size = 8;
+static int testcases_rww_size = 8;
 
-static const char *testcases_nrw[] = {"dumpbtor1", "dumpbtor2", "dumpbtor3"};
-static const char *testcases_rww[] = {
-    "dumpbtor1_rww", "dumpbtor2_rww", "dumpbtor3_rww"};
+static const char *testcases_nrw[] = {"concatslice1",
+                                      "concatslice2",
+                                      "dumpbtor1",
+                                      "dumpbtor2",
+                                      "dumpbtor3",
+                                      "regaddnorm1",
+                                      "regaddnorm2",
+                                      "regnegadd1"};
+static const char *testcases_rww[] = {"concatslice1_rww",
+                                      "concatslice2_rww",
+                                      "dumpbtor1_rww",
+                                      "dumpbtor2_rww",
+                                      "dumpbtor3_rww",
+                                      "regaddnorm1_rww",
+                                      "regaddnorm2_rww",
+                                      "regnegadd1_rww"};
 
 void
 init_tests (BtorTestCaseSpeed speed)
