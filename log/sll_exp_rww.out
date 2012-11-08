@@ -1,0 +1,4 @@
+1 var 5 v2
+2 var 32 v1
+3 sll 32 2 1
+4 root 32 3
