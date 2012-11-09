@@ -832,8 +832,7 @@ btor_isspace_smt2 (int ch)
 static unsigned
 btor_cc_smt2 (BtorSMT2Parser *parser, int ch)
 {
-  if (ch == EOF) return 0;
-  assert (0 <= ch && ch < 256);
+  if (ch < 0 || ch >= 256) return 0;
   return parser->cc[(unsigned char) ch];
 }
 
@@ -1330,14 +1329,20 @@ btor_check_boolean_args_smt2 (BtorSMT2Parser *parser,
   for (i = 1; i <= nargs; i++)
   {
     if (btor_is_array_exp (parser->btor, p[i].exp))
+    {
+      parser->perrcoo = p[i].coo;
       return !btor_perr_smt2 (
           parser, "argument %d of '%s' is an array term", i, p->node->name);
+    }
     if ((width = btor_get_exp_len (parser->btor, p[i].exp)) != 1)
+    {
+      parser->perrcoo = p[i].coo;
       return !btor_perr_smt2 (parser,
                               "argument %d of '%s' is a bit-vector of width %d",
                               i,
-                              width,
-                              p->node->name);
+                              p->node->name,
+                              width);
+    }
   }
   return 1;
 }
@@ -1735,7 +1740,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         btor_release_exp (parser->btor, tmp);
       }
       else if (tag == BTOR_IMPLIES_TAG_SMT2)
-      {  // TODO perr from here!
+      {
         if (!nargs)
           return !btor_perr_smt2 (
               parser, "argument to '%s' missing", p->node->name);
@@ -1762,7 +1767,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_AND_TAG_SMT2)
       {
         binfun = btor_and_exp;
-      BIN_LEFT_ASSOCIATIVE_CORE:
+      BIN_LEFT_ASSOCIATIVE_CORE:  // TODO perr from here!
         if (!nargs)
           return !btor_perr_smt2 (
               parser, "argument to '%s' missing", p->node->name);
