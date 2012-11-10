@@ -1884,23 +1884,31 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_SELECT_TAG_SMT2)
       {
-        // TODO perr from here!
         if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_is_array_exp (parser->btor, p[1].exp))
+        {
+          parser->perrcoo = p[1].coo;
           return !btor_perr_smt2 (parser,
                                   "first argument of 'select' is not an array");
+        }
         if (btor_is_array_exp (parser->btor, p[2].exp))
+        {
+          parser->perrcoo = p[2].coo;
           return !btor_perr_smt2 (parser,
                                   "second argument of 'select' is an array");
+        }
         width  = btor_get_exp_len (parser->btor, p[2].exp);
         domain = btor_get_index_exp_len (parser->btor, p[1].exp);
         if (width != domain)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
-              "array argument of 'select' has index bit-width %d "
-              "but the index argument has bit-width %d",
+              "first (array) argument of 'select' has index bit-width %d "
+              "but the second (index) argument has bit-width %d",
               domain,
               width);
+        }
         exp = btor_read_exp (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
@@ -1908,37 +1916,53 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       {
         if (!btor_check_nargs_smt2 (parser, p, nargs, 3)) return 0;
         if (!btor_is_array_exp (parser->btor, p[1].exp))
+        {
+          parser->perrcoo = p[1].coo;
           return !btor_perr_smt2 (parser,
                                   "first argument of 'store' is not an array");
+        }
         if (btor_is_array_exp (parser->btor, p[2].exp))
+        {
+          parser->perrcoo = p[2].coo;
           return !btor_perr_smt2 (parser,
                                   "second argument of 'store' is an array");
+        }
         if (btor_is_array_exp (parser->btor, p[3].exp))
+        {
+          parser->perrcoo = p[3].coo;
           return !btor_perr_smt2 (parser,
                                   "third argument of 'store' is an array");
+        }
         width  = btor_get_exp_len (parser->btor, p[2].exp);
         domain = btor_get_index_exp_len (parser->btor, p[1].exp);
         if (width != domain)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
-              "array argument of 'store' has index bit-width %d "
-              "but the index argument has bit-width %d",
+              "first (array) argument of 'store' has index bit-width %d "
+              "but the second (index) argument has bit-width %d",
               domain,
               width);
+        }
         width = btor_get_exp_len (parser->btor, p[1].exp);
         len   = btor_get_exp_len (parser->btor, p[3].exp);
         if (width != len)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser,
-              "array argument of 'store' has element bit-width %d "
-              "but the stored bit-vector argument has bit-width %d",
+              "first (array) argument of 'store' has element bit-width %d "
+              "but the third (stored bit-vector) argument has bit-width %d",
               width,
               len);
+        }
         exp = btor_write_exp (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_CONCAT_TAG_SMT2)
       {
+        // TODO perr from here!
         if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         exp = btor_concat_exp (parser->btor, p[1].exp, p[2].exp);
