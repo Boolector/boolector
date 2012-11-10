@@ -1767,10 +1767,13 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_AND_TAG_SMT2)
       {
         binfun = btor_and_exp;
-      BIN_LEFT_ASSOCIATIVE_CORE:  // TODO perr from here!
+      BIN_LEFT_ASSOCIATIVE_CORE:
         if (!nargs)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (
               parser, "argument to '%s' missing", p->node->name);
+        }
         if (!btor_check_boolean_args_smt2 (parser, p, nargs)) return 0;
         exp = 0;
         for (i = 1; i <= nargs; i++)
@@ -1799,10 +1802,18 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_EQUAL_TAG_SMT2)
       {
-        if (!nargs) return !btor_perr_smt2 (parser, "arguments to '=' missing");
+        if (!nargs)
+        {
+          parser->perrcoo = p->coo;
+          return !btor_perr_smt2 (parser, "arguments to '=' missing");
+        }
         if (nargs == 1)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (parser, "only one argument to '='");
+        }
         if (!btor_check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
+        // TODO perr from here!
         exp = btor_true_exp (parser->btor);
         for (i = 1; i < nargs; i++)
         {

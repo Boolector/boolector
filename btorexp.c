@@ -1530,7 +1530,7 @@ encode_lemma_new (Btor *btor,
        have occured at acc2 */
     assert (BTOR_IS_SYNTH_NODE (lambda_value));
     assert (lambda_value->tseitin);
-    //    assert (!BTOR_IS_PARAMETERIZED_NODE (lambda_value));
+    // assert (!BTOR_IS_PARAMETERIZED_NODE (lambda_value));
 
     // TODO: searching for b might be a problem if returned value is an
     //       assigned param, e.g., lambda j . j
