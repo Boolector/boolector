@@ -1515,8 +1515,11 @@ btor_check_not_array_args_smt2 (BtorSMT2Parser *parser,
   int i;
   for (i = 1; i <= nargs; i++)
     if (btor_is_array_exp (parser->btor, p[i].exp))
+    {
+      parser->perrcoo = p[i].coo;
       return !btor_perr_smt2 (
           parser, "argument %d of '%s' is an array", i, p->node->name);
+    }
   return 1;
 }
 
@@ -1962,7 +1965,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_CONCAT_TAG_SMT2)
       {
-        // TODO perr from here!
         if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         exp = btor_concat_exp (parser->btor, p[1].exp, p[2].exp);
@@ -1974,11 +1976,15 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (width <= p->hi)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (parser,
-                                  "first 'extract' parameter %d too large for "
-                                  "bit-width %d of argument",
+                                  "first (high) 'extract' parameter %d too "
+                                  "large for bit-vector argument of bit-width "
+                                  "%d",
                                   p->hi,
                                   width);
+        }
         exp = btor_slice_exp (parser->btor, p[1].exp, p->hi, p->lo);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
@@ -2098,6 +2104,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_REPEAT_TAG_SMT2)
       {
+        // TODO perr from here!
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
@@ -2370,11 +2377,13 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
               if (!btor_parse_int32_smt2 (parser, 0, &l->hi)) return 0;
               if (!btor_parse_int32_smt2 (parser, 0, &l->lo)) return 0;
               if (l->hi < l->lo)
+              {
                 return !btor_perr_smt2 (
                     parser,
                     "first 'extract' parameter %d smaller than second %d",
                     l->hi,
                     l->lo);
+              }
               l->tag           = tag;
               l->node          = node;
               parser->work.top = p;
