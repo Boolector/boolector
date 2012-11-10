@@ -2208,7 +2208,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_LETBIND_TAG_SMT2)
       {
-        // TODO perr from here!
         assert (p[1].tag == BTOR_SYMBOL_TAG_SMT2);
         if (nargs == 1)
           return !btor_perr_smt2 (
@@ -2241,15 +2240,20 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         parser->work.top = l + nargs;
       }
       else
+      {
+        // TODO unreachable?
+        parser->perrcoo = p->coo;
         return !btor_perr_smt2 (
             parser,
             "internal parse error: can not close yet unsupported '%s'",
             btor_item2str_smt2 (p));
+      }
       assert (open > 0);
       open--;
     }
     else
     {
+      // TODO perr from here!
       p = btor_push_item_smt2 (parser, tag);
       if (tag == BTOR_LPAR_TAG_SMT2)
       {
