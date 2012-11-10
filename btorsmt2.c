@@ -2104,7 +2104,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_REPEAT_TAG_SMT2)
       {
-        // TODO perr from here!
         if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
@@ -2147,12 +2146,12 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
       {
         extfun = btor_rotate_left_smt2;
-        goto EXTEND_BV_FUN;
+        goto BINARY_BV_FUN;
       }
       else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
       {
         extfun = btor_rotate_right_smt2;
-        goto EXTEND_BV_FUN;
+        goto BINARY_BV_FUN;
       }
       else if (tag == BTOR_BVULE_TAG_SMT2)
       {
@@ -2192,7 +2191,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_LET_TAG_SMT2)
       {
         BtorSMT2Node *s;
-        assert (nargs >= 2);
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         assert (p[nargs].tag == BTOR_EXP_TAG_SMT2);
         l[0].tag = BTOR_EXP_TAG_SMT2;
         l[0].exp = p[nargs].exp;
@@ -2209,18 +2208,16 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_LETBIND_TAG_SMT2)
       {
-        assert (nargs >= 2);
+        // TODO perr from here!
         assert (p[1].tag == BTOR_SYMBOL_TAG_SMT2);
         if (nargs == 1)
-        {
           return !btor_perr_smt2 (
               parser, "term to be bound to '%s' missing", p[1].node->name);
-        }
         if (nargs > 2)
         {
-          return !btor_perr_smt2 (parser,
-                                  "more than one term to be bound to '%s'",
-                                  p[1].node->name);
+          parser->perrcoo = p[3].coo;
+          return !btor_perr_smt2 (
+              parser, "second term bound to '%s'", p[1].node->name);
         }
         l[0] = p[1];
         assert (!l[0].node->exp);
