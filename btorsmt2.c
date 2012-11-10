@@ -1419,26 +1419,41 @@ btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
   int domain, width, len;
   assert (p->tag == BTOR_ITE_TAG_SMT2);
   if (btor_is_array_exp (parser->btor, p[1].exp))
+  {
+    parser->perrcoo = p[1].coo;
     return !btor_perr_smt2 (parser, "first argument of 'ite' is an array");
+  }
   if ((len = btor_get_exp_len (parser->btor, p[1].exp)) != 1)
-    return !btor_perr_smt2 (parser, "first argument of 'ite' is non-boolean");
+  {
+    parser->perrcoo = p[1].coo;
+    return !btor_perr_smt2 (
+        parser, "first argument of 'ite' is bit-vector of bit-width %d", len);
+  }
   if (btor_is_array_exp (parser->btor, p[2].exp))
   {
     if (!btor_is_array_exp (parser->btor, p[3].exp))
+    {
+      parser->perrcoo = p->coo;
       return !btor_perr_smt2 (
           parser, "second argument of 'ite' is an array but third not");
+    }
     width = btor_get_exp_len (parser->btor, p[2].exp);
     len   = btor_get_exp_len (parser->btor, p[3].exp);
     if (width != len)
+    {
+      parser->perrcoo = p->coo;
       return !btor_perr_smt2 (
           parser,
           "second argument of 'ite' is array of bit-vectors of width %d and "
           "third argument is array of bit-vectors of width %d",
           width,
           len);
+    }
     domain = btor_get_index_exp_len (parser->btor, p[2].exp);
     len    = btor_get_index_exp_len (parser->btor, p[3].exp);
     if (domain != len)
+    {
+      parser->perrcoo = p->coo;
       return !btor_perr_smt2 (
           parser,
           "second argument of 'ite' is array with index bit-vectors of width "
@@ -1446,32 +1461,41 @@ btor_check_ite_args_sorts_match_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *p)
           "third argument is array with index bit-vectors of width %d",
           domain,
           len);
+    }
   }
   else
   {
     if (btor_is_array_exp (parser->btor, p[3].exp))
+    {
+      parser->perrcoo = p->coo;
       return !btor_perr_smt2 (
           parser, "third argument of 'ite' is an array but second not");
+    }
     width = btor_get_exp_len (parser->btor, p[2].exp);
     len   = btor_get_exp_len (parser->btor, p[3].exp);
     if (width != len)
+    {
+      parser->perrcoo = p->coo;
       return !btor_perr_smt2 (
           parser,
           "second argument of 'ite' is bit-vector of width %d and "
           "third argument is bit-vector of width %d",
           width,
           len);
+    }
   }
   return 1;
 }
 
 static int
 btor_check_nargs_smt2 (BtorSMT2Parser *parser,
-                       const char *op,
+                       BtorSMT2Item *p,
                        int actual,
                        int required)
 {
-  int diff = required - actual;
+  int diff       = actual - required;
+  const char *op = p->node->name;
+  if (diff) parser->perrcoo = p->coo;
   if (diff == -1)
     return !btor_perr_smt2 (parser, "one argument to '%s' missing", op);
   if (diff < 0)
@@ -1813,7 +1837,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           return !btor_perr_smt2 (parser, "only one argument to '='");
         }
         if (!btor_check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
-        // TODO perr from here!
         exp = btor_true_exp (parser->btor);
         for (i = 1; i < nargs; i++)
         {
@@ -1828,9 +1851,15 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_DISTINCT_TAG_SMT2)
       {
         if (!nargs)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (parser, "arguments to 'distinct' missing");
+        }
         if (nargs == 1)
+        {
+          parser->perrcoo = p->coo;
           return !btor_perr_smt2 (parser, "only one argument to 'distinct'");
+        }
         if (!btor_check_arg_sorts_match_smt2 (parser, p, nargs)) return 0;
         exp = btor_true_exp (parser->btor);
         for (i = 1; i < nargs; i++)
@@ -1848,14 +1877,15 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_ITE_TAG_SMT2)
       {
-        if (!btor_check_nargs_smt2 (parser, "ite", nargs, 3)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 3)) return 0;
         if (!btor_check_ite_args_sorts_match_smt2 (parser, p)) return 0;
         exp = btor_cond_exp (parser->btor, p[1].exp, p[2].exp, p[3].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_SELECT_TAG_SMT2)
       {
-        if (!btor_check_nargs_smt2 (parser, "select", nargs, 2)) return 0;
+        // TODO perr from here!
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_is_array_exp (parser->btor, p[1].exp))
           return !btor_perr_smt2 (parser,
                                   "first argument of 'select' is not an array");
@@ -1876,7 +1906,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_STORE_TAG_SMT2)
       {
-        if (!btor_check_nargs_smt2 (parser, "store", nargs, 3)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 3)) return 0;
         if (!btor_is_array_exp (parser->btor, p[1].exp))
           return !btor_perr_smt2 (parser,
                                   "first argument of 'store' is not an array");
@@ -1909,14 +1939,14 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_CONCAT_TAG_SMT2)
       {
-        if (!btor_check_nargs_smt2 (parser, "concat", nargs, 2)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         exp = btor_concat_exp (parser->btor, p[1].exp, p[2].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_EXTRACT_TAG_SMT2)
       {
-        if (!btor_check_nargs_smt2 (parser, "extract", nargs, 1)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (width <= p->hi)
@@ -1932,7 +1962,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       {
         unaryfun = btor_not_exp;
       UNARY_BV_FUN:
-        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         exp = unaryfun (parser->btor, p[1].exp);
         goto RELEASE_EXP_AND_OVERWRITE;
@@ -1941,7 +1971,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       {
         binfun = btor_and_exp;
       BINARY_BV_FUN:
-        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 2)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         if (!btor_check_arg_sorts_match_smt2 (parser, p, 2)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         exp = binfun (parser->btor, p[1].exp, p[2].exp);
@@ -2044,7 +2074,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_REPEAT_TAG_SMT2)
       {
-        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (p->num && ((INT_MAX / p->num) < width))
@@ -2066,7 +2096,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       {
         extfun = btor_uext_exp;
       EXTEND_BV_FUN:
-        if (!btor_check_nargs_smt2 (parser, p->node->name, nargs, 1)) return 0;
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
         if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
         width = btor_get_exp_len (parser->btor, p[1].exp);
         if (INT_MAX - p->num < width)
