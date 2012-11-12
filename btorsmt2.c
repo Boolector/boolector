@@ -1701,7 +1701,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       l = btor_last_lpar_smt2 (parser);
       if (!l)
         return !btor_perr_smt2 (parser,
-                                "expected term but reached end-of-file");
+                                "expected expression but reached end-of-file");
       return !btor_perr_smt2 (
           parser,
           "unexpected end-of-file since '(' at line %d column %d still open",
@@ -1732,7 +1732,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           return !btor_perr_smt2 (parser, "body to 'let' missing");
         }
       }
-      assert (open > 0);
+      assert (open >= 0);
+      if (!open) return !btor_perr_smt2 (parser, "expected expression");
       l = btor_last_lpar_smt2 (parser);
       assert (l);
       p = l + 1;
@@ -2847,7 +2848,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
                                 "assert argument is a bit-vector of length %d",
                                 btor_get_exp_len (parser->btor, exp));
       }
-      if (!btor_read_rpar_smt2 (parser, " after assert term")) return 0;
+      if (!btor_read_rpar_smt2 (parser, " after asserted expression")) return 0;
       assert (!parser->error);
       parser->commands.asserts++;
       break;
