@@ -7573,7 +7573,7 @@ beta_reduce (Btor *btor,
        * stop at subsequent lambda and write nodes */
       // TODO: special handling required
       if ((!reduce_full_exp && BTOR_IS_ARRAY_NODE (real_cur))
-          // FIXME: for now we have to skip not parameterized nodes,
+          // FIXME: for now we have to skip non-parameterized nodes,
           // otherwise we may create new nodes that do not have an
           // assignment yet. this is a problem with compare_assignments.
           // therefore we have to use the const comparison functions for

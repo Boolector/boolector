@@ -82,7 +82,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
     unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
     unsigned int reachable : 1;     /* reachable from root ? */             \
-    unsigned int tseitin : 1;       /* tseiting encoded into SAT ? */       \
+    unsigned int tseitin : 1;       /* tseitin encoded into SAT ? */        \
     unsigned int vread : 1;         /* virtual read ? */                    \
     unsigned int vread_index : 1;   /* index for two virtual reads ? */     \
     unsigned int constraint : 1;    /* top level constraint ? */            \
