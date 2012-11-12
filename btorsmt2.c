@@ -2253,7 +2253,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
     }
     else
     {
-      // TODO perr from here!
       p = btor_push_item_smt2 (parser, tag);
       if (tag == BTOR_LPAR_TAG_SMT2)
       {
@@ -2267,13 +2266,17 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           if (tag == BTOR_INVALID_TAG_SMT2) return 0;
           if (tag == EOF)
             return !btor_perr_smt2 (parser,
-                                    "expected symbol to be bound after '(' but "
-                                    "reached end-of-file");
+                                    "expected symbol to be bound after '(' at "
+                                    "line %d column %d but reached end-of-file",
+                                    p->coo.x,
+                                    p->coo.y);
           if (tag != BTOR_SYMBOL_TAG_SMT2)
-            return !btor_perr_smt2 (
-                parser,
-                "expected symbol to be bound after '(' at '%s'",
-                parser->token.start);
+            return !btor_perr_smt2 (parser,
+                                    "expected symbol to be bound at '%s' after "
+                                    "'(' at line %d column %d",
+                                    parser->token.start,
+                                    p->coo.x,
+                                    p->coo.y);
           s = parser->last_node;
           assert (s);
           if (s->coo.x)
