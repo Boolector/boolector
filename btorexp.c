@@ -4817,7 +4817,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  if (btor->rewrite_writes && !btor->no_pprint) pprint = 1;
+  if (!btor->no_pprint) pprint = 1;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
@@ -5406,7 +5406,7 @@ btor_new_btor (void)
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
-  btor->rewrite_writes    = 1;
+  btor->rewrite_writes    = 0;
 
   BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
 

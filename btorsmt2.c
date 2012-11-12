@@ -300,7 +300,7 @@ typedef struct BtorSMT2Parser
   {
     int all, set_logic, asserts, check_sat, exits;
   } commands;
-  int binding;
+  int binding, expecting_let_body;
 } BtorSMT2Parser;
 
 static int
@@ -1710,6 +1710,28 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
     }
     if (tag == BTOR_RPAR_TAG_SMT2)
     {
+      if (parser->expecting_let_body)
+      {
+        l = 0;
+        if (open)
+        {
+          l = btor_last_lpar_smt2 (parser);
+          if (++l >= parser->work.top) l = 0;
+        }
+        if (l)
+        {
+          assert (l->tag == BTOR_LET_TAG_SMT2);
+          return !btor_perr_smt2 (parser,
+                                  "body to 'let' at line %d column %d missing",
+                                  l->coo.x,
+                                  l->coo.y);
+        }
+        else
+        {
+          // TODO reachable?
+          return !btor_perr_smt2 (parser, "body to 'let' missing");
+        }
+      }
       assert (open > 0);
       l = btor_last_lpar_smt2 (parser);
       assert (l);
@@ -2191,7 +2213,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_LET_TAG_SMT2)
       {
         BtorSMT2Node *s;
-        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         assert (p[nargs].tag == BTOR_EXP_TAG_SMT2);
         l[0].tag = BTOR_EXP_TAG_SMT2;
         l[0].exp = p[nargs].exp;
@@ -2230,7 +2251,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_PARLETBINDING_TAG_SMT2)
       {
-        if (!nargs) return !btor_perr_smt2 (parser, "empty 'let' binding");
         assert (parser->binding);
         parser->binding = 0;
 #ifndef NDEBUG
@@ -2238,6 +2258,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
 #endif
         for (i = 0; i < nargs; i++) l[i] = p[i + 1];
         parser->work.top = l + nargs;
+        assert (!parser->expecting_let_body);
+        parser->expecting_let_body = 1;
       }
       else
       {
@@ -2253,6 +2275,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
     }
     else
     {
+      if (parser->expecting_let_body) parser->expecting_let_body = 0;
       p = btor_push_item_smt2 (parser, tag);
       if (tag == BTOR_LPAR_TAG_SMT2)
       {
