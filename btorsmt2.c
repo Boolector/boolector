@@ -732,10 +732,29 @@ btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
 static void
 btor_insert_logics_smt2 (BtorSMT2Parser *parser)
 {
-  INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
+  INSERT ("AUFLIA", BTOR_AUFLIA_TAG_SMT2);
+  INSERT ("AUFLIRA", BTOR_AUFLIRA_TAG_SMT2);
+  INSERT ("AUFNIRA", BTOR_AUFNIRA_TAG_SMT2);
+  INSERT ("LRA", BTOR_LRA_TAG_SMT2);
   INSERT ("QF_ABV", BTOR_QF_ABV_TAG_SMT2);
-  INSERT ("QF_UFBV", BTOR_QF_UFBV_TAG_SMT2);
   INSERT ("QF_AUFBV", BTOR_QF_AUFBV_TAG_SMT2);
+  INSERT ("QF_AUFLIA", BTOR_QF_AUFLIA_TAG_SMT2);
+  INSERT ("QF_AX", BTOR_QF_AX_TAG_SMT2);
+  INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
+  INSERT ("QF_IDL", BTOR_QF_IDL_TAG_SMT2);
+  INSERT ("QF_LIA", BTOR_QF_LIA_TAG_SMT2);
+  INSERT ("QF_LRA", BTOR_QF_LRA_TAG_SMT2);
+  INSERT ("QF_NIA", BTOR_QF_NIA_TAG_SMT2);
+  INSERT ("QF_NRA", BTOR_QF_NRA_TAG_SMT2);
+  INSERT ("QF_RDL", BTOR_QF_RDL_TAG_SMT2);
+  INSERT ("QF_UF", BTOR_QF_UF_TAG_SMT2);
+  INSERT ("QF_UFBV", BTOR_QF_UFBV_TAG_SMT2);
+  INSERT ("QF_UFIDL", BTOR_QF_UFIDL_TAG_SMT2);
+  INSERT ("QF_UFLIA", BTOR_QF_UFLIA_TAG_SMT2);
+  INSERT ("QF_UFLRA", BTOR_QF_UFLRA_TAG_SMT2);
+  INSERT ("QF_UFNRA", BTOR_QF_UFNRA_TAG_SMT2);
+  INSERT ("UFLRA", BTOR_UFLRA_TAG_SMT2);
+  INSERT ("UFNIA", BTOR_UFNIA_TAG_SMT2);
 }
 
 static BtorSMT2Parser *
@@ -2807,15 +2826,15 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       }
       if (!(tag & BTOR_LOGIC_TAG_CLASS_SMT2))
         return !btor_perr_smt2 (
-            parser, "unsupported logic '%s'", parser->token.start);
+            parser, "expected logic at '%s'", parser->token.start);
       if (tag == BTOR_QF_BV_TAG_SMT2)
         parser->res->logic = BTOR_LOGIC_QF_BV;
-      else
-      {
-        assert (tag == BTOR_QF_AUFBV_TAG_SMT2 || tag == BTOR_QF_UFBV_TAG_SMT2
-                || tag == BTOR_QF_ABV_TAG_SMT2);
+      else if (tag == BTOR_QF_AUFBV_TAG_SMT2 || tag == BTOR_QF_UFBV_TAG_SMT2
+               || tag == BTOR_QF_ABV_TAG_SMT2)
         parser->res->logic = BTOR_LOGIC_QF_AUFBV;
-      }
+      else
+        return !btor_perr_smt2 (
+            parser, "unsupported logic '%s'", parser->token.start);
       btor_msg_smt2 (parser, 2, "logic %s", parser->token.start);
       if (!btor_read_rpar_smt2 (parser, " after logic")) return 0;
       if (parser->commands.set_logic++)
