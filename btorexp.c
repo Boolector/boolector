@@ -1529,7 +1529,8 @@ encode_lemma_new (Btor *btor,
     for (cur = lambda_value; cur && cur != acc2; cur = cur->parent)
     {
       assert (BTOR_IS_REGULAR_NODE (cur));
-      /* skip lambda_value if it is a bv conditional (no conds to collect) */
+      /* skip lambda_value if it is a bv conditional (no conds to collect)
+       */
       if (BTOR_IS_BV_COND_NODE (cur) && cur != lambda_value)
       {
         cond = cur->e[0];
@@ -6433,10 +6434,6 @@ bfs_lambda (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (cur));
 
     if (cur == search)
-    //        || (BTOR_IS_READ_NODE (search)
-    //            && BTOR_IS_READ_NODE (cur)
-    //            && cur->e[0] == search->e[0]
-    //            && search->e[1] == index))
     {
       found = 1;
       break;
@@ -6507,8 +6504,6 @@ bfs_lambda (Btor *btor,
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    //    assert (BTOR_IS_BV_COND_NODE (cur) || BTOR_IS_READ_NODE (cur)
-    //            || cur == search);
     cur->mark = 0;
   } while (!BTOR_EMPTY_STACK (unmark_stack));
   BTOR_RELEASE_STACK (mm, unmark_stack);
@@ -6779,10 +6774,9 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
         // FIXME: more general approach: e[1] does not have to be index,
-        //        may also be index + 2 etc.
-        //        in that case we have to propagate lambda_value, instead
-        //        of acc, but we require a reference from lambda_value to
-        //        acc (for lemma generation).
+        // may also be index + 2 etc.  in that case we have to propagate
+        // lambda_value, instead of acc, but we require a reference from
+        // lambda_value to acc (for lemma generation).
         if (BTOR_IS_READ_NODE (lambda_value) && parameterized)
         {
           assert (lambda_value->e[0] == param_read->e[0]);
@@ -7253,15 +7247,12 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     }
     else
     {
-      /* lambdas, writes and array conditionals are only reachable over array
-         equalities, we do not need to synthesize array nodes */
+      /* lambdas, writes and array conditionals are only reachable over
+       * array equalities, we do not need to synthesize array nodes */
       if (BTOR_IS_LAMBDA_NODE (cur) || BTOR_IS_WRITE_NODE (cur)
           || BTOR_IS_ARRAY_COND_NODE (cur))
         continue;
 
-      //      assert (!BTOR_IS_LAMBDA_NODE (cur));
-      //      assert (!BTOR_IS_WRITE_NODE (cur));
-      //      assert (!BTOR_IS_ARRAY_COND_NODE (cur));
       assert (cur->mark == 1);
       cur->mark = 2;
 
@@ -8041,7 +8032,8 @@ process_working_stack (Btor *btor,
 
         lambda_exp = ((BtorParamNode *) next->e[1])->lambda_exp;
 
-        /* ensure that given lambda expression is synthesized and encoded */
+        /* ensure that given lambda expression is synthesized and encoded
+         */
         if (!lambda_exp->tseitin)
         {
           *assignments_changed =
@@ -8060,12 +8052,9 @@ process_working_stack (Btor *btor,
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
         if (BTOR_IS_READ_NODE (lambda_value) && parameterized)
-        //                && lambda_value->e[0] == next->e[0]
-        //                && lambda_value->e[1] == index)
         {
           assert (lambda_value->e[0] == next->e[0]);
           assert (lambda_value->e[1] == index);
-          //              assert (parameterized);
           DBG_P ("lambda prop. upwards:", 0);
           DBG_P ("  access: ", acc);
           DBG_P ("  array: ", lambda_exp);
@@ -8265,7 +8254,8 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         param = cur_array->e[0];
         assert (BTOR_IS_PARAM_NODE (param));
 
-        /* push all arrays onto stack that are overwritten by lambda exp */
+        /* push all arrays onto stack that are overwritten by lambda exp
+         */
         // FIXME: check why we can't use read iterators here
         init_full_parent_iterator (&it_full, param);
         while (has_next_parent_full_parent_iterator (&it_full))
