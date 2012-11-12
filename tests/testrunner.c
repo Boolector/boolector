@@ -115,23 +115,35 @@ static const char *normaltests[] = {
  * are re-indexed if rewriting of writes is enabled). */
 
 /* Expression tests. Note: maintain sorted alphabetically (binary search)!! */
-static int dumptests_size = 58;
+static int dumptests_size = 63;
 
 static const char *dumptests[] = {
-    "add_exp",         "and_exp",   "array_exp",  "concat_exp", "cond_exp",
-    "const_exp",       "dec_exp",   "dumpbtor1", /* testcases test */
-    "dumpbtor2",                                 /* testcases test */
-    "dumpbtor3",                                 /* testcases test */
-    "eq_exp",          "inc_exp",   "mul_exp",    "ne_exp",     "neg_exp",
-    "not_exp",         "one_exp",   "ones_exp",   "or_exp",     "read_exp",
-    "redand_exp",      "redor_exp", "redxor_exp", "rol_exp",    "ror_exp",
-    "saddo_exp",       "sdiv_exp",  "sdivo_exp",  "sext_exp",   "sgt_exp",
-    "sgte_exp",        "slice_exp", "sll_exp",    "slt_exp",    "slte_exp",
-    "smod_exp",        "smulo_exp", "sra_exp",    "srem_exp",   "srl_exp",
-    "ssubo_exp",       "sub_exp",   "uaddo_exp",  "udiv_exp",   "uext_exp",
-    "ugt_exp",         "ugte_exp",  "ult_exp",    "ulte_exp",   "umulo_exp",
-    "unsigned_to_exp", "urem_exp",  "usubo_exp",  "var_exp",    "write_exp",
-    "xnor_exp",        "xor_exp",   "zero_exp"};
+    "add_exp",         "and_exp",      "array_exp",
+    "concat_exp",      "concatslice1", /* testcases test */
+    "concatslice2",                    /* testcases test */
+    "cond_exp",        "const_exp",    "dec_exp",
+    "dumpbtor1", /* testcases test */
+    "dumpbtor2", /* testcases test */
+    "dumpbtor3", /* testcases test */
+    "eq_exp",          "inc_exp",      "mul_exp",
+    "ne_exp",          "neg_exp",      "not_exp",
+    "one_exp",         "ones_exp",     "or_exp",
+    "read_exp",        "redand_exp",   "redor_exp",
+    "redxor_exp",      "regaddnorm1", /* testcases test */
+    "regaddnorm2",                    /* testcases test */
+    "regnegadd1",                     /* testcases test */
+    "rol_exp",         "ror_exp",      "saddo_exp",
+    "sdiv_exp",        "sdivo_exp",    "sext_exp",
+    "sgt_exp",         "sgte_exp",     "slice_exp",
+    "sll_exp",         "slt_exp",      "slte_exp",
+    "smod_exp",        "smulo_exp",    "sra_exp",
+    "srem_exp",        "srl_exp",      "ssubo_exp",
+    "sub_exp",         "uaddo_exp",    "udiv_exp",
+    "uext_exp",        "ugt_exp",      "ugte_exp",
+    "ult_exp",         "ulte_exp",     "umulo_exp",
+    "unsigned_to_exp", "urem_exp",     "usubo_exp",
+    "var_exp",         "write_exp",    "xnor_exp",
+    "xor_exp",         "zero_exp"};
 
 /* Testcases tests.  Note: maintain sorted alphabetically (binary search)!! */
 static int testcases_nrw_size = 8;

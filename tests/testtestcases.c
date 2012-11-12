@@ -86,6 +86,8 @@ run_testcases_tests (int argc, char **argv)
 
     assert (BTOR_EMPTY_STACK (g_args));
 
+    if (!g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-nrw");
+
     token = strtok (buffer.start, " \t");
     while (token)
     {
