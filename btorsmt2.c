@@ -661,7 +661,9 @@ static void
 btor_release_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Item *item)
 {
   if (item->tag == BTOR_EXP_TAG_SMT2)
+  {
     btor_release_exp (parser->btor, item->exp);
+  }
   else if (item->tag & BTOR_CONSTANT_TAG_CLASS_SMT2)
     btor_freestr (parser->mem, item->str);
 }
@@ -2064,8 +2066,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
           if (tag == BTOR_INVALID_TAG_SMT2) return 0;
           if (tag == EOF)
             return !btor_perr_smt2 (parser,
-                                    "expected symbol to be "
-                                    "bound after '(' but reached end-of-file");
+                                    "expected symbol to be bound after '(' but "
+                                    "reached end-of-file");
           if (tag != BTOR_SYMBOL_TAG_SMT2)
             return !btor_perr_smt2 (
                 parser,
@@ -2174,11 +2176,11 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser, BtorNode **resptr, int *linenoptr)
               if (!btor_parse_int32_smt2 (parser, 0, &l->hi)) return 0;
               if (!btor_parse_int32_smt2 (parser, 0, &l->lo)) return 0;
               if (l->hi < l->lo)
-                return !btor_perr_smt2 (parser,
-                                        "first 'extract' parameter %d smaller "
-                                        "than second %d",
-                                        l->hi,
-                                        l->lo);
+                return !btor_perr_smt2 (
+                    parser,
+                    "first 'extract' parameter %d smaller than second %d",
+                    l->hi,
+                    l->lo);
               l->tag           = tag;
               l->node          = node;
               parser->work.top = p;
