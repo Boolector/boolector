@@ -2602,7 +2602,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
   if (p->tag != BTOR_EXP_TAG_SMT2)
   {
     parser->perrcoo = p->coo;
-    // Dito, same comment wrt defensive programming an future use.
+    // Ditto, same comment wrt defensive programming an future use.
     return !btor_perr_smt2 (
         parser,
         "internal parse error: failed to translate parsed term at '%s'",
