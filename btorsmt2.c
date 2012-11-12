@@ -2435,25 +2435,29 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
                 return 0;
               assert (open > 0);
               open--;
-              // TODO perr
             }
             else if (tag == BTOR_SYMBOL_TAG_SMT2
                      && btor_bvconst_str_smt2 (parser->token.start))
             {
-              char *constr;
+              char *constr, *decstr;
+              BtorSMT2Coo coo;
               int len;
-              exp = 0;
+              exp    = 0;
+              decstr = btor_strdup (parser->mem, parser->token.start + 2);
               constr =
                   btor_decimal_to_const (parser->mem, parser->token.start + 2);
+              coo = parser->coo;
+              coo.y += 2;
               if (!btor_parse_int32_smt2 (parser, 1, &width))
                 goto UNDERSCORE_DONE;
               len = (int) strlen (constr);
               if (len > width)
               {
+                parser->perrcoo = coo;
                 (void) btor_perr_smt2 (parser,
                                        "decimal constant '%s' needs %d bits "
-                                       "which exceeds width %d",
-                                       parser->token.start,
+                                       "which exceeds bit-width '%d'",
+                                       decstr,
                                        len,
                                        width);
               }
@@ -2469,6 +2473,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
                 btor_freestr (parser->mem, uconstr);
               }
             UNDERSCORE_DONE:
+              btor_freestr (parser->mem, decstr);
               btor_delete_const (parser->mem, constr);
               if (!exp) return 0;
               assert (btor_get_exp_len (parser->btor, exp) == width);
@@ -2480,7 +2485,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
               open--;
               p->tag = BTOR_EXP_TAG_SMT2;
               p->exp = exp;
-              if (!btor_read_rpar_smt2 (parser, "to close '(_'")) return 0;
+
+              if (!btor_read_rpar_smt2 (parser, " to close '(_ bv..'"))
+                return 0;
             }
             else
               return !btor_perr_smt2 (parser,
