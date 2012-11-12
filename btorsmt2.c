@@ -2358,12 +2358,27 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             if (tag == BTOR_REPEAT_TAG_SMT2)
             {
               assert (node && tag == (int) node->tag);
-              read_rpar_msg = " to close '(repeat'";
+              read_rpar_msg = " to close '(_ repeat'";
             ONE_FIXED_NUM_PARAMETRIC:
-              if (BTOR_COUNT_STACK (parser->work) < 3
-                  || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+              assert (BTOR_COUNT_STACK (parser->work) >= 2);
+              if (BTOR_COUNT_STACK (parser->work) < 3)
+              {
+                assert (BTOR_COUNT_STACK (parser->work) == 2);
+                assert (parser->work.start[0].tag == BTOR_LPAR_TAG_SMT2);
+                assert (parser->work.start[1].tag == BTOR_UNDERSCORE_TAG_SMT2);
+                parser->perrcoo = parser->work.start[0].coo;
                 return !btor_perr_smt2 (
-                    parser, "expected two '(' before '_ %s'", node->name);
+                    parser, "expected another '(' before '(_ %s'", node->name);
+              }
+              if (parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+              {
+                parser->perrcoo = parser->work.top[-3].coo;
+                return !btor_perr_smt2 (
+                    parser,
+                    "expected '(' at '%s' before '(_ %s'",
+                    btor_item2str_smt2 (parser->work.top - 3),
+                    node->name);
+              }
               l = p - 1;
               if (!btor_parse_int32_smt2 (parser, 0, &l->num)) return 0;
               l->tag           = tag;
@@ -2375,49 +2390,52 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             }
             else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'zero_extend'";
+              read_rpar_msg = " to close '(_ zero_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'sign_extend'";
+              read_rpar_msg = " to close '(_ sign_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'rotate_left'";
+              read_rpar_msg = " to close '(_ rotate_left'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'rotate_right'";
+              read_rpar_msg = " to close '(_ rotate_right'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_EXTRACT_TAG_SMT2)
             {
+              BtorSMT2Coo firstcoo;
               assert (node && tag == (int) node->tag);
               if (BTOR_COUNT_STACK (parser->work) < 3
                   || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
-                return !btor_perr_smt2 (parser,
-                                        "expected two '(' before '_ extract'");
+                goto ONE_FIXED_NUM_PARAMETRIC;
               l = p - 1;
               if (!btor_parse_int32_smt2 (parser, 0, &l->hi)) return 0;
+              firstcoo = parser->coo;
               if (!btor_parse_int32_smt2 (parser, 0, &l->lo)) return 0;
               if (l->hi < l->lo)
               {
-                return !btor_perr_smt2 (
-                    parser,
-                    "first 'extract' parameter %d smaller than second %d",
-                    l->hi,
-                    l->lo);
+                parser->perrcoo = firstcoo;
+                return !btor_perr_smt2 (parser,
+                                        "first parameter '%d' of '(_ extract' "
+                                        "smaller than second '%d'",
+                                        l->hi,
+                                        l->lo);
               }
               l->tag           = tag;
               l->node          = node;
               parser->work.top = p;
-              if (!btor_read_rpar_smt2 (parser, " to close 'extract'"))
+              if (!btor_read_rpar_smt2 (parser, " to close '(_ extract'"))
                 return 0;
               assert (open > 0);
               open--;
+              // TODO perr
             }
             else if (tag == BTOR_SYMBOL_TAG_SMT2
                      && btor_bvconst_str_smt2 (parser->token.start))
