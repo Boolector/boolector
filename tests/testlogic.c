@@ -39,7 +39,7 @@
 #define BTOR_TEST_RED_LOGIC_LOW 2
 #define BTOR_TEST_RED_LOGIC_HIGH 4
 
-static const int g_argc = 6;
+static const int g_argc = 5;
 
 static char *g_argv[] = {
     "./boolector",
