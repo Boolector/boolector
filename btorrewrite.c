@@ -1784,9 +1784,9 @@ normalize_negated_add (Btor *btor, BtorNode *exp)
 }
 
 #if 0
-static void normalize_eq_adds_exp (Btor * btor, 
-                                   BtorNode * e0, BtorNode * e1, 
-                                   BtorNode ** res0ptr, BtorNode ** res1ptr)
+static void normalize_eq_adds_exp (Btor * btor,
+				   BtorNode * e0, BtorNode * e1,
+				   BtorNode ** res0ptr, BtorNode ** res1ptr)
 {
   BtorNode * cur, * leftconst, * tmp, * res0, * res1, * one;
   int len = BTOR_REAL_ADDR_NODE (e0)->len;
@@ -1804,66 +1804,66 @@ static void normalize_eq_adds_exp (Btor * btor,
     {
       cur = BTOR_POP_STACK (stack);
       if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == BTOR_ADD_NODE)
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
+	{
+	  BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+	  BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+	}
       else if (BTOR_REAL_ADDR_NODE (cur)->kind == BTOR_BV_CONST_NODE)
-        {
-          tmp = btor_add_exp (btor, leftconst, cur);
-          btor_release_exp (btor, leftconst);
-          leftconst = tmp;
-        }
+	{
+	  tmp = btor_add_exp (btor, leftconst, cur);
+	  btor_release_exp (btor, leftconst);
+	  leftconst = tmp;
+	}
       else if (BTOR_IS_INVERTED_NODE (cur))
-        {
-          tmp = btor_add_exp (btor, res1, BTOR_INVERT_NODE (cur));
-          btor_release_exp (btor, res1);
-          res1 = tmp;
+	{
+	  tmp = btor_add_exp (btor, res1, BTOR_INVERT_NODE (cur));
+	  btor_release_exp (btor, res1);
+	  res1 = tmp;
 
-          tmp = btor_sub_exp (btor, leftconst, one);
-          btor_release_exp (btor, leftconst);
-          leftconst = tmp;
-        }
+	  tmp = btor_sub_exp (btor, leftconst, one);
+	  btor_release_exp (btor, leftconst);
+	  leftconst = tmp;
+	}
       else
-        {
-          tmp = btor_add_exp (btor, res0, cur);
-          btor_release_exp (btor, res0);
-          res0 = tmp;
-        }
+	{
+	  tmp = btor_add_exp (btor, res0, cur);
+	  btor_release_exp (btor, res0);
+	  res0 = tmp;
+	}
     }
   while (!BTOR_EMPTY_STACK (stack));
 
-  BTOR_PUSH_STACK (mm, stack, e1); 
+  BTOR_PUSH_STACK (mm, stack, e1);
   do
     {
       cur = BTOR_POP_STACK (stack);
       if (!BTOR_IS_INVERTED_NODE (cur) && cur->kind == BTOR_ADD_NODE)
-        {
-          BTOR_PUSH_STACK (mm, stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, stack, cur->e[0]);
-        }
+	{
+	  BTOR_PUSH_STACK (mm, stack, cur->e[1]);
+	  BTOR_PUSH_STACK (mm, stack, cur->e[0]);
+	}
       else if (BTOR_REAL_ADDR_NODE (cur)->kind == BTOR_BV_CONST_NODE)
-        {
-          tmp = btor_sub_exp (btor, leftconst, cur);
-          btor_release_exp (btor, leftconst);
-          leftconst = tmp;
-        }
+	{
+	  tmp = btor_sub_exp (btor, leftconst, cur);
+	  btor_release_exp (btor, leftconst);
+	  leftconst = tmp;
+	}
       else if (BTOR_IS_INVERTED_NODE (cur))
-        {
-          tmp = btor_add_exp (btor, res0, BTOR_INVERT_NODE (cur));
-          btor_release_exp (btor, res0);
-          res0 = tmp;
+	{
+	  tmp = btor_add_exp (btor, res0, BTOR_INVERT_NODE (cur));
+	  btor_release_exp (btor, res0);
+	  res0 = tmp;
 
-          tmp = btor_add_exp (btor, leftconst, one);
-          btor_release_exp (btor, leftconst);
-          leftconst = tmp;
-        }
+	  tmp = btor_add_exp (btor, leftconst, one);
+	  btor_release_exp (btor, leftconst);
+	  leftconst = tmp;
+	}
       else
-        {
-          tmp = btor_add_exp (btor, res1, cur);
-          btor_release_exp (btor, res1);
-          res1 = tmp;
-        }
+	{
+	  tmp = btor_add_exp (btor, res1, cur);
+	  btor_release_exp (btor, res1);
+	  res1 = tmp;
+	}
     }
   while (!BTOR_EMPTY_STACK (stack));
 
@@ -1878,7 +1878,7 @@ static void normalize_eq_adds_exp (Btor * btor,
       btor_release_exp (btor, res0);
       res0 = btor_copy_exp (btor, leftconst);
     }
-  else if (is_const_zero_exp (btor, res1)) 
+  else if (is_const_zero_exp (btor, res1))
     {
       btor_release_exp (btor, res1);
       res1 = btor_neg_exp (btor, leftconst);
