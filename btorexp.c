@@ -8257,6 +8257,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         /* push all arrays onto stack that are overwritten by lambda exp
          */
         // FIXME: check why we can't use read iterators here
+        // FIXME: does not work for the general case (param + 1)
         init_full_parent_iterator (&it_full, param);
         while (has_next_parent_full_parent_iterator (&it_full))
         {
