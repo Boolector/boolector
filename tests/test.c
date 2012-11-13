@@ -58,18 +58,37 @@
     finish_##name##_tests ();        \
   } while (0)
 
+#define USAGE                                                                \
+  "usage: test [options] [patterns]\n\n"                                     \
+  "  options:\n"                                                             \
+  "    -h, --help       print this message and exit\n"                       \
+  "    -n, --norww      run boolector with rewriting of writes disabled\n"   \
+  "    -s, --slow       run 'slow' testcases also\n"                         \
+  "    -f, --fast       run 'fast' testcases only\n"                         \
+  "                     (default: run 'fast' and 'normal' testcases)\n"      \
+  "  patterns:\n"                                                            \
+  "    a valid pattern is a substring of an existing test case out of the\n" \
+  "    following test case sets:\n"                                          \
+  "      aig, aigvec, arithmetic, comp, const, exp, hash, inc, logic,\n"     \
+  "      mem, misc, modelgen, overflow, parseerror, queue, sat, shift,\n"    \
+  "      smtaxioms, special, stack, util, testcases\n"
+
 int
 main (int argc, char **argv)
 {
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
-  int i                   = 0;
+  int i = 0, rewrite_writes = 1;
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h") || !strcmp (argv[i], "--help"))
     {
-      printf ("./test [-h|--help]|[-s|--slow][-f|--fast]|{pattern}\n");
+      printf ("%s", USAGE);
       return 0;
+    }
+    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--norww"))
+    {
+      rewrite_writes = 0;
     }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--fast"))
     {

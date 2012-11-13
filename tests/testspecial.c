@@ -30,20 +30,33 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int g_argc    = 4;
+static char **g_argv = NULL;
+
 void
 init_special_tests (void)
 {
+  if (!g_rwwrites) g_argc += 1;
+
+  g_argv = (char **) malloc (g_argc * sizeof (char *));
+
+  g_argv[0] = "./boolector";
+  g_argv[1] = "-o";
+  g_argv[2] = "/dev/null";
+
+  if (!g_rwwrites) g_argv[g_argc - 2] = "-nrw";
 }
 
 static void
 run_test (char *name, int expected)
 {
-  int argc        = 4;
-  char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
+  char *full_name;
+
+  full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
   strcpy (full_name, "log/");
   strcat (full_name, name);
-  char *argv[] = {"./boolector", "-o", "/dev/null", full_name};
-  assert (boolector_main (argc, argv) == expected);
+  g_argv[g_argc - 1] = full_name;
+  assert (boolector_main (g_argc, g_argv) == expected);
   free (full_name);
 }
 
@@ -1461,4 +1474,5 @@ run_special_tests (int argc, char **argv)
 void
 finish_special_tests (void)
 {
+  free (g_argv);
 }

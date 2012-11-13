@@ -974,7 +974,7 @@ boolector_main (int argc, char **argv)
   app.force_smt_input        = 0;
   app.print_model            = 0;
   app.rewrite_writes         = 0;
-  app.no_pprint              = 1;
+  app.no_pprint              = 0;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
 #ifdef BTOR_USE_PICOSAT
@@ -1132,7 +1132,9 @@ boolector_main (int argc, char **argv)
             parser_api = btor_smt_parser_api ();
             if (app.verbosity > 0)
               btor_msg_main_va_args (
-                  "assuming SMTLIB version 1 parsing because of '(b' prefix\n");
+                  "assuming SMTLIB version 1 "
+                  "parsing because of '(b' "
+                  "prefix\n");
           }
           else
           {
@@ -1141,31 +1143,35 @@ boolector_main (int argc, char **argv)
             {
               if (isprint (second))
                 btor_msg_main_va_args (
-                    "assuming SMTLIB version 2 parsing because of '(%c' "
+                    "assuming SMTLIB version 2 "
+                    "parsing because of '(%c' "
                     "prefix\n",
                     second);
               else
                 btor_msg_main_va_args (
-                    "assuming SMTLIB version 2 parsing because of '(' but not "
-                    "'(b' prefix\n");
+                    "assuming SMTLIB version 2 "
+                    "parsing because of '(' "
+                    "but not '(b' prefix\n");
             }
           }
         }
         else if (app.verbosity > 0)
           btor_msg_main_va_args (
-              "assuming BTOR parsing because first character differs from "
-              "'('\n");
+              "assuming BTOR parsing because first "
+              "character differs from '('\n");
       }
       else if (app.verbosity > 0)
       {
         if (ch == EOF)
           btor_msg_main_va_args (
-              "assuming BTOR parsing because end-of-file found\n");
+              "assuming BTOR parsing because "
+              "end-of-file found\n");
         else
         {
           assert (!ch);
           btor_msg_main_va_args (
-              "assuming BTOR parsing because zero byte found\n");
+              "assuming BTOR parsing because "
+              "zero byte found\n");
         }
       }
     }

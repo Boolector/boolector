@@ -82,7 +82,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
     unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
     unsigned int reachable : 1;     /* reachable from root ? */             \
-    unsigned int tseitin : 1;       /* tseiting encoded into SAT ? */       \
+    unsigned int tseitin : 1;       /* tseitin encoded into SAT ? */        \
     unsigned int vread : 1;         /* virtual read ? */                    \
     unsigned int vread_index : 1;   /* index for two virtual reads ? */     \
     unsigned int constraint : 1;    /* top level constraint ? */            \
@@ -487,6 +487,11 @@ struct Btor
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
+#define BTOR_IS_PARAMETERIZED_NODE(exp)                                       \
+  (((exp)->arity >= 1 && BTOR_REAL_ADDR_NODE ((exp)->e[0])->parameterized)    \
+   || ((exp)->arity >= 2 && BTOR_REAL_ADDR_NODE ((exp)->e[1])->parameterized) \
+   || ((exp)->arity == 3 && BTOR_REAL_ADDR_NODE ((exp)->e[2])->parameterized))
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */
@@ -497,6 +502,12 @@ Btor *btor_clone_btor (Btor *);
 
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
+
+/* Disable rewriting writes to Lambda expressions.  */
+void btor_disable_rewrite_writes (Btor *btor);
+
+/* Disable pretty printing when dumping and rewriting of writes is enabled.  */
+void btor_disable_pretty_print (Btor *btor);
 
 /* Enables model generation. */
 void btor_enable_model_gen (Btor *btor);
@@ -1070,7 +1081,6 @@ int btor_precond_cond_exp_dbg (const Btor *btor,
                                const BtorNode *e_cond,
                                const BtorNode *e_if,
                                const BtorNode *e_else);
-
 /*------------------------------------------------------------------------*/
 
 // Debugging support for Lambda path ...

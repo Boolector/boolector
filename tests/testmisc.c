@@ -39,15 +39,8 @@
 #define BTOR_TEST_MISC_LOW 1
 #define BTOR_TEST_MISC_HIGH 4
 
-static int g_argc = 5;
-
-static char *g_argv[] = {
-    "./boolector",
-    "-rwl1",
-    "-o",
-    "/dev/null",
-    BTOR_TEST_MISC_TEMP_FILE_NAME,
-};
+static int g_argc    = 5;
+static char **g_argv = NULL;
 
 static BtorMemMgr *g_mm;
 
@@ -58,6 +51,19 @@ init_misc_tests (void)
   assert (f != NULL);
   fclose (f);
   g_mm = btor_new_mem_mgr ();
+
+  if (!g_rwwrites) g_argc += 1;
+
+  g_argv = (char **) malloc (g_argc * sizeof (char *));
+
+  g_argv[0] = "./boolector";
+  g_argv[1] = "-rwl1";
+  g_argv[2] = "-o";
+  g_argv[3] = "/dev/null";
+
+  if (!g_rwwrites) g_argv[g_argc - 2] = "-nrw";
+
+  g_argv[g_argc - 1] = BTOR_TEST_MISC_TEMP_FILE_NAME;
 }
 
 static char *
@@ -398,4 +404,5 @@ finish_misc_tests (void)
   int result = remove (BTOR_TEST_MISC_TEMP_FILE_NAME);
   assert (result == 0);
   btor_delete_mem_mgr (g_mm);
+  free (g_argv);
 }

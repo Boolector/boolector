@@ -2,15 +2,16 @@
 
 btor_dev=boolector
 btor_stable="boolector --no-rewrite-writes"
+btor_params=
 inputfile=$1
 
 trap "exit" SIGHUP SIGINT SIGTERM
 
-$btor_stable $inputfile > /dev/null 2>&1
+$btor_stable $btor_params $inputfile > /dev/null 2>&1
 expected_result=$?
 #echo "expected result: $expected_result"
 
-$btor_dev $inputfile > /dev/null 2>&1
+$btor_dev $btor_params $inputfile > /dev/null 2>&1
 result=$?
 #echo "result: $result"
 

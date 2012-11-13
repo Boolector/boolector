@@ -31,12 +31,12 @@
 #include <stdio.h>
 #include <string.h>
 
-static BtorCharPtrStack args;
+static BtorCharPtrStack g_args;
 
 static void
 test_testcase (void)
 {
-  (void) boolector_main (BTOR_COUNT_STACK (args), args.start);
+  (void) boolector_main (BTOR_COUNT_STACK (g_args), g_args.start);
 }
 
 void
@@ -45,19 +45,19 @@ init_testcases_tests (void)
 }
 
 void
-run_testcases_tests (int argc, char** argv)
+run_testcases_tests (int argc, char **argv)
 {
   BtorCharStack buffer;
-  BtorMemMgr* mem;
-  char* token;
-  FILE* file;
+  BtorMemMgr *mem;
+  char *token;
+  FILE *file;
   int ch;
 
   assert ((file = fopen ("tests/testcases", "r")));
 
   mem = btor_new_mem_mgr ();
 
-  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (g_args);
   BTOR_INIT_STACK (buffer);
 
   for (;;)
@@ -84,26 +84,28 @@ run_testcases_tests (int argc, char** argv)
     } while (ch != '\n' && ch != EOF);
     BTOR_PUSH_STACK (mem, buffer, 0);
 
-    assert (BTOR_EMPTY_STACK (args));
+    assert (BTOR_EMPTY_STACK (g_args));
+
+    if (!g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-nrw");
 
     token = strtok (buffer.start, " \t");
     while (token)
     {
-      BTOR_PUSH_STACK (mem, args, token);
+      BTOR_PUSH_STACK (mem, g_args, token);
       token = strtok (0, " \t");
     }
 
     BTOR_RESET_STACK (buffer);
 
-    run_test_case (argc, argv, test_testcase, 0, args.start[0], 1);
+    run_test_case (argc, argv, test_testcase, 0, g_args.start[0], 1);
 
-    BTOR_RESET_STACK (args);
+    BTOR_RESET_STACK (g_args);
   }
 
   fclose (file);
 
   BTOR_RELEASE_STACK (mem, buffer);
-  BTOR_RELEASE_STACK (mem, args);
+  BTOR_RELEASE_STACK (mem, g_args);
 
   btor_delete_mem_mgr (mem);
 }

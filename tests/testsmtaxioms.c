@@ -30,7 +30,7 @@
 #include <assert.h>
 #include <stdio.h>
 
-static BtorCharPtrStack args;
+static BtorCharPtrStack g_args;
 
 static char* axioms[] = {
     "bvashr",
@@ -53,9 +53,9 @@ static char* axioms[] = {
     0};
 
 static void
-test_args_unsat (void)
+test_g_args_unsat (void)
 {
-  assert (boolector_main (BTOR_COUNT_STACK (args), args.start)
+  assert (boolector_main (BTOR_COUNT_STACK (g_args), g_args.start)
           == BTOR_UNSAT_EXIT);
 }
 
@@ -65,18 +65,20 @@ test_smtaxiom (BtorMemMgr* mem, int argc, char** argv, char* p, int i)
   static char buffer[80];
   static char name[80];
 
-  BTOR_PUSH_STACK (mem, args, p);
+  BTOR_PUSH_STACK (mem, g_args, p);
 
-  BTOR_PUSH_STACK (mem, args, "-o");
-  BTOR_PUSH_STACK (mem, args, "/dev/null");
+  BTOR_PUSH_STACK (mem, g_args, "-o");
+  BTOR_PUSH_STACK (mem, g_args, "/dev/null");
+
+  if (!g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-nrw");
 
   sprintf (name, "smtaxiom%s%d", p, i);
   sprintf (buffer, "log/%s.smt", name);
-  BTOR_PUSH_STACK (mem, args, buffer);
+  BTOR_PUSH_STACK (mem, g_args, buffer);
 
-  run_test_case (argc, argv, test_args_unsat, 0, name, 0);
+  run_test_case (argc, argv, test_g_args_unsat, 0, name, 0);
 
-  BTOR_RESET_STACK (args);
+  BTOR_RESET_STACK (g_args);
 }
 
 void
@@ -111,7 +113,7 @@ run_smtaxioms_tests (int argc, char** argv)
     }
   }
 
-  BTOR_RELEASE_STACK (mem, args);
+  BTOR_RELEASE_STACK (mem, g_args);
   btor_delete_mem_mgr (mem);
 }
 

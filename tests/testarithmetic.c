@@ -37,15 +37,8 @@
 #define BTOR_TEST_ARITHMETIC_LOW 1
 #define BTOR_TEST_ARITHMETIC_HIGH 4
 
-static int g_argc = 5;
-
-static char *g_argv[] = {
-    "./boolector",
-    "-rwl1",
-    "-o",
-    "/dev/null",
-    BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME,
-};
+static int g_argc    = 5;
+static char **g_argv = NULL;
 
 void
 init_arithmetic_tests (void)
@@ -53,6 +46,19 @@ init_arithmetic_tests (void)
   FILE *f = fopen (BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME, "w");
   assert (f != NULL);
   fclose (f);
+
+  if (!g_rwwrites) g_argc += 1;
+
+  g_argv = (char **) malloc (g_argc * sizeof (char *));
+
+  g_argv[0] = "./boolector";
+  g_argv[1] = "-rwl1";
+  g_argv[2] = "-o";
+  g_argv[3] = "/dev/null";
+
+  if (!g_rwwrites) g_argv[g_argc - 2] = "-nrw";
+
+  g_argv[g_argc - 1] = BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME;
 }
 
 static void
@@ -331,4 +337,5 @@ finish_arithmetic_tests (void)
 {
   int result = remove (BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME);
   assert (result == 0);
+  free (g_argv);
 }
