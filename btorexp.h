@@ -1081,13 +1081,6 @@ int btor_precond_cond_exp_dbg (const Btor *btor,
                                const BtorNode *e_cond,
                                const BtorNode *e_if,
                                const BtorNode *e_else);
-/*------------------------------------------------------------------------*/
-
-// Debugging support for Lambda path ...
-
-void btor_disable_rewrite_writes (Btor *btor);
-
-void btor_disable_pretty_print (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 #endif
