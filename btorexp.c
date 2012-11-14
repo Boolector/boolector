@@ -2589,11 +2589,11 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
 
   BTOR_CNEW (btor->mm, lambda_exp);
   btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind      = BTOR_LAMBDA_NODE;
-  lambda_exp->bytes     = sizeof *lambda_exp;
-  lambda_exp->arity     = 2;
-  lambda_exp->len       = len;
-  lambda_exp->index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
+  lambda_exp->kind  = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes = sizeof *lambda_exp;
+  lambda_exp->arity = 2;
+  lambda_exp->len   = len;
+  //  lambda_exp->index_len = BTOR_REAL_ADDR_NODE(e_param)->len;
   //  lambda_exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, lambda_exp);
   connect_child_exp (btor, lambda_exp, e_param, 0);
@@ -3404,15 +3404,16 @@ btor_lambda_exp (
   assert (elem_len > 0);
   assert (index_len > 0);
   assert (BTOR_IS_PARAM_NODE (e_param));
-  assert (BTOR_REAL_ADDR_NODE (e_param)->len == index_len);
+  //  assert (BTOR_REAL_ADDR_NODE (e_param)->len == index_len);
   assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
   assert (e_exp);
   assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
 
   e_exp      = btor_pointer_chase_simplified_exp (btor, e_exp);
   lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
+  lambda_exp->index_len = index_len;
 
-  assert (lambda_exp->index_len == index_len);
+  //  assert (lambda_exp->index_len == index_len);
   assert (lambda_exp->len = elem_len);
   /* set lambda expression of parameter */
   assert (!((BtorParamNode *) e_param)->lambda_exp);
@@ -7354,6 +7355,33 @@ apply_beta_reduction (Btor *btor,
 
   return result;
 }
+
+// TODO: for testing only (for now)
+void
+btor_assign_param (BtorNode *lambda, BtorNode *exp)
+{
+  assert (lambda);
+  assert (exp);
+  assign_param (lambda, exp);
+}
+
+void
+btor_unassign_param (BtorNode *lambda)
+{
+  assert (lambda);
+  unassign_param (lambda);
+}
+
+BtorNode *
+btor_beta_reduce (Btor *btor, BtorNode *lambda)
+{
+  assert (btor);
+  assert (lambda);
+
+  // TODO: set reduce_full_exp to 1
+  return beta_reduce (btor, lambda, 0, 0, 0, 0);
+}
+// end
 
 static const char *
 eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
