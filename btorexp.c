@@ -7370,8 +7370,10 @@ btor_beta_reduce (Btor *btor, BtorNode *lambda)
   assert (btor);
   assert (lambda);
 
+  int parameterized;
+
   // TODO: set reduce_full_exp to 1
-  return beta_reduce (btor, lambda, 0, 0, 0, 0);
+  return beta_reduce (btor, lambda, 0, 0, &parameterized);
 }
 // end
 
