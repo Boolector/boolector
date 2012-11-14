@@ -40,7 +40,7 @@ typedef struct BtorFunSort BtorFunSort;
 
 struct BtorBitVecSort
 {
-  int width;
+  int len;
 };
 
 struct BtorArraySort
@@ -51,8 +51,8 @@ struct BtorArraySort
 
 struct BtorLstSort
 {
-  BtorSort *car;
-  BtorSort *cdr;
+  BtorSort *head;
+  BtorSort *tail;
 };
 
 struct BtorFunSort
@@ -64,7 +64,8 @@ struct BtorFunSort
 struct BtorSort
 {
   BtorSortKind kind;  // what kind of sort
-  int ref;            // reference counter
+  unsigned id;        // fixed id
+  int refs;           // reference counter
   BtorSort *next;     // collision chain for unique table
   union
   {
@@ -315,9 +316,9 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
-  BtorNodePtrStack id_table;
+  BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;
-  BtorSortUniqueTable sort_unique_table;
+  BtorSortUniqueTable sorts_unique_table;
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
@@ -600,6 +601,22 @@ const char *btor_version (Btor *btor);
 
 /* Prints statistics. */
 void btor_print_stats_btor (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
+BtorSort *btor_bool_sort (Btor *btor);
+
+BtorSort *btor_bitvec_sort (Btor *btor, int len);
+
+BtorSort *btor_array_sort (Btor *btor, int indexlen, int elemlen);
+
+BtorSort *btor_lst_sort (Btor *btor, BtorSort *head, BtorSort *tail);
+
+BtorSort *btor_fun_sort (Btor *btor, BtorSort *dom, BtorSort *codom);
+
+BtorSort *btor_copy_sort (Btor *btor, BtorSort *sort);
+
+void btor_release_sort (Btor *btor, BtorSort *sort);
 
 /*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:

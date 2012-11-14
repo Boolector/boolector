@@ -412,6 +412,149 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
   fflush (stdout);
 }
 
+/*------------------------------------------------------------------------*/
+
+static void
+inc_sort_ref_counter (Btor *btor, BtorSort *sort)
+{
+  assert (btor);
+  assert (sort);
+  BTOR_ABORT_NODE (sort->refs == INT_MAX, "Sort reference counter overflow");
+  sort->refs++;
+}
+
+BtorSort *
+btor_copy_sort (Btor *btor, BtorSort *sort)
+{
+  inc_sort_ref_counter (btor, sort);
+  return sort;
+}
+
+static unsigned
+compute_hash_sort (BtorSort *sort, int table_size)
+{
+  unsigned res, tmp;
+
+  assert (sort);
+  assert (table_size);
+  assert (btor_is_power_of_2_util (table_size));
+
+  tmp = 0;
+
+  switch (sort->kind)
+  {
+    default:
+    case BTOR_BOOL_SORT:
+      assert (sort->kind == BTOR_BOOL_SORT);
+      res = 0;
+      break;
+
+    case BTOR_BITVEC_SORT: res = (unsigned int) sort->bitvec.len; break;
+
+    case BTOR_ARRAY_SORT:
+      res = (unsigned int) sort->array.index->id;
+      tmp = (unsigned int) sort->array.element->id;
+      break;
+
+    case BTOR_LST_SORT:
+      res = (unsigned int) sort->lst.head->id;
+      tmp = (unsigned int) sort->lst.tail->id;
+      break;
+
+    case BTOR_FUN_SORT:
+      res = (unsigned int) sort->fun.domain->id;
+      tmp = (unsigned int) sort->fun.codomain->id;
+      break;
+  }
+
+  res *= 444555667u;
+
+  if (tmp)
+  {
+    res += tmp;
+    res *= 123123137u;
+  }
+
+  res &= table_size - 1;
+
+  return res;
+}
+
+static void
+remove_from_sorts_unique_table_sort (Btor *btor, BtorSort *sort)
+{
+  unsigned int hash;
+  BtorSort *prev, *cur;
+
+  assert (btor);
+  assert (sort);
+  assert (!sort->refs);
+  assert (btor->sorts_unique_table.num_elements > 0);
+
+  hash = compute_hash_sort (sort, btor->sorts_unique_table.size);
+  prev = 0;
+  cur  = btor->sorts_unique_table.chains[hash];
+
+  while (cur != sort)
+  {
+    assert (cur);
+    prev = cur;
+    cur  = cur->next;
+  }
+
+  assert (cur);
+  if (!prev)
+    btor->sorts_unique_table.chains[hash] = cur->next;
+  else
+    prev->next = cur->next;
+
+  btor->sorts_unique_table.num_elements--;
+}
+
+static void
+release_sort (Btor *btor, BtorSort *sort)
+{
+  assert (btor);
+  assert (sort);
+  assert (sort->refs > 0);
+
+  if (--sort->refs > 0) return;
+
+  switch (sort->kind)
+  {
+    default: break;
+
+    case BTOR_LST_SORT:
+      release_sort (btor, sort->lst.head);
+      release_sort (btor, sort->lst.tail);
+      break;
+
+    case BTOR_ARRAY_SORT:
+      release_sort (btor, sort->array.index);
+      release_sort (btor, sort->array.element);
+      break;
+
+    case BTOR_FUN_SORT:
+      release_sort (btor, sort->fun.domain);
+      release_sort (btor, sort->fun.codomain);
+      break;
+  }
+
+  remove_from_sorts_unique_table_sort (btor, sort);
+  BTOR_DELETE (btor->mm, sort);
+}
+
+void
+btor_release_sort (Btor *btor, BtorSort *sort)
+{
+  assert (btor);
+  assert (sort);
+  assert (sort->refs > 0);
+  release_sort (btor, sort);
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 {
@@ -420,7 +563,8 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
   assert (exp);
   (void) btor;
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  BTOR_ABORT_NODE (real_exp->refs == INT_MAX, "Reference counter overflow");
+  BTOR_ABORT_NODE (real_exp->refs == INT_MAX,
+                   "Node reference counter overflow");
   real_exp->refs++;
 }
 
@@ -802,8 +946,8 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
   assert (exp->erased);
 
   assert (exp->id);
-  assert (BTOR_PEEK_STACK (btor->id_table, exp->id) == exp);
-  BTOR_POKE_STACK (btor->id_table, exp->id, 0);
+  assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
+  BTOR_POKE_STACK (btor->nodes_id_table, exp->id, 0);
 
   mm = btor->mm;
 
@@ -2404,12 +2548,12 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   assert (exp);
   assert (!BTOR_IS_INVERTED_NODE (exp));
   assert (!exp->id);
-  id = BTOR_COUNT_STACK (btor->id_table);
+  id = BTOR_COUNT_STACK (btor->nodes_id_table);
   BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
   exp->id = id;
-  BTOR_PUSH_STACK (btor->mm, btor->id_table, exp);
-  assert (BTOR_COUNT_STACK (btor->id_table) == exp->id + 1);
-  assert (BTOR_PEEK_STACK (btor->id_table, exp->id) == exp);
+  BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
+  assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
 }
 
 static void
@@ -5055,8 +5199,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   /* also consider newly created nodes like lambdas etc. */
   // TODO: is there a better solution?
-  if (BTOR_COUNT_STACK (btor->id_table) - 1 > maxid)
-    maxid = BTOR_COUNT_STACK (btor->id_table) - 1;
+  if (BTOR_COUNT_STACK (btor->nodes_id_table) - 1 > maxid)
+    maxid = BTOR_COUNT_STACK (btor->nodes_id_table) - 1;
 
   for (i = 0; i < nroots; i++)
   {
@@ -5404,7 +5548,7 @@ btor_new_btor (void)
   btor->msgtick           = -1;
   btor->rewrite_writes    = 0;
 
-  BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
+  BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
   btor->exp_pair_eq_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -5456,7 +5600,7 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor);
   assert (btor->rewrite_level >= 0);
   assert (btor->rewrite_level <= 3);
-  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 1);
   btor->rewrite_level = rewrite_level;
 }
 
@@ -5525,7 +5669,7 @@ void
 btor_enable_model_gen (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 1);
   if (!btor->model_gen)
   {
     btor->model_gen = 1;
@@ -5559,7 +5703,7 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 
   assert (btor);
   assert (btor->verbosity >= -1);
-  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 1);
   btor->verbosity = verbosity;
 
   avmgr = btor->avmgr;
@@ -5631,7 +5775,7 @@ btor_delete_btor (Btor *btor)
 
   BTOR_RELEASE_NODE_UNIQUE_TABLE (mm, btor->nodes_unique_table);
 
-  BTOR_RELEASE_STACK (mm, btor->id_table);
+  BTOR_RELEASE_STACK (mm, btor->nodes_id_table);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
