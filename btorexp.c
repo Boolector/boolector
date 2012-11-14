@@ -7521,7 +7521,7 @@ beta_reduce (Btor *btor,
   assert (exp);
 
   // TODO
-  assert (bound);  // not implemented yet
+  assert (bound <= 0);  // not implemented yet
 
   int i;
   const char *res;
