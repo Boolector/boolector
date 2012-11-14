@@ -608,7 +608,7 @@ BtorSort *btor_bool_sort (Btor *btor);
 
 BtorSort *btor_bitvec_sort (Btor *btor, int len);
 
-BtorSort *btor_array_sort (Btor *btor, int indexlen, int elemlen);
+BtorSort *btor_array_sort (Btor *btor, BtorSort *idx, BtorSort *elem);
 
 BtorSort *btor_lst_sort (Btor *btor, BtorSort *head, BtorSort *tail);
 
