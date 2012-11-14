@@ -147,7 +147,7 @@ compute_aig_hash (BtorAIG *aig, int table_size)
 }
 
 static void
-delete_aig_unique_table_entry (BtorAIGMgr *amgr, BtorAIG *aig)
+delete_aig_nodes_unique_table_entry (BtorAIGMgr *amgr, BtorAIG *aig)
 {
   unsigned int hash;
   BtorAIG *cur, *prev;
@@ -228,7 +228,7 @@ find_and_aig (BtorAIGMgr *amgr, BtorAIG *left, BtorAIG *right)
 }
 
 static void
-enlarge_aig_unique_table (BtorAIGMgr *amgr)
+enlarge_aig_nodes_unique_table (BtorAIGMgr *amgr)
 {
   BtorMemMgr *mm;
   BtorAIG **new_chains;
@@ -314,7 +314,7 @@ btor_release_aig (BtorAIGMgr *amgr, BtorAIG *aig)
             r = BTOR_RIGHT_CHILD_AIG (cur);
             BTOR_PUSH_STACK (mm, stack, r);
             BTOR_PUSH_STACK (mm, stack, l);
-            delete_aig_unique_table_entry (amgr, cur);
+            delete_aig_nodes_unique_table_entry (amgr, cur);
           }
 
           delete_aig_node (amgr, cur);
@@ -637,7 +637,7 @@ BTOR_AIG_TWO_LEVEL_OPT_TRY_AGAIN:
     if (amgr->table.num_elements == amgr->table.size
         && btor_log_2_util (amgr->table.size) < BTOR_AIG_UNIQUE_TABLE_LIMIT)
     {
-      enlarge_aig_unique_table (amgr);
+      enlarge_aig_nodes_unique_table (amgr);
       lookup = find_and_aig (amgr, left, right);
     }
     if (real_right->id < real_left->id)
