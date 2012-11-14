@@ -9412,6 +9412,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
     BTOR_PUSH_STACK (mm, stack, cur);
   }
+
   do
   {
     assert (!BTOR_EMPTY_STACK (stack));
