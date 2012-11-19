@@ -121,7 +121,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);
   BTOR_RUN_TESTS (exp);
-  //  BTOR_RUN_TESTS (lambda);
+  BTOR_RUN_TESTS (lambda);
   BTOR_RUN_TESTS (logic);
   BTOR_RUN_TESTS (comp);
   BTOR_RUN_TESTS (arithmetic);
