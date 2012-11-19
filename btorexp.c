@@ -160,7 +160,6 @@ static BtorNode *apply_beta_reduction (Btor *, BtorNode *, BtorNode *, int *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, BtorNode *, int, int *);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
-
 /*------------------------------------------------------------------------*/
 
 static const char *const g_op2string[] = {
@@ -1334,6 +1333,11 @@ add_neq_exp_to_clause (Btor *btor,
   add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
 }
 
+/* This function is used to encode a lemma on demand.
+ * The stack 'writes' contains intermediate writes.
+ * The stack 'aeqs' contains intermediate array equalities (true).
+ * The stacks 'aconds' constain intermediate array conditionals.
+ */
 static void
 add_param_cond_to_clause (Btor *btor,
                           BtorNode *cond,
@@ -1383,6 +1387,9 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
   BtorPtrHashBucket *bucket;
   BtorNode *cur;
 
+  (void) i;
+  (void) a;
+  (void) b;
   DBG_P ("\e[1;32m", 0);
   DBG_P ("ENCODED LEMMA", 0);
   DBG_P ("  index: %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
@@ -1587,7 +1594,6 @@ encode_lemma_new (Btor *btor,
                              a,
                              b);
   }
-
   add_eq_exp_to_clause (btor, a, b, &linking_clause);
 
   if (BTOR_IS_LAMBDA_NODE (acc2)) btor_release_exp (btor, lambda_value);
@@ -3399,6 +3405,10 @@ btor_lambda_exp (
     Btor *btor, int elem_len, int index_len, BtorNode *e_param, BtorNode *e_exp)
 {
   BtorNode *lambda_exp;
+
+#ifdef NDEBUG
+  (void) index_len;
+#endif
 
   assert (btor);
   assert (elem_len > 0);
@@ -5475,24 +5485,24 @@ btor_set_sat_solver (Btor *btor, const char *solver)
     return 0;
 #endif
 
-#ifdef BTOR_USE_MINISAT
   if (!strcasecmp (solver, "minisat"))
+#ifdef BTOR_USE_MINISAT
   {
     btor_enable_minisat_sat (smgr);
     return 1;
   }
 #else
-  return 0;
+    return 0;
 #endif
 
-#ifdef BTOR_USE_PICOSAT
   if (!strcasecmp (solver, "picosat"))
+#ifdef BTOR_USE_PICOSAT
   {
     btor_enable_picosat_sat (smgr);
     return 1;
   }
 #else
-  return 0;
+    return 0;
 #endif
 
   return 0;
@@ -5550,7 +5560,6 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 
   assert (btor);
   assert (btor->verbosity >= -1);
-  assert (btor->verbosity <= 3);
   assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->verbosity = verbosity;
 
@@ -6644,7 +6653,6 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
       }
     }
-
     if (propagate_writes_as_reads)
     {
       /* enqueue all arrays which are reachable via equality
@@ -6854,7 +6862,10 @@ print_bfs_path_dbg (BtorNode *from, BtorNode *to)
   assert (from->parent);
   assert (to);
 
+#ifndef NDEBUG
   int hops = 0;
+  (void) hops;
+#endif
   BtorNode *cur;
 
   cur = from;
@@ -7730,7 +7741,6 @@ beta_reduce (Btor *btor,
       BTOR_PUSH_STACK (mm, arg_stack, result);
     }
   }
-
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
   assert (result);

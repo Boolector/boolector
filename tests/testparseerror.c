@@ -18,6 +18,7 @@
  */
 
 #include "testparseerror.h"
+#include "btormain.h"
 #include "testrunner.h"
 
 #ifdef NDEBUG
@@ -25,85 +26,104 @@
 #endif
 
 #include <assert.h>
+#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+
+char *g_name = NULL;
+int g_smtlib = 1;
 
 void
 init_parseerror_tests (void)
 {
 }
 
-static void
-parseerror_test (const char *fname, int btor)
+static int
+file_exists (const char *path)
 {
-  char *suffix, *opt = NULL, *syscall_string;
-  int len_opt = 0, ret_val;
-
-  if (g_rwwrites) opt = "-nrw";
-
-  if (btor)
-    suffix = ".btor";
-  else
-    suffix = ".smt";
-
-  if (opt) len_opt = strlen (opt);
-
-  syscall_string = (char *) malloc (
-      sizeof (char)
-      * (strlen ("./boolector log/") + strlen (fname) + strlen (suffix)
-         + len_opt + strlen (" > /dev/null") + 1));
-
-  if (opt)
-    sprintf (syscall_string, "./boolector log/%s %s > /dev/null", fname, opt);
-  else
-    sprintf (syscall_string, "./boolector log/%s > /dev/null", fname);
-
-  ret_val = system (syscall_string);
-  assert (WEXITSTATUS (ret_val) == 1);
-
-  free (syscall_string);
+  struct stat buf;
+  return !stat (path, &buf);
 }
 
 static void
-test_parseerror1 ()
+run_smt_parse_error_test (void)
 {
-  parseerror_test ("parseerror1", 1);
+  char *inpath, *logpath;
+  char *argv[5];
+  char *name       = g_name;
+  char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
+  char *smt_opt    = (g_smtlib == 1) ? "--smt" : "--smt2";
+  int res;
+  inpath  = malloc (strlen (name) + 20);
+  logpath = malloc (strlen (name) + 20);
+  sprintf (inpath, "log/%s.%s", name, smt_suffix);
+  assert (file_exists (inpath));
+  sprintf (logpath, "log/%s.log", name);
+  argv[0] = "test_parse_error_smt_test";
+  argv[1] = inpath;
+  argv[2] = smt_opt;
+  argv[3] = "-o";
+  argv[4] = logpath;
+  res     = boolector_main (5, argv);
+  if (res != 1)
+  {
+    FILE *file = fopen (logpath, "a");
+    fprintf (
+        file, "test_parse_error_%s_test: exit code %d != 1\n", smt_suffix, res);
+    fclose (file);
+  }
+  free (inpath);
+  free (logpath);
 }
 
-static void
-test_parseerror2 ()
+static int
+hasprefix (const char *str, const char *prefix)
 {
-  parseerror_test ("parseerror2", 0);
+  return !strncmp (str, prefix, strlen (prefix));
 }
 
-static void
-test_parseerror3 ()
+static int
+hassuffix (const char *str, const char *suffix)
 {
-  parseerror_test ("parseerror3", 0);
-}
-
-static void
-test_parseerror4 ()
-{
-  parseerror_test ("parseerror4", 0);
-}
-
-static void
-test_parseerror5 ()
-{
-  parseerror_test ("parseerror5", 0);
+  int difflen = strlen (str) - strlen (suffix);
+  if (difflen < 0) return 0;
+  return !strcmp (str + difflen, suffix);
 }
 
 void
 run_parseerror_tests (int argc, char **argv)
 {
-  BTOR_RUN_TEST (parseerror1);
-  BTOR_RUN_TEST (parseerror2);
-  BTOR_RUN_TEST (parseerror3);
-  BTOR_RUN_TEST (parseerror4);
-  BTOR_RUN_TEST (parseerror5);
+  DIR *dir = opendir ("log/");
+  struct dirent *de;
+  char *base = NULL;
+  while ((de = readdir (dir)))
+  {
+    char *name = de->d_name, *dotptr;
+    base       = strdup (name);
+    if (!(dotptr = strchr (base, '.')))
+    {
+      free (base);
+      continue;
+    }
+    *dotptr = 0;
+    g_name  = base;
+    if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
+      g_smtlib = 1;
+    else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
+      g_smtlib = 2;
+    else
+    {
+      free (base);
+      continue;
+    }
+    run_test_case (argc, argv, run_smt_parse_error_test, base, 1);
+    free (base);
+  }
+  closedir (dir);
 }
 
 void

@@ -107,6 +107,7 @@ size_t btor_parse_error_message_length (const char *name,
 char *btor_parse_error_message (BtorMemMgr *,
                                 const char *name,
                                 int lineno,
+                                int columnno,
                                 const char *fmt,
                                 va_list,
                                 size_t bytes);

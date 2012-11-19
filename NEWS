@@ -1,4 +1,14 @@
-news for release 1.5.117 since 1.5.116
+news for release 1.5.1XX since 1.5.119
+--------------------------------------
+* improved quality of SMT2 parse error messages
+* added missing semantic checks in SMT2 parser
+
+news for release 1.5.119 since 1.5.118
+--------------------------------------
+* fixed '{boolector,btor}_set_sat_solver 
+  (if MiniSAT and/or PicoSAT are not not enabled at compile time)
+
+news for release 1.5.118 since 1.5.116
 --------------------------------------
 * '--solver=...' command line option and 'boolector_set_sat_solver'
 * delayed Lingeling preprocessing using 'simpdelay'

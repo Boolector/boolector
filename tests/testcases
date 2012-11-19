@@ -700,3 +700,4 @@ regaddnorm1 -de -o log/regaddnorm1.log log/regaddnorm1.btor
 regaddnorm2 -de -o log/regaddnorm2.log log/regaddnorm2.btor
 regnegadd1 -de -o log/regnegadd1.log log/regnegadd1.btor
 sc12fuzzcheck2 -o log/sc12fuzzcheck2.log log/sc12fuzzcheck2.smt2
+regmismatch -o log/regmismatch.log log/regmismatch.smt2
