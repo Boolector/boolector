@@ -55,6 +55,7 @@ test_const_lambda_const (void)
   btor_release_exp (g_btor, const_exp);
   btor_release_exp (g_btor, param);
   btor_release_exp (g_btor, index);
+  btor_release_exp (g_btor, result);
   finish_lambda_test ();
 }
 
@@ -78,6 +79,7 @@ test_const_lambda_var (void)
   btor_release_exp (g_btor, var_exp);
   btor_release_exp (g_btor, param);
   btor_release_exp (g_btor, index);
+  btor_release_exp (g_btor, result);
   finish_lambda_test ();
 }
 
@@ -99,6 +101,7 @@ test_const_lambda_param (void)
   btor_release_exp (g_btor, lambda);
   btor_release_exp (g_btor, var_exp);
   btor_release_exp (g_btor, param);
+  btor_release_exp (g_btor, result);
   finish_lambda_test ();
 }
 
@@ -835,6 +838,7 @@ test_reduce_nested_lambdas_add1 (void)
   finish_lambda_test ();
 }
 
+// FIXME: x + read (lambda) (else it's x + array)
 /* lambda x . (x + lambda y . y) */
 static void
 test_reduce_nested_lambdas_add2 (void)
@@ -948,7 +952,7 @@ run_lambda_tests (int argc, char **argv)
 
   /* additional tests */
   BTOR_RUN_TEST (reduce_nested_lambdas_add1);
-  BTOR_RUN_TEST (reduce_nested_lambdas_add2);
+  // FIXME: BTOR_RUN_TEST (reduce_nested_lambdas_add2);
 }
 
 void
