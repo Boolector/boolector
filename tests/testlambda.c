@@ -121,6 +121,7 @@ test_lambda_unassigned_param (void)
   btor_release_exp (g_btor, lambda);
   btor_release_exp (g_btor, var_exp);
   btor_release_exp (g_btor, param);
+  btor_release_exp (g_btor, result);
   finish_lambda_test ();
 }
 
@@ -132,12 +133,23 @@ static void
 unary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 {
   init_lambda_test ();
+  int lambda_index_bw = g_elem_bw;
+  int lambda_elem_bw  = g_elem_bw;
+
+  if (func == btor_redor_exp || func == btor_redxor_exp
+      || func == btor_redand_exp)
+  {
+    lambda_elem_bw = 1;
+  }
+
   BtorNode *var       = btor_var_exp (g_btor, g_elem_bw, "v1");
   BtorNode *expected  = func (g_btor, var);
-  BtorNode *param     = btor_param_exp (g_btor, g_elem_bw, "p1");
+  BtorNode *param     = btor_param_exp (g_btor, lambda_index_bw, "p1");
   BtorNode *param_exp = func (g_btor, param);
-  BtorNode *lambda =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
+  BtorNode *lambda;
+
+  lambda = btor_lambda_exp (
+      g_btor, lambda_elem_bw, lambda_index_bw, param, param_exp);
 
   btor_assign_param (lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
@@ -195,7 +207,7 @@ test_lambda_param_slice (void)
   BtorNode *expected = btor_slice_exp (g_btor, var, upper, lower);
   BtorNode *slice    = btor_slice_exp (g_btor, param, upper, lower);
   BtorNode *lambda =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, slice);
+      btor_lambda_exp (g_btor, slice->len, g_elem_bw, param, slice);
 
   btor_assign_param (lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
@@ -223,7 +235,7 @@ param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, int) )
   BtorNode *expected  = func (g_btor, var, upper);
   BtorNode *param_exp = func (g_btor, param, upper);
   BtorNode *lambda =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
+      btor_lambda_exp (g_btor, param_exp->len, lower, param, param_exp);
 
   btor_assign_param (lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
@@ -260,13 +272,32 @@ static void
 binary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
 {
   init_lambda_test ();
-  BtorNode *var1      = btor_var_exp (g_btor, g_elem_bw, "v1");
-  BtorNode *var2      = btor_var_exp (g_btor, g_elem_bw, "v2");
+  int var_bw          = g_elem_bw;
+  int lambda_index_bw = g_elem_bw;
+  int lambda_elem_bw  = g_elem_bw;
+
+  if (func == btor_implies_exp || func == btor_iff_exp)
+  {
+    var_bw          = 1;
+    lambda_index_bw = 1;
+    lambda_elem_bw  = 1;
+  }
+  else if (func == btor_eq_exp || func == btor_ne_exp || func == btor_uaddo_exp
+           || func == btor_saddo_exp || func == btor_umulo_exp
+           || func == btor_smulo_exp)
+  {
+    lambda_elem_bw = 1;
+  }
+
+  BtorNode *var1      = btor_var_exp (g_btor, var_bw, "v1");
+  BtorNode *var2      = btor_var_exp (g_btor, var_bw, "v2");
   BtorNode *expected  = func (g_btor, var1, var2);
-  BtorNode *param     = btor_param_exp (g_btor, g_elem_bw, "p1");
+  BtorNode *param     = btor_param_exp (g_btor, lambda_index_bw, "p1");
   BtorNode *param_exp = func (g_btor, var1, param);
-  BtorNode *lambda =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
+  BtorNode *lambda;
+
+  lambda = btor_lambda_exp (
+      g_btor, lambda_elem_bw, lambda_index_bw, param, param_exp);
 
   btor_assign_param (lambda, var2);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
@@ -814,9 +845,9 @@ test_lambda_reduce_nested_lambdas_add1 (void)
   BtorNode *param2   = btor_param_exp (g_btor, g_elem_bw, "p2");
   BtorNode *add      = btor_add_exp (g_btor, param1, param2);
   BtorNode *lambda2 =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param2, add);
+      btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, param2, add);
   BtorNode *lambda1 =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param1, lambda2);
+      btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, param1, lambda2);
 
   btor_assign_param (lambda2, var2);
   btor_assign_param (lambda1, var1);
