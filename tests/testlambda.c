@@ -838,8 +838,7 @@ test_lambda_reduce_nested_lambdas_add1 (void)
   finish_lambda_test ();
 }
 
-// FIXME: x + read (lambda) (else it's x + array)
-/* lambda x . (x + lambda y . y) */
+/* lambda x . (x + read(lambda y . y)) */
 static void
 test_lambda_reduce_nested_lambdas_add2 (void)
 {
@@ -851,22 +850,22 @@ test_lambda_reduce_nested_lambdas_add2 (void)
   BtorNode *param2   = btor_param_exp (g_btor, g_elem_bw, "p2");
   BtorNode *lambda2 =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param2, param2);
-  BtorNode *add = btor_add_exp (g_btor, param1, lambda2);
+  BtorNode *read = btor_read_exp (g_btor, lambda2, var2);
+  BtorNode *add  = btor_add_exp (g_btor, param1, read);
   BtorNode *lambda1 =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param1, add);
 
-  btor_assign_param (lambda2, var2);
   btor_assign_param (lambda1, var1);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
-  btor_unassign_param (lambda2);
   btor_unassign_param (lambda1);
 
   assert (result == expected);
 
   btor_release_exp (g_btor, result);
   btor_release_exp (g_btor, lambda1);
-  btor_release_exp (g_btor, lambda2);
   btor_release_exp (g_btor, add);
+  btor_release_exp (g_btor, read);
+  btor_release_exp (g_btor, lambda2);
   btor_release_exp (g_btor, param2);
   btor_release_exp (g_btor, param1);
   btor_release_exp (g_btor, expected);
@@ -952,7 +951,7 @@ run_lambda_tests (int argc, char **argv)
 
   /* additional tests */
   BTOR_RUN_TEST (lambda_reduce_nested_lambdas_add1);
-  //  BTOR_RUN_TEST (lambda_reduce_nested_lambdas_add2);
+  BTOR_RUN_TEST (lambda_reduce_nested_lambdas_add2);
 }
 
 void
