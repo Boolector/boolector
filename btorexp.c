@@ -160,6 +160,7 @@ static BtorNode *apply_beta_reduction (Btor *, BtorNode *, BtorNode *, int *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, BtorNode *, int, int *);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
+
 /*------------------------------------------------------------------------*/
 
 static const char *const g_op2string[] = {
@@ -4812,7 +4813,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  if (btor->rewrite_writes && !btor->no_pprint) pprint = 1;
+  if (!btor->no_pprint) pprint = 1;
 
   DBG_P ("pprint %d\n", 0, pprint);
 
@@ -5403,7 +5404,7 @@ btor_new_btor (void)
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
-  btor->rewrite_writes    = 1;
+  btor->rewrite_writes    = 0;
 
   BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
 
@@ -6653,6 +6654,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTOR_PUSH_STACK (mm, unmark_stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
       }
     }
+
     if (propagate_writes_as_reads)
     {
       /* enqueue all arrays which are reachable via equality

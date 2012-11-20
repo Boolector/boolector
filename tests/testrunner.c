@@ -369,7 +369,8 @@ run_test_case (
       g_logfile = fopen (logfile_name, "w");
     }
 
-    funcp ();
+    if (fun_without_name) fun_without_name ();
+    if (fun_with_name) fun_with_name (name);
 
     if (check_log_file)
     {
