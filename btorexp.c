@@ -2434,8 +2434,7 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
   {
     parent = next_parent_full_parent_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (parent));
-    assert (!parent->mark);
-    parent->mark = 1;
+    parent->aux_mark = 1;
     BTOR_PUSH_STACK (mm, unmark_stack, parent);
   }
 
@@ -2444,11 +2443,11 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
     cur = BTOR_POP_STACK (work_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
 
-    if (cur->mark == 2) continue;
+    if (cur->aux_mark == 2) continue;
 
-    if (cur->mark == 0)
+    if (cur->aux_mark == 0)
     {
-      cur->mark = 1;
+      cur->aux_mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, cur);
 
       BTOR_PUSH_STACK (mm, work_stack, cur);
@@ -2457,8 +2456,8 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
     }
     else
     {
-      assert (cur->mark == 1);
-      cur->mark = 2;
+      assert (cur->aux_mark == 1);
+      cur->aux_mark = 2;
 
       /* do not set lambda nodes as parameterized */
       if (BTOR_IS_LAMBDA_NODE (cur)) continue;
@@ -2477,7 +2476,7 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    cur->mark = 0;
+    cur->aux_mark = 0;
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
@@ -3404,22 +3403,26 @@ btor_lambda_exp (
   assert (elem_len > 0);
   assert (index_len > 0);
   assert (BTOR_IS_PARAM_NODE (e_param));
-  //  assert (BTOR_REAL_ADDR_NODE (e_param)->len == index_len);
+  assert (BTOR_REAL_ADDR_NODE (e_param)->len == index_len);
   assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
   assert (e_exp);
   assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
 
   e_exp      = btor_pointer_chase_simplified_exp (btor, e_exp);
   lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
-  lambda_exp->index_len = index_len;
-
-  //  assert (lambda_exp->index_len == index_len);
   assert (lambda_exp->len = elem_len);
+  //  assert (lambda_exp->index_len == index_len);
+  lambda_exp->index_len = index_len;
   /* set lambda expression of parameter */
-  assert (!((BtorParamNode *) e_param)->lambda_exp);
-  ((BtorParamNode *) e_param)->lambda_exp = lambda_exp;
+  // assert (!((BtorParamNode *) e_param)->lambda_exp);
+  assert (!((BtorParamNode *) e_param)->lambda_exp
+          || ((BtorParamNode *) e_param)->lambda_exp == lambda_exp);
+  if (!((BtorParamNode *) e_param)->lambda_exp)
+    ((BtorParamNode *) e_param)->lambda_exp = lambda_exp;
+  // else lambda_exp is an already existing one
 
-  (void) btor_insert_in_ptr_hash_table (btor->lambda_exps, lambda_exp);
+  if (!btor_find_in_ptr_hash_table (btor->lambda_exps, lambda_exp))
+    (void) btor_insert_in_ptr_hash_table (btor->lambda_exps, lambda_exp);
 
   return lambda_exp;
 }
@@ -4773,8 +4776,8 @@ dump_node (FILE *file, BtorNode *node)
       break;
 
     default:
-    case BTOR_BV_VAR_NODE:
-      assert (n->kind == BTOR_BV_VAR_NODE);
+      // TODO uncomment
+      // assert (n->kind == BTOR_BV_VAR_NODE);
       fprintf (file, "var %d", n->len);
       sprintf (idbuffer, "%d", n->id);
       assert (n->symbol);
@@ -5615,9 +5618,11 @@ btor_delete_btor (Btor *btor)
 
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
+  // debug
   int k;
   for (k = 0; k < btor->unique_table.num_elements; k++)
     dump_node (stderr, btor->unique_table.chains[k]);
+  // end debug
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
           || btor->unique_table.num_elements == 0);
 
@@ -7556,13 +7561,14 @@ beta_reduce (Btor *btor,
   int i;
   const char *res;
   BtorMemMgr *mm;
-  BtorNodePtrStack work_stack, arg_stack, unmark_stack;
+  BtorNodePtrStack work_stack, arg_stack, unassign_stack, unmark_stack;
   BtorNode *cur, *real_cur, *next, *e[3], *result;
 
   mm = btor->mm;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
+  BTOR_INIT_STACK (unassign_stack);
   BTOR_INIT_STACK (unmark_stack);
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
@@ -7581,14 +7587,7 @@ beta_reduce (Btor *btor,
 
       real_cur->mark = 1;
 
-      if ((bound < 0 && BTOR_IS_ARRAY_NODE (real_cur))
-          // FIXME: for now we have to skip non-parameterized nodes,
-          // otherwise we may create new nodes that do not have an
-          // assignment yet. This is a problem for compare_assignments.
-          // Hence, for that we have to use the const comparison functions
-          // in order to handle those cases.
-          // Do we really actually need that?
-          || !real_cur->parameterized)
+      if (bound < 0 && BTOR_IS_ARRAY_NODE (real_cur))
       {
         BTOR_PUSH_STACK (mm, work_stack, cur);
         continue;
@@ -7609,6 +7608,9 @@ beta_reduce (Btor *btor,
 
         if (!((BtorParamNode *) param)->assigned_exp)
         {
+          BTOR_PUSH_STACK (
+              mm, unassign_stack, BTOR_REAL_ADDR_NODE (real_cur->e[0]));
+
           if (BTOR_IS_PARAM_NODE (index)
               && ((BtorParamNode *) index)->assigned_exp)
           {
@@ -7623,14 +7625,21 @@ beta_reduce (Btor *btor,
       }
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
+        // real_cur->mark = 2;
+
         // FIXME: get rid of param_assignment
         assert (!param_assignment || bound < 0);
         /* we allow unassigned params (next == 0) */
         assert (!param_assignment
-                || (param_assignment
-                    && !((BtorParamNode *) real_cur)->assigned_exp));
+                || !((BtorParamNode *) real_cur)->assigned_exp);
+
         next = param_assignment ? param_assignment
                                 : ((BtorParamNode *) real_cur)->assigned_exp;
+
+        if (!next)
+          next = real_cur;
+        else
+          real_cur->mark = 2;
       }
       else if (bound < 0
                /* do not evaluate conditions if not encoded/parameterized */
@@ -7658,13 +7667,12 @@ beta_reduce (Btor *btor,
     }
     else
     {
-      assert (!BTOR_IS_PARAM_NODE (real_cur));
+      // assert (!BTOR_IS_PARAM_NODE (real_cur));
       real_cur->mark = 2;
 
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
-          || BTOR_IS_ARRAY_VAR_NODE (real_cur)
-          || (bound < 0 && BTOR_IS_ARRAY_NODE (real_cur))
-          || !real_cur->parameterized)
+          || BTOR_IS_ARRAY_VAR_NODE (real_cur) || BTOR_IS_PARAM_NODE (real_cur)
+          || (bound < 0 && BTOR_IS_ARRAY_NODE (real_cur)))
       {
         result = btor_copy_exp (btor, real_cur);
       }
@@ -7701,14 +7709,26 @@ beta_reduce (Btor *btor,
           case BTOR_CONCAT_NODE:
             result = btor_concat_exp (btor, e[0], e[1]);
             break;
-          case BTOR_READ_NODE: result = btor_read_exp (btor, e[0], e[1]); break;
+          case BTOR_READ_NODE:
+            /* array exp has been beta-reduced to read value */
+            if (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (e[0])))
+              result = btor_copy_exp (btor, e[0]);
+            else
+              result = btor_read_exp (btor, e[0], e[1]);
+            break;
           case BTOR_LAMBDA_NODE:
-            unassign_param (BTOR_REAL_ADDR_NODE (real_cur->e[0]));
-            if (BTOR_IS_PARAM_NODE (e[0]))
+            if (!BTOR_EMPTY_STACK (unassign_stack)
+                && BTOR_TOP_STACK (unassign_stack) == real_cur)
+            {
+              (void) BTOR_POP_STACK (unassign_stack);
+              unassign_param (real_cur);
+            }
+
+            if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])))
               result = btor_lambda_exp (
                   btor, real_cur->len, real_cur->index_len, e[0], e[1]);
             else
-              result = BTOR_REAL_ADDR_NODE (e[1]);
+              result = btor_copy_exp (btor, e[1]);
             break;
           case BTOR_WRITE_NODE:
             result = btor_write_exp (btor, e[0], e[1], e[2]);
@@ -7731,6 +7751,7 @@ beta_reduce (Btor *btor,
     }
   }
 
+  assert (BTOR_EMPTY_STACK (unassign_stack));
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
@@ -7746,11 +7767,10 @@ beta_reduce (Btor *btor,
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, unassign_stack);
 
   *parameterized = real_cur->parameterized;
-  DBG_P ("beta_reduce result (%d): ",
-         result,
-         BTOR_REAL_ADDR_NODE (result)->parameterized);
+  DBG_P ("beta_reduce result (%d): ", result, *parameterized);
 
   return result;
 }
