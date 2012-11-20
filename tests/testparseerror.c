@@ -104,23 +104,19 @@ run_parseerror_tests (int argc, char **argv)
   {
     char *name = de->d_name, *dotptr;
     base       = strdup (name);
-    if (!(dotptr = strchr (base, '.')))
+    if ((dotptr = strchr (base, '.')))
     {
-      free (base);
-      continue;
+      *dotptr  = 0;
+      g_name   = base;
+      g_smtlib = 0;
+      if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
+        g_smtlib = 1;
+      else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
+        g_smtlib = 2;
+
+      if (g_smtlib > 0)
+        run_test_case (argc, argv, run_smt_parse_error_test, base, 1);
     }
-    *dotptr = 0;
-    g_name  = base;
-    if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
-      g_smtlib = 1;
-    else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
-      g_smtlib = 2;
-    else
-    {
-      free (base);
-      continue;
-    }
-    run_test_case (argc, argv, run_smt_parse_error_test, base, 1);
     free (base);
   }
   closedir (dir);
