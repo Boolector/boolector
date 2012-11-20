@@ -4608,6 +4608,8 @@ btor_write_exp (Btor *btor,
   else
     result = btor_write_exp_node (btor, e_array, e_index, e_value);
 
+  // TODO: rewrite write to lambda here? (rewrite_writes_to_lambda obsolete)
+
   assert (result);
   return result;
 }
