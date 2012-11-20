@@ -34,6 +34,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+char *g_name = NULL;
+int g_smtlib = 1;
+
 void
 init_parseerror_tests (void)
 {
@@ -47,53 +50,30 @@ file_exists (const char *path)
 }
 
 static void
-run_parse_error_smt_test (const char *name)
+run_smt_parse_error_test (void)
 {
   char *inpath, *logpath;
   char *argv[5];
+  char *name       = g_name;
+  char *smt_suffix = (g_smtlib == 1) ? "smt" : "smt2";
+  char *smt_opt    = (g_smtlib == 1) ? "--smt" : "--smt2";
   int res;
   inpath  = malloc (strlen (name) + 20);
   logpath = malloc (strlen (name) + 20);
-  sprintf (inpath, "log/%s.smt", name);
+  sprintf (inpath, "log/%s.%s", name, smt_suffix);
   assert (file_exists (inpath));
   sprintf (logpath, "log/%s.log", name);
   argv[0] = "test_parse_error_smt_test";
   argv[1] = inpath;
-  argv[2] = "--smt";
+  argv[2] = smt_opt;
   argv[3] = "-o";
   argv[4] = logpath;
   res     = boolector_main (5, argv);
   if (res != 1)
   {
     FILE *file = fopen (logpath, "a");
-    fprintf (file, "test_parse_error_smt_test: exit code %d != 1\n", res);
-    fclose (file);
-  }
-  free (inpath);
-  free (logpath);
-}
-
-static void
-run_parse_error_smt2_test (const char *name)
-{
-  char *inpath, *logpath;
-  char *argv[5];
-  int res;
-  inpath  = malloc (strlen (name) + 20);
-  logpath = malloc (strlen (name) + 20);
-  sprintf (inpath, "log/%s.smt2", name);
-  assert (file_exists (inpath));
-  sprintf (logpath, "log/%s.log", name);
-  argv[0] = "test_parse_error_smt2_test";
-  argv[1] = inpath;
-  argv[2] = "--smt2";
-  argv[3] = "-o";
-  argv[4] = logpath;
-  res     = boolector_main (5, argv);
-  if (res != 1)
-  {
-    FILE *file = fopen (logpath, "a");
-    fprintf (file, "test_parse_error_smt2_test: exit code %d != 1\n", res);
+    fprintf (
+        file, "test_parse_error_%s_test: exit code %d != 1\n", smt_suffix, res);
     fclose (file);
   }
   free (inpath);
@@ -119,17 +99,24 @@ run_parseerror_tests (int argc, char **argv)
 {
   DIR *dir = opendir ("log/");
   struct dirent *de;
-  char *base;
+  char *base = NULL;
   while ((de = readdir (dir)))
   {
     char *name = de->d_name, *dotptr;
     base       = strdup (name);
-    if (!(dotptr = strchr (base, '.'))) continue;
-    *dotptr = 0;
-    if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
-      run_test_case (argc, argv, 0, run_parse_error_smt_test, base, 1);
-    else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
-      run_test_case (argc, argv, 0, run_parse_error_smt2_test, base, 1);
+    if ((dotptr = strchr (base, '.')))
+    {
+      *dotptr  = 0;
+      g_name   = base;
+      g_smtlib = 0;
+      if (hasprefix (name, "smt1perr") && hassuffix (name, ".smt"))
+        g_smtlib = 1;
+      else if (hasprefix (name, "smt2perr") && hassuffix (name, ".smt2"))
+        g_smtlib = 2;
+
+      if (g_smtlib > 0)
+        run_test_case (argc, argv, run_smt_parse_error_test, base, 1);
+    }
     free (base);
   }
   closedir (dir);

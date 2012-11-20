@@ -292,12 +292,8 @@ find (const char *str, const char **testset, int testset_size)
 }
 
 void
-run_test_case (int argc,
-               char **argv,
-               void (*fun_without_name) (),
-               void (*fun_with_name) (const char *name),
-               char *name,
-               int check_log_file)
+run_test_case (
+    int argc, char **argv, void (*funcp) (void), char *name, int check_log_file)
 {
   int i, count, skip, len;
   char *logfile_name, *outfile_name;
@@ -346,6 +342,7 @@ run_test_case (int argc,
     printf (" Running %s ", name);
 
     fflush (stdout);
+    fflush (stdout); /* for assertion failures */
 
     if (check_log_file)
     {
@@ -372,8 +369,7 @@ run_test_case (int argc,
       g_logfile = fopen (logfile_name, "w");
     }
 
-    if (fun_without_name) fun_without_name ();
-    if (fun_with_name) fun_with_name (name);
+    funcp ();
 
     if (check_log_file)
     {

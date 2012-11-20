@@ -97,7 +97,7 @@ run_testcases_tests (int argc, char **argv)
 
     BTOR_RESET_STACK (buffer);
 
-    run_test_case (argc, argv, test_testcase, 0, g_args.start[0], 1);
+    run_test_case (argc, argv, test_testcase, g_args.start[0], 1);
 
     BTOR_RESET_STACK (g_args);
   }

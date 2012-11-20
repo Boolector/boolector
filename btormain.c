@@ -973,8 +973,8 @@ boolector_main (int argc, char **argv)
   app.rewrite_level          = 3;
   app.force_smt_input        = 0;
   app.print_model            = 0;
-  app.rewrite_writes         = 0;
-  app.no_pprint              = 0;
+  app.rewrite_writes         = 1;  // TODO: only for debug?
+  app.no_pprint              = 0;  // TODO: debug only
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
 #ifdef BTOR_USE_PICOSAT
@@ -1175,7 +1175,6 @@ boolector_main (int argc, char **argv)
         }
       }
     }
-
     parser = parser_api->init (btor, &parse_opt);
 
     if (app.forced_sat_solver_name)

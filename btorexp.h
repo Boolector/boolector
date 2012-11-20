@@ -1123,6 +1123,12 @@ unsigned int btor_hash_exp_by_id (BtorNode *exp);
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
+// TODO: for testing only (for now)
+void btor_assign_param (BtorNode *lambda, BtorNode *exp);
+void btor_unassign_param (BtorNode *lambda);
+BtorNode *btor_beta_reduce (Btor *btor, BtorNode *lambda);
+// end
+
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
@@ -1164,7 +1170,6 @@ int btor_precond_cond_exp_dbg (const Btor *btor,
                                const BtorNode *e_cond,
                                const BtorNode *e_if,
                                const BtorNode *e_else);
-
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
