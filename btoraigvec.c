@@ -672,7 +672,7 @@ void
 btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity)
 {
   assert (avmgr);
-  assert (verbosity >= -1 && verbosity <= 3);
+  assert (verbosity >= -1);
   avmgr->verbosity = verbosity;
 }
 

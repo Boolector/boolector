@@ -293,7 +293,7 @@ find (const char *str, const char **testset, int testset_size)
 
 void
 run_test_case (
-    int argc, char **argv, void (*funcp) (), char *name, int check_log_file)
+    int argc, char **argv, void (*funcp) (void), char *name, int check_log_file)
 {
   int i, count, skip, len;
   char *logfile_name, *outfile_name;

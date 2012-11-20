@@ -90,6 +90,7 @@ in order to use Boolector as part of a program which
 is not going to be distributed under GPL, please contact
 Armin Biere <biere@jku.at>.
 
-Robert Daniel Brummayer, Armin Biere,
+Armin Biere,
+Robert Daniel Brummayer
 Johannes Kepler University.
 Linz, Austria, 2012.

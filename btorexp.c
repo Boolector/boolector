@@ -1334,6 +1334,11 @@ add_neq_exp_to_clause (Btor *btor,
   add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
 }
 
+/* This function is used to encode a lemma on demand.
+ * The stack 'writes' contains intermediate writes.
+ * The stack 'aeqs' contains intermediate array equalities (true).
+ * The stacks 'aconds' constain intermediate array conditionals.
+ */
 static void
 add_param_cond_to_clause (Btor *btor,
                           BtorNode *cond,
@@ -1383,6 +1388,9 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
   BtorPtrHashBucket *bucket;
   BtorNode *cur;
 
+  (void) i;
+  (void) a;
+  (void) b;
   DBG_P ("\e[1;32m", 0);
   DBG_P ("ENCODED LEMMA", 0);
   DBG_P ("  index: %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
@@ -1587,7 +1595,6 @@ encode_lemma_new (Btor *btor,
                              a,
                              b);
   }
-
   add_eq_exp_to_clause (btor, a, b, &linking_clause);
 
   if (BTOR_IS_LAMBDA_NODE (acc2)) btor_release_exp (btor, lambda_value);
@@ -3399,6 +3406,10 @@ btor_lambda_exp (
 {
   BtorNode *lambda_exp;
 
+#ifdef NDEBUG
+  (void) index_len;
+#endif
+
   assert (btor);
   assert (elem_len > 0);
   assert (index_len > 0);
@@ -4600,6 +4611,8 @@ btor_write_exp (Btor *btor,
   else
     result = btor_write_exp_node (btor, e_array, e_index, e_value);
 
+  // TODO: rewrite write to lambda here? (rewrite_writes_to_lambda obsolete)
+
   assert (result);
   return result;
 }
@@ -4805,7 +4818,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  if (btor->rewrite_writes && !btor->no_pprint) pprint = 1;
+  if (!btor->no_pprint) pprint = 1;
 
   DBG_P ("pprint %d\n", 0, pprint);
 
@@ -5396,7 +5409,7 @@ btor_new_btor (void)
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
-  btor->rewrite_writes    = 1;
+  btor->rewrite_writes    = 0;
 
   BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
 
@@ -5478,24 +5491,24 @@ btor_set_sat_solver (Btor *btor, const char *solver)
     return 0;
 #endif
 
-#ifdef BTOR_USE_MINISAT
   if (!strcasecmp (solver, "minisat"))
+#ifdef BTOR_USE_MINISAT
   {
     btor_enable_minisat_sat (smgr);
     return 1;
   }
 #else
-  return 0;
+    return 0;
 #endif
 
-#ifdef BTOR_USE_PICOSAT
   if (!strcasecmp (solver, "picosat"))
+#ifdef BTOR_USE_PICOSAT
   {
     btor_enable_picosat_sat (smgr);
     return 1;
   }
 #else
-  return 0;
+    return 0;
 #endif
 
   return 0;
@@ -5553,7 +5566,6 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 
   assert (btor);
   assert (btor->verbosity >= -1);
-  assert (btor->verbosity <= 3);
   assert (BTOR_COUNT_STACK (btor->id_table) == 1);
   btor->verbosity = verbosity;
 
@@ -6859,7 +6871,10 @@ print_bfs_path_dbg (BtorNode *from, BtorNode *to)
   assert (from->parent);
   assert (to);
 
+#ifndef NDEBUG
   int hops = 0;
+  (void) hops;
+#endif
   BtorNode *cur;
 
   cur = from;

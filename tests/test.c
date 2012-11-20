@@ -25,6 +25,7 @@
 #include "testexp.h"
 #include "testhash.h"
 #include "testinc.h"
+#include "testlambda.h"
 #include "testlogic.h"
 #include "testmem.h"
 #include "testmisc.h"

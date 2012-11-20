@@ -1175,7 +1175,6 @@ boolector_main (int argc, char **argv)
         }
       }
     }
-
     parser = parser_api->init (btor, &parse_opt);
 
     if (app.forced_sat_solver_name)
