@@ -1,4 +1,5 @@
 #include "btorexp.h"
+#include "btorutil.h"
 #include "testexp.h"
 #include "testrunner.h"
 
@@ -272,25 +273,42 @@ static void
 binary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *, BtorNode *) )
 {
   init_lambda_test ();
-  int var_bw          = g_elem_bw;
+  int var1_bw         = g_elem_bw;
+  int var2_bw         = g_elem_bw;
   int lambda_index_bw = g_elem_bw;
   int lambda_elem_bw  = g_elem_bw;
 
   if (func == btor_implies_exp || func == btor_iff_exp)
   {
-    var_bw          = 1;
+    var1_bw         = 1;
+    var2_bw         = 1;
     lambda_index_bw = 1;
     lambda_elem_bw  = 1;
   }
   else if (func == btor_eq_exp || func == btor_ne_exp || func == btor_uaddo_exp
            || func == btor_saddo_exp || func == btor_umulo_exp
-           || func == btor_smulo_exp)
+           || func == btor_smulo_exp || func == btor_ult_exp
+           || func == btor_slt_exp || func == btor_ulte_exp
+           || func == btor_slte_exp || func == btor_ugt_exp
+           || func == btor_sgt_exp || func == btor_ugte_exp
+           || func == btor_sgte_exp || func == btor_usubo_exp
+           || func == btor_ssubo_exp || func == btor_sdivo_exp)
   {
     lambda_elem_bw = 1;
   }
+  else if (func == btor_concat_exp)
+  {
+    lambda_elem_bw = 2 * var1_bw;
+  }
+  else if (func == btor_sll_exp || func == btor_srl_exp || func == btor_sra_exp
+           || func == btor_rol_exp || func == btor_ror_exp)
+  {
+    var2_bw         = btor_log_2_util (var1_bw);
+    lambda_index_bw = var2_bw;
+  }
 
-  BtorNode *var1      = btor_var_exp (g_btor, var_bw, "v1");
-  BtorNode *var2      = btor_var_exp (g_btor, var_bw, "v2");
+  BtorNode *var1      = btor_var_exp (g_btor, var1_bw, "v1");
+  BtorNode *var2      = btor_var_exp (g_btor, var2_bw, "v2");
   BtorNode *expected  = func (g_btor, var1, var2);
   BtorNode *param     = btor_param_exp (g_btor, lambda_index_bw, "p1");
   BtorNode *param_exp = func (g_btor, var1, param);
@@ -554,7 +572,7 @@ test_lambda_param_read (void)
 {
   init_lambda_test ();
   BtorNode *param    = btor_param_exp (g_btor, g_index_bw, "p1");
-  BtorNode *index    = btor_var_exp (g_btor, g_elem_bw, "index");
+  BtorNode *index    = btor_var_exp (g_btor, g_index_bw, "index");
   BtorNode *array    = btor_array_exp (g_btor, g_elem_bw, g_index_bw, "array");
   BtorNode *expected = btor_read_exp (g_btor, array, index);
   BtorNode *read     = btor_read_exp (g_btor, array, param);
@@ -585,14 +603,16 @@ static void
 test_lambda_param_write1 (void)
 {
   init_lambda_test ();
-  BtorNode *i         = btor_var_exp (g_btor, g_index_bw, "i");
-  BtorNode *e         = btor_var_exp (g_btor, g_elem_bw, "e");
-  BtorNode *a         = btor_array_exp (g_btor, g_elem_bw, g_index_bw, "a");
+  int index_bw        = g_elem_bw;
+  int elem_bw         = g_elem_bw;
+  BtorNode *i         = btor_var_exp (g_btor, index_bw, "i");
+  BtorNode *e         = btor_var_exp (g_btor, elem_bw, "e");
+  BtorNode *a         = btor_array_exp (g_btor, elem_bw, index_bw, "a");
   BtorNode *expected  = btor_write_exp (g_btor, a, i, e);
-  BtorNode *param     = btor_param_exp (g_btor, g_elem_bw, "p");
+  BtorNode *param     = btor_param_exp (g_btor, elem_bw, "p");
   BtorNode *param_exp = btor_write_exp (g_btor, a, i, param);
   BtorNode *lambda =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
+      btor_lambda_exp (g_btor, elem_bw, index_bw, param, param_exp);
 
   btor_assign_param (lambda, e);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
@@ -624,7 +644,7 @@ test_lambda_param_write2 (void)
   BtorNode *lambda =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
 
-  btor_assign_param (lambda, e);
+  btor_assign_param (lambda, i);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
   btor_unassign_param (lambda);
 
@@ -651,8 +671,7 @@ test_lambda_param_bcond (void)
   BtorNode *e_else    = btor_var_exp (g_btor, g_elem_bw, "v3");
   BtorNode *expected  = btor_cond_exp (g_btor, var, e_if, e_else);
   BtorNode *param_exp = btor_cond_exp (g_btor, param, e_if, e_else);
-  BtorNode *lambda =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
+  BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, 1, param, param_exp);
 
   btor_assign_param (lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
@@ -706,6 +725,7 @@ test_lambda_param_acond (void)
   btor_release_exp (g_btor, param_cond);
   btor_release_exp (g_btor, param);
   btor_release_exp (g_btor, expected);
+  btor_release_exp (g_btor, expected_acond);
   btor_release_exp (g_btor, e_else);
   btor_release_exp (g_btor, e_if);
   btor_release_exp (g_btor, expected_cond);
@@ -874,17 +894,19 @@ static void
 test_lambda_reduce_nested_lambdas_add2 (void)
 {
   init_lambda_test ();
-  BtorNode *var1     = btor_var_exp (g_btor, g_elem_bw, "v1");
-  BtorNode *var2     = btor_var_exp (g_btor, g_elem_bw, "v2");
-  BtorNode *expected = btor_add_exp (g_btor, var1, var2);
-  BtorNode *param1   = btor_param_exp (g_btor, g_elem_bw, "p1");
-  BtorNode *param2   = btor_param_exp (g_btor, g_elem_bw, "p2");
+  int lambda_index_bw = g_elem_bw;
+  int lambda_elem_bw  = g_elem_bw;
+  BtorNode *var1      = btor_var_exp (g_btor, g_elem_bw, "v1");
+  BtorNode *var2      = btor_var_exp (g_btor, g_elem_bw, "v2");
+  BtorNode *expected  = btor_add_exp (g_btor, var1, var2);
+  BtorNode *param1    = btor_param_exp (g_btor, lambda_index_bw, "p1");
+  BtorNode *param2    = btor_param_exp (g_btor, lambda_index_bw, "p2");
   BtorNode *lambda2 =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param2, param2);
+      btor_lambda_exp (g_btor, lambda_elem_bw, lambda_index_bw, param2, param2);
   BtorNode *read = btor_read_exp (g_btor, lambda2, var2);
   BtorNode *add  = btor_add_exp (g_btor, param1, read);
   BtorNode *lambda1 =
-      btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param1, add);
+      btor_lambda_exp (g_btor, lambda_elem_bw, lambda_index_bw, param1, add);
 
   btor_assign_param (lambda1, var1);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
