@@ -300,7 +300,7 @@ typedef struct BtorSMT2Parser
   {
     int all, set_logic, asserts, check_sat, exits;
   } commands;
-  int binding;
+  int binding, expecting_let_body;
 } BtorSMT2Parser;
 
 static int
@@ -732,10 +732,29 @@ btor_insert_bitvec_symbols_smt2 (BtorSMT2Parser *parser)
 static void
 btor_insert_logics_smt2 (BtorSMT2Parser *parser)
 {
-  INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
+  INSERT ("AUFLIA", BTOR_AUFLIA_TAG_SMT2);
+  INSERT ("AUFLIRA", BTOR_AUFLIRA_TAG_SMT2);
+  INSERT ("AUFNIRA", BTOR_AUFNIRA_TAG_SMT2);
+  INSERT ("LRA", BTOR_LRA_TAG_SMT2);
   INSERT ("QF_ABV", BTOR_QF_ABV_TAG_SMT2);
-  INSERT ("QF_UFBV", BTOR_QF_UFBV_TAG_SMT2);
   INSERT ("QF_AUFBV", BTOR_QF_AUFBV_TAG_SMT2);
+  INSERT ("QF_AUFLIA", BTOR_QF_AUFLIA_TAG_SMT2);
+  INSERT ("QF_AX", BTOR_QF_AX_TAG_SMT2);
+  INSERT ("QF_BV", BTOR_QF_BV_TAG_SMT2);
+  INSERT ("QF_IDL", BTOR_QF_IDL_TAG_SMT2);
+  INSERT ("QF_LIA", BTOR_QF_LIA_TAG_SMT2);
+  INSERT ("QF_LRA", BTOR_QF_LRA_TAG_SMT2);
+  INSERT ("QF_NIA", BTOR_QF_NIA_TAG_SMT2);
+  INSERT ("QF_NRA", BTOR_QF_NRA_TAG_SMT2);
+  INSERT ("QF_RDL", BTOR_QF_RDL_TAG_SMT2);
+  INSERT ("QF_UF", BTOR_QF_UF_TAG_SMT2);
+  INSERT ("QF_UFBV", BTOR_QF_UFBV_TAG_SMT2);
+  INSERT ("QF_UFIDL", BTOR_QF_UFIDL_TAG_SMT2);
+  INSERT ("QF_UFLIA", BTOR_QF_UFLIA_TAG_SMT2);
+  INSERT ("QF_UFLRA", BTOR_QF_UFLRA_TAG_SMT2);
+  INSERT ("QF_UFNRA", BTOR_QF_UFNRA_TAG_SMT2);
+  INSERT ("UFLRA", BTOR_UFLRA_TAG_SMT2);
+  INSERT ("UFNIA", BTOR_UFNIA_TAG_SMT2);
 }
 
 static BtorSMT2Parser *
@@ -1701,7 +1720,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       l = btor_last_lpar_smt2 (parser);
       if (!l)
         return !btor_perr_smt2 (parser,
-                                "expected term but reached end-of-file");
+                                "expected expression but reached end-of-file");
       return !btor_perr_smt2 (
           parser,
           "unexpected end-of-file since '(' at line %d column %d still open",
@@ -1710,7 +1729,30 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
     }
     if (tag == BTOR_RPAR_TAG_SMT2)
     {
-      assert (open > 0);
+      if (parser->expecting_let_body)
+      {
+        l = 0;
+        if (open)
+        {
+          l = btor_last_lpar_smt2 (parser);
+          if (++l >= parser->work.top) l = 0;
+        }
+        if (l)
+        {
+          assert (l->tag == BTOR_LET_TAG_SMT2);
+          return !btor_perr_smt2 (parser,
+                                  "body to 'let' at line %d column %d missing",
+                                  l->coo.x,
+                                  l->coo.y);
+        }
+        else
+        {
+          // TODO reachable?
+          return !btor_perr_smt2 (parser, "body to 'let' missing");
+        }
+      }
+      assert (open >= 0);
+      if (!open) return !btor_perr_smt2 (parser, "expected expression");
       l = btor_last_lpar_smt2 (parser);
       assert (l);
       p = l + 1;
@@ -2191,7 +2233,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_LET_TAG_SMT2)
       {
         BtorSMT2Node *s;
-        if (!btor_check_nargs_smt2 (parser, p, nargs, 2)) return 0;
         assert (p[nargs].tag == BTOR_EXP_TAG_SMT2);
         l[0].tag = BTOR_EXP_TAG_SMT2;
         l[0].exp = p[nargs].exp;
@@ -2230,7 +2271,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_PARLETBINDING_TAG_SMT2)
       {
-        if (!nargs) return !btor_perr_smt2 (parser, "empty 'let' binding");
         assert (parser->binding);
         parser->binding = 0;
 #ifndef NDEBUG
@@ -2238,6 +2278,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
 #endif
         for (i = 0; i < nargs; i++) l[i] = p[i + 1];
         parser->work.top = l + nargs;
+        assert (!parser->expecting_let_body);
+        parser->expecting_let_body = 1;
       }
       else
       {
@@ -2253,7 +2295,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
     }
     else
     {
-      // TODO perr from here!
+      if (parser->expecting_let_body) parser->expecting_let_body = 0;
       p = btor_push_item_smt2 (parser, tag);
       if (tag == BTOR_LPAR_TAG_SMT2)
       {
@@ -2267,13 +2309,17 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           if (tag == BTOR_INVALID_TAG_SMT2) return 0;
           if (tag == EOF)
             return !btor_perr_smt2 (parser,
-                                    "expected symbol to be bound after '(' but "
-                                    "reached end-of-file");
+                                    "expected symbol to be bound after '(' at "
+                                    "line %d column %d but reached end-of-file",
+                                    p->coo.x,
+                                    p->coo.y);
           if (tag != BTOR_SYMBOL_TAG_SMT2)
-            return !btor_perr_smt2 (
-                parser,
-                "expected symbol to be bound after '(' at '%s'",
-                parser->token.start);
+            return !btor_perr_smt2 (parser,
+                                    "expected symbol to be bound at '%s' after "
+                                    "'(' at line %d column %d",
+                                    parser->token.start,
+                                    p->coo.x,
+                                    p->coo.y);
           s = parser->last_node;
           assert (s);
           if (s->coo.x)
@@ -2332,12 +2378,27 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             if (tag == BTOR_REPEAT_TAG_SMT2)
             {
               assert (node && tag == (int) node->tag);
-              read_rpar_msg = " to close '(repeat'";
+              read_rpar_msg = " to close '(_ repeat'";
             ONE_FIXED_NUM_PARAMETRIC:
-              if (BTOR_COUNT_STACK (parser->work) < 3
-                  || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+              assert (BTOR_COUNT_STACK (parser->work) >= 2);
+              if (BTOR_COUNT_STACK (parser->work) < 3)
+              {
+                assert (BTOR_COUNT_STACK (parser->work) == 2);
+                assert (parser->work.start[0].tag == BTOR_LPAR_TAG_SMT2);
+                assert (parser->work.start[1].tag == BTOR_UNDERSCORE_TAG_SMT2);
+                parser->perrcoo = parser->work.start[0].coo;
                 return !btor_perr_smt2 (
-                    parser, "expected two '(' before '_ %s'", node->name);
+                    parser, "expected another '(' before '(_ %s'", node->name);
+              }
+              if (parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
+              {
+                parser->perrcoo = parser->work.top[-3].coo;
+                return !btor_perr_smt2 (
+                    parser,
+                    "expected '(' at '%s' before '(_ %s'",
+                    btor_item2str_smt2 (parser->work.top - 3),
+                    node->name);
+              }
               l = p - 1;
               if (!btor_parse_int32_smt2 (parser, 0, &l->num)) return 0;
               l->tag           = tag;
@@ -2349,46 +2410,48 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             }
             else if (tag == BTOR_ZERO_EXTEND_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'zero_extend'";
+              read_rpar_msg = " to close '(_ zero_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_SIGN_EXTEND_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'sign_extend'";
+              read_rpar_msg = " to close '(_ sign_extend'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'rotate_left'";
+              read_rpar_msg = " to close '(_ rotate_left'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
             {
-              read_rpar_msg = " to close 'rotate_right'";
+              read_rpar_msg = " to close '(_ rotate_right'";
               goto ONE_FIXED_NUM_PARAMETRIC;
             }
             else if (tag == BTOR_EXTRACT_TAG_SMT2)
             {
+              BtorSMT2Coo firstcoo;
               assert (node && tag == (int) node->tag);
               if (BTOR_COUNT_STACK (parser->work) < 3
                   || parser->work.top[-3].tag != BTOR_LPAR_TAG_SMT2)
-                return !btor_perr_smt2 (parser,
-                                        "expected two '(' before '_ extract'");
+                goto ONE_FIXED_NUM_PARAMETRIC;
               l = p - 1;
               if (!btor_parse_int32_smt2 (parser, 0, &l->hi)) return 0;
+              firstcoo = parser->coo;
               if (!btor_parse_int32_smt2 (parser, 0, &l->lo)) return 0;
               if (l->hi < l->lo)
               {
-                return !btor_perr_smt2 (
-                    parser,
-                    "first 'extract' parameter %d smaller than second %d",
-                    l->hi,
-                    l->lo);
+                parser->perrcoo = firstcoo;
+                return !btor_perr_smt2 (parser,
+                                        "first parameter '%d' of '(_ extract' "
+                                        "smaller than second '%d'",
+                                        l->hi,
+                                        l->lo);
               }
               l->tag           = tag;
               l->node          = node;
               parser->work.top = p;
-              if (!btor_read_rpar_smt2 (parser, " to close 'extract'"))
+              if (!btor_read_rpar_smt2 (parser, " to close '(_ extract'"))
                 return 0;
               assert (open > 0);
               open--;
@@ -2396,20 +2459,25 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             else if (tag == BTOR_SYMBOL_TAG_SMT2
                      && btor_bvconst_str_smt2 (parser->token.start))
             {
-              char *constr;
+              char *constr, *decstr;
+              BtorSMT2Coo coo;
               int len;
-              exp = 0;
+              exp    = 0;
+              decstr = btor_strdup (parser->mem, parser->token.start + 2);
               constr =
                   btor_decimal_to_const (parser->mem, parser->token.start + 2);
+              coo = parser->coo;
+              coo.y += 2;
               if (!btor_parse_int32_smt2 (parser, 1, &width))
                 goto UNDERSCORE_DONE;
               len = (int) strlen (constr);
               if (len > width)
               {
+                parser->perrcoo = coo;
                 (void) btor_perr_smt2 (parser,
                                        "decimal constant '%s' needs %d bits "
-                                       "which exceeds width %d",
-                                       parser->token.start,
+                                       "which exceeds bit-width '%d'",
+                                       decstr,
                                        len,
                                        width);
               }
@@ -2425,6 +2493,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
                 btor_freestr (parser->mem, uconstr);
               }
             UNDERSCORE_DONE:
+              btor_freestr (parser->mem, decstr);
               btor_delete_const (parser->mem, constr);
               if (!exp) return 0;
               assert (btor_get_exp_len (parser->btor, exp) == width);
@@ -2436,7 +2505,9 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
               open--;
               p->tag = BTOR_EXP_TAG_SMT2;
               p->exp = exp;
-              if (!btor_read_rpar_smt2 (parser, "to close '(_'")) return 0;
+
+              if (!btor_read_rpar_smt2 (parser, " to close '(_ bv..'"))
+                return 0;
             }
             else
               return !btor_perr_smt2 (parser,
@@ -2531,7 +2602,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
   if (p->tag != BTOR_EXP_TAG_SMT2)
   {
     parser->perrcoo = p->coo;
-    // Dito, same comment wrt defensive programming an future use.
+    // Ditto, same comment wrt defensive programming an future use.
     return !btor_perr_smt2 (
         parser,
         "internal parse error: failed to translate parsed term at '%s'",
@@ -2755,15 +2826,15 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
       }
       if (!(tag & BTOR_LOGIC_TAG_CLASS_SMT2))
         return !btor_perr_smt2 (
-            parser, "unsupported logic '%s'", parser->token.start);
+            parser, "expected logic at '%s'", parser->token.start);
       if (tag == BTOR_QF_BV_TAG_SMT2)
         parser->res->logic = BTOR_LOGIC_QF_BV;
-      else
-      {
-        assert (tag == BTOR_QF_AUFBV_TAG_SMT2 || tag == BTOR_QF_UFBV_TAG_SMT2
-                || tag == BTOR_QF_ABV_TAG_SMT2);
+      else if (tag == BTOR_QF_AUFBV_TAG_SMT2 || tag == BTOR_QF_UFBV_TAG_SMT2
+               || tag == BTOR_QF_ABV_TAG_SMT2)
         parser->res->logic = BTOR_LOGIC_QF_AUFBV;
-      }
+      else
+        return !btor_perr_smt2 (
+            parser, "unsupported logic '%s'", parser->token.start);
       btor_msg_smt2 (parser, 2, "logic %s", parser->token.start);
       if (!btor_read_rpar_smt2 (parser, " after logic")) return 0;
       if (parser->commands.set_logic++)
@@ -2796,7 +2867,7 @@ btor_read_command_smt2 (BtorSMT2Parser *parser)
                                 "assert argument is a bit-vector of length %d",
                                 btor_get_exp_len (parser->btor, exp));
       }
-      if (!btor_read_rpar_smt2 (parser, " after assert term")) return 0;
+      if (!btor_read_rpar_smt2 (parser, " after asserted expression")) return 0;
       assert (!parser->error);
       parser->commands.asserts++;
       break;
