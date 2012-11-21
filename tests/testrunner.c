@@ -111,27 +111,6 @@ static const char *normaltests[] = {
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
-/* Testcases tests.  Note: maintain sorted alphabetically (binary search)!! */
-static int testcases_nrw_size = 8;
-static int testcases_rww_size = 8;
-
-static const char *testcases_nrw[] = {"concatslice1",
-                                      "concatslice2",
-                                      "dumpbtor1",
-                                      "dumpbtor2",
-                                      "dumpbtor3",
-                                      "regaddnorm1",
-                                      "regaddnorm2",
-                                      "regnegadd1"};
-static const char *testcases_rww[] = {"concatslice1_rww",
-                                      "concatslice2_rww",
-                                      "dumpbtor1_rww",
-                                      "dumpbtor2_rww",
-                                      "dumpbtor3_rww",
-                                      "regaddnorm1_rww",
-                                      "regaddnorm2_rww",
-                                      "regnegadd1_rww"};
-
 void
 init_tests (BtorTestCaseSpeed speed)
 {
@@ -288,14 +267,6 @@ run_test_case (
     skip = 1;
     for (i = 1; skip && i < argc; i++)
       if (argv[i][0] != '-') skip = !match (name, argv[i]);
-  }
-
-  if (!skip)
-  {
-    if (g_rwwrites)
-      skip = find (name, testcases_nrw, testcases_nrw_size);
-    else
-      skip = find (name, testcases_rww, testcases_rww_size);
   }
 
   if (skip)
