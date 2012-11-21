@@ -4789,8 +4789,7 @@ dump_node (FILE *file, BtorNode *node)
       break;
 
     default:
-      // TODO uncomment
-      // assert (n->kind == BTOR_BV_VAR_NODE);
+      assert (n->kind == BTOR_BV_VAR_NODE);
       fprintf (file, "var %d", n->len);
       sprintf (idbuffer, "%d", n->id);
       assert (n->symbol);
@@ -4805,7 +4804,7 @@ static void
 dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
-  int i, id, maxid, pprint = 0;
+  int i, id = 0, maxid, pprint = 0;
   BtorNodePtrStack work_stack, stack;
   BtorNodePtrStack const_stack, param_stack, bvvar_stack, avar_stack;
   BtorIntStack id_stack;
@@ -4882,8 +4881,28 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   if (pprint)
   {
     /* unmark and assign ids in order of DFS traversal - var, const and param
-     * nodes are dumped first */
-    id = 0;
+     * nodes are sorted by original id and dumped first */
+    if (const_stack.start)
+      qsort (const_stack.start,
+             BTOR_COUNT_STACK (const_stack),
+             sizeof cur,
+             btor_cmp_id);
+    if (bvvar_stack.start)
+      qsort (bvvar_stack.start,
+             BTOR_COUNT_STACK (bvvar_stack),
+             sizeof cur,
+             btor_cmp_id);
+    if (avar_stack.start)
+      qsort (avar_stack.start,
+             BTOR_COUNT_STACK (avar_stack),
+             sizeof cur,
+             btor_cmp_id);
+    if (param_stack.start)
+      qsort (param_stack.start,
+             BTOR_COUNT_STACK (param_stack),
+             sizeof cur,
+             btor_cmp_id);
+
     for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
     {
       const_stack.start[i]->mark = 0;
