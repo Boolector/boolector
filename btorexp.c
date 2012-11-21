@@ -5151,8 +5151,7 @@ dump_node (FILE *file, BtorNode *node)
       break;
 
     default:
-      // TODO uncomment
-      // assert (n->kind == BTOR_BV_VAR_NODE);
+      assert (n->kind == BTOR_BV_VAR_NODE);
       fprintf (file, "var %d", n->len);
       sprintf (idbuffer, "%d", n->id);
       assert (n->symbol);
@@ -5163,12 +5162,11 @@ dump_node (FILE *file, BtorNode *node)
   fputc ('\n', file);
 }
 
-#if 1
 static void
 dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
-  int i, id, maxid, pprint = 0;
+  int i, id = 0, maxid, pprint = 0;
   BtorNodePtrStack work_stack, stack;
   BtorNodePtrStack const_stack, param_stack, bvvar_stack, avar_stack;
   BtorIntStack id_stack;
@@ -5245,8 +5243,28 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   if (pprint)
   {
     /* unmark and assign ids in order of DFS traversal - var, const and param
-     * nodes are dumped first */
-    id = 0;
+     * nodes are sorted by original id and dumped first */
+    if (const_stack.start)
+      qsort (const_stack.start,
+             BTOR_COUNT_STACK (const_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+    if (bvvar_stack.start)
+      qsort (bvvar_stack.start,
+             BTOR_COUNT_STACK (bvvar_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+    if (avar_stack.start)
+      qsort (avar_stack.start,
+             BTOR_COUNT_STACK (avar_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+    if (param_stack.start)
+      qsort (param_stack.start,
+             BTOR_COUNT_STACK (param_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+
     for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
     {
       const_stack.start[i]->mark = 0;
@@ -5360,84 +5378,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     BTOR_RELEASE_STACK (mm, id_stack);
   }
 }
-
-#else
-static void
-dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
-{
-  BtorMemMgr *mm = btor->mm;
-  int next, i, maxid, id;
-  BtorNodePtrStack stack;
-  BtorNode *e, *root;
-
-  assert (btor);
-  assert (file);
-  assert (roots);
-  assert (nroots > 0);
-
-  BTOR_INIT_STACK (stack);
-
-  for (i = 0; i < nroots; i++)
-  {
-    root = roots[i];
-    assert (root);
-    BTOR_PUSH_NODE_IF_NOT_MARKED (root);
-  }
-
-  next = 0;
-  while (next < BTOR_COUNT_STACK (stack))
-  {
-    e = stack.start[next++];
-
-    assert (BTOR_IS_REGULAR_NODE (e));
-    assert (e->mark);
-
-    if (e->kind == BTOR_PROXY_NODE)
-      BTOR_PUSH_NODE_IF_NOT_MARKED (e->simplified);
-    else
-    {
-      for (i = 0; i < e->arity; i++) BTOR_PUSH_NODE_IF_NOT_MARKED (e->e[i]);
-    }
-  }
-
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
-
-  if (stack.start)
-    qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
-
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-  {
-    e = stack.start[i];
-    assert (BTOR_IS_REGULAR_NODE (e));
-
-    dump_node (file, e);
-  }
-
-  BTOR_RELEASE_STACK (mm, stack);
-
-  maxid = 0;
-  for (i = 0; i < nroots; i++)
-  {
-    root = roots[i];
-    e = BTOR_REAL_ADDR_NODE (root);
-    if (e->id > maxid) maxid = e->id;
-  }
-
-  /* also consider newly created nodes like lambdas etc. */
-  // TODO: is there a better solution?
-  if (BTOR_COUNT_STACK (btor->nodes_id_table) - 1 > maxid)
-    maxid = BTOR_COUNT_STACK (btor->nodes_id_table) - 1;
-
-  for (i = 0; i < nroots; i++)
-  {
-    id = maxid + i;
-    BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
-
-    root = roots[i];
-    fprintf (file, "%d root %d %d\n", id + 1, e->len, BTOR_GET_ID_NODE (root));
-  }
-}
-#endif
 
 void
 btor_dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)

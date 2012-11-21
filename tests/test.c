@@ -77,8 +77,8 @@
 int
 main (int argc, char **argv)
 {
+  int i;
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
-  int i = 0, rewrite_writes = 1;
 
   for (i = 1; i < argc; i++)
   {
@@ -89,7 +89,7 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--norww"))
     {
-      rewrite_writes = 0;
+      /* disable rewriting of writes in resp. testcase sets */
     }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--fast"))
     {
