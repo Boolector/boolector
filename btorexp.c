@@ -7474,6 +7474,102 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   return result;
 }
 
+static void
+replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
+{
+  assert (btor);
+  assert (parent);
+  assert (new_exp);
+  assert (pos >= 0);
+  assert (pos <= 2);
+
+  BtorNode **lookup, *e0, *e1, *e2, *old_exp;
+
+  remove_from_unique_table_exp (btor, parent);
+  parent->next = 0;
+
+  old_exp = parent->e[pos];
+  disconnect_child_exp (btor, parent, pos);
+
+  if (BTOR_IS_INVERTED_NODE (old_exp))
+    connect_child_exp (btor, parent, BTOR_INVERT_NODE (new_exp), pos);
+  else
+    connect_child_exp (btor, parent, new_exp, pos);
+
+  e0 = parent->e[0];
+  assert (e0);
+
+  if (parent->kind == BTOR_SLICE_NODE)
+  {
+    lookup = find_slice_exp (btor, e0, parent->lower, parent->upper);
+  }
+  else if (BTOR_IS_BINARY_NODE (parent))
+  {
+    e1 = parent->e[1];
+    assert (e1);
+
+    if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (parent->kind)
+        && BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
+    {
+      e2 = e0;
+      e0 = e1;
+      e1 = e2;
+    }
+    lookup = find_binary_exp (btor, parent->kind, e0, e1);
+  }
+  else
+  {
+    assert (BTOR_IS_TERNARY_NODE (parent));
+    e1 = parent->e[1];
+    e2 = parent->e[2];
+    assert (e1);
+    assert (e2);
+    lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
+  }
+  assert (!*lookup);
+  assert (!parent->next);
+  assert (!parent->unique);
+
+  *lookup = parent;
+  assert (btor->unique_table.num_elements < INT_MAX);
+  btor->unique_table.num_elements++;
+  (*lookup)->unique = 1;
+
+  assert (parent->unique);
+
+  btor_release_exp (btor, old_exp);
+}
+
+static void
+replace_param_with (Btor *btor, BtorNode *old_param, BtorNode *new_param)
+{
+  assert (btor);
+  assert (old_param);
+  assert (new_param);
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (old_param)));
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (new_param)));
+
+  int pos;
+  BtorFullParentIterator it;
+  BtorNode *lambda, *parent, *tagged_parent;
+
+  old_param = BTOR_REAL_ADDR_NODE (old_param);
+  new_param = BTOR_REAL_ADDR_NODE (new_param);
+  lambda    = ((BtorParamNode *) old_param)->lambda_exp;
+
+  init_full_parent_iterator (&it, old_param);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    tagged_parent = it.cur;
+    parent        = next_parent_full_parent_iterator (&it);
+
+    if (parent->id <= lambda->id) continue;
+
+    pos = BTOR_GET_TAG_NODE (tagged_parent);
+    replace_child_exp (btor, parent, new_param, pos);
+  }
+}
+
 /* We distinguish the following options for bounded/unbounded reduction:
  *   bound < 0: cut off at subsequent lambda and write nodes,
  *              evaluate conditionals
@@ -7498,7 +7594,7 @@ beta_reduce (Btor *btor,
   const char *res;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, arg_stack, unassign_stack, unmark_stack;
-  BtorNode *cur, *real_cur, *next, *e[3], *result;
+  BtorNode *cur, *real_cur, *next, *e[3], *result, *param;
 
   mm = btor->mm;
 
@@ -7534,7 +7630,7 @@ beta_reduce (Btor *btor,
           && (BTOR_IS_READ_NODE (real_cur)
               && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[0]))))
       {
-        BtorNode *index, *param;
+        BtorNode *index;
 
         index = real_cur->e[1];
         param =
@@ -7661,8 +7757,37 @@ beta_reduce (Btor *btor,
             }
 
             if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])))
-              result = btor_lambda_exp (
-                  btor, real_cur->len, real_cur->index_len, e[0], e[1]);
+            {
+              assert (BTOR_REAL_ADDR_NODE (e[0])
+                      == BTOR_REAL_ADDR_NODE (real_cur->e[0]));
+              /* partial application of lambda */
+              if (BTOR_REAL_ADDR_NODE (e[1])
+                  != BTOR_REAL_ADDR_NODE (real_cur->e[1]))
+              {
+                param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
+                if (param->symbol)
+                {
+                  char *symbol;
+                  BTOR_NEWN (mm, symbol, strlen (param->symbol) + 2);
+                  sprintf (symbol, "%s'", param->symbol);
+                  param = btor_param_exp (btor, param->len, symbol);
+                  btor_freestr (mm, symbol);
+                }
+                else
+                {
+                  param = btor_param_exp (btor, param->len, "");
+                }
+
+                replace_param_with (btor, BTOR_REAL_ADDR_NODE (e[0]), param);
+                result = btor_lambda_exp (
+                    btor, real_cur->len, real_cur->index_len, param, e[1]);
+              }
+              else
+              {
+                result = btor_lambda_exp (
+                    btor, real_cur->len, real_cur->index_len, e[0], e[1]);
+              }
+            }
             else
               result = btor_copy_exp (btor, e[1]);
             break;
@@ -8708,7 +8833,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
         continue; /* not all children connected yet */
       }
 
-      if (BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
+      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (parent->kind)
+          && BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
       {
         e2 = e0;
         e0 = e1;
