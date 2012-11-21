@@ -8766,7 +8766,7 @@ static void
 rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 {
   BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
-  BtorNode *tagged_parent, *parent, **lookup, *e0, *e1, *e2;
+  BtorNode *tagged_parent, *parent;
   BtorFullParentIterator it;
   BtorNodePtrStack parent_stack;
   int pos, cnt_parents = 0;
@@ -8792,8 +8792,6 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   lambda_exp =
       btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
 
-  BTOR_INIT_STACK (parent_stack);
-
   /* disconnect write node from all of its parent nodes */
   init_full_parent_iterator (&it, write);
   while (has_next_parent_full_parent_iterator (&it))
@@ -8805,90 +8803,12 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     /* parent is already masked in next_parent_full_parent_iterator  */
     parent = next_parent_full_parent_iterator (&it);
     assert (BTOR_IS_REGULAR_NODE (parent));
-
-    remove_from_unique_table_exp (btor, parent);
-    /* we reuse the parent, so we have to reset the next pointer  */
-    parent->next = 0;
-    pos          = BTOR_GET_TAG_NODE (tagged_parent);
+    pos = BTOR_GET_TAG_NODE (tagged_parent);
     assert (parent->e[pos] == write);
 
-    /* disconnect write from its parent  */
-    disconnect_child_exp (btor, parent, pos);
+    replace_child_exp (btor, parent, lambda_exp, pos);
 
-    BTOR_PUSH_STACK (btor->mm, parent_stack, tagged_parent);
-    btor_release_exp (btor, write);
-  }
-
-  /* connect lambda exp to parents of write node */
-  while (!BTOR_EMPTY_STACK (parent_stack))
-  {
     if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
-
-    tagged_parent = BTOR_POP_STACK (parent_stack);
-    assert (tagged_parent);
-    parent = BTOR_REAL_ADDR_NODE (tagged_parent);
-    pos    = BTOR_GET_TAG_NODE (tagged_parent);
-
-    /* connect lambda expression at position of write  */
-    connect_child_exp (btor, parent, lambda_exp, pos);
-
-    assert (BTOR_IS_BINARY_NODE (parent) || BTOR_IS_TERNARY_NODE (parent));
-
-    /* with -rwl0 it is possible to have parents that have 'write' multiple
-     * times as child,
-     * e.g., an array equality (write = write), acond (cond, write, write).
-     * if we encounter such a case we have to wait until all children of
-     * 'parent' are connected before inserting 'parent' into the unique table.
-     */
-    e0 = parent->e[0];
-    e1 = parent->e[1];
-    if (BTOR_IS_BINARY_NODE (parent))
-    {
-      assert (e0 || e1);
-
-      if (!e0 || !e1)
-      {
-        assert (BTOR_IS_ARRAY_EQ_NODE (parent));
-        continue; /* not all children connected yet */
-      }
-
-      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (parent->kind)
-          && BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
-      {
-        e2 = e0;
-        e0 = e1;
-        e1 = e2;
-      }
-
-      lookup = find_binary_exp (btor, parent->kind, e0, e1);
-    }
-    else
-    {
-      assert (e0);
-      e2 = parent->e[2];
-      assert (e1 || e2);
-
-      if (!e1 || !e2)
-      {
-        assert (BTOR_IS_ARRAY_COND_NODE (parent));
-        continue; /* not all children connected yet */
-      }
-
-      lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
-    }
-
-    assert (!*lookup);
-    assert (!parent->next);
-    assert (!parent->unique);
-
-    /* no enlarge unique table required */
-    *lookup = parent;
-    assert (btor->unique_table.num_elements < INT_MAX);
-    btor->unique_table.num_elements++;
-    (*lookup)->unique = 1;
-
-    assert (parent->unique);
-    assert (BTOR_IS_REGULAR_NODE (*lookup));
   }
 
   btor_release_exp (btor, e_if);
@@ -8896,7 +8816,6 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   btor_release_exp (btor, e_cond);
   btor_release_exp (btor, cond_exp);
   btor_release_exp (btor, param);
-  BTOR_RELEASE_STACK (btor->mm, parent_stack);
 }
 
 static int
