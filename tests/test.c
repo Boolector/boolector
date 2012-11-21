@@ -64,6 +64,7 @@
   "  options:\n"                                                             \
   "    -h, --help       print this message and exit\n"                       \
   "    -n, --norww      run boolector with rewriting of writes disabled\n"   \
+  "    -b, --broken     run 'broken' testcases also\n"                       \
   "    -s, --slow       run 'slow' testcases also\n"                         \
   "    -f, --fast       run 'fast' testcases only\n"                         \
   "                     (default: run 'fast' and 'normal' testcases)\n"      \
@@ -72,12 +73,12 @@
   "    following test case sets:\n"                                          \
   "      aig, aigvec, arithmetic, comp, const, exp, hash, inc, logic,\n"     \
   "      mem, misc, modelgen, overflow, parseerror, queue, sat, shift,\n"    \
-  "      smtaxioms, special, stack, util, testcases\n"
+  "      smtaxioms, special, stack, util, testcases\n\n"
 
 int
 main (int argc, char **argv)
 {
-  int i;
+  int i, skip_broken = 1;
   BtorTestCaseSpeed speed = BTOR_NORMAL_TEST_CASE;
 
   for (i = 1; i < argc; i++)
@@ -90,6 +91,10 @@ main (int argc, char **argv)
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--norww"))
     {
       /* disable rewriting of writes in resp. testcase sets */
+    }
+    else if (!strcmp (argv[i], "-b") || !strcmp (argv[i], "--broken"))
+    {
+      skip_broken = 0;
     }
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--fast"))
     {
@@ -110,7 +115,7 @@ main (int argc, char **argv)
     }
   }
 
-  init_tests (speed);
+  init_tests (speed, skip_broken);
   BTOR_RUN_TESTS (util);
   BTOR_RUN_TESTS (mem);
   BTOR_RUN_TESTS (stack);

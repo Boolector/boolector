@@ -30,8 +30,10 @@
 #include <string.h>
 #include <unistd.h>
 
-int g_rwwrites  = 1;
+int g_rwwrites;
 FILE *g_logfile = NULL;
+
+static int g_skip_broken;
 
 static int g_speed = BTOR_NORMAL_TEST_CASE;
 static int g_num_tests;
@@ -116,8 +118,9 @@ static const char *brokentests[] = {
 };
 
 void
-init_tests (BtorTestCaseSpeed speed)
+init_tests (BtorTestCaseSpeed speed, int skip_broken)
 {
+  g_skip_broken       = skip_broken;
   g_speed             = speed;
   g_num_tests         = 0;
   g_num_skipped_tests = 0;
@@ -255,7 +258,8 @@ run_test_case (
   g_num_tests++;
   skip = 0;
 
-  for (p = brokentests; !skip && *p; p++) skip = match (name, *p);
+  if (g_skip_broken)
+    for (p = brokentests; !skip && *p; p++) skip = match (name, *p);
 
   if (g_speed < BTOR_NORMAL_TEST_CASE)
     for (p = normaltests; !skip && *p; p++) skip = match (name, *p);
