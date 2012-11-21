@@ -18,6 +18,7 @@
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorNode BtorNode;
+typedef struct BtorSort BtorSort;
 typedef struct Btor Btor;
 
 /*------------------------------------------------------------------------*/

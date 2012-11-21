@@ -101,25 +101,29 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
     }                                               \
   } while (0)
 
-#define BTOR_INIT_NODE_UNIQUE_TABLE(mm, table) \
-  do                                           \
-  {                                            \
-    assert (mm);                               \
-    (table).size         = 1;                  \
-    (table).num_elements = 0;                  \
-    BTOR_CNEW (mm, (table).chains);            \
+#define BTOR_INIT_UNIQUE_TABLE(mm, table) \
+  do                                      \
+  {                                       \
+    assert (mm);                          \
+    (table).size         = 1;             \
+    (table).num_elements = 0;             \
+    BTOR_CNEW (mm, (table).chains);       \
   } while (0)
 
-#define BTOR_RELEASE_NODE_UNIQUE_TABLE(mm, table)    \
+#define BTOR_RELEASE_UNIQUE_TABLE(mm, table)         \
   do                                                 \
   {                                                  \
     assert (mm);                                     \
     BTOR_DELETEN (mm, (table).chains, (table).size); \
   } while (0)
 
-#define BTOR_NODE_UNIQUE_TABLE_LIMIT 30
+#define BTOR_UNIQUE_TABLE_LIMIT 30
 
 #define BTOR_NODE_UNIQUE_TABLE_PRIME 2000000137u
+
+#define BTOR_FULL_UNIQUE_TABLE(table)   \
+  ((table).num_elements >= (table).size \
+   && btor_log_2_util ((table).size) < BTOR_UNIQUE_TABLE_LIMIT)
 
 #define BTOR_NEXT_PARENT(exp) \
   (BTOR_REAL_ADDR_NODE (exp)->next_parent[BTOR_GET_TAG_NODE (exp)])
@@ -412,6 +416,372 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
   fflush (stdout);
 }
 
+/*------------------------------------------------------------------------*/
+
+static void
+inc_sort_ref_counter (Btor *btor, BtorSort *sort)
+{
+  assert (btor);
+  assert (sort);
+  (void) btor;
+  BTOR_ABORT_NODE (sort->refs == INT_MAX, "Sort reference counter overflow");
+  sort->refs++;
+}
+
+BtorSort *
+btor_copy_sort (Btor *btor, BtorSort *sort)
+{
+  inc_sort_ref_counter (btor, sort);
+  return sort;
+}
+
+static unsigned
+compute_hash_sort (BtorSort *sort, int table_size)
+{
+  unsigned res, tmp;
+
+  assert (sort);
+  assert (table_size);
+  assert (btor_is_power_of_2_util (table_size));
+
+  tmp = 0;
+
+  switch (sort->kind)
+  {
+    default:
+    case BTOR_BOOL_SORT:
+      assert (sort->kind == BTOR_BOOL_SORT);
+      res = 0;
+      break;
+
+    case BTOR_BITVEC_SORT: res = (unsigned int) sort->bitvec.len; break;
+
+    case BTOR_ARRAY_SORT:
+      res = (unsigned int) sort->array.index->id;
+      tmp = (unsigned int) sort->array.element->id;
+      break;
+
+    case BTOR_LST_SORT:
+      res = (unsigned int) sort->lst.head->id;
+      tmp = (unsigned int) sort->lst.tail->id;
+      break;
+
+    case BTOR_FUN_SORT:
+      res = (unsigned int) sort->fun.domain->id;
+      tmp = (unsigned int) sort->fun.codomain->id;
+      break;
+  }
+
+  res *= 444555667u;
+
+  if (tmp)
+  {
+    res += tmp;
+    res *= 123123137u;
+  }
+
+  res &= table_size - 1;
+
+  return res;
+}
+
+static void
+remove_from_sorts_unique_table_sort (Btor *btor, BtorSort *sort)
+{
+  unsigned int hash;
+  BtorSort *prev, *cur;
+
+  assert (btor);
+  assert (sort);
+  assert (!sort->refs);
+  assert (btor->sorts_unique_table.num_elements > 0);
+
+  hash = compute_hash_sort (sort, btor->sorts_unique_table.size);
+  prev = 0;
+  cur  = btor->sorts_unique_table.chains[hash];
+
+  while (cur != sort)
+  {
+    assert (cur);
+    prev = cur;
+    cur  = cur->next;
+  }
+
+  assert (cur);
+  if (!prev)
+    btor->sorts_unique_table.chains[hash] = cur->next;
+  else
+    prev->next = cur->next;
+
+  btor->sorts_unique_table.num_elements--;
+}
+
+static int
+equal_sort (const BtorSort *a, const BtorSort *b)
+{
+  assert (a);
+  assert (b);
+
+  if (a->kind != b->kind) return 0;
+
+  switch (a->kind)
+  {
+    case BTOR_BOOL_SORT:
+    default: assert (a->kind == BTOR_BOOL_SORT); break;
+
+    case BTOR_BITVEC_SORT:
+      if (a->bitvec.len != b->bitvec.len) return 0;
+      break;
+
+    case BTOR_ARRAY_SORT:
+      if (a->array.index != b->array.index) return 0;
+      if (a->array.element != b->array.element) return 0;
+      break;
+
+    case BTOR_LST_SORT:
+      if (a->lst.head != b->lst.head) return 0;
+      if (a->lst.tail != b->lst.tail) return 0;
+      break;
+
+    case BTOR_FUN_SORT:
+      if (a->fun.domain != b->fun.domain) return 0;
+      if (a->fun.codomain != b->fun.codomain) return 0;
+      break;
+  }
+
+  return 1;
+}
+
+static BtorSort **
+find_sort (Btor *btor, BtorSort *pattern)
+{
+  BtorSort **res, *sort;
+  unsigned int hash;
+  assert (btor);
+  assert (pattern);
+  hash = compute_hash_sort (pattern, btor->sorts_unique_table.size);
+  assert (hash < (unsigned) btor->sorts_unique_table.size);
+  for (res = btor->sorts_unique_table.chains + hash;
+       (sort = *res) && !equal_sort (sort, pattern);
+       res = &sort->next)
+    assert (sort->refs > 0);
+  return res;
+}
+
+static void
+enlarge_sorts_unique_table (Btor *btor)
+{
+  BtorSort *cur, *temp, **new_chains;
+  int size, new_size, i;
+  unsigned int hash;
+  BtorMemMgr *mm;
+  assert (btor);
+  if (BTOR_FULL_UNIQUE_TABLE (btor->sorts_unique_table))
+    enlarge_sorts_unique_table (btor);
+  mm       = btor->mm;
+  size     = btor->sorts_unique_table.size;
+  new_size = size << 1;
+  assert (new_size / size == 2);
+  BTOR_CNEWN (mm, new_chains, new_size);
+  for (i = 0; i < size; i++)
+  {
+    cur = btor->sorts_unique_table.chains[i];
+    while (cur)
+    {
+      temp             = cur->next;
+      hash             = compute_hash_sort (cur, new_size);
+      cur->next        = new_chains[hash];
+      new_chains[hash] = cur;
+      cur              = temp;
+    }
+  }
+  BTOR_DELETEN (mm, btor->sorts_unique_table.chains, size);
+  btor->sorts_unique_table.size   = new_size;
+  btor->sorts_unique_table.chains = new_chains;
+}
+
+static void
+release_sort (Btor *btor, BtorSort *sort)
+{
+  assert (btor);
+  assert (sort);
+  assert (sort->refs > 0);
+
+  if (--sort->refs > 0) return;
+
+  switch (sort->kind)
+  {
+    default: break;
+
+    case BTOR_LST_SORT:
+      release_sort (btor, sort->lst.head);
+      release_sort (btor, sort->lst.tail);
+      break;
+
+    case BTOR_ARRAY_SORT:
+      release_sort (btor, sort->array.index);
+      release_sort (btor, sort->array.element);
+      break;
+
+    case BTOR_FUN_SORT:
+      release_sort (btor, sort->fun.domain);
+      release_sort (btor, sort->fun.codomain);
+      break;
+  }
+
+  remove_from_sorts_unique_table_sort (btor, sort);
+  BTOR_DELETE (btor->mm, sort);
+}
+
+void
+btor_release_sort (Btor *btor, BtorSort *sort)
+{
+  assert (btor);
+  assert (sort);
+  assert (sort->refs > 0);
+  release_sort (btor, sort);
+}
+
+BtorSort *
+btor_bool_sort (Btor *btor)
+{
+  BtorSort *res, **pos, pattern;
+  assert (btor);
+  BTOR_CLR (&pattern);
+  pattern.kind = BTOR_BOOL_SORT;
+  pos          = find_sort (btor, &pattern);
+  assert (pos);
+  res = *pos;
+  if (!res)
+  {
+    BTOR_NEW (btor->mm, res);
+    BTOR_CLR (res);
+    res->kind = BTOR_BOOL_SORT;
+    *pos      = res;
+  }
+  inc_sort_ref_counter (btor, res);
+  return res;
+}
+
+BtorSort *
+btor_bitvec_sort (Btor *btor, int len)
+{
+  BtorSort *res, **pos, pattern;
+  assert (btor);
+  assert (len > 0);
+  BTOR_CLR (&pattern);
+  pattern.kind       = BTOR_BITVEC_SORT;
+  pattern.bitvec.len = len;
+  pos                = find_sort (btor, &pattern);
+  assert (pos);
+  res = *pos;
+  if (!res)
+  {
+    BTOR_NEW (btor->mm, res);
+    BTOR_CLR (res);
+    res->kind       = BTOR_BOOL_SORT;
+    res->bitvec.len = len;
+    *pos            = res;
+  }
+  inc_sort_ref_counter (btor, res);
+  return res;
+}
+
+BtorSort *
+btor_array_sort (Btor *btor, BtorSort *index, BtorSort *element)
+{
+  BtorSort *res, **pos, pattern;
+  assert (btor);
+  assert (index);
+  assert (index->refs > 0);
+  assert (element);
+  assert (element->refs > 0);
+  BTOR_CLR (&pattern);
+  pattern.kind          = BTOR_ARRAY_SORT;
+  pattern.array.index   = index;
+  pattern.array.element = element;
+  pos                   = find_sort (btor, &pattern);
+  assert (pos);
+  res = *pos;
+  if (!res)
+  {
+    BTOR_NEW (btor->mm, res);
+    BTOR_CLR (res);
+    res->kind          = BTOR_ARRAY_SORT;
+    res->array.index   = index;
+    res->array.element = element;
+    inc_sort_ref_counter (btor, index);
+    inc_sort_ref_counter (btor, element);
+    *pos = res;
+  }
+  inc_sort_ref_counter (btor, res);
+  return res;
+}
+
+BtorSort *
+btor_lst_sort (Btor *btor, BtorSort *head, BtorSort *tail)
+{
+  BtorSort *res, **pos, pattern;
+  assert (btor);
+  assert (head);
+  assert (head->refs > 0);
+  assert (tail);
+  assert (tail->refs > 0);
+  BTOR_CLR (&pattern);
+  pattern.kind     = BTOR_LST_SORT;
+  pattern.lst.head = head;
+  pattern.lst.tail = tail;
+  pos              = find_sort (btor, &pattern);
+  assert (pos);
+  res = *pos;
+  if (!res)
+  {
+    BTOR_NEW (btor->mm, res);
+    BTOR_CLR (res);
+    res->kind     = BTOR_LST_SORT;
+    res->lst.head = head;
+    res->lst.tail = tail;
+    inc_sort_ref_counter (btor, head);
+    inc_sort_ref_counter (btor, tail);
+    *pos = res;
+  }
+  inc_sort_ref_counter (btor, res);
+  return res;
+}
+
+BtorSort *
+btor_fun_sort (Btor *btor, BtorSort *domain, BtorSort *codomain)
+{
+  BtorSort *res, **pos, pattern;
+  assert (btor);
+  assert (domain);
+  assert (domain->refs > 0);
+  assert (codomain);
+  assert (codomain->refs > 0);
+  BTOR_CLR (&pattern);
+  pattern.kind         = BTOR_FUN_SORT;
+  pattern.fun.domain   = domain;
+  pattern.fun.codomain = codomain;
+  pos                  = find_sort (btor, &pattern);
+  assert (pos);
+  res = *pos;
+  if (!res)
+  {
+    BTOR_NEW (btor->mm, res);
+    BTOR_CLR (res);
+    res->kind         = BTOR_FUN_SORT;
+    res->fun.domain   = domain;
+    res->fun.codomain = codomain;
+    inc_sort_ref_counter (btor, domain);
+    inc_sort_ref_counter (btor, codomain);
+    *pos = res;
+  }
+  inc_sort_ref_counter (btor, res);
+  return res;
+}
+
+/*------------------------------------------------------------------------*/
+
 static void
 inc_exp_ref_counter (Btor *btor, BtorNode *exp)
 {
@@ -420,7 +790,8 @@ inc_exp_ref_counter (Btor *btor, BtorNode *exp)
   assert (exp);
   (void) btor;
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  BTOR_ABORT_NODE (real_exp->refs == INT_MAX, "Reference counter overflow");
+  BTOR_ABORT_NODE (real_exp->refs == INT_MAX,
+                   "Node reference counter overflow");
   real_exp->refs++;
 }
 
@@ -612,7 +983,7 @@ compute_hash_exp (BtorNode *exp, int table_size)
 }
 
 static void
-remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
+remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
 {
   unsigned int hash;
   BtorNode *cur, *prev;
@@ -623,11 +994,11 @@ remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
   if (!exp->unique) return;
 
   assert (btor);
-  assert (btor->unique_table.num_elements > 0);
+  assert (btor->nodes_unique_table.num_elements > 0);
 
-  hash = compute_hash_exp (exp, btor->unique_table.size);
+  hash = compute_hash_exp (exp, btor->nodes_unique_table.size);
   prev = 0;
-  cur  = btor->unique_table.chains[hash];
+  cur  = btor->nodes_unique_table.chains[hash];
 
   while (cur != exp)
   {
@@ -638,11 +1009,11 @@ remove_from_unique_table_exp (Btor *btor, BtorNode *exp)
   }
   assert (cur);
   if (!prev)
-    btor->unique_table.chains[hash] = cur->next;
+    btor->nodes_unique_table.chains[hash] = cur->next;
   else
     prev->next = cur->next;
 
-  btor->unique_table.num_elements--;
+  btor->nodes_unique_table.num_elements--;
 
   exp->unique = 0; /* NOTE: this is not debugging code ! */
 }
@@ -802,8 +1173,8 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
   assert (exp->erased);
 
   assert (exp->id);
-  assert (BTOR_PEEK_STACK (btor->id_table, exp->id) == exp);
-  BTOR_POKE_STACK (btor->id_table, exp->id, 0);
+  assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
+  BTOR_POKE_STACK (btor->nodes_id_table, exp->id, 0);
 
   mm = btor->mm;
 
@@ -859,7 +1230,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
       }
 
-      remove_from_unique_table_exp (btor, cur);
+      remove_from_nodes_unique_table_exp (btor, cur);
       erase_local_data_exp (btor, cur, 1);
 
       /* It is safe to access the children here, since they are pushed
@@ -1388,9 +1759,8 @@ print_encoded_lemma_dbg (BtorPtrHashTable *writes,
   BtorPtrHashBucket *bucket;
   BtorNode *cur;
 
-  (void) i;
-  (void) a;
-  (void) b;
+  (void) i, (void) a, (void) b;
+
   DBG_P ("\e[1;32m", 0);
   DBG_P ("ENCODED LEMMA", 0);
   DBG_P ("  index: %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
@@ -2229,7 +2599,7 @@ set_simplified_exp (Btor *btor,
     exp->vreads = 0;
   }
 
-  remove_from_unique_table_exp (btor, exp);
+  remove_from_nodes_unique_table_exp (btor, exp);
   /* also updates op stats */
   erase_local_data_exp (btor, exp, 0);
   btor->ops[BTOR_PROXY_NODE]++;
@@ -2406,12 +2776,12 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   assert (exp);
   assert (!BTOR_IS_INVERTED_NODE (exp));
   assert (!exp->id);
-  id = BTOR_COUNT_STACK (btor->id_table);
+  id = BTOR_COUNT_STACK (btor->nodes_id_table);
   BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
   exp->id = id;
-  BTOR_PUSH_STACK (btor->mm, btor->id_table, exp);
-  assert (BTOR_COUNT_STACK (btor->id_table) == exp->id + 1);
-  assert (BTOR_PEEK_STACK (btor->id_table, exp->id) == exp);
+  BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
+  assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
 }
 
 static void
@@ -2740,8 +3110,9 @@ find_const_exp (Btor *btor, const char *bits, int len)
   assert (len > 0);
   assert ((int) strlen (bits) == len);
   hash = btor_hashstr ((void *) bits);
-  hash = (hash * BTOR_NODE_UNIQUE_TABLE_PRIME) & (btor->unique_table.size - 1);
-  result = btor->unique_table.chains + hash;
+  hash = (hash * BTOR_NODE_UNIQUE_TABLE_PRIME)
+         & (btor->nodes_unique_table.size - 1);
+  result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
   while (cur)
   {
@@ -2771,8 +3142,8 @@ find_slice_exp (Btor *btor, BtorNode *e0, int upper, int lower)
   hash = (((unsigned int) BTOR_REAL_ADDR_NODE (e0)->id + (unsigned int) upper
            + (unsigned int) lower)
           * BTOR_NODE_UNIQUE_TABLE_PRIME)
-         & (btor->unique_table.size - 1);
-  result = btor->unique_table.chains + hash;
+         & (btor->nodes_unique_table.size - 1);
+  result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
   while (cur)
   {
@@ -2805,8 +3176,8 @@ find_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
   hash = (((unsigned int) BTOR_REAL_ADDR_NODE (e0)->id
            + (unsigned int) BTOR_REAL_ADDR_NODE (e1)->id)
           * BTOR_NODE_UNIQUE_TABLE_PRIME)
-         & (btor->unique_table.size - 1);
-  result = btor->unique_table.chains + hash;
+         & (btor->nodes_unique_table.size - 1);
+  result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
   while (cur)
   {
@@ -2838,8 +3209,8 @@ find_ternary_exp (
            + (unsigned) BTOR_REAL_ADDR_NODE (e1)->id
            + (unsigned) BTOR_REAL_ADDR_NODE (e2)->id)
           * BTOR_NODE_UNIQUE_TABLE_PRIME)
-         & (btor->unique_table.size - 1);
-  result = btor->unique_table.chains + hash;
+         & (btor->nodes_unique_table.size - 1);
+  result = btor->nodes_unique_table.chains + hash;
   cur    = *result;
   while (cur)
   {
@@ -2858,7 +3229,7 @@ find_ternary_exp (
 
 /* Enlarges unique table and rehashes expressions. */
 static void
-enlarge_exp_unique_table (Btor *btor)
+enlarge_nodes_unique_table (Btor *btor)
 {
   BtorMemMgr *mm;
   int size, new_size, i;
@@ -2866,13 +3237,12 @@ enlarge_exp_unique_table (Btor *btor)
   BtorNode *cur, *temp, **new_chains;
   assert (btor);
   mm       = btor->mm;
-  size     = btor->unique_table.size;
-  new_size = size << 1;
-  assert (new_size / size == 2);
+  size     = btor->nodes_unique_table.size;
+  new_size = size ? 2 * size : 1;
   BTOR_CNEWN (mm, new_chains, new_size);
   for (i = 0; i < size; i++)
   {
-    cur = btor->unique_table.chains[i];
+    cur = btor->nodes_unique_table.chains[i];
     while (cur)
     {
       assert (BTOR_IS_REGULAR_NODE (cur));
@@ -2885,9 +3255,9 @@ enlarge_exp_unique_table (Btor *btor)
       cur              = temp;
     }
   }
-  BTOR_DELETEN (mm, btor->unique_table.chains, size);
-  btor->unique_table.size   = new_size;
-  btor->unique_table.chains = new_chains;
+  BTOR_DELETEN (mm, btor->nodes_unique_table.chains, size);
+  btor->nodes_unique_table.size   = new_size;
+  btor->nodes_unique_table.chains = new_chains;
 }
 
 static void
@@ -2977,16 +3347,14 @@ btor_const_exp (Btor *btor, const char *bits)
   lookup = find_const_exp (btor, lookupbits, len);
   if (!*lookup)
   {
-    if (btor->unique_table.num_elements == btor->unique_table.size
-        && btor_log_2_util (btor->unique_table.size)
-               < BTOR_NODE_UNIQUE_TABLE_LIMIT)
+    if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
-      enlarge_exp_unique_table (btor);
+      enlarge_nodes_unique_table (btor);
       lookup = find_const_exp (btor, lookupbits, len);
     }
     *lookup = new_const_exp_node (btor, lookupbits, len);
-    assert (btor->unique_table.num_elements < INT_MAX);
-    btor->unique_table.num_elements++;
+    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
@@ -3199,17 +3567,15 @@ unary_exp_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
   lookup = find_slice_exp (btor, exp, upper, lower);
   if (!*lookup)
   {
-    if (btor->unique_table.num_elements == btor->unique_table.size
-        && btor_log_2_util (btor->unique_table.size)
-               < BTOR_NODE_UNIQUE_TABLE_LIMIT)
+    if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
-      enlarge_exp_unique_table (btor);
+      enlarge_nodes_unique_table (btor);
       lookup = find_slice_exp (btor, exp, upper, lower);
     }
     *lookup = new_slice_exp_node (btor, exp, upper, lower);
     inc_exp_ref_counter (btor, exp);
-    assert (btor->unique_table.num_elements < INT_MAX);
-    btor->unique_table.num_elements++;
+    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
@@ -3253,11 +3619,9 @@ binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
   lookup = find_binary_exp (btor, kind, e0, e1);
   if (!*lookup)
   {
-    if (btor->unique_table.num_elements == btor->unique_table.size
-        && btor_log_2_util (btor->unique_table.size)
-               < BTOR_NODE_UNIQUE_TABLE_LIMIT)
+    if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
-      enlarge_exp_unique_table (btor);
+      enlarge_nodes_unique_table (btor);
       lookup = find_binary_exp (btor, kind, e0, e1);
     }
     if (kind == BTOR_AEQ_NODE)
@@ -3268,8 +3632,8 @@ binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1, int len)
       *lookup = new_binary_exp_node (btor, kind, e0, e1, len);
     inc_exp_ref_counter (btor, e0);
     inc_exp_ref_counter (btor, e1);
-    assert (btor->unique_table.num_elements < INT_MAX);
-    btor->unique_table.num_elements++;
+    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
@@ -3460,11 +3824,9 @@ ternary_exp (Btor *btor,
   lookup = find_ternary_exp (btor, kind, e0, e1, e2);
   if (!*lookup)
   {
-    if (btor->unique_table.num_elements == btor->unique_table.size
-        && btor_log_2_util (btor->unique_table.size)
-               < BTOR_NODE_UNIQUE_TABLE_LIMIT)
+    if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
-      enlarge_exp_unique_table (btor);
+      enlarge_nodes_unique_table (btor);
       lookup = find_ternary_exp (btor, kind, e0, e1, e2);
     }
     switch (kind)
@@ -3483,8 +3845,8 @@ ternary_exp (Btor *btor,
     inc_exp_ref_counter (btor, e0);
     inc_exp_ref_counter (btor, e1);
     inc_exp_ref_counter (btor, e2);
-    assert (btor->unique_table.num_elements < INT_MAX);
-    btor->unique_table.num_elements++;
+    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    btor->nodes_unique_table.num_elements++;
     (*lookup)->unique = 1;
   }
   else
@@ -4694,7 +5056,7 @@ btor_get_symbol_exp (Btor *btor, BtorNode *exp)
   } while (0)
 
 static int
-btor_cmp_id (const void *p, const void *q)
+btor_cmp_node_id (const void *p, const void *q)
 {
   BtorNode *a = *(BtorNode **) p;
   BtorNode *b = *(BtorNode **) q;
@@ -4920,7 +5282,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   {
     for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
     if (stack.start)
-      qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof cur, btor_cmp_id);
+      qsort (
+          stack.start, BTOR_COUNT_STACK (stack), sizeof cur, btor_cmp_node_id);
   }
 
   if (pprint)
@@ -5040,7 +5403,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
 
   if (stack.start)
-    qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
+    qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
@@ -5062,8 +5425,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   /* also consider newly created nodes like lambdas etc. */
   // TODO: is there a better solution?
-  if (BTOR_COUNT_STACK (btor->id_table) - 1 > maxid)
-    maxid = BTOR_COUNT_STACK (btor->id_table) - 1;
+  if (BTOR_COUNT_STACK (btor->nodes_id_table) - 1 > maxid)
+    maxid = BTOR_COUNT_STACK (btor->nodes_id_table) - 1;
 
   for (i = 0; i < nroots; i++)
   {
@@ -5229,7 +5592,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
 
-  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_id);
+  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
 
   fputs ("(benchmark ", file);
   if (BTOR_IS_INVERTED_NODE (root)) fputs ("not", file);
@@ -5388,7 +5751,7 @@ btor_new_btor (void)
 
   btor->mm = mm;
 
-  BTOR_INIT_NODE_UNIQUE_TABLE (mm, btor->unique_table);
+  BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
 
   btor->avmgr = btor_new_aigvec_mgr (mm);
 
@@ -5411,7 +5774,7 @@ btor_new_btor (void)
   btor->msgtick           = -1;
   btor->rewrite_writes    = 0;
 
-  BTOR_PUSH_STACK (btor->mm, btor->id_table, 0);
+  BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
   btor->exp_pair_eq_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
@@ -5463,7 +5826,7 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   assert (btor);
   assert (btor->rewrite_level >= 0);
   assert (btor->rewrite_level <= 3);
-  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 1);
   btor->rewrite_level = rewrite_level;
 }
 
@@ -5532,7 +5895,7 @@ void
 btor_enable_model_gen (Btor *btor)
 {
   assert (btor);
-  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 1);
   if (!btor->model_gen)
   {
     btor->model_gen = 1;
@@ -5566,7 +5929,7 @@ btor_set_verbosity_btor (Btor *btor, int verbosity)
 
   assert (btor);
   assert (btor->verbosity >= -1);
-  assert (BTOR_COUNT_STACK (btor->id_table) == 1);
+  assert (BTOR_COUNT_STACK (btor->nodes_id_table) == 1);
   btor->verbosity = verbosity;
 
   avmgr = btor->avmgr;
@@ -5630,17 +5993,21 @@ btor_delete_btor (Btor *btor)
 
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
-  // debug
-  int k;
-  for (k = 0; k < btor->unique_table.num_elements; k++)
-    dump_node (stderr, btor->unique_table.chains[k]);
-  // end debug
+#ifndef NDEBUG
+  {
+    int k;
+    for (k = 0; k < btor->nodes_unique_table.num_elements; k++)
+      dump_node (stderr, btor->nodes_unique_table.chains[k]);
+  }
+#endif
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
-          || btor->unique_table.num_elements == 0);
+          || btor->nodes_unique_table.num_elements == 0);
+  BTOR_RELEASE_UNIQUE_TABLE (mm, btor->nodes_unique_table);
+  BTOR_RELEASE_STACK (mm, btor->nodes_id_table);
 
-  BTOR_RELEASE_NODE_UNIQUE_TABLE (mm, btor->unique_table);
-
-  BTOR_RELEASE_STACK (mm, btor->id_table);
+  assert (getenv ("BTORLEAK") || getenv ("BTORLEAKSORT")
+          || btor->sorts_unique_table.num_elements == 0);
+  BTOR_RELEASE_UNIQUE_TABLE (mm, btor->sorts_unique_table);
 
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
@@ -6871,14 +7238,13 @@ print_bfs_path_dbg (BtorNode *from, BtorNode *to)
   assert (from->parent);
   assert (to);
 
-#ifndef NDEBUG
   int hops = 0;
   (void) hops;
-#endif
   BtorNode *cur;
 
   cur = from;
   DBG_P ("bfs (%d) ", cur, hops++);
+  (void) hops;
 
   while (cur != to)
   {
@@ -7564,7 +7930,7 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
 
   BtorNode **lookup, *e0, *e1, *e2, *old_exp;
 
-  remove_from_unique_table_exp (btor, parent);
+  remove_from_nodes_unique_table_exp (btor, parent);
   parent->next = 0;
 
   old_exp = parent->e[pos];
@@ -7612,8 +7978,8 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
   assert (!parent->unique);
 
   *lookup = parent;
-  assert (btor->unique_table.num_elements < INT_MAX);
-  btor->unique_table.num_elements++;
+  assert (btor->nodes_unique_table.num_elements < INT_MAX);
+  btor->nodes_unique_table.num_elements++;
   (*lookup)->unique = 1;
 
   assert (parent->unique);
@@ -9528,6 +9894,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
     assert (BTOR_IS_BV_VAR_NODE (cur) || BTOR_IS_ARRAY_VAR_NODE (cur));
     BTOR_PUSH_STACK (mm, stack, cur);
   }
+
   do
   {
     assert (!BTOR_EMPTY_STACK (stack));
