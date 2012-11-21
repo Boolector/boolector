@@ -111,6 +111,10 @@ static const char *normaltests[] = {
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
+static const char *brokentests[] = {
+    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+};
+
 void
 init_tests (BtorTestCaseSpeed speed)
 {
@@ -213,6 +217,8 @@ match (const char *str, const char *pattern)
   return strstr (str, pattern) != NULL;
 }
 
+// currently unused (but maybe useful in the future)
+#if 0
 static int
 find (const char *str, const char **testset, int testset_size)
 {
@@ -223,18 +229,20 @@ find (const char *str, const char **testset, int testset_size)
   int cmp;
 
   while ((cmp = strcmp (str, testset[pivot])))
-  {
-    if (cmp < 0)
-      max_idx = pivot - 1;
-    else
-      min_idx = pivot + 1;
-    pivot = min_idx + (max_idx - min_idx) / 2;
+    {
+      if (cmp < 0)
+	max_idx = pivot - 1;
+      else
+	min_idx = pivot + 1;
+      pivot = min_idx + (max_idx - min_idx) / 2;
 
-    if (max_idx < min_idx) return 0;
-  }
+      if (max_idx < min_idx)
+	return 0;
+    }
 
   return 1;
 }
+#endif
 
 void
 run_test_case (
@@ -246,6 +254,8 @@ run_test_case (
 
   g_num_tests++;
   skip = 0;
+
+  for (p = brokentests; !skip && *p; p++) skip = match (name, *p);
 
   if (g_speed < BTOR_NORMAL_TEST_CASE)
     for (p = normaltests; !skip && *p; p++) skip = match (name, *p);
