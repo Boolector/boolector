@@ -7515,6 +7515,8 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
   else
     connect_child_exp (btor, parent, new_exp, pos);
 
+  inc_exp_ref_counter (btor, new_exp);
+
   e0 = parent->e[0];
   assert (e0);
 
@@ -7800,6 +7802,7 @@ beta_reduce (Btor *btor,
                 replace_param_with (btor, BTOR_REAL_ADDR_NODE (e[0]), param);
                 result = btor_lambda_exp (
                     btor, real_cur->len, real_cur->index_len, param, e[1]);
+                btor_release_exp (btor, param);
               }
               else
               {
@@ -8768,8 +8771,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
   BtorNode *tagged_parent, *parent;
   BtorFullParentIterator it;
-  BtorNodePtrStack parent_stack;
-  int pos, cnt_parents = 0;
+  int pos;
 
   assert (btor);
   assert (BTOR_IS_WRITE_NODE (write));
@@ -8799,16 +8801,11 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     assert (write->refs > 0);
 
     tagged_parent = it.cur;
-    assert (tagged_parent);
-    /* parent is already masked in next_parent_full_parent_iterator  */
-    parent = next_parent_full_parent_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (parent));
-    pos = BTOR_GET_TAG_NODE (tagged_parent);
+    parent        = next_parent_full_parent_iterator (&it);
+    pos           = BTOR_GET_TAG_NODE (tagged_parent);
+
     assert (parent->e[pos] == write);
-
     replace_child_exp (btor, parent, lambda_exp, pos);
-
-    if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
   }
 
   btor_release_exp (btor, e_if);
@@ -8816,6 +8813,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   btor_release_exp (btor, e_cond);
   btor_release_exp (btor, cond_exp);
   btor_release_exp (btor, param);
+  btor_release_exp (btor, lambda_exp);
 }
 
 static int
