@@ -1,18 +1,55 @@
 #!/bin/bash
 
-btor_dev=boolector
-btor_stable="boolector --no-rewrite-writes"
-btor_params=
-inputfile=$1
+die () 
+{
+  echo "*** crosscheckboolector: $*" 1>&2
+  exit 1
+}
 
 trap "exit" SIGHUP SIGINT SIGTERM
 
-$btor_stable $btor_params $inputfile > /dev/null 2>&1
+btor_test=""
+btor_ref=""
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help)
+      echo "usage: $(basename $0) [<option>] <test> <ref> <file>"
+      echo
+      echo "  <test>: the solver instance under test (default: boolector)"
+      echo "  <ref>:  the reference solver instance (default: <test> -nrw)"
+      echo
+      echo "  options:"
+      echo "    -h, --help    print this message and exit"
+      echo
+      exit
+      ;;
+    *) 
+      if [ x"$btor_test" = x ]; then
+	btor_test=$1
+      elif [ x"$btor_ref" = x  ]; then
+	btor_ref=$1
+      else
+	break
+      fi
+      ;;
+  esac
+  shift
+done
+
+inputfile="$*"
+
+[ x"$inputfile" = x ] && die "inputfile missing"
+
+$btor_ref $inputfile > /dev/null 2>&1
 expected_result=$?
+#echo "$btor_ref"
 #echo "expected result: $expected_result"
 
-$btor_dev $btor_params $inputfile > /dev/null 2>&1
+$btor_test $inputfile > /dev/null 2>&1
 result=$?
+#echo "$btor_test"
 #echo "result: $result"
 
 # we do not want assertions errors for now
