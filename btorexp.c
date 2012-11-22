@@ -2820,6 +2820,9 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
     cur = BTOR_POP_STACK (work_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
 
+    /* children of other lambdas already marked */
+    if (BTOR_IS_LAMBDA_NODE (cur)) continue;
+
     if (cur->aux_mark == 2) continue;
 
     if (cur->aux_mark == 0)
@@ -2835,9 +2838,6 @@ mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
     {
       assert (cur->aux_mark == 1);
       cur->aux_mark = 2;
-
-      /* do not set lambda nodes as parameterized */
-      if (BTOR_IS_LAMBDA_NODE (cur)) continue;
 
       if ((cur->arity >= 1 && BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized)
           || (cur->arity >= 2 && BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized)
