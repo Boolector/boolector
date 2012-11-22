@@ -21,8 +21,7 @@ do
   case $1 in
     -h|--help) 
                echo -n "usage: $(basename $0) "
-               echo -en "[ <option> | <fuzzsmtbv_option>] "
-               echo "[<file>] <command>"
+               echo -en "[ <option> | <fuzzsmtbv_option>] <command>"
                echo
                echo "  options:"
                echo "    -h,--help         print this message and exit"
