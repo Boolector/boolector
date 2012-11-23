@@ -508,7 +508,9 @@ btor_release_smt_nodes (BtorSMTParser *parser)
 
     if (isleaf (node)) continue;
 
+#if 1
     if (car (node) == parser->bind) btor_delete_smt_node (parser, node);
+#endif
   }
 
   assert (!parser->nodes);
