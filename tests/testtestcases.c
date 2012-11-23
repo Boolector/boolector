@@ -51,7 +51,7 @@ run_testcases_tests (int argc, char **argv)
   BtorMemMgr *mem;
   char *token;
   FILE *file;
-  int ch;
+  int ch, i;
 
   assert ((file = fopen ("tests/testcases", "r")));
 
@@ -86,13 +86,13 @@ run_testcases_tests (int argc, char **argv)
 
     assert (BTOR_EMPTY_STACK (g_args));
 
-    if (!g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-nrw");
-
+    i     = 0;
     token = strtok (buffer.start, " \t");
     while (token)
     {
       BTOR_PUSH_STACK (mem, g_args, token);
       token = strtok (0, " \t");
+      if (i++ == 0 && !g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-nrw");
     }
 
     BTOR_RESET_STACK (buffer);

@@ -40,7 +40,7 @@ enum BtorTestCaseSpeed
 
 typedef enum BtorTestCaseSpeed BtorTestCaseSpeed;
 
-void init_tests (BtorTestCaseSpeed speed);
+void init_tests (BtorTestCaseSpeed speed, int skip_broken);
 
 void print_test_suite_name (const char *name);
 

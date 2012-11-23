@@ -30,8 +30,10 @@
 #include <string.h>
 #include <unistd.h>
 
-int g_rwwrites  = 1;
+int g_rwwrites;
 FILE *g_logfile = NULL;
+
+static int g_skip_broken;
 
 static int g_speed = BTOR_NORMAL_TEST_CASE;
 static int g_num_tests;
@@ -111,64 +113,14 @@ static const char *normaltests[] = {
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
-/* We have to treat dumps with rewriting of writes enabled separately (nodes
- * are re-indexed if rewriting of writes is enabled). */
-
-/* Expression tests. Note: maintain sorted alphabetically (binary search)!! */
-static int dumptests_size = 63;
-
-static const char *dumptests[] = {
-    "add_exp",         "and_exp",      "array_exp",
-    "concat_exp",      "concatslice1", /* testcases test */
-    "concatslice2",                    /* testcases test */
-    "cond_exp",        "const_exp",    "dec_exp",
-    "dumpbtor1", /* testcases test */
-    "dumpbtor2", /* testcases test */
-    "dumpbtor3", /* testcases test */
-    "eq_exp",          "inc_exp",      "mul_exp",
-    "ne_exp",          "neg_exp",      "not_exp",
-    "one_exp",         "ones_exp",     "or_exp",
-    "read_exp",        "redand_exp",   "redor_exp",
-    "redxor_exp",      "regaddnorm1", /* testcases test */
-    "regaddnorm2",                    /* testcases test */
-    "regnegadd1",                     /* testcases test */
-    "rol_exp",         "ror_exp",      "saddo_exp",
-    "sdiv_exp",        "sdivo_exp",    "sext_exp",
-    "sgt_exp",         "sgte_exp",     "slice_exp",
-    "sll_exp",         "slt_exp",      "slte_exp",
-    "smod_exp",        "smulo_exp",    "sra_exp",
-    "srem_exp",        "srl_exp",      "ssubo_exp",
-    "sub_exp",         "uaddo_exp",    "udiv_exp",
-    "uext_exp",        "ugt_exp",      "ugte_exp",
-    "ult_exp",         "ulte_exp",     "umulo_exp",
-    "unsigned_to_exp", "urem_exp",     "usubo_exp",
-    "var_exp",         "write_exp",    "xnor_exp",
-    "xor_exp",         "zero_exp"};
-
-/* Testcases tests.  Note: maintain sorted alphabetically (binary search)!! */
-static int testcases_nrw_size = 8;
-static int testcases_rww_size = 8;
-
-static const char *testcases_nrw[] = {"concatslice1",
-                                      "concatslice2",
-                                      "dumpbtor1",
-                                      "dumpbtor2",
-                                      "dumpbtor3",
-                                      "regaddnorm1",
-                                      "regaddnorm2",
-                                      "regnegadd1"};
-static const char *testcases_rww[] = {"concatslice1_rww",
-                                      "concatslice2_rww",
-                                      "dumpbtor1_rww",
-                                      "dumpbtor2_rww",
-                                      "dumpbtor3_rww",
-                                      "regaddnorm1_rww",
-                                      "regaddnorm2_rww",
-                                      "regnegadd1_rww"};
+static const char *brokentests[] = {
+    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+};
 
 void
-init_tests (BtorTestCaseSpeed speed)
+init_tests (BtorTestCaseSpeed speed, int skip_broken)
 {
+  g_skip_broken       = skip_broken;
   g_speed             = speed;
   g_num_tests         = 0;
   g_num_skipped_tests = 0;
@@ -268,6 +220,8 @@ match (const char *str, const char *pattern)
   return strstr (str, pattern) != NULL;
 }
 
+// currently unused (but maybe useful in the future)
+#if 0
 static int
 find (const char *str, const char **testset, int testset_size)
 {
@@ -278,18 +232,20 @@ find (const char *str, const char **testset, int testset_size)
   int cmp;
 
   while ((cmp = strcmp (str, testset[pivot])))
-  {
-    if (cmp < 0)
-      max_idx = pivot - 1;
-    else
-      min_idx = pivot + 1;
-    pivot = min_idx + (max_idx - min_idx) / 2;
+    {
+      if (cmp < 0)
+	max_idx = pivot - 1;
+      else
+	min_idx = pivot + 1;
+      pivot = min_idx + (max_idx - min_idx) / 2;
 
-    if (max_idx < min_idx) return 0;
-  }
+      if (max_idx < min_idx)
+	return 0;
+    }
 
   return 1;
 }
+#endif
 
 void
 run_test_case (
@@ -301,6 +257,9 @@ run_test_case (
 
   g_num_tests++;
   skip = 0;
+
+  if (g_skip_broken)
+    for (p = brokentests; !skip && *p; p++) skip = match (name, *p);
 
   if (g_speed < BTOR_NORMAL_TEST_CASE)
     for (p = normaltests; !skip && *p; p++) skip = match (name, *p);
@@ -324,14 +283,6 @@ run_test_case (
       if (argv[i][0] != '-') skip = !match (name, argv[i]);
   }
 
-  if (!skip)
-  {
-    if (g_rwwrites)
-      skip = find (name, testcases_nrw, testcases_nrw_size);
-    else
-      skip = find (name, testcases_rww, testcases_rww_size);
-  }
-
   if (skip)
   {
     g_num_skipped_tests++;
@@ -347,24 +298,12 @@ run_test_case (
     if (check_log_file)
     {
       len = 0;
-      if (g_rwwrites && find (name, dumptests, dumptests_size))
-      {
-        /* "log/" + name + "_rww" + ".log" or ".out" + \0 */
-        len          = 4 + strlen (name) + 4 + 4 + 1;
-        logfile_name = (char *) malloc (len);
-        outfile_name = (char *) malloc (len);
-        sprintf (logfile_name, "%s%s%s.log", "log/", name, "_rww");
-        sprintf (outfile_name, "%s%s%s.out", "log/", name, "_rww");
-      }
-      else
-      {
-        /* "log/" + name + ".log" or ".out" + \0 */
-        len          = 4 + strlen (name) + 4 + 1;
-        logfile_name = (char *) malloc (len);
-        outfile_name = (char *) malloc (len);
-        sprintf (logfile_name, "%s%s.log", "log/", name);
-        sprintf (outfile_name, "%s%s.out", "log/", name);
-      }
+      /* "log/" + name + ".log" or ".out" + \0 */
+      len          = 4 + strlen (name) + 4 + 1;
+      logfile_name = (char *) malloc (len);
+      outfile_name = (char *) malloc (len);
+      sprintf (logfile_name, "%s%s.log", "log/", name);
+      sprintf (outfile_name, "%s%s.out", "log/", name);
 
       g_logfile = fopen (logfile_name, "w");
     }

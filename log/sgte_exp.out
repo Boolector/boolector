@@ -1,10 +1,10 @@
-1 var 32 v2
-2 var 32 v1
-3 slice 1 1 31 31
-4 slice 1 2 31 31
+1 var 32 v1
+2 var 32 v2
+3 slice 1 2 31 31
+4 slice 1 1 31 31
 5 eq 1 4 3
-6 slice 31 1 30 0
-7 slice 31 2 30 0
+6 slice 31 2 30 0
+7 slice 31 1 30 0
 8 ult 1 7 6
 9 and 1 8 5
 10 and 1 4 -3

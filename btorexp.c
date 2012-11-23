@@ -5151,8 +5151,7 @@ dump_node (FILE *file, BtorNode *node)
       break;
 
     default:
-      // TODO uncomment
-      // assert (n->kind == BTOR_BV_VAR_NODE);
+      assert (n->kind == BTOR_BV_VAR_NODE);
       fprintf (file, "var %d", n->len);
       sprintf (idbuffer, "%d", n->id);
       assert (n->symbol);
@@ -5163,12 +5162,11 @@ dump_node (FILE *file, BtorNode *node)
   fputc ('\n', file);
 }
 
-#if 1
 static void
 dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
-  int i, id, maxid, pprint = 0;
+  int i, id = 0, maxid, pprint = 0;
   BtorNodePtrStack work_stack, stack;
   BtorNodePtrStack const_stack, param_stack, bvvar_stack, avar_stack;
   BtorIntStack id_stack;
@@ -5245,8 +5243,28 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   if (pprint)
   {
     /* unmark and assign ids in order of DFS traversal - var, const and param
-     * nodes are dumped first */
-    id = 0;
+     * nodes are sorted by original id and dumped first */
+    if (const_stack.start)
+      qsort (const_stack.start,
+             BTOR_COUNT_STACK (const_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+    if (bvvar_stack.start)
+      qsort (bvvar_stack.start,
+             BTOR_COUNT_STACK (bvvar_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+    if (avar_stack.start)
+      qsort (avar_stack.start,
+             BTOR_COUNT_STACK (avar_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+    if (param_stack.start)
+      qsort (param_stack.start,
+             BTOR_COUNT_STACK (param_stack),
+             sizeof cur,
+             btor_cmp_node_id);
+
     for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
     {
       const_stack.start[i]->mark = 0;
@@ -5360,84 +5378,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     BTOR_RELEASE_STACK (mm, id_stack);
   }
 }
-
-#else
-static void
-dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
-{
-  BtorMemMgr *mm = btor->mm;
-  int next, i, maxid, id;
-  BtorNodePtrStack stack;
-  BtorNode *e, *root;
-
-  assert (btor);
-  assert (file);
-  assert (roots);
-  assert (nroots > 0);
-
-  BTOR_INIT_STACK (stack);
-
-  for (i = 0; i < nroots; i++)
-  {
-    root = roots[i];
-    assert (root);
-    BTOR_PUSH_NODE_IF_NOT_MARKED (root);
-  }
-
-  next = 0;
-  while (next < BTOR_COUNT_STACK (stack))
-  {
-    e = stack.start[next++];
-
-    assert (BTOR_IS_REGULAR_NODE (e));
-    assert (e->mark);
-
-    if (e->kind == BTOR_PROXY_NODE)
-      BTOR_PUSH_NODE_IF_NOT_MARKED (e->simplified);
-    else
-    {
-      for (i = 0; i < e->arity; i++) BTOR_PUSH_NODE_IF_NOT_MARKED (e->e[i]);
-    }
-  }
-
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++) stack.start[i]->mark = 0;
-
-  if (stack.start)
-    qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
-
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
-  {
-    e = stack.start[i];
-    assert (BTOR_IS_REGULAR_NODE (e));
-
-    dump_node (file, e);
-  }
-
-  BTOR_RELEASE_STACK (mm, stack);
-
-  maxid = 0;
-  for (i = 0; i < nroots; i++)
-  {
-    root = roots[i];
-    e = BTOR_REAL_ADDR_NODE (root);
-    if (e->id > maxid) maxid = e->id;
-  }
-
-  /* also consider newly created nodes like lambdas etc. */
-  // TODO: is there a better solution?
-  if (BTOR_COUNT_STACK (btor->nodes_id_table) - 1 > maxid)
-    maxid = BTOR_COUNT_STACK (btor->nodes_id_table) - 1;
-
-  for (i = 0; i < nroots; i++)
-  {
-    id = maxid + i;
-    BTOR_ABORT_NODE (id == INT_MAX, "expression id overflow");
-
-    root = roots[i];
-    fprintf (file, "%d root %d %d\n", id + 1, e->len, BTOR_GET_ID_NODE (root));
-  }
-}
-#endif
 
 void
 btor_dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
@@ -7919,6 +7859,104 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   return result;
 }
 
+static void
+replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
+{
+  assert (btor);
+  assert (parent);
+  assert (new_exp);
+  assert (pos >= 0);
+  assert (pos <= 2);
+
+  BtorNode **lookup, *e0, *e1, *e2, *old_exp;
+
+  remove_from_nodes_unique_table_exp (btor, parent);
+  parent->next = 0;
+
+  old_exp = parent->e[pos];
+  disconnect_child_exp (btor, parent, pos);
+
+  if (BTOR_IS_INVERTED_NODE (old_exp))
+    connect_child_exp (btor, parent, BTOR_INVERT_NODE (new_exp), pos);
+  else
+    connect_child_exp (btor, parent, new_exp, pos);
+
+  inc_exp_ref_counter (btor, new_exp);
+
+  e0 = parent->e[0];
+  assert (e0);
+
+  if (parent->kind == BTOR_SLICE_NODE)
+  {
+    lookup = find_slice_exp (btor, e0, parent->lower, parent->upper);
+  }
+  else if (BTOR_IS_BINARY_NODE (parent))
+  {
+    e1 = parent->e[1];
+    assert (e1);
+
+    if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (parent->kind)
+        && BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
+    {
+      e2 = e0;
+      e0 = e1;
+      e1 = e2;
+    }
+    lookup = find_binary_exp (btor, parent->kind, e0, e1);
+  }
+  else
+  {
+    assert (BTOR_IS_TERNARY_NODE (parent));
+    e1 = parent->e[1];
+    e2 = parent->e[2];
+    assert (e1);
+    assert (e2);
+    lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
+  }
+  assert (!*lookup);
+  assert (!parent->next);
+  assert (!parent->unique);
+
+  *lookup = parent;
+  assert (btor->nodes_unique_table.num_elements < INT_MAX);
+  btor->nodes_unique_table.num_elements++;
+  (*lookup)->unique = 1;
+
+  assert (parent->unique);
+
+  btor_release_exp (btor, old_exp);
+}
+
+static void
+replace_param_with (Btor *btor, BtorNode *old_param, BtorNode *new_param)
+{
+  assert (btor);
+  assert (old_param);
+  assert (new_param);
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (old_param)));
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (new_param)));
+
+  int pos;
+  BtorFullParentIterator it;
+  BtorNode *lambda, *parent, *tagged_parent;
+
+  old_param = BTOR_REAL_ADDR_NODE (old_param);
+  new_param = BTOR_REAL_ADDR_NODE (new_param);
+  lambda    = ((BtorParamNode *) old_param)->lambda_exp;
+
+  init_full_parent_iterator (&it, old_param);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    tagged_parent = it.cur;
+    parent        = next_parent_full_parent_iterator (&it);
+
+    if (parent->id <= lambda->id) continue;
+
+    pos = BTOR_GET_TAG_NODE (tagged_parent);
+    replace_child_exp (btor, parent, new_param, pos);
+  }
+}
+
 /* We distinguish the following options for bounded/unbounded reduction:
  *   bound < 0: cut off at subsequent lambda and write nodes,
  *              evaluate conditionals
@@ -7943,7 +7981,7 @@ beta_reduce (Btor *btor,
   const char *res;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, arg_stack, unassign_stack, unmark_stack;
-  BtorNode *cur, *real_cur, *next, *e[3], *result;
+  BtorNode *cur, *real_cur, *next, *e[3], *result, *param;
 
   mm = btor->mm;
 
@@ -7979,7 +8017,7 @@ beta_reduce (Btor *btor,
           && (BTOR_IS_READ_NODE (real_cur)
               && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[0]))))
       {
-        BtorNode *index, *param;
+        BtorNode *index;
 
         index = real_cur->e[1];
         param =
@@ -8106,8 +8144,38 @@ beta_reduce (Btor *btor,
             }
 
             if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])))
-              result = btor_lambda_exp (
-                  btor, real_cur->len, real_cur->index_len, e[0], e[1]);
+            {
+              assert (BTOR_REAL_ADDR_NODE (e[0])
+                      == BTOR_REAL_ADDR_NODE (real_cur->e[0]));
+              /* partial application of lambda */
+              if (BTOR_REAL_ADDR_NODE (e[1])
+                  != BTOR_REAL_ADDR_NODE (real_cur->e[1]))
+              {
+                param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
+                if (param->symbol)
+                {
+                  char *symbol;
+                  BTOR_NEWN (mm, symbol, strlen (param->symbol) + 2);
+                  sprintf (symbol, "%s'", param->symbol);
+                  param = btor_param_exp (btor, param->len, symbol);
+                  btor_freestr (mm, symbol);
+                }
+                else
+                {
+                  param = btor_param_exp (btor, param->len, "");
+                }
+
+                replace_param_with (btor, BTOR_REAL_ADDR_NODE (e[0]), param);
+                result = btor_lambda_exp (
+                    btor, real_cur->len, real_cur->index_len, param, e[1]);
+                btor_release_exp (btor, param);
+              }
+              else
+              {
+                result = btor_lambda_exp (
+                    btor, real_cur->len, real_cur->index_len, e[0], e[1]);
+              }
+            }
             else
               result = btor_copy_exp (btor, e[1]);
             break;
@@ -9067,10 +9135,9 @@ static void
 rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 {
   BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
-  BtorNode *tagged_parent, *parent, **lookup, *e0, *e1, *e2;
+  BtorNode *tagged_parent, *parent;
   BtorFullParentIterator it;
-  BtorNodePtrStack parent_stack;
-  int pos, cnt_parents = 0;
+  int pos;
 
   assert (btor);
   assert (BTOR_IS_WRITE_NODE (write));
@@ -9093,8 +9160,6 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   lambda_exp =
       btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
 
-  BTOR_INIT_STACK (parent_stack);
-
   /* disconnect write node from all of its parent nodes */
   init_full_parent_iterator (&it, write);
   while (has_next_parent_full_parent_iterator (&it))
@@ -9102,93 +9167,11 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     assert (write->refs > 0);
 
     tagged_parent = it.cur;
-    assert (tagged_parent);
-    /* parent is already masked in next_parent_full_parent_iterator  */
-    parent = next_parent_full_parent_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (parent));
+    parent        = next_parent_full_parent_iterator (&it);
+    pos           = BTOR_GET_TAG_NODE (tagged_parent);
 
-    remove_from_nodes_unique_table_exp (btor, parent);
-    /* we reuse the parent, so we have to reset the next pointer  */
-    parent->next = 0;
-    pos          = BTOR_GET_TAG_NODE (tagged_parent);
     assert (parent->e[pos] == write);
-
-    /* disconnect write from its parent  */
-    disconnect_child_exp (btor, parent, pos);
-
-    BTOR_PUSH_STACK (btor->mm, parent_stack, tagged_parent);
-    btor_release_exp (btor, write);
-  }
-
-  /* connect lambda exp to parents of write node */
-  while (!BTOR_EMPTY_STACK (parent_stack))
-  {
-    if (++cnt_parents > 1) inc_exp_ref_counter (btor, lambda_exp);
-
-    tagged_parent = BTOR_POP_STACK (parent_stack);
-    assert (tagged_parent);
-    parent = BTOR_REAL_ADDR_NODE (tagged_parent);
-    pos    = BTOR_GET_TAG_NODE (tagged_parent);
-
-    /* connect lambda expression at position of write  */
-    connect_child_exp (btor, parent, lambda_exp, pos);
-
-    assert (BTOR_IS_BINARY_NODE (parent) || BTOR_IS_TERNARY_NODE (parent));
-
-    /* with -rwl0 it is possible to have parents that have 'write' multiple
-     * times as child,
-     * e.g., an array equality (write = write), acond (cond, write, write).
-     * if we encounter such a case we have to wait until all children of
-     * 'parent' are connected before inserting 'parent' into the unique table.
-     */
-    e0 = parent->e[0];
-    e1 = parent->e[1];
-    if (BTOR_IS_BINARY_NODE (parent))
-    {
-      assert (e0 || e1);
-
-      if (!e0 || !e1)
-      {
-        assert (BTOR_IS_ARRAY_EQ_NODE (parent));
-        continue; /* not all children connected yet */
-      }
-
-      if (BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
-      {
-        e2 = e0;
-        e0 = e1;
-        e1 = e2;
-      }
-
-      lookup = find_binary_exp (btor, parent->kind, e0, e1);
-    }
-    else
-    {
-      assert (e0);
-      e2 = parent->e[2];
-      assert (e1 || e2);
-
-      if (!e1 || !e2)
-      {
-        assert (BTOR_IS_ARRAY_COND_NODE (parent));
-        continue; /* not all children connected yet */
-      }
-
-      lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
-    }
-
-    assert (!*lookup);
-    assert (!parent->next);
-    assert (!parent->unique);
-
-    /* no enlarge unique table required */
-    *lookup = parent;
-    assert (btor->nodes_unique_table.num_elements < INT_MAX);
-    btor->nodes_unique_table.num_elements++;
-    (*lookup)->unique = 1;
-
-    assert (parent->unique);
-    assert (BTOR_IS_REGULAR_NODE (*lookup));
+    replace_child_exp (btor, parent, lambda_exp, pos);
   }
 
   btor_release_exp (btor, e_if);
@@ -9196,7 +9179,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   btor_release_exp (btor, e_cond);
   btor_release_exp (btor, cond_exp);
   btor_release_exp (btor, param);
-  BTOR_RELEASE_STACK (btor->mm, parent_stack);
+  btor_release_exp (btor, lambda_exp);
 }
 
 static int

@@ -1,8 +1,8 @@
 1 const 1 0
-2 var 8 v2
-3 var 8 v1
-4 concat 9 1 2
-5 concat 9 1 3
+2 var 8 v1
+3 var 8 v2
+4 concat 9 1 3
+5 concat 9 1 2
 6 add 9 5 4
 7 slice 1 6 8 8
 8 root 1 7
