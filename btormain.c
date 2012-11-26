@@ -130,7 +130,7 @@ static const char *g_usage =
     "  -o|--output <file>               set output file for dumping\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  -nrw|--no-rewrite-writes         do not rewrite writes to lambda "
+    "  -rrw|--rewrite-writes            do not rewrite writes to lambda "
     "expressions\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
@@ -549,10 +549,10 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
-    else if (!strcmp (app->argv[app->argpos], "-nrw")
-             || !strcmp (app->argv[app->argpos], "--no-rewrite-writes"))
+    else if (!strcmp (app->argv[app->argpos], "-rrw")
+             || !strcmp (app->argv[app->argpos], "--rewrite-writes"))
     {
-      app->rewrite_writes = 0;
+      app->rewrite_writes = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
@@ -973,7 +973,7 @@ boolector_main (int argc, char **argv)
   app.rewrite_level          = 3;
   app.force_smt_input        = 0;
   app.print_model            = 0;
-  app.rewrite_writes         = 1;  // TODO: only for debug?
+  app.rewrite_writes         = 0;
   app.no_pprint              = 0;  // TODO: debug only
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
@@ -1028,7 +1028,7 @@ boolector_main (int argc, char **argv)
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
-    if (!app.rewrite_writes) btor_disable_rewrite_writes (btor);
+    if (app.rewrite_writes) btor_enable_rewrite_writes (btor);
 
     if (app.no_pprint) btor_disable_pretty_print (btor);
 

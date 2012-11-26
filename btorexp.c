@@ -5746,10 +5746,10 @@ btor_set_sat_solver (Btor *btor, const char *solver)
 }
 
 void
-btor_disable_rewrite_writes (Btor *btor)
+btor_enable_rewrite_writes (Btor *btor)
 {
   assert (btor);
-  btor->rewrite_writes = 0;
+  btor->rewrite_writes = 1;
 }
 
 void
