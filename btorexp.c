@@ -158,7 +158,6 @@ static void dump_node (FILE *file, BtorNode *node);
 static void assign_param (BtorNode *, BtorNode *);
 static void unassign_param (BtorNode *);
 static const char *eval_exp (Btor *, BtorNode *, BtorNode *);
-static BtorNode *apply_beta_reduction (Btor *, BtorNode *, BtorNode *, int *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, BtorNode *, int, int *);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
@@ -1881,7 +1880,7 @@ encode_lemma_new (Btor *btor,
   if (BTOR_IS_LAMBDA_NODE (acc2))
   {
     /* get value at position i */
-    lambda_value = apply_beta_reduction (btor, acc2, i, &parameterized);
+    lambda_value = beta_reduce (btor, acc2, i, -1, &parameterized);
     b            = lambda_value;
     lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
     /* lambda_value must not be parameterized, otherwise the conflict would not
@@ -7093,7 +7092,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 
         /* instantiate lambda expressions with read index of acc */
         lambda_value =
-            apply_beta_reduction (btor, lambda_exp, index, &parameterized);
+            beta_reduce (btor, lambda_exp, index, -1, &parameterized);
+
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
         // FIXME: more general approach: e[1] does not have to be index,
@@ -7646,30 +7646,6 @@ unassign_param (BtorNode *lambda_exp)
   param = (BtorParamNode *) lambda_exp->e[0];
   assert (param->assigned_exp);
   param->assigned_exp = 0;
-}
-
-static BtorNode *
-apply_beta_reduction (Btor *btor,
-                      BtorNode *lambda_exp,
-                      BtorNode *index,
-                      int *parameterized)
-{
-  assert (lambda_exp);
-  assert (index);
-  assert (BTOR_IS_REGULAR_NODE (lambda_exp));
-  assert (lambda_exp->tseitin);
-
-  BtorNode *result;
-  DBG_P ("apply beta reduction: ", lambda_exp);
-
-  // TODO param assignment not necessary
-  // return beta_reduce (btor, lambda_exp->e[1], index, 1, 0);
-  // alternatively: get rid of apply_beta_reduction
-  assign_param (lambda_exp, index);
-  result = beta_reduce (btor, lambda_exp->e[1], 0, -1, parameterized);
-  unassign_param (lambda_exp);
-
-  return result;
 }
 
 // TODO: for testing only (for now)
@@ -8389,7 +8365,7 @@ process_working_stack (Btor *btor,
           lazy_synthesize_and_encode_lambda_exp (btor, array, 1);
       if (*assignments_changed) return 0;
 
-      lambda_value = apply_beta_reduction (btor, array, index, &parameterized);
+      lambda_value = beta_reduce (btor, array, index, -1, &parameterized);
 
       char *a = btor_bv_assignment_exp (btor, value);
       DBG_P ("   value:  %s, ", value, a);
@@ -8562,7 +8538,8 @@ process_working_stack (Btor *btor,
 
         /* instantiate lambda expressions with read index of acc */
         lambda_value =
-            apply_beta_reduction (btor, lambda_exp, index, &parameterized);
+            beta_reduce (btor, lambda_exp, index, -1, &parameterized);
+
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
         if (BTOR_IS_READ_NODE (lambda_value) && parameterized)
