@@ -44,7 +44,7 @@ init_special_tests (void)
   g_argv[1] = "-o";
   g_argv[2] = "/dev/null";
 
-  if (g_rwwrites) g_argv[g_argc - 2] = "-rrw";
+  if (g_rwwrites) g_argv[g_argc - 2] = "-rww";
 }
 
 static void

@@ -58,7 +58,7 @@ init_logic_tests (void)
   g_argv[2] = "-o";
   g_argv[3] = "/dev/null";
 
-  if (g_rwwrites) g_argv[g_argc - 2] = "-rrw";
+  if (g_rwwrites) g_argv[g_argc - 2] = "-rww";
 
   g_argv[g_argc - 1] = BTOR_TEST_LOGIC_TEMP_FILE_NAME;
 }

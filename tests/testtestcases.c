@@ -92,7 +92,7 @@ run_testcases_tests (int argc, char **argv)
     {
       BTOR_PUSH_STACK (mem, g_args, token);
       token = strtok (0, " \t");
-      if (i++ == 0 && g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-rrw");
+      if (i++ == 0 && g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-rww");
     }
 
     BTOR_RESET_STACK (buffer);

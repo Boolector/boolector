@@ -130,7 +130,7 @@ static const char *g_usage =
     "  -o|--output <file>               set output file for dumping\n"
     "\n"
     "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  -rrw|--rewrite-writes            do not rewrite writes to lambda "
+    "  -rww|--rewrite-writes            do not rewrite writes to lambda "
     "expressions\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
@@ -549,7 +549,7 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
-    else if (!strcmp (app->argv[app->argpos], "-rrw")
+    else if (!strcmp (app->argv[app->argpos], "-rww")
              || !strcmp (app->argv[app->argpos], "--rewrite-writes"))
     {
       app->rewrite_writes = 1;
