@@ -36,7 +36,7 @@ static char **g_argv = NULL;
 void
 init_special_tests (void)
 {
-  if (!g_rwwrites) g_argc += 1;
+  if (g_rwwrites) g_argc += 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
@@ -44,7 +44,7 @@ init_special_tests (void)
   g_argv[1] = "-o";
   g_argv[2] = "/dev/null";
 
-  if (!g_rwwrites) g_argv[g_argc - 2] = "-nrw";
+  if (g_rwwrites) g_argv[g_argc - 2] = "-rrw";
 }
 
 static void
