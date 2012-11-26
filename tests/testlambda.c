@@ -1283,26 +1283,6 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
  * additional tests
  *---------------------------------------------------------------------------*/
 
-static void
-test_lambda_parameterized_children (void)
-{
-  init_lambda_test ();
-  BtorNode *param = btor_param_exp (g_btor, g_elem_bw, "");
-  assert (param->parameterized);
-  BtorNode *var = btor_var_exp (g_btor, g_elem_bw, "");
-  assert (!var->parameterized);
-  BtorNode *add = btor_add_exp (g_btor, param, var);
-  assert (add->parameterized);
-  BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, param, add);
-  assert (!lambda->parameterized);
-
-  btor_release_exp (g_btor, lambda);
-  btor_release_exp (g_btor, add);
-  btor_release_exp (g_btor, var);
-  btor_release_exp (g_btor, param);
-  finish_lambda_test ();
-}
-
 void
 run_lambda_tests (int argc, char **argv)
 {
@@ -1382,7 +1362,6 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_partial_reduce_nested_lambdas_add1);
 
   /* additional tests */
-  BTOR_RUN_TEST (lambda_parameterized_children);
 }
 
 void
