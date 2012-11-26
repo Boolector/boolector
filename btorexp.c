@@ -146,15 +146,13 @@ static void add_constraint (Btor *, BtorNode *);
 
 static void run_rewrite_engine (Btor *);
 
+static void rewrite_writes_to_lambda_exp (Btor *);
+
 static int exp_to_cnf_lit (Btor *, BtorNode *);
 
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
 static void eliminate_slices_on_bv_vars (Btor *);
 #endif
-
-/* debug */
-static void rewrite_writes_to_lambda_exp (Btor *);
-/* end debug */
 
 static void dump_node (FILE *file, BtorNode *node);
 static void assign_param (BtorNode *, BtorNode *);
@@ -9131,57 +9129,6 @@ rewrite_linear_term (
   return res;
 }
 
-static void
-rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
-{
-  BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
-  BtorNode *tagged_parent, *parent;
-  BtorFullParentIterator it;
-  int pos;
-
-  assert (btor);
-  assert (BTOR_IS_WRITE_NODE (write));
-  assert (BTOR_IS_REGULAR_NODE (write));
-
-  /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
-  param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (write->e[1])->len, "0");
-
-  e_if   = btor_copy_exp (btor, write->e[2]);
-  e_else = btor_read_exp (btor, write->e[0], param);
-  e_cond = btor_eq_exp_node (btor, param, write->e[1]); /* no rewriting */
-  assert (BTOR_IS_BV_EQ_NODE (e_cond));
-
-  assert (e_else->e[0] == write->e[0]);
-  assert (e_else->e[1] == param);
-
-  cond_exp = btor_cond_exp_no_rewrite (btor, e_cond, e_if, e_else);
-  assert (BTOR_IS_BV_COND_NODE (cond_exp)); /* no rewriting allowed  */
-
-  lambda_exp =
-      btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
-
-  /* disconnect write node from all of its parent nodes */
-  init_full_parent_iterator (&it, write);
-  while (has_next_parent_full_parent_iterator (&it))
-  {
-    assert (write->refs > 0);
-
-    tagged_parent = it.cur;
-    parent        = next_parent_full_parent_iterator (&it);
-    pos           = BTOR_GET_TAG_NODE (tagged_parent);
-
-    assert (parent->e[pos] == write);
-    replace_child_exp (btor, parent, lambda_exp, pos);
-  }
-
-  btor_release_exp (btor, e_if);
-  btor_release_exp (btor, e_else);
-  btor_release_exp (btor, e_cond);
-  btor_release_exp (btor, cond_exp);
-  btor_release_exp (btor, param);
-  btor_release_exp (btor, lambda_exp);
-}
-
 static int
 is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
@@ -9682,7 +9629,9 @@ btor_add_assumption_exp (Btor *btor, BtorNode *exp)
         cur->mark = 1;
         child     = cur->e[1];
         if (!BTOR_IS_INVERTED_NODE (child) && child->kind == BTOR_AND_NODE)
+        {
           BTOR_PUSH_STACK (mm, stack, child);
+        }
         else
         {
           if (!btor_find_in_ptr_hash_table (btor->assumptions, child))
@@ -9691,7 +9640,9 @@ btor_add_assumption_exp (Btor *btor, BtorNode *exp)
         }
         child = cur->e[0];
         if (!BTOR_IS_INVERTED_NODE (child) && child->kind == BTOR_AND_NODE)
+        {
           BTOR_PUSH_STACK (mm, stack, child);
+        }
         else
         {
           if (!btor_find_in_ptr_hash_table (btor->assumptions, child))
@@ -10934,6 +10885,57 @@ process_skeleton (Btor *btor)
 /*------------------------------------------------------------------------*/
 #endif /* BTOR_DO_NOT_PROCESS_SKELETON */
 /*------------------------------------------------------------------------*/
+
+static void
+rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
+{
+  BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
+  BtorNode *tagged_parent, *parent;
+  BtorFullParentIterator it;
+  int pos;
+
+  assert (btor);
+  assert (BTOR_IS_WRITE_NODE (write));
+  assert (BTOR_IS_REGULAR_NODE (write));
+
+  /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
+  param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (write->e[1])->len, "0");
+
+  e_if   = btor_copy_exp (btor, write->e[2]);
+  e_else = btor_read_exp (btor, write->e[0], param);
+  e_cond = btor_eq_exp_node (btor, param, write->e[1]); /* no rewriting */
+  assert (BTOR_IS_BV_EQ_NODE (e_cond));
+
+  assert (e_else->e[0] == write->e[0]);
+  assert (e_else->e[1] == param);
+
+  cond_exp = btor_cond_exp_no_rewrite (btor, e_cond, e_if, e_else);
+  assert (BTOR_IS_BV_COND_NODE (cond_exp)); /* no rewriting allowed  */
+
+  lambda_exp =
+      btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
+
+  /* disconnect write node from all of its parent nodes */
+  init_full_parent_iterator (&it, write);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    assert (write->refs > 0);
+
+    tagged_parent = it.cur;
+    parent        = next_parent_full_parent_iterator (&it);
+    pos           = BTOR_GET_TAG_NODE (tagged_parent);
+
+    assert (parent->e[pos] == write);
+    replace_child_exp (btor, parent, lambda_exp, pos);
+  }
+
+  btor_release_exp (btor, e_if);
+  btor_release_exp (btor, e_else);
+  btor_release_exp (btor, e_cond);
+  btor_release_exp (btor, cond_exp);
+  btor_release_exp (btor, param);
+  btor_release_exp (btor, lambda_exp);
+}
 
 static void
 rewrite_writes_to_lambda_exp (Btor *btor)

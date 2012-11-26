@@ -54,5 +54,4 @@ BtorNode *btor_rewrite_cond_exp (Btor *btor,
                                  BtorNode *e_cond,
                                  BtorNode *e_if,
                                  BtorNode *e_else);
-
 #endif
