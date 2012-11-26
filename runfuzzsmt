@@ -6,7 +6,7 @@ readonly DELTABTOR=deltabtor
 readonly BUG_DIR=$(dirname "$(readlink -f $0)")/failed-tmp
 
 die () {
-  echo "*** runfuzzsmtbv: $*" 1>&2
+  echo "*** runfuzzsmt: $*" 1>&2
   exit 1
 }
 
@@ -22,8 +22,7 @@ do
   case $1 in
     -h|--help) 
                echo -n "usage: $(basename $0) "
-               echo -en "[ <option> | <fuzzsmtbv_option>] "
-               echo "[<file>] <command>"
+               echo -en "[<option>|<fuzzsmt_option>] <command>"
                echo
                echo "  options:"
                echo "    -h,--help        print this message and exit"
@@ -62,7 +61,7 @@ do
   "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" --no-rewrite-writes -de > $tmp
   buglines=`wc -l "$tmp"|awk '{print $1}'`
   echo -n "$count "
-  "$cmd" "$tmp" > /dev/null 2>/dev/null
+  $cmd "$tmp" > /dev/null 2>/dev/null
   res=$?
 
   case $res in
