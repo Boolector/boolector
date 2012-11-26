@@ -2728,6 +2728,13 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   assert (pos <= 2);
   assert (BTOR_IS_REGULAR_NODE (parent));
   assert (btor_pointer_chase_simplified_exp (btor, child) == child);
+
+  /* set parent parameterized if child is parameterized */
+  if (!BTOR_IS_LAMBDA_NODE (parent))
+  {
+    if (BTOR_REAL_ADDR_NODE (child)->parameterized) parent->parameterized = 1;
+  }
+
   if (parent->kind == BTOR_WRITE_NODE && pos == 0)
     connect_array_child_write_exp (btor, parent, child);
   else if (BTOR_IS_ARRAY_EQ_NODE (parent))
@@ -2779,82 +2786,6 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, exp);
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
-}
-
-static void
-mark_children_parameterized (Btor *btor, BtorNode *lambda_exp)
-{
-  assert (btor);
-  assert (lambda_exp);
-  assert (BTOR_IS_REGULAR_NODE (lambda_exp));
-  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
-  assert (BTOR_IS_PARAM_NODE (lambda_exp->e[0]));
-
-  int i;
-  BtorNodePtrStack work_stack, unmark_stack;
-  BtorMemMgr *mm;
-  BtorNode *cur, *parent;
-  BtorFullParentIterator it;
-
-  mm = btor->mm;
-
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (unmark_stack);
-  BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
-
-  /* mark parents of param to indicate that we can stop at this node with DFS */
-  init_full_parent_iterator (&it, lambda_exp->e[0]);
-  while (has_next_parent_full_parent_iterator (&it))
-  {
-    parent = next_parent_full_parent_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (parent));
-    parent->aux_mark = 1;
-    BTOR_PUSH_STACK (mm, unmark_stack, parent);
-  }
-
-  while (!BTOR_EMPTY_STACK (work_stack))
-  {
-    cur = BTOR_POP_STACK (work_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-
-    /* children of other lambdas already marked */
-    if (BTOR_IS_LAMBDA_NODE (cur)) continue;
-
-    if (cur->aux_mark == 2) continue;
-
-    if (cur->aux_mark == 0)
-    {
-      cur->aux_mark = 1;
-      BTOR_PUSH_STACK (mm, unmark_stack, cur);
-
-      BTOR_PUSH_STACK (mm, work_stack, cur);
-      for (i = 0; i < cur->arity; i++)
-        BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
-    }
-    else
-    {
-      assert (cur->aux_mark == 1);
-      cur->aux_mark = 2;
-
-      if ((cur->arity >= 1 && BTOR_REAL_ADDR_NODE (cur->e[0])->parameterized)
-          || (cur->arity >= 2 && BTOR_REAL_ADDR_NODE (cur->e[1])->parameterized)
-          || (cur->arity == 3
-              && BTOR_REAL_ADDR_NODE (cur->e[2])->parameterized))
-      {
-        cur->parameterized = 1;
-      }
-    }
-  }
-
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    cur->aux_mark = 0;
-  }
-
-  BTOR_RELEASE_STACK (mm, work_stack);
-  BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
 static BtorNode *
@@ -2971,7 +2902,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
   setup_node_and_add_to_id_table (btor, lambda_exp);
   connect_child_exp (btor, lambda_exp, e_param, 0);
   connect_child_exp (btor, lambda_exp, e_exp, 1);
-  mark_children_parameterized (btor, lambda_exp);
+  //  mark_children_parameterized (btor, lambda_exp);
 
   return lambda_exp;
 }
@@ -8117,7 +8048,7 @@ beta_reduce (Btor *btor,
               unassign_param (real_cur);
             }
 
-            if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[0])))
+            if (BTOR_REAL_ADDR_NODE (e[1])->parameterized)
             {
               assert (BTOR_REAL_ADDR_NODE (e[0])
                       == BTOR_REAL_ADDR_NODE (real_cur->e[0]));
