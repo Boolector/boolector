@@ -1215,7 +1215,7 @@ static int
 run_verbose_test (char *name, int verbosity)
 {
   char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
-  char *boolector_str = "./boolector";
+  char *boolector_str = g_rwwrites ? "./boolector -rww" : "./boolector";
   char *redirect_str  = "> /dev/null";
   char *v1_str        = "-v";
   char *v2_str        = "-v -v";
