@@ -18,7 +18,7 @@ void
 init_lambda_test (void)
 {
   g_btor                 = btor_new_btor ();
-  g_btor->rewrite_writes = 0;
+  g_btor->rewrite_writes = g_rwwrites;
 }
 
 void
