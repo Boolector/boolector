@@ -5330,6 +5330,7 @@ btor_dump_exp (Btor *btor, FILE *file, BtorNode *root)
   assert (btor);
   assert (file);
   assert (root);
+  assert (btor->rewrite_writes);  // TODO debug
   dump_exps (btor, file, &root, 1);
 }
 
@@ -8515,7 +8516,6 @@ process_working_stack (Btor *btor,
 
         if (BTOR_IS_READ_NODE (lambda_value) && parameterized)
         {
-          BtorNode *tmp;
           assert (lambda_value->e[0] == next->e[0]);
           assert (lambda_value->e[1] == index);
           DBG_P ("lambda prop. upwards:", 0);
@@ -11180,7 +11180,6 @@ btor_sat_btor (Btor *btor)
   assert (btor);
   assert (btor->btor_sat_btor_called >= 0);
   assert (btor->inc_enabled || btor->btor_sat_btor_called == 0);
-  assert (btor->rewrite_writes);  // TODO debug
   res = btor_sat_aux_btor (btor);
   btor->btor_sat_btor_called++;
   return res;
