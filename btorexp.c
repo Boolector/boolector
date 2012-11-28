@@ -5330,7 +5330,6 @@ btor_dump_exp (Btor *btor, FILE *file, BtorNode *root)
   assert (btor);
   assert (file);
   assert (root);
-  assert (btor->rewrite_writes);  // TODO debug
   dump_exps (btor, file, &root, 1);
 }
 
