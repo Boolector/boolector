@@ -7665,6 +7665,7 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   BTOR_INIT_STACK (unmark_stack);
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->eval_mark);
   DBG_P ("eval_exp: ", BTOR_REAL_ADDR_NODE (exp));
 
   while (!BTOR_EMPTY_STACK (work_stack))
@@ -7673,9 +7674,9 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (real_cur->mark == 0)
+    if (real_cur->eval_mark == 0)
     {
-      real_cur->mark = 1;
+      real_cur->eval_mark = 1;
 
       BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
@@ -7713,7 +7714,7 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
       assert (!BTOR_IS_PARAM_NODE (real_cur));
       assert (!BTOR_IS_LAMBDA_NODE (real_cur));
       assert (!BTOR_IS_PROXY_NODE (real_cur));
-      real_cur->mark = 2;
+      real_cur->eval_mark = 2;
 
       if (BTOR_IS_BV_CONST_NODE (real_cur))
       {
@@ -7789,8 +7790,8 @@ eval_exp (Btor *btor, BtorNode *exp, BtorNode *param_assignment)
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (cur->mark);
-    cur->mark = 0;
+    assert (cur->eval_mark);
+    cur->eval_mark = 0;
   }
 
   BTOR_RELEASE_STACK (mm, work_stack);
@@ -7931,6 +7932,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   BTOR_INIT_STACK (parameterized_stack);
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->beta_mark);
   DBG_P ("** beta_reduce: ", BTOR_REAL_ADDR_NODE (exp));
 
   while (!BTOR_EMPTY_STACK (work_stack))
