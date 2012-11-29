@@ -147,6 +147,7 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int array_mark : 1;    /* for bottom up array traversal */     \
     unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
     unsigned int beta_mark : 2;     /* mark for beta_reduce */              \
+    unsigned int eval_mark : 2;     /* mark for eval_exp */                 \
     unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
     unsigned int reachable : 1;     /* reachable from root ? */             \
     unsigned int tseitin : 1;       /* tseitin encoded into SAT ? */        \
@@ -323,7 +324,7 @@ struct Btor
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
-  BtorPtrHashTable *lambda_exps;
+  BtorPtrHashTable *lambdas;
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
   int rec_rw_calls;    /* calls for recursive rewriting */
