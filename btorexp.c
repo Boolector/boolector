@@ -5113,6 +5113,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
 
+  maxid = 0;
+
   if (btor->pprint)
   {
     BTOR_INIT_STACK (const_stack);
@@ -5223,6 +5225,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
       BTOR_PUSH_STACK (mm, id_stack, stack.start[i]->id);
       stack.start[i]->id = ++id;
     }
+
+    maxid = id;
   }
   else
   {
@@ -5230,6 +5234,8 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     if (stack.start)
       qsort (
           stack.start, BTOR_COUNT_STACK (stack), sizeof cur, btor_cmp_node_id);
+    if (BTOR_COUNT_STACK (stack))
+      maxid = stack.start[BTOR_COUNT_STACK (stack) - 1]->id;
   }
 
   if (btor->pprint)
@@ -5265,13 +5271,6 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     assert (BTOR_IS_REGULAR_NODE (cur));
     dump_node (file, cur);
   }
-
-  maxid = 0;
-  for (i = 0; i < nroots; i++)
-  {
-    cur = BTOR_REAL_ADDR_NODE (roots[i]);
-    if (cur->id > maxid) maxid = cur->id;
-  } /* cur is root with maxid */
 
   for (i = 0; i < nroots; i++)
   {

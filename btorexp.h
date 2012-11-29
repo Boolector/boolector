@@ -374,7 +374,7 @@ struct Btor
     int adds_normalized;         /* number of add chains normalizations */
     int muls_normalized;         /* number of mul chains normalizations */
     int read_props_construct;    /* how often have we pushed a read over
-                                            write during construction */
+                                    write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints, oldconstraints;
