@@ -59,7 +59,7 @@ struct BtorMainApp
   int verbosity;
   int incremental;
   int rewrite_writes;
-  int no_pprint;
+  int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
 #endif
@@ -557,7 +557,7 @@ parse_commandline_arguments (BtorMainApp *app)
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
     {
-      app->no_pprint = 1;
+      app->pprint = 0;
     }
     else if (!strcmp (app->argv[app->argpos], "-v")
              || !strcmp (app->argv[app->argpos], "--verbose"))
@@ -974,7 +974,7 @@ boolector_main (int argc, char **argv)
   app.force_smt_input        = 0;
   app.print_model            = 0;
   app.rewrite_writes         = 0;
-  app.no_pprint              = 0;  // TODO: debug only
+  app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
 #ifdef BTOR_USE_PICOSAT
@@ -1030,7 +1030,7 @@ boolector_main (int argc, char **argv)
 
     if (app.rewrite_writes) btor_enable_rewrite_writes (btor);
 
-    if (app.no_pprint) btor_disable_pretty_print (btor);
+    if (!app.pprint) btor_disable_pretty_print (btor);
 
     if (app.print_model) btor_enable_model_gen (btor);
 

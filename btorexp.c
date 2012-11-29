@@ -5096,7 +5096,7 @@ static void
 dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   BtorMemMgr *mm = btor->mm;
-  int i, id = 0, maxid, pprint = 0;
+  int i, id = 0, maxid;
   BtorNodePtrStack work_stack, stack;
   BtorNodePtrStack const_stack, param_stack, bvvar_stack, avar_stack;
   BtorIntStack id_stack;
@@ -5108,14 +5108,12 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  if (!btor->no_pprint) pprint = 1;
-
   DBG_P ("pprint %d\n", 0, pprint);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
 
-  if (pprint)
+  if (btor->pprint)
   {
     BTOR_INIT_STACK (const_stack);
     BTOR_INIT_STACK (bvvar_stack);
@@ -5148,7 +5146,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     else
     {
       cur->mark = 2;
-      if (pprint)
+      if (btor->pprint)
       {
         switch (cur->kind)
         {
@@ -5170,7 +5168,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 
   BTOR_RELEASE_STACK (mm, work_stack);
 
-  if (pprint)
+  if (btor->pprint)
   {
     /* unmark and assign ids in order of DFS traversal - var, const and param
      * nodes are sorted by original id and dumped first */
@@ -5234,7 +5232,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
           stack.start, BTOR_COUNT_STACK (stack), sizeof cur, btor_cmp_node_id);
   }
 
-  if (pprint)
+  if (btor->pprint)
   {
     for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
     {
@@ -5283,7 +5281,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
         file, "%d root %d %d\n", id + 1, cur->len, BTOR_GET_ID_NODE (roots[i]));
   }
 
-  if (pprint)
+  if (btor->pprint)
   {
     /* reassign original ids */
     for (i = 0; i < BTOR_COUNT_STACK (const_stack); i++)
@@ -5299,7 +5297,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   }
 
   BTOR_RELEASE_STACK (mm, stack);
-  if (pprint)
+  if (btor->pprint)
   {
     BTOR_RELEASE_STACK (mm, const_stack);
     BTOR_RELEASE_STACK (mm, bvvar_stack);
@@ -5642,6 +5640,7 @@ btor_new_btor (void)
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
+  btor->pprint            = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
@@ -5757,7 +5756,7 @@ void
 btor_disable_pretty_print (Btor *btor)
 {
   assert (btor);
-  btor->no_pprint = 1;
+  btor->pprint = 0;
 }
 
 void
