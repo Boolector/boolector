@@ -9,7 +9,8 @@ struct BtorFormatReader
 {
   char* error;
   BtorFormatLine** lines;
-  int szlines, nlines, saved, savedy;
+  int szlines, nlines, szbuf, nbuf, saved, savedy;
+  char* buf;
   struct
   {
     int x, y;
@@ -74,16 +75,19 @@ getc_bfr (BtorFormatReader* bfr)
   return ch;
 }
 
-#if 0
-static void ungetc_bfr (BtorFormatReader * bfr, int ch) {
+static void
+ungetc_bfr (BtorFormatReader* bfr, int ch)
+{
   assert (bfr->saved == EOF);
-  if (ch == '\n') {
+  if (ch == '\n')
+  {
     assert (bfr->coo.x > 1), bfr->coo.x--;
     bfr->coo.y = bfr->savedy;
-  } else if (ch != EOF) assert (bfr->coo.y > 0), bfr->coo.y--;
+  }
+  else if (ch != EOF)
+    assert (bfr->coo.y > 0), bfr->coo.y--;
   bfr->saved = ch;
 }
-#endif
 
 static int
 perr_bfr (BtorFormatReader* bfr, const char* str)
@@ -94,14 +98,36 @@ perr_bfr (BtorFormatReader* bfr, const char* str)
   return 0;
 }
 
+static void
+pushc_bfr (BtorFormatReader* bfr, int ch)
+{
+  if (bfr->nbuf >= bfr->szbuf)
+  {
+    bfr->szbuf = bfr->szbuf ? 2 * bfr->szbuf : 1;
+    bfr->buf   = realloc (bfr->buf, bfr->szbuf * sizeof *bfr->buf);
+  }
+  bfr->buf[bfr->nbuf++] = ch;
+}
+
+#define PARSETAG(TAG, STR)       \
+  do                             \
+  {                              \
+    if (!strcmp (bfr->buf, STR)) \
+    {                            \
+      line.tag = TAG;            \
+      goto TAGDONE;              \
+    }                            \
+  } while (0)
+
 static int
 readl_bfr (BtorFormatReader* bfr)
 {
+  BtorFormatLine line;
   int ch;
-RESTART:
+START:
   ch = getc_bfr (bfr);
   if (ch == EOF) return 0;
-  if (ch == '\n') goto RESTART;
+  if (ch == '\n') goto START;
   if (ch == ' ')
     return perr_bfr (bfr, "unexpected space character at start of line");
   if (ch == '\t')
@@ -110,15 +136,93 @@ RESTART:
   {
     while ((ch = getc_bfr (bfr)) != '\n')
       if (ch == EOF) return perr_bfr (bfr, "unexpected end-of-file in comment");
-    goto RESTART;
+    goto START;
   }
   if (ch == '0') return perr_bfr (bfr, "expected non-zero digit");
   if (!isdigit (ch)) return perr_bfr (bfr, "expected digit");
+  memset (&line, 0, sizeof line);
+  line.id = ch - '0';
+  while (isdigit (ch = getc_bfr (bfr))) line.id = 10 * line.id + (ch - '0');
+  if (ch == '\n') ungetc_bfr (bfr, ch);
+  if (ch != ' ') return perr_bfr (bfr, "expected space after id");
+  bfr->nbuf = 0;
+  assert (!line.tag);
+  assert (line.tag == BTOR_FORMAT_INVALID_TAG);
+  while ('a' <= (ch = getc_bfr (bfr)) && ch <= 'z') pushc_bfr (bfr, ch);
+  if (!bfr->nbuf) goto TAGDONE;
+  pushc_bfr (bfr, 0);
+  PARSETAG (BTOR_FORMAT_TAG_ADD, "add");
+  PARSETAG (BTOR_FORMAT_TAG_AND, "and");
+  PARSETAG (BTOR_FORMAT_TAG_ARRAY, "array");
+  PARSETAG (BTOR_FORMAT_TAG_CONCAT, "concat");
+  PARSETAG (BTOR_FORMAT_TAG_COND, "cond");
+  PARSETAG (BTOR_FORMAT_TAG_ACOND, "acond");
+  PARSETAG (BTOR_FORMAT_TAG_CONST, "const");
+  PARSETAG (BTOR_FORMAT_TAG_CONSTD, "constd");
+  PARSETAG (BTOR_FORMAT_TAG_CONSTH, "consth");
+  PARSETAG (BTOR_FORMAT_TAG_EQ, "eq");
+  PARSETAG (BTOR_FORMAT_TAG_IFF, "iff");
+  PARSETAG (BTOR_FORMAT_TAG_IMPLIES, "implies");
+  PARSETAG (BTOR_FORMAT_TAG_MUL, "mul");
+  PARSETAG (BTOR_FORMAT_TAG_NAND, "nand");
+  PARSETAG (BTOR_FORMAT_TAG_NEG, "neg");
+  PARSETAG (BTOR_FORMAT_TAG_INC, "inc");
+  PARSETAG (BTOR_FORMAT_TAG_DEC, "dec");
+  PARSETAG (BTOR_FORMAT_TAG_NE, "ne");
+  PARSETAG (BTOR_FORMAT_TAG_NEXT, "next");
+  PARSETAG (BTOR_FORMAT_TAG_ANEXT, "anext");
+  PARSETAG (BTOR_FORMAT_TAG_NOR, "nor");
+  PARSETAG (BTOR_FORMAT_TAG_NOT, "not");
+  PARSETAG (BTOR_FORMAT_TAG_ONE, "one");
+  PARSETAG (BTOR_FORMAT_TAG_ONES, "ones");
+  PARSETAG (BTOR_FORMAT_TAG_OR, "or");
+  PARSETAG (BTOR_FORMAT_TAG_PROXY, "proxy");
+  PARSETAG (BTOR_FORMAT_TAG_READ, "read");
+  PARSETAG (BTOR_FORMAT_TAG_REDAND, "redand");
+  PARSETAG (BTOR_FORMAT_TAG_REDOR, "redor");
+  PARSETAG (BTOR_FORMAT_TAG_REDXOR, "redxor");
+  PARSETAG (BTOR_FORMAT_TAG_ROL, "rol");
+  PARSETAG (BTOR_FORMAT_TAG_ROOT, "root");
+  PARSETAG (BTOR_FORMAT_TAG_ROR, "ror");
+  PARSETAG (BTOR_FORMAT_TAG_SADDO, "saddo");
+  PARSETAG (BTOR_FORMAT_TAG_SDIVO, "sdivo");
+  PARSETAG (BTOR_FORMAT_TAG_SDIV, "sdiv");
+  PARSETAG (BTOR_FORMAT_TAG_SEXT, "sext");
+  PARSETAG (BTOR_FORMAT_TAG_SGTE, "sgte");
+  PARSETAG (BTOR_FORMAT_TAG_SGT, "sgt");
+  PARSETAG (BTOR_FORMAT_TAG_SLICE, "slice");
+  PARSETAG (BTOR_FORMAT_TAG_SLL, "sll");
+  PARSETAG (BTOR_FORMAT_TAG_SLTE, "slte");
+  PARSETAG (BTOR_FORMAT_TAG_SLT, "slt");
+  PARSETAG (BTOR_FORMAT_TAG_SMOD, "smod");
+  PARSETAG (BTOR_FORMAT_TAG_SMULO, "smulo");
+  PARSETAG (BTOR_FORMAT_TAG_SRA, "sra");
+  PARSETAG (BTOR_FORMAT_TAG_SREM, "srem");
+  PARSETAG (BTOR_FORMAT_TAG_SRL, "srl");
+  PARSETAG (BTOR_FORMAT_TAG_SSUBO, "ssubo");
+  PARSETAG (BTOR_FORMAT_TAG_SUB, "sub");
+  PARSETAG (BTOR_FORMAT_TAG_UADDO, "uaddo");
+  PARSETAG (BTOR_FORMAT_TAG_UDIV, "udiv");
+  PARSETAG (BTOR_FORMAT_TAG_UEXT, "uext");
+  PARSETAG (BTOR_FORMAT_TAG_UGTE, "ugte");
+  PARSETAG (BTOR_FORMAT_TAG_UGT, "ugt");
+  PARSETAG (BTOR_FORMAT_TAG_ULTE, "ulte");
+  PARSETAG (BTOR_FORMAT_TAG_ULT, "ult");
+  PARSETAG (BTOR_FORMAT_TAG_UMULO, "umulo");
+  PARSETAG (BTOR_FORMAT_TAG_UREM, "urem");
+  PARSETAG (BTOR_FORMAT_TAG_USUBO, "usubo");
+  PARSETAG (BTOR_FORMAT_TAG_VAR, "var");
+  PARSETAG (BTOR_FORMAT_TAG_WRITE, "write");
+  PARSETAG (BTOR_FORMAT_TAG_XNOR, "xnor");
+  PARSETAG (BTOR_FORMAT_TAG_XOR, "xor");
+  PARSETAG (BTOR_FORMAT_TAG_ZERO, "zero");
+TAGDONE:
+  if (!line.tag) return perr_bfr (bfr, "invalid tag");
   return 1;
 }
 
 static void
-push_line_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
+pushl_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
 {
   if (bfr->nlines >= bfr->szlines)
   {
@@ -137,7 +241,7 @@ read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
   bfr->file  = file;
   while (readl_bfr (bfr))
     ;
-  if (!bfr->error) push_line_bfr (bfr, 0);
+  if (!bfr->error) pushl_bfr (bfr, 0);
   return bfr->error ? 0 : bfr->lines;
 }
 

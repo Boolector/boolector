@@ -12,6 +12,7 @@ typedef struct BtorFormatLine BtorFormatLine;
 
 typedef enum BtorFormatTag
 {
+  BTOR_FORMAT_INVALID_TAG = 0,
   BTOR_FORMAT_TAG_ADD,
   BTOR_FORMAT_TAG_AND,
   BTOR_FORMAT_TAG_ARRAY,
