@@ -9,12 +9,12 @@ struct BtorFormatReader
 {
   char* error;
   BtorFormatLine** lines;
-  int szlines, nlines, szbuf, nbuf, saved, savedy;
+  int szlines, nlines, szbuf, nbuf;
   char* buf;
   struct
   {
     int x, y;
-  } coo;
+  } coo, errcoo;
   FILE* file;
 };
 
@@ -24,7 +24,6 @@ new_btor_format_reader ()
   BtorFormatReader* res = malloc (sizeof *res);
   if (!res) return 0;
   memset (res, 0, sizeof *res);
-  res->saved = EOF;
   return res;
 }
 
@@ -59,34 +58,12 @@ delete_btor_format_reader (BtorFormatReader* bfr)
 static int
 getc_bfr (BtorFormatReader* bfr)
 {
-  int ch = bfr->saved;
-  if (ch == EOF)
-    ch = getc (bfr->file);
-  else
-    bfr->saved = EOF;
+  int ch = getc (bfr->file);
   if (ch == '\n')
-  {
-    bfr->coo.x++;
-    bfr->savedy = bfr->coo.y;
-    bfr->coo.y  = 0;
-  }
+    bfr->coo.x++, bfr->coo.y = 1;
   else
     bfr->coo.y++;
   return ch;
-}
-
-static void
-ungetc_bfr (BtorFormatReader* bfr, int ch)
-{
-  assert (bfr->saved == EOF);
-  if (ch == '\n')
-  {
-    assert (bfr->coo.x > 1), bfr->coo.x--;
-    bfr->coo.y = bfr->savedy;
-  }
-  else if (ch != EOF)
-    assert (bfr->coo.y > 0), bfr->coo.y--;
-  bfr->saved = ch;
 }
 
 static int
@@ -94,7 +71,8 @@ perr_bfr (BtorFormatReader* bfr, const char* str)
 {
   assert (!bfr->error);
   bfr->error = malloc (strlen (str) + 20);
-  sprintf (bfr->error, "line %d column %d: %s", bfr->coo.x, bfr->coo.y, str);
+  sprintf (
+      bfr->error, "line %d column %d: %s", bfr->errcoo.x, bfr->errcoo.y, str);
   return 0;
 }
 
@@ -125,7 +103,8 @@ readl_bfr (BtorFormatReader* bfr)
   BtorFormatLine line;
   int ch;
 START:
-  ch = getc_bfr (bfr);
+  bfr->errcoo = bfr->coo;
+  ch          = getc_bfr (bfr);
   if (ch == EOF) return 0;
   if (ch == '\n') goto START;
   if (ch == ' ')
@@ -143,13 +122,13 @@ START:
   memset (&line, 0, sizeof line);
   line.id = ch - '0';
   while (isdigit (ch = getc_bfr (bfr))) line.id = 10 * line.id + (ch - '0');
-  if (ch == '\n') ungetc_bfr (bfr, ch);
   if (ch != ' ') return perr_bfr (bfr, "expected space after id");
-  bfr->nbuf = 0;
+  bfr->errcoo = bfr->coo;
+  bfr->nbuf   = 0;
   assert (!line.tag);
   assert (line.tag == BTOR_FORMAT_INVALID_TAG);
   while ('a' <= (ch = getc_bfr (bfr)) && ch <= 'z') pushc_bfr (bfr, ch);
-  if (!bfr->nbuf) goto TAGDONE;
+  if (!bfr->nbuf) return perr_bfr (bfr, "expected tag");
   pushc_bfr (bfr, 0);
   PARSETAG (BTOR_FORMAT_TAG_ADD, "add");
   PARSETAG (BTOR_FORMAT_TAG_AND, "and");
@@ -216,8 +195,8 @@ START:
   PARSETAG (BTOR_FORMAT_TAG_XNOR, "xnor");
   PARSETAG (BTOR_FORMAT_TAG_XOR, "xor");
   PARSETAG (BTOR_FORMAT_TAG_ZERO, "zero");
+  return perr_bfr (bfr, "invalid tag");
 TAGDONE:
-  if (!line.tag) return perr_bfr (bfr, "invalid tag");
   return 1;
 }
 
@@ -236,9 +215,8 @@ BtorFormatLine**
 read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
 {
   reset_bfr (bfr);
-  bfr->coo.x = 1, bfr->coo.y = 0;
-  bfr->saved = EOF;
-  bfr->file  = file;
+  bfr->coo.x = bfr->coo.y = 1;
+  bfr->file               = file;
   while (readl_bfr (bfr))
     ;
   if (!bfr->error) pushl_bfr (bfr, 0);
