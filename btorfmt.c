@@ -126,3 +126,9 @@ read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
     ;
   return bfr->error ? 0 : bfr->lines;
 }
+
+const char*
+error_btor_format_reader (BtorFormatReader* bfr)
+{
+  return bfr->error;
+}

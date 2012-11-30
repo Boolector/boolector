@@ -8,11 +8,11 @@ OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
-LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o $(OBJS)
+LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor[a-z]*.c))) boolector.o $(OBJS)
 TESTDIR=tests
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard $(TESTDIR)/test*.c)))
 SRC=$(shell ls *.c *.h *.cc $(TESTDIR)/*.c)
-TARGETS=boolector test synthebtor deltabtor btorfmt.o
+TARGETS=boolector test synthebtor deltabtor btorfmt.o btor2horn
 
 all: libboolector.a $(TARGETS)
 -include dependencies
@@ -40,6 +40,9 @@ synthebtor: synthebtor.o libboolector.a $(LDEPS)
 
 deltabtor: deltabtor.c makefile $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
+
+btor2horn: btor2horn.o btorfmt.o makefile
+	$(CC) $(CFLAGS) -o $@ btor2horn.o btorfmt.o
 
 libboolector.a: $(LIBOBJ)
 	rm -f $@
