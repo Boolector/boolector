@@ -12,7 +12,7 @@ LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o $(OBJS)
 TESTDIR=tests
 TESTOBJ=$(addsuffix .o,$(basename $(wildcard $(TESTDIR)/test*.c)))
 SRC=$(shell ls *.c *.h *.cc $(TESTDIR)/*.c)
-TARGETS=boolector test synthebtor deltabtor
+TARGETS=boolector test synthebtor deltabtor btorfmt.o
 
 all: libboolector.a $(TARGETS)
 -include dependencies
