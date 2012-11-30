@@ -35,14 +35,15 @@ reset_bfr (BtorFormatReader* bfr)
   if (bfr->error) free (bfr->error), bfr->error = 0;
   if (bfr->lines)
   {
-    for (i = 0; i < bfr->nlines; bfr++)
+    for (i = 0; i < bfr->nlines; i++)
     {
       BtorFormatLine* l = bfr->lines[i];
       if (!l) continue;
       if (l->symbol) free (l->symbol);
       free (l);
     }
-    free (bfr->lines), bfr->lines = 0;
+    free (bfr->lines);
+    bfr->lines  = 0;
     bfr->nlines = bfr->szlines = 0;
   }
 }
@@ -109,6 +110,7 @@ RESTART:
   {
     while ((ch = getc_bfr (bfr)) != '\n')
       if (ch == EOF) return perr_bfr (bfr, "unexpected end-of-file in comment");
+    goto RESTART;
   }
   if (ch == '0') return perr_bfr (bfr, "expected non-zero digit");
   if (!isdigit (ch)) return perr_bfr (bfr, "expected digit");
