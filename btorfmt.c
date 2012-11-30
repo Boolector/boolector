@@ -115,6 +115,17 @@ RESTART:
   return 1;
 }
 
+static void
+push_line_bfr (BtorFormatReader* bfr, BtorFormatLine* l)
+{
+  if (bfr->nlines >= bfr->szlines)
+  {
+    bfr->szlines = bfr->szlines ? 2 * bfr->szlines : 1;
+    bfr->lines   = realloc (bfr->lines, bfr->szlines * sizeof *bfr->lines);
+  }
+  bfr->lines[bfr->nlines++] = l;
+}
+
 BtorFormatLine**
 read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
 {
@@ -124,6 +135,7 @@ read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
   bfr->file  = file;
   while (readl_bfr (bfr))
     ;
+  if (!bfr->error) push_line_bfr (bfr, 0);
   return bfr->error ? 0 : bfr->lines;
 }
 
