@@ -17,8 +17,8 @@ do
     -h|--help)
       echo "usage: $(basename $0) [<option>] <test> <ref> <file>"
       echo
-      echo "  <test>: the solver instance under test (default: boolector)"
-      echo "  <ref>:  the reference solver instance (default: <test> -nrw)"
+      echo "  <test>: the solver instance under test"
+      echo "  <ref>:  the reference solver instance"
       echo
       echo "  options:"
       echo "    -h, --help    print this message and exit"
