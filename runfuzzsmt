@@ -58,10 +58,10 @@ count=0
 while true
 do
   rm -f "$tmp"
-  "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" -de > $tmp
+  "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" -de > $tmp 2> /dev/null
   buglines=`wc -l "$tmp"|awk '{print $1}'`
   echo -n "$count "
-  $cmd "$tmp" > /dev/null 2>/dev/null
+  $cmd "$tmp" > /dev/null 2>&1
   res=$?
 
   case $res in
