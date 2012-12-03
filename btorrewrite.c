@@ -114,6 +114,16 @@ is_const_ones_exp (Btor *btor, BtorNode *exp)
 }
 
 static int
+is_odd_const_exp (BtorNode *exp)
+{
+  if (BTOR_IS_INVERTED_NODE (exp)) return 0;
+
+  if (exp->kind != BTOR_BV_CONST_NODE) return 0;
+
+  return exp->bits[exp->len - 1] == '1';
+}
+
+static int
 is_xor_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *e0, *e1, *e0_0, *e0_1, *e1_0, *e1_1;
@@ -3679,4 +3689,128 @@ btor_rewrite_cond_exp (Btor *btor,
   }
 
   return result;
+}
+
+/* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
+ * and 'factor' is odd?  We check whether this is possible but do not use
+ * more than 'bound' recursive calls.
+ */
+static int
+rewrite_linear_term_bounded (Btor *btor,
+                             BtorNode *term,
+                             char **factor_ptr,
+                             BtorNode **lhs_ptr,
+                             BtorNode **rhs_ptr,
+                             int *bound_ptr)
+{
+  BtorNode *tmp, *other;
+  char *factor;
+
+  if (*bound_ptr <= 0) return 0;
+
+  *bound_ptr -= 1;
+
+  if (BTOR_IS_INVERTED_NODE (term))
+  {
+    /* term = ~subterm
+     *      = -1 - subterm
+     *      = -1 - (factor * lhs + rhs)
+     *      = (-factor) * lhs + (-1 -rhs)
+     *      = (-factor) * lhs + ~rhs
+     */
+    if (!rewrite_linear_term_bounded (btor,
+                                      BTOR_INVERT_NODE (term),
+                                      &factor,
+                                      lhs_ptr,
+                                      rhs_ptr,
+                                      bound_ptr))
+      return 0;
+
+    *rhs_ptr    = BTOR_INVERT_NODE (*rhs_ptr);
+    *factor_ptr = btor_neg_const (btor->mm, factor);
+    btor_delete_const (btor->mm, factor);
+  }
+  else if (term->kind == BTOR_ADD_NODE)
+  {
+    if (rewrite_linear_term_bounded (
+            btor, term->e[0], factor_ptr, lhs_ptr, &tmp, bound_ptr))
+    {
+      /* term = e0 + e1
+       *      = (factor * lhs + rhs) + e1
+       *      = factor * lhs + (e1 + rhs)
+       */
+      other = term->e[1];
+    }
+    else if (rewrite_linear_term_bounded (
+                 btor, term->e[1], factor_ptr, lhs_ptr, &tmp, bound_ptr))
+    {
+      /* term = e0 + e1
+       *      = e0 + (factor * lhs + rhs)
+       *      = factor * lhs + (e0 + rhs)
+       */
+      other = term->e[0];
+    }
+    else
+      return 0;
+
+    *rhs_ptr = btor_add_exp (btor, other, tmp);
+    btor_release_exp (btor, tmp);
+  }
+  else if (term->kind == BTOR_MUL_NODE)
+  {
+    if (is_odd_const_exp (term->e[0]))
+    {
+      if (!rewrite_linear_term_bounded (
+              btor, term->e[1], &factor, lhs_ptr, &tmp, bound_ptr))
+        return 0;
+
+      /* term = e0 * e1
+       *      = e0 * (factor * lhs + rhs)
+       *      = (e0 * factor) * lhs + e0 * rhs
+       *      = (other * factor) * lhs + other * rhs
+       */
+      other = term->e[0];
+    }
+    else if (is_odd_const_exp (term->e[1]))
+    {
+      if (!rewrite_linear_term_bounded (
+              btor, term->e[0], &factor, lhs_ptr, &tmp, bound_ptr))
+        return 0;
+
+      /* term = e0 * e1
+       *      = (factor * lhs + rhs) * e1
+       *      = (e1 * factor) * lhs + e1 * rhs
+       *      = (other * factor) * lhs + other * rhs
+       */
+      other = term->e[1];
+    }
+    else
+      return 0;
+
+    assert (!BTOR_IS_INVERTED_NODE (other));
+    *factor_ptr = btor_mul_const (btor->mm, other->bits, factor);
+    btor_delete_const (btor->mm, factor);
+    *rhs_ptr = btor_mul_exp (btor, other, tmp);
+    btor_release_exp (btor, tmp);
+  }
+  else if (term->kind == BTOR_BV_VAR_NODE)
+  {
+    *lhs_ptr    = btor_copy_exp (btor, term);
+    *rhs_ptr    = btor_zero_exp (btor, term->len);
+    *factor_ptr = btor_one_const (btor->mm, term->len);
+  }
+  else
+    return 0;
+
+  return 1;
+}
+
+int
+btor_rewrite_linear_term (
+    Btor *btor, BtorNode *term, char **fp, BtorNode **lp, BtorNode **rp)
+{
+  int bound = 100, res;
+  res       = rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
+  if (res) btor->stats.linear_equations++;
+  return res;
 }
