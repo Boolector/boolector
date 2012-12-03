@@ -6058,7 +6058,12 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor,
                 "synthesis assignment inconsistencies: %d",
                 btor->stats.synthesis_assignment_inconsistencies);
+  btor_msg_exp (btor, "beta reductions: %d", btor->stats.beta_reduce_calls);
+  btor_msg_exp (btor, "expression evaluations: %d", btor->stats.eval_exp_calls);
 
+  btor_msg_exp (btor, "");
+  btor_msg_exp (btor, "%.2f seconds beta-reduction", btor->time.beta);
+  btor_msg_exp (btor, "%.2f seconds expression evaluation", btor->time.eval);
   btor_msg_exp (btor, "");
   btor_msg_exp (btor, "%.2f seconds in rewriting engine", btor->time.rewrite);
   btor_msg_exp (btor, "%.2f seconds in pure SAT solving", btor->time.sat);
@@ -7014,6 +7019,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         assert (BTOR_IS_REGULAR_NODE (next));
         assert (BTOR_IS_READ_NODE (next));
         //            assert (!next->simplified);
+        //          // TODO: is only valid for write case
         // TODO: do we need special handling of simplified reads?
         if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
           //                && !next->simplified)
@@ -7650,12 +7656,15 @@ eval_exp (Btor *btor, BtorNode *exp)
 
   int i;
   const char *result, *inv_result, *e[3];
+  double start;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, unmark_stack;
   BtorCharPtrStack arg_stack;
   BtorNode *cur, *real_cur, *assigned_exp;
 
-  mm = btor->mm;
+  mm    = btor->mm;
+  start = btor_time_stamp ();
+  btor->stats.eval_exp_calls++;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -7788,6 +7797,7 @@ eval_exp (Btor *btor, BtorNode *exp)
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
   DBG_P ("eval_exp: '%s'\t", 0, result);
+  btor->time.eval += btor_time_stamp () - start;
   return result;
 }
 
@@ -7907,12 +7917,15 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
 
   int i, p[3];
   const char *res;
+  double start;
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *next, *e[3], *result, *param;
   BtorNodePtrStack work_stack, arg_stack, unassign_stack, unmark_stack;
   BtorIntStack parameterized_stack;
 
-  mm = btor->mm;
+  mm    = btor->mm;
+  start = btor_time_stamp ();
+  btor->stats.beta_reduce_calls++;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -8173,6 +8186,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
   DBG_P ("beta_reduce result (%d): ", result, *parameterized);
+  btor->time.beta += btor_time_stamp () - start;
 
   return result;
 }
