@@ -28,7 +28,7 @@
 #include <string.h>
 
 // debug
-#if 1
+#if 0
 #define DBG_P(msg, node, ...) \
   do                          \
   {                           \
@@ -5116,7 +5116,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  DBG_P ("pprint %d\n", 0, pprint);
+  DBG_P ("pprint %d\n", 0, btor->pprint);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
@@ -7103,11 +7103,10 @@ print_bfs_path_dbg (BtorNode *from, BtorNode *to)
   while (cur != to)
   {
     assert (BTOR_REAL_ADDR_NODE (cur->parent));
-    DBG_P ("bfs (%d, %c, %c) ",
+    DBG_P ("bfs (%d, %c) ",
            BTOR_REAL_ADDR_NODE (cur),
            hops++,
-           PROPAGATED_UPWARDS (cur) ? 'u' : 'd',
-           _propagated_upwards (cur) ? 'u' : 'd');
+           PROPAGATED_UPWARDS (cur) ? 'u' : 'd');
     cur = BTOR_REAL_ADDR_NODE (cur->parent);
   }
 }
@@ -8971,140 +8970,6 @@ rebuild_exp (Btor *btor, BtorNode *exp)
 }
 
 static int
-is_odd_constant (BtorNode *exp)
-{
-  if (BTOR_IS_INVERTED_NODE (exp)) return 0;
-
-  if (exp->kind != BTOR_BV_CONST_NODE) return 0;
-
-  return exp->bits[exp->len - 1] == '1';
-}
-
-/* Can we rewrite 'term' as 'factor*lhs + rhs' where 'lhs' is a variable,
- * and 'factor' is odd?  We check whether this is possible but do not use
- * more than 'bound' recursive calls.
- */
-static int
-rewrite_linear_term_bounded (Btor *btor,
-                             BtorNode *term,
-                             char **factor_ptr,
-                             BtorNode **lhs_ptr,
-                             BtorNode **rhs_ptr,
-                             int *bound_ptr)
-{
-  BtorNode *tmp, *other;
-  char *factor;
-
-  if (*bound_ptr <= 0) return 0;
-
-  *bound_ptr -= 1;
-
-  if (BTOR_IS_INVERTED_NODE (term))
-  {
-    /* term = ~subterm
-     *      = -1 - subterm
-     *      = -1 - (factor * lhs + rhs)
-     *      = (-factor) * lhs + (-1 -rhs)
-     *      = (-factor) * lhs + ~rhs
-     */
-    if (!rewrite_linear_term_bounded (btor,
-                                      BTOR_INVERT_NODE (term),
-                                      &factor,
-                                      lhs_ptr,
-                                      rhs_ptr,
-                                      bound_ptr))
-      return 0;
-
-    *rhs_ptr    = BTOR_INVERT_NODE (*rhs_ptr);
-    *factor_ptr = btor_neg_const (btor->mm, factor);
-    btor_delete_const (btor->mm, factor);
-  }
-  else if (term->kind == BTOR_ADD_NODE)
-  {
-    if (rewrite_linear_term_bounded (
-            btor, term->e[0], factor_ptr, lhs_ptr, &tmp, bound_ptr))
-    {
-      /* term = e0 + e1
-       *      = (factor * lhs + rhs) + e1
-       *      = factor * lhs + (e1 + rhs)
-       */
-      other = term->e[1];
-    }
-    else if (rewrite_linear_term_bounded (
-                 btor, term->e[1], factor_ptr, lhs_ptr, &tmp, bound_ptr))
-    {
-      /* term = e0 + e1
-       *      = e0 + (factor * lhs + rhs)
-       *      = factor * lhs + (e0 + rhs)
-       */
-      other = term->e[0];
-    }
-    else
-      return 0;
-
-    *rhs_ptr = btor_add_exp (btor, other, tmp);
-    btor_release_exp (btor, tmp);
-  }
-  else if (term->kind == BTOR_MUL_NODE)
-  {
-    if (is_odd_constant (term->e[0]))
-    {
-      if (!rewrite_linear_term_bounded (
-              btor, term->e[1], &factor, lhs_ptr, &tmp, bound_ptr))
-        return 0;
-
-      /* term = e0 * e1
-       *      = e0 * (factor * lhs + rhs)
-       *      = (e0 * factor) * lhs + e0 * rhs
-       *      = (other * factor) * lhs + other * rhs
-       */
-      other = term->e[0];
-    }
-    else if (is_odd_constant (term->e[1]))
-    {
-      if (!rewrite_linear_term_bounded (
-              btor, term->e[0], &factor, lhs_ptr, &tmp, bound_ptr))
-        return 0;
-
-      /* term = e0 * e1
-       *      = (factor * lhs + rhs) * e1
-       *      = (e1 * factor) * lhs + e1 * rhs
-       *      = (other * factor) * lhs + other * rhs
-       */
-      other = term->e[1];
-    }
-    else
-      return 0;
-
-    assert (!BTOR_IS_INVERTED_NODE (other));
-    *factor_ptr = btor_mul_const (btor->mm, other->bits, factor);
-    btor_delete_const (btor->mm, factor);
-    *rhs_ptr = btor_mul_exp (btor, other, tmp);
-    btor_release_exp (btor, tmp);
-  }
-  else if (term->kind == BTOR_BV_VAR_NODE)
-  {
-    *lhs_ptr    = btor_copy_exp (btor, term);
-    *rhs_ptr    = btor_zero_exp (btor, term->len);
-    *factor_ptr = btor_one_const (btor->mm, term->len);
-  }
-  else
-    return 0;
-
-  return 1;
-}
-
-static int
-rewrite_linear_term (
-    Btor *btor, BtorNode *term, char **fp, BtorNode **lp, BtorNode **rp)
-{
-  int bound = 100, res;
-  res       = rewrite_linear_term_bounded (btor, term, fp, lp, rp, &bound);
-  if (res) btor->stats.linear_equations++;
-  return res;
-}
-
-static int
 is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
@@ -9389,9 +9254,9 @@ normalize_substitution (Btor *btor,
       && !BTOR_IS_ARRAY_VAR_NODE (real_left)
       && !BTOR_IS_ARRAY_VAR_NODE (real_right))
   {
-    if (rewrite_linear_term (btor, left, &fc, left_result, &tmp))
+    if (btor_rewrite_linear_term (btor, left, &fc, left_result, &tmp))
       *right_result = btor_sub_exp (btor, right, tmp);
-    else if (rewrite_linear_term (btor, right, &fc, left_result, &tmp))
+    else if (btor_rewrite_linear_term (btor, right, &fc, left_result, &tmp))
       *right_result = btor_sub_exp (btor, left, tmp);
     else
       return 0;
@@ -11078,6 +10943,52 @@ synthesize_all_var_rhs (Btor *btor)
 }
 
 static void
+beta_reduce_reads_on_lambdas (Btor *btor)
+{
+  assert (btor);
+
+  BtorMemMgr *mm;
+  BtorNode *lambda, *read;
+  BtorNodePtrStack unmark_stack;
+  BtorPtrHashBucket *bucket;
+  BtorPartialParentIterator it;
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (unmark_stack);
+
+  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
+  {
+    lambda = (BtorNode *) bucket->key;
+    lambda = BTOR_REAL_ADDR_NODE (lambda);
+    DBG_P ("** beta_reduce_reads_on_lambdas: exp: ", lambda);
+    init_read_parent_iterator (&it, lambda);
+    while (has_next_parent_read_parent_iterator (&it))
+    {
+      read = next_parent_read_parent_iterator (&it);
+      DBG_P ("    read parent: ", read);
+
+      if (read->mark) continue;
+
+      read->mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, read);
+
+      // do something
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    read = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (read));
+    assert (BTOR_IS_READ_NODE (read));
+    assert (read->mark == 1);
+    read->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
+static void
 synthesize_all_array_rhs (Btor *btor)
 {
   BtorPtrHashBucket *b;
@@ -11118,6 +11029,8 @@ btor_sat_aux_btor (Btor *btor)
   if (btor->inconsistent) return BTOR_UNSAT;
 
   if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
+
+  beta_reduce_reads_on_lambdas (btor);
 
   mm = btor->mm;
 

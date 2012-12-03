@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -834,7 +835,7 @@ permanent (void)
 int
 main (int argc, char** argv)
 {
-  int changed, golden, res, rounds, interval, fixed, sign, overwritten;
+  int changed, golden = 0, res, rounds, interval, fixed, sign, overwritten;
   int i, j, argstart, len;
   Exp* e;
 
@@ -851,12 +852,27 @@ main (int argc, char** argv)
     {
       printf (
           "usage: deltabtor "
-          "[-h][-v][--no-simp][--no-sort] <in> <out> "
+          "[-h][-v][-g <val>][--no-simp][--no-sort] <in> <out> "
           "<run> [<opt> ...]\n");
+      printf ("usage: %s ", argv[0]);
+      printf ("[option] <infile> <outfile> <cmd> [<cmdopt>]\n\n");
+      printf ("  options:\n");
+      printf ("    -h           print this message and exit\n");
+      printf ("    -v           be verbose ");
+      printf ("multiple occurrences increase verbosity level)\n");
+      printf ("    -g <val>     'golden' (reference) exit code ");
+      printf ("(default: initial run on <in>)\n");
+      printf ("    --no-simp    do not simplify expressions\n");
+      printf ("    --no-sort    do not sort expressions\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
       verbose++;
+    else if (!strcmp (argv[i], "-g"))
+    {
+      if (++i == argc) die ("golden <val> missing");
+      golden = atoi (argv[i]);
+    }
     else if (!strcmp (argv[i], "--no-simp"))
       nosimp = 1;
     else if (!strcmp (argv[i], "--no-sort"))
@@ -915,7 +931,7 @@ main (int argc, char** argv)
   clean ();
   reset ();
 
-  golden = run ();
+  if (!golden) golden = run ();
   msg (1, "golden exit code %d", golden);
 
   permanent ();
