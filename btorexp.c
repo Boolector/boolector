@@ -28,7 +28,7 @@
 #include <string.h>
 
 // debug
-#if 1
+#if 0
 #define DBG_P(msg, node, ...) \
   do                          \
   {                           \
@@ -5116,7 +5116,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  DBG_P ("pprint %d\n", 0, pprint);
+  DBG_P ("pprint %d\n", 0, btor->pprint);
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
@@ -7097,11 +7097,10 @@ print_bfs_path_dbg (BtorNode *from, BtorNode *to)
   while (cur != to)
   {
     assert (BTOR_REAL_ADDR_NODE (cur->parent));
-    DBG_P ("bfs (%d, %c, %c) ",
+    DBG_P ("bfs (%d, %c) ",
            BTOR_REAL_ADDR_NODE (cur),
            hops++,
-           PROPAGATED_UPWARDS (cur) ? 'u' : 'd',
-           _propagated_upwards (cur) ? 'u' : 'd');
+           PROPAGATED_UPWARDS (cur) ? 'u' : 'd');
     cur = BTOR_REAL_ADDR_NODE (cur->parent);
   }
 }
@@ -10930,6 +10929,52 @@ synthesize_all_var_rhs (Btor *btor)
 }
 
 static void
+beta_reduce_reads_on_lambdas (Btor *btor)
+{
+  assert (btor);
+
+  BtorMemMgr *mm;
+  BtorNode *lambda, *read;
+  BtorNodePtrStack unmark_stack;
+  BtorPtrHashBucket *bucket;
+  BtorPartialParentIterator it;
+
+  mm = btor->mm;
+  BTOR_INIT_STACK (unmark_stack);
+
+  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
+  {
+    lambda = (BtorNode *) bucket->key;
+    lambda = BTOR_REAL_ADDR_NODE (lambda);
+    DBG_P ("** beta_reduce_reads_on_lambdas: exp: ", lambda);
+    init_read_parent_iterator (&it, lambda);
+    while (has_next_parent_read_parent_iterator (&it))
+    {
+      read = next_parent_read_parent_iterator (&it);
+      DBG_P ("    read parent: ", read);
+
+      if (read->mark) continue;
+
+      read->mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, read);
+
+      // do something
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    read = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (read));
+    assert (BTOR_IS_READ_NODE (read));
+    assert (read->mark == 1);
+    read->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
+static void
 synthesize_all_array_rhs (Btor *btor)
 {
   BtorPtrHashBucket *b;
@@ -10970,6 +11015,8 @@ btor_sat_aux_btor (Btor *btor)
   if (btor->inconsistent) return BTOR_UNSAT;
 
   if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
+
+  beta_reduce_reads_on_lambdas (btor);
 
   mm = btor->mm;
 
