@@ -7842,7 +7842,7 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
   assert (e0);
 
   if (parent->kind == BTOR_SLICE_NODE)
-    lookup = find_slice_exp (btor, e0, parent->lower, parent->upper);
+    lookup = find_slice_exp (btor, e0, parent->upper, parent->lower);
   else if (BTOR_IS_BINARY_NODE (parent))
   {
     e1 = parent->e[1];
