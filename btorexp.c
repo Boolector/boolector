@@ -159,6 +159,7 @@ static void assign_param (BtorNode *, BtorNode *);
 static void unassign_param (BtorNode *);
 static const char *eval_exp (Btor *, BtorNode *);
 static BtorNode *beta_reduce (Btor *, BtorNode *, int, int *);
+static void beta_reduce_reads_on_lambdas (Btor *);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
@@ -900,6 +901,7 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
     last_parent  = real_child->last_parent;
     assert (first_parent);
     assert (last_parent);
+
     /* special treatment of array children of aeq and acond */
     /* only one parent? */
     if (first_parent == tagged_parent && first_parent == last_parent)
@@ -1034,6 +1036,9 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
     case BTOR_READ_NODE: break;
     case BTOR_WRITE_NODE:
     case BTOR_ACOND_NODE: break;
+    case BTOR_LAMBDA_NODE:
+      btor_remove_from_ptr_hash_table (btor->lambdas, exp, 0, 0);
+      break;
     default: break;
   }
 }
@@ -3076,6 +3081,7 @@ find_slice_exp (Btor *btor, BtorNode *e0, int upper, int lower)
   assert (btor);
   assert (e0);
   assert (lower >= 0);
+  DBG_P ("#### upper %d, lower %d ", e0, upper, lower);
   assert (upper >= lower);
   hash = (((unsigned int) BTOR_REAL_ADDR_NODE (e0)->id + (unsigned int) upper
            + (unsigned int) lower)
@@ -5348,9 +5354,13 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   assert (!btor->model_gen);
   assert (btor->rewrite_level > 1);
 
+  DBG_P ("rewrite_reads %d\n", 0, btor->rewrite_reads);
+
   run_rewrite_engine (btor);
 
   if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
+
+  if (btor->rewrite_reads) beta_reduce_reads_on_lambdas (btor);
 
   if (btor->inconsistent)
   {
@@ -5759,6 +5769,13 @@ btor_enable_rewrite_writes (Btor *btor)
 }
 
 void
+btor_enable_rewrite_reads (Btor *btor)
+{
+  assert (btor);
+  btor->rewrite_reads = 1;
+}
+
+void
 btor_disable_pretty_print (Btor *btor)
 {
   assert (btor);
@@ -5870,8 +5887,15 @@ btor_delete_btor (Btor *btor)
 #ifndef NDEBUG
   {
     int k;
+    if (btor->nodes_unique_table.num_elements)
+      DBG_P ("*** btor->nodes_unique_table.num_elements: %d",
+             0,
+             btor->nodes_unique_table.num_elements);
     for (k = 0; k < btor->nodes_unique_table.num_elements; k++)
-      dump_node (stderr, btor->nodes_unique_table.chains[k]);
+    {
+      if (btor->nodes_unique_table.chains[k])
+        dump_node (stderr, btor->nodes_unique_table.chains[k]);
+    }
   }
 #endif
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
@@ -7818,9 +7842,7 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
   assert (e0);
 
   if (parent->kind == BTOR_SLICE_NODE)
-  {
     lookup = find_slice_exp (btor, e0, parent->lower, parent->upper);
-  }
   else if (BTOR_IS_BINARY_NODE (parent))
   {
     e1 = parent->e[1];
@@ -8171,7 +8193,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   BTOR_RELEASE_STACK (mm, unassign_stack);
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
-  DBG_P ("beta_reduce result (%d): ", result, *parameterized);
+  DBG_P ("* beta_reduce result (%d): ", result, *parameterized);
 
   return result;
 }
@@ -10933,32 +10955,34 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 {
   assert (btor);
 
+  int parameterized, pos;
   BtorMemMgr *mm;
-  BtorNode *lambda, *read;
-  BtorNodePtrStack unmark_stack;
+  BtorNode *parent, *lambda, *read, *red;
+  BtorNodePtrStack reads_stack, unmark_stack;
   BtorPtrHashBucket *bucket;
-  BtorPartialParentIterator it;
+  BtorPartialParentIterator pit;
+  BtorFullParentIterator fit;
+  DBG_P ("*** beta_reduce_reads_on_lambdas", 0);
 
   mm = btor->mm;
   BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (reads_stack);
 
   for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
   {
-    lambda = (BtorNode *) bucket->key;
-    lambda = BTOR_REAL_ADDR_NODE (lambda);
-    DBG_P ("** beta_reduce_reads_on_lambdas: exp: ", lambda);
-    init_read_parent_iterator (&it, lambda);
-    while (has_next_parent_read_parent_iterator (&it))
+    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->key);
+
+    init_read_parent_iterator (&pit, lambda);
+    while (has_next_parent_read_parent_iterator (&pit))
     {
-      read = next_parent_read_parent_iterator (&it);
-      DBG_P ("    read parent: ", read);
+      read = next_parent_read_parent_iterator (&pit);
 
       if (read->mark) continue;
 
       read->mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, read);
 
-      // do something
+      if (!read->parameterized) BTOR_PUSH_STACK (mm, reads_stack, read);
     }
   }
 
@@ -10971,6 +10995,25 @@ beta_reduce_reads_on_lambdas (Btor *btor)
     read->mark = 0;
   }
 
+  while (!BTOR_EMPTY_STACK (reads_stack))
+  {
+    read = BTOR_POP_STACK (reads_stack);
+    assert (BTOR_IS_REGULAR_NODE (read));
+    red = beta_reduce (btor, read, 0, &parameterized);
+    if (red != read)
+    {
+      init_full_parent_iterator (&fit, read);
+      while (has_next_parent_full_parent_iterator (&fit))
+      {
+        pos    = BTOR_GET_TAG_NODE (fit.cur);
+        parent = next_parent_full_parent_iterator (&fit);
+        replace_child_exp (btor, parent, red, pos);
+      }
+    }
+    btor_release_exp (btor, red);
+  }
+
+  BTOR_RELEASE_STACK (mm, reads_stack);
   BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
@@ -11012,11 +11055,11 @@ btor_sat_aux_btor (Btor *btor)
 
   run_rewrite_engine (btor);
 
-  if (btor->inconsistent) return BTOR_UNSAT;
-
   if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
 
-  beta_reduce_reads_on_lambdas (btor);
+  if (btor->rewrite_reads) beta_reduce_reads_on_lambdas (btor);
+
+  if (btor->inconsistent) return BTOR_UNSAT;
 
   mm = btor->mm;
 
