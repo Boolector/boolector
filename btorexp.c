@@ -8090,26 +8090,39 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
                   && BTOR_REAL_ADDR_NODE (e[1])
                          != BTOR_REAL_ADDR_NODE (real_cur->e[1]))
               {
-                param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
-                if (param->symbol)
-                {
-                  BTOR_NEWN (mm, symbol, strlen (param->symbol) + 2);
-                  sprintf (symbol, "%s'", param->symbol);
-                  param = btor_param_exp (btor, param->len, symbol);
-                  btor_freestr (mm, symbol);
-                }
+                // FIXME: we can't handle extensionality if
+                // reduced lambda does not have "write structure"
+                // (e[0]: param, e[1]: bv cond). as we only use
+                // full beta_reduction to reduce reads on lambdas
+                // (as rewriting step) for now, partial application
+                // can only occur in case of extensionality over
+                // lambdas/writes, hence we introduce the following
+                // restriction for now.
+                if (!BTOR_IS_BV_COND_NODE (e[1]))
+                  result = btor_copy_exp (btor, real_cur);
                 else
                 {
-                  param = btor_param_exp (btor, param->len, "");
-                }
+                  param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
+                  if (param->symbol)
+                  {
+                    BTOR_NEWN (mm, symbol, strlen (param->symbol) + 2);
+                    sprintf (symbol, "%s'", param->symbol);
+                    param = btor_param_exp (btor, param->len, symbol);
+                    btor_freestr (mm, symbol);
+                  }
+                  else
+                  {
+                    param = btor_param_exp (btor, param->len, "");
+                  }
 
-                /* mark lambda as to-be-rebuilt in second pass */
-                real_cur->beta_aux_mark = 1;
-                assign_param (real_cur, param);
-                BTOR_PUSH_STACK (mm, work_stack, real_cur);
-                for (i = 0; i < real_cur->arity; i++)
-                  btor_release_exp (btor, e[i]);
-                goto BETA_REDUCE_POP_WORK_STACK;
+                  /* mark lambda as to-be-rebuilt in 2nd pass */
+                  real_cur->beta_aux_mark = 1;
+                  assign_param (real_cur, param);
+                  BTOR_PUSH_STACK (mm, work_stack, real_cur);
+                  for (i = 0; i < real_cur->arity; i++)
+                    btor_release_exp (btor, e[i]);
+                  goto BETA_REDUCE_POP_WORK_STACK;
+                }
               }
               else
               {
