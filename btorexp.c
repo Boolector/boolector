@@ -10742,6 +10742,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (e_else->e[0] == write->e[0]);
   assert (e_else->e[1] == param);
 
+  // FIXME: we need this NOW, for "write"-lambdas (else we can't handle
+  //	    extensionality)
   cond_exp = btor_cond_exp_no_rewrite (btor, e_cond, e_if, e_else);
   assert (BTOR_IS_BV_COND_NODE (cond_exp)); /* no rewriting allowed  */
 
