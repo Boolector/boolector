@@ -7920,17 +7920,16 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   {
   //      for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
   //	{
-  //	  fprintf (stderr, "*** work_stack[%d]: (%d) ", i,
+  //	  fprintf (stderr, "    work_stack[%d]: (%d) ", i,
   //	           (BTOR_REAL_ADDR_NODE (work_stack.start[i]))->beta_mark);
   //	  dump_node (stderr, work_stack.start[i]);
   //	}
   //      for (i = 0; i < BTOR_COUNT_STACK (arg_stack); i++)
   //	{
-  //	  fprintf (stderr, "*** arg_stack[%d]: (%d) ", i,
-  //		   (BTOR_REAL_ADDR_NODE (arg_stack.start[i]))->beta_mark);
+  //	  fprintf (stderr, "    arg_stack[%d]: (%d) (%d) ", i,
+  //		   (BTOR_REAL_ADDR_NODE (arg_stack.start[i]))->beta_mark,
+  //		   parameterized_stack.start[i]);
   //	  dump_node (stderr, arg_stack.start[i]);
-  //	  fprintf (stderr, "*** parameterized: %d\n",
-  // parameterized_stack.start[i]);
   //	}
   BETA_REDUCE_POP_WORK_STACK:
     cur      = BTOR_POP_STACK (work_stack);
@@ -8077,12 +8076,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
               result = btor_read_exp (btor, e[0], e[1]);
             break;
           case BTOR_LAMBDA_NODE:
-            if (!BTOR_EMPTY_STACK (unassign_stack)
-                && BTOR_TOP_STACK (unassign_stack) == real_cur)
-            {
-              (void) BTOR_POP_STACK (unassign_stack);
-              unassign_param (real_cur);
-            }
             if (BTOR_REAL_ADDR_NODE (e[1])->parameterized)
             {
               /* partial application, first pass */
@@ -8118,6 +8111,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
                   /* mark lambda as to-be-rebuilt in 2nd pass */
                   real_cur->beta_aux_mark = 1;
                   assign_param (real_cur, param);
+                  BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
                   BTOR_PUSH_STACK (mm, work_stack, real_cur);
                   for (i = 0; i < real_cur->arity; i++)
                     btor_release_exp (btor, e[i]);
@@ -8126,16 +8120,27 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
               }
               else
               {
-                real_cur->beta_aux_mark = 0;
-
                 result = btor_lambda_exp (
                     btor, real_cur->len, real_cur->index_len, e[0], e[1]);
+
+                /* cleanup (ref counter of 'new' param) */
+                if (real_cur->beta_aux_mark)
+                {
+                  btor_release_exp (btor, result->e[0]);
+                  real_cur->beta_aux_mark = 0;
+                }
               }
             }
             else
             {
               result         = btor_copy_exp (btor, e[1]);
               *parameterized = p[1];
+            }
+            if (!BTOR_EMPTY_STACK (unassign_stack)
+                && BTOR_TOP_STACK (unassign_stack) == real_cur)
+            {
+              (void) BTOR_POP_STACK (unassign_stack);
+              unassign_param (real_cur);
             }
             break;
           case BTOR_WRITE_NODE:
