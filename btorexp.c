@@ -7690,15 +7690,25 @@ eval_exp (Btor *btor, BtorNode *exp)
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
+    //      for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
+    //	{
+    //	  fprintf (stderr, "    work_stack[%d]: (%d) ", i,
+    //	           (BTOR_REAL_ADDR_NODE (work_stack.start[i]))->eval_mark);
+    //	  dump_node (stderr, work_stack.start[i]);
+    //	}
+
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    if (real_cur->eval_mark == 0)
+    //      DBG_P ("eval_exp: real_cur: ", real_cur);
+
+    if (real_cur->eval_mark == 0 || real_cur->eval_mark == 2)
     {
       real_cur->eval_mark = 1;
 
-      BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
+      if (real_cur->eval_mark == 0) /* don't push twice */
+        BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
       if (BTOR_IS_PARAM_NODE (real_cur))
       {
@@ -7709,6 +7719,7 @@ eval_exp (Btor *btor, BtorNode *exp)
           assigned_exp = BTOR_INVERT_NODE (assigned_exp);
 
         BTOR_PUSH_STACK (mm, work_stack, assigned_exp);
+        real_cur->eval_mark = 2;
       }
       else
       {
