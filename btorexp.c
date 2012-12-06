@@ -8976,15 +8976,16 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_READ_NODE: return btor_read_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_WRITE_NODE:
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
-      //    case BTOR_LAMBDA_NODE:
-      //      // FIXME: btor_lambda_exp needs no index_len and element_len as
-      //      arg DBG_P ("####### ", exp); assert (
-      //        ((BtorParamNode *) BTOR_REAL_ADDR_NODE
-      //        (exp->e[0]))->assigned_exp == 0);
-      //      ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->lambda_exp =
-      //      0; return btor_lambda_exp (btor, BTOR_REAL_ADDR_NODE
-      //      (exp->e[1])->len, BTOR_REAL_ADDR_NODE (exp->e[0])->len, exp->e[0],
-      //      exp->e[1]);
+    case BTOR_LAMBDA_NODE:
+      // FIXME: btor_lambda_exp needs no index_len and element_len as arg
+      assert (((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp
+              == 0);
+      ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->lambda_exp = 0;
+      return btor_lambda_exp (btor,
+                              BTOR_REAL_ADDR_NODE (exp->e[1])->len,
+                              BTOR_REAL_ADDR_NODE (exp->e[0])->len,
+                              exp->e[0],
+                              exp->e[1]);
     default:
       assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
       return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
@@ -11069,11 +11070,11 @@ btor_sat_aux_btor (Btor *btor)
 
   if (verbosity > 0) btor_msg_exp (btor, "calling SAT");
 
-  run_rewrite_engine (btor);
-
   if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
 
   if (btor->rewrite_reads) beta_reduce_reads_on_lambdas (btor);
+
+  run_rewrite_engine (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
