@@ -5,7 +5,7 @@ readonly PARENTDIR=$(dirname "$BTORDIR")
 readonly BOOLECTOR=$BTORDIR/boolector
 readonly FUZZSMT=$PARENTDIR/fuzzsmt/fuzzsmt
 readonly DELTABTOR=$BTORDIR/deltabtor
-readonly BUG_DIR=$(pwd)/failed-tmp
+BUG_DIR=$(pwd)/failed-tmp
 
 die ()
 {
@@ -51,7 +51,7 @@ do
 	       ;;
     --check=*) val=$(echo "$1" | sed -e 's,^--check=,,')
                ;;
-    --bug-dir=*) BUG_DIR=$( echo "$1" | sed -E 's,^--bug-dir=,,')
+    --bug-dir=*) BUG_DIR=$(echo "$1" | sed -e 's,^--bug-dir=,,')
 		 ;;
     -*|[0-9]*) opts="$opts $1"
                ;;
@@ -64,7 +64,6 @@ cmd="$*"
 
 [ x"$cmd" = x ] && die "command missing"
 [ ! -e $FUZZSMT ] && die "$FUZZSMT not found"
-
 
 echo "logic:   $logic"
 echo "options: $opts"
