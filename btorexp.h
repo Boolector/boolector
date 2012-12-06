@@ -553,7 +553,7 @@ struct Btor
        ? (exp)->e[0]              \
        : (BTOR_IS_WRITE_NODE (exp) ? (exp) : BTOR_LAMBDA_TARGET_NODE (exp)))
 //  (BTOR_IS_READ_NODE(exp) ? (exp)->e[0] : (exp))
-///////
+// end FIXME ///////////////////////////////////////////////////////////////////
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
