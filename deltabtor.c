@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
- *  Copyright (C) 2012 Aina Niemetz
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner
  *
  *  This file is part of Boolector.
  *
@@ -37,30 +37,29 @@ struct Exp
   int cut;
   int oldref;
   int oldcut;
-  char* op;
+  char *op;
   int width;
   int addrwidth;
   int childs;
   int child[3];
-  char* name;
+  char *name;
 };
 
 static int verbose;
 static int nosimp;
 static int nosort;
 
-static const char* input_name;
-static const char* output_name;
-static const char* run_name;
+static const char *input_name;
+static const char *output_name;
+static const char *run_name;
 
-static FILE* input;
+static FILE *input;
 static int lineno;
 static int saved;
 
-static char* tmp;
-static char* cmd;
+static char *tmp;
 
-static Exp* exps;
+static Exp *exps;
 static int sexps;
 static int nexps;
 
@@ -68,7 +67,7 @@ static int iexps;
 static int rexps;
 static int oexps;
 
-static char* buf;
+static char *buf;
 static int sbuf;
 static int nbuf;
 
@@ -76,7 +75,7 @@ static int maxwidth;
 static int runs;
 
 static void
-msg (int level, const char* fmt, ...)
+msg (int level, const char *fmt, ...)
 {
   va_list ap;
   if (verbose < level) return;
@@ -90,7 +89,7 @@ msg (int level, const char* fmt, ...)
 }
 
 static void
-die (const char* fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fflush (stdout);
@@ -142,7 +141,7 @@ next (void)
 }
 
 static void
-perr (const char* fmt, ...)
+perr (const char *fmt, ...)
 {
   va_list ap;
   fflush (stdout);
@@ -156,7 +155,7 @@ perr (const char* fmt, ...)
 }
 
 static int
-isarrayop (const char* op)
+isarrayop (const char *op)
 {
   if (!strcmp (op, "array")) return 1;
 
@@ -335,7 +334,7 @@ LIT:
 static void
 save (void)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   for (i = 1; i < nexps; i++)
@@ -350,7 +349,7 @@ static int
 deref (int start)
 {
   int res, sign, tmp;
-  Exp* e;
+  Exp *e;
 
   sign = (start < 0);
   if (sign) start = -start;
@@ -401,8 +400,8 @@ deidx (int start)
 static int
 isallone (int start)
 {
-  const char* p;
-  Exp* e;
+  const char *p;
+  Exp *e;
 
   start = deref (start);
 
@@ -452,7 +451,7 @@ static void
 simp (void)
 {
   int i, c;
-  Exp* e;
+  Exp *e;
 
   if (nosimp) return;
 
@@ -538,7 +537,7 @@ simp (void)
 }
 
 static int
-ischild (Exp* e, int child)
+ischild (Exp *e, int child)
 {
   assert (e->ref);
 
@@ -565,7 +564,7 @@ ischild (Exp* e, int child)
 static void
 dfs (int idx)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   idx = abs (idx);
@@ -643,7 +642,7 @@ cone (void)
 static void
 clean (void)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   for (i = 1; i < nexps; i++)
@@ -658,7 +657,7 @@ clean (void)
 static void
 reset (void)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   for (i = 1; i < nexps; i++)
@@ -670,10 +669,10 @@ reset (void)
 }
 
 static int
-cmp_by_idx (const void* p, const void* q)
+cmp_by_idx (const void *p, const void *q)
 {
-  Exp* a = *(Exp**) p;
-  Exp* b = *(Exp**) q;
+  Exp *a = *(Exp **) p;
+  Exp *b = *(Exp **) q;
   assert (a->ref);
   assert (a->idx);
   assert (b->ref);
@@ -684,7 +683,7 @@ cmp_by_idx (const void* p, const void* q)
 static void
 print (void)
 {
-  FILE* file = fopen (tmp, "w");
+  FILE *file = fopen (tmp, "w");
   int i, j, lit, count;
   Exp *e, **sorted;
 
@@ -807,7 +806,7 @@ expand (void)
 }
 
 static int
-run (void)
+run (char *cmd)
 {
   int tmp = system (cmd), res = WEXITSTATUS (tmp);
   runs++;
@@ -833,11 +832,12 @@ permanent (void)
 }
 
 int
-main (int argc, char** argv)
+main (int argc, char **argv)
 {
   int changed, golden = 0, res, rounds, interval, fixed, sign, overwritten;
   int i, j, argstart, len;
-  Exp* e;
+  Exp *e;
+  char *cmd, *cmd_golden;
 
   argstart = argc;
 
@@ -914,27 +914,24 @@ main (int argc, char** argv)
 
   for (i = argstart; i < argc; i++) len += 1 + strlen (argv[i]);
 
-  cmd = malloc (strlen (run_name) + len + 100);
+  cmd        = malloc (strlen (run_name) + len + strlen (tmp) + 1);
+  cmd_golden = malloc (strlen (run_name) + len + strlen (input_name) + 1);
   sprintf (cmd, "%s %s", run_name, tmp);
+  sprintf (cmd_golden, "%s %s", run_name, input_name);
 
   for (i = argstart; i < argc; i++)
+  {
     sprintf (cmd + strlen (cmd), " %s", argv[i]);
+    sprintf (cmd_golden + strlen (cmd_golden), " %s", argv[i]);
+  }
 
-  sprintf (cmd + strlen (cmd), " >/dev/null 2>/dev/null");
+  sprintf (cmd + strlen (cmd), " > /dev/null 2>&1");
+  sprintf (cmd_golden + strlen (cmd_golden), " > /dev/null 2>&1");
 
-  expand ();
-
-  save ();
-  simp ();
-  cone ();
-  print ();
-  clean ();
-  reset ();
-
-  if (!golden) golden = run ();
+  if (!golden) golden = run (cmd_golden);
   msg (1, "golden exit code %d", golden);
 
-  permanent ();
+  expand ();
 
   rounds = 0;
   fixed  = 0;
@@ -1010,7 +1007,7 @@ main (int argc, char** argv)
           print ();
           clean ();
 
-          res = run ();
+          res = run (cmd);
 
           if (res == golden)
           {
@@ -1052,6 +1049,7 @@ main (int argc, char** argv)
 
   free (tmp);
   free (cmd);
+  free (cmd_golden);
 
   for (i = 1; i < nexps; i++)
   {
