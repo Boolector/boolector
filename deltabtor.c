@@ -68,8 +68,6 @@ static int rexps;
 static int oexps;
 
 static char *buf;
-static int sbuf;
-static int nbuf;
 
 static int maxwidth;
 static int runs;
@@ -173,9 +171,12 @@ parse (void)
 {
   int ch, idx, lit, sign, width, addrwidth, child[3], childs, needaddrwidth;
   char *op, *name;
+  int sbuf = 0, nbuf = 0;
 
   lineno = 1;
   saved  = EOF;
+  buf    = 0;
+  iexps  = 0;
 
 EXP:
 
@@ -835,7 +836,7 @@ int
 main (int argc, char **argv)
 {
   int changed, golden = 0, res, rounds, interval, fixed, sign, overwritten;
-  int i, j, argstart, len;
+  int i, j, argstart, len, fixpoint = 0, prev_oexps, restart = 0;
   Exp *e;
   char *cmd, *cmd_golden;
 
@@ -864,6 +865,7 @@ main (int argc, char **argv)
       printf ("(default: initial run on <in>)\n");
       printf ("    --no-simp    do not simplify expressions\n");
       printf ("    --no-sort    do not sort expressions\n");
+      printf ("    --fixpoint   run until fixpoint reached\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
@@ -877,6 +879,8 @@ main (int argc, char **argv)
       nosimp = 1;
     else if (!strcmp (argv[i], "--no-sort"))
       nosort = 1;
+    else if (!strcmp (argv[i], "--fixpoint"))
+      fixpoint = 1;
     else if (output_name)
       run_name = argv[i];
     else if (input_name)
@@ -898,6 +902,9 @@ main (int argc, char **argv)
 
   if (!strcmp (output_name, run_name)) die ("<output> and <run> are the same");
 
+RESTART:
+  if (restart) input_name = output_name;
+
   nexps = sexps = 1;
   exps          = calloc (sexps, sizeof *exps);
 
@@ -906,6 +913,12 @@ main (int argc, char **argv)
   parse ();
 
   fclose (input);
+
+  if (restart)
+  {
+    restart = 0;
+    goto CONTINUE;
+  }
 
   tmp = malloc (100);
   sprintf (tmp, "/tmp/deltabtor%u", (unsigned) getpid ());
@@ -931,13 +944,22 @@ main (int argc, char **argv)
   if (!golden) golden = run (cmd_golden);
   msg (1, "golden exit code %d", golden);
 
+CONTINUE:
   expand ();
+  save ();
+  simp ();
+  cone ();
+  print ();
+  clean ();
+  reset ();
+  permanent ();
 
   rounds = 0;
   fixed  = 0;
 
-  interval = nexps - maxwidth;
-  oexps    = rexps;
+  interval   = nexps - maxwidth;
+  oexps      = rexps;
+  prev_oexps = oexps;
 
   do
   {
@@ -1042,14 +1064,8 @@ main (int argc, char **argv)
 
   } while (interval);
 
-  unlink (tmp);
-
   msg (2, "%d rounds", rounds);
   msg (2, "%d runs", runs);
-
-  free (tmp);
-  free (cmd);
-  free (cmd_golden);
 
   for (i = 1; i < nexps; i++)
   {
@@ -1061,6 +1077,19 @@ main (int argc, char **argv)
 
   free (exps);
   free (buf);
+
+  assert (prev_oexps >= oexps);
+  if (fixpoint && prev_oexps - oexps > 0)
+  {
+    msg (1, "no fixpoint reached, restarting");
+    restart = 1;
+    goto RESTART;
+  }
+
+  unlink (tmp);
+  free (tmp);
+  free (cmd);
+  free (cmd_golden);
 
   msg (1, "fixed %d expressions out of %d", fixed, iexps);
   msg (1, "wrote %d expressions to '%s'", oexps, output_name);
