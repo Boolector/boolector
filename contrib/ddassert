@@ -18,7 +18,7 @@ do
   case $1 in
     -h|--help) 
                echo -n "usage: $(basename $0) "
-               echo "[<option>] <infile> <errorlog> \"<command>\""
+               echo "[<option>] <infile> <errorlog> <command>"
                echo
                echo "  <infile>:          the input file"
                echo -n "  <errolog>:         a file with the failure-induced "
@@ -34,14 +34,14 @@ do
          in="$1"
        elif [ x"$errorlog" = x ]; then
          errorlog="$1"
-       elif [ x"$cmd" = x ]; then
-         cmd="$1"
        else
-         die "invalid number of arguments, try --help (-h)"
+         break
        fi
   esac
   shift
 done
+
+cmd="$*"
 
 [ x"$in" = x ] && die "infile missing"
 [ x"$errorlog" = x ] && die "errorlog missing"
