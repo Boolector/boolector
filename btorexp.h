@@ -686,17 +686,6 @@ BtorNode *btor_var_exp (Btor *btor, int len, const char *symbol);
  */
 BtorNode *btor_param_exp (Btor *btor, int len, const char *symbol);
 
-/* Lambda expression representing array of size 2 ^ 'index_len' with elements
- * of length 'elem_len'.
- * elem_len > 0
- * index_len > 0
- */
-BtorNode *btor_lambda_exp (Btor *btor,
-                           int elem_len,
-                           int index_len,
-                           BtorNode *e_param,
-                           BtorNode *e_exp);
-
 /* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
  * index_len > 0
@@ -1004,6 +993,11 @@ BtorNode *btor_write_exp (Btor *btor,
                           BtorNode *e_array,
                           BtorNode *e_index,
                           BtorNode *e_value);
+
+/* Lambda expression representing array of size 2 ^ 'index_len' with elements
+ * of length 'elem_len'.
+ */
+BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);
 
 /* If-then-else.
  * len(e_cond) = 1

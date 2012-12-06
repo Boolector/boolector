@@ -28,7 +28,7 @@
 #include <string.h>
 
 // debug
-#if 0
+#if 1
 #define DBG_P(msg, node, ...) \
   do                          \
   {                           \
@@ -3708,29 +3708,23 @@ btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 }
 
 BtorNode *
-btor_lambda_exp (
-    Btor *btor, int elem_len, int index_len, BtorNode *e_param, BtorNode *e_exp)
+btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 {
-  BtorNode *lambda_exp;
-
-#ifdef NDEBUG
-  (void) index_len;
-#endif
-
   assert (btor);
-  assert (elem_len > 0);
-  assert (index_len > 0);
   assert (BTOR_IS_PARAM_NODE (e_param));
-  assert (BTOR_REAL_ADDR_NODE (e_param)->len == index_len);
+  assert (BTOR_REAL_ADDR_NODE (e_param)->len > 0);
   assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
   assert (e_exp);
-  assert (BTOR_REAL_ADDR_NODE (e_exp)->len == elem_len);
+  assert (BTOR_REAL_ADDR_NODE (e_exp)->len > 0);
+
+  BtorNode *lambda_exp;
+  int index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
+  int elem_len  = BTOR_REAL_ADDR_NODE (e_exp)->len;
 
   e_exp      = btor_pointer_chase_simplified_exp (btor, e_exp);
   lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
-  assert (lambda_exp->len = elem_len);
-  //  assert (lambda_exp->index_len == index_len);
   lambda_exp->index_len = index_len;
+
   /* set lambda expression of parameter */
   // assert (!((BtorParamNode *) e_param)->lambda_exp);
   assert (!((BtorParamNode *) e_param)->lambda_exp
@@ -8131,9 +8125,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
               }
               else
               {
-                result = btor_lambda_exp (
-                    btor, real_cur->len, real_cur->index_len, e[0], e[1]);
-
+                result = btor_lambda_exp (btor, e[0], e[1]);
                 /* cleanup (ref counter of 'new' param) */
                 if (real_cur->beta_aux_mark)
                 {
@@ -8977,15 +8969,10 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_WRITE_NODE:
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     case BTOR_LAMBDA_NODE:
-      // FIXME: btor_lambda_exp needs no index_len and element_len as arg
       assert (((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp
               == 0);
       ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->lambda_exp = 0;
-      return btor_lambda_exp (btor,
-                              BTOR_REAL_ADDR_NODE (exp->e[1])->len,
-                              BTOR_REAL_ADDR_NODE (exp->e[0])->len,
-                              exp->e[0],
-                              exp->e[1]);
+      return btor_lambda_exp (btor, exp->e[0], exp->e[1]);
     default:
       assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
       return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
@@ -10777,8 +10764,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   cond_exp = btor_cond_exp_no_rewrite (btor, e_cond, e_if, e_else);
   assert (BTOR_IS_BV_COND_NODE (cond_exp)); /* no rewriting allowed  */
 
-  lambda_exp =
-      btor_lambda_exp (btor, write->len, write->index_len, param, cond_exp);
+  lambda_exp = btor_lambda_exp (btor, param, cond_exp);
 
   /* disconnect write node from all of its parent nodes */
   init_full_parent_iterator (&it, write);

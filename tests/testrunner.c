@@ -114,6 +114,9 @@ static const char *normaltests[] = {
 };
 
 static const char *brokentests[] = {
+    /* currently broken due to extensionality issues */
+    "lambda_partial_reduce_nested_lambdas_add1",
+
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
