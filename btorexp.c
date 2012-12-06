@@ -7699,10 +7699,10 @@ eval_exp (Btor *btor, BtorNode *exp)
 
     if (real_cur->eval_mark == 0 || real_cur->eval_mark == 2)
     {
-      real_cur->eval_mark = 1;
-
       if (real_cur->eval_mark == 0) /* don't push twice */
         BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
+
+      real_cur->eval_mark = 1;
 
       if (BTOR_IS_PARAM_NODE (real_cur))
       {
