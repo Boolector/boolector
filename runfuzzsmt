@@ -1,9 +1,11 @@
 #!/bin/bash
 
-readonly BOOLECTOR=./boolector
-readonly FUZZSMT=fuzzsmt
-readonly DELTABTOR=./deltabtor
-readonly BUG_DIR=$(dirname "$(readlink -f $0)")/failed-tmp
+readonly BTORDIR=$(dirname "$(readlink -f $0)")
+readonly PARENTDIR=$(dirname "$BTORDIR")
+readonly BOOLECTOR=$BTORDIR/boolector
+readonly FUZZSMT=$PARENTDIR/fuzzsmt/fuzzsmt
+readonly DELTABTOR=$BTORDIR/deltabtor
+readonly BUG_DIR=$(pwd)/failed-tmp
 
 die ()
 {
@@ -59,6 +61,8 @@ done
 cmd="$*"
 
 [ x"$cmd" = x ] && die "command missing"
+[ ! -e $FUZZSMT ] && die "$FUZZSMT not found"
+
 
 echo "logic:   $logic"
 echo "options: $opts"

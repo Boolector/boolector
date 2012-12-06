@@ -1,8 +1,9 @@
 #!/bin/bash
 
-readonly RUNFUZZSMT=./runfuzzsmt
-readonly MAX_THREADS=$(grep -c processor /proc/cpuinfo)
+readonly BTORDIR=$(dirname "$(readlink -f $0)")
+readonly RUNFUZZSMT=$BTORDIR/runfuzzsmt
 readonly THREAD_TMP_FILE="/tmp/runparfuzzsmt$$_"
+readonly MAX_THREADS=$(grep -c processor /proc/cpuinfo)
 
 die ()
 {
