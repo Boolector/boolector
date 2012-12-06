@@ -51,6 +51,8 @@ do
 	       ;;
     --check=*) val=$(echo "$1" | sed -e 's,^--check=,,')
                ;;
+    --bug-dir=*) BUG_DIR=$( echo "$1" | sed -E 's,^--bug-dir=,,')
+		 ;;
     -*|[0-9]*) opts="$opts $1"
                ;;
     *) break;;
