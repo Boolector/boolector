@@ -47,7 +47,7 @@ init_arithmetic_tests (void)
   assert (f != NULL);
   fclose (f);
 
-  if (!g_rwwrites) g_argc += 1;
+  if (g_rwwrites) g_argc += 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
@@ -56,7 +56,7 @@ init_arithmetic_tests (void)
   g_argv[2] = "-o";
   g_argv[3] = "/dev/null";
 
-  if (!g_rwwrites) g_argv[g_argc - 2] = "-nrw";
+  if (g_rwwrites) g_argv[g_argc - 2] = "-rww";
 
   g_argv[g_argc - 1] = BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME;
 }

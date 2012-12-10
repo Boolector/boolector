@@ -52,7 +52,7 @@ count=0
 while true
 do
   rm -f "$tmp"
-  "$FUZZSMTBV" "$opts" |"$BOOLECTOR" --no-rewrite-writes -de > $tmp
+  "$FUZZSMTBV" "$opts" |"$BOOLECTOR" -de > $tmp
   buglines=`wc -l "$tmp"|awk '{print $1}'`
   echo -n "$count "
   "$cmd" "$tmp" > /dev/null 2>/dev/null

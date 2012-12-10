@@ -63,7 +63,8 @@
   "usage: test [options] [patterns]\n\n"                                     \
   "  options:\n"                                                             \
   "    -h, --help       print this message and exit\n"                       \
-  "    -n, --norww      run boolector with rewriting of writes disabled\n"   \
+  "    -r, --rww        run boolector with rewriting of writes to lambdas "  \
+  "enabled\n"                                                                \
   "    -b, --broken     run 'broken' testcases also\n"                       \
   "    -s, --slow       run 'slow' testcases also\n"                         \
   "    -f, --fast       run 'fast' testcases only\n"                         \
@@ -88,7 +89,7 @@ main (int argc, char **argv)
       printf ("%s", USAGE);
       return 0;
     }
-    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--norww"))
+    else if (!strcmp (argv[i], "-r") || !strcmp (argv[i], "--rww"))
     {
       /* disable rewriting of writes in resp. testcase sets */
     }

@@ -1,18 +1,63 @@
 #!/bin/bash
 
-btor=boolector
-inputfile=$1
-assertfile=$2
+die () {
+  echo "*** $(basename $0): $*" 1>&2
+  exit 1
+}
 
-asserterror=$($btor $inputfile 2>&1 | grep Assertion)
+# need to exit with 0, else run might be mistaken as failing and expected 
+# (in terms delta-debugging) which in fact it is not
+trap "exit 0" SIGHUP SIGINT SIGTERM
 
-# initialize assertion error file
-if [ ! -e $assertfile ]; then
-  echo $asserterror > $assertfile
+in=""
+errorlog=""
+cmd=""
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) 
+               echo -n "usage: $(basename $0) "
+               echo "[<option>] <infile> <errorlog> \"<command>\""
+               echo
+               echo "  <infile>:          the input file"
+               echo -n "  <errolog>:         a file with the failure-induced "
+               echo "output"
+               echo "                     of running <command> <infile>"
+               echo
+               echo "  options:"
+               echo "    -h,--help        print this message and exit"
+               echo
+               exit
+               ;;
+    *) if [ x"$in" = x ]; then
+         in="$1"
+       elif [ x"$errorlog" = x ]; then
+         errorlog="$1"
+       elif [ x"$cmd" = x ]; then
+         cmd="$1"
+       else
+         die "invalid number of arguments, try --help (-h)"
+       fi
+  esac
+  shift
+done
+
+[ x"$in" = x ] && die "infile missing"
+[ x"$errorlog" = x ] && die "errorlog missing"
+[ x"$cmd" = x ] && die "command missing"
+
+echo "*** in $in"
+echo "*** errorlog $errorlog"
+echo "*** cmd $cmd"
+error=$($cmd $in 2>&1 | grep Assertion)
+# initialize error log
+if [ ! -e $errorlog ]; then
+  echo $error > $errorlog
 fi
 
-expected_asserterror=$(cat $assertfile)
-if [ "$asserterror" = "$expected_asserterror" ]; then
+expected=$(cat $errorlog)
+if [ "$error" = "$expected" ]; then
   exit 1
 else
   exit 0

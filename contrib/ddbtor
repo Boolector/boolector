@@ -1,23 +1,54 @@
 #!/bin/bash
 
-infile=$1
-outfile=$2
-assertfile=/tmp/ddassert_error_$$.log
-deltabtor=./deltabtor
+readonly DELTABTOR=./deltabtor
+readonly ERRORLOG=/tmp/ddassert_error_$$.log
 contribdir=$(dirname $(readlink -f $0))
-ddassert=$(readlink -f "$contribdir/ddassert")
+readonly DDASSERT=$(readlink -f "$contribdir/ddassert")
 
-if [ ! $# -eq 2 ]; then
-  echo "invalid number of arguments"
-  echo "usage: ddbtor <in> <out>"
+die () {
+  echo "*** $(basename $0): $*" 1>&2
   exit 1
-fi
+}
 
-if [ ! -f $deltabtor ]; then
+trap "exit" SIGHUP SIGINT SIGTERM
+
+in=""
+out=""
+cmd=""
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help) 
+               echo -n "usage: $(basename $0) "
+               echo "[<option>] <infile> <outfile> \"<command>\""
+               echo
+               echo "  <infile>:          the input file"
+	       echo "  <outfile>:         the (reduced) output file"
+               echo
+               echo "  options:"
+               echo "    -h,--help        print this message and exit"
+               echo
+               exit
+               ;;
+    *) if [ x"$in" = x ]; then
+         in="$1"
+       elif [ x"$out" = x ]; then
+         out="$1"
+       elif [ x"$cmd" = x ]; then
+         cmd="\"$1\""
+       else
+         die "invalid number of arguments, try --help (-h)"
+       fi
+  esac
+  shift
+done
+
+if [ ! -f $DELTABTOR ]; then
   echo "could not find 'deltabtor'"
   exit 1
 fi
 
-$deltabtor $infile $outfile $ddassert $assertfile
+$DELTABTOR $in $out $DDASSERT $ERRORLOG $cmd
 
-rm -f $assertfile
+rm -f $ERRORLOG

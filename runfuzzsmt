@@ -6,7 +6,7 @@ readonly DELTABTOR=deltabtor
 readonly BUG_DIR=$(dirname "$(readlink -f $0)")/failed-tmp
 
 die () {
-  echo "*** runfuzzsmt: $*" 1>&2
+  echo "*** $(basename $0): $*" 1>&2
   exit 1
 }
 
@@ -58,10 +58,10 @@ count=0
 while true
 do
   rm -f "$tmp"
-  "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" --no-rewrite-writes -de > $tmp
+  "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" -de > $tmp 2> /dev/null
   buglines=`wc -l "$tmp"|awk '{print $1}'`
   echo -n "$count "
-  $cmd "$tmp" > /dev/null 2>/dev/null
+  $cmd "$tmp" > /dev/null 2>&1
   res=$?
 
   case $res in

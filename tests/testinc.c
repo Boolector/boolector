@@ -29,26 +29,44 @@
 #include <assert.h>
 #include <limits.h>
 
+static Btor *g_btor = NULL;
+
+static void
+init_inc_test (void)
+{
+  g_btor                 = btor_new_btor ();
+  g_btor->rewrite_writes = g_rwwrites;
+}
+
+static void
+finish_inc_test (void)
+{
+  btor_delete_btor (g_btor);
+}
+
 static void
 test_inc_true_false (void)
 {
-  Btor *btor   = btor_new_btor ();
-  BtorNode *ff = btor_false_exp (btor);
-  BtorNode *tt = btor_true_exp (btor);
+  BtorNode *ff;
+  BtorNode *tt;
   int res;
 
-  btor_enable_inc_usage (btor);
-  btor_add_assumption_exp (btor, tt);
-  res = btor_sat_btor (btor);
+  init_inc_test ();
+
+  ff = btor_false_exp (g_btor);
+  tt = btor_true_exp (g_btor);
+  btor_enable_inc_usage (g_btor);
+  btor_add_assumption_exp (g_btor, tt);
+  res = btor_sat_btor (g_btor);
   assert (res == BTOR_SAT);
 
-  btor_add_assumption_exp (btor, ff);
-  res = btor_sat_btor (btor);
+  btor_add_assumption_exp (g_btor, ff);
+  res = btor_sat_btor (g_btor);
   assert (res == BTOR_UNSAT);
 
-  btor_release_exp (btor, ff);
-  btor_release_exp (btor, tt);
-  btor_delete_btor (btor);
+  btor_release_exp (g_btor, ff);
+  btor_release_exp (g_btor, tt);
+  finish_inc_test ();
 }
 
 static void
@@ -56,49 +74,50 @@ test_inc_counter (int w, int nondet)
 {
   BtorNode *nonzero, *allzero, *one, *oracle;
   BtorNode *current, *next, *inc;
-  Btor *btor;
   char name[100];
   int i, res;
 
   assert (w > 0);
 
-  btor = btor_new_btor ();
-  btor_enable_inc_usage (btor);
-  one     = btor_one_exp (btor, w);
-  current = btor_zero_exp (btor, w);
+  init_inc_test ();
+
+  btor_enable_inc_usage (g_btor);
+  one     = btor_one_exp (g_btor, w);
+  current = btor_zero_exp (g_btor, w);
   i       = 0;
 
   for (;;)
   {
-    inc = btor_add_exp (btor, current, one);
+    inc = btor_add_exp (g_btor, current, one);
 
     if (nondet)
     {
       sprintf (name, "oracle%d", i);
       if (i)
-        oracle = btor_var_exp (btor, 1, name);
+        oracle = btor_var_exp (g_btor, 1, name);
+
       else
-        oracle = btor_true_exp (btor);
-      next = btor_cond_exp (btor, oracle, inc, current);
-      btor_release_exp (btor, oracle);
+        oracle = btor_true_exp (g_btor);
+      next = btor_cond_exp (g_btor, oracle, inc, current);
+      btor_release_exp (g_btor, oracle);
     }
     else
-      next = btor_copy_exp (btor, inc);
+      next = btor_copy_exp (g_btor, inc);
 
-    btor_release_exp (btor, inc);
-    btor_release_exp (btor, current);
+    btor_release_exp (g_btor, inc);
+    btor_release_exp (g_btor, current);
     current = next;
 
-    nonzero = btor_redor_exp (btor, current);
-    allzero = btor_not_exp (btor, nonzero);
-    btor_release_exp (btor, nonzero);
+    nonzero = btor_redor_exp (g_btor, current);
+    allzero = btor_not_exp (g_btor, nonzero);
+    btor_release_exp (g_btor, nonzero);
 
     i++;
 
-    btor_add_assumption_exp (btor, allzero);
-    btor_release_exp (btor, allzero);
+    btor_add_assumption_exp (g_btor, allzero);
+    btor_release_exp (g_btor, allzero);
 
-    res = btor_sat_btor (btor);
+    res = btor_sat_btor (g_btor);
     if (res == BTOR_SAT) break;
 
     assert (res == BTOR_UNSAT);
@@ -107,10 +126,10 @@ test_inc_counter (int w, int nondet)
 
   assert (i == (1 << w));
 
-  btor_release_exp (btor, one);
-  btor_release_exp (btor, current);
+  btor_release_exp (g_btor, one);
+  btor_release_exp (g_btor, current);
 
-  btor_delete_btor (btor);
+  finish_inc_test ();
 }
 
 static void
@@ -177,14 +196,13 @@ static void
 test_inc_lt (int w)
 {
   BtorNode *prev, *next, *lt;
-  Btor *btor;
   char name[100];
   int i, res;
 
   assert (w > 0);
 
-  btor = btor_new_btor ();
-  btor_enable_inc_usage (btor);
+  init_inc_test ();
+  btor_enable_inc_usage (g_btor);
 
   i    = 0;
   prev = 0;
@@ -193,19 +211,19 @@ test_inc_lt (int w)
     i++;
 
     sprintf (name, "%d", i);
-    next = btor_var_exp (btor, w, name);
+    next = btor_var_exp (g_btor, w, name);
 
     if (prev)
     {
-      lt = btor_ult_exp (btor, prev, next);
-      btor_add_constraint_exp (btor, lt);
-      btor_release_exp (btor, lt);
-      btor_release_exp (btor, prev);
+      lt = btor_ult_exp (g_btor, prev, next);
+      btor_add_constraint_exp (g_btor, lt);
+      btor_release_exp (g_btor, lt);
+      btor_release_exp (g_btor, prev);
     }
 
     prev = next;
 
-    res = btor_sat_btor (btor);
+    res = btor_sat_btor (g_btor);
     if (res == BTOR_UNSAT) break;
 
     assert (res == BTOR_SAT);
@@ -214,8 +232,9 @@ test_inc_lt (int w)
 
   assert (i == (1 << w) + 1);
 
-  btor_release_exp (btor, prev);
-  btor_delete_btor (btor);
+  btor_release_exp (g_btor, prev);
+
+  finish_inc_test ();
 }
 
 static void
@@ -252,62 +271,65 @@ static void
 test_inc_assume_assert1 (void)
 {
   int sat_result;
-  Btor *btor = btor_new_btor ();
-  btor_enable_inc_usage (btor);
-  btor_set_rewrite_level_btor (btor, 0);
-  BtorNode *array    = btor_array_exp (btor, 1, 1, "array1");
-  BtorNode *index1   = btor_var_exp (btor, 1, "index1");
-  BtorNode *index2   = btor_var_exp (btor, 1, "index2");
-  BtorNode *read1    = btor_read_exp (btor, array, index1);
-  BtorNode *read2    = btor_read_exp (btor, array, index2);
-  BtorNode *eq_index = btor_eq_exp (btor, index1, index2);
-  BtorNode *ne_read  = btor_ne_exp (btor, read1, read2);
-  btor_add_constraint_exp (btor, ne_read);
-  sat_result = btor_sat_btor (btor);
+
+  init_inc_test ();
+  btor_enable_inc_usage (g_btor);
+  btor_set_rewrite_level_btor (g_btor, 0);
+  BtorNode *array    = btor_array_exp (g_btor, 1, 1, "array1");
+  BtorNode *index1   = btor_var_exp (g_btor, 1, "index1");
+  BtorNode *index2   = btor_var_exp (g_btor, 1, "index2");
+  BtorNode *read1    = btor_read_exp (g_btor, array, index1);
+  BtorNode *read2    = btor_read_exp (g_btor, array, index2);
+  BtorNode *eq_index = btor_eq_exp (g_btor, index1, index2);
+  BtorNode *ne_read  = btor_ne_exp (g_btor, read1, read2);
+  btor_add_constraint_exp (g_btor, ne_read);
+  sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_SAT);
-  btor_add_assumption_exp (btor, eq_index);
-  sat_result = btor_sat_btor (btor);
+  btor_add_assumption_exp (g_btor, eq_index);
+  sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_UNSAT);
-  sat_result = btor_sat_btor (btor);
+  sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_SAT);
-  btor_release_exp (btor, array);
-  btor_release_exp (btor, index1);
-  btor_release_exp (btor, index2);
-  btor_release_exp (btor, read1);
-  btor_release_exp (btor, read2);
-  btor_release_exp (btor, eq_index);
-  btor_release_exp (btor, ne_read);
-  btor_delete_btor (btor);
+  btor_release_exp (g_btor, array);
+  btor_release_exp (g_btor, index1);
+  btor_release_exp (g_btor, index2);
+  btor_release_exp (g_btor, read1);
+  btor_release_exp (g_btor, read2);
+  btor_release_exp (g_btor, eq_index);
+  btor_release_exp (g_btor, ne_read);
+
+  finish_inc_test ();
 }
 
 static void
 test_inc_lemmas_on_demand_1 ()
 {
   int sat_result;
-  Btor *btor = btor_new_btor ();
-  btor_enable_inc_usage (btor);
-  btor_set_rewrite_level_btor (btor, 0);
-  BtorNode *array  = btor_array_exp (btor, 1, 1, "array1");
-  BtorNode *index1 = btor_var_exp (btor, 1, "index1");
-  BtorNode *index2 = btor_var_exp (btor, 1, "index2");
-  BtorNode *read1  = btor_read_exp (btor, array, index1);
-  BtorNode *read2  = btor_read_exp (btor, array, index2);
-  BtorNode *eq     = btor_eq_exp (btor, index1, index2);
-  BtorNode *ne     = btor_ne_exp (btor, read1, read2);
-  btor_add_constraint_exp (btor, eq);
-  btor_add_assumption_exp (btor, ne);
-  sat_result = btor_sat_btor (btor);
+
+  init_inc_test ();
+  btor_enable_inc_usage (g_btor);
+  btor_set_rewrite_level_btor (g_btor, 0);
+  BtorNode *array  = btor_array_exp (g_btor, 1, 1, "array1");
+  BtorNode *index1 = btor_var_exp (g_btor, 1, "index1");
+  BtorNode *index2 = btor_var_exp (g_btor, 1, "index2");
+  BtorNode *read1  = btor_read_exp (g_btor, array, index1);
+  BtorNode *read2  = btor_read_exp (g_btor, array, index2);
+  BtorNode *eq     = btor_eq_exp (g_btor, index1, index2);
+  BtorNode *ne     = btor_ne_exp (g_btor, read1, read2);
+  btor_add_constraint_exp (g_btor, eq);
+  btor_add_assumption_exp (g_btor, ne);
+  sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_UNSAT);
-  sat_result = btor_sat_btor (btor);
+  sat_result = btor_sat_btor (g_btor);
   assert (sat_result == BTOR_SAT);
-  btor_release_exp (btor, array);
-  btor_release_exp (btor, index1);
-  btor_release_exp (btor, index2);
-  btor_release_exp (btor, read1);
-  btor_release_exp (btor, read2);
-  btor_release_exp (btor, eq);
-  btor_release_exp (btor, ne);
-  btor_delete_btor (btor);
+  btor_release_exp (g_btor, array);
+  btor_release_exp (g_btor, index1);
+  btor_release_exp (g_btor, index2);
+  btor_release_exp (g_btor, read1);
+  btor_release_exp (g_btor, read2);
+  btor_release_exp (g_btor, eq);
+  btor_release_exp (g_btor, ne);
+  btor_delete_btor (g_btor);
 }
 
 void

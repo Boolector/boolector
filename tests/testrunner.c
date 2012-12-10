@@ -268,12 +268,12 @@ run_test_case (
     for (p = slowtests; !skip && *p; p++) skip = match (name, *p);
 
   count      = 0;
-  g_rwwrites = 1;
+  g_rwwrites = 0;
   for (i = 1; i < argc; i++)
   {
     count += (argv[i][0] != '-');
-    if (strcmp (argv[i], "-n") == 0 || strcmp (argv[i], "--norww") == 0)
-      g_rwwrites = 0;
+    if (strcmp (argv[i], "-r") == 0 || strcmp (argv[i], "--rww") == 0)
+      g_rwwrites = 1;
   }
 
   if (!skip && count)

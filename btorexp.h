@@ -146,6 +146,8 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int mark : 3;          /* for DAG traversal */                 \
     unsigned int array_mark : 1;    /* for bottom up array traversal */     \
     unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
+    unsigned int beta_mark : 2;     /* mark for beta_reduce */              \
+    unsigned int eval_mark : 2;     /* mark for eval_exp */                 \
     unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
     unsigned int reachable : 1;     /* reachable from root ? */             \
     unsigned int tseitin : 1;       /* tseitin encoded into SAT ? */        \
@@ -322,7 +324,7 @@ struct Btor
   BtorAIGVecMgr *avmgr;
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
-  BtorPtrHashTable *lambda_exps;
+  BtorPtrHashTable *lambdas;
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
   int rec_rw_calls;    /* calls for recursive rewriting */
@@ -338,8 +340,7 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   int rewrite_writes;       /* rewrite writes to lambda expressions */
-  int no_pprint;            /* do not reindex exps for dumping if
-                               rewrite_writes enabled */
+  int pprint;               /* reindex exps when dumping */
 
   BtorPtrHashTable *exp_pair_eq_table;
 
@@ -374,11 +375,13 @@ struct Btor
     int adds_normalized;         /* number of add chains normalizations */
     int muls_normalized;         /* number of mul chains normalizations */
     int read_props_construct;    /* how often have we pushed a read over
-                                            write during construction */
+                                    write during construction */
     long long int lemmas_size_sum;  /* sum of the size of all added lemmas */
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints, oldconstraints;
     long long expressions;
+    long long beta_reduce_calls;
+    long long eval_exp_calls;
   } stats;
 
   struct
@@ -389,6 +392,8 @@ struct Btor
     double embedded;
     double slicing;
     double skel;
+    double beta;
+    double eval;
   } time;
 };
 
