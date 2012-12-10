@@ -24,6 +24,7 @@
 #include <stdio.h>
 
 extern int g_rwwrites;
+extern int g_rwreads;
 extern FILE *g_logfile;
 
 #define BTOR_RUN_TEST_CHECK_LOG(name) \

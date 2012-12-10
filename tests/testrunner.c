@@ -31,6 +31,8 @@
 #include <unistd.h>
 
 int g_rwwrites;
+int g_rwreads;
+
 FILE *g_logfile = NULL;
 
 static int g_skip_broken;
@@ -272,11 +274,14 @@ run_test_case (
 
   count      = 0;
   g_rwwrites = 0;
+  g_rwreads  = 0;
   for (i = 1; i < argc; i++)
   {
     count += (argv[i][0] != '-');
     if (strcmp (argv[i], "-r") == 0 || strcmp (argv[i], "--rww") == 0)
       g_rwwrites = 1;
+    else if (strcmp (argv[i], "-R") == 0 || strcmp (argv[i], "--rwr") == 0)
+      g_rwreads = 1;
   }
 
   if (!skip && count)

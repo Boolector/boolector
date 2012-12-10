@@ -5347,13 +5347,13 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   assert (!btor->model_gen);
   assert (btor->rewrite_level > 1);
 
-  DBG_P ("rewrite_reads %d\n", 0, btor->rewrite_reads);
-
-  run_rewrite_engine (btor);
-
   if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
 
   if (btor->rewrite_reads) beta_reduce_reads_on_lambdas (btor);
+
+  DBG_P ("rewrite_reads %d\n", 0, btor->rewrite_reads);
+
+  run_rewrite_engine (btor);
 
   if (btor->inconsistent)
   {
@@ -7684,18 +7684,22 @@ eval_exp (Btor *btor, BtorNode *exp)
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    //      for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
-    //	{
-    //	  fprintf (stderr, "    work_stack[%d]: (%d) ", i,
-    //	           (BTOR_REAL_ADDR_NODE (work_stack.start[i]))->eval_mark);
-    //	  dump_node (stderr, work_stack.start[i]);
-    //	}
+    for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
+    {
+      fprintf (stderr,
+               "    work_stack[%d]: (%d) ",
+               i,
+               (BTOR_REAL_ADDR_NODE (work_stack.start[i]))->eval_mark);
+      dump_node (stderr, work_stack.start[i]);
+    }
+    for (i = 0; i < BTOR_COUNT_STACK (arg_stack); i++)
+      fprintf (stderr, "    arg_stack[%d]: %s ", i, arg_stack.start[i]);
 
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    //      DBG_P ("eval_exp: real_cur: ", real_cur);
+    DBG_P ("eval_exp: real_cur: ", real_cur);
 
     if (real_cur->eval_mark == 0 || real_cur->eval_mark == 2)
     {
@@ -7796,6 +7800,7 @@ eval_exp (Btor *btor, BtorNode *exp)
         result = inv_result;
       }
 
+      DBG_P ("####################### push arg (%s) ", real_cur, result);
       BTOR_PUSH_STACK (mm, arg_stack, (char *) result);
     }
   }
@@ -11049,7 +11054,6 @@ btor_sat_aux_btor (Btor *btor)
   BtorMemMgr *mm;
 
   assert (btor);
-
   verbosity = btor->verbosity;
 
   if (btor->inconsistent) return BTOR_UNSAT;

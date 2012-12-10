@@ -40,6 +40,7 @@ init_exp_test (void)
 {
   g_btor                 = btor_new_btor ();
   g_btor->rewrite_writes = g_rwwrites;
+  g_btor->rewrite_reads  = g_rwreads;
 }
 
 void
