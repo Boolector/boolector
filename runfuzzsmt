@@ -1,22 +1,34 @@
 #!/bin/bash
 
-readonly BOOLECTOR=boolector
-readonly FUZZSMT=fuzzsmt
-readonly DELTABTOR=deltabtor
-readonly BUG_DIR=$(dirname "$(readlink -f $0)")/failed-tmp
+readonly BTORDIR=$(dirname "$(readlink -f $0)")
+readonly PARENTDIR=$(dirname "$BTORDIR")
+readonly BOOLECTOR=$BTORDIR/boolector
+readonly FUZZSMT=$PARENTDIR/fuzzsmt/fuzzsmt
+readonly DELTABTOR=$BTORDIR/deltabtor
+BUG_DIR=$(pwd)/failed-tmp
 
-die () {
+die ()
+{
   echo "*** $(basename $0): $*" 1>&2
   exit 1
 }
 
+cleanup-and-exit ()
+{
+  rm -f $tmp
+  kill $(jobs -p) 2> /dev/null
+  echo
+  exit
+}
+
 val=undefined
 tmp=/tmp/runfuzzsmt-$$.btor
-trap "rm -f $tmp; exit" SIGHUP SIGINT SIGTERM
+trap "cleanup-and-exit;" SIGHUP SIGINT SIGTERM
 
 logic=QF_AUFBV
 opts=""
 cmd=""
+maxtime=0
 while [ $# -gt 0 ]
 do
   case $1 in
@@ -39,6 +51,8 @@ do
 	       ;;
     --check=*) val=$(echo "$1" | sed -e 's,^--check=,,')
                ;;
+    --bug-dir=*) BUG_DIR=$(echo "$1" | sed -e 's,^--bug-dir=,,')
+		 ;;
     -*|[0-9]*) opts="$opts $1"
                ;;
     *) break;;
@@ -49,44 +63,52 @@ done
 cmd="$*"
 
 [ x"$cmd" = x ] && die "command missing"
+[ ! -e $FUZZSMT ] && die "$FUZZSMT not found"
 
 echo "logic:   $logic"
 echo "options: $opts"
 echo "command: $cmd"
+echo
 
-count=0
+count=1
 while true
 do
   rm -f "$tmp"
   "$FUZZSMT" "$logic" "$opts" |"$BOOLECTOR" -de > $tmp 2> /dev/null
   buglines=`wc -l "$tmp"|awk '{print $1}'`
-  echo -n "$count "
+
+  echo -en "runs: $count"
+
   $cmd "$tmp" > /dev/null 2>&1
   res=$?
 
   case $res in
-    10|20) echo
+    10|20) echo -en "\r"
            ;;
     *)     if [[ x"$val" != xundefined && $res == $val ]]; then 
-             echo
+             echo -en "\r"
            else
              mkdir -p "$BUG_DIR"
-             bug="$BUG_DIR"/bug-${count}.btor
+             bug="$BUG_DIR"/bug-$$-${count}.btor
              echo "; fuzzer:  $(basename $0) $opts" > "$bug"
              echo "; command: $cmd" >> "$bug"
              cat "$tmp" >> "$bug"
              echo -en "\t"
              echo -n $(basename "$bug")
-             red="$BUG_DIR"/red-${count}.btor
-             "$DELTABTOR" "$bug" "$red" "$cmd"
-             redlines=`wc -l "$red"|awk '{print $1}'`
+             red="$BUG_DIR"/red-$$-${count}.btor
+             "$DELTABTOR" "$bug" "$red" "$cmd" > /dev/null 2>&1
+	     if [ -e "$red" ]; then
+	       redlines=`wc -l "$red"|awk '{print $1}'`
+	     else
+	       redlines=$buglines
+	     fi
              echo -n " "
              echo -n $(basename "$red")
              echo -e "  ($buglines -> $redlines)"
            fi
            ;;
   esac
-  count=`expr $count + 1`
+  ((count += 1))
 done
 
-rm -f $tmp
+cleanup-and-exit

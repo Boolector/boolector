@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2010 Robert Daniel Brummayer.
  *  Copyright (C) 2010-2012 Armin Biere.
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -382,6 +383,8 @@ struct Btor
     long long int lclause_size_sum; /* sum of the size of all linking clauses */
     ConstraintStats constraints, oldconstraints;
     long long expressions;
+    long long beta_reduce_calls;
+    long long eval_exp_calls;
   } stats;
 
   struct
@@ -392,6 +395,8 @@ struct Btor
     double embedded;
     double slicing;
     double skel;
+    double beta;
+    double eval;
   } time;
 };
 
