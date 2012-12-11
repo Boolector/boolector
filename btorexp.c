@@ -169,6 +169,40 @@ check_all_hash_tables_proxy_free_dbg (const Btor *btor)
   return 1;
 }
 
+static int
+check_hash_table_simp_free_dbg (const BtorPtrHashTable *table,
+                                const char *table_name)
+{
+  BtorPtrHashBucket *b;
+  for (b = table->first; b; b = b->next)
+    if (BTOR_REAL_ADDR_NODE (b->key)->simplified)
+    {
+      DBG_P ("** check_hash_table_simp_free: %s: ", 0, table_name);
+      DBG_P ("     node: ", BTOR_REAL_ADDR_NODE (b->key));
+      DBG_P ("     simp: ", BTOR_REAL_ADDR_NODE (b->key)->simplified);
+      return 0;
+    }
+  return 1;
+}
+
+static int
+check_all_hash_tables_simp_free_dbg (const Btor *btor)
+{
+  if (!check_hash_table_simp_free_dbg (btor->varsubst_constraints,
+                                       "varsubst_constraints"))
+    return 0;
+  if (!check_hash_table_simp_free_dbg (btor->embedded_constraints,
+                                       "embedded_constraints"))
+    return 0;
+  if (!check_hash_table_simp_free_dbg (btor->unsynthesized_constraints,
+                                       "unsynthesized_constraints"))
+    return 0;
+  if (!check_hash_table_simp_free_dbg (btor->synthesized_constraints,
+                                       "synthesized_constraints"))
+    return 0;
+  return 1;
+}
+
 int
 btor_precond_slice_exp_dbg (const Btor *btor,
                             const BtorNode *exp,
@@ -5220,13 +5254,25 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   assert (!btor->model_gen);
   assert (btor->rewrite_level > 1);
 
-  if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
-
-  if (btor->rewrite_reads) beta_reduce_reads_on_lambdas (btor);
-
-  DBG_P ("rewrite_reads %d\n", 0, btor->rewrite_reads);
-
   run_rewrite_engine (btor);
+
+  /* do not rewrite writes to lambdas in case of extensionality */
+  if (btor->ops[BTOR_AEQ_NODE] == 0)
+  {
+    if (btor->rewrite_writes)
+    {
+      rewrite_writes_to_lambda_exp (btor);
+      assert (btor->ops[BTOR_WRITE_NODE] == 0);
+    }
+
+    if (btor->rewrite_reads)
+    {
+      beta_reduce_reads_on_lambdas (btor);
+      assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
+    }
+
+    run_rewrite_engine (btor);
+  }
 
   if (btor->inconsistent)
   {
@@ -7232,7 +7278,7 @@ find_array_axiom_2_conflict (Btor *btor,
   return 0;
 }
 
-/* reads assumptions to the SAT solver */
+/* makes assumptions to the SAT solver */
 static int
 add_again_assumptions (Btor *btor)
 {
@@ -7537,16 +7583,15 @@ eval_exp (Btor *btor, BtorNode *exp)
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
-    {
-      fprintf (stderr,
-               "    work_stack[%d]: (%d) ",
-               i,
-               (BTOR_REAL_ADDR_NODE (work_stack.start[i]))->eval_mark);
-      dump_node (stderr, work_stack.start[i]);
-    }
-    for (i = 0; i < BTOR_COUNT_STACK (arg_stack); i++)
-      fprintf (stderr, "    arg_stack[%d]: %s ", i, arg_stack.start[i]);
+    //      for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
+    //	{
+    //	  fprintf (stderr, "    work_stack[%d]: (%d) ", i,
+    //	           (BTOR_REAL_ADDR_NODE (work_stack.start[i]))->eval_mark);
+    //	  dump_node (stderr, work_stack.start[i]);
+    //	}
+    //      for (i = 0; i < BTOR_COUNT_STACK (arg_stack); i++)
+    //	  fprintf (stderr, "    arg_stack[%d]: %s ", i, arg_stack.start[i]);
+    //
 
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
@@ -7653,7 +7698,6 @@ eval_exp (Btor *btor, BtorNode *exp)
         result = inv_result;
       }
 
-      DBG_P ("####################### push arg (%s) ", real_cur, result);
       BTOR_PUSH_STACK (mm, arg_stack, (char *) result);
     }
   }
@@ -7799,7 +7843,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   //	  dump_node (stderr, arg_stack.start[i]);
   //	}
   BETA_REDUCE_POP_WORK_STACK:
-    cur      = BTOR_POP_STACK (work_stack);
+    cur = BTOR_POP_STACK (work_stack);
+    assert (!BTOR_REAL_ADDR_NODE (cur)->simplified);  // TODO debug
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
@@ -10744,14 +10789,17 @@ run_rewrite_engine (Btor *btor)
   {
     rounds++;
     assert (check_all_hash_tables_proxy_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
     substitute_var_exps (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
     if (btor->inconsistent) break;
 
     if (btor->varsubst_constraints->count) break;
 
     process_embedded_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
     if (btor->inconsistent) break;
 
     if (btor->varsubst_constraints->count) continue;
@@ -10776,8 +10824,13 @@ run_rewrite_engine (Btor *btor)
       {
         process_skeleton (btor);
         assert (check_all_hash_tables_proxy_free_dbg (btor));
+        assert (check_all_hash_tables_simp_free_dbg (btor));
         if (btor->inconsistent) break;
       }
+
+      if (btor->varsubst_constraints->count) continue;
+
+      if (btor->embedded_constraints->count) continue;
     }
 #endif
   } while (btor->varsubst_constraints->count
@@ -10918,11 +10971,25 @@ btor_sat_aux_btor (Btor *btor)
 
   if (verbosity > 0) btor_msg_exp (btor, "calling SAT");
 
-  if (btor->rewrite_writes) rewrite_writes_to_lambda_exp (btor);
-
-  if (btor->rewrite_reads) beta_reduce_reads_on_lambdas (btor);
-
   run_rewrite_engine (btor);
+
+  /* do not rewrite writes to lambdas in case of extensionality */
+  if (btor->ops[BTOR_AEQ_NODE] == 0)
+  {
+    if (btor->rewrite_writes)
+    {
+      rewrite_writes_to_lambda_exp (btor);
+      assert (btor->ops[BTOR_WRITE_NODE] == 0);
+    }
+
+    if (btor->rewrite_reads)
+    {
+      beta_reduce_reads_on_lambdas (btor);
+      assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
+    }
+
+    run_rewrite_engine (btor);
+  }
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
@@ -10937,8 +11004,10 @@ btor_sat_aux_btor (Btor *btor)
   do
   {
     assert (check_all_hash_tables_proxy_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
     found_constraint_false = process_unsynthesized_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
 
     if (found_constraint_false)
     {
