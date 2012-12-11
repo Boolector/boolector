@@ -10791,6 +10791,10 @@ run_rewrite_engine (Btor *btor)
         assert (check_all_hash_tables_simp_free_dbg (btor));
         if (btor->inconsistent) break;
       }
+
+      if (btor->varsubst_constraints->count) continue;
+
+      if (btor->embedded_constraints->count) continue;
     }
 #endif
   } while (btor->varsubst_constraints->count
