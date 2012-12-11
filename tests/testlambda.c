@@ -252,13 +252,6 @@ unary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
 {
   init_lambda_test ();
   int lambda_index_bw = g_elem_bw;
-  int lambda_elem_bw  = g_elem_bw;
-
-  if (func == btor_redor_exp || func == btor_redxor_exp
-      || func == btor_redand_exp)
-  {
-    lambda_elem_bw = 1;
-  }
 
   BtorNode *var       = btor_var_exp (g_btor, g_elem_bw, "v1");
   BtorNode *expected  = func (g_btor, var);
@@ -1128,7 +1121,6 @@ test_lambda_reduce_nested_lambdas_add2 (void)
 {
   init_lambda_test ();
   int lambda_index_bw = g_elem_bw;
-  int lambda_elem_bw  = g_elem_bw;
   BtorNode *a         = btor_var_exp (g_btor, g_elem_bw, "a");
   BtorNode *b         = btor_var_exp (g_btor, g_elem_bw, "b");
   BtorNode *expected  = btor_add_exp (g_btor, a, b);
