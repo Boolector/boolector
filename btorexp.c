@@ -3547,6 +3547,30 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   return lambda_exp;
 }
 
+BtorNode *
+btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
+{
+  assert (btor);
+  assert (paramc > 0);
+  assert (params);
+  assert (exp);
+
+  int i;
+  BtorNode *fun      = btor_pointer_chase_simplified_exp (btor, exp);
+  BtorNode *prev_fun = 0;
+
+  for (i = paramc - 1; i >= 0; i--)
+  {
+    assert (params[i]);
+    assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])));
+    fun = btor_lambda_exp (btor, params[i], fun);
+    if (prev_fun) btor_release_exp (btor, prev_fun);
+    prev_fun = fun;
+  }
+
+  return fun;
+}
+
 static BtorNode *
 ternary_exp (Btor *btor,
              BtorNodeKind kind,
@@ -4749,6 +4773,47 @@ btor_dec_exp (Btor *btor, BtorNode *exp)
   one    = btor_one_exp (btor, BTOR_REAL_ADDR_NODE (exp)->len);
   result = btor_sub_exp (btor, exp, one);
   btor_release_exp (btor, one);
+  return result;
+}
+
+BtorNode *
+btor_apply (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
+{
+  assert (btor);
+  assert (argc >= 0);
+  assert (argc < 1 || args);
+  assert (lambda);
+
+  int i;
+  BtorNode *result, *cur;
+  BtorNodePtrStack unassign;
+  BtorMemMgr *mm;
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (unassign);
+
+  cur = lambda;
+  for (i = 0; i < argc; i++)
+  {
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_LAMBDA_NODE (cur));
+    assign_param (cur, args[i]);
+    BTOR_PUSH_STACK (mm, unassign, cur);
+    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
+  }
+
+  result = beta_reduce (btor, lambda, 0, &i);
+
+  cur = lambda;
+  while (!BTOR_EMPTY_STACK (unassign))
+  {
+    cur = BTOR_POP_STACK (unassign);
+    unassign_param (cur);
+  }
+
+  BTOR_RELEASE_STACK (mm, unassign);
+
   return result;
 }
 
@@ -7443,35 +7508,6 @@ unassign_param (BtorNode *lambda_exp)
   assert (param->assigned_exp);
   param->assigned_exp = 0;
 }
-
-// TODO: for testing only (for now)
-void
-btor_assign_param (BtorNode *lambda, BtorNode *exp)
-{
-  assert (lambda);
-  assert (exp);
-  assign_param (lambda, exp);
-}
-
-void
-btor_unassign_param (BtorNode *lambda)
-{
-  assert (lambda);
-  unassign_param (lambda);
-}
-
-BtorNode *
-btor_beta_reduce (Btor *btor, BtorNode *lambda)
-{
-  assert (btor);
-  assert (lambda);
-
-  int parameterized;
-
-  // TODO: set reduce_full_exp to 1
-  return beta_reduce (btor, lambda, 0, &parameterized);
-}
-// end
 
 static const char *
 eval_exp (Btor *btor, BtorNode *exp)

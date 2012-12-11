@@ -66,7 +66,7 @@
     }                                                     \
   } while (0)
 
-#define BTOR_ABORT_BV_BOLECTOR(arg)                        \
+#define BTOR_ABORT_BV_BOOLECTOR(arg)                       \
   do                                                       \
   {                                                        \
     if (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg)))) \
@@ -1096,7 +1096,7 @@ boolector_read (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_index);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
-  BTOR_ABORT_BV_BOLECTOR (e_array);
+  BTOR_ABORT_BV_BOOLECTOR (e_array);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_index);
   BTOR_ABORT_BOOLECTOR (
       e_array->index_len != BTOR_REAL_ADDR_NODE (e_index)->len,
@@ -1122,7 +1122,7 @@ boolector_write (Btor *btor,
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   e_value = btor_pointer_chase_simplified_exp (btor, e_value);
-  BTOR_ABORT_BV_BOLECTOR (e_array);
+  BTOR_ABORT_BV_BOOLECTOR (e_array);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_index);
   BTOR_ABORT_ARRAY_BOOLECTOR (e_value);
   BTOR_ABORT_BOOLECTOR (
@@ -1172,6 +1172,80 @@ boolector_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
                         "arrays must not have unequal index bit-width");
   btor->external_refs++;
   return btor_cond_exp (btor, e_cond, e_if, e_else);
+}
+
+BtorNode *
+boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (param);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (param);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)),
+                        "'param' must be a parameter");
+  btor->external_refs++;
+  return btor_lambda_exp (btor, param, exp);
+}
+
+BtorNode *
+boolector_param (Btor *btor, int width, const char *symbol)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+
+  btor->external_refs++;
+  if (symbol == NULL)
+    return btor_param_exp (btor, width, "DPN");
+  else
+    return btor_param_exp (btor, width, symbol);
+}
+
+BtorNode *
+boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (params);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_BOOLECTOR (paramc < 1, "'paramc' must not be < 1");
+
+  int i;
+
+  for (i = 0; i < paramc; i++)
+  {
+    BTOR_ABORT_BOOLECTOR (
+        !params[i] || BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])),
+        "'params[%d]' is not a parameter");
+    BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
+  }
+
+  btor->external_refs++;
+  return btor_fun_exp (btor, paramc, params, exp);
+}
+
+BtorNode *
+boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (lambda);
+  BTOR_ABORT_BOOLECTOR (argc < 0, "'argc' must not be < 0");
+  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
+                        "no arguments given but argc defined > 0");
+
+  int i;
+  BtorNode *cur = BTOR_REAL_ADDR_NODE (lambda);
+
+  for (i = 0; i < argc; i++)
+  {
+    BTOR_ABORT_BOOLECTOR (
+        !BTOR_IS_LAMBDA_NODE (cur),
+        "number of arguments muste be <= number of parameters in 'lambda'");
+    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
+  }
+
+  btor->external_refs++;
+  return btor_apply (btor, argc, args, lambda);
 }
 
 BtorNode *
@@ -1226,7 +1300,7 @@ boolector_get_width_index (Btor *btor, BtorNode *e_array)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
-  BTOR_ABORT_BV_BOLECTOR (e_array);
+  BTOR_ABORT_BV_BOOLECTOR (e_array);
   return btor_get_index_exp_len (btor, e_array);
 }
 
@@ -1349,7 +1423,7 @@ boolector_array_assignment (
   BTOR_ABORT_ARG_NULL_BOOLECTOR (size);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
-  BTOR_ABORT_BV_BOLECTOR (e_array);
+  BTOR_ABORT_BV_BOOLECTOR (e_array);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   btor_array_assignment_exp (btor, e_array, indices, values, size);

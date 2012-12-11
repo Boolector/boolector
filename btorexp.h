@@ -562,11 +562,6 @@ struct Btor
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 
-#define BTOR_IS_PARAMETERIZED_NODE(exp)                                       \
-  (((exp)->arity >= 1 && BTOR_REAL_ADDR_NODE ((exp)->e[0])->parameterized)    \
-   || ((exp)->arity >= 2 && BTOR_REAL_ADDR_NODE ((exp)->e[1])->parameterized) \
-   || ((exp)->arity == 3 && BTOR_REAL_ADDR_NODE ((exp)->e[2])->parameterized))
-
 /*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */
@@ -578,8 +573,11 @@ Btor *btor_clone_btor (Btor *);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
-/* Disable rewriting writes to Lambda expressions.  */
-void btor_disable_rewrite_writes (Btor *btor);
+/* Enable rewriting writes to Lambda expressions.  */
+void btor_enable_rewrite_writes (Btor *btor);
+
+/* Enable read elimination. */
+void btor_enable_rewrite_reads (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
@@ -999,10 +997,17 @@ BtorNode *btor_write_exp (Btor *btor,
                           BtorNode *e_index,
                           BtorNode *e_value);
 
-/* Lambda expression representing array of size 2 ^ 'index_len' with elements
- * of length 'elem_len'.
+/* Lambda expression with variable 'e_param' bound in 'e_exp'.
  */
 BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);
+
+/* Function expression with 'paramc' number of parameters 'params' and a
+ * function body 'exp'.
+ */
+BtorNode *btor_fun_exp (Btor *btor,
+                        int paramc,
+                        BtorNode **params,
+                        BtorNode *exp);
 
 /* If-then-else.
  * len(e_cond) = 1
@@ -1019,6 +1024,8 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
+
+BtorNode *btor_apply (Btor *btor, int argc, BtorNode **args, BtorNode *lambda);
 
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorNode *exp);
@@ -1124,12 +1131,6 @@ unsigned int btor_hash_exp_by_id (BtorNode *exp);
 
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
-
-// TODO: for testing only (for now)
-void btor_assign_param (BtorNode *lambda, BtorNode *exp);
-void btor_unassign_param (BtorNode *lambda);
-BtorNode *btor_beta_reduce (Btor *btor, BtorNode *lambda);
-// end
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
