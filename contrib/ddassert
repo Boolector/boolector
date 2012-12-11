@@ -12,6 +12,7 @@ trap "exit 0" SIGHUP SIGINT SIGTERM
 in=""
 errorlog=""
 cmd=""
+FAILEDDIR="ddassert-failed"
 
 while [ $# -gt 0 ]
 do
@@ -51,6 +52,7 @@ echo "*** in $in"
 echo "*** errorlog $errorlog"
 echo "*** cmd $cmd"
 error=$($cmd $in 2>&1 | grep Assertion)
+res=$?
 # initialize error log
 if [ ! -e $errorlog ]; then
   echo $error > $errorlog
@@ -60,5 +62,10 @@ expected=$(cat $errorlog)
 if [ "$error" = "$expected" ]; then
   exit 1
 else
+  # if file triggered other assertion errors, then save it
+  if [[ $res != 10 && $res != 20 ]]; then
+    mkdir -p $FAILEDDIR
+    cp $in "$FAILEDDIR/$$-$(basename $in).btor"
+  fi
   exit 0
 fi
