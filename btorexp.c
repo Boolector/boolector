@@ -2401,6 +2401,8 @@ update_constraints (Btor *btor, BtorNode *exp)
     neg = synthesized_constraints;
   }
 
+  exp->constraint = 0;
+
   if (pos)
   {
     btor_remove_from_ptr_hash_table (pos, exp, 0, 0);
@@ -2412,8 +2414,6 @@ update_constraints (Btor *btor, BtorNode *exp)
     btor_remove_from_ptr_hash_table (neg, not_exp, 0, 0);
     btor_release_exp (btor, not_exp);
   }
-
-  exp->constraint = 0;
 }
 
 static void
@@ -2440,10 +2440,10 @@ set_simplified_exp (Btor *btor,
 
   exp->simplified = btor_copy_exp (btor, simplified);
 
-  if (!overwrite) return;
-
-  /* do we have to update a constraint ? */
+  /* TODO: do we really have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
+
+  if (!overwrite) return;
 
   if (exp->kind == BTOR_AEQ_NODE && exp->vreads)
   {
