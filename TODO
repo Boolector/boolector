@@ -1,0 +1,19 @@
+===============================================================================
+TODO
+===============================================================================
+
++ model-based tester
+
++ logging revisited ?
+    -> debug related code with higher verbosity levels?
+
++ rewrite aconds (writes/lambdas as children) to bvconds
+    -> first: only for -rwr
+
+
+
+===============================================================================
+DONE, but not yet committed    
+===============================================================================
+
++ beta_reduce: hash reduced expressions
