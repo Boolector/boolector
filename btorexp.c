@@ -30,7 +30,7 @@
 #include <string.h>
 
 // debug
-#if 1
+#if 0
 #define DBG_P(msg, node, ...) \
   do                          \
   {                           \
@@ -1217,6 +1217,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
   do
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+
     if (cur->refs > 1)
       cur->refs--;
     else
@@ -2341,6 +2342,7 @@ connect_array_child_aeq_exp (Btor *btor,
 static void
 update_constraints (Btor *btor, BtorNode *exp)
 {
+  int i;
   BtorPtrHashTable *unsynthesized_constraints, *synthesized_constraints;
   BtorPtrHashTable *embedded_constraints, *pos, *neg;
   BtorNode *simplified, *not_simplified, *not_exp;
@@ -2406,13 +2408,13 @@ update_constraints (Btor *btor, BtorNode *exp)
   if (pos)
   {
     btor_remove_from_ptr_hash_table (pos, exp, 0, 0);
-    btor_release_exp (btor, exp);
+    if (has_parents_exp (btor, exp)) btor_release_exp (btor, exp);
   }
 
   if (neg)
   {
     btor_remove_from_ptr_hash_table (neg, not_exp, 0, 0);
-    btor_release_exp (btor, not_exp);
+    if (has_parents_exp (btor, not_exp)) btor_release_exp (btor, not_exp);
   }
 }
 
@@ -2440,10 +2442,15 @@ set_simplified_exp (Btor *btor,
 
   exp->simplified = btor_copy_exp (btor, simplified);
 
-  /* TODO: do we really have to update a constraint ? */
-  if (exp->constraint) update_constraints (btor, exp);
-
   if (!overwrite) return;
+
+  /* FIXME? moved this back down here (aina)
+   *	    -> is it really not necessary if (!overwrite)?
+   *	    -> rw213, regrembeddedconstraint1, and regrembeddedconstraint2
+   *	       fail otherwise!
+   *
+   * do we have to update a constraint ? */
+  if (exp->constraint) update_constraints (btor, exp);
 
   if (exp->kind == BTOR_AEQ_NODE && exp->vreads)
   {
@@ -7843,8 +7850,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   //	  dump_node (stderr, arg_stack.start[i]);
   //	}
   BETA_REDUCE_POP_WORK_STACK:
-    cur = BTOR_POP_STACK (work_stack);
-    assert (!BTOR_REAL_ADDR_NODE (cur)->simplified);  // TODO debug
+    cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
@@ -10789,17 +10795,18 @@ run_rewrite_engine (Btor *btor)
   {
     rounds++;
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
+    //      assert (check_all_hash_tables_simp_free_dbg (btor));
     substitute_var_exps (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
+    //      assert (check_all_hash_tables_simp_free_dbg (btor));
     if (btor->inconsistent) break;
 
     if (btor->varsubst_constraints->count) break;
 
     process_embedded_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
+    //      assert (check_all_hash_tables_simp_free_dbg (btor));
+
     if (btor->inconsistent) break;
 
     if (btor->varsubst_constraints->count) continue;
@@ -10824,7 +10831,7 @@ run_rewrite_engine (Btor *btor)
       {
         process_skeleton (btor);
         assert (check_all_hash_tables_proxy_free_dbg (btor));
-        assert (check_all_hash_tables_simp_free_dbg (btor));
+        //	      assert (check_all_hash_tables_simp_free_dbg (btor));
         if (btor->inconsistent) break;
       }
 
@@ -10876,7 +10883,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
   int parameterized, pos;
   BtorMemMgr *mm;
-  BtorNode *parent, *lambda, *read, *red;
+  BtorNode *parent, *lambda, *tagged_read, *read, *red;
   BtorNodePtrStack reads_stack, unmark_stack;
   BtorPtrHashBucket *bucket;
   BtorPartialParentIterator pit;
@@ -10894,14 +10901,15 @@ beta_reduce_reads_on_lambdas (Btor *btor)
     init_read_parent_iterator (&pit, lambda);
     while (has_next_parent_read_parent_iterator (&pit))
     {
-      read = next_parent_read_parent_iterator (&pit);
+      tagged_read = pit.cur;
+      read        = next_parent_read_parent_iterator (&pit);
 
       if (read->mark) continue;
 
       read->mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, read);
 
-      if (!read->parameterized) BTOR_PUSH_STACK (mm, reads_stack, read);
+      if (!read->parameterized) BTOR_PUSH_STACK (mm, reads_stack, tagged_read);
     }
   }
 
@@ -10916,17 +10924,28 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
   while (!BTOR_EMPTY_STACK (reads_stack))
   {
-    read = BTOR_POP_STACK (reads_stack);
-    assert (BTOR_IS_REGULAR_NODE (read));
-    red = beta_reduce (btor, read, 0, &parameterized);
-    if (red != read)
+    tagged_read = BTOR_POP_STACK (reads_stack);
+    read        = BTOR_REAL_ADDR_NODE (tagged_read);
+    red         = beta_reduce (btor, read, 0, &parameterized);
+    if (red != tagged_read)
     {
       init_full_parent_iterator (&fit, read);
-      while (has_next_parent_full_parent_iterator (&fit))
+
+      // TODO use simplified_exp instead?
+      if (!has_next_parent_full_parent_iterator (&fit)) /* root */
       {
-        pos    = BTOR_GET_TAG_NODE (fit.cur);
-        parent = next_parent_full_parent_iterator (&fit);
-        replace_child_exp (btor, parent, red, pos);
+        //	      inc_exp_ref_counter (btor, read);
+        set_simplified_exp (btor, read, red, 1);
+        //	      btor_release_exp (btor, read);
+      }
+      else
+      {
+        while (has_next_parent_full_parent_iterator (&fit))
+        {
+          pos    = BTOR_GET_TAG_NODE (fit.cur);
+          parent = next_parent_full_parent_iterator (&fit);
+          replace_child_exp (btor, parent, red, pos);
+        }
       }
     }
     btor_release_exp (btor, red);
@@ -11004,10 +11023,10 @@ btor_sat_aux_btor (Btor *btor)
   do
   {
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
+    //    assert (check_all_hash_tables_simp_free_dbg (btor));
     found_constraint_false = process_unsynthesized_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    assert (check_all_hash_tables_simp_free_dbg (btor));
+    //    assert (check_all_hash_tables_simp_free_dbg (btor));
 
     if (found_constraint_false)
     {
