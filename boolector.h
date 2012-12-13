@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -860,7 +861,6 @@ BtorNode *boolector_cond (Btor *btor,
  * \param param Parameter bound by lambda expression.
  * \param exp Lambda expression body.
  */
-// TODO: obsolete? -> boolector_fun (btor, 1, &param, exp);
 BtorNode *boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp);
 
 /**
