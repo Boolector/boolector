@@ -860,6 +860,7 @@ BtorNode *boolector_cond (Btor *btor,
  * \param param Parameter bound by lambda expression.
  * \param exp Lambda expression body.
  */
+// TODO: obsolete? -> boolector_fun (btor, 1, &param, exp);
 BtorNode *boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp);
 
 /**
@@ -882,17 +883,20 @@ BtorNode *boolector_fun (Btor *btor,
                          BtorNode **params,
                          BtorNode *exp);
 
-/**
- * Applies arguments to lambda expression.
- * \param btor Boolector instance.
- * \param argc Number of arguments to be applied.
- * \param args Arguments to be applied.
- * \param lambda Lambda expression.
- */
+///**
+// * Applies arguments to lambda expression and evaluates it.
+// * \param btor Boolector instance.
+// * \param argc Number of arguments to be applied.
+// * \param args Arguments to be applied.
+// * \param lambda Lambda expression.
+// */
+// BtorNode *boolector_eval (Btor * btor, int argc, BtorNode ** args,
+//			  BtorNode * lambda);
+
 BtorNode *boolector_apply (Btor *btor,
                            int argc,
                            BtorNode **args,
-                           BtorNode *lambda);
+                           BtorNode *fun);
 
 /**
  * Increments bit-vector by one.

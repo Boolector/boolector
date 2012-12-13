@@ -1009,6 +1009,13 @@ BtorNode *btor_fun_exp (Btor *btor,
                         BtorNode **params,
                         BtorNode *exp);
 
+/* Apply node that applies 'args' to 'lambda'.
+ */
+BtorNode *btor_apply_exp (Btor *btor,
+                          int argc,
+                          BtorNode **args,
+                          BtorNode *lambda);
+
 /* If-then-else.
  * len(e_cond) = 1
  * len(e_if) = len(e_else)
@@ -1025,7 +1032,14 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
-BtorNode *btor_apply (Btor *btor, int argc, BtorNode **args, BtorNode *lambda);
+/* Apply 'args' to parameters of lambdas and reduce 'lambda' */
+BtorNode *btor_apply_and_reduce (Btor *btor,
+                                 int argc,
+                                 BtorNode **args,
+                                 BtorNode *lambda);
+
+/* Beta reduce 'exp' */
+BtorNode *btor_reduce (Btor *btor, BtorNode *exp);
 
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorNode *exp);
