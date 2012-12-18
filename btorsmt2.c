@@ -2188,12 +2188,12 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
       {
         extfun = btor_rotate_left_smt2;
-        goto BINARY_BV_FUN;
+        goto UNARY_BV_FUN;
       }
       else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
       {
         extfun = btor_rotate_right_smt2;
-        goto BINARY_BV_FUN;
+        goto UNARY_BV_FUN;
       }
       else if (tag == BTOR_BVULE_TAG_SMT2)
       {
