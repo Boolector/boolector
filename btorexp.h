@@ -331,6 +331,9 @@ struct Btor
   int valid_assignments;
   int rewrite_level;
   int verbosity;
+#ifndef NBTORLOG
+  int loglevel;
+#endif
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
@@ -575,8 +578,9 @@ Btor *btor_clone_btor (Btor *);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
-/* Disable rewriting writes to Lambda expressions.  */
+/* Enabled / Disable rewriting writes to Lambda expressions.  */
 void btor_disable_rewrite_writes (Btor *btor);
+void btor_enable_rewrite_writes (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
@@ -597,6 +601,12 @@ int btor_set_sat_solver (Btor *, const char *);
  * does not print any output.
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
+
+/* Set log level.
+ */
+#ifndef NBTORLOG
+void btor_set_loglevel_btor (Btor *btor, int loglevel);
+#endif
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);
@@ -1129,8 +1139,8 @@ unsigned int btor_hash_exp_by_id (BtorNode *exp);
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
 // TODO: for testing only (for now)
-void btor_assign_param (BtorNode *lambda, BtorNode *exp);
-void btor_unassign_param (BtorNode *lambda);
+void btor_assign_param (Btor *, BtorNode *lambda, BtorNode *exp);
+void btor_unassign_param (Btor *, BtorNode *lambda);
 BtorNode *btor_beta_reduce (Btor *btor, BtorNode *lambda);
 // end
 
