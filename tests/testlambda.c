@@ -69,7 +69,7 @@ assert_not_parameterized (int argc, ...)
  *---------------------------------------------------------------------------*/
 
 static void
-test_lambda_const_lambda_const (void)
+test_lambda_const_lambda_const (Btor *btor)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -79,9 +79,9 @@ test_lambda_const_lambda_const (void)
   BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, x, c);
 
   /* (lambda x . 0) (i) */
-  btor_assign_param (lambda, i);
+  btor_assign_param (btor, lambda, i);
   result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (btor, lambda);
   assert (result == c);
   assert_not_parameterized (1, result);
   btor_release_exp (g_btor, result);
@@ -102,7 +102,7 @@ test_lambda_const_lambda_const (void)
 }
 
 static void
-test_lambda_const_lambda_var (void)
+test_lambda_const_lambda_var (Btor *btor)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -112,9 +112,9 @@ test_lambda_const_lambda_var (void)
   BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, x, a);
 
   /* (lambda x . a) (i) */
-  btor_assign_param (lambda, i);
+  btor_assign_param (btor, lambda, i);
   result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (btor, lambda);
   assert (result == a);
   assert_not_parameterized (1, result);
   btor_release_exp (g_btor, result);
@@ -135,7 +135,7 @@ test_lambda_const_lambda_var (void)
 }
 
 static void
-test_lambda_const_lambda_param (void)
+test_lambda_const_lambda_param (Btor *btor)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -144,9 +144,9 @@ test_lambda_const_lambda_param (void)
   BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, x, x);
 
   /* (lambda x . x) (a) */
-  btor_assign_param (lambda, a);
+  btor_assign_param (btor, lambda, a);
   result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (btor, lambda);
   assert (result == a);
   assert_not_parameterized (1, result);
   btor_release_exp (g_btor, result);
@@ -177,9 +177,9 @@ test_lambda_const_lambda_negated (void)
   BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, x, not_x);
 
   /* (lambda x . not (x)) (not (a)) */
-  btor_assign_param (lambda, not_a);
+  btor_assign_param (g_btor, lambda, not_a);
   result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
   assert (result == a);
   assert_not_parameterized (1, result);
   btor_release_exp (g_btor, result);
@@ -247,9 +247,9 @@ unary_param_exp_test (BtorNode *(*func) (Btor *, BtorNode *) )
   BtorNode *lambda    = btor_lambda_exp (
       g_btor, lambda_elem_bw, lambda_index_bw, param, param_exp);
 
-  btor_assign_param (lambda, var);
+  btor_assign_param (g_btor, lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -308,9 +308,9 @@ test_lambda_param_slice (void)
   BtorNode *lambda =
       btor_lambda_exp (g_btor, slice->len, g_elem_bw, param, slice);
 
-  btor_assign_param (lambda, var);
+  btor_assign_param (g_btor, lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -339,9 +339,9 @@ param_extension_test (BtorNode *(*func) (Btor *, BtorNode *, int) )
   BtorNode *lambda =
       btor_lambda_exp (g_btor, param_exp->len, lower, param, param_exp);
 
-  btor_assign_param (lambda, var);
+  btor_assign_param (g_btor, lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -413,12 +413,12 @@ binary_param_exp_test (int param_pos,
       g_btor, BTOR_REAL_ADDR_NODE (param_exp)->len, x->len, x, param_exp);
 
   if (param_pos == 0)
-    btor_assign_param (lambda, v1);
+    btor_assign_param (g_btor, lambda, v1);
   else
-    btor_assign_param (lambda, v2);
+    btor_assign_param (g_btor, lambda, v2);
 
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -720,9 +720,9 @@ test_lambda_param_read (void)
   BtorNode *read     = btor_read_exp (g_btor, a, x);
   BtorNode *lambda   = btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, x, read);
 
-  btor_assign_param (lambda, i);
+  btor_assign_param (g_btor, lambda, i);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -758,9 +758,9 @@ test_lambda_param_write1 (void)
   BtorNode *param_exp = btor_write_exp (g_btor, a, i, x);
   BtorNode *lambda = btor_lambda_exp (g_btor, elem_bw, index_bw, x, param_exp);
 
-  btor_assign_param (lambda, e);
+  btor_assign_param (g_btor, lambda, e);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -792,9 +792,9 @@ test_lambda_param_write2 (void)
   BtorNode *lambda =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, x, param_exp);
 
-  btor_assign_param (lambda, i);
+  btor_assign_param (g_btor, lambda, i);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -825,9 +825,9 @@ test_lambda_param_bcond1 (void)
   BtorNode *param_exp = btor_cond_exp (g_btor, x, v2, v3);
   BtorNode *lambda    = btor_lambda_exp (g_btor, g_elem_bw, 1, x, param_exp);
 
-  btor_assign_param (lambda, v1);
+  btor_assign_param (g_btor, lambda, v1);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -858,9 +858,9 @@ test_lambda_param_bcond2 (void)
   BtorNode *param_exp = btor_cond_exp (g_btor, v1, x, v3);
   BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, x->len, x, param_exp);
 
-  btor_assign_param (lambda, v2);
+  btor_assign_param (g_btor, lambda, v2);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -891,9 +891,9 @@ test_lambda_param_bcond3 (void)
   BtorNode *param_exp = btor_cond_exp (g_btor, v1, v2, x);
   BtorNode *lambda = btor_lambda_exp (g_btor, g_elem_bw, x->len, x, param_exp);
 
-  btor_assign_param (lambda, v3);
+  btor_assign_param (g_btor, lambda, v3);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -933,9 +933,9 @@ test_lambda_param_acond (void)
   BtorNode *lambda =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, param_exp);
 
-  btor_assign_param (lambda, var);
+  btor_assign_param (g_btor, lambda, var);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -979,9 +979,9 @@ test_lambda_reduce_write1 (void)
   BtorNode *lambda =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, cond);
 
-  btor_assign_param (lambda, i);
+  btor_assign_param (g_btor, lambda, i);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == e);
 
@@ -1012,9 +1012,9 @@ test_lambda_reduce_write2 (void)
   BtorNode *lambda =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param, cond);
 
-  btor_assign_param (lambda, i);
+  btor_assign_param (g_btor, lambda, i);
   BtorNode *result = btor_beta_reduce (g_btor, lambda);
-  btor_unassign_param (lambda);
+  btor_unassign_param (g_btor, lambda);
 
   assert (result == expected);
 
@@ -1054,9 +1054,9 @@ test_lambda_reduce_nested_writes (void)
   BtorNode *lambda1 =
       btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, param1, cond1);
 
-  btor_assign_param (lambda1, i);
+  btor_assign_param (g_btor, lambda1, i);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
-  btor_unassign_param (lambda1);
+  btor_unassign_param (g_btor, lambda1);
 
   assert (result == e2);
 
@@ -1093,11 +1093,11 @@ test_lambda_reduce_nested_lambdas_add1 (void)
   BtorNode *lambda1 =
       btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, x, lambda2);
 
-  btor_assign_param (lambda2, b);
-  btor_assign_param (lambda1, a);
+  btor_assign_param (g_btor, lambda2, b);
+  btor_assign_param (g_btor, lambda1, a);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
-  btor_unassign_param (lambda2);
-  btor_unassign_param (lambda1);
+  btor_unassign_param (g_btor, lambda2);
+  btor_unassign_param (g_btor, lambda1);
 
   assert (result == expected);
 
@@ -1132,9 +1132,9 @@ test_lambda_reduce_nested_lambdas_add2 (void)
   BtorNode *lambda1 =
       btor_lambda_exp (g_btor, lambda_elem_bw, lambda_index_bw, x, add);
 
-  btor_assign_param (lambda1, a);
+  btor_assign_param (g_btor, lambda1, a);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
-  btor_unassign_param (lambda1);
+  btor_unassign_param (g_btor, lambda1);
 
   assert (result == expected);
 
@@ -1169,9 +1169,9 @@ test_lambda_reduce_nested_lambdas_read (void)
   BtorNode *expected_add = btor_add_exp (g_btor, a, var);
   BtorNode *expected     = btor_not_exp (g_btor, expected_add);
 
-  btor_assign_param (lambda1, a);
+  btor_assign_param (g_btor, lambda1, a);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
-  btor_unassign_param (lambda1);
+  btor_unassign_param (g_btor, lambda1);
 
   assert (result == expected);
 
@@ -1221,12 +1221,13 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
         btor_lambda_exp (g_btor, g_elem_bw, g_index_bw, params[i], exp);
   }
 
-  for (i = 0; i < nesting_lvl; i++) btor_assign_param (lambdas[i], indices[i]);
+  for (i = 0; i < nesting_lvl; i++)
+    btor_assign_param (g_btor, lambdas[i], indices[i]);
 
   result = btor_beta_reduce (g_btor, lambdas[0]);
   assert (result == var);
 
-  for (i = 0; i < nesting_lvl; i++) btor_unassign_param (lambdas[i]);
+  for (i = 0; i < nesting_lvl; i++) btor_unassign_param (g_btor, lambdas[i]);
 
   for (i = 0; i < nesting_lvl; i++)
   {
@@ -1257,9 +1258,9 @@ test_lambda_partial_reduce_nested_lambdas_add1 (void)
   BtorNode *lambda1 =
       btor_lambda_exp (g_btor, g_elem_bw, g_elem_bw, x, lambda2);
 
-  btor_assign_param (lambda1, a);
+  btor_assign_param (g_btor, lambda1, a);
   BtorNode *result = btor_beta_reduce (g_btor, lambda1);
-  btor_unassign_param (lambda1);
+  btor_unassign_param (g_btor, lambda1);
 
   /* expected: lambda y' . (a + y') */
   assert (BTOR_IS_LAMBDA_NODE (result));
