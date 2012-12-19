@@ -1705,6 +1705,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
   int tag, width, domain, len, nargs, i, j, open = 0;
   BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *);
   BtorNode *(*extfun) (Btor *, BtorNode *, int);
+  BtorNode *(*rotatefun) (Btor *, BtorNode *, int);
   BtorNode *(*unaryfun) (Btor *, BtorNode *);
   BtorNode *res, *exp, *tmp, *old;
   BtorSMT2Item *l, *p;
@@ -2187,13 +2188,18 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       }
       else if (tag == BTOR_ROTATE_LEFT_TAG_SMT2)
       {
-        extfun = btor_rotate_left_smt2;
-        goto BINARY_BV_FUN;
+        rotatefun = btor_rotate_left_smt2;
+      ROTATE_BV_FUN:
+        if (!btor_check_nargs_smt2 (parser, p, nargs, 1)) return 0;
+        if (!btor_check_not_array_args_smt2 (parser, p, nargs)) return 0;
+        width = btor_get_exp_len (parser->btor, p[1].exp);
+        exp   = rotatefun (parser->btor, p[1].exp, p->num % width);
+        goto RELEASE_EXP_AND_OVERWRITE;
       }
       else if (tag == BTOR_ROTATE_RIGHT_TAG_SMT2)
       {
-        extfun = btor_rotate_right_smt2;
-        goto BINARY_BV_FUN;
+        rotatefun = btor_rotate_right_smt2;
+        goto ROTATE_BV_FUN;
       }
       else if (tag == BTOR_BVULE_TAG_SMT2)
       {

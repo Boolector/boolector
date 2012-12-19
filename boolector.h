@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -882,17 +883,20 @@ BtorNode *boolector_fun (Btor *btor,
                          BtorNode **params,
                          BtorNode *exp);
 
-/**
- * Applies arguments to lambda expression.
- * \param btor Boolector instance.
- * \param argc Number of arguments to be applied.
- * \param args Arguments to be applied.
- * \param lambda Lambda expression.
- */
+///**
+// * Applies arguments to lambda expression and evaluates it.
+// * \param btor Boolector instance.
+// * \param argc Number of arguments to be applied.
+// * \param args Arguments to be applied.
+// * \param lambda Lambda expression.
+// */
+// BtorNode *boolector_eval (Btor * btor, int argc, BtorNode ** args,
+//			  BtorNode * lambda);
+
 BtorNode *boolector_apply (Btor *btor,
                            int argc,
                            BtorNode **args,
-                           BtorNode *lambda);
+                           BtorNode *fun);
 
 /**
  * Increments bit-vector by one.

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1224,28 +1225,52 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   return btor_fun_exp (btor, paramc, params, exp);
 }
 
+// BtorNode *
+// boolector_eval (Btor * btor, int argc, BtorNode ** args, BtorNode * lambda)
+//{
+//  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+//  BTOR_ABORT_ARG_NULL_BOOLECTOR (lambda);
+//  BTOR_ABORT_BOOLECTOR (argc < 0, "'argc' must not be < 0");
+//  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
+//                        "no arguments given but argc defined > 0");
+//
+//  int i;
+//  BtorNode *cur = BTOR_REAL_ADDR_NODE (lambda);
+//
+//  for (i = 0; i < argc; i++)
+//    {
+//      BTOR_ABORT_BOOLECTOR (!BTOR_IS_LAMBDA_NODE (cur),
+//	"number of arguments muste be <= number of parameters in 'lambda'");
+//      cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
+//    }
+//
+//  btor->external_refs++;
+//  return btor_eval (btor, argc, args, lambda);
+//}
+
+// TODO: allow partial application?
 BtorNode *
-boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
+boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (lambda);
-  BTOR_ABORT_BOOLECTOR (argc < 0, "'argc' must not be < 0");
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
+  BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
 
   int i;
-  BtorNode *cur = BTOR_REAL_ADDR_NODE (lambda);
+  BtorNode *cur = BTOR_REAL_ADDR_NODE (fun);
 
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
         !BTOR_IS_LAMBDA_NODE (cur),
-        "number of arguments muste be <= number of parameters in 'lambda'");
+        "number of arguments muste be <= number of parameters in 'fun'");
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
 
   btor->external_refs++;
-  return btor_apply (btor, argc, args, lambda);
+  return btor_apply_exp (btor, argc, args, fun);
 }
 
 BtorNode *
