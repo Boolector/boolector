@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -43,10 +44,13 @@ void
 init_comp_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_COMP_TEMP_FILE_NAME, "w");
+  int pos_rww, pos_rwr;
+
   assert (f != NULL);
   fclose (f);
 
-  if (g_rwwrites) g_argc += 1;
+  if (g_rwwrites) pos_rww = g_argc++ - 1;
+  if (g_rwreads) pos_rwr = g_argc++ - 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
@@ -55,7 +59,8 @@ init_comp_tests (void)
   g_argv[2] = "-o";
   g_argv[3] = "/dev/null";
 
-  if (g_rwwrites) g_argv[g_argc - 2] = "-rww";
+  if (g_rwwrites) g_argv[pos_rww] = "-rww";
+  if (g_rwreads) g_argv[pos_rwr] = "-rwr";
 
   g_argv[g_argc - 1] = BTOR_TEST_COMP_TEMP_FILE_NAME;
 }

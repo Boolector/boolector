@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -31,6 +32,8 @@
 #include <unistd.h>
 
 int g_rwwrites;
+int g_rwreads;
+
 FILE *g_logfile = NULL;
 
 static int g_skip_broken;
@@ -114,6 +117,9 @@ static const char *normaltests[] = {
 };
 
 static const char *brokentests[] = {
+    /* currently broken due to extensionality issues */
+    "lambda_partial_reduce_nested_lambdas_add1",
+
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
 
@@ -269,11 +275,14 @@ run_test_case (
 
   count      = 0;
   g_rwwrites = 0;
+  g_rwreads  = 0;
   for (i = 1; i < argc; i++)
   {
     count += (argv[i][0] != '-');
     if (strcmp (argv[i], "-r") == 0 || strcmp (argv[i], "--rww") == 0)
       g_rwwrites = 1;
+    else if (strcmp (argv[i], "-R") == 0 || strcmp (argv[i], "--rwr") == 0)
+      g_rwreads = 1;
   }
 
   if (!skip && count)

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2010 Robert Daniel Brummayer.
  *  Copyright (C) 2010-2012 Armin Biere.
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -144,9 +145,10 @@ typedef struct BtorNodePair BtorNodePair;
   {                                                                         \
     BtorNodeKind kind : 5;          /* kind of expression */                \
     unsigned int mark : 3;          /* for DAG traversal */                 \
-    unsigned int array_mark : 1;    /* for bottom up array traversal */     \
     unsigned int aux_mark : 2;      /* auxiliary mark flag */               \
+    unsigned int array_mark : 1;    /* for bottom up array traversal */     \
     unsigned int beta_mark : 2;     /* mark for beta_reduce */              \
+    unsigned int beta_aux_mark : 1; /* aux mark for beta_reduce */          \
     unsigned int eval_mark : 2;     /* mark for eval_exp */                 \
     unsigned int synth_mark : 2;    /* mark for synthesize_exp */           \
     unsigned int reachable : 1;     /* reachable from root ? */             \
@@ -343,6 +345,7 @@ struct Btor
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
   int rewrite_writes;       /* rewrite writes to lambda expressions */
+  int rewrite_reads;        /* rewrite reads on lambda expressions */
   int pprint;               /* reindex exps when dumping */
 
   BtorPtrHashTable *exp_pair_eq_table;
@@ -558,14 +561,9 @@ struct Btor
        ? (exp)->e[0]              \
        : (BTOR_IS_WRITE_NODE (exp) ? (exp) : BTOR_LAMBDA_TARGET_NODE (exp)))
 //  (BTOR_IS_READ_NODE(exp) ? (exp)->e[0] : (exp))
-///////
+// end FIXME ///////////////////////////////////////////////////////////////////
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
-
-#define BTOR_IS_PARAMETERIZED_NODE(exp)                                       \
-  (((exp)->arity >= 1 && BTOR_REAL_ADDR_NODE ((exp)->e[0])->parameterized)    \
-   || ((exp)->arity >= 2 && BTOR_REAL_ADDR_NODE ((exp)->e[1])->parameterized) \
-   || ((exp)->arity == 3 && BTOR_REAL_ADDR_NODE ((exp)->e[2])->parameterized))
 
 /*------------------------------------------------------------------------*/
 
@@ -578,9 +576,11 @@ Btor *btor_clone_btor (Btor *);
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 
-/* Enabled / Disable rewriting writes to Lambda expressions.  */
-void btor_disable_rewrite_writes (Btor *btor);
+/* Enable rewriting of writes to lambda expressions. */
 void btor_enable_rewrite_writes (Btor *btor);
+
+/* Enable rewriting of reads on lambda expressions. */
+void btor_enable_rewrite_reads (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
@@ -697,17 +697,6 @@ BtorNode *btor_var_exp (Btor *btor, int len, const char *symbol);
  * len(result) = len
  */
 BtorNode *btor_param_exp (Btor *btor, int len, const char *symbol);
-
-/* Lambda expression representing array of size 2 ^ 'index_len' with elements
- * of length 'elem_len'.
- * elem_len > 0
- * index_len > 0
- */
-BtorNode *btor_lambda_exp (Btor *btor,
-                           int elem_len,
-                           int index_len,
-                           BtorNode *e_param,
-                           BtorNode *e_exp);
 
 /* Array of size 2 ^ 'index_len' with elements of length 'elem_len'.
  * elem_len > 0
@@ -1017,6 +1006,25 @@ BtorNode *btor_write_exp (Btor *btor,
                           BtorNode *e_index,
                           BtorNode *e_value);
 
+/* Lambda expression with variable 'e_param' bound in 'e_exp'.
+ */
+BtorNode *btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp);
+
+/* Function expression with 'paramc' number of parameters 'params' and a
+ * function body 'exp'.
+ */
+BtorNode *btor_fun_exp (Btor *btor,
+                        int paramc,
+                        BtorNode **params,
+                        BtorNode *exp);
+
+/* Apply node that applies 'args' to 'lambda'.
+ */
+BtorNode *btor_apply_exp (Btor *btor,
+                          int argc,
+                          BtorNode **args,
+                          BtorNode *lambda);
+
 /* If-then-else.
  * len(e_cond) = 1
  * len(e_if) = len(e_else)
@@ -1032,6 +1040,15 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
+
+/* Apply 'args' to parameters of lambdas and reduce 'lambda' */
+BtorNode *btor_apply_and_reduce (Btor *btor,
+                                 int argc,
+                                 BtorNode **args,
+                                 BtorNode *lambda);
+
+/* Beta reduce 'exp' */
+BtorNode *btor_reduce (Btor *btor, BtorNode *exp);
 
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorNode *exp);
@@ -1137,12 +1154,6 @@ unsigned int btor_hash_exp_by_id (BtorNode *exp);
 
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
-
-// TODO: for testing only (for now)
-void btor_assign_param (Btor *, BtorNode *lambda, BtorNode *exp);
-void btor_unassign_param (Btor *, BtorNode *lambda);
-BtorNode *btor_beta_reduce (Btor *btor, BtorNode *lambda);
-// end
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

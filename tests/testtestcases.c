@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -51,7 +52,7 @@ run_testcases_tests (int argc, char **argv)
   BtorMemMgr *mem;
   char *token;
   FILE *file;
-  int ch, i;
+  int ch;
 
   assert ((file = fopen ("tests/testcases", "r")));
 
@@ -86,14 +87,14 @@ run_testcases_tests (int argc, char **argv)
 
     assert (BTOR_EMPTY_STACK (g_args));
 
-    i     = 0;
     token = strtok (buffer.start, " \t");
     while (token)
     {
       BTOR_PUSH_STACK (mem, g_args, token);
       token = strtok (0, " \t");
-      if (i++ == 0 && g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-rww");
     }
+    if (g_rwwrites) BTOR_PUSH_STACK (mem, g_args, "-rww");
+    if (g_rwreads) BTOR_PUSH_STACK (mem, g_args, "-rwr");
 
     BTOR_RESET_STACK (buffer);
 

@@ -2,9 +2,10 @@
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
-
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  *  This file is part of Boolector.

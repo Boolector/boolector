@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -36,7 +37,10 @@ static char **g_argv = NULL;
 void
 init_special_tests (void)
 {
-  if (g_rwwrites) g_argc += 1;
+  int pos_rww, pos_rwr;
+
+  if (g_rwwrites) pos_rww = g_argc++ - 1;
+  if (g_rwreads) pos_rwr = g_argc++ - 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
 
@@ -44,7 +48,8 @@ init_special_tests (void)
   g_argv[1] = "-o";
   g_argv[2] = "/dev/null";
 
-  if (g_rwwrites) g_argv[g_argc - 2] = "-rww";
+  if (g_rwwrites) g_argv[pos_rww] = "-rww";
+  if (g_rwreads) g_argv[pos_rwr] = "-rwr";
 }
 
 static void

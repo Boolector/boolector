@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -853,6 +854,49 @@ BtorNode *boolector_cond (Btor *btor,
                           BtorNode *e_cond,
                           BtorNode *e_if,
                           BtorNode *e_else);
+
+/**
+ * Lambda expression.
+ * \param btor Boolector instance.
+ * \param param Parameter bound by lambda expression.
+ * \param exp Lambda expression body.
+ */
+BtorNode *boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp);
+
+/**
+ * Parameter.
+ * \param btor Boolector instance.
+ * \param width Number of bits which must be greater than zero.
+ * \param symbol Name of parameter.
+ */
+BtorNode *boolector_param (Btor *btor, int width, const char *symbol);
+
+/**
+ * Function.
+ * \param btor Boolector instance.
+ * \param paramc Number of parameters.
+ * \param params Parameters of function.
+ * \param exp Function body.
+ */
+BtorNode *boolector_fun (Btor *btor,
+                         int paramc,
+                         BtorNode **params,
+                         BtorNode *exp);
+
+///**
+// * Applies arguments to lambda expression and evaluates it.
+// * \param btor Boolector instance.
+// * \param argc Number of arguments to be applied.
+// * \param args Arguments to be applied.
+// * \param lambda Lambda expression.
+// */
+// BtorNode *boolector_eval (Btor * btor, int argc, BtorNode ** args,
+//			  BtorNode * lambda);
+
+BtorNode *boolector_apply (Btor *btor,
+                           int argc,
+                           BtorNode **args,
+                           BtorNode *fun);
 
 /**
  * Increments bit-vector by one.

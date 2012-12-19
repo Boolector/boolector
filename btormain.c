@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -63,6 +64,7 @@ struct BtorMainApp
 #endif
   int incremental;
   int rewrite_writes;
+  int rewrite_reads;
   int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
@@ -104,9 +106,9 @@ static const char *g_usage =
     "\n"
     "where <option> is one of the following:\n"
     "\n"
-    "  -h|--help                        print usage information and exit\n"
-    "  -c|--copyright                   print copyright and exit\n"
-    "  -V|--version                     print version and exit\n"
+    "  -h, --help                       print usage information and exit\n"
+    "  -c, --copyright                  print copyright and exit\n"
+    "  -V, --version                    print version and exit\n"
     "\n"
     "  -m|--model                       print model in the SAT case\n"
     "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
@@ -114,7 +116,7 @@ static const char *g_usage =
     "  -l|--log                         increase loglevel (0 default)\n"
 #endif
     "\n"
-    "  -i|--inc[remental]               incremental mode (SMT1 only)\n"
+    "  -i, --inc[remental]              incremental mode (SMT1 only)\n"
     "  -I                               same as '-i' but solve all formulas\n"
     "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
     "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
@@ -127,18 +129,19 @@ static const char *g_usage =
     "  -t <time out in seconds>         set time limit\n"
     "\n"
     "  --btor                           force BTOR format input\n"
-    "  --smt|--smt1                     force SMTLIB version 1 format input\n"
+    "  --smt, --smt1                    force SMTLIB version 1 format input\n"
     "  --smt2                           force SMTLIB version 2 format input\n"
     "\n"
-    "  -x|--hex                         hexadecimal output\n"
-    "  -d|--dec                         decimal output\n"
-    "  -de|--dump-exp                   dump expression in BTOR format\n"
-    "  -ds|--dump-smt                   dump expression in SMT format\n"
-    "  -o|--output <file>               set output file for dumping\n"
+    "  -x, --hex                        hexadecimal output\n"
+    "  -d, --dec                        decimal output\n"
+    "  -de, --dump-exp                  dump expression in BTOR format\n"
+    "  -ds, --dump-smt                  dump expression in SMT format\n"
+    "  -o, --output <file>              set output file for dumping\n"
     "\n"
-    "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
-    "  -rww|--rewrite-writes            do not rewrite writes to lambda "
-    "expressions\n"
+    "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
+    "  -rww, --rewrite-writes           rewrite writes to lambda expressions\n"
+    "  -rwr, --rewrite-reads            rewrite reads on lambda expressions\n"
+    "                                   (beta-reduction)\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
@@ -560,6 +563,11 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "--rewrite-writes"))
     {
       app->rewrite_writes = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-rwr")
+             || !strcmp (app->argv[app->argpos], "--rewrite-reads"))
+    {
+      app->rewrite_reads = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
@@ -988,6 +996,7 @@ boolector_main (int argc, char **argv)
   app.force_smt_input        = 0;
   app.print_model            = 0;
   app.rewrite_writes         = 0;
+  app.rewrite_reads          = 0;
   app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
@@ -1043,6 +1052,8 @@ boolector_main (int argc, char **argv)
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
     if (app.rewrite_writes) btor_enable_rewrite_writes (btor);
+
+    if (app.rewrite_reads) btor_enable_rewrite_reads (btor);
 
     if (!app.pprint) btor_disable_pretty_print (btor);
 

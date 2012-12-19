@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz
  *
  *  This file is part of Boolector.
  *
@@ -24,6 +25,7 @@
 #include <stdio.h>
 
 extern int g_rwwrites;
+extern int g_rwreads;
 extern FILE *g_logfile;
 
 #define BTOR_RUN_TEST_CHECK_LOG(name) \

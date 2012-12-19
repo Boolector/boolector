@@ -1,5 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner
  *
  *  This file is part of Boolector.
  *
@@ -63,8 +64,8 @@
   "usage: test [options] [patterns]\n\n"                                     \
   "  options:\n"                                                             \
   "    -h, --help       print this message and exit\n"                       \
-  "    -r, --rww        run boolector with rewriting of writes to lambdas "  \
-  "enabled\n"                                                                \
+  "    -r, --rww        run with rewriting of writes to lambdas enabled\n"   \
+  "    -R, --rwr        run with rewriting of reads on lambdas enabled\n"    \
   "    -b, --broken     run 'broken' testcases also\n"                       \
   "    -s, --slow       run 'slow' testcases also\n"                         \
   "    -f, --fast       run 'fast' testcases only\n"                         \
@@ -91,7 +92,11 @@ main (int argc, char **argv)
     }
     else if (!strcmp (argv[i], "-r") || !strcmp (argv[i], "--rww"))
     {
-      /* disable rewriting of writes in resp. testcase sets */
+      /* enable rewriting of writes to lambdas in resp. testcase sets */
+    }
+    else if (!strcmp (argv[i], "-R") || !strcmp (argv[i], "--rwr"))
+    {
+      /* enable rewriting of reads on lambdas in resp. testcase sets */
     }
     else if (!strcmp (argv[i], "-b") || !strcmp (argv[i], "--broken"))
     {
