@@ -89,7 +89,7 @@ assert_not_parameterized (int argc, ...)
  *---------------------------------------------------------------------------*/
 
 static void
-test_lambda_const_lambda_const (void)
+test_lambda_const_lambda_const (Btor *btor)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -119,7 +119,7 @@ test_lambda_const_lambda_const (void)
 }
 
 static void
-test_lambda_const_lambda_var (void)
+test_lambda_const_lambda_var (Btor *btor)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -149,7 +149,7 @@ test_lambda_const_lambda_var (void)
 }
 
 static void
-test_lambda_const_lambda_param (void)
+test_lambda_const_lambda_param (Btor *btor)
 {
   init_lambda_test ();
   BtorNode *result;

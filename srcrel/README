@@ -51,11 +51,6 @@ Then issue
   ./configure
   make
 
-or
-  
-  ./configure -precosat
-  make
-
 Using MiniSAT will force 'libboolector.a' to depend not only on
 'libz.so' but also on 'libstdc++.so'.  Thus if you want to link
 'libboolector.a' with MiniSAT backend against your own programs,
@@ -92,5 +87,6 @@ Armin Biere <biere@jku.at>.
 
 Armin Biere,
 Robert Daniel Brummayer
+Institute for Formal Models and Verification
 Johannes Kepler University.
-Linz, Austria, 2012.
+Linz, Austria, 2007 - 2012.

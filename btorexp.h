@@ -333,6 +333,9 @@ struct Btor
   int valid_assignments;
   int rewrite_level;
   int verbosity;
+#ifndef NBTORLOG
+  int loglevel;
+#endif
   int vis_idx; /* file index for visualizing expressions */
   int vread_index_id;
   int inconsistent;
@@ -598,6 +601,12 @@ int btor_set_sat_solver (Btor *, const char *);
  * does not print any output.
  */
 void btor_set_verbosity_btor (Btor *btor, int verbosity);
+
+/* Set log level.
+ */
+#ifndef NBTORLOG
+void btor_set_loglevel_btor (Btor *btor, int loglevel);
+#endif
 
 /* Deletes boolector. */
 void btor_delete_btor (Btor *btor);

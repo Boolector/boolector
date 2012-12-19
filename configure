@@ -2,6 +2,7 @@
 
 debug=unknown
 check=no
+log=unknown
 flto=no
 static=no
 lingeling=yes
@@ -36,6 +37,7 @@ where <option> is one of the following:
   -flto             enable link time optimization
   -static           static compilation
   -g                compile with debugging support
+  -l                compile with logging support (default for '-g')
   -c                check assertions even in optimized compilation
   -m{32,64}         force 32-bit or 64-bit compilation
 
@@ -67,6 +69,7 @@ while [ $# -gt 0 ]
 do
   case $1 in
     -g) debug=yes;;
+    -l) log=yes;;
     -O) debug=no;;
     -c) check=yes;;
     -m32|--m32) arch=32;;
@@ -103,10 +106,12 @@ addstcpp () {
 
 if [ $debug = yes ]
 then
-  msg "compiling for debugging"
+  msg "compiling for debugging as specified"
 else
-  msg "optimized compilation without debugging symbols"
+  msg "optimized compilation (no '-g')"
 fi
+
+#--------------------------------------------------------------------------#
 
 if [ X"$CFLAGS" = X ]
 then
@@ -130,6 +135,25 @@ elif [ $debug = no ]
 then
   die "CFLAGS environment variable defined and '-O' used"
 fi
+
+#--------------------------------------------------------------------------#
+
+if [ $log = yes ]
+then
+  msg "compiling with logging support (as specified)"
+elif [ $log = no ]
+then
+  die "internal configuration error: logging disabled"
+elif [ $debug = yes ]
+then
+  msg "compiling with logging support (default for debugging)"
+  log=yes
+else
+  msg "compiling without logging support (default for no debugging)"
+  log=no
+fi
+
+[ $log = no ] && CFLAGS="$CFLAGS -DNBTORLOG"
 
 #--------------------------------------------------------------------------#
 

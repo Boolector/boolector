@@ -19,6 +19,7 @@
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorhash.h"
+#include "btorlog.h"
 #include "btorlogic.h"
 #include "btormem.h"
 #include "btorparse.h"
@@ -58,6 +59,9 @@ struct BtorMainApp
   char *input_file_name;
   int close_input_file;
   int verbosity;
+#ifndef NBTORLOG
+  int loglevel;
+#endif
   int incremental;
   int rewrite_writes;
   int rewrite_reads;
@@ -106,8 +110,11 @@ static const char *g_usage =
     "  -c, --copyright                  print copyright and exit\n"
     "  -V, --version                    print version and exit\n"
     "\n"
-    "  -m, --model                      print model in the SAT case\n"
-    "  -v, --verbose                    increase verbosity (0 default, 4 max)\n"
+    "  -m|--model                       print model in the SAT case\n"
+    "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
+#ifndef NBTORLOG
+    "  -l|--log                         increase loglevel (0 default)\n"
+#endif
     "\n"
     "  -i, --inc[remental]              incremental mode (SMT1 only)\n"
     "  -I                               same as '-i' but solve all formulas\n"
@@ -583,6 +590,13 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity++;
     }
+#ifndef NBTORLOG
+    else if (!strcmp (app->argv[app->argpos], "-l")
+             || !strcmp (app->argv[app->argpos], "--log"))
+    {
+      app->loglevel++;
+    }
+#endif
     else if (!strcmp (app->argv[app->argpos], "-i")
              || !strcmp (app->argv[app->argpos], "-inc")
              || !strcmp (app->argv[app->argpos], "--inc")
@@ -1046,6 +1060,10 @@ boolector_main (int argc, char **argv)
     if (app.print_model) btor_enable_model_gen (btor);
 
     btor_set_verbosity_btor (btor, app.verbosity);
+#ifndef NBTORLOG
+    if (!app.loglevel && getenv ("BTORLOG")) app.loglevel = 1;
+    btor_set_loglevel_btor (btor, app.loglevel);
+#endif
     mem = btor->mm;
 
     avmgr            = btor->avmgr;
