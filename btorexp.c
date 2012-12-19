@@ -7924,7 +7924,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    BTORLOG ("beta_reduce: real_cur (%d): ", real_cur, real_cur->beta_mark);
+    //      BTORLOG ("beta_reduce: real_cur (%d): ", real_cur,
+    //      real_cur->beta_mark);
 
     if (real_cur->beta_mark != 1)
     {
@@ -7992,7 +7993,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
       {
         res  = eval_exp (btor, real_cur->e[0]);
         next = res[0] == '1' ? real_cur->e[1] : real_cur->e[2];
-        BTORLOG ("beta_reduce: next ", BTOR_REAL_ADDR_NODE (next));
+        // BTORLOG ("beta_reduce: next ", BTOR_REAL_ADDR_NODE (next));
         assert (next);
         real_cur->beta_mark = 2;
         btor_freestr (mm, (char *) res);
@@ -8175,7 +8176,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   BTOR_RELEASE_STACK (mm, unassign_stack);
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
-  BTORLOG ("* beta_reduce result (%d): ", result, *parameterized);
+  // BTORLOG ("* beta_reduce result (%d): ", result, *parameterized);
   btor->time.beta += btor_time_stamp () - start;
 
   return result;
@@ -10821,11 +10822,10 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   assert (btor);
 
   int i;
-  BtorPtrHashTable *roots = NULL;
+  BtorPtrHashTable *writes, *roots = NULL;
   BtorPtrHashBucket *b;
   BtorNode *exp, *lambda;
   BtorNodePtrStack work_stack, unmark_stack;
-  BtorPtrHashTable *writes;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -11054,16 +11054,17 @@ run_rewrite_engine (Btor *btor)
       if (btor->ops[BTOR_AEQ_NODE] == 0)
       {
         rewrite_writes_to_lambda_exp (btor);
-        //	      assert (btor->ops[BTOR_WRITE_NODE] == 0);
+        assert (btor->ops[BTOR_WRITE_NODE] == 0);
       }
-
-      // TODO does this currently have any effect?
-      // if (btor->lambdas->count)
-      //  continue;
     }
 
     /* rewrite/beta-reduce reads on lambdas */
-
+    if (btor->rewrite_reads && btor->lambdas->count)
+    {
+      beta_reduce_reads_on_lambdas (btor);
+      //	  assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count
+      //== 0);
+    }
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
@@ -11100,6 +11101,67 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
+#if 1
+// TODO: beta-reduce reads on aconds?
+static void
+beta_reduce_reads_on_lambdas (Btor *btor)
+{
+  assert (btor);
+
+  int parameterized;
+  BtorPtrHashTable *reads;
+  BtorPtrHashBucket *b;
+  BtorNode *read, *reduced_read, *lambda;
+  BtorPartialParentIterator it;
+
+  reads = btor_new_ptr_hash_table (btor->mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* collect reads first, then reduce (else btor->lambdas is inconsistent
+   * as lambdas might be released via set_simplified_exp) */
+  for (b = btor->lambdas->first; b; b = b->next)
+  {
+    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
+    init_read_parent_iterator (&it, lambda);
+    while (has_next_parent_read_parent_iterator (&it))
+    {
+      read = next_parent_read_parent_iterator (&it);
+
+      if (read->mark) continue;
+
+      read->mark = 1;
+
+      if (!read->parameterized && !btor_find_in_ptr_hash_table (reads, read))
+        btor_insert_in_ptr_hash_table (reads, read);
+    }
+  }
+
+  /* beta-reduce, substitute and rebuild */
+  for (b = reads->first; b; b = b->next)
+  {
+    read = b->key;
+    assert (BTOR_IS_REGULAR_NODE (read));
+
+    /* prevent read to be released prematurely via set_simplified_exp */
+    inc_exp_ref_counter (btor, read);
+    reduced_read = beta_reduce (btor, read, 0, &parameterized);
+    /* read -> proxy node */
+    set_simplified_exp (btor, read, reduced_read, 1);
+    btor_release_exp (btor, reduced_read);
+  }
+
+  substitute_and_rebuild (btor, reads);
+
+  for (b = reads->first; b; b = b->next)
+  {
+    read = b->key;
+    assert (read->mark);
+    btor_release_exp (btor, read);
+  }
+  btor_delete_ptr_hash_table (reads);
+}
+#else
 static void
 beta_reduce_reads_on_lambdas (Btor *btor)
 {
@@ -11126,7 +11188,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
     while (has_next_parent_read_parent_iterator (&pit))
     {
       tagged_read = pit.cur;
-      read        = next_parent_read_parent_iterator (&pit);
+      read = next_parent_read_parent_iterator (&pit);
 
       if (read->mark) continue;
 
@@ -11149,8 +11211,8 @@ beta_reduce_reads_on_lambdas (Btor *btor)
   while (!BTOR_EMPTY_STACK (reads_stack))
   {
     tagged_read = BTOR_POP_STACK (reads_stack);
-    read        = BTOR_REAL_ADDR_NODE (tagged_read);
-    red         = beta_reduce (btor, read, 0, &parameterized);
+    read = BTOR_REAL_ADDR_NODE (tagged_read);
+    red = beta_reduce (btor, read, 0, &parameterized);
     if (red != tagged_read)
     {
       init_full_parent_iterator (&fit, read);
@@ -11166,7 +11228,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
       {
         while (has_next_parent_full_parent_iterator (&fit))
         {
-          pos    = BTOR_GET_TAG_NODE (fit.cur);
+          pos = BTOR_GET_TAG_NODE (fit.cur);
           parent = next_parent_full_parent_iterator (&fit);
           replace_child_exp (btor, parent, red, pos);
         }
@@ -11178,6 +11240,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
   BTOR_RELEASE_STACK (mm, reads_stack);
   BTOR_RELEASE_STACK (mm, unmark_stack);
 }
+#endif
 
 static void
 synthesize_all_array_rhs (Btor *btor)
