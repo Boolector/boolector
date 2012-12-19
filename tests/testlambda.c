@@ -89,7 +89,7 @@ assert_not_parameterized (int argc, ...)
  *---------------------------------------------------------------------------*/
 
 static void
-test_lambda_const_lambda_const (Btor *btor)
+test_lambda_const_lambda_const (void)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -119,7 +119,7 @@ test_lambda_const_lambda_const (Btor *btor)
 }
 
 static void
-test_lambda_const_lambda_var (Btor *btor)
+test_lambda_const_lambda_var (void)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -149,7 +149,7 @@ test_lambda_const_lambda_var (Btor *btor)
 }
 
 static void
-test_lambda_const_lambda_param (Btor *btor)
+test_lambda_const_lambda_param (void)
 {
   init_lambda_test ();
   BtorNode *result;
@@ -1279,6 +1279,7 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_const_lambda_const);
   BTOR_RUN_TEST (lambda_const_lambda_var);
   BTOR_RUN_TEST (lambda_const_lambda_param);
+  BTOR_RUN_TEST (lambda_const_lambda_negated);
   BTOR_RUN_TEST (lambda_unassigned_param);
   /* unary exp tests */
   BTOR_RUN_TEST (lambda_param_not);
