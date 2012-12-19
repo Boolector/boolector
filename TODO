@@ -10,6 +10,9 @@ TODO
 + rewrite aconds (writes/lambdas as children) to bvconds
     -> first: only for -rwr
 
++ handling of more general lambdas with parameterized reads
+  e.g. lambda j. j && read (a, j)
+  -> we need a more general solution for propagating reads over lambdas
 
 
 ===============================================================================

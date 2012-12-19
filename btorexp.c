@@ -30,29 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if 0
-// debug
-#if 1
-#define DBG_P(msg, node, ...) \
-  do                          \
-  {                           \
-  } while (0)
-#else
-#define DBG_P(msg, node, ...)                        \
-  do                                                 \
-  {                                                  \
-    fprintf (stderr, "[debug] " msg, ##__VA_ARGS__); \
-    if (node)                                        \
-      dump_node (stderr, node);                      \
-    else                                             \
-      fprintf (stderr, "\n");                        \
-  } while (0)
-#endif
-// debug
-#else
-#define DBG_P BTORLOG
-#endif
-
 /*------------------------------------------------------------------------*/
 
 // #define BTOR_DO_NOT_ELIMINATE_SLICES
@@ -181,13 +158,7 @@ check_hash_table_simp_free_dbg (const BtorPtrHashTable *table,
   BtorPtrHashBucket *b;
   (void) table_name;
   for (b = table->first; b; b = b->next)
-    if (BTOR_REAL_ADDR_NODE (b->key)->simplified)
-    {
-      DBG_P ("** check_hash_table_simp_free: %s: ", 0, table_name);
-      DBG_P ("     node: ", BTOR_REAL_ADDR_NODE (b->key));
-      DBG_P ("     simp: ", BTOR_REAL_ADDR_NODE (b->key)->simplified);
-      return 0;
-    }
+    if (BTOR_REAL_ADDR_NODE (b->key)->simplified) return 0;
   return 1;
 }
 
@@ -1224,6 +1195,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
   do
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
+
     if (cur->refs > 1)
       cur->refs--;
     else
@@ -1582,7 +1554,7 @@ add_param_cond_to_clause (Btor *btor,
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
-  DBG_P ("add_param_cond_to_clause: ", cond);
+  BTORLOG ("add_param_cond_to_clause: ", cond);
   beta_cond = beta_reduce (btor, cond, -1, &parameterized);
   assert (!beta_cond->parameterized);
   lit = exp_to_cnf_lit (btor, beta_cond);
@@ -1612,73 +1584,73 @@ print_encoded_lemma_dbg (Btor *btor,
 
   (void) i, (void) a, (void) b;
 
-  DBG_P ("\e[1;32m", 0);
-  DBG_P ("ENCODED LEMMA", 0);
-  DBG_P ("  index: %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
-  DBG_P ("  premisses:", 0);
+  BTORLOG ("\e[1;32m", 0);
+  BTORLOG ("ENCODED LEMMA", 0);
+  BTORLOG ("  index: %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
+  BTORLOG ("  premisses:", 0);
 
   if (j)
   {
-    DBG_P ("    indices:", 0);
-    DBG_P ("      eq:", 0);
-    DBG_P ("       %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
-    DBG_P ("       %c", j, BTOR_IS_INVERTED_NODE (j) ? '-' : ' ');
+    BTORLOG ("    indices:", 0);
+    BTORLOG ("      eq:", 0);
+    BTORLOG ("       %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
+    BTORLOG ("       %c", j, BTOR_IS_INVERTED_NODE (j) ? '-' : ' ');
   }
 
-  DBG_P ("    writes:", 0);
+  BTORLOG ("    writes:", 0);
   for (bucket = writes->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[1];
-    DBG_P ("      eq:", 0);
-    DBG_P ("       %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
-    DBG_P ("       %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
+    BTORLOG ("      eq:", 0);
+    BTORLOG ("       %c", i, BTOR_IS_INVERTED_NODE (i) ? '-' : ' ');
+    BTORLOG ("       %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
   }
 
-  DBG_P ("    aeqs:", 0);
+  BTORLOG ("    aeqs:", 0);
   for (bucket = aeqs->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
-    DBG_P ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
+    BTORLOG ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
   }
 
-  DBG_P ("    aconds_sel1 (then):", 0);
+  BTORLOG ("    aconds_sel1 (then):", 0);
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
-    DBG_P ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
+    BTORLOG ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
   }
 
-  DBG_P ("    aconds_sel2 (else):", 0);
+  BTORLOG ("    aconds_sel2 (else):", 0);
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
-    DBG_P ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? ' ' : '-');
+    BTORLOG ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? ' ' : '-');
   }
 
-  DBG_P ("    bconds_sel1 (then):", 0);
+  BTORLOG ("    bconds_sel1 (then):", 0);
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
-    DBG_P ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
+    BTORLOG ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? '-' : ' ');
   }
 
-  DBG_P ("    bconds_sel2 (else):", 0);
+  BTORLOG ("    bconds_sel2 (else):", 0);
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
     cur = cur->e[0];
-    DBG_P ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? ' ' : '-');
+    BTORLOG ("      %c", cur, BTOR_IS_INVERTED_NODE (cur) ? ' ' : '-');
   }
 
-  DBG_P ("  conclusion:", 0);
-  DBG_P ("    eq:", 0);
-  DBG_P ("      %c", a, BTOR_IS_INVERTED_NODE (a) ? '-' : ' ');
-  DBG_P ("      %c", b, BTOR_IS_INVERTED_NODE (b) ? '-' : ' ');
-  DBG_P ("\e[0;39m", 0);
+  BTORLOG ("  conclusion:", 0);
+  BTORLOG ("    eq:", 0);
+  BTORLOG ("      %c", a, BTOR_IS_INVERTED_NODE (a) ? '-' : ' ');
+  BTORLOG ("      %c", b, BTOR_IS_INVERTED_NODE (b) ? '-' : ' ');
+  BTORLOG ("\e[0;39m", 0);
 }
 
 static void
@@ -1930,7 +1902,7 @@ encode_lemma (Btor *btor,
     cond = bcond->e[0];
     assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
     assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-    DBG_P ("bconds_sel2: ", bcond);
+    BTORLOG ("bconds_sel2: ", bcond);
     assert (BTOR_IS_LAMBDA_NODE ((BtorNode *) bucket->data.asPtr));
     assign_param (btor, (BtorNode *) bucket->data.asPtr, i);
     add_param_cond_to_clause (btor, cond, &linking_clause, 1);
@@ -2416,12 +2388,14 @@ update_constraints (Btor *btor, BtorNode *exp)
   if (pos)
   {
     btor_remove_from_ptr_hash_table (pos, exp, 0, 0);
+    //    if (has_parents_exp (btor, exp))
     btor_release_exp (btor, exp);
   }
 
   if (neg)
   {
     btor_remove_from_ptr_hash_table (neg, not_exp, 0, 0);
+    //     if (has_parents_exp (btor, not_exp))
     btor_release_exp (btor, not_exp);
   }
 }
@@ -2452,7 +2426,12 @@ set_simplified_exp (Btor *btor,
 
   if (!overwrite) return;
 
-  /* TODO: do we really have to update a constraint ? */
+  /* FIXME? moved this back down here (aina)
+   *	    -> is it really not necessary if (!overwrite)?
+   *	    -> rw213, regrembeddedconstraint1, and regrembeddedconstraint2
+   *	       fail otherwise!
+   *
+   * do we have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
 
   if (exp->kind == BTOR_AEQ_NODE && exp->vreads)
@@ -3908,6 +3887,7 @@ btor_cond_exp (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
   return result;
 }
 
+#if 1
 BtorNode *
 btor_cond_exp_no_rewrite (Btor *btor,
                           BtorNode *e_cond,
@@ -3925,6 +3905,7 @@ btor_cond_exp_no_rewrite (Btor *btor,
   assert (result);
   return result;
 }
+#endif
 
 BtorNode *
 btor_redor_exp (Btor *btor, BtorNode *exp)
@@ -4888,7 +4869,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_LAMBDA_NODE (cur));
-    assign_param (cur, args[i]);
+    assign_param (btor, cur, args[i]);
     BTOR_PUSH_STACK (mm, unassign, cur);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
@@ -4898,7 +4879,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   while (!BTOR_EMPTY_STACK (unassign))
   {
     cur = BTOR_POP_STACK (unassign);
-    unassign_param (cur);
+    unassign_param (btor, cur);
   }
 
   BTOR_RELEASE_STACK (mm, unassign);
@@ -5077,8 +5058,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (nroots > 0);
   assert (mm);
 
-  DBG_P ("pprint %d\n", 0, btor->pprint);
-
+  BTORLOG ("pprint %d\n", 0, btor->pprint);
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
 
@@ -5311,23 +5291,23 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
 
   run_rewrite_engine (btor);
 
-  /* do not rewrite writes to lambdas in case of extensionality */
-  if (btor->ops[BTOR_AEQ_NODE] == 0)
-  {
-    if (btor->rewrite_writes)
-    {
-      rewrite_writes_to_lambda_exp (btor);
-      assert (btor->ops[BTOR_WRITE_NODE] == 0);
-    }
-
-    if (btor->rewrite_reads)
-    {
-      beta_reduce_reads_on_lambdas (btor);
-      assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
-    }
-
-    run_rewrite_engine (btor);
-  }
+  //  /* do not rewrite writes to lambdas in case of extensionality */
+  //  if (btor->ops[BTOR_AEQ_NODE] == 0)
+  //    {
+  //      if (btor->rewrite_writes)
+  //	{
+  //	  rewrite_writes_to_lambda_exp (btor);
+  //	  assert (btor->ops[BTOR_WRITE_NODE] == 0);
+  //	}
+  //
+  //      if (btor->rewrite_reads)
+  //	{
+  //	  beta_reduce_reads_on_lambdas (btor);
+  //	  assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
+  //	}
+  //
+  //      run_rewrite_engine (btor);
+  //    }
 
   if (btor->inconsistent)
   {
@@ -5863,9 +5843,9 @@ btor_delete_btor (Btor *btor)
 #ifndef NDEBUG
   int k;
   if (btor->nodes_unique_table.num_elements)
-    DBG_P ("*** btor->nodes_unique_table.num_elements: %d",
-           0,
-           btor->nodes_unique_table.num_elements);
+    BTORLOG ("*** btor->nodes_unique_table.num_elements: %d",
+             0,
+             btor->nodes_unique_table.num_elements);
   for (k = 0; k < btor->nodes_unique_table.size; k++)
     if (btor->nodes_unique_table.chains[k])
       dump_node (stderr, btor->nodes_unique_table.chains[k]);
@@ -6193,7 +6173,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
   BTOR_INIT_STACK (exp_stack);
   BTOR_PUSH_STACK (mm, exp_stack, exp);
-  DBG_P ("synthesize_exp: ", exp);
+  BTORLOG ("synthesize_exp: ", exp);
 
   while (!BTOR_EMPTY_STACK (exp_stack))
   {
@@ -6661,7 +6641,7 @@ bfs_lambda (Btor *btor,
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack;
 
-  DBG_P ("[bfs_lambda] searching for: ", search);
+  BTORLOG ("[bfs_lambda] searching for: ", search);
 
   mm    = btor->mm;
   index = BTOR_GET_INDEX_ACC_NODE (acc);
@@ -6673,14 +6653,14 @@ bfs_lambda (Btor *btor,
   if (propagate_upwards)
   {
     lambda_exp->parent = MARK_PROP_UP (cur);
-    DBG_P ("[bfs_lambda up] ", lambda_exp);
-    DBG_P ("             -> ", cur);
+    BTORLOG ("[bfs_lambda up] ", lambda_exp);
+    BTORLOG ("             -> ", cur);
   }
   else
   {
     cur->parent = lambda_exp;
-    DBG_P ("[bfs_lambda down] ", cur);
-    DBG_P ("               -> ", lambda_exp);
+    BTORLOG ("[bfs_lambda down] ", cur);
+    BTORLOG ("               -> ", lambda_exp);
   }
   cur->mark = 1;
 
@@ -6716,14 +6696,14 @@ bfs_lambda (Btor *btor,
       if (propagate_upwards)
       {
         cur->parent = MARK_PROP_UP (next);
-        DBG_P ("[bfs_lambda up] ", cur);
-        DBG_P ("             -> ", next);
+        BTORLOG ("[bfs_lambda up] ", cur);
+        BTORLOG ("             -> ", next);
       }
       else
       {
         next->parent = cur;
-        DBG_P ("[bfs_lambda down] ", next);
-        DBG_P ("               -> ", cur);
+        BTORLOG ("[bfs_lambda down] ", next);
+        BTORLOG ("               -> ", cur);
       }
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
@@ -6737,15 +6717,15 @@ bfs_lambda (Btor *btor,
       if (propagate_upwards)
       {
         cur->parent = MARK_PROP_UP (next);
-        DBG_P ("[bfs_lambda up] ", cur);
-        DBG_P ("             -> ", next);
+        BTORLOG ("[bfs_lambda up] ", cur);
+        BTORLOG ("             -> ", next);
         *result = lambda_exp;
       }
       else
       {
         next->parent = cur;
-        DBG_P ("[bfs_lambda down] ", next);
-        DBG_P ("               -> ", cur);
+        BTORLOG ("[bfs_lambda down] ", next);
+        BTORLOG ("               -> ", cur);
         *result = next;
       }
       break;
@@ -6773,9 +6753,9 @@ bfs_lambda (Btor *btor,
 
   // debug
   if (found)
-    DBG_P ("[bfs_lambda] found: ", search);
+    BTORLOG ("[bfs_lambda] found: ", search);
   else
-    DBG_P ("[bfs_lambda] not found: ", search);
+    BTORLOG ("[bfs_lambda] not found: ", search);
   // debug
 
   return found;
@@ -6851,8 +6831,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       next->parent = cur;
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
-      DBG_P ("[bfs] ", next);
-      DBG_P ("  -> ", cur);
+      BTORLOG ("[bfs] ", next);
+      BTORLOG ("  -> ", cur);
     }
     /* lazy_synthesize_and_encode_acond_exp sets the 'tseitin' flag.
      * If this flag is not set, we have to find an other way
@@ -6877,8 +6857,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         next->parent = cur;
         BTOR_ENQUEUE (mm, queue, next);
         BTOR_PUSH_STACK (mm, unmark_stack, next);
-        DBG_P ("[bfs] ", next);
-        DBG_P ("  -> ", cur);
+        BTORLOG ("[bfs] ", next);
+        BTORLOG ("  -> ", cur);
       }
     }
     else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin
@@ -6940,10 +6920,10 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
               next->mark      = 1;
               BTOR_ENQUEUE (mm, queue, next);
               BTOR_PUSH_STACK (mm, unmark_stack, next);
-              DBG_P ("[bfs] ", cur_aeq);
-              DBG_P ("  -> ", cur);
-              DBG_P ("[bfs] ", next);
-              DBG_P ("  -> ", cur_aeq);
+              BTORLOG ("[bfs] ", cur_aeq);
+              BTORLOG ("  -> ", cur);
+              BTORLOG ("[bfs] ", next);
+              BTORLOG ("  -> ", cur_aeq);
             }
           }
         }
@@ -6976,8 +6956,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
             next->parent = MARK_PROP_UP (cur);
             BTOR_ENQUEUE (mm, queue, next);
             BTOR_PUSH_STACK (mm, unmark_stack, next);
-            DBG_P ("[bfs] ", next);
-            DBG_P ("  -> ", cur);
+            BTORLOG ("[bfs] ", next);
+            BTORLOG ("  -> ", cur);
           }
         }
       }
@@ -7000,8 +6980,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
             next->parent = MARK_PROP_UP (cur);
             BTOR_ENQUEUE (mm, queue, next);
             BTOR_PUSH_STACK (mm, unmark_stack, next);
-            DBG_P ("[bfs] ", next);
-            DBG_P ("  -> ", cur);
+            BTORLOG ("[bfs] ", next);
+            BTORLOG ("  -> ", cur);
           }
         }
       }
@@ -7099,10 +7079,10 @@ print_bfs_path_dbg (Btor *btor, BtorNode *from, BtorNode *to)
   while (cur != to)
   {
     assert (BTOR_REAL_ADDR_NODE (cur->parent));
-    DBG_P ("bfs (%d, %c) ",
-           BTOR_REAL_ADDR_NODE (cur),
-           hops++,
-           PROPAGATED_UPWARDS (cur) ? 'u' : 'd');
+    BTORLOG ("bfs (%d, %c) ",
+             BTOR_REAL_ADDR_NODE (cur),
+             hops++,
+             PROPAGATED_UPWARDS (cur) ? 'u' : 'd');
     cur = BTOR_REAL_ADDR_NODE (cur->parent);
   }
 }
@@ -7161,9 +7141,9 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
 
   for (acc = acc1; acc; acc = acc == acc1 ? acc2 : 0)
   {
-    DBG_P ("bfs:", 0);
-    DBG_P ("  acc: ", acc);
-    DBG_P ("  arr: ", array);
+    BTORLOG ("bfs:", 0);
+    BTORLOG ("  acc: ", acc);
+    BTORLOG ("  arr: ", array);
     bfs (btor, acc, array);
     print_bfs_path_dbg (btor, array, acc);
     cur         = array;
@@ -7198,8 +7178,8 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
           {
             lambda = cur;
           }
-          DBG_P ("set lambda exp for: ", bcond);
-          DBG_P ("  lambda exp: ", lambda);
+          BTORLOG ("set lambda exp for: ", bcond);
+          BTORLOG ("  lambda exp: ", lambda);
           assert (BTOR_IS_LAMBDA_NODE (lambda));
 
           assign_param (btor, lambda, BTOR_GET_INDEX_ACC_NODE (acc));
@@ -7424,7 +7404,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   index               = BTOR_GET_INDEX_ACC_NODE (acc);
   value               = BTOR_GET_VALUE_ACC_NODE (acc);
 
-  DBG_P ("lazy_synthesize_and_encode_acc_exp: ", acc);
+  BTORLOG ("lazy_synthesize_and_encode_acc_exp: ", acc);
 
   if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (index)))
   {
@@ -7508,7 +7488,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  DBG_P ("lazy_synthesize_and_encode_lambda_exp: ", lambda_exp);
+  BTORLOG ("lazy_synthesize_and_encode_lambda_exp: ", lambda_exp);
 
   BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
 
@@ -7582,7 +7562,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 }
 
 static void
-assign_param (BtorNode *lambda, BtorNode *arg)
+assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 {
   assert (lambda);
   assert (arg);
@@ -7590,15 +7570,13 @@ assign_param (BtorNode *lambda, BtorNode *arg)
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   assert (BTOR_IS_PARAM_NODE (lambda->e[0]));
 
-  DBG_P ("assign_param: ", lambda);
-  DBG_P ("assigned exp: ", arg);
+  BTORLOG ("assign_param: ", lambda);
+  BTORLOG ("assigned exp: ", arg);
 
   int upper, lower;
-  Btor *btor;
   BtorNode *cur_lambda, *cur_arg;
   BtorParamNode *param;
 
-  btor  = lambda->btor;
   param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (lambda->e[0]);
 
   /* apply multiple arguments */
@@ -7632,7 +7610,7 @@ assign_param (BtorNode *lambda, BtorNode *arg)
 }
 
 static void
-unassign_param (BtorNode *lambda)
+unassign_param (Btor *btor, BtorNode *lambda)
 {
   assert (lambda);
   assert (BTOR_IS_REGULAR_NODE (lambda));
@@ -7643,7 +7621,7 @@ unassign_param (BtorNode *lambda)
 
   do
   {
-    DBG_P ("unassign_param: ", lambda);
+    BTORLOG ("unassign_param: ", lambda);
     param = (BtorParamNode *) lambda->e[0];
 
     if (!param->assigned_exp) break;
@@ -7677,7 +7655,7 @@ eval_exp (Btor *btor, BtorNode *exp)
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->eval_mark);
-  DBG_P ("eval_exp: ", BTOR_REAL_ADDR_NODE (exp));
+  BTORLOG ("eval_exp: ", BTOR_REAL_ADDR_NODE (exp));
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
@@ -7695,7 +7673,7 @@ eval_exp (Btor *btor, BtorNode *exp)
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    DBG_P ("eval_exp: real_cur: ", real_cur);
+    BTORLOG ("eval_exp: real_cur: ", real_cur);
 
     if (real_cur->eval_mark == 0 || real_cur->eval_mark == 2)
     {
@@ -7815,7 +7793,7 @@ eval_exp (Btor *btor, BtorNode *exp)
   BTOR_RELEASE_STACK (mm, arg_stack);
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
-  DBG_P ("eval_exp: '%s'\t", 0, result);
+  BTORLOG ("eval_exp: '%s'\t", 0, result);
   btor->time.eval += btor_time_stamp () - start;
   return result;
 }
@@ -7923,7 +7901,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
   assert (!BTOR_REAL_ADDR_NODE (exp)->beta_mark);
-  DBG_P ("** beta_reduce: ", BTOR_REAL_ADDR_NODE (exp));
+  BTORLOG ("** beta_reduce: ", BTOR_REAL_ADDR_NODE (exp));
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
@@ -7941,12 +7919,11 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   //	  dump_node (stderr, arg_stack.start[i]);
   //	}
   BETA_REDUCE_POP_WORK_STACK:
-    cur = BTOR_POP_STACK (work_stack);
-    assert (!BTOR_REAL_ADDR_NODE (cur)->simplified);  // TODO debug
+    cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    DBG_P ("beta_reduce: real_cur (%d): ", real_cur, real_cur->beta_mark);
+    BTORLOG ("beta_reduce: real_cur (%d): ", real_cur, real_cur->beta_mark);
 
     if (real_cur->beta_mark != 1)
     {
@@ -8014,7 +7991,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
       {
         res  = eval_exp (btor, real_cur->e[0]);
         next = res[0] == '1' ? real_cur->e[1] : real_cur->e[2];
-        DBG_P ("beta_reduce: next ", BTOR_REAL_ADDR_NODE (next));
+        BTORLOG ("beta_reduce: next ", BTOR_REAL_ADDR_NODE (next));
         assert (next);
         real_cur->beta_mark = 2;
         btor_freestr (mm, (char *) res);
@@ -8122,7 +8099,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
 
                   /* mark lambda as to-be-rebuilt in 2nd pass */
                   real_cur->beta_aux_mark = 1;
-                  assign_param (real_cur, param);
+                  assign_param (btor, real_cur, param);
                   BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
                   BTOR_PUSH_STACK (mm, work_stack, real_cur);
                   for (i = 0; i < real_cur->arity; i++)
@@ -8150,7 +8127,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
                 && BTOR_TOP_STACK (unassign_stack) == real_cur)
             {
               (void) BTOR_POP_STACK (unassign_stack);
-              unassign_param (real_cur);
+              unassign_param (btor, real_cur);
             }
             break;
           case BTOR_WRITE_NODE:
@@ -8197,7 +8174,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   BTOR_RELEASE_STACK (mm, unassign_stack);
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
-  DBG_P ("* beta_reduce result (%d): ", result, *parameterized);
+  BTORLOG ("* beta_reduce result (%d): ", result, *parameterized);
   btor->time.beta += btor_time_stamp () - start;
 
   return result;
@@ -8248,15 +8225,15 @@ process_working_stack (Btor *btor,
     check_not_simplified_or_const (btor, value);
     if (*assignments_changed) return 0;
     // debug
-    DBG_P ("", 0);
-    DBG_P ("*** process_working_stack", 0);
-    DBG_P ("array: ", array);
-    DBG_P ("access: ", acc);
+    BTORLOG ("", 0);
+    BTORLOG ("*** process_working_stack", 0);
+    BTORLOG ("array: ", array);
+    BTORLOG ("access: ", acc);
     char *a = btor_bv_assignment_exp (btor, value);
-    DBG_P ("   value: %s, ", value, a);
+    BTORLOG ("   value: %s, ", value, a);
     btor_free_bv_assignment_exp (btor, a);
     a = btor_bv_assignment_exp (btor, index);
-    DBG_P ("   index: %s, ", index, a);
+    BTORLOG ("   index: %s, ", index, a);
     btor_free_bv_assignment_exp (btor, a);
     // debug
     /* hash table lookup */
@@ -8279,13 +8256,13 @@ process_working_stack (Btor *btor,
         /* we have to check if values are equal */
         if (compare_assignments (hashed_value, value) != 0)
         {
-          DBG_P ("\e[1;31m", 0);
-          DBG_P ("array axiom 1 conflict in array expression: ", array);
-          DBG_P ("add_lemma:", 0);
-          DBG_P ("  array: ", array);
-          DBG_P ("  acc1: ", hashed_acc);
-          DBG_P ("  acc2: ", acc);
-          DBG_P ("\e[0;39m", 0);
+          BTORLOG ("\e[1;31m", 0);
+          BTORLOG ("array axiom 1 conflict in array expression: ", array);
+          BTORLOG ("add_lemma:", 0);
+          BTORLOG ("  array: ", array);
+          BTORLOG ("  acc1: ", hashed_acc);
+          BTORLOG ("  acc2: ", acc);
+          BTORLOG ("\e[0;39m", 0);
           btor->stats.array_axiom_1_conflicts++;
           add_lemma (btor, array, hashed_acc, acc);
           return 1;
@@ -8294,7 +8271,7 @@ process_working_stack (Btor *btor,
          * with same index assignment and same value assignment */
         else
         {
-          DBG_P ("skip", 0);
+          BTORLOG ("skip", 0);
           continue;
         }
       }
@@ -8307,13 +8284,13 @@ process_working_stack (Btor *btor,
       /* check array axiom 2 */
       if (find_array_axiom_2_conflict (btor, acc, array, &indices_equal))
       {
-        DBG_P ("\e[1;31m", 0);
-        DBG_P ("array axiom 2 conflict in array expression: ", array);
-        DBG_P ("add_lemma:", 0);
-        DBG_P ("  array: ", array);
-        DBG_P ("  acc1: ", acc);
-        DBG_P ("  acc2: ", array);
-        DBG_P ("\e[0;39m", 0);
+        BTORLOG ("\e[1;31m", 0);
+        BTORLOG ("array axiom 2 conflict in array expression: ", array);
+        BTORLOG ("add_lemma:", 0);
+        BTORLOG ("  array: ", array);
+        BTORLOG ("  acc1: ", acc);
+        BTORLOG ("  acc2: ", array);
+        BTORLOG ("\e[0;39m", 0);
         btor->stats.array_axiom_2_conflicts++;
         add_lemma (btor, array, acc, array);
         return 1;
@@ -8326,9 +8303,9 @@ process_working_stack (Btor *btor,
         assert (!array->e[0]->simplified);
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, array->e[0]);
-        DBG_P ("write exp prop. down:", 0);
-        DBG_P ("  array: ", array->e[0]);
-        DBG_P ("  acc: ", acc);
+        BTORLOG ("write exp prop. down:", 0);
+        BTORLOG ("  array: ", array->e[0]);
+        BTORLOG ("  acc: ", acc);
       }
     }
     else if (BTOR_IS_ARRAY_COND_NODE (array))
@@ -8345,15 +8322,15 @@ process_working_stack (Btor *btor,
       if (BTOR_IS_INVERTED_NODE (cond)) assignment = -assignment;
       /* propagate down */
       BTOR_PUSH_STACK (mm, *stack, acc);
-      DBG_P ("array cond prop. down:", 0);
-      DBG_P ("  acc: ", acc);
+      BTORLOG ("array cond prop. down:", 0);
+      BTORLOG ("  acc: ", acc);
       if (assignment == 1)
       {
         assert (BTOR_IS_REGULAR_NODE (array->e[1]));
         assert (BTOR_IS_ARRAY_NODE (array->e[1]));
         assert (!array->e[1]->simplified);
         BTOR_PUSH_STACK (mm, *stack, array->e[1]);
-        DBG_P ("  array: ", array->e[1]);
+        BTORLOG ("  array: ", array->e[1]);
       }
       else
       {
@@ -8361,7 +8338,7 @@ process_working_stack (Btor *btor,
         assert (BTOR_IS_ARRAY_NODE (array->e[2]));
         assert (!array->e[2]->simplified);
         BTOR_PUSH_STACK (mm, *stack, array->e[2]);
-        DBG_P ("  array: ", array->e[2]);
+        BTORLOG ("  array: ", array->e[2]);
       }
     }
     else if (BTOR_IS_LAMBDA_NODE (array))
@@ -8376,15 +8353,15 @@ process_working_stack (Btor *btor,
 
       // debug
       char *a = btor_bv_assignment_exp (btor, value);
-      DBG_P ("   value:  %s, ", value, a);
+      BTORLOG ("   value:  %s, ", value, a);
       btor_free_bv_assignment_exp (btor, a);
       a = btor_bv_assignment_exp (btor, index);
-      DBG_P ("   index:  %s, ", index, a);
+      BTORLOG ("   index:  %s, ", index, a);
       btor_free_bv_assignment_exp (btor, a);
       a = btor_bv_assignment_exp (btor, lambda_value);
-      DBG_P ("   lambda: %s, ", BTOR_REAL_ADDR_NODE (lambda_value), a);
+      BTORLOG ("   lambda: %s, ", BTOR_REAL_ADDR_NODE (lambda_value), a);
       btor_free_bv_assignment_exp (btor, a);
-      DBG_P ("   lambda parameterized: %d", 0, parameterized);
+      BTORLOG ("   lambda parameterized: %d", 0, parameterized);
       // end debug
 
       /* propagate down  */
@@ -8398,22 +8375,22 @@ process_working_stack (Btor *btor,
 
         BTOR_PUSH_STACK (mm, *stack, acc);
         BTOR_PUSH_STACK (mm, *stack, lambda_value->e[0]);
-        DBG_P ("lambda exp prop. down:", 0);
-        DBG_P ("  array: ", lambda_value->e[0]);
-        DBG_P ("  acc: ", acc);
+        BTORLOG ("lambda exp prop. down:", 0);
+        BTORLOG ("  array: ", lambda_value->e[0]);
+        BTORLOG ("  acc: ", acc);
       }
       else
       {
         /* check for array axiom 2 conflict */
         if (compare_assignments (value, lambda_value) != 0)
         {
-          DBG_P ("\e[1;31m", 0);
-          DBG_P ("array axiom 2 conflict in lambda expression: ", array);
-          DBG_P (" add_lemma:", 0);
-          DBG_P ("   array: ", array);
-          DBG_P ("   acc1: ", acc);
-          DBG_P ("   acc2: ", array);
-          DBG_P ("\e[0;39m", 0);
+          BTORLOG ("\e[1;31m", 0);
+          BTORLOG ("array axiom 2 conflict in lambda expression: ", array);
+          BTORLOG (" add_lemma:", 0);
+          BTORLOG ("   array: ", array);
+          BTORLOG ("   acc1: ", acc);
+          BTORLOG ("   acc2: ", array);
+          BTORLOG ("\e[0;39m", 0);
 
           btor->stats.array_axiom_2_conflicts++;
           add_lemma (btor, array, acc, array);
@@ -8454,9 +8431,9 @@ process_working_stack (Btor *btor,
             assert (!next->simplified);
             BTOR_PUSH_STACK (mm, *stack, acc);
             BTOR_PUSH_STACK (mm, *stack, next);
-            DBG_P ("aeq exp prop.:", 0);
-            DBG_P ("  array: ", next);
-            DBG_P ("  acc: ", acc);
+            BTORLOG ("aeq exp prop.:", 0);
+            BTORLOG ("  array: ", next);
+            BTORLOG ("  acc: ", acc);
           }
         }
       }
@@ -8556,9 +8533,9 @@ process_working_stack (Btor *btor,
         {
           assert (lambda_value->e[0] == next->e[0]);
           assert (lambda_value->e[1] == index);
-          DBG_P ("lambda prop. upwards:", 0);
-          DBG_P ("  access: ", acc);
-          DBG_P ("  array: ", lambda_exp);
+          BTORLOG ("lambda prop. upwards:", 0);
+          BTORLOG ("  access: ", acc);
+          BTORLOG ("  array: ", lambda_exp);
           BTOR_PUSH_STACK (mm, *stack, acc);
           BTOR_PUSH_STACK (mm, *stack, lambda_exp);
         }
@@ -8715,13 +8692,13 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     assert (cur_array->reachable);
     assert (!cur_array->simplified);
     BTOR_PUSH_STACK (mm, array_stack, cur_array);
-    DBG_P ("push top_array (%d): ", cur_array, cur_array->array_mark);
+    BTORLOG ("push top_array (%d): ", cur_array, cur_array->array_mark);
   }
 
   while (!BTOR_EMPTY_STACK (array_stack))
   {
     cur_array = BTOR_POP_STACK (array_stack);
-    DBG_P ("push cur_array (%d): ", cur_array, cur_array->array_mark);
+    BTORLOG ("push cur_array (%d): ", cur_array, cur_array->array_mark);
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     assert (cur_array->reachable);
@@ -8955,8 +8932,13 @@ rebuild_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
+
+  //  if (BTOR_IS_PROXY_NODE (exp))
+  //    exp = btor_pointer_chase_simplified_exp (btor, exp);
+
   switch (exp->kind)
   {
+    case BTOR_PROXY_NODE:
     case BTOR_BV_CONST_NODE:
     case BTOR_BV_VAR_NODE:
     case BTOR_ARRAY_VAR_NODE: return btor_copy_exp (btor, exp->simplified);
@@ -9190,8 +9172,8 @@ normalize_substitution (Btor *btor,
       comp  = reverse_subst_comp_kind (btor, comp);
     }
 
-    /* we do not create a lambda if variable is already in substitution
-     * table */
+    /* we do not create a lambda (index) if variable is already in
+     * substitution table */
     assert (!BTOR_IS_INVERTED_NODE (var));
     if (btor_find_in_ptr_hash_table (btor->varsubst_constraints, var)) return 0;
 
@@ -10743,7 +10725,41 @@ process_skeleton (Btor *btor)
 /*------------------------------------------------------------------------*/
 #endif /* BTOR_DO_NOT_PROCESS_SKELETON */
 /*------------------------------------------------------------------------*/
+#if 1
+static BtorNode *
+rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
+{
+  assert (btor);
+  assert (BTOR_IS_REGULAR_NODE (write));
+  assert (BTOR_IS_WRITE_NODE (write));
 
+  int i;
+  BtorNode *bvcond, *e_cond, *e_then, *e_else;
+  BtorNode *lambda, *param, *e[3];
+
+  for (i = 0; i < 3; i++)
+    e[i] = btor_pointer_chase_simplified_exp (btor, write->e[i]);
+
+  /* write (e0, e1, e2) -> lambda p. p == e1 ? e2 : read (e0, p) */
+  param  = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[1])->len, "");
+  e_then = btor_copy_exp (btor, e[2]);
+  e_else = btor_read_exp (btor, e[0], param);
+  e_cond = btor_eq_exp (btor, param, e[1]);
+  // FIXME: we currently can't handle general lambdas with parameterized
+  //	    reads (e.g. lambda j. j && read (a, j)
+  //	    -> for now we do not allow rewriting of bv conditions
+  bvcond = btor_cond_exp_no_rewrite (btor, e_cond, e_then, e_else);
+  lambda = btor_lambda_exp (btor, param, bvcond);
+
+  btor_release_exp (btor, e_then);
+  btor_release_exp (btor, e_else);
+  btor_release_exp (btor, e_cond);
+  btor_release_exp (btor, bvcond);
+  btor_release_exp (btor, param);
+
+  return lambda;
+}
+#else
 static void
 rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 {
@@ -10759,7 +10775,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
   param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (write->e[1])->len, "0");
 
-  e_if   = btor_copy_exp (btor, write->e[2]);
+  e_if = btor_copy_exp (btor, write->e[2]);
   e_else = btor_read_exp (btor, write->e[0], param);
   e_cond = btor_eq_exp_node (btor, param, write->e[1]); /* no rewriting */
   assert (BTOR_IS_BV_EQ_NODE (e_cond));
@@ -10781,8 +10797,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     assert (write->refs > 0);
 
     tagged_parent = it.cur;
-    parent        = next_parent_full_parent_iterator (&it);
-    pos           = BTOR_GET_TAG_NODE (tagged_parent);
+    parent = next_parent_full_parent_iterator (&it);
+    pos = BTOR_GET_TAG_NODE (tagged_parent);
 
     assert (parent->e[pos] == write);
     replace_child_exp (btor, parent, lambda_exp, pos);
@@ -10795,7 +10811,100 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   btor_release_exp (btor, param);
   btor_release_exp (btor, lambda_exp);
 }
+#endif
 
+#if 1
+static void
+rewrite_writes_to_lambda_exp (Btor *btor)
+{
+  assert (btor);
+
+  int i;
+  BtorPtrHashTable *roots = NULL;
+  BtorPtrHashBucket *b;
+  BtorNode *exp, *lambda;
+  BtorNodePtrStack work_stack, unmark_stack;
+  BtorPtrHashTable *writes;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  writes = btor_new_ptr_hash_table (btor->mm,
+                                    (BtorHashPtr) btor_hash_exp_by_id,
+                                    (BtorCmpPtr) btor_compare_exp_by_id);
+  for (;;)
+  {
+    if (roots == NULL)
+      roots = btor->unsynthesized_constraints;
+    else if (roots == btor->unsynthesized_constraints)
+      roots = btor->synthesized_constraints;
+    else
+      break;
+
+    for (b = roots->first; b; b = b->next)
+    {
+      exp = b->key;
+      BTOR_PUSH_STACK (btor->mm, work_stack, exp);
+
+      /* collect writes and generate lambdas */
+      do
+      {
+        exp = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+        assert (exp);
+
+        if (exp->mark == 2) continue;
+
+        if (exp->mark == 0)
+        {
+          exp->mark = 1;
+          /* prevent exp to be released prematurely via
+           * set_simplified_exp (else unmarking is not sound) */
+          inc_exp_ref_counter (btor, exp);
+          BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
+          BTOR_PUSH_STACK (btor->mm, work_stack, exp);
+          for (i = exp->arity - 1; i >= 0; i--)
+            BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
+        }
+        else
+        {
+          exp->mark = 2;
+
+          if (BTOR_IS_WRITE_NODE (exp))
+          {
+            if (!btor_find_in_ptr_hash_table (writes, exp))
+              btor_insert_in_ptr_hash_table (writes, exp);
+
+            lambda = rewrite_write_to_lambda_exp (btor, exp);
+            /* write -> proxy node (we need this for rewriting
+             * nested writes) */
+            set_simplified_exp (btor, exp, lambda, 1);
+            /* mark proxy as ex-array (else aeq/acond parents are
+             * skipped in substitute_and_rebuild) */
+            exp->proxy_array_mark = 1;
+            btor_release_exp (btor, lambda);
+          }
+        }
+      } while (!BTOR_EMPTY_STACK (work_stack));
+    }
+  }
+
+  substitute_and_rebuild (btor, writes);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    exp = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (exp));
+    assert (exp->mark);
+    exp->mark = 0;
+    btor_release_exp (btor, exp);
+  }
+
+  BTOR_RELEASE_STACK (btor->mm, work_stack);
+  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+
+  btor_delete_ptr_hash_table (writes);
+}
+#else
 static void
 rewrite_writes_to_lambda_exp (Btor *btor)
 {
@@ -10867,11 +10976,12 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 
   BTOR_RELEASE_STACK (btor->mm, writes_stack);
 }
+#endif
 
 static void
 run_rewrite_engine (Btor *btor)
 {
-  int rounds;
+  int rounds, rwwrounds;
   double start, delta;
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   int skelrounds = 0;
@@ -10882,8 +10992,9 @@ run_rewrite_engine (Btor *btor)
 
   if (btor->rewrite_level <= 1) return;
 
-  rounds = 0;
-  start  = btor_time_stamp ();
+  rounds    = 0;
+  rwwrounds = 0;
+  start     = btor_time_stamp ();
 
   do
   {
@@ -10900,6 +11011,7 @@ run_rewrite_engine (Btor *btor)
     process_embedded_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     //      assert (check_all_hash_tables_simp_free_dbg (btor));
+
     if (btor->inconsistent) break;
 
     if (btor->varsubst_constraints->count) continue;
@@ -10933,6 +11045,24 @@ run_rewrite_engine (Btor *btor)
       if (btor->embedded_constraints->count) continue;
     }
 #endif
+
+    /* rewrite writes to lambdas (once) */
+    if (btor->rewrite_writes && rwwrounds < 1)
+    {
+      /* do not rewrite writes to lambdas in case of extensionality */
+      if (btor->ops[BTOR_AEQ_NODE] == 0)
+      {
+        rewrite_writes_to_lambda_exp (btor);
+        //	      assert (btor->ops[BTOR_WRITE_NODE] == 0);
+      }
+
+      // TODO does this currently have any effect?
+      // if (btor->lambdas->count)
+      //  continue;
+    }
+
+    /* rewrite/beta-reduce reads on lambdas */
+
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
@@ -10976,12 +11106,12 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
   int parameterized, pos;
   BtorMemMgr *mm;
-  BtorNode *parent, *lambda, *read, *red;
+  BtorNode *parent, *lambda, *tagged_read, *read, *red;
   BtorNodePtrStack reads_stack, unmark_stack;
   BtorPtrHashBucket *bucket;
   BtorPartialParentIterator pit;
   BtorFullParentIterator fit;
-  DBG_P ("*** beta_reduce_reads_on_lambdas", 0);
+  BTORLOG ("*** beta_reduce_reads_on_lambdas", 0);
 
   mm = btor->mm;
   BTOR_INIT_STACK (unmark_stack);
@@ -10994,14 +11124,15 @@ beta_reduce_reads_on_lambdas (Btor *btor)
     init_read_parent_iterator (&pit, lambda);
     while (has_next_parent_read_parent_iterator (&pit))
     {
-      read = next_parent_read_parent_iterator (&pit);
+      tagged_read = pit.cur;
+      read        = next_parent_read_parent_iterator (&pit);
 
       if (read->mark) continue;
 
       read->mark = 1;
       BTOR_PUSH_STACK (mm, unmark_stack, read);
 
-      if (!read->parameterized) BTOR_PUSH_STACK (mm, reads_stack, read);
+      if (!read->parameterized) BTOR_PUSH_STACK (mm, reads_stack, tagged_read);
     }
   }
 
@@ -11016,17 +11147,28 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
   while (!BTOR_EMPTY_STACK (reads_stack))
   {
-    read = BTOR_POP_STACK (reads_stack);
-    assert (BTOR_IS_REGULAR_NODE (read));
-    red = beta_reduce (btor, read, 0, &parameterized);
-    if (red != read)
+    tagged_read = BTOR_POP_STACK (reads_stack);
+    read        = BTOR_REAL_ADDR_NODE (tagged_read);
+    red         = beta_reduce (btor, read, 0, &parameterized);
+    if (red != tagged_read)
     {
       init_full_parent_iterator (&fit, read);
-      while (has_next_parent_full_parent_iterator (&fit))
+
+      // TODO use simplified_exp instead?
+      if (!has_next_parent_full_parent_iterator (&fit)) /* root */
       {
-        pos    = BTOR_GET_TAG_NODE (fit.cur);
-        parent = next_parent_full_parent_iterator (&fit);
-        replace_child_exp (btor, parent, red, pos);
+        //	      inc_exp_ref_counter (btor, read);
+        set_simplified_exp (btor, read, red, 1);
+        //	      btor_release_exp (btor, read);
+      }
+      else
+      {
+        while (has_next_parent_full_parent_iterator (&fit))
+        {
+          pos    = BTOR_GET_TAG_NODE (fit.cur);
+          parent = next_parent_full_parent_iterator (&fit);
+          replace_child_exp (btor, parent, red, pos);
+        }
       }
     }
     btor_release_exp (btor, red);
@@ -11073,23 +11215,23 @@ btor_sat_aux_btor (Btor *btor)
 
   run_rewrite_engine (btor);
 
-  /* do not rewrite writes to lambdas in case of extensionality */
-  if (btor->ops[BTOR_AEQ_NODE] == 0)
-  {
-    if (btor->rewrite_writes)
-    {
-      rewrite_writes_to_lambda_exp (btor);
-      assert (btor->ops[BTOR_WRITE_NODE] == 0);
-    }
-
-    if (btor->rewrite_reads)
-    {
-      beta_reduce_reads_on_lambdas (btor);
-      assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
-    }
-
-    run_rewrite_engine (btor);
-  }
+  //  /* do not rewrite writes to lambdas in case of extensionality */
+  //  if (btor->ops[BTOR_AEQ_NODE] == 0)
+  //    {
+  //      if (btor->rewrite_writes)
+  //	{
+  //	  rewrite_writes_to_lambda_exp (btor);
+  //	  assert (btor->ops[BTOR_WRITE_NODE] == 0);
+  //	}
+  //
+  //      if (btor->rewrite_reads)
+  //	{
+  //	  beta_reduce_reads_on_lambdas (btor);
+  //	  assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
+  //	}
+  //
+  //      run_rewrite_engine (btor);
+  //    }
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
