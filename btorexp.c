@@ -10763,12 +10763,15 @@ run_rewrite_engine (Btor *btor)
       }
     }
 
+    if (btor->varsubst_constraints->count) continue;
+
+    if (btor->embedded_constraints->count) continue;
+
     /* rewrite/beta-reduce reads on lambdas */
     if (btor->rewrite_reads && btor->lambdas->count)
     {
       beta_reduce_reads_on_lambdas (btor);
-      //	  assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count
-      //== 0);
+      assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
     }
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
