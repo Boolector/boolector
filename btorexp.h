@@ -272,6 +272,17 @@ struct BtorNode
   BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
 };
 
+struct BtorLambdaNode
+{
+  BTOR_BV_VAR_NODE_STRUCT;
+  BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  BTOR_ARRAY_VAR_NODE_STRUCT;
+  BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
+  BtorPtrHashTable *synth_reads;
+};
+
+typedef struct BtorLambdaNode BtorLambdaNode;
+
 struct BtorNodeUniqueTable
 {
   int size;
@@ -389,6 +400,7 @@ struct Btor
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
+    long long lambda_synth_reads;
   } stats;
 
   struct
