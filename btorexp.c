@@ -1156,6 +1156,7 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   assert (exp->kind != BTOR_INVALID_NODE);
 
   mm = btor->mm;
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
   switch (exp->kind)
   {
@@ -5716,12 +5717,25 @@ btor_set_loglevel_btor (Btor *btor, int loglevel)
 void
 btor_delete_btor (Btor *btor)
 {
+  BtorPtrHashTable *ht;
   BtorPtrHashBucket *b;
   BtorMemMgr *mm;
+  BtorNode *exp;
 
   assert (btor);
 
   mm = btor->mm;
+
+  for (b = btor->lambdas->first; b; b = b->next)
+  {
+    ht = ((BtorLambdaNode *) b->key)->synth_reads;
+    while (ht && ht->count > 0u)
+    {
+      exp = (BtorNode *) ht->first->key;
+      btor_remove_from_ptr_hash_table (ht, exp, 0, 0);
+      btor_release_exp (btor, exp);
+    }
+  }
 
   for (b = btor->exp_pair_eq_table->first; b; b = b->next)
   {
@@ -5774,7 +5788,8 @@ btor_delete_btor (Btor *btor)
              btor->nodes_unique_table.num_elements);
   for (k = 0; k < btor->nodes_unique_table.size; k++)
     if (btor->nodes_unique_table.chains[k])
-      dump_node (stderr, btor->nodes_unique_table.chains[k]);
+      BTORLOG ("  unreleased node: %s",
+               node2string (btor->nodes_unique_table.chains[k]));
 #endif
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
           || btor->nodes_unique_table.num_elements == 0);
