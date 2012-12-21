@@ -6184,7 +6184,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         assert (!BTOR_IS_ARRAY_COND_NODE (cur));
 
         /* special cases */
-        if (BTOR_IS_READ_NODE (cur))
+        if (BTOR_IS_READ_NODE (cur) && !cur->parameterized)
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
           BTORLOG ("  synthesized: %s", node2string (cur));
@@ -6192,7 +6192,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           assert (BTOR_IS_ARRAY_NODE (cur->e[0]));
           goto REGULAR_CASE;
         }
-        else if (BTOR_IS_ARRAY_EQ_NODE (cur))
+        else if (BTOR_IS_ARRAY_EQ_NODE (cur) && !cur->parameterized)
         {
           /* Generate virtual reads and create AIG variable for
            * array equality.
@@ -9199,7 +9199,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     cur_array = BTOR_POP_STACK (array_stack);
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
-    BTORLOG ("  cur_array: %s", node2string (cur_array));
     assert (cur_array->reachable);
     assert (!cur_array->simplified);
     assert (cur_array->array_mark == 0 || cur_array->array_mark == 1);
