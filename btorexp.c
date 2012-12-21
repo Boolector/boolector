@@ -7613,7 +7613,7 @@ eval_exp (Btor *btor, BtorNode *exp)
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
-    BTORLOG ("  real_cur: %s", node2string (cur));
+    BTORLOG ("  real_cur: %s %d", node2string (cur), real_cur->tseitin);
 
     if (real_cur->eval_mark == 0 || real_cur->eval_mark == 2)
     {
@@ -7640,7 +7640,7 @@ eval_exp (Btor *btor, BtorNode *exp)
         /* if current node already has an assignment, skip children */
         if (real_cur->tseitin)
         {
-          BTORLOG ("  skip: %s", node2string (real_cur));
+          BTORLOG ("  skip (tseitin): %s", node2string (real_cur));
           continue;
         }
 
@@ -7722,6 +7722,7 @@ eval_exp (Btor *btor, BtorNode *exp)
         result = inv_result;
       }
 
+      BTORLOG ("  result: %s, %s", result, node2string (real_cur));
       BTOR_PUSH_STACK (mm, arg_stack, (char *) result);
     }
   }
@@ -7879,7 +7880,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    BTORLOG ("  real_cur: %s", node2string (real_cur));
+    //      BTORLOG ("  real_cur: %s", node2string (real_cur));
 
     //      BTORLOG ("beta_reduce: real_cur (%d): ", real_cur,
     //      real_cur->beta_mark);
@@ -8106,7 +8107,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
 
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      BTORLOG ("  result: %s", node2string (result));
+      //	  BTORLOG ("  result: %s", node2string (result));
       BTOR_PUSH_STACK (mm, arg_stack, result);
       BTOR_PUSH_STACK (mm, parameterized_stack, *parameterized);
     }
@@ -8152,7 +8153,6 @@ search_parameterized_read (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  BTORLOG ("search_parameterized_read: %s", node2string (exp));
   assert (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
   int i;
@@ -8160,7 +8160,7 @@ search_parameterized_read (Btor *btor, BtorNode *exp)
   BtorNodePtrStack work_stack, unmark_stack, reads_stack;
   BtorMemMgr *mm;
 
-  //      BTOR_REAL_ADDR_NODE (exp)->id);
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
   mm = btor->mm;
 
@@ -8169,11 +8169,13 @@ search_parameterized_read (Btor *btor, BtorNode *exp)
   BTOR_INIT_STACK (reads_stack);
   BTOR_PUSH_STACK (mm, work_stack, exp);
 
+  /* collect all reads that were parameterized before beta reduction, which
+   * were not yet encoded and thus the tseitin flag is not set */
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
 
-    if (cur->mark || BTOR_IS_SYNTH_NODE (cur)) continue;
+    if (cur->mark || cur->tseitin) continue;
 
     cur->mark = 1;
     BTOR_PUSH_STACK (mm, unmark_stack, cur);
