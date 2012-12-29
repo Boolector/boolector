@@ -1,2 +1,2 @@
 (assert
-(bvneg bvurem)
+(bvnot bvnot)
