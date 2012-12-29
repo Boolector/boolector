@@ -5,7 +5,8 @@ CFLAGS+=-I"$(shell pwd)"
 
 all: test
 
-clean:
+clean: test-clean
+test-clean:
 	rm -f $(TESTDIR)/*.o
 	rm -f test.dep
 
