@@ -1924,154 +1924,6 @@ encode_lemma (Btor *btor,
   BTOR_RELEASE_STACK (mm, linking_clause);
 }
 
-///* This function is used to encode a lemma on demand.
-//* The stack 'writes' contains intermediate writes.
-//* The stack 'aeqs' contains intermediate array equalities (true).
-//* The stacks 'aconds' contain intermediate array conditionals.
-//*/
-// static void
-// encode_lemma (Btor * btor, BtorPtrHashTable * writes, BtorPtrHashTable *
-// aeqs,
-//              BtorPtrHashTable * aconds_sel1, BtorPtrHashTable * aconds_sel2,
-//              BtorNode * i, BtorNode * j, BtorNode * a, BtorNode * b)
-//{
-//  BtorMemMgr *mm;
-//  BtorAIGVecMgr *avmgr;
-//  BtorAIGMgr *amgr;
-//  BtorSATMgr *smgr;
-//  BtorAIG *aig1;
-//  BtorNode *w_index, *cur_write, *aeq, *acond, *cond;
-//  BtorPtrHashBucket *bucket;
-//  // BtorIntStack clauses;
-//  BtorIntStack linking_clause;
-//  int k, val;
-//  assert (btor);
-//  assert (writes);
-//  assert (aeqs);
-//  assert (aconds_sel1);
-//  assert (aconds_sel2);
-//  assert (i);
-//  assert (j);
-//  assert (a);
-//  assert (b);
-//  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (i)));
-//  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (j)));
-//  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (a)));
-//
-//  btor->stats.lemmas_size_sum += writes->count;
-//  btor->stats.lemmas_size_sum += aeqs->count;
-//  btor->stats.lemmas_size_sum += aconds_sel1->count;
-//  btor->stats.lemmas_size_sum += aconds_sel2->count;
-//  btor->stats.lemmas_size_sum += 2;
-//
-//  mm = btor->mm;
-//  avmgr = btor->avmgr;
-//  amgr = btor_get_aig_mgr_aigvec_mgr (avmgr);
-//  smgr = btor_get_sat_mgr_aig_mgr (amgr);
-//
-//  /* i and j have to be synthesized and translated to SAT before */
-//  assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (i)));
-//  assert (BTOR_REAL_ADDR_NODE (i)->tseitin);
-//  assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (j)));
-//  assert (BTOR_REAL_ADDR_NODE (j)->tseitin);
-//
-//  // BTOR_INIT_STACK (clauses);
-//  BTOR_INIT_STACK (linking_clause);
-//
-//  add_neq_exp_to_clause (btor, i, j, &linking_clause);
-//  add_eq_exp_to_clause (btor, a, b, &linking_clause);
-//
-//  /* encode i = write index premisses */
-//  for (bucket = writes->last; bucket; bucket = bucket->prev)
-//    {
-//      cur_write = (BtorNode *) bucket->key;
-//      assert (BTOR_IS_REGULAR_NODE (cur_write));
-//      assert (BTOR_IS_WRITE_NODE (cur_write));
-//      w_index = cur_write->e[1];
-//      add_eq_exp_to_clause (btor, i, w_index, &linking_clause);
-//    }
-//
-//  /* add array equalites in the premisse to linking clause */
-//  for (bucket = aeqs->last; bucket; bucket = bucket->prev)
-//    {
-//      // TODO replace by 'exp_to_cnf_lit'
-//      aeq = (BtorNode *) bucket->key;
-//      assert (BTOR_IS_REGULAR_NODE (aeq));
-//      assert (BTOR_IS_ARRAY_EQ_NODE (aeq));
-//      assert (BTOR_IS_SYNTH_NODE (aeq));
-//      assert (aeq->av->len == 1);
-//      assert (!BTOR_IS_INVERTED_AIG (aeq->av->aigs[0]));
-//      assert (!BTOR_IS_CONST_AIG (aeq->av->aigs[0]));
-//      assert (BTOR_IS_VAR_AIG (aeq->av->aigs[0]));
-//      k = -aeq->av->aigs[0]->cnf_id;
-//      BTOR_PUSH_STACK (mm, linking_clause, k);
-//    }
-//
-//  for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
-//    {
-//      // TODO replace by 'exp_to_cnf_lit'
-//      acond = (BtorNode *) bucket->key;
-//      assert (BTOR_IS_REGULAR_NODE (acond));
-//      assert (BTOR_IS_ARRAY_COND_NODE (acond));
-//      cond = acond->e[0];
-//      assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
-//      assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-//      aig1 = BTOR_REAL_ADDR_NODE (cond)->av->aigs[0];
-//      /* if AIG is constant (e.g. as a result of AIG optimizations),
-//       * then we do not have to include it in the premisse */
-//      if (!BTOR_IS_CONST_AIG (aig1))
-//        {
-//          if (BTOR_IS_INVERTED_NODE (cond))
-//            aig1 = BTOR_INVERT_AIG (aig1);
-//          if (BTOR_IS_INVERTED_AIG (aig1))
-//            k = BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-//          else
-//            k = -aig1->cnf_id;
-//          assert (k != 0);
-//          BTOR_PUSH_STACK (mm, linking_clause, k);
-//        }
-//    }
-//
-//  for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
-//    {
-//      // TODO replace by 'exp_to_cnf_lit'
-//      acond = (BtorNode *) bucket->key;
-//      assert (BTOR_IS_REGULAR_NODE (acond));
-//      assert (BTOR_IS_ARRAY_COND_NODE (acond));
-//      cond = acond->e[0];
-//      assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
-//      assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-//      aig1 = BTOR_REAL_ADDR_NODE (cond)->av->aigs[0];
-//      /* if AIG is constant (e.g. as a result of AIG optimizations),
-//       * then we do not have to include it in the premisse */
-//      if (!BTOR_IS_CONST_AIG (aig1))
-//        {
-//          if (BTOR_IS_INVERTED_NODE (cond))
-//            aig1 = BTOR_INVERT_AIG (aig1);
-//          if (BTOR_IS_INVERTED_AIG (aig1))
-//            k = -BTOR_REAL_ADDR_AIG (aig1)->cnf_id;
-//          else
-//            k = aig1->cnf_id;
-//          assert (k != 0);
-//          BTOR_PUSH_STACK (mm, linking_clause, k);
-//        }
-//    }
-//
-//  /* add linking clause */
-//  while (!BTOR_EMPTY_STACK (linking_clause))
-//    {
-//      k = BTOR_POP_STACK (linking_clause);
-//      assert (k != 0);
-//      val = btor_fixed_sat (smgr, k);
-//      if (val < 0) continue;
-//      assert (!val);
-//      btor_add_sat (smgr, k);
-//      btor->stats.lclause_size_sum++;
-//    }
-//  btor_add_sat (smgr, 0);
-//  BTOR_RELEASE_STACK (mm, linking_clause);
-//}
-
 /* Encodes the following array inequality constraint:
  * array1 != array2 <=> EXISTS(i): read(array1, i) != read(array2, i)
  */
@@ -2388,14 +2240,12 @@ update_constraints (Btor *btor, BtorNode *exp)
   if (pos)
   {
     btor_remove_from_ptr_hash_table (pos, exp, 0, 0);
-    //    if (has_parents_exp (btor, exp))
     btor_release_exp (btor, exp);
   }
 
   if (neg)
   {
     btor_remove_from_ptr_hash_table (neg, not_exp, 0, 0);
-    //     if (has_parents_exp (btor, not_exp))
     btor_release_exp (btor, not_exp);
   }
 }
@@ -5059,6 +4909,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   assert (mm);
 
   BTORLOG ("pprint %d\n", 0, btor->pprint);
+
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (stack);
 
@@ -5290,24 +5141,6 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
   assert (btor->rewrite_level > 1);
 
   run_rewrite_engine (btor);
-
-  //  /* do not rewrite writes to lambdas in case of extensionality */
-  //  if (btor->ops[BTOR_AEQ_NODE] == 0)
-  //    {
-  //      if (btor->rewrite_writes)
-  //	{
-  //	  rewrite_writes_to_lambda_exp (btor);
-  //	  assert (btor->ops[BTOR_WRITE_NODE] == 0);
-  //	}
-  //
-  //      if (btor->rewrite_reads)
-  //	{
-  //	  beta_reduce_reads_on_lambdas (btor);
-  //	  assert (btor->ops[BTOR_LAMBDA_NODE] == 0);
-  //	}
-  //
-  //      run_rewrite_engine (btor);
-  //    }
 
   if (btor->inconsistent)
   {
@@ -7923,7 +7756,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    BTORLOG ("beta_reduce: real_cur (%d): ", real_cur, real_cur->beta_mark);
+    //      BTORLOG ("beta_reduce: real_cur (%d): ", real_cur,
+    //      real_cur->beta_mark);
 
     if (real_cur->beta_mark != 1)
     {
@@ -7991,7 +7825,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
       {
         res  = eval_exp (btor, real_cur->e[0]);
         next = res[0] == '1' ? real_cur->e[1] : real_cur->e[2];
-        BTORLOG ("beta_reduce: next ", BTOR_REAL_ADDR_NODE (next));
+        // BTORLOG ("beta_reduce: next ", BTOR_REAL_ADDR_NODE (next));
         assert (next);
         real_cur->beta_mark = 2;
         btor_freestr (mm, (char *) res);
@@ -8174,7 +8008,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   BTOR_RELEASE_STACK (mm, unassign_stack);
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
-  BTORLOG ("* beta_reduce result (%d): ", result, *parameterized);
+  // BTORLOG ("* beta_reduce result (%d): ", result, *parameterized);
   btor->time.beta += btor_time_stamp () - start;
 
   return result;
@@ -10725,7 +10559,7 @@ process_skeleton (Btor *btor)
 /*------------------------------------------------------------------------*/
 #endif /* BTOR_DO_NOT_PROCESS_SKELETON */
 /*------------------------------------------------------------------------*/
-#if 1
+
 static BtorNode *
 rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 {
@@ -10759,72 +10593,17 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   return lambda;
 }
-#else
-static void
-rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
-{
-  BtorNode *lambda_exp, *param, *cond_exp, *e_cond, *e_if, *e_else;
-  BtorNode *tagged_parent, *parent;
-  BtorFullParentIterator it;
-  int pos;
 
-  assert (btor);
-  assert (BTOR_IS_WRITE_NODE (write));
-  assert (BTOR_IS_REGULAR_NODE (write));
-
-  /* write (a, i, e) -> lambda j . j == i ? e : read(a, j) */
-  param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (write->e[1])->len, "0");
-
-  e_if = btor_copy_exp (btor, write->e[2]);
-  e_else = btor_read_exp (btor, write->e[0], param);
-  e_cond = btor_eq_exp_node (btor, param, write->e[1]); /* no rewriting */
-  assert (BTOR_IS_BV_EQ_NODE (e_cond));
-
-  assert (e_else->e[0] == write->e[0]);
-  assert (e_else->e[1] == param);
-
-  // FIXME: we need this NOW, for "write"-lambdas (else we can't handle
-  //	    extensionality)
-  cond_exp = btor_cond_exp_no_rewrite (btor, e_cond, e_if, e_else);
-  assert (BTOR_IS_BV_COND_NODE (cond_exp)); /* no rewriting allowed  */
-
-  lambda_exp = btor_lambda_exp (btor, param, cond_exp);
-
-  /* disconnect write node from all of its parent nodes */
-  init_full_parent_iterator (&it, write);
-  while (has_next_parent_full_parent_iterator (&it))
-  {
-    assert (write->refs > 0);
-
-    tagged_parent = it.cur;
-    parent = next_parent_full_parent_iterator (&it);
-    pos = BTOR_GET_TAG_NODE (tagged_parent);
-
-    assert (parent->e[pos] == write);
-    replace_child_exp (btor, parent, lambda_exp, pos);
-  }
-
-  btor_release_exp (btor, e_if);
-  btor_release_exp (btor, e_else);
-  btor_release_exp (btor, e_cond);
-  btor_release_exp (btor, cond_exp);
-  btor_release_exp (btor, param);
-  btor_release_exp (btor, lambda_exp);
-}
-#endif
-
-#if 1
 static void
 rewrite_writes_to_lambda_exp (Btor *btor)
 {
   assert (btor);
 
   int i;
-  BtorPtrHashTable *roots = NULL;
+  BtorPtrHashTable *writes, *roots = NULL;
   BtorPtrHashBucket *b;
   BtorNode *exp, *lambda;
   BtorNodePtrStack work_stack, unmark_stack;
-  BtorPtrHashTable *writes;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -10904,79 +10683,6 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 
   btor_delete_ptr_hash_table (writes);
 }
-#else
-static void
-rewrite_writes_to_lambda_exp (Btor *btor)
-{
-  assert (btor);
-
-  assert (btor->unsynthesized_constraints);
-
-  int i;
-  BtorPtrHashTable *roots = NULL;
-  BtorPtrHashBucket *b;
-  BtorNode *exp;
-  BtorNodePtrStack work_stack, writes_stack, unmark_stack;
-
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (writes_stack);
-  BTOR_INIT_STACK (unmark_stack);
-
-  for (;;)
-  {
-    if (roots == NULL)
-      roots = btor->unsynthesized_constraints;
-    else if (roots == btor->unsynthesized_constraints)
-      roots = btor->synthesized_constraints;
-    else
-      break;
-
-    for (b = roots->first; b; b = b->next)
-    {
-      exp = b->key;
-
-      BTOR_PUSH_STACK (btor->mm, work_stack, exp);
-
-      /* collect writes  */
-      do
-      {
-        exp = BTOR_POP_STACK (work_stack);
-        assert (exp);
-        exp = BTOR_REAL_ADDR_NODE (exp);
-
-        if (exp->mark == 1) continue;
-
-        if (exp->mark == 0)
-        {
-          exp->mark = 1; /* visited */
-
-          BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
-
-          if (BTOR_IS_WRITE_NODE (exp))
-            BTOR_PUSH_STACK (btor->mm, writes_stack, exp);
-
-          for (i = exp->arity - 1; i >= 0; i--)
-            BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
-        }
-      } while (!BTOR_EMPTY_STACK (work_stack));
-    }
-  }
-
-  BTOR_RELEASE_STACK (btor->mm, work_stack);
-
-  /* reset marks */
-  for (i = 0; i < BTOR_COUNT_STACK (unmark_stack); i++)
-    unmark_stack.start[i]->mark = 0;
-
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
-
-  /* rewrite writes  */
-  for (i = 0; i < BTOR_COUNT_STACK (writes_stack); i++)
-    rewrite_write_to_lambda_exp (btor, writes_stack.start[i]);
-
-  BTOR_RELEASE_STACK (btor->mm, writes_stack);
-}
-#endif
 
 static void
 run_rewrite_engine (Btor *btor)
@@ -11053,16 +10759,17 @@ run_rewrite_engine (Btor *btor)
       if (btor->ops[BTOR_AEQ_NODE] == 0)
       {
         rewrite_writes_to_lambda_exp (btor);
-        //	      assert (btor->ops[BTOR_WRITE_NODE] == 0);
+        assert (btor->ops[BTOR_WRITE_NODE] == 0);
       }
-
-      // TODO does this currently have any effect?
-      // if (btor->lambdas->count)
-      //  continue;
     }
 
     /* rewrite/beta-reduce reads on lambdas */
-
+    if (btor->rewrite_reads && btor->lambdas->count)
+    {
+      beta_reduce_reads_on_lambdas (btor);
+      //	  assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count
+      //== 0);
+    }
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
 
@@ -11099,83 +10806,64 @@ synthesize_all_var_rhs (Btor *btor)
   }
 }
 
+// TODO: beta-reduce reads on aconds?
 static void
 beta_reduce_reads_on_lambdas (Btor *btor)
 {
   assert (btor);
 
-  int parameterized, pos;
-  BtorMemMgr *mm;
-  BtorNode *parent, *lambda, *tagged_read, *read, *red;
-  BtorNodePtrStack reads_stack, unmark_stack;
-  BtorPtrHashBucket *bucket;
-  BtorPartialParentIterator pit;
-  BtorFullParentIterator fit;
-  BTORLOG ("*** beta_reduce_reads_on_lambdas", 0);
+  int parameterized;
+  BtorPtrHashTable *reads;
+  BtorPtrHashBucket *b;
+  BtorNode *read, *reduced_read, *lambda;
+  BtorPartialParentIterator it;
 
-  mm = btor->mm;
-  BTOR_INIT_STACK (unmark_stack);
-  BTOR_INIT_STACK (reads_stack);
+  reads = btor_new_ptr_hash_table (btor->mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
 
-  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
+  /* collect reads first, then reduce (else btor->lambdas is inconsistent
+   * as lambdas might be released via set_simplified_exp) */
+  for (b = btor->lambdas->first; b; b = b->next)
   {
-    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->key);
-
-    init_read_parent_iterator (&pit, lambda);
-    while (has_next_parent_read_parent_iterator (&pit))
+    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
+    init_read_parent_iterator (&it, lambda);
+    while (has_next_parent_read_parent_iterator (&it))
     {
-      tagged_read = pit.cur;
-      read        = next_parent_read_parent_iterator (&pit);
+      read = next_parent_read_parent_iterator (&it);
 
       if (read->mark) continue;
 
       read->mark = 1;
-      BTOR_PUSH_STACK (mm, unmark_stack, read);
 
-      if (!read->parameterized) BTOR_PUSH_STACK (mm, reads_stack, tagged_read);
+      if (!read->parameterized && !btor_find_in_ptr_hash_table (reads, read))
+        btor_insert_in_ptr_hash_table (reads, read);
     }
   }
 
-  while (!BTOR_EMPTY_STACK (unmark_stack))
+  /* beta-reduce, substitute and rebuild */
+  for (b = reads->first; b; b = b->next)
   {
-    read = BTOR_POP_STACK (unmark_stack);
+    read = b->key;
     assert (BTOR_IS_REGULAR_NODE (read));
-    assert (BTOR_IS_READ_NODE (read));
-    assert (read->mark == 1);
-    read->mark = 0;
+
+    /* prevent read to be released prematurely via set_simplified_exp */
+    inc_exp_ref_counter (btor, read);
+    reduced_read = beta_reduce (btor, read, 0, &parameterized);
+    /* read -> proxy node */
+    set_simplified_exp (btor, read, reduced_read, 1);
+    btor_release_exp (btor, reduced_read);
   }
 
-  while (!BTOR_EMPTY_STACK (reads_stack))
+  substitute_and_rebuild (btor, reads);
+
+  for (b = reads->first; b; b = b->next)
   {
-    tagged_read = BTOR_POP_STACK (reads_stack);
-    read        = BTOR_REAL_ADDR_NODE (tagged_read);
-    red         = beta_reduce (btor, read, 0, &parameterized);
-    if (red != tagged_read)
-    {
-      init_full_parent_iterator (&fit, read);
-
-      // TODO use simplified_exp instead?
-      if (!has_next_parent_full_parent_iterator (&fit)) /* root */
-      {
-        //	      inc_exp_ref_counter (btor, read);
-        set_simplified_exp (btor, read, red, 1);
-        //	      btor_release_exp (btor, read);
-      }
-      else
-      {
-        while (has_next_parent_full_parent_iterator (&fit))
-        {
-          pos    = BTOR_GET_TAG_NODE (fit.cur);
-          parent = next_parent_full_parent_iterator (&fit);
-          replace_child_exp (btor, parent, red, pos);
-        }
-      }
-    }
-    btor_release_exp (btor, red);
+    read = b->key;
+    assert (read->mark);
+    btor_release_exp (btor, read);
   }
-
-  BTOR_RELEASE_STACK (mm, reads_stack);
-  BTOR_RELEASE_STACK (mm, unmark_stack);
+  btor_delete_ptr_hash_table (reads);
 }
 
 static void
