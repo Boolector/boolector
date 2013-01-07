@@ -32,6 +32,12 @@
 
 /*------------------------------------------------------------------------*/
 
+#define BETA_RED_CUTOFF -1
+#define BETA_RED_FULL 0
+#define BETA_RED_BOUNDED(bound) bound
+
+/*------------------------------------------------------------------------*/
+
 // #define BTOR_DO_NOT_ELIMINATE_SLICES
 
 #ifndef BTOR_USE_LINGELING
@@ -1574,7 +1580,7 @@ add_param_cond_to_clause (Btor *btor,
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTORLOG ("add_param_cond_to_clause: ", cond);
-  beta_cond = beta_reduce (btor, cond, -1, &parameterized);
+  beta_cond = beta_reduce (btor, cond, BETA_RED_CUTOFF, &parameterized);
   assert (!beta_cond->parameterized);
   lit = exp_to_cnf_lit (btor, beta_cond);
   lit *= sign;
@@ -1726,7 +1732,7 @@ encode_lemma (Btor *btor,
   {
     /* get value at position i */
     assign_param (btor, acc2, i);
-    lambda_value = beta_reduce (btor, acc2, -1, &parameterized);
+    lambda_value = beta_reduce (btor, acc2, BETA_RED_CUTOFF, &parameterized);
     unassign_param (btor, acc2);
     b            = lambda_value;
     lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
@@ -4713,7 +4719,7 @@ btor_reduce (Btor *btor, BtorNode *exp)
   assert (exp);
 
   int i;
-  return beta_reduce (btor, exp, 0, &i);
+  return beta_reduce (btor, exp, BETA_RED_FULL, &i);
 }
 
 BtorNode *
@@ -4743,7 +4749,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
 
-  result = beta_reduce (btor, lambda, 0, &i);
+  result = beta_reduce (btor, lambda, BETA_RED_FULL, &i);
 
   while (!BTOR_EMPTY_STACK (unassign))
   {
@@ -6871,7 +6877,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 
         /* instantiate lambda expressions with read index of acc */
         assign_param (btor, lambda_exp, index);
-        lambda_value = beta_reduce (btor, lambda_exp, -1, &parameterized);
+        lambda_value =
+            beta_reduce (btor, lambda_exp, BETA_RED_CUTOFF, &parameterized);
         unassign_param (btor, lambda_exp);
 
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
@@ -7756,7 +7763,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   assert (btor);
   assert (exp);
 
-  assert (bound <= 0);  // TODO not implemented yet
+  assert (bound <= BETA_RED_FULL);  // TODO bound not implemented yet
 
   int i, p[3], mark;
   char *symbol;
@@ -7829,7 +7836,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
 
       mark = 1;
 
-      if (bound < 0 && real_cur != BTOR_REAL_ADDR_NODE (exp)
+      if (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
           && (real_cur->tseitin || BTOR_IS_ARRAY_NODE (real_cur)))
       {
         BTOR_PUSH_STACK (mm, work_stack, cur);
@@ -7838,7 +7845,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
       }
 
       next = 0;
-      if (bound >= 0
+      if (bound >= BETA_RED_FULL
           && (BTOR_IS_READ_NODE (real_cur)
               && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[0]))))
       {
@@ -7877,7 +7884,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
         else
           mark = 0;
       }
-      else if (bound < 0
+      else if (bound == BETA_RED_CUTOFF
                /* do not evaluate conditions if not encoded or
                 * parameterized */
                && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
@@ -7920,7 +7927,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
         {
           /* TODO assigned_exp -> assigned_exp_stack
            * push assigned_exp onto assign_stack */
-          if (bound < 0
+          if (bound == BETA_RED_CUTOFF
               && BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[i])))
           {
             param = BTOR_REAL_ADDR_NODE (real_cur->e[i]);
@@ -7945,7 +7952,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
 
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
           || BTOR_IS_ARRAY_VAR_NODE (real_cur) || BTOR_IS_PARAM_NODE (real_cur)
-          || (bound < 0 && real_cur != BTOR_REAL_ADDR_NODE (exp)
+          || (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
               && (real_cur->tseitin || BTOR_IS_ARRAY_NODE (real_cur))))
       {
         result = btor_copy_exp (btor, real_cur);
@@ -7954,7 +7961,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
       {
         assert (BTOR_IS_UNARY_NODE (real_cur) || BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_IS_TERNARY_NODE (real_cur));
-        assert (bound >= 0 || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
+        assert (bound >= BETA_RED_FULL
+                || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
                 || (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->tseitin
                     && !BTOR_REAL_ADDR_NODE (real_cur->e[0])->parameterized));
         assert (!BTOR_IS_BINARY_NODE (real_cur)
@@ -8605,7 +8613,7 @@ process_working_stack (Btor *btor,
       if (*assignments_changed) return 0;
 
       assign_param (btor, array, index);
-      lambda_value = beta_reduce (btor, array, -1, &parameterized);
+      lambda_value = beta_reduce (btor, array, BETA_RED_CUTOFF, &parameterized);
       unassign_param (btor, array);
 
       // debug
@@ -8781,7 +8789,8 @@ process_working_stack (Btor *btor,
 
         /* instantiate lambda expressions with read index of acc */
         assign_param (btor, lambda_exp, index);
-        lambda_value = beta_reduce (btor, lambda_exp, -1, &parameterized);
+        lambda_value =
+            beta_reduce (btor, lambda_exp, BETA_RED_CUTOFF, &parameterized);
         unassign_param (btor, lambda_exp);
 
         lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
@@ -11278,7 +11287,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
     /* prevent read to be released prematurely via set_simplified_exp */
     inc_exp_ref_counter (btor, read);
-    reduced_read = beta_reduce (btor, read, 0, &parameterized);
+    reduced_read = beta_reduce (btor, read, BETA_RED_FULL, &parameterized);
     /* read -> proxy node */
     set_simplified_exp (btor, read, reduced_read, 1);
     btor_release_exp (btor, reduced_read);
