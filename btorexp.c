@@ -1777,7 +1777,7 @@ encode_lemma (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (acc1));
   assert (BTOR_IS_REGULAR_NODE (acc2));
 
-  int k, val, parameterized, found;
+  int k, val, parameterized, found, false_lit, true_lit;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -1792,6 +1792,9 @@ encode_lemma (Btor *btor,
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
+
+  true_lit  = smgr->true_lit;
+  false_lit = -true_lit;
 
   i = BTOR_GET_INDEX_ACC_NODE (acc1);
   a = BTOR_GET_VALUE_ACC_NODE (acc1);
@@ -1933,50 +1936,34 @@ encode_lemma (Btor *btor,
 
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
-    // TODO replace by 'exp_to_cnf_lit'
     acond = (BtorNode *) bucket->key;
     assert (BTOR_IS_REGULAR_NODE (acond));
     assert (BTOR_IS_ARRAY_COND_NODE (acond));
     cond = acond->e[0];
     assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
     assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-    aig = BTOR_REAL_ADDR_NODE (cond)->av->aigs[0];
-    /* if AIG is constant (e.g. as a result of AIG optimizations),
-     * then we do not have to include it in the premisse */
-    if (!BTOR_IS_CONST_AIG (aig))
-    {
-      if (BTOR_IS_INVERTED_NODE (cond)) aig = BTOR_INVERT_AIG (aig);
-      if (BTOR_IS_INVERTED_AIG (aig))
-        k = BTOR_REAL_ADDR_AIG (aig)->cnf_id;
-      else
-        k = -aig->cnf_id;
-      assert (k != 0);
-      BTOR_PUSH_STACK (mm, linking_clause, k);
-    }
+    k = exp_to_cnf_lit (btor, cond);
+
+    if (k == true_lit || k == false_lit) continue;
+
+    assert (k != 0);
+    BTOR_PUSH_STACK (mm, linking_clause, -k);
   }
 
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
-    // TODO replace by 'exp_to_cnf_lit'
     acond = (BtorNode *) bucket->key;
     assert (BTOR_IS_REGULAR_NODE (acond));
     assert (BTOR_IS_ARRAY_COND_NODE (acond));
     cond = acond->e[0];
     assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
     assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
-    aig = BTOR_REAL_ADDR_NODE (cond)->av->aigs[0];
-    /* if AIG is constant (e.g. as a result of AIG optimizations),
-     * then we do not have to include it in the premisse */
-    if (!BTOR_IS_CONST_AIG (aig))
-    {
-      if (BTOR_IS_INVERTED_NODE (cond)) aig = BTOR_INVERT_AIG (aig);
-      if (BTOR_IS_INVERTED_AIG (aig))
-        k = -BTOR_REAL_ADDR_AIG (aig)->cnf_id;
-      else
-        k = aig->cnf_id;
-      assert (k != 0);
-      BTOR_PUSH_STACK (mm, linking_clause, k);
-    }
+    k = exp_to_cnf_lit (btor, cond);
+
+    if (k == true_lit || k == false_lit) continue;
+
+    assert (k != 0);
+    BTOR_PUSH_STACK (mm, linking_clause, k);
   }
 
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
@@ -6592,7 +6579,7 @@ bfs_lambda (Btor *btor,
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack;
 
-  BTORLOG ("bfs_lambda: looking for %d", BTOR_REAL_ADDR_NODE (search)->id);
+  BTORLOG ("bfs_lambda: looking for %s", node2string (search));
 
   mm    = btor->mm;
   index = BTOR_GET_INDEX_ACC_NODE (acc);
