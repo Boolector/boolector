@@ -96,6 +96,9 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 #define BTOR_COND_INVERT_AIG_NODE(exp, aig) \
   ((BtorAIG *) (((unsigned long int) (exp) &1ul) ^ ((unsigned long int) (aig))))
 
+#define MARK_PROP_UP(exp) ((BtorNode *) (1ul | (unsigned long int) (exp)))
+#define PROPAGATED_UPWARDS(exp) (1ul & (unsigned long int) (exp)->parent)
+
 /*------------------------------------------------------------------------*/
 
 static void add_constraint (Btor *, BtorNode *);
@@ -114,7 +117,8 @@ static void dump_node (FILE *file, BtorNode *node);
 static void assign_param (Btor *, BtorNode *, BtorNode *);
 static void unassign_param (Btor *, BtorNode *);
 static const char *eval_exp (Btor *, BtorNode *);
-static BtorNode *beta_reduce (Btor *, BtorNode *, int, int *);
+// static BtorNode * beta_reduce (Btor *, BtorNode *, int, int *);
+static BtorNode *beta_reduce (Btor *, BtorNode *, int, BtorNode **);
 static void beta_reduce_reads_on_lambdas (Btor *);
 static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
@@ -1628,11 +1632,11 @@ add_param_cond_to_clause (Btor *btor,
   assert (linking_clause);
   assert (sign == 1 || sign == -1);
 
-  int lit, false_lit, parameterized;
+  int lit, false_lit;  //, parameterized;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
-  BtorNode *beta_cond;
+  BtorNode *beta_cond, *parameterized;
 
   mm   = btor->mm;
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
@@ -1755,6 +1759,169 @@ print_encoded_lemma_dbg (Btor *btor,
 }
 
 static void
+collect_premisses (Btor *btor,
+                   BtorNode *array,
+                   BtorNode *acc,
+                   BtorPtrHashTable *writes,
+                   BtorPtrHashTable *aeqs,
+                   BtorPtrHashTable *aconds_sel1,
+                   BtorPtrHashTable *aconds_sel2,
+                   BtorPtrHashTable *bconds_sel1,
+                   BtorPtrHashTable *bconds_sel2)
+{
+  assert (btor);
+  assert (array);
+  assert (acc);
+  assert (writes);
+  assert (aeqs);
+  assert (aconds_sel1);
+  assert (aconds_sel2);
+  assert (bconds_sel1);
+  assert (bconds_sel2);
+
+  const char *res;
+  int assignment, propagated_upwards, prev_propagated_upwards;
+  BtorNode *cur, *prev, *cond, *prev_lambda, *bcond, *lambda;
+  BtorNodePtrStack bconds;
+  BtorMemMgr *mm;
+  BtorAIGMgr *amgr;
+
+  mm   = btor->mm;
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+
+  BTOR_INIT_STACK (bconds);
+
+  prev        = 0;
+  prev_lambda = 0;
+  cur         = array;
+  while (1)
+  {
+    assert (cur);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_ARRAY_NODE (cur) || BTOR_IS_ARRAY_EQ_NODE (cur)
+            || BTOR_IS_ARRAY_COND_NODE (cur) || BTOR_IS_ACC_NODE (cur)
+            || BTOR_IS_BV_COND_NODE (cur) || BTOR_IS_LAMBDA_NODE (acc));
+
+    /* set parent lambda expression for previous bv conds */
+    if (BTOR_IS_LAMBDA_NODE (cur) || (cur == acc && !BTOR_EMPTY_STACK (bconds)))
+    {
+      assert (btor->lambdas->count > 0u);
+      while (!BTOR_EMPTY_STACK (bconds))
+      {
+        bcond = BTOR_POP_STACK (bconds);
+        assert (BTOR_IS_REGULAR_NODE (bcond));
+        assert (BTOR_IS_BV_COND_NODE (bcond));
+        cond = bcond->e[0];
+
+        if (PROPAGATED_UPWARDS (bcond))
+        {
+          assert (prev_lambda);
+          lambda = prev_lambda;
+        }
+        else
+        {
+          lambda = cur;
+        }
+        BTORLOG ("set lambda exp %d for bvcond: %d",
+                 BTOR_REAL_ADDR_NODE (lambda)->id,
+                 bcond->id);
+
+        assign_param (btor, lambda, BTOR_GET_INDEX_ACC_NODE (acc));
+        res = eval_exp (btor, cond);
+        unassign_param (btor, lambda);
+
+        /* determine resp. branch that was taken in bfs */
+        if (res[0] == '1')
+        {
+          if (!btor_find_in_ptr_hash_table (bconds_sel1, bcond))
+            btor_insert_in_ptr_hash_table (bconds_sel1, bcond)->data.asPtr =
+                lambda;
+        }
+        else
+        {
+          assert (res[0] == '0');
+          if (!btor_find_in_ptr_hash_table (bconds_sel2, bcond))
+            btor_insert_in_ptr_hash_table (bconds_sel2, bcond)->data.asPtr =
+                lambda;
+        }
+        btor_freestr (mm, (char *) res);
+      }
+
+      if (BTOR_IS_LAMBDA_NODE (cur)) prev_lambda = cur;
+    }
+
+    if (cur == acc) break;
+
+    propagated_upwards = PROPAGATED_UPWARDS (cur);
+
+    /* skip 'cur' in case it does not influence propagation path:
+     *
+     * 1) (!prev && propagated_upwards)
+     *    'acc' was propagated down to 'cur' (conflicting array if !prev).
+     *    when we propagte 'acc' down to the conflicting array 'array',
+     *    we do not need the info about 'array' as the down-propagation
+     *    of 'acc' was not not influenced by 'array'.
+     *
+     * 2) (prev && !(prev_propagated_upwards && !propagated_upwards))
+     *	'acc' was propagated down from 'prev' to 'cur' and afterwards
+     *    propagated up from 'cur' to 'cur + 1'. in this case, we do not
+     *    need 'cur' in the lemma, because the down- and up-propagation
+     *    of 'acc' was not influenced by 'cur'.
+     */
+    if ((!prev && propagated_upwards)
+        || (prev && !(prev_propagated_upwards && !propagated_upwards)))
+    {
+      if (BTOR_IS_WRITE_NODE (cur))
+      {
+        if (!btor_find_in_ptr_hash_table (writes, cur))
+          btor_insert_in_ptr_hash_table (writes, cur);
+      }
+      else if (BTOR_IS_ARRAY_EQ_NODE (cur))
+      {
+        if (!btor_find_in_ptr_hash_table (aeqs, cur))
+          btor_insert_in_ptr_hash_table (aeqs, cur);
+      }
+      else if (BTOR_IS_ARRAY_COND_NODE (cur))
+      {
+        cond = cur->e[0];
+        assert (btor->rewrite_level == 0
+                || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
+        if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
+        {
+          assignment = btor_get_assignment_aig (
+              amgr, BTOR_REAL_ADDR_NODE (cond)->av->aigs[0]);
+          assert (assignment == 1 || assignment == -1);
+          if (BTOR_IS_INVERTED_NODE (cond)) assignment = -assignment;
+          if (assignment == 1)
+          {
+            if (!btor_find_in_ptr_hash_table (aconds_sel1, cur))
+              btor_insert_in_ptr_hash_table (aconds_sel1, cur);
+          }
+          else
+          {
+            if (!btor_find_in_ptr_hash_table (aconds_sel2, cur))
+              btor_insert_in_ptr_hash_table (aconds_sel2, cur);
+          }
+        }
+      }
+      else if (BTOR_IS_BV_COND_NODE (cur))
+      {
+        cond = cur->e[0];
+        assert (btor->rewrite_level == 0
+                || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
+        if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
+          BTOR_PUSH_STACK (mm, bconds, cur);
+      }
+    }
+    prev                    = cur;
+    prev_propagated_upwards = propagated_upwards;
+    cur                     = BTOR_REAL_ADDR_NODE (cur->parent);
+  }
+
+  BTOR_RELEASE_STACK (mm, bconds);
+}
+
+static void
 encode_lemma (Btor *btor,
               BtorPtrHashTable *writes,
               BtorPtrHashTable *aeqs,
@@ -1777,16 +1944,15 @@ encode_lemma (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (acc1));
   assert (BTOR_IS_REGULAR_NODE (acc2));
 
-  int k, val, parameterized, found, false_lit, true_lit;
+  int k, val, found, false_lit, true_lit;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *i, *j, *a, *b, *cur_write, *w_index, *aeq, *cond, *acond, *bcond;
-  BtorNode *cur, *prev, *lambda_value;
+  BtorNode *cur, *lambda_value, *parameterized;
   BtorIntStack linking_clause;
   BtorPtrHashBucket *bucket;
-  BtorAIG *aig;
 
   mm    = btor->mm;
   avmgr = btor->avmgr;
@@ -1806,7 +1972,7 @@ encode_lemma (Btor *btor,
 
   BTOR_INIT_STACK (linking_clause);
 
-  /* array axiom 2 conflict (lambda expression) - array == acc2 */
+  /* array axiom 2 conflict (acc2 is lambda expression) */
   if (BTOR_IS_LAMBDA_NODE (acc2))
   {
     /* get value at position i */
@@ -1815,52 +1981,32 @@ encode_lemma (Btor *btor,
     unassign_param (btor, acc2);
     b            = lambda_value;
     lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
-    /* lambda_value must not be parameterized, otherwise the conflict would
-     * not have occured at acc2 */
+
     BTORLOG (" encode_lemma: lambda_value %s", node2string (b));
-    //      assert (!parameterized);
-    //      assert (BTOR_IS_SYNTH_NODE (lambda_value));
-    //      assert (lambda_value->tseitin);
 
-    // TODO: searching for b might be a problem if returned value is an
-    //       assigned param, e.g., lambda j . j
-    found = bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0);
-
-    if (found) cur = lambda_value;
-
-    prev = NULL;
-    assert (cur);
-    /* additionally collect bv conditions from b to lambda expression acc2 */
-    for (; cur && cur != acc2; cur = cur->parent)
+    if (parameterized)
     {
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      /* skip lambda_value if it is a bv conditional (no conds to collect)
-       */
-      if (BTOR_IS_BV_COND_NODE (cur) && cur != lambda_value)
-      {
-        cond = cur->e[0];
-        if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
-        {
-          assert (prev);
-
-          /* determine resp. branch that was taken in bfs */
-          if (BTOR_REAL_ADDR_NODE (cur->e[1]) == prev)
-          {
-            if (!btor_find_in_ptr_hash_table (bconds_sel1, cur))
-              btor_insert_in_ptr_hash_table (bconds_sel1, cur)->data.asPtr =
-                  acc2;
-          }
-          else
-          {
-            assert (BTOR_REAL_ADDR_NODE (cur->e[2]) == prev);
-            if (!btor_find_in_ptr_hash_table (bconds_sel2, cur))
-              btor_insert_in_ptr_hash_table (bconds_sel2, cur)->data.asPtr =
-                  acc2;
-          }
-        }
-      }
-      prev = cur;
+      found = bfs_lambda (btor, acc2, acc1, parameterized, &cur, 0);
+      cur   = parameterized;
     }
+    else
+    {
+      found = bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0);
+      cur   = lambda_value;
+    }
+    assert (found);
+    assert (cur);
+
+    collect_premisses (btor,
+                       cur->parent,
+                       acc2,
+                       writes,
+                       aeqs,
+                       aconds_sel1,
+                       aconds_sel2,
+                       bconds_sel1,
+                       bconds_sel2);
+
     print_encoded_lemma_dbg (btor,
                              writes,
                              aeqs,
@@ -4776,8 +4922,9 @@ btor_reduce (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  int i;
-  return beta_reduce (btor, exp, 0, &i);
+  //  int i;
+  BtorNode *parameterized;
+  return beta_reduce (btor, exp, 0, &parameterized);
 }
 
 BtorNode *
@@ -4789,7 +4936,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   assert (lambda);
 
   int i;
-  BtorNode *result, *cur;
+  BtorNode *result, *cur, *parameterized;
   BtorNodePtrStack unassign;
   BtorMemMgr *mm;
 
@@ -4807,7 +4954,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
 
-  result = beta_reduce (btor, lambda, 0, &i);
+  result = beta_reduce (btor, lambda, 0, &parameterized);
 
   while (!BTOR_EMPTY_STACK (unassign))
   {
@@ -6552,9 +6699,6 @@ hash_assignment (BtorNode *exp)
   return hash;
 }
 
-#define MARK_PROP_UP(exp) ((BtorNode *) (1ul | (unsigned long int) (exp)))
-#define PROPAGATED_UPWARDS(exp) (1ul & (unsigned long int) (exp)->parent)
-
 static int
 bfs_lambda (Btor *btor,
             BtorNode *lambda_exp,
@@ -6710,13 +6854,13 @@ static void
 bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 {
   BtorNode *cur, *next, *cur_aeq, *cond, *index, *param_read, *lambda_exp;
-  BtorNode *lambda_value;
+  BtorNode *lambda_value, *parameterized;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack, param_read_stack;
   BtorPartialParentIterator it;
-  int assignment, propagate_writes_as_reads, parameterized;
+  int assignment, propagate_writes_as_reads;  //, parameterized;
 #ifndef NDEBUG
   int found = 0;
 #endif
@@ -7033,12 +7177,9 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
 {
   BtorPtrHashTable *writes, *aeqs, *aconds_sel1, *aconds_sel2, *bconds_sel1;
   BtorPtrHashTable *bconds_sel2;
-  BtorNode *cur, *cond, *prev, *acc, *prev_lambda, *bcond, *lambda;
+  BtorNode *acc;
   BtorMemMgr *mm;
-  BtorAIGMgr *amgr;
-  BtorNodePtrStack bconds;
-  int assignment, propagated_upwards, prev_propagated_upwards;
-  const char *res;
+
   assert (btor);
   assert (array);
   assert (acc1);
@@ -7051,8 +7192,7 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
   assert (BTOR_IS_ACC_NODE (acc2) || BTOR_IS_LAMBDA_NODE (acc2));
   assert (!BTOR_IS_LAMBDA_NODE (acc2) || array == acc2);
 
-  mm   = btor->mm;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  mm = btor->mm;
 
   /* collect intermediate writes, array equalities and array conditionals
    * as premisses for McCarthy constraint */
@@ -7075,8 +7215,6 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
-  BTOR_INIT_STACK (bconds);
-
   for (acc = acc1; acc; acc = acc == acc1 ? acc2 : 0)
   {
     BTORLOG ("bfs:");
@@ -7084,135 +7222,16 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
     BTORLOG ("  arr: %d", array->id);
     bfs (btor, acc, array);
     print_bfs_path_dbg (btor, array, acc);
-    cur         = array;
-    prev        = 0;
-    prev_lambda = 0;
-    while (1)
-    {
-      assert (cur);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (BTOR_IS_ARRAY_NODE (cur) || BTOR_IS_ARRAY_EQ_NODE (cur)
-              || BTOR_IS_ARRAY_COND_NODE (cur) || BTOR_IS_ACC_NODE (cur)
-              || BTOR_IS_BV_COND_NODE (cur));
-
-      /* set parent lambda expression for previous bv conds */
-      if (BTOR_IS_LAMBDA_NODE (cur)
-          || (cur == acc && !BTOR_EMPTY_STACK (bconds)))
-      {
-        assert (btor->lambdas->count > 0u);
-        while (!BTOR_EMPTY_STACK (bconds))
-        {
-          bcond = BTOR_POP_STACK (bconds);
-          assert (BTOR_IS_REGULAR_NODE (bcond));
-          assert (BTOR_IS_BV_COND_NODE (bcond));
-          cond = bcond->e[0];
-
-          if (PROPAGATED_UPWARDS (bcond))
-          {
-            assert (prev_lambda);
-            lambda = prev_lambda;
-          }
-          else
-          {
-            lambda = cur;
-          }
-          BTORLOG ("set lambda exp %d for bvcond: %d",
-                   BTOR_REAL_ADDR_NODE (lambda)->id,
-                   bcond->id);
-
-          assign_param (btor, lambda, BTOR_GET_INDEX_ACC_NODE (acc));
-          res = eval_exp (btor, cond);
-          unassign_param (btor, lambda);
-
-          /* determine resp. branch that was taken in bfs */
-          if (res[0] == '1')
-          {
-            if (!btor_find_in_ptr_hash_table (bconds_sel1, bcond))
-              btor_insert_in_ptr_hash_table (bconds_sel1, bcond)->data.asPtr =
-                  lambda;
-          }
-          else
-          {
-            assert (res[0] == '0');
-            if (!btor_find_in_ptr_hash_table (bconds_sel2, bcond))
-              btor_insert_in_ptr_hash_table (bconds_sel2, bcond)->data.asPtr =
-                  lambda;
-          }
-          btor_freestr (mm, (char *) res);
-        }
-
-        if (BTOR_IS_LAMBDA_NODE (cur)) prev_lambda = cur;
-      }
-
-      if (cur == acc) break;
-
-      propagated_upwards = PROPAGATED_UPWARDS (cur);
-
-      /* skip 'cur' in case it does not influence propagation path:
-       *
-       * 1) (!prev && propagated_upwards)
-       *    'acc' was propagated down to 'cur' (conflicting array if !prev).
-       *    when we propagte 'acc' down to the conflicting array 'array',
-       *    we do not need the info about 'array' as the down-propagation
-       *    of 'acc' was not not influenced by 'array'.
-       *
-       * 2) (prev && !(prev_propagated_upwards && !propagated_upwards))
-       *	'acc' was propagated down from 'prev' to 'cur' and afterwards
-       *    propagated up from 'cur' to 'cur + 1'. in this case, we do not
-       *    need 'cur' in the lemma, because the down- and up-propagation
-       *    of 'acc' was not influenced by 'cur'.
-       */
-      if ((!prev && propagated_upwards)
-          || (prev && !(prev_propagated_upwards && !propagated_upwards)))
-      {
-        if (BTOR_IS_WRITE_NODE (cur))
-        {
-          if (!btor_find_in_ptr_hash_table (writes, cur))
-            btor_insert_in_ptr_hash_table (writes, cur);
-        }
-        else if (BTOR_IS_ARRAY_EQ_NODE (cur))
-        {
-          if (!btor_find_in_ptr_hash_table (aeqs, cur))
-            btor_insert_in_ptr_hash_table (aeqs, cur);
-        }
-        else if (BTOR_IS_ARRAY_COND_NODE (cur))
-        {
-          cond = cur->e[0];
-          assert (btor->rewrite_level == 0
-                  || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
-          if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
-          {
-            assignment = btor_get_assignment_aig (
-                amgr, BTOR_REAL_ADDR_NODE (cond)->av->aigs[0]);
-            assert (assignment == 1 || assignment == -1);
-            if (BTOR_IS_INVERTED_NODE (cond)) assignment = -assignment;
-            if (assignment == 1)
-            {
-              if (!btor_find_in_ptr_hash_table (aconds_sel1, cur))
-                btor_insert_in_ptr_hash_table (aconds_sel1, cur);
-            }
-            else
-            {
-              if (!btor_find_in_ptr_hash_table (aconds_sel2, cur))
-                btor_insert_in_ptr_hash_table (aconds_sel2, cur);
-            }
-          }
-        }
-        else if (BTOR_IS_BV_COND_NODE (cur))
-        {
-          cond = cur->e[0];
-          assert (btor->rewrite_level == 0
-                  || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
-          if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
-            BTOR_PUSH_STACK (mm, bconds, cur);
-        }
-      }
-      prev                    = cur;
-      prev_propagated_upwards = propagated_upwards;
-      cur                     = BTOR_REAL_ADDR_NODE (cur->parent);
-    }
+    collect_premisses (btor,
+                       array,
+                       acc,
+                       writes,
+                       aeqs,
+                       aconds_sel1,
+                       aconds_sel2,
+                       bconds_sel1,
+                       bconds_sel2);
   }
-  BTOR_RELEASE_STACK (mm, bconds);
 
   encode_lemma (btor,
                 writes,
@@ -7824,7 +7843,7 @@ eval_exp (Btor *btor, BtorNode *exp)
  *   bound > 0: bounded reduction, bound by given number of nodes,
  *		do not evaluate conditionals */
 static BtorNode *
-beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
+beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 {
   assert (btor);
   assert (exp);
@@ -7832,14 +7851,16 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
   // TODO
   assert (bound <= 0);  // not implemented yet
 
-  int i, p[3], aux_rewrite_level = 0;
+  //  int i, p[3], aux_rewrite_level = 0;
+  int i, aux_rewrite_level = 0;
   char *symbol;
   const char *res;
   double start;
   BtorMemMgr *mm;
-  BtorNode *cur, *real_cur, *next, *e[3], *result, *param;
+  BtorNode *cur, *real_cur, *next, *e[3], *result, *param, *p[3];
   BtorNodePtrStack work_stack, arg_stack, unassign_stack, unmark_stack;
-  BtorIntStack parameterized_stack;
+  //  BtorIntStack parameterized_stack;
+  BtorNodePtrStack parameterized_stack;
 
   mm    = btor->mm;
   start = btor_time_stamp ();
@@ -7975,7 +7996,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
     else
     {
       real_cur->beta_mark = 2;
-      *parameterized      = real_cur->parameterized;
+      *parameterized      = (real_cur->parameterized) ? real_cur : 0;
 
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
           || BTOR_IS_ARRAY_VAR_NODE (real_cur) || BTOR_IS_PARAM_NODE (real_cur)
@@ -8224,11 +8245,12 @@ process_working_stack (Btor *btor,
   BtorLambdaNode *lambda;
   BtorNode *acc, *index, *value, *array, *hashed_acc, *hashed_value;
   BtorNode *cur_aeq, *cond, *next, *lambda_value, *lambda_exp, *param_read;
+  BtorNode *parameterized;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorNodePtrStack param_read_stack;
-  int assignment, indices_equal, propagate_writes_as_reads, parameterized;
+  int assignment, indices_equal, propagate_writes_as_reads;  //, parameterized;
   int values_equal;
   char *value_assignment, *lambda_value_assignment;
   assert (btor);
@@ -8410,9 +8432,6 @@ process_working_stack (Btor *btor,
           assert (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (param_read)));
           lambda = (BtorLambdaNode *) array;
 
-          // TODO: do we have to completely encode the read?
-          //       maybe we can skip the index if parameterized ->
-          //       eval_exp
           if (!lambda->synth_reads)
           {
             lambda->synth_reads =
@@ -8640,12 +8659,12 @@ process_working_stack (Btor *btor,
 {
   BtorPartialParentIterator it;
   BtorNode *acc, *index, *value, *array, *hashed_acc, *hashed_value;
-  BtorNode *cur_aeq, *cond, *next, *lambda_value, *lambda_exp;
+  BtorNode *cur_aeq, *cond, *next, *lambda_value, *lambda_exp, *parameterized;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorNodePtrStack param_read_stack;
-  int assignment, indices_equal, propagate_writes_as_reads, parameterized;
+  int assignment, indices_equal, propagate_writes_as_reads;  //, parameterized;
   assert (btor);
   assert (stack);
   assert (assignments_changed);
@@ -11433,10 +11452,10 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 {
   assert (btor);
 
-  int parameterized;
+  //  int parameterized;
   BtorPtrHashTable *reads;
   BtorPtrHashBucket *b;
-  BtorNode *read, *reduced_read, *lambda;
+  BtorNode *read, *reduced_read, *lambda, *parameterized;
   BtorPartialParentIterator it;
 
   reads = btor_new_ptr_hash_table (btor->mm,
