@@ -234,8 +234,9 @@ struct BtorParamNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   char *symbol;
-  BtorNode *lambda_exp;   /* 1:1 relation param:lambda_exp */
-  BtorNode *assigned_exp; /* is assigned before beta-reduction */
+  BtorNode *lambda_exp; /* 1:1 relation param:lambda_exp */
+  // BtorNode *assigned_exp;   /* is assigned before beta-reduction */
+  BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
 };
 
 typedef struct BtorParamNode BtorParamNode;
