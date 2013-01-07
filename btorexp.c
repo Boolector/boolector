@@ -7494,7 +7494,7 @@ unassign_param (Btor *btor, BtorNode *lambda)
 }
 
 static BtorNode *
-cur_assignment_param (BtorParamNode *param)
+param_cur_assignment (BtorParamNode *param)
 {
   assert (param);
   assert (BTOR_IS_REGULAR_NODE (param));
@@ -7564,7 +7564,7 @@ eval_exp (Btor *btor, BtorNode *exp)
         // assert (((BtorParamNode *) real_cur)->assigned_exp);
         // assigned_exp = ((BtorParamNode *) real_cur)->assigned_exp;
         assert (!BTOR_EMPTY_STACK (((BtorParamNode *) real_cur)->assigned_exp));
-        assigned_exp = cur_assignment_param ((BtorParamNode *) real_cur);
+        assigned_exp = param_cur_assignment ((BtorParamNode *) real_cur);
 
         if (BTOR_IS_INVERTED_NODE (cur))
           assigned_exp = BTOR_INVERT_NODE (assigned_exp);
@@ -7854,11 +7854,11 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
         //      else
         //	  BTOR_PUSH_STACK (mm, assign_stack, e[1]);
         if (BTOR_IS_PARAM_NODE (e[1])
-            && cur_assignment_param ((BtorParamNode *) e[1]))
+            && param_cur_assignment ((BtorParamNode *) e[1]))
         {
           // TODO
           BTOR_PUSH_STACK (
-              mm, assign_stack, cur_assignment_param ((BtorParamNode *) e[1]));
+              mm, assign_stack, param_cur_assignment ((BtorParamNode *) e[1]));
         }
         else
         {
@@ -7927,11 +7927,11 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
             //      assert (((BtorParamNode *) param)->assigned_exp);
             //      BTOR_PUSH_STACK (mm, assign_stack,
             //	((BtorParamNode *) param)->assigned_exp);
-            assert (cur_assignment_param ((BtorParamNode *) param));
+            assert (param_cur_assignment ((BtorParamNode *) param));
             // TODO
             BTOR_PUSH_STACK (mm,
                              assign_stack,
-                             cur_assignment_param ((BtorParamNode *) param));
+                             param_cur_assignment ((BtorParamNode *) param));
           }
           BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
           BTOR_PUSH_STACK (mm, mark_stack, 0);
