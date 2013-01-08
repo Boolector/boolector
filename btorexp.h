@@ -143,14 +143,15 @@ typedef struct BtorNodePair BtorNodePair;
 #define BTOR_BV_VAR_NODE_STRUCT                                               \
   struct                                                                      \
   {                                                                           \
-    BtorNodeKind kind : 5;             /* kind of expression */               \
-    unsigned int mark : 3;             /* for DAG traversal */                \
-    unsigned int aux_mark : 2;         /* auxiliary mark flag */              \
-    unsigned int array_mark : 1;       /* for bottom up array traversal */    \
-    unsigned int beta_mark : 2;        /* mark for beta_reduce */             \
-    unsigned int beta_aux_mark : 1;    /* aux mark for beta_reduce */         \
-    unsigned int eval_mark : 2;        /* mark for eval_exp */                \
-    unsigned int synth_mark : 2;       /* mark for synthesize_exp */          \
+    BtorNodeKind kind : 5;       /* kind of expression */                     \
+    unsigned int mark : 3;       /* for DAG traversal */                      \
+    unsigned int aux_mark : 2;   /* auxiliary mark flag */                    \
+    unsigned int array_mark : 1; /* for bottom up array traversal */          \
+    unsigned int beta_mark : 1;  /* mark for beta_reduce */                   \
+    unsigned int                                                              \
+        beta_aux_mark : 1;       /* TODO delete! aux mark for beta_reduce */  \
+    unsigned int eval_mark : 2;  /* mark for eval_exp */                      \
+    unsigned int synth_mark : 2; /* mark for synthesize_exp */                \
     unsigned int proxy_array_mark : 1; /* mark proxy if exp was array node */ \
     unsigned int reachable : 1;        /* reachable from root ? */            \
     unsigned int tseitin : 1;          /* tseitin encoded into SAT ? */       \
@@ -234,9 +235,9 @@ struct BtorParamNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   char *symbol;
-  BtorNode *lambda_exp; /* 1:1 relation param:lambda_exp */
-  // BtorNode *assigned_exp;   /* is assigned before beta-reduction */
+  BtorNode *lambda_exp;          /* 1:1 relation param:lambda_exp */
   BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
+  // BtorNode *assigned_exp;   /* is assigned before beta-reduction */
 };
 
 typedef struct BtorParamNode BtorParamNode;
