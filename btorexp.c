@@ -6730,8 +6730,8 @@ bfs_lambda (Btor *btor,
 
   cur = BTOR_REAL_ADDR_NODE (lambda_exp->e[1]);
   assert (BTOR_IS_REGULAR_NODE (cur));
-  //  assert (BTOR_IS_BV_COND_NODE (cur) || BTOR_IS_READ_NODE (cur));
   assert (cur->mark == 0);
+
   if (propagate_upwards)
   {
     lambda_exp->parent = MARK_PROP_UP (cur);
@@ -6755,6 +6755,7 @@ bfs_lambda (Btor *btor,
 
   assign_param (btor, lambda_exp, index);
 
+  // TODO: follow path as long it is parameterized? (for the more general case)
   do
   {
     cur = BTOR_DEQUEUE (queue);
@@ -6860,7 +6861,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack, param_read_stack;
   BtorPartialParentIterator it;
-  int assignment, propagate_writes_as_reads;  //, parameterized;
+  int assignment, propagate_writes_as_reads;
 #ifndef NDEBUG
   int found = 0;
 #endif
@@ -6944,6 +6945,8 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
         BTORLOG ("bfs: %d -> %d ", next->id, cur->id);
       }
     }
+    // NOTE: right now, we do not need this case as no reads are propagated
+    //       through lambdas (we always synthesize and encode param reads)
     else if (BTOR_IS_LAMBDA_NODE (cur) && cur->tseitin
              && BTOR_REAL_ADDR_NODE (cur->e[1])->mark == 0)
     {
@@ -7067,67 +7070,75 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
           }
         }
       }
-      /* search upwards lambda expressions */
-      BTOR_INIT_STACK (param_read_stack);
-      init_read_parent_iterator (&it, cur);
-      /* get all parameterized reads on cur */
-      while (has_next_parent_read_parent_iterator (&it))
-      {
-        next = next_parent_read_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_NODE (next));
-        assert (BTOR_IS_READ_NODE (next));
-        //            assert (!next->simplified);
-        //          // TODO: is only valid for write case
-        // TODO: do we need special handling of simplified reads?
-        if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
-          //                && !next->simplified)
-          BTOR_PUSH_STACK (mm, param_read_stack, next);
-      }
+// NOTE: right now this code is not working with general lambdas. it is
+//       disabled as we do not rewrite writes to lambdas in case of
+//       extentionality
+//
+#if 0
+	  /* search upwards lambda expressions */
+	  BTOR_INIT_STACK (param_read_stack);
+	  init_read_parent_iterator (&it, cur);
+	  /* get all parameterized reads on cur */
+	  while (has_next_parent_read_parent_iterator (&it))
+	    {
+	      next = next_parent_read_parent_iterator (&it);
+	      assert (BTOR_IS_REGULAR_NODE (next));
+	      assert (BTOR_IS_READ_NODE (next));
+  //            assert (!next->simplified);
+  //          // TODO: is only valid for write case
+	      // TODO: do we need special handling of simplified reads?
+	      if (next->reachable && BTOR_IS_PARAM_NODE (next->e[1]))
+  //                && !next->simplified)
+		  BTOR_PUSH_STACK (mm, param_read_stack, next);
+	    }
 
-      while (!BTOR_EMPTY_STACK (param_read_stack))
-      {
-        param_read = BTOR_POP_STACK (param_read_stack);
-        assert (BTOR_IS_REGULAR_NODE (param_read));
-        assert (BTOR_IS_PARAM_NODE (param_read->e[1]));
-        lambda_exp = ((BtorParamNode *) param_read->e[1])->lambda_exp;
+	  while (!BTOR_EMPTY_STACK (param_read_stack))
+	    {
+	      param_read = BTOR_POP_STACK (param_read_stack);
+	      assert (BTOR_IS_REGULAR_NODE (param_read));
+	      assert (BTOR_IS_PARAM_NODE (param_read->e[1]));
+	      lambda_exp = ((BtorParamNode *) param_read->e[1])->lambda_exp;
 
-        /* already processed */
-        if (BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark == 1) continue;
+	      /* already processed */
+	      if (BTOR_REAL_ADDR_NODE (lambda_exp->e[1])->mark == 1)
+		continue;
 
-        /* instantiate lambda expressions with read index of acc */
-        assign_param (btor, lambda_exp, index);
-        lambda_value = beta_reduce (btor, lambda_exp, -1, &parameterized);
-        unassign_param (btor, lambda_exp);
+	      /* instantiate lambda expressions with read index of acc */
+	      assign_param (btor, lambda_exp, index);
+	      lambda_value = beta_reduce (btor, lambda_exp, -1, &parameterized);
+	      unassign_param (btor, lambda_exp);
 
-        lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
+	      lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
 
-        // FIXME: more general approach: e[1] does not have to be index,
-        // may also be index + 2 etc.  in that case we have to propagate
-        // lambda_value, instead of acc, but we require a reference from
-        // lambda_value to acc (for lemma generation).
-        if (BTOR_IS_READ_NODE (lambda_value) && parameterized)
-        {
-          assert (lambda_value->e[0] == param_read->e[0]);
-          assert (lambda_value->e[1] == index);
-          /* we search from lambda_exp down to param_read since acc was
-           * propagated upwards from param_read to lambda_exp */
-          bfs_lambda (btor, lambda_exp, acc, param_read->e[0], &next, 1);
-          assert (next == lambda_exp);
-          assert (BTOR_IS_REGULAR_NODE (next));
-          assert (cur->mark);
+	      // FIXME: more general approach: e[1] does not have to be index,
+	      // may also be index + 2 etc.  in that case we have to propagate
+	      // lambda_value, instead of acc, but we require a reference from
+	      // lambda_value to acc (for lemma generation).
+	      if (BTOR_IS_READ_NODE (lambda_value) && parameterized)
+		{
+		  assert (lambda_value->e[0] == param_read->e[0]);
+		  assert (lambda_value->e[1] == index);
+		  /* we search from lambda_exp down to param_read since acc was
+		   * propagated upwards from param_read to lambda_exp */
+		  bfs_lambda (btor, lambda_exp, acc, param_read->e[0], &next,
+			      1);
+		  assert (next == lambda_exp);
+		  assert (BTOR_IS_REGULAR_NODE (next));
+		  assert (cur->mark);
 
-          next->mark = 1;
-          /* mark lambda expression as visited */
-          BTOR_REAL_ADDR_NODE (next->e[1])->mark = 1;
+		  next->mark = 1;
+		  /* mark lambda expression as visited */
+		  BTOR_REAL_ADDR_NODE (next->e[1])->mark = 1;
 
-          BTOR_ENQUEUE (mm, queue, next);
-          BTOR_PUSH_STACK (mm, unmark_stack, next);
-          BTOR_PUSH_STACK (
-              mm, unmark_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
-        }
-        btor_release_exp (btor, lambda_value);
-      }
-      BTOR_RELEASE_STACK (mm, param_read_stack);
+		  BTOR_ENQUEUE (mm, queue, next);
+		  BTOR_PUSH_STACK (mm, unmark_stack, next);
+		  BTOR_PUSH_STACK (mm, unmark_stack,
+				   BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
+		}
+	      btor_release_exp (btor, lambda_value);
+	    }
+	  BTOR_RELEASE_STACK (mm, param_read_stack);
+#endif
     }
   } while (!BTOR_EMPTY_QUEUE (queue));
   assert (found);
@@ -8439,6 +8450,9 @@ process_working_stack (Btor *btor,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
           }
+
+          assert (
+              !btor_find_in_ptr_hash_table (lambda->synth_reads, param_read));
 
           if (!btor_find_in_ptr_hash_table (lambda->synth_reads, param_read))
           {
