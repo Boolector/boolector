@@ -1762,6 +1762,7 @@ static void
 collect_premisses (Btor *btor,
                    BtorNode *array,
                    BtorNode *acc,
+                   BtorNode *index,
                    BtorPtrHashTable *writes,
                    BtorPtrHashTable *aeqs,
                    BtorPtrHashTable *aconds_sel1,
@@ -1826,7 +1827,7 @@ collect_premisses (Btor *btor,
                  BTOR_REAL_ADDR_NODE (lambda)->id,
                  bcond->id);
 
-        assign_param (btor, lambda, BTOR_GET_INDEX_ACC_NODE (acc));
+        assign_param (btor, lambda, index);
         res = eval_exp (btor, cond);
         unassign_param (btor, lambda);
 
@@ -1998,8 +1999,9 @@ encode_lemma (Btor *btor,
     assert (cur);
 
     collect_premisses (btor,
-                       cur->parent,
+                       cur,
                        acc2,
+                       i,
                        writes,
                        aeqs,
                        aconds_sel1,
@@ -6840,9 +6842,8 @@ bfs_lambda (Btor *btor,
   } while (!BTOR_EMPTY_STACK (unmark_stack));
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
-  BTORLOG ("bfs_lambda: %s %d\n",
-           found ? "found" : "not found",
-           BTOR_REAL_ADDR_NODE (search)->id);
+  BTORLOG (
+      "bfs_lambda: %s %s", found ? "found" : "not found", node2string (search));
 
   return found;
 }
@@ -7188,7 +7189,7 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
 {
   BtorPtrHashTable *writes, *aeqs, *aconds_sel1, *aconds_sel2, *bconds_sel1;
   BtorPtrHashTable *bconds_sel2;
-  BtorNode *acc;
+  BtorNode *acc, *index;
   BtorMemMgr *mm;
 
   assert (btor);
@@ -7226,6 +7227,8 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
+  index = BTOR_GET_INDEX_ACC_NODE (acc1);
+
   for (acc = acc1; acc; acc = acc == acc1 ? acc2 : 0)
   {
     BTORLOG ("bfs:");
@@ -7236,6 +7239,7 @@ add_lemma (Btor *btor, BtorNode *array, BtorNode *acc1, BtorNode *acc2)
     collect_premisses (btor,
                        array,
                        acc,
+                       index,
                        writes,
                        aeqs,
                        aconds_sel1,
@@ -7573,6 +7577,7 @@ assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
       cur_lambda          = cur_lambda->e[1];
       lower               = upper + 1;
     } while (BTOR_IS_LAMBDA_NODE (cur_lambda));
+    // TODO: handle in with type safe functions
     assert (lower == BTOR_REAL_ADDR_NODE (arg)->len);
   }
   else
@@ -8430,7 +8435,7 @@ process_working_stack (Btor *btor,
       a = btor_bv_assignment_exp (btor, lambda_value);
       BTORLOG ("   lambda: %s, %s", a, node2string (lambda_value));
       btor_free_bv_assignment_exp (btor, a);
-      BTORLOG ("   lambda parameterized: %d", parameterized);
+      BTORLOG ("   lambda parameterized: %s", node2string (parameterized));
       // end debug
 
       /* search for parameterized read (FIXME: optimization) */
