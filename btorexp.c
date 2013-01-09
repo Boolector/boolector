@@ -2628,6 +2628,27 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
   return lambda_exp;
 }
 
+static int
+is_nested_lambda_exp_node (BtorNode *exp)
+{
+  assert (exp);
+
+  BtorFullParentIterator it;
+  BtorNode *parent;
+
+  if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp->e[0]))) return 1;
+
+  init_full_parent_iterator (&it, exp);
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    parent = next_parent_full_parent_iterator (&it);
+    assert (BTOR_IS_REGULAR_NODE (parent));
+    if (BTOR_IS_LAMBDA_NODE (parent)) return 1;
+  }
+
+  return 0;
+}
+
 static BtorNode *
 new_ternary_exp_node (Btor *btor,
                       BtorNodeKind kind,
@@ -7434,8 +7455,8 @@ assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
   assert (BTOR_IS_LAMBDA_NODE (lambda));
   assert (BTOR_IS_PARAM_NODE (lambda->e[0]));
 
-  BTORLOG ("assign_param: ", lambda);
-  BTORLOG ("assigned exp: ", arg);
+  //  BTORLOG ("assign_param: %s", node2string (lambda));
+  //  BTORLOG ("assigned exp: %s", node2string (arg));
 
   int upper, lower;
   BtorNode *cur_lambda, *cur_arg;
@@ -7465,6 +7486,7 @@ assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
       cur_lambda = cur_lambda->e[1];
       lower      = upper + 1;
     } while (BTOR_IS_LAMBDA_NODE (cur_lambda));
+
     assert (lower == BTOR_REAL_ADDR_NODE (arg)->len);
   }
   else
@@ -7921,10 +7943,17 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, int *parameterized)
       }
       else
       {
-        /* we currently beta-reduce a read on a lambda -> update the
-         * param assignment accordingly if reducing the read index is
-         * done already */
-        if (BTOR_IS_LAMBDA_NODE (real_cur) && !BTOR_EMPTY_STACK (arg_stack)
+        /* in case that we currently beta-reduce a read on a lambda,
+         * we might have to update the param assignment with the
+         * already beta-reduced index in case of quasi-cyclic structures
+         * such as read(lambda, read(lambda, i)).
+         */
+        if (BTOR_IS_LAMBDA_NODE (real_cur)
+            /* skip lambdas of nested lambda structures (sharing of
+             * nested lambda nodes except for the topmost of the nested
+             * structure is not allowed/possible) */
+            && !is_nested_lambda_exp_node (real_cur)
+            && !BTOR_EMPTY_STACK (arg_stack)
             && param_cur_assignment ((BtorParamNode *) real_cur->e[0])
             && param_cur_assignment ((BtorParamNode *) real_cur->e[0])
                    != BTOR_TOP_STACK (arg_stack))
