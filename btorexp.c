@@ -1998,8 +1998,10 @@ encode_lemma (Btor *btor,
     assert (found);
     assert (cur);
 
+    /* skip found element, if it is a bv cond, we do not need to collect
+     * the condition.*/
     collect_premisses (btor,
-                       cur,
+                       cur->parent,
                        acc2,
                        i,
                        writes,
@@ -8288,14 +8290,20 @@ process_working_stack (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (acc));
     assert (BTOR_IS_ACC_NODE (acc));
     check_not_simplified_or_const (btor, acc);
-    /* synthesize index and value if necessary */
-    if (BTOR_IS_LAMBDA_NODE (acc))
-      *assignments_changed =
-          lazy_synthesize_and_encode_lambda_exp (btor, acc, 1);
-    else
-      *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc, 1);
-    index = BTOR_GET_INDEX_ACC_NODE (acc);
-    value = BTOR_GET_VALUE_ACC_NODE (acc);
+// NOTE: code not used right now, as we do not rewrite writes in case of
+//       extentionality
+#if 0
+      /* synthesize index and value if necessary */
+      if (BTOR_IS_LAMBDA_NODE (acc))
+	*assignments_changed =
+	  lazy_synthesize_and_encode_lambda_exp (btor, acc, 1);
+      else
+#else
+    assert (!propagate_writes_as_reads || !BTOR_IS_LAMBDA_NODE (acc));
+#endif
+    *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, acc, 1);
+    index                = BTOR_GET_INDEX_ACC_NODE (acc);
+    value                = BTOR_GET_VALUE_ACC_NODE (acc);
     check_not_simplified_or_const (btor, index);
     check_not_simplified_or_const (btor, value);
     if (*assignments_changed) return 0;
