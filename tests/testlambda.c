@@ -978,7 +978,7 @@ test_lambda_reduce_nested_writes (void)
 {
   init_lambda_test ();
   BtorNode *i = btor_var_exp (g_btor, g_index_bw, "i");
-  /* w1 = write (a, i, e2) */
+  /* w2 = write (a, i, e2) */
   BtorNode *a       = btor_array_exp (g_btor, g_elem_bw, g_index_bw, "a");
   BtorNode *e2      = btor_var_exp (g_btor, g_elem_bw, "e2");
   BtorNode *param2  = btor_param_exp (g_btor, g_index_bw, "p2");
@@ -986,7 +986,7 @@ test_lambda_reduce_nested_writes (void)
   BtorNode *eq2     = btor_eq_exp (g_btor, param2, i);
   BtorNode *cond2   = btor_cond_exp (g_btor, eq2, e2, read2);
   BtorNode *lambda2 = btor_lambda_exp (g_btor, param2, cond2);
-  /* w2 = write (w1, not i, e1) */
+  /* w1 = write (w1, not i, e1) */
   BtorNode *e1      = btor_var_exp (g_btor, g_elem_bw, "e1");
   BtorNode *param1  = btor_param_exp (g_btor, g_index_bw, "p1");
   BtorNode *read1   = btor_read_exp (g_btor, lambda2, param1);
