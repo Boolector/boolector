@@ -1905,7 +1905,8 @@ collect_premisses (Btor *btor,
           }
         }
       }
-      else if (BTOR_IS_BV_COND_NODE (cur))
+      /* we only need to collect parameterized bv conds */
+      else if (BTOR_IS_BV_COND_NODE (cur) && cur->parameterized)
       {
         cond = cur->e[0];
         assert (btor->rewrite_level == 0
@@ -1998,10 +1999,8 @@ encode_lemma (Btor *btor,
     assert (found);
     assert (cur);
 
-    /* skip found element, if it is a bv cond, we do not need to collect
-     * the condition.*/
     collect_premisses (btor,
-                       cur->parent,
+                       cur,
                        acc2,
                        i,
                        writes,
