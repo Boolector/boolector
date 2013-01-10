@@ -538,48 +538,16 @@ struct Btor
 
 #define BTOR_IS_REGULAR_NODE(exp) (!(3ul & (unsigned long int) (exp)))
 
-// FIXME lambda handling here is a temporary measure in order to make
-// extensionality for writes rewritten as lambdas work again
-// -> will have to do this properly for the general case
-#define BTOR_IS_ACC_NODE(exp)                          \
-  (BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp) \
-   || BTOR_IS_LAMBDA_NODE (                            \
-          exp))  //  (BTOR_IS_READ_NODE(exp) || BTOR_IS_WRITE_NODE(exp))
+#define BTOR_IS_ACC_NODE(exp) \
+  (BTOR_IS_READ_NODE (exp) || BTOR_IS_WRITE_NODE (exp))
 
-#define BTOR_GET_INDEX_LAMBDA_NODE(exp)                                    \
-  (BTOR_IS_PARAM_NODE (                                                    \
-       BTOR_REAL_ADDR_NODE (                                               \
-           BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[0])    \
-           ->e[0])                                                         \
-       ? (BTOR_REAL_ADDR_NODE (                                            \
-              BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[0]) \
-              ->e[1])                                                      \
-       : (BTOR_REAL_ADDR_NODE (                                            \
-              BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[0]) \
-              ->e[0]))
+#define BTOR_GET_INDEX_ACC_NODE(exp) ((exp)->e[1])
 
-#define BTOR_GET_VALUE_LAMBDA_NODE(exp) \
-  (BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (exp)->e[1])->e[1])
-
-#define BTOR_LAMBDA_TARGET_NODE(exp) (exp)
-
-#define BTOR_GET_INDEX_ACC_NODE(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) ? BTOR_GET_INDEX_LAMBDA_NODE (exp) : (exp)->e[1])
-//((exp)->e[1])
-
-#define BTOR_GET_VALUE_ACC_NODE(exp)             \
-  (BTOR_IS_READ_NODE (exp)                       \
-       ? (exp)                                   \
-       : (BTOR_IS_WRITE_NODE (exp) ? (exp)->e[2] \
-                                   : BTOR_GET_VALUE_LAMBDA_NODE (exp)))
-//  (BTOR_IS_READ_NODE(exp) ? (exp) : (exp)->e[2])
+#define BTOR_GET_VALUE_ACC_NODE(exp) \
+  (BTOR_IS_READ_NODE (exp) ? (exp) : (exp)->e[2])
 
 #define BTOR_ACC_TARGET_NODE(exp) \
-  (BTOR_IS_READ_NODE (exp)        \
-       ? (exp)->e[0]              \
-       : (BTOR_IS_WRITE_NODE (exp) ? (exp) : BTOR_LAMBDA_TARGET_NODE (exp)))
-//  (BTOR_IS_READ_NODE(exp) ? (exp)->e[0] : (exp))
-// end FIXME ///////////////////////////////////////////////////////////////////
+  (BTOR_IS_READ_NODE (exp) ? (exp)->e[0] : (exp))
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
 

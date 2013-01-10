@@ -2132,8 +2132,6 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (bcond));
     assert (BTOR_IS_BV_COND_NODE (bcond));
     cond = bcond->e[0];
-    //      assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
-    //      assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
     assert (BTOR_IS_LAMBDA_NODE ((BtorNode *) bucket->data.asPtr));
     assign_param (btor, (BtorNode *) bucket->data.asPtr, i);
     add_param_cond_to_clause (btor, cond, &linking_clause, -1);
@@ -2146,8 +2144,6 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (bcond));
     assert (BTOR_IS_BV_COND_NODE (bcond));
     cond = bcond->e[0];
-    //      assert (BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (cond)));
-    //      assert (BTOR_REAL_ADDR_NODE (cond)->av->len == 1);
     assert (BTOR_IS_LAMBDA_NODE ((BtorNode *) bucket->data.asPtr));
     assign_param (btor, (BtorNode *) bucket->data.asPtr, i);
     add_param_cond_to_clause (btor, cond, &linking_clause, 1);
@@ -7085,7 +7081,7 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
       }
 // NOTE: right now this code is not working with general lambdas. it is
 //       disabled as we do not rewrite writes to lambdas in case of
-//       extentionality
+//       extensionality
 //
 #if 0
 	  /* search upwards lambda expressions */
@@ -8301,7 +8297,7 @@ process_working_stack (Btor *btor,
     assert (BTOR_IS_ACC_NODE (acc));
     check_not_simplified_or_const (btor, acc);
 // NOTE: code not used right now, as we do not rewrite writes in case of
-//       extentionality
+//       extensionality
 #if 0
       /* synthesize index and value if necessary */
       if (BTOR_IS_LAMBDA_NODE (acc))
@@ -8645,7 +8641,7 @@ process_working_stack (Btor *btor,
         }
       }
 // NOTE: code not used right now, as we do not rewrite writes in case of
-//       extentionality
+//       extensionality
 #if 0
 	  /* propagate upwards lambda expressions */
 	  BTOR_INIT_STACK (param_read_stack);
@@ -9260,7 +9256,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
 
         /* push all arrays onto stack that are overwritten by lambda exp
          */
-        // FIXME: check why we can't use read iterators here
         // FIXME: does not work for the general case (param + 1)
         init_full_parent_iterator (&it_full, param);
         while (has_next_parent_full_parent_iterator (&it_full))
@@ -9272,20 +9267,25 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
 
           BTOR_PUSH_STACK (mm, array_stack, cur_parent->e[0]);
         }
-        // FIXME this is a temporary measure in order to make
-        // extensionality for writes rewritten as lambdas work again
-        // -> will have to do this properly for the general case
-        if (propagate_writes_as_reads)
-        {
-          /* propagate lambdas which are writes as reads if there are
-           * array equalities */
-          BTOR_PUSH_STACK (mm, working_stack, cur_array);
-          BTOR_PUSH_STACK (mm, working_stack, cur_array);
-          found_conflict = process_working_stack (
-              btor, &working_stack, &cleanup_stack, &changed_assignments);
-          if (found_conflict || changed_assignments)
-            goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
-        }
+// NOTE: code not used right now, as we do not rewrite writes in case of
+//       extensionality
+#if 0
+	      // FIXME this is a temporary measure in order to make
+	      // extensionality for writes rewritten as lambdas work again
+	      // -> will have to do this properly for the general case
+	      if (propagate_writes_as_reads)
+		{
+		  /* propagate lambdas which are writes as reads if there are
+		   * array equalities */
+		  BTOR_PUSH_STACK (mm, working_stack, cur_array);
+		  BTOR_PUSH_STACK (mm, working_stack, cur_array);
+		  found_conflict =
+		    process_working_stack (btor, &working_stack, &cleanup_stack,
+					   &changed_assignments);
+		  if (found_conflict || changed_assignments)
+		    goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
+		}
+#endif
       }
       init_read_parent_iterator (&it, cur_array);
       while (has_next_parent_read_parent_iterator (&it))
