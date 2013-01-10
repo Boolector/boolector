@@ -326,6 +326,13 @@ btor_precond_read_exp_dbg (const Btor *btor,
   assert (e_array);
   assert (e_index);
   assert (BTOR_IS_REGULAR_NODE (e_array));
+  // debug
+  if (!BTOR_IS_ARRAY_NODE (e_array))
+  {
+    fprintf (stderr, "e_array ");
+    dump_node (stderr, e_array);
+  }
+  // end debug
   assert (BTOR_IS_ARRAY_NODE (e_array));
   assert (!e_array->simplified);
   assert (!BTOR_REAL_ADDR_NODE (e_index)->simplified);
@@ -4993,6 +5000,10 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
       BTOR_PUSH_STACK (mm, work_stack, cur);
       for (i = 0; i < cur->arity; i++)
         BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+      // debug
+      if (BTOR_IS_PROXY_NODE (cur))
+        BTOR_PUSH_STACK (mm, work_stack, cur->simplified);
+      // end debug
     }
     else
     {
@@ -8906,6 +8917,7 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   return is_cyclic;
 }
 
+#if 1
 static BtorNode *
 rebuild_exp (Btor *btor, BtorNode *exp)
 {
@@ -8913,38 +8925,125 @@ rebuild_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
 
+  int i;
+  BtorNode *e[3];
+
+  for (i = 0; i < exp->arity; i++)
+    e[i] = btor_pointer_chase_simplified_exp (btor, exp->e[i]);
+
   switch (exp->kind)
   {
     case BTOR_PROXY_NODE:
     case BTOR_BV_CONST_NODE:
     case BTOR_BV_VAR_NODE:
-    case BTOR_ARRAY_VAR_NODE: return btor_copy_exp (btor, exp->simplified);
+    case BTOR_ARRAY_VAR_NODE:
+      return btor_copy_exp (
+          btor, btor_pointer_chase_simplified_exp (btor, exp->simplified));
     case BTOR_SLICE_NODE:
-      return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
-    case BTOR_AND_NODE: return btor_and_exp (btor, exp->e[0], exp->e[1]);
+      return btor_slice_exp (btor, e[0], exp->upper, exp->lower);
+    case BTOR_AND_NODE: return btor_and_exp (btor, e[0], e[1]);
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: return btor_eq_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_ADD_NODE: return btor_add_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_MUL_NODE: return btor_mul_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_ULT_NODE: return btor_ult_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_SLL_NODE: return btor_sll_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_SRL_NODE: return btor_srl_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_UDIV_NODE: return btor_udiv_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_UREM_NODE: return btor_urem_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_READ_NODE: return btor_read_exp (btor, exp->e[0], exp->e[1]);
+    case BTOR_AEQ_NODE: return btor_eq_exp (btor, e[0], e[1]);
+    case BTOR_ADD_NODE: return btor_add_exp (btor, e[0], e[1]);
+    case BTOR_MUL_NODE: return btor_mul_exp (btor, e[0], e[1]);
+    case BTOR_ULT_NODE: return btor_ult_exp (btor, e[0], e[1]);
+    case BTOR_SLL_NODE: return btor_sll_exp (btor, e[0], e[1]);
+    case BTOR_SRL_NODE: return btor_srl_exp (btor, e[0], e[1]);
+    case BTOR_UDIV_NODE: return btor_udiv_exp (btor, e[0], e[1]);
+    case BTOR_UREM_NODE: return btor_urem_exp (btor, e[0], e[1]);
+    case BTOR_CONCAT_NODE: return btor_concat_exp (btor, e[0], e[1]);
+    case BTOR_READ_NODE: return btor_read_exp (btor, e[0], e[1]);
+    case BTOR_WRITE_NODE: return btor_write_exp (btor, e[0], e[1], e[2]);
+    case BTOR_LAMBDA_NODE:
+      assert (BTOR_EMPTY_STACK (
+          ((BtorParamNode *) BTOR_REAL_ADDR_NODE (e[0]))->assigned_exp));
+      ((BtorParamNode *) BTOR_REAL_ADDR_NODE (e[0]))->lambda_exp = 0;
+      return btor_lambda_exp (btor, e[0], e[1]);
+    default:
+      assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
+      return btor_cond_exp (btor, e[0], e[1], e[2]);
+  }
+}
+#else
+static BtorNode *
+rebuild_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  int i;
+  BtorNode *result;
+
+  switch (exp->kind)
+  {
+    case BTOR_PROXY_NODE:
+    case BTOR_BV_CONST_NODE:
+    case BTOR_BV_VAR_NODE:
+    case BTOR_ARRAY_VAR_NODE:
+      //	result = btor_copy_exp (btor, exp->simplified);
+      result =
+          btor_copy_exp (btor, btor_pointer_chase_simplified_exp (btor, exp));
+      break;
+    case BTOR_SLICE_NODE:
+      result = btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
+      break;
+    case BTOR_AND_NODE:
+      result = btor_and_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_BEQ_NODE:
+    case BTOR_AEQ_NODE:
+      result = btor_eq_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_ADD_NODE:
+      result = btor_add_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_MUL_NODE:
+      result = btor_mul_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_ULT_NODE:
+      result = btor_ult_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_SLL_NODE:
+      result = btor_sll_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_SRL_NODE:
+      result = btor_srl_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_UDIV_NODE:
+      result = btor_udiv_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_UREM_NODE:
+      result = btor_urem_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_CONCAT_NODE:
+      result = btor_concat_exp (btor, exp->e[0], exp->e[1]);
+      break;
+    case BTOR_READ_NODE:
+      result = btor_read_exp (btor, exp->e[0], exp->e[1]);
+      break;
     case BTOR_WRITE_NODE:
-      return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
+      result = btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
+      break;
     case BTOR_LAMBDA_NODE:
       assert (BTOR_EMPTY_STACK (
           ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp));
       ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->lambda_exp = 0;
-      return btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+      result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
+      break;
     default:
       assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
-      return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
+      result = btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
   }
+
+  assert (BTOR_IS_REGULAR_NODE (result));
+  assert (!BTOR_IS_PROXY_NODE (result));
+  for (i = 0; i < result->arity; i++)
+    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (result->e[i])));
+
+  return result;
 }
+#endif
 
 static int
 is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
@@ -9959,12 +10058,18 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
   for (b = subst->first; b; b = b->next)
   {
     cur = (BtorNode *) b->key;
+    //      fprintf (stderr, "<<<< extract from writes: ");
+    //      dump_node (stderr, cur);
     BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
   while (!BTOR_EMPTY_STACK (stack))
   {
     /* search upwards for all reachable roots */
     cur = BTOR_POP_STACK (stack);
+
+    // fprintf (stderr, "-- pop stack ");
+    // dump_node (stderr, cur);
+
     assert (BTOR_IS_REGULAR_NODE (cur));
     if (cur->aux_mark == 0)
     {
@@ -9975,6 +10080,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
       while (has_next_parent_full_parent_iterator (&it))
       {
         cur_parent = next_parent_full_parent_iterator (&it);
+        // fprintf (stderr, "~~ cur parent ");
+        // dump_node (stderr, cur_parent);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
         pushed = 1;
         BTOR_PUSH_STACK (mm, stack, cur_parent);
@@ -9983,7 +10090,16 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
     }
   }
 
+  // debug
+  // for (i = 0; i < BTOR_COUNT_STACK (root_stack); i++)
+  //  {
+  //    fprintf (stderr, "- root_stack[%d] ", i);
+  //    dump_node (stderr, root_stack.start[i]);
+  //  }
+  // end debug
+
   /* copy roots on substitution stack */
+  // TODO top -> count stack
   top = root_stack.top;
   for (temp = root_stack.start; temp != top; temp++)
     BTOR_PUSH_STACK (mm, stack, *temp);
@@ -9995,13 +10111,27 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
     if (cur->aux_mark == 0) continue;
 
+    //    fprintf (stderr, "** cur ");
+    //    dump_node (stderr, cur);
+
     if (cur->aux_mark == 1)
     {
       cur->aux_mark = 2;
       BTOR_PUSH_STACK (mm, stack, cur);
 
       for (i = cur->arity - 1; i >= 0; i--)
+      {
+        //	    fprintf (stderr, "PUSH ");
+        //	    dump_node (stderr, cur->e[i]);
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
+      }
+
+      /* in case that a proxy's simplified exp has mutliple references,
+       * we have to make sure that the proxy is rebuilt after all nodes
+       * up to the simplified expression have been rebuilt (otherwise
+       * DAG is not rebuilt bottom-up correctly) */
+      if (BTOR_IS_PROXY_NODE (cur))
+        BTOR_PUSH_STACK (mm, stack, cur->simplified);
     }
     else
     {
@@ -10009,6 +10139,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
       cur->aux_mark = 0;
 
       rebuilt_exp = rebuild_exp (btor, cur);
+      //	  fprintf (stderr, "++ rebuilt_exp ");
+      //	  dump_node (stderr, rebuilt_exp);
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
@@ -10024,6 +10156,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
   BTOR_RELEASE_STACK (mm, stack);
 
   top = root_stack.top;
+  // TODO top -> count stack
   for (temp = root_stack.start; temp != top; temp++)
     btor_release_exp (btor, *temp);
   BTOR_RELEASE_STACK (mm, root_stack);
@@ -10794,7 +10927,11 @@ rewrite_writes_to_lambda_exp (Btor *btor)
           if (BTOR_IS_WRITE_NODE (exp))
           {
             if (!btor_find_in_ptr_hash_table (writes, exp))
+            {
+              // fprintf (stderr, ">>> insert into writes: ");
+              // dump_node (stderr, exp);
               btor_insert_in_ptr_hash_table (writes, exp);
+            }
 
             lambda = rewrite_write_to_lambda_exp (btor, exp);
             /* write -> proxy node (we need this for rewriting
@@ -10902,6 +11039,7 @@ run_rewrite_engine (Btor *btor)
       if (btor->ops[BTOR_AEQ_NODE] == 0)
       {
         rewrite_writes_to_lambda_exp (btor);
+        assert (check_all_hash_tables_proxy_free_dbg (btor));
         assert (btor->ops[BTOR_WRITE_NODE] == 0);
       }
     }
@@ -10914,6 +11052,7 @@ run_rewrite_engine (Btor *btor)
     if (btor->rewrite_reads && btor->lambdas->count)
     {
       beta_reduce_reads_on_lambdas (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
       assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
     }
   } while (btor->varsubst_constraints->count
