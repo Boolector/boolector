@@ -123,11 +123,15 @@ static int bfs_lambda (
     Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
 
 // debug
-char g_strbuf[100];
+char g_strbuf[256];
+int g_strbufpos = 0;
+
 static char *
 node2string (BtorNode *exp)
 {
   const char *name;
+  char strbuf[100], *bufstart;
+  int len;
 
   if (!exp) return "0";
 
@@ -161,7 +165,7 @@ node2string (BtorNode *exp)
   }
 
   if (exp->kind == BTOR_SLICE_NODE)
-    sprintf (g_strbuf,
+    sprintf (strbuf,
              "%d %s %d %d %d",
              BTOR_GET_ID_NODE (exp),
              name,
@@ -169,14 +173,14 @@ node2string (BtorNode *exp)
              exp->upper,
              exp->lower);
   else if (BTOR_IS_BINARY_NODE (exp))
-    sprintf (g_strbuf,
+    sprintf (strbuf,
              "%d %s %d %d",
              BTOR_GET_ID_NODE (exp),
              name,
              BTOR_GET_ID_NODE (exp->e[0]),
              BTOR_GET_ID_NODE (exp->e[1]));
   else if (BTOR_IS_TERNARY_NODE (exp))
-    sprintf (g_strbuf,
+    sprintf (strbuf,
              "%d %s %d %d %d",
              BTOR_GET_ID_NODE (exp),
              name,
@@ -184,11 +188,19 @@ node2string (BtorNode *exp)
              BTOR_GET_ID_NODE (exp->e[1]),
              BTOR_GET_ID_NODE (exp->e[2]));
   else if (exp->kind == BTOR_BV_VAR_NODE || exp->kind == BTOR_PARAM_NODE)
-    sprintf (g_strbuf, "%d %s %s", BTOR_GET_ID_NODE (exp), name, exp->symbol);
+    sprintf (strbuf, "%d %s %s", BTOR_GET_ID_NODE (exp), name, exp->symbol);
   else
-    sprintf (g_strbuf, "%d %s", BTOR_GET_ID_NODE (exp), name);
+    sprintf (strbuf, "%d %s", BTOR_GET_ID_NODE (exp), name);
 
-  return g_strbuf;
+  len = strlen (strbuf);
+
+  if (g_strbufpos + len > 255) g_strbufpos = 0;
+
+  bufstart = g_strbuf + g_strbufpos;
+  sprintf (bufstart, "%s", strbuf);
+  g_strbufpos += len;
+
+  return bufstart;
 }
 // debug
 
