@@ -7699,6 +7699,7 @@ eval_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
+#if 0
 static void
 replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
 {
@@ -7727,30 +7728,30 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
   assert (e0);
 
   if (parent->kind == BTOR_SLICE_NODE)
-    lookup = find_slice_exp (btor, e0, parent->upper, parent->lower);
+    lookup = find_slice_exp (btor, e0, parent->upper, parent->lower); 
   else if (BTOR_IS_BINARY_NODE (parent))
-  {
-    e1 = parent->e[1];
-    assert (e1);
-
-    if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (parent->kind)
-        && BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
     {
-      e2 = e0;
-      e0 = e1;
-      e1 = e2;
+      e1 = parent->e[1];
+      assert (e1);
+
+      if (BTOR_IS_BINARY_COMMUTATIVE_NODE_KIND (parent->kind)
+          && BTOR_REAL_ADDR_NODE (e0)->id > BTOR_REAL_ADDR_NODE (e1)->id)
+        {
+          e2 = e0;
+          e0 = e1;
+          e1 = e2;
+        }
+      lookup = find_binary_exp (btor, parent->kind, e0, e1);
     }
-    lookup = find_binary_exp (btor, parent->kind, e0, e1);
-  }
   else
-  {
-    assert (BTOR_IS_TERNARY_NODE (parent));
-    e1 = parent->e[1];
-    e2 = parent->e[2];
-    assert (e1);
-    assert (e2);
-    lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
-  }
+    {
+      assert (BTOR_IS_TERNARY_NODE (parent));
+      e1 = parent->e[1];
+      e2 = parent->e[2];
+      assert (e1);
+      assert (e2);
+      lookup = find_ternary_exp (btor, parent->kind, e0, e1, e2);
+    }
   assert (!*lookup);
   assert (!parent->next);
   assert (!parent->unique);
@@ -7761,9 +7762,10 @@ replace_child_exp (Btor *btor, BtorNode *parent, BtorNode *new_exp, int pos)
   (*lookup)->unique = 1;
 
   assert (parent->unique);
-
+  
   btor_release_exp (btor, old_exp);
 }
+#endif
 
 /* We distinguish the following options for (un)bounded reduction:
  *
