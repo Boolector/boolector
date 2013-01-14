@@ -10699,7 +10699,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 {
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
-  BtorNode *cur, *cur_parent, *rebuilt_exp, **temp, **top, *simplified;
+  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
   int pushed, i;
@@ -10743,10 +10743,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
   }
 
   /* copy roots on substitution stack */
-  // TODO top -> count stack
-  top = root_stack.top;
-  for (temp = root_stack.start; temp != top; temp++)
-    BTOR_PUSH_STACK (mm, stack, *temp);
+  for (i = 0; i < BTOR_COUNT_STACK (root_stack); i++)
+    BTOR_PUSH_STACK (mm, stack, root_stack.start[i]);
 
   /* substitute */
   while (!BTOR_EMPTY_STACK (stack))
@@ -10790,10 +10788,8 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
 
   BTOR_RELEASE_STACK (mm, stack);
 
-  top = root_stack.top;
-  // TODO top -> count stack
-  for (temp = root_stack.start; temp != top; temp++)
-    btor_release_exp (btor, *temp);
+  for (i = 0; i < BTOR_COUNT_STACK (root_stack); i++)
+    btor_release_exp (btor, root_stack.start[i]);
   BTOR_RELEASE_STACK (mm, root_stack);
 }
 
