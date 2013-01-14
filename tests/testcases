@@ -450,6 +450,7 @@ rw210 -rwl3 -o log/rw210.log log/rw210.btor
 rw211 -rwl3 -o log/rw211.log log/rw211.btor
 rw212 -rwl3 -o log/rw212.log log/rw212.smt
 rw213 -rwl3 -o log/rw213.log log/rw213.smt
+rww1 -rwl3 -rww -o log/rww1.log log/rww1.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
 hd1 -rwl1 -o log/hd1.log log/hd1.btor
 hd2 -rwl0 -o log/hd2.log log/hd2.btor
