@@ -20,6 +20,7 @@ btor_log_start (Btor* btor, const char* fmt, ...)
 void
 btor_log_end (Btor* btor)
 {
+  (void) btor;
   assert (btor->loglevel > 0);
   fputc ('\n', stdout);
   fflush (stdout);

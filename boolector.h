@@ -987,6 +987,16 @@ void boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp);
 void boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp);
 
 /**
+ * Recursively dumps expression to file.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ *2.0</a> is used as format. \param btor Boolector instance. \param file File to
+ *which the expression should be dumped. The file must be have been opened by
+ *the user before. \param exp The expression which should be dumped.
+ */
+void boolector_dump_smt2 (Btor *btor, FILE *file, BtorNode *exp);
+
+/**
  * Adds constraint. Use this function to assert 'exp'.
  * Added constraints can not be deleted anymore. After 'exp' has
  * been asserted, it can be safely released by \ref boolector_release.

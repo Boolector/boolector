@@ -82,8 +82,6 @@ typedef enum BtorFormatTag
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_FORMAT_LINE_MAX_ARGS 7
-
 struct BtorFormatLine
 {
   int id;
