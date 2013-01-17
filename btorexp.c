@@ -11515,7 +11515,7 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   int i;
   BtorPtrHashTable *writes, *roots = NULL;
   BtorPtrHashBucket *b;
-  BtorNode *exp, *lambda;
+  BtorNode *exp;
   BtorNodePtrStack work_stack, unmark_stack;
 
   BTOR_INIT_STACK (work_stack);
