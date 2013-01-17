@@ -112,6 +112,7 @@ static void add_constraint (Btor *, BtorNode *);
 static void run_rewrite_engine (Btor *);
 
 static void rewrite_writes_to_lambda_exp (Btor *);
+static BtorNode *rewrite_write_to_lambda_exp (Btor *, BtorNode *);
 
 static int exp_to_cnf_lit (Btor *, BtorNode *);
 
@@ -9613,6 +9614,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_READ_NODE: return btor_read_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_WRITE_NODE:
+      if (btor->rewrite_writes) return rewrite_write_to_lambda_exp (btor, exp);
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     case BTOR_LAMBDA_NODE:
       assert (BTOR_EMPTY_STACK (
@@ -10761,12 +10763,15 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
 
-      /* in case that a proxy's simplified exp has mutliple references,
-       * we have to make sure that the proxy is rebuilt after all nodes
-       * up to the simplified expression have been rebuilt (otherwise
-       * DAG is not rebuilt bottom-up correctly) */
-      if (BTOR_IS_PROXY_NODE (cur))
-        BTOR_PUSH_STACK (mm, stack, cur->simplified);
+      //	  /* in case that a proxy's simplified exp has mutliple
+      // references,
+      //	   * we have to make sure that the proxy is rebuilt after all
+      // nodes
+      //	   * up to the simplified expression have been rebuilt
+      //(otherwise
+      //	   * DAG is not rebuilt bottom-up correctly) */
+      //	  if (BTOR_IS_PROXY_NODE (cur))
+      //	    BTOR_PUSH_STACK (mm, stack, cur->simplified);
     }
     else
     {
@@ -11533,45 +11538,24 @@ rewrite_writes_to_lambda_exp (Btor *btor)
       exp = b->key;
       BTOR_PUSH_STACK (btor->mm, work_stack, exp);
 
-      /* collect writes and generate lambdas */
-      do
+      /* collect writes */
+      while (!BTOR_EMPTY_STACK (work_stack))
       {
         exp = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
         assert (exp);
 
-        if (exp->mark == 2) continue;
+        if (exp->mark) continue;
 
-        if (exp->mark == 0)
-        {
-          exp->mark = 1;
-          /* prevent exp to be released prematurely via
-           * set_simplified_exp (else unmarking is not sound) */
-          inc_exp_ref_counter (btor, exp);
-          BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
-          BTOR_PUSH_STACK (btor->mm, work_stack, exp);
-          for (i = exp->arity - 1; i >= 0; i--)
-            BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
-        }
-        else
-        {
-          exp->mark = 2;
+        assert (exp->mark == 0);
+        exp->mark = 1;
+        BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
+        for (i = exp->arity - 1; i >= 0; i--)
+          BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
 
-          if (BTOR_IS_WRITE_NODE (exp))
-          {
-            if (!btor_find_in_ptr_hash_table (writes, exp))
-              btor_insert_in_ptr_hash_table (writes, exp);
-
-            lambda = rewrite_write_to_lambda_exp (btor, exp);
-            /* write -> proxy node (we need this for rewriting
-             * nested writes) */
-            set_simplified_exp (btor, exp, lambda, 1);
-            /* mark proxy as ex-array (else aeq/acond parents are
-             * skipped in substitute_and_rebuild) */
-            exp->proxy_array_mark = 1;
-            btor_release_exp (btor, lambda);
-          }
-        }
-      } while (!BTOR_EMPTY_STACK (work_stack));
+        if (BTOR_IS_WRITE_NODE (exp)
+            && !btor_find_in_ptr_hash_table (writes, exp))
+          btor_insert_in_ptr_hash_table (writes, exp);
+      }
     }
   }
 
@@ -11581,7 +11565,6 @@ rewrite_writes_to_lambda_exp (Btor *btor)
     assert (BTOR_IS_REGULAR_NODE (exp));
     assert (exp->mark);
     exp->mark = 0;
-    btor_release_exp (btor, exp);
   }
 
   substitute_and_rebuild (btor, writes);
@@ -11613,6 +11596,9 @@ run_rewrite_engine (Btor *btor)
   rounds    = 0;
   rwwrounds = 0;
   start     = btor_time_stamp ();
+
+  /* do not rewrite writes to lambdas in case of extensionality */
+  if (btor->ops[BTOR_AEQ_NODE] > 0) btor->rewrite_writes = 0;
 
   do
   {
@@ -11667,13 +11653,9 @@ run_rewrite_engine (Btor *btor)
     /* rewrite writes to lambdas (once) */
     if (btor->rewrite_writes && rwwrounds < 1)
     {
-      /* do not rewrite writes to lambdas in case of extensionality */
-      if (btor->ops[BTOR_AEQ_NODE] == 0)
-      {
-        rewrite_writes_to_lambda_exp (btor);
-        assert (check_all_hash_tables_proxy_free_dbg (btor));
-        assert (btor->ops[BTOR_WRITE_NODE] == 0);
-      }
+      rewrite_writes_to_lambda_exp (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      assert (btor->ops[BTOR_WRITE_NODE] == 0);
     }
 
     if (btor->varsubst_constraints->count) continue;
