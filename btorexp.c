@@ -11518,6 +11518,8 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   BtorNode *exp;
   BtorNodePtrStack work_stack, unmark_stack;
 
+  if (btor->ops[BTOR_WRITE_NODE] == 0) return;
+
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
@@ -11582,7 +11584,7 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor)
 {
-  int rounds, rwwrounds;
+  int rounds, opt_rww, rwwrounds;
   double start, delta;
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   int skelrounds = 0;
@@ -11595,10 +11597,14 @@ run_rewrite_engine (Btor *btor)
 
   rounds    = 0;
   rwwrounds = 0;
-  start     = btor_time_stamp ();
+  opt_rww   = btor->rewrite_writes; /* original user specified setting */
 
-  /* do not rewrite writes to lambdas in case of extensionality */
-  if (btor->ops[BTOR_AEQ_NODE] > 0) btor->rewrite_writes = 0;
+  /* Note: we have to check for extensionality initially, otherwise it may
+   * happen that writes are rewritten during rewriting steps previous to
+   * the actual rww step (-> rebuild_exp) */
+  btor->rewrite_writes = opt_rww && btor->ops[BTOR_AEQ_NODE] == 0;
+
+  start = btor_time_stamp ();
 
   do
   {
@@ -11650,8 +11656,8 @@ run_rewrite_engine (Btor *btor)
     }
 #endif
 
-    /* rewrite writes to lambdas (once) */
-    if (btor->rewrite_writes && rwwrounds < 1)
+    /* rewrite writes to lambdas (skip in case of extensionality) */
+    if ((btor->rewrite_writes = opt_rww && btor->ops[BTOR_AEQ_NODE] == 0))
     {
       rewrite_writes_to_lambda_exp (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -11663,7 +11669,7 @@ run_rewrite_engine (Btor *btor)
     if (btor->embedded_constraints->count) continue;
 
     /* rewrite/beta-reduce reads on lambdas */
-    if (btor->rewrite_reads && btor->lambdas->count)
+    if (btor->rewrite_reads)
     {
       beta_reduce_reads_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -11716,6 +11722,8 @@ beta_reduce_reads_on_lambdas (Btor *btor)
   BtorPtrHashBucket *b;
   BtorNode *read, *reduced_read, *lambda, *parameterized;
   BtorPartialParentIterator it;
+
+  if (btor->lambdas->count == 0) return;
 
   reads = btor->aux_hash_table;
   assert (reads->count == 0);
