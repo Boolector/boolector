@@ -9,13 +9,13 @@ LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
 LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor[a-z]*.c))) boolector.o $(OBJS)
-TESTDIR=tests
-TESTOBJ=$(addsuffix .o,$(basename $(wildcard $(TESTDIR)/test*.c)))
-SRC=$(shell ls *.c *.h *.cc $(TESTDIR)/*.c)
-TARGETS=boolector test synthebtor deltabtor btorfmt.o btor2horn
+SRC=$(shell ls *.c *.h *.cc)
+TARGETS=boolector synthebtor deltabtor btorfmt.o btor2horn
 
 all: libboolector.a $(TARGETS)
+
 -include dependencies
+-include test.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) -I. -c -o $@ $<
@@ -27,13 +27,10 @@ analyze:
 	clang --analyze $(CFLAGS) $(SRC)
 
 dependencies: btorconfig.h $(SRC) makefile
-	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
+	rm -f $@; $(CC) $(CFLAGS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@
 
 boolector: boolectormain.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
-
-test: $(TESTOBJ) libboolector.a  $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)
 
 synthebtor: synthebtor.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
@@ -58,6 +55,5 @@ clean:
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
 	rm -f log/*.log *.tmp
 	rm -f *.o *.a
-	rm -f $(TESTDIR)/*.o
 
 .PHONY: all analyze clean

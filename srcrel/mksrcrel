@@ -1,6 +1,5 @@
 #!/bin/sh
 
-test=no
 force=no
 
 die () {
@@ -16,7 +15,6 @@ do
   case $1 in
     -h) echo "usage: mksrcrel [-f][-h][-t]";exit 0;;
     -f) force=yes;;
-    -t) test=yes;;
     *) die "invalid command line option '$1'";;
   esac
   shift
@@ -28,26 +26,15 @@ gitid=`./getgitid|sed -e 's,^.*\.,,' -e 's,\",,' -e 's,^\(.......\).*,\1,'`
 
 id="$version-$gitid-$date"
 name=boolector-$id
-if [ $test = yes ]
-then
-  dir=/tmp/boolector-test-mksrcrel
-else
-  dir="/tmp/$name"
-fi
+dir="/tmp/$name"
 
 if [ -d $dir ]
 then
   [ $force = no ] && die "$dir already exists (use '-f')"
 fi
 
-if [ $test = yes ]
-then
-  if [ ! -d $dir ]; then mkdir $dir || exit 1; fi
-  rm -rf $dir/*
-else
-  rm -rf $dir
-  mkdir $dir || exit 1
-fi
+rm -rf $dir
+mkdir $dir || exit 1
 
 cp -p \
   VERSION \
@@ -71,11 +58,7 @@ tar cf - \
 ( cd $dir; tar xf -; )
 
 sed \
-  -e '/makefile.test/d' \
-  -e '/TESTOBJ/d' \
-  -e '/basicbtor\.c/d' \
-  -e 's,\<test ,,' \
-  -e 's, basicbtor$,,' \
+  -e '/test.mk/d' \
   makefile.in > $dir/makefile.in
 
 date=`date`
@@ -90,8 +73,6 @@ echo "#define BTOR_VERSION \"`cat VERSION`\"" >> $dir/mkconfig
 echo "#define BTOR_ID \"`./getgitid`\"" >> $dir/mkconfig
 echo EOF >>$dir/mkconfig
 chmod 755 $dir/mkconfig
-
-[ $test = yes ] && exit 0
 
 cd /tmp/
 rm -f $name.tar.gz

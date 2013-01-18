@@ -1761,11 +1761,16 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         return !btor_perr_smt2 (parser, "unexpected '()'");
       nargs = parser->work.top - p - 1;
       tag   = p->tag;
-#ifndef NDEBUG
       if (tag != BTOR_LET_TAG_SMT2 && tag != BTOR_LETBIND_TAG_SMT2
           && tag != BTOR_PARLETBINDING_TAG_SMT2)
-        for (i = 1; i <= nargs; i++) assert (p[i].tag == BTOR_EXP_TAG_SMT2);
-#endif
+      {
+        for (i = 1; i <= nargs; i++)
+          if (p[i].tag != BTOR_EXP_TAG_SMT2)
+          {
+            parser->perrcoo = p[i].coo;
+            return !btor_perr_smt2 (parser, "expected expression");
+          }
+      }
       if (tag == BTOR_EXP_TAG_SMT2)
       {
         if (nargs)

@@ -5463,7 +5463,7 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
 }
 
 static void
-btor_dump_smt_id (BtorNode *e, FILE *file)
+btor_dump_smt_id (BtorNode *e, const char *symgenprefix, FILE *file)
 {
   const char *type, *sym;
   BtorNode *u;
@@ -5486,7 +5486,7 @@ btor_dump_smt_id (BtorNode *e, FILE *file)
   else if (BTOR_IS_ARRAY_VAR_NODE (u))
     type = "a";
   else
-    type = "?e";
+    type = symgenprefix;
 
   fprintf (file, "%s%d", type, u ? u->id : -1);
 
@@ -5494,9 +5494,20 @@ CLOSE:
   if (u != e) fputc (')', file);
 }
 
-void
-btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
+static void
+btor_dump_bit_smt (int format, int bit, FILE *file)
 {
+  assert (bit == 0 || bit == 1);
+  if (format < 2)
+    fprintf (file, "bv%d[1]", bit);
+  else
+    fprintf (file, "#b%d", bit);
+}
+
+void
+btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode *root)
+{
+  const char *sgp = (format < 2) ? "?e" : "$e";
   int next, i, j, arrays, lets, pad;
   BtorMemMgr *mm = btor->mm;
   BtorNodePtrStack stack;
@@ -5538,14 +5549,24 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
 
   qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
 
-  fputs ("(benchmark ", file);
-  if (BTOR_IS_INVERTED_NODE (root)) fputs ("not", file);
-  fprintf (file, "root%d\n", BTOR_REAL_ADDR_NODE (root)->id);
+  if (format < 2)
+  {
+    fputs ("(benchmark ", file);
+    if (BTOR_IS_INVERTED_NODE (root)) fputs ("not", file);
+    fprintf (file, "root%d\n", BTOR_REAL_ADDR_NODE (root)->id);
 
-  if (arrays)
-    fputs (":logic QF_AUFBV\n", file);
+    if (arrays)
+      fputs (":logic QF_AUFBV\n", file);
+    else
+      fputs (":logic QF_BV\n", file);
+  }
   else
-    fputs (":logic QF_BV\n", file);
+  {
+    if (arrays)
+      fputs ("(set-logic QF_AUFBV)\n", file);
+    else
+      fputs ("(set-logic QF_BV)\n", file);
+  }
 
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
@@ -5555,16 +5576,37 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
 
     if (!BTOR_IS_BV_VAR_NODE (e) && !BTOR_IS_ARRAY_VAR_NODE (e)) continue;
 
-    fputs (":extrafuns ((", file);
-    btor_dump_smt_id (e, file);
+    if (format < 2)
+    {
+      fputs (":extrafuns ((", file);
 
-    if (BTOR_IS_BV_VAR_NODE (e))
-      fprintf (file, " BitVec[%d]))\n", e->len);
+      btor_dump_smt_id (e, sgp, file);
+
+      if (BTOR_IS_BV_VAR_NODE (e))
+        fprintf (file, " BitVec[%d]))\n", e->len);
+      else
+        fprintf (file, " Array[%d:%d]))\n", e->index_len, e->len);
+    }
     else
-      fprintf (file, " Array[%d:%d]))\n", e->index_len, e->len);
+    {
+      fputs ("(declare-fun ", file);
+      btor_dump_smt_id (e, sgp, file);
+      fputs (" () (", file);
+
+      if (BTOR_IS_BV_VAR_NODE (e))
+        fprintf (file, "_ BitVec %d", e->len);
+      else
+        fprintf (
+            file, "Array ((_ BitVec %d)) (_ BitVec %d)", e->index_len, e->len);
+
+      fputs ("))\n", file);
+    }
   }
 
-  fputs (":formula\n", file);
+  if (format < 2)
+    fputs (":formula\n", file);
+  else
+    fputs ("(assert\n", file);
 
   lets = 0;
 
@@ -5579,19 +5621,27 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
     lets++;
 
     fputs ("(let (", file);
-    btor_dump_smt_id (e, file);
+    if (format >= 2) fputc ('(', file);
+    btor_dump_smt_id (e, sgp, file);
     fputc (' ', file);
 
     if (e->kind == BTOR_BV_CONST_NODE)
     {
       tmp = btor_const_to_decimal (mm, e->bits);
-      fprintf (file, "bv%s[%d]", tmp, e->len);
+      if (format < 2)
+        fprintf (file, "bv%s[%d]", tmp, e->len);
+      else
+        fprintf (file, "(_ bv%s %d)", tmp, e->len);
       btor_freestr (mm, tmp);
     }
     else if (e->kind == BTOR_SLICE_NODE)
     {
-      fprintf (file, "(extract[%d:%d] ", e->upper, e->lower);
-      btor_dump_smt_id (e->e[0], file);
+      if (format < 2)
+        fprintf (file, "(extract[%d:%d] ", e->upper, e->lower);
+      else
+        fprintf (file, "((_ extract %d %d) ", e->upper, e->lower);
+
+      btor_dump_smt_id (e->e[0], sgp, file);
       fputc (')', file);
     }
     else if (e->kind == BTOR_SLL_NODE || e->kind == BTOR_SRL_NODE)
@@ -5604,25 +5654,31 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
         fputs ("bvshl", file);
 
       fputc (' ', file);
-      btor_dump_smt_id (e->e[0], file);
+      btor_dump_smt_id (e->e[0], sgp, file);
       fputc (' ', file);
 
       assert (e->len > 1);
       pad = e->len - BTOR_REAL_ADDR_NODE (e->e[1])->len;
-      fprintf (file, " (zero_extend[%d] ", pad);
 
-      btor_dump_smt_id (e->e[1], file);
+      if (format < 2)
+        fprintf (file, " (zero_extend[%d] ", pad);
+      else
+        fprintf (file, " ((_ zero_extend %d) ", pad);
+
+      btor_dump_smt_id (e->e[1], sgp, file);
 
       fputs ("))", file);
     }
     else if (BTOR_IS_ARRAY_OR_BV_COND_NODE (e))
     {
-      fputs ("(ite (= bv1[1] ", file);
-      btor_dump_smt_id (e->e[0], file);
-      fputs (") ", file);
-      btor_dump_smt_id (e->e[1], file);
+      fputs ("(ite (= ", file);
+      btor_dump_bit_smt (format, 1, file);
       fputc (' ', file);
-      btor_dump_smt_id (e->e[2], file);
+      btor_dump_smt_id (e->e[0], sgp, file);
+      fputs (") ", file);
+      btor_dump_smt_id (e->e[1], sgp, file);
+      fputc (' ', file);
+      btor_dump_smt_id (e->e[2], sgp, file);
       fputc (')', file);
     }
     else if (BTOR_IS_ARRAY_OR_BV_EQ_NODE (e) || e->kind == BTOR_ULT_NODE)
@@ -5633,10 +5689,14 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
       else
         fputc ('=', file);
       fputc (' ', file);
-      btor_dump_smt_id (e->e[0], file);
+      btor_dump_smt_id (e->e[0], sgp, file);
       fputc (' ', file);
-      btor_dump_smt_id (e->e[1], file);
-      fputs (") bv1[1] bv0[1])", file);
+      btor_dump_smt_id (e->e[1], sgp, file);
+      fputs (") ", file);
+      btor_dump_bit_smt (format, 1, file);
+      fputc (' ', file);
+      btor_dump_bit_smt (format, 0, file);
+      fputc (')', file);
     }
     else
     {
@@ -5664,24 +5724,42 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
       for (j = 0; j < e->arity; j++)
       {
         fputc (' ', file);
-        btor_dump_smt_id (e->e[j], file);
+        btor_dump_smt_id (e->e[j], sgp, file);
       }
 
       fputc (')', file);
     }
 
+    if (format >= 2) fputc (')', file);
     fputs (")\n", file);
   }
 
   fputs ("(not (= ", file);
-  btor_dump_smt_id (root, file);
-  fprintf (file, " bv0[%d]))\n", BTOR_REAL_ADDR_NODE (root)->len);
+  btor_dump_smt_id (root, sgp, file);
+
+  if (format < 2)
+    fprintf (file, " bv0[%d]))\n", BTOR_REAL_ADDR_NODE (root)->len);
+  else
+    fprintf (file, " (_ bv0 %d)))\n", BTOR_REAL_ADDR_NODE (root)->len);
 
   for (i = 0; i < lets + 1; i++) fputc (')', file);
+
+#if 0
+  if (format >= 2)
+    fputc (')', file);
+#endif
 
   fputc ('\n', file);
 
   BTOR_RELEASE_STACK (mm, stack);
+
+  if (format >= 2)
+  {
+    fputs ("(check-sat)\n", file);
+    fputs ("(exit)\n", file);
+  }
+
+  fflush (file);
 }
 
 Btor *

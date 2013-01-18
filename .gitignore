@@ -18,6 +18,7 @@ dimacs2smt2
 btor2horn
 test
 dependencies
+test.dep
 deltabtor
 btorconfig.h
 merged.c

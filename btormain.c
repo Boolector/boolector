@@ -135,7 +135,9 @@ static const char *g_usage =
     "  -x, --hex                        hexadecimal output\n"
     "  -d, --dec                        decimal output\n"
     "  -de, --dump-exp                  dump expression in BTOR format\n"
-    "  -ds, --dump-smt                  dump expression in SMT format\n"
+    "  -ds                              dump expression in SMT 1.2 format\n"
+    "  -d1, -ds1, --dump-smt            dump expression in SMT 1.2 format\n"
+    "  -d2, -ds2, --dump-smt2           dump expression in SMT 2.0 format\n"
     "  -o, --output <file>              set output file for dumping\n"
     "\n"
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
@@ -526,8 +528,15 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "--dump-exp"))
       app->dump_exp = 1;
     else if (!strcmp (app->argv[app->argpos], "-ds")
-             || !strcmp (app->argv[app->argpos], "--dump-smt"))
+             || !strcmp (app->argv[app->argpos], "-d1")
+             || !strcmp (app->argv[app->argpos], "-ds1")
+             || !strcmp (app->argv[app->argpos], "--dump-smt")
+             || !strcmp (app->argv[app->argpos], "--dump-smt1"))
       app->dump_smt = 1;
+    else if (!strcmp (app->argv[app->argpos], "-d2")
+             || !strcmp (app->argv[app->argpos], "-ds2")
+             || !strcmp (app->argv[app->argpos], "--dump-smt2"))
+      app->dump_smt = 2;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
       app->print_model = 1;
@@ -1346,11 +1355,19 @@ boolector_main (int argc, char **argv)
         else
           all = root;
       }
-      if (app.verbosity > 0) btor_msg_main_va_args ("dumping in SMT format\n");
+
+      if (app.verbosity > 0)
+      {
+        if (app.dump_smt < 2)
+          btor_msg_main_va_args ("dumping in SMT 1.2 format\n");
+        else
+          btor_msg_main_va_args ("dumping in SMT 2.0 format\n");
+      }
+
+      btor_dump_smt (btor, app.dump_smt, app.output_file, all);
+      btor_release_exp (btor, all);
 
       app.done = 1;
-      btor_dump_smt (btor, app.output_file, all);
-      btor_release_exp (btor, all);
     }
     else if (parse_res.nregs > 0)
     {
