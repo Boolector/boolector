@@ -28,7 +28,6 @@ trap "cleanup-and-exit;" SIGHUP SIGINT SIGTERM
 logic=QF_AUFBV
 opts=""
 cmd=""
-maxtime=0
 while [ $# -gt 0 ]
 do
   case $1 in
@@ -38,21 +37,20 @@ do
                echo
                echo "  options:"
                echo "    -h,--help        print this message and exit"
-	       echo -n "    --logic=<logic>  use <logic> (default: QF_AUFBV, "
-	       echo "<logic>: see fuzzsmt -h)"
+               echo -n "    --logic=<logic>  use <logic> (default: QF_AUFBV, "                 echo "<logic>: see fuzzsmt -h)"
                echo -n "    --check=<val>    use individual return value <val> "
-	       echo "for non-failure-case"
+               echo "for non-failure-case"
                echo
                echo "  fuzzsmt_options:   see fuzzsmt -h"
                echo
                exit
                ;;
     --logic=*) logic=$(echo "$1" | sed -e 's,^--logic=,,')
-	       ;;
+               ;;
     --check=*) val=$(echo "$1" | sed -e 's,^--check=,,')
                ;;
     --bug-dir=*) BUG_DIR=$(echo "$1" | sed -e 's,^--bug-dir=,,')
-		 ;;
+                 ;;
     -*|[0-9]*) opts="$opts $1"
                ;;
     *) break;;
@@ -97,11 +95,11 @@ do
              echo -n $(basename "$bug")
              red="$BUG_DIR"/red-$$-${count}.btor
              "$DELTABTOR" "$bug" "$red" "$cmd" > /dev/null 2>&1
-	     if [ -e "$red" ]; then
-	       redlines=`wc -l "$red"|awk '{print $1}'`
-	     else
-	       redlines=$buglines
-	     fi
+             if [ -e "$red" ]; then
+               redlines=`wc -l "$red"|awk '{print $1}'`
+             else
+               redlines=$buglines
+             fi
              echo -n " "
              echo -n $(basename "$red")
              echo -e "  ($buglines -> $redlines)"
