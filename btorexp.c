@@ -8043,11 +8043,13 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
   /* we have to disable rewriting in case we beta reduce while read propagation
    * as otherwise we might lose lazily synthesized and encoded nodes */
-  if (bound < 0)
+  if (bound == BETA_RED_CUTOFF)
   {
     aux_rewrite_level   = btor->rewrite_level;
     btor->rewrite_level = 0;
   }
+
+  if (bound >= BETA_RED_FULL) BTOR_REAL_ADDR_NODE (exp)->parent = 0;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -8063,12 +8065,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
-  //  long dbg_its = 0;
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-//      printf("%llu\n", dbg_its);
-//      dbg_its++;
-//      assert (dbg_its < 10000);
 #if 0
       // debug
       for (i = 0; i < BTOR_COUNT_STACK (work_stack); i++)
@@ -8129,6 +8127,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         e[0] = BTOR_REAL_ADDR_NODE (real_cur->e[0]); /* lambda */
         e[1] = BTOR_REAL_ADDR_NODE (real_cur->e[1]); /* index */
 
+        // TODO: cleanup
         param = BTOR_REAL_ADDR_NODE (e[0]->e[0]);
         assert (BTOR_IS_PARAM_NODE (param));
 
@@ -8177,6 +8176,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       if (next)
       {
         if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+
+        if (bound >= BETA_RED_FULL)
+          BTOR_REAL_ADDR_NODE (next)->parent = real_cur;
+
         BTOR_PUSH_STACK (mm, work_stack, next);
         BTOR_PUSH_STACK (mm, mark_stack, mark);
       }
@@ -8188,6 +8191,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
          * such as read(lambda, read(lambda, i)).
          */
         if (BTOR_IS_LAMBDA_NODE (real_cur)
+            /* do not unassign param in case we have to rebuild lambdas */
+            && !real_cur->beta_mark
             /* skip lambdas of nested lambda structures (sharing of
              * nested lambda nodes except for the topmost of the nested
              * structure is not allowed/possible) */
@@ -8209,6 +8214,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
          * such as read(lambda, read(lambda, index)) ). */
         for (i = 0; i < real_cur->arity; i++)
         {
+          if (bound >= BETA_RED_FULL)
+            BTOR_REAL_ADDR_NODE (real_cur->e[i])->parent = real_cur;
           BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
           BTOR_PUSH_STACK (mm, mark_stack, 0);
         }
@@ -8280,16 +8287,18 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
             if (real_cur->e[0] == e[0] && real_cur->e[1] == e[1]
                 && BTOR_REAL_ADDR_NODE (e[1])->parameterized)
             {
+              assert (!real_cur->beta_mark);
               result = btor_copy_exp (btor, real_cur);
             }
             /* lambda reduced to some term with e[0] due to rewriting */
-            else if (real_cur->e[0] == e[0]
-                     && BTOR_REAL_ADDR_NODE (e[1])->parameterized)
+            else if (real_cur->beta_mark == 1
+                     || (real_cur->e[0] == e[0]
+                         && BTOR_REAL_ADDR_NODE (e[1])->parameterized))
             {
               if (real_cur->beta_mark == 0)
               {
-                param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
-                param = btor_param_exp (btor, param->len, "");
+                assert (BTOR_IS_REGULAR_NODE (e[0]));
+                param = btor_param_exp (btor, e[0]->len, "");
 
                 /* mark lambda as to-be-rebuilt in 2nd pass */
                 real_cur->beta_mark = 1;
@@ -8312,8 +8321,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
               else
               {
                 assert (real_cur->beta_mark == 1);
+                assert (BTOR_IS_REGULAR_NODE (e[0]));
+                assert (BTOR_IS_PARAM_NODE (e[0]));
                 result = btor_lambda_exp (btor, e[0], e[1]);
-                /* decrement ref counter of e[0] param created in
+                /* decrement ref counter of param e[0] created in
                  * 1st pass */
                 btor_release_exp (btor, e[0]);
                 real_cur->beta_mark = 0;
@@ -8322,8 +8333,27 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
             /* lambda reduced to some term without e[0] */
             else
             {
-              result         = btor_copy_exp (btor, e[1]);
-              *parameterized = p[1];
+              assert (!real_cur->beta_mark);
+              /* if a lambda is reduced to a constant term and
+               * its parent expects an array, we have to create a
+               * constant lambda expression instead of a constant
+               * term. this can only occur with bounded or full
+               * reduction */
+              if (bound >= BETA_RED_FULL
+                  && (BTOR_IS_WRITE_NODE (real_cur->parent)
+                      || BTOR_IS_ARRAY_COND_NODE (real_cur->parent)))
+              {
+                assert (!BTOR_REAL_ADDR_NODE (e[1])->parameterized);
+                param =
+                    btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[0])->len, "");
+                result = btor_lambda_exp (btor, param, e[1]);
+                btor_release_exp (btor, param);
+              }
+              else
+              {
+                result         = btor_copy_exp (btor, e[1]);
+                *parameterized = p[1];
+              }
             }
 #if 0
 			/* partial application, first pass */
@@ -8452,7 +8482,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   BTOR_RELEASE_STACK (mm, mark_stack);
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
-  if (bound < 0 && aux_rewrite_level)
+  if (bound == BETA_RED_CUTOFF && aux_rewrite_level)
   {
     assert (!btor->rewrite_level);
     btor->rewrite_level = aux_rewrite_level;
