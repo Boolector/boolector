@@ -633,8 +633,9 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  BtorLGL *blgl   = smgr->solver;
-  LGL *lgl        = blgl->lgl, *bforked;
+  BtorLGL *blgl = smgr->solver;
+  LGL *lgl      = blgl->lgl, *bforked;
+  int flipping, predict, phase;
   const int clone = 1;  // TODO?
   const char *str;
   int res, bfres;
@@ -649,8 +650,14 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     return res;
   }
 
-  lglsetopt (lgl, "flipping", 0);
+  phase = lglgetopt (lgl, "phase");
   lglsetopt (lgl, "phase", -1);
+
+  flipping = lglgetopt (lgl, "flipping");
+  lglsetopt (lgl, "flipping", 0);
+
+  predict = lglgetopt (lgl, "predict");
+  lglsetopt (lgl, "predict", 0);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
@@ -678,9 +685,11 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         bforked = lglbrutefork (lgl, 0), str = "fork";
       lglsetopt (bforked, "seed", blgl->nforked);
 
-      lglsetopt (bforked, "flipping", 1);
+      lglsetopt (bforked, "flipping", flipping);
+      lglsetopt (lgl, "phase", phase);
+      lglsetopt (lgl, "predict", predict);
+
       lglsetopt (bforked, "simpdelay", 0);
-      lglsetopt (lgl, "phase", 0);
 
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
