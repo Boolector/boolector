@@ -650,6 +650,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   }
 
   lglsetopt (lgl, "flipping", 0);
+  lglsetopt (lgl, "phase", -1);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
@@ -676,8 +677,11 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       else
         bforked = lglbrutefork (lgl, 0), str = "fork";
       lglsetopt (bforked, "seed", blgl->nforked);
+
       lglsetopt (bforked, "flipping", 1);
       lglsetopt (bforked, "simpdelay", 0);
+      lglsetopt (lgl, "phase", 0);
+
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
