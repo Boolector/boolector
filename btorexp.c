@@ -8155,7 +8155,24 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       {
         /* we allow unassigned params (next == 0) */
         if ((next = param_cur_assignment ((BtorParamNode *) real_cur)))
-          mark = 0;
+        {
+          /* we do not need to reduce non-parameterized nodes */
+          if (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (next)))
+          {
+            assert (!BTOR_REAL_ADDR_NODE (next)->parameterized);
+
+            result         = btor_copy_exp (btor, next);
+            *parameterized = BTOR_REAL_ADDR_NODE (next)->parameterized
+                                 ? BTOR_REAL_ADDR_NODE (next)
+                                 : 0;
+
+            goto BETA_REDUCE_PUSH_ARG_STACK;
+          }
+          else
+          {
+            mark = 0;
+          }
+        }
         else
           next = real_cur;
       }
@@ -8452,6 +8469,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
       }
 
+    BETA_REDUCE_PUSH_ARG_STACK:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
       BTORLOG ("*** result: %s", node2string (result));
