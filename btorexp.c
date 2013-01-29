@@ -2694,6 +2694,9 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     if (BTOR_REAL_ADDR_NODE (child)->parameterized) parent->parameterized = 1;
   }
 
+  if (BTOR_REAL_ADDR_NODE (child)->lambda_descendant)
+    parent->lambda_descendant = 1;
+
   if (parent->kind == BTOR_WRITE_NODE && pos == 0)
     connect_array_child_write_exp (btor, parent, child);
   else if (BTOR_IS_ARRAY_EQ_NODE (parent))
@@ -2852,10 +2855,11 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
 
   BTOR_CNEW (btor->mm, lambda_exp);
   btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind  = BTOR_LAMBDA_NODE;
-  lambda_exp->bytes = sizeof *lambda_exp;
-  lambda_exp->arity = 2;
-  lambda_exp->len   = len;
+  lambda_exp->kind              = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes             = sizeof *lambda_exp;
+  lambda_exp->arity             = 2;
+  lambda_exp->len               = len;
+  lambda_exp->lambda_descendant = 1;
   //  lambda_exp->index_len = BTOR_REAL_ADDR_NODE(e_param)->len;
   //  lambda_exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, (BtorNode *) lambda_exp);
@@ -8101,10 +8105,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     BTORLOG (
         "%s: real_cur (%d): %s", __FUNCTION__, mark, node2string (real_cur));
 
-    //
-    // TODO skip non-parameterized nodes
-    //
-
     if (mark == 0)
     {
       assert (!real_cur->beta_mark || BTOR_IS_LAMBDA_NODE (real_cur));
@@ -8117,6 +8117,14 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         BTOR_PUSH_STACK (mm, work_stack, cur);
         BTOR_PUSH_STACK (mm, mark_stack, mark);
         continue;
+      }
+
+      /* do not beta-reduce nodes that will not change anyway */
+      if (!real_cur->lambda_descendant && !real_cur->parameterized)
+      {
+        result         = btor_copy_exp (btor, real_cur);
+        *parameterized = real_cur->parameterized ? real_cur : 0;
+        goto BETA_REDUCE_PUSH_ARG_STACK;
       }
 
       next = 0;
@@ -8155,24 +8163,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       {
         /* we allow unassigned params (next == 0) */
         if ((next = param_cur_assignment ((BtorParamNode *) real_cur)))
-        {
-          /* we do not need to reduce non-parameterized nodes */
-          if (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (next)))
-          {
-            assert (!BTOR_REAL_ADDR_NODE (next)->parameterized);
-
-            result         = btor_copy_exp (btor, next);
-            *parameterized = BTOR_REAL_ADDR_NODE (next)->parameterized
-                                 ? BTOR_REAL_ADDR_NODE (next)
-                                 : 0;
-
-            goto BETA_REDUCE_PUSH_ARG_STACK;
-          }
-          else
-          {
-            mark = 0;
-          }
-        }
+          mark = 0;
         else
           next = real_cur;
       }
