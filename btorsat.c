@@ -633,15 +633,12 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  BtorLGL *blgl = smgr->solver;
-  LGL *lgl      = blgl->lgl, *bforked;
-  int flipping, predict, phase;
+  BtorLGL *blgl   = smgr->solver;
+  LGL *lgl        = blgl->lgl, *bforked;
   const int clone = 1;  // TODO?
   const char *str;
   int res, bfres;
   char name[80];
-
-  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
 
   if (!smgr->inc_required)
   {
@@ -650,13 +647,10 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     return res;
   }
 
-  phase = lglgetopt (lgl, "phase");
+  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+
   lglsetopt (lgl, "phase", -1);
-
-  flipping = lglgetopt (lgl, "flipping");
   lglsetopt (lgl, "flipping", 0);
-
-  predict = lglgetopt (lgl, "predict");
   lglsetopt (lgl, "predict", 0);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
@@ -673,7 +667,9 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       blgl->blimit *= 2;
       if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
+
       blgl->nforked++;
+
       if (clone)
       {
         bforked = lglclone (lgl);
@@ -683,19 +679,15 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       }
       else
         bforked = lglbrutefork (lgl, 0), str = "fork";
+
       lglsetopt (bforked, "seed", blgl->nforked);
-
-      lglsetopt (bforked, "flipping", flipping);
-      lglsetopt (lgl, "phase", phase);
-      lglsetopt (lgl, "predict", predict);
-
       lglsetopt (bforked, "simpdelay", 0);
-
+      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
+      lglsetopt (bforked, "clim", limit);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
-      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
-      lglsetopt (bforked, "clim", limit);
+
       res = lglsat (bforked);
       if (smgr->verbosity > 0) lglstats (bforked);
       if (clone)
