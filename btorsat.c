@@ -598,7 +598,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
-#define BTOR_LGL_SIMP_DELAY 2000
+#define BTOR_LGL_SIMP_DELAY 5000
 #define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
 
@@ -640,14 +640,14 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   int res, bfres;
   char name[80];
 
+  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+
   if (!smgr->inc_required)
   {
     lglsetopt (lgl, "clim", -1);
     res = lglsat (lgl);
     return res;
   }
-
-  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
 
   lglsetopt (lgl, "phase", -1);
   lglsetopt (lgl, "flipping", 0);
