@@ -9765,11 +9765,13 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
 }
 
 static BtorNode *
-rebuild_exp (Btor *btor, BtorNode *exp, int rw)
+rebuild_exp (Btor *btor, BtorNode *exp, int rww, int rwr)
 {
   assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorNode *parameterized;
 
   switch (exp->kind)
   {
@@ -9790,12 +9792,15 @@ rebuild_exp (Btor *btor, BtorNode *exp, int rw)
     case BTOR_UDIV_NODE: return btor_udiv_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_UREM_NODE: return btor_urem_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_READ_NODE: return btor_read_exp (btor, exp->e[0], exp->e[1]);
+    case BTOR_READ_NODE:
+      if (rwr && btor->rewrite_reads)
+        return beta_reduce (btor, exp, BETA_RED_FULL, &parameterized);
+      return btor_read_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_WRITE_NODE:
       // TODO: rw disables rww during varsubst/emb.constr rw phase
       //       this is currently for debugging purposes in order to be
       //       able to explicitely differentiate between resp. rw phases
-      if (rw && btor->rewrite_writes)
+      if (rww && btor->rewrite_writes)
         return rewrite_write_to_lambda_exp (btor, exp);
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     case BTOR_LAMBDA_NODE:
@@ -10541,7 +10546,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
       else
         // TODO: rw is currently set to 0 for debugging purposes
         //       (see rebuild_exp)
-        rebuilt_exp = rebuild_exp (btor, cur, 0);
+        rebuilt_exp = rebuild_exp (btor, cur, 0, 0);
       assert (rebuilt_exp);
       assert (rebuilt_exp != cur);
 
@@ -10801,7 +10806,7 @@ substitute_var_exps (Btor *btor)
 /* Simple substitution by following simplified pointer.
  */
 static void
-substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rw)
+substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
 {
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -10882,7 +10887,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rw)
       assert (cur->aux_mark == 2);
       cur->aux_mark = 0;
 
-      rebuilt_exp = rebuild_exp (btor, cur, rw);
+      rebuilt_exp = rebuild_exp (btor, cur, rww, rwr);
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
@@ -10918,7 +10923,7 @@ substitute_embedded_constraints (Btor *btor)
      * e.g. top conjunction of constraints that are released */
     if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
   }
-  substitute_and_rebuild (btor, btor->embedded_constraints, 0);
+  substitute_and_rebuild (btor, btor->embedded_constraints, 0, 0);
 }
 
 static void
@@ -11673,7 +11678,7 @@ rewrite_writes_to_lambda_exp (Btor *btor)
     exp->mark = 0;
   }
 
-  substitute_and_rebuild (btor, writes, 1);
+  substitute_and_rebuild (btor, writes, 1, 0);
 
   BTOR_RELEASE_STACK (btor->mm, work_stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
@@ -11777,7 +11782,7 @@ run_rewrite_engine (Btor *btor)
     {
       beta_reduce_reads_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
+      // assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
     }
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
@@ -11832,8 +11837,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
   reads = btor->aux_hash_table;
   assert (reads->count == 0);
 
-  /* collect reads first, then reduce (else btor->lambdas is inconsistent
-   * as lambdas might be released via set_simplified_exp) */
+  /* collect reads */
   for (b = btor->lambdas->first; b; b = b->next)
   {
     lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
@@ -11851,30 +11855,35 @@ beta_reduce_reads_on_lambdas (Btor *btor)
     }
   }
 
+#if 0
   /* beta-reduce, substitute and rebuild */
   for (b = reads->first; b; b = b->next)
-  {
-    read = b->key;
-    assert (BTOR_IS_REGULAR_NODE (read));
+    {
+      read = b->key;
+      assert (BTOR_IS_REGULAR_NODE (read));
 
-    /* prevent read to be released prematurely via set_simplified_exp */
-    inc_exp_ref_counter (btor, read);
-    reduced_read = beta_reduce (btor, read, BETA_RED_FULL, &parameterized);
-    /* read -> proxy node */
-    set_simplified_exp (btor, read, reduced_read, 1);
-    btor_release_exp (btor, reduced_read);
-  }
+      /* prevent read to be released prematurely via set_simplified_exp */
+      inc_exp_ref_counter (btor, read);
+      reduced_read = beta_reduce (btor, read, BETA_RED_FULL, &parameterized);
+      /* read -> proxy node */
+      set_simplified_exp (btor, read, reduced_read, 1);
+      btor_release_exp (btor, reduced_read);
+    }
+#endif
 
-  substitute_and_rebuild (btor, reads, 1);
+  substitute_and_rebuild (btor, reads, 0, 1);
 
+#if 0
   for (b = reads->first; b; b = reads->first)
-  {
-    read = b->key;
-    assert (read->mark);
-    /* Attention: btor_release_exp removes bucket from aux_hash_table! */
-    btor_release_exp (btor, read);
-  }
+    {
+      read = b->key;
+      assert (read->mark);
+      /* Attention: btor_release_exp removes bucket from aux_hash_table! */
+      btor_release_exp (btor, read);
+    }
+#endif
 
+  assert (reads->count == 0);
   btor_delete_ptr_hash_table (btor->aux_hash_table);
   btor->aux_hash_table =
       btor_new_ptr_hash_table (btor->mm,
