@@ -9764,9 +9764,8 @@ occurrence_check (Btor *btor, BtorNode *left, BtorNode *right)
   return is_cyclic;
 }
 
-#if 1
 static BtorNode *
-rebuild_exp (Btor *btor, BtorNode *exp)
+rebuild_exp (Btor *btor, BtorNode *exp, int rw)
 {
   assert (btor);
   assert (exp);
@@ -9793,7 +9792,11 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_READ_NODE: return btor_read_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_WRITE_NODE:
-      if (btor->rewrite_writes) return rewrite_write_to_lambda_exp (btor, exp);
+      // TODO: rw disables rww during varsubst/emb.constr rw phase
+      //       this is currently for debugging purposes in order to be
+      //       able to explicitely differentiate between resp. rw phases
+      if (rw && btor->rewrite_writes)
+        return rewrite_write_to_lambda_exp (btor, exp);
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     case BTOR_LAMBDA_NODE:
       assert (BTOR_EMPTY_STACK (
@@ -9805,86 +9808,6 @@ rebuild_exp (Btor *btor, BtorNode *exp)
       return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
   }
 }
-#else
-static BtorNode *
-rebuild_exp (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  assert (BTOR_IS_REGULAR_NODE (exp));
-
-  int i;
-  BtorNode *result;
-
-  switch (exp->kind)
-  {
-    case BTOR_PROXY_NODE:
-    case BTOR_BV_CONST_NODE:
-    case BTOR_BV_VAR_NODE:
-    case BTOR_ARRAY_VAR_NODE:
-      //	result = btor_copy_exp (btor, exp->simplified);
-      result =
-          btor_copy_exp (btor, btor_pointer_chase_simplified_exp (btor, exp));
-      break;
-    case BTOR_SLICE_NODE:
-      result = btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
-      break;
-    case BTOR_AND_NODE:
-      result = btor_and_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE:
-      result = btor_eq_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_ADD_NODE:
-      result = btor_add_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_MUL_NODE:
-      result = btor_mul_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_ULT_NODE:
-      result = btor_ult_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_SLL_NODE:
-      result = btor_sll_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_SRL_NODE:
-      result = btor_srl_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_UDIV_NODE:
-      result = btor_udiv_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_UREM_NODE:
-      result = btor_urem_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_CONCAT_NODE:
-      result = btor_concat_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_READ_NODE:
-      result = btor_read_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    case BTOR_WRITE_NODE:
-      result = btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
-      break;
-    case BTOR_LAMBDA_NODE:
-      assert (BTOR_EMPTY_STACK (
-          ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp));
-      ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->lambda_exp = 0;
-      result = btor_lambda_exp (btor, exp->e[0], exp->e[1]);
-      break;
-    default:
-      assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
-      result = btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
-  }
-
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (!BTOR_IS_PROXY_NODE (result));
-  for (i = 0; i < result->arity; i++)
-    assert (!BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (result->e[i])));
-
-  return result;
-}
-#endif
 
 static int
 is_embedded_constraint_exp (Btor *btor, BtorNode *exp)
@@ -10616,7 +10539,9 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
           btor->stats.array_substitutions++;
       }
       else
-        rebuilt_exp = rebuild_exp (btor, cur);
+        // TODO: rw is currently set to 0 for debugging purposes
+        //       (see rebuild_exp)
+        rebuilt_exp = rebuild_exp (btor, cur, 0);
       assert (rebuilt_exp);
       assert (rebuilt_exp != cur);
 
@@ -10876,7 +10801,7 @@ substitute_var_exps (Btor *btor)
 /* Simple substitution by following simplified pointer.
  */
 static void
-substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
+substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rw)
 {
   BtorNodePtrStack stack, root_stack;
   BtorPtrHashBucket *b;
@@ -10957,7 +10882,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst)
       assert (cur->aux_mark == 2);
       cur->aux_mark = 0;
 
-      rebuilt_exp = rebuild_exp (btor, cur);
+      rebuilt_exp = rebuild_exp (btor, cur, rw);
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
@@ -10993,7 +10918,7 @@ substitute_embedded_constraints (Btor *btor)
      * e.g. top conjunction of constraints that are released */
     if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
   }
-  substitute_and_rebuild (btor, btor->embedded_constraints);
+  substitute_and_rebuild (btor, btor->embedded_constraints, 0);
 }
 
 static void
@@ -11748,7 +11673,7 @@ rewrite_writes_to_lambda_exp (Btor *btor)
     exp->mark = 0;
   }
 
-  substitute_and_rebuild (btor, writes);
+  substitute_and_rebuild (btor, writes, 1);
 
   BTOR_RELEASE_STACK (btor->mm, work_stack);
   BTOR_RELEASE_STACK (btor->mm, unmark_stack);
@@ -11940,7 +11865,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
     btor_release_exp (btor, reduced_read);
   }
 
-  substitute_and_rebuild (btor, reads);
+  substitute_and_rebuild (btor, reads, 1);
 
   for (b = reads->first; b; b = reads->first)
   {
