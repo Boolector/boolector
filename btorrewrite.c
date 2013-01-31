@@ -991,7 +991,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
            && is_const_zero_exp (btor, e0->e[0])
            && is_const_zero_exp (btor, e1->e[1]))
   {
-    result = btor_concat_exp (btor, e1->e[0], e0->e[1]);
+    result = btor_concat_exp (btor, e0->e[0], e1->e[1]);
   }
   else if (kind == BTOR_AND_NODE && BTOR_IS_INVERTED_NODE (e0)
            && BTOR_IS_INVERTED_NODE (e1) && real_e0->kind == BTOR_CONCAT_NODE

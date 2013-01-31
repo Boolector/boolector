@@ -279,25 +279,23 @@ btor_reset_alarm (void)
 static void
 btor_catch_alarm (int sig)
 {
+  (void) sig;
   assert (sig == SIGALRM);
-  if (!btor_static_catched_sig)
+  if (btor_static_set_alarm > 0)
   {
-    btor_static_catched_sig = 1;
-    if (btor_static_verbosity > 0)
-      printf ("[btormain] CAUGHT SIGNAL %d (probably time limit reached)\n",
-              SIGALRM);
+    printf ("[btormain] ALARM TRIGGERED: time limit %d seconds reached\n",
+            btor_static_set_alarm);
     fputs ("unknown\n", stdout);
     fflush (stdout);
     if (btor_static_verbosity > 0)
     {
       if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
       if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
+      btor_print_static_stats ();
     }
   }
-  btor_reset_sig_handlers ();
   btor_reset_alarm ();
-  raise (sig);
-  exit (sig);
+  exit (0);
 }
 
 static void
@@ -1019,7 +1017,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
 #endif
-  btor_static_set_alarm = -1;
+  btor_static_set_alarm = 0;
 
   parse_commandline_arguments (&app);
 
@@ -1081,8 +1079,9 @@ boolector_main (int argc, char **argv)
 
     if (app.verbosity > 0) btor_msg_main ("setting signal handlers\n");
     btor_set_sig_handlers ();
-    if (btor_static_set_alarm >= 0)
+    if (btor_static_set_alarm)
     {
+      assert (btor_static_set_alarm > 0);
       if (app.verbosity > 0)
         btor_msg_main_va_args ("setting time limit to %d seconds\n",
                                btor_static_set_alarm);

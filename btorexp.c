@@ -199,7 +199,7 @@ node2string (BtorNode *exp)
   else
     sprintf (strbuf, "%d %s", BTOR_GET_ID_NODE (exp), name);
 
-  len = strlen (strbuf);
+  len = strlen (strbuf) + 1;
 
   if (g_strbufpos + len > 255) g_strbufpos = 0;
 
@@ -1329,6 +1329,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
       }
+      // TODO: move to erase_local_data_exp
       else if (BTOR_IS_PARAM_NODE (cur))
       {
         assert (BTOR_EMPTY_STACK (((BtorParamNode *) cur)->assigned_exp));
@@ -2693,6 +2694,9 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     if (BTOR_REAL_ADDR_NODE (child)->parameterized) parent->parameterized = 1;
   }
 
+  if (BTOR_REAL_ADDR_NODE (child)->lambda_descendant)
+    parent->lambda_descendant = 1;
+
   if (parent->kind == BTOR_WRITE_NODE && pos == 0)
     connect_array_child_write_exp (btor, parent, child);
   else if (BTOR_IS_ARRAY_EQ_NODE (parent))
@@ -2851,10 +2855,11 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
 
   BTOR_CNEW (btor->mm, lambda_exp);
   btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind  = BTOR_LAMBDA_NODE;
-  lambda_exp->bytes = sizeof *lambda_exp;
-  lambda_exp->arity = 2;
-  lambda_exp->len   = len;
+  lambda_exp->kind              = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes             = sizeof *lambda_exp;
+  lambda_exp->arity             = 2;
+  lambda_exp->len               = len;
+  lambda_exp->lambda_descendant = 1;
   //  lambda_exp->index_len = BTOR_REAL_ADDR_NODE(e_param)->len;
   //  lambda_exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, (BtorNode *) lambda_exp);
@@ -2942,7 +2947,7 @@ new_write_exp_node (Btor *btor,
   exp->index_len = BTOR_REAL_ADDR_NODE (e_index)->len;
   exp->len       = BTOR_REAL_ADDR_NODE (e_value)->len;
   setup_node_and_add_to_id_table (btor, exp);
-  /* append writes to the end of parrent list */
+  /* append writes to the end of parent list */
   connect_child_exp (btor, exp, e_array, 0);
   connect_child_exp (btor, exp, e_index, 1);
   connect_child_exp (btor, exp, e_value, 2);
@@ -8042,11 +8047,13 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
   /* we have to disable rewriting in case we beta reduce while read propagation
    * as otherwise we might lose lazily synthesized and encoded nodes */
-  if (bound < 0)
+  if (bound == BETA_RED_CUTOFF)
   {
     aux_rewrite_level   = btor->rewrite_level;
     btor->rewrite_level = 0;
   }
+
+  if (bound >= BETA_RED_FULL) BTOR_REAL_ADDR_NODE (exp)->parent = 0;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -8088,19 +8095,15 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       fprintf (stderr, "\n");
       // end debug
 #endif
-  BETA_REDUCE_POP_WORK_STACK:
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-    //      BTORLOG ("beta_reduce: real_cur: %s", node2string (real_cur));
-
     mark = BTOR_POP_STACK (mark_stack);
     assert (mark == 0 || mark == 1);
 
-    //
-    // TODO skip non-parameterized nodes
-    //
+    BTORLOG (
+        "%s: real_cur (%d): %s", __FUNCTION__, mark, node2string (real_cur));
 
     if (mark == 0)
     {
@@ -8116,6 +8119,14 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         continue;
       }
 
+      /* do not beta-reduce nodes that will not change anyway */
+      if (!real_cur->lambda_descendant && !real_cur->parameterized)
+      {
+        result         = btor_copy_exp (btor, real_cur);
+        *parameterized = real_cur->parameterized ? real_cur : 0;
+        goto BETA_REDUCE_PUSH_ARG_STACK;
+      }
+
       next = 0;
       if (bound != BETA_RED_CUTOFF
           && (BTOR_IS_READ_NODE (real_cur)
@@ -8124,6 +8135,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         e[0] = BTOR_REAL_ADDR_NODE (real_cur->e[0]); /* lambda */
         e[1] = BTOR_REAL_ADDR_NODE (real_cur->e[1]); /* index */
 
+        // TODO: cleanup
         param = BTOR_REAL_ADDR_NODE (e[0]->e[0]);
         assert (BTOR_IS_PARAM_NODE (param));
 
@@ -8172,6 +8184,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       if (next)
       {
         if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+
+        if (bound >= BETA_RED_FULL)
+          BTOR_REAL_ADDR_NODE (next)->parent = real_cur;
+
         BTOR_PUSH_STACK (mm, work_stack, next);
         BTOR_PUSH_STACK (mm, mark_stack, mark);
       }
@@ -8183,6 +8199,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
          * such as read(lambda, read(lambda, i)).
          */
         if (BTOR_IS_LAMBDA_NODE (real_cur)
+            /* do not unassign param in case we have to rebuild lambdas */
+            && !real_cur->beta_mark
             /* skip lambdas of nested lambda structures (sharing of
              * nested lambda nodes except for the topmost of the nested
              * structure is not allowed/possible) */
@@ -8204,6 +8222,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
          * such as read(lambda, read(lambda, index)) ). */
         for (i = 0; i < real_cur->arity; i++)
         {
+          if (bound >= BETA_RED_FULL)
+            BTOR_REAL_ADDR_NODE (real_cur->e[i])->parent = real_cur;
           BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
           BTOR_PUSH_STACK (mm, mark_stack, 0);
         }
@@ -8267,76 +8287,154 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
             break;
 
           case BTOR_LAMBDA_NODE:
-            if (BTOR_REAL_ADDR_NODE (e[1])->parameterized)
+            /* lambda expression not reduced, nothing changed
+             * NOTE: lambda may be constant and thus, we return e[1] */
+            // TODO: may be a rewriting rule for lambdas while creating
+            //       if lambda body is constant return body instead of
+            //       creating a constant lambda
+            if (real_cur->e[0] == e[0] && real_cur->e[1] == e[1]
+                && BTOR_REAL_ADDR_NODE (e[1])->parameterized)
             {
-              /* partial application, first pass */
-              if (!real_cur->beta_mark
-                  && BTOR_REAL_ADDR_NODE (e[1])
-                         != BTOR_REAL_ADDR_NODE (real_cur->e[1]))
+              assert (!real_cur->beta_mark);
+              result = btor_copy_exp (btor, real_cur);
+            }
+            /* lambda reduced to some term with e[0] due to rewriting */
+            else if (real_cur->beta_mark == 1
+                     || (real_cur->e[0] == e[0]
+                         && BTOR_REAL_ADDR_NODE (e[1])->parameterized))
+            {
+              if (real_cur->beta_mark == 0)
               {
-                // FIXME: we can't handle extensionality if
-                // reduced lambda does not have "write structure"
-                // (e[0]: param, e[1]: bv cond). as we only use
-                // full beta_reduction to reduce reads on lambdas
-                // (as rewriting step) for now, partial application
-                // can only occur in case of extensionality over
-                // lambdas/writes, hence we introduce the following
-                // restriction for now.
-                //
-                // Note: rww is currently disabled for ext.
-                //
-                if (!BTOR_IS_BV_COND_NODE (e[1]))
-                  result = btor_copy_exp (btor, real_cur);
-                else
-                {
-                  param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
-                  if (param->symbol)
-                  {
-                    BTOR_NEWN (mm, symbol, strlen (param->symbol) + 2);
-                    sprintf (symbol, "%s'", param->symbol);
-                    param = btor_param_exp (btor, param->len, symbol);
-                    btor_freestr (mm, symbol);
-                  }
-                  else
-                  {
-                    param = btor_param_exp (btor, param->len, "");
-                  }
+                assert (BTOR_IS_REGULAR_NODE (e[0]));
+                param = btor_param_exp (btor, e[0]->len, "");
 
-                  /* mark lambda as to-be-rebuilt in 2nd pass */
-                  real_cur->beta_mark = 1;
+                /* mark lambda as to-be-rebuilt in 2nd pass */
+                real_cur->beta_mark = 1;
+                assign_param (btor, real_cur, param);
 
-                  assign_param (btor, real_cur, param);
+                // debug
+                BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
+                // end debug
 
-                  // debug
-                  BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
-                  // end debug
+                BTOR_PUSH_STACK (mm, work_stack, real_cur);
+                BTOR_PUSH_STACK (mm, mark_stack, 0);
 
-                  BTOR_PUSH_STACK (mm, work_stack, real_cur);
-                  BTOR_PUSH_STACK (mm, mark_stack, 0);
+                for (i = 0; i < real_cur->arity; i++)
+                  btor_release_exp (btor, e[i]);
 
-                  for (i = 0; i < real_cur->arity; i++)
-                    btor_release_exp (btor, e[i]);
-
-                  goto BETA_REDUCE_POP_WORK_STACK;
-                }
+                /* rebuild lambda */
+                continue;
+              }
+              /* build new lambda with new param 2nd pass */
+              else
+              {
+                assert (real_cur->beta_mark == 1);
+                assert (BTOR_IS_REGULAR_NODE (e[0]));
+                assert (BTOR_IS_PARAM_NODE (e[0]));
+                result = btor_lambda_exp (btor, e[0], e[1]);
+                /* decrement ref counter of param e[0] created in
+                 * 1st pass */
+                btor_release_exp (btor, e[0]);
+                real_cur->beta_mark = 0;
+              }
+            }
+            /* lambda reduced to some term without e[0] */
+            else
+            {
+              assert (!real_cur->beta_mark);
+              /* if a lambda is reduced to a constant term and
+               * its parent expects an array, we have to create a
+               * constant lambda expression instead of a constant
+               * term. this can only occur with bounded or full
+               * reduction */
+              if (bound >= BETA_RED_FULL
+                  && (BTOR_IS_WRITE_NODE (real_cur->parent)
+                      || BTOR_IS_ARRAY_COND_NODE (real_cur->parent)))
+              {
+                assert (!BTOR_REAL_ADDR_NODE (e[1])->parameterized);
+                param =
+                    btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[0])->len, "");
+                result = btor_lambda_exp (btor, param, e[1]);
+                btor_release_exp (btor, param);
               }
               else
               {
-                result = btor_lambda_exp (btor, e[0], e[1]);
-                /* cleanup (ref counter of 'new' param) */
-                if (real_cur->beta_mark)
-                {
-                  btor_release_exp (btor, result->e[0]);
-                  real_cur->beta_mark = 0;
-                }
+                result         = btor_copy_exp (btor, e[1]);
+                *parameterized = p[1];
               }
             }
-            else
-            {
-              result         = btor_copy_exp (btor, e[1]);
-              *parameterized = p[1];
-            }
+#if 0
+			/* partial application, first pass */
+			if (!real_cur->beta_mark
+			    && BTOR_REAL_ADDR_NODE (e[1]) 
+			       != BTOR_REAL_ADDR_NODE (real_cur->e[1]))
+			  {
+			    // FIXME: we can't handle extensionality if
+			    // reduced lambda does not have "write structure"
+			    // (e[0]: param, e[1]: bv cond). as we only use
+			    // full beta_reduction to reduce reads on lambdas
+			    // (as rewriting step) for now, partial application
+			    // can only occur in case of extensionality over
+			    // lambdas/writes, hence we introduce the following
+			    // restriction for now.
+			    //
+			    // Note: rww is currently disabled for ext.
+			    //
+			    if (!BTOR_IS_BV_COND_NODE (e[1]))
+			      result = btor_copy_exp (btor, real_cur);
+			    else
+			      {
+				param = BTOR_REAL_ADDR_NODE (real_cur->e[0]);
+				if (param->symbol)
+				  {
+				    BTOR_NEWN (
+					mm, symbol, strlen (param->symbol) + 2);
+				    sprintf (symbol, "%s'", param->symbol);
+				    param = 
+				      btor_param_exp (btor, param->len, symbol);
+				    btor_freestr (mm, symbol);
+				  }
+				else
+				  {
+				    param = 
+				      btor_param_exp (btor, param->len, "");
+				  }
+				
+				/* mark lambda as to-be-rebuilt in 2nd pass */
+				real_cur->beta_mark = 1;
 
+				assign_param (btor, real_cur, param);
+				
+				// debug
+				BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
+				// end debug
+				
+				BTOR_PUSH_STACK (mm, work_stack, real_cur);
+				BTOR_PUSH_STACK (mm, mark_stack, 0);
+				
+				for (i = 0; i < real_cur->arity; i++)
+				  btor_release_exp (btor, e[i]);
+				
+				goto BETA_REDUCE_POP_WORK_STACK;
+			      }
+			  }
+			else
+			  {
+			    result = btor_lambda_exp (btor, e[0], e[1]);
+			    /* cleanup (ref counter of 'new' param) */
+			    if (real_cur->beta_mark)
+			      {
+				btor_release_exp (btor, result->e[0]);
+				real_cur->beta_mark = 0;
+			      }
+			  }
+		      }
+		    else
+		      {
+			result = btor_copy_exp (btor, e[1]);
+			*parameterized = p[1];
+		      }
+#endif
             // debug
             if (!BTOR_EMPTY_STACK (unassign_stack)
                 && BTOR_TOP_STACK (unassign_stack) == real_cur)
@@ -8347,7 +8445,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
             unassign_param (btor, real_cur);
             break;
-
           case BTOR_WRITE_NODE:
             result = btor_write_exp (btor, e[0], e[1], e[2]);
             break;
@@ -8363,9 +8460,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
       }
 
+    BETA_REDUCE_PUSH_ARG_STACK:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      //	  BTORLOG ("  result: %s", node2string (result));
+      BTORLOG ("*** result: %s", node2string (result));
       BTOR_PUSH_STACK (mm, arg_stack, result);
       BTOR_PUSH_STACK (mm, parameterized_stack, *parameterized);
     }
@@ -8393,7 +8491,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   BTOR_RELEASE_STACK (mm, mark_stack);
   BTOR_RELEASE_STACK (mm, parameterized_stack);
 
-  if (bound < 0 && aux_rewrite_level)
+  if (bound == BETA_RED_CUTOFF && aux_rewrite_level)
   {
     assert (!btor->rewrite_level);
     btor->rewrite_level = aux_rewrite_level;
@@ -9368,6 +9466,9 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
       {
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
+        // FIXME: not save since e[1] does not have to be a param, but may
+        // be parameterized. in that case, we have to search for param
+        // and then push lambda onto the stack
         if (cur_parent->reachable && BTOR_IS_PARAM_NODE (cur_parent->e[1]))
         {
           assert (!cur_parent->simplified);
@@ -10611,7 +10712,7 @@ substitute_var_exps (Btor *btor)
         cur->mark = 1;
 
         if (BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur)
-            || BTOR_IS_ARRAY_VAR_NODE (cur))
+            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
         {
           b_temp = btor_find_in_ptr_hash_table (substs, cur);
           if (b_temp)
@@ -10668,7 +10769,7 @@ substitute_var_exps (Btor *btor)
           continue;
 
         if (BTOR_IS_BV_CONST_NODE (cur) || BTOR_IS_BV_VAR_NODE (cur)
-            || BTOR_IS_ARRAY_VAR_NODE (cur))
+            || BTOR_IS_ARRAY_VAR_NODE (cur) || BTOR_IS_PARAM_NODE (cur))
         {
           assert (btor_find_in_ptr_hash_table (order, cur));
           continue;

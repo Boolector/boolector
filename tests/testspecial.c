@@ -1216,6 +1216,12 @@ test_andopt17_special ()
   run_unsat_test ("andopt17.btor");
 }
 
+static void
+test_regrrwbinexpconcatzeroconst_special ()
+{
+  run_sat_test ("regrrwbinexpconcatzeroconst.btor");
+}
+
 static int
 run_verbose_test (char *name, int verbosity)
 {
@@ -1474,6 +1480,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (andopt17_special);
   BTOR_RUN_TEST (verbose1_special);
   BTOR_RUN_TEST (verbose2_special);
+  BTOR_RUN_TEST (regrrwbinexpconcatzeroconst_special);
 }
 
 void
