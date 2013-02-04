@@ -8117,7 +8117,13 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
       if (BTOR_IS_READ_NODE (real_cur) && cache)
       {
-        pair   = new_exp_pair (btor, real_cur->e[0], real_cur->e[1]);
+        assert (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->simplified
+                || cur == exp);
+        assert (!BTOR_REAL_ADDR_NODE (real_cur->e[1])->simplified
+                || cur == exp);
+        e[0]   = btor_pointer_chase_simplified_exp (btor, real_cur->e[0]);
+        e[1]   = btor_pointer_chase_simplified_exp (btor, real_cur->e[1]);
+        pair   = new_exp_pair (btor, e[0], e[1]);
         bucket = btor_find_in_ptr_hash_table (cache, pair);
         delete_exp_pair (btor, pair);
 
@@ -8134,11 +8140,20 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       }
 
       next = 0;
-      if (bound != BETA_RED_CUTOFF
-          && (BTOR_IS_READ_NODE (real_cur)
-              && BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (real_cur->e[0]))))
+
+      if (BTOR_IS_READ_NODE (real_cur))
       {
-        e[0] = BTOR_REAL_ADDR_NODE (real_cur->e[0]); /* lambda */
+        assert (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->simplified
+                || cur == exp);
+        e[0] = btor_pointer_chase_simplified_exp (btor, real_cur->e[0]);
+      }
+
+      if (bound != BETA_RED_CUTOFF
+          && (BTOR_IS_READ_NODE (real_cur) && BTOR_IS_LAMBDA_NODE (e[0])))
+      {
+        assert (BTOR_IS_REGULAR_NODE (e[0]));
+        assert (!BTOR_REAL_ADDR_NODE (real_cur->e[1])->simplified
+                || cur == exp);
         e[1] = BTOR_REAL_ADDR_NODE (real_cur->e[1]); /* index */
 
         // TODO: cleanup
@@ -8343,12 +8358,19 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
             if (cache && !BTOR_IS_PARAM_NODE (real_cur->e[1]))
             {
+              assert (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->simplified
+                      || cur == exp);
+              assert (!BTOR_REAL_ADDR_NODE (real_cur->e[1])->simplified
+                      || cur == exp);
               pair =
                   //			  new_exp_pair (btor, real_cur->e[0],
                   // e[1]);
                   // NOTE: this line is responsible for the speed-up
                   //       is it really correct?
-                  new_exp_pair (btor, real_cur->e[0], real_cur->e[1]);
+                  new_exp_pair (
+                      btor,
+                      btor_pointer_chase_simplified_exp (btor, real_cur->e[0]),
+                      real_cur->e[1]);
               assert (!btor_find_in_ptr_hash_table (cache, pair));
               btor_insert_in_ptr_hash_table (cache, pair)->data.asPtr =
                   btor_copy_exp (btor, result);
@@ -8515,7 +8537,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     btor->rewrite_level = aux_rewrite_level;
   }
 
-  BTORLOG ("beta_reduce: result %s (%d)", node2string (result), *parameterized);
+  BTORLOG ("beta_reduce: result %s", node2string (result));
   btor->time.beta += btor_time_stamp () - start;
 
   return result;
