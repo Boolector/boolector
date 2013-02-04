@@ -2694,7 +2694,12 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
     if (BTOR_REAL_ADDR_NODE (child)->parameterized) parent->parameterized = 1;
   }
 
-  if (BTOR_REAL_ADDR_NODE (child)->lambda_below) parent->lambda_below = 1;
+  // FIXME: array conditionals are not rewritten in beta reduction. thus,
+  //        lambdas below aconds are never reduced as they are not instantiated
+  //        and can be skipped in beta reduction phase
+  if (BTOR_REAL_ADDR_NODE (child)->lambda_below
+      && !BTOR_IS_ARRAY_COND_NODE (parent))
+    parent->lambda_below = 1;
 
   if (parent->kind == BTOR_WRITE_NODE && pos == 0)
     connect_array_child_write_exp (btor, parent, child);
@@ -8078,7 +8083,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     //      its++;
     //      assert (its < 100000);
     //      if (its % 100000 == 0)
-    //        printf ("%d\n", its);
+    //	   printf ("%d\n", its);
 
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
@@ -8086,7 +8091,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
     mark = BTOR_POP_STACK (mark_stack);
     assert (mark == 0 || mark == 1);
-    //      printf ("%d: (%d) %s\n", its, mark, node2string (real_cur));
 
     BTORLOG (
         "%s: real_cur (%d): %s", __FUNCTION__, mark, node2string (real_cur));
@@ -10911,16 +10915,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
 
       for (i = cur->arity - 1; i >= 0; i--)
         BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-
-      //	  /* in case that a proxy's simplified exp has mutliple
-      // references,
-      //	   * we have to make sure that the proxy is rebuilt after all
-      // nodes
-      //	   * up to the simplified expression have been rebuilt
-      //(otherwise
-      //	   * DAG is not rebuilt bottom-up correctly) */
-      //	  if (BTOR_IS_PROXY_NODE (cur))
-      //	    BTOR_PUSH_STACK (mm, stack, cur->simplified);
     }
     else
     {
