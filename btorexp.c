@@ -8030,7 +8030,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   /* TODO bounded reduction not implemented yet */
   assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL);
 
-  int i, mark, aux_rewrite_level = 0, e_simplified;
+  int i, mark, aux_rewrite_level = 0;
   char *symbol;
   const char *eval_res;
   double start;
@@ -8101,14 +8101,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
       mark = 1;
 
-      e_simplified = 0;
       for (i = 0; i < real_cur->arity; i++)
-      {
         e[i] = btor_pointer_chase_simplified_exp (btor, real_cur->e[i]);
-        if (BTOR_REAL_ADDR_NODE (real_cur->e[i])->simplified) e_simplified = 1;
-      }
-
-      assert (!e_simplified || cur == exp);
 
       if (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
           && (real_cur->tseitin || BTOR_IS_ARRAY_NODE (real_cur)))
@@ -8119,7 +8113,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       }
 
       /* do not beta-reduce nodes that will not change anyway */
-      if ((!real_cur->lambda_below && !real_cur->parameterized && !e_simplified)
+      if ((!real_cur->lambda_below && !real_cur->parameterized)
           || (BTOR_IS_LAMBDA_NODE (real_cur) && !param_cur_assignment (e[0])))
       {
         result         = btor_copy_exp (btor, real_cur);
@@ -8129,13 +8123,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
       if (BTOR_IS_READ_NODE (real_cur) && cache)
       {
-        //	      assert (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->simplified
-        //		      || cur == exp);
-        //	      assert (!BTOR_REAL_ADDR_NODE (real_cur->e[1])->simplified
-        //		      || cur == exp);
-        //	      e[0] = btor_pointer_chase_simplified_exp (btor,
-        // real_cur->e[0]); 	      e[1] = btor_pointer_chase_simplified_exp
-        //(btor, real_cur->e[1]);
         pair   = new_exp_pair (btor, e[0], e[1]);
         bucket = btor_find_in_ptr_hash_table (cache, pair);
         delete_exp_pair (btor, pair);
@@ -8153,13 +8140,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       }
 
       next = 0;
-
       assert (!BTOR_IS_READ_NODE (real_cur) || BTOR_IS_REGULAR_NODE (e[0]));
       if (bound != BETA_RED_CUTOFF
           && (BTOR_IS_READ_NODE (real_cur) && BTOR_IS_LAMBDA_NODE (e[0])))
       {
-        //	      e[1] = BTOR_REAL_ADDR_NODE (real_cur->e[1]);  /* index */
-
         // TODO: cleanup
         param = BTOR_REAL_ADDR_NODE (e[0]->e[0]);
         assert (BTOR_IS_PARAM_NODE (param));
@@ -10858,7 +10842,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
-  int pushed, i;
+  int pushed, i, cur_rww, cur_rwr;
 
   assert (btor);
   assert (subst);
@@ -10922,9 +10906,17 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
       assert (cur->aux_mark == 2);
       cur->aux_mark = 0;
 
-      BTORLOG ("rebuild: %s", node2string (cur));
-      rebuilt_exp = rebuild_exp (btor, cur, rww, rwr);
-      BTORLOG ("rebuilt exp: %s", node2string (rebuilt_exp));
+      /* we only have to rewrite reads/writes if cur is in subst */
+      cur_rww = 0;
+      cur_rwr = 0;
+      if (rww && BTOR_IS_WRITE_NODE (cur)
+          && btor_find_in_ptr_hash_table (subst, cur))
+        cur_rww = 1;
+      else if (rwr && BTOR_IS_READ_NODE (cur)
+               && btor_find_in_ptr_hash_table (subst, cur))
+        cur_rwr = 1;
+
+      rebuilt_exp = rebuild_exp (btor, cur, cur_rww, cur_rwr);
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
