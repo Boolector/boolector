@@ -2199,6 +2199,7 @@ encode_lemma (Btor *btor,
     BTOR_PUSH_STACK (mm, linking_clause, k);
   }
 
+  // TODO: cond caching
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
     acond = (BtorNode *) bucket->key;
@@ -2215,6 +2216,7 @@ encode_lemma (Btor *btor,
     BTOR_PUSH_STACK (mm, linking_clause, -k);
   }
 
+  // TODO: cond caching
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
     acond = (BtorNode *) bucket->key;
@@ -11722,7 +11724,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   assert (BTOR_IS_REGULAR_NODE (e[0]));
   assert (!BTOR_IS_WRITE_NODE (e[0]));
-  if (BTOR_IS_LAMBDA_NODE (e[0]) && e[0]->refs == 1)
+  assert (BTOR_IS_REGULAR_NODE (write->e[0]));
+  if (BTOR_IS_LAMBDA_NODE (e[0]) && write->e[0]->refs == 1)
   {
     assign_param (btor, e[0], param);
     e_else = beta_reduce (btor, e[0], BETA_RED_FULL, &parameterized);
