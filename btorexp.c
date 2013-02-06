@@ -11632,7 +11632,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   int i;
   BtorNode *bvcond, *e_cond, *e_then, *e_else;
-  BtorNode *lambda, *param, *e[3];
+  BtorNode *lambda, *param, *e[3], *parameterized;
 
   for (i = 0; i < 3; i++)
     e[i] = btor_pointer_chase_simplified_exp (btor, write->e[i]);
@@ -11640,12 +11640,22 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   /* write (e0, e1, e2) -> lambda p. p == e1 ? e2 : read (e0, p) */
   param  = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[1])->len, "");
   e_then = btor_copy_exp (btor, e[2]);
-  e_else = btor_read_exp (btor, e[0], param);
+
+  assert (BTOR_IS_REGULAR_NODE (e[0]));
+  assert (!BTOR_IS_WRITE_NODE (e[0]));
+  if (BTOR_IS_LAMBDA_NODE (e[0]) && e[0]->refs == 1)
+  {
+    assign_param (btor, e[0], param);
+    e_else = beta_reduce (btor, e[0], BETA_RED_FULL, &parameterized);
+    unassign_param (btor, e[0]);
+
+    if (write->e[0]->simplified) write->e[0]->simplified = 0;
+    btor_release_exp (btor, e[0]);
+  }
+  else
+    e_else = btor_read_exp (btor, e[0], param);
+
   e_cond = btor_eq_exp (btor, param, e[1]);
-  // FIXME: we currently can't handle general lambdas with parameterized
-  //	    reads (e.g. lambda j. j && read (a, j)
-  //	    -> for now we do not allow rewriting of bv conditions
-  //  bvcond = btor_cond_exp_no_rewrite (btor, e_cond, e_then, e_else);
   bvcond = btor_cond_exp (btor, e_cond, e_then, e_else);
   lambda = btor_lambda_exp (btor, param, bvcond);
 
@@ -11866,6 +11876,7 @@ static int
 has_one_parent_exp (BtorNode *exp)
 {
   assert (exp);
+  // TODO: use exp->refs?
 
   int num_parents = 1, cnt = 0;
   BtorFullParentIterator it;
