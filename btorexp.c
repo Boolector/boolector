@@ -1678,11 +1678,24 @@ add_param_cond_to_clause (Btor *btor,
   BTORLOG ("add_param_cond_to_clause: %s", node2string (cond));
   beta_cond = beta_reduce (btor, cond, BETA_RED_CUTOFF, &parameterized);
   assert (!beta_cond->parameterized);
-  lit = exp_to_cnf_lit (btor, beta_cond);
-  lit *= sign;
-  false_lit = -smgr->true_lit;
 
-  if (lit != false_lit) BTOR_PUSH_STACK (mm, *linking_clause, lit);
+  // TODO: cache arbitrary conditions?
+  if (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
+  {
+    add_eq_or_neq_exp_to_clause (btor,
+                                 BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
+                                 BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
+                                 linking_clause,
+                                 sign);
+  }
+  else
+  {
+    lit = exp_to_cnf_lit (btor, beta_cond);
+    lit *= sign;
+    false_lit = -smgr->true_lit;
+
+    if (lit != false_lit) BTOR_PUSH_STACK (mm, *linking_clause, lit);
+  }
 
   btor_release_exp (btor, beta_cond);
 }
