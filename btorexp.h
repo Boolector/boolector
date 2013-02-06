@@ -363,6 +363,7 @@ struct Btor
   int pprint;               /* reindex exps when dumping */
 
   BtorPtrHashTable *exp_pair_eq_table;
+  BtorPtrHashTable *exp_pair_and_table;
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;

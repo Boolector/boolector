@@ -1649,6 +1649,68 @@ add_neq_exp_to_clause (Btor *btor,
   add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
 }
 
+// TODO: build more generic function for caching eq, and, etc?
+static void
+add_and_exp_to_clause (Btor *btor,
+                       BtorNode *a,
+                       BtorNode *b,
+                       BtorIntStack *linking_clause,
+                       int sign)
+{
+  BtorPtrHashTable *table = btor->exp_pair_and_table;
+  int lit, true_lit, false_lit, hashed_pair;
+  BtorPtrHashBucket *bucket;
+  BtorNodePair *pair;
+  BtorSATMgr *smgr;
+  BtorAIGMgr *amgr;
+  BtorNode *and;
+
+  assert (sign == 1 || sign == -1);
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+
+  true_lit  = smgr->true_lit;
+  false_lit = -true_lit;
+
+  a = btor_pointer_chase_simplified_exp (btor, a);
+  b = btor_pointer_chase_simplified_exp (btor, b);
+
+  if (a == b)
+    lit = true_lit;
+  else if (a == BTOR_INVERT_NODE (b))
+    lit = false_lit;
+  else
+  {
+    hashed_pair = 0;
+    pair        = new_exp_pair (btor, a, b);
+    //      if (assignment_always_unequal (btor, pair))
+    //	lit = false_lit;
+    //      else if (assignment_always_equal (btor, pair))
+    //	lit = true_lit;
+    //      else
+    //	{
+    bucket = btor_find_in_ptr_hash_table (table, pair);
+    if (bucket)
+    {
+      and = bucket->data.asPtr;
+      and = btor_pointer_chase_simplified_exp (btor, and);
+    }
+    else
+    {
+      and                = btor_and_exp (btor, a, b);
+      bucket             = btor_insert_in_ptr_hash_table (table, pair);
+      bucket->data.asPtr = and;
+      hashed_pair        = 1;
+    }
+    lit = exp_to_cnf_lit (btor, and);
+    //	}
+    if (!hashed_pair) delete_exp_pair (btor, pair);
+  }
+  lit *= sign;
+  if (lit != false_lit) BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
+}
+
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
  * The stack 'aeqs' contains intermediate array equalities (true).
@@ -1687,6 +1749,14 @@ add_param_cond_to_clause (Btor *btor,
                                  BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
                                  linking_clause,
                                  sign);
+  }
+  else if (BTOR_REAL_ADDR_NODE (beta_cond)->kind == BTOR_AND_NODE)
+  {
+    add_and_exp_to_clause (btor,
+                           BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
+                           BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
+                           linking_clause,
+                           sign);
   }
   else
   {
@@ -5825,6 +5895,8 @@ btor_new_btor (void)
 
   btor->exp_pair_eq_table = btor_new_ptr_hash_table (
       mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
+  btor->exp_pair_and_table = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
   btor->varsubst_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
@@ -6032,6 +6104,13 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, (BtorNode *) b->data.asPtr);
   }
   btor_delete_ptr_hash_table (btor->exp_pair_eq_table);
+
+  for (b = btor->exp_pair_and_table->first; b; b = b->next)
+  {
+    delete_exp_pair (btor, (BtorNodePair *) b->key);
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+  }
+  btor_delete_ptr_hash_table (btor->exp_pair_and_table);
 
   for (b = btor->varsubst_constraints->first; b; b = b->next)
   {
