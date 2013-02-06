@@ -11725,7 +11725,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (BTOR_IS_REGULAR_NODE (e[0]));
   assert (!BTOR_IS_WRITE_NODE (e[0]));
   assert (BTOR_IS_REGULAR_NODE (write->e[0]));
-  if (BTOR_IS_LAMBDA_NODE (e[0]) && write->e[0]->refs == 1)
+  // TODO: optimization: rewrite lambda chains in one pass
+  if (BTOR_IS_LAMBDA_NODE (e[0]) && write->e[0]->refs == 1 && e[0]->refs == 1)
   {
     assign_param (btor, e[0], param);
     e_else = beta_reduce (btor, e[0], BETA_RED_FULL, &parameterized);
