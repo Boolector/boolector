@@ -11687,9 +11687,10 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (BTOR_IS_REGULAR_NODE (write));
   assert (BTOR_IS_WRITE_NODE (write));
 
-  int i;
+  int i, chain_depth = 0;
   BtorNode *bvcond, *e_cond, *e_then, *e_else;
   BtorNode *lambda, *param, *e[3], *parameterized;
+  BtorPartialParentIterator it;
 
   BTORLOG ("rewrite write: %s", node2string (write));
 
@@ -11703,12 +11704,27 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (BTOR_IS_REGULAR_NODE (e[0]));
   assert (!BTOR_IS_WRITE_NODE (e[0]));
   assert (BTOR_IS_REGULAR_NODE (write->e[0]));
-  // TODO: optimization: rewrite lambda chains in one pass
-  if (BTOR_IS_LAMBDA_NODE (e[0]) && write->e[0]->refs == 1 && e[0]->refs == 1)
+
+  if (BTOR_IS_LAMBDA_NODE (e[0]) && write->refs == 1 && write->e[0]->refs == 1
+      && e[0]->refs == 1)
+    chain_depth = ((BtorLambdaNode *) e[0])->chain_depth + 1;
+
+  init_write_parent_iterator (&it, write);
+  assert (chain_depth == 0 || write->refs == 1);
+
+  if ((!has_next_parent_write_parent_iterator (&it) || write->refs > 1)
+      && BTOR_IS_LAMBDA_NODE (e[0])
+      && ((BtorLambdaNode *) e[0])->chain_depth > 0)
   {
-    BTORLOG ("merge lambda: %s", node2string (e[0]));
+    BTORLOG ("merge lambda: %s (merged %d)",
+             node2string (e[0]),
+             ((BtorLambdaNode *) e[0])->chain_depth + 1);
     assign_param (btor, e[0], param);
-    e_else = beta_reduce (btor, e[0], BETA_RED_BOUNDED (1), &parameterized);
+    e_else = beta_reduce (
+        btor,
+        e[0],
+        BETA_RED_BOUNDED (((BtorLambdaNode *) e[0])->chain_depth + 1),
+        &parameterized);
     unassign_param (btor, e[0]);
 
     if (write->e[0]->simplified) write->e[0]->simplified = 0;
@@ -11720,6 +11736,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   e_cond = btor_eq_exp (btor, param, e[1]);
   bvcond = btor_cond_exp (btor, e_cond, e_then, e_else);
   lambda = btor_lambda_exp (btor, param, bvcond);
+
+  ((BtorLambdaNode *) lambda)->chain_depth = chain_depth;
 
   btor_release_exp (btor, e_then);
   btor_release_exp (btor, e_else);

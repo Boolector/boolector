@@ -279,6 +279,7 @@ struct BtorLambdaNode
   BTOR_ARRAY_VAR_NODE_STRUCT;
   BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_reads;
+  int chain_depth;
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
