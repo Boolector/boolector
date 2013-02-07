@@ -16,6 +16,7 @@ if __name__ == "__main__":
     id2symbol = {}
     nodes_cnt = {}
     nodes_ref = {}
+    node_ref = {}
 
     writes = []
     aconds = []
@@ -58,9 +59,12 @@ if __name__ == "__main__":
         
         if symbol not in nodes_ref:
             nodes_ref[symbol] = 0
+        if id not in node_ref:
+            node_ref[id] = 0
 
         for cid in children:
             nodes_ref[id2symbol[cid]] += 1
+            node_ref[cid] += 1
 
         if symbol not in nodes_cnt:
             nodes_cnt[symbol] = 0
@@ -100,6 +104,18 @@ if __name__ == "__main__":
     if infile != sys.stdin:
         infile.close()
 
+
+    writes_with_one_ref = 0
+    for write in writes:
+        if node_ref[write] == 1:
+            writes_with_one_ref += 1
+
+    lambdas_with_one_ref = 0
+    for l in lambdas:
+        if node_ref[l] == 1:
+            lambdas_with_one_ref += 1
+
+
     for symbol, cnt in sorted(nodes_cnt.items()):
         print("{0:8s} {1:5d} ({2:d})".format(symbol + ":", cnt, 
               nodes_ref[symbol]))
@@ -115,3 +131,7 @@ if __name__ == "__main__":
     print("reads on lambdas: {0:d} {1:s}".format(reads_on_lambdas,
         str(sorted(reads_on_lambda_node.items(), 
                    key=lambda t: t[1], reverse=True)[:5])))
+
+    print("writes with one ref: {0:d}".format(writes_with_one_ref))
+    print("lambdas with one ref: {0:d}".format(lambdas_with_one_ref))
+
