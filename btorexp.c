@@ -1676,37 +1676,27 @@ add_and_exp_to_clause (Btor *btor,
   a = btor_pointer_chase_simplified_exp (btor, a);
   b = btor_pointer_chase_simplified_exp (btor, b);
 
-  if (a == b)
-    lit = true_lit;
-  else if (a == BTOR_INVERT_NODE (b))
-    lit = false_lit;
+  hashed_pair = 0;
+  pair        = new_exp_pair (btor, a, b);
+  bucket      = btor_find_in_ptr_hash_table (table, pair);
+
+  if (bucket)
+  {
+    and = bucket->data.asPtr;
+    and = btor_pointer_chase_simplified_exp (btor, and);
+  }
   else
   {
-    hashed_pair = 0;
-    pair        = new_exp_pair (btor, a, b);
-    //      if (assignment_always_unequal (btor, pair))
-    //	lit = false_lit;
-    //      else if (assignment_always_equal (btor, pair))
-    //	lit = true_lit;
-    //      else
-    //	{
-    bucket = btor_find_in_ptr_hash_table (table, pair);
-    if (bucket)
-    {
-      and = bucket->data.asPtr;
-      and = btor_pointer_chase_simplified_exp (btor, and);
-    }
-    else
-    {
-      and                = btor_and_exp (btor, a, b);
-      bucket             = btor_insert_in_ptr_hash_table (table, pair);
-      bucket->data.asPtr = and;
-      hashed_pair        = 1;
-    }
-    lit = exp_to_cnf_lit (btor, and);
-    //	}
-    if (!hashed_pair) delete_exp_pair (btor, pair);
+    and                = btor_and_exp (btor, a, b);
+    bucket             = btor_insert_in_ptr_hash_table (table, pair);
+    bucket->data.asPtr = and;
+    hashed_pair        = 1;
   }
+
+  lit = exp_to_cnf_lit (btor, and);
+
+  if (!hashed_pair) delete_exp_pair (btor, pair);
+
   lit *= sign;
   if (lit != false_lit) BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
 }
@@ -1742,6 +1732,7 @@ add_param_cond_to_clause (Btor *btor,
   assert (!beta_cond->parameterized);
 
   // TODO: cache arbitrary conditions?
+  sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
   if (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
   {
     add_eq_or_neq_exp_to_clause (btor,
