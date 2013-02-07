@@ -8113,9 +8113,9 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   assert (exp);
 
   /* TODO bounded reduction not implemented yet */
-  assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL);
+  //  assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL);
 
-  int i, mark, aux_rewrite_level = 0;
+  int i, mark, aux_rewrite_level = 0, cur_bound = 0;
   char *symbol;
   const char *eval_res;
   double start;
@@ -8162,14 +8162,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
-  //  int its = 0;
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    //      its++;
-    //      assert (its < 100000);
-    //      if (its % 100000 == 0)
-    //	   printf ("%d\n", its);
-
     cur      = BTOR_POP_STACK (work_stack);
     cur      = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
@@ -8325,33 +8319,24 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
           assign_param (btor, real_cur, BTOR_TOP_STACK (arg_stack));
         }
 
-        if (BTOR_IS_LAMBDA_NODE (real_cur) && param_cur_assignment (e[0])
-            && cache)
+        if (bound > BETA_RED_FULL && BTOR_IS_LAMBDA_NODE (real_cur))
         {
-          pair = new_exp_pair (btor, real_cur, param_cur_assignment (e[0]));
+          cur_bound++;
 
-          bucket = btor_find_in_ptr_hash_table (cache, pair);
-          delete_exp_pair (btor, pair);
-
-          //		    printf ("lookup: %s (%s)\n", node2string (real_cur),
-          //			    node2string (param_cur_assignment (
-          //					   real_cur->e[0])));
-          if (bucket)
+          if (cur_bound > bound)
           {
-            // should be dead code now, then we can remove the whole if
-            assert (0);
-            // debug
-            (void) BTOR_POP_STACK (unassign_stack);
-            // debug
-            unassign_param (btor, real_cur);
-
-            cur            = bucket->data.asPtr;
-            real_cur       = BTOR_REAL_ADDR_NODE (cur);
+            cur_bound      = 0;
             result         = btor_copy_exp (btor, real_cur);
             *parameterized = real_cur->parameterized ? real_cur : 0;
-            //			  btor->stats.lambdas_reused++;
-            //			printf ("reuse: %s\n", node2string (real_cur));
-            ////result));
+
+            if (param_cur_assignment (e[0]))
+            {
+              // debug
+              (void) BTOR_POP_STACK (unassign_stack);
+              // debug
+              unassign_param (btor, real_cur);
+            }
+
             goto BETA_REDUCE_PUSH_ARG_STACK;
           }
         }
@@ -11706,6 +11691,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   BtorNode *bvcond, *e_cond, *e_then, *e_else;
   BtorNode *lambda, *param, *e[3], *parameterized;
 
+  BTORLOG ("rewrite write: %s", node2string (write));
+
   for (i = 0; i < 3; i++)
     e[i] = btor_pointer_chase_simplified_exp (btor, write->e[i]);
 
@@ -11719,8 +11706,9 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   // TODO: optimization: rewrite lambda chains in one pass
   if (BTOR_IS_LAMBDA_NODE (e[0]) && write->e[0]->refs == 1 && e[0]->refs == 1)
   {
+    BTORLOG ("merge lambda: %s", node2string (e[0]));
     assign_param (btor, e[0], param);
-    e_else = beta_reduce (btor, e[0], BETA_RED_FULL, &parameterized);
+    e_else = beta_reduce (btor, e[0], BETA_RED_BOUNDED (1), &parameterized);
     unassign_param (btor, e[0]);
 
     if (write->e[0]->simplified) write->e[0]->simplified = 0;
@@ -11738,6 +11726,8 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   btor_release_exp (btor, e_cond);
   btor_release_exp (btor, bvcond);
   btor_release_exp (btor, param);
+
+  BTORLOG ("rewrite write result: %s", node2string (lambda));
 
   return lambda;
 }
