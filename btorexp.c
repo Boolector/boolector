@@ -1220,6 +1220,8 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       }
       break;
     case BTOR_PARAM_NODE:
+      assert (BTOR_EMPTY_STACK (((BtorParamNode *) exp)->assigned_exp));
+      BTOR_RELEASE_STACK (mm, ((BtorParamNode *) exp)->assigned_exp);
     case BTOR_BV_VAR_NODE:
       if (free_symbol)
       {
@@ -1329,12 +1331,6 @@ recursively_release_exp (Btor *btor, BtorNode *root)
       {
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp2);
         BTOR_PUSH_STACK (mm, stack, cur->vreads->exp1);
-      }
-      // TODO: move to erase_local_data_exp
-      else if (BTOR_IS_PARAM_NODE (cur))
-      {
-        assert (BTOR_EMPTY_STACK (((BtorParamNode *) cur)->assigned_exp));
-        BTOR_RELEASE_STACK (mm, ((BtorParamNode *) cur)->assigned_exp);
       }
 
       remove_from_nodes_unique_table_exp (btor, cur);
@@ -8191,6 +8187,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       {
         if (BTOR_IS_ARRAY_NODE (real_cur))
         {
+          /* push the last lambda of the lambda chain onto arg stack */
           if (BTOR_IS_LAMBDA_NODE (real_cur)
               && ((BtorLambdaNode *) real_cur)->chain_depth == 0)
           {
@@ -8204,11 +8201,14 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
             goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
           }
+          /* we only follow lambdas */
           else if (!BTOR_IS_LAMBDA_NODE (real_cur))
           {
             goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
           }
         }
+        /* we do not have a parameter below, so we can't merge lambdas
+         * that might be below */
         else if (!real_cur->parameterized)
         {
           goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
