@@ -406,6 +406,8 @@ struct Btor
     long long beta_reduce_calls;
     long long eval_exp_calls;
     long long lambda_synth_reads;
+    long long lambda_chains_merged;
+    long long lambdas_merged;
   } stats;
 
   struct

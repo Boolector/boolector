@@ -6360,6 +6360,9 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor, "expression evaluations: %d", btor->stats.eval_exp_calls);
   btor_msg_exp (
       btor, "synthesized lambda reads: %d", btor->stats.lambda_synth_reads);
+  btor_msg_exp (
+      btor, "lambda chains merged: %d", btor->stats.lambda_chains_merged);
+  btor_msg_exp (btor, "lambdas merged: %d", btor->stats.lambdas_merged);
 
   btor_msg_exp (btor, "");
   btor_msg_exp (btor, "%.2f seconds beta-reduction", btor->time.beta);
@@ -8205,36 +8208,14 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       for (i = 0; i < real_cur->arity; i++)
         e[i] = btor_pointer_chase_simplified_exp (btor, real_cur->e[i]);
 
-      if (bound == BETA_RED_LAMBDA_CHAINS)
+      if (bound == BETA_RED_LAMBDA_CHAINS
+          /* skip all arrays that are not part of the lambda chain */
+          && ((BTOR_IS_ARRAY_NODE (real_cur) && !BTOR_IS_LAMBDA_NODE (real_cur))
+              /* skip all nodes that are not parameterized as we can't merge
+               * lambdas that might be below */
+              || (!BTOR_IS_ARRAY_NODE (real_cur) && !real_cur->parameterized)))
       {
-        if (BTOR_IS_ARRAY_NODE (real_cur))
-        {
-          /* push the last lambda of the lambda chain onto arg stack */
-          if (BTOR_IS_LAMBDA_NODE (real_cur)
-              && ((BtorLambdaNode *) real_cur)->chain_depth == 0)
-          {
-            if (param_cur_assignment (e[0]))
-            {
-              // debug
-              (void) BTOR_POP_STACK (unassign_stack);
-              // debug
-              unassign_param (btor, real_cur);
-            }
-
-            goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
-          }
-          /* we only follow lambdas */
-          else if (!BTOR_IS_LAMBDA_NODE (real_cur))
-          {
-            goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
-          }
-        }
-        /* we do not have a parameter below, so we can't merge lambdas
-         * that might be below */
-        else if (!real_cur->parameterized)
-        {
-          goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
-        }
+        goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
       else if (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
                && (real_cur->tseitin || BTOR_IS_ARRAY_NODE (real_cur)))
@@ -8271,7 +8252,12 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       next = 0;
       assert (!BTOR_IS_READ_NODE (real_cur) || BTOR_IS_REGULAR_NODE (e[0]));
       if (bound != BETA_RED_CUTOFF
-          && (BTOR_IS_READ_NODE (real_cur) && BTOR_IS_LAMBDA_NODE (e[0])))
+          && (BTOR_IS_READ_NODE (real_cur)
+              && BTOR_IS_LAMBDA_NODE (e[0])
+              /* do not assign param if lambda is not part of current lambda
+               * chain */
+              && (bound != BETA_RED_LAMBDA_CHAINS
+                  || ((BtorLambdaNode *) e[0])->chain_depth > 0)))
       {
         // TODO: cleanup
         param = BTOR_REAL_ADDR_NODE (e[0]->e[0]);
@@ -11714,7 +11700,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (BTOR_IS_REGULAR_NODE (write));
   assert (BTOR_IS_WRITE_NODE (write));
 
-  int i, chain_depth = 0;
+  int i, chain_depth = 0, has_write_parent;
   BtorNode *bvcond, *e_cond, *e_then, *e_else;
   BtorNode *lambda, *param, *e[3], *parameterized;
   BtorPartialParentIterator it;
@@ -11732,25 +11718,28 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (!BTOR_IS_WRITE_NODE (e[0]));
   assert (BTOR_IS_REGULAR_NODE (write->e[0]));
 
-  if (BTOR_IS_LAMBDA_NODE (e[0]) && write->refs == 1 && write->e[0]->refs == 1
-      && e[0]->refs == 1)
+  init_write_parent_iterator (&it, write);
+  has_write_parent = has_next_parent_write_parent_iterator (&it);
+
+  if (has_write_parent && write->refs == 1
+      || !has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
+             && ((BtorLambdaNode *) e[0])->chain_depth > 0)
   {
-    assert (has_num_parents_dbg (write, 1));
-    assert (has_num_parents_dbg (write->e[0], 1));
-    assert (has_num_parents_dbg (e[0], 1));
-    chain_depth = ((BtorLambdaNode *) e[0])->chain_depth + 1;
+    assert (!has_write_parent || has_num_parents_dbg (write, 1));
+    if (BTOR_IS_LAMBDA_NODE (e[0]))
+      chain_depth = ((BtorLambdaNode *) e[0])->chain_depth;
+    chain_depth += 1;
   }
 
-  init_write_parent_iterator (&it, write);
   assert (chain_depth >= 0);
   assert (chain_depth <= INT_MAX);
-  assert (chain_depth == 0
-          || write->refs == 1 && has_num_parents_dbg (write, 1));
+  assert (chain_depth > 0 || has_num_parents_dbg (write, 1));
 
-  if ((!has_next_parent_write_parent_iterator (&it) || write->refs > 1)
-      && BTOR_IS_LAMBDA_NODE (e[0])
-      && ((BtorLambdaNode *) e[0])->chain_depth > 0)
+  /* end of lambda chain */
+  if ((!has_write_parent || write->refs > 1) && chain_depth > 0)
   {
+    assert (BTOR_IS_LAMBDA_NODE (e[0]));
+    assert (!has_write_parent || !has_num_parents_dbg (write, 1));
     BTORLOG ("merge lambda: %s (merged %d)",
              node2string (e[0]),
              ((BtorLambdaNode *) e[0])->chain_depth + 1);
@@ -11760,6 +11749,9 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
     if (write->e[0]->simplified) write->e[0]->simplified = 0;
     btor_release_exp (btor, e[0]);
+
+    btor->stats.lambda_chains_merged++;
+    btor->stats.lambdas_merged += chain_depth;
   }
   else
     e_else = btor_read_exp (btor, e[0], param);
