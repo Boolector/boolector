@@ -476,6 +476,28 @@ btor_precond_cond_exp_dbg (const Btor *btor,
   return 1;
 }
 
+static int
+has_num_parents_dbg (BtorNode *exp, int num)
+{
+  assert (exp);
+  assert (num > 0);
+
+  int num_parents = 0;
+  BtorFullParentIterator it;
+
+  init_full_parent_iterator (&it, exp);
+
+  while (has_next_parent_full_parent_iterator (&it))
+  {
+    (void) next_parent_full_parent_iterator (&it);
+    num_parents++;
+
+    if (num > num_parents) return 0;
+  }
+
+  return 1;
+}
+
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
@@ -11712,12 +11734,18 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   if (BTOR_IS_LAMBDA_NODE (e[0]) && write->refs == 1 && write->e[0]->refs == 1
       && e[0]->refs == 1)
+  {
+    assert (has_num_parents_dbg (write, 1));
+    assert (has_num_parents_dbg (write->e[0], 1));
+    assert (has_num_parents_dbg (e[0], 1));
     chain_depth = ((BtorLambdaNode *) e[0])->chain_depth + 1;
+  }
 
   init_write_parent_iterator (&it, write);
   assert (chain_depth >= 0);
   assert (chain_depth <= INT_MAX);
-  assert (chain_depth == 0 || write->refs == 1);
+  assert (chain_depth == 0
+          || write->refs == 1 && has_num_parents_dbg (write, 1));
 
   if ((!has_next_parent_write_parent_iterator (&it) || write->refs > 1)
       && BTOR_IS_LAMBDA_NODE (e[0])
@@ -11919,7 +11947,7 @@ run_rewrite_engine (Btor *btor)
     {
       beta_reduce_reads_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
-      // assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
+      assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
     }
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
@@ -11986,7 +12014,10 @@ beta_reduce_reads_on_lambdas (Btor *btor)
       if (btor_find_in_ptr_hash_table (reads, read)) continue;
 
       if (!read->parameterized || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
+      {
+        assert (!read->parameterized || has_num_parents_dbg (read->e[0], 1));
         btor_insert_in_ptr_hash_table (reads, read);
+      }
     }
   }
 
