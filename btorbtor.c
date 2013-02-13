@@ -64,6 +64,8 @@ struct BtorBTORParser
   BtorNodePtrStack outputs;
   BtorNodePtrStack regs;
   BtorNodePtrStack nexts;
+  BtorNodePtrStack params;
+  BtorIntStack params_idx;
 
   BtorCharStack op;
   BtorCharStack constant;
@@ -277,6 +279,14 @@ parse_exp (BtorBTORParser *parser, int expected_len, int can_be_array)
     return 0;
   }
 
+  if (btor_is_param_exp (parser->btor, res)
+      && btor_is_bound_param (parser->btor, res))
+  {
+    (void) btor_perr_btor (
+        parser, "param '%d' cannot be used outside of its defined scope", lit);
+    return 0;
+  }
+
   if (!can_be_array && btor_is_array_exp (parser->btor, res))
   {
     (void) btor_perr_btor (
@@ -384,6 +394,36 @@ parse_var (BtorBTORParser *parser, int len)
   parser->info.start[parser->idx].var = 1;
 
   return res;
+}
+
+static BtorNode *
+parse_param (BtorBTORParser *parser, int len)
+{
+  BtorNode *res;
+
+  if (!parse_symbol (parser)) return 0;
+
+  res = btor_param_exp (parser->btor, len, parser->symbol.start);
+  BTOR_PUSH_STACK (parser->mem, parser->params_idx, parser->idx);
+  BTOR_PUSH_STACK (parser->mem, parser->params, res);
+
+  return res;
+}
+
+static BtorNode *
+parse_param_exp (BtorBTORParser *parser, int len)
+{
+  BtorNode *res;
+
+  res = parse_exp (parser, len, 0);
+  if (!res) return 0;
+
+  if (btor_is_param_exp (parser->btor, res)) return res;
+
+  (void) btor_perr_btor (parser, "expected parameter");
+  btor_release_exp (parser->btor, res);
+
+  return 0;
 }
 
 static BtorNode *
@@ -1502,6 +1542,49 @@ parse_write (BtorBTORParser *parser, int len)
 }
 
 static BtorNode *
+parse_lambda (BtorBTORParser *parser, int len)
+{
+  int paramlen;
+  BtorNode *param, *exp, *res;
+
+  if (parse_space (parser)) return 0;
+
+  if (parse_positive_int (parser, &paramlen)) return 0;
+
+  if (parse_space (parser)) return 0;
+
+  if (!(param = parse_param_exp (parser, paramlen))) return 0;
+
+  if (BTOR_IS_INVERTED_NODE (param))
+  {
+    btor_perr_btor (parser, "negated params in lambda definitions not allowed");
+    goto RELEASE_PARAM_AND_RETURN_ERROR;
+  }
+
+  if (btor_is_bound_param (parser->btor, param))
+  {
+    btor_perr_btor (parser, "param already bound by other lambda");
+    goto RELEASE_PARAM_AND_RETURN_ERROR;
+  }
+
+  if (parse_space (parser))
+  {
+  RELEASE_PARAM_AND_RETURN_ERROR:
+    btor_release_exp (parser->btor, param);
+    return 0;
+  }
+
+  if (!(exp = parse_exp (parser, len, 0))) goto RELEASE_PARAM_AND_RETURN_ERROR;
+
+  res = btor_lambda_exp (parser->btor, param, exp);
+
+  btor_release_exp (parser->btor, param);
+  btor_release_exp (parser->btor, exp);
+
+  return res;
+}
+
+static BtorNode *
 parse_ext (BtorBTORParser *parser, int len, Extend f)
 {
   BtorNode *res, *arg;
@@ -1684,6 +1767,8 @@ btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
   new_parser (res, parse_xnor, "xnor");
   new_parser (res, parse_xor, "xor");
   new_parser (res, parse_zero, "zero");
+  new_parser (res, parse_param, "param");
+  new_parser (res, parse_lambda, "lambda");
 
   res->verbosity = opts->verbosity;
 
@@ -1706,6 +1791,8 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->outputs);
   BTOR_RELEASE_STACK (parser->mem, parser->regs);
   BTOR_RELEASE_STACK (parser->mem, parser->nexts);
+  BTOR_RELEASE_STACK (parser->mem, parser->params);
+  BTOR_RELEASE_STACK (parser->mem, parser->params_idx);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
@@ -1744,6 +1831,30 @@ remove_regs_from_vars (BtorBTORParser *parser)
 }
 
 static const char *
+check_params_bound (BtorBTORParser *parser)
+{
+  assert (parser);
+
+  int i;
+  BtorNode *param;
+
+  for (i = 0; i < BTOR_COUNT_STACK (parser->params); i++)
+  {
+    param = parser->params.start[i];
+    assert (BTOR_IS_PARAM_NODE (param));
+
+    if (!btor_is_bound_param (parser->btor, param))
+    {
+      return btor_perr_btor (parser,
+                             "param '%d' not bound to any lambda expression",
+                             parser->params_idx.start[i]);
+    }
+  }
+
+  return 0;
+}
+
+static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,
                         BtorCharStack *prefix,
                         FILE *file,
@@ -1766,6 +1877,9 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   parser->lineno  = 1;
   parser->saved   = 0;
 
+  BTOR_INIT_STACK (parser->params);
+  BTOR_INIT_STACK (parser->params_idx);
+
   BTOR_CLR (res);
 
 NEXT:
@@ -1781,6 +1895,8 @@ NEXT:
     if (res)
     {
       remove_regs_from_vars (parser);
+
+      if (check_params_bound (parser)) return parser->error;
 
       if (parser->found_arrays)
         res->logic = BTOR_LOGIC_QF_AUFBV;

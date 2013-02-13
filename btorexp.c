@@ -3779,6 +3779,7 @@ BtorNode *
 btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 {
   assert (btor);
+  assert (BTOR_IS_REGULAR_NODE (e_param));
   assert (BTOR_IS_PARAM_NODE (e_param));
   assert (BTOR_REAL_ADDR_NODE (e_param)->len > 0);
   assert (!BTOR_REAL_ADDR_NODE (e_param)->simplified);
@@ -5159,6 +5160,25 @@ btor_get_symbol_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   (void) btor;
   return BTOR_REAL_ADDR_NODE (exp)->symbol;
+}
+
+int
+btor_is_param_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  return BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+int
+btor_is_bound_param (Btor *btor, BtorNode *param)
+{
+  assert (btor);
+  assert (param);
+  assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
+  param = btor_pointer_chase_simplified_exp (btor, param);
+  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp != 0;
 }
 
 #define BTOR_PUSH_NODE_IF_NOT_MARKED(e)          \
