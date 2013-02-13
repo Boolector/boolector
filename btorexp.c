@@ -1344,7 +1344,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
 
       if (cur->simplified)
       {
-        assert (btor->rewrite_level > 1);
+        assert (btor->rewrite_level > 1 || btor->rewrite_writes);
         BTOR_PUSH_STACK (mm, stack, cur->simplified);
         cur->simplified = 0;
       }
@@ -2620,7 +2620,7 @@ set_simplified_exp (Btor *btor,
   assert (exp);
   assert (simplified);
   assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
-  assert (btor->rewrite_level > 1);
+  assert (btor->rewrite_level > 1 || btor->rewrite_writes);
 
   if (BTOR_IS_INVERTED_NODE (exp))
   {
@@ -11859,16 +11859,16 @@ run_rewrite_engine (Btor *btor)
   assert (btor);
   if (btor->inconsistent) return;
 
-  if (btor->rewrite_level <= 1) return;
+  if (btor->rewrite_level <= 1 && !btor->rewrite_writes) return;
 
   rounds    = 0;
   rwwrounds = 0;
   opt_rww   = btor->rewrite_writes; /* original user specified setting */
 
-  /* Note: we have to check for extensionality initially, otherwise it may
-   * happen that writes are rewritten during rewriting steps previous to
-   * the actual rww step (-> rebuild_exp) */
-  btor->rewrite_writes = opt_rww && btor->ops[BTOR_AEQ_NODE] == 0;
+  //  /* Note: we have to check for extensionality initially, otherwise it may
+  //   * happen that writes are rewritten during rewriting steps previous to
+  //   * the actual rww step (-> rebuild_exp) */
+  //  btor->rewrite_writes = opt_rww && btor->ops[BTOR_AEQ_NODE] == 0;
 
   start = btor_time_stamp ();
 
@@ -11877,20 +11877,24 @@ run_rewrite_engine (Btor *btor)
     rounds++;
     assert (check_all_hash_tables_proxy_free_dbg (btor));
     //      assert (check_all_hash_tables_simp_free_dbg (btor));
-    substitute_var_exps (btor);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    //      assert (check_all_hash_tables_simp_free_dbg (btor));
-    if (btor->inconsistent) break;
+    if (btor->rewrite_level > 1)
+    {
+      substitute_var_exps (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      //          assert (check_all_hash_tables_simp_free_dbg (btor));
 
-    if (btor->varsubst_constraints->count) break;
+      if (btor->inconsistent) break;
 
-    process_embedded_constraints (btor);
-    assert (check_all_hash_tables_proxy_free_dbg (btor));
-    //      assert (check_all_hash_tables_simp_free_dbg (btor));
+      if (btor->varsubst_constraints->count) break;
 
-    if (btor->inconsistent) break;
+      process_embedded_constraints (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      //          assert (check_all_hash_tables_simp_free_dbg (btor));
 
-    if (btor->varsubst_constraints->count) continue;
+      if (btor->inconsistent) break;
+
+      if (btor->varsubst_constraints->count) continue;
+    }
 
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
     if (btor->rewrite_level > 2 && !btor->inc_enabled)
@@ -11912,7 +11916,7 @@ run_rewrite_engine (Btor *btor)
       {
         process_skeleton (btor);
         assert (check_all_hash_tables_proxy_free_dbg (btor));
-        //	      assert (check_all_hash_tables_simp_free_dbg (btor));
+        //  	        assert (check_all_hash_tables_simp_free_dbg (btor));
         if (btor->inconsistent) break;
       }
 
