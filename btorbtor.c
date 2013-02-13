@@ -1100,6 +1100,15 @@ parse_compare_and_overflow (BtorBTORParser *parser,
             rlen);
         goto RELEASE_L_AND_R_AND_RETURN_ZERO;
       }
+
+      if (btor_is_lambda_exp (parser->btor, l)
+          || btor_is_lambda_exp (parser->btor, r))
+      {
+        (void) btor_perr_btor (parser,
+                               "extensionality on lambdas not supported");
+
+        goto RELEASE_L_AND_R_AND_RETURN_ZERO;
+      }
     }
   }
 

@@ -5181,6 +5181,15 @@ btor_is_bound_param (Btor *btor, BtorNode *param)
   return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp != 0;
 }
 
+int
+btor_is_lambda_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
 #define BTOR_PUSH_NODE_IF_NOT_MARKED(e)          \
   do                                             \
   {                                              \

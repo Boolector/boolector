@@ -1059,6 +1059,9 @@ int btor_is_param_exp (Btor *btor, BtorNode *exp);
 /* Determines if param is already bound to a lambda expression or not. */
 int btor_is_bound_param (Btor *btor, BtorNode *param);
 
+/* Determines if expression is a lambda or not. */
+int btor_is_lambda_exp (Btor *btor, BtorNode *exp);
+
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 
