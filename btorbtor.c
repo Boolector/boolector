@@ -38,7 +38,6 @@ struct Info
 {
   unsigned var : 1;
   unsigned array : 1;
-  unsigned next : 1;
 };
 
 BTOR_DECLARE_STACK (Info, Info);
@@ -63,7 +62,6 @@ struct BtorBTORParser
   BtorNodePtrStack inputs;
   BtorNodePtrStack outputs;
   BtorNodePtrStack regs;
-  BtorNodePtrStack nexts;
 
   BtorCharStack op;
   BtorCharStack constant;
@@ -421,108 +419,6 @@ parse_array_exp (BtorBTORParser *parser, int len)
   btor_release_exp (parser->btor, res);
 
   return 0;
-}
-
-static BtorNode *
-parse_next (BtorBTORParser *parser, int len)
-{
-  int idx;
-  BtorNode *current, *next;
-  Info info;
-
-  if (parse_space (parser)) return 0;
-
-  if (parse_positive_int (parser, &idx)) return 0;
-
-  if (idx >= BTOR_COUNT_STACK (parser->exps)
-      || !(current = parser->exps.start[idx]))
-  {
-    (void) btor_perr_btor (parser, "invalid next index %d", idx);
-    return 0;
-  }
-
-  info = parser->info.start[idx];
-
-  if (!info.var)
-  {
-    (void) btor_perr_btor (parser, "next index %d is not a variable", idx);
-    return 0;
-  }
-
-  if (info.next)
-  {
-    (void) btor_perr_btor (parser, "next index %d already used", idx);
-    return 0;
-  }
-
-  if (parse_space (parser)) return 0;
-
-  assert (!btor_is_array_exp (parser->btor, current));
-  if (!(next = parse_exp (parser, len, 0))) return 0;
-
-  BTOR_PUSH_STACK (parser->mem, parser->regs, current);
-  BTOR_PUSH_STACK (parser->mem, parser->nexts, next);
-  parser->info.start[idx].next = 1;
-
-  return next;
-}
-
-static BtorNode *
-parse_anext (BtorBTORParser *parser, int len)
-{
-  int idx, current_idx_len, idx_len;
-  BtorNode *current, *next;
-  Info info;
-
-  if (parse_space (parser)) return 0;
-
-  if (parse_positive_int (parser, &idx_len)) return 0;
-
-  if (parse_space (parser)) return 0;
-
-  if (parse_positive_int (parser, &idx)) return 0;
-
-  if (idx >= BTOR_COUNT_STACK (parser->exps)
-      || !(current = parser->exps.start[idx]))
-  {
-    (void) btor_perr_btor (parser, "invalid next index %d", idx);
-    return 0;
-  }
-
-  info = parser->info.start[idx];
-  if (!info.array)
-  {
-    (void) btor_perr_btor (parser, "next index %d is not an array", idx);
-    return 0;
-  }
-
-  if (info.next)
-  {
-    (void) btor_perr_btor (parser, "next index %d already used", idx);
-    return 0;
-  }
-
-  if (parse_space (parser)) return 0;
-
-  assert (btor_is_array_exp (parser->btor, current));
-  if (!(next = parse_array_exp (parser, len))) return 0;
-
-  current_idx_len = btor_get_index_exp_len (parser->btor, current);
-  if (idx_len != current_idx_len)
-  {
-    btor_release_exp (parser->btor, next);
-    (void) btor_perr_btor (parser,
-                           "arrays with different index width %d and %d",
-                           current_idx_len,
-                           idx_len);
-    return 0;
-  }
-
-  BTOR_PUSH_STACK (parser->mem, parser->regs, current);
-  BTOR_PUSH_STACK (parser->mem, parser->nexts, next);
-  parser->info.start[idx].next = 1;
-
-  return next;
 }
 
 static BtorNode *
@@ -1637,8 +1533,6 @@ btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
   new_parser (res, parse_inc, "inc");
   new_parser (res, parse_dec, "dec");
   new_parser (res, parse_ne, "ne");
-  new_parser (res, parse_next, "next");   /* only in parser */
-  new_parser (res, parse_anext, "anext"); /* only in parser */
   new_parser (res, parse_nor, "nor");
   new_parser (res, parse_not, "not");
   new_parser (res, parse_one, "one");
@@ -1705,7 +1599,6 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->inputs);
   BTOR_RELEASE_STACK (parser->mem, parser->outputs);
   BTOR_RELEASE_STACK (parser->mem, parser->regs);
-  BTOR_RELEASE_STACK (parser->mem, parser->nexts);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
@@ -1716,31 +1609,6 @@ btor_delete_btor_parser (BtorBTORParser *parser)
 
   btor_freestr (parser->mem, parser->error);
   BTOR_DELETE (parser->mem, parser);
-}
-
-static void
-remove_regs_from_vars (BtorBTORParser *parser)
-{
-  BtorNode **p, **q, *e;
-  Info info;
-  int i;
-  return;
-
-  p = q = parser->inputs.start;
-  for (i = 1; i <= parser->idx; i++)
-  {
-    info = parser->info.start[i];
-
-    if (!info.var && !info.array) continue;
-
-    e = parser->exps.start[i];
-    assert (*p == e);
-    p++;
-
-    if (!info.next) *q++ = e;
-  }
-  assert (p == parser->inputs.top);
-  parser->inputs.top = q;
 }
 
 static const char *
@@ -1780,8 +1648,6 @@ NEXT:
 
     if (res)
     {
-      remove_regs_from_vars (parser);
-
       if (parser->found_arrays)
         res->logic = BTOR_LOGIC_QF_AUFBV;
       else
@@ -1796,7 +1662,6 @@ NEXT:
 
       res->nregs = BTOR_COUNT_STACK (parser->regs);
       res->regs  = parser->regs.start;
-      res->nexts = parser->nexts.start;
 
       if (parser->verbosity > 0)
       {
