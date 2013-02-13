@@ -75,10 +75,6 @@ struct BtorParseResult
 
   int noutputs;
   BtorNode **outputs;
-
-  int nregs;
-  BtorNode **regs;
-  BtorNode **nexts;
 };
 
 struct BtorParserAPI

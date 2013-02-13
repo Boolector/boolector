@@ -1660,13 +1660,9 @@ NEXT:
       res->noutputs = BTOR_COUNT_STACK (parser->outputs);
       res->outputs  = parser->outputs.start;
 
-      res->nregs = BTOR_COUNT_STACK (parser->regs);
-      res->regs  = parser->regs.start;
-
       if (parser->verbosity > 0)
       {
         btor_msg_btor ("parsed %d inputs", res->ninputs);
-        btor_msg_btor ("parsed %d registers", res->nregs);
         btor_msg_btor ("parsed %d outputs", res->noutputs);
       }
     }

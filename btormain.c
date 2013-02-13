@@ -1368,11 +1368,6 @@ boolector_main (int argc, char **argv)
 
       app.done = 1;
     }
-    else if (parse_res.nregs > 0)
-    {
-      fprintf (app.output_file, "*** removed support for sequential models\n");
-      app.err = 1;
-    }
     else
     {
       assert (!app.incremental);
@@ -1419,59 +1414,50 @@ boolector_main (int argc, char **argv)
 
       if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
 
-      if (parse_res.nregs > 0)
+      for (i = 0; i < parse_res.noutputs; i++)
       {
-        fprintf (app.output_file, "** removed support for sequential models\n");
-        app.err = 1;
+        root     = parse_res.outputs[i];
+        root_len = btor_get_exp_len (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = btor_redor_exp (btor, root);
+        else
+          root = btor_copy_exp (btor, root);
+        btor_add_constraint_exp (btor, root);
+        btor_release_exp (btor, root);
+      }
+
+      if (!app.print_model)
+      {
+        parser_api->reset (parser);
+        parser_api = 0;
+      }
+
+      if (app.verbosity > 1)
+        btor_msg_main_va_args ("added %d outputs (100%)\n", parse_res.noutputs);
+
+      sat_result = btor_sat_btor (btor);
+      assert (sat_result != BTOR_UNKNOWN);
+
+      /* check if status is equal to benchmark status */
+      if (sat_result == BTOR_SAT
+          && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
+      {
+        fprintf (app.output_file,
+                 "[btormain] ERROR: "
+                 "'sat' but status of benchmark in '%s' is 'unsat'\n",
+                 app.input_file_name);
+      }
+      else if (sat_result == BTOR_UNSAT
+               && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
+      {
+        fprintf (app.output_file,
+                 "[btormain] ERROR: "
+                 "'unsat' but status of benchmark in '%s' is 'sat'\n",
+                 app.input_file_name);
       }
       else
-      {
-        for (i = 0; i < parse_res.noutputs; i++)
-        {
-          root     = parse_res.outputs[i];
-          root_len = btor_get_exp_len (btor, root);
-          assert (root_len >= 1);
-          if (root_len > 1)
-            root = btor_redor_exp (btor, root);
-          else
-            root = btor_copy_exp (btor, root);
-          btor_add_constraint_exp (btor, root);
-          btor_release_exp (btor, root);
-        }
-
-        if (!app.print_model)
-        {
-          parser_api->reset (parser);
-          parser_api = 0;
-        }
-
-        if (app.verbosity > 1)
-          btor_msg_main_va_args ("added %d outputs (100%)\n",
-                                 parse_res.noutputs);
-
-        sat_result = btor_sat_btor (btor);
-        assert (sat_result != BTOR_UNKNOWN);
-
-        /* check if status is equal to benchmark status */
-        if (sat_result == BTOR_SAT
-            && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
-        {
-          fprintf (app.output_file,
-                   "[btormain] ERROR: "
-                   "'sat' but status of benchmark in '%s' is 'unsat'\n",
-                   app.input_file_name);
-        }
-        else if (sat_result == BTOR_UNSAT
-                 && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
-        {
-          fprintf (app.output_file,
-                   "[btormain] ERROR: "
-                   "'unsat' but status of benchmark in '%s' is 'sat'\n",
-                   app.input_file_name);
-        }
-        else
-          print_sat_result (&app, sat_result);
-      }
+        print_sat_result (&app, sat_result);
 
       if (sat_result == BTOR_SAT && app.print_model)
         print_assignment (&app, btor, &parse_res);
