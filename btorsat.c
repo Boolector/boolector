@@ -598,7 +598,7 @@ btor_passdown_lingeling_options (BtorSATMgr *smgr,
   return res;
 }
 
-#define BTOR_LGL_SIMP_DELAY 2000
+#define BTOR_LGL_SIMP_DELAY 5000
 #define BTOR_LGL_MIN_BLIMIT 50000
 #define BTOR_LGL_MAX_BLIMIT 200000
 
@@ -633,9 +633,8 @@ btor_lingeling_add (BtorSATMgr *smgr, int lit)
 static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
-  BtorLGL *blgl   = smgr->solver;
-  LGL *lgl        = blgl->lgl, *bforked;
-  const int clone = 1;  // TODO?
+  BtorLGL *blgl = smgr->solver;
+  LGL *lgl      = blgl->lgl, *bforked;
   const char *str;
   int res, bfres;
   char name[80];
@@ -649,7 +648,9 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
     return res;
   }
 
+  lglsetopt (lgl, "phase", -1);
   lglsetopt (lgl, "flipping", 0);
+  lglsetopt (lgl, "predict", 0);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
@@ -665,33 +666,24 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       blgl->blimit *= 2;
       if (blgl->blimit > BTOR_LGL_MAX_BLIMIT)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
+
       blgl->nforked++;
-      if (clone)
-      {
-        bforked = lglclone (lgl);
-        lglfixate (bforked);
-        lglmeltall (bforked);
-        str = "clone";
-      }
-      else
-        bforked = lglbrutefork (lgl, 0), str = "fork";
+      bforked = lglclone (lgl);
+      lglfixate (bforked);
+      lglmeltall (bforked);
+      str = "clone";
       lglsetopt (bforked, "seed", blgl->nforked);
-      lglsetopt (bforked, "flipping", 1);
       lglsetopt (bforked, "simpdelay", 0);
+      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
+      lglsetopt (bforked, "clim", limit);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
       lglsetout (bforked, smgr->output);
-      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
-      lglsetopt (bforked, "clim", limit);
+
       res = lglsat (bforked);
       if (smgr->verbosity > 0) lglstats (bforked);
-      if (clone)
-      {
-        bfres = lglunclone (lgl, bforked);
-        lglrelease (bforked);
-      }
-      else
-        bfres = lgljoin (lgl, bforked);
+      bfres = lglunclone (lgl, bforked);
+      lglrelease (bforked);
       assert (!res || bfres == res);
       res = bfres;
     }

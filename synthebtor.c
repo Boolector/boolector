@@ -125,8 +125,6 @@ main (int argc, char **argv)
 
   if (!model.noutputs) die (1, "no roots in '%s'", input_name);
 
-  if (model.nregs && merge) die (1, "can not merge registers");
-
   mem   = btor->mm;
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -135,28 +133,6 @@ main (int argc, char **argv)
 
   BTOR_INIT_STACK (regs);
   BTOR_INIT_STACK (nexts);
-
-  for (i = 0; i < model.nregs; i++)
-  {
-    if (btor_is_array_exp (btor, model.regs[i]))
-      die (1, "can not synthesize memories (yet)");
-
-    av = btor_exp_to_aigvec (btor, model.regs[i], back_annotation);
-    for (j = 0; j < av->len; j++)
-    {
-      aig = btor_copy_aig (amgr, av->aigs[j]);
-      BTOR_PUSH_STACK (mem, regs, aig);
-    }
-    btor_release_delete_aigvec (avmgr, av);
-
-    av = btor_exp_to_aigvec (btor, model.nexts[i], back_annotation);
-    for (j = 0; j < av->len; j++)
-    {
-      aig = btor_copy_aig (amgr, av->aigs[j]);
-      BTOR_PUSH_STACK (mem, nexts, aig);
-    }
-    btor_release_delete_aigvec (avmgr, av);
-  }
 
   BTOR_INIT_STACK (aigs);
   merged = BTOR_AIG_TRUE;
