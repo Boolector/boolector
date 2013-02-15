@@ -3768,6 +3768,8 @@ btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
   BtorNode *result;
   e_array = btor_pointer_chase_simplified_exp (btor, e_array);
+  // assert (btor->rewrite_level < 3 || !BTOR_IS_ARRAY_COND_NODE (e_array));
+  // // TODO AB: remove
   e_index = btor_pointer_chase_simplified_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
   result = binary_exp (btor, BTOR_READ_NODE, e_array, e_index, e_array->len);

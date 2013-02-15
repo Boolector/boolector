@@ -345,6 +345,7 @@ struct Btor
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
   int rec_rw_calls;    /* calls for recursive rewriting */
+  int rec_read_acond_calls;
   int valid_assignments;
   int rewrite_level;
   int verbosity;
