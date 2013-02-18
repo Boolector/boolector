@@ -2209,7 +2209,6 @@ encode_lemma (Btor *btor,
     BTOR_PUSH_STACK (mm, linking_clause, k);
   }
 
-  // TODO: cond caching
   for (bucket = aconds_sel1->last; bucket; bucket = bucket->prev)
   {
     acond = (BtorNode *) bucket->key;
@@ -2226,7 +2225,6 @@ encode_lemma (Btor *btor,
     BTOR_PUSH_STACK (mm, linking_clause, -k);
   }
 
-  // TODO: cond caching
   for (bucket = aconds_sel2->last; bucket; bucket = bucket->prev)
   {
     acond = (BtorNode *) bucket->key;
@@ -5038,8 +5036,6 @@ btor_write_exp (Btor *btor,
     result = btor_rewrite_write_exp (btor, e_array, e_index, e_value);
   else
     result = btor_write_exp_node (btor, e_array, e_index, e_value);
-
-  // TODO: rewrite write to lambda here? (rewrite_writes_to_lambda obsolete)
 
   assert (result);
   return result;
@@ -8288,7 +8284,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
               && (bound != BETA_RED_LAMBDA_CHAINS
                   || ((BtorLambdaNode *) e[0])->chain_depth > 0)))
       {
-        // TODO: cleanup
         param = BTOR_REAL_ADDR_NODE (e[0]->e[0]);
         assert (BTOR_IS_PARAM_NODE (param));
 
@@ -9521,6 +9516,86 @@ process_working_stack (Btor *btor,
 }
 #endif
 
+static void
+find_nodes_dfs (Btor *btor,
+                BtorNode *exp,
+                BtorNodePtrStack *results,
+                int (*findfun) (BtorNode *),
+                int (*skipfun) (BtorNode *))
+{
+  assert (btor);
+  assert (exp);
+  assert (results);
+  assert (BTOR_EMPTY_STACK (*results));
+  assert (findfun);
+
+  int i;
+  BtorNode *cur;
+  BtorNodePtrStack work_stack, unmark_stack;
+  BtorMemMgr *mm;
+
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
+  cur = BTOR_REAL_ADDR_NODE (exp);
+  goto FIND_NODES_DFS_WITHOUT_POP;
+
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+
+    if (cur->mark || (skipfun && skipfun (cur))) continue;
+
+  FIND_NODES_DFS_WITHOUT_POP:
+    cur->mark = 1;
+    BTOR_PUSH_STACK (mm, unmark_stack, cur);
+
+    if (findfun (cur))
+    {
+      BTOR_PUSH_STACK (mm, *results, cur);
+      continue;
+    }
+
+    for (i = 0; i < cur->arity; i++)
+      BTOR_PUSH_STACK (mm, work_stack, cur->e[i]);
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    cur->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
+static int
+findfun_param (BtorNode *exp)
+{
+  assert (exp);
+  return BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+static int
+findfun_param_read (BtorNode *exp)
+{
+  assert (exp);
+  exp = BTOR_REAL_ADDR_NODE (exp);
+  return BTOR_IS_READ_NODE (exp) && exp->parameterized;
+}
+
+static int
+skipfun_param (BtorNode *exp)
+{
+  assert (exp);
+  return !BTOR_REAL_ADDR_NODE (exp)->parameterized;
+}
+
 /* searches the top arrays where the conflict check begins
  * and pushes them on the stack
  */
@@ -9528,8 +9603,8 @@ static void
 search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
 {
   BtorPartialParentIterator it;
-  BtorNode *cur_array, *cur_parent;
-  BtorNodePtrStack stack, unmark_stack;
+  BtorNode *cur_array, *cur_parent, *param;
+  BtorNodePtrStack stack, unmark_stack, params;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
   int found_top;
@@ -9539,6 +9614,7 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (params);
   for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
   {
     cur_array = (BtorNode *) bucket->key;
@@ -9574,6 +9650,7 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
        * We use the reachable flag to determine with which writes
        * and array conditionals we have to deal with.
        */
+      // TODO: use full parent iterator instead of three different ones
       /* push writes on stack */
       init_write_parent_iterator (&it, cur_array);
       while (has_next_parent_write_parent_iterator (&it))
@@ -9607,21 +9684,31 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
       {
         cur_parent = next_parent_read_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
-        // FIXME: not save since e[1] does not have to be a param, but may
-        // be parameterized. in that case, we have to search for param
-        // and then push lambda onto the stack
-        if (cur_parent->reachable && BTOR_IS_PARAM_NODE (cur_parent->e[1]))
+        if (cur_parent->reachable && cur_parent->parameterized)
         {
           assert (!cur_parent->simplified);
+          assert (BTOR_EMPTY_STACK (params));
+          find_nodes_dfs (
+              btor, cur_parent, &params, findfun_param, skipfun_param);
           found_top = 0;
           assert (cur_parent->array_mark == 0);
-          BTOR_PUSH_STACK (
-              mm, stack, ((BtorParamNode *) cur_parent->e[1])->lambda_exp);
+          assert (BTOR_COUNT_STACK (params) > 0);
+
+          while (!BTOR_EMPTY_STACK (params))
+          {
+            param = BTOR_POP_STACK (params);
+            assert (BTOR_IS_REGULAR_NODE (param));
+            assert (BTOR_IS_PARAM_NODE (param));
+            BTOR_PUSH_STACK (mm, stack, ((BtorParamNode *) param)->lambda_exp);
+          }
         }
       }
+      // TODO: nested lambdas: if parent of lambda is another lambda, then
+      //       push lambda above
       if (found_top) BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
     }
   }
+  BTOR_RELEASE_STACK (mm, params);
   BTOR_RELEASE_STACK (mm, stack);
 
   /* reset array marks of arrays */
@@ -9640,10 +9727,10 @@ static int
 check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
 {
   BtorNodePtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
+  BtorNodePtrStack param_reads;
   BtorPartialParentIterator it;
-  BtorFullParentIterator it_full;
   BtorMemMgr *mm;
-  BtorNode *cur_array, *cur_parent, **top, **temp, *param;
+  BtorNode *cur_array, *cur_parent, **top, **temp, *param_read;
   int found_conflict, changed_assignments, propagate_writes_as_reads;
   assert (btor);
   assert (top_arrays);
@@ -9658,6 +9745,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (cleanup_stack);
   BTOR_INIT_STACK (array_stack);
+  BTOR_INIT_STACK (param_reads);
 
   /* push all top arrays on the stack */
   top = top_arrays->top;
@@ -9704,21 +9792,20 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       }
       else if (BTOR_IS_LAMBDA_NODE (cur_array))
       {
-        param = cur_array->e[0];
-        assert (BTOR_IS_PARAM_NODE (param));
+        assert (BTOR_IS_PARAM_NODE (cur_array->e[0]));
+        assert (BTOR_EMPTY_STACK (param_reads));
+        find_nodes_dfs (
+            btor, cur_array, &param_reads, findfun_param_read, skipfun_param);
 
         /* push all arrays onto stack that are overwritten by lambda exp
          */
-        // FIXME: does not work for the general case (param + 1)
-        init_full_parent_iterator (&it_full, param);
-        while (has_next_parent_full_parent_iterator (&it_full))
+        while (!BTOR_EMPTY_STACK (param_reads))
         {
-          cur_parent = next_parent_full_parent_iterator (&it_full);
-          assert (BTOR_IS_REGULAR_NODE (cur_parent));
-
-          if (!BTOR_IS_READ_NODE (cur_parent)) continue;
-
-          BTOR_PUSH_STACK (mm, array_stack, cur_parent->e[0]);
+          param_read = BTOR_POP_STACK (param_reads);
+          assert (BTOR_IS_REGULAR_NODE (param_read));
+          assert (BTOR_IS_READ_NODE (param_read));
+          assert (param_read->parameterized);
+          BTOR_PUSH_STACK (mm, array_stack, param_read->e[0]);
         }
 // NOTE: code not used right now, as we do not rewrite writes in case of
 //       extensionality
@@ -9787,6 +9874,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
 
   BTOR_RELEASE_STACK (mm, working_stack);
   BTOR_RELEASE_STACK (mm, array_stack);
+  BTOR_RELEASE_STACK (mm, param_reads);
 
   /* reset array marks of arrays */
   while (!BTOR_EMPTY_STACK (unmark_stack))
@@ -9938,9 +10026,6 @@ rebuild_exp (Btor *btor, BtorNode *exp, int rww, int rwr)
         return beta_reduce (btor, exp, BETA_RED_FULL, &parameterized);
       return btor_read_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_WRITE_NODE:
-      // TODO: rw disables rww during varsubst/emb.constr rw phase
-      //       this is currently for debugging purposes in order to be
-      //       able to explicitely differentiate between resp. rw phases
       if (rww && btor->rewrite_writes)
         return rewrite_write_to_lambda_exp (btor, exp);
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
@@ -10685,8 +10770,6 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
           btor->stats.array_substitutions++;
       }
       else
-        // TODO: rw is currently set to 0 for debugging purposes
-        //       (see rebuild_exp)
         rebuilt_exp = rebuild_exp (btor, cur, 0, 0);
       assert (rebuilt_exp);
       assert (rebuilt_exp != cur);
