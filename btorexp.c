@@ -1736,7 +1736,7 @@ add_param_cond_to_clause (Btor *btor,
   assert (linking_clause);
   assert (sign == 1 || sign == -1);
 
-  int lit, false_lit;
+  int lit, false_lit, true_lit;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
@@ -1751,9 +1751,9 @@ add_param_cond_to_clause (Btor *btor,
   assert (!beta_cond->parameterized);
 
   // TODO: cache arbitrary conditions?
-  sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
   if (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
   {
+    sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
     add_eq_or_neq_exp_to_clause (btor,
                                  BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
                                  BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
@@ -1762,6 +1762,7 @@ add_param_cond_to_clause (Btor *btor,
   }
   else if (BTOR_REAL_ADDR_NODE (beta_cond)->kind == BTOR_AND_NODE)
   {
+    sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
     add_and_exp_to_clause (btor,
                            BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
                            BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
@@ -1772,9 +1773,11 @@ add_param_cond_to_clause (Btor *btor,
   {
     lit = exp_to_cnf_lit (btor, beta_cond);
     lit *= sign;
-    false_lit = -smgr->true_lit;
+    true_lit  = smgr->true_lit;
+    false_lit = -true_lit;
 
-    if (lit != false_lit) BTOR_PUSH_STACK (mm, *linking_clause, lit);
+    if (lit != false_lit && lit != true_lit)
+      BTOR_PUSH_STACK (mm, *linking_clause, lit);
   }
 
   btor_release_exp (btor, beta_cond);
@@ -8911,12 +8914,9 @@ process_working_stack (Btor *btor,
             assert (
                 !btor_find_in_ptr_hash_table (lambda->synth_reads, param_read));
 
-            if (!btor_find_in_ptr_hash_table (lambda->synth_reads, param_read))
-            {
-              btor->stats.lambda_synth_reads++;
-              inc_exp_ref_counter (btor, param_read);
-              btor_insert_in_ptr_hash_table (lambda->synth_reads, param_read);
-            }
+            btor->stats.lambda_synth_reads++;
+            inc_exp_ref_counter (btor, param_read);
+            btor_insert_in_ptr_hash_table (lambda->synth_reads, param_read);
 
             *assignments_changed =
                 lazy_synthesize_and_encode_acc_exp (btor, param_read, 1);
