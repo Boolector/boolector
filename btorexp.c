@@ -8595,8 +8595,7 @@ find_nodes_dfs (Btor *btor,
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
-  cur = BTOR_REAL_ADDR_NODE (exp);
-  goto FIND_NODES_DFS_WITHOUT_POP;
+  BTOR_PUSH_STACK (mm, work_stack, exp);
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
@@ -8604,7 +8603,6 @@ find_nodes_dfs (Btor *btor,
 
     if (cur->mark || (skipfun && skipfun (cur))) continue;
 
-  FIND_NODES_DFS_WITHOUT_POP:
     cur->mark = 1;
     BTOR_PUSH_STACK (mm, unmark_stack, cur);
 
@@ -9703,8 +9701,11 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       {
         assert (BTOR_IS_PARAM_NODE (cur_array->e[0]));
         assert (BTOR_EMPTY_STACK (param_reads));
-        find_nodes_dfs (
-            btor, cur_array, &param_reads, findfun_param_read, skipfun_param);
+        find_nodes_dfs (btor,
+                        cur_array->e[1],
+                        &param_reads,
+                        findfun_param_read,
+                        skipfun_param);
 
         /* push all arrays onto stack that are overwritten by lambda exp
          */
