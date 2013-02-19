@@ -1486,6 +1486,8 @@ parse_lambda (BtorBTORParser *parser, int len)
   btor_release_exp (parser->btor, param);
   btor_release_exp (parser->btor, exp);
 
+  parser->found_arrays = 1;
+
   return res;
 }
 
