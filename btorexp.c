@@ -8253,12 +8253,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
           if (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (next)))
           {
             assert (!BTOR_REAL_ADDR_NODE (next)->parameterized);
-
             result         = btor_copy_exp (btor, next);
-            *parameterized = BTOR_REAL_ADDR_NODE (next)->parameterized
-                                 ? BTOR_REAL_ADDR_NODE (next)
-                                 : 0;
-
+            *parameterized = real_cur;
             goto BETA_REDUCE_PUSH_ARG_STACK;
           }
           else
