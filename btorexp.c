@@ -8156,8 +8156,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     mark = BTOR_POP_STACK (mark_stack);
     assert (mark == 0 || mark == 1);
 
-    BTORLOG (
-        "%s: real_cur (%d): %s", __FUNCTION__, mark, node2string (real_cur));
+    //      BTORLOG ("%s: real_cur (%d): %s", __FUNCTION__, mark,
+    //	       node2string (real_cur));
 
     if (mark == 0)
     {
@@ -8246,10 +8246,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         /* we allow unassigned params (next == 0) */
         if ((next = param_cur_assignment (real_cur)))
         {
-          // TODO: push on arg stack if not a param node as we already
-          //       reduced real_cur before. this is not necessary
-          //       anymore if we rewrite aconds in beta_reduce because
-          //       the sub expressions of real_cur are not lambda exps
           if (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (next)))
           {
             assert (!BTOR_REAL_ADDR_NODE (next)->parameterized);
@@ -8529,7 +8525,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     BETA_REDUCE_PUSH_ARG_STACK:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      BTORLOG ("*** result: %s", node2string (result));
+      //	  BTORLOG ("*** result: %s", node2string (result));
       BTOR_PUSH_STACK (mm, arg_stack, result);
       BTOR_PUSH_STACK (mm, parameterized_stack, *parameterized);
     }
@@ -8608,6 +8604,7 @@ find_nodes_dfs (Btor *btor,
     if (findfun (cur))
     {
       BTOR_PUSH_STACK (mm, *results, cur);
+      BTORLOG ("  found: %s", node2string (cur));
       continue;
     }
 
@@ -8951,6 +8948,15 @@ process_working_stack (Btor *btor,
             add_lemma (btor, array, acc, array);
             btor_release_exp (btor, lambda_value);
             return 1;
+          }
+          else if (param_read)
+          {
+            param_read = BTOR_REAL_ADDR_NODE (param_read);
+            BTOR_PUSH_STACK (mm, *stack, param_read);
+            BTOR_PUSH_STACK (mm, *stack, param_read->e[0]);
+            BTORLOG ("lambda exp prop. down:");
+            BTORLOG ("  acc: %s", node2string (param_read));
+            BTORLOG ("  array: %s", node2string (param_read->e[0]));
           }
         }
       }
