@@ -76,6 +76,8 @@ struct BtorBTORParser
   int verbosity;
 
   int found_arrays;
+  int found_lambdas;
+  int found_aeq;
 };
 
 static unsigned btor_primes_btor[4] = {
@@ -1005,6 +1007,8 @@ parse_compare_and_overflow (BtorBTORParser *parser,
 
         goto RELEASE_L_AND_R_AND_RETURN_ZERO;
       }
+
+      parser->found_aeq = 1;
     }
   }
 
@@ -1486,7 +1490,7 @@ parse_lambda (BtorBTORParser *parser, int len)
   btor_release_exp (parser->btor, param);
   btor_release_exp (parser->btor, exp);
 
-  parser->found_arrays = 1;
+  parser->found_lambdas = 1;
 
   return res;
 }
@@ -1775,7 +1779,13 @@ NEXT:
     {
       if (check_params_bound (parser)) return parser->error;
 
-      if (parser->found_arrays)
+      if (parser->found_lambdas && parser->found_aeq)
+      {
+        btor_perr_btor (parser, "extensionality with lambdas is not supported");
+        return parser->error;
+      }
+
+      if (parser->found_arrays || parser->found_lambdas)
         res->logic = BTOR_LOGIC_QF_AUFBV;
       else
         res->logic = BTOR_LOGIC_QF_BV;
