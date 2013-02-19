@@ -1228,6 +1228,12 @@ test_lambda1_special ()
   run_sat_test ("lambda1.btor");
 }
 
+static void
+test_lambda2_special ()
+{
+  run_unsat_test ("lambda2.btor");
+}
+
 static int
 run_verbose_test (char *name, int verbosity)
 {
@@ -1488,6 +1494,7 @@ run_special_tests (int argc, char **argv)
   BTOR_RUN_TEST (verbose2_special);
   BTOR_RUN_TEST (regrrwbinexpconcatzeroconst_special);
   BTOR_RUN_TEST (lambda1_special);
+  BTOR_RUN_TEST (lambda2_special);
 }
 
 void
