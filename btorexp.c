@@ -5729,7 +5729,7 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode *root)
         fprintf (file, "_ BitVec %d", e->len);
       else
         fprintf (
-            file, "Array ((_ BitVec %d)) (_ BitVec %d)", e->index_len, e->len);
+            file, "Array (_ BitVec %d) (_ BitVec %d)", e->index_len, e->len);
 
       fputs ("))\n", file);
     }
