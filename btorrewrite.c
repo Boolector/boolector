@@ -946,8 +946,11 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
   else if (BTOR_IS_ARRAY_OR_BV_COND_NODE (real_e0)
            && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_e1)
            && BTOR_IS_INVERTED_NODE (e0) == BTOR_IS_INVERTED_NODE (e1)
-           && real_e0->e[0] == real_e1->e[0]
-           && (real_e0->e[1] == real_e1->e[1] || real_e0->e[2] == real_e1->e[2])
+           &&  // TODO needed?
+           real_e0->e[0] == real_e1->e[0]
+           && (real_e0->e[1] == real_e1->e[1] || real_e0->e[2] == real_e1->e[2]
+               || 0  // TODO references instead?
+               )
            && (kind == BTOR_ULT_NODE || kind == BTOR_BEQ_NODE
                || kind == BTOR_AEQ_NODE || kind == BTOR_ADD_NODE
                || kind == BTOR_UDIV_NODE))
@@ -965,10 +968,10 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
     }
     left   = fptr (btor,
                  BTOR_COND_INVERT_NODE (e0, real_e0->e[1]),
-                 BTOR_COND_INVERT_NODE (e0, real_e1->e[1]));
+                 BTOR_COND_INVERT_NODE (e1, real_e1->e[1]));
     right  = fptr (btor,
                   BTOR_COND_INVERT_NODE (e0, real_e0->e[2]),
-                  BTOR_COND_INVERT_NODE (e0, real_e1->e[2]));
+                  BTOR_COND_INVERT_NODE (e1, real_e1->e[2]));
     result = btor_rewrite_cond_exp (btor, real_e0->e[0], left, right);
     btor_release_exp (btor, left);
     btor_release_exp (btor, right);
@@ -3313,13 +3316,14 @@ btor_rewrite_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
   assert (btor->rewrite_level > 0);
 
-  if (BTOR_IS_WRITE_NODE (e_array))
-  {
-    write_index = e_array->e[1];
-    /* if read index is equal write index, then return write value */
-    if (e_index == write_index) return btor_copy_exp (btor, e_array->e[2]);
+  cur_array = e_array;
 
-    cur_array = e_array;
+  if (BTOR_IS_WRITE_NODE (cur_array))
+  {
+    write_index = cur_array->e[1];
+    /* if read index is equal write index, then return write value */
+    if (e_index == write_index) return btor_copy_exp (btor, cur_array->e[2]);
+
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     propagations = 0;
@@ -3331,24 +3335,31 @@ btor_rewrite_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 
       if (e_index == write_index) return btor_copy_exp (btor, cur_array->e[2]);
 
-      if (is_always_unequal (btor, e_index, write_index))
-      {
-        cur_array = cur_array->e[0];
-        assert (BTOR_IS_REGULAR_NODE (cur_array));
-        assert (BTOR_IS_ARRAY_NODE (cur_array));
-        propagations++;
-        btor->stats.read_props_construct++;
-      }
-      else
-        break;
+      if (!is_always_unequal (btor, e_index, write_index)) break;
 
+      cur_array = cur_array->e[0];
+      assert (BTOR_IS_REGULAR_NODE (cur_array));
+      assert (BTOR_IS_ARRAY_NODE (cur_array));
+      btor->stats.read_props_construct++;
     } while (BTOR_IS_WRITE_NODE (cur_array)
-             && propagations < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
+             && propagations++ < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
+  }
 
-    result = btor_read_exp_node (btor, cur_array, e_index);
+  if (BTOR_IS_ARRAY_COND_NODE (cur_array) && btor->rewrite_level > 2
+      &&                               // TODO when to enable?
+      btor->rec_read_acond_calls < 0)  // TODO global constant!
+  {
+    BtorNode *t1, *t2;
+    btor->rec_read_acond_calls++;
+    t1     = btor_read_exp (btor, cur_array->e[1], e_index);
+    t2     = btor_read_exp (btor, cur_array->e[2], e_index);
+    result = btor_cond_exp (btor, cur_array->e[0], t1, t2);
+    btor->rec_read_acond_calls--;
+    btor_release_exp (btor, t2);
+    btor_release_exp (btor, t1);
   }
   else
-    result = btor_read_exp_node (btor, e_array, e_index);
+    result = btor_read_exp_node (btor, cur_array, e_index);
 
   assert (result);
 
@@ -3363,6 +3374,7 @@ btor_rewrite_write_exp (Btor *btor,
 {
   BtorNode *cur, *cur_write, *temp, *result;
   BtorNode *chain[BTOR_WRITE_CHAIN_NODE_RW_BOUND];
+  BtorNode *real_index, *real_value;
   int depth;
 
   /* no recurisve rewrite calls here, so we do not need to check bounds */
@@ -3375,7 +3387,51 @@ btor_rewrite_write_exp (Btor *btor,
 
   result = 0;
 
-  if (btor->rewrite_level > 2 && BTOR_IS_WRITE_NODE (e_array))
+  real_index = BTOR_REAL_ADDR_NODE (e_index);
+  real_value = BTOR_REAL_ADDR_NODE (e_value);
+
+  if (0 &&  // TODO When to enable?
+      BTOR_IS_ARRAY_COND_NODE (e_array) && BTOR_IS_BV_COND_NODE (real_index)
+      && BTOR_IS_BV_COND_NODE (real_value) && e_array->e[0] == real_index->e[0]
+      && e_array->e[0] == real_value->e[0])
+  {
+    BtorNode *i1 = BTOR_COND_INVERT_NODE (e_index, real_index->e[1]);
+    BtorNode *i2 = BTOR_COND_INVERT_NODE (e_index, real_index->e[2]);
+    BtorNode *v1 = BTOR_COND_INVERT_NODE (e_value, real_value->e[1]);
+    BtorNode *v2 = BTOR_COND_INVERT_NODE (e_value, real_value->e[2]);
+    BtorNode *e1 = btor_write_exp_node (btor, e_array->e[1], i1, v1);
+    BtorNode *e2 = btor_write_exp_node (btor, e_array->e[2], i2, v2);
+    result       = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
+    btor_release_exp (btor, e2);
+    btor_release_exp (btor, e1);
+  }
+  else if (0 &&  // TODO When to enable?
+           BTOR_IS_ARRAY_COND_NODE (e_array)
+           && BTOR_IS_BV_COND_NODE (real_index)
+           && e_array->e[0] == real_index->e[0])
+  {
+    BtorNode *i1 = BTOR_COND_INVERT_NODE (e_index, real_index->e[1]);
+    BtorNode *i2 = BTOR_COND_INVERT_NODE (e_index, real_index->e[2]);
+    BtorNode *e1 = btor_write_exp_node (btor, e_array->e[1], i1, e_value);
+    BtorNode *e2 = btor_write_exp_node (btor, e_array->e[2], i2, e_value);
+    result       = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
+    btor_release_exp (btor, e2);
+    btor_release_exp (btor, e1);
+  }
+  else if (0 &&  // TODO When to enable?
+           BTOR_IS_ARRAY_COND_NODE (e_array)
+           && BTOR_IS_BV_COND_NODE (real_value)
+           && e_array->e[0] == real_value->e[0])
+  {
+    BtorNode *v1 = BTOR_COND_INVERT_NODE (e_value, real_value->e[1]);
+    BtorNode *v2 = BTOR_COND_INVERT_NODE (e_value, real_value->e[2]);
+    BtorNode *e1 = btor_write_exp_node (btor, e_array->e[1], e_index, v1);
+    BtorNode *e2 = btor_write_exp_node (btor, e_array->e[2], e_index, v2);
+    result       = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
+    btor_release_exp (btor, e2);
+    btor_release_exp (btor, e1);
+  }
+  else if (btor->rewrite_level > 2 && BTOR_IS_WRITE_NODE (e_array))
   {
     depth = 0;
     cur   = e_array;
@@ -3431,6 +3487,8 @@ btor_rewrite_cond_exp (Btor *btor,
   BtorNode *result, *tmp1, *tmp2, *tmp3, *tmp4;
   BtorNodeKind kind;
 
+RESTART:
+
   e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
   e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
   e_else = btor_pointer_chase_simplified_exp (btor, e_else);
@@ -3472,16 +3530,19 @@ btor_rewrite_cond_exp (Btor *btor,
   {
     if (BTOR_REAL_ADDR_NODE (e_if)->e[0] == e_cond)
     {
-      if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
-        goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
-      BTOR_INC_REC_RW_CALL (btor);
-      result = btor_rewrite_cond_exp (
-          btor,
-          e_cond,
-          BTOR_COND_INVERT_NODE (e_if, BTOR_REAL_ADDR_NODE (e_if)->e[1]),
-          e_else);
-      BTOR_DEC_REC_RW_CALL (btor);
-      return result;
+#if 0
+	  if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+	    goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
+	  BTOR_INC_REC_RW_CALL (btor);
+	  result = btor_rewrite_cond_exp (btor, e_cond,
+	     BTOR_COND_INVERT_NODE (e_if, BTOR_REAL_ADDR_NODE (e_if)->e[1]),
+	     e_else);
+	  BTOR_DEC_REC_RW_CALL (btor);
+	  return result;
+#else
+      e_if = BTOR_COND_INVERT_NODE (e_if, BTOR_REAL_ADDR_NODE (e_if)->e[1]);
+      goto RESTART;
+#endif
     }
 
     tmp1 = BTOR_REAL_ADDR_NODE (e_if)->e[0];
@@ -3525,16 +3586,21 @@ btor_rewrite_cond_exp (Btor *btor,
   {
     if (BTOR_REAL_ADDR_NODE (e_else)->e[0] == e_cond)
     {
-      if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
-        goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
-      BTOR_INC_REC_RW_CALL (btor);
-      result = btor_rewrite_cond_exp (
-          btor,
-          e_cond,
-          e_if,
-          BTOR_COND_INVERT_NODE (e_else, BTOR_REAL_ADDR_NODE (e_else)->e[2]));
-      BTOR_DEC_REC_RW_CALL (btor);
-      return result;
+#if 0
+	  if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+	    goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
+	  BTOR_INC_REC_RW_CALL (btor);
+	  result =
+	    btor_rewrite_cond_exp (btor, e_cond, e_if,
+	      BTOR_COND_INVERT_NODE (e_else,
+				    BTOR_REAL_ADDR_NODE (e_else)->e[2]));
+	  BTOR_DEC_REC_RW_CALL (btor);
+	  return result;
+#else
+      e_else =
+          BTOR_COND_INVERT_NODE (e_else, BTOR_REAL_ADDR_NODE (e_else)->e[2]);
+      goto RESTART;
+#endif
     }
 
     tmp1 = BTOR_REAL_ADDR_NODE (e_else)->e[0];
@@ -3577,7 +3643,7 @@ btor_rewrite_cond_exp (Btor *btor,
 
   if (kind == BTOR_BCOND_NODE)
   {
-    if (BTOR_REAL_ADDR_NODE (e_if)->len == 1)
+    if (1 && BTOR_REAL_ADDR_NODE (e_if)->len == 1)  // TODO remove ?
     {
       if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
         goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
