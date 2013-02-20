@@ -11766,9 +11766,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   {
     assert (BTOR_IS_LAMBDA_NODE (e[0]));
     assert (!has_write_parent || !has_num_parents_dbg (write, 1));
-    BTORLOG ("merge lambda: %s (merged %d)",
-             node2string (e[0]),
-             ((BtorLambdaNode *) e[0])->chain_depth + 1);
+    BTORLOG ("merge lambda: %s (merged %d)", node2string (e[0]), chain_depth);
     assign_param (btor, e[0], param);
     e_else = beta_reduce (btor, e[0], BETA_RED_LAMBDA_CHAINS, &parameterized);
     unassign_param (btor, e[0]);
