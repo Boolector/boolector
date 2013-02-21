@@ -11762,7 +11762,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
       || !has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
              && ((BtorLambdaNode *) e[0])->chain_depth > 0)
   {
-    assert (!has_write_parent || has_num_parents_dbg (write, 1));
+    //      assert (!has_write_parent || has_num_parents_dbg (write, 1));
     if (BTOR_IS_LAMBDA_NODE (e[0]))
       chain_depth = ((BtorLambdaNode *) e[0])->chain_depth;
     chain_depth += 1;
@@ -11770,13 +11770,13 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   assert (chain_depth >= 0);
   assert (chain_depth <= INT_MAX);
-  assert (chain_depth > 0 || has_num_parents_dbg (write, 1));
+  //  assert (chain_depth > 0 || has_num_parents_dbg (write, 1));
 
   /* end of lambda chain */
   if ((!has_write_parent || write->refs > 1) && chain_depth > 0)
   {
     assert (BTOR_IS_LAMBDA_NODE (e[0]));
-    assert (!has_write_parent || !has_num_parents_dbg (write, 1));
+    //      assert (!has_write_parent || !has_num_parents_dbg (write, 1));
     BTORLOG ("merge lambda: %s (merged %d)", node2string (e[0]), chain_depth);
     assign_param (btor, e[0], param);
     e_else = beta_reduce (btor, e[0], BETA_RED_LAMBDA_CHAINS, &parameterized);
@@ -11923,7 +11923,8 @@ rewrite_reads_on_aconds (Btor *btor)
     for (i = 0; i < acond->arity; i++) e[i] = acond->e[i];
 
     // TODO: use refs
-    if (!has_num_parents_dbg (acond, 1)) continue;
+    if (acond->refs > 1)  //! has_num_parents_dbg (acond, 1))
+      continue;
 
     init_read_parent_iterator (&it, acond);
     if (!has_next_parent_read_parent_iterator (&it))
@@ -12143,7 +12144,8 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
       if (!read->parameterized || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
       {
-        assert (!read->parameterized || has_num_parents_dbg (read->e[0], 1));
+        //	      assert (!read->parameterized
+        //		      || has_num_parents_dbg (read->e[0], 1));
         btor_insert_in_ptr_hash_table (reads, read);
       }
     }
