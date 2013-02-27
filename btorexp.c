@@ -2621,15 +2621,10 @@ set_simplified_exp (Btor *btor,
   int i;
   assert (btor);
   assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
   assert (simplified);
   assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
   assert (btor->rewrite_level > 1 || btor->rewrite_writes);
-
-  if (BTOR_IS_INVERTED_NODE (exp))
-  {
-    exp        = BTOR_INVERT_NODE (exp);
-    simplified = BTOR_INVERT_NODE (simplified);
-  }
 
   if (exp->simplified) btor_release_exp (btor, exp->simplified);
 
@@ -2757,14 +2752,31 @@ merge_simplified_exp_const (Btor *btor, BtorNode *a, BtorNode *b)
 
   if (rep_a == BTOR_INVERT_NODE (rep_b)) return 0;
 
+  /* do not force reads on top level to true */
+  if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (rep_a))) return 1;
+
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rep_a)))
     rep = rep_a;
   else
     rep = rep_b;
 
-  if (a != rep) set_simplified_exp (btor, a, rep, 0);
+  if (a != rep)
+  {
+    if (BTOR_IS_INVERTED_NODE (a))
+      set_simplified_exp (
+          btor, BTOR_REAL_ADDR_NODE (a), BTOR_INVERT_NODE (rep), 0);
+    else
+      set_simplified_exp (btor, a, rep, 0);
+  }
 
-  if (b != rep) set_simplified_exp (btor, b, rep, 0);
+  if (b != rep)
+  {
+    if (BTOR_IS_INVERTED_NODE (b))
+      set_simplified_exp (
+          btor, BTOR_REAL_ADDR_NODE (b), BTOR_INVERT_NODE (rep), 0);
+    else
+      set_simplified_exp (btor, b, rep, 0);
+  }
 
   return 1;
 }
@@ -12060,11 +12072,11 @@ run_rewrite_engine (Btor *btor)
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       assert (btor->ops[BTOR_WRITE_NODE] == 0);
 
-      rewrite_reads_on_aconds (btor);
-      //	  TODO: function for finding lambda chains, after aconds
-      // rewrite, merge lambda chains ?
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      //	  assert (btor->ops[BTOR_ACOND_NODE] == 0);
+      //	  rewrite_reads_on_aconds (btor);
+      ////	  TODO: function for finding lambda chains, after aconds
+      /// rewrite, merge lambda chains ?
+      //	  assert (check_all_hash_tables_proxy_free_dbg (btor));
+      ////	  assert (btor->ops[BTOR_ACOND_NODE] == 0);
     }
 
     if (btor->varsubst_constraints->count) continue;
