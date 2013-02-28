@@ -8170,9 +8170,12 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    cur      = BTOR_POP_STACK (work_stack);
-    cur      = btor_pointer_chase_simplified_exp (btor, cur);
+    cur = BTOR_POP_STACK (work_stack);
+    // TODO: quickfix until constraints simplified fixed
+    if (!BTOR_REAL_ADDR_NODE (cur)->constraint)
+      cur = btor_pointer_chase_simplified_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
+    assert (!BTOR_IS_PROXY_NODE (real_cur));
 
     mark = BTOR_POP_STACK (mark_stack);
     assert (mark == 0 || mark == 1);
