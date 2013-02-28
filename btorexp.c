@@ -2752,9 +2752,6 @@ merge_simplified_exp_const (Btor *btor, BtorNode *a, BtorNode *b)
 
   if (rep_a == BTOR_INVERT_NODE (rep_b)) return 0;
 
-  /* do not force reads on top level to true */
-  if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (rep_a))) return 1;
-
   if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rep_a)))
     rep = rep_a;
   else
@@ -10031,6 +10028,7 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
   uc = btor->unsynthesized_constraints;
   if (!btor_find_in_ptr_hash_table (uc, exp))
   {
+    assert (!btor_find_in_ptr_hash_table (btor->embedded_constraints, exp));
     inc_exp_ref_counter (btor, exp);
     (void) btor_insert_in_ptr_hash_table (uc, exp);
     BTOR_REAL_ADDR_NODE (exp)->constraint = 1;
@@ -10047,6 +10045,8 @@ insert_embedded_constraint (Btor *btor, BtorNode *exp)
   embedded_constraints = btor->embedded_constraints;
   if (!btor_find_in_ptr_hash_table (embedded_constraints, exp))
   {
+    assert (
+        !btor_find_in_ptr_hash_table (btor->unsynthesized_constraints, exp));
     inc_exp_ref_counter (btor, exp);
     (void) btor_insert_in_ptr_hash_table (embedded_constraints, exp);
     BTOR_REAL_ADDR_NODE (exp)->constraint = 1;
@@ -10361,10 +10361,20 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
         exp_true = btor_true_exp (btor);
         if (merge_simplified_exp_const (btor, exp, exp_true))
         {
-          if (is_embedded_constraint_exp (btor, exp))
-            insert_embedded_constraint (btor, exp);
+          if (!real_exp->constraint)
+          {
+            if (is_embedded_constraint_exp (btor, exp))
+              insert_embedded_constraint (btor, exp);
+            else
+              insert_unsynthesized_constraint (btor, exp);
+          }
           else
-            insert_unsynthesized_constraint (btor, exp);
+          {
+            assert (btor_find_in_ptr_hash_table (
+                        btor->unsynthesized_constraints, exp)
+                    || btor_find_in_ptr_hash_table (btor->embedded_constraints,
+                                                    exp));
+          }
         }
         else
           btor->inconsistent = 1;
@@ -11109,8 +11119,8 @@ process_embedded_constraints (Btor *btor)
       count++;
       b   = embedded_constraints->first;
       cur = (BtorNode *) b->key;
-      insert_unsynthesized_constraint (btor, cur);
       btor_remove_from_ptr_hash_table (embedded_constraints, cur, 0, 0);
+      insert_unsynthesized_constraint (btor, cur);
       btor_release_exp (btor, cur);
     }
     delta = btor_time_stamp () - start;
