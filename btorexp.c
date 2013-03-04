@@ -12092,12 +12092,12 @@ run_rewrite_engine (Btor *btor)
   {
     rounds++;
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    //      assert (check_all_hash_tables_simp_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
     if (btor->rewrite_level > 1)
     {
       substitute_var_exps (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
-      //          assert (check_all_hash_tables_simp_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
 
       if (btor->inconsistent) break;
 
@@ -12105,7 +12105,7 @@ run_rewrite_engine (Btor *btor)
 
       process_embedded_constraints (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
-      //          assert (check_all_hash_tables_simp_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
 
       if (btor->inconsistent) break;
 
@@ -12132,7 +12132,7 @@ run_rewrite_engine (Btor *btor)
       {
         process_skeleton (btor);
         assert (check_all_hash_tables_proxy_free_dbg (btor));
-        //  	        assert (check_all_hash_tables_simp_free_dbg (btor));
+        assert (check_all_hash_tables_simp_free_dbg (btor));
         if (btor->inconsistent) break;
       }
 
@@ -12147,6 +12147,7 @@ run_rewrite_engine (Btor *btor)
     {
       rewrite_writes_to_lambda_exp (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
       assert (btor->ops[BTOR_WRITE_NODE] == 0);
 
       //	  rewrite_reads_on_aconds (btor);
@@ -12165,6 +12166,7 @@ run_rewrite_engine (Btor *btor)
     {
       beta_reduce_reads_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
       assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count == 0);
     }
   } while (btor->varsubst_constraints->count
