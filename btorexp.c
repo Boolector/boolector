@@ -2725,8 +2725,6 @@ btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
   return recursively_pointer_chase_simplified_exp (btor, exp);
 }
 
-#define DISABLE_MERGE_SIMPLIFIED_EXP_CONST
-
 BtorNode *
 btor_simplify_exp (Btor *btor, BtorNode *exp)
 {
@@ -2738,7 +2736,6 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   not_exp  = BTOR_INVERT_NODE (real_exp);
 
-#ifdef DISABLE_MERGE_SIMPLIFIED_EXP_CONST
   if (real_exp->constraint)
   {
     assert (!real_exp->simplified);
@@ -2778,56 +2775,23 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
     if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
     return result;
   }
-#endif
 
   return btor_pointer_chase_simplified_exp (btor, exp);
 }
 
 static int
-merge_simplified_exp_const (Btor *btor, BtorNode *a, BtorNode *b)
+constraint_is_inconsistent (Btor *btor, BtorNode *exp)
 {
-  BtorNode *rep_a, *rep_b, *rep;
   assert (btor);
-  assert (a);
-  assert (b);
+  assert (exp);
   assert (btor->rewrite_level > 1);
-  assert (BTOR_REAL_ADDR_NODE (a)->len == 1);
-  assert (BTOR_REAL_ADDR_NODE (b)->len == 1);
-  rep_a = btor_simplify_exp (btor, a);
-  rep_b = btor_simplify_exp (btor, b);
+  assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
 
-  assert (rep_a == a || rep_b == b);
+  BtorNode *rep;
 
-  if (rep_a == BTOR_INVERT_NODE (rep_b)) return 0;
+  rep = btor_simplify_exp (btor, exp);
 
-#ifdef DISABLE_MERGE_SIMPLIFIED_EXP_CONST
-  return 1;
-#endif
-
-  if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (rep_a)))
-    rep = rep_a;
-  else
-    rep = rep_b;
-
-  if (a != rep)
-  {
-    if (BTOR_IS_INVERTED_NODE (a))
-      set_simplified_exp (
-          btor, BTOR_REAL_ADDR_NODE (a), BTOR_INVERT_NODE (rep));
-    else
-      set_simplified_exp (btor, a, rep);
-  }
-
-  if (b != rep)
-  {
-    if (BTOR_IS_INVERTED_NODE (b))
-      set_simplified_exp (
-          btor, BTOR_REAL_ADDR_NODE (b), BTOR_INVERT_NODE (rep));
-    else
-      set_simplified_exp (btor, b, rep);
-  }
-
-  return 1;
+  return rep == BTOR_INVERT_NODE (rep);
 }
 
 /* Connects child to its parent and updates list of parent pointers.
@@ -10411,8 +10375,9 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
       }
       else
       {
-        exp_true = btor_true_exp (btor);
-        if (merge_simplified_exp_const (btor, exp, exp_true))
+        if (constraint_is_inconsistent (btor, exp))
+          btor->inconsistent = 1;
+        else
         {
           if (!real_exp->constraint)
           {
@@ -10429,9 +10394,6 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
                                                     exp));
           }
         }
-        else
-          btor->inconsistent = 1;
-        btor_release_exp (btor, exp_true);
       }
     }
     else
