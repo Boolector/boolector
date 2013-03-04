@@ -2684,6 +2684,7 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
   simplified = real_exp->simplified;
   do
   {
+    assert (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (simplified)));
     if (BTOR_IS_INVERTED_NODE (simplified)) invert = !invert;
     simplified = BTOR_REAL_ADDR_NODE (simplified)->simplified;
   } while (BTOR_REAL_ADDR_NODE (simplified)->simplified);
@@ -2699,7 +2700,7 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
     if (BTOR_IS_INVERTED_NODE (cur)) invert = !invert;
     cur  = BTOR_REAL_ADDR_NODE (cur);
     next = btor_copy_exp (btor, cur->simplified);
-    set_simplified_exp (btor, cur, invert ? not_simplified : simplified, 0);
+    set_simplified_exp (btor, cur, invert ? not_simplified : simplified, 1);
     btor_release_exp (btor, cur);
     cur = next;
   } while (BTOR_REAL_ADDR_NODE (cur)->simplified);
