@@ -1158,8 +1158,6 @@ int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
 unsigned int btor_hash_exp_by_id (BtorNode *exp);
 
 /* Finds most simplified expression and shortens path to it */
-BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
-
 BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
