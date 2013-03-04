@@ -2612,10 +2612,7 @@ update_constraints (Btor *btor, BtorNode *exp)
 }
 
 static void
-set_simplified_exp (Btor *btor,
-                    BtorNode *exp,
-                    BtorNode *simplified,
-                    int overwrite)
+set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
 {
   BtorNode *e[3];
   int i;
@@ -2630,14 +2627,6 @@ set_simplified_exp (Btor *btor,
 
   exp->simplified = btor_copy_exp (btor, simplified);
 
-  if (!overwrite) return;
-
-  /* FIXME? moved this back down here (aina)
-   *	    -> is it really not necessary if (!overwrite)?
-   *	    -> rw213, regrembeddedconstraint1, and regrembeddedconstraint2
-   *	       fail otherwise!
-   *
-   * do we have to update a constraint ? */
   if (exp->constraint) update_constraints (btor, exp);
 
   if (exp->kind == BTOR_AEQ_NODE && exp->vreads)
@@ -2700,7 +2689,7 @@ recursively_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
     if (BTOR_IS_INVERTED_NODE (cur)) invert = !invert;
     cur  = BTOR_REAL_ADDR_NODE (cur);
     next = btor_copy_exp (btor, cur->simplified);
-    set_simplified_exp (btor, cur, invert ? not_simplified : simplified, 1);
+    set_simplified_exp (btor, cur, invert ? not_simplified : simplified);
     btor_release_exp (btor, cur);
     cur = next;
   } while (BTOR_REAL_ADDR_NODE (cur)->simplified);
@@ -2824,18 +2813,18 @@ merge_simplified_exp_const (Btor *btor, BtorNode *a, BtorNode *b)
   {
     if (BTOR_IS_INVERTED_NODE (a))
       set_simplified_exp (
-          btor, BTOR_REAL_ADDR_NODE (a), BTOR_INVERT_NODE (rep), 0);
+          btor, BTOR_REAL_ADDR_NODE (a), BTOR_INVERT_NODE (rep));
     else
-      set_simplified_exp (btor, a, rep, 0);
+      set_simplified_exp (btor, a, rep);
   }
 
   if (b != rep)
   {
     if (BTOR_IS_INVERTED_NODE (b))
       set_simplified_exp (
-          btor, BTOR_REAL_ADDR_NODE (b), BTOR_INVERT_NODE (rep), 0);
+          btor, BTOR_REAL_ADDR_NODE (b), BTOR_INVERT_NODE (rep));
     else
-      set_simplified_exp (btor, b, rep, 0);
+      set_simplified_exp (btor, b, rep);
   }
 
   return 1;
@@ -10786,7 +10775,7 @@ substitute_vars_and_rebuild_exps (Btor *btor, BtorPtrHashTable *substs)
       assert (rebuilt_exp != cur);
 
       simplified = btor_simplify_exp (btor, rebuilt_exp);
-      set_simplified_exp (btor, cur, simplified, 1);
+      set_simplified_exp (btor, cur, simplified);
       btor_release_exp (btor, rebuilt_exp);
     }
   }
@@ -11133,7 +11122,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
       if (rebuilt_exp != cur)
       {
         simplified = btor_simplify_exp (btor, rebuilt_exp);
-        set_simplified_exp (btor, cur, simplified, 1);
+        set_simplified_exp (btor, cur, simplified);
       }
 
       btor_release_exp (btor, rebuilt_exp);
@@ -12032,7 +12021,7 @@ rewrite_reads_on_aconds (Btor *btor)
       read_then = btor_read_exp (btor, e[1], read->e[1]);
       read_else = btor_read_exp (btor, e[2], read->e[1]);
       read_simp = btor_cond_exp (btor, e[0], read_then, read_else);
-      set_simplified_exp (btor, read, read_simp, 1);
+      set_simplified_exp (btor, read, read_simp);
 
       if (BTOR_REAL_ADDR_NODE (read_then)->parameterized
           && BTOR_IS_LAMBDA_NODE (e[1]))
