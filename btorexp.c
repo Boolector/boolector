@@ -7217,12 +7217,12 @@ bfs_lambda (Btor *btor,
 static void
 bfs (Btor *btor, BtorNode *acc, BtorNode *array)
 {
-  BtorNode *cur, *next, *cur_aeq, *cond, *index, *param_read, *lambda_exp;
-  BtorNode *lambda_value, *parameterized;
+  BtorNode *cur, *next, *cur_aeq, *cond, *index;  //, *param_read, *lambda_exp;
+  //  BtorNode *lambda_value, *parameterized;
   BtorMemMgr *mm;
   BtorAIGMgr *amgr;
   BtorNodePtrQueue queue;
-  BtorNodePtrStack unmark_stack, param_read_stack;
+  BtorNodePtrStack unmark_stack;  // param_read_stack;
   BtorPartialParentIterator it;
   int assignment, propagate_writes_as_reads;
 #ifndef NDEBUG
@@ -8186,8 +8186,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL
           || bound == BETA_RED_LAMBDA_CHAINS);
 
-  int i, mark, aux_rewrite_level = 0, cur_bound = 0;
-  char *symbol;
+  int i, mark, aux_rewrite_level = 0;
   const char *eval_res;
   double start;
   BtorMemMgr *mm;
@@ -8759,7 +8758,7 @@ process_working_stack (Btor *btor,
   BtorPartialParentIterator it;
   BtorLambdaNode *lambda;
   BtorNode *acc, *index, *value, *array, *hashed_acc, *hashed_value;
-  BtorNode *cur_aeq, *cond, *next, *lambda_value, *lambda_exp, *param_read;
+  BtorNode *cur_aeq, *cond, *next, *lambda_value, *param_read;  // *lambda_exp
   BtorNode *parameterized;
   BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
@@ -11048,7 +11047,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
   BtorMemMgr *mm;
   BtorFullParentIterator it;
-  int pushed, i, cur_rww, cur_rwr;
+  int pushed, i;
 
   assert (btor);
   assert (subst);
@@ -11848,9 +11847,9 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   init_write_parent_iterator (&it, write);
   has_write_parent = has_next_parent_write_parent_iterator (&it);
 
-  if (has_write_parent && write->refs == 1
-      || !has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
-             && ((BtorLambdaNode *) e[0])->chain_depth > 0)
+  if ((has_write_parent && write->refs == 1)
+      || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
+          && ((BtorLambdaNode *) e[0])->chain_depth > 0))
   {
     assert (!has_write_parent || has_num_parents_dbg (write, 1));
     if (BTOR_IS_LAMBDA_NODE (e[0]))
@@ -12066,7 +12065,7 @@ rewrite_reads_on_aconds (Btor *btor)
 static void
 run_rewrite_engine (Btor *btor)
 {
-  int rounds, opt_rww, rwwrounds;
+  int rounds;
   double start, delta;
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
   int skelrounds = 0;
@@ -12077,16 +12076,8 @@ run_rewrite_engine (Btor *btor)
 
   if (btor->rewrite_level <= 1 && !btor->rewrite_writes) return;
 
-  rounds    = 0;
-  rwwrounds = 0;
-  opt_rww   = btor->rewrite_writes; /* original user specified setting */
-
-  //  /* Note: we have to check for extensionality initially, otherwise it may
-  //   * happen that writes are rewritten during rewriting steps previous to
-  //   * the actual rww step (-> rebuild_exp) */
-  //  btor->rewrite_writes = opt_rww && btor->ops[BTOR_AEQ_NODE] == 0;
-
-  start = btor_time_stamp ();
+  rounds = 0;
+  start  = btor_time_stamp ();
 
   do
   {
@@ -12143,7 +12134,7 @@ run_rewrite_engine (Btor *btor)
 #endif
 
     /* rewrite writes to lambdas (skip in case of extensionality) */
-    if ((btor->rewrite_writes = opt_rww && btor->ops[BTOR_AEQ_NODE] == 0))
+    if ((btor->rewrite_writes && btor->ops[BTOR_AEQ_NODE] == 0))
     {
       rewrite_writes_to_lambda_exp (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
@@ -12211,10 +12202,9 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 {
   assert (btor);
 
-  int i;
   BtorPtrHashTable *reads;
   BtorPtrHashBucket *b;
-  BtorNode *read, *reduced_read, *lambda, *parameterized;
+  BtorNode *read, *lambda;
   BtorPartialParentIterator it;
 
   if (btor->lambdas->count == 0) return;
