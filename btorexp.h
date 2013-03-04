@@ -341,6 +341,7 @@ struct Btor
   BtorPtrHashTable *array_vars;
   BtorPtrHashTable *lambdas;
   BtorPtrHashTable *aconds;
+  BtorNode *true_exp;
   // TODO do we need this more often than just for beta_reduce? */
   BtorPtrHashTable *aux_hash_table; /* hash table for temporary use */
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
@@ -1158,6 +1159,8 @@ unsigned int btor_hash_exp_by_id (BtorNode *exp);
 
 /* Finds most simplified expression and shortens path to it */
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
+
+BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

@@ -53,7 +53,7 @@ is_const_one_exp (Btor *btor, BtorNode *exp)
 
   assert (btor);
   assert (exp);
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_simplify_exp (btor, exp);
 
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
@@ -74,7 +74,7 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_simplify_exp (btor, exp);
 
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
@@ -98,7 +98,7 @@ is_const_ones_exp (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_simplify_exp (btor, exp);
 
   if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
 
@@ -130,7 +130,7 @@ is_xor_exp (Btor *btor, BtorNode *exp)
 
   assert (btor);
   assert (exp);
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_simplify_exp (btor, exp);
   (void) btor;
 
   if (BTOR_REAL_ADDR_NODE (exp)->kind != BTOR_AND_NODE) return 0;
@@ -181,7 +181,7 @@ is_xnor_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_simplify_exp (btor, exp);
   return is_xor_exp (btor, BTOR_INVERT_NODE (exp));
 }
 
@@ -206,7 +206,7 @@ btor_rewrite_slice_exp (Btor *btor, BtorNode *exp, int upper, int lower)
   char *bits = 0;
   int len;
 
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  exp = btor_simplify_exp (btor, exp);
   assert (btor_precond_slice_exp_dbg (btor, exp, upper, lower));
   assert (btor->rewrite_level > 0);
 
@@ -359,8 +359,8 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
   char tmpString[2] = {'\0', '\0'};
   int pos, len;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor);
   assert (btor->rewrite_level > 0);
   assert (BTOR_IS_BINARY_NODE_KIND (kind));
@@ -1060,8 +1060,8 @@ is_always_unequal (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *real_e0, *real_e1;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor);
   assert (e0);
   assert (e1);
@@ -1380,8 +1380,8 @@ btor_rewrite_and_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 BTOR_NODE_TWO_LEVEL_OPT_TRY_AGAIN:
   /* two level optimization [MEMICS] for BTOR_AND_NODE */
   assert (!normalized);
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
 
   real_e0 = BTOR_REAL_ADDR_NODE (e0);
@@ -1973,8 +1973,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNodeKind kind;
   int upper, lower;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_eq_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -2490,8 +2490,8 @@ btor_rewrite_add_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result, *e0_norm, *e1_norm, *temp;
   int normalized;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -2649,8 +2649,8 @@ btor_rewrite_mul_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result, *left, *right;
   int normalized;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -2800,8 +2800,8 @@ btor_rewrite_ult_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result, *e0_norm, *e1_norm, *temp;
   int normalized;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -2894,8 +2894,8 @@ btor_rewrite_sll_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
   result = rewrite_binary_exp (btor, BTOR_SLL_NODE, e0, e1);
@@ -2909,8 +2909,8 @@ btor_rewrite_srl_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
 {
   BtorNode *result;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_shift_exp_dbg (btor, e0, e1));
   result = rewrite_binary_exp (btor, BTOR_SRL_NODE, e0, e1);
   if (!result) result = btor_srl_exp_node (btor, e0, e1);
@@ -2924,8 +2924,8 @@ btor_rewrite_udiv_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result, *e0_norm, *e1_norm;
   int normalized;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -2990,8 +2990,8 @@ btor_rewrite_urem_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorNode *result, *e0_norm, *e1_norm;
   int normalized;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_regular_binary_bv_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -3070,8 +3070,8 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BtorMemMgr *mm;
   int i;
 
-  e0 = btor_pointer_chase_simplified_exp (btor, e0);
-  e1 = btor_pointer_chase_simplified_exp (btor, e1);
+  e0 = btor_simplify_exp (btor, e0);
+  e1 = btor_simplify_exp (btor, e1);
   assert (btor_precond_concat_exp_dbg (btor, e0, e1));
   assert (btor->rewrite_level > 0);
 
@@ -3311,8 +3311,8 @@ btor_rewrite_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 
   /* no recurisve rewrite calls here, so we do not need to check bounds */
 
-  e_array = btor_pointer_chase_simplified_exp (btor, e_array);
-  e_index = btor_pointer_chase_simplified_exp (btor, e_index);
+  e_array = btor_simplify_exp (btor, e_array);
+  e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
   assert (btor->rewrite_level > 0);
 
@@ -3379,9 +3379,9 @@ btor_rewrite_write_exp (Btor *btor,
 
   /* no recurisve rewrite calls here, so we do not need to check bounds */
 
-  e_array = btor_pointer_chase_simplified_exp (btor, e_array);
-  e_index = btor_pointer_chase_simplified_exp (btor, e_index);
-  e_value = btor_pointer_chase_simplified_exp (btor, e_value);
+  e_array = btor_simplify_exp (btor, e_array);
+  e_index = btor_simplify_exp (btor, e_index);
+  e_value = btor_simplify_exp (btor, e_value);
   assert (btor_precond_write_exp_dbg (btor, e_array, e_index, e_value));
   assert (btor->rewrite_level > 0);
 
@@ -3489,9 +3489,9 @@ btor_rewrite_cond_exp (Btor *btor,
 
 RESTART:
 
-  e_cond = btor_pointer_chase_simplified_exp (btor, e_cond);
-  e_if   = btor_pointer_chase_simplified_exp (btor, e_if);
-  e_else = btor_pointer_chase_simplified_exp (btor, e_else);
+  e_cond = btor_simplify_exp (btor, e_cond);
+  e_if   = btor_simplify_exp (btor, e_if);
+  e_else = btor_simplify_exp (btor, e_else);
   assert (btor_precond_cond_exp_dbg (btor, e_cond, e_if, e_else));
   assert (btor->rewrite_level > 0);
 

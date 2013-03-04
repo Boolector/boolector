@@ -450,7 +450,7 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorParseResult *parse_res)
   for (i = 0; i < parse_res->ninputs; i++)
   {
     var  = parse_res->inputs[i];
-    temp = btor_pointer_chase_simplified_exp (btor, var);
+    temp = btor_simplify_exp (btor, var);
     if (BTOR_IS_ARRAY_NODE (temp))
       print_array_assignment (app, btor, var);
     else
