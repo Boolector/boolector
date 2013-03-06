@@ -12275,6 +12275,16 @@ synthesize_all_array_rhs (Btor *btor)
   }
 }
 
+static void
+synthesize_all_reads (Btor *btor)
+{
+  BtorNode *n;
+  unsigned i;
+  for (i = 0; i < btor->nodes_unique_table.size; i++)
+    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
+      if (BTOR_IS_READ_NODE (n)) synthesize_exp (btor, n, 0);
+}
+
 static int
 btor_sat_aux_btor (Btor *btor)
 {
@@ -12323,6 +12333,7 @@ btor_sat_aux_btor (Btor *btor)
     {
       synthesize_all_var_rhs (btor);
       synthesize_all_array_rhs (btor);
+      synthesize_all_reads (btor);
     }
 
   } while (btor->unsynthesized_constraints->count > 0);
