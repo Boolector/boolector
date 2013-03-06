@@ -340,7 +340,6 @@ struct Btor
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
   BtorPtrHashTable *lambdas;
-  BtorPtrHashTable *aconds;
   BtorNode *true_exp;
   // TODO do we need this more often than just for beta_reduce? */
   BtorPtrHashTable *aux_hash_table; /* hash table for temporary use */

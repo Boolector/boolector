@@ -1136,9 +1136,7 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
       break;
     case BTOR_READ_NODE: break;
     case BTOR_WRITE_NODE: break;
-    case BTOR_ACOND_NODE:
-      btor_remove_from_ptr_hash_table (btor->aconds, exp, 0, 0);
-      break;
+    case BTOR_ACOND_NODE: break;
     case BTOR_LAMBDA_NODE:
       btor_remove_from_ptr_hash_table (btor->lambdas, exp, 0, 0);
       break;
@@ -2545,6 +2543,7 @@ update_constraints (Btor *btor, BtorNode *exp)
   assert (exp->simplified);
   assert (!BTOR_REAL_ADDR_NODE (exp->simplified)->simplified);
   assert (exp->constraint);
+  assert (exp->refs > 1);
 
   not_exp                   = BTOR_INVERT_NODE (exp);
   simplified                = exp->simplified;
@@ -2596,8 +2595,6 @@ update_constraints (Btor *btor, BtorNode *exp)
     neg = synthesized_constraints;
   }
 
-  exp->constraint = 0;
-
   if (pos)
   {
     btor_remove_from_ptr_hash_table (pos, exp, 0, 0);
@@ -2609,6 +2606,8 @@ update_constraints (Btor *btor, BtorNode *exp)
     btor_remove_from_ptr_hash_table (neg, not_exp, 0, 0);
     btor_release_exp (btor, not_exp);
   }
+
+  exp->constraint = 0;
 }
 
 static void
@@ -3112,9 +3111,6 @@ new_acond_exp_node (Btor *btor,
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
   connect_child_exp (btor, exp, a_else, 2);
-
-  if (!btor_find_in_ptr_hash_table (btor->aconds, exp))
-    (void) btor_insert_in_ptr_hash_table (btor->aconds, exp);
 
   return exp;
 }
@@ -5955,9 +5951,7 @@ btor_new_btor (void)
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->aconds            = btor_new_ptr_hash_table (mm,
-                                          (BtorHashPtr) btor_hash_exp_by_id,
-                                          (BtorCmpPtr) btor_compare_exp_by_id);
+
   btor->bv_lambda_id      = 1;
   btor->array_lambda_id   = 1;
   btor->valid_assignments = 1;
@@ -6251,7 +6245,6 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->array_vars);
   btor_delete_ptr_hash_table (btor->lambdas);
   btor_delete_ptr_hash_table (btor->aux_hash_table);
-  btor_delete_ptr_hash_table (btor->aconds);
 
   btor_delete_aigvec_mgr (btor->avmgr);
 
@@ -8190,6 +8183,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur = BTOR_POP_STACK (work_stack);
+    // TODO: use btor_pointer_chase_simplified_exp if it is a constraint
     /* we do not get the simplification of top level read contraints */
     if (!BTOR_REAL_ADDR_NODE (cur)->constraint
         || !BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (cur)))
@@ -8620,7 +8614,6 @@ find_nodes_dfs (Btor *btor,
   assert (btor);
   assert (exp);
   assert (results);
-  assert (BTOR_EMPTY_STACK (*results));
   assert (findfun);
 
   int i;
@@ -10336,7 +10329,7 @@ BTOR_NORMALIZE_SUBST_RESULT:
 static void
 insert_new_constraint (Btor *btor, BtorNode *exp)
 {
-  BtorNode *left, *right, *exp_true, *real_exp;
+  BtorNode *left, *right, *real_exp;
   assert (btor);
   assert (exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
@@ -11895,9 +11888,11 @@ rewrite_writes_to_lambda_exp (Btor *btor)
         for (i = exp->arity - 1; i >= 0; i--)
           BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
 
-        if (BTOR_IS_WRITE_NODE (exp)
-            && !btor_find_in_ptr_hash_table (writes, exp))
+        if (BTOR_IS_WRITE_NODE (exp))
+        {
+          assert (!btor_find_in_ptr_hash_table (writes, exp));
           btor_insert_in_ptr_hash_table (writes, exp);
+        }
       }
     }
   }
@@ -11927,62 +11922,100 @@ rewrite_reads_on_aconds (Btor *btor)
 {
   assert (btor);
 
-  int i;
-  BtorPtrHashTable *reads, *param_reads;
+  int i, j;
+  BtorPtrHashTable *reads, *param_reads, *roots = 0;
   BtorPtrHashBucket *b;
-  BtorNodePtrQueue queue;
-  BtorNode *read, *read_simp, *acond, *e[3], *read_then, *read_else;
+  BtorNodePtrStack aconds, root_exps, work_stack, unmark_stack;
+  BtorNode *exp, *read, *read_simp, *acond, *e[3], *read_then, *read_else;
   BtorPartialParentIterator it;
+  BtorMemMgr *mm;
 
-  if (btor->aconds->count == 0) return;
+  if (btor->ops[BTOR_ACOND_NODE] == 0) return;
 
-  BTOR_INIT_QUEUE (queue);
+  mm = btor->mm;
+  BTOR_INIT_STACK (aconds);
+  BTOR_INIT_STACK (root_exps);
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
 
-  reads = btor_new_ptr_hash_table (btor->mm,
+  reads = btor_new_ptr_hash_table (mm,
                                    (BtorHashPtr) btor_hash_exp_by_id,
                                    (BtorCmpPtr) btor_compare_exp_by_id);
 
-  param_reads = btor_new_ptr_hash_table (btor->mm,
+  param_reads = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
-  for (b = btor->aconds->first; b; b = b->next)
+  /* collect aconds */
+  for (;;)
   {
-    acond = (BtorNode *) b->key;
-    assert (BTOR_IS_REGULAR_NODE (acond));
-    assert (BTOR_IS_ARRAY_COND_NODE (acond));
-    BTOR_ENQUEUE (btor->mm, queue, acond);
+    if (!roots)
+      roots = btor->unsynthesized_constraints;
+    else if (roots == btor->unsynthesized_constraints)
+      roots = btor->synthesized_constraints;
+    else
+      break;
+
+    for (b = roots->first; b; b = b->next)
+    {
+      exp = (BtorNode *) b->key;
+      BTOR_PUSH_STACK (mm, root_exps, btor_copy_exp (btor, exp));
+      BTOR_PUSH_STACK (mm, work_stack, exp);
+
+      while (!BTOR_EMPTY_STACK (work_stack))
+      {
+        exp = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+        assert (exp);
+
+        if (exp->mark) continue;
+
+        exp->mark = 1;
+        BTOR_PUSH_STACK (mm, unmark_stack, exp);
+
+        for (i = 0; i < exp->arity; i++)
+          BTOR_PUSH_STACK (mm, work_stack, exp->e[i]);
+
+        if (BTOR_IS_ARRAY_COND_NODE (exp)) BTOR_PUSH_STACK (mm, aconds, exp);
+      }
+    }
   }
 
-  /* collect reads */
-  while (!BTOR_EMPTY_QUEUE (queue))
+  while (!BTOR_EMPTY_STACK (unmark_stack))
   {
-    acond = BTOR_DEQUEUE (queue);
+    exp = BTOR_POP_STACK (unmark_stack);
+    assert (exp);
+    assert (exp->mark);
+    exp->mark = 0;
+  }
+
+  /* rewrite aconds */
+  for (i = 0; i < BTOR_COUNT_STACK (aconds); i++)
+  {
+    acond = aconds.start[i];
     assert (BTOR_IS_REGULAR_NODE (acond));
 
-    for (i = 0; i < acond->arity; i++) e[i] = acond->e[i];
+    for (j = 0; j < acond->arity; j++) e[j] = acond->e[j];
 
-    // TODO: use refs
-    if (acond->refs > 1)  //! has_num_parents_dbg (acond, 1))
-      continue;
+    if (acond->refs > 2) continue;
 
     init_read_parent_iterator (&it, acond);
-    if (!has_next_parent_read_parent_iterator (&it))
-    {
-      BTOR_ENQUEUE (btor->mm, queue, acond);
-      continue;
-    }
-
     while (has_next_parent_read_parent_iterator (&it))
     {
-      read = next_parent_read_parent_iterator (&it);
+      /* we do not want the simplification from constraints here */
+      read = btor_pointer_chase_simplified_exp (
+          btor, next_parent_read_parent_iterator (&it));
 
+      if (!BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (read))) continue;
+
+      assert (read->e[0] == acond);
       assert (!btor_find_in_ptr_hash_table (reads, read));
       btor_insert_in_ptr_hash_table (reads, read);
 
       read_then = btor_read_exp (btor, e[1], read->e[1]);
       read_else = btor_read_exp (btor, e[2], read->e[1]);
       read_simp = btor_cond_exp (btor, e[0], read_then, read_else);
+
+      assert (!read->simplified);
       set_simplified_exp (btor, read, read_simp);
 
       if (BTOR_REAL_ADDR_NODE (read_then)->parameterized
@@ -12011,7 +12044,17 @@ rewrite_reads_on_aconds (Btor *btor)
   btor_delete_ptr_hash_table (param_reads);
   btor_delete_ptr_hash_table (reads);
 
-  BTOR_RELEASE_QUEUE (btor->mm, queue);
+  while (!BTOR_EMPTY_STACK (root_exps))
+  {
+    exp = BTOR_POP_STACK (root_exps);
+    assert (exp);
+    btor_release_exp (btor, exp);
+  }
+
+  BTOR_RELEASE_STACK (mm, aconds);
+  BTOR_RELEASE_STACK (mm, root_exps);
+  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
 }
 
 static void
@@ -12093,11 +12136,12 @@ run_rewrite_engine (Btor *btor)
       assert (check_all_hash_tables_simp_free_dbg (btor));
       assert (btor->ops[BTOR_WRITE_NODE] == 0);
 
-      //	  rewrite_reads_on_aconds (btor);
-      ////	  TODO: function for finding lambda chains, after aconds
-      /// rewrite, merge lambda chains ?
-      //	  assert (check_all_hash_tables_proxy_free_dbg (btor));
-      ////	  assert (btor->ops[BTOR_ACOND_NODE] == 0);
+      //	  TODO: function for finding lambda chains, after aconds
+      // rewrite, merge lambda chains ?
+      rewrite_reads_on_aconds (btor);
+      assert (check_all_hash_tables_proxy_free_dbg (btor));
+      assert (check_all_hash_tables_simp_free_dbg (btor));
+      //	  assert (btor->ops[BTOR_ACOND_NODE] == 0);
     }
 
     if (btor->varsubst_constraints->count) continue;
@@ -12263,10 +12307,10 @@ btor_sat_aux_btor (Btor *btor)
   do
   {
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    //    assert (check_all_hash_tables_simp_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
     found_constraint_false = process_unsynthesized_constraints (btor);
     assert (check_all_hash_tables_proxy_free_dbg (btor));
-    //    assert (check_all_hash_tables_simp_free_dbg (btor));
+    assert (check_all_hash_tables_simp_free_dbg (btor));
 
     if (found_constraint_false)
     {
