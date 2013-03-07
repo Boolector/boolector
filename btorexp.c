@@ -1142,11 +1142,6 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
       break;
     default: break;
   }
-
-  /* Note: Do not remove from aux_hash_table! aux_hash_table is for
-   *       temporary use only -> expressions should only be removed if
-   *       aux_hash_table would otherwise be inconsistent (btor_release_exp).
-   *       Else this should be handled locally.  */
 }
 
 /* Disconnect children of expression in parent list and if applicable from
@@ -1362,10 +1357,6 @@ recursively_release_exp (Btor *btor, BtorNode *root)
        * on the stack and will be released later if necessary.
        */
       remove_from_hash_tables (btor, cur);
-      /* if aux_hash_table is in use and cur is released, we have to
-       * remove it, otherwise aux_hash_table is inconsistent */
-      if (btor_find_in_ptr_hash_table (btor->aux_hash_table, cur))
-        btor_remove_from_ptr_hash_table (btor->aux_hash_table, cur, 0, 0);
       disconnect_children_exp (btor, cur);
       really_deallocate_exp (btor, cur);
     }
@@ -5947,10 +5938,6 @@ btor_new_btor (void)
   btor->lambdas = btor_new_ptr_hash_table (mm,
                                            (BtorHashPtr) btor_hash_exp_by_id,
                                            (BtorCmpPtr) btor_compare_exp_by_id);
-  btor->aux_hash_table =
-      btor_new_ptr_hash_table (mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
 
   btor->bv_lambda_id      = 1;
   btor->array_lambda_id   = 1;
@@ -6244,7 +6231,6 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
   btor_delete_ptr_hash_table (btor->lambdas);
-  btor_delete_ptr_hash_table (btor->aux_hash_table);
 
   btor_delete_aigvec_mgr (btor->avmgr);
 
@@ -10405,9 +10391,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 
   assert (btor);
   assert (exp);
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
   exp = btor_simplify_exp (btor, exp);
-  BTORLOG ("  -> %s (%d)", node2string (exp), BTOR_IS_INVERTED_NODE (exp));
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
 
@@ -11008,6 +10992,9 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   for (b = subst->first; b; b = b->next)
   {
     cur = (BtorNode *) b->key;
+    assert (!BTOR_REAL_ADDR_NODE (cur)->mark);
+    if (rww || rwr)
+      BTOR_REAL_ADDR_NODE (cur)->mark = 1; /* mark as node in subst */
     BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur));
   }
   while (!BTOR_EMPTY_STACK (stack))
@@ -11059,18 +11046,21 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
       cur->aux_mark = 0;
 
       /* we only have to rewrite reads/writes if cur is in subst */
-      if (rww && BTOR_IS_WRITE_NODE (cur)
-          && btor_find_in_ptr_hash_table (subst, cur))
+      if (rww && BTOR_IS_WRITE_NODE (cur) && cur->mark)
       {
+        cur->mark   = 0;
         rebuilt_exp = rewrite_write_to_lambda_exp (btor, cur);
       }
-      else if (rwr && BTOR_IS_READ_NODE (cur)
-               && btor_find_in_ptr_hash_table (subst, cur))
+      else if (rwr && BTOR_IS_READ_NODE (cur) && cur->mark)
       {
+        cur->mark   = 0;
         rebuilt_exp = beta_reduce (btor, cur, BETA_RED_FULL, 0);
       }
       else
+      {
+        assert (!cur->mark);
         rebuilt_exp = rebuild_exp (btor, cur);
+      }
 
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
@@ -11851,14 +11841,17 @@ rewrite_writes_to_lambda_exp (Btor *btor)
   BtorPtrHashBucket *b;
   BtorNode *exp;
   BtorNodePtrStack work_stack, unmark_stack;
+  BtorMemMgr *mm;
 
   if (btor->ops[BTOR_WRITE_NODE] == 0) return;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
-  writes = btor->aux_hash_table;
-  assert (writes->count == 0);
+  mm     = btor->mm;
+  writes = btor_new_ptr_hash_table (mm,
+                                    (BtorHashPtr) btor_hash_exp_by_id,
+                                    (BtorCmpPtr) btor_compare_exp_by_id);
 
   for (;;)
   {
@@ -11872,7 +11865,7 @@ rewrite_writes_to_lambda_exp (Btor *btor)
     for (b = roots->first; b; b = b->next)
     {
       exp = b->key;
-      BTOR_PUSH_STACK (btor->mm, work_stack, exp);
+      BTOR_PUSH_STACK (mm, work_stack, exp);
 
       /* collect writes */
       while (!BTOR_EMPTY_STACK (work_stack))
@@ -11884,9 +11877,9 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 
         assert (exp->mark == 0);
         exp->mark = 1;
-        BTOR_PUSH_STACK (btor->mm, unmark_stack, exp);
+        BTOR_PUSH_STACK (mm, unmark_stack, exp);
         for (i = exp->arity - 1; i >= 0; i--)
-          BTOR_PUSH_STACK (btor->mm, work_stack, exp->e[i]);
+          BTOR_PUSH_STACK (mm, work_stack, exp->e[i]);
 
         if (BTOR_IS_WRITE_NODE (exp))
         {
@@ -11907,14 +11900,71 @@ rewrite_writes_to_lambda_exp (Btor *btor)
 
   substitute_and_rebuild (btor, writes, 1, 0);
 
-  BTOR_RELEASE_STACK (btor->mm, work_stack);
-  BTOR_RELEASE_STACK (btor->mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (mm, unmark_stack);
 
-  btor_delete_ptr_hash_table (btor->aux_hash_table);
-  btor->aux_hash_table =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+  btor_delete_ptr_hash_table (writes);
+}
+
+static void
+beta_reduce_reads_on_lambdas (Btor *btor)
+{
+  assert (btor);
+
+  BtorPtrHashTable *reads;
+  BtorPtrHashBucket *b;
+  BtorNode *read, *lambda;
+  BtorPartialParentIterator it;
+  BtorMemMgr *mm;
+
+  if (btor->lambdas->count == 0) return;
+
+  mm    = btor->mm;
+  reads = btor_new_ptr_hash_table (mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
+
+  /* collect reads */
+  for (b = btor->lambdas->first; b; b = b->next)
+  {
+    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
+    init_read_parent_iterator (&it, lambda);
+    while (has_next_parent_read_parent_iterator (&it))
+    {
+      read = next_parent_read_parent_iterator (&it);
+
+      if (btor_find_in_ptr_hash_table (reads, read)) continue;
+
+      if (!read->parameterized || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
+      {
+        assert (!read->parameterized || has_num_parents_dbg (read->e[0], 1));
+        btor_insert_in_ptr_hash_table (reads, read);
+      }
+    }
+  }
+
+#if 1
+  assert (!btor->cache);
+  btor->cache = btor_new_ptr_hash_table (
+      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
+#endif
+
+  substitute_and_rebuild (btor, reads, 0, 1);
+
+#if 1
+  BtorPtrHashBucket *bucket;
+  BtorNodePair *pair;
+  for (bucket = btor->cache->first; bucket; bucket = bucket->next)
+  {
+    pair = (BtorNodePair *) bucket->key;
+    btor_release_exp (btor, (BtorNode *) bucket->data.asPtr);
+    delete_exp_pair (btor, pair);
+  }
+  btor_delete_ptr_hash_table (btor->cache);
+  btor->cache = 0;
+#endif
+
+  btor_delete_ptr_hash_table (reads);
 }
 
 static void
@@ -12190,71 +12240,6 @@ synthesize_all_var_rhs (Btor *btor)
       real_cur->tseitin = 1;
     }
   }
-}
-
-// TODO: beta-reduce reads on aconds?
-static void
-beta_reduce_reads_on_lambdas (Btor *btor)
-{
-  assert (btor);
-
-  BtorPtrHashTable *reads;
-  BtorPtrHashBucket *b;
-  BtorNode *read, *lambda;
-  BtorPartialParentIterator it;
-
-  if (btor->lambdas->count == 0) return;
-
-  reads = btor->aux_hash_table;
-  assert (reads->count == 0);
-
-  /* collect reads */
-  for (b = btor->lambdas->first; b; b = b->next)
-  {
-    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
-    init_read_parent_iterator (&it, lambda);
-    while (has_next_parent_read_parent_iterator (&it))
-    {
-      read = next_parent_read_parent_iterator (&it);
-
-      if (btor_find_in_ptr_hash_table (reads, read)) continue;
-
-      if (!read->parameterized || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
-      {
-        assert (!read->parameterized || has_num_parents_dbg (read->e[0], 1));
-        btor_insert_in_ptr_hash_table (reads, read);
-      }
-    }
-  }
-
-#if 1
-  assert (!btor->cache);
-  btor->cache = btor_new_ptr_hash_table (
-      btor->mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-#endif
-
-  substitute_and_rebuild (btor, reads, 0, 1);
-
-#if 1
-  BtorPtrHashBucket *bucket;
-  BtorNodePair *pair;
-  for (bucket = btor->cache->first; bucket; bucket = bucket->next)
-  {
-    pair = (BtorNodePair *) bucket->key;
-    btor_release_exp (btor, (BtorNode *) bucket->data.asPtr);
-    delete_exp_pair (btor, pair);
-  }
-  btor_delete_ptr_hash_table (btor->cache);
-  btor->cache = 0;
-#endif
-
-  assert (reads->count == 0);
-
-  btor_delete_ptr_hash_table (btor->aux_hash_table);
-  btor->aux_hash_table =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 static void
