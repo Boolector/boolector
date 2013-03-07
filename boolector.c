@@ -129,6 +129,13 @@ boolector_enable_model_gen (Btor *btor)
 }
 
 void
+boolector_generate_model_for_all_reads (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  btor_generate_model_for_all_reads (btor);
+}
+
+void
 boolector_enable_inc_usage (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);

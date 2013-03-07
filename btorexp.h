@@ -365,6 +365,8 @@ struct Btor
   int rewrite_reads;        /* rewrite reads on lambda expressions */
   int pprint;               /* reindex exps when dumping */
 
+  int generate_model_for_all_reads;
+
   BtorPtrHashTable *exp_pair_eq_table;
   BtorPtrHashTable *exp_pair_and_table;
 
@@ -568,6 +570,9 @@ Btor *btor_clone_btor (Btor *);
 
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
+
+/* Forces all reads to be synthesized during model generation. */
+void btor_generate_model_for_all_reads (Btor *btor);
 
 /* Enable rewriting of writes to lambda expressions. */
 void btor_enable_rewrite_writes (Btor *btor);

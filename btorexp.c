@@ -6020,6 +6020,13 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   btor->rewrite_level = rewrite_level;
 }
 
+void
+btor_generate_model_for_all_reads (Btor *btor)
+{
+  assert (btor);
+  btor->generate_model_for_all_reads = 1;
+}
+
 int
 btor_set_sat_solver (Btor *btor, const char *solver)
 {
@@ -12333,7 +12340,7 @@ btor_sat_aux_btor (Btor *btor)
     {
       synthesize_all_var_rhs (btor);
       synthesize_all_array_rhs (btor);
-      synthesize_all_reads (btor);
+      if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
     }
 
   } while (btor->unsynthesized_constraints->count > 0);
