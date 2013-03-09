@@ -159,9 +159,9 @@ boolector_delete_mc (BtorMC *mc)
   while (!BTOR_EMPTY_STACK (mc->bad))
     btor_release_exp (btor, BTOR_POP_STACK (mc->bad));
   BTOR_RELEASE_STACK (mm, mc->bad);
-  BTOR_DELETE (mm, mc);
   if (mc->forward) boolector_delete (mc->forward);
   boolector_delete (btor);
+  BTOR_DELETE (mm, mc);
 }
 
 Btor *
@@ -290,6 +290,9 @@ boolector_bad (BtorMC *mc, BtorNode *bad)
 {
   int res;
   assert (mc);
+  assert (bad);
+  assert (!btor_is_array_exp (mc->btor, bad));
+  assert (btor_get_exp_len (mc->btor, bad) == 1);
   res = BTOR_COUNT_STACK (mc->bad);
   (void) btor_copy_exp (mc->btor, bad);
   BTOR_PUSH_STACK (mc->btor->mm, mc->bad, bad);
@@ -539,6 +542,7 @@ initialize_new_forward_frame (BtorMC *mc)
     btor_msg_mc (mc, 1, "new forward manager");
     mc->forward = btor_new_btor ();
     btor_enable_inc_usage (mc->forward);
+    btor_enable_model_gen (mc->forward);
     if (mc->verbosity) btor_set_verbosity_btor (mc->forward, mc->verbosity);
   }
   f->btor = mc->forward;
@@ -557,6 +561,43 @@ initialize_new_forward_frame (BtorMC *mc)
 
   k = BTOR_COUNT_STACK (mc->frames);
   btor_msg_mc (mc, 1, "initialized forward frame at bound k = %d", k);
+}
+
+static void
+print_trace (BtorMC *mc, int p, int k)
+{
+  const char *symbol;
+  BtorNode *node;
+  BtorMcFrame *f;
+  char buffer[30];
+  char *a;
+  int i, j;
+
+  printf ("bad state property %d at bound k = %d satisfiable:\n", p, k);
+
+  for (i = 0; i <= k; i++)
+  {
+    printf ("\n");
+    printf ("[ state %d ]\n", i);
+    printf ("\n");
+
+    f = mc->frames.start + i;
+    for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
+    {
+      node = BTOR_PEEK_STACK (f->inputs, j);
+      a    = boolector_bv_assignment (f->btor, node);
+      if (node->symbol)
+        symbol = node->symbol;
+      else
+      {
+        sprintf (buffer, "input%d@%d", j, i);
+        symbol = buffer;
+      }
+      printf ("%s = %s\n", symbol, a);
+      boolector_free_bv_assignment (f->btor, a);
+    }
+  }
+  fflush (stdout);
 }
 
 static int
@@ -588,6 +629,7 @@ check_last_forward_frame (BtorMC *mc)
     {
       btor_msg_mc (
           mc, 1, "bad state property %d at bound k = %d SATISFIABLE", i, k);
+      print_trace (mc, i, k);
       satisfied++;
     }
     else
@@ -601,8 +643,8 @@ check_last_forward_frame (BtorMC *mc)
   btor_msg_mc (mc,
                1,
                "found %d satisfiable bad state properties at bound k = %d",
-               k,
-               satisfied);
+               satisfied,
+               k);
 
   return satisfied;
 }

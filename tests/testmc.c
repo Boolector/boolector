@@ -45,15 +45,17 @@ test_count2_mc ()
   BtorNode *add      = boolector_add (g_btor, counter, one);
   BtorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
   BtorNode *ifreset  = boolector_cond (g_btor, reset, ifenable, zero);
+  BtorNode *bad      = boolector_eq (g_btor, counter, three);
   boolector_next (g_mc, counter, ifreset);
   boolector_init (g_mc, counter, zero);
-  boolector_bad (g_mc, three);
+  boolector_bad (g_mc, bad);
   boolector_release (g_btor, one);
   boolector_release (g_btor, zero);
   boolector_release (g_btor, three);
   boolector_release (g_btor, add);
   boolector_release (g_btor, ifenable);
   boolector_release (g_btor, ifreset);
+  boolector_release (g_btor, bad);
   assert (boolector_bmc (g_mc, 1) < 0);
   assert (boolector_bmc (g_mc, 3) == 3);
 }
