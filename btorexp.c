@@ -507,7 +507,8 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
 {
   va_list ap;
   fputs ("[btorexp] ", stdout);
-  if (btor->inc_enabled && btor->msgtick >= 0) printf ("%d : ", btor->msgtick);
+  if (btor->inc_enabled && btor->msgtick >= 0)
+    printf ("%d : ", (int) btor->msgtick);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -12286,7 +12287,7 @@ static void
 synthesize_all_reads (Btor *btor)
 {
   BtorNode *n;
-  unsigned i;
+  int i;
   for (i = 0; i < btor->nodes_unique_table.size; i++)
     for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
       if (BTOR_IS_READ_NODE (n)) synthesize_exp (btor, n, 0);

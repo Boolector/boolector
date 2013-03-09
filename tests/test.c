@@ -145,6 +145,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (inc);
   BTOR_RUN_TESTS (modelgen);
   BTOR_RUN_TESTS (parseerror);
+  BTOR_RUN_TESTS (mc);
   finish_tests ();
   return 0;
 }
