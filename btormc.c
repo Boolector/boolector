@@ -538,6 +538,7 @@ initialize_new_forward_frame (BtorMC *mc)
   {
     btor_msg_mc (mc, 1, "new forward manager");
     mc->forward = btor_new_btor ();
+    btor_enable_inc_usage (mc->forward);
     if (mc->verbosity) btor_set_verbosity_btor (mc->forward, mc->verbosity);
   }
   f->btor = mc->forward;
