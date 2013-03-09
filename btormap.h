@@ -14,8 +14,8 @@
 /*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non
  * zero 'src' and 'dst' nodes added in 'btor_map_node'.  Succesful look-up
- * through 'btor_mapped_node' does not add a reference.  The desctructor
- * releases all the owned references.
+ * through 'btor_mapped_node' does not add a reference.  The destructor
+ * releases all the owned references.  Mapping is signed.
  */
 typedef struct BtorPtrHashTable BtorNodeMap;
 
@@ -28,7 +28,9 @@ void btor_delete_node_map (Btor *, BtorNodeMap *);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *btor_substitute_node (Btor *, BtorMap *assignment, BtorNode *);
+BtorNode *btor_non_recursive_substitute_node (Btor *,
+                                              BtorNodeMap *,
+                                              BtorNode *);
 
 /*------------------------------------------------------------------------*/
 

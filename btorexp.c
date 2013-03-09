@@ -3122,7 +3122,7 @@ unsigned int
 btor_hash_exp_by_id (BtorNode *exp)
 {
   assert (exp);
-  return (unsigned int) BTOR_REAL_ADDR_NODE (exp)->id * 7334147u;
+  return (unsigned int) BTOR_GET_ID_NODE (exp) * 7334147u;
 }
 
 /* Compares expressions by id */
