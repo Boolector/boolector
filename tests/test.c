@@ -28,6 +28,7 @@
 #include "testinc.h"
 #include "testlambda.h"
 #include "testlogic.h"
+#include "testmc.h"
 #include "testmem.h"
 #include "testmisc.h"
 #include "testmodelgen.h"
