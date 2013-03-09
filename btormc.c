@@ -57,6 +57,13 @@ boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
   mc->verbosity = verbosity;
 }
 
+Btor *
+boolector_btor_mc (BtorMC *mc)
+{
+  assert (mc);
+  return mc->btor;
+}
+
 static void
 btor_delete_mc_input (BtorMC *mc, BtorMcInput *input)
 {

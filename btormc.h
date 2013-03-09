@@ -19,6 +19,10 @@ void boolector_delete_mc (BtorMC *);
 
 /*------------------------------------------------------------------------*/
 
+Btor *boolector_btor_mc (BtorMC *);
+
+/*------------------------------------------------------------------------*/
+
 BtorNode *boolector_input (BtorMC *, int width, const char *);
 BtorNode *boolector_latch (BtorMC *, int width, const char *);
 void boolector_next (BtorMC *, BtorNode *latch, BtorNode *next);

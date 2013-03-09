@@ -668,7 +668,8 @@ find_sort (Btor *btor, BtorSort *pattern)
   return res;
 }
 
-static void
+// static // TODO remove comment and add back 'static'
+void
 enlarge_sorts_unique_table (Btor *btor)
 {
   BtorSort *cur, *temp, **new_chains;
@@ -6463,6 +6464,8 @@ btor_print_stats_btor (Btor *btor)
                 percent (btor->time.skel, btor->time.rewrite));
 #endif
 }
+
+/*------------------------------------------------------------------------*/
 
 BtorMemMgr *
 btor_get_mem_mgr_btor (const Btor *btor)
