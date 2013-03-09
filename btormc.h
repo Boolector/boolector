@@ -27,12 +27,11 @@ int boolector_bad (BtorMC *, BtorNode *bad);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *boolector_time_shift (BtorMC *mc, BtorNode *, int time);
-Btor *boolector_mc_btor (BtorMC *mc);
-
-/*------------------------------------------------------------------------*/
-
 int boolector_bmc (BtorMC *, int maxk);
+
+char *boolector_mc_assignment (BtorMC *, BtorNode *input_or_latch, int time);
+
+void boolector_free_mc_assignment (BtorMC *, char *);
 
 /*------------------------------------------------------------------------*/
 #endif
