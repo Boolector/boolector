@@ -24,7 +24,7 @@ void
 init_mc_tests (void)
 {
   g_mc = boolector_new_mc ();
-  boolector_set_verbosity_mc (g_mc, 2);
+  boolector_set_verbosity_mc (g_mc, 3);
   g_btor = boolector_btor_mc (g_mc);
 }
 

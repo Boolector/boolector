@@ -65,7 +65,7 @@ btor_map_node (Btor* btor, BtorNodeMap* map, BtorNode* src, BtorNode* dst)
 static BtorNode*
 map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
 {
-  BtorNode* m[3];
+  BtorNode *m[3], *src, *dst;
   int i;
 
   assert (btor);
@@ -74,8 +74,9 @@ map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
 
   for (i = 0; i < exp->arity; i++)
   {
-    m[i] = btor_mapped_node (map, exp);
-    assert (m[i]);
+    src  = exp->e[i];
+    dst  = btor_mapped_node (map, src);
+    m[i] = dst ? dst : src;
   }
 
   switch (exp->kind)
@@ -144,7 +145,7 @@ btor_non_recursive_substitute_node (Btor* btor,
   BTOR_RELEASE_STACK (mm, working_stack);
   while (!BTOR_EMPTY_STACK (marked_stack))
   {
-    node = BTOR_POP_STACK (working_stack);
+    node = BTOR_POP_STACK (marked_stack);
     assert (node->mark == 2);
     node->mark = 0;
   }

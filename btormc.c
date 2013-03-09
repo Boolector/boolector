@@ -109,24 +109,27 @@ btor_msg_mc (BtorMC *mc, int level, const char *fmt, ...)
 }
 
 static void
+release_frame_stack (BtorMcFrame *frame, BtorNodePtrStack *stack)
+{
+  BtorNode *node;
+
+  while (!BTOR_EMPTY_STACK (*stack))
+  {
+    node = BTOR_POP_STACK (*stack);
+    if (node) btor_release_exp (frame->btor, node);
+  }
+
+  BTOR_RELEASE_STACK (frame->btor->mm, *stack);
+}
+
+static void
 btor_release_mc_frame (BtorMcFrame *frame)
 {
-  Btor *btor = frame->btor;
-  while (!BTOR_EMPTY_STACK (frame->inputs))
-    btor_release_exp (btor, BTOR_POP_STACK (frame->inputs));
-  while (!BTOR_EMPTY_STACK (frame->latches))
-    btor_release_exp (btor, BTOR_POP_STACK (frame->init));
-  while (!BTOR_EMPTY_STACK (frame->init))
-    btor_release_exp (btor, BTOR_POP_STACK (frame->latches));
-  while (!BTOR_EMPTY_STACK (frame->next))
-    btor_release_exp (btor, BTOR_POP_STACK (frame->next));
-  while (!BTOR_EMPTY_STACK (frame->bad))
-    btor_release_exp (btor, BTOR_POP_STACK (frame->bad));
-  BTOR_RELEASE_STACK (btor->mm, frame->inputs);
-  BTOR_RELEASE_STACK (btor->mm, frame->init);
-  BTOR_RELEASE_STACK (btor->mm, frame->latches);
-  BTOR_RELEASE_STACK (btor->mm, frame->next);
-  BTOR_RELEASE_STACK (btor->mm, frame->bad);
+  release_frame_stack (frame, &frame->inputs);
+  release_frame_stack (frame, &frame->init);
+  release_frame_stack (frame, &frame->latches);
+  release_frame_stack (frame, &frame->next);
+  release_frame_stack (frame, &frame->bad);
 }
 
 void
