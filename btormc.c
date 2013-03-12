@@ -1,8 +1,32 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2013 Armin Biere.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
 #include "btormc.h"
+#include "btorabort.h"
 #include "btorexp.h"
 #include "btormap.h"
 
+/*------------------------------------------------------------------------*/
+
 #include <stdarg.h>
+
+/*------------------------------------------------------------------------*/
+
+#define BTOR_ABORT_IF_STATE(MC)                            \
+  do                                                       \
+  {                                                        \
+    BTOR_ABORT_BOOLECTOR ((MC)->state != BTOR_NO_MC_STATE, \
+                          "model checker was run before"); \
+  } while (0)
+
+/*------------------------------------------------------------------------*/
 
 typedef struct BtorMcInput
 {
@@ -16,6 +40,13 @@ typedef struct BtorMcLatch
   BtorNode *node, *next, *init;
 } BtorMcLatch;
 
+typedef enum BtorMcState
+{
+  BTOR_NO_MC_STATE    = 0,
+  BTOR_SAT_MC_STATE   = 10,
+  BTOR_UNSAT_MC_STATE = 20,
+} BtorMcState;
+
 typedef struct BtorMcFrame
 {
   int time;
@@ -27,13 +58,16 @@ BTOR_DECLARE_STACK (McFrame, BtorMcFrame);
 
 struct BtorMC
 {
-  int verbosity, initialized, nextstates;
+  BtorMcState state;
+  int verbosity, trace_enabled, initialized, nextstates;
   Btor *btor, *forward;
   BtorMcFrameStack frames;
   BtorPtrHashTable *inputs;
   BtorPtrHashTable *latches;
   BtorNodePtrStack bad;
 };
+
+/*------------------------------------------------------------------------*/
 
 BtorMC *
 boolector_new_mc (void)
@@ -50,20 +84,31 @@ boolector_new_mc (void)
   res->latches = btor_new_ptr_hash_table (mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
+  assert (res->state == BTOR_NO_MC_STATE);
   return res;
 }
 
 void
 boolector_set_verbosity_mc (BtorMC *mc, int verbosity)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   mc->verbosity = verbosity;
   btor_set_verbosity_btor (mc->btor, verbosity);
+}
+
+void
+boolector_enable_trace_gen (BtorMC *mc)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_IF_STATE (mc);
+  assert (!BTOR_COUNT_STACK (mc->frames));
+  mc->trace_enabled = 1;
 }
 
 Btor *
 boolector_btor_mc (BtorMC *mc)
 {
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   return mc->btor;
 }
 
@@ -139,7 +184,7 @@ boolector_delete_mc (BtorMC *mc)
   BtorMemMgr *mm;
   BtorMcFrame *f;
   Btor *btor;
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   btor_msg_mc (mc,
                1,
                "deleting model checker: %u inputs, %u latches, %u bad",
@@ -164,13 +209,6 @@ boolector_delete_mc (BtorMC *mc)
   BTOR_DELETE (mm, mc);
 }
 
-Btor *
-boolector_mc_btor (BtorMC *mc)
-{
-  assert (mc);
-  return mc->btor;
-}
-
 BtorNode *
 boolector_input (BtorMC *mc, int width, const char *name)
 {
@@ -179,8 +217,10 @@ boolector_input (BtorMC *mc, int width, const char *name)
   BtorMemMgr *mm;
   BtorNode *res;
   Btor *btor;
-  assert (1 <= width);
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_BOOLECTOR (mc->state != BTOR_NO_MC_STATE,
+                        "can only be called before checking");
+  BTOR_ABORT_BOOLECTOR (1 > width, "given width < 1");
   btor = mc->btor;
   mm   = btor->mm;
   res  = boolector_var (btor, width, name);
@@ -208,8 +248,10 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   BtorMemMgr *mm;
   BtorNode *res;
   Btor *btor;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_BOOLECTOR (mc->state != BTOR_NO_MC_STATE,
+                        "can only be callsed before checking");
   assert (1 <= width);
-  assert (mc);
   btor = mc->btor;
   mm   = btor->mm;
   res  = boolector_var (btor, width, name);
@@ -249,7 +291,8 @@ boolector_next (BtorMC *mc, BtorNode *node, BtorNode *next)
 {
   BtorMcLatch *latch;
   Btor *btor;
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_IF_STATE (mc);
   assert (node);
   assert (next);
   btor = mc->btor;
@@ -270,7 +313,8 @@ boolector_init (BtorMC *mc, BtorNode *node, BtorNode *init)
 {
   BtorMcLatch *latch;
   Btor *btor;
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_IF_STATE (mc);
   assert (node);
   assert (init);
   assert (BTOR_IS_BV_CONST_NODE (init));
@@ -289,7 +333,8 @@ int
 boolector_bad (BtorMC *mc, BtorNode *bad)
 {
   int res;
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_IF_STATE (mc);
   assert (bad);
   assert (!btor_is_array_exp (mc->btor, bad));
   assert (btor_get_exp_len (mc->btor, bad) == 1);
@@ -542,7 +587,7 @@ initialize_new_forward_frame (BtorMC *mc)
     btor_msg_mc (mc, 1, "new forward manager");
     mc->forward = btor_new_btor ();
     btor_enable_inc_usage (mc->forward);
-    btor_enable_model_gen (mc->forward);
+    if (mc->trace_enabled) btor_enable_model_gen (mc->forward);
     if (mc->verbosity) btor_set_verbosity_btor (mc->forward, mc->verbosity);
   }
   f->btor = mc->forward;
@@ -654,12 +699,25 @@ boolector_bmc (BtorMC *mc, int maxk)
 {
   int k;
 
-  assert (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+
+  // For debugging purposes temporarily reset it:
+  mc->state = BTOR_NO_MC_STATE;
+
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
   {
     initialize_new_forward_frame (mc);
-    if (check_last_forward_frame (mc)) return k;
+    if (check_last_forward_frame (mc))
+    {
+      btor_msg_mc (mc, 2, "entering SAT state");
+      mc->state = BTOR_SAT_MC_STATE;
+      assert (k >= 0);
+      return k;
+    }
   }
+
+  btor_msg_mc (mc, 2, "entering UNSAT state");
+  mc->state = BTOR_UNSAT_MC_STATE;
 
   return -1;
 }
@@ -667,16 +725,27 @@ boolector_bmc (BtorMC *mc, int maxk)
 char *
 boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
 {
-  assert (mc);
-  assert (node);
-  assert (0 <= time);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
+                        "model checker was not run before");
+  BTOR_ABORT_BOOLECTOR (mc->state == BTOR_UNSAT_MC_STATE,
+                        "model checking status is UNSAT");
+  assert (mc->state == BTOR_SAT_MC_STATE);
+  BTOR_ABORT_BOOLECTOR (!mc->trace_enabled,
+                        "'boolector_enable_trace_gen' was not called before");
+  assert (mc->state == BTOR_SAT_MC_STATE);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  BTOR_ABORT_BOOLECTOR (0 > time, "negative 'time' argument");
+  BTOR_ABORT_BOOLECTOR (time > BTOR_COUNT_STACK (mc->frames),
+                        "'time' exceeds previously returned bound");
+  assert (!BTOR_EMPTY_STACK (mc->frames));
   return 0;
 }
 
 void
 boolector_free_mc_assignment (BtorMC *mc, char *assignment)
 {
-  assert (mc);
-  assert (assignment);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_freestr (mc->btor->mm, assignment);
 }

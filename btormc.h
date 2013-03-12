@@ -14,8 +14,10 @@ typedef struct BtorMC BtorMC;
 /*------------------------------------------------------------------------*/
 
 BtorMC *boolector_new_mc (void);
-void boolector_set_verbosity_mc (BtorMC *, int verbosity);
 void boolector_delete_mc (BtorMC *);
+
+void boolector_set_verbosity_mc (BtorMC *, int verbosity);
+void boolector_enable_trace_gen (BtorMC *);
 
 /*------------------------------------------------------------------------*/
 

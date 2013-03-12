@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -10,87 +10,18 @@
  *  See COPYING for more information on using this software.
  */
 
+/*------------------------------------------------------------------------*/
+
 #include "boolector.h"
+#include "btorabort.h"
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorutil.h"
 
-#include <limits.h>
-#include <stdio.h>
-
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ABORT_BOOLECTOR(cond, msg)               \
-  do                                                  \
-  {                                                   \
-    if (cond)                                         \
-    {                                                 \
-      printf ("[boolector] %s: %s\n", __func__, msg); \
-      fflush (stdout);                                \
-      exit (BTOR_ERR_EXIT);                           \
-    }                                                 \
-  } while (0)
-
-#define BTOR_ABORT_ARG_NULL_BOOLECTOR(arg)      \
-  do                                            \
-  {                                             \
-    if ((arg) == NULL)                          \
-    {                                           \
-      printf ("[boolector] %s: ", __func__);    \
-      printf ("'%s' must not be NULL\n", #arg); \
-      fflush (stdout);                          \
-      exit (BTOR_ERR_EXIT);                     \
-    }                                           \
-  } while (0)
-
-#define BTOR_ABORT_REFS_NOT_POS_BOOLECTOR(arg)                      \
-  do                                                                \
-  {                                                                 \
-    if (BTOR_REAL_ADDR_NODE ((arg))->refs < 1)                      \
-    {                                                               \
-      printf ("[boolector] %s: ", __func__);                        \
-      printf ("reference counter of '%s' must not be < 1\n", #arg); \
-      fflush (stdout);                                              \
-      exit (BTOR_ERR_EXIT);                                         \
-    }                                                               \
-  } while (0)
-
-#define BTOR_ABORT_ARRAY_BOOLECTOR(arg)                   \
-  do                                                      \
-  {                                                       \
-    if (BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg)))) \
-    {                                                     \
-      printf ("[boolector] %s: ", __func__);              \
-      printf ("'%s' must not be an array\n", #arg);       \
-      fflush (stdout);                                    \
-      exit (BTOR_ERR_EXIT);                               \
-    }                                                     \
-  } while (0)
-
-#define BTOR_ABORT_BV_BOOLECTOR(arg)                       \
-  do                                                       \
-  {                                                        \
-    if (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE ((arg)))) \
-    {                                                      \
-      printf ("[boolector] %s: ", __func__);               \
-      printf ("'%s' must not be a bit-vector\n", #arg);    \
-      fflush (stdout);                                     \
-      exit (BTOR_ERR_EXIT);                                \
-    }                                                      \
-  } while (0)
-
-#define BTOR_ABORT_NE_BW(arg1, arg2)                                         \
-  do                                                                         \
-  {                                                                          \
-    if (BTOR_REAL_ADDR_NODE ((arg1))->len                                    \
-        != BTOR_REAL_ADDR_NODE ((arg2))->len)                                \
-    {                                                                        \
-      printf ("[boolector] %s: ", __func__);                                 \
-      printf (                                                               \
-          "bit-width of '%s' and '%s' must not be unequal\n", #arg1, #arg2); \
-      exit (BTOR_ERR_EXIT);                                                  \
-    }                                                                        \
-  } while (0)
+#include <limits.h>
+#include <stdio.h>
 
 /*------------------------------------------------------------------------*/
 
