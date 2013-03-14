@@ -701,7 +701,8 @@ boolector_bmc (BtorMC *mc, int maxk)
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
 
-  // For debugging purposes temporarily reset it:
+  // For debugging purposes temporarily reset the state.
+  //
   mc->state = BTOR_NO_MC_STATE;
 
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
@@ -725,6 +726,12 @@ boolector_bmc (BtorMC *mc, int maxk)
 char *
 boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
 {
+  BtorPtrHashBucket *bucket;
+  BtorNode *node_at_time;
+  BtorMcLatch *latch;
+  BtorMcInput *input;
+  BtorMcFrame *frame;
+  char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
                         "model checker was not run before");
@@ -735,11 +742,44 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
                         "'boolector_enable_trace_gen' was not called before");
   assert (mc->state == BTOR_SAT_MC_STATE);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (node);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (node);
   BTOR_ABORT_BOOLECTOR (0 > time, "negative 'time' argument");
   BTOR_ABORT_BOOLECTOR (time > BTOR_COUNT_STACK (mc->frames),
                         "'time' exceeds previously returned bound");
   assert (!BTOR_EMPTY_STACK (mc->frames));
-  return 0;
+  frame  = mc->frames.start + time;
+  bucket = btor_find_in_ptr_hash_table (mc->inputs, node);
+  if (bucket)
+  {
+    input = bucket->data.asPtr;
+    assert (input);
+    assert (input->node == node);
+    node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
+    assert (node_at_time);
+    res = boolector_bv_assignment (mc->forward, node_at_time);
+  }
+  else
+  {
+    bucket = btor_find_in_ptr_hash_table (mc->latches, node);
+
+    if (bucket)
+    {
+      latch = bucket->data.asPtr;
+      assert (latch);
+      assert (latch->node == node);
+      node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
+      assert (node_at_time);
+      res = boolector_bv_assignment (mc->forward, node_at_time);
+    }
+    else
+      res = 0;
+  }
+
+  BTOR_ABORT_BOOLECTOR (!bucket,
+                        "'node' argument is neither an input nor a latch");
+
+  return res;
+  ;
 }
 
 void
