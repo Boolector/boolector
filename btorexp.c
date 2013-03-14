@@ -1,8 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -1301,6 +1301,8 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
   assert (exp->id);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
   BTOR_POKE_STACK (btor->nodes_id_table, exp->id, 0);
+
+  assert (exp->btor == btor);
 
   mm = btor->mm;
 
