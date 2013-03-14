@@ -22,6 +22,7 @@ btor_delete_node_map (Btor* btor, BtorNodeMap* map)
     btor_release_exp (btor, bucket->key);
     btor_release_exp (btor, bucket->data.asPtr);
   }
+  btor_delete_ptr_hash_table (map);
 }
 
 BtorNode*
@@ -65,7 +66,7 @@ btor_map_node (Btor* btor, BtorNodeMap* map, BtorNode* src, BtorNode* dst)
 static BtorNode*
 map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
 {
-  BtorNode *m[3], *src, *dst;
+  BtorNode *m[3], *src, *dst, *real_exp;
   int i;
 
   assert (btor);
@@ -77,12 +78,24 @@ map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
     src  = exp->e[i];
     dst  = btor_mapped_node (map, src);
     m[i] = dst ? dst : src;
+    assert (BTOR_REAL_ADDR_NODE (m[i])->btor == btor);
   }
 
   switch (exp->kind)
   {
-    case BTOR_PROXY_NODE:
     case BTOR_BV_CONST_NODE:
+
+      real_exp = BTOR_REAL_ADDR_NODE (exp);
+      if (real_exp->btor != btor)
+      {
+        BtorNode* res = btor_const_exp (btor, exp->bits);
+        if (real_exp != exp) res = BTOR_INVERT_NODE (res);
+        return res;
+      }
+
+      // ELSE FALL THROUGH!!!
+
+    case BTOR_PROXY_NODE:
     case BTOR_BV_VAR_NODE:
     case BTOR_ARRAY_VAR_NODE: return btor_copy_exp (btor, exp);
     case BTOR_SLICE_NODE:

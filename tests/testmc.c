@@ -74,6 +74,42 @@ test_mcnewdel ()
   } while (0)
 
 static void
+test_mctoggle ()
+{
+  int k;
+
+  init_mc_test ();
+
+  BtorNode *bit;
+
+  boolector_set_verbosity_mc (g_mc, 3);
+
+  bit = boolector_latch (g_mc, 1, "counter");
+
+  {
+    BtorNode *one  = boolector_one (g_btor, 1);
+    BtorNode *zero = boolector_zero (g_btor, 1);
+    BtorNode *add  = boolector_add (g_btor, bit, one);
+    BtorNode *bad  = boolector_eq (g_btor, bit, one);
+    boolector_next (g_mc, bit, add);
+    boolector_init (g_mc, bit, zero);
+    boolector_bad (g_mc, bad);
+    boolector_release (g_btor, one);
+    boolector_release (g_btor, zero);
+    boolector_release (g_btor, add);
+    boolector_release (g_btor, bad);
+  }
+
+  k = boolector_bmc (g_mc, 0);
+  assert (k < 0);  // can not reach bad within k=0 steps
+
+  k = boolector_bmc (g_mc, 1);
+  assert (0 <= k && k <= 1);  // bad reached within k=1 steps
+
+  finish_mc_test ();
+}
+
+static void
 test_mccount2enablenomodel ()
 {
   int k;
@@ -81,36 +117,41 @@ test_mccount2enablenomodel ()
   init_mc_test ();
 
   BtorNode *counter;  // 2-bit state
-  BtorNode *enable;   // one boolean control input
+  // BtorNode * enable;		// one boolean control input
 
   boolector_set_verbosity_mc (g_mc, 3);
 
   counter = boolector_latch (g_mc, 2, "counter");
-  enable  = boolector_input (g_mc, 1, "enable");
+  // enable = boolector_input (g_mc, 1, "enable");
 
   {
-    BtorNode *one      = boolector_one (g_btor, 2);
-    BtorNode *zero     = boolector_zero (g_btor, 2);
-    BtorNode *three    = boolector_const (g_btor, "11");
-    BtorNode *add      = boolector_add (g_btor, counter, one);
-    BtorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
-    BtorNode *bad      = boolector_eq (g_btor, counter, three);
-    boolector_next (g_mc, counter, ifenable);
+    BtorNode *one   = boolector_one (g_btor, 2);
+    BtorNode *zero  = boolector_zero (g_btor, 2);
+    BtorNode *three = boolector_const (g_btor, "11");
+    BtorNode *add   = boolector_add (g_btor, counter, one);
+    // BtorNode * ifenable = boolector_cond (g_btor, enable, add, counter);
+    BtorNode *bad = boolector_eq (g_btor, counter, three);
+    boolector_next (g_mc, counter, add);  // ifenable);
     boolector_init (g_mc, counter, zero);
     boolector_bad (g_mc, bad);
     boolector_release (g_btor, one);
     boolector_release (g_btor, zero);
     boolector_release (g_btor, three);
     boolector_release (g_btor, add);
-    boolector_release (g_btor, ifenable);
+    // boolector_release (g_btor, ifenable);
     boolector_release (g_btor, bad);
   }
 
+#if 1
   k = boolector_bmc (g_mc, 1);
   assert (k < 0);  // can not reach bad within k=1 steps
 
   k = boolector_bmc (g_mc, 4);
   assert (0 <= k && k <= 4);  // dad reached within k=4 steps
+#else
+  k = boolector_bmc (g_mc, 3);
+  // assert (k == 3);
+#endif
 
   finish_mc_test ();
 }
@@ -180,6 +221,7 @@ void
 run_mc_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (mcnewdel);
+  BTOR_RUN_TEST (mctoggle);
   BTOR_RUN_TEST (mccount2enablenomodel);
   BTOR_RUN_TEST (mccount2resetenable);
 }
