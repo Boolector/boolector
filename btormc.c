@@ -704,6 +704,12 @@ boolector_bmc (BtorMC *mc, int maxk)
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
 
+  btor_msg_mc (mc,
+               1,
+               "calling BMC on %d properties up-to maximum bound k = %d",
+               (int) BTOR_COUNT_STACK (mc->bad),
+               maxk);
+
   // For debugging purposes temporarily reset the state.
   //
   mc->state = BTOR_NO_MC_STATE;
