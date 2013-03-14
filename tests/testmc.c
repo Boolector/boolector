@@ -142,16 +142,11 @@ test_mccount2enablenomodel ()
     boolector_release (g_btor, bad);
   }
 
-#if 1
   k = boolector_bmc (g_mc, 1);
   assert (k < 0);  // can not reach bad within k=1 steps
 
-  k = boolector_bmc (g_mc, 4);
-  assert (0 <= k && k <= 4);  // dad reached within k=4 steps
-#else
-  k = boolector_bmc (g_mc, 3);
-  // assert (k == 3);
-#endif
+  k = boolector_bmc (g_mc, 5);
+  assert (0 <= k && k <= 5);  // bad reached within k=4 steps
 
   finish_mc_test ();
 }
@@ -194,13 +189,13 @@ test_mccount2resetenable ()
     boolector_release (g_btor, bad);
   }
 
-  k = boolector_bmc (g_mc, 1);
+  k = boolector_bmc (g_mc, 2);
   assert (k < 0);  // can not reach bad within k=1 steps
 
   k = boolector_bmc (g_mc, 4);
-  assert (0 <= k && k <= 4);  // dad reached within k=4 steps
+  assert (0 <= k && k <= 4);  // bad reached within k=4 steps
 
-  file = fopen ("log/mccount2.log", "w");
+  file = fopen ("log/mccount2resetenable.log", "w");
   assert (file);
   fprintf (file, "Bad state property satisfied at k = %d:\n", k);
   for (i = 0; i <= k; i++)

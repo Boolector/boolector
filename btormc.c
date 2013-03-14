@@ -738,12 +738,12 @@ boolector_bmc (BtorMC *mc, int maxk)
 char *
 boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
 {
+  char *frame_owned_res, *res;
   BtorPtrHashBucket *bucket;
   BtorNode *node_at_time;
   BtorMcLatch *latch;
   BtorMcInput *input;
   BtorMcFrame *frame;
-  char *res;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
                         "model checker was not run before");
@@ -768,7 +768,7 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
     assert (input->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
-    res = boolector_bv_assignment (mc->forward, node_at_time);
+    frame_owned_res = boolector_bv_assignment (mc->forward, node_at_time);
   }
   else
   {
@@ -781,17 +781,24 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
       assert (latch->node == node);
       node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
       assert (node_at_time);
-      res = boolector_bv_assignment (mc->forward, node_at_time);
+      frame_owned_res = boolector_bv_assignment (mc->forward, node_at_time);
     }
     else
-      res = 0;
+      frame_owned_res = 0;
   }
 
   BTOR_ABORT_BOOLECTOR (!bucket,
                         "'node' argument is neither an input nor a latch");
 
+  if (frame_owned_res)
+  {
+    res = btor_strdup (mc->btor->mm, frame_owned_res);
+    btor_freestr (frame->btor->mm, frame_owned_res);
+  }
+  else
+    res = 0;
+
   return res;
-  ;
 }
 
 void
