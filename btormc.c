@@ -608,42 +608,46 @@ initialize_new_forward_frame (BtorMC *mc)
   btor_msg_mc (mc, 1, "initialized forward frame at bound k = %d", k);
 }
 
+#if 0
+
 static void
-print_trace (BtorMC *mc, int p, int k)
+print_trace (BtorMC * mc, int p, int k)
 {
-  const char *symbol;
-  BtorNode *node;
-  BtorMcFrame *f;
+  const char * symbol;
+  BtorNode * node;
+  BtorMcFrame * f;
   char buffer[30];
-  char *a;
+  char * a;
   int i, j;
 
   printf ("bad state property %d at bound k = %d satisfiable:\n", p, k);
 
-  for (i = 0; i <= k; i++)
-  {
-    printf ("\n");
-    printf ("[ state %d ]\n", i);
-    printf ("\n");
-
-    f = mc->frames.start + i;
-    for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
+  for (i = 0; i <= k; i++) 
     {
-      node = BTOR_PEEK_STACK (f->inputs, j);
-      a    = boolector_bv_assignment (f->btor, node);
-      if (node->symbol)
-        symbol = node->symbol;
-      else
-      {
-        sprintf (buffer, "input%d@%d", j, i);
-        symbol = buffer;
-      }
-      printf ("%s = %s\n", symbol, a);
-      boolector_free_bv_assignment (f->btor, a);
+      printf ("\n");
+      printf ("[ state %d ]\n", i);
+      printf ("\n");
+
+      f = mc->frames.start + i;
+      for (j = 0; j < BTOR_COUNT_STACK (f->inputs); j++)
+	{
+	  node = BTOR_PEEK_STACK (f->inputs, j);
+	  a = boolector_bv_assignment (f->btor, node);
+	  if (node->symbol)
+	    symbol = node->symbol;
+	  else
+	    {
+	      sprintf (buffer, "input%d@%d", j, i);
+	      symbol = buffer;
+	    }
+	  printf ("%s = %s\n", symbol, a);
+	  boolector_free_bv_assignment (f->btor, a);
+	}
     }
-  }
   fflush (stdout);
 }
+
+#endif
 
 static int
 check_last_forward_frame (BtorMC *mc)
@@ -674,7 +678,6 @@ check_last_forward_frame (BtorMC *mc)
     {
       btor_msg_mc (
           mc, 1, "bad state property %d at bound k = %d SATISFIABLE", i, k);
-      print_trace (mc, i, k);
       satisfied++;
     }
     else
