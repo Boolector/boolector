@@ -710,8 +710,9 @@ boolector_bmc (BtorMC *mc, int maxk)
                (int) BTOR_COUNT_STACK (mc->bad),
                maxk);
 
-  // For debugging purposes temporarily reset the state.
-  //
+  btor_msg_mc (
+      mc, 1, "trace generation %s", mc->trace_enabled ? "enabled" : "disabled");
+
   mc->state = BTOR_NO_MC_STATE;
 
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
