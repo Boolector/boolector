@@ -74,8 +74,10 @@ boolector_new_mc (void)
 {
   BtorMemMgr *mm;
   BtorMC *res;
-  Btor *btor = boolector_new ();
-  mm         = btor->mm;
+  Btor *btor;
+  btor = boolector_new ();
+  assert (btor);
+  mm = btor->mm;
   BTOR_CNEW (mm, res);
   res->btor    = btor;
   res->inputs  = btor_new_ptr_hash_table (mm,
@@ -205,8 +207,8 @@ boolector_delete_mc (BtorMC *mc)
     btor_release_exp (btor, BTOR_POP_STACK (mc->bad));
   BTOR_RELEASE_STACK (mm, mc->bad);
   if (mc->forward) boolector_delete (mc->forward);
-  boolector_delete (btor);
   BTOR_DELETE (mm, mc);
+  boolector_delete (btor);
 }
 
 BtorNode *

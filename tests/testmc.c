@@ -24,6 +24,22 @@ void
 init_mc_tests (void)
 {
   assert (!g_mc);
+  assert (!g_btor);
+}
+
+void
+finish_mc_tests (void)
+{
+  assert (!g_mc);
+  assert (!g_btor);
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
+init_mc_test (void)
+{
+  assert (!g_mc);
   g_mc = boolector_new_mc ();
   assert (!g_btor);
   g_btor = boolector_btor_mc (g_mc);
@@ -31,9 +47,23 @@ init_mc_tests (void)
 }
 
 static void
+finish_mc_test (void)
+{
+  g_btor = 0;
+  boolector_delete_mc (g_mc);
+  g_mc = 0;
+}
+
+/*------------------------------------------------------------------------*/
+
+static void
 test_mcnewdel ()
 {
+  init_mc_test ();
+  finish_mc_test ();
 }
+
+/*------------------------------------------------------------------------*/
 
 #define PRINT(NAME, TIME)                                   \
   do                                                        \
@@ -47,6 +77,8 @@ static void
 test_mccount2enablenomodel ()
 {
   int k;
+
+  init_mc_test ();
 
   BtorNode *counter;  // 2-bit state
   BtorNode *enable;   // one boolean control input
@@ -79,6 +111,8 @@ test_mccount2enablenomodel ()
 
   k = boolector_bmc (g_mc, 4);
   assert (0 <= k && k <= 4);  // dad reached within k=4 steps
+
+  finish_mc_test ();
 }
 
 static void
@@ -89,6 +123,8 @@ test_mccount2resetenable ()
 
   BtorNode *counter;         // 2-bit state
   BtorNode *enable, *reset;  // two boolean control inputs
+
+  init_mc_test ();
 
   boolector_enable_trace_gen (g_mc);
   boolector_set_verbosity_mc (g_mc, 3);
@@ -136,6 +172,8 @@ test_mccount2resetenable ()
     PRINT (enable, i);
   }
   fclose (file);
+
+  finish_mc_test ();
 }
 
 void
@@ -144,12 +182,4 @@ run_mc_tests (int argc, char **argv)
   BTOR_RUN_TEST (mcnewdel);
   BTOR_RUN_TEST (mccount2enablenomodel);
   BTOR_RUN_TEST (mccount2resetenable);
-}
-
-void
-finish_mc_tests (void)
-{
-  g_btor = 0;
-  boolector_delete_mc (g_mc);
-  g_mc = 0;
 }
