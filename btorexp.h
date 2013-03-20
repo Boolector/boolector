@@ -340,6 +340,7 @@ struct Btor
   BtorPtrHashTable *bv_vars;
   BtorPtrHashTable *array_vars;
   BtorPtrHashTable *lambdas;
+  BtorPtrHashTable *substitutions;
   BtorNode *true_exp;
   int bv_lambda_id;    /* counter for lambda bv variables (subst) */
   int array_lambda_id; /* counter for lambda array variables (subst) */
