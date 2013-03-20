@@ -2,19 +2,26 @@
 #define BTORIBV_H_INCLUDED
 
 #include "IBitVector.h"
+
+extern "C" {
+#include "btorexp.h"
 #include "btormc.h"
+#include "btorstack.h"
+};
 
 class BtorIBV : public IBitVector
 {
   Btor *btor;
+  BtorNodePtrStack id2node;
+  void addBtorNode (unsigned, BtorNode *);
 
  public:
   BtorIBV (Btor *);
+  ~BtorIBV ();
   void addVariable (
       unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
   void addState (BitRange, BitRange);
   void addConstant (unsigned, const string &, unsigned);
-
   void addBitOr (BitRange, BitRange, BitRange);
   void addBitAnd (BitRange, BitRange, BitRange);
   void addBitXor (BitRange, BitRange, BitRange);
