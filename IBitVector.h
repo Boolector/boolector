@@ -1,10 +1,22 @@
 #ifndef IBitVector_h_INCLUDED
 #define IBitVector_h_INCLUDED
 
+#include <cassert>
+#include <string>
+#include <vector>
+
+using namespace std;
+
 // This class defines the BitVector API interface
+
 class IBitVector
 {
  public:
+  enum DirectionKind
+  {
+    INTERNAL
+  };
+
   // Represents a reference to a single bit of a data entity
   struct Bit
   {
@@ -73,6 +85,9 @@ class IBitVector
   };
 
  public:
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+
   // Method addVariable
   //
   // Declares a variable
@@ -1354,5 +1369,8 @@ class IBitVector
   {
     assert (false);
   }
+
+#pragma GCC diagnostic pop
+};
 
 #endif
