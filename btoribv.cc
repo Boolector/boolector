@@ -1,6 +1,18 @@
 #include "btoribv.h"
 
-BtorIBV::BtorIBV (Btor* b) : btor (b) {}
+struct BtorIBVNode
+{
+  unsigned id;
+  unsigned width;
+  BtorNode* exp;
+  char* name;   // for variables
+  char* value;  // for constants
+};
+
+BtorIBV::BtorIBV (Btor* b) : btor (b)
+{
+  BTOR_PUSH_STACK (btor->mm, id2node, 0);  // Assume '0' invalid id.
+}
 
 BtorIBV::~BtorIBV ()
 {
@@ -15,6 +27,7 @@ BtorIBV::~BtorIBV ()
 void
 BtorIBV::addBtorNode (unsigned id, BtorNode* node)
 {
+  assert (id > 0);
   BTOR_FIT_STACK (btor->mm, id2node, id);
   assert (!BTOR_PEEK_STACK (id2node, id));
   BTOR_POKE_STACK (id2node, id, node);

@@ -20,13 +20,14 @@ class BtorIBV : public IBitVector
   ~BtorIBV ();
   void addVariable (
       unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
+#if 0
   void addState (BitRange, BitRange);
   void addConstant (unsigned, const string &, unsigned);
   void addBitOr (BitRange, BitRange, BitRange);
   void addBitAnd (BitRange, BitRange, BitRange);
   void addBitXor (BitRange, BitRange, BitRange);
   void addBitNot (BitRange, BitRange);
-  void addConcat (BitRange output, const vector<BitRange> &operands);
+  void addConcat (BitRange output, const vector<BitRange>& operands);
   void addReplicate (BitRange output, BitRange operand, unsigned);
   void addEqual (BitRange, BitRange, BitRange);
   void addGreaterThan (BitRange, BitRange, BitRange);
@@ -46,43 +47,26 @@ class BtorIBV : public IBitVector
   void addLShiftNonConst (BitRange, BitRange, BitRange);
   void addRShiftNonConst (BitRange, BitRange, BitRange);
   void addCondition (BitRange, BitRange, BitRange, BitRange);
-  void addCase (BitRange, const vector<BitRange> &);
-  void addParallelCase (BitRange, const vector<BitRange> &);
+  void addCase (BitRange, const vector<BitRange>&);
+  void addParallelCase (BitRange, const vector<BitRange>&);
   void addZeroExtension (BitRange, BitRange);
   void addSignExtension (BitRange, BitRange);
   void addAssumption (BitRange, bool);
   void addFairnessConstraint (BitRange, BitRange);
   void addAssertion (BitRange);
-  void addMemory (unsigned,
-                  const string &,
-                  unsigned,
-                  unsigned,
-                  unsigned,
-                  unsigned,
-                  const vector<string> &);
+  void addMemory (unsigned, const string&,
+                  unsigned, unsigned,  unsigned, unsigned,
+                  const vector<string>&);
   void addMemoryRead (unsigned, BitRange, unsigned, unsigned, BitRange);
-  void addMemoryWrite (
-      unsigned, unsigned, BitRange, unsigned, unsigned, BitRange, BitRange);
-  void addMemoryConstantWrite (unsigned,
-                               unsigned,
-                               unsigned,
-                               unsigned,
-                               unsigned,
-                               unsigned,
-                               BitRange,
-                               BitRange);
+  void addMemoryWrite (unsigned, unsigned, BitRange,
+                       unsigned, unsigned, BitRange, BitRange);
+  void addMemoryConstantWrite (unsigned, unsigned, unsigned, unsigned,
+                               unsigned, unsigned, BitRange, BitRange);
   void addMemoryEqual (BitRange output,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       unsigned,
-                       bool);
+		       unsigned, unsigned, unsigned, unsigned,
+		       unsigned, unsigned, unsigned, unsigned,
+		       unsigned, unsigned, bool);
+#endif
 };
 
 #endif
