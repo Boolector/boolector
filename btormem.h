@@ -43,10 +43,11 @@
     btor_free ((mm), (ptr), (nelems) * sizeof *(ptr)); \
   } while (0)
 
-#define BTOR_REALLOC(mm, p, o, n)                                             \
-  do                                                                          \
-  {                                                                           \
-    (p) = btor_realloc ((mm), (p), ((o) * sizeof *(p)), ((n) * sizeof *(p))); \
+#define BTOR_REALLOC(mm, p, o, n)                             \
+  do                                                          \
+  {                                                           \
+    (p) = (typeof(p)) btor_realloc (                          \
+        (mm), (p), ((o) * sizeof *(p)), ((n) * sizeof *(p))); \
   } while (0)
 
 #define BTOR_NEW(mm, ptr) BTOR_NEWN ((mm), (ptr), 1)

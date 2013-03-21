@@ -160,6 +160,14 @@ Btor *boolector_clone (Btor *btor);
 void boolector_enable_model_gen (Btor *btor);
 
 /**
+ * By default Boolector only generates assignments for reads
+ * in the cone of assertions.  If you require models for all
+ * 'reads' you can use this function to force Boolector to
+ * synthesize all reads during the next model generation.
+ */
+void boolector_generate_model_for_all_reads (Btor *btor);
+
+/**
  * Enables incremental usage of Boolector. This allows to add assumptions
  * by \ref boolector_assume and to call \ref boolector_sat multiple times.
  * Note that this mode turns off some optimization techniques that cannot

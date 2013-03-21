@@ -1,8 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
+ *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2012-2013 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -567,7 +567,8 @@ btor_msg_exp (Btor *btor, char *fmt, ...)
 {
   va_list ap;
   fputs ("[btorexp] ", stdout);
-  if (btor->inc_enabled && btor->msgtick >= 0) printf ("%d : ", btor->msgtick);
+  if (btor->inc_enabled && btor->msgtick >= 0)
+    printf ("%d : ", (int) btor->msgtick);
   va_start (ap, fmt);
   vfprintf (stdout, fmt, ap);
   va_end (ap);
@@ -794,7 +795,8 @@ find_sort (Btor *btor, BtorSort *pattern)
   return res;
 }
 
-static void
+// static // TODO remove comment and add back 'static'
+void
 enlarge_sorts_unique_table (Btor *btor)
 {
   BtorSort *cur, *temp, **new_chains;
@@ -1421,6 +1423,8 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
   assert (exp->id);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
   BTOR_POKE_STACK (btor->nodes_id_table, exp->id, 0);
+
+  assert (exp->btor == btor);
 
   mm = btor->mm;
 
@@ -3257,7 +3261,7 @@ unsigned int
 btor_hash_exp_by_id (BtorNode *exp)
 {
   assert (exp);
-  return (unsigned int) BTOR_REAL_ADDR_NODE (exp)->id * 7334147u;
+  return (unsigned int) BTOR_GET_ID_NODE (exp) * 7334147u;
 }
 
 /* Compares expressions by id */
@@ -6156,6 +6160,13 @@ btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
   btor->rewrite_level = rewrite_level;
 }
 
+void
+btor_generate_model_for_all_reads (Btor *btor)
+{
+  assert (btor);
+  btor->generate_model_for_all_reads = 1;
+}
+
 int
 btor_set_sat_solver (Btor *btor, const char *solver)
 {
@@ -6590,6 +6601,8 @@ btor_print_stats_btor (Btor *btor)
                 percent (btor->time.skel, btor->time.rewrite));
 #endif
 }
+
+/*------------------------------------------------------------------------*/
 
 BtorMemMgr *
 btor_get_mem_mgr_btor (const Btor *btor)
@@ -12686,6 +12699,16 @@ synthesize_all_array_rhs (Btor *btor)
   }
 }
 
+static void
+synthesize_all_reads (Btor *btor)
+{
+  BtorNode *n;
+  int i;
+  for (i = 0; i < btor->nodes_unique_table.size; i++)
+    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
+      if (BTOR_IS_READ_NODE (n)) synthesize_exp (btor, n, 0);
+}
+
 static int
 btor_sat_aux_btor (Btor *btor)
 {
@@ -12734,6 +12757,7 @@ btor_sat_aux_btor (Btor *btor)
     {
       synthesize_all_var_rhs (btor);
       synthesize_all_array_rhs (btor);
+      if (btor->generate_model_for_all_reads) synthesize_all_reads (btor);
     }
 
   } while (btor->unsynthesized_constraints->count > 0);
