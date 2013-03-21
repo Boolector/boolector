@@ -235,57 +235,33 @@ check_unique_table_children_proxy_free_dbg (const Btor *btor)
   BtorNode *cur;
 
   for (i = 0; i < btor->nodes_unique_table.size; i++)
-  {
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-    {
-      assert (BTOR_IS_REGULAR_NODE (cur));
-
-      if (!cur) continue;
-
       for (j = 0; j < cur->arity; j++)
         if (BTOR_IS_PROXY_NODE (BTOR_REAL_ADDR_NODE (cur->e[j]))) return 0;
-    }
-  }
   return 1;
 }
 
 static int
 check_unique_table_mark_unset_dbg (const Btor *btor)
 {
-  int i, j;
+  int i;
   BtorNode *cur;
 
   for (i = 0; i < btor->nodes_unique_table.size; i++)
-  {
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-    {
-      assert (BTOR_IS_REGULAR_NODE (cur));
-
-      if (!cur) continue;
-
       if (cur->mark != 0) return 0;
-    }
-  }
   return 1;
 }
 
 static int
 check_unique_table_aux_mark_unset_dbg (const Btor *btor)
 {
-  int i, j;
+  int i;
   BtorNode *cur;
 
   for (i = 0; i < btor->nodes_unique_table.size; i++)
-  {
     for (cur = btor->nodes_unique_table.chains[i]; cur; cur = cur->next)
-    {
-      assert (BTOR_IS_REGULAR_NODE (cur));
-
-      if (!cur) continue;
-
       if (cur->aux_mark != 0) return 0;
-    }
-  }
   return 1;
 }
 
