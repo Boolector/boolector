@@ -10079,15 +10079,15 @@ rebuild_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
 
-  // TODO: check why no params rebuilt?
   switch (exp->kind)
   {
     case BTOR_PROXY_NODE:
     case BTOR_BV_CONST_NODE:
     case BTOR_BV_VAR_NODE:
     case BTOR_ARRAY_VAR_NODE:
-      //      case BTOR_PARAM_NODE:
-      return btor_copy_exp (btor, exp->simplified);
+    case BTOR_PARAM_NODE:
+      return btor_copy_exp (btor,
+                            btor_pointer_chase_simplified_exp (btor, exp));
     case BTOR_SLICE_NODE:
       return btor_slice_exp (btor, exp->e[0], exp->upper, exp->lower);
     case BTOR_AND_NODE: return btor_and_exp (btor, exp->e[0], exp->e[1]);
