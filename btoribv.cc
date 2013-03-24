@@ -4,7 +4,7 @@
 
 BtorIBV::BtorIBV (Btor *b) : btor (b)
 {
-  BTOR_PUSH_STACK (btor->mm, id2node, 0);  // Assume '0' invalid id.
+  BTOR_PUSH_STACK (btor->mm, idtab, 0);  // Assume '0' invalid id.
 }
 
 void
@@ -13,8 +13,10 @@ BtorIBV::delete_ibv_var (BtorIBVariable *var)
   assert (var);
   assert (var->name);
   btor_freestr (btor->mm, var->name);
-  // TODO delete assignments
-  // TODO delete ranges
+  BTOR_RELEASE_STACK (btor->mm, var->assignments);
+  for (BtorIBVRangeName *rn = var->ranges.start; rn < var->ranges.top; rn++)
+    btor_freestr (btor->mm, rn->name);
+  BTOR_RELEASE_STACK (btor->mm, var->ranges);
   btor_free (btor->mm, var, sizeof *var);
 }
 
@@ -30,27 +32,27 @@ BtorIBV::delete_ibv_node (BtorIBVNode *node)
 
 BtorIBV::~BtorIBV ()
 {
-  while (!BTOR_EMPTY_STACK (id2node))
+  while (!BTOR_EMPTY_STACK (idtab))
   {
-    BtorIBVNode *node = BTOR_POP_STACK (id2node);
+    BtorIBVNode *node = BTOR_POP_STACK (idtab);
     if (node) delete_ibv_node (node);
   }
-  BTOR_RELEASE_STACK (btor->mm, id2node);
+  BTOR_RELEASE_STACK (btor->mm, idtab);
 }
 
 BtorIBVNode *
 BtorIBV::new_node (unsigned id, BtorIBVTag tag, unsigned width, BtorNode *exp)
 {
   assert (id > 0);
-  BTOR_FIT_STACK (btor->mm, id2node, id);
-  assert (!BTOR_PEEK_STACK (id2node, id));
+  BTOR_FIT_STACK (btor->mm, idtab, id);
+  assert (!BTOR_PEEK_STACK (idtab, id));
   BtorIBVNode *node = (BtorIBVNode *) btor_malloc (btor->mm, sizeof *node);
   node->id          = id;
   node->tag         = tag;
   node->width       = width;
   node->exp         = exp;
   node->var         = 0;
-  BTOR_POKE_STACK (id2node, id, node);
+  BTOR_POKE_STACK (idtab, id, node);
   return node;
 }
 
@@ -72,8 +74,8 @@ BtorIBV::addVariable (unsigned id,
                       IBitVector::DirectionKind direction)
 {
   assert (id > 0);
-  BTOR_FIT_STACK (btor->mm, id2node, id);
-  assert (!BTOR_PEEK_STACK (id2node, id));
+  BTOR_FIT_STACK (btor->mm, idtab, id);
+  assert (!BTOR_PEEK_STACK (idtab, id));
   BtorIBVNode *node = new_node (
       id, BTOR_IBV_VARIABLE, width, btor_var_exp (btor, width, str.c_str ()));
   BtorIBVariable *var = (BtorIBVariable *) btor_malloc (btor->mm, sizeof *var);
@@ -87,11 +89,21 @@ BtorIBV::addVariable (unsigned id,
   node->var = var;
 }
 
-unsigned
-BtorIBV::id2width (unsigned id)
+void
+BtorIBV::addRangeName (IBitVector::BitRange br,
+                       const string &name,
+                       unsigned fmsb,
+                       unsigned flsb)
 {
-  assert (0 < id);
-  BtorIBVNode *node = BTOR_PEEK_STACK (id2node, id);
-  assert (node);
-  return node->width;  // could as well just return 'node->exp->width'
+  assert (br.m_nLsb <= br.m_nMsb);
+  assert (flsb <= fmsb);
+  assert (fmsb - flsb == (br.m_nMsb - br.m_nLsb));
+  BtorIBVNode *node = id2node (br.m_nId);
+  assert (node->tag == BTOR_IBV_VARIABLE);
+  BtorIBVRangeName rn;
+  rn.from.msb = fmsb, rn.from.lsb = flsb;
+  rn.to.msb = br.m_nMsb, rn.to.lsb = br.m_nLsb;
+  rn.name = btor_strdup (btor->mm, name.c_str ());
+  assert (node->var);
+  BTOR_PUSH_STACK (btor->mm, node->var->ranges, rn);
 }

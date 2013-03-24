@@ -66,8 +66,17 @@ BTOR_DECLARE_STACK (IBVNodePtr, BtorIBVNode *);
 class BtorIBV : public IBitVector
 {
   Btor *btor;
-  BtorIBVNodePtrStack id2node;
-  unsigned id2width (unsigned id);
+  BtorIBVNodePtrStack idtab;
+
+  BtorIBVNode *id2node (unsigned id)
+  {
+    BtorIBVNode *node;
+    assert (0 < id);
+    node = BTOR_PEEK_STACK (idtab, id);
+    assert (node);
+    return node;
+  }
+
   void delete_ibv_node (BtorIBVNode *);
   void delete_ibv_var (BtorIBVariable *);
   BtorIBVNode *new_node (unsigned, BtorIBVTag, unsigned, BtorNode *);
@@ -78,6 +87,7 @@ class BtorIBV : public IBitVector
   void addConstant (unsigned, const string &, unsigned);
   void addVariable (
       unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
+  void addRangeName (BitRange, const string &, unsigned, unsigned);
 #if 0
   void addState (BitRange, BitRange);
   void addBitOr (BitRange, BitRange, BitRange);
