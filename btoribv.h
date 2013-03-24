@@ -28,7 +28,10 @@ BTOR_DECLARE_STACK (IBVAssignment, BtorIBVAssignment);
 
 struct BtorIBVRangeName
 {
-  unsigned msb, lsb;
+  struct
+  {
+    unsigned msb, lsb;
+  } from, to;
   char *name;
 };
 
@@ -43,8 +46,8 @@ struct BtorIBVariable
   bool is_loop_breaking;
   bool is_state_retain;
   IBitVector::DirectionKind direction;
-  BtorIBVAssignmentStack assigned;
-  BtorIBVRangeNameStack rangenames;
+  BtorIBVAssignmentStack assignments;
+  BtorIBVRangeNameStack ranges;
 };
 
 struct BtorIBVNode
@@ -64,15 +67,18 @@ class BtorIBV : public IBitVector
 {
   Btor *btor;
   BtorIBVNodePtrStack id2node;
+  unsigned id2width (unsigned id);
   void delete_ibv_node (BtorIBVNode *);
+  void delete_ibv_var (BtorIBVariable *);
+  BtorIBVNode *new_node (unsigned, BtorIBVTag, unsigned, BtorNode *);
 
  public:
   BtorIBV (Btor *);
   ~BtorIBV ();
   void addConstant (unsigned, const string &, unsigned);
+  void addVariable (
+      unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
 #if 0
-  void addVariable (unsigned, const string&, unsigned,
-                    bool, bool, bool, DirectionKind);
   void addState (BitRange, BitRange);
   void addBitOr (BitRange, BitRange, BitRange);
   void addBitAnd (BitRange, BitRange, BitRange);
