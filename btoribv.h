@@ -9,20 +9,71 @@ extern "C" {
 #include "btorstack.h"
 };
 
+enum BtorIBVTag
+{
+  BTOR_IBV_VARIABLE,
+  BTOR_IBV_CONSTANT,
+  BTOR_IBV_BVOP,
+};
+
+struct BtorIBVAssignment
+{
+  unsigned msb, lsb;
+  BtorNode *rhs;
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVAssignment, BtorIBVAssignment);
+};
+
+struct BtorIBVRangeName
+{
+  unsigned msb, lsb;
+  char *name;
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
+};
+
+struct BtorIBVariable
+{
+  char *name;
+  bool is_next_state;
+  bool is_loop_breaking;
+  bool is_state_retain;
+  IBitVector::DirectionKind direction;
+  BtorIBVAssignmentStack assigned;
+  BtorIBVRangeNameStack rangenames;
+};
+
+struct BtorIBVNode
+{
+  BtorIBVTag tag;
+  unsigned id;
+  unsigned width;
+  BtorNode *exp;
+  BtorIBVariable *var;
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVNodePtr, BtorIBVNode *);
+};
+
 class BtorIBV : public IBitVector
 {
   Btor *btor;
-  BtorNodePtrStack id2node;
-  void addBtorNode (unsigned, BtorNode *);
+  BtorIBVNodePtrStack id2node;
+  void delete_ibv_node (BtorIBVNode *);
 
  public:
   BtorIBV (Btor *);
   ~BtorIBV ();
-  void addVariable (
-      unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
-#if 0
-  void addState (BitRange, BitRange);
   void addConstant (unsigned, const string &, unsigned);
+#if 0
+  void addVariable (unsigned, const string&, unsigned,
+                    bool, bool, bool, DirectionKind);
+  void addState (BitRange, BitRange);
   void addBitOr (BitRange, BitRange, BitRange);
   void addBitAnd (BitRange, BitRange, BitRange);
   void addBitXor (BitRange, BitRange, BitRange);
