@@ -2,10 +2,7 @@
 
 #include <string.h>
 
-BtorIBV::BtorIBV (Btor *b) : btor (b)
-{
-  BTOR_PUSH_STACK (btor->mm, idtab, 0);  // Assume '0' invalid id.
-}
+BtorIBV::BtorIBV (Btor *b) : btor (b) {}
 
 void
 BtorIBV::delete_ibv_var (BtorIBVariable *var)
@@ -106,4 +103,17 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   rn.name = btor_strdup (btor->mm, name.c_str ());
   assert (node->var);
   BTOR_PUSH_STACK (btor->mm, node->var->ranges, rn);
+}
+
+void
+BtorIBV::addBinOp (IBitVector::BitRange o,
+                   IBitVector::BitRange a,
+                   IBitVector::BitRange b,
+                   BtorIBVBinOp op)
+{
+  assert (o.getWidth () == a.getWidth ());
+  assert (o.getWidth () == b.getWidth ());
+  BtorIBVNode *on = bitrange2node (o);
+  BtorIBVNode *an = bitrange2node (a);
+  BtorIBVNode *bn = bitrange2node (b);
 }

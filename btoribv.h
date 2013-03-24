@@ -13,7 +13,6 @@ enum BtorIBVTag
 {
   BTOR_IBV_VARIABLE,
   BTOR_IBV_CONSTANT,
-  BTOR_IBV_BVOP,
 };
 
 struct BtorIBVAssignment
@@ -74,6 +73,15 @@ class BtorIBV : public IBitVector
     assert (0 < id);
     node = BTOR_PEEK_STACK (idtab, id);
     assert (node);
+    return node;
+  }
+
+  BtorIBVNode *bitrange2node (BitRange range)
+  {
+    assert (range.m_nLsb <= range.m_nMsb);
+    BtorIBVNode *node = id2node (range.m_nId);
+    assert (node->width <= range.getWidth ());
+    assert (range.m_nMsb < node->width);
     return node;
   }
 
