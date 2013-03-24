@@ -81,6 +81,11 @@ class BtorIBV : public IBitVector
   void delete_ibv_var (BtorIBVariable *);
   BtorIBVNode *new_node (unsigned, BtorIBVTag, unsigned, BtorNode *);
 
+  typedef BtorNode *(*BtorIBVBinOp) (Btor *, BtorNode *, BtorNode *);
+
+  void addBinOp (BitRange, BitRange, BitRange, BtorIBVBinOp);
+  void addBinPred (BitRange, BitRange, BitRange, BtorIBVBinOp);
+
  public:
   BtorIBV (Btor *);
   ~BtorIBV ();
@@ -90,13 +95,29 @@ class BtorIBV : public IBitVector
   void addRangeName (BitRange, const string &, unsigned, unsigned);
 #if 0
   void addState (BitRange, BitRange);
-  void addBitOr (BitRange, BitRange, BitRange);
-  void addBitAnd (BitRange, BitRange, BitRange);
-  void addBitXor (BitRange, BitRange, BitRange);
+#endif
+
+  void addBitOr (BitRange o, BitRange a, BitRange b)
+  {
+    addBinOp (o, a, b, btor_or_exp);
+  }
+
+  void addBitAnd (BitRange o, BitRange a, BitRange b)
+  {
+    addBinOp (o, a, b, btor_and_exp);
+  }
+
+  void addBitXor (BitRange o, BitRange a, BitRange b)
+  {
+    addBinOp (o, a, b, btor_xor_exp);
+  }
+
+#if 0
   void addBitNot (BitRange, BitRange);
   void addConcat (BitRange output, const vector<BitRange>& operands);
   void addReplicate (BitRange output, BitRange operand, unsigned);
   void addEqual (BitRange, BitRange, BitRange);
+#endif
   void addGreaterThan (BitRange, BitRange, BitRange);
   void addGreaterEqual (BitRange, BitRange, BitRange);
   void addLessThan (BitRange, BitRange, BitRange);
@@ -109,6 +130,7 @@ class BtorIBV : public IBitVector
   void addMul (BitRange, BitRange, BitRange);
   void addDiv (BitRange, BitRange, BitRange);
   void addMod (BitRange, BitRange, BitRange);
+#if 0
   void addLShift (BitRange, BitRange, unsigned);
   void addRShift (BitRange, BitRange, unsigned);
   void addLShiftNonConst (BitRange, BitRange, BitRange);
