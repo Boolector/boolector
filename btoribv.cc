@@ -337,6 +337,7 @@ void
 BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
 {
   assert (n);
+  assert (!n->is_constant);
   assert (r.m_nLsb <= r.m_nMsb);
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
@@ -445,4 +446,77 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
   msg (1, a, "adding non-state");
+}
+
+void
+BtorIBV::check_all_next_states_assigned ()
+{
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant) continue;
+    if (!n->is_next_state) continue;
+    for (unsigned i; i < n->width; i++) assert (n->assigned[i]);
+  }
+}
+
+void
+BtorIBV::split_unmarked_range (BtorIBVRange r, BtorIBVRangeStack *wp)
+{
+  BtorIBVNode *n = id2node (r.id);
+  unsigned msb   = r.msb;
+NEXT_SLICE:
+  while (n->marked[msb] == 2 && msb > r.lsb) msb--;
+  if (msb == r.lsb)
+  {
+    if (n->marked[msb] != 2)
+    {
+      assert (!n->marked[msb]);
+      BtorIBVRange r (n->id, msb, msb);
+      BTOR_PUSH_STACK (btor->mm, *wp, r);
+    }
+  }
+  else
+  {
+    assert (msb > r.lsb);
+    assert (!n->marked[msb]);
+    unsigned lsb = msb - 1;
+    while (!n->marked[lsb] && lsb > r.lsb) lsb--;
+    if (lsb > r.lsb)
+      lsb++;
+    else
+    {
+      assert (lsb == r.lsb);
+      if (n->marked[lsb]) assert (n->marked[lsb] == 2), lsb++;
+    }
+    assert (msb >= lsb);
+    BtorIBVRange r (n->id, msb, lsb);
+    BTOR_PUSH_STACK (btor->mm, *wp, r);
+    if (lsb > r.lsb)
+    {
+      msb = lsb - 1;
+      goto NEXT_SLICE;
+    }
+  }
+}
+
+void
+BtorIBV::check_noncyclic_assignments ()
+{
+  BtorIBVRangeStack work;
+  BTOR_INIT_STACK (work);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant) continue;
+    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+         a++)
+    {
+      BtorIBVRange r (a->id, a->msb, a->lsb);
+      split_unmarked_range (r, &work);
+    }
+  }
+  BTOR_RELEASE_STACK (btor->mm, work);
 }

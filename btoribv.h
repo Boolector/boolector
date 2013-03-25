@@ -115,6 +115,7 @@ struct BtorIBVNode
 
 extern "C" {
 BTOR_DECLARE_STACK (IBVNodePtr, BtorIBVNode *);
+struct BtorIBVRangeStack;
 };
 
 class BtorIBV : public IBitVector
@@ -203,6 +204,8 @@ class BtorIBV : public IBitVector
 
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
+
+  void split_unmarked_range (BtorIBVRange, BtorIBVRangeStack *);
 
  public:
   int verbosity;
@@ -368,6 +371,11 @@ class BtorIBV : public IBitVector
 		       unsigned, unsigned, unsigned, unsigned,
 		       unsigned, unsigned, bool);
 #endif
+
+  //------------------------------------------------------------------------
+
+  void check_all_next_states_assigned ();
+  void check_noncyclic_assignments ();
 };
 
 struct BtorIBVRange
@@ -380,6 +388,10 @@ struct BtorIBVRange
       : id (r.m_nId), msb (r.m_nMsb), lsb (r.m_nLsb)
   {
   }
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
 };
 
 #endif
