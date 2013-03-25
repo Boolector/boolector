@@ -41,7 +41,8 @@ enum BtorIBVTag
 
   BTOR_IBV_IS_TERNARY  = 32,
   BTOR_IBV_COND        = 32 + 0,
-  BTOR_IBV_MAX_TERNARY = BTOR_IBV_COND,
+  BTOR_IBV_CONDBW      = 32 + 1,
+  BTOR_IBV_MAX_TERNARY = BTOR_IBV_CONDBW,
 
   BTOR_IBV_IS_VARIADIC  = 64,
   BTOR_IBV_CONCAT       = 64 + 0,
@@ -51,10 +52,9 @@ enum BtorIBVTag
 
   BTOR_IBV_IS_PREDICATE = 128,
   BTOR_IBV_HAS_ARG      = 256,
-  BTOR_IBV_BITWISE      = 512,
 
   BTOR_IBV_OPS   = 15,
-  BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256 | 512,
+  BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256
 };
 
 struct BtorIBVRange;
@@ -186,6 +186,10 @@ class BtorIBV : public IBitVector
     assert (tag <= BTOR_IBV_MAX_BINARY);
     addBinary ((BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE), o, a, b);
   }
+
+  //------------------------------------------------------------------------
+
+  void addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops);
 
   //------------------------------------------------------------------------
 
@@ -322,8 +326,16 @@ class BtorIBV : public IBitVector
   //------------------------------------------------------------------------
 
   void addConcat (BitRange output, const vector<BitRange> &operands);
-  void addCase (BitRange, const vector<BitRange> &);
-  void addParallelCase (BitRange, const vector<BitRange> &);
+
+  void addCase (BitRange o, const vector<BitRange> &ops)
+  {
+    addCaseOp (BTOR_IBV_CASE, o, ops);
+  }
+
+  void addParallelCase (BitRange o, const vector<BitRange> &ops)
+  {
+    addCaseOp (BTOR_IBV_PARCASE, o, ops);
+  }
 
 #if 0
 

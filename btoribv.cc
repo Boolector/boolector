@@ -245,8 +245,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   unsigned cw  = c.getWidth ();
   bool bitwise = (cw != 1);
   if (bitwise) assert (t.getWidth () == cw);
-  BtorIBVTag tag = BTOR_IBV_COND;
-  if (bitwise) tag = (BtorIBVTag) (tag | BTOR_IBV_BITWISE);
+  BtorIBVTag tag  = bitwise ? BTOR_IBV_CONDBW : BTOR_IBV_COND;
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 3 * sizeof *r);
   r[0] = c, r[1] = t, r[2] = e;
   BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 3, r);
@@ -294,8 +293,10 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
 }
 
 void
-BtorIBV::addCase (BitRange o, const vector<BitRange> &ops)
+BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
 {
+  assert (tag == BTOR_IBV_CASE || tag == BTOR_IBV_PARCASE);
+  assert (tag & BTOR_IBV_IS_VARIADIC);
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
   unsigned n = 0;
