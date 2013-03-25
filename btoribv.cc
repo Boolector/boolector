@@ -131,7 +131,6 @@ BtorIBV::delete_ibv_variable (BtorIBVNode *node)
     btor_freestr (btor->mm, r->name);
   BTOR_RELEASE_STACK (btor->mm, node->ranges);
   btor_free (btor->mm, node->assigned, node->width);
-  btor_free (btor->mm, node->marked, node->width);
   btor_free (btor->mm, node, sizeof *node);
 }
 
@@ -222,10 +221,9 @@ BtorIBV::addVariable (unsigned id,
   node->is_loop_breaking = isLoopBreaking;
   node->is_state_retain  = isStateRetain;
   node->direction        = direction;
+  node->marked           = 0;
   node->assigned         = (signed char *) btor_malloc (btor->mm, node->width);
-  node->marked           = (signed char *) btor_malloc (btor->mm, node->width);
   memset (node->assigned, 0, node->width);
-  memset (node->marked, 0, node->width);
   BTOR_INIT_STACK (node->ranges);
   BTOR_INIT_STACK (node->assignments);
   msg (1, "added variable %s of width %u", node->name, width);
@@ -470,7 +468,7 @@ BtorIBV::check_all_next_states_assigned ()
 void
 BtorIBV::check_noncyclic_assignments ()
 {
-  BtorIBVBitStack work;
+  BtorIntStack work;
   BTOR_INIT_STACK (work);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -480,19 +478,33 @@ BtorIBV::check_noncyclic_assignments ()
     for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
          a++)
     {
-      BtorIBVRange r (a->id, a->msb, a->lsb);
+      assert (a->id == n->id);
+      BTOR_PUSH_STACK (btor->mm, work, a->id);
     }
+
     while (!BTOR_EMPTY_STACK (work))
     {
-#if 0
-      BtorIBVRange r;// = BTOR_TOP_STACK (work);
-      BtorIBVNode * n = id2node (r.id);
+      unsigned id    = BTOR_TOP_STACK (work);
+      BtorIBVNode *n = id2node (id);
       assert (!n->is_constant);
-      for (unsigned i = r.lsb; i <= r.msb; i++)
-	BTOR_ABORT_BOOLECTOR (n->marked[i] == 1,
-	  "%s[%u] depends recursively on itself", n->name, i);
-      for (unsigned i = r.lsb; i <= r.msb; i++)
-	if (!n->marked[i]) n->marked[i] = 1;
+      if (n->marked == 2)
+        continue;
+      else if (n->marked == 1)
+      {
+      }
+      else
+      {
+        assert (!n->marked);
+        for (BtorIBVAssignment *a = n->assignments.start;
+             a < n->assignments.top;
+             a++)
+          ;
+      }
+#if 0
+      if (n->marked[b.bit]
+      if (BTOR_ABORT_BOOLECTOR (n->marked[b.bit] == 1,
+	  "%s[%u] depends recursively on itself", n->name, b.bit);
+      n->marked[b.bit] = 1;
 #endif
     }
   }

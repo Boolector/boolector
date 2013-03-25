@@ -108,7 +108,7 @@ struct BtorIBVNode
   bool is_loop_breaking;
   bool is_state_retain;
   IBitVector::DirectionKind direction;
-  signed char *assigned, *marked;
+  signed char marked, *assigned;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
 };
@@ -386,16 +386,6 @@ struct BtorIBVRange
       : id (r.m_nId), msb (r.m_nMsb), lsb (r.m_nLsb)
   {
   }
-};
-
-struct BtorIBVBit
-{
-  unsigned id, bit;
-  BtorIBVBit (unsigned i, unsigned b) : id (i), bit (b) {}
-};
-
-extern "C" {
-BTOR_DECLARE_STACK (IBVBit, BtorIBVBit);
 };
 
 #endif
