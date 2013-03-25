@@ -20,8 +20,9 @@ enum BtorIBVTag
   BTOR_IBV_NOT         = 0 + 0,
   BTOR_IBV_ZERO_EXTEND = 0 + 1,
   BTOR_IBV_SIGN_EXTEND = 0 + 2,
-  BTOR_IBV_REPLICATE   = 0 + 3,
-  BTOR_IBV_MAX_UNARY   = BTOR_IBV_REPLICATE,
+  BTOR_IBV_REPLICATE   = 0 + 4,
+  BTOR_IBV_NON_STATE   = 0 + 5,
+  BTOR_IBV_MAX_UNARY   = BTOR_IBV_NON_STATE,
 
   BTOR_IBV_IS_BINARY   = 16,
   BTOR_IBV_OR          = 16 + 0,
@@ -37,7 +38,8 @@ enum BtorIBVTag
   BTOR_IBV_LEFT_SHIFT  = 16 + 10,
   BTOR_IBV_RIGHT_SHIFT = 16 + 11,
   BTOR_IBV_EQUAL       = 16 + 12,
-  BTOR_IBV_MAX_BINARY  = BTOR_IBV_EQUAL,
+  BTOR_IBV_STATE       = 16 + 13,
+  BTOR_IBV_MAX_BINARY  = BTOR_IBV_STATE,
 
   BTOR_IBV_IS_TERNARY  = 32,
   BTOR_IBV_COND        = 32 + 0,
@@ -205,6 +207,7 @@ class BtorIBV : public IBitVector
   //------------------------------------------------------------------------
 
   void addConstant (unsigned, const string &, unsigned);
+
   void addVariable (
       unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
 
@@ -212,10 +215,9 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
-#if 0
-  void addState (BitRange, BitRange);
+  void addState (BitRange, BitRange, BitRange);
+
   void addNonState (BitRange, BitRange);
-#endif
 
   //------------------------------------------------------------------------
 
