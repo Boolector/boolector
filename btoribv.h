@@ -64,16 +64,17 @@ struct BtorIBVRange;
 struct BtorIBVAssignment
 {
   BtorIBVTag tag;
-  unsigned msb, lsb, arg, nranges;
+  unsigned id, msb, lsb, arg, nranges;
   BtorIBVRange *ranges;
 
   BtorIBVAssignment (BtorIBVTag t,
+                     unsigned i,
                      unsigned m,
                      unsigned l,
                      unsigned a,
                      unsigned n      = 0,
                      BtorIBVRange *r = 0)
-      : tag (t), msb (m), lsb (l), arg (a), nranges (n), ranges (r)
+      : tag (t), id (i), msb (m), lsb (l), arg (a), nranges (n), ranges (r)
   {
   }
 };
@@ -195,8 +196,13 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
-  void wrn (const char *fmt, ...);
+  // void wrn (const char * fmt, ...);
+
+  void print (const BtorIBVAssignment &);    // to 'stdout' without NL
+  void println (const BtorIBVAssignment &);  // to 'stdout' with NL
+
   void msg (int level, const char *fmt, ...);
+  void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
  public:
   int verbosity;

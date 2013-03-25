@@ -5,22 +5,33 @@
 #include <cstdio>
 #include <cstring>
 
-void
-BtorIBV::msg (int level, const char *fmt, ...)
+static void
+btoribv_msghead ()
 {
-  va_list ap;
-  if (level > verbosity) return;
   fputs ("[btoribv] ", stdout);
-  va_start (ap, fmt);
-  vprintf (fmt, ap);
-  va_end (ap);
+}
+
+static void
+btoribv_msgtail ()
+{
   fputc ('\n', stdout);
   fflush (stdout);
 }
 
 void
-BtorIBV::wrn (const char *fmt, ...)
+BtorIBV::msg (int level, const char *fmt, ...)
 {
+  va_list ap;
+  if (level > verbosity) return;
+  btoribv_msghead ();
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+  btoribv_msgtail ();
+}
+
+#if 0
+void BtorIBV::wrn (const char * fmt, ...) {
   va_list ap;
   fputs ("[btoribv] *** WARNING *** ", stderr);
   va_start (ap, fmt);
@@ -28,6 +39,57 @@ BtorIBV::wrn (const char *fmt, ...)
   va_end (ap);
   fputc ('\n', stderr);
   fflush (stderr);
+}
+#endif
+
+void
+BtorIBV::print (const BtorIBVAssignment &a)
+{
+  BtorIBVNode *on = id2node (a.id);
+  printf ("%s[%u..%u] = ", on->name, a.msb, a.lsb);
+  const char *opname;
+  switch (a.tag)
+  {
+    case BTOR_IBV_AND: opname = "AND"; break;
+    case BTOR_IBV_CASE: opname = "CASE"; break;
+    case BTOR_IBV_CONCAT: opname = "CONCAT"; break;
+    case BTOR_IBV_COND: opname = "COND"; break;
+    case BTOR_IBV_CONDBW: opname = "CONDBW"; break;
+    case BTOR_IBV_DIV: opname = "DIV"; break;
+    case BTOR_IBV_EQUAL: opname = "EQUAL"; break;
+    case BTOR_IBV_LE: opname = "LE"; break;
+    case BTOR_IBV_LEFT_SHIFT: opname = "LEFT_SHIFT"; break;
+    case BTOR_IBV_LT: opname = "LT"; break;
+    case BTOR_IBV_MOD: opname = "MOD"; break;
+    case BTOR_IBV_MUL: opname = "MUL"; break;
+    case BTOR_IBV_NON_STATE: opname = "NON_STATE"; break;
+    case BTOR_IBV_NOT: opname = "NOT"; break;
+    case BTOR_IBV_OR: opname = "OR"; break;
+    case BTOR_IBV_PARCASE: opname = "PARCASE"; break;
+    case BTOR_IBV_REPLICATE: opname = "REPLICATE"; break;
+    case BTOR_IBV_RIGHT_SHIFT: opname = "RIGHT_SHIFT"; break;
+    case BTOR_IBV_SIGN_EXTEND: opname = "SIGN_EXTEND"; break;
+    case BTOR_IBV_STATE: opname = "STATE"; break;
+    case BTOR_IBV_SUB: opname = "SUB"; break;
+    case BTOR_IBV_SUM: opname = "SUM"; break;
+    case BTOR_IBV_XOR: opname = "XOR"; break;
+    case BTOR_IBV_ZERO_EXTEND: opname = "ZERO_EXTEND"; break;
+    default: opname = "UNKNOWN"; break;
+  }
+  fputs (opname, stdout);
+  for (unsigned i = 0; i < a.nranges; i++)
+  {
+    BtorIBVRange *r = a.ranges + i;
+    BtorIBVNode *in = id2node (r->id);
+    printf (" %s[%u..%u]", in->name, r->msb, r->lsb);
+  }
+  if (a.tag & BTOR_IBV_HAS_ARG) printf (" %u", a.arg);
+}
+
+void
+BtorIBV::println (const BtorIBVAssignment &a)
+{
+  print (a), fputc ('\n', stdout), fflush (stdout);
 }
 
 BtorIBV::BtorIBV (Btor *b) : btor (b) {}
@@ -120,6 +182,7 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   assert (str.size () == width);
   node         = new_node (id, true, width);
   node->cached = btor_const_exp (btor, str.c_str ());
+  msg (1, "added constant %s of width %u", str.c_str (), width);
 }
 
 void
@@ -187,7 +250,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   check_bit_range (a);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = a;
-  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, on->id, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
 }
 
@@ -211,7 +274,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   check_bit_range (a);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = a;
-  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, arg, 1, r);
+  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
 }
 
@@ -230,7 +293,7 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   check_bit_range (a), check_bit_range (b);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof *r);
   r[0] = a, r[1] = b;
-  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 2, r);
+  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
 }
 
@@ -248,7 +311,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   BtorIBVTag tag  = bitwise ? BTOR_IBV_CONDBW : BTOR_IBV_COND;
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 3 * sizeof *r);
   r[0] = c, r[1] = t, r[2] = e;
-  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 3, r);
+  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 3, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
 }
 
@@ -288,8 +351,8 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   unsigned i      = 0;
   for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it;
   assert (i == n);
-  BtorIBVAssignment assignment (BTOR_IBV_CONCAT, o.m_nMsb, o.m_nLsb, 0, n, r);
-  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  BtorIBVAssignment a (BTOR_IBV_CONCAT, on->id, o.m_nMsb, o.m_nLsb, 0, n, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, a);
 }
 
 void
@@ -324,8 +387,8 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
   unsigned i      = 0;
   for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it++, r[i++] = *it;
   assert (i == 2 * n);
-  BtorIBVAssignment assignment (BTOR_IBV_CASE, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
-  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  BtorIBVAssignment a (BTOR_IBV_CASE, on->id, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, a);
 }
 
 void
@@ -344,8 +407,8 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   assert (next.getWidth () == o.getWidth ());
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof *r);
   r[0] = init, r[1] = next;
-  BtorIBVAssignment assignment (BTOR_IBV_STATE, o.m_nMsb, o.m_nLsb, 0, 2, r);
-  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, a);
 }
 
 void
@@ -358,6 +421,6 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   assert (next.getWidth () == o.getWidth ());
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = next;
-  BtorIBVAssignment assignment (BTOR_IBV_STATE, o.m_nMsb, o.m_nLsb, 0, 1, r);
-  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, a);
 }
