@@ -1,5 +1,6 @@
 #include "btoribv.h"
 
+#include <climits>
 #include <cstdarg>
 #include <cstdio>
 #include <cstring>
@@ -95,6 +96,7 @@ BtorIBVNode *
 BtorIBV::new_node (unsigned id, bool is_constant, unsigned width)
 {
   assert (id > 0);
+  assert (width > 0);  // TODO really?
   BTOR_FIT_STACK (btor->mm, idtab, id);
   assert (!BTOR_PEEK_STACK (idtab, id));
   size_t bytes =
@@ -113,6 +115,8 @@ void
 BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
 {
   BtorIBVNode *node;
+  assert (0 < id);
+  assert (0 < width);  // TODO really?
   assert (str.size () == width);
   node         = new_node (id, true, width);
   node->cached = btor_const_exp (btor, str.c_str ());
@@ -128,6 +132,7 @@ BtorIBV::addVariable (unsigned id,
                       IBitVector::DirectionKind direction)
 {
   assert (id > 0);
+  assert (width > 0);
   BTOR_FIT_STACK (btor->mm, idtab, id);
   assert (!BTOR_PEEK_STACK (idtab, id));
   BtorIBVNode *node      = new_node (id, false, width);
@@ -184,6 +189,30 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
       (BtorIBVRange *) btor_malloc (btor->mm, 1 * sizeof (BtorIBVRange));
   r[0] = a;
   BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+}
+
+void
+BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
+{
+  switch (tag)
+  {
+    case BTOR_IBV_LEFT_SHIFT:
+    case BTOR_IBV_RIGHT_SHIFT: assert (o.getWidth () == a.getWidth ()); break;
+    default:
+      assert (tag == BTOR_IBV_REPLICATE);
+      assert (arg > 0);
+      assert (UINT_MAX / arg >= a.getWidth ());
+      assert (a.getWidth () * arg == o.getWidth ());
+      break;
+  }
+  BtorIBVNode *on = bitrange2node (o);
+  mark_assigned (on, o);
+  check_bit_range (a);
+  BtorIBVRange *r =
+      (BtorIBVRange *) btor_malloc (btor->mm, 1 * sizeof (BtorIBVRange));
+  r[0] = a;
+  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
 }
 

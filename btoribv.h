@@ -20,23 +20,24 @@ enum BtorIBVTag
   BTOR_IBV_NOT         = 0 + 0,
   BTOR_IBV_ZERO_EXTEND = 0 + 1,
   BTOR_IBV_SIGN_EXTEND = 0 + 2,
-  BTOR_IBV_MAX_UNARY   = BTOR_IBV_SIGN_EXTEND,
+  BTOR_IBV_REPLICATE   = 0 + 3,
+  BTOR_IBV_MAX_UNARY   = BTOR_IBV_REPLICATE,
 
-  BTOR_IBV_IS_BINARY  = 16,
-  BTOR_IBV_OR         = 16 + 0,
-  BTOR_IBV_AND        = 16 + 1,
-  BTOR_IBV_XOR        = 16 + 2,
-  BTOR_IBV_LT         = 16 + 3,
-  BTOR_IBV_LE         = 16 + 4,
-  BTOR_IBV_SUM        = 16 + 5,
-  BTOR_IBV_SUB        = 16 + 6,
-  BTOR_IBV_MUL        = 16 + 7,
-  BTOR_IBV_DIV        = 16 + 8,
-  BTOR_IBV_MOD        = 16 + 9,
-  BTOR_IBV_LEFT       = 16 + 10,
-  BTOR_IBV_RIGHT      = 16 + 11,
-  BTOR_IBV_EQUAL      = 16 + 12,
-  BTOR_IBV_MAX_BINARY = BTOR_IBV_EQUAL,
+  BTOR_IBV_IS_BINARY   = 16,
+  BTOR_IBV_OR          = 16 + 0,
+  BTOR_IBV_AND         = 16 + 1,
+  BTOR_IBV_XOR         = 16 + 2,
+  BTOR_IBV_LT          = 16 + 3,
+  BTOR_IBV_LE          = 16 + 4,
+  BTOR_IBV_SUM         = 16 + 5,
+  BTOR_IBV_SUB         = 16 + 6,
+  BTOR_IBV_MUL         = 16 + 7,
+  BTOR_IBV_DIV         = 16 + 8,
+  BTOR_IBV_MOD         = 16 + 9,
+  BTOR_IBV_LEFT_SHIFT  = 16 + 10,
+  BTOR_IBV_RIGHT_SHIFT = 16 + 11,
+  BTOR_IBV_EQUAL       = 16 + 12,
+  BTOR_IBV_MAX_BINARY  = BTOR_IBV_EQUAL,
 
   BTOR_IBV_IS_TERNARY  = 32,
   BTOR_IBV_COND        = 32 + 0,
@@ -114,6 +115,8 @@ class BtorIBV : public IBitVector
   Btor *btor;
   BtorIBVNodePtrStack idtab;
 
+  //------------------------------------------------------------------------
+
   BtorIBVNode *id2node (unsigned id)
   {
     BtorIBVNode *node;
@@ -134,14 +137,17 @@ class BtorIBV : public IBitVector
 
   void check_bit_range (BitRange range) { (void) bitrange2node (range); }
 
+  BtorIBVNode *new_node (unsigned id, bool isConstant, unsigned width);
+
+  void mark_assigned (BtorIBVNode *, BitRange);
+
   void delete_ibv_variable (BtorIBVNode *);
   void delete_ibv_constant (BtorIBVNode *);
   void delete_ibv_node (BtorIBVNode *);
 
-  BtorIBVNode *new_node (unsigned id, bool isConstant, unsigned width);
+  //------------------------------------------------------------------------
 
   void addUnary (BtorIBVTag, BitRange, BitRange);
-  void addBinary (BtorIBVTag, BitRange, BitRange, BitRange);
 
   void addUnaryOp (BtorIBVTag tag, BitRange o, BitRange a)
   {
@@ -150,12 +156,18 @@ class BtorIBV : public IBitVector
     addUnary (tag, o, a);
   }
 
+  void addUnaryArg (BtorIBVTag, BitRange, BitRange, unsigned);
+
   void addUnaryPred (BtorIBVTag tag, BitRange o, BitRange a)
   {
     assert (tag & BTOR_IBV_IS_UNARY);
     assert (tag <= BTOR_IBV_MAX_UNARY);
     addUnary ((BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE), o, a);
   }
+
+  //------------------------------------------------------------------------
+
+  void addBinary (BtorIBVTag, BitRange, BitRange, BitRange);
 
   void addBinaryOp (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   {
@@ -171,23 +183,33 @@ class BtorIBV : public IBitVector
     addBinary ((BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE), o, a, b);
   }
 
+  //------------------------------------------------------------------------
+
   void wrn (const char *fmt, ...);
   void msg (int level, const char *fmt, ...);
-
-  void mark_assigned (BtorIBVNode *, BitRange);
 
  public:
   int verbosity;
 
   BtorIBV (Btor *);
   ~BtorIBV ();
+
+  //------------------------------------------------------------------------
+
   void addConstant (unsigned, const string &, unsigned);
   void addVariable (
       unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
+
   void addRangeName (BitRange, const string &, unsigned, unsigned);
+
+  //------------------------------------------------------------------------
+
 #if 0
   void addState (BitRange, BitRange);
+  void addNonState (BitRange, BitRange);
 #endif
+
+  //------------------------------------------------------------------------
 
   void addBitNot (BitRange o, BitRange a) { addUnaryOp (BTOR_IBV_NOT, o, a); }
   void addZeroExtension (BitRange o, BitRange a)
@@ -202,6 +224,9 @@ class BtorIBV : public IBitVector
   {
     addUnaryPred (BTOR_IBV_NOT, o, a);
   }
+
+  //------------------------------------------------------------------------
+
   void addBitOr (BitRange o, BitRange a, BitRange b)
   {
     addBinaryOp (BTOR_IBV_OR, o, a, b);
@@ -264,29 +289,48 @@ class BtorIBV : public IBitVector
   }
   void addLShiftNonConst (BitRange o, BitRange a, BitRange b)
   {
-    addBinaryOp (BTOR_IBV_LEFT, o, a, b);
+    addBinaryOp (BTOR_IBV_LEFT_SHIFT, o, a, b);
   }
   void addRShiftNonConst (BitRange o, BitRange a, BitRange b)
   {
-    addBinaryOp (BTOR_IBV_RIGHT, o, a, b);
+    addBinaryOp (BTOR_IBV_RIGHT_SHIFT, o, a, b);
   }
+
+  //------------------------------------------------------------------------
 
   void addCondition (BitRange, BitRange, BitRange, BitRange);
 
-  void addConcat (BitRange output, const vector<BitRange> &operands);
-  void addReplicate (BitRange output, BitRange operand, unsigned);
-  void addLShift (BitRange, BitRange, unsigned);
-  void addRShift (BitRange, BitRange, unsigned);
-  void addCase (BitRange, const vector<BitRange> &);
-  void addParallelCase (BitRange, const vector<BitRange> &);
+  //------------------------------------------------------------------------
+
+  void addReplicate (BitRange o, BitRange a, unsigned arg)
+  {
+    addUnaryArg (BTOR_IBV_REPLICATE, o, a, arg);
+  }
+  void addLShift (BitRange o, BitRange a, unsigned arg)
+  {
+    addUnaryArg (BTOR_IBV_LEFT_SHIFT, o, a, arg);
+  }
+  void addRShift (BitRange o, BitRange a, unsigned arg)
+  {
+    addUnaryArg (BTOR_IBV_RIGHT_SHIFT, o, a, arg);
+  }
 
 #if 0
+
+  //------------------------------------------------------------------------
+
+  void addConcat (BitRange output, const vector<BitRange>& operands);
+  void addCase (BitRange, const vector<BitRange>&);
+  void addParallelCase (BitRange, const vector<BitRange>&);
+
+  //------------------------------------------------------------------------
+
   void addAssumption (BitRange, bool);
   void addFairnessConstraint (BitRange, BitRange);
   void addAssertion (BitRange);
-#endif
 
-#if 0
+  //------------------------------------------------------------------------
+
   void addMemory (unsigned, const string&,
                   unsigned, unsigned,  unsigned, unsigned,
                   const vector<string>&);
