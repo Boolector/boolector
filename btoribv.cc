@@ -38,10 +38,19 @@ BtorIBV::delete_ibv_variable (BtorIBVNode *node)
   assert (!node->is_constant);
   assert (node->name);
   btor_freestr (btor->mm, node->name);
+  for (BtorIBVAssignment *a = node->assignments.start;
+       a < node->assignments.top;
+       a++)
+  {
+    size_t bytes = a->nranges * sizeof *a->ranges;
+    btor_free (btor->mm, a->ranges, bytes);
+  }
   BTOR_RELEASE_STACK (btor->mm, node->assignments);
-  for (BtorIBVRangeName *rn = node->ranges.start; rn < node->ranges.top; rn++)
-    btor_freestr (btor->mm, rn->name);
+  for (BtorIBVRangeName *r = node->ranges.start; r < node->ranges.top; r++)
+    btor_freestr (btor->mm, r->name);
   BTOR_RELEASE_STACK (btor->mm, node->ranges);
+  btor_free (btor->mm, node->assigned, node->width);
+  btor_free (btor->mm, node->marked, node->width);
   btor_free (btor->mm, node, sizeof *node);
 }
 
@@ -127,9 +136,13 @@ BtorIBV::addVariable (unsigned id,
   node->is_loop_breaking = isLoopBreaking;
   node->is_state_retain  = isStateRetain;
   node->direction        = direction;
+  node->assigned         = (signed char *) btor_malloc (btor->mm, node->width);
+  node->marked           = (signed char *) btor_malloc (btor->mm, node->width);
+  memset (node->assigned, 0, node->width);
+  memset (node->marked, 0, node->width);
   BTOR_INIT_STACK (node->ranges);
   BTOR_INIT_STACK (node->assignments);
-  msg (2, "added variable %s of width %u", node->name, width);
+  msg (1, "added variable %s of width %u", node->name, width);
 }
 
 void
@@ -142,14 +155,13 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   assert (flsb <= fmsb);
   assert (fmsb - flsb == (br.m_nMsb - br.m_nLsb));
   BtorIBVNode *node = id2node (br.m_nId);
-  assert (!node->is_constant);
   BtorIBVRangeName rn;
   rn.from.msb = fmsb, rn.from.lsb = flsb;
   rn.to.msb = br.m_nMsb, rn.to.lsb = br.m_nLsb;
   rn.name = btor_strdup (btor->mm, name.c_str ());
   BTOR_PUSH_STACK (btor->mm, node->ranges, rn);
   assert (node->name);
-  msg (2,
+  msg (1,
        "added external range %s[%u..%u] mapped to %s[%u..%u]",
        rn.name,
        rn.from.msb,
@@ -160,12 +172,71 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
 }
 
 void
-BtorIBV::addBinOp (BitRange o, BitRange a, BitRange b, BtorIBVBinOp op)
+BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
 {
+  assert (tag & BTOR_IBV_IS_UNARY);
+  assert ((tag & ~BTOR_IBV_IS_PREDICATE) <= BTOR_IBV_MAX_UNARY);
   assert (o.getWidth () == a.getWidth ());
-  assert (o.getWidth () == b.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
-  BtorIBVNode *an = bitrange2node (a);
-  BtorIBVNode *bn = bitrange2node (b);
-  assert (!on->is_constant);
+  mark_assigned (on, o);
+  check_bit_range (a);
+  BtorIBVRange *r =
+      (BtorIBVRange *) btor_malloc (btor->mm, 1 * sizeof (BtorIBVRange));
+  r[0] = a;
+  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+}
+
+void
+BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
+{
+  assert (tag & BTOR_IBV_IS_BINARY);
+  assert ((tag & ~BTOR_IBV_IS_PREDICATE) <= BTOR_IBV_MAX_BINARY);
+  assert (a.getWidth () == b.getWidth ());
+  if (tag & BTOR_IBV_IS_PREDICATE)
+    assert (o.getWidth () == 1);
+  else
+    assert (o.getWidth () == a.getWidth ());
+  BtorIBVNode *on = bitrange2node (o);
+  mark_assigned (on, o);
+  check_bit_range (a), check_bit_range (b);
+  BtorIBVRange *r =
+      (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof (BtorIBVRange));
+  r[0] = a, r[1] = b;
+  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 2, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+}
+
+void
+BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
+{
+  BtorIBVNode *on = bitrange2node (o);
+  mark_assigned (on, o);
+  check_bit_range (c), check_bit_range (t), check_bit_range (e);
+  assert (t.getWidth () == e.getWidth ());
+  assert (o.getWidth () == t.getWidth ());
+  unsigned cw  = c.getWidth ();
+  bool bitwise = (cw != 1);
+  if (bitwise) assert (t.getWidth () == cw);
+  BtorIBVTag tag = BTOR_IBV_COND;
+  if (!bitwise) tag = (BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE);
+  BtorIBVRange *r =
+      (BtorIBVRange *) btor_malloc (btor->mm, 3 * sizeof (BtorIBVRange));
+  r[0] = c, r[1] = t, r[2] = e;
+  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 3, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+}
+
+void
+BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
+{
+  assert (n);
+  assert (r.m_nLsb <= r.m_nMsb);
+  assert (r.m_nMsb < n->width);
+  for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
+  {
+    msg (2, "assigning %s[%u]", n->name, i);
+    assert (!n->assigned[i]);
+    n->assigned[i] = 1;
+  }
 }
