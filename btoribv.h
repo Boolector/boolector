@@ -205,8 +205,6 @@ class BtorIBV : public IBitVector
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
-  void split_unmarked_range (BtorIBVRange, BtorIBVRangeStack *);
-
  public:
   int verbosity;
 
@@ -390,8 +388,14 @@ struct BtorIBVRange
   }
 };
 
+struct BtorIBVBit
+{
+  unsigned id, bit;
+  BtorIBVBit (unsigned i, unsigned b) : id (i), bit (b) {}
+};
+
 extern "C" {
-BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
+BTOR_DECLARE_STACK (IBVBit, BtorIBVBit);
 };
 
 #endif

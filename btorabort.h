@@ -17,15 +17,15 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_ABORT_BOOLECTOR(cond, msg)                      \
-  do                                                         \
-  {                                                          \
-    if (cond)                                                \
-    {                                                        \
-      printf ("[%s] %s: %s\n", __FILE__, __FUNCTION__, msg); \
-      fflush (stdout);                                       \
-      exit (BTOR_ERR_EXIT);                                  \
-    }                                                        \
+#define BTOR_ABORT_BOOLECTOR(cond, fmt, msg...)                     \
+  do                                                                \
+  {                                                                 \
+    if (cond)                                                       \
+    {                                                               \
+      printf ("[%s] %s: " fmt "\n", __FILE__, __FUNCTION__, ##msg); \
+      fflush (stdout);                                              \
+      exit (BTOR_ERR_EXIT);                                         \
+    }                                                               \
   } while (0)
 
 #define BTOR_ABORT_ARG_NULL_BOOLECTOR(arg)          \

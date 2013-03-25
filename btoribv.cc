@@ -5,6 +5,10 @@
 #include <cstdio>
 #include <cstring>
 
+extern "C" {
+#include "btorabort.h"
+};
+
 static void
 btoribv_msghead ()
 {
@@ -457,51 +461,16 @@ BtorIBV::check_all_next_states_assigned ()
     if (!n) continue;
     if (n->is_constant) continue;
     if (!n->is_next_state) continue;
-    for (unsigned i; i < n->width; i++) assert (n->assigned[i]);
-  }
-}
-
-void
-BtorIBV::split_unmarked_range (BtorIBVRange r, BtorIBVRangeStack *wp)
-{
-  BtorIBVNode *n = id2node (r.id);
-  unsigned msb   = r.msb;
-  for (;;)
-  {
-    while (n->marked[msb] == 2 && msb > r.lsb) msb--;
-    if (msb == r.lsb)
-    {
-      if (n->marked[msb] != 2)
-      {
-        assert (!n->marked[msb]);
-        BtorIBVRange r (n->id, msb, msb);
-        BTOR_PUSH_STACK (btor->mm, *wp, r);
-      }
-      break;
-    }
-    assert (msb > r.lsb);
-    assert (!n->marked[msb]);
-    unsigned lsb = msb - 1;
-    while (!n->marked[lsb] && lsb > r.lsb) lsb--;
-    if (lsb > r.lsb)
-      lsb++;
-    else
-    {
-      assert (lsb == r.lsb);
-      if (n->marked[lsb]) assert (n->marked[lsb] == 2), lsb++;
-    }
-    assert (msb >= lsb);
-    BtorIBVRange r (n->id, msb, lsb);
-    BTOR_PUSH_STACK (btor->mm, *wp, r);
-    if (lsb == r.lsb) break;
-    msb = lsb - 1;
+    for (unsigned i; i < n->width; i++)
+      BTOR_ABORT_BOOLECTOR (
+          !n->assigned[i], "next state bit %s[%u] unassigned", n->name, i);
   }
 }
 
 void
 BtorIBV::check_noncyclic_assignments ()
 {
-  BtorIBVRangeStack work;
+  BtorIBVBitStack work;
   BTOR_INIT_STACK (work);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -512,15 +481,19 @@ BtorIBV::check_noncyclic_assignments ()
          a++)
     {
       BtorIBVRange r (a->id, a->msb, a->lsb);
-      split_unmarked_range (r, &work);
     }
     while (!BTOR_EMPTY_STACK (work))
     {
-      BtorIBVRange r = BTOR_TOP_STACK (work);
-      BtorIBVNode *n = id2node (r.id);
+#if 0
+      BtorIBVRange r;// = BTOR_TOP_STACK (work);
+      BtorIBVNode * n = id2node (r.id);
       assert (!n->is_constant);
-      // TODO check for cycles
-      // split
+      for (unsigned i = r.lsb; i <= r.msb; i++)
+	BTOR_ABORT_BOOLECTOR (n->marked[i] == 1,
+	  "%s[%u] depends recursively on itself", n->name, i);
+      for (unsigned i = r.lsb; i <= r.msb; i++)
+	if (!n->marked[i]) n->marked[i] = 1;
+#endif
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
