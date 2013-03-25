@@ -44,7 +44,10 @@ enum BtorIBVTag
   BTOR_IBV_MAX_TERNARY = BTOR_IBV_COND,
 
   BTOR_IBV_IS_VARIADIC  = 64,
-  BTOR_IBV_MAX_VARIADIX = BTOR_IBV_IS_VARIADIC,
+  BTOR_IBV_CONCAT       = 64 + 0,
+  BTOR_IBV_CASE         = 64 + 1,
+  BTOR_IBV_PARCASE      = 64 + 2,
+  BTOR_IBV_MAX_VARIADIX = BTOR_IBV_PARCASE,
 
   BTOR_IBV_IS_PREDICATE = 128,
   BTOR_IBV_HAS_ARG      = 256,
@@ -315,13 +318,13 @@ class BtorIBV : public IBitVector
     addUnaryArg (BTOR_IBV_RIGHT_SHIFT, o, a, arg);
   }
 
-#if 0
-
   //------------------------------------------------------------------------
 
-  void addConcat (BitRange output, const vector<BitRange>& operands);
-  void addCase (BitRange, const vector<BitRange>&);
-  void addParallelCase (BitRange, const vector<BitRange>&);
+  void addConcat (BitRange output, const vector<BitRange> &operands);
+  void addCase (BitRange, const vector<BitRange> &);
+  void addParallelCase (BitRange, const vector<BitRange> &);
+
+#if 0
 
   //------------------------------------------------------------------------
 
