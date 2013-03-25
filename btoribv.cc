@@ -466,19 +466,19 @@ BtorIBV::split_unmarked_range (BtorIBVRange r, BtorIBVRangeStack *wp)
 {
   BtorIBVNode *n = id2node (r.id);
   unsigned msb   = r.msb;
-NEXT_SLICE:
-  while (n->marked[msb] == 2 && msb > r.lsb) msb--;
-  if (msb == r.lsb)
+  for (;;)
   {
-    if (n->marked[msb] != 2)
+    while (n->marked[msb] == 2 && msb > r.lsb) msb--;
+    if (msb == r.lsb)
     {
-      assert (!n->marked[msb]);
-      BtorIBVRange r (n->id, msb, msb);
-      BTOR_PUSH_STACK (btor->mm, *wp, r);
+      if (n->marked[msb] != 2)
+      {
+        assert (!n->marked[msb]);
+        BtorIBVRange r (n->id, msb, msb);
+        BTOR_PUSH_STACK (btor->mm, *wp, r);
+      }
+      break;
     }
-  }
-  else
-  {
     assert (msb > r.lsb);
     assert (!n->marked[msb]);
     unsigned lsb = msb - 1;
@@ -493,11 +493,8 @@ NEXT_SLICE:
     assert (msb >= lsb);
     BtorIBVRange r (n->id, msb, lsb);
     BTOR_PUSH_STACK (btor->mm, *wp, r);
-    if (lsb > r.lsb)
-    {
-      msb = lsb - 1;
-      goto NEXT_SLICE;
-    }
+    if (lsb == r.lsb) break;
+    msb = lsb - 1;
   }
 }
 
