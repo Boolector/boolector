@@ -5,26 +5,44 @@
 BtorIBV::BtorIBV (Btor *b) : btor (b) {}
 
 void
-BtorIBV::delete_ibv_var (BtorIBVariable *var)
+BtorIBV::delete_ibv_variable (BtorIBVNode *node)
 {
-  assert (var);
-  assert (var->name);
-  btor_freestr (btor->mm, var->name);
-  BTOR_RELEASE_STACK (btor->mm, var->assignments);
-  for (BtorIBVRangeName *rn = var->ranges.start; rn < var->ranges.top; rn++)
+  assert (node);
+  assert (!node->is_constant);
+  assert (node->name);
+  btor_freestr (btor->mm, node->name);
+  BTOR_RELEASE_STACK (btor->mm, node->assignments);
+  for (BtorIBVRangeName *rn = node->ranges.start; rn < node->ranges.top; rn++)
     btor_freestr (btor->mm, rn->name);
-  BTOR_RELEASE_STACK (btor->mm, var->ranges);
-  btor_free (btor->mm, var, sizeof *var);
+  BTOR_RELEASE_STACK (btor->mm, node->ranges);
+  btor_free (btor->mm, node, sizeof *node);
+}
+
+static size_t
+btor_ibv_constant_bytes ()
+{
+  return (size_t) & (((BtorIBVNode *) 0)->name);
+}
+
+void
+BtorIBV::delete_ibv_constant (BtorIBVNode *node)
+{
+  assert (node);
+  assert (node->is_constant);
+  assert (node->cached);
+  btor_release_exp (btor, node->cached);
+  btor_free (btor->mm, node, btor_ibv_constant_bytes ());
 }
 
 void
 BtorIBV::delete_ibv_node (BtorIBVNode *node)
 {
   assert (node);
-  assert (node->exp);
-  btor_release_exp (btor, node->exp);
-  if (node->tag == BTOR_IBV_VARIABLE) delete_ibv_var (node->var);
-  btor_free (btor->mm, node, sizeof *node);
+  if (node->cached) btor_release_exp (btor, node->cached);
+  if (node->is_constant)
+    delete_ibv_constant (node);
+  else
+    delete_ibv_variable (node);
 }
 
 BtorIBV::~BtorIBV ()
@@ -38,17 +56,19 @@ BtorIBV::~BtorIBV ()
 }
 
 BtorIBVNode *
-BtorIBV::new_node (unsigned id, BtorIBVTag tag, unsigned width, BtorNode *exp)
+BtorIBV::new_node (unsigned id, bool is_constant, unsigned width)
 {
   assert (id > 0);
   BTOR_FIT_STACK (btor->mm, idtab, id);
   assert (!BTOR_PEEK_STACK (idtab, id));
-  BtorIBVNode *node = (BtorIBVNode *) btor_malloc (btor->mm, sizeof *node);
+  size_t bytes =
+      is_constant ? btor_ibv_constant_bytes () : sizeof (BtorIBVNode);
+  BtorIBVNode *node = (BtorIBVNode *) btor_malloc (btor->mm, bytes);
+  memset (node, 0, bytes);
   node->id          = id;
-  node->tag         = tag;
+  node->is_constant = is_constant;
   node->width       = width;
-  node->exp         = exp;
-  node->var         = 0;
+  node->cached      = 0;
   BTOR_POKE_STACK (idtab, id, node);
   return node;
 }
@@ -56,9 +76,10 @@ BtorIBV::new_node (unsigned id, BtorIBVTag tag, unsigned width, BtorNode *exp)
 void
 BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
 {
+  BtorIBVNode *node;
   assert (str.size () == width);
-  (void) new_node (
-      id, BTOR_IBV_CONSTANT, width, btor_const_exp (btor, str.c_str ()));
+  node         = new_node (id, true, width);
+  node->cached = btor_const_exp (btor, str.c_str ());
 }
 
 void
@@ -73,17 +94,14 @@ BtorIBV::addVariable (unsigned id,
   assert (id > 0);
   BTOR_FIT_STACK (btor->mm, idtab, id);
   assert (!BTOR_PEEK_STACK (idtab, id));
-  BtorIBVNode *node = new_node (
-      id, BTOR_IBV_VARIABLE, width, btor_var_exp (btor, width, str.c_str ()));
-  BtorIBVariable *var = (BtorIBVariable *) btor_malloc (btor->mm, sizeof *var);
-  var->name           = btor_strdup (btor->mm, str.c_str ());
-  var->is_next_state  = isNextState;
-  var->is_loop_breaking = isLoopBreaking;
-  var->is_state_retain  = isStateRetain;
-  var->direction        = direction;
-  BTOR_INIT_STACK (var->ranges);
-  BTOR_INIT_STACK (var->assignments);
-  node->var = var;
+  BtorIBVNode *node      = new_node (id, false, width);
+  node->name             = btor_strdup (btor->mm, str.c_str ());
+  node->is_next_state    = isNextState;
+  node->is_loop_breaking = isLoopBreaking;
+  node->is_state_retain  = isStateRetain;
+  node->direction        = direction;
+  BTOR_INIT_STACK (node->ranges);
+  BTOR_INIT_STACK (node->assignments);
 }
 
 void
@@ -96,13 +114,12 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   assert (flsb <= fmsb);
   assert (fmsb - flsb == (br.m_nMsb - br.m_nLsb));
   BtorIBVNode *node = id2node (br.m_nId);
-  assert (node->tag == BTOR_IBV_VARIABLE);
+  assert (!node->is_constant);
   BtorIBVRangeName rn;
   rn.from.msb = fmsb, rn.from.lsb = flsb;
   rn.to.msb = br.m_nMsb, rn.to.lsb = br.m_nLsb;
   rn.name = btor_strdup (btor->mm, name.c_str ());
-  assert (node->var);
-  BTOR_PUSH_STACK (btor->mm, node->var->ranges, rn);
+  BTOR_PUSH_STACK (btor->mm, node->ranges, rn);
 }
 
 void

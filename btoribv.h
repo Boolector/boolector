@@ -9,16 +9,9 @@ extern "C" {
 #include "btorstack.h"
 };
 
-enum BtorIBVTag
-{
-  BTOR_IBV_VARIABLE,
-  BTOR_IBV_CONSTANT,
-};
-
 struct BtorIBVAssignment
 {
-  unsigned msb, lsb;
-  BtorNode *rhs;
+  unsigned id, msb, lsb;
 };
 
 extern "C" {
@@ -40,6 +33,15 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 
 struct BtorIBVariable
 {
+};
+
+struct BtorIBVNode
+{
+  unsigned width : 31;
+  unsigned is_constant : 1;
+  unsigned id;
+  BtorNode *cached;
+  // Note: start of data for variables (invalid if 'is_constant')
   char *name;
   bool is_next_state;
   bool is_loop_breaking;
@@ -47,15 +49,6 @@ struct BtorIBVariable
   IBitVector::DirectionKind direction;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
-};
-
-struct BtorIBVNode
-{
-  BtorIBVTag tag;
-  unsigned id;
-  unsigned width;
-  BtorNode *exp;
-  BtorIBVariable *var;
 };
 
 extern "C" {
@@ -85,9 +78,11 @@ class BtorIBV : public IBitVector
     return node;
   }
 
+  void delete_ibv_variable (BtorIBVNode *);
+  void delete_ibv_constant (BtorIBVNode *);
   void delete_ibv_node (BtorIBVNode *);
-  void delete_ibv_var (BtorIBVariable *);
-  BtorIBVNode *new_node (unsigned, BtorIBVTag, unsigned, BtorNode *);
+
+  BtorIBVNode *new_node (unsigned id, bool isConstant, unsigned width);
 
   typedef BtorNode *(*BtorIBVBinOp) (Btor *, BtorNode *, BtorNode *);
 
