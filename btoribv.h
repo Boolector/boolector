@@ -9,9 +9,56 @@ extern "C" {
 #include "btorstack.h"
 };
 
-struct BtorIBVAssignment
+// We use classical C style data structure in order to use the Boolector
+// memory manager which is hard to use for C++ allocators ('new' and
+// 'delete').  This needs explicit 'tags'.
+
+enum BtorIBVTag
+{
+
+  BTOR_IBV_IS_UNARY    = 0,
+  BTOR_IBV_NOT         = 0 + 0,
+  BTOR_IBV_ZERO_EXTEND = 0 + 1,
+  BTOR_IBV_SIGN_EXTEND = 0 + 2,
+
+  BTOR_IBV_IS_BINARY = 16,
+  BTOR_IBV_OR        = 16 + 0,
+  BTOR_IBV_AND       = 16 + 1,
+  BTOR_IBV_XOR       = 16 + 2,
+  BTOR_IBV_LT        = 16 + 3,
+  BTOR_IBV_LE        = 16 + 4,
+  BTOR_IBV_SUM       = 16 + 5,
+  BTOR_IBV_MUL       = 16 + 6,
+  BTOR_IBV_DIV       = 16 + 7,
+  BTOR_IBV_MOD       = 16 + 8,
+
+  BTOR_IBV_IS_TERNARY = 32,
+  BTOR_IBV_COND       = 32 + 0,
+
+  BTOR_IBV_IS_VARIADIC = 64,
+
+  BTOR_IBV_IS_PREDICATE = 128,
+  BTOR_IBV_HAS_ARG      = 256,
+
+  BTOR_IBV_MASK  = 15,
+  BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256,
+};
+
+struct BtorIBVRange
 {
   unsigned id, msb, lsb;
+};
+
+struct BtorIBVAssignment
+{
+  BtorIBVTag tag;
+  unsigned msb, lsb;
+  union
+  {
+    unsigned arg;      // if 'tag & BTOR_IBV_HAS_ARG'
+    unsigned nranges;  // if 'tag & BTOR_IBV_IS_VARIADIC'
+  };
+  BtorIBVRange *ranges;  // size determined by 'tag' or 'nranges'
 };
 
 extern "C" {
@@ -29,10 +76,6 @@ struct BtorIBVRangeName
 
 extern "C" {
 BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
-};
-
-struct BtorIBVariable
-{
 };
 
 struct BtorIBVNode
@@ -89,7 +132,12 @@ class BtorIBV : public IBitVector
   void addBinOp (BitRange, BitRange, BitRange, BtorIBVBinOp);
   void addBinPred (BitRange, BitRange, BitRange, BtorIBVBinOp);
 
+  void wrn (const char *fmt, ...);
+  void msg (int level, const char *fmt, ...);
+
  public:
+  int verbosity;
+
   BtorIBV (Btor *);
   ~BtorIBV ();
   void addConstant (unsigned, const string &, unsigned);
@@ -115,12 +163,10 @@ class BtorIBV : public IBitVector
     addBinOp (o, a, b, btor_xor_exp);
   }
 
-#if 0
   void addBitNot (BitRange, BitRange);
-  void addConcat (BitRange output, const vector<BitRange>& operands);
+  void addConcat (BitRange output, const vector<BitRange> &operands);
   void addReplicate (BitRange output, BitRange operand, unsigned);
   void addEqual (BitRange, BitRange, BitRange);
-#endif
   void addGreaterThan (BitRange, BitRange, BitRange);
   void addGreaterEqual (BitRange, BitRange, BitRange);
   void addLessThan (BitRange, BitRange, BitRange);
@@ -133,19 +179,23 @@ class BtorIBV : public IBitVector
   void addMul (BitRange, BitRange, BitRange);
   void addDiv (BitRange, BitRange, BitRange);
   void addMod (BitRange, BitRange, BitRange);
-#if 0
   void addLShift (BitRange, BitRange, unsigned);
   void addRShift (BitRange, BitRange, unsigned);
   void addLShiftNonConst (BitRange, BitRange, BitRange);
   void addRShiftNonConst (BitRange, BitRange, BitRange);
   void addCondition (BitRange, BitRange, BitRange, BitRange);
-  void addCase (BitRange, const vector<BitRange>&);
-  void addParallelCase (BitRange, const vector<BitRange>&);
+  void addCase (BitRange, const vector<BitRange> &);
+  void addParallelCase (BitRange, const vector<BitRange> &);
   void addZeroExtension (BitRange, BitRange);
   void addSignExtension (BitRange, BitRange);
+
+#if 0
   void addAssumption (BitRange, bool);
   void addFairnessConstraint (BitRange, BitRange);
   void addAssertion (BitRange);
+#endif
+
+#if 0
   void addMemory (unsigned, const string&,
                   unsigned, unsigned,  unsigned, unsigned,
                   const vector<string>&);

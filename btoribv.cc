@@ -1,6 +1,33 @@
 #include "btoribv.h"
 
-#include <string.h>
+#include <cstdarg>
+#include <cstdio>
+#include <cstring>
+
+void
+BtorIBV::msg (int level, const char *fmt, ...)
+{
+  va_list ap;
+  if (level > verbosity) return;
+  fputs ("[btoribv] ", stdout);
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+  fputc ('\n', stdout);
+  fflush (stdout);
+}
+
+void
+BtorIBV::wrn (const char *fmt, ...)
+{
+  va_list ap;
+  fputs ("[btoribv] *** WARNING *** ", stderr);
+  va_start (ap, fmt);
+  vfprintf (stderr, fmt, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
+}
 
 BtorIBV::BtorIBV (Btor *b) : btor (b) {}
 
@@ -102,6 +129,7 @@ BtorIBV::addVariable (unsigned id,
   node->direction        = direction;
   BTOR_INIT_STACK (node->ranges);
   BTOR_INIT_STACK (node->assignments);
+  msg (2, "added variable %s of width %u", node->name, width);
 }
 
 void
@@ -120,17 +148,24 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   rn.to.msb = br.m_nMsb, rn.to.lsb = br.m_nLsb;
   rn.name = btor_strdup (btor->mm, name.c_str ());
   BTOR_PUSH_STACK (btor->mm, node->ranges, rn);
+  assert (node->name);
+  msg (2,
+       "added external range %s[%u..%u] mapped to %s[%u..%u]",
+       rn.name,
+       rn.from.msb,
+       rn.from.lsb,
+       node->name,
+       rn.to.msb,
+       rn.to.lsb);
 }
 
 void
-BtorIBV::addBinOp (IBitVector::BitRange o,
-                   IBitVector::BitRange a,
-                   IBitVector::BitRange b,
-                   BtorIBVBinOp op)
+BtorIBV::addBinOp (BitRange o, BitRange a, BitRange b, BtorIBVBinOp op)
 {
   assert (o.getWidth () == a.getWidth ());
   assert (o.getWidth () == b.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
   BtorIBVNode *an = bitrange2node (a);
   BtorIBVNode *bn = bitrange2node (b);
+  assert (!on->is_constant);
 }
