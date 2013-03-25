@@ -205,6 +205,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
       assert (a.getWidth () * arg == o.getWidth ());
       break;
   }
+  tag             = (BtorIBVTag) (tag | BTOR_IBV_HAS_ARG);
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
   check_bit_range (a);
@@ -245,7 +246,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   bool bitwise = (cw != 1);
   if (bitwise) assert (t.getWidth () == cw);
   BtorIBVTag tag = BTOR_IBV_COND;
-  if (!bitwise) tag = (BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE);
+  if (bitwise) tag = (BtorIBVTag) (tag | BTOR_IBV_BITWISE);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 3 * sizeof *r);
   r[0] = c, r[1] = t, r[2] = e;
   BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, 0, 3, r);
@@ -270,6 +271,7 @@ void
 BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
 {
   BtorIBVNode *on = bitrange2node (o);
+  mark_assigned (on, o);
   unsigned n = 0, sum = 0;
   vector<BitRange>::const_iterator it;
   for (it = ops.begin (); it != ops.end (); it++)
@@ -282,11 +284,45 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
     n++;
   }
   assert (on->width == sum);
-  mark_assigned (on, o);
+  assert (n > 0);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, n * sizeof *r);
   unsigned i      = 0;
   for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it;
   assert (i == n);
   BtorIBVAssignment assignment (BTOR_IBV_CONCAT, o.m_nMsb, o.m_nLsb, 0, n, r);
+  BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+}
+
+void
+BtorIBV::addCase (BitRange o, const vector<BitRange> &ops)
+{
+  BtorIBVNode *on = bitrange2node (o);
+  mark_assigned (on, o);
+  unsigned n = 0;
+  assert (ops.begin () != ops.end ());
+  vector<BitRange>::const_iterator it;
+  for (it = ops.begin (); it != ops.end (); it++)
+  {
+    BitRange c = *it++;
+    if (c.m_nId)
+    {
+      check_bit_range (c);
+      assert (c.getWidth () == 1 || c.getWidth () == o.getWidth ());
+    }
+    else
+      assert (it + 1 == ops.end ());
+    assert (it != ops.end ());
+    BitRange d = *it;
+    check_bit_range (d);
+    assert (d.getWidth () == o.getWidth ());
+    assert (n < UINT_MAX / 2);
+    n++;
+  }
+  assert (n > 0);
+  BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * n * sizeof *r);
+  unsigned i      = 0;
+  for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it++, r[i++] = *it;
+  assert (i == 2 * n);
+  BtorIBVAssignment assignment (BTOR_IBV_CASE, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
 }
