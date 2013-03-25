@@ -481,32 +481,43 @@ BtorIBV::check_noncyclic_assignments ()
       assert (a->id == n->id);
       BTOR_PUSH_STACK (btor->mm, work, a->id);
     }
-
     while (!BTOR_EMPTY_STACK (work))
     {
       unsigned id    = BTOR_TOP_STACK (work);
       BtorIBVNode *n = id2node (id);
       assert (!n->is_constant);
-      if (n->marked == 2)
-        continue;
-      else if (n->marked == 1)
+      if (n->marked == 1)
       {
+        (void) BTOR_POP_STACK (work);
+        n->marked = 2;
       }
-      else
+      else if (!n->marked)
       {
-        assert (!n->marked);
+        n->marked = 1;
+        if (n->is_next_state) continue;
         for (BtorIBVAssignment *a = n->assignments.start;
              a < n->assignments.top;
              a++)
-          ;
+        {
+          for (BtorIBVRange *r = a->ranges; r < a->ranges + a->nranges; r++)
+          {
+            if (!r->id) continue;
+            BtorIBVNode *m = id2node (r->id);
+            BTOR_ABORT_BOOLECTOR (m->marked == 1,
+                                  "variable %s depends recursively on itself",
+                                  m->name);
+            if (m->marked == 2) continue;
+            assert (!m->marked);
+            BTOR_PUSH_STACK (btor->mm, work, m->id);
+          }
+        }
       }
-#if 0
-      if (n->marked[b.bit]
-      if (BTOR_ABORT_BOOLECTOR (n->marked[b.bit] == 1,
-	  "%s[%u] depends recursively on itself", n->name, b.bit);
-      n->marked[b.bit] = 1;
-#endif
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (n && !n->is_constant) assert (n->marked == 2), n->marked = 0;
+  }
 }
