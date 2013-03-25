@@ -514,6 +514,14 @@ BtorIBV::check_noncyclic_assignments ()
       BtorIBVRange r (a->id, a->msb, a->lsb);
       split_unmarked_range (r, &work);
     }
+    while (!BTOR_EMPTY_STACK (work))
+    {
+      BtorIBVRange r = BTOR_TOP_STACK (work);
+      BtorIBVNode *n = id2node (r.id);
+      assert (!n->is_constant);
+      // TODO check for cycles
+      // split
+    }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
 }
