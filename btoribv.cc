@@ -92,6 +92,20 @@ BtorIBV::println (const BtorIBVAssignment &a)
   print (a), fputc ('\n', stdout), fflush (stdout);
 }
 
+void
+BtorIBV::msg (int level, const BtorIBVAssignment &a, const char *fmt, ...)
+{
+  va_list ap;
+  if (level > verbosity) return;
+  btoribv_msghead ();
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+  fputc (' ', stdout);
+  print (a);
+  btoribv_msgtail ();
+}
+
 BtorIBV::BtorIBV (Btor *b) : btor (b) {}
 
 void
@@ -252,6 +266,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   r[0]            = a;
   BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, on->id, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  msg (1, assignment, "adding unary assignment");
 }
 
 void
@@ -276,6 +291,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   r[0]            = a;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  msg (1, assignment, "adding unary assignment (with argument)");
 }
 
 void
@@ -295,6 +311,7 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   r[0] = a, r[1] = b;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  msg (1, assignment, "adding binary assignment");
 }
 
 void
@@ -313,6 +330,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   r[0] = c, r[1] = t, r[2] = e;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 3, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
+  msg (1, assignment, "adding %scondition", bitwise ? "bitwise " : "");
 }
 
 void
@@ -353,6 +371,7 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   assert (i == n);
   BtorIBVAssignment a (BTOR_IBV_CONCAT, on->id, o.m_nMsb, o.m_nLsb, 0, n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
+  msg (1, a, "adding %u-ary concatination", n);
 }
 
 void
@@ -387,8 +406,9 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
   unsigned i      = 0;
   for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it++, r[i++] = *it;
   assert (i == 2 * n);
-  BtorIBVAssignment a (BTOR_IBV_CASE, on->id, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
+  BtorIBVAssignment a (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
+  msg (1, a, "adding %u-ary case", n);
 }
 
 void
@@ -409,6 +429,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   r[0] = init, r[1] = next;
   BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
+  msg (1, a, "adding state");
 }
 
 void
@@ -423,4 +444,5 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   r[0]            = next;
   BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
+  msg (1, a, "adding non-state");
 }
