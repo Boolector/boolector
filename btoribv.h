@@ -131,11 +131,22 @@ extern "C" {
 BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
 };
 
+struct BtorIBVBit
+{
+  unsigned id, bit;
+  BtorIBVBit (unsigned i, unsigned b) : id (i), bit (b) {}
+  BtorIBVBit (const IBitVector::Bit &b);
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVBit, BtorIBVBit);
+};
+
 class BtorIBV : public IBitVector
 {
   Btor *btor;
   BtorIBVNodePtrStack idtab;
-  BtorIBVRangeStack assertions;
+  BtorIBVBitStack assertions;
 
   //------------------------------------------------------------------------
 
@@ -366,7 +377,7 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
-  void addAssertion (BitRange);
+  void addAssertion (Bit);
 
 #if 0
 
@@ -397,6 +408,11 @@ class BtorIBV : public IBitVector
 
 inline BtorIBVRange::BtorIBVRange (const IBitVector::BitRange &r)
     : id (r.m_nId), msb (r.m_nMsb), lsb (r.m_nLsb)
+{
+}
+
+inline BtorIBVBit::BtorIBVBit (const IBitVector::Bit &b)
+    : id (b.m_nId), bit (b.m_nBit)
 {
 }
 

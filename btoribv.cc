@@ -525,10 +525,12 @@ BtorIBV::check_noncyclic_assignments ()
 }
 
 void
-BtorIBV::addAssertion (BitRange r)
+BtorIBV::addAssertion (Bit r)
 {
-  check_bit_range (r);
-  assert (r.getWidth () == 1);
-  BtorIBVRange s = r;
+  BtorIBVBit s = r;
+#ifndef NDEBUG
+  BtorIBVNode *n = id2node (s.id);
+  assert (s.bit < n->width);
+#endif
   BTOR_PUSH_STACK (btor->mm, assertions, s);
 }
