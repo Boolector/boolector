@@ -17,9 +17,10 @@ enum BtorIBVTag
 {
 
   BTOR_IBV_IS_UNARY    = 0,
-  BTOR_IBV_NOT         = 0 + 0,
-  BTOR_IBV_ZERO_EXTEND = 0 + 1,
-  BTOR_IBV_SIGN_EXTEND = 0 + 2,
+  BTOR_IBV_BUF         = 0 + 0,
+  BTOR_IBV_NOT         = 0 + 1,
+  BTOR_IBV_ZERO_EXTEND = 0 + 2,
+  BTOR_IBV_SIGN_EXTEND = 0 + 3,
   BTOR_IBV_REPLICATE   = 0 + 4,
   BTOR_IBV_NON_STATE   = 0 + 5,
   BTOR_IBV_MAX_UNARY   = BTOR_IBV_NON_STATE,
@@ -115,13 +116,26 @@ struct BtorIBVNode
 
 extern "C" {
 BTOR_DECLARE_STACK (IBVNodePtr, BtorIBVNode *);
-struct BtorIBVRangeStack;
+};
+
+struct BtorIBVRange
+{
+  unsigned id, msb, lsb;
+  BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
+  {
+  }
+  BtorIBVRange (const IBitVector::BitRange &r);
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
 };
 
 class BtorIBV : public IBitVector
 {
   Btor *btor;
   BtorIBVNodePtrStack idtab;
+  BtorIBVRangeStack assertions;
 
   //------------------------------------------------------------------------
 
@@ -228,6 +242,10 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
+  void addAssignment (BitRange o, BitRange a)
+  {
+    addUnaryOp (BTOR_IBV_BUF, o, a);
+  }
   void addBitNot (BitRange o, BitRange a) { addUnaryOp (BTOR_IBV_NOT, o, a); }
   void addZeroExtension (BitRange o, BitRange a)
   {
@@ -346,13 +364,14 @@ class BtorIBV : public IBitVector
     addCaseOp (BTOR_IBV_PARCASE, o, ops);
   }
 
-#if 0
-
   //------------------------------------------------------------------------
+
+  void addAssertion (BitRange);
+
+#if 0
 
   void addAssumption (BitRange, bool);
   void addFairnessConstraint (BitRange, BitRange);
-  void addAssertion (BitRange);
 
   //------------------------------------------------------------------------
 
@@ -376,16 +395,9 @@ class BtorIBV : public IBitVector
   void check_noncyclic_assignments ();
 };
 
-struct BtorIBVRange
+inline BtorIBVRange::BtorIBVRange (const IBitVector::BitRange &r)
+    : id (r.m_nId), msb (r.m_nMsb), lsb (r.m_nLsb)
 {
-  unsigned id, msb, lsb;
-  BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
-  {
-  }
-  BtorIBVRange (const IBitVector::BitRange &r)
-      : id (r.m_nId), msb (r.m_nMsb), lsb (r.m_nLsb)
-  {
-  }
-};
+}
 
 #endif

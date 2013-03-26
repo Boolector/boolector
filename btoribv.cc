@@ -55,6 +55,7 @@ BtorIBV::print (const BtorIBVAssignment &a)
   switch (a.tag)
   {
     case BTOR_IBV_AND: opname = "AND"; break;
+    case BTOR_IBV_BUF: opname = "BUF"; break;
     case BTOR_IBV_CASE: opname = "CASE"; break;
     case BTOR_IBV_CONCAT: opname = "CONCAT"; break;
     case BTOR_IBV_COND: opname = "COND"; break;
@@ -169,6 +170,7 @@ BtorIBV::~BtorIBV ()
     if (node) delete_ibv_node (node);
   }
   BTOR_RELEASE_STACK (btor->mm, idtab);
+  BTOR_RELEASE_STACK (btor->mm, assertions);
 }
 
 BtorIBVNode *
@@ -520,4 +522,13 @@ BtorIBV::check_noncyclic_assignments ()
     BtorIBVNode *n = *p;
     if (n && !n->is_constant) assert (n->marked == 2), n->marked = 0;
   }
+}
+
+void
+BtorIBV::addAssertion (BitRange r)
+{
+  check_bit_range (r);
+  assert (r.getWidth () == 1);
+  BtorIBVRange s = r;
+  BTOR_PUSH_STACK (btor->mm, assertions, s);
 }
