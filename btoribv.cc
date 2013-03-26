@@ -178,7 +178,7 @@ BtorIBV::new_node (unsigned id, bool is_constant, unsigned width)
 {
   assert (0 < id);
   assert (0 < width);
-  BTOR_FIT_STACK (btor->mm, idtab, id);
+  while (BTOR_COUNT_STACK (idtab) <= id) BTOR_PUSH_STACK (btor->mm, idtab, 0);
   assert (!BTOR_PEEK_STACK (idtab, id));
   size_t bytes =
       is_constant ? btor_ibv_constant_bytes () : sizeof (BtorIBVNode);
@@ -258,7 +258,6 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
 void
 BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
 {
-  assert (tag & BTOR_IBV_IS_UNARY);
   assert ((tag & ~BTOR_IBV_IS_PREDICATE) <= BTOR_IBV_MAX_UNARY);
   assert (o.getWidth () == a.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
