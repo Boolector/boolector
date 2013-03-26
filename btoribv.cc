@@ -270,7 +270,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   check_bit_range (a);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = a;
-  BtorIBVAssignment assignment (tag, o.m_nMsb, o.m_nLsb, on->id, 0, 1, r);
+  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (1, assignment, "adding unary assignment");
 }
