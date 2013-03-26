@@ -1257,7 +1257,7 @@ boolector_is_array (Btor *btor, BtorNode *exp)
 }
 
 int
-boolector_get_width_index (Btor *btor, BtorNode *e_array)
+boolector_get_index_width (Btor *btor, BtorNode *e_array)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
