@@ -111,7 +111,11 @@ BtorIBV::msg (int level, const BtorIBVAssignment &a, const char *fmt, ...)
   btoribv_msgtail ();
 }
 
-BtorIBV::BtorIBV (Btor *b) : btor (b) {}
+BtorIBV::BtorIBV (Btor *b) : btor (b), verbosity (0)
+{
+  BTOR_INIT_STACK (idtab);
+  BTOR_INIT_STACK (assertions);
+}
 
 void
 BtorIBV::delete_ibv_variable (BtorIBVNode *node)
@@ -258,6 +262,7 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
 void
 BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
 {
+  assert (tag & BTOR_IBV_IS_UNARY);
   assert ((tag & ~BTOR_IBV_IS_PREDICATE) <= BTOR_IBV_MAX_UNARY);
   assert (o.getWidth () == a.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
@@ -273,6 +278,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
 void
 BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
 {
+  assert (tag & BTOR_IBV_IS_UNARY);
   switch (tag)
   {
     case BTOR_IBV_LEFT_SHIFT:
