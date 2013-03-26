@@ -176,8 +176,8 @@ BtorIBV::~BtorIBV ()
 BtorIBVNode *
 BtorIBV::new_node (unsigned id, bool is_constant, unsigned width)
 {
-  assert (id > 0);
-  assert (width > 0);  // TODO really?
+  assert (0 < id);
+  assert (0 < width);
   BTOR_FIT_STACK (btor->mm, idtab, id);
   assert (!BTOR_PEEK_STACK (idtab, id));
   size_t bytes =
@@ -213,10 +213,8 @@ BtorIBV::addVariable (unsigned id,
                       bool isStateRetain,
                       IBitVector::DirectionKind direction)
 {
-  assert (id > 0);
-  assert (width > 0);
-  BTOR_FIT_STACK (btor->mm, idtab, id);
-  assert (!BTOR_PEEK_STACK (idtab, id));
+  assert (0 < id);
+  assert (0 < width);
   BtorIBVNode *node      = new_node (id, false, width);
   node->name             = btor_strdup (btor->mm, str.c_str ());
   node->is_next_state    = isNextState;
