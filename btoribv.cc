@@ -111,10 +111,12 @@ BtorIBV::msg (int level, const BtorIBVAssignment &a, const char *fmt, ...)
   btoribv_msgtail ();
 }
 
-BtorIBV::BtorIBV (Btor *b) : btor (b), verbosity (0)
+BtorIBV::BtorIBV () : verbosity (0)
 {
   BTOR_INIT_STACK (idtab);
   BTOR_INIT_STACK (assertions);
+  btormc = boolector_new_mc ();
+  btor   = boolector_btor_mc (btormc);
 }
 
 void
@@ -173,6 +175,15 @@ BtorIBV::~BtorIBV ()
   }
   BTOR_RELEASE_STACK (btor->mm, idtab);
   BTOR_RELEASE_STACK (btor->mm, assertions);
+  boolector_delete_mc (btormc);
+}
+
+void
+BtorIBV::setVerbosity (int v)
+{
+  assert (v >= 0);
+  verbosity = v;
+  boolector_set_verbosity_mc (btormc, v);
 }
 
 BtorIBVNode *

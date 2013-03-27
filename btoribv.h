@@ -145,6 +145,10 @@ BTOR_DECLARE_STACK (IBVBit, BtorIBVBit);
 class BtorIBV : public IBitVector
 {
   Btor *btor;
+  BtorMC *btormc;
+
+  int verbosity;
+
   BtorIBVNodePtrStack idtab;
   BtorIBVBitStack assertions;
 
@@ -231,10 +235,10 @@ class BtorIBV : public IBitVector
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
  public:
-  int verbosity;
-
-  BtorIBV (Btor *);
+  BtorIBV ();
   ~BtorIBV ();
+
+  void setVerbosity (int verbosity);
 
   //------------------------------------------------------------------------
 
