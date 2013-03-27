@@ -250,19 +250,19 @@ BtorIBV::addVariable (unsigned id,
 {
   assert (0 < id);
   assert (0 < width);
-  BtorIBVNode *node      = new_node (id, false, width);
-  node->name             = btor_strdup (btor->mm, str.c_str ());
-  node->is_next_state    = isNextState;
-  node->is_loop_breaking = isLoopBreaking;
-  node->is_state_retain  = isStateRetain;
-  node->direction        = direction;
-  node->marked           = 0;
-  node->assigned         = (signed char *) btor_malloc (btor->mm, node->width);
-  node->state            = (signed char *) btor_malloc (btor->mm, node->width);
-  memset (node->assigned, 0, node->width);
-  memset (node->state, 0, node->width);
-  BTOR_INIT_STACK (node->ranges);
-  BTOR_INIT_STACK (node->assignments);
+  BtorIBVNode *n      = new_node (id, false, width);
+  n->name             = btor_strdup (btor->mm, str.c_str ());
+  n->is_next_state    = isNextState;
+  n->is_loop_breaking = isLoopBreaking;
+  n->is_state_retain  = isStateRetain;
+  n->direction        = direction;
+  n->marked           = 0;
+  n->assigned         = (signed char *) btor_malloc (btor->mm, n->width);
+  n->state            = (signed char *) btor_malloc (btor->mm, n->width);
+  memset (n->assigned, 0, n->width);
+  memset (n->state, 0, n->width);
+  BTOR_INIT_STACK (n->ranges);
+  BTOR_INIT_STACK (n->assignments);
   const char *extra;
   switch ((isNextState << 2) | (isLoopBreaking << 1) | isStateRetain)
   {
@@ -275,7 +275,7 @@ BtorIBV::addVariable (unsigned id,
     case 0 | 0 | 1: extra = " (flags: retain)"; break;
     default: extra = "(no flags)"; break;
   }
-  msg (1, "added variable '%s[%u..0]' %s", node->name, width - 1, extra);
+  msg (1, "id %u variable '%s[%u..0]' %s", n->id, n->name, width - 1, extra);
 }
 
 void
@@ -287,19 +287,20 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   assert (br.m_nLsb <= br.m_nMsb);
   assert (flsb <= fmsb);
   assert (fmsb - flsb == (br.m_nMsb - br.m_nLsb));
-  BtorIBVNode *node = id2node (br.m_nId);
+  BtorIBVNode *n = id2node (br.m_nId);
   BtorIBVRangeName rn;
   rn.from.msb = fmsb, rn.from.lsb = flsb;
   rn.to.msb = br.m_nMsb, rn.to.lsb = br.m_nLsb;
   rn.name = btor_strdup (btor->mm, name.c_str ());
-  BTOR_PUSH_STACK (btor->mm, node->ranges, rn);
-  assert (node->name);
+  BTOR_PUSH_STACK (btor->mm, n->ranges, rn);
+  assert (n->name);
   msg (1,
-       "added external range '%s[%u..%u]' mapped to '%s[%u..%u]'",
+       "id %u range '%s[%u..%u]' mapped to '%s[%u..%u]'",
+       n->id,
        rn.name,
        rn.from.msb,
        rn.from.lsb,
-       node->name,
+       n->name,
        rn.to.msb,
        rn.to.lsb);
 }
@@ -313,7 +314,7 @@ BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "assigning %s[%u]", n->name, i);
+    msg (2, "id %u assigning '%s[%u]'", n->id, n->name, i);
     assert (!n->assigned[i]);
     n->assigned[i] = 1;
   }
@@ -328,7 +329,7 @@ BtorIBV::mark_state (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "next %s[%u]", n->name, i);
+    msg (2, "id %u 'next %s[%u]'", n->id, n->name, i);
     assert (!n->state[i]);
     n->state[i] = 1;
   }
@@ -350,7 +351,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   r[0]            = a;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "adding unary assignment");
+  msg (1, assignment, "id %u unary assignment", on->id);
 }
 
 void
@@ -376,7 +377,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   r[0]            = a;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "adding unary assignment (with argument)");
+  msg (1, assignment, "id %u unary assignment (with argument)", on->id);
 }
 
 void
@@ -396,7 +397,7 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   r[0] = a, r[1] = b;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "adding binary assignment");
+  msg (1, assignment, "id %u binary assignment", on->id);
 }
 
 void
@@ -415,7 +416,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   r[0] = c, r[1] = t, r[2] = e;
   BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 3, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "adding %scondition", bitwise ? "bitwise " : "");
+  msg (1, assignment, "id %u %scondition", on->id, bitwise ? "bitwise " : "");
 }
 
 void
@@ -442,7 +443,7 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   assert (i == n);
   BtorIBVAssignment a (BTOR_IBV_CONCAT, on->id, o.m_nMsb, o.m_nLsb, 0, n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "adding %u-ary concatination", n);
+  msg (1, a, "id %u %u-ary concatination", on->id, n);
 }
 
 void
@@ -479,7 +480,7 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
   assert (i == 2 * n);
   BtorIBVAssignment a (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "adding %u-ary case", n);
+  msg (1, a, "id %u %u-ary case", on->id, n);
 }
 
 void
@@ -504,7 +505,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   r[0] = init, r[1] = next;
   BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "adding state");
+  msg (1, a, "id %u state", on->id);
 }
 
 void
@@ -522,12 +523,39 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   r[0]            = next;
   BtorIBVAssignment a (BTOR_IBV_NON_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "adding non-state");
+  msg (1, a, "id %u non-state", on->id);
+}
+
+void
+BtorIBV::addAssertion (Bit r)
+{
+  BtorIBVBit s   = r;
+  BtorIBVNode *n = id2node (s.id);
+  assert (s.bit < n->width);
+  BTOR_PUSH_STACK (btor->mm, assertions, s);
+  msg (1, "assertion '%s[%u]'", n->name, s.bit);
+}
+
+void
+BtorIBV::addAssumption (BitRange r, bool initial)
+{
+  assert (r.getWidth () == 1);
+  BtorIBVRange s = r;
+  BtorIBVAssumption a (s, initial);
+  BtorIBVNode *n = id2node (s.id);
+  assert (s.msb < n->width);
+  BTOR_PUSH_STACK (btor->mm, assumptions, a);
+  msg (1,
+       "%sinitial assumption '%s[%u]'",
+       (initial ? "" : "non-"),
+       n->name,
+       s.msb);
 }
 
 void
 BtorIBV::check_all_next_states_assigned ()
 {
+  msg (1, "checking that all next states are assigned");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -543,6 +571,7 @@ BtorIBV::check_all_next_states_assigned ()
 void
 BtorIBV::check_non_cyclic_assignments ()
 {
+  msg (1, "checking that assignments are non-cyclic");
   BtorIntStack work;
   BTOR_INIT_STACK (work);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
@@ -566,14 +595,15 @@ BtorIBV::check_non_cyclic_assignments ()
         (void) BTOR_POP_STACK (work);
         n->marked = 2;
       }
-      else if (n->marked)
+      else if (n->marked == 2)
       {
         (void) BTOR_POP_STACK (work);
       }
-      else if (!n->marked)
+      else
       {
+        assert (!n->marked);
         n->marked = 1;
-        if (n->is_next_state) continue;
+        // if (n->is_next_state) continue;
         for (BtorIBVAssignment *a = n->assignments.start;
              a < n->assignments.top;
              a++)
@@ -598,32 +628,10 @@ BtorIBV::check_non_cyclic_assignments ()
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
-    if (n && !n->is_constant) assert (n->marked == 2), n->marked = 0;
+    if (!n) continue;
+    if (n->is_constant) continue;
+    if (!n->marked) continue;
+    assert (n->marked == 2);
+    n->marked = 0;
   }
-}
-
-void
-BtorIBV::addAssertion (Bit r)
-{
-  BtorIBVBit s   = r;
-  BtorIBVNode *n = id2node (s.id);
-  assert (s.bit < n->width);
-  BTOR_PUSH_STACK (btor->mm, assertions, s);
-  msg (1, "added assertion '%s[%u]'", n->name, s.bit);
-}
-
-void
-BtorIBV::addAssumption (BitRange r, bool initial)
-{
-  assert (r.getWidth () == 1);
-  BtorIBVRange s = r;
-  BtorIBVAssumption a (s, initial);
-  BtorIBVNode *n = id2node (s.id);
-  assert (s.msb < n->width);
-  BTOR_PUSH_STACK (btor->mm, assumptions, a);
-  msg (1,
-       "added %sinitial assumption '%s[%u]'",
-       (initial ? "" : "non-"),
-       n->name,
-       s.msb);
 }
