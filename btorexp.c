@@ -8491,8 +8491,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
             && !BTOR_EMPTY_STACK (arg_stack) && param_cur_assignment (e[0])
             && param_cur_assignment (e[0]) != BTOR_TOP_STACK (arg_stack))
         {
-          unassign_param (btor, real_cur);
+          assert (!btor_find_in_ptr_hash_table (cur_scope,
+                                                BTOR_REAL_ADDR_NODE (e[0])));
 
+          unassign_param (btor, real_cur);
           assignment = BTOR_TOP_STACK (arg_stack);
 
           if (cache) BETA_REDUCE_PUSH_RESULT_IF_CACHED (real_cur, assignment);
