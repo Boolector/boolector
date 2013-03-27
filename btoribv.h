@@ -142,6 +142,17 @@ extern "C" {
 BTOR_DECLARE_STACK (IBVBit, BtorIBVBit);
 };
 
+struct BtorIBVAssumption
+{
+  BtorIBVRange range;
+  bool initial;
+  BtorIBVAssumption (const BtorIBVRange &r, bool i) : range (r), initial (i) {}
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVAssumption, BtorIBVAssumption);
+};
+
 class BtorIBV : public IBitVector
 {
   Btor *btor;
@@ -152,6 +163,7 @@ class BtorIBV : public IBitVector
 
   BtorIBVNodePtrStack idtab;
   BtorIBVBitStack assertions;
+  BtorIBVAssumptionStack assumptions;
 
   //------------------------------------------------------------------------
 
@@ -385,10 +397,9 @@ class BtorIBV : public IBitVector
   //------------------------------------------------------------------------
 
   void addAssertion (Bit);
+  void addAssumption (BitRange, bool);
 
 #if 0
-
-  void addAssumption (BitRange, bool);
   void addFairnessConstraint (BitRange, BitRange);
 
   //------------------------------------------------------------------------

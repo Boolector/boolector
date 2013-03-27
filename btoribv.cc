@@ -115,6 +115,7 @@ BtorIBV::BtorIBV () : gentrace (false), verbosity (0)
 {
   BTOR_INIT_STACK (idtab);
   BTOR_INIT_STACK (assertions);
+  BTOR_INIT_STACK (assumptions);
   btormc = boolector_new_mc ();
   btor   = boolector_btor_mc (btormc);
 }
@@ -176,6 +177,7 @@ BtorIBV::~BtorIBV ()
   }
   BTOR_RELEASE_STACK (btor->mm, idtab);
   BTOR_RELEASE_STACK (btor->mm, assertions);
+  BTOR_RELEASE_STACK (btor->mm, assumptions);
   boolector_delete_mc (btormc);
 }
 
@@ -577,10 +579,25 @@ BtorIBV::check_noncyclic_assignments ()
 void
 BtorIBV::addAssertion (Bit r)
 {
-  BtorIBVBit s = r;
-#ifndef NDEBUG
+  BtorIBVBit s   = r;
   BtorIBVNode *n = id2node (s.id);
   assert (s.bit < n->width);
-#endif
   BTOR_PUSH_STACK (btor->mm, assertions, s);
+  msg (1, "added assertion '%s[%u]'", n->name, s.bit);
+}
+
+void
+BtorIBV::addAssumption (BitRange r, bool initial)
+{
+  assert (r.getWidth () == 1);
+  BtorIBVRange s = r;
+  BtorIBVAssumption a (s, initial);
+  BtorIBVNode *n = id2node (s.id);
+  assert (s.msb < n->width);
+  BTOR_PUSH_STACK (btor->mm, assumptions, a);
+  msg (1,
+       "added %sinitial assumption '%s[%u]'",
+       (initial ? "" : "non-"),
+       n->name,
+       s.msb);
 }
