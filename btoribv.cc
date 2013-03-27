@@ -561,8 +561,15 @@ BtorIBV::check_all_next_states_assigned ()
     if (!n) continue;
     if (n->is_constant) continue;
     if (!n->is_next_state) continue;
+    unsigned unassigned = 0;
     for (unsigned i = 0; i < n->width; i++)
-      if (!n->state[i]) wrn ("next state bit '%s[%u]' unassigned", n->name, i);
+      if (!n->state[i]) unassigned++;
+    if (unassigned == n->width)
+      wrn ("next state '%s[%u:0]' unassigned", n->name, n->width - 1);
+    else if (unassigned)
+      for (unsigned i = 0; i < n->width; i++)
+        if (!n->state[i])
+          wrn ("next state bit '%s[%u]' unassigned", n->name, i);
   }
 }
 
@@ -606,17 +613,22 @@ BtorIBV::check_non_cyclic_assignments ()
              a < n->assignments.top;
              a++)
         {
+          if (a->tag == BTOR_IBV_STATE) continue;
+          if (a->tag == BTOR_IBV_NON_STATE) continue;
           for (BtorIBVRange *r = a->ranges; r < a->ranges + a->nranges; r++)
           {
             if (!r->id) continue;
             BtorIBVNode *m = id2node (r->id);
             if (m->is_constant) continue;
-            BTOR_ABORT_BOOLECTOR (m->marked == 1,
-                                  "variable %s depends recursively on itself",
-                                  m->name);
-            if (m->marked == 2) continue;
-            assert (!m->marked);
-            BTOR_PUSH_STACK (btor->mm, work, m->id);
+            if (m->marked == 1)
+            {
+              wrn ("variable %s might depend recursively on itself", m->name);
+            }
+            else if (m->marked != 2)
+            {
+              assert (!m->marked);
+              BTOR_PUSH_STACK (btor->mm, work, m->id);
+            }
           }
         }
       }
