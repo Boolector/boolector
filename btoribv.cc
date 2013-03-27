@@ -248,7 +248,19 @@ BtorIBV::addVariable (unsigned id,
   memset (node->assigned, 0, node->width);
   BTOR_INIT_STACK (node->ranges);
   BTOR_INIT_STACK (node->assignments);
-  msg (1, "added variable %s of width %u", node->name, width);
+  const char *extra;
+  switch ((isNextState << 2) | (isLoopBreaking << 1) | isStateRetain)
+  {
+    case 4 | 2 | 1: extra = " (next,loopbrk,retain)"; break;
+    case 4 | 2 | 0: extra = " (next,loopbrk)"; break;
+    case 4 | 0 | 1: extra = " (next,retain)"; break;
+    case 4 | 0 | 0: extra = " (next)"; break;
+    case 0 | 2 | 1: extra = " (loopbrk,retain)"; break;
+    case 0 | 2 | 0: extra = " (loopbrk)"; break;
+    case 0 | 0 | 1: extra = " (retain)"; break;
+    default: extra = "(no flags)"; break;
+  }
+  msg (1, "added variable '%s[%u..0]' %s", node->name, width - 1, extra);
 }
 
 void
@@ -268,7 +280,7 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   BTOR_PUSH_STACK (btor->mm, node->ranges, rn);
   assert (node->name);
   msg (1,
-       "added external range %s[%u..%u] mapped to %s[%u..%u]",
+       "added external range '%s[%u..%u]' mapped to '%s[%u..%u]'",
        rn.name,
        rn.from.msb,
        rn.from.lsb,
