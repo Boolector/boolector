@@ -8707,13 +8707,17 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       }
 
     BETA_REDUCE_PUSH_ARG_STACK:
-      // TODO: only cache parameterized nodes?
       assert (mbucket->data.asInt != 2);
       mbucket->data.asInt = 2;
-      /* store result in current scope results */
-      assert (!btor_find_in_ptr_hash_table (cur_scope_results, real_cur));
-      btor_insert_in_ptr_hash_table (cur_scope_results, real_cur)->data.asPtr =
-          btor_copy_exp (btor, result);
+
+      /* only cache parameterized nodes */
+      if (real_cur->parameterized)
+      {
+        /* store result in current scope results */
+        assert (!btor_find_in_ptr_hash_table (cur_scope_results, real_cur));
+        btor_insert_in_ptr_hash_table (cur_scope_results, real_cur)
+            ->data.asPtr = btor_copy_exp (btor, result);
+      }
 
       /* close scope */
       if (real_cur == cur_scope_lambda)
@@ -8744,10 +8748,15 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       assert (mbucket->data.asInt == 2);
       assert (cur_scope_results);
 
-      mbucket = btor_find_in_ptr_hash_table (cur_scope_results, real_cur);
-      assert (mbucket);
-
-      result = btor_copy_exp (btor, (BtorNode *) mbucket->data.asPtr);
+      /* only parameterized nodes are cached */
+      if (real_cur->parameterized)
+      {
+        mbucket = btor_find_in_ptr_hash_table (cur_scope_results, real_cur);
+        assert (mbucket);
+        result = btor_copy_exp (btor, (BtorNode *) mbucket->data.asPtr);
+      }
+      else
+        result = btor_copy_exp (btor, real_cur);
       assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE;
     }
