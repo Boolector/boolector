@@ -321,8 +321,9 @@ BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
 }
 
 void
-BtorIBV::mark_state (BtorIBVNode *n, BitRange r)
+BtorIBV::mark_state (BtorIBVNode *n, BitRange r, int mark)
 {
+  assert (mark == -1 || mark == 1);
   assert (n);
   assert (!n->is_constant);
   assert (r.m_nLsb <= r.m_nMsb);
@@ -331,7 +332,7 @@ BtorIBV::mark_state (BtorIBVNode *n, BitRange r)
   {
     msg (2, "id %u 'next %s[%u]'", n->id, n->name, i);
     assert (!n->state[i]);
-    n->state[i] = 1;
+    n->state[i] = mark;
   }
 }
 
@@ -489,7 +490,6 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   BtorIBVNode *on = bitrange2node (o);
   assert (!on->is_constant);
   assert (!on->is_next_state);
-  mark_state (on, o);
   bool initialized = (init.m_nId != 0);
   if (initialized)
   {
@@ -500,7 +500,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   // TODO: failed in 'toy_multibit_clock' and 'toy_clock'
   // assert (nextn->is_constant || nextn->is_next_state);
   assert (next.getWidth () == o.getWidth ());
-  (void) nextn;
+  if (!nextn->is_constant && nextn->is_next_state) mark_state (nextn, o, 1);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof *r);
   r[0] = init, r[1] = next;
   BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
@@ -514,10 +514,9 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   BtorIBVNode *on = bitrange2node (o);
   assert (!on->is_constant);
   assert (!on->is_next_state);
-  mark_state (on, o);
   BtorIBVNode *nextn = bitrange2node (next);
   assert (nextn->is_constant || nextn->is_next_state);
-  (void) nextn;
+  if (!nextn->is_constant && nextn->is_next_state) mark_state (nextn, o, -1);
   assert (next.getWidth () == o.getWidth ());
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = next;

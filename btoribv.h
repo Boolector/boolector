@@ -190,7 +190,7 @@ class BtorIBV : public IBitVector
   BtorIBVNode *new_node (unsigned id, bool isConstant, unsigned width);
 
   void mark_assigned (BtorIBVNode *, BitRange);
-  void mark_state (BtorIBVNode *, BitRange);
+  void mark_state (BtorIBVNode *, BitRange, int mark);
 
   void delete_ibv_variable (BtorIBVNode *);
   void delete_ibv_constant (BtorIBVNode *);
