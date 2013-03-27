@@ -52,7 +52,7 @@ BtorIBV::print (const BtorIBVAssignment &a)
   BtorIBVNode *on = id2node (a.id);
   printf ("%s[%u..%u] = ", on->name, a.msb, a.lsb);
   const char *opname;
-  switch (a.tag)
+  switch (a.tag & BTOR_IBV_OPS)
   {
     case BTOR_IBV_AND: opname = "AND"; break;
     case BTOR_IBV_BUF: opname = "BUF"; break;
@@ -79,9 +79,13 @@ BtorIBV::print (const BtorIBVAssignment &a)
     case BTOR_IBV_SUM: opname = "SUM"; break;
     case BTOR_IBV_XOR: opname = "XOR"; break;
     case BTOR_IBV_ZERO_EXTEND: opname = "ZERO_EXTEND"; break;
-    default: opname = "UNKNOWN"; break;
+    default:
+      assert (!"UNKNOWN");
+      opname = "UNKNOWN";
+      break;
   }
   fputs (opname, stdout);
+  if (a.tag & BTOR_IBV_IS_PREDICATE) fputs ("_PRED", stdout);
   for (unsigned i = 0; i < a.nranges; i++)
   {
     BtorIBVRange *r = a.ranges + i;

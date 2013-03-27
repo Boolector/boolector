@@ -56,7 +56,7 @@ enum BtorIBVTag
   BTOR_IBV_IS_PREDICATE = 256,
   BTOR_IBV_HAS_ARG      = 512,
 
-  BTOR_IBV_OPS   = 15,
+  BTOR_IBV_OPS   = 255,
   BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256 | 512
 };
 
