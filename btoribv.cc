@@ -564,7 +564,7 @@ BtorIBV::check_all_next_states_assigned ()
     if (!n->is_next_state) continue;
     for (unsigned i = 0; i < n->width; i++)
       BTOR_ABORT_BOOLECTOR (
-          !n->state[i], "next state bit %s[%u] unassigned", n->name, i);
+          !n->state[i], "next state bit '%s[%u]' unassigned", n->name, i);
   }
 }
 
