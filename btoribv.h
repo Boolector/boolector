@@ -147,6 +147,7 @@ class BtorIBV : public IBitVector
   Btor *btor;
   BtorMC *btormc;
 
+  bool gentrace;
   int verbosity;
 
   BtorIBVNodePtrStack idtab;
@@ -239,6 +240,7 @@ class BtorIBV : public IBitVector
   ~BtorIBV ();
 
   void setVerbosity (int verbosity);
+  void enableTraceGeneration ();
 
   //------------------------------------------------------------------------
 

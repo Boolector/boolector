@@ -111,7 +111,7 @@ BtorIBV::msg (int level, const BtorIBVAssignment &a, const char *fmt, ...)
   btoribv_msgtail ();
 }
 
-BtorIBV::BtorIBV () : verbosity (0)
+BtorIBV::BtorIBV () : gentrace (false), verbosity (0)
 {
   BTOR_INIT_STACK (idtab);
   BTOR_INIT_STACK (assertions);
@@ -184,6 +184,13 @@ BtorIBV::setVerbosity (int v)
   assert (v >= 0);
   verbosity = v;
   boolector_set_verbosity_mc (btormc, v);
+}
+
+void
+BtorIBV::enableTraceGeneration ()
+{
+  gentrace = true;
+  boolector_enable_trace_gen (btormc);
 }
 
 BtorIBVNode *
