@@ -533,7 +533,7 @@ BtorIBV::check_all_next_states_assigned ()
 }
 
 void
-BtorIBV::check_noncyclic_assignments ()
+BtorIBV::check_non_cyclic_assignments ()
 {
   BtorIntStack work;
   BTOR_INIT_STACK (work);
@@ -558,6 +558,10 @@ BtorIBV::check_noncyclic_assignments ()
         (void) BTOR_POP_STACK (work);
         n->marked = 2;
       }
+      else if (n->marked)
+      {
+        (void) BTOR_POP_STACK (work);
+      }
       else if (!n->marked)
       {
         n->marked = 1;
@@ -570,6 +574,7 @@ BtorIBV::check_noncyclic_assignments ()
           {
             if (!r->id) continue;
             BtorIBVNode *m = id2node (r->id);
+            if (m->is_constant) continue;
             BTOR_ABORT_BOOLECTOR (m->marked == 1,
                                   "variable %s depends recursively on itself",
                                   m->name);
