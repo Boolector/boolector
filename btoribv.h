@@ -109,7 +109,7 @@ struct BtorIBVNode
   bool is_loop_breaking;
   bool is_state_retain;
   IBitVector::DirectionKind direction;
-  signed char marked, *assigned;
+  signed char marked, *assigned, *state;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
 };
@@ -178,6 +178,7 @@ class BtorIBV : public IBitVector
   BtorIBVNode *new_node (unsigned id, bool isConstant, unsigned width);
 
   void mark_assigned (BtorIBVNode *, BitRange);
+  void mark_state (BtorIBVNode *, BitRange);
 
   void delete_ibv_variable (BtorIBVNode *);
   void delete_ibv_constant (BtorIBVNode *);
