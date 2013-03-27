@@ -85,8 +85,13 @@ BtorIBV::print (const BtorIBVAssignment &a)
   for (unsigned i = 0; i < a.nranges; i++)
   {
     BtorIBVRange *r = a.ranges + i;
-    BtorIBVNode *in = id2node (r->id);
-    printf (" %s[%u..%u]", in->name, r->msb, r->lsb);
+    if (r->id)
+    {
+      BtorIBVNode *in = id2node (r->id);
+      printf (" %s[%u..%u]", in->name, r->msb, r->lsb);
+    }
+    else
+      printf (" X");
   }
   if (a.tag & BTOR_IBV_HAS_ARG) printf (" %u", a.arg);
 }
@@ -500,7 +505,7 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   assert (next.getWidth () == o.getWidth ());
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = next;
-  BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BtorIBVAssignment a (BTOR_IBV_NON_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
   msg (1, a, "adding non-state");
 }
