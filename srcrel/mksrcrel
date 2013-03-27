@@ -57,10 +57,11 @@ if [ $intel = yes ]
 then
   cp -p \
     IBitVector.h \
-    btorbvi.h \
-    btorbvi.cc \
+    btoribv.h \
+    btoribv.cc \
     ibv.mk \
-$dir/
+  $dir/
+fi
 
 cat <<EOF > $dir/REAMDE.intel
 This src release contains the propriatory file
