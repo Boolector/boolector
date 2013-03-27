@@ -678,8 +678,8 @@ BtorIBV::translate ()
           vars.next.inputs++;
         else
           vars.next.states++;
-        vars.next.inputs += unassigned;
-        vars.next.states += assigned;
+        bits.next.inputs += unassigned;
+        bits.next.states += assigned;
       }
       else
       {
@@ -687,23 +687,23 @@ BtorIBV::translate ()
           vars.current.inputs++;
         else
           vars.current.states++;
-        vars.current.inputs += unassigned;
-        vars.current.states += assigned;
+        bits.current.inputs += unassigned;
+        bits.current.states += assigned;
       }
     }
   }
   msg (1, "%u constants, %u bits", vars.consts, bits.consts);
   msg (1,
-       "%u current states variables, %u bits",
+       "%u current state variables, %u bits",
        vars.current.states,
        bits.current.states);
   msg (1,
-       "%u next states variables, %u bits",
+       "%u next state variables, %u bits",
        vars.next.states,
        bits.next.states);
   msg (1,
        "%u current state inputs, %u bits",
        vars.current.inputs,
        bits.current.inputs);
-  msg (1, "%u next states inputs, %u bits", vars.next.inputs, bits.next.inputs);
+  msg (1, "%u next state inputs, %u bits", vars.next.inputs, bits.next.inputs);
 }
