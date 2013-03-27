@@ -486,6 +486,8 @@ void
 BtorIBV::addState (BitRange o, BitRange init, BitRange next)
 {
   BtorIBVNode *on = bitrange2node (o);
+  assert (!on->is_constant);
+  assert (!on->is_next_state);
   mark_state (on, o);
   bool initialized = (init.m_nId != 0);
   if (initialized)
@@ -493,8 +495,10 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
     check_bit_range (init);
     assert (init.getWidth () == o.getWidth ());
   }
-  check_bit_range (next);
+  BtorIBVNode *nextn = bitrange2node (next);
+  assert (nextn->is_constant || nextn->is_next_state);
   assert (next.getWidth () == o.getWidth ());
+  (void) nextn;
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof *r);
   r[0] = init, r[1] = next;
   BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
@@ -506,9 +510,12 @@ void
 BtorIBV::addNonState (BitRange o, BitRange next)
 {
   BtorIBVNode *on = bitrange2node (o);
-  // assert (on->is_next_state); // TODO failed -> remove
+  assert (!on->is_constant);
+  assert (!on->is_next_state);
   mark_state (on, o);
-  check_bit_range (next);
+  BtorIBVNode *nextn = bitrange2node (next);
+  assert (nextn->is_constant || nextn->is_next_state);
+  (void) nextn;
   assert (next.getWidth () == o.getWidth ());
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = next;
