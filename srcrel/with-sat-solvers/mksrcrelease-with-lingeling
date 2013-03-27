@@ -3,6 +3,7 @@ die () {
   echo "*** mksrcrelease-with-lingeling: $*" 1>&2
   exit 1
 }
+intel=""
 minisat=yes
 while [ $# -gt 0 ]
 do
@@ -10,6 +11,9 @@ do
     -h|--help) 
       echo "usage: mksrcrelease-with-lingeling [-h]"
       exit 0
+      ;;
+    --intel)
+      intel="--intel"
       ;;
     *) 
       die "invalid command line option"
@@ -29,7 +33,7 @@ cp makefile.lingeling $tmp/makefile
 cp README.lingeling $tmp/README
 mkdir $tmp/archives || exit 1
 cd ../..
-./srcrel/mksrcrel >> $log
+./srcrel/mksrcrel $intel >> $log
 boolector=`grep boolector- $log|awk '{print $NF}'`
 mv $boolector $tmp/archives
 for solver in lingeling

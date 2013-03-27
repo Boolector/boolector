@@ -7,6 +7,8 @@ die () {
   exit 1
 }
 
+intel=no
+
 [ -f boolector.h ] || \
 die "can not find 'boolector.h' (call from boolector base directory)"
 
@@ -15,6 +17,7 @@ do
   case $1 in
     -h) echo "usage: mksrcrel [-f][-h][-t]";exit 0;;
     -f) force=yes;;
+    --intel) intel=yes;;
     *) die "invalid command line option '$1'";;
   esac
   shift
@@ -50,6 +53,23 @@ cp -p \
   Doxyfile \
 $dir/
 
+if [ $intel = yes ]
+then
+  cp -p \
+    IBitVector.h \
+    btorbvi.h \
+    btorbvi.cc \
+    ibv.mk \
+$dir/
+
+cat <<EOF > $dir/REAMDE.intel
+This src release contains the propriatory file
+
+IBitVector.h
+
+which is included in 'btoribv.{h,cc}'.
+EOF
+
 tar cf - \
   examples/array \
   examples/bv \
@@ -57,8 +77,16 @@ tar cf - \
   examples/makefile.common | \
 ( cd $dir; tar xf -; )
 
+if [ $intel = yes ]
+then
+intelfilter=""
+else
+intelfilter='-e /ibv.mk/d'
+fi
+
 sed \
   -e '/test.mk/d' \
+  $intelfilter \
   makefile.in > $dir/makefile.in
 
 date=`date`
