@@ -180,7 +180,7 @@ class BtorIBV : public IBitVector
   {
     assert (range.m_nLsb <= range.m_nMsb);
     BtorIBVNode *node = id2node (range.m_nId);
-    assert (node->width <= range.getWidth ());
+    assert (range.getWidth () <= node->width);
     assert (range.m_nMsb < node->width);
     return node;
   }
