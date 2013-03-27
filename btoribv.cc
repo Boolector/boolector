@@ -106,8 +106,9 @@ BtorIBV::msg (int level, const BtorIBVAssignment &a, const char *fmt, ...)
   va_start (ap, fmt);
   vprintf (fmt, ap);
   va_end (ap);
-  fputc (' ', stdout);
+  fputs (" '", stdout);
   print (a);
+  fputc ('\'', stdout);
   btoribv_msgtail ();
 }
 
