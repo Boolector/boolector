@@ -103,8 +103,8 @@ struct BtorIBVNode
   unsigned is_constant : 1;
   unsigned id;
   BtorNode *cached;
-  // Note: start of data for variables (invalid if 'is_constant')
   char *name;
+  // Note: start of data for variables (invalid if 'is_constant')
   bool is_next_state;
   bool is_loop_breaking;
   bool is_state_retain;
