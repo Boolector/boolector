@@ -335,7 +335,10 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
 {
   assert (tag & BTOR_IBV_IS_UNARY);
   assert ((tag & ~BTOR_IBV_IS_PREDICATE) <= BTOR_IBV_MAX_UNARY);
-  assert (o.getWidth () == a.getWidth ());
+  if (tag == BTOR_IBV_SIGN_EXTEND || tag == BTOR_IBV_ZERO_EXTEND)
+    assert (a.getWidth () <= o.getWidth ());
+  else
+    assert (a.getWidth () == o.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
   check_bit_range (a);
