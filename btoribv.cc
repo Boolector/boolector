@@ -34,8 +34,9 @@ BtorIBV::msg (int level, const char *fmt, ...)
   btoribv_msgtail ();
 }
 
-#if 0
-void BtorIBV::wrn (const char * fmt, ...) {
+void
+BtorIBV::wrn (const char *fmt, ...)
+{
   va_list ap;
   fputs ("[btoribv] *** WARNING *** ", stderr);
   va_start (ap, fmt);
@@ -44,7 +45,6 @@ void BtorIBV::wrn (const char * fmt, ...) {
   fputc ('\n', stderr);
   fflush (stderr);
 }
-#endif
 
 void
 BtorIBV::print (const BtorIBVAssignment &a)
@@ -562,8 +562,7 @@ BtorIBV::check_all_next_states_assigned ()
     if (n->is_constant) continue;
     if (!n->is_next_state) continue;
     for (unsigned i = 0; i < n->width; i++)
-      BTOR_ABORT_BOOLECTOR (
-          !n->state[i], "next state bit '%s[%u]' unassigned", n->name, i);
+      if (!n->state[i]) wrn ("next state bit '%s[%u]' unassigned", n->name, i);
   }
 }
 

@@ -240,7 +240,7 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
-  // void wrn (const char * fmt, ...);
+  void wrn (const char *fmt, ...);
 
   void print (const BtorIBVAssignment &);    // to 'stdout' without NL
   void println (const BtorIBVAssignment &);  // to 'stdout' with NL
