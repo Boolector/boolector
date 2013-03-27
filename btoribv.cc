@@ -562,9 +562,9 @@ BtorIBV::check_all_next_states_assigned ()
     if (!n) continue;
     if (n->is_constant) continue;
     if (!n->is_next_state) continue;
-    for (unsigned i; i < n->width; i++)
+    for (unsigned i = 0; i < n->width; i++)
       BTOR_ABORT_BOOLECTOR (
-          !n->assigned[i], "next state bit %s[%u] unassigned", n->name, i);
+          !n->state[i], "next state bit %s[%u] unassigned", n->name, i);
   }
 }
 
@@ -634,4 +634,66 @@ BtorIBV::check_non_cyclic_assignments ()
     assert (n->marked == 2);
     n->marked = 0;
   }
+}
+
+void
+BtorIBV::translate ()
+{
+  struct
+  {
+    unsigned consts;
+    struct
+    {
+      unsigned inputs, states;
+    } current, next;
+  } bits, vars;
+  BTOR_CLR (&bits);
+  BTOR_CLR (&vars);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant)
+      vars.consts++, bits.consts += n->width;
+    else
+    {
+      unsigned assigned = 0;
+      for (signed char *p = n->assigned; p < n->assigned + n->width; p++)
+        if (*p) assigned++;
+      assert (assigned <= n->width);
+      unsigned unassigned = n->width - assigned;
+      if (n->is_next_state)
+      {
+        if (unassigned)
+          vars.next.inputs++;
+        else
+          vars.next.states++;
+        vars.next.inputs += unassigned;
+        vars.next.states += assigned;
+      }
+      else
+      {
+        if (unassigned)
+          vars.current.inputs++;
+        else
+          vars.current.states++;
+        vars.current.inputs += unassigned;
+        vars.current.states += assigned;
+      }
+    }
+  }
+  msg (1, "%u constants, %u bits", vars.consts, bits.consts);
+  msg (1,
+       "%u current states variables, %u bits",
+       vars.current.states,
+       bits.current.states);
+  msg (1,
+       "%u next states variables, %u bits",
+       vars.next.states,
+       bits.next.states);
+  msg (1,
+       "%u current state inputs, %u bits",
+       vars.current.inputs,
+       bits.current.inputs);
+  msg (1, "%u next states inputs, %u bits", vars.next.inputs, bits.next.inputs);
 }

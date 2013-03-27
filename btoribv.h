@@ -422,6 +422,8 @@ class BtorIBV : public IBitVector
 
   void check_all_next_states_assigned ();
   void check_non_cyclic_assignments ();
+
+  void translate ();  // Into internal BtorMC model.
 };
 
 inline BtorIBVRange::BtorIBVRange (const IBitVector::BitRange &r)
