@@ -8300,7 +8300,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   BtorNode *cur, *real_cur, *next, *e[3], *result, *param, *p[3], *cached;
   BtorNode *result_parameterized, *assignment, *cur_scope_lambda;
   BtorNodePtrStack work_stack, arg_stack, parameterized_stack;
-  BtorPtrHashBucket *bucket;
+  BtorPtrHashBucket *mbucket, *b;
   BtorPtrHashTable *cache, *cur_scope, *cur_scope_results;
   BtorVoidPtrStack scopes, scope_results;
   BtorNodePtrStack scope_lambdas;
@@ -8358,21 +8358,21 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     assert (!BTOR_IS_PROXY_NODE (real_cur));
 
-    bucket = btor_find_in_ptr_hash_table (cur_scope, real_cur);
+    mbucket = btor_find_in_ptr_hash_table (cur_scope, real_cur);
 
-    if (!bucket)
+    if (!mbucket)
     {
       if (BTOR_IS_LAMBDA_NODE (real_cur)) BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
       /* initialize mark in current scope */
-      bucket             = btor_insert_in_ptr_hash_table (cur_scope, real_cur);
-      bucket->data.asInt = 0;
+      mbucket             = btor_insert_in_ptr_hash_table (cur_scope, real_cur);
+      mbucket->data.asInt = 0;
     }
 
-    if (bucket->data.asInt == 0)
+    if (mbucket->data.asInt == 0)
     {
       assert (!real_cur->beta_mark || BTOR_IS_LAMBDA_NODE (real_cur));
-      bucket->data.asInt = 1;
+      mbucket->data.asInt = 1;
 
       for (i = 0; i < real_cur->arity; i++)
         e[i] = btor_simplify_exp (btor, real_cur->e[i]);
@@ -8461,7 +8461,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         next     = eval_res[0] == '1' ? e[1] : e[2];
         assert (next);
         // TODO: do we really have to reset mark?
-        bucket->data.asInt = 0;
+        mbucket->data.asInt = 0;
         btor_freestr (mm, (char *) eval_res);
       }
 
@@ -8513,9 +8513,9 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         }
       }
     }
-    else if (bucket->data.asInt == 1)
+    else if (mbucket->data.asInt == 1)
     {
-      assert (bucket);
+      assert (mbucket);
       result_parameterized = (real_cur->parameterized) ? real_cur : 0;
 
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
@@ -8599,7 +8599,6 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
             {
               if (real_cur->beta_mark == 0)
               {
-                // TODO: skip rebuild if real_cur has only one parent
                 assert (BTOR_IS_REGULAR_NODE (e[0]));
                 param = btor_param_exp (btor, e[0]->len, "");
 
@@ -8708,20 +8707,27 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
       }
 
     BETA_REDUCE_PUSH_ARG_STACK:
-      assert (bucket->data.asInt != 2);
-      bucket->data.asInt = 2;
+      // TODO: only cache parameterized nodes?
+      assert (mbucket->data.asInt != 2);
+      mbucket->data.asInt = 2;
       /* store result in current scope results */
       assert (!btor_find_in_ptr_hash_table (cur_scope_results, real_cur));
       btor_insert_in_ptr_hash_table (cur_scope_results, real_cur)->data.asPtr =
-          result;
+          btor_copy_exp (btor, result);
 
       /* close scope */
       if (real_cur == cur_scope_lambda)
       {
         assert (cur_scope);
         assert (cur_scope_lambda);
+
+        /* delete current scope */
         btor_delete_ptr_hash_table (cur_scope);
+        for (b = cur_scope_results->first; b; b = b->next)
+          btor_release_exp (btor, (BtorNode *) b->data.asPtr);
         btor_delete_ptr_hash_table (cur_scope_results);
+
+        /* pop previous scope */
         cur_scope         = (BtorPtrHashTable *) BTOR_POP_STACK (scopes);
         cur_scope_results = (BtorPtrHashTable *) BTOR_POP_STACK (scope_results);
         cur_scope_lambda  = BTOR_POP_STACK (scope_lambdas);
@@ -8730,19 +8736,18 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      //	  BTORLOG ("*** result: %s", node2string (result));
       BTOR_PUSH_STACK (mm, arg_stack, result);
       BTOR_PUSH_STACK (mm, parameterized_stack, result_parameterized);
     }
     else
     {
-      assert (bucket->data.asInt == 2);
+      assert (mbucket->data.asInt == 2);
       assert (cur_scope_results);
 
-      bucket = btor_find_in_ptr_hash_table (cur_scope_results, real_cur);
-      assert (bucket);
+      mbucket = btor_find_in_ptr_hash_table (cur_scope_results, real_cur);
+      assert (mbucket);
 
-      result = btor_copy_exp (btor, (BtorNode *) bucket->data.asPtr);
+      result = btor_copy_exp (btor, (BtorNode *) mbucket->data.asPtr);
       assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE;
     }
@@ -8766,6 +8771,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   if (parameterized) *parameterized = BTOR_POP_STACK (parameterized_stack);
 
   btor_delete_ptr_hash_table (cur_scope);
+  for (b = cur_scope_results->first; b; b = b->next)
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
   btor_delete_ptr_hash_table (cur_scope_results);
   BTOR_RELEASE_STACK (mm, scopes);
   BTOR_RELEASE_STACK (mm, scope_results);
