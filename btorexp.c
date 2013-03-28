@@ -8361,7 +8361,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur = BTOR_POP_STACK (work_stack);
-    /* we do not get the simplification of top level read contraints */
+    /* we do not want the simplification of top level read contraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (cur)))
       cur = btor_pointer_chase_simplified_exp (btor, cur);
@@ -8694,26 +8694,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
             assert (0);
         }
 
-        int num_lambda_desc = 0;
-        int num_param       = 0;
-        for (i = 0; i < real_cur->arity; i++)
-        {
-          if (BTOR_REAL_ADDR_NODE (e[i])->lambda_below) num_lambda_desc++;
-
-          if (BTOR_REAL_ADDR_NODE (e[i])->parameterized) num_param++;
-
-          btor_release_exp (btor, e[i]);
-        }
-        if (!BTOR_IS_LAMBDA_NODE (real_cur) && real_cur->lambda_below
-            && num_lambda_desc == 0)
-        {
-          real_cur->lambda_below = 0;
-        }
-
-        //	      if (!BTOR_IS_PARAM_NODE (real_cur)
-        //		  && real_cur->parameterized
-        //		  && num_param == 0)
-        //		real_cur->parameterized = 0;
+        for (i = 0; i < real_cur->arity; i++) btor_release_exp (btor, e[i]);
       }
 
     BETA_REDUCE_PUSH_ARG_STACK:
