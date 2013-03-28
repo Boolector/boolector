@@ -598,7 +598,7 @@ BtorIBV::addAssumption (BitRange r, bool initial)
 void
 BtorIBV::check_all_next_states_assigned ()
 {
-  msg (1, "checking that all next states are assigned");
+  msg (1, "checking that all real next states are assigned");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -652,7 +652,6 @@ BtorIBV::check_non_cyclic_assignments ()
       {
         assert (!n->marked);
         n->marked = 1;
-        // if (n->is_next_state) continue;
         for (BtorIBVAssignment *a = n->assignments.start;
              a < n->assignments.top;
              a++)
@@ -809,7 +808,7 @@ BtorIBV::translate ()
          bits.assoc.nonstate);
   if (vars.nonstate.nologic)
     msg (1,
-         "%u non-state with neither current nor next assignment, %u bits",
+         "%u non-states with neither current nor next assignment, %u bits",
          vars.nonstate.nologic,
          bits.nonstate.nologic);
   if (vars.nonstate.current)
