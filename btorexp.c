@@ -2189,7 +2189,7 @@ encode_lemma (Btor *btor,
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *i, *j, *a, *b, *cur_write, *w_index, *aeq, *cond, *acond, *bcond;
-  BtorNode *cur, *lambda_value = 0, *parameterized;
+  BtorNode *cur, *lambda_value, *parameterized;
   BtorIntStack linking_clause;
   BtorPtrHashBucket *bucket;
 
@@ -2264,6 +2264,9 @@ encode_lemma (Btor *btor,
                              NULL,
                              a,
                              b);
+
+    add_eq_exp_to_clause (btor, a, b, &linking_clause);
+    btor_release_exp (btor, lambda_value);
   }
   else
   {
@@ -2287,10 +2290,8 @@ encode_lemma (Btor *btor,
                              j,
                              a,
                              b);
+    add_eq_exp_to_clause (btor, a, b, &linking_clause);
   }
-  add_eq_exp_to_clause (btor, a, b, &linking_clause);
-
-  if (BTOR_IS_LAMBDA_NODE (acc2)) btor_release_exp (btor, lambda_value);
 
   btor->stats.lemmas_size_sum += writes->count;
   btor->stats.lemmas_size_sum += aeqs->count;
@@ -8404,7 +8405,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
       /* do not beta-reduce nodes that will not change anyway */
       if ((!real_cur->lambda_below && !real_cur->parameterized)
-          || (BTOR_IS_LAMBDA_NODE (real_cur) && !param_cur_assignment (e[0])))
+          || (BTOR_IS_LAMBDA_NODE (real_cur) && !param_cur_assignment (e[0])
+              && BTOR_REAL_ADDR_NODE (e[1])->parameterized))
       {
       BETA_REDUCE_PREPARE_PUSH_ARG_STACK:
         result               = btor_copy_exp (btor, real_cur);
