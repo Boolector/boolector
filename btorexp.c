@@ -3119,12 +3119,9 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
   lambda_exp->arity        = 2;
   lambda_exp->len          = len;
   lambda_exp->lambda_below = 1;
-  //  lambda_exp->index_len = BTOR_REAL_ADDR_NODE(e_param)->len;
-  //  lambda_exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, (BtorNode *) lambda_exp);
   connect_child_exp (btor, (BtorNode *) lambda_exp, e_param, 0);
   connect_child_exp (btor, (BtorNode *) lambda_exp, e_exp, 1);
-  //  mark_children_parameterized (btor, lambda_exp);
 
   return (BtorNode *) lambda_exp;
 }
@@ -3684,7 +3681,6 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
   exp->len           = len;
   exp->parameterized = 1;
   setup_node_and_add_to_id_table (btor, exp);
-  //  exp->bits = btor_x_const_3vl (mm, len);
   return (BtorNode *) exp;
 }
 
