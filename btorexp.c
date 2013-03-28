@@ -8304,15 +8304,16 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   BtorPtrHashTable *cache, *cur_scope, *cur_scope_results;
   BtorVoidPtrStack scopes, scope_results;
   BtorNodePtrStack scope_lambdas;
-
-  // debug
+#ifndef NDEBUG
   BtorNodePtrStack unassign_stack;
-  // end debug
+#endif
 
   mm    = btor->mm;
   cache = btor->cache;
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
+
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
   /* we have to disable rewriting in case we beta reduce during read propagation
    * as otherwise we might lose lazily synthesized and encoded nodes */
@@ -8330,14 +8331,11 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   BTOR_INIT_STACK (scopes);
   BTOR_INIT_STACK (scope_results);
   BTOR_INIT_STACK (scope_lambdas);
-
-  // debug
+#ifndef NDEBUG
   BTOR_INIT_STACK (unassign_stack);
-  // end debug
+#endif
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
-
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
   cur_scope = btor_new_ptr_hash_table (mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
@@ -8347,18 +8345,19 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
   cur_scope_lambda = 0;
+
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur = BTOR_POP_STACK (work_stack);
-    // TODO: use btor_pointer_chase_simplified_exp if it is a constraint
     /* we do not get the simplification of top level read contraints */
-    if (!BTOR_REAL_ADDR_NODE (cur)->constraint
-        || !BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (cur)))
+    if (BTOR_REAL_ADDR_NODE (cur)->constraint
+        && BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (cur)))
+      cur = btor_pointer_chase_simplified_exp (btor, cur);
+    else
       cur = btor_simplify_exp (btor, cur);
-    real_cur = BTOR_REAL_ADDR_NODE (cur);
-    assert (!BTOR_IS_PROXY_NODE (real_cur));
 
-    mbucket = btor_find_in_ptr_hash_table (cur_scope, real_cur);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    mbucket  = btor_find_in_ptr_hash_table (cur_scope, real_cur);
 
     if (!mbucket)
     {
@@ -8404,6 +8403,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
       next = 0;
       assert (!BTOR_IS_READ_NODE (real_cur) || BTOR_IS_REGULAR_NODE (e[0]));
+      /* assign param in case of lambda applicaton */
       if (bound != BETA_RED_CUTOFF
           && (BTOR_IS_READ_NODE (real_cur)
               && BTOR_IS_LAMBDA_NODE (e[0])
@@ -8434,9 +8434,9 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
         assign_param (btor, e[0], assignment);
 
-        // debug
+#ifndef NDEBUG
         BTOR_PUSH_STACK (mm, unassign_stack, e[0]);
-        // end debug
+#endif
       }
       else if (BTOR_IS_PARAM_NODE (real_cur))
       {
@@ -8450,9 +8450,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         else
           next = real_cur;
       }
+      /* evaluate conditionals if condition is encoded or parameterized */
       else if (bound == BETA_RED_CUTOFF
-               /* do not evaluate conditions if not encoded or
-                * parameterized */
                && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
                && (BTOR_REAL_ADDR_NODE (e[0])->tseitin
                    || BTOR_REAL_ADDR_NODE (e[0])->parameterized))
@@ -8460,9 +8459,8 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
         eval_res = eval_exp (btor, e[0]);
         next     = eval_res[0] == '1' ? e[1] : e[2];
         assert (next);
-        // TODO: do we really have to reset mark?
-        mbucket->data.asInt = 0;
         btor_freestr (mm, (char *) eval_res);
+        mbucket->data.asInt = 0;
       }
 
       if (next)
@@ -8608,9 +8606,9 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
                 real_cur->beta_mark = 1;
                 assign_param (btor, real_cur, param);
 
-                // debug
+#ifndef NDEBUG
                 BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
-                // end debug
+#endif
                 BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
                 /* add lambda to cur_scope (otherwise a new scope
@@ -8664,14 +8662,11 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
               }
             }
 
-            // debug
+#ifndef NDEBUG
             if (!BTOR_EMPTY_STACK (unassign_stack)
                 && BTOR_TOP_STACK (unassign_stack) == real_cur)
-            {
               (void) BTOR_POP_STACK (unassign_stack);
-            }
-            // end debug
-
+#endif
             unassign_param (btor, real_cur);
             break;
           case BTOR_WRITE_NODE:
@@ -8769,11 +8764,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   assert (BTOR_EMPTY_STACK (scopes));
   assert (BTOR_EMPTY_STACK (scope_results));
   assert (BTOR_EMPTY_STACK (scope_lambdas));
-
-  // debug
-  assert (BTOR_EMPTY_STACK (unassign_stack));  // TODO get rid of unassign stack
-  // end debug
-
+  assert (BTOR_EMPTY_STACK (unassign_stack));
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   assert (BTOR_COUNT_STACK (parameterized_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
@@ -8781,6 +8772,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
 
   if (parameterized) *parameterized = BTOR_POP_STACK (parameterized_stack);
 
+  /* cleanup */
   btor_delete_ptr_hash_table (cur_scope);
   for (b = cur_scope_results->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->data.asPtr);
@@ -8790,12 +8782,10 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   BTOR_RELEASE_STACK (mm, scope_lambdas);
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, arg_stack);
-
-  // debug
-  BTOR_RELEASE_STACK (mm, unassign_stack);
-  // end debug
-
   BTOR_RELEASE_STACK (mm, parameterized_stack);
+#ifndef NDEBUG
+  BTOR_RELEASE_STACK (mm, unassign_stack);
+#endif
 
   if (aux_rewrite_level)
   {
