@@ -163,8 +163,9 @@ static const char *g_usage =
     ;
 
 static const char *g_copyright =
-    "Copyright (c) 2007-2010 Robert Brummayer\n"
-    "Copyright (c) 2007-2012 Armin Biere\n"
+    "Copyright (c) 2007-2009 Robert Brummayer\n"
+    "Copyright (c) 2007-2013 Armin Biere\n"
+    "Copyright (c) 2012-2013 Aina Niemetz, Mathias Preiner\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n";
 
