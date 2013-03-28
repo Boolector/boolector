@@ -9578,7 +9578,7 @@ process_working_stack (Btor *btor,
       if (*assignments_changed) return 0;
 
       assign_param (btor, array, index);
-      lambda_value = beta_reduce (btor, array, -1, &parameterized);
+      lambda_value = beta_reduce (btor, array, BETA_RED_CUTOFF, &parameterized);
       unassign_param (btor, array);
 
       // debug
