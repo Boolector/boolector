@@ -49,8 +49,8 @@ BtorIBV::wrn (const char *fmt, ...)
 void
 BtorIBV::print (const BtorIBVAssignment &a)
 {
-  BtorIBVNode *on = id2node (a.id);
-  printf ("%s[%u..%u] = ", on->name, a.msb, a.lsb);
+  BtorIBVNode *on = id2node (a.range.id);
+  printf ("%s[%u..%u] = ", on->name, a.range.msb, a.range.lsb);
   const char *opname;
   switch (a.tag & BTOR_IBV_OPS)
   {
@@ -394,7 +394,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   check_bit_range (a);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = a;
-  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BtorIBVAssignment assignment (tag, o, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (1, assignment, "id %u unary assignment", on->id);
 }
@@ -420,7 +420,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   check_bit_range (a);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = a;
-  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, arg, 1, r);
+  BtorIBVAssignment assignment (tag, o, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (1, assignment, "id %u unary assignment (with argument)", on->id);
 }
@@ -440,7 +440,7 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   check_bit_range (a), check_bit_range (b);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof *r);
   r[0] = a, r[1] = b;
-  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
+  BtorIBVAssignment assignment (tag, o, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (1, assignment, "id %u binary assignment", on->id);
 }
@@ -459,7 +459,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   BtorIBVTag tag  = bitwise ? BTOR_IBV_CONDBW : BTOR_IBV_COND;
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 3 * sizeof *r);
   r[0] = c, r[1] = t, r[2] = e;
-  BtorIBVAssignment assignment (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 3, r);
+  BtorIBVAssignment assignment (tag, o, 0, 3, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (1, assignment, "id %u %scondition", on->id, bitwise ? "bitwise " : "");
 }
@@ -486,7 +486,7 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   unsigned i      = 0;
   for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it;
   assert (i == n);
-  BtorIBVAssignment a (BTOR_IBV_CONCAT, on->id, o.m_nMsb, o.m_nLsb, 0, n, r);
+  BtorIBVAssignment a (BTOR_IBV_CONCAT, o, 0, n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
   msg (1, a, "id %u %u-ary concatination", on->id, n);
 }
@@ -523,7 +523,7 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
   unsigned i      = 0;
   for (it = ops.begin (); it != ops.end (); it++) r[i++] = *it++, r[i++] = *it;
   assert (i == 2 * n);
-  BtorIBVAssignment a (tag, on->id, o.m_nMsb, o.m_nLsb, 0, 2 * n, r);
+  BtorIBVAssignment a (tag, o, 0, 2 * n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
   msg (1, a, "id %u %u-ary case", on->id, n);
 }
@@ -547,7 +547,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   if (!nextn->is_constant && nextn->is_next_state) mark_state (nextn, o, 1);
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, 2 * sizeof *r);
   r[0] = init, r[1] = next;
-  BtorIBVAssignment a (BTOR_IBV_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 2, r);
+  BtorIBVAssignment a (BTOR_IBV_STATE, o, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
   msg (1, a, "id %u state", on->id);
 }
@@ -564,7 +564,7 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   assert (next.getWidth () == o.getWidth ());
   BtorIBVRange *r = (BtorIBVRange *) btor_malloc (btor->mm, sizeof *r);
   r[0]            = next;
-  BtorIBVAssignment a (BTOR_IBV_NON_STATE, on->id, o.m_nMsb, o.m_nLsb, 0, 1, r);
+  BtorIBVAssignment a (BTOR_IBV_NON_STATE, o, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
   msg (1, a, "id %u non-state", on->id);
 }
@@ -631,8 +631,8 @@ BtorIBV::check_non_cyclic_assignments ()
     for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
          a++)
     {
-      assert (a->id == n->id);
-      BTOR_PUSH_STACK (btor->mm, work, a->id);
+      assert (a->range.id == n->id);
+      BTOR_PUSH_STACK (btor->mm, work, a->range.id);
     }
     while (!BTOR_EMPTY_STACK (work))
     {
@@ -698,8 +698,16 @@ BtorIBV::translate ()
     unsigned consts;
     struct
     {
+      unsigned state, nonstate;
+    } assoc;
+    struct
+    {
       unsigned inputs, states;
     } current, next;
+    struct
+    {
+      unsigned nologic, current, next, both;
+    } nonstate;
   } bits, vars;
   BTOR_CLR (&bits);
   BTOR_CLR (&vars);
@@ -734,20 +742,89 @@ BtorIBV::translate ()
         bits.current.inputs += unassigned;
         bits.current.states += assigned;
       }
+      unsigned nonstate = 0, state = 0, nologic = 0, current = 0, next = 0,
+               both = 0;
+      for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+           a++)
+      {
+        if (a->tag == BTOR_IBV_STATE) state += a->range.getWidth ();
+        if (a->tag == BTOR_IBV_NON_STATE)
+        {
+          nonstate += a->range.getWidth ();
+          assert (a->nranges == 1);
+          BtorIBVNode *o = id2node (a->ranges[0].id);
+          for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+          {
+            int cass = n->assigned[i];
+            int nass = o->is_constant
+                       || o->assigned[i - a->range.lsb + a->ranges[0].lsb];
+
+            if (cass && nass)
+              both++;
+            else if (cass)
+              current++;
+            else if (nass)
+              next++;
+            else
+              nologic++;
+          }
+        }
+      }
+      if (state) vars.assoc.state++, bits.assoc.state += state;
+      if (nonstate) vars.assoc.nonstate++, bits.assoc.nonstate += nonstate;
+      if (nologic) vars.nonstate.nologic++, bits.nonstate.nologic += nologic;
+      if (current) vars.nonstate.current++, bits.nonstate.current += current;
+      if (next) vars.nonstate.next++, bits.nonstate.next += next;
+      if (both) vars.nonstate.both++, bits.nonstate.both += both;
     }
   }
-  msg (1, "%u constants, %u bits", vars.consts, bits.consts);
-  msg (1,
-       "%u current state variables, %u bits",
-       vars.current.states,
-       bits.current.states);
-  msg (1,
-       "%u next state variables, %u bits",
-       vars.next.states,
-       bits.next.states);
-  msg (1,
-       "%u current state inputs, %u bits",
-       vars.current.inputs,
-       bits.current.inputs);
-  msg (1, "%u next state inputs, %u bits", vars.next.inputs, bits.next.inputs);
+  if (vars.consts) msg (1, "%u constants, %u bits", vars.consts, bits.consts);
+  if (vars.current.states)
+    msg (1,
+         "%u current state variables, %u bits",
+         vars.current.states,
+         bits.current.states);
+  if (vars.next.states)
+    msg (1,
+         "%u next state variables, %u bits",
+         vars.next.states,
+         bits.next.states);
+  if (vars.current.inputs)
+    msg (1,
+         "%u current state inputs, %u bits",
+         vars.current.inputs,
+         bits.current.inputs);
+  if (vars.next.inputs)
+    msg (
+        1, "%u next state inputs, %u bits", vars.next.inputs, bits.next.inputs);
+  if (vars.assoc.state)
+    msg (1,
+         "%u state associations, %u bits",
+         vars.assoc.state,
+         bits.assoc.state);
+  if (vars.assoc.nonstate)
+    msg (1,
+         "%u non-state associations, %u bits",
+         vars.assoc.nonstate,
+         bits.assoc.nonstate);
+  if (vars.nonstate.nologic)
+    msg (1,
+         "%u non-state with neither current nor next assignment, %u bits",
+         vars.nonstate.nologic,
+         bits.nonstate.nologic);
+  if (vars.nonstate.current)
+    msg (1,
+         "%u non-states with only current assignment, %u bits",
+         vars.nonstate.current,
+         bits.nonstate.current);
+  if (vars.nonstate.next)
+    msg (1,
+         "%u non-states with only next assignment, %u bits",
+         vars.nonstate.next,
+         bits.nonstate.next);
+  if (vars.nonstate.both)
+    msg (1,
+         "%u non-states with both current and next assignment, %u bits",
+         vars.nonstate.both,
+         bits.nonstate.both);
 }

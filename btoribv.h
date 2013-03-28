@@ -60,22 +60,33 @@ enum BtorIBVTag
   BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256 | 512
 };
 
-struct BtorIBVRange;
+struct BtorIBVRange
+{
+  unsigned id, msb, lsb;
+  BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
+  {
+  }
+  BtorIBVRange (const IBitVector::BitRange &r);
+  unsigned getWidth () const { return msb - lsb + 1; }
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
+};
 
 struct BtorIBVAssignment
 {
   BtorIBVTag tag;
-  unsigned id, msb, lsb, arg, nranges;
+  BtorIBVRange range;
+  unsigned arg, nranges;
   BtorIBVRange *ranges;
 
   BtorIBVAssignment (BtorIBVTag t,
-                     unsigned i,
-                     unsigned m,
-                     unsigned l,
+                     BtorIBVRange r,
                      unsigned a,
-                     unsigned n      = 0,
-                     BtorIBVRange *r = 0)
-      : tag (t), id (i), msb (m), lsb (l), arg (a), nranges (n), ranges (r)
+                     unsigned n       = 0,
+                     BtorIBVRange *rs = 0)
+      : tag (t), range (r), arg (a), nranges (n), ranges (rs)
   {
   }
 };
@@ -116,19 +127,6 @@ struct BtorIBVNode
 
 extern "C" {
 BTOR_DECLARE_STACK (IBVNodePtr, BtorIBVNode *);
-};
-
-struct BtorIBVRange
-{
-  unsigned id, msb, lsb;
-  BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
-  {
-  }
-  BtorIBVRange (const IBitVector::BitRange &r);
-};
-
-extern "C" {
-BTOR_DECLARE_STACK (IBVRange, BtorIBVRange);
 };
 
 struct BtorIBVBit
