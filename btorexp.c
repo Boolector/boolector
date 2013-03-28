@@ -2180,13 +2180,16 @@ encode_lemma (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (acc1));
   assert (BTOR_IS_REGULAR_NODE (acc2));
 
-  int k, val, found, false_lit, true_lit;
+#ifndef NDEBUG
+  int found;
+#endif
+  int k, val, false_lit, true_lit;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *i, *j, *a, *b, *cur_write, *w_index, *aeq, *cond, *acond, *bcond;
-  BtorNode *cur, *lambda_value, *parameterized;
+  BtorNode *cur, *lambda_value = 0, *parameterized;
   BtorIntStack linking_clause;
   BtorPtrHashBucket *bucket;
 
@@ -2222,13 +2225,19 @@ encode_lemma (Btor *btor,
 
     if (parameterized)
     {
-      found = bfs_lambda (btor, acc2, acc1, parameterized, &cur, 0);
-      cur   = parameterized;
+#ifndef NDEBUG
+      found =
+#endif
+          bfs_lambda (btor, acc2, acc1, parameterized, &cur, 0);
+      cur = parameterized;
     }
     else
     {
-      found = bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0);
-      cur   = lambda_value;
+#ifndef NDEBUG
+      found =
+#endif
+          bfs_lambda (btor, acc2, acc1, lambda_value, &cur, 0);
+      cur = lambda_value;
     }
     assert (found);
     assert (cur);
@@ -5464,7 +5473,7 @@ dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   BtorNodePtrStack work_stack, stack;
   BtorNodePtrStack const_stack, param_stack, bvvar_stack, avar_stack;
   BtorIntStack id_stack;
-  BtorNode *root, *cur;
+  BtorNode *root, *cur = 0;
 
   assert (btor);
   assert (file);
@@ -6270,6 +6279,8 @@ void
 btor_set_loglevel_btor (Btor *btor, int loglevel)
 {
   assert (btor);
+  (void) btor;
+  (void) loglevel;
 #ifndef NBTORLOG
   btor->loglevel = loglevel;
 #endif
@@ -8067,7 +8078,7 @@ eval_exp (Btor *btor, BtorNode *exp)
   assert (exp);
 
   int i;
-  const char *result, *inv_result, *e[3];
+  const char *result = 0, *inv_result, *e[3];
   double start;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack, unmark_stack;
