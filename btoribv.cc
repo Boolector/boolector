@@ -312,11 +312,33 @@ BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
   assert (!n->is_constant);
   assert (r.m_nLsb <= r.m_nMsb);
   assert (r.m_nMsb < n->width);
+  unsigned both = 0;
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
     msg (2, "id %u assigning '%s[%u]'", n->id, n->name, i);
     assert (!n->assigned[i]);
+    if (n->state[i] < 0) both++;
     n->assigned[i] = 1;
+  }
+  if (!both) return;
+  if (both < n->width)
+  {
+    for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
+    {
+      assert (n->assigned[i]);
+      if (n->state[i] >= 0) continue;
+      wrn ("id %u bit '%s[%u]' marked next of non-state and is now assigned",
+           n->id,
+           n->name,
+           i);
+    }
+  }
+  else
+  {
+    assert (both == n->width);
+    wrn ("id %u variable '%s' marked next of non-state and is now assigned",
+         n->id,
+         n->name);
   }
 }
 
@@ -328,11 +350,33 @@ BtorIBV::mark_state (BtorIBVNode *n, BitRange r, int mark)
   assert (!n->is_constant);
   assert (r.m_nLsb <= r.m_nMsb);
   assert (r.m_nMsb < n->width);
+  unsigned both = 0;
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "id %u 'next %s[%u]'", n->id, n->name, i);
+    msg (2, "id %u next '%s[%u]'", n->id, n->name, i);
     assert (!n->state[i]);
+    if (n->assigned[i]) both++;
     n->state[i] = mark;
+  }
+  if (mark > 0 || !both) return;
+  if (both < n->width)
+  {
+    for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
+    {
+      assert (n->state[i]);
+      if (!n->assigned[i]) continue;
+      wrn ("id %u bit '%s[%u]' assigned and is now marked next of non-state",
+           n->id,
+           n->name,
+           i);
+    }
+  }
+  else
+  {
+    assert (both == n->width);
+    wrn ("id %u variable '%s' assigned and now marked next of non-state",
+         n->id,
+         n->name);
   }
 }
 
