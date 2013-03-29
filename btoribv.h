@@ -110,16 +110,15 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 
 struct BtorIBVNode
 {
-  unsigned width : 31;
-  unsigned is_constant : 1;
+  unsigned width;
   unsigned id;
-  BtorNode *cached;
-  char *name;
-  // Note: start of data for variables (invalid if 'is_constant')
+  bool is_constant;
   bool is_next_state;
   bool is_loop_breaking;
   bool is_state_retain;
   IBitVector::DirectionKind direction;
+  BtorNode *cached;
+  char *name;
   signed char marked, *assigned, *state;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
@@ -185,13 +184,12 @@ class BtorIBV : public IBitVector
 
   void check_bit_range (BitRange range) { (void) bitrange2node (range); }
 
-  BtorIBVNode *new_node (unsigned id, bool isConstant, unsigned width);
+  BtorIBVNode *new_node (unsigned id, unsigned width);
 
   void mark_assigned (BtorIBVNode *, BitRange);
   void mark_state (BtorIBVNode *, BitRange, int mark);
 
-  void delete_ibv_variable (BtorIBVNode *);
-  void delete_ibv_constant (BtorIBVNode *);
+  void delete_ibv_release_variable (BtorIBVNode *);
   void delete_ibv_node (BtorIBVNode *);
 
   //------------------------------------------------------------------------

@@ -131,7 +131,7 @@ BtorIBV::BtorIBV () : gentrace (false), verbosity (0)
 }
 
 void
-BtorIBV::delete_ibv_variable (BtorIBVNode *node)
+BtorIBV::delete_ibv_release_variable (BtorIBVNode *node)
 {
   assert (node);
   assert (!node->is_constant);
@@ -148,21 +148,6 @@ BtorIBV::delete_ibv_variable (BtorIBVNode *node)
   BTOR_RELEASE_STACK (btor->mm, node->ranges);
   btor_free (btor->mm, node->assigned, node->width);
   btor_free (btor->mm, node->state, node->width);
-  btor_free (btor->mm, node, sizeof *node);
-}
-
-static size_t
-btor_ibv_constant_bytes ()
-{
-  return (size_t) & (((BtorIBVNode *) 0)->is_next_state);
-}
-
-void
-BtorIBV::delete_ibv_constant (BtorIBVNode *node)
-{
-  assert (node);
-  assert (node->is_constant);
-  btor_free (btor->mm, node, btor_ibv_constant_bytes ());
 }
 
 void
@@ -172,10 +157,8 @@ BtorIBV::delete_ibv_node (BtorIBVNode *node)
   assert (node->name);
   btor_freestr (btor->mm, node->name);
   if (node->cached) btor_release_exp (btor, node->cached);
-  if (node->is_constant)
-    delete_ibv_constant (node);
-  else
-    delete_ibv_variable (node);
+  if (!node->is_constant) delete_ibv_release_variable (node);
+  btor_free (btor->mm, node, sizeof *node);
 }
 
 BtorIBV::~BtorIBV ()
@@ -207,21 +190,18 @@ BtorIBV::enableTraceGeneration ()
 }
 
 BtorIBVNode *
-BtorIBV::new_node (unsigned id, bool is_constant, unsigned width)
+BtorIBV::new_node (unsigned id, unsigned width)
 {
   assert (0 < id);
   assert (0 < width);
   while (BTOR_COUNT_STACK (idtab) <= id) BTOR_PUSH_STACK (btor->mm, idtab, 0);
   assert (!BTOR_PEEK_STACK (idtab, id));
-  size_t bytes =
-      is_constant ? btor_ibv_constant_bytes () : sizeof (BtorIBVNode);
-  BtorIBVNode *node = (BtorIBVNode *) btor_malloc (btor->mm, bytes);
-  memset (node, 0, bytes);
-  node->id          = id;
-  node->is_constant = is_constant;
-  node->width       = width;
-  node->cached      = 0;
-  node->name        = 0;
+  BtorIBVNode *node = (BtorIBVNode *) btor_malloc (btor->mm, sizeof *node);
+  BTOR_CLR (node);
+  node->id     = id;
+  node->width  = width;
+  node->cached = 0;
+  node->name   = 0;
   BTOR_POKE_STACK (idtab, id, node);
   return node;
 }
@@ -233,9 +213,10 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   assert (0 < id);
   assert (0 < width);  // TODO really?
   assert (str.size () == width);
-  node         = new_node (id, true, width);
-  node->cached = btor_const_exp (btor, str.c_str ());
-  node->name   = btor_strdup (btor->mm, str.c_str ());
+  node              = new_node (id, width);
+  node->cached      = btor_const_exp (btor, str.c_str ());
+  node->name        = btor_strdup (btor->mm, str.c_str ());
+  node->is_constant = true;
   msg (1, "added constant %s of width %u", str.c_str (), width);
 }
 
@@ -250,7 +231,7 @@ BtorIBV::addVariable (unsigned id,
 {
   assert (0 < id);
   assert (0 < width);
-  BtorIBVNode *n      = new_node (id, false, width);
+  BtorIBVNode *n      = new_node (id, width);
   n->name             = btor_strdup (btor->mm, str.c_str ());
   n->is_next_state    = isNextState;
   n->is_loop_breaking = isLoopBreaking;
