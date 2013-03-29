@@ -111,7 +111,8 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 struct BtorIBVFlags
 {
   unsigned assigned : 1, current : 1, next : 1;
-  signed int state : 2, mark : 2;
+  unsigned int depends : 2;
+  signed int state : 2;
 };
 
 struct BtorIBVNode
@@ -127,6 +128,7 @@ struct BtorIBVNode
   BtorNode *cached;
   char *name;
   BtorIBVFlags *flags;
+  BtorIBVAssignment **assigned;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
 };
@@ -426,7 +428,8 @@ class BtorIBV : public IBitVector
   void check_all_next_states_assigned ();
   void check_non_cyclic_assignments ();
 
-  void check_and_set_dependencies ();
+  void set_assignments ();
+  void set_dependencies ();
 
   void translate ();  // Into internal BtorMC model.
 };

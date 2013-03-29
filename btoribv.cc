@@ -669,6 +669,130 @@ BtorIBV::check_non_cyclic_assignments ()
 }
 
 void
+BtorIBV::set_assignments ()
+{
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
+    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+         a++)
+    {
+      if (a->tag == BTOR_IBV_STATE) continue;
+      if (a->tag == BTOR_IBV_NON_STATE) continue;
+      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+      {
+        assert (n->flags[i].assigned);
+        n->assigned[i] = a;
+      }
+    }
+  }
+}
+
+void
+BtorIBV::set_dependencies ()
+{
+  BtorIBVBitStack work;
+  set_assignments ();
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (unsigned i = 0; i < n->width; i++)
+      if (n->is_constant)
+        n->flags[i].depends = 2;
+      else
+        assert (!n->flags[i].depends);
+  }
+  BTOR_INIT_STACK (work);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (unsigned i = 0; i < n->width; i++)
+    {
+      int depends = n->flags[i].depends;
+      if (depends)
+      {
+        assert (depends == 2);
+        continue;
+      }
+      BTOR_PUSH_STACK (btor->mm, work, BtorIBVBit (n->id, i));
+      while (!BTOR_EMPTY_STACK (work))
+      {
+        BtorIBVBit b   = BTOR_TOP_STACK (work);
+        BtorIBVNode *o = id2node (b.id);
+        depends        = o->flags[b.bit].depends;
+        if (depends == 2)
+        {
+          (void) BTOR_POP_STACK (work);
+        }
+        else
+        {
+          o->flags[b.bit].depends++;
+          assert (o->flags[b.bit].depends <= 2);
+          if (o->flags[b.bit].assigned)
+          {
+            BtorIBVAssignment *a = o->assigned[b.bit];
+            assert (a);
+            assert (a->tag != BTOR_IBV_STATE);
+            assert (a->tag != BTOR_IBV_NON_STATE);
+            assert (b.bit >= a->range.lsb);
+            for (unsigned j = 0; j < a->nranges; j++)
+            {
+              BtorIBVRange r = a->ranges[j];
+              if (!r.id) continue;
+              assert (b.bit >= a->range.lsb);
+              unsigned k = b.bit - a->range.lsb + r.lsb;
+              assert (r.lsb <= k), assert (k <= r.msb);
+              BtorIBVNode *m = id2node (r.id);
+              assert (k < m->width);
+              if (depends == 1)
+              {
+                assert (m->flags[k].depends == 2);
+                if (m->flags[k].next) o->flags[b.bit].next = 1;
+                if (m->flags[k].current) o->flags[b.bit].current = 1;
+                (void) BTOR_POP_STACK (work);
+              }
+              else
+              {
+                assert (!depends);
+                if (!m->flags[k].depends)
+                {
+                  BtorIBVBit c (m->id, k);
+                  BTOR_PUSH_STACK (btor->mm, work, c);
+                }
+                else
+                {
+                  assert (m->flags[k].depends == 1);
+                  BTOR_ABORT_BOOLECTOR (
+                      m->flags[k].depends != 2,
+                      "can not set next/current flag for cyclic '%s[%u]'",
+                      m->name,
+                      k);
+                }
+              }
+            }
+          }
+          else
+          {
+            assert (depends == 1);
+            if (o->is_next_state)
+              o->flags[b.bit].next = 1;
+            else
+              (o->flags[b.bit].current) = 1;
+            o->flags[b.bit].depends = 2;
+            (void) BTOR_POP_STACK (work);
+          }
+        }
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (btor->mm, work);
+}
+
+void
 BtorIBV::translate ()
 {
   struct
