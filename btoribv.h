@@ -57,7 +57,7 @@ enum BtorIBVTag
   BTOR_IBV_HAS_ARG      = 512,
 
   BTOR_IBV_OPS   = 255,
-  BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256 | 512
+  BTOR_IBV_FLAGS = 16 | 32 | 64 | 128 | 256 | 512,
 };
 
 struct BtorIBVRange
@@ -108,6 +108,12 @@ extern "C" {
 BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 };
 
+struct BtorIBVFlags
+{
+  unsigned assigned : 1, current : 1, next : 1;
+  signed int state : 2, mark : 2;
+};
+
 struct BtorIBVNode
 {
   unsigned width;
@@ -117,9 +123,10 @@ struct BtorIBVNode
   bool is_loop_breaking;
   bool is_state_retain;
   IBitVector::DirectionKind direction;
+  signed char marked;
   BtorNode *cached;
   char *name;
-  signed char marked, *assigned, *state;
+  BtorIBVFlags *flags;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
 };
@@ -418,6 +425,8 @@ class BtorIBV : public IBitVector
 
   void check_all_next_states_assigned ();
   void check_non_cyclic_assignments ();
+
+  void check_and_set_dependencies ();
 
   void translate ();  // Into internal BtorMC model.
 };

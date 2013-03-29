@@ -146,8 +146,7 @@ BtorIBV::delete_ibv_release_variable (BtorIBVNode *node)
   for (BtorIBVRangeName *r = node->ranges.start; r < node->ranges.top; r++)
     btor_freestr (btor->mm, r->name);
   BTOR_RELEASE_STACK (btor->mm, node->ranges);
-  btor_free (btor->mm, node->assigned, node->width);
-  btor_free (btor->mm, node->state, node->width);
+  btor_free (btor->mm, node->flags, node->width * sizeof *node->flags);
 }
 
 void
@@ -238,10 +237,9 @@ BtorIBV::addVariable (unsigned id,
   n->is_state_retain  = isStateRetain;
   n->direction        = direction;
   n->marked           = 0;
-  n->assigned         = (signed char *) btor_malloc (btor->mm, n->width);
-  n->state            = (signed char *) btor_malloc (btor->mm, n->width);
-  memset (n->assigned, 0, n->width);
-  memset (n->state, 0, n->width);
+  size_t bytes        = n->width * sizeof *n->flags;
+  n->flags            = (BtorIBVFlags *) btor_malloc (btor->mm, bytes);
+  memset (n->flags, 0, bytes);
   BTOR_INIT_STACK (n->ranges);
   BTOR_INIT_STACK (n->assignments);
   const char *extra;
@@ -297,17 +295,17 @@ BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
     msg (2, "id %u assigning '%s[%u]'", n->id, n->name, i);
-    assert (!n->assigned[i]);
-    if (n->state[i] < 0) both++;
-    n->assigned[i] = 1;
+    assert (!n->flags[i].assigned);
+    if (n->flags[i].state < 0) both++;
+    n->flags[i].assigned = 1;
   }
   if (!both) return;
   if (both < n->width)
   {
     for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
     {
-      assert (n->assigned[i]);
-      if (n->state[i] >= 0) continue;
+      assert (n->flags[i].assigned);
+      if (n->flags[i].state >= 0) continue;
       wrn ("id %u bit '%s[%u]' marked next of non-state and is now assigned",
            n->id,
            n->name,
@@ -335,17 +333,17 @@ BtorIBV::mark_state (BtorIBVNode *n, BitRange r, int mark)
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
     msg (2, "id %u next '%s[%u]'", n->id, n->name, i);
-    assert (!n->state[i]);
-    if (n->assigned[i]) both++;
-    n->state[i] = mark;
+    assert (!n->flags[i].state);
+    if (n->flags[i].assigned) both++;
+    n->flags[i].state = mark;
   }
   if (mark > 0 || !both) return;
   if (both < n->width)
   {
     for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
     {
-      assert (n->state[i]);
-      if (!n->assigned[i]) continue;
+      assert (n->flags[i].state);
+      if (!n->flags[i].assigned) continue;
       wrn ("id %u bit '%s[%u]' assigned and is now marked next of non-state",
            n->id,
            n->name,
@@ -588,12 +586,12 @@ BtorIBV::check_all_next_states_assigned ()
     if (!n->is_next_state) continue;
     unsigned unassigned = 0;
     for (unsigned i = 0; i < n->width; i++)
-      if (!n->state[i]) unassigned++;
+      if (!n->flags[i].state) unassigned++;
     if (unassigned == n->width)
       wrn ("next state '%s[%u:0]' unassigned", n->name, n->width - 1);
     else if (unassigned)
       for (unsigned i = 0; i < n->width; i++)
-        if (!n->state[i])
+        if (!n->flags[i].state)
           wrn ("next state bit '%s[%u]' unassigned", n->name, i);
   }
 }
@@ -700,8 +698,8 @@ BtorIBV::translate ()
     else
     {
       unsigned assigned = 0;
-      for (signed char *p = n->assigned; p < n->assigned + n->width; p++)
-        if (*p) assigned++;
+      for (unsigned i = 0; i < n->width; i++)
+        if (n->flags[i].assigned) assigned++;
       assert (assigned <= n->width);
       unsigned unassigned = n->width - assigned;
       if (n->is_next_state)
@@ -735,10 +733,10 @@ BtorIBV::translate ()
           BtorIBVNode *o = id2node (a->ranges[0].id);
           for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
           {
-            int cass = n->assigned[i];
-            int nass = o->is_constant
-                       || o->assigned[i - a->range.lsb + a->ranges[0].lsb];
-
+            int cass = n->flags[i].assigned;
+            int nass =
+                o->is_constant
+                || o->flags[i - a->range.lsb + a->ranges[0].lsb].assigned;
             if (cass && nass)
               both++;
             else if (cass)
