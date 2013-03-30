@@ -345,7 +345,6 @@ BtorIBV::mark_next_state (BtorIBVNode *n, BitRange r)
   assert (n);
   // TODO failed for 'toy_multibit_clock'
   // assert (n->is_constant || n->is_next_state);
-  // assert (n->is_constant || n->is_next_state);
   assert (r.m_nLsb <= r.m_nMsb);
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
