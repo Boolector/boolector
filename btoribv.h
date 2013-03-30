@@ -110,7 +110,7 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 
 struct BtorIBVFlags
 {
-  bool assigned;
+  bool assigned, used, input;
   struct
   {
     bool current, next;
@@ -439,8 +439,7 @@ class BtorIBV : public IBitVector
   void check_all_next_states_assigned ();
   void check_non_cyclic_assignments ();
 
-  void set_assignments ();
-  void set_dependencies ();
+  void set_assignments_dependencies_and_used ();
 
   void translate ();  // Into internal BtorMC model.
 };

@@ -685,8 +685,14 @@ BtorIBV::check_non_cyclic_assignments ()
   }
 }
 
+static double
+percent (double a, double b)
+{
+  return b ? 100 * a / b : 0;
+}
+
 void
-BtorIBV::set_assignments ()
+BtorIBV::set_assignments_dependencies_and_used ()
 {
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -705,28 +711,18 @@ BtorIBV::set_assignments ()
       }
     }
   }
-}
-
-static double
-percent (double a, double b)
-{
-  return b ? 100 * a / b : 0;
-}
-
-void
-BtorIBV::set_dependencies ()
-{
   BtorIBVBitStack work;
-  set_assignments ();
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
     for (unsigned i = 0; i < n->width; i++)
+    {
       if (n->is_constant)
         n->flags[i].depends.mark = 2;
       else
         assert (!n->flags[i].depends.mark);
+    }
   }
   BTOR_INIT_STACK (work);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
@@ -766,25 +762,46 @@ BtorIBV::set_dependencies ()
                            || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
                            || a->tag == BTOR_IBV_XOR
                            || a->tag == BTOR_IBV_CONDBW;
-            // TODO for BTOR_IBV_CONCAT we can determine defining bit
-            // exactly and and for BTOR_IBV_{ADD,SUB,MUL} is more precise
-            // reasoning possible too.
+            // TODO for BTOR_IBV_CONCAT we can determine the defining bit
+            // exactly and for BTOR_IBV_{ADD,SUB,MUL} more precise
+            // reasoning is possible too (restrict the 'k' below to bits
+            // at smaller or equal position).
             for (unsigned j = 0; j < a->nranges; j++)
             {
               BtorIBVRange r = a->ranges[j];
               if (!r.id) continue;
               assert (b.bit >= a->range.lsb);
               BtorIBVNode *m = id2node (r.id);
-              for (unsigned k = r.lsb; k <= r.msb; k++)
+              for (unsigned k = 0; k < m->width; k++)
               {
                 if (bitwise && k != b.bit - a->range.lsb + r.lsb) continue;
                 if (depends == 1)
                 {
                   assert (m->flags[k].depends.mark == 2);
-                  if (m->flags[k].depends.next)
+                  if (!m->flags[k].used)
+                  {
+                    msg (2, "id %u using '%s[%u]'", m->id, m->name, k);
+                    m->flags[k].used = 1;
+                  }
+                  if (m->flags[k].depends.next && !o->flags[b.bit].depends.next)
+                  {
+                    msg (2,
+                         "id %u recursively next dependend '%s[%u]'",
+                         m->id,
+                         m->name,
+                         k);
                     o->flags[b.bit].depends.next = 1;
-                  if (m->flags[k].depends.current)
+                  }
+                  if (m->flags[k].depends.current
+                      && !o->flags[b.bit].depends.current)
+                  {
+                    msg (2,
+                         "id %u recursively current dependend '%s[%u]'",
+                         m->id,
+                         m->name,
+                         k);
                     o->flags[b.bit].depends.current = 1;
+                  }
                 }
                 else
                 {
