@@ -762,40 +762,46 @@ BtorIBV::set_dependencies ()
             assert (a->tag != BTOR_IBV_STATE);
             assert (a->tag != BTOR_IBV_NON_STATE);
             assert (b.bit >= a->range.lsb);
+            bool bitwise = a->tag == BTOR_IBV_BUF || a->tag == BTOR_IBV_NOT
+                           || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
+                           || a->tag == BTOR_IBV_XOR
+                           || a->tag == BTOR_IBV_CONDBW;
             for (unsigned j = 0; j < a->nranges; j++)
             {
               BtorIBVRange r = a->ranges[j];
               if (!r.id) continue;
               assert (b.bit >= a->range.lsb);
-              unsigned k = b.bit - a->range.lsb + r.lsb;
-              assert (r.lsb <= k), assert (k <= r.msb);
               BtorIBVNode *m = id2node (r.id);
-              assert (k < m->width);
-              if (depends == 1)
+              for (unsigned k = r.lsb; k <= r.msb; k++)
               {
-                assert (m->flags[k].depends.mark == 2);
-                if (m->flags[k].depends.next) o->flags[b.bit].depends.next = 1;
-                if (m->flags[k].depends.current)
-                  o->flags[b.bit].depends.current = 1;
-              }
-              else
-              {
-                assert (!depends);
-                if (!m->flags[k].depends.mark)
+                if (bitwise && k != b.bit - a->range.lsb + r.lsb) continue;
+                if (depends == 1)
                 {
-                  BtorIBVBit c (m->id, k);
-                  BTOR_PUSH_STACK (btor->mm, work, c);
-                }
-                else if (!m->flags[k].depends.mark == 1)
-                {
-                  BTOR_ABORT_BOOLECTOR (
-                      m->flags[k].depends.mark != 2,
-                      "can not set next/current flag for cyclic '%s[%u]'",
-                      m->name,
-                      k);
+                  assert (m->flags[k].depends.mark == 2);
+                  if (m->flags[k].depends.next)
+                    o->flags[b.bit].depends.next = 1;
+                  if (m->flags[k].depends.current)
+                    o->flags[b.bit].depends.current = 1;
                 }
                 else
-                  assert (m->flags[k].depends.mark == 2);
+                {
+                  assert (!depends);
+                  if (!m->flags[k].depends.mark)
+                  {
+                    BtorIBVBit c (m->id, k);
+                    BTOR_PUSH_STACK (btor->mm, work, c);
+                  }
+                  else if (!m->flags[k].depends.mark == 1)
+                  {
+                    BTOR_ABORT_BOOLECTOR (
+                        m->flags[k].depends.mark != 2,
+                        "can not set next/current flag for cyclic '%s[%u]'",
+                        m->name,
+                        k);
+                  }
+                  else
+                    assert (m->flags[k].depends.mark == 2);
+                }
               }
             }
             if (depends == 1) (void) BTOR_POP_STACK (work);
