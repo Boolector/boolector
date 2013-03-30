@@ -730,10 +730,10 @@ BtorIBV::set_assignments_dependencies_and_used ()
     if (!n) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
-      int depends = n->flags[i].depends.mark;
-      if (depends)
+      int mark = n->flags[i].depends.mark;
+      if (mark)
       {
-        assert (depends == 2);
+        assert (mark == 2);
         continue;
       }
       BTOR_PUSH_STACK (btor->mm, work, BtorIBVBit (n->id, i));
@@ -741,8 +741,8 @@ BtorIBV::set_assignments_dependencies_and_used ()
       {
         BtorIBVBit b   = BTOR_TOP_STACK (work);
         BtorIBVNode *o = id2node (b.id);
-        depends        = o->flags[b.bit].depends.mark;
-        if (depends == 2)
+        mark           = o->flags[b.bit].depends.mark;
+        if (mark == 2)
         {
           (void) BTOR_POP_STACK (work);
         }
@@ -774,7 +774,7 @@ BtorIBV::set_assignments_dependencies_and_used ()
               for (unsigned k = 0; k < m->width; k++)
               {
                 if (bitwise && k != b.bit - a->range.lsb + r.lsb) continue;
-                if (depends == 1)
+                if (mark == 1)
                 {
                   assert (m->flags[k].depends.mark == 2);
                   if (!m->flags[k].used)
@@ -804,7 +804,7 @@ BtorIBV::set_assignments_dependencies_and_used ()
                 }
                 else
                 {
-                  assert (!depends);
+                  assert (!mark);
                   if (!m->flags[k].depends.mark)
                   {
                     BtorIBVBit c (m->id, k);
@@ -823,11 +823,11 @@ BtorIBV::set_assignments_dependencies_and_used ()
                 }
               }
             }
-            if (depends == 1) (void) BTOR_POP_STACK (work);
+            if (mark == 1) (void) BTOR_POP_STACK (work);
           }
           else
           {
-            assert (depends == 0);
+            assert (mark == 0);
             if (o->is_next_state)
               o->flags[b.bit].depends.next = 1;
             else
