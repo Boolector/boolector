@@ -110,9 +110,16 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 
 struct BtorIBVFlags
 {
-  unsigned assigned : 1, current : 1, next : 1;
-  unsigned int depends : 2;
-  signed int state : 2;
+  bool assigned;
+  struct
+  {
+    bool current, next;
+    unsigned mark : 2;
+  } depends;
+  struct
+  {
+    bool current, next;
+  } state, nonstate;
 };
 
 struct BtorIBVNode
@@ -196,7 +203,11 @@ class BtorIBV : public IBitVector
   BtorIBVNode *new_node (unsigned id, unsigned width);
 
   void mark_assigned (BtorIBVNode *, BitRange);
-  void mark_state (BtorIBVNode *, BitRange, int mark);
+
+  void mark_current_state (BtorIBVNode *, BitRange);
+  void mark_current_nonstate (BtorIBVNode *, BitRange);
+  void mark_next_state (BtorIBVNode *, BitRange);
+  void mark_next_nonstate (BtorIBVNode *, BitRange);
 
   void delete_ibv_release_variable (BtorIBVNode *);
   void delete_ibv_node (BtorIBVNode *);
