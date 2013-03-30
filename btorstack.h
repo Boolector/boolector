@@ -87,7 +87,8 @@
     *((stack).top++) = (elem);                                         \
   } while (0)
 
-#define BTOR_POP_STACK(stack) (*--(stack).top)
+#define BTOR_POP_STACK(stack) \
+  (assert (!BTOR_EMPTY_STACK (stack)), (*--(stack).top))
 
 #define BTOR_DEQUEUE_STACK(stack, dequeued)   \
   do                                          \

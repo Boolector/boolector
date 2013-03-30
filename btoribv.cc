@@ -777,7 +777,6 @@ BtorIBV::set_dependencies ()
                 if (m->flags[k].depends.next) o->flags[b.bit].depends.next = 1;
                 if (m->flags[k].depends.current)
                   o->flags[b.bit].depends.current = 1;
-                (void) BTOR_POP_STACK (work);
               }
               else
               {
@@ -799,6 +798,7 @@ BtorIBV::set_dependencies ()
                   assert (m->flags[k].depends.mark == 2);
               }
             }
+            if (depends == 1) (void) BTOR_POP_STACK (work);
           }
           else
           {
