@@ -101,7 +101,8 @@
     (stack).top--;                            \
   } while (0)
 
-#define BTOR_TOP_STACK(stack) ((stack).top[-1])
+#define BTOR_TOP_STACK(stack) \
+  (assert (!BTOR_EMPTY_STACK (stack)), (stack).top[-1])
 
 #define BTOR_PEEK_STACK(stack, idx) \
   (assert ((idx) < BTOR_COUNT_STACK (stack)), (stack).start[idx])

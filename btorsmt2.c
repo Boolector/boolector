@@ -1257,7 +1257,7 @@ btor_push_item_smt2 (BtorSMT2Parser *parser, BtorSMT2Tag tag)
   item.coo = parser->coo;
   item.tag = tag;
   BTOR_PUSH_STACK (parser->mem, parser->work, item);
-  return &BTOR_TOP_STACK (parser->work);
+  return parser->work.top - 1;
 }
 
 static BtorSMT2Item *
