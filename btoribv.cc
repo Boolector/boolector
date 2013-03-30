@@ -784,15 +784,16 @@ BtorIBV::set_dependencies ()
                   BtorIBVBit c (m->id, k);
                   BTOR_PUSH_STACK (btor->mm, work, c);
                 }
-                else
+                else if (!m->flags[k].depends.mark == 1)
                 {
-                  assert (m->flags[k].depends.mark == 1);
                   BTOR_ABORT_BOOLECTOR (
                       m->flags[k].depends.mark != 2,
                       "can not set next/current flag for cyclic '%s[%u]'",
                       m->name,
                       k);
                 }
+                else
+                  assert (m->flags[k].depends.mark == 2);
               }
             }
           }
