@@ -766,6 +766,9 @@ BtorIBV::set_dependencies ()
                            || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
                            || a->tag == BTOR_IBV_XOR
                            || a->tag == BTOR_IBV_CONDBW;
+            // TODO for BTOR_IBV_CONCAT we can determine defining bit
+            // exactly and and for BTOR_IBV_{ADD,SUB,MUL} is more precise
+            // reasoning possible too.
             for (unsigned j = 0; j < a->nranges; j++)
             {
               BtorIBVRange r = a->ranges[j];
@@ -967,12 +970,14 @@ BtorIBV::translate ()
          bits.next.states);
   if (vars.current.inputs)
     msg (1,
-         "%u current state inputs, %u bits",
+         "%u current state input variables, %u bits",
          vars.current.inputs,
          bits.current.inputs);
   if (vars.next.inputs)
-    msg (
-        1, "%u next state inputs, %u bits", vars.next.inputs, bits.next.inputs);
+    msg (1,
+         "%u next state input variables, %u bits",
+         vars.next.inputs,
+         bits.next.inputs);
   if (vars.assoc.state)
     msg (1,
          "%u state associations, %u bits",
@@ -985,22 +990,24 @@ BtorIBV::translate ()
          bits.assoc.nonstate);
   if (vars.nonstate.nologic)
     msg (1,
-         "%u non-states with neither current nor next assignment, %u bits",
+         "%u non-state variables with neither current nor next assignment, %u "
+         "bits",
          vars.nonstate.nologic,
          bits.nonstate.nologic);
   if (vars.nonstate.current)
     msg (1,
-         "%u non-states with only current assignment, %u bits",
+         "%u non-state variables with only current assignment, %u bits",
          vars.nonstate.current,
          bits.nonstate.current);
   if (vars.nonstate.next)
     msg (1,
-         "%u non-states with only next assignment, %u bits",
+         "%u non-state variables with only next assignment, %u bits",
          vars.nonstate.next,
          bits.nonstate.next);
   if (vars.nonstate.both)
-    msg (1,
-         "%u non-states with both current and next assignment, %u bits",
-         vars.nonstate.both,
-         bits.nonstate.both);
+    msg (
+        1,
+        "%u non-state variables with both current and next assignment, %u bits",
+        vars.nonstate.both,
+        bits.nonstate.both);
 }
