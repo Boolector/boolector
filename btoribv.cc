@@ -217,7 +217,7 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   node->cached      = btor_const_exp (btor, str.c_str ());
   node->name        = btor_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
-  msg (1, "added constant %s of width %u", str.c_str (), width);
+  msg (3, "added constant %s of width %u", str.c_str (), width);
 }
 
 void
@@ -252,7 +252,7 @@ BtorIBV::addVariable (unsigned id,
     case 0 | 0 | 1: extra = " (flags: retain)"; break;
     default: extra = "(no flags)"; break;
   }
-  msg (1, "id %u variable '%s[%u..0]' %s", n->id, n->name, width - 1, extra);
+  msg (3, "id %u variable '%s[%u..0]' %s", n->id, n->name, width - 1, extra);
 }
 
 void
@@ -271,7 +271,7 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   rn.name = btor_strdup (btor->mm, name.c_str ());
   BTOR_PUSH_STACK (btor->mm, n->ranges, rn);
   assert (n->name);
-  msg (1,
+  msg (3,
        "id %u range '%s[%u..%u]' mapped to '%s[%u..%u]'",
        n->id,
        rn.name,
@@ -291,7 +291,7 @@ BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "id %u assigning '%s[%u]'", n->id, n->name, i);
+    msg (3, "id %u assigning '%s[%u]'", n->id, n->name, i);
     if (n->flags[i].state.current)
       wrn ("id %u bit '%s[%u]' marked current of state and is now assigned",
            n->id,
@@ -312,7 +312,7 @@ BtorIBV::mark_current_state (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "id %u current state '%s[%u]'", n->id, n->name, i);
+    msg (3, "id %u current state '%s[%u]'", n->id, n->name, i);
     if (n->flags[i].assigned)
       wrn ("id %u bit '%s[%u]' assigned and now marked current state",
            n->id,
@@ -333,7 +333,7 @@ BtorIBV::mark_current_nonstate (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "id %u current non-state '%s[%u]'", n->id, n->name, i);
+    mst (3, "id %u current non-state '%s[%u]'", n->id, n->name, i);
     assert (!n->flags[i].nonstate.current);
     n->flags[i].nonstate.current = 1;
   }
@@ -349,7 +349,7 @@ BtorIBV::mark_next_state (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "id %u next state '%s[%u]'", n->id, n->name, i);
+    mst (3, "id %u next state '%s[%u]'", n->id, n->name, i);
     assert (!n->flags[i].state.next);
     n->flags[i].state.next = 1;
   }
@@ -365,7 +365,7 @@ BtorIBV::mark_next_nonstate (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    msg (2, "id %u next non-state '%s[%u]'", n->id, n->name, i);
+    mst (3, "id %u next non-state '%s[%u]'", n->id, n->name, i);
     assert (!n->flags[i].nonstate.next);
     n->flags[i].nonstate.next = 1;
   }
@@ -388,7 +388,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   r[0] = a;
   BtorIBVAssignment assignment (tag, o, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "id %u unary assignment", on->id);
+  msg (3, assignment, "id %u unary assignment", on->id);
 }
 
 void
@@ -415,7 +415,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   r[0] = a;
   BtorIBVAssignment assignment (tag, o, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "id %u unary assignment (with argument)", on->id);
+  msg (3, assignment, "id %u unary assignment (with argument)", on->id);
 }
 
 void
@@ -436,7 +436,7 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   r[0] = a, r[1] = b;
   BtorIBVAssignment assignment (tag, o, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "id %u binary assignment", on->id);
+  msg (3, assignment, "id %u binary assignment", on->id);
 }
 
 void
@@ -456,7 +456,7 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   r[0] = c, r[1] = t, r[2] = e;
   BtorIBVAssignment assignment (tag, o, 0, 3, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
-  msg (1, assignment, "id %u %scondition", on->id, bitwise ? "bitwise " : "");
+  msg (3, assignment, "id %u %scondition", on->id, bitwise ? "bitwise " : "");
 }
 
 void
@@ -484,7 +484,7 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   assert (i == n);
   BtorIBVAssignment a (BTOR_IBV_CONCAT, o, 0, n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "id %u %u-ary concatination", on->id, n);
+  msg (3, a, "id %u %u-ary concatination", on->id, n);
 }
 
 void
@@ -522,7 +522,7 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
   assert (i == 2 * n);
   BtorIBVAssignment a (tag, o, 0, 2 * n, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "id %u %u-ary case", on->id, n);
+  msg (3, a, "id %u %u-ary case", on->id, n);
 }
 
 void
@@ -548,7 +548,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   r[0] = init, r[1] = next;
   BtorIBVAssignment a (BTOR_IBV_STATE, o, 0, 2, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "id %u state", on->id);
+  msg (3, a, "id %u state", on->id);
 }
 
 void
@@ -567,7 +567,7 @@ BtorIBV::addNonState (BitRange o, BitRange next)
   r[0] = next;
   BtorIBVAssignment a (BTOR_IBV_NON_STATE, o, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, a);
-  msg (1, a, "id %u non-state", on->id);
+  msg (3, a, "id %u non-state", on->id);
 }
 
 void
@@ -577,7 +577,7 @@ BtorIBV::addAssertion (Bit r)
   BtorIBVNode *n = id2node (s.id);
   assert (s.bit < n->width);
   BTOR_PUSH_STACK (btor->mm, assertions, s);
-  msg (1, "assertion '%s[%u]'", n->name, s.bit);
+  msg (3, "assertion '%s[%u]'", n->name, s.bit);
 }
 
 void
@@ -589,93 +589,68 @@ BtorIBV::addAssumption (BitRange r, bool initial)
   BtorIBVNode *n = id2node (s.id);
   assert (s.msb < n->width);
   BTOR_PUSH_STACK (btor->mm, assumptions, a);
-  msg (1,
+  msg (3,
        "%sinitial assumption '%s[%u]'",
        (initial ? "" : "non-"),
        n->name,
        s.msb);
 }
 
-void
-BtorIBV::check_all_next_states_assigned ()
-{
-  msg (1, "checking that all (actual) next states are assigned");
-  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
-  {
-    BtorIBVNode *n = *p;
-    if (!n) continue;
-    if (n->is_constant) continue;
-    if (!n->is_next_state) continue;
-    for (unsigned i = 0; i < n->width; i++)
-      if (!n->flags[i].assigned && n->flags[i].state.next)
-        wrn ("next state '%s[%u]' unassigned", n->name, i);
-  }
-}
+#if 0
 
-void
-BtorIBV::check_non_cyclic_assignments ()
-{
+// TODO subsumed by 'analyze' so remove eventually 
+
+void BtorIBV::check_non_cyclic_assignments () {
   msg (1, "checking that assignments are non-cyclic");
   BtorIntStack work;
   BTOR_INIT_STACK (work);
-  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
-  {
-    BtorIBVNode *n = *p;
+  for (BtorIBVNode ** p = idtab.start; p < idtab.top; p++) {
+    BtorIBVNode * n = *p;
     if (!n) continue;
     if (n->is_constant) continue;
-    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
-         a++)
-    {
+    for (BtorIBVAssignment * a = n->assignments.start;
+         a < n->assignments.top;
+	 a++) {
       assert (a->range.id == n->id);
       BTOR_PUSH_STACK (btor->mm, work, a->range.id);
     }
-    while (!BTOR_EMPTY_STACK (work))
-    {
-      unsigned id    = BTOR_TOP_STACK (work);
-      BtorIBVNode *n = id2node (id);
+    while (!BTOR_EMPTY_STACK (work)) {
+      unsigned id = BTOR_TOP_STACK (work);
+      BtorIBVNode * n = id2node (id);
       assert (!n->is_constant);
-      if (n->marked == 1)
-      {
-        (void) BTOR_POP_STACK (work);
-        n->marked = 2;
-      }
-      else if (n->marked == 2)
-      {
-        (void) BTOR_POP_STACK (work);
-      }
-      else
-      {
-        assert (!n->marked);
-        n->marked = 1;
-        for (BtorIBVAssignment *a = n->assignments.start;
-             a < n->assignments.top;
-             a++)
-        {
-          if (a->tag == BTOR_IBV_STATE) continue;
-          if (a->tag == BTOR_IBV_NON_STATE) continue;
-          for (BtorIBVRange *r = a->ranges; r < a->ranges + a->nranges; r++)
-          {
-            if (!r->id) continue;
-            BtorIBVNode *m = id2node (r->id);
-            if (m->is_constant) continue;
-            if (m->marked == 1)
-            {
-              wrn ("variable %s might depend recursively on itself", m->name);
-            }
-            else if (m->marked != 2)
-            {
-              assert (!m->marked);
-              BTOR_PUSH_STACK (btor->mm, work, m->id);
-            }
-          }
-        }
+      if (n->marked == 1) {
+	(void) BTOR_POP_STACK (work);
+	n->marked = 2;
+      } else if (n->marked == 2) {
+	(void) BTOR_POP_STACK (work);
+      } else {
+	assert (!n->marked);
+	n->marked = 1;
+	for (BtorIBVAssignment * a = n->assignments.start;
+	     a < n->assignments.top;
+	     a++) {
+	  if (a->tag == BTOR_IBV_STATE) continue;
+	  if (a->tag == BTOR_IBV_NON_STATE) continue;
+	  for (BtorIBVRange * r = a->ranges;
+	       r < a->ranges + a->nranges;
+	       r++) {
+	    if (!r->id) continue;
+	    BtorIBVNode * m = id2node (r->id);
+	    if (m->is_constant) continue;
+	    if (m->marked == 1) {
+	      wrn ("variable %s might depend recursively on itself", m->name);
+	    } else if (m->marked != 2) {
+	      assert (!m->marked);
+	      BTOR_PUSH_STACK (btor->mm, work, m->id);
+	    }
+	  }
+	}
       }
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
-  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
-  {
-    BtorIBVNode *n = *p;
+  for (BtorIBVNode ** p = idtab.start; p < idtab.top; p++) {
+    BtorIBVNode * n = *p;
     if (!n) continue;
     if (n->is_constant) continue;
     if (!n->marked) continue;
@@ -684,6 +659,8 @@ BtorIBV::check_non_cyclic_assignments ()
   }
 }
 
+#endif
+
 static double
 percent (double a, double b)
 {
@@ -691,8 +668,27 @@ percent (double a, double b)
 }
 
 void
-BtorIBV::set_assignments_dependencies_and_used ()
+BtorIBV::analyze ()
 {
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "checking that all (actual) next states are assigned");
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant) continue;
+    if (!n->is_next_state) continue;
+    for (unsigned i = 0; i < n->width; i++)
+      BTOR_ABORT_BOOLECTOR (!n->flags[i].assigned && n->flags[i].state.next,
+                            "next state '%s[%u]' unassigned",
+                            n->name,
+                            i);
+  }
+
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "adding short-cuts to assignments");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -710,6 +706,10 @@ BtorIBV::set_assignments_dependencies_and_used ()
       }
     }
   }
+
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "checking cyclic, next and current state dependencies");
   BtorIBVBitStack work;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -779,12 +779,12 @@ BtorIBV::set_assignments_dependencies_and_used ()
                   assert (m->flags[k].depends.mark == 2);
                   if (!m->flags[k].used)
                   {
-                    msg (2, "id %u using '%s[%u]'", m->id, m->name, k);
+                    msg (3, "id %u using '%s[%u]'", m->id, m->name, k);
                     m->flags[k].used = 1;
                   }
                   if (m->flags[k].depends.next && !o->flags[b.bit].depends.next)
                   {
-                    msg (2,
+                    msg (3,
                          "id %u recursively next dependend '%s[%u]'",
                          m->id,
                          m->name,
@@ -794,7 +794,7 @@ BtorIBV::set_assignments_dependencies_and_used ()
                   if (m->flags[k].depends.current
                       && !o->flags[b.bit].depends.current)
                   {
-                    msg (2,
+                    msg (3,
                          "id %u recursively current dependend '%s[%u]'",
                          m->id,
                          m->name,
@@ -840,7 +840,9 @@ BtorIBV::set_assignments_dependencies_and_used ()
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
-
+  //
+  // After determining current and next dependencies print statistics.
+  //
   unsigned next = 0, current = 0, both = 0, none = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -863,26 +865,56 @@ BtorIBV::set_assignments_dependencies_and_used ()
   }
   unsigned sum = next + current + both + none;
   if (next)
-    msg (1,
+    msg (2,
          "%u bits depending recursively only on next input %.0f%%",
          next,
          percent (next, sum));
   if (current)
-    msg (1,
+    msg (2,
          "%u bits depending recursively only on current input %.0f%%",
          current,
          percent (current, sum));
   if (both)
-    msg (1,
+    msg (2,
          "%u bits depending recursively both on current and next input %.0f%%",
          both,
          percent (both, sum));
   if (none)
-    msg (1,
+    msg (2,
          "%u bits depending recursively neither on current nor next input "
          "%.0f%%",
          none,
          percent (none, sum));
+
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (unsigned i = 0; i < n->width; i++)
+      if
+  }
+
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "dertermine actual current and next inputs");
+
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+         a++)
+    {
+      if (a->tag == BTOR_IBV_STATE) continue;
+      if (a->tag == BTOR_IBV_NON_STATE) continue;
+      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+      {
+        assert (n->flags[i].assigned);
+        if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
+        n->assigned[i] = a;
+      }
+    }
+  }
 }
 
 void
@@ -973,56 +1005,56 @@ BtorIBV::translate ()
       if (both) vars.nonstate.both++, bits.nonstate.both += both;
     }
   }
-  if (vars.consts) msg (1, "%u constants, %u bits", vars.consts, bits.consts);
+  if (vars.consts) msg (2, "%u constants, %u bits", vars.consts, bits.consts);
   if (vars.current.states)
-    msg (1,
+    msg (2,
          "%u current state variables, %u bits",
          vars.current.states,
          bits.current.states);
   if (vars.next.states)
-    msg (1,
+    msg (2,
          "%u next state variables, %u bits",
          vars.next.states,
          bits.next.states);
   if (vars.current.inputs)
-    msg (1,
+    msg (2,
          "%u current state input variables, %u bits",
          vars.current.inputs,
          bits.current.inputs);
   if (vars.next.inputs)
-    msg (1,
+    msg (2,
          "%u next state input variables, %u bits",
          vars.next.inputs,
          bits.next.inputs);
   if (vars.assoc.state)
-    msg (1,
+    msg (2,
          "%u state associations, %u bits",
          vars.assoc.state,
          bits.assoc.state);
   if (vars.assoc.nonstate)
-    msg (1,
+    msg (2,
          "%u non-state associations, %u bits",
          vars.assoc.nonstate,
          bits.assoc.nonstate);
   if (vars.nonstate.nologic)
-    msg (1,
+    msg (2,
          "%u non-state variables with neither current nor next assignment, %u "
          "bits",
          vars.nonstate.nologic,
          bits.nonstate.nologic);
   if (vars.nonstate.current)
-    msg (1,
+    msg (2,
          "%u non-state variables with only current assignment, %u bits",
          vars.nonstate.current,
          bits.nonstate.current);
   if (vars.nonstate.next)
-    msg (1,
+    msg (2,
          "%u non-state variables with only next assignment, %u bits",
          vars.nonstate.next,
          bits.nonstate.next);
   if (vars.nonstate.both)
     msg (
-        1,
+        2,
         "%u non-state variables with both current and next assignment, %u bits",
         vars.nonstate.both,
         bits.nonstate.both);
