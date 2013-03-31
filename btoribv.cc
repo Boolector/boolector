@@ -596,82 +596,17 @@ BtorIBV::addAssumption (BitRange r, bool initial)
        s.msb);
 }
 
-#if 0
-
-// TODO subsumed by 'analyze' so remove eventually 
-
-void BtorIBV::check_non_cyclic_assignments () {
-  msg (1, "checking that assignments are non-cyclic");
-  BtorIntStack work;
-  BTOR_INIT_STACK (work);
-  for (BtorIBVNode ** p = idtab.start; p < idtab.top; p++) {
-    BtorIBVNode * n = *p;
-    if (!n) continue;
-    if (n->is_constant) continue;
-    for (BtorIBVAssignment * a = n->assignments.start;
-         a < n->assignments.top;
-	 a++) {
-      assert (a->range.id == n->id);
-      BTOR_PUSH_STACK (btor->mm, work, a->range.id);
-    }
-    while (!BTOR_EMPTY_STACK (work)) {
-      unsigned id = BTOR_TOP_STACK (work);
-      BtorIBVNode * n = id2node (id);
-      assert (!n->is_constant);
-      if (n->marked == 1) {
-	(void) BTOR_POP_STACK (work);
-	n->marked = 2;
-      } else if (n->marked == 2) {
-	(void) BTOR_POP_STACK (work);
-      } else {
-	assert (!n->marked);
-	n->marked = 1;
-	for (BtorIBVAssignment * a = n->assignments.start;
-	     a < n->assignments.top;
-	     a++) {
-	  if (a->tag == BTOR_IBV_STATE) continue;
-	  if (a->tag == BTOR_IBV_NON_STATE) continue;
-	  for (BtorIBVRange * r = a->ranges;
-	       r < a->ranges + a->nranges;
-	       r++) {
-	    if (!r->id) continue;
-	    BtorIBVNode * m = id2node (r->id);
-	    if (m->is_constant) continue;
-	    if (m->marked == 1) {
-	      wrn ("variable %s might depend recursively on itself", m->name);
-	    } else if (m->marked != 2) {
-	      assert (!m->marked);
-	      BTOR_PUSH_STACK (btor->mm, work, m->id);
-	    }
-	  }
-	}
-      }
-    }
-  }
-  BTOR_RELEASE_STACK (btor->mm, work);
-  for (BtorIBVNode ** p = idtab.start; p < idtab.top; p++) {
-    BtorIBVNode * n = *p;
-    if (!n) continue;
-    if (n->is_constant) continue;
-    if (!n->marked) continue;
-    assert (n->marked == 2);
-    n->marked = 0;
-  }
-}
-
-#endif
-
 static double
 percent (double a, double b)
 {
   return b ? 100 * a / b : 0;
 }
 
+/*------------------------------------------------------------------------*/
+
 void
 BtorIBV::analyze ()
 {
-  /*----------------------------------------------------------------------*/
-
   // general statistics first
 
   struct
@@ -1051,37 +986,69 @@ BtorIBV::analyze ()
     {
       unsigned current, next;
     } vars, bits;
-  } inputs;
+  } inputs, onephase;
   BTOR_CLR (&inputs);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
-    unsigned bits = 0;
+    unsigned bits = 0, onephasebits = 0;
     for (unsigned i = 0; i < n->width; i++)
+    {
       if (n->flags[i].input) bits++;
-    if (!bits) continue;
-    if (n->is_next_state)
-    {
-      inputs.vars.next++;
-      inputs.bits.next += bits;
+      if (n->flags[i].onephase) onephasebits++;
     }
-    else
+    if (bits)
     {
-      inputs.vars.current++;
-      inputs.bits.current += bits;
+      if (n->is_next_state)
+      {
+        inputs.vars.next++;
+        inputs.bits.next += bits;
+      }
+      else
+      {
+        inputs.vars.current++;
+        inputs.bits.current += bits;
+      }
+    }
+    if (onephasebits)
+    {
+      if (n->is_next_state)
+      {
+        onephase.vars.next++;
+        onephase.bits.next += onephasebits;
+      }
+      else
+      {
+        onephase.vars.current++;
+        onephase.bits.current += onephasebits;
+      }
     }
   }
   if (inputs.vars.current)
     msg (2,
-         "found %u actual current inputs %u bits",
+         "found %u actual current inputs, %u bits",
          inputs.vars.current,
          inputs.bits.current);
   if (inputs.vars.next)
     msg (2,
-         "found %u actual next inputs %u bits",
+         "found %u actual next inputs, %u bits",
          inputs.vars.next,
          inputs.bits.next);
+  if (onephase.vars.current)
+    msg (2,
+         "found %u one-phase inputs %.0f%%, %u bits %.0f%%",
+         onephase.vars.current,
+         percent (onephase.vars.current, inputs.vars.current),
+         onephase.bits.current,
+         percent (onephase.bits.current, inputs.bits.current));
+  if (inputs.vars.next)
+    msg (2,
+         "found %u one-phase next inputs %.0f%%, %u bits %.0f%%",
+         onephase.vars.next,
+         percent (onephase.vars.next, inputs.vars.next),
+         onephase.bits.next,
+         percent (onephase.bits.next, inputs.bits.next));
 }
 
 void

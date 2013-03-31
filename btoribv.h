@@ -110,7 +110,7 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 
 struct BtorIBVFlags
 {
-  bool assigned, used, input;
+  bool assigned, used, input, onephase;
   struct
   {
     bool current, next;
