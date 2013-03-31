@@ -897,29 +897,28 @@ BtorIBV::analyze ()
   unsigned sum = next + current + both + none;
   if (next)
     msg (2,
-         "%u bits depending recursively only on next input %.0f%%",
+         "%u bits depend recursively only on next input %.0f%%",
          next,
          percent (next, sum));
   if (current)
     msg (2,
-         "%u bits depending recursively only on current input %.0f%%",
+         "%u bits depend recursively only on current input %.0f%%",
          current,
          percent (current, sum));
   if (both)
     msg (2,
-         "%u bits depending recursively both on current and next input %.0f%%",
+         "%u bits depend recursively both on current and next input %.0f%%",
          both,
          percent (both, sum));
   if (none)
     msg (2,
-         "%u bits depending recursively neither on current nor next input "
-         "%.0f%%",
+         "%u bits depend recursively neither on current nor next input %.0f%%",
          none,
          percent (none, sum));
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "dertermine actual current and next inputs");
+  msg (1, "determine actual current and next inputs");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
