@@ -980,6 +980,43 @@ BtorIBV::analyze ()
     msg (2,
          "%u unassigned next non-state bits assigned in current state",
          resetnext);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+         a++)
+    {
+      if (a->tag != BTOR_IBV_NON_STATE) continue;
+      BtorIBVRange r = a->ranges[0];
+      BtorIBVNode *o = id2node (r.id);
+      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+      {
+        unsigned k = i - a->range.lsb + r.lsb;
+        // -----------------------------------------------//
+        // One of the main invariants for our translation //
+        // -----------------------------------------------//
+        assert (n->flags[i].input == o->flags[k].input);
+        if (n->flags[i].used && o->flags[k].used)
+        {
+          // used in both phases ...
+        }
+        else if (n->flags[i].used)
+        {
+          assert (!n->flags[i].onephase);
+          n->flags[i].onephase = 1;
+          msg (
+              3, "input '%s[%u]' used in one-phase (current) only", n->name, i);
+        }
+        else if (o->flags[k].used)
+        {
+          assert (!o->flags[k].onephase);
+          o->flags[k].onephase = 1;
+          msg (3, "input '%s[%u]' used in one-phase (next) only", o->name, k);
+        }
+      }
+    }
+  }
   struct
   {
     struct
