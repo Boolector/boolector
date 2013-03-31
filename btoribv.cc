@@ -925,7 +925,7 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
-    unsigned bits;
+    unsigned bits = 0;
     for (unsigned i = 0; i < n->width; i++)
       if (n->flags[i].input) bits++;
     if (!bits) continue;
