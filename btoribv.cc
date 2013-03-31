@@ -1157,7 +1157,8 @@ BtorIBV::analyze ()
       for (unsigned i = 0; i < n->width; i++)
       {
         btoribv_msghead ();
-        printf ("classified %s '%s[%u]' as",
+        printf ("classified id %u %s '%s[%u]' as",
+                n->id,
                 (n->is_next_state ? "next" : "current"),
                 n->name,
                 i);
@@ -1167,9 +1168,19 @@ BtorIBV::analyze ()
             printf (" assigned");
           else if (!n->flags[i].input)
           {
-            assert (n->is_next_state || n->flags[i].state.current);
-            assert (!n->is_next_state || n->flags[i].state.next);
-            printf (" state");
+            if (n->flags[i].state.current)
+              printf (" current state");
+            else if (n->flags[i].state.next)
+              printf (" next state");
+            else if (n->flags[i].nonstate.current)
+              printf (" current non-state");
+            else if (n->flags[i].nonstate.next)
+              printf (" next non-state");
+            else
+            {
+              // TODO abort instead?
+              printf (" UNCLASSIFIED");
+            }
           }
           else
           {
