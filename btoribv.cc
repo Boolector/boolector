@@ -672,6 +672,102 @@ BtorIBV::analyze ()
 {
   /*----------------------------------------------------------------------*/
 
+  // general statistics first
+
+  struct
+  {
+    unsigned consts;
+    struct
+    {
+      unsigned state, nonstate;
+    } assoc;
+    struct
+    {
+      unsigned nologic, current, next, both;
+    } nonstate;
+  } bits, vars;
+  BTOR_CLR (&bits);
+  BTOR_CLR (&vars);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant)
+      vars.consts++, bits.consts += n->width;
+    else
+    {
+      unsigned nonstate = 0, state = 0, nologic = 0, current = 0, next = 0,
+               both = 0;
+      for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+           a++)
+      {
+        if (a->tag == BTOR_IBV_STATE) state += a->range.getWidth ();
+        if (a->tag == BTOR_IBV_NON_STATE)
+        {
+          nonstate += a->range.getWidth ();
+          assert (a->nranges == 1);
+          BtorIBVNode *o = id2node (a->ranges[0].id);
+          for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+          {
+            int cass = n->flags[i].assigned;
+            int nass =
+                o->is_constant
+                || o->flags[i - a->range.lsb + a->ranges[0].lsb].assigned;
+            if (cass && nass)
+              both++;
+            else if (cass)
+              current++;
+            else if (nass)
+              next++;
+            else
+              nologic++;
+          }
+        }
+      }
+      if (state) vars.assoc.state++, bits.assoc.state += state;
+      if (nonstate) vars.assoc.nonstate++, bits.assoc.nonstate += nonstate;
+      if (nologic) vars.nonstate.nologic++, bits.nonstate.nologic += nologic;
+      if (current) vars.nonstate.current++, bits.nonstate.current += current;
+      if (next) vars.nonstate.next++, bits.nonstate.next += next;
+      if (both) vars.nonstate.both++, bits.nonstate.both += both;
+    }
+  }
+  if (vars.consts) msg (2, "%u constants, %u bits", vars.consts, bits.consts);
+  if (vars.assoc.state)
+    msg (2,
+         "%u state associations, %u bits",
+         vars.assoc.state,
+         bits.assoc.state);
+  if (vars.assoc.nonstate)
+    msg (2,
+         "%u non-state associations, %u bits",
+         vars.assoc.nonstate,
+         bits.assoc.nonstate);
+  if (vars.nonstate.nologic)
+    msg (2,
+         "%u non-state variables with neither current nor next assignment, %u "
+         "bits",
+         vars.nonstate.nologic,
+         bits.nonstate.nologic);
+  if (vars.nonstate.current)
+    msg (2,
+         "%u non-state variables with only current assignment, %u bits",
+         vars.nonstate.current,
+         bits.nonstate.current);
+  if (vars.nonstate.next)
+    msg (2,
+         "%u non-state variables with only next assignment, %u bits",
+         vars.nonstate.next,
+         bits.nonstate.next);
+  if (vars.nonstate.both)
+    msg (
+        2,
+        "%u non-state variables with both current and next assignment, %u bits",
+        vars.nonstate.both,
+        bits.nonstate.both);
+
+  /*----------------------------------------------------------------------*/
+
   msg (1, "checking that all (actual) next states are assigned");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -896,6 +992,7 @@ BtorIBV::analyze ()
     for (unsigned i = 0; i < n->width; i++)
       if (!n->flags[i].assigned) n->flags[i].input = 1;
   }
+  unsigned resetcurrent = 0, resetnext = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -903,16 +1000,51 @@ BtorIBV::analyze ()
     for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
          a++)
     {
-      if (a->tag == BTOR_IBV_STATE) continue;
-      if (a->tag == BTOR_IBV_NON_STATE) continue;
+      if (a->tag != BTOR_IBV_NON_STATE) continue;
+      BtorIBVRange r = a->ranges[0];
+      BtorIBVNode *o = id2node (r.id);
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
       {
-        assert (n->flags[i].assigned);
-        if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
-        n->assigned[i] = a;
+        unsigned k = i - a->range.lsb + r.lsb;
+        if (n->flags[i].input)
+        {
+          if (o->is_constant || o->flags[k].assigned)
+          {
+            msg (3,
+                 "next of unassigned non-state '%s[%u]' actually assigned (so "
+                 "no input)",
+                 n->name,
+                 i);
+            n->flags[i].input = 0;
+            resetcurrent++;
+          }
+        }
+        if (o->flags[k].input)
+        {
+          if (n->flags[i].assigned)
+          {
+            msg (3,
+                 "non-state '%s[%u]' with next '%s[%u]' actually assigned (so "
+                 "no input)",
+                 n->name,
+                 i,
+                 o->name,
+                 k);
+            o->flags[k].input = 0;
+            resetnext++;
+          }
+        }
       }
     }
   }
+  if (resetcurrent)
+    msg (2,
+         "%u unassigned current non-state bits assigned in next state",
+         resetcurrent);
+  if (resetnext)
+    msg (2,
+         "%u unassigned next non-state bits assigned in current state",
+         resetnext);
   struct
   {
     struct
@@ -955,142 +1087,4 @@ BtorIBV::analyze ()
 void
 BtorIBV::translate ()
 {
-  struct
-  {
-    unsigned consts;
-    struct
-    {
-      unsigned state, nonstate;
-    } assoc;
-    struct
-    {
-      unsigned inputs, states;
-    } current, next;
-    struct
-    {
-      unsigned nologic, current, next, both;
-    } nonstate;
-  } bits, vars;
-  BTOR_CLR (&bits);
-  BTOR_CLR (&vars);
-  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
-  {
-    BtorIBVNode *n = *p;
-    if (!n) continue;
-    if (n->is_constant)
-      vars.consts++, bits.consts += n->width;
-    else
-    {
-      unsigned assigned = 0;
-      for (unsigned i = 0; i < n->width; i++)
-        if (n->flags[i].assigned) assigned++;
-      assert (assigned <= n->width);
-      unsigned unassigned = n->width - assigned;
-      if (n->is_next_state)
-      {
-        if (unassigned)
-          vars.next.inputs++;
-        else
-          vars.next.states++;
-        bits.next.inputs += unassigned;
-        bits.next.states += assigned;
-      }
-      else
-      {
-        if (unassigned)
-          vars.current.inputs++;
-        else
-          vars.current.states++;
-        bits.current.inputs += unassigned;
-        bits.current.states += assigned;
-      }
-      unsigned nonstate = 0, state = 0, nologic = 0, current = 0, next = 0,
-               both = 0;
-      for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
-           a++)
-      {
-        if (a->tag == BTOR_IBV_STATE) state += a->range.getWidth ();
-        if (a->tag == BTOR_IBV_NON_STATE)
-        {
-          nonstate += a->range.getWidth ();
-          assert (a->nranges == 1);
-          BtorIBVNode *o = id2node (a->ranges[0].id);
-          for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
-          {
-            int cass = n->flags[i].assigned;
-            int nass =
-                o->is_constant
-                || o->flags[i - a->range.lsb + a->ranges[0].lsb].assigned;
-            if (cass && nass)
-              both++;
-            else if (cass)
-              current++;
-            else if (nass)
-              next++;
-            else
-              nologic++;
-          }
-        }
-      }
-      if (state) vars.assoc.state++, bits.assoc.state += state;
-      if (nonstate) vars.assoc.nonstate++, bits.assoc.nonstate += nonstate;
-      if (nologic) vars.nonstate.nologic++, bits.nonstate.nologic += nologic;
-      if (current) vars.nonstate.current++, bits.nonstate.current += current;
-      if (next) vars.nonstate.next++, bits.nonstate.next += next;
-      if (both) vars.nonstate.both++, bits.nonstate.both += both;
-    }
-  }
-  if (vars.consts) msg (2, "%u constants, %u bits", vars.consts, bits.consts);
-  if (vars.current.states)
-    msg (2,
-         "%u current state variables, %u bits",
-         vars.current.states,
-         bits.current.states);
-  if (vars.next.states)
-    msg (2,
-         "%u next state variables, %u bits",
-         vars.next.states,
-         bits.next.states);
-  if (vars.current.inputs)
-    msg (2,
-         "%u current state input variables, %u bits",
-         vars.current.inputs,
-         bits.current.inputs);
-  if (vars.next.inputs)
-    msg (2,
-         "%u next state input variables, %u bits",
-         vars.next.inputs,
-         bits.next.inputs);
-  if (vars.assoc.state)
-    msg (2,
-         "%u state associations, %u bits",
-         vars.assoc.state,
-         bits.assoc.state);
-  if (vars.assoc.nonstate)
-    msg (2,
-         "%u non-state associations, %u bits",
-         vars.assoc.nonstate,
-         bits.assoc.nonstate);
-  if (vars.nonstate.nologic)
-    msg (2,
-         "%u non-state variables with neither current nor next assignment, %u "
-         "bits",
-         vars.nonstate.nologic,
-         bits.nonstate.nologic);
-  if (vars.nonstate.current)
-    msg (2,
-         "%u non-state variables with only current assignment, %u bits",
-         vars.nonstate.current,
-         bits.nonstate.current);
-  if (vars.nonstate.next)
-    msg (2,
-         "%u non-state variables with only next assignment, %u bits",
-         vars.nonstate.next,
-         bits.nonstate.next);
-  if (vars.nonstate.both)
-    msg (
-        2,
-        "%u non-state variables with both current and next assignment, %u bits",
-        vars.nonstate.both,
-        bits.nonstate.both);
 }
