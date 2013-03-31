@@ -217,7 +217,7 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   node->cached      = btor_const_exp (btor, str.c_str ());
   node->name        = btor_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
-  msg (3, "added constant %s of width %u", str.c_str (), width);
+  msg (3, "added id %u constant %s of width %u", id, str.c_str (), width);
 }
 
 void
