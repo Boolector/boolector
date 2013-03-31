@@ -50,7 +50,7 @@ void
 BtorIBV::print (const BtorIBVAssignment &a)
 {
   BtorIBVNode *on = id2node (a.range.id);
-  printf ("%s[%u..%u] = ", on->name, a.range.msb, a.range.lsb);
+  printf ("%s[%u:%u] = ", on->name, a.range.msb, a.range.lsb);
   const char *opname;
   switch (a.tag & BTOR_IBV_OPS)
   {
@@ -92,7 +92,7 @@ BtorIBV::print (const BtorIBVAssignment &a)
     if (r->id)
     {
       BtorIBVNode *in = id2node (r->id);
-      printf (" %s[%u..%u]", in->name, r->msb, r->lsb);
+      printf (" %s[%u:%u]", in->name, r->msb, r->lsb);
     }
     else
       printf (" X");
@@ -252,7 +252,7 @@ BtorIBV::addVariable (unsigned id,
     case 0 | 0 | 1: extra = "(flags: retain)"; break;
     default: extra = "(no flags)"; break;
   }
-  msg (3, "id %u variable '%s[%u..0]' %s", n->id, n->name, width - 1, extra);
+  msg (3, "id %u variable '%s[%u:0]' %s", n->id, n->name, width - 1, extra);
 }
 
 void
@@ -272,7 +272,7 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
   BTOR_PUSH_STACK (btor->mm, n->ranges, rn);
   assert (n->name);
   msg (3,
-       "id %u range '%s[%u..%u]' mapped to '%s[%u..%u]'",
+       "id %u range '%s[%u:%u]' mapped to '%s[%u:%u]'",
        n->id,
        rn.name,
        rn.from.msb,
