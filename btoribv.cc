@@ -924,6 +924,12 @@ BtorIBV::analyze ()
   if (onlyinassumptions)
     msg (2, "%u bits only used in assumptions", onlyinassumptions);
   //
+  // TODO to precisely figure out the used logic we actually would need to
+  // implement a recursive cone-of-influence reduction, recursive over the
+  // next state functions. For now we simply assume anything which has a
+  // next state function is used, which might lead to some bits assumed to
+  // be used without being actually used.
+  //
   unsigned onlyinnext = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
