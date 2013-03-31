@@ -934,10 +934,7 @@ BtorIBV::analyze ()
     {
       if (a->tag != BTOR_IBV_NON_STATE) continue;
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
-      {
-        assert (n->flags[i].assigned);
         if (mark_used (n, i)) onlyinnext++;
-      }
     }
   }
   if (onlyinnext)
