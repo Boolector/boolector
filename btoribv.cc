@@ -333,7 +333,7 @@ BtorIBV::mark_current_nonstate (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    mst (3, "id %u current non-state '%s[%u]'", n->id, n->name, i);
+    msg (3, "id %u current non-state '%s[%u]'", n->id, n->name, i);
     assert (!n->flags[i].nonstate.current);
     n->flags[i].nonstate.current = 1;
   }
@@ -349,7 +349,7 @@ BtorIBV::mark_next_state (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    mst (3, "id %u next state '%s[%u]'", n->id, n->name, i);
+    msg (3, "id %u next state '%s[%u]'", n->id, n->name, i);
     assert (!n->flags[i].state.next);
     n->flags[i].state.next = 1;
   }
@@ -365,7 +365,7 @@ BtorIBV::mark_next_nonstate (BtorIBVNode *n, BitRange r)
   assert (r.m_nMsb < n->width);
   for (unsigned i = r.m_nLsb; i <= r.m_nMsb; i++)
   {
-    mst (3, "id %u next non-state '%s[%u]'", n->id, n->name, i);
+    msg (3, "id %u next non-state '%s[%u]'", n->id, n->name, i);
     assert (!n->flags[i].nonstate.next);
     n->flags[i].nonstate.next = 1;
   }
@@ -886,18 +886,16 @@ BtorIBV::analyze ()
          none,
          percent (none, sum));
 
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "dertermine actual current and next inputs");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
     for (unsigned i = 0; i < n->width; i++)
-      if
+      if (!n->flags[i].assigned) n->flags[i].input = 1;
   }
-
-  /*----------------------------------------------------------------------*/
-
-  msg (1, "dertermine actual current and next inputs");
-
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -915,6 +913,43 @@ BtorIBV::analyze ()
       }
     }
   }
+  struct
+  {
+    struct
+    {
+      unsigned current, next;
+    } vars, bits;
+  } inputs;
+  BTOR_CLR (&inputs);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    unsigned bits;
+    for (unsigned i = 0; i < n->width; i++)
+      if (n->flags[i].input) bits++;
+    if (!bits) continue;
+    if (n->is_next_state)
+    {
+      inputs.vars.next++;
+      inputs.bits.next += bits;
+    }
+    else
+    {
+      inputs.vars.current++;
+      inputs.bits.current += bits;
+    }
+  }
+  if (inputs.vars.current)
+    msg (2,
+         "found %u actual current inputs %u bits",
+         inputs.vars.current,
+         inputs.bits.current);
+  if (inputs.vars.next)
+    msg (2,
+         "found %u actual next inputs %u bits",
+         inputs.vars.next,
+         inputs.bits.next);
 }
 
 void

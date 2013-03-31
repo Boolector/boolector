@@ -436,11 +436,7 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
-  void check_all_next_states_assigned ();
-  void check_non_cyclic_assignments ();
-
-  void set_assignments_dependencies_and_used ();
-
+  void analyze ();    // Needs to be called before 'translate'.
   void translate ();  // Into internal BtorMC model.
 };
 
