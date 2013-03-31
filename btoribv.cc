@@ -1024,6 +1024,7 @@ BtorIBV::analyze ()
     } vars, bits;
   } inputs, onephase;
   BTOR_CLR (&inputs);
+  BTOR_CLR (&onephase);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -1078,7 +1079,7 @@ BtorIBV::analyze ()
          percent (onephase.vars.current, inputs.vars.current),
          onephase.bits.current,
          percent (onephase.bits.current, inputs.bits.current));
-  if (inputs.vars.next)
+  if (onephase.vars.next)
     msg (2,
          "found %u one-phase next inputs %.0f%%, %u bits %.0f%%",
          onephase.vars.next,
