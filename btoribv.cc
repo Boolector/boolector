@@ -1032,8 +1032,11 @@ BtorIBV::analyze ()
     unsigned bits = 0, onephasebits = 0;
     for (unsigned i = 0; i < n->width; i++)
     {
-      if (n->flags[i].input) bits++;
-      if (n->flags[i].onephase) onephasebits++;
+      if (n->flags[i].input)
+      {
+        bits++;
+        if (n->flags[i].onephase) onephasebits++;
+      }
     }
     if (bits)
     {
@@ -1074,7 +1077,7 @@ BtorIBV::analyze ()
          inputs.bits.next);
   if (onephase.vars.current)
     msg (2,
-         "found %u one-phase inputs %.0f%%, %u bits %.0f%%",
+         "found %u one-phase current inputs %.0f%%, %u bits %.0f%%",
          onephase.vars.current,
          percent (onephase.vars.current, inputs.vars.current),
          onephase.bits.current,
