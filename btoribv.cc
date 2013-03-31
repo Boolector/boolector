@@ -1164,7 +1164,9 @@ BtorIBV::analyze ()
                 i);
         if (n->flags[i].used)
         {
-          if (n->flags[i].assigned)
+          if (n->is_constant)
+            printf (" constant");
+          else if (n->flags[i].assigned)
             printf (" assigned");
           else if (!n->flags[i].input)
           {
