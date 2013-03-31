@@ -243,13 +243,13 @@ BtorIBV::addVariable (unsigned id,
   const char *extra;
   switch ((isNextState << 2) | (isLoopBreaking << 1) | isStateRetain)
   {
-    case 4 | 2 | 1: extra = " (flags: next,loopbrk,retain)"; break;
-    case 4 | 2 | 0: extra = " (flags: next,loopbrk)"; break;
-    case 4 | 0 | 1: extra = " (flags: next,retain)"; break;
-    case 4 | 0 | 0: extra = " (flags: next)"; break;
-    case 0 | 2 | 1: extra = " (flags: loopbrk,retain)"; break;
-    case 0 | 2 | 0: extra = " (flags: loopbrk)"; break;
-    case 0 | 0 | 1: extra = " (flags: retain)"; break;
+    case 4 | 2 | 1: extra = "(flags: next,loopbrk,retain)"; break;
+    case 4 | 2 | 0: extra = "(flags: next,loopbrk)"; break;
+    case 4 | 0 | 1: extra = "(flags: next,retain)"; break;
+    case 4 | 0 | 0: extra = "(flags: next)"; break;
+    case 0 | 2 | 1: extra = "(flags: loopbrk,retain)"; break;
+    case 0 | 2 | 0: extra = "(flags: loopbrk)"; break;
+    case 0 | 0 | 1: extra = "(flags: retain)"; break;
     default: extra = "(no flags)"; break;
   }
   msg (3, "id %u variable '%s[%u..0]' %s", n->id, n->name, width - 1, extra);
@@ -280,6 +280,17 @@ BtorIBV::addRangeName (IBitVector::BitRange br,
        n->name,
        rn.to.msb,
        rn.to.lsb);
+}
+
+bool
+BtorIBV::mark_used (BtorIBVNode *n, unsigned i)
+{
+  assert (n);
+  assert (i < n->width);
+  if (n->flags[i].used) return 0;
+  msg (3, "id %u using '%s[%u]'", n->id, n->name, i);
+  n->flags[i].used = 1;
+  return 1;
 }
 
 void
@@ -611,7 +622,7 @@ BtorIBV::analyze ()
 
   struct
   {
-    unsigned consts;
+    unsigned consts, nonconsts;
     struct
     {
       unsigned state, nonstate;
@@ -631,6 +642,7 @@ BtorIBV::analyze ()
       vars.consts++, bits.consts += n->width;
     else
     {
+      vars.nonconsts++, bits.nonconsts += n->width;
       unsigned nonstate = 0, state = 0, nologic = 0, current = 0, next = 0,
                both = 0;
       for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
@@ -668,6 +680,8 @@ BtorIBV::analyze ()
     }
   }
   if (vars.consts) msg (2, "%u constants, %u bits", vars.consts, bits.consts);
+  if (vars.nonconsts)
+    msg (2, "%u variables, %u bits", vars.nonconsts, bits.nonconsts);
   if (vars.assoc.state)
     msg (2,
          "%u state associations, %u bits",
@@ -808,11 +822,7 @@ BtorIBV::analyze ()
                 if (mark == 1)
                 {
                   assert (m->flags[k].depends.mark == 2);
-                  if (!m->flags[k].used)
-                  {
-                    msg (3, "id %u using '%s[%u]'", m->id, m->name, k);
-                    m->flags[k].used = 1;
-                  }
+                  (void) mark_used (m, k);
                   if (m->flags[k].depends.next && !o->flags[b.bit].depends.next)
                   {
                     msg (3,
@@ -894,6 +904,23 @@ BtorIBV::analyze ()
         none++;
     }
   }
+  unsigned onlyinassertions = 0;
+  for (BtorIBVBit *a = assertions.start; a < assertions.top; a++)
+  {
+    BtorIBVNode *n = id2node (a->id);
+    if (mark_used (n, a->bit)) onlyinassertions++;
+  }
+  if (onlyinassertions)
+    msg (2, "%u bits only used in assertions", onlyinassertions);
+  unsigned onlyinassumptions = 0;
+  for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
+  {
+    BtorIBVNode *n = id2node (a->range.id);
+    assert (a->range.msb == a->range.lsb);
+    if (mark_used (n, a->range.lsb)) onlyinassumptions++;
+  }
+  if (onlyinassumptions)
+    msg (2, "%u bits only used in assumptions", onlyinassumptions);
   unsigned sum = next + current + both + none;
   if (next)
     msg (2,
@@ -1004,14 +1031,21 @@ BtorIBV::analyze ()
         {
           assert (!n->flags[i].onephase);
           n->flags[i].onephase = 1;
-          msg (
-              3, "input '%s[%u]' used in one-phase (current) only", n->name, i);
+          msg (3,
+               "id %u input '%s[%u]' used in one-phase (current) only",
+               n->id,
+               n->name,
+               i);
         }
         else if (o->flags[k].used)
         {
           assert (!o->flags[k].onephase);
           o->flags[k].onephase = 1;
-          msg (3, "input '%s[%u]' used in one-phase (next) only", o->name, k);
+          msg (3,
+               "id %u input '%s[%u]' used in one-phase (next) only",
+               o->id,
+               o->name,
+               k);
         }
       }
     }

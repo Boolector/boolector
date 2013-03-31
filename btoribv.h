@@ -202,6 +202,7 @@ class BtorIBV : public IBitVector
 
   BtorIBVNode *new_node (unsigned id, unsigned width);
 
+  bool mark_used (BtorIBVNode *, unsigned);
   void mark_assigned (BtorIBVNode *, BitRange);
 
   void mark_current_state (BtorIBVNode *, BitRange);
