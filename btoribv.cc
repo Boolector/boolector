@@ -904,6 +904,7 @@ BtorIBV::analyze ()
         none++;
     }
   }
+  //
   unsigned onlyinassertions = 0;
   for (BtorIBVBit *a = assertions.start; a < assertions.top; a++)
   {
@@ -912,6 +913,7 @@ BtorIBV::analyze ()
   }
   if (onlyinassertions)
     msg (2, "%u bits only used in assertions", onlyinassertions);
+  //
   unsigned onlyinassumptions = 0;
   for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
   {
@@ -921,6 +923,26 @@ BtorIBV::analyze ()
   }
   if (onlyinassumptions)
     msg (2, "%u bits only used in assumptions", onlyinassumptions);
+  //
+  unsigned onlyinnext = 0;
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+         a++)
+    {
+      if (a->tag != BTOR_IBV_NON_STATE) continue;
+      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+      {
+        assert (n->flags[i].assigned);
+        if (mark_used (n, i)) onlyinnext++;
+      }
+    }
+  }
+  if (onlyinnext)
+    msg (2, "%u bits only used in next state assignment", onlyinnext);
+  //
   unsigned sum = next + current + both + none;
   if (next)
     msg (2,
@@ -1123,6 +1145,39 @@ BtorIBV::analyze ()
          percent (onephase.vars.next, inputs.vars.next),
          onephase.bits.next,
          percent (onephase.bits.next, inputs.bits.next));
+
+  if (verbosity > 2)
+    for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+    {
+      BtorIBVNode *n = *p;
+      if (!n) continue;
+      for (unsigned i = 0; i < n->width; i++)
+      {
+        btoribv_msghead ();
+        printf ("classified %s '%s[%u]' as",
+                (n->is_next_state ? "next" : "current"),
+                n->name,
+                i);
+        if (n->flags[i].used)
+        {
+          if (n->flags[i].assigned)
+            printf (" assigned");
+          else if (!n->flags[i].input)
+          {
+            assert (n->is_next_state || n->flags[i].state.current);
+            assert (!n->is_next_state || n->flags[i].state.next);
+            printf (" state");
+          }
+          else
+          {
+            printf (" %s-phase input", n->flags[i].onephase ? "one" : "two");
+          }
+        }
+        else
+          printf (" not used");
+        btoribv_msgtail ();
+      }
+    }
 }
 
 void
