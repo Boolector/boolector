@@ -1044,9 +1044,9 @@ BtorIBV::analyze ()
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
       {
         unsigned k = i - a->range.lsb + r.lsb;
-        // -----------------------------------------------//
-        // One of the main invariants for our translation //
-        // -----------------------------------------------//
+        // ----------------------------------------------//
+        // One of the main invariants of our translation //
+        // ----------------------------------------------//
         assert (n->flags[i].input == o->flags[k].input);
         if (n->flags[i].used && o->flags[k].used)
         {
