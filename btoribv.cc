@@ -156,6 +156,7 @@ BtorIBV::delete_ibv_release_variable (BtorIBVNode *node)
     btor_freestr (btor->mm, r->name);
   BTOR_RELEASE_STACK (btor->mm, node->ranges);
   if (node->assigned) BTOR_DELETEN (btor->mm, node->assigned, node->width);
+  if (node->next) BTOR_DELETEN (btor->mm, node->next, node->width);
 }
 
 void
@@ -773,7 +774,7 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  unsigned sumassignedbits = 0, sumnonstatebits = 0;
+  unsigned sumassignedbits = 0, sumstatebits = 0, sumnonstatebits = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -781,22 +782,33 @@ BtorIBV::analyze ()
     for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
          a++)
     {
-      if (a->tag == BTOR_IBV_STATE) continue;
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
       {
-        assert (n->flags[i].nonstate.current || n->flags[i].assigned);
-        if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
-        n->assigned[i] = a;
-        if (a->tag == BTOR_IBV_NON_STATE)
+        if (a->tag == BTOR_IBV_STATE)
+        {
+          if (!n->next) BTOR_CNEWN (btor->mm, n->next, n->width);
+          n->next[i] = a;
+          sumstatebits++;
+        }
+        else if (a->tag == BTOR_IBV_NON_STATE)
+        {
+          if (!n->next) BTOR_CNEWN (btor->mm, n->next, n->width);
+          n->next[i] = a;
           sumnonstatebits++;
+        }
         else
+        {
+          if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
+          n->assigned[i] = a;
           sumassignedbits++;
+        }
       }
     }
   }
   msg (1,
-       "added short-cuts to all %u assigned and %u non-statebits",
+       "added short-cuts to all %u assigned, %u state and %u non-state bits",
        sumassignedbits,
+       sumstatebits,
        sumnonstatebits);
 
   /*----------------------------------------------------------------------*/
@@ -845,11 +857,13 @@ BtorIBV::analyze ()
         {
           o->flags[b.bit].depends.mark++;
           assert (o->flags[b.bit].depends.mark <= 2);
-          BtorIBVAssignment *a;
-          if (o->flags[b.bit].assigned && o->assigned
-              && (a = o->assigned[b.bit]) && a->tag != BTOR_IBV_NON_STATE)
+          if (o->flags[b.bit].assigned)
           {
+            assert (o->assigned);
+            BtorIBVAssignment *a = o->assigned[b.bit];
+            assert (a);
             assert (a->tag != BTOR_IBV_STATE);
+            assert (a->tag != BTOR_IBV_NON_STATE);
             assert (b.bit >= a->range.lsb);
             bool bitwise = a->tag == BTOR_IBV_BUF || a->tag == BTOR_IBV_NOT
                            || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
@@ -981,11 +995,15 @@ BtorIBV::analyze ()
     {
       assert (bn->flags[b.bit].nonstate.next);
       assert (!bn->flags[b.bit].assigned);
+      msg (3, "fowarded id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarded++;
       continue;
     }
-    if (!bn->assigned) continue;
-    BtorIBVAssignment *a = bn->assigned[b.bit];
+    BtorIBVAssignment *a = 0;
+    if (bn->assigned && bn->assigned[b.bit])
+      a = bn->assigned[b.bit];
+    else if (bn->next && bn->next[b.bit])
+      a = bn->next[b.bit];
     if (!a) continue;
     assert (a->tag != BTOR_IBV_STATE);
     if (a->tag == BTOR_IBV_NON_STATE)
@@ -995,6 +1013,7 @@ BtorIBV::analyze ()
       unsigned k     = b.bit - a->range.lsb + r.lsb;
       assert (m->flags[k].nonstate.next);
       assert (!m->flags[k].assigned);
+      msg (3, "fowarding id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarding++;
     }
     assert (b.bit >= a->range.lsb);
@@ -1368,6 +1387,7 @@ BtorIBV::analyze ()
       if (!n->flags[i].classified) printf3 (" UNCLASSIFIED");
       if (flags.nonstate.current) printf3 (" current_non_state");
       if (flags.nonstate.next) printf3 (" next_non_state");
+      if (flags.forwarded) printf3 (" forwarded");
       if (verbosity > 2) btoribv_msgtail ();
 
       BTOR_ABORT_BOOLECTOR (

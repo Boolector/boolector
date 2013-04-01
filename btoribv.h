@@ -151,6 +151,7 @@ struct BtorIBVNode
   char *name;
   BtorIBVFlags *flags;
   BtorIBVAssignment **assigned;
+  BtorIBVAssignment **next;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
 };
