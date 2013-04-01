@@ -784,7 +784,7 @@ BtorIBV::analyze ()
       if (a->tag == BTOR_IBV_STATE) continue;
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
       {
-        assert (n->flags[i].assigned);
+        assert (n->flags[i].nonstate.current || n->flags[i].assigned);
         if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
         n->assigned[i] = a;
         if (a->tag == BTOR_IBV_NON_STATE)
@@ -845,12 +845,11 @@ BtorIBV::analyze ()
         {
           o->flags[b.bit].depends.mark++;
           assert (o->flags[b.bit].depends.mark <= 2);
-          if (o->flags[b.bit].assigned)
+          BtorIBVAssignment *a;
+          if (o->flags[b.bit].assigned && o->assigned
+              && (a = o->assigned[b.bit]) && a->tag != BTOR_IBV_NON_STATE)
           {
-            BtorIBVAssignment *a = o->assigned[b.bit];
-            assert (a);
             assert (a->tag != BTOR_IBV_STATE);
-            assert (a->tag != BTOR_IBV_NON_STATE);
             assert (b.bit >= a->range.lsb);
             bool bitwise = a->tag == BTOR_IBV_BUF || a->tag == BTOR_IBV_NOT
                            || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
@@ -944,7 +943,6 @@ BtorIBV::analyze ()
   // examples we tried, the reverse might also be necessary, i.e.
   // 'backwarding'.
   //
-  unsigned forwarded = 0;
   BtorIBVBitStack forward;
   BTOR_INIT_STACK (forward);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
@@ -965,28 +963,40 @@ BtorIBV::analyze ()
         unsigned k = i - a->range.lsb + r.lsb;
         // TODO coverage hole: have not seen the following condition.
         if (rn->flags[k].assigned) continue;
-        BTOR_PUSH_STACK (btor->mm, forward, BtorIBVBit (r.id, k));
+        BTOR_PUSH_STACK (btor->mm, forward, BtorIBVBit (n->id, i));
       }
     }
   }
+  unsigned forwarding = 0, forwarded = 0;
   while (!BTOR_EMPTY_STACK (forward))
   {
     // TODO: conjecture: checking for cycles not necessary here.
     BtorIBVBit b    = BTOR_POP_STACK (forward);
     BtorIBVNode *bn = id2node (b.id);
     if (bn->flags[b.bit].forwarded) continue;
-    assert (!bn->is_next_state);
     if (mark_used (bn, b.bit)) used++;
     if (bn->flags[b.bit].state.current) continue;
     bn->flags[b.bit].forwarded = 1;
-    if (!bn->flags[b.bit].assigned)
+    if (bn->is_next_state)
     {
-      if (bn->flags[b.bit].nonstate.current) forwarded++;
+      assert (bn->flags[b.bit].nonstate.next);
+      assert (!bn->flags[b.bit].assigned);
+      forwarded++;
       continue;
     }
+    if (!bn->assigned) continue;
     BtorIBVAssignment *a = bn->assigned[b.bit];
-    assert (a);
+    if (!a) continue;
     assert (a->tag != BTOR_IBV_STATE);
+    if (a->tag == BTOR_IBV_NON_STATE)
+    {
+      BtorIBVRange r = a->ranges[0];
+      BtorIBVNode *m = id2node (r.id);
+      unsigned k     = b.bit - a->range.lsb + r.lsb;
+      assert (m->flags[k].nonstate.next);
+      assert (!m->flags[k].assigned);
+      forwarding++;
+    }
     assert (b.bit >= a->range.lsb);
     bool bitwise = a->tag == BTOR_IBV_BUF || a->tag == BTOR_IBV_NOT
                    || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
@@ -1010,6 +1020,7 @@ BtorIBV::analyze ()
   BTOR_RELEASE_STACK (btor->mm, forward);
   if (forwarded)
     msg (2, "forwarded %u non-assigned current non-state bits", forwarded);
+  // assert (forwarded == forwarding);
   //
   // After determining current and next dependencies print statistics.
   //
@@ -1363,6 +1374,11 @@ BtorIBV::analyze ()
           !n->flags[i].classified, "unclassified bit %s[%u]", n->name, i);
     }
   }
+}
+
+void
+BtorIBV::simple_analyze ()
+{
 }
 
 void

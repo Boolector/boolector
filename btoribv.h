@@ -458,6 +458,7 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
+  void simple_analyze ();
   void analyze ();    // Needs to be called before 'translate'.
   void translate ();  // Into internal BtorMC model.
 };
