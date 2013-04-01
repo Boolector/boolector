@@ -402,8 +402,10 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   else
     assert (a.getWidth () == o.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
+  assert (!on->is_constant);
   mark_assigned (on, o);
-  check_bit_range (a);
+  BtorIBVNode *an = bitrange2node (a);
+  assert (an->is_constant || an->is_constant == on->is_constant);
   BtorIBVRange *r;
   BTOR_NEWN (btor->mm, r, 1);
   r[0] = a;
@@ -430,7 +432,8 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   tag             = (BtorIBVTag) (tag | BTOR_IBV_HAS_ARG);
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
-  check_bit_range (a);
+  BtorIBVNode *an = bitrange2node (a);
+  assert (an->is_constant || an->is_constant == on->is_constant);
   BtorIBVRange *r;
   BTOR_NEWN (btor->mm, r, 1);
   r[0] = a;
@@ -451,7 +454,10 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
     assert (o.getWidth () == a.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
-  check_bit_range (a), check_bit_range (b);
+  BtorIBVNode *an = bitrange2node (a);
+  assert (an->is_constant || an->is_constant == on->is_constant);
+  BtorIBVNode *bn = bitrange2node (b);
+  assert (bn->is_constant || bn->is_constant == on->is_constant);
   BtorIBVRange *r;
   BTOR_NEWN (btor->mm, r, 2);
   r[0] = a, r[1] = b;
@@ -465,9 +471,14 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
 {
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
-  check_bit_range (c), check_bit_range (t), check_bit_range (e);
   assert (t.getWidth () == e.getWidth ());
   assert (o.getWidth () == t.getWidth ());
+  BtorIBVNode *cn = bitrange2node (c);
+  assert (cn->is_constant || cn->is_constant == on->is_constant);
+  BtorIBVNode *tn = bitrange2node (c);
+  assert (tn->is_constant || tn->is_constant == on->is_constant);
+  BtorIBVNode *en = bitrange2node (c);
+  assert (en->is_constant || en->is_constant == on->is_constant);
   unsigned cw  = c.getWidth ();
   bool bitwise = (cw != 1);
   if (bitwise) assert (t.getWidth () == cw);
@@ -489,8 +500,9 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   vector<BitRange>::const_iterator it;
   for (it = ops.begin (); it != ops.end (); it++)
   {
-    BitRange r = *it;
-    check_bit_range (r);
+    BitRange r      = *it;
+    BtorIBVNode *rn = bitrange2node (r);
+    assert (rn->is_constant || rn->is_constant == on->is_constant);
     assert (on->width >= r.getWidth ());
     assert (on->width - r.getWidth () >= sum);
     sum += r.getWidth ();
@@ -523,7 +535,8 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
     BitRange c = *it++;
     if (c.m_nId)
     {
-      check_bit_range (c);
+      BtorIBVNode *cn = bitrange2node (c);
+      assert (cn->is_constant || cn->is_constant == on->is_constant);
       assert (c.getWidth () == 1 || c.getWidth () == o.getWidth ());
     }
     else
