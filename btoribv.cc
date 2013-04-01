@@ -773,7 +773,7 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  unsigned sumassignedbits = 0;
+  unsigned sumassignedbits = 0, sumnonstatebits = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -782,22 +782,26 @@ BtorIBV::analyze ()
          a++)
     {
       if (a->tag == BTOR_IBV_STATE) continue;
-      if (a->tag == BTOR_IBV_NON_STATE) continue;
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
       {
         assert (n->flags[i].assigned);
         if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
         n->assigned[i] = a;
-        sumassignedbits++;
+        if (a->tag == BTOR_IBV_NON_STATE)
+          sumnonstatebits++;
+        else
+          sumassignedbits++;
       }
     }
   }
-  msg (1, "added short-cuts to all %u assigned bits", sumassignedbits);
+  msg (1,
+       "added short-cuts to all %u assigned and %u non-statebits",
+       sumassignedbits,
+       sumnonstatebits);
 
   /*----------------------------------------------------------------------*/
 
   msg (1, "determining dependencies and used bits ...");
-  BtorIBVBitStack work;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -812,11 +816,13 @@ BtorIBV::analyze ()
     }
   }
   unsigned used = 0;
+  BtorIBVBitStack work;
   BTOR_INIT_STACK (work);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
+    if (n->is_constant) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
       int mark = n->flags[i].depends.mark;
@@ -925,6 +931,85 @@ BtorIBV::analyze ()
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
+  //
+  // TODO: This is a 'quick' fix to handle 'forwarding' of assignments to
+  // current non-state variables, if the corresponding next-state variable
+  // is not assigned but used.  Then this assignment to the current
+  // non-state variable has to 'forwarded', which means to mark all the
+  // current state variables in its cone to be 'forwarded' and used.
+  // The proper solution would be to implement a cone-of-influence reduction
+  // which has an additional 'bit' to denote the context in which a
+  // variable is used.  Then forwarding means using a current non-state
+  // variable in a next context.  Even though it did not happen in the
+  // examples we tried, the reverse might also be necessary, i.e.
+  // 'backwarding'.
+  //
+  unsigned forwarded = 0;
+  BtorIBVBitStack forward;
+  BTOR_INIT_STACK (forward);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant) continue;
+    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+         a++)
+    {
+      if (a->tag != BTOR_IBV_NON_STATE) continue;
+      BtorIBVRange r  = a->ranges[0];
+      BtorIBVNode *rn = id2node (r.id);
+      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+      {
+        if (!n->flags[i].assigned) continue;
+        assert (i >= a->range.lsb);
+        unsigned k = i - a->range.lsb + r.lsb;
+        // TODO coverage hole: have not seen the following condition.
+        if (rn->flags[k].assigned) continue;
+        BTOR_PUSH_STACK (btor->mm, forward, BtorIBVBit (r.id, k));
+      }
+    }
+  }
+  while (!BTOR_EMPTY_STACK (forward))
+  {
+    // TODO: conjecture: checking for cycles not necessary here.
+    BtorIBVBit b    = BTOR_POP_STACK (forward);
+    BtorIBVNode *bn = id2node (b.id);
+    if (bn->flags[b.bit].forwarded) continue;
+    assert (!bn->is_next_state);
+    if (mark_used (bn, b.bit)) used++;
+    if (bn->flags[b.bit].state.current) continue;
+    bn->flags[b.bit].forwarded = 1;
+    if (!bn->flags[b.bit].assigned)
+    {
+      if (bn->flags[b.bit].nonstate.current) forwarded++;
+      continue;
+    }
+    BtorIBVAssignment *a = bn->assigned[b.bit];
+    assert (a);
+    assert (a->tag != BTOR_IBV_STATE);
+    assert (b.bit >= a->range.lsb);
+    bool bitwise = a->tag == BTOR_IBV_BUF || a->tag == BTOR_IBV_NOT
+                   || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
+                   || a->tag == BTOR_IBV_XOR || a->tag == BTOR_IBV_CONDBW;
+    // TODO ditto as above ... (search for 'bitwise')
+    for (unsigned j = 0; j < a->nranges; j++)
+    {
+      BtorIBVRange r = a->ranges[j];
+      if (!r.id) continue;
+      assert (b.bit >= a->range.lsb);
+      BtorIBVNode *m = id2node (r.id);
+      for (unsigned k = 0; k < m->width; k++)
+      {
+        if (bitwise && k != b.bit - a->range.lsb + r.lsb) continue;
+        if (m->flags[k].forwarded) continue;
+        BtorIBVBit c (m->id, k);
+        BTOR_PUSH_STACK (btor->mm, forward, c);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (btor->mm, forward);
+  if (forwarded)
+    msg (2, "forwarded %u non-assigned current non-state bits", forwarded);
   //
   // After determining current and next dependencies print statistics.
   //

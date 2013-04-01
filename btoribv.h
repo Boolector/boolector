@@ -125,7 +125,7 @@ enum BtorIBVClassification
 struct BtorIBVFlags
 {
   BtorIBVClassification classified;
-  bool assigned, used, input, onephase;
+  bool assigned, used, input, onephase, forwarded;
   struct
   {
     bool current, next;
