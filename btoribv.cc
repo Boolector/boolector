@@ -1635,4 +1635,10 @@ BtorIBV::translate ()
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
+  msg (2,
+       "translated %u inputs, %u latches, %u nexts, %u inits",
+       stats.inputs,
+       stats.latches,
+       stats.nexts,
+       stats.inits);
 }
