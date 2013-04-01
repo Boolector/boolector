@@ -1232,13 +1232,13 @@ BtorIBV::analyze ()
           assert (!flags.state.current);
           assert (flags.input);
         }
-        if (flags.nonstate.current) printf3 (" current_non_state");
-        if (flags.nonstate.next) printf3 (" next_non_state");
       }
       else
         CLASSIFY (NOT_USED);
 
       if (!n->flags[i].classified) printf3 (" UNCLASSIFIED");
+      if (flags.nonstate.current) printf3 (" current_non_state");
+      if (flags.nonstate.next) printf3 (" next_non_state");
       if (verbosity > 2) btoribv_msgtail ();
 
       BTOR_ABORT_BOOLECTOR (
