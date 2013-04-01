@@ -998,8 +998,10 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
+    if (n->is_constant) continue;
     for (unsigned i = 0; i < n->width; i++)
-      if (!n->flags[i].assigned) n->flags[i].input = 1;
+      if (!n->flags[i].assigned && !n->flags[i].state.current)
+        n->flags[i].input = 1;
   }
   unsigned resetcurrent = 0, resetnext = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
@@ -1184,43 +1186,53 @@ BtorIBV::analyze ()
     {
       if (verbosity > 2) btoribv_msghead ();
       printf3 ("classified id %u ", n->id);
+
       if (n->is_constant)
         printf3 ("constant");
       else if (n->is_next_state)
         printf3 ("next");
       else
         printf3 ("current");
-      printf3 (" '%s[%u]' as", n->name, i);
-      bool classified = true;
-      if (n->flags[i].used)
+      printf3 (" '%s[%u]'", n->name, i);
+
+      BtorIBVFlags flags = n->flags[i];
+      bool classified    = 1;
+
+      if (flags.used)
       {
         if (n->is_constant)
-          printf3 (" constant");
-        else if (n->flags[i].assigned)
-          printf3 (" assigned");
-        else if (!n->flags[i].input)
+          printf3 (" constant"), classified = 1;
+        else if (flags.assigned)
         {
-          if (n->flags[i].state.current)
-            printf3 (" current state");
-          else if (n->flags[i].state.next)
-            printf3 (" next state");
-          else if (n->flags[i].nonstate.current)
-            printf3 (" current non-state");
-          else if (n->flags[i].nonstate.next)
-            printf3 (" next non-state");
-          else
-          {
-            printf3 (" UNCLASSIFIED");
-            classified = false;
-          }
+          printf3 (" assigned");
+          classified = true;
+          assert (!flags.state.current);
+          if (flags.state.next) printf3 (" next-state");
+        }
+        else if (!flags.input)
+        {
+          assert (!flags.state.next);
+          if (flags.state.current) printf3 (" current-state"), classified = 1;
         }
         else
         {
-          printf3 (" %s-phase input", n->flags[i].onephase ? "one" : "two");
+          if (!flags.onephase) printf3 (" two-phase-input");
+          if (n->is_next_state)
+            printf3 (" one-phase-next-input");
+          else
+            printf3 (" one-phase-current-input");
+          assert (!flags.state.current);
+          assert (!flags.nonstate.current);
+          assert (!flags.nonstate.next);
+          assert (flags.input);
+          classified = 1;
         }
+        if (flags.nonstate.current) printf3 (" current-non-state");
+        if (flags.nonstate.next) printf3 (" next-non-state");
       }
       else
-        printf3 (" not used");
+        printf3 (" not-used");
+
       if (verbosity > 2) btoribv_msgtail ();
       BTOR_ABORT_BOOLECTOR (!classified, "unclassified bit %s[%u]", n->name, i);
     }
