@@ -108,8 +108,21 @@ extern "C" {
 BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 };
 
+enum BtorIBVClassification
+{
+  UNCLASSIFIED = 0,
+  CONSTANT,
+  ASSIGNED,
+  CURRENT_STATE,
+  TWO_PHASE_INPUT,
+  ONE_PHASE_ONLY_CURRENT_INPUT,
+  ONE_PHASE_ONLY_NEXT_INPUT,
+  NOT_USED,
+};
+
 struct BtorIBVFlags
 {
+  BtorIBVClassification classified;
   bool assigned, used, input, onephase;
   struct
   {

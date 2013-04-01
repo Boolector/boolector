@@ -253,16 +253,16 @@ BtorIBV::addVariable (unsigned id,
   const char *extra;
   switch ((isNextState << 2) | (isLoopBreaking << 1) | isStateRetain)
   {
-    case 4 | 2 | 1: extra = "(flags: next,loopbrk,retain)"; break;
-    case 4 | 2 | 0: extra = "(flags: next,loopbrk)"; break;
-    case 4 | 0 | 1: extra = "(flags: next,retain)"; break;
-    case 4 | 0 | 0: extra = "(flags: next)"; break;
-    case 0 | 2 | 1: extra = "(flags: loopbrk,retain)"; break;
-    case 0 | 2 | 0: extra = "(flags: loopbrk)"; break;
-    case 0 | 0 | 1: extra = "(flags: retain)"; break;
-    default: extra = "(no flags)"; break;
+    case 4 | 2 | 1: extra = " next loopbrk retain"; break;
+    case 4 | 2 | 0: extra = " next loopbrk"; break;
+    case 4 | 0 | 1: extra = " next retain"; break;
+    case 4 | 0 | 0: extra = " next"; break;
+    case 0 | 2 | 1: extra = " loopbrk retain"; break;
+    case 0 | 2 | 0: extra = " loopbrk"; break;
+    case 0 | 0 | 1: extra = " retain"; break;
+    default: extra = ""; break;
   }
-  msg (3, "id %u variable '%s[%u:0]' %s", n->id, n->name, width - 1, extra);
+  msg (3, "id %u variable '%s[%u:0]'%s", n->id, n->name, width - 1, extra);
 }
 
 void
@@ -769,7 +769,7 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "checking dependencies and used bits ...");
+  msg (1, "determining dependencies and used bits ...");
   BtorIBVBitStack work;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -777,6 +777,7 @@ BtorIBV::analyze ()
     if (!n) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
+      // constants are implicitly all reachable (and used)
       if (n->is_constant)
         n->flags[i].depends.mark = 2;
       else
@@ -1193,48 +1194,55 @@ BtorIBV::analyze ()
         printf3 ("next");
       else
         printf3 ("current");
-      printf3 (" '%s[%u]'", n->name, i);
+      printf3 (" '%s[%u]' as", n->name, i);
 
       BtorIBVFlags flags = n->flags[i];
-      bool classified    = 1;
+
+#define CLASSIFY(NAME)                \
+  do                                  \
+  {                                   \
+    assert (!n->flags[i].classified); \
+    n->flags[i].classified = NAME;    \
+    printf3 (" " #NAME);              \
+  } while (0)
 
       if (flags.used)
       {
         if (n->is_constant)
-          printf3 (" constant"), classified = 1;
+          CLASSIFY (CONSTANT);
         else if (flags.assigned)
         {
-          printf3 (" assigned");
-          classified = true;
+          CLASSIFY (ASSIGNED);
           assert (!flags.state.current);
-          if (flags.state.next) printf3 (" next-state");
+          if (flags.state.next) printf3 (" next_state");
         }
         else if (!flags.input)
         {
           assert (!flags.state.next);
-          if (flags.state.current) printf3 (" current-state"), classified = 1;
+          if (flags.state.current) CLASSIFY (CURRENT_STATE);
         }
         else
         {
-          if (!flags.onephase) printf3 (" two-phase-input");
-          if (n->is_next_state)
-            printf3 (" one-phase-next-input");
+          if (!flags.onephase)
+            CLASSIFY (TWO_PHASE_INPUT);
+          else if (n->is_next_state)
+            CLASSIFY (ONE_PHASE_ONLY_NEXT_INPUT);
           else
-            printf3 (" one-phase-current-input");
+            CLASSIFY (ONE_PHASE_ONLY_CURRENT_INPUT);
           assert (!flags.state.current);
-          assert (!flags.nonstate.current);
-          assert (!flags.nonstate.next);
           assert (flags.input);
-          classified = 1;
         }
-        if (flags.nonstate.current) printf3 (" current-non-state");
-        if (flags.nonstate.next) printf3 (" next-non-state");
+        if (flags.nonstate.current) printf3 (" current_non_state");
+        if (flags.nonstate.next) printf3 (" next_non_state");
       }
       else
-        printf3 (" not-used");
+        CLASSIFY (NOT_USED);
 
+      if (!n->flags[i].classified) printf3 (" UNCLASSIFIED");
       if (verbosity > 2) btoribv_msgtail ();
-      BTOR_ABORT_BOOLECTOR (!classified, "unclassified bit %s[%u]", n->name, i);
+
+      BTOR_ABORT_BOOLECTOR (
+          !n->flags[i].classified, "unclassified bit %s[%u]", n->name, i);
     }
   }
 }
