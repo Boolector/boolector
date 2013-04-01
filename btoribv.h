@@ -261,6 +261,7 @@ class BtorIBV : public IBitVector
 
   void print (const BtorIBVAssignment &);    // to 'stdout' without NL
   void println (const BtorIBVAssignment &);  // to 'stdout' with NL
+  void printf3 (const char *fmt, ...);
 
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);

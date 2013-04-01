@@ -107,6 +107,16 @@ BtorIBV::println (const BtorIBVAssignment &a)
 }
 
 void
+BtorIBV::printf3 (const char *fmt, ...)
+{
+  if (verbosity < 3) return;
+  va_list ap;
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+}
+
+void
 BtorIBV::msg (int level, const BtorIBVAssignment &a, const char *fmt, ...)
 {
   va_list ap;
@@ -759,7 +769,7 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "checking cyclic, next and current state dependencies ...");
+  msg (1, "checking dependencies and used bits ...");
   BtorIBVBitStack work;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -773,6 +783,7 @@ BtorIBV::analyze ()
         assert (!n->flags[i].depends.mark);
     }
   }
+  unsigned used = 0;
   BTOR_INIT_STACK (work);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -827,7 +838,7 @@ BtorIBV::analyze ()
                 if (mark == 1)
                 {
                   assert (m->flags[k].depends.mark == 2);
-                  (void) mark_used (m, k);
+                  if (mark_used (m, k)) used++;
                   if (m->flags[k].depends.next && !o->flags[b.bit].depends.next)
                   {
                     msg (3,
@@ -914,7 +925,7 @@ BtorIBV::analyze ()
   for (BtorIBVBit *a = assertions.start; a < assertions.top; a++)
   {
     BtorIBVNode *n = id2node (a->id);
-    if (mark_used (n, a->bit)) onlyinassertions++;
+    if (mark_used (n, a->bit)) onlyinassertions++, used++;
   }
   if (onlyinassertions)
     msg (2, "%u bits only used in assertions", onlyinassertions);
@@ -924,7 +935,7 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = id2node (a->range.id);
     assert (a->range.msb == a->range.lsb);
-    if (mark_used (n, a->range.lsb)) onlyinassumptions++;
+    if (mark_used (n, a->range.lsb)) onlyinassumptions++, used++;
   }
   if (onlyinassumptions)
     msg (2, "%u bits only used in assumptions", onlyinassumptions);
@@ -945,17 +956,12 @@ BtorIBV::analyze ()
     {
       if (a->tag != BTOR_IBV_NON_STATE) continue;
       for (unsigned i = a->ranges[1].lsb; i <= a->ranges[1].msb; i++)
-        if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++;
+        if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++, used++;
       if (a->ranges[0].id)
         for (unsigned i = a->ranges[0].lsb; i <= a->ranges[0].msb; i++)
-          if (mark_used (id2node (a->ranges[0].id), i)) onlyininit++;
+          if (mark_used (id2node (a->ranges[0].id), i)) onlyininit++, used++;
     }
   }
-  if (onlyinnext)
-    msg (2, "%u bits only used in next state assignment", onlyinnext);
-  if (onlyininit)
-    msg (2, "%u bits only used in init state assignment", onlyininit);
-  //
   unsigned sum = next + current + both + none;
   if (next)
     msg (2,
@@ -977,6 +983,12 @@ BtorIBV::analyze ()
          "%u bits depend recursively neither on current nor next input %.0f%%",
          none,
          percent (none, sum));
+  //
+  msg (2, "used %u bits", used);
+  if (onlyinnext)
+    msg (2, "%u bits only used in next state assignment", onlyinnext);
+  if (onlyininit)
+    msg (2, "%u bits only used in init state assignment", onlyininit);
 
   /*----------------------------------------------------------------------*/
 
@@ -1054,10 +1066,13 @@ BtorIBV::analyze ()
       for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
       {
         unsigned k = i - a->range.lsb + r.lsb;
+
         // ----------------------------------------------//
         // One of the main invariants of our translation //
         // ----------------------------------------------//
+        //
         assert (n->flags[i].input == o->flags[k].input);
+
         if (n->flags[i].used && o->flags[k].used)
         {
           // used in both phases ...
@@ -1159,51 +1174,52 @@ BtorIBV::analyze ()
          onephase.bits.next,
          percent (onephase.bits.next, inputs.bits.next));
 
-  if (verbosity > 2)
-    for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    for (unsigned i = 0; i < n->width; i++)
     {
-      BtorIBVNode *n = *p;
-      if (!n) continue;
-      for (unsigned i = 0; i < n->width; i++)
+      if (verbosity > 2) btoribv_msghead ();
+      printf3 ("classified id %u %s '%s[%u]' as",
+               n->id,
+               (n->is_next_state ? "next" : "current"),
+               n->name,
+               i);
+      bool classified = true;
+      if (n->flags[i].used)
       {
-        btoribv_msghead ();
-        printf ("classified id %u %s '%s[%u]' as",
-                n->id,
-                (n->is_next_state ? "next" : "current"),
-                n->name,
-                i);
-        if (n->flags[i].used)
+        if (n->is_constant)
+          printf3 (" constant");
+        else if (n->flags[i].assigned)
+          printf3 (" assigned");
+        else if (!n->flags[i].input)
         {
-          if (n->is_constant)
-            printf (" constant");
-          else if (n->flags[i].assigned)
-            printf (" assigned");
-          else if (!n->flags[i].input)
-          {
-            if (n->flags[i].state.current)
-              printf (" current state");
-            else if (n->flags[i].state.next)
-              printf (" next state");
-            else if (n->flags[i].nonstate.current)
-              printf (" current non-state");
-            else if (n->flags[i].nonstate.next)
-              printf (" next non-state");
-            else
-            {
-              // TODO abort instead?
-              printf (" UNCLASSIFIED");
-            }
-          }
+          if (n->flags[i].state.current)
+            printf3 (" current state");
+          else if (n->flags[i].state.next)
+            printf3 (" next state");
+          else if (n->flags[i].nonstate.current)
+            printf3 (" current non-state");
+          else if (n->flags[i].nonstate.next)
+            printf3 (" next non-state");
           else
           {
-            printf (" %s-phase input", n->flags[i].onephase ? "one" : "two");
+            printf3 (" UNCLASSIFIED");
+            classified = false;
           }
         }
         else
-          printf (" not used");
-        btoribv_msgtail ();
+        {
+          printf3 (" %s-phase input", n->flags[i].onephase ? "one" : "two");
+        }
       }
+      else
+        printf3 (" not used");
+      if (verbosity > 2) btoribv_msgtail ();
+      BTOR_ABORT_BOOLECTOR (!classified, "unclassified bit %s[%u]", n->name, i);
     }
+  }
 }
 
 void
