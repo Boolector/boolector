@@ -842,7 +842,7 @@ BtorIBV::analyze ()
                   if (m->flags[k].depends.next && !o->flags[b.bit].depends.next)
                   {
                     msg (3,
-                         "id %u recursively next dependend '%s[%u]'",
+                         "id %u transitively next dependend '%s[%u]'",
                          m->id,
                          m->name,
                          k);
@@ -852,7 +852,7 @@ BtorIBV::analyze ()
                       && !o->flags[b.bit].depends.current)
                   {
                     msg (3,
-                         "id %u recursively current dependend '%s[%u]'",
+                         "id %u transitively current dependend '%s[%u]'",
                          m->id,
                          m->name,
                          k);
@@ -905,6 +905,7 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
+    if (n->is_constant) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
       assert (n->flags[i].depends.mark == 2);
@@ -954,7 +955,7 @@ BtorIBV::analyze ()
     for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
          a++)
     {
-      if (a->tag != BTOR_IBV_NON_STATE) continue;
+      if (a->tag != BTOR_IBV_STATE) continue;
       for (unsigned i = a->ranges[1].lsb; i <= a->ranges[1].msb; i++)
         if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++, used++;
       if (a->ranges[0].id)
@@ -965,22 +966,22 @@ BtorIBV::analyze ()
   unsigned sum = next + current + both + none;
   if (next)
     msg (2,
-         "%u bits depend recursively only on next input %.0f%%",
+         "%u bits depend transitively only on next %.0f%%",
          next,
          percent (next, sum));
   if (current)
     msg (2,
-         "%u bits depend recursively only on current input %.0f%%",
+         "%u bits depend transitively only on current %.0f%%",
          current,
          percent (current, sum));
   if (both)
     msg (2,
-         "%u bits depend recursively both on current and next input %.0f%%",
+         "%u bits depend transitively both on current and next %.0f%%",
          both,
          percent (both, sum));
   if (none)
     msg (2,
-         "%u bits depend recursively neither on current nor next input %.0f%%",
+         "%u bits depend transitively neither on current nor next %.0f%%",
          none,
          percent (none, sum));
   //
@@ -1113,6 +1114,7 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
+    if (n->is_constant) continue;
     unsigned bits = 0, onephasebits = 0;
     for (unsigned i = 0; i < n->width; i++)
     {
@@ -1181,11 +1183,14 @@ BtorIBV::analyze ()
     for (unsigned i = 0; i < n->width; i++)
     {
       if (verbosity > 2) btoribv_msghead ();
-      printf3 ("classified id %u %s '%s[%u]' as",
-               n->id,
-               (n->is_next_state ? "next" : "current"),
-               n->name,
-               i);
+      printf3 ("classified id %u ", n->id);
+      if (n->is_constant)
+        printf3 ("constant");
+      else if (n->is_next_state)
+        printf3 ("next");
+      else
+        printf3 ("current");
+      printf3 (" '%s[%u]' as", n->name, i);
       bool classified = true;
       if (n->flags[i].used)
       {
