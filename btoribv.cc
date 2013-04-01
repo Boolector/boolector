@@ -625,6 +625,20 @@ percent (double a, double b)
 
 /*------------------------------------------------------------------------*/
 
+struct BtorIBVBitNext
+{
+  BtorIBVBit bit;
+  bool next;
+  BtorIBVBitNext (BtorIBVBit b, bool n) : bit (b), next (n) {}
+  BtorIBVBitNext (unsigned id, unsigned b, bool n) : bit (id, b), next (n) {}
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVBitNext, BtorIBVBitNext);
+};
+
+/*------------------------------------------------------------------------*/
+
 void
 BtorIBV::analyze ()
 {
