@@ -1518,7 +1518,7 @@ BtorIBV::translate_node (BtorIBVNode *n)
   assert (!n->cached);
   assert (!n->forwarded);
   bool atleastoneforwarded = false, atleastonenotinput = false;
-  for (unsigned i = 0; i <= n->width; i++)
+  for (unsigned i = 0; i < n->width; i++)
   {
     if (n->flags[i].forwarded) atleastoneforwarded = 1;
     if (n->flags[i].classified != TWO_PHASE_INPUT
@@ -1538,7 +1538,7 @@ BtorIBV::translate_node (BtorIBVNode *n)
       msb = a->range.msb;
       if (a->tag == BTOR_IBV_STATE)
       {
-        assert (!atleastoneforwarded);
+        // assert (!atleastoneforwarded);
         c = translate_new_latch (a->range);
       }
       else if (a->tag == BTOR_IBV_NON_STATE)
@@ -1571,15 +1571,25 @@ BtorIBV::translate_node (BtorIBVNode *n)
     }
     if (c)
     {
-      BtorNode *tmp = cached;
-      cached        = boolector_concat (btor, c, cached);
-      boolector_release (btor, tmp);
+      if (cached)
+      {
+        BtorNode *tmp = cached;
+        cached        = boolector_concat (btor, c, cached);
+        boolector_release (btor, tmp);
+      }
+      else
+        cached = c;
     }
     if (f)
     {
-      BtorNode *tmp = forwarded;
-      forwarded     = boolector_concat (btor, f, forwarded);
-      boolector_release (btor, tmp);
+      if (forwarded)
+      {
+        BtorNode *tmp = forwarded;
+        forwarded     = boolector_concat (btor, f, forwarded);
+        boolector_release (btor, tmp);
+      }
+      else
+        forwarded = f;
     }
   }
   assert (!cached || !forwarded
@@ -1629,8 +1639,12 @@ BtorIBV::translate ()
       for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
            a++)
       {
-        BtorIBVNode *o = id2node (a->range.id);
-        if (!o->marked) BTOR_PUSH_STACK (btor->mm, work, o);
+        for (unsigned i = 0; i < a->nranges; i++)
+        {
+          if (!a->ranges[i].id) continue;
+          BtorIBVNode *o = id2node (a->ranges[i].id);
+          if (!o->marked) BTOR_PUSH_STACK (btor->mm, work, o);
+        }
       }
     }
   }
