@@ -147,7 +147,7 @@ struct BtorIBVNode
   bool is_state_retain;
   IBitVector::DirectionKind direction;
   signed char marked;
-  BtorNode *cached;
+  BtorNode *cached, *forwarded;
   char *name;
   BtorIBVFlags *flags;
   BtorIBVAssignment **assigned;
@@ -286,6 +286,17 @@ class BtorIBV : public IBitVector
 
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
+
+  BtorNode *translate_assignment (BtorIBVAssignment *, bool);
+  BtorNode *translate_new_input (BtorIBVRange, bool);
+  BtorNode *translate_new_latch (BtorIBVRange);
+  BtorNode *translate_range (BtorIBVRange, bool);
+  void translate_node (BtorIBVNode *);
+
+  struct
+  {
+    unsigned inputs, latches, nexts, inits;
+  } stats;
 
  public:
   BtorIBV ();
@@ -459,7 +470,6 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
-  void simple_analyze ();
   void analyze ();    // Needs to be called before 'translate'.
   void translate ();  // Into internal BtorMC model.
 };

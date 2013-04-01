@@ -138,6 +138,7 @@ BtorIBV::BtorIBV () : gentrace (false), verbosity (0)
   BTOR_INIT_STACK (assumptions);
   btormc = boolector_new_mc ();
   btor   = boolector_btor_mc (btormc);
+  BTOR_CLR (&stats);
 }
 
 void
@@ -166,6 +167,7 @@ BtorIBV::delete_ibv_node (BtorIBVNode *node)
   assert (node->name);
   btor_freestr (btor->mm, node->name);
   if (node->cached) btor_release_exp (btor, node->cached);
+  if (node->forwarded) btor_release_exp (btor, node->forwarded);
   if (!node->is_constant) delete_ibv_release_variable (node);
   BTOR_DELETEN (btor->mm, node->flags, node->width);
   BTOR_DELETE (btor->mm, node);
@@ -208,10 +210,11 @@ BtorIBV::new_node (unsigned id, unsigned width)
   assert (!BTOR_PEEK_STACK (idtab, id));
   BtorIBVNode *node;
   BTOR_CNEW (btor->mm, node);
-  node->id     = id;
-  node->width  = width;
-  node->cached = 0;
-  node->name   = 0;
+  node->id        = id;
+  node->width     = width;
+  node->cached    = 0;
+  node->forwarded = 0;
+  node->name      = 0;
   BTOR_CNEWN (btor->mm, node->flags, width);
   BTOR_POKE_STACK (idtab, id, node);
   return node;
@@ -226,6 +229,7 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   assert (str.size () == width);
   node              = new_node (id, width);
   node->cached      = btor_const_exp (btor, str.c_str ());
+  node->forwarded   = boolector_copy (btor, node->cached);
   node->name        = btor_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
   msg (3, "added id %u constant %s of width %u", id, str.c_str (), width);
@@ -1396,12 +1400,239 @@ BtorIBV::analyze ()
   }
 }
 
-void
-BtorIBV::simple_analyze ()
+BtorNode *
+BtorIBV::translate_range (BtorIBVRange r, bool forward)
 {
+  if (!r.id) return 0;
+  BtorIBVNode *n = id2node (r.id);
+  BtorNode *exp  = forward ? n->cached : n->forwarded;
+  assert (exp);
+  return boolector_slice (btor, exp, (int) r.msb, (int) r.lsb);
+}
+
+BtorNode *
+BtorIBV::translate_assignment (BtorIBVAssignment *a, bool forward)
+{
+  BtorNodePtrStack stack;
+  BTOR_INIT_STACK (stack);
+  for (unsigned i = 0; i < a->nranges; i++)
+  {
+    BtorIBVRange r = a->ranges[i];
+    BtorNode *exp  = translate_range (r, forward);
+    BTOR_PUSH_STACK (btor->mm, stack, exp);
+  }
+  BtorNode *res;
+  if (a->tag & BTOR_IBV_IS_PREDICATE)
+  {
+    switch (a->tag)
+    {
+      default:
+        BTOR_ABORT_BOOLECTOR (true, "predicate tag %d not handled", a->tag);
+        res = 0;
+        break;
+    }
+  }
+  else
+  {
+    switch (a->tag)
+    {
+      case BTOR_IBV_BUF:
+        res = boolector_copy (btor, BTOR_PEEK_STACK (stack, 0));
+        break;
+      case BTOR_IBV_NOT:
+        res = boolector_not (btor, BTOR_PEEK_STACK (stack, 0));
+        break;
+      default:
+        BTOR_ABORT_BOOLECTOR (true, "non-predicate tag %d not handled", a->tag);
+        res = 0;
+        break;
+    }
+  }
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    BtorNode *exp = BTOR_POP_STACK (stack);
+    if (exp) boolector_release (btor, exp);
+  }
+  BTOR_RELEASE_STACK (btor->mm, stack);
+  return res;
+}
+
+BtorNode *
+BtorIBV::translate_new_input (BtorIBVRange r, bool next)
+{
+  BtorIBVNode *n = id2node (r.id);
+  BtorNode *res;
+  char suffix[30];
+  if (n->width == r.getWidth ())
+  {
+    assert (!r.lsb);
+    assert (r.msb + 1 == n->width);
+    suffix[0] = 0;
+  }
+  else
+    sprintf (suffix, "[%u:%u]", r.msb, r.msb);
+  char prefix[10];
+  if (next)
+    strcpy (prefix, "next(");
+  else
+    prefix[0] = 0;
+  if (next) strcat (suffix, ")");
+  int len    = strlen (prefix) + strlen (n->name) + strlen (suffix) + 1;
+  char *name = (char *) btor_malloc (btor->mm, len);
+  sprintf (name, "%s%s%s", suffix, n->name, suffix);
+  res = boolector_latch (btormc, (int) n->width, name);
+  btor_free (btor->mm, name, len);
+  stats.inputs++;
+  return res;
+}
+
+BtorNode *
+BtorIBV::translate_new_latch (BtorIBVRange r)
+{
+  BtorIBVNode *n = id2node (r.id);
+  BtorNode *res;
+  if (n->width == r.getWidth ())
+  {
+    assert (!r.lsb);
+    assert (r.msb + 1 == n->width);
+    res = boolector_latch (btormc, (int) n->width, n->name);
+  }
+  else
+  {
+    char suffix[20];
+    sprintf (suffix, "[%u:%u]", r.msb, r.msb);
+    int len    = strlen (n->name) + strlen (suffix) + 1;
+    char *name = (char *) btor_malloc (btor->mm, len);
+    sprintf (name, "%s%s", n->name, suffix);
+    res = boolector_latch (btormc, (int) n->width, name);
+    btor_free (btor->mm, name, len);
+  }
+  stats.latches++;
+  return res;
+}
+
+void
+BtorIBV::translate_node (BtorIBVNode *n)
+{
+  assert (!n->is_constant);
+  assert (!n->cached);
+  assert (!n->forwarded);
+  bool atleastoneforwarded = false, atleastonenotinput = false;
+  for (unsigned i = 0; i <= n->width; i++)
+  {
+    if (n->flags[i].forwarded) atleastoneforwarded = 1;
+    if (n->flags[i].classified != TWO_PHASE_INPUT
+        && n->flags[i].classified != ONE_PHASE_ONLY_CURRENT_INPUT
+        && n->flags[i].classified != ONE_PHASE_ONLY_NEXT_INPUT)
+      atleastonenotinput = 1;
+  }
+  BtorNode *forwarded = 0, *cached = 0;
+  unsigned msb;
+  for (unsigned lsb = 0; lsb < n->width; lsb = msb + 1)
+  {
+    BtorIBVAssignment *a = n->assigned ? n->assigned[lsb] : 0;
+    if (!a) a = n->next ? n->next[lsb] : 0;
+    BtorNode *f = 0, *c = 0;
+    if (a)
+    {
+      msb = a->range.msb;
+      if (a->tag == BTOR_IBV_STATE)
+      {
+        assert (!atleastoneforwarded);
+        c = translate_new_latch (a->range);
+      }
+      else if (a->tag == BTOR_IBV_NON_STATE)
+      {
+        BTOR_ABORT_BOOLECTOR (
+            atleastonenotinput,
+            "can not handle non-state bits not classified as inputs yet");
+      }
+      else
+      {
+        c = translate_assignment (a, false);
+        if (atleastoneforwarded) f = translate_assignment (a, true);
+      }
+    }
+    else
+    {
+      msb = n->width;
+      if (n->is_next_state)
+      {
+        assert (!atleastoneforwarded);
+        BtorIBVRange r (n->id, msb, lsb);
+        c = translate_new_input (r, true);
+      }
+      else
+      {
+        BtorIBVRange r (n->id, msb, lsb);
+        c = translate_new_input (r, false);
+        if (atleastoneforwarded) f = translate_new_input (r, true);
+      }
+    }
+    if (c)
+    {
+      BtorNode *tmp = cached;
+      cached        = boolector_concat (btor, c, cached);
+      boolector_release (btor, tmp);
+    }
+    if (f)
+    {
+      BtorNode *tmp = forwarded;
+      forwarded     = boolector_concat (btor, f, forwarded);
+      boolector_release (btor, tmp);
+    }
+  }
+  assert (!cached || !forwarded
+          || boolector_get_width (btor, cached)
+                 == boolector_get_width (btor, forwarded));
+  n->cached    = cached;
+  n->forwarded = forwarded;
 }
 
 void
 BtorIBV::translate ()
 {
+  BtorIBVNodePtrStack work;
+  BTOR_INIT_STACK (work);
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant) assert (n->cached);
+    unsigned i;
+    for (i = 0; i < n->width; i++)
+      if (n->flags[i].used) break;
+    if (i == n->width) continue;
+    BTOR_PUSH_STACK (btor->mm, work, n);
+    n->marked = 0;
+  }
+  msg (1, "translating %u nodes", (unsigned) BTOR_COUNT_STACK (work));
+  while (!BTOR_EMPTY_STACK (work))
+  {
+    BtorIBVNode *n = BTOR_TOP_STACK (work);
+    if (n->cached)
+    {
+      assert (n->is_constant || n->marked == 2);
+      BTOR_POP_STACK (work);
+    }
+    else if (n->marked == 1)
+    {
+      translate_node (n);
+      assert (n->cached);
+      n->marked = 2;
+      BTOR_POP_STACK (work);
+    }
+    else
+    {
+      assert (!n->marked);
+      n->marked = 1;
+      for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+           a++)
+      {
+        BtorIBVNode *o = id2node (a->range.id);
+        if (!o->marked) BTOR_PUSH_STACK (btor->mm, work, o);
+      }
+    }
+  }
+  BTOR_RELEASE_STACK (btor->mm, work);
 }
