@@ -717,7 +717,7 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "checking that all (actual) next states are assigned");
+  unsigned nextstatebits = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -729,11 +729,14 @@ BtorIBV::analyze ()
                             "next state '%s[%u]' unassigned",
                             n->name,
                             i);
+    nextstatebits += n->width;
   }
+  if (nextstatebits)
+    msg (1, "all %u next state function bits are assigned", nextstatebits);
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "adding short-cuts to assignments");
+  unsigned sumassignedbits = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -748,13 +751,15 @@ BtorIBV::analyze ()
         assert (n->flags[i].assigned);
         if (!n->assigned) BTOR_CNEWN (btor->mm, n->assigned, n->width);
         n->assigned[i] = a;
+        sumassignedbits++;
       }
     }
   }
+  msg (1, "added short-cuts to all %u assigned bits", sumassignedbits);
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "checking cyclic, next and current state dependencies");
+  msg (1, "checking cyclic, next and current state dependencies ...");
   BtorIBVBitStack work;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
@@ -930,7 +935,7 @@ BtorIBV::analyze ()
   // next state function is used, which might lead to some bits assumed to
   // be used without being actually used.
   //
-  unsigned onlyinnext = 0;
+  unsigned onlyinnext = 0, onlyininit = 0;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -939,12 +944,17 @@ BtorIBV::analyze ()
          a++)
     {
       if (a->tag != BTOR_IBV_NON_STATE) continue;
-      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
-        if (mark_used (n, i)) onlyinnext++;
+      for (unsigned i = a->ranges[1].lsb; i <= a->ranges[1].msb; i++)
+        if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++;
+      if (a->ranges[0].id)
+        for (unsigned i = a->ranges[0].lsb; i <= a->ranges[0].msb; i++)
+          if (mark_used (id2node (a->ranges[0].id), i)) onlyininit++;
     }
   }
   if (onlyinnext)
     msg (2, "%u bits only used in next state assignment", onlyinnext);
+  if (onlyininit)
+    msg (2, "%u bits only used in init state assignment", onlyininit);
   //
   unsigned sum = next + current + both + none;
   if (next)
@@ -970,7 +980,7 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "determine actual current and next inputs");
+  msg (1, "determining actual current and next inputs ...");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
