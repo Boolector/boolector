@@ -241,9 +241,11 @@ class BtorIBV : public IBitVector
 
   void addUnaryPred (BtorIBVTag tag, BitRange o, BitRange a)
   {
+    assert (o.getWidth () == 1);
     assert (tag & BTOR_IBV_IS_UNARY);
     assert (tag <= BTOR_IBV_MAX_UNARY);
-    addUnary ((BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE), o, a);
+    if (a.getWidth () != 1) tag = (BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE);
+    addUnary (tag, o, a);
   }
 
   //------------------------------------------------------------------------
@@ -259,9 +261,12 @@ class BtorIBV : public IBitVector
 
   void addBinaryPred (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
   {
+    assert (o.getWidth () == 1);
     assert (tag & BTOR_IBV_IS_BINARY);
     assert (tag <= BTOR_IBV_MAX_BINARY);
-    addBinary ((BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE), o, a, b);
+    assert (a.getWidth () == b.getWidth ());
+    if (a.getWidth () != 1) tag = (BtorIBVTag) (tag | BTOR_IBV_IS_PREDICATE);
+    addBinary (tag, o, a, b);
   }
 
   //------------------------------------------------------------------------
