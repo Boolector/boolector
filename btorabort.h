@@ -78,17 +78,20 @@
     }                                                            \
   } while (0)
 
-#define BTOR_ABORT_NE_BW(arg1, arg2)                                         \
-  do                                                                         \
-  {                                                                          \
-    if (BTOR_REAL_ADDR_NODE ((arg1))->len                                    \
-        != BTOR_REAL_ADDR_NODE ((arg2))->len)                                \
-    {                                                                        \
-      printf ("[%s] %s: ", __FILE__, __FUNCTION__);                          \
-      printf (                                                               \
-          "bit-width of '%s' and '%s' must not be unequal\n", #arg1, #arg2); \
-      abort ();                                                              \
-    }                                                                        \
+#define BTOR_ABORT_NE_BW(arg1, arg2)                               \
+  do                                                               \
+  {                                                                \
+    if (BTOR_REAL_ADDR_NODE ((arg1))->len                          \
+        != BTOR_REAL_ADDR_NODE ((arg2))->len)                      \
+    {                                                              \
+      fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__);       \
+      fprintf (stderr,                                             \
+               "bit-width of '%s' and '%s' must not be unequal\n", \
+               #arg1,                                              \
+               #arg2);                                             \
+      fflush (stderr);                                             \
+      abort ();                                                    \
+    }                                                              \
   } while (0)
 
 /*------------------------------------------------------------------------*/
