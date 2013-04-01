@@ -113,6 +113,8 @@ enum BtorIBVClassification
   UNCLASSIFIED = 0,
   CONSTANT,
   ASSIGNED,
+  ASSIGNED_IMPLICIT_CURRENT,
+  ASSIGNED_IMPLICIT_NEXT,
   CURRENT_STATE,
   TWO_PHASE_INPUT,
   ONE_PHASE_ONLY_CURRENT_INPUT,
@@ -132,7 +134,7 @@ struct BtorIBVFlags
   struct
   {
     bool current, next;
-  } state, nonstate;
+  } state, nonstate, implicit;
 };
 
 struct BtorIBVNode

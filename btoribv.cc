@@ -1027,7 +1027,8 @@ BtorIBV::analyze ()
                  "no input)",
                  n->name,
                  i);
-            n->flags[i].input = 0;
+            n->flags[i].input            = 0;
+            n->flags[i].implicit.current = 1;
             resetcurrent++;
           }
         }
@@ -1042,7 +1043,8 @@ BtorIBV::analyze ()
                  i,
                  o->name,
                  k);
-            o->flags[k].input = 0;
+            o->flags[k].input         = 0;
+            o->flags[i].implicit.next = 1;
             resetnext++;
           }
         }
@@ -1216,6 +1218,10 @@ BtorIBV::analyze ()
           assert (!flags.state.current);
           if (flags.state.next) printf3 (" next_state");
         }
+        else if (flags.implicit.current)
+          CLASSIFY (ASSIGNED_IMPLICIT_CURRENT);
+        else if (flags.implicit.next)
+          CLASSIFY (ASSIGNED_IMPLICIT_NEXT);
         else if (!flags.input)
         {
           assert (!flags.state.next);
