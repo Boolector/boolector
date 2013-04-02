@@ -158,6 +158,24 @@ btor_unassign_param (Btor *btor, BtorNode *lambda)
   } while (BTOR_IS_LAMBDA_NODE (lambda));
 }
 
+BtorNode *
+btor_beta_reduce_full (Btor *btor, BtorNode *exp)
+{
+  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0);
+}
+
+BtorNode *
+btor_beta_reduce_chains (Btor *btor, BtorNode *exp)
+{
+  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_CHAINS, 0);
+}
+
+BtorNode *
+btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
+{
+  return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized);
+}
+
 #define BETA_REDUCE_OPEN_NEW_SCOPE(lambda)                                     \
   do                                                                           \
   {                                                                            \

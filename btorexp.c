@@ -1752,7 +1752,7 @@ add_param_cond_to_clause (Btor *btor,
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTORLOG ("add_param_cond_to_clause: %s", node2string (cond));
-  beta_cond = btor_beta_reduce (btor, cond, BETA_RED_CUTOFF, &parameterized);
+  beta_cond = btor_beta_reduce_cutoff (btor, cond, &parameterized);
   assert (!beta_cond->parameterized);
 
   // TODO: cache arbitrary conditions?
@@ -2117,8 +2117,7 @@ encode_lemma (Btor *btor,
   {
     /* get value at position i */
     btor_assign_param (btor, acc2, i);
-    lambda_value =
-        btor_beta_reduce (btor, acc2, BETA_RED_CUTOFF, &parameterized);
+    lambda_value = btor_beta_reduce_cutoff (btor, acc2, &parameterized);
     btor_unassign_param (btor, acc2);
     b            = lambda_value;
     lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
@@ -5141,8 +5140,7 @@ btor_reduce (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
 
-  BtorNode *parameterized;
-  return btor_beta_reduce (btor, exp, BETA_RED_FULL, &parameterized);
+  return btor_beta_reduce_full (btor, exp);
 }
 
 BtorNode *
@@ -5154,7 +5152,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   assert (lambda);
 
   int i;
-  BtorNode *result, *cur, *parameterized;
+  BtorNode *result, *cur;
   BtorNodePtrStack unassign;
   BtorMemMgr *mm;
 
@@ -5172,7 +5170,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
 
-  result = btor_beta_reduce (btor, lambda, BETA_RED_FULL, &parameterized);
+  result = btor_beta_reduce_full (btor, lambda);
 
   while (!BTOR_EMPTY_STACK (unassign))
   {
@@ -8427,8 +8425,7 @@ process_working_stack (Btor *btor,
       if (*assignments_changed) return 0;
 
       btor_assign_param (btor, array, index);
-      lambda_value =
-          btor_beta_reduce (btor, array, BETA_RED_CUTOFF, &parameterized);
+      lambda_value = btor_beta_reduce_cutoff (btor, array, &parameterized);
       btor_unassign_param (btor, array);
 
       // debug
@@ -8892,8 +8889,7 @@ process_working_stack (Btor * btor, BtorNodePtrStack * stack,
 	    return 0;
 
 	  btor_assign_param (btor, array, index);
-	  lambda_value = 
-	    btor_beta_reduce (btor, array, BETA_RED_CUTOFF, &parameterized);
+	  lambda_value = btor_beta_reduce_cutoff (btor, array, &parameterized);
 	  btor_unassign_param (btor, array);
 
 	  // debug
@@ -9076,7 +9072,7 @@ process_working_stack (Btor * btor, BtorNodePtrStack * stack,
 	      /* instantiate lambda expressions with read index of acc */
 	      btor_assign_param (btor, lambda_exp, index);
 	      lambda_value = 
-		btor_beta_reduce (btor, lambda_exp, BETA_RED_CUTOFF, &parameterized);
+		btor_beta_reduce_cutoff (btor, lambda_exp, &parameterized);
 	      btor_unassign_param (btor, lambda_exp);
 		
 	      lambda_value = BTOR_REAL_ADDR_NODE (lambda_value);
@@ -10682,7 +10678,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
       else if (rwr && BTOR_IS_READ_NODE (cur) && cur->mark)
       {
         cur->mark   = 0;
-        rebuilt_exp = btor_beta_reduce (btor, cur, BETA_RED_FULL, 0);
+        rebuilt_exp = btor_beta_reduce_full (btor, cur);
       }
       else
       {
@@ -11525,7 +11521,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
 
   int i, chain_depth = 0, has_write_parent;
   BtorNode *bvcond, *e_cond, *e_then, *e_else;
-  BtorNode *lambda, *param, *e[3], *parameterized;
+  BtorNode *lambda, *param, *e[3];
   BtorPartialParentIterator it;
 
   BTORLOG ("rewrite write: %s", node2string (write));
@@ -11563,8 +11559,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
     assert (!has_write_parent || !has_num_parents_dbg (write, 1));
     BTORLOG ("merge lambda: %s (merged %d)", node2string (e[0]), chain_depth);
     btor_assign_param (btor, e[0], param);
-    e_else =
-        btor_beta_reduce (btor, e[0], BETA_RED_LAMBDA_CHAINS, &parameterized);
+    e_else = btor_beta_reduce_chains (btor, e[0]);
     btor_unassign_param (btor, e[0]);
 
     if (write->e[0]->simplified) write->e[0]->simplified = 0;
