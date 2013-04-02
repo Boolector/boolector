@@ -8357,6 +8357,7 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur = BTOR_POP_STACK (work_stack);
+    // TODO: directly push simplified exp onto stack at the beginning
     /* we do not want the simplification of top level read contraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (cur)))
@@ -8502,11 +8503,17 @@ beta_reduce (Btor *btor, BtorNode *exp, int bound, BtorNode **parameterized)
                                                 BTOR_REAL_ADDR_NODE (e[0])));
 
           unassign_param (btor, real_cur);
+#ifndef NDEBUG
+          (void) BTOR_POP_STACK (unassign_stack);
+#endif
           assignment = BTOR_TOP_STACK (arg_stack);
 
           if (cache) BETA_REDUCE_PUSH_RESULT_IF_CACHED (real_cur, assignment);
 
           assign_param (btor, real_cur, assignment);
+#ifndef NDEBUG
+          BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
+#endif
         }
 
         BTOR_PUSH_STACK (mm, work_stack, cur);
@@ -12837,11 +12844,19 @@ cache_beta_result (Btor *btor,
   assert (BTOR_IS_LAMBDA_NODE (lambda));
 
   BtorNodePair *pair;
+  BtorPtrHashBucket *bucket;
 
   pair = new_exp_pair (btor, lambda, exp);
-  assert (!btor_find_in_ptr_hash_table (btor->cache, pair));
-  btor_insert_in_ptr_hash_table (btor->cache, pair)->data.asPtr =
-      btor_copy_exp (btor, result);
+
+  bucket = btor_find_in_ptr_hash_table (btor->cache, pair);
+  if (bucket)
+  {
+    delete_exp_pair (btor, pair);
+    assert ((BtorNode *) bucket->data.asPtr == result);
+  }
+  else
+    btor_insert_in_ptr_hash_table (btor->cache, pair)->data.asPtr =
+        btor_copy_exp (btor, result);
 }
 
 static BtorNode *
