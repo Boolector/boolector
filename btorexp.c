@@ -8503,6 +8503,7 @@ process_working_stack (Btor *btor,
               if (*assignments_changed)
               {
                 btor_release_exp (btor, lambda_value);
+                BTOR_RELEASE_STACK (mm, param_reads);
                 return 0;
               }
             }
