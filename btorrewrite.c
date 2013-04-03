@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2013 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -1262,33 +1262,93 @@ normalize_binary_comm_ass_exp (Btor *btor,
     b = b->next;
   }
 
+#if 0
   /* normalize left side */
   result = btor_copy_exp (btor, common);
   for (b = left->first; b; b = b->next)
-  {
-    cur = b->key;
-    for (i = 0; i < b->data.asInt; i++)
     {
-      temp = fptr (btor, result, cur);
-      btor_release_exp (btor, result);
-      result = temp;
+      cur = b->key;
+      for (i = 0; i < b->data.asInt; i++)
+	{
+	  temp = fptr (btor, result, cur);
+	  btor_release_exp (btor, result);
+	  result = temp;
+	}
     }
-  }
   *e0_norm = result;
 
   /* normalize right side */
   result = btor_copy_exp (btor, common);
   for (b = right->first; b; b = b->next)
+    {
+      cur = b->key;
+      for (i = 0; i < b->data.asInt; i++)
+	{
+	  temp = fptr (btor, result, cur);
+	  btor_release_exp (btor, result);
+	  result = temp;
+	}
+    }
+  *e1_norm = result;
+#else
+  /* Bubble up common part.
+   */
+  result = 0;
+  for (b = left->first; b; b = b->next)
   {
     cur = b->key;
     for (i = 0; i < b->data.asInt; i++)
     {
-      temp = fptr (btor, result, cur);
-      btor_release_exp (btor, result);
-      result = temp;
+      if (result)
+      {
+        temp = fptr (btor, result, cur);
+        btor_release_exp (btor, result);
+        result = temp;
+      }
+      else
+        result = btor_copy_exp (btor, cur);
     }
   }
+
+  if (result)
+  {
+    temp = fptr (btor, common, result);
+    btor_release_exp (btor, result);
+    result = temp;
+  }
+  else
+    result = btor_copy_exp (btor, common);
+
+  *e0_norm = result;
+
+  result = 0;
+  for (b = right->first; b; b = b->next)
+  {
+    cur = b->key;
+    for (i = 0; i < b->data.asInt; i++)
+    {
+      if (result)
+      {
+        temp = fptr (btor, result, cur);
+        btor_release_exp (btor, result);
+        result = temp;
+      }
+      else
+        result = btor_copy_exp (btor, cur);
+    }
+  }
+
+  if (result)
+  {
+    temp = fptr (btor, common, result);
+    btor_release_exp (btor, result);
+    result = temp;
+  }
+  else
+    result = btor_copy_exp (btor, common);
+
   *e1_norm = result;
+#endif
 
   /* clean up */
   btor_release_exp (btor, common);
@@ -3485,6 +3545,7 @@ btor_rewrite_cond_exp (Btor *btor,
 {
   BtorNode *(*fptr) (Btor *, BtorNode *, BtorNode *);
   BtorNode *result, *tmp1, *tmp2, *tmp3, *tmp4;
+  BtorNode *e_if_norm, *e_else_norm;
   BtorNodeKind kind;
 
 RESTART:
@@ -3682,6 +3743,9 @@ RESTART:
       BTOR_DEC_REC_RW_CALL (btor);
       btor_release_exp (btor, tmp1);
     }
+    //
+    // TODO: Normalize inverted add ....
+    //
     else if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e_if)
              && !BTOR_IS_INVERTED_NODE (e_else) && e_if->kind == e_else->kind)
     {
@@ -3720,7 +3784,8 @@ RESTART:
         }
         else if (fptr != btor_rewrite_udiv_exp && fptr != btor_rewrite_urem_exp)
         {
-          /* works only for commutative operators: */
+          /* works only for commutative and associative operators: */
+
           if (e_if->e[0] == e_else->e[1])
           {
             if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
@@ -3742,6 +3807,24 @@ RESTART:
             result = fptr (btor, e_if->e[1], tmp1);
             BTOR_DEC_REC_RW_CALL (btor);
             btor_release_exp (btor, tmp1);
+          }
+          else
+          {
+            if (btor->rec_rw_calls >= BTOR_REC_RW_BOUND)
+              goto BTOR_REWRITE_COND_NODE_NO_REWRITE;
+            normalize_binary_comm_ass_exp (btor,
+                                           e_if,
+                                           e_else,
+                                           &e_if_norm,
+                                           &e_else_norm,
+                                           btor_rewrite_add_exp,
+                                           e_if->kind);
+            BTOR_INC_REC_RW_CALL (btor);
+            result =
+                btor_rewrite_cond_exp (btor, e_cond, e_if_norm, e_else_norm);
+            BTOR_DEC_REC_RW_CALL (btor);
+            btor_release_exp (btor, e_if_norm);
+            btor_release_exp (btor, e_else_norm);
           }
         }
       }

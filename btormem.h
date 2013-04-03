@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
  *
@@ -19,16 +19,16 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_NEWN(mm, ptr, nelems)                        \
-  do                                                      \
-  {                                                       \
-    (ptr) = btor_malloc ((mm), (nelems) * sizeof *(ptr)); \
+#define BTOR_NEWN(mm, ptr, nelems)                                      \
+  do                                                                    \
+  {                                                                     \
+    (ptr) = (typeof(ptr)) btor_malloc ((mm), (nelems) * sizeof *(ptr)); \
   } while (0)
 
-#define BTOR_CNEWN(mm, ptr, nelems)                      \
-  do                                                     \
-  {                                                      \
-    (ptr) = btor_calloc ((mm), (nelems), sizeof *(ptr)); \
+#define BTOR_CNEWN(mm, ptr, nelems)                                    \
+  do                                                                   \
+  {                                                                    \
+    (ptr) = (typeof(ptr)) btor_calloc ((mm), (nelems), sizeof *(ptr)); \
   } while (0)
 
 #define BTOR_CLRN(ptr, nelems)                   \

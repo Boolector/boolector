@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
  *
@@ -1155,7 +1155,8 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   {
     BTOR_ABORT_BOOLECTOR (
         !params[i] || BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])),
-        "'params[%d]' is not a parameter");
+        "'params[%d]' is not a parameter",
+        i);
     BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
   }
 
@@ -1257,7 +1258,7 @@ boolector_is_array (Btor *btor, BtorNode *exp)
 }
 
 int
-boolector_get_width_index (Btor *btor, BtorNode *e_array)
+boolector_get_index_width (Btor *btor, BtorNode *e_array)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
