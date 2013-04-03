@@ -1,9 +1,9 @@
-(benchmark root4
+(benchmark root5
 :logic QF_BV
 :extrafuns ((a BitVec[1]))
 :extrafuns ((b BitVec[1]))
 :formula
-(let (?e3 (bvurem a b))
-(let (?e4 (bvand b ?e3))
-(not (= ?e4 bv0[1]))
+(let (?e4 (bvurem a b))
+(let (?e5 (bvand b ?e4))
+(not (= ?e5 bv0[1]))
 )))

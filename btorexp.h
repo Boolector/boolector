@@ -221,6 +221,12 @@ typedef struct BtorNodePair BtorNodePair;
                                                  parent list of child i */ \
   }
 
+struct BtorNodePair
+{
+  BtorNode *exp1;
+  BtorNode *exp2;
+};
+
 struct BtorBVVarNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
@@ -629,6 +635,16 @@ BtorSort *btor_fun_sort (Btor *btor, BtorSort *dom, BtorSort *codom);
 BtorSort *btor_copy_sort (Btor *btor, BtorSort *sort);
 
 void btor_release_sort (Btor *btor, BtorSort *sort);
+
+/*------------------------------------------------------------------------*/
+
+BtorNodePair *new_exp_pair (Btor *, BtorNode *, BtorNode *);
+
+void delete_exp_pair (Btor *, BtorNodePair *);
+
+unsigned int hash_exp_pair (BtorNodePair *);
+
+int compare_exp_pair (BtorNodePair *, BtorNodePair *);
 
 /*------------------------------------------------------------------------*/
 /* Implicit precondition of all functions taking expressions as inputs:
@@ -1160,8 +1176,15 @@ int btor_compare_exp_by_id (BtorNode *exp0, BtorNode *exp1);
 /* Hashes expression by ID */
 unsigned int btor_hash_exp_by_id (BtorNode *exp);
 
-/* Finds most simplified expression and shortens path to it */
+/* Checks for existing substitutions, finds most simplified expression and
+ * shortens path to it */
 BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
+
+/* Finds most simplified expression and shortens path to it */
+BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
+
+/* Evaluates parameterized expressions */
+const char *btor_eval_exp (Btor *, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
