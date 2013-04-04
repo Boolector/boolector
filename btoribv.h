@@ -110,16 +110,16 @@ BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 
 enum BtorIBVClassification
 {
-  UNCLASSIFIED = 0,
-  CONSTANT,
-  ASSIGNED,
-  ASSIGNED_IMPLICIT_CURRENT,
-  ASSIGNED_IMPLICIT_NEXT,
-  CURRENT_STATE,
-  TWO_PHASE_INPUT,
-  ONE_PHASE_ONLY_CURRENT_INPUT,
-  ONE_PHASE_ONLY_NEXT_INPUT,
-  NOT_USED,
+  BTOR_IBV_UNCLASSIFIED = 0,
+  BTOR_IBV_CONSTANT,
+  BTOR_IBV_ASSIGNED,
+  BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT,
+  BTOR_IBV_ASSIGNED_IMPLICIT_NEXT,
+  BTOR_IBV_CURRENT_STATE,
+  BTOR_IBV_TWO_PHASE_INPUT,
+  BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT,
+  BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT,
+  BTOR_IBV_NOT_USED,
 };
 
 struct BtorIBVFlags
@@ -146,12 +146,12 @@ struct BtorIBVNode
   bool is_loop_breaking;
   bool is_state_retain;
   IBitVector::DirectionKind direction;
-  signed char marked;
+  signed char marked, used;
   BtorNode *cached, *forwarded;
   char *name;
   BtorIBVFlags *flags;
   BtorIBVAssignment **assigned;
-  BtorIBVAssignment **next;
+  BtorIBVAssignment **next, **prev;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
 };
@@ -288,9 +288,11 @@ class BtorIBV : public IBitVector
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
   BtorNode *translate_assignment (BtorIBVAssignment *, bool);
+
   BtorNode *translate_new_input (BtorIBVRange, bool);
   BtorNode *translate_new_latch (BtorIBVRange);
   BtorNode *translate_range (BtorIBVRange, bool);
+
   void translate_node (BtorIBVNode *);
 
   struct
