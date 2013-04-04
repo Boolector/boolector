@@ -1746,3 +1746,19 @@ BtorIBV::translate ()
 
   state = BTOR_IBV_TRANSLATED;
 }
+
+/*------------------------------------------------------------------------*/
+
+// Dummy but compilable ...
+
+int
+BtorIBV::bmc (int maxk)
+{
+  return -1;
+}
+
+string
+BtorIBV::assignment (BitRange r, int k)
+{
+  return "";
+}

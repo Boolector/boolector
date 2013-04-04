@@ -532,6 +532,9 @@ class BtorIBV : public BitVector
 
   void analyze ();    // Needs to be called before 'translate'.
   void translate ();  // Into internal BtorMC model.
+
+  int bmc (int maxk);
+  string assignment (BitRange, int k);
 };
 
 inline BtorIBVRange::BtorIBVRange (const BitVector::BitRange &r)
