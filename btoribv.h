@@ -1,9 +1,10 @@
 #ifndef BTORIBV_H_INCLUDED
 #define BTORIBV_H_INCLUDED
 
-#include "IBitVector.h"
+#include "BitVector.h"
 
 extern "C" {
+#include "btorabort.h"
 #include "btorexp.h"
 #include "btormc.h"
 #include "btorstack.h"
@@ -66,7 +67,7 @@ struct BtorIBVRange
   BtorIBVRange (unsigned i, unsigned m, unsigned l) : id (i), msb (m), lsb (l)
   {
   }
-  BtorIBVRange (const IBitVector::BitRange &r);
+  BtorIBVRange (const BitVector::BitRange &r);
   unsigned getWidth () const { return msb - lsb + 1; }
 };
 
@@ -80,7 +81,6 @@ struct BtorIBVAssignment
   BtorIBVRange range;
   unsigned arg, nranges;
   BtorIBVRange *ranges;
-
   BtorIBVAssignment (BtorIBVTag t,
                      BtorIBVRange r,
                      unsigned a,
@@ -93,6 +93,17 @@ struct BtorIBVAssignment
 
 extern "C" {
 BTOR_DECLARE_STACK (IBVAssignment, BtorIBVAssignment);
+};
+
+struct BtorIBVAtom
+{
+  BtorIBVRange range;
+  BtorNode *exp;
+  BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0) {}
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVAtom, BtorIBVAtom);
 };
 
 struct BtorIBVRangeName
@@ -145,7 +156,7 @@ struct BtorIBVNode
   bool is_next_state;
   bool is_loop_breaking;
   bool is_state_retain;
-  IBitVector::DirectionKind direction;
+  BitVector::DirectionKind direction;
   signed char marked, used;
   BtorNode *cached, *forwarded;
   char *name;
@@ -154,6 +165,7 @@ struct BtorIBVNode
   BtorIBVAssignment **next, **prev;
   BtorIBVAssignmentStack assignments;
   BtorIBVRangeNameStack ranges;
+  BtorIBVAtomStack atoms;
 };
 
 extern "C" {
@@ -164,7 +176,7 @@ struct BtorIBVBit
 {
   unsigned id, bit;
   BtorIBVBit (unsigned i, unsigned b) : id (i), bit (b) {}
-  BtorIBVBit (const IBitVector::Bit &b);
+  BtorIBVBit (const BitVector::Bit &b);
 };
 
 extern "C" {
@@ -182,8 +194,15 @@ extern "C" {
 BTOR_DECLARE_STACK (IBVAssumption, BtorIBVAssumption);
 };
 
-class BtorIBV : public IBitVector
+class BtorIBV : public BitVector
 {
+  enum State
+  {
+    BTOR_IBV_START,
+    BTOR_IBV_ANALYZED,
+    BTOR_IBV_TRANSLATED,
+  } state;
+
   Btor *btor;
   BtorMC *btormc;
 
@@ -309,6 +328,16 @@ class BtorIBV : public IBitVector
 
   //------------------------------------------------------------------------
 
+#define BTOR_IBV_REQUIRE_START()                                          \
+  do                                                                      \
+  {                                                                       \
+    BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_ANALYZED,                     \
+                          "can not change model it has been analyzed");   \
+    BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_TRANSLATED,                   \
+                          "can not change model it has been translated"); \
+    assert (state == BTOR_IBV_START);                                     \
+  } while (0)
+
   void addConstant (unsigned, const string &, unsigned);
 
   void addVariable (
@@ -326,19 +355,27 @@ class BtorIBV : public IBitVector
 
   void addAssignment (BitRange o, BitRange a)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryOp (BTOR_IBV_BUF, o, a);
   }
-  void addBitNot (BitRange o, BitRange a) { addUnaryOp (BTOR_IBV_NOT, o, a); }
+  void addBitNot (BitRange o, BitRange a)
+  {
+    BTOR_IBV_REQUIRE_START ();
+    addUnaryOp (BTOR_IBV_NOT, o, a);
+  }
   void addZeroExtension (BitRange o, BitRange a)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryOp (BTOR_IBV_ZERO_EXTEND, o, a);
   }
   void addSignExtension (BitRange o, BitRange a)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryOp (BTOR_IBV_SIGN_EXTEND, o, a);
   }
   void addLogicalNot (BitRange o, BitRange a)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryPred (BTOR_IBV_NOT, o, a);
   }
 
@@ -346,70 +383,87 @@ class BtorIBV : public IBitVector
 
   void addBitOr (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_OR, o, a, b);
   }
   void addBitAnd (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_AND, o, a, b);
   }
   void addBitXor (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_XOR, o, a, b);
   }
   void addEqual (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_EQUAL, o, a, b);
   }
   void addGreaterThan (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_LT, o, b, a);
   }
   void addGreaterEqual (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_LE, o, b, a);
   }
   void addLessThan (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_LT, o, a, b);
   }
   void addLessEqual (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_LE, o, a, b);
   }
   void addLogicalAnd (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_AND, o, a, b);
   }
   void addLogicalOr (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryPred (BTOR_IBV_OR, o, a, b);
   }
   void addSum (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_SUM, o, a, b);
   }
   void addSub (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_SUB, o, a, b);
   }
   void addMul (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_MUL, o, a, b);
   }
   void addDiv (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_DIV, o, a, b);
   }
   void addMod (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_MOD, o, a, b);
   }
   void addLShiftNonConst (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_LEFT_SHIFT, o, a, b);
   }
   void addRShiftNonConst (BitRange o, BitRange a, BitRange b)
   {
+    BTOR_IBV_REQUIRE_START ();
     addBinaryOp (BTOR_IBV_RIGHT_SHIFT, o, a, b);
   }
 
@@ -421,14 +475,17 @@ class BtorIBV : public IBitVector
 
   void addReplicate (BitRange o, BitRange a, unsigned arg)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryArg (BTOR_IBV_REPLICATE, o, a, arg);
   }
   void addLShift (BitRange o, BitRange a, unsigned arg)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryArg (BTOR_IBV_LEFT_SHIFT, o, a, arg);
   }
   void addRShift (BitRange o, BitRange a, unsigned arg)
   {
+    BTOR_IBV_REQUIRE_START ();
     addUnaryArg (BTOR_IBV_RIGHT_SHIFT, o, a, arg);
   }
 
@@ -438,11 +495,13 @@ class BtorIBV : public IBitVector
 
   void addCase (BitRange o, const vector<BitRange> &ops)
   {
+    BTOR_IBV_REQUIRE_START ();
     addCaseOp (BTOR_IBV_CASE, o, ops);
   }
 
   void addParallelCase (BitRange o, const vector<BitRange> &ops)
   {
+    BTOR_IBV_REQUIRE_START ();
     addCaseOp (BTOR_IBV_PARCASE, o, ops);
   }
 
@@ -476,12 +535,12 @@ class BtorIBV : public IBitVector
   void translate ();  // Into internal BtorMC model.
 };
 
-inline BtorIBVRange::BtorIBVRange (const IBitVector::BitRange &r)
+inline BtorIBVRange::BtorIBVRange (const BitVector::BitRange &r)
     : id (r.m_nId), msb (r.m_nMsb), lsb (r.m_nLsb)
 {
 }
 
-inline BtorIBVBit::BtorIBVBit (const IBitVector::Bit &b)
+inline BtorIBVBit::BtorIBVBit (const BitVector::Bit &b)
     : id (b.m_nId), bit (b.m_nBit)
 {
 }
