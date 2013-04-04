@@ -1154,7 +1154,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   for (i = 0; i < paramc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
-        !params[i] || BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])),
+        !params[i] || !BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (params[i])),
         "'params[%d]' is not a parameter",
         i);
     BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);

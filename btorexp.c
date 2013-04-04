@@ -8427,6 +8427,7 @@ process_working_stack (Btor *btor,
       btor_assign_param (btor, array, index);
       lambda_value = btor_beta_reduce_cutoff (btor, array, &parameterized);
       btor_unassign_param (btor, array);
+      assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_value)));
 
       // debug
       char *a = btor_bv_assignment_exp (btor, value);
