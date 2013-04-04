@@ -117,20 +117,20 @@ test_mccount2enablenomodel ()
   init_mc_test ();
 
   BtorNode *counter;  // 2-bit state
-  // BtorNode * enable;		// one boolean control input
+  BtorNode *enable;   // one boolean control input
 
   boolector_set_verbosity_mc (g_mc, 3);
 
   counter = boolector_latch (g_mc, 2, "counter");
-  // enable = boolector_input (g_mc, 1, "enable");
+  enable  = boolector_input (g_mc, 1, "enable");
 
   {
-    BtorNode *one   = boolector_one (g_btor, 2);
-    BtorNode *zero  = boolector_zero (g_btor, 2);
-    BtorNode *three = boolector_const (g_btor, "11");
-    BtorNode *add   = boolector_add (g_btor, counter, one);
-    // BtorNode * ifenable = boolector_cond (g_btor, enable, add, counter);
-    BtorNode *bad = boolector_eq (g_btor, counter, three);
+    BtorNode *one      = boolector_one (g_btor, 2);
+    BtorNode *zero     = boolector_zero (g_btor, 2);
+    BtorNode *three    = boolector_const (g_btor, "11");
+    BtorNode *add      = boolector_add (g_btor, counter, one);
+    BtorNode *ifenable = boolector_cond (g_btor, enable, add, counter);
+    BtorNode *bad      = boolector_eq (g_btor, counter, three);
     boolector_next (g_mc, counter, add);  // ifenable);
     boolector_init (g_mc, counter, zero);
     boolector_bad (g_mc, bad);
@@ -138,7 +138,7 @@ test_mccount2enablenomodel ()
     boolector_release (g_btor, zero);
     boolector_release (g_btor, three);
     boolector_release (g_btor, add);
-    // boolector_release (g_btor, ifenable);
+    boolector_release (g_btor, ifenable);
     boolector_release (g_btor, bad);
   }
 

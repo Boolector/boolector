@@ -1405,7 +1405,7 @@ BtorIBV::translate_range (BtorIBVRange r, bool forward)
 {
   if (!r.id) return 0;
   BtorIBVNode *n = id2node (r.id);
-  BtorNode *exp  = forward ? n->cached : n->forwarded;
+  BtorNode *exp  = forward ? n->forwarded : n->cached;
   assert (exp);
   return boolector_slice (btor, exp, (int) r.msb, (int) r.lsb);
 }
@@ -1480,8 +1480,9 @@ BtorIBV::translate_new_input (BtorIBVRange r, bool next)
   int len    = strlen (prefix) + strlen (n->name) + strlen (suffix) + 1;
   char *name = (char *) btor_malloc (btor->mm, len);
   sprintf (name, "%s%s%s", suffix, n->name, suffix);
-  res = boolector_latch (btormc, (int) n->width, name);
+  res = boolector_input (btormc, (int) n->width, name);
   btor_free (btor->mm, name, len);
+  (void) boolector_copy (btor, res);
   stats.inputs++;
   return res;
 }
@@ -1507,6 +1508,7 @@ BtorIBV::translate_new_latch (BtorIBVRange r)
     res = boolector_latch (btormc, (int) n->width, name);
     btor_free (btor->mm, name, len);
   }
+  (void) boolector_copy (btor, res);
   stats.latches++;
   return res;
 }
@@ -1576,6 +1578,7 @@ BtorIBV::translate_node (BtorIBVNode *n)
         BtorNode *tmp = cached;
         cached        = boolector_concat (btor, c, cached);
         boolector_release (btor, tmp);
+        boolector_release (btor, c);
       }
       else
         cached = c;
@@ -1587,6 +1590,7 @@ BtorIBV::translate_node (BtorIBVNode *n)
         BtorNode *tmp = forwarded;
         forwarded     = boolector_concat (btor, f, forwarded);
         boolector_release (btor, tmp);
+        boolector_release (btor, f);
       }
       else
         forwarded = f;
