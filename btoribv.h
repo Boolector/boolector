@@ -306,13 +306,7 @@ class BtorIBV : public BitVector
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
-  BtorNode *translate_assignment (BtorIBVAssignment *, bool);
-
-  BtorNode *translate_new_input (BtorIBVRange, bool);
-  BtorNode *translate_new_latch (BtorIBVRange);
-  BtorNode *translate_range (BtorIBVRange, bool);
-
-  void translate_node (BtorIBVNode *);
+  void translate_atom (BtorIBVAtom *);
 
   struct
   {
