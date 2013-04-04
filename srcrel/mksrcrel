@@ -56,7 +56,7 @@ $dir/
 if [ $intel = yes ]
 then
   cp -p \
-    IBitVector.h \
+    BitVector.h \
     btoribv.h \
     btoribv.cc \
     ibv.mk \
@@ -64,9 +64,9 @@ then
 fi
 
 cat <<EOF > $dir/REAMDE.intel
-This src release contains the propriatory file
+This src release contains the proprietary file
 
-IBitVector.h
+BitVector.h
 
 which is included in 'btoribv.{h,cc}'.
 EOF
