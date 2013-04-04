@@ -1495,12 +1495,9 @@ btor_ibv_classified_to_str (BtorIBVClassification c)
   }
 }
 
-void
-BtorIBV::translate_atom (BtorIBVAtom *a)
+static void
+btor_ibv_check_atom (BtorIBVNode *n, BtorIBVRange r)
 {
-  assert (!a->exp);
-  BtorIBVRange r = a->range;
-  BtorIBVNode *n = id2node (r.id);
 #ifndef NDEBUG
   assert (r.msb < n->width);
   for (unsigned i = r.lsb + 1; i < r.msb; i++)
@@ -1510,20 +1507,54 @@ BtorIBV::translate_atom (BtorIBVAtom *a)
     if (n->next) assert (n->next[i] == n->next[r.lsb]);
     if (n->prev) assert (n->prev[i] == n->prev[r.lsb]);
   }
+#else
+  (void) n, (void) r;
 #endif
+}
+
+void
+BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
+{
+  BtorIBVRange r = a->range;
+  BtorIBVNode *n = id2node (r.id);
+  btor_ibv_check_atom (n, r);
+
+  BtorIBVClassification c = n->flags[r.lsb].classified;
+  switch (c)
+  {
+    default:
+    case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
+      BTOR_ABORT_BOOLECTOR (
+          1, "%s not handled", btor_ibv_classified_to_str (c));
+      break;
+
+    case BTOR_IBV_CURRENT_STATE:
+      // TODO next ...
+      break;
+  }
+}
+
+void
+BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
+{
+  if (a->exp) return;
+  BtorIBVRange r = a->range;
+  BtorIBVNode *n = id2node (r.id);
+  btor_ibv_check_atom (n, r);
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
     char suffix[30], *name;
     int len;
+
+    default:
     case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
     case BTOR_IBV_TWO_PHASE_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
-      BTOR_ABORT_BOOLECTOR (1,
-                            "classification %s not handled yet",
-                            btor_ibv_classified_to_str (c));
+      BTOR_ABORT_BOOLECTOR (
+          1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_CURRENT_STATE:
@@ -1539,10 +1570,63 @@ BtorIBV::translate_atom (BtorIBVAtom *a)
       btor_free (btor->mm, name, len);
       stats.latches++;
       break;
+  }
+}
+
+void
+BtorIBV::translate_atom_base (BtorIBVAtom *a)
+{
+  assert (!a->exp);
+  BtorIBVRange r = a->range;
+  BtorIBVNode *n = id2node (r.id);
+  btor_ibv_check_atom (n, r);
+  BtorIBVClassification c = n->flags[r.lsb].classified;
+  switch (c)
+  {
+    char suffix[30], *name;
+    int len;
 
     default:
-    case BTOR_IBV_ASSIGNED: assert (c == BTOR_IBV_ASSIGNED); break;
+      BTOR_ABORT_BOOLECTOR (
+          1, "%s not handled yet", btor_ibv_classified_to_str (c));
+      break;
+
+    case BTOR_IBV_CURRENT_STATE:
+      if (n->width == r.getWidth ())
+        suffix[0] = 0;
+      else
+        sprintf (suffix, "[%u:%u]", r.msb, r.lsb);
+      len  = strlen (n->name) + strlen (suffix) + 1;
+      name = (char *) btor_malloc (btor->mm, len);
+      sprintf (name, "%s%s", n->name, suffix);
+      a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
+      (void) boolector_copy (btor, a->exp);
+      btor_free (btor->mm, name, len);
+      stats.latches++;
+      break;
   }
+}
+
+void
+BtorIBV::translate_node_divide (BtorIBVNode *n, BtorIBVNodePtrStack *work)
+{
+  assert (n);
+  if (n->cached) return;
+  assert (!n->forwarded);
+  assert (!n->is_constant);
+  for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
+    translate_atom_divide (a, work);
+}
+
+void
+BtorIBV::translate_node_conquer (BtorIBVNode *n)
+{
+  assert (n);
+  if (n->cached) return;
+  assert (!n->forwarded);
+  assert (!n->is_constant);
+  for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
+    translate_atom_conquer (a);
 }
 
 void
@@ -1607,7 +1691,7 @@ BtorIBV::translate ()
         case BTOR_IBV_TWO_PHASE_INPUT:
         case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
         case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
-          translate_atom (aptr);
+          translate_atom_base (aptr);
           break;
         default: break;
       }
@@ -1617,47 +1701,48 @@ BtorIBV::translate ()
 
   /*----------------------------------------------------------------------*/
 
-#if 0
-
   msg (1, "translating remaining nodes ... ");
   BtorIBVNodePtrStack work;
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+    if (*p) (*p)->marked = 0;
   BTOR_INIT_STACK (work);
-  for (BtorIBVNode ** p = idtab.start; p < idtab.top; p++) {
-    BtorIBVNode * n = *p;
-    if (!n) continue;
-    if (n->is_constant) { assert (n->cached); continue; }
-    if (!n->used) continue;
-    BTOR_PUSH_STACK (btor->mm, work, n);
-    n->marked = 0;
-  }
-  while (!BTOR_EMPTY_STACK (work)) {
-    BtorIBVNode * n = BTOR_TOP_STACK  (work);
-    if (n->cached) { 
-      assert (n->is_constant || n->marked == 2);
-      BTOR_POP_STACK (work);
-    } else if (n->marked == 1) {
-      translate_node (n);
-      assert (n->cached);
-      n->marked = 2;
-      BTOR_POP_STACK (work);
-    } else {
-      assert (!n->marked);
-      n->marked = 1;
-      for (BtorIBVAssignment * a = n->assignments.start;
-	   a < n->assignments.top;
-	   a++) {
-	for (unsigned i = 0; i < a->nranges; i++) {
-	  if (!a->ranges[i].id) continue;
-	  BtorIBVNode * o = id2node (a->ranges[i].id);
-	  if (!o->marked) BTOR_PUSH_STACK (btor->mm, work, o);
-	}
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *root = *p;
+    if (!root) continue;
+    if (!root->used) continue;
+    if (root->cached) continue;
+    BTOR_PUSH_STACK (btor->mm, work, root);
+    while (!BTOR_EMPTY_STACK (work))
+    {
+      BtorIBVNode *n = BTOR_TOP_STACK (work);
+      if (n->cached)
+      {
+        assert (n->is_constant || n->marked == 2);
+        BTOR_POP_STACK (work);
+      }
+      else if (n->marked == 1)
+      {
+        translate_node_conquer (n);
+        assert (n->cached);
+        n->marked = 2;
+        BTOR_POP_STACK (work);
+      }
+      else
+      {
+        assert (!n->marked);
+        n->marked = 1;
+        translate_node_divide (n, &work);
       }
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
-  msg (2, "translated %u inputs, %u latches, %u nexts, %u inits",
-    stats.inputs, stats.latches, stats.nexts, stats.inits);
-#endif
+  msg (2,
+       "translated %u inputs, %u latches, %u nexts, %u inits",
+       stats.inputs,
+       stats.latches,
+       stats.nexts,
+       stats.inits);
 
   state = BTOR_IBV_TRANSLATED;
 }
