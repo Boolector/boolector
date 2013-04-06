@@ -639,18 +639,17 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   int res, bfres;
   char name[80];
 
-  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
-
-  if (!smgr->inc_required)
+  if (smgr->inc_required)
+    lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+  else
   {
     lglsetopt (lgl, "clim", -1);
     res = lglsat (lgl);
     return res;
   }
 
-  lglsetopt (lgl, "phase", -1);
-  lglsetopt (lgl, "flipping", 0);
-  lglsetopt (lgl, "predict", 0);
+  // lglsetopt (lgl, "phase", -1);
+  // lglsetopt (lgl, "bias", -1);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
@@ -672,8 +671,6 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       lglfixate (bforked);
       lglmeltall (bforked);
       str = "clone";
-      lglsetopt (bforked, "seed", blgl->nforked);
-      lglsetopt (bforked, "simpdelay", 0);
       if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
       lglsetopt (bforked, "clim", limit);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
