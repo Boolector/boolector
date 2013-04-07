@@ -3855,7 +3855,7 @@ RESTART:
       BtorNode *i1        = BTOR_COND_INVERT_NODE (e_if, real_if->e[1]);
       BtorNode *e0        = BTOR_COND_INVERT_NODE (e_if, real_else->e[0]);
       BtorNode *e1        = BTOR_COND_INVERT_NODE (e_if, real_else->e[1]);
-      if (i0 == e0 || e1 == e1)
+      if (i0 == e0 || i1 == e1)
       {
         tmp1   = btor_rewrite_cond_exp (btor, e_cond, i0, e0);
         tmp2   = btor_rewrite_cond_exp (btor, e_cond, i1, e1);
