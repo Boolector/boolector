@@ -450,6 +450,13 @@ rw210 -rwl3 -o log/rw210.log log/rw210.btor
 rw211 -rwl3 -o log/rw211.log log/rw211.btor
 rw212 -rwl3 -o log/rw212.log log/rw212.smt
 rw213 -rwl3 -o log/rw213.log log/rw213.smt
+rw214 -rwl3 -o log/rw214.log log/rw214.smt
+rw215 -rwl3 -o log/rw215.log log/rw215.smt
+rw216 -rwl3 -o log/rw216.log log/rw216.smt
+rw217 -rwl3 -o log/rw217.log log/rw217.smt2
+rw218 -rwl3 -o log/rw218.log log/rw218.smt2
+rw217 -rwl3 -o log/rw217.log log/rw217.smt2
+rw219 -rwl3 -o log/rw219.log log/rw219.smt2
 rww1 -rwl3 -rww -o log/rww1.log log/rww1.btor
 rwr1 -rwl3 -rww -rwr -o log/rwr1.log log/rwr1.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor
