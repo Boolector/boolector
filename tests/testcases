@@ -458,6 +458,7 @@ rw218 -rwl3 -o log/rw218.log log/rw218.smt2
 rw217 -rwl3 -o log/rw217.log log/rw217.smt2
 rw219 -rwl3 -o log/rw219.log log/rw219.smt2
 rw220 -rwl3 -o log/rw220.log log/rw220.smt2
+rw221 -rwl3 -o log/rw221.log log/rw221.smt2
 rww1 -rwl3 -rww -o log/rww1.log log/rww1.btor
 rwr1 -rwl3 -rww -rwr -o log/rwr1.log log/rwr1.btor
 hd1 -rwl0 -o log/hd1.log log/hd1.btor

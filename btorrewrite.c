@@ -89,8 +89,9 @@ is_const_zero_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
+#if 0
 static int
-is_const_ones_exp (Btor *btor, BtorNode *exp)
+is_const_ones_exp (Btor * btor, BtorNode * exp)
 {
   int result;
   BtorNode *real_exp;
@@ -100,18 +101,30 @@ is_const_ones_exp (Btor *btor, BtorNode *exp)
 
   exp = btor_simplify_exp (btor, exp);
 
-  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp))) return 0;
+  if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp)))
+    return 0;
 
   if (BTOR_IS_INVERTED_NODE (exp))
-  {
-    real_exp = BTOR_REAL_ADDR_NODE (exp);
-    result   = btor_is_zero_const (real_exp->bits);
-  }
+    {
+      real_exp = BTOR_REAL_ADDR_NODE (exp);
+      result = btor_is_zero_const (real_exp->bits);
+    }
   else
     result = btor_is_ones_const (exp->bits);
 
   return result;
 }
+
+static int
+is_const_exp (Btor * btor, BtorNode * exp)
+{
+  assert (btor);
+  assert (exp);
+  exp = btor_pointer_chase_simplified_exp (btor, exp);
+  return  !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+#endif
 
 static int
 is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
@@ -140,15 +153,6 @@ is_odd_const_exp (BtorNode *exp)
   if (exp->kind != BTOR_BV_CONST_NODE) return 0;
 
   return exp->bits[exp->len - 1] == '1';
-}
-
-static int
-is_const_exp (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-  exp = btor_pointer_chase_simplified_exp (btor, exp);
-  return !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
 
 static int
@@ -1094,8 +1098,8 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
     BtorNode *e11 = BTOR_COND_INVERT_NODE (e1, real_e1->e[1]);
     if ((is_const_zero_or_ones_exp (btor, e00)
          && is_const_zero_or_ones_exp (btor, e11))
-        || ((is_const_zero_or_ones_exp (btor, e01)
-             && is_const_zero_or_ones_exp (btor, e10))))
+        || (is_const_zero_or_ones_exp (btor, e01)
+            && is_const_zero_or_ones_exp (btor, e10)))
     {
       /* The following are all globally simplifying:
        *
@@ -3841,6 +3845,25 @@ RESTART:
     //
     // TODO: Normalize inverted add ....
     //
+    else if (btor->rewrite_level > 2
+             && BTOR_REAL_ADDR_NODE (e_if)->kind == BTOR_CONCAT_NODE
+             && BTOR_REAL_ADDR_NODE (e_else)->kind == BTOR_CONCAT_NODE)
+    {
+      BtorNode *real_if   = BTOR_REAL_ADDR_NODE (e_if);
+      BtorNode *real_else = BTOR_REAL_ADDR_NODE (e_else);
+      BtorNode *i0        = BTOR_COND_INVERT_NODE (e_if, real_if->e[0]);
+      BtorNode *i1        = BTOR_COND_INVERT_NODE (e_if, real_if->e[1]);
+      BtorNode *e0        = BTOR_COND_INVERT_NODE (e_if, real_else->e[0]);
+      BtorNode *e1        = BTOR_COND_INVERT_NODE (e_if, real_else->e[1]);
+      if (i0 == e0 || e1 == e1)
+      {
+        tmp1   = btor_rewrite_cond_exp (btor, e_cond, i0, e0);
+        tmp2   = btor_rewrite_cond_exp (btor, e_cond, i1, e1);
+        result = btor_concat_exp (btor, tmp1, tmp2);
+        btor_release_exp (btor, tmp1);
+        btor_release_exp (btor, tmp2);
+      }
+    }
     else if (btor->rewrite_level > 2 && !BTOR_IS_INVERTED_NODE (e_if)
              && !BTOR_IS_INVERTED_NODE (e_else) && e_if->kind == e_else->kind)
     {
