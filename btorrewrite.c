@@ -114,6 +114,25 @@ is_const_ones_exp (Btor *btor, BtorNode *exp)
 }
 
 static int
+is_const_zero_or_ones_exp (Btor *btor, BtorNode *exp)
+{
+  int result;
+  BtorNode *real_exp;
+
+  assert (btor);
+  assert (exp);
+
+  exp      = btor_simplify_exp (btor, exp);
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+
+  if (!BTOR_IS_BV_CONST_NODE (real_exp)) return 0;
+
+  result = btor_is_zero_or_ones_const (real_exp->bits);
+
+  return result;
+}
+
+static int
 is_odd_const_exp (BtorNode *exp)
 {
   if (BTOR_IS_INVERTED_NODE (exp)) return 0;
@@ -1008,7 +1027,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
 	   is_const_zero_exp (btor, e0->e[0]) &&
 	   is_const_zero_exp (btor, e1->e[1]))
     {
-      result = btor_zero_exp (btor, e0->len);
+      result = btor_zero_exp (btor, e0->len);	// fixed!
     }
   else if (kind == BTOR_AND_NODE &&
 	   BTOR_IS_INVERTED_NODE (e0) &&
@@ -1036,7 +1055,7 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
       result = btor_concat_exp (btor, real_e1->e[0], real_e0->e[1]);
       result = BTOR_INVERT_NODE (result);
     }
-#else
+#elif 0
   else if (kind == BTOR_AND_NODE && real_e0->kind == BTOR_CONCAT_NODE
            && real_e1->kind == BTOR_CONCAT_NODE
            && BTOR_REAL_ADDR_NODE (real_e0->e[0])->len
@@ -1053,6 +1072,39 @@ rewrite_binary_exp (Btor *btor, BtorNodeKind kind, BtorNode *e0, BtorNode *e1)
         || (is_const_exp (btor, e00) && is_const_exp (btor, e10))
         || (is_const_exp (btor, e01) && is_const_exp (btor, e11)))
     {
+      left  = btor_and_exp (btor, e00, e10);
+      right = btor_and_exp (btor, e01, e11);
+      //
+      // This does not work since it is recursive (non-terminating)!!
+      //
+      result = btor_concat_exp (btor, left, right);
+      btor_release_exp (btor, right);
+      btor_release_exp (btor, left);
+    }
+  }
+#else
+  else if (kind == BTOR_AND_NODE && real_e0->kind == BTOR_CONCAT_NODE
+           && real_e1->kind == BTOR_CONCAT_NODE
+           && BTOR_REAL_ADDR_NODE (real_e0->e[0])->len
+                  == BTOR_REAL_ADDR_NODE (real_e1->e[0])->len)
+  {
+    BtorNode *e00 = BTOR_COND_INVERT_NODE (e0, real_e0->e[0]);
+    BtorNode *e01 = BTOR_COND_INVERT_NODE (e0, real_e0->e[1]);
+    BtorNode *e10 = BTOR_COND_INVERT_NODE (e1, real_e1->e[0]);
+    BtorNode *e11 = BTOR_COND_INVERT_NODE (e1, real_e1->e[1]);
+    if ((is_const_zero_or_ones_exp (btor, e00)
+         && is_const_zero_or_ones_exp (btor, e11))
+        || ((is_const_zero_or_ones_exp (btor, e01)
+             && is_const_zero_or_ones_exp (btor, e10))))
+    {
+      /* The following are all globally simplifying:
+       *
+       *   (0::x) & (y::0) -> 0
+       *   (0::x) & (y::1) -> 0::x
+       *   (1::x) & (y::1) -> y::x
+       *
+       *   etc.
+       */
       left   = btor_and_exp (btor, e00, e10);
       right  = btor_and_exp (btor, e01, e11);
       result = btor_concat_exp (btor, left, right);
