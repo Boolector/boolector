@@ -11905,16 +11905,16 @@ rewrite_reads_on_aconds (Btor *btor)
       btor_insert_substitution (btor, read, read_simp);
 
       if (BTOR_REAL_ADDR_NODE (read_then)->parameterized
-          && BTOR_IS_LAMBDA_NODE (e[1]))
+          && BTOR_IS_LAMBDA_NODE (e[1])
+          && !btor_find_in_ptr_hash_table (param_reads, read_then))
       {
-        assert (!btor_find_in_ptr_hash_table (param_reads, read_then));
         btor_insert_in_ptr_hash_table (param_reads, read_then);
       }
 
       if (BTOR_REAL_ADDR_NODE (read_else)->parameterized
-          && BTOR_IS_LAMBDA_NODE (e[2]))
+          && BTOR_IS_LAMBDA_NODE (e[2])
+          && !btor_find_in_ptr_hash_table (param_reads, read_else))
       {
-        assert (!btor_find_in_ptr_hash_table (param_reads, read_else));
         btor_insert_in_ptr_hash_table (param_reads, read_else);
       }
 
