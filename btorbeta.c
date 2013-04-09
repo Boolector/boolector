@@ -176,6 +176,12 @@ btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
   return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized);
 }
 
+BtorNode *
+btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
+{
+  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED (bound), 0);
+}
+
 #define BETA_REDUCE_OPEN_NEW_SCOPE(lambda)                                     \
   do                                                                           \
   {                                                                            \
@@ -190,6 +196,22 @@ btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
                                  (BtorHashPtr) btor_hash_exp_by_id,            \
                                  (BtorCmpPtr) btor_compare_exp_by_id);         \
     cur_scope_lambda = lambda;                                                 \
+  } while (0)
+
+#define BETA_REDUCE_CLOSE_SCOPE()                                            \
+  do                                                                         \
+  {                                                                          \
+    assert (cur_scope);                                                      \
+    assert (cur_scope_lambda);                                               \
+    /* delete current scope */                                               \
+    btor_delete_ptr_hash_table (cur_scope);                                  \
+    for (b = cur_scope_results->first; b; b = b->next)                       \
+      btor_release_exp (btor, (BtorNode *) b->data.asPtr);                   \
+    btor_delete_ptr_hash_table (cur_scope_results);                          \
+    /* pop previous scope */                                                 \
+    cur_scope         = (BtorPtrHashTable *) BTOR_POP_STACK (scopes);        \
+    cur_scope_results = (BtorPtrHashTable *) BTOR_POP_STACK (scope_results); \
+    cur_scope_lambda  = BTOR_POP_STACK (scope_lambdas);                      \
   } while (0)
 
 #define BETA_REDUCE_PUSH_RESULT_IF_CACHED(lambda, assignment)            \
@@ -231,7 +253,7 @@ btor_beta_reduce (Btor *btor,
 
   /* TODO bounded reduction not implemented yet */
   assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL
-          || bound == BETA_RED_LAMBDA_CHAINS);
+          || bound == BETA_RED_LAMBDA_CHAINS || bound > 0);
 
   int i, aux_rewrite_level = 0;
   const char *eval_res;
@@ -316,6 +338,24 @@ btor_beta_reduce (Btor *btor,
 
       for (i = 0; i < real_cur->arity; i++)
         e[i] = btor_simplify_exp (btor, real_cur->e[i]);
+
+      /* bounded reduction */
+      if (bound > BETA_RED_FULL && BTOR_IS_LAMBDA_NODE (real_cur)
+          && BTOR_COUNT_STACK (scopes) > bound)
+      {
+        assert (real_cur == cur_scope_lambda);
+        BETA_REDUCE_CLOSE_SCOPE ();
+
+        if (btor_param_cur_assignment (real_cur->e[0]))
+        {
+#ifndef NDEBUG
+          (void) BTOR_POP_STACK (unassign_stack);
+#endif
+          btor_unassign_param (btor, real_cur);
+        }
+
+        goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
+      }
 
       if (bound == BETA_RED_LAMBDA_CHAINS
           /* skip all arrays that are not part of the lambda chain */
@@ -647,22 +687,7 @@ btor_beta_reduce (Btor *btor,
       }
 
       /* close scope */
-      if (real_cur == cur_scope_lambda)
-      {
-        assert (cur_scope);
-        assert (cur_scope_lambda);
-
-        /* delete current scope */
-        btor_delete_ptr_hash_table (cur_scope);
-        for (b = cur_scope_results->first; b; b = b->next)
-          btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-        btor_delete_ptr_hash_table (cur_scope_results);
-
-        /* pop previous scope */
-        cur_scope         = (BtorPtrHashTable *) BTOR_POP_STACK (scopes);
-        cur_scope_results = (BtorPtrHashTable *) BTOR_POP_STACK (scope_results);
-        cur_scope_lambda  = BTOR_POP_STACK (scope_lambdas);
-      }
+      if (real_cur == cur_scope_lambda) BETA_REDUCE_CLOSE_SCOPE ();
 
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
