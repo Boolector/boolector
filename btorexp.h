@@ -368,6 +368,7 @@ struct Btor
   int msgtick;              /* message tick in incremental mode */
   int rewrite_writes;       /* rewrite writes to lambda expressions */
   int rewrite_reads;        /* rewrite reads on lambda expressions */
+  int rewrite_aconds;       /* rewrite aconds to lambda expressions */
   int pprint;               /* reindex exps when dumping */
 
   int generate_model_for_all_reads;
@@ -584,6 +585,9 @@ void btor_enable_rewrite_writes (Btor *btor);
 
 /* Enable rewriting of reads on lambda expressions. */
 void btor_enable_rewrite_reads (Btor *btor);
+
+/* Enable rewriting of aconds to lambda expressions. */
+void btor_enable_rewrite_aconds (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);
