@@ -931,6 +931,14 @@ BtorNode *boolector_dec (Btor *btor, BtorNode *exp);
 int boolector_is_array (Btor *btor, BtorNode *exp);
 
 /**
+ * Determines if expression is a function.
+ * \param btor Boolector instance.
+ * \param exp Operand.
+ * \result True if epxression is a function, and false otherwise.
+ */
+int boolector_is_fun (Btor *btor, BtorNode *exp);
+
+/**
  * Gets the bit-width of an expression. If the expression
  * is an array, it returns the bit-width of the array elements.
  * \param btor Boolector instance.
