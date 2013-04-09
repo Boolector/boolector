@@ -2761,6 +2761,7 @@ btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
   // TODO: functions with arity > 1
   //       translate function calls to read with concat arguments
+  //	   mem cleanup in case of error (release btor nodes, stacks)
   int tag, domain, width;
   BtorNode *exp = 0;
   BtorSMT2Coo coo;
