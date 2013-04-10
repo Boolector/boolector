@@ -11888,7 +11888,6 @@ rewrite_aconds_to_lambdas (Btor *btor)
     }
     else if (BTOR_IS_LAMBDA_NODE (e[1]) && e1_refs == 1)
     {
-      assert (e2_refs > 1);
       btor_assign_param (btor, e[1], param);
       e_then = btor_beta_reduce_bounded (btor, e[1], 1);
       btor_unassign_param (btor, e[1]);
@@ -11897,7 +11896,6 @@ rewrite_aconds_to_lambdas (Btor *btor)
     }
     else if (BTOR_IS_LAMBDA_NODE (e[2]) && e2_refs == 1)
     {
-      assert (e1_refs > 1);
       e_then = btor_read_exp (btor, e[1], param);
 
       btor_assign_param (btor, e[2], param);
