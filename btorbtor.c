@@ -1861,7 +1861,7 @@ NEXT:
 
 SKIP:
   ch = btor_nextch_btor (parser);
-  if (ch == ' ' || ch == '\t') goto SKIP;
+  if (ch == ' ' || ch == '\t' || ch == '\r') goto SKIP;
 
   if (ch == ';') goto COMMENTS; /* ... and force new line */
 
