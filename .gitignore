@@ -22,7 +22,9 @@ test.dep
 deltabtor
 btorconfig.h
 merged.c
-*.btor
-*.smt
+/*.btor
+/*.smt
+/*.smt2
 run.sh
 doc
+*.swp
