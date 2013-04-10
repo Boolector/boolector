@@ -1519,8 +1519,6 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
   BtorIBVNode *n = id2node (r.id);
   btor_ibv_check_atom (n, r);
 
-  (void) work;
-
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
@@ -1530,10 +1528,83 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
           1, "%s not handled", btor_ibv_classified_to_str (c));
       break;
 
+    case BTOR_IBV_ASSIGNED:
+    {
+      BtorIBVAssignment *a = n->assigned[r.lsb];
+      assert (a);
+      for (unsigned i = 0; i < a->nranges; i++)
+      {
+        BtorIBVRange r = a->ranges[i];
+        if (!r.id) continue;
+        BtorIBVNode *o = id2node (r.id);
+        BTOR_PUSH_STACK (btor->mm, *work, o);
+      }
+    }
+    break;
+
     case BTOR_IBV_CURRENT_STATE:
       // TODO next ...
       break;
   }
+}
+
+void
+BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
+{
+  assert (a);
+  BtorIBVNode *n = id2node (a->range.id), *o;
+  BtorNode *tmp;
+#ifndef NDEBUG
+  assert (!n->cached);
+  for (unsigned i = 0; i < a->nranges; i++)
+  {
+    BtorIBVRange r = a->ranges[i];
+    if (!r.id) continue;
+    BtorIBVNode *o = id2node (r.id);
+    assert (o->cached);
+  }
+#endif
+  switch (a->tag)
+  {
+    case BTOR_IBV_NOT:
+    {
+      BtorIBVRange r = a->ranges[0];
+      o              = id2node (r.id);
+      assert (o->cached);
+      tmp       = btor_slice_exp (btor, o->cached, (int) r.msb, (int) r.lsb);
+      n->cached = btor_not_exp (btor, tmp);
+      btor_release_exp (btor, tmp);
+    }
+    break;
+    case BTOR_IBV_AND:
+    case BTOR_IBV_BUF:
+    case BTOR_IBV_CASE:
+    case BTOR_IBV_CONCAT:
+    case BTOR_IBV_COND:
+    case BTOR_IBV_CONDBW:
+    case BTOR_IBV_DIV:
+    case BTOR_IBV_EQUAL:
+    case BTOR_IBV_LE:
+    case BTOR_IBV_LEFT_SHIFT:
+    case BTOR_IBV_LT:
+    case BTOR_IBV_MOD:
+    case BTOR_IBV_MUL:
+    case BTOR_IBV_NON_STATE:
+    case BTOR_IBV_OR:
+    case BTOR_IBV_PARCASE:
+    case BTOR_IBV_REPLICATE:
+    case BTOR_IBV_RIGHT_SHIFT:
+    case BTOR_IBV_SIGN_EXTEND:
+    case BTOR_IBV_STATE:
+    case BTOR_IBV_SUB:
+    case BTOR_IBV_SUM:
+    case BTOR_IBV_XOR:
+    case BTOR_IBV_ZERO_EXTEND:
+    default:
+      BTOR_ABORT_BOOLECTOR (1, "operator %d not handled yet", (int) a->tag);
+      break;
+  }
+  assert (n->cached);
 }
 
 void
@@ -1546,9 +1617,6 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
-    char suffix[30], *name;
-    int len;
-
     default:
     case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
@@ -1559,19 +1627,28 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
           1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
-    case BTOR_IBV_CURRENT_STATE:
-      if (n->width == r.getWidth ())
-        suffix[0] = 0;
-      else
-        sprintf (suffix, "[%u:%u]", r.msb, r.lsb);
-      len  = strlen (n->name) + strlen (suffix) + 1;
-      name = (char *) btor_malloc (btor->mm, len);
-      sprintf (name, "%s%s", n->name, suffix);
-      a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
-      (void) boolector_copy (btor, a->exp);
-      btor_free (btor->mm, name, len);
-      stats.latches++;
+    case BTOR_IBV_ASSIGNED:
+      translate_assignment_conquer (n->assigned[r.lsb]);
+      assert (!a->exp);
+      a->exp = btor_slice_exp (btor, n->cached, (int) r.msb, (int) r.lsb);
       break;
+#if 0
+    case BTOR_IBV_CURRENT_STATE:
+      {
+	char suffix[30], * name;
+	int len;
+	if (n->width == r.getWidth ()) suffix[0] = 0;
+	else sprintf (suffix, "[%u:%u]", r.msb, r.lsb);
+	len = strlen (n->name) + strlen (suffix) + 1;
+	name = (char*) btor_malloc (btor->mm, len);
+	sprintf (name, "%s%s", n->name, suffix);
+	a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
+	(void) boolector_copy (btor, a->exp);
+	btor_free (btor->mm, name, len);
+	stats.latches++;
+      }
+      break;
+#endif
   }
 }
 
@@ -1602,7 +1679,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       name = (char *) btor_malloc (btor->mm, len);
       sprintf (name, "%s%s", n->name, suffix);
       a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
-      (void) boolector_copy (btor, a->exp);
+      // (void) boolector_copy (btor, a->exp);
       btor_free (btor->mm, name, len);
       stats.latches++;
       break;
