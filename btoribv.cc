@@ -1528,9 +1528,11 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
           1, "%s not handled", btor_ibv_classified_to_str (c));
       break;
 
+    case BTOR_IBV_CURRENT_STATE:
     case BTOR_IBV_ASSIGNED:
     {
-      BtorIBVAssignment *a = n->assigned[r.lsb];
+      BtorIBVAssignment *a = n->assigned ? n->assigned[r.lsb] : 0;
+      if (!a) a = n->next[r.lsb];
       assert (a);
       for (unsigned i = 0; i < a->nranges; i++)
       {
@@ -1542,8 +1544,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
     }
     break;
 
-    case BTOR_IBV_CURRENT_STATE:
-      // TODO next ...
+      assert (a);
       break;
   }
 }
