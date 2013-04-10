@@ -1519,6 +1519,8 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
   BtorIBVNode *n = id2node (r.id);
   btor_ibv_check_atom (n, r);
 
+  (void) work;
+
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
@@ -1625,8 +1627,23 @@ BtorIBV::translate_node_conquer (BtorIBVNode *n)
   if (n->cached) return;
   assert (!n->forwarded);
   assert (!n->is_constant);
+  BtorNode *res = 0;
   for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
+  {
     translate_atom_conquer (a);
+    assert (a->exp);
+    BtorNode *tmp = res;
+    if (tmp)
+    {
+      res = btor_concat_exp (btor, a->exp, res);
+      btor_release_exp (btor, tmp);
+    }
+    else
+      res = btor_copy_exp (btor, a->exp);
+  }
+  assert (res);
+  assert (btor_get_exp_len (btor, res) == (int) n->width);
+  n->cached = res;
 }
 
 void
@@ -1754,11 +1771,14 @@ BtorIBV::translate ()
 int
 BtorIBV::bmc (int maxk)
 {
+  (void) maxk;
   return -1;
 }
 
 string
 BtorIBV::assignment (BitRange r, int k)
 {
+  (void) r;
+  (void) k;
   return "";
 }
