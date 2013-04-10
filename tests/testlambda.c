@@ -17,6 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "btorbeta.h"
 #include "btorexp.h"
 #include "btorutil.h"
 #include "testexp.h"
