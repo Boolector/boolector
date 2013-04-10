@@ -353,18 +353,6 @@ btor_beta_reduce (Btor *btor,
           && BTOR_COUNT_STACK (scopes) > bound)
       {
         assert (real_cur == cur_scope_lambda);
-
-        // TODO: check if we still need to unassign param (might be the
-        //       case for nested lambdas)
-        //       maybe we can move it to close scope (and skip unassign
-        //       param in lambda phase 2)
-        if (btor_param_cur_assignment (real_cur->e[0]))
-        {
-#ifndef NDEBUG
-          (void) BTOR_POP_STACK (unassign_stack);
-#endif
-          btor_unassign_param (btor, real_cur);
-        }
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
 
@@ -619,13 +607,6 @@ btor_beta_reduce (Btor *btor,
                 result_parameterized = p[1];
               }
             }
-
-#ifndef NDEBUG
-            if (!BTOR_EMPTY_STACK (unassign_stack)
-                && BTOR_TOP_STACK (unassign_stack) == real_cur)
-              (void) BTOR_POP_STACK (unassign_stack);
-#endif
-            btor_unassign_param (btor, real_cur);
             break;
           case BTOR_WRITE_NODE:
             result = btor_write_exp (btor, e[0], e[1], e[2]);
@@ -656,7 +637,17 @@ btor_beta_reduce (Btor *btor,
       }
 
       /* close scope */
-      if (real_cur == cur_scope_lambda) BETA_REDUCE_CLOSE_SCOPE ();
+      if (real_cur == cur_scope_lambda)
+      {
+        BETA_REDUCE_CLOSE_SCOPE ();
+#ifndef NDEBUG
+        if (!BTOR_EMPTY_STACK (unassign_stack)
+            && BTOR_TOP_STACK (unassign_stack) == real_cur)
+          (void) BTOR_POP_STACK (unassign_stack);
+#endif
+        if (btor_param_cur_assignment (real_cur->e[0]))
+          btor_unassign_param (btor, real_cur);
+      }
 
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
