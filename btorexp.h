@@ -405,6 +405,7 @@ struct Btor
     int eliminated_slices;       /* number of eliminated slices */
     int skeleton_constraints;    /* number of extracted skeleton constraints */
     int adds_normalized;         /* number of add chains normalizations */
+    int ands_normalized;         /* number of and chains normalizations */
     int muls_normalized;         /* number of mul chains normalizations */
     int read_props_construct;    /* how often have we pushed a read over
                                     write during construction */

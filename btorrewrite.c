@@ -1251,6 +1251,9 @@ normalize_binary_comm_ass_exp (Btor *btor,
   assert (e1->kind == kind);
   assert (btor->rewrite_level > 2);
 
+  assert (kind == BTOR_ADD_NODE || kind == BTOR_AND_NODE
+          || kind == BTOR_MUL_NODE);
+
   mm    = btor->mm;
   left  = btor_new_ptr_hash_table (mm,
                                   (BtorHashPtr) btor_hash_exp_by_id,
@@ -1339,7 +1342,9 @@ normalize_binary_comm_ass_exp (Btor *btor,
     return;
   }
 
-  if (kind == BTOR_ADD_NODE)
+  if (kind == BTOR_AND_NODE)
+    btor->stats.ands_normalized++;
+  else if (kind == BTOR_ADD_NODE)
     btor->stats.adds_normalized++;
   else
   {
@@ -3912,6 +3917,9 @@ RESTART:
         else if (fptr != btor_rewrite_udiv_exp && fptr != btor_rewrite_urem_exp)
         {
           /* works only for commutative and associative operators: */
+
+          assert (e_if->kind == BTOR_ADD_NODE || e_if->kind == BTOR_AND_NODE
+                  || e_if->kind == BTOR_MUL_NODE);
 
           if (e_if->e[0] == e_else->e[1])
           {
