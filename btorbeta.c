@@ -53,6 +53,11 @@ cache_beta_result (Btor *btor,
   else
     btor_insert_in_ptr_hash_table (btor->cache, pair)->data.asPtr =
         btor_copy_exp (btor, result);
+  BTORLOG ("%s: (%s, %s) -> %s",
+           __FUNCTION__,
+           node2string (lambda),
+           node2string (exp),
+           node2string (result));
 }
 
 static BtorNode *
@@ -161,19 +166,29 @@ btor_unassign_param (Btor *btor, BtorNode *lambda)
 BtorNode *
 btor_beta_reduce_full (Btor *btor, BtorNode *exp)
 {
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0);
 }
 
 BtorNode *
 btor_beta_reduce_chains (Btor *btor, BtorNode *exp)
 {
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_CHAINS, 0);
 }
 
 BtorNode *
 btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
 {
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized);
+}
+
+BtorNode *
+btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
+{
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED (bound), 0);
 }
 
 #define BETA_REDUCE_OPEN_NEW_SCOPE(lambda)                                     \
@@ -190,6 +205,22 @@ btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
                                  (BtorHashPtr) btor_hash_exp_by_id,            \
                                  (BtorCmpPtr) btor_compare_exp_by_id);         \
     cur_scope_lambda = lambda;                                                 \
+  } while (0)
+
+#define BETA_REDUCE_CLOSE_SCOPE()                                            \
+  do                                                                         \
+  {                                                                          \
+    assert (cur_scope);                                                      \
+    assert (cur_scope_lambda);                                               \
+    /* delete current scope */                                               \
+    btor_delete_ptr_hash_table (cur_scope);                                  \
+    for (b = cur_scope_results->first; b; b = b->next)                       \
+      btor_release_exp (btor, (BtorNode *) b->data.asPtr);                   \
+    btor_delete_ptr_hash_table (cur_scope_results);                          \
+    /* pop previous scope */                                                 \
+    cur_scope         = (BtorPtrHashTable *) BTOR_POP_STACK (scopes);        \
+    cur_scope_results = (BtorPtrHashTable *) BTOR_POP_STACK (scope_results); \
+    cur_scope_lambda  = BTOR_POP_STACK (scope_lambdas);                      \
   } while (0)
 
 #define BETA_REDUCE_PUSH_RESULT_IF_CACHED(lambda, assignment)            \
@@ -231,7 +262,7 @@ btor_beta_reduce (Btor *btor,
 
   /* TODO bounded reduction not implemented yet */
   assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL
-          || bound == BETA_RED_LAMBDA_CHAINS);
+          || bound == BETA_RED_LAMBDA_CHAINS || bound > 0);
 
   int i, aux_rewrite_level = 0;
   const char *eval_res;
@@ -317,6 +348,14 @@ btor_beta_reduce (Btor *btor,
       for (i = 0; i < real_cur->arity; i++)
         e[i] = btor_simplify_exp (btor, real_cur->e[i]);
 
+      /* bounded reduction */
+      if (bound > BETA_RED_FULL && BTOR_IS_LAMBDA_NODE (real_cur)
+          && BTOR_COUNT_STACK (scopes) > bound)
+      {
+        assert (real_cur == cur_scope_lambda);
+        goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
+      }
+
       if (bound == BETA_RED_LAMBDA_CHAINS
           /* skip all arrays that are not part of the lambda chain */
           && ((BTOR_IS_ARRAY_NODE (real_cur) && !BTOR_IS_LAMBDA_NODE (real_cur))
@@ -333,10 +372,12 @@ btor_beta_reduce (Btor *btor,
       }
 
       /* do not beta-reduce nodes that will not change anyway */
-      if ((!real_cur->lambda_below && !real_cur->parameterized)
-          || (BTOR_IS_LAMBDA_NODE (real_cur)
-              && !btor_param_cur_assignment (e[0])
-              && BTOR_REAL_ADDR_NODE (e[1])->parameterized))
+      if ((!real_cur->lambda_below && !real_cur->parameterized))
+      // FIXME: assignment is not yet assigned, we have to check if
+      //	      something is on the arg stack
+      //	      || (BTOR_IS_LAMBDA_NODE (real_cur)
+      //		  && !btor_param_cur_assignment (e[0])
+      //		  && BTOR_REAL_ADDR_NODE (e[1])->parameterized))
       {
       BETA_REDUCE_PREPARE_PUSH_ARG_STACK:
         result               = btor_copy_exp (btor, real_cur);
@@ -345,43 +386,7 @@ btor_beta_reduce (Btor *btor,
       }
 
       next = 0;
-      assert (!BTOR_IS_READ_NODE (real_cur) || BTOR_IS_REGULAR_NODE (e[0]));
-      /* assign param in case of lambda applicaton */
-      if (bound != BETA_RED_CUTOFF
-          && (BTOR_IS_READ_NODE (real_cur)
-              && BTOR_IS_LAMBDA_NODE (e[0])
-              /* do not assign param if lambda is not part of current lambda
-               * chain */
-              && (bound != BETA_RED_LAMBDA_CHAINS
-                  || ((BtorLambdaNode *) e[0])->chain_depth > 0)))
-      {
-        param = BTOR_REAL_ADDR_NODE (e[0]->e[0]);
-        assert (BTOR_IS_PARAM_NODE (param));
-
-        if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (e[1]))
-            && btor_param_cur_assignment (e[1]))
-        {
-          assignment = btor_param_cur_assignment (e[1]);
-        }
-        else
-        {
-          /* Note: even if param has already been assigned with e[1]
-           * from outside beta_reduce (i.e. the assignment of param
-           * with e[1] is actually redundant), this is not an issue
-           * as long as all assignments on param's assignment stack
-           * are subsequently unassigned correctly. */
-          assignment = e[1];
-        }
-
-        if (cache) BETA_REDUCE_PUSH_RESULT_IF_CACHED (e[0], assignment);
-
-        btor_assign_param (btor, e[0], assignment);
-
-#ifndef NDEBUG
-        BTOR_PUSH_STACK (mm, unassign_stack, e[0]);
-#endif
-      }
-      else if (BTOR_IS_PARAM_NODE (real_cur))
+      if (BTOR_IS_PARAM_NODE (real_cur))
       {
         /* we allow unassigned params (next == 0) */
         if ((next = btor_param_cur_assignment (real_cur)))
@@ -417,28 +422,17 @@ btor_beta_reduce (Btor *btor,
       }
       else
       {
-        /* in case that we currently beta-reduce a read on a lambda,
-         * we might have to update the param assignment with the
-         * already beta-reduced index in case of quasi-cyclic structures
-         * such as read(lambda, read(lambda, i)).
-         */
         if (BTOR_IS_LAMBDA_NODE (real_cur)
-            /* do not unassign param in case we have to rebuild lambdas */
-            && !real_cur->beta_mark
-            /* skip lambdas of nested lambda structures (sharing of
-             * nested lambda nodes except for the topmost of the nested
-             * structure is not allowed/possible) */
-            && !is_nested_lambda_exp_node (real_cur)
-            && !BTOR_EMPTY_STACK (arg_stack) && btor_param_cur_assignment (e[0])
-            && btor_param_cur_assignment (e[0]) != BTOR_TOP_STACK (arg_stack))
+            /* if there is no argument on the stack, we have no
+             * assignment for the parameter */
+            && !BTOR_EMPTY_STACK (arg_stack)
+            /* if it is nested, its parameter is already assigned */
+            && !is_nested_lambda_exp_node (real_cur))
         {
+          assert (!btor_param_cur_assignment (e[0]));
           assert (!btor_find_in_ptr_hash_table (cur_scope,
                                                 BTOR_REAL_ADDR_NODE (e[0])));
 
-          btor_unassign_param (btor, real_cur);
-#ifndef NDEBUG
-          (void) BTOR_POP_STACK (unassign_stack);
-#endif
           assignment = BTOR_TOP_STACK (arg_stack);
 
           if (cache) BETA_REDUCE_PUSH_RESULT_IF_CACHED (real_cur, assignment);
@@ -451,9 +445,9 @@ btor_beta_reduce (Btor *btor,
 
         BTOR_PUSH_STACK (mm, work_stack, cur);
 
-        /* Note: we beta-reduce the index of a read on a lambda first
-         * in order to simplify handling of quasi-cyclic structures
-         * such as read(lambda, read(lambda, index)) ). */
+        /* NOTE: the index of a read on a lambda has to be visited first
+         *       in order to get a correct assignment for the parameter
+         *       of the lambda. */
         for (i = 0; i < real_cur->arity; i++)
         {
           if (bound >= BETA_RED_FULL)
@@ -519,7 +513,10 @@ btor_beta_reduce (Btor *btor,
             else
               result = btor_read_exp (btor, e[0], e[1]);
 
-            if (cache && BTOR_IS_LAMBDA_NODE (real_cur->e[0]))
+            if (cache && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
+                && bound == BETA_RED_FULL)
+            // TODO: check if we really are not allowed to cache
+            //       results if we reduce bounded
             {
               assert (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->simplified
                       || cur == exp);
@@ -610,13 +607,6 @@ btor_beta_reduce (Btor *btor,
                 result_parameterized = p[1];
               }
             }
-
-#ifndef NDEBUG
-            if (!BTOR_EMPTY_STACK (unassign_stack)
-                && BTOR_TOP_STACK (unassign_stack) == real_cur)
-              (void) BTOR_POP_STACK (unassign_stack);
-#endif
-            btor_unassign_param (btor, real_cur);
             break;
           case BTOR_WRITE_NODE:
             result = btor_write_exp (btor, e[0], e[1], e[2]);
@@ -649,19 +639,14 @@ btor_beta_reduce (Btor *btor,
       /* close scope */
       if (real_cur == cur_scope_lambda)
       {
-        assert (cur_scope);
-        assert (cur_scope_lambda);
-
-        /* delete current scope */
-        btor_delete_ptr_hash_table (cur_scope);
-        for (b = cur_scope_results->first; b; b = b->next)
-          btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-        btor_delete_ptr_hash_table (cur_scope_results);
-
-        /* pop previous scope */
-        cur_scope         = (BtorPtrHashTable *) BTOR_POP_STACK (scopes);
-        cur_scope_results = (BtorPtrHashTable *) BTOR_POP_STACK (scope_results);
-        cur_scope_lambda  = BTOR_POP_STACK (scope_lambdas);
+        BETA_REDUCE_CLOSE_SCOPE ();
+#ifndef NDEBUG
+        if (!BTOR_EMPTY_STACK (unassign_stack)
+            && BTOR_TOP_STACK (unassign_stack) == real_cur)
+          (void) BTOR_POP_STACK (unassign_stack);
+#endif
+        if (btor_param_cur_assignment (real_cur->e[0]))
+          btor_unassign_param (btor, real_cur);
       }
 
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:

@@ -17,6 +17,7 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "btorbeta.h"
 #include "btorexp.h"
 #include "btorutil.h"
 #include "testexp.h"
@@ -909,7 +910,49 @@ test_lambda_param_acond (void)
   finish_lambda_test ();
 }
 
-// TODO: arrays as arguments (not possible yet)
+/*---------------------------------------------------------------------------
+ * reduction tests (with reduced expressions)
+ *---------------------------------------------------------------------------*/
+
+/* (lambda x . read ((lambda y . y), x)) */
+static void
+test_lambda_bounded_reduce1 (void)
+{
+  init_lambda_test ();
+  BtorNode *x  = btor_param_exp (g_btor, g_index_bw, "x");
+  BtorNode *y  = btor_param_exp (g_btor, g_index_bw, "y");
+  BtorNode *l2 = btor_lambda_exp (g_btor, y, y);
+  BtorNode *r  = btor_read_exp (g_btor, l2, x);
+  BtorNode *l1 = btor_lambda_exp (g_btor, x, r);
+  BtorNode *v  = btor_var_exp (g_btor, g_index_bw, "v");
+
+  BtorNode *expected = btor_read_exp (g_btor, l2, v);
+
+  /* bound 1 */
+  btor_assign_param (g_btor, l1, v);
+  BtorNode *result = btor_beta_reduce_bounded (g_btor, l1, 1);
+  btor_unassign_param (g_btor, l1);
+
+  assert (result == expected);
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, expected);
+
+  /* bound 2 */
+  btor_assign_param (g_btor, l1, v);
+  result = btor_beta_reduce_bounded (g_btor, l1, 2);
+  btor_unassign_param (g_btor, l1);
+
+  assert (result == v);
+
+  btor_release_exp (g_btor, result);
+  btor_release_exp (g_btor, v);
+  btor_release_exp (g_btor, l1);
+  btor_release_exp (g_btor, r);
+  btor_release_exp (g_btor, l2);
+  btor_release_exp (g_btor, y);
+  btor_release_exp (g_btor, x);
+  finish_lambda_test ();
+}
 
 /*---------------------------------------------------------------------------
  * reduction tests (with reduced expressions)
@@ -1338,6 +1381,9 @@ run_lambda_tests (int argc, char **argv)
   BTOR_RUN_TEST (lambda_param_bcond2);
   BTOR_RUN_TEST (lambda_param_bcond3);
   BTOR_RUN_TEST (lambda_param_acond);
+
+  /* bounded reduction tests */
+  BTOR_RUN_TEST (lambda_bounded_reduce1);
 
   /* full reduction tests (with reduced expressions) */
   BTOR_RUN_TEST (lambda_reduce_write1);

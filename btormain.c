@@ -65,6 +65,7 @@ struct BtorMainApp
   int incremental;
   int rewrite_writes;
   int rewrite_reads;
+  int rewrite_aconds;
   int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
@@ -144,6 +145,7 @@ static const char *g_usage =
     "  -rww, --rewrite-writes           rewrite writes to lambda expressions\n"
     "  -rwr, --rewrite-reads            rewrite reads on lambda expressions\n"
     "                                   (beta-reduction)\n"
+    "  -rwa, --rewrite-aconds           rewrite aconds to lambda expressions\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
@@ -577,6 +579,11 @@ parse_commandline_arguments (BtorMainApp *app)
     {
       app->rewrite_reads = 1;
     }
+    else if (!strcmp (app->argv[app->argpos], "-rwa")
+             || !strcmp (app->argv[app->argpos], "--rewrite-aconds"))
+    {
+      app->rewrite_aconds = 1;
+    }
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
     {
@@ -1005,6 +1012,7 @@ boolector_main (int argc, char **argv)
   app.print_model            = 0;
   app.rewrite_writes         = 0;
   app.rewrite_reads          = 0;
+  app.rewrite_aconds         = 0;
   app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
@@ -1062,6 +1070,8 @@ boolector_main (int argc, char **argv)
     if (app.rewrite_writes) btor_enable_rewrite_writes (btor);
 
     if (app.rewrite_reads) btor_enable_rewrite_reads (btor);
+
+    if (app.rewrite_aconds) btor_enable_rewrite_aconds (btor);
 
     if (!app.pprint) btor_disable_pretty_print (btor);
 
