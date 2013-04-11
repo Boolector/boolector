@@ -1,5 +1,5 @@
-#ifndef IBitVector_h_INCLUDED
-#define IBitVector_h_INCLUDED
+#ifndef BitVector_h_INCLUDED
+#define BitVector_h_INCLUDED
 
 #include <cassert>
 #include <string>
@@ -9,7 +9,7 @@ using namespace std;
 
 // This class defines the BitVector API interface
 
-class IBitVector
+class BitVector
 {
  public:
   enum DirectionKind
@@ -152,10 +152,10 @@ class IBitVector
   virtual void addVariable (unsigned nId,
                             const string& strName,
                             unsigned nWidth,
-                            bool bIsNextStateVariable            = false,
-                            bool bIsLoopBreakingVariable         = false,
-                            bool bIsStateRetainVariable          = false,
-                            IBitVector::DirectionKind eDirection = INTERNAL)
+                            bool bIsNextStateVariable           = false,
+                            bool bIsLoopBreakingVariable        = false,
+                            bool bIsStateRetainVariable         = false,
+                            BitVector::DirectionKind eDirection = INTERNAL)
   {
     assert (false);
   }
@@ -204,13 +204,13 @@ class IBitVector
   // 1. ID referenced by bitRange should be previously declared using
   //    addVariable().
   // 2. (bitRange.m_nMsb - bitRange.m_nLsb) == (nRangeMsb - nRangeLsb).
-  virtual void addRangeName (IBitVector::BitRange bitRange,
+  virtual void addRangeName (BitVector::BitRange bitRange,
                              const string& strRangeName,
                              unsigned nRangeMsb,
                              unsigned nRangeLsb)
   {
     // The default implementation is empty, as to not require all
-    // implementations of IBitVector to implement this method
+    // implementations of BitVector to implement this method
   }
 
   // Method addState
@@ -243,9 +243,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addState (IBitVector::BitRange variable,
-                         IBitVector::BitRange initValue,
-                         IBitVector::BitRange nextState)
+  virtual void addState (BitVector::BitRange variable,
+                         BitVector::BitRange initValue,
+                         BitVector::BitRange nextState)
   {
     assert (false);
   }
@@ -277,8 +277,8 @@ class IBitVector
   // 1. The two referenced data entities should be previously declared.
   // 2. Widths of ranges of the two referenced data entities should be the
   //    same.
-  virtual void addNonState (IBitVector::BitRange variable,
-                            IBitVector::BitRange nextState)
+  virtual void addNonState (BitVector::BitRange variable,
+                            BitVector::BitRange nextState)
   {
     assert (false);
   }
@@ -330,8 +330,8 @@ class IBitVector
   // 1. The two referenced data entities should be previously declared.
   // 2. Widths of ranges of the two referenced data entities should be the
   //    same.
-  virtual void addAssignment (IBitVector::BitRange output,
-                              IBitVector::BitRange input)
+  virtual void addAssignment (BitVector::BitRange output,
+                              BitVector::BitRange input)
   {
     assert (false);
   }
@@ -352,9 +352,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addBitOr (IBitVector::BitRange output,
-                         IBitVector::BitRange firstOperand,
-                         IBitVector::BitRange secondOperand)
+  virtual void addBitOr (BitVector::BitRange output,
+                         BitVector::BitRange firstOperand,
+                         BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -375,9 +375,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addBitAnd (IBitVector::BitRange output,
-                          IBitVector::BitRange firstOperand,
-                          IBitVector::BitRange secondOperand)
+  virtual void addBitAnd (BitVector::BitRange output,
+                          BitVector::BitRange firstOperand,
+                          BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -398,9 +398,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addBitXor (IBitVector::BitRange output,
-                          IBitVector::BitRange firstOperand,
-                          IBitVector::BitRange secondOperand)
+  virtual void addBitXor (BitVector::BitRange output,
+                          BitVector::BitRange firstOperand,
+                          BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -420,8 +420,8 @@ class IBitVector
   //
   // 1. The two referenced data entities should be previously declared.
   // 2. Widths of ranges of the two referenced data entities should be the same.
-  virtual void addBitNot (IBitVector::BitRange output,
-                          IBitVector::BitRange operand)
+  virtual void addBitNot (BitVector::BitRange output,
+                          BitVector::BitRange operand)
   {
     assert (false);
   }
@@ -442,7 +442,7 @@ class IBitVector
   // 1. All referenced data entities should be previously declared.
   // 2. The sum of widths of the referenced ranges of the operands should be
   //    equal to the width of the referenced range of output.
-  virtual void addConcat (IBitVector::BitRange output,
+  virtual void addConcat (BitVector::BitRange output,
                           const vector<BitRange>& operands)
   {
     assert (false);
@@ -466,8 +466,8 @@ class IBitVector
   // 2. The width of the referenced range of the output should be the same
   //    as the width of the referenced range of the input multiplied by
   //    nReplicationCount.
-  virtual void addReplicate (IBitVector::BitRange output,
-                             IBitVector::BitRange operand,
+  virtual void addReplicate (BitVector::BitRange output,
+                             BitVector::BitRange operand,
                              unsigned nReplicationCount)
   {
     assert (false);
@@ -490,9 +490,9 @@ class IBitVector
   // 1. All referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
   // 3. Widths of ranges of firstOperand and secondOperand should be the same.
-  virtual void addEqual (IBitVector::BitRange output,
-                         IBitVector::BitRange firstOperand,
-                         IBitVector::BitRange secondOperand)
+  virtual void addEqual (BitVector::BitRange output,
+                         BitVector::BitRange firstOperand,
+                         BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -515,9 +515,9 @@ class IBitVector
   // 1. All referenced data entities should be previously declared
   // 2. The width of the referenced range of output should be 1.
   // 3. Widths of ranges of firstOperand and secondOperand should be the same.
-  virtual void addGreaterThan (IBitVector::BitRange output,
-                               IBitVector::BitRange firstOperand,
-                               IBitVector::BitRange secondOperand)
+  virtual void addGreaterThan (BitVector::BitRange output,
+                               BitVector::BitRange firstOperand,
+                               BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -540,9 +540,9 @@ class IBitVector
   // 1. All referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
   // 3. Widths of ranges of firstOperand and secondOperand should be the same.
-  virtual void addGreaterEqual (IBitVector::BitRange output,
-                                IBitVector::BitRange firstOperand,
-                                IBitVector::BitRange secondOperand)
+  virtual void addGreaterEqual (BitVector::BitRange output,
+                                BitVector::BitRange firstOperand,
+                                BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -565,9 +565,9 @@ class IBitVector
   // 1. All referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
   // 3. Widths of ranges of firstOperand and secondOperand should be the same.
-  virtual void addLessThan (IBitVector::BitRange output,
-                            IBitVector::BitRange firstOperand,
-                            IBitVector::BitRange secondOperand)
+  virtual void addLessThan (BitVector::BitRange output,
+                            BitVector::BitRange firstOperand,
+                            BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -590,9 +590,9 @@ class IBitVector
   // 1. All referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
   // 3. Widths of ranges of firstOperand and secondOperand should be the same.
-  virtual void addLessEqual (IBitVector::BitRange output,
-                             IBitVector::BitRange firstOperand,
-                             IBitVector::BitRange secondOperand)
+  virtual void addLessEqual (BitVector::BitRange output,
+                             BitVector::BitRange firstOperand,
+                             BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -613,9 +613,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
-  virtual void addLogicalAnd (IBitVector::BitRange output,
-                              IBitVector::BitRange firstOperand,
-                              IBitVector::BitRange secondOperand)
+  virtual void addLogicalAnd (BitVector::BitRange output,
+                              BitVector::BitRange firstOperand,
+                              BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -636,9 +636,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
-  virtual void addLogicalOr (IBitVector::BitRange output,
-                             IBitVector::BitRange firstOperand,
-                             IBitVector::BitRange secondOperand)
+  virtual void addLogicalOr (BitVector::BitRange output,
+                             BitVector::BitRange firstOperand,
+                             BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -658,8 +658,8 @@ class IBitVector
   //
   // 1. The two referenced data entities should be previously declared.
   // 2. The width of the referenced range of output should be 1.
-  virtual void addLogicalNot (IBitVector::BitRange output,
-                              IBitVector::BitRange operand)
+  virtual void addLogicalNot (BitVector::BitRange output,
+                              BitVector::BitRange operand)
   {
     assert (false);
   }
@@ -680,9 +680,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addSum (IBitVector::BitRange output,
-                       IBitVector::BitRange firstOperand,
-                       IBitVector::BitRange secondOperand)
+  virtual void addSum (BitVector::BitRange output,
+                       BitVector::BitRange firstOperand,
+                       BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -703,9 +703,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addSub (IBitVector::BitRange output,
-                       IBitVector::BitRange firstOperand,
-                       IBitVector::BitRange secondOperand)
+  virtual void addSub (BitVector::BitRange output,
+                       BitVector::BitRange firstOperand,
+                       BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -726,9 +726,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addMul (IBitVector::BitRange output,
-                       IBitVector::BitRange firstOperand,
-                       IBitVector::BitRange secondOperand)
+  virtual void addMul (BitVector::BitRange output,
+                       BitVector::BitRange firstOperand,
+                       BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -750,9 +750,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addDiv (IBitVector::BitRange output,
-                       IBitVector::BitRange firstOperand,
-                       IBitVector::BitRange secondOperand)
+  virtual void addDiv (BitVector::BitRange output,
+                       BitVector::BitRange firstOperand,
+                       BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -774,9 +774,9 @@ class IBitVector
   //
   // 1. All referenced data entities should be previously declared.
   // 2. Widths of ranges of all referenced data entities should be the same.
-  virtual void addMod (IBitVector::BitRange output,
-                       IBitVector::BitRange firstOperand,
-                       IBitVector::BitRange secondOperand)
+  virtual void addMod (BitVector::BitRange output,
+                       BitVector::BitRange firstOperand,
+                       BitVector::BitRange secondOperand)
   {
     assert (false);
   }
@@ -798,8 +798,8 @@ class IBitVector
   // 1. The two referenced data entities should be previously declared.
   // 2. Widths of ranges of the two referenced data entities should be the
   //    same.
-  virtual void addLShift (IBitVector::BitRange output,
-                          IBitVector::BitRange operand,
+  virtual void addLShift (BitVector::BitRange output,
+                          BitVector::BitRange operand,
                           unsigned nShiftAmount)
   {
     assert (false);
@@ -824,8 +824,8 @@ class IBitVector
   // 1. The two referenced data entities should be previously declared.
   // 2. Widths of ranges of the two referenced data entities should be the
   //    same.
-  virtual void addRShift (IBitVector::BitRange output,
-                          IBitVector::BitRange operand,
+  virtual void addRShift (BitVector::BitRange output,
+                          BitVector::BitRange operand,
                           unsigned nShiftAmount)
   {
     assert (false);
@@ -849,9 +849,9 @@ class IBitVector
   // 1. The three referenced data entities should be previously declared.
   // 2. Width of output and operand should be the same. Width of shiftAmount
   //    may be different.
-  virtual void addLShiftNonConst (IBitVector::BitRange output,
-                                  IBitVector::BitRange operand,
-                                  IBitVector::BitRange shiftAmount)
+  virtual void addLShiftNonConst (BitVector::BitRange output,
+                                  BitVector::BitRange operand,
+                                  BitVector::BitRange shiftAmount)
   {
     assert (false);
   }
@@ -875,9 +875,9 @@ class IBitVector
   // 1. The three referenced data entities should be previously declared.
   // 2. Width of output and operand should be the same. Width of shiftAmount
   //    may be different.
-  virtual void addRShiftNonConst (IBitVector::BitRange output,
-                                  IBitVector::BitRange operand,
-                                  IBitVector::BitRange shiftAmount)
+  virtual void addRShiftNonConst (BitVector::BitRange output,
+                                  BitVector::BitRange operand,
+                                  BitVector::BitRange shiftAmount)
   {
     assert (false);
   }
@@ -926,10 +926,10 @@ class IBitVector
   //    conditionOperand should be the same. The width of referenced range of
   //    conditionOperand should be either 1 or be the same as the widths
   //    of other referenced data entities.
-  virtual void addCondition (IBitVector::BitRange output,
-                             IBitVector::BitRange conditionOperand,
-                             IBitVector::BitRange thenOperand,
-                             IBitVector::BitRange elseOperand)
+  virtual void addCondition (BitVector::BitRange output,
+                             BitVector::BitRange conditionOperand,
+                             BitVector::BitRange thenOperand,
+                             BitVector::BitRange elseOperand)
   {
     assert (false);
   }
@@ -978,7 +978,7 @@ class IBitVector
   //
   // Where bit_value(condition, index) is defined as follows:
   //
-  // bit_value(IBitVector::BitRange condition, unsigned index) =
+  // bit_value(BitVector::BitRange condition, unsigned index) =
   //     if (condition.m_nLsb == condition.m_nMsb) then
   //         condition.m_nLsb;
   //     else
@@ -1008,7 +1008,7 @@ class IBitVector
   //    operands with even indexes should be the same. The widths of
   //    referenced ranges of operands with even indexes should be either 1 or
   //    be the same as the widths of other referenced data entities.
-  virtual void addCase (IBitVector::BitRange output,
+  virtual void addCase (BitVector::BitRange output,
                         const vector<BitRange>& operands)
   {
     assert (false);
@@ -1022,7 +1022,7 @@ class IBitVector
   // additional requirement that, for each bit of the output, exactly one
   // condition should evaluate to '1' at the same time. See description of
   // the case operator (addCase() function) for more information.
-  virtual void addParallelCase (IBitVector::BitRange output,
+  virtual void addParallelCase (BitVector::BitRange output,
                                 const vector<BitRange>& operands)
   {
     assert (false);
@@ -1046,8 +1046,8 @@ class IBitVector
   //
   // 1. The two referenced data entities should be previously declared.
   // 2. The width of operand should be less than width of output.
-  virtual void addZeroExtension (IBitVector::BitRange output,
-                                 IBitVector::BitRange operand)
+  virtual void addZeroExtension (BitVector::BitRange output,
+                                 BitVector::BitRange operand)
   {
     assert (false);
   }
@@ -1070,8 +1070,8 @@ class IBitVector
   //
   // 1. The two referenced data entities should be previously declared.
   // 2. The width of operand should be less than width of output.
-  virtual void addSignExtension (IBitVector::BitRange output,
-                                 IBitVector::BitRange operand)
+  virtual void addSignExtension (BitVector::BitRange output,
+                                 BitVector::BitRange operand)
   {
     assert (false);
   }
@@ -1095,7 +1095,7 @@ class IBitVector
   //
   // 1. The referenced data entity should be previously declared.
   // 2. The width of the range of the referenced data entity should be 1.
-  virtual void addAssumption (IBitVector::BitRange bit, bool bIsInitial = false)
+  virtual void addAssumption (BitVector::BitRange bit, bool bIsInitial = false)
   {
     assert (false);
   }
@@ -1119,8 +1119,8 @@ class IBitVector
   // 2. The width of the range of the two referenced data entities should
   //    be 1.
   // 3. livenessAssertion should be previously declared using addAssertion().
-  virtual void addFairnessConstraint (IBitVector::BitRange livenessAssertion,
-                                      IBitVector::BitRange fairnessConstraint)
+  virtual void addFairnessConstraint (BitVector::BitRange livenessAssertion,
+                                      BitVector::BitRange fairnessConstraint)
   {
     assert (false);
   }
@@ -1138,7 +1138,7 @@ class IBitVector
   //
   // 1. The referenced data entity should be previously declared.
   // 2. The width of the range of the referenced data entity should be 1.
-  virtual void addAssertion (IBitVector::BitRange bit) { assert (false); }
+  virtual void addAssertion (BitVector::BitRange bit) { assert (false); }
 
   // Method addMemory
   //
@@ -1205,10 +1205,10 @@ class IBitVector
   // 3. The width of referenced range of output should be
   //    (nBitMsb - nBitLsb + 1).
   virtual void addMemoryRead (unsigned nMemoryId,
-                              IBitVector::BitRange rowSelection,
+                              BitVector::BitRange rowSelection,
                               unsigned nBitMsb,
                               unsigned nBitLsb,
-                              IBitVector::BitRange output)
+                              BitVector::BitRange output)
   {
     assert (false);
   }
@@ -1251,11 +1251,11 @@ class IBitVector
   // 4. The width of the referenced range of enable should be 1.
   virtual void addMemoryWrite (unsigned nMemoryOutId,
                                unsigned nMemoryInId,
-                               IBitVector::BitRange rowSelection,
+                               BitVector::BitRange rowSelection,
                                unsigned nBitMsb,
                                unsigned nBitLsb,
-                               IBitVector::BitRange input,
-                               IBitVector::BitRange enable)
+                               BitVector::BitRange input,
+                               BitVector::BitRange enable)
   {
     assert (false);
   }
@@ -1306,8 +1306,8 @@ class IBitVector
                                        unsigned nRowLsb,
                                        unsigned nBitMsb,
                                        unsigned nBitLsb,
-                                       IBitVector::BitRange input,
-                                       IBitVector::BitRange enable)
+                                       BitVector::BitRange input,
+                                       BitVector::BitRange enable)
   {
     assert (false);
   }
@@ -1354,7 +1354,7 @@ class IBitVector
   // 2. The width of the referenced range of output should be 1.
   // 3. The total number of referenced bits of the two memories should be the
   //    same.
-  virtual void addMemoryEqual (IBitVector::BitRange output,
+  virtual void addMemoryEqual (BitVector::BitRange output,
                                unsigned nFirstMemoryId,
                                unsigned nFirstMemoryRowMsb,
                                unsigned nFirstMemoryRowLsb,

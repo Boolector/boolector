@@ -236,9 +236,9 @@ boolector_input (BtorMC *mc, int width, const char *name)
   bucket->data.asPtr = input;
   if (name)
     btor_msg_mc (
-        mc, 2, "declared input%d[%d] named \"%s\"", input->id, width, name);
+        mc, 2, "declared input %d '%s' of width %d", input->id, name, width);
   else
-    btor_msg_mc (mc, 2, "declared input%d[%d]", input->id, width);
+    btor_msg_mc (mc, 2, "declared input %d of width", input->id, width);
   return res;
 }
 
@@ -268,9 +268,9 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   bucket->data.asPtr = latch;
   if (name)
     btor_msg_mc (
-        mc, 2, "declared latch%d[%d] named \"%s\"", latch->id, width, name);
+        mc, 2, "declared latch %d '%s' of width %d", latch->id, name, width);
   else
-    btor_msg_mc (mc, 2, "declared latch%d[%d]", latch->id, width);
+    btor_msg_mc (mc, 2, "declared latch %d of width %d", latch->id, width);
   return res;
 }
 
@@ -306,7 +306,7 @@ boolector_next (BtorMC *mc, BtorNode *node, BtorNode *next)
   assert (latch->node == node);
   assert (!latch->next);
   latch->next = btor_copy_exp (mc->btor, next);
-  btor_msg_mc (mc, 2, "adding NEXT latch%d", latch->id);
+  btor_msg_mc (mc, 2, "adding NEXT latch %d", latch->id);
   mc->nextstates++;
 }
 
@@ -327,7 +327,7 @@ boolector_init (BtorMC *mc, BtorNode *node, BtorNode *init)
   assert (latch->node == node);
   assert (!latch->init);
   latch->init = btor_copy_exp (mc->btor, init);
-  btor_msg_mc (mc, 2, "adding INIT latch%d", latch->id);
+  btor_msg_mc (mc, 2, "adding INIT latch %d", latch->id);
   mc->initialized++;
 }
 
@@ -343,7 +343,7 @@ boolector_bad (BtorMC *mc, BtorNode *bad)
   res = BTOR_COUNT_STACK (mc->bad);
   (void) btor_copy_exp (mc->btor, bad);
   BTOR_PUSH_STACK (mc->btor->mm, mc->bad, bad);
-  btor_msg_mc (mc, 2, "adding BAD property%d", res);
+  btor_msg_mc (mc, 2, "adding BAD property %d", res);
   return res;
 }
 

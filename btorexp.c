@@ -6456,6 +6456,7 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor,
                 "extracted skeleton constraints: %d",
                 btor->stats.skeleton_constraints);
+  btor_msg_exp (btor, "and normalizations: %d", btor->stats.ands_normalized);
   btor_msg_exp (btor, "add normalizations: %d", btor->stats.adds_normalized);
   btor_msg_exp (btor, "mul normalizations: %d", btor->stats.muls_normalized);
   btor_msg_exp (btor,

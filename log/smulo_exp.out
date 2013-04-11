@@ -11,20 +11,18 @@
 11 and 1 10 9
 12 and 1 -10 -9
 13 and 1 -12 -11
-14 concat 3 1 6
-15 concat 3 -1 6
-16 cond 3 6 15 14
-17 and 3 2 16
-18 and 3 -2 -16
-19 and 3 -18 -17
-20 slice 1 19 1 1
-21 concat 3 1 4
-22 concat 3 -1 4
-23 cond 3 4 22 21
-24 and 3 3 23
-25 and 3 -3 -23
-26 and 3 -25 -24
-27 slice 1 26 1 1
-28 and 1 27 20
-29 and 1 -28 -13
-30 root 1 -29
+14 cond 2 6 -1 1
+15 concat 3 14 6
+16 and 3 2 15
+17 and 3 -2 -15
+18 and 3 -17 -16
+19 slice 1 18 1 1
+20 cond 2 4 -1 1
+21 concat 3 20 4
+22 and 3 3 21
+23 and 3 -3 -21
+24 and 3 -23 -22
+25 slice 1 24 1 1
+26 and 1 25 19
+27 and 1 -26 -13
+28 root 1 -27
