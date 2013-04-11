@@ -11415,7 +11415,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   init_write_parent_iterator (&it, write);
   has_write_parent = has_next_parent_write_parent_iterator (&it);
 
-  if ((has_write_parent && write->refs == 1)
+  if (0 && (has_write_parent && write->refs == 1)
       || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
           && ((BtorLambdaNode *) e[0])->chain_depth > 0))
   {
@@ -11429,7 +11429,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   assert (chain_depth <= INT_MAX);
 
   /* end of lambda chain */
-  if ((!has_write_parent || write->refs > 1) && chain_depth > 0)
+  if (0 && (!has_write_parent || write->refs > 1) && chain_depth > 0)
   {
     assert (BTOR_IS_LAMBDA_NODE (e[0]));
     assert (!has_write_parent || !has_num_parents_dbg (write, 1));
@@ -11648,7 +11648,9 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
       if (btor_find_in_ptr_hash_table (reads, read)) continue;
 
-      if (!read->parameterized || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
+      if (!read->parameterized)
+      // FIXME: only beta reduce not parameterized reads
+      //	      || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
       {
         assert (!read->parameterized || has_num_parents_dbg (read->e[0], 1));
         btor_insert_in_ptr_hash_table (reads, read);
