@@ -7510,8 +7510,9 @@ bfs (Btor *btor, BtorNode *acc, BtorNode *array)
   {
     cur = BTOR_POP_STACK (unmark_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_ARRAY_NODE (cur) || BTOR_IS_ARRAY_EQ_NODE (cur)
-            || BTOR_IS_ARRAY_COND_NODE (cur) || BTOR_IS_BV_COND_NODE (cur));
+    //      assert (BTOR_IS_ARRAY_NODE (cur) || BTOR_IS_ARRAY_EQ_NODE (cur)
+    //	      || BTOR_IS_ARRAY_COND_NODE (cur)
+    //	      || BTOR_IS_BV_COND_NODE (cur));
     cur->mark = 0;
   } while (!BTOR_EMPTY_STACK (unmark_stack));
   BTOR_RELEASE_STACK (mm, unmark_stack);
@@ -9404,6 +9405,8 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
   if (changed_assignments)
   {
     btor->stats.synthesis_assignment_inconsistencies++;
+    BTORLOG ("synthesis assignment inconsistency: %d",
+             btor->stats.synthesis_assignment_inconsistencies);
     goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
   }
   return found_conflict;
@@ -10628,8 +10631,11 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (cur->aux_mark == 1);
-    BTOR_ENQUEUE (mm, queue, cur);
-    cur->aux_mark = 2; /* mark as enqueued */
+    if (all_exps_below_rebuilt (btor, cur))
+    {
+      BTOR_ENQUEUE (mm, queue, cur);
+      cur->aux_mark = 2; /* mark as enqueued */
+    }
   }
 
   /* rebuild bottom-up */
