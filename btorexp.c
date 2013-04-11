@@ -10590,14 +10590,13 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   BTOR_INIT_STACK (roots);
   BTOR_INIT_QUEUE (queue);
 
-  //  printf ("%s\n", __FUNCTION__);
   assert (check_unique_table_mark_unset_dbg (btor));
   assert (check_unique_table_aux_mark_unset_dbg (btor));
   for (b = subst->first; b; b = b->next)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (!BTOR_IS_PROXY_NODE (cur));
-    if (rww || rwr) cur->mark = 1;
+    if (rww || rwr) cur->mark = 1; /* mark as in substitute table */
     BTOR_ENQUEUE (mm, queue, cur);
   }
 
@@ -10611,7 +10610,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
     if (cur->aux_mark == 0)
     {
       cur->aux_mark = 1;
-      //	  printf ("cone: %s\n", node2string (cur));
 
       pushed = 0;
       init_full_parent_iterator (&it, cur);
@@ -10630,8 +10628,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (cur->aux_mark == 1);
     BTOR_ENQUEUE (mm, queue, cur);
-    cur->aux_mark = 2;
-    //      printf ("enqueue: %s\n", node2string (cur));
+    cur->aux_mark = 2; /* mark as enqueued */
   }
 
   /* rebuild bottom-up */
@@ -10643,9 +10640,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
     assert (cur->aux_mark == 2);
     cur->aux_mark = 1;
 
-    //      if (cur->aux_mark == 0)
-    //	continue;
-
     if (all_exps_below_rebuilt (btor, cur))
     {
       cur->aux_mark = 0;
@@ -10654,9 +10648,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
       while (has_next_parent_full_parent_iterator (&it))
       {
         cur_parent = next_parent_full_parent_iterator (&it);
-        //	      printf ("  enqueue: %s (%d)\n", node2string (cur_parent),
-        //		      cur_parent->aux_mark);
-
         /* cur might get a new parent while rebuilding due to
          * simplification */
         if (cur_parent->aux_mark == 0 || cur_parent->aux_mark == 1)
@@ -10672,8 +10663,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
       {
         assert (BTOR_REAL_ADDR_NODE (simplified) != cur);
         assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
-        //	      printf ("  set simplified: %s -> %s\n",
-        //		      node2string (cur), node2string (simplified));
         set_simplified_exp (btor, cur, simplified);
         continue;
       }
@@ -10695,22 +10684,17 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
         rebuilt_exp = rebuild_exp (btor, cur);
       }
 
-      //	      printf ("rebuild: %s, rebuilt: %s\n",
-      //		      node2string (cur),
-      //		      node2string (rebuilt_exp));
-
       assert (rebuilt_exp);
       /* base case: rebuilt_exp == cur */
       if (rebuilt_exp != cur)
       {
         simplified = btor_simplify_exp (btor, rebuilt_exp);
-        //	      printf ("  set simplified: %s -> %s\n",
-        //		      node2string (cur), node2string (simplified));
         set_simplified_exp (btor, cur, simplified);
       }
 
       btor_release_exp (btor, rebuilt_exp);
     }
+    /* not all children rebuilt, enqueue again */
     else
     {
       cur->aux_mark = 2;
@@ -10728,124 +10712,6 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   assert (check_unique_table_mark_unset_dbg (btor));
   assert (check_unique_table_aux_mark_unset_dbg (btor));
 }
-
-#if 0
-/* Simple substitution by following simplified pointer.
- */
-static void
-substitute_and_rebuild_old (Btor * btor, BtorPtrHashTable *subst, int rww, int rwr)
-{
-  BtorNodePtrStack stack, root_stack;
-  BtorPtrHashBucket *b;
-  BtorNode *cur, *cur_parent, *rebuilt_exp, *simplified;
-  BtorMemMgr *mm;
-  BtorFullParentIterator it;
-  int pushed, i;
-
-  assert (btor);
-  assert (subst);
-
-  if (subst->count == 0u)
-    return;
-
-  mm = btor->mm;
-
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (root_stack);
-
-  /* we push all expressions on the search stack */
-  for (b = subst->first; b; b = b->next)
-    {
-      cur = (BtorNode *) b->key;
-      assert (!BTOR_REAL_ADDR_NODE (cur)->mark);
-      if (rww || rwr)
-	BTOR_REAL_ADDR_NODE (cur)->mark = 1;  /* mark as node in subst */
-      BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur));
-    }
-  while (!BTOR_EMPTY_STACK (stack))
-    {
-      /* search upwards for all reachable roots */
-      cur = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      if (cur->aux_mark == 0)
-	{
-	  cur->aux_mark = 1;
-	  init_full_parent_iterator (&it, cur);
-	  /* are we at a root ? */
-	  pushed = 0;
-	  while (has_next_parent_full_parent_iterator (&it))
-	    {
-	      cur_parent = next_parent_full_parent_iterator (&it);
-	      assert (BTOR_IS_REGULAR_NODE (cur_parent));
-	      pushed = 1;
-	      BTOR_PUSH_STACK (mm, stack, cur_parent);
-	    }
-	  if (!pushed)
-	    BTOR_PUSH_STACK (mm, root_stack, btor_copy_exp (btor, cur));
-	}
-    }
-
-  /* copy roots on substitution stack */
-  for (i = 0; i < BTOR_COUNT_STACK (root_stack); i++)
-    BTOR_PUSH_STACK (mm, stack, root_stack.start[i]);
-
-  /* substitute */
-  while (!BTOR_EMPTY_STACK (stack))
-    {
-      cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (stack));
-
-      if (cur->aux_mark == 0)
-	continue;
-
-      if (cur->aux_mark == 1)
-	{
-	  cur->aux_mark = 2;
-	  BTOR_PUSH_STACK (mm, stack, cur);
-
-	  for (i = cur->arity - 1; i >= 0; i--)
-	    BTOR_PUSH_STACK (mm, stack, cur->e[i]);
-	}
-      else
-	{
-	  assert (cur->aux_mark == 2);
-	  cur->aux_mark = 0;
-
-	  /* we only have to rewrite reads/writes if cur is in subst */
-	  if (rww && BTOR_IS_WRITE_NODE (cur) && cur->mark)
-	    {
-	      cur->mark = 0;
-	      rebuilt_exp = rewrite_write_to_lambda_exp (btor, cur);
-	    }
-	  else if (rwr && BTOR_IS_READ_NODE (cur) && cur->mark)
-	    {
-	      cur->mark = 0;
-	      rebuilt_exp = btor_beta_reduce (btor, cur, BETA_RED_FULL, 0);
-	    }
-	  else
-	    {
-	      assert (!cur->mark);
-	      rebuilt_exp = rebuild_exp (btor, cur);
-	    }
-
-	  assert (rebuilt_exp);
-	  /* base case: rebuilt_exp == cur */
-	  if (rebuilt_exp != cur)
-	    {
-	      simplified = btor_simplify_exp (btor, rebuilt_exp);
-	      set_simplified_exp (btor, cur, simplified);
-	    }
-
-	  btor_release_exp (btor, rebuilt_exp);
-	}
-    }
-
-  BTOR_RELEASE_STACK (mm, stack);
-
-  for (i = 0; i < BTOR_COUNT_STACK (root_stack); i++)
-    btor_release_exp (btor, root_stack.start[i]);
-  BTOR_RELEASE_STACK (mm, root_stack);
-}
-#endif
 
 static void
 substitute_embedded_constraints (Btor *btor)
