@@ -5340,7 +5340,14 @@ dump_node (FILE *file, BtorNode *node)
       break;
 
     case BTOR_BV_CONST_NODE:
-      fprintf (file, "const %d %s", n->len, n->bits);
+      if (btor_is_zero_const (n->bits))
+        fprintf (file, "zero %d", n->len);
+      else if (btor_is_one_const (n->bits))
+        fprintf (file, "one %d", n->len);
+      else if (btor_is_ones_const (n->bits))
+        fprintf (file, "ones %d", n->len);
+      else
+        fprintf (file, "const %d %s", n->len, n->bits);
       break;
 
     case BTOR_PARAM_NODE: fprintf (file, "param %d", n->len); break;
