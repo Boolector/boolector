@@ -1886,8 +1886,18 @@ BtorIBV::translate ()
 
   /*----------------------------------------------------------------------*/
 
-  BTOR_ABORT_BOOLECTOR (!BTOR_EMPTY_STACK (assertions),
-                        "can not translate assertions yet");
+  for (BtorIBVBit *b = assertions.start; b < assertions.top; b++)
+  {
+    BtorIBVNode *n = id2node (b->id);
+    assert (n);
+    assert (n->cached);
+    assert (n->used);
+    BtorNode *good = boolector_slice (btor, n->cached, b->bit, b->bit);
+    BtorNode *bad  = boolector_not (btor, good);
+    boolector_release (btor, good);
+    boolector_bad (btormc, bad);
+    boolector_release (btor, bad);
+  }
 
   BTOR_ABORT_BOOLECTOR (!BTOR_EMPTY_STACK (assumptions),
                         "can not translate assumptions yet");
