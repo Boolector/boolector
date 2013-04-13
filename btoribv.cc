@@ -1831,6 +1831,53 @@ BtorIBV::translate ()
     }
   }
   BTOR_RELEASE_STACK (btor->mm, work);
+
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "connecting next state functions ... ");
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_constant)
+    {
+      assert (n->cached);
+      continue;
+    }
+    if (!n->used) continue;
+    if (!n->next) continue;
+    for (BtorIBVAtom *at = n->atoms.start; at < n->atoms.top; at++)
+    {
+      unsigned lsb          = at->range.lsb;
+      BtorIBVAssignment *as = n->next[lsb];
+      if (!as) continue;
+      assert (as->tag == BTOR_IBV_STATE);
+      assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
+      assert (as->nranges == 2);
+      if (as->ranges[0].id)
+      {
+        BtorIBVNode *initnode = id2node (as->ranges[0].id);
+        assert (initnode);
+        assert (initnode->cached);
+        BtorNode *initexp = boolector_slice (
+            btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
+        boolector_init (btormc, n->cached, initexp);
+        boolector_release (btor, initexp);
+        stats.nexts++;
+      }
+      BtorIBVNode *nextnode = id2node (as->ranges[1].id);
+      assert (nextnode);
+      assert (nextnode->cached);
+      BtorNode *nextexp = boolector_slice (
+          btor, nextnode->cached, as->ranges[1].msb, as->ranges[1].lsb);
+      boolector_next (btormc, n->cached, nextexp);
+      boolector_release (btor, nextexp);
+      stats.nexts++;
+    }
+  }
+
+  /*----------------------------------------------------------------------*/
+
   msg (2,
        "translated %u inputs, %u latches, %u nexts, %u inits",
        stats.inputs,
