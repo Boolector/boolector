@@ -1528,23 +1528,22 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
           1, "%s not handled", btor_ibv_classified_to_str (c));
       break;
 
+    case BTOR_IBV_CURRENT_STATE:
     case BTOR_IBV_ASSIGNED:
     {
-      BtorIBVAssignment *a = n->assigned[r.lsb];
-      assert (a);
-      for (unsigned i = 0; i < a->nranges; i++)
-      {
-        BtorIBVRange r = a->ranges[i];
-        if (!r.id) continue;
-        BtorIBVNode *o = id2node (r.id);
-        BTOR_PUSH_STACK (btor->mm, *work, o);
-      }
+      BtorIBVAssignment *a;
+      if (n->assigned) a = n->assigned[r.lsb];
+      if (!a && n->next) a = n->next[r.lsb];
+      if (a)
+        for (unsigned i = 0; i < a->nranges; i++)
+        {
+          BtorIBVRange r = a->ranges[i];
+          if (!r.id) continue;
+          BtorIBVNode *o = id2node (r.id);
+          BTOR_PUSH_STACK (btor->mm, *work, o);
+        }
     }
     break;
-
-    case BTOR_IBV_CURRENT_STATE:
-      // TODO next ...
-      break;
   }
 }
 
@@ -1834,7 +1833,7 @@ BtorIBV::translate ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "connecting next state functions ... ");
+  msg (1, "connecting next state and init state functions ... ");
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
@@ -1863,7 +1862,7 @@ BtorIBV::translate ()
             btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
         boolector_init (btormc, n->cached, initexp);
         boolector_release (btor, initexp);
-        stats.nexts++;
+        stats.inits++;
       }
       BtorIBVNode *nextnode = id2node (as->ranges[1].id);
       assert (nextnode);
@@ -1884,6 +1883,14 @@ BtorIBV::translate ()
        stats.latches,
        stats.nexts,
        stats.inits);
+
+  /*----------------------------------------------------------------------*/
+
+  BTOR_ABORT_BOOLECTOR (!BTOR_EMPTY_STACK (assertions),
+                        "can not translate assertions yet");
+
+  BTOR_ABORT_BOOLECTOR (!BTOR_EMPTY_STACK (assumptions),
+                        "can not translate assumptions yet");
 
   state = BTOR_IBV_TRANSLATED;
 }
