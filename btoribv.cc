@@ -46,44 +46,46 @@ BtorIBV::wrn (const char *fmt, ...)
   fflush (stderr);
 }
 
+static const char *
+btor_ibv_tag_to_str (BtorIBVTag tag)
+{
+  switch (tag & BTOR_IBV_OPS)
+  {
+    case BTOR_IBV_AND: return "AND";
+    case BTOR_IBV_BUF: return "BUF";
+    case BTOR_IBV_CASE: return "CASE";
+    case BTOR_IBV_CONCAT: return "CONCAT";
+    case BTOR_IBV_COND: return "COND";
+    case BTOR_IBV_CONDBW: return "CONDBW";
+    case BTOR_IBV_DIV: return "DIV";
+    case BTOR_IBV_EQUAL: return "EQUAL";
+    case BTOR_IBV_LE: return "LE";
+    case BTOR_IBV_LEFT_SHIFT: return "LEFT_SHIFT";
+    case BTOR_IBV_LT: return "LT";
+    case BTOR_IBV_MOD: return "MOD";
+    case BTOR_IBV_MUL: return "MUL";
+    case BTOR_IBV_NON_STATE: return "NON_STATE";
+    case BTOR_IBV_NOT: return "NOT";
+    case BTOR_IBV_OR: return "OR";
+    case BTOR_IBV_PARCASE: return "PARCASE";
+    case BTOR_IBV_REPLICATE: return "REPLICATE";
+    case BTOR_IBV_RIGHT_SHIFT: return "RIGHT_SHIFT";
+    case BTOR_IBV_SIGN_EXTEND: return "SIGN_EXTEND";
+    case BTOR_IBV_STATE: return "STATE";
+    case BTOR_IBV_SUB: return "SUB";
+    case BTOR_IBV_SUM: return "SUM";
+    case BTOR_IBV_XOR: return "XOR";
+    case BTOR_IBV_ZERO_EXTEND: return "ZERO_EXTEND";
+    default: assert (!"UNKNOWN"); return "UNKNOWN";
+  }
+}
+
 void
 BtorIBV::print (const BtorIBVAssignment &a)
 {
   BtorIBVNode *on = id2node (a.range.id);
   printf ("%s[%u:%u] = ", on->name, a.range.msb, a.range.lsb);
-  const char *opname;
-  switch (a.tag & BTOR_IBV_OPS)
-  {
-    case BTOR_IBV_AND: opname = "AND"; break;
-    case BTOR_IBV_BUF: opname = "BUF"; break;
-    case BTOR_IBV_CASE: opname = "CASE"; break;
-    case BTOR_IBV_CONCAT: opname = "CONCAT"; break;
-    case BTOR_IBV_COND: opname = "COND"; break;
-    case BTOR_IBV_CONDBW: opname = "CONDBW"; break;
-    case BTOR_IBV_DIV: opname = "DIV"; break;
-    case BTOR_IBV_EQUAL: opname = "EQUAL"; break;
-    case BTOR_IBV_LE: opname = "LE"; break;
-    case BTOR_IBV_LEFT_SHIFT: opname = "LEFT_SHIFT"; break;
-    case BTOR_IBV_LT: opname = "LT"; break;
-    case BTOR_IBV_MOD: opname = "MOD"; break;
-    case BTOR_IBV_MUL: opname = "MUL"; break;
-    case BTOR_IBV_NON_STATE: opname = "NON_STATE"; break;
-    case BTOR_IBV_NOT: opname = "NOT"; break;
-    case BTOR_IBV_OR: opname = "OR"; break;
-    case BTOR_IBV_PARCASE: opname = "PARCASE"; break;
-    case BTOR_IBV_REPLICATE: opname = "REPLICATE"; break;
-    case BTOR_IBV_RIGHT_SHIFT: opname = "RIGHT_SHIFT"; break;
-    case BTOR_IBV_SIGN_EXTEND: opname = "SIGN_EXTEND"; break;
-    case BTOR_IBV_STATE: opname = "STATE"; break;
-    case BTOR_IBV_SUB: opname = "SUB"; break;
-    case BTOR_IBV_SUM: opname = "SUM"; break;
-    case BTOR_IBV_XOR: opname = "XOR"; break;
-    case BTOR_IBV_ZERO_EXTEND: opname = "ZERO_EXTEND"; break;
-    default:
-      assert (!"UNKNOWN");
-      opname = "UNKNOWN";
-      break;
-  }
+  const char *opname = btor_ibv_tag_to_str (a.tag);
   fputs (opname, stdout);
   if (a.tag & BTOR_IBV_IS_PREDICATE) fputs ("_PRED", stdout);
   for (unsigned i = 0; i < a.nranges; i++)
@@ -1551,59 +1553,109 @@ void
 BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
 {
   assert (a);
-  BtorIBVNode *n = id2node (a->range.id), *o;
-  BtorNode *tmp;
-#ifndef NDEBUG
+  BtorIBVNode *n = id2node (a->range.id);
+  BtorNodePtrStack stack;
+  BTOR_INIT_STACK (stack);
   assert (!n->cached);
   for (unsigned i = 0; i < a->nranges; i++)
   {
-    BtorIBVRange r = a->ranges[i];
-    if (!r.id) continue;
-    BtorIBVNode *o = id2node (r.id);
-    assert (o->cached);
-  }
-#endif
-  switch (a->tag)
-  {
-    case BTOR_IBV_NOT:
+    BtorIBVRange r   = a->ranges[i];
+    BtorNode *argexp = 0;
+    if (r.id)
     {
-      BtorIBVRange r = a->ranges[0];
-      o              = id2node (r.id);
+      BtorIBVNode *o = id2node (r.id);
       assert (o->cached);
-      tmp       = btor_slice_exp (btor, o->cached, (int) r.msb, (int) r.lsb);
-      n->cached = btor_not_exp (btor, tmp);
-      btor_release_exp (btor, tmp);
+      argexp = boolector_slice (btor, o->cached, (int) r.msb, (int) r.lsb);
     }
-    break;
+    BTOR_PUSH_STACK (btor->mm, stack, argexp);
+  }
+  switch ((int) a->tag)
+  {
     case BTOR_IBV_AND:
+      n->cached = boolector_and (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_BUF:
-    case BTOR_IBV_CASE:
+      n->cached = boolector_copy (btor, BTOR_PEEK_STACK (stack, 0));
+      break;
     case BTOR_IBV_CONCAT:
+      n->cached = boolector_concat (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_COND:
-    case BTOR_IBV_CONDBW:
+      n->cached = boolector_cond (btor,
+                                  BTOR_PEEK_STACK (stack, 0),
+                                  BTOR_PEEK_STACK (stack, 1),
+                                  BTOR_PEEK_STACK (stack, 2));
+      break;
     case BTOR_IBV_DIV:
+      n->cached = boolector_udiv (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_EQUAL:
+    case BTOR_IBV_EQUAL | BTOR_IBV_IS_PREDICATE:
+      n->cached = boolector_eq (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_LE:
-    case BTOR_IBV_LEFT_SHIFT:
+      n->cached = boolector_ulte (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_LT:
+      n->cached = boolector_ult (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_MOD:
+      n->cached = boolector_urem (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
     case BTOR_IBV_MUL:
-    case BTOR_IBV_NON_STATE:
+      n->cached = boolector_mul (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
+    case BTOR_IBV_NOT:
+      n->cached = boolector_not (btor, BTOR_PEEK_STACK (stack, 0));
+      break;
     case BTOR_IBV_OR:
+      n->cached = boolector_or (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
+    case BTOR_IBV_SUB:
+      n->cached = boolector_sub (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
+    case BTOR_IBV_SUM:
+      n->cached = boolector_add (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
+    case BTOR_IBV_XOR:
+      n->cached = boolector_xor (
+          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+      break;
+    case BTOR_IBV_CASE:
+    case BTOR_IBV_CONDBW:
+    case BTOR_IBV_LEFT_SHIFT:
+    case BTOR_IBV_NON_STATE:
     case BTOR_IBV_PARCASE:
     case BTOR_IBV_REPLICATE:
     case BTOR_IBV_RIGHT_SHIFT:
     case BTOR_IBV_SIGN_EXTEND:
     case BTOR_IBV_STATE:
-    case BTOR_IBV_SUB:
-    case BTOR_IBV_SUM:
-    case BTOR_IBV_XOR:
     case BTOR_IBV_ZERO_EXTEND:
     default:
-      BTOR_ABORT_BOOLECTOR (1, "operator %d not handled yet", (int) a->tag);
+      BTOR_ABORT_BOOLECTOR (1,
+                            "operator %s (%d) not handled yet",
+                            btor_ibv_tag_to_str (a->tag),
+                            (int) a->tag);
       break;
   }
   assert (n->cached);
+  while (!BTOR_EMPTY_STACK (stack))
+  {
+    BtorNode *argexp = BTOR_POP_STACK (stack);
+    if (argexp) boolector_release (btor, argexp);
+  }
+  BTOR_RELEASE_STACK (btor->mm, stack);
 }
 
 void
@@ -1922,5 +1974,6 @@ BtorIBV::bmc (int maxk)
 string
 BtorIBV::assignment (BitRange r, int k)
 {
+  (void) r, (void) k;
   return string ("");
 }
