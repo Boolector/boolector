@@ -1717,6 +1717,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       sprintf (name, "%s%s", n->name, suffix);
       assert (!a->exp);
       a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
+      (void) boolector_copy (btor, a->exp);
       btor_free (btor->mm, name, len);
       stats.latches++;
       break;
