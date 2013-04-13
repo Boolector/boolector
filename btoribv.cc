@@ -1907,19 +1907,20 @@ BtorIBV::translate ()
 
 /*------------------------------------------------------------------------*/
 
-// Dummy but compilable ...
-
 int
 BtorIBV::bmc (int maxk)
 {
-  (void) maxk;
-  return -1;
+  BTOR_ABORT_BOOLECTOR (
+      state == BTOR_IBV_START,
+      "model needs to be translated before it can be checked");
+
+  return boolector_bmc (btormc, maxk);
 }
+
+// Dummy but compilable ...
 
 string
 BtorIBV::assignment (BitRange r, int k)
 {
-  (void) r;
-  (void) k;
-  return "";
+  return string ("");
 }
