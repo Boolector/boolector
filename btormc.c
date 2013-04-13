@@ -319,7 +319,7 @@ boolector_init (BtorMC *mc, BtorNode *node, BtorNode *init)
   BTOR_ABORT_IF_STATE (mc);
   assert (node);
   assert (init);
-  assert (BTOR_IS_BV_CONST_NODE (init));
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (init)));
   btor = mc->btor;
   assert (btor_get_exp_len (btor, node) == btor_get_exp_len (btor, init));
   latch = btor_find_mc_latch (mc, node);

@@ -308,7 +308,7 @@ class BtorIBV : public BitVector
 
   void translate_atom_divide (BtorIBVAtom *, BtorIBVNodePtrStack *);
   void translate_atom_conquer (BtorIBVAtom *);
-  void translate_assignment_conquer (BtorIBVAssignment *a);
+  BtorNode *translate_assignment_conquer (BtorIBVAssignment *a);
   void translate_atom_base (BtorIBVAtom *);
 
   void translate_node_divide (BtorIBVNode *, BtorIBVNodePtrStack *);
@@ -316,7 +316,7 @@ class BtorIBV : public BitVector
 
   struct
   {
-    unsigned inputs, latches, nexts, inits;
+    unsigned inputs, latches, nexts, inits, bads;
   } stats;
 
  public:
