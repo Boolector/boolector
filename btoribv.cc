@@ -1598,10 +1598,12 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
           btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
       break;
     case BTOR_IBV_LE:
+    case BTOR_IBV_LE | BTOR_IBV_IS_PREDICATE:
       n->cached = boolector_ulte (
           btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
       break;
     case BTOR_IBV_LT:
+    case BTOR_IBV_LT | BTOR_IBV_IS_PREDICATE:
       n->cached = boolector_ult (
           btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
       break;
