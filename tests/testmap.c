@@ -9,6 +9,7 @@
  */
 
 #include "testmap.h"
+#include "boolector.h"
 #include "btormap.h"
 #include "testrunner.h"
 
@@ -38,7 +39,7 @@ static void
 init_map_test (void)
 {
   assert (!g_btor);
-  g_btor = boolector_init ();
+  g_btor = boolector_new ();
   assert (g_btor);
 }
 
@@ -46,7 +47,7 @@ static void
 finish_map_test (void)
 {
   assert (g_btor);
-  boolector_del (g_btor);
+  boolector_delete (g_btor);
   g_btor = 0;
 }
 
@@ -58,14 +59,14 @@ test_mapnewdel ()
   BtorNodeMap *map;
   init_map_test ();
   map = btor_new_node_map (g_btor);
-  btor_delete_node_map (map);
+  btor_delete_node_map (g_btor, map);
   finish_map_test ();
 }
 
 /*------------------------------------------------------------------------*/
 
 void
-run_mc_tests (int argc, char **argv)
+run_map_tests (int argc, char **argv)
 {
-  test_mapnewdel ();
+  BTOR_RUN_TEST (mapnewdel);
 }
