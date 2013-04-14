@@ -96,9 +96,55 @@ test_map0 ()
 
 /*------------------------------------------------------------------------*/
 
+static BtorNode *
+test_map1_mapper (Btor *btor, void *state, BtorNode *node)
+{
+  (void) state;
+  assert (btor == g_btor);
+  assert (BTOR_IS_REGULAR_NODE (node));
+  if (!BTOR_IS_BV_VAR_NODE (node)) return 0;
+  assert (node->symbol);
+  return boolector_int (btor, atoi (node->symbol), 8);
+}
+
+void
+test_map1 ()
+{
+  init_map_test ();
+  {
+    BtorNode *a = boolector_var (g_btor, 8, "11");
+    BtorNode *b = boolector_var (g_btor, 8, "22");
+    BtorNode *c = boolector_var (g_btor, 8, "33");
+    BtorNode *s;
+    {
+      BtorNode *sum = boolector_add (g_btor, a, b);
+      s             = boolector_add (g_btor, sum, c);
+      boolector_release (g_btor, sum);
+    }
+    {
+      BtorNodeMap *map = btor_new_node_map (g_btor);
+      BtorNode *d, *g;
+      d = btor_non_recursive_extended_substitute_node (
+          g_btor, map, 0, test_map1_mapper, s);
+      g = boolector_int (g_btor, 66, 8);
+      assert (d == g);
+      boolector_release (g_btor, g);
+      btor_delete_node_map (g_btor, map);
+    }
+    boolector_release (g_btor, a);
+    boolector_release (g_btor, b);
+    boolector_release (g_btor, c);
+    boolector_release (g_btor, s);
+  }
+  finish_map_test ();
+}
+
+/*------------------------------------------------------------------------*/
+
 void
 run_map_tests (int argc, char **argv)
 {
   BTOR_RUN_TEST (mapnewdel);
   BTOR_RUN_TEST (map0);
+  BTOR_RUN_TEST (map1);
 }
