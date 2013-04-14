@@ -12,6 +12,10 @@
 #include "btorexp.h"
 
 /*------------------------------------------------------------------------*/
+
+#define BTOR_COUNT_MAP_NODE(MAP) (assert (MAP), (MAP)->count)
+
+/*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non
  * zero 'src' and 'dst' nodes added in 'btor_map_node'.  Succesful look-up
  * through 'btor_mapped_node' does not add a reference.  The destructor

@@ -65,6 +65,7 @@ struct BtorMC
   BtorPtrHashTable *inputs;
   BtorPtrHashTable *latches;
   BtorNodePtrStack bad;
+  BtorNodeMap *assignment;
 };
 
 /*------------------------------------------------------------------------*/
@@ -87,6 +88,7 @@ boolector_new_mc (void)
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
+  assert (!res->assignment);
   return res;
 }
 
@@ -179,6 +181,17 @@ btor_release_mc_frame (BtorMcFrame *frame)
   release_frame_stack (frame, &frame->bad);
 }
 
+static void
+release_assignment (BtorMC *mc)
+{
+  if (!mc->assignment) return;
+  btor_msg_mc (mc,
+               1,
+               "releasing assignment of size %d",
+               BTOR_COUNT_MAP_NODE (mc->assignment));
+  mc->assignment = 0;
+}
+
 void
 boolector_delete_mc (BtorMC *mc)
 {
@@ -187,6 +200,7 @@ boolector_delete_mc (BtorMC *mc)
   BtorMcFrame *f;
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  release_assignment (mc);
   btor_msg_mc (mc,
                1,
                "deleting model checker: %u inputs, %u latches, %u bad",
