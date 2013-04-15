@@ -14,6 +14,7 @@
 
 #include "boolector.h"
 #include "btorabort.h"
+#include "btordump.h"
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorutil.h"
@@ -1324,7 +1325,7 @@ boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_smt (btor, 1, file, exp);
+  btor_dump_smt (btor, file, exp);
 }
 
 void
@@ -1334,7 +1335,7 @@ boolector_dump_smt2 (Btor *btor, FILE *file, BtorNode *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_smt (btor, 2, file, exp);
+  btor_dump_smt2 (btor, file, &exp, 1);
 }
 
 void

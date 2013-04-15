@@ -1096,14 +1096,10 @@ BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 void btor_release_exp (Btor *btor, BtorNode *exp);
 
 /* Dumps expression(s) to file in BTOR format. */
-void btor_dump_exp (Btor *btor, FILE *file, BtorNode *root);
-void btor_dump_exps (Btor *btor, FILE *file, BtorNode **exps, int nroots);
 void btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file);
 
-/* Dumps expression to file in SMT format.
- * format==1 || format==2
- */
-void btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode *root);
+/* Dumps expression(s) to file in SMT2 format. */
+void btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file);
 
 /* Adds top level constraint. */
 void btor_add_constraint_exp (Btor *btor, BtorNode *exp);

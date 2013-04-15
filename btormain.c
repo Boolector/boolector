@@ -16,6 +16,7 @@
 #include "btorbtor.h"
 #include "btorconfig.h"
 #include "btorconst.h"
+#include "btordump.h"
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorhash.h"
@@ -1345,27 +1346,6 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
-      all = 0;
-      for (i = 0; i < parse_res.noutputs; i++)
-      {
-        root     = parse_res.outputs[i];
-        root_len = btor_get_exp_len (btor, root);
-        assert (root_len >= 1);
-        if (root_len > 1)
-          root = btor_redor_exp (btor, root);
-        else
-          root = btor_copy_exp (btor, root);
-        if (all)
-        {
-          tmp = btor_and_exp (btor, all, root);
-          btor_release_exp (btor, root);
-          btor_release_exp (btor, all);
-          all = tmp;
-        }
-        else
-          all = root;
-      }
-
       if (app.verbosity > 0)
       {
         if (app.dump_smt < 2)
@@ -1374,8 +1354,56 @@ boolector_main (int argc, char **argv)
           btor_msg_main_va_args ("dumping in SMT 2.0 format\n");
       }
 
-      btor_dump_smt (btor, app.dump_smt, app.output_file, all);
-      btor_release_exp (btor, all);
+      assert (app.rewrite_level >= 0);
+      assert (app.rewrite_level <= 3);
+      if (app.rewrite_level >= 2 && app.dump_smt == 2)
+      {
+        for (i = 0; i < parse_res.noutputs; i++)
+        {
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
+          btor_add_constraint_exp (btor, root);
+          btor_release_exp (btor, root);
+        }
+        parser_api->reset (parser);
+        parser_api = 0;
+        btor_dump_smt2_after_global_rewriting (btor, app.output_file);
+      }
+      else
+      {
+        all = 0;
+        for (i = 0; i < parse_res.noutputs; i++)
+        {
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
+          if (all)
+          {
+            tmp = btor_and_exp (btor, all, root);
+            btor_release_exp (btor, root);
+            btor_release_exp (btor, all);
+            all = tmp;
+          }
+          else
+            all = root;
+        }
+
+        if (app.dump_smt < 2)
+          btor_dump_smt (btor, app.output_file, all);
+        else
+          btor_dump_smt2 (btor, app.output_file, &all, 1);
+
+        btor_release_exp (btor, all);
+      }
 
       app.done = 1;
     }
