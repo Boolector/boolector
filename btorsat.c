@@ -201,12 +201,12 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 }
 
 void
-btor_enable_verbosity_sat (BtorSATMgr *smgr)
+btor_enable_verbosity_sat (BtorSATMgr *smgr, int level)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->api.enable_verbosity (smgr);
+  smgr->api.enable_verbosity (smgr, level);
 }
 
 void
@@ -398,9 +398,9 @@ btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 }
 
 static void
-btor_picosat_enable_verbosity (BtorSATMgr *smgr)
+btor_picosat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
-  picosat_set_verbosity (smgr->solver, 1);
+  picosat_set_verbosity (smgr->solver, level);
 }
 
 static int
@@ -671,7 +671,6 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
       lglfixate (bforked);
       lglmeltall (bforked);
       str = "clone";
-      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
       lglsetopt (bforked, "clim", limit);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
       lglsetprefix (bforked, name);
@@ -738,10 +737,10 @@ btor_lingeling_set_prefix (BtorSATMgr *smgr, const char *prefix)
 }
 
 static void
-btor_lingeling_enable_verbosity (BtorSATMgr *smgr)
+btor_lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
-  lglsetopt (blgl->lgl, "verbose", 1);
+  lglsetopt (blgl->lgl, "verbose", level);
 }
 
 static int

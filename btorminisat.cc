@@ -212,10 +212,10 @@ btor_minisat_set_prefix (BtorSATMgr *, const char *)
 }
 
 void
-btor_minisat_enable_verbosity (BtorSATMgr *smgr)
+btor_minisat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  solver->verbosity   = 1;
+  solver->verbosity   = level;
 }
 
 void
