@@ -1325,7 +1325,7 @@ boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  btor_dump_smt (btor, file, exp);
+  btor_dump_smt1 (btor, file, &exp, 1);
 }
 
 void

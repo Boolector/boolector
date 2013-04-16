@@ -140,6 +140,9 @@ static const char *g_usage =
     "  -ds                              dump expression in SMT 1.2 format\n"
     "  -d1, -ds1, --dump-smt            dump expression in SMT 1.2 format\n"
     "  -d2, -ds2, --dump-smt2           dump expression in SMT 2.0 format\n"
+    "  -d2fun, -ds2fun, --dump-smt2-fun dump expression in SMT 2.0 format "
+    "using\n"
+    "                                   define-fun instead of let\n"
     "  -o, --output <file>              set output file for dumping\n"
     "\n"
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
@@ -539,6 +542,10 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "-ds2")
              || !strcmp (app->argv[app->argpos], "--dump-smt2"))
       app->dump_smt = 2;
+    else if (!strcmp (app->argv[app->argpos], "-d2fun")
+             || !strcmp (app->argv[app->argpos], "-ds2fun")
+             || !strcmp (app->argv[app->argpos], "--dump-smt2-fun"))
+      app->dump_smt = 3;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
       app->print_model = 1;
@@ -1356,7 +1363,7 @@ boolector_main (int argc, char **argv)
 
       assert (app.rewrite_level >= 0);
       assert (app.rewrite_level <= 3);
-      if (app.rewrite_level >= 2 && app.dump_smt == 2)
+      if (app.rewrite_level >= 2)
       {
         for (i = 0; i < parse_res.noutputs; i++)
         {
@@ -1372,7 +1379,13 @@ boolector_main (int argc, char **argv)
         }
         parser_api->reset (parser);
         parser_api = 0;
-        btor_dump_smt2_after_global_rewriting (btor, app.output_file);
+
+        if (app.dump_smt <= 1)
+          btor_dump_smt1_after_global_rewriting (btor, app.output_file);
+        else if (app.dump_smt == 2)
+          btor_dump_smt2_after_global_rewriting (btor, app.output_file);
+        else
+          btor_dump_smt2_fun_after_global_rewriting (btor, app.output_file);
       }
       else
       {
@@ -1397,10 +1410,12 @@ boolector_main (int argc, char **argv)
             all = root;
         }
 
-        if (app.dump_smt < 2)
-          btor_dump_smt (btor, app.output_file, all);
-        else
+        if (app.dump_smt <= 1)
+          btor_dump_smt1 (btor, app.output_file, &all, 1);
+        else if (app.dump_smt == 2)
           btor_dump_smt2 (btor, app.output_file, &all, 1);
+        else
+          btor_dump_smt2_fun (btor, app.output_file, &all, 1);
 
         btor_release_exp (btor, all);
       }

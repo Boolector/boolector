@@ -566,8 +566,8 @@ btor_dump_sort_smt2 (BtorNode *e, FILE *file)
 
   if (BTOR_IS_ARRAY_NODE (e) && !BTOR_IS_LAMBDA_NODE (e))
     fprintf (file, "(Array (_ BitVec %d) (_ BitVec %d))", e->index_len, e->len);
-  else if (e->len == 1)
-    fprintf (file, "Bool");
+  //  else if (e->len == 1)
+  //    fprintf (file, "Bool");
   else
     fprintf (file, "(_ BitVec %d)", e->len);
 }
@@ -586,6 +586,16 @@ btor_dump_fun_let_smt2 (Btor *btor, BtorNode *e, const char *sgp, FILE *file)
   btor_dump_sort_smt2 (e, file);
   fputc (' ', file);
   btor_dump_exp_smt (btor, e, sgp, 2, file);
+  fputs (")\n", file);
+}
+
+static void
+btor_dump_declare_fun_smt2 (BtorNode *e, const char *sgp, FILE *file)
+{
+  fputs ("(declare-fun ", file);
+  btor_dump_smt_id (e, sgp, file);
+  fputs (" () ", file);
+  btor_dump_sort_smt2 (e, file);
   fputs (")\n", file);
 }
 
@@ -715,7 +725,7 @@ btor_dump_fun_smt2 (Btor *btor, FILE *file, BtorNode *fun)
 }
 
 void
-btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
@@ -796,11 +806,7 @@ btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   {
     e = vars.start[i];
     assert (!e->mark);
-    fputs ("(declare-fun ", file);
-    btor_dump_smt_id (e, sgp, file);
-    fputs (" () ", file);
-    btor_dump_sort_smt2 (e, file);
-    fputs (")\n", file);
+    btor_dump_declare_fun_smt2 (e, sgp, file);
     e->mark = 1;
   }
 
@@ -809,11 +815,7 @@ btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   {
     e = arrays.start[i];
     assert (!e->mark);
-    fputs ("(declare-fun ", file);
-    btor_dump_smt_id (e, sgp, file);
-    fputs (" () ", file);
-    btor_dump_sort_smt2 (e, file);
-    fputs (")\n", file);
+    btor_dump_declare_fun_smt2 (e, sgp, file);
     e->mark = 1;
   }
 
@@ -860,22 +862,34 @@ btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   fflush (file);
 }
 
-void
-btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
+#define WRAP_NON_BOOL_ROOT(e)                                        \
+  do                                                                 \
+  {                                                                  \
+    fputs ("(not (= ", file);                                        \
+    btor_dump_smt_id (e, sgp, file);                                 \
+    if (format < 2)                                                  \
+      fprintf (file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (e)->len);    \
+    else                                                             \
+      fprintf (file, " (_ bv0 %d)))", BTOR_REAL_ADDR_NODE (e)->len); \
+  } while (0)
+
+static void
+btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor);
   assert (file);
-  assert (root);
+  assert (roots);
+  assert (nroots >= 1);
+  assert (format == 1 || format == 2);
 
-  int format      = 1;  // TODO: cleanup
   const char *sgp = (format < 2) ? "?e" : "$e";
-  int next, i, arrays, lets;
+  int next, i, arrays, open_left_par;
   BtorMemMgr *mm = btor->mm;
   BtorNodePtrStack stack;
   BtorNode *e;
 
   BTOR_INIT_STACK (stack);
-  BTOR_PUSH_NODE_IF_NOT_MARKED (root);
+  for (i = 0; i < nroots; i++) BTOR_PUSH_NODE_IF_NOT_MARKED (roots[i]);
 
   arrays = 0;
   next   = 0;
@@ -907,8 +921,8 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
   if (format < 2)
   {
     fputs ("(benchmark ", file);
-    if (BTOR_IS_INVERTED_NODE (root)) fputs ("not", file);
-    fprintf (file, "root%d\n", BTOR_REAL_ADDR_NODE (root)->id);
+    if (BTOR_IS_INVERTED_NODE (roots[0])) fputs ("not", file);
+    fprintf (file, "root%d\n", BTOR_REAL_ADDR_NODE (roots[0])->id);
 
     if (arrays)
       fputs (":logic QF_AUFBV\n", file);
@@ -943,19 +957,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
         fprintf (file, " Array[%d:%d]))\n", e->index_len, e->len);
     }
     else
-    {
-      fputs ("(declare-fun ", file);
-      btor_dump_smt_id (e, sgp, file);
-      fputs (" () (", file);
-
-      if (BTOR_IS_BV_VAR_NODE (e))
-        fprintf (file, "_ BitVec %d", e->len);
-      else
-        fprintf (
-            file, "Array (_ BitVec %d) (_ BitVec %d)", e->index_len, e->len);
-
-      fputs ("))\n", file);
-    }
+      btor_dump_declare_fun_smt2 (e, sgp, file);
   }
 
   if (format < 2)
@@ -963,8 +965,7 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
   else
     fputs ("(assert\n", file);
 
-  lets = 0;
-
+  open_left_par = 0;
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
     e = stack.start[i];
@@ -973,19 +974,29 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
 
     if (!e || BTOR_IS_BV_VAR_NODE (e) || BTOR_IS_ARRAY_VAR_NODE (e)) continue;
 
-    lets++;
+    open_left_par++;
     btor_dump_let_smt (btor, e, sgp, format, file);
   }
 
-  fputs ("(not (= ", file);
-  btor_dump_smt_id (root, sgp, file);
+  for (i = 0; i < nroots - 1; i++)
+  {
+    e = roots[i];
+    fputs (" (and ", file);
+    if (BTOR_REAL_ADDR_NODE (e)->len > 1)
+      WRAP_NON_BOOL_ROOT (e);
+    else
+      btor_dump_smt_id (e, sgp, file);
+    open_left_par++;
+  }
+  fputc (' ', file);
 
-  if (format < 2)
-    fprintf (file, " bv0[%d]))\n", BTOR_REAL_ADDR_NODE (root)->len);
+  e = roots[nroots - 1];
+  if (BTOR_REAL_ADDR_NODE (e)->len > 1)
+    WRAP_NON_BOOL_ROOT (e);
   else
-    fprintf (file, " (_ bv0 %d)))\n", BTOR_REAL_ADDR_NODE (root)->len);
+    btor_dump_smt_id (e, sgp, file);
 
-  for (i = 0; i < lets + 1; i++) fputc (')', file);
+  for (i = 0; i < open_left_par + 1; i++) fputc (')', file);
 
   fputc ('\n', file);
 
@@ -998,4 +1009,17 @@ btor_dump_smt (Btor *btor, FILE *file, BtorNode *root)
   }
 
   fflush (file);
+}
+
+void
+btor_dump_smt1 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+{
+  btor_dump_smt (btor, 1, file, roots, nroots);
+}
+
+void
+btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
+{
+  assert (btor->lambdas->count == 0u);  // TODO: force define-fun dumps?
+  btor_dump_smt (btor, 2, file, roots, nroots);
 }

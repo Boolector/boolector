@@ -4,19 +4,23 @@ TODO
 
 + model-based tester
 
-+ logging revisited ?
-    -> debug related code with higher verbosity levels?
++ LOGGING
+    - debug related code with higher verbosity levels?
 
-+ rewrite aconds (writes/lambdas as children) to bvconds
-    -> first: only for -rwr
++ API
+  - boolector_type_safe, boolector_really_type_safe
+      needed esp. for UF if we want to check e.g. if (f a i) = (g b i),
+      where a,b are arrays
 
-+ handling of more general lambdas with parameterized reads
-  e.g. lambda j. j && read (a, j)
-  -> we need a more general solution for propagating reads over lambdas
++ LEMMAS
+  - lemma generation statistics are not correct if we use lambdas
+      arbitrary conditions can be instantiated and encoded
 
++ BFS
+  - lambda bfs
+      reads are only propagated along parameterized paths
 
-===============================================================================
-DONE, but not yet committed    
-===============================================================================
+  - merge bfs and lambda bfs
 
-+ beta_reduce: hash reduced expressions
++ READ PROPAGATION
+  - statistics e.g., num propagations, time

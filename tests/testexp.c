@@ -19,6 +19,7 @@
  */
 
 #include "testexp.h"
+#include "btordump.h"
 #include "btorexp.h"
 #include "testrunner.h"
 

@@ -21,8 +21,10 @@ void btor_dump_exp (Btor* btor, FILE* file, BtorNode* root);
 void btor_dump_exps (Btor* btor, FILE* file, BtorNode** roots, int nroots);
 
 /* Dumps expression(s) in SMT1 format. */
-void btor_dump_smt (Btor* btor, FILE* file, BtorNode* root);
+void btor_dump_smt1 (Btor* btor, FILE* file, BtorNode** roots, int nroots);
 /* Dumps expression(s) in SMT2 format. */
 void btor_dump_smt2 (Btor* btor, FILE* file, BtorNode** roots, int nroots);
+/* Dumps expression(s) in SMT2 format, but using define-fun instead of let. */
+void btor_dump_smt2_fun (Btor* btor, FILE* file, BtorNode** roots, int nroots);
 
 #endif

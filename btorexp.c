@@ -5251,7 +5251,7 @@ btor_is_lambda_exp (Btor *btor, BtorNode *exp)
 
 /* Dump formula after global rewriting phase.
  *
- * mode: 1 = BTOR, 2 = SMT2
+ * mode: 1 = BTOR, 2 = SMT1, 3 = SMT2, 4 = SMT2FUN
  */
 static void
 dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
@@ -5262,7 +5262,7 @@ dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
   assert (!btor->inc_enabled);
   assert (!btor->model_gen);
   assert (btor->rewrite_level > 1);
-  assert (mode == 1 || mode == 2);
+  assert (mode >= 1 && mode <= 4);
 
   run_rewrite_engine (btor);
 
@@ -5272,6 +5272,8 @@ dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
     if (mode == 1)
       btor_dump_exp (btor, file, temp);
     else if (mode == 2)
+      btor_dump_smt1 (btor, file, &temp, 1);
+    else
       btor_dump_smt2 (btor, file, &temp, 1);
     btor_release_exp (btor, temp);
   }
@@ -5281,6 +5283,8 @@ dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
     if (mode == 1)
       btor_dump_exp (btor, file, temp);
     else if (mode == 2)
+      btor_dump_smt1 (btor, file, &temp, 1);
+    else
       btor_dump_smt2 (btor, file, &temp, 1);
     btor_release_exp (btor, temp);
   }
@@ -5294,7 +5298,11 @@ dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
     if (mode == 1)
       btor_dump_exps (btor, file, new_roots, new_nroots);
     else if (mode == 2)
+      btor_dump_smt1 (btor, file, new_roots, new_nroots);
+    else if (mode == 3)
       btor_dump_smt2 (btor, file, new_roots, new_nroots);
+    else
+      btor_dump_smt2_fun (btor, file, new_roots, new_nroots);
     BTOR_DELETEN (btor->mm, new_roots, new_nroots);
   }
 }
@@ -5306,9 +5314,21 @@ btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file)
 }
 
 void
-btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file)
+btor_dump_smt1_after_global_rewriting (Btor *btor, FILE *file)
 {
   dump_after_global_rewriting (btor, file, 2);
+}
+
+void
+btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file)
+{
+  dump_after_global_rewriting (btor, file, 3);
+}
+
+void
+btor_dump_smt2_fun_after_global_rewriting (Btor *btor, FILE *file)
+{
+  dump_after_global_rewriting (btor, file, 4);
 }
 
 Btor *
