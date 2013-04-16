@@ -400,7 +400,7 @@ btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 static void
 btor_picosat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
-  picosat_set_verbosity (smgr->solver, level);
+  picosat_set_verbosity (smgr->solver, level >= 1);
 }
 
 static int
@@ -740,7 +740,7 @@ static void
 btor_lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
-  lglsetopt (blgl->lgl, "verbose", level);
+  lglsetopt (blgl->lgl, "verbose", level - 1);
 }
 
 static int

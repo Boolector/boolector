@@ -215,7 +215,10 @@ void
 btor_minisat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  solver->verbosity   = level;
+  if (solver->verbosity >= 0)
+    solver->verbosity = level;
+  else
+    solver->verbosity = 0;
 }
 
 void
