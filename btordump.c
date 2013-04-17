@@ -1000,6 +1000,12 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
 
   fputc ('\n', file);
 
+  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  {
+    stack.start[i]->mark     = 0;
+    stack.start[i]->aux_mark = 0;
+  }
+
   BTOR_RELEASE_STACK (mm, stack);
 
   if (format >= 2)
