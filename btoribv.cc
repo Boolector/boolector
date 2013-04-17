@@ -1964,6 +1964,14 @@ BtorIBV::bmc (int maxk)
 string
 BtorIBV::assignment (BitRange r, int k)
 {
-  (void) r, (void) k;
-  return string ("");
+  BtorIBVNode *n = id2node (r.m_nId);
+  assert (n);
+  assert (n->cached);
+  BtorNode *sliced =
+      boolector_slice (btor, n->cached, (int) r.m_nMsb, (int) r.m_nLsb);
+  char *cres = boolector_mc_assignment (btormc, sliced, k);
+  boolector_release (btor, sliced);
+  string res (cres);
+  boolector_free_mc_assignment (btormc, cres);
+  return res;
 }
