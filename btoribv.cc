@@ -495,12 +495,9 @@ BtorIBV::addCondition (BitRange o, BitRange c, BitRange t, BitRange e)
   mark_assigned (on, o);
   assert (t.getWidth () == e.getWidth ());
   assert (o.getWidth () == t.getWidth ());
-  BtorIBVNode *cn = bitrange2node (c);
-  assert (cn->is_constant || cn->is_constant == on->is_constant);
-  BtorIBVNode *tn = bitrange2node (c);
-  assert (tn->is_constant || tn->is_constant == on->is_constant);
-  BtorIBVNode *en = bitrange2node (c);
-  assert (en->is_constant || en->is_constant == on->is_constant);
+  check_bit_range (c);
+  check_bit_range (t);
+  check_bit_range (e);
   unsigned cw  = c.getWidth ();
   bool bitwise = (cw != 1);
   if (bitwise) assert (t.getWidth () == cw);
