@@ -1527,7 +1527,8 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
           1, "%s not handled", btor_ibv_classified_to_str (c));
       break;
 
-    case BTOR_IBV_CURRENT_STATE: break;
+    case BTOR_IBV_CURRENT_STATE:
+    case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT: assert (a->exp); break;
 
     case BTOR_IBV_ASSIGNED:
     {
@@ -1643,10 +1644,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
     case BTOR_IBV_ZERO_EXTEND:
     default:
       res = 0;
-      BTOR_ABORT_BOOLECTOR (1,
-                            "operator %s (%d) not handled yet",
-                            btor_ibv_tag_to_str (a->tag),
-                            (int) a->tag);
+      BTOR_ABORT_BOOLECTOR (
+          1,
+          "translate_assignment_conquer: operator %s (%d) not handled yet",
+          btor_ibv_tag_to_str (a->tag),
+          (int) a->tag);
       break;
   }
   assert (res);
@@ -1675,8 +1677,9 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
     case BTOR_IBV_TWO_PHASE_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
-      BTOR_ABORT_BOOLECTOR (
-          1, "%s not handled yet", btor_ibv_classified_to_str (c));
+      BTOR_ABORT_BOOLECTOR (1,
+                            "translate_assignment_conquer: %s not handled yet",
+                            btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_ASSIGNED:
@@ -1686,9 +1689,25 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
   }
 }
 
+static char *
+btor_ibv_atom_base_name (Btor *btor, BtorIBVNode *n, BtorIBVRange r)
+{
+  char suffix[30], *res;
+  int len;
+  if (n->width == r.getWidth ())
+    suffix[0] = 0;
+  else
+    sprintf (suffix, "[%u:%u]", r.msb, r.lsb);
+  len = strlen (n->name) + strlen (suffix) + 1;
+  res = (char *) btor_malloc (btor->mm, len);
+  sprintf (res, "%s%s", n->name, suffix);
+  return res;
+}
+
 void
 BtorIBV::translate_atom_base (BtorIBVAtom *a)
 {
+  assert (a);
   assert (!a->exp);
   BtorIBVRange r = a->range;
   BtorIBVNode *n = id2node (r.id);
@@ -1696,26 +1715,27 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
-    char suffix[30], *name;
-    int len;
+    char *name;
 
     default:
-      BTOR_ABORT_BOOLECTOR (
-          1, "%s not handled yet", btor_ibv_classified_to_str (c));
+      BTOR_ABORT_BOOLECTOR (1,
+                            "translate_atom_base: %s not handled yet",
+                            btor_ibv_classified_to_str (c));
+      break;
+
+    case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
+      name   = btor_ibv_atom_base_name (btor, n, r);
+      a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
+      (void) boolector_copy (btor, a->exp);
+      btor_freestr (btor->mm, name);
+      stats.inputs++;
       break;
 
     case BTOR_IBV_CURRENT_STATE:
-      if (n->width == r.getWidth ())
-        suffix[0] = 0;
-      else
-        sprintf (suffix, "[%u:%u]", r.msb, r.lsb);
-      len  = strlen (n->name) + strlen (suffix) + 1;
-      name = (char *) btor_malloc (btor->mm, len);
-      sprintf (name, "%s%s", n->name, suffix);
-      assert (!a->exp);
+      name   = btor_ibv_atom_base_name (btor, n, r);
       a->exp = boolector_latch (btormc, (int) r.getWidth (), name);
       (void) boolector_copy (btor, a->exp);
-      btor_free (btor->mm, name, len);
+      btor_freestr (btor->mm, name);
       stats.latches++;
       break;
   }
@@ -1887,6 +1907,7 @@ BtorIBV::translate ()
       unsigned lsb          = at->range.lsb;
       BtorIBVAssignment *as = n->next[lsb];
       if (!as) continue;
+      if (as->tag == BTOR_IBV_NON_STATE) continue;
       assert (as->tag == BTOR_IBV_STATE);
       assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
       assert (as->nranges == 2);
