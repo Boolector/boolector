@@ -1450,12 +1450,9 @@ BtorIBV::analyze ()
       if (flags.forwarded) printf3 (" forwarded");
       if (verbosity > 2) btoribv_msgtail ();
 
-      if (n->flags[i].classified && !n->flags[i].used)
-      {
-        assert (n->flags[i].classified == BTOR_IBV_PHANTOM_NEXT_INPUT
-                || n->flags[i].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT);
+      if (n->flags[i].classified == BTOR_IBV_PHANTOM_NEXT_INPUT
+          || n->flags[i].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT)
         mark_used (n, i);
-      }
 
       BTOR_ABORT_BOOLECTOR (
           !n->flags[i].classified, "unclassified bit %s[%u]", n->name, i);

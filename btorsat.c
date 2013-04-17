@@ -606,16 +606,19 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
+
   if (smgr->verbosity >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
   }
+
   BTOR_CNEW (smgr->mm, res);
-  res->lgl    = lglminit (smgr->mm,
+  res->lgl = lglminit (smgr->mm,
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
+  if (smgr->verbosity <= 0) lglsetopt (res->lgl, "verbose", -1);
   res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)
