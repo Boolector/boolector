@@ -373,8 +373,9 @@ struct Btor
 
   int generate_model_for_all_reads;
 
-  BtorPtrHashTable *exp_pair_eq_table;
-  BtorPtrHashTable *exp_pair_and_table;
+  //  BtorPtrHashTable *exp_pair_eq_table;
+  //  BtorPtrHashTable *exp_pair_and_table;
+  BtorPtrHashTable *lod_cache;
 
   BtorPtrHashTable *varsubst_constraints;
   BtorPtrHashTable *embedded_constraints;

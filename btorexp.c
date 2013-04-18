@@ -1462,7 +1462,8 @@ check_not_simplified_or_const (Btor *btor, BtorNode *exp)
 }
 
 static int
-assignment_always_unequal (Btor *btor, BtorNodePair *pair)
+// assignment_always_unequal (Btor * btor, BtorNodePair * pair)
+assignment_always_unequal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -1470,13 +1471,13 @@ assignment_always_unequal (Btor *btor, BtorNodePair *pair)
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
-  BtorNode *exp1, *exp2;
+  //  BtorNode *exp1, *exp2;
 
   assert (btor);
-  assert (pair);
+  //  assert (pair);
 
-  exp1 = pair->exp1;
-  exp2 = pair->exp2;
+  //  exp1 = pair->exp1;
+  //  exp2 = pair->exp2;
 
   if (!BTOR_IS_SYNTH_NODE (exp1)) return 0;
 
@@ -1528,7 +1529,8 @@ assignment_always_unequal (Btor *btor, BtorNodePair *pair)
 }
 
 static int
-assignment_always_equal (Btor *btor, BtorNodePair *pair)
+// assignment_always_equal (Btor * btor, BtorNodePair * pair)
+assignment_always_equal (Btor *btor, BtorNode *exp1, BtorNode *exp2)
 {
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
@@ -1536,13 +1538,13 @@ assignment_always_equal (Btor *btor, BtorNodePair *pair)
   int i, len, val1, val2;
   BtorAIGVec *av1, *av2;
   BtorAIG *aig1, *aig2;
-  BtorNode *exp1, *exp2;
+  //  BtorNode *exp1, *exp2;
 
   assert (btor);
-  assert (pair);
+  //  assert (pair);
 
-  exp1 = pair->exp1;
-  exp2 = pair->exp2;
+  //  exp1 = pair->exp1;
+  //  exp2 = pair->exp2;
 
   if (!BTOR_IS_SYNTH_NODE (exp1)) return 0;
 
@@ -1593,27 +1595,27 @@ assignment_always_equal (Btor *btor, BtorNodePair *pair)
   return 1;
 }
 
+#if 0
 static void
-add_eq_or_neq_exp_to_clause (Btor *btor,
-                             BtorNode *a,
-                             BtorNode *b,
-                             BtorIntStack *linking_clause,
-                             int sign)
+add_eq_or_neq_exp_to_clause (Btor * btor,
+			     BtorNode * a, BtorNode * b,
+			     BtorIntStack * linking_clause,
+			     int sign)
 {
-  BtorPtrHashTable *table = btor->exp_pair_eq_table;
+  BtorPtrHashTable * table = btor->exp_pair_eq_table;
   int lit, true_lit, false_lit, hashed_pair;
-  BtorPtrHashBucket *bucket;
-  BtorNodePair *pair;
+  BtorPtrHashBucket * bucket;
+  BtorNodePair * pair;
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
-  BtorNode *eq;
+  BtorNode * eq;
 
   assert (sign == 1 || sign == -1);
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
-  true_lit  = smgr->true_lit;
+  true_lit = smgr->true_lit;
   false_lit = -true_lit;
 
   a = btor_simplify_exp (btor, a);
@@ -1624,34 +1626,93 @@ add_eq_or_neq_exp_to_clause (Btor *btor,
   else if (a == BTOR_INVERT_NODE (b))
     lit = false_lit;
   else
-  {
-    hashed_pair = 0;
-    pair        = new_exp_pair (btor, a, b);
-    if (assignment_always_unequal (btor, pair))
-      lit = false_lit;
-    else if (assignment_always_equal (btor, pair))
-      lit = true_lit;
-    else
     {
-      bucket = btor_find_in_ptr_hash_table (table, pair);
-      if (bucket)
-      {
-        eq = bucket->data.asPtr;
-        eq = btor_simplify_exp (btor, eq);
-      }
+      hashed_pair = 0;
+      pair = new_exp_pair (btor, a, b);
+      if (assignment_always_unequal (btor, pair))
+	lit = false_lit;
+      else if (assignment_always_equal (btor, pair))
+	lit = true_lit;
       else
-      {
-        eq                 = btor_eq_exp (btor, a, b);
-        bucket             = btor_insert_in_ptr_hash_table (table, pair);
-        bucket->data.asPtr = eq;
-        hashed_pair        = 1;
-      }
-      lit = exp_to_cnf_lit (btor, eq);
+	{
+	  bucket = btor_find_in_ptr_hash_table (table, pair);
+	  if (bucket)
+	    {
+	      eq = bucket->data.asPtr;
+	      eq = btor_simplify_exp (btor, eq);
+	    }
+	  else
+	    {
+	      eq = btor_eq_exp (btor, a, b);
+	      bucket = btor_insert_in_ptr_hash_table (table, pair);
+	      bucket->data.asPtr = eq;
+	      hashed_pair = 1;
+	    }
+	  lit = exp_to_cnf_lit (btor, eq);
+	}
+      if (!hashed_pair)
+	delete_exp_pair (btor, pair);
     }
-    if (!hashed_pair) delete_exp_pair (btor, pair);
-  }
   lit *= sign;
-  if (lit != false_lit) BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
+  if (lit != false_lit)
+    BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
+}
+#endif
+
+static void
+add_new_exp_to_clause (Btor *btor,
+                       BtorNode *exp,
+                       int sign,
+                       BtorIntStack *linking_clause)
+{
+  assert (btor);
+  assert (exp);
+  assert (linking_clause);
+  assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  int lit, false_lit, true_lit;
+  BtorMemMgr *mm;
+  BtorAIGMgr *amgr;
+  BtorSATMgr *smgr;
+  BtorNode *real_exp;
+
+  mm        = btor->mm;
+  amgr      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  smgr      = btor_get_sat_mgr_aig_mgr (amgr);
+  true_lit  = smgr->true_lit;
+  false_lit = -true_lit;
+  exp       = btor_simplify_exp (btor, exp);
+  real_exp  = BTOR_REAL_ADDR_NODE (exp);
+
+  if (!btor_find_in_ptr_hash_table (btor->lod_cache, real_exp))
+    btor_insert_in_ptr_hash_table (btor->lod_cache,
+                                   btor_copy_exp (btor, real_exp));
+
+  // TODO: simplifications?
+  //	   a && 1: a
+  //	   b && 1: b
+  //	   a && 0 || 0 && b: 0
+  //	   ...
+  if (BTOR_IS_BV_EQ_NODE (real_exp))
+  {
+    if (assignment_always_unequal (btor, real_exp->e[0], real_exp->e[1]))
+    {
+      lit = false_lit;
+      goto SIGN_AND_PUSH;
+    }
+    else if (assignment_always_equal (btor, real_exp->e[0], real_exp->e[1]))
+    {
+      lit = true_lit;
+      goto SIGN_AND_PUSH;
+    }
+  }
+
+  lit = exp_to_cnf_lit (btor, exp);
+
+SIGN_AND_PUSH:
+  lit *= sign;
+
+  if (lit != false_lit && lit != true_lit)
+    BTOR_PUSH_STACK (mm, *linking_clause, lit);
 }
 
 static void
@@ -1660,7 +1721,10 @@ add_eq_exp_to_clause (Btor *btor,
                       BtorNode *b,
                       BtorIntStack *linking_clause)
 {
-  add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, 1);
+  BtorNode *eq = btor_eq_exp (btor, a, b);
+  add_new_exp_to_clause (btor, eq, 1, linking_clause);
+  btor_release_exp (btor, eq);
+  //  add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, 1);
 }
 
 static void
@@ -1669,60 +1733,63 @@ add_neq_exp_to_clause (Btor *btor,
                        BtorNode *b,
                        BtorIntStack *linking_clause)
 {
-  add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
+  BtorNode *eq = btor_eq_exp (btor, a, b);
+  add_new_exp_to_clause (btor, eq, -1, linking_clause);
+  btor_release_exp (btor, eq);
+  //  add_eq_or_neq_exp_to_clause (btor, a, b, linking_clause, -1);
 }
 
-// TODO: build more generic function for caching eq, and, etc?
+#if 0
 static void
-add_and_exp_to_clause (Btor *btor,
-                       BtorNode *a,
-                       BtorNode *b,
-                       BtorIntStack *linking_clause,
-                       int sign)
+add_and_exp_to_clause (Btor * btor, BtorNode * a, BtorNode * b,
+		       BtorIntStack * linking_clause, int sign)
 {
-  BtorPtrHashTable *table = btor->exp_pair_and_table;
+  BtorPtrHashTable * table = btor->exp_pair_and_table;
   int lit, true_lit, false_lit, hashed_pair;
-  BtorPtrHashBucket *bucket;
-  BtorNodePair *pair;
+  BtorPtrHashBucket * bucket;
+  BtorNodePair * pair;
   BtorSATMgr *smgr;
   BtorAIGMgr *amgr;
-  BtorNode *and;
+  BtorNode * and;
 
   assert (sign == 1 || sign == -1);
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
-  true_lit  = smgr->true_lit;
+  true_lit = smgr->true_lit;
   false_lit = -true_lit;
 
   a = btor_simplify_exp (btor, a);
   b = btor_simplify_exp (btor, b);
 
   hashed_pair = 0;
-  pair        = new_exp_pair (btor, a, b);
-  bucket      = btor_find_in_ptr_hash_table (table, pair);
+  pair = new_exp_pair (btor, a, b);
+  bucket = btor_find_in_ptr_hash_table (table, pair);
 
   if (bucket)
-  {
-    and = bucket->data.asPtr;
-    and = btor_simplify_exp (btor, and);
-  }
+    {
+      and = bucket->data.asPtr;
+      and = btor_simplify_exp (btor, and);
+    }
   else
-  {
-    and                = btor_and_exp (btor, a, b);
-    bucket             = btor_insert_in_ptr_hash_table (table, pair);
-    bucket->data.asPtr = and;
-    hashed_pair        = 1;
-  }
+    {
+      and = btor_and_exp (btor, a, b);
+      bucket = btor_insert_in_ptr_hash_table (table, pair);
+      bucket->data.asPtr = and;
+      hashed_pair = 1;
+    }
 
   lit = exp_to_cnf_lit (btor, and);
 
-  if (!hashed_pair) delete_exp_pair (btor, pair);
+  if (!hashed_pair)
+    delete_exp_pair (btor, pair);
 
   lit *= sign;
-  if (lit != false_lit) BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
+  if (lit != false_lit)
+    BTOR_PUSH_STACK (btor->mm, *linking_clause, lit);
 }
+#endif
 
 /* This function is used to encode a lemma on demand.
  * The stack 'writes' contains intermediate writes.
@@ -1740,50 +1807,48 @@ add_param_cond_to_clause (Btor *btor,
   assert (linking_clause);
   assert (sign == 1 || sign == -1);
 
-  int lit, false_lit, true_lit;
-  BtorMemMgr *mm;
-  BtorAIGMgr *amgr;
-  BtorSATMgr *smgr;
+  //  int lit, false_lit, true_lit;
+  //  BtorAIGMgr *amgr;
+  //  BtorSATMgr *smgr;
   BtorNode *beta_cond, *parameterized;
 
-  mm   = btor->mm;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  smgr = btor_get_sat_mgr_aig_mgr (amgr);
+  //  mm = btor->mm;
+  //  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  //  smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTORLOG ("add_param_cond_to_clause: %s", node2string (cond));
   beta_cond = btor_beta_reduce_cutoff (btor, cond, &parameterized);
-  assert (!beta_cond->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (beta_cond)->parameterized);
+  add_new_exp_to_clause (btor, beta_cond, sign, linking_clause);
 
+#if 0
   // TODO: cache arbitrary conditions?
   if (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
-  {
-    sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
-    add_eq_or_neq_exp_to_clause (btor,
-                                 BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
-                                 BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
-                                 linking_clause,
-                                 sign);
-  }
+    {
+      sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
+      add_eq_or_neq_exp_to_clause (btor, BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
+				   BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
+				   linking_clause, sign);
+    }
   else if (BTOR_REAL_ADDR_NODE (beta_cond)->kind == BTOR_AND_NODE)
-  {
-    sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
-    add_and_exp_to_clause (btor,
-                           BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
-                           BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
-                           linking_clause,
-                           sign);
-  }
+    {
+      sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
+      add_and_exp_to_clause (btor, BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
+			     BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
+			     linking_clause, sign);
+    }
   else
-  {
-    //      assert (BTOR_IS_PARAM_NODE (parameterized) || !parameterized);
-    lit = exp_to_cnf_lit (btor, beta_cond);
-    lit *= sign;
-    true_lit  = smgr->true_lit;
-    false_lit = -true_lit;
+    {
+      assert (BTOR_IS_PARAM_NODE (parameterized) || !parameterized);
+      lit = exp_to_cnf_lit (btor, beta_cond);
+      lit *= sign;
+      true_lit = smgr->true_lit;
+      false_lit = -true_lit;
 
-    if (lit != false_lit && lit != true_lit)
-      BTOR_PUSH_STACK (mm, *linking_clause, lit);
-  }
+      if (lit != false_lit && lit != true_lit)
+	BTOR_PUSH_STACK (mm, *linking_clause, lit);
+    }
+#endif
 
   btor_release_exp (btor, beta_cond);
 }
@@ -5367,10 +5432,18 @@ btor_new_btor (void)
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
-  btor->exp_pair_eq_table = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
-  btor->exp_pair_and_table = btor_new_ptr_hash_table (
-      mm, (BtorHashPtr) hash_exp_pair, (BtorCmpPtr) compare_exp_pair);
+#if 0
+  btor->exp_pair_eq_table =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) hash_exp_pair,
+			     (BtorCmpPtr) compare_exp_pair);
+  btor->exp_pair_and_table =
+    btor_new_ptr_hash_table (mm, (BtorHashPtr) hash_exp_pair,
+			     (BtorCmpPtr) compare_exp_pair);
+#endif
+  btor->lod_cache =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
   btor->varsubst_constraints =
       btor_new_ptr_hash_table (mm,
                                (BtorHashPtr) btor_hash_exp_by_id,
@@ -5591,20 +5664,25 @@ btor_delete_btor (Btor *btor)
       btor_release_exp (btor, exp);
     }
   }
-
+#if 0
   for (b = btor->exp_pair_eq_table->first; b; b = b->next)
-  {
-    delete_exp_pair (btor, (BtorNodePair *) b->key);
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-  }
+    {
+      delete_exp_pair (btor, (BtorNodePair *) b->key);
+      btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+    }
   btor_delete_ptr_hash_table (btor->exp_pair_eq_table);
 
   for (b = btor->exp_pair_and_table->first; b; b = b->next)
-  {
-    delete_exp_pair (btor, (BtorNodePair *) b->key);
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-  }
+    {
+      delete_exp_pair (btor, (BtorNodePair *) b->key);
+      btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+    }
   btor_delete_ptr_hash_table (btor->exp_pair_and_table);
+#endif
+
+  for (b = btor->lod_cache->first; b; b = b->next)
+    btor_release_exp (btor, (BtorNode *) b->key);
+  btor_delete_ptr_hash_table (btor->lod_cache);
 
   for (b = btor->varsubst_constraints->first; b; b = b->next)
   {
