@@ -5331,8 +5331,7 @@ btor_get_lambda_arity (Btor *btor, BtorNode *exp)
   while (BTOR_IS_LAMBDA_NODE (exp))
   {
     arity++;
-    exp = exp->e[1];
-    assert (BTOR_IS_REGULAR_NODE (exp));
+    exp = BTOR_REAL_ADDR_NODE (exp->e[1]);
   }
 
   return arity;
@@ -6633,7 +6632,7 @@ bfs_lambda (Btor *btor,
     }
     else if (BTOR_IS_NESTED_LAMBDA_NODE (cur))
     {
-      next = cur->e[1];
+      next = BTOR_REAL_ADDR_NODE (cur->e[1]);
 
       if (propagate_upwards)
       {
@@ -7262,7 +7261,7 @@ lazy_synthesize_and_encode_lambda_arguments (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (synth))
   {
-    cur = BTOR_POP_STACK (synth);
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (synth));
     if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
 
     if (!cur->tseitin)

@@ -120,7 +120,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
       btor_release_exp (btor, cur_arg); /* still referenced afterwards */
 
       assert (BTOR_REAL_ADDR_NODE (cur_arg)->kind != BTOR_SLICE_NODE);
-      assert (param->len == cur_arg->len);
+      assert (param->len == BTOR_REAL_ADDR_NODE (cur_arg)->len);
 
       BTOR_PUSH_STACK (btor->mm, param->assigned_exp, cur_arg);
       cur_lambda = cur_lambda->e[1];
