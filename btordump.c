@@ -446,7 +446,8 @@ btor_dump_exp_smt (
   const char *op;
   BtorMemMgr *mm = btor->mm;
 
-  if (BTOR_IS_PARAM_NODE (e))
+  // TODO: function application handling
+  if (BTOR_IS_PARAM_NODE (e) || BTOR_IS_LAMBDA_NODE (e))
   {
     btor_dump_smt_id (e, sgp, file);
   }
@@ -685,9 +686,9 @@ btor_dump_fun_smt2 (Btor *btor, FILE *file, BtorNode *fun)
     btor_dump_smt_id (child, sgp, file);
     fputc (' ', file);
     btor_dump_sort_smt2 (child, file);
-    if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e->e[1]))) fputc (' ', file);
+    e = BTOR_REAL_ADDR_NODE (e->e[1]);
     fputc (')', file);
-    e           = fun->e[1];
+    if (BTOR_IS_LAMBDA_NODE (e)) fputc (' ', file);
     child->mark = 1;
   }
   fputs (") ", file);
