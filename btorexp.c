@@ -3979,7 +3979,7 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   assert (args);
   assert (lambda);
 
-  int i;
+  int i, rewrite_level;
   BtorNode *next, *prev, *read;
 #ifndef NDEBUG
   assert (args[argc - 1]);
@@ -3987,6 +3987,12 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   assert (BTOR_REAL_ADDR_NODE (cur_lambda->e[0])->len
           == BTOR_REAL_ADDR_NODE (args[argc - 1])->len);
 #endif
+
+  /* we have to disable rewriting for concatinating arguments as otherwise we
+   * might get e.g.: 00::00 -> 0000, which we cannot split into separate
+   * arguments anymore */
+  rewrite_level       = btor->rewrite_level;
+  btor->rewrite_level = 0;
 
   next = prev = args[argc - 1];
   for (i = argc - 2; i >= 0; i--)
@@ -4002,6 +4008,7 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
     if (i < argc - 2) btor_release_exp (btor, prev);
     prev = next;
   }
+  btor->rewrite_level = rewrite_level;
 
   read = btor_read_exp (btor, lambda, next);
   btor_release_exp (btor, next);
