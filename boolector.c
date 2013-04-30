@@ -1269,6 +1269,16 @@ boolector_is_fun (Btor *btor, BtorNode *exp)
 }
 
 int
+boolector_get_fun_arity (Btor *btor, BtorNode *exp)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
+  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  exp = btor_simplify_exp (btor, exp);
+  return btor_get_lambda_arity (btor, exp);
+}
+
+int
 boolector_get_index_width (Btor *btor, BtorNode *e_array)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);

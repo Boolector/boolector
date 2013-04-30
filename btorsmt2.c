@@ -1773,7 +1773,31 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             return !btor_perr_smt2 (parser, "expected expression");
           }
       }
-      if (tag == BTOR_EXP_TAG_SMT2)
+      /* function application */
+      if (tag == BTOR_EXP_TAG_SMT2 && nargs
+          && boolector_is_fun (parser->btor, p[0].exp))
+      {
+        BtorNodePtrStack fargs;
+        BTOR_INIT_STACK (fargs);
+        for (i = 1; i <= nargs; i++)
+        {
+          if (p[i].tag != BTOR_EXP_TAG_SMT2)
+          {
+            BTOR_RELEASE_STACK (parser->mem, fargs);
+            parser->perrcoo = p[i].coo;
+            return !btor_perr_smt2 (parser, "expected expression");
+          }
+          BTOR_PUSH_STACK (parser->mem, fargs, p[i].exp);
+        }
+        tmp = p[0].exp;
+        // TODO: error checking (MA)
+        parser->work.top = p;
+        l->tag           = BTOR_EXP_TAG_SMT2;
+        l->exp = boolector_apply (parser->btor, nargs, fargs.start, tmp);
+        for (i = 0; i <= nargs; i++) boolector_release (parser->btor, p[i].exp);
+        BTOR_RELEASE_STACK (parser->mem, fargs);
+      }
+      else if (tag == BTOR_EXP_TAG_SMT2)
       {
         if (nargs)
         {
@@ -1946,7 +1970,6 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         }
         if (boolector_is_array (parser->btor, p[2].exp))
         {
-          // TODO: check if given array is a function and with arity = 1
           parser->perrcoo = p[2].coo;
           return !btor_perr_smt2 (parser,
                                   "second argument of 'select' is an array");
@@ -2759,9 +2782,7 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
 static int
 btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
-  // TODO: functions with arity > 1
-  //       translate function calls to read with concat arguments
-  //	   mem cleanup in case of error (release btor nodes, stacks)
+  // TODO: mem cleanup in case of error (release btor nodes, stacks) (MA)
   int tag, domain, width;
   BtorNode *exp = 0;
   BtorSMT2Coo coo;
@@ -2771,8 +2792,6 @@ btor_define_fun_smt2 (BtorSMT2Parser *parser)
   fun   = 0;
   width = domain = 0;
   coo.x = coo.y = 0;
-  BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (symbols);
   if (!btor_read_symbol (parser, " after 'define-fun'", &fun)) return 0;
   assert (fun && fun->tag == BTOR_SYMBOL_TAG_SMT2);
   if (fun->coo.x)
@@ -2784,13 +2803,12 @@ btor_define_fun_smt2 (BtorSMT2Parser *parser)
   fun->coo = parser->coo;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
 
+  BTOR_INIT_STACK (args);
+  BTOR_INIT_STACK (symbols);
 SORTED_VAR:
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_LPAR_TAG_SMT2)
   {
-    if (BTOR_COUNT_STACK (args))
-      return !btor_perr_smt2 (parser,
-                              "functions with arity > 1 are not yet supported");
     if (!btor_read_symbol (parser, " after '('", &arg)) return 0;
     assert (arg && arg->tag == BTOR_SYMBOL_TAG_SMT2);
     if (arg->coo.x)

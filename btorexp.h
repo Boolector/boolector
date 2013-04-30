@@ -158,10 +158,11 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int erased : 1;        /* for debugging purposes */        \
     unsigned int disconnected : 1;  /* for debugging purposes */        \
     unsigned int unique : 1;        /* in unique table? */              \
-    unsigned int bytes : 8;         /* allocated bytes */               \
+    unsigned int bytes : 9;         /* allocated bytes */               \
     unsigned int arity : 2;         /* arity of operator */             \
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
+    unsigned int no_synth : 1;      /* do not synthesize exp */         \
     char *bits;                     /* three-valued bits */             \
     int id;                         /* unique expression id */          \
     int len;                        /* number of bits */                \
@@ -285,6 +286,8 @@ struct BtorLambdaNode
   BTOR_ARRAY_VAR_NODE_STRUCT;
   BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_reads;
+  BtorNode *nested; /* points at the first lambda exp in case of nested
+                       lambdas */
   int chain_depth;
 };
 
@@ -459,6 +462,8 @@ struct Btor
 
 #define BTOR_IS_PROXY_NODE_KIND(kind) ((kind) == BTOR_PROXY_NODE)
 
+#define BTOR_IS_CONCAT_NODE_KIND(kind) ((kind) == BTOR_CONCAT_NODE)
+
 /* array nodes: array var, write, acond, lambda
  *		proxy (if it was originally one of the above) */
 #define BTOR_IS_ARRAY_NODE_KIND(kind)                             \
@@ -512,6 +517,9 @@ struct Btor
   ((exp) && (BTOR_IS_ARRAY_COND_NODE (exp) || BTOR_IS_BV_COND_NODE (exp)))
 
 #define BTOR_IS_PROXY_NODE(exp) ((exp) && BTOR_IS_PROXY_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_CONCAT_NODE(exp) \
+  ((exp) && BTOR_IS_CONCAT_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_ARRAY_NODE(exp) \
   ((exp) && (BTOR_IS_ARRAY_NODE_KIND ((exp)->kind)))
@@ -567,6 +575,9 @@ struct Btor
   (BTOR_IS_READ_NODE (exp) ? (exp)->e[0] : (exp))
 
 #define BTOR_IS_SYNTH_NODE(exp) ((exp)->av != 0)
+
+#define BTOR_IS_NESTED_LAMBDA_NODE(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->nested)
 
 /*------------------------------------------------------------------------*/
 
@@ -1060,14 +1071,12 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
+// TODO: move to btorbeta ?
 /* Apply 'args' to parameters of lambdas and reduce 'lambda' */
 BtorNode *btor_apply_and_reduce (Btor *btor,
                                  int argc,
                                  BtorNode **args,
                                  BtorNode *lambda);
-
-/* Beta reduce 'exp' */
-BtorNode *btor_reduce (Btor *btor, BtorNode *exp);
 
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorNode *exp);
@@ -1089,6 +1098,8 @@ int btor_is_bound_param (Btor *btor, BtorNode *param);
 
 /* Determines if expression is a lambda or not. */
 int btor_is_lambda_exp (Btor *btor, BtorNode *exp);
+
+int btor_get_lambda_arity (Btor *btor, BtorNode *exp);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

@@ -15,27 +15,6 @@
 #include "btorrewrite.h"
 #include "btorutil.h"
 
-static int
-is_nested_lambda_exp_node (BtorNode *exp)
-{
-  assert (exp);
-
-  BtorFullParentIterator it;
-  BtorNode *parent;
-
-  if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp->e[0]))) return 1;
-
-  init_full_parent_iterator (&it, exp);
-  while (has_next_parent_full_parent_iterator (&it))
-  {
-    parent = next_parent_full_parent_iterator (&it);
-    assert (BTOR_IS_REGULAR_NODE (parent));
-    if (BTOR_IS_LAMBDA_NODE (parent)) return 1;
-  }
-
-  return 0;
-}
-
 static void
 cache_beta_result (Btor *btor,
                    BtorNode *lambda,
@@ -269,8 +248,6 @@ btor_beta_reduce (Btor *btor,
 {
   assert (btor);
   assert (exp);
-
-  /* TODO bounded reduction not implemented yet */
   assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL
           || bound == BETA_RED_LAMBDA_CHAINS || bound > 0);
 
@@ -343,6 +320,7 @@ btor_beta_reduce (Btor *btor,
 
     if (!mbucket)
     {
+      // TODO: only open new scope at first lambda from nested lambdas
       if (BTOR_IS_LAMBDA_NODE (real_cur)) BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
       /* initialize mark in current scope */
@@ -375,8 +353,20 @@ btor_beta_reduce (Btor *btor,
       {
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
-      else if (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
-               && (real_cur->tseitin || BTOR_IS_ARRAY_NODE (real_cur)))
+      else if (bound == BETA_RED_CUTOFF
+               && real_cur != BTOR_REAL_ADDR_NODE (exp)
+               /* cut off at nodes that are already encoded */
+               && (real_cur->tseitin
+                   /* cut off at arrays */
+                   || BTOR_IS_ARRAY_VAR_NODE (real_cur)
+                   || BTOR_IS_ARRAY_COND_NODE (real_cur)
+                   || BTOR_IS_WRITE_NODE (real_cur)
+                   /* cut off at lambdas that are not part of a function
+                    * starting with lambda 'exp' */
+                   || (BTOR_IS_LAMBDA_NODE (real_cur)
+                       && BTOR_IS_LAMBDA_NODE (exp)
+                       && BTOR_REAL_ADDR_NODE (exp)
+                              != ((BtorLambdaNode *) real_cur)->nested)))
       {
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
@@ -437,7 +427,8 @@ btor_beta_reduce (Btor *btor,
              * assignment for the parameter */
             && !BTOR_EMPTY_STACK (arg_stack)
             /* if it is nested, its parameter is already assigned */
-            && !is_nested_lambda_exp_node (real_cur))
+            //		  && (!((BtorLambdaNode *) real_cur)->nested
+            && !btor_param_cur_assignment (e[0]))
         {
           assert (!btor_param_cur_assignment (e[0]));
           assert (!btor_find_in_ptr_hash_table (cur_scope,
@@ -474,7 +465,14 @@ btor_beta_reduce (Btor *btor,
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
           || BTOR_IS_ARRAY_VAR_NODE (real_cur) || BTOR_IS_PARAM_NODE (real_cur)
           || (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
-              && (real_cur->tseitin || BTOR_IS_ARRAY_NODE (real_cur))))
+              && (real_cur->tseitin || BTOR_IS_ARRAY_VAR_NODE (real_cur)
+                  || BTOR_IS_ARRAY_COND_NODE (real_cur)
+                  || BTOR_IS_WRITE_NODE (real_cur)
+                  /* check if this lambda is not part of a nested lambda
+                   * chain starting with exp */
+                  || (BTOR_IS_LAMBDA_NODE (real_cur)
+                      && BTOR_REAL_ADDR_NODE (exp)
+                             != ((BtorLambdaNode *) real_cur)->nested))))
       {
         result = btor_copy_exp (btor, real_cur);
       }

@@ -3649,6 +3649,7 @@ btor_param_exp (Btor *btor, int len, const char *symbol)
   exp->symbol        = btor_strdup (mm, symbol);
   exp->len           = len;
   exp->parameterized = 1;
+  exp->no_synth      = 1;
   setup_node_and_add_to_id_table (btor, exp);
   return (BtorNode *) exp;
 }
@@ -3956,6 +3957,17 @@ btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
     prev_fun = fun;
   }
 
+  /* for all nested lambdas, set nested to first lambda of nested chain */
+  if (paramc > 1)
+  {
+    exp = fun;
+    while (BTOR_IS_LAMBDA_NODE (exp))
+    {
+      ((BtorLambdaNode *) exp)->nested = fun;
+      exp                              = BTOR_REAL_ADDR_NODE (exp->e[1]);
+    }
+  }
+
   return fun;
 }
 
@@ -3985,7 +3997,8 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
     assert (BTOR_REAL_ADDR_NODE (cur_lambda->e[0])->len
             == BTOR_REAL_ADDR_NODE (args[i])->len);
 #endif
-    next = btor_concat_exp (btor, args[i], prev);
+    next           = btor_concat_exp (btor, args[i], prev);
+    next->no_synth = 1;
     if (i < argc - 2) btor_release_exp (btor, prev);
     prev = next;
   }
@@ -5198,15 +5211,7 @@ btor_dec_exp (Btor *btor, BtorNode *exp)
   return result;
 }
 
-BtorNode *
-btor_reduce (Btor *btor, BtorNode *exp)
-{
-  assert (btor);
-  assert (exp);
-
-  return btor_beta_reduce_full (btor, exp);
-}
-
+// TODO: move to btorbeta?
 BtorNode *
 btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
 {
@@ -5312,6 +5317,25 @@ btor_is_lambda_exp (Btor *btor, BtorNode *exp)
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp));
+}
+
+int
+btor_get_lambda_arity (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  int arity = 0;
+
+  exp = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp));
+
+  while (BTOR_IS_LAMBDA_NODE (exp))
+  {
+    arity++;
+    exp = exp->e[1];
+    assert (BTOR_IS_REGULAR_NODE (exp));
+  }
+
+  return arity;
 }
 
 /* Dump formula after global rewriting phase.
@@ -6167,7 +6191,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         {
         REGULAR_CASE:
           /* always skip lambda and parameterized nodes */
-          if (BTOR_IS_LAMBDA_NODE (cur) || cur->parameterized)
+          if (BTOR_IS_LAMBDA_NODE (cur) || cur->parameterized || cur->no_synth)
             cur->synth_mark = 2;
           else
             cur->synth_mark = 1;
@@ -6590,6 +6614,27 @@ bfs_lambda (Btor *btor,
       btor_freestr (mm, (char *) res);
 
       next->mark = 1;
+      if (propagate_upwards)
+      {
+        cur->parent = MARK_PROP_UP (next);
+        BTORLOG ("bfs_lambda: up %d -> %d",
+                 BTOR_REAL_ADDR_NODE (cur)->id,
+                 BTOR_REAL_ADDR_NODE (next)->id);
+      }
+      else
+      {
+        next->parent = cur;
+        BTORLOG ("bfs_lambda: down %d -> %d",
+                 BTOR_REAL_ADDR_NODE (next)->id,
+                 BTOR_REAL_ADDR_NODE (cur)->id);
+      }
+      BTOR_ENQUEUE (mm, queue, next);
+      BTOR_PUSH_STACK (mm, unmark_stack, next);
+    }
+    else if (BTOR_IS_NESTED_LAMBDA_NODE (cur))
+    {
+      next = cur->e[1];
+
       if (propagate_upwards)
       {
         cur->parent = MARK_PROP_UP (next);
@@ -7167,6 +7212,75 @@ update_sat_assignments (Btor *btor)
          || btor_changed_sat (smgr);
 }
 
+static int
+lazy_synthesize_and_encode_lambda_arguments (Btor *btor,
+                                             BtorNode *read,
+                                             int force_update)
+{
+  assert (btor);
+  assert (read);
+  assert (BTOR_IS_REGULAR_NODE (read));
+  assert (BTOR_IS_READ_NODE (read));
+  assert (BTOR_IS_NESTED_LAMBDA_NODE (read->e[0]));
+  assert (BTOR_IS_CONCAT_NODE (read->e[1]));
+
+  int arity, changed_assignments, update;
+  BtorNode *cur;
+  BtorMemMgr *mm;
+  BtorAIGVecMgr *avmgr;
+  BtorNodePtrStack synth;
+
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (read));
+
+  mm                  = btor->mm;
+  avmgr               = btor->avmgr;
+  changed_assignments = 0;
+  update              = 0;
+
+  arity = btor_get_lambda_arity (btor, read->e[0]);
+  assert (arity > 1);
+
+  BTOR_INIT_STACK (synth);
+
+  cur = BTOR_REAL_ADDR_NODE (read->e[1]);
+  BTOR_PUSH_STACK (mm, synth, read->e[1]);
+  while (arity > 1)
+  {
+    assert (BTOR_IS_CONCAT_NODE (cur));
+    assert (cur->no_synth);
+
+    BTOR_PUSH_STACK (mm, synth, cur->e[0]);
+    BTOR_PUSH_STACK (mm, synth, cur->e[1]);
+
+    cur->no_synth = 0;
+    assert (!BTOR_IS_SYNTH_NODE (cur));
+    assert (!cur->tseitin);
+
+    cur = BTOR_REAL_ADDR_NODE (cur->e[0]);
+    arity--;
+  }
+
+  while (!BTOR_EMPTY_STACK (synth))
+  {
+    cur = BTOR_POP_STACK (synth);
+    if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
+
+    if (!cur->tseitin)
+    {
+      BTORLOG ("  encode: %s", node2string (cur));
+      update = 1;
+      btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+      cur->tseitin = 1;
+    }
+  }
+  BTOR_RELEASE_STACK (mm, synth);
+
+  if (update && force_update)
+    changed_assignments = update_sat_assignments (btor);
+
+  return changed_assignments;
+}
+
 /* synthesizes and fully encodes index and value of access expression into SAT
  * (if necessary)
  * it returns if encoding changed assignments made so far
@@ -7190,16 +7304,25 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (acc));
 
-  if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (index)))
+  if (BTOR_IS_READ_NODE (acc) && BTOR_IS_NESTED_LAMBDA_NODE (acc->e[0]))
   {
-    synthesize_exp (btor, index, 0);
+    if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (index)))
+      changed_assignments =
+          lazy_synthesize_and_encode_lambda_arguments (btor, acc, force_update);
   }
-  if (!BTOR_REAL_ADDR_NODE (index)->tseitin)
+  else
   {
-    update = 1;
-    btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (index)->av);
-    BTOR_REAL_ADDR_NODE (index)->tseitin = 1;
-    BTORLOG ("  encode: %s", node2string (index));
+    if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (index)))
+    {
+      synthesize_exp (btor, index, 0);
+    }
+    if (!BTOR_REAL_ADDR_NODE (index)->tseitin)
+    {
+      update = 1;
+      btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (index)->av);
+      BTOR_REAL_ADDR_NODE (index)->tseitin = 1;
+      BTORLOG ("  encode: %s", node2string (index));
+    }
   }
   if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (value)))
   {

@@ -939,6 +939,14 @@ int boolector_is_array (Btor *btor, BtorNode *exp);
 int boolector_is_fun (Btor *btor, BtorNode *exp);
 
 /**
+ * Gets the arity of function 'exp'.
+ * \param btor Boolector instance.
+ * \param exp Function.
+ * \return arity of 'exp'.
+ */
+int boolector_get_fun_arity (Btor *btor, BtorNode *exp);
+
+/**
  * Gets the bit-width of an expression. If the expression
  * is an array, it returns the bit-width of the array elements.
  * \param btor Boolector instance.
