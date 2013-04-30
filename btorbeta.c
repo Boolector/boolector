@@ -15,6 +15,11 @@
 #include "btorrewrite.h"
 #include "btorutil.h"
 
+#define BETA_RED_LAMBDA_CHAINS -2
+#define BETA_RED_CUTOFF -1
+#define BETA_RED_FULL 0
+#define BETA_RED_BOUNDED 1
+
 static void
 cache_beta_result (Btor *btor,
                    BtorNode *lambda,
@@ -152,34 +157,6 @@ btor_unassign_param (Btor *btor, BtorNode *lambda)
   } while (BTOR_IS_LAMBDA_NODE (lambda));
 }
 
-BtorNode *
-btor_beta_reduce_full (Btor *btor, BtorNode *exp)
-{
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0);
-}
-
-BtorNode *
-btor_beta_reduce_chains (Btor *btor, BtorNode *exp)
-{
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_CHAINS, 0);
-}
-
-BtorNode *
-btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
-{
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized);
-}
-
-BtorNode *
-btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
-{
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED (bound), 0);
-}
-
 #define BETA_REDUCE_OPEN_NEW_SCOPE(lambda)                                     \
   do                                                                           \
   {                                                                            \
@@ -237,19 +214,19 @@ btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
  *		      do not evaluate conditionals
  *
  *   BETA_RED_BOUNDED (bound): bounded reduction, bound by (bound > 0) number
- *			       of nodes, TODO: or some similar heuristics
- *			       do not evaluate conditionals
+ *			       of lambdas
  */
-BtorNode *
-btor_beta_reduce (Btor *btor,
-                  BtorNode *exp,
-                  int bound,
-                  BtorNode **parameterized)
+static BtorNode *
+btor_beta_reduce (
+    Btor *btor, BtorNode *exp, int mode, BtorNode **parameterized, int bound)
 {
   assert (btor);
   assert (exp);
-  assert (bound == BETA_RED_CUTOFF || bound == BETA_RED_FULL
-          || bound == BETA_RED_LAMBDA_CHAINS || bound > 0);
+  assert (mode == BETA_RED_CUTOFF || mode == BETA_RED_FULL
+          || mode == BETA_RED_LAMBDA_CHAINS || mode == BETA_RED_BOUNDED);
+  assert (bound >= 0);
+  assert (bound == 0 || mode == BETA_RED_CUTOFF || mode == BETA_RED_BOUNDED);
+  assert (mode != BETA_RED_CUTOFF || bound == 1);
 
   int i, aux_rewrite_level = 0;
   const char *eval_res;
@@ -275,13 +252,14 @@ btor_beta_reduce (Btor *btor,
 
   /* we have to disable rewriting in case we beta reduce during read propagation
    * as otherwise we might lose lazily synthesized and encoded nodes */
-  if (bound == BETA_RED_CUTOFF)
+  if (mode == BETA_RED_CUTOFF)
   {
     aux_rewrite_level   = btor->rewrite_level;
     btor->rewrite_level = 0;
   }
 
-  if (bound >= BETA_RED_FULL) BTOR_REAL_ADDR_NODE (exp)->parent = 0;
+  if (mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
+    BTOR_REAL_ADDR_NODE (exp)->parent = 0;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
@@ -320,8 +298,11 @@ btor_beta_reduce (Btor *btor,
 
     if (!mbucket)
     {
-      // TODO: only open new scope at first lambda from nested lambdas
-      if (BTOR_IS_LAMBDA_NODE (real_cur)) BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
+      if (BTOR_IS_LAMBDA_NODE (real_cur)
+          /* only open new scope at first lambda of nested lambdas */
+          && (!BTOR_IS_NESTED_LAMBDA_NODE (real_cur)
+              || ((BtorLambdaNode *) real_cur)->nested == real_cur))
+        BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
       /* initialize mark in current scope */
       mbucket             = btor_insert_in_ptr_hash_table (cur_scope, real_cur);
@@ -336,15 +317,15 @@ btor_beta_reduce (Btor *btor,
       for (i = 0; i < real_cur->arity; i++)
         e[i] = btor_simplify_exp (btor, real_cur->e[i]);
 
-      /* bounded reduction */
-      if (bound > BETA_RED_FULL && BTOR_IS_LAMBDA_NODE (real_cur)
+      /* bounded reduction (BETA_RED_BOUNDED, BETA_RED_CUTOFF) */
+      if (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
           && BTOR_COUNT_STACK (scopes) > bound)
       {
         assert (real_cur == cur_scope_lambda);
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
 
-      if (bound == BETA_RED_LAMBDA_CHAINS
+      if (mode == BETA_RED_LAMBDA_CHAINS
           /* skip all arrays that are not part of the lambda chain */
           && ((BTOR_IS_ARRAY_NODE (real_cur) && !BTOR_IS_LAMBDA_NODE (real_cur))
               /* skip all nodes that are not parameterized as we can't merge
@@ -353,20 +334,15 @@ btor_beta_reduce (Btor *btor,
       {
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
-      else if (bound == BETA_RED_CUTOFF
+      else if (mode == BETA_RED_CUTOFF
+               /* do not skip expression to be beta reduced */
                && real_cur != BTOR_REAL_ADDR_NODE (exp)
                /* cut off at nodes that are already encoded */
                && (real_cur->tseitin
-                   /* cut off at arrays */
-                   || BTOR_IS_ARRAY_VAR_NODE (real_cur)
-                   || BTOR_IS_ARRAY_COND_NODE (real_cur)
-                   || BTOR_IS_WRITE_NODE (real_cur)
-                   /* cut off at lambdas that are not part of a function
-                    * starting with lambda 'exp' */
-                   || (BTOR_IS_LAMBDA_NODE (real_cur)
-                       && BTOR_IS_LAMBDA_NODE (exp)
-                       && BTOR_REAL_ADDR_NODE (exp)
-                              != ((BtorLambdaNode *) real_cur)->nested)))
+                   /* cut off at non-lambda array nodes
+                    * (lambda nodes are cut off via bound) */
+                   || (BTOR_IS_ARRAY_NODE (real_cur)
+                       && !BTOR_IS_LAMBDA_NODE (real_cur))))
       {
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
@@ -399,11 +375,12 @@ btor_beta_reduce (Btor *btor,
           next = real_cur;
       }
       /* evaluate conditionals if condition is encoded or parameterized */
-      else if (bound == BETA_RED_CUTOFF
+      else if (mode == BETA_RED_CUTOFF
                && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
                && (BTOR_REAL_ADDR_NODE (e[0])->tseitin
                    || BTOR_REAL_ADDR_NODE (e[0])->parameterized))
       {
+        // TODO: move tseitin || parameterized as assertion to here
         eval_res = btor_eval_exp (btor, e[0]);
         next     = eval_res[0] == '1' ? e[1] : e[2];
         assert (next);
@@ -415,22 +392,21 @@ btor_beta_reduce (Btor *btor,
       {
         if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
 
-        if (bound >= BETA_RED_FULL)
+        if (mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
           BTOR_REAL_ADDR_NODE (next)->parent = real_cur;
 
         BTOR_PUSH_STACK (mm, work_stack, next);
       }
       else
       {
+        /* assign params of lambda expression */
         if (BTOR_IS_LAMBDA_NODE (real_cur)
             /* if there is no argument on the stack, we have no
              * assignment for the parameter */
             && !BTOR_EMPTY_STACK (arg_stack)
             /* if it is nested, its parameter is already assigned */
-            //		  && (!((BtorLambdaNode *) real_cur)->nested
             && !btor_param_cur_assignment (e[0]))
         {
-          assert (!btor_param_cur_assignment (e[0]));
           assert (!btor_find_in_ptr_hash_table (cur_scope,
                                                 BTOR_REAL_ADDR_NODE (e[0])));
 
@@ -451,7 +427,7 @@ btor_beta_reduce (Btor *btor,
          *       of the lambda. */
         for (i = 0; i < real_cur->arity; i++)
         {
-          if (bound >= BETA_RED_FULL)
+          if (mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
             BTOR_REAL_ADDR_NODE (e[i])->parent = real_cur;
           BTOR_PUSH_STACK (mm, work_stack, e[i]);
         }
@@ -462,17 +438,16 @@ btor_beta_reduce (Btor *btor,
       assert (mbucket);
       result_parameterized = (real_cur->parameterized) ? real_cur : 0;
 
+      /* copy "leaves" or expression that were cut off */
       if (BTOR_IS_BV_CONST_NODE (real_cur) || BTOR_IS_BV_VAR_NODE (real_cur)
           || BTOR_IS_ARRAY_VAR_NODE (real_cur) || BTOR_IS_PARAM_NODE (real_cur)
-          || (bound == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
-              && (real_cur->tseitin || BTOR_IS_ARRAY_VAR_NODE (real_cur)
-                  || BTOR_IS_ARRAY_COND_NODE (real_cur)
-                  || BTOR_IS_WRITE_NODE (real_cur)
-                  /* check if this lambda is not part of a nested lambda
-                   * chain starting with exp */
-                  || (BTOR_IS_LAMBDA_NODE (real_cur)
-                      && BTOR_REAL_ADDR_NODE (exp)
-                             != ((BtorLambdaNode *) real_cur)->nested))))
+          || (mode == BETA_RED_CUTOFF && real_cur != BTOR_REAL_ADDR_NODE (exp)
+              && (real_cur->tseitin
+                  || (BTOR_IS_ARRAY_NODE (real_cur)
+                      && !BTOR_IS_LAMBDA_NODE (real_cur))))
+          /* we reached given bound */
+          || (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
+              && BTOR_COUNT_STACK (scopes) > bound))
       {
         result = btor_copy_exp (btor, real_cur);
       }
@@ -480,10 +455,10 @@ btor_beta_reduce (Btor *btor,
       {
         assert (BTOR_IS_UNARY_NODE (real_cur) || BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_IS_TERNARY_NODE (real_cur));
-        assert (bound >= BETA_RED_FULL || bound == BETA_RED_LAMBDA_CHAINS
-                || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
-                || (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->tseitin
-                    && !BTOR_REAL_ADDR_NODE (real_cur->e[0])->parameterized));
+        assert (mode != BETA_RED_CUTOFF
+                || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur));
+        assert (!BTOR_IS_UNARY_NODE (real_cur)
+                || BTOR_COUNT_STACK (arg_stack) >= 1);
         assert (!BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_COUNT_STACK (arg_stack) >= 2);
         assert (!BTOR_IS_TERNARY_NODE (real_cur)
@@ -522,9 +497,7 @@ btor_beta_reduce (Btor *btor,
               result = btor_read_exp (btor, e[0], e[1]);
 
             if (cache && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
-                && bound == BETA_RED_FULL)
-            // TODO: check if we really are not allowed to cache
-            //       results if we reduce bounded
+                && mode == BETA_RED_FULL)
             {
               assert (!BTOR_REAL_ADDR_NODE (real_cur->e[0])->simplified
                       || cur == exp);
@@ -599,7 +572,7 @@ btor_beta_reduce (Btor *btor,
                * constant lambda expression instead of a constant
                * term. this can only occur with bounded or full
                * reduction */
-              if (bound >= BETA_RED_FULL
+              if ((mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
                   && (BTOR_IS_WRITE_NODE (real_cur->parent)
                       || BTOR_IS_ARRAY_COND_NODE (real_cur->parent)))
               {
@@ -712,7 +685,7 @@ btor_beta_reduce (Btor *btor,
 
   if (aux_rewrite_level)
   {
-    assert (bound == BETA_RED_CUTOFF);
+    assert (mode == BETA_RED_CUTOFF);
     assert (!btor->rewrite_level);
     btor->rewrite_level = aux_rewrite_level;
   }
@@ -721,4 +694,32 @@ btor_beta_reduce (Btor *btor,
   btor->time.beta += btor_time_stamp () - start;
 
   return result;
+}
+
+BtorNode *
+btor_beta_reduce_full (Btor *btor, BtorNode *exp)
+{
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  return btor_beta_reduce (btor, exp, BETA_RED_FULL, 0, 0);
+}
+
+BtorNode *
+btor_beta_reduce_chains (Btor *btor, BtorNode *exp)
+{
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  return btor_beta_reduce (btor, exp, BETA_RED_LAMBDA_CHAINS, 0, 0);
+}
+
+BtorNode *
+btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
+{
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized, 1);
+}
+
+BtorNode *
+btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
+{
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED, 0, bound);
 }
