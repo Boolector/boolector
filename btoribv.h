@@ -130,6 +130,8 @@ enum BtorIBVClassification
   BTOR_IBV_TWO_PHASE_INPUT,
   BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT,
   BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT,
+  BTOR_IBV_PHANTOM_CURRENT_INPUT,
+  BTOR_IBV_PHANTOM_NEXT_INPUT,
   BTOR_IBV_NOT_USED,
 };
 
@@ -308,15 +310,18 @@ class BtorIBV : public BitVector
 
   void translate_atom_divide (BtorIBVAtom *, BtorIBVNodePtrStack *);
   void translate_atom_conquer (BtorIBVAtom *);
-  void translate_assignment_conquer (BtorIBVAssignment *a);
+  BtorNode *translate_assignment_conquer (BtorIBVAssignment *a);
   void translate_atom_base (BtorIBVAtom *);
 
   void translate_node_divide (BtorIBVNode *, BtorIBVNodePtrStack *);
   void translate_node_conquer (BtorIBVNode *);
 
+  bool is_phantom_current (BtorIBVNode *, unsigned);
+  bool is_phantom_next (BtorIBVNode *, unsigned);
+
   struct
   {
-    unsigned inputs, latches, nexts, inits;
+    unsigned inputs, latches, nexts, inits, bads;
   } stats;
 
  public:
