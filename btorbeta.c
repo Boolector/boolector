@@ -111,23 +111,26 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
     assert (BTOR_REAL_ADDR_NODE (arg)->kind == BTOR_CONCAT_NODE);
 
     cur_lambda = lambda;
-    lower      = 0;
+    upper      = arg->len - 1;
     do
     {
-      param   = (BtorParamNode *) BTOR_REAL_ADDR_NODE (cur_lambda->e[0]);
-      upper   = lower + param->len - 1;
+      assert (BTOR_IS_NESTED_LAMBDA_NODE (cur_lambda));
+      param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (cur_lambda->e[0]);
+      lower = upper - param->len + 1;
+      assert (lower >= 0);
+      assert (upper >= 0);
       cur_arg = btor_rewrite_slice_exp (btor, arg, upper, lower);
       btor_release_exp (btor, cur_arg); /* still referenced afterwards */
 
-      assert (BTOR_REAL_ADDR_NODE (cur_arg)->kind != BTOR_SLICE_NODE);
       assert (param->len == BTOR_REAL_ADDR_NODE (cur_arg)->len);
 
+      BTORLOG (
+          "  assign: %s (%s)", node2string (cur_lambda), node2string (cur_arg));
       BTOR_PUSH_STACK (btor->mm, param->assigned_exp, cur_arg);
       cur_lambda = cur_lambda->e[1];
-      lower      = upper + 1;
+      upper      = lower - 1;
     } while (BTOR_IS_LAMBDA_NODE (cur_lambda));
-    // TODO: handle in with type safe functions
-    assert (lower == BTOR_REAL_ADDR_NODE (arg)->len);
+    assert (lower == 0);
   }
   else
   {
