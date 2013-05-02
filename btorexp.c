@@ -4011,7 +4011,7 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   btor->rewrite_level = rewrite_level;
 
   read = btor_read_exp (btor, lambda, next);
-  btor_release_exp (btor, next);
+  if (argc >= 2) btor_release_exp (btor, next);
   return read;
 }
 
@@ -5752,12 +5752,13 @@ btor_delete_btor (Btor *btor)
 
 #ifndef NDEBUG
   int k;
+  BtorNode *cur;
   if (btor->nodes_unique_table.num_elements)
     BTORLOG ("*** btor->nodes_unique_table.num_elements: %d",
              0,
              btor->nodes_unique_table.num_elements);
   for (k = 0; k < btor->nodes_unique_table.size; k++)
-    if (btor->nodes_unique_table.chains[k])
+    for (cur = btor->nodes_unique_table.chains[k]; cur; cur = cur->next)
       BTORLOG ("  unreleased node: %s",
                node2string (btor->nodes_unique_table.chains[k]));
 #endif
