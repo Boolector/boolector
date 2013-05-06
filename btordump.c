@@ -863,15 +863,15 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   fflush (file);
 }
 
-#define WRAP_NON_BOOL_ROOT(e)                                        \
-  do                                                                 \
-  {                                                                  \
-    fputs ("(not (= ", file);                                        \
-    btor_dump_smt_id (e, sgp, file);                                 \
-    if (format < 2)                                                  \
-      fprintf (file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (e)->len);    \
-    else                                                             \
-      fprintf (file, " (_ bv0 %d)))", BTOR_REAL_ADDR_NODE (e)->len); \
+#define WRAP_NON_BOOL_ROOT(e)                                     \
+  do                                                              \
+  {                                                               \
+    fputs ("(not (= ", file);                                     \
+    btor_dump_smt_id (e, sgp, file);                              \
+    if (format < 2)                                               \
+      fprintf (file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (e)->len); \
+    else                                                          \
+      fprintf (file, " #b0))", BTOR_REAL_ADDR_NODE (e)->len);     \
   } while (0)
 
 static void
@@ -992,10 +992,7 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
   fputc (' ', file);
 
   e = roots[nroots - 1];
-  if (BTOR_REAL_ADDR_NODE (e)->len > 1)
-    WRAP_NON_BOOL_ROOT (e);
-  else
-    btor_dump_smt_id (e, sgp, file);
+  WRAP_NON_BOOL_ROOT (e);
 
   for (i = 0; i < open_left_par + 1; i++) fputc (')', file);
 
