@@ -237,7 +237,6 @@ typedef struct BtorSMT2Item
 } BtorSMT2Item;
 
 BTOR_DECLARE_STACK (SMT2Item, BtorSMT2Item);
-BTOR_DECLARE_STACK (SMT2NodePtr, BtorSMT2Node *);
 
 /*------------------------------------------------------------------------*/
 
@@ -1704,7 +1703,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
                       BtorNode **resptr,
                       BtorSMT2Coo *cooptr)
 {
-  int tag, width, domain, len, nargs, i, j, open = 0;
+  int tag, width, domain, len, nargs, i, j, open = 0, work_cnt;
   BtorNode *(*binfun) (Btor *, BtorNode *, BtorNode *);
   BtorNode *(*extfun) (Btor *, BtorNode *, int);
   BtorNode *(*rotatefun) (Btor *, BtorNode *, int);
@@ -1713,7 +1712,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
   BtorSMT2Item *l, *p;
   unaryfun = 0;
   binfun   = 0;
-  assert (BTOR_EMPTY_STACK (parser->work));
+  work_cnt = BTOR_COUNT_STACK (parser->work);
   do
   {
     tag = btor_read_token_smt2 (parser);
@@ -2626,7 +2625,7 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
             parser, "unexpected token '%s'", parser->token.start);
     }
   } while (open);
-  if (BTOR_COUNT_STACK (parser->work) != 1)
+  if (BTOR_COUNT_STACK (parser->work) - work_cnt != 1)
   {
     parser->perrcoo = p->coo;
     // This should not occur, but we keep it as a bad style of
@@ -2635,7 +2634,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
                             "internal parse error: worker stack of size %d",
                             BTOR_COUNT_STACK (parser->work));
   }
-  p = parser->work.start;
+  parser->work.top -= 1;
+  p = parser->work.top;
   if (p->tag != BTOR_EXP_TAG_SMT2)
   {
     parser->perrcoo = p->coo;
@@ -2647,7 +2647,8 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
   }
   res     = boolector_copy (parser->btor, p->exp);
   *cooptr = p->coo;
-  btor_release_work_smt2 (parser);
+  btor_release_item_smt2 (parser, p);
+  assert (BTOR_COUNT_STACK (parser->work) == work_cnt);
   *resptr = res;
   return 1;
 }
@@ -2783,12 +2784,12 @@ static int
 btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
   // TODO: mem cleanup in case of error (release btor nodes, stacks) (MA)
-  int tag, domain, width;
+  int tag, domain, width, nargs = 0;
   BtorNode *exp = 0;
   BtorSMT2Coo coo;
+  BtorSMT2Item *item;
   BtorSMT2Node *fun, *arg;
   BtorNodePtrStack args;
-  BtorSMT2NodePtrStack symbols;
   fun   = 0;
   width = domain = 0;
   coo.x = coo.y = 0;
@@ -2803,8 +2804,6 @@ btor_define_fun_smt2 (BtorSMT2Parser *parser)
   fun->coo = parser->coo;
   if (!btor_read_lpar_smt2 (parser, " after function name")) return 0;
 
-  BTOR_INIT_STACK (args);
-  BTOR_INIT_STACK (symbols);
 SORTED_VAR:
   tag = btor_read_token_smt2 (parser);
   if (tag == BTOR_LPAR_TAG_SMT2)
@@ -2822,9 +2821,10 @@ SORTED_VAR:
 
     if (!btor_parse_bitvec_sort_smt2 (parser, 0, &width)) return 0;
 
-    arg->exp = boolector_param (parser->btor, width, arg->name);
-    BTOR_PUSH_STACK (parser->mem, args, arg->exp);
-    BTOR_PUSH_STACK (parser->mem, symbols, arg);
+    nargs++;
+    arg->exp   = boolector_param (parser->btor, width, arg->name);
+    item       = btor_push_item_smt2 (parser, arg->tag);
+    item->node = arg;
 
     if (!btor_read_rpar_smt2 (parser, " after argument sort")) return 0;
     goto SORTED_VAR;
@@ -2906,11 +2906,28 @@ SORTED_VAR:
                             domain,
                             boolector_get_index_width (parser->btor, exp));
 
-  if (BTOR_COUNT_STACK (args))
+  assert (nargs == BTOR_COUNT_STACK (parser->work));
+  if (nargs)
   {
-    fun->exp =
-        boolector_fun (parser->btor, BTOR_COUNT_STACK (args), args.start, exp);
+    BTOR_INIT_STACK (args);
+    item = parser->work.top - nargs;
+    /* collect arguments, remove symbols (scope is only this function) */
+    while (item < parser->work.top)
+    {
+      arg = item->node;
+      item++;
+      assert (arg);
+      assert (arg->coo.x);
+      assert (arg->tag == BTOR_SYMBOL_TAG_SMT2);
+      BTOR_PUSH_STACK (parser->mem, args, arg->exp);
+      btor_remove_symbol_smt2 (parser, arg);
+    }
+    parser->work.top -= nargs;
+    assert (BTOR_EMPTY_STACK (parser->work));
+
+    fun->exp = boolector_fun (parser->btor, nargs, args.start, exp);
     boolector_release (parser->btor, exp);
+    BTOR_RELEASE_STACK (parser->mem, args);
     parser->need_arrays = 1;
   }
   else
@@ -2918,18 +2935,6 @@ SORTED_VAR:
     fun->exp = exp;
   }
 
-  /* remove symbols of arguments (scope is only this function) */
-  while (!BTOR_EMPTY_STACK (symbols))
-  {
-    arg = BTOR_POP_STACK (symbols);
-    assert (arg);
-    assert (arg->coo.x);
-    assert (arg->tag == BTOR_SYMBOL_TAG_SMT2);
-    btor_remove_symbol_smt2 (parser, arg);
-  }
-
-  BTOR_RELEASE_STACK (parser->mem, args);
-  BTOR_RELEASE_STACK (parser->mem, symbols);
   return btor_read_rpar_smt2 (parser, " to close definition");
 }
 
