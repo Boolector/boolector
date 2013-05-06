@@ -11,12 +11,12 @@ if [ $# -ne 1 ]; then
 fi
 
 readonly infile=$1
-tmp=/tmp/wrapperz3-$$.smt
+#tmp=/tmp/wrapperz3-$$.smt
 
 # convert input file to smt format
-$BOOLECTOR -rwl0 -ds $infile > $tmp
+#$BOOLECTOR -rwl0 -ds $infile > $tmp
 
-res=$($Z3 -smt $tmp | head -n1)
+res=$($Z3 $infile | head -n1)
 
 if [ "$res" == "sat" ]; then
   exit 10
