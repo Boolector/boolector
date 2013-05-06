@@ -3981,12 +3981,9 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
 
   int i, rewrite_level;
   BtorNode *next, *prev, *read;
-#ifndef NDEBUG
   assert (args[argc - 1]);
-  BtorNode *cur_lambda = BTOR_REAL_ADDR_NODE (lambda);
-  assert (BTOR_REAL_ADDR_NODE (cur_lambda->e[0])->len
-          == BTOR_REAL_ADDR_NODE (args[argc - 1])->len);
-#endif
+  assert (BTOR_REAL_ADDR_NODE (BTOR_REAL_ADDR_NODE (lambda)->e[0])->len
+          == BTOR_REAL_ADDR_NODE (args[0])->len);
 
   /* we have to disable rewriting for concatinating arguments as otherwise we
    * might get e.g.: 00::00 -> 0000, which we cannot split into separate
@@ -3997,12 +3994,7 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   next = prev = args[argc - 1];
   for (i = argc - 2; i >= 0; i--)
   {
-#ifndef NDEBUG
     assert (args[i]);
-    cur_lambda = BTOR_REAL_ADDR_NODE (cur_lambda->e[1]);
-    assert (BTOR_REAL_ADDR_NODE (cur_lambda->e[0])->len
-            == BTOR_REAL_ADDR_NODE (args[i])->len);
-#endif
     next           = btor_concat_exp (btor, args[i], prev);
     next->no_synth = 1;
     if (i < argc - 2) btor_release_exp (btor, prev);
@@ -7254,7 +7246,6 @@ lazy_synthesize_and_encode_lambda_arguments (Btor *btor,
   while (arity > 1)
   {
     assert (BTOR_IS_CONCAT_NODE (cur));
-    assert (cur->no_synth);
 
     BTOR_PUSH_STACK (mm, synth, cur->e[0]);
     BTOR_PUSH_STACK (mm, synth, cur->e[1]);
