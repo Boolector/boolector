@@ -418,28 +418,6 @@ btor_precond_cond_exp_dbg (const Btor *btor,
   return 1;
 }
 
-static int
-has_num_parents_dbg (BtorNode *exp, int num)
-{
-  assert (exp);
-  assert (num > 0);
-
-  int num_parents = 0;
-  BtorFullParentIterator it;
-
-  init_full_parent_iterator (&it, exp);
-
-  while (has_next_parent_full_parent_iterator (&it))
-  {
-    (void) next_parent_full_parent_iterator (&it);
-    num_parents++;
-
-    if (num_parents > num) break;
-  }
-
-  return num_parents == num;
-}
-
 /*------------------------------------------------------------------------*/
 #endif
 /*------------------------------------------------------------------------*/
@@ -10920,7 +10898,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
       || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
           && ((BtorLambdaNode *) e[0])->chain_depth > 0))
   {
-    assert (!has_write_parent || has_num_parents_dbg (write, 1));
+    assert (!has_write_parent || write->refs == 1);
     if (BTOR_IS_LAMBDA_NODE (e[0]))
       chain_depth = ((BtorLambdaNode *) e[0])->chain_depth;
     chain_depth += 1;
@@ -10933,7 +10911,7 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   if (0 && (!has_write_parent || write->refs > 1) && chain_depth > 0)
   {
     assert (BTOR_IS_LAMBDA_NODE (e[0]));
-    assert (!has_write_parent || !has_num_parents_dbg (write, 1));
+    assert (!has_write_parent || write->refs != 1);
     BTORLOG ("merge lambda: %s (merged %d)", node2string (e[0]), chain_depth);
     btor_assign_param (btor, e[0], param);
     e_else = btor_beta_reduce_chains (btor, e[0]);
@@ -11153,7 +11131,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
       // FIXME: only beta reduce not parameterized reads
       //	      || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
       {
-        assert (!read->parameterized || has_num_parents_dbg (read->e[0], 1));
+        assert (!read->parameterized || read->e[0]->refs == 1);
         btor_insert_in_ptr_hash_table (reads, read);
       }
     }
