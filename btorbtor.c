@@ -20,6 +20,7 @@
 #include <ctype.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef struct BtorBTORParser BtorBTORParser;
@@ -62,8 +63,8 @@ struct BtorBTORParser
   BtorNodePtrStack inputs;
   BtorNodePtrStack outputs;
   BtorNodePtrStack regs;
+  BtorNodePtrStack lambdas;
   BtorNodePtrStack params;
-  BtorIntStack params_idx;
 
   BtorCharStack op;
   BtorCharStack constant;
@@ -404,7 +405,6 @@ parse_param (BtorBTORParser *parser, int len)
   if (!parse_symbol (parser)) return 0;
 
   res = boolector_param (parser->btor, len, parser->symbol.start);
-  BTOR_PUSH_STACK (parser->mem, parser->params_idx, parser->idx);
   BTOR_PUSH_STACK (parser->mem, parser->params, res);
 
   return res;
@@ -1483,7 +1483,7 @@ parse_lambda (BtorBTORParser *parser, int len)
     return 0;
   }
 
-  if (!(exp = parse_exp (parser, len, 0))) goto RELEASE_PARAM_AND_RETURN_ERROR;
+  if (!(exp = parse_exp (parser, len, 1))) goto RELEASE_PARAM_AND_RETURN_ERROR;
 
   res = boolector_lambda (parser->btor, param, exp);
 
@@ -1491,6 +1491,7 @@ parse_lambda (BtorBTORParser *parser, int len)
   boolector_release (parser->btor, exp);
 
   parser->found_lambdas = 1;
+  BTOR_PUSH_STACK (parser->mem, parser->lambdas, res);
 
   return res;
 }
@@ -1699,8 +1700,8 @@ btor_delete_btor_parser (BtorBTORParser *parser)
   BTOR_RELEASE_STACK (parser->mem, parser->inputs);
   BTOR_RELEASE_STACK (parser->mem, parser->outputs);
   BTOR_RELEASE_STACK (parser->mem, parser->regs);
+  BTOR_RELEASE_STACK (parser->mem, parser->lambdas);
   BTOR_RELEASE_STACK (parser->mem, parser->params);
-  BTOR_RELEASE_STACK (parser->mem, parser->params_idx);
 
   BTOR_RELEASE_STACK (parser->mem, parser->op);
   BTOR_RELEASE_STACK (parser->mem, parser->constant);
@@ -1727,12 +1728,89 @@ check_params_bound (BtorBTORParser *parser)
     assert (BTOR_IS_PARAM_NODE (param));
 
     if (!btor_is_bound_param (parser->btor, param))
-    {
       return btor_perr_btor (parser,
                              "param '%d' not bound to any lambda expression",
-                             parser->params_idx.start[i]);
+                             param->symbol ? atoi (param->symbol) : param->id);
+  }
+
+  return 0;
+}
+
+static const char *
+check_lambdas_consistent (BtorBTORParser *parser)
+{
+  assert (parser);
+
+  int i;
+  BtorNode *cur, *lambda;
+  BtorNodePtrStack stack;
+  BtorNodePtrStack unmark;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark);
+
+  while (!BTOR_EMPTY_STACK (parser->lambdas))
+  {
+    lambda = BTOR_POP_STACK (parser->lambdas);
+    assert (BTOR_IS_REGULAR_NODE (lambda));
+    assert (BTOR_IS_LAMBDA_NODE (lambda));
+
+    if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
+        && ((BtorLambdaNode *) lambda)->nested != lambda)
+      continue;
+
+    assert (BTOR_EMPTY_STACK (stack));
+    assert (BTOR_EMPTY_STACK (unmark));
+    BTOR_PUSH_STACK (parser->mem, stack, lambda);
+
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_POP_STACK (stack);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+
+      printf ("visit: %s\n", node2string (cur));
+
+      if (btor_is_param_exp (parser->btor, cur) && !cur->mark)
+      {
+        BTOR_RELEASE_STACK (parser->mem, stack);
+        BTOR_RELEASE_STACK (parser->mem, unmark);
+
+        return btor_perr_btor (parser,
+                               "invalid scope for param '%d'",
+                               cur->symbol ? atoi (cur->symbol) : cur->id);
+      }
+
+      if (cur->mark) continue;
+
+      cur->mark = 1;
+      BTOR_PUSH_STACK (parser->mem, unmark, cur);
+
+      if (btor_is_lambda_exp (parser->btor, cur))
+      {
+        BTOR_REAL_ADDR_NODE (cur->e[0])->mark = 1;
+        BTOR_PUSH_STACK (parser->mem, unmark, BTOR_REAL_ADDR_NODE (cur->e[0]));
+        BTOR_PUSH_STACK (parser->mem, stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
+      }
+      else
+      {
+        for (i = 0; i < cur->arity; i++)
+          if (BTOR_REAL_ADDR_NODE (cur->e[i])->parameterized)
+            BTOR_PUSH_STACK (
+                parser->mem, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+      }
+    }
+
+    while (!BTOR_EMPTY_STACK (unmark))
+    {
+      cur = BTOR_POP_STACK (unmark);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (cur->mark);
+      cur->mark = 0;
     }
   }
+
+  BTOR_RELEASE_STACK (parser->mem, stack);
+  BTOR_RELEASE_STACK (parser->mem, unmark);
 
   return 0;
 }
@@ -1760,8 +1838,8 @@ btor_parse_btor_parser (BtorBTORParser *parser,
   parser->lineno  = 1;
   parser->saved   = 0;
 
+  BTOR_INIT_STACK (parser->lambdas);
   BTOR_INIT_STACK (parser->params);
-  BTOR_INIT_STACK (parser->params_idx);
 
   BTOR_CLR (res);
 
@@ -1778,6 +1856,8 @@ NEXT:
     if (res)
     {
       if (check_params_bound (parser)) return parser->error;
+
+      if (check_lambdas_consistent (parser)) return parser->error;
 
       if (parser->found_lambdas && parser->found_aeq)
       {
