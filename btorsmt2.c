@@ -2783,7 +2783,6 @@ btor_declare_fun_smt2 (BtorSMT2Parser *parser)
 static int
 btor_define_fun_smt2 (BtorSMT2Parser *parser)
 {
-  // TODO: mem cleanup in case of error (release btor nodes, stacks) (MA)
   int tag, domain, width, nargs = 0;
   BtorNode *exp = 0;
   BtorSMT2Coo coo;
@@ -2894,17 +2893,25 @@ SORTED_VAR:
   if (!btor_parse_term_smt2 (parser, &exp, &coo)) return 0;
 
   if (boolector_get_width (parser->btor, exp) != width)
+  {
+    domain = boolector_get_width (parser->btor, exp);
+    boolector_release (parser->btor, exp);
     return !btor_perr_smt2 (parser,
                             "invalid term bit-width, expected %d but was %d",
                             width,
-                            boolector_get_width (parser->btor, exp));
+                            domain);
+  }
   if (boolector_is_array (parser->btor, exp)
       && boolector_get_index_width (parser->btor, exp) != domain)
+  {
+    width = boolector_get_index_width (parser->btor, exp);
+    boolector_release (parser->btor, exp);
     return !btor_perr_smt2 (parser,
                             "invalid array index bit-width, expected %d but "
                             "was %d",
                             domain,
-                            boolector_get_index_width (parser->btor, exp));
+                            width);
+  }
 
   assert (nargs == BTOR_COUNT_STACK (parser->work));
   if (nargs)
