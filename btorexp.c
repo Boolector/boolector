@@ -1807,48 +1807,12 @@ add_param_cond_to_clause (Btor *btor,
   assert (linking_clause);
   assert (sign == 1 || sign == -1);
 
-  //  int lit, false_lit, true_lit;
-  //  BtorAIGMgr *amgr;
-  //  BtorSATMgr *smgr;
   BtorNode *beta_cond, *parameterized;
-
-  //  mm = btor->mm;
-  //  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
-  //  smgr = btor_get_sat_mgr_aig_mgr (amgr);
 
   BTORLOG ("add_param_cond_to_clause: %s", node2string (cond));
   beta_cond = btor_beta_reduce_cutoff (btor, cond, &parameterized);
   assert (!BTOR_REAL_ADDR_NODE (beta_cond)->parameterized);
   add_new_exp_to_clause (btor, beta_cond, sign, linking_clause);
-
-#if 0
-  // TODO: cache arbitrary conditions?
-  if (BTOR_IS_BV_EQ_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
-    {
-      sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
-      add_eq_or_neq_exp_to_clause (btor, BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
-				   BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
-				   linking_clause, sign);
-    }
-  else if (BTOR_REAL_ADDR_NODE (beta_cond)->kind == BTOR_AND_NODE)
-    {
-      sign *= BTOR_IS_INVERTED_NODE (beta_cond) ? -1 : 1;
-      add_and_exp_to_clause (btor, BTOR_REAL_ADDR_NODE (beta_cond)->e[0],
-			     BTOR_REAL_ADDR_NODE (beta_cond)->e[1],
-			     linking_clause, sign);
-    }
-  else
-    {
-      assert (BTOR_IS_PARAM_NODE (parameterized) || !parameterized);
-      lit = exp_to_cnf_lit (btor, beta_cond);
-      lit *= sign;
-      true_lit = smgr->true_lit;
-      false_lit = -true_lit;
-
-      if (lit != false_lit && lit != true_lit)
-	BTOR_PUSH_STACK (mm, *linking_clause, lit);
-    }
-#endif
 
   btor_release_exp (btor, beta_cond);
 }
