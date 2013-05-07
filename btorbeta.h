@@ -23,6 +23,8 @@ BtorNode *btor_beta_reduce_bounded (Btor *, BtorNode *, int);
 
 BtorNode *btor_param_cur_assignment (BtorNode *);
 
+BtorNode *btor_apply_and_reduce (Btor *, int, BtorNode **, BtorNode *);
+
 void btor_assign_param (Btor *, BtorNode *, BtorNode *);
 
 void btor_unassign_param (Btor *, BtorNode *);

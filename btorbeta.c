@@ -726,3 +726,43 @@ btor_beta_reduce_bounded (Btor *btor, BtorNode *exp, int bound)
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
   return btor_beta_reduce (btor, exp, BETA_RED_BOUNDED, 0, bound);
 }
+
+BtorNode *
+btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
+{
+  assert (btor);
+  assert (argc >= 0);
+  assert (argc < 1 || args);
+  assert (lambda);
+
+  int i;
+  BtorNode *result, *cur;
+  BtorNodePtrStack unassign;
+  BtorMemMgr *mm;
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (unassign);
+
+  cur = lambda;
+  for (i = 0; i < argc; i++)
+  {
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_LAMBDA_NODE (cur));
+    btor_assign_param (btor, cur, args[i]);
+    BTOR_PUSH_STACK (mm, unassign, cur);
+    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
+  }
+
+  result = btor_beta_reduce_full (btor, lambda);
+
+  while (!BTOR_EMPTY_STACK (unassign))
+  {
+    cur = BTOR_POP_STACK (unassign);
+    btor_unassign_param (btor, cur);
+  }
+
+  BTOR_RELEASE_STACK (mm, unassign);
+
+  return result;
+}
