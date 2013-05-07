@@ -1768,8 +1768,6 @@ check_lambdas_consistent (BtorBTORParser *parser)
       cur = BTOR_POP_STACK (stack);
       assert (BTOR_IS_REGULAR_NODE (cur));
 
-      printf ("visit: %s\n", node2string (cur));
-
       if (btor_is_param_exp (parser->btor, cur) && !cur->mark)
       {
         BTOR_RELEASE_STACK (parser->mem, stack);
