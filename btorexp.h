@@ -583,6 +583,9 @@ struct Btor
 
 #define BTOR_PARAM_GET_LAMBDA_NODE(exp) (((BtorParamNode *) exp)->lambda_exp)
 
+#define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
+  (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */

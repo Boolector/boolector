@@ -3923,11 +3923,10 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   lambda_exp->index_len = index_len;
 
   /* set lambda expression of parameter */
-  // assert (!((BtorParamNode *) e_param)->lambda_exp);
   assert (!BTOR_IS_BOUND_PARAM_NODE (e_param)
-          || ((BtorParamNode *) e_param)->lambda_exp == lambda_exp);
+          || BTOR_PARAM_GET_LAMBDA_NODE (e_param) == lambda_exp);
   if (!BTOR_IS_BOUND_PARAM_NODE (e_param))
-    ((BtorParamNode *) e_param)->lambda_exp = lambda_exp;
+    BTOR_PARAM_SET_LAMBDA_NODE (e_param, lambda_exp);
   // else lambda_exp is an already existing one
 
   /* in case of nested lambdas (functions) we set 'nested' of each lambda
@@ -8637,7 +8636,7 @@ process_working_stack (Btor * btor, BtorNodePtrStack * stack,
 	      assert (BTOR_IS_REGULAR_NODE (next));
 	      assert (BTOR_IS_PARAM_NODE (next->e[1]));
 
-	      lambda_exp = ((BtorParamNode *) next->e[1])->lambda_exp;
+	      lambda_exp = BTOR_PARAM_GET_LAMBDA_NODE (next->e[1]);
 
 	      /* ensure that given lambda expression is synthesized and encoded
 	       */
@@ -8783,7 +8782,7 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
             param = BTOR_POP_STACK (params);
             assert (BTOR_IS_REGULAR_NODE (param));
             assert (BTOR_IS_PARAM_NODE (param));
-            BTOR_PUSH_STACK (mm, stack, ((BtorParamNode *) param)->lambda_exp);
+            BTOR_PUSH_STACK (mm, stack, BTOR_PARAM_GET_LAMBDA_NODE (param));
           }
         }
       }
@@ -9117,7 +9116,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_LAMBDA_NODE:
       assert (BTOR_EMPTY_STACK (
           ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp));
-      ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->lambda_exp = 0;
+      BTOR_PARAM_SET_LAMBDA_NODE (exp->e[0], 0);
       return btor_lambda_exp (btor, exp->e[0], exp->e[1]);
     default:
       assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
