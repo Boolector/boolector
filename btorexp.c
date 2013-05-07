@@ -3914,7 +3914,7 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (e_exp);
   assert (BTOR_REAL_ADDR_NODE (e_exp)->len > 0);
 
-  BtorNode *lambda_exp;
+  BtorNode *lambda_exp, *exp;
   int index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
   int elem_len  = BTOR_REAL_ADDR_NODE (e_exp)->len;
 
@@ -3924,11 +3924,23 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 
   /* set lambda expression of parameter */
   // assert (!((BtorParamNode *) e_param)->lambda_exp);
-  assert (!((BtorParamNode *) e_param)->lambda_exp
+  assert (!BTOR_IS_BOUND_PARAM_NODE (e_param)
           || ((BtorParamNode *) e_param)->lambda_exp == lambda_exp);
-  if (!((BtorParamNode *) e_param)->lambda_exp)
+  if (!BTOR_IS_BOUND_PARAM_NODE (e_param))
     ((BtorParamNode *) e_param)->lambda_exp = lambda_exp;
   // else lambda_exp is an already existing one
+
+  /* in case of nested lambdas (functions) we set 'nested' of each lambda
+   * involved to the outermost lambda of the chain */
+  if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
+  {
+    exp = lambda_exp;
+    do
+    {
+      ((BtorLambdaNode *) exp)->nested = lambda_exp;
+      exp                              = BTOR_REAL_ADDR_NODE (exp->e[1]);
+    } while (BTOR_IS_LAMBDA_NODE (exp));
+  }
 
   if (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp))
     (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
@@ -3955,17 +3967,6 @@ btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
     fun = btor_lambda_exp (btor, params[i], fun);
     if (prev_fun) btor_release_exp (btor, prev_fun);
     prev_fun = fun;
-  }
-
-  /* for all nested lambdas, set nested to first lambda of nested chain */
-  if (paramc > 1)
-  {
-    exp = fun;
-    while (BTOR_IS_LAMBDA_NODE (exp))
-    {
-      ((BtorLambdaNode *) exp)->nested = fun;
-      exp                              = BTOR_REAL_ADDR_NODE (exp->e[1]);
-    }
   }
 
   return fun;
@@ -5306,7 +5307,7 @@ btor_is_bound_param (Btor *btor, BtorNode *param)
   assert (param);
   assert (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)));
   param = btor_simplify_exp (btor, param);
-  return ((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp != 0;
+  return BTOR_IS_BOUND_PARAM_NODE (BTOR_REAL_ADDR_NODE (param));
 }
 
 int
