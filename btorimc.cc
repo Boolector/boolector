@@ -48,6 +48,8 @@ static struct
   int addState;
   int addVariable;
   int addConcat;
+  int addRShift;
+  int addLShift;
 
 } stats;
 
@@ -207,6 +209,19 @@ read_line ()
   }                                 \
   while (0)
 
+#define UNARYARG(NAME)              \
+  (!strcmp (op, #NAME)) do          \
+  {                                 \
+    CHKARGS (7);                    \
+    RANGE (c, T (1), N (2), N (3)); \
+    RANGE (n, T (4), N (5), N (6)); \
+    CHKRANGESAMEWIDTH (c, n);       \
+    unsigned arg = N (7);           \
+    ibvm->NAME (c, n, arg);         \
+    stats.NAME++;                   \
+  }                                 \
+  while (0)
+
 #define PRED1(NAME)                 \
   (!strcmp (op, #NAME)) do          \
   {                                 \
@@ -326,6 +341,7 @@ parse_line ()
   }
   else if (!strcmp (op, "addCase"))
   {
+  ADDCASE:
     if (size < 5) perr ("non enough arguments for 'addCase'");
     RANGE (n, T (1), N (2), N (3));
     unsigned nargs = N (4);
@@ -368,6 +384,8 @@ parse_line ()
     ibvm->addCase (n, args);
     stats.addCase++;
   }
+  else if (!strcmp (op, "addParallelCase"))
+    goto ADDCASE;
   else if (!strcmp (op, "addConcat"))
   {
     if (size < 5) perr ("non enough arguments for 'addConcat'");
@@ -397,6 +415,10 @@ parse_line ()
     UNARY (addAssignment);
   else if
     UNARY (addBitNot);
+  else if
+    UNARYARG (addRShift);
+  else if
+    UNARYARG (addLShift);
   else if
     PRED1 (addLogicalNot);
   else if
