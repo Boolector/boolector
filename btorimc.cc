@@ -15,18 +15,21 @@ using namespace std;
 struct Var
 {
   string name;
-  int width;
+  unsigned width;
   Var () {}
   Var (string n, int w) : name (n), width (w) {}
 };
 
-static map<string, int> symtab;
-static map<int, Var> idtab;
 static BtorIBV* ibvm;
-static FILE* input            = stdin;
+
+static map<string, unsigned> symtab;
+static map<unsigned, Var> idtab;
+
 static int lineno             = 1;
+static FILE* input            = stdin;
 static const char* input_name = "<stdin>";
 static bool close_input;
+
 static int szline, nline;
 static char* line;
 
@@ -120,13 +123,13 @@ read_line ()
 #define CHKIDUNUSED(ID)                                                   \
   do                                                                      \
   {                                                                       \
-    if (idtab.find (ID) != idtab.end ()) perr ("id %d already used", ID); \
+    if (idtab.find (ID) != idtab.end ()) perr ("id %u already used", ID); \
   } while (0)
 
 #define CHKID(ID)                                                      \
   do                                                                   \
   {                                                                    \
-    if (idtab.find (ID) == idtab.end ()) perr ("id %d undefined", ID); \
+    if (idtab.find (ID) == idtab.end ()) perr ("id %u undefined", ID); \
   } while (0)
 
 #define CHKSYMUNUSED(SYM)                              \
@@ -136,20 +139,21 @@ read_line ()
       perr ("symbol '%s' already used", SYM.c_str ()); \
   } while (0)
 
-#define NUM(I) atoi (toks[I].c_str ())
+#define N(I) (assert ((I) < size), (unsigned) atoi (toks[I].c_str ()))
+#define T(I) (assert ((I) < size), toks[I])
 
 #define CHKUNUSEDRANGE(RANGE)                                                  \
   do                                                                           \
   {                                                                            \
     CHKIDUNUSED (RANGE.id);                                                    \
-    if (RANGE.msb < RANGE.lsb) perr ("MSB %d < LSB %d", RANGE.msb, RANGE.lsb); \
+    if (RANGE.msb < RANGE.lsb) perr ("MSB %u < LSB %u", RANGE.msb, RANGE.lsb); \
   } while (0)
 
 #define CHKRANGE(RANGE)                                                        \
   do                                                                           \
   {                                                                            \
     CHKID (RANGE.id);                                                          \
-    if (RANGE.msb < RANGE.lsb) perr ("MSB %d < LSB %d", RANGE.msb, RANGE.lsb); \
+    if (RANGE.msb < RANGE.lsb) perr ("MSB %u < LSB %u", RANGE.msb, RANGE.lsb); \
     {                                                                          \
     }                                                                          \
   } while (0)
@@ -177,16 +181,18 @@ parse_line ()
   if (!strcmp (op, "addVariable"))
   {
     CHKARGS (7);
-    string sym = toks[2];
-    int id     = NUM (1);
+    string sym = T (2);
+    int id     = N (1);
     CHKIDUNUSED (id);
     CHKSYMUNUSED (sym);
-    int width = NUM (3);
-    if (width <= 0) perr ("expected positive width but got %d", width);
+    unsigned width = N (3);
+    if (width <= 0) perr ("expected positive width but got %u", width);
     symtab[sym] = id;
     Var v (sym, width);
     idtab[id] = Var (sym, width);
     stats.vars++;
+    ibvm->addVariable (
+        id, sym, width, N (4), N (5), N (6), (BitVector::DirectionKind) N (7));
   }
   else if (!strcmp (op, "addRangeName"))
   {
@@ -221,10 +227,10 @@ main (int argc, char** argv)
       close_input = true;
   }
   msg ("reading '%s'", input_name);
-  parse ();
-  if (close_input) fclose (input);
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (10);
+  parse ();
+  if (close_input) fclose (input);
   ibvm->analyze ();
   ibvm->translate ();
   delete ibvm;
