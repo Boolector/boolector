@@ -46,8 +46,8 @@ cp -p \
   configure \
   boolector.[ch] \
   boolectormain.[ch] \
-  btor*.[ch] \
-  btor*.cc \
+  `ls btor*.[ch] | grep -v btori` \
+  `ls btor*.cc | grep -v btori` \
   deltabtor.c \
   synthebtor.c \
   Doxyfile \
@@ -59,6 +59,7 @@ then
     BitVector.h \
     btoribv.h \
     btoribv.cc \
+    btorimc \
     ibv.mk \
   $dir/
 fi
