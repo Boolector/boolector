@@ -35,18 +35,19 @@ static char* line;
 
 static struct
 {
-  int addVariable;
-  int addRangeName;
-  int addState;
-  int addCase;
-  int addNonState;
-  int addCondition;
   int addAssignment;
   int addBitNot;
+  int addCase;
+  int addCondition;
   int addConstant;
   int addEqual;
   int addLogicalAnd;
   int addLogicalNot;
+  int addNonState;
+  int addRangeName;
+  int addState;
+  int addVariable;
+  int addConcat;
 
 } stats;
 
@@ -329,8 +330,9 @@ parse_line ()
     RANGE (n, T (1), N (2), N (3));
     unsigned nargs = N (4);
     if (!nargs) perr ("no cases");
-    if (nargs & 1) perr ("odd number of arguments %u", nargs);
-    if (size != 3 * nargs + 5) perr ("number of arguments does not match");
+    if (nargs & 1) perr ("odd number of 'addCase' arguments %u", nargs);
+    if (size != 3 * nargs + 5)
+      perr ("number of 'addCase' arguments does not match");
     vector<BitVector::BitRange> args;
     bool bitwise = false, determined = false;
     for (unsigned i = 5; nargs; i += 3, nargs--)
@@ -365,6 +367,29 @@ parse_line ()
     }
     ibvm->addCase (n, args);
     stats.addCase++;
+  }
+  else if (!strcmp (op, "addConcat"))
+  {
+    if (size < 5) perr ("non enough arguments for 'addConcat'");
+    RANGE (n, T (1), N (2), N (3));
+    unsigned nargs = N (4);
+    if (!nargs) perr ("no arguments");
+    if (size != 3 * nargs + 5)
+      perr ("number of 'addConcat' arguments does not match");
+    vector<BitVector::BitRange> args;
+    unsigned width = 0;
+    for (unsigned i = 5; nargs; i += 3, nargs--)
+    {
+      CHKRANGE (T (i), N (i + 1), N (i + 2));
+      BitVector::BitRange arg (symtab[T (i)], N (i + 1), N (i + 2));
+      args.push_back (arg);
+      width += arg.getWidth ();
+    }
+    if (width != n.getWidth ())
+      perr ("sum of width of 'addConcat' arguments does not match %u",
+            n.getWidth ());
+    ibvm->addConcat (n, args);
+    stats.addConcat++;
   }
   else if
     UNARY (addNonState);
