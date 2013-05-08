@@ -1169,7 +1169,7 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   int i;
   int nesting_lvl = 1000;
   size_t size     = nesting_lvl * sizeof (BtorNode *);
-  BtorNode *exp, *result;
+  BtorNode *result;
   BtorNode **params;
   BtorNode **indices;
   BtorNode *var = btor_var_exp (g_btor, g_elem_bw, "");

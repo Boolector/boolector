@@ -871,7 +871,7 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     if (format < 2)                                               \
       fprintf (file, " bv0[%d]))", BTOR_REAL_ADDR_NODE (e)->len); \
     else                                                          \
-      fprintf (file, " #b0))", BTOR_REAL_ADDR_NODE (e)->len);     \
+      fprintf (file, " #b0))");                                   \
   } while (0)
 
 static void
