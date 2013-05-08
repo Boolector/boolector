@@ -36,20 +36,25 @@ static char* line;
 static struct
 {
   int addAssignment;
+  int addBitAnd;
   int addBitNot;
+  int addBitOr;
   int addCase;
+  int addConcat;
   int addCondition;
   int addConstant;
   int addEqual;
   int addLogicalAnd;
   int addLogicalNot;
+  int addLogicalOr;
+  int addLShift;
   int addNonState;
   int addRangeName;
-  int addState;
-  int addVariable;
-  int addConcat;
   int addRShift;
-  int addLShift;
+  int addState;
+  int addSub;
+  int addSum;
+  int addVariable;
 
 } stats;
 
@@ -158,14 +163,28 @@ read_line ()
 #define N(I) (assert ((I) < size), (unsigned) atoi (toks[I].c_str ()))
 #define T(I) (assert ((I) < size), toks[I])
 
-#define CHKRANGE(SYM, MSB, LSB)                                             \
-  do                                                                        \
-  {                                                                         \
-    if (symtab.find (SYM) == symtab.end ())                                 \
-      perr ("symbol '%s' undefined", (SYM).c_str ());                       \
-    if ((MSB) < (LSB)) perr ("MSB %u < LSB %u", (MSB), (LSB));              \
-    Var& V = idtab[symtab[(SYM)]];                                          \
-    if ((MSB) >= V.width) perr ("MSB %u >= width of '%s'", (SYM).c_str ()); \
+#define CHKBIT(SYM, B)                                                         \
+  do                                                                           \
+  {                                                                            \
+    if (symtab.find (SYM) == symtab.end ())                                    \
+      perr ("symbol '%s' undefined", (SYM).c_str ());                          \
+    Var& V = idtab[symtab[(SYM)]];                                             \
+    if ((B) >= V.width) perr ("BIT %u >= width of '%s'", (B), (SYM).c_str ()); \
+  } while (0)
+
+#define BIT(NAME, SYM, B) \
+  CHKBIT (SYM, B);        \
+  BitVector::Bit NAME (symtab[(SYM)], B)
+
+#define CHKRANGE(SYM, MSB, LSB)                                \
+  do                                                           \
+  {                                                            \
+    if (symtab.find (SYM) == symtab.end ())                    \
+      perr ("symbol '%s' undefined", (SYM).c_str ());          \
+    if ((MSB) < (LSB)) perr ("MSB %u < LSB %u", (MSB), (LSB)); \
+    Var& V = idtab[symtab[(SYM)]];                             \
+    if ((MSB) >= V.width)                                      \
+      perr ("MSB %u >= width of '%s'", (MSB), (SYM).c_str ()); \
   } while (0)
 
 #define RANGE(NAME, SYM, MSB, LSB) \
@@ -416,17 +435,33 @@ parse_line ()
   else if
     UNARY (addBitNot);
   else if
+    PRED1 (addLogicalNot);
+  else if
     UNARYARG (addRShift);
   else if
     UNARYARG (addLShift);
   else if
-    PRED1 (addLogicalNot);
-  else if
     BINARY (addState);
+  else if
+    BINARY (addBitAnd);
+  else if
+    BINARY (addBitOr);
+  else if
+    BINARY (addSum);
+  else if
+    BINARY (addSub);
   else if
     PRED2 (addEqual);
   else if
+    PRED2 (addLogicalOr);
+  else if
     PRED2 (addLogicalAnd);
+  else if (!strcmp (op, "addAssertion"))
+  {
+    CHKARGS (2);
+    BIT (a, T (1), N (2));
+    ibvm->addAssertion (a);
+  }
   else
     perr ("unknown operator '%s'", op);
 }
