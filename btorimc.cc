@@ -37,10 +37,16 @@ static struct
 {
   int addVariable;
   int addRangeName;
+  int addState;
   int addNonState;
+  int addCondition;
   int addAssignment;
+  int addBitNot;
   int addConstant;
   int addEqual;
+  int addLogicalAnd;
+  int addLogicalNot;
+
 } stats;
 
 static void
@@ -181,6 +187,32 @@ read_line ()
   }                                 \
   while (0)
 
+#define BINARY(NAME)                \
+  (!strcmp (op, #NAME)) do          \
+  {                                 \
+    CHKARGS (9);                    \
+    RANGE (c, T (1), N (2), N (3)); \
+    RANGE (a, T (4), N (5), N (6)); \
+    RANGE (b, T (7), N (8), N (9)); \
+    CHKRANGESAMEWIDTH (c, a);       \
+    CHKRANGESAMEWIDTH (c, b);       \
+    ibvm->NAME (c, a, b);           \
+    stats.NAME++;                   \
+  }                                 \
+  while (0)
+
+#define PRED1(NAME)                 \
+  (!strcmp (op, #NAME)) do          \
+  {                                 \
+    CHKARGS (5);                    \
+    RANGE (c, T (1), N (2), N (2)); \
+    RANGE (a, T (3), N (4), N (5)); \
+    assert (c.getWidth () == 1);    \
+    ibvm->NAME (c, a);              \
+    stats.NAME++;                   \
+  }                                 \
+  while (0)
+
 #define PRED2(NAME)                 \
   (!strcmp (op, #NAME)) do          \
   {                                 \
@@ -188,8 +220,8 @@ read_line ()
     RANGE (c, T (1), N (2), N (2)); \
     RANGE (a, T (3), N (4), N (5)); \
     RANGE (b, T (6), N (7), N (8)); \
-    CHKRANGESAMEWIDTH (c, a);       \
-    CHKRANGESAMEWIDTH (c, b);       \
+    assert (c.getWidth () == 1);    \
+    CHKRANGESAMEWIDTH (a, b);       \
     ibvm->NAME (c, a, b);           \
     stats.NAME++;                   \
   }                                 \
@@ -204,7 +236,7 @@ parse_line ()
   toks.push_back (string (str));
   while ((str = strtok (0, ",)"))) toks.push_back (string (str));
 #if 1
-  printf ("[btoimc] line %d : ", lineno);
+  printf ("[btorimc] line %d : ", lineno);
   for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();
        it++)
   {
@@ -245,21 +277,46 @@ parse_line ()
     CHKARGS (3);
     unsigned id = N (1);
     CHKIDUNUSED (id);
+    char buf[20];
+    sprintf (buf, "b0_v%u", id);  // TODO hack to get generated examples through
+    string sym (buf);
     unsigned width = N (3);
     if (T (2).size () != width)
       perr ("constant string '%s' does not match width %u",
             T (2).c_str (),
             width);
-    idtab[id] = Var (T (2), width);
+    idtab[id]   = Var (T (2), width);
+    symtab[sym] = id;
     ibvm->addConstant (id, T (2), width);
     stats.addConstant++;
+  }
+  else if (!strcmp (op, "addCondition"))
+  {
+    CHKARGS (12);
+    RANGE (n, T (1), N (2), N (3));
+    RANGE (c, T (4), N (5), N (6));
+    RANGE (t, T (7), N (8), N (9));
+    RANGE (e, T (7), N (8), N (9));
+    CHKRANGESAMEWIDTH (n, t);
+    CHKRANGESAMEWIDTH (n, e);
+    if (c.getWidth () != 1) CHKRANGESAMEWIDTH (n, c);
+    ibvm->addCondition (n, c, t, e);
+    stats.addCondition++;
   }
   else if
     UNARY (addNonState);
   else if
     UNARY (addAssignment);
   else if
+    UNARY (addBitNot);
+  else if
+    PRED1 (addLogicalNot);
+  else if
+    BINARY (addState);
+  else if
     PRED2 (addEqual);
+  else if
+    PRED2 (addLogicalAnd);
   else
     perr ("unknown operator '%s'", op);
 }
