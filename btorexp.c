@@ -5237,6 +5237,32 @@ btor_get_lambda_arity (Btor *btor, BtorNode *exp)
   return arity;
 }
 
+int
+btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+{
+  assert (btor);
+  assert (argc > 0);
+  assert (args);
+  assert (fun);
+  assert (argc == btor_get_lambda_arity (btor, fun));
+
+  int i;
+  BtorNode *cur, *arg, *param;
+
+  cur = fun;
+  for (i = 0; i < argc; i++)
+  {
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (BTOR_IS_LAMBDA_NODE (cur));
+    arg   = BTOR_REAL_ADDR_NODE (args[i]);
+    param = BTOR_REAL_ADDR_NODE (cur->e[0]);
+    cur   = cur->e[1];
+
+    if (arg->len != param->len) return i;
+  }
+  return -1;
+}
+
 /* Dump formula after global rewriting phase.
  *
  * mode: 1 = BTOR, 2 = SMT1, 3 = SMT2, 4 = SMT2FUN

@@ -288,7 +288,7 @@ struct BtorLambdaNode
   BtorPtrHashTable *synth_reads;
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
-  int chain_depth;
+  int chain_depth;  // TODO: remove
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
@@ -1078,13 +1078,6 @@ BtorNode *btor_inc_exp (Btor *btor, BtorNode *exp);
 /* Decrements bit-vector expression by one */
 BtorNode *btor_dec_exp (Btor *btor, BtorNode *exp);
 
-// TODO: move to btorbeta ?
-/* Apply 'args' to parameters of lambdas and reduce 'lambda' */
-BtorNode *btor_apply_and_reduce (Btor *btor,
-                                 int argc,
-                                 BtorNode **args,
-                                 BtorNode *lambda);
-
 /* Gets the length of an expression representing the number of bits. */
 int btor_get_exp_len (Btor *btor, BtorNode *exp);
 
@@ -1106,7 +1099,13 @@ int btor_is_bound_param (Btor *btor, BtorNode *param);
 /* Determines if expression is a lambda or not. */
 int btor_is_lambda_exp (Btor *btor, BtorNode *exp);
 
+/* Gets the number of arguments of lambda expression 'exp'. */
 int btor_get_lambda_arity (Btor *btor, BtorNode *exp);
+
+/* Check whether the sorts of given arguments match the signature of the
+ * function. If sorts a correct -1 is returned, otherwise the position of
+ * the invalid argument is returned. */
+int btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun);
 
 /* Copies expression (increments reference counter). */
 BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);

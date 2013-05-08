@@ -1198,6 +1198,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
 
+  // TODO: get arity of function
   int i;
   BtorNode *cur = BTOR_REAL_ADDR_NODE (fun);
 
@@ -1287,6 +1288,18 @@ boolector_get_index_width (Btor *btor, BtorNode *e_array)
   e_array = btor_simplify_exp (btor, e_array);
   BTOR_ABORT_BV_BOOLECTOR (e_array);
   return btor_get_index_exp_len (btor, e_array);
+}
+
+int
+boolector_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
+  BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
+                        "no arguments given but argc defined > 0");
+  fun = btor_simplify_exp (btor, fun);
+  return btor_fun_sort_check (btor, argc, args, fun);
 }
 
 const char *

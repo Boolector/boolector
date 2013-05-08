@@ -1789,7 +1789,18 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           BTOR_PUSH_STACK (parser->mem, fargs, p[i].exp);
         }
         tmp = p[0].exp;
-        // TODO: error checking (MA)
+        if (nargs != boolector_get_fun_arity (parser->btor, tmp))
+        {
+          BTOR_RELEASE_STACK (parser->mem, fargs);
+          return !btor_perr_smt2 (parser, "invalid number of arguments");
+        }
+        i = boolector_fun_sort_check (parser->btor, nargs, fargs.start, tmp);
+        if (i >= 0)
+        {
+          BTOR_RELEASE_STACK (parser->mem, fargs);
+          return !btor_perr_smt2 (
+              parser, "invalid sort for argument %d", i + 1);
+        }
         parser->work.top = p;
         l->tag           = BTOR_EXP_TAG_SMT2;
         l->exp = boolector_apply (parser->btor, nargs, fargs.start, tmp);

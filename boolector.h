@@ -863,6 +863,7 @@ BtorNode *boolector_cond (Btor *btor,
                           BtorNode *e_if,
                           BtorNode *e_else);
 
+// TODO: remove? it is redudant due to boolector_fun  (MA)
 /**
  * Lambda expression.
  * \param btor Boolector instance.
@@ -885,22 +886,21 @@ BtorNode *boolector_param (Btor *btor, int width, const char *symbol);
  * \param paramc Number of parameters.
  * \param params Parameters of function.
  * \param exp Function body.
+ * \result Function parameter.
  */
 BtorNode *boolector_fun (Btor *btor,
                          int paramc,
                          BtorNode **params,
                          BtorNode *exp);
 
-///**
-// * Applies arguments to lambda expression and evaluates it.
-// * \param btor Boolector instance.
-// * \param argc Number of arguments to be applied.
-// * \param args Arguments to be applied.
-// * \param lambda Lambda expression.
-// */
-// BtorNode *boolector_eval (Btor * btor, int argc, BtorNode ** args,
-//			  BtorNode * lambda);
-
+/**
+ * Creates a function application expression.
+ * \param btor Boolector instance.
+ * \param argc Number of arguments to be applied.
+ * \param args Arguments to be applied.
+ * \param fun Function expression.
+ * \result Function application expression.
+ */
 BtorNode *boolector_apply (Btor *btor,
                            int argc,
                            BtorNode **args,
@@ -962,6 +962,20 @@ int boolector_get_width (Btor *btor, BtorNode *exp);
  * \return bit-width of indices of 'e_array'.
  */
 int boolector_get_index_width (Btor *btor, BtorNode *e_array);
+
+/**
+ * Checks if sorts of given arguments matches the function signature.
+ * \param btor Boolector instance.
+ * \param argc Number of arguments to be checked.
+ * \param args Arguments to be checked.
+ * \param fun Function expression.
+ * \return -1 if all sorts are correct, otherwise returns the position of the
+ *         incorrect argument.
+ */
+int boolector_fun_sort_check (Btor *btor,
+                              int argc,
+                              BtorNode **args,
+                              BtorNode *fun);
 
 /**
  * Gets the symbol of a variable.
