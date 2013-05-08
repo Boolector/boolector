@@ -38,6 +38,7 @@ static struct
   int addVariable;
   int addRangeName;
   int addState;
+  int addCase;
   int addNonState;
   int addCondition;
   int addAssignment;
@@ -154,14 +155,18 @@ read_line ()
 #define N(I) (assert ((I) < size), (unsigned) atoi (toks[I].c_str ()))
 #define T(I) (assert ((I) < size), toks[I])
 
-#define RANGE(NAME, SYM, MSB, LSB)                                          \
-  if (symtab.find (SYM) == symtab.end ())                                   \
-    perr ("symbol '%s' undefined", (SYM).c_str ());                         \
-  if ((MSB) < (LSB)) perr ("MSB %u < LSB %u", (MSB), (LSB));                \
+#define CHKRANGE(SYM, MSB, LSB)                                             \
+  do                                                                        \
   {                                                                         \
+    if (symtab.find (SYM) == symtab.end ())                                 \
+      perr ("symbol '%s' undefined", (SYM).c_str ());                       \
+    if ((MSB) < (LSB)) perr ("MSB %u < LSB %u", (MSB), (LSB));              \
     Var& V = idtab[symtab[(SYM)]];                                          \
     if ((MSB) >= V.width) perr ("MSB %u >= width of '%s'", (SYM).c_str ()); \
-  }                                                                         \
+  } while (0)
+
+#define RANGE(NAME, SYM, MSB, LSB) \
+  CHKRANGE (SYM, MSB, LSB);        \
   BitVector::BitRange NAME (symtab[(SYM)], MSB, LSB)
 
 #define CHKRANGESAMEWIDTH(RANGE0, RANGE1)             \
@@ -272,6 +277,21 @@ parse_line ()
     ibvm->addRangeName (range, T (4), msb, lsb);
     stats.addRangeName++;
   }
+  else if (!strcmp (op, "addState"))
+  {
+    CHKARGS (9);
+    RANGE (n, T (1), N (2), N (3));
+    bool undeclared = (T (4) == "undeclared");
+    RANGE (next, T (7), N (8), N (9));
+    CHKRANGESAMEWIDTH (n, next);
+    if (!undeclared) CHKRANGE (T (4), N (5), N (6));
+    BitVector::BitRange init (undeclared ? 0 : symtab[T (4)],
+                              undeclared ? 0 : N (5),
+                              undeclared ? 0 : N (6));
+    if (!undeclared) CHKRANGESAMEWIDTH (n, init);
+    ibvm->addState (n, init, next);
+    stats.addState++;
+  }
   else if (!strcmp (op, "addConstant"))
   {
     CHKARGS (3);
@@ -302,6 +322,49 @@ parse_line ()
     if (c.getWidth () != 1) CHKRANGESAMEWIDTH (n, c);
     ibvm->addCondition (n, c, t, e);
     stats.addCondition++;
+  }
+  else if (!strcmp (op, "addCase"))
+  {
+    if (size < 5) perr ("non enough arguments for 'addCase'");
+    RANGE (n, T (1), N (2), N (3));
+    unsigned nargs = N (4);
+    if (!nargs) perr ("no cases");
+    if (nargs & 1) perr ("odd number of arguments %u", nargs);
+    if (size != 3 * nargs + 5) perr ("number of arguments does not match");
+    vector<BitVector::BitRange> args;
+    bool bitwise = false, determined = false;
+    for (unsigned i = 5; nargs; i += 3, nargs--)
+    {
+      bool undeclared = (T (i) == "undeclared");
+      if (undeclared && (nargs & 1)) perr ("'undeclared' at wrong position");
+      if (!undeclared) CHKRANGE (T (i), N (i + 1), N (i + 2));
+      BitVector::BitRange arg (undeclared ? 0 : symtab[T (i)],
+                               undeclared ? 0 : N (i + 1),
+                               undeclared ? 0 : N (i + 2));
+      if (!undeclared)
+      {
+        if (!(nargs & 1))
+        {
+          if (determined)
+          {
+            if (bitwise)
+              CHKRANGESAMEWIDTH (n, arg);
+            else if (arg.getWidth () != 1)
+              perr ("expected bit width 1 condition as before");
+          }
+          else
+          {
+            determined = 1;
+            bitwise    = (arg.getWidth () != 1);
+          }
+        }
+        else
+          CHKRANGESAMEWIDTH (n, arg);
+      }
+      args.push_back (arg);
+    }
+    ibvm->addCase (n, args);
+    stats.addCase++;
   }
   else if
     UNARY (addNonState);
