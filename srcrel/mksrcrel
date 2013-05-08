@@ -59,7 +59,7 @@ then
     BitVector.h \
     btoribv.h \
     btoribv.cc \
-    btorimc \
+    btorimc.cc \
     ibv.mk \
   $dir/
 fi
