@@ -46,8 +46,8 @@ cp -p \
   configure \
   boolector.[ch] \
   boolectormain.[ch] \
-  `ls btor*.[ch] | grep -v btori` \
-  `ls btor*.cc | grep -v btori` \
+  `ls btor*.[ch]|grep -v btoribv.h` \
+  `ls btor*.cc |grep -v btoribv|grep -v btorimc` \
   deltabtor.c \
   synthebtor.c \
   Doxyfile \
