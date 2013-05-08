@@ -35,8 +35,12 @@ static char* line;
 
 static struct
 {
-  int vars;
-  int rangenames;
+  int addVariable;
+  int addRangeName;
+  int addNonState;
+  int addAssignment;
+  int addConstant;
+  int addEqual;
 } stats;
 
 static void
@@ -100,8 +104,10 @@ read_line ()
     {
       if (nline) perr ("unexpected end-of-file");
       if (line) free (line);
+#if 0  // TODO print stats
       if (stats.vars) msg ("parsed %d variables", stats.vars);
       if (stats.rangenames) msg ("parsed %d range names", stats.rangenames);
+#endif
       return false;
     }
     pushch (ch);
@@ -142,21 +148,52 @@ read_line ()
 #define N(I) (assert ((I) < size), (unsigned) atoi (toks[I].c_str ()))
 #define T(I) (assert ((I) < size), toks[I])
 
-#define CHKUNUSEDRANGE(RANGE)                                                  \
-  do                                                                           \
-  {                                                                            \
-    CHKIDUNUSED (RANGE.id);                                                    \
-    if (RANGE.msb < RANGE.lsb) perr ("MSB %u < LSB %u", RANGE.msb, RANGE.lsb); \
+#define RANGE(NAME, SYM, MSB, LSB)                                          \
+  if (symtab.find (SYM) == symtab.end ())                                   \
+    perr ("symbol '%s' undefined", (SYM).c_str ());                         \
+  if ((MSB) < (LSB)) perr ("MSB %u < LSB %u", (MSB), (LSB));                \
+  {                                                                         \
+    Var& V = idtab[symtab[(SYM)]];                                          \
+    if ((MSB) >= V.width) perr ("MSB %u >= width of '%s'", (SYM).c_str ()); \
+  }                                                                         \
+  BitVector::BitRange NAME (symtab[(SYM)], MSB, LSB)
+
+#define CHKRANGESAMEWIDTH(RANGE0, RANGE1)             \
+  do                                                  \
+  {                                                   \
+    if (RANGE0.getWidth () != RANGE1.getWidth ())     \
+      perr ("range [%u:%u] and [%u:%u] do not match", \
+            RANGE0.m_nMsb,                            \
+            RANGE0.m_nLsb,                            \
+            RANGE1.m_nMsb,                            \
+            RANGE1.m_nLsb);                           \
   } while (0)
 
-#define CHKRANGE(RANGE)                                                        \
-  do                                                                           \
-  {                                                                            \
-    CHKID (RANGE.id);                                                          \
-    if (RANGE.msb < RANGE.lsb) perr ("MSB %u < LSB %u", RANGE.msb, RANGE.lsb); \
-    {                                                                          \
-    }                                                                          \
-  } while (0)
+#define UNARY(NAME)                 \
+  (!strcmp (op, #NAME)) do          \
+  {                                 \
+    CHKARGS (6);                    \
+    RANGE (c, T (1), N (2), N (3)); \
+    RANGE (n, T (4), N (5), N (6)); \
+    CHKRANGESAMEWIDTH (c, n);       \
+    ibvm->NAME (c, n);              \
+    stats.NAME++;                   \
+  }                                 \
+  while (0)
+
+#define PRED2(NAME)                 \
+  (!strcmp (op, #NAME)) do          \
+  {                                 \
+    CHKARGS (8);                    \
+    RANGE (c, T (1), N (2), N (2)); \
+    RANGE (a, T (3), N (4), N (5)); \
+    RANGE (b, T (6), N (7), N (8)); \
+    CHKRANGESAMEWIDTH (c, a);       \
+    CHKRANGESAMEWIDTH (c, b);       \
+    ibvm->NAME (c, a, b);           \
+    stats.NAME++;                   \
+  }                                 \
+  while (0)
 
 static void
 parse_line ()
@@ -181,8 +218,8 @@ parse_line ()
   if (!strcmp (op, "addVariable"))
   {
     CHKARGS (7);
-    string sym = T (2);
-    int id     = N (1);
+    string sym  = T (2);
+    unsigned id = N (1);
     CHKIDUNUSED (id);
     CHKSYMUNUSED (sym);
     unsigned width = N (3);
@@ -190,15 +227,39 @@ parse_line ()
     symtab[sym] = id;
     Var v (sym, width);
     idtab[id] = Var (sym, width);
-    stats.vars++;
+    stats.addVariable++;
     ibvm->addVariable (
         id, sym, width, N (4), N (5), N (6), (BitVector::DirectionKind) N (7));
   }
   else if (!strcmp (op, "addRangeName"))
   {
     CHKARGS (6);
-    stats.rangenames++;
+    RANGE (range, T (1), N (2), N (3));
+    unsigned msb = N (5), lsb = N (6);
+    if (msb < lsb) perr ("MSB %u < LSB %u", msb, lsb);
+    ibvm->addRangeName (range, T (4), msb, lsb);
+    stats.addRangeName++;
   }
+  else if (!strcmp (op, "addConstant"))
+  {
+    CHKARGS (3);
+    unsigned id = N (1);
+    CHKIDUNUSED (id);
+    unsigned width = N (3);
+    if (T (2).size () != width)
+      perr ("constant string '%s' does not match width %u",
+            T (2).c_str (),
+            width);
+    idtab[id] = Var (T (2), width);
+    ibvm->addConstant (id, T (2), width);
+    stats.addConstant++;
+  }
+  else if
+    UNARY (addNonState);
+  else if
+    UNARY (addAssignment);
+  else if
+    PRED2 (addEqual);
   else
     perr ("unknown operator '%s'", op);
 }
