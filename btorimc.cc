@@ -407,7 +407,7 @@ parse_line ()
     goto ADDCASE;
   else if (!strcmp (op, "addConcat"))
   {
-    if (size < 5) perr ("non enough arguments for 'addConcat'");
+    if (size < 5) perr ("not enough arguments for 'addConcat'");
     RANGE (n, T (1), N (2), N (3));
     unsigned nargs = N (4);
     if (!nargs) perr ("no arguments");
