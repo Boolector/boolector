@@ -239,9 +239,16 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   assert (0 < id);
   assert (0 < width);  // TODO really?
   assert (str.size () == width);
-  node              = new_node (id, width);
-  node->cached      = btor_const_exp (btor, str.c_str ());
-  node->forwarded   = boolector_copy (btor, node->cached);
+  node = new_node (id, width);
+#if 0
+  //
+  // We allow 'x' for the initialization part of uinitialized latches.
+  // Since 'x' is not a legal constant in Boolector, we have to
+  // check this separately.
+  //
+  node->cached = btor_const_exp (btor, str.c_str ());
+  node->forwarded = boolector_copy (btor, node->cached);
+#endif
   node->name        = btor_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
   msg (3, "added id %u constant %s of width %u", id, str.c_str (), width);
