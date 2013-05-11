@@ -289,7 +289,9 @@ parse_line ()
   const char* op = toks[0].c_str ();
   if (!strcmp (op, "addVariable"))
   {
-    CHKARGS (7);
+    if (size != 7 && size != 8)
+      perr ("operator 'addVariable' expected 6 or 7 arguments but only got %d",
+            size - 1);
     string sym  = T (2);
     unsigned id = N (1);
     CHKIDUNUSED (id);
@@ -300,8 +302,21 @@ parse_line ()
     Var v (sym, width);
     idtab[id] = Var (sym, width);
     stats.addVariable++;
-    ibvm->addVariable (
-        id, sym, width, N (4), N (5), N (6), (BitVector::DirectionKind) N (7));
+    if (size == 8)
+      ibvm->addVariableOld (id,
+                            sym,
+                            width,
+                            (bool) N (4),
+                            (bool) N (5),
+                            (bool) N (6),
+                            (BitVector::DirectionKind) N (7));
+    else
+      ibvm->addVariable (id,
+                         sym,
+                         width,
+                         (bool) N (4),
+                         (BitVector::BvVariableSource) N (5),
+                         (BitVector::DirectionKind) N (6));
   }
   else if (!strcmp (op, "addRangeName"))
   {
@@ -459,8 +474,9 @@ parse_line ()
   else if (!strcmp (op, "addAssertion"))
   {
     CHKARGS (2);
-    BIT (a, T (1), N (2));
-    ibvm->addAssertion (a);
+    RANGE (r, T (1), N (2), N (2));
+    if (r.getWidth () != 1) perr ("invalid assertion width %u", r.getWidth ());
+    ibvm->addAssertion (r);
   }
   else
     perr ("unknown operator '%s'", op);

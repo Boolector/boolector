@@ -156,8 +156,7 @@ struct BtorIBVNode
   unsigned id;
   bool is_constant;
   bool is_next_state;
-  bool is_loop_breaking;
-  bool is_state_retain;
+  BitVector::BvVariableSource source;
   BitVector::DirectionKind direction;
   signed char marked, used;
   BtorNode *cached, *forwarded;
@@ -345,8 +344,12 @@ class BtorIBV : public BitVector
 
   void addConstant (unsigned, const string &, unsigned);
 
-  void addVariable (
-      unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
+  void addVariable (unsigned,
+                    const string &,
+                    unsigned,
+                    bool,
+                    BvVariableSource,
+                    DirectionKind);
 
   void addRangeName (BitRange, const string &, unsigned, unsigned);
 
@@ -512,7 +515,7 @@ class BtorIBV : public BitVector
 
   //------------------------------------------------------------------------
 
-  void addAssertion (Bit);
+  void addAssertion (BitRange);
   void addAssumption (BitRange, bool);
 
 #if 0

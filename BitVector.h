@@ -246,6 +246,20 @@ class BitVector
     assert (false);
   }
 
+  //
+  // OLD DEPRECATED 7 ARGUMENT VERSION.
+  //
+  void addVariableOld (unsigned nId,
+                       const string& strName,
+                       unsigned nWidth,
+                       bool bIsNextStateVariable           = false,
+                       bool bIsLoopBreakingVariable        = false,
+                       bool bIsStateRetainVariable         = false,
+                       BitVector::DirectionKind eDirection = INTERNAL)
+  {
+    addVariable (nId, strName, nWidth, bIsNextStateVariable, NONE, eDirection);
+  }
+
   // Method addRangeName
   //
   // Declares a name for a specific range of a variable

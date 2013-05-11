@@ -252,36 +252,52 @@ BtorIBV::addVariable (unsigned id,
                       const string &str,
                       unsigned width,
                       bool isNextState,
-                      bool isLoopBreaking,
-                      bool isStateRetain,
+                      BitVector::BvVariableSource src,
                       BitVector::DirectionKind direction)
 {
   BTOR_IBV_REQUIRE_START ();
 
   assert (0 < id);
   assert (0 < width);
-  BtorIBVNode *n      = new_node (id, width);
-  n->name             = btor_strdup (btor->mm, str.c_str ());
-  n->is_next_state    = isNextState;
-  n->is_loop_breaking = isLoopBreaking;
-  n->is_state_retain  = isStateRetain;
-  n->direction        = direction;
-  n->marked           = 0;
+  BtorIBVNode *n   = new_node (id, width);
+  n->name          = btor_strdup (btor->mm, str.c_str ());
+  n->is_next_state = isNextState;
+  n->direction     = direction;
+  n->source        = src;
+  n->marked        = 0;
   BTOR_INIT_STACK (n->ranges);
   BTOR_INIT_STACK (n->assignments);
-  const char *extra;
-  switch ((isNextState << 2) | (isLoopBreaking << 1) | isStateRetain)
+  const char *srcstr;
+  switch (src)
   {
-    case 4 | 2 | 1: extra = " next loopbrk retain"; break;
-    case 4 | 2 | 0: extra = " next loopbrk"; break;
-    case 4 | 0 | 1: extra = " next retain"; break;
-    case 4 | 0 | 0: extra = " next"; break;
-    case 0 | 2 | 1: extra = " loopbrk retain"; break;
-    case 0 | 2 | 0: extra = " loopbrk"; break;
-    case 0 | 0 | 1: extra = " retain"; break;
-    default: extra = ""; break;
+    case NONE: srcstr = "NONE"; break;
+    case STATE_RETAIN: srcstr = "STATE_RETAIN"; break;
+    case INTERMEDIATE_RESULT: srcstr = "INTERMEDIATE_RESULT"; break;
+    case LOOP_BREAKER: srcstr = "LOOP_BREAKER"; break;
+    case PAST: srcstr = "PAST"; break;
+    case CLOCK: srcstr = "CLOCK"; break;
+    case CLOCK_PAST: srcstr = "CLOCK_PAST"; break;
+    case CLOCK_TMP: srcstr = "CLOCK_TMP"; break;
+    case CLOCK_TMP_PAST: srcstr = "CLOCK_TMP_PAST"; break;
+    case DUMMY_ASSUMPTION: srcstr = "DUMMY_ASSUMPTION"; break;
+    default: srcstr = "INVALID_SOURCE"; break;
   }
-  msg (3, "id %u variable '%s[%u:0]'%s", n->id, n->name, width - 1, extra);
+  const char *dirstr;
+  switch (direction)
+  {
+    case INTERNAL: dirstr = " "; break;
+    case INPUT: dirstr = "INPUT"; break;
+    case OUTPUT: dirstr = "OUTPUT"; break;
+    case INOUT: dirstr = "INOUT"; break;
+    default: dirstr = "INVALID_DIRECTION"; break;
+  }
+  msg (3,
+       "id %u variable '%s[%u:0]' %s %s",
+       n->id,
+       n->name,
+       width - 1,
+       srcstr,
+       dirstr);
 }
 
 void
@@ -630,11 +646,12 @@ BtorIBV::addNonState (BitRange o, BitRange next)
 }
 
 void
-BtorIBV::addAssertion (Bit r)
+BtorIBV::addAssertion (BitRange r)
 {
   BTOR_IBV_REQUIRE_START ();
+  assert (r.getWidth () == 1);
 
-  BtorIBVBit s   = r;
+  BtorIBVBit s (r.m_nId, r.m_nMsb);
   BtorIBVNode *n = id2node (s.id);
   assert (s.bit < n->width);
   BTOR_PUSH_STACK (btor->mm, assertions, s);
