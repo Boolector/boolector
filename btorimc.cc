@@ -5,6 +5,12 @@
 #include <cstdlib>
 #include <cstring>
 
+extern "C" {
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+};
+
 #include <iostream>
 #include <map>
 #include <string>
@@ -488,6 +494,38 @@ parse ()
   while (read_line ()) parse_line (), lineno++;
 }
 
+static int
+hasuffix (const char* arg, const char* suffix)
+{
+  if (strlen (arg) < strlen (suffix)) return 0;
+  if (strcmp (arg + strlen (arg) - strlen (suffix), suffix)) return 0;
+  return 1;
+}
+
+static bool
+cmd (const char* arg, const char* suffix, const char* fmt)
+{
+  struct stat buf;
+  char* cmd;
+  int len;
+  if (!hasuffix (arg, suffix)) return 0;
+  if (stat (arg, &buf)) err ("can not stat file '%s'", arg);
+  len = strlen (fmt) + strlen (arg) + 1;
+  cmd = (char*) malloc (len);
+  sprintf (cmd, fmt, arg);
+  input = popen (cmd, "r");
+  free (cmd);
+  close_input = 2;
+  return 1;
+}
+
+static bool
+isfile (const char* p)
+{
+  struct stat buf;
+  return !stat (p, &buf);
+}
+
 int
 main (int argc, char** argv)
 {
@@ -500,7 +538,13 @@ main (int argc, char** argv)
     }
     else if (close_input)
       err ("more than one input");
-    else if (!(input = fopen (input_name = argv[i], "r")))
+    else if (!isfile (argv[i]))
+      err ("'%s' does not seem to be a file", argv[i]);
+    else if (cmd ((input_name = argv[i]), ".gz", "gunzip -c %s"))
+      ;
+    else if (cmd (argv[i], ".bz2", "bzcat %s"))
+      ;
+    else if (!(input = fopen (argv[i], "r")))
       err ("can not read '%s'", argv[i]);
     else
       close_input = true;
@@ -509,7 +553,8 @@ main (int argc, char** argv)
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (10);
   parse ();
-  if (close_input) fclose (input);
+  if (close_input == 1) fclose (input);
+  if (close_input == 2) pclose (input);
   ibvm->analyze ();
   ibvm->translate ();
   delete ibvm;
