@@ -82,6 +82,7 @@ btor_param_cur_assignment (BtorNode *param)
   assert (BTOR_IS_REGULAR_NODE (param));
   assert (BTOR_IS_PARAM_NODE (param));
 
+  param = BTOR_REAL_ADDR_NODE (param);
   if (BTOR_EMPTY_STACK (((BtorParamNode *) param)->assigned_exp)) return 0;
 
   return BTOR_TOP_STACK (((BtorParamNode *) param)->assigned_exp);
@@ -236,7 +237,7 @@ btor_beta_reduce (
   double start;
   BtorMemMgr *mm;
   BtorNode *cur, *real_cur, *next, *e[3], *result, *param, *p[3], *cached;
-  BtorNode *result_parameterized, *assignment, *cur_scope_lambda;
+  BtorNode *result_parameterized, *assignment, *cur_scope_lambda, *cur_parent;
   BtorNodePtrStack work_stack, arg_stack, parameterized_stack;
   BtorPtrHashBucket *mbucket, *b;
   BtorPtrHashTable *cache, *cur_scope, *cur_scope_results;
@@ -261,9 +262,6 @@ btor_beta_reduce (
     btor->rewrite_level = 0;
   }
 
-  if (mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
-    BTOR_REAL_ADDR_NODE (exp)->parent = 0;
-
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (arg_stack);
   BTOR_INIT_STACK (parameterized_stack);
@@ -275,6 +273,7 @@ btor_beta_reduce (
 #endif
 
   BTOR_PUSH_STACK (mm, work_stack, exp);
+  BTOR_PUSH_STACK (mm, work_stack, 0);
 
   cur_scope = btor_new_ptr_hash_table (mm,
                                        (BtorHashPtr) btor_hash_exp_by_id,
@@ -287,7 +286,8 @@ btor_beta_reduce (
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    cur = BTOR_POP_STACK (work_stack);
+    cur_parent = BTOR_POP_STACK (work_stack);
+    cur        = BTOR_POP_STACK (work_stack);
     // TODO: directly push simplified exp onto stack at the beginning
     /* we do not want the simplification of top level read contraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
@@ -399,6 +399,7 @@ btor_beta_reduce (
           BTOR_REAL_ADDR_NODE (next)->parent = real_cur;
 
         BTOR_PUSH_STACK (mm, work_stack, next);
+        BTOR_PUSH_STACK (mm, work_stack, real_cur);
       }
       else
       {
@@ -408,7 +409,9 @@ btor_beta_reduce (
              * assignment for the parameter */
             && !BTOR_EMPTY_STACK (arg_stack)
             /* if it is nested, its parameter is already assigned */
-            && !btor_param_cur_assignment (e[0]))
+            && !btor_param_cur_assignment (e[0])
+            /* we have an assignment if there is a lambda application */
+            && BTOR_IS_READ_NODE (cur_parent))
         {
           assert (!btor_find_in_ptr_hash_table (cur_scope,
                                                 BTOR_REAL_ADDR_NODE (e[0])));
@@ -424,15 +427,15 @@ btor_beta_reduce (
         }
 
         BTOR_PUSH_STACK (mm, work_stack, cur);
+        BTOR_PUSH_STACK (mm, work_stack, cur_parent);
 
         /* NOTE: the index of a read on a lambda has to be visited first
          *       in order to get a correct assignment for the parameter
          *       of the lambda. */
         for (i = 0; i < real_cur->arity; i++)
         {
-          if (mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
-            BTOR_REAL_ADDR_NODE (e[i])->parent = real_cur;
           BTOR_PUSH_STACK (mm, work_stack, e[i]);
+          BTOR_PUSH_STACK (mm, work_stack, real_cur);
         }
       }
     }
@@ -539,6 +542,8 @@ btor_beta_reduce (
 #ifndef NDEBUG
                 BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
 #endif
+                /* open new scope in order to discard all
+                 * built expressions under 'real_cur' */
                 BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
                 /* add lambda to cur_scope (otherwise a new scope
@@ -546,6 +551,7 @@ btor_beta_reduce (
                 btor_insert_in_ptr_hash_table (cur_scope, real_cur)
                     ->data.asInt = 0;
                 BTOR_PUSH_STACK (mm, work_stack, real_cur);
+                BTOR_PUSH_STACK (mm, work_stack, cur_parent);
 
                 for (i = 0; i < real_cur->arity; i++)
                   btor_release_exp (btor, e[i]);
@@ -564,6 +570,12 @@ btor_beta_reduce (
                  * 1st pass */
                 btor_release_exp (btor, e[0]);
                 real_cur->beta_mark = 0;
+
+                /* close scope that was opened in first pass */
+                BETA_REDUCE_CLOSE_SCOPE ();
+                /* restore mark of previous scope */
+                mbucket = btor_find_in_ptr_hash_table (cur_scope, real_cur);
+                assert (mbucket);
               }
             }
             /* lambda reduced to some term without e[0] */
@@ -576,8 +588,8 @@ btor_beta_reduce (
                * term. this can only occur with bounded or full
                * reduction */
               if ((mode == BETA_RED_FULL || mode == BETA_RED_BOUNDED)
-                  && (BTOR_IS_WRITE_NODE (real_cur->parent)
-                      || BTOR_IS_ARRAY_COND_NODE (real_cur->parent)))
+                  && (BTOR_IS_WRITE_NODE (cur_parent)
+                      || BTOR_IS_ARRAY_COND_NODE (cur_parent)))
               {
                 assert (!BTOR_REAL_ADDR_NODE (e[1])->parameterized);
                 param =
