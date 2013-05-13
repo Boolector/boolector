@@ -76,6 +76,7 @@ if __name__ == "__main__":
         cnt -= 1
         rcnt -= 2
 
+    cmd ("assert", "(= ((_ extract 0 0) (lambda1 (bvadd i j))) (_ bv1 1))")
     cmd ("check-sat")
     cmd ("exit")
          
