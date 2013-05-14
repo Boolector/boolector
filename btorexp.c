@@ -8614,7 +8614,7 @@ process_working_stack (Btor * btor, BtorNodePtrStack * stack,
 static void
 search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
 {
-  BtorPartialParentIterator it;
+  BtorFullParentIterator it;
   BtorNode *cur_array, *cur_parent, *param;
   BtorNodePtrStack stack, unmark_stack, params;
   BtorPtrHashBucket *bucket;
@@ -8662,61 +8662,48 @@ search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
        * We use the reachable flag to determine with which writes
        * and array conditionals we have to deal with.
        */
-      // TODO: use full parent iterator instead of three different ones
-      /* push writes on stack */
-      init_write_parent_iterator (&it, cur_array);
-      while (has_next_parent_write_parent_iterator (&it))
+      init_full_parent_iterator (&it, cur_array);
+      while (has_next_parent_full_parent_iterator (&it))
       {
-        cur_parent = next_parent_write_parent_iterator (&it);
+        cur_parent = next_parent_full_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
-        assert (!cur_parent->simplified);
-        if (cur_parent->reachable)
+
+        if (!cur_parent->reachable) continue;
+
+        if (BTOR_IS_WRITE_NODE (cur_parent)
+            || BTOR_IS_ARRAY_COND_NODE (cur_parent)
+            || BTOR_IS_NESTED_LAMBDA_NODE (cur_parent))
         {
-          found_top = 0;
-          assert (cur_parent->array_mark == 0);
-          BTOR_PUSH_STACK (mm, stack, cur_parent);
-        }
-      }
-      /* push array conditionals on stack */
-      init_acond_parent_iterator (&it, cur_array);
-      while (has_next_parent_acond_parent_iterator (&it))
-      {
-        cur_parent = next_parent_acond_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_NODE (cur_parent));
-        assert (!cur_parent->simplified);
-        if (cur_parent->reachable)
-        {
+          assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur_parent)
+                  || BTOR_IS_NESTED_LAMBDA_NODE (cur_array));
+          assert (!BTOR_IS_WRITE_NODE (cur_parent)
+                  || cur_parent->array_mark == 0);
+          assert (!cur_parent->simplified);
           found_top = 0;
           BTOR_PUSH_STACK (mm, stack, cur_parent);
         }
-      }
-      /* push lambda expressions on stack */
-      init_read_parent_iterator (&it, cur_array);
-      while (has_next_parent_read_parent_iterator (&it))
-      {
-        cur_parent = next_parent_read_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_NODE (cur_parent));
-        if (cur_parent->reachable && cur_parent->parameterized)
+        /* NOTE: a lambda is a top array if its application is not
+         * parameterized, i.e. the application of the lambda cannot
+         * change through parameters and thus is always the same.
+         */
+        else if (BTOR_IS_READ_NODE (cur_parent) && cur_parent->parameterized)
         {
           assert (!cur_parent->simplified);
           assert (BTOR_EMPTY_STACK (params));
+          assert (cur_parent->array_mark == 0);
+          found_top = 0;
           find_nodes_dfs (
               btor, cur_parent, &params, findfun_param, skipfun_param);
-          found_top = 0;
-          assert (cur_parent->array_mark == 0);
-          assert (BTOR_COUNT_STACK (params) > 0);
-
-          while (!BTOR_EMPTY_STACK (params))
+          assert (!BTOR_EMPTY_STACK (params));
+          do
           {
             param = BTOR_POP_STACK (params);
             assert (BTOR_IS_REGULAR_NODE (param));
             assert (BTOR_IS_PARAM_NODE (param));
             BTOR_PUSH_STACK (mm, stack, BTOR_PARAM_GET_LAMBDA_NODE (param));
-          }
+          } while (!BTOR_EMPTY_STACK (params));
         }
       }
-      // TODO: nested lambdas: if parent of lambda is another lambda, then
-      //       push lambda above
       if (found_top) BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
     }
   }
