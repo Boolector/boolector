@@ -5873,6 +5873,7 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (
       btor, "lambda chains merged: %d", btor->stats.lambda_chains_merged);
   btor_msg_exp (btor, "lambdas merged: %d", btor->stats.lambdas_merged);
+  btor_msg_exp (btor, "propagations: %d", btor->stats.propagations);
 
   btor_msg_exp (btor, "");
   btor_msg_exp (btor, "%.2f seconds beta-reduction", btor->time.beta);
@@ -7786,6 +7787,7 @@ process_working_stack (Btor *btor,
 
   while (!BTOR_EMPTY_STACK (*stack))
   {
+    btor->stats.propagations++;
     array = BTOR_POP_STACK (*stack);
     assert (BTOR_IS_REGULAR_NODE (array));
     assert (BTOR_IS_ARRAY_NODE (array));
@@ -7957,8 +7959,8 @@ process_working_stack (Btor *btor,
         assert (!BTOR_IS_READ_NODE (parameterized)
                 || BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value)));
 
-        /* we can propagate 'acc' down to lamba_value->e[0] if
-         * 'lamba_value' was a parameterized read and instantiated with
+        /* we can propagate 'acc' down to lambda_value->e[0] if
+         * 'lambda_value' was a parameterized read and instantiated with
          * 'index'.
          */
         if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
@@ -7975,7 +7977,7 @@ process_working_stack (Btor *btor,
           BTORLOG ("  array: %s", node2string (parameterized->e[0]));
         }
         /* no assignment for 'lambda_value', synthesize and encode
-         * parameterized reads in 'lamba_value' if necessary. */
+         * parameterized reads in 'lambda_value' if necessary. */
         else
         {
           BTOR_INIT_STACK (param_reads);
