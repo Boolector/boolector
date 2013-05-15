@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -36,6 +37,12 @@ Btor *
 boolector_clone (Btor *btor)
 {
   return btor_clone_btor (btor);
+}
+
+int
+boolector_is_inconsistent (Btor *btor)
+{
+  return btor->inconsistent;
 }
 
 void
@@ -1403,6 +1410,7 @@ char *
 boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (boolector_is_inconsistent (btor));
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
@@ -1425,6 +1433,7 @@ boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (boolector_is_inconsistent (btor));
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);

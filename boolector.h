@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -149,6 +150,11 @@ Btor *boolector_new (void);
  * \return New Boolector instance.
  */
 Btor *boolector_clone (Btor *btor);
+
+/**
+ * Returns 1 if the input formula is inconsistent, and 0 otherwise.
+ */
+int *boolector_is_inconsistent (Btor *btor);
 
 /**
  * Enables model generation. If you want Boolector to produce
