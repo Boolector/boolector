@@ -47,7 +47,8 @@ if __name__ == "__main__":
     args = aparser.parse_args()
 
     cnt = args.n
-    rcnt = args.n * 2
+    #rcnt = args.n * 2
+    args.index_bw = cnt + 1 if cnt >= args.index_bw else args.index_bw
 
     cmd ("set-logic", "QF_AUFBV")
     var ("i", bvsort (args.index_bw))
@@ -57,24 +58,30 @@ if __name__ == "__main__":
     fun ("lambda{}".format(cnt),
          [("p{}".format(cnt), bvsort (args.index_bw))],
          bvsort (args.elem_bw),
-         "(ite (= ((_ extract 0 0) p{}) (_ bv0 1)) " \
-              "(select a (bvadd p{} (_ bv{} {}))) "   \
-              "(select a (bvadd p{} (_ bv{} {}))))".format(
-                   cnt, cnt, rcnt - 1, args.index_bw, cnt, rcnt, args.index_bw))
+         "(ite (= ((_ extract 0 0) p{}) (_ bv0 1)) "      \
+              "(select a (bvadd p{} (_ bv{} {}))) "       \
+              "(select a (bvadd (bvadd p{} (_ bv{} {})) " \
+              "(bvshl (_ bv{} {}) (_ bv2 {})))))".format(
+                        cnt, 
+                        cnt, cnt - 1, args.index_bw, 
+                        cnt, cnt, args.index_bw, 
+                        cnt - 1, args.index_bw, args.index_bw))
     cnt -= 1
-    rcnt -= 2
+    #rcnt -= 2
 
     while cnt:
         fun ("lambda{}".format(cnt),
              [("p{}".format(cnt), bvsort (args.index_bw))],
              bvsort (args.elem_bw),
-             "(ite (= ((_ extract 0 0) p{}) (_ bv0 1)) " \
-                  "(lambda{} (bvadd p{} (_ bv{} {}))) "  \
-                  "(lambda{} (bvadd p{} (_ bv{} {}))))".format(
-                       cnt, cnt + 1, cnt, rcnt - 1, args.index_bw, 
-                            cnt + 1, cnt, rcnt, args.index_bw))
+             "(ite (= ((_ extract 0 0) p{}) (_ bv0 1)) "      \
+                  "(lambda{} (bvadd p{} (_ bv{} {}))) "       \
+                  "(lambda{} (bvadd (bvadd p{} (_ bv{} {})) " \
+                  "(bvshl (_ bv{} {}) (_ bv2 {})))))".format(
+                       cnt, 
+                       cnt + 1, cnt, cnt - 1, args.index_bw, 
+                       cnt + 1, cnt, cnt, args.index_bw, 
+                       cnt - 1, args.index_bw, args.index_bw))
         cnt -= 1
-        rcnt -= 2
 
     cmd ("assert", "(= ((_ extract 0 0) (lambda1 (bvadd i j))) (_ bv1 1))")
     cmd ("check-sat")
