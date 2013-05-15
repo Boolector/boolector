@@ -2875,7 +2875,7 @@ SORTED_VAR:
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
-    if (BTOR_COUNT_STACK (args))
+    if (nargs)
       return !btor_perr_smt2 (parser,
                               "sort Array is not supported for arity > 0");
     assert (!domain);
