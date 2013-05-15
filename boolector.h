@@ -154,7 +154,7 @@ Btor *boolector_clone (Btor *btor);
 /**
  * Returns 1 if the input formula is inconsistent, and 0 otherwise.
  */
-int *boolector_is_inconsistent (Btor *btor);
+int boolector_is_inconsistent (Btor *btor);
 
 /**
  * Enables model generation. If you want Boolector to produce
