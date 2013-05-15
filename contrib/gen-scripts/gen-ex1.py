@@ -81,7 +81,8 @@ if __name__ == "__main__":
                        cnt - 1, args.index_bw, args.index_bw))
         cnt -= 1
 
-    cmd ("assert", "(= ((_ extract 0 0) (lambda1 (bvadd i j))) (_ bv1 1))")
+    #cmd ("assert", "(= ((_ extract 0 0) (lambda1 (bvadd i j))) (_ bv1 1))")
+    cmd ("assert", "(= (lambda1 (bvadd i j)) (_ bv42 {}))".format(args.elem_bw))
     cmd ("check-sat")
     cmd ("exit")
          
