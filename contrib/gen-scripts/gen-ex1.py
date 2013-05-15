@@ -47,7 +47,6 @@ if __name__ == "__main__":
     args = aparser.parse_args()
 
     cnt = args.n
-    #rcnt = args.n * 2
     args.index_bw = cnt + 1 if cnt >= args.index_bw else args.index_bw
 
     cmd ("set-logic", "QF_AUFBV")
@@ -67,7 +66,6 @@ if __name__ == "__main__":
                         cnt, cnt, args.index_bw, 
                         cnt - 1, args.index_bw, args.index_bw))
     cnt -= 1
-    #rcnt -= 2
 
     while cnt:
         fun ("lambda{}".format(cnt),
