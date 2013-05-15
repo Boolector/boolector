@@ -1410,8 +1410,9 @@ char *
 boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_BOOLECTOR (boolector_is_inconsistent (btor),
-                        "input formula is inconsistent");
+  BTOR_ABORT_BOOLECTOR (
+      boolector_is_inconsistent (btor),
+      "cannot retrieve assignment from inconsistent input formula");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
@@ -1434,8 +1435,9 @@ boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_BOOLECTOR (boolector_is_inconsistent (btor),
-                        "input formula is inconsistent");
+  BTOR_ABORT_BOOLECTOR (
+      boolector_is_inconsistent (btor),
+      "cannot retrieve assignment from inconsistent input formula");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);
