@@ -1,1 +1,1 @@
-all: pjex
+all: pjex pjex0
