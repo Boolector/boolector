@@ -248,6 +248,9 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   //
   node->cached = btor_const_exp (btor, str.c_str ());
   node->forwarded = boolector_copy (btor, node->cached);
+#else
+  for (size_t i = 0; i < str.size (); i++)
+    assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');
 #endif
   node->name        = btor_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
@@ -614,8 +617,34 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
   bool initialized = (init.m_nId != 0);
   if (initialized)
   {
-    check_bit_range (init);
     assert (init.getWidth () == o.getWidth ());
+    BtorIBVNode *in = bitrange2node (init);
+    assert (in->is_constant);
+    unsigned imsb = init.m_nMsb, ilsb = imsb;
+    bool isx = (in->name[imsb] != '0' && in->name[imsb] != '1');
+    while (ilsb > init.m_nLsb
+           && (isx == (in->name[ilsb - 1] != '0' && in->name[ilsb - 1] != '1')))
+      ilsb--;
+    if (ilsb > init.m_nLsb)
+    {
+      unsigned diff = imsb - ilsb;
+      {
+        BitRange lo (o.m_nId, o.m_nMsb, o.m_nMsb - diff);
+        BitRange li (isx ? 0 : init.m_nId,
+                     isx ? 0 : init.m_nMsb,
+                     isx ? 0 : init.m_nMsb - diff);
+        BitRange ln (next.m_nId, next.m_nMsb, next.m_nMsb - diff);
+        addState (lo, li, ln);
+      }
+      {
+        BitRange ro (o.m_nId, o.m_nMsb - diff - 1, o.m_nLsb);
+        BitRange ri (init.m_nId, init.m_nMsb - diff - 1, init.m_nLsb);
+        BitRange rn (next.m_nId, next.m_nMsb - diff - 1, next.m_nLsb);
+        addState (ro, ri, rn);
+      }
+      return;
+    }
+    if (isx) initialized = false, init = BitRange (0, 0, 0);
   }
   BtorIBVNode *nextn = bitrange2node (next);
   // TODO: failed for 'toy_multibit_clock'
