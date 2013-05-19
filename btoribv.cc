@@ -353,6 +353,22 @@ BtorIBV::mark_used (BtorIBVNode *n, unsigned i)
   return 1;
 }
 
+bool
+BtorIBV::mark_coi (BtorIBVNode *n, unsigned i)
+{
+  assert (n);
+  assert (i < n->width);
+  if (n->flags[i].coi) return 0;
+  if (!n->coi)
+  {
+    msg (3, "id %u in COI '%s' (at least one bit)", n->id, n->name);
+    n->coi = 1;
+  }
+  msg (3, "id %u in COI '%s[%u]'", n->id, n->name, i);
+  n->flags[i].coi = 1;
+  return 1;
+}
+
 void
 BtorIBV::mark_assigned (BtorIBVNode *n, BitRange r)
 {
@@ -738,6 +754,28 @@ BTOR_DECLARE_STACK (IBVBitNext, BtorIBVBitNext);
 
 /*------------------------------------------------------------------------*/
 
+static const char *
+btor_ibv_classified_to_str (BtorIBVClassification c)
+{
+  switch (c)
+  {
+    default:
+    case BTOR_IBV_UNCLASSIFIED: return "UNCLASSIFIED";
+    case BTOR_IBV_CONSTANT: return "CONSTANT";
+    case BTOR_IBV_ASSIGNED: return "ASSIGNED";
+    case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT: return "ASSIGNED_IMPLICIT_CURRENT";
+    case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT: return "ASSIGNED_IMPLICIT_NEXT";
+    case BTOR_IBV_CURRENT_STATE: return "CURRENT_STATE";
+    case BTOR_IBV_TWO_PHASE_INPUT: return "TWO_PHASE_INPUT";
+    case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
+      return "ONE_PHASE_ONLY_CURRENT_INPUT";
+    case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT: return "ONE_PHASE_ONLY_NEXT_INPUT";
+    case BTOR_IBV_PHANTOM_CURRENT_INPUT: return "PHANTOM_CURRENT";
+    case BTOR_IBV_PHANTOM_NEXT_INPUT: return "PHANTOM_NEXT";
+    case BTOR_IBV_NOT_USED: return "NOT_USED";
+  }
+}
+
 void
 BtorIBV::analyze ()
 {
@@ -980,10 +1018,12 @@ BtorIBV::analyze ()
                            || a->tag == BTOR_IBV_OR || a->tag == BTOR_IBV_AND
                            || a->tag == BTOR_IBV_XOR
                            || a->tag == BTOR_IBV_CONDBW;
+            //
             // TODO for BTOR_IBV_CONCAT we can determine the defining bit
             // exactly and for BTOR_IBV_{ADD,SUB,MUL} more precise
             // reasoning is possible too (restrict the 'k' below to bits
             // at smaller or equal position).
+            //
             for (unsigned j = 0; j < a->nranges; j++)
             {
               BtorIBVRange r = a->ranges[j];
@@ -1543,17 +1583,157 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (1, "checking all used bits to be completely defined ...");
+  msg (1, "determining actual cone-of-influence (COI) ...");
+
+  assert (BTOR_EMPTY_STACK (work));
+  for (BtorIBVBit *a = assertions.start; a < assertions.top; a++)
+    BTOR_PUSH_STACK (btor->mm, work, *a);
+  for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
+  {
+    BtorIBVNode *n = id2node (a->range.id);
+    assert (a->range.msb == a->range.lsb);
+    BTOR_PUSH_STACK (btor->mm, work, BtorIBVBit (n->id, a->range.msb));
+  }
+
+  unsigned coi = 0;
+  while (!BTOR_EMPTY_STACK (work))
+  {
+    BtorIBVBit b   = BTOR_POP_STACK (work);
+    BtorIBVNode *n = id2node (b.id);
+    if (!mark_coi (n, b.bit)) continue;
+    coi++;
+    BtorIBVClassification c = n->flags[b.bit].classified;
+    switch (c)
+    {
+      default:
+        BTOR_ABORT_BOOLECTOR (
+            1,
+            "analyze: id %u unexpected '%s[%u]' classified as '%s' in COI",
+            b.id,
+            n->name,
+            b.bit,
+            btor_ibv_classified_to_str (c));
+        break;
+#if 0
+      case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
+      case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
+      case BTOR_IBV_CURRENT_STATE:
+#endif
+      case BTOR_IBV_CONSTANT:
+      case BTOR_IBV_TWO_PHASE_INPUT:
+      case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
+      case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
+      case BTOR_IBV_PHANTOM_CURRENT_INPUT:
+      case BTOR_IBV_PHANTOM_NEXT_INPUT: break;
+
+      case BTOR_IBV_ASSIGNED:
+      {
+        assert (n->assigned);
+        BtorIBVAssignment *a = n->assigned[b.bit];
+        assert (a->range.msb >= b.bit && b.bit >= a->range.lsb);
+
+        switch (a->tag)
+        {
+          case BTOR_IBV_AND:
+          case BTOR_IBV_BUF:
+          case BTOR_IBV_EQUAL:
+          case BTOR_IBV_NOT:
+          case BTOR_IBV_OR:
+          case BTOR_IBV_XOR:
+
+            for (unsigned j = 0; j < a->nranges; j++)
+            {
+              unsigned k = b.bit - a->range.lsb + a->ranges[j].lsb;
+              BtorIBVBit o (a->ranges[j].id, k);
+              BTOR_PUSH_STACK (btor->mm, work, o);
+            }
+            break;
+
+          case BTOR_IBV_CASE:
+            for (unsigned j = 0; j < a->nranges; j++)
+            {
+              if (!(j & 1) && !a->ranges[j].id) continue;
+              unsigned k;
+              if (a->ranges[j].getWidth () == 1)
+                k = a->ranges[j].lsb;
+              else
+                k = b.bit - a->range.lsb + a->ranges[j].lsb;
+              BtorIBVBit o (a->ranges[j].id, k);
+              BTOR_PUSH_STACK (btor->mm, work, o);
+            }
+            break;
+
+          case BTOR_IBV_COND:
+            assert (a->nranges == 3);
+            for (unsigned j = 0; j < a->nranges; j++)
+            {
+              unsigned k;
+              if (!j && a->ranges[0].getWidth () == 1)
+                k = a->ranges[0].lsb;
+              else
+                k = b.bit - a->range.lsb + a->ranges[j].lsb;
+              BtorIBVBit o (a->ranges[j].id, k);
+              BTOR_PUSH_STACK (btor->mm, work, o);
+            }
+            break;
+
+          default:
+            BTOR_ABORT_BOOLECTOR (
+                1,
+                "analyze: id %u unexpected '%s[%u]' assignment tag '%s'",
+                b.id,
+                n->name,
+                b.bit,
+                btor_ibv_tag_to_str (a->tag));
+            break;
+        }
+      }
+      break;
+
+      case BTOR_IBV_CURRENT_STATE:
+      {
+        {
+          BtorIBVAssignment *next;
+          if (!n->next || !(next = n->next[b.bit]))
+            BTOR_ABORT_BOOLECTOR (
+                1,
+                "analyze: id %u current state '%s[%u]' without next state",
+                b.id,
+                n->name,
+                b.bit);
+          assert (next->range.msb >= b.bit && b.bit >= next->range.lsb);
+          {
+            unsigned k = b.bit - next->range.lsb + next->ranges[1].lsb;
+            BtorIBVBit o (next->ranges[1].id, k);
+            BTOR_PUSH_STACK (btor->mm, work, o);
+          }
+          if (next->ranges[0].id)
+          {
+            unsigned k = b.bit - next->range.lsb + next->ranges[0].lsb;
+            BtorIBVBit o (next->ranges[0].id, k);
+            BTOR_PUSH_STACK (btor->mm, work, o);
+          }
+        }
+      }
+      break;
+    }
+  }
+
+  msg (1, "found %u bits in COI", coi);
+
+  /*----------------------------------------------------------------------*/
+
+  msg (1, "checking all bits in COI to be completely defined ...");
 
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
     if (n->is_constant) continue;
-    if (!n->used) continue;
+    if (!n->coi) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
-      if (!n->flags[i].used) continue;
+      if (!n->flags[i].coi) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
       BTOR_ABORT_BOOLECTOR (
@@ -1566,28 +1746,6 @@ BtorIBV::analyze ()
 
   msg (1, "finished analyzing IBV model.");
   state = BTOR_IBV_ANALYZED;
-}
-
-static const char *
-btor_ibv_classified_to_str (BtorIBVClassification c)
-{
-  switch (c)
-  {
-    default:
-    case BTOR_IBV_UNCLASSIFIED: return "UNCLASSIFIED";
-    case BTOR_IBV_CONSTANT: return "CONSTANT";
-    case BTOR_IBV_ASSIGNED: return "ASSIGNED";
-    case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT: return "ASSIGNED_IMPLICIT_CURRENT";
-    case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT: return "ASSIGNED_IMPLICIT_NEXT";
-    case BTOR_IBV_CURRENT_STATE: return "CURRENT_STATE";
-    case BTOR_IBV_TWO_PHASE_INPUT: return "TWO_PHASE_INPUT";
-    case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
-      return "ONE_PHASE_ONLY_CURRENT_INPUT";
-    case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT: return "ONE_PHASE_ONLY_NEXT_INPUT";
-    case BTOR_IBV_PHANTOM_CURRENT_INPUT: return "PHANTOM_CURRENT";
-    case BTOR_IBV_PHANTOM_NEXT_INPUT: return "PHANTOM_NEXT";
-    case BTOR_IBV_NOT_USED: return "NOT_USED";
-  }
 }
 
 static void

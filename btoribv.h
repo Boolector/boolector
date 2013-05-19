@@ -138,7 +138,7 @@ enum BtorIBVClassification
 struct BtorIBVFlags
 {
   BtorIBVClassification classified;
-  bool assigned, used, input, onephase, forwarded;
+  bool assigned, used, coi, input, onephase, forwarded;
   struct
   {
     bool current, next;
@@ -158,7 +158,7 @@ struct BtorIBVNode
   bool is_next_state;
   BitVector::BvVariableSource source;
   BitVector::DirectionKind direction;
-  signed char marked, used;
+  signed char marked, used, coi;
   BtorNode *cached, *forwarded;
   char *name;
   BtorIBVFlags *flags;
@@ -238,6 +238,7 @@ class BtorIBV : public BitVector
 
   BtorIBVNode *new_node (unsigned id, unsigned width);
 
+  bool mark_coi (BtorIBVNode *, unsigned);
   bool mark_used (BtorIBVNode *, unsigned);
   void mark_assigned (BtorIBVNode *, BitRange);
 
