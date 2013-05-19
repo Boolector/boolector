@@ -353,16 +353,20 @@ parse_line ()
     CHKARGS (3);
     unsigned id = N (1);
     CHKIDUNUSED (id);
-    char buf[20];
-    sprintf (buf, "b0_v%u", id);  // TODO hack to get generated examples through
-    string sym (buf);
     unsigned width = N (3);
     if (T (2).size () != width)
       perr ("constant string '%s' does not match width %u",
             T (2).c_str (),
             width);
-    idtab[id]   = Var (T (2), width);
-    symtab[sym] = id;
+    idtab[id] = Var (T (2), width);
+    {
+      // TODO: hack to get examples through ...
+      char buf[20];
+      sprintf (buf, "%u", id);
+      string sym (buf);
+      symtab["b0_v" + sym] = id;
+      symtab["b1_v" + sym] = id;
+    }
     ibvm->addConstant (id, T (2), width);
     stats.addConstant++;
   }
