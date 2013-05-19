@@ -1068,14 +1068,13 @@ BtorIBV::analyze ()
   // TODO: This is a 'quick' fix to handle 'forwarding' of assignments to
   // current non-state variables, if the corresponding next-state variable
   // is not assigned but used.  Then this assignment to the current
-  // non-state variable has to 'forwarded', which means to mark all the
-  // current state variables in its cone to be 'forwarded' and used.
-  // The proper solution would be to implement a cone-of-influence reduction
-  // which has an additional 'bit' to denote the context in which a
-  // variable is used.  Then forwarding means using a current non-state
-  // variable in a next context.  Even though it did not happen in the
-  // examples we tried, the reverse might also be necessary, i.e.
-  // 'backwarding'.
+  // non-state variable has to be 'forwarded', which means to mark all the
+  // current state variables in its cone to be 'forwarded' and used.  The
+  // proper solution would be to implement a cone-of-influence reduction
+  // which has an additional 'bit' to denote the context in which a variable
+  // is used.  Then forwarding means using a current non-state variable in a
+  // next context.  Even though it did not happen in the examples we tried,
+  // the reverse might also be necessary, i.e.  'backwarding'.
   //
   BtorIBVBitStack forward;
   BTOR_INIT_STACK (forward);
