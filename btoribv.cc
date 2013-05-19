@@ -1525,7 +1525,7 @@ BtorIBV::analyze ()
     if (!n->used) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
-      uf (!n->flags[i].used) continue;
+      if (!n->flags[i].used) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
       BTOR_ABORT_BOOLECTOR (
