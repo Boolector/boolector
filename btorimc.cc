@@ -488,6 +488,13 @@ parse_line ()
     if (r.getWidth () != 1) perr ("invalid assertion width %u", r.getWidth ());
     ibvm->addAssertion (r);
   }
+  else if (!strcmp (op, "addAssumption"))
+  {
+    CHKARGS (3);
+    RANGE (r, T (1), N (2), N (2));
+    if (r.getWidth () != 1) perr ("invalid assumption width %u", r.getWidth ());
+    ibvm->addAssumption (r, (bool) N (3));
+  }
   else
     perr ("unknown operator '%s'", op);
 }
