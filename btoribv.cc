@@ -1614,11 +1614,14 @@ BtorIBV::analyze ()
             b.bit,
             btor_ibv_classified_to_str (c));
         break;
+
+        // TODO next need to handle these forwarded implicit logic ...
+        // particularly 'IMPLICIT_NEXT' ...
 #if 0
       case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
       case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
-      case BTOR_IBV_CURRENT_STATE:
 #endif
+
       case BTOR_IBV_CONSTANT:
       case BTOR_IBV_TWO_PHASE_INPUT:
       case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
@@ -1749,27 +1752,25 @@ BtorIBV::analyze ()
 
       case BTOR_IBV_CURRENT_STATE:
       {
+        BtorIBVAssignment *next;
+        if (!n->next || !(next = n->next[b.bit]))
+          BTOR_ABORT_BOOLECTOR (
+              1,
+              "analyze: id %u current state '%s[%u]' without next state",
+              b.id,
+              n->name,
+              b.bit);
+        assert (next->range.msb >= b.bit && b.bit >= next->range.lsb);
         {
-          BtorIBVAssignment *next;
-          if (!n->next || !(next = n->next[b.bit]))
-            BTOR_ABORT_BOOLECTOR (
-                1,
-                "analyze: id %u current state '%s[%u]' without next state",
-                b.id,
-                n->name,
-                b.bit);
-          assert (next->range.msb >= b.bit && b.bit >= next->range.lsb);
-          {
-            unsigned k = b.bit - next->range.lsb + next->ranges[1].lsb;
-            BtorIBVBit o (next->ranges[1].id, k);
-            BTOR_PUSH_STACK (btor->mm, work, o);
-          }
-          if (next->ranges[0].id)
-          {
-            unsigned k = b.bit - next->range.lsb + next->ranges[0].lsb;
-            BtorIBVBit o (next->ranges[0].id, k);
-            BTOR_PUSH_STACK (btor->mm, work, o);
-          }
+          unsigned k = b.bit - next->range.lsb + next->ranges[1].lsb;
+          BtorIBVBit o (next->ranges[1].id, k);
+          BTOR_PUSH_STACK (btor->mm, work, o);
+        }
+        if (next->ranges[0].id)
+        {
+          unsigned k = b.bit - next->range.lsb + next->ranges[0].lsb;
+          BtorIBVBit o (next->ranges[0].id, k);
+          BTOR_PUSH_STACK (btor->mm, work, o);
         }
       }
       break;
