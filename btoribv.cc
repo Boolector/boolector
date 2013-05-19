@@ -1632,11 +1632,13 @@ BtorIBV::analyze ()
         BtorIBVAssignment *a = n->assigned[b.bit];
         assert (a->range.msb >= b.bit && b.bit >= a->range.lsb);
 
-        switch (a->tag)
+        switch (a->tag & BTOR_IBV_OPS)
         {
           case BTOR_IBV_AND:
           case BTOR_IBV_BUF:
           case BTOR_IBV_EQUAL:
+          case BTOR_IBV_LT:
+          case BTOR_IBV_LE:
           case BTOR_IBV_NOT:
           case BTOR_IBV_OR:
           case BTOR_IBV_XOR:
@@ -1648,6 +1650,47 @@ BtorIBV::analyze ()
               BTOR_PUSH_STACK (btor->mm, work, o);
             }
             break;
+
+          case BTOR_IBV_CONCAT:
+          {
+            unsigned k = b.bit - a->range.lsb, j;
+            for (j = 0; j < a->nranges; j++)
+            {
+              unsigned w = a->ranges[j].getWidth ();
+              if (w > k) break;
+              k -= w;
+            }
+            k += a->ranges[j].lsb;
+            assert (j < a->nranges);
+            BtorIBVBit o (a->ranges[j].id, k);
+            BTOR_PUSH_STACK (btor->mm, work, o);
+          }
+          break;
+
+          case BTOR_IBV_SIGN_EXTEND:
+          case BTOR_IBV_ZERO_EXTEND:
+          {
+            assert (a->nranges == 1);
+            unsigned k = b.bit - a->range.lsb;
+            if (k < a->ranges[0].getWidth ())
+            {
+              k += a->ranges[0].lsb;
+              BtorIBVBit o (a->ranges[0].id, k);
+              BTOR_PUSH_STACK (btor->mm, work, o);
+            }
+          }
+          break;
+
+          case BTOR_IBV_REPLICATE:
+          {
+            assert (a->nranges == 1);
+            unsigned k = b.bit - a->range.lsb;
+            k %= a->ranges[0].getWidth ();
+            k += a->ranges[0].lsb;
+            BtorIBVBit o (a->ranges[0].id, k);
+            BTOR_PUSH_STACK (btor->mm, work, o);
+          }
+          break;
 
           case BTOR_IBV_CASE:
             for (unsigned j = 0; j < a->nranges; j++)
@@ -1674,6 +1717,20 @@ BtorIBV::analyze ()
                 k = b.bit - a->range.lsb + a->ranges[j].lsb;
               BtorIBVBit o (a->ranges[j].id, k);
               BTOR_PUSH_STACK (btor->mm, work, o);
+            }
+            break;
+
+          case BTOR_IBV_SUB:
+          case BTOR_IBV_SUM:
+          case BTOR_IBV_MUL:
+            for (unsigned j = 0; j < a->nranges; j++)
+            {
+              for (unsigned l = a->range.lsb; l <= b.bit; l++)
+              {
+                unsigned k = l - a->range.lsb + a->ranges[j].lsb;
+                BtorIBVBit o (a->ranges[j].id, k);
+                BTOR_PUSH_STACK (btor->mm, work, o);
+              }
             }
             break;
 
