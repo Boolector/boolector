@@ -343,7 +343,11 @@ BtorIBV::mark_used (BtorIBVNode *n, unsigned i)
   assert (n);
   assert (i < n->width);
   if (n->flags[i].used) return 0;
-  n->used = 1;
+  if (!n->used)
+  {
+    msg (3, "id %u using '%s' (at least one bit)", n->id, n->name);
+    n->used = 1;
+  }
   msg (3, "id %u using '%s[%u]'", n->id, n->name, i);
   n->flags[i].used = 1;
   return 1;
@@ -985,6 +989,15 @@ BtorIBV::analyze ()
               BtorIBVRange r = a->ranges[j];
               if (!r.id) continue;
               assert (b.bit >= a->range.lsb);
+              if (a->tag == BTOR_IBV_COND && j)
+                bitwise = true;
+              else if (a->tag == BTOR_IBV_CASE)
+              {
+                if ((j & 1))
+                  bitwise = true;
+                else
+                  bitwise = (r.getWidth () != 1);
+              }
               BtorIBVNode *m = id2node (r.id);
               for (unsigned k = 0; k < m->width; k++)
               {
@@ -1133,6 +1146,15 @@ BtorIBV::analyze ()
       BtorIBVRange r = a->ranges[j];
       if (!r.id) continue;
       assert (b.bit >= a->range.lsb);
+      if (a->tag == BTOR_IBV_COND && j)
+        bitwise = true;
+      else if (a->tag == BTOR_IBV_CASE)
+      {
+        if ((j & 1))
+          bitwise = true;
+        else
+          bitwise = (r.getWidth () != 1);
+      }
       BtorIBVNode *m = id2node (r.id);
       for (unsigned k = 0; k < m->width; k++)
       {
@@ -1202,15 +1224,22 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
+    if (!n->used) continue;
     for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
          a++)
     {
       if (a->tag != BTOR_IBV_STATE) continue;
       for (unsigned i = a->ranges[1].lsb; i <= a->ranges[1].msb; i++)
+      {
+        if (!n->flags[i].used) continue;
         if (mark_used (id2node (a->ranges[1].id), i)) onlyinnext++, used++;
+      }
       if (a->ranges[0].id)
         for (unsigned i = a->ranges[0].lsb; i <= a->ranges[0].msb; i++)
+        {
+          if (!n->flags[i].used) continue;
           if (mark_used (id2node (a->ranges[0].id), i)) onlyininit++, used++;
+        }
     }
   }
   unsigned sum = next + current + both + none;
