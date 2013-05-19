@@ -282,7 +282,7 @@ parse_line ()
   toks.push_back (string (str));
   while ((str = strtok (0, ",)"))) toks.push_back (string (str));
 #if 1
-  printf ("[btorimc] line %d : ", lineno);
+  printf ("[btorimc] line %d:", lineno);
   for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();
        it++)
   {

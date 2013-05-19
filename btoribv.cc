@@ -854,10 +854,11 @@ BtorIBV::analyze ()
     if (n->is_constant) continue;
     if (!n->is_next_state) continue;
     for (unsigned i = 0; i < n->width; i++)
-      BTOR_ABORT_BOOLECTOR (!n->flags[i].assigned && n->flags[i].state.next,
-                            "next state '%s[%u]' unassigned",
-                            n->name,
-                            i);
+      BTOR_ABORT_BOOLECTOR (
+          n->flags[i].used && !n->flags[i].assigned && n->flags[i].state.next,
+          "next state '%s[%u]' unassigned",
+          n->name,
+          i);
     nextstatebits += n->width;
   }
   if (nextstatebits)
@@ -1524,6 +1525,7 @@ BtorIBV::analyze ()
     if (!n->used) continue;
     for (unsigned i = 0; i < n->width; i++)
     {
+      uf (!n->flags[i].used) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
       BTOR_ABORT_BOOLECTOR (
