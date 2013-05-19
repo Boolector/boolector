@@ -1115,7 +1115,7 @@ BtorIBV::analyze ()
     {
       assert (bn->flags[b.bit].nonstate.next);
       assert (!bn->flags[b.bit].assigned);
-      msg (3, "fowarded id %u '%s[%u]'", bn->id, bn->name, b.bit);
+      msg (3, "forwarded id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarded++;
       continue;
     }
@@ -1133,7 +1133,7 @@ BtorIBV::analyze ()
       unsigned k     = b.bit - a->range.lsb + r.lsb;
       assert (m->flags[k].nonstate.next);
       assert (!m->flags[k].assigned);
-      msg (3, "fowarding id %u '%s[%u]'", bn->id, bn->name, b.bit);
+      msg (3, "forwarding id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarding++;
     }
     assert (b.bit >= a->range.lsb);
