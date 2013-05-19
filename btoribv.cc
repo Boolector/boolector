@@ -467,7 +467,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
 void
 BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
 {
-  assert (tag & BTOR_IBV_IS_BINARY);
+  assert (tag & (BTOR_IBV_IS_BINARY | BTOR_IBV_IS_UNARY));
   switch (tag)
   {
     case BTOR_IBV_LEFT_SHIFT:

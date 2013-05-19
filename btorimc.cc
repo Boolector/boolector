@@ -41,26 +41,36 @@ static char* line;
 
 static struct
 {
+  int addAssertion;
   int addAssignment;
+  int addAssumption;
   int addBitAnd;
   int addBitNot;
   int addBitOr;
+  int addBitXor;
   int addCase;
   int addConcat;
   int addCondition;
   int addConstant;
   int addEqual;
+  int addLessThan;
+  int addLessEqual;
+  int addGreaterThan;
+  int addGreaterEqual;
   int addLogicalAnd;
   int addLogicalNot;
   int addLogicalOr;
   int addLShift;
   int addNonState;
   int addRangeName;
+  int addReplicate;
   int addRShift;
+  int addSignExtension;
   int addState;
   int addSub;
   int addSum;
   int addVariable;
+  int addZeroExtension;
 
 } stats;
 
@@ -137,14 +147,14 @@ read_line ()
   return true;
 }
 
-#define CHKARGS(EXPECTED)                                                  \
-  do                                                                       \
-  {                                                                        \
-    if (EXPECTED != size - 1)                                              \
-      perr ("operator '%s' expected exactly %d arguments but only got %d", \
-            op,                                                            \
-            EXPECTED,                                                      \
-            size - 1);                                                     \
+#define CHKARGS(EXPECTED)                                             \
+  do                                                                  \
+  {                                                                   \
+    if (EXPECTED != size - 1)                                         \
+      perr ("operator '%s' expected exactly %d arguments but got %d", \
+            op,                                                       \
+            EXPECTED,                                                 \
+            size - 1);                                                \
   } while (0)
 
 #define CHKIDUNUSED(ID)                                                   \
@@ -218,6 +228,23 @@ read_line ()
     ibvm->NAME (c, n);              \
     stats.NAME++;                   \
   }                                 \
+  while (0)
+
+#define EXTEND(NAME)                                     \
+  (!strcmp (op, #NAME)) do                               \
+  {                                                      \
+    CHKARGS (6);                                         \
+    RANGE (c, T (1), N (2), N (3));                      \
+    RANGE (n, T (4), N (5), N (6));                      \
+    if (c.getWidth () < n.getWidth ())                   \
+      perr ("range [%u:%u] smaller than range [%u:%u] ", \
+            c.m_nMsb,                                    \
+            c.m_nLsb,                                    \
+            n.m_nMsb,                                    \
+            n.m_nLsb);                                   \
+    ibvm->NAME (c, n);                                   \
+    stats.NAME++;                                        \
+  }                                                      \
   while (0)
 
 #define BINARY(NAME)                \
@@ -460,6 +487,10 @@ parse_line ()
   else if
     UNARY (addBitNot);
   else if
+    EXTEND (addZeroExtension);
+  else if
+    EXTEND (addSignExtension);
+  else if
     PRED1 (addLogicalNot);
   else if
     UNARYARG (addRShift);
@@ -472,6 +503,8 @@ parse_line ()
   else if
     BINARY (addBitOr);
   else if
+    BINARY (addBitXor);
+  else if
     BINARY (addSum);
   else if
     BINARY (addSub);
@@ -481,12 +514,36 @@ parse_line ()
     PRED2 (addLogicalOr);
   else if
     PRED2 (addLogicalAnd);
+  else if
+    PRED2 (addLessThan);
+  else if
+    PRED2 (addLessEqual);
+  else if
+    PRED2 (addGreaterEqual);
+  else if
+    PRED2 (addGreaterThan);
+  else if (!strcmp (op, "addReplicate"))
+  {
+    CHKARGS (7);
+    RANGE (c, T (1), N (2), N (3));
+    RANGE (n, T (4), N (5), N (6));
+    if (c.getWidth () != N (7) * (long long) n.getWidth ())
+      perr ("range [%u:%u] does not match %u times range [%u:%u] ",
+            c.m_nMsb,
+            c.m_nLsb,
+            N (7),
+            n.m_nMsb,
+            n.m_nLsb);
+    ibvm->addReplicate (c, n, N (7));
+    stats.addReplicate++;
+  }
   else if (!strcmp (op, "addAssertion"))
   {
     CHKARGS (2);
     RANGE (r, T (1), N (2), N (2));
     if (r.getWidth () != 1) perr ("invalid assertion width %u", r.getWidth ());
     ibvm->addAssertion (r);
+    stats.addAssertion++;
   }
   else if (!strcmp (op, "addAssumption"))
   {
@@ -494,6 +551,7 @@ parse_line ()
     RANGE (r, T (1), N (2), N (2));
     if (r.getWidth () != 1) perr ("invalid assumption width %u", r.getWidth ());
     ibvm->addAssumption (r, (bool) N (3));
+    stats.addAssumption++;
   }
   else
     perr ("unknown operator '%s'", op);
