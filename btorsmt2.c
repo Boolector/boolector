@@ -2937,13 +2937,16 @@ SORTED_VAR:
       assert (arg);
       assert (arg->coo.x);
       assert (arg->tag == BTOR_SYMBOL_TAG_SMT2);
-      BTOR_PUSH_STACK (parser->mem, args, arg->exp);
+      BTOR_PUSH_STACK (
+          parser->mem, args, boolector_copy (parser->btor, arg->exp));
       btor_remove_symbol_smt2 (parser, arg);
     }
     parser->work.top -= nargs;
     assert (BTOR_EMPTY_STACK (parser->work));
 
     fun->exp = boolector_fun (parser->btor, nargs, args.start, exp);
+    while (!BTOR_EMPTY_STACK (args))
+      boolector_release (parser->btor, BTOR_POP_STACK (args));
     boolector_release (parser->btor, exp);
     BTOR_RELEASE_STACK (parser->mem, args);
     parser->need_arrays = 1;
