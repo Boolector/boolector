@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -38,6 +39,12 @@ boolector_clone (Btor *btor)
   return btor_clone_btor (btor);
 }
 
+int
+boolector_is_inconsistent (Btor *btor)
+{
+  return btor->inconsistent;
+}
+
 void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
@@ -45,7 +52,7 @@ boolector_set_rewrite_level (Btor *btor, int rewrite_level)
   BTOR_ABORT_BOOLECTOR (rewrite_level < 0 || rewrite_level > 3,
                         "'rewrite_level' has to be in [0,3]");
   BTOR_ABORT_BOOLECTOR (
-      BTOR_COUNT_STACK (btor->nodes_id_table) > 1,
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "setting rewrite level must be done before creating expressions");
   btor_set_rewrite_level_btor (btor, rewrite_level);
 }
@@ -55,7 +62,7 @@ boolector_enable_model_gen (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      BTOR_COUNT_STACK (btor->nodes_id_table) > 1,
+      BTOR_COUNT_STACK (btor->nodes_id_table) > 2,
       "enabling model generation must be done before creating expressions");
   btor_enable_model_gen (btor);
 }
@@ -1403,6 +1410,8 @@ char *
 boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (boolector_is_inconsistent (btor),
+                        "input formula is inconsistent");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
@@ -1425,6 +1434,8 @@ boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_BOOLECTOR (boolector_is_inconsistent (btor),
+                        "input formula is inconsistent");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);
