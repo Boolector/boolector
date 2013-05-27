@@ -1411,13 +1411,13 @@ boolector_main (int argc, char **argv)
         }
 
         if (app.dump_smt <= 1)
-          btor_dump_smt1 (btor, app.output_file, &all, 1);
+          btor_dump_smt1 (btor, app.output_file, &all, parse_res.noutputs);
         else if (app.dump_smt == 2)
-          btor_dump_smt2 (btor, app.output_file, &all, 1);
+          btor_dump_smt2 (btor, app.output_file, &all, parse_res.noutputs);
         else
-          btor_dump_smt2_fun (btor, app.output_file, &all, 1);
+          btor_dump_smt2_fun (btor, app.output_file, &all, parse_res.noutputs);
 
-        btor_release_exp (btor, all);
+        if (all) btor_release_exp (btor, all);
       }
 
       app.done = 1;
