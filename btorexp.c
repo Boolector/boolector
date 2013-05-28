@@ -1787,7 +1787,7 @@ add_param_cond_to_clause (Btor *btor,
 
   BtorNode *beta_cond, *parameterized;
 
-  BTORLOG ("add_param_cond_to_clause: %s", node2string (cond));
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (cond));
   beta_cond = btor_beta_reduce_cutoff (btor, cond, &parameterized);
   assert (!BTOR_REAL_ADDR_NODE (beta_cond)->parameterized);
   add_new_exp_to_clause (btor, beta_cond, sign, linking_clause);
@@ -7785,6 +7785,7 @@ process_working_stack (Btor *btor,
   amgr                      = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
   mm                        = btor->mm;
 
+  BTORLOG ("*** %s", __FUNCTION__);
   while (!BTOR_EMPTY_STACK (*stack))
   {
     btor->stats.propagations++;
@@ -7816,7 +7817,7 @@ process_working_stack (Btor *btor,
     if (*assignments_changed) return 0;
     // debug
     BTORLOG ("");
-    BTORLOG ("*** %s", __FUNCTION__);
+    BTORLOG ("*** propagate");
     BTORLOG ("array: %s", node2string (array));
     BTORLOG ("access: %s", node2string (acc));
     char *a = btor_bv_assignment_exp (btor, value);

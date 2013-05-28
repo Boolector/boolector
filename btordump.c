@@ -370,12 +370,19 @@ btor_dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   int i;
   assert (btor);
   assert (file);
-  assert (roots);
-  assert (nroots > 0);
   for (i = 0; i < nroots; i++) assert (roots[i]);
 #endif
 
-  dump_exps (btor, file, roots, nroots);
+  BtorNode *tmp;
+
+  if (nroots == 0)
+  {
+    tmp = btor_true_exp (btor);
+    btor_dump_exp (btor, file, tmp);
+    btor_release_exp (btor, tmp);
+  }
+  else
+    dump_exps (btor, file, roots, nroots);
 }
 
 void
@@ -1018,12 +1025,30 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
 void
 btor_dump_smt1 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
-  btor_dump_smt (btor, 1, file, roots, nroots);
+  BtorNode *tmp;
+
+  if (nroots == 0)
+  {
+    tmp = btor_true_exp (btor);
+    btor_dump_smt (btor, 1, file, &tmp, 1);
+    btor_release_exp (btor, tmp);
+  }
+  else
+    btor_dump_smt (btor, 1, file, roots, nroots);
 }
 
 void
 btor_dump_smt2 (Btor *btor, FILE *file, BtorNode **roots, int nroots)
 {
   assert (btor->lambdas->count == 0u);  // TODO: force define-fun dumps?
-  btor_dump_smt (btor, 2, file, roots, nroots);
+  BtorNode *tmp;
+
+  if (nroots == 0)
+  {
+    tmp = btor_true_exp (btor);
+    btor_dump_smt (btor, 2, file, &tmp, 1);
+    btor_release_exp (btor, tmp);
+  }
+  else
+    btor_dump_smt (btor, 2, file, roots, nroots);
 }
