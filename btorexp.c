@@ -11754,6 +11754,7 @@ DONE:
   btor->valid_assignments = 1;
   BTOR_ABORT_NODE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                    "result must be sat or unsat");
+  if (sat_result == BTOR_UNSAT) btor->inconsistent = 1;
   return sat_result;
 }
 
@@ -11779,6 +11780,7 @@ btor_bv_assignment_exp (Btor *btor, BtorNode *exp)
   int invert_av, invert_bits;
 
   assert (btor);
+  assert (!btor->inconsistent);
   assert (exp);
   exp = btor_simplify_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
@@ -11823,6 +11825,7 @@ btor_array_assignment_exp (
   int i;
 
   assert (btor);
+  assert (!btor->inconsistent);
   assert (exp);
   assert (!BTOR_IS_INVERTED_NODE (exp));
   exp = btor_simplify_exp (btor, exp);
