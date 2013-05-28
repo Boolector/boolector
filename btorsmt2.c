@@ -2875,7 +2875,7 @@ SORTED_VAR:
   }
   else if (tag == BTOR_ARRAY_TAG_SMT2)
   {
-    if (BTOR_COUNT_STACK (args))
+    if (nargs)
       return !btor_perr_smt2 (parser,
                               "sort Array is not supported for arity > 0");
     assert (!domain);
@@ -2937,13 +2937,16 @@ SORTED_VAR:
       assert (arg);
       assert (arg->coo.x);
       assert (arg->tag == BTOR_SYMBOL_TAG_SMT2);
-      BTOR_PUSH_STACK (parser->mem, args, arg->exp);
+      BTOR_PUSH_STACK (
+          parser->mem, args, boolector_copy (parser->btor, arg->exp));
       btor_remove_symbol_smt2 (parser, arg);
     }
     parser->work.top -= nargs;
     assert (BTOR_EMPTY_STACK (parser->work));
 
     fun->exp = boolector_fun (parser->btor, nargs, args.start, exp);
+    while (!BTOR_EMPTY_STACK (args))
+      boolector_release (parser->btor, BTOR_POP_STACK (args));
     boolector_release (parser->btor, exp);
     BTOR_RELEASE_STACK (parser->mem, args);
     parser->need_arrays = 1;
