@@ -11755,7 +11755,8 @@ DONE:
   btor->valid_assignments = 1;
   BTOR_ABORT_NODE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                    "result must be sat or unsat");
-  if (sat_result == BTOR_UNSAT) btor->inconsistent = 1;
+
+  btor->last_sat_result = sat_result;
   return sat_result;
 }
 

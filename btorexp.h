@@ -373,6 +373,7 @@ struct Btor
   int rewrite_reads;        /* rewrite reads on lambda expressions */
   int rewrite_aconds;       /* rewrite aconds to lambda expressions */
   int pprint;               /* reindex exps when dumping */
+  int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
   int generate_model_for_all_reads;
 
