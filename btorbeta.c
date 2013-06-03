@@ -121,6 +121,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
       assert (lower >= 0);
       assert (upper >= 0);
       cur_arg = btor_rewrite_slice_exp (btor, arg, upper, lower);
+      assert (cur_arg->refs > 1);
       btor_release_exp (btor, cur_arg); /* still referenced afterwards */
 
       assert (param->len == BTOR_REAL_ADDR_NODE (cur_arg)->len);
