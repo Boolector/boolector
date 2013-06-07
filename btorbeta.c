@@ -20,7 +20,6 @@
 #define BETA_RED_FULL 0
 #define BETA_RED_BOUNDED 1
 
-// TODO: hash by exp ids
 static void
 cache_beta_result (Btor *btor,
                    BtorNode *lambda,
@@ -55,7 +54,6 @@ cache_beta_result (Btor *btor,
            node2string (result));
 }
 
-// TODO: hash by exp ids
 static BtorNode *
 cached_beta_result (Btor *btor, BtorNode *lambda, BtorNode *exp)
 {
@@ -122,6 +120,20 @@ btor_assign_params (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
     BTOR_PUSH_STACK (btor->mm, cur_param->assigned_exp, cur_arg);
     cur_lambda = cur_lambda->e[1];
   }
+}
+
+void
+btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *arg)
+{
+  assert (btor);
+  assert (fun);
+  assert (arg);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (arg));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (arg));
+
+  btor_assign_params (btor, arg->arity, arg->e, fun);
 }
 
 void
@@ -281,7 +293,7 @@ btor_beta_reduce (
   double start;
   BtorMemMgr *mm;
   // TODO: variable length arrays for e and p
-  BtorNode *cur, *real_cur, *next, *result, *param, *cached;
+  BtorNode *cur, *real_cur, *next, *result, *param, *cached, *args;
   BtorNode *result_parameterized, *cur_scope_lambda, *cur_parent;
   BtorNodePtrStack work_stack, arg_stack, parameterized_stack;
   BtorPtrHashBucket *mbucket, *b;
@@ -360,8 +372,7 @@ btor_beta_reduce (
       mbucket             = btor_insert_in_ptr_hash_table (cur_scope, real_cur);
       mbucket->data.asInt = 0;
     }
-    //      printf ("visit: %s (%d)\n", node2string (real_cur),
-    //      mbucket->data.asInt);
+    printf ("visit: %s (%d)\n", node2string (real_cur), mbucket->data.asInt);
 
     if (mbucket->data.asInt == 0)
     {
@@ -472,14 +483,17 @@ btor_beta_reduce (
           // TODO: get arguments for apply
           // STOPPED HERE
           //		  assignment = BTOR_TOP_STACK (arg_stack);
+          args = BTOR_TOP_STACK (arg_stack);
+          assert (BTOR_IS_ARGS_NODE (args));
 
-          // TODO CACHE results
-          //		  if (cache)
-          //		    BETA_REDUCE_PUSH_RESULT_IF_CACHED (real_cur,
-          // assignment);
+          if (cache) BETA_REDUCE_PUSH_RESULT_IF_CACHED (real_cur, args);
 
-          int argc = cur_parent->arity - 1;
-          btor_assign_params (btor, argc, arg_stack.top - argc, real_cur);
+          //		  int argc = cur_parent->arity - 1;
+          //		  btor_assign_params (btor,
+          //				      argc,
+          //				      arg_stack.top - argc,
+          //				      real_cur);
+          btor_assign_args (btor, real_cur, args);
 //		  btor_assign_param (btor, real_cur, assignment);
 #ifndef NDEBUG
           BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
@@ -747,7 +761,7 @@ btor_beta_reduce (
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      //	  printf ("  result: %s\n", node2string (result));
+      printf ("  result: %s\n", node2string (result));
       BTOR_PUSH_STACK (mm, arg_stack, result);
       BTOR_PUSH_STACK (mm, parameterized_stack, result_parameterized);
     }

@@ -27,6 +27,8 @@ BtorNode *btor_apply_and_reduce (Btor *, int, BtorNode **, BtorNode *);
 
 void btor_assign_param (Btor *, BtorNode *, BtorNode *);
 
+void btor_assign_args (Btor *, BtorNode *, BtorNode *);
+
 void btor_assign_params (Btor *, int, BtorNode **, BtorNode *);
 
 void btor_unassign_param (Btor *, BtorNode *);

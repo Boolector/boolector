@@ -930,7 +930,7 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
   assert (parent);
   assert (pos >= 0);
   assert (BTOR_IS_REGULAR_NODE (parent));
-  assert (BTOR_IS_APPLY_NODE (parent) || pos <= 2);
+  assert (BTOR_IS_ARGS_NODE (parent) || pos <= 2);
   assert (!BTOR_IS_BV_CONST_NODE (parent));
   assert (!BTOR_IS_BV_VAR_NODE (parent));
   assert (!BTOR_IS_ARRAY_VAR_NODE (parent));
@@ -2880,7 +2880,7 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   assert (child);
   assert (pos >= 0);
   assert (BTOR_IS_REGULAR_NODE (parent));
-  assert (BTOR_IS_APPLY_NODE (parent) || pos <= 2);
+  assert (BTOR_IS_ARGS_NODE (parent) || pos <= 2);
   assert (btor_simplify_exp (btor, child) == child);
 
   /* set parent parameterized if child is parameterized */
@@ -4230,7 +4230,7 @@ btor_apply_exps (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   // TODO: use malloc?
   BtorNode *exp, *_args[argc], *e[2], *arg_list;
 
-  for (i = 0; i <= argc; i++) _args[i] = btor_simplify_exp (btor, args[i]);
+  for (i = 0; i < argc; i++) _args[i] = btor_simplify_exp (btor, args[i]);
 
   arg_list = create_exp (btor, BTOR_ARGS_NODE, argc, _args);
 
@@ -7565,7 +7565,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   assert (BTOR_IS_REGULAR_NODE (acc));
   assert (BTOR_IS_ACC_NODE (acc));
 
-  int i, changed_assignments, update;
+  int i, changed_assignments, update, argc;
   BtorNode *arg, **e;
   BtorAIGVecMgr *avmgr = 0;
 
@@ -7578,12 +7578,14 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   {
     assert (BTOR_IS_REGULAR_NODE (acc->e[1]));
     assert (BTOR_IS_ARGS_NODE (acc->e[1]));
-    e = acc->e[1]->e;
+    e    = acc->e[1]->e;
+    argc = acc->e[1]->arity;
   }
   else
   {
     assert (BTOR_IS_READ_NODE (acc) || BTOR_IS_WRITE_NODE (acc));
-    e = acc->e + 1;
+    e    = acc->e + 1;
+    argc = acc->arity - 1;
   }
 
   /* synthesize and encode all arguments of given acc expression.
@@ -7591,7 +7593,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
    * - read: index
    * - write: index, value
    * - apply: all arguments except e[0] (function) */
-  for (i = 1; i < acc->arity; i++)
+  for (i = 0; i < argc; i++)
   {
     arg = e[i];
     assert (!BTOR_IS_ARRAY_NODE (arg));
@@ -7970,6 +7972,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
     {
       assert (!BTOR_IS_PARAM_NODE (real_cur));
       assert (!BTOR_IS_LAMBDA_NODE (real_cur));
+      assert (!BTOR_IS_ARGS_NODE (real_cur));
       assert (!BTOR_IS_PROXY_NODE (real_cur));
       real_cur->eval_mark = 2;
 
@@ -8359,7 +8362,9 @@ process_working_stack (Btor *btor,
       if (*assignments_changed) return 0;
 
       assert (BTOR_IS_APPLY_NODE (acc));
-      btor_assign_params (btor, acc->arity - 1, acc->e + 1, array);
+      assert (BTOR_IS_ARGS_NODE (acc->e[1]));
+      //	  btor_assign_params (btor, acc->arity - 1, acc->e + 1, array);
+      btor_assign_args (btor, array, acc->e[1]);
       // TODO: use btor_beta_reduce_cutoff (btor, acc, &parameterized)?
       //	  btor_assign_param (btor, array, index);
       lambda_value = btor_beta_reduce_cutoff (btor, array, &parameterized);
