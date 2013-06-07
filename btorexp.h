@@ -132,9 +132,10 @@ enum BtorNodeKind
   BTOR_WRITE_NODE     = 19,
   BTOR_BCOND_NODE     = 20, /* conditional on bit vectors */
   BTOR_ACOND_NODE     = 21, /* conditional on arrays */
-  BTOR_APPLY_NODE     = 22,
-  BTOR_PROXY_NODE     = 23, /* simplified expression without children */
-  BTOR_NUM_OPS_NODE   = 24
+  BTOR_ARGS_NODE      = 22,
+  BTOR_APPLY_NODE     = 23,
+  BTOR_PROXY_NODE     = 24, /* simplified expression without children */
+  BTOR_NUM_OPS_NODE   = 25
 };
 
 typedef enum BtorNodeKind BtorNodeKind;
@@ -468,6 +469,8 @@ struct Btor
 
 #define BTOR_IS_LAMBDA_NODE_KIND(kind) ((kind) == BTOR_LAMBDA_NODE)
 
+#define BTOR_IS_ARGS_NODE_KIND(kind) ((kind) == BTOR_ARGS_NODE)
+
 #define BTOR_IS_APPLY_NODE_KIND(kind) ((kind) == BTOR_APPLY_NODE)
 
 #define BTOR_IS_WRITE_NODE_KIND(kind) (kind == BTOR_WRITE_NODE)
@@ -520,6 +523,8 @@ struct Btor
 
 #define BTOR_IS_LAMBDA_NODE(exp) \
   ((exp) && BTOR_IS_LAMBDA_NODE_KIND ((exp)->kind))
+
+#define BTOR_IS_ARGS_NODE(exp) ((exp) && BTOR_IS_ARGS_NODE_KIND ((exp)->kind))
 
 #define BTOR_IS_APPLY_NODE(exp) ((exp) && BTOR_IS_APPLY_NODE_KIND ((exp)->kind))
 

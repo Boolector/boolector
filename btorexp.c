@@ -3077,39 +3077,65 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp, int len)
 }
 
 static BtorNode *
-new_apply_exp_node (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+new_args_exp_node (Btor *btor, int argc, BtorNode **args)
 {
   assert (btor);
   assert (argc > 0);
+  assert (args);
+
+  int i, len;
+  BtorMemMgr *mm;
+  BtorBVNode *exp;
+
+  mm = btor->mm;
+  BTOR_CNEW (mm, exp);
+  btor->ops[BTOR_ARGS_NODE]++;
+  exp->kind     = BTOR_ARGS_NODE;
+  exp->bytes    = sizeof *exp;
+  exp->arity    = argc;
+  exp->no_synth = 1;
+  setup_node_and_add_to_id_table (btor, exp);
+
+  len = 0;
+  for (i = 0; i < argc; i++)
+  {
+    assert (args[i]);
+    connect_child_exp (btor, (BtorNode *) exp, args[i], i);
+    inc_exp_ref_counter (btor, args[i]);
+    len += BTOR_REAL_ADDR_NODE (args[i])->len;
+  }
+  exp->len = len;
+
+  return (BtorNode *) exp;
+}
+
+static BtorNode *
+new_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
+{
+  assert (btor);
   assert (fun);
   assert (args);
   assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (args));
   assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (args));
 
-  int i, arity;
   BtorMemMgr *mm;
   BtorApplyNode *exp;
 
-  mm    = btor->mm;
-  arity = argc + 1;
+  mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->ops[BTOR_APPLY_NODE]++;
-  exp->kind     = BTOR_APPLY_NODE;
-  exp->bytes    = sizeof *exp;
-  exp->arity    = arity;
-  exp->len      = fun->len;
-  exp->no_synth = 1;
+  exp->kind  = BTOR_APPLY_NODE;
+  exp->bytes = sizeof *exp;
+  exp->arity = 2;
+  exp->len   = fun->len;
   setup_node_and_add_to_id_table (btor, exp);
 
   connect_child_exp (btor, (BtorNode *) exp, fun, 0);
   inc_exp_ref_counter (btor, fun);
-  for (i = 0; i < argc; i++)
-  {
-    assert (args[i]);
-    assert (i + 1 < arity);
-    connect_child_exp (btor, (BtorNode *) exp, args[i], i + 1);
-    inc_exp_ref_counter (btor, args[i]);
-  }
+  connect_child_exp (btor, (BtorNode *) exp, args, 1);
+  inc_exp_ref_counter (btor, args);
 
   return (BtorNode *) exp;
 }
@@ -3388,7 +3414,46 @@ find_ternary_exp (
 }
 
 static BtorNode **
-find_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+find_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **args)
+{
+  assert (btor);
+  assert (arity > 0);
+  assert (args);
+
+  BtorNode *cur, **result;
+  int i, equal;
+  unsigned int hash;
+
+#ifndef NDEBUG
+  for (i = 0; i < arity; i++) assert (args[i]);
+#endif
+
+  hash = 0;
+  for (i = 0; i < arity; i++)
+    hash += (unsigned) BTOR_REAL_ADDR_NODE (args[i])->id;
+  hash *= BTOR_NODE_UNIQUE_TABLE_PRIME;
+  hash &= btor->nodes_unique_table.size - 1;
+
+  result = btor->nodes_unique_table.chains + hash;
+  cur    = *result;
+  while (cur)
+  {
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    if (cur->kind == kind && cur->arity == arity)
+    {
+      equal = 1;
+      for (i = 0; i < arity && equal; i++)
+        if (cur->e[i] != args[i]) equal = 0;
+
+      if (equal) break;
+    }
+    result = &(cur->next);
+    cur    = *result;
+  }
+  return result;
+}
+#if 0
+find_apply_exp (Btor * btor, int argc, BtorNode ** args, BtorNode * fun)
 {
   assert (btor);
   assert (argc > 0);
@@ -3402,35 +3467,40 @@ find_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   unsigned int hash;
 
 #ifndef NDEBUG
-  for (i = 0; i < argc; i++) assert (args[i]);
+  for (i = 0; i < argc; i++)
+    assert (args[i]);
 #endif
 
-  hash = (unsigned) fun->id;
+  hash = (unsigned) fun->id; 
   for (i = 0; i < argc; i++)
     hash += (unsigned) BTOR_REAL_ADDR_NODE (args[i])->id;
   hash *= BTOR_NODE_UNIQUE_TABLE_PRIME;
   hash &= btor->nodes_unique_table.size - 1;
 
   result = btor->nodes_unique_table.chains + hash;
-  cur    = *result;
+  cur = *result;
   while (cur)
-  {
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    if (BTOR_IS_APPLY_NODE (cur) && cur->arity == argc + 1)
     {
-      equal = 1;
-      if (cur->e[0] != fun) equal = 0;
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      if (BTOR_IS_APPLY_NODE (cur) && cur->arity == argc + 1)
+	{
+	  equal = 1;
+	  if (cur->e[0] != fun)
+	    equal = 0;
 
-      for (i = 0; i < argc && equal; i++)
-        if (cur->e[i + 1] != args[i]) equal = 0;
+	  for (i = 0; i < argc && equal; i++)
+	    if (cur->e[i + 1] != args[i])
+	      equal = 0;
 
-      if (equal) break;
+	  if (equal)
+	    break;
+	}
+      result = &(cur->next);
+      cur = *result;
     }
-    result = &(cur->next);
-    cur    = *result;
-  }
   return result;
 }
+#endif
 
 /* Enlarges unique table and rehashes expressions. */
 static void
@@ -4041,7 +4111,48 @@ btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
 
 #if 1
 static BtorNode *
-apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+create_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e)
+{
+  assert (btor);
+  assert (kind);
+  assert (arity > 0);
+  assert (e);
+
+  BtorNode **lookup;
+
+  lookup = find_exp (btor, kind, arity, e);
+  if (!*lookup)
+  {
+    if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
+    {
+      enlarge_nodes_unique_table (btor);
+      lookup = find_exp (btor, kind, arity, e);
+    }
+
+    switch (kind)
+    {
+      case BTOR_APPLY_NODE:
+        assert (arity == 2);
+        *lookup = new_apply_exp_node (btor, e[0], e[1]);
+        break;
+      case BTOR_ARGS_NODE:
+        assert (arity > 0);
+        *lookup = new_args_exp_node (btor, arity, e);
+        break;
+      default: assert (0);
+    }
+    assert (btor->nodes_unique_table.num_elements < INT_MAX);
+    btor->nodes_unique_table.num_elements++;
+    (*lookup)->unique = 1;
+  }
+  else
+    inc_exp_ref_counter (btor, *lookup);
+  assert (BTOR_IS_REGULAR_NODE (*lookup));
+  return *lookup;
+}
+#if 0
+static BtorNode *
+apply_exp (Btor * btor, int argc, BtorNode ** args, BtorNode * fun)
 {
   assert (btor);
   assert (argc > 0);
@@ -4054,22 +4165,23 @@ apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 
   lookup = find_apply_exp (btor, argc, args, fun);
   if (!*lookup)
-  {
-    if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
     {
-      enlarge_nodes_unique_table (btor);
-      lookup = find_apply_exp (btor, argc, args, fun);
+      if (BTOR_FULL_UNIQUE_TABLE (btor->nodes_unique_table))
+	{
+	  enlarge_nodes_unique_table (btor);
+	  lookup = find_apply_exp (btor, argc, args, fun);
+	}
+      *lookup = new_apply_exp_node (btor, argc, args, fun); 
+      assert (btor->nodes_unique_table.num_elements < INT_MAX);
+      btor->nodes_unique_table.num_elements++;
+      (*lookup)->unique = 1;
     }
-    *lookup = new_apply_exp_node (btor, argc, args, fun);
-    assert (btor->nodes_unique_table.num_elements < INT_MAX);
-    btor->nodes_unique_table.num_elements++;
-    (*lookup)->unique = 1;
-  }
   else
     inc_exp_ref_counter (btor, *lookup);
   assert (BTOR_IS_REGULAR_NODE (*lookup));
   return *lookup;
 }
+#endif
 
 BtorNode *
 btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
@@ -4083,12 +4195,19 @@ btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 
   int i;
   // TODO: use malloc?
-  BtorNode *_args[argc];
+  BtorNode *exp, *_args[argc], *e[2], *arg_list;
 
-  fun = btor_simplify_exp (btor, fun);
-  for (i = 0; i < argc; i++) _args[i] = btor_simplify_exp (btor, args[i]);
+  for (i = 0; i <= argc; i++) _args[i] = btor_simplify_exp (btor, args[i]);
 
-  return apply_exp (btor, argc, _args, fun);
+  arg_list = create_exp (btor, BTOR_ARGS_NODE, argc, _args);
+
+  e[0] = btor_simplify_exp (btor, fun);
+  e[1] = btor_simplify_exp (btor, arg_list);
+
+  exp = create_exp (btor, BTOR_APPLY_NODE, 2, e);
+  btor_release_exp (btor, arg_list);
+
+  return exp;
 }
 #else
 BtorNode *
@@ -7414,16 +7533,25 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   assert (BTOR_IS_ACC_NODE (acc));
 
   int i, changed_assignments, update;
-  BtorNode *arg;
-  //  BtorNode *index, *value;
+  BtorNode *arg, **e;
   BtorAIGVecMgr *avmgr = 0;
 
   changed_assignments = 0;
   update              = 0;
   avmgr               = btor->avmgr;
-  //  index = BTOR_GET_INDEX_ACC_NODE (acc);
-  //  value = BTOR_GET_VALUE_ACC_NODE (acc);
   BTORLOG ("%s: %s", __FUNCTION__, node2string (acc));
+
+  if (BTOR_IS_APPLY_NODE (acc))
+  {
+    assert (BTOR_IS_REGULAR_NODE (acc->e[1]));
+    assert (BTOR_IS_ARGS_NODE (acc->e[1]));
+    e = acc->e[1]->e;
+  }
+  else
+  {
+    assert (BTOR_IS_READ_NODE (acc) || BTOR_IS_WRITE_NODE (acc));
+    e = acc->e + 1;
+  }
 
   /* synthesize and encode all arguments of given acc expression.
    * the following expressions are synthesized and encoded if given acc is a
@@ -7432,7 +7560,7 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
    * - apply: all arguments except e[0] (function) */
   for (i = 1; i < acc->arity; i++)
   {
-    arg = acc->e[i];
+    arg = e[i];
     assert (!BTOR_IS_ARRAY_NODE (arg));
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
       synthesize_exp (btor, arg, 0);

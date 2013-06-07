@@ -51,6 +51,7 @@ node2string (BtorNode *exp)
     case BTOR_WRITE_NODE: name = "write"; break;
     case BTOR_BCOND_NODE: name = "bcond"; break;
     case BTOR_ACOND_NODE: name = "acond"; break;
+    case BTOR_ARGS_NODE: name = "args"; break;
     case BTOR_APPLY_NODE: name = "apply"; break;
     case BTOR_PROXY_NODE: name = "proxy"; break;
     default: name = "unknown";
