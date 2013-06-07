@@ -8001,7 +8001,7 @@ skipfun_tseitin (BtorNode *exp)
 }
 
 static int
-compare_arguments (BtorNode *e0, BtorNode *e1)
+compare_argument_assignments (BtorNode *e0, BtorNode *e1)
 {
   int i;
 
@@ -8013,7 +8013,7 @@ compare_arguments (BtorNode *e0, BtorNode *e1)
   if (e0->arity != e1->arity) return 0;
 
   for (i = 1; i < e0->arity; i++)
-    if (e0->e[i] != e1->e[i]) return 0;
+    if (compare_assignments (e0->e[i], e1->e[i]) != 0) return 0;
 
   return 1;
 }
@@ -8233,7 +8233,7 @@ process_working_stack (Btor *btor,
         //	      if (BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
         //		  && BTOR_REAL_ADDR_NODE (lambda_value)->e[1] == index)
         if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (lambda_value))
-            && compare_arguments (lambda_value, acc))
+            && compare_argument_assignments (lambda_value, acc))
         {
           assert (BTOR_IS_READ_NODE (parameterized));
           assert (parameterized->e[0]
