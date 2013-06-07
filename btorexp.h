@@ -1079,12 +1079,14 @@ BtorNode *btor_fun_exp (Btor *btor,
                         BtorNode **params,
                         BtorNode *exp);
 
-/* Apply node that applies 'args' to 'lambda'.
+/* Apply node that applies 'args' to 'fun'.
  */
-BtorNode *btor_apply_exp (Btor *btor,
-                          int argc,
-                          BtorNode **args,
-                          BtorNode *lambda);
+BtorNode *btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
+BtorNode *btor_apply_exps (Btor *btor,
+                           int argc,
+                           BtorNode **args,
+                           BtorNode *fun);
+BtorNode *btor_args_exp (Btor *btor, int argc, BtorNode **args);
 
 /* If-then-else.
  * len(e_cond) = 1

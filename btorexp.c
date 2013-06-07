@@ -4184,7 +4184,40 @@ apply_exp (Btor * btor, int argc, BtorNode ** args, BtorNode * fun)
 #endif
 
 BtorNode *
-btor_apply_exp (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+btor_args_exp (Btor *btor, int argc, BtorNode **args)
+{
+  assert (btor);
+  assert (argc > 0);
+  assert (args);
+
+  int i;
+  BtorNode *e[argc];
+
+  for (i = 0; i < argc; i++) e[i] = btor_simplify_exp (btor, args[i]);
+
+  return create_exp (btor, BTOR_ARGS_NODE, argc, e);
+}
+
+BtorNode *
+btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
+{
+  assert (btor);
+  assert (fun);
+  assert (args);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (args));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (args));
+
+  BtorNode *e[2];
+  e[0] = btor_simplify_exp (btor, fun);
+  e[1] = btor_simplify_exp (btor, args);
+
+  return create_exp (btor, BTOR_APPLY_NODE, 2, e);
+}
+
+BtorNode *
+btor_apply_exps (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
   assert (btor);
   assert (argc > 0);
@@ -5394,7 +5427,7 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
 
   if (BTOR_IS_LAMBDA_NODE (e_array))
-    result = btor_apply_exp (btor, 1, &e_index, e_array);
+    result = btor_apply_exps (btor, 1, &e_index, e_array);
   else if (btor->rewrite_level > 0)
     result = btor_rewrite_read_exp (btor, e_array, e_index);
   else

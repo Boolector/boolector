@@ -1212,7 +1212,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   }
 
   btor->external_refs++;
-  return btor_apply_exp (btor, argc, args, fun);
+  return btor_apply_exps (btor, argc, args, fun);
 }
 
 BtorNode *

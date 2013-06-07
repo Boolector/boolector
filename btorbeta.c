@@ -522,7 +522,9 @@ btor_beta_reduce (
       {
         assert (BTOR_IS_UNARY_NODE (real_cur) || BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_IS_TERNARY_NODE (real_cur)
-                || BTOR_IS_APPLY_NODE (real_cur));
+                // TODO: make apply binary node
+                || BTOR_IS_APPLY_NODE (real_cur)
+                || BTOR_IS_ARGS_NODE (real_cur));
         assert (mode != BETA_RED_CUTOFF
                 || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur));
         assert (BTOR_COUNT_STACK (arg_stack) >= real_cur->arity);
@@ -574,6 +576,9 @@ btor_beta_reduce (
           case BTOR_READ_NODE:
             result = btor_read_exp (btor, e.start[0], e.start[1]);
             break;
+          case BTOR_ARGS_NODE:
+            result = btor_args_exp (btor, real_cur->arity, e.start);
+            break;
 
           case BTOR_APPLY_NODE:
             /* array exp has been beta-reduced to read value */
@@ -583,8 +588,10 @@ btor_beta_reduce (
               result = btor_copy_exp (btor, e.start[0]);
             }
             else
-              result = btor_apply_exp (
-                  btor, real_cur->arity - 1, e.start + 1, e.start[0]);
+              result = btor_apply_exp (btor, e.start[0], e.start[1]);
+            //		      result =
+            //			btor_apply_exp (btor, real_cur->arity - 1,
+            //					e.start + 1, e.start[0]);
 
             if (cache && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
                 && mode == BETA_RED_FULL)
