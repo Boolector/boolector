@@ -603,6 +603,9 @@ struct Btor
 #define BTOR_IS_NESTED_LAMBDA_NODE(exp) \
   (BTOR_IS_LAMBDA_NODE (exp) && ((BtorLambdaNode *) exp)->nested)
 
+#define BTOR_IS_FUN_NODE(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp))
+
 #define BTOR_IS_BOUND_PARAM_NODE(exp) (((BtorParamNode *) exp)->lambda_exp != 0)
 
 #define BTOR_PARAM_GET_LAMBDA_NODE(exp) (((BtorParamNode *) exp)->lambda_exp)
