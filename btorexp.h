@@ -292,6 +292,7 @@ struct BtorLambdaNode
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
   int chain_depth;  // TODO: remove
+  unsigned int is_write : 1;
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
@@ -300,6 +301,7 @@ struct BtorApplyNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  unsigned int is_read : 1;
   // TODO: params
   // TODO: args
 };

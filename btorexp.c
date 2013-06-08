@@ -4307,18 +4307,35 @@ btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
-  BtorNode *result;
+  BtorApplyNode *result;
   e_array = btor_simplify_exp (btor, e_array);
-  // assert (btor->rewrite_level < 3 || !BTOR_IS_ARRAY_COND_NODE (e_array));
-  // // TODO AB: remove
+  e_index = btor_simplify_exp (btor, e_index);
+  assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
+
+  result          = btor_apply_exps (btor, 1, &e_index, e_array);
+  result->is_read = 1;
+
+  if (!result->bits) result->bits = btor_x_const_3vl (btor->mm, e_array->len);
+
+  return (BtorNode *) result;
+}
+
+#if 0
+BtorNode *
+btor_read_exp_node (Btor * btor, BtorNode * e_array, BtorNode * e_index)
+{
+  BtorNode * result;
+  e_array = btor_simplify_exp (btor, e_array);
+  // assert (btor->rewrite_level < 3 || !BTOR_IS_ARRAY_COND_NODE (e_array));	// TODO AB: remove
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
   result = btor_apply_exps (btor, 1, &e_index, e_array);
-  //  result = binary_exp (btor, BTOR_READ_NODE, e_array, e_index,
-  //  e_array->len);
-  if (!result->bits) result->bits = btor_x_const_3vl (btor->mm, e_array->len);
+//  result = binary_exp (btor, BTOR_READ_NODE, e_array, e_index, e_array->len);
+  if (!result->bits)
+    result->bits = btor_x_const_3vl (btor->mm, e_array->len);
   return result;
 }
+#endif
 
 BtorNode *
 btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
@@ -4623,7 +4640,8 @@ btor_write_exp_node (Btor *btor,
   assert (BTOR_IS_FUN_NODE (e_array));
 
   // TODO: set write flag for lambda (for write extensionality)
-  BtorNode *param, *e_cond, *e_if, *e_else, *bvcond, *lambda;
+  BtorNode *param, *e_cond, *e_if, *e_else, *bvcond;
+  BtorLambdaNode *lambda;
 
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
@@ -4636,6 +4654,7 @@ btor_write_exp_node (Btor *btor,
   e_else = btor_read_exp (btor, e_array, param);
   bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
   lambda = btor_lambda_exp (btor, param, bvcond);
+  lambda->is_write = 1;
 
   btor_release_exp (btor, e_if);
   btor_release_exp (btor, e_else);
@@ -4643,7 +4662,7 @@ btor_write_exp_node (Btor *btor,
   btor_release_exp (btor, bvcond);
   btor_release_exp (btor, param);
 
-  return lambda;
+  return (BtorNode *) lambda;
 }
 
 #if 0
@@ -5793,10 +5812,9 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
+  assert (BTOR_IS_FUN_NODE (e_array));
 
-  if (BTOR_IS_LAMBDA_NODE (e_array))
-    result = btor_apply_exps (btor, 1, &e_index, e_array);
-  else if (btor->rewrite_level > 0)
+  if (btor->rewrite_level > 0)
     result = btor_rewrite_read_exp (btor, e_array, e_index);
   else
     result = btor_read_exp_node (btor, e_array, e_index);
