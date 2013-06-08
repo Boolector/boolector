@@ -8709,7 +8709,6 @@ propagate (Btor *btor,
           continue;
       }
     }
-
     assert (fun->rho);
     assert (!btor_find_in_ptr_hash_table (fun->rho, args));
     btor_insert_in_ptr_hash_table (fun->rho, args)->data.asPtr = app;
@@ -8742,13 +8741,11 @@ propagate (Btor *btor,
     if (parameterized)
     {
       assert (BTOR_IS_REGULAR_NODE (parameterized));
-      printf ("%s\n", node2string (fun_value));
-      printf ("%s\n", node2string (parameterized));
       assert (!BTOR_IS_APPLY_NODE (parameterized)
               || BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
 
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
-          && compare_argument_assignments (fun_value, app))
+          && compare_argument_assignments (fun_value->e[1], args))
       {
         assert (BTOR_IS_APPLY_NODE (parameterized));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
@@ -9846,7 +9843,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   for (temp = top_arrays->start; temp != top; temp++)
   {
     cur_array = *temp;
-    printf ("top_array: %s\n", node2string (cur_array));
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     assert (cur_array->reachable);
