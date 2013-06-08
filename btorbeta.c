@@ -139,6 +139,7 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *arg)
 void
 btor_assign_param (Btor *btor, BtorNode *fun, BtorNode *arg)
 {
+  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (arg)));
   btor_assign_params (btor, 1, &arg, fun);
 }
 #else
@@ -292,7 +293,6 @@ btor_beta_reduce (
   const char *eval_res;
   double start;
   BtorMemMgr *mm;
-  // TODO: variable length arrays for e and p
   BtorNode *cur, *real_cur, *next, *result, *param, *cached, *args;
   BtorNode *result_parameterized, *cur_scope_lambda, *cur_parent;
   BtorNodePtrStack work_stack, arg_stack, parameterized_stack;
@@ -372,7 +372,8 @@ btor_beta_reduce (
       mbucket             = btor_insert_in_ptr_hash_table (cur_scope, real_cur);
       mbucket->data.asInt = 0;
     }
-    printf ("visit: %s (%d)\n", node2string (real_cur), mbucket->data.asInt);
+    //      printf ("visit: %s (%d)\n", node2string (real_cur),
+    //      mbucket->data.asInt);
 
     if (mbucket->data.asInt == 0)
     {
@@ -475,26 +476,16 @@ btor_beta_reduce (
             && !btor_param_cur_assignment (e.start[0])
             /* we have an assignment if there is a lambda application */
             && BTOR_IS_APPLY_NODE (cur_parent))
-        //		  && BTOR_IS_READ_NODE (cur_parent))
         {
           assert (!btor_find_in_ptr_hash_table (
               cur_scope, BTOR_REAL_ADDR_NODE (e.start[0])));
 
-          // TODO: get arguments for apply
-          // STOPPED HERE
-          //		  assignment = BTOR_TOP_STACK (arg_stack);
           args = BTOR_TOP_STACK (arg_stack);
           assert (BTOR_IS_ARGS_NODE (args));
 
           if (cache) BETA_REDUCE_PUSH_RESULT_IF_CACHED (real_cur, args);
 
-          //		  int argc = cur_parent->arity - 1;
-          //		  btor_assign_params (btor,
-          //				      argc,
-          //				      arg_stack.top - argc,
-          //				      real_cur);
           btor_assign_args (btor, real_cur, args);
-//		  btor_assign_param (btor, real_cur, assignment);
 #ifndef NDEBUG
           BTOR_PUSH_STACK (mm, unassign_stack, real_cur);
 #endif
@@ -503,10 +494,9 @@ btor_beta_reduce (
         BTOR_PUSH_STACK (mm, work_stack, cur);
         BTOR_PUSH_STACK (mm, work_stack, cur_parent);
 
-        // TODO: apply
-        /* NOTE: the index of a read on a lambda has to be visited first
+        /* NOTE: all arguments of an apply have to be visited first
          *       in order to get a correct assignment for the parameter
-         *       of the lambda. */
+         *       of a lambda. */
         for (i = 0; i < real_cur->arity; i++)
         {
           BTOR_PUSH_STACK (mm, work_stack, e.start[i]);
@@ -596,16 +586,17 @@ btor_beta_reduce (
 
           case BTOR_APPLY_NODE:
             /* array exp has been beta-reduced to read value */
-            if (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e.start[0])))
+            if (!BTOR_IS_FUN_NODE (BTOR_REAL_ADDR_NODE (e.start[0])))
             {
               assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (e.start[0])));
               result = btor_copy_exp (btor, e.start[0]);
             }
             else
+            {
+              assert (BTOR_IS_FUN_NODE (e.start[0]));
+              assert (BTOR_IS_ARGS_NODE (e.start[1]));
               result = btor_apply_exp (btor, e.start[0], e.start[1]);
-            //		      result =
-            //			btor_apply_exp (btor, real_cur->arity - 1,
-            //					e.start + 1, e.start[0]);
+            }
 
             if (cache && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
                 && mode == BETA_RED_FULL)
@@ -761,7 +752,7 @@ btor_beta_reduce (
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
       if (BTOR_IS_INVERTED_NODE (cur)) result = BTOR_INVERT_NODE (result);
 
-      printf ("  result: %s\n", node2string (result));
+      //	  printf ("  result: %s\n", node2string (result));
       BTOR_PUSH_STACK (mm, arg_stack, result);
       BTOR_PUSH_STACK (mm, parameterized_stack, result_parameterized);
     }
