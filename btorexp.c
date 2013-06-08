@@ -4619,16 +4619,18 @@ btor_write_exp_node (Btor *btor,
                      BtorNode *e_index,
                      BtorNode *e_value)
 {
+  assert (btor);
+  assert (BTOR_IS_FUN_NODE (e_array));
+
+  // TODO: set write flag for lambda (for write extensionality)
   BtorNode *param, *e_cond, *e_if, *e_else, *bvcond, *lambda;
 
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   e_value = btor_simplify_exp (btor, e_value);
   assert (btor_precond_write_exp_dbg (btor, e_array, e_index, e_value));
-  //  return ternary_exp (btor, BTOR_WRITE_NODE, e_array, e_index, e_value, 0);
 
-  param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e_index)->len, "");
-
+  param  = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e_index)->len, "");
   e_cond = btor_eq_exp (btor, param, e_index);
   e_if   = btor_copy_exp (btor, e_value);
   e_else = btor_read_exp (btor, e_array, param);
@@ -4682,9 +4684,9 @@ btor_array_cond_exp_node (Btor *btor,
                           BtorNode *e_else)
 {
   assert (BTOR_IS_REGULAR_NODE (e_if));
-  assert (BTOR_IS_LAMBDA_NODE (e_if));
+  assert (BTOR_IS_FUN_NODE (e_if));
   assert (BTOR_IS_REGULAR_NODE (e_else));
-  assert (BTOR_IS_LAMBDA_NODE (e_else));
+  assert (BTOR_IS_FUN_NODE (e_else));
 
   BtorNode *cond, *param, *lambda, *app_if, *app_else;
 
