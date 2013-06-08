@@ -2203,6 +2203,7 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_ARGS_NODE (args1));
     assert (args0->arity == args1->arity);
 
+    // TODO: encode !(a0[0] == a1[0] && a0[1] == a1[1] ... )
     for (i = 0; i < args0->arity; i++)
     {
       arg0 = args0->e[i];
@@ -8709,11 +8710,16 @@ propagate (Btor *btor,
       }
     }
 
+    assert (fun->rho);
+    assert (!btor_find_in_ptr_hash_table (fun->rho, args));
+    btor_insert_in_ptr_hash_table (fun->rho, args)->data.asPtr = app;
+    BTORLOG ("  save app: %s (%s)", node2string (args), node2string (app));
+
     /* skip array vars */
     if (!BTOR_IS_LAMBDA_NODE (fun))
     {
       assert (BTOR_IS_ARRAY_VAR_NODE (fun));
-      goto PROPAGATE_RHO;
+      continue;
     }
 
     lambda = (BtorLambdaNode *) fun;
@@ -8823,12 +8829,6 @@ propagate (Btor *btor,
     btor_release_exp (btor, fun_value);
   }
 
-PROPAGATE_RHO:
-  assert (fun->rho);
-  btor_insert_in_ptr_hash_table (fun->rho, args)->data.asPtr = app;
-  BTORLOG ("  save app: %s (%s)", node2string (args), node2string (app));
-
-  // TODO: write ext
   return 0;
 }
 
