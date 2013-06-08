@@ -107,8 +107,9 @@ if __name__ == "__main__":
             cmd ("assert", "(= (select a (_ bv{} {})) (_ bv{} {}))".format(
                 i, args.index_bw, i, args.elem_bw))
 
-    cmd ("assert", "(and (bvuge j{} (_ bv0 {})) (bvult j{} i{}))".format(
-        idx, args.index_bw, idx, idx))
+    for i in range(1, max_idx + 1):
+        cmd ("assert", "(and (bvuge j{} (_ bv0 {})) (bvult j{} i{}))".format(
+            i, args.index_bw, i, i))
 
     cmd ("assert", "(not (= (shuffle1 k) (reverse_rshuffle k)))")
     cmd ("check-sat")
