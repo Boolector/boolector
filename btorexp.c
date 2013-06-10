@@ -4639,7 +4639,6 @@ btor_write_exp_node (Btor *btor,
   assert (btor);
   assert (BTOR_IS_FUN_NODE (e_array));
 
-  // TODO: set write flag for lambda (for write extensionality)
   BtorNode *param, *e_cond, *e_if, *e_else, *bvcond;
   BtorLambdaNode *lambda;
 
@@ -8681,6 +8680,7 @@ propagate (Btor *btor,
 
   mm = btor->mm;
 
+  BTORLOG ("");
   BTORLOG ("*** %s", __FUNCTION__);
   while (!BTOR_EMPTY_STACK (*prop_stack))
   {
@@ -8706,7 +8706,6 @@ propagate (Btor *btor,
     check_not_simplified_or_const (btor, args);
 
     // debug
-    BTORLOG ("");
     BTORLOG ("propagate");
     BTORLOG ("  fun: %s", node2string (fun));
     BTORLOG ("  app: %s", node2string (app));
@@ -8796,6 +8795,7 @@ propagate (Btor *btor,
 
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal)
       {
+        BTORLOG ("  propagate down");
         assert (BTOR_IS_APPLY_NODE (parameterized));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
         BTOR_PUSH_STACK (mm, *prop_stack, parameterized->e[0]);
@@ -13019,6 +13019,20 @@ synthesize_all_reads (Btor *btor)
       if (BTOR_IS_READ_NODE (n)) synthesize_exp (btor, n, 0);
 }
 
+#if 0
+// TODO: check if needed
+static void
+synthesize_all_applies (Btor * btor)
+{
+  BtorNode *n;
+  int i;
+  for (i = 0; i < btor->nodes_unique_table.size; i++)
+    for (n = btor->nodes_unique_table.chains[i]; n; n = n->next)
+      if (BTOR_IS_APPLY_NODE (n))
+	synthesize_exp (btor, n, 0);
+}
+#endif
+
 static int
 btor_sat_aux_btor (Btor *btor)
 {
@@ -13188,7 +13202,7 @@ btor_array_assignment_exp (
     Btor *btor, BtorNode *exp, char ***indices, char ***values, int *size)
 {
   BtorPtrHashBucket *b;
-  BtorNode *index, *value;
+  BtorNode *index, *value, *args;
   int i;
 
   assert (btor);
@@ -13217,7 +13231,11 @@ btor_array_assignment_exp (
 
     for (b = exp->rho->first; b; b = b->next)
     {
-      index         = (BtorNode *) b->key;
+      args = (BtorNode *) b->key;
+      assert (BTOR_IS_REGULAR_NODE (args));
+      assert (BTOR_IS_ARGS_NODE (args));
+      assert (args->arity == 1);
+      index         = args->e[0];
       value         = BTOR_GET_VALUE_ACC_NODE ((BtorNode *) b->data.asPtr);
       (*indices)[i] = btor_bv_assignment_exp (btor, index);
       (*values)[i]  = btor_bv_assignment_exp (btor, value);
