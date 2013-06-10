@@ -2039,7 +2039,7 @@ collect_premisses (Btor *btor,
         if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
           BTOR_PUSH_STACK (mm, bconds, cur);
       }
-      // TODO: optimization collect applies (propagated over)
+      // TODO: implement apply over apply propagation
 #if 0
 	  else if (BTOR_IS_APPLY_NODE (cur))
 	    {
@@ -8607,13 +8607,6 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
         BTOR_PUSH_STACK (mm, work_stack, assigned_exp);
         real_cur->eval_mark = 2;
       }
-      /* we cannot compute values for apply nodes if they are not encoded */
-      else if (BTOR_IS_APPLY_NODE (real_cur) && !real_cur->tseitin)
-      {
-        BTOR_RESET_STACK (arg_stack);
-        BTOR_PUSH_STACK (mm, arg_stack, btor_bv_assignment_exp (btor, cur));
-        break;
-      }
       else
       {
         BTOR_PUSH_STACK (mm, work_stack, cur);
@@ -8639,6 +8632,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       assert (!BTOR_IS_LAMBDA_NODE (real_cur));
       assert (!BTOR_IS_ARGS_NODE (real_cur));
       assert (!BTOR_IS_PROXY_NODE (real_cur));
+      assert (real_cur->arity <= 3);
       real_cur->eval_mark = 2;
 
       if (BTOR_IS_BV_CONST_NODE (real_cur))
@@ -9019,11 +9013,11 @@ propagate (Btor *btor,
     }
     btor_unassign_param (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
-    // debug
-    char *b = btor_eval_exp (btor, fun_value);
-    BTORLOG ("  fun_value: %s, %s", b, node2string (fun_value));
-    btor_freestr (btor->mm, b);
-    // debug
+    //      // debug
+    //      char *b = btor_eval_exp (btor, fun_value);
+    //      BTORLOG ("  fun_value: %s, %s", b, node2string (fun_value));
+    //      btor_freestr (btor->mm, b);
+    //      // debug
 
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
