@@ -4312,7 +4312,7 @@ btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
 
-  result          = btor_apply_exps (btor, 1, &e_index, e_array);
+  result = (BtorApplyNode *) btor_apply_exps (btor, 1, &e_index, e_array);
   result->is_read = 1;
 
   if (!result->bits) result->bits = btor_x_const_3vl (btor->mm, e_array->len);
@@ -4653,7 +4653,7 @@ btor_write_exp_node (Btor *btor,
   e_if   = btor_copy_exp (btor, e_value);
   e_else = btor_read_exp (btor, e_array, param);
   bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
-  lambda = btor_lambda_exp (btor, param, bvcond);
+  lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
   lambda->is_write = 1;
 
   btor_release_exp (btor, e_if);
@@ -8158,11 +8158,12 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (!BTOR_IS_WRITE_NODE (cur));
+    assert (!BTOR_IS_ARRAY_COND_NODE (cur));
 
     if (cur->mark == 2) continue;
 
-    /* do not encode array vars */
-    if (BTOR_IS_ARRAY_VAR_NODE (cur)) continue;
+    /* do not encode function nodes */
+    if (BTOR_IS_FUN_NODE (cur)) continue;
 
     if (cur->mark == 0)
     {
@@ -8170,24 +8171,21 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
       BTOR_PUSH_STACK (mm, work_stack, cur);
       BTOR_PUSH_STACK (mm, unmark_stack, cur);
 
-      if (BTOR_IS_APPLY_NODE (cur) || BTOR_IS_READ_NODE (cur)) continue;
-
       for (i = 0; i < cur->arity; i++)
         BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
     }
     else
     {
-      /* lambdas, writes and array conditionals are only reachable over
-       * array equalities, we do not need to synthesize array nodes */
-      if (BTOR_IS_LAMBDA_NODE (cur) || BTOR_IS_WRITE_NODE (cur)
-          || BTOR_IS_ARRAY_COND_NODE (cur))
-        continue;
-
       assert (cur->mark == 1);
+
+      if (BTOR_IS_LAMBDA_NODE (cur)) continue;
+
       cur->mark = 2;
 
       if (!cur->parameterized)
       {
+        assert (!BTOR_IS_ARGS_NODE (cur));
+
         if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
 
         if (!cur->tseitin)
@@ -8591,19 +8589,44 @@ skipfun_tseitin (BtorNode *exp)
   return BTOR_REAL_ADDR_NODE (exp)->tseitin;
 }
 
+// TODO: better solution?
 static int
 compare_argument_assignments (BtorNode *e0, BtorNode *e1)
 {
-  int i;
   assert (BTOR_IS_REGULAR_NODE (e0));
   assert (BTOR_IS_REGULAR_NODE (e1));
   assert (BTOR_IS_ARGS_NODE (e0));
   assert (BTOR_IS_ARGS_NODE (e1));
 
+  int i, equal;
+  char *avec0, *avec1;
+  BtorNode *arg0, *arg1;
+  Btor *btor;
+  btor = e0->btor;
+
   if (e0->arity != e1->arity) return 1;
 
   for (i = 0; i < e0->arity; i++)
-    if (compare_assignments (e0->e[i], e1->e[i]) != 0) return 1;
+  {
+    arg0 = e0->e[i];
+    arg1 = e1->e[i];
+
+    if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg0)))
+      avec0 = btor_eval_exp (btor, arg0);
+    else
+      avec0 = btor_bv_assignment_exp (btor, arg0);
+
+    if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg1)))
+      avec1 = btor_eval_exp (btor, arg1);
+    else
+      avec1 = btor_bv_assignment_exp (btor, arg1);
+
+    equal = strcmp (avec0, avec1) == 0;
+    btor_freestr (btor->mm, avec0);
+    btor_freestr (btor->mm, avec1);
+
+    if (!equal) return 1;
+  }
 
   return 0;
 }
@@ -8647,7 +8670,7 @@ propagate (Btor *btor,
   assert (btor->ops[BTOR_ACOND_NODE] == 0);
   assert (btor->ops[BTOR_WRITE_NODE] == 0);
 
-  int i, values_equal;
+  int i, values_equal, args_equal;
   char *fun_value_assignment, *app_assignment;
   BtorMemMgr *mm;
   BtorLambdaNode *lambda;
@@ -8747,9 +8770,16 @@ propagate (Btor *btor,
     if (*assignments_changed) return 0;
 
     btor_assign_args (btor, fun, args);
-    fun_value = btor_beta_reduce_cutoff (btor, fun, &parameterized);
+    fun_value  = btor_beta_reduce_cutoff (btor, fun, &parameterized);
+    args_equal = 0;
+    if (parameterized && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
+    {
+      args_equal = compare_argument_assignments (fun_value->e[1], args);
+      BTORLOG ("  args_equal: %d", args_equal);
+    }
     btor_unassign_param (btor, fun);
     assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
+    BTORLOG ("  fun_value: %s", node2string (fun_value));
 
     if (BTOR_IS_ARRAY_VAR_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
@@ -8764,8 +8794,7 @@ propagate (Btor *btor,
       assert (!BTOR_IS_APPLY_NODE (parameterized)
               || BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)));
 
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
-          && compare_argument_assignments (fun_value->e[1], args))
+      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal)
       {
         assert (BTOR_IS_APPLY_NODE (parameterized));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
