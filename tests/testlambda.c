@@ -1077,7 +1077,7 @@ test_lambda_reduce_nested_lambdas_add1 (void)
   assert (result == expected);
   btor_release_exp (g_btor, result);
 
-  BtorNode *apply = btor_apply_exp (g_btor, 2, args, fun);
+  BtorNode *apply = btor_apply_exps (g_btor, 2, args, fun);
   result          = btor_beta_reduce_full (g_btor, apply);
   assert (result == expected);
 
@@ -1189,7 +1189,7 @@ test_lambda_reduce_nested_lambdas_const_n1000 (void)
   assert (result == var);
   btor_release_exp (g_btor, result);
 
-  BtorNode *apply = btor_apply_exp (g_btor, nesting_lvl, indices, fun);
+  BtorNode *apply = btor_apply_exps (g_btor, nesting_lvl, indices, fun);
   result          = btor_beta_reduce_full (g_btor, apply);
   assert (result == var);
 
