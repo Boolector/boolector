@@ -1935,7 +1935,7 @@ collect_premisses (Btor *btor,
   assert (bconds_sel2);
 
   const char *res;
-  int assignment, propagated_upwards, prev_propagated_upwards;
+  int propagated_upwards, prev_propagated_upwards;
   BtorNode *cur, *prev, *cond, *prev_lambda, *bcond, *lambda;
   BtorNodePtrStack bconds;
   BtorMemMgr *mm;
@@ -2241,12 +2241,15 @@ print_lemma_dbg (Btor *btor,
   app0 = BTOR_REAL_ADDR_NODE (app0);
   app1 = BTOR_REAL_ADDR_NODE (app1);
 
-  if (BTOR_IS_APPLY_NODE (app0)) args0 = app0->e[0];
+  if (BTOR_IS_APPLY_NODE (app0)) args0 = app0->e[1];
 
   if (BTOR_IS_APPLY_NODE (app1)) args1 = app1->e[1];
 
   if (args0 && args1)
   {
+    assert (BTOR_IS_REGULAR_NODE (args0));
+    assert (BTOR_IS_REGULAR_NODE (args1));
+    assert (args0->arity == args1->arity);
     for (i = 0; i < args0->arity; i++)
     {
       arg0 = args0->e[i];
@@ -2299,13 +2302,13 @@ encode_lemma (Btor *btor,
 #ifndef NDEBUG
   int found;
 #endif
-  int i, k, val, false_lit, true_lit;
+  int i, k, val;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *args0, *args1, *arg0, *arg1;
-  BtorNode *cur_write, *w_index, *aeq, *cond, *acond, *bcond;
+  BtorNode *cond, *bcond;
   BtorNode *cur, *lambda_value, *parameterized, *args;
   BtorNode *a, *b;
   BtorIntStack linking_clause;
@@ -2315,9 +2318,6 @@ encode_lemma (Btor *btor,
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
   smgr  = btor_get_sat_mgr_aig_mgr (amgr);
-
-  true_lit  = smgr->true_lit;
-  false_lit = -true_lit;
 
   BTOR_INIT_STACK (linking_clause);
 
@@ -8833,7 +8833,7 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   assert (BTOR_IS_ARGS_NODE (e1));
 
   int i, equal;
-  char *avec0, *avec1;
+  const char *avec0, *avec1;
   BtorNode *arg0, *arg1;
   Btor *btor;
   btor = e0->btor;
@@ -9008,7 +9008,9 @@ propagate (Btor *btor,
     args_equal = 0;
     if (parameterized && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
     {
-      args_equal = (compare_argument_assignments (fun_value->e[1], args) == 0);
+      args_equal = (compare_argument_assignments (
+                        BTOR_REAL_ADDR_NODE (fun_value)->e[1], args)
+                    == 0);
       BTORLOG ("  args_equal: %d", args_equal);
     }
     btor_unassign_param (btor, fun);
