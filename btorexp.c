@@ -120,9 +120,10 @@ static void release_cache (Btor *);
 /*------------------------------------------------------------------------*/
 
 static const char *const g_op2string[] = {
-    "invalid", "const", "var",    "array", "param", "slice", "and",  "beq",
-    "aeq",     "add",   "mul",    "ult",   "sll",   "srl",   "udiv", "urem",
-    "concat",  "read",  "lambda", "write", "bcond", "acond", "proxy"};
+    "invalid", "const", "var",    "array", "param",  "slice", "and",
+    "beq",     "aeq",   "add",    "mul",   "ult",    "sll",   "srl",
+    "udiv",    "urem",  "concat", "read",  "lambda", "write", "bcond",
+    "acond",   "args",  "apply",  "proxy"};
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
