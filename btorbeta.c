@@ -443,11 +443,11 @@ btor_beta_reduce (
       }
       /* evaluate conditionals if condition is encoded or parameterized */
       else if (mode == BETA_RED_CUTOFF
-               && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur)
-               && (BTOR_REAL_ADDR_NODE (e.start[0])->tseitin
-                   || BTOR_REAL_ADDR_NODE (e.start[0])->parameterized))
+               && BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur))
       {
-        // TODO: move tseitin || parameterized as assertion to here
+        assert (BTOR_REAL_ADDR_NODE (e.start[0])->tseitin
+                || BTOR_REAL_ADDR_NODE (e.start[0])->parameterized
+                || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e.start[0])));
         eval_res = btor_eval_exp (btor, e.start[0]);
         next     = eval_res[0] == '1' ? e.start[1] : e.start[2];
         assert (next);
