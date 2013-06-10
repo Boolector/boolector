@@ -1968,6 +1968,9 @@ collect_premisses (Btor *btor,
                  BTOR_REAL_ADDR_NODE (lambda)->id,
                  bcond->id);
 
+        if (BTOR_IS_NESTED_LAMBDA_NODE (lambda))
+          lambda = ((BtorLambdaNode *) lambda)->nested;
+
         btor_assign_param (btor, lambda, index);
         res = btor_eval_exp (btor, cond);
         btor_unassign_param (btor, lambda);
@@ -7171,6 +7174,7 @@ lazy_synthesize_and_encode_lambda_arguments (Btor *btor,
 
   cur = BTOR_REAL_ADDR_NODE (read->e[1]);
   BTOR_PUSH_STACK (mm, synth, read->e[1]);
+  /* collect arguments to synthesize */
   while (arity > 1)
   {
     assert (BTOR_IS_CONCAT_NODE (cur));
@@ -7182,7 +7186,7 @@ lazy_synthesize_and_encode_lambda_arguments (Btor *btor,
     assert (!BTOR_IS_SYNTH_NODE (cur));
     assert (!cur->tseitin);
 
-    cur = BTOR_REAL_ADDR_NODE (cur->e[0]);
+    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
     arity--;
   }
 
@@ -11756,7 +11760,8 @@ DONE:
   btor->valid_assignments = 1;
   BTOR_ABORT_NODE (sat_result != BTOR_SAT && sat_result != BTOR_UNSAT,
                    "result must be sat or unsat");
-  if (sat_result == BTOR_UNSAT) btor->inconsistent = 1;
+
+  btor->last_sat_result = sat_result;
   return sat_result;
 }
 
