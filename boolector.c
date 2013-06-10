@@ -39,6 +39,12 @@ boolector_clone (Btor *btor)
   return btor_clone_btor (btor);
 }
 
+int
+boolector_is_inconsistent (Btor *btor)
+{
+  return btor->inconsistent;
+}
+
 void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
@@ -180,7 +186,14 @@ boolector_var (Btor *btor, int width, const char *symbol)
   BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
   btor->external_refs++;
   if (symbol == NULL)
-    return btor_var_exp (btor, width, "DVN");
+  {
+    BtorNode *var;
+    char *symb = malloc (20);
+    sprintf (symb, "DVN%d", btor->dvn_id++);
+    var = btor_var_exp (btor, width, symb);
+    free (symb);
+    return var;
+  }
   else
     return btor_var_exp (btor, width, symbol);
 }
@@ -196,7 +209,14 @@ boolector_array (Btor *btor,
   BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
   btor->external_refs++;
   if (symbol == NULL)
-    return btor_array_exp (btor, elem_width, index_width, "DAN");
+  {
+    BtorNode *arr;
+    char *symb = malloc (20);
+    sprintf (symb, "DAN%d", btor->dan_id++);
+    arr = btor_array_exp (btor, elem_width, index_width, symb);
+    free (symb);
+    return arr;
+  }
   else
     return btor_array_exp (btor, elem_width, index_width, symbol);
 }
@@ -1405,8 +1425,8 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
-      "cannot retrieve assignment if input formula is not SAT");
+      boolector_is_inconsistent (btor),
+      "cannot retrieve assignment from inconsistent input formula");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
@@ -1430,8 +1450,8 @@ boolector_array_assignment (
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      btor->last_sat_result != BTOR_SAT,
-      "cannot retrieve assignment if input formula is not SAT");
+      boolector_is_inconsistent (btor),
+      "cannot retrieve assignment from inconsistent input formula");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);

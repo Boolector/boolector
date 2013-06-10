@@ -5376,6 +5376,8 @@ btor_new_btor (void)
 
   btor->bv_lambda_id      = 1;
   btor->array_lambda_id   = 1;
+  btor->dvn_id            = 1;
+  btor->dan_id            = 1;
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
