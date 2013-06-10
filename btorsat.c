@@ -640,6 +640,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   char name[80];
 
   lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+  lglsetopt (lgl, "verbose", -1);
 
   if (!smgr->inc_required)
   {
