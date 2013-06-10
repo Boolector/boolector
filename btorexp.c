@@ -6992,6 +6992,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
         assert (!BTOR_IS_ARRAY_COND_NODE (cur));
 
         /* special cases */
+        // TODO: remove this case
         if (BTOR_IS_READ_NODE (cur) && !cur->parameterized)
         {
           cur->av = btor_var_aigvec (avmgr, cur->len);
@@ -11742,8 +11743,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
         cur->mark   = 0;
         rebuilt_exp = rewrite_write_to_lambda_exp (btor, cur);
       }
-      // TODO: apply node
-      else if (rwr && BTOR_IS_READ_NODE (cur) && cur->mark)
+      else if (rwr && BTOR_IS_APPLY_NODE (cur) && cur->mark)
       {
         cur->mark   = 0;
         rebuilt_exp = btor_beta_reduce_full (btor, cur);
@@ -12735,42 +12735,42 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 {
   assert (btor);
 
-  BtorPtrHashTable *reads;
+  BtorPtrHashTable *apps;
   BtorPtrHashBucket *b;
-  BtorNode *read, *lambda;
+  BtorNode *app, *fun;
   BtorPartialParentIterator it;
   BtorMemMgr *mm;
 
   if (btor->lambdas->count == 0) return;
 
-  mm    = btor->mm;
-  reads = btor_new_ptr_hash_table (mm,
-                                   (BtorHashPtr) btor_hash_exp_by_id,
-                                   (BtorCmpPtr) btor_compare_exp_by_id);
+  mm   = btor->mm;
+  apps = btor_new_ptr_hash_table (mm,
+                                  (BtorHashPtr) btor_hash_exp_by_id,
+                                  (BtorCmpPtr) btor_compare_exp_by_id);
 
-  /* collect reads */
+  /* collect function applications */
   for (b = btor->lambdas->first; b; b = b->next)
   {
-    lambda = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
-    init_read_parent_iterator (&it, lambda);
-    while (has_next_parent_read_parent_iterator (&it))
+    fun = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
+    init_apply_parent_iterator (&it, fun);
+    while (has_next_parent_apply_parent_iterator (&it))
     {
-      read = next_parent_read_parent_iterator (&it);
+      app = next_parent_apply_parent_iterator (&it);
 
-      if (btor_find_in_ptr_hash_table (reads, read)) continue;
+      if (btor_find_in_ptr_hash_table (apps, app)) continue;
 
-      if (!read->parameterized)
+      if (!app->parameterized)
       // FIXME: only beta reduce not parameterized reads
       //	      || BTOR_REAL_ADDR_NODE (read->e[0])->refs == 1)
       {
-        assert (!read->parameterized || read->e[0]->refs == 1);
-        btor_insert_in_ptr_hash_table (reads, read);
+        assert (!app->parameterized || app->e[0]->refs == 1);
+        btor_insert_in_ptr_hash_table (apps, app);
       }
     }
   }
 
-  substitute_and_rebuild (btor, reads, 0, 1);
-  btor_delete_ptr_hash_table (reads);
+  substitute_and_rebuild (btor, apps, 0, 1);
+  btor_delete_ptr_hash_table (apps);
 }
 
 static void
