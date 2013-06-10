@@ -10910,9 +10910,10 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   init_write_parent_iterator (&it, write);
   has_write_parent = has_next_parent_write_parent_iterator (&it);
 
-  if (0 && (has_write_parent && write->refs == 1)
-      || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
-          && ((BtorLambdaNode *) e[0])->chain_depth > 0))
+  if (0
+      && ((has_write_parent && write->refs == 1)
+          || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
+              && ((BtorLambdaNode *) e[0])->chain_depth > 0)))
   {
     assert (!has_write_parent || write->refs == 1);
     if (BTOR_IS_LAMBDA_NODE (e[0]))
