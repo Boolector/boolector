@@ -8166,9 +8166,12 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
     if (cur->mark == 0)
     {
-      cur->mark = 1;
-      BTOR_PUSH_STACK (mm, work_stack, cur);
-      BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      if (!BTOR_IS_ARGS_NODE (cur))
+      {
+        cur->mark = 1;
+        BTOR_PUSH_STACK (mm, work_stack, cur);
+        BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      }
 
       for (i = 0; i < cur->arity; i++)
         BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
@@ -8176,6 +8179,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     else
     {
       assert (cur->mark == 1);
+      assert (!BTOR_IS_ARGS_NODE (cur));
 
       if (BTOR_IS_LAMBDA_NODE (cur)) continue;
 
@@ -8183,8 +8187,6 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
       if (!cur->parameterized)
       {
-        assert (!BTOR_IS_ARGS_NODE (cur));
-
         if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
 
         if (!cur->tseitin)
