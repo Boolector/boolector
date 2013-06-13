@@ -660,7 +660,7 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   }
   else
   {
-    btor_msg_sat (smgr, 1, "blimit = %d", blgl->blimit);
+    btor_msg_sat (smgr, 2, "blimit = %d", blgl->blimit);
     lglsetopt (lgl, "clim", blgl->blimit);
     if (!(res = lglsat (lgl)))
     {
