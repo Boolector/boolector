@@ -39,12 +39,6 @@ boolector_clone (Btor *btor)
   return btor_clone_btor (btor);
 }
 
-int
-boolector_is_inconsistent (Btor *btor)
-{
-  return btor->inconsistent;
-}
-
 void
 boolector_set_rewrite_level (Btor *btor, int rewrite_level)
 {
@@ -1429,8 +1423,8 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      boolector_is_inconsistent (btor),
-      "cannot retrieve assignment from inconsistent input formula");
+      btor->last_sat_result != BTOR_SAT,
+      "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
@@ -1454,8 +1448,8 @@ boolector_array_assignment (
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
-      boolector_is_inconsistent (btor),
-      "cannot retrieve assignment from inconsistent input formula");
+      btor->last_sat_result != BTOR_SAT,
+      "cannot retrieve assignment if input formula is not SAT");
   BTOR_ABORT_ARG_NULL_BOOLECTOR (e_array);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);
