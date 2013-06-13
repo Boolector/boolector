@@ -188,10 +188,12 @@ boolector_var (Btor *btor, int width, const char *symbol)
   if (symbol == NULL)
   {
     BtorNode *var;
-    char *symb = malloc (20);
+    char *symb;
+
+    BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "DVN%d", btor->dvn_id++);
     var = btor_var_exp (btor, width, symb);
-    free (symb);
+    BTOR_DELETEN (btor->mm, symb, 20);
     return var;
   }
   else
@@ -211,10 +213,12 @@ boolector_array (Btor *btor,
   if (symbol == NULL)
   {
     BtorNode *arr;
-    char *symb = malloc (20);
+    char *symb;
+
+    BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "DAN%d", btor->dan_id++);
     arr = btor_array_exp (btor, elem_width, index_width, symb);
-    free (symb);
+    BTOR_DELETEN (btor->mm, symb, 20);
     return arr;
   }
   else
