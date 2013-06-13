@@ -5477,6 +5477,8 @@ btor_new_btor (void)
 
   btor->bv_lambda_id      = 1;
   btor->array_lambda_id   = 1;
+  btor->dvn_id            = 1;
+  btor->dan_id            = 1;
   btor->valid_assignments = 1;
   btor->rewrite_level     = 3;
   btor->vread_index_id    = 1;
@@ -11157,9 +11159,10 @@ rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
   init_write_parent_iterator (&it, write);
   has_write_parent = has_next_parent_write_parent_iterator (&it);
 
-  if (0 && (has_write_parent && write->refs == 1)
-      || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
-          && ((BtorLambdaNode *) e[0])->chain_depth > 0))
+  if (0
+      && ((has_write_parent && write->refs == 1)
+          || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
+              && ((BtorLambdaNode *) e[0])->chain_depth > 0)))
   {
     assert (!has_write_parent || write->refs == 1);
     if (BTOR_IS_LAMBDA_NODE (e[0]))
