@@ -52,29 +52,121 @@ btor_cmp_node_id (const void *p, const void *q)
 static void
 dump_node (FILE *file, BtorNode *node)
 {
+  int i;
+  char idbuffer[20];
+  const char *op;
+
+  node = BTOR_REAL_ADDR_NODE (node);
+
+  switch (node->kind)
+  {
+    case BTOR_ADD_NODE: op = "add"; break;
+    case BTOR_AND_NODE: op = "and"; break;
+    case BTOR_CONCAT_NODE: op = "concat"; break;
+    case BTOR_BCOND_NODE: op = "cond"; break;
+    case BTOR_BEQ_NODE:
+    case BTOR_AEQ_NODE: op = "eq"; break;
+    case BTOR_MUL_NODE: op = "mul"; break;
+    case BTOR_PROXY_NODE: op = "proxy"; break;
+    case BTOR_READ_NODE: op = "read"; break;
+    case BTOR_SLL_NODE: op = "sll"; break;
+    case BTOR_SRL_NODE: op = "srl"; break;
+    case BTOR_UDIV_NODE: op = "udiv"; break;
+    case BTOR_ULT_NODE: op = "ult"; break;
+    case BTOR_UREM_NODE: op = "urem"; break;
+    case BTOR_SLICE_NODE: op = "slice"; break;
+    case BTOR_ARRAY_VAR_NODE:
+      op = "array";
+      break;
+      // NOTE: do not exist anymore
+      //      case BTOR_WRITE_NODE:     op = "write"; break;
+      //      case BTOR_ACOND_NODE:	op = "acond"; break;
+    case BTOR_BV_CONST_NODE: op = "const"; break;
+    case BTOR_PARAM_NODE: op = "param"; break;
+    case BTOR_LAMBDA_NODE: op = "lambda"; break;
+    case BTOR_APPLY_NODE: op = "apply"; break;
+    case BTOR_ARGS_NODE: op = "args"; break;
+    default: assert (node->kind == BTOR_BV_VAR_NODE); op = "var";
+  }
+
+  fprintf (file, "%d %s %d", node->id, op, node->len);
+
+  /* print index bit width of arrays */
+  if (BTOR_IS_ARRAY_NODE (node)) fprintf (file, " %d", node->index_len);
+
+  /* print children or const values */
+  if (BTOR_IS_BV_CONST_NODE (node))
+    fprintf (file, " %s", node->bits);
+  else if (BTOR_IS_PROXY_NODE (node))
+    fprintf (file, " %d", BTOR_GET_ID_NODE (node->simplified));
+  else
+    for (i = 0; i < node->arity; i++)
+      fprintf (file, " %d", BTOR_GET_ID_NODE (node->e[i]));
+
+  /* print slice limits/var symbols */
+  if (node->kind == BTOR_SLICE_NODE)
+    fprintf (file, " %d %d", node->upper, node->lower);
+  else if (BTOR_IS_BV_VAR_NODE (node))
+  {
+    sprintf (idbuffer, "%d", node->id);
+    assert (node->symbol);
+    if (strcmp (node->symbol, idbuffer)) fprintf (file, " %s", node->symbol);
+  }
+  fputc ('\n', file);
+}
+
+#if 0
+static void
+dump_node (FILE *file, BtorNode *node)
+{
   int j;
   char idbuffer[20];
   const char *op;
   BtorNode *n;
 
+
   n = BTOR_REAL_ADDR_NODE (node);
   fprintf (file, "%d ", n->id);
 
   switch (n->kind)
-  {
-    case BTOR_ADD_NODE: op = "add"; goto PRINT;
-    case BTOR_AND_NODE: op = "and"; goto PRINT;
-    case BTOR_CONCAT_NODE: op = "concat"; goto PRINT;
-    case BTOR_BCOND_NODE: op = "cond"; goto PRINT;
+    {
+    case BTOR_ADD_NODE:
+      op = "add";
+      goto PRINT;
+    case BTOR_AND_NODE:
+      op = "and";
+      goto PRINT;
+    case BTOR_CONCAT_NODE:
+      op = "concat";
+      goto PRINT;
+    case BTOR_BCOND_NODE:
+      op = "cond";
+      goto PRINT;
     case BTOR_BEQ_NODE:
-    case BTOR_AEQ_NODE: op = "eq"; goto PRINT;
-    case BTOR_MUL_NODE: op = "mul"; goto PRINT;
-    case BTOR_PROXY_NODE: op = "proxy"; goto PRINT;
-    case BTOR_READ_NODE: op = "read"; goto PRINT;
-    case BTOR_SLL_NODE: op = "sll"; goto PRINT;
-    case BTOR_SRL_NODE: op = "srl"; goto PRINT;
-    case BTOR_UDIV_NODE: op = "udiv"; goto PRINT;
-    case BTOR_ULT_NODE: op = "ult"; goto PRINT;
+    case BTOR_AEQ_NODE:
+      op = "eq";
+      goto PRINT;
+    case BTOR_MUL_NODE:
+      op = "mul";
+      goto PRINT;
+    case BTOR_PROXY_NODE:
+      op = "proxy";
+      goto PRINT;
+    case BTOR_READ_NODE:
+      op = "read";
+      goto PRINT;
+    case BTOR_SLL_NODE:
+      op = "sll";
+      goto PRINT;
+    case BTOR_SRL_NODE:
+      op = "srl";
+      goto PRINT;
+    case BTOR_UDIV_NODE:
+      op = "udiv";
+      goto PRINT;
+    case BTOR_ULT_NODE:
+      op = "ult";
+      goto PRINT;
     case BTOR_UREM_NODE:
       op = "urem";
     PRINT:
@@ -82,19 +174,17 @@ dump_node (FILE *file, BtorNode *node)
       fprintf (file, " %d", n->len);
 
       if (n->kind == BTOR_PROXY_NODE)
-        fprintf (file, " %d", BTOR_GET_ID_NODE (n->simplified));
+	fprintf (file, " %d", BTOR_GET_ID_NODE (n->simplified));
       else
-        for (j = 0; j < n->arity; j++)
-          fprintf (file, " %d", BTOR_GET_ID_NODE (n->e[j]));
+	for (j = 0; j < n->arity; j++)
+	  fprintf (file, " %d", BTOR_GET_ID_NODE (n->e[j]));
       break;
 
     case BTOR_SLICE_NODE:
       fprintf (file,
-               "slice %d %d %d %d",
-               n->len,
-               BTOR_GET_ID_NODE (n->e[0]),
-               n->upper,
-               n->lower);
+	       "slice %d %d %d %d",
+	       n->len,
+	       BTOR_GET_ID_NODE (n->e[0]), n->upper, n->lower);
       break;
 
     case BTOR_ARRAY_VAR_NODE:
@@ -102,38 +192,28 @@ dump_node (FILE *file, BtorNode *node)
       break;
 
     case BTOR_WRITE_NODE:
-      fprintf (file,
-               "write %d %d %d %d %d",
-               n->len,
-               n->index_len,
-               BTOR_GET_ID_NODE (n->e[0]),
-               BTOR_GET_ID_NODE (n->e[1]),
-               BTOR_GET_ID_NODE (n->e[2]));
+      fprintf (file, "write %d %d %d %d %d", n->len, n->index_len,
+	       BTOR_GET_ID_NODE (n->e[0]), BTOR_GET_ID_NODE (n->e[1]),
+	       BTOR_GET_ID_NODE (n->e[2]));
       break;
 
     case BTOR_ACOND_NODE:
-      fprintf (file,
-               "acond %d %d %d %d %d",
-               n->len,
-               n->index_len,
-               BTOR_GET_ID_NODE (n->e[0]),
-               BTOR_GET_ID_NODE (n->e[1]),
-               BTOR_GET_ID_NODE (n->e[2]));
+      fprintf (file, "acond %d %d %d %d %d", n->len, n->index_len,
+	       BTOR_GET_ID_NODE (n->e[0]), BTOR_GET_ID_NODE (n->e[1]),
+	       BTOR_GET_ID_NODE (n->e[2]));
       break;
 
     case BTOR_BV_CONST_NODE:
       fprintf (file, "const %d %s", n->len, n->bits);
       break;
 
-    case BTOR_PARAM_NODE: fprintf (file, "param %d", n->len); break;
+    case BTOR_PARAM_NODE:
+      fprintf (file, "param %d", n->len);
+      break;
 
     case BTOR_LAMBDA_NODE:
-      fprintf (file,
-               "lambda %d %d %d %d",
-               n->len,
-               n->index_len,
-               BTOR_GET_ID_NODE (n->e[0]),
-               BTOR_GET_ID_NODE (n->e[1]));
+      fprintf (file, "lambda %d %d %d %d", n->len, n->index_len,
+	       BTOR_GET_ID_NODE (n->e[0]), BTOR_GET_ID_NODE (n->e[1]));
       break;
 
     default:
@@ -141,12 +221,14 @@ dump_node (FILE *file, BtorNode *node)
       fprintf (file, "var %d", n->len);
       sprintf (idbuffer, "%d", n->id);
       assert (n->symbol);
-      if (strcmp (n->symbol, idbuffer)) fprintf (file, " %s", n->symbol);
+      if (strcmp (n->symbol, idbuffer))
+	fprintf (file, " %s", n->symbol);
       break;
-  }
+    }
 
   fputc ('\n', file);
 }
+#endif
 
 static void
 dump_exps (Btor *btor, FILE *file, BtorNode **roots, int nroots)
