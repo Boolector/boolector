@@ -1484,9 +1484,9 @@ boolector_free_array_assignment (Btor *btor,
     BTOR_ABORT_BOOLECTOR (values, "non zero 'values' but 'size == 0'");
   }
 
-  for (i = 0; i < size; i++) boolector_free_bv_assignment (btor, indices[i]);
+  for (i = 0; i < size; i++) btor_free_bv_assignment_exp (btor, indices[i]);
   btor_free (btor->mm, indices, size * sizeof *indices);
 
-  for (i = 0; i < size; i++) boolector_free_bv_assignment (btor, values[i]);
+  for (i = 0; i < size; i++) btor_free_bv_assignment_exp (btor, values[i]);
   btor_free (btor->mm, values, size * sizeof *values);
 }
