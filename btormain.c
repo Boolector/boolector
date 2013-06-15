@@ -1071,7 +1071,8 @@ boolector_main (int argc, char **argv)
 
     BTOR_INIT_STACK (prefix);
 
-    btor_static_btor = btor = btor_new_btor ();
+    // btor_static_btor = btor = btor_new_btor ();
+    btor_static_btor = btor = boolector_new ();
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 

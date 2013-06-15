@@ -17,6 +17,7 @@ all: libboolector.a $(TARGETS)
 -include dependencies
 -include test.mk
 -include ibv.mk
+-include mbt.mk
 
 %.o: %.c
 	$(CC) $(CFLAGS) -I. -c -o $@ $<

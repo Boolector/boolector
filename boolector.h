@@ -139,6 +139,14 @@ typedef struct Btor Btor;
 /*------------------------------------------------------------------------*/
 
 /**
+ * Set and get the output API trace file.
+ */
+void boolector_set_trapi (Btor *btor, FILE *apitrace);
+FILE *boolector_get_trapi (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
+/**
  * Creates new instance of Boolector.
  * \return New Boolector instance.
  */
