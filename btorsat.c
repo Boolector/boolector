@@ -637,20 +637,20 @@ static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl = smgr->solver;
-  LGL *lgl      = blgl->lgl, *bforked;
+  LGL *lgl      = blgl->lgl, *clone;
   const char *str;
   int res, bfres;
   char name[80];
 
+  assert (smgr->satcalls >= 1);
+
+  if (smgr->satcalls == 1 || (smgr->satcalls & (smgr->satcalls - 1)))
+    lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+  else
+    lglsetopt (lgl, "simpdelay", 0);
+
   if (smgr->inc_required)
   {
-    int calls = smgr->satcalls - 1;
-    assert (calls >= 0);
-    if (calls & (calls - 1))
-      lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
-    else
-      lglsetopt (lgl, "simpdelay", 0);
-
     lglsetopt (lgl, "flipping", 0);
   }
   else
@@ -676,19 +676,19 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
 
       blgl->nforked++;
-      bforked = lglclone (lgl);
-      lglfixate (bforked);
-      lglmeltall (bforked);
+      clone = lglclone (lgl);
+      lglfixate (clone);
+      lglmeltall (clone);
       str = "clone";
-      lglsetopt (bforked, "clim", limit);
+      lglsetopt (clone, "clim", limit);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
-      lglsetprefix (bforked, name);
-      lglsetout (bforked, smgr->output);
+      lglsetprefix (clone, name);
+      lglsetout (clone, smgr->output);
 
-      res = lglsat (bforked);
-      if (smgr->verbosity > 0) lglstats (bforked);
-      bfres = lglunclone (lgl, bforked);
-      lglrelease (bforked);
+      res = lglsat (clone);
+      if (smgr->verbosity > 0) lglstats (clone);
+      bfres = lglunclone (lgl, clone);
+      lglrelease (clone);
       assert (!res || bfres == res);
       res = bfres;
     }
