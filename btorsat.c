@@ -644,15 +644,17 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 
   lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
 
-  if (!smgr->inc_required)
+  if (smgr->inc_required)
+  {
+    lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+    lglsetopt (lgl, "flipping", 0);
+  }
+  else
   {
     lglsetopt (lgl, "clim", -1);
     res = lglsat (lgl);
     return res;
   }
-
-  // lglsetopt (lgl, "phase", -1);
-  // lglsetopt (lgl, "bias", -1);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
