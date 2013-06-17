@@ -1923,19 +1923,17 @@ print_lemma_dbg (Btor *btor,
                  BtorNode *app1)
 {
   int i;
-  BtorNode *arg0, *arg1, *args0 = 0, *args1 = 0, *args;
+  BtorNode *arg0, *arg1, *args0 = 0, *args1 = 0;
   BtorNode *cur, *cond;
   BtorPtrHashBucket *bucket;
 
   app0 = BTOR_REAL_ADDR_NODE (app0);
   app1 = BTOR_REAL_ADDR_NODE (app1);
-  args = !BTOR_IS_APPLY_NODE (app1) ? app0->e[1] : app0->e[1];
 
   BTORLOG ("\e[1;32m");
   BTORLOG ("ENCODED LEMMA");
   BTORLOG ("  app0: %s", node2string (app0));
   BTORLOG ("  app1: %s", node2string (app1));
-  BTORLOG ("  args: %s", node2string (args));
 
   if (BTOR_IS_APPLY_NODE (app0)) args0 = app0->e[1];
 
@@ -1943,6 +1941,7 @@ print_lemma_dbg (Btor *btor,
 
   if (args0 && args1)
   {
+    BTORLOG ("   args: %s = %s", node2string (args0), node2string (args1));
     assert (BTOR_IS_REGULAR_NODE (args0));
     assert (BTOR_IS_REGULAR_NODE (args1));
     assert (args0->arity == args1->arity);
@@ -1987,7 +1986,7 @@ print_lemma_dbg (Btor *btor,
     BTORLOG ("    %s", node2string (cond));
   }
 
-  BTORLOG ("\e[0;39m");
+  BTORLOG (" \e[0;39m");
 }
 
 static void
@@ -8126,6 +8125,8 @@ get_arguments_assignment (Btor *btor, BtorNode *args)
   return a;
 }
 
+#define ENABLE_APPLY_PROP_DOWN 0
+
 static int
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
@@ -8152,6 +8153,7 @@ propagate (Btor *btor,
 
   mm = btor->mm;
 
+  int prop_down = 0;
   BTORLOG ("");
   BTORLOG ("*** %s", __FUNCTION__);
   while (!BTOR_EMPTY_STACK (*prop_stack))
@@ -8275,6 +8277,7 @@ propagate (Btor *btor,
       find_nodes_dfs (
           btor, fun_value, &param_apps, findfun_read, skipfun_tseitin);
 
+      int prop_down = 0;
       if (BTOR_COUNT_STACK (param_apps) > 0)
       {
         if (!lambda->synth_reads)
@@ -8289,33 +8292,60 @@ propagate (Btor *btor,
         {
           param_app = param_apps.start[i];
           assert (BTOR_IS_REGULAR_NODE (param_app));
-          assert (
-              !btor_find_in_ptr_hash_table (lambda->synth_reads, param_app));
+          //		  assert (!btor_find_in_ptr_hash_table
+          //(lambda->synth_reads,
+          //							param_app));
 
-          btor->stats.lambda_synth_reads++;
-          inc_exp_ref_counter (btor, param_app);
-          btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
-
-          *assignments_changed =
-              lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
-
-          if (*assignments_changed)
+          if (!btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
           {
-            btor_release_exp (btor, fun_value);
-            BTOR_RELEASE_STACK (mm, param_apps);
-            return 0;
+            inc_exp_ref_counter (btor, param_app);
+            btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
           }
+
+          assert (BTOR_REAL_ADDR_NODE (param_app)
+                      != BTOR_REAL_ADDR_NODE (fun_value)
+                  || BTOR_COUNT_STACK (param_apps) == 1);
+          if (BTOR_REAL_ADDR_NODE (param_app) != BTOR_REAL_ADDR_NODE (fun_value)
+              || !ENABLE_APPLY_PROP_DOWN)
+          {
+            btor->stats.lambda_synth_reads++;
+            *assignments_changed =
+                lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
+
+            if (*assignments_changed)
+            {
+              btor_release_exp (btor, fun_value);
+              BTOR_RELEASE_STACK (mm, param_apps);
+              return 0;
+            }
+          }
+          else
+            prop_down = 1;
         }
       }
 
-      // TODO: implement apply over apply propagation (lemmas)
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal)
+#if 0
+	  if (!prop_down)
+	    {
+	  app_assignment = btor_bv_assignment_exp (btor, app);
+	  fun_value_assignment = (char *) btor_eval_exp (btor, fun_value);
+	  values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
+	  btor_freestr (mm, fun_value_assignment);
+	  btor_free_bv_assignment_exp (btor, app_assignment);
+	    }
+#endif
+
+      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal
+          && ENABLE_APPLY_PROP_DOWN)
       {
+        assert (prop_down);
+        printf ("prop down: %s\n", node2string (app));
         assert (BTOR_REAL_ADDR_NODE (fun_value)->e[0] == parameterized->e[0]);
         assert (BTOR_IS_APPLY_NODE (parameterized));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
         BTOR_PUSH_STACK (mm, *prop_stack, parameterized->e[0]);
-        BTORLOG ("  ********** propagate down");
+        prop_down++;
+        BTORLOG ("  propagate down: %d %s", prop_down, node2string (app));
         BTORLOG ("    %s (%s)",
                  node2string (parameterized),
                  node2string (parameterized->e[1]));
@@ -8325,6 +8355,7 @@ propagate (Btor *btor,
       }
       else
       {
+        assert (!prop_down);
         app_assignment       = btor_bv_assignment_exp (btor, app);
         fun_value_assignment = (char *) btor_eval_exp (btor, fun_value);
         values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
@@ -11227,7 +11258,7 @@ process_skeleton (Btor *btor)
   lglsetopt (lgl, "verbose", -1);
   if (btor->verbosity)
   {
-    lglsetopt (lgl, "verbose", 1);
+    lglsetopt (lgl, "verbose", 2);
     lglbnr ("Lingeling", "[lglskel] ", stdout);
     fflush (stdout);
   }
