@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -646,7 +646,11 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 
   if (smgr->inc_required)
   {
-    lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+    if (smgr->satcalls & (smgr->satcalls - 1))
+      lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+    else
+      lglsetopt (lgl, "simpdelay", 0);
+
     lglsetopt (lgl, "flipping", 0);
   }
   else
