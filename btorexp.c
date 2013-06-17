@@ -41,6 +41,8 @@
 #define BTOR_DO_NOT_PROCESS_SKELETON
 #endif
 
+#define ENABLE_APPLY_PROP_DOWN 1
+
 /*------------------------------------------------------------------------*/
 
 enum BtorSubstCompKind
@@ -1896,15 +1898,11 @@ collect_premisses (Btor *btor,
         if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
           BTOR_PUSH_STACK (mm, bconds, cur);
       }
-      // TODO: implement apply over apply propagation
-#if 1
       else if (BTOR_IS_APPLY_NODE (cur))
       {
+        assert (ENABLE_APPLY_PROP_DOWN);
         BTOR_PUSH_STACK (mm, apps, cur);
-        //	      if (!btor_find_in_ptr_hash_table (fun_apps, cur))
-        //		btor_insert_in_ptr_hash_table (fun_apps, cur);
       }
-#endif
     }
     prev                    = cur;
     prev_propagated_upwards = propagated_upwards;
@@ -7014,7 +7012,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
     else if (BTOR_IS_APPLY_NODE (cur)
-             && compare_argument_assignments (cur->e[1], args))
+             && compare_argument_assignments (cur->e[1], args) == 0)
     {
       next       = cur->e[0];
       next->mark = 1;
@@ -8239,8 +8237,6 @@ get_arguments_assignment (Btor *btor, BtorNode *args)
   return a;
 }
 
-#define ENABLE_APPLY_PROP_DOWN 0
-
 static int
 propagate (Btor *btor,
            BtorNodePtrStack *prop_stack,
@@ -8267,7 +8263,6 @@ propagate (Btor *btor,
 
   mm = btor->mm;
 
-  int prop_down = 0;
   BTORLOG ("");
   BTORLOG ("*** %s", __FUNCTION__);
   while (!BTOR_EMPTY_STACK (*prop_stack))
@@ -8391,7 +8386,6 @@ propagate (Btor *btor,
       find_nodes_dfs (
           btor, fun_value, &param_apps, findfun_read, skipfun_tseitin);
 
-      int prop_down = 0;
       if (BTOR_COUNT_STACK (param_apps) > 0)
       {
         if (!lambda->synth_reads)
@@ -8406,6 +8400,7 @@ propagate (Btor *btor,
         {
           param_app = param_apps.start[i];
           assert (BTOR_IS_REGULAR_NODE (param_app));
+          assert (BTOR_IS_APPLY_NODE (param_app));
           //		  assert (!btor_find_in_ptr_hash_table
           //(lambda->synth_reads,
           //							param_app));
@@ -8419,8 +8414,11 @@ propagate (Btor *btor,
           assert (BTOR_REAL_ADDR_NODE (param_app)
                       != BTOR_REAL_ADDR_NODE (fun_value)
                   || BTOR_COUNT_STACK (param_apps) == 1);
+
+          /* only synthesize and encode param_app if we cannot
+           * propagate app down */
           if (BTOR_REAL_ADDR_NODE (param_app) != BTOR_REAL_ADDR_NODE (fun_value)
-              || !ENABLE_APPLY_PROP_DOWN)
+              || !args_equal || !ENABLE_APPLY_PROP_DOWN)
           {
             btor->stats.lambda_synth_reads++;
             *assignments_changed =
@@ -8433,32 +8431,17 @@ propagate (Btor *btor,
               return 0;
             }
           }
-          else
-            prop_down = 1;
         }
       }
-
-#if 0
-	  if (!prop_down)
-	    {
-	  app_assignment = btor_bv_assignment_exp (btor, app);
-	  fun_value_assignment = (char *) btor_eval_exp (btor, fun_value);
-	  values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
-	  btor_freestr (mm, fun_value_assignment);
-	  btor_free_bv_assignment_exp (btor, app_assignment);
-	    }
-#endif
 
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)) && args_equal
           && ENABLE_APPLY_PROP_DOWN)
       {
-        assert (prop_down);
         assert (BTOR_REAL_ADDR_NODE (fun_value)->e[0] == parameterized->e[0]);
         assert (BTOR_IS_APPLY_NODE (parameterized));
         BTOR_PUSH_STACK (mm, *prop_stack, app);
         BTOR_PUSH_STACK (mm, *prop_stack, parameterized->e[0]);
-        prop_down++;
-        BTORLOG ("  propagate down: %d %s", prop_down, node2string (app));
+        BTORLOG ("  propagate down: %s", node2string (app));
         BTORLOG ("    %s (%s)",
                  node2string (parameterized),
                  node2string (parameterized->e[1]));
@@ -8468,7 +8451,6 @@ propagate (Btor *btor,
       }
       else
       {
-        assert (!prop_down);
         app_assignment       = btor_bv_assignment_exp (btor, app);
         fun_value_assignment = (char *) btor_eval_exp (btor, fun_value);
         values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
@@ -9024,6 +9006,8 @@ LAMBDA_AXIOM_2_CONFLICT:
 }
 #endif
 
+// TODO: what is a top array when we only have lambdas and array vars?
+// TODO: remove write code etc.
 /* searches the top arrays where the conflict check begins
  * and pushes them on the stack
  */
