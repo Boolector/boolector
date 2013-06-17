@@ -7021,7 +7021,6 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       /* propagate downwards */
       next->parent = cur;
 
-      printf ("ASDFASDF\n");
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
@@ -7872,8 +7871,12 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
     if (cur->mark == 2) continue;
 
-    /* do not encode function nodes */
-    if (BTOR_IS_FUN_NODE (cur)) continue;
+    /* do not encode function nodes that are not part of the function
+     * expression of lambda_exp */
+    if ((BTOR_IS_LAMBDA_NODE (cur)
+         && ((BtorLambdaNode *) cur)->nested != lambda_exp)
+        || BTOR_IS_ARRAY_VAR_NODE (cur))
+      continue;
 
     if (cur->mark == 0)
     {
