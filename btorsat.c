@@ -642,6 +642,8 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
   lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
   lglsetopt (lgl, "verbose", -1);
 
+  if (smgr->verbosity) lglsetopt (lgl, "verbose", 2);
+
   if (!smgr->inc_required)
   {
     lglsetopt (lgl, "clim", -1);
