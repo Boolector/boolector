@@ -9006,6 +9006,159 @@ LAMBDA_AXIOM_2_CONFLICT:
 }
 #endif
 
+static void
+search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
+{
+  assert (btor);
+  assert (top_funs);
+  assert (BTOR_EMPTY_STACK (*top_funs));
+
+  int i;
+  BtorNode *cur;
+
+  int found_top;
+  BtorFullParentIterator it;
+  BtorNode *cur_fun, *cur_parent, *param;
+  BtorNodePtrStack stack, unmark_stack, params;
+  BtorPtrHashBucket *bucket;
+  BtorMemMgr *mm;
+
+  mm = btor->mm;
+
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (params);
+
+#if 0
+  for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
+    {
+      cur_fun = (BtorNode *) bucket->key;
+      assert (BTOR_IS_ARRAY_VAR_NODE (cur_fun));
+      assert (!cur_fun->simplified);
+      if (cur_fun->reachable)
+	BTOR_PUSH_STACK (mm, stack, cur_fun);
+    }
+  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
+    {
+      cur_fun = (BtorNode *) bucket->key;
+      assert (BTOR_IS_LAMBDA_NODE (cur_fun));
+      assert (!cur_fun->simplified);
+      if (cur_fun->reachable)
+	BTOR_PUSH_STACK (mm, stack, cur_fun);
+    }
+#endif
+
+  for (bucket = btor->synthesized_constraints->first; bucket;
+       bucket = bucket->next)
+  {
+    cur = (BtorNode *) bucket->key;
+    BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur));
+
+    while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur = BTOR_POP_STACK (stack);
+      assert (BTOR_IS_REGULAR_NODE (cur));
+
+      if (cur->mark == 0)
+      {
+        cur->mark = 1;
+        BTOR_PUSH_STACK (mm, unmark_stack, cur);
+
+        if (BTOR_IS_FUN_NODE (cur))
+        {
+          // TODO: mark candidate
+          BTOR_PUSH_STACK (mm, *top_funs, cur);
+          continue;
+        }
+
+        for (i = 0; i < cur->arity; i++)
+          BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+      }
+    }
+  }
+
+  // search through candidates that are real top funs
+
+#if 0
+  while (!BTOR_EMPTY_STACK (stack))
+    {
+      cur_fun = BTOR_POP_STACK (stack);
+      assert (BTOR_IS_REGULAR_NODE (cur_fun));
+      assert (BTOR_IS_FUN_NODE (cur_fun));
+      assert (cur_fun->reachable);
+      assert (!cur_fun->simplified);
+      assert (cur_fun->array_mark == 0 || cur_fun->array_mark == 1);
+      if (cur_fun->array_mark == 0)
+	{
+	  cur_fun->array_mark = 1;
+	  BTOR_PUSH_STACK (mm, unmark_stack, cur_fun);
+	  found_top = 1;
+	  /* ATTENTION: There can be write and array conditional parents
+	   * although they are not reachable from root.
+	   * For example the parser might still
+	   * have a reference to a write, thus it is still in the parent list.
+	   * We use the reachable flag to determine with which writes
+	   * and array conditionals we have to deal with.
+	   */
+	  init_full_parent_iterator (&it, cur_fun);
+	  while (has_next_parent_full_parent_iterator (&it))
+	    {
+	      cur_parent = next_parent_full_parent_iterator (&it);
+	      assert (BTOR_IS_REGULAR_NODE (cur_parent));
+
+	      if (!cur_parent->reachable)
+		continue;
+
+	      if (BTOR_IS_NESTED_LAMBDA_NODE (cur_parent))
+		{
+		  assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur_parent)
+		          || BTOR_IS_NESTED_LAMBDA_NODE (cur_fun));
+		  assert (!cur_parent->simplified);
+		  found_top = 0;
+		  BTOR_PUSH_STACK (mm, stack, cur_parent);
+		}
+	      /* NOTE: a lambda is a top array if its application is not
+	       * parameterized, i.e. the application of the lambda cannot
+	       * change through parameters and thus is always the same.
+	       */
+	      else if (BTOR_IS_APPLY_NODE (cur_parent)
+		       && cur_parent->parameterized)
+		{
+		  assert (!cur_parent->simplified);
+		  assert (BTOR_EMPTY_STACK (params));
+		  assert (cur_parent->array_mark == 0);
+		  found_top = 0;
+		  find_nodes_dfs (btor, cur_parent, &params, findfun_param,
+				  skipfun_param);
+		  assert (!BTOR_EMPTY_STACK (params));
+		  do
+		    {
+		      param = BTOR_POP_STACK (params);
+		      assert (BTOR_IS_REGULAR_NODE (param));
+		      assert (BTOR_IS_PARAM_NODE (param));
+		      BTOR_PUSH_STACK (mm, stack,
+				       BTOR_PARAM_GET_LAMBDA_NODE (param));
+		    }
+		  while (!BTOR_EMPTY_STACK (params));
+		}
+	    }
+	  if (found_top)
+	    BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
+	}
+    }
+#endif
+  BTOR_RELEASE_STACK (mm, params);
+  BTOR_RELEASE_STACK (mm, stack);
+
+  /* reset array marks of arrays */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur       = BTOR_POP_STACK (unmark_stack);
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
+
 // TODO: what is a top array when we only have lambdas and array vars?
 // TODO: remove write code etc.
 /* searches the top arrays where the conflict check begins
@@ -9014,6 +9167,8 @@ LAMBDA_AXIOM_2_CONFLICT:
 static void
 search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
 {
+  search_top_functions (btor, top_arrays);
+  return;
   BtorFullParentIterator it;
   BtorNode *cur_array, *cur_parent, *param;
   BtorNodePtrStack stack, unmark_stack, params;
@@ -9154,6 +9309,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   for (temp = top_arrays->start; temp != top; temp++)
   {
     cur_array = *temp;
+    printf ("top: %s\n", node2string (cur_array));
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     assert (cur_array->reachable);
