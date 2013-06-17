@@ -1536,12 +1536,12 @@ parse_args (BtorBTORParser *parser, int len)
   BtorNode *res, *arg;
   BtorNodePtrStack args;
 
-  if (parse_space (parser)) return 0;
-
   BTOR_INIT_STACK (args);
   i = len;
   while (i > 0)
   {
+    if (parse_space (parser)) return 0;
+
     if (!(arg = parse_exp (parser, 0, 0))) return 0;
 
     BTOR_PUSH_STACK (parser->mem, args, arg);
