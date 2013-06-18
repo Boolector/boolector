@@ -9014,84 +9014,133 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
   assert (BTOR_EMPTY_STACK (*top_funs));
 
   int i;
-  BtorNode *cur;
-
-  int found_top;
-  BtorFullParentIterator it;
-  BtorNode *cur_fun, *cur_parent, *param;
-  BtorNodePtrStack stack, unmark_stack, params;
-  BtorPtrHashBucket *bucket;
   BtorMemMgr *mm;
+  BtorNode *cur;
+  BtorPtrHashTable *table;
+  BtorPtrHashBucket *bucket;
+  BtorNodePtrStack stack, unmark_stack;
 
   mm = btor->mm;
 
   BTOR_INIT_STACK (stack);
   BTOR_INIT_STACK (unmark_stack);
-  BTOR_INIT_STACK (params);
 
-#if 0
-  for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
-    {
-      cur_fun = (BtorNode *) bucket->key;
-      assert (BTOR_IS_ARRAY_VAR_NODE (cur_fun));
-      assert (!cur_fun->simplified);
-      if (cur_fun->reachable)
-	BTOR_PUSH_STACK (mm, stack, cur_fun);
-    }
-  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
-    {
-      cur_fun = (BtorNode *) bucket->key;
-      assert (BTOR_IS_LAMBDA_NODE (cur_fun));
-      assert (!cur_fun->simplified);
-      if (cur_fun->reachable)
-	BTOR_PUSH_STACK (mm, stack, cur_fun);
-    }
-#endif
-
-  for (bucket = btor->synthesized_constraints->first; bucket;
-       bucket = bucket->next)
+  for (table = btor->array_vars; table;
+       table = table == btor->array_vars ? btor->lambdas : 0)
   {
-    cur = (BtorNode *) bucket->key;
-    BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur));
-
-    while (!BTOR_EMPTY_STACK (stack))
+    for (bucket = table->first; bucket; bucket = bucket->next)
     {
-      cur = BTOR_POP_STACK (stack);
+      cur = (BtorNode *) bucket->key;
       assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (BTOR_IS_FUN_NODE (cur));
+      assert (!cur->mark || cur->mark == 2);
 
-      if (cur->mark == 0)
+      /* we only consider reachable nodes */
+      if (!cur->reachable) continue;
+
+      /* if not already marked, set to visited */
+      if (!cur->mark)
       {
         cur->mark = 1;
         BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      }
 
-        if (BTOR_IS_FUN_NODE (cur))
-        {
-          // TODO: mark candidate
-          BTOR_PUSH_STACK (mm, *top_funs, cur);
-          continue;
-        }
+      /* no children to mark here */
+      if (BTOR_IS_ARRAY_VAR_NODE (cur)) continue;
+
+      BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
+
+      /* mark subgraph of cur */
+      while (!BTOR_EMPTY_STACK (stack))
+      {
+        cur = BTOR_POP_STACK (stack);
+        assert (BTOR_IS_REGULAR_NODE (cur));
+
+        if (cur->mark == 2) continue;
+
+        BTOR_PUSH_STACK (mm, unmark_stack, cur);
+        cur->mark = 2;
 
         for (i = 0; i < cur->arity; i++)
           BTOR_PUSH_STACK (mm, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
       }
     }
   }
+  BTOR_RELEASE_STACK (mm, stack);
 
-  // search through candidates that are real top funs
+  /* collect top functions, i.e. all array vars / lambdas with mark == 1 */
+  for (table = btor->array_vars; table;
+       table = table == btor->array_vars ? btor->lambdas : 0)
+  {
+    for (bucket = table->first; bucket; bucket = bucket->next)
+    {
+      cur = (BtorNode *) bucket->key;
+      assert (BTOR_IS_REGULAR_NODE (cur));
+
+      if (cur->mark == 1) BTOR_PUSH_STACK (mm, *top_funs, cur);
+    }
+  }
+
+  /* reset array marks of arrays */
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur       = BTOR_POP_STACK (unmark_stack);
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+}
 
 #if 0
+/* searches the top arrays where the conflict check begins
+ * and pushes them on the stack
+ */
+static void
+search_top_arrays (Btor * btor, BtorNodePtrStack * top_arrays)
+{
+  search_top_functions (btor, top_arrays);
+  return;
+  BtorFullParentIterator it;
+  BtorNode *cur_array, *cur_parent, *param;
+  BtorNodePtrStack stack, unmark_stack, params;
+  BtorPtrHashBucket *bucket;
+  BtorMemMgr *mm;
+  int found_top;
+  assert (btor);
+  assert (top_arrays);
+  assert (BTOR_COUNT_STACK (*top_arrays) == 0);
+  mm = btor->mm;
+  BTOR_INIT_STACK (stack);
+  BTOR_INIT_STACK (unmark_stack);
+  BTOR_INIT_STACK (params);
+  for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
+    {
+      cur_array = (BtorNode *) bucket->key;
+      assert (BTOR_IS_ARRAY_VAR_NODE (cur_array));
+      assert (!cur_array->simplified);
+      if (cur_array->reachable)
+	BTOR_PUSH_STACK (mm, stack, cur_array);
+    }
+  /* add lambda expressions  */
+  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
+    {
+      cur_array = (BtorNode *) bucket->key;
+      assert (BTOR_IS_LAMBDA_NODE (cur_array));
+      assert (!cur_array->simplified);
+      if (cur_array->reachable)
+	BTOR_PUSH_STACK (mm, stack, cur_array);
+    }
   while (!BTOR_EMPTY_STACK (stack))
     {
-      cur_fun = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_REGULAR_NODE (cur_fun));
-      assert (BTOR_IS_FUN_NODE (cur_fun));
-      assert (cur_fun->reachable);
-      assert (!cur_fun->simplified);
-      assert (cur_fun->array_mark == 0 || cur_fun->array_mark == 1);
-      if (cur_fun->array_mark == 0)
+      cur_array = BTOR_POP_STACK (stack);
+      assert (BTOR_IS_REGULAR_NODE (cur_array));
+      assert (BTOR_IS_ARRAY_NODE (cur_array));
+      assert (cur_array->reachable);
+      assert (!cur_array->simplified);
+      assert (cur_array->array_mark == 0 || cur_array->array_mark == 1);
+      if (cur_array->array_mark == 0)
 	{
-	  cur_fun->array_mark = 1;
-	  BTOR_PUSH_STACK (mm, unmark_stack, cur_fun);
+	  cur_array->array_mark = 1;
+	  BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
 	  found_top = 1;
 	  /* ATTENTION: There can be write and array conditional parents
 	   * although they are not reachable from root.
@@ -9100,7 +9149,7 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
 	   * We use the reachable flag to determine with which writes
 	   * and array conditionals we have to deal with.
 	   */
-	  init_full_parent_iterator (&it, cur_fun);
+	  init_full_parent_iterator (&it, cur_array);
 	  while (has_next_parent_full_parent_iterator (&it))
 	    {
 	      cur_parent = next_parent_full_parent_iterator (&it);
@@ -9109,10 +9158,14 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
 	      if (!cur_parent->reachable)
 		continue;
 
-	      if (BTOR_IS_NESTED_LAMBDA_NODE (cur_parent))
+	      if (BTOR_IS_WRITE_NODE (cur_parent)
+		  || BTOR_IS_ARRAY_COND_NODE (cur_parent)
+		  || BTOR_IS_NESTED_LAMBDA_NODE (cur_parent))
 		{
 		  assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur_parent)
-		          || BTOR_IS_NESTED_LAMBDA_NODE (cur_fun));
+		          || BTOR_IS_NESTED_LAMBDA_NODE (cur_array));
+		  assert (!BTOR_IS_WRITE_NODE (cur_parent)
+		          || cur_parent->array_mark == 0);
 		  assert (!cur_parent->simplified);
 		  found_top = 0;
 		  BTOR_PUSH_STACK (mm, stack, cur_parent);
@@ -9123,6 +9176,8 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
 	       */
 	      else if (BTOR_IS_APPLY_NODE (cur_parent)
 		       && cur_parent->parameterized)
+//	      else if (BTOR_IS_READ_NODE (cur_parent)
+//		       && cur_parent->parameterized)
 		{
 		  assert (!cur_parent->simplified);
 		  assert (BTOR_EMPTY_STACK (params));
@@ -9146,138 +9201,21 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
 	    BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
 	}
     }
-#endif
   BTOR_RELEASE_STACK (mm, params);
   BTOR_RELEASE_STACK (mm, stack);
 
   /* reset array marks of arrays */
   while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur       = BTOR_POP_STACK (unmark_stack);
-    cur->mark = 0;
-  }
-  BTOR_RELEASE_STACK (mm, unmark_stack);
-}
-
-// TODO: what is a top array when we only have lambdas and array vars?
-// TODO: remove write code etc.
-/* searches the top arrays where the conflict check begins
- * and pushes them on the stack
- */
-static void
-search_top_arrays (Btor *btor, BtorNodePtrStack *top_arrays)
-{
-  search_top_functions (btor, top_arrays);
-  return;
-  BtorFullParentIterator it;
-  BtorNode *cur_array, *cur_parent, *param;
-  BtorNodePtrStack stack, unmark_stack, params;
-  BtorPtrHashBucket *bucket;
-  BtorMemMgr *mm;
-  int found_top;
-  assert (btor);
-  assert (top_arrays);
-  assert (BTOR_COUNT_STACK (*top_arrays) == 0);
-  mm = btor->mm;
-  BTOR_INIT_STACK (stack);
-  BTOR_INIT_STACK (unmark_stack);
-  BTOR_INIT_STACK (params);
-  for (bucket = btor->array_vars->first; bucket; bucket = bucket->next)
-  {
-    cur_array = (BtorNode *) bucket->key;
-    assert (BTOR_IS_ARRAY_VAR_NODE (cur_array));
-    assert (!cur_array->simplified);
-    if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
-  }
-  /* add lambda expressions  */
-  for (bucket = btor->lambdas->first; bucket; bucket = bucket->next)
-  {
-    cur_array = (BtorNode *) bucket->key;
-    assert (BTOR_IS_LAMBDA_NODE (cur_array));
-    assert (!cur_array->simplified);
-    if (cur_array->reachable) BTOR_PUSH_STACK (mm, stack, cur_array);
-  }
-  while (!BTOR_EMPTY_STACK (stack))
-  {
-    cur_array = BTOR_POP_STACK (stack);
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    assert (cur_array->reachable);
-    assert (!cur_array->simplified);
-    assert (cur_array->array_mark == 0 || cur_array->array_mark == 1);
-    if (cur_array->array_mark == 0)
     {
-      cur_array->array_mark = 1;
-      BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
-      found_top = 1;
-      /* ATTENTION: There can be write and array conditional parents
-       * although they are not reachable from root.
-       * For example the parser might still
-       * have a reference to a write, thus it is still in the parent list.
-       * We use the reachable flag to determine with which writes
-       * and array conditionals we have to deal with.
-       */
-      init_full_parent_iterator (&it, cur_array);
-      while (has_next_parent_full_parent_iterator (&it))
-      {
-        cur_parent = next_parent_full_parent_iterator (&it);
-        assert (BTOR_IS_REGULAR_NODE (cur_parent));
-
-        if (!cur_parent->reachable) continue;
-
-        if (BTOR_IS_WRITE_NODE (cur_parent)
-            || BTOR_IS_ARRAY_COND_NODE (cur_parent)
-            || BTOR_IS_NESTED_LAMBDA_NODE (cur_parent))
-        {
-          assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur_parent)
-                  || BTOR_IS_NESTED_LAMBDA_NODE (cur_array));
-          assert (!BTOR_IS_WRITE_NODE (cur_parent)
-                  || cur_parent->array_mark == 0);
-          assert (!cur_parent->simplified);
-          found_top = 0;
-          BTOR_PUSH_STACK (mm, stack, cur_parent);
-        }
-        /* NOTE: a lambda is a top array if its application is not
-         * parameterized, i.e. the application of the lambda cannot
-         * change through parameters and thus is always the same.
-         */
-        else if (BTOR_IS_APPLY_NODE (cur_parent) && cur_parent->parameterized)
-        //	      else if (BTOR_IS_READ_NODE (cur_parent)
-        //		       && cur_parent->parameterized)
-        {
-          assert (!cur_parent->simplified);
-          assert (BTOR_EMPTY_STACK (params));
-          assert (cur_parent->array_mark == 0);
-          found_top = 0;
-          find_nodes_dfs (
-              btor, cur_parent, &params, findfun_param, skipfun_param);
-          assert (!BTOR_EMPTY_STACK (params));
-          do
-          {
-            param = BTOR_POP_STACK (params);
-            assert (BTOR_IS_REGULAR_NODE (param));
-            assert (BTOR_IS_PARAM_NODE (param));
-            BTOR_PUSH_STACK (mm, stack, BTOR_PARAM_GET_LAMBDA_NODE (param));
-          } while (!BTOR_EMPTY_STACK (params));
-        }
-      }
-      if (found_top) BTOR_PUSH_STACK (mm, *top_arrays, cur_array);
+      cur_array = BTOR_POP_STACK (unmark_stack);
+      assert (BTOR_IS_REGULAR_NODE (cur_array));
+      assert (BTOR_IS_ARRAY_NODE (cur_array));
+      assert (cur_array->array_mark == 1);
+      cur_array->array_mark = 0;
     }
-  }
-  BTOR_RELEASE_STACK (mm, params);
-  BTOR_RELEASE_STACK (mm, stack);
-
-  /* reset array marks of arrays */
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-  {
-    cur_array = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    assert (cur_array->array_mark == 1);
-    cur_array->array_mark = 0;
-  }
   BTOR_RELEASE_STACK (mm, unmark_stack);
 }
+#endif
 
 static int
 check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
@@ -9309,7 +9247,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   for (temp = top_arrays->start; temp != top; temp++)
   {
     cur_array = *temp;
-    printf ("top: %s\n", node2string (cur_array));
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     assert (cur_array->reachable);
@@ -12287,26 +12224,28 @@ run_rewrite_engine (Btor *btor)
     }
 #endif
 
-    /* rewrite writes to lambdas (skip in case of extensionality) */
-    if ((btor->rewrite_writes && btor->ops[BTOR_AEQ_NODE] == 0))
-    {
-      rewrite_writes_to_lambda_exp (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
-      assert (btor->ops[BTOR_WRITE_NODE] == 0);
-    }
+#if 0
+      /* rewrite writes to lambdas (skip in case of extensionality) */
+      if ((btor->rewrite_writes && btor->ops[BTOR_AEQ_NODE] == 0))
+	{
+	  rewrite_writes_to_lambda_exp (btor);
+	  assert (check_all_hash_tables_proxy_free_dbg (btor));
+	  assert (check_all_hash_tables_simp_free_dbg (btor));
+	  assert (check_unique_table_children_proxy_free_dbg (btor));
+	  assert (btor->ops[BTOR_WRITE_NODE] == 0);
+	}
 
-    /* rewrite aconds to lambdas (skip in case of extensionality) */
-    if ((btor->rewrite_aconds && btor->ops[BTOR_AEQ_NODE] == 0))
-    {
-      //	  rewrite_aconds_to_lambdas (btor);
-      //	  rewrite_reads_on_aconds (btor);
-      assert (check_all_hash_tables_proxy_free_dbg (btor));
-      assert (check_all_hash_tables_simp_free_dbg (btor));
-      assert (check_unique_table_children_proxy_free_dbg (btor));
-      assert (btor->ops[BTOR_ACOND_NODE] == 0);
-    }
+      /* rewrite aconds to lambdas (skip in case of extensionality) */
+      if ((btor->rewrite_aconds && btor->ops[BTOR_AEQ_NODE] == 0))
+	{
+//	  rewrite_aconds_to_lambdas (btor);
+//	  rewrite_reads_on_aconds (btor);
+	  assert (check_all_hash_tables_proxy_free_dbg (btor));
+	  assert (check_all_hash_tables_simp_free_dbg (btor));
+	  assert (check_unique_table_children_proxy_free_dbg (btor));
+	  assert (btor->ops[BTOR_ACOND_NODE] == 0);
+	}
+#endif
 
     if (btor->varsubst_constraints->count) continue;
 
@@ -12465,7 +12404,7 @@ btor_sat_aux_btor (Btor *btor)
   while (sat_result == BTOR_SAT)
   {
     assert (BTOR_EMPTY_STACK (top_arrays));
-    search_top_arrays (btor, &top_arrays);
+    search_top_functions (btor, &top_arrays);
 
     found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
 
