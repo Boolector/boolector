@@ -147,7 +147,9 @@ void
 BtorIBV::delete_ibv_release_variable (BtorIBVNode *node)
 {
   assert (node);
-  assert (!node->is_constant);
+
+  // TODO remove?
+  // assert (!node->is_constant);
 
   for (BtorIBVAssignment *a = node->assignments.start;
        a < node->assignments.top;
@@ -178,7 +180,9 @@ BtorIBV::delete_ibv_node (BtorIBVNode *node)
   btor_freestr (btor->mm, node->name);
   if (node->cached) btor_release_exp (btor, node->cached);
   if (node->forwarded) btor_release_exp (btor, node->forwarded);
-  if (!node->is_constant) delete_ibv_release_variable (node);
+  // TODO remove?
+  // if (!node->is_constant)
+  delete_ibv_release_variable (node);
   BTOR_DELETEN (btor->mm, node->flags, node->width);
   BTOR_DELETE (btor->mm, node);
 }
@@ -240,18 +244,8 @@ BtorIBV::addConstant (unsigned id, const string &str, unsigned width)
   assert (0 < width);  // TODO really?
   assert (str.size () == width);
   node = new_node (id, width);
-#if 0
-  //
-  // We allow 'x' for the initialization part of uinitialized latches.
-  // Since 'x' is not a legal constant in Boolector, we have to
-  // check this separately.
-  //
-  node->cached = btor_const_exp (btor, str.c_str ());
-  node->forwarded = boolector_copy (btor, node->cached);
-#else
   for (size_t i = 0; i < str.size (); i++)
     assert (str[i] == '0' || str[i] == '1' || str[i] == 'x');
-#endif
   node->name        = btor_strdup (btor->mm, str.c_str ());
   node->is_constant = true;
   msg (3, "added id %u constant %s of width %u", id, str.c_str (), width);
@@ -1776,6 +1770,7 @@ BtorIBV::analyze ()
       break;
     }
   }
+  BTOR_RELEASE_STACK (btor->mm, work);
 
   msg (1, "found %u bits in COI", coi);
 
@@ -2063,6 +2058,8 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       a->exp             = boolector_const (btor, n->name + r.lsb);
       assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
       n->name[r.msb + 1] = saved;
+      // TODO remove?
+      // (void) boolector_copy (btor, a->exp);
     }
     break;
 
@@ -2283,7 +2280,7 @@ BtorIBV::translate ()
       BtorIBVNode *n = BTOR_TOP_STACK (work);
       if (n->cached)
       {
-        assert (n->is_constant || n->marked == 2);
+        assert (n->marked == 2);
         BTOR_POP_STACK (work);
       }
       else if (n->marked == 1)
