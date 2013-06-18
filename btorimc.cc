@@ -396,13 +396,14 @@ parse_line ()
     idtab[id] = Var (T (2), width);
     {
       // TODO: hack to get examples through ...
+      //
       char buf[20];
       sprintf (buf, "%u", id);
       string sym (buf);
       symtab["b0_v" + sym] = id;
       symtab["b1_v" + sym] = id;
-      symtab[T (2)]        = id;
     }
+    symtab[T (2)] = id;
     ibvm->addConstant (id, T (2), width);
     stats.addConstant++;
   }

@@ -1839,6 +1839,7 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
                             btor_ibv_classified_to_str (c));
       break;
 
+    case BTOR_IBV_CONSTANT:
     case BTOR_IBV_CURRENT_STATE:
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_PHANTOM_CURRENT_INPUT:
@@ -2043,6 +2044,28 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
                             btor_ibv_classified_to_str (c));
       break;
 
+    case BTOR_IBV_CONSTANT:
+    {
+      assert (strlen (n->name) == (int) r.getWidth ());
+      for (unsigned i = r.lsb; i <= r.msb; i++)
+      {
+        char c = n->name[i];
+        BTOR_ABORT_BOOLECTOR (
+            (c != '0' && c != '1'),
+            "translate_atom_base: non valid constant bit '%s[%u] = %c'",
+            n->name,
+            i,
+            c);
+      }
+      assert (strlen (n->name) >= (int) r.msb);
+      char saved         = n->name[r.msb + 1];
+      n->name[r.msb + 1] = 0;
+      a->exp             = boolector_const (btor, n->name + r.lsb);
+      assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
+      n->name[r.msb + 1] = saved;
+    }
+    break;
+
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
@@ -2083,7 +2106,10 @@ BtorIBV::translate_node_divide (BtorIBVNode *n, BtorIBVNodePtrStack *work)
   assert (n);
   if (n->cached) return;
   assert (!n->forwarded);
-  assert (!n->is_constant);
+
+  // TODO remove?
+  // assert (!n->is_constant);
+
   for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
     translate_atom_divide (a, work);
 }
@@ -2094,7 +2120,10 @@ BtorIBV::translate_node_conquer (BtorIBVNode *n)
   assert (n);
   if (n->cached) return;
   assert (!n->forwarded);
-  assert (!n->is_constant);
+
+  // TODO remove?
+  // assert (!n->is_constant);
+
   BtorNode *res = 0;
   for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
   {
@@ -2178,11 +2207,10 @@ BtorIBV::translate ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
-    if (n->is_constant)
-    {
-      assert (n->cached);
-      continue;
-    }
+
+    // TODO remove?
+    // if (n->is_constant) { assert (n->cached); continue; }
+
     if (!n->used) continue;
     unsigned msb;
     for (unsigned lsb = 0; lsb < n->width; lsb = msb + 1)
@@ -2214,11 +2242,14 @@ BtorIBV::translate ()
           "can not translate implicitly assigned current non-state");
 
       assert (classified != BTOR_IBV_UNCLASSIFIED);
-      assert (classified != BTOR_IBV_CONSTANT);
+
+      // TODO remove?
+      // assert (classified != BTOR_IBV_CONSTANT);
 
       BtorIBVAtom *aptr = &BTOR_TOP_STACK (n->atoms);
       switch (classified)
       {
+        case BTOR_IBV_CONSTANT:
         case BTOR_IBV_CURRENT_STATE:
         case BTOR_IBV_TWO_PHASE_INPUT:
         case BTOR_IBV_PHANTOM_NEXT_INPUT:
