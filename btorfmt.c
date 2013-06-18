@@ -128,7 +128,7 @@ START:
   assert (!line.tag);
   assert (line.tag == BTOR_FORMAT_INVALID_TAG);
   while ('a' <= (ch = getc_bfr (bfr)) && ch <= 'z') pushc_bfr (bfr, ch);
-  if (!bfr->nbuf) return perr_bfr (bfr, "expected tag");
+  if (ch != ' ' || !bfr->nbuf) return perr_bfr (bfr, "expected tag");
   pushc_bfr (bfr, 0);
   PARSETAG (BTOR_FORMAT_TAG_ADD, "add");
   PARSETAG (BTOR_FORMAT_TAG_AND, "and");

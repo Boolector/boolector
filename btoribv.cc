@@ -2426,14 +2426,29 @@ BtorIBV::bmc (int maxk)
 string
 BtorIBV::assignment (BitRange r, int k)
 {
+  BTOR_ABORT_BOOLECTOR (!gentrace,
+                        "BtorIBV::assignment: 'BtorIBV::enableTraceGeneration' "
+                        "was not called before");
   BtorIBVNode *n = id2node (r.m_nId);
   assert (n);
-  assert (n->cached);
-  BtorNode *sliced =
-      boolector_slice (btor, n->cached, (int) r.m_nMsb, (int) r.m_nLsb);
-  char *cres = boolector_mc_assignment (btormc, sliced, k);
-  boolector_release (btor, sliced);
-  string res (cres);
-  boolector_free_mc_assignment (btormc, cres);
-  return res;
+  if (!n->cached)
+  {
+    unsigned width = r.getWidth ();
+    char *str      = (char *) btor_malloc (btor->mm, width + 1);
+    for (unsigned i = 0; i < width; i++) str[i] = 'x';
+    str[width] = 0;
+    string res (str);
+    btor_free (btor->mm, str, width + 1);
+    return res;
+  }
+  else
+  {
+    BtorNode *sliced =
+        boolector_slice (btor, n->cached, (int) r.m_nMsb, (int) r.m_nLsb);
+    char *cres = boolector_mc_assignment (btormc, sliced, k);
+    boolector_release (btor, sliced);
+    string res (cres);
+    boolector_free_mc_assignment (btormc, cres);
+    return res;
+  }
 }

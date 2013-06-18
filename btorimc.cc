@@ -30,6 +30,7 @@ static BtorIBV* ibvm;
 
 static map<string, unsigned> symtab;
 static map<unsigned, Var> idtab;
+static vector<unsigned> vartab;
 
 static int lineno             = 1;
 static FILE* input            = stdin;
@@ -358,6 +359,7 @@ parse_line ()
                          (bool) N (4),
                          (BitVector::BvVariableSource) N (5),
                          (BitVector::DirectionKind) N (6));
+    vartab.push_back (id);
   }
   else if (!strcmp (op, "addRangeName"))
   {
@@ -605,15 +607,35 @@ isfile (const char* p)
   return !stat (p, &buf);
 }
 
+static bool
+isbound (const char* str)
+{
+  const char* p = str;
+  if (!isdigit (*p++)) return 0;
+  while (isdigit (*p)) p++;
+  return !*p;
+}
+
 int
 main (int argc, char** argv)
 {
+  bool witness = true;
+  int k        = -1, r;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      fputs ("usage: btorimc [-h] [<ibvfile>]\n", stdout);
+      fputs ("usage: btorimc [-h][-n][<k>] [<ibvfile>]\n", stdout);
       exit (0);
+    }
+    else if (!strcmp (argv[i], "-n"))
+      witness = false;
+    else if (argv[i][0] == '-')
+      err ("invalid command line option '%s'", argv[i]);
+    else if (isbound (argv[i]))
+    {
+      if (k >= 0) err ("more than one bound");
+      if ((k = atoi (argv[i])) < 0) err ("invalid bound");
     }
     else if (close_input)
       err ("more than one input");
@@ -631,11 +653,43 @@ main (int argc, char** argv)
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (10);
+  if (witness) ibvm->enableTraceGeneration ();
   parse ();
   if (close_input == 1) fclose (input);
   if (close_input == 2) pclose (input);
   ibvm->analyze ();
   ibvm->translate ();
+  if (k < 0) k = 10;
+  msg ("running bounded model checking up to bound %d", k);
+  r = ibvm->bmc (k);
+  if (r < 0)
+    msg ("property not reachable until bound %d", k);
+  else
+  {
+    msg ("property reachable at bound %d", r);
+    if (witness)
+    {
+      for (int i = 0; i <= r; i++)
+      {
+        msg ("time frame %d", i);
+        for (vector<unsigned>::const_iterator it = vartab.begin ();
+             it != vartab.end ();
+             it++)
+        {
+          unsigned id = *it;
+          printf ("time=%d id=%d ", i, id);
+          Var& var = idtab[id];
+          printf ("%s ", var.name.c_str ());
+          assert (var.width > 0);
+          BitVector::BitRange range (id, var.width - 1, 0);
+          string val = ibvm->assignment (range, i);
+          printf ("%s\n", val.c_str ());
+        }
+      }
+    }
+    else
+      msg ("disabled witness printing with '-n'");
+  }
   delete ibvm;
   return 0;
 }
