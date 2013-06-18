@@ -147,6 +147,12 @@ read_line ()
   return true;
 }
 
+static int
+str_to_id_or_number (const char* s)
+{
+  return atoi ((s[0] == 'i' && s[1] == 'd' && s[2] == '=') ? s + 3 : s);
+}
+
 #define CHKARGS(EXPECTED)                                             \
   do                                                                  \
   {                                                                   \
@@ -176,7 +182,9 @@ read_line ()
       perr ("symbol '%s' already used", SYM.c_str ()); \
   } while (0)
 
-#define N(I) (assert ((I) < size), (unsigned) atoi (toks[I].c_str ()))
+#define N(I) \
+  (assert ((I) < size), (unsigned) str_to_id_or_number (toks[I].c_str ()))
+
 #define T(I) (assert ((I) < size), toks[I])
 
 #define CHKBIT(SYM, B)                                                         \
