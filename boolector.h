@@ -160,11 +160,6 @@ Btor *boolector_new (void);
 Btor *boolector_clone (Btor *btor);
 
 /**
- * Returns 1 if the input formula is inconsistent, and 0 otherwise.
- */
-int boolector_is_inconsistent (Btor *btor);
-
-/**
  * Enables model generation. If you want Boolector to produce
  * a model in the satisfiable case, call this function
  * after \ref boolector_new.
