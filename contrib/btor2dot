@@ -20,7 +20,7 @@
   { if ($2 == "const" || $2 == "constd" || $2 == "consth") { 
       printf "%d [shape=box, label=\"%s\\n%s\"];\n", $1, $2, $4
     } else if ($2 == "zero" || $2 == "one" || $2 == "ones") {
-      printf "%d [shape=box, label=\"%s\\n\"];\n", $1, $2
+      printf "%d [shape=box, label=\"%s\\n%s\"];\n", $1, $2
     } else if ($2 == "var" || $2 == "param") {
     if (NF == 3)
       printf "%d [shape=box, label=\"%s\\n%d\"];\n", $1, $2, $3
