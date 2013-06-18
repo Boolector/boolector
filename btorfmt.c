@@ -39,7 +39,6 @@ reset_bfr (BtorFormatReader* bfr)
     {
       BtorFormatLine* l = bfr->lines[i];
       if (!l) continue;
-      if (l->symbol) free (l->symbol);
       free (l);
     }
     free (bfr->lines);
@@ -219,8 +218,9 @@ read_btor_format_lines (BtorFormatReader* bfr, FILE* file)
   bfr->file               = file;
   while (readl_bfr (bfr))
     ;
-  if (!bfr->error) pushl_bfr (bfr, 0);
-  return bfr->error ? 0 : bfr->lines;
+  if (bfr->error) return 0;
+  pushl_bfr (bfr, 0);
+  return bfr->lines;
 }
 
 const char*
