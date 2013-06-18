@@ -5,10 +5,10 @@ int
 main (int argc, char** argv)
 {
   int n, w, i;
-  if (argc != 3 || (n = atoi (argv[1])) <= 1 || (w = atoi (argv[2])) <= 0)
+  if (argc != 3 || (n = atoi (argv[1])) < 2 || (w = atoi (argv[2])) < 2)
   {
     fprintf (stderr,
-             "usage: gensat addends bit-width (addends > 1, bit-width > 0)\n");
+             "usage: gensat addends bit-width (addends, bitwidth > 1)\n");
     exit (1);
   }
   printf ("(set-logic QF_BV)\n");
