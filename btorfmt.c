@@ -39,6 +39,7 @@ reset_bfr (BtorFormatReader* bfr)
     {
       BtorFormatLine* l = bfr->lines[i];
       if (!l) continue;
+      if (l->symbol) free (l->symbol);
       free (l);
     }
     free (bfr->lines);
