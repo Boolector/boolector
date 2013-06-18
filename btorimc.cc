@@ -401,6 +401,7 @@ parse_line ()
       string sym (buf);
       symtab["b0_v" + sym] = id;
       symtab["b1_v" + sym] = id;
+      symtab[T (2)]        = id;
     }
     ibvm->addConstant (id, T (2), width);
     stats.addConstant++;
