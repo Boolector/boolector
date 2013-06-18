@@ -2009,15 +2009,12 @@ encode_lemma (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (app1));
   assert (BTOR_IS_APPLY_NODE (app0));
 
-#ifndef NDEBUG
-  int found;
-#endif
   int i, k, val;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
-  BtorNode *args0, *args1, *arg0, *arg1, *app, *args;
+  BtorNode *args0, *args1, *arg0, *arg1, *args;
   BtorNode *cond, *beta_app;
   BtorNode *cur, *lambda_value, *parameterized, *lambda;
   BtorIntStack linking_clause;
@@ -6937,8 +6934,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
            node2string (args));
 
   char *res;
-  int assignment;
-  BtorNode *cur, *next, *prev_lambda, *cond;
+  BtorNode *cur, *next, *cond;
   BtorMemMgr *mm;
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack, unassign_stack;
@@ -6961,7 +6957,6 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
   BTOR_PUSH_STACK (mm, unmark_stack, cur);
 
   /* applies are only propagated along parameterized paths */
-  prev_lambda = 0;
   do
   {
     cur = BTOR_DEQUEUE (queue);
@@ -6984,7 +6979,6 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       if (((BtorLambdaNode *) cur)->nested == cur
           || !BTOR_IS_NESTED_LAMBDA_NODE (cur))
       {
-        prev_lambda = cur;
         btor_assign_args (btor, cur, args);
         BTOR_PUSH_STACK (mm, unassign_stack, cur);
       }
@@ -6999,7 +6993,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
     else if (BTOR_IS_BV_COND_NODE (cur))
     {
       cond = cur->e[0];
-      res  = btor_eval_exp (btor, cond);
+      res  = (char *) btor_eval_exp (btor, cond);
       next = res[0] == '1' ? cur->e[1] : cur->e[2];
       next = BTOR_REAL_ADDR_NODE (next);
       btor_freestr (mm, (char *) res);
@@ -9222,8 +9216,7 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
 {
   BtorNodePtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorNodePtrStack param_reads;
-  BtorPartialParentIterator it;
-  BtorFullParentIterator fit;
+  BtorFullParentIterator it;
   BtorMemMgr *mm;
   BtorNode *cur_array, *cur_parent, **top, **temp, *param_read;
   int found_conflict, changed_assignments, propagate_writes_as_reads;
@@ -9288,10 +9281,10 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
           BTOR_PUSH_STACK (mm, array_stack, param_read->e[0]);
         }
       }
-      init_full_parent_iterator (&fit, cur_array);
-      while (has_next_parent_full_parent_iterator (&fit))
+      init_full_parent_iterator (&it, cur_array);
+      while (has_next_parent_full_parent_iterator (&it))
       {
-        cur_parent = next_parent_full_parent_iterator (&fit);
+        cur_parent = next_parent_full_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
         assert (BTOR_IS_LAMBDA_NODE (cur_parent)
                 || BTOR_IS_APPLY_NODE (cur_parent));
