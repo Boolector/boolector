@@ -2634,56 +2634,67 @@ btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp)
 }
 
 BtorNode *
+simplify_constraint_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_REAL_ADDR_NODE (exp)->constraint);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->simplified);
+
+  BtorNode *real_exp, *result, *not_exp;
+
+  real_exp = BTOR_REAL_ADDR_NODE (exp);
+  not_exp  = BTOR_INVERT_NODE (real_exp);
+
+  if (BTOR_IS_BV_CONST_NODE (real_exp)) return exp;
+
+  if (btor_find_in_ptr_hash_table (btor->embedded_constraints, real_exp))
+  {
+    result = btor->true_exp;
+  }
+  else if (btor_find_in_ptr_hash_table (btor->embedded_constraints, not_exp))
+  {
+    result = BTOR_INVERT_NODE (btor->true_exp);
+  }
+  else if (btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                        real_exp))
+  {
+    result = btor->true_exp;
+  }
+  else if (btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
+                                        not_exp))
+  {
+    result = BTOR_INVERT_NODE (btor->true_exp);
+  }
+  else if (btor_find_in_ptr_hash_table (btor->synthesized_constraints,
+                                        real_exp))
+  {
+    result = btor->true_exp;
+  }
+  else
+  {
+    assert (
+        btor_find_in_ptr_hash_table (btor->synthesized_constraints, not_exp));
+    result = BTOR_INVERT_NODE (btor->true_exp);
+  }
+
+  if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
+
+  return result;
+}
+
+BtorNode *
 btor_simplify_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
 
-  BtorNode *real_exp, *not_exp, *result;
+  BtorNode *real_exp, *result;
   BtorPtrHashBucket *bucket;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  not_exp  = BTOR_INVERT_NODE (real_exp);
 
-  if (real_exp->constraint)
-  {
-    assert (!real_exp->simplified);
-
-    if (BTOR_IS_BV_CONST_NODE (real_exp)) return exp;
-
-    if (btor_find_in_ptr_hash_table (btor->embedded_constraints, real_exp))
-    {
-      result = btor->true_exp;
-    }
-    else if (btor_find_in_ptr_hash_table (btor->embedded_constraints, not_exp))
-    {
-      result = BTOR_INVERT_NODE (btor->true_exp);
-    }
-    else if (btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
-                                          real_exp))
-    {
-      result = btor->true_exp;
-    }
-    else if (btor_find_in_ptr_hash_table (btor->unsynthesized_constraints,
-                                          not_exp))
-    {
-      result = BTOR_INVERT_NODE (btor->true_exp);
-    }
-    else if (btor_find_in_ptr_hash_table (btor->synthesized_constraints,
-                                          real_exp))
-    {
-      result = btor->true_exp;
-    }
-    else
-    {
-      assert (
-          btor_find_in_ptr_hash_table (btor->synthesized_constraints, not_exp));
-      result = BTOR_INVERT_NODE (btor->true_exp);
-    }
-
-    if (BTOR_IS_INVERTED_NODE (exp)) return BTOR_INVERT_NODE (result);
-    return result;
-  }
+  if (real_exp->constraint) return simplify_constraint_exp (btor, exp);
 
   // TODO: substitution flag for BtorNode?
   if (btor->substitutions)
@@ -2702,7 +2713,12 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
     return result;
   }
 
-  return btor_pointer_chase_simplified_exp (btor, exp);
+  result = btor_pointer_chase_simplified_exp (btor, exp);
+
+  if (BTOR_REAL_ADDR_NODE (result)->constraint)
+    return simplify_constraint_exp (btor, result);
+
+  return result;
 }
 
 static int
