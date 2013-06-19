@@ -801,8 +801,12 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
       frame_owned_res = 0;
   }
 
+  // TODO what about non inputs?
+  //
+#if 0
   BTOR_ABORT_BOOLECTOR (!bucket,
-                        "'node' argument is neither an input nor a latch");
+     "'node' argument is neither an input nor a latch");
+#endif
 
   if (frame_owned_res)
   {

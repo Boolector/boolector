@@ -2423,32 +2423,34 @@ BtorIBV::bmc (int maxk)
   return boolector_bmc (btormc, maxk);
 }
 
+static string
+repeat_char (Btor *btor, unsigned length, char ch)
+{
+  char *cstr = (char *) btor_malloc (btor->mm, length + 1);
+  unsigned i;
+  for (i = 0; i < length; i++) cstr[i] = ch;
+  cstr[i] = 0;
+  string res (cstr);
+  btor_free (btor->mm, cstr, length + 1);
+  return res;
+}
+
 string
 BtorIBV::assignment (BitRange r, int k)
 {
-  BTOR_ABORT_BOOLECTOR (!gentrace,
-                        "BtorIBV::assignment: 'BtorIBV::enableTraceGeneration' "
-                        "was not called before");
+  BTOR_ABORT_BOOLECTOR (
+      !gentrace,
+      "BtorIBV::assignment: "
+      "'BtorIBV::enableTraceGeneration' was not called before");
   BtorIBVNode *n = id2node (r.m_nId);
   assert (n);
-  if (!n->cached)
-  {
-    unsigned width = r.getWidth ();
-    char *str      = (char *) btor_malloc (btor->mm, width + 1);
-    for (unsigned i = 0; i < width; i++) str[i] = 'x';
-    str[width] = 0;
-    string res (str);
-    btor_free (btor->mm, str, width + 1);
-    return res;
-  }
-  else
-  {
-    BtorNode *sliced =
-        boolector_slice (btor, n->cached, (int) r.m_nMsb, (int) r.m_nLsb);
-    char *cres = boolector_mc_assignment (btormc, sliced, k);
-    boolector_release (btor, sliced);
-    string res (cres);
-    boolector_free_mc_assignment (btormc, cres);
-    return res;
-  }
+  if (!n->cached) return repeat_char (btor, r.getWidth (), 'x');
+  BtorNode *sliced =
+      boolector_slice (btor, n->cached, (int) r.m_nMsb, (int) r.m_nLsb);
+  char *cres = boolector_mc_assignment (btormc, sliced, k);
+  boolector_release (btor, sliced);
+  if (!cres) return repeat_char (btor, r.getWidth (), 'u');
+  string res (cres);
+  boolector_free_mc_assignment (btormc, cres);
+  return res;
 }
