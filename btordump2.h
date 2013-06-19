@@ -22,8 +22,9 @@ void btor_add_latch_to_dump_context (BtorDumpContext *, BtorNode *);
 void btor_add_next_to_dump_context (BtorDumpContext *, BtorNode *, BtorNode *);
 void btor_add_init_to_dump_context (BtorDumpContext *, BtorNode *, BtorNode *);
 void btor_add_bad_to_dump_context (BtorDumpContext *, BtorNode *);
-void btor_add_root_to_dump_context (BtorDumpContext *, BtorNode *);
+void btor_add_output_to_dump_context (BtorDumpContext *, BtorNode *);
 void btor_add_constraint_to_dump_context (BtorDumpContext *, BtorNode *);
+void btor_add_root_to_dump_context (BtorDumpContext *, BtorNode *);
 
 void btor_dump_btor (BtorDumpContext *, FILE *file);
 
