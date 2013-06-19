@@ -314,9 +314,15 @@ parse_line ()
 {
   const char* str;
   vector<string> toks;
+  char* p;
+  for (p = line; *p; p++)
+    ;
+  if (p == line) perr ("empty line");
+  if (p[-1] != ')') perr ("line does not end with ')'");
+  p[-1] = 0;
   if (!(str = strtok (line, "("))) perr ("'(' missing");
   toks.push_back (string (str));
-  while ((str = strtok (0, ",)"))) toks.push_back (string (str));
+  while ((str = strtok (0, ","))) toks.push_back (string (str));
 #if 1
   printf ("[btorimc] line %d:", lineno);
   for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();

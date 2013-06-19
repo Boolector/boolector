@@ -10,6 +10,7 @@
 
 #include "btormc.h"
 #include "btorabort.h"
+#include "btordump.h"
 #include "btorexp.h"
 #include "btormap.h"
 
@@ -825,4 +826,23 @@ boolector_free_mc_assignment (BtorMC *mc, char *assignment)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_freestr (mc->btor->mm, assignment);
+}
+
+void
+boolector_dump_mc (BtorMC *mc, FILE *file)
+{
+  BtorPtrHashBucket *b;
+  BtorDumpContext *bdc;
+
+  bdc = btor_new_dump_context (mc->btor);
+
+  for (b = mc->inputs->first; b; b = b->next)
+  {
+    BtorMcInput *input = b->data.asPtr;
+    assert (input);
+    assert (input->node);
+  }
+
+  btor_dump_btor (bdc, file);
+  btor_delete_dump_context (bdc);
 }
