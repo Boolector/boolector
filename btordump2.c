@@ -8,7 +8,7 @@
  *  See COPYING for more information on using this software.
  */
 
-#include "btordump.h"
+#include "btordump2.h"
 #include "btorexp.h"
 #include "btorhash.h"
 #include "btormem.h"

@@ -7,6 +7,8 @@
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
+#ifndef BTORDUMP2_H_INCLUDED
+#define BTORDUMP2_H_INCLUDED
 
 #include "boolector.h"
 
@@ -24,3 +26,5 @@ void btor_add_root_to_dump_context (BtorDumpContext *, BtorNode *);
 void btor_add_constraint_to_dump_context (BtorDumpContext *, BtorNode *);
 
 void btor_dump_btor (BtorDumpContext *, FILE *file);
+
+#endif
