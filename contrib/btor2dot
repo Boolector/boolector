@@ -20,8 +20,8 @@
   { if ($2 == "const" || $2 == "constd" || $2 == "consth") { 
       printf "%d [shape=box, label=\"%s\\n%s\"];\n", $1, $2, $4
     } else if ($2 == "zero" || $2 == "one" || $2 == "ones") {
-      printf "%d [shape=box, label=\"%s\\n%s\"];\n", $1, $2
-    } else if ($2 == "var" || $2 == "param") {
+      printf "%d [shape=box, label=\"%s\\n%s\"];\n", $1, $2, $3
+    } else if ($2 == "var" || $2 == "param" || $2 == "latch" || $2 == "input") {
     if (NF == 3)
       printf "%d [shape=box, label=\"%s\\n%d\"];\n", $1, $2, $3
     else if (NF > 3)
@@ -59,6 +59,9 @@
     printf "%d [style=filled, fillcolor=lightgray, label=\"lambda\"];\n", $1
     print_child_arrow($1, $5, 1)
     print_child_arrow($1, $6, 2)
+  } else if ($2 == "bad"){
+    printf "%d [shape=triangle,color=red,label=\"\"];\n", $1
+    print_unary_child_arrow($1, $4)
   } else if ($2 == "root"){
     printf "%d [shape=none, label=\"\"];\n", $1
     print_unary_child_arrow($1, $4)

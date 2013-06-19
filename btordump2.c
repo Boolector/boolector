@@ -11,6 +11,7 @@
  */
 
 #include "btordump2.h"
+#include "btorconst.h"
 #include "btorexp.h"
 #include "btorhash.h"
 #include "btormem.h"
@@ -43,6 +44,9 @@ btor_new_dump_context (Btor *btor)
   res->latches = btor_new_ptr_hash_table (btor->mm,
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
+  res->idtab   = btor_new_ptr_hash_table (btor->mm,
+                                        (BtorHashPtr) btor_hash_exp_by_id,
+                                        (BtorCmpPtr) btor_compare_exp_by_id);
   return res;
 }
 
@@ -110,7 +114,7 @@ btor_add_latch_to_dump_context (BtorDumpContext *bdc, BtorNode *latch)
   assert (BTOR_IS_BV_VAR_NODE (latch));
   assert (!btor_find_in_ptr_hash_table (bdc->inputs, latch));
   assert (!btor_find_in_ptr_hash_table (bdc->latches, latch));
-  b = btor_insert_in_ptr_hash_table (bdc->inputs, latch);
+  b = btor_insert_in_ptr_hash_table (bdc->latches, latch);
   BTOR_CNEW (bdc->btor->mm, bdcl);
   bdcl->latch   = btor_copy_exp (bdc->btor, latch);
   b->data.asPtr = bdcl;
@@ -394,24 +398,24 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
     assert (BTOR_IS_BV_VAR_NODE (bdcl->latch));
     if (bdcl->next)
     {
-      int id;
       bdcrec (bdc, bdcl->next, file);
       id = ++bdc->maxid;
       fprintf (file,
-               "%d next %d %d\n",
+               "%d next %d %d %d\n",
                id,
                btor_get_exp_len (bdc->btor, bdcl->next),
+               bdcid (bdc, bdcl->latch),
                bdcid (bdc, bdcl->next));
     }
     if (bdcl->init)
     {
-      int id;
       bdcrec (bdc, bdcl->init, file);
       id = ++bdc->maxid;
       fprintf (file,
-               "%d init %d %d\n",
+               "%d init %d %d %d\n",
                id,
                btor_get_exp_len (bdc->btor, bdcl->init),
+               bdcid (bdc, bdcl->latch),
                bdcid (bdc, bdcl->init));
     }
   }

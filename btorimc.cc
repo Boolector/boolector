@@ -683,7 +683,10 @@ main (int argc, char** argv)
   ibvm->analyze ();
   ibvm->translate ();
   if (dump)
+  {
+    msg ("dumping BTOR model to '<stdout>'");
     ibvm->dump_btor (stdout);
+  }
   else
   {
     if (k < 0) k = 10;
