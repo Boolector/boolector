@@ -37,7 +37,7 @@ int boolector_bad (BtorMC *, BtorNode *bad);
 
 /*------------------------------------------------------------------------*/
 
-void boolector_dump_model (BtorMC *, FILE *);
+void boolector_dump_btormc (BtorMC *, FILE *);
 
 /*------------------------------------------------------------------------*/
 

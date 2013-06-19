@@ -2413,6 +2413,17 @@ BtorIBV::translate ()
 
 /*------------------------------------------------------------------------*/
 
+void
+BtorIBV::dump_btor (FILE *file)
+{
+  BTOR_ABORT_BOOLECTOR (state == BTOR_IBV_START,
+                        "model needs to be translated before it can be dumped");
+
+  boolector_dump_btormc (btormc, file);
+}
+
+/*------------------------------------------------------------------------*/
+
 int
 BtorIBV::bmc (int maxk)
 {

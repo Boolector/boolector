@@ -829,10 +829,11 @@ boolector_free_mc_assignment (BtorMC *mc, char *assignment)
 }
 
 void
-boolector_dump_mc (BtorMC *mc, FILE *file)
+boolector_dump_btormc (BtorMC *mc, FILE *file)
 {
   BtorPtrHashBucket *b;
   BtorDumpContext *bdc;
+  int i;
 
   bdc = btor_new_dump_context (mc->btor);
 
@@ -841,7 +842,29 @@ boolector_dump_mc (BtorMC *mc, FILE *file)
     BtorMcInput *input = b->data.asPtr;
     assert (input);
     assert (input->node);
+    btor_add_input_to_dump_context (bdc, input->node);
   }
+
+  for (b = mc->latches->first; b; b = b->next)
+  {
+    BtorMcLatch *latch = b->data.asPtr;
+    assert (latch);
+    assert (latch->node);
+    assert (BTOR_IS_REGULAR_NODE (latch->node));
+    btor_add_latch_to_dump_context (bdc, latch->node);
+    if (latch->init)
+      btor_add_init_to_dump_context (bdc, latch->node, latch->init);
+    if (latch->next)
+      btor_add_next_to_dump_context (bdc, latch->node, latch->next);
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (mc->bad); i++)
+  {
+    BtorNode *bad = BTOR_PEEK_STACK (mc->bad, i);
+    btor_add_bad_to_dump_context (bdc, bad);
+  }
+
+  // TODO add 'constraints' ...
 
   btor_dump_btor (bdc, file);
   btor_delete_dump_context (bdc);

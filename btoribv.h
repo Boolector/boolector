@@ -543,6 +543,8 @@ class BtorIBV : public BitVector
   void analyze ();    // Needs to be called before 'translate'.
   void translate ();  // Into internal BtorMC model.
 
+  void dump_btor (FILE *file);  // Dump BTOR model to this file.
+
   int bmc (int maxk);
   string assignment (BitRange, int k);
 };
