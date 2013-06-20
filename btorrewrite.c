@@ -10,6 +10,7 @@
  */
 
 #include "btorrewrite.h"
+#include "btorbeta.h"
 #include "btorconst.h"
 #include "btormem.h"
 #include "btorutil.h"
@@ -3468,6 +3469,156 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_REWRITE_CONCAT_NODE_NO_REWRITE:
     result = btor_concat_exp_node (btor, e0, e1);
   }
+
+  return result;
+}
+
+static int
+is_true_cond (BtorNode *cond)
+{
+  assert (cond);
+  assert (BTOR_REAL_ADDR_NODE (cond)->len == 1);
+
+  if (BTOR_IS_INVERTED_NODE (cond)
+      && BTOR_REAL_ADDR_NODE (cond)->bits[0] == '0')
+    return 1;
+  else if (!BTOR_IS_INVERTED_NODE (cond)
+           && BTOR_REAL_ADDR_NODE (cond)->bits[0] == '1')
+    return 1;
+
+  return 0;
+}
+
+BtorNode *
+btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
+{
+  BtorNode *result, *prev_result, *cur_fun, *cur_args, *e_cond, *e_if, *e_else;
+  BtorNode *beta_cond;
+  int i, propagations = 0, args_not_equal;
+
+  /* no recurisve rewrite calls here, so we do not need to check bounds */
+  fun  = btor_simplify_exp (btor, fun);
+  args = btor_simplify_exp (btor, args);
+  //  assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
+  assert (btor->rewrite_level > 0);
+
+  cur_fun  = fun;
+  cur_args = args;
+
+  //  printf ("*****\n");
+  result      = 0;
+  prev_result = 0;
+  while (BTOR_IS_LAMBDA_NODE (cur_fun)
+         && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_fun->e[1]))
+         && propagations++ < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT)
+  {
+    assert (BTOR_IS_REGULAR_NODE (cur_fun));
+    assert (BTOR_IS_REGULAR_NODE (cur_args));
+    //      printf ("cur_fun: %s\n", node2string (cur_fun));
+    //      printf ("cur_args: %s\n", node2string (cur_args));
+    //      printf ("  arg: %s\n", node2string (cur_args->e[0]));
+
+    e_cond = BTOR_REAL_ADDR_NODE (cur_fun->e[1])->e[0];
+    e_if   = BTOR_REAL_ADDR_NODE (cur_fun->e[1])->e[1];
+    e_else = BTOR_REAL_ADDR_NODE (cur_fun->e[1])->e[2];
+    //      printf ("e_if: %s\n", node2string (e_if));
+    //      printf ("e_else: %s\n", node2string (e_else));
+
+    /* if e_cond is not parameterized the check was already done while
+     * creating bv cond */
+    if (!BTOR_REAL_ADDR_NODE (e_cond)->parameterized) break;
+
+    btor_assign_args (btor, cur_fun, cur_args);
+    beta_cond = btor_beta_reduce_bounded (btor, e_cond, 1);
+
+    //      printf ("beta_cond: %s\n", node2string (beta_cond));
+    // TODO: memleak
+    prev_result = result;
+    result      = 0;
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
+    {
+      if (is_true_cond (beta_cond))
+        result = btor_beta_reduce_bounded (btor, e_if, 1);
+      else
+        result = btor_beta_reduce_bounded (btor, e_else, 1);
+      //	  printf ("result const: %s\n", node2string (result));
+    }
+    btor_unassign_param (btor, cur_fun);
+    btor_release_exp (btor, beta_cond);
+
+    if (!result)
+    {
+      if (prev_result)
+      {
+        //	      printf ("prev_result: %s\n", node2string (prev_result));
+        return prev_result;
+      }
+      break;
+    }
+
+    if (!BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result))) return result;
+
+    cur_fun = BTOR_REAL_ADDR_NODE (result)->e[0];
+    //      printf ("next_fun: %s\n", node2string (cur_fun));
+    cur_args = BTOR_REAL_ADDR_NODE (result)->e[1];
+    btor->stats.read_props_construct++;
+    //      printf ("props: %d\n", propagations);
+  }
+
+  if (!result) result = btor_apply_exp_node (btor, cur_fun, cur_args);
+    //  else
+    //    printf ("result2: %s\n", node2string (result));
+
+#if 0
+  if (BTOR_IS_WRITE_NODE (cur_array))
+    {
+      write_index = cur_array->e[1];
+      /* if read index is equal write index, then return write value */
+      if (e_index == write_index)
+	return btor_copy_exp (btor, cur_array->e[2]);
+
+      assert (BTOR_IS_REGULAR_NODE (cur_array));
+      assert (BTOR_IS_ARRAY_NODE (cur_array));
+      propagations = 0;
+
+      do
+	{
+	  assert (BTOR_IS_WRITE_NODE (cur_array));
+	  write_index = cur_array->e[1];
+
+	  if (e_index == write_index)
+	    return btor_copy_exp (btor, cur_array->e[2]);
+
+	  if (!is_always_unequal (btor, e_index, write_index))
+	    break;
+
+	  cur_array = cur_array->e[0];
+	  assert (BTOR_IS_REGULAR_NODE (cur_array));
+	  assert (BTOR_IS_ARRAY_NODE (cur_array));
+	  btor->stats.read_props_construct++;
+	}
+      while (BTOR_IS_WRITE_NODE (cur_array) &&
+	propagations++ < BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT);
+    }
+
+  if (BTOR_IS_ARRAY_COND_NODE (cur_array) &&
+      btor->rewrite_level > 2 &&		// TODO when to enable?
+      btor->rec_read_acond_calls < 0)		// TODO global constant!
+    {
+      BtorNode * t1, * t2;
+      btor->rec_read_acond_calls++;
+      t1 = btor_read_exp (btor, cur_array->e[1], e_index);
+      t2 = btor_read_exp (btor, cur_array->e[2], e_index);
+      result = btor_cond_exp (btor, cur_array->e[0], t1, t2);
+      btor->rec_read_acond_calls--;
+      btor_release_exp (btor, t2);
+      btor_release_exp (btor, t1);
+    }
+  else
+    result = btor_read_exp_node (btor, cur_array, e_index);
+
+#endif
+  assert (result);
 
   return result;
 }

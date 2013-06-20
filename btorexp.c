@@ -2694,6 +2694,7 @@ btor_simplify_exp (Btor *btor, BtorNode *exp)
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
 
+  // TODO: should we move that to the bottom?
   if (real_exp->constraint) return simplify_constraint_exp (btor, exp);
 
   // TODO: substitution flag for BtorNode?
@@ -3832,9 +3833,13 @@ btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
 
   result = (BtorApplyNode *) btor_apply_exps (btor, 1, &e_index, e_array);
-  result->is_read = 1;
+  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
+  {
+    result->is_read = 1;
 
-  if (!result->bits) result->bits = btor_x_const_3vl (btor->mm, e_array->len);
+    if (!BTOR_REAL_ADDR_NODE (result)->bits)
+      result->bits = btor_x_const_3vl (btor->mm, e_array->len);
+  }
 
   return (BtorNode *) result;
 }
@@ -3982,7 +3987,7 @@ btor_args_exp (Btor *btor, int argc, BtorNode **args)
 }
 
 BtorNode *
-btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
+btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
 {
   assert (btor);
   assert (fun);
@@ -4001,6 +4006,21 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 }
 
 BtorNode *
+btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
+{
+  assert (btor);
+  assert (fun);
+  assert (args);
+
+  fun  = btor_simplify_exp (btor, fun);
+  args = btor_simplify_exp (btor, args);
+
+  if (btor->rewrite_level > 0) return btor_rewrite_apply_exp (btor, fun, args);
+
+  return btor_apply_exp_node (btor, fun, args);
+}
+
+BtorNode *
 btor_apply_exps (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
   assert (btor);
@@ -4010,19 +4030,14 @@ btor_apply_exps (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (BTOR_IS_REGULAR_NODE (fun));
   assert (BTOR_IS_FUN_NODE (fun));
 
-  int i;
-  // TODO: use malloc?
-  BtorNode *exp, *_args[argc], *e[2], *arg_list;
+  BtorNode *exp, *_args;
 
-  for (i = 0; i < argc; i++) _args[i] = btor_simplify_exp (btor, args[i]);
+  _args = btor_args_exp (btor, argc, args);
+  fun   = btor_simplify_exp (btor, fun);
+  _args = btor_simplify_exp (btor, _args);
 
-  arg_list = create_exp (btor, BTOR_ARGS_NODE, argc, _args);
-
-  e[0] = btor_simplify_exp (btor, fun);
-  e[1] = btor_simplify_exp (btor, arg_list);
-
-  exp = create_exp (btor, BTOR_APPLY_NODE, 2, e);
-  btor_release_exp (btor, arg_list);
+  exp = btor_apply_exp (btor, fun, _args);
+  btor_release_exp (btor, _args);
 
   return exp;
 }
@@ -5282,10 +5297,10 @@ btor_read_exp (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
   assert (BTOR_IS_FUN_NODE (e_array));
 
-  if (btor->rewrite_level > 0)
-    result = btor_rewrite_read_exp (btor, e_array, e_index);
-  else
-    result = btor_read_exp_node (btor, e_array, e_index);
+  //  if (btor->rewrite_level > 0)
+  //    result = btor_rewrite_read_exp (btor, e_array, e_index);
+  //  else
+  result = btor_read_exp_node (btor, e_array, e_index);
 
   assert (result);
   return result;
@@ -9251,11 +9266,13 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   BTOR_INIT_STACK (array_stack);
   BTOR_INIT_STACK (param_reads);
 
+  //  printf ("***\n");
   /* push all top arrays on the stack */
   top = top_arrays->top;
   for (temp = top_arrays->start; temp != top; temp++)
   {
     cur_array = *temp;
+    //      printf ("top: %s\n", node2string (cur_array));
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     assert (cur_array->reachable);
@@ -9266,6 +9283,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
   while (!BTOR_EMPTY_STACK (array_stack))
   {
     cur_array = BTOR_POP_STACK (array_stack);
+    //      printf("cur_array: %s\n", node2string (cur_array));
     assert (BTOR_IS_REGULAR_NODE (cur_array));
     assert (BTOR_IS_ARRAY_NODE (cur_array));
     assert (cur_array->reachable);
@@ -9280,20 +9298,17 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
       {
         assert (BTOR_IS_PARAM_NODE (cur_array->e[0]));
         assert (BTOR_EMPTY_STACK (param_reads));
-        find_nodes_dfs (btor,
-                        cur_array->e[1],
-                        &param_reads,
-                        findfun_param_read,
-                        skipfun_param);
+        find_nodes_dfs (btor, cur_array->e[1], &param_reads, findfun_read, 0);
 
         /* push all arrays onto stack that are overwritten by lambda exp
          */
         while (!BTOR_EMPTY_STACK (param_reads))
         {
           param_read = BTOR_POP_STACK (param_reads);
+          //		printf ("param_read: %s\n", node2string (param_read));
           assert (BTOR_IS_REGULAR_NODE (param_read));
           assert (BTOR_IS_APPLY_NODE (param_read));
-          assert (param_read->parameterized);
+          //		  assert (param_read->parameterized);
           BTOR_PUSH_STACK (mm, array_stack, param_read->e[0]);
         }
       }
@@ -9326,6 +9341,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     }
   }
 BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
+  //  printf ("conflict\n");
   while (!BTOR_EMPTY_STACK (cleanup_stack))
   {
     cur_array = BTOR_POP_STACK (cleanup_stack);

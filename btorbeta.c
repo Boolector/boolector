@@ -196,6 +196,7 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 }
 #endif
 
+// TODO: rename to btor_unassign_params
 void
 btor_unassign_param (Btor *btor, BtorNode *lambda)
 {
@@ -287,7 +288,7 @@ btor_beta_reduce (
           || mode == BETA_RED_LAMBDA_CHAINS || mode == BETA_RED_BOUNDED);
   assert (bound >= 0);
   assert (bound == 0 || mode == BETA_RED_CUTOFF || mode == BETA_RED_BOUNDED);
-  assert (mode != BETA_RED_CUTOFF || bound == 1);
+  assert (mode != BETA_RED_CUTOFF || bound == 2);
 
   int i, aux_rewrite_level = 0;
   const char *eval_res;
@@ -386,7 +387,7 @@ btor_beta_reduce (
 
       /* bounded reduction (BETA_RED_BOUNDED, BETA_RED_CUTOFF) */
       if (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
-          && BTOR_COUNT_STACK (scopes) > bound)
+          && BTOR_COUNT_STACK (scopes) >= bound)
       {
         assert (real_cur == cur_scope_lambda);
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
@@ -518,7 +519,7 @@ btor_beta_reduce (
                       && !BTOR_IS_LAMBDA_NODE (real_cur))))
           /* we reached given bound */
           || (bound > 0 && BTOR_IS_LAMBDA_NODE (real_cur)
-              && BTOR_COUNT_STACK (scopes) > bound))
+              && BTOR_COUNT_STACK (scopes) >= bound))
       {
         result = btor_copy_exp (btor, real_cur);
       }
@@ -595,7 +596,9 @@ btor_beta_reduce (
             {
               assert (BTOR_IS_FUN_NODE (e.start[0]));
               assert (BTOR_IS_ARGS_NODE (e.start[1]));
-              result = btor_apply_exp (btor, e.start[0], e.start[1]);
+              //			result = btor_apply_exp (btor,
+              // e.start[0], e.start[1]);
+              result = btor_apply_exp_node (btor, e.start[0], e.start[1]);
             }
 
             if (cache && BTOR_IS_LAMBDA_NODE (real_cur->e[0])
@@ -838,7 +841,7 @@ BtorNode *
 btor_beta_reduce_cutoff (Btor *btor, BtorNode *exp, BtorNode **parameterized)
 {
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
-  return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized, 1);
+  return btor_beta_reduce (btor, exp, BETA_RED_CUTOFF, parameterized, 2);
 }
 
 BtorNode *
