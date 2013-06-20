@@ -403,13 +403,19 @@ parse_line ()
             width);
     idtab[id] = Var (T (2), width);
     {
-      // TODO: hack to get examples through ...
-      //
+      // TODO: hack to get 'LSD' example through ...
       char buf[20];
       sprintf (buf, "%u", id);
       string sym (buf);
       symtab["b0_v" + sym] = id;
       symtab["b1_v" + sym] = id;
+    }
+    {
+      // TODO: hack to get 'regtoy' examples through ...
+      char buf[20];
+      sprintf (buf, "%u", id);
+      string sym  = string ("const(") + T (2) + ")";
+      symtab[sym] = id;
     }
     symtab[T (2)] = id;
     ibvm->addConstant (id, T (2), width);
