@@ -1602,7 +1602,7 @@ BtorIBV::analyze ()
       default:
         BTOR_ABORT_BOOLECTOR (
             1,
-            "analyze: id %u unexpected '%s[%u]' classified as '%s' in COI",
+            "id %u unexpected '%s[%u]' classified as '%s' in COI",
             b.id,
             n->name,
             b.bit,
@@ -1734,7 +1734,7 @@ BtorIBV::analyze ()
           default:
             BTOR_ABORT_BOOLECTOR (
                 1,
-                "analyze: id %u unexpected '%s[%u]' assignment tag '%s'",
+                "id %u unexpected '%s[%u]' assignment tag '%s'",
                 b.id,
                 n->name,
                 b.bit,
@@ -1750,7 +1750,7 @@ BtorIBV::analyze ()
         if (!n->next || !(next = n->next[b.bit]))
           BTOR_ABORT_BOOLECTOR (
               1,
-              "analyze: id %u current state '%s[%u]' without next state",
+              "id %u current state '%s[%u]' without next state",
               b.id,
               n->name,
               b.bit);
@@ -1829,9 +1829,8 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
   switch (c)
   {
     default:
-      BTOR_ABORT_BOOLECTOR (1,
-                            "translate_atom_divide: %s not handled",
-                            btor_ibv_classified_to_str (c));
+      BTOR_ABORT_BOOLECTOR (
+          1, "%s not handled", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_CONSTANT:
@@ -1955,11 +1954,10 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
     case BTOR_IBV_ZERO_EXTEND:
     default:
       res = 0;
-      BTOR_ABORT_BOOLECTOR (
-          1,
-          "translate_assignment_conquer: operator %s (%d) not handled yet",
-          btor_ibv_tag_to_str (a->tag),
-          (int) a->tag);
+      BTOR_ABORT_BOOLECTOR (1,
+                            "operator %s (%d) not handled yet",
+                            btor_ibv_tag_to_str (a->tag),
+                            (int) a->tag);
       break;
   }
   assert (res);
@@ -1988,9 +1986,8 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
     case BTOR_IBV_TWO_PHASE_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
-      BTOR_ABORT_BOOLECTOR (1,
-                            "translate_assignment_conquer: %s not handled yet",
-                            btor_ibv_classified_to_str (c));
+      BTOR_ABORT_BOOLECTOR (
+          1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_ASSIGNED:
@@ -2034,9 +2031,8 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
   switch (c)
   {
     default:
-      BTOR_ABORT_BOOLECTOR (1,
-                            "translate_atom_base: %s not handled yet",
-                            btor_ibv_classified_to_str (c));
+      BTOR_ABORT_BOOLECTOR (
+          1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
     case BTOR_IBV_CONSTANT:
@@ -2045,12 +2041,11 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       for (unsigned i = r.lsb; i <= r.msb; i++)
       {
         char c = n->name[i];
-        BTOR_ABORT_BOOLECTOR (
-            (c != '0' && c != '1'),
-            "translate_atom_base: non valid constant bit '%s[%u] = %c'",
-            n->name,
-            i,
-            c);
+        BTOR_ABORT_BOOLECTOR ((c != '0' && c != '1'),
+                              "non valid constant bit '%s[%u] = %c'",
+                              n->name,
+                              i,
+                              c);
       }
       assert (strlen (n->name) >= (int) r.msb);
       char saved         = n->name[r.msb + 1];
@@ -2451,8 +2446,7 @@ BtorIBV::assignment (BitRange r, int k)
 {
   BTOR_ABORT_BOOLECTOR (
       !gentrace,
-      "BtorIBV::assignment: "
-      "'BtorIBV::enableTraceGeneration' was not called before");
+      "'BtorIBV::enableTraceGeneration' was not called before checking");
   BtorIBVNode *n = id2node (r.m_nId);
   assert (n);
   if (!n->cached) return repeat_char (btor, r.getWidth (), 'x');
