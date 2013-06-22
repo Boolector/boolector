@@ -275,8 +275,8 @@ btor_unassign_param (Btor *btor, BtorNode *lambda)
  *   BETA_RED_FULL:   full reduction,
  *		      do not evaluate conditionals
  *
- *   BETA_RED_BOUNDED (bound): bounded reduction, bound by (bound > 0) number
- *			       of lambdas
+ *   BETA_RED_BOUNDED (bound): bounded reduction, stop reduction at 'bound'
+ *			       lambdas
  */
 static BtorNode *
 btor_beta_reduce (

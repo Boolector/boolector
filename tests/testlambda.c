@@ -928,18 +928,18 @@ test_lambda_bounded_reduce1 (void)
 
   BtorNode *expected = btor_read_exp (g_btor, l2, v);
 
-  /* bound 1 */
+  /* bound 2: stop at second lambda */
   btor_assign_param (g_btor, l1, v);
-  BtorNode *result = btor_beta_reduce_bounded (g_btor, l1, 1);
+  BtorNode *result = btor_beta_reduce_bounded (g_btor, l1, 2);
   btor_unassign_param (g_btor, l1);
 
   assert (result == expected);
   btor_release_exp (g_btor, result);
   btor_release_exp (g_btor, expected);
 
-  /* bound 2 */
+  /* bound 3: stop at third lambda */
   btor_assign_param (g_btor, l1, v);
-  result = btor_beta_reduce_bounded (g_btor, l1, 2);
+  result = btor_beta_reduce_bounded (g_btor, l1, 3);
   btor_unassign_param (g_btor, l1);
 
   assert (result == v);
