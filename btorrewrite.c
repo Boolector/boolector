@@ -3494,7 +3494,7 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 {
   BtorNode *result, *prev_result, *cur_fun, *cur_args, *e_cond, *e_if, *e_else;
   BtorNode *beta_cond;
-  int i, propagations = 0;
+  int propagations;
 
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
@@ -3503,8 +3503,9 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   cur_fun  = fun;
   cur_args = args;
 
-  result      = 0;
-  prev_result = 0;
+  result       = 0;
+  prev_result  = 0;
+  propagations = 0;
   // TODO: new limit?
   while (BTOR_IS_LAMBDA_NODE (cur_fun)
          && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_fun->e[1]))
