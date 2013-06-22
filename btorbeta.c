@@ -596,8 +596,8 @@ btor_beta_reduce (
             {
               assert (BTOR_IS_FUN_NODE (e.start[0]));
               assert (BTOR_IS_ARGS_NODE (e.start[1]));
-              //			result = btor_apply_exp (btor,
-              // e.start[0], e.start[1]);
+              /* NOTE: do not use btor_apply_exp here since
+               * beta reduction is used in btor_rewrite_apply_exp. */
               result = btor_apply_exp_node (btor, e.start[0], e.start[1]);
             }
 
@@ -783,8 +783,6 @@ btor_beta_reduce (
   assert (BTOR_EMPTY_STACK (scopes));
   assert (BTOR_EMPTY_STACK (scope_results));
   assert (BTOR_EMPTY_STACK (scope_lambdas));
-  for (i = 0; i < BTOR_COUNT_STACK (unassign_stack); i++)
-    printf ("%s\n", node2string (unassign_stack.start[i]));
   assert (BTOR_EMPTY_STACK (unassign_stack));
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   assert (BTOR_COUNT_STACK (parameterized_stack) == 1);
