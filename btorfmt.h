@@ -86,9 +86,10 @@ struct BtorFormatLine
 {
   int id;
   BtorFormatTag tag;
-  char *symbol;
   int len, ilen;
+  char *symbol;
   int arg[3];
+  void *data;  // for external usage ...
 };
 
 /*------------------------------------------------------------------------*/

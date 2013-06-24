@@ -49,7 +49,7 @@ struct BtorSATMgr
     void (*assume) (BtorSATMgr *, int);
     int (*changed) (BtorSATMgr *);
     int (*deref) (BtorSATMgr *, int);
-    void (*enable_verbosity) (BtorSATMgr *);
+    void (*enable_verbosity) (BtorSATMgr *, int);
     int (*failed) (BtorSATMgr *, int);
     int (*fixed) (BtorSATMgr *, int);
     int (*inc_max_var) (BtorSATMgr *);
@@ -117,7 +117,7 @@ void btor_init_sat (BtorSATMgr *smgr);
 void btor_set_output_sat (BtorSATMgr *smgr, FILE *output);
 
 /* Enables verbosity mode of SAT solver. */
-void btor_enable_verbosity_sat (BtorSATMgr *smgr);
+void btor_enable_verbosity_sat (BtorSATMgr *smgr, int);
 
 /* Prints statistics of SAT solver. */
 void btor_print_stats_sat (BtorSATMgr *smgr);

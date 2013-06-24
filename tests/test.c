@@ -28,6 +28,7 @@
 #include "testinc.h"
 #include "testlambda.h"
 #include "testlogic.h"
+#include "testmap.h"
 #include "testmc.h"
 #include "testmem.h"
 #include "testmisc.h"
@@ -133,6 +134,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);
   BTOR_RUN_TESTS (exp);
+  BTOR_RUN_TESTS (map);
   BTOR_RUN_TESTS (lambda);
   BTOR_RUN_TESTS (logic);
   BTOR_RUN_TESTS (comp);

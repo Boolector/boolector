@@ -1,4 +1,4 @@
-1 const 8 00000000
+1 zero 8
 2 var 8 v1
 3 eq 1 2 -1
 4 root 1 3

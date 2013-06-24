@@ -1258,14 +1258,13 @@ boolector_main (int argc, char **argv)
 
     btor_init_sat (smgr);
     btor_set_output_sat (smgr, stdout);
-    if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
+    btor_enable_verbosity_sat (smgr, app.verbosity);
 
     if (app.incremental)
     {
       btor_enable_inc_usage (btor);
 
-      if (app.verbosity >= 1)
-        btor_msg_main ("starting incremental BTOR mode\n");
+      if (app.verbosity > 0) btor_msg_main ("starting incremental BTOR mode\n");
 
       sat_result = BTOR_UNKNOWN;
 
@@ -1286,14 +1285,14 @@ boolector_main (int argc, char **argv)
       {
         if (parse_res.result == BTOR_PARSE_SAT_STATUS_SAT)
         {
-          if (app.verbosity >= 1)
+          if (app.verbosity > 0)
             btor_msg_main ("one formula SAT in incremental mode\n");
 
           sat_result = BTOR_SAT;
         }
         else if (parse_res.result == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
-          if (app.verbosity >= 1)
+          if (app.verbosity > 0)
             btor_msg_main ("all formulas UNSAT in incremental mode\n");
 
           sat_result = BTOR_UNSAT;
@@ -1467,7 +1466,7 @@ boolector_main (int argc, char **argv)
         smgr->inc_required = 1;
       }
 
-      if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
+      if (app.verbosity > 0) btor_msg_main ("generating SAT instance\n");
 
       for (i = 0; i < parse_res.noutputs; i++)
       {

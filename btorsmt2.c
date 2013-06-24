@@ -2062,12 +2062,12 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
         if (width <= p->hi)
         {
           parser->perrcoo = p->coo;
-          return !btor_perr_smt2 (parser,
-                                  "first (high) 'extract' parameter %d too "
-                                  "large for bit-vector argument of bit-width "
-                                  "%d",
-                                  p->hi,
-                                  width);
+          return !btor_perr_smt2 (
+              parser,
+              "first (high) 'extract' parameter %d too large "
+              "for bit-vector argument of bit-width %d",
+              p->hi,
+              width);
         }
         exp = boolector_slice (parser->btor, p[1].exp, p->hi, p->lo);
         goto RELEASE_EXP_AND_OVERWRITE;

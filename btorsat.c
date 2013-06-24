@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
@@ -201,12 +201,12 @@ btor_set_output_sat (BtorSATMgr *smgr, FILE *output)
 }
 
 void
-btor_enable_verbosity_sat (BtorSATMgr *smgr)
+btor_enable_verbosity_sat (BtorSATMgr *smgr, int level)
 {
   assert (smgr != NULL);
   assert (smgr->initialized);
   (void) smgr;
-  smgr->api.enable_verbosity (smgr);
+  smgr->api.enable_verbosity (smgr, level);
 }
 
 void
@@ -398,9 +398,9 @@ btor_picosat_set_prefix (BtorSATMgr *smgr, const char *prefix)
 }
 
 static void
-btor_picosat_enable_verbosity (BtorSATMgr *smgr)
+btor_picosat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
-  picosat_set_verbosity (smgr->solver, 1);
+  picosat_set_verbosity (smgr->solver, level >= 1);
 }
 
 static int
@@ -606,16 +606,19 @@ static void *
 btor_lingeling_init (BtorSATMgr *smgr)
 {
   BtorLGL *res;
+
   if (smgr->verbosity >= 1)
   {
     lglbnr ("Lingeling", "[lingeling] ", stdout);
     fflush (stdout);
   }
+
   BTOR_CNEW (smgr->mm, res);
-  res->lgl    = lglminit (smgr->mm,
+  res->lgl = lglminit (smgr->mm,
                        (lglalloc) btor_sat_malloc,
                        (lglrealloc) btor_sat_realloc,
                        (lgldealloc) btor_sat_free);
+  if (smgr->verbosity <= 0) lglsetopt (res->lgl, "verbose", -1);
   res->blimit = BTOR_LGL_MIN_BLIMIT;
   assert (res);
   if (smgr->optstr)
@@ -634,26 +637,28 @@ static int
 btor_lingeling_sat (BtorSATMgr *smgr, int limit)
 {
   BtorLGL *blgl = smgr->solver;
-  LGL *lgl      = blgl->lgl, *bforked;
+  LGL *lgl      = blgl->lgl, *clone;
   const char *str;
   int res, bfres;
   char name[80];
 
-  lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
-  lglsetopt (lgl, "verbose", -1);
+  assert (smgr->satcalls >= 1);
 
-  if (smgr->verbosity) lglsetopt (lgl, "verbose", 2);
+  if (smgr->satcalls == 1 || (smgr->satcalls & (smgr->satcalls - 1)))
+    lglsetopt (lgl, "simpdelay", BTOR_LGL_SIMP_DELAY);
+  else
+    lglsetopt (lgl, "simpdelay", 0);
 
-  if (!smgr->inc_required)
+  if (smgr->inc_required)
+  {
+    lglsetopt (lgl, "flipping", 0);
+  }
+  else
   {
     lglsetopt (lgl, "clim", -1);
     res = lglsat (lgl);
     return res;
   }
-
-  // lglsetopt (lgl, "phase", -1);
-  // lglsetopt (lgl, "bias", -1);
-  lglsetopt (lgl, "flipping", 0);
 
   if (smgr->nofork || (0 <= limit && limit < blgl->blimit))
   {
@@ -671,20 +676,19 @@ btor_lingeling_sat (BtorSATMgr *smgr, int limit)
         blgl->blimit = BTOR_LGL_MAX_BLIMIT;
 
       blgl->nforked++;
-      bforked = lglclone (lgl);
-      lglfixate (bforked);
-      lglmeltall (bforked);
+      clone = lglclone (lgl);
+      lglfixate (clone);
+      lglmeltall (clone);
       str = "clone";
-      if (lglgetopt (lgl, "verbose")) lglsetopt (bforked, "verbose", 1);
-      lglsetopt (bforked, "clim", limit);
+      lglsetopt (clone, "clim", limit);
       sprintf (name, "[lgl%s%d] ", str, blgl->nforked);
-      lglsetprefix (bforked, name);
-      lglsetout (bforked, smgr->output);
+      lglsetprefix (clone, name);
+      lglsetout (clone, smgr->output);
 
-      res = lglsat (bforked);
-      if (smgr->verbosity > 0) lglstats (bforked);
-      bfres = lglunclone (lgl, bforked);
-      lglrelease (bforked);
+      res = lglsat (clone);
+      if (smgr->verbosity > 0) lglstats (clone);
+      bfres = lglunclone (lgl, clone);
+      lglrelease (clone);
       assert (!res || bfres == res);
       res = bfres;
     }
@@ -742,10 +746,10 @@ btor_lingeling_set_prefix (BtorSATMgr *smgr, const char *prefix)
 }
 
 static void
-btor_lingeling_enable_verbosity (BtorSATMgr *smgr)
+btor_lingeling_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorLGL *blgl = smgr->solver;
-  lglsetopt (blgl->lgl, "verbose", 1);
+  lglsetopt (blgl->lgl, "verbose", level - 1);
 }
 
 static int

@@ -25,7 +25,7 @@ int btor_minisat_repr (struct BtorSATMgr *, int);
 void btor_minisat_reset (struct BtorSATMgr *);
 void btor_minisat_set_output (struct BtorSATMgr *, FILE *);
 void btor_minisat_set_prefix (struct BtorSATMgr *, const char *);
-void btor_minisat_enable_verbosity (struct BtorSATMgr *);
+void btor_minisat_enable_verbosity (struct BtorSATMgr *, int);
 int btor_minisat_inc_max_var (struct BtorSATMgr *);
 int btor_minisat_variables (struct BtorSATMgr *);
 void btor_minisat_stats (struct BtorSATMgr *);
