@@ -139,6 +139,14 @@ typedef struct Btor Btor;
 /*------------------------------------------------------------------------*/
 
 /**
+ * Set and get the output API trace file.
+ */
+void boolector_set_trapi (Btor *btor, FILE *apitrace);
+FILE *boolector_get_trapi (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
+/**
  * Creates new instance of Boolector.
  * \return New Boolector instance.
  */
@@ -150,11 +158,6 @@ Btor *boolector_new (void);
  * \return New Boolector instance.
  */
 Btor *boolector_clone (Btor *btor);
-
-/**
- * Returns 1 if the input formula is inconsistent, and 0 otherwise.
- */
-int boolector_is_inconsistent (Btor *btor);
 
 /**
  * Enables model generation. If you want Boolector to produce

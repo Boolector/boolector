@@ -1,0 +1,1917 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2013 Christian Reisenberger.
+ *  Copyright (C) 2013 Aina Niemetz.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
+#include "boolector.h"
+#include "btorexp.h"
+
+#include <assert.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <limits.h>
+#include <signal.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <sys/times.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#define MAX_BITWIDTH 128 /* must be >= 2 */
+#define MAX_INDEXWIDTH 8
+#define MAX_MULDIVWIDTH 8
+
+#define USAGE                                 \
+  "usage: btormbt [-k][-q][-f][-a]\n"         \
+  "\n"                                        \
+  "where <option> is one of the following:\n" \
+  "\n"                                        \
+  "  -k | --keep-lines\n"                     \
+  "  -q | --quiet\n"                          \
+  "  -f | --first-bug-only\n"                 \
+  "  -a | --always-fork\n"                    \
+  "\n"                                        \
+  "  -m <maxruns>\n"
+
+#define DEBUG
+
+static double start_time;
+
+/*------------------------------------------------------------------------*/
+
+#define NORM_VAL 1000.0f
+
+#ifdef DEBUG
+#define DEBUG_MSG(msg, ARGS...) \
+  do                            \
+  {                             \
+    printf ("*** ");            \
+    printf (msg, ##ARGS);       \
+    fflush (stdout);            \
+  } while (0)
+#else
+#define DEBUG_MSG(msg, ARGS...) \
+  do                            \
+  {                             \
+  } while (0)
+#endif
+
+/* avoid compiler warnings for unused variables in DEBUG assertions */
+#define UNUSED(expr) \
+  do                 \
+  {                  \
+    (void) (expr);   \
+  } while (0)
+
+/*------------------------------------------------------------------------*/
+
+typedef enum Op
+{
+  /* const 0-7 */
+  CONST,
+  ZERO,
+  FALSE,
+  ONES,
+  TRUE,
+  ONE,
+  UINT,
+  INT,
+  /* var, array 8-9 */
+  VAR,
+  ARRAY,
+  /* unary funs 10-16 */
+  NOT,
+  NEG,
+  SLICE,
+  INC,
+  DEC,
+  UEXT,
+  SEXT,
+  /* boolean unary funs 17-19 */
+  REDOR,
+  REDXOR,
+  REDAND,
+  /* boolean binary funs 20-38 */
+  EQ,
+  NE,
+  UADDO,
+  SADDO,
+  USUBO,
+  SSUBO,
+  UMULO,
+  SMULO,
+  SDIVO,
+  ULT,
+  SLT,
+  ULTE,
+  SLTE,
+  UGT,
+  SGT,
+  UGTE,
+  SGTE,
+  IMPLIES,
+  IFF,
+  /* binary funs 39-58 */
+  XOR,
+  XNOR,
+  AND,
+  NAND,
+  OR,
+  NOR,
+  ADD,
+  SUB,
+  MUL,
+  UDIV,
+  SDIV,
+  UREM,
+  SREM,
+  SMOD,
+  SLL,
+  SRL,
+  SRA,
+  ROL,
+  ROR,
+  CONCAT,
+  /* tertiary funs 59 */
+  COND,
+  /* array funs 60-61 */
+  READ,
+  WRITE,
+} Op;
+
+typedef enum ExpType
+{
+  T_BO,
+  T_BV,
+  T_BB, /* Boolean or bit vector */
+  T_ARR
+} ExpType;
+
+static int
+is_unary_fun (Op op)
+{
+  return op >= NOT && op <= REDAND;
+}
+
+static int
+is_boolean_unary_fun (Op op)
+{
+  return (op >= REDOR && op <= REDAND);
+}
+
+static int
+is_binary_fun (Op op)
+{
+  return (op >= EQ && op <= CONCAT);
+}
+
+static int
+is_boolean_binary_fun (Op op)
+{
+  return (op >= EQ && op <= IFF);
+}
+
+static int
+is_tertiary_fun (Op op)
+{
+  return op == COND;
+}
+
+static int
+is_array_fun (Op op)
+{
+  return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
+}
+
+typedef struct Exp
+{
+  BtorNode *exp;
+  int pars; /* number of parents */
+  // TODO number of parents is not needed anymore in actual implentation could
+  // be removed
+  //-> but may not so trivial code adaptations
+  // just use sexp-> marker for selected expressions in ExpStack
+} Exp;
+
+typedef struct ExpStack
+{
+  Exp *exps;
+  int size, n, sexp, /* marker for selected expressions */
+      initlayer;     /* marker for init layer */
+} ExpStack;
+
+void
+es_add (ExpStack *es, BtorNode *exp)
+{
+  if (es->n == es->size)
+  {
+    es->size = es->size ? es->size * 2 : 2;
+    es->exps = realloc (es->exps, es->size * sizeof *es->exps);
+  }
+  es->exps[es->n].exp  = exp;
+  es->exps[es->n].pars = 0;
+  es->n++;
+}
+
+static void
+es_rem (ExpStack *es, int idx)
+{
+  int i;
+  assert (idx >= 0 && idx < es->n);
+
+  for (i = idx; i < es->n - 1; i++)
+  {
+    es->exps[i] = es->exps[i + 1];
+  }
+  es->n--;
+  if (idx < es->sexp) es->sexp--;
+}
+
+static void
+es_remall (ExpStack *es)
+{
+  es->n = 0;
+}
+
+void
+es_del (ExpStack *es)
+{
+  free (es->exps);
+}
+
+BtorNode *
+es_get (ExpStack *es, int idx)
+{
+  assert (idx >= 0 && idx < es->n);
+  return es->exps[idx].exp;
+}
+
+/*------------------------------------------------------------------------*/
+
+typedef struct Data
+{
+  Btor *btor;
+  int print, isinit;
+  int inc, mgen;
+  int nlits, ops, nops;
+  /* probability distribution of variables, constants, arrays */
+  float p_var, p_const, p_arr;
+  /* propability distrbution of add and release operations */
+  float p_addop, p_relop;
+  /* probability distribution of functions (without array operations), array
+   * operations and literals */
+  float p_fun, p_afun, p_lit;
+  /* target probability distribution for dynamic adaption */
+  float pt_fun, pt_afun, pt_lit, pt_rel, pt_ass, p_ass;
+  ExpStack bo, bv, arr;
+
+  int nass;       /* number of asserts / assumes todo in actual round */
+  int nassert;    /* number of produced asserts in actual round */
+  int nassume;    /* number of produced assumes in actual round */
+  int totasserts; /* total asserts done save for printing */
+  ExpStack cnf;
+
+  int dbg_rs, dbg_ns, dbg_ass;
+  int dbg_var, dbg_const, dbg_arr;
+  int dbg_addop, dbg_relop;
+  int dbg_fun, dbg_afun, dbg_lit;
+} Data;
+
+/**
+ * initialize probability distribution of literals
+ * parameter: ratio var:const:arr (e.g. 3:1:1)
+ * normalized to NORM_VAL
+ */
+static void
+init_pd_lits (Data *data, float ratio_var, float ratio_const, float ratio_arr)
+{
+  float sum;
+
+  // DEBUG_MSG("ratio var:const:arr = %.0f:%.0f:%.0f \n", ratio_var,
+  // ratio_const, ratio_arr);
+
+  sum = ratio_var + ratio_const + ratio_arr;
+
+  assert (sum > 0);
+
+  data->p_var   = (ratio_var * NORM_VAL) / sum;
+  data->p_const = (ratio_const * NORM_VAL) / sum;
+  data->p_arr   = (ratio_arr * NORM_VAL) / sum;
+}
+
+/**
+ * initialize probability distribution of add operation
+ * parameter: ratio fun:afun:lit (e.g. 1:1:1)
+ * normalized to NORM_VAL
+ */
+static void
+init_pd_addop (Data *data, float ratio_fun, float ratio_afun, float ratio_lit)
+{
+  float sum;
+
+  sum = ratio_fun + ratio_afun + ratio_lit;
+
+  assert (sum > 0);
+
+  data->p_fun  = (ratio_fun * NORM_VAL) / sum;
+  data->p_afun = (ratio_afun * NORM_VAL) / sum;
+  data->p_lit  = (ratio_lit * NORM_VAL) / sum;
+}
+
+/**
+ * initialize probability distribution of add/release op
+ * parameter: ratio addop:relop (e.g. 1:0)
+ * normalized to NORM_VAL
+ */
+static void
+init_pd_op (Data *data, float ratio_addop, float ratio_relop)
+{
+  float sum;
+
+  // DEBUG_MSG("ratio addop:relop = %.0f:%.0f \n", ratio_addop, ratio_relop);
+  sum = ratio_addop + ratio_relop;
+
+  assert (sum > 0);
+
+  data->p_addop = (ratio_addop * NORM_VAL) / sum;
+  data->p_relop = (ratio_relop * NORM_VAL) / sum;
+}
+
+typedef struct RNG
+{
+  unsigned z, w;
+} RNG;
+
+typedef void *(*State) (Data *, unsigned rand);
+
+typedef struct Env
+{
+  // FILE *trace;
+  int seed, quiet, alwaysfork, round, bugs, first, forked, print;
+  int terminal;
+  RNG rng;
+} Env;
+
+static RNG
+initrng (unsigned seed)
+{
+  RNG res;
+  res.z = seed * 1000632769u;
+  res.w = seed * 2019164533u;
+  return res;
+}
+
+static unsigned
+nextrand (RNG *rng)
+{
+  rng->z = 36969 * (rng->z & 65535) + (rng->z >> 16);
+  rng->w = 18000 * (rng->w & 65535) + (rng->w >> 16);
+  return (rng->z << 16) + rng->w; /* 32-bit result */
+}
+
+static int
+pick (RNG *rng_ptr, unsigned from, unsigned to)
+{
+  unsigned tmp = nextrand (rng_ptr);
+  int res;
+  assert (from <= to && to < UINT_MAX);
+  tmp %= to - from + 1;
+  tmp += from;
+  res = tmp;
+  // printf ("pick %u %u %d\n", from, to, res);
+  return res;
+}
+
+static Env env;
+
+/*------------------------------------------------------------------------*/
+
+/* returns power of 2 val nearest to i and its log2, minimum of pow2 = 2*/
+/* used for log2 operators */
+static void
+nextpow2 (int val, int *pow2, int *log2)
+{
+  *pow2 = 2;
+  *log2 = 1;
+  val   = val >> 2;
+  while (val)
+  {
+    val   = val >> 1;
+    *pow2 = *pow2 << 1;
+    (*log2)++;
+  }
+}
+
+/*change node e with width ew to width tow*/
+static BtorNode *
+modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow)
+{
+  int tmp;
+  ExpStack *es;
+
+  // DEBUG_MSG("modify %d to %d\n", ew, tow);
+
+  assert (tow > 0 && ew > 0);
+
+  if (tow > 1)
+    es = &data->bv;
+  else
+    es = &data->bo;
+  if (tow < ew)
+  {
+    tmp = pick (rng, 0, ew - tow);
+    e   = boolector_slice (data->btor, e, tmp + tow - 1, tmp);
+    es_add (es, e);
+    es->exps[es->n - 1].pars++;
+  }
+  else if (tow > ew)
+  {
+    tmp = boolector_get_width (data->btor, e);
+    e   = (pick (rng, 0, 1) ? boolector_uext (data->btor, e, tow - ew)
+                          : boolector_sext (data->btor, e, tow - ew));
+    es_add (es, e);
+    es->exps[es->n - 1].pars++;
+  }
+
+  assert (tow == boolector_get_width (data->btor, e));
+  return e;
+}
+
+/* select expression select first nodes without parent then randomly from
+ * expression stacks type specifies which stack is used
+ */
+static BtorNode *
+selexp (Data *data, RNG *rng, ExpType type)
+{
+  int idx = -1, rand;
+  BtorNode *exp;
+  ExpStack *es;
+
+  if (type == T_BO)
+  {
+    es = &data->bo;
+  }
+  else if (type == T_BV)
+  {
+    es = &data->bv;
+  }
+  else if (type == T_ARR)
+  {
+    es = &data->arr;
+  }
+  else
+  {
+    assert (type == T_BB);
+    /* select target exp stack with probabilty proportional to size */
+    rand = pick (rng, 0, data->bo.n + data->bv.n - 1);
+    if (rand < data->bo.n)
+    {
+      es = &data->bo;
+    }
+    else
+      es = &data->bv;
+  }
+
+  /* select first nodes without parents */
+  while (es->sexp < es->n)
+  {
+    if (es->exps[es->sexp].pars <= 0)
+    {
+      idx = es->sexp++;
+      data->dbg_ns++;
+      break;
+    }
+    es->sexp++;
+  }
+
+  if (idx < 0)
+  {
+    /* select random literal */
+    data->dbg_rs++;
+    idx = pick (rng, 0, es->n - 1);
+  }
+  exp = es->exps[idx].exp;
+  es->exps[idx].pars++;
+  return exp;
+}
+
+/* search and select array expression with element with ew and index width iw
+ * if no expression fits create new array with ew and iw
+ * constraint for this function: ew and iw have to belong to e
+ */
+static BtorNode *
+selarrexp (Data *data, RNG *rng, BtorNode *e, int ew, int iw)
+{
+  int idx, i, selew, seliw;
+  BtorNode *sele;
+
+  idx = i = pick (rng, 0, data->arr.n - 1); /* random search start index */
+  do
+  {
+    sele  = data->arr.exps[i].exp;
+    selew = boolector_get_width (data->btor, sele);
+    seliw = boolector_get_index_width (data->btor, sele);
+    if (selew == ew && seliw == iw && sele != e)
+    {
+      // DEBUG_MSG("capable array found with ew: %d, iw: %d \n", ew, iw);
+      data->arr.exps[i].pars++;
+      return sele;
+    }
+    i = (i + 1) % data->arr.n;
+  } while (idx != i);
+  // DEBUG_MSG("no capable array found create array ew: %d, iw: %d \n", ew, iw);
+  /* no suitable array found */
+  sele = boolector_array (data->btor, ew, iw, NULL);
+  es_add (&data->arr, sele);
+  data->arr.exps[data->arr.n - 1].pars++;
+
+  return sele;
+}
+
+static void
+make_var (Data *data, RNG *rng, ExpType type)
+{
+  int width;
+  if (type == T_BO)
+    width = 1;
+  else if (type == T_BV)
+    width = pick (rng, 2, MAX_BITWIDTH);
+  else
+    width = pick (rng, 1, MAX_BITWIDTH);
+
+  if (width == 1)
+  {
+    es_add (&data->bo, boolector_var (data->btor, width, NULL));
+  }
+  else
+  {
+    es_add (&data->bv, boolector_var (data->btor, width, NULL));
+  }
+}
+
+static void
+make_const (Data *data, RNG *rng)
+{
+  int width, val, i;
+  ExpStack *es;
+
+  width = 0;
+
+  val = 0;
+
+  Op op = pick (rng, CONST, INT);
+  if (op != TRUE && op != FALSE)
+  {
+    width = pick (rng, 1, MAX_BITWIDTH);
+    if (width == 1)
+      es = &data->bo;
+    else
+      es = &data->bv;
+  }
+  else
+  {
+    es = &data->bo;
+  }
+  if (op == UINT || op == INT)
+  {
+    if (width < 32)
+      val = (1 << width) - 1;
+    else
+      val = UINT_MAX - 1; /* UINT_MAX leads to divison by 0 in pick */
+    val = pick (rng, 0, val);
+  }
+  switch (op)
+  {
+    case CONST:
+    {
+      char *buff = malloc (width + 1); /* generate random binary string */
+      for (i = 0; i < width; i++) buff[i] = pick (rng, 0, 1) ? '1' : '0';
+      buff[width] = '\0';
+      es_add (es, boolector_const (data->btor, buff));
+      free (buff);
+      break;
+    }
+    case ZERO: es_add (es, boolector_zero (data->btor, width)); break;
+    case FALSE: es_add (es, boolector_false (data->btor)); break;
+    case ONES: es_add (es, boolector_ones (data->btor, width)); break;
+    case TRUE: es_add (es, boolector_true (data->btor)); break;
+    case ONE: es_add (es, boolector_one (data->btor, width)); break;
+    case UINT:
+      es_add (es, boolector_unsigned_int (data->btor, val, width));
+      break;
+    case INT: es_add (es, boolector_int (data->btor, val, width)); break;
+    default: assert (0);
+  }
+}
+
+static void
+make_arr (Data *data, RNG *rng)
+{
+  int ew = pick (rng, 1, MAX_BITWIDTH);
+  int iw = pick (rng, 1, MAX_INDEXWIDTH);
+
+  es_add (&data->arr, boolector_array (data->btor, ew, iw, NULL));
+}
+
+static void
+unary_fun (Data *data, RNG *rng, Op op, BtorNode *e0)
+{
+  int tmp0, tmp1, e0w, rw;
+  ExpStack *es;
+
+  tmp0 = 0;
+  tmp1 = 0;
+
+  assert (is_unary_fun (op));
+  e0w = boolector_get_width (data->btor, e0);
+  assert (e0w <= MAX_BITWIDTH);
+  /* set default result width */
+  if (is_boolean_unary_fun (op))
+    rw = 1;
+  else
+    rw = e0w;
+
+  if (op == SLICE)
+  {
+    // printf ("w %d\n", e0w);
+    tmp0 = pick (rng, 0, e0w - 1);
+    tmp1 = pick (rng, 0, tmp0);
+    rw   = tmp0 - tmp1 + 1; /* update resulting width */
+    // printf ("w %d, u %d, l %d, rw %d\n", e0w, tmp0, tmp1, rw);
+  }
+  else if (op == UEXT || op == SEXT)
+  {
+    tmp0 = pick (rng, 0, MAX_BITWIDTH - e0w);
+    rw   = e0w + tmp0;
+  }
+
+  assert (rw > 0);
+  if (rw == 1)
+    es = &data->bo;
+  else
+    es = &data->bv;
+
+  switch (op)
+  {
+    case NOT: es_add (es, boolector_not (data->btor, e0)); break;
+    case NEG: es_add (es, boolector_neg (data->btor, e0)); break;
+    case SLICE:
+      es_add (es, boolector_slice (data->btor, e0, tmp0, tmp1));
+      break;
+    case INC: es_add (es, boolector_inc (data->btor, e0)); break;
+    case DEC: es_add (es, boolector_dec (data->btor, e0)); break;
+    case UEXT: es_add (es, boolector_uext (data->btor, e0, tmp0)); break;
+    case SEXT: es_add (es, boolector_sext (data->btor, e0, tmp0)); break;
+    case REDOR: es_add (es, boolector_redor (data->btor, e0)); break;
+    case REDXOR: es_add (es, boolector_redxor (data->btor, e0)); break;
+    case REDAND: es_add (es, boolector_redand (data->btor, e0)); break;
+    default: assert (0);
+  }
+}
+
+static void
+binary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1)
+{
+  int tmp0, tmp1, e0w, e1w, rw;
+  ExpStack *es;
+
+  // printf ("take e2 from %s\n", tmp0 ? "bv" : "bin");
+
+  assert (is_binary_fun (op));
+  e0w = boolector_get_width (data->btor, e0);
+  assert (e0w <= MAX_BITWIDTH);
+  e1w = boolector_get_width (data->btor, e1);
+  assert (e1w <= MAX_BITWIDTH);
+
+  /* set default result width */
+  if (is_boolean_binary_fun (op))
+    rw = 1;
+  else
+    rw = e0w;
+
+  if ((op >= XOR && op <= SMOD) || (op >= EQ && op <= SGTE))
+  {
+    /* modify e1w equal to e0w, guarded mul and div */
+    if ((op >= UMULO && op <= SDIVO) || (op >= MUL && op <= SMOD))
+    {
+      if (e0w > MAX_MULDIVWIDTH)
+      {
+        e0  = modifybv (data, rng, e0, e0w, MAX_MULDIVWIDTH);
+        e0w = MAX_MULDIVWIDTH;
+        if (op >= MUL && op <= SMOD)
+        {
+          rw = e0w;
+        }
+      }
+    }
+    e1  = modifybv (data, rng, e1, e1w, e0w);
+    e1w = e0w;
+  }
+  else if (op >= SLL && op <= ROR)
+  {
+    /* modify width of e0 power of 2 and e1 log2(e0) */
+    nextpow2 (e0w, &tmp0, &tmp1);
+    // printf("shift modify\n");
+    e0  = modifybv (data, rng, e0, e0w, tmp0);
+    e1  = modifybv (data, rng, e1, e1w, tmp1);
+    e0w = tmp0;
+    e1w = tmp1;
+    rw  = e0w;
+  }
+  else if (op == CONCAT)
+  {
+    if (e0w + e1w > MAX_BITWIDTH)
+    {
+      // printf("concat modify\n ")
+      if (e0w > 1)
+      {
+        e0  = modifybv (data, rng, e0, e0w, e0w / 2);
+        e0w = e0w / 2;
+      }
+      if (e1w > 1)
+      {
+        e1  = modifybv (data, rng, e1, e1w, e1w / 2);
+        e1w = e1w / 2;
+      }
+    }
+    /* set e0w to select right exp stack */
+    rw = e0w + e1w;
+  }
+
+  if (rw == 1)
+    es = &data->bo;
+  else
+    es = &data->bv;
+
+  switch (op)
+  {
+    case XOR: es_add (es, boolector_xor (data->btor, e0, e1)); break;
+    case XNOR: es_add (es, boolector_xnor (data->btor, e0, e1)); break;
+    case AND: es_add (es, boolector_and (data->btor, e0, e1)); break;
+    case NAND: es_add (es, boolector_nand (data->btor, e0, e1)); break;
+    case OR: es_add (es, boolector_or (data->btor, e0, e1)); break;
+    case NOR: es_add (es, boolector_nor (data->btor, e0, e1)); break;
+    case ADD: es_add (es, boolector_add (data->btor, e0, e1)); break;
+    case SUB: es_add (es, boolector_sub (data->btor, e0, e1)); break;
+    case MUL: es_add (es, boolector_mul (data->btor, e0, e1)); break;
+    case UDIV: es_add (es, boolector_udiv (data->btor, e0, e1)); break;
+    case SDIV: es_add (es, boolector_sdiv (data->btor, e0, e1)); break;
+    case UREM: es_add (es, boolector_urem (data->btor, e0, e1)); break;
+    case SREM: es_add (es, boolector_srem (data->btor, e0, e1)); break;
+    case SMOD: es_add (es, boolector_smod (data->btor, e0, e1)); break;
+    case SLL: es_add (es, boolector_sll (data->btor, e0, e1)); break;
+    case SRL: es_add (es, boolector_srl (data->btor, e0, e1)); break;
+    case SRA: es_add (es, boolector_sra (data->btor, e0, e1)); break;
+    case ROL: es_add (es, boolector_rol (data->btor, e0, e1)); break;
+    case ROR: es_add (es, boolector_ror (data->btor, e0, e1)); break;
+    case CONCAT: es_add (es, boolector_concat (data->btor, e0, e1)); break;
+    case EQ: es_add (es, boolector_eq (data->btor, e0, e1)); break;
+    case NE: es_add (es, boolector_ne (data->btor, e0, e1)); break;
+    case UADDO: es_add (es, boolector_uaddo (data->btor, e0, e1)); break;
+    case SADDO: es_add (es, boolector_saddo (data->btor, e0, e1)); break;
+    case USUBO: es_add (es, boolector_usubo (data->btor, e0, e1)); break;
+    case SSUBO: es_add (es, boolector_ssubo (data->btor, e0, e1)); break;
+    case UMULO: es_add (es, boolector_umulo (data->btor, e0, e1)); break;
+    case SMULO: es_add (es, boolector_smulo (data->btor, e0, e1)); break;
+    case SDIVO: es_add (es, boolector_sdivo (data->btor, e0, e1)); break;
+    case ULT: es_add (es, boolector_ult (data->btor, e0, e1)); break;
+    case SLT: es_add (es, boolector_slt (data->btor, e0, e1)); break;
+    case ULTE: es_add (es, boolector_ulte (data->btor, e0, e1)); break;
+    case SLTE: es_add (es, boolector_slte (data->btor, e0, e1)); break;
+    case UGT: es_add (es, boolector_ugt (data->btor, e0, e1)); break;
+    case SGT: es_add (es, boolector_sgt (data->btor, e0, e1)); break;
+    case UGTE: es_add (es, boolector_ugte (data->btor, e0, e1)); break;
+    case SGTE: es_add (es, boolector_sgte (data->btor, e0, e1)); break;
+    case IMPLIES: es_add (es, boolector_implies (data->btor, e0, e1)); break;
+    case IFF: es_add (es, boolector_iff (data->btor, e0, e1)); break;
+    default: assert (0);
+  }
+}
+
+static void
+tertiary_fun (
+    Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
+{
+  int e1w, e2w;
+  ExpStack *es;
+
+  assert (is_tertiary_fun (op));
+
+  assert (boolector_get_width (data->btor, e0) == 1);
+
+  e1w = boolector_get_width (data->btor, e1);
+  assert (e1w <= MAX_BITWIDTH);
+  e2w = boolector_get_width (data->btor, e2);
+  assert (e2w <= MAX_BITWIDTH);
+
+  /* bitvectors must have same bit width */
+  e2  = modifybv (data, rng, e2, e2w, e1w);
+  e2w = e1w;
+
+  if (e1w == 1)
+    es = &data->bo;
+  else
+    es = &data->bv;
+
+  switch (op)
+  {
+    case COND: es_add (es, boolector_cond (data->btor, e0, e1, e2)); break;
+    default: assert (0);
+  }
+}
+
+/* calling convention:
+ * if op ==
+ *          READ:  bolector_read (btor, e0(arr), e1(bv))
+ *          WRITE: bolector_write(btor, e0(arr), e1(bv), e2(bv))
+ *          EQ:    bolector_eq   (btor, e0(arr), e1(arr))
+ *          NEQ:   bolector_neq  (btor, e0(arr), e1(arr))
+ *          COND:  bolector_cond (btor, e2(bo),  e0(arr), e1(arr))
+ *
+ * if e0 && e1 are arrays they have to be the same size
+ */
+static void
+afun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
+{
+  int e0w, e0iw, e1w, e2w;
+  ExpStack *es;
+
+  int isarr = is_array_fun (op);
+#ifdef NDEBUG
+  UNUSED (isarr);
+#endif
+  assert (isarr);
+  assert (boolector_is_array (data->btor, e0));
+
+  e0w = boolector_get_width (data->btor, e0);
+  assert (e0w <= MAX_BITWIDTH);
+  e0iw = boolector_get_index_width (data->btor, e0);
+  assert (e0iw <= MAX_INDEXWIDTH);
+
+  if (op >= READ && op <= WRITE)
+  {
+    e1w = boolector_get_width (data->btor, e1);
+    assert (e1w <= MAX_BITWIDTH);
+
+    e1  = modifybv (data, rng, e1, e1w, e0iw);
+    e1w = e0iw;
+    if (op == WRITE)
+    {
+      e2w = boolector_get_width (data->btor, e2);
+      assert (e1w <= MAX_BITWIDTH);
+
+      e2 = modifybv (data, rng, e2, e2w, e0w);
+      es_add (&data->arr, boolector_write (data->btor, e0, e1, e2));
+    }
+    else
+    {
+      if (e0w == 1)
+        es = &data->bo;
+      else
+        es = &data->bv;
+      es_add (es, boolector_read (data->btor, e0, e1));
+    }
+  }
+  else
+  {
+    assert (boolector_is_array (data->btor, e1));
+    e1w = boolector_get_width (data->btor, e1);
+    assert (e1w == e0w && e1w <= MAX_BITWIDTH);
+    assert (boolector_get_index_width (data->btor, e1) == e0iw
+            && boolector_get_index_width (data->btor, e1) <= MAX_INDEXWIDTH);
+
+    if (op == EQ)
+      es_add (&data->bo, boolector_eq (data->btor, e0, e1));
+    else if (op == NE)
+      es_add (&data->bo, boolector_ne (data->btor, e0, e1));
+    else
+    {
+      assert (op == COND);
+      es_add (&data->arr, boolector_cond (data->btor, e2, e0, e1));
+    }
+  }
+}
+
+/*
+ * select variables for a clause from bo randomly in the range ifrom - ito
+ */
+static BtorNode *
+make_clause (Data *data, RNG *rng, int ifrom, int ito)
+{
+  int i, idx;
+  BtorNode *e0, *e1;
+  ExpStack *es = &data->bo;
+  e0           = NULL;
+
+  /* make clause with 3 literals */
+  for (i = 0; i < 3; i++)
+  {
+    idx = pick (rng, ifrom, ito);
+    if (e0 == NULL)
+    {
+      e0 = es->exps[idx].exp;
+      if (pick (rng, 0, 1))
+      {
+        e0 = boolector_not (data->btor, e0);
+        es_add (&data->cnf, e0);
+      }
+    }
+    else
+    {
+      e1 = es->exps[idx].exp;
+      if (pick (rng, 0, 1))
+      {
+        e1 = boolector_not (data->btor, e1);
+        es_add (&data->cnf, e1);
+      }
+      e0 = boolector_or (data->btor, e0, e1);
+      es_add (&data->cnf, e0);
+    }
+  }
+  return e0;
+}
+
+/*------------------------------------------------------------------------*/
+
+/* states */
+static void *_new (Data *, unsigned);
+static void *_opt (Data *, unsigned);
+static void *_init (Data *, unsigned);
+static void *_main (Data *, unsigned);
+static void *_addop (Data *, unsigned);
+static void *_fun (Data *, unsigned);
+static void *_afun (Data *, unsigned);
+static void *_lit (Data *, unsigned);
+static void *_relop (Data *, unsigned);
+static void *_ass (Data *, unsigned);
+static void *_sat (Data *, unsigned);
+static void *_mgen (Data *, unsigned);
+static void *_inc (Data *, unsigned);
+static void *_relall (Data *, unsigned);
+static void *_del (Data *, unsigned);
+
+static void *
+_new (Data *data, unsigned r)
+{
+  RNG rng = initrng (r);
+
+  DEBUG_MSG ("_new\n");
+  /* number of initial literals */
+  data->nlits = pick (&rng, 5, 40);
+  /* number of initial operations */
+  data->nops = pick (&rng, 0, 100);
+
+  init_pd_lits (data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 2, 5));
+
+  /* no delete operation at init */
+  init_pd_op (data, 1, 0);
+  /* no additional lits at init */
+  init_pd_addop (data, pick (&rng, 1, 10), pick (&rng, 0, 5), 0);
+
+  DEBUG_MSG (
+      "_new prepare parameters create %d lits with prop-dist(var:const:arr): "
+      "%.1f%%:%.1f%%:%.1f%% \n",
+      data->nlits,
+      data->p_var / 10,
+      data->p_const / 10,
+      data->p_arr / 10);
+  DEBUG_MSG (
+      "_new prepare parameters create %d ops with prop-dist(addop:relop): "
+      "%.1f%%:%.1f%% \n",
+      data->nops,
+      data->p_addop / 10,
+      data->p_relop / 10);
+  DEBUG_MSG (
+      "_new prepare parameters addop with prop-dist(fun:afun:lits): "
+      "%.1f%%:%.1f%%:%.1f%% \n",
+      data->p_fun / 10,
+      data->p_afun / 10,
+      data->p_lit / 10);
+
+  if (data->print)
+    printf (
+        "[btormbt] init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits, \n",
+        data->nops,
+        data->p_addop / 10,
+        data->p_relop / 10,
+        data->nlits);
+
+  data->btor = boolector_new ();
+  assert (data->btor);
+  assert (data->btor->apitrace);
+  return _opt;
+}
+
+static void *
+_opt (Data *data, unsigned r)
+{
+  int rw;
+  RNG rng = initrng (r);
+
+  DEBUG_MSG ("_opt \n");
+
+  if (pick (&rng, 0, 1))
+  {
+    if (data->print)
+      printf ("[btormbt] enable model generation \n"), fflush (stdout);
+    boolector_enable_model_gen (data->btor);
+    data->mgen = 1;
+  }
+  if (pick (&rng, 0, 1))
+  {
+    if (data->print)
+      printf ("[btormbt] enable incremental usage \n"), fflush (stdout);
+    boolector_enable_inc_usage (data->btor);
+    data->inc = 1;
+  }
+
+  rw = pick (&rng, 0, 3);
+  if (data->print)
+    printf ("[btormbt] set rewrite level %d \n", rw), fflush (stdout);
+  boolector_set_rewrite_level (data->btor, rw);
+
+  return _init;
+}
+
+static void *
+_init (Data *data, unsigned r)
+{
+  int rand;
+  RNG rng = initrng (r);
+
+  if (data->bo.n + data->bv.n + data->arr.n < data->nlits)
+  {
+    return _lit;
+  }
+
+  /* generate at least one bool-var, one bv-var and one arr;
+   * to ensure nonempty expression stacks */
+  if (data->bo.n < 1) make_var (data, &rng, T_BO);
+  if (data->bv.n < 1) make_var (data, &rng, T_BV);
+  if (data->arr.n < 1) make_arr (data, &rng);
+
+  if (data->ops < data->nops)
+  {
+    data->ops++;
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    if (rand < data->p_addop)
+    {
+      data->dbg_addop++;
+      return _addop;
+    }
+    else
+    {
+      data->dbg_relop++;
+      return _relop;
+    }
+  }
+
+  // DEBUG_MSG("after init       -- stacks sizes bo: %d, bv: %d, arr: %d \n",
+  // data->bo.n, data->bv.n, data->arr.n);
+  DEBUG_MSG ("number of lits   -- var: %d, const: %d, arr  %d \n",
+             data->dbg_var,
+             data->dbg_const,
+             data->dbg_arr);
+  DEBUG_MSG ("number of ops    -- addops: %d, relops: %d \n",
+             data->dbg_addop,
+             data->dbg_relop);
+  DEBUG_MSG ("number of addops -- fun: %d, afun: %d, lits: %d \n",
+             data->dbg_fun,
+             data->dbg_afun,
+             data->dbg_lit);
+
+  if (data->print)
+    printf (
+        "[btormbt] after init: number of expressions: booleans %d, bitvectors "
+        "%d, arrays %d \n",
+        data->bo.n,
+        data->bv.n,
+        data->arr.n);
+
+  data->bo.initlayer  = data->bo.n;
+  data->bv.initlayer  = data->bv.n;
+  data->arr.initlayer = data->arr.n;
+
+  /* adapt paramters for main */
+  data->ops  = 0; /* reset operation counter */
+  data->nops = pick (&rng, 20, 200);
+  data->nass = pick (&rng, 10, 70); /* how many assertions of nops */
+  // TODO the more operation the higher and vice versa - or may ok like that
+
+  init_pd_lits (data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
+  init_pd_op (data, pick (&rng, 1, 8), pick (&rng, 1, 3));
+  init_pd_addop (
+      data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 3));
+
+  DEBUG_MSG (
+      "_init prepare parameters lits with prop-dist(var:const:arr): "
+      "%.1f%%:%.1f%%:%.1f%% \n",
+      data->p_var / 10,
+      data->p_const / 10,
+      data->p_arr / 10);
+  DEBUG_MSG (
+      "_init prepare parameters create %d ops (ass ~%d) with "
+      "prop-dist(addop:relop): %.1f%%:%.1f%% \n",
+      data->nops,
+      data->nass,
+      data->p_addop / 10,
+      data->p_relop / 10);
+  DEBUG_MSG (
+      "_init prepare parameters addop with prop-dist(fun:afun:lits): "
+      "%.1f%%:%.1f%%:%.1f%% \n",
+      data->p_fun / 10,
+      data->p_afun / 10,
+      data->p_lit / 10);
+
+  if (data->print)
+    printf (
+        "[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%), make ~%d "
+        "asserts/assumes \n",
+        data->nops,
+        data->p_addop / 10,
+        data->p_relop / 10,
+        data->nass);
+
+  data->isinit = 1;
+  return _main;
+}
+
+static void *
+_main (Data *data, unsigned r)
+{
+  float rand;
+  RNG rng = initrng (r);
+
+  assert (data->bo.n > 0);
+  assert (data->bv.n > 0);
+  assert (data->arr.n > 0);
+
+  /* main operations */
+  if (data->ops < data->nops)
+  {
+    data->ops++;
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    if (rand < data->nass * NORM_VAL / data->nops)
+    {
+      // DEBUG_MSG("**aaa\n");
+      return _ass;
+    }
+    else
+    {
+      // DEBUG_MSG("**op\n");
+      rand = pick (&rng, 0, NORM_VAL - 1);
+      if (rand < data->p_addop)
+      {
+        data->dbg_addop++;
+        return _addop;
+      }
+      else
+      {
+        data->dbg_relop++;
+        return _relop;
+      }
+    }
+  }
+
+  if (data->print)
+    printf (
+        "[btormbt] after main: number of expressions: booleans %d, bitvectors "
+        "%d, arrays %d \n",
+        data->bo.n,
+        data->bv.n,
+        data->arr.n);
+  if (data->print)
+    printf ("[btormbt] after main: number of asserts: %d, assumes: %d \n",
+            data->totasserts,
+            data->nassume);
+
+  // DEBUG_MSG("after main       -- stacks sizes bo: %d, bv: %d, arr: %d \n",
+  // data->bo.n, data->bv.n, data->arr.n);
+  DEBUG_MSG ("number of lits   -- var: %d, const: %d, arr  %d \n",
+             data->dbg_var,
+             data->dbg_const,
+             data->dbg_arr);
+  DEBUG_MSG ("number of ops    -- addops: %d, relops: %d \n",
+             data->dbg_addop,
+             data->dbg_relop);
+  DEBUG_MSG ("number of addops -- fun: %d, afun: %d, lits: %d \n",
+             data->dbg_fun,
+             data->dbg_afun,
+             data->dbg_lit);
+  DEBUG_MSG ("number of ass    -- assert: %d, assume: %d \n",
+             data->nassert,
+             data->nassume);
+  return _sat;
+}
+
+static void *
+_addop (Data *data, unsigned r)
+{
+  int rand;
+  void *next;
+  RNG rng = initrng (r);
+
+  rand = pick (&rng, 0, NORM_VAL - 1);
+
+  if (rand < data->p_fun)
+    next = _fun;
+  else if (rand < data->p_fun + data->p_afun)
+    next = _afun;
+  else
+    next = _lit;
+
+  return next;
+}
+
+static void *
+_fun (Data *data, unsigned r)
+{
+  BtorNode *e0, *e1, *e2;
+  RNG rng = initrng (r);
+
+  data->dbg_fun++;
+  Op op = pick (&rng, NOT, COND);
+
+  // DEBUG_MSG("_fun %d\n", op);
+
+  if (is_unary_fun (op))
+  {
+    e0 = selexp (data, &rng, T_BB);
+    unary_fun (data, &rng, op, e0);
+  }
+  else if (is_binary_fun (op))
+  {
+    e0 = selexp (data, &rng, ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB));
+    e1 = selexp (data, &rng, ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB));
+    binary_fun (data, &rng, op, e0, e1);
+  }
+  else if (is_tertiary_fun (op))
+  {
+    e0 = selexp (data, &rng, T_BO);
+    e1 = selexp (data, &rng, T_BB);
+    e2 = selexp (data, &rng, T_BB);
+    tertiary_fun (data, &rng, op, e0, e1, e2);
+  }
+  else
+  {
+    assert (0);
+  }
+  return (data->isinit ? _main : _init);
+}
+
+static void *
+_afun (Data *data, unsigned r)
+{
+  int e0w, e0iw;
+  Op op;
+  BtorNode *e0, *e1, *e2 = NULL;
+  RNG rng = initrng (r);
+
+  data->dbg_afun++;
+  // DEBUG_MSG("_afun ");
+
+  e0   = selexp (data, &rng, T_ARR);
+  e0w  = boolector_get_width (data->btor, e0);
+  e0iw = boolector_get_index_width (data->btor, e0);
+
+  /* use read/write with p=0.666 else EQ/NE/COND */
+  // TODO may use p=0.5??
+  if (pick (&rng, 0, 2))
+  {
+    op = pick (&rng, READ, WRITE);
+    // DEBUG_MSG("%d\n", op);
+    e1 = selexp (data, &rng, T_BV);
+    if (op == WRITE)
+    {
+      e2 = selexp (data, &rng, T_BV);
+    }
+    afun (data, &rng, op, e0, e1, e2);
+  }
+  else
+  {
+    /* select EQ/NE/COND with same propability */
+    op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
+    // DEBUG_MSG("%d\n", op);
+    e1 = selarrexp (data, &rng, e0, e0w, e0iw);
+    if (op == COND)
+    {
+      e2 = selexp (data, &rng, T_BO);
+    }
+    afun (data, &rng, op, e0, e1, e2);
+  }
+
+  return (data->isinit ? _main : _init);
+}
+
+static void *
+_lit (Data *data, unsigned r)
+{
+  int rand;
+  RNG rng = initrng (r);
+
+  data->dbg_lit++;
+  // DEBUG_MSG("_lit\n");
+
+  rand = pick (&rng, 0, NORM_VAL - 1);
+  if (rand < data->p_var)
+  {
+    data->dbg_var++;
+    make_var (data, &rng, T_BB);
+  }
+  else if (rand < data->p_const + data->p_var)
+  {
+    data->dbg_const++;
+    make_const (data, &rng);
+  }
+  else
+  {
+    data->dbg_arr++;
+    make_arr (data, &rng);
+  }
+
+  return (data->isinit ? _main : _init);
+}
+
+static void *
+_relop (Data *data, unsigned r)
+{
+  int idx, rand;
+  ExpStack *es;
+  RNG rng = initrng (r);
+
+  // DEBUG_MSG("_rel");
+
+  /* select target exp stack with probabilty proportional to size */
+  rand = pick (&rng, 0, data->bo.n + data->bv.n + data->arr.n - 1);
+  if (rand < data->bo.n)
+  {
+    es = &data->bo;
+    // DEBUG_MSG("bo \n");
+  }
+  else if (rand < data->bo.n + data->bv.n)
+  {
+    es = &data->bv;
+    // DEBUG_MSG("bv \n");
+  }
+  else
+  {
+    es = &data->arr;
+    // DEBUG_MSG("arr \n");
+  }
+  if (es->n > 1)
+  {
+    idx = pick (&rng, 0, es->n - 1);
+
+    if (es == &data->bo)
+      assert (boolector_get_width (data->btor, data->bo.exps[idx].exp) == 1);
+    else if (es == &data->bv)
+      assert (boolector_get_width (data->btor, data->bv.exps[idx].exp) > 1);
+    else
+      assert (boolector_is_array (data->btor, data->arr.exps[idx].exp));
+
+    boolector_release (data->btor, es->exps[idx].exp);
+    es_rem (es, idx);
+  }
+  else
+  {
+    // DEBUG_MSG("size == 1 do not delete\n");
+  }
+
+  return (data->isinit ? _main : _init);
+}
+
+static void *
+_ass (Data *data, unsigned r)
+{
+  int lower;
+  RNG rng = initrng (r);
+  BtorNode *cls;
+
+  data->dbg_ass++;
+
+  // DEBUG_MSG("_assert\n");
+
+  /* select from init layer with lower probability */
+  lower = (data->bo.n > data->bo.initlayer && pick (&rng, 0, 4)
+               ? data->bo.initlayer - 1
+               : 0);
+  cls   = make_clause (data, &rng, lower, data->bo.n - 1);
+
+  if (data->inc && pick (&rng, 0, 4))
+  {
+    boolector_assume (data->btor, cls);
+    data->nassume++;
+  }
+  else
+  {
+    boolector_assert (data->btor, cls);
+    data->nassert++;
+    data->totasserts++;
+  }
+  return _main;
+}
+
+static void *
+_sat (Data *data, unsigned r)
+{
+  UNUSED (r);
+  int res;
+
+  if (data->print) printf ("[btormbt] call sat...\n");
+
+  res = boolector_sat (data->btor);
+
+  if (res == BOOLECTOR_UNSAT)
+  {
+    if (data->print) printf ("[btormbt] unsat\n");
+  }
+  else if (res == BOOLECTOR_SAT)
+  {
+    if (data->print) printf ("[btormbt] sat\n");
+  }
+  else
+  {
+    if (data->print) printf ("[btormbt]  sat call returned %d\n", res);
+  }
+
+  return data->mgen ? _mgen : _inc;
+}
+
+static void *
+_mgen (Data *data, unsigned r)
+{
+  UNUSED (r);
+  int i, size;
+  char *bv, **indices, **values;
+
+  DEBUG_MSG ("_mgen\n");
+
+  assert (data->mgen);
+
+  for (i = 0; i < data->bo.n; i++)
+  {
+    // DEBUG_MSG("%p pars %d\n", data->bo.exps[i].exp, data->bo.exps->pars);
+    bv = boolector_bv_assignment (data->btor, data->bo.exps[i].exp);
+    // DEBUG_MSG("%s \n", bv);
+    boolector_free_bv_assignment (data->btor, bv);
+  }
+  for (i = 0; i < data->bv.n; i++)
+  {
+    bv = boolector_bv_assignment (data->btor, data->bv.exps[i].exp);
+    // DEBUG_MSG("**%s \n", bv);
+    boolector_free_bv_assignment (data->btor, bv);
+  }
+  for (i = 0; i < data->arr.n; i++)
+  {
+    boolector_array_assignment (
+        data->btor, data->arr.exps[i].exp, &indices, &values, &size);
+    if (size > 0)
+    {
+      /*
+         DEBUG_MSG("**Array %d\n", i);
+         int j;
+         for (j = 0; j < size; j++) {
+         DEBUG_MSG("**[%s]=%s\n", indices[j], values[j]);
+         }
+       */
+      boolector_free_array_assignment (data->btor, indices, values, size);
+    }
+  }
+  return _inc;
+}
+
+static void *
+_inc (Data *data, unsigned r)
+{
+  int i;
+  RNG rng = initrng (r);
+
+  DEBUG_MSG ("_inc\n");
+
+  /* release cnf expressions */
+  for (i = 0; i < data->cnf.n; i++)
+  {
+    boolector_release (data->btor, data->cnf.exps[i].exp);
+  }
+  es_remall (&data->cnf);
+
+  if (data->inc && pick (&rng, 0, 2))
+  {
+    data->inc++;
+    data->ops     = 0; /* reset */
+    data->nass    = data->nass - data->nassert;
+    data->nassume = 0; /* reset */
+    data->nassert = 0;
+    data->nops    = pick (&rng, 0, 150);
+    init_pd_lits (
+        data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
+    init_pd_op (data, pick (&rng, 1, 5), pick (&rng, 1, 5));
+    init_pd_addop (
+        data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 3));
+
+    if (data->print)
+      printf ("[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
+              data->nops,
+              data->p_addop / 10,
+              data->p_relop / 10);
+
+    DEBUG_MSG (
+        "_inc prepare parameters lits with prop-dist(var:const:arr): "
+        "%.1f%%:%.1f%%:%.1f%% \n",
+        data->p_var / 10,
+        data->p_const / 10,
+        data->p_arr / 10);
+    DEBUG_MSG (
+        "_inc prepare parameters create %d ops (ass ~%d) with "
+        "prop-dist(addop:relop): %.1f%%:%.1f%% \n",
+        data->nops,
+        data->nass,
+        data->p_addop / 10,
+        data->p_relop / 10);
+    DEBUG_MSG (
+        "_inc prepare parameters addop with prop-dist(fun:afun:lits): "
+        "%.1f%%:%.1f%%:%.1f%% \n",
+        data->p_fun / 10,
+        data->p_afun / 10,
+        data->p_lit / 10);
+    return _main;
+  }
+  return _relall;
+}
+
+static void *
+_relall (Data *data, unsigned r)
+{
+  UNUSED (r);
+  DEBUG_MSG ("_release %d\n", r);
+  int i;
+  for (i = 0; i < data->bo.n; i++)
+  {
+    assert (boolector_get_width (data->btor, data->bo.exps[i].exp) == 1);
+    boolector_release (data->btor, data->bo.exps[i].exp);
+  }
+  for (i = 0; i < data->bv.n; i++)
+  {
+    assert (boolector_get_width (data->btor, data->bv.exps[i].exp) > 1);
+    boolector_release (data->btor, data->bv.exps[i].exp);
+  }
+  for (i = 0; i < data->arr.n; i++)
+  {
+    assert (boolector_is_array (data->btor, data->arr.exps[i].exp));
+    boolector_release (data->btor, data->arr.exps[i].exp);
+  }
+  return _del;
+}
+
+static void *
+_del (Data *data, unsigned r)
+{
+  UNUSED (r);
+  DEBUG_MSG ("_delete\n");
+  boolector_delete (data->btor);
+  if (data->print && data->inc)
+  {
+    printf ("[btormbt] number of increments: %d \n", data->inc - 1);
+  }
+  return 0;
+}
+
+static void
+rantrav (Env *env)
+{
+  State state, next;
+  unsigned rand;
+  Data data;
+  memset (&data, 0, sizeof data);
+
+  data.print = !env->quiet;
+
+  memset (&data.bo, 0, sizeof (data.bo));
+  memset (&data.bv, 0, sizeof (data.bv));
+  memset (&data.arr, 0, sizeof (data.arr));
+  memset (&data.cnf, 0, sizeof (data.cnf));
+
+  env->rng.z = env->rng.w = env->seed;
+
+  /* state loop */
+  for (state = _new; state; state = next)
+  {
+    rand = nextrand (&env->rng);
+    next = state (&data, rand);
+  }
+
+  es_del (&data.bv);
+  es_del (&data.bo);
+  es_del (&data.arr);
+  es_del (&data.cnf);
+}
+
+static int
+run (Env *env, void (*process) (Env *))
+{
+  int res, status, saved1, saved2, null;
+  pid_t id;
+  env->forked++;
+  fflush (stdout);
+  if ((id = fork ()))
+  {
+#ifndef NDEBUG
+    pid_t wid =
+#endif
+        wait (&status);
+    assert (wid == id);
+  }
+  else
+  {
+#ifndef NDEBUG
+    int tmp;
+#endif
+    saved1 = dup (1);
+    saved2 = dup (2);
+    null   = open ("/dev/null", O_WRONLY);
+    close (1);
+    close (2);
+#ifndef NDEBUG
+    tmp =
+#endif
+        dup (null);
+    assert (tmp == 1);
+#ifndef NDEBUG
+    tmp =
+#endif
+        dup (null);
+    assert (tmp == 2);
+    process (env);
+    close (null);
+    close (2);
+#ifndef NDEBUG
+    tmp =
+#endif
+        dup (saved2);
+    assert (tmp == 2);
+    close (1);
+#ifndef NDEBUG
+    tmp =
+#endif
+        dup (saved1);
+    assert (tmp == 1);
+#ifdef NDEBUG
+    UNUSED (tmp);
+#endif
+    exit (0);
+  }
+  if (WIFEXITED (status))
+  {
+    res = WEXITSTATUS (status);
+    if (env->print) printf ("exit %d ", res);
+  }
+  else if (WIFSIGNALED (status))
+  {
+    if (env->print) printf ("signal");
+    res = 1;
+  }
+  else
+  {
+    if (env->print) printf ("unknown");
+    res = 1;
+  }
+  return res;
+}
+
+static void
+erase (void)
+{
+  int i;
+  fputc ('\r', stdout);
+  for (i = 0; i < 80; i++) fputc (' ', stdout);
+  fputc ('\r', stdout);
+}
+
+static int
+isnumstr (const char *str)
+{
+  const char *p;
+  for (p = str; *p; p++)
+    if (!isdigit (*p)) return 0;
+  return 1;
+}
+
+static void
+die (const char *msg, ...)
+{
+  va_list ap;
+  fputs ("*** lglmbt: ", stderr);
+  va_start (ap, msg);
+  vfprintf (stderr, msg, ap);
+  va_end (ap);
+  fputc ('\n', stderr);
+  fflush (stderr);
+  exit (1);
+}
+
+static int
+hashmac (void)
+{
+  FILE *file = fopen ("/sys/class/net/eth0/address", "r");
+  int mac[6], res = 0;
+  if (!file) return 0;
+  if (fscanf (file,
+              "%02x:%02x:%02x:%02x:%02x:%02x",
+              mac + 0,
+              mac + 1,
+              mac + 2,
+              mac + 3,
+              mac + 4,
+              mac + 5)
+      == 6)
+  {
+    res = mac[5];
+    res ^= mac[4] << 4;
+    res ^= mac[3] << 8;
+    res ^= mac[2] << 16;
+    res ^= mac[1] << 20;
+    res ^= mac[0] << 24;
+  }
+  fclose (file);
+  return res;
+}
+
+static double
+current_time (void)
+{
+  double res = 0;
+  struct timeval tv;
+  if (!gettimeofday (&tv, 0)) res = 1e-6 * tv.tv_usec, res += tv.tv_sec;
+  return res;
+}
+
+static double
+get_time ()
+{
+  return current_time () - start_time;
+}
+
+static double
+average (double a, double b)
+{
+  return b ? a / b : 0;
+}
+
+static void
+stats (void)
+{
+  double t = get_time ();
+  printf ("[btormbt] finished after %.2f seconds\n", t);
+  printf ("[btormbt] %d rounds = %.2f rounds per second\n",
+          env.round,
+          average (env.round, t));
+  printf ("[btormbt] %d bugs = %.2f bugs per second\n",
+          env.bugs,
+          average (env.bugs, t));
+}
+
+static void
+sighandler (int sig)
+{
+  fflush (stdout);
+  fflush (stderr);
+  printf ("*** btormbt: caught signal %d in round %d\n", sig, env.round);
+  fflush (stdout);
+  stats ();
+  exit (1);
+}
+
+static void
+setsighandlers (void)
+{
+  (void) signal (SIGINT, sighandler);
+  (void) signal (SIGSEGV, sighandler);
+  (void) signal (SIGABRT, sighandler);
+  (void) signal (SIGTERM, sighandler);
+}
+
+int
+main (int argc, char **argv)
+{
+  int i, max, mac, pid, prev, res;
+  char name[100];
+  char *aname, *cmd;
+
+  start_time = current_time ();
+
+  memset (&env, 0, sizeof env);
+  max          = INT_MAX;
+  prev         = 0;
+  env.seed     = -1;
+  env.terminal = isatty (1);
+
+  for (i = 1; i < argc; i++)
+  {
+    if (!strcmp (argv[i], "-h"))
+    {
+      printf ("%s", USAGE);
+      exit (0);
+    }
+    else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
+      env.terminal = 0;
+    else if (!strcmp (argv[i], "-q") || !strcmp (argv[i], "--quiet"))
+      env.quiet = 1;
+    else if (!strcmp (argv[i], "-a") || !strcmp (argv[i], "--always-fork"))
+      env.alwaysfork = 1;
+    else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
+      env.first = 1;
+    else if (!strcmp (argv[i], "-m"))
+    {
+      if (++i == argc) die ("argument to '-m' missing (try '-h')");
+      if (!isnumstr (argv[i]))
+        die ("argument '%s' to '-m' not a number (try '-h')", argv[i]);
+      max = atoi (argv[i]);
+    }
+    else if (!isnumstr (argv[i]))
+    {
+      die ("invalid command line option '%s' (try '-h')", argv[i]);
+    }
+    else
+      env.seed = atoi (argv[i]);
+  }
+
+  if (!(aname = getenv ("BTORAPITRACE")))
+  {
+    sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
+    setenv ("BTORAPITRACE", name, 1);
+  }
+  env.print = !env.quiet;
+
+  if (env.seed >= 0 && !env.alwaysfork)
+  {
+    rantrav (&env);
+    printf ("\n");
+  }
+  else
+  {
+    mac = hashmac ();
+    pid = getpid ();
+    setsighandlers ();
+    for (env.round = 0; env.round < max; env.round++)
+    {
+      if (!(prev & 1)) prev++;
+
+      env.seed = mac;
+      env.seed *= 123301093;
+      env.seed += times (0);
+      env.seed *= 223531513;
+      env.seed += pid;
+      env.seed *= 31752023;
+      env.seed += prev;
+      env.seed *= 43376579;
+      prev = env.seed = abs (env.seed) >> 1;
+
+      if (!env.quiet)
+      {
+        if (env.terminal) erase ();
+        printf ("%d %d ", env.round, env.seed);
+        fflush (stdout);
+      }
+
+      res = run (&env, rantrav);
+
+      if (res > 0)
+      {
+        env.bugs++;
+        env.bugs++;
+        cmd = malloc (strlen (name) + 80);
+        sprintf (cmd, "cp %s btormbt-bug-%d.trace", name, env.seed);
+
+        if (system (cmd))
+        {
+          printf (" [btormbt] Error on copy command %s \n", cmd);
+          exit (1);
+        }
+
+        free (cmd);
+      }
+      if (!env.quiet)
+      {
+        if (res || !env.terminal) printf ("\n");
+        fflush (stdout);
+      }
+      if (res && env.first) break;
+    }
+  }
+  if (!env.quiet)
+  {
+    if (env.terminal) erase ();
+    printf ("forked %d\n", env.forked);
+  }
+  stats ();
+  return 0;
+}
