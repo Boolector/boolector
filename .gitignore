@@ -14,6 +14,7 @@ boolector
 boolector2
 synthebtor
 basicbtor
+btorimc
 dimacs2smt2
 btor2horn
 test

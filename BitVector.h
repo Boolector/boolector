@@ -2,6 +2,7 @@
 #define BitVector_h_INCLUDED
 
 #include <cassert>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -12,11 +13,6 @@ using namespace std;
 class BitVector
 {
  public:
-  enum DirectionKind
-  {
-    INTERNAL
-  };
-
   // Represents a reference to a single bit of a data entity
   struct Bit
   {
@@ -84,7 +80,97 @@ class BitVector
     unsigned m_nLsb;
   };
 
+  // Specifies the direction of a variable, for flows that use hierarchical
+  // BitVector models
+  typedef enum
+  {
+    INTERNAL,
+    INPUT,
+    OUTPUT,
+    INOUT
+  } DirectionKind;
+
+  typedef enum
+  {
+    MODULE,
+    TYPEDEF,
+    PARAMETER,
+    PROPERTY_TEMPLATE,
+    FUNCTION,
+    PACKAGE,
+    PACKAGE_IMPORT,
+    INTERFACE
+  } SourceConstructKind;
+
+  typedef enum
+  {
+    TRI,
+    RTRI,
+    NTRI,
+    RNTRI,
+    WAND_WEAKPULL,
+    WAND_DISCHARGE,
+    WOR_WEAKPULL,
+    WOR_DISCHARGE,
+    PP_PRECHARGE,
+    PP_DISCHARGE,
+    NP_PRECHARGE,
+    NP_DISCHARGE
+  } BusDriverKind;
+
+  // Specifies the source of the variable
+  typedef enum
+  {
+    // No specific information about the source of the variable is available
+    NONE,
+
+    // Specifies that the variable represents an output of a past operator
+    // modeling retain value of a state signal
+    STATE_RETAIN,
+
+    // Specifies that the variable represents an intermediate result of an
+    // operator and not a signal (e.g. EXP_17 represents an intermediate
+    // result of a+b in expression (a+b)+c).
+    INTERMEDIATE_RESULT,
+
+    // Specifies that the variable represents a variable created by More
+    // during applying loop breaking algorithm
+    LOOP_BREAKER,
+
+    // Specifies that the variable represents an output of a $past()
+    // operator other than operators whose output is represented with
+    // STATE_RETAIN, CLOCK_PAST CLOCK_TMP_PAST variables
+    PAST,
+
+    // Specifies that the variable represents a clock signal
+    CLOCK,
+
+    // Specifies that the variable represents an output of a $past()
+    // operator applied on a clock signal
+    CLOCK_PAST,
+
+    // Specifies that the variable represents a temporary variable created
+    // by More during clock toggling modeling
+    CLOCK_TMP,
+
+    // Specifies that the variable represents an output of a $past()
+    // operator applied on a temporary variable created by More during clock
+    // toggling modeling
+    CLOCK_TMP_PAST,
+
+    // Specifies that the variable represents a variable created by More
+    // during creation of dummy assumption
+    DUMMY_ASSUMPTION
+  } BvVariableSource;
+
  public:
+  // Method ~BitVector
+  //
+  // Destructor
+  //
+  // declared only since it must be virtual
+  virtual ~BitVector (){};
+
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 
@@ -152,12 +238,26 @@ class BitVector
   virtual void addVariable (unsigned nId,
                             const string& strName,
                             unsigned nWidth,
-                            bool bIsNextStateVariable           = false,
-                            bool bIsLoopBreakingVariable        = false,
-                            bool bIsStateRetainVariable         = false,
+                            bool bIsNextStateVariable   = false,
+                            BitVector::BvVariableSource = NONE,
+
                             BitVector::DirectionKind eDirection = INTERNAL)
   {
     assert (false);
+  }
+
+  //
+  // OLD DEPRECATED 7 ARGUMENT VERSION.
+  //
+  void addVariableOld (unsigned nId,
+                       const string& strName,
+                       unsigned nWidth,
+                       bool bIsNextStateVariable           = false,
+                       bool bIsLoopBreakingVariable        = false,
+                       bool bIsStateRetainVariable         = false,
+                       BitVector::DirectionKind eDirection = INTERNAL)
+  {
+    addVariable (nId, strName, nWidth, bIsNextStateVariable, NONE, eDirection);
   }
 
   // Method addRangeName
@@ -211,6 +311,11 @@ class BitVector
   {
     // The default implementation is empty, as to not require all
     // implementations of BitVector to implement this method
+  }
+
+  virtual void addRangeDirection (BitVector::BitRange bitRange,
+                                  BitVector::DirectionKind eDirection)
+  {
   }
 
   // Method addState
@@ -1370,7 +1475,498 @@ class BitVector
     assert (false);
   }
 
-#pragma GCC diagnostic pop
+  // Method addModuleBegin
+  //
+  // Notifies the BitVector implementation on the beginning of a declaration
+  // of a new module. The call to addModuleBegin() should be followed by zero
+  // or more calls to other BitVector methods and a call to addModuleEnd()
+  // method. All BitVector calls between the addModuleBegin() call and the
+  // following addModuleEnd() call define the contents of the module being
+  // declared. Variables declared with addVariable() calls, whose direction is
+  // not the INTERNAL direction, define the ports of the module.
+  //
+  // Arguments
+  //
+  // nModuleId - an unique ID of the new module
+  // strModuleName - name of the module
+  //
+  // Preconditions
+  //
+  // 1. All preceding addModuleBegin() calls should be followed by the
+  //    corresponding addModuleEnd() calls. There should be no nesting of
+  //    addModuleBegin() calls.
+  virtual void addModuleBegin (unsigned nModuleId,
+                               const string& strModuleName,
+                               const string& strTemplateModuleName,
+                               const vector<string>& strParameters)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addModuleEnd
+  //
+  // Notifies the BitVector implementation on the end of a declaration
+  // of a new module. See addModuleBegin() documentation for more information.
+  //
+  // Preconditions
+  //
+  // 1. An addModuleBegin() call, not followed by a corresponding
+  //    addModuleEnd() call, should be made before the call to this method.
+  virtual void addModuleEnd ()
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addDesignBegin
+  //
+  // Notifies the BitVector implementation on the beginning of a declaration
+  // of a new design. The call to addDesignBegin() should be followed by zero
+  // or more calls to other BitVector methods and a call to addDesignEnd()
+  // method. All BitVector calls between the addDesignBegin() call and the
+  // following addDesignEnd() call define the contents of the design being
+  // declared.
+  //
+  // Arguments
+  //
+  // nDesignId - an unique ID of the new design
+  // strDesignName - name of the design
+  //
+  // Preconditions
+  //
+  // 1. All preceding addDesignBegin() calls should be followed by the
+  //    corresponding addDesignEnd() calls. There should be no nesting of
+  //    addDesignBegin() calls.
+  virtual void addDesignBegin (unsigned nDesignId, const string& strDesignName)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addDesignEnd
+  //
+  // Notifies the BitVector implementation on the end of a declaration
+  // of a design. See addDesignBegin() documentation for more information.
+  //
+  // Preconditions
+  //
+  // 1. An addDesignBegin() call, not followed by a corresponding
+  //    addDesignEnd() call, should be made before the call to this method.
+  virtual void addDesignEnd ()
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addInstance
+  //
+  // Adds an instance of the given module
+  //
+  // Arguments
+  //
+  // nInstanceId - an unique ID of the new instance
+  // strInstanceName - instance name: the name from instance_name attribute if
+  //     exists or RTL instance name.
+  // strOriginalInstanceName - RTL instance name
+  // nModuleId - ID of the module to be instantiated
+  // strModuleName - name of the module to be instantiated
+  //
+  // portConnections - pairs of references to data entities to be connected to
+  //     the module's ports and corresponding port name.
+  //
+  // Preconditions
+  //
+  // 1. The module to be instantiated should be previously declared.
+  // 2. All the referenced data entities in portConnections should be
+  //    previously declared.
+  // 3. The number of port connections should match the number of module's
+  //    ports and the width of each port connection should match the width
+  //    of the port it is connected to.
+  virtual void addInstance (
+      unsigned nInstanceId,
+      const string& strInstanceName,
+      const string& strOriginalInstanceName,
+      unsigned nModuleId,
+      const string& strModuleName,
+      const vector<pair<BitVector::BitRange, string> >& portConnections)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addHierarchyBegin
+  //
+  // Adds a declaration and an instance of a new module, creating a new
+  // hierarchical entity grouping the given list of other hierarchical
+  // entities.
+  //
+  // Arguments
+  //
+  // nHierarchyId - an unique ID of the new hierarchy
+  // strHierarchyName - name of the hierarchy
+  //
+  // instances - instances of other hierarchical entities, to be placed within
+  //    the module. Instances of other hierarchical entities can be one of
+  //    the following two kinds:
+  //
+  //     1. Instances of other modules, created with either addInstance() or
+  //        addHierarchy() functions. In this case, the instance is to be
+  //        specified as a BitRange referring to the ID of the corresponding
+  //        instance, with [0:0] used as the BitRange's range.
+  //
+  //     2. Any BitVector operator, created with one of the
+  //        add<operator_name>() functions. In this case, the instance is to
+  //        be specified as the BitRange representing the operator's output.
+  //
+  // bIsTopLevel - indicates whether the hierarchy is a top level hierarchy
+  // (directed under a module).
+  //
+  //
+  // Preconditions
+  //
+  // 1. All referenced instances should be previously declared.
+  virtual void addHierarchyBegin (unsigned nHierarchyId,
+                                  const string& strHierarchyName,
+                                  const vector<BitVector::BitRange>& instances,
+                                  bool bIsTopLevel)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Notifies the BitVector implementation on the end of a declaration
+  // of a new hierarchy. See addHierarchyBegin() documentation for more
+  // information.
+  //
+  // Preconditions
+  //
+  // 1. An addHierarchyBegin() call, not followed by a corresponding
+  //    addHierarchyEnd() call, should be made before the call to this method.
+  virtual void addHierarchyEnd ()
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addSourceText
+  //
+  // Adds a source text on the given BitRange.
+  //
+  // Arguments
+  //
+  // bitRange -  BitRange to put the attribute on. The BitRange refers to
+  //     one of the hierarchies
+  // strSourceText - source text of the given hierarchy
+  //
+  // Preconditions
+  //
+  // 1. All referenced hierarchies should be previously declared.
+  virtual void addSourceText (BitVector::BitRange bitRange,
+                              const string& strSourceText)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addSourceLocation
+  //
+  // Provides back annotation to the rtl.
+  // Adds a source location on the given BitRange.
+  //
+  // Arguments
+  //
+  // bitRange -  BitRange to put the attribute on.
+  // strFile - The file name from the source reference.
+  // nFirstLine - The first line number for the source reference.
+  // nLastLine - The last line number for the source reference.
+  // nFirstColumn - The first column number for the source reference.
+  // nLastColumn - The last column number for the source reference.
+  //
+  // Preconditions
+  //
+  // 1. All referenced hierarchies should be previously declared.
+  virtual void addSourceLocation (BitVector::BitRange bitRange,
+                                  const string& strFile,
+                                  unsigned nFirstLine,
+                                  unsigned nLastLine,
+                                  unsigned nFirstColumn,
+                                  unsigned nLastColumn)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addSourceConstruct
+  //
+  // Adds an source construct.
+  //
+  // Arguments
+  //
+  // nId - an unique ID of the new source construct
+  // strName - construct name
+  // nModuleId - ID of the module to be instantiated
+  // eConstructKind - sourcer construct kind. E.g. parameter, function, etc.
+
+  //
+  // Preconditions
+  //
+  // 1. All referenced constructs should be previously declared.
+  virtual void addSourceConstruct (
+      unsigned nId,
+      const string& strName,
+      BitVector::SourceConstructKind eConstructKind)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addDependencies
+  //
+  // Adds dependencies of a given source construct.
+  //
+  // Arguments
+  //
+  // nConstructId - an unique ID of the new source construct
+  // dependencies - vector of IDs of source constructs that a given source
+  // contruct depends on them.
+
+  //
+  // Preconditions
+  //
+  // 1. All referenced constructs should be previously declared.
+  virtual void addDependencies (unsigned nConstructId,
+                                const vector<unsigned>& dependencies)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addPort
+  //
+  // Adds port
+  //
+  // Arguments
+  //
+  // strPortName - a port name
+  // bitBlastedPortNames - vector of bit blasted port names.
+
+  //
+  // Preconditions
+  //
+  // 1. All referenced constructs should be previously declared.
+  virtual void addPort (const string& strPortName,
+                        const vector<string>& bitBlastedPortNames)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addLatch
+  //
+  // Adds an instance of a latch primitive
+  //
+  // Arguments
+  //
+  // nInstanceId - an unique ID of the new instance
+  // strInstanceName - instance name
+  // output - latch's output
+  //
+  // clock - latch's clock. The clock may be null, represented by ID equal to
+  //     0. If the clock is null, the latch must have a non-null enable and
+  //     null asyncSet and asyncReset. If the clock is null, bIsActiveHigh
+  //     must be true.
+  //
+  // enable - latch's enable. Enable may be null, if latch's clock is
+  //     non-null.
+  //
+  // input - latch's input. Input must have a non-null ID.
+  //
+  // asyncSet - latch's asynchronous set. Asynchronous set may be non-null
+  //      only if latch's clock is non-null.
+  //
+  // asyncReset - latch's asynchronous reset. Asynchronous rest may be
+  //      non-null only if latch's clock is non-null.
+  //
+  // bIsActiveHigh - specifies whether the latch is open at high (1) clock or
+  //      low (0) clock. bIsActiveHigh may be false only if latch's clock is
+  //      non-null.
+  //
+  // Preconditions
+  //
+  // 1. All the referenced data entities in should be previously declared.
+  // 2. Width of ranges of clock, enable, asyncSet and asyncReset arguments
+  //    should be 1.
+  // 3. Width of ranges of output and input should be the same.
+  virtual void addLatch (unsigned nInstanceId,
+                         const string& strInstanceName,
+                         BitVector::BitRange output,
+                         BitVector::BitRange clock,
+                         BitVector::BitRange enable,
+                         BitVector::BitRange input,
+                         BitVector::BitRange asyncSet,
+                         BitVector::BitRange asyncReset,
+                         bool bIsActiveHigh)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addFlipFlop
+  //
+  // Adds an instance of a flip-flop primitive
+  //
+  // Arguments
+  //
+  // nInstanceId - an unique ID of the new instance
+  // strInstanceName - instance name
+  // output - flip-flop's output
+  //
+  // clock - flip-flop's clock. Must have a non-null ID.
+  //
+  // enable - flip-flop's enable. Must have a non-null ID.
+  //
+  // input - flip-flop's input. Input must have a non-null ID.
+  //
+  // asyncSet - flip-flop's asynchronous set. Asynchronous set may have a
+  //     null ID.
+  //
+  // asyncReset - flip-flop's asynchronous reset. Asynchronous reset may have
+  //     a null ID.
+  //
+  // bIsRising - specifies whether the flip-flop is open at rising edge of
+  //     the clock or at falling edge.
+  //
+  // Preconditions
+  //
+  // 1. All the referenced data entities in should be previously declared.
+  // 2. Width of ranges of clock and enable arguments should be 1.
+  // 3. Width of ranges of output, input, asyncSet and asyncReset should be
+  //    the same.
+  virtual void addFlipFlop (unsigned nInstanceId,
+                            const string& strInstanceName,
+                            BitVector::BitRange output,
+                            BitVector::BitRange clock,
+                            BitVector::BitRange enable,
+                            BitVector::BitRange input,
+                            BitVector::BitRange asyncSet,
+                            BitVector::BitRange asyncReset,
+                            bool bIsRising)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addBusDriver
+  //
+  // Adds an instance of a bus driver.
+  //
+  // Arguments
+  //
+  // nInstanceId - an unique ID of the new instance
+  // strInstanceName - instance name
+  // output - bus driver's output.
+  // enable - bus driver's enable.
+  // input - bus driver's input.
+  // eBusDriverKind - bus driver's kind.
+  //
+  // Preconditions
+  //
+  // 1. All the referenced data entities in should be previously declared.
+  // 2. Widths of ranges of the output and input should be the same.
+  // 3. Width of ranges of enable arguments should be 1.
+  virtual void addBusDriver (unsigned nInstanceId,
+                             const string& strInstanceName,
+                             BitVector::BitRange output,
+                             BitVector::BitRange enable,
+                             BitVector::BitRange input,
+                             BitVector::BusDriverKind eBusDriverKind)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addDelay
+  //
+  // Adds an instance of a delay primitive. Delay primitive behaves as a
+  // flip-flop whose clock is always active (as if it would be connected to
+  // the fastest clock in the system).
+  //
+  // Arguments
+  //
+  // nInstanceId - an unique ID of the new instance
+  // strInstanceName - instance name
+  // output - delay primitive's output
+  // enable - delay primitive's enable. Enable may have a null ID.
+  // input - delay primitive's input
+  //
+  // Preconditions
+  //
+  // 1. All the referenced data entities in should be previously declared.
+  // 2. Widths of ranges of output and input should be the
+  //    same.
+  virtual void addDelay (unsigned nInstanceId,
+                         const string& strInstanceName,
+                         BitVector::BitRange output,
+                         BitVector::BitRange enable,
+                         BitVector::BitRange input)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method addAttribute
+  //
+  // Adds a new attribute on the given BitRange.
+  //
+  // Arguments
+  //
+  // bitRange - BitRange to put the attribute on. The BitRange may refer to
+  //     one of the following entities:
+  //
+  //     1. A data entity declaration, declared using addVariable(),
+  //        addConstant() or addMemory().
+  //
+  //     2. A module declaration, declared using addModuleBegin() or
+  //        addHierarchyBegin().
+  //
+  //     3. An instance declaration, declared using addInstance() or
+  //        addHierarchyBegin().
+  //
+  //     4. An operator declaration, declared using one of the
+  //        add<operator_name>() functions.
+  //
+  //     For the first 3 entity kinds, the given BitRange should refer to ID
+  //     of the entity, with [0:0] used as the BitRange's range. For the 4th
+  //     entity kind, the BitRange should refer to the BitRange of the
+  //     operator's output.
+  //
+  // strName - name of the attribute
+  // strValue - value of the attribute
+  //
+  // Preconditions
+  //
+  // 1. The entity referenced by bitRange should be previously declared.
+  virtual void addAttribute (BitVector::BitRange bitRange,
+                             const string& strName,
+                             const string& strValue)
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
+
+  // Method finalizeModelCreation
+  //
+  // This method is called at the end of model creation. Implementations
+  // of BitVector interface may override this method to perform
+  // implementation specific procedures finalizing model creation.
+  virtual void finalizeModelCreation ()
+  {
+    // The default implementation is empty, as to not require all
+    // implementations of BitVector to implement this method
+  }
 };
+
+#pragma GCC diagnostic pop
 
 #endif

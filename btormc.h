@@ -37,6 +37,10 @@ int boolector_bad (BtorMC *, BtorNode *bad);
 
 /*------------------------------------------------------------------------*/
 
+void boolector_dump_btormc (BtorMC *, FILE *);
+
+/*------------------------------------------------------------------------*/
+
 int boolector_bmc (BtorMC *, int maxk);
 
 /* Assumes that 'boolector_enable_trace_gen' was called and then
