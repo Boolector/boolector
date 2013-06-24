@@ -10775,7 +10775,7 @@ process_skeleton (Btor *btor)
 
   lgl = lglinit ();
   lglsetprefix (lgl, "[lglskel] ");
-  lglsetopt (lgl, "verbose", -1);
+
   if (btor->verbosity)
   {
     lglsetopt (lgl, "verbose", btor->verbosity - 1);
