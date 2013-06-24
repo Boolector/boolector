@@ -278,7 +278,7 @@ btor_unassign_param (Btor *btor, BtorNode *lambda)
  *   BETA_RED_BOUNDED (bound): bounded reduction, stop reduction at 'bound'
  *			       lambdas
  */
-static BtorNode *
+BtorNode *
 btor_beta_reduce (
     Btor *btor, BtorNode *exp, int mode, BtorNode **parameterized, int bound)
 {
@@ -716,6 +716,19 @@ btor_beta_reduce (
           case BTOR_BCOND_NODE:
           case BTOR_ACOND_NODE:
             result = btor_cond_exp (btor, e.start[0], e.start[1], e.start[2]);
+            if (!BTOR_IS_ARRAY_OR_BV_COND_NODE (result))
+            {
+              if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e.start[0])))
+              {
+                if (result == e.start[1])
+                  result_parameterized = p.start[1];
+                else
+                {
+                  assert (result == e.start[2]);
+                  result_parameterized = p.start[2];
+                }
+              }
+            }
             break;
           default:
             /* not reachable */

@@ -13,6 +13,8 @@
 
 #include "btorexp.h"
 
+BtorNode *btor_beta_reduce (Btor *, BtorNode *, int, BtorNode **, int);
+
 BtorNode *btor_beta_reduce_full (Btor *, BtorNode *);
 
 BtorNode *btor_beta_reduce_chains (Btor *, BtorNode *);
