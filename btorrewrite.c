@@ -3520,13 +3520,15 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 
     /* if e_cond is not parameterized the check was already done while
      * creating bv cond */
-    if (!BTOR_REAL_ADDR_NODE (e_cond)->parameterized) break;
+    if (!BTOR_REAL_ADDR_NODE (e_cond)->parameterized)
+    {
+      if (prev_result) result = prev_result;
+      break;
+    }
 
+    result = 0;
     btor_assign_args (btor, cur_fun, cur_args);
     beta_cond = btor_beta_reduce_bounded (btor, e_cond, 1);
-
-    prev_result = result;
-    result      = 0;
     if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
     {
       btor->stats.read_props_construct++;
@@ -3543,20 +3545,20 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
 
     if (!result)
     {
-      if (prev_result) return prev_result;
+      if (prev_result) result = prev_result;
       break;
     }
 
-    if (!BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result))) return result;
+    if (!BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result))) break;
 
-    cur_fun  = BTOR_REAL_ADDR_NODE (result)->e[0];
-    cur_args = BTOR_REAL_ADDR_NODE (result)->e[1];
+    cur_fun     = BTOR_REAL_ADDR_NODE (result)->e[0];
+    cur_args    = BTOR_REAL_ADDR_NODE (result)->e[1];
+    prev_result = result;
   }
 
   if (!result) result = btor_apply_exp_node (btor, cur_fun, cur_args);
 
   assert (result);
-
   return result;
 }
 
