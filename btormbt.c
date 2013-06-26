@@ -1632,41 +1632,41 @@ run (Env *env, void (*process) (Env *))
   }
   else
   {
-#ifndef NDEBUG
+    //#ifndef NDEBUG
     int tmp;
-#endif
+    //#endif
     saved1 = dup (1);
     saved2 = dup (2);
     null   = open ("/dev/null", O_WRONLY);
     close (1);
     close (2);
-#ifndef NDEBUG
+    //#ifndef NDEBUG
     tmp =
-#endif
+        //#endif
         dup (null);
     assert (tmp == 1);
-#ifndef NDEBUG
+    //#ifndef NDEBUG
     tmp =
-#endif
+        //#endif
         dup (null);
     assert (tmp == 2);
     process (env);
     close (null);
     close (2);
-#ifndef NDEBUG
+    //#ifndef NDEBUG
     tmp =
-#endif
+        //#endif
         dup (saved2);
     assert (tmp == 2);
     close (1);
-#ifndef NDEBUG
+    //#ifndef NDEBUG
     tmp =
-#endif
+        //#endif
         dup (saved1);
     assert (tmp == 1);
-#ifdef NDEBUG
+    //#ifdef NDEBUG
     UNUSED (tmp);
-#endif
+    //#endif
     exit (0);
   }
   if (WIFEXITED (status))
