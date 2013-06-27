@@ -31,51 +31,88 @@ if __name__ == "__main__":
 
     print("digraph G {")
 
+    array_nodes = ["array", "acond", "write", "lambda"]
+    leaf_nodes = ["array", "var", "param", "const", "consth", "constd"]
+    param_nodes = {}
+    roots = []
+
     try:
         for line in sys.stdin:
             t = line.split()
-            id = t[0]
+            id = int(t[0])
             kind = t[1]
+
+            if kind == "path":
+                nodes = t[2:]
+                nodes.reverse()
+                for i in range(1, len(nodes)):
+                    print("{} -> {} [fontcolor=\"blue\", color=\"blue\"," \
+                          "label=\"L{}\"]".format(nodes[i - 1], nodes[i], id))
+                continue
+
+
+            assert(id > 0)
+
+            # start index of children
+            if not kind in leaf_nodes:
+                offset = 3
+                if kind in array_nodes:
+                    offset += 1
+
+                children = [int(i) for i in t[offset:]]
+            else:
+                children = []
+
+            # set default node label, style
             label = "{}: {}".format(id, kind)
             style = ""
             fillcolor = ""
 
+            # set node specific stuff
             if kind == "root":
                 label = ""
-            elif kind == "array":
+                roots.append(id)
+            elif kind == "slice":
+                upper = children[1]
+                lower = children[2]
+                children = [children[0]]
+                label = "{}\\n{} {}".format(label, upper, lower)
+            elif kind in array_nodes:
                 style = "filled"
                 fillcolor = "lightblue"
-            elif kind == "lambda": 
-                style = "filled"
-                fillcolor = "lightgray"
             elif kind == "apply":
                 style = "filled"
                 fillcolor = "lightyellow"
+            elif kind == "param":
+                param_nodes[id] = True
+
+            # check if node has parameterized children (stop at lambda)
+            if kind != "lambda":
+                for c in children:
+                    if abs(c) in param_nodes:
+                        param_nodes[id] = True
+                        break
+
+            # set style for parameterized nodes
+            if id in param_nodes:
+                style = "dotted"
+                fillcolor = ""
 
             node(id, shape(kind), label, style, fillcolor)
-            
-            if "const" in kind:
-                continue
-            if kind in ["array", "var", "param"]:
-                continue
 
-            offset = 3
-            if kind in ["array", "lambda"]:
-                offset += 1
-
-            children = t[offset:]
+            # draw edges with labels if arity > 1
             i = 1
             for c in children:
-                try:
-                    label = ""
-                    if len(children) > 1:
-                        label = str(i) 
-                    arrow(id, int(c), label) 
-                except ValueError:
-                    break
+                label = ""
+                if len(children) > 1:
+                    label = str(i)
+                arrow(id, c, label)
                 i += 1
 
     except IOError as err:
         sys.exit(err)
+
+#    # set roots as same rank
+#    print("{{rank=same; {}}}".format(" ".join([str(r) for r in roots])))
 
     print("}")
