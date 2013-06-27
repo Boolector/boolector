@@ -310,7 +310,7 @@ btor_beta_reduce (
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
 
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+  BTORLOG ("%s: %s (mode %d)", __FUNCTION__, node2string (exp), mode);
 
   /* we have to disable rewriting in case we beta reduce during read propagation
    * as otherwise we might lose lazily synthesized and encoded nodes */
@@ -393,12 +393,13 @@ btor_beta_reduce (
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }
 
+      // TODO: nested lambdas
       if (mode == BETA_RED_LAMBDA_CHAINS
-          /* skip all arrays that are not part of the lambda chain */
-          && ((BTOR_IS_ARRAY_NODE (real_cur) && !BTOR_IS_LAMBDA_NODE (real_cur))
+          /* skip all lambdas that are not part of the lambda chain */
+          && ((BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->chain)
               /* skip all nodes that are not parameterized as we can't merge
                * lambdas that might be below */
-              || (!BTOR_IS_ARRAY_NODE (real_cur) && !real_cur->parameterized)))
+              || (!BTOR_IS_LAMBDA_NODE (real_cur) && !real_cur->parameterized)))
       {
         goto BETA_REDUCE_PREPARE_PUSH_ARG_STACK;
       }

@@ -164,11 +164,12 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int parameterized : 1; /* param as sub expression ? */     \
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
     unsigned int no_synth : 1;      /* do not synthesize exp */         \
-    char *bits;                     /* three-valued bits */             \
-    int id;                         /* unique expression id */          \
-    int len;                        /* number of bits */                \
-    int refs;                       /* reference counter */             \
-    int arity;                      /* arity of operator */             \
+    unsigned int chain : 1;                                             \
+    char *bits; /* three-valued bits */                                 \
+    int id;     /* unique expression id */                              \
+    int len;    /* number of bits */                                    \
+    int refs;   /* reference counter */                                 \
+    int arity;  /* arity of operator */                                 \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
