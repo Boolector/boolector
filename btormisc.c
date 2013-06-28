@@ -66,6 +66,8 @@ node2string (BtorNode *exp)
 
   if (exp->kind == BTOR_SLICE_NODE)
     sprintf (strbuf, "%s %d %d", strbuf, exp->upper, exp->lower);
+  else if (BTOR_IS_BV_CONST_NODE (exp))
+    sprintf (strbuf, "%s %s", strbuf, exp->bits);
 
   len = strlen (strbuf) + 1;
 
@@ -84,7 +86,7 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
   char cmd[100], *path;
   FILE *file;
   int res;
-  sprintf (cmd, "btorvis --ids ");
+  sprintf (cmd, "btorvis ");
   path = cmd + strlen (cmd);
   sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);
   file = fopen (path, "w");
@@ -93,4 +95,26 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
   strcat (cmd, "&");
   res = system (cmd);
   return res;
+}
+
+void
+btor_print_bfs_path (Btor *btor, BtorNode *from, BtorNode *to)
+{
+  assert (from);
+  assert (from->parent);
+  assert (to);
+
+  BtorNode *cur;
+
+  cur = BTOR_REAL_ADDR_NODE (from);
+  to  = BTOR_REAL_ADDR_NODE (to);
+
+  printf ("%d path", btor->stats.lod_refinements);
+  while (cur != to)
+  {
+    assert (BTOR_REAL_ADDR_NODE (cur->parent));
+    printf (" %d", cur->id);
+    cur = BTOR_REAL_ADDR_NODE (cur->parent);
+  }
+  printf (" %d\n", to->id);
 }
