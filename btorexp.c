@@ -472,19 +472,26 @@ btor_delete_substitutions (Btor *btor)
 }
 
 static void
-btor_insert_substitution (Btor *btor, BtorNode *exp, BtorNode *subst)
+btor_insert_substitution (Btor *btor,
+                          BtorNode *exp,
+                          BtorNode *subst,
+                          int update)
 {
   assert (btor);
   assert (exp);
   assert (subst);
   assert (btor->substitutions);
+  assert (update == 0 || update == 1);
+
+  exp = BTOR_REAL_ADDR_NODE (exp);
 
   // TODO: maybe overwrite existing substitutions?
-  assert (!btor_find_in_ptr_hash_table (btor->substitutions,
-                                        BTOR_REAL_ADDR_NODE (exp)));
+  assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp));
 
-  btor_insert_in_ptr_hash_table (
-      btor->substitutions, btor_copy_exp (btor, BTOR_REAL_ADDR_NODE (exp)))
+  if (update && btor_find_in_ptr_hash_table (btor->substitutions, exp))
+    btor_remove_from_ptr_hash_table (btor->substitutions, exp, 0, 0);
+
+  btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
       ->data.asPtr = btor_copy_exp (btor, subst);
 }
 
@@ -5865,8 +5872,7 @@ btor_delete_btor (Btor *btor)
              btor->nodes_unique_table.num_elements);
   for (k = 0; k < btor->nodes_unique_table.size; k++)
     for (cur = btor->nodes_unique_table.chains[k]; cur; cur = cur->next)
-      BTORLOG ("  unreleased node: %s",
-               node2string (btor->nodes_unique_table.chains[k]));
+      BTORLOG ("  unreleased node: %s", node2string (cur));
 #endif
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
           || btor->nodes_unique_table.num_elements == 0);
@@ -6060,12 +6066,13 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor, 1, "mul normalizations: %d", btor->stats.muls_normalized);
   btor_msg_exp (btor,
                 1,
-                "read over write propagations during construction: %d",
-                btor->stats.read_props_construct);
-  btor_msg_exp (btor,
-                1,
                 "synthesis assignment inconsistencies: %d",
                 btor->stats.synthesis_assignment_inconsistencies);
+
+  btor_msg_exp (btor,
+                1,
+                "apply propagation during construction: %d",
+                btor->stats.apply_props_construct);
   btor_msg_exp (btor, 1, "beta reductions: %d", btor->stats.beta_reduce_calls);
   btor_msg_exp (
       btor, 1, "expression evaluations: %d", btor->stats.eval_exp_calls);
@@ -9840,6 +9847,7 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_WRITE_NODE:
       return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     case BTOR_LAMBDA_NODE:
+      // TODO: use btor_param_cur_assignment
       assert (BTOR_EMPTY_STACK (
           ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp));
       BTOR_PARAM_SET_LAMBDA_NODE (exp->e[0], 0);
@@ -12093,7 +12101,7 @@ rewrite_aconds_to_lambdas (Btor * btor)
 
 	e_cond = btor_cond_exp (btor, e[0], e_then, e_else);
 	lambda = btor_lambda_exp (btor, param, e_cond);
-	btor_insert_substitution (btor, acond, lambda);
+	btor_insert_substitution (btor, acond, lambda, 0);
 
 	btor_release_exp (btor, param);
 	btor_release_exp (btor, e_then);
@@ -12245,7 +12253,7 @@ rewrite_reads_on_aconds (Btor * btor)
 	  read_simp = btor_cond_exp (btor, e[0], read_then, read_else);
 
 	  assert (!read->simplified);
-	  btor_insert_substitution (btor, read, read_simp);
+	  btor_insert_substitution (btor, read, read_simp, 0);
 
 	  if (BTOR_REAL_ADDR_NODE (read_then)->parameterized
 	      && BTOR_IS_LAMBDA_NODE (e[1])
@@ -12484,10 +12492,8 @@ merge_lambda_chains (Btor *btor)
     subst = btor_beta_reduce_chains (btor, cur);
     btor_unassign_param (btor, cur);
 
-    assert (!btor_find_substitution (btor, cur)
-            || subst == btor_find_substitution (btor, cur));
-    if (!btor_find_substitution (btor, cur))
-      btor_insert_substitution (btor, cur, subst);
+    // TODO: update substitution
+    btor_insert_substitution (btor, cur, subst, 1);
     btor_release_exp (btor, subst);
     btor->stats.lambdas_merged++;
     btor->stats.lambda_chains_merged++;
