@@ -4026,6 +4026,13 @@ btor_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
   fun  = btor_simplify_exp (btor, fun);
   args = btor_simplify_exp (btor, args);
 
+  /* if fun was simplified to a constant value, we return a copy of it */
+  if (!BTOR_IS_FUN_NODE (fun))
+  {
+    assert (!BTOR_REAL_ADDR_NODE (fun)->parameterized);
+    return btor_copy_exp (btor, fun);
+  }
+
   if (btor->rewrite_level > 0) return btor_rewrite_apply_exp (btor, fun, args);
 
   return btor_apply_exp_node (btor, fun, args);
