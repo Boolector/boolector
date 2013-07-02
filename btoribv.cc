@@ -1717,8 +1717,10 @@ BtorIBV::analyze ()
             }
             break;
 
+          case BTOR_IBV_DIV:
           case BTOR_IBV_SUB:
           case BTOR_IBV_SUM:
+          case BTOR_IBV_MOD:
           case BTOR_IBV_MUL:
             for (unsigned j = 0; j < a->nranges; j++)
             {

@@ -53,6 +53,7 @@ static struct
   int addConcat;
   int addCondition;
   int addConstant;
+  int addDiv;
   int addEqual;
   int addLessThan;
   int addLessEqual;
@@ -62,6 +63,8 @@ static struct
   int addLogicalNot;
   int addLogicalOr;
   int addLShift;
+  int addMod;
+  int addMul;
   int addNonState;
   int addRangeName;
   int addReplicate;
@@ -582,6 +585,12 @@ parse_line ()
     BINARY (addBitOr);
   else if
     BINARY (addBitXor);
+  else if
+    BINARY (addDiv);
+  else if
+    BINARY (addMod);
+  else if
+    BINARY (addMul);
   else if
     BINARY (addSum);
   else if
