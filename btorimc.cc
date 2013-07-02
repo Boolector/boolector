@@ -390,13 +390,9 @@ parse_line ()
   const char* op = toks[0].c_str ();
   if (!strcmp (op, "addVariable"))
   {
-    if (size < 7)
-      perr ("operator 'addVariable' expected 6 or 7 arguments but only got %d",
+    if (size != 5 && size != 7 && size != 8)
+      perr ("operator 'addVariable' expected 4, 6 or 7 arguments but got %d",
             size - 1);
-    else if (size > 8)
-      perr ("operator 'addVariable' expected only 6 or 7 arguments but got %d",
-            size - 1);
-    assert (size == 7 || size == 8);
     string sym  = T (2);
     unsigned id = N (1);
     CHKIDUNUSED (id);
@@ -407,7 +403,15 @@ parse_line ()
     Var v (sym, width);
     idtab[id] = Var (sym, width);
     stats.addVariable++;
-    if (size == 8)
+    if (size == 5)
+      ibvm->addVariableOld (id,
+                            sym,
+                            width,
+                            (bool) N (4),
+                            (bool) 0,
+                            (bool) 0,
+                            (BitVector::DirectionKind) 0);
+    else if (size == 8)
       ibvm->addVariableOld (id,
                             sym,
                             width,
