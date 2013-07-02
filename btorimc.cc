@@ -481,7 +481,7 @@ parse_line ()
     RANGE (n, T (1), N (2), N (3));
     RANGE (c, T (4), N (5), N (6));
     RANGE (t, T (7), N (8), N (9));
-    RANGE (e, T (7), N (8), N (9));
+    RANGE (e, T (10), N (11), N (12));
     CHKRANGESAMEWIDTH (n, t);
     CHKRANGESAMEWIDTH (n, e);
     if (c.getWidth () != 1) CHKRANGESAMEWIDTH (n, c);
