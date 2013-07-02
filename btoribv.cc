@@ -1830,6 +1830,8 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
+    case BTOR_IBV_NOT_USED: break;
+
     default:
       BTOR_ABORT_BOOLECTOR (
           1, "%s not handled", btor_ibv_classified_to_str (c));
@@ -1861,11 +1863,12 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
 }
 
 BtorNode *
-BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
+BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst, BtorIBVAssignment *a)
 {
   BtorNodePtrStack stack;
   BtorNode *res;
   assert (a);
+  assert (a->range.id == dst->range.id);
   BTOR_INIT_STACK (stack);
   for (unsigned i = 0; i < a->nranges; i++)
   {
@@ -1968,11 +1971,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
       break;
     case BTOR_IBV_SIGN_EXTEND:
     {
-      int aw      = a->range.getWidth ();
+      int dw      = dst->range.getWidth ();
       BtorNode *n = BTOR_PEEK_STACK (stack, 0);
       int nw      = boolector_get_width (btor, n);
-      assert (aw >= nw);
-      res = boolector_sext (btor, n, aw - nw);
+      assert (dw >= nw);
+      res = boolector_sext (btor, n, dw - nw);
     }
     break;
     case BTOR_IBV_SUB:
@@ -1989,11 +1992,11 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
       break;
     case BTOR_IBV_ZERO_EXTEND:
     {
-      int aw      = a->range.getWidth ();
+      int dw      = dst->range.getWidth ();
       BtorNode *n = BTOR_PEEK_STACK (stack, 0);
       int nw      = boolector_get_width (btor, n);
-      assert (aw >= nw);
-      res = boolector_uext (btor, n, aw - nw);
+      assert (dw >= nw);
+      res = boolector_uext (btor, n, dw - nw);
     }
     break;
     case BTOR_IBV_CONDBW:
@@ -2031,6 +2034,10 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
+    case BTOR_IBV_NOT_USED:
+      a->exp = boolector_zero (btor, (int) r.getWidth ());
+      break;
+
     default:
     case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
@@ -2043,7 +2050,8 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
 
     case BTOR_IBV_ASSIGNED:
       assert (!a->exp);
-      a->exp = translate_assignment_conquer (n->assigned[r.lsb]);
+      a->exp = translate_assignment_conquer (a, n->assigned[r.lsb]);
+      assert (boolector_get_width (btor, a->exp) == (int) a->range.getWidth ());
       break;
   }
 }
