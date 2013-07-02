@@ -502,7 +502,6 @@ parse_line ()
     if (size != 3 * nargs + 5)
       perr ("number of 'addCase' arguments does not match");
     vector<BitVector::BitRange> args;
-    bool bitwise = false, determined = false;
     for (unsigned i = 5; nargs; i += 3, nargs--)
     {
       bool undeclared = (T (i) == "undeclared");
@@ -511,26 +510,8 @@ parse_line ()
       BitVector::BitRange arg (undeclared ? 0 : symtab[T (i)],
                                undeclared ? 0 : N (i + 1),
                                undeclared ? 0 : N (i + 2));
-      if (!undeclared)
-      {
-        if (!(nargs & 1))
-        {
-          if (determined)
-          {
-            if (bitwise)
-              CHKRANGESAMEWIDTH (n, arg);
-            else if (arg.getWidth () != 1)
-              perr ("expected bit width 1 condition as before");
-          }
-          else
-          {
-            determined = 1;
-            bitwise    = (arg.getWidth () != 1);
-          }
-        }
-        else
-          CHKRANGESAMEWIDTH (n, arg);
-      }
+      if (!undeclared && !(nargs & 1) && arg.getWidth () != 1)
+        CHKRANGESAMEWIDTH (n, arg);
       args.push_back (arg);
     }
     ibvm->addCase (n, args);

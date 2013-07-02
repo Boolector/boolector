@@ -1888,6 +1888,13 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
     case BTOR_IBV_BUF:
       res = boolector_copy (btor, BTOR_PEEK_STACK (stack, 0));
       break;
+#if 0
+    case BTOR_IBV_CASE: 
+      {
+	int FINISH;
+      }
+      break;
+#endif
     case BTOR_IBV_CONCAT:
       res = boolector_concat (
           btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
@@ -1952,7 +1959,6 @@ BtorIBV::translate_assignment_conquer (BtorIBVAssignment *a)
       res = boolector_uext (
           btor, BTOR_PEEK_STACK (stack, 0), (int) a->range.getWidth ());
       break;
-    case BTOR_IBV_CASE:
     case BTOR_IBV_CONDBW:
     case BTOR_IBV_LEFT_SHIFT:
     case BTOR_IBV_NON_STATE:
