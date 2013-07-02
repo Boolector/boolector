@@ -37,8 +37,8 @@ static FILE* input            = stdin;
 static const char* input_name = "<stdin>";
 static bool close_input;
 
+static char *line, *nts;
 static int szline, nline;
-static char* line;
 
 static struct
 {
@@ -309,6 +309,57 @@ str_to_id_or_number (const char* s)
   }                                 \
   while (0)
 
+static const char*
+firstok ()
+{
+  for (nts = line; *nts && *nts != '('; nts++)
+    ;
+  if (!*nts) return 0;
+  assert (*nts == '(');
+  *nts++ = 0;
+  return line;
+}
+
+static const char*
+nextok ()
+{
+  const char* res;
+  int open;
+  if (nts >= line + nline) return 0;
+  while (isspace (*nts)) nts++;
+  if (!*nts) return 0;
+  res  = nts;
+  open = 0;
+  for (;;)
+  {
+    int ch = *nts;
+    if (!ch)
+      perr ("unexpected end-of-line");
+    else if (ch == '\\' && !*++nts)
+      perr ("unexpected end-of-line after '\\'");
+    else if (ch == '(')
+      open++, assert (open > 0);
+    else if (ch == ',' && !open)
+      break;
+    else if (ch == ')')
+    {
+      if (open > 0)
+        open--;
+      else
+      {
+        assert (!open);
+        if (nts[1]) perr ("trailing characters after last ')'");
+        break;
+      }
+    }
+    nts++;
+  }
+  *nts++  = 0;
+  char* p = nts - 2;
+  while (p >= res && isspace (*p)) *p-- = 0;
+  return *res ? res : 0;
+}
+
 static void
 parse_line ()
 {
@@ -319,10 +370,9 @@ parse_line ()
     ;
   if (p == line) perr ("empty line");
   if (p[-1] != ')') perr ("line does not end with ')'");
-  p[-1] = 0;
-  if (!(str = strtok (line, "("))) perr ("'(' missing");
+  if (!(str = firstok ())) perr ("'(' missing");
   toks.push_back (string (str));
-  while ((str = strtok (0, ","))) toks.push_back (string (str));
+  while ((str = nextok ())) toks.push_back (string (str));
 #if 1
   printf ("[btorimc] line %d:", lineno);
   for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();
@@ -337,9 +387,13 @@ parse_line ()
   const char* op = toks[0].c_str ();
   if (!strcmp (op, "addVariable"))
   {
-    if (size != 7 && size != 8)
+    if (size < 7)
       perr ("operator 'addVariable' expected 6 or 7 arguments but only got %d",
             size - 1);
+    else if (size > 8)
+      perr ("operator 'addVariable' expected only 6 or 7 arguments but got %d",
+            size - 1);
+    assert (size == 7 || size == 8);
     string sym  = T (2);
     unsigned id = N (1);
     CHKIDUNUSED (id);
