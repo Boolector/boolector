@@ -2353,11 +2353,7 @@ BtorIBV::translate ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
-    if (n->is_constant)
-    {
-      assert (n->cached);
-      continue;
-    }
+    if (n->is_constant) continue;
     if (!n->used) continue;
     if (!n->next) continue;
     for (BtorIBVAtom *at = n->atoms.start; at < n->atoms.top; at++)
