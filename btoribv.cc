@@ -2435,6 +2435,24 @@ BtorIBV::translate ()
             stats.nexts++;
           }
           break;
+          case BTOR_IBV_TWO_PHASE_INPUT:
+          {
+            assert (as->tag == BTOR_IBV_NON_STATE);
+            assert (as->nranges == 1);
+            BtorIBVNode *nextnode = id2node (as->ranges[0].id);
+            assert (nextnode);
+            assert (nextnode->flags);
+            assert (nextnode->flags[as->ranges[0].lsb].classified
+                    == BTOR_IBV_TWO_PHASE_INPUT);
+            assert (nextnode->cached);
+            BtorNode *nextexp = boolector_slice (
+                btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
+            boolector_next (btormc, n->cached, nextexp);
+            boolector_release (btor, nextexp);
+            stats.nexts++;
+          }
+          break;
+          case BTOR_IBV_ASSIGNED: break;
           default:
             BTOR_ABORT_BOOLECTOR (
                 1,
