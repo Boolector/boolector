@@ -1,23 +1,23 @@
-1 const 1 0
-2 const 4 0000
-3 const 2 00
-4 const 3 001
-5 const 4 0001
-6 const 1 1
-7 const 3 000
-8 const 2 11
-9 const 7 0000000
-10 const 7 1111111
-11 const 3 111
-12 const 2 01
+1 zero 1
+2 zero 4
+3 zero 2
+4 one 3
+5 one 4
+6 one 1
+7 zero 3
+8 ones 2
+9 zero 7
+10 ones 7
+11 ones 3
+12 one 2
 13 const 4 1101
 14 const 4 1010
 15 const 4 1100
-16 const 15 000000000000000
-17 const 5 00000
-18 const 5 11111
-19 const 8 11111111
-20 const 4 1111
+16 zero 15
+17 zero 5
+18 ones 5
+19 ones 8
+20 ones 4
 21 var 1 1
 22 var 2 2
 23 var 1 8

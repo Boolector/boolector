@@ -119,7 +119,6 @@ boolector_new (void)
   char *trname;
   Btor *btor;
 
-  printf ("\nboolector \n");
   btor = btor_new_btor ();
   if ((trname = getenv ("BTORAPITRACE"))) btor_open_apitrace (btor, trname);
   BTOR_TRAPI ("new");

@@ -160,11 +160,6 @@ Btor *boolector_new (void);
 Btor *boolector_clone (Btor *btor);
 
 /**
- * Returns 1 if the input formula is inconsistent, and 0 otherwise.
- */
-int boolector_is_inconsistent (Btor *btor);
-
-/**
  * Enables model generation. If you want Boolector to produce
  * a model in the satisfiable case, call this function
  * after \ref boolector_new.
@@ -487,7 +482,7 @@ BtorNode *boolector_or (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /** Equality. Either both operands are bit-vectors with the same
- * bit-with or both operands are arrays of the same type.
+ * bit-width or both operands are arrays of the same type.
  * \param btor Boolector instance.
  * \param e0 First operand.
  * \param e1 Second operand.
@@ -496,7 +491,7 @@ BtorNode *boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *boolector_eq (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /** Inequality. Either both operands are bit-vectors with the same
- * bit-with or both operands are arrays of the same type.
+ * bit-width or both operands are arrays of the same type.
  * \param btor Boolector instance.
  * \param e0 First operand.
  * \param e1 Second operand.

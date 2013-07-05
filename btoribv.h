@@ -130,13 +130,15 @@ enum BtorIBVClassification
   BTOR_IBV_TWO_PHASE_INPUT,
   BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT,
   BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT,
+  BTOR_IBV_PHANTOM_CURRENT_INPUT,
+  BTOR_IBV_PHANTOM_NEXT_INPUT,
   BTOR_IBV_NOT_USED,
 };
 
 struct BtorIBVFlags
 {
   BtorIBVClassification classified;
-  bool assigned, used, input, onephase, forwarded;
+  bool assigned, used, coi, input, onephase, forwarded;
   struct
   {
     bool current, next;
@@ -154,10 +156,9 @@ struct BtorIBVNode
   unsigned id;
   bool is_constant;
   bool is_next_state;
-  bool is_loop_breaking;
-  bool is_state_retain;
+  BitVector::BvVariableSource source;
   BitVector::DirectionKind direction;
-  signed char marked, used;
+  signed char marked, used, coi;
   BtorNode *cached, *forwarded;
   char *name;
   BtorIBVFlags *flags;
@@ -237,6 +238,7 @@ class BtorIBV : public BitVector
 
   BtorIBVNode *new_node (unsigned id, unsigned width);
 
+  bool mark_coi (BtorIBVNode *, unsigned);
   bool mark_used (BtorIBVNode *, unsigned);
   void mark_assigned (BtorIBVNode *, BitRange);
 
@@ -308,15 +310,18 @@ class BtorIBV : public BitVector
 
   void translate_atom_divide (BtorIBVAtom *, BtorIBVNodePtrStack *);
   void translate_atom_conquer (BtorIBVAtom *);
-  void translate_assignment_conquer (BtorIBVAssignment *a);
+  BtorNode *translate_assignment_conquer (BtorIBVAssignment *a);
   void translate_atom_base (BtorIBVAtom *);
 
   void translate_node_divide (BtorIBVNode *, BtorIBVNodePtrStack *);
   void translate_node_conquer (BtorIBVNode *);
 
+  bool is_phantom_current (BtorIBVNode *, unsigned);
+  bool is_phantom_next (BtorIBVNode *, unsigned);
+
   struct
   {
-    unsigned inputs, latches, nexts, inits;
+    unsigned inputs, latches, nexts, inits, bads;
   } stats;
 
  public:
@@ -340,8 +345,12 @@ class BtorIBV : public BitVector
 
   void addConstant (unsigned, const string &, unsigned);
 
-  void addVariable (
-      unsigned, const string &, unsigned, bool, bool, bool, DirectionKind);
+  void addVariable (unsigned,
+                    const string &,
+                    unsigned,
+                    bool,
+                    BvVariableSource,
+                    DirectionKind);
 
   void addRangeName (BitRange, const string &, unsigned, unsigned);
 
@@ -507,7 +516,7 @@ class BtorIBV : public BitVector
 
   //------------------------------------------------------------------------
 
-  void addAssertion (Bit);
+  void addAssertion (BitRange);
   void addAssumption (BitRange, bool);
 
 #if 0
@@ -533,6 +542,8 @@ class BtorIBV : public BitVector
 
   void analyze ();    // Needs to be called before 'translate'.
   void translate ();  // Into internal BtorMC model.
+
+  void dump_btor (FILE *file);  // Dump BTOR model to this file.
 
   int bmc (int maxk);
   string assignment (BitRange, int k);

@@ -10,6 +10,7 @@
 
 #include "btormc.h"
 #include "btorabort.h"
+#include "btordump2.h"
 #include "btorexp.h"
 #include "btormap.h"
 
@@ -65,6 +66,7 @@ struct BtorMC
   BtorPtrHashTable *inputs;
   BtorPtrHashTable *latches;
   BtorNodePtrStack bad;
+  BtorNodeMap *assignment;
 };
 
 /*------------------------------------------------------------------------*/
@@ -87,6 +89,7 @@ boolector_new_mc (void)
                                           (BtorHashPtr) btor_hash_exp_by_id,
                                           (BtorCmpPtr) btor_compare_exp_by_id);
   assert (res->state == BTOR_NO_MC_STATE);
+  assert (!res->assignment);
   return res;
 }
 
@@ -179,6 +182,17 @@ btor_release_mc_frame (BtorMcFrame *frame)
   release_frame_stack (frame, &frame->bad);
 }
 
+static void
+release_assignment (BtorMC *mc)
+{
+  if (!mc->assignment) return;
+  btor_msg_mc (mc,
+               1,
+               "releasing assignment of size %d",
+               BTOR_COUNT_MAP_NODE (mc->assignment));
+  mc->assignment = 0;
+}
+
 void
 boolector_delete_mc (BtorMC *mc)
 {
@@ -187,6 +201,7 @@ boolector_delete_mc (BtorMC *mc)
   BtorMcFrame *f;
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  release_assignment (mc);
   btor_msg_mc (mc,
                1,
                "deleting model checker: %u inputs, %u latches, %u bad",
@@ -319,7 +334,7 @@ boolector_init (BtorMC *mc, BtorNode *node, BtorNode *init)
   BTOR_ABORT_IF_STATE (mc);
   assert (node);
   assert (init);
-  assert (BTOR_IS_BV_CONST_NODE (init));
+  assert (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (init)));
   btor = mc->btor;
   assert (btor_get_exp_len (btor, node) == btor_get_exp_len (btor, init));
   latch = btor_find_mc_latch (mc, node);
@@ -787,8 +802,12 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
       frame_owned_res = 0;
   }
 
+  // TODO what about non inputs?
+  //
+#if 0
   BTOR_ABORT_BOOLECTOR (!bucket,
-                        "'node' argument is neither an input nor a latch");
+     "'node' argument is neither an input nor a latch");
+#endif
 
   if (frame_owned_res)
   {
@@ -807,4 +826,46 @@ boolector_free_mc_assignment (BtorMC *mc, char *assignment)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_freestr (mc->btor->mm, assignment);
+}
+
+void
+boolector_dump_btormc (BtorMC *mc, FILE *file)
+{
+  BtorPtrHashBucket *b;
+  BtorDumpContext *bdc;
+  int i;
+
+  bdc = btor_new_dump_context (mc->btor);
+
+  for (b = mc->inputs->first; b; b = b->next)
+  {
+    BtorMcInput *input = b->data.asPtr;
+    assert (input);
+    assert (input->node);
+    btor_add_input_to_dump_context (bdc, input->node);
+  }
+
+  for (b = mc->latches->first; b; b = b->next)
+  {
+    BtorMcLatch *latch = b->data.asPtr;
+    assert (latch);
+    assert (latch->node);
+    assert (BTOR_IS_REGULAR_NODE (latch->node));
+    btor_add_latch_to_dump_context (bdc, latch->node);
+    if (latch->init)
+      btor_add_init_to_dump_context (bdc, latch->node, latch->init);
+    if (latch->next)
+      btor_add_next_to_dump_context (bdc, latch->node, latch->next);
+  }
+
+  for (i = 0; i < BTOR_COUNT_STACK (mc->bad); i++)
+  {
+    BtorNode *bad = BTOR_PEEK_STACK (mc->bad, i);
+    btor_add_bad_to_dump_context (bdc, bad);
+  }
+
+  // TODO add 'constraints' ...
+
+  btor_dump_btor (bdc, file);
+  btor_delete_dump_context (bdc);
 }

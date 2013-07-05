@@ -58,7 +58,7 @@ if [ $? = 1 ]; then
   die "could not find 'ps2pdf'"
 fi
 
-for pdfreader in "zathura" "evince" "acroread"; do
+for pdfreader in  "acroread" "zathura" "evince"; do
   which "$pdfreader"
   if [ $? = 0 ]; then
     break

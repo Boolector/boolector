@@ -10775,13 +10775,15 @@ process_skeleton (Btor *btor)
 
   lgl = lglinit ();
   lglsetprefix (lgl, "[lglskel] ");
-  lglsetopt (lgl, "verbose", -1);
+
   if (btor->verbosity)
   {
-    lglsetopt (lgl, "verbose", 1);
+    lglsetopt (lgl, "verbose", btor->verbosity - 1);
     lglbnr ("Lingeling", "[lglskel] ", stdout);
     fflush (stdout);
   }
+  else
+    lglsetopt (lgl, "verbose", -1);
 
   count = 0;
 

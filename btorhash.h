@@ -77,7 +77,7 @@ BtorPtrHashBucket *btor_find_in_ptr_hash_table (BtorPtrHashTable *, void *);
 
 BtorPtrHashBucket *btor_insert_in_ptr_hash_table (BtorPtrHashTable *, void *);
 
-/* Remove from hash table the bucke with the key.  The key has to be an
+/* Remove from hash table the bucket with the key.  The key has to be an
  * element of the hash table.  If 'stored_data_ptr' is non zero, then data
  * to which the given key was mapped is copied to this location.   The same
  * applies to 'stored_key_ptr'.  If you traverse/iterate a hash table

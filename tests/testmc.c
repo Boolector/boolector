@@ -82,7 +82,7 @@ test_mctoggle ()
 
   BtorNode *bit;
 
-  boolector_set_verbosity_mc (g_mc, 3);
+  // boolector_set_verbosity_mc (g_mc, 3);
 
   bit = boolector_latch (g_mc, 1, "counter");
 
@@ -119,7 +119,7 @@ test_mccount2enablenomodel ()
   BtorNode *counter;  // 2-bit state
   BtorNode *enable;   // one boolean control input
 
-  boolector_set_verbosity_mc (g_mc, 3);
+  // boolector_set_verbosity_mc (g_mc, 3);
 
   counter = boolector_latch (g_mc, 2, "counter");
   enable  = boolector_input (g_mc, 1, "enable");
@@ -163,7 +163,7 @@ test_mccount2resetenable ()
   init_mc_test ();
 
   boolector_enable_trace_gen (g_mc);
-  boolector_set_verbosity_mc (g_mc, 3);
+  // boolector_set_verbosity_mc (g_mc, 3);
 
   counter = boolector_latch (g_mc, 2, "counter");
   enable  = boolector_input (g_mc, 1, "enable");
