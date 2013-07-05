@@ -1649,7 +1649,9 @@ run (Env *env, void (*process) (Env *))
     tmp =
 #endif
         dup (null);
+#ifndef NDEBUG
     assert (tmp == 2);
+#endif
     process (env);
     close (null);
     close (2);
@@ -1657,14 +1659,16 @@ run (Env *env, void (*process) (Env *))
     tmp =
 #endif
         dup (saved2);
+#ifndef NDEBUG
     assert (tmp == 2);
     close (1);
 #ifndef NDEBUG
     tmp =
 #endif
         dup (saved1);
-    assert (tmp == 1);
 #ifdef NDEBUG
+    assert (tmp == 1);
+#endif
     UNUSED (tmp);
 #endif
     exit (0);
