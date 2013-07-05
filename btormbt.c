@@ -1443,7 +1443,7 @@ _sat (Data *data, unsigned r)
     if (data->print) printf ("[btormbt]  sat call returned %d\n", res);
   }
 
-  return data->mgen ? _mgen : _inc;
+  return data->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
 
 static void *
