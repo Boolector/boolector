@@ -98,8 +98,8 @@ BTOR_DECLARE_STACK (IBVAssignment, BtorIBVAssignment);
 struct BtorIBVAtom
 {
   BtorIBVRange range;
-  BtorNode *exp;
-  BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0) {}
+  BtorNode *exp, *next;
+  BtorIBVAtom (const BtorIBVRange &r) : range (r), exp (0), next (0) {}
 };
 
 extern "C" {
