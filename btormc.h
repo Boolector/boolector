@@ -34,6 +34,7 @@ BtorNode *boolector_latch (BtorMC *, int width, const char *);
 void boolector_next (BtorMC *, BtorNode *latch, BtorNode *next);
 void boolector_init (BtorMC *, BtorNode *latch, BtorNode *init);
 int boolector_bad (BtorMC *, BtorNode *bad);
+int boolector_constraint (BtorMC *, BtorNode *constraint);
 
 /*------------------------------------------------------------------------*/
 

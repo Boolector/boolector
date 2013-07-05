@@ -66,6 +66,7 @@ struct BtorMC
   BtorPtrHashTable *inputs;
   BtorPtrHashTable *latches;
   BtorNodePtrStack bad;
+  BtorNodePtrStack constraints;
   BtorNodeMap *assignment;
 };
 
@@ -202,12 +203,14 @@ boolector_delete_mc (BtorMC *mc)
   Btor *btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   release_assignment (mc);
-  btor_msg_mc (mc,
-               1,
-               "deleting model checker: %u inputs, %u latches, %u bad",
-               mc->inputs->count,
-               mc->latches->count,
-               BTOR_COUNT_STACK (mc->bad));
+  btor_msg_mc (
+      mc,
+      1,
+      "deleting model checker: %u inputs, %u latches, %u bad, %u constraints",
+      mc->inputs->count,
+      mc->latches->count,
+      BTOR_COUNT_STACK (mc->bad),
+      BTOR_COUNT_STACK (mc->constraints));
   btor = mc->btor;
   mm   = btor->mm;
   for (f = mc->frames.start; f < mc->frames.top; f++) btor_release_mc_frame (f);
@@ -220,6 +223,8 @@ boolector_delete_mc (BtorMC *mc)
   btor_delete_ptr_hash_table (mc->latches);
   while (!BTOR_EMPTY_STACK (mc->bad))
     btor_release_exp (btor, BTOR_POP_STACK (mc->bad));
+  while (!BTOR_EMPTY_STACK (mc->constraints))
+    btor_release_exp (btor, BTOR_POP_STACK (mc->constraints));
   BTOR_RELEASE_STACK (mm, mc->bad);
   if (mc->forward) boolector_delete (mc->forward);
   BTOR_DELETE (mm, mc);
@@ -359,6 +364,22 @@ boolector_bad (BtorMC *mc, BtorNode *bad)
   (void) btor_copy_exp (mc->btor, bad);
   BTOR_PUSH_STACK (mc->btor->mm, mc->bad, bad);
   btor_msg_mc (mc, 2, "adding BAD property %d", res);
+  return res;
+}
+
+int
+boolector_constraint (BtorMC *mc, BtorNode *constraint)
+{
+  int res;
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
+  BTOR_ABORT_IF_STATE (mc);
+  assert (constraint);
+  assert (!btor_is_array_exp (mc->btor, constraint));
+  assert (btor_get_exp_len (mc->btor, constraint) == 1);
+  res = BTOR_COUNT_STACK (mc->constraints);
+  (void) btor_copy_exp (mc->btor, constraint);
+  BTOR_PUSH_STACK (mc->btor->mm, mc->constraints, constraint);
+  btor_msg_mc (mc, 2, "adding environment constraint %d", res);
   return res;
 }
 
@@ -515,6 +536,46 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
 }
 
 static void
+initialize_constraints_of_frame (BtorMC *mc, BtorNodeMap *map, BtorMcFrame *f)
+{
+  BtorNode *src, *dst, *constraint;
+  int i;
+
+  assert (mc);
+  assert (map);
+  assert (f);
+
+  btor_msg_mc (mc,
+               2,
+               "initializing %d environment constraints of frame %d",
+               (int) BTOR_COUNT_STACK (mc->constraints),
+               f->time);
+
+  constraint = 0;
+
+  for (i = 0; i < BTOR_COUNT_STACK (mc->constraints); i++)
+  {
+    src = BTOR_PEEK_STACK (mc->constraints, i);
+    assert (src);
+    dst = btor_non_recursive_substitute_node (f->btor, map, src);
+    if (constraint)
+    {
+      BtorNode *tmp = btor_and_exp (f->btor, constraint, dst);
+      btor_release_exp (f->btor, constraint);
+      constraint = tmp;
+    }
+    else
+      constraint = btor_copy_exp (f->btor, dst);
+  }
+
+  if (constraint)
+  {
+    btor_add_constraint_exp (f->btor, constraint);
+    btor_release_exp (f->btor, constraint);
+  }
+}
+
+static void
 initialize_bad_state_properties_of_frame (BtorMC *mc,
                                           BtorNodeMap *map,
                                           BtorMcFrame *f)
@@ -615,6 +676,7 @@ initialize_new_forward_frame (BtorMC *mc)
   map = map_inputs_and_latches_of_frame (mc, f);
 
   initialize_next_state_functions_of_frame (mc, map, f);
+  initialize_constraints_of_frame (mc, map, f);
   initialize_bad_state_properties_of_frame (mc, map, f);
 
   btor_delete_node_map (f->btor, map);
