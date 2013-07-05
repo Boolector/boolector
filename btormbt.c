@@ -1443,7 +1443,7 @@ _sat (Data *data, unsigned r)
     if (data->print) printf ("[btormbt]  sat call returned %d\n", res);
   }
 
-  return data->mgen ? _mgen : _inc;
+  return data->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
 
 static void *
@@ -1632,41 +1632,45 @@ run (Env *env, void (*process) (Env *))
   }
   else
   {
-    //#ifndef NDEBUG
+#ifndef NDEBUG
     int tmp;
-    //#endif
+#endif
     saved1 = dup (1);
     saved2 = dup (2);
     null   = open ("/dev/null", O_WRONLY);
     close (1);
     close (2);
-    //#ifndef NDEBUG
+#ifndef NDEBUG
     tmp =
-        //#endif
+#endif
         dup (null);
     assert (tmp == 1);
-    //#ifndef NDEBUG
+#ifndef NDEBUG
     tmp =
-        //#endif
+#endif
         dup (null);
+#ifndef NDEBUG
     assert (tmp == 2);
+#endif
     process (env);
     close (null);
     close (2);
-    //#ifndef NDEBUG
+#ifndef NDEBUG
     tmp =
-        //#endif
+#endif
         dup (saved2);
+#ifndef NDEBUG
     assert (tmp == 2);
     close (1);
-    //#ifndef NDEBUG
+#ifndef NDEBUG
     tmp =
-        //#endif
+#endif
         dup (saved1);
+#ifdef NDEBUG
     assert (tmp == 1);
-    //#ifdef NDEBUG
+#endif
     UNUSED (tmp);
-    //#endif
+#endif
     exit (0);
   }
   if (WIFEXITED (status))
