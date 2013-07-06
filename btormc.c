@@ -926,7 +926,11 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
     btor_add_bad_to_dump_context (bdc, bad);
   }
 
-  // TODO add 'constraints' ...
+  for (i = 0; i < BTOR_COUNT_STACK (mc->constraints); i++)
+  {
+    BtorNode *constraint = BTOR_PEEK_STACK (mc->constraints, i);
+    btor_add_bad_to_dump_context (bdc, constraint);
+  }
 
   btor_dump_btor (bdc, file);
   btor_delete_dump_context (bdc);
