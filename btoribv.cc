@@ -2464,6 +2464,7 @@ BtorIBV::translate ()
     assert (n);
     assert (n->cached);
     assert (n->used);
+    assert (n->coi);
     BtorNode *good = boolector_slice (btor, n->cached, b->bit, b->bit);
     BtorNode *bad  = boolector_not (btor, good);
     boolector_release (btor, good);
@@ -2482,8 +2483,21 @@ BtorIBV::translate ()
        stats.inits,
        stats.bads);
 
-  BTOR_ABORT_BOOLECTOR (!BTOR_EMPTY_STACK (assumptions),
-                        "can not translate assumptions yet");
+  for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
+  {
+    BTOR_ABORT_BOOLECTOR (a->initial,
+                          "can not translate initial state assumptions yet");
+    BtorIBVRange r = a->range;
+    assert (r.getWidth () == 1);
+    BtorIBVNode *n = id2node (r.id);
+    assert (n->cached);
+    assert (n->used);
+    assert (n->coi);
+    BtorNode *constraint = boolector_slice (btor, n->cached, r.msb, r.lsb);
+    assert (btor_get_exp_len (btor, constraint) == 1);
+    boolector_constraint (btormc, constraint);
+    boolector_release (btor, constraint);
+  }
 
   state = BTOR_IBV_TRANSLATED;
 }
