@@ -2477,18 +2477,10 @@ BtorIBV::translate ()
 
   /*----------------------------------------------------------------------*/
 
-  msg (2,
-       "translated %u inputs, %u latches, %u nexts, %u inits, %u bads",
-       stats.inputs,
-       stats.latches,
-       stats.nexts,
-       stats.inits,
-       stats.bads);
-
+  BtorNode *initialized_latch = 0;
+  int ninitialized            = 0;
   for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
   {
-    BTOR_ABORT_BOOLECTOR (a->initial,
-                          "can not translate initial state assumptions yet");
     BtorIBVRange r = a->range;
     assert (r.getWidth () == 1);
     BtorIBVNode *n = id2node (r.id);
@@ -2497,9 +2489,45 @@ BtorIBV::translate ()
     assert (n->coi);
     BtorNode *constraint = boolector_slice (btor, n->cached, r.msb, r.lsb);
     assert (btor_get_exp_len (btor, constraint) == 1);
+    if (a->initial)
+    {
+      if (!initialized_latch)
+      {
+        assert (!ninitialized);
+        initialized_latch = boolector_latch (btormc, 1, "BtorIBV::initialized");
+        BtorNode *zero    = boolector_zero (btor, 1);
+        BtorNode *one     = boolector_one (btor, 1);
+        boolector_init (btormc, initialized_latch, zero);
+        boolector_next (btormc, initialized_latch, one);
+        boolector_release (btor, zero);
+        boolector_release (btor, one);
+      }
+      BtorNode *tmp = boolector_implies (
+          btor, BTOR_INVERT_NODE (initialized_latch), constraint);
+      boolector_release (btor, constraint);
+      constraint = tmp;
+      ninitialized++;
+    }
     boolector_constraint (btormc, constraint);
     boolector_release (btor, constraint);
+    stats.constraints++;
   }
+  if (ninitialized)
+    msg (3, "found %d initial states only assumptions", ninitialized);
+  else if (stats.constraints)
+    msg (3, "no initial states only assumptions");
+
+  /*----------------------------------------------------------------------*/
+
+  msg (2,
+       "translated %u inputs, %u latches, %u nexts, %u inits, "
+       "%u bads, %u constraints",
+       stats.inputs,
+       stats.latches,
+       stats.nexts,
+       stats.inits,
+       stats.bads,
+       stats.constraints);
 
   state = BTOR_IBV_TRANSLATED;
 }

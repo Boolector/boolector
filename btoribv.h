@@ -321,7 +321,7 @@ class BtorIBV : public BitVector
 
   struct
   {
-    unsigned inputs, latches, nexts, inits, bads;
+    unsigned inputs, latches, nexts, inits, bads, constraints;
   } stats;
 
  public:
