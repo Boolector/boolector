@@ -1,26 +1,4 @@
-===============================================================================
-TODO
-===============================================================================
-
-+ model-based tester
-
-+ LOGGING
-    - debug related code with higher verbosity levels?
-
-+ API
-  - boolector_type_safe, boolector_really_type_safe
-      needed esp. for UF if we want to check e.g. if (f a i) = (g b i),
-      where a,b are arrays
-
-+ LEMMAS
-  - lemma generation statistics are not correct if we use lambdas
-      arbitrary conditions can be instantiated and encoded
-
-+ BFS
-  - lambda bfs
-      reads are only propagated along parameterized paths
-
-  - merge bfs and lambda bfs
-
-+ READ PROPAGATION
-  - statistics e.g., num propagations, time
+26 ASSIGNED_IMPLICIT_NEXT
+toy_latch_delin_diff (NOT_USED not handle yet)
+can handle initial state assumptions yet (test_toy_clock)
+undefined ... (neither assigned, nor state, nor non-state)

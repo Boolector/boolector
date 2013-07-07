@@ -223,9 +223,10 @@ boolector_delete_mc (BtorMC *mc)
   btor_delete_ptr_hash_table (mc->latches);
   while (!BTOR_EMPTY_STACK (mc->bad))
     btor_release_exp (btor, BTOR_POP_STACK (mc->bad));
+  BTOR_RELEASE_STACK (mm, mc->bad);
   while (!BTOR_EMPTY_STACK (mc->constraints))
     btor_release_exp (btor, BTOR_POP_STACK (mc->constraints));
-  BTOR_RELEASE_STACK (mm, mc->bad);
+  BTOR_RELEASE_STACK (mm, mc->constraints);
   if (mc->forward) boolector_delete (mc->forward);
   BTOR_DELETE (mm, mc);
   boolector_delete (btor);

@@ -2401,7 +2401,6 @@ BtorIBV::translate ()
       {
         switch (n->flags[lsb].classified)
         {
-          case BTOR_IBV_PHANTOM_CURRENT_INPUT:
           case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
           {
             assert (as->tag == BTOR_IBV_NON_STATE);
@@ -2440,6 +2439,9 @@ BtorIBV::translate ()
             stats.nexts++;
           }
           break;
+          case BTOR_IBV_PHANTOM_CURRENT_INPUT:
+          case BTOR_IBV_PHANTOM_NEXT_INPUT:
+          case BTOR_IBV_NOT_USED:
           case BTOR_IBV_ASSIGNED: break;
           default:
             BTOR_ABORT_BOOLECTOR (
