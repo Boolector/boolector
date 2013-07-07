@@ -736,8 +736,11 @@ struct BtorIBVBitNext
 {
   BtorIBVBit bit;
   bool next;
-  BtorIBVBitNext (BtorIBVBit b, bool n) : bit (b), next (n) {}
-  BtorIBVBitNext (unsigned id, unsigned b, bool n) : bit (id, b), next (n) {}
+  BtorIBVBitNext (const BtorIBVBit &b, bool n = false) : bit (b), next (n) {}
+  BtorIBVBitNext (unsigned id, unsigned b, bool n = false)
+      : bit (id, b), next (n)
+  {
+  }
 };
 
 extern "C" {
@@ -1415,6 +1418,7 @@ BtorIBV::analyze ()
       }
     }
   }
+
   struct
   {
     struct
@@ -1577,21 +1581,23 @@ BtorIBV::analyze ()
 
   msg (1, "determining actual cone-of-influence (COI) ...");
 
-  assert (BTOR_EMPTY_STACK (work));
+  BtorIBVBitNextStack bnwork;
+  BTOR_INIT_STACK (bnwork);
   for (BtorIBVBit *a = assertions.start; a < assertions.top; a++)
-    BTOR_PUSH_STACK (btor->mm, work, *a);
+    BTOR_PUSH_STACK (btor->mm, bnwork, *a);
   for (BtorIBVAssumption *a = assumptions.start; a < assumptions.top; a++)
   {
     BtorIBVNode *n = id2node (a->range.id);
     assert (a->range.msb == a->range.lsb);
-    BTOR_PUSH_STACK (btor->mm, work, BtorIBVBit (n->id, a->range.msb));
+    BTOR_PUSH_STACK (btor->mm, bnwork, BtorIBVBit (n->id, a->range.msb));
   }
 
   unsigned coi = 0;
-  while (!BTOR_EMPTY_STACK (work))
+  while (!BTOR_EMPTY_STACK (bnwork))
   {
-    BtorIBVBit b   = BTOR_POP_STACK (work);
-    BtorIBVNode *n = id2node (b.id);
+    BtorIBVBitNext bn = BTOR_POP_STACK (bnwork);
+    BtorIBVBit b      = bn.bit;
+    BtorIBVNode *n    = id2node (b.id);
     if (!mark_coi (n, b.bit)) continue;
     coi++;
     BtorIBVClassification c = n->flags[b.bit].classified;
@@ -1607,12 +1613,26 @@ BtorIBV::analyze ()
             btor_ibv_classified_to_str (c));
         break;
 
-        // TODO next need to handle these forwarded implicit logic ...
-        // particularly 'IMPLICIT_NEXT' ...
+        // TODO next need to handle this one too?
 #if 0
       case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
-      case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
 #endif
+
+      case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
+      {
+        assert (n->prev);
+        BtorIBVAssignment *a = n->prev[b.bit];
+        assert (a);
+        assert (a->tag == BTOR_IBV_NON_STATE);
+        assert (a->nranges == 1);
+        assert (a->ranges[0].msb >= b.bit && b.bit >= a->ranges[0].lsb);
+        BtorIBVNode *prev = id2node (a->range.id);
+        unsigned k        = b.bit - a->ranges[0].lsb + a->range.lsb;
+        assert (prev->id == a->range.id);
+        BtorIBVBit b (prev->id, k);
+        BTOR_PUSH_STACK (btor->mm, bnwork, b);
+      }
+      break;
 
       case BTOR_IBV_CONSTANT:
       case BTOR_IBV_TWO_PHASE_INPUT:
@@ -1626,6 +1646,18 @@ BtorIBV::analyze ()
         assert (n->assigned);
         BtorIBVAssignment *a = n->assigned[b.bit];
         assert (a->range.msb >= b.bit && b.bit >= a->range.lsb);
+
+        if (n->prev)
+        {
+          BtorIBVAssignment *pa = n->prev[b.bit];
+          if (pa)
+          {
+            assert (pa->tag == BTOR_IBV_STATE || pa->tag == BTOR_IBV_NON_STATE);
+            assert (pa->range.msb >= b.bit && b.bit >= a->range.lsb);
+          }
+        }
+
+        // TODO if (n->next) ...
 
         switch (a->tag & BTOR_IBV_OPS)
         {
@@ -1642,7 +1674,7 @@ BtorIBV::analyze ()
             {
               unsigned k = b.bit - a->range.lsb + a->ranges[j].lsb;
               BtorIBVBit o (a->ranges[j].id, k);
-              BTOR_PUSH_STACK (btor->mm, work, o);
+              BTOR_PUSH_STACK (btor->mm, bnwork, o);
             }
             break;
 
@@ -1658,7 +1690,7 @@ BtorIBV::analyze ()
             k += a->ranges[j].lsb;
             assert (j < a->nranges);
             BtorIBVBit o (a->ranges[j].id, k);
-            BTOR_PUSH_STACK (btor->mm, work, o);
+            BTOR_PUSH_STACK (btor->mm, bnwork, o);
           }
           break;
 
@@ -1671,7 +1703,7 @@ BtorIBV::analyze ()
             {
               k += a->ranges[0].lsb;
               BtorIBVBit o (a->ranges[0].id, k);
-              BTOR_PUSH_STACK (btor->mm, work, o);
+              BTOR_PUSH_STACK (btor->mm, bnwork, o);
             }
           }
           break;
@@ -1683,7 +1715,7 @@ BtorIBV::analyze ()
             k %= a->ranges[0].getWidth ();
             k += a->ranges[0].lsb;
             BtorIBVBit o (a->ranges[0].id, k);
-            BTOR_PUSH_STACK (btor->mm, work, o);
+            BTOR_PUSH_STACK (btor->mm, bnwork, o);
           }
           break;
 
@@ -1697,7 +1729,7 @@ BtorIBV::analyze ()
               else
                 k = b.bit - a->range.lsb + a->ranges[j].lsb;
               BtorIBVBit o (a->ranges[j].id, k);
-              BTOR_PUSH_STACK (btor->mm, work, o);
+              BTOR_PUSH_STACK (btor->mm, bnwork, o);
             }
             break;
 
@@ -1711,7 +1743,7 @@ BtorIBV::analyze ()
               else
                 k = b.bit - a->range.lsb + a->ranges[j].lsb;
               BtorIBVBit o (a->ranges[j].id, k);
-              BTOR_PUSH_STACK (btor->mm, work, o);
+              BTOR_PUSH_STACK (btor->mm, bnwork, o);
             }
             break;
 
@@ -1726,7 +1758,7 @@ BtorIBV::analyze ()
               {
                 unsigned k = l - a->range.lsb + a->ranges[j].lsb;
                 BtorIBVBit o (a->ranges[j].id, k);
-                BTOR_PUSH_STACK (btor->mm, work, o);
+                BTOR_PUSH_STACK (btor->mm, bnwork, o);
               }
             }
             break;
@@ -1758,19 +1790,19 @@ BtorIBV::analyze ()
         {
           unsigned k = b.bit - next->range.lsb + next->ranges[1].lsb;
           BtorIBVBit o (next->ranges[1].id, k);
-          BTOR_PUSH_STACK (btor->mm, work, o);
+          BTOR_PUSH_STACK (btor->mm, bnwork, o);
         }
         if (next->ranges[0].id)
         {
           unsigned k = b.bit - next->range.lsb + next->ranges[0].lsb;
           BtorIBVBit o (next->ranges[0].id, k);
-          BTOR_PUSH_STACK (btor->mm, work, o);
+          BTOR_PUSH_STACK (btor->mm, bnwork, o);
         }
       }
       break;
     }
   }
-  BTOR_RELEASE_STACK (btor->mm, work);
+  BTOR_RELEASE_STACK (btor->mm, bnwork);
 
   msg (1, "found %u bits in COI", coi);
 
