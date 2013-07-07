@@ -1,4 +1,3 @@
 26 ASSIGNED_IMPLICIT_NEXT
-toy_latch_delin_diff (NOT_USED not handle yet)
-can handle initial state assumptions yet (test_toy_clock)
-undefined ... (neither assigned, nor state, nor non-state)
+check TWO_PHASE translation with ab_toy regression
+extend ab_toy regression

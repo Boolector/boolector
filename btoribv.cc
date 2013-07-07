@@ -1332,8 +1332,8 @@ BtorIBV::analyze ()
           if (o->is_constant || o->flags[k].assigned)
           {
             msg (3,
-                 "next of unassigned non-state '%s[%u]' actually assigned (so "
-                 "no input)",
+                 "next of unassigned non-state '%s[%u]' actually assigned "
+                 "(implicit current, so no input)",
                  n->name,
                  i);
             n->flags[i].input            = 0;
@@ -1346,8 +1346,8 @@ BtorIBV::analyze ()
           if (n->flags[i].assigned)
           {
             msg (3,
-                 "non-state '%s[%u]' with next '%s[%u]' actually assigned (so "
-                 "no input)",
+                 "non-state '%s[%u]' with next '%s[%u]' actually assigned "
+                 "(implicit next, so no input)",
                  n->name,
                  i,
                  o->name,

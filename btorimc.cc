@@ -371,7 +371,15 @@ parse_line ()
   char* p;
   for (p = line; *p; p++)
     ;
+#if 0
   if (p == line) perr ("empty line");
+#else
+  if (p == line)
+  {
+    msg ("empty line");
+    return;
+  }
+#endif
   if (p[-1] != ')') perr ("line does not end with ')'");
   if (!(str = firstok ())) perr ("'(' missing");
   toks.push_back (string (str));
