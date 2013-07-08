@@ -2148,11 +2148,10 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (prev);
         assert (!prev->is_next_state);
         assert (prev->cached);
-        assert (!prev->forwarded);
-        assert (prev->assigned);
-        BtorIBVAssignment *ass = prev->assigned[pa->range.lsb];
-        assert (ass);
-        assert (0);
+        assert (prev->forwarded);
+        assert (boolector_get_width (btor, prev->forwarded)
+                == (int) r.getWidth ());
+        a->exp = boolector_copy (btor, prev->forwarded);
       }
       break;
 
