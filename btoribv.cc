@@ -1377,8 +1377,6 @@ BtorIBV::analyze ()
     if (!n) continue;
     if (BTOR_EMPTY_STACK (n->assignments))
     {
-      for (unsigned i = 0; i < n->width; i++)
-        n->flags[i].onephase = 1;  // TODO quick hack for examples
     }
     else
     {
@@ -2001,9 +1999,9 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
           }
           else
           {
-            BtorNode *l   = boolector_implies (btor, c, d);
+            BtorNode *l   = boolector_or (btor, BTOR_INVERT_NODE (c), d);
             BtorNode *i   = boolector_not (btor, c);
-            BtorNode *r   = boolector_implies (btor, i, res);
+            BtorNode *r   = boolector_or (btor, BTOR_INVERT_NODE (i), res);
             BtorNode *tmp = boolector_and (btor, l, r);
             boolector_release (btor, l);
             boolector_release (btor, i);
