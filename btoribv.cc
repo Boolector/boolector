@@ -1868,8 +1868,10 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
       break;
 
     case BTOR_IBV_TWO_PHASE_INPUT:
-      assert (a->exp);
-      assert (a->next);
+      if (n->is_next_state)
+        assert (!a->exp), assert (!a->next);
+      else
+        assert (a->exp), assert (a->next);
       break;
 
     case BTOR_IBV_CONSTANT:
@@ -2115,7 +2117,7 @@ void
 BtorIBV::translate_atom_base (BtorIBVAtom *a)
 {
   assert (a);
-  assert (!a->exp);
+  if (a->exp) return;
   BtorIBVRange r = a->range;
   BtorIBVNode *n = id2node (r.id);
   btor_ibv_check_atom (n, r);
@@ -2171,19 +2173,29 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     break;
 
     case BTOR_IBV_TWO_PHASE_INPUT:
-    {
-      char *name = btor_ibv_atom_base_name (btor, n, r, "current");
-      a->exp     = boolector_latch (btormc, (int) r.getWidth (), name);
-      btor_freestr (btor->mm, name);
-      (void) boolector_copy (btor, a->exp);
-      stats.latches++;
-    }
+      if (!n->is_next_state)
       {
-        char *nextname = btor_ibv_atom_base_name (btor, n, r, "next");
-        a->next = boolector_input (btormc, (int) r.getWidth (), nextname);
-        btor_freestr (btor->mm, nextname);
-        (void) boolector_copy (btor, a->next);
-        stats.inputs++;
+        {
+          char *currentname = btor_ibv_atom_base_name (btor, n, r, 0);
+          a->exp = boolector_latch (btormc, (int) r.getWidth (), currentname);
+          btor_freestr (btor->mm, currentname);
+          (void) boolector_copy (btor, a->exp);
+          stats.latches++;
+        }
+        {
+          assert (n->next);
+          BtorIBVAssignment *na = n->next[r.lsb];
+          assert (na);
+          assert (na->tag == BTOR_IBV_NON_STATE);
+          assert (na->nranges == 1);
+          BtorIBVNode *next = id2node (na->ranges[0].id);
+          BtorIBVRange nr   = na->ranges[0];
+          char *nextname    = btor_ibv_atom_base_name (btor, next, nr, 0);
+          a->next = boolector_input (btormc, (int) nr.getWidth (), nextname);
+          btor_freestr (btor->mm, nextname);
+          (void) boolector_copy (btor, a->next);
+          stats.inputs++;
+        }
       }
       break;
 
