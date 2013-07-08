@@ -1375,45 +1375,47 @@ BtorIBV::analyze ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
-    for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
-         a++)
+    if (BTOR_EMPTY_STACK (n->assignments))
     {
-      if (a->tag != BTOR_IBV_NON_STATE) continue;
-      BtorIBVRange r = a->ranges[0];
-      BtorIBVNode *o = id2node (r.id);
-      for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
+      for (unsigned i = 0; i < n->width; i++)
+        n->flags[i].onephase = 1;  // TODO quick hack for examples
+    }
+    else
+    {
+      for (BtorIBVAssignment *a = n->assignments.start; a < n->assignments.top;
+           a++)
       {
-        unsigned k = i - a->range.lsb + r.lsb;
-
-        // ----------------------------------------------//
-        // One of the main invariants of our translation //
-        // ----------------------------------------------//
-        //
-        assert (n->flags[i].input == o->flags[k].input);
-
-        if (n->flags[i].used && o->flags[k].used)
+        if (a->tag != BTOR_IBV_NON_STATE) continue;
+        BtorIBVRange r = a->ranges[0];
+        BtorIBVNode *o = id2node (r.id);
+        for (unsigned i = a->range.lsb; i <= a->range.msb; i++)
         {
-          // used in both phases ...
-        }
-        else if (n->flags[i].used)
-        {
-          assert (!n->flags[i].onephase);
-          n->flags[i].onephase = 1;
-          msg (3,
-               "id %u input '%s[%u]' used in one-phase (current) only",
-               n->id,
-               n->name,
-               i);
-        }
-        else if (o->flags[k].used)
-        {
-          assert (!o->flags[k].onephase);
-          o->flags[k].onephase = 1;
-          msg (3,
-               "id %u input '%s[%u]' used in one-phase (next) only",
-               o->id,
-               o->name,
-               k);
+          unsigned k = i - a->range.lsb + r.lsb;
+          assert (n->flags[i].input == o->flags[k].input);
+          if (n->flags[i].used && o->flags[k].used)
+          {
+            // used in both phases ...
+          }
+          else if (n->flags[i].used)
+          {
+            assert (!n->flags[i].onephase);
+            n->flags[i].onephase = 1;
+            msg (3,
+                 "id %u input '%s[%u]' used in one-phase (current) only",
+                 n->id,
+                 n->name,
+                 i);
+          }
+          else if (o->flags[k].used)
+          {
+            assert (!o->flags[k].onephase);
+            o->flags[k].onephase = 1;
+            msg (3,
+                 "id %u input '%s[%u]' used in one-phase (next) only",
+                 o->id,
+                 o->name,
+                 k);
+          }
         }
       }
     }
@@ -1892,7 +1894,25 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a,
     break;
 
     case BTOR_IBV_CONSTANT:
+      assert (a->exp);
+      assert (a->next);
+      break;
+
     case BTOR_IBV_CURRENT_STATE:
+      assert (a->exp);
+      if (forward)
+      {
+        BtorIBVAssignment *ass = n->next[r.lsb];
+        assert (ass);
+        assert (ass->tag == BTOR_IBV_STATE);
+        assert (ass->range.id == n->id);
+        assert (ass->nranges == 2);
+        BtorIBVNode *next = id2node (ass->ranges[1].id);
+        BtorIBVNodePtrNext npn (next, false);
+        BTOR_PUSH_STACK (btor->mm, *work, npn);
+      }
+      break;
+
     case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_PHANTOM_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
@@ -2151,7 +2171,35 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (prev->forwarded);
         assert (boolector_get_width (btor, prev->forwarded)
                 == (int) r.getWidth ());
+        assert (!a->exp);
         a->exp = boolector_copy (btor, prev->forwarded);
+      }
+      break;
+
+    case BTOR_IBV_CURRENT_STATE:
+      assert (forward);
+      assert (!n->is_next_state);
+      {
+        assert (n->next);
+        BtorIBVAssignment *na = n->next[r.lsb];
+        assert (na->tag == BTOR_IBV_STATE);
+        assert (na->nranges == 2);
+        assert (na->range.id == n->id);
+        BtorIBVNode *next = id2node (na->ranges[1].id);
+        assert (next);
+        assert (next->cached);
+        assert (!a->next);
+        if (boolector_get_width (btor, next->cached) != (int) r.getWidth ())
+        {
+          assert (r.getWidth () == na->ranges[1].getWidth ());
+          a->next = boolector_slice (btor,
+                                     next->cached,
+                                     (int) na->ranges[1].msb,
+                                     (int) na->ranges[1].lsb);
+          assert (boolector_get_width (btor, a->next) == (int) r.getWidth ());
+        }
+        else
+          a->next = boolector_copy (btor, next->cached);
       }
       break;
 
@@ -2233,6 +2281,8 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       a->exp             = boolector_const (btor, n->name + r.lsb);
       assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
       n->name[r.msb + 1] = saved;
+      assert (!a->next);
+      a->next = boolector_copy (btor, a->exp);
     }
     break;
 
@@ -2403,7 +2453,6 @@ BtorIBV::translate ()
   {
     BtorIBVNode *n = *p;
     if (!n) continue;
-
     if (!n->used) continue;
     unsigned msb;
     for (unsigned lsb = 0; lsb < n->width; lsb = msb + 1)
