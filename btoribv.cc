@@ -2073,10 +2073,35 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
       a->exp = boolector_zero (btor, (int) r.getWidth ());
       break;
 
+    case BTOR_IBV_TWO_PHASE_INPUT:
+      assert (n->is_next_state);
+      {
+        assert (n->prev);
+        BtorIBVAssignment *pa = n->prev[r.lsb];
+        assert (pa->tag == BTOR_IBV_NON_STATE);
+        assert (pa->nranges == 1);
+        assert (pa->ranges[0].id == n->id);
+        assert (pa->ranges[0].lsb == r.lsb);
+        BtorIBVNode *prev = id2node (pa->range.id);
+        assert (!prev->is_next_state);
+        const BtorIBVAtom *b;
+        for (b = prev->atoms.start; b < prev->atoms.top; b++)
+        {
+          BtorIBVRange br = b->range;
+          assert (br.id == prev->id);
+          if (br.lsb == pa->range.lsb) break;
+        }
+        assert (b != prev->atoms.top);
+        assert (b->exp);
+        assert (b->next);
+        assert (boolector_get_width (btor, b->next) == (int) r.getWidth ());
+        a->exp = boolector_copy (btor, b->next);
+      }
+      break;
+
     default:
     case BTOR_IBV_ASSIGNED_IMPLICIT_CURRENT:
     case BTOR_IBV_ASSIGNED_IMPLICIT_NEXT:
-    case BTOR_IBV_TWO_PHASE_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
       BTOR_ABORT_BOOLECTOR (
