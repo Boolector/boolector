@@ -1915,7 +1915,8 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a,
           BtorIBVRange r = ass->ranges[i];
           if (!r.id) continue;
           BtorIBVNode *o = id2node (r.id);
-          if (!(3 & (o->marked >> (2 * forward))))
+          const int mask = 3 << (2 * forward);
+          if (!(o->marked & mask))
           {
             BtorIBVNodePtrNext npn (o, forward);
             BTOR_PUSH_STACK (btor->mm, *work, npn);
@@ -2147,7 +2148,6 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         BtorIBVNode *prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
-        assert (prev->cached);
         assert (prev->forwarded);
         assert (boolector_get_width (btor, prev->forwarded)
                 == (int) r.getWidth ());
@@ -2471,25 +2471,27 @@ BtorIBV::translate ()
     while (!BTOR_EMPTY_STACK (nnwork))
     {
       BtorIBVNodePtrNext n = BTOR_TOP_STACK (nnwork);
+      const int mask       = 3 << (2 * n.next);
+      const int grey       = 1 << (2 * n.next);
       if ((n.next && n.node->forwarded) || (!n.next && n.node->cached))
       {
-        assert ((n.node->marked >> (2 * n.next)) == 3);
+        assert ((n.node->marked & mask) == mask);
         BTOR_POP_STACK (nnwork);
       }
-      else if ((n.node->marked >> (2 * n.next)) == 1)
+      else if ((n.node->marked & mask) == grey)
       {
         translate_node_conquer (n.node, n.next);
         if (n.next)
           assert (n.node->forwarded);
         else
           assert (n.node->cached);
-        n.node->marked |= 2 << (2 * n.next);
+        n.node->marked |= mask;
         BTOR_POP_STACK (nnwork);
       }
       else
       {
-        assert (!(n.node->marked & (3 << (2 * n.next))));
-        n.node->marked |= 1 << (2 * n.next);
+        assert (!(n.node->marked & mask));
+        n.node->marked |= grey;
         translate_node_divide (n.node, n.next, &nnwork);
       }
     }
