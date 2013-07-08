@@ -1851,7 +1851,9 @@ btor_ibv_check_atom (BtorIBVNode *n, BtorIBVRange r)
 }
 
 void
-BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
+BtorIBV::translate_atom_divide (BtorIBVAtom *a,
+                                bool forward,
+                                BtorIBVNodePtrNextStack *work)
 {
   BtorIBVRange r = a->range;
   BtorIBVNode *n = id2node (r.id);
@@ -1885,14 +1887,18 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
     {
       BtorIBVAssignment *a = 0;
       if (n->assigned) a = n->assigned[r.lsb];
-      if (!a && n->next) a = n->next[r.lsb];
+      // if (!a && n->next) a = n->next[r.lsb]; // TODO remove?
       if (a)
         for (unsigned i = 0; i < a->nranges; i++)
         {
           BtorIBVRange r = a->ranges[i];
           if (!r.id) continue;
           BtorIBVNode *o = id2node (r.id);
-          if (!o->marked) BTOR_PUSH_STACK (btor->mm, *work, o);
+          if (!o->marked)
+          {
+            BtorIBVNodePtrNext npn (o, forward);
+            BTOR_PUSH_STACK (btor->mm, *work, npn);
+          }
         }
     }
     break;
@@ -1900,7 +1906,9 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a, BtorIBVNodePtrStack *work)
 }
 
 BtorNode *
-BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst, BtorIBVAssignment *a)
+BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
+                                       bool forward,
+                                       BtorIBVAssignment *a)
 {
   BtorNodePtrStack stack;
   BtorNode *res;
@@ -1914,8 +1922,10 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst, BtorIBVAssignment *a)
     if (r.id)
     {
       BtorIBVNode *o = id2node (r.id);
-      assert (o->cached);
-      argexp = boolector_slice (btor, o->cached, (int) r.msb, (int) r.lsb);
+      BtorNode *cached;
+      cached = forward ? o->forwarded : o->cached;
+      assert (cached);
+      argexp = boolector_slice (btor, cached, (int) r.msb, (int) r.lsb);
     }
     BTOR_PUSH_STACK (btor->mm, stack, argexp);
   }
@@ -2060,7 +2070,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst, BtorIBVAssignment *a)
 }
 
 void
-BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
+BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
 {
   if (a->exp) return;
   BtorIBVRange r = a->range;
@@ -2074,6 +2084,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
       break;
 
     case BTOR_IBV_TWO_PHASE_INPUT:
+      (void) forward;
       assert (n->is_next_state);
       {
         assert (n->prev);
@@ -2110,7 +2121,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a)
 
     case BTOR_IBV_ASSIGNED:
       assert (!a->exp);
-      a->exp = translate_assignment_conquer (a, n->assigned[r.lsb]);
+      a->exp = translate_assignment_conquer (a, forward, n->assigned[r.lsb]);
       assert (boolector_get_width (btor, a->exp) == (int) a->range.getWidth ());
       break;
   }
@@ -2237,41 +2248,47 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 }
 
 void
-BtorIBV::translate_node_divide (BtorIBVNode *n, BtorIBVNodePtrStack *work)
+BtorIBV::translate_node_divide (BtorIBVNode *n,
+                                bool forward,
+                                BtorIBVNodePtrNextStack *work)
 {
   assert (n);
-  if (n->cached) return;
-  assert (!n->forwarded);
+  if (forward && n->forwarded) return;
+  if (!forward && n->cached) return;
 
   for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
-    translate_atom_divide (a, work);
+    translate_atom_divide (a, forward, work);
 }
 
 void
-BtorIBV::translate_node_conquer (BtorIBVNode *n)
+BtorIBV::translate_node_conquer (BtorIBVNode *n, bool forward)
 {
   assert (n);
-  if (n->cached) return;
-  assert (!n->forwarded);
+  if (!forward && n->cached) return;
+  if (forward && n->forwarded) return;
 
   BtorNode *res = 0;
   for (BtorIBVAtom *a = n->atoms.start; a < n->atoms.top; a++)
   {
-    translate_atom_conquer (a);
-    assert (a->exp);
+    translate_atom_conquer (a, forward);
+    BtorNode *exp = forward ? a->next : a->exp;
+    assert (exp);
     BtorNode *tmp = res;
     if (tmp)
     {
-      res = btor_concat_exp (btor, a->exp, res);
+      res = btor_concat_exp (btor, exp, res);
       btor_release_exp (btor, tmp);
     }
     else
-      res = btor_copy_exp (btor, a->exp);
+      res = btor_copy_exp (btor, exp);
   }
   assert (res);
   assert (btor_get_exp_len (btor, res) == (int) n->width);
   assert (!n->cached);
-  n->cached = res;
+  if (forward)
+    n->forwarded = res;
+  else
+    n->cached = res;
 }
 
 bool
@@ -2391,41 +2408,41 @@ BtorIBV::translate ()
   /*----------------------------------------------------------------------*/
 
   msg (1, "translating remaining nodes ... ");
-  BtorIBVNodePtrStack work;
+  BtorIBVNodePtrNextStack nnwork;
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
     if (*p) (*p)->marked = 0;
-  BTOR_INIT_STACK (work);
+  BTOR_INIT_STACK (nnwork);
   for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
   {
     BtorIBVNode *root = *p;
     if (!root) continue;
     if (!root->used) continue;
     if (root->cached) continue;
-    BTOR_PUSH_STACK (btor->mm, work, root);
-    while (!BTOR_EMPTY_STACK (work))
+    BTOR_PUSH_STACK (btor->mm, nnwork, root);
+    while (!BTOR_EMPTY_STACK (nnwork))
     {
-      BtorIBVNode *n = BTOR_TOP_STACK (work);
-      if (n->cached)
+      BtorIBVNodePtrNext n = BTOR_TOP_STACK (nnwork);
+      if (n.node->cached)
       {
-        assert (n->marked == 2);
-        BTOR_POP_STACK (work);
+        assert (n.node->marked == 2);
+        BTOR_POP_STACK (nnwork);
       }
-      else if (n->marked == 1)
+      else if (n.node->marked == 1)
       {
-        translate_node_conquer (n);
-        assert (n->cached);
-        n->marked = 2;
-        BTOR_POP_STACK (work);
+        translate_node_conquer (n.node, n.next);
+        assert (n.node->cached);
+        n.node->marked = 2;
+        BTOR_POP_STACK (nnwork);
       }
       else
       {
-        assert (!n->marked);
-        n->marked = 1;
-        translate_node_divide (n, &work);
+        assert (!n.node->marked);
+        n.node->marked = 1;
+        translate_node_divide (n.node, n.next, &nnwork);
       }
     }
   }
-  BTOR_RELEASE_STACK (btor->mm, work);
+  BTOR_RELEASE_STACK (btor->mm, nnwork);
 
   /*----------------------------------------------------------------------*/
 

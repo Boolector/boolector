@@ -119,6 +119,19 @@ extern "C" {
 BTOR_DECLARE_STACK (IBVRangeName, BtorIBVRangeName);
 };
 
+struct BtorIBVNode;
+
+struct BtorIBVNodePtrNext
+{
+  BtorIBVNode *node;
+  bool next;
+  BtorIBVNodePtrNext (BtorIBVNode *n, bool x = false) : node (n), next (x) {}
+};
+
+extern "C" {
+BTOR_DECLARE_STACK (IBVNodePtrNext, BtorIBVNodePtrNext);
+};
+
 enum BtorIBVClassification
 {
   BTOR_IBV_UNCLASSIFIED = 0,
@@ -308,13 +321,15 @@ class BtorIBV : public BitVector
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
-  void translate_atom_divide (BtorIBVAtom *, BtorIBVNodePtrStack *);
-  void translate_atom_conquer (BtorIBVAtom *);
-  BtorNode *translate_assignment_conquer (BtorIBVAtom *, BtorIBVAssignment *);
+  void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVNodePtrNextStack *);
+  void translate_atom_conquer (BtorIBVAtom *, bool);
+  BtorNode *translate_assignment_conquer (BtorIBVAtom *,
+                                          bool,
+                                          BtorIBVAssignment *);
   void translate_atom_base (BtorIBVAtom *);
 
-  void translate_node_divide (BtorIBVNode *, BtorIBVNodePtrStack *);
-  void translate_node_conquer (BtorIBVNode *);
+  void translate_node_divide (BtorIBVNode *, bool, BtorIBVNodePtrNextStack *);
+  void translate_node_conquer (BtorIBVNode *, bool);
 
   bool is_phantom_current (BtorIBVNode *, unsigned);
   bool is_phantom_next (BtorIBVNode *, unsigned);
