@@ -2130,8 +2130,14 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
   switch (c)
   {
     case BTOR_IBV_NOT_USED:
-      a->exp = boolector_zero (btor, (int) r.getWidth ());
-      break;
+    {
+      BtorNode *exp = boolector_zero (btor, (int) r.getWidth ());
+      if (forward)
+        assert (!a->next), a->next = exp;
+      else
+        assert (!a->exp), a->exp = exp;
+    }
+    break;
 
     case BTOR_IBV_TWO_PHASE_INPUT:
       (void) forward;
