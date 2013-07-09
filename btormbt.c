@@ -42,21 +42,19 @@
   "\n"                                        \
   "  -m <maxruns>\n"
 
-#define DEBUG
-
 static double start_time;
 
 /*------------------------------------------------------------------------*/
 
 #define NORM_VAL 1000.0f
 
-#ifdef DEBUG
-#define DEBUG_MSG(msg, ARGS...) \
-  do                            \
-  {                             \
-    printf ("*** ");            \
-    printf (msg, ##ARGS);       \
-    fflush (stdout);            \
+#ifndef NDEBUG
+#define DEBUG_MSG(msg, ARGS...)          \
+  do                                     \
+  {                                      \
+    printf ("[btormbt] *** debug *** "); \
+    printf (msg, ##ARGS);                \
+    fflush (stdout);                     \
   } while (0)
 #else
 #define DEBUG_MSG(msg, ARGS...) \
@@ -214,8 +212,9 @@ es_add (ExpStack *es, BtorNode *exp)
 {
   if (es->n == es->size)
   {
-    es->size = es->size ? es->size * 2 : 2;
-    es->exps = realloc (es->exps, es->size * sizeof *es->exps);
+    int prev_size = es->size;
+    es->size      = es->size ? es->size * 2 : 2;
+    es->exps      = realloc (es->exps, es->size * sizeof *es->exps);
   }
   es->exps[es->n].exp  = exp;
   es->exps[es->n].pars = 0;
@@ -296,9 +295,6 @@ init_pd_lits (Data *data, float ratio_var, float ratio_const, float ratio_arr)
 {
   float sum;
 
-  // DEBUG_MSG("ratio var:const:arr = %.0f:%.0f:%.0f \n", ratio_var,
-  // ratio_const, ratio_arr);
-
   sum = ratio_var + ratio_const + ratio_arr;
 
   assert (sum > 0);
@@ -337,7 +333,6 @@ init_pd_op (Data *data, float ratio_addop, float ratio_relop)
 {
   float sum;
 
-  // DEBUG_MSG("ratio addop:relop = %.0f:%.0f \n", ratio_addop, ratio_relop);
   sum = ratio_addop + ratio_relop;
 
   assert (sum > 0);
@@ -355,7 +350,6 @@ typedef void *(*State) (Data *, unsigned rand);
 
 typedef struct Env
 {
-  // FILE *trace;
   int seed, quiet, alwaysfork, round, bugs, first, forked, print;
   int terminal;
   RNG rng;
@@ -387,7 +381,6 @@ pick (RNG *rng_ptr, unsigned from, unsigned to)
   tmp %= to - from + 1;
   tmp += from;
   res = tmp;
-  // printf ("pick %u %u %d\n", from, to, res);
   return res;
 }
 
@@ -411,14 +404,12 @@ nextpow2 (int val, int *pow2, int *log2)
   }
 }
 
-/*change node e with width ew to width tow*/
+/* change node e with width ew to width tow*/
 static BtorNode *
 modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow)
 {
   int tmp;
   ExpStack *es;
-
-  // DEBUG_MSG("modify %d to %d\n", ew, tow);
 
   assert (tow > 0 && ew > 0);
 
@@ -522,13 +513,11 @@ selarrexp (Data *data, RNG *rng, BtorNode *e, int ew, int iw)
     seliw = boolector_get_index_width (data->btor, sele);
     if (selew == ew && seliw == iw && sele != e)
     {
-      // DEBUG_MSG("capable array found with ew: %d, iw: %d \n", ew, iw);
       data->arr.exps[i].pars++;
       return sele;
     }
     i = (i + 1) % data->arr.n;
   } while (idx != i);
-  // DEBUG_MSG("no capable array found create array ew: %d, iw: %d \n", ew, iw);
   /* no suitable array found */
   sele = boolector_array (data->btor, ew, iw, NULL);
   es_add (&data->arr, sele);
@@ -642,11 +631,9 @@ unary_fun (Data *data, RNG *rng, Op op, BtorNode *e0)
 
   if (op == SLICE)
   {
-    // printf ("w %d\n", e0w);
     tmp0 = pick (rng, 0, e0w - 1);
     tmp1 = pick (rng, 0, tmp0);
     rw   = tmp0 - tmp1 + 1; /* update resulting width */
-    // printf ("w %d, u %d, l %d, rw %d\n", e0w, tmp0, tmp1, rw);
   }
   else if (op == UEXT || op == SEXT)
   {
@@ -684,8 +671,6 @@ binary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1)
   int tmp0, tmp1, e0w, e1w, rw;
   ExpStack *es;
 
-  // printf ("take e2 from %s\n", tmp0 ? "bv" : "bin");
-
   assert (is_binary_fun (op));
   e0w = boolector_get_width (data->btor, e0);
   assert (e0w <= MAX_BITWIDTH);
@@ -720,7 +705,6 @@ binary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1)
   {
     /* modify width of e0 power of 2 and e1 log2(e0) */
     nextpow2 (e0w, &tmp0, &tmp1);
-    // printf("shift modify\n");
     e0  = modifybv (data, rng, e0, e0w, tmp0);
     e1  = modifybv (data, rng, e1, e1w, tmp1);
     e0w = tmp0;
@@ -964,7 +948,6 @@ _new (Data *data, unsigned r)
 {
   RNG rng = initrng (r);
 
-  DEBUG_MSG ("_new\n");
   /* number of initial literals */
   data->nlits = pick (&rng, 5, 40);
   /* number of initial operations */
@@ -976,26 +959,6 @@ _new (Data *data, unsigned r)
   init_pd_op (data, 1, 0);
   /* no additional lits at init */
   init_pd_addop (data, pick (&rng, 1, 10), pick (&rng, 0, 5), 0);
-
-  DEBUG_MSG (
-      "_new prepare parameters create %d lits with prop-dist(var:const:arr): "
-      "%.1f%%:%.1f%%:%.1f%% \n",
-      data->nlits,
-      data->p_var / 10,
-      data->p_const / 10,
-      data->p_arr / 10);
-  DEBUG_MSG (
-      "_new prepare parameters create %d ops with prop-dist(addop:relop): "
-      "%.1f%%:%.1f%% \n",
-      data->nops,
-      data->p_addop / 10,
-      data->p_relop / 10);
-  DEBUG_MSG (
-      "_new prepare parameters addop with prop-dist(fun:afun:lits): "
-      "%.1f%%:%.1f%%:%.1f%% \n",
-      data->p_fun / 10,
-      data->p_afun / 10,
-      data->p_lit / 10);
 
   if (data->print)
     printf (
@@ -1016,8 +979,6 @@ _opt (Data *data, unsigned r)
 {
   int rw;
   RNG rng = initrng (r);
-
-  DEBUG_MSG ("_opt \n");
 
   if (pick (&rng, 0, 1))
   {
@@ -1075,20 +1036,6 @@ _init (Data *data, unsigned r)
     }
   }
 
-  // DEBUG_MSG("after init       -- stacks sizes bo: %d, bv: %d, arr: %d \n",
-  // data->bo.n, data->bv.n, data->arr.n);
-  DEBUG_MSG ("number of lits   -- var: %d, const: %d, arr  %d \n",
-             data->dbg_var,
-             data->dbg_const,
-             data->dbg_arr);
-  DEBUG_MSG ("number of ops    -- addops: %d, relops: %d \n",
-             data->dbg_addop,
-             data->dbg_relop);
-  DEBUG_MSG ("number of addops -- fun: %d, afun: %d, lits: %d \n",
-             data->dbg_fun,
-             data->dbg_afun,
-             data->dbg_lit);
-
   if (data->print)
     printf (
         "[btormbt] after init: number of expressions: booleans %d, bitvectors "
@@ -1111,26 +1058,6 @@ _init (Data *data, unsigned r)
   init_pd_op (data, pick (&rng, 1, 8), pick (&rng, 1, 3));
   init_pd_addop (
       data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 3));
-
-  DEBUG_MSG (
-      "_init prepare parameters lits with prop-dist(var:const:arr): "
-      "%.1f%%:%.1f%%:%.1f%% \n",
-      data->p_var / 10,
-      data->p_const / 10,
-      data->p_arr / 10);
-  DEBUG_MSG (
-      "_init prepare parameters create %d ops (ass ~%d) with "
-      "prop-dist(addop:relop): %.1f%%:%.1f%% \n",
-      data->nops,
-      data->nass,
-      data->p_addop / 10,
-      data->p_relop / 10);
-  DEBUG_MSG (
-      "_init prepare parameters addop with prop-dist(fun:afun:lits): "
-      "%.1f%%:%.1f%%:%.1f%% \n",
-      data->p_fun / 10,
-      data->p_afun / 10,
-      data->p_lit / 10);
 
   if (data->print)
     printf (
@@ -1161,13 +1088,9 @@ _main (Data *data, unsigned r)
     data->ops++;
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < data->nass * NORM_VAL / data->nops)
-    {
-      // DEBUG_MSG("**aaa\n");
       return _ass;
-    }
     else
     {
-      // DEBUG_MSG("**op\n");
       rand = pick (&rng, 0, NORM_VAL - 1);
       if (rand < data->p_addop)
       {
@@ -1194,22 +1117,6 @@ _main (Data *data, unsigned r)
             data->totasserts,
             data->nassume);
 
-  // DEBUG_MSG("after main       -- stacks sizes bo: %d, bv: %d, arr: %d \n",
-  // data->bo.n, data->bv.n, data->arr.n);
-  DEBUG_MSG ("number of lits   -- var: %d, const: %d, arr  %d \n",
-             data->dbg_var,
-             data->dbg_const,
-             data->dbg_arr);
-  DEBUG_MSG ("number of ops    -- addops: %d, relops: %d \n",
-             data->dbg_addop,
-             data->dbg_relop);
-  DEBUG_MSG ("number of addops -- fun: %d, afun: %d, lits: %d \n",
-             data->dbg_fun,
-             data->dbg_afun,
-             data->dbg_lit);
-  DEBUG_MSG ("number of ass    -- assert: %d, assume: %d \n",
-             data->nassert,
-             data->nassume);
   return _sat;
 }
 
@@ -1240,8 +1147,6 @@ _fun (Data *data, unsigned r)
 
   data->dbg_fun++;
   Op op = pick (&rng, NOT, COND);
-
-  // DEBUG_MSG("_fun %d\n", op);
 
   if (is_unary_fun (op))
   {
@@ -1277,7 +1182,6 @@ _afun (Data *data, unsigned r)
   RNG rng = initrng (r);
 
   data->dbg_afun++;
-  // DEBUG_MSG("_afun ");
 
   e0   = selexp (data, &rng, T_ARR);
   e0w  = boolector_get_width (data->btor, e0);
@@ -1288,7 +1192,6 @@ _afun (Data *data, unsigned r)
   if (pick (&rng, 0, 2))
   {
     op = pick (&rng, READ, WRITE);
-    // DEBUG_MSG("%d\n", op);
     e1 = selexp (data, &rng, T_BV);
     if (op == WRITE)
     {
@@ -1300,7 +1203,6 @@ _afun (Data *data, unsigned r)
   {
     /* select EQ/NE/COND with same propability */
     op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
-    // DEBUG_MSG("%d\n", op);
     e1 = selarrexp (data, &rng, e0, e0w, e0iw);
     if (op == COND)
     {
@@ -1319,7 +1221,6 @@ _lit (Data *data, unsigned r)
   RNG rng = initrng (r);
 
   data->dbg_lit++;
-  // DEBUG_MSG("_lit\n");
 
   rand = pick (&rng, 0, NORM_VAL - 1);
   if (rand < data->p_var)
@@ -1348,25 +1249,14 @@ _relop (Data *data, unsigned r)
   ExpStack *es;
   RNG rng = initrng (r);
 
-  // DEBUG_MSG("_rel");
-
   /* select target exp stack with probabilty proportional to size */
   rand = pick (&rng, 0, data->bo.n + data->bv.n + data->arr.n - 1);
   if (rand < data->bo.n)
-  {
     es = &data->bo;
-    // DEBUG_MSG("bo \n");
-  }
   else if (rand < data->bo.n + data->bv.n)
-  {
     es = &data->bv;
-    // DEBUG_MSG("bv \n");
-  }
   else
-  {
     es = &data->arr;
-    // DEBUG_MSG("arr \n");
-  }
   if (es->n > 1)
   {
     idx = pick (&rng, 0, es->n - 1);
@@ -1381,11 +1271,6 @@ _relop (Data *data, unsigned r)
     boolector_release (data->btor, es->exps[idx].exp);
     es_rem (es, idx);
   }
-  else
-  {
-    // DEBUG_MSG("size == 1 do not delete\n");
-  }
-
   return (data->isinit ? _main : _init);
 }
 
@@ -1397,8 +1282,6 @@ _ass (Data *data, unsigned r)
   BtorNode *cls;
 
   data->dbg_ass++;
-
-  // DEBUG_MSG("_assert\n");
 
   /* select from init layer with lower probability */
   lower = (data->bo.n > data->bo.initlayer && pick (&rng, 0, 4)
@@ -1450,24 +1333,19 @@ static void *
 _mgen (Data *data, unsigned r)
 {
   UNUSED (r);
-  int i, size;
-  char *bv, **indices, **values;
-
-  DEBUG_MSG ("_mgen\n");
+  int i, size = 0;
+  char *bv = NULL, **indices = NULL, **values = NULL;
 
   assert (data->mgen);
 
   for (i = 0; i < data->bo.n; i++)
   {
-    // DEBUG_MSG("%p pars %d\n", data->bo.exps[i].exp, data->bo.exps->pars);
     bv = boolector_bv_assignment (data->btor, data->bo.exps[i].exp);
-    // DEBUG_MSG("%s \n", bv);
     boolector_free_bv_assignment (data->btor, bv);
   }
   for (i = 0; i < data->bv.n; i++)
   {
     bv = boolector_bv_assignment (data->btor, data->bv.exps[i].exp);
-    // DEBUG_MSG("**%s \n", bv);
     boolector_free_bv_assignment (data->btor, bv);
   }
   for (i = 0; i < data->arr.n; i++)
@@ -1494,8 +1372,6 @@ _inc (Data *data, unsigned r)
 {
   int i;
   RNG rng = initrng (r);
-
-  DEBUG_MSG ("_inc\n");
 
   /* release cnf expressions */
   for (i = 0; i < data->cnf.n; i++)
@@ -1524,25 +1400,6 @@ _inc (Data *data, unsigned r)
               data->p_addop / 10,
               data->p_relop / 10);
 
-    DEBUG_MSG (
-        "_inc prepare parameters lits with prop-dist(var:const:arr): "
-        "%.1f%%:%.1f%%:%.1f%% \n",
-        data->p_var / 10,
-        data->p_const / 10,
-        data->p_arr / 10);
-    DEBUG_MSG (
-        "_inc prepare parameters create %d ops (ass ~%d) with "
-        "prop-dist(addop:relop): %.1f%%:%.1f%% \n",
-        data->nops,
-        data->nass,
-        data->p_addop / 10,
-        data->p_relop / 10);
-    DEBUG_MSG (
-        "_inc prepare parameters addop with prop-dist(fun:afun:lits): "
-        "%.1f%%:%.1f%%:%.1f%% \n",
-        data->p_fun / 10,
-        data->p_afun / 10,
-        data->p_lit / 10);
     return _main;
   }
   return _relall;
@@ -1552,7 +1409,6 @@ static void *
 _relall (Data *data, unsigned r)
 {
   UNUSED (r);
-  DEBUG_MSG ("_release %d\n", r);
   int i;
   for (i = 0; i < data->bo.n; i++)
   {
@@ -1576,7 +1432,6 @@ static void *
 _del (Data *data, unsigned r)
 {
   UNUSED (r);
-  DEBUG_MSG ("_delete\n");
   boolector_delete (data->btor);
   if (data->print && data->inc)
   {
