@@ -2316,8 +2316,8 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           (void) boolector_copy (btor, a->exp);
           stats.latches++;
         }
+        if (n->next)
         {
-          assert (n->next);
           BtorIBVAssignment *na = n->next[r.lsb];
           assert (na);
           assert (na->tag == BTOR_IBV_NON_STATE);
@@ -2326,6 +2326,15 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           BtorIBVRange nr   = na->ranges[0];
           char *nextname    = btor_ibv_atom_base_name (btor, next, nr, 0);
           a->next = boolector_input (btormc, (int) nr.getWidth (), nextname);
+          btor_freestr (btor->mm, nextname);
+          (void) boolector_copy (btor, a->next);
+          stats.inputs++;
+        }
+        else
+        {
+          char *nextname =
+              btor_ibv_atom_base_name (btor, n, r, "BtorIBV::past");
+          a->next = boolector_input (btormc, (int) r.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
           (void) boolector_copy (btor, a->next);
           stats.inputs++;
