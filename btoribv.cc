@@ -2573,14 +2573,19 @@ BtorIBV::translate ()
       {
         assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
         assert (as->nranges == 2);
+        assert (boolector_get_width (btor, n->cached)
+                >= (int) as->range.getWidth ());
+        BtorNode *latch = boolector_slice (
+            btor, n->cached, (int) as->range.msb, (int) as->range.lsb);
         if (as->ranges[0].id)
         {
           BtorIBVNode *initnode = id2node (as->ranges[0].id);
           assert (initnode);
           assert (initnode->cached);
+          assert (n->cached);
           BtorNode *initexp = boolector_slice (
               btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
-          boolector_init (btormc, n->cached, initexp);
+          boolector_init (btormc, latch, initexp);
           boolector_release (btor, initexp);
           stats.inits++;
         }
@@ -2589,7 +2594,8 @@ BtorIBV::translate ()
         assert (nextnode->cached);
         BtorNode *nextexp = boolector_slice (
             btor, nextnode->cached, as->ranges[1].msb, as->ranges[1].lsb);
-        boolector_next (btormc, n->cached, nextexp);
+        boolector_next (btormc, latch, nextexp);
+        boolector_release (btor, latch);
         boolector_release (btor, nextexp);
         stats.nexts++;
       }
