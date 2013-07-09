@@ -1517,8 +1517,13 @@ parse_apply (BtorBTORParser *parser, int len)
   // TODO: we ignore argslen for now
   if (!(args = parse_exp (parser, 0, 0))) goto RELEASE_FUN_AND_RETURN_ERROR;
 
-  // TODO: error handling
-  if (!BTOR_IS_ARGS_NODE (args)) return 0;
+  if (!BTOR_IS_ARGS_NODE (args))
+  {
+    boolector_release (parser->btor, args);
+    btor_perr_btor (parser,
+                    "apply only takes a function and arguments as children");
+    goto RELEASE_FUN_AND_RETURN_ERROR;
+  }
 
   // TODO: use API call if available
   //  res = boolector_apply (parser->btor, fun, args);
