@@ -2106,7 +2106,14 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
     BtorNode *argexp = BTOR_POP_STACK (stack);
     if (argexp) boolector_release (btor, argexp);
   }
-  assert (boolector_get_width (btor, res) == (int) dst->range.getWidth ());
+  assert (boolector_get_width (btor, res) >= (int) dst->range.getWidth ());
+  if (boolector_get_width (btor, res) > (int) dst->range.getWidth ())
+  {
+    BtorNode *tmp =
+        boolector_slice (btor, res, (int) dst->range.msb, (int) dst->range.lsb);
+    boolector_release (btor, res);
+    res = tmp;
+  }
   BTOR_RELEASE_STACK (btor->mm, stack);
   return res;
 }
