@@ -5597,6 +5597,7 @@ btor_set_loglevel_btor (Btor *btor, int loglevel)
 void
 btor_delete_btor (Btor *btor)
 {
+  int i;
   BtorPtrHashTable *ht;
   BtorPtrHashBucket *b;
   BtorMemMgr *mm;
@@ -5672,6 +5673,8 @@ btor_delete_btor (Btor *btor)
     btor_delete_ptr_hash_table (btor->array_rhs);
   }
 
+  for (i = 0; i < BTOR_COUNT_STACK (btor->arrays_with_model); i++)
+    btor_release_exp (btor, btor->arrays_with_model.start[i]);
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
 #ifndef NDEBUG
@@ -8875,8 +8878,10 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
     }
     else
     {
-      /* remember arrays for incremental usage */
-      BTOR_PUSH_STACK (mm, btor->arrays_with_model, cur_array);
+      /* remember arrays for incremental usage (and prevent premature
+       * release in case that array is released via API call) */
+      BTOR_PUSH_STACK (
+          mm, btor->arrays_with_model, btor_copy_exp (btor, cur_array));
     }
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
@@ -8937,6 +8942,7 @@ btor_reset_array_models (Btor *btor)
     assert (cur->rho);
     btor_delete_ptr_hash_table (cur->rho);
     cur->rho = 0;
+    btor_release_exp (btor, cur);
   }
   BTOR_RESET_STACK (btor->arrays_with_model);
 }
