@@ -1868,6 +1868,10 @@ collect_premisses (Btor *btor,
         {
           lambda = cur;
         }
+
+        if (BTOR_IS_NESTED_LAMBDA_NODE (lambda))
+          lambda = ((BtorLambdaNode *) lambda)->nested;
+
         BTORLOG ("set lambda exp %d for app: %d",
                  BTOR_REAL_ADDR_NODE (lambda)->id,
                  app->id);
