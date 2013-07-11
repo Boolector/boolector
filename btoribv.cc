@@ -1911,13 +1911,14 @@ BtorIBV::translate_atom_divide (BtorIBVAtom *a,
       }
       break;
 
-    case BTOR_IBV_PHANTOM_NEXT_INPUT:
-    case BTOR_IBV_PHANTOM_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
       assert (!forward);
       assert (a->exp);
       break;
+
+    case BTOR_IBV_PHANTOM_NEXT_INPUT:
+    case BTOR_IBV_PHANTOM_CURRENT_INPUT: break;
 
     case BTOR_IBV_ASSIGNED:
     {
@@ -2129,6 +2130,8 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
   BtorIBVClassification c = n->flags[r.lsb].classified;
   switch (c)
   {
+    case BTOR_IBV_PHANTOM_CURRENT_INPUT:
+    case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_NOT_USED:
     {
       BtorNode *exp = boolector_zero (btor, (int) r.getWidth ());
@@ -2145,6 +2148,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
       {
         assert (n->prev);
         BtorIBVAssignment *pa = n->prev[r.lsb];
+        assert (pa);
         assert (pa->tag == BTOR_IBV_NON_STATE);
         assert (pa->nranges == 1);
         assert (pa->ranges[0].id == n->id);
@@ -2173,6 +2177,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
       {
         assert (n->prev);
         BtorIBVAssignment *pa = n->prev[r.lsb];
+        assert (pa);
         assert (pa->tag == BTOR_IBV_NON_STATE);
         assert (pa->nranges == 1);
         assert (pa->ranges[0].id == n->id);
@@ -2200,6 +2205,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
       {
         assert (n->next);
         BtorIBVAssignment *na = n->next[r.lsb];
+        assert (na);
         assert (na->tag == BTOR_IBV_STATE);
         assert (na->nranges == 2);
         assert (na->range.id == n->id);
@@ -2281,6 +2287,9 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
+    case BTOR_IBV_PHANTOM_NEXT_INPUT:
+    case BTOR_IBV_PHANTOM_CURRENT_INPUT: break;
+
     case BTOR_IBV_CONSTANT:
     {
       assert (strlen (n->name) == (int) r.getWidth ());
@@ -2304,7 +2313,6 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     }
     break;
 
-    case BTOR_IBV_PHANTOM_NEXT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
       char *nextname = btor_ibv_atom_base_name (btor, n, r, "next");
@@ -2315,7 +2323,6 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     }
     break;
 
-    case BTOR_IBV_PHANTOM_CURRENT_INPUT:
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
       char *name = btor_ibv_atom_base_name (btor, n, r, "current");
