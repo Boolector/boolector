@@ -114,8 +114,10 @@ static void eliminate_slices_on_bv_vars (Btor *);
 #endif
 
 static void find_shortest_path (Btor *, BtorNode *, BtorNode *, BtorNode *);
-static int bfs_lambda (
-    Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **, int);
+#if 0
+static int bfs_lambda (Btor *, BtorNode *, BtorNode *, BtorNode *, BtorNode **,
+		       int);
+#endif
 
 static void init_cache (Btor *);
 static void release_cache (Btor *);
@@ -9418,9 +9420,9 @@ search_top_arrays (Btor * btor, BtorNodePtrStack * top_arrays)
 }
 #endif
 
-#if !NEW_SEARCH
+#if 0
 static int
-cmp_applies (const void *p0, const void *p1)
+cmp_applies (const void * p0, const void * p1)
 {
   assert (p0);
   assert (p1);
@@ -9434,10 +9436,12 @@ cmp_applies (const void *p0, const void *p1)
   assert (BTOR_IS_APPLY_NODE (apply0));
   assert (BTOR_IS_APPLY_NODE (apply1));
 
-  if (apply0->parameterized && !apply1->parameterized) return -1;
+  if (apply0->parameterized && !apply1->parameterized)
+    return -1;
 
-  if (!apply0->parameterized && apply1->parameterized) return 1;
-
+  if (!apply0->parameterized && apply1->parameterized)
+    return 1;
+  
   return 0;
 }
 #endif
