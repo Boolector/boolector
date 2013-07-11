@@ -1,71 +1,82 @@
-#!/bin/bash
+#! /bin/sh
 
-die () {
-  echo "*** $(basename $0): $*" 1>&2
+ddtesttmpfile="/tmp/ddtesttmp-$$.out"
+ddreftmpfile="/tmp/ddreftmp-$$.out"
+
+die () 
+{
+  echo "*** ddout: $*" 1>&2
   exit 1
 }
 
-# need to exit with 0, else run might be mistaken as failing and expected 
-# (in terms delta-debugging) which in fact it is not
-trap "exit 0" SIGHUP SIGINT SIGTERM
+cleanup ()
+{
+  rm -f $ddtesttmpfile > /dev/null 2>&1
+  rm -f $ddreftmpfile > /dev/null 2>&1
+}
 
-in=""
-errorlog=""
-cmd=""
-FAILEDDIR="ddassert-failed"
+trap "cleanup;exit 2" SIGHUP SIGINT SIGTERM
+
+ddcmd=""
+ddcmdopts=""
+ddrefinfile=""
+ddtestinfile=""
 
 while [ $# -gt 0 ]
 do
   case $1 in
-    -h|--help) 
-               echo -n "usage: $(basename $0) "
-               echo "[<option>] <infile> <errorlog> <command>"
-               echo
-               echo "  <infile>:          the input file"
-               echo -n "  <errolog>:         a file with the failure-induced "
-               echo "output"
-               echo "                     of running <command> <infile>"
-               echo
-               echo "  options:"
-               echo "    -h,--help        print this message and exit"
-               echo
-               exit
-               ;;
-    *) if [ x"$in" = x ]; then
-         in="$1"
-       elif [ x"$errorlog" = x ]; then
-         errorlog="$1"
-       else
-         break
-       fi
+    -h|--help)
+      echo -n "usage: $(basename $0) [<option>] <cmd> [<cmdopts>] "
+      echo "<reffile> <testfile>"
+      echo
+      echo "  <test>:     the solver instance under test"
+      echo "  <testopts>: options passed to <test>"
+      echo "  <reffile>:  the reference input file"
+      echo "  <testfile>: the test input file"
+      echo
+      echo "  options:"
+      echo "    -h, --help    print this message and exit"
+      echo
+      exit
+      ;;
+    -*|[0-9]*) 
+      if [ x"$ddtest" = x ]; then
+	die "invalid option: $1"
+      elif [ x"$ddref" = x  ]; then
+	ddtestopts="$ddtestopts $1"
+      fi
+      ;;
+    *) 
+      if [ x"$ddcmd" = x ]; then
+	ddcmd=$1
+      elif [ x"$ddrefinfile" = x  ]; then
+	ddrefinfile=$1
+      elif [ x"$ddtestinfile" = x  ]; then 
+	ddtestinfile=$1
+      else
+	break
+      fi
+      ;;
   esac
   shift
 done
 
-cmd="$*"
+[ x"$ddrefinfile" = x ] && die "reference input file missing"
+[ x"$ddtestinfile" = x ] && die "test input file missing"
+[ x"$ddcmd" = x ] && die "executable missing"
 
-[ x"$in" = x ] && die "infile missing"
-[ x"$errorlog" = x ] && die "errorlog missing"
-[ x"$cmd" = x ] && die "command missing"
+$ddcmd $ddcmdopts $ddrefinfile 2> $ddreftmpfile > /dev/null
+refresult=$?
+$ddcmd $ddcmdopts $ddtestinfile 2> $ddtesttmpfile > /dev/null
+testresult=$?
 
-echo "*** in $in"
-echo "*** errorlog $errorlog"
-echo "*** cmd $cmd"
-error=$($cmd $in 2>&1 | grep Assertion)
-res=$?
-# initialize error log
-if [ ! -e $errorlog ]; then
-  echo $error > $errorlog
-fi
-
-expected=$(cat $errorlog)
-if [ "$error" = "$expected" ]; then
-  exit 1
-else
-  # if file triggered other assertion errors, then save it
-  if [[ $res != 10 && $res != 20 ]]; then
-    mkdir -p $FAILEDDIR
-    cp $in "$FAILEDDIR/$$-$(basename $in).btor"
+if [ $testresult -eq $refresult ]; then
+  cmp $ddreftmpfile $ddtesttmpfile > /dev/null 2>&1
+  res=$?
+  if [ $res -eq 0 ]; then
+    #cleanup
+    exit 1
   fi
-  exit 0
 fi
+#cleanup
+exit 0
