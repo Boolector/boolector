@@ -193,6 +193,7 @@ static const char *brokentests[] = {
     "modelgen17",
     "modelgen23",
     "modelgen25",
+    "fifo32ia04k05",
     /* currently broken due to dumper support for args/apply */
     "dumpbtor2",
     "dumpsmt1",
