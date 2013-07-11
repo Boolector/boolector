@@ -9540,7 +9540,6 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
     }
   }
 BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
-  //  printf ("conflict\n");
   while (!BTOR_EMPTY_STACK (cleanup_stack))
   {
     cur_array = BTOR_POP_STACK (cleanup_stack);
@@ -9555,8 +9554,10 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
     }
     else
     {
-      /* remember arrays for incremental usage */
-      BTOR_PUSH_STACK (mm, btor->arrays_with_model, cur_array);
+      /* remember arrays for incremental usage (and prevent premature
+       * release in case that array is released via API call) */
+      BTOR_PUSH_STACK (
+          mm, btor->arrays_with_model, btor_copy_exp (btor, cur_array));
     }
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
