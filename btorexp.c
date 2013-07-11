@@ -11552,7 +11552,7 @@ process_skeleton_tseitin (Btor *btor,
     else if (exp->mark == 1)
     {
       exp->mark = 2;
-      if (exp->len != 1) continue;
+      if (exp->len != 1 || BTOR_IS_ARRAY_NODE (exp)) continue;
 
 #ifndef NDEBUG
       for (i = 0; i < exp->arity; i++)
@@ -11560,7 +11560,8 @@ process_skeleton_tseitin (Btor *btor,
         BtorNode *child = exp->e[i];
         child           = BTOR_REAL_ADDR_NODE (child);
         assert (child->mark == 2);
-        if (child->len == 1) assert (btor_find_in_ptr_hash_table (ids, child));
+        if (child->len == 1 && !BTOR_IS_ARRAY_NODE (child))
+          assert (btor_find_in_ptr_hash_table (ids, child));
       }
 #endif
       lhs   = process_skeleton_tseitin_lit (ids, exp);
