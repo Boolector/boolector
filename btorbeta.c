@@ -630,6 +630,10 @@ btor_beta_reduce (
                      || (real_cur->e[0] == e.start[0]
                          && BTOR_REAL_ADDR_NODE (e.start[1])->parameterized))
             {
+              // FIXME: we do not support reducing nested lambdas
+              //        like that, see test_merge.smt2 if we fully
+              //        reduce lambda 14 without assigning the params
+              // assert (!BTOR_IS_NESTED_LAMBDA_NODE (real_cur));
               if (real_cur->beta_mark == 0)
               {
                 assert (BTOR_IS_REGULAR_NODE (e.start[0]));
