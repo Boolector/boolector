@@ -535,7 +535,7 @@ boolector_implies (Btor *btor, BtorNode *e0, BtorNode *e1)
   BTOR_ABORT_ARRAY_BOOLECTOR (e1);
   BTOR_ABORT_BOOLECTOR (
       BTOR_REAL_ADDR_NODE (e0)->len != 1 || BTOR_REAL_ADDR_NODE (e1)->len != 1,
-      "bit-width of 'e0' and 'e1' must not be unequal to 1");
+      "bit-width of 'e0' and 'e1' have be 1");
   btor->external_refs++;
   res = btor_implies_exp (btor, e0, e1);
   BTOR_TRAPI_RETURNP (res);
@@ -1875,7 +1875,7 @@ void
 boolector_free_bv_assignment (Btor *btor, char *assignment)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("free_bv_assignment");
+  BTOR_TRAPI ("free_bv_assignment %p", assignment);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_free_bv_assignment_exp (btor, assignment);
 }

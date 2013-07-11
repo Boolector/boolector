@@ -378,19 +378,6 @@ btor_dump_btor (BtorDumpContext *bdc, FILE *file)
 
   for (b = bdc->latches->first; b; b = b->next)
   {
-    BtorNode *node = b->key;
-    int id;
-    assert (node);
-    assert (BTOR_IS_REGULAR_NODE (node));
-    assert (BTOR_IS_BV_VAR_NODE (node));
-    id = bdcid (bdc, node);
-    fprintf (file, "%d latch %d", id, node->len);
-    if (node->symbol) fprintf (file, " %s", node->symbol);
-    fputc ('\n', file);
-  }
-
-  for (b = bdc->latches->first; b; b = b->next)
-  {
     BtorDumpContextLatch *bdcl = b->data.asPtr;
     int id;
     assert (bdcl->latch);

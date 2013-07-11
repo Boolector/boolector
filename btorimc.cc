@@ -37,8 +37,8 @@ static FILE* input            = stdin;
 static const char* input_name = "<stdin>";
 static bool close_input;
 
+static char *line, *nts;
 static int szline, nline;
-static char* line;
 
 static struct
 {
@@ -53,6 +53,7 @@ static struct
   int addConcat;
   int addCondition;
   int addConstant;
+  int addDiv;
   int addEqual;
   int addLessThan;
   int addLessEqual;
@@ -62,6 +63,8 @@ static struct
   int addLogicalNot;
   int addLogicalOr;
   int addLShift;
+  int addMod;
+  int addMul;
   int addNonState;
   int addRangeName;
   int addReplicate;
@@ -309,6 +312,57 @@ str_to_id_or_number (const char* s)
   }                                 \
   while (0)
 
+static const char*
+firstok ()
+{
+  for (nts = line; *nts && *nts != '('; nts++)
+    ;
+  if (!*nts) return 0;
+  assert (*nts == '(');
+  *nts++ = 0;
+  return line;
+}
+
+static const char*
+nextok ()
+{
+  const char* res;
+  int open;
+  if (nts >= line + nline) return 0;
+  while (isspace (*nts)) nts++;
+  if (!*nts) return 0;
+  res  = nts;
+  open = 0;
+  for (;;)
+  {
+    int ch = *nts;
+    if (!ch)
+      perr ("unexpected end-of-line");
+    else if (ch == '\\' && !*++nts)
+      perr ("unexpected end-of-line after '\\'");
+    else if (ch == '(')
+      open++, assert (open > 0);
+    else if (ch == ',' && !open)
+      break;
+    else if (ch == ')')
+    {
+      if (open > 0)
+        open--;
+      else
+      {
+        assert (!open);
+        if (nts[1]) perr ("trailing characters after last ')'");
+        break;
+      }
+    }
+    nts++;
+  }
+  *nts++  = 0;
+  char* p = nts - 2;
+  while (p >= res && isspace (*p)) *p-- = 0;
+  return *res ? res : 0;
+}
+
 static void
 parse_line ()
 {
@@ -317,12 +371,19 @@ parse_line ()
   char* p;
   for (p = line; *p; p++)
     ;
+#if 0
   if (p == line) perr ("empty line");
+#else
+  if (p == line)
+  {
+    msg ("empty line");
+    return;
+  }
+#endif
   if (p[-1] != ')') perr ("line does not end with ')'");
-  p[-1] = 0;
-  if (!(str = strtok (line, "("))) perr ("'(' missing");
+  if (!(str = firstok ())) perr ("'(' missing");
   toks.push_back (string (str));
-  while ((str = strtok (0, ","))) toks.push_back (string (str));
+  while ((str = nextok ())) toks.push_back (string (str));
 #if 1
   printf ("[btorimc] line %d:", lineno);
   for (vector<string>::const_iterator it = toks.begin (); it != toks.end ();
@@ -337,8 +398,8 @@ parse_line ()
   const char* op = toks[0].c_str ();
   if (!strcmp (op, "addVariable"))
   {
-    if (size != 7 && size != 8)
-      perr ("operator 'addVariable' expected 6 or 7 arguments but only got %d",
+    if (size != 5 && size != 7 && size != 8)
+      perr ("operator 'addVariable' expected 4, 6 or 7 arguments but got %d",
             size - 1);
     string sym  = T (2);
     unsigned id = N (1);
@@ -350,7 +411,15 @@ parse_line ()
     Var v (sym, width);
     idtab[id] = Var (sym, width);
     stats.addVariable++;
-    if (size == 8)
+    if (size == 5)
+      ibvm->addVariableOld (id,
+                            sym,
+                            width,
+                            (bool) N (4),
+                            (bool) 0,
+                            (bool) 0,
+                            (BitVector::DirectionKind) 0);
+    else if (size == 8)
       ibvm->addVariableOld (id,
                             sym,
                             width,
@@ -427,7 +496,7 @@ parse_line ()
     RANGE (n, T (1), N (2), N (3));
     RANGE (c, T (4), N (5), N (6));
     RANGE (t, T (7), N (8), N (9));
-    RANGE (e, T (7), N (8), N (9));
+    RANGE (e, T (10), N (11), N (12));
     CHKRANGESAMEWIDTH (n, t);
     CHKRANGESAMEWIDTH (n, e);
     if (c.getWidth () != 1) CHKRANGESAMEWIDTH (n, c);
@@ -445,7 +514,6 @@ parse_line ()
     if (size != 3 * nargs + 5)
       perr ("number of 'addCase' arguments does not match");
     vector<BitVector::BitRange> args;
-    bool bitwise = false, determined = false;
     for (unsigned i = 5; nargs; i += 3, nargs--)
     {
       bool undeclared = (T (i) == "undeclared");
@@ -454,26 +522,8 @@ parse_line ()
       BitVector::BitRange arg (undeclared ? 0 : symtab[T (i)],
                                undeclared ? 0 : N (i + 1),
                                undeclared ? 0 : N (i + 2));
-      if (!undeclared)
-      {
-        if (!(nargs & 1))
-        {
-          if (determined)
-          {
-            if (bitwise)
-              CHKRANGESAMEWIDTH (n, arg);
-            else if (arg.getWidth () != 1)
-              perr ("expected bit width 1 condition as before");
-          }
-          else
-          {
-            determined = 1;
-            bitwise    = (arg.getWidth () != 1);
-          }
-        }
-        else
-          CHKRANGESAMEWIDTH (n, arg);
-      }
+      if (!undeclared && !(nargs & 1) && arg.getWidth () != 1)
+        CHKRANGESAMEWIDTH (n, arg);
       args.push_back (arg);
     }
     ibvm->addCase (n, args);
@@ -528,6 +578,12 @@ parse_line ()
     BINARY (addBitOr);
   else if
     BINARY (addBitXor);
+  else if
+    BINARY (addDiv);
+  else if
+    BINARY (addMod);
+  else if
+    BINARY (addMul);
   else if
     BINARY (addSum);
   else if
