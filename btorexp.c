@@ -1931,13 +1931,13 @@ collect_premisses (Btor *btor,
   BTOR_RELEASE_STACK (mm, apps);
 }
 
+#if 0
 static void
-print_lemma_dbg (Btor *btor,
-                 BtorPtrHashTable *fun_apps,
-                 BtorPtrHashTable *bconds_sel1,
-                 BtorPtrHashTable *bconds_sel2,
-                 BtorNode *app0,
-                 BtorNode *app1)
+print_lemma_dbg (Btor * btor,
+		 BtorPtrHashTable * fun_apps,
+		 BtorPtrHashTable * bconds_sel1,
+		 BtorPtrHashTable * bconds_sel2,
+		 BtorNode * app0, BtorNode * app1)
 {
   int i;
   BtorNode *arg0, *arg1, *args0 = 0, *args1 = 0;
@@ -1952,66 +1952,68 @@ print_lemma_dbg (Btor *btor,
   BTORLOG ("  app0: %s", node2string (app0));
   BTORLOG ("  app1: %s", node2string (app1));
 
-  if (BTOR_IS_APPLY_NODE (app0)) args0 = app0->e[1];
+  if (BTOR_IS_APPLY_NODE (app0))
+    args0 = app0->e[1];
 
-  if (BTOR_IS_APPLY_NODE (app1)) args1 = app1->e[1];
+  if (BTOR_IS_APPLY_NODE (app1))
+    args1 = app1->e[1];
 
   if (args0 && args1)
-  {
-    BTORLOG ("   args: %s = %s", node2string (args0), node2string (args1));
-    assert (BTOR_IS_REGULAR_NODE (args0));
-    assert (BTOR_IS_REGULAR_NODE (args1));
-    assert (args0->arity == args1->arity);
-    for (i = 0; i < args0->arity; i++)
     {
-      arg0 = args0->e[i];
-      arg1 = args1->e[i];
-      BTORLOG ("    %c%s = %c%s",
-               BTOR_IS_INVERTED_NODE (arg0) ? '-' : ' ',
-               node2string (arg0),
-               BTOR_IS_INVERTED_NODE (arg1) ? '-' : ' ',
-               node2string (arg1));
+      BTORLOG ("   args: %s = %s", node2string (args0),
+	       node2string (args1));
+      assert (BTOR_IS_REGULAR_NODE (args0));
+      assert (BTOR_IS_REGULAR_NODE (args1));
+      assert (args0->arity == args1->arity);
+      for (i = 0; i < args0->arity; i++)
+	{
+	  arg0 = args0->e[i];
+	  arg1 = args1->e[i];
+	  BTORLOG ("    %c%s = %c%s",
+	      BTOR_IS_INVERTED_NODE (arg0) ? '-' : ' ', node2string (arg0),
+	      BTOR_IS_INVERTED_NODE (arg1) ? '-' : ' ', node2string (arg1));
+	}
     }
-  }
 
   BTORLOG ("  fun apps:");
   for (bucket = fun_apps->last; bucket; bucket = bucket->prev)
-  {
-    cur = (BtorNode *) bucket->key;
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_APPLY_NODE (cur));
-    args0 = !BTOR_IS_APPLY_NODE (app1) ? app0->e[1] : app1->e[1];
-    args1 = cur->e[1];
-    assert (BTOR_IS_ARGS_NODE (args0));
-    assert (BTOR_IS_ARGS_NODE (args1));
-    assert (args0->arity == args1->arity);
+    {
+      cur = (BtorNode *) bucket->key;
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (BTOR_IS_APPLY_NODE (cur));
+      args0 = !BTOR_IS_APPLY_NODE (app1) ? app0->e[1] : app1->e[1];
+      args1 = cur->e[1];
+      assert (BTOR_IS_ARGS_NODE (args0));
+      assert (BTOR_IS_ARGS_NODE (args1));
+      assert (args0->arity == args1->arity);
 
-    for (i = 0; i < args0->arity; i++)
-      BTORLOG (
-          "    %s = %s", node2string (args0->e[i]), node2string (args1->e[i]));
-  }
+      for (i = 0; i < args0->arity; i++)
+	BTORLOG ("    %s = %s", node2string (args0->e[i]),
+		 node2string (args1->e[i]));
+    }
 
   BTORLOG ("  bv cond if:");
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
-  {
-    cur  = (BtorNode *) bucket->key;
-    cond = cur->e[0];
-    BTORLOG ("    %s", node2string (cond));
-  }
+    {
+      cur = (BtorNode *) bucket->key;
+      cond = cur->e[0];
+      BTORLOG ("    %s", node2string (cond));
+    }
 
   BTORLOG ("  bv cond else:");
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
-  {
-    cur  = (BtorNode *) bucket->key;
-    cond = cur->e[0];
-    BTORLOG ("    %s", node2string (cond));
-  }
+    {
+      cur = (BtorNode *) bucket->key;
+      cond = cur->e[0];
+      BTORLOG ("    %s", node2string (cond));
+    }
 
   BTORLOG ("  conclusion:");
   BTORLOG ("    %s = %s", node2string (app0), node2string (app1));
 
   BTORLOG (" \e[0;39m");
 }
+#endif
 
 static void
 encode_lemma (Btor *btor,
@@ -2062,8 +2064,10 @@ encode_lemma (Btor *btor,
 
     collect_premisses (
         btor, cur, app1, args, fun_apps, bconds_sel1, bconds_sel2);
-    print_lemma_dbg (
-        btor, fun_apps, bconds_sel1, bconds_sel2, app0, lambda_value);
+#if 0
+      print_lemma_dbg (btor, fun_apps, bconds_sel1, bconds_sel2, app0,
+		       lambda_value);
+#endif
     add_eq_exp_to_clause (btor, app0, lambda_value, &linking_clause);
     btor_release_exp (btor, lambda_value);
   }
@@ -2089,7 +2093,9 @@ encode_lemma (Btor *btor,
       btor->stats.lemmas_size_sum += 1;
     }
 
-    print_lemma_dbg (btor, fun_apps, bconds_sel1, bconds_sel2, app0, app1);
+#if 0
+      print_lemma_dbg (btor, fun_apps, bconds_sel1, bconds_sel2, app0, app1);
+#endif
     add_eq_exp_to_clause (btor, app0, app1, &linking_clause);
   }
 
