@@ -8433,6 +8433,7 @@ propagate (Btor *btor,
     {
       BTOR_PUSH_STACK (mm, *prop_stack, app);
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
+      btor_release_exp (btor, fun_value);
       continue;
     }
 
