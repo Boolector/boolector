@@ -33,7 +33,7 @@
 #define BTOR_ABORT_ARG_NULL_BOOLECTOR(arg)                   \
   do                                                         \
   {                                                          \
-    if ((arg) == NULL)                                       \
+    if ((arg) == 0)                                          \
     {                                                        \
       fprintf (stderr, "[%s] %s: ", __FILE__, __FUNCTION__); \
       fprintf (stderr, "'%s' must not be NULL\n", #arg);     \
