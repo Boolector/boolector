@@ -5,5 +5,4 @@
 :formula
 (let (?e4 (bvurem a b))
 (let (?e5 (bvand b ?e4))
-(not (= ?e5 bv0[1]))
-)))
+ (not (= ?e5 bv0[1])))))

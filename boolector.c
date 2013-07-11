@@ -1898,7 +1898,7 @@ void
 boolector_free_bv_assignment (Btor *btor, char *assignment)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("free_bv_assignment");
+  BTOR_TRAPI ("free_bv_assignment %p", assignment);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_free_bv_assignment_exp (btor, assignment);
 }
