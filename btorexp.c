@@ -483,13 +483,20 @@ btor_insert_substitution (Btor *btor,
   assert (btor->substitutions);
   assert (update == 0 || update == 1);
 
+  BtorPtrHashBucket *b;
   exp = BTOR_REAL_ADDR_NODE (exp);
 
-  // TODO: maybe overwrite existing substitutions?
   assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp));
 
-  if (update && btor_find_in_ptr_hash_table (btor->substitutions, exp))
+  if (update && (b = btor_find_in_ptr_hash_table (btor->substitutions, exp)))
+  {
+    assert (b->data.asPtr);
+    /* release data of current bucket */
+    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
     btor_remove_from_ptr_hash_table (btor->substitutions, exp, 0, 0);
+    /* release key of current bucket */
+    btor_release_exp (btor, exp);
+  }
 
   btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
       ->data.asPtr = btor_copy_exp (btor, subst);
