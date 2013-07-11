@@ -2176,15 +2176,21 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (pa->tag == BTOR_IBV_NON_STATE);
         assert (pa->nranges == 1);
         assert (pa->ranges[0].id == n->id);
-        assert (pa->ranges[0].lsb == r.lsb);
         BtorIBVNode *prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
         assert (prev->forwarded);
-        assert (boolector_get_width (btor, prev->forwarded)
-                == (int) r.getWidth ());
+        assert (pa->ranges[0].getWidth () >= r.getWidth ());
+        int prevlen = boolector_get_width (btor, prev->forwarded);
+        int rlen    = (int) r.getWidth ();
+        assert (prevlen >= rlen);
         assert (!a->exp);
-        a->exp = boolector_copy (btor, prev->forwarded);
+        assert (r.msb <= pa->ranges[0].msb);
+        assert (r.lsb >= pa->ranges[0].lsb);
+        int delta = pa->range.lsb - pa->ranges[0].lsb;
+        int msb = r.msb + delta, lsb = r.lsb + delta;
+        a->exp = boolector_slice (btor, prev->forwarded, msb, lsb);
+        assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
       }
       break;
 

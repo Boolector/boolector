@@ -213,7 +213,7 @@ es_add (ExpStack *es, BtorNode *exp)
   if (es->n == es->size)
   {
     int prev_size = es->size;
-    es->size      = es->size ? es->size * 2 : 2;
+    es->size      = es->size ? prev_size * 2 : 2;
     es->exps      = realloc (es->exps, es->size * sizeof *es->exps);
   }
   es->exps[es->n].exp  = exp;
