@@ -165,11 +165,12 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
     unsigned int no_synth : 1;      /* do not synthesize exp */         \
     unsigned int chain : 1;                                             \
-    char *bits; /* three-valued bits */                                 \
-    int id;     /* unique expression id */                              \
-    int len;    /* number of bits */                                    \
-    int refs;   /* reference counter */                                 \
-    int arity;  /* arity of operator */                                 \
+    char *bits;  /* three-valued bits */                                \
+    int id;      /* unique expression id */                             \
+    int len;     /* number of bits */                                   \
+    int refs;    /* reference counter */                                \
+    int parents; /* number of parents */                                \
+    int arity;   /* arity of operator */                                \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -622,6 +623,9 @@ struct Btor
 
 #define BTOR_PARAM_SET_LAMBDA_NODE(param, lambda) \
   (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
+
+#define BTOR_IS_FIRST_NESTED_LAMBDA(exp) \
+  (BTOR_IS_LAMBDA_NODE (exp) && (((BtorLambdaNode *) exp)->nested == exp))
 
 /*------------------------------------------------------------------------*/
 
