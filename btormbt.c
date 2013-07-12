@@ -39,6 +39,7 @@
   "  -q | --quiet\n"                          \
   "  -f | --first-bug-only\n"                 \
   "  -a | --always-fork\n"                    \
+  "  -e | --no-extensionality\n"              \
   "\n"                                        \
   "  -m <maxruns>\n"
 
@@ -350,7 +351,7 @@ typedef void *(*State) (Data *, unsigned rand);
 
 typedef struct Env
 {
-  int seed, quiet, alwaysfork, round, bugs, first, forked, print;
+  int seed, quiet, alwaysfork, round, bugs, first, forked, print, noext;
   int terminal;
   RNG rng;
 } Env;
@@ -1202,7 +1203,7 @@ _afun (Data *data, unsigned r)
   else
   {
     /* select EQ/NE/COND with same propability */
-    op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
+    op = pick (&rng, 0, 2) && !env.noext ? pick (&rng, EQ, NE) : COND;
     e1 = selarrexp (data, &rng, e0, e0w, e0iw);
     if (op == COND)
     {
@@ -1688,6 +1689,9 @@ main (int argc, char **argv)
       env.alwaysfork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
       env.first = 1;
+    else if (!strcmp (argv[i], "-e")
+             || !strcmp (argv[i], "--no-extensionality"))
+      env.noext = 1;
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
