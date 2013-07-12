@@ -12513,7 +12513,6 @@ merge_lambda_chains (Btor *btor)
     BTOR_ENQUEUE (mm, queue, cur);
   }
 
-  // TODO: what to do with nested lambdas?
   start_lambdas = btor->lambdas->count;
   while (!BTOR_EMPTY_QUEUE (queue))
   {
