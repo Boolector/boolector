@@ -321,6 +321,8 @@ class BtorIBV : public BitVector
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
+  void warn (const char *fmt, ...);
+
   void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVNodePtrNextStack *);
   void translate_atom_conquer (BtorIBVAtom *, bool);
   BtorNode *translate_assignment_conquer (BtorIBVAtom *,

@@ -23,6 +23,18 @@ btoribv_msgtail ()
 }
 
 void
+BtorIBV::warn (const char *fmt, ...)
+{
+  va_list ap;
+  btoribv_msghead ();
+  fputs ("warning: ", stdout);
+  va_start (ap, fmt);
+  vprintf (fmt, ap);
+  va_end (ap);
+  btoribv_msgtail ();
+}
+
+void
 BtorIBV::msg (int level, const char *fmt, ...)
 {
   va_list ap;
@@ -1821,11 +1833,15 @@ BtorIBV::analyze ()
       if (!n->flags[i].coi) continue;
       if (n->assigned && n->assigned[i]) continue;
       if (n->next && n->next[i]) continue;
-      BTOR_ABORT_BOOLECTOR (
-          !n->prev || !n->prev[i],
-          "undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
-          n->name,
-          i);
+#if 0
+      BTOR_ABORT_BOOLECTOR (!n->prev || !n->prev[i],
+        "undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
+	n->name, i);
+#else
+      warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
+            n->name,
+            i);
+#endif
     }
   }
 
