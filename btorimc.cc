@@ -691,7 +691,9 @@ static const char* USAGE =
     "\n"
     "  -h    print this command line option summary\n"
     "  -n    do not print witness trace\n"
-    "  -d    dump BTOR model to stdout\n"
+    "  -f    force translation (replace 'x' by '0')\n"
+    "  -d    dump BTOR model\n"
+    "  -o    path of dump file (default is stdout)\n"
     "\n"
     "and\n"
     "\n"
@@ -701,9 +703,9 @@ static const char* USAGE =
 int
 main (int argc, char** argv)
 {
-  bool witness = true, dump = false;
-  ;
-  int k = -1, r;
+  bool witness = true, dump = false, force = false;
+  const char* outputname = 0;
+  int k                  = -1, r;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
@@ -715,6 +717,15 @@ main (int argc, char** argv)
       witness = false;
     else if (!strcmp (argv[i], "-d"))
       dump = true;
+    else if (!strcmp (argv[i], "-f"))
+      force = true;
+    else if (!strcmp (argv[i], "-o"))
+    {
+      if (++i == argc) err ("argument to '-o' missing");
+      outputname = argv[i];
+      if (!isfile (outputname))
+        err ("argument '%s' to '-o' does not seem to be a file", outputname);
+    }
     else if (argv[i][0] == '-')
       err ("invalid command line option '%s'", argv[i]);
     else if (isbound (argv[i]))
@@ -738,6 +749,7 @@ main (int argc, char** argv)
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (10);
+  if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
   parse ();
   if (close_input == 1) fclose (input);
@@ -746,8 +758,19 @@ main (int argc, char** argv)
   ibvm->translate ();
   if (dump)
   {
-    msg ("dumping BTOR model to '<stdout>'");
-    ibvm->dump_btor (stdout);
+    if (outputname)
+    {
+      FILE* output = fopen (outputname, "w");
+      if (!output) err ("failed to write to '%s'", outputname);
+      msg ("dumping BTOR model to '%s'", outputname);
+      ibvm->dump_btor (output);
+      fclose (output);
+    }
+    else
+    {
+      msg ("dumping BTOR model to '<stdout>'");
+      ibvm->dump_btor (stdout);
+    }
   }
   else
   {

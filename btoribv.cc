@@ -2031,8 +2031,23 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
       }
       break;
     case BTOR_IBV_CONCAT:
-      res = boolector_concat (
-          btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
+    {
+      assert (a->nranges >= 1);
+      res = 0;
+      for (unsigned i = 0; i < BTOR_COUNT_STACK (stack); i++)
+      {
+        BtorNode *arg = BTOR_PEEK_STACK (stack, i);
+        if (res)
+        {
+          BtorNode *tmp = boolector_concat (btor, res, arg);
+          boolector_release (btor, res);
+          res = tmp;
+        }
+        else
+          res = boolector_copy (btor, arg);
+      }
+    }
+      assert (res);
       break;
     case BTOR_IBV_COND:
       res = boolector_cond (btor,
@@ -2308,36 +2323,51 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_CONSTANT:
     {
-      char *conststr, *p;
-      BTOR_NEWN (btor->mm, conststr, n->width + 1);
-      assert (strlen (n->name) == n->width);
-      p = conststr;
-      for (unsigned i = r.lsb; i <= r.msb; i++)
+      if (!n->cached)
       {
-        char c = n->name[i];
-        if (c != '0' && c != '1')
+        char *conststr, *p;
+        BTOR_NEWN (btor->mm, conststr, n->width + 1);
+        assert (strlen (n->name) == n->width);
+        p = conststr;
+        for (unsigned i = 0; i < n->width; i++)
         {
-          if (n->flags[i].coi)
-            BTOR_ABORT_BOOLECTOR (
-                1,
-                "invalid constant bit '%s[%u] = %c' in cone-of-influence",
-                n->name,
-                i,
-                c);
-          else
-            warn (
-                "ignoring invalid constant bit '%s[%u] = %c' outside "
-                "cone-of-influence",
-                n->name,
-                i,
-                c);
+          char c = n->name[i];
+          if (c != '0' && c != '1')
+          {
+            if (!n->flags[i].coi)
+              warn (
+                  "ignoring invalid constant bit '%s[%u] = %c' outside "
+                  "cone-of-influence",
+                  n->name,
+                  i,
+                  c);
+            else if (force)
+              warn (
+                  "forced to ignore invalid constant bit '%s[%u] = %c' in "
+                  "cone-of-influence",
+                  n->name,
+                  i,
+                  c);
+            else
+              BTOR_ABORT_BOOLECTOR (
+                  1,
+                  "invalid constant bit '%s[%u] = %c' in cone-of-influence",
+                  n->name,
+                  i,
+                  c);
+          }
           *p++ = (c == '1') ? '1' : '0';  // overwrite 'x' not in COI with '0'
         }
+        *p = 0;
+        assert (strlen (conststr) == n->width);
+        assert (strlen (conststr) >= (int) r.getWidth ());
+        n->cached = boolector_const (btor, conststr);
+        assert (boolector_get_width (btor, n->cached) == (int) n->width);
+        BTOR_DELETEN (btor->mm, conststr, n->width + 1);
+        assert (!n->forwarded);
+        n->forwarded = boolector_copy (btor, n->cached);
       }
-      *p = 0;
-      assert (strlen (conststr) >= (int) r.msb);
-      a->exp = boolector_const (btor, conststr);
-      BTOR_DELETEN (btor->mm, conststr, n->width + 1);
+      a->exp = boolector_slice (btor, n->cached, (int) r.msb, (int) r.lsb);
       assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
       a->next = boolector_copy (btor, a->exp);
     }
@@ -2588,7 +2618,7 @@ BtorIBV::translate ()
       const int grey       = 1 << (2 * n.next);
       if ((n.next && n.node->forwarded) || (!n.next && n.node->cached))
       {
-        assert ((n.node->marked & mask) == mask);
+        if (!n.node->is_constant) assert ((n.node->marked & mask) == mask);
         BTOR_POP_STACK (nnwork);
       }
       else if ((n.node->marked & mask) == grey)
