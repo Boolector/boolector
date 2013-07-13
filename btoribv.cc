@@ -2180,10 +2180,23 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (n->prev);
         BtorIBVAssignment *pa = n->prev[r.lsb];
         assert (pa);
-        assert (pa->tag == BTOR_IBV_NON_STATE);
-        assert (pa->nranges == 1);
-        assert (pa->ranges[0].id == n->id);
-        assert (pa->ranges[0].lsb == r.lsb);
+        if (pa->tag == BTOR_IBV_NON_STATE)
+        {
+          assert (pa->nranges == 1);
+          assert (pa->ranges[0].id == n->id);
+          assert (pa->ranges[0].lsb == r.lsb);
+        }
+        else
+        {
+          assert (pa->tag == BTOR_IBV_STATE);
+          assert (pa->nranges == 2);
+          assert (pa->ranges[1].id == n->id);
+          assert (pa->ranges[1].lsb == r.lsb);
+          warn ("original next state '%s[%u:%u]' used as two-phase input",
+                n->name,
+                r.msb,
+                r.lsb);
+        }
         BtorIBVNode *prev = id2node (pa->range.id);
         assert (prev);
         assert (!prev->is_next_state);
