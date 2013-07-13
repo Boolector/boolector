@@ -2465,10 +2465,11 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         {
           BtorIBVAssignment *na = n->next[r.lsb];
           assert (na);
-          assert (na->tag == BTOR_IBV_NON_STATE);
-          assert (na->nranges == 1);
-          BtorIBVNode *next = id2node (na->ranges[0].id);
-          BtorIBVRange nr   = na->ranges[0];
+          assert (na->tag == BTOR_IBV_NON_STATE || na->tag == BTOR_IBV_STATE);
+          unsigned pos = na->tag == BTOR_IBV_STATE;
+          assert (pos < na->nranges);
+          BtorIBVNode *next = id2node (na->ranges[pos].id);
+          BtorIBVRange nr   = na->ranges[pos];
           char *nextname    = btor_ibv_atom_base_name (btor, next, nr, 0);
           a->next = boolector_input (btormc, (int) nr.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);
@@ -2714,93 +2715,93 @@ BtorIBV::translate ()
       unsigned lsb = at->range.lsb, msb = at->range.msb;
       BtorIBVAssignment *as = n->next[lsb];
       if (!as) continue;
-      if (as->tag == BTOR_IBV_STATE)
+      switch (n->flags[lsb].classified)
       {
-        assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
-        assert (as->nranges == 2);
-        assert (boolector_get_width (btor, n->cached)
-                >= (int) as->range.getWidth ());
-        BtorNode *latch = boolector_slice (
-            btor, n->cached, (int) as->range.msb, (int) as->range.lsb);
-        if (as->ranges[0].id)
+        case BTOR_IBV_CURRENT_STATE:
         {
-          BtorIBVNode *initnode = id2node (as->ranges[0].id);
-          assert (initnode);
-          assert (initnode->cached);
-          assert (n->cached);
-          BtorNode *initexp = boolector_slice (
-              btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
-          boolector_init (btormc, latch, initexp);
-          boolector_release (btor, initexp);
-          stats.inits++;
-        }
-        BtorIBVNode *nextnode = id2node (as->ranges[1].id);
-        assert (nextnode);
-        assert (nextnode->cached);
-        BtorNode *nextexp = boolector_slice (
-            btor, nextnode->cached, as->ranges[1].msb, as->ranges[1].lsb);
-        boolector_next (btormc, latch, nextexp);
-        boolector_release (btor, latch);
-        boolector_release (btor, nextexp);
-        stats.nexts++;
-      }
-      else
-      {
-        switch (n->flags[lsb].classified)
-        {
-          case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
+          assert (n->flags[lsb].classified == BTOR_IBV_CURRENT_STATE);
+          assert (as->nranges == 2);
+          assert (boolector_get_width (btor, n->cached)
+                  >= (int) as->range.getWidth ());
+          BtorNode *latch = boolector_slice (
+              btor, n->cached, (int) as->range.msb, (int) as->range.lsb);
+          if (as->ranges[0].id)
           {
-            assert (as->tag == BTOR_IBV_NON_STATE);
-            assert (as->nranges == 1);
-            BtorIBVNode *nextnode = id2node (as->ranges[0].id);
-            assert (nextnode);
-            assert (nextnode->flags);
-            if (n->flags[lsb].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT)
-              assert (nextnode->flags[as->ranges[0].lsb].classified
-                      == BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT);
-            else
-              assert (nextnode->flags[as->ranges[0].lsb].classified
-                      == BTOR_IBV_PHANTOM_NEXT_INPUT);
-            assert (nextnode->cached);
-            BtorNode *nextexp = boolector_slice (
-                btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
-            boolector_next (btormc, n->cached, nextexp);
-            boolector_release (btor, nextexp);
-            stats.nexts++;
+            BtorIBVNode *initnode = id2node (as->ranges[0].id);
+            assert (initnode);
+            assert (initnode->cached);
+            assert (n->cached);
+            BtorNode *initexp = boolector_slice (
+                btor, initnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
+            boolector_init (btormc, latch, initexp);
+            boolector_release (btor, initexp);
+            stats.inits++;
           }
-          break;
-          case BTOR_IBV_TWO_PHASE_INPUT:
-          {
-            assert (as->tag == BTOR_IBV_NON_STATE);
-            assert (as->nranges == 1);
-            BtorIBVNode *nextnode = id2node (as->ranges[0].id);
-            assert (nextnode);
-            assert (nextnode->flags);
+          BtorIBVNode *nextnode = id2node (as->ranges[1].id);
+          assert (nextnode);
+          assert (nextnode->cached);
+          BtorNode *nextexp = boolector_slice (
+              btor, nextnode->cached, as->ranges[1].msb, as->ranges[1].lsb);
+          boolector_next (btormc, latch, nextexp);
+          boolector_release (btor, latch);
+          boolector_release (btor, nextexp);
+          stats.nexts++;
+        }
+        break;
+        case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
+        {
+          assert (as->tag == BTOR_IBV_NON_STATE);
+          assert (as->nranges == 1);
+          BtorIBVNode *nextnode = id2node (as->ranges[0].id);
+          assert (nextnode);
+          assert (nextnode->flags);
+          if (n->flags[lsb].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT)
             assert (nextnode->flags[as->ranges[0].lsb].classified
-                    == BTOR_IBV_TWO_PHASE_INPUT);
-            assert (nextnode->cached);  // TODO what is this?
-            BtorNode *nextexp = boolector_slice (
-                btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
-            boolector_next (btormc, n->cached, nextexp);
-            boolector_release (btor, nextexp);
-            stats.nexts++;
-          }
-          break;
-          case BTOR_IBV_PHANTOM_CURRENT_INPUT:
-          case BTOR_IBV_PHANTOM_NEXT_INPUT:
-          case BTOR_IBV_NOT_USED:
-          case BTOR_IBV_ASSIGNED: break;
-          default:
-            BTOR_ABORT_BOOLECTOR (
-                1,
-                "id %u '%s[%u:%u]' classified as '%s' not handled yet",
-                n->id,
-                n->name,
-                msb,
-                lsb,
-                btor_ibv_classified_to_str (n->flags[lsb].classified));
-            break;
+                    == BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT);
+          else
+            assert (nextnode->flags[as->ranges[0].lsb].classified
+                    == BTOR_IBV_PHANTOM_NEXT_INPUT);
+          assert (nextnode->cached);
+          BtorNode *nextexp = boolector_slice (
+              btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
+          boolector_next (btormc, n->cached, nextexp);
+          boolector_release (btor, nextexp);
+          stats.nexts++;
         }
+        break;
+        case BTOR_IBV_TWO_PHASE_INPUT:
+        {
+          assert (as->tag == BTOR_IBV_NON_STATE || as->tag == BTOR_IBV_STATE);
+          unsigned pos          = as->tag == BTOR_IBV_STATE;
+          BtorIBVNode *nextnode = id2node (as->ranges[pos].id);
+          assert (nextnode);
+          assert (nextnode->flags);
+          assert (nextnode->flags[as->ranges[pos].lsb].classified
+                  == BTOR_IBV_TWO_PHASE_INPUT);
+          assert (nextnode->cached);  // TODO what is this?
+          BtorNode *nextexp = boolector_slice (btor,
+                                               nextnode->cached,
+                                               (int) as->ranges[pos].msb,
+                                               (int) as->ranges[pos].lsb);
+          boolector_next (btormc, n->cached, nextexp);
+          boolector_release (btor, nextexp);
+          stats.nexts++;
+        }
+        break;
+        case BTOR_IBV_PHANTOM_CURRENT_INPUT:
+        case BTOR_IBV_PHANTOM_NEXT_INPUT:
+        case BTOR_IBV_NOT_USED:
+        case BTOR_IBV_ASSIGNED: break;
+        default:
+          BTOR_ABORT_BOOLECTOR (
+              1,
+              "id %u '%s[%u:%u]' classified as '%s' not handled yet",
+              n->id,
+              n->name,
+              msb,
+              lsb,
+              btor_ibv_classified_to_str (n->flags[lsb].classified));
+          break;
       }
     }
   }
