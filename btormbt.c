@@ -74,7 +74,7 @@ static double start_time;
 
 typedef enum Op
 {
-  /* const 0-7 */
+  /* const */
   CONST,
   ZERO,
   FALSE,
@@ -83,10 +83,10 @@ typedef enum Op
   ONE,
   UINT,
   INT,
-  /* var, array 8-9 */
+  /* var, array */
   VAR,
   ARRAY,
-  /* unary funs 10-16 */
+  /* unary funs */
   NOT,
   NEG,
   SLICE,
@@ -94,11 +94,11 @@ typedef enum Op
   DEC,
   UEXT,
   SEXT,
-  /* boolean unary funs 17-19 */
+  /* boolean unary funs */
   REDOR,
   REDXOR,
   REDAND,
-  /* boolean binary funs 20-38 */
+  /* boolean binary funs */
   EQ,
   NE,
   UADDO,
@@ -118,7 +118,7 @@ typedef enum Op
   SGTE,
   IMPLIES,
   IFF,
-  /* binary funs 39-58 */
+  /* binary funs */
   XOR,
   XNOR,
   AND,
@@ -139,19 +139,20 @@ typedef enum Op
   ROL,
   ROR,
   CONCAT,
-  /* tertiary funs 59 */
+  /* ternary funs */
   COND,
-  /* array funs 60-61 */
+  /* array funs */
+  LAMBDA,
   READ,
-  WRITE,
+  WRITE
 } Op;
 
 typedef enum ExpType
 {
-  T_BO,
-  T_BV,
+  T_BO, /* Boolean */
+  T_BV, /* bit vector */
   T_BB, /* Boolean or bit vector */
-  T_ARR
+  T_ARR /* array */
 } ExpType;
 
 static int
@@ -179,7 +180,7 @@ is_boolean_binary_fun (Op op)
 }
 
 static int
-is_tertiary_fun (Op op)
+is_ternary_fun (Op op)
 {
   return op == COND;
 }
@@ -190,6 +191,7 @@ is_array_fun (Op op)
   return (op >= COND && op <= WRITE) || (op >= EQ && op <= NE);
 }
 
+// TODO get rid of
 typedef struct Exp
 {
   BtorNode *exp;
@@ -404,7 +406,7 @@ nextpow2 (int val, int *pow2, int *log2)
   }
 }
 
-/* change node e with width ew to width tow*/
+/* change node e with width ew to width tow */
 static BtorNode *
 modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow)
 {
@@ -782,13 +784,13 @@ binary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1)
 }
 
 static void
-tertiary_fun (
+ternary_fun (
     Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
 {
   int e1w, e2w;
   ExpStack *es;
 
-  assert (is_tertiary_fun (op));
+  assert (is_ternary_fun (op));
 
   assert (boolector_get_width (data->btor, e0) == 1);
 
@@ -1038,8 +1040,7 @@ _init (Data *data, unsigned r)
 
   if (data->print)
     printf (
-        "[btormbt] after init: number of expressions: booleans %d, bitvectors "
-        "%d, arrays %d \n",
+        "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
         data->bo.n,
         data->bv.n,
         data->arr.n);
@@ -1107,13 +1108,12 @@ _main (Data *data, unsigned r)
 
   if (data->print)
     printf (
-        "[btormbt] after main: number of expressions: booleans %d, bitvectors "
-        "%d, arrays %d \n",
+        "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
         data->bo.n,
         data->bv.n,
         data->arr.n);
   if (data->print)
-    printf ("[btormbt] after main: number of asserts: %d, assumes: %d \n",
+    printf ("[btormbt] after main: number of asserts: %d, assumps: %d \n",
             data->totasserts,
             data->nassume);
 
@@ -1159,12 +1159,12 @@ _fun (Data *data, unsigned r)
     e1 = selexp (data, &rng, ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB));
     binary_fun (data, &rng, op, e0, e1);
   }
-  else if (is_tertiary_fun (op))
+  else if (is_ternary_fun (op))
   {
     e0 = selexp (data, &rng, T_BO);
     e1 = selexp (data, &rng, T_BB);
     e2 = selexp (data, &rng, T_BB);
-    tertiary_fun (data, &rng, op, e0, e1, e2);
+    ternary_fun (data, &rng, op, e0, e1, e2);
   }
   else
   {
@@ -1191,12 +1191,14 @@ _afun (Data *data, unsigned r)
   // TODO may use p=0.5??
   if (pick (&rng, 0, 2))
   {
-    op = pick (&rng, READ, WRITE);
+    op = pick (&rng, LAMBDA, WRITE);
     e1 = selexp (data, &rng, T_BV);
-    if (op == WRITE)
+    if (op == LAMBDA)
+    // TODO
     {
-      e2 = selexp (data, &rng, T_BV);
     }
+    else if (op == WRITE)
+      e2 = selexp (data, &rng, T_BV);
     afun (data, &rng, op, e0, e1, e2);
   }
   else
