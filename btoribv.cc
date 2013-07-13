@@ -2162,11 +2162,29 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
       res = boolector_xor (
           btor, BTOR_PEEK_STACK (stack, 0), BTOR_PEEK_STACK (stack, 1));
       break;
+    case BTOR_IBV_REPLICATE | BTOR_IBV_HAS_ARG:
+    case BTOR_IBV_REPLICATE:
+    {
+      res = 0;
+      assert (BTOR_COUNT_STACK (stack) == 1);
+      BtorNode *arg = BTOR_PEEK_STACK (stack, 0);
+      for (unsigned i = 0; i < a->arg; i++)
+      {
+        if (res)
+        {
+          BtorNode *tmp = boolector_concat (btor, res, arg);
+          boolector_release (btor, res);
+          res = tmp;
+        }
+        else
+          res = boolector_copy (btor, arg);
+      }
+    }
+    break;
     case BTOR_IBV_CONDBW:
     case BTOR_IBV_LEFT_SHIFT:
     case BTOR_IBV_NON_STATE:
     case BTOR_IBV_PARCASE:
-    case BTOR_IBV_REPLICATE:
     case BTOR_IBV_RIGHT_SHIFT:
     case BTOR_IBV_STATE:
     default:
