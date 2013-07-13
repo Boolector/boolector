@@ -2315,14 +2315,24 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
       for (unsigned i = r.lsb; i <= r.msb; i++)
       {
         char c = n->name[i];
-        if (c != '0' && c != 1 && n->flags[i].coi)
-          BTOR_ABORT_BOOLECTOR (
-              (c != '0' && c != '1'),
-              "non valid constant bit '%s[%u] = %c' in cone-of-influence",
-              n->name,
-              i,
-              c);
-        *p++ = c == '1' ? '1' : '0';  // Overwrite 'x' not in COI with '0'
+        if (c != '0' && c != '1')
+        {
+          if (n->flags[i].coi)
+            BTOR_ABORT_BOOLECTOR (
+                1,
+                "invalid constant bit '%s[%u] = %c' in cone-of-influence",
+                n->name,
+                i,
+                c);
+          else
+            warn (
+                "ignoring invalid constant bit '%s[%u] = %c' outside "
+                "cone-of-influence",
+                n->name,
+                i,
+                c);
+          *p++ = (c == '1') ? '1' : '0';  // overwrite 'x' not in COI with '0'
+        }
       }
       *p = 0;
       assert (strlen (conststr) >= (int) r.msb);
