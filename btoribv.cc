@@ -2308,23 +2308,27 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_CONSTANT:
     {
-      assert (strlen (n->name) == (int) r.getWidth ());
+      char *conststr, *p;
+      BTOR_NEWN (btor->mm, conststr, n->width + 1);
+      assert (strlen (n->name) == n->width);
+      p = conststr;
       for (unsigned i = r.lsb; i <= r.msb; i++)
       {
         char c = n->name[i];
-        BTOR_ABORT_BOOLECTOR ((c != '0' && c != '1'),
-                              "non valid constant bit '%s[%u] = %c'",
-                              n->name,
-                              i,
-                              c);
+        if (c != '0' && c != 1 && n->flags[i].coi)
+          BTOR_ABORT_BOOLECTOR (
+              (c != '0' && c != '1'),
+              "non valid constant bit '%s[%u] = %c' in cone-of-influence",
+              n->name,
+              i,
+              c);
+        *p++ = c == '1' ? '1' : '0';  // Overwrite 'x' not in COI with '0'
       }
-      assert (strlen (n->name) >= (int) r.msb);
-      char saved         = n->name[r.msb + 1];
-      n->name[r.msb + 1] = 0;
-      a->exp             = boolector_const (btor, n->name + r.lsb);
+      *p = 0;
+      assert (strlen (conststr) >= (int) r.msb);
+      a->exp = boolector_const (btor, conststr);
+      BTOR_DELETEN (btor->mm, conststr, n->width + 1);
       assert (boolector_get_width (btor, a->exp) == (int) r.getWidth ());
-      n->name[r.msb + 1] = saved;
-      assert (!a->next);
       a->next = boolector_copy (btor, a->exp);
     }
     break;
