@@ -1591,6 +1591,26 @@ BtorIBV::analyze ()
 
   /*----------------------------------------------------------------------*/
 
+  msg (1, "fixing original current state with two-phase next");
+
+  for (BtorIBVNode **p = idtab.start; p < idtab.top; p++)
+  {
+    BtorIBVNode *n = *p;
+    if (!n) continue;
+    if (n->is_next_state) continue;
+    if (n->is_constant) continue;
+    if (!n->next) continue;
+    for (unsigned i = 0; i < n->width; i++)
+    {
+      BtorIBVAssignment *na = n->next[i];
+      if (!na) continue;
+      if (na->tag != BTOR_IBV_STATE) continue;
+      BtorIBVNode *node
+    }
+  }
+
+  /*----------------------------------------------------------------------*/
+
   msg (1, "determining actual cone-of-influence (COI) ...");
 
   BtorIBVBitNextStack bnwork;
