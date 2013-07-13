@@ -2210,6 +2210,7 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
     res = tmp;
   }
   BTOR_RELEASE_STACK (btor->mm, stack);
+  assert (boolector_get_width (btor, res) == (int) dst->range.getWidth ());
   return res;
 }
 
@@ -2331,11 +2332,11 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (!a->next);
         if (boolector_get_width (btor, next->cached) != (int) r.getWidth ())
         {
-          assert (r.getWidth () == na->ranges[1].getWidth ());
+          assert (r.getWidth () < na->ranges[1].getWidth ());
           a->next = boolector_slice (btor,
                                      next->cached,
-                                     (int) na->ranges[1].msb,
-                                     (int) na->ranges[1].lsb);
+                                     r.msb - na->range.lsb + na->ranges[1].lsb,
+                                     r.lsb - na->range.lsb + na->ranges[1].lsb);
           assert (boolector_get_width (btor, a->next) == (int) r.getWidth ());
         }
         else
