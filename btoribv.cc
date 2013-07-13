@@ -1606,15 +1606,31 @@ BtorIBV::analyze ()
       if (!na) continue;
       if (na->tag != BTOR_IBV_STATE) continue;
       BtorIBVNode *next = id2node (na->ranges[1].id);
-      unsigned k        = i + na->ranges[1].lsb;
+      assert (next);
+      assert (i >= na->range.lsb);
+      unsigned k = i - na->range.lsb + na->ranges[1].lsb;
+      assert (next->flags);
+      assert (k < next->width);
       if (next->flags[k].classified != BTOR_IBV_TWO_PHASE_INPUT) continue;
-      BTOR_ABORT_BOOLECTOR (
-          1,
-          "current state '%s[%u]' mapped to two-phase input '%s[%u]'",
-          n->name,
-          i,
+#if 0
+      BTOR_ABORT_BOOLECTOR (1,
+        "next state '%s[%u]' of current state '%s[%u]' became two-phase input",
+         next->name, k,	n->name, i);
+#else
+      warn (
+          "next state '%s[%u]' of current state '%s[%u]' became two-phase "
+          "input",
           next->name,
-          k);
+          k,
+          n->name,
+          i);
+      msg (3,
+           "id %d current state '%s[%u]' reclassified as TWO_PHASE_INPUT",
+           n->id,
+           n->name,
+           i);
+      n->flags[i].classified = BTOR_IBV_TWO_PHASE_INPUT;
+#endif
     }
   }
 
