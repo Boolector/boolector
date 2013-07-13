@@ -1605,7 +1605,16 @@ BtorIBV::analyze ()
       BtorIBVAssignment *na = n->next[i];
       if (!na) continue;
       if (na->tag != BTOR_IBV_STATE) continue;
-      BtorIBVNode *node
+      BtorIBVNode *next = id2node (na->ranges[1].id);
+      unsigned k        = i + na->ranges[1].lsb;
+      if (next->flags[k].classified != BTOR_IBV_TWO_PHASE_INPUT) continue;
+      BTOR_ABORT_BOOLECTOR (
+          1,
+          "current state '%s[%u]' mapped to two-phase input '%s[%u]'",
+          n->name,
+          i,
+          next->name,
+          k);
     }
   }
 
