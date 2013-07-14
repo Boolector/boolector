@@ -405,7 +405,12 @@ btor_beta_reduce (
       }
       else if (mode == BETA_RED_CUTOFF
                /* do not skip expression to be beta reduced */
-               && real_cur != BTOR_REAL_ADDR_NODE (exp)
+               && (real_cur != BTOR_REAL_ADDR_NODE (exp)
+                   /* add_param_cond_to_clause: if we have an encoded apply,
+                    * that is a condition of a bvcond, then we are not allowed
+                    * to proceed with beta reduction
+                    * (lambda below is not encoded) */
+                   || !BTOR_IS_LAMBDA_NODE (real_cur) && real_cur->tseitin)
                /* cut off at nodes that are already encoded */
                && (real_cur->tseitin
                    /* cut off at non-lambda array nodes
