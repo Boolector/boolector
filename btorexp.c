@@ -1838,6 +1838,7 @@ collect_premisses (Btor *btor,
         {
           if (!btor_find_in_ptr_hash_table (bconds_sel1, bcond))
           {
+            BTORLOG ("collect cond if: %s", node2string (bcond));
             tuple = new_node_tuple (btor, lambda, args);
             btor_insert_in_ptr_hash_table (bconds_sel1, bcond)->data.asPtr =
                 tuple;
@@ -1848,6 +1849,7 @@ collect_premisses (Btor *btor,
           assert (res[0] == '0');
           if (!btor_find_in_ptr_hash_table (bconds_sel2, bcond))
           {
+            BTORLOG ("collect cond else: %s", node2string (bcond));
             tuple = new_node_tuple (btor, lambda, args);
             btor_insert_in_ptr_hash_table (bconds_sel2, bcond)->data.asPtr =
                 tuple;
@@ -1883,6 +1885,7 @@ collect_premisses (Btor *btor,
 
         if (!btor_find_in_ptr_hash_table (fun_apps, a))
         {
+          BTORLOG ("collect app: %s", node2string (a));
           tuple = new_node_tuple (btor, lambda, args);
           btor_insert_in_ptr_hash_table (fun_apps, a)->data.asPtr = tuple;
         }
@@ -2134,6 +2137,7 @@ encode_lemma (Btor *btor,
   for (bucket = fun_apps->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
+    BTORLOG ("  app: %s", node2string (cur));
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_APPLY_NODE (cur));
     tuple = (BtorNodeTuple *) bucket->data.asPtr;
@@ -2173,6 +2177,7 @@ encode_lemma (Btor *btor,
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
+    BTORLOG ("  cond: %s", node2string (cur));
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_BV_COND_NODE (cur));
     tuple  = (BtorNodeTuple *) bucket->data.asPtr;
@@ -2192,6 +2197,7 @@ encode_lemma (Btor *btor,
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cur = (BtorNode *) bucket->key;
+    BTORLOG ("  cond: %s", node2string (cur));
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_BV_COND_NODE (cur));
     tuple  = (BtorNodeTuple *) bucket->data.asPtr;
@@ -7053,6 +7059,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
 
     if (BTOR_IS_LAMBDA_NODE (cur))
     {
+      assert (cur->tseitin);
       if (((BtorLambdaNode *) cur)->nested == cur
           || !BTOR_IS_NESTED_LAMBDA_NODE (cur))
       {
@@ -7116,6 +7123,16 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
     btor_unassign_param (btor, cur);
   }
   BTOR_RELEASE_STACK (mm, unassign_stack);
+
+#ifndef NDEBUG
+  cur = to;
+  while (1)
+  {
+    BTORLOG ("  path: %s", node2string (cur));
+    if (cur == from) break;
+    cur = cur->parent;
+  }
+#endif
 }
 
 #if 0
