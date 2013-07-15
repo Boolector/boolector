@@ -627,6 +627,8 @@ struct Btor
 #define BTOR_IS_FIRST_NESTED_LAMBDA(exp) \
   (BTOR_IS_LAMBDA_NODE (exp) && (((BtorLambdaNode *) exp)->nested == exp))
 
+#define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->nested)
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */

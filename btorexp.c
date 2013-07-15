@@ -7059,7 +7059,10 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
 
     if (BTOR_IS_LAMBDA_NODE (cur))
     {
-      assert (cur->tseitin);
+      assert (BTOR_IS_NESTED_LAMBDA_NODE (cur) || cur->tseitin);
+      assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur)
+              || BTOR_LAMBDA_GET_NESTED (cur)->tseitin);
+
       if (((BtorLambdaNode *) cur)->nested == cur
           || !BTOR_IS_NESTED_LAMBDA_NODE (cur))
       {
