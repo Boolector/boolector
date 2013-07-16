@@ -8575,6 +8575,7 @@ propagate (Btor *btor,
               // FIXME: we maybe have to synthesize apps in the arguments first
               // and then
               //		      || !args_equal
+              || 1  // FIXME: we need args_equal here
               || !ENABLE_APPLY_PROP_DOWN)
           {
             btor->stats.lambda_synth_reads++;
@@ -12532,6 +12533,9 @@ merge_lambda_chains (Btor *btor)
 
     BTOR_ENQUEUE (mm, queue, cur);
   }
+
+  // TODO: lambda chain detection has to be done top-down, see
+  // todo_regrlambdamerge.smt2
 
   start_lambdas = btor->lambdas->count;
   while (!BTOR_EMPTY_QUEUE (queue))
