@@ -723,8 +723,6 @@ main (int argc, char** argv)
     {
       if (++i == argc) err ("argument to '-o' missing");
       outputname = argv[i];
-      if (!isfile (outputname))
-        err ("argument '%s' to '-o' does not seem to be a file", outputname);
     }
     else if (argv[i][0] == '-')
       err ("invalid command line option '%s'", argv[i]);
