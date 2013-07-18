@@ -715,3 +715,4 @@ sc12fuzzcheck2 -o log/sc12fuzzcheck2.log log/sc12fuzzcheck2.smt2
 regmismatch -o log/regmismatch.log log/regmismatch.smt2
 regrbetacache1 -rww -rwa -rwr -o log/regrbetacache1.log log/regrbetacache1.btor
 regrbetacache2 -rww -rwa -rwr -o log/regrbetacache2.log log/regrbetacache2.btor
+regrencparamapps -o log/regrencparamapps.log log/regrencparamapps.smt2
