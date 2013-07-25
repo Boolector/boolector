@@ -7031,7 +7031,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
            node2string (args));
 
   char *res;
-  BtorNode *cur, *next, *cond;
+  BtorNode *cur, *next, *cond, *cur_args;
   BtorMemMgr *mm;
   BtorNodePtrQueue queue;
   BtorNodePtrStack unmark_stack, unassign_stack;
@@ -7109,11 +7109,10 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
     else if (BTOR_IS_APPLY_NODE (cur))
     //	       && compare_argument_assignments (cur->e[1], args) == 0)
     {
-      BtorNode *a;
-      a = btor_beta_reduce_cutoff (btor, cur->e[1], 0);
-      assert (BTOR_IS_REGULAR_NODE (a));
-      assert (BTOR_IS_ARGS_NODE (a));
-      if (a == args)
+      cur_args = btor_beta_reduce_cutoff (btor, cur->e[1], 0);
+      assert (BTOR_IS_REGULAR_NODE (cur_args));
+      assert (BTOR_IS_ARGS_NODE (cur_args));
+      if (cur_args == args)
       {
         next       = cur->e[0];
         next->mark = 1;
@@ -7123,7 +7122,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
         BTOR_ENQUEUE (mm, queue, next);
         BTOR_PUSH_STACK (mm, unmark_stack, next);
       }
-      btor_release_exp (btor, a);
+      btor_release_exp (btor, cur_args);
     }
 
     // TODO: write ext support
@@ -7850,6 +7849,8 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   BtorNode *arg, **e;
   BtorAIGVecMgr *avmgr = 0;
 
+  if (acc->lazy_tseitin) return 0;
+
   start               = btor_time_stamp ();
   changed_assignments = 0;
   update              = 0;
@@ -7904,6 +7905,8 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
       BTORLOG ("  encode: %s", node2string (acc));
     }
   }
+
+  acc->lazy_tseitin = 1;
 
   /* update assignments if necessary */
   if (update && force_update)
@@ -7964,6 +7967,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   BtorNode *cur;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
+
+  if (lambda_exp->lazy_tseitin) return 0;
 
   start               = btor_time_stamp ();
   mm                  = btor->mm;
@@ -8044,7 +8049,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   /* set tseitin flag of lambda expression to indicate that it has been
    * lazily synthesized already */
-  lambda_exp->tseitin = 1;
+  lambda_exp->tseitin      = 1;
+  lambda_exp->lazy_tseitin = 1;
 
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
@@ -8588,11 +8594,16 @@ propagate (Btor *btor,
             assert (BTOR_IS_REGULAR_NODE (param_app));
             assert (BTOR_IS_APPLY_NODE (param_app));
 
-            if (!btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
-            {
-              inc_exp_ref_counter (btor, param_app);
-              btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
-            }
+            if (btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
+              continue;
+
+            //		      if (!btor_find_in_ptr_hash_table
+            //(lambda->synth_reads,
+            //							param_app))
+            //			{
+            inc_exp_ref_counter (btor, param_app);
+            btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
+            //			}
 
             /* only synthesize and encode param_app if we cannot
              * propagate app down */
@@ -11853,206 +11864,6 @@ process_skeleton (Btor *btor)
 /*------------------------------------------------------------------------*/
 #endif /* BTOR_DO_NOT_PROCESS_SKELETON */
 /*------------------------------------------------------------------------*/
-
-#if 1
-#if 0
-static BtorNode *
-rewrite_write_to_lambda_exp (Btor * btor, BtorNode * write)
-{
-  assert (btor);
-  assert (BTOR_IS_REGULAR_NODE (write));
-  assert (BTOR_IS_WRITE_NODE (write));
-
-  int i;
-  BtorNode *bvcond, *e_cond, *e_if, *e_else;
-  BtorNode *lambda, *param, *e[3];
-
-  BTORLOG ("rewrite write: %s", node2string (write));
-
-  for (i = 0; i < 3; i++)
-    e[i] = btor_simplify_exp (btor, write->e[i]);
-
-  assert (BTOR_IS_REGULAR_NODE (e[0]));
-  assert (!BTOR_IS_WRITE_NODE (e[0]));
-  assert (BTOR_IS_REGULAR_NODE (write->e[0]));
-
-  /* write (e0, e1, e2) -> lambda p. p == e1 ? e2 : read (e0, p) */
-  param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[1])->len, "");
-
-  e_cond = btor_eq_exp (btor, param, e[1]);
-  e_if = btor_copy_exp (btor, e[2]);
-  e_else = btor_read_exp (btor, e[0], param);
-  bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
-  lambda = btor_lambda_exp (btor, param, bvcond);
-
-  btor_release_exp (btor, e_if);
-  btor_release_exp (btor, e_else);
-  btor_release_exp (btor, e_cond);
-  btor_release_exp (btor, bvcond);
-  btor_release_exp (btor, param);
-
-  BTORLOG ("rewrite write result: %s", node2string (lambda));
-
-  return lambda;
-}
-#endif
-#else
-static BtorNode *
-rewrite_write_to_lambda_exp (Btor *btor, BtorNode *write)
-{
-  assert (btor);
-  assert (BTOR_IS_REGULAR_NODE (write));
-  assert (BTOR_IS_WRITE_NODE (write));
-
-  int i, chain_depth = 0, has_write_parent;
-  BtorNode *bvcond, *e_cond, *e_then, *e_else;
-  BtorNode *lambda, *param, *e[3];
-  BtorPartialParentIterator it;
-
-  BTORLOG ("rewrite write: %s", node2string (write));
-
-  for (i = 0; i < 3; i++) e[i] = btor_simplify_exp (btor, write->e[i]);
-
-  /* write (e0, e1, e2) -> lambda p. p == e1 ? e2 : read (e0, p) */
-  param = btor_param_exp (btor, BTOR_REAL_ADDR_NODE (e[1])->len, "");
-  e_then = btor_copy_exp (btor, e[2]);
-
-  assert (BTOR_IS_REGULAR_NODE (e[0]));
-  assert (!BTOR_IS_WRITE_NODE (e[0]));
-  assert (BTOR_IS_REGULAR_NODE (write->e[0]));
-
-  init_write_parent_iterator (&it, write);
-  has_write_parent = has_next_parent_write_parent_iterator (&it);
-
-  if (0
-      && ((has_write_parent && write->refs == 1)
-          || (!has_write_parent && BTOR_IS_LAMBDA_NODE (e[0])
-              && ((BtorLambdaNode *) e[0])->chain_depth > 0)))
-  {
-    assert (!has_write_parent || write->refs == 1);
-    if (BTOR_IS_LAMBDA_NODE (e[0]))
-      chain_depth = ((BtorLambdaNode *) e[0])->chain_depth;
-    chain_depth += 1;
-  }
-
-  assert (chain_depth >= 0);
-  assert (chain_depth <= INT_MAX);
-
-  /* end of lambda chain */
-  if (0 && (!has_write_parent || write->refs > 1) && chain_depth > 0)
-  {
-    assert (BTOR_IS_LAMBDA_NODE (e[0]));
-    assert (!has_write_parent || write->refs != 1);
-    BTORLOG ("merge lambda: %s (merged %d)", node2string (e[0]), chain_depth);
-    btor_assign_param (btor, e[0], param);
-    e_else = btor_beta_reduce_chains (btor, e[0]);
-    btor_unassign_param (btor, e[0]);
-
-    if (write->e[0]->simplified) write->e[0]->simplified = 0;
-    btor_release_exp (btor, e[0]);
-
-    btor->stats.lambda_chains_merged++;
-    btor->stats.lambdas_merged += chain_depth;
-  }
-  else
-    e_else = btor_read_exp (btor, e[0], param);
-
-  e_cond = btor_eq_exp (btor, param, e[1]);
-  bvcond = btor_cond_exp (btor, e_cond, e_then, e_else);
-  lambda = btor_lambda_exp (btor, param, bvcond);
-
-  ((BtorLambdaNode *) lambda)->chain_depth = chain_depth;
-
-  btor_release_exp (btor, e_then);
-  btor_release_exp (btor, e_else);
-  btor_release_exp (btor, e_cond);
-  btor_release_exp (btor, bvcond);
-  btor_release_exp (btor, param);
-
-  BTORLOG ("rewrite write result: %s", node2string (lambda));
-
-  return lambda;
-}
-#endif
-
-#if 0
-static void
-rewrite_writes_to_lambda_exp (Btor * btor)
-{
-  assert (btor);
-
-  int i;
-  BtorPtrHashTable *writes, *roots = NULL;
-  BtorPtrHashBucket *b;
-  BtorNode *exp;
-  BtorNodePtrStack work_stack, unmark_stack;
-  BtorMemMgr *mm;
-
-  if (btor->ops[BTOR_WRITE_NODE] == 0)
-    return;
-
-  BTOR_INIT_STACK (work_stack);
-  BTOR_INIT_STACK (unmark_stack);
-
-  mm = btor->mm;
-  writes = btor_new_ptr_hash_table (mm,
-				   (BtorHashPtr) btor_hash_exp_by_id,
-			           (BtorCmpPtr) btor_compare_exp_by_id);
-    
-  for (;;)
-    {
-      if (roots == NULL)
-	roots = btor->unsynthesized_constraints;
-      else if (roots == btor->unsynthesized_constraints)
-	roots = btor->synthesized_constraints;
-      else 
-	break;
-
-      for (b = roots->first; b; b = b->next)
-	{
-	  exp = b->key;
-	  BTOR_PUSH_STACK (mm, work_stack, exp);
-
-	  /* collect writes */
-	  while (!BTOR_EMPTY_STACK (work_stack))
-	    {
-	      exp = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
-	      assert (exp);
-
-	      if (exp->mark)
-		continue;
-	      
-	      assert (exp->mark == 0);
-	      exp->mark = 1;
-	      BTOR_PUSH_STACK (mm, unmark_stack, exp);
-	      for (i = exp->arity - 1; i >= 0; i--)
-		BTOR_PUSH_STACK (mm, work_stack, exp->e[i]);
-
-	      if (BTOR_IS_WRITE_NODE (exp))
-		{
-		  assert (!btor_find_in_ptr_hash_table (writes, exp));
-		  btor_insert_in_ptr_hash_table (writes, exp);
-		}
-	    }
-	}
-    }
-
-  while (!BTOR_EMPTY_STACK (unmark_stack))
-    {
-      exp = BTOR_POP_STACK (unmark_stack);
-      assert (BTOR_IS_REGULAR_NODE (exp));
-      assert (exp->mark);
-      exp->mark = 0;
-    }
-
-  substitute_and_rebuild (btor, writes, 1, 0);
-
-  BTOR_RELEASE_STACK (mm, work_stack);
-  BTOR_RELEASE_STACK (mm, unmark_stack);
-
-  btor_delete_ptr_hash_table (writes);
-}
-#endif
 
 static void
 init_cache (Btor *btor)
