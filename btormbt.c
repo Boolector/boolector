@@ -29,6 +29,9 @@
 #define MAX_BITWIDTH 128 /* must be >= 2 */
 #define MAX_INDEXWIDTH 8
 #define MAX_MULDIVWIDTH 8
+#define MIN_NPARAMS 0
+#define MAX_NPARAMS 5
+#define MAX_NPARAMEXPS 20
 
 #define USAGE                                 \
   "usage: btormbt [-k][-q][-f][-a]\n"         \
@@ -142,9 +145,10 @@ typedef enum Op
   /* ternary funs */
   COND,
   /* array funs */
-  LAMBDA,
   READ,
-  WRITE
+  WRITE,
+  /* bv funs */
+  APPLY
 } Op;
 
 typedef enum ExpType
@@ -210,7 +214,7 @@ typedef struct ExpStack
 } ExpStack;
 
 void
-es_add (ExpStack *es, BtorNode *exp)
+es_push (ExpStack *es, BtorNode *exp)
 {
   if (es->n == es->size)
   {
@@ -224,28 +228,32 @@ es_add (ExpStack *es, BtorNode *exp)
 }
 
 static void
-es_rem (ExpStack *es, int idx)
+es_del (ExpStack *es, int idx)
 {
   int i;
   assert (idx >= 0 && idx < es->n);
 
-  for (i = idx; i < es->n - 1; i++)
-  {
-    es->exps[i] = es->exps[i + 1];
-  }
+  boolector_release (data->btor, ex->exps[idx].exp);
+  for (i = idx; i < es->n - 1; i++) es->exps[i] = es->exps[i + 1];
   es->n--;
   if (idx < es->sexp) es->sexp--;
 }
 
 static void
-es_remall (ExpStack *es)
+es_reset (ExpStack *es)
 {
+  int i;
+
+  for (i = 0; i < es->n; i++) boolector_release (data->btor, es->exps[i].exp);
   es->n = 0;
 }
 
 void
-es_del (ExpStack *es)
+es_release (ExpStack *es)
 {
+  int i;
+
+  for (i = 0; i < es->n; i++) boolector_release (data->btor, es->exps[i].exp);
   free (es->exps);
 }
 
@@ -268,12 +276,14 @@ typedef struct Data
   float p_var, p_const, p_arr;
   /* propability distrbution of add and release operations */
   float p_addop, p_relop;
-  /* probability distribution of functions (without array operations), array
-   * operations and literals */
-  float p_fun, p_afun, p_lit;
+  /* probability distribution of functions (without macros and array
+   * operations), array operations, macros, literals */
+  float p_fun, p_afun, p_bfun, p_lit;
+  /* probability distribution of assertions */
+  float p_ass;
   /* target probability distribution for dynamic adaption */
-  float pt_fun, pt_afun, pt_lit, pt_rel, pt_ass, p_ass;
   ExpStack bo, bv, arr;
+  ExpStack *parambo, *parambv, *paramarr;
 
   int nass;       /* number of asserts / assumes todo in actual round */
   int nassert;    /* number of produced asserts in actual round */
@@ -281,7 +291,7 @@ typedef struct Data
   int totasserts; /* total asserts done save for printing */
   ExpStack cnf;
 
-  int dbg_rs, dbg_ns, dbg_ass;
+  // int dbg_rs, dbg_ns, dbg_ass;
   int dbg_var, dbg_const, dbg_arr;
   int dbg_addop, dbg_relop;
   int dbg_fun, dbg_afun, dbg_lit;
@@ -312,7 +322,11 @@ init_pd_lits (Data *data, float ratio_var, float ratio_const, float ratio_arr)
  * normalized to NORM_VAL
  */
 static void
-init_pd_addop (Data *data, float ratio_fun, float ratio_afun, float ratio_lit)
+init_pd_addop (Data *data,
+               float ratio_fun,
+               float ratio_afun,
+               float ratio_bfun,
+               float ratio_lit)
 {
   float sum;
 
@@ -322,6 +336,7 @@ init_pd_addop (Data *data, float ratio_fun, float ratio_afun, float ratio_lit)
 
   data->p_fun  = (ratio_fun * NORM_VAL) / sum;
   data->p_afun = (ratio_afun * NORM_VAL) / sum;
+  data->p_bfun = (ratio_bfun * NORM_VAL) / sum;
   data->p_lit  = (ratio_lit * NORM_VAL) / sum;
 }
 
@@ -408,7 +423,7 @@ nextpow2 (int val, int *pow2, int *log2)
 
 /* change node e with width ew to width tow */
 static BtorNode *
-modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow)
+modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow, int is_param)
 {
   int tmp;
   ExpStack *es;
@@ -416,14 +431,15 @@ modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow)
   assert (tow > 0 && ew > 0);
 
   if (tow > 1)
-    es = &data->bv;
+    es = is_param ? data->parambv : &data->bv;
   else
-    es = &data->bo;
+    es = is_param ? data->parambo : &data->bo;
+
   if (tow < ew)
   {
     tmp = pick (rng, 0, ew - tow);
     e   = boolector_slice (data->btor, e, tmp + tow - 1, tmp);
-    es_add (es, e);
+    es_push (es, e);
     es->exps[es->n - 1].pars++;
   }
   else if (tow > ew)
@@ -431,7 +447,7 @@ modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow)
     tmp = boolector_get_width (data->btor, e);
     e   = (pick (rng, 0, 1) ? boolector_uext (data->btor, e, tow - ew)
                           : boolector_sext (data->btor, e, tow - ew));
-    es_add (es, e);
+    es_push (es, e);
     es->exps[es->n - 1].pars++;
   }
 
@@ -489,7 +505,7 @@ selexp (Data *data, RNG *rng, ExpType type)
   if (idx < 0)
   {
     /* select random literal */
-    data->dbg_rs++;
+    // data->dbg_rs++;
     idx = pick (rng, 0, es->n - 1);
   }
   exp = es->exps[idx].exp;
@@ -522,7 +538,7 @@ selarrexp (Data *data, RNG *rng, BtorNode *e, int ew, int iw)
   } while (idx != i);
   /* no suitable array found */
   sele = boolector_array (data->btor, ew, iw, NULL);
-  es_add (&data->arr, sele);
+  es_push (&data->arr, sele);
   data->arr.exps[data->arr.n - 1].pars++;
 
   return sele;
@@ -541,11 +557,11 @@ make_var (Data *data, RNG *rng, ExpType type)
 
   if (width == 1)
   {
-    es_add (&data->bo, boolector_var (data->btor, width, NULL));
+    es_push (&data->bo, boolector_var (data->btor, width, NULL));
   }
   else
   {
-    es_add (&data->bv, boolector_var (data->btor, width, NULL));
+    es_push (&data->bv, boolector_var (data->btor, width, NULL));
   }
 }
 
@@ -587,19 +603,19 @@ make_const (Data *data, RNG *rng)
       char *buff = malloc (width + 1); /* generate random binary string */
       for (i = 0; i < width; i++) buff[i] = pick (rng, 0, 1) ? '1' : '0';
       buff[width] = '\0';
-      es_add (es, boolector_const (data->btor, buff));
+      es_push (es, boolector_const (data->btor, buff));
       free (buff);
       break;
     }
-    case ZERO: es_add (es, boolector_zero (data->btor, width)); break;
-    case FALSE: es_add (es, boolector_false (data->btor)); break;
-    case ONES: es_add (es, boolector_ones (data->btor, width)); break;
-    case TRUE: es_add (es, boolector_true (data->btor)); break;
-    case ONE: es_add (es, boolector_one (data->btor, width)); break;
+    case ZERO: es_push (es, boolector_zero (data->btor, width)); break;
+    case FALSE: es_push (es, boolector_false (data->btor)); break;
+    case ONES: es_push (es, boolector_ones (data->btor, width)); break;
+    case TRUE: es_push (es, boolector_true (data->btor)); break;
+    case ONE: es_push (es, boolector_one (data->btor, width)); break;
     case UINT:
-      es_add (es, boolector_unsigned_int (data->btor, val, width));
+      es_push (es, boolector_unsigned_int (data->btor, val, width));
       break;
-    case INT: es_add (es, boolector_int (data->btor, val, width)); break;
+    case INT: es_push (es, boolector_int (data->btor, val, width)); break;
     default: assert (0);
   }
 }
@@ -610,11 +626,11 @@ make_arr (Data *data, RNG *rng)
   int ew = pick (rng, 1, MAX_BITWIDTH);
   int iw = pick (rng, 1, MAX_INDEXWIDTH);
 
-  es_add (&data->arr, boolector_array (data->btor, ew, iw, NULL));
+  es_push (&data->arr, boolector_array (data->btor, ew, iw, NULL));
 }
 
 static void
-unary_fun (Data *data, RNG *rng, Op op, BtorNode *e0)
+unary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, int is_param)
 {
   int tmp0, tmp1, e0w, rw;
   ExpStack *es;
@@ -645,30 +661,31 @@ unary_fun (Data *data, RNG *rng, Op op, BtorNode *e0)
 
   assert (rw > 0);
   if (rw == 1)
-    es = &data->bo;
+    es = is_param ? data->parambo : &data->bo;
   else
-    es = &data->bv;
+    es = is_param ? data->parambv : &data->bv;
 
   switch (op)
   {
-    case NOT: es_add (es, boolector_not (data->btor, e0)); break;
-    case NEG: es_add (es, boolector_neg (data->btor, e0)); break;
+    case NOT: es_push (es, boolector_not (data->btor, e0)); break;
+    case NEG: es_push (es, boolector_neg (data->btor, e0)); break;
     case SLICE:
-      es_add (es, boolector_slice (data->btor, e0, tmp0, tmp1));
+      es_push (es, boolector_slice (data->btor, e0, tmp0, tmp1));
       break;
-    case INC: es_add (es, boolector_inc (data->btor, e0)); break;
-    case DEC: es_add (es, boolector_dec (data->btor, e0)); break;
-    case UEXT: es_add (es, boolector_uext (data->btor, e0, tmp0)); break;
-    case SEXT: es_add (es, boolector_sext (data->btor, e0, tmp0)); break;
-    case REDOR: es_add (es, boolector_redor (data->btor, e0)); break;
-    case REDXOR: es_add (es, boolector_redxor (data->btor, e0)); break;
-    case REDAND: es_add (es, boolector_redand (data->btor, e0)); break;
+    case INC: es_push (es, boolector_inc (data->btor, e0)); break;
+    case DEC: es_push (es, boolector_dec (data->btor, e0)); break;
+    case UEXT: es_push (es, boolector_uext (data->btor, e0, tmp0)); break;
+    case SEXT: es_push (es, boolector_sext (data->btor, e0, tmp0)); break;
+    case REDOR: es_push (es, boolector_redor (data->btor, e0)); break;
+    case REDXOR: es_push (es, boolector_redxor (data->btor, e0)); break;
+    case REDAND: es_push (es, boolector_redand (data->btor, e0)); break;
     default: assert (0);
   }
 }
 
 static void
-binary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1)
+binary_fun (
+    Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, int is_param)
 {
   int tmp0, tmp1, e0w, e1w, rw;
   ExpStack *es;
@@ -734,65 +751,70 @@ binary_fun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1)
   }
 
   if (rw == 1)
-    es = &data->bo;
+    es = is_param ? data->parambo : &data->bo;
   else
-    es = &data->bv;
+    es = is_param ? data->parambv : &data->bv;
 
   switch (op)
   {
-    case XOR: es_add (es, boolector_xor (data->btor, e0, e1)); break;
-    case XNOR: es_add (es, boolector_xnor (data->btor, e0, e1)); break;
-    case AND: es_add (es, boolector_and (data->btor, e0, e1)); break;
-    case NAND: es_add (es, boolector_nand (data->btor, e0, e1)); break;
-    case OR: es_add (es, boolector_or (data->btor, e0, e1)); break;
-    case NOR: es_add (es, boolector_nor (data->btor, e0, e1)); break;
-    case ADD: es_add (es, boolector_add (data->btor, e0, e1)); break;
-    case SUB: es_add (es, boolector_sub (data->btor, e0, e1)); break;
-    case MUL: es_add (es, boolector_mul (data->btor, e0, e1)); break;
-    case UDIV: es_add (es, boolector_udiv (data->btor, e0, e1)); break;
-    case SDIV: es_add (es, boolector_sdiv (data->btor, e0, e1)); break;
-    case UREM: es_add (es, boolector_urem (data->btor, e0, e1)); break;
-    case SREM: es_add (es, boolector_srem (data->btor, e0, e1)); break;
-    case SMOD: es_add (es, boolector_smod (data->btor, e0, e1)); break;
-    case SLL: es_add (es, boolector_sll (data->btor, e0, e1)); break;
-    case SRL: es_add (es, boolector_srl (data->btor, e0, e1)); break;
-    case SRA: es_add (es, boolector_sra (data->btor, e0, e1)); break;
-    case ROL: es_add (es, boolector_rol (data->btor, e0, e1)); break;
-    case ROR: es_add (es, boolector_ror (data->btor, e0, e1)); break;
-    case CONCAT: es_add (es, boolector_concat (data->btor, e0, e1)); break;
-    case EQ: es_add (es, boolector_eq (data->btor, e0, e1)); break;
-    case NE: es_add (es, boolector_ne (data->btor, e0, e1)); break;
-    case UADDO: es_add (es, boolector_uaddo (data->btor, e0, e1)); break;
-    case SADDO: es_add (es, boolector_saddo (data->btor, e0, e1)); break;
-    case USUBO: es_add (es, boolector_usubo (data->btor, e0, e1)); break;
-    case SSUBO: es_add (es, boolector_ssubo (data->btor, e0, e1)); break;
-    case UMULO: es_add (es, boolector_umulo (data->btor, e0, e1)); break;
-    case SMULO: es_add (es, boolector_smulo (data->btor, e0, e1)); break;
-    case SDIVO: es_add (es, boolector_sdivo (data->btor, e0, e1)); break;
-    case ULT: es_add (es, boolector_ult (data->btor, e0, e1)); break;
-    case SLT: es_add (es, boolector_slt (data->btor, e0, e1)); break;
-    case ULTE: es_add (es, boolector_ulte (data->btor, e0, e1)); break;
-    case SLTE: es_add (es, boolector_slte (data->btor, e0, e1)); break;
-    case UGT: es_add (es, boolector_ugt (data->btor, e0, e1)); break;
-    case SGT: es_add (es, boolector_sgt (data->btor, e0, e1)); break;
-    case UGTE: es_add (es, boolector_ugte (data->btor, e0, e1)); break;
-    case SGTE: es_add (es, boolector_sgte (data->btor, e0, e1)); break;
-    case IMPLIES: es_add (es, boolector_implies (data->btor, e0, e1)); break;
-    case IFF: es_add (es, boolector_iff (data->btor, e0, e1)); break;
-    default: assert (0);
+    case XOR: es_push (es, boolector_xor (data->btor, e0, e1)); break;
+    case XNOR: es_push (es, boolector_xnor (data->btor, e0, e1)); break;
+    case AND: es_push (es, boolector_and (data->btor, e0, e1)); break;
+    case NAND: es_push (es, boolector_nand (data->btor, e0, e1)); break;
+    case OR: es_push (es, boolector_or (data->btor, e0, e1)); break;
+    case NOR: es_push (es, boolector_nor (data->btor, e0, e1)); break;
+    case ADD: es_push (es, boolector_add (data->btor, e0, e1)); break;
+    case SUB: es_push (es, boolector_sub (data->btor, e0, e1)); break;
+    case MUL: es_push (es, boolector_mul (data->btor, e0, e1)); break;
+    case UDIV: es_push (es, boolector_udiv (data->btor, e0, e1)); break;
+    case SDIV: es_push (es, boolector_sdiv (data->btor, e0, e1)); break;
+    case UREM: es_push (es, boolector_urem (data->btor, e0, e1)); break;
+    case SREM: es_push (es, boolector_srem (data->btor, e0, e1)); break;
+    case SMOD: es_push (es, boolector_smod (data->btor, e0, e1)); break;
+    case SLL: es_push (es, boolector_sll (data->btor, e0, e1)); break;
+    case SRL: es_push (es, boolector_srl (data->btor, e0, e1)); break;
+    case SRA: es_push (es, boolector_sra (data->btor, e0, e1)); break;
+    case ROL: es_push (es, boolector_rol (data->btor, e0, e1)); break;
+    case ROR: es_push (es, boolector_ror (data->btor, e0, e1)); break;
+    case CONCAT: es_push (es, boolector_concat (data->btor, e0, e1)); break;
+    case EQ: es_push (es, boolector_eq (data->btor, e0, e1)); break;
+    case NE: es_push (es, boolector_ne (data->btor, e0, e1)); break;
+    case UADDO: es_push (es, boolector_uaddo (data->btor, e0, e1)); break;
+    case SADDO: es_push (es, boolector_saddo (data->btor, e0, e1)); break;
+    case USUBO: es_push (es, boolector_usubo (data->btor, e0, e1)); break;
+    case SSUBO: es_push (es, boolector_ssubo (data->btor, e0, e1)); break;
+    case UMULO: es_push (es, boolector_umulo (data->btor, e0, e1)); break;
+    case SMULO: es_push (es, boolector_smulo (data->btor, e0, e1)); break;
+    case SDIVO: es_push (es, boolector_sdivo (data->btor, e0, e1)); break;
+    case ULT: es_push (es, boolector_ult (data->btor, e0, e1)); break;
+    case SLT: es_push (es, boolector_slt (data->btor, e0, e1)); break;
+    case ULTE: es_push (es, boolector_ulte (data->btor, e0, e1)); break;
+    case SLTE: es_push (es, boolector_slte (data->btor, e0, e1)); break;
+    case UGT: es_push (es, boolector_ugt (data->btor, e0, e1)); break;
+    case SGT: es_push (es, boolector_sgt (data->btor, e0, e1)); break;
+    case UGTE: es_push (es, boolector_ugte (data->btor, e0, e1)); break;
+    case SGTE: es_push (es, boolector_sgte (data->btor, e0, e1)); break;
+    case IMPLIES: es_push (es, boolector_implies (data->btor, e0, e1)); break;
+    default:
+      assert (op == IFF);
+      es_push (es, boolector_iff (data->btor, e0, e1));
   }
 }
 
 static void
-ternary_fun (
-    Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
+ternary_fun (Data *data,
+             RNG *rng,
+             Op op,
+             BtorNode *e0,
+             BtorNode *e1,
+             BtorNode *e2,
+             int is_param)
 {
+  assert (is_ternary_fun (op));
+  assert (boolector_get_width (data->btor, e0) == 1);
+
   int e1w, e2w;
   ExpStack *es;
-
-  assert (is_ternary_fun (op));
-
-  assert (boolector_get_width (data->btor, e0) == 1);
 
   e1w = boolector_get_width (data->btor, e1);
   assert (e1w <= MAX_BITWIDTH);
@@ -804,15 +826,11 @@ ternary_fun (
   e2w = e1w;
 
   if (e1w == 1)
-    es = &data->bo;
+    es = is_param ? data->parambo : &data->bo;
   else
-    es = &data->bv;
+    es = is_param ? data->parambv : &data->bv;
 
-  switch (op)
-  {
-    case COND: es_add (es, boolector_cond (data->btor, e0, e1, e2)); break;
-    default: assert (0);
-  }
+  es_push (es, boolector_cond (data->btor, e0, e1, e2));
 }
 
 /* calling convention:
@@ -826,15 +844,19 @@ ternary_fun (
  * if e0 && e1 are arrays they have to be the same size
  */
 static void
-afun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
+afun (Data *data,
+      RNG *rng,
+      Op op,
+      BtorNode *e0,
+      BtorNode *e1,
+      BtorNode *e2,
+      int is_param)
 {
   int e0w, e0iw, e1w, e2w;
   ExpStack *es;
 
   int isarr = is_array_fun (op);
-#ifdef NDEBUG
   UNUSED (isarr);
-#endif
   assert (isarr);
   assert (boolector_is_array (data->btor, e0));
 
@@ -856,15 +878,16 @@ afun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
       assert (e1w <= MAX_BITWIDTH);
 
       e2 = modifybv (data, rng, e2, e2w, e0w);
-      es_add (&data->arr, boolector_write (data->btor, e0, e1, e2));
+      es_push (is_param ? data->paramarr : &data->arr,
+               boolector_write (data->btor, e0, e1, e2));
     }
     else
     {
       if (e0w == 1)
-        es = &data->bo;
+        es = is_param ? data->parambo : &data->bo;
       else
-        es = &data->bv;
-      es_add (es, boolector_read (data->btor, e0, e1));
+        es = is_param ? data->parambv : &data->bv;
+      es_push (es, boolector_read (data->btor, e0, e1));
     }
   }
   else
@@ -876,13 +899,16 @@ afun (Data *data, RNG *rng, Op op, BtorNode *e0, BtorNode *e1, BtorNode *e2)
             && boolector_get_index_width (data->btor, e1) <= MAX_INDEXWIDTH);
 
     if (op == EQ)
-      es_add (&data->bo, boolector_eq (data->btor, e0, e1));
+      es_push (is_param ? data->parambo : &data->bo,
+               boolector_eq (data->btor, e0, e1));
     else if (op == NE)
-      es_add (&data->bo, boolector_ne (data->btor, e0, e1));
+      es_push (is_param ? data->parambo : &data->bo,
+               boolector_ne (data->btor, e0, e1));
     else
     {
       assert (op == COND);
-      es_add (&data->arr, boolector_cond (data->btor, e2, e0, e1));
+      es_push (is_param ? data->paramarr : &data->arr,
+               boolector_cond (data->btor, e2, e0, e1));
     }
   }
 }
@@ -908,7 +934,7 @@ make_clause (Data *data, RNG *rng, int ifrom, int ito)
       if (pick (rng, 0, 1))
       {
         e0 = boolector_not (data->btor, e0);
-        es_add (&data->cnf, e0);
+        es_push (&data->cnf, e0);
       }
     }
     else
@@ -917,10 +943,10 @@ make_clause (Data *data, RNG *rng, int ifrom, int ito)
       if (pick (rng, 0, 1))
       {
         e1 = boolector_not (data->btor, e1);
-        es_add (&data->cnf, e1);
+        es_push (&data->cnf, e1);
       }
       e0 = boolector_or (data->btor, e0, e1);
-      es_add (&data->cnf, e0);
+      es_push (&data->cnf, e0);
     }
   }
   return e0;
@@ -960,7 +986,8 @@ _new (Data *data, unsigned r)
   /* no delete operation at init */
   init_pd_op (data, 1, 0);
   /* no additional lits at init */
-  init_pd_addop (data, pick (&rng, 1, 10), pick (&rng, 0, 5), 0);
+  init_pd_addop (
+      data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5), 0);
 
   if (data->print)
     printf (
@@ -1057,17 +1084,20 @@ _init (Data *data, unsigned r)
 
   init_pd_lits (data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
   init_pd_op (data, pick (&rng, 1, 8), pick (&rng, 1, 3));
-  init_pd_addop (
-      data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 3));
+  init_pd_addop (data,
+                 pick (&rng, 1, 10),
+                 pick (&rng, 0, 5),
+                 pick (&rng, 0, 5),
+                 pick (&rng, 0, 3));
 
   if (data->print)
-    printf (
-        "[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%), make ~%d "
-        "asserts/assumes \n",
-        data->nops,
-        data->p_addop / 10,
-        data->p_relop / 10,
-        data->nass);
+  {
+    printf ("[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
+            data->nops,
+            data->p_addop / 10,
+            data->p_relop / 10);
+    printf ("[btormbt]       make ~%d asserts/assumes \n", data->nass);
+  }
 
   data->isinit = 1;
   return _main;
@@ -1133,6 +1163,8 @@ _addop (Data *data, unsigned r)
     next = _fun;
   else if (rand < data->p_fun + data->p_afun)
     next = _afun;
+  else if (rand < data->p_fun + data->p_afun + data->p_bfun)
+    next = _bfun;
   else
     next = _lit;
 
@@ -1151,24 +1183,21 @@ _fun (Data *data, unsigned r)
   if (is_unary_fun (op))
   {
     e0 = selexp (data, &rng, T_BB);
-    unary_fun (data, &rng, op, e0);
+    unary_fun (data, &rng, op, e0, 0);
   }
   else if (is_binary_fun (op))
   {
     e0 = selexp (data, &rng, ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB));
     e1 = selexp (data, &rng, ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB));
-    binary_fun (data, &rng, op, e0, e1);
-  }
-  else if (is_ternary_fun (op))
-  {
-    e0 = selexp (data, &rng, T_BO);
-    e1 = selexp (data, &rng, T_BB);
-    e2 = selexp (data, &rng, T_BB);
-    ternary_fun (data, &rng, op, e0, e1, e2);
+    binary_fun (data, &rng, op, e0, e1, 0);
   }
   else
   {
-    assert (0);
+    assert (is_ternary_fun (op));
+    e0 = selexp (data, &rng, T_BO);
+    e1 = selexp (data, &rng, T_BB);
+    e2 = selexp (data, &rng, T_BB);
+    ternary_fun (data, &rng, op, e0, e1, e2, 0);
   }
   return (data->isinit ? _main : _init);
 }
@@ -1191,14 +1220,9 @@ _afun (Data *data, unsigned r)
   // TODO may use p=0.5??
   if (pick (&rng, 0, 2))
   {
-    op = pick (&rng, LAMBDA, WRITE);
+    op = pick (&rng, READ, WRITE);
     e1 = selexp (data, &rng, T_BV);
-    if (op == LAMBDA)
-    // TODO
-    {
-    }
-    else if (op == WRITE)
-      e2 = selexp (data, &rng, T_BV);
+    if (op == WRITE) e2 = selexp (data, &rng, T_BV);
     afun (data, &rng, op, e0, e1, e2);
   }
   else
@@ -1206,16 +1230,253 @@ _afun (Data *data, unsigned r)
     /* select EQ/NE/COND with same propability */
     op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
     e1 = selarrexp (data, &rng, e0, e0w, e0iw);
-    if (op == COND)
-    {
-      e2 = selexp (data, &rng, T_BO);
-    }
+    if (op == COND) e2 = selexp (data, &rng, T_BO);
     afun (data, &rng, op, e0, e1, e2);
   }
 
   return (data->isinit ? _main : _init);
 }
 
+/////////////////////////// TODO move
+static BtorNode *
+lambda_selexp (
+    Data *data, RNG *rng, ExpType type, int force_param, int *is_param)
+{
+  int rand, idx = -1;
+  ExpStack *es, *bo, *bv, *arr;
+
+  /* choose between param. exps and non-param. exps with p = 0.5 */
+  rand = (&rng, 0, NORM_VAL - 1);
+  if (!(data->parambo->n || data->parambv->n || data->paramarr->n)
+      || !force_param || rand < 0.5 * NORM_VAL)  // FIXME store p value in data
+  {
+    bo        = &data->bo;
+    bv        = &data->bv;
+    arr       = &data->arr;
+    *is_param = 0;
+  }
+  else
+  {
+    bo        = data->parambo;
+    bv        = data->parambv;
+    arr       = data->paramarr;
+    *is_param = 1;
+  }
+
+  switch (type)
+  {
+    case T_BO: es = bo; break;
+    case T_BV: es = bv; break;
+    case T_ARR: es = arr; break;
+    default:
+    {
+      assert (type == T_BB);
+      /* select target exp stack with prob. proportional to size */
+      rand = pick (rng, 0, bo->n + bv->n - 1);
+      es   = rand < bo->n ? bo : bv;
+    }
+  }
+  /* select first nodes without parents (not yet referenced) */
+  while (ex->sexp < es->n)
+  {
+    if (es->exps[es->sexp].pars <= 0)
+    {
+      idx = es->sexp++;
+      // data->dbg_ns++;
+      break;
+    }
+    es->sexp++;
+  }
+  if (idx < 0)
+  {
+    /* select random literal */
+    // data->dbg_rs++;
+    idx = pick (rng, ß, ex->n - 1);
+  }
+  exp = es->exps[idx].exp;
+  es->exps[idx].pars++;
+  return exp;
+}
+
+static BtorNode *
+lambda_selarrexp (
+    Data *data, RNG *rng, BtorNode *e, int eew, int eiw, int force_param)
+{
+  int i, rand, idx, sel_eew, sel_eiw;
+  ExpStack *es;
+  BtorNode *sel_e;
+
+  /* choose between param. exps and non-param. exps with p = 0.5 */
+  rand = pick (&rng, 0, NORM_VAL - 1);
+  if (!(data->parambo->n || data->parambv->n || data->paramarr->n)
+      || !force_param || rand < 0.5 * NORM_VAL)  // FIXME store p value in data
+    es = &data->arr;
+  else
+    es = data->paramarr;
+
+  /* random search start idx */
+  idx = i = pick (&rng, 0, es->n - 1);
+  do
+  {
+    sel_e   = es->exps[i].exp;
+    sel_eew = boolector_get_width (data->btor, sel_e);
+    sel_eiw = boolector_get_index_width (data->btor, sel_e);
+    if (sel_Eew == eew && sel_eiw == eiw && sel_e != e)
+    {
+      es->exps[i].pars++;
+      return sel_e;
+    }
+    i = (i + 1) % es->n;
+  } while (idx != i);
+  /* no suitable array found */
+  if (force_param) return NULL;
+  sel_e = boolector_array (data->btor, eew, eiw, NULL);
+  es_push (es, sel_e);
+  es->exps[es->n - 1].pars++;
+  return sel_e;
+}
+
+static BtorNode *
+bfun (Data *data, unsigned r, int *nparams, int *width)
+{
+  int i, n, np, ip, w, width, nops, rand, eiw, eew;
+  ExpStack parambo, parambv, paramarr;
+  BtorNode e[3], *tmp, *fun, **params, **args;
+  RNG rng;
+  Op op;
+
+  rng            = initrng (r);
+  data->parambo  = &parambo;
+  data->parambv  = &parambv;
+  data->paramarr = &paramarr;
+
+  /* Choose function parameters */
+  *width   = pick (&rng, 1, MAX_BITWIDTH);
+  *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
+  params   = malloc (sizeof (BtorNode *) * *nparams);
+  for (i = 0; i < *nparams; i++)
+  {
+    tmp       = boolector_param (data->btor, *width, NULL);
+    params[i] = tmp;
+    ex_push (*data->parambv, tmp);
+  }
+
+  /* Generate parameterized expressions */
+  nops = pick (&rng, 0, MAX_NPARAMEXPS);
+  n    = 0;
+  while (n < nops)
+  {
+    rand = pick (&rng, 0, NORM_VAL - 1);
+    if (rand < data->p_fun)
+    {
+      op = pick (&rng, NOT, COND);
+      if (is_unary_fun (op))
+      {
+        e0 = lambda_selexp (data, &rng, T_BB, 1, &ip);
+        unary_fun (data, &rng, op, e0, 1);
+      }
+      else if (is_binary_fun (op))
+      {
+        rand = pick (&rng, 0, 1);
+        for (i = 0; i < 2; i++)
+          e[i] = lambda_selexp (data,
+                                &rng,
+                                ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB),
+                                i == rand ? 1 : 0,
+                                &ip);
+        binary_fun (data, &rng, op, e[0], e[1], 1);
+      }
+      else
+      {
+        assert (is_ternary_fun (opt));
+        rand = pick (&rng, 0, 2);
+        for (i = 0; i < 3; i++)
+          e[i] = lambda_selexp (
+              data, &rng, i == 0 ? T_BO : T_BB, i == rand ? 1 : 0, &ip);
+        ternary_fun (data, &rng, op, e[0], e[1], e[2], 1);
+      }
+    }
+    else if (rand < data->p_fun + data->p_afun)
+    {
+      rand = pick (&rng, 0, 1);
+      e[0] = lambda_selexp (data, &rng, T_ARR, rand, &ip);
+      eew  = boolector_get_width (data->btor, e[0]);
+      eiw  = boolector_get_index_width (data->btor, e[0]);
+
+      /* choose READ/WRITE with p = 0.666, else EQ/NE/COND */
+      if (pick (&rng, 0, 2))
+      {
+        op = pick (&rng, READ, WRITE);
+        if (op == WRITE)
+        {
+          rand = pick (&rng, 1, 2);
+          for (i = 1; i < 3; i++)
+            e[i] =
+                lambda_selexp (data, &rng, T_BV, rand == i ? rand ^ 1 : 0, &ip);
+        }
+        else
+          e[1] = lambda_selexp (data, &rng, T_BV, rand ^ 1, &ip);
+        afun (data, &rng, op, e[0], e[1], e[2], 1);
+      }
+      else
+      {
+        /* distribute EQ, NE and COND evenly */
+        op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
+        e[1] lambda_selarrexp (data, &rng, e[0], eew, eiw, rand ^ 1);
+        if (op == COND) e[2] = lambda_selexp (data, &rng, T_BO, 0, &ip);
+        afun (data, &rng, op, e[0], e[1], e[2], 1);
+      }
+    }
+    else
+    {
+      fun  = bfun (data, r, &np, &w);
+      args = malloc (sizeof (BtorNode *) * np);
+      for (i = 0; i < np; i++)
+      {
+        tmp     = lamdba_selexp (data, &rng, T_BV, &ip);
+        args[i] = modifybv (data, &rng, tmp, boolector_get_width (tmp), w, ip);
+      }
+
+      es_push (data->parambv, boolector_apply (data->btor, np, args, fun));
+
+      /* cleanup and reset to current scope */
+      free (args);
+      data->parambo  = &parambo;
+      data->parambv  = &parambv;
+      data->paramarr = &paramarr;
+    }
+  }
+
+  rand = pick (&rng, 0, parambv.n - 1);
+  fun  = boolector_fun (data->btor, nparams, params, parambv.exps[rand].exp);
+  args = malloc (sizeof (BtorNode *) * *nparams);
+  for (i = 0; i < *nparams; i++)
+  {
+    tmp     = lambda_selexp (data, &rng, T_BV, &ip);
+    args[i] = modifybv (data, &rng, tmp, boolector_get_width (tmp), *width, ip);
+  }
+  tmp = boolector_apply (data->btor, *nparams, args, fun);
+
+  /* cleanup */
+  es_release (parambo);
+  es_release (parambv);
+  es_release (paramarr);
+  free (params);
+
+  return tmp;
+}
+
+static void *
+_bfun (Data *data, unsigned r)
+{
+  assert (!data->parambo->n && !data->parambv->n && !data->paramarr->n);
+
+  es_reset (data->parambo);
+  es_reset (data->parambv);
+  es_reset (data->paramarr);
+}
+
+/////////////////////////////////////////////
 static void *
 _lit (Data *data, unsigned r)
 {
@@ -1270,8 +1531,7 @@ _relop (Data *data, unsigned r)
     else
       assert (boolector_is_array (data->btor, data->arr.exps[idx].exp));
 
-    boolector_release (data->btor, es->exps[idx].exp);
-    es_rem (es, idx);
+    es_del (es, idx);
   }
   return (data->isinit ? _main : _init);
 }
@@ -1283,7 +1543,7 @@ _ass (Data *data, unsigned r)
   RNG rng = initrng (r);
   BtorNode *cls;
 
-  data->dbg_ass++;
+  // data->dbg_ass++;
 
   /* select from init layer with lower probability */
   lower = (data->bo.n > data->bo.initlayer && pick (&rng, 0, 4)
@@ -1372,15 +1632,10 @@ _mgen (Data *data, unsigned r)
 static void *
 _inc (Data *data, unsigned r)
 {
-  int i;
   RNG rng = initrng (r);
 
   /* release cnf expressions */
-  for (i = 0; i < data->cnf.n; i++)
-  {
-    boolector_release (data->btor, data->cnf.exps[i].exp);
-  }
-  es_remall (&data->cnf);
+  es_reset (&data->cnf);
 
   if (data->inc && pick (&rng, 0, 2))
   {
@@ -1393,8 +1648,11 @@ _inc (Data *data, unsigned r)
     init_pd_lits (
         data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
     init_pd_op (data, pick (&rng, 1, 5), pick (&rng, 1, 5));
-    init_pd_addop (
-        data, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 3));
+    init_pd_addop (data,
+                   pick (&rng, 1, 10),
+                   pick (&rng, 0, 5),
+                   pick (&rng, 1, 5),
+                   pick (&rng, 0, 3));
 
     if (data->print)
       printf ("[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
@@ -1436,9 +1694,7 @@ _del (Data *data, unsigned r)
   UNUSED (r);
   boolector_delete (data->btor);
   if (data->print && data->inc)
-  {
     printf ("[btormbt] number of increments: %d \n", data->inc - 1);
-  }
   return 0;
 }
 
@@ -1466,10 +1722,10 @@ rantrav (Env *env)
     next = state (&data, rand);
   }
 
-  es_del (&data.bv);
-  es_del (&data.bo);
-  es_del (&data.arr);
-  es_del (&data.cnf);
+  es_release (&data.bv);
+  es_release (&data.bo);
+  es_release (&data.arr);
+  es_release (&data.cnf);
 }
 
 static int
