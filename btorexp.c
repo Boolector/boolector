@@ -6136,6 +6136,11 @@ btor_print_stats_btor (Btor *btor)
   btor_msg_exp (btor, 1, "");
   btor_msg_exp (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
   btor_msg_exp (btor, 1, "%.2f seconds expression evaluation", btor->time.eval);
+  btor_msg_exp (
+      btor, 1, "%.2f seconds lazy apply encoding", btor->time.enc_app);
+  btor_msg_exp (
+      btor, 1, "%.2f seconds lazy lambda encoding", btor->time.enc_lambda);
+  btor_msg_exp (btor, 1, "%.2f seconds node search", btor->time.find_dfs);
   btor_msg_exp (btor, 1, "");
   btor_msg_exp (
       btor, 1, "%.2f seconds in rewriting engine", btor->time.rewrite);
@@ -7840,10 +7845,12 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   assert (BTOR_IS_REGULAR_NODE (acc));
   assert (BTOR_IS_ACC_NODE (acc));
 
+  double start;
   int i, changed_assignments, update, argc;
   BtorNode *arg, **e;
   BtorAIGVecMgr *avmgr = 0;
 
+  start               = btor_time_stamp ();
   changed_assignments = 0;
   update              = 0;
   avmgr               = btor->avmgr;
@@ -7901,6 +7908,8 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   /* update assignments if necessary */
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
+
+  btor->time.enc_app += btor_time_stamp () - start;
   return changed_assignments;
 }
 
@@ -7949,12 +7958,14 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (lambda_exp));
   assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
 
+  double start;
   int changed_assignments, update, i;
   BtorNodePtrStack work_stack, unmark_stack;
   BtorNode *cur;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
 
+  start               = btor_time_stamp ();
   mm                  = btor->mm;
   avmgr               = btor->avmgr;
   changed_assignments = 0;
@@ -8038,6 +8049,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
 
+  btor->time.enc_lambda += btor_time_stamp () - start;
   return changed_assignments;
 }
 
@@ -8240,13 +8252,15 @@ find_nodes_dfs (Btor *btor,
   assert (findfun);
 
   int i;
+  double start;
   BtorNode *cur;
   BtorNodePtrStack work_stack, unmark_stack;
   BtorMemMgr *mm;
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
-  mm = btor->mm;
+  start = btor_time_stamp ();
+  mm    = btor->mm;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
@@ -8281,6 +8295,7 @@ find_nodes_dfs (Btor *btor,
 
   BTOR_RELEASE_STACK (mm, work_stack);
   BTOR_RELEASE_STACK (mm, unmark_stack);
+  btor->time.find_dfs += btor_time_stamp () - start;
 }
 
 static int

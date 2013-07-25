@@ -462,6 +462,9 @@ struct Btor
     double skel;
     double beta;
     double eval;
+    double enc_app;
+    double enc_lambda;
+    double find_dfs;
   } time;
 };
 
