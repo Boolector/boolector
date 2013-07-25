@@ -448,6 +448,7 @@ struct Btor
     long long lambda_chains_merged;
     long long lambdas_merged;
     long long propagations;
+    long long propagations_down;
     long long apply_props_construct;
   } stats;
 

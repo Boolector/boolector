@@ -1924,11 +1924,14 @@ collect_premisses (Btor *btor,
         if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
           BTOR_PUSH_STACK (mm, bconds, cur);
       }
-      else if (BTOR_IS_APPLY_NODE (cur))
-      {
-        assert (ENABLE_APPLY_PROP_DOWN);
-        BTOR_PUSH_STACK (mm, apps, cur);
-      }
+// TODO: disabled app over app propagation
+#if 0
+	  else if (BTOR_IS_APPLY_NODE (cur))
+	    {
+	      assert (ENABLE_APPLY_PROP_DOWN);
+	      BTOR_PUSH_STACK (mm, apps, cur);
+	    }
+#endif
     }
     prev                    = cur;
     prev_propagated_upwards = propagated_upwards;
@@ -2133,46 +2136,50 @@ encode_lemma (Btor *btor,
     }
 #endif
 
+// TODO: disabled app over app propagation
+#if 0
   /* encode app over app propagation premisses */
   for (bucket = fun_apps->last; bucket; bucket = bucket->prev)
-  {
-    cur = (BtorNode *) bucket->key;
-    BTORLOG ("  app: %s", node2string (cur));
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_APPLY_NODE (cur));
-    tuple = (BtorNodeTuple *) bucket->data.asPtr;
-    /* get application that was propagated over cur */
-    args0 = tuple->e1;
-    assert (BTOR_IS_REGULAR_NODE (args0));
-    assert (BTOR_IS_ARGS_NODE (args0));
-    assert (args0 == app0->e[1] || args0 == app1->e[1]);
-
-    if (!cur->tseitin)
     {
-      assert (cur->parameterized);
-      lambda = tuple->e0;
-      assert (BTOR_IS_REGULAR_NODE (lambda));
-      assert (BTOR_IS_LAMBDA_NODE (lambda));
+      cur = (BtorNode *) bucket->key;
+      BTORLOG ("  app: %s", node2string (cur));
+      assert (BTOR_IS_REGULAR_NODE (cur));
+      assert (BTOR_IS_APPLY_NODE (cur));
+      tuple = (BtorNodeTuple *) bucket->data.asPtr;
+      /* get application that was propagated over cur */
+      args0 = tuple->e1;
+      assert (BTOR_IS_REGULAR_NODE (args0));
+      assert (BTOR_IS_ARGS_NODE (args0));
+      assert (args0 == app0->e[1] || args0 == app1->e[1]);
 
-      btor_assign_args (btor, lambda, args0);
-      beta_app = btor_beta_reduce_cutoff (btor, cur, 0);
-      btor_unassign_param (btor, lambda);
+      if (!cur->tseitin)
+	{
+	  assert (cur->parameterized);
+	  lambda = tuple->e0;
+	  assert (BTOR_IS_REGULAR_NODE (lambda));
+	  assert (BTOR_IS_LAMBDA_NODE (lambda));
 
-      assert (beta_app->refs > 1);
-      btor_release_exp (btor, beta_app);
-      args1 = beta_app->e[1];
+	  btor_assign_args (btor, lambda, args0);
+	  beta_app = btor_beta_reduce_cutoff (btor, cur, 0);
+	  btor_unassign_param (btor, lambda);
+
+	  assert (beta_app->refs > 1);
+	  btor_release_exp (btor, beta_app);
+	  args1 = beta_app->e[1];
+	}
+      else
+	args1 = cur->e[1];
+
+      assert (BTOR_IS_ARGS_NODE (args0));
+      assert (BTOR_IS_ARGS_NODE (args1));
+      assert (args0->arity == args1->arity);
+
+      for (i = 0; i < args0->arity; i++)
+	add_neq_exp_to_clause (btor, args0->e[i], args1->e[i],
+			       &linking_clause);
+      delete_node_tuple (btor, tuple);
     }
-    else
-      args1 = cur->e[1];
-
-    assert (BTOR_IS_ARGS_NODE (args0));
-    assert (BTOR_IS_ARGS_NODE (args1));
-    assert (args0->arity == args1->arity);
-
-    for (i = 0; i < args0->arity; i++)
-      add_neq_exp_to_clause (btor, args0->e[i], args1->e[i], &linking_clause);
-    delete_node_tuple (btor, tuple);
-  }
+#endif
 
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
   {
@@ -6123,6 +6130,8 @@ btor_print_stats_btor (Btor *btor)
       btor, 1, "lambda chains merged: %d", btor->stats.lambda_chains_merged);
   btor_msg_exp (btor, 1, "lambdas merged: %d", btor->stats.lambdas_merged);
   btor_msg_exp (btor, 1, "propagations: %d", btor->stats.propagations);
+  btor_msg_exp (
+      btor, 1, "propagations down: %d", btor->stats.propagations_down);
 
   btor_msg_exp (btor, 1, "");
   btor_msg_exp (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -7092,16 +7101,24 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
-    else if (BTOR_IS_APPLY_NODE (cur)
-             && compare_argument_assignments (cur->e[1], args) == 0)
+    else if (BTOR_IS_APPLY_NODE (cur))
+    //	       && compare_argument_assignments (cur->e[1], args) == 0)
     {
-      next       = cur->e[0];
-      next->mark = 1;
-      /* propagate downwards */
-      next->parent = cur;
+      BtorNode *a;
+      a = btor_beta_reduce_cutoff (btor, cur->e[1], 0);
+      assert (BTOR_IS_REGULAR_NODE (a));
+      assert (BTOR_IS_ARGS_NODE (a));
+      if (a == args)
+      {
+        next       = cur->e[0];
+        next->mark = 1;
+        /* propagate downwards */
+        next->parent = cur;
 
-      BTOR_ENQUEUE (mm, queue, next);
-      BTOR_PUSH_STACK (mm, unmark_stack, next);
+        BTOR_ENQUEUE (mm, queue, next);
+        BTOR_PUSH_STACK (mm, unmark_stack, next);
+      }
+      btor_release_exp (btor, a);
     }
 
     // TODO: write ext support
@@ -8473,91 +8490,104 @@ propagate (Btor *btor,
 
       args_equal = 0;
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
+        args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
+
+// TODO: disabled app over app propagation
+#if 0
+	  if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
+	    {
+	      /* we first have to synthesize and encode parameterized
+	       * applications that are in the argument list of fun_value */
+	      find_nodes_dfs (btor, BTOR_REAL_ADDR_NODE (fun_value)->e[1],
+			      &param_apps, findfun_read, skipfun_tseitin);
+
+	      if (!BTOR_EMPTY_STACK (param_apps) && !lambda->synth_reads)
+		{
+		  lambda->synth_reads =
+		    btor_new_ptr_hash_table (mm,
+			(BtorHashPtr) btor_hash_exp_by_id,
+			(BtorCmpPtr) btor_compare_exp_by_id);
+		}
+
+	      while (!BTOR_EMPTY_STACK (param_apps))
+		{
+		  param_app = BTOR_POP_STACK (param_apps);
+		  assert (BTOR_IS_REGULAR_NODE (param_app));
+		  assert (BTOR_IS_APPLY_NODE (param_app));
+
+		  if (btor_find_in_ptr_hash_table (lambda->synth_reads,
+						   param_app))
+		    continue;
+
+		  inc_exp_ref_counter (btor, param_app);
+		  btor_insert_in_ptr_hash_table (
+		    lambda->synth_reads, param_app);
+
+		  btor->stats.lambda_synth_reads++;
+		  *assignments_changed =
+		    lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
+
+		  if (*assignments_changed)
+		    {
+		      btor_unassign_param (btor, fun);
+		      btor_release_exp (btor, fun_value);
+		      BTOR_RELEASE_STACK (mm, param_apps);
+		      return 0;
+		    }
+		}
+
+	      /* check if arguments are equal in order to determine if we
+	       * can propagate app down */
+	      args_equal =
+		(compare_argument_assignments (
+		  BTOR_REAL_ADDR_NODE (fun_value)->e[1], args) == 0);
+	      BTORLOG ("  args_equal: %d", args_equal);
+
+	      find_nodes_dfs (btor, fun_value,
+			      &param_apps, findfun_read, skipfun_tseitin);
+	    }
+	  else
+	    {
+	      find_nodes_dfs (btor, fun_value,
+			      &param_apps, findfun_read, skipfun_tseitin);
+	    }
+#endif
+
+      if (!args_equal || !ENABLE_APPLY_PROP_DOWN)
       {
-        /* we first have to synthesize and encode parameterized
-         * applications that are in the argument list of fun_value */
-        find_nodes_dfs (btor,
-                        BTOR_REAL_ADDR_NODE (fun_value)->e[1],
-                        &param_apps,
-                        findfun_read,
-                        skipfun_tseitin);
-
-        if (!BTOR_EMPTY_STACK (param_apps) && !lambda->synth_reads)
-        {
-          lambda->synth_reads =
-              btor_new_ptr_hash_table (mm,
-                                       (BtorHashPtr) btor_hash_exp_by_id,
-                                       (BtorCmpPtr) btor_compare_exp_by_id);
-        }
-
-        while (!BTOR_EMPTY_STACK (param_apps))
-        {
-          param_app = BTOR_POP_STACK (param_apps);
-          assert (BTOR_IS_REGULAR_NODE (param_app));
-          assert (BTOR_IS_APPLY_NODE (param_app));
-
-          if (btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
-            continue;
-
-          inc_exp_ref_counter (btor, param_app);
-          btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
-
-          btor->stats.lambda_synth_reads++;
-          *assignments_changed =
-              lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
-
-          if (*assignments_changed)
-          {
-            btor_unassign_param (btor, fun);
-            btor_release_exp (btor, fun_value);
-            BTOR_RELEASE_STACK (mm, param_apps);
-            return 0;
-          }
-        }
-
-        /* check if arguments are equal in order to determine if we
-         * can propagate app down */
-        args_equal = (compare_argument_assignments (
-                          BTOR_REAL_ADDR_NODE (fun_value)->e[1], args)
-                      == 0);
-        BTORLOG ("  args_equal: %d", args_equal);
-
         find_nodes_dfs (
             btor, fun_value, &param_apps, findfun_read, skipfun_tseitin);
-      }
-      else
-      {
-        find_nodes_dfs (
-            btor, fun_value, &param_apps, findfun_read, skipfun_tseitin);
-      }
-
-      if (!BTOR_EMPTY_STACK (param_apps))
-      {
-        if (!lambda->synth_reads)
+        if (!BTOR_EMPTY_STACK (param_apps))
         {
-          lambda->synth_reads =
-              btor_new_ptr_hash_table (mm,
-                                       (BtorHashPtr) btor_hash_exp_by_id,
-                                       (BtorCmpPtr) btor_compare_exp_by_id);
-        }
-
-        for (i = 0; i < BTOR_COUNT_STACK (param_apps); i++)
-        {
-          param_app = param_apps.start[i];
-          assert (BTOR_IS_REGULAR_NODE (param_app));
-          assert (BTOR_IS_APPLY_NODE (param_app));
-
-          if (!btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
+          if (!lambda->synth_reads)
           {
-            inc_exp_ref_counter (btor, param_app);
-            btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
+            lambda->synth_reads =
+                btor_new_ptr_hash_table (mm,
+                                         (BtorHashPtr) btor_hash_exp_by_id,
+                                         (BtorCmpPtr) btor_compare_exp_by_id);
           }
 
-          /* only synthesize and encode param_app if we cannot
-           * propagate app down */
-          if (BTOR_REAL_ADDR_NODE (param_app) != BTOR_REAL_ADDR_NODE (fun_value)
-              || !args_equal || !ENABLE_APPLY_PROP_DOWN)
+          for (i = 0; i < BTOR_COUNT_STACK (param_apps); i++)
           {
+            param_app = param_apps.start[i];
+            assert (BTOR_IS_REGULAR_NODE (param_app));
+            assert (BTOR_IS_APPLY_NODE (param_app));
+
+            if (!btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
+            {
+              inc_exp_ref_counter (btor, param_app);
+              btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
+            }
+
+            /* only synthesize and encode param_app if we cannot
+             * propagate app down */
+#if 0
+		      if (BTOR_REAL_ADDR_NODE (param_app)
+			    != BTOR_REAL_ADDR_NODE (fun_value)
+			  || !args_equal
+			  || !ENABLE_APPLY_PROP_DOWN)
+			{
+#endif
             btor->stats.lambda_synth_reads++;
             *assignments_changed =
                 lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
@@ -8569,6 +8599,9 @@ propagate (Btor *btor,
               BTOR_RELEASE_STACK (mm, param_apps);
               return 0;
             }
+#if 0
+			}
+#endif
           }
         }
       }
@@ -8598,6 +8631,7 @@ propagate (Btor *btor,
         BTORLOG ("    value: %s (%s)",
                  node2string (fun_value),
                  node2string (BTOR_REAL_ADDR_NODE (fun_value)->e[1]));
+        btor->stats.propagations_down++;
       }
       else
       {
