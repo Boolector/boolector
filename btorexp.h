@@ -145,15 +145,16 @@ typedef struct BtorNodePair BtorNodePair;
 #define BTOR_BV_VAR_NODE_STRUCT                                         \
   struct                                                                \
   {                                                                     \
-    BtorNodeKind kind : 5;          /* kind of expression */            \
-    unsigned int mark : 3;          /* for DAG traversal */             \
-    unsigned int aux_mark : 2;      /* auxiliary mark flag */           \
-    unsigned int array_mark : 1;    /* for bottom up array traversal */ \
-    unsigned int beta_mark : 1;     /* mark for beta_reduce */          \
-    unsigned int eval_mark : 2;     /* mark for eval_exp */             \
-    unsigned int synth_mark : 2;    /* mark for synthesize_exp */       \
-    unsigned int reachable : 1;     /* reachable from root ? */         \
-    unsigned int tseitin : 1;       /* tseitin encoded into SAT ? */    \
+    BtorNodeKind kind : 5;       /* kind of expression */               \
+    unsigned int mark : 3;       /* for DAG traversal */                \
+    unsigned int aux_mark : 2;   /* auxiliary mark flag */              \
+    unsigned int array_mark : 1; /* for bottom up array traversal */    \
+    unsigned int beta_mark : 1;  /* mark for beta_reduce */             \
+    unsigned int eval_mark : 2;  /* mark for eval_exp */                \
+    unsigned int synth_mark : 2; /* mark for synthesize_exp */          \
+    unsigned int reachable : 1;  /* reachable from root ? */            \
+    unsigned int tseitin : 1;    /* tseitin encoded into SAT ? */       \
+    unsigned int lazy_tseitin : 1;                                      \
     unsigned int vread : 1;         /* virtual read ? */                \
     unsigned int vread_index : 1;   /* index for two virtual reads ? */ \
     unsigned int constraint : 1;    /* top level constraint ? */        \
@@ -293,7 +294,6 @@ struct BtorLambdaNode
   BtorPtrHashTable *synth_reads;
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
-  int chain_depth;  // TODO: remove
   unsigned int is_write : 1;
 };
 
@@ -304,8 +304,6 @@ struct BtorApplyNode
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   unsigned int is_read : 1;
-  // TODO: params
-  // TODO: args
 };
 
 typedef struct BtorApplyNode BtorApplyNode;

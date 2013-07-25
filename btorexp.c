@@ -1858,38 +1858,42 @@ collect_premisses (Btor *btor,
         btor_freestr (mm, (char *) res);
       }
 
-      /* set parent lambda expression for collected applications */
-      assert (BTOR_COUNT_STACK (apps) <= 1);
-      while (!BTOR_EMPTY_STACK (apps))
-      {
-        a = BTOR_POP_STACK (apps);
-        assert (BTOR_IS_REGULAR_NODE (a));
-        assert (BTOR_IS_APPLY_NODE (a));
+// TODO: app over app propagation disabled
+#if 0
+	  /* set parent lambda expression for collected applications */
+	  assert (BTOR_COUNT_STACK (apps) <= 1);
+	  while (!BTOR_EMPTY_STACK (apps))
+	    {
+	      a = BTOR_POP_STACK (apps);
+	      assert (BTOR_IS_REGULAR_NODE (a));
+	      assert (BTOR_IS_APPLY_NODE (a));
 
-        if (PROPAGATED_UPWARDS (a))
-        {
-          assert (prev_lambda);
-          lambda = prev_lambda;
-        }
-        else
-        {
-          lambda = cur;
-        }
+	      if (PROPAGATED_UPWARDS (a))
+		{
+		  assert (prev_lambda);
+		  lambda = prev_lambda;
+		}
+	      else
+		{
+		  lambda = cur;
+		}
 
-        if (BTOR_IS_NESTED_LAMBDA_NODE (lambda))
-          lambda = ((BtorLambdaNode *) lambda)->nested;
+	      if (BTOR_IS_NESTED_LAMBDA_NODE  (lambda))
+		lambda = ((BtorLambdaNode *) lambda)->nested;
 
-        BTORLOG ("set lambda exp %d for app: %d",
-                 BTOR_REAL_ADDR_NODE (lambda)->id,
-                 app->id);
+	      BTORLOG ("set lambda exp %d for app: %d", 
+		       BTOR_REAL_ADDR_NODE (lambda)->id,
+		       app->id);
 
-        if (!btor_find_in_ptr_hash_table (fun_apps, a))
-        {
-          BTORLOG ("collect app: %s", node2string (a));
-          tuple = new_node_tuple (btor, lambda, args);
-          btor_insert_in_ptr_hash_table (fun_apps, a)->data.asPtr = tuple;
-        }
-      }
+	      if (!btor_find_in_ptr_hash_table (fun_apps, a))
+		{
+		  BTORLOG ("collect app: %s", node2string (a));
+		  tuple = new_node_tuple (btor, lambda, args);
+		  btor_insert_in_ptr_hash_table (
+		    fun_apps, a)->data.asPtr = tuple;
+		}
+	    }
+#endif
 
       if (BTOR_IS_LAMBDA_NODE (cur)) prev_lambda = cur;
     }
@@ -1915,6 +1919,7 @@ collect_premisses (Btor *btor,
     if ((!prev && propagated_upwards)
         || (prev && !(prev_propagated_upwards && !propagated_upwards)))
     {
+      assert (cur->parameterized || BTOR_IS_LAMBDA_NODE (cur));
       /* we only need to collect parameterized bv conds */
       if (BTOR_IS_BV_COND_NODE (cur) && cur->parameterized)
       {
@@ -8510,7 +8515,8 @@ propagate (Btor *btor,
       BTOR_INIT_STACK (param_apps);
 
       args_equal = 0;
-      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value)))
+      if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
+          && ENABLE_APPLY_PROP_DOWN)
         args_equal = BTOR_REAL_ADDR_NODE (fun_value)->e[1] == args;
 
 // TODO: disabled app over app propagation
@@ -8574,7 +8580,7 @@ propagate (Btor *btor,
 	    }
 #endif
 
-      if (!args_equal || !ENABLE_APPLY_PROP_DOWN)
+      if (!args_equal)
       {
         find_nodes_dfs (
             btor, fun_value, &param_apps, findfun_read, skipfun_tseitin);
@@ -8644,7 +8650,7 @@ propagate (Btor *btor,
        * encounter while propagating 'app'. */
       if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (fun_value))
           && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (parameterized))
-          && args_equal && ENABLE_APPLY_PROP_DOWN)
+          && args_equal)
       {
         assert (BTOR_REAL_ADDR_NODE (fun_value)->e[0] == parameterized->e[0]);
         assert (BTOR_IS_APPLY_NODE (parameterized));
