@@ -13,23 +13,7 @@
 #include "btoriter.h"
 
 void
-init_read_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
-{
-  assert (it);
-  assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
-}
-
-void
 init_apply_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
-{
-  assert (it);
-  assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
-}
-
-void
-init_write_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -74,44 +58,15 @@ init_full_parent_iterator (BtorFullParentIterator *it, BtorNode *exp)
 }
 
 BtorNode *
-next_parent_read_parent_iterator (BtorPartialParentIterator *it)
-{
-  BtorNode *result;
-  assert (it);
-  result = it->cur;
-  assert (result);
-  it->cur = BTOR_NEXT_PARENT (result);
-  /* array child of read is at position 0, so result is not tagged */
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (BTOR_IS_READ_NODE (result));
-  return result;
-}
-
-BtorNode *
 next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 {
   BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
-  it->cur = BTOR_NEXT_PARENT (result);
-  /* function child of apply is at position 0, so result is not tagged */
+  it->cur = BTOR_REAL_ADDR_NODE (BTOR_PREV_PARENT (result));
   assert (BTOR_IS_REGULAR_NODE (result));
   assert (BTOR_IS_APPLY_NODE (result));
-  return result;
-}
-
-BtorNode *
-next_parent_write_parent_iterator (BtorPartialParentIterator *it)
-{
-  BtorNode *result;
-  assert (it);
-  result = it->cur;
-  assert (result);
-  it->cur = BTOR_PREV_PARENT (result);
-  /* array child of write is at position 0, so result is not tagged */
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (BTOR_IS_WRITE_NODE (result));
   return result;
 }
 
@@ -164,27 +119,11 @@ next_parent_full_parent_iterator (BtorFullParentIterator *it)
 }
 
 int
-has_next_parent_read_parent_iterator (BtorPartialParentIterator *it)
-{
-  assert (it);
-  /* array child of read is at position 0, so cur is not tagged */
-  return it->cur && BTOR_IS_READ_NODE (it->cur);
-}
-
-int
 has_next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 {
   assert (it);
-  /* function child of read is at position 0, so cur is not tagged */
+  /* function child of apply is at position 0, so cur is not tagged */
   return it->cur && BTOR_IS_APPLY_NODE (it->cur);
-}
-
-int
-has_next_parent_write_parent_iterator (BtorPartialParentIterator *it)
-{
-  assert (it);
-  /* array child of write is at position 0, so cur is not tagged */
-  return it->cur && BTOR_IS_WRITE_NODE (it->cur);
 }
 
 int

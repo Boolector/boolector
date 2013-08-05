@@ -352,8 +352,6 @@ btor_beta_reduce (
     /* we do not want the simplification of top level read contraints */
     if (BTOR_REAL_ADDR_NODE (cur)->constraint
         && BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur)))
-      //      if (BTOR_REAL_ADDR_NODE (cur)->constraint
-      //	  && BTOR_IS_READ_NODE (BTOR_REAL_ADDR_NODE (cur)))
       cur = btor_pointer_chase_simplified_exp (btor, cur);
     else
       cur = btor_simplify_exp (btor, cur);
