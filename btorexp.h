@@ -386,16 +386,12 @@ struct Btor
   int inc_enabled;          /* incremental usage enabled ? */
   int btor_sat_btor_called; /* how often is btor_sat_btor been called */
   int msgtick;              /* message tick in incremental mode */
-  int rewrite_writes;       /* rewrite writes to lambda expressions */
-  int rewrite_reads;        /* rewrite reads on lambda expressions */
-  int rewrite_aconds;       /* rewrite aconds to lambda expressions */
+  int beta_reduce_all;      /* eliminate lambda expressions */
   int pprint;               /* reindex exps when dumping */
   int last_sat_result;      /* status of last SAT call (SAT/UNSAT) */
 
   int generate_model_for_all_reads;
 
-  //  BtorPtrHashTable *exp_pair_eq_table;
-  //  BtorPtrHashTable *exp_pair_and_table;
   BtorPtrHashTable *lod_cache;
 
   BtorPtrHashTable *varsubst_constraints;
@@ -645,14 +641,8 @@ void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);
 /* Forces all reads to be synthesized during model generation. */
 void btor_generate_model_for_all_reads (Btor *btor);
 
-/* Enable rewriting of writes to lambda expressions. */
-void btor_enable_rewrite_writes (Btor *btor);
-
 /* Enable rewriting of reads on lambda expressions. */
-void btor_enable_rewrite_reads (Btor *btor);
-
-/* Enable rewriting of aconds to lambda expressions. */
-void btor_enable_rewrite_aconds (Btor *btor);
+void btor_enable_beta_reduce_all (Btor *btor);
 
 /* Disable pretty printing when dumping and rewriting of writes is enabled.  */
 void btor_disable_pretty_print (Btor *btor);

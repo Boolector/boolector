@@ -64,9 +64,7 @@ struct BtorMainApp
   int loglevel;
 #endif
   int incremental;
-  int rewrite_writes;
-  int rewrite_reads;
-  int rewrite_aconds;
+  int beta_reduce_all;
   int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
@@ -146,10 +144,7 @@ static const char *g_usage =
     "  -o, --output <file>              set output file for dumping\n"
     "\n"
     "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
-    "  -rww, --rewrite-writes           rewrite writes to lambda expressions\n"
-    "  -rwr, --rewrite-reads            rewrite reads on lambda expressions\n"
-    "                                   (beta-reduction)\n"
-    "  -rwa, --rewrite-aconds           rewrite aconds to lambda expressions\n"
+    "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
     // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
@@ -577,20 +572,10 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
-    else if (!strcmp (app->argv[app->argpos], "-rww")
-             || !strcmp (app->argv[app->argpos], "--rewrite-writes"))
+    else if (!strcmp (app->argv[app->argpos], "-bra")
+             || !strcmp (app->argv[app->argpos], "--beta-reduce-all"))
     {
-      app->rewrite_writes = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-rwr")
-             || !strcmp (app->argv[app->argpos], "--rewrite-reads"))
-    {
-      app->rewrite_reads = 1;
-    }
-    else if (!strcmp (app->argv[app->argpos], "-rwa")
-             || !strcmp (app->argv[app->argpos], "--rewrite-aconds"))
-    {
-      app->rewrite_aconds = 1;
+      app->beta_reduce_all = 1;
     }
     else if (!strcmp (app->argv[app->argpos], "-npp")
              || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
@@ -1018,9 +1003,7 @@ boolector_main (int argc, char **argv)
   app.rewrite_level          = 3;
   app.force_smt_input        = 0;
   app.print_model            = 0;
-  app.rewrite_writes         = 0;
-  app.rewrite_reads          = 0;
-  app.rewrite_aconds         = 0;
+  app.beta_reduce_all        = 0;
   app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
@@ -1076,11 +1059,7 @@ boolector_main (int argc, char **argv)
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
 
-    if (app.rewrite_writes) btor_enable_rewrite_writes (btor);
-
-    if (app.rewrite_reads) btor_enable_rewrite_reads (btor);
-
-    if (app.rewrite_aconds) btor_enable_rewrite_aconds (btor);
+    if (app.beta_reduce_all) btor_enable_beta_reduce_all (btor);
 
     if (!app.pprint) btor_disable_pretty_print (btor);
 

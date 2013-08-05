@@ -104,9 +104,6 @@ static void add_constraint (Btor *, BtorNode *);
 
 static void run_rewrite_engine (Btor *);
 
-static void rewrite_writes_to_lambda_exp (Btor *);
-static BtorNode *rewrite_write_to_lambda_exp (Btor *, BtorNode *);
-
 static int exp_to_cnf_lit (Btor *, BtorNode *);
 
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
@@ -1381,7 +1378,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
 
       if (cur->simplified)
       {
-        assert (btor->rewrite_level > 1 || btor->rewrite_writes);
+        assert (btor->rewrite_level > 1 || btor->beta_reduce_all);
         BTOR_PUSH_STACK (mm, stack, cur->simplified);
         cur->simplified = 0;
       }
@@ -2576,7 +2573,7 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (simplified);
   assert (!BTOR_REAL_ADDR_NODE (simplified)->simplified);
-  assert (btor->rewrite_level > 1 || btor->rewrite_writes);
+  assert (btor->rewrite_level > 1 || btor->beta_reduce_all);
   assert (exp->arity <= 3);
 
   int i;
@@ -5689,24 +5686,10 @@ btor_set_sat_solver (Btor *btor, const char *solver)
 }
 
 void
-btor_enable_rewrite_writes (Btor *btor)
+btor_enable_beta_reduce_all (Btor *btor)
 {
   assert (btor);
-  btor->rewrite_writes = 1;
-}
-
-void
-btor_enable_rewrite_reads (Btor *btor)
-{
-  assert (btor);
-  btor->rewrite_reads = 1;
-}
-
-void
-btor_enable_rewrite_aconds (Btor *btor)
-{
-  assert (btor);
-  btor->rewrite_aconds = 1;
+  btor->beta_reduce_all = 1;
 }
 
 void
@@ -7854,6 +7837,11 @@ propagate (Btor *btor,
   return 0;
 }
 
+/**
+ * Collect all top functions.
+ *
+ * A top function does not have parameterized applies and lambdas as parent.
+ */
 static void
 search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
 {
@@ -10311,7 +10299,7 @@ run_rewrite_engine (Btor *btor)
   assert (btor);
   if (btor->inconsistent) return;
 
-  //  if (btor->rewrite_level <= 1 && !btor->rewrite_writes)
+  //  if (btor->rewrite_level <= 1 && !btor->beta_reduce_all)
   //    return;
 
   rounds = 0;
@@ -10387,7 +10375,7 @@ run_rewrite_engine (Btor *btor)
     if (btor->embedded_constraints->count) continue;
 
     /* rewrite/beta-reduce reads on lambdas */
-    if (btor->rewrite_reads)
+    if (btor->beta_reduce_all)
     {
       beta_reduce_reads_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));

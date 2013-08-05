@@ -55,7 +55,6 @@ init_misc_tests (void)
   fclose (f);
   g_mm = btor_new_mem_mgr ();
 
-  if (g_rwwrites) pos_rww = g_argc++ - 1;
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
@@ -65,8 +64,7 @@ init_misc_tests (void)
   g_argv[2] = "-o";
   g_argv[3] = "/dev/null";
 
-  if (g_rwwrites) g_argv[pos_rww] = "-rww";
-  if (g_rwreads) g_argv[pos_rwr] = "-rwr";
+  if (g_rwreads) g_argv[pos_rwr] = "-bra";
 
   g_argv[g_argc - 1] = BTOR_TEST_MISC_TEMP_FILE_NAME;
 }
