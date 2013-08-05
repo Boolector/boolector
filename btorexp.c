@@ -3130,11 +3130,10 @@ new_ternary_exp_node (Btor *btor,
   return (BtorNode *) exp;
 }
 
+#if 0
 static BtorNode *
-new_write_exp_node (Btor *btor,
-                    BtorNode *e_array,
-                    BtorNode *e_index,
-                    BtorNode *e_value)
+new_write_exp_node (Btor * btor, BtorNode * e_array, BtorNode * e_index,
+		    BtorNode * e_value)
 {
   BtorMemMgr *mm;
   BtorNode *exp;
@@ -3149,11 +3148,11 @@ new_write_exp_node (Btor *btor,
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->ops[BTOR_WRITE_NODE]++;
-  exp->kind      = BTOR_WRITE_NODE;
-  exp->bytes     = sizeof *exp;
-  exp->arity     = 3;
+  exp->kind = BTOR_WRITE_NODE;
+  exp->bytes = sizeof *exp;
+  exp->arity = 3;
   exp->index_len = BTOR_REAL_ADDR_NODE (e_index)->len;
-  exp->len       = BTOR_REAL_ADDR_NODE (e_value)->len;
+  exp->len = BTOR_REAL_ADDR_NODE (e_value)->len;
   setup_node_and_add_to_id_table (btor, exp);
   /* append writes to the end of parent list */
   connect_child_exp (btor, exp, e_array, 0);
@@ -3164,10 +3163,8 @@ new_write_exp_node (Btor *btor,
 }
 
 static BtorNode *
-new_acond_exp_node (Btor *btor,
-                    BtorNode *e_cond,
-                    BtorNode *a_if,
-                    BtorNode *a_else)
+new_acond_exp_node (Btor * btor, BtorNode * e_cond, BtorNode * a_if,
+		    BtorNode * a_else)
 {
   BtorMemMgr *mm;
   BtorNode *exp;
@@ -3184,11 +3181,11 @@ new_acond_exp_node (Btor *btor,
   mm = btor->mm;
   BTOR_CNEW (mm, exp);
   btor->ops[BTOR_ACOND_NODE]++;
-  exp->kind      = BTOR_ACOND_NODE;
-  exp->bytes     = sizeof *exp;
-  exp->arity     = 3;
+  exp->kind = BTOR_ACOND_NODE;
+  exp->bytes = sizeof *exp;
+  exp->arity = 3;
   exp->index_len = a_if->index_len;
-  exp->len       = a_if->len;
+  exp->len = a_if->len;
   setup_node_and_add_to_id_table (btor, exp);
   connect_child_exp (btor, exp, e_cond, 0);
   connect_child_exp (btor, exp, a_if, 1);
@@ -3196,6 +3193,7 @@ new_acond_exp_node (Btor *btor,
 
   return exp;
 }
+#endif
 
 /* Computes hash value of expression by id */
 unsigned int
@@ -4165,12 +4163,14 @@ ternary_exp (Btor *btor,
     }
     switch (kind)
     {
-      case BTOR_WRITE_NODE:
-        *lookup = new_write_exp_node (btor, e0, e1, e2);
-        break;
-      case BTOR_ACOND_NODE:
-        *lookup = new_acond_exp_node (btor, e0, e1, e2);
-        break;
+#if 0
+	case BTOR_WRITE_NODE:
+	  *lookup = new_write_exp_node (btor, e0, e1, e2);
+	  break;
+	case BTOR_ACOND_NODE:
+	  *lookup = new_acond_exp_node (btor, e0, e1, e2);
+	  break;
+#endif
       default:
         assert (kind == BTOR_BCOND_NODE);
         *lookup = new_ternary_exp_node (btor, kind, e0, e1, e2, len);
@@ -7918,71 +7918,78 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
 }
 
 static int
-check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
+check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_functions)
 {
-  BtorNodePtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
-  BtorNodePtrStack param_reads;
-  BtorPartialParentIterator it;
-  BtorMemMgr *mm;
-  BtorNode *cur_array, *cur_parent, **top, **temp, *param_read;
-  int i, found_conflict, changed_assignments, propagate_writes_as_reads;
   assert (btor);
-  assert (top_arrays);
+  assert (top_functions);
+  assert (btor->ops[BTOR_AEQ_NODE] == 0);
+
+  int i, found_conflict, changed_assignments;
+  BtorMemMgr *mm;
+  BtorNode *cur_fun, *cur_parent, **top, **temp, *param_app;
+  BtorNodePtrStack fun_stack, cleanup_stack, working_stack, unmark_stack;
+  BtorNodePtrStack param_apps;
+  BtorPartialParentIterator it;
+
   found_conflict = 0;
   mm             = btor->mm;
-  assert (btor->ops[BTOR_AEQ_NODE] >= 0);
-  propagate_writes_as_reads = (btor->ops[BTOR_AEQ_NODE] > 0) || btor->model_gen;
-BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
+BTOR_CONFLICT_CHECK:
   assert (!found_conflict);
   changed_assignments = 0;
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (cleanup_stack);
-  BTOR_INIT_STACK (array_stack);
-  BTOR_INIT_STACK (param_reads);
+  BTOR_INIT_STACK (fun_stack);
+  BTOR_INIT_STACK (param_apps);
 
   /* push all top arrays on the stack */
-  top = top_arrays->top;
-  for (temp = top_arrays->start; temp != top; temp++)
+  top = top_functions->top;
+  for (temp = top_functions->start; temp != top; temp++)
   {
-    cur_array = *temp;
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    assert (cur_array->reachable);
-    assert (!cur_array->simplified);
-    BTOR_PUSH_STACK (mm, array_stack, cur_array);
+    cur_fun = *temp;
+    assert (BTOR_IS_REGULAR_NODE (cur_fun));
+    assert (BTOR_IS_FUN_NODE (cur_fun));
+    assert (cur_fun->reachable);
+    assert (!cur_fun->simplified);
+    BTOR_PUSH_STACK (mm, fun_stack, cur_fun);
   }
 
-  while (!BTOR_EMPTY_STACK (array_stack))
+  while (!BTOR_EMPTY_STACK (fun_stack))
   {
-    cur_array = BTOR_POP_STACK (array_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    assert (cur_array->reachable);
-    assert (!cur_array->simplified);
-    assert (cur_array->array_mark == 0 || cur_array->array_mark == 1);
-    if (cur_array->array_mark == 0)
-    {
-      cur_array->array_mark = 1;
-      BTOR_PUSH_STACK (mm, unmark_stack, cur_array);
-      assert (BTOR_IS_FUN_NODE (cur_array));
-      if (BTOR_IS_LAMBDA_NODE (cur_array))
-      {
-        assert (BTOR_IS_PARAM_NODE (cur_array->e[0]));
-        assert (BTOR_EMPTY_STACK (param_reads));
-        find_nodes_dfs (
-            btor, cur_array->e[1], &param_reads, findfun_param_apply, 0);
+    cur_fun = BTOR_POP_STACK (fun_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur_fun));
+    assert (BTOR_IS_FUN_NODE (cur_fun));
+    assert (cur_fun->reachable);
+    assert (!cur_fun->simplified);
+    assert (cur_fun->fun_mark == 0 || cur_fun->fun_mark == 1);
 
-        while (!BTOR_EMPTY_STACK (param_reads))
+    if (cur_fun->fun_mark == 0)
+    {
+      cur_fun->fun_mark = 1;
+      BTOR_PUSH_STACK (mm, unmark_stack, cur_fun);
+      assert (BTOR_IS_FUN_NODE (cur_fun));
+
+      /* push all underlying functions on fun_stack that are accessed
+       * via parameterized apply nodes */
+      if (BTOR_IS_LAMBDA_NODE (cur_fun))
+      {
+        assert (BTOR_IS_PARAM_NODE (cur_fun->e[0]));
+        assert (BTOR_EMPTY_STACK (param_apps));
+        find_nodes_dfs (
+            btor, cur_fun->e[1], &param_apps, findfun_param_apply, 0);
+
+        while (!BTOR_EMPTY_STACK (param_apps))
         {
-          param_read = BTOR_POP_STACK (param_reads);
-          assert (BTOR_IS_REGULAR_NODE (param_read));
-          assert (BTOR_IS_APPLY_NODE (param_read));
-          BTOR_PUSH_STACK (mm, array_stack, param_read->e[0]);
+          param_app = BTOR_POP_STACK (param_apps);
+          assert (BTOR_IS_REGULAR_NODE (param_app));
+          assert (BTOR_IS_APPLY_NODE (param_app));
+          BTOR_PUSH_STACK (mm, fun_stack, param_app->e[0]);
         }
-        BTOR_RESET_STACK (param_reads);
+        BTOR_RESET_STACK (param_apps);
       }
-      init_apply_parent_iterator (&it, cur_array);
+
+      /* check consistency for non-parameterized apply nodes */
+      init_apply_parent_iterator (&it, cur_fun);
       while (has_next_parent_apply_parent_iterator (&it))
       {
         cur_parent = next_parent_apply_parent_iterator (&it);
@@ -7998,50 +8005,48 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         {
           /* push read-array pair on working stack */
           BTOR_PUSH_STACK (mm, working_stack, cur_parent);
-          BTOR_PUSH_STACK (mm, working_stack, cur_array);
+          BTOR_PUSH_STACK (mm, working_stack, cur_fun);
           found_conflict = propagate (
               btor, &working_stack, &cleanup_stack, &changed_assignments);
-          if (found_conflict || changed_assignments)
-            goto BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP;
+          if (found_conflict || changed_assignments) goto BTOR_CONFLICT_CLEANUP;
         }
       }
     }
   }
-BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
+BTOR_CONFLICT_CLEANUP:
   while (!BTOR_EMPTY_STACK (cleanup_stack))
   {
-    cur_array = BTOR_POP_STACK (cleanup_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    assert (cur_array->rho);
+    cur_fun = BTOR_POP_STACK (cleanup_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur_fun));
+    assert (BTOR_IS_FUN_NODE (cur_fun));
+    assert (cur_fun->rho);
 
     if (found_conflict || changed_assignments)
     {
-      btor_delete_ptr_hash_table (cur_array->rho);
-      cur_array->rho = 0;
+      btor_delete_ptr_hash_table (cur_fun->rho);
+      cur_fun->rho = 0;
     }
     else
     {
       /* remember arrays for incremental usage (and prevent premature
        * release in case that array is released via API call) */
       BTOR_PUSH_STACK (
-          mm, btor->arrays_with_model, btor_copy_exp (btor, cur_array));
+          mm, btor->arrays_with_model, btor_copy_exp (btor, cur_fun));
     }
   }
   BTOR_RELEASE_STACK (mm, cleanup_stack);
-
   BTOR_RELEASE_STACK (mm, working_stack);
-  BTOR_RELEASE_STACK (mm, array_stack);
-  BTOR_RELEASE_STACK (mm, param_reads);
+  BTOR_RELEASE_STACK (mm, fun_stack);
+  BTOR_RELEASE_STACK (mm, param_apps);
 
   /* reset array marks of arrays */
   while (!BTOR_EMPTY_STACK (unmark_stack))
   {
-    cur_array = BTOR_POP_STACK (unmark_stack);
-    assert (BTOR_IS_REGULAR_NODE (cur_array));
-    assert (BTOR_IS_ARRAY_NODE (cur_array));
-    assert (cur_array->array_mark == 1);
-    cur_array->array_mark = 0;
+    cur_fun = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur_fun));
+    assert (BTOR_IS_FUN_NODE (cur_fun));
+    assert (cur_fun->fun_mark == 1);
+    cur_fun->fun_mark = 0;
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
@@ -8051,7 +8056,7 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CLEANUP:
     btor->stats.synthesis_assignment_inconsistencies++;
     BTORLOG ("synthesis assignment inconsistency: %d",
              btor->stats.synthesis_assignment_inconsistencies);
-    goto BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK;
+    goto BTOR_CONFLICT_CHECK;
   }
   return found_conflict;
 }
@@ -10488,7 +10493,7 @@ btor_sat_aux_btor (Btor *btor)
 {
   int sat_result, found_conflict, found_constraint_false, verbosity;
   int found_assumption_false, refinements;
-  BtorNodePtrStack top_arrays;
+  BtorNodePtrStack top_functions;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorMemMgr *mm;
@@ -10541,15 +10546,15 @@ btor_sat_aux_btor (Btor *btor)
   found_assumption_false = add_again_assumptions (btor);
   if (found_assumption_false) goto UNSAT;
 
-  BTOR_INIT_STACK (top_arrays);
+  BTOR_INIT_STACK (top_functions);
   sat_result = btor_timed_sat_sat (btor, -1);
 
   while (sat_result == BTOR_SAT)
   {
-    assert (BTOR_EMPTY_STACK (top_arrays));
-    search_top_functions (btor, &top_arrays);
+    assert (BTOR_EMPTY_STACK (top_functions));
+    search_top_functions (btor, &top_functions);
 
-    found_conflict = check_and_resolve_conflicts (btor, &top_arrays);
+    found_conflict = check_and_resolve_conflicts (btor, &top_functions);
 
     if (found_conflict)
     {
@@ -10558,7 +10563,7 @@ btor_sat_aux_btor (Btor *btor)
       assert (!found_assumption_false);
     }
 
-    BTOR_RELEASE_STACK (mm, top_arrays);
+    BTOR_RELEASE_STACK (mm, top_functions);
 
     if (!found_conflict) break;
 
