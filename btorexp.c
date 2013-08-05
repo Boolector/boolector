@@ -7922,7 +7922,7 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_arrays)
 {
   BtorNodePtrStack array_stack, cleanup_stack, working_stack, unmark_stack;
   BtorNodePtrStack param_reads;
-  BtorFullParentIterator it;
+  BtorPartialParentIterator it;
   BtorMemMgr *mm;
   BtorNode *cur_array, *cur_parent, **top, **temp, *param_read;
   int i, found_conflict, changed_assignments, propagate_writes_as_reads;
@@ -7982,15 +7982,12 @@ BTOR_READ_WRITE_ARRAY_CONFLICT_CHECK:
         }
         BTOR_RESET_STACK (param_reads);
       }
-      init_full_parent_iterator (&it, cur_array);
-      while (has_next_parent_full_parent_iterator (&it))
+      init_apply_parent_iterator (&it, cur_array);
+      while (has_next_parent_apply_parent_iterator (&it))
       {
-        cur_parent = next_parent_full_parent_iterator (&it);
+        cur_parent = next_parent_apply_parent_iterator (&it);
         assert (BTOR_IS_REGULAR_NODE (cur_parent));
-        assert (BTOR_IS_LAMBDA_NODE (cur_parent)
-                || BTOR_IS_APPLY_NODE (cur_parent));
-
-        if (!BTOR_IS_APPLY_NODE (cur_parent)) continue;
+        assert (BTOR_IS_APPLY_NODE (cur_parent));
 
         /* skip parameterized applications */
         if (cur_parent->parameterized) continue;
