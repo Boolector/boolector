@@ -9664,7 +9664,7 @@ release_cache (Btor *btor)
 }
 
 static void
-beta_reduce_reads_on_lambdas (Btor *btor)
+beta_reduce_applies_on_lambdas (Btor *btor)
 {
   assert (btor);
 
@@ -9983,7 +9983,7 @@ run_rewrite_engine (Btor *btor)
     /* rewrite/beta-reduce reads on lambdas */
     if (btor->beta_reduce_all)
     {
-      beta_reduce_reads_on_lambdas (btor);
+      beta_reduce_applies_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       assert (check_all_hash_tables_simp_free_dbg (btor));
       assert (check_unique_table_children_proxy_free_dbg (btor));
