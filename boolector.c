@@ -1607,7 +1607,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   char *strtrapi;
   BtorNode *res;
 
-  len = 5 + 10 + paramc * 20;
+  len = 5 + 10 + paramc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "fun %d", paramc);
 
@@ -1620,7 +1620,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
     BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
     sprintf (strtrapi + strlen (strtrapi), " %p", params[i]);
   }
-
+  sprintf (strtrapi + strlen (strtrapi), " %p", exp);
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
@@ -1644,7 +1644,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   char *strtrapi;
   BtorNode *res, *cur;
 
-  len = 7 + 10 + argc * 20;
+  len = 7 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "apply %d", argc);
 
@@ -1657,7 +1657,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
     sprintf (strtrapi + strlen (strtrapi), " %p", args[i]);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
-
+  sprintf (strtrapi + strlen (strtrapi), " %p", fun);
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
