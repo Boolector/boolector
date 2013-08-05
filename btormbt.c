@@ -31,7 +31,8 @@
 #define MAX_MULDIVWIDTH 8
 #define MIN_NPARAMS 1 /* must be >= 1 */
 #define MAX_NPARAMS 5
-#define MAX_NPARAMOPS 20
+#define MAX_NPARAMOPS 5
+#define MAX_NNESTEDBFUNS 50
 
 #define USAGE                                 \
   "usage: btormbt [-k][-q][-f][-a]\n"         \
@@ -1333,10 +1334,12 @@ lambda_selarrexp (
     }
     i = (i + 1) % es->n;
   } while (idx != i);
+
   /* no suitable array exp found */
   if (force_param == 1)
   {
-    e[0] = lambda_selexp (data, rng, T_ARR, -1, &ip);
+    /* generate parameterized WRITE */
+    e[0] = lambda_selarrexp (data, rng, NULL, eew, eiw, -1);
     rand = pick (rng, 1, 2);
     for (i = 1; i < 3; i++)
       e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, &ip);
@@ -1344,8 +1347,10 @@ lambda_selarrexp (
     sel_e = data->paramarr->exps[data->paramarr->n - 1].exp;
   }
   else
+  {
     sel_e = boolector_array (data->btor, eew, eiw, NULL);
-  es_push (es, sel_e);
+    es_push (es, sel_e);
+  }
   es->exps[es->n - 1].pars++;
   return sel_e;
 }
@@ -1389,21 +1394,24 @@ param_fun (Data *data, RNG *rng, int op_from, int op_to)
 }
 
 static void
-param_afun (Data *data, RNG *rng, int force_nparrwrite)
+param_afun (Data *data, RNG *rng, int force_arrnparr)
 {
   int i, rand, ip, eiw, eew;
   BtorNode *e[3];
   Op op;
 
-  rand = pick (rng, 0, 1);
+  /* force array exp with non-parameterized arrays? */
+  rand = force_arrnparr ? -1 : pick (rng, 0, 1);
   e[0] = lambda_selexp (data, rng, T_ARR, rand, &ip);
-  eew  = boolector_get_width (data->btor, e[0]);
-  eiw  = boolector_get_index_width (data->btor, e[0]);
+  assert (rand >= 0 || ip == 0);
+  eew = boolector_get_width (data->btor, e[0]);
+  eiw = boolector_get_index_width (data->btor, e[0]);
 
   /* choose READ/WRITE with p = 0.666, else EQ/NE/COND */
   if (pick (rng, 0, 2))
   {
-    op = pick (rng, READ, WRITE);
+    /* force WRITE if array exp with non-parameterized arrays forced */
+    op = rand == -1 ? WRITE : pick (rng, READ, WRITE);
     if (op == WRITE)
     {
       rand = pick (rng, 1, 2);
@@ -1415,26 +1423,11 @@ param_afun (Data *data, RNG *rng, int force_nparrwrite)
   }
   else
   {
-    /* distribute EQ, NE and COND evenly */
+    /* force COND if array exp with non-parameterized arrays forced,
+     * else distribute EQ, NE and COND evenly */
     op   = rand >= 0 && pick (rng, 0, 2) ? pick (rng, EQ, NE) : COND;
-    e[1] = lambda_selarrexp (data, rng, e[0], eew, eiw, rand ^ 1);
-    if (e[1] == NULL) /* no suitable parameterized array found */
-    {
-      if (ip == 0) /* e[0] not parameterized */
-      {
-        if (op != COND) /* force parameterized e[0] */
-        {
-          e[0] = lambda_selexp (data, rng, T_ARR, op == COND ? 0 : 1, &ip);
-          eew  = boolector_get_width (data->btor, e[0]);
-          eiw  = boolector_get_index_width (data->btor, e[0]);
-        }
-        else /* force parameterized COND as e[0], e[1] param. */
-          rand = -1;
-      }
-      /* force non-parameterized e[1] */
-      e[1] = lambda_selarrexp (data, rng, e[0], eew, eiw, -1);
-      /* force parameterized COND if e[0], e[1] non-parameterized */
-    }
+    e[1] = lambda_selarrexp (
+        data, rng, e[0], eew, eiw, rand == -1 ? rand : rand ^ 1);
     if (op == COND)
       e[2] = lambda_selexp (data, rng, T_BO, rand < 0 ? 1 : 0, &ip);
   }
@@ -1442,7 +1435,7 @@ param_afun (Data *data, RNG *rng, int force_nparrwrite)
 }
 
 static void
-bfun (Data *data, unsigned r, int *nparams, int *width)
+bfun (Data *data, unsigned r, int *nparams, int *width, int nlevel)
 {
   int i, n, np, ip, w, nops, rand;
   ExpStack parambo, parambv, paramarr;
@@ -1479,6 +1472,7 @@ bfun (Data *data, unsigned r, int *nparams, int *width)
   n    = 0;
   while (n++ < nops)
   {
+  BFUN_PICK_FUN_TYPE:
     rand = pick (&rng, 0, NORM_VAL - 1);
     if (rand < data->p_fun)
       param_fun (data, &rng, NOT, COND);
@@ -1486,21 +1480,15 @@ bfun (Data *data, unsigned r, int *nparams, int *width)
       param_afun (data, &rng, 0);
     else
     {
-      bfun (data, nextrand (&rng), &np, &w);
-      // fun = bfun (data, nextrand (&rng), &np, &w);
-      data->parambo  = &parambo;
-      data->parambv  = &parambv;
-      data->paramarr = &paramarr;
-      // args = malloc (sizeof (BtorNode*) * np);
-      // for (i = 0; i < np; i++)
-      //  {
-      //    tmp = lambda_selexp (data, &rng, T_BV, 0, &ip);
-      //    args[i] = modifybv (data, &rng, tmp,
-      //      		  boolector_get_width (data->btor, tmp), w, ip);
-      //  }
-      // es_push (data->parambv, boolector_apply (data->btor, np, args, fun));
-      ///* cleanup and reset to current scope */
-      // free (args);
+      if (nlevel < MAX_NNESTEDBFUNS)
+      {
+        bfun (data, nextrand (&rng), &np, &w, nlevel + 1);
+        data->parambo  = &parambo;
+        data->parambv  = &parambv;
+        data->paramarr = &paramarr;
+      }
+      else
+        goto BFUN_PICK_FUN_TYPE;
     }
   }
 
@@ -1534,7 +1522,7 @@ _bfun (Data *data, unsigned r)
 
   int nparams, width;
 
-  bfun (data, r, &nparams, &width);
+  bfun (data, r, &nparams, &width, 0);
 
   data->parambo = data->parambv = data->paramarr = NULL; /* cleanup */
 
