@@ -6032,22 +6032,31 @@ btor_print_stats_btor (Btor *btor)
                 1,
                 "synthesis assignment inconsistencies: %d",
                 btor->stats.synthesis_assignment_inconsistencies);
+  btor_msg_exp (
+      btor, 1, "  apply nodes: %d", btor->stats.synthesis_inconsistency_apply);
+  btor_msg_exp (btor,
+                1,
+                "  lambda nodes: %d",
+                btor->stats.synthesis_inconsistency_lambda);
 
   btor_msg_exp (btor,
                 1,
                 "apply propagation during construction: %d",
                 btor->stats.apply_props_construct);
-  btor_msg_exp (btor, 1, "beta reductions: %d", btor->stats.beta_reduce_calls);
   btor_msg_exp (
-      btor, 1, "expression evaluations: %d", btor->stats.eval_exp_calls);
+      btor, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
   btor_msg_exp (
-      btor, 1, "synthesized lambda reads: %d", btor->stats.lambda_synth_reads);
+      btor, 1, "expression evaluations: %lld", btor->stats.eval_exp_calls);
+  btor_msg_exp (btor,
+                1,
+                "synthesized lambda reads: %lld",
+                btor->stats.lambda_synth_reads);
   btor_msg_exp (
-      btor, 1, "lambda chains merged: %d", btor->stats.lambda_chains_merged);
-  btor_msg_exp (btor, 1, "lambdas merged: %d", btor->stats.lambdas_merged);
-  btor_msg_exp (btor, 1, "propagations: %d", btor->stats.propagations);
+      btor, 1, "lambda chains merged: %lld", btor->stats.lambda_chains_merged);
+  btor_msg_exp (btor, 1, "lambdas merged: %lld", btor->stats.lambdas_merged);
+  btor_msg_exp (btor, 1, "propagations: %lld", btor->stats.propagations);
   btor_msg_exp (
-      btor, 1, "propagations down: %d", btor->stats.propagations_down);
+      btor, 1, "propagations down: %lld", btor->stats.propagations_down);
 
   btor_msg_exp (btor, 1, "");
   btor_msg_exp (btor, 1, "%.2f seconds beta-reduction", btor->time.beta);
@@ -7000,50 +7009,38 @@ update_sat_assignments (Btor *btor)
          || btor_changed_sat (smgr);
 }
 
-/* synthesizes and fully encodes index and value of access expression into SAT
- * (if necessary)
- * it returns if encoding changed assignments made so far
+/* synthesize and encode apply node and all of its arguments into SAT.
+ * returns 0 if encoding changed current assignments.
  */
 static int
-lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
+lazy_synthesize_and_encode_apply_exp (Btor *btor,
+                                      BtorNode *app,
+                                      int force_update)
 {
   assert (btor);
-  assert (acc);
-  assert (BTOR_IS_REGULAR_NODE (acc));
-  assert (BTOR_IS_ACC_NODE (acc));
+  assert (app);
+  assert (BTOR_IS_REGULAR_NODE (app));
+  assert (BTOR_IS_APPLY_NODE (app));
+  assert (BTOR_IS_REGULAR_NODE (app->e[1]));
+  assert (BTOR_IS_ARGS_NODE (app->e[1]));
 
   double start;
   int i, changed_assignments, update, argc;
   BtorNode *arg, **e;
   BtorAIGVecMgr *avmgr = 0;
 
-  if (acc->lazy_tseitin) return 0;
+  if (app->lazy_tseitin) return 0;
 
   start               = btor_time_stamp ();
   changed_assignments = 0;
   update              = 0;
   avmgr               = btor->avmgr;
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (acc));
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (app));
 
-  if (BTOR_IS_APPLY_NODE (acc))
-  {
-    assert (BTOR_IS_REGULAR_NODE (acc->e[1]));
-    assert (BTOR_IS_ARGS_NODE (acc->e[1]));
-    e    = acc->e[1]->e;
-    argc = acc->e[1]->arity;
-  }
-  else
-  {
-    assert (BTOR_IS_READ_NODE (acc) || BTOR_IS_WRITE_NODE (acc));
-    e    = acc->e + 1;
-    argc = acc->arity - 1;
-  }
+  e    = app->e[1]->e;
+  argc = app->e[1]->arity;
 
-  /* synthesize and encode all arguments of given acc expression.
-   * the following expressions are synthesized and encoded if given acc is a
-   * - read: index
-   * - write: index, value
-   * - apply: all arguments except e[0] (function) */
+  /* synthesize and encode apply node an all of its arguments */
   for (i = 0; i < argc; i++)
   {
     arg = e[i];
@@ -7061,24 +7058,23 @@ lazy_synthesize_and_encode_acc_exp (Btor *btor, BtorNode *acc, int force_update)
   }
 
   /* synthesize and encode reads and apply expressions */
-  if (BTOR_IS_READ_NODE (acc) || BTOR_IS_APPLY_NODE (acc))
-  {
-    if (!BTOR_IS_SYNTH_NODE (acc)) synthesize_exp (btor, acc, 0);
+  if (!BTOR_IS_SYNTH_NODE (app)) synthesize_exp (btor, app, 0);
 
-    if (!BTOR_REAL_ADDR_NODE (acc)->tseitin)
-    {
-      update = 1;
-      btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (acc)->av);
-      BTOR_REAL_ADDR_NODE (acc)->tseitin = 1;
-      BTORLOG ("  encode: %s", node2string (acc));
-    }
+  if (!BTOR_REAL_ADDR_NODE (app)->tseitin)
+  {
+    update = 1;
+    btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (app)->av);
+    BTOR_REAL_ADDR_NODE (app)->tseitin = 1;
+    BTORLOG ("  encode: %s", node2string (app));
   }
 
-  acc->lazy_tseitin = 1;
+  app->lazy_tseitin = 1;
 
   /* update assignments if necessary */
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
+
+  if (changed_assignments) btor->stats.synthesis_inconsistency_apply++;
 
   btor->time.enc_app += btor_time_stamp () - start;
   return changed_assignments;
@@ -7187,6 +7183,8 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   if (update && force_update)
     changed_assignments = update_sat_assignments (btor);
+
+  if (changed_assignments) btor->stats.synthesis_inconsistency_lambda++;
 
   btor->time.enc_lambda += btor_time_stamp () - start;
   return changed_assignments;
@@ -7528,7 +7526,7 @@ propagate (Btor *btor,
     assert (BTOR_IS_APPLY_NODE (app));
     check_not_simplified_or_const (btor, app);
 
-    *assignments_changed = lazy_synthesize_and_encode_acc_exp (btor, app, 1);
+    *assignments_changed = lazy_synthesize_and_encode_apply_exp (btor, app, 1);
 
     if (*assignments_changed) return 0;
 
@@ -7667,7 +7665,7 @@ propagate (Btor *btor,
 
 		  btor->stats.lambda_synth_reads++;
 		  *assignments_changed =
-		    lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
+		    lazy_synthesize_and_encode_apply_exp (btor, param_app, 1);
 
 		  if (*assignments_changed)
 		    {
@@ -7737,7 +7735,7 @@ propagate (Btor *btor,
 #endif
             btor->stats.lambda_synth_reads++;
             *assignments_changed =
-                lazy_synthesize_and_encode_acc_exp (btor, param_app, 1);
+                lazy_synthesize_and_encode_apply_exp (btor, param_app, 1);
 
             if (*assignments_changed)
             {

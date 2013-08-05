@@ -415,6 +415,8 @@ struct Btor
     int lod_refinements;  /* number of lemmas on demand refinements */
     int synthesis_assignment_inconsistencies; /* number of restarts as a
                                                  result of lazy synthesis */
+    int synthesis_inconsistency_apply;
+    int synthesis_inconsistency_lambda;
     int array_axiom_1_conflicts; /* number of array axiom 1 conflicts:
                                     a = b /\ i = j => read(a, i) = read(b, j) */
     int array_axiom_2_conflicts; /* array axiom 2 confs:
