@@ -45,7 +45,7 @@ void
 init_arithmetic_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_ARITHMETIC_TEMP_FILE_NAME, "w");
-  int pos_rww, pos_rwr;
+  int pos_rwr;
 
   assert (f != NULL);
   fclose (f);

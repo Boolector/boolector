@@ -49,7 +49,7 @@ void
 init_misc_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_MISC_TEMP_FILE_NAME, "w");
-  int pos_rww, pos_rwr;
+  int pos_rwr;
 
   assert (f != NULL);
   fclose (f);

@@ -1515,6 +1515,7 @@ parse_apply (BtorBTORParser *parser, int len)
 
   argslen = boolector_get_index_width (parser->btor, fun);
   // TODO: we ignore argslen for now
+  (void) argslen;
   if (!(args = parse_exp (parser, 0, 0))) goto RELEASE_FUN_AND_RETURN_ERROR;
 
   if (!BTOR_IS_ARGS_NODE (args))

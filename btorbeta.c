@@ -408,7 +408,7 @@ btor_beta_reduce (
                     * that is a condition of a bvcond, then we are not allowed
                     * to proceed with beta reduction
                     * (lambda below is not encoded) */
-                   || !BTOR_IS_LAMBDA_NODE (real_cur) && real_cur->tseitin)
+                   || (!BTOR_IS_LAMBDA_NODE (real_cur) && real_cur->tseitin))
                /* cut off at nodes that are already encoded */
                && (real_cur->tseitin
                    /* cut off at non-lambda array nodes

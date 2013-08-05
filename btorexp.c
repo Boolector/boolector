@@ -943,7 +943,7 @@ static void
 disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
 {
   BtorNode *first_parent, *last_parent;
-  BtorNode *child, *real_child, *tagged_parent;
+  BtorNode *real_child, *tagged_parent;
   assert (btor);
   assert (parent);
   assert (pos >= 0);
@@ -1778,7 +1778,7 @@ collect_premisses (Btor *btor,
 
   const char *res;
   int propagated_upwards, prev_propagated_upwards;
-  BtorNode *cur, *prev, *cond, *prev_lambda, *bcond, *lambda, *a;
+  BtorNode *cur, *prev, *cond, *prev_lambda, *bcond, *lambda;
   BtorNodePtrStack bconds, apps;
   BtorMemMgr *mm;
   BtorNodeTuple *tuple;
@@ -2056,7 +2056,7 @@ encode_lemma (Btor *btor,
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
   BtorNode *args0, *args1, *arg0, *arg1, *args;
-  BtorNode *cond, *beta_app;
+  BtorNode *cond;  //, *beta_app;
   BtorNode *cur, *lambda_value, *parameterized, *lambda;
   BtorIntStack linking_clause;
   BtorPtrHashBucket *bucket;
@@ -2894,13 +2894,11 @@ new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
   assert (len > 0);
 
   int i;
-  BtorMemMgr *mm;
   BtorBVNode *exp;
 #ifdef NDEBUG
   for (i = 0; i < arity; i++) assert (e[i]);
 #endif
 
-  mm = btor->mm;
   BTOR_CNEW (btor->mm, exp);
   btor->ops[kind]++;
   exp->kind  = kind;
@@ -7084,8 +7082,9 @@ skipfun_tseitin (BtorNode *exp)
   return BTOR_REAL_ADDR_NODE (exp)->tseitin;
 }
 
+#if 0
 static char *
-get_arguments_assignment (Btor *btor, BtorNode *args)
+get_arguments_assignment (Btor * btor, BtorNode * args)
 {
   assert (BTOR_IS_REGULAR_NODE (args));
   assert (BTOR_IS_ARGS_NODE (args));
@@ -7100,13 +7099,14 @@ get_arguments_assignment (Btor *btor, BtorNode *args)
   sprintf (a, "%s", avec);
   btor_free_bv_assignment_exp (btor, avec);
   for (i = 1; i < args->arity; i++)
-  {
-    avec = btor_bv_assignment_exp (btor, args->e[i]);
-    sprintf (a, "%s%s", a, avec);
-    btor_free_bv_assignment_exp (btor, avec);
-  }
+    {
+      avec = btor_bv_assignment_exp (btor, args->e[i]);
+      sprintf (a, "%s%s", a, avec); 
+      btor_free_bv_assignment_exp (btor, avec);
+    }
   return a;
 }
+#endif
 
 static int
 propagate (Btor *btor,
@@ -7475,7 +7475,6 @@ search_top_functions (Btor *btor, BtorNodePtrStack *top_funs)
   BtorNode *cur, *cur_parent;
   BtorPtrHashTable *table;
   BtorPtrHashBucket *bucket;
-  BtorNodePtrStack stack, unmark_stack;
   BtorFullParentIterator it;
 
   mm = btor->mm;
@@ -7522,7 +7521,7 @@ check_and_resolve_conflicts (Btor *btor, BtorNodePtrStack *top_functions)
   assert (top_functions);
   assert (btor->ops[BTOR_AEQ_NODE] == 0);
 
-  int i, found_conflict, changed_assignments;
+  int found_conflict, changed_assignments;
   BtorMemMgr *mm;
   BtorNode *cur_fun, *cur_parent, **top, **temp, *param_app;
   BtorNodePtrStack fun_stack, cleanup_stack, working_stack, unmark_stack;
@@ -9721,7 +9720,6 @@ merge_lambda_chains (Btor *btor)
   BtorPtrHashBucket *b;
   BtorNodePtrQueue queue;
   BtorNodePtrStack stack, unmark_stack, params;
-  BtorFullParentIterator it;
 
   mm = btor->mm;
   BTOR_INIT_QUEUE (queue);

@@ -37,7 +37,7 @@ static char **g_argv = NULL;
 void
 init_special_tests (void)
 {
-  int pos_rww, pos_rwr;
+  int pos_rwr;
 
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
