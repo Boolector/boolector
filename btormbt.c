@@ -1214,14 +1214,16 @@ _afun (Data *data, unsigned r)
 }
 
 /////////////////////////// TODO move
+
 static BtorNode *
 lambda_selexp (
     Data *data, RNG *rng, ExpType type, int force_param, int *is_param)
 {
-  assert (force_param != 1 || data->parambo->n || data->parambv->n
-          || data->paramarr->n);
+  assert (force_param != 1 || (data->parambo && data->parambo->n)
+          || (data->parambv && data->parambv->n)
+          || (data->paramarr && data->paramarr->n));
 
-  int rand, i, ip, bw, idx = -1;
+  int rand, i, bw, idx = -1;
   ExpStack *es, *bo, *bv, *arr;
   BtorNode *exp, *e[3];
 
@@ -1233,17 +1235,17 @@ lambda_selexp (
       || (force_param == 0 && (rand < 0.5 * NORM_VAL)))
   // FIXME store p value in data
   {
-    bo        = &data->bo;
-    bv        = &data->bv;
-    arr       = &data->arr;
-    *is_param = 0;
+    bo  = &data->bo;
+    bv  = &data->bv;
+    arr = &data->arr;
+    if (is_param) *is_param = 0;
   }
   else
   {
-    bo        = data->parambo;
-    bv        = data->parambv;
-    arr       = data->paramarr;
-    *is_param = 1;
+    bo  = data->parambo;
+    bv  = data->parambv;
+    arr = data->paramarr;
+    if (is_param) *is_param = 1;
   }
 
   switch (type)
@@ -1273,10 +1275,10 @@ lambda_selexp (
     }
     else
     {
-      e[0] = lambda_selexp (data, rng, T_ARR, -1, &ip);
+      e[0] = lambda_selexp (data, rng, T_ARR, -1, NULL);
       rand = pick (rng, 1, 2);
       for (i = 1; i < 3; i++)
-        e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, &ip);
+        e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, NULL);
       afun (data, rng, WRITE, e[0], e[1], e[2], 1);
     }
   }
@@ -1300,12 +1302,11 @@ lambda_selexp (
   es->exps[idx].pars++;
   return exp;
 }
-
 static BtorNode *
 lambda_selarrexp (
     Data *data, RNG *rng, BtorNode *exp, int eew, int eiw, int force_param)
 {
-  int i, ip, rand, idx, sel_eew, sel_eiw;
+  int i, rand, idx, sel_eew, sel_eiw;
   ExpStack *es;
   BtorNode *sel_e, *e[3];
 
@@ -1342,7 +1343,7 @@ lambda_selarrexp (
     e[0] = lambda_selarrexp (data, rng, NULL, eew, eiw, -1);
     rand = pick (rng, 1, 2);
     for (i = 1; i < 3; i++)
-      e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, &ip);
+      e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, NULL);
     afun (data, rng, WRITE, e[0], e[1], e[2], 1);
     sel_e = data->paramarr->exps[data->paramarr->n - 1].exp;
   }
@@ -1358,7 +1359,7 @@ lambda_selarrexp (
 static void
 param_fun (Data *data, RNG *rng, int op_from, int op_to)
 {
-  int i, rand, ip;
+  int i, rand;
   BtorNode *e[3];
   Op op;
 
@@ -1368,7 +1369,7 @@ param_fun (Data *data, RNG *rng, int op_from, int op_to)
   op = pick (rng, op_from, op_to);
   if (is_unary_fun (op))
   {
-    e[0] = lambda_selexp (data, rng, T_BB, 1, &ip);
+    e[0] = lambda_selexp (data, rng, T_BB, 1, NULL);
     unary_fun (data, rng, op, e[0], 1);
   }
   else if (is_binary_fun (op))
@@ -1379,7 +1380,7 @@ param_fun (Data *data, RNG *rng, int op_from, int op_to)
                             rng,
                             ((op >= IMPLIES && op <= IFF) ? T_BO : T_BB),
                             i == rand ? 1 : 0,
-                            &ip);
+                            NULL);
     binary_fun (data, rng, op, e[0], e[1], 1);
   }
   else
@@ -1388,7 +1389,7 @@ param_fun (Data *data, RNG *rng, int op_from, int op_to)
     rand = pick (rng, 0, 2);
     for (i = 0; i < 3; i++)
       e[i] = lambda_selexp (
-          data, rng, i == 0 ? T_BO : T_BB, i == rand ? 1 : 0, &ip);
+          data, rng, i == 0 ? T_BO : T_BB, i == rand ? 1 : 0, NULL);
     ternary_fun (data, rng, op, e[0], e[1], e[2], 1);
   }
 }
@@ -1396,16 +1397,15 @@ param_fun (Data *data, RNG *rng, int op_from, int op_to)
 static void
 param_afun (Data *data, RNG *rng, int force_arrnparr)
 {
-  int i, rand, ip, eiw, eew;
+  int i, rand, eiw, eew;
   BtorNode *e[3];
   Op op;
 
   /* force array exp with non-parameterized arrays? */
   rand = force_arrnparr ? -1 : pick (rng, 0, 1);
-  e[0] = lambda_selexp (data, rng, T_ARR, rand, &ip);
-  assert (rand >= 0 || ip == 0);
-  eew = boolector_get_width (data->btor, e[0]);
-  eiw = boolector_get_index_width (data->btor, e[0]);
+  e[0] = lambda_selexp (data, rng, T_ARR, rand, NULL);
+  eew  = boolector_get_width (data->btor, e[0]);
+  eiw  = boolector_get_index_width (data->btor, e[0]);
 
   /* choose READ/WRITE with p = 0.666, else EQ/NE/COND */
   if (pick (rng, 0, 2))
@@ -1416,10 +1416,10 @@ param_afun (Data *data, RNG *rng, int force_arrnparr)
     {
       rand = pick (rng, 1, 2);
       for (i = 1; i < 3; i++)
-        e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, &ip);
+        e[i] = lambda_selexp (data, rng, T_BV, rand == i ? 1 : 0, NULL);
     }
     else
-      e[1] = lambda_selexp (data, rng, T_BV, 1, &ip);
+      e[1] = lambda_selexp (data, rng, T_BV, 1, NULL);
   }
   else
   {
@@ -1429,7 +1429,7 @@ param_afun (Data *data, RNG *rng, int force_arrnparr)
     e[1] = lambda_selarrexp (
         data, rng, e[0], eew, eiw, rand == -1 ? rand : rand ^ 1);
     if (op == COND)
-      e[2] = lambda_selexp (data, rng, T_BO, rand < 0 ? 1 : 0, &ip);
+      e[2] = lambda_selexp (data, rng, T_BO, rand < 0 ? 1 : 0, NULL);
   }
   afun (data, rng, op, e[0], e[1], e[2], 1);
 }
