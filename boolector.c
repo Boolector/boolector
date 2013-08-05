@@ -1607,9 +1607,9 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   char *strtrapi;
   BtorNode *res;
 
-  len = 5 + paramc * 20;
+  len = 5 + 10 + paramc * 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "fun");
+  sprintf (strtrapi, "fun %d", paramc);
 
   for (i = 0; i < paramc; i++)
   {
@@ -1629,34 +1629,10 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   return res;
 }
 
-// BtorNode *
-// boolector_eval (Btor * btor, int argc, BtorNode ** args, BtorNode * lambda)
-//{
-//  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-//  BTOR_ABORT_ARG_NULL_BOOLECTOR (lambda);
-//  BTOR_ABORT_BOOLECTOR (argc < 0, "'argc' must not be < 0");
-//  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
-//                        "no arguments given but argc defined > 0");
-//
-//  int i;
-//  BtorNode *cur = BTOR_REAL_ADDR_NODE (lambda);
-//
-//  for (i = 0; i < argc; i++)
-//    {
-//      BTOR_ABORT_BOOLECTOR (!BTOR_IS_LAMBDA_NODE (cur),
-//	"number of arguments muste be <= number of parameters in 'lambda'");
-//      cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
-//    }
-//
-//  btor->external_refs++;
-//  return btor_eval (btor, argc, args, lambda);
-//}
-
 // TODO: allow partial application?
 BtorNode *
 boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
@@ -1664,19 +1640,30 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
                         "no arguments given but argc defined > 0");
 
   // TODO: get arity of function
-  int i;
-  BtorNode *cur = BTOR_REAL_ADDR_NODE (fun);
+  int i, len;
+  char *strtrapi;
+  BtorNode *res, *cur;
 
+  len = 7 + 10 + argc * 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "apply %d", argc);
+
+  cur = BTOR_REAL_ADDR_NODE (fun);
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
         !BTOR_IS_LAMBDA_NODE (cur),
         "number of arguments muste be <= number of parameters in 'fun'");
+    sprintf (strtrapi + strlen (strtrapi), " %p", args[i]);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
 
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
-  return btor_apply_exp (btor, argc, args, fun);
+  res = btor_apply_exp (btor, argc, args, fun);
+  BTOR_TRAPI_RETURNP (res);
+  return res;
 }
 
 BtorNode *
