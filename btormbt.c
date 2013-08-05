@@ -417,7 +417,8 @@ nextpow2 (int val, int *pow2, int *log2)
   }
 }
 
-/* change node e with width ew to width tow */
+/* Change node e with width ew to width tow.
+ * Note: param ew prevents too many boolector_get_width calls. */
 static BtorNode *
 modifybv (Data *data, RNG *rng, BtorNode *e, int ew, int tow, int is_param)
 {
