@@ -201,7 +201,7 @@ typedef struct BtorNodePair BtorNodePair;
         };                                                              \
       };                                                                \
     };                                                                  \
-    BtorNode **e;           /* three expression children */             \
+    BtorNode **e;           /* expression children */                   \
     BtorNode **prev_parent; /* prev in parent list of child i */        \
     BtorNode **next_parent; /* next in parent list of child i */        \
   }
@@ -291,7 +291,7 @@ struct BtorLambdaNode
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
   BTOR_ARRAY_VAR_NODE_STRUCT;
   BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
-  BtorPtrHashTable *synth_reads;
+  BtorPtrHashTable *synth_apps;
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
   unsigned int is_write : 1;
@@ -440,7 +440,7 @@ struct Btor
     long long expressions;
     long long beta_reduce_calls;
     long long eval_exp_calls;
-    long long lambda_synth_reads;
+    long long lambda_synth_apps;
     long long lambda_chains_merged;
     long long lambdas_merged;
     long long propagations;

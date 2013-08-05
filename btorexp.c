@@ -1209,7 +1209,7 @@ static void
 erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
 {
   BtorMemMgr *mm;
-  BtorPtrHashTable *synth_reads;
+  BtorPtrHashTable *synth_apps;
   BtorPtrHashBucket *bucket;
 
   assert (btor);
@@ -1232,13 +1232,13 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       exp->bits = 0;
       break;
     case BTOR_LAMBDA_NODE:
-      synth_reads = ((BtorLambdaNode *) exp)->synth_reads;
-      if (synth_reads)
+      synth_apps = ((BtorLambdaNode *) exp)->synth_apps;
+      if (synth_apps)
       {
-        for (bucket = synth_reads->last; bucket; bucket = bucket->prev)
+        for (bucket = synth_apps->last; bucket; bucket = bucket->prev)
           btor_release_exp (btor, (BtorNode *) bucket->key);
-        btor_delete_ptr_hash_table (synth_reads);
-        ((BtorLambdaNode *) exp)->synth_reads = 0;
+        btor_delete_ptr_hash_table (synth_apps);
+        ((BtorLambdaNode *) exp)->synth_apps = 0;
       }
       goto ERASE_LOCAL_ARRAY_RHO;
     case BTOR_ARRAY_VAR_NODE:
@@ -4947,6 +4947,7 @@ btor_write_exp (Btor *btor,
   e_value = btor_simplify_exp (btor, e_value);
   assert (btor_precond_write_exp_dbg (btor, e_array, e_index, e_value));
 
+  // TODO: lambda rewriting
   if (btor->rewrite_level > 0)
     result = btor_rewrite_write_exp (btor, e_array, e_index, e_value);
   else
@@ -5418,7 +5419,7 @@ btor_delete_btor (Btor *btor)
 
   for (b = btor->lambdas->first; b; b = b->next)
   {
-    ht = ((BtorLambdaNode *) b->key)->synth_reads;
+    ht = ((BtorLambdaNode *) b->key)->synth_apps;
     while (ht && ht->count > 0u)
     {
       exp = (BtorNode *) ht->first->key;
@@ -5689,10 +5690,8 @@ btor_print_stats_btor (Btor *btor)
       btor, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
   btor_msg_exp (
       btor, 1, "expression evaluations: %lld", btor->stats.eval_exp_calls);
-  btor_msg_exp (btor,
-                1,
-                "synthesized lambda reads: %lld",
-                btor->stats.lambda_synth_reads);
+  btor_msg_exp (
+      btor, 1, "synthesized lambda reads: %lld", btor->stats.lambda_synth_apps);
   btor_msg_exp (
       btor, 1, "lambda chains merged: %lld", btor->stats.lambda_chains_merged);
   btor_msg_exp (btor, 1, "lambdas merged: %lld", btor->stats.lambdas_merged);
@@ -5907,8 +5906,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       {
         /* nothing to synthesize for array base case */
       }
-      else if (BTOR_IS_WRITE_NODE (cur) || BTOR_IS_LAMBDA_NODE (cur)
-               || BTOR_IS_ARRAY_COND_NODE (cur))
+      else if (BTOR_IS_LAMBDA_NODE (cur))
       {
         goto REGULAR_CASE;
       }
@@ -5921,14 +5919,12 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
          * If there are no reads or array equalities on a write, then
          * it is not reachable. (Lambdas are treated similarly.)
          */
-        assert (!BTOR_IS_WRITE_NODE (cur));
         assert (!BTOR_IS_LAMBDA_NODE (cur));
 
         /* Atomic arrays and array conditionals should also not be
          * reached directly.
          */
         assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
-        assert (!BTOR_IS_ARRAY_COND_NODE (cur));
 
         /* special cases */
         if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
@@ -6750,8 +6746,6 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     cur = BTOR_POP_STACK (work_stack);
     assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (!BTOR_IS_WRITE_NODE (cur));
-    assert (!BTOR_IS_ARRAY_COND_NODE (cur));
 
     if (cur->mark == 2) continue;
 
@@ -6916,7 +6910,6 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
       else
       {
         assert (!BTOR_IS_ARRAY_EQ_NODE (real_cur));
-        assert (!BTOR_IS_ARRAY_COND_NODE (real_cur));
         assert (!BTOR_IS_ARRAY_NODE (real_cur));
         assert (!BTOR_IS_PROXY_NODE (real_cur));
         assert (real_cur->arity <= BTOR_COUNT_STACK (arg_stack));
@@ -7271,9 +7264,9 @@ propagate (Btor *btor,
 	      find_nodes_dfs (btor, BTOR_REAL_ADDR_NODE (fun_value)->e[1],
 			      &param_apps, findfun_apply, skipfun_tseitin);
 
-	      if (!BTOR_EMPTY_STACK (param_apps) && !lambda->synth_reads)
+	      if (!BTOR_EMPTY_STACK (param_apps) && !lambda->synth_apps)
 		{
-		  lambda->synth_reads =
+		  lambda->synth_apps =
 		    btor_new_ptr_hash_table (mm,
 			(BtorHashPtr) btor_hash_exp_by_id,
 			(BtorCmpPtr) btor_compare_exp_by_id);
@@ -7285,15 +7278,15 @@ propagate (Btor *btor,
 		  assert (BTOR_IS_REGULAR_NODE (param_app));
 		  assert (BTOR_IS_APPLY_NODE (param_app));
 
-		  if (btor_find_in_ptr_hash_table (lambda->synth_reads,
+		  if (btor_find_in_ptr_hash_table (lambda->synth_apps,
 						   param_app))
 		    continue;
 
 		  inc_exp_ref_counter (btor, param_app);
 		  btor_insert_in_ptr_hash_table (
-		    lambda->synth_reads, param_app);
+		    lambda->synth_apps, param_app);
 
-		  btor->stats.lambda_synth_reads++;
+		  btor->stats.lambda_synth_apps++;
 		  *assignments_changed =
 		    lazy_synthesize_and_encode_apply_exp (btor, param_app, 1);
 
@@ -7329,9 +7322,9 @@ propagate (Btor *btor,
             btor, fun_value, &param_apps, findfun_apply, skipfun_tseitin);
         if (!BTOR_EMPTY_STACK (param_apps))
         {
-          if (!lambda->synth_reads)
+          if (!lambda->synth_apps)
           {
-            lambda->synth_reads =
+            lambda->synth_apps =
                 btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
@@ -7343,15 +7336,15 @@ propagate (Btor *btor,
             assert (BTOR_IS_REGULAR_NODE (param_app));
             assert (BTOR_IS_APPLY_NODE (param_app));
 
-            if (btor_find_in_ptr_hash_table (lambda->synth_reads, param_app))
+            if (btor_find_in_ptr_hash_table (lambda->synth_apps, param_app))
               continue;
 
             //		      if (!btor_find_in_ptr_hash_table
-            //(lambda->synth_reads,
+            //(lambda->synth_apps,
             //							param_app))
             //			{
             inc_exp_ref_counter (btor, param_app);
-            btor_insert_in_ptr_hash_table (lambda->synth_reads, param_app);
+            btor_insert_in_ptr_hash_table (lambda->synth_apps, param_app);
             //			}
 
             /* only synthesize and encode param_app if we cannot
@@ -7363,7 +7356,7 @@ propagate (Btor *btor,
 			  || !ENABLE_APPLY_PROP_DOWN)
 			{
 #endif
-            btor->stats.lambda_synth_reads++;
+            btor->stats.lambda_synth_apps++;
             *assignments_changed =
                 lazy_synthesize_and_encode_apply_exp (btor, param_app, 1);
 
@@ -7793,19 +7786,14 @@ rebuild_exp (Btor *btor, BtorNode *exp)
     case BTOR_UDIV_NODE: return btor_udiv_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_UREM_NODE: return btor_urem_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_CONCAT_NODE: return btor_concat_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_READ_NODE: return btor_read_exp (btor, exp->e[0], exp->e[1]);
-    case BTOR_WRITE_NODE:
-      return btor_write_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
     case BTOR_LAMBDA_NODE:
-      // TODO: use btor_param_cur_assignment
-      assert (BTOR_EMPTY_STACK (
-          ((BtorParamNode *) BTOR_REAL_ADDR_NODE (exp->e[0]))->assigned_exp));
+      assert (!btor_param_cur_assignment (exp->e[0]));
       BTOR_PARAM_SET_LAMBDA_NODE (exp->e[0], 0);
       return btor_lambda_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_APPLY_NODE: return btor_apply_exp (btor, exp->e[0], exp->e[1]);
     case BTOR_ARGS_NODE: return btor_args_exp (btor, exp->arity, exp->e);
     default:
-      assert (BTOR_IS_ARRAY_OR_BV_COND_NODE (exp));
+      assert (BTOR_IS_BV_COND_NODE (exp));
       return btor_cond_exp (btor, exp->e[0], exp->e[1], exp->e[2]);
   }
 }
@@ -8829,12 +8817,11 @@ all_exps_below_rebuilt (Btor *btor, BtorNode *exp)
 }
 
 static void
-substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
+substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int bra)
 {
   assert (btor);
   assert (subst);
-  assert (rww == 0 || rww == 1);
-  assert (rwr == 0 || rwr == 1);
+  assert (bra == 0 || bra == 1);
 
   int i, pushed;
   BtorMemMgr *mm;
@@ -8857,7 +8844,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
     assert (!BTOR_IS_PROXY_NODE (cur));
-    if (rww || rwr) cur->mark = 1; /* mark as in substitute table */
+    if (bra) cur->mark = 1; /* mark as in substitute table */
     BTOR_ENQUEUE (mm, queue, cur);
   }
 
@@ -8931,16 +8918,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
         continue;
       }
 
-      /* we only have to rewrite reads/writes if cur is in subst */
-#if 0
-	  if (rww && BTOR_IS_WRITE_NODE (cur) && cur->mark)
-	    {
-	      cur->mark = 0;
-	      rebuilt_exp = rewrite_write_to_lambda_exp (btor, cur);
-	    }
-	  else
-#endif
-      if (rwr && BTOR_IS_APPLY_NODE (cur) && cur->mark)
+      if (bra && BTOR_IS_APPLY_NODE (cur) && cur->mark)
       {
         cur->mark   = 0;
         rebuilt_exp = btor_beta_reduce_full (btor, cur);
@@ -8996,7 +8974,7 @@ substitute_embedded_constraints (Btor *btor)
      * e.g. top conjunction of constraints that are released */
     if (has_parents_exp (btor, cur)) btor->stats.ec_substitutions++;
   }
-  substitute_and_rebuild (btor, btor->embedded_constraints, 0, 0);
+  substitute_and_rebuild (btor, btor->embedded_constraints, 0);
 }
 
 static void
@@ -9727,7 +9705,7 @@ beta_reduce_reads_on_lambdas (Btor *btor)
 
   // TODO: do we have to release the cache for lambdas that are only referenced
   // by the cache itself? maybe a cleanup cache function?
-  substitute_and_rebuild (btor, apps, 0, 1);
+  substitute_and_rebuild (btor, apps, 1);
   btor_delete_ptr_hash_table (apps);
 }
 
@@ -9905,7 +9883,7 @@ merge_lambda_chains (Btor *btor)
   }
   BTOR_RELEASE_STACK (mm, unmark_stack);
 
-  substitute_and_rebuild (btor, btor->substitutions, 0, 0);
+  substitute_and_rebuild (btor, btor->substitutions, 0);
   delta_lambdas = start_lambdas - btor->lambdas->count;
 
   BTOR_RELEASE_QUEUE (mm, queue);
