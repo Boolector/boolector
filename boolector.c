@@ -207,7 +207,6 @@ boolector_delete (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("delete");
-  printf ("####################### delete\n");
   if (btor->closeapitrace == 1)
     fclose (btor->apitrace);
   else if (btor->closeapitrace == 2)
