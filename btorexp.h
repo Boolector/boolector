@@ -128,12 +128,12 @@ enum BtorNodeKind
   BTOR_UREM_NODE      = 15,
   BTOR_CONCAT_NODE    = 16,
   BTOR_READ_NODE      = 17,
-  BTOR_LAMBDA_NODE    = 18, /* lambda expression */
-  BTOR_WRITE_NODE     = 19,
-  BTOR_BCOND_NODE     = 20, /* conditional on bit vectors */
-  BTOR_ACOND_NODE     = 21, /* conditional on arrays */
-  BTOR_ARGS_NODE      = 22,
-  BTOR_APPLY_NODE     = 23,
+  BTOR_APPLY_NODE     = 18,
+  BTOR_LAMBDA_NODE    = 19, /* lambda expression */
+  BTOR_WRITE_NODE     = 20,
+  BTOR_BCOND_NODE     = 21, /* conditional on bit vectors */
+  BTOR_ACOND_NODE     = 22, /* conditional on arrays */
+  BTOR_ARGS_NODE      = 23,
   BTOR_PROXY_NODE     = 24, /* simplified expression without children */
   BTOR_NUM_OPS_NODE   = 25
 };
