@@ -1140,7 +1140,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   if (btormbt->parambv->n == 0)
   {
     assert (btormbt->parambo->n);
-    tmp = btormbt->parambo->exps[pick (&rng, 0, btormbt->parambo->n)].exp;
+    tmp = btormbt->parambo->exps[pick (&rng, 0, btormbt->parambo->n - 1)].exp;
     assert (boolector_get_width (btormbt->btor, tmp) == 1);
     modifybv (btormbt, &rng, tmp, 1, pick (&rng, 2, MAX_BITWIDTH), 1);
   }
