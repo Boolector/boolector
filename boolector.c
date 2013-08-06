@@ -1734,23 +1734,31 @@ boolector_is_array (Btor *btor, BtorNode *exp)
 int
 boolector_is_fun (Btor *btor, BtorNode *exp)
 {
-  // TODO TRAPI
+  int res;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("is_fun %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
-  return btor_is_lambda_exp (btor, exp);
+  res = btor_is_lambda_exp (btor, exp);
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 int
 boolector_get_fun_arity (Btor *btor, BtorNode *exp)
 {
-  // TODO TRAPI
+  int res;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("get_fun_arity %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
-  return btor_get_lambda_arity (btor, exp);
+  res = btor_get_lambda_arity (btor, exp);
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 int
