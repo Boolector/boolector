@@ -24,6 +24,7 @@
 
 #include <limits.h>
 #include <stdio.h>
+#include <string.h>
 
 /*------------------------------------------------------------------------*/
 
@@ -327,23 +328,29 @@ boolector_int (Btor *btor, int i, int width)
 BtorNode *
 boolector_var (Btor *btor, int width, const char *symbol)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+
   BtorNode *res;
   char *symb;
-  int delete = 0;
 
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "DVN%d", btor->dvn_id++);
-    delete = 1;
+    BTOR_TRAPI ("var %d %s", width, symb);
+    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+    btor->external_refs++;
+    res = btor_var_exp (btor, width, symb);
+  }
+  else
+  {
+    BTOR_TRAPI ("var %d %s", width, symbol);
+    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+    btor->external_refs++;
+    res = btor_var_exp (btor, width, symbol);
   }
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("var %d %s", width, symb);
-  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
-  btor->external_refs++;
-  res = btor_var_exp (btor, width, symb);
-  if (delete) BTOR_DELETEN (btor->mm, symb, 20);
+  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURNP (res);
   return res;
 }
@@ -354,24 +361,31 @@ boolector_array (Btor *btor,
                  int index_width,
                  const char *symbol)
 {
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+
   BtorNode *res;
   char *symb;
-  int delete = 0;
 
   if ((symb = (char *) symbol) == NULL)
   {
     BTOR_NEWN (btor->mm, symb, 20);
     sprintf (symb, "DAN%d", btor->dan_id++);
-    delete = 1;
+    BTOR_TRAPI ("array %d %d %s", elem_width, index_width, symb);
+    BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
+    BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
+    btor->external_refs++;
+    res = btor_array_exp (btor, elem_width, index_width, symb);
+  }
+  else
+  {
+    BTOR_TRAPI ("array %d %d %s", elem_width, index_width, symbol);
+    BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
+    BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
+    btor->external_refs++;
+    res = btor_array_exp (btor, elem_width, index_width, symbol);
   }
 
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_TRAPI ("array %d %d %s", elem_width, index_width, symb);
-  BTOR_ABORT_BOOLECTOR (elem_width < 1, "'elem_width' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (index_width < 1, "'index_width' must not be < 1");
-  btor->external_refs++;
-  res = btor_array_exp (btor, elem_width, index_width, symb);
-  if (delete) BTOR_DELETEN (btor->mm, symb, 20);
+  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
   BTOR_TRAPI_RETURNP (res);
   return res;
 }
@@ -1553,28 +1567,49 @@ boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp)
 BtorNode *
 boolector_param (Btor *btor, int width, const char *symbol)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
 
-  btor->external_refs++;
-  if (symbol == NULL)
-    return btor_param_exp (btor, width, "DPN");
+  BtorNode *res;
+  char *symb;
+
+  if ((symb = (char *) symbol) == NULL)
+  {
+    BTOR_NEWN (btor->mm, symb, 20);
+    sprintf (symb, "DPN%d", btor->dpn_id++);
+    BTOR_TRAPI ("param %d %s", width, symb);
+    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+    btor->external_refs++;
+    res = btor_param_exp (btor, width, symb);
+  }
   else
-    return btor_param_exp (btor, width, symbol);
+  {
+    BTOR_TRAPI ("param %d %s", width, symbol);
+    BTOR_ABORT_BOOLECTOR (width < 1, "'width' must not be < 1");
+    btor->external_refs++;
+    res = btor_param_exp (btor, width, symbol);
+  }
+
+  if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
+  BTOR_TRAPI_RETURNP (res);
+  return res;
 }
 
 BtorNode *
 boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (params);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   BTOR_ABORT_BOOLECTOR (paramc < 1, "'paramc' must not be < 1");
 
-  int i;
+  int i, len;
+  char *strtrapi;
+  BtorNode *res;
+
+  len = 5 + 10 + paramc * 20 + 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "fun %d", paramc);
 
   for (i = 0; i < paramc; i++)
   {
@@ -1583,40 +1618,21 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
         "'params[%d]' is not a parameter",
         i);
     BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
+    sprintf (strtrapi + strlen (strtrapi), " %p", params[i]);
   }
-
+  sprintf (strtrapi + strlen (strtrapi), " %p", exp);
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
-  return btor_fun_exp (btor, paramc, params, exp);
+  res = btor_fun_exp (btor, paramc, params, exp);
+  BTOR_TRAPI_RETURNP (res);
+  return res;
 }
-
-// BtorNode *
-// boolector_eval (Btor * btor, int argc, BtorNode ** args, BtorNode * lambda)
-//{
-//  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-//  BTOR_ABORT_ARG_NULL_BOOLECTOR (lambda);
-//  BTOR_ABORT_BOOLECTOR (argc < 0, "'argc' must not be < 0");
-//  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
-//                        "no arguments given but argc defined > 0");
-//
-//  int i;
-//  BtorNode *cur = BTOR_REAL_ADDR_NODE (lambda);
-//
-//  for (i = 0; i < argc; i++)
-//    {
-//      BTOR_ABORT_BOOLECTOR (!BTOR_IS_LAMBDA_NODE (cur),
-//	"number of arguments muste be <= number of parameters in 'lambda'");
-//      cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
-//    }
-//
-//  btor->external_refs++;
-//  return btor_eval (btor, argc, args, lambda);
-//}
 
 // TODO: allow partial application?
 BtorNode *
 boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
@@ -1624,19 +1640,30 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
                         "no arguments given but argc defined > 0");
 
   // TODO: get arity of function
-  int i;
-  BtorNode *cur = BTOR_REAL_ADDR_NODE (fun);
+  int i, len;
+  char *strtrapi;
+  BtorNode *res, *cur;
 
+  len = 7 + 10 + argc * 20 + 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "apply %d", argc);
+
+  cur = BTOR_REAL_ADDR_NODE (fun);
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
         !BTOR_IS_LAMBDA_NODE (cur),
         "number of arguments muste be <= number of parameters in 'fun'");
+    sprintf (strtrapi + strlen (strtrapi), " %p", args[i]);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
-
+  sprintf (strtrapi + strlen (strtrapi), " %p", fun);
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
-  return btor_apply_exp (btor, argc, args, fun);
+  res = btor_apply_exp (btor, argc, args, fun);
+  BTOR_TRAPI_RETURNP (res);
+  return res;
 }
 
 BtorNode *
@@ -1707,23 +1734,31 @@ boolector_is_array (Btor *btor, BtorNode *exp)
 int
 boolector_is_fun (Btor *btor, BtorNode *exp)
 {
-  // TODO TRAPI
+  int res;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("is_fun %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
-  return btor_is_lambda_exp (btor, exp);
+  res = btor_is_lambda_exp (btor, exp);
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 int
 boolector_get_fun_arity (Btor *btor, BtorNode *exp)
 {
-  // TODO TRAPI
+  int res;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("get_fun_arity %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
-  return btor_get_lambda_arity (btor, exp);
+  res = btor_get_lambda_arity (btor, exp);
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 int
