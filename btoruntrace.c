@@ -137,8 +137,9 @@ strarg (char *op)
 static void *
 hmap_get (BtorPtrHashTable *hmap, char *key)
 {
+  assert (key);
   BtorPtrHashBucket *bucket = btor_find_in_ptr_hash_table (hmap, key);
-  if (!bucket) die ("expression '%p' is not hashed", key);
+  if (!bucket) die ("expression '%s' is not hashed", key);
   return bucket->data.asPtr;
 }
 
