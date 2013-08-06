@@ -207,7 +207,6 @@ boolector_delete (Btor *btor)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("delete");
-  printf ("####################### delete\n");
   if (btor->closeapitrace == 1)
     fclose (btor->apitrace);
   else if (btor->closeapitrace == 2)
@@ -1608,9 +1607,9 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   char *strtrapi;
   BtorNode *res;
 
-  len = 5 + paramc * 20;
+  len = 5 + 10 + paramc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
-  sprintf (strtrapi, "fun");
+  sprintf (strtrapi, "fun %d", paramc);
 
   for (i = 0; i < paramc; i++)
   {
@@ -1621,7 +1620,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
     BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (params[i]);
     sprintf (strtrapi + strlen (strtrapi), " %p", params[i]);
   }
-
+  sprintf (strtrapi + strlen (strtrapi), " %p", exp);
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
@@ -1634,7 +1633,6 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
 BtorNode *
 boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
-  // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
@@ -1642,19 +1640,30 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
                         "no arguments given but argc defined > 0");
 
   // TODO: get arity of function
-  int i;
-  BtorNode *cur = BTOR_REAL_ADDR_NODE (fun);
+  int i, len;
+  char *strtrapi;
+  BtorNode *res, *cur;
 
+  len = 7 + 10 + argc * 20 + 20;
+  BTOR_NEWN (btor->mm, strtrapi, len);
+  sprintf (strtrapi, "apply %d", argc);
+
+  cur = BTOR_REAL_ADDR_NODE (fun);
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
         !BTOR_IS_LAMBDA_NODE (cur),
         "number of arguments muste be <= number of parameters in 'fun'");
+    sprintf (strtrapi + strlen (strtrapi), " %p", args[i]);
     cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
   }
-
+  sprintf (strtrapi + strlen (strtrapi), " %p", fun);
+  BTOR_TRAPI (strtrapi);
+  BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
-  return btor_apply_exps (btor, argc, args, fun);
+  res = btor_apply_exps (btor, argc, args, fun);
+  BTOR_TRAPI_RETURNP (res);
+  return res;
 }
 
 BtorNode *
