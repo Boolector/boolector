@@ -203,7 +203,7 @@ typedef struct BtorMBT
   /* probability distribution of assertions */
   float p_ass;
 
-  ExpStack bo, bv, arr;
+  ExpStack bo, bv, arr, fun;
   ExpStack *parambo, *parambv, *paramarr;
   ExpStack cnf;
 
@@ -225,6 +225,9 @@ static Env env;
 void
 es_push (ExpStack *es, BtorNode *exp)
 {
+  assert (es);
+  assert (exp);
+
   if (es->n == es->size)
   {
     es->size = es->size ? es->size * 2 : 2;
@@ -238,8 +241,10 @@ es_push (ExpStack *es, BtorNode *exp)
 static void
 es_del (BtorMBT *btormbt, ExpStack *es, int idx)
 {
-  int i;
+  assert (es);
   assert (idx >= 0 && idx < es->n);
+
+  int i;
 
   boolector_release (btormbt->btor, es->exps[idx].exp);
   for (i = idx; i < es->n - 1; i++) es->exps[i] = es->exps[i + 1];
@@ -250,6 +255,8 @@ es_del (BtorMBT *btormbt, ExpStack *es, int idx)
 static void
 es_reset (BtorMBT *btormbt, ExpStack *es)
 {
+  assert (es);
+
   int i;
 
   for (i = 0; i < es->n; i++)
@@ -260,19 +267,17 @@ es_reset (BtorMBT *btormbt, ExpStack *es)
 void
 es_release (BtorMBT *btormbt, ExpStack *es)
 {
+  assert (es);
+
   int i;
 
-  for (i = 0; i < es->n; i++)
-    boolector_release (btormbt->btor, es->exps[i].exp);
-  es->n = 0;
-  free (es->exps);
-}
-
-BtorNode *
-es_get (ExpStack *es, int idx)
-{
-  assert (idx >= 0 && idx < es->n);
-  return es->exps[idx].exp;
+  if (es)
+  {
+    for (i = 0; i < es->n; i++)
+      boolector_release (btormbt->btor, es->exps[i].exp);
+    es->n = 0;
+    free (es->exps);
+  }
 }
 
 /*------------------------------------------------------------------------*/
@@ -1118,65 +1123,90 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   RNG rng;
 
   rng = initrng (r);
-  memset (&parambo, 0, sizeof (parambo));
-  memset (&parambv, 0, sizeof (parambv));
-  memset (&paramarr, 0, sizeof (paramarr));
-  btormbt->parambo  = &parambo;
-  btormbt->parambv  = &parambv;
-  btormbt->paramarr = &paramarr;
-
-  /* choose function parameters */
-  *width   = pick (&rng, 1, MAX_BITWIDTH);
-  *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
-  params   = malloc (sizeof (BtorNode *) * *nparams);
-  for (i = 0; i < *nparams; i++)
+  /* choose between apply on random existing function and apply on new
+   * function with p = 0.5 */
+  // FIXME externalise p
+  if (btormbt->fun.n && pick (&rng, 0, 1)) /* use existing function */
   {
-    tmp       = boolector_param (btormbt->btor, *width, NULL);
-    params[i] = tmp;
-    es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
+    btormbt->parambo  = NULL;
+    btormbt->parambv  = NULL;
+    btormbt->paramarr = NULL;
+
+    rand     = pick (&rng, 0, btormbt->fun.n - 1);
+    fun      = btormbt->fun.exps[rand].exp;
+    *nparams = boolector_get_fun_arity (btormbt->btor, fun);
+    assert (*nparams);
+    *width = boolector_get_index_width (btormbt->btor, fun);
   }
-
-  /* initialize stacks for non-bv parameterized expressions */
-  if (btormbt->parambv->n == 0)
+  else /* generate new function */
   {
-    assert (btormbt->parambo->n);
-    tmp = btormbt->parambo->exps[pick (&rng, 0, btormbt->parambo->n - 1)].exp;
-    assert (boolector_get_width (btormbt->btor, tmp) == 1);
-    modifybv (btormbt, &rng, tmp, 1, pick (&rng, 2, MAX_BITWIDTH), 1);
-  }
-  assert (btormbt->parambv->n);
-  if (btormbt->parambo->n == 0) param_fun (btormbt, &rng, REDOR, IFF);
-  assert (btormbt->parambo->n);
-  param_afun (btormbt, &rng, 1);
-  assert (btormbt->paramarr->n);
+    memset (&parambo, 0, sizeof (parambo));
+    memset (&parambv, 0, sizeof (parambv));
+    memset (&paramarr, 0, sizeof (paramarr));
+    btormbt->parambo  = &parambo;
+    btormbt->parambv  = &parambv;
+    btormbt->paramarr = &paramarr;
 
-  /* generate parameterized expressions */
-  nops = pick (&rng, 0, MAX_NPARAMOPS);
-  n    = 0;
-  while (n++ < nops)
-  {
-  BFUN_PICK_FUN_TYPE:
-    rand = pick (&rng, 0, NORM_VAL - 1);
-    if (rand < btormbt->p_fun)
-      param_fun (btormbt, &rng, NOT, COND);
-    else if (rand < btormbt->p_fun + btormbt->p_afun)
-      param_afun (btormbt, &rng, 0);
-    else
+    /* choose function parameters */
+    *width   = pick (&rng, 1, MAX_BITWIDTH);
+    *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
+    params   = malloc (sizeof (BtorNode *) * *nparams);
+    for (i = 0; i < *nparams; i++)
     {
-      if (nlevel < MAX_NNESTEDBFUNS)
-      {
-        bfun (btormbt, nextrand (&rng), &np, &w, nlevel + 1);
-        btormbt->parambo  = &parambo;
-        btormbt->parambv  = &parambv;
-        btormbt->paramarr = &paramarr;
-      }
-      else
-        goto BFUN_PICK_FUN_TYPE;
+      tmp       = boolector_param (btormbt->btor, *width, NULL);
+      params[i] = tmp;
+      es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
     }
+
+    /* initialize stacks for non-bv parameterized expressions */
+    if (btormbt->parambv->n == 0)
+    {
+      assert (btormbt->parambo->n);
+      rand = pick (&rng, 0, btormbt->parambo->n - 1);
+      tmp  = btormbt->parambo->exps[rand].exp;
+      assert (boolector_get_width (btormbt->btor, tmp) == 1);
+      modifybv (btormbt, &rng, tmp, 1, pick (&rng, 2, MAX_BITWIDTH), 1);
+    }
+    assert (btormbt->parambv->n);
+    if (btormbt->parambo->n == 0) param_fun (btormbt, &rng, REDOR, IFF);
+    assert (btormbt->parambo->n);
+    param_afun (btormbt, &rng, 1);
+    assert (btormbt->paramarr->n);
+
+    /* generate parameterized expressions */
+    nops = pick (&rng, 0, MAX_NPARAMOPS);
+    n    = 0;
+    while (n++ < nops)
+    {
+    BFUN_PICK_FUN_TYPE:
+      rand = pick (&rng, 0, NORM_VAL - 1);
+      if (rand < btormbt->p_fun)
+        param_fun (btormbt, &rng, NOT, COND);
+      else if (rand < btormbt->p_fun + btormbt->p_afun)
+        param_afun (btormbt, &rng, 0);
+      else
+      {
+        if (nlevel < MAX_NNESTEDBFUNS)
+        {
+          bfun (btormbt, nextrand (&rng), &np, &w, nlevel + 1);
+          btormbt->parambo  = &parambo;
+          btormbt->parambv  = &parambv;
+          btormbt->paramarr = &paramarr;
+        }
+        else
+          goto BFUN_PICK_FUN_TYPE;
+      }
+    }
+
+    rand = pick (&rng, 0, parambv.n - 1);
+    fun =
+        boolector_fun (btormbt->btor, *nparams, params, parambv.exps[rand].exp);
+    es_push (&btormbt->fun, fun);
+
+    free (params);
   }
 
-  rand = pick (&rng, 0, parambv.n - 1);
-  fun = boolector_fun (btormbt->btor, *nparams, params, parambv.exps[rand].exp);
+  /* generate apply expression with arguments */
   args = malloc (sizeof (BtorNode *) * *nparams);
   for (i = 0; i < *nparams; i++)
   {
@@ -1191,14 +1221,12 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   es_push (&btormbt->bv, boolector_apply (btormbt->btor, *nparams, args, fun));
 
   /* cleanup */
-  boolector_release (btormbt->btor, fun);
-  es_release (btormbt, &parambo);
+  es_release (btormbt, btormbt->parambo);
   btormbt->parambo = NULL;
-  es_release (btormbt, &parambv);
+  es_release (btormbt, btormbt->parambv);
   btormbt->parambv = NULL;
-  es_release (btormbt, &paramarr);
+  es_release (btormbt, btormbt->paramarr);
   btormbt->paramarr = NULL;
-  free (params);
   free (args);
 }
 
@@ -1688,6 +1716,11 @@ _relall (BtorMBT *btormbt, unsigned r)
     assert (boolector_is_array (btormbt->btor, btormbt->arr.exps[i].exp));
     boolector_release (btormbt->btor, btormbt->arr.exps[i].exp);
   }
+  for (i = 0; i < btormbt->fun.n; i++)
+  {
+    assert (boolector_is_fun (btormbt->btor, btormbt->fun.exps[i].exp));
+    boolector_release (btormbt->btor, btormbt->fun.exps[i].exp);
+  }
   return _del;
 }
 
@@ -1713,6 +1746,7 @@ rantrav (Env *env)
   memset (&btormbt.bo, 0, sizeof (btormbt.bo));
   memset (&btormbt.bv, 0, sizeof (btormbt.bv));
   memset (&btormbt.arr, 0, sizeof (btormbt.arr));
+  memset (&btormbt.fun, 0, sizeof (btormbt.fun));
   memset (&btormbt.cnf, 0, sizeof (btormbt.cnf));
   btormbt.parambo = btormbt.parambv = btormbt.paramarr = NULL;
 
@@ -1729,6 +1763,7 @@ rantrav (Env *env)
   free (btormbt.bv.exps);
   free (btormbt.bo.exps);
   free (btormbt.arr.exps);
+  free (btormbt.fun.exps);
   free (btormbt.cnf.exps);
 }
 
