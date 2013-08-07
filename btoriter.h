@@ -33,6 +33,15 @@ struct BtorFullParentIterator
 
 typedef struct BtorFullParentIterator BtorFullParentIterator;
 
+struct BtorArgsIterator
+{
+  int pos;
+  BtorNode *cur;
+  BtorNode *exp;
+};
+
+typedef struct BtorArgsIterator BtorArgsIterator;
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_NEXT_PARENT(exp) \
@@ -61,5 +70,9 @@ int has_next_parent_apply_parent_iterator (BtorPartialParentIterator *);
 int has_next_parent_aeq_parent_iterator (BtorPartialParentIterator *);
 int has_next_parent_acond_parent_iterator (BtorPartialParentIterator *);
 int has_next_parent_full_parent_iterator (BtorFullParentIterator *);
+
+void init_args_iterator (BtorArgsIterator *, BtorNode *);
+BtorNode *next_arg_args_iterator (BtorArgsIterator *);
+int has_next_arg_args_iterator (BtorArgsIterator *);
 
 #endif

@@ -146,3 +146,54 @@ has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
   assert (it);
   return it->cur != 0;
 }
+
+void
+init_args_iterator (BtorArgsIterator *it, BtorNode *exp)
+{
+  assert (it);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_ARGS_NODE (exp));
+
+  it->pos = 0;
+  it->exp = exp;
+  it->cur = exp->e[0];
+}
+
+BtorNode *
+next_arg_args_iterator (BtorArgsIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+
+  result = it->cur;
+
+  /* end of this args node, continue with next */
+  if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)))
+  {
+    assert (BTOR_IS_REGULAR_NODE (result));
+    it->pos = 0;
+    it->exp = result;
+    it->cur = result->e[0];
+    result  = it->cur;
+  }
+
+  /* prepare next argument */
+  it->pos++;
+  if (it->pos < it->exp->arity)
+    it->cur = it->exp->e[it->pos];
+  else
+    it->cur = 0;
+
+  assert (!BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)));
+  return result;
+}
+
+int
+has_next_arg_args_iterator (BtorArgsIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
