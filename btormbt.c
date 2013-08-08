@@ -52,6 +52,17 @@
 
 #define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
 
+#define BTORMBT_LOG(c, btormbt, fmt, args...) \
+  do                                          \
+  {                                           \
+    if ((c) && btormbt->print)                \
+    {                                         \
+      printf ("[btormbt] ");                  \
+      printf (fmt, ##args);                   \
+      fflush (stdout);                        \
+    }                                         \
+  } while (0)
+
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/
@@ -1283,13 +1294,13 @@ _new (BtorMBT *btormbt, unsigned r)
   init_pd_addop (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5), 0);
 
-  if (btormbt->print)
-    printf (
-        "[btormbt] init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits, \n",
-        btormbt->nops,
-        btormbt->p_addop / 10,
-        btormbt->p_relop / 10,
-        btormbt->nlits);
+  BTORMBT_LOG (1,
+               btormbt,
+               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits\n",
+               btormbt->nops,
+               btormbt->p_addop / 10,
+               btormbt->p_relop / 10,
+               btormbt->nlits);
 
   btormbt->btor = boolector_new ();
   assert (btormbt->btor);
@@ -1305,22 +1316,19 @@ _opt (BtorMBT *btormbt, unsigned r)
 
   if (pick (&rng, 0, 1))
   {
-    if (btormbt->print)
-      printf ("[btormbt] enable model generation \n"), fflush (stdout);
+    BTORMBT_LOG (1, btormbt, "[btormbt] enable model generation\n");
     boolector_enable_model_gen (btormbt->btor);
     btormbt->mgen = 1;
   }
   if (pick (&rng, 0, 1))
   {
-    if (btormbt->print)
-      printf ("[btormbt] enable incremental usage \n"), fflush (stdout);
+    BTORMBT_LOG (1, btormbt, "[btormbt] enable incremental usage\n");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   rw = pick (&rng, 0, 3);
-  if (btormbt->print)
-    printf ("[btormbt] set rewrite level %d \n", rw), fflush (stdout);
+  BTORMBT_LOG (1, btormbt, "[btormbt] set rewrite level %d \n", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1353,12 +1361,13 @@ _init (BtorMBT *btormbt, unsigned r)
       return _relop;
   }
 
-  if (btormbt->print)
-    printf (
-        "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
-        btormbt->bo.n,
-        btormbt->bv.n,
-        btormbt->arr.n);
+  BTORMBT_LOG (
+      1,
+      btormbt,
+      "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
+      btormbt->bo.n,
+      btormbt->bv.n,
+      btormbt->arr.n);
 
   btormbt->bo.initlayer  = btormbt->bo.n;
   btormbt->bv.initlayer  = btormbt->bv.n;
@@ -1393,14 +1402,14 @@ _init (BtorMBT *btormbt, unsigned r)
                  pick (&rng, 0, 5),
                  pick (&rng, 0, 3));
 
-  if (btormbt->print)
-  {
-    printf ("[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
-            btormbt->nops,
-            btormbt->p_addop / 10,
-            btormbt->p_relop / 10);
-    printf ("[btormbt]       make ~%d asserts/assumes \n", btormbt->nass);
-  }
+  BTORMBT_LOG (1,
+               btormbt,
+               "[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
+               btormbt->nops,
+               btormbt->p_addop / 10,
+               btormbt->p_relop / 10);
+  BTORMBT_LOG (
+      1, btormbt, "[btormbt]       make ~%d asserts/assumes \n", btormbt->nass);
 
   btormbt->isinit = 1;
   return _main;
@@ -1433,16 +1442,18 @@ _main (BtorMBT *btormbt, unsigned r)
     }
   }
 
-  if (btormbt->print)
-    printf (
-        "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
-        btormbt->bo.n,
-        btormbt->bv.n,
-        btormbt->arr.n);
-  if (btormbt->print)
-    printf ("[btormbt] after main: number of asserts: %d, assumps: %d \n",
-            btormbt->totasserts,
-            btormbt->nassume);
+  BTORMBT_LOG (
+      1,
+      btormbt,
+      "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
+      btormbt->bo.n,
+      btormbt->bv.n,
+      btormbt->arr.n);
+  BTORMBT_LOG (1,
+               btormbt,
+               "[btormbt] after main: number of asserts: %d, assumps: %d \n",
+               btormbt->totasserts,
+               btormbt->nassume);
 
   return _sat;
 }
@@ -1631,22 +1642,16 @@ _sat (BtorMBT *btormbt, unsigned r)
   BTORMBT_UNUSED (r);
   int res;
 
-  if (btormbt->print) printf ("[btormbt] call sat...\n");
+  BTORMBT_LOG (1, btormbt, "[btormbt] call sat...\n");
 
   res = boolector_sat (btormbt->btor);
 
   if (res == BOOLECTOR_UNSAT)
-  {
-    if (btormbt->print) printf ("[btormbt] unsat\n");
-  }
+    BTORMBT_LOG (1, btormbt, "[btormbt] unsat\n");
   else if (res == BOOLECTOR_SAT)
-  {
-    if (btormbt->print) printf ("[btormbt] sat\n");
-  }
+    BTORMBT_LOG (1, btormbt, "[btormbt] sat\n");
   else
-  {
-    if (btormbt->print) printf ("[btormbt]  sat call returned %d\n", res);
-  }
+    BTORMBT_LOG (1, btormbt, "[btormbt]  sat call returned %d\n", res);
 
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
@@ -1707,13 +1712,16 @@ _inc (BtorMBT *btormbt, unsigned r)
                    pick (&rng, 1, 5),
                    pick (&rng, 0, 3));
 
-    if (btormbt->print)
-      printf ("[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
-              btormbt->nops,
-              btormbt->p_addop / 10,
-              btormbt->p_relop / 10);
-    if (btormbt->print && btormbt->inc)
-      printf ("[btormbt] number of increments: %d \n", btormbt->inc - 1);
+    BTORMBT_LOG (1,
+                 btormbt,
+                 "[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
+                 btormbt->nops,
+                 btormbt->p_addop / 10,
+                 btormbt->p_relop / 10);
+    BTORMBT_LOG (btormbt->inc,
+                 btormbt,
+                 "[btormbt] number of increments: %d \n",
+                 btormbt->inc - 1);
 
     return _main;
   }
@@ -1978,6 +1986,7 @@ main (int argc, char **argv)
 
   memset (&env, 0, sizeof env);
   max          = INT_MAX;
+  pid          = 0;
   prev         = 0;
   seeded       = 0;
   env.seed     = -1;
