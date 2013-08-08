@@ -38,7 +38,7 @@
 #define MAX_NPARAMOPS 5
 #define MAX_NNESTEDBFUNS 50
 
-#define USAGE                                 \
+#define BTORMBT_USAGE                         \
   "usage: btormbt [-k][-q][-f][-a]\n"         \
   "\n"                                        \
   "where <option> is one of the following:\n" \
@@ -50,6 +50,19 @@
   "  -e | --no-extensionality\n"              \
   "\n"                                        \
   "  -m <maxruns>\n"
+
+#define BTORMBT_MIN(x, y) ((x) < (y) ? (x) : (y))
+
+#define BTORMBT_LOG(c, btormbt, fmt, args...) \
+  do                                          \
+  {                                           \
+    if ((c) && btormbt->print)                \
+    {                                         \
+      printf ("[btormbt] ");                  \
+      printf (fmt, ##args);                   \
+      fflush (stdout);                        \
+    }                                         \
+  } while (0)
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
@@ -87,6 +100,7 @@ typedef struct RNG
 typedef struct Env
 {
   int seed, quiet, alwaysfork, round, bugs, first, forked, print, noext;
+  int ppid; /* parent pid */
   int terminal;
   RNG rng;
 } Env;
@@ -204,7 +218,7 @@ typedef struct BtorMBT
   /* probability distribution of assertions */
   float p_ass;
 
-  ExpStack bo, bv, arr;
+  ExpStack bo, bv, arr, fun;
   ExpStack *parambo, *parambv, *paramarr;
   ExpStack cnf;
 
@@ -226,6 +240,9 @@ static Env env;
 void
 es_push (ExpStack *es, BtorNode *exp)
 {
+  assert (es);
+  assert (exp);
+
   if (es->n == es->size)
   {
     es->size = es->size ? es->size * 2 : 2;
@@ -239,8 +256,10 @@ es_push (ExpStack *es, BtorNode *exp)
 static void
 es_del (BtorMBT *btormbt, ExpStack *es, int idx)
 {
-  int i;
+  assert (es);
   assert (idx >= 0 && idx < es->n);
+
+  int i;
 
   boolector_release (btormbt->btor, es->exps[idx].exp);
   for (i = idx; i < es->n - 1; i++) es->exps[i] = es->exps[i + 1];
@@ -251,6 +270,8 @@ es_del (BtorMBT *btormbt, ExpStack *es, int idx)
 static void
 es_reset (BtorMBT *btormbt, ExpStack *es)
 {
+  assert (es);
+
   int i;
 
   for (i = 0; i < es->n; i++)
@@ -263,17 +284,17 @@ es_release (BtorMBT *btormbt, ExpStack *es)
 {
   int i;
 
-  for (i = 0; i < es->n; i++)
-    boolector_release (btormbt->btor, es->exps[i].exp);
-  es->n = 0;
-  free (es->exps);
-}
-
-BtorNode *
-es_get (ExpStack *es, int idx)
-{
-  assert (idx >= 0 && idx < es->n);
-  return es->exps[idx].exp;
+  if (es)
+  {
+    for (i = 0; i < es->n; i++)
+      boolector_release (btormbt->btor, es->exps[i].exp);
+    es->n         = 0;
+    es->size      = 0;
+    es->sexp      = 0;
+    es->initlayer = 0;
+    free (es->exps);
+    es->exps = NULL;
+  }
 }
 
 /*------------------------------------------------------------------------*/
@@ -958,8 +979,15 @@ selexp (
   }
   if (idx < 0)
   {
-    /* select random literal */
-    idx = pick (rng, 0, es->n - 1);
+    /* select random literal
+     * select from initlayer with lower probability
+     * - from range (initlayer - n) with p = 0.666
+     * - from ragne (0 - n)         with p = 0.333 */
+    idx = pick (rng,
+                es->initlayer && es->n > es->initlayer && pick (rng, 0, 3)
+                    ? es->initlayer - 1
+                    : 0,
+                es->n - 1);
   }
   exp = es->exps[idx].exp;
   es->exps[idx].pars++;
@@ -1119,65 +1147,90 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   RNG rng;
 
   rng = initrng (r);
-  memset (&parambo, 0, sizeof (parambo));
-  memset (&parambv, 0, sizeof (parambv));
-  memset (&paramarr, 0, sizeof (paramarr));
-  btormbt->parambo  = &parambo;
-  btormbt->parambv  = &parambv;
-  btormbt->paramarr = &paramarr;
-
-  /* choose function parameters */
-  *width   = pick (&rng, 1, MAX_BITWIDTH);
-  *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
-  params   = malloc (sizeof (BtorNode *) * *nparams);
-  for (i = 0; i < *nparams; i++)
+  /* choose between apply on random existing function and apply on new
+   * function with p = 0.5 */
+  // FIXME externalise p
+  if (btormbt->fun.n && pick (&rng, 0, 1)) /* use existing function */
   {
-    tmp       = boolector_param (btormbt->btor, *width, NULL);
-    params[i] = tmp;
-    es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
+    btormbt->parambo  = NULL;
+    btormbt->parambv  = NULL;
+    btormbt->paramarr = NULL;
+
+    rand     = pick (&rng, 0, btormbt->fun.n - 1);
+    fun      = btormbt->fun.exps[rand].exp;
+    *nparams = boolector_get_fun_arity (btormbt->btor, fun);
+    assert (*nparams);
+    *width = boolector_get_index_width (btormbt->btor, fun);
   }
-
-  /* initialize stacks for non-bv parameterized expressions */
-  if (btormbt->parambv->n == 0)
+  else /* generate new function */
   {
-    assert (btormbt->parambo->n);
-    tmp = btormbt->parambo->exps[pick (&rng, 0, btormbt->parambo->n - 1)].exp;
-    assert (boolector_get_width (btormbt->btor, tmp) == 1);
-    modifybv (btormbt, &rng, tmp, 1, pick (&rng, 2, MAX_BITWIDTH), 1);
-  }
-  assert (btormbt->parambv->n);
-  if (btormbt->parambo->n == 0) param_fun (btormbt, &rng, REDOR, IFF);
-  assert (btormbt->parambo->n);
-  param_afun (btormbt, &rng, 1);
-  assert (btormbt->paramarr->n);
+    memset (&parambo, 0, sizeof (parambo));
+    memset (&parambv, 0, sizeof (parambv));
+    memset (&paramarr, 0, sizeof (paramarr));
+    btormbt->parambo  = &parambo;
+    btormbt->parambv  = &parambv;
+    btormbt->paramarr = &paramarr;
 
-  /* generate parameterized expressions */
-  nops = pick (&rng, 0, MAX_NPARAMOPS);
-  n    = 0;
-  while (n++ < nops)
-  {
-  BFUN_PICK_FUN_TYPE:
-    rand = pick (&rng, 0, NORM_VAL - 1);
-    if (rand < btormbt->p_fun)
-      param_fun (btormbt, &rng, NOT, COND);
-    else if (rand < btormbt->p_fun + btormbt->p_afun)
-      param_afun (btormbt, &rng, 0);
-    else
+    /* choose function parameters */
+    *width   = pick (&rng, 1, MAX_BITWIDTH);
+    *nparams = pick (&rng, MIN_NPARAMS, MAX_NPARAMS);
+    params   = malloc (sizeof (BtorNode *) * *nparams);
+    for (i = 0; i < *nparams; i++)
     {
-      if (nlevel < MAX_NNESTEDBFUNS)
-      {
-        bfun (btormbt, nextrand (&rng), &np, &w, nlevel + 1);
-        btormbt->parambo  = &parambo;
-        btormbt->parambv  = &parambv;
-        btormbt->paramarr = &paramarr;
-      }
-      else
-        goto BFUN_PICK_FUN_TYPE;
+      tmp       = boolector_param (btormbt->btor, *width, NULL);
+      params[i] = tmp;
+      es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
     }
+
+    /* initialize stacks for non-bv parameterized expressions */
+    if (btormbt->parambv->n == 0)
+    {
+      assert (btormbt->parambo->n);
+      rand = pick (&rng, 0, btormbt->parambo->n - 1);
+      tmp  = btormbt->parambo->exps[rand].exp;
+      assert (boolector_get_width (btormbt->btor, tmp) == 1);
+      modifybv (btormbt, &rng, tmp, 1, pick (&rng, 2, MAX_BITWIDTH), 1);
+    }
+    assert (btormbt->parambv->n);
+    if (btormbt->parambo->n == 0) param_fun (btormbt, &rng, REDOR, IFF);
+    assert (btormbt->parambo->n);
+    param_afun (btormbt, &rng, 1);
+    assert (btormbt->paramarr->n);
+
+    /* generate parameterized expressions */
+    nops = pick (&rng, 0, MAX_NPARAMOPS);
+    n    = 0;
+    while (n++ < nops)
+    {
+    BFUN_PICK_FUN_TYPE:
+      rand = pick (&rng, 0, NORM_VAL - 1);
+      if (rand < btormbt->p_fun)
+        param_fun (btormbt, &rng, NOT, COND);
+      else if (rand < btormbt->p_fun + btormbt->p_afun)
+        param_afun (btormbt, &rng, 0);
+      else
+      {
+        if (nlevel < MAX_NNESTEDBFUNS)
+        {
+          bfun (btormbt, nextrand (&rng), &np, &w, nlevel + 1);
+          btormbt->parambo  = &parambo;
+          btormbt->parambv  = &parambv;
+          btormbt->paramarr = &paramarr;
+        }
+        else
+          goto BFUN_PICK_FUN_TYPE;
+      }
+    }
+
+    rand = pick (&rng, 0, parambv.n - 1);
+    fun =
+        boolector_fun (btormbt->btor, *nparams, params, parambv.exps[rand].exp);
+    es_push (&btormbt->fun, fun);
+
+    free (params);
   }
 
-  rand = pick (&rng, 0, parambv.n - 1);
-  fun = boolector_fun (btormbt->btor, *nparams, params, parambv.exps[rand].exp);
+  /* generate apply expression with arguments */
   args = malloc (sizeof (BtorNode *) * *nparams);
   for (i = 0; i < *nparams; i++)
   {
@@ -1192,14 +1245,12 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   es_push (&btormbt->bv, boolector_apply (btormbt->btor, *nparams, args, fun));
 
   /* cleanup */
-  boolector_release (btormbt->btor, fun);
-  es_release (btormbt, &parambo);
+  es_release (btormbt, btormbt->parambo);
   btormbt->parambo = NULL;
-  es_release (btormbt, &parambv);
+  es_release (btormbt, btormbt->parambv);
   btormbt->parambv = NULL;
-  es_release (btormbt, &paramarr);
+  es_release (btormbt, btormbt->paramarr);
   btormbt->paramarr = NULL;
-  free (params);
   free (args);
 }
 
@@ -1220,7 +1271,6 @@ static void *_ass (BtorMBT *, unsigned);
 static void *_sat (BtorMBT *, unsigned);
 static void *_mgen (BtorMBT *, unsigned);
 static void *_inc (BtorMBT *, unsigned);
-static void *_relall (BtorMBT *, unsigned);
 static void *_del (BtorMBT *, unsigned);
 
 static void *
@@ -1228,10 +1278,13 @@ _new (BtorMBT *btormbt, unsigned r)
 {
   RNG rng = initrng (r);
 
+  // FIXME externalise
   /* number of initial literals */
-  btormbt->nlits = pick (&rng, 5, 40);
+  // btormbt->nlits = pick (&rng, 5, 40);
+  btormbt->nlits = pick (&rng, 3, 30);
   /* number of initial operations */
-  btormbt->nops = pick (&rng, 0, 100);
+  // btormbt->nops = pick (&rng, 0, 100);
+  btormbt->nops = pick (&rng, 0, 50);
 
   init_pd_lits (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 2, 5));
@@ -1242,13 +1295,13 @@ _new (BtorMBT *btormbt, unsigned r)
   init_pd_addop (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5), 0);
 
-  if (btormbt->print)
-    printf (
-        "[btormbt] init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits, \n",
-        btormbt->nops,
-        btormbt->p_addop / 10,
-        btormbt->p_relop / 10,
-        btormbt->nlits);
+  BTORMBT_LOG (1,
+               btormbt,
+               "init: pick %d ops (add:rel=%0.1f%%:%0.1f%%), %d lits\n",
+               btormbt->nops,
+               btormbt->p_addop / 10,
+               btormbt->p_relop / 10,
+               btormbt->nlits);
 
   btormbt->btor = boolector_new ();
   assert (btormbt->btor);
@@ -1264,22 +1317,19 @@ _opt (BtorMBT *btormbt, unsigned r)
 
   if (pick (&rng, 0, 1))
   {
-    if (btormbt->print)
-      printf ("[btormbt] enable model generation \n"), fflush (stdout);
+    BTORMBT_LOG (1, btormbt, "[btormbt] enable model generation\n");
     boolector_enable_model_gen (btormbt->btor);
     btormbt->mgen = 1;
   }
   if (pick (&rng, 0, 1))
   {
-    if (btormbt->print)
-      printf ("[btormbt] enable incremental usage \n"), fflush (stdout);
+    BTORMBT_LOG (1, btormbt, "[btormbt] enable incremental usage\n");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   rw = pick (&rng, 0, 3);
-  if (btormbt->print)
-    printf ("[btormbt] set rewrite level %d \n", rw), fflush (stdout);
+  BTORMBT_LOG (1, btormbt, "[btormbt] set rewrite level %d \n", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1312,23 +1362,38 @@ _init (BtorMBT *btormbt, unsigned r)
       return _relop;
   }
 
-  if (btormbt->print)
-    printf (
-        "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
-        btormbt->bo.n,
-        btormbt->bv.n,
-        btormbt->arr.n);
+  BTORMBT_LOG (
+      1,
+      btormbt,
+      "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
+      btormbt->bo.n,
+      btormbt->bv.n,
+      btormbt->arr.n);
 
   btormbt->bo.initlayer  = btormbt->bo.n;
   btormbt->bv.initlayer  = btormbt->bv.n;
   btormbt->arr.initlayer = btormbt->arr.n;
 
+  // FIXME externalise
   /* adapt paramters for main */
-  btormbt->ops  = 0; /* reset operation counter */
-  btormbt->nops = pick (&rng, 20, 200);
-  btormbt->nass = pick (&rng, 10, 70); /* how many assertions of nops */
-  // TODO the more operation the higher and vice versa - or may ok like that
+  btormbt->ops = 0; /* reset operation counter */
+  // btormbt->nops = pick (&rng, 20, 200);
+  // btormbt->nass = pick (&rng, 10, 70);  /* how many assertions of nops */
+  btormbt->nops = pick (&rng, 20, 100);
+  /* how many operations should be assertions?
+   * -> nops and nass should be in relation (the more ops, the more assertions)
+   *    in order to keep the sat/unsat ration balanced */
+  // TODO may improve?
+  // btormbt->nass = pick (&rng, 10, 30);
+  // does this find as many bugs??
+  if (btormbt->nops < 50)
+    btormbt->nass = BTORMBT_MIN (btormbt->nops, pick (&rng, 5, 25));
+  else
+    btormbt->nass = pick (&rng, 20, 30);
 
+  //  FIXME externalise
+  //  init_pd_lits (btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5),
+  //		pick (&rng, 0, 5));
   init_pd_lits (
       btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
   init_pd_op (btormbt, pick (&rng, 1, 8), pick (&rng, 1, 3));
@@ -1338,14 +1403,14 @@ _init (BtorMBT *btormbt, unsigned r)
                  pick (&rng, 0, 5),
                  pick (&rng, 0, 3));
 
-  if (btormbt->print)
-  {
-    printf ("[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
-            btormbt->nops,
-            btormbt->p_addop / 10,
-            btormbt->p_relop / 10);
-    printf ("[btormbt]       make ~%d asserts/assumes \n", btormbt->nass);
-  }
+  BTORMBT_LOG (1,
+               btormbt,
+               "[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
+               btormbt->nops,
+               btormbt->p_addop / 10,
+               btormbt->p_relop / 10);
+  BTORMBT_LOG (
+      1, btormbt, "[btormbt]       make ~%d asserts/assumes \n", btormbt->nass);
 
   btormbt->isinit = 1;
   return _main;
@@ -1378,16 +1443,18 @@ _main (BtorMBT *btormbt, unsigned r)
     }
   }
 
-  if (btormbt->print)
-    printf (
-        "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
-        btormbt->bo.n,
-        btormbt->bv.n,
-        btormbt->arr.n);
-  if (btormbt->print)
-    printf ("[btormbt] after main: number of asserts: %d, assumps: %d \n",
-            btormbt->totasserts,
-            btormbt->nassume);
+  BTORMBT_LOG (
+      1,
+      btormbt,
+      "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
+      btormbt->bo.n,
+      btormbt->bv.n,
+      btormbt->arr.n);
+  BTORMBT_LOG (1,
+               btormbt,
+               "[btormbt] after main: number of asserts: %d, assumps: %d \n",
+               btormbt->totasserts,
+               btormbt->nassume);
 
   return _sat;
 }
@@ -1550,10 +1617,11 @@ _ass (BtorMBT *btormbt, unsigned r)
   BtorNode *cls;
 
   /* select from init layer with lower probability */
-  lower = (btormbt->bo.n > btormbt->bo.initlayer && pick (&rng, 0, 4)
-               ? btormbt->bo.initlayer - 1
-               : 0);
-  cls   = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
+  lower = btormbt->bo.initlayer && btormbt->bo.n > btormbt->bo.initlayer
+                  && pick (&rng, 0, 4)
+              ? btormbt->bo.initlayer - 1
+              : 0;
+  cls = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
 
   if (btormbt->inc && pick (&rng, 0, 4))
   {
@@ -1575,22 +1643,16 @@ _sat (BtorMBT *btormbt, unsigned r)
   BTORMBT_UNUSED (r);
   int res;
 
-  if (btormbt->print) printf ("[btormbt] call sat...\n");
+  BTORMBT_LOG (1, btormbt, "[btormbt] call sat...\n");
 
   res = boolector_sat (btormbt->btor);
 
   if (res == BOOLECTOR_UNSAT)
-  {
-    if (btormbt->print) printf ("[btormbt] unsat\n");
-  }
+    BTORMBT_LOG (1, btormbt, "[btormbt] unsat\n");
   else if (res == BOOLECTOR_SAT)
-  {
-    if (btormbt->print) printf ("[btormbt] sat\n");
-  }
+    BTORMBT_LOG (1, btormbt, "[btormbt] sat\n");
   else
-  {
-    if (btormbt->print) printf ("[btormbt]  sat call returned %d\n", res);
-  }
+    BTORMBT_LOG (1, btormbt, "[btormbt]  sat call returned %d\n", res);
 
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
@@ -1619,16 +1681,7 @@ _mgen (BtorMBT *btormbt, unsigned r)
     boolector_array_assignment (
         btormbt->btor, btormbt->arr.exps[i].exp, &indices, &values, &size);
     if (size > 0)
-    {
-      /*
-         BTORMBT_DEBUG_MSG("**Array %d\n", i);
-         int j;
-         for (j = 0; j < size; j++) {
-         BTORMBT_DEBUG_MSG("**[%s]=%s\n", indices[j], values[j]);
-         }
-       */
       boolector_free_array_assignment (btormbt->btor, indices, values, size);
-    }
   }
   return _inc;
 }
@@ -1641,6 +1694,7 @@ _inc (BtorMBT *btormbt, unsigned r)
   /* release cnf expressions */
   es_reset (btormbt, &btormbt->cnf);
 
+  // FIXME externalize
   if (btormbt->inc && pick (&rng, 0, 2))
   {
     btormbt->inc++;
@@ -1648,7 +1702,8 @@ _inc (BtorMBT *btormbt, unsigned r)
     btormbt->nass    = btormbt->nass - btormbt->nassert;
     btormbt->nassume = 0; /* reset */
     btormbt->nassert = 0;
-    btormbt->nops    = pick (&rng, 0, 150);
+    // btormbt->nops = pick (&rng, 0, 150);
+    btormbt->nops = pick (&rng, 20, 50);
     init_pd_lits (
         btormbt, pick (&rng, 1, 10), pick (&rng, 0, 5), pick (&rng, 0, 5));
     init_pd_op (btormbt, pick (&rng, 1, 5), pick (&rng, 1, 5));
@@ -1658,36 +1713,18 @@ _inc (BtorMBT *btormbt, unsigned r)
                    pick (&rng, 1, 5),
                    pick (&rng, 0, 3));
 
-    if (btormbt->print)
-      printf ("[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
-              btormbt->nops,
-              btormbt->p_addop / 10,
-              btormbt->p_relop / 10);
+    BTORMBT_LOG (1,
+                 btormbt,
+                 "[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
+                 btormbt->nops,
+                 btormbt->p_addop / 10,
+                 btormbt->p_relop / 10);
+    BTORMBT_LOG (btormbt->inc,
+                 btormbt,
+                 "[btormbt] number of increments: %d \n",
+                 btormbt->inc - 1);
 
     return _main;
-  }
-  return _relall;
-}
-
-static void *
-_relall (BtorMBT *btormbt, unsigned r)
-{
-  BTORMBT_UNUSED (r);
-  int i;
-  for (i = 0; i < btormbt->bo.n; i++)
-  {
-    assert (boolector_get_width (btormbt->btor, btormbt->bo.exps[i].exp) == 1);
-    boolector_release (btormbt->btor, btormbt->bo.exps[i].exp);
-  }
-  for (i = 0; i < btormbt->bv.n; i++)
-  {
-    assert (boolector_get_width (btormbt->btor, btormbt->bv.exps[i].exp) > 1);
-    boolector_release (btormbt->btor, btormbt->bv.exps[i].exp);
-  }
-  for (i = 0; i < btormbt->arr.n; i++)
-  {
-    assert (boolector_is_array (btormbt->btor, btormbt->arr.exps[i].exp));
-    boolector_release (btormbt->btor, btormbt->arr.exps[i].exp);
   }
   return _del;
 }
@@ -1695,10 +1732,18 @@ _relall (BtorMBT *btormbt, unsigned r)
 static void *
 _del (BtorMBT *btormbt, unsigned r)
 {
+  assert (btormbt->btor);
+
   BTORMBT_UNUSED (r);
+
+  es_release (btormbt, &btormbt->bo);
+  es_release (btormbt, &btormbt->bv);
+  es_release (btormbt, &btormbt->arr);
+  es_release (btormbt, &btormbt->fun);
+  es_release (btormbt, &btormbt->cnf);
+
   boolector_delete (btormbt->btor);
-  if (btormbt->print && btormbt->inc)
-    printf ("[btormbt] number of increments: %d \n", btormbt->inc - 1);
+  btormbt->btor = NULL;
   return 0;
 }
 
@@ -1714,6 +1759,7 @@ rantrav (Env *env)
   memset (&btormbt.bo, 0, sizeof (btormbt.bo));
   memset (&btormbt.bv, 0, sizeof (btormbt.bv));
   memset (&btormbt.arr, 0, sizeof (btormbt.arr));
+  memset (&btormbt.fun, 0, sizeof (btormbt.fun));
   memset (&btormbt.cnf, 0, sizeof (btormbt.cnf));
   btormbt.parambo = btormbt.parambv = btormbt.paramarr = NULL;
 
@@ -1725,12 +1771,6 @@ rantrav (Env *env)
     rand = nextrand (&env->rng);
     next = state (&btormbt, rand);
   }
-
-  /* Note: all btor exps have been previously released in _relall! */
-  free (btormbt.bv.exps);
-  free (btormbt.bo.exps);
-  free (btormbt.arr.exps);
-  free (btormbt.cnf.exps);
 }
 
 static int
@@ -1798,7 +1838,7 @@ run (Env *env, void (*process) (Env *))
   }
   else if (WIFSIGNALED (status))
   {
-    if (env->print) printf ("signal");
+    if (env->print) printf ("signal %d", WTERMSIG (status));
     res = 1;
   }
   else
@@ -1833,7 +1873,7 @@ static void
 die (const char *msg, ...)
 {
   va_list ap;
-  fputs ("*** lglmbt: ", stderr);
+  fputs ("*** btormbt: ", stderr);
   va_start (ap, msg);
   vfprintf (stderr, msg, ap);
   va_end (ap);
@@ -1894,23 +1934,27 @@ static void
 stats (void)
 {
   double t = get_time ();
-  printf ("[btormbt] finished after %.2f seconds\n", t);
-  printf ("[btormbt] %d rounds = %.2f rounds per second\n",
+  printf ("[btormbt] finished after %0.2f seconds\n", t);
+  printf ("[btormbt] %d rounds = %0.2f rounds per second\n",
           env.round,
           average (env.round, t));
-  printf ("[btormbt] %d bugs = %.2f bugs per second\n",
+  printf ("[btormbt] %d bugs = %0.2f bugs per second\n",
           env.bugs,
           average (env.bugs, t));
 }
 
+/* Note: - do not call non-reentrant function here, see:
+ *         https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
+ *       - do not use printf here (causes segfault when SIGINT and valgrind) */
 static void
 sighandler (int sig)
 {
-  fflush (stdout);
-  fflush (stderr);
-  printf ("*** btormbt: caught signal %d in round %d\n", sig, env.round);
-  fflush (stdout);
-  stats ();
+  char str[100];
+
+  sprintf (str, "*** btormbt: caught signal %d\n", sig);
+  write (1, str, strlen (str));
+  /* Note: if _exit is used here (which is reentrant, in contrast to exit),
+   *       atexit handler is not called. Hence, use exit here. */
   exit (1);
 }
 
@@ -1923,10 +1967,19 @@ setsighandlers (void)
   (void) signal (SIGTERM, sighandler);
 }
 
+static void
+finish (void)
+{
+  fflush (stderr);
+  fflush (stdout);
+  if (env.ppid == getpid ()) stats ();
+  fflush (stdout);
+}
+
 int
 main (int argc, char **argv)
 {
-  int i, max, mac, pid, prev, res;
+  int i, max, mac, pid, prev, res, seeded;
   char name[100];
   char *aname, *cmd;
 
@@ -1934,15 +1987,19 @@ main (int argc, char **argv)
 
   memset (&env, 0, sizeof env);
   max          = INT_MAX;
+  pid          = 0;
   prev         = 0;
+  seeded       = 0;
   env.seed     = -1;
   env.terminal = isatty (1);
+
+  atexit (finish);
 
   for (i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
     {
-      printf ("%s", USAGE);
+      printf ("%s", BTORMBT_USAGE);
       exit (0);
     }
     else if (!strcmp (argv[i], "-k") || !strcmp (argv[i], "--keep-lines"))
@@ -1968,7 +2025,10 @@ main (int argc, char **argv)
       die ("invalid command line option '%s' (try '-h')", argv[i]);
     }
     else
+    {
       env.seed = atoi (argv[i]);
+      seeded   = 1;
+    }
   }
 
   if (!(aname = getenv ("BTORAPITRACE")))
@@ -1978,6 +2038,9 @@ main (int argc, char **argv)
   }
   env.print = !env.quiet;
 
+  env.ppid = getpid ();
+  setsighandlers ();
+
   if (env.seed >= 0 && !env.alwaysfork)
   {
     rantrav (&env);
@@ -1986,21 +2049,22 @@ main (int argc, char **argv)
   else
   {
     mac = hashmac ();
-    pid = getpid ();
-    setsighandlers ();
     for (env.round = 0; env.round < max; env.round++)
     {
       if (!(prev & 1)) prev++;
 
-      env.seed = mac;
-      env.seed *= 123301093;
-      env.seed += times (0);
-      env.seed *= 223531513;
-      env.seed += pid;
-      env.seed *= 31752023;
-      env.seed += prev;
-      env.seed *= 43376579;
-      prev = env.seed = abs (env.seed) >> 1;
+      if (!seeded)
+      {
+        env.seed = mac;
+        env.seed *= 123301093;
+        env.seed += times (0);
+        env.seed *= 223531513;
+        env.seed += pid;
+        env.seed *= 31752023;
+        env.seed += prev;
+        env.seed *= 43376579;
+        prev = env.seed = abs (env.seed) >> 1;
+      }
 
       if (!env.quiet)
       {
@@ -2026,12 +2090,14 @@ main (int argc, char **argv)
 
         free (cmd);
       }
+
       if (!env.quiet)
       {
         if (res || !env.terminal) printf ("\n");
         fflush (stdout);
       }
-      if (res && env.first) break;
+
+      if ((res && env.first) || seeded) break;
     }
   }
   if (!env.quiet)
@@ -2039,6 +2105,5 @@ main (int argc, char **argv)
     if (env.terminal) erase ();
     printf ("forked %d\n", env.forked);
   }
-  stats ();
   return 0;
 }
