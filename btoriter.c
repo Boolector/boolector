@@ -173,6 +173,7 @@ next_args_iterator (BtorArgsIterator *it)
   /* end of this args node, continue with next */
   if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)))
   {
+    assert (it->pos == 2);
     assert (BTOR_IS_REGULAR_NODE (result));
     it->pos = 0;
     it->exp = result;
