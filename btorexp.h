@@ -142,6 +142,7 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
+// TODO: rename struct as it is base struct for all nodes
 #define BTOR_BV_VAR_NODE_STRUCT                                         \
   struct                                                                \
   {                                                                     \
@@ -256,6 +257,7 @@ typedef struct BtorParamNode BtorParamNode;
 struct BtorBVConstNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
+  // TODO: remove
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
 

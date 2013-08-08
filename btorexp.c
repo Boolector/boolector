@@ -2917,6 +2917,26 @@ new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
   return (BtorNode *) exp;
 }
 
+static BtorNode *
+new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
+{
+  BtorArgsNode *result;
+
+  result = (BtorArgsNode *) new_exp_node (btor, BTOR_ARGS_NODE, arity, e, len);
+  result->no_synth = 1;
+
+  /* set args node specific fields */
+  if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result->e[result->arity - 1])))
+  {
+    result->num_args = ((BtorArgsNode *) result->e[result->arity - 1])->num_args
+                       + result->arity - 1;
+  }
+  else
+    result->num_args = result->arity;
+
+  return (BtorNode *) result;
+}
+
 /* Computes hash value of expression by id */
 unsigned int
 btor_hash_exp_by_id (BtorNode *exp)
@@ -3436,6 +3456,9 @@ create_exp (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
         assert (arity == 2);
         *lookup = new_lambda_exp_node (btor, e[0], e[1]);
         break;
+      case BTOR_ARGS_NODE:
+        *lookup = new_args_exp_node (btor, arity, e, len);
+        break;
       default: *lookup = new_exp_node (btor, kind, arity, e, len);
     }
     assert (btor->nodes_unique_table.num_elements < INT_MAX);
@@ -3725,13 +3748,15 @@ btor_args_exp (Btor *btor, int argc, BtorNode **args)
   {
     rem_free = argc % (MAX_NUM_CHILDREN - 1);
     num_args = argc / (MAX_NUM_CHILDREN - 1);
+    /* we can store at most 1 more element into 'num_args' nodes
+     * without needing an additional args node */
     if (rem_free > 1) num_args += 1;
+
+    assert (num_args > 1);
     /* compute number of arguments in last args node */
-    cur_argc = MAX_NUM_CHILDREN - (argc + num_args - 1) % MAX_NUM_CHILDREN;
+    cur_argc = argc - (num_args - 1) * (MAX_NUM_CHILDREN - 1);
   }
   cnt_args = cur_argc - 1;
-
-  assert (num_args > 0);
 
   len = 0;
   /* split up args in 'num_args' of args nodes */
@@ -3743,18 +3768,13 @@ btor_args_exp (Btor *btor, int argc, BtorNode **args)
     len += BTOR_REAL_ADDR_NODE (e[cnt_args])->len;
     cnt_args -= 1;
 
+    assert (i > 0 || cnt_args < 0);
     if (cnt_args < 0)
     {
       result = create_exp (btor, BTOR_ARGS_NODE, cur_argc, e, len);
-      assert (BTOR_IS_REGULAR_NODE (result));
-      assert (BTOR_IS_ARGS_NODE (result));
-
-      /* set args node specific fields */
-      result->no_synth                    = 1;
-      ((BtorArgsNode *) result)->num_args = argc - i;
 
       /* init for next iteration */
-      len         = BTOR_REAL_ADDR_NODE (result)->len;
+      len         = result->len;
       cur_argc    = MAX_NUM_CHILDREN;
       cnt_args    = cur_argc - 1;
       e[cnt_args] = result;
@@ -5252,6 +5272,7 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
   btor->pprint            = 1;
+  btor->loglevel          = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
