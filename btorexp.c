@@ -6396,21 +6396,25 @@ hash_args (BtorNode *exp)
   assert (BTOR_IS_REGULAR_NODE (exp));
   assert (BTOR_IS_ARGS_NODE (exp));
 
-  int i, invert_av;
+  int invert_av;
   char *assignment;
   unsigned int hash;
   Btor *btor;
+  BtorNode *arg;
   BtorAIGVecMgr *avmgr;
   BtorAIGVec *av;
+  BtorArgsIterator it;
 
   btor  = exp->btor;
   avmgr = btor->avmgr;
 
+  init_args_iterator (&it, exp);
   hash = 0;
-  for (i = 0; i < exp->arity; i++)
+  while (has_next_args_iterator (&it))
   {
-    invert_av = BTOR_IS_INVERTED_NODE (exp->e[i]);
-    av        = BTOR_REAL_ADDR_NODE (exp->e[i])->av;
+    arg       = next_args_iterator (&it);
+    invert_av = BTOR_IS_INVERTED_NODE (arg);
+    av        = BTOR_REAL_ADDR_NODE (arg)->av;
     assert (av);
     if (invert_av) btor_invert_aigvec (avmgr, av);
     assignment = btor_assignment_aigvec (avmgr, av);
