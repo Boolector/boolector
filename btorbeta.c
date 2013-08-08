@@ -88,113 +88,52 @@ btor_param_cur_assignment (BtorNode *param)
   return BTOR_TOP_STACK (((BtorParamNode *) param)->assigned_exp);
 }
 
-#if 1
 void
-btor_assign_params (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
 {
   assert (btor);
-  assert (argc > 0);
-  assert (args);
   assert (fun);
+  assert (args);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (args));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (args));
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (fun));
 
-  int i;
   BtorNode *cur_lambda, *cur_arg;
-  BtorParamNode *cur_param;
+  BtorIterator it;
+  BtorArgsIterator ait;
 
-  cur_lambda = fun;
-  for (i = 0; i < argc; i++)
+  init_args_iterator (&ait, args);
+  init_lambda_iterator (&it, fun);
+
+  while (has_next_args_iterator (&ait))
   {
-    assert (BTOR_IS_REGULAR_NODE (cur_lambda));
-    assert (BTOR_IS_LAMBDA_NODE (cur_lambda));
-    assert (BTOR_IS_PARAM_NODE (cur_lambda->e[0]));
-
-    cur_arg   = args[i];
-    cur_param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (cur_lambda->e[0]);
-
-    assert (cur_arg);
-    assert (BTOR_REAL_ADDR_NODE (cur_arg)->len == cur_param->len);
-    BTORLOG (
-        "  assign: %s (%s)", node2string (cur_lambda), node2string (cur_arg));
-    BTOR_PUSH_STACK (btor->mm, cur_param->assigned_exp, cur_arg);
-    cur_lambda = cur_lambda->e[1];
+    assert (has_next_lambda_iterator (&it));
+    cur_arg    = next_args_iterator (&ait);
+    cur_lambda = next_lambda_iterator (&it);
+    btor_assign_param (btor, cur_lambda, cur_arg);
   }
 }
 
 void
-btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *arg)
-{
-  assert (btor);
-  assert (fun);
-  assert (arg);
-  assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_REGULAR_NODE (arg));
-  assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (BTOR_IS_ARGS_NODE (arg));
-
-  btor_assign_params (btor, arg->arity, arg->e, fun);
-}
-
-void
-btor_assign_param (Btor *btor, BtorNode *fun, BtorNode *arg)
-{
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (arg)));
-  btor_assign_params (btor, 1, &arg, fun);
-}
-#else
-void
 btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 {
+  assert (btor);
   assert (lambda);
   assert (arg);
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
-  assert (BTOR_IS_PARAM_NODE (lambda->e[0]));
 
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda));
-  BTORLOG ("  assigned exp: %s", node2string (arg));
-
-  int upper, lower;
-  BtorNode *cur_lambda, *cur_arg;
   BtorParamNode *param;
 
-  param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (lambda->e[0]);
-
-  /* apply multiple arguments */
-  if (param->len < BTOR_REAL_ADDR_NODE (arg)->len)
-  {
-    assert (BTOR_REAL_ADDR_NODE (arg)->kind == BTOR_CONCAT_NODE);
-
-    cur_lambda = lambda;
-    upper      = arg->len - 1;
-    do
-    {
-      assert (BTOR_IS_NESTED_LAMBDA_NODE (cur_lambda));
-      param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (cur_lambda->e[0]);
-      lower = upper - param->len + 1;
-      assert (lower >= 0);
-      assert (upper >= 0);
-      cur_arg = btor_rewrite_slice_exp (btor, arg, upper, lower);
-      assert (cur_arg->refs > 1);
-      btor_release_exp (btor, cur_arg); /* still referenced afterwards */
-
-      assert (param->len == BTOR_REAL_ADDR_NODE (cur_arg)->len);
-
-      BTORLOG (
-          "  assign: %s (%s)", node2string (cur_lambda), node2string (cur_arg));
-      BTOR_PUSH_STACK (btor->mm, param->assigned_exp, cur_arg);
-      cur_lambda = cur_lambda->e[1];
-      upper      = lower - 1;
-    } while (BTOR_IS_LAMBDA_NODE (cur_lambda));
-    assert (lower == 0);
-  }
-  else
-  {
-    BTOR_PUSH_STACK (btor->mm, param->assigned_exp, arg);
-  }
+  param = BTOR_LAMBDA_GET_PARAM (lambda);
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_REAL_ADDR_NODE (arg)->len == param->len);
+  BTORLOG ("  assign: %s (%s)", node2string (lambda), node2string (arg));
+  BTOR_PUSH_STACK (btor->mm, param->assigned_exp, arg);
 }
-#endif
 
 // TODO: rename to btor_unassign_params
 void

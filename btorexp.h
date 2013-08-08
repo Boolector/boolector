@@ -166,6 +166,8 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
     unsigned int no_synth : 1;      /* do not synthesize exp */         \
     unsigned int chain : 1;                                             \
+    unsigned int is_write : 1;                                          \
+    unsigned int is_read : 1;                                           \
     char *bits;  /* three-valued bits */                                \
     int id;      /* unique expression id */                             \
     int len;     /* number of bits */                                   \
@@ -294,7 +296,6 @@ struct BtorLambdaNode
   BtorPtrHashTable *synth_apps;
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
-  unsigned int is_write : 1;
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
@@ -303,7 +304,6 @@ struct BtorApplyNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
-  unsigned int is_read : 1;
 };
 
 typedef struct BtorApplyNode BtorApplyNode;
@@ -629,6 +629,8 @@ struct Btor
   (BTOR_IS_LAMBDA_NODE (exp) && (((BtorLambdaNode *) exp)->nested == exp))
 
 #define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->nested)
+
+#define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
 /*------------------------------------------------------------------------*/
 
