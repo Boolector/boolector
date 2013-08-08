@@ -2914,8 +2914,6 @@ new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
   for (i = 0; i < arity; i++)
     connect_child_exp (btor, (BtorNode *) exp, e[i], i);
 
-  if (BTOR_IS_ARGS_NODE_KIND (kind)) exp->no_synth = 1;
-
   return (BtorNode *) exp;
 }
 
@@ -3611,39 +3609,21 @@ btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
-  BtorApplyNode *result;
+  BtorNode *result;
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
 
-  result = (BtorApplyNode *) btor_apply_exps (btor, 1, &e_index, e_array);
+  result = btor_apply_exps (btor, 1, &e_index, e_array);
   if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
   {
     result->is_read = 1;
-
     if (!BTOR_REAL_ADDR_NODE (result)->bits)
       result->bits = btor_x_const_3vl (btor->mm, e_array->len);
   }
 
   return (BtorNode *) result;
 }
-
-#if 0
-BtorNode *
-btor_read_exp_node (Btor * btor, BtorNode * e_array, BtorNode * e_index)
-{
-  BtorNode * result;
-  e_array = btor_simplify_exp (btor, e_array);
-  // assert (btor->rewrite_level < 3 || !BTOR_IS_ARRAY_COND_NODE (e_array));	// TODO AB: remove
-  e_index = btor_simplify_exp (btor, e_index);
-  assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
-  result = btor_apply_exps (btor, 1, &e_index, e_array);
-//  result = binary_exp (btor, BTOR_READ_NODE, e_array, e_index, e_array->len);
-  if (!result->bits)
-    result->bits = btor_x_const_3vl (btor->mm, e_array->len);
-  return result;
-}
-#endif
 
 BtorNode *
 btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
@@ -3656,13 +3636,16 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (e_exp);
   assert (BTOR_REAL_ADDR_NODE (e_exp)->len > 0);
 
+  // TODO: get rid of index_len
+  BtorIterator it;
   BtorNode *lambda_exp, *exp;
   int index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
   int elem_len  = BTOR_REAL_ADDR_NODE (e_exp)->len;
 
   e_exp      = btor_simplify_exp (btor, e_exp);
   lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
-  lambda_exp->index_len = index_len;
+  lambda_exp->index_len                       = index_len;
+  ((BtorLambdaNode *) lambda_exp)->num_params = 1;
 
   /* set lambda expression of parameter */
   assert (!BTOR_IS_BOUND_PARAM_NODE (e_param)
@@ -3675,12 +3658,14 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
    * involved to the outermost lambda of the chain */
   if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
   {
-    exp = lambda_exp;
-    do
+    init_lambda_iterator (&it, e_exp);
+    while (has_next_lambda_iterator (&it))
     {
+      exp                              = next_lambda_iterator (&it);
       ((BtorLambdaNode *) exp)->nested = lambda_exp;
-      exp                              = BTOR_REAL_ADDR_NODE (exp->e[1]);
-    } while (BTOR_IS_LAMBDA_NODE (exp));
+    }
+    ((BtorLambdaNode *) lambda_exp)->num_params +=
+        ((BtorLambdaNode *) e_exp)->num_params;
   }
 
   if (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp))
@@ -3761,6 +3746,12 @@ btor_args_exp (Btor *btor, int argc, BtorNode **args)
     if (cnt_args < 0)
     {
       result = create_exp (btor, BTOR_ARGS_NODE, cur_argc, e, len);
+      assert (BTOR_IS_REGULAR_NODE (result));
+      assert (BTOR_IS_ARGS_NODE (result));
+
+      /* set args node specific fields */
+      result->no_synth                    = 1;
+      ((BtorArgsNode *) result)->num_args = argc - i;
 
       /* init for next iteration */
       len         = BTOR_REAL_ADDR_NODE (result)->len;

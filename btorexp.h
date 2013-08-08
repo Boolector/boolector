@@ -249,7 +249,6 @@ struct BtorParamNode
   char *symbol;
   BtorNode *lambda_exp;          /* 1:1 relation param:lambda_exp */
   BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
-  // BtorNode *assigned_exp;   /* is assigned before beta-reduction */
 };
 
 typedef struct BtorParamNode BtorParamNode;
@@ -296,17 +295,19 @@ struct BtorLambdaNode
   BtorPtrHashTable *synth_apps;
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
+  int num_params;   /* number of params of nested lambdas below */
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
 
-struct BtorApplyNode
+struct BtorArgsNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  int num_args;
 };
 
-typedef struct BtorApplyNode BtorApplyNode;
+typedef struct BtorArgsNode BtorArgsNode;
 
 struct BtorNodeUniqueTable
 {
