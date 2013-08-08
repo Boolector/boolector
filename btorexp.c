@@ -1831,7 +1831,7 @@ collect_premisses (Btor *btor,
 
         btor_assign_args (btor, lambda, args);
         res = btor_eval_exp (btor, cond);
-        btor_unassign_param (btor, lambda);
+        btor_unassign_params (btor, lambda);
 
         /* determine resp. branch that was taken in bfs */
         if (res[0] == '1')
@@ -2074,7 +2074,7 @@ encode_lemma (Btor *btor,
     args = app0->e[1];
     btor_assign_args (btor, app1, args);
     lambda_value = btor_beta_reduce_cutoff (btor, app1, &parameterized);
-    btor_unassign_param (btor, app1);
+    btor_unassign_params (btor, app1);
 
     cur = parameterized ? parameterized : BTOR_REAL_ADDR_NODE (lambda_value);
     find_shortest_path (btor, app1, cur, args);
@@ -2166,7 +2166,7 @@ encode_lemma (Btor *btor,
 
 	  btor_assign_args (btor, lambda, args0);
 	  beta_app = btor_beta_reduce_cutoff (btor, cur, 0);
-	  btor_unassign_param (btor, lambda);
+	  btor_unassign_params (btor, lambda);
 
 	  assert (beta_app->refs > 1);
 	  btor_release_exp (btor, beta_app);
@@ -2202,7 +2202,7 @@ encode_lemma (Btor *btor,
     cond = cur->e[0];
     btor_assign_args (btor, lambda, args);
     add_param_cond_to_clause (btor, cond, &linking_clause, -1);
-    btor_unassign_param (btor, lambda);
+    btor_unassign_params (btor, lambda);
     delete_node_tuple (btor, tuple);
   }
 
@@ -2222,7 +2222,7 @@ encode_lemma (Btor *btor,
     cond = cur->e[0];
     btor_assign_args (btor, lambda, args);
     add_param_cond_to_clause (btor, cond, &linking_clause, 1);
-    btor_unassign_param (btor, lambda);
+    btor_unassign_params (btor, lambda);
     delete_node_tuple (btor, tuple);
   }
 
@@ -6553,7 +6553,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
     cur = BTOR_POP_STACK (unassign_stack);
     assert (BTOR_IS_REGULAR_NODE (cur));
     assert (BTOR_IS_LAMBDA_NODE (cur));
-    btor_unassign_param (btor, cur);
+    btor_unassign_params (btor, cur);
   }
   BTOR_RELEASE_STACK (mm, unassign_stack);
 
@@ -7285,7 +7285,7 @@ propagate (Btor *btor,
     {
       BTOR_PUSH_STACK (mm, *prop_stack, app);
       BTOR_PUSH_STACK (mm, *prop_stack, fun_value);
-      btor_unassign_param (btor, fun);
+      btor_unassign_params (btor, fun);
       btor_release_exp (btor, fun_value);
       continue;
     }
@@ -7340,7 +7340,7 @@ propagate (Btor *btor,
 
 		  if (*assignments_changed)
 		    {
-		      btor_unassign_param (btor, fun);
+		      btor_unassign_params (btor, fun);
 		      btor_release_exp (btor, fun_value);
 		      BTOR_RELEASE_STACK (mm, param_apps);
 		      return 0;
@@ -7410,7 +7410,7 @@ propagate (Btor *btor,
 
             if (*assignments_changed)
             {
-              btor_unassign_param (btor, fun);
+              btor_unassign_params (btor, fun);
               btor_release_exp (btor, fun_value);
               BTOR_RELEASE_STACK (mm, param_apps);
               return 0;
@@ -7471,7 +7471,7 @@ propagate (Btor *btor,
           BTORLOG ("\e[0;39m");
           btor->stats.array_axiom_2_conflicts++;
           add_lemma (btor, fun, app, fun);
-          btor_unassign_param (btor, fun);
+          btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
           if (parameterized) BTOR_RELEASE_STACK (mm, param_apps);
           return 1;
@@ -7499,7 +7499,7 @@ propagate (Btor *btor,
       if (compare_assignments (app, fun_value) != 0)
         goto LAMBDA_AXIOM_2_CONFLICT;
     }
-    btor_unassign_param (btor, fun);
+    btor_unassign_params (btor, fun);
     btor_release_exp (btor, fun_value);
   }
 
@@ -9912,7 +9912,7 @@ merge_lambda_chains (Btor *btor)
     //      param = cur->e[0];
     //      btor_assign_param (btor, cur, param);
     subst = btor_beta_reduce_chains (btor, cur);
-    //      btor_unassign_param (btor, cur);
+    //      btor_unassign_params (btor, cur);
 
     // TODO: update substitution
     btor_insert_substitution (btor, cur, subst, 1);

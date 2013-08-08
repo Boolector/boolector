@@ -3613,7 +3613,7 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
       }
       done = 1;
     }
-    btor_unassign_param (btor, cur_fun);
+    btor_unassign_params (btor, cur_fun);
     btor_release_exp (btor, beta_cond);
 
     if (next_fun)

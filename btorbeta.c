@@ -135,9 +135,8 @@ btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
   BTOR_PUSH_STACK (btor->mm, param->assigned_exp, arg);
 }
 
-// TODO: rename to btor_unassign_params
 void
-btor_unassign_param (Btor *btor, BtorNode *lambda)
+btor_unassign_params (Btor *btor, BtorNode *lambda)
 {
   assert (lambda);
   assert (BTOR_IS_REGULAR_NODE (lambda));
@@ -618,7 +617,7 @@ btor_beta_reduce (
                 real_cur->beta_mark = 0;
 
                 assert (btor_param_cur_assignment (real_cur->e[0]));
-                btor_unassign_param (btor, real_cur);
+                btor_unassign_params (btor, real_cur);
 
 #ifndef NDEBUG
                 (void) BTOR_POP_STACK (unassign_stack);
@@ -709,7 +708,7 @@ btor_beta_reduce (
           (void) BTOR_POP_STACK (unassign_stack);
 #endif
         if (btor_param_cur_assignment (real_cur->e[0]))
-          btor_unassign_param (btor, real_cur);
+          btor_unassign_params (btor, real_cur);
       }
 
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
@@ -1070,7 +1069,6 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   BTOR_INIT_STACK (unassign);
 
   cur = lambda;
-  // TODO: use btor_assign_params
   for (i = 0; i < argc; i++)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
@@ -1085,7 +1083,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   while (!BTOR_EMPTY_STACK (unassign))
   {
     cur = BTOR_POP_STACK (unassign);
-    btor_unassign_param (btor, cur);
+    btor_unassign_params (btor, cur);
   }
 
   BTOR_RELEASE_STACK (mm, unassign);
