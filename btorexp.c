@@ -947,8 +947,8 @@ disconnect_child_exp (Btor *btor, BtorNode *parent, int pos)
   assert (btor);
   assert (parent);
   assert (pos >= 0);
+  assert (pos <= 2);
   assert (BTOR_IS_REGULAR_NODE (parent));
-  assert (BTOR_IS_ARGS_NODE (parent) || pos <= 2);
   assert (!BTOR_IS_BV_CONST_NODE (parent));
   assert (!BTOR_IS_BV_VAR_NODE (parent));
   assert (!BTOR_IS_ARRAY_VAR_NODE (parent));
@@ -2050,17 +2050,18 @@ encode_lemma (Btor *btor,
   assert (BTOR_IS_REGULAR_NODE (app1));
   assert (BTOR_IS_APPLY_NODE (app0));
 
-  int i, k, val;
+  int k, val;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
-  BtorNode *args0, *args1, *arg0, *arg1, *args;
+  BtorNode *args, *arg0, *arg1;
   BtorNode *cond;  //, *beta_app;
   BtorNode *cur, *lambda_value, *parameterized, *lambda;
   BtorIntStack linking_clause;
   BtorPtrHashBucket *bucket;
   BtorNodeTuple *tuple;
+  BtorArgsIterator it0, it1;
 
   mm    = btor->mm;
   avmgr = btor->avmgr;
@@ -2093,23 +2094,24 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_APPLY_NODE (app1));
     assert (BTOR_IS_SYNTH_NODE (app0));
     assert (BTOR_IS_SYNTH_NODE (app1));
+    assert (BTOR_IS_REGULAR_NODE (app0->e[1]));
+    assert (BTOR_IS_REGULAR_NODE (app1->e[1]));
+    assert (BTOR_IS_ARGS_NODE (app0->e[1]));
+    assert (BTOR_IS_ARGS_NODE (app1->e[1]));
+    // TODO: check num_args of args nodes
+    assert (app0->e[1]->len == app1->e[1]->len);
 
-    args0 = app0->e[1];
-    args1 = app1->e[1];
-    assert (BTOR_IS_REGULAR_NODE (args0));
-    assert (BTOR_IS_REGULAR_NODE (args1));
-    assert (BTOR_IS_ARGS_NODE (args0));
-    assert (BTOR_IS_ARGS_NODE (args1));
-    assert (args0->arity == args1->arity);
+    init_args_iterator (&it0, app0->e[1]);
+    init_args_iterator (&it1, app1->e[1]);
 
-    for (i = 0; i < args0->arity; i++)
+    while (has_next_args_iterator (&it0))
     {
-      arg0 = args0->e[i];
-      arg1 = args1->e[i];
+      assert (has_next_args_iterator (&it1));
+      arg0 = next_args_iterator (&it0);
+      arg1 = next_args_iterator (&it1);
       add_neq_exp_to_clause (btor, arg0, arg1, &linking_clause);
       btor->stats.lemmas_size_sum += 1;
     }
-
 #if 0
       print_lemma_dbg (btor, fun_apps, bconds_sel1, bconds_sel2, app0, app1);
 #endif
@@ -2716,8 +2718,8 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   assert (parent);
   assert (child);
   assert (pos >= 0);
+  assert (pos <= 2);
   assert (BTOR_IS_REGULAR_NODE (parent));
-  assert (BTOR_IS_ARGS_NODE (parent) || pos <= 2);
   assert (btor_simplify_exp (btor, child) == child);
   assert (!BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (child))
           || BTOR_IS_ARGS_NODE (parent) || BTOR_IS_APPLY_NODE (parent));
@@ -6323,18 +6325,24 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
   assert (BTOR_IS_ARGS_NODE (e0));
   assert (BTOR_IS_ARGS_NODE (e1));
 
-  int i, equal;
+  int equal;
   const char *avec0, *avec1;
   BtorNode *arg0, *arg1;
   Btor *btor;
+  BtorArgsIterator it0, it1;
   btor = e0->btor;
 
-  if (e0->arity != e1->arity) return 1;
+  // TODO: check args num_args
+  if (e0->len != e1->len) return 1;
 
-  for (i = 0; i < e0->arity; i++)
+  init_args_iterator (&it0, e0);
+  init_args_iterator (&it1, e1);
+
+  while (has_next_args_iterator (&it0))
   {
-    arg0 = e0->e[i];
-    arg1 = e1->e[i];
+    assert (has_next_args_iterator (&it1));
+    arg0 = next_args_iterator (&it0);
+    arg1 = next_args_iterator (&it1);
 
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg0)))
       avec0 = btor_eval_exp (btor, arg0);
@@ -6700,9 +6708,10 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   assert (BTOR_IS_ARGS_NODE (app->e[1]));
 
   double start;
-  int i, changed_assignments, update, argc;
-  BtorNode *arg, **e;
+  int changed_assignments, update;
+  BtorNode *arg;
   BtorAIGVecMgr *avmgr = 0;
+  BtorArgsIterator it;
 
   if (app->lazy_tseitin) return 0;
 
@@ -6712,13 +6721,12 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   avmgr               = btor->avmgr;
   BTORLOG ("%s: %s", __FUNCTION__, node2string (app));
 
-  e    = app->e[1]->e;
-  argc = app->e[1]->arity;
+  init_args_iterator (&it, app->e[1]);
 
   /* synthesize and encode apply node an all of its arguments */
-  for (i = 0; i < argc; i++)
+  while (has_next_args_iterator (&it))
   {
-    arg = e[i];
+    arg = next_args_iterator (&it);
     assert (!BTOR_IS_ARRAY_NODE (arg));
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
       synthesize_exp (btor, arg, 0);
