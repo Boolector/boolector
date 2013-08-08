@@ -2719,6 +2719,8 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   assert (BTOR_IS_REGULAR_NODE (parent));
   assert (BTOR_IS_ARGS_NODE (parent) || pos <= 2);
   assert (btor_simplify_exp (btor, child) == child);
+  assert (!BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (child))
+          || BTOR_IS_ARGS_NODE (parent) || BTOR_IS_APPLY_NODE (parent));
 
   /* set parent parameterized if child is parameterized */
   if (!BTOR_IS_LAMBDA_NODE (parent)
@@ -3709,6 +3711,9 @@ btor_fun_exp (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   return fun;
 }
 
+// TODO: global define?
+#define MAX_NUM_CHILDREN 3
+
 BtorNode *
 btor_args_exp (Btor *btor, int argc, BtorNode **args)
 {
@@ -3716,17 +3721,60 @@ btor_args_exp (Btor *btor, int argc, BtorNode **args)
   assert (argc > 0);
   assert (args);
 
-  int i, len;
-  BtorNode *e[argc];
+  int i, cur_argc, len, cnt_args, rem_free, num_args;
+  BtorNode *e[MAX_NUM_CHILDREN];
+  BtorNode *result = 0, *last = 0;
+
+  /* arguments fit in one args node */
+  if (argc <= MAX_NUM_CHILDREN)
+  {
+    num_args = 1;
+    rem_free = MAX_NUM_CHILDREN - argc;
+    cur_argc = argc;
+  }
+  /* arguments have to be split into several args nodes.
+   * compute number of required args nodes */
+  else
+  {
+    rem_free = argc % (MAX_NUM_CHILDREN - 1);
+    num_args = argc / (MAX_NUM_CHILDREN - 1);
+    if (rem_free > 1) num_args += 1;
+    /* compute number of arguments in last args node */
+    cur_argc = MAX_NUM_CHILDREN - (argc + num_args - 1) % MAX_NUM_CHILDREN;
+  }
+  cnt_args = cur_argc - 1;
+
+  assert (num_args > 0);
 
   len = 0;
-  for (i = 0; i < argc; i++)
+  /* split up args in 'num_args' of args nodes */
+  for (i = argc - 1; i >= 0; i--)
   {
-    e[i] = btor_simplify_exp (btor, args[i]);
-    len += BTOR_REAL_ADDR_NODE (e[i])->len;
+    assert (cnt_args >= 0);
+    assert (cnt_args <= MAX_NUM_CHILDREN);
+    e[cnt_args] = btor_simplify_exp (btor, args[i]);
+    len += BTOR_REAL_ADDR_NODE (e[cnt_args])->len;
+    cnt_args -= 1;
+
+    if (cnt_args < 0)
+    {
+      result = create_exp (btor, BTOR_ARGS_NODE, cur_argc, e, len);
+
+      /* init for next iteration */
+      len         = BTOR_REAL_ADDR_NODE (result)->len;
+      cur_argc    = MAX_NUM_CHILDREN;
+      cnt_args    = cur_argc - 1;
+      e[cnt_args] = result;
+      cnt_args -= 1;
+
+      if (last) btor_release_exp (btor, last);
+
+      last = result;
+    }
   }
 
-  return create_exp (btor, BTOR_ARGS_NODE, argc, e, len);
+  assert (result);
+  return result;
 }
 
 BtorNode *
