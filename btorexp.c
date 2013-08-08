@@ -5272,7 +5272,6 @@ btor_new_btor (void)
   btor->vread_index_id    = 1;
   btor->msgtick           = -1;
   btor->pprint            = 1;
-  btor->loglevel          = 1;
 
   BTOR_PUSH_STACK (btor->mm, btor->nodes_id_table, 0);
 
