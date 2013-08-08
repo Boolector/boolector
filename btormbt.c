@@ -1130,7 +1130,8 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
   {
     /* force COND if array exp with non-parameterized arrays forced,
      * else distribute EQ, NE and COND evenly */
-    op = rand >= 0 && pick (rng, 0, 2) ? pick (rng, EQ, NE) : COND;
+    op =
+        rand >= 0 && pick (rng, 0, 2) && !env.noext ? pick (rng, EQ, NE) : COND;
     e[1] =
         selarrexp (btormbt, rng, e[0], eew, eiw, rand == -1 ? rand : rand ^ 1);
     if (op == COND) e[2] = selexp (btormbt, rng, T_BO, rand < 0 ? 1 : 0, NULL);
@@ -1536,7 +1537,7 @@ _afun (BtorMBT *btormbt, unsigned r)
   else
   {
     /* select EQ/NE/COND with same propability */
-    op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
+    op = pick (&rng, 0, 2) && !env.noext ? pick (&rng, EQ, NE) : COND;
     e1 = selarrexp (btormbt, &rng, e0, e0w, e0iw, 0);
     if (op == COND) e2 = selexp (btormbt, &rng, T_BO, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
