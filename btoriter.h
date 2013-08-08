@@ -17,13 +17,6 @@
 
 /*------------------------------------------------------------------------*/
 
-struct BtorPartialParentIterator
-{
-  BtorNode *cur;
-};
-
-typedef struct BtorPartialParentIterator BtorPartialParentIterator;
-
 struct BtorFullParentIterator
 {
   BtorNode *cur;
@@ -41,6 +34,14 @@ struct BtorArgsIterator
 };
 
 typedef struct BtorArgsIterator BtorArgsIterator;
+
+struct BtorIterator
+{
+  BtorNode *cur;
+};
+
+typedef struct BtorIterator BtorIterator;
+typedef struct BtorIterator BtorPartialParentIterator;
 
 /*------------------------------------------------------------------------*/
 
@@ -72,7 +73,11 @@ int has_next_parent_acond_parent_iterator (BtorPartialParentIterator *);
 int has_next_parent_full_parent_iterator (BtorFullParentIterator *);
 
 void init_args_iterator (BtorArgsIterator *, BtorNode *);
-BtorNode *next_arg_args_iterator (BtorArgsIterator *);
-int has_next_arg_args_iterator (BtorArgsIterator *);
+BtorNode *next_args_iterator (BtorArgsIterator *);
+int has_next_args_iterator (BtorArgsIterator *);
+
+void init_lambda_iterator (BtorIterator *, BtorNode *);
+BtorNode *next_lambda_iterator (BtorIterator *);
+int has_next_lambda_iterator (BtorIterator *);
 
 #endif
