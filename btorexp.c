@@ -2884,16 +2884,49 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 }
 
 static BtorNode *
+new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
+{
+  assert (btor);
+  assert (arity > 0);
+  assert (e);
+  assert (len > 0);
+
+  int i;
+  BtorArgsNode *exp;
+#ifdef NDEBUG
+  for (i = 0; i < arity; i++) assert (e[i]);
+#endif
+
+  BTOR_CNEW (btor->mm, exp);
+  btor->ops[BTOR_ARGS_NODE]++;
+  exp->kind     = BTOR_ARGS_NODE;
+  exp->bytes    = sizeof (*exp);
+  exp->arity    = arity;
+  exp->len      = len;
+  exp->no_synth = 1;
+  setup_node_and_add_to_id_table (btor, exp);
+
+  for (i = 0; i < arity; i++)
+    connect_child_exp (btor, (BtorNode *) exp, e[i], i);
+
+  /* set args node specific fields */
+  if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (exp->e[arity - 1])))
+  {
+    exp->num_args = ((BtorArgsNode *) exp->e[arity - 1])->num_args + arity - 1;
+  }
+  else
+    exp->num_args = arity;
+
+  return (BtorNode *) exp;
+}
+
+static BtorNode *
 new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
 {
   assert (btor);
   assert (arity > 0);
-  assert (arity != 1 || BTOR_IS_ARGS_NODE_KIND (kind));
-  assert (arity != 2 || BTOR_IS_BINARY_NODE_KIND (kind)
-          || BTOR_IS_ARGS_NODE_KIND (kind));
-  assert (arity != 3 || BTOR_IS_TERNARY_NODE_KIND (kind)
-          || BTOR_IS_ARGS_NODE_KIND (kind));
-  assert (arity <= 3 || BTOR_IS_ARGS_NODE_KIND (kind));
+  assert (arity <= 3);
+  assert (BTOR_IS_BINARY_NODE_KIND (kind) || BTOR_IS_TERNARY_NODE_KIND (kind));
   assert (e);
   assert (len > 0);
 
@@ -2915,26 +2948,6 @@ new_exp_node (Btor *btor, BtorNodeKind kind, int arity, BtorNode **e, int len)
     connect_child_exp (btor, (BtorNode *) exp, e[i], i);
 
   return (BtorNode *) exp;
-}
-
-static BtorNode *
-new_args_exp_node (Btor *btor, int arity, BtorNode **e, int len)
-{
-  BtorArgsNode *result;
-
-  result = (BtorArgsNode *) new_exp_node (btor, BTOR_ARGS_NODE, arity, e, len);
-  result->no_synth = 1;
-
-  /* set args node specific fields */
-  if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result->e[result->arity - 1])))
-  {
-    result->num_args = ((BtorArgsNode *) result->e[result->arity - 1])->num_args
-                       + result->arity - 1;
-  }
-  else
-    result->num_args = result->arity;
-
-  return (BtorNode *) result;
 }
 
 /* Computes hash value of expression by id */
@@ -3689,8 +3702,13 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
     }
     ((BtorLambdaNode *) lambda_exp)->num_params +=
         ((BtorLambdaNode *) e_exp)->num_params;
+    ((BtorLambdaNode *) lambda_exp)->body = ((BtorLambdaNode *) e_exp)->body;
   }
+  else
+    ((BtorLambdaNode *) lambda_exp)->body = e_exp;
 
+  assert (!BTOR_IS_LAMBDA_NODE (
+      BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) lambda_exp)->body)));
   if (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp))
     (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
 

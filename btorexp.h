@@ -188,26 +188,25 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *last_parent;  /* tail of parent list */                   \
   }
 
-#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                  \
-  struct                                                                \
-  {                                                                     \
-    union                                                               \
-    {                                                                   \
-      struct                                                            \
-      {                                                                 \
-        char *symbol; /* symbol for output */                           \
-        int upper;    /* upper index for slices */                      \
-        union                                                           \
-        {                                                               \
-          int lower;            /* lower index for slices */            \
-          BtorNodePair *vreads; /* virtual reads for array equalites */ \
-        };                                                              \
-      };                                                                \
-    };                                                                  \
-    BtorNode **e;           /* expression children */                   \
-    BtorNode **prev_parent; /* prev in parent list of child i */        \
-    BtorNode **next_parent; /* next in parent list of child i */        \
+#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                \
+  struct                                                              \
+  {                                                                   \
+    struct                                                            \
+    {                                                                 \
+      char *symbol; /* symbol for output */                           \
+      int upper;    /* upper index for slices */                      \
+      union                                                           \
+      {                                                               \
+        int lower;            /* lower index for slices */            \
+        BtorNodePair *vreads; /* virtual reads for array equalites */ \
+      };                                                              \
+    };                                                                \
+    BtorNode **e;           /* expression children */                 \
+    BtorNode **prev_parent; /* prev in parent list of child i */      \
+    BtorNode **next_parent; /* next in parent list of child i */      \
   }
+// TODO: optimization of **e, **prev_parent, **next_parent memory allocation
+// TODO: make **e, **prev_parent, **next_parent static for now ([3])
 
 #define BTOR_ARRAY_VAR_NODE_STRUCT                                           \
   struct                                                                     \
@@ -297,6 +296,7 @@ struct BtorLambdaNode
   BtorPtrHashTable *synth_apps;
   BtorNode *nested; /* points at the first lambda exp in case of nested
                        lambdas */
+  BtorNode *body;   /* function body */
   int num_params;   /* number of params of nested lambdas below */
 };
 
