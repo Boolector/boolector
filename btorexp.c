@@ -3694,7 +3694,7 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
    * involved to the outermost lambda of the chain */
   if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
   {
-    init_lambda_iterator (&it, e_exp);
+    init_lambda_iterator (&it, lambda_exp);
     while (has_next_lambda_iterator (&it))
     {
       exp                              = next_lambda_iterator (&it);
