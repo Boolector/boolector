@@ -819,11 +819,7 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
   /* skip all nested lambdas */
-  while (BTOR_IS_LAMBDA_NODE (real_cur))
-  {
-    exp      = real_cur->e[1];
-    real_cur = BTOR_REAL_ADDR_NODE (real_cur->e[1]);
-  }
+  if (BTOR_IS_LAMBDA_NODE (real_cur)) exp = ((BtorLambdaNode *) real_cur)->body;
 
   BTOR_PUSH_STACK (mm, stack, exp);
 
