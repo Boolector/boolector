@@ -1755,6 +1755,8 @@ boolector_get_fun_arity (Btor *btor, BtorNode *exp)
   BTOR_TRAPI ("get_fun_arity %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)),
+                        "given expression is not a function node");
   exp = btor_simplify_exp (btor, exp);
   res = btor_get_lambda_arity (btor, exp);
   BTOR_TRAPI_RETURN (res);

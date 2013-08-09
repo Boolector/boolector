@@ -5134,17 +5134,10 @@ btor_get_lambda_arity (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
-  int arity = 0;
-
-  exp = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, exp));
-
-  while (BTOR_IS_LAMBDA_NODE (exp))
-  {
-    arity++;
-    exp = BTOR_REAL_ADDR_NODE (exp->e[1]);
-  }
-
-  return arity;
+  exp = btor_simplify_exp (btor, exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_LAMBDA_NODE (exp));
+  return ((BtorLambdaNode *) exp)->num_params;
 }
 
 int
@@ -5154,19 +5147,23 @@ btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   assert (argc > 0);
   assert (args);
   assert (fun);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
   assert (argc == btor_get_lambda_arity (btor, fun));
 
   int i;
-  BtorNode *cur, *arg, *param;
+  BtorNode *arg;
+  BtorParamNode *param;
+  BtorIterator it;
 
-  cur = fun;
+  init_lambda_iterator (&it, fun);
+
   for (i = 0; i < argc; i++)
   {
-    assert (BTOR_IS_REGULAR_NODE (cur));
-    assert (BTOR_IS_LAMBDA_NODE (cur));
+    assert (has_next_lambda_iterator (&it));
     arg   = BTOR_REAL_ADDR_NODE (args[i]);
-    param = BTOR_REAL_ADDR_NODE (cur->e[0]);
-    cur   = cur->e[1];
+    param = BTOR_LAMBDA_GET_PARAM (next_lambda_iterator (&it));
+    assert (BTOR_IS_REGULAR_NODE (param));
 
     if (arg->len != param->len) return i;
   }
