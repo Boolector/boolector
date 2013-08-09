@@ -1828,7 +1828,7 @@ check_lambdas_consistent (BtorBTORParser *parser)
     assert (BTOR_IS_LAMBDA_NODE (lambda));
 
     if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
-        && ((BtorLambdaNode *) lambda)->nested != lambda)
+        && !BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
       continue;
 
     assert (BTOR_EMPTY_STACK (stack));

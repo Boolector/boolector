@@ -99,7 +99,11 @@ btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
   assert (BTOR_IS_LAMBDA_NODE (fun));
   assert (BTOR_IS_ARGS_NODE (args));
 
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (fun));
+  BTORLOG ("%s: %s (%d params, %d args)",
+           __FUNCTION__,
+           node2string (fun),
+           ((BtorLambdaNode *) fun)->num_params,
+           ((BtorArgsNode *) args)->num_args);
 
   BtorNode *cur_lambda, *cur_arg;
   BtorIterator it;
@@ -302,7 +306,7 @@ btor_beta_reduce (
       if (BTOR_IS_LAMBDA_NODE (real_cur)
           /* only open new scope at first lambda of nested lambdas */
           && (!BTOR_IS_NESTED_LAMBDA_NODE (real_cur)
-              || ((BtorLambdaNode *) real_cur)->nested == real_cur))
+              || BTOR_IS_FIRST_NESTED_LAMBDA (real_cur)))
         BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
       /* initialize mark in current scope */
@@ -469,8 +473,6 @@ btor_beta_reduce (
       {
         assert (BTOR_IS_UNARY_NODE (real_cur) || BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_IS_TERNARY_NODE (real_cur)
-                // TODO: make apply binary node
-                || BTOR_IS_APPLY_NODE (real_cur)
                 || BTOR_IS_ARGS_NODE (real_cur));
         assert (mode != BETA_RED_CUTOFF
                 || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur));

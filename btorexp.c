@@ -1827,7 +1827,7 @@ collect_premisses (Btor *btor,
                  bcond->id);
 
         if (BTOR_IS_NESTED_LAMBDA_NODE (lambda))
-          lambda = ((BtorLambdaNode *) lambda)->nested;
+          lambda = (BtorNode *) BTOR_LAMBDA_GET_NESTED (lambda);
 
         btor_assign_args (btor, lambda, args);
         res = btor_eval_exp (btor, cond);
@@ -3674,14 +3674,16 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 
   // TODO: get rid of index_len
   BtorIterator it;
-  BtorNode *lambda_exp, *exp;
+  BtorLambdaNode *lambda_exp;
+  BtorNode *exp;
   int index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
   int elem_len  = BTOR_REAL_ADDR_NODE (e_exp)->len;
 
   e_exp      = btor_simplify_exp (btor, e_exp);
-  lambda_exp = binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
-  lambda_exp->index_len                       = index_len;
-  ((BtorLambdaNode *) lambda_exp)->num_params = 1;
+  lambda_exp = (BtorLambdaNode *) binary_exp (
+      btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
+  lambda_exp->index_len  = index_len;
+  lambda_exp->num_params = 1;
 
   /* set lambda expression of parameter */
   assert (!BTOR_IS_BOUND_PARAM_NODE (e_param)
@@ -3694,25 +3696,23 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
    * involved to the outermost lambda of the chain */
   if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
   {
-    init_lambda_iterator (&it, lambda_exp);
+    init_lambda_iterator (&it, (BtorNode *) lambda_exp);
     while (has_next_lambda_iterator (&it))
     {
       exp                              = next_lambda_iterator (&it);
       ((BtorLambdaNode *) exp)->nested = lambda_exp;
     }
-    ((BtorLambdaNode *) lambda_exp)->num_params +=
-        ((BtorLambdaNode *) e_exp)->num_params;
-    ((BtorLambdaNode *) lambda_exp)->body = ((BtorLambdaNode *) e_exp)->body;
+    lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
+    lambda_exp->body = ((BtorLambdaNode *) e_exp)->body;
   }
   else
-    ((BtorLambdaNode *) lambda_exp)->body = e_exp;
+    lambda_exp->body = e_exp;
 
-  assert (!BTOR_IS_LAMBDA_NODE (
-      BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) lambda_exp)->body)));
+  assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
   if (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp))
     (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
 
-  return lambda_exp;
+  return (BtorNode *) lambda_exp;
 }
 
 BtorNode *
@@ -6527,7 +6527,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur)
               || BTOR_LAMBDA_GET_NESTED (cur)->tseitin);
 
-      if (((BtorLambdaNode *) cur)->nested == cur
+      if (BTOR_IS_FIRST_NESTED_LAMBDA (cur)
           || !BTOR_IS_NESTED_LAMBDA_NODE (cur))
       {
         btor_assign_args (btor, cur, args);
@@ -6839,7 +6839,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     /* do not encode function nodes that are not part of the function
      * expression of lambda_exp */
     if ((BTOR_IS_LAMBDA_NODE (cur)
-         && ((BtorLambdaNode *) cur)->nested != lambda_exp)
+         && ((BtorLambdaNode *) cur)->nested != (BtorLambdaNode *) lambda_exp)
         || BTOR_IS_ARRAY_VAR_NODE (cur))
       continue;
 
@@ -9915,7 +9915,7 @@ merge_lambda_chains (Btor *btor)
         param = BTOR_POP_STACK (params);
         assert (BTOR_IS_REGULAR_NODE (param));
         assert (BTOR_IS_PARAM_NODE (param));
-        lambda = BTOR_PARAM_GET_LAMBDA_NODE (param);
+        lambda = (BtorNode *) BTOR_PARAM_GET_LAMBDA_NODE (param);
         assert (BTOR_IS_LAMBDA_NODE (lambda));
         assert (num_params == 1 || BTOR_IS_NESTED_LAMBDA_NODE (lambda));
         if (num_params == 1 || BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
