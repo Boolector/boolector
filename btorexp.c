@@ -3821,8 +3821,11 @@ btor_apply_exp_node (Btor *btor, BtorNode *fun, BtorNode *args)
 
   assert (BTOR_IS_REGULAR_NODE (e[0]));
   assert (BTOR_IS_REGULAR_NODE (e[1]));
-  assert (BTOR_IS_LAMBDA_NODE (e[0]) || BTOR_IS_ARRAY_VAR_NODE (e[0]));
+  assert (BTOR_IS_FUN_NODE (e[0]));
   assert (BTOR_IS_ARGS_NODE (e[1]));
+  assert (!BTOR_IS_LAMBDA_NODE (fun)
+          || ((BtorLambdaNode *) e[0])->num_params
+                 == ((BtorArgsNode *) e[1])->num_args);
 
   return create_exp (btor, BTOR_APPLY_NODE, 2, e, fun->len);
 }
@@ -5895,6 +5898,7 @@ synthesize_array_equality (Btor *btor, BtorNode *aeq)
   btor_release_exp (btor, read2);
 }
 
+// TODO: stop synthesize at lambdas
 static void
 synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 {
@@ -5982,6 +5986,8 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       }
       else if (BTOR_IS_LAMBDA_NODE (cur))
       {
+        // TODO: do we have to synthesize the children?
+        // this will be done with lazy_synth anyways
         goto REGULAR_CASE;
       }
       else
@@ -6743,7 +6749,7 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   BtorAIGVecMgr *avmgr = 0;
   BtorArgsIterator it;
 
-  if (app->lazy_tseitin) return 0;
+  if (app->e[1]->tseitin) return 0;
 
   start               = btor_time_stamp ();
   changed_assignments = 0;
@@ -6757,7 +6763,7 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   while (has_next_args_iterator (&it))
   {
     arg = next_args_iterator (&it);
-    assert (!BTOR_IS_ARRAY_NODE (arg));
+    assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (arg)));
     if (!BTOR_IS_SYNTH_NODE (BTOR_REAL_ADDR_NODE (arg)))
       synthesize_exp (btor, arg, 0);
 
@@ -6770,18 +6776,18 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
     }
   }
 
-  /* synthesize and encode reads and apply expressions */
+  app->e[1]->tseitin = 1;
+
+  /* synthesize and encode apply expressions */
   if (!BTOR_IS_SYNTH_NODE (app)) synthesize_exp (btor, app, 0);
 
-  if (!BTOR_REAL_ADDR_NODE (app)->tseitin)
+  if (!app->tseitin)
   {
     update = 1;
-    btor_aigvec_to_sat_tseitin (avmgr, BTOR_REAL_ADDR_NODE (app)->av);
-    BTOR_REAL_ADDR_NODE (app)->tseitin = 1;
+    btor_aigvec_to_sat_tseitin (avmgr, app->av);
+    app->tseitin = 1;
     BTORLOG ("  encode: %s", node2string (app));
   }
-
-  app->lazy_tseitin = 1;
 
   /* update assignments if necessary */
   if (update && force_update)
@@ -6793,6 +6799,113 @@ lazy_synthesize_and_encode_apply_exp (Btor *btor,
   return changed_assignments;
 }
 
+#if 1
+static int
+lazy_synthesize_and_encode_lambda_exp (Btor *btor,
+                                       BtorNode *lambda_exp,
+                                       int force_update)
+{
+  assert (btor);
+  assert (lambda_exp);
+  assert (BTOR_IS_REGULAR_NODE (lambda_exp));
+  assert (BTOR_IS_LAMBDA_NODE (lambda_exp));
+
+  double start;
+  int changed_assignments, update, i;
+  BtorNodePtrStack work_stack, unmark_stack;
+  BtorNode *cur;
+  BtorMemMgr *mm;
+  BtorAIGVecMgr *avmgr;
+
+  // TODO: remove lazy_tseitin
+  if (lambda_exp->lazy_tseitin) return 0;
+
+  start               = btor_time_stamp ();
+  mm                  = btor->mm;
+  avmgr               = btor->avmgr;
+  changed_assignments = 0;
+  update              = 0;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
+
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda_exp));
+
+  cur = BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) lambda_exp)->body);
+
+  if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
+
+  BTOR_PUSH_STACK (mm, work_stack, cur);
+
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur = BTOR_POP_STACK (work_stack);
+    assert (cur);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+
+    if (cur->mark == 2) continue;
+
+    /* do not encode expressions that are not in the scope of 'lambda_exp' */
+    if (BTOR_IS_FUN_NODE (cur) && !cur->parameterized) continue;
+
+    if (cur->mark == 0)
+    {
+      if (!BTOR_IS_ARGS_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur)
+          && !cur->parameterized)
+      {
+        cur->mark = 1;
+        BTOR_PUSH_STACK (mm, work_stack, cur);
+        BTOR_PUSH_STACK (mm, unmark_stack, cur);
+      }
+
+      for (i = 0; i < cur->arity; i++)
+        BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
+    }
+    else
+    {
+      assert (cur->mark == 1);
+      assert (!BTOR_IS_ARGS_NODE (cur));
+      assert (!BTOR_IS_FUN_NODE (cur));
+      assert (!cur->parameterized);
+      assert (BTOR_IS_SYNTH_NODE (cur));
+
+      cur->mark = 2;
+
+      if (!cur->tseitin)
+      {
+        BTORLOG ("  encode: %s", node2string (cur));
+        update = 1;
+        btor_aigvec_to_sat_tseitin (avmgr, cur->av);
+        cur->tseitin = 1;
+      }
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (BTOR_IS_REGULAR_NODE (cur));
+    assert (cur->mark);
+    cur->mark = 0;
+  }
+
+  BTOR_RELEASE_STACK (mm, unmark_stack);
+  BTOR_RELEASE_STACK (mm, work_stack);
+
+  /* set tseitin flag of lambda expression to indicate that it has been
+   * lazily synthesized already */
+  lambda_exp->tseitin      = 1;
+  lambda_exp->lazy_tseitin = 1;
+
+  if (update && force_update)
+    changed_assignments = update_sat_assignments (btor);
+
+  if (changed_assignments) btor->stats.synthesis_inconsistency_lambda++;
+
+  btor->time.enc_lambda += btor_time_stamp () - start;
+  return changed_assignments;
+}
+#else
 static int
 lazy_synthesize_and_encode_lambda_exp (Btor *btor,
                                        BtorNode *lambda_exp,
@@ -6812,18 +6925,20 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   if (lambda_exp->lazy_tseitin) return 0;
 
-  start               = btor_time_stamp ();
-  mm                  = btor->mm;
-  avmgr               = btor->avmgr;
+  start = btor_time_stamp ();
+  mm = btor->mm;
+  avmgr = btor->avmgr;
   changed_assignments = 0;
-  update              = 0;
+  update = 0;
 
   BTOR_INIT_STACK (work_stack);
   BTOR_INIT_STACK (unmark_stack);
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda_exp));
 
-  BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (lambda_exp->e[1]));
+  BTOR_PUSH_STACK (mm,
+                   work_stack,
+                   BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) lambda_exp)->body));
 
   while (!BTOR_EMPTY_STACK (work_stack))
   {
@@ -6889,7 +7004,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   /* set tseitin flag of lambda expression to indicate that it has been
    * lazily synthesized already */
-  lambda_exp->tseitin      = 1;
+  lambda_exp->tseitin = 1;
   lambda_exp->lazy_tseitin = 1;
 
   if (update && force_update)
@@ -6900,6 +7015,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   btor->time.enc_lambda += btor_time_stamp () - start;
   return changed_assignments;
 }
+#endif
 
 const char *
 btor_eval_exp (Btor *btor, BtorNode *exp)
