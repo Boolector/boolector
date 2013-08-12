@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,8 +13,8 @@
 
 /*------------------------------------------------------------------------*/
 
-BtorNodeMap*
-btor_new_node_map (Btor* btor)
+BtorNodeMap *
+btor_new_node_map (Btor *btor)
 {
   assert (btor);
   return btor_new_ptr_hash_table (btor->mm,
@@ -22,9 +23,9 @@ btor_new_node_map (Btor* btor)
 }
 
 void
-btor_delete_node_map (Btor* btor, BtorNodeMap* map)
+btor_delete_node_map (Btor *btor, BtorNodeMap *map)
 {
-  BtorPtrHashBucket* bucket;
+  BtorPtrHashBucket *bucket;
   assert (btor);
   assert (map);
   for (bucket = map->first; bucket; bucket = bucket->next)
@@ -35,12 +36,12 @@ btor_delete_node_map (Btor* btor, BtorNodeMap* map)
   btor_delete_ptr_hash_table (map);
 }
 
-BtorNode*
-btor_mapped_node (BtorNodeMap* map, BtorNode* node)
+BtorNode *
+btor_mapped_node (BtorNodeMap *map, BtorNode *node)
 {
-  BtorPtrHashBucket* bucket;
-  BtorNode* realnode = BTOR_REAL_ADDR_NODE (node);
-  BtorNode* res;
+  BtorPtrHashBucket *bucket;
+  BtorNode *realnode = BTOR_REAL_ADDR_NODE (node);
+  BtorNode *res;
   bucket = btor_find_in_ptr_hash_table (map, realnode);
   if (!bucket) return 0;
   assert (bucket->key == realnode);
@@ -50,9 +51,9 @@ btor_mapped_node (BtorNodeMap* map, BtorNode* node)
 }
 
 void
-btor_map_node (Btor* btor, BtorNodeMap* map, BtorNode* src, BtorNode* dst)
+btor_map_node (Btor *btor, BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
-  BtorPtrHashBucket* bucket;
+  BtorPtrHashBucket *bucket;
   assert (btor);
   assert (map);
   assert (src);
@@ -73,8 +74,8 @@ btor_map_node (Btor* btor, BtorNodeMap* map, BtorNode* src, BtorNode* dst)
 
 /*------------------------------------------------------------------------*/
 
-static BtorNode*
-map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
+static BtorNode *
+map_node (Btor *btor, BtorNodeMap *map, BtorNode *exp)
 {
   BtorNode *m[3], *src, *dst, *real_exp;
   int i;
@@ -98,7 +99,7 @@ map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
       real_exp = BTOR_REAL_ADDR_NODE (exp);
       if (real_exp->btor != btor)
       {
-        BtorNode* res = btor_const_exp (btor, exp->bits);
+        BtorNode *res = btor_const_exp (btor, exp->bits);
         if (real_exp != exp) res = BTOR_INVERT_NODE (res);
         return res;
       }
@@ -130,16 +131,16 @@ map_node (Btor* btor, BtorNodeMap* map, BtorNode* exp)
   }
 }
 
-BtorNode*
-btor_non_recursive_extended_substitute_node (Btor* btor,
-                                             BtorNodeMap* map,
-                                             void* state,
+BtorNode *
+btor_non_recursive_extended_substitute_node (Btor *btor,
+                                             BtorNodeMap *map,
+                                             void *state,
                                              BtorNodeMapper mapper,
-                                             BtorNode* root)
+                                             BtorNode *root)
 {
   BtorNodePtrStack working_stack, marked_stack;
   BtorNode *res, *node, *mapped;
-  BtorMemMgr* mm = btor->mm;
+  BtorMemMgr *mm = btor->mm;
   int i;
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (marked_stack);
@@ -186,8 +187,8 @@ btor_non_recursive_extended_substitute_node (Btor* btor,
   return res;
 }
 
-static BtorNode*
-btor_never_map_mapper (Btor* btor, void* state, BtorNode* node)
+static BtorNode *
+btor_never_map_mapper (Btor *btor, void *state, BtorNode *node)
 {
   (void) btor;
   (void) state;
@@ -195,11 +196,82 @@ btor_never_map_mapper (Btor* btor, void* state, BtorNode* node)
   return 0;
 }
 
-BtorNode*
-btor_non_recursive_substitute_node (Btor* btor,
-                                    BtorNodeMap* map,
-                                    BtorNode* root)
+BtorNode *
+btor_non_recursive_substitute_node (Btor *btor,
+                                    BtorNodeMap *map,
+                                    BtorNode *root)
 {
   return btor_non_recursive_extended_substitute_node (
       btor, map, 0, btor_never_map_mapper, root);
+}
+
+/*------------------------------------------------------------------------*/
+
+BtorAIGMap *
+btor_new_aig_map (Btor *btor)
+{
+  assert (btor);
+  return btor_new_ptr_hash_table (btor->mm, 0, 0);
+}
+
+BtorAIG *
+btor_mapped_aig (BtorAIGMap *map, BtorAIG *aig)
+{
+  assert (map);
+  assert (aig);
+
+  BtorPtrHashBucket *bucket;
+  BtorAIG *res;
+
+  bucket = btor_find_in_ptr_hash_table (map, aig);
+  if (!bucket) return 0;
+  assert (bucket->key == aig);
+  res = bucket->data.asPtr;
+  if (BTOR_IS_INVERTED_AIG (aig)) res = BTOR_INVERT_AIG (res);
+  return res;
+}
+
+void
+btor_map_aig (Btor *btor, BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
+{
+  assert (btor);
+  assert (map);
+  assert (src);
+  assert (dst);
+
+  BtorPtrHashBucket *bucket;
+  BtorAIGMgr *amgr;
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+
+  if (BTOR_IS_INVERTED_AIG (src))
+  {
+    src = BTOR_INVERT_AIG (src);
+    dst = BTOR_INVERT_AIG (dst);
+  }
+  assert (!btor_find_in_ptr_hash_table (map, src));
+  bucket = btor_insert_in_ptr_hash_table (map, src);
+  assert (bucket);
+  assert (bucket->key == src);
+  bucket->key = btor_copy_aig (amgr, src);
+  assert (!bucket->data.asPtr);
+  bucket->data.asPtr = btor_copy_aig (amgr, dst);
+}
+void
+btor_delete_aig_map (Btor *btor, BtorNodeMap *map)
+{
+  assert (btor);
+  assert (map);
+
+  BtorPtrHashBucket *bucket;
+  BtorAIGMgr *amgr;
+
+  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+
+  for (bucket = map->first; bucket; bucket = bucket->next)
+  {
+    btor_release_aig (amgr, bucket->key);
+    btor_release_aig (amgr, bucket->data.asPtr);
+  }
+  btor_delete_ptr_hash_table (map);
 }

@@ -11,6 +11,7 @@
 #ifndef BTORMAP_H_INCLUDED
 #define BTORMAP_H_INCLUDED
 
+#include "btoraig.h"
 #include "btorexp.h"
 
 /*------------------------------------------------------------------------*/
@@ -54,6 +55,21 @@ BtorNode *btor_non_recursive_extended_substitute_node (
     void *state,     // for the mapper
     BtorNodeMapper,  // see above
     BtorNode *root);
+
+/*------------------------------------------------------------------------*/
+
+/*------------------------------------------------------------------------*/
+/* Simple map for AIG node.  Same reference counting and signed behavior
+ * as BtorNodeMap.
+ */
+typedef struct BtorPtrHashTable BtorAIGMap;
+
+/*------------------------------------------------------------------------*/
+
+BtorAIGMap *btor_new_aig_map (Btor *);
+BtorAIG *btor_mapped_aig (BtorAIGMap *, BtorAIG *);
+void btor_map_aig (Btor *, BtorAIGMap *, BtorAIG *src, BtorAIG *dst);
+void btor_delete_aig_map (Btor *, BtorAIGMap *);
 
 /*------------------------------------------------------------------------*/
 
