@@ -843,6 +843,16 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
         BTOR_PUSH_STACK (mm, param_stack, real_cur);
         continue;
       }
+      /* push assigned argument of parameter on argument stack */
+      else if (BTOR_IS_PARAM_NODE (real_cur))
+      {
+        next = btor_param_cur_assignment (real_cur);
+        assert (next);
+        if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+        BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, next));
+        BTOR_PUSH_STACK (mm, param_stack, real_cur);
+        continue;
+      }
       /* evaluate ite nodes and continue with if or else branch */
       else if (BTOR_IS_BV_COND_NODE (real_cur))
       {
@@ -857,16 +867,6 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
         BTOR_PUSH_STACK (mm, stack, next);
         BTOR_PUSH_STACK (mm, stack, real_cur);
         btor_freestr (mm, (char *) eval_res);
-        continue;
-      }
-      /* push assigned argument of parameter on argument stack */
-      else if (BTOR_IS_PARAM_NODE (real_cur))
-      {
-        next = btor_param_cur_assignment (real_cur);
-        assert (next);
-        if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
-        BTOR_PUSH_STACK (mm, arg_stack, btor_copy_exp (btor, next));
-        BTOR_PUSH_STACK (mm, param_stack, real_cur);
         continue;
       }
       /* assign params of lambda expression */
