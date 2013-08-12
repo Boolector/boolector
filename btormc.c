@@ -190,7 +190,7 @@ release_assignment (BtorMC *mc)
   btor_msg_mc (mc,
                1,
                "releasing assignment of size %d",
-               BTOR_COUNT_MAP_NODE (mc->assignment));
+               BTOR_COUNT_MAP (mc->assignment));
   mc->assignment = 0;
 }
 
