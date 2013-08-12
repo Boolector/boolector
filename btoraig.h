@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -28,7 +29,8 @@ struct BtorAIG
   struct BtorAIG *children[2];
   struct BtorAIG *next;
   int cnf_id;
-  unsigned mark;
+  unsigned mark : 2;
+  unsigned clone_mark : 2;
   unsigned local;
 };
 
