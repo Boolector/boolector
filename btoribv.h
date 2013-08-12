@@ -347,6 +347,7 @@ class BtorIBV : public BitVector
   ~BtorIBV ();
 
   void setVerbosity (int verbosity);
+  void setRewriteLevel (int rwl);
   void setForce (bool f = true) { force = f; }
   void enableTraceGeneration ();
 
