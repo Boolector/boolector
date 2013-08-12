@@ -73,4 +73,20 @@ void btor_delete_aig_map (Btor *, BtorAIGMap *);
 
 /*------------------------------------------------------------------------*/
 
+/*------------------------------------------------------------------------*/
+/* Simple map for AIGVec node.  No special handling.
+ */
+typedef struct BtorPtrHashTable BtorAIGVecMap;
+
+/*------------------------------------------------------------------------*/
+
+BtorAIGMap *btor_new_aigvec_map (Btor *);
+BtorAIG *btor_mapped_aigvec (BtorAIGVecMap *, BtorAIGVec *);
+void btor_map_aigvec (Btor *,
+                      BtorAIGVecMap *,
+                      BtorAIGVec *src,
+                      BtorAIGVec *dst);
+void btor_delete_aigvec_map (Btor *, BtorAIGVecMap *);
+
+/*------------------------------------------------------------------------*/
 #endif
