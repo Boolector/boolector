@@ -1182,7 +1182,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
       es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
     }
 
-    /* initialize stacks for non-bv parameterized expressions */
+    /* initialize parameterized stacks to be non-empty */
     if (btormbt->parambv->n == 0)
     {
       assert (btormbt->parambo->n);
@@ -1246,7 +1246,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     free (params);
   }
 
-  /* generate apply expression with arguments */
+  /* generate apply expression with arguments within scope of apply */
   args = malloc (sizeof (BtorNode *) * *nparams);
   for (i = 0; i < *nparams; i++)
   {
