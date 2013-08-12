@@ -88,117 +88,59 @@ btor_param_cur_assignment (BtorNode *param)
   return BTOR_TOP_STACK (((BtorParamNode *) param)->assigned_exp);
 }
 
-#if 1
 void
-btor_assign_params (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
+btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *args)
 {
   assert (btor);
-  assert (argc > 0);
-  assert (args);
   assert (fun);
+  assert (args);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (args));
+  assert (BTOR_IS_LAMBDA_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (args));
 
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (fun));
+  BTORLOG ("%s: %s (%d params, %d args)",
+           __FUNCTION__,
+           node2string (fun),
+           ((BtorLambdaNode *) fun)->num_params,
+           ((BtorArgsNode *) args)->num_args);
 
-  int i;
   BtorNode *cur_lambda, *cur_arg;
-  BtorParamNode *cur_param;
+  BtorIterator it;
+  BtorArgsIterator ait;
 
-  cur_lambda = fun;
-  for (i = 0; i < argc; i++)
+  init_args_iterator (&ait, args);
+  init_lambda_iterator (&it, fun);
+
+  while (has_next_args_iterator (&ait))
   {
-    assert (BTOR_IS_REGULAR_NODE (cur_lambda));
-    assert (BTOR_IS_LAMBDA_NODE (cur_lambda));
-    assert (BTOR_IS_PARAM_NODE (cur_lambda->e[0]));
-
-    cur_arg   = args[i];
-    cur_param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (cur_lambda->e[0]);
-
-    assert (cur_arg);
-    assert (BTOR_REAL_ADDR_NODE (cur_arg)->len == cur_param->len);
-    BTORLOG (
-        "  assign: %s (%s)", node2string (cur_lambda), node2string (cur_arg));
-    BTOR_PUSH_STACK (btor->mm, cur_param->assigned_exp, cur_arg);
-    cur_lambda = cur_lambda->e[1];
+    assert (has_next_lambda_iterator (&it));
+    cur_arg    = next_args_iterator (&ait);
+    cur_lambda = next_lambda_iterator (&it);
+    btor_assign_param (btor, cur_lambda, cur_arg);
   }
 }
 
 void
-btor_assign_args (Btor *btor, BtorNode *fun, BtorNode *arg)
-{
-  assert (btor);
-  assert (fun);
-  assert (arg);
-  assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_REGULAR_NODE (arg));
-  assert (BTOR_IS_LAMBDA_NODE (fun));
-  assert (BTOR_IS_ARGS_NODE (arg));
-
-  btor_assign_params (btor, arg->arity, arg->e, fun);
-}
-
-void
-btor_assign_param (Btor *btor, BtorNode *fun, BtorNode *arg)
-{
-  assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (arg)));
-  btor_assign_params (btor, 1, &arg, fun);
-}
-#else
-void
 btor_assign_param (Btor *btor, BtorNode *lambda, BtorNode *arg)
 {
+  assert (btor);
   assert (lambda);
   assert (arg);
   assert (BTOR_IS_REGULAR_NODE (lambda));
   assert (BTOR_IS_LAMBDA_NODE (lambda));
-  assert (BTOR_IS_PARAM_NODE (lambda->e[0]));
 
-  BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda));
-  BTORLOG ("  assigned exp: %s", node2string (arg));
-
-  int upper, lower;
-  BtorNode *cur_lambda, *cur_arg;
   BtorParamNode *param;
 
-  param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (lambda->e[0]);
-
-  /* apply multiple arguments */
-  if (param->len < BTOR_REAL_ADDR_NODE (arg)->len)
-  {
-    assert (BTOR_REAL_ADDR_NODE (arg)->kind == BTOR_CONCAT_NODE);
-
-    cur_lambda = lambda;
-    upper      = arg->len - 1;
-    do
-    {
-      assert (BTOR_IS_NESTED_LAMBDA_NODE (cur_lambda));
-      param = (BtorParamNode *) BTOR_REAL_ADDR_NODE (cur_lambda->e[0]);
-      lower = upper - param->len + 1;
-      assert (lower >= 0);
-      assert (upper >= 0);
-      cur_arg = btor_rewrite_slice_exp (btor, arg, upper, lower);
-      assert (cur_arg->refs > 1);
-      btor_release_exp (btor, cur_arg); /* still referenced afterwards */
-
-      assert (param->len == BTOR_REAL_ADDR_NODE (cur_arg)->len);
-
-      BTORLOG (
-          "  assign: %s (%s)", node2string (cur_lambda), node2string (cur_arg));
-      BTOR_PUSH_STACK (btor->mm, param->assigned_exp, cur_arg);
-      cur_lambda = cur_lambda->e[1];
-      upper      = lower - 1;
-    } while (BTOR_IS_LAMBDA_NODE (cur_lambda));
-    assert (lower == 0);
-  }
-  else
-  {
-    BTOR_PUSH_STACK (btor->mm, param->assigned_exp, arg);
-  }
+  param = BTOR_LAMBDA_GET_PARAM (lambda);
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_REAL_ADDR_NODE (arg)->len == param->len);
+  BTORLOG ("  assign: %s (%s)", node2string (lambda), node2string (arg));
+  BTOR_PUSH_STACK (btor->mm, param->assigned_exp, arg);
 }
-#endif
 
-// TODO: rename to btor_unassign_params
 void
-btor_unassign_param (Btor *btor, BtorNode *lambda)
+btor_unassign_params (Btor *btor, BtorNode *lambda)
 {
   assert (lambda);
   assert (BTOR_IS_REGULAR_NODE (lambda));
@@ -364,7 +306,7 @@ btor_beta_reduce (
       if (BTOR_IS_LAMBDA_NODE (real_cur)
           /* only open new scope at first lambda of nested lambdas */
           && (!BTOR_IS_NESTED_LAMBDA_NODE (real_cur)
-              || ((BtorLambdaNode *) real_cur)->nested == real_cur))
+              || BTOR_IS_FIRST_NESTED_LAMBDA (real_cur)))
         BETA_REDUCE_OPEN_NEW_SCOPE (real_cur);
 
       /* initialize mark in current scope */
@@ -531,8 +473,6 @@ btor_beta_reduce (
       {
         assert (BTOR_IS_UNARY_NODE (real_cur) || BTOR_IS_BINARY_NODE (real_cur)
                 || BTOR_IS_TERNARY_NODE (real_cur)
-                // TODO: make apply binary node
-                || BTOR_IS_APPLY_NODE (real_cur)
                 || BTOR_IS_ARGS_NODE (real_cur));
         assert (mode != BETA_RED_CUTOFF
                 || !BTOR_IS_ARRAY_OR_BV_COND_NODE (real_cur));
@@ -679,7 +619,7 @@ btor_beta_reduce (
                 real_cur->beta_mark = 0;
 
                 assert (btor_param_cur_assignment (real_cur->e[0]));
-                btor_unassign_param (btor, real_cur);
+                btor_unassign_params (btor, real_cur);
 
 #ifndef NDEBUG
                 (void) BTOR_POP_STACK (unassign_stack);
@@ -770,7 +710,7 @@ btor_beta_reduce (
           (void) BTOR_POP_STACK (unassign_stack);
 #endif
         if (btor_param_cur_assignment (real_cur->e[0]))
-          btor_unassign_param (btor, real_cur);
+          btor_unassign_params (btor, real_cur);
       }
 
     BETA_REDUCE_PUSH_ARG_STACK_WITHOUT_CLOSE_SCOPE:
@@ -879,11 +819,7 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
   real_cur = BTOR_REAL_ADDR_NODE (exp);
 
   /* skip all nested lambdas */
-  while (BTOR_IS_LAMBDA_NODE (real_cur))
-  {
-    exp      = real_cur->e[1];
-    real_cur = BTOR_REAL_ADDR_NODE (real_cur->e[1]);
-  }
+  if (BTOR_IS_LAMBDA_NODE (real_cur)) exp = ((BtorLambdaNode *) real_cur)->body;
 
   BTOR_PUSH_STACK (mm, stack, exp);
 
@@ -1131,7 +1067,6 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   BTOR_INIT_STACK (unassign);
 
   cur = lambda;
-  // TODO: use btor_assign_params
   for (i = 0; i < argc; i++)
   {
     assert (BTOR_IS_REGULAR_NODE (cur));
@@ -1146,7 +1081,7 @@ btor_apply_and_reduce (Btor *btor, int argc, BtorNode **args, BtorNode *lambda)
   while (!BTOR_EMPTY_STACK (unassign))
   {
     cur = BTOR_POP_STACK (unassign);
-    btor_unassign_param (btor, cur);
+    btor_unassign_params (btor, cur);
   }
 
   BTOR_RELEASE_STACK (mm, unassign);

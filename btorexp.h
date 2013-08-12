@@ -142,6 +142,7 @@ typedef enum BtorNodeKind BtorNodeKind;
 
 typedef struct BtorNodePair BtorNodePair;
 
+// TODO: rename struct as it is base struct for all nodes
 #define BTOR_BV_VAR_NODE_STRUCT                                         \
   struct                                                                \
   {                                                                     \
@@ -166,6 +167,8 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int lambda_below : 1;  /* lambda as sub expression ? */    \
     unsigned int no_synth : 1;      /* do not synthesize exp */         \
     unsigned int chain : 1;                                             \
+    unsigned int is_write : 1;                                          \
+    unsigned int is_read : 1;                                           \
     char *bits;  /* three-valued bits */                                \
     int id;      /* unique expression id */                             \
     int len;     /* number of bits */                                   \
@@ -185,26 +188,25 @@ typedef struct BtorNodePair BtorNodePair;
     BtorNode *last_parent;  /* tail of parent list */                   \
   }
 
-#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                  \
-  struct                                                                \
-  {                                                                     \
-    union                                                               \
-    {                                                                   \
-      struct                                                            \
-      {                                                                 \
-        char *symbol; /* symbol for output */                           \
-        int upper;    /* upper index for slices */                      \
-        union                                                           \
-        {                                                               \
-          int lower;            /* lower index for slices */            \
-          BtorNodePair *vreads; /* virtual reads for array equalites */ \
-        };                                                              \
-      };                                                                \
-    };                                                                  \
-    BtorNode **e;           /* expression children */                   \
-    BtorNode **prev_parent; /* prev in parent list of child i */        \
-    BtorNode **next_parent; /* next in parent list of child i */        \
+#define BTOR_BV_ADDITIONAL_NODE_STRUCT                                \
+  struct                                                              \
+  {                                                                   \
+    struct                                                            \
+    {                                                                 \
+      char *symbol; /* symbol for output */                           \
+      int upper;    /* upper index for slices */                      \
+      union                                                           \
+      {                                                               \
+        int lower;            /* lower index for slices */            \
+        BtorNodePair *vreads; /* virtual reads for array equalites */ \
+      };                                                              \
+    };                                                                \
+    BtorNode **e;           /* expression children */                 \
+    BtorNode **prev_parent; /* prev in parent list of child i */      \
+    BtorNode **next_parent; /* next in parent list of child i */      \
   }
+// TODO: optimization of **e, **prev_parent, **next_parent memory allocation
+// TODO: make **e, **prev_parent, **next_parent static for now ([3])
 
 #define BTOR_ARRAY_VAR_NODE_STRUCT                                           \
   struct                                                                     \
@@ -241,20 +243,10 @@ struct BtorBVVarNode
 
 typedef struct BtorBVVarNode BtorBVVarNode;
 
-struct BtorParamNode
-{
-  BTOR_BV_VAR_NODE_STRUCT;
-  char *symbol;
-  BtorNode *lambda_exp;          /* 1:1 relation param:lambda_exp */
-  BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
-  // BtorNode *assigned_exp;   /* is assigned before beta-reduction */
-};
-
-typedef struct BtorParamNode BtorParamNode;
-
 struct BtorBVConstNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
+  // TODO: remove
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
 };
 
@@ -292,19 +284,32 @@ struct BtorLambdaNode
   BTOR_ARRAY_VAR_NODE_STRUCT;
   BTOR_ARRAY_ADDITIONAL_NODE_STRUCT;
   BtorPtrHashTable *synth_apps;
-  BtorNode *nested; /* points at the first lambda exp in case of nested
-                       lambdas */
+  struct BtorLambdaNode *nested; /* points to first lambda in the nested lambda
+                                    chain */
+  BtorNode *body;                /* function body */
+  int num_params;                /* number of params of nested lambdas below */
 };
 
 typedef struct BtorLambdaNode BtorLambdaNode;
 
-struct BtorApplyNode
+struct BtorParamNode
+{
+  BTOR_BV_VAR_NODE_STRUCT;
+  char *symbol;
+  BtorLambdaNode *lambda_exp;    /* 1:1 relation param:lambda_exp */
+  BtorNodePtrStack assigned_exp; /* scoped assigned expression stack */
+};
+
+typedef struct BtorParamNode BtorParamNode;
+
+struct BtorArgsNode
 {
   BTOR_BV_VAR_NODE_STRUCT;
   BTOR_BV_ADDITIONAL_NODE_STRUCT;
+  int num_args;
 };
 
-typedef struct BtorApplyNode BtorApplyNode;
+typedef struct BtorArgsNode BtorArgsNode;
 
 struct BtorNodeUniqueTable
 {
@@ -624,9 +629,12 @@ struct Btor
   (((BtorParamNode *) BTOR_REAL_ADDR_NODE (param))->lambda_exp = lambda)
 
 #define BTOR_IS_FIRST_NESTED_LAMBDA(exp) \
-  (BTOR_IS_LAMBDA_NODE (exp) && (((BtorLambdaNode *) exp)->nested == exp))
+  (BTOR_IS_LAMBDA_NODE (exp)             \
+   && (((BtorLambdaNode *) exp)->nested == (BtorLambdaNode *) exp))
 
 #define BTOR_LAMBDA_GET_NESTED(exp) (((BtorLambdaNode *) exp)->nested)
+
+#define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
 /*------------------------------------------------------------------------*/
 

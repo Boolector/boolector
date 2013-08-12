@@ -221,6 +221,7 @@ class BtorIBV : public BitVector
   BtorMC *btormc;
 
   bool gentrace;
+  bool force;
   int verbosity;
 
   BtorIBVNodePtrStack idtab;
@@ -321,6 +322,8 @@ class BtorIBV : public BitVector
   void msg (int level, const char *fmt, ...);
   void msg (int level, const BtorIBVAssignment &, const char *, ...);
 
+  void warn (const char *fmt, ...);
+
   void translate_atom_divide (BtorIBVAtom *, bool, BtorIBVNodePtrNextStack *);
   void translate_atom_conquer (BtorIBVAtom *, bool);
   BtorNode *translate_assignment_conquer (BtorIBVAtom *,
@@ -344,6 +347,7 @@ class BtorIBV : public BitVector
   ~BtorIBV ();
 
   void setVerbosity (int verbosity);
+  void setForce (bool f = true) { force = f; }
   void enableTraceGeneration ();
 
   //------------------------------------------------------------------------

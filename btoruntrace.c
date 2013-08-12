@@ -182,7 +182,7 @@ void
 parse (FILE *file)
 {
   int i, ch;
-  int exp_ret; /* 0..none, 1..void*, 2..int, 3..const char*, -1..skip */
+  int exp_ret;
   int arg1_int, arg2_int, arg3_int, arg4_int, ret_int;
   char *arg1_str, *arg2_str, *arg3_str, *ret_str, *exp_str;
   char **res1_pptr, **res2_pptr;
@@ -754,6 +754,28 @@ NEXT:
     if (!skip)
     {
       ret_int = boolector_is_array (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "is_fun"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_is_fun (btor, hmap_get (hmap, arg1_str));
+      exp_ret = RET_INT;
+    }
+    else
+      exp_ret = RET_SKIP;
+  }
+  else if (!strcmp (tok, "get_fun_arity"))
+  {
+    PARSE_ARGS1 (tok, str);
+    if (!skip)
+    {
+      ret_int = boolector_get_fun_arity (btor, hmap_get (hmap, arg1_str));
       exp_ret = RET_INT;
     }
     else

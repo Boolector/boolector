@@ -1629,7 +1629,6 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   return res;
 }
 
-// TODO: allow partial application?
 BtorNode *
 boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
@@ -1638,26 +1637,21 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
   BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
                         "no arguments given but argc defined > 0");
-
-  // TODO: get arity of function
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_LAMBDA_NODE (fun) || argc != boolector_get_fun_arity (btor, fun),
+      "number of arguments does not match arity of 'fun'");
   int i, len;
   char *strtrapi;
-  BtorNode *res, *cur;
+  BtorNode *res;
 
   len = 7 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "apply %d", argc);
 
-  cur = BTOR_REAL_ADDR_NODE (fun);
   for (i = 0; i < argc; i++)
-  {
-    BTOR_ABORT_BOOLECTOR (
-        !BTOR_IS_LAMBDA_NODE (cur),
-        "number of arguments muste be <= number of parameters in 'fun'");
     sprintf (strtrapi + strlen (strtrapi), " %p", args[i]);
-    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
-  }
   sprintf (strtrapi + strlen (strtrapi), " %p", fun);
+
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
   btor->external_refs++;
@@ -1734,23 +1728,33 @@ boolector_is_array (Btor *btor, BtorNode *exp)
 int
 boolector_is_fun (Btor *btor, BtorNode *exp)
 {
-  // TODO TRAPI
+  int res;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("is_fun %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   exp = btor_simplify_exp (btor, exp);
-  return btor_is_lambda_exp (btor, exp);
+  res = btor_is_lambda_exp (btor, exp);
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 int
 boolector_get_fun_arity (Btor *btor, BtorNode *exp)
 {
-  // TODO TRAPI
+  int res;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_TRAPI ("get_fun_arity %p", exp);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
+  BTOR_ABORT_BOOLECTOR (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)),
+                        "given expression is not a function node");
   exp = btor_simplify_exp (btor, exp);
-  return btor_get_lambda_arity (btor, exp);
+  res = btor_get_lambda_arity (btor, exp);
+  BTOR_TRAPI_RETURN (res);
+  return res;
 }
 
 int
