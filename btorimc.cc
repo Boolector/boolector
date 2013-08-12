@@ -695,6 +695,10 @@ static const char* USAGE =
     "  -d    dump BTOR model\n"
     "  -o    path of dump file (default is stdout)\n"
     "\n"
+    "  -rwl1 set rewrite level to 1\n"
+    "  -rwl2 set rewrite level to 2\n"
+    "  -rwl3 set rewrite level to 3 (default)\n"
+    "\n"
     "and\n"
     "\n"
     "<k>     maximal bound for bounded model checking (default 10)\n"
@@ -705,7 +709,7 @@ main (int argc, char** argv)
 {
   bool witness = true, dump = false, force = false;
   const char* outputname = 0;
-  int k                  = -1, r;
+  int k = -1, r, rwl = 3;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
@@ -719,6 +723,12 @@ main (int argc, char** argv)
       dump = true;
     else if (!strcmp (argv[i], "-f"))
       force = true;
+    else if (!strcmp (argv[i], "-rwl1"))
+      rwl = 1;
+    else if (!strcmp (argv[i], "-rwl2"))
+      rwl = 2;
+    else if (!strcmp (argv[i], "-rwl3"))
+      rwl = 3;
     else if (!strcmp (argv[i], "-o"))
     {
       if (++i == argc) err ("argument to '-o' missing");
@@ -747,6 +757,7 @@ main (int argc, char** argv)
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
   ibvm->setVerbosity (10);
+  ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
   parse ();
