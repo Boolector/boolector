@@ -1142,6 +1142,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
 {
   int i, n, np, ip, w, nops, rand;
   ExpStack parambo, parambv, paramarr;
+  ExpStack *es, *tmpparambo, *tmpparambv, *tmpparamarr;
   BtorNode *tmp, *fun, **params, **args;
   RNG rng;
 
@@ -1151,10 +1152,6 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   // FIXME externalise p
   if (btormbt->fun.n && pick (&rng, 0, 1)) /* use existing function */
   {
-    btormbt->parambo  = NULL;
-    btormbt->parambv  = NULL;
-    btormbt->paramarr = NULL;
-
     rand     = pick (&rng, 0, btormbt->fun.n - 1);
     fun      = btormbt->fun.exps[rand].exp;
     *nparams = boolector_get_fun_arity (btormbt->btor, fun);
@@ -1163,6 +1160,10 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
   }
   else /* generate new function */
   {
+    tmpparambo  = btormbt->parambo;
+    tmpparambv  = btormbt->parambv;
+    tmpparamarr = btormbt->paramarr;
+
     memset (&parambo, 0, sizeof (parambo));
     memset (&parambv, 0, sizeof (parambv));
     memset (&paramarr, 0, sizeof (paramarr));
@@ -1181,7 +1182,7 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
       es_push (*width == 1 ? btormbt->parambo : btormbt->parambv, tmp);
     }
 
-    /* initialize stacks for non-bv parameterized expressions */
+    /* initialize parameterized stacks to be non-empty */
     if (btormbt->parambv->n == 0)
     {
       assert (btormbt->parambo->n);
@@ -1202,6 +1203,9 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     while (n++ < nops)
     {
     BFUN_PICK_FUN_TYPE:
+      assert (parambo.n);
+      assert (parambv.n);
+      assert (paramarr.n);
       rand = pick (&rng, 0, NORM_VAL - 1);
       if (rand < btormbt->p_fun)
         param_fun (btormbt, &rng, NOT, COND);
@@ -1221,19 +1225,32 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
       }
     }
 
-    rand = pick (&rng, 0, parambv.n - 1);
-    fun =
-        boolector_fun (btormbt->btor, *nparams, params, parambv.exps[rand].exp);
+    /* pick exp from parambo/parambo with p = 0.5 if non-empty */
+    es = parambo.n ? (parambv.n ? (pick (&rng, 0, 1) ? &parambo : &parambv)
+                                : &parambo)
+                   : &parambv;
+    assert (es->n);
+    rand = pick (&rng, 0, es->n - 1);
+    fun  = boolector_fun (btormbt->btor, *nparams, params, es->exps[rand].exp);
     es_push (&btormbt->fun, fun);
 
+    /* reset scope for arguments to apply node */
+    btormbt->parambo  = tmpparambo;
+    btormbt->parambv  = tmpparambv;
+    btormbt->paramarr = tmpparamarr;
+
+    /* cleanup */
+    es_reset (btormbt, &parambo);
+    es_reset (btormbt, &parambv);
+    es_reset (btormbt, &paramarr);
     free (params);
   }
 
-  /* generate apply expression with arguments */
+  /* generate apply expression with arguments within scope of apply */
   args = malloc (sizeof (BtorNode *) * *nparams);
   for (i = 0; i < *nparams; i++)
   {
-    tmp     = selexp (btormbt, &rng, T_BV, -1, &ip);
+    tmp     = selexp (btormbt, &rng, T_BV, 0, &ip);
     args[i] = modifybv (btormbt,
                         &rng,
                         tmp,
@@ -1241,15 +1258,10 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                         *width,
                         ip);
   }
-  es_push (&btormbt->bv, boolector_apply (btormbt->btor, *nparams, args, fun));
+  es_push (boolector_get_width (btormbt->btor, fun) == 1 ? &btormbt->bo
+                                                         : &btormbt->bv,
+           boolector_apply (btormbt->btor, *nparams, args, fun));
 
-  /* cleanup */
-  es_release (btormbt, btormbt->parambo);
-  btormbt->parambo = NULL;
-  es_release (btormbt, btormbt->parambv);
-  btormbt->parambv = NULL;
-  es_release (btormbt, btormbt->paramarr);
-  btormbt->paramarr = NULL;
   free (args);
 }
 

@@ -1,8 +1,10 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
@@ -13,7 +15,7 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_COUNT_MAP_NODE(MAP) (assert (MAP), (MAP)->count)
+#define BTOR_COUNT_MAP(MAP) (assert (MAP), (MAP)->count)
 
 /*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non
