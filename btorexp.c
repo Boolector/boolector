@@ -2658,11 +2658,13 @@ constraint_is_inconsistent (Btor *btor, BtorNode *exp)
   return rep == BTOR_INVERT_NODE (rep);
 }
 
+#if 0
 /* connects child to apply node.
  * apply node is appended to the end of the regular parent list.
  */
 static void
-connect_apply_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
+connect_apply_child_exp (Btor * btor, BtorNode * parent, BtorNode * child,
+			 int pos)
 {
   assert (btor);
   assert (parent);
@@ -2679,29 +2681,30 @@ connect_apply_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   BtorNode *last_parent, *tagged_parent;
 
   parent->e[pos] = child;
-  tagged_parent  = BTOR_TAG_NODE (parent, pos);
+  tagged_parent = BTOR_TAG_NODE (parent, pos);
   /* no parent so far? */
   if (!child->first_parent)
-  {
-    assert (!child->last_parent);
-    child->first_parent = tagged_parent;
-    child->last_parent  = tagged_parent;
-    assert (!parent->prev_parent[pos]);
-    assert (!parent->next_parent[pos]);
-  }
+    {
+      assert (!child->last_parent);
+      child->first_parent = tagged_parent;
+      child->last_parent = tagged_parent;
+      assert (!parent->prev_parent[pos]);
+      assert (!parent->next_parent[pos]);
+    }
   /* append at the end of the list */
   else
-  {
-    assert (!parent->prev_parent[pos]);
-    assert (!parent->next_parent[pos]);
-    last_parent = child->last_parent;
-    assert (last_parent);
-    parent->prev_parent[pos] = last_parent;
-    tag                      = BTOR_GET_TAG_NODE (last_parent);
-    BTOR_REAL_ADDR_NODE (last_parent)->next_parent[tag] = tagged_parent;
-    child->last_parent                                  = tagged_parent;
-  }
+    {
+      assert (!parent->prev_parent[pos]);
+      assert (!parent->next_parent[pos]);
+      last_parent = child->last_parent;
+      assert (last_parent);
+      parent->prev_parent[pos] = last_parent;
+      tag = BTOR_GET_TAG_NODE (last_parent);
+      BTOR_REAL_ADDR_NODE (last_parent)->next_parent[tag] = tagged_parent;
+      child->last_parent = tagged_parent;
+    }
 }
+#endif
 
 /* Connects child to its parent and updates list of parent pointers.
  * Expressions are inserted at the beginning of the regular parent list
@@ -2709,9 +2712,6 @@ connect_apply_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 static void
 connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 {
-  BtorNode *real_child, *first_parent, *tagged_parent;
-  int tag;
-  (void) btor;
   assert (btor);
   assert (parent);
   assert (child);
@@ -2719,6 +2719,10 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   assert (BTOR_IS_REGULAR_NODE (parent));
   assert (BTOR_IS_ARGS_NODE (parent) || pos <= 2);
   assert (btor_simplify_exp (btor, child) == child);
+
+  (void) btor;
+  int tag, insert_beginning = 1;
+  BtorNode *real_child, *first_parent, *last_parent, *tagged_parent;
 
   /* set parent parameterized if child is parameterized */
   if (!BTOR_IS_LAMBDA_NODE (parent)
@@ -2730,32 +2734,45 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   BTOR_REAL_ADDR_NODE (child)->parents++;
   inc_exp_ref_counter (btor, child);
 
-  if (BTOR_IS_APPLY_NODE (parent))
-    connect_apply_child_exp (btor, parent, child, pos);
+  if (BTOR_IS_APPLY_NODE (parent)) insert_beginning = 0;
+
+  real_child     = BTOR_REAL_ADDR_NODE (child);
+  parent->e[pos] = child;
+  tagged_parent  = BTOR_TAG_NODE (parent, pos);
+
+  assert (!parent->prev_parent[pos]);
+  assert (!parent->next_parent[pos]);
+
+  /* no parent so far? */
+  if (!real_child->first_parent)
+  {
+    assert (!real_child->last_parent);
+    real_child->first_parent = tagged_parent;
+    real_child->last_parent  = tagged_parent;
+  }
+  /* add parent at the beginning of the list */
+  else if (insert_beginning)
+  {
+    first_parent = real_child->first_parent;
+    assert (first_parent);
+    parent->next_parent[pos] = first_parent;
+    tag                      = BTOR_GET_TAG_NODE (first_parent);
+    printf ("tag: %d\n", tag);
+    printf ("child: %s\n", node2string (real_child));
+    printf ("  parents: %d\n", real_child->parents);
+    printf ("  parent kind: %d\n", parent->kind);
+    BTOR_REAL_ADDR_NODE (first_parent)->prev_parent[tag] = tagged_parent;
+    real_child->first_parent                             = tagged_parent;
+  }
+  /* add parent at the end of the list */
   else
   {
-    real_child     = BTOR_REAL_ADDR_NODE (child);
-    parent->e[pos] = child;
-    tagged_parent  = BTOR_TAG_NODE (parent, pos);
-    /* no parent so far? */
-    if (!real_child->first_parent)
-    {
-      assert (!real_child->last_parent);
-      real_child->first_parent = tagged_parent;
-      real_child->last_parent  = tagged_parent;
-      assert (!parent->prev_parent[pos]);
-      assert (!parent->next_parent[pos]);
-    }
-    /* add parent at the beginning of the list */
-    else
-    {
-      first_parent = real_child->first_parent;
-      assert (first_parent);
-      parent->next_parent[pos] = first_parent;
-      tag                      = BTOR_GET_TAG_NODE (first_parent);
-      BTOR_REAL_ADDR_NODE (first_parent)->prev_parent[tag] = tagged_parent;
-      real_child->first_parent                             = tagged_parent;
-    }
+    last_parent = child->last_parent;
+    assert (last_parent);
+    parent->prev_parent[pos] = last_parent;
+    tag                      = BTOR_GET_TAG_NODE (last_parent);
+    BTOR_REAL_ADDR_NODE (last_parent)->next_parent[tag] = tagged_parent;
+    child->last_parent                                  = tagged_parent;
   }
 }
 
@@ -3607,21 +3624,19 @@ btor_concat_exp_node (Btor *btor, BtorNode *e0, BtorNode *e1)
 BtorNode *
 btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
 {
-  BtorApplyNode *result;
+  BtorNode *result;
   e_array = btor_simplify_exp (btor, e_array);
   e_index = btor_simplify_exp (btor, e_index);
   assert (btor_precond_read_exp_dbg (btor, e_array, e_index));
 
-  result = (BtorApplyNode *) btor_apply_exps (btor, 1, &e_index, e_array);
+  result = btor_apply_exps (btor, 1, &e_index, e_array);
   if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
   {
-    result->is_read = 1;
-
     if (!BTOR_REAL_ADDR_NODE (result)->bits)
       result->bits = btor_x_const_3vl (btor->mm, e_array->len);
   }
 
-  return (BtorNode *) result;
+  return result;
 }
 
 #if 0
@@ -3815,7 +3830,6 @@ btor_write_exp_node (Btor *btor,
   e_else = btor_read_exp (btor, e_array, param);
   bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
   lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
-  lambda->is_write = 1;
 
   btor_release_exp (btor, e_if);
   btor_release_exp (btor, e_else);
@@ -5688,8 +5702,10 @@ btor_print_stats_btor (Btor *btor)
       btor, 1, "beta reductions: %lld", btor->stats.beta_reduce_calls);
   btor_msg_exp (
       btor, 1, "expression evaluations: %lld", btor->stats.eval_exp_calls);
-  btor_msg_exp (
-      btor, 1, "synthesized lambda reads: %lld", btor->stats.lambda_synth_apps);
+  btor_msg_exp (btor,
+                1,
+                "synthesized lambda applies: %lld",
+                btor->stats.lambda_synth_apps);
   btor_msg_exp (
       btor, 1, "lambda chains merged: %lld", btor->stats.lambda_chains_merged);
   btor_msg_exp (btor, 1, "lambdas merged: %lld", btor->stats.lambdas_merged);
@@ -6815,6 +6831,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   return changed_assignments;
 }
 
+// TODO: new special optimized version same as partial beta reduction
 const char *
 btor_eval_exp (Btor *btor, BtorNode *exp)
 {
