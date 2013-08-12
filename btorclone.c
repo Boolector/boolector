@@ -1,5 +1,5 @@
 #include <btorexp.h>
-#include <btorhash.h>
+#include <btormap.h>
 #include <btorstack.h>
 
 #include <assert.h>
@@ -20,16 +20,15 @@ clone_exp (Btor *btor,
            Btor *clone,
            BtorNode *exp,
            BtorNodePtrPtrStack *parents,
-           BtorPtrHashTable *exp_map,
-           BtorPtrHashTable *aigmap,
-           BtorPtrHashTable *avmap)
+           BtorNodeMap *exp_map,
+           BtorNodeMap *aigmap,
+           BtorNodeMap *avmap)
 {
   assert (clone);
   assert (exp);
 
   int i, len;
-  BtorNode *res, *real_exp;
-  BtorPtrHashBucket *lookup, *lookup2;
+  BtorNode *res, *real_exp, *exp, *exp2;
   BtorMemMgr *mm, *cmm;
 
   mm  = btor->mm;
@@ -51,9 +50,9 @@ clone_exp (Btor *btor,
   if (!BTOR_IS_ARRAY_NODE (real_exp))
     // TODO clone av
 
-    lookup = btor_find_in_ptr_hash_table (exp_map, real_exp->next);
-  assert (lookup->data.asPtr);
-  res->next = lookup->data.asPtr;
+    exp = btor_mapped_node (exp_map, real_exp->next);
+  assert (exp);
+  res->next = exp;
 
   BTOR_PUSH_STACK (mm, *parents, &real_exp->parent);
 
@@ -71,12 +70,11 @@ clone_exp (Btor *btor,
     {
       for (i = 0; i < real_exp->arity; i++)
       {
-        lookup = btor_find_in_ptr_hash_table (
-            exp_map, BTOR_REAL_ADDR_NODE (real_exp->e[i]));
-        assert (lookup->data.asPtr);
+        exp = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (real_exp->e[i]));
+        assert (exp);
         res->e[i] = BTOR_IS_INVERTED_NODE (real_exp->e[i])
                         ? BTOR_INVALID_NODE (real_exp->e[i])
-                        : lookup->data.asPtr;
+                        : exp;
       }
     }
     else
@@ -84,12 +82,11 @@ clone_exp (Btor *btor,
       res->symbol = btor_strdup (cmm, real_exp->symbol);
       if (BTOR_IS_ARRAY_EQ_NODE (real_exp))
       {
-        lookup = btor_find_in_ptr_hash_table (exp_map, real_exp->vreads->exp1);
-        assert (lookup->data.asPtr);
-        lookup2 = btor_find_in_ptr_hash_table (exp_map, real_exp->vreads->exp2);
-        assert (lookup2->data.asPtr);
-        res->vreads =
-            new_exp_pair (clone, lookup->data.asPtr, lookup2->data.asPtr);
+        exp = btor_mapped_node (exp_map, real_exp->vreads->exp1);
+        assert (exp);
+        exp2 = btor_mapped_node (exp_map, real_exp->vreads->exp2);
+        assert (exp2);
+        res->vreads = new_exp_pair (clone, exp, exp2);
       }
     }
 
@@ -118,16 +115,14 @@ clone_exp (Btor *btor,
 
 static BtorPtrHashTable *
 // TODO do all constraints in one go
-clone_constraints (Btor *clone,
-                   BtorPtrHashTable *map,
-                   BtorPtrHashTable *constraints)
+clone_constraints (Btor *clone, BtorNodeMap *map, BtorPtrHashTable *constrs)
 {
   assert (clone);
   assert (map);
-  assert (constraints);
+  assert (consts);
 
   BtorPtrHashTable *res;
-  BtorPtrhashTableBucket *b, *lookup;
+  BtorPtrhashTableBucket *b;
   BtorNodePtrStack stack, unmark_stack;
   BtorNodePtrPtrStack parents;
   BtorMemMgr *mm;
@@ -143,7 +138,7 @@ clone_constraints (Btor *clone,
   BTOR_INIT_STACK (unmark_stack);
   BTOR_INIT_STACK (parents);
 
-  for (b = constraints->first; b; b = b->next)
+  for (b = constrs->first; b; b = b->next)
   {
     cur = (BtorNode *) b->key;
     BTOR_PUSH_STACK (mm, stack, cur);
@@ -199,13 +194,13 @@ Btor *
 btor_clone_btor (Btor *btor)
 {
   Btor *clone;
-  BtorMemMgr *mm;
-  BtorPtrHashTable *exp_map, *aig_map, *av_map;
+  // BtorMemMgr *mm;
+  BtorNodeMap *exp_map, *aig_map, *av_map;
 
-  mm      = btor->mm;
-  exp_map = btor_new_ptr_hash_table (mm, 0, 0);
-  aig_map = btor_new_ptr_hash_table (mm, 0, 0);
-  av_map  = btor_new_ptr_hash_table (mm, 0, 0);
+  // mm = btor->mm;
+  exp_map = btor_new_node_map (btor);
+  aig_map = btor_new_node_map (btor);
+  av_map  = btor_new_node_map (btor);
 
   clone = btor_new_btor ();
   memcpy (&clone->bv_lambda_id,
