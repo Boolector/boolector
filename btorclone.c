@@ -1,4 +1,5 @@
 #include <btorexp.h>
+#include <btorhash.h>
 #include <btormap.h>
 #include <btorstack.h>
 
@@ -28,11 +29,11 @@ clone_exp (Btor *btor,
   assert (exp);
 
   int i, len;
-  BtorNode *res, *real_exp, *exp, *exp2;
+  BtorNode *res, *real_exp, *exp1, *exp2;
   BtorMemMgr *mm, *cmm;
 
   mm  = btor->mm;
-  cmm = clone->m;
+  cmm = clone->mm;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
   assert (!BTOR_IS_PROXY_NODE (real_exp));
@@ -50,9 +51,9 @@ clone_exp (Btor *btor,
   if (!BTOR_IS_ARRAY_NODE (real_exp))
     // TODO clone av
 
-    exp = btor_mapped_node (exp_map, real_exp->next);
-  assert (exp);
-  res->next = exp;
+    exp1 = btor_mapped_node (exp_map, real_exp->next);
+  assert (exp1);
+  res->next = exp1;
 
   BTOR_PUSH_STACK (mm, *parents, &real_exp->parent);
 
@@ -60,8 +61,8 @@ clone_exp (Btor *btor,
 
   res->btor = clone;
 
-  BTOR_PUSH_STACK (mm, *parents, real_exp->first_parent);
-  BTOR_PUSH_STACK (mm, *parents, real_exp->last_parent);
+  BTOR_PUSH_STACK (mm, *parents, &real_exp->first_parent);
+  BTOR_PUSH_STACK (mm, *parents, &real_exp->last_parent);
 
   if (!BTOR_IS_BV_CONST_NODE (real_exp) && !BTOR_IS_BV_VAR_NODE (real_exp)
       && !BTOR_IS_ARRAY_VAR_NODE (real_exp) && !BTOR_IS_PARAM_NODE (real_exp))
@@ -70,10 +71,10 @@ clone_exp (Btor *btor,
     {
       for (i = 0; i < real_exp->arity; i++)
       {
-        exp = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (real_exp->e[i]));
+        exp1 = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (real_exp->e[i]));
         assert (exp);
         res->e[i] = BTOR_IS_INVERTED_NODE (real_exp->e[i])
-                        ? BTOR_INVALID_NODE (real_exp->e[i])
+                        ? BTOR_INVERT_NODE (real_exp->e[i])
                         : exp;
       }
     }
@@ -82,35 +83,37 @@ clone_exp (Btor *btor,
       res->symbol = btor_strdup (cmm, real_exp->symbol);
       if (BTOR_IS_ARRAY_EQ_NODE (real_exp))
       {
-        exp = btor_mapped_node (exp_map, real_exp->vreads->exp1);
-        assert (exp);
+        exp1 = btor_mapped_node (exp_map, real_exp->vreads->exp1);
+        assert (exp1);
         exp2 = btor_mapped_node (exp_map, real_exp->vreads->exp2);
         assert (exp2);
-        res->vreads = new_exp_pair (clone, exp, exp2);
+        res->vreads = new_exp_pair (clone, exp1, exp2);
       }
     }
 
     for (i = 0; i < real_exp->arity; i++)
     {
-      BTOR_PUSH_STACK (mm, *parents, real_exp->prev_parent[i]);
-      BTOR_PUSH_STACK (mm, *parents, real_exp->next_parent[i]);
+      BTOR_PUSH_STACK (mm, *parents, &real_exp->prev_parent[i]);
+      BTOR_PUSH_STACK (mm, *parents, &real_exp->next_parent[i]);
     }
   }
 
   if (BTOR_IS_ARRAY_NODE (real_exp))
   {
-    BTOR_PUSH_STACK (mm, *parents, real_exp->first_aeg_acond_parent);
-    BTOR_PUSH_STACK (mm, *parents, real_exp->last_aeg_acond_parent);
+    BTOR_PUSH_STACK (mm, *parents, &real_exp->first_aeq_acond_parent);
+    BTOR_PUSH_STACK (mm, *parents, &real_exp->last_aeq_acond_parent);
 
     if (!BTOR_IS_ARRAY_VAR_NODE (real_exp))
     {
       for (i = 0; i < real_exp->arity; i++)
       {
-        BTOR_PUSH_STACK (mm, *parents, real_exp->prev_aeq_acond_parent[i]);
-        BTOR_PUSH_STACK (mm, *parents, real_exp->next_aeq_acond_parent[i]);
+        BTOR_PUSH_STACK (mm, *parents, &real_exp->prev_aeq_acond_parent[i]);
+        BTOR_PUSH_STACK (mm, *parents, &real_exp->next_aeq_acond_parent[i]);
       }
     }
   }
+
+  return res;
 }
 
 static BtorPtrHashTable *
@@ -119,10 +122,11 @@ clone_constraints (Btor *clone, BtorNodeMap *map, BtorPtrHashTable *constrs)
 {
   assert (clone);
   assert (map);
-  assert (consts);
+  assert (constrs);
 
+  int i;
   BtorPtrHashTable *res;
-  BtorPtrhashTableBucket *b;
+  BtorPtrHashBucket *b;
   BtorNodePtrStack stack, unmark_stack;
   BtorNodePtrPtrStack parents;
   BtorMemMgr *mm;
@@ -142,7 +146,7 @@ clone_constraints (Btor *clone, BtorNodeMap *map, BtorPtrHashTable *constrs)
   {
     cur = (BtorNode *) b->key;
     BTOR_PUSH_STACK (mm, stack, cur);
-    while (!BTOR_EMPTY_STACK)
+    while (!BTOR_EMPTY_STACK (stack))
     {
       cur      = BTOR_POP_STACK (stack);
       real_cur = BTOR_REAL_ADDR_NODE (cur);
@@ -177,7 +181,7 @@ clone_constraints (Btor *clone, BtorNodeMap *map, BtorPtrHashTable *constrs)
     }
 
     /* reset mark flags */
-    while (!BTOR_EMPTY_STACK)
+    while (!BTOR_EMPTY_STACK (unmark_stack))
     {
       real_cur = BTOR_POP_STACK (unmark_stack);
       assert (BTOR_IS_REGULAR_NODE (real_cur));
