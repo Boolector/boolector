@@ -701,7 +701,7 @@ static const char* USAGE =
     "\n"
     "and\n"
     "\n"
-    "<k>     maximal bound for bounded model checking (default 10)\n"
+    "<k>     maximal bound for bounded model checking (default 20)\n"
     "<ibv>   IBV input file (default '<stdin>')\n";
 
 int
@@ -756,7 +756,7 @@ main (int argc, char** argv)
   }
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
-  ibvm->setVerbosity (10);
+  ibvm->setVerbosity (20);
   ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();

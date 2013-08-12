@@ -380,7 +380,7 @@ boolector_constraint (BtorMC *mc, BtorNode *constraint)
   res = BTOR_COUNT_STACK (mc->constraints);
   (void) btor_copy_exp (mc->btor, constraint);
   BTOR_PUSH_STACK (mc->btor->mm, mc->constraints, constraint);
-  btor_msg_mc (mc, 2, "adding environment constraint %d", res);
+  btor_msg_mc (mc, 2, "adding environment CONSTRAINT %d", res);
   return res;
 }
 
@@ -930,7 +930,7 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (mc->constraints); i++)
   {
     BtorNode *constraint = BTOR_PEEK_STACK (mc->constraints, i);
-    btor_add_bad_to_dump_context (bdc, constraint);
+    btor_add_constraint_to_dump_context (bdc, constraint);
   }
 
   btor_dump_btor (bdc, file);
