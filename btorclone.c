@@ -23,25 +23,27 @@ clone_aig (Btor *btor,
   assert (aig_map);
 
   int i;
-  BtorAIG *res, *tmp;
+  BtorAIG *res, *tmp, *real_aig;
   BtorMemMgr *mm, *cmm;
 
   mm  = btor->mm;
   cmm = btor->mm;
 
-  BTOR_NEWN (cmm, res, 1);
-  memcpy (aig, res, sizeof *aig);
+  real_aig = BTOR_REAL_ADDR_AIG (aig);
 
-  for (i = 0; i < 2 && aig->children[i]; i++)
+  BTOR_NEWN (cmm, res, 1);
+  memcpy (real_aig, res, sizeof *real_aig);
+
+  for (i = 0; i < 2 && real_aig->children[i]; i++)
   {
-    tmp = btor_mapped_aig (aig_map, aig->children[i]);
+    tmp = btor_mapped_aig (aig_map, real_aig->children[i]);
     assert (tmp);
     res->children[i] = tmp;
   }
 
-  BTOR_PUSH_STACK (mm, *nexts, &aig->next);
+  BTOR_PUSH_STACK (mm, *nexts, &real_aig->next);
 
-  return res;
+  return BTOR_IS_INVERTED_AIG (aig) ? BTOR_INVERT_AIG (res) : res;
 }
 
 static BtorAIGVec *
@@ -52,7 +54,7 @@ clone_av (Btor *btor,
           BtorAIGMap *aig_map)
 {
   int i;
-  BtorAIG *cur;
+  BtorAIG *cur, *real_cur;
   BtorAIGVec *res;
   BtorAIGPtrStack stack, unmark_stack;
   BtorMemMgr *mm, *cmm;
@@ -71,37 +73,38 @@ clone_av (Btor *btor,
     BTOR_PUSH_STACK (mm, stack, av->aigs[i]);
     while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_POP_STACK (stack);
+      cur      = BTOR_POP_STACK (stack);
+      real_cur = BTOR_REAL_ADDR_AIG (cur);
 
-      if (cur->clone_mark >= 2 || btor_mapped_aig (aig_map, cur)) continue;
+      if (real_cur->clone_mark >= 2 || btor_mapped_aig (aig_map, cur)) continue;
 
-      if (cur->clone_mark == 0)
+      if (real_cur->clone_mark == 0)
       {
-        cur->clone_mark = 1;
+        real_cur->clone_mark = 1;
         BTOR_PUSH_STACK (mm, stack, cur);
-        BTOR_PUSH_STACK (mm, unmark_stack, cur);
+        BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
-        BTOR_PUSH_STACK (mm, stack, cur->children[0]);
-        BTOR_PUSH_STACK (mm, stack, cur->children[1]);
+        BTOR_PUSH_STACK (mm, stack, real_cur->children[0]);
+        BTOR_PUSH_STACK (mm, stack, real_cur->children[1]);
       }
       else
       {
-        assert (cur->clone_mark == 1);
-        cur->clone_mark = 2;
+        assert (real_cur->clone_mark == 1);
+        real_cur->clone_mark = 2;
         btor_map_aig (
             btor, aig_map, cur, clone_aig (btor, clone, cur, nexts, aig_map));
       }
     }
-    res->aigs[i] = btor_mapped_aig (aig_map, res->aigs[i]);
+    res->aigs[i] = btor_mapped_aig (aig_map, av->aigs[i]);
     assert (res->aigs[i]);
   }
 
   /* reset mark flags */
   while (!BTOR_EMPTY_STACK (unmark_stack))
   {
-    cur = BTOR_POP_STACK (unmark_stack);
-    assert (cur->clone_mark == 2);
-    cur->clone_mark = 0;
+    real_cur = BTOR_POP_STACK (unmark_stack);
+    assert (real_cur->clone_mark == 2);
+    real_cur->clone_mark = 0;
   }
 
   return res;
@@ -167,11 +170,9 @@ clone_exp (Btor *btor,
     {
       for (i = 0; i < real_exp->arity; i++)
       {
-        exp1 = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (real_exp->e[i]));
+        exp1 = btor_mapped_node (exp_map, real_exp->e[i]);
         assert (exp);
-        res->e[i] = BTOR_IS_INVERTED_NODE (real_exp->e[i])
-                        ? BTOR_INVERT_NODE (real_exp->e[i])
-                        : exp;
+        res->e[i] = exp;
       }
     }
     else
@@ -209,7 +210,7 @@ clone_exp (Btor *btor,
     }
   }
 
-  return res;
+  return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
 }
 
 static void
@@ -224,7 +225,7 @@ clone_constraints (Btor *btor,
   assert (aig_map);
 
   int i;
-  BtorNode *cur, *real_cur, *cloned_exp, **parent;
+  BtorNode *cur, *real_cur, *cloned_exp, **parent, *real_parent;
   BtorNodePtrStack stack, unmark_stack;
   BtorNodePtrPtrStack parents;
   BtorAIG **next, *cloned_aig;
@@ -284,7 +285,7 @@ clone_constraints (Btor *btor,
 
           cloned_exp =
               clone_exp (btor, clone, cur, &parents, &nexts, exp_map, aig_map);
-          btor_map_node (btor, exp_map, real_cur, cloned_exp);
+          btor_map_node (btor, exp_map, cur, cloned_exp);
         }
       }
 
@@ -297,10 +298,12 @@ clone_constraints (Btor *btor,
   /* update parent pointers of expressions */
   while (!BTOR_EMPTY_STACK (parents))
   {
-    parent     = BTOR_POP_STACK (parents);
-    cloned_exp = btor_mapped_node (exp_map, *parent);
+    parent      = BTOR_POP_STACK (parents);
+    real_parent = BTOR_REAL_ADDR_NODE (*parent);
+    cloned_exp  = btor_mapped_node (exp_map, real_parent);
     assert (cloned_exp);
-    *parent = cloned_exp;
+    cloned_exp = BTOR_TAG_NODE (cloned_exp, BTOR_GET_TAG (*parent));
+    *parent    = cloned_exp;
   }
 
   /* update next pointers of aigs */
@@ -321,19 +324,34 @@ clone_constraints (Btor *btor,
   }
 }
 
+// static void
+// clone_ptr_hash_table (Btor * btor,
+//		      BtorPtrHashTable * table, BtorPtrHashTable * res_table,
+//		      BtorNodeMap * exp_map)
+//{
+//  assert (btor);
+//  assert (table);
+//  assert (exp_map);
+//
+//  BtorNode * exp;
+//  BtorPtrHashBucket *b;
+//
+//  for (b = table->first; b; b = b->next)
+//    {
+//
+//
+//    }
+//}
 //
 //
 // Btor *
 // btor_clone_btor (Btor * btor)
 //{
 //  Btor *clone;
-//  //BtorMemMgr *mm;
-//  BtorNodeMap *exp_map, *aig_map, *av_map;
+//  BtorNodeMap *exp_map, *aig_map;
 //
-//  //mm = btor->mm;
 //  exp_map = btor_new_node_map (btor);
 //  aig_map = btor_new_node_map (btor);
-//  av_map = btor_new_node_map (btor);
 //
 //  clone = btor_new_btor ();
 //  memcpy (&clone->bv_lambda_id, &btor->bv_lambda_id,
@@ -341,10 +359,5 @@ clone_constraints (Btor *btor,
 //  memcpy (&clone->stats, &btor->stats,
 //	  btor + sizeof *btor -  (char *) &btor->stats);
 //
-//  // TODO clone top-level constraints
-//
-//
-//
-//
-//
-//}
+//  clone_constraints (btor, clone, exp_map, aig_map);
+}

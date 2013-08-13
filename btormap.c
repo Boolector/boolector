@@ -60,6 +60,7 @@ btor_map_node (Btor *btor, BtorNodeMap *map, BtorNode *src, BtorNode *dst)
   assert (dst);
   if (BTOR_IS_INVERTED_NODE (src))
   {
+    assert (BTOR_IS_INVERTED_NODE (dst));
     src = BTOR_INVERT_NODE (src);
     dst = BTOR_INVERT_NODE (dst);
   }
@@ -246,6 +247,7 @@ btor_map_aig (Btor *btor, BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
 
   if (BTOR_IS_INVERTED_AIG (src))
   {
+    assert (BTOR_IS_INVERTED_AIG (dst));
     src = BTOR_INVERT_AIG (src);
     dst = BTOR_INVERT_AIG (dst);
   }
