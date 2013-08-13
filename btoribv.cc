@@ -2952,13 +2952,13 @@ BtorIBV::dump_btor (FILE *file)
 /*------------------------------------------------------------------------*/
 
 int
-BtorIBV::bmc (int maxk)
+BtorIBV::bmc (int mink, int maxk)
 {
   BTOR_ABORT_BOOLECTOR (
       state == BTOR_IBV_START,
       "model needs to be translated before it can be checked");
 
-  return boolector_bmc (btormc, maxk);
+  return boolector_bmc (btormc, mink, maxk);
 }
 
 static string

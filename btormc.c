@@ -777,17 +777,19 @@ check_last_forward_frame (BtorMC *mc)
 }
 
 int
-boolector_bmc (BtorMC *mc, int maxk)
+boolector_bmc (BtorMC *mc, int mink, int maxk)
 {
   int k;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
 
-  btor_msg_mc (mc,
-               1,
-               "calling BMC on %d properties up-to maximum bound k = %d",
-               (int) BTOR_COUNT_STACK (mc->bad),
-               maxk);
+  btor_msg_mc (
+      mc,
+      1,
+      "calling BMC on %d properties from bound %d up-to maximum bound k = %d",
+      (int) BTOR_COUNT_STACK (mc->bad),
+      mink,
+      maxk);
 
   btor_msg_mc (
       mc, 1, "trace generation %s", mc->trace_enabled ? "enabled" : "disabled");
@@ -797,7 +799,7 @@ boolector_bmc (BtorMC *mc, int maxk)
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
   {
     initialize_new_forward_frame (mc);
-    if (check_last_forward_frame (mc))
+    if (k >= mink && check_last_forward_frame (mc))
     {
       btor_msg_mc (mc, 2, "entering SAT state");
       mc->state = BTOR_SAT_MC_STATE;

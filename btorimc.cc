@@ -694,6 +694,7 @@ static const char* USAGE =
     "  -f    force translation (replace 'x' by '0')\n"
     "  -d    dump BTOR model\n"
     "  -o    path of dump file (default is stdout)\n"
+    "  -i    ignore and do not check properties at initial state\n"
     "\n"
     "  -rwl1 set rewrite level to 1\n"
     "  -rwl2 set rewrite level to 2\n"
@@ -707,7 +708,7 @@ static const char* USAGE =
 int
 main (int argc, char** argv)
 {
-  bool witness = true, dump = false, force = false;
+  bool witness = true, dump = false, force = false, ignore = false;
   const char* outputname = 0;
   int k = -1, r, rwl = 3;
   for (int i = 1; i < argc; i++)
@@ -721,6 +722,8 @@ main (int argc, char** argv)
       witness = false;
     else if (!strcmp (argv[i], "-d"))
       dump = true;
+    else if (!strcmp (argv[i], "-i"))
+      ignore = true;
     else if (!strcmp (argv[i], "-f"))
       force = true;
     else if (!strcmp (argv[i], "-rwl1"))
@@ -785,9 +788,9 @@ main (int argc, char** argv)
   {
     if (k < 0) k = 20;
     msg ("running bounded model checking up to bound %d", k);
-    r = ibvm->bmc (k);
+    r = ibvm->bmc ((int) ignore, k);
     if (r < 0)
-      msg ("property not reachable until bound %d", k);
+      msg ("property not reachable from %d until bound %d", (int) ignore, k);
     else
     {
       msg ("property reachable at bound %d", r);
