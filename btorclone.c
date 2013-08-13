@@ -110,7 +110,7 @@ clone_av (Btor *btor,
   return res;
 }
 
-static BtorNode *
+static void
 clone_exp (Btor *btor,
            Btor *clone,
            BtorNode *exp,
@@ -210,7 +210,8 @@ clone_exp (Btor *btor,
     }
   }
 
-  return BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
+  res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
+  btor_map_node (btor, exp_map, exp, res);
 }
 
 static void
@@ -282,10 +283,7 @@ clone_constraints (Btor *btor,
         {
           assert (real_cur->clone_mark == 1);
           real_cur->clone_mark = 2;
-
-          cloned_exp =
-              clone_exp (btor, clone, cur, &parents, &nexts, exp_map, aig_map);
-          btor_map_node (btor, exp_map, cur, cloned_exp);
+          clone_exp (btor, clone, cur, &parents, &nexts, exp_map, aig_map);
         }
       }
 
@@ -295,6 +293,9 @@ clone_constraints (Btor *btor,
     }
   }
 
+  /* clone true expression (special case) */
+  clone_exp (btor, clone, btor->true_exp, &parents, &nexts, exp_map, aig_map);
+
   /* update parent pointers of expressions */
   while (!BTOR_EMPTY_STACK (parents))
   {
@@ -302,7 +303,7 @@ clone_constraints (Btor *btor,
     real_parent = BTOR_REAL_ADDR_NODE (*parent);
     cloned_exp  = btor_mapped_node (exp_map, real_parent);
     assert (cloned_exp);
-    cloned_exp = BTOR_TAG_NODE (cloned_exp, BTOR_GET_TAG (*parent));
+    cloned_exp = BTOR_TAG_NODE (cloned_exp, BTOR_GET_TAG_NODE (*parent));
     *parent    = cloned_exp;
   }
 
@@ -324,40 +325,91 @@ clone_constraints (Btor *btor,
   }
 }
 
-// static void
-// clone_ptr_hash_table (Btor * btor,
-//		      BtorPtrHashTable * table, BtorPtrHashTable * res_table,
-//		      BtorNodeMap * exp_map)
-//{
-//  assert (btor);
-//  assert (table);
-//  assert (exp_map);
-//
-//  BtorNode * exp;
-//  BtorPtrHashBucket *b;
-//
-//  for (b = table->first; b; b = b->next)
-//    {
-//
-//
-//    }
-//}
-//
-//
-// Btor *
-// btor_clone_btor (Btor * btor)
-//{
-//  Btor *clone;
-//  BtorNodeMap *exp_map, *aig_map;
-//
-//  exp_map = btor_new_node_map (btor);
-//  aig_map = btor_new_node_map (btor);
-//
-//  clone = btor_new_btor ();
-//  memcpy (&clone->bv_lambda_id, &btor->bv_lambda_id,
-//	  (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
-//  memcpy (&clone->stats, &btor->stats,
-//	  btor + sizeof *btor -  (char *) &btor->stats);
-//
-//  clone_constraints (btor, clone, exp_map, aig_map);
+static void
+clone_ptr_hash_table (BtorPtrHashTable *table,
+                      BtorPtrHashTable *res_table,
+                      BtorNodeMap *exp_map)
+{
+  assert (table);
+  assert (res_table);
+  assert (exp_map);
+
+  BtorNode *cloned_exp;
+  BtorPtrHashBucket *b;
+
+  for (b = table->first; b; b = b->next)
+  {
+    cloned_exp = btor_mapped_node (exp_map, b->key);
+    assert (cloned_exp);
+    btor_insert_in_ptr_hash_table (res_table, cloned_exp);
+  }
+}
+
+static void
+clone_node_ptr_stack (BtorMemMgr *mm,
+                      BtorNodePtrStack *stack,
+                      BtorNodePtrStack *res_stack,
+                      BtorNodeMap *exp_map)
+{
+  assert (stack);
+  assert (res_stack);
+  assert (BTOR_EMPTY_STACK (*res_stack));
+  assert (exp_map);
+
+  int i;
+  BtorNode *cloned_exp;
+
+  for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
+  {
+    cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
+    assert (cloned_exp);
+    BTOR_PUSH_STACK (mm, *res_stack, cloned_exp);
+  }
+}
+
+Btor *
+btor_clone_btor (Btor *btor)
+{
+  Btor *clone;
+  BtorNodeMap *exp_map, *aig_map;
+
+  exp_map = btor_new_node_map (btor);
+  aig_map = btor_new_node_map (btor);
+
+  clone = btor_new_btor ();
+  memcpy (&clone->bv_lambda_id,
+          &btor->bv_lambda_id,
+          (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
+  memcpy (&clone->stats,
+          &btor->stats,
+          (char *) btor + sizeof (*btor) - (char *) &btor->stats);
+
+  clone_constraints (btor, clone, exp_map, aig_map);
+
+  clone_node_ptr_stack (
+      clone->mm, &btor->nodes_id_table, &clone->nodes_id_table, exp_map);
+  // TODO nodes_unique_table
+  // TODO sorts_unique_table
+
+  clone_ptr_hash_table (btor->bv_vars, clone->bv_vars, exp_map);
+  clone_ptr_hash_table (btor->array_vars, clone->array_vars, exp_map);
+  clone_ptr_hash_table (btor->lambdas, clone->lambdas, exp_map);
+  clone_ptr_hash_table (btor->substitutions, clone->substitutions, exp_map);
+
+  clone->true_exp = btor_mapped_node (exp_map, btor->true_exp);
+  assert (clone->true_exp);
+
+  clone_ptr_hash_table (btor->lod_cache, clone->lod_cache, exp_map);
+  clone_ptr_hash_table (btor->assumptions, clone->assumptions, exp_map);
+  clone_ptr_hash_table (btor->var_rhs, clone->var_rhs, exp_map);
+  clone_ptr_hash_table (btor->array_rhs, clone->array_rhs, exp_map);
+
+  clone_node_ptr_stack (
+      clone->mm, &btor->arrays_with_model, &clone->arrays_with_model, exp_map);
+
+  clone_ptr_hash_table (btor->cache, clone->cache, exp_map);
+
+  clone->clone         = NULL;
+  clone->apitrace      = NULL;
+  clone->closeapitrace = 0;
 }
