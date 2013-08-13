@@ -2417,9 +2417,6 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
-    case BTOR_IBV_PHANTOM_NEXT_INPUT:
-    case BTOR_IBV_PHANTOM_CURRENT_INPUT: break;
-
     case BTOR_IBV_CONSTANT:
     {
       if (!n->cached)
@@ -2474,7 +2471,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
-      char *nextname = btor_ibv_atom_base_name (btor, n, r, "next");
+      char *nextname = btor_ibv_atom_base_name (btor, n, r, 0);
       a->exp         = boolector_input (btormc, (int) r.getWidth (), nextname);
       btor_freestr (btor->mm, nextname);
       (void) boolector_copy (btor, a->exp);
@@ -2482,13 +2479,25 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     }
     break;
 
+    case BTOR_IBV_PHANTOM_CURRENT_INPUT: break;
+
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
-      char *name = btor_ibv_atom_base_name (btor, n, r, "current");
+      char *name = btor_ibv_atom_base_name (btor, n, r, 0);
       a->exp     = boolector_latch (btormc, (int) r.getWidth (), name);
       btor_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->exp);
       stats.latches++;
+    }
+    break;
+
+    case BTOR_IBV_PHANTOM_NEXT_INPUT:
+    {
+      char *name = btor_ibv_atom_base_name (btor, n, r, 0);
+      a->exp     = boolector_input (btormc, (int) r.getWidth (), name);
+      btor_freestr (btor->mm, name);
+      (void) boolector_copy (btor, a->exp);
+      stats.inputs++;
     }
     break;
 
@@ -2904,6 +2913,7 @@ BtorIBV::translate ()
       constraint = tmp;
       ninitialized++;
     }
+
     boolector_constraint (btormc, constraint);
     boolector_release (btor, constraint);
     stats.constraints++;

@@ -783,7 +783,7 @@ main (int argc, char** argv)
   }
   else
   {
-    if (k < 0) k = 10;
+    if (k < 0) k = 20;
     msg ("running bounded model checking up to bound %d", k);
     r = ibvm->bmc (k);
     if (r < 0)

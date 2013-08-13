@@ -645,7 +645,7 @@ initialize_new_forward_frame (BtorMC *mc)
 {
   BtorMcFrame frame, *f;
   BtorNodeMap *map;
-  int time, k;
+  int time;
 #ifndef NDEBUG
   int old_mc_btor_num_nodes;
 #endif
@@ -684,8 +684,7 @@ initialize_new_forward_frame (BtorMC *mc)
 
   assert (old_mc_btor_num_nodes == mc->btor->nodes_unique_table.num_elements);
 
-  k = BTOR_COUNT_STACK (mc->frames);
-  btor_msg_mc (mc, 1, "initialized forward frame at bound k = %d", k);
+  btor_msg_mc (mc, 1, "initialized forward frame at bound k = %d", time);
 }
 
 #if 0
