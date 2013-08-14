@@ -7039,10 +7039,10 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
           btor_freestr (mm, (char *) e[1]);
           break;
         case BTOR_BCOND_NODE:
-          if (e[1][0] == '1')
-            result = btor_copy_const (mm, e[2]);
-          else
+          if (e[2][0] == '1')
             result = btor_copy_const (mm, e[1]);
+          else
+            result = btor_copy_const (mm, e[0]);
           btor_freestr (mm, (char *) e[0]);
           btor_freestr (mm, (char *) e[1]);
           btor_freestr (mm, (char *) e[2]);
