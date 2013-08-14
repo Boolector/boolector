@@ -27,7 +27,7 @@ clone_aig (Btor *btor,
   BtorMemMgr *mm, *cmm;
 
   mm  = btor->mm;
-  cmm = btor->mm;
+  cmm = clone->mm;
 
   real_aig = BTOR_REAL_ADDR_AIG (aig);
 
@@ -147,8 +147,9 @@ clone_exp (Btor *btor,
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
-  if (!BTOR_IS_ARRAY_NODE (real_exp))
-    res->av = clone_av (btor, clone, res->av, aigs, aig_map);
+  if (!BTOR_IS_ARRAY_NODE (real_exp) && real_exp->av)
+    res->av = clone_av (btor, clone, real_exp->av, aigs, aig_map);
+  /* else: no need to clone rho (valid only during consistency checking) */
 
   BTOR_PUSH_STACK (mm, *nodes, &real_exp->next);
   BTOR_PUSH_STACK (mm, *nodes, &real_exp->parent);
@@ -298,7 +299,8 @@ clone_constraints (Btor *btor,
   {
     parent      = BTOR_POP_STACK (nodes);
     real_parent = BTOR_REAL_ADDR_NODE (*parent);
-    cloned_exp  = btor_mapped_node (exp_map, real_parent);
+    if (!real_parent) continue;
+    cloned_exp = btor_mapped_node (exp_map, real_parent);
     assert (cloned_exp);
     cloned_exp = BTOR_TAG_NODE (cloned_exp, BTOR_GET_TAG_NODE (*parent));
     *parent    = cloned_exp;
@@ -307,7 +309,8 @@ clone_constraints (Btor *btor,
   /* update next pointers of aigs */
   while (!BTOR_EMPTY_STACK (aigs))
   {
-    next       = BTOR_POP_STACK (aigs);
+    next = BTOR_POP_STACK (aigs);
+    if (!*next) continue;
     cloned_aig = btor_mapped_aig (aig_map, *next);
     assert (cloned_aig);
     *next = cloned_aig;
@@ -374,6 +377,7 @@ btor_clone_btor (Btor *btor)
   aig_map = btor_new_node_map (btor);
 
   clone = btor_new_btor ();
+
   memcpy (&clone->bv_lambda_id,
           &btor->bv_lambda_id,
           (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
@@ -413,4 +417,6 @@ btor_clone_btor (Btor *btor)
   clone->clone         = NULL;
   clone->apitrace      = NULL;
   clone->closeapitrace = 0;
+
+  return clone;
 }

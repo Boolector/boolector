@@ -5426,22 +5426,6 @@ btor_new_btor (void)
   return btor;
 }
 
-Btor *
-btor_clone_btor (Btor *orig)
-{
-  BtorMemMgr *mm;
-  Btor *btor;
-
-  (void) orig;
-
-  mm = btor_new_mem_mgr ();
-  BTOR_CNEW (mm, btor);
-
-  btor->mm = mm;
-
-  return btor;
-}
-
 void
 btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 {

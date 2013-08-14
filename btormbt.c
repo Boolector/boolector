@@ -234,6 +234,8 @@ typedef void *(*State) (BtorMBT *, unsigned rand);
 static double start_time;
 static Env env;
 
+void boolector_chkclone (Btor *);
+
 /*------------------------------------------------------------------------*/
 
 void
@@ -1651,10 +1653,14 @@ _ass (BtorMBT *btormbt, unsigned r)
 static void *
 _sat (BtorMBT *btormbt, unsigned r)
 {
-  BTORMBT_UNUSED (r);
   int res;
+  RNG rng;
 
   BTORMBT_LOG (1, btormbt, "[btormbt] call sat...\n");
+
+  rng = initrng (r);
+  if (!btormbt->btor->clone || !pick (&rng, 0, 50))
+    boolector_chkclone (btormbt->btor);
 
   res = boolector_sat (btormbt->btor);
 
@@ -1663,7 +1669,7 @@ _sat (BtorMBT *btormbt, unsigned r)
   else if (res == BOOLECTOR_SAT)
     BTORMBT_LOG (1, btormbt, "[btormbt] sat\n");
   else
-    BTORMBT_LOG (1, btormbt, "[btormbt]  sat call returned %d\n", res);
+    BTORMBT_LOG (1, btormbt, "[btormbt] sat call returned %d\n", res);
 
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
