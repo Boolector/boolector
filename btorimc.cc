@@ -134,7 +134,7 @@ read_line ()
   int ch;
   while ((ch = getc (input)) != '\n')
   {
-    if (ch == ' ' || ch == '\t' || ch == '\r') continue;
+    // if (ch == ' ' || ch == '\t' || ch == '\r') continue;
     if (ch == EOF)
     {
       if (nline) perr ("unexpected end-of-file");
@@ -323,13 +323,23 @@ firstok ()
   return line;
 }
 
+static bool
+myisspace (int ch)
+{
+  if (ch == ' ') return 1;
+  if (ch == '\t') return 1;
+  if (ch == '\n') return 1;
+  if (ch == '\r') return 1;
+  return 0;
+}
+
 static const char*
 nextok ()
 {
   const char* res;
   int open;
   if (nts >= line + nline) return 0;
-  while (isspace (*nts)) nts++;
+  while (myisspace (*nts)) nts++;
   if (!*nts) return 0;
   res  = nts;
   open = 0;
@@ -359,7 +369,7 @@ nextok ()
   }
   *nts++  = 0;
   char* p = nts - 2;
-  while (p >= res && isspace (*p)) *p-- = 0;
+  while (p >= res && myisspace (*p)) *p-- = 0;
   return *res ? res : 0;
 }
 
@@ -371,6 +381,7 @@ parse_line ()
   char* p;
   for (p = line; *p; p++)
     ;
+  while (p > line && myisspace (p[-1])) *--p = 0;
 #if 0
   if (p == line) perr ("empty line");
 #else
