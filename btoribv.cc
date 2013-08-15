@@ -2812,12 +2812,8 @@ BtorIBV::translate ()
           BtorIBVNode *nextnode = id2node (as->ranges[0].id);
           assert (nextnode);
           assert (nextnode->flags);
-          if (n->flags[lsb].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT)
-            assert (nextnode->flags[as->ranges[0].lsb].classified
-                    == BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT);
-          else
-            assert (nextnode->flags[as->ranges[0].lsb].classified
-                    == BTOR_IBV_PHANTOM_NEXT_INPUT);
+          assert (nextnode->flags[as->ranges[0].lsb].classified
+                  == BTOR_IBV_PHANTOM_NEXT_INPUT);
           assert (nextnode->cached);
           BtorNode *nextexp = boolector_slice (
               btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
