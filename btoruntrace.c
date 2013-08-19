@@ -176,7 +176,7 @@ parse (FILE *file)
 {
   int i, ch;
   int exp_ret;
-  int arg1_int, arg2_int, arg3_int, arg4_int, ret_int;
+  int arg1_int, arg2_int, arg3_int, ret_int;
   char *arg1_str, *arg2_str, *arg3_str, *ret_str, *exp_str;
   char **res1_pptr, **res2_pptr;
   ;
@@ -853,8 +853,6 @@ NEXT:
         btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
     hmap_add (hmap, arg2_str, res1_pptr);
     hmap_add (hmap, arg3_str, res2_pptr);
-    if (arg4_int != ret_int)
-      die ("expected array size %d but got %d", arg4_int, ret_int);
   }
   else if (!strcmp (tok, "free_array_assignment"))
   {
