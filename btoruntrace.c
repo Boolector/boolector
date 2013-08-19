@@ -127,13 +127,6 @@ strarg (char *op)
   arg3_##type3 = type3##arg (op);            \
   checklastarg (op);
 
-#define PARSE_ARGS4(op, type1, type2, type3, type4) \
-  arg1_##type1 = type1##arg (op);                   \
-  arg2_##type2 = type2##arg (op);                   \
-  arg3_##type3 = type3##arg (op);                   \
-  arg4_##type4 = type4##arg (op);                   \
-  checklastarg (op);
-
 /*------------------------------------------------------------------------*/
 
 static void *
@@ -862,7 +855,7 @@ NEXT:
   }
   else if (!strcmp (tok, "array_assignment"))
   {
-    PARSE_ARGS4 (tok, str, str, str, int);
+    PARSE_ARGS1 (tok, str);
     boolector_array_assignment (
         btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
     hmap_add (hmap, arg2_str, res1_pptr);
