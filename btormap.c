@@ -46,23 +46,26 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
   if (!bucket) return 0;
   assert (bucket->key == realnode);
   res = bucket->data.asPtr;
-  if (BTOR_IS_INVERTED_NODE (node)) res = BTOR_INVERT_NODE (res);
+  if (BTOR_GET_TAG_NODE (node))
+    res = BTOR_TAG_NODE (node, BTOR_GET_TAG_NODE (node));
   return res;
 }
 
 void
 btor_map_node (Btor *btor, BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
-  BtorPtrHashBucket *bucket;
   assert (btor);
   assert (map);
   assert (src);
   assert (dst);
-  if (BTOR_IS_INVERTED_NODE (src))
+
+  BtorPtrHashBucket *bucket;
+
+  if (BTOR_GET_TAG_NODE (src))
   {
-    assert (BTOR_IS_INVERTED_NODE (dst));
-    src = BTOR_INVERT_NODE (src);
-    dst = BTOR_INVERT_NODE (dst);
+    assert (BTOR_GET_TAG_NODE (src) == BTOR_GET_TAG_NODE (dst));
+    src = BTOR_REAL_ADDR_NODE (src);
+    dst = BTOR_REAL_ADDR_NODE (dst);
   }
   assert (!btor_find_in_ptr_hash_table (map, src));
   bucket = btor_insert_in_ptr_hash_table (map, src);
