@@ -268,7 +268,7 @@ clone_constraints (Btor *btor,
           BTOR_PUSH_STACK (mm, stack, cur);
           BTOR_PUSH_STACK (mm, unmark_stack, real_cur);
 
-          if (BTOR_IS_ARRAY_EQ_NODE (real_cur))
+          if (BTOR_IS_ARRAY_EQ_NODE (real_cur) && real_cur->vreads)
           {
             BTOR_PUSH_STACK (mm, stack, real_cur->vreads->exp1);
             BTOR_PUSH_STACK (mm, stack, real_cur->vreads->exp2);
