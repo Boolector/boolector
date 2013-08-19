@@ -1105,6 +1105,125 @@ compute_hash_exp (BtorNode *exp, int table_size)
 }
 
 static void
+remove_param_parameterized (Btor *btor, BtorNode *exp, BtorNode *param)
+{
+  assert (btor);
+  assert (exp);
+  assert (param);
+  assert (BTOR_IS_REGULAR_NODE (param));
+  assert (BTOR_IS_PARAM_NODE (param));
+
+  BtorPtrHashTable *t;
+  BtorPtrHashBucket *b;
+
+  b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
+  assert (b);
+  t = (BtorPtrHashTable *) b->data.asPtr;
+  assert (t->count > 0);
+  assert (btor_find_in_ptr_hash_table (t, param));
+  btor_remove_from_ptr_hash_table (t, param, 0, 0);
+  btor_release_exp (btor, param);
+}
+
+static void
+remove_parameterized (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorPtrHashTable *t;
+  BtorPtrHashBucket *b;
+
+  b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
+  if (!b) return;
+
+  t = (BtorPtrHashTable *) b->data.asPtr;
+
+  /* release params */
+  for (b = t->first; b; b = b->next)
+    btor_release_exp (btor, (BtorNode *) b->key);
+  btor_delete_ptr_hash_table (t);
+
+  btor_remove_from_ptr_hash_table (btor->parameterized, exp, 0, 0);
+}
+
+static int
+is_parameterized (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  BtorPtrHashTable *t;
+  BtorPtrHashBucket *b;
+
+  b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
+  if (b)
+  {
+    t = (BtorPtrHashTable *) b->data.asPtr;
+    return t->count > 0;
+  }
+
+  return 0;
+}
+
+static void
+update_parameterized (Btor *btor, BtorNode *parent, BtorNode *child)
+{
+  assert (btor);
+  assert (parent);
+  assert (child);
+  assert (BTOR_REAL_ADDR_NODE (child)->parameterized);
+  assert (BTOR_IS_REGULAR_NODE (parent));
+
+  BtorNode *param;
+  BtorPtrHashTable *t;
+  BtorPtrHashBucket *b;
+
+  child = BTOR_REAL_ADDR_NODE (child);
+
+  b = btor_find_in_ptr_hash_table (btor->parameterized, parent);
+  if (b)
+  {
+    assert (b->data.asPtr);
+    t = (BtorPtrHashTable *) b->data.asPtr;
+  }
+  else
+  {
+    t = btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+    btor_insert_in_ptr_hash_table (btor->parameterized, parent)->data.asPtr = t;
+  }
+
+  if (BTOR_IS_PARAM_NODE (child))
+  {
+    if (!btor_find_in_ptr_hash_table (t, child))
+      btor_insert_in_ptr_hash_table (t, btor_copy_exp (btor, child));
+  }
+  else
+  {
+    b = btor_find_in_ptr_hash_table (btor->parameterized, child);
+    assert (b);
+    assert (b->data.asPtr);
+    for (b = ((BtorPtrHashTable *) b->data.asPtr)->first; b; b = b->next)
+    {
+      param = (BtorNode *) b->key;
+      assert (BTOR_IS_REGULAR_NODE (param));
+      assert (BTOR_IS_PARAM_NODE (param));
+      if (!btor_find_in_ptr_hash_table (t, param))
+        btor_insert_in_ptr_hash_table (t, btor_copy_exp (btor, param));
+      /* cleanup */
+      else if (param->refs == 1)
+      {
+        btor_remove_from_ptr_hash_table (t, param, 0, 0);
+        btor_release_exp (btor, param);
+      }
+    }
+  }
+}
+
+static void
 remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
 {
   unsigned int hash;
@@ -1164,6 +1283,8 @@ remove_from_hash_tables (Btor *btor, BtorNode *exp)
       break;
     default: break;
   }
+
+  remove_parameterized (btor, exp);
 }
 
 /* Disconnect children of expression in parent list and if applicable from
@@ -2478,10 +2599,11 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   disconnect_children_exp (btor, exp);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
   erase_local_children_data_exp (btor, exp);
-  exp->kind         = BTOR_PROXY_NODE;
-  exp->disconnected = 0;
-  exp->erased       = 0;
-  exp->arity        = 0;
+  exp->kind          = BTOR_PROXY_NODE;
+  exp->disconnected  = 0;
+  exp->erased        = 0;
+  exp->arity         = 0;
+  exp->parameterized = 0;
 }
 
 /* Finds most simplified expression and shortens path to it */
@@ -2735,6 +2857,9 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
 
   if (BTOR_REAL_ADDR_NODE (child)->lambda_below) parent->lambda_below = 1;
 
+  if (BTOR_REAL_ADDR_NODE (child)->parameterized)
+    update_parameterized (btor, parent, child);
+
   BTOR_REAL_ADDR_NODE (child)->parents++;
   inc_exp_ref_counter (btor, child);
 
@@ -2877,21 +3002,53 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
 {
   assert (btor);
   assert (e_param);
+  assert (BTOR_IS_REGULAR_NODE (e_param));
   assert (BTOR_IS_PARAM_NODE (e_param));
   assert (e_exp);
 
+  BtorIterator it;
+  BtorNode *exp;
   BtorLambdaNode *lambda_exp;
 
   BTOR_CNEW (btor->mm, lambda_exp);
   btor->ops[BTOR_LAMBDA_NODE]++;
-  lambda_exp->kind         = BTOR_LAMBDA_NODE;
-  lambda_exp->bytes        = sizeof *lambda_exp;
-  lambda_exp->arity        = 2;
-  lambda_exp->len          = BTOR_REAL_ADDR_NODE (e_exp)->len;
+  lambda_exp->kind  = BTOR_LAMBDA_NODE;
+  lambda_exp->bytes = sizeof *lambda_exp;
+  lambda_exp->arity = 2;
+  lambda_exp->len   = BTOR_REAL_ADDR_NODE (e_exp)->len;
+  // TODO: get rid of index_len
+  lambda_exp->index_len    = e_param->len;
   lambda_exp->lambda_below = 1;
+  lambda_exp->num_params   = 1;
   setup_node_and_add_to_id_table (btor, (BtorNode *) lambda_exp);
   connect_child_exp (btor, (BtorNode *) lambda_exp, e_param, 0);
   connect_child_exp (btor, (BtorNode *) lambda_exp, e_exp, 1);
+
+  /* in case of nested lambdas (functions) we set 'nested' of each lambda
+   * involved to the outermost lambda of the chain */
+  if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
+  {
+    init_lambda_iterator (&it, (BtorNode *) lambda_exp);
+    while (has_next_lambda_iterator (&it))
+    {
+      exp                              = next_lambda_iterator (&it);
+      ((BtorLambdaNode *) exp)->nested = lambda_exp;
+    }
+    lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
+    lambda_exp->body = ((BtorLambdaNode *) e_exp)->body;
+  }
+  else
+    lambda_exp->body = e_exp;
+
+  /* check if 'lambda' is parameterized, i.e. if it contains params that are not
+   * bound by 'lambda' */
+  remove_param_parameterized (btor, (BtorNode *) lambda_exp, e_param);
+  if (is_parameterized (btor, (BtorNode *) lambda_exp))
+    lambda_exp->parameterized = 1;
+
+  assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
+  assert (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp));
+  (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
 
   return (BtorNode *) lambda_exp;
 }
@@ -3685,47 +3842,19 @@ btor_lambda_exp (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
   assert (e_exp);
   assert (BTOR_REAL_ADDR_NODE (e_exp)->len > 0);
 
-  // TODO: get rid of index_len
-  BtorIterator it;
-  BtorLambdaNode *lambda_exp;
-  BtorNode *exp;
-  int index_len = BTOR_REAL_ADDR_NODE (e_param)->len;
-  int elem_len  = BTOR_REAL_ADDR_NODE (e_exp)->len;
+  BtorNode *result;
+  int elem_len = BTOR_REAL_ADDR_NODE (e_exp)->len;
 
-  e_exp      = btor_simplify_exp (btor, e_exp);
-  lambda_exp = (BtorLambdaNode *) binary_exp (
-      btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
-  lambda_exp->index_len  = index_len;
-  lambda_exp->num_params = 1;
+  result = binary_exp (btor, BTOR_LAMBDA_NODE, e_param, e_exp, elem_len);
 
   /* set lambda expression of parameter */
   assert (!BTOR_IS_BOUND_PARAM_NODE (e_param)
-          || BTOR_PARAM_GET_LAMBDA_NODE (e_param) == lambda_exp);
+          || BTOR_PARAM_GET_LAMBDA_NODE (e_param) == (BtorLambdaNode *) result);
   if (!BTOR_IS_BOUND_PARAM_NODE (e_param))
-    BTOR_PARAM_SET_LAMBDA_NODE (e_param, lambda_exp);
+    BTOR_PARAM_SET_LAMBDA_NODE (e_param, (BtorLambdaNode *) result);
   // else lambda_exp is an already existing one
 
-  /* in case of nested lambdas (functions) we set 'nested' of each lambda
-   * involved to the outermost lambda of the chain */
-  if (BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (e_exp)))
-  {
-    init_lambda_iterator (&it, (BtorNode *) lambda_exp);
-    while (has_next_lambda_iterator (&it))
-    {
-      exp                              = next_lambda_iterator (&it);
-      ((BtorLambdaNode *) exp)->nested = lambda_exp;
-    }
-    lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
-    lambda_exp->body = ((BtorLambdaNode *) e_exp)->body;
-  }
-  else
-    lambda_exp->body = e_exp;
-
-  assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (lambda_exp->body)));
-  if (!btor_find_in_ptr_hash_table (btor->lambdas, lambda_exp))
-    (void) btor_insert_in_ptr_hash_table (btor->lambdas, lambda_exp);
-
-  return (BtorNode *) lambda_exp;
+  return result;
 }
 
 BtorNode *
@@ -3910,13 +4039,6 @@ btor_write_exp_node (Btor *btor,
   e_else = btor_read_exp (btor, e_array, param);
   bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
   lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
-
-  /* if either 'e_index' or 'e_value' are paramterized we need to mark 'lambda'
-   * as paramterized as we use paramterers in 'lambda' other than 'param' and
-   * thus 'lambda' becomes a nested function. */
-  if (BTOR_REAL_ADDR_NODE (e_index)->parameterized
-      || BTOR_REAL_ADDR_NODE (e_value)->parameterized)
-    lambda->parameterized = 1;
 
   btor_release_exp (btor, e_if);
   btor_release_exp (btor, e_else);
@@ -5337,6 +5459,11 @@ btor_new_btor (void)
                                (BtorHashPtr) btor_hash_exp_by_id,
                                (BtorCmpPtr) btor_compare_exp_by_id);
 
+  btor->parameterized =
+      btor_new_ptr_hash_table (mm,
+                               (BtorHashPtr) btor_hash_exp_by_id,
+                               (BtorCmpPtr) btor_compare_exp_by_id);
+
   BTOR_INIT_STACK (btor->arrays_with_model);
 
   btor->true_exp = btor_true_exp (btor);
@@ -5589,6 +5716,7 @@ btor_delete_btor (Btor *btor)
   btor_delete_ptr_hash_table (btor->bv_vars);
   btor_delete_ptr_hash_table (btor->array_vars);
   btor_delete_ptr_hash_table (btor->lambdas);
+  btor_delete_ptr_hash_table (btor->parameterized);
 
   btor_delete_aigvec_mgr (btor->avmgr);
 

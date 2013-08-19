@@ -407,6 +407,7 @@ struct Btor
   BtorPtrHashTable *array_rhs; /* only for model generation */
   BtorNodePtrStack arrays_with_model;
   BtorPtrHashTable *cache;
+  BtorPtrHashTable *parameterized;
 
   FILE *apitrace;
   int closeapitrace;
