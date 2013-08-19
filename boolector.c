@@ -1950,8 +1950,7 @@ boolector_array_assignment (
   BTOR_ABORT_ARG_NULL_BOOLECTOR (indices);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (values);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (size);
-  BTOR_TRAPI (
-      "array_assignment %p %p %p %d", e_array, *indices, *values, *size);
+  BTOR_TRAPI ("array_assignment %p", e_array);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (e_array);
   e_array = btor_simplify_exp (btor, e_array);
   BTOR_ABORT_BV_BOOLECTOR (e_array);
