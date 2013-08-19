@@ -137,7 +137,7 @@ clone_exp (Btor *btor,
   assert (!BTOR_IS_PROXY_NODE (real_exp));
 
   res = btor_malloc (cmm, real_exp->bytes);
-  memcpy (real_exp, res, sizeof *real_exp);
+  memcpy (real_exp, res, real_exp->bytes);
 
   if (real_exp->bits)
   {
