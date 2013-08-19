@@ -32,7 +32,7 @@ clone_aig (Btor *btor,
   real_aig = BTOR_REAL_ADDR_AIG (aig);
 
   BTOR_NEWN (cmm, res, 1);
-  memcpy (real_aig, res, sizeof *real_aig);
+  memcpy (res, real_aig, sizeof *real_aig);
 
   for (i = 0; i < 2 && real_aig->children[i]; i++)
   {
@@ -66,7 +66,7 @@ clone_av (Btor *btor,
   BTOR_INIT_STACK (unmark_stack);
 
   BTOR_NEWN (cmm, res, 1);
-  memcpy (av, res, sizeof *av);
+  memcpy (res, av, sizeof *av);
 
   for (i = 0; i < av->len; i++)
   {
@@ -137,7 +137,7 @@ clone_exp (Btor *btor,
   assert (!BTOR_IS_PROXY_NODE (real_exp));
 
   res = btor_malloc (cmm, real_exp->bytes);
-  memcpy (real_exp, res, real_exp->bytes);
+  memcpy (res, real_exp, real_exp->bytes);
 
   if (real_exp->bits)
   {
@@ -175,7 +175,7 @@ clone_exp (Btor *btor,
     else
     {
       res->symbol = btor_strdup (cmm, real_exp->symbol);
-      if (BTOR_IS_ARRAY_EQ_NODE (real_exp))
+      if (BTOR_IS_ARRAY_EQ_NODE (real_exp) && real_exp->vreads)
       {
         assert (btor_mapped_node (exp_map, real_exp->vreads->exp1));
         assert (btor_mapped_node (exp_map, real_exp->vreads->exp2));
