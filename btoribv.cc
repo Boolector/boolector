@@ -219,6 +219,14 @@ BtorIBV::setVerbosity (int v)
 }
 
 void
+BtorIBV::setRewriteLevel (int rwl)
+{
+  BTOR_ABORT_BOOLECTOR (rwl < 1, "rewrite level has to be at least 1");
+  BTOR_ABORT_BOOLECTOR (rwl > 3, "rewrite level has to be at most 3");
+  boolector_set_rewrite_level (btor, rwl);
+}
+
+void
 BtorIBV::enableTraceGeneration ()
 {
   gentrace = true;
@@ -1883,9 +1891,10 @@ BtorIBV::analyze ()
         "undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
 	n->name, i);
 #else
-      warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
-            n->name,
-            i);
+      if (!n->prev || !n->prev[i])
+        warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
+              n->name,
+              i);
 #endif
     }
   }
@@ -2239,6 +2248,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
 
     case BTOR_IBV_TWO_PHASE_INPUT:
       (void) forward;
+      assert (!forward);
       assert (n->is_next_state);
       {
         assert (n->prev);
@@ -2278,13 +2288,11 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
 #endif
         int msb          = pr.msb - b->range.lsb;
         int lsb          = pr.lsb - b->range.lsb;
-        BtorNode *tmp    = boolector_copy (btor, (forward ? b->next : b->exp));
+        BtorNode *tmp    = boolector_copy (btor, b->next);
         BtorNode *sliced = boolector_slice (btor, tmp, msb, lsb);
         boolector_release (btor, tmp);
-        if (forward)
-          assert (!a->next), a->next = sliced;
-        else
-          assert (!a->exp), a->exp = sliced;
+        assert (!a->exp);
+        a->exp = sliced;
       }
       break;
 
