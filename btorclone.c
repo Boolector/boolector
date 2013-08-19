@@ -277,7 +277,9 @@ clone_constraints (Btor *btor,
         cur      = BTOR_POP_STACK (stack);
         real_cur = BTOR_REAL_ADDR_NODE (cur);
 
-        if (real_cur->clone_mark >= 2) continue;
+        if (real_cur->clone_mark >= 2
+            || real_cur == BTOR_REAL_ADDR_NODE (btor->true_exp))
+          continue;
 
         assert (!btor_mapped_node (exp_map, cur));
 
@@ -393,7 +395,7 @@ btor_clone_btor (Btor *btor)
 
   clone = btor_new_btor ();
   /* no need to explicitely clone true exp (generated via btor_new_btor) */
-  btor_map_node (btor, exp_map, clone->true_exp, clone->true_exp);
+  btor_map_node (btor, exp_map, btor->true_exp, clone->true_exp);
 
   memcpy (&clone->bv_lambda_id,
           &btor->bv_lambda_id,
