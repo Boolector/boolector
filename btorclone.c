@@ -261,6 +261,7 @@ clone_constraints (Btor *btor,
         real_cur = BTOR_REAL_ADDR_NODE (cur);
 
         if (real_cur->clone_mark >= 2) continue;
+        assert (!btor_mapped_node (exp_map, cur));
 
         if (real_cur->clone_mark == 0)
         {
@@ -292,7 +293,8 @@ clone_constraints (Btor *btor,
   }
 
   /* clone true expression (special case) */
-  clone_exp (btor, clone, btor->true_exp, &nodes, &aigs, exp_map, aig_map);
+  if (!btor_mapped_node (exp_map, btor->true_exp))
+    clone_exp (btor, clone, btor->true_exp, &nodes, &aigs, exp_map, aig_map);
 
   /* update parent and next pointers of expressions */
   while (!BTOR_EMPTY_STACK (nodes))
