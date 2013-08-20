@@ -1019,8 +1019,8 @@ selarrexp (BtorMBT *btormbt,
     es = &btormbt->arr;
   else
     es = btormbt->paramarr;
-
   assert (es->n);
+
   /* random search start idx */
   idx = i = pick (rng, 0, es->n - 1);
   do
@@ -1055,6 +1055,7 @@ selarrexp (BtorMBT *btormbt,
   es->exps[es->n - 1].pars++;
   return sel_e;
 }
+
 /* Generate parameterized unary/binary/ternary operation. */
 static void
 param_fun (BtorMBT *btormbt, RNG *rng, int op_from, int op_to)
@@ -1258,9 +1259,14 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
                         *width,
                         ip);
   }
-  es_push (boolector_get_width (btormbt->btor, fun) == 1 ? &btormbt->bo
-                                                         : &btormbt->bv,
-           boolector_apply (btormbt->btor, *nparams, args, fun));
+
+  tmp = boolector_apply (btormbt->btor, *nparams, args, fun);
+  es_push (boolector_get_width (btormbt->btor, fun) == 1
+               ? (BTOR_REAL_ADDR_NODE (tmp)->parameterized ? btormbt->parambo
+                                                           : &btormbt->bo)
+               : (BTOR_REAL_ADDR_NODE (tmp)->parameterized ? btormbt->parambv
+                                                           : &btormbt->bv),
+           tmp);
 
   free (args);
 }
@@ -1633,6 +1639,7 @@ _ass (BtorMBT *btormbt, unsigned r)
               ? btormbt->bo.initlayer - 1
               : 0;
   cls = make_clause (btormbt, &rng, lower, btormbt->bo.n - 1);
+  assert (!BTOR_REAL_ADDR_NODE (cls)->parameterized);
 
   if (btormbt->inc && pick (&rng, 0, 4))
   {
