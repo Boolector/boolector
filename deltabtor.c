@@ -839,8 +839,10 @@ main (int argc, char **argv)
 {
   int changed, golden = 0, res, rounds, interval, fixed, sign, overwritten;
   int i, j, argstart, len, fixpoint = 0, prev_oexps, restart = 0;
-  Exp *e;
   char *cmd, *cmd_golden;
+  Exp *e;
+
+  cmd = cmd_golden = 0;
 
   argstart = argc;
 
