@@ -1844,6 +1844,7 @@ add_param_cond_to_clause (Btor * btor, BtorNode * cond,
 }
 #endif
 
+#if 0
 struct BtorNodeTuple
 {
   BtorNode *e0;
@@ -1853,7 +1854,7 @@ struct BtorNodeTuple
 typedef struct BtorNodeTuple BtorNodeTuple;
 
 BtorNodeTuple *
-new_node_tuple (Btor *btor, BtorNode *e0, BtorNode *e1)
+new_node_tuple (Btor * btor, BtorNode * e0, BtorNode * e1)
 {
   assert (btor);
   assert (e0);
@@ -1867,12 +1868,13 @@ new_node_tuple (Btor *btor, BtorNode *e0, BtorNode *e1)
 }
 
 void
-delete_node_tuple (Btor *btor, BtorNodeTuple *tuple)
+delete_node_tuple (Btor * btor, BtorNodeTuple * tuple)
 {
   assert (btor);
   assert (tuple);
   BTOR_DELETE (btor->mm, tuple);
 }
+#endif
 
 /* find shortest path from application to fun */
 static void
@@ -1936,22 +1938,16 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
 
     if (BTOR_IS_LAMBDA_NODE (cur))
     {
-      // TODO: use lambda_exp->body instead of search through lambdas
-      assert (BTOR_IS_NESTED_LAMBDA_NODE (cur) || cur->tseitin);
+      assert (cur->tseitin);
       assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur)
-              || BTOR_LAMBDA_GET_NESTED (cur)->tseitin);
+              || BTOR_IS_FIRST_NESTED_LAMBDA (cur));
 
-      if (BTOR_IS_FIRST_NESTED_LAMBDA (cur)
-          || !BTOR_IS_NESTED_LAMBDA_NODE (cur))
-      {
-        btor_assign_args (btor, cur, args);
-        BTOR_PUSH_STACK (mm, cleanup_stack, cur);
-      }
-
-      next         = BTOR_REAL_ADDR_NODE (cur->e[1]);
+      next         = BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) cur)->body);
       next->mark   = 1;
       next->parent = cur;
 
+      btor_assign_args (btor, cur, args);
+      BTOR_PUSH_STACK (mm, cleanup_stack, cur);
       BTOR_ENQUEUE (mm, queue, next);
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
@@ -1971,7 +1967,6 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       BTOR_PUSH_STACK (mm, unmark_stack, next);
     }
     else if (BTOR_IS_APPLY_NODE (cur))
-    //	       && compare_argument_assignments (cur->e[1], args) == 0)
     {
       cur_args = btor_beta_reduce_cutoff (btor, cur->e[1], 0);
       assert (BTOR_IS_REGULAR_NODE (cur_args));
@@ -2050,14 +2045,12 @@ collect_premisses (Btor *btor,
                    BtorNode *fun,
                    BtorNode *app,
                    BtorNode *args,
-                   BtorPtrHashTable *fun_apps,
                    BtorPtrHashTable *bconds_sel1,
                    BtorPtrHashTable *bconds_sel2)
 {
   assert (btor);
   assert (fun);
   assert (app);
-  assert (fun_apps);
   assert (bconds_sel1);
   assert (bconds_sel2);
   assert (BTOR_IS_REGULAR_NODE (args));
@@ -2474,14 +2467,12 @@ print_lemma_dbg (Btor * btor,
 #if 1
 static void
 encode_lemma (Btor *btor,
-              BtorPtrHashTable *fun_apps,
               BtorPtrHashTable *bconds_sel1,
               BtorPtrHashTable *bconds_sel2,
               BtorNode *app0,
               BtorNode *app1)
 {
   assert (btor);
-  assert (fun_apps);
   assert (bconds_sel1);
   assert (bconds_sel2);
   assert (app0);
@@ -2519,12 +2510,9 @@ encode_lemma (Btor *btor,
 
     cur = parameterized ? parameterized : BTOR_REAL_ADDR_NODE (lambda_value);
     find_shortest_path (btor, app1, cur, args);
-
-    collect_premisses (
-        btor, cur, app1, args, fun_apps, bconds_sel1, bconds_sel2);
+    collect_premisses (btor, cur, app1, args, bconds_sel1, bconds_sel2);
 #if 0
-      print_lemma_dbg (btor, fun_apps, bconds_sel1, bconds_sel2, app0,
-		       lambda_value);
+      print_lemma_dbg (btor, bconds_sel1, bconds_sel2, app0, lambda_value);
 #endif
     add_eq_exp_to_clause (btor, app0, lambda_value, &linking_clause);
     btor_release_exp (btor, lambda_value);
@@ -2538,7 +2526,8 @@ encode_lemma (Btor *btor,
     assert (BTOR_IS_REGULAR_NODE (app1->e[1]));
     assert (BTOR_IS_ARGS_NODE (app0->e[1]));
     assert (BTOR_IS_ARGS_NODE (app1->e[1]));
-    // TODO: check num_args of args nodes
+    assert (((BtorArgsNode *) app0->e[1])->num_args
+            == ((BtorArgsNode *) app1->e[1])->num_args);
     assert (app0->e[1]->len == app1->e[1]->len);
 
     init_args_iterator (&it0, app0->e[1]);
@@ -2553,7 +2542,7 @@ encode_lemma (Btor *btor,
       btor->stats.lemmas_size_sum += 1;
     }
 #if 0
-      print_lemma_dbg (btor, fun_apps, bconds_sel1, bconds_sel2, app0, app1);
+      print_lemma_dbg (btor, bconds_sel1, bconds_sel2, app0, app1);
 #endif
     add_eq_exp_to_clause (btor, app0, app1, &linking_clause);
   }
@@ -7078,17 +7067,13 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (BTOR_IS_APPLY_NODE (app1) || BTOR_IS_FUN_NODE (app1));
   assert (!BTOR_IS_FUN_NODE (app1) || fun == app1);
 
-  BtorPtrHashTable *fun_apps, *bconds_sel1, *bconds_sel2;
+  BtorPtrHashTable *bconds_sel1, *bconds_sel2;
   BtorNode *app, *args;
   BtorMemMgr *mm;
 
   mm = btor->mm;
 
-  /* collect intermediate writes, array equalities and array conditionals
-   * as premisses for McCarthy constraint */
-  fun_apps    = btor_new_ptr_hash_table (mm,
-                                      (BtorHashPtr) btor_hash_exp_by_id,
-                                      (BtorCmpPtr) btor_compare_exp_by_id);
+  /* collect intermediate conditions of bit vector conditionals */
   bconds_sel1 = btor_new_ptr_hash_table (mm,
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
@@ -7104,13 +7089,11 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     args = app->e[1];
     find_shortest_path (btor, app, fun, args);
     //      print_bfs_path_dbg (btor, fun, app);
-    collect_premisses (
-        btor, fun, app, args, fun_apps, bconds_sel1, bconds_sel2);
+    collect_premisses (btor, fun, app, args, bconds_sel1, bconds_sel2);
   }
 
-  encode_lemma (btor, fun_apps, bconds_sel1, bconds_sel2, app0, app1);
+  encode_lemma (btor, bconds_sel1, bconds_sel2, app0, app1);
 
-  btor_delete_ptr_hash_table (fun_apps);
   btor_delete_ptr_hash_table (bconds_sel1);
   btor_delete_ptr_hash_table (bconds_sel2);
 }
