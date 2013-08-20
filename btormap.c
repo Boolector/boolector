@@ -40,9 +40,11 @@ BtorNode *
 btor_mapped_node (BtorNodeMap *map, BtorNode *node)
 {
   BtorPtrHashBucket *bucket;
-  BtorNode *realnode = BTOR_REAL_ADDR_NODE (node);
+  BtorNode *realnode;
   BtorNode *res;
-  bucket = btor_find_in_ptr_hash_table (map, realnode);
+
+  realnode = BTOR_REAL_ADDR_NODE (node);
+  bucket   = btor_find_in_ptr_hash_table (map, realnode);
   if (!bucket) return 0;
   assert (bucket->key == realnode);
   res = bucket->data.asPtr;

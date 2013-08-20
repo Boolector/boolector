@@ -378,8 +378,11 @@ clone_node_ptr_stack (BtorMemMgr *mm,
 
   for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
   {
-    cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
-    assert (cloned_exp);
+    if ((*stack).start[i]) /* Note: first element of nodes id table is 0 */
+    {
+      cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
+      assert (cloned_exp);
+    }
     BTOR_PUSH_STACK (mm, *res_stack, cloned_exp);
   }
 }
