@@ -100,10 +100,10 @@ test_mctoggle ()
     boolector_release (g_btor, bad);
   }
 
-  k = boolector_bmc (g_mc, 0);
+  k = boolector_bmc (g_mc, 0, 0);
   assert (k < 0);  // can not reach bad within k=0 steps
 
-  k = boolector_bmc (g_mc, 1);
+  k = boolector_bmc (g_mc, 0, 1);
   assert (0 <= k && k <= 1);  // bad reached within k=1 steps
 
   finish_mc_test ();
@@ -142,10 +142,10 @@ test_mccount2enablenomodel ()
     boolector_release (g_btor, bad);
   }
 
-  k = boolector_bmc (g_mc, 1);
+  k = boolector_bmc (g_mc, 0, 1);
   assert (k < 0);  // can not reach bad within k=1 steps
 
-  k = boolector_bmc (g_mc, 5);
+  k = boolector_bmc (g_mc, 0, 5);
   assert (0 <= k && k <= 5);  // bad reached within k=4 steps
 
   finish_mc_test ();
@@ -189,10 +189,10 @@ test_mccount2resetenable ()
     boolector_release (g_btor, bad);
   }
 
-  k = boolector_bmc (g_mc, 2);
+  k = boolector_bmc (g_mc, 0, 2);
   assert (k < 0);  // can not reach bad within k=1 steps
 
-  k = boolector_bmc (g_mc, 4);
+  k = boolector_bmc (g_mc, 0, 4);
   assert (0 <= k && k <= 4);  // bad reached within k=4 steps
 
   file = fopen ("log/mccount2resetenable.log", "w");
