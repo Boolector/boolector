@@ -6789,6 +6789,7 @@ exp_to_aig (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   avmgr = btor->avmgr;
   amgr  = btor_get_aig_mgr_aigvec_mgr (avmgr);
@@ -7094,6 +7095,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
 
   for (app = app0; app; app = app == app0 ? app1 : 0)
   {
+    // TODO: also collect premisses for lambda value (instead of encode_lemma)
     // TODO: right now we can skip app if it is a lambda node
     if (!BTOR_IS_APPLY_NODE (app)) continue;
     args = app->e[1];
@@ -8556,9 +8558,11 @@ reverse_subst_comp_kind (Btor *btor, BtorSubstCompKind comp)
 static void
 insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
 {
-  BtorPtrHashTable *uc;
   assert (btor);
   assert (exp);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
+
+  BtorPtrHashTable *uc;
   uc = btor->unsynthesized_constraints;
   if (!btor_find_in_ptr_hash_table (uc, exp))
   {
@@ -8573,9 +8577,11 @@ insert_unsynthesized_constraint (Btor *btor, BtorNode *exp)
 static void
 insert_embedded_constraint (Btor *btor, BtorNode *exp)
 {
-  BtorPtrHashTable *embedded_constraints;
   assert (btor);
   assert (exp);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
+
+  BtorPtrHashTable *embedded_constraints;
   embedded_constraints = btor->embedded_constraints;
   if (!btor_find_in_ptr_hash_table (embedded_constraints, exp))
   {
@@ -8857,6 +8863,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
   assert (btor);
   assert (exp);
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   if (btor->inconsistent) return;
 
@@ -8932,6 +8939,7 @@ add_constraint (Btor *btor, BtorNode *exp)
   exp = btor_simplify_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   mm = btor->mm;
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
@@ -8979,6 +8987,7 @@ btor_add_constraint_exp (Btor *btor, BtorNode *exp)
   exp = btor_simplify_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   add_constraint (btor, exp);
 }
@@ -8996,6 +9005,7 @@ btor_add_assumption_exp (Btor *btor, BtorNode *exp)
   exp = btor_simplify_exp (btor, exp);
   assert (!BTOR_IS_ARRAY_NODE (BTOR_REAL_ADDR_NODE (exp)));
   assert (BTOR_REAL_ADDR_NODE (exp)->len == 1);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->parameterized);
 
   mm = btor->mm;
   if (btor->valid_assignments) btor_reset_incremental_usage (btor);
