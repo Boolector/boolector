@@ -2111,7 +2111,8 @@ collect_premisses (Btor *btor,
           if (!btor_find_in_ptr_hash_table (bconds_sel1, res_cond))
           {
             BTORLOG ("collect cond if: %s", node2string (res_cond));
-            btor_insert_in_ptr_hash_table (bconds_sel1, res_cond);
+            btor_insert_in_ptr_hash_table (bconds_sel1,
+                                           btor_copy_exp (btor, res_cond));
           }
         }
         else
@@ -2120,10 +2121,12 @@ collect_premisses (Btor *btor,
           if (!btor_find_in_ptr_hash_table (bconds_sel2, res_cond))
           {
             BTORLOG ("collect cond else: %s", node2string (res_cond));
-            btor_insert_in_ptr_hash_table (bconds_sel2, res_cond);
+            btor_insert_in_ptr_hash_table (bconds_sel2,
+                                           btor_copy_exp (btor, res_cond));
           }
         }
         btor_freestr (mm, (char *) res);
+        btor_release_exp (btor, res_cond);
       }
     }
 
