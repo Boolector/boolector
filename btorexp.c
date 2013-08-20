@@ -2469,26 +2469,35 @@ static void
 encode_lemma (Btor *btor,
               BtorPtrHashTable *bconds_sel1,
               BtorPtrHashTable *bconds_sel2,
-              BtorNode *app0,
-              BtorNode *app1)
+              BtorNode *a,
+              BtorNode *b,
+              BtorNode *args0,
+              BtorNode *args1)
 {
   assert (btor);
   assert (bconds_sel1);
   assert (bconds_sel2);
-  assert (app0);
-  assert (app1);
-  assert (BTOR_IS_REGULAR_NODE (app0));
-  assert (BTOR_IS_REGULAR_NODE (app1));
-  assert (BTOR_IS_APPLY_NODE (app0));
+  assert (a);
+  assert (b);
+  assert (BTOR_IS_REGULAR_NODE (a));
+  assert (BTOR_IS_APPLY_NODE (a));
+  assert (BTOR_IS_REGULAR_NODE (args0));
+  assert (BTOR_IS_ARGS_NODE (args0));
+  assert (!args1 || BTOR_IS_REGULAR_NODE (b));
+  assert (!args1 || BTOR_IS_APPLY_NODE (b));
+  assert (!args1 || BTOR_IS_REGULAR_NODE (args1));
+  assert (!args1 || BTOR_IS_ARGS_NODE (args1));
+  assert (!a->parameterized);
+  assert (!BTOR_REAL_ADDR_NODE (b)->parameterized);
+  assert (BTOR_IS_SYNTH_NODE (a));
 
   int k, val;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
   BtorAIGMgr *amgr;
   BtorSATMgr *smgr;
-  BtorNode *args, *arg0, *arg1;
+  BtorNode *arg0, *arg1;
   BtorNode *cond;
-  BtorNode *cur, *lambda_value, *parameterized;
   BtorIntStack linking_clause;
   BtorPtrHashBucket *bucket;
   BtorArgsIterator it0, it1;
@@ -2500,38 +2509,18 @@ encode_lemma (Btor *btor,
 
   BTOR_INIT_STACK (linking_clause);
 
-  if (BTOR_IS_LAMBDA_NODE (app1))
+  /* function congruence axiom conflict:
+   *   apply arguments: a_0,...,a_n, b_0,...,b_n
+   *   encode premisses: \forall i <= n . /\ a_i = b_i */
+  if (args1)
   {
-    assert (!app1->parameterized);
-    args = app0->e[1];
-    btor_assign_args (btor, app1, args);
-    lambda_value = btor_beta_reduce_cutoff (btor, app1, &parameterized);
-    btor_unassign_params (btor, app1);
+    assert (BTOR_IS_SYNTH_NODE (b));
+    assert (((BtorArgsNode *) args0)->num_args
+            == ((BtorArgsNode *) args1)->num_args);
+    assert (args0->len == args1->len);
 
-    cur = parameterized ? parameterized : BTOR_REAL_ADDR_NODE (lambda_value);
-    find_shortest_path (btor, app1, cur, args);
-    collect_premisses (btor, cur, app1, args, bconds_sel1, bconds_sel2);
-#if 0
-      print_lemma_dbg (btor, bconds_sel1, bconds_sel2, app0, lambda_value);
-#endif
-    add_eq_exp_to_clause (btor, app0, lambda_value, &linking_clause);
-    btor_release_exp (btor, lambda_value);
-  }
-  else
-  {
-    assert (BTOR_IS_APPLY_NODE (app1));
-    assert (BTOR_IS_SYNTH_NODE (app0));
-    assert (BTOR_IS_SYNTH_NODE (app1));
-    assert (BTOR_IS_REGULAR_NODE (app0->e[1]));
-    assert (BTOR_IS_REGULAR_NODE (app1->e[1]));
-    assert (BTOR_IS_ARGS_NODE (app0->e[1]));
-    assert (BTOR_IS_ARGS_NODE (app1->e[1]));
-    assert (((BtorArgsNode *) app0->e[1])->num_args
-            == ((BtorArgsNode *) app1->e[1])->num_args);
-    assert (app0->e[1]->len == app1->e[1]->len);
-
-    init_args_iterator (&it0, app0->e[1]);
-    init_args_iterator (&it1, app1->e[1]);
+    init_args_iterator (&it0, args0);
+    init_args_iterator (&it1, args1);
 
     while (has_next_args_iterator (&it0))
     {
@@ -2541,19 +2530,19 @@ encode_lemma (Btor *btor,
       add_neq_exp_to_clause (btor, arg0, arg1, &linking_clause);
       btor->stats.lemmas_size_sum += 1;
     }
-#if 0
-      print_lemma_dbg (btor, bconds_sel1, bconds_sel2, app0, app1);
-#endif
-    add_eq_exp_to_clause (btor, app0, app1, &linking_clause);
   }
+  /* else beta reduction conflict */
 
-#if 0
-  btor->stats.lemmas_size_sum += aeqs->count;
-#endif
+  /* encode conclusion a = b */
+  add_eq_exp_to_clause (btor, a, b, &linking_clause);
+
+  btor->stats.lemmas_size_sum += 1; /* a == b */
   btor->stats.lemmas_size_sum += bconds_sel1->count;
   btor->stats.lemmas_size_sum += bconds_sel2->count;
-  btor->stats.lemmas_size_sum += 1; /* a == b */
 
+  /* premisses bv conditions:
+   *   true conditions: c_0, ..., c_k
+   *   encode premisses: \forall i <= k. /\ c_i */
   for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
   {
     cond = (BtorNode *) bucket->key;
@@ -2564,6 +2553,9 @@ encode_lemma (Btor *btor,
     btor_release_exp (btor, cond);
   }
 
+  /* premisses bv conditions:
+   *   false conditions: c_0, ..., c_l
+   *   encode premisses: \forall i <= l. /\ \not c_i */
   for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
   {
     cond = (BtorNode *) bucket->key;
@@ -7058,17 +7050,16 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
   assert (btor);
   assert (fun);
   assert (app0);
-  assert (app1);
   assert (BTOR_IS_REGULAR_NODE (fun));
-  assert (BTOR_IS_REGULAR_NODE (app0));
-  assert (BTOR_IS_REGULAR_NODE (app1));
   assert (BTOR_IS_FUN_NODE (fun));
+  assert (!fun->parameterized);
+  assert (BTOR_IS_REGULAR_NODE (app0));
   assert (BTOR_IS_APPLY_NODE (app0));
-  assert (BTOR_IS_APPLY_NODE (app1) || BTOR_IS_FUN_NODE (app1));
-  assert (!BTOR_IS_FUN_NODE (app1) || fun == app1);
+  assert (!app1 || BTOR_IS_REGULAR_NODE (app1));
+  assert (!app1 || BTOR_IS_APPLY_NODE (app1));
 
   BtorPtrHashTable *bconds_sel1, *bconds_sel2;
-  BtorNode *app, *args;
+  BtorNode *args, *value, *exp, *parameterized;
   BtorMemMgr *mm;
 
   mm = btor->mm;
@@ -7081,18 +7072,42 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
-  for (app = app0; app; app = app == app0 ? app1 : 0)
+  /* beta reduction conflict */
+  if (app1)
   {
-    // TODO: also collect premisses for lambda value (instead of encode_lemma)
-    // TODO: right now we can skip app if it is a lambda node
-    if (!BTOR_IS_APPLY_NODE (app)) continue;
-    args = app->e[1];
-    find_shortest_path (btor, app, fun, args);
-    //      print_bfs_path_dbg (btor, fun, app);
-    collect_premisses (btor, fun, app, args, bconds_sel1, bconds_sel2);
+    for (exp = app0; exp; exp = exp == app0 ? app1 : 0)
+    {
+      assert (exp);
+      assert (BTOR_IS_APPLY_NODE (exp));
+      args = exp->e[1];
+      /* path from exp to conflicting fun */
+      find_shortest_path (btor, exp, fun, args);
+      collect_premisses (btor, fun, exp, args, bconds_sel1, bconds_sel2);
+    }
+    encode_lemma (
+        btor, bconds_sel1, bconds_sel2, app0, app1, app0->e[1], app1->e[1]);
   }
+  /* function congruence axiom conflict */
+  else
+  {
+    args = app0->e[1];
+    btor_assign_args (btor, fun, args);
+    value = btor_beta_reduce_cutoff (btor, fun, &parameterized);
+    btor_unassign_params (btor, fun);
+    exp = parameterized ? parameterized : BTOR_REAL_ADDR_NODE (value);
 
-  encode_lemma (btor, bconds_sel1, bconds_sel2, app0, app1);
+    /* path from app0 to conflicting fun */
+    find_shortest_path (btor, app0, fun, args);
+    collect_premisses (btor, fun, app0, args, bconds_sel1, bconds_sel2);
+
+    /* path from conflicting fun to value */
+    find_shortest_path (btor, fun, exp, args);
+    collect_premisses (btor, exp, fun, args, bconds_sel1, bconds_sel2);
+
+    encode_lemma (btor, bconds_sel1, bconds_sel2, app0, value, app0->e[1], 0);
+
+    btor_release_exp (btor, value);
+  }
 
   btor_delete_ptr_hash_table (bconds_sel1);
   btor_delete_ptr_hash_table (bconds_sel2);
@@ -8120,7 +8135,7 @@ propagate (Btor *btor,
           BTORLOG ("  app2: %s", node2string (fun));
           BTORLOG ("\e[0;39m");
           btor->stats.array_axiom_2_conflicts++;
-          add_lemma (btor, fun, app, fun);
+          add_lemma (btor, fun, app, 0);
           btor_unassign_params (btor, fun);
           btor_release_exp (btor, fun_value);
           if (parameterized) BTOR_RELEASE_STACK (mm, param_apps);
