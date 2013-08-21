@@ -1644,6 +1644,12 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   char *strtrapi;
   BtorNode *res;
 
+  i = btor_fun_sort_check (btor, argc, args, fun);
+  BTOR_ABORT_BOOLECTOR (i >= 0,
+                        "sort of argument at position %d does not match given"
+                        " function signature",
+                        i);
+
   len = 7 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "apply %d", argc);
