@@ -1955,6 +1955,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
     {
       cond = cur->e[0];
       res  = (char *) btor_eval_exp (btor, cond);
+      assert (res);
       next = res[0] == '1' ? cur->e[1] : cur->e[2];
       next = BTOR_REAL_ADDR_NODE (next);
       btor_freestr (mm, (char *) res);
@@ -2096,6 +2097,7 @@ collect_premisses (Btor *btor,
         btor_assign_args (btor, lambda, args);
         res_cond = btor_beta_reduce_cutoff (btor, cond, 0);
         res      = btor_eval_exp (btor, res_cond);
+        assert (res);
         btor_unassign_params (btor, lambda);
 
         /* determine resp. branch that was taken in bfs */
@@ -2262,6 +2264,7 @@ collect_premisses (Btor *btor,
 
         btor_assign_args (btor, lambda, args);
         res = btor_eval_exp (btor, cond);
+        assert (res);
         btor_unassign_params (btor, lambda);
 
         /* determine resp. branch that was taken in bfs */
@@ -6578,12 +6581,13 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
          * If there are no reads or array equalities on a write, then
          * it is not reachable. (Lambdas are treated similarly.)
          */
-        assert (!BTOR_IS_LAMBDA_NODE (cur));
+        //	      assert (!BTOR_IS_LAMBDA_NODE (cur));
 
         /* Atomic arrays and array conditionals should also not be
          * reached directly.
          */
-        assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
+        //	      assert (!BTOR_IS_ARRAY_VAR_NODE (cur));
+        assert (!BTOR_IS_FUN_NODE (cur));
 
         /* special cases */
         if (BTOR_IS_APPLY_NODE (cur) && !cur->parameterized)
@@ -6594,19 +6598,22 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
           assert (BTOR_IS_FUN_NODE (cur->e[0]));
           goto REGULAR_CASE;
         }
-        else if (BTOR_IS_ARRAY_EQ_NODE (cur) && !cur->parameterized)
-        {
-          /* Generate virtual reads and create AIG variable for
-           * array equality.
-           */
-          synthesize_array_equality (btor, cur);
-          BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
-          BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
-          goto REGULAR_CASE;
-        }
+#if 0
+	      else if (BTOR_IS_ARRAY_EQ_NODE (cur) && !cur->parameterized)
+		{
+		  /* Generate virtual reads and create AIG variable for
+		   * array equality.
+		   */
+		  synthesize_array_equality (btor, cur);
+		  BTOR_PUSH_STACK (mm, exp_stack, cur->e[1]);
+		  BTOR_PUSH_STACK (mm, exp_stack, cur->e[0]);
+		  goto REGULAR_CASE;
+		}
+#endif
         else
         {
         REGULAR_CASE:
+          // TODO: get rid of no_synth (use BTOR_IS_ARGS_NODE instead)
           /* always skip lambda and parameterized nodes */
           if (BTOR_IS_LAMBDA_NODE (cur) || cur->parameterized || cur->no_synth)
             cur->synth_mark = 2;
@@ -6966,6 +6973,8 @@ compare_argument_assignments (BtorNode *e0, BtorNode *e1)
     else
       avec1 = btor_bv_assignment_exp (btor, arg1);
 
+    assert (avec0);
+    assert (avec1);
     equal = strcmp (avec0, avec1) == 0;
     btor_freestr (btor->mm, (char *) avec0);
     btor_freestr (btor->mm, (char *) avec1);
@@ -7365,6 +7374,14 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
     cur      = BTOR_POP_STACK (work_stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
+
+    /* if we do not have an assignment for an apply we cannot compute the
+     * corresponding value */
+    if (BTOR_IS_APPLY_NODE (real_cur) && !real_cur->tseitin)
+    {
+      result = 0;
+      goto EVAL_EXP_CLEANUP_EXIT;
+    }
     assert (!BTOR_IS_APPLY_NODE (real_cur) || real_cur->tseitin);
 
     if (real_cur->eval_mark == 0)
@@ -7508,6 +7525,13 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   assert (BTOR_COUNT_STACK (arg_stack) == 1);
   result = BTOR_POP_STACK (arg_stack);
   assert (result);
+
+EVAL_EXP_CLEANUP_EXIT:
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur            = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+    cur->eval_mark = 0;
+  }
 
   for (b = cache->first; b; b = b->next)
   {
@@ -8120,6 +8144,7 @@ propagate (Btor *btor,
          * assignment of 'app'. */
         app_assignment       = btor_bv_assignment_exp (btor, app);
         fun_value_assignment = (char *) btor_eval_exp (btor, fun_value);
+        assert (fun_value_assignment);
         values_equal = strcmp (app_assignment, fun_value_assignment) == 0;
         btor_freestr (mm, fun_value_assignment);
         btor_free_bv_assignment_exp (btor, app_assignment);

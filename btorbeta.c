@@ -861,13 +861,17 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
                 || BTOR_REAL_ADDR_NODE (e[0])->parameterized
                 || BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (e[0])));
         eval_res = btor_eval_exp (btor, e[0]);
-        next     = eval_res[0] == '1' ? e[1] : e[2];
-        assert (next);
-        if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
-        BTOR_PUSH_STACK (mm, stack, next);
-        BTOR_PUSH_STACK (mm, stack, real_cur);
-        btor_freestr (mm, (char *) eval_res);
-        continue;
+
+        if (eval_res)
+        {
+          next = eval_res[0] == '1' ? e[1] : e[2];
+          assert (next);
+          if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+          BTOR_PUSH_STACK (mm, stack, next);
+          BTOR_PUSH_STACK (mm, stack, real_cur);
+          btor_freestr (mm, (char *) eval_res);
+          continue;
+        }
       }
       /* assign params of lambda expression */
       else if (BTOR_IS_LAMBDA_NODE (real_cur)
@@ -990,6 +994,12 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
           parameterized_result = param_stack.top[0];
           btor_release_exp (btor, e[1]);
           btor_unassign_params (btor, real_cur);
+          break;
+        case BTOR_BCOND_NODE:
+          result = btor_cond_exp (btor, e[2], e[1], e[0]);
+          btor_release_exp (btor, e[0]);
+          btor_release_exp (btor, e[1]);
+          btor_release_exp (btor, e[2]);
           break;
         default:
           printf ("%s\n", node2string (real_cur));
