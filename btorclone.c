@@ -416,12 +416,16 @@ clone_ptr_hash_table (BtorPtrHashTable *table,
                       BtorPtrHashTable *res_table,
                       BtorNodeMap *exp_map)
 {
-  assert (table);
-  assert (res_table);
   assert (exp_map);
 
   BtorNode *cloned_exp;
   BtorPtrHashBucket *b;
+
+  if (!table)
+  {
+    assert (!res_table);
+    return;
+  }
 
   for (b = table->first; b; b = b->next)
   {
@@ -491,6 +495,7 @@ btor_clone_btor (Btor *btor)
   clone_ptr_hash_table (btor->bv_vars, clone->bv_vars, exp_map);
   clone_ptr_hash_table (btor->array_vars, clone->array_vars, exp_map);
   clone_ptr_hash_table (btor->lambdas, clone->lambdas, exp_map);
+
   clone_ptr_hash_table (btor->substitutions, clone->substitutions, exp_map);
 
   clone_ptr_hash_table (btor->lod_cache, clone->lod_cache, exp_map);
