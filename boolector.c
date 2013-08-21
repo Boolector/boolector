@@ -1957,6 +1957,7 @@ boolector_array_assignment (
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   btor_array_assignment_exp (btor, e_array, indices, values, size);
+  BTOR_TRAPI ("return %p %p %d", *indices, *values, *size);
 }
 
 void
