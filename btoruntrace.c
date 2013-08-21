@@ -172,7 +172,9 @@ hmap_clear (BtorPtrHashTable *hmap)
 #define RET_VOIDPTR 1
 #define RET_INT 2
 #define RET_CHARPTR 3
+#define RET_ARRASS 4
 #define RET_SKIP -1
+
 void
 parse (FILE *file)
 {
@@ -240,6 +242,16 @@ NEXT:
         checklastarg ("return");
         if (strcmp (exp_str, ret_str))
           die ("expected return string %s but got %s", exp_str, ret_str);
+      }
+      else if (exp_ret == RET_ARRASS)
+      {
+        assert (res1_pptr);
+        assert (res2_pptr);
+        PARSE_ARGS3 (tok, str, str, int);
+        hmap_add (hmap, arg1_str, res1_pptr);
+        hmap_add (hmap, arg2_str, res2_pptr);
+        if (arg3_int != ret_int)
+          die ("expected return value %d but got %d", arg2_int, ret_int);
       }
       else
         assert (exp_ret == RET_SKIP);
@@ -858,8 +870,7 @@ NEXT:
     PARSE_ARGS1 (tok, str);
     boolector_array_assignment (
         btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
-    hmap_add (hmap, arg2_str, res1_pptr);
-    hmap_add (hmap, arg3_str, res2_pptr);
+    exp_ret = RET_ARRASS;
   }
   else if (!strcmp (tok, "free_array_assignment"))
   {

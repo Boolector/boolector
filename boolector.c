@@ -2375,6 +2375,8 @@ boolector_array_assignment (
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   btor_array_assignment_exp (btor, e_array, indices, values, size);
+  /* special case: we treat out parameters as return values for btoruntrace */
+  BTOR_TRAPI ("return %p %p %d", *indices, *values, *size);
   BTOR_CHKCLONENORES (
       boolector_array_assignment, e_array, indices, values, size);
 }
