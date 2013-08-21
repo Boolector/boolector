@@ -1634,12 +1634,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (fun);
-  BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
-  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
-                        "no arguments given but argc defined > 0");
-  BTOR_ABORT_BOOLECTOR (
-      !BTOR_IS_LAMBDA_NODE (fun) || argc != boolector_get_fun_arity (btor, fun),
-      "number of arguments does not match arity of 'fun'");
+
   int i, len;
   char *strtrapi;
   BtorNode *res;
@@ -1655,12 +1650,18 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_TRAPI (strtrapi);
   BTOR_DELETEN (btor->mm, strtrapi, len);
 
+  fun = btor_simplify_exp (btor, fun);
+  BTOR_ABORT_BOOLECTOR (argc < 1, "'argc' must not be < 1");
+  BTOR_ABORT_BOOLECTOR (argc >= 1 && !args,
+                        "no arguments given but argc defined > 0");
+  BTOR_ABORT_BOOLECTOR (
+      !BTOR_IS_LAMBDA_NODE (fun) || argc != btor_get_lambda_arity (btor, fun),
+      "number of arguments does not match arity of 'fun'");
   i = btor_fun_sort_check (btor, argc, args, fun);
   BTOR_ABORT_BOOLECTOR (i >= 0,
                         "sort of argument at position %d does not match given"
                         " function signature",
                         i);
-
   btor->external_refs++;
   res = btor_apply_exps (btor, argc, args, fun);
   BTOR_TRAPI_RETURNP (res);
