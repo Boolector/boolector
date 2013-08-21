@@ -7544,6 +7544,12 @@ EVAL_EXP_CLEANUP_EXIT:
     cur->eval_mark = 0;
   }
 
+  while (!BTOR_EMPTY_STACK (arg_stack))
+  {
+    inv_result = BTOR_POP_STACK (arg_stack);
+    btor_freestr (mm, (char *) inv_result);
+  }
+
   for (b = cache->first; b; b = b->next)
   {
     real_cur = (BtorNode *) b->key;
@@ -10728,10 +10734,11 @@ run_rewrite_engine (Btor *btor)
     }
 #endif
 
-    if (btor->rewrite_level > 2)
-    {
-      merge_lambda_chains (btor);
-    }
+    // FIXME: inf. loop
+    //      if (btor->rewrite_level > 2)
+    //	{
+    //	  merge_lambda_chains (btor);
+    //	}
 
     if (btor->varsubst_constraints->count) continue;
 
