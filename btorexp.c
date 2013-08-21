@@ -7270,7 +7270,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   double start;
   int changed_assignments, update, i;
-  BtorNodePtrStack work_stack;
+  BtorNodePtrStack work_stack, unmark_stack;
   BtorNode *cur;
   BtorMemMgr *mm;
   BtorAIGVecMgr *avmgr;
@@ -7285,6 +7285,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   update              = 0;
 
   BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (unmark_stack);
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda_exp));
 
@@ -7300,10 +7301,13 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
 
-    if (cur->tseitin) continue;
+    if (cur->tseitin || cur->mark) continue;
 
     /* do not encode expressions that are not in the scope of 'lambda_exp' */
     if (BTOR_IS_FUN_NODE (cur) && !cur->parameterized) continue;
+
+    cur->mark = 1;
+    BTOR_PUSH_STACK (mm, unmark_stack, cur);
 
     if (!BTOR_IS_ARGS_NODE (cur) && !BTOR_IS_LAMBDA_NODE (cur)
         && !cur->parameterized)
@@ -7319,8 +7323,15 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
     for (i = 0; i < cur->arity; i++)
       BTOR_PUSH_STACK (mm, work_stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
   }
-
   BTOR_RELEASE_STACK (mm, work_stack);
+
+  while (!BTOR_EMPTY_STACK (unmark_stack))
+  {
+    cur = BTOR_POP_STACK (unmark_stack);
+    assert (cur->mark);
+    cur->mark = 0;
+  }
+  BTOR_RELEASE_STACK (mm, unmark_stack);
 
   /* set tseitin flag of lambda expression to indicate that it has been
    * lazily synthesized already */
