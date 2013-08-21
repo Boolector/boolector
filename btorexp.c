@@ -10155,7 +10155,9 @@ process_skeleton_tseitin (Btor *btor,
     else if (exp->mark == 1)
     {
       exp->mark = 2;
-      if (exp->len != 1 || BTOR_IS_ARRAY_NODE (exp)) continue;
+      if (exp->len != 1 || BTOR_IS_FUN_NODE (exp) || BTOR_IS_ARGS_NODE (exp)
+          || exp->parameterized)
+        continue;
 
 #ifndef NDEBUG
       for (i = 0; i < exp->arity; i++)
