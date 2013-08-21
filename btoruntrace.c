@@ -863,6 +863,7 @@ NEXT:
     PARSE_ARGS1 (tok, str);
     boolector_array_assignment (
         btor, hmap_get (hmap, arg1_str), &res1_pptr, &res2_pptr, &ret_int);
+    exp_ret = RET_ARRASS;
   }
   else if (!strcmp (tok, "free_array_assignment"))
   {
