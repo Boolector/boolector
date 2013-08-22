@@ -2084,14 +2084,13 @@ collect_premisses (Btor *btor,
   assert (BTOR_TOP_STACK (path) == to);
   while (!BTOR_EMPTY_STACK (path))
   {
-    if (cur == to) break;
-
     cur = BTOR_POP_STACK (path);
     assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
 
     if (BTOR_IS_LAMBDA_NODE (cur))
     {
+      assert (!cur->parameterized);
       btor_assign_args (btor, cur, args);
       BTOR_PUSH_STACK (mm, cleanup_stack, cur);
     }
@@ -2142,6 +2141,7 @@ collect_premisses (Btor *btor,
       }
     }
   }
+  assert (cur == from);
 
   while (!BTOR_EMPTY_STACK (cleanup_stack))
   {
