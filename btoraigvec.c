@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -10,6 +11,7 @@
  */
 
 #include "btoraigvec.h"
+#include "btormap.h"
 #include "btorutil.h"
 
 #include <assert.h>
@@ -627,6 +629,26 @@ btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
   return result;
 }
 
+BtorAIGVec *
+btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr, BtorAIGMap *aig_map)
+{
+  assert (av);
+  assert (avmgr);
+  assert (aig_map);
+
+  int i;
+  BtorAIGVec *res;
+
+  BTOR_NEW (avmgr->mm, res);
+  res->len = av->len;
+  for (i = 0; i < av->len; i++)
+  {
+    res->aigs[i] = btor_mapped_aig (aig_map, av->aigs[i]);
+    assert (res->aigs[i]);
+  }
+  return res;
+}
+
 void
 btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av)
 {
@@ -666,6 +688,26 @@ btor_new_aigvec_mgr (BtorMemMgr *mm)
   avmgr->verbosity = 0;
   avmgr->amgr      = btor_new_aig_mgr (mm);
   return avmgr;
+}
+
+BtorAIGVecMgr *
+btor_clone_aigvec_mgr (BtorAIGVecMgr *avmgr,
+                       BtorMemMgr *mm,
+                       BtorAIGPtrPtrStack *nexts,
+                       BtorAIGMap *aig_map)
+{
+  assert (avmgr);
+  assert (mm);
+  assert (nexts);
+  assert (aig_map);
+
+  BtorAIGVecMgr *res;
+  BTOR_NEW (mm, res);
+
+  res->mm        = mm;
+  res->verbosity = avmgr->verbosity;
+  res->amgr      = btor_clone_aig_mgr (avmgr->amgr, mm, nexts, aig_map);
+  return res;
 }
 
 void

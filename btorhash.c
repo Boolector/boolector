@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -34,6 +35,42 @@ btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
   res->mem  = mem;
   res->hash = hash ? hash : btor_hash_ptr;
   res->cmp  = cmp ? cmp : btor_cmp_ptr;
+
+  return res;
+}
+
+BtorPtrHashTable *
+btor_clone_ptr_hash_table (BtorMemMgr *mem,
+                           BtorPtrHashTable *table,
+                           BtorCloneKeyPtr ckey,
+                           BtorCloneDataPtr cdata,
+                           void *key_map,
+                           void *data_map)
+{
+  assert (mem);
+  assert (ckey);
+  assert (key_map);
+
+  BtorPtrHashTable *res;
+  BtorPtrHashBucket *b, *cloned_b;
+  void *cloned_key;
+
+  if (!table) return NULL;
+
+  res = btor_new_ptr_hash_table (mem, table->hash, table->cmp);
+
+  for (b = table->first; b; b = b->next)
+  {
+    cloned_key = ckey (key_map, b->key);
+    assert (cloned_key);
+    cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
+    if (!cdata)
+      assert (b->data.asPtr = 0);
+    else
+      cdata (data_map, b->data.asPtr, &cloned_b->data);
+  }
+
+  assert (table->count == res->count);
 
   return res;
 }

@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -101,6 +102,30 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   btor_enable_default_sat (smgr);
 
   return smgr;
+}
+
+// FIXME log output handling, in particular: sat manager name output
+// (see btor_lingeling_sat) should be unique, which is not the case for
+// clones
+BtorSATMgr *
+btor_clone_sat_mgr (BtorSATMgr *smgr, BtorMemMgr *mm)
+{
+  assert (smgr);
+  assert (!strcmp (smgr->name, "Lingeling"));
+  assert (mm);
+
+  BtorSATMgr *res;
+
+  BTOR_NEW (mm, res);
+
+  res->solver = lglclone (smgr->solver);
+  res->mm     = mm;
+  res->name   = btor_strdup (mm, smgr->name);
+  res->optstr = btor_strdup (mm, smgr->optstr);
+  memcpy (&res->verbosity,
+          &smgr->verbosity,
+          (char *) smgr + sizeof (*smgr) - (char *) &smgr->verbosity);
+  return res;
 }
 
 void

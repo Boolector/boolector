@@ -20,6 +20,8 @@
 
 #include <stdio.h>
 
+typedef struct BtorAIGMap BtorAIGMap;
+
 /*------------------------------------------------------------------------*/
 
 struct BtorAIG
@@ -39,6 +41,7 @@ typedef struct BtorAIG BtorAIG;
 typedef struct BtorAIGMgr BtorAIGMgr;
 
 BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
+BTOR_DECLARE_STACK (AIGPtrPtr, BtorAIG **);
 
 /*------------------------------------------------------------------------*/
 
@@ -77,6 +80,12 @@ BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
  * of the AIG layer.
  */
 BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
+
+/* Clones AIG manager. */
+BtorAIGMgr *btor_clone_aig_mgr (BtorAIGMgr *amgr,
+                                BtorMemMgr *mm,
+                                BtorAIGPtrPtrStack *nexts,
+                                BtorAIGMap *aig_map);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);

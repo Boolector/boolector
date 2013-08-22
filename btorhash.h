@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -26,6 +27,11 @@ typedef unsigned (*BtorHashPtr) (const void *key);
 typedef int (*BtorCmpPtr) (const void *a, const void *b);
 
 typedef union BtorPtrHashData BtorPtrHashData;
+
+typedef void *(*BtorCloneKeyPtr) (const void *map, const void *key);
+typedef void (*BtorCloneDataPtr) (const void *map,
+                                  const void *key,
+                                  BtorPtrHashData *data);
 
 union BtorPtrHashData
 {
@@ -70,6 +76,13 @@ struct BtorPtrHashTable
 BtorPtrHashTable *btor_new_ptr_hash_table (BtorMemMgr *,
                                            BtorHashPtr,
                                            BtorCmpPtr);
+
+BtorPtrHashTable *btor_clone_ptr_hash_table (BtorMemMgr *mem,
+                                             BtorPtrHashTable *table,
+                                             BtorCloneKeyPtr ckey,
+                                             BtorCloneDataPtr cdata,
+                                             void *key_map,
+                                             void *data_map);
 
 void btor_delete_ptr_hash_table (BtorPtrHashTable *);
 

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,6 +13,7 @@
 #include "btoraig.h"
 #include "btorexit.h"
 #include "btorhash.h"
+#include "btormap.h"
 #include "btorsat.h"
 #include "btorutil.h"
 
@@ -1034,6 +1036,110 @@ btor_new_aig_mgr (BtorMemMgr *mm)
   amgr->smgr      = btor_new_sat_mgr (mm);
   BTOR_INIT_STACK (amgr->id2aig);
   return amgr;
+}
+
+static BtorAIG *
+clone_aig (BtorMemMgr *mm,
+           BtorAIG *aig,
+           BtorAIGPtrPtrStack *nexts,
+           BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (aig);
+  assert (nexts);
+  assert (aig_map);
+
+  int i;
+  BtorAIG *res, *real_aig, *cloned_aig;
+
+  real_aig = BTOR_REAL_ADDR_AIG (aig);
+  BTOR_NEW (mm, res);
+  memcpy (res, real_aig, sizeof *real_aig);
+
+  for (i = 0; i < 2 && real_aig->children[i]; i++)
+  {
+    cloned_aig = btor_mapped_aig (aig_map, real_aig->children[i]);
+    assert (cloned_aig);
+    res->children[i] = cloned_aig;
+  }
+
+  BTOR_PUSH_STACK_IF (real_aig->next, mm, *nexts, &real_aig->next);
+
+  res = BTOR_IS_INVERTED_AIG (aig) ? BTOR_INVERT_AIG (res) : res;
+  btor_map_aig (aig_map, aig, res);
+  return res;
+}
+
+static void
+clone_aig_ptr_stack (BtorMemMgr *mm,
+                     BtorAIGPtrStack *stack,
+                     BtorAIGPtrStack *res_stack,
+                     BtorAIGPtrPtrStack *nexts,
+                     BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (stack);
+  assert (res_stack);
+  assert (nexts);
+  assert (aig_map);
+
+  int i, n;
+
+  n = BTOR_COUNT_STACK (*stack);
+  for (i = 0; i < n; i++)
+    BTOR_PUSH_STACK (mm,
+                     *res_stack,
+                     stack->start[i]
+                         ? clone_aig (mm, stack->start[i], nexts, aig_map)
+                         : (*stack).start[i]);
+}
+
+static void
+clone_aig_unique_table (BtorMemMgr *mm,
+                        BtorAIGUniqueTable *table,
+                        BtorAIGUniqueTable *res_table,
+                        BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (table);
+  assert (res_table);
+  assert (aig_map);
+
+  int i;
+
+  BTOR_CNEWN (mm, res_table->chains, table->size);
+  res_table->size         = table->size;
+  res_table->num_elements = table->num_elements;
+
+  for (i = 0; i < table->size; i++)
+  {
+    if (!res_table->chains[i]) continue;
+    res_table->chains[i] = btor_mapped_aig (aig_map, table->chains[i]);
+    assert (res_table->chains[i]);
+  }
+}
+
+BtorAIGMgr *
+btor_clone_aig_mgr (BtorAIGMgr *amgr,
+                    BtorMemMgr *mm,
+                    BtorAIGPtrPtrStack *nexts,
+                    BtorAIGMap *aig_map)
+{
+  assert (amgr);
+  assert (mm);
+
+  BtorAIGMgr *res;
+
+  BTOR_NEW (mm, res);
+  res->mm = mm;
+
+  clone_aig_ptr_stack (mm, &amgr->id2aig, &res->id2aig, nexts, aig_map);
+  clone_aig_unique_table (mm, &amgr->table, &res->table, aig_map);
+
+  res->id        = amgr->id;
+  res->verbosity = amgr->verbosity;
+  res->smgr      = btor_clone_sat_mgr (amgr->smgr, mm);
+  return res;
 }
 
 void

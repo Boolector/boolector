@@ -89,6 +89,7 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 /*------------------------------------------------------------------------*/
 
 BTOR_DECLARE_STACK (NodePtr, BtorNode *);
+BTOR_DECLARE_STACK (NodePtrPtr, BtorNode **);
 
 BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
 
