@@ -2043,62 +2043,79 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
 #if 1
 static void
 collect_premisses (Btor *btor,
-                   BtorNode *fun,
-                   BtorNode *app,
+                   BtorNode *from,
+                   BtorNode *to,
                    BtorNode *args,
                    BtorPtrHashTable *bconds_sel1,
                    BtorPtrHashTable *bconds_sel2)
 {
   assert (btor);
-  assert (fun);
-  assert (app);
+  assert (from);
+  assert (to);
   assert (bconds_sel1);
   assert (bconds_sel2);
   assert (BTOR_IS_REGULAR_NODE (args));
   assert (BTOR_IS_ARGS_NODE (args));
 
+  BTORLOG ("%s: %s, %s, %s",
+           __FUNCTION__,
+           node2string (from),
+           node2string (to),
+           node2string (args));
+
   const char *res;
-  int propagated_upwards, prev_propagated_upwards;
-  BtorNode *cur, *prev, *cond, *bcond, *lambda, *res_cond, *cur_args;
-  BtorNodePtrStack bconds, apps, cleanup_stack;
+  BtorNode *cur, *cond, *res_cond, *cur_args;
+  BtorNodePtrStack path, cleanup_stack;
   BtorMemMgr *mm;
 
   mm = btor->mm;
 
-  BTOR_INIT_STACK (bconds);
-  BTOR_INIT_STACK (apps);
+  BTOR_INIT_STACK (path);
   BTOR_INIT_STACK (cleanup_stack);
 
-  prev = 0;
-  cur  = fun;
+  cur = from;
   while (1)
   {
+    BTOR_PUSH_STACK (mm, path, cur);
+    if (cur == to) break;
+    cur = BTOR_REAL_ADDR_NODE (cur->parent);
+  }
+
+  assert (BTOR_TOP_STACK (path) == to);
+  while (!BTOR_EMPTY_STACK (path))
+  {
+    if (cur == to) break;
+
+    cur = BTOR_POP_STACK (path);
     assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
 
-    /* set parent lambda expression for collected bit-vector conditions */
-    if (BTOR_IS_LAMBDA_NODE (cur)
-        || (cur == app
-            && (!BTOR_EMPTY_STACK (bconds) || !BTOR_EMPTY_STACK (apps))))
+    if (BTOR_IS_LAMBDA_NODE (cur))
     {
-      assert (btor->lambdas->count > 0u);
-      while (!BTOR_EMPTY_STACK (bconds))
+      btor_assign_args (btor, cur, args);
+      BTOR_PUSH_STACK (mm, cleanup_stack, cur);
+    }
+    else if (BTOR_IS_APPLY_NODE (cur) && cur->e[0]->parameterized)
+    {
+      cur_args = btor_beta_reduce_cutoff (btor, cur->e[1], 0);
+      assert (BTOR_IS_REGULAR_NODE (cur_args));
+      assert (BTOR_IS_ARGS_NODE (cur_args));
+      assert (BTOR_IS_LAMBDA_NODE (cur->e[0]));
+      btor_assign_args (btor, cur->e[0], cur_args);
+      BTOR_PUSH_STACK (mm, cleanup_stack, cur->e[0]);
+      BTOR_PUSH_STACK (mm, cleanup_stack, cur_args);
+    }
+    else if (BTOR_IS_BV_COND_NODE (cur) && cur->parameterized)
+    {
+      cond = cur->e[0];
+      assert (btor->rewrite_level == 0
+              || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
+
+      if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
       {
-        bcond = BTOR_POP_STACK (bconds);
-        assert (BTOR_IS_REGULAR_NODE (bcond));
-        assert (BTOR_IS_BV_COND_NODE (bcond));
-        assert (!PROPAGATED_UPWARDS (bcond));
-        cond   = bcond->e[0];
-        lambda = cur;
-
-        if (BTOR_IS_NESTED_LAMBDA_NODE (lambda))
-          lambda = (BtorNode *) BTOR_LAMBDA_GET_NESTED (lambda);
-
-        btor_assign_args (btor, lambda, args);
         res_cond = btor_beta_reduce_cutoff (btor, cond, 0);
         res      = btor_eval_exp (btor, res_cond);
         assert (res);
-        btor_unassign_params (btor, lambda);
 
         /* determine resp. branch that was taken in bfs */
         if (res[0] == '1')
@@ -2124,52 +2141,6 @@ collect_premisses (Btor *btor,
         btor_release_exp (btor, res_cond);
       }
     }
-
-    if (cur == app) break;
-
-    propagated_upwards = PROPAGATED_UPWARDS (cur);
-
-    /* skip 'cur' in case it does not influence propagation path:
-     *
-     * 1) (!prev && propagated_upwards)
-     *    'app' was propagated down to 'cur' (conflicting fun if !prev).
-     *    when we propagte 'app' down to the conflicting fun 'fun',
-     *    we do not need the info about 'fun' as the down-propagation
-     *    of 'app' was not not influenced by 'fun'.
-     *
-     * 2) (prev && !(prev_propagated_upwards && !propagated_upwards))
-     *	'app' was propagated down from 'prev' to 'cur' and afterwards
-     *    propagated up from 'cur' to 'cur + 1'. in this case, we do not
-     *    need 'cur' in the lemma, because the down- and up-propagation
-     *    of 'app' was not influenced by 'cur'.
-     */
-    if ((!prev && propagated_upwards)
-        || (prev && !(prev_propagated_upwards && !propagated_upwards)))
-    {
-      assert (cur->parameterized || BTOR_IS_LAMBDA_NODE (cur));
-      /* we only need to collect parameterized bv conds */
-      if (BTOR_IS_BV_COND_NODE (cur) && cur->parameterized)
-      {
-        cond = cur->e[0];
-        assert (btor->rewrite_level == 0
-                || !BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)));
-        if (!BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (cond)))
-          BTOR_PUSH_STACK (mm, bconds, cur);
-      }
-      else if (BTOR_IS_APPLY_NODE (cur) && cur->e[0]->parameterized)
-      {
-        cur_args = btor_beta_reduce_cutoff (btor, cur->e[1], 0);
-        assert (BTOR_IS_REGULAR_NODE (cur_args));
-        assert (BTOR_IS_ARGS_NODE (cur_args));
-        assert (BTOR_IS_LAMBDA_NODE (cur->e[0]));
-        btor_assign_args (btor, cur->e[0], cur_args);
-        BTOR_PUSH_STACK (mm, cleanup_stack, cur->e[0]);
-        BTOR_PUSH_STACK (mm, cleanup_stack, cur_args);
-      }
-    }
-    prev                    = cur;
-    prev_propagated_upwards = propagated_upwards;
-    cur                     = BTOR_REAL_ADDR_NODE (cur->parent);
   }
 
   while (!BTOR_EMPTY_STACK (cleanup_stack))
@@ -2185,8 +2156,7 @@ collect_premisses (Btor *btor,
     }
   }
 
-  BTOR_RELEASE_STACK (mm, bconds);
-  BTOR_RELEASE_STACK (mm, apps);
+  BTOR_RELEASE_STACK (mm, path);
   BTOR_RELEASE_STACK (mm, cleanup_stack);
 }
 
