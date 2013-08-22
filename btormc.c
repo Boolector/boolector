@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -524,7 +525,7 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
     src = latch->next;
     if (src)
     {
-      dst = btor_non_recursive_substitute_node (f->btor, map, src);
+      dst = btor_non_recursive_substitute_node (map, src);
       dst = btor_copy_exp (f->btor, dst);
       BTOR_PUSH_STACK (f->btor->mm, f->next, dst);
       nextstates++;
@@ -558,7 +559,7 @@ initialize_constraints_of_frame (BtorMC *mc, BtorNodeMap *map, BtorMcFrame *f)
   {
     src = BTOR_PEEK_STACK (mc->constraints, i);
     assert (src);
-    dst = btor_non_recursive_substitute_node (f->btor, map, src);
+    dst = btor_non_recursive_substitute_node (map, src);
     if (constraint)
     {
       BtorNode *tmp = btor_and_exp (f->btor, constraint, dst);
@@ -598,7 +599,7 @@ initialize_bad_state_properties_of_frame (BtorMC *mc,
   {
     src = BTOR_PEEK_STACK (mc->bad, i);
     assert (src);
-    dst = btor_non_recursive_substitute_node (f->btor, map, src);
+    dst = btor_non_recursive_substitute_node (map, src);
     dst = btor_copy_exp (f->btor, dst);
     BTOR_PUSH_STACK (f->btor->mm, f->bad, dst);
   }
@@ -625,17 +626,17 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   {
     src = b->key;
     dst = BTOR_PEEK_STACK (f->inputs, i);
-    btor_map_node (f->btor, res, src, dst);
+    btor_map_node (res, src, dst);
   }
 
   for (b = mc->latches->first, i = 0; b; b = b->next, i++)
   {
     src = b->key;
     dst = BTOR_PEEK_STACK (f->latches, i);
-    btor_map_node (f->btor, res, src, dst);
+    btor_map_node (res, src, dst);
   }
 
-  assert (res->count == mc->inputs->count + mc->latches->count);
+  assert (res->table->count == mc->inputs->count + mc->latches->count);
 
   return res;
 }
@@ -680,7 +681,7 @@ initialize_new_forward_frame (BtorMC *mc)
   initialize_constraints_of_frame (mc, map, f);
   initialize_bad_state_properties_of_frame (mc, map, f);
 
-  btor_delete_node_map (f->btor, map);
+  btor_delete_node_map (map);
 
   assert (old_mc_btor_num_nodes == mc->btor->nodes_unique_table.num_elements);
 

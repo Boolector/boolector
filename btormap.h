@@ -16,7 +16,7 @@
 
 /*------------------------------------------------------------------------*/
 
-#define BTOR_COUNT_MAP(MAP) (assert (MAP), (MAP)->count)
+#define BTOR_COUNT_MAP(MAP) (assert (MAP), (MAP)->table->count)
 
 /*------------------------------------------------------------------------*/
 /* Simple map for expression node.  The 'map' owns references to the non
@@ -26,20 +26,23 @@
  * and parent pointer tags), e.g. if 'a' is mapped to 'b', 'a' tagged with
  * (1|2|3) is implicitely mapped to 'b' tagged with (1|2|3), too.
  */
-typedef struct BtorPtrHashTable BtorNodeMap;
+struct BtorNodeMap
+{
+  Btor *btor;
+  BtorPtrHashTable *table;
+};
+typedef struct BtorNodeMap BtorNodeMap;
 
 /*------------------------------------------------------------------------*/
 
 BtorNodeMap *btor_new_node_map (Btor *);
 BtorNode *btor_mapped_node (BtorNodeMap *, BtorNode *);
-void btor_map_node (Btor *, BtorNodeMap *, BtorNode *src, BtorNode *dst);
-void btor_delete_node_map (Btor *, BtorNodeMap *);
+void btor_map_node (BtorNodeMap *, BtorNode *src, BtorNode *dst);
+void btor_delete_node_map (BtorNodeMap *);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *btor_non_recursive_substitute_node (Btor *,
-                                              BtorNodeMap *,
-                                              BtorNode *);
+BtorNode *btor_non_recursive_substitute_node (BtorNodeMap *, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 /* Extended mapping.  A 'BtorNodeMapper' function should return a NEW
@@ -48,10 +51,9 @@ BtorNode *btor_non_recursive_substitute_node (Btor *,
  * mapper implements the base case of a (non-recursive) substitution.
  * The mapper will only be called with non-inverted nodes as arguments.
  */
-typedef BtorNode *(*BtorNodeMapper) (Btor *, void *state, BtorNode *);
+typedef BtorNode *(*BtorNodeMapper) (void *state, BtorNode *);
 
 BtorNode *btor_non_recursive_extended_substitute_node (
-    Btor *,
     BtorNodeMap *,   // share/cache substitution results
     void *state,     // for the mapper
     BtorNodeMapper,  // see above
@@ -63,31 +65,20 @@ BtorNode *btor_non_recursive_extended_substitute_node (
 /* Simple map for AIG node.  Same reference counting and signed/tagged
  * behavior as BtorNodeMap.
  */
-typedef struct BtorPtrHashTable BtorAIGMap;
+struct BtorAIGMap
+{
+  Btor *btor;
+  BtorPtrHashTable *table;
+};
+typedef struct BtorAIGMap BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 
 BtorAIGMap *btor_new_aig_map (Btor *);
 BtorAIG *btor_mapped_aig (BtorAIGMap *, BtorAIG *);
-void btor_map_aig (Btor *, BtorAIGMap *, BtorAIG *src, BtorAIG *dst);
-void btor_delete_aig_map (Btor *, BtorAIGMap *);
+void btor_map_aig (BtorAIGMap *, BtorAIG *src, BtorAIG *dst);
+void btor_delete_aig_map (BtorAIGMap *);
 
 /*------------------------------------------------------------------------*/
 
-/*------------------------------------------------------------------------*/
-/* Simple map for AIGVec node.  No special handling.
- */
-typedef struct BtorPtrHashTable BtorAIGVecMap;
-
-/*------------------------------------------------------------------------*/
-
-BtorAIGMap *btor_new_aigvec_map (Btor *);
-BtorAIG *btor_mapped_aigvec (BtorAIGVecMap *, BtorAIGVec *);
-void btor_map_aigvec (Btor *,
-                      BtorAIGVecMap *,
-                      BtorAIGVec *src,
-                      BtorAIGVec *dst);
-void btor_delete_aigvec_map (Btor *, BtorAIGVecMap *);
-
-/*------------------------------------------------------------------------*/
 #endif

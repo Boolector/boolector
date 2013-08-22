@@ -2,6 +2,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *  This file is part of Boolector.
@@ -59,7 +60,7 @@ test_mapnewdel ()
   BtorNodeMap *map;
   init_map_test ();
   map = btor_new_node_map (g_btor);
-  btor_delete_node_map (g_btor, map);
+  btor_delete_node_map (map);
   finish_map_test ();
 }
 
@@ -78,11 +79,11 @@ test_map0 ()
     {
       BtorNodeMap *map = btor_new_node_map (g_btor);
       BtorNode *d;
-      btor_map_node (g_btor, map, a, t);
-      btor_map_node (g_btor, map, b, o);
-      d = btor_non_recursive_substitute_node (g_btor, map, s);
+      btor_map_node (map, a, t);
+      btor_map_node (map, b, o);
+      d = btor_non_recursive_substitute_node (map, s);
       assert (d == o);
-      btor_delete_node_map (g_btor, map);
+      btor_delete_node_map (map);
       // boolector_release (g_btor, d); // No, map owns reference!!!!!!
     }
     boolector_release (g_btor, a);
@@ -125,11 +126,11 @@ test_map1 ()
       BtorNodeMap *map = btor_new_node_map (g_btor);
       BtorNode *d, *g;
       d = btor_non_recursive_extended_substitute_node (
-          g_btor, map, 0, test_map1_mapper, s);
+          map, 0, test_map1_mapper, s);
       g = boolector_int (g_btor, 66, 8);
       assert (d == g);
       boolector_release (g_btor, g);
-      btor_delete_node_map (g_btor, map);
+      btor_delete_node_map (map);
     }
     boolector_release (g_btor, a);
     boolector_release (g_btor, b);
