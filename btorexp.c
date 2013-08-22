@@ -10135,7 +10135,8 @@ process_skeleton_tseitin (Btor *btor,
         BtorNode *child = exp->e[i];
         child           = BTOR_REAL_ADDR_NODE (child);
         assert (child->mark == 2);
-        if (child->len == 1 && !BTOR_IS_ARRAY_NODE (child))
+        if (child->len == 1 && !BTOR_IS_FUN_NODE (child)
+            && !BTOR_IS_ARGS_NODE (child) && !child->parameterized)
           assert (btor_find_in_ptr_hash_table (ids, child));
       }
 #endif
