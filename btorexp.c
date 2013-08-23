@@ -1931,7 +1931,6 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
 #endif
       break;
     }
-
     assert (BTOR_IS_LAMBDA_NODE (cur) || BTOR_IS_BV_COND_NODE (cur)
             || BTOR_IS_APPLY_NODE (cur));
     assert (BTOR_IS_LAMBDA_NODE (cur) || cur->parameterized);
@@ -7051,7 +7050,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
                                          (BtorHashPtr) btor_hash_exp_by_id,
                                          (BtorCmpPtr) btor_compare_exp_by_id);
 
-  /* beta reduction conflict */
+  /* function congruence axiom conflict */
   if (app1)
   {
     for (exp = app0; exp; exp = exp == app0 ? app1 : 0)
@@ -7066,7 +7065,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     encode_lemma (
         btor, bconds_sel1, bconds_sel2, app0, app1, app0->e[1], app1->e[1]);
   }
-  /* function congruence axiom conflict */
+  /* beta reduction conflict */
   else
   {
     args = app0->e[1];
@@ -7074,6 +7073,7 @@ add_lemma (Btor *btor, BtorNode *fun, BtorNode *app0, BtorNode *app1)
     value = btor_beta_reduce_cutoff (btor, fun, &parameterized);
     btor_unassign_params (btor, fun);
     exp = parameterized ? parameterized : BTOR_REAL_ADDR_NODE (value);
+    assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (exp)));
 
     /* path from app0 to conflicting fun */
     find_shortest_path (btor, app0, fun, args);
@@ -8143,8 +8143,7 @@ propagate (Btor *btor,
           BTORLOG ("A2 conflict at: %s", node2string (fun));
           BTORLOG ("add_lemma:");
           BTORLOG ("  fun: %s", node2string (fun));
-          BTORLOG ("  app1: %s", node2string (app));
-          BTORLOG ("  app2: %s", node2string (fun));
+          BTORLOG ("  app: %s", node2string (app));
           BTORLOG ("\e[0;39m");
           btor->stats.array_axiom_2_conflicts++;
           add_lemma (btor, fun, app, 0);
