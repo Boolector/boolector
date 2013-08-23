@@ -51,7 +51,7 @@ BtorNode *btor_non_recursive_substitute_node (BtorNodeMap *, BtorNode *);
  * mapper implements the base case of a (non-recursive) substitution.
  * The mapper will only be called with non-inverted nodes as arguments.
  */
-typedef BtorNode *(*BtorNodeMapper) (void *state, BtorNode *);
+typedef BtorNode *(*BtorNodeMapper) (Btor *btor, void *state, BtorNode *);
 
 BtorNode *btor_non_recursive_extended_substitute_node (
     BtorNodeMap *,   // share/cache substitution results

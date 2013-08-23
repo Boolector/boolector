@@ -175,7 +175,7 @@ btor_non_recursive_extended_substitute_node (BtorNodeMap *map,
     node = BTOR_REAL_ADDR_NODE (node);
     if (btor_mapped_node (map, node)) continue;
     if (node->mark == 2) continue;
-    mapped = mapper (state, node);
+    mapped = mapper (btor, state, node);
     if (mapped)
     {
       btor_map_node (map, node, mapped);
