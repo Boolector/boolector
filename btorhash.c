@@ -65,7 +65,7 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
     assert (cloned_key);
     cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
     if (!cdata)
-      assert (b->data.asPtr = 0);
+      assert (b->data.asPtr == 0);
     else
       cdata (data_map, b->data.asPtr, &cloned_b->data);
   }
