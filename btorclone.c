@@ -304,6 +304,8 @@ btor_clone_btor (Btor *btor)
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, clone);
+  clone->mm = mm;
+
   memcpy (&clone->bv_lambda_id,
           &btor->bv_lambda_id,
           (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
@@ -311,7 +313,6 @@ btor_clone_btor (Btor *btor)
           &btor->stats,
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);
 
-  clone->mm    = mm;
   clone->avmgr = btor_clone_aigvec_mgr (btor->avmgr, mm, &aigs, aig_map);
 
   clone_nodes_id_table (clone,

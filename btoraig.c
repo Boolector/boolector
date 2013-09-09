@@ -1073,22 +1073,23 @@ clone_aig (BtorMemMgr *mm,
 static void
 clone_aig_ptr_stack (BtorMemMgr *mm,
                      BtorAIGPtrStack *stack,
-                     BtorAIGPtrStack *res_stack,
+                     BtorAIGPtrStack *res,
                      BtorAIGPtrPtrStack *nexts,
                      BtorAIGMap *aig_map)
 {
   assert (mm);
   assert (stack);
-  assert (res_stack);
+  assert (res);
   assert (nexts);
   assert (aig_map);
 
   int i, n;
 
+  BTOR_INIT_STACK (*res);
   n = BTOR_COUNT_STACK (*stack);
   for (i = 0; i < n; i++)
     BTOR_PUSH_STACK (mm,
-                     *res_stack,
+                     *res,
                      stack->start[i]
                          ? clone_aig (mm, stack->start[i], nexts, aig_map)
                          : (*stack).start[i]);
@@ -1097,25 +1098,25 @@ clone_aig_ptr_stack (BtorMemMgr *mm,
 static void
 clone_aig_unique_table (BtorMemMgr *mm,
                         BtorAIGUniqueTable *table,
-                        BtorAIGUniqueTable *res_table,
+                        BtorAIGUniqueTable *res,
                         BtorAIGMap *aig_map)
 {
   assert (mm);
   assert (table);
-  assert (res_table);
+  assert (res);
   assert (aig_map);
 
   int i;
 
-  BTOR_CNEWN (mm, res_table->chains, table->size);
-  res_table->size         = table->size;
-  res_table->num_elements = table->num_elements;
+  BTOR_CNEWN (mm, res->chains, table->size);
+  res->size         = table->size;
+  res->num_elements = table->num_elements;
 
   for (i = 0; i < table->size; i++)
   {
-    if (!res_table->chains[i]) continue;
-    res_table->chains[i] = btor_mapped_aig (aig_map, table->chains[i]);
-    assert (res_table->chains[i]);
+    if (!res->chains[i]) continue;
+    res->chains[i] = btor_mapped_aig (aig_map, table->chains[i]);
+    assert (res->chains[i]);
   }
 }
 
