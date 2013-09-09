@@ -1092,6 +1092,13 @@ remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
   while (cur != exp)
   {
     assert (cur);
+    // TODO DEBUG
+    if (cur->id == 71)
+    {
+      printf ("### %p %d %p %d\n", cur, cur->id, exp, exp->id);
+      printf ("+++ %d %d\n", cur->kind, exp->kind);
+    }
+    //
     assert (BTOR_IS_REGULAR_NODE (cur));
     prev = cur;
     cur  = cur->next;

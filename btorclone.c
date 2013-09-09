@@ -22,13 +22,17 @@
 BtorNode *
 clone_exp (Btor *clone,
            BtorNode *exp,
-           BtorNodePtrPtrStack *nodes,
+           BtorNodePtrPtrStack *parents,
+           BtorNodePtrPtrStack *chnexts,
            BtorNodeMap *exp_map,
            BtorAIGMap *aig_map)
 {
   assert (clone);
   assert (exp);
+  assert (parents);
+  assert (chnexts);
   assert (exp_map);
+  assert (aig_map);
 
   int i, len;
   BtorNode *res, *real_exp;
@@ -54,17 +58,15 @@ clone_exp (Btor *clone,
     res->av = btor_clone_aigvec (real_exp->av, clone->avmgr, aig_map);
   /* else: no need to clone rho (valid only during consistency checking). */
 
-  BTOR_PUSH_STACK_IF (real_exp->next, mm, *nodes, &real_exp->next);
-  BTOR_PUSH_STACK_IF (real_exp->parent, mm, *nodes, &real_exp->parent);
+  BTOR_PUSH_STACK_IF (real_exp->next, mm, *chnexts, &res->next);
+  BTOR_PUSH_STACK_IF (real_exp->parent, mm, *parents, &res->parent);
 
   assert (!real_exp->simplified);
 
   res->btor = clone;
 
-  BTOR_PUSH_STACK_IF (
-      real_exp->first_parent, mm, *nodes, &real_exp->first_parent);
-  BTOR_PUSH_STACK_IF (
-      real_exp->last_parent, mm, *nodes, &real_exp->last_parent);
+  BTOR_PUSH_STACK_IF (real_exp->first_parent, mm, *parents, &res->first_parent);
+  BTOR_PUSH_STACK_IF (real_exp->last_parent, mm, *parents, &res->last_parent);
 
   if (!BTOR_IS_BV_CONST_NODE (real_exp) && !BTOR_IS_BV_VAR_NODE (real_exp)
       && !BTOR_IS_ARRAY_VAR_NODE (real_exp) && !BTOR_IS_PARAM_NODE (real_exp))
@@ -94,9 +96,9 @@ clone_exp (Btor *clone,
     for (i = 0; i < real_exp->arity; i++)
     {
       BTOR_PUSH_STACK_IF (
-          real_exp->prev_parent[i], mm, *nodes, &real_exp->prev_parent[i]);
+          real_exp->prev_parent[i], mm, *parents, &res->prev_parent[i]);
       BTOR_PUSH_STACK_IF (
-          real_exp->next_parent[i], mm, *nodes, &real_exp->next_parent[i]);
+          real_exp->next_parent[i], mm, *parents, &res->next_parent[i]);
     }
   }
 
@@ -104,12 +106,12 @@ clone_exp (Btor *clone,
   {
     BTOR_PUSH_STACK_IF (real_exp->first_aeq_acond_parent,
                         mm,
-                        *nodes,
-                        &real_exp->first_aeq_acond_parent);
+                        *parents,
+                        &res->first_aeq_acond_parent);
     BTOR_PUSH_STACK_IF (real_exp->last_aeq_acond_parent,
                         mm,
-                        *nodes,
-                        &real_exp->last_aeq_acond_parent);
+                        *parents,
+                        &res->last_aeq_acond_parent);
 
     if (!BTOR_IS_ARRAY_VAR_NODE (real_exp))
     {
@@ -117,12 +119,12 @@ clone_exp (Btor *clone,
       {
         BTOR_PUSH_STACK_IF (real_exp->prev_aeq_acond_parent[i],
                             mm,
-                            *nodes,
-                            &real_exp->prev_aeq_acond_parent[i]);
+                            *parents,
+                            &res->prev_aeq_acond_parent[i]);
         BTOR_PUSH_STACK_IF (real_exp->next_aeq_acond_parent[i],
                             mm,
-                            *nodes,
-                            &real_exp->next_aeq_acond_parent[i]);
+                            *parents,
+                            &res->next_aeq_acond_parent[i]);
       }
     }
   }
@@ -137,21 +139,23 @@ static void
 clone_nodes_id_table (Btor *clone,
                       BtorNodePtrStack *id_table,
                       BtorNodePtrStack *res_id_table,
-                      BtorNodePtrPtrStack *nodes,
+                      BtorNodePtrPtrStack *parents,
+                      BtorNodePtrPtrStack *chnexts,
                       BtorAIGPtrPtrStack *aigs,
                       BtorNodeMap *exp_map,
                       BtorAIGMap *aig_map)
 {
   assert (id_table);
   assert (res_id_table);
-  assert (nodes);
+  assert (parents);
+  assert (chnexts);
   assert (aigs);
   assert (exp_map);
   assert (aig_map);
 
-  int i, n;
-  BtorAIG **next, *cloned_aig;
-  BtorNode **tmp, *cloned_exp;
+  int i, n, tag;
+  BtorAIG **next;
+  BtorNode **tmp;
   BtorMemMgr *mm;
 
   mm = clone->mm;
@@ -163,17 +167,26 @@ clone_nodes_id_table (Btor *clone,
         mm,
         *res_id_table,
         id_table->start[i]
-            ? clone_exp (clone, id_table->start[i], nodes, exp_map, aig_map)
+            ? clone_exp (
+                  clone, id_table->start[i], parents, chnexts, exp_map, aig_map)
             : id_table->start[i]);
 
   /* update children, parent and next pointers of expressions */
-  while (!BTOR_EMPTY_STACK (*nodes))
+  while (!BTOR_EMPTY_STACK (*chnexts))
   {
-    tmp = BTOR_POP_STACK (*nodes);
+    tmp = BTOR_POP_STACK (*chnexts);
     assert (*tmp);
-    cloned_exp = btor_mapped_node (exp_map, *tmp);
-    assert (cloned_exp);
-    *tmp = cloned_exp;
+    *tmp = btor_mapped_node (exp_map, *tmp);
+    assert (*tmp);
+  }
+  while (!BTOR_EMPTY_STACK (*parents))
+  {
+    tmp = BTOR_POP_STACK (*parents);
+    assert (*tmp);
+    tag  = BTOR_GET_TAG_NODE (*tmp);
+    *tmp = btor_mapped_node (exp_map, BTOR_REAL_ADDR_NODE (*tmp));
+    assert (*tmp);
+    *tmp = BTOR_TAG_NODE (*tmp, tag);
   }
 
   /* update next pointers of aigs */
@@ -181,34 +194,37 @@ clone_nodes_id_table (Btor *clone,
   {
     next = BTOR_POP_STACK (*aigs);
     assert (*next);
-    cloned_aig = btor_mapped_aig (aig_map, *next);
-    assert (cloned_aig);
-    *next = cloned_aig;
+    *next = btor_mapped_aig (aig_map, *next);
+    assert (*next);
   }
 }
 
 static void
 clone_nodes_unique_table (BtorMemMgr *mm,
                           BtorNodeUniqueTable *table,
-                          BtorNodeUniqueTable *res_table,
+                          BtorNodeUniqueTable *res,
                           BtorNodeMap *exp_map)
 {
   assert (mm);
   assert (table);
-  assert (res_table);
+  assert (res);
   assert (exp_map);
 
   int i;
 
-  BTOR_CNEWN (mm, res_table->chains, table->size);
-  res_table->size         = table->size;
-  res_table->num_elements = table->num_elements;
+  BTOR_CNEWN (mm, res->chains, table->size);
+  res->size         = table->size;
+  res->num_elements = table->num_elements;
 
   for (i = 0; i < table->size; i++)
   {
-    if (!res_table->chains[i]) continue;
-    res_table->chains[i] = btor_mapped_node (exp_map, table->chains[i]);
-    assert (res_table->chains[i]);
+    if (!table->chains[i]) continue;
+    res->chains[i] = btor_mapped_node (exp_map, table->chains[i]);
+    // TODO debug
+    if (res->chains[i]->id == 71)
+      printf ("** res->chains[i] %p\n", res->chains[i]);
+    //
+    assert (res->chains[i]);
   }
 }
 
@@ -291,12 +307,13 @@ btor_clone_btor (Btor *btor)
   Btor *clone;
   BtorNodeMap *exp_map;
   BtorAIGMap *aig_map;
-  BtorNodePtrPtrStack nodes;
+  BtorNodePtrPtrStack parents, chnexts;
   BtorAIGPtrPtrStack aigs;
 
   BtorMemMgr *mm;
 
-  BTOR_INIT_STACK (nodes);
+  BTOR_INIT_STACK (parents);
+  BTOR_INIT_STACK (chnexts);
   BTOR_INIT_STACK (aigs);
 
   exp_map = btor_new_node_map (btor);
@@ -318,7 +335,8 @@ btor_clone_btor (Btor *btor)
   clone_nodes_id_table (clone,
                         &btor->nodes_id_table,
                         &clone->nodes_id_table,
-                        &nodes,
+                        &parents,
+                        &chnexts,
                         &aigs,
                         exp_map,
                         aig_map);
@@ -353,7 +371,8 @@ btor_clone_btor (Btor *btor)
   btor_delete_node_map (exp_map);
   btor_delete_aig_map (aig_map);
 
-  BTOR_RELEASE_STACK (mm, nodes);
+  BTOR_RELEASE_STACK (mm, parents);
+  BTOR_RELEASE_STACK (mm, chnexts);
   BTOR_RELEASE_STACK (mm, aigs);
 
   return clone;
