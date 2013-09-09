@@ -219,41 +219,12 @@ btor_chkclone_stats (Btor *btor)
 #endif
 }
 
-#define BTOR_CHKCLONE_TIME(field)                   \
-  do                                                \
-  {                                                 \
-    assert (clone->time.field == btor->time.field); \
-  } while (0)
-
-static void
-btor_chkclone_time (Btor *btor)
-{
-#ifndef NDEBUG
-  assert (btor);
-
-  Btor *clone;
-
-  clone = btor->clone;
-  assert (clone);
-
-  BTOR_CHKCLONE_TIME (rewrite);
-  BTOR_CHKCLONE_TIME (sat);
-  BTOR_CHKCLONE_TIME (subst);
-  BTOR_CHKCLONE_TIME (embedded);
-  BTOR_CHKCLONE_TIME (slicing);
-  BTOR_CHKCLONE_TIME (skel);
-  BTOR_CHKCLONE_TIME (beta);
-  BTOR_CHKCLONE_TIME (eval);
-#endif
-}
-
 #define BTOR_CHKCLONE()         \
   do                            \
   {                             \
     if (!btor->clone) break;    \
     btor_chkclone_state (btor); \
     btor_chkclone_stats (btor); \
-    btor_chkclone_time (btor);  \
   } while (0)
 
 #define BTOR_CHKCLONE_AIG(field)                   \
