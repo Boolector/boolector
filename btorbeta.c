@@ -1105,7 +1105,7 @@ btor_beta_reduce_partial (Btor *btor, BtorNode *exp, BtorNode **parameterized)
       assert (b);
       t1                   = (BtorNodeTuple *) b->data.asPtr;
       result               = btor_copy_exp (btor, t1->e0);
-      parameterized_result = btor_copy_exp (btor, t1->e1);
+      parameterized_result = t1->e1;
       assert (!BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (result)));
       goto BETA_REDUCE_PARTIAL_PUSH_RESULT;
     }
