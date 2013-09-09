@@ -22,9 +22,8 @@
 /* Simple map for expression node.  The 'map' owns references to the non
  * zero 'src' and 'dst' nodes added in 'btor_map_node'.  Succesful look-up
  * through 'btor_mapped_node' does not add a reference.  The destructor
- * releases all the owned references.  Mapping preserves tags (both sign
- * and parent pointer tags), e.g. if 'a' is mapped to 'b', 'a' tagged with
- * (1|2|3) is implicitely mapped to 'b' tagged with (1|2|3), too.
+ * releases all the owned references.  Mapping is signed, e.g. if you map
+ * 'a' to 'b', then '~a' is implicitely mapped to '~b', too.
  */
 struct BtorNodeMap
 {
