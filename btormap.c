@@ -73,7 +73,7 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
   BtorPtrHashBucket *bucket;
 
   btor = map->btor;
-  if (BTOR_GET_TAG_NODE (src))
+  if (BTOR_IS_INVERTED_NODE (src))
   {
     src = BTOR_INVERT_NODE (src);
     dst = BTOR_INVERT_NODE (dst);
