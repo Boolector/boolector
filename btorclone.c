@@ -311,6 +311,7 @@ btor_clone_btor (Btor *btor)
           &btor->stats,
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);
 
+  clone->mm    = mm;
   clone->avmgr = btor_clone_aigvec_mgr (btor->avmgr, mm, &aigs, aig_map);
 
   clone_nodes_id_table (clone,
