@@ -717,3 +717,4 @@ regrbetacache1 -bra -o log/regrbetacache1.log log/regrbetacache1.btor
 regrbetacache2 -bra -o log/regrbetacache2.log log/regrbetacache2.btor
 regrencparamapps -o log/regrencparamapps.log log/regrencparamapps.smt2
 nestedfun1 -rwl2 -o log/nestedfun1.log log/nestedfun1.smt2
+regrcollectprem -o log/regrcollectprem.log log/regrcollectprem.btor

@@ -2113,26 +2113,28 @@ collect_premisses (Btor *btor,
       {
         res_cond = btor_beta_reduce_cutoff (btor, cond, 0);
         res      = btor_eval_exp (btor, res_cond);
-        assert (res);
-
+        assert (res || cur == from);
         /* determine resp. branch that was taken in bfs */
-        if (res[0] == '1')
+        if (res)
         {
-          if (!btor_find_in_ptr_hash_table (bconds_sel1, res_cond))
+          if (res[0] == '1')
           {
-            BTORLOG ("collect cond if: %s", node2string (res_cond));
-            btor_insert_in_ptr_hash_table (bconds_sel1,
-                                           btor_copy_exp (btor, res_cond));
+            if (!btor_find_in_ptr_hash_table (bconds_sel1, res_cond))
+            {
+              BTORLOG ("collect cond if: %s", node2string (res_cond));
+              btor_insert_in_ptr_hash_table (bconds_sel1,
+                                             btor_copy_exp (btor, res_cond));
+            }
           }
-        }
-        else
-        {
-          assert (res[0] == '0');
-          if (!btor_find_in_ptr_hash_table (bconds_sel2, res_cond))
+          else
           {
-            BTORLOG ("collect cond else: %s", node2string (res_cond));
-            btor_insert_in_ptr_hash_table (bconds_sel2,
-                                           btor_copy_exp (btor, res_cond));
+            assert (res[0] == '0');
+            if (!btor_find_in_ptr_hash_table (bconds_sel2, res_cond))
+            {
+              BTORLOG ("collect cond else: %s", node2string (res_cond));
+              btor_insert_in_ptr_hash_table (bconds_sel2,
+                                             btor_copy_exp (btor, res_cond));
+            }
           }
         }
         btor_freestr (mm, (char *) res);
