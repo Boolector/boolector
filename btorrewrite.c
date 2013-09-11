@@ -3564,8 +3564,12 @@ btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
       }
       else if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
       {
-        assert (btor_param_cur_assignment (cur_branch));
-        result = btor_copy_exp (btor, btor_param_cur_assignment (cur_branch));
+        if (btor_param_cur_assignment (cur_branch))
+        {
+          result = btor_copy_exp (btor, btor_param_cur_assignment (cur_branch));
+        }
+        else
+          result = btor_copy_exp (btor, cur_branch);
 
         if (BTOR_IS_INVERTED_NODE (cur_branch))
           result = BTOR_INVERT_NODE (result);
