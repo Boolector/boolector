@@ -91,6 +91,7 @@ btor_new_sat_mgr (BtorMemMgr *mm)
   assert (mm != NULL);
 
   BTOR_CNEW (mm, smgr);
+  smgr->mm     = mm;
   smgr->output = stdout;
   btor_enable_default_sat (smgr);
 
