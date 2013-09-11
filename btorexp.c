@@ -7524,8 +7524,7 @@ EVAL_EXP_CLEANUP_EXIT:
 
   for (b = cache->first; b; b = b->next)
   {
-    real_cur = (BtorNode *) b->key;
-    assert (real_cur->eval_mark == 2);
+    real_cur            = (BtorNode *) b->key;
     real_cur->eval_mark = 0;
     btor_freestr (mm, b->data.asStr);
   }
