@@ -393,6 +393,8 @@ btor_clone_btor (Btor *btor)
   clone_nodes_id_table (
       clone, &btor->nodes_id_table, &clone->nodes_id_table, exp_map, aig_map);
 
+  clone->true_exp = btor_mapped_node (exp_map, btor->true_exp);
+
   clone_nodes_unique_table (
       mm, &btor->nodes_unique_table, &clone->nodes_unique_table, exp_map);
 
