@@ -90,15 +90,8 @@ btor_new_sat_mgr (BtorMemMgr *mm)
 
   assert (mm != NULL);
 
-  BTOR_NEW (mm, smgr);
-
-  smgr->verbosity   = 0;
-  smgr->mm          = mm;
-  smgr->satcalls    = 0;
-  smgr->initialized = 0;
-  smgr->clauses = smgr->maxvar = 0;
-  smgr->output                 = stdout;
-
+  BTOR_CNEW (mm, smgr);
+  smgr->output = stdout;
   btor_enable_default_sat (smgr);
 
   return smgr;
