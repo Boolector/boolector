@@ -1526,6 +1526,22 @@ parse_apply (BtorBTORParser *parser, int len)
     goto RELEASE_FUN_AND_RETURN_ERROR;
   }
 
+  if ((BTOR_IS_ARRAY_VAR_NODE (fun) && ((BtorArgsNode *) args)->num_args != 1))
+  {
+    boolector_release (parser->btor, args);
+    btor_perr_btor (parser, "invalid number of arguments for apply");
+    goto RELEASE_FUN_AND_RETURN_ERROR;
+  }
+
+  if (!BTOR_IS_ARRAY_VAR_NODE (fun)
+      && boolector_get_fun_arity (parser->btor, fun)
+             != ((BtorArgsNode *) args)->num_args)
+  {
+    boolector_release (parser->btor, args);
+    btor_perr_btor (parser, "invalid number of arguments for apply");
+    goto RELEASE_FUN_AND_RETURN_ERROR;
+  }
+
   // TODO: use API call if available
   //  res = boolector_apply (parser->btor, fun, args);
   res = btor_apply_exp (parser->btor, fun, args);
@@ -1927,7 +1943,8 @@ NEXT:
     {
       if (check_params_bound (parser)) return parser->error;
 
-      if (check_lambdas_consistent (parser)) return parser->error;
+      //	  if (check_lambdas_consistent (parser))
+      //	    return parser->error;
 
       if (parser->found_lambdas && parser->found_aeq)
       {
