@@ -84,7 +84,6 @@ BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
 /* Clones AIG manager. */
 BtorAIGMgr *btor_clone_aig_mgr (BtorAIGMgr *amgr,
                                 BtorMemMgr *mm,
-                                BtorAIGPtrPtrStack *nexts,
                                 BtorAIGMap *aig_map);
 
 /* Sets verbosity [-1,3] */

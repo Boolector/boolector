@@ -1121,20 +1121,31 @@ clone_aig_unique_table (BtorMemMgr *mm,
 }
 
 BtorAIGMgr *
-btor_clone_aig_mgr (BtorAIGMgr *amgr,
-                    BtorMemMgr *mm,
-                    BtorAIGPtrPtrStack *nexts,
-                    BtorAIGMap *aig_map)
+btor_clone_aig_mgr (BtorAIGMgr *amgr, BtorMemMgr *mm, BtorAIGMap *aig_map)
 {
   assert (amgr);
   assert (mm);
 
   BtorAIGMgr *res;
+  BtorAIG **next;
+  BtorAIGPtrPtrStack nexts;
+
+  BTOR_INIT_STACK (nexts);
 
   BTOR_NEW (mm, res);
   res->mm = mm;
 
-  clone_aig_ptr_stack (mm, &amgr->id2aig, &res->id2aig, nexts, aig_map);
+  clone_aig_ptr_stack (mm, &amgr->id2aig, &res->id2aig, &nexts, aig_map);
+
+  /* update next pointers */
+  while (!BTOR_EMPTY_STACK (nexts))
+  {
+    next = BTOR_POP_STACK (nexts);
+    assert (*next);
+    *next = btor_mapped_aig (aig_map, *next);
+    assert (*next);
+  }
+
   clone_aig_unique_table (mm, &amgr->table, &res->table, aig_map);
 
   res->id        = amgr->id;

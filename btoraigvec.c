@@ -693,12 +693,10 @@ btor_new_aigvec_mgr (BtorMemMgr *mm)
 BtorAIGVecMgr *
 btor_clone_aigvec_mgr (BtorAIGVecMgr *avmgr,
                        BtorMemMgr *mm,
-                       BtorAIGPtrPtrStack *nexts,
                        BtorAIGMap *aig_map)
 {
   assert (avmgr);
   assert (mm);
-  assert (nexts);
   assert (aig_map);
 
   BtorAIGVecMgr *res;
@@ -706,7 +704,7 @@ btor_clone_aigvec_mgr (BtorAIGVecMgr *avmgr,
 
   res->mm        = mm;
   res->verbosity = avmgr->verbosity;
-  res->amgr      = btor_clone_aig_mgr (avmgr->amgr, mm, nexts, aig_map);
+  res->amgr      = btor_clone_aig_mgr (avmgr->amgr, mm, aig_map);
   return res;
 }
 
