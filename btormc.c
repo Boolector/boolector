@@ -525,7 +525,7 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
     src = latch->next;
     if (src)
     {
-      dst = btor_non_recursive_substitute_node (map, src);
+      dst = btor_non_recursive_substitute_node (f->btor, map, src);
       dst = btor_copy_exp (f->btor, dst);
       BTOR_PUSH_STACK (f->btor->mm, f->next, dst);
       nextstates++;
@@ -559,7 +559,7 @@ initialize_constraints_of_frame (BtorMC *mc, BtorNodeMap *map, BtorMcFrame *f)
   {
     src = BTOR_PEEK_STACK (mc->constraints, i);
     assert (src);
-    dst = btor_non_recursive_substitute_node (map, src);
+    dst = btor_non_recursive_substitute_node (f->btor, map, src);
     if (constraint)
     {
       BtorNode *tmp = btor_and_exp (f->btor, constraint, dst);
@@ -599,7 +599,7 @@ initialize_bad_state_properties_of_frame (BtorMC *mc,
   {
     src = BTOR_PEEK_STACK (mc->bad, i);
     assert (src);
-    dst = btor_non_recursive_substitute_node (map, src);
+    dst = btor_non_recursive_substitute_node (f->btor, map, src);
     dst = btor_copy_exp (f->btor, dst);
     BTOR_PUSH_STACK (f->btor->mm, f->bad, dst);
   }
@@ -626,14 +626,14 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   {
     src = b->key;
     dst = BTOR_PEEK_STACK (f->inputs, i);
-    btor_map_node (res, src, dst);
+    btor_map_node (f->btor, res, src, dst);
   }
 
   for (b = mc->latches->first, i = 0; b; b = b->next, i++)
   {
     src = b->key;
     dst = BTOR_PEEK_STACK (f->latches, i);
-    btor_map_node (res, src, dst);
+    btor_map_node (f->btor, res, src, dst);
   }
 
   assert (res->table->count == mc->inputs->count + mc->latches->count);

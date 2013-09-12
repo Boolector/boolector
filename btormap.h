@@ -35,12 +35,14 @@ typedef struct BtorNodeMap BtorNodeMap;
 
 BtorNodeMap *btor_new_node_map (Btor *);
 BtorNode *btor_mapped_node (BtorNodeMap *, BtorNode *);
-void btor_map_node (BtorNodeMap *, BtorNode *src, BtorNode *dst);
+void btor_map_node (Btor *, BtorNodeMap *, BtorNode *src, BtorNode *dst);
 void btor_delete_node_map (BtorNodeMap *);
 
 /*------------------------------------------------------------------------*/
 
-BtorNode *btor_non_recursive_substitute_node (BtorNodeMap *, BtorNode *);
+BtorNode *btor_non_recursive_substitute_node (Btor *,
+                                              BtorNodeMap *,
+                                              BtorNode *);
 
 /*------------------------------------------------------------------------*/
 /* Extended mapping.  A 'BtorNodeMapper' function should return a NEW
@@ -49,9 +51,10 @@ BtorNode *btor_non_recursive_substitute_node (BtorNodeMap *, BtorNode *);
  * mapper implements the base case of a (non-recursive) substitution.
  * The mapper will only be called with non-inverted nodes as arguments.
  */
-typedef BtorNode *(*BtorNodeMapper) (Btor *btor, void *state, BtorNode *);
+typedef BtorNode *(*BtorNodeMapper) (Btor *, void *state, BtorNode *);
 
 BtorNode *btor_non_recursive_extended_substitute_node (
+    Btor *,
     BtorNodeMap *,   // share/cache substitution results
     void *state,     // for the mapper
     BtorNodeMapper,  // see above
