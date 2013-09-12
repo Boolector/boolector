@@ -79,9 +79,9 @@ test_map0 ()
     {
       BtorNodeMap *map = btor_new_node_map (g_btor);
       BtorNode *d;
-      btor_map_node (map, a, t);
-      btor_map_node (map, b, o);
-      d = btor_non_recursive_substitute_node (map, s);
+      btor_map_node (g_btor, map, a, t);
+      btor_map_node (g_btor, map, b, o);
+      d = btor_non_recursive_substitute_node (g_btor, map, s);
       assert (d == o);
       btor_delete_node_map (map);
       // boolector_release (g_btor, d); // No, map owns reference!!!!!!
@@ -126,7 +126,7 @@ test_map1 ()
       BtorNodeMap *map = btor_new_node_map (g_btor);
       BtorNode *d, *g;
       d = btor_non_recursive_extended_substitute_node (
-          map, 0, test_map1_mapper, s);
+          g_btor, map, 0, test_map1_mapper, s);
       g = boolector_int (g_btor, 66, 8);
       assert (d == g);
       boolector_release (g_btor, g);

@@ -63,16 +63,15 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
 }
 
 void
-btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
+btor_map_node (Btor *btor, BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
+  assert (btor);
   assert (map);
   assert (src);
   assert (dst);
 
-  Btor *btor;
   BtorPtrHashBucket *bucket;
 
-  btor = map->btor;
   if (BTOR_IS_INVERTED_NODE (src))
   {
     src = BTOR_INVERT_NODE (src);
@@ -90,16 +89,14 @@ btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 /*------------------------------------------------------------------------*/
 
 static BtorNode *
-map_node (BtorNodeMap *map, BtorNode *exp)
+map_node (Btor *btor, BtorNodeMap *map, BtorNode *exp)
 {
+  assert (btor);
   assert (exp);
   assert (BTOR_IS_REGULAR_NODE (exp));
 
-  Btor *btor;
   BtorNode *m[3], *src, *dst, *real_exp;
   int i;
-
-  btor = map->btor;
 
   for (i = 0; i < exp->arity; i++)
   {
@@ -149,19 +146,18 @@ map_node (BtorNodeMap *map, BtorNode *exp)
 }
 
 BtorNode *
-btor_non_recursive_extended_substitute_node (BtorNodeMap *map,
+btor_non_recursive_extended_substitute_node (Btor *btor,
+                                             BtorNodeMap *map,
                                              void *state,
                                              BtorNodeMapper mapper,
                                              BtorNode *root)
 {
-  Btor *btor;
   BtorNodePtrStack working_stack, marked_stack;
   BtorNode *res, *node, *mapped;
   BtorMemMgr *mm;
   int i;
 
-  btor = map->btor;
-  mm   = btor->mm;
+  mm = btor->mm;
 
   BTOR_INIT_STACK (working_stack);
   BTOR_INIT_STACK (marked_stack);
@@ -176,7 +172,7 @@ btor_non_recursive_extended_substitute_node (BtorNodeMap *map,
     mapped = mapper (btor, state, node);
     if (mapped)
     {
-      btor_map_node (map, node, mapped);
+      btor_map_node (btor, map, node, mapped);
       btor_release_exp (btor, mapped);
     }
     else if (!node->mark)
@@ -189,8 +185,8 @@ btor_non_recursive_extended_substitute_node (BtorNodeMap *map,
     }
     else
     {
-      mapped = map_node (map, node);
-      btor_map_node (map, node, mapped);
+      mapped = map_node (btor, map, node);
+      btor_map_node (btor, map, node, mapped);
       btor_release_exp (btor, mapped);
       assert (node->mark == 1);
       node->mark = 2;
@@ -219,10 +215,12 @@ btor_never_map_mapper (Btor *btor, void *state, BtorNode *node)
 }
 
 BtorNode *
-btor_non_recursive_substitute_node (BtorNodeMap *map, BtorNode *root)
+btor_non_recursive_substitute_node (Btor *btor,
+                                    BtorNodeMap *map,
+                                    BtorNode *root)
 {
   return btor_non_recursive_extended_substitute_node (
-      map, 0, btor_never_map_mapper, root);
+      btor, map, 0, btor_never_map_mapper, root);
 }
 
 /*------------------------------------------------------------------------*/
