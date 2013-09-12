@@ -172,7 +172,7 @@ clone_exp (Btor *clone,
   }
 
   res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
-  btor_map_node (exp_map, exp, res);
+  btor_map_node (clone, exp_map, exp, res);
 
   return res;
 }
