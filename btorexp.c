@@ -2517,7 +2517,7 @@ encode_lemma (Btor *btor,
   /* premisses bv conditions:
    *   true conditions: c_0, ..., c_k
    *   encode premisses: \forall i <= k. /\ c_i */
-  for (bucket = bconds_sel1->last; bucket; bucket = bucket->prev)
+  for (bucket = bconds_sel1->first; bucket; bucket = bucket->next)
   {
     cond = (BtorNode *) bucket->key;
     BTORLOG ("  cond: %s", node2string (cond));
@@ -2530,7 +2530,7 @@ encode_lemma (Btor *btor,
   /* premisses bv conditions:
    *   false conditions: c_0, ..., c_l
    *   encode premisses: \forall i <= l. /\ \not c_i */
-  for (bucket = bconds_sel2->last; bucket; bucket = bucket->prev)
+  for (bucket = bconds_sel2->first; bucket; bucket = bucket->next)
   {
     cond = (BtorNode *) bucket->key;
     BTORLOG ("  cond: %s", node2string (cond));
@@ -3296,12 +3296,12 @@ connect_child_exp (Btor *btor, BtorNode *parent, BtorNode *child, int pos)
   /* add parent at the end of the list */
   else
   {
-    last_parent = child->last_parent;
+    last_parent = real_child->last_parent;
     assert (last_parent);
     parent->prev_parent[pos] = last_parent;
     tag                      = BTOR_GET_TAG_NODE (last_parent);
     BTOR_REAL_ADDR_NODE (last_parent)->next_parent[tag] = tagged_parent;
-    child->last_parent                                  = tagged_parent;
+    real_child->last_parent                             = tagged_parent;
   }
 }
 
