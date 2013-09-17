@@ -97,20 +97,6 @@ boolector_get_trapi (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
-void
-boolector_chkclone (Btor *btor)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-#ifndef BTOR_USE_LINGELING
-  BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
-#endif
-  BTOR_TRAPI ("chkclone");
-  if (btor->clone) btor_delete_btor (btor->clone);
-  btor->clone = btor_clone_btor (btor);
-  assert (btor->clone->mm);
-  assert (btor->clone->avmgr);
-}
-
 #define BTOR_CHKCLONE_STATE(field)        \
   do                                      \
   {                                       \
@@ -280,7 +266,6 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 
   BTOR_CHKCLONE_AIG (cnf_id);
   BTOR_CHKCLONE_AIG (mark);
-  BTOR_CHKCLONE_AIG (clone_mark);
   BTOR_CHKCLONE_AIG (local);
 #endif
 }
@@ -288,34 +273,49 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 #define BTOR_CHKCLONE_EXP(field)                   \
   do                                               \
   {                                                \
-    assert (real_clone->field == real_exp->field); \
+    assert (real_exp->field == real_clone->field); \
   } while (0)
 
-#define BTOR_CHKCLONE_EXPPID(field)                \
-  do                                               \
-  {                                                \
-    if (!real_exp->field)                          \
-    {                                              \
-      assert (!real_clone->field);                 \
-      break;                                       \
-    }                                              \
-    assert (real_clone->field == real_exp->field); \
+#define BTOR_CHKCLONE_EXPID(exp, clone)                                        \
+  do                                                                           \
+  {                                                                            \
+    assert (BTOR_REAL_ADDR_NODE (exp)->id == BTOR_REAL_ADDR_NODE (clone)->id); \
   } while (0)
 
-/* Note: used for both children and parent pointers */
-#define BTOR_CHKCLONE_EXP_TAGGED(field)                       \
-  do                                                          \
-  {                                                           \
-    if (!real_exp->field)                                     \
-    {                                                         \
-      assert (!real_clone->field);                            \
-      break;                                                  \
-    }                                                         \
-    int clonetag = BTOR_GET_TAG_NODE (real_clone->field);     \
-    assert (clonetag == BTOR_GET_TAG_NODE (real_exp->field)); \
-    assert (BTOR_REAL_ADDR_NODE (real_exp->field)->id         \
-            == BTOR_REAL_ADDR_NODE (real_clone->field)->id);  \
+#define BTOR_CHKCLONE_EXPPID(field)                            \
+  do                                                           \
+  {                                                            \
+    if (!real_exp->field)                                      \
+    {                                                          \
+      assert (!real_clone->field);                             \
+      break;                                                   \
+    }                                                          \
+    assert (real_exp->field != real_clone->field);             \
+    BTOR_CHKCLONE_EXPID (real_exp->field, real_clone->field);  \
+    assert (BTOR_REAL_ADDR_NODE (real_exp->field)->btor->clone \
+            == BTOR_REAL_ADDR_NODE (real_clone->field)->btor); \
   } while (0)
+
+#define BTOR_CHKCLONE_EXPPINV(field)                       \
+  do                                                       \
+  {                                                        \
+    BTOR_CHKCLONE_EXPPID (field);                          \
+    assert (BTOR_IS_INVERTED_NODE (real_exp->field)        \
+            == BTOR_IS_INVERTED_NODE (real_clone->field)); \
+  } while (0)
+
+#define BTOR_CHKCLONE_EXPPTAG(field)                   \
+  do                                                   \
+  {                                                    \
+    BTOR_CHKCLONE_EXPPID (field);                      \
+    assert (BTOR_GET_TAG_NODE (real_exp->field)        \
+            == BTOR_GET_TAG_NODE (real_clone->field)); \
+  } while (0)
+
+#define BTOR_CLONED_EXP(exp)                                     \
+  (btor->clone ? BTOR_PEEK_STACK (btor->clone->nodes_id_table,   \
+                                  BTOR_REAL_ADDR_NODE (exp)->id) \
+               : 0)
 
 static void
 btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
@@ -323,22 +323,25 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 #ifndef NDEBUG
   assert (exp);
   assert (clone);
-
+  assert (exp != clone);
   assert ((!BTOR_IS_INVERTED_NODE (exp) && !BTOR_IS_INVERTED_NODE (clone))
           || (BTOR_IS_INVERTED_NODE (exp) && BTOR_IS_INVERTED_NODE (clone)));
 
   int i, len;
-  BtorNode *real_exp, *real_clone;
+  BtorNode *real_exp, *real_clone, *e, *ce;
+  BtorPtrHashBucket *b, *cb;
 
   real_exp   = BTOR_REAL_ADDR_NODE (exp);
   real_clone = BTOR_REAL_ADDR_NODE (clone);
+  assert (real_exp != real_clone);
+  assert (real_exp->id == real_clone->id);
+  assert (real_exp->btor->clone == real_clone->btor);
 
   BTOR_CHKCLONE_EXP (kind);
   BTOR_CHKCLONE_EXP (mark);
   BTOR_CHKCLONE_EXP (aux_mark);
   BTOR_CHKCLONE_EXP (array_mark);
   BTOR_CHKCLONE_EXP (beta_mark);
-  BTOR_CHKCLONE_EXP (clone_mark);
   BTOR_CHKCLONE_EXP (eval_mark);
   BTOR_CHKCLONE_EXP (synth_mark);
   BTOR_CHKCLONE_EXP (reachable);
@@ -362,7 +365,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     for (i = 0; i < len; i++) assert (real_exp->bits[i] == real_clone->bits[i]);
   }
   else
-    assert (real_exp->bits == real_clone->bits);
+    assert (real_exp->av == real_clone->av);
 
   BTOR_CHKCLONE_EXP (id);
   BTOR_CHKCLONE_EXP (len);
@@ -382,55 +385,152 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   }
 
   BTOR_CHKCLONE_EXPPID (next);
-  BTOR_CHKCLONE_EXPPID (parent);
-  BTOR_CHKCLONE_EXPPID (simplified);
-  BTOR_CHKCLONE_EXPPID (first_parent);
-  BTOR_CHKCLONE_EXPPID (last_parent);
+  BTOR_CHKCLONE_EXPPTAG (parent);
+  BTOR_CHKCLONE_EXPPINV (simplified);
+  assert (real_exp->btor->clone == real_clone->btor);
+  BTOR_CHKCLONE_EXPPTAG (first_parent);
+  BTOR_CHKCLONE_EXPPTAG (last_parent);
 
-  if (!BTOR_IS_BV_CONST_NODE (real_exp) && !BTOR_IS_BV_VAR_NODE (real_exp)
-      && !BTOR_IS_ARRAY_VAR_NODE (real_exp) && !BTOR_IS_PARAM_NODE (real_exp))
+  if (!BTOR_IS_BV_CONST_NODE (real_exp))
   {
-    assert (real_exp->arity == real_clone->arity);
-    if (real_exp->arity)
+    assert (!strcmp (real_exp->symbol, real_clone->symbol));
+
+    if (!BTOR_IS_BV_VAR_NODE (real_exp) && !BTOR_IS_PARAM_NODE (real_exp))
     {
-      for (i = 0; i < real_exp->arity; i++) BTOR_CHKCLONE_EXP_TAGGED (e[i]);
-    }
-    else
-    {
-      assert (!strcmp (real_exp->symbol, real_clone->symbol));
-      BTOR_CHKCLONE_EXP (upper);
-      if (!BTOR_IS_ARRAY_EQ_NODE (real_exp))
-        BTOR_CHKCLONE_EXP (lower);
+      assert (real_exp->arity == real_clone->arity);
+      if (real_exp->arity)
+      {
+        for (i = 0; i < real_exp->arity; i++) BTOR_CHKCLONE_EXPPINV (e[i]);
+      }
       else
       {
-        assert (real_exp->vreads->exp1->id == real_clone->vreads->exp1->id);
-        assert (real_exp->vreads->exp2->id == real_clone->vreads->exp2->id);
+        BTOR_CHKCLONE_EXP (upper);
+        if (!BTOR_IS_ARRAY_EQ_NODE (real_exp))
+          BTOR_CHKCLONE_EXP (lower);
+        else
+        {
+          assert (real_exp->vreads->exp1->id == real_clone->vreads->exp1->id);
+          assert (real_exp->vreads->exp2->id == real_clone->vreads->exp2->id);
+        }
       }
     }
 
     for (i = 0; i < real_exp->arity; i++)
     {
-      BTOR_CHKCLONE_EXP_TAGGED (prev_parent[i]);
-      BTOR_CHKCLONE_EXP_TAGGED (next_parent[i]);
+      BTOR_CHKCLONE_EXPPTAG (prev_parent[i]);
+      BTOR_CHKCLONE_EXPPTAG (next_parent[i]);
     }
   }
 
   if (BTOR_IS_ARRAY_NODE (real_exp))
   {
     BTOR_CHKCLONE_EXP (index_len);
-    BTOR_CHKCLONE_EXP_TAGGED (first_aeq_acond_parent);
-    BTOR_CHKCLONE_EXP_TAGGED (last_aeq_acond_parent);
+    BTOR_CHKCLONE_EXPPTAG (first_aeq_acond_parent);
+    BTOR_CHKCLONE_EXPPTAG (last_aeq_acond_parent);
 
     if (!BTOR_IS_ARRAY_VAR_NODE (real_exp))
     {
       for (i = 0; i < real_exp->arity; i++)
       {
-        BTOR_CHKCLONE_EXP_TAGGED (prev_aeq_acond_parent[i]);
-        BTOR_CHKCLONE_EXP_TAGGED (next_aeq_acond_parent[i]);
+        BTOR_CHKCLONE_EXPPTAG (prev_aeq_acond_parent[i]);
+        BTOR_CHKCLONE_EXPPTAG (next_aeq_acond_parent[i]);
       }
     }
   }
+
+  if (BTOR_IS_PARAM_NODE (real_exp))
+  {
+    if (((BtorParamNode *) real_exp)->lambda_exp)
+    {
+      assert (((BtorParamNode *) real_exp)->lambda_exp
+              != ((BtorParamNode *) real_clone)->lambda_exp);
+      BTOR_CHKCLONE_EXPID (((BtorParamNode *) real_exp)->lambda_exp,
+                           ((BtorParamNode *) real_clone)->lambda_exp);
+    }
+    else
+      assert (!((BtorParamNode *) real_clone)->lambda_exp);
+
+    for (i = 0;
+         i < BTOR_COUNT_STACK (((BtorParamNode *) real_exp)->assigned_exp);
+         i++)
+    {
+      assert (((BtorParamNode *) real_exp)->assigned_exp.start[i]
+              != ((BtorParamNode *) real_clone)->assigned_exp.start[i]);
+      BTOR_CHKCLONE_EXPID (
+          ((BtorParamNode *) real_exp)->assigned_exp.start[i],
+          ((BtorParamNode *) real_clone)->assigned_exp.start[i]);
+      assert (BTOR_IS_INVERTED_NODE (
+                  ((BtorParamNode *) real_exp)->assigned_exp.start[i])
+              == BTOR_IS_INVERTED_NODE (
+                     ((BtorParamNode *) real_clone)->assigned_exp.start[i]));
+    }
+  }
+
+  if (BTOR_IS_LAMBDA_NODE (real_exp))
+  {
+    for (b = ((BtorLambdaNode *) real_exp)->synth_reads->first,
+        cb = ((BtorLambdaNode *) real_clone)->synth_reads->first;
+         b;
+         b = b->next, cb = cb->next)
+    {
+      e  = b->key;
+      ce = cb->key;
+      if (e)
+      {
+        assert (ce);
+        assert (e != ce);
+        BTOR_CHKCLONE_EXPID (e, ce);
+      }
+      else
+        assert (!ce);
+      assert (!b->next || cb->next);
+    }
+
+    if (((BtorLambdaNode *) real_exp)->nested)
+    {
+      assert (((BtorLambdaNode *) real_exp)->nested
+              != ((BtorLambdaNode *) real_clone)->nested);
+      BTOR_CHKCLONE_EXPID (((BtorLambdaNode *) real_exp)->nested,
+                           ((BtorLambdaNode *) real_clone)->nested);
+    }
+    else
+      assert (!((BtorLambdaNode *) real_clone)->nested);
+  }
 #endif
+}
+
+static void
+btor_chkclone (Btor *btor)
+{
+#ifndef NDEBUG
+  int i, n;
+
+  n = BTOR_COUNT_STACK (btor->nodes_id_table);
+  assert (n == BTOR_COUNT_STACK (btor->clone->nodes_id_table));
+  assert (BTOR_PEEK_STACK (btor->nodes_id_table, 0)
+          == BTOR_PEEK_STACK (btor->clone->nodes_id_table, 0));
+  for (i = 1; i < n; i++)
+  {
+    if (!BTOR_PEEK_STACK (btor->nodes_id_table, i)) continue;
+    btor_chkclone_exp (BTOR_PEEK_STACK (btor->nodes_id_table, i),
+                       BTOR_PEEK_STACK (btor->clone->nodes_id_table, i));
+  }
+#endif
+}
+
+void
+boolector_chkclone (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+#ifndef BTOR_USE_LINGELING
+  BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
+#endif
+  BTOR_TRAPI ("chkclone");
+  if (btor->clone) btor_delete_btor (btor->clone);
+  btor->clone = btor_clone_btor (btor);
+  assert (btor->clone->mm);
+  assert (btor->clone->avmgr);
+  btor_chkclone (btor);
 }
 
 #define BTOR_CHKCLONENORES(fun, args...) \
@@ -467,11 +567,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     assert (!strcmp (cloneres, res));                 \
     BTOR_CHKCLONE ();                                 \
   } while (0)
-
-#define BTOR_CLONED_EXP(exp)                                     \
-  (btor->clone ? BTOR_PEEK_STACK (btor->clone->nodes_id_table,   \
-                                  BTOR_REAL_ADDR_NODE (exp)->id) \
-               : 0)
 
 /*------------------------------------------------------------------------*/
 
@@ -600,8 +695,8 @@ boolector_delete (Btor *btor)
     fclose (btor->apitrace);
   else if (btor->closeapitrace == 2)
     pclose (btor->apitrace);
-  btor_delete_btor (btor);
   BTOR_CHKCLONENORES (boolector_delete);
+  btor_delete_btor (btor);
 }
 
 BtorNode *
@@ -2277,8 +2372,8 @@ boolector_release (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor->external_refs--;
-  btor_release_exp (btor, exp);
   BTOR_CHKCLONENORES (boolector_release, BTOR_CLONED_EXP (exp));
+  btor_release_exp (btor, exp);
 }
 
 void

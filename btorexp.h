@@ -150,7 +150,6 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int aux_mark : 2;      /* auxiliary mark flag */           \
     unsigned int array_mark : 1;    /* for bottom up array traversal */ \
     unsigned int beta_mark : 1;     /* mark for beta_reduce */          \
-    unsigned int clone_mark : 2;    /* mark for clone */                \
     unsigned int eval_mark : 2;     /* mark for eval_exp */             \
     unsigned int synth_mark : 2;    /* mark for synthesize_exp */       \
     unsigned int reachable : 1;     /* reachable from root ? */         \

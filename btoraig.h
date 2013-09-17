@@ -32,7 +32,6 @@ struct BtorAIG
   struct BtorAIG *next;
   int cnf_id;
   unsigned mark : 2;
-  unsigned clone_mark : 2;
   unsigned local;
 };
 
