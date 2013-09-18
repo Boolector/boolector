@@ -114,7 +114,7 @@ btor_clone_sat_mgr (BtorSATMgr *smgr, BtorMemMgr *mm)
 
   res->solver = lglclone (smgr->solver);
   res->mm     = mm;
-  res->name   = btor_strdup (mm, smgr->name);
+  res->name   = smgr->name;
   res->optstr = btor_strdup (mm, smgr->optstr);
   memcpy (&res->verbosity,
           &smgr->verbosity,

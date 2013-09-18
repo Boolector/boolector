@@ -1151,6 +1151,8 @@ btor_clone_aig_mgr (BtorAIGMgr *amgr, BtorMemMgr *mm, BtorAIGMap *aig_map)
   res->id        = amgr->id;
   res->verbosity = amgr->verbosity;
   res->smgr      = btor_clone_sat_mgr (amgr->smgr, mm);
+
+  BTOR_RELEASE_STACK (mm, nexts);
   return res;
 }
 

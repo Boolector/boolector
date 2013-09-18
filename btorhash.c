@@ -39,6 +39,37 @@ btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
   return res;
 }
 
+static void
+btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
+{
+  BtorPtrHashBucket *p, *chain, **old_table, **new_table;
+  unsigned old_size, new_size, i, h;
+  BtorHashPtr hash;
+
+  old_size  = p2iht->size;
+  old_table = p2iht->table;
+
+  new_size = old_size ? 2 * old_size : 1;
+  BTOR_CNEWN (p2iht->mem, new_table, new_size);
+
+  hash = p2iht->hash;
+
+  for (i = 0; i < old_size; i++)
+    for (p = old_table[i]; p; p = chain)
+    {
+      chain = p->chain;
+      h     = hash (p->key);
+      h &= new_size - 1;
+      p->chain     = new_table[h];
+      new_table[h] = p;
+    }
+
+  BTOR_DELETEN (p2iht->mem, old_table, old_size);
+
+  p2iht->size  = new_size;
+  p2iht->table = new_table;
+}
+
 BtorPtrHashTable *
 btor_clone_ptr_hash_table (BtorMemMgr *mem,
                            BtorPtrHashTable *table,
@@ -58,6 +89,8 @@ btor_clone_ptr_hash_table (BtorMemMgr *mem,
   if (!table) return NULL;
 
   res = btor_new_ptr_hash_table (mem, table->hash, table->cmp);
+  while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
+  assert (res->size == table->size);
 
   for (b = table->first; b; b = b->next)
   {
@@ -88,37 +121,6 @@ btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
 
   BTOR_DELETEN (p2iht->mem, p2iht->table, p2iht->size);
   BTOR_DELETE (p2iht->mem, p2iht);
-}
-
-static void
-btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
-{
-  BtorPtrHashBucket *p, *chain, **old_table, **new_table;
-  unsigned old_size, new_size, i, h;
-  BtorHashPtr hash;
-
-  old_size  = p2iht->size;
-  old_table = p2iht->table;
-
-  new_size = old_size ? 2 * old_size : 1;
-  BTOR_CNEWN (p2iht->mem, new_table, new_size);
-
-  hash = p2iht->hash;
-
-  for (i = 0; i < old_size; i++)
-    for (p = old_table[i]; p; p = chain)
-    {
-      chain = p->chain;
-      h     = hash (p->key);
-      h &= new_size - 1;
-      p->chain     = new_table[h];
-      new_table[h] = p;
-    }
-
-  BTOR_DELETEN (p2iht->mem, old_table, old_size);
-
-  p2iht->size  = new_size;
-  p2iht->table = new_table;
 }
 
 static BtorPtrHashBucket **

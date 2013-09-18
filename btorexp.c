@@ -1208,7 +1208,6 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
         ((BtorLambdaNode *) exp)->synth_reads = 0;
       }
       goto ERASE_LOCAL_ARRAY_RHO;
-      /* fall through wanted */
     case BTOR_ARRAY_VAR_NODE:
       if (free_symbol)
       {
@@ -1230,13 +1229,6 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
       BTOR_RELEASE_STACK (mm, ((BtorParamNode *) exp)->assigned_exp);
       /* fall through wanted */
     case BTOR_BV_VAR_NODE:
-      if (free_symbol)
-      {
-        btor_freestr (mm, exp->symbol);
-        exp->symbol = 0;
-      }
-      break;
-    case BTOR_PROXY_NODE:
       if (free_symbol)
       {
         btor_freestr (mm, exp->symbol);
