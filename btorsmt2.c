@@ -2280,7 +2280,16 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
       else if (tag == BTOR_LET_TAG_SMT2)
       {
         BtorSMT2Node *s;
-        assert (p[nargs].tag == BTOR_EXP_TAG_SMT2);
+        for (i = 1; i <= nargs; i++)
+        {
+          if (p[i].tag != BTOR_EXP_TAG_SMT2)
+          {
+            parser->perrcoo = p[i].coo;
+            return !btor_perr_smt2 (
+                parser, "expected expression as argument %d of 'let'", i);
+          }
+        }
+        assert (p[nargs].tag == BTOR_SYMBOL_TAG_SMT2);
         l[0].tag = BTOR_EXP_TAG_SMT2;
         l[0].exp = p[nargs].exp;
         for (i = 1; i < nargs; i++)
