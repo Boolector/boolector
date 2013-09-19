@@ -2315,6 +2315,12 @@ btor_parse_term_smt2 (BtorSMT2Parser *parser,
           return !btor_perr_smt2 (
               parser, "second term bound to '%s'", p[1].node->name);
         }
+        if (p[2].tag != BTOR_EXP_TAG_SMT2)
+        {
+          parser->perrcoo = p[2].coo;
+          return !btor_perr_smt2 (parser,
+                                  "expected expression in 'let' binding");
+        }
         l[0] = p[1];
         assert (!l[0].node->exp);
         assert (p[2].tag == BTOR_EXP_TAG_SMT2);
