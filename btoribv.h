@@ -347,6 +347,7 @@ class BtorIBV : public BitVector
   ~BtorIBV ();
 
   void setVerbosity (int verbosity);
+  void setRewriteLevel (int rwl);
   void setForce (bool f = true) { force = f; }
   void enableTraceGeneration ();
 
@@ -564,7 +565,7 @@ class BtorIBV : public BitVector
 
   void dump_btor (FILE *file);  // Dump BTOR model to this file.
 
-  int bmc (int maxk);
+  int bmc (int mink, int maxk);
   string assignment (BitRange, int k);
 };
 

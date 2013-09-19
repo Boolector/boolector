@@ -59,6 +59,9 @@
     printf "%d [style=filled, fillcolor=lightgray, label=\"lambda\"];\n", $1
     print_child_arrow($1, $5, 1)
     print_child_arrow($1, $6, 2)
+  } else if ($2 == "constraint"){
+    printf "%d [shape=triangle,color=green,label=\"\"];\n", $1
+    print_unary_child_arrow($1, $4)
   } else if ($2 == "bad"){
     printf "%d [shape=triangle,color=red,label=\"\"];\n", $1
     print_unary_child_arrow($1, $4)

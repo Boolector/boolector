@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -190,7 +191,7 @@ release_assignment (BtorMC *mc)
   btor_msg_mc (mc,
                1,
                "releasing assignment of size %d",
-               BTOR_COUNT_MAP_NODE (mc->assignment));
+               BTOR_COUNT_MAP (mc->assignment));
   mc->assignment = 0;
 }
 
@@ -380,7 +381,7 @@ boolector_constraint (BtorMC *mc, BtorNode *constraint)
   res = BTOR_COUNT_STACK (mc->constraints);
   (void) btor_copy_exp (mc->btor, constraint);
   BTOR_PUSH_STACK (mc->btor->mm, mc->constraints, constraint);
-  btor_msg_mc (mc, 2, "adding environment constraint %d", res);
+  btor_msg_mc (mc, 2, "adding environment CONSTRAINT %d", res);
   return res;
 }
 
@@ -635,7 +636,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     btor_map_node (f->btor, res, src, dst);
   }
 
-  assert (res->count == mc->inputs->count + mc->latches->count);
+  assert (res->table->count == mc->inputs->count + mc->latches->count);
 
   return res;
 }
@@ -645,7 +646,7 @@ initialize_new_forward_frame (BtorMC *mc)
 {
   BtorMcFrame frame, *f;
   BtorNodeMap *map;
-  int time, k;
+  int time;
 #ifndef NDEBUG
   int old_mc_btor_num_nodes;
 #endif
@@ -680,12 +681,11 @@ initialize_new_forward_frame (BtorMC *mc)
   initialize_constraints_of_frame (mc, map, f);
   initialize_bad_state_properties_of_frame (mc, map, f);
 
-  btor_delete_node_map (f->btor, map);
+  btor_delete_node_map (map);
 
   assert (old_mc_btor_num_nodes == mc->btor->nodes_unique_table.num_elements);
 
-  k = BTOR_COUNT_STACK (mc->frames);
-  btor_msg_mc (mc, 1, "initialized forward frame at bound k = %d", k);
+  btor_msg_mc (mc, 1, "initialized forward frame at bound k = %d", time);
 }
 
 #if 0
@@ -778,17 +778,19 @@ check_last_forward_frame (BtorMC *mc)
 }
 
 int
-boolector_bmc (BtorMC *mc, int maxk)
+boolector_bmc (BtorMC *mc, int mink, int maxk)
 {
   int k;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
 
-  btor_msg_mc (mc,
-               1,
-               "calling BMC on %d properties up-to maximum bound k = %d",
-               (int) BTOR_COUNT_STACK (mc->bad),
-               maxk);
+  btor_msg_mc (
+      mc,
+      1,
+      "calling BMC on %d properties from bound %d up-to maximum bound k = %d",
+      (int) BTOR_COUNT_STACK (mc->bad),
+      mink,
+      maxk);
 
   btor_msg_mc (
       mc, 1, "trace generation %s", mc->trace_enabled ? "enabled" : "disabled");
@@ -798,7 +800,7 @@ boolector_bmc (BtorMC *mc, int maxk)
   while ((k = BTOR_COUNT_STACK (mc->frames)) <= maxk)
   {
     initialize_new_forward_frame (mc);
-    if (check_last_forward_frame (mc))
+    if (k >= mink && check_last_forward_frame (mc))
     {
       btor_msg_mc (mc, 2, "entering SAT state");
       mc->state = BTOR_SAT_MC_STATE;
@@ -930,7 +932,7 @@ boolector_dump_btormc (BtorMC *mc, FILE *file)
   for (i = 0; i < BTOR_COUNT_STACK (mc->constraints); i++)
   {
     BtorNode *constraint = BTOR_PEEK_STACK (mc->constraints, i);
-    btor_add_bad_to_dump_context (bdc, constraint);
+    btor_add_constraint_to_dump_context (bdc, constraint);
   }
 
   btor_dump_btor (bdc, file);

@@ -219,6 +219,14 @@ BtorIBV::setVerbosity (int v)
 }
 
 void
+BtorIBV::setRewriteLevel (int rwl)
+{
+  BTOR_ABORT_BOOLECTOR (rwl < 1, "rewrite level has to be at least 1");
+  BTOR_ABORT_BOOLECTOR (rwl > 3, "rewrite level has to be at most 3");
+  boolector_set_rewrite_level (btor, rwl);
+}
+
+void
 BtorIBV::enableTraceGeneration ()
 {
   gentrace = true;
@@ -1883,9 +1891,10 @@ BtorIBV::analyze ()
         "undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
 	n->name, i);
 #else
-      warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
-            n->name,
-            i);
+      if (!n->prev || !n->prev[i])
+        warn ("undefined '%s[%u]' (neither assigned, nor state, nor non-state)",
+              n->name,
+              i);
 #endif
     }
   }
@@ -2239,6 +2248,7 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
 
     case BTOR_IBV_TWO_PHASE_INPUT:
       (void) forward;
+      assert (!forward);
       assert (n->is_next_state);
       {
         assert (n->prev);
@@ -2278,13 +2288,11 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
 #endif
         int msb          = pr.msb - b->range.lsb;
         int lsb          = pr.lsb - b->range.lsb;
-        BtorNode *tmp    = boolector_copy (btor, (forward ? b->next : b->exp));
+        BtorNode *tmp    = boolector_copy (btor, b->next);
         BtorNode *sliced = boolector_slice (btor, tmp, msb, lsb);
         boolector_release (btor, tmp);
-        if (forward)
-          assert (!a->next), a->next = sliced;
-        else
-          assert (!a->exp), a->exp = sliced;
+        assert (!a->exp);
+        a->exp = sliced;
       }
       break;
 
@@ -2409,9 +2417,6 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           1, "%s not handled yet", btor_ibv_classified_to_str (c));
       break;
 
-    case BTOR_IBV_PHANTOM_NEXT_INPUT:
-    case BTOR_IBV_PHANTOM_CURRENT_INPUT: break;
-
     case BTOR_IBV_CONSTANT:
     {
       if (!n->cached)
@@ -2466,7 +2471,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
 
     case BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT:
     {
-      char *nextname = btor_ibv_atom_base_name (btor, n, r, "next");
+      char *nextname = btor_ibv_atom_base_name (btor, n, r, 0);
       a->exp         = boolector_input (btormc, (int) r.getWidth (), nextname);
       btor_freestr (btor->mm, nextname);
       (void) boolector_copy (btor, a->exp);
@@ -2474,13 +2479,25 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
     }
     break;
 
+    case BTOR_IBV_PHANTOM_CURRENT_INPUT: break;
+
     case BTOR_IBV_ONE_PHASE_ONLY_CURRENT_INPUT:
     {
-      char *name = btor_ibv_atom_base_name (btor, n, r, "current");
+      char *name = btor_ibv_atom_base_name (btor, n, r, 0);
       a->exp     = boolector_latch (btormc, (int) r.getWidth (), name);
       btor_freestr (btor->mm, name);
       (void) boolector_copy (btor, a->exp);
       stats.latches++;
+    }
+    break;
+
+    case BTOR_IBV_PHANTOM_NEXT_INPUT:
+    {
+      char *name = btor_ibv_atom_base_name (btor, n, r, 0);
+      a->exp     = boolector_input (btormc, (int) r.getWidth (), name);
+      btor_freestr (btor->mm, name);
+      (void) boolector_copy (btor, a->exp);
+      stats.inputs++;
     }
     break;
 
@@ -2795,12 +2812,8 @@ BtorIBV::translate ()
           BtorIBVNode *nextnode = id2node (as->ranges[0].id);
           assert (nextnode);
           assert (nextnode->flags);
-          if (n->flags[lsb].classified == BTOR_IBV_PHANTOM_CURRENT_INPUT)
-            assert (nextnode->flags[as->ranges[0].lsb].classified
-                    == BTOR_IBV_ONE_PHASE_ONLY_NEXT_INPUT);
-          else
-            assert (nextnode->flags[as->ranges[0].lsb].classified
-                    == BTOR_IBV_PHANTOM_NEXT_INPUT);
+          assert (nextnode->flags[as->ranges[0].lsb].classified
+                  == BTOR_IBV_PHANTOM_NEXT_INPUT);
           assert (nextnode->cached);
           BtorNode *nextexp = boolector_slice (
               btor, nextnode->cached, as->ranges[0].msb, as->ranges[0].lsb);
@@ -2896,6 +2909,7 @@ BtorIBV::translate ()
       constraint = tmp;
       ninitialized++;
     }
+
     boolector_constraint (btormc, constraint);
     boolector_release (btor, constraint);
     stats.constraints++;
@@ -2934,13 +2948,13 @@ BtorIBV::dump_btor (FILE *file)
 /*------------------------------------------------------------------------*/
 
 int
-BtorIBV::bmc (int maxk)
+BtorIBV::bmc (int mink, int maxk)
 {
   BTOR_ABORT_BOOLECTOR (
       state == BTOR_IBV_START,
       "model needs to be translated before it can be checked");
 
-  return boolector_bmc (btormc, maxk);
+  return boolector_bmc (btormc, mink, maxk);
 }
 
 static string

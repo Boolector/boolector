@@ -42,7 +42,7 @@ void boolector_dump_btormc (BtorMC *, FILE *);
 
 /*------------------------------------------------------------------------*/
 
-int boolector_bmc (BtorMC *, int maxk);
+int boolector_bmc (BtorMC *, int mink, int maxk);
 
 /* Assumes that 'boolector_enable_trace_gen' was called and then
  * 'boolector_bmc' which returned a 'k' with '0 <= time <= k'.

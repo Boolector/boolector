@@ -134,7 +134,7 @@ read_line ()
   int ch;
   while ((ch = getc (input)) != '\n')
   {
-    if (ch == ' ' || ch == '\t' || ch == '\r') continue;
+    // if (ch == ' ' || ch == '\t' || ch == '\r') continue;
     if (ch == EOF)
     {
       if (nline) perr ("unexpected end-of-file");
@@ -323,13 +323,23 @@ firstok ()
   return line;
 }
 
+static bool
+myisspace (int ch)
+{
+  if (ch == ' ') return 1;
+  if (ch == '\t') return 1;
+  if (ch == '\n') return 1;
+  if (ch == '\r') return 1;
+  return 0;
+}
+
 static const char*
 nextok ()
 {
   const char* res;
   int open;
   if (nts >= line + nline) return 0;
-  while (isspace (*nts)) nts++;
+  while (myisspace (*nts)) nts++;
   if (!*nts) return 0;
   res  = nts;
   open = 0;
@@ -359,7 +369,7 @@ nextok ()
   }
   *nts++  = 0;
   char* p = nts - 2;
-  while (p >= res && isspace (*p)) *p-- = 0;
+  while (p >= res && myisspace (*p)) *p-- = 0;
   return *res ? res : 0;
 }
 
@@ -371,6 +381,7 @@ parse_line ()
   char* p;
   for (p = line; *p; p++)
     ;
+  while (p > line && myisspace (p[-1])) *--p = 0;
 #if 0
   if (p == line) perr ("empty line");
 #else
@@ -694,18 +705,23 @@ static const char* USAGE =
     "  -f    force translation (replace 'x' by '0')\n"
     "  -d    dump BTOR model\n"
     "  -o    path of dump file (default is stdout)\n"
+    "  -i    ignore and do not check properties at initial state\n"
+    "\n"
+    "  -rwl1 set rewrite level to 1\n"
+    "  -rwl2 set rewrite level to 2\n"
+    "  -rwl3 set rewrite level to 3 (default)\n"
     "\n"
     "and\n"
     "\n"
-    "<k>     maximal bound for bounded model checking (default 10)\n"
+    "<k>     maximal bound for bounded model checking (default 20)\n"
     "<ibv>   IBV input file (default '<stdin>')\n";
 
 int
 main (int argc, char** argv)
 {
-  bool witness = true, dump = false, force = false;
+  bool witness = true, dump = false, force = false, ignore = false;
   const char* outputname = 0;
-  int k                  = -1, r;
+  int k = -1, r, rwl = 3;
   for (int i = 1; i < argc; i++)
   {
     if (!strcmp (argv[i], "-h"))
@@ -717,8 +733,16 @@ main (int argc, char** argv)
       witness = false;
     else if (!strcmp (argv[i], "-d"))
       dump = true;
+    else if (!strcmp (argv[i], "-i"))
+      ignore = true;
     else if (!strcmp (argv[i], "-f"))
       force = true;
+    else if (!strcmp (argv[i], "-rwl1"))
+      rwl = 1;
+    else if (!strcmp (argv[i], "-rwl2"))
+      rwl = 2;
+    else if (!strcmp (argv[i], "-rwl3"))
+      rwl = 3;
     else if (!strcmp (argv[i], "-o"))
     {
       if (++i == argc) err ("argument to '-o' missing");
@@ -746,7 +770,8 @@ main (int argc, char** argv)
   }
   msg ("reading '%s'", input_name);
   ibvm = new BtorIBV ();
-  ibvm->setVerbosity (10);
+  ibvm->setVerbosity (20);
+  ibvm->setRewriteLevel (rwl);
   if (force) ibvm->setForce ();
   if (witness) ibvm->enableTraceGeneration ();
   parse ();
@@ -772,11 +797,11 @@ main (int argc, char** argv)
   }
   else
   {
-    if (k < 0) k = 10;
+    if (k < 0) k = 20;
     msg ("running bounded model checking up to bound %d", k);
-    r = ibvm->bmc (k);
+    r = ibvm->bmc ((int) ignore, k);
     if (r < 0)
-      msg ("property not reachable until bound %d", k);
+      msg ("property not reachable from %d until bound %d", (int) ignore, k);
     else
     {
       msg ("property reachable at bound %d", r);
