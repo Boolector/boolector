@@ -1941,7 +1941,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       assert (!BTOR_IS_NESTED_LAMBDA_NODE (cur)
               || BTOR_IS_FIRST_NESTED_LAMBDA (cur));
 
-      next         = BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) cur)->body);
+      next         = BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (cur));
       next->mark   = 1;
       next->parent = cur;
 
@@ -3439,7 +3439,7 @@ new_lambda_exp_node (Btor *btor, BtorNode *e_param, BtorNode *e_exp)
       ((BtorLambdaNode *) exp)->nested = lambda_exp;
     }
     lambda_exp->num_params += ((BtorLambdaNode *) e_exp)->num_params;
-    lambda_exp->body = ((BtorLambdaNode *) e_exp)->body;
+    lambda_exp->body = BTOR_LAMBDA_GET_BODY (e_exp);
   }
   else
     lambda_exp->body = e_exp;
@@ -7261,7 +7261,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
 
   BTORLOG ("%s: %s", __FUNCTION__, node2string (lambda_exp));
 
-  cur = BTOR_REAL_ADDR_NODE (((BtorLambdaNode *) lambda_exp)->body);
+  cur = BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (lambda_exp));
 
   if (!BTOR_IS_SYNTH_NODE (cur)) synthesize_exp (btor, cur, 0);
 
