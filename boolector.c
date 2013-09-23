@@ -371,7 +371,10 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     for (i = 0; i < len; i++) assert (real_exp->bits[i] == real_clone->bits[i]);
   }
   else
-    assert (real_exp->av == real_clone->av);
+  {
+    assert ((real_exp->av && real_clone->av)
+            || (!real_exp->av && !real_clone->av));
+  }
 
   BTOR_CHKCLONE_EXP (id);
   BTOR_CHKCLONE_EXP (len);
