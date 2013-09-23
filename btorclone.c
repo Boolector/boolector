@@ -131,7 +131,7 @@ clone_exp (Btor *clone,
   //////
 
   ////// BTOR_ARRAY_VAR_NODE_STRUCT
-  if (BTOR_IS_ARRAY_NODE (real_exp))
+  if (BTOR_IS_ARRAY_NODE (real_exp) || BTOR_IS_ARRAY_EQ_NODE (real_exp))
   {
     BTOR_PUSH_STACK_IF (real_exp->first_aeq_acond_parent,
                         mm,
