@@ -468,22 +468,25 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 
   if (BTOR_IS_LAMBDA_NODE (real_exp))
   {
-    for (b = ((BtorLambdaNode *) real_exp)->synth_reads->first,
-        cb = ((BtorLambdaNode *) real_clone)->synth_reads->first;
-         b;
-         b = b->next, cb = cb->next)
+    if (((BtorLambdaNode *) real_exp)->synth_reads)
     {
-      e  = b->key;
-      ce = cb->key;
-      if (e)
+      for (b = ((BtorLambdaNode *) real_exp)->synth_reads->first,
+          cb = ((BtorLambdaNode *) real_clone)->synth_reads->first;
+           b;
+           b = b->next, cb = cb->next)
       {
-        assert (ce);
-        assert (e != ce);
-        BTOR_CHKCLONE_EXPID (e, ce);
+        e  = b->key;
+        ce = cb->key;
+        if (e)
+        {
+          assert (ce);
+          assert (e != ce);
+          BTOR_CHKCLONE_EXPID (e, ce);
+        }
+        else
+          assert (!ce);
+        assert (!b->next || cb->next);
       }
-      else
-        assert (!ce);
-      assert (!b->next || cb->next);
     }
 
     if (((BtorLambdaNode *) real_exp)->nested)
