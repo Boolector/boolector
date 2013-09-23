@@ -248,25 +248,27 @@ static void
 btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 {
 #ifndef NDEBUG
-  assert (aig);
-  assert (clone);
-
   int i;
   BtorAIG *real_aig, *real_clone;
 
   real_aig   = BTOR_REAL_ADDR_AIG (aig);
   real_clone = BTOR_REAL_ADDR_AIG (clone);
+  assert ((real_aig == BTOR_AIG_FALSE && real_clone == BTOR_AIG_FALSE)
+          || real_aig != real_clone);
 
-  BTOR_CHKCLONE_AIG (id);
-  BTOR_CHKCLONE_AIG (refs);
+  if (real_aig != BTOR_AIG_FALSE)
+  {
+    BTOR_CHKCLONE_AIG (id);
+    BTOR_CHKCLONE_AIG (refs);
 
-  for (i = 0; i < 2; i++) BTOR_CHKCLONE_AIG_TAGGED (children[i]);
+    for (i = 0; i < 2; i++) BTOR_CHKCLONE_AIG_TAGGED (children[i]);
 
-  BTOR_CHKCLONE_AIGPID (next);
+    BTOR_CHKCLONE_AIGPID (next);
 
-  BTOR_CHKCLONE_AIG (cnf_id);
-  BTOR_CHKCLONE_AIG (mark);
-  BTOR_CHKCLONE_AIG (local);
+    BTOR_CHKCLONE_AIG (cnf_id);
+    BTOR_CHKCLONE_AIG (mark);
+    BTOR_CHKCLONE_AIG (local);
+  }
 #endif
 }
 
