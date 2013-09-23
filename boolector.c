@@ -695,7 +695,7 @@ boolector_delete (Btor *btor)
     fclose (btor->apitrace);
   else if (btor->closeapitrace == 2)
     pclose (btor->apitrace);
-  BTOR_CHKCLONENORES (boolector_delete);
+  if (btor->clone) boolector_delete (btor->clone);
   btor_delete_btor (btor);
 }
 
