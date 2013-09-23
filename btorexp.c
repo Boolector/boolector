@@ -1976,7 +1976,7 @@ find_shortest_path (Btor *btor, BtorNode *from, BtorNode *to, BtorNode *args)
       if (cur->e[0]->parameterized)
       {
         assert (BTOR_IS_LAMBDA_NODE (cur->e[0]));
-        next       = ((BtorLambdaNode *) cur->e[0])->body;
+        next       = BTOR_REAL_ADDR_NODE (BTOR_LAMBDA_GET_BODY (cur->e[0]));
         next->mark = 1;
         /* propagate downwards */
         next->parent = cur;

@@ -637,6 +637,8 @@ struct Btor
 
 #define BTOR_LAMBDA_GET_PARAM(exp) (((BtorParamNode *) exp->e[0]))
 
+#define BTOR_LAMBDA_GET_BODY(exp) (((BtorLambdaNode *) exp)->body)
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new boolector instance. */
