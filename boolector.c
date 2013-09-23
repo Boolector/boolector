@@ -314,9 +314,13 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
             == BTOR_GET_TAG_NODE (real_clone->field)); \
   } while (0)
 
-#define BTOR_CLONED_EXP(exp)                                     \
-  (btor->clone ? BTOR_PEEK_STACK (btor->clone->nodes_id_table,   \
-                                  BTOR_REAL_ADDR_NODE (exp)->id) \
+#define BTOR_CLONED_EXP(exp)                                                 \
+  (btor->clone ? (BTOR_IS_INVERTED_NODE (exp)                                \
+                      ? BTOR_INVERT_NODE (                                   \
+                            BTOR_PEEK_STACK (btor->clone->nodes_id_table,    \
+                                             BTOR_REAL_ADDR_NODE (exp)->id)) \
+                      : BTOR_PEEK_STACK (btor->clone->nodes_id_table,        \
+                                         BTOR_REAL_ADDR_NODE (exp)->id))     \
                : 0)
 
 static void
