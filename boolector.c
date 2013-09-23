@@ -219,29 +219,29 @@ btor_chkclone_stats (Btor *btor)
     assert (real_clone->field == real_aig->field); \
   } while (0)
 
-#define BTOR_CHKCLONE_AIGPID(field)                \
-  do                                               \
-  {                                                \
-    if (!real_aig->field)                          \
-    {                                              \
-      assert (!real_clone->field);                 \
-      break;                                       \
-    }                                              \
-    assert (real_clone->field == real_aig->field); \
+#define BTOR_CHKCLONE_AIGPID(field)                        \
+  do                                                       \
+  {                                                        \
+    if (!real_aig->field)                                  \
+    {                                                      \
+      assert (!real_clone->field);                         \
+      break;                                               \
+    }                                                      \
+    assert (real_aig->field != real_clone->field);         \
+    assert (real_aig->field->id == real_clone->field->id); \
   } while (0)
 
-#define BTOR_CHKCLONE_AIG_TAGGED(field)                       \
-  do                                                          \
-  {                                                           \
-    if (!real_aig->field)                                     \
-    {                                                         \
-      assert (!real_clone->field);                            \
-      break;                                                  \
-    }                                                         \
-    int clonetag = BTOR_GET_TAG_NODE (real_clone->field);     \
-    assert (clonetag == BTOR_GET_TAG_NODE (real_aig->field)); \
-    assert (BTOR_REAL_ADDR_NODE (real_aig->field)->id         \
-            == BTOR_REAL_ADDR_NODE (real_clone->field)->id);  \
+#define BTOR_CHKCLONE_AIGINV(field)                       \
+  do                                                      \
+  {                                                       \
+    if (!real_aig->field)                                 \
+    {                                                     \
+      assert (!real_clone->field);                        \
+      break;                                              \
+    }                                                     \
+    assert (BTOR_IS_INVERTED_AIG (real_aig->field)        \
+            == BTOR_IS_INVERTED_AIG (real_clone->field)); \
+    BTOR_CHKCLONE_AIGPID (field);                         \
   } while (0)
 
 static void
@@ -261,7 +261,7 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     BTOR_CHKCLONE_AIG (id);
     BTOR_CHKCLONE_AIG (refs);
 
-    for (i = 0; i < 2; i++) BTOR_CHKCLONE_AIG_TAGGED (children[i]);
+    for (i = 0; i < 2; i++) BTOR_CHKCLONE_AIGINV (children[i]);
 
     BTOR_CHKCLONE_AIGPID (next);
 
