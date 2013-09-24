@@ -77,7 +77,7 @@ clone_exp (Btor *clone,
 
   BTOR_PUSH_STACK_IF (real_exp->next, mm, *nodes, &res->next);
   BTOR_PUSH_STACK_IF (real_exp->parent, mm, *parents, &res->parent);
-  assert (!real_exp->simplified);
+  BTOR_PUSH_STACK_IF (real_exp->simplified, mm, *nodes, &res->simplified);
   res->btor = clone;
   BTOR_PUSH_STACK_IF (real_exp->first_parent, mm, *parents, &res->first_parent);
   BTOR_PUSH_STACK_IF (real_exp->last_parent, mm, *parents, &res->last_parent);
