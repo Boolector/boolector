@@ -5,6 +5,7 @@ import os
 import shlex
 import shutil
 import sys
+import re
 from optparse import OptionParser
 from subprocess import Popen, PIPE
 
@@ -16,7 +17,11 @@ g_tmpfile = "/tmp/ddmbt-" + str(os.getpid()) + ".trace"
 g_command = [] 
 g_num_tests = 0
 g_lines = []
+g_subst_lines = {}
+g_line_tokens = []
 
+SKIP_SUBST_LIST = ["return", "release", "get_index_width", "bv_assignment", \
+                   "free_bv_assignment", "get_width", "get_fun_arity"]
 
 def _parse_options():
     usage_fmt = "%prog [options] INFILE OUTFILE \"CMD [options]\""
@@ -34,6 +39,81 @@ def _parse_options():
 
     return (options, args)
 
+def _is_node(s):
+    m = re.match('^e-?\d+', s)
+    return m is not None
+
+def _tokens_children(tokens):
+    return [c for c in tokens if _is_node(c)]
+
+def _tokens_bw(tokens, nodes_bw):
+
+    kind = tokens[0]
+    if kind in ["var", "param", "zero", "one", "ones"]:
+        return [int(tokens[1])]
+    elif kind in ["int", "unsigned_int"]:
+        return [int(tokens[2])]
+    elif kind == "array":
+        return [int(tokens[1]), int(tokens[2])]
+    elif kind == "slice":
+        return [int(tokens[2]) - int(tokens[3]) + 1]
+    else:
+        children = _tokens_children(tokens)
+        cbw = [nodes_bw[c] for c in children]
+        if kind == "cond":
+            assert(cbw[1] == cbw[2])
+            return cbw[1]
+        elif kind == "read":
+            assert(len(cbw[0]) == 2)
+            return [cbw[0][0]]
+        elif kind == "write":
+            assert(len(cbw[0]) == 2)
+            return cbw[0]
+        elif kind in ["not", "inc"]:
+            assert(len(cbw) == 1)
+            return cbw[0]
+        elif kind in ["sext", "uext"]:
+            assert(len(cbw) == 1)
+            return [cbw[0][0] + int(tokens[2])]
+        elif kind in ["fun", "apply"]:
+            return cbw[-1]
+        elif kind in ["sgt", "ult", "eq", "umulo", "smulo", "usubo", "ssubo",
+                      "sdivo", "redor", "redand", "redxor"]:
+            return [1]
+        elif kind in ["rol", "ror"]:
+            return cbw[0]
+        elif kind == "concat":
+            assert(len(cbw) == 2)
+            return [cbw[0][0] + cbw[1][0]]
+        else:
+            assert(len(cbw) == 2)
+            assert(cbw[0] == cbw[1])
+            return cbw[0]
+
+def _build_graph():
+    global g_lines, g_line_tokens
+
+    g_line_tokens = [] 
+    node_map = {}
+    nodes_bw = {}
+    prev_tokens = []
+    for i in range(len(g_lines)):
+        tokens = g_lines[i].split()
+        bw = []
+        nid = "" 
+
+        if "return" in tokens[0] and not "assignment" in prev_tokens[0]:
+            if _is_node(tokens[1]):
+                nid = tokens[1]
+                node_map[nid] = prev_tokens 
+                bw = _tokens_bw(prev_tokens, nodes_bw) 
+                nodes_bw[nid] = bw
+                assert(i > 0)
+                g_line_tokens[i - 1][0] = nid
+                g_line_tokens[i - 1][1] = bw
+
+        prev_tokens = tokens
+        g_line_tokens.append(["", [], tokens])
 
 def _parse_trace(inputfile):
     global g_lines
@@ -41,7 +121,7 @@ def _parse_trace(inputfile):
     try:
         with open(inputfile, 'r') as infile:
             for line in infile:
-                g_lines.append(line)
+                g_lines.append(line.strip())
 
         _log(1, "parsed {0:d} lines".format(len(g_lines)))
 
@@ -56,9 +136,15 @@ def _open_file_dump_trace(filename, lines):
         _error_and_exit(err)
 
 def _dump_trace(outfile, lines):
+    global g_subst_lines
 
-    for line in lines:
-        outfile.write(line)
+    for i in range(len(lines)):
+        if i in g_subst_lines:
+            line = g_subst_lines[i]
+        else:
+            line = lines[i]
+
+        outfile.write("{}\n".format(line))
 
 def _run():
     global g_command
@@ -137,6 +223,60 @@ def _remove_lines():
 
     return num_lines 
 
+def _compact_graph():
+    global g_line_tokens, g_subst_lines, g_lines
+
+    num_substs = 0
+    g_subst_lines = {}
+
+    _build_graph()
+    assert(len(g_lines) == len(g_line_tokens))
+
+    # insert vars
+    for i in range(len(g_line_tokens)):
+        nid = g_line_tokens[i][0]
+        bw = g_line_tokens[i][1]
+        tokens = g_line_tokens[i][2]
+        kind = tokens[0]
+
+        if kind in ["var", "fun", "param"] or nid == "" or len(bw) > 1:
+            continue
+
+        _log(1, "  insert var at line {}, {}".format(i, num_substs), True)
+        g_subst_lines[i] = "var {} v{}".format(bw[0], i) 
+        _open_file_dump_trace(g_tmpfile, g_lines)
+
+        if _test():
+            _save(g_lines)
+            g_lines[i] = g_subst_lines[i]
+            num_substs += 1
+
+        del(g_subst_lines[i])
+
+#    # eliminate writes
+#    for i in range(len(g_line_tokens)):
+#        nid = g_line_tokens[i][0]
+#        bw = g_line_tokens[i][1]
+#        tokens = g_line_tokens[i][2]
+#        kind = tokens[0]
+#
+#        if kind != "write":
+#            continue
+#
+#        _log(1, "  substitute write at line {}, {}".format(i, num_substs), True)
+#        g_subst_lines[i] = "array {} {}".format(bw[0], bw[1])
+#        _open_file_dump_trace(g_tmpfile, g_lines)
+#
+#        if _test():
+#            _save(g_lines)
+#            g_lines[i] = g_subst_lines[i]
+#            num_substs += 1
+#
+#        del(g_subst_lines[i])
+
+
+    return num_substs
+
 def _remove_return_pairs():
     global g_lines
 
@@ -198,6 +338,7 @@ def ddmbt_main():
     _log(1, "output file: '{0:s}'".format(g_outfile))
 
     _parse_trace(args[0])
+    num_lines_start = len(g_lines)
 
     # copy inputfile to tmpfile
     shutil.copyfile(inputfile, g_tmpfile)
@@ -211,22 +352,25 @@ def ddmbt_main():
     while True:
         rounds += 1
 
+        num_substs = _compact_graph()
         num_lines = _remove_lines()
 
         if pairs:
             num_lines += _remove_return_pairs()
 
-        _log(1, "round {}, removed {} lines".format(rounds, num_lines))
+        _log(1, "round {}, removed {} lines, substituted {} lines".format(
+             rounds, num_lines, num_substs))
 
         if num_lines == 0 and not pairs:
             _log(1, "remove return pairs")
             pairs = True
-        elif num_lines == 0:
+        elif num_lines == 0 and num_substs == 0:
             break
 
 
     _log(1, "tests: {0:d}".format(g_num_tests))
-    _log(1, "dumped {0:d} lines".format(len(g_lines)))
+    _log(1, "dumped {0:d} lines (removed {1:.1f}% of lines)".format(
+         len(g_lines), (1 - len(g_lines)/num_lines_start) * 100))
 
 if __name__ == "__main__":
     try:
