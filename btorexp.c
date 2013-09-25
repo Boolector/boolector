@@ -4227,9 +4227,10 @@ btor_read_exp_node (Btor *btor, BtorNode *e_array, BtorNode *e_index)
   result = btor_apply_exps (btor, 1, &e_index, e_array);
   if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (result)))
   {
-    result->is_read = 1;
+    BTOR_REAL_ADDR_NODE (result)->is_read = 1;
     if (!BTOR_REAL_ADDR_NODE (result)->bits)
-      result->bits = btor_x_const_3vl (btor->mm, e_array->len);
+      BTOR_REAL_ADDR_NODE (result)->bits =
+          btor_x_const_3vl (btor->mm, e_array->len);
   }
 
   return result;
@@ -4443,6 +4444,7 @@ btor_write_exp_node (Btor *btor,
   e_else = btor_read_exp (btor, e_array, param);
   bvcond = btor_cond_exp (btor, e_cond, e_if, e_else);
   lambda = (BtorLambdaNode *) btor_lambda_exp (btor, param, bvcond);
+  // TODO: set is_write flag?
 
   btor_release_exp (btor, e_if);
   btor_release_exp (btor, e_else);
