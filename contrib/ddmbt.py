@@ -57,6 +57,16 @@ def _tokens_bw(tokens, nodes_bw):
         return [int(tokens[1]), int(tokens[2])]
     elif kind == "slice":
         return [int(tokens[2]) - int(tokens[3]) + 1]
+    elif kind in ["zero", "ones", "one"]:
+        return [int(tokens[1])]
+    elif kind in ["true", "false",
+                  "redor", "redand", "redxor",
+                  "implies", "iff",
+                  "eq", "ne", "umulo", "smulo",
+                  "ult", "slt", "ulte", "slte",
+                  "ugt", "sgt", "ugte", "sgte",
+                  "uaddo", "saddo", "usubo", "ssubo", "sdivo"]:
+        return [1]
     else:
         children = _tokens_children(tokens)
         cbw = [nodes_bw[c] for c in children]
@@ -77,14 +87,13 @@ def _tokens_bw(tokens, nodes_bw):
             return [cbw[0][0] + int(tokens[2])]
         elif kind in ["fun", "apply"]:
             return cbw[-1]
-        elif kind in ["sgt", "ult", "eq", "umulo", "smulo", "usubo", "ssubo",
-                      "sdivo", "redor", "redand", "redxor"]:
-            return [1]
-        elif kind in ["rol", "ror"]:
+        elif kind in ["rol", "ror", "neg", "sll", "srl"]:
             return cbw[0]
         elif kind == "concat":
             assert(len(cbw) == 2)
             return [cbw[0][0] + cbw[1][0]]
+        elif kind == "const":
+            return [len(tokens[1])]
         else:
             assert(len(cbw) == 2)
             assert(cbw[0] == cbw[1])
@@ -102,7 +111,7 @@ def _build_graph():
         bw = []
         nid = "" 
 
-        if "return" in tokens[0] and not "assignment" in prev_tokens[0]:
+        if tokens[0] == "return" and not "assignment" in prev_tokens[0]:
             if _is_node(tokens[1]):
                 nid = tokens[1]
                 node_map[nid] = prev_tokens 
