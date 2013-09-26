@@ -6037,6 +6037,7 @@ btor_delete_btor (Btor *btor)
   assert (btor);
 
   int i;
+  BtorNodePtrStack stack;
   BtorPtrHashTable *t;
   BtorPtrHashBucket *b, *b_app;
   BtorMemMgr *mm;
@@ -6087,18 +6088,22 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, btor->arrays_with_model.start[i]);
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
-  b = btor->lambdas->first;
-  while (b)
+  BTOR_INIT_STACK (stack);
+  for (b = btor->lambdas->first; b; b = b->next)
   {
     t = ((BtorLambdaNode *) b->key)->synth_apps;
-    ((BtorLambdaNode *) b->key)->synth_apps = 0;
-    b                                       = b->next;
-    if (!t) continue;
-
-    for (b_app = t->first; b_app; b_app = b_app->next)
-      btor_release_exp (btor, (BtorNode *) b_app->key);
-    btor_delete_ptr_hash_table (t);
+    if (t)
+    {
+      for (b_app = t->first; b_app; b_app = b_app->next)
+        BTOR_PUSH_STACK (mm, stack, (BtorNode *) b_app->key);
+      ((BtorLambdaNode *) b->key)->synth_apps = 0;
+      btor_delete_ptr_hash_table (t);
+    }
   }
+
+  while (!BTOR_EMPTY_STACK (stack))
+    btor_release_exp (btor, BTOR_POP_STACK (stack));
+  BTOR_RELEASE_STACK (mm, stack);
 
 #ifndef NDEBUG
   int k;
