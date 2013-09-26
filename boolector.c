@@ -2563,7 +2563,7 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   res = btor_bv_assignment_exp (btor, exp);
-  BTOR_TRAPI_RETURNS (boolector_bv_assignment, res, cexp);
+  BTOR_TRAPI_RETURNP (boolector_bv_assignment, res, cexp);
   return res;
 }
 
