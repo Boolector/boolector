@@ -6034,28 +6034,16 @@ btor_set_loglevel_btor (Btor *btor, int loglevel)
 void
 btor_delete_btor (Btor *btor)
 {
-  int i;
-  BtorPtrHashTable *ht;
-  BtorPtrHashBucket *b;
-  BtorMemMgr *mm;
-  BtorNode *exp;
-
   assert (btor);
+
+  int i;
+  BtorPtrHashTable *t;
+  BtorPtrHashBucket *b, *b_app;
+  BtorMemMgr *mm;
 
   mm = btor->mm;
 
   btor_release_exp (btor, btor->true_exp);
-
-  for (b = btor->lambdas->first; b; b = b->next)
-  {
-    ht = ((BtorLambdaNode *) b->key)->synth_apps;
-    while (ht && ht->count > 0u)
-    {
-      exp = (BtorNode *) ht->first->key;
-      btor_remove_from_ptr_hash_table (ht, exp, 0, 0);
-      btor_release_exp (btor, exp);
-    }
-  }
 
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
@@ -6099,6 +6087,19 @@ btor_delete_btor (Btor *btor)
     btor_release_exp (btor, btor->arrays_with_model.start[i]);
   BTOR_RELEASE_STACK (mm, btor->arrays_with_model);
 
+  b = btor->lambdas->first;
+  while (b)
+  {
+    t = ((BtorLambdaNode *) b->key)->synth_apps;
+    ((BtorLambdaNode *) b->key)->synth_apps = 0;
+    b                                       = b->next;
+    if (!t) continue;
+
+    for (b_app = t->first; b_app; b_app = b_app->next)
+      btor_release_exp (btor, (BtorNode *) b_app->key);
+    btor_delete_ptr_hash_table (t);
+  }
+
 #ifndef NDEBUG
   int k;
   BtorNode *cur;
@@ -6108,7 +6109,7 @@ btor_delete_btor (Btor *btor)
              btor->nodes_unique_table.num_elements);
   for (k = 0; k < btor->nodes_unique_table.size; k++)
     for (cur = btor->nodes_unique_table.chains[k]; cur; cur = cur->next)
-      BTORLOG ("  unreleased node: %s", node2string (cur));
+      BTORLOG ("  unreleased node: %s (%d)", node2string (cur), cur->refs);
 #endif
   assert (getenv ("BTORLEAK") || getenv ("BTORLEAKEXP")
           || btor->nodes_unique_table.num_elements == 0);
@@ -6605,6 +6606,7 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
       cur->synth_mark = 2;
       assert (!BTOR_IS_APPLY_NODE (cur));
       assert (!BTOR_IS_LAMBDA_NODE (cur));
+      assert (!cur->parameterized);
 
       if (cur->arity == 1)
       {
