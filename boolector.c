@@ -2580,7 +2580,7 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   res = btor_bv_assignment_exp (btor, simp);
-  BTOR_CHKCLONE_RESS (res, boolector_bv_assignment, BTOR_CLONED_EXP (exp));
+  // TODO CLONE
   BTOR_TRAPI_RETURNP (res);
   return res;
 }
@@ -2592,8 +2592,7 @@ boolector_free_bv_assignment (Btor *btor, char *assignment)
   BTOR_TRAPI ("free_bv_assignment %p", assignment);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
   btor_free_bv_assignment_exp (btor, assignment);
-  // FIXME clone assigment handling
-  BTOR_CHKCLONE_NORES (boolector_free_bv_assignment, assignment);
+  // TODO CLONE
 }
 
 void
@@ -2615,14 +2614,7 @@ boolector_array_assignment (
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
   btor_array_assignment_exp (btor, e_array, indices, values, size);
-  // FIXME: don't use the same out parameters for parent and clone!!!!!
-  // this needs major internal rewrite of assignment handling
-  // FIXME clone check must consider out parameters!!!
-  BTOR_CHKCLONE_NORES (boolector_array_assignment,
-                       BTOR_CLONED_EXP (e_array),
-                       indices,
-                       values,
-                       size);
+  // TODO CLONE
   /* special case: we treat out parameters as return values for btoruntrace */
   BTOR_TRAPI ("return %p %p %d", *indices, *values, *size);
 }
@@ -2654,8 +2646,5 @@ boolector_free_array_assignment (Btor *btor,
 
   for (i = 0; i < size; i++) btor_free_bv_assignment_exp (btor, values[i]);
   btor_free (btor->mm, values, size * sizeof *values);
-  // FIXME: don't use the same out parameters for parent and clone!!!!!
-  // this needs major internal rewrite of assignment handling
-  // FIXME clone check must consider out parameters!!!
-  BTOR_CHKCLONE_NORES (boolector_free_array_assignment, indices, values, size);
+  // TODO CLONE
 }
