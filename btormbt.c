@@ -43,10 +43,11 @@
   "\n"                                        \
   "where <option> is one of the following:\n" \
   "\n"                                        \
-  "  -k | --keep-lines\n"                     \
-  "  -q | --quiet\n"                          \
-  "  -f | --first-bug-only\n"                 \
-  "  -a | --always-fork\n"                    \
+  "  -k, --keep-lines\n"                      \
+  "  -q, --quiet\n"                           \
+  "  -f, --first-bug-only\n"                  \
+  "  -a, --always-fork\n"                     \
+  "  -n, --no-modelgen\n"                     \
   "\n"                                        \
   "  -m <maxruns>\n"
 
@@ -98,9 +99,9 @@ typedef struct RNG
 
 typedef struct Env
 {
-  int seed, quiet, alwaysfork, round, bugs, first, forked, print;
+  int terminal, quiet, first, alwaysfork, nomgen;
+  int seed, round, bugs, forked;
   int ppid; /* parent pid */
-  int terminal;
   RNG rng;
 } Env;
 
@@ -1338,7 +1339,7 @@ _opt (BtorMBT *btormbt, unsigned r)
   {
     BTORMBT_LOG (1, btormbt, "[btormbt] enable model generation\n");
     boolector_enable_model_gen (btormbt->btor);
-    btormbt->mgen = 1;
+    btormbt->mgen = env.nomgen ? 0 : 1;
   }
   if (pick (&rng, 0, 1))
   {
@@ -1772,14 +1773,14 @@ _del (BtorMBT *btormbt, unsigned r)
 }
 
 static void
-rantrav (Env *env)
+rantrav (void)
 {
   State state, next;
   unsigned rand;
   BtorMBT btormbt;
   memset (&btormbt, 0, sizeof btormbt);
 
-  btormbt.print = !env->quiet;
+  btormbt.print = !env.quiet;
   memset (&btormbt.bo, 0, sizeof (btormbt.bo));
   memset (&btormbt.bv, 0, sizeof (btormbt.bv));
   memset (&btormbt.arr, 0, sizeof (btormbt.arr));
@@ -1787,22 +1788,22 @@ rantrav (Env *env)
   memset (&btormbt.cnf, 0, sizeof (btormbt.cnf));
   btormbt.parambo = btormbt.parambv = btormbt.paramarr = NULL;
 
-  env->rng.z = env->rng.w = env->seed;
+  env.rng.z = env.rng.w = env.seed;
 
   /* state loop */
   for (state = _new; state; state = next)
   {
-    rand = nextrand (&env->rng);
+    rand = nextrand (&env.rng);
     next = state (&btormbt, rand);
   }
 }
 
 static int
-run (Env *env, void (*process) (Env *))
+run (void (*process) (void))
 {
   int res, status, saved1, saved2, null;
   pid_t id;
-  env->forked++;
+  env.forked++;
   fflush (stdout);
   if ((id = fork ()))
   {
@@ -1834,7 +1835,7 @@ run (Env *env, void (*process) (Env *))
 #ifndef NDEBUG
     assert (tmp == 2);
 #endif
-    process (env);
+    process ();
     close (null);
     close (2);
 #ifndef NDEBUG
@@ -1858,16 +1859,16 @@ run (Env *env, void (*process) (Env *))
   if (WIFEXITED (status))
   {
     res = WEXITSTATUS (status);
-    if (env->print) printf ("exit %d ", res);
+    if (!env.quiet) printf ("exit %d ", res);
   }
   else if (WIFSIGNALED (status))
   {
-    if (env->print) printf ("signal %d", WTERMSIG (status));
+    if (!env.quiet) printf ("signal %d", WTERMSIG (status));
     res = 1;
   }
   else
   {
-    if (env->print) printf ("unknown");
+    if (!env.quiet) printf ("unknown");
     res = 1;
   }
   return res;
@@ -2034,6 +2035,8 @@ main (int argc, char **argv)
       env.alwaysfork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
       env.first = 1;
+    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
+      env.nomgen = 1;
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");
@@ -2057,14 +2060,13 @@ main (int argc, char **argv)
     sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
     setenv ("BTORAPITRACE", name, 1);
   }
-  env.print = !env.quiet;
 
   env.ppid = getpid ();
   setsighandlers ();
 
   if (env.seed >= 0 && !env.alwaysfork)
   {
-    rantrav (&env);
+    rantrav ();
     printf ("\n");
   }
   else
@@ -2094,7 +2096,7 @@ main (int argc, char **argv)
         fflush (stdout);
       }
 
-      res = run (&env, rantrav);
+      res = run (rantrav);
 
       if (res > 0)
       {
