@@ -582,24 +582,26 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   } while (0)
 
 /* Note: no hash table to be cloned uses data->asInt (check data->asPtr only) */
-#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                      \
-  do                                                                         \
-  {                                                                          \
-    BtorPtrHashBucket *b;                                                    \
-    if (!table)                                                              \
-    {                                                                        \
-      assert (!clone);                                                       \
-      break;                                                                 \
-    }                                                                        \
-    assert (table->size == clone->size);                                     \
-    assert (table->count == clone->count);                                   \
-    assert (table->hash == clone->hash);                                     \
-    assert (table->cmp == clone->cmp);                                       \
-    for (b = table->first, cb = clone->first; b; b = b->next, cb = cb->next) \
-    {                                                                        \
-      assert (cb);                                                           \
-      BTOR_CHKCLONE_EXPID ((BtorNode *) b->key, (BtorNode *) cb->key);       \
-    }                                                                        \
+#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
+  do                                                                     \
+  {                                                                      \
+    BtorPtrHashBucket *bb, *cbb;                                         \
+    if (!(table))                                                        \
+    {                                                                    \
+      assert (!(clone));                                                 \
+      break;                                                             \
+    }                                                                    \
+    assert ((table)->size == (clone)->size);                             \
+    assert ((table)->count == (clone)->count);                           \
+    assert ((table)->hash == (clone)->hash);                             \
+    assert ((table)->cmp == (clone)->cmp);                               \
+    for (bb = (table)->first, cbb = (clone)->first; bb;                  \
+         bb = bb->next, cbb = cbb->next)                                 \
+    {                                                                    \
+      assert (cbb);                                                      \
+      BTOR_CHKCLONE_EXPID ((BtorNode *) bb->key, (BtorNode *) cbb->key); \
+      assert (!bb->next || cbb->next);                                   \
+    }                                                                    \
   } while (0)
 
 #define BTOR_CHKCLONE_ID_TABLE(stack, clone)                       \
@@ -640,7 +642,6 @@ static void
 btor_chkclone_tables (Btor *btor)
 {
   BtorPtrHashBucket *b, *cb;
-  BtorPtrHashTable *t, *ct;
 
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->bv_vars, btor->clone->bv_vars);
   BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (btor->array_vars, btor->clone->array_vars);
@@ -667,15 +668,16 @@ btor_chkclone_tables (Btor *btor)
   assert (btor->parameterized->count == btor->clone->parameterized->count);
   assert (btor->parameterized->hash == btor->clone->parameterized->hash);
   assert (btor->parameterized->cmp == btor->clone->parameterized->cmp);
+  assert (!btor->parameterized->first || btor->clone->parameterized->first);
   for (b = btor->parameterized->first, cb = btor->clone->parameterized->first;
        b;
        b = b->next, cb = cb->next)
   {
     assert (cb);
     BTOR_CHKCLONE_EXPID ((BtorNode *) b->key, (BtorNode *) cb->key);
-    t  = (BtorPtrHashTable *) b->data.asPtr;
-    ct = (BtorPtrHashTable *) cb->data.asPtr;
-    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (t, ct);
+    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr,
+                                       (BtorPtrHashTable *) cb->data.asPtr);
+    assert (!b->next || cb->next);
   }
 }
 
@@ -692,8 +694,7 @@ btor_chkclone_tables (Btor *btor)
                                 btor->clone->nodes_unique_table);  \
     BTOR_CHKCLONE_NODE_PTR_STACK (btor->arrays_with_model,         \
                                   btor->clone->arrays_with_model); \
-  } while (0)
-//btor_chkclone_tables (btor); \
+    btor_chkclone_tables (btor);                                   \
   } while (0)
 #else
 #define BTOR_CHKCLONE() \
