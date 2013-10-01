@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
  *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -635,7 +636,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     btor_map_node (f->btor, res, src, dst);
   }
 
-  assert (res->count == mc->inputs->count + mc->latches->count);
+  assert (res->table->count == mc->inputs->count + mc->latches->count);
 
   return res;
 }
@@ -680,7 +681,7 @@ initialize_new_forward_frame (BtorMC *mc)
   initialize_constraints_of_frame (mc, map, f);
   initialize_bad_state_properties_of_frame (mc, map, f);
 
-  btor_delete_node_map (f->btor, map);
+  btor_delete_node_map (map);
 
   assert (old_mc_btor_num_nodes == mc->btor->nodes_unique_table.num_elements);
 
