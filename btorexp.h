@@ -202,12 +202,11 @@ typedef struct BtorNodePair BtorNodePair;
         BtorNodePair *vreads; /* virtual reads for array equalites */ \
       };                                                              \
     };                                                                \
-    BtorNode **e;           /* expression children */                 \
-    BtorNode **prev_parent; /* prev in parent list of child i */      \
-    BtorNode **next_parent; /* next in parent list of child i */      \
+    BtorNode *e[3];           /* expression children */               \
+    BtorNode *prev_parent[3]; /* prev in parent list of child i */    \
+    BtorNode *next_parent[3]; /* next in parent list of child i */    \
   }
 // TODO: optimization of **e, **prev_parent, **next_parent memory allocation
-// TODO: make **e, **prev_parent, **next_parent static for now ([3])
 
 #define BTOR_ARRAY_VAR_NODE_STRUCT                                           \
   struct                                                                     \

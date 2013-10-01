@@ -1405,8 +1405,9 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
   btor->ops[exp->kind]--;
 }
 
+#if 0
 static void
-erase_local_children_data_exp (Btor *btor, BtorNode *exp)
+erase_local_children_data_exp (Btor * btor, BtorNode * exp)
 {
   assert (btor);
   assert (exp);
@@ -1414,12 +1415,13 @@ erase_local_children_data_exp (Btor *btor, BtorNode *exp)
   BtorMemMgr *mm = btor->mm;
 
   if (exp->arity > 0)
-  {
-    BTOR_DELETEN (mm, exp->e, exp->arity);
-    BTOR_DELETEN (mm, exp->next_parent, exp->arity);
-    BTOR_DELETEN (mm, exp->prev_parent, exp->arity);
-  }
+    {
+      BTOR_DELETEN (mm, exp->e, exp->arity);
+      BTOR_DELETEN (mm, exp->next_parent, exp->arity);
+      BTOR_DELETEN (mm, exp->prev_parent, exp->arity);
+    }
 }
+#endif
 
 /* Delete expression from memory.
  */
@@ -1449,7 +1451,10 @@ really_deallocate_exp (Btor *btor, BtorNode *exp)
 
   if (exp->bits) btor_freestr (btor->mm, exp->bits);
 
-  if (exp->arity > 0) erase_local_children_data_exp (btor, exp);
+#if 0
+  if (exp->arity > 0)
+    erase_local_children_data_exp (btor, exp);
+#endif
 
   btor_free (mm, exp, exp->bytes);
 }
@@ -2996,7 +3001,9 @@ set_simplified_exp (Btor *btor, BtorNode *exp, BtorNode *simplified)
   remove_from_hash_tables (btor, exp);
   disconnect_children_exp (btor, exp);
   for (i = 0; i < exp->arity; i++) btor_release_exp (btor, e[i]);
+#if 0
   erase_local_children_data_exp (btor, exp);
+#endif
   exp->kind          = BTOR_PROXY_NODE;
   exp->disconnected  = 0;
   exp->erased        = 0;
@@ -3318,15 +3325,17 @@ setup_node_and_add_to_id_table (Btor *btor, void *ptr)
   assert (BTOR_COUNT_STACK (btor->nodes_id_table) == exp->id + 1);
   assert (BTOR_PEEK_STACK (btor->nodes_id_table, exp->id) == exp);
 
+#if 0
   if (exp->arity > 0)
-  {
-    BTOR_NEWN (btor->mm, exp->e, exp->arity);
-    BTOR_NEWN (btor->mm, exp->next_parent, exp->arity);
-    BTOR_NEWN (btor->mm, exp->prev_parent, exp->arity);
-    BTOR_CLRN (exp->e, exp->arity);
-    BTOR_CLRN (exp->next_parent, exp->arity);
-    BTOR_CLRN (exp->prev_parent, exp->arity);
-  }
+    {
+      BTOR_NEWN (btor->mm, exp->e, exp->arity);
+      BTOR_NEWN (btor->mm, exp->next_parent, exp->arity);
+      BTOR_NEWN (btor->mm, exp->prev_parent, exp->arity);
+      BTOR_CLRN (exp->e, exp->arity);
+      BTOR_CLRN (exp->next_parent, exp->arity);
+      BTOR_CLRN (exp->prev_parent, exp->arity);
+    }
+#endif
 }
 
 static BtorNode *
