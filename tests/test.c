@@ -66,8 +66,7 @@
   "usage: test [options] [patterns]\n\n"                                     \
   "  options:\n"                                                             \
   "    -h, --help       print this message and exit\n"                       \
-  "    -r, --rww        run with rewriting of writes to lambdas enabled\n"   \
-  "    -R, --rwr        run with rewriting of reads on lambdas enabled\n"    \
+  "    -R, --bra        run boolector with -bra\n"                           \
   "    -b, --broken     run 'broken' testcases also\n"                       \
   "    -s, --slow       run 'slow' testcases also\n"                         \
   "    -f, --fast       run 'fast' testcases only\n"                         \
@@ -92,11 +91,7 @@ main (int argc, char **argv)
       printf ("%s", USAGE);
       return 0;
     }
-    else if (!strcmp (argv[i], "-r") || !strcmp (argv[i], "--rww"))
-    {
-      /* enable rewriting of writes to lambdas in resp. testcase sets */
-    }
-    else if (!strcmp (argv[i], "-R") || !strcmp (argv[i], "--rwr"))
+    else if (!strcmp (argv[i], "-R") || !strcmp (argv[i], "--bra"))
     {
       /* enable rewriting of reads on lambdas in resp. testcase sets */
     }

@@ -10,6 +10,7 @@
  */
 
 #include "btorrewrite.h"
+#include "btorbeta.h"
 #include "btorconst.h"
 #include "btormem.h"
 #include "btorutil.h"
@@ -24,6 +25,7 @@
 /* iterative rewriting bounds */
 #define BTOR_WRITE_CHAIN_NODE_RW_BOUND (1 << 5)
 #define BTOR_READ_OVER_WRITE_DOWN_PROPAGATION_LIMIT (1 << 11)
+#define BTOR_APPLY_PROPAGATION_LIMIT (1 << 12)
 
 /* other rewriting bounds */
 #define BTOR_FIND_AND_NODE_CONTRADICTION_LIMIT (1 << 4)
@@ -3469,6 +3471,178 @@ btor_rewrite_concat_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     result = btor_concat_exp_node (btor, e0, e1);
   }
 
+  return result;
+}
+
+static int
+is_true_cond (BtorNode *cond)
+{
+  assert (cond);
+  assert (BTOR_REAL_ADDR_NODE (cond)->len == 1);
+
+  if (BTOR_IS_INVERTED_NODE (cond)
+      && BTOR_REAL_ADDR_NODE (cond)->bits[0] == '0')
+    return 1;
+  else if (!BTOR_IS_INVERTED_NODE (cond)
+           && BTOR_REAL_ADDR_NODE (cond)->bits[0] == '1')
+    return 1;
+
+  return 0;
+}
+
+BtorNode *
+btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args)
+{
+  assert (btor);
+  assert (fun);
+  assert (args);
+  assert (BTOR_IS_REGULAR_NODE (fun));
+  assert (BTOR_IS_REGULAR_NODE (args));
+  assert (BTOR_IS_FUN_NODE (fun));
+  assert (BTOR_IS_ARGS_NODE (args));
+
+  BtorNode *result, *prev_result, *cur_fun, *cur_args, *e_cond;
+  BtorNode *beta_cond, *cur_cond, *cur_branch, *next_fun;
+  int propagations, apply_propagations, done, inv_result;
+
+  fun  = btor_simplify_exp (btor, fun);
+  args = btor_simplify_exp (btor, args);
+  assert (btor->rewrite_level > 0);
+
+  cur_fun  = fun;
+  cur_args = args;
+  cur_cond = BTOR_IS_LAMBDA_NODE (cur_fun) ? cur_fun->e[1] : 0;
+
+  done               = 0;
+  result             = 0;
+  prev_result        = 0;
+  propagations       = 0;
+  apply_propagations = 0;
+  inv_result         = 0;
+  //  printf ("rewrite apply: %s, %s\n", node2string (cur_fun), node2string
+  //  (cur_args));
+  // TODO: new limit?
+  while (BTOR_IS_LAMBDA_NODE (cur_fun)
+         && BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_cond))
+         && propagations++ < BTOR_APPLY_PROPAGATION_LIMIT
+         && !cur_args->parameterized && !done)
+  {
+    assert (BTOR_IS_REGULAR_NODE (cur_fun));
+    assert (BTOR_IS_REGULAR_NODE (cur_args));
+
+    e_cond = BTOR_REAL_ADDR_NODE (cur_cond)->e[0];
+
+    /* if e_cond is not parameterized the check was already done while
+     * creating bv cond */
+    if (!BTOR_REAL_ADDR_NODE (e_cond)->parameterized)
+    {
+      if (prev_result) result = prev_result;
+      break;
+    }
+
+    if (BTOR_IS_INVERTED_NODE (cur_cond)) inv_result = !inv_result;
+
+    next_fun = 0;
+    result   = 0;
+    btor_assign_args (btor, cur_fun, cur_args);
+    beta_cond = btor_beta_reduce_bounded (btor, e_cond, 1);
+    if (BTOR_IS_BV_CONST_NODE (BTOR_REAL_ADDR_NODE (beta_cond)))
+    {
+      //	  printf ("  check: %s\n", node2string (e_cond));
+      //	  printf ("    is_true: %d\n", is_true_cond (beta_cond));
+      apply_propagations++;
+
+      if (is_true_cond (beta_cond))
+        cur_branch = BTOR_REAL_ADDR_NODE (cur_cond)->e[1];
+      else
+        cur_branch = BTOR_REAL_ADDR_NODE (cur_cond)->e[2];
+
+      if (!BTOR_REAL_ADDR_NODE (cur_branch)->parameterized)
+      {
+        result = btor_copy_exp (btor, cur_branch);
+        done   = 1;
+      }
+      else if (BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
+      {
+        if (btor_param_cur_assignment (cur_branch))
+        {
+          result = btor_copy_exp (btor, btor_param_cur_assignment (cur_branch));
+        }
+        else
+          result = btor_copy_exp (btor, cur_branch);
+
+        if (BTOR_IS_INVERTED_NODE (cur_branch))
+          result = BTOR_INVERT_NODE (result);
+        done = 1;
+      }
+      /* create apply node for this function and try to propagate down */
+      else if (BTOR_IS_APPLY_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
+      {
+        // TODO: should we really make a full reduction?
+        //       what do we do if the param is under a application with
+        //       another lambda? like the nested function params?
+        // TODO: optimization if args only has one argument and it is a
+        //       parameter, don't call beta reduction, but use
+        //       current assignment of param
+        cur_args = btor_beta_reduce_bounded (
+            btor, BTOR_REAL_ADDR_NODE (cur_branch)->e[1], 1);
+        //		btor_beta_reduce_full (btor,
+        //		  BTOR_REAL_ADDR_NODE (cur_branch)->e[1]);
+        assert (BTOR_IS_REGULAR_NODE (cur_args));
+        assert (BTOR_IS_ARGS_NODE (cur_args));
+        next_fun = BTOR_REAL_ADDR_NODE (cur_branch)->e[0];
+        assert (BTOR_IS_FUN_NODE (next_fun));
+        result = btor_apply_exp_node (btor, next_fun, cur_args);
+        btor_release_exp (btor, cur_args);
+      }
+      /* check if we can further propagate down along a conditional */
+      else if (BTOR_IS_BV_COND_NODE (BTOR_REAL_ADDR_NODE (cur_branch)))
+      {
+        cur_cond    = cur_branch;
+        result      = prev_result;
+        prev_result = 0;
+      }
+      /* cur_branch is some other parameterized term that we don't expand */
+      else
+        goto REWRITE_APPLY_NO_RESULT_DONE;
+    }
+    else
+    {
+    REWRITE_APPLY_NO_RESULT_DONE:
+      assert (!result);
+      if (prev_result)
+      {
+        result      = prev_result;
+        prev_result = 0;
+      }
+      done = 1;
+    }
+    btor_unassign_params (btor, cur_fun);
+    btor_release_exp (btor, beta_cond);
+
+    if (next_fun)
+    {
+      cur_fun  = next_fun;
+      cur_cond = BTOR_IS_LAMBDA_NODE (cur_fun) ? cur_fun->e[1] : 0;
+    }
+
+    if (result)
+    {
+      /* release previous result if we got a new one */
+      if (prev_result) btor_release_exp (btor, prev_result);
+      prev_result = result;
+    }
+  }
+
+  if (result)
+  {
+    if (inv_result) result = BTOR_INVERT_NODE (result);
+    btor->stats.apply_props_construct += apply_propagations;
+  }
+  else
+    result = btor_apply_exp_node (btor, cur_fun, cur_args);
+
+  assert (result);
   return result;
 }
 

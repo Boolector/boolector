@@ -11,6 +11,7 @@ cscope.out
 *~
 makefile
 boolector
+btoruntrace
 boolector2
 synthebtor
 basicbtor
@@ -29,3 +30,4 @@ merged.c
 run.sh
 doc
 *.swp
+*.trace

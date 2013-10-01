@@ -13,6 +13,8 @@
 
 #include "btorexp.h"
 
+BtorNode *btor_beta_reduce (Btor *, BtorNode *, int, BtorNode **, int);
+
 BtorNode *btor_beta_reduce_full (Btor *, BtorNode *);
 
 BtorNode *btor_beta_reduce_chains (Btor *, BtorNode *);
@@ -27,6 +29,8 @@ BtorNode *btor_apply_and_reduce (Btor *, int, BtorNode **, BtorNode *);
 
 void btor_assign_param (Btor *, BtorNode *, BtorNode *);
 
-void btor_unassign_param (Btor *, BtorNode *);
+void btor_assign_args (Btor *, BtorNode *, BtorNode *);
+
+void btor_unassign_params (Btor *, BtorNode *);
 
 #endif

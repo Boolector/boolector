@@ -40,9 +40,8 @@ init_exp_tests (void)
 void
 init_exp_test (void)
 {
-  g_btor                 = btor_new_btor ();
-  g_btor->rewrite_writes = g_rwwrites;
-  g_btor->rewrite_reads  = g_rwreads;
+  g_btor                  = btor_new_btor ();
+  g_btor->beta_reduce_all = g_rwreads;
 }
 
 void

@@ -1497,6 +1497,92 @@ parse_lambda (BtorBTORParser *parser, int len)
 }
 
 static BtorNode *
+parse_apply (BtorBTORParser *parser, int len)
+{
+  int argslen;
+  BtorNode *res, *fun, *args;
+
+  if (parse_space (parser)) return 0;
+
+  if (!(fun = parse_array_exp (parser, len))) return 0;
+
+  if (parse_space (parser))
+  {
+  RELEASE_FUN_AND_RETURN_ERROR:
+    boolector_release (parser->btor, fun);
+    return 0;
+  }
+
+  argslen = boolector_get_index_width (parser->btor, fun);
+  // TODO: we ignore argslen for now
+  (void) argslen;
+  if (!(args = parse_exp (parser, 0, 0))) goto RELEASE_FUN_AND_RETURN_ERROR;
+
+  if (!BTOR_IS_ARGS_NODE (args))
+  {
+    boolector_release (parser->btor, args);
+    btor_perr_btor (parser,
+                    "apply only takes a function and arguments as children");
+    goto RELEASE_FUN_AND_RETURN_ERROR;
+  }
+
+  if ((BTOR_IS_ARRAY_VAR_NODE (fun) && ((BtorArgsNode *) args)->num_args != 1))
+  {
+    boolector_release (parser->btor, args);
+    btor_perr_btor (parser, "invalid number of arguments for apply");
+    goto RELEASE_FUN_AND_RETURN_ERROR;
+  }
+
+  if (!BTOR_IS_ARRAY_VAR_NODE (fun)
+      && boolector_get_fun_arity (parser->btor, fun)
+             != ((BtorArgsNode *) args)->num_args)
+  {
+    boolector_release (parser->btor, args);
+    btor_perr_btor (parser, "invalid number of arguments for apply");
+    goto RELEASE_FUN_AND_RETURN_ERROR;
+  }
+
+  // TODO: use API call if available
+  //  res = boolector_apply (parser->btor, fun, args);
+  res = btor_apply_exp (parser->btor, fun, args);
+  boolector_release (parser->btor, fun);
+  boolector_release (parser->btor, args);
+
+  return res;
+}
+
+static BtorNode *
+parse_args (BtorBTORParser *parser, int len)
+{
+  int i;
+  BtorNode *res, *arg;
+  BtorNodePtrStack args;
+
+  BTOR_INIT_STACK (args);
+  i = len;
+  while (i > 0)
+  {
+    if (parse_space (parser)) return 0;
+
+    if (!(arg = parse_exp (parser, 0, 0))) return 0;
+
+    BTOR_PUSH_STACK (parser->mem, args, arg);
+    i -= BTOR_REAL_ADDR_NODE (arg)->len;
+  }
+
+  res = btor_args_exp (parser->btor, BTOR_COUNT_STACK (args), args.start);
+
+  while (!BTOR_EMPTY_STACK (args))
+  {
+    arg = BTOR_POP_STACK (args);
+    boolector_release (parser->btor, arg);
+  }
+  BTOR_RELEASE_STACK (parser->mem, args);
+
+  return res;
+}
+
+static BtorNode *
 parse_ext (BtorBTORParser *parser, int len, Extend f)
 {
   BtorNode *res, *arg;
@@ -1679,6 +1765,8 @@ btor_new_btor_parser (Btor *btor, BtorParseOpt *opts)
   new_parser (res, parse_zero, "zero");
   new_parser (res, parse_param, "param");
   new_parser (res, parse_lambda, "lambda");
+  new_parser (res, parse_apply, "apply");
+  new_parser (res, parse_args, "args");
 
   res->verbosity = opts->verbosity;
 
@@ -1756,7 +1844,7 @@ check_lambdas_consistent (BtorBTORParser *parser)
     assert (BTOR_IS_LAMBDA_NODE (lambda));
 
     if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
-        && ((BtorLambdaNode *) lambda)->nested != lambda)
+        && !BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
       continue;
 
     assert (BTOR_EMPTY_STACK (stack));
@@ -1855,7 +1943,8 @@ NEXT:
     {
       if (check_params_bound (parser)) return parser->error;
 
-      if (check_lambdas_consistent (parser)) return parser->error;
+      //	  if (check_lambdas_consistent (parser))
+      //	    return parser->error;
 
       if (parser->found_lambdas && parser->found_aeq)
       {

@@ -24,7 +24,6 @@
 #include <btorexp.h>
 #include <stdio.h>
 
-extern int g_rwwrites;
 extern int g_rwreads;
 extern FILE *g_logfile;
 

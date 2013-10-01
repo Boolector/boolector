@@ -19,7 +19,7 @@
 #include "boolector.h"
 #include "btorhash.h"
 
-static int verbose, exitonabort, lineno, skip;
+static int verbose, exitonabort, lineno, skip, ignore_sat;
 static const char *name;
 
 void boolector_chkclone (Btor *);
@@ -852,7 +852,7 @@ NEXT:
   {
     PARSE_ARGS0 (tok);
     ret_int = boolector_sat (btor);
-    exp_ret = RET_INT;
+    exp_ret = ignore_sat ? RET_SKIP : RET_INT;
   }
   else if (!strcmp (tok, "bv_assignment"))
   {
@@ -925,6 +925,9 @@ main (int argc, char **argv)
       exitonabort = 1;
     else if (!strcmp (argv[i], "-s") || !strcmp (argv[i], "--skip-getters"))
       skip = 1;
+    else if (!strcmp (argv[i], "-i")
+             || !strcmp (argv[i], "--ignore-sat-result"))
+      ignore_sat = 1;
     else if (argv[i][0] == '-')
       die ("invalid command line option '%s' (try '-h')", argv[i]);
     else if (name)

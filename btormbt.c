@@ -39,7 +39,7 @@
 #define MAX_NNESTEDBFUNS 50
 
 #define BTORMBT_USAGE                         \
-  "usage: btormbt [-k][-q][-f][-a]\n"         \
+  "usage: btormbt [<option>]\n"               \
   "\n"                                        \
   "where <option> is one of the following:\n" \
   "\n"                                        \
@@ -48,6 +48,7 @@
   "  -f, --first-bug-only\n"                  \
   "  -a, --always-fork\n"                     \
   "  -n, --no-modelgen\n"                     \
+  "  -e | --no-extensionality\n"              \
   "\n"                                        \
   "  -m <maxruns>\n"
 
@@ -99,7 +100,7 @@ typedef struct RNG
 
 typedef struct Env
 {
-  int terminal, quiet, first, alwaysfork, nomgen;
+  int terminal, quiet, first, alwaysfork, nomgen, noext;
   int seed, round, bugs, forked;
   int ppid; /* parent pid */
   RNG rng;
@@ -1133,7 +1134,8 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
   {
     /* force COND if array exp with non-parameterized arrays forced,
      * else distribute EQ, NE and COND evenly */
-    op = rand >= 0 && pick (rng, 0, 2) ? pick (rng, EQ, NE) : COND;
+    op =
+        rand >= 0 && pick (rng, 0, 2) && !env.noext ? pick (rng, EQ, NE) : COND;
     e[1] =
         selarrexp (btormbt, rng, e[0], eew, eiw, rand == -1 ? rand : rand ^ 1);
     if (op == COND) e[2] = selexp (btormbt, rng, T_BO, rand < 0 ? 1 : 0, NULL);
@@ -1556,7 +1558,7 @@ _afun (BtorMBT *btormbt, unsigned r)
   else
   {
     /* select EQ/NE/COND with same propability */
-    op = pick (&rng, 0, 2) ? pick (&rng, EQ, NE) : COND;
+    op = pick (&rng, 0, 2) && !env.noext ? pick (&rng, EQ, NE) : COND;
     e1 = selarrexp (btormbt, &rng, e0, e0w, e0iw, 0);
     if (op == COND) e2 = selexp (btormbt, &rng, T_BO, 0, NULL);
     afun (btormbt, &rng, op, e0, e1, e2, 0);
@@ -2037,6 +2039,9 @@ main (int argc, char **argv)
       env.first = 1;
     else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
       env.nomgen = 1;
+    else if (!strcmp (argv[i], "-e")
+             || !strcmp (argv[i], "--no-extensionality"))
+      env.noext = 1;
     else if (!strcmp (argv[i], "-m"))
     {
       if (++i == argc) die ("argument to '-m' missing (try '-h')");

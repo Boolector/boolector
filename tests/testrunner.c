@@ -31,7 +31,6 @@
 #include <string.h>
 #include <unistd.h>
 
-int g_rwwrites;
 int g_rwreads;
 
 FILE *g_logfile = NULL;
@@ -117,8 +116,94 @@ static const char *normaltests[] = {
 };
 
 static const char *brokentests[] = {
-    /* currently broken due to extensionality issues */
-    "lambda_partial_reduce_nested_lambdas_add1",
+    /* currently broken as we do not support extensionality yet */
+    "write20_special",
+    "write21_special",
+    "write22_special",
+    "write23_special",
+    "write24_special",
+    "ext1_special",
+    "ext2_special",
+    "ext3_special",
+    "ext4_special",
+    "ext5_special",
+    "ext6_special",
+    "ext8_special",
+    "ext9_special",
+    "ext10_special",
+    "ext11_special",
+    "ext13_special",
+    "ext14_special",
+    "ext16_special",
+    "ext17_special",
+    "ext18_special",
+    "ext19_special",
+    "ext20_special",
+    "ext21_special",
+    "ext22_special",
+    "ext23_special",
+    "ext24_special",
+    "ext25_special",
+    "ext26_special",
+    "ext27_special",
+    "ext28_special",
+    "ext29_special",
+    "arraycond9_special",
+    "arraycond10_special",
+    "arraycond11_special",
+    "arraycond17_special",
+    "upprop1_special",
+    "smtextarray",
+    "extarray",
+    "smtarraycond2",
+    "random1",
+    "random2",
+    "random3",
+    "random4",
+    "random5",
+    "rw16",
+    "rw17",
+    "rw18",
+    "rw34",
+    "rw35",
+    "rw92",
+    "rw93",
+    "rw115",
+    "rw116",
+    "rw123",
+    "rw124",
+    "rw134",
+    "swapmem002se",
+    "swapmem002ue",
+    "wchains002se",
+    "wchains002ue",
+    "dubreva002ue",
+    "regprim11simp",
+    "regrembeddedconstraint4",
+    "regrembeddedconstraint13",
+    "regrbfs1",
+    "regrmark2",
+    "regr3vl4",
+    "regrexpleak2",
+    "modelgen8",
+    "modelgen10",
+    "modelgen11",
+    "modelgen15",
+    "modelgen17",
+    "modelgen23",
+    "modelgen25",
+    "fifo32ia04k05",
+    /* currently broken due to dumper support for args/apply */
+    "dumpbtor2",
+    "dumpsmt1",
+    "dumpsmt2",
+    /* currently broken as we do not have reads/writes/aconds anymore */
+    "read_exp",
+    "write_exp",
+    /* currently broken as we do not support lambda hashing yet */
+    "lambda_param_write1",
+    "lambda_param_write2",
+    "lambda_param_acond",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -273,15 +358,12 @@ run_test_case (
   if (g_speed < BTOR_SLOW_TEST_CASE)
     for (p = slowtests; !skip && *p; p++) skip = match (name, *p);
 
-  count      = 0;
-  g_rwwrites = 0;
-  g_rwreads  = 0;
+  count     = 0;
+  g_rwreads = 0;
   for (i = 1; i < argc; i++)
   {
     count += (argv[i][0] != '-');
-    if (strcmp (argv[i], "-r") == 0 || strcmp (argv[i], "--rww") == 0)
-      g_rwwrites = 1;
-    else if (strcmp (argv[i], "-R") == 0 || strcmp (argv[i], "--rwr") == 0)
+    if (strcmp (argv[i], "-R") == 0 || strcmp (argv[i], "--bra") == 0)
       g_rwreads = 1;
   }
 

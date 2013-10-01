@@ -21,7 +21,7 @@ node2string (BtorNode *exp)
 {
   const char *name;
   char strbuf[100], *bufstart;
-  int len;
+  int len, i;
 
   if (!exp) return "0";
 
@@ -51,36 +51,23 @@ node2string (BtorNode *exp)
     case BTOR_WRITE_NODE: name = "write"; break;
     case BTOR_BCOND_NODE: name = "bcond"; break;
     case BTOR_ACOND_NODE: name = "acond"; break;
+    case BTOR_ARGS_NODE: name = "args"; break;
+    case BTOR_APPLY_NODE: name = "apply"; break;
     case BTOR_PROXY_NODE: name = "proxy"; break;
+    default: name = "unknown";
+  }
+
+  sprintf (strbuf, "%d %s", BTOR_GET_ID_NODE (exp), name);
+  for (i = 0; i < exp->arity; i++)
+  {
+    sprintf (strbuf, "%s %d", strbuf, BTOR_GET_ID_NODE (exp->e[i]));
+    if (strlen (strbuf) >= 100) break;
   }
 
   if (exp->kind == BTOR_SLICE_NODE)
-    sprintf (strbuf,
-             "%d %s %d %d %d",
-             BTOR_GET_ID_NODE (exp),
-             name,
-             BTOR_GET_ID_NODE (exp->e[0]),
-             exp->upper,
-             exp->lower);
-  else if (BTOR_IS_BINARY_NODE (exp))
-    sprintf (strbuf,
-             "%d %s %d %d",
-             BTOR_GET_ID_NODE (exp),
-             name,
-             BTOR_GET_ID_NODE (exp->e[0]),
-             BTOR_GET_ID_NODE (exp->e[1]));
-  else if (BTOR_IS_TERNARY_NODE (exp))
-    sprintf (strbuf,
-             "%d %s %d %d %d",
-             BTOR_GET_ID_NODE (exp),
-             name,
-             BTOR_GET_ID_NODE (exp->e[0]),
-             BTOR_GET_ID_NODE (exp->e[1]),
-             BTOR_GET_ID_NODE (exp->e[2]));
-  else if (exp->kind == BTOR_BV_VAR_NODE || exp->kind == BTOR_PARAM_NODE)
-    sprintf (strbuf, "%d %s %s", BTOR_GET_ID_NODE (exp), name, exp->symbol);
-  else
-    sprintf (strbuf, "%d %s", BTOR_GET_ID_NODE (exp), name);
+    sprintf (strbuf, "%s %d %d", strbuf, exp->upper, exp->lower);
+  else if (BTOR_IS_BV_CONST_NODE (exp))
+    sprintf (strbuf, "%s %s", strbuf, exp->bits);
 
   len = strlen (strbuf) + 1;
 
@@ -99,7 +86,7 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
   char cmd[100], *path;
   FILE *file;
   int res;
-  sprintf (cmd, "btorvis --ids ");
+  sprintf (cmd, "btorvis ");
   path = cmd + strlen (cmd);
   sprintf (path, "/tmp/btorvisexp.%d.btor", btor->vis_idx++);
   file = fopen (path, "w");
@@ -108,4 +95,26 @@ btor_vis_exp (Btor *btor, BtorNode *exp)
   strcat (cmd, "&");
   res = system (cmd);
   return res;
+}
+
+void
+btor_print_bfs_path (Btor *btor, BtorNode *from, BtorNode *to)
+{
+  assert (from);
+  assert (from->parent);
+  assert (to);
+
+  BtorNode *cur;
+
+  cur = BTOR_REAL_ADDR_NODE (from);
+  to  = BTOR_REAL_ADDR_NODE (to);
+
+  printf ("%d path", btor->stats.lod_refinements);
+  while (cur != to)
+  {
+    assert (BTOR_REAL_ADDR_NODE (cur->parent));
+    printf (" %d", cur->id);
+    cur = BTOR_REAL_ADDR_NODE (cur->parent);
+  }
+  printf (" %d\n", to->id);
 }
