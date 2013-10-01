@@ -568,8 +568,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   do                                                               \
   {                                                                \
     int i;                                                         \
-    assert (!BTOR_EMPTY_STACK (stack));                            \
-    assert (!BTOR_EMPTY_STACK (clone));                            \
     assert (BTOR_COUNT_STACK (stack) == BTOR_COUNT_STACK (clone)); \
     for (i = 0; i < BTOR_COUNT_STACK (stack); i++)                 \
     {                                                              \
@@ -682,20 +680,20 @@ btor_chkclone_tables (Btor *btor)
 }
 
 #ifndef NDEBUG
-#define BTOR_CHKCLONE()                                   \
-  do                                                      \
-  {                                                       \
-    if (!btor->clone) break;                              \
-    btor_chkclone_state (btor);                           \
-    btor_chkclone_stats (btor);                           \
-    BTOR_CHKCLONE_ID_TABLE (btor->nodes_id_table,         \
-                            btor->clone->nodes_id_table); \
+#define BTOR_CHKCLONE()                                            \
+  do                                                               \
+  {                                                                \
+    if (!btor->clone) break;                                       \
+    btor_chkclone_state (btor);                                    \
+    btor_chkclone_stats (btor);                                    \
+    BTOR_CHKCLONE_ID_TABLE (btor->nodes_id_table,                  \
+                            btor->clone->nodes_id_table);          \
+    BTOR_CHKCLONE_UNIQUE_TABLE (btor->nodes_unique_table,          \
+                                btor->clone->nodes_unique_table);  \
+    BTOR_CHKCLONE_NODE_PTR_STACK (btor->arrays_with_model,         \
+                                  btor->clone->arrays_with_model); \
   } while (0)
-//BTOR_CHKCLONE_UNIQUE_TABLE ( \
-    //    btor->nodes_unique_table, btor->clone->nodes_unique_table); \
-    //BTOR_CHKCLONE_NODE_PTR_STACK ( \
-    //    btor->arrays_with_model, btor->clone->arrays_with_model); \
-    //btor_chkclone_tables (btor); \
+//btor_chkclone_tables (btor); \
   } while (0)
 #else
 #define BTOR_CHKCLONE() \

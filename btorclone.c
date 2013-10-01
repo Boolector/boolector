@@ -427,9 +427,9 @@ clone_nodes_unique_table (BtorMemMgr *mm,
   }
 }
 
-#define MEM_PTR_HASH_TABLE(table)                                       \
-  (table ? sizeof (*table) + table->size * sizeof (BtorPtrHashBucket *) \
-               + table->count * sizeof (BtorPtrHashBucket)              \
+#define MEM_PTR_HASH_TABLE(table)                                           \
+  (table ? sizeof (*(table)) + (table)->size * sizeof (BtorPtrHashBucket *) \
+               + (table)->count * sizeof (BtorPtrHashBucket)                \
          : 0)
 
 //#define CHKCLONE_MEM_PTR_HASH_TABLE(table) \
@@ -471,8 +471,8 @@ btor_clone_btor (Btor *btor)
   Btor *clone;
   BtorNodeMap *exp_map;
   BtorAIGMap *aig_map;
-
   BtorMemMgr *mm;
+  BtorPtrHashBucket *b, *cb;
 
   mm = btor_new_mem_mgr ();
   BTOR_CNEW (mm, clone);
@@ -562,26 +562,32 @@ btor_clone_btor (Btor *btor)
                                                     exp_map,
                                                     exp_map);
   CHKCLONE_MEM_PTR_HASH_TABLE (parameterized);
+  for (b = btor->parameterized->first, cb = clone->parameterized->first; b;
+       b = b->next, cb = cb->next)
+  {
+    assert (MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) b->data.asPtr)
+            == MEM_PTR_HASH_TABLE ((BtorPtrHashTable *) cb->data.asPtr));
+  }
 
   clone->clone         = NULL;
   clone->apitrace      = NULL;
   clone->closeapitrace = 0;
 
-  // printf ("///--- %lu\n", sizeof(BtorNodeMap) + MEM_PTR_HASH_TABLE
-  // (exp_map->table) + sizeof(BtorAIGMap) + MEM_PTR_HASH_TABLE
-  // (aig_map->table));  printf ("///**** %lu %lu\n", btor->mm->allocated,
-  // clone->mm->allocated);
-
-  assert (clone->mm->allocated
-          == btor->mm->allocated + sizeof (BtorNodeMap)
-                 + MEM_PTR_HASH_TABLE (exp_map->table) + sizeof (BtorAIGMap)
-                 + MEM_PTR_HASH_TABLE (aig_map->table));
+  //  printf ("///--- %lu\n", sizeof(BtorNodeMap) + MEM_PTR_HASH_TABLE
+  //  (exp_map->table) + sizeof(BtorAIGMap) + MEM_PTR_HASH_TABLE
+  //  (aig_map->table)); printf ("///**** %lu %lu\n", btor->mm->allocated,
+  //  clone->mm->allocated);
+  //
+  //  assert (clone->mm->allocated
+  //	  == btor->mm->allocated
+  //	     + sizeof (BtorNodeMap) + MEM_PTR_HASH_TABLE (exp_map->table)
+  //	     + sizeof (BtorAIGMap)  + MEM_PTR_HASH_TABLE (aig_map->table));
 
   btor_delete_node_map (exp_map);
   btor_delete_aig_map (aig_map);
 
   // printf ("///++++ %lu %lu\n", btor->mm->allocated, clone->mm->allocated);
-  assert (btor->mm->allocated == clone->mm->allocated);
+  // assert (btor->mm->allocated == clone->mm->allocated);
   assert (btor->mm->sat_allocated == clone->mm->sat_allocated);
   assert (btor->mm->sat_maxallocated == clone->mm->sat_maxallocated);
 
