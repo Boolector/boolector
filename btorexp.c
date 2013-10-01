@@ -1251,6 +1251,7 @@ remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
   btor->nodes_unique_table.num_elements--;
 
   exp->unique = 0; /* NOTE: this is not debugging code ! */
+  exp->next   = 0;
 }
 
 static void

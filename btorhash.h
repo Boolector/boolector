@@ -29,7 +29,8 @@ typedef int (*BtorCmpPtr) (const void *a, const void *b);
 typedef union BtorPtrHashData BtorPtrHashData;
 
 typedef void *(*BtorCloneKeyPtr) (const void *map, const void *key);
-typedef void (*BtorCloneDataPtr) (const void *map,
+typedef void (*BtorCloneDataPtr) (BtorMemMgr *mem,
+                                  const void *map,
                                   const void *key,
                                   BtorPtrHashData *data);
 
