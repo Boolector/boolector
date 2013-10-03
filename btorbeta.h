@@ -19,7 +19,12 @@ BtorNode *btor_beta_reduce_full (Btor *, BtorNode *);
 
 BtorNode *btor_beta_reduce_chains (Btor *, BtorNode *);
 
-BtorNode *btor_beta_reduce_cutoff (Btor *, BtorNode *, BtorNode **);
+BtorNode *btor_beta_reduce_partial (Btor *, BtorNode *, BtorNode **);
+
+BtorNode *btor_beta_reduce_partial_collect (Btor *,
+                                            BtorNode *,
+                                            BtorPtrHashTable *,
+                                            BtorPtrHashTable *);
 
 BtorNode *btor_beta_reduce_bounded (Btor *, BtorNode *, int);
 
