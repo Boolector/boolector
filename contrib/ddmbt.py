@@ -79,7 +79,7 @@ def _tokens_bw(tokens, nodes_bw):
         elif kind == "write":
             assert(len(cbw[0]) == 2)
             return cbw[0]
-        elif kind in ["not", "inc"]:
+        elif kind in ["not", "inc", "dec"]:
             assert(len(cbw) == 1)
             return cbw[0]
         elif kind in ["sext", "uext"]:
@@ -87,7 +87,7 @@ def _tokens_bw(tokens, nodes_bw):
             return [cbw[0][0] + int(tokens[2])]
         elif kind in ["fun", "apply"]:
             return cbw[-1]
-        elif kind in ["rol", "ror", "neg", "sll", "srl"]:
+        elif kind in ["rol", "ror", "neg", "sll", "srl", "sra"]:
             return cbw[0]
         elif kind == "concat":
             assert(len(cbw) == 2)
