@@ -229,3 +229,59 @@ has_next_lambda_iterator (BtorIterator *it)
   assert (it->cur);
   return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (it->cur));
 }
+
+void
+init_parameterized_iterator (Btor *btor,
+                             BtorParameterizedIterator *it,
+                             BtorNode *exp)
+{
+  assert (btor);
+  assert (it);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorPtrHashBucket *b;
+
+  if (BTOR_IS_PARAM_NODE (exp))
+  {
+    it->num_params = 1;
+    it->cur        = exp;
+    it->bucket     = 0;
+    return;
+  }
+
+  b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
+  if (b)
+  {
+    assert (b->data.asPtr);
+    it->bucket     = ((BtorPtrHashTable *) b->data.asPtr)->first;
+    it->cur        = (BtorNode *) it->bucket->key;
+    it->num_params = ((BtorPtrHashTable *) b->data.asPtr)->count;
+  }
+  else
+  {
+    it->cur        = 0;
+    it->bucket     = 0;
+    it->num_params = 0;
+  }
+}
+
+BtorNode *
+next_parameterized_iterator (BtorParameterizedIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+  result = it->cur;
+  if (it->bucket) it->bucket = it->bucket->next;
+  it->cur = it->bucket ? (BtorNode *) it->bucket->key : 0;
+  return result;
+}
+
+int
+has_next_parameterized_iterator (BtorParameterizedIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}

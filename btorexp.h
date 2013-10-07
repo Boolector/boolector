@@ -424,6 +424,7 @@ struct Btor
                                                  result of lazy synthesis */
     int synthesis_inconsistency_apply;
     int synthesis_inconsistency_lambda;
+    int synthesis_inconsistency_var;
     int array_axiom_1_conflicts; /* number of array axiom 1 conflicts:
                                     a = b /\ i = j => read(a, i) = read(b, j) */
     int array_axiom_2_conflicts; /* array axiom 2 confs:
@@ -467,6 +468,7 @@ struct Btor
     double eval;
     double enc_app;
     double enc_lambda;
+    double enc_var;
     double find_dfs;
   } time;
 };
@@ -1259,7 +1261,7 @@ BtorNode *btor_simplify_exp (Btor *btor, BtorNode *exp);
 BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
 /* Evaluates parameterized expressions */
-const char *btor_eval_exp (Btor *, BtorNode *);
+char *btor_eval_exp (Btor *, BtorNode *);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

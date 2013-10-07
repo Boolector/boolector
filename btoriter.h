@@ -35,6 +35,15 @@ struct BtorArgsIterator
 
 typedef struct BtorArgsIterator BtorArgsIterator;
 
+struct BtorParameterizedIterator
+{
+  BtorNode *cur;
+  BtorPtrHashBucket *bucket;
+  int num_params;
+};
+
+typedef struct BtorParameterizedIterator BtorParameterizedIterator;
+
 struct BtorIterator
 {
   BtorNode *cur;
@@ -79,5 +88,11 @@ int has_next_args_iterator (BtorArgsIterator *);
 void init_lambda_iterator (BtorIterator *, BtorNode *);
 BtorNode *next_lambda_iterator (BtorIterator *);
 int has_next_lambda_iterator (BtorIterator *);
+
+void init_parameterized_iterator (Btor *,
+                                  BtorParameterizedIterator *,
+                                  BtorNode *);
+BtorNode *next_parameterized_iterator (BtorParameterizedIterator *);
+int has_next_parameterized_iterator (BtorParameterizedIterator *);
 
 #endif
