@@ -438,6 +438,8 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXPPTAG (first_parent);
   BTOR_CHKCLONE_EXPPTAG (last_parent);
 
+  if (BTOR_IS_PROXY_NODE (real_exp)) return;
+
   if (!BTOR_IS_BV_CONST_NODE (real_exp))
   {
     assert (!real_clone->symbol
