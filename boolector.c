@@ -732,7 +732,11 @@ boolector_chkclone (Btor *btor)
   BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
 #endif
   BTOR_TRAPI ("chkclone");
-  if (btor->clone) btor_delete_btor (btor->clone);
+  if (btor->clone)
+  {
+    assert (btor->clone->external_refs == 0);
+    btor_delete_btor (btor->clone);
+  }
   btor->clone = btor_clone_btor (btor);
   assert (btor->clone->mm);
   assert (btor->clone->avmgr);

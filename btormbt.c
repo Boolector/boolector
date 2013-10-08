@@ -1660,17 +1660,46 @@ _ass (BtorMBT *btormbt, unsigned r)
   return _main;
 }
 
+#define BTORMBT_CLONED_EXP(exp)                                            \
+  (btormbt->btor->clone                                                    \
+       ? (BTOR_IS_INVERTED_NODE (exp)                                      \
+              ? BTOR_INVERT_NODE (                                         \
+                    BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table, \
+                                     BTOR_REAL_ADDR_NODE (exp)->id))       \
+              : BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table,     \
+                                 BTOR_REAL_ADDR_NODE (exp)->id))           \
+       : 0)
+
 static void *
 _sat (BtorMBT *btormbt, unsigned r)
 {
-  int res;
+  int i, res;
   RNG rng;
 
   BTORMBT_LOG (1, btormbt, "[btormbt] call sat...\n");
 
   rng = initrng (r);
   if (!btormbt->btor->clone || !pick (&rng, 0, 50))
+  {
+    /* release clones of external refs */
+    for (i = 0; btormbt->btor->clone && i < btormbt->bo.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->bo.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->bv.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->bv.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->arr.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->arr.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->fun.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->fun.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->cnf.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->cnf.exps[i].exp));
+
     boolector_chkclone (btormbt->btor);
+  }
 
   res = boolector_sat (btormbt->btor);
 
