@@ -613,7 +613,6 @@ btor_clone_btor (Btor *btor)
   // printf ("///++++ %lu %lu\n", btor->mm->allocated, clone->mm->allocated);
   assert (btor->mm->allocated == clone->mm->allocated);
   assert (btor->mm->sat_allocated == clone->mm->sat_allocated);
-  assert (btor->mm->sat_maxallocated == clone->mm->sat_maxallocated);
 
   return clone;
 }

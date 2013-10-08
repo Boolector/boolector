@@ -143,6 +143,20 @@ boolector_get_trapi (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
+static void
+btor_chkclone_mem (Btor *btor)
+{
+#ifndef NDEBUG
+  assert (btor);
+  assert (btor->clone);
+  assert (btor->mm);
+  assert (btor->clone->mm);
+  assert (btor->mm->allocated == btor->clone->mm->allocated);
+  assert (btor->mm->sat_allocated == btor->clone->mm->sat_allocated);
+  /* Note: both maxallocated and sat_maxallocated may differ! */
+#endif
+}
+
 #define BTOR_CHKCLONE_STATE(field)        \
   do                                      \
   {                                       \
@@ -688,6 +702,7 @@ btor_chkclone_tables (Btor *btor)
   do                                                               \
   {                                                                \
     if (!btor->clone) break;                                       \
+    btor_chkclone_mem (btor);                                      \
     btor_chkclone_state (btor);                                    \
     btor_chkclone_stats (btor);                                    \
     BTOR_CHKCLONE_ID_TABLE (btor->nodes_id_table,                  \
