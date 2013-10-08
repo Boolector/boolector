@@ -719,26 +719,6 @@ btor_chkclone_tables (Btor *btor)
   }
 #endif
 
-// static void
-// btor_chkclone (Btor * btor)
-//{
-//#ifndef NDEBUG
-//  int i, n;
-//
-//  BTOR_CHKCLONE ();
-//  n = BTOR_COUNT_STACK (btor->nodes_id_table);
-//  assert (n == BTOR_COUNT_STACK (btor->clone->nodes_id_table));
-//  assert (BTOR_PEEK_STACK (btor->nodes_id_table, 0)
-//	  == BTOR_PEEK_STACK (btor->clone->nodes_id_table, 0));
-//  for (i = 1; i < n; i++)
-//    {
-//      if (!BTOR_PEEK_STACK (btor->nodes_id_table, i)) continue;
-//      btor_chkclone_exp (BTOR_PEEK_STACK (btor->nodes_id_table, i),
-//			 BTOR_PEEK_STACK (btor->clone->nodes_id_table, i));
-//    }
-//#endif
-//}
-
 void
 boolector_chkclone (Btor *btor)
 {
@@ -2443,7 +2423,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "fun %d", paramc);
 
-  if (btor->clone) BTOR_NEWN (btor->clone->mm, cparams, paramc);
+  if (btor->clone) cparams = malloc (paramc * sizeof (*cparams));
 
   for (i = 0; i < paramc; i++)
   {
@@ -2464,7 +2444,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   BTOR_CHKCLONE_RES_PTR (
       res, boolector_fun, paramc, cparams, BTOR_CLONED_EXP (exp));
   BTOR_TRAPI_RETURN_NODE (res);
-  if (btor->clone) BTOR_DELETEN (btor->clone->mm, cparams, paramc);
+  if (btor->clone) free (cparams);
   return res;
 }
 
@@ -2482,7 +2462,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "apply %d", argc);
 
-  if (btor->clone) BTOR_NEWN (btor->clone->mm, cargs, argc);
+  if (btor->clone) cargs = malloc (argc * sizeof (*cargs));
 
   cur = BTOR_REAL_ADDR_NODE (fun);
   for (i = 0; i < argc; i++)
@@ -2517,7 +2497,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_CHKCLONE_RES_PTR (
       res, boolector_apply, argc, cargs, BTOR_CLONED_EXP (fun));
   BTOR_TRAPI_RETURN_NODE (res);
-  if (btor->clone) BTOR_DELETEN (btor->clone->mm, cargs, argc);
+  if (btor->clone) free (cargs);
   return res;
 }
 
