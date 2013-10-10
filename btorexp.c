@@ -6325,13 +6325,13 @@ exp_to_cnf_lit (Btor *btor, BtorNode *exp)
 
   exp = btor_simplify_exp (btor, exp);
 
-  sign = 1;
-
   if (BTOR_IS_INVERTED_NODE (exp))
   {
-    exp = BTOR_INVERT_NODE (exp);
-    sign *= -1;
+    exp  = BTOR_INVERT_NODE (exp);
+    sign = -1;
   }
+  else
+    sign = 1;
 
   aig = exp_to_aig (btor, exp);
 
@@ -11193,6 +11193,8 @@ rewrite_aconds_to_lambdas (Btor *btor)
   BtorMemMgr *mm;
 
   if (btor->ops[BTOR_ACOND_NODE] == 0) return;
+
+  e[0] = e[1] = e[2] = 0;
 
   mm = btor->mm;
   BTOR_INIT_STACK (aconds);
