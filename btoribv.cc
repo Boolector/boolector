@@ -694,7 +694,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
       }
       return;
     }
-    if (isx) initialized = false, init = BitRange (0, 0, 0);
+    if (isx) init = BitRange (0, 0, 0);
   }
   BtorIBVNode *nextn = bitrange2node (next);
   // TODO: failed for 'toy_multibit_clock'
@@ -2543,7 +2543,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           BtorIBVNode *next = id2node (na->ranges[pos].id);
           BtorIBVRange nr (na->ranges[pos].id,
                            r.msb - r.lsb + na->ranges[pos].lsb,
-                           r.lsb - r.lsb + na->ranges[pos].lsb);
+                           na->ranges[pos].lsb);
           char *nextname = btor_ibv_atom_base_name (btor, next, nr, 0);
           a->next = boolector_input (btormc, (int) nr.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);

@@ -517,7 +517,7 @@ initialize_next_state_functions_of_frame (BtorMC *mc,
                mc->nextstates,
                f->time);
 
-  i = nextstates = 0;
+  nextstates = 0;
   for (b = mc->latches->first, i = 0; b; b = b->next, i++)
   {
     latch = b->data.asPtr;

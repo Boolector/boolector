@@ -20,14 +20,14 @@
 
 #include "../minisat/minisat/simp/SimpSolver.h"
 
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+
 extern "C" {
 
 #include "btorminisat.h"
 #include "btorsat.h"
-
-#include <cassert>
-#include <cstdio>
-#include <cstring>
 
 using namespace Minisat;
 

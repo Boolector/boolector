@@ -477,8 +477,11 @@ modifybv (
   }
   else if (tow > ew)
   {
-    tmp = boolector_get_width (btormbt->btor, e);
-    e   = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
+    // TODO 'tmp' unused so remove?
+#if 0
+      tmp = boolector_get_width (btormbt->btor, e);
+#endif
+    e = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
                           : boolector_sext (btormbt->btor, e, tow - ew));
     es_push (es, e);
     es->exps[es->n - 1].pars++;
@@ -697,6 +700,7 @@ binary_fun (
     }
     e1  = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
     e1w = e0w;
+    (void) e1w;  // TODO remove since never used?
   }
   else if (op >= SLL && op <= ROR)
   {
@@ -706,7 +710,8 @@ binary_fun (
     e1  = modifybv (btormbt, rng, e1, e1w, tmp1, is_param);
     e0w = tmp0;
     e1w = tmp1;
-    rw  = e0w;
+    (void) e1w;  // TODO remove since never used?
+    rw = e0w;
   }
   else if (op == CONCAT)
   {
@@ -806,6 +811,7 @@ ternary_fun (BtorMBT *btormbt,
   /* bitvectors must have same bit width */
   e2  = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
   e2w = e1w;
+  (void) e2w;  // TODO remove since 'e2w' never used?
 
   if (e1w == 1)
     es = is_param ? btormbt->parambo : &btormbt->bo;
@@ -916,6 +922,7 @@ selexp (
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
 
+  assert (btormbt->parambo);
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)

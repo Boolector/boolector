@@ -50,7 +50,7 @@ BtorNode *
 btor_mapped_node (BtorNodeMap *map, BtorNode *node)
 {
   BtorPtrHashBucket *bucket;
-  BtorNode *realnode = BTOR_REAL_ADDR_NODE (node);
+  BtorNode *realnode;
   BtorNode *res;
 
   realnode = BTOR_REAL_ADDR_NODE (node);
@@ -97,6 +97,8 @@ map_node (Btor *btor, BtorNodeMap *map, BtorNode *exp)
 
   BtorNode *m[3], *src, *dst, *real_exp;
   int i;
+
+  m[0] = m[1] = m[2] = 0;
 
   for (i = 0; i < exp->arity; i++)
   {
