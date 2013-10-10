@@ -11259,6 +11259,8 @@ rewrite_aconds_to_lambdas (Btor *btor)
     for (i = 0; i < acond->arity; i++)
       e[i] = btor_simplify_exp (btor, acond->e[i]);
 
+    assert (e[1]);
+    assert (e[2]);
     assert (BTOR_IS_REGULAR_NODE (e[1]));
     assert (BTOR_IS_REGULAR_NODE (e[2]));
 
@@ -11638,6 +11640,7 @@ synthesize_all_var_rhs (Btor *btor)
     cur      = (BtorNode *) b->key;
     cur      = btor_simplify_exp (btor, cur);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
+    assert (real_cur);
     assert (!BTOR_IS_ARRAY_NODE (real_cur));
     if (real_cur->vread) continue;
 
