@@ -1,4 +1,5 @@
-/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.  *
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
  *  Copyright (C) 2011-2012 Armin Biere.
  *
  *  All rights reserved.
