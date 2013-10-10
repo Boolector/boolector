@@ -57,5 +57,6 @@ clean:
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
 	rm -f log/*.log *.tmp
 	rm -f *.o *.a
+	rm -f btormbt btoruntrace
 
 .PHONY: all analyze clean

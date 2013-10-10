@@ -37,11 +37,10 @@ static char **g_argv = NULL;
 void
 init_special_tests (void)
 {
-  int pos_rww, pos_rwr;
+  int pos_rwr;
 
-  pos_rww = pos_rwr = 0;
+  pos_rwr = 0;
 
-  if (g_rwwrites) pos_rww = g_argc++ - 1;
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
@@ -50,8 +49,7 @@ init_special_tests (void)
   g_argv[1] = "-o";
   g_argv[2] = "/dev/null";
 
-  if (g_rwwrites) g_argv[pos_rww] = "-rww";
-  if (g_rwreads) g_argv[pos_rwr] = "-rwr";
+  if (g_rwreads) g_argv[pos_rwr] = "-bra";
 }
 
 static void
@@ -1240,7 +1238,7 @@ static int
 run_verbose_test (char *name, int verbosity)
 {
   char *full_name = (char *) malloc (sizeof (char) * (strlen (name) + 4 + 1));
-  char *boolector_str = g_rwwrites ? "./boolector -rww" : "./boolector";
+  char *boolector_str = "./boolector";
   char *redirect_str  = "> /dev/null";
   char *v1_str        = "-v";
   char *v2_str        = "-v -v";

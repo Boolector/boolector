@@ -64,6 +64,7 @@ if __name__ == "__main__":
     node_ref = {}
     node_parents = {}
     node_children = {}
+    param_nodes = {}
 
     writes = []
     aconds = []
@@ -99,12 +100,16 @@ if __name__ == "__main__":
         assert(id not in id2symbol)
         id2symbol[id] = symbol
 
+        if symbol == "param":
+            param_nodes[id] = True
+
         if symbol == "cond" and len(tokens) == 7: 
             symbol = "acond"
 
         if symbol == "slice":
             children = [abs(int(tokens[3]))]
-        elif symbol == "acond" or symbol == "array" or symbol == "write":
+        elif symbol == "acond" or symbol == "array" or symbol == "write" or \
+             symbol == "lambda":
             children = [abs(int(s)) for s in tokens[4:]]
         elif symbol != "var" and symbol != "const":
             children = [abs(int(s)) for s in tokens[3:]]
@@ -119,11 +124,15 @@ if __name__ == "__main__":
             node_ref[id] = 0
 
         for cid in children:
+            assert(cid < id)
             nodes_ref[id2symbol[cid]] += 1
             node_ref[cid] += 1
             if not cid in node_parents:
                 node_parents[cid] = []
             node_parents[cid].append(id)
+
+            if cid in param_nodes:
+                param_nodes[id] = True
 
         if symbol not in nodes_cnt:
             nodes_cnt[symbol] = 0
@@ -190,6 +199,11 @@ if __name__ == "__main__":
         if node_ref[l] == 1:
             lambdas_with_one_ref += 1
 
+    param_conds = 0
+    for c in conds:
+        if c in param_nodes:
+            param_conds += 1
+
 
     for symbol, cnt in sorted(nodes_cnt.items()):
         print("{0:8s} {1:5d} ({2:d})".format(symbol + ":", cnt, 
@@ -214,4 +228,5 @@ if __name__ == "__main__":
     print("lambdas with one ref: {0:d}".format(lambdas_with_one_ref))
 #    print("dominated aconds: {}".format(num_dominated_aconds))
 #    print("dominated conds: {}".format(num_dominated_conds))
+    print("parameterized bv conds: {}".format(param_conds))
 

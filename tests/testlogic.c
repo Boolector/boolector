@@ -47,14 +47,13 @@ void
 init_logic_tests (void)
 {
   FILE *f = fopen (BTOR_TEST_LOGIC_TEMP_FILE_NAME, "w");
-  int pos_rww, pos_rwr;
+  int pos_rwr;
 
   assert (f != NULL);
   fclose (f);
 
-  pos_rww = pos_rwr = 0;
+  pos_rwr = 0;
 
-  if (g_rwwrites) pos_rww = g_argc++ - 1;
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));
@@ -64,8 +63,7 @@ init_logic_tests (void)
   g_argv[2] = "-o";
   g_argv[3] = "/dev/null";
 
-  if (g_rwwrites) g_argv[pos_rww] = "-rww";
-  if (g_rwreads) g_argv[pos_rwr] = "-rwr";
+  if (g_rwreads) g_argv[pos_rwr] = "-bra";
 
   g_argv[g_argc - 1] = BTOR_TEST_LOGIC_TEMP_FILE_NAME;
 }

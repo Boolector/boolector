@@ -74,9 +74,9 @@ if [ $testresult -eq $refresult ]; then
   cmp $ddreftmpfile $ddtesttmpfile > /dev/null 2>&1
   res=$?
   if [ $res -eq 0 ]; then
-    #cleanup
+    rm $ddtesttmpfile $ddreftmpfile
     exit 1
   fi
 fi
-#cleanup
+rm $ddtesttmpfile $ddreftmpfile
 exit 0

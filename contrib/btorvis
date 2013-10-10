@@ -10,7 +10,7 @@ inputfile=/dev/stdin
 pdfreader=unknown
 ps2pdf=ps2pdf
 contribdir=$(dirname "$(readlink -f $0)")
-btor2dot=$(readlink -f "$contribdir/btor2dot")
+btor2dot=$(readlink -f "$contribdir/btor2dot.py")
 
 trap "rm -f $tmpfile_ps $tmpfile_pdf; exit" SIGHUP SIGINT SIGTERM
 
@@ -28,7 +28,7 @@ function die
 while [ $# -gt 0 ]
 do
   case $1 in
-        --ids)     btor2dot=$(readlink -f "$contribdir/btorids2dot");;
+#        --ids)     btor2dot=$(readlink -f "$contribdir/btorids2dot");;
         -h|--help) echo -n "usage: $(basename $0)"
                    echo -e " [ -h | --help | --ids] [<file>]\n"
                    exit 0;;
@@ -58,7 +58,7 @@ if [ $? = 1 ]; then
   die "could not find 'ps2pdf'"
 fi
 
-for pdfreader in  "acroread" "zathura" "evince"; do
+for pdfreader in  "zathura" "acroread" "evince"; do
   which "$pdfreader"
   if [ $? = 0 ]; then
     break

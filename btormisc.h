@@ -17,5 +17,6 @@
 
 char *node2string (BtorNode *);
 int btor_vis_exp (Btor *btor, BtorNode *exp);
+void btor_print_bfs_path (Btor *btor, BtorNode *from, BtorNode *to);
 
 #endif

@@ -2,7 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
- *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2012-2013 Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -13,15 +13,7 @@
 #include "btoriter.h"
 
 void
-init_read_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
-{
-  assert (it);
-  assert (exp);
-  it->cur = BTOR_REAL_ADDR_NODE (exp)->first_parent;
-}
-
-void
-init_write_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
+init_apply_parent_iterator (BtorPartialParentIterator *it, BtorNode *exp)
 {
   assert (it);
   assert (exp);
@@ -66,30 +58,15 @@ init_full_parent_iterator (BtorFullParentIterator *it, BtorNode *exp)
 }
 
 BtorNode *
-next_parent_read_parent_iterator (BtorPartialParentIterator *it)
+next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 {
   BtorNode *result;
   assert (it);
   result = it->cur;
   assert (result);
-  it->cur = BTOR_NEXT_PARENT (result);
-  /* array child of read is at position 0, so result is not tagged */
+  it->cur = BTOR_REAL_ADDR_NODE (BTOR_PREV_PARENT (result));
   assert (BTOR_IS_REGULAR_NODE (result));
-  assert (BTOR_IS_READ_NODE (result));
-  return result;
-}
-
-BtorNode *
-next_parent_write_parent_iterator (BtorPartialParentIterator *it)
-{
-  BtorNode *result;
-  assert (it);
-  result = it->cur;
-  assert (result);
-  it->cur = BTOR_PREV_PARENT (result);
-  /* array child of write is at position 0, so result is not tagged */
-  assert (BTOR_IS_REGULAR_NODE (result));
-  assert (BTOR_IS_WRITE_NODE (result));
+  assert (BTOR_IS_APPLY_NODE (result));
   return result;
 }
 
@@ -142,19 +119,11 @@ next_parent_full_parent_iterator (BtorFullParentIterator *it)
 }
 
 int
-has_next_parent_read_parent_iterator (BtorPartialParentIterator *it)
+has_next_parent_apply_parent_iterator (BtorPartialParentIterator *it)
 {
   assert (it);
-  /* array child of read is at position 0, so cur is not tagged */
-  return it->cur && BTOR_IS_READ_NODE (it->cur);
-}
-
-int
-has_next_parent_write_parent_iterator (BtorPartialParentIterator *it)
-{
-  assert (it);
-  /* array child of write is at position 0, so cur is not tagged */
-  return it->cur && BTOR_IS_WRITE_NODE (it->cur);
+  /* function child of apply is at position 0, so cur is not tagged */
+  return it->cur && BTOR_IS_APPLY_NODE (it->cur);
 }
 
 int
@@ -173,6 +142,145 @@ has_next_parent_acond_parent_iterator (BtorPartialParentIterator *it)
 
 int
 has_next_parent_full_parent_iterator (BtorFullParentIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
+
+void
+init_args_iterator (BtorArgsIterator *it, BtorNode *exp)
+{
+  assert (it);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_ARGS_NODE (exp));
+
+  it->pos = 0;
+  it->exp = exp;
+  it->cur = exp->e[0];
+}
+
+BtorNode *
+next_args_iterator (BtorArgsIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+
+  result = it->cur;
+
+  /* end of this args node, continue with next */
+  if (BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)))
+  {
+    assert (it->pos == 2);
+    assert (BTOR_IS_REGULAR_NODE (result));
+    it->pos = 0;
+    it->exp = result;
+    it->cur = result->e[0];
+    result  = it->cur;
+  }
+
+  /* prepare next argument */
+  it->pos++;
+  if (it->pos < it->exp->arity)
+    it->cur = it->exp->e[it->pos];
+  else
+    it->cur = 0;
+
+  assert (!BTOR_IS_ARGS_NODE (BTOR_REAL_ADDR_NODE (result)));
+  return result;
+}
+
+int
+has_next_args_iterator (BtorArgsIterator *it)
+{
+  assert (it);
+  return it->cur != 0;
+}
+
+void
+init_lambda_iterator (BtorIterator *it, BtorNode *exp)
+{
+  assert (it);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+  assert (BTOR_IS_LAMBDA_NODE (exp));
+
+  it->cur = exp;
+}
+
+BtorNode *
+next_lambda_iterator (BtorIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+  result  = it->cur;
+  it->cur = result->e[1];
+  return result;
+}
+
+int
+has_next_lambda_iterator (BtorIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+  return BTOR_IS_LAMBDA_NODE (BTOR_REAL_ADDR_NODE (it->cur));
+}
+
+void
+init_parameterized_iterator (Btor *btor,
+                             BtorParameterizedIterator *it,
+                             BtorNode *exp)
+{
+  assert (btor);
+  assert (it);
+  assert (exp);
+  assert (BTOR_IS_REGULAR_NODE (exp));
+
+  BtorPtrHashBucket *b;
+
+  if (BTOR_IS_PARAM_NODE (exp))
+  {
+    it->num_params = 1;
+    it->cur        = exp;
+    it->bucket     = 0;
+    return;
+  }
+
+  b = btor_find_in_ptr_hash_table (btor->parameterized, exp);
+  if (b)
+  {
+    assert (b->data.asPtr);
+    it->bucket     = ((BtorPtrHashTable *) b->data.asPtr)->first;
+    it->cur        = (BtorNode *) it->bucket->key;
+    it->num_params = ((BtorPtrHashTable *) b->data.asPtr)->count;
+  }
+  else
+  {
+    it->cur        = 0;
+    it->bucket     = 0;
+    it->num_params = 0;
+  }
+}
+
+BtorNode *
+next_parameterized_iterator (BtorParameterizedIterator *it)
+{
+  assert (it);
+  assert (it->cur);
+
+  BtorNode *result;
+  result = it->cur;
+  if (it->bucket) it->bucket = it->bucket->next;
+  it->cur = it->bucket ? (BtorNode *) it->bucket->key : 0;
+  return result;
+}
+
+int
+has_next_parameterized_iterator (BtorParameterizedIterator *it)
 {
   assert (it);
   return it->cur != 0;
