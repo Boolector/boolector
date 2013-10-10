@@ -320,6 +320,7 @@ btor_beta_reduce (
 
     if (mbucket->data.asInt == 0)
     {
+      assert (real_cur);
       assert (!real_cur->beta_mark || BTOR_IS_LAMBDA_NODE (real_cur));
       mbucket->data.asInt = 1;
 

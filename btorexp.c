@@ -6628,6 +6628,7 @@ bfs_lambda (Btor *btor,
   do
   {
     cur = BTOR_POP_STACK (unmark_stack);
+    assert (cur);
     assert (BTOR_IS_REGULAR_NODE (cur));
     cur->mark = 0;
   } while (!BTOR_EMPTY_STACK (unmark_stack));
@@ -7511,6 +7512,8 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   BtorNodePtrStack work_stack, unmark_stack;
   BtorCharPtrStack arg_stack;
   BtorNode *cur, *real_cur, *assigned_exp;
+
+  e[0] = e[1] = e[2] = 0;
 
   mm    = btor->mm;
   start = btor_time_stamp ();
@@ -9443,6 +9446,7 @@ insert_new_constraint (Btor *btor, BtorNode *exp)
           btor->inconsistent = 1;
         else
         {
+          assert (real_exp);
           if (!real_exp->constraint)
           {
             if (is_embedded_constraint_exp (btor, exp))
@@ -10101,6 +10105,7 @@ substitute_and_rebuild (Btor *btor, BtorPtrHashTable *subst, int rww, int rwr)
   for (b = subst->first; b; b = b->next)
   {
     cur = BTOR_REAL_ADDR_NODE ((BtorNode *) b->key);
+    assert (cur);
     assert (!BTOR_IS_PROXY_NODE (cur));
     if (rww || rwr) cur->mark = 1; /* mark as in substitute table */
     BTOR_ENQUEUE (mm, queue, cur);

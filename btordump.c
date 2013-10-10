@@ -576,7 +576,7 @@ btor_dump_sort_smt2 (BtorNode *e, FILE *file)
     fprintf (file, "(Array (_ BitVec %d) (_ BitVec %d))", e->index_len, e->len);
   //  else if (e->len == 1)
   //    fprintf (file, "Bool");
-  else
+  else if (e)
     fprintf (file, "(_ BitVec %d)", e->len);
 }
 
@@ -666,10 +666,12 @@ btor_dump_fun_smt2 (Btor *btor, FILE *file, BtorNode *fun)
     }
   }
 
-  qsort (not_param.start,
-         BTOR_COUNT_STACK (not_param),
-         sizeof e,
-         btor_cmp_node_id);
+  if (not_param.start)
+    qsort (not_param.start,
+           BTOR_COUNT_STACK (not_param),
+           sizeof e,
+           btor_cmp_node_id);
+
   for (i = 0; i < BTOR_COUNT_STACK (not_param); i++)
   {
     e = not_param.start[i];
@@ -707,6 +709,7 @@ btor_dump_fun_smt2 (Btor *btor, FILE *file, BtorNode *fun)
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
     e = stack.start[i];
+    assert (e);
     assert (BTOR_IS_REGULAR_NODE (e));
 
     if (BTOR_IS_PARAM_NODE (e) || e->mark || BTOR_IS_LAMBDA_NODE (e)) continue;
@@ -794,7 +797,9 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
   else
     fputs ("(set-logic QF_BV)\n", file);
 
-  qsort (consts.start, BTOR_COUNT_STACK (consts), sizeof e, btor_cmp_node_id);
+  if (consts.start)
+    qsort (consts.start, BTOR_COUNT_STACK (consts), sizeof e, btor_cmp_node_id);
+
   for (i = 0; i < BTOR_COUNT_STACK (consts); i++)
   {
     e = consts.start[i];
@@ -809,7 +814,9 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     e->mark = 1;
   }
 
-  qsort (vars.start, BTOR_COUNT_STACK (vars), sizeof e, btor_cmp_node_id);
+  if (vars.start)
+    qsort (vars.start, BTOR_COUNT_STACK (vars), sizeof e, btor_cmp_node_id);
+
   for (i = 0; i < BTOR_COUNT_STACK (vars); i++)
   {
     e = vars.start[i];
@@ -818,7 +825,9 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     e->mark = 1;
   }
 
-  qsort (arrays.start, BTOR_COUNT_STACK (arrays), sizeof e, btor_cmp_node_id);
+  if (arrays.start)
+    qsort (arrays.start, BTOR_COUNT_STACK (arrays), sizeof e, btor_cmp_node_id);
+
   for (i = 0; i < BTOR_COUNT_STACK (arrays); i++)
   {
     e = arrays.start[i];
@@ -827,7 +836,10 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     e->mark = 1;
   }
 
-  qsort (lambdas.start, BTOR_COUNT_STACK (lambdas), sizeof e, btor_cmp_node_id);
+  if (lambdas.start)
+    qsort (
+        lambdas.start, BTOR_COUNT_STACK (lambdas), sizeof e, btor_cmp_node_id);
+
   for (i = 0; i < BTOR_COUNT_STACK (lambdas); i++)
   {
     e = lambdas.start[i];
@@ -836,7 +848,8 @@ btor_dump_smt2_fun (Btor *btor, FILE *file, BtorNode **roots, int nroots)
     e->mark = 1;
   }
 
-  qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
+  if (stack.start)
+    qsort (stack.start, BTOR_COUNT_STACK (stack), sizeof e, btor_cmp_node_id);
   for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
   {
     e = stack.start[i];
@@ -894,7 +907,7 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
   int next, i, arrays, open_left_par;
   BtorMemMgr *mm = btor->mm;
   BtorNodePtrStack stack;
-  BtorNode *e;
+  BtorNode *e, **p;
 
   BTOR_INIT_STACK (stack);
   for (i = 0; i < nroots; i++) BTOR_PUSH_NODE_IF_NOT_MARKED (roots[i]);
@@ -1005,10 +1018,12 @@ btor_dump_smt (Btor *btor, int format, FILE *file, BtorNode **roots, int nroots)
 
   fputc ('\n', file);
 
-  for (i = 0; i < BTOR_COUNT_STACK (stack); i++)
+  for (p = stack.start; p < stack.top; p++)
   {
-    stack.start[i]->mark     = 0;
-    stack.start[i]->aux_mark = 0;
+    e = *p;
+    assert (e);
+    e->mark     = 0;
+    e->aux_mark = 0;
   }
 
   BTOR_RELEASE_STACK (mm, stack);

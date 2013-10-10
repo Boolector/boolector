@@ -881,6 +881,7 @@ btor_dump_aiger (BtorAIGMgr *amgr,
       assert (!BTOR_EMPTY_STACK (stack));
 
       aig = BTOR_POP_STACK (stack);
+      assert (aig);
       assert (!aig->mark);
 
       assert (aig);
