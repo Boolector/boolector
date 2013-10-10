@@ -80,6 +80,10 @@ BTOR_DECLARE_STACK (AIGPtrPtr, BtorAIG **);
  */
 BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
 
+/* Wrapper to retrieve cloned aigs from aig_map in case that var aigs occur
+ * in the aig vector but not as children to non-var aigs. */
+BtorAIG *btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map);
+
 /* Clones AIG manager. */
 BtorAIGMgr *btor_clone_aig_mgr (BtorAIGMgr *amgr,
                                 BtorMemMgr *mm,

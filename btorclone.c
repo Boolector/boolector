@@ -322,7 +322,11 @@ clone_nodes_id_table (Btor *clone,
   BTOR_INIT_STACK (nodes);
   BTOR_INIT_STACK (aexps);
   BTOR_INIT_STACK (sapps);
+
   BTOR_INIT_STACK (*res);
+  BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*id_table));
+  res->top = res->start;
+  res->end = res->start + BTOR_SIZE_STACK (*id_table);
   BTOR_PUSH_STACK (mm, *res, 0);
 
   n = BTOR_COUNT_STACK (*id_table);

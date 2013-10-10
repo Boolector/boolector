@@ -639,12 +639,16 @@ btor_clone_aigvec (BtorAIGVec *av, BtorAIGVecMgr *avmgr, BtorAIGMap *aig_map)
   int i;
   BtorAIGVec *res;
 
-  BTOR_NEW (avmgr->mm, res);
-  res->len = av->len;
+  res = new_aigvec (avmgr, av->len);
   for (i = 0; i < av->len; i++)
   {
-    res->aigs[i] = btor_mapped_aig (aig_map, av->aigs[i]);
-    assert (res->aigs[i]);
+    if (BTOR_IS_CONST_AIG (av->aigs[i]))
+      res->aigs[i] = av->aigs[i];
+    else
+    {
+      res->aigs[i] = btor_cloned_aig (avmgr->mm, av->aigs[i], aig_map);
+      assert (res->aigs[i]);
+    }
   }
   return res;
 }
