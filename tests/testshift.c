@@ -53,6 +53,8 @@ init_shift_tests (void)
   fclose (f);
   g_mm = btor_new_mem_mgr ();
 
+  pos_rww = pos_rwr = 0;
+
   if (g_rwwrites) pos_rww = g_argc++ - 1;
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 

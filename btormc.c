@@ -315,6 +315,7 @@ boolector_next (BtorMC *mc, BtorNode *node, BtorNode *next)
 {
   BtorMcLatch *latch;
   Btor *btor;
+  (void) btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_IF_STATE (mc);
   assert (node);
@@ -337,6 +338,7 @@ boolector_init (BtorMC *mc, BtorNode *node, BtorNode *init)
 {
   BtorMcLatch *latch;
   Btor *btor;
+  (void) btor;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_IF_STATE (mc);
   assert (node);

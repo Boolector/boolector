@@ -5243,6 +5243,7 @@ btor_get_lambda_arity (Btor *btor, BtorNode *exp)
 int
 btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
+  (void) btor;
   assert (btor);
   assert (argc > 0);
   assert (args);

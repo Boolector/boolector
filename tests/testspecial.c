@@ -39,6 +39,8 @@ init_special_tests (void)
 {
   int pos_rww, pos_rwr;
 
+  pos_rww = pos_rwr = 0;
+
   if (g_rwwrites) pos_rww = g_argc++ - 1;
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 

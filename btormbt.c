@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -419,11 +420,13 @@ is_boolean_binary_fun (Op op)
   return (op >= EQ && op <= IFF);
 }
 
+#ifndef NDEBUG
 static int
 is_ternary_fun (Op op)
 {
   return op == COND;
 }
+#endif
 
 static int
 is_array_fun (Op op)
@@ -787,11 +790,13 @@ ternary_fun (BtorMBT *btormbt,
              BtorNode *e2,
              int is_param)
 {
-  assert (is_ternary_fun (op));
-  assert (boolector_get_width (btormbt->btor, e0) == 1);
-
   int e1w, e2w;
   ExpStack *es;
+
+  (void) op;
+
+  assert (is_ternary_fun (op));
+  assert (boolector_get_width (btormbt->btor, e0) == 1);
 
   e1w = boolector_get_width (btormbt->btor, e1);
   assert (e1w <= MAX_BITWIDTH);
@@ -1796,6 +1801,7 @@ run (Env *env, void (*process) (Env *))
 {
   int res, status, saved1, saved2, null;
   pid_t id;
+  (void) saved1;
   env->forked++;
   fflush (stdout);
   if ((id = fork ()))

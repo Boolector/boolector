@@ -248,6 +248,10 @@ btor_beta_reduce (
   BtorNodePtrStack unassign_stack;
 #endif
 
+  result = 0;
+  memset (p, 0, sizeof p);
+  result_parameterized = 0;
+
   mm    = btor->mm;
   cache = btor->cache;
   start = btor_time_stamp ();

@@ -2824,6 +2824,7 @@ btor_define_fun_smt2 (BtorSMT2Parser *parser)
   BtorSMT2Node *fun, *arg;
   BtorNodePtrStack args;
   fun   = 0;
+  arg   = 0;
   width = domain = 0;
   coo.x = coo.y = 0;
   if (!btor_read_symbol (parser, " after 'define-fun'", &fun)) return 0;

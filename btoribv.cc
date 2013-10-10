@@ -500,6 +500,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   BtorIBVAssignment assignment (tag, o, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (3, assignment, "id %u unary assignment", on->id);
+  (void) an;
 }
 
 void
@@ -528,6 +529,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   BtorIBVAssignment assignment (tag, o, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (3, assignment, "id %u unary assignment (with argument)", on->id);
+  (void) an;
 }
 
 void
@@ -542,10 +544,12 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
     assert (o.getWidth () == a.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
+#ifndef NDEBUG
   BtorIBVNode *an = bitrange2node (a);
   assert (an->is_constant || an->is_constant == on->is_constant);
   BtorIBVNode *bn = bitrange2node (b);
   assert (bn->is_constant || bn->is_constant == on->is_constant);
+#endif
   BtorIBVRange *r;
   BTOR_NEWN (btor->mm, r, 2);
   r[0] = a, r[1] = b;
@@ -589,9 +593,11 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   vector<BitRange>::const_iterator it;
   for (it = ops.begin (); it != ops.end (); it++)
   {
-    BitRange r      = *it;
+    BitRange r = *it;
+#ifndef NDEBUG
     BtorIBVNode *rn = bitrange2node (r);
     assert (rn->is_constant || rn->is_constant == on->is_constant);
+#endif
     assert (on->width >= r.getWidth ());
     assert (on->width - r.getWidth () >= sum);
     sum += r.getWidth ();
@@ -624,9 +630,11 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
     BitRange c = *it++;
     if (c.m_nId)
     {
+#ifndef NDEBUG
       BtorIBVNode *cn = bitrange2node (c);
       assert (cn->is_constant || cn->is_constant == on->is_constant);
       assert (c.getWidth () == 1 || c.getWidth () == o.getWidth ());
+#endif
     }
     else
       assert (it + 1 == ops.end ());
@@ -1192,11 +1200,13 @@ BtorIBV::analyze ()
     assert (a->tag != BTOR_IBV_STATE);
     if (a->tag == BTOR_IBV_NON_STATE)
     {
+#ifndef NDEBUG
       BtorIBVRange r = a->ranges[0];
       BtorIBVNode *m = id2node (r.id);
       unsigned k     = b.bit - a->range.lsb + r.lsb;
       assert (m->flags[k].nonstate.next);
       assert (!m->flags[k].assigned);
+#endif
       msg (3, "forwarding id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarding++;
     }
@@ -2321,9 +2331,11 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (!prev->is_next_state);
         assert (prev->forwarded);
         assert (pa->ranges[0].getWidth () >= r.getWidth ());
+#ifndef NDEBUG
         int prevlen = boolector_get_width (btor, prev->forwarded);
         int rlen    = (int) r.getWidth ();
         assert (prevlen >= rlen);
+#endif
         assert (!a->exp);
         assert (r.msb <= pa->ranges[0].msb);
         assert (r.lsb >= pa->ranges[0].lsb);

@@ -52,6 +52,7 @@ node2string (BtorNode *exp)
     case BTOR_BCOND_NODE: name = "bcond"; break;
     case BTOR_ACOND_NODE: name = "acond"; break;
     case BTOR_PROXY_NODE: name = "proxy"; break;
+    default: name = "invalid"; break;
   }
 
   if (exp->kind == BTOR_SLICE_NODE)

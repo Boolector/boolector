@@ -195,6 +195,7 @@ parse (FILE *file)
   ret_ptr = 0, ret_str = 0;
   buffer[len = 0] = 0;
   lineno          = 1;
+  arg2_int        = 0;
   btor            = 0;
   mm              = btor_new_mem_mgr ();
   hmap            = btor_new_ptr_hash_table (
