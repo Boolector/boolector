@@ -1114,8 +1114,9 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
   /* force array exp with non-parameterized arrays? */
   rand = force_arrnparr ? -1 : pick (rng, 0, 1);
   e[0] = selexp (btormbt, rng, T_ARR, rand, NULL);
-  eew  = boolector_get_width (btormbt->btor, e[0]);
-  eiw  = boolector_get_index_width (btormbt->btor, e[0]);
+  e[1] = e[2] = 0;
+  eew         = boolector_get_width (btormbt->btor, e[0]);
+  eiw         = boolector_get_index_width (btormbt->btor, e[0]);
 
   /* choose READ/WRITE with p = 0.666, else EQ/NE/COND */
   if (pick (rng, 0, 2))
@@ -1825,6 +1826,9 @@ run (Env *env, void (*process) (Env *))
 #ifndef NDEBUG
     tmp =
 #endif
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
         dup (null);
     assert (tmp == 1);
 #ifndef NDEBUG
@@ -1848,6 +1852,9 @@ run (Env *env, void (*process) (Env *))
     tmp =
 #endif
         dup (saved1);
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
 #ifdef NDEBUG
     assert (tmp == 1);
 #endif
@@ -1967,6 +1974,12 @@ stats (void)
           average (env.bugs, t));
 }
 
+#ifdef __GNUC__
+#if __GNUC__ >= 4 && __GNUC_MAJOR__ >= 6
+#define USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#endif
+#endif
+
 /* Note: - do not call non-reentrant function here, see:
  *         https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
  *       - do not use printf here (causes segfault when SIGINT and valgrind) */
@@ -1976,7 +1989,13 @@ sighandler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n", sig);
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
   write (1, str, strlen (str));
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic warning "-Wunused-result"
+#endif
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (1);
