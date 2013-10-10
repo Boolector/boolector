@@ -2466,7 +2466,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         }
         *p = 0;
         assert (strlen (conststr) == n->width);
-        assert (strlen (conststr) >= (int) r.getWidth ());
+        assert (strlen (conststr) >= (long) r.getWidth ());
         n->cached = boolector_const (btor, conststr);
         assert (boolector_get_width (btor, n->cached) == (int) n->width);
         BTOR_DELETEN (btor->mm, conststr, n->width + 1);
