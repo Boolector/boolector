@@ -918,11 +918,7 @@ RESTART:
 
   fclose (input);
 
-  if (restart)
-  {
-    restart = 0;
-    goto CONTINUE;
-  }
+  if (restart) goto CONTINUE;
 
   tmp = malloc (100);
   sprintf (tmp, "/tmp/deltabtor%u", (unsigned) getpid ());

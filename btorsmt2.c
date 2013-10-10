@@ -1238,7 +1238,7 @@ btor_str2int32_smt2 (BtorSMT2Parser *parser,
     INVALID:
       return !btor_perr_smt2 (parser, "invalid 32-bit integer '%s'", str);
     assert ('0' <= ch && ch <= '9');
-    res *= 10;
+    if (res) res *= 10;
     digit = ch - '0';
     if (INT_MAX - digit < res) goto INVALID;
     res += digit;

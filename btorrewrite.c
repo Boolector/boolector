@@ -2592,6 +2592,8 @@ btor_rewrite_eq_exp (Btor *btor, BtorNode *e0, BtorNode *e1)
     else if (kind == BTOR_BEQ_NODE)
     {
       /* push eq down over concats */
+      assert (real_e0);
+      assert (real_e1);
       if (real_e0->kind == BTOR_CONCAT_NODE
           || real_e1->kind == BTOR_CONCAT_NODE)
       {
@@ -2649,6 +2651,9 @@ DONE:
 
   btor_release_exp (btor, e0);
   btor_release_exp (btor, e1);
+
+  (void) real_e0;
+  (void) real_e1;
 
   return result;
 }
@@ -3543,7 +3548,6 @@ btor_rewrite_write_exp (Btor *btor,
 {
   BtorNode *cur, *cur_write, *temp, *result;
   BtorNode *chain[BTOR_WRITE_CHAIN_NODE_RW_BOUND];
-  BtorNode *real_index, *real_value;
   int depth;
 
   /* no recurisve rewrite calls here, so we do not need to check bounds */
@@ -3556,51 +3560,57 @@ btor_rewrite_write_exp (Btor *btor,
 
   result = 0;
 
+#if 0
+  BtorNode * real_index, * real_value;
   real_index = BTOR_REAL_ADDR_NODE (e_index);
   real_value = BTOR_REAL_ADDR_NODE (e_value);
 
-  if (0 &&  // TODO When to enable?
-      BTOR_IS_ARRAY_COND_NODE (e_array) && BTOR_IS_BV_COND_NODE (real_index)
-      && BTOR_IS_BV_COND_NODE (real_value) && e_array->e[0] == real_index->e[0]
-      && e_array->e[0] == real_value->e[0])
-  {
-    BtorNode *i1 = BTOR_COND_INVERT_NODE (e_index, real_index->e[1]);
-    BtorNode *i2 = BTOR_COND_INVERT_NODE (e_index, real_index->e[2]);
-    BtorNode *v1 = BTOR_COND_INVERT_NODE (e_value, real_value->e[1]);
-    BtorNode *v2 = BTOR_COND_INVERT_NODE (e_value, real_value->e[2]);
-    BtorNode *e1 = btor_write_exp_node (btor, e_array->e[1], i1, v1);
-    BtorNode *e2 = btor_write_exp_node (btor, e_array->e[2], i2, v2);
-    result       = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
-    btor_release_exp (btor, e2);
-    btor_release_exp (btor, e1);
-  }
-  else if (0 &&  // TODO When to enable?
-           BTOR_IS_ARRAY_COND_NODE (e_array)
-           && BTOR_IS_BV_COND_NODE (real_index)
-           && e_array->e[0] == real_index->e[0])
-  {
-    BtorNode *i1 = BTOR_COND_INVERT_NODE (e_index, real_index->e[1]);
-    BtorNode *i2 = BTOR_COND_INVERT_NODE (e_index, real_index->e[2]);
-    BtorNode *e1 = btor_write_exp_node (btor, e_array->e[1], i1, e_value);
-    BtorNode *e2 = btor_write_exp_node (btor, e_array->e[2], i2, e_value);
-    result       = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
-    btor_release_exp (btor, e2);
-    btor_release_exp (btor, e1);
-  }
-  else if (0 &&  // TODO When to enable?
-           BTOR_IS_ARRAY_COND_NODE (e_array)
-           && BTOR_IS_BV_COND_NODE (real_value)
-           && e_array->e[0] == real_value->e[0])
-  {
-    BtorNode *v1 = BTOR_COND_INVERT_NODE (e_value, real_value->e[1]);
-    BtorNode *v2 = BTOR_COND_INVERT_NODE (e_value, real_value->e[2]);
-    BtorNode *e1 = btor_write_exp_node (btor, e_array->e[1], e_index, v1);
-    BtorNode *e2 = btor_write_exp_node (btor, e_array->e[2], e_index, v2);
-    result       = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
-    btor_release_exp (btor, e2);
-    btor_release_exp (btor, e1);
-  }
-  else if (btor->rewrite_level > 2 && BTOR_IS_WRITE_NODE (e_array))
+  if (0 &&						// TODO When to enable?
+      BTOR_IS_ARRAY_COND_NODE (e_array) &&
+      BTOR_IS_BV_COND_NODE (real_index) &&
+      BTOR_IS_BV_COND_NODE (real_value) &&
+      e_array->e[0] == real_index->e[0] &&
+      e_array->e[0] == real_value->e[0]) 
+    {
+      BtorNode * i1 = BTOR_COND_INVERT_NODE (e_index, real_index->e[1]);
+      BtorNode * i2 = BTOR_COND_INVERT_NODE (e_index, real_index->e[2]);
+      BtorNode * v1 = BTOR_COND_INVERT_NODE (e_value, real_value->e[1]);
+      BtorNode * v2 = BTOR_COND_INVERT_NODE (e_value, real_value->e[2]);
+      BtorNode * e1 = btor_write_exp_node (btor, e_array->e[1], i1, v1);
+      BtorNode * e2 = btor_write_exp_node (btor, e_array->e[2], i2, v2);
+      result = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
+      btor_release_exp (btor, e2);
+      btor_release_exp (btor, e1);
+    }
+  else if (0 &&						// TODO When to enable?
+	   BTOR_IS_ARRAY_COND_NODE (e_array) &&
+	   BTOR_IS_BV_COND_NODE (real_index) &&
+	   e_array->e[0] == real_index->e[0]) 
+    {
+      BtorNode * i1 = BTOR_COND_INVERT_NODE (e_index, real_index->e[1]);
+      BtorNode * i2 = BTOR_COND_INVERT_NODE (e_index, real_index->e[2]);
+      BtorNode * e1 = btor_write_exp_node (btor, e_array->e[1], i1, e_value);
+      BtorNode * e2 = btor_write_exp_node (btor, e_array->e[2], i2, e_value);
+      result = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
+      btor_release_exp (btor, e2);
+      btor_release_exp (btor, e1);
+    }
+  else if (0 &&						// TODO When to enable?
+           BTOR_IS_ARRAY_COND_NODE (e_array) &&
+           BTOR_IS_BV_COND_NODE (real_value) &&
+           e_array->e[0] == real_value->e[0]) 
+    {
+      BtorNode * v1 = BTOR_COND_INVERT_NODE (e_value, real_value->e[1]);
+      BtorNode * v2 = BTOR_COND_INVERT_NODE (e_value, real_value->e[2]);
+      BtorNode * e1 = btor_write_exp_node (btor, e_array->e[1], e_index, v1);
+      BtorNode * e2 = btor_write_exp_node (btor, e_array->e[2], e_index, v2);
+      result = btor_rewrite_cond_exp (btor, e_array->e[0], e1, e2);
+      btor_release_exp (btor, e2);
+      btor_release_exp (btor, e1);
+    }
+  else
+#endif
+  if (btor->rewrite_level > 2 && BTOR_IS_WRITE_NODE (e_array))
   {
     depth = 0;
     cur   = e_array;
