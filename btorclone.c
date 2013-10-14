@@ -509,7 +509,10 @@ btor_clone_btor (Btor *btor)
 
   // printf ("///**** after memcpy %lu %lu\n", btor->mm->allocated,
   // clone->mm->allocated);
-  clone->avmgr = btor_clone_aigvec_mgr (btor->avmgr, mm, aig_map);
+  clone->avmgr = btor_clone_aigvec_mgr (mm, btor->avmgr);
+  btor_clone_aigs (btor_get_aig_mgr_aigvec_mgr (btor->avmgr),
+                   btor_get_aig_mgr_aigvec_mgr (clone->avmgr),
+                   aig_map);
 
   // printf ("///**** after avmgr%lu %lu\n", btor->mm->allocated,
   // clone->mm->allocated);

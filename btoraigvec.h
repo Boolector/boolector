@@ -38,9 +38,7 @@ typedef struct BtorAIGVecMgr BtorAIGVecMgr;
 BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm);
 
 /* Clones AIG vector manager. */
-BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorAIGVecMgr *avmgr,
-                                      BtorMemMgr *mm,
-                                      BtorAIGMap *aig_map);
+BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorAIGVecMgr *avmgr);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity);
