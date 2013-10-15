@@ -1,5 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
- *  Copyright (C) 2007-2012 Robert Daniel Brummayer, Armin Biere
+ *
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
  *
  *  This file is part of Boolector.
  *
@@ -36,30 +39,29 @@ struct Exp
   int cut;
   int oldref;
   int oldcut;
-  char* op;
+  char *op;
   int width;
   int addrwidth;
   int childs;
   int child[3];
-  char* name;
+  char *name;
 };
 
 static int verbose;
 static int nosimp;
 static int nosort;
 
-static const char* input_name;
-static const char* output_name;
-static const char* run_name;
+static const char *input_name;
+static const char *output_name;
+static const char *run_name;
 
-static FILE* input;
+static FILE *input;
 static int lineno;
 static int saved;
 
-static char* tmp;
-static char* cmd;
+static char *tmp;
 
-static Exp* exps;
+static Exp *exps;
 static int sexps;
 static int nexps;
 
@@ -67,15 +69,13 @@ static int iexps;
 static int rexps;
 static int oexps;
 
-static char* buf;
-static int sbuf;
-static int nbuf;
+static char *buf;
 
 static int maxwidth;
 static int runs;
 
 static void
-msg (int level, const char* fmt, ...)
+msg (int level, const char *fmt, ...)
 {
   va_list ap;
   if (verbose < level) return;
@@ -89,7 +89,7 @@ msg (int level, const char* fmt, ...)
 }
 
 static void
-die (const char* fmt, ...)
+die (const char *fmt, ...)
 {
   va_list ap;
   fflush (stdout);
@@ -141,7 +141,7 @@ next (void)
 }
 
 static void
-perr (const char* fmt, ...)
+perr (const char *fmt, ...)
 {
   va_list ap;
   fflush (stdout);
@@ -155,7 +155,7 @@ perr (const char* fmt, ...)
 }
 
 static int
-isarrayop (const char* op)
+isarrayop (const char *op)
 {
   if (!strcmp (op, "array")) return 1;
 
@@ -173,9 +173,12 @@ parse (void)
 {
   int ch, idx, lit, sign, width, addrwidth, child[3], childs, needaddrwidth;
   char *op, *name;
+  int sbuf = 0, nbuf = 0;
 
   lineno = 1;
   saved  = EOF;
+  buf    = 0;
+  iexps  = 0;
 
 EXP:
 
@@ -334,7 +337,7 @@ LIT:
 static void
 save (void)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   for (i = 1; i < nexps; i++)
@@ -349,7 +352,7 @@ static int
 deref (int start)
 {
   int res, sign, tmp;
-  Exp* e;
+  Exp *e;
 
   sign = (start < 0);
   if (sign) start = -start;
@@ -400,8 +403,8 @@ deidx (int start)
 static int
 isallone (int start)
 {
-  const char* p;
-  Exp* e;
+  const char *p;
+  Exp *e;
 
   start = deref (start);
 
@@ -451,7 +454,7 @@ static void
 simp (void)
 {
   int i, c;
-  Exp* e;
+  Exp *e;
 
   if (nosimp) return;
 
@@ -537,7 +540,7 @@ simp (void)
 }
 
 static int
-ischild (Exp* e, int child)
+ischild (Exp *e, int child)
 {
   assert (e->ref);
 
@@ -564,7 +567,7 @@ ischild (Exp* e, int child)
 static void
 dfs (int idx)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   idx = abs (idx);
@@ -642,7 +645,7 @@ cone (void)
 static void
 clean (void)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   for (i = 1; i < nexps; i++)
@@ -657,7 +660,7 @@ clean (void)
 static void
 reset (void)
 {
-  Exp* e;
+  Exp *e;
   int i;
 
   for (i = 1; i < nexps; i++)
@@ -669,10 +672,10 @@ reset (void)
 }
 
 static int
-cmp_by_idx (const void* p, const void* q)
+cmp_by_idx (const void *p, const void *q)
 {
-  Exp* a = *(Exp**) p;
-  Exp* b = *(Exp**) q;
+  Exp *a = *(Exp **) p;
+  Exp *b = *(Exp **) q;
   assert (a->ref);
   assert (a->idx);
   assert (b->ref);
@@ -683,7 +686,7 @@ cmp_by_idx (const void* p, const void* q)
 static void
 print (void)
 {
-  FILE* file = fopen (tmp, "w");
+  FILE *file = fopen (tmp, "w");
   int i, j, lit, count;
   Exp *e, **sorted;
 
@@ -806,7 +809,7 @@ expand (void)
 }
 
 static int
-run (void)
+run (char *cmd)
 {
   int tmp = system (cmd), res = WEXITSTATUS (tmp);
   runs++;
@@ -832,11 +835,14 @@ permanent (void)
 }
 
 int
-main (int argc, char** argv)
+main (int argc, char **argv)
 {
-  int changed, golden, res, rounds, interval, fixed, sign, overwritten;
-  int i, j, argstart, len;
-  Exp* e;
+  int changed, golden = 0, res, rounds, interval, fixed, sign, overwritten;
+  int i, j, argstart, len, fixpoint = 0, prev_oexps, restart = 0;
+  char *cmd, *cmd_golden;
+  Exp *e;
+
+  cmd = cmd_golden = 0;
 
   argstart = argc;
 
@@ -851,16 +857,34 @@ main (int argc, char** argv)
     {
       printf (
           "usage: deltabtor "
-          "[-h][-v][--no-simp][--no-sort] <in> <out> "
+          "[-h][-v][-g <val>][--no-simp][--no-sort] <in> <out> "
           "<run> [<opt> ...]\n");
+      printf ("usage: %s ", argv[0]);
+      printf ("[option] <infile> <outfile> <cmd> [<cmdopt>]\n\n");
+      printf ("  options:\n");
+      printf ("    -h           print this message and exit\n");
+      printf ("    -v           be verbose ");
+      printf ("multiple occurrences increase verbosity level)\n");
+      printf ("    -g <val>     'golden' (reference) exit code ");
+      printf ("(default: initial run on <in>)\n");
+      printf ("    --no-simp    do not simplify expressions\n");
+      printf ("    --no-sort    do not sort expressions\n");
+      printf ("    --fixpoint   run until fixpoint reached\n");
       exit (0);
     }
     else if (!strcmp (argv[i], "-v"))
       verbose++;
+    else if (!strcmp (argv[i], "-g"))
+    {
+      if (++i == argc) die ("golden <val> missing");
+      golden = atoi (argv[i]);
+    }
     else if (!strcmp (argv[i], "--no-simp"))
       nosimp = 1;
     else if (!strcmp (argv[i], "--no-sort"))
       nosort = 1;
+    else if (!strcmp (argv[i], "--fixpoint"))
+      fixpoint = 1;
     else if (output_name)
       run_name = argv[i];
     else if (input_name)
@@ -882,6 +906,9 @@ main (int argc, char** argv)
 
   if (!strcmp (output_name, run_name)) die ("<output> and <run> are the same");
 
+RESTART:
+  if (restart) input_name = output_name;
+
   nexps = sexps = 1;
   exps          = calloc (sexps, sizeof *exps);
 
@@ -891,6 +918,8 @@ main (int argc, char** argv)
 
   fclose (input);
 
+  if (restart) goto CONTINUE;
+
   tmp = malloc (100);
   sprintf (tmp, "/tmp/deltabtor%u", (unsigned) getpid ());
 
@@ -898,33 +927,39 @@ main (int argc, char** argv)
 
   for (i = argstart; i < argc; i++) len += 1 + strlen (argv[i]);
 
-  cmd = malloc (strlen (run_name) + len + 100);
+  cmd        = malloc (strlen (run_name) + len + strlen (tmp) + 1);
+  cmd_golden = malloc (strlen (run_name) + len + strlen (input_name) + 1);
   sprintf (cmd, "%s %s", run_name, tmp);
+  sprintf (cmd_golden, "%s %s", run_name, input_name);
 
   for (i = argstart; i < argc; i++)
+  {
     sprintf (cmd + strlen (cmd), " %s", argv[i]);
+    sprintf (cmd_golden + strlen (cmd_golden), " %s", argv[i]);
+  }
 
-  sprintf (cmd + strlen (cmd), " >/dev/null 2>/dev/null");
+  sprintf (cmd + strlen (cmd), " > /dev/null 2>&1");
+  sprintf (cmd_golden + strlen (cmd_golden), " > /dev/null 2>&1");
 
+  if (!golden) golden = run (cmd_golden);
+  msg (1, "golden exit code %d", golden);
+
+CONTINUE:
   expand ();
-
   save ();
   simp ();
   cone ();
   print ();
   clean ();
   reset ();
-
-  golden = run ();
-  msg (1, "golden exit code %d", golden);
-
   permanent ();
 
   rounds = 0;
   fixed  = 0;
 
-  interval = nexps - maxwidth;
-  oexps    = rexps;
+  interval   = nexps - maxwidth;
+  oexps      = rexps;
+  prev_oexps = oexps;
 
   do
   {
@@ -994,7 +1029,7 @@ main (int argc, char** argv)
           print ();
           clean ();
 
-          res = run ();
+          res = run (cmd);
 
           if (res == golden)
           {
@@ -1029,13 +1064,8 @@ main (int argc, char** argv)
 
   } while (interval);
 
-  unlink (tmp);
-
   msg (2, "%d rounds", rounds);
   msg (2, "%d runs", runs);
-
-  free (tmp);
-  free (cmd);
 
   for (i = 1; i < nexps; i++)
   {
@@ -1047,6 +1077,19 @@ main (int argc, char** argv)
 
   free (exps);
   free (buf);
+
+  assert (prev_oexps >= oexps);
+  if (fixpoint && prev_oexps - oexps > 0)
+  {
+    msg (1, "no fixpoint reached, restarting");
+    restart = 1;
+    goto RESTART;
+  }
+
+  unlink (tmp);
+  free (tmp);
+  free (cmd);
+  free (cmd_golden);
 
   msg (1, "fixed %d expressions out of %d", fixed, iexps);
   msg (1, "wrote %d expressions to '%s'", oexps, output_name);

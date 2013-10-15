@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *
  *  All rights reserved.
@@ -75,10 +75,6 @@ struct BtorParseResult
 
   int noutputs;
   BtorNode **outputs;
-
-  int nregs;
-  BtorNode **regs;
-  BtorNode **nexts;
 };
 
 struct BtorParserAPI

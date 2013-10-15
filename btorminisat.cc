@@ -1,4 +1,5 @@
-/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.  *
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
  *  Copyright (C) 2011-2012 Armin Biere.
  *
  *  All rights reserved.
@@ -19,14 +20,14 @@
 
 #include "../minisat/minisat/simp/SimpSolver.h"
 
+#include <cassert>
+#include <cstdio>
+#include <cstring>
+
 extern "C" {
 
 #include "btorminisat.h"
 #include "btorsat.h"
-
-#include <cassert>
-#include <cstdio>
-#include <cstring>
 
 using namespace Minisat;
 
@@ -212,10 +213,13 @@ btor_minisat_set_prefix (BtorSATMgr *, const char *)
 }
 
 void
-btor_minisat_enable_verbosity (BtorSATMgr *smgr)
+btor_minisat_enable_verbosity (BtorSATMgr *smgr, int level)
 {
   BtorMiniSAT *solver = (BtorMiniSAT *) BTOR_GET_SOLVER_SAT (smgr);
-  solver->verbosity   = 1;
+  if (solver->verbosity >= 0)
+    solver->verbosity = level;
+  else
+    solver->verbosity = 0;
 }
 
 void

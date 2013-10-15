@@ -1,8 +1,5 @@
 .SUFFIXES: .o .c .cc
-.c.o:
-	$(CC) $(CFLAGS) -c $<
-.cc.o:
-	$(CC) $(CFLAGS) -c $<
+
 MAKEFLAGS=-j $(if $(CORES),$(CORES),1)
 CC=@CC@
 INCS=@INCS@
@@ -11,33 +8,55 @@ OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
-LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor*.c))) boolector.o $(OBJS)
-TESTOBJ=$(addsuffix .o,$(basename $(wildcard test*.c)))
+LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor[a-z]*.c))) boolector.o $(OBJS)
 SRC=$(shell ls *.c *.h *.cc)
-all: libboolector.a boolector test synthebtor deltabtor
+TARGETS=boolector synthebtor deltabtor btorfmt.o btor2horn
+
+all: libboolector.a $(TARGETS)
+
 -include dependencies
+-include test.mk
+-include ibv.mk
+-include mbt.mk
+
+%.o: %.c
+	$(CC) $(CFLAGS) -I. -c -o $@ $<
+
+%.o: %.cc
+	$(CC) $(CFLAGS) -c -o $@ $<
+
 analyze:
-	clang --analyze $(CFLAGS) $(SRC)
+	clang --analyze $(CFLAGS) $(shell ls *.c *.cc)
+
 dependencies: btorconfig.h $(SRC) makefile
-	rm -f $@; $(CC) $(CFLAGS) -MM *.c|sed -e 's,:,: makefile,'>$@
+	rm -f $@; $(CC) $(CFLAGS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@
+
 boolector: boolectormain.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
-test: $(TESTOBJ) libboolector.a  $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ $(TESTOBJ) -L. -lboolector $(LIBS)
+
 synthebtor: synthebtor.o libboolector.a $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
+
 deltabtor: deltabtor.c makefile $(LDEPS)
 	$(CC) $(CFLAGS) -o $@ deltabtor.c
+
+btor2horn: btor2horn.o btorfmt.o makefile
+	$(CC) $(CFLAGS) -o $@ btor2horn.o btorfmt.o
+
 libboolector.a: $(LIBOBJ)
 	rm -f $@
 	ar rc $@ $(LIBOBJ)
 	ranlib $@
+
 btorconfig.h: makefile VERSION mkconfig
 	rm -f $@; ./mkconfig > $@
+
 clean:
-	rm -f test boolector deltabtor synthebtor
+	rm -f $(TARGETS)
 	rm -f dependencies makefile btorconfig.h
-	rm -f *.gcda *.gcno *.gcov  *.gch *.plist
+	rm -f *.gcda *.gcno *.gcov *.gch *.plist
 	rm -f log/*.log *.tmp
 	rm -f *.o *.a
+	rm -f btormbt btoruntrace
+
 .PHONY: all analyze clean

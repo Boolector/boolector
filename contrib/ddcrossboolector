@@ -1,0 +1,78 @@
+#!/bin/bash
+
+die () 
+{
+  echo "*** crosscheckboolector: $*" 1>&2
+  exit 1
+}
+
+trap "exit 2" SIGHUP SIGINT SIGTERM
+
+btor_test=""
+btor_test_opts=""
+btor_ref=""
+btor_ref_opts=""
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+    -h|--help)
+      echo -n "usage: $(basename $0) [<option>] <test> [<testopts>] <ref> "
+      echo "[<refopts>] <file>"
+      echo
+      echo "  <test>:     the solver instance under test"
+      echo "  <testopts>: options passed to <test>"
+      echo "  <ref>:      the reference solver instance"
+      echo "  <refopts>:  options passed to <ref>"
+      echo
+      echo "  options:"
+      echo "    -h, --help    print this message and exit"
+      echo
+      exit
+      ;;
+    -*|[0-9]*) 
+      if [ x"$btor_test" = x ]; then
+	die "invalid option: $1"
+      elif [ x"$btor_ref" = x  ]; then
+	btor_test_opts="$btor_test_opts $1"
+      else
+	btor_ref_opts="$btor_ref_opts $1"
+      fi
+      ;;
+    *) 
+      if [ x"$btor_test" = x ]; then
+	btor_test=$1
+      elif [ x"$btor_ref" = x  ]; then
+	btor_ref=$1
+      else
+	break
+      fi
+      ;;
+  esac
+  shift
+done
+
+inputfile="$*"
+
+[ x"$inputfile" = x ] && die "inputfile missing"
+
+$btor_ref $btor_ref_opts $inputfile > /dev/null 2>&1
+expected_result=$?
+#echo "$btor_ref"
+#echo "expected result: $expected_result"
+
+$btor_test $btor_test_opts $inputfile > /dev/null 2>&1
+result=$?
+#echo "$btor_test"
+#echo "result: $result"
+
+# we do not want assertions errors for now
+if [[ $result != 10 && $result != 20 ]]; then
+  exit 0
+fi
+
+if [ $result -eq $expected_result ]; then
+  exit 0
+else
+  exit 1
+fi

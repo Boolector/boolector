@@ -1,10 +1,11 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
  *
  *  All rights reserved.
-
+ *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  *  This file is part of Boolector.
@@ -37,6 +38,13 @@
     if (mm->maxallocated < mm->allocated) mm->maxallocated = mm->allocated; \
   } while (0)
 
+#define SAT_ADJUST()                              \
+  do                                              \
+  {                                               \
+    if (mm->sat_maxallocated < mm->sat_allocated) \
+      mm->sat_maxallocated = mm->sat_allocated;   \
+  } while (0)
+
 /*------------------------------------------------------------------------*/
 /* This enables logging of all memory allocations.
  */
@@ -62,8 +70,10 @@ btor_new_mem_mgr (void)
 {
   BtorMemMgr *mm = (BtorMemMgr *) malloc (sizeof (BtorMemMgr));
   BTOR_ABORT_MEM (!mm, "out of memory in 'btor_new_mem_mgr'");
-  mm->allocated    = 0;
-  mm->maxallocated = 0;
+  mm->allocated        = 0;
+  mm->maxallocated     = 0;
+  mm->sat_allocated    = 0;
+  mm->sat_maxallocated = 0;
   return mm;
 }
 
@@ -82,6 +92,19 @@ btor_malloc (BtorMemMgr *mm, size_t size)
 }
 
 void *
+btor_sat_malloc (BtorMemMgr *mm, size_t size)
+{
+  void *result;
+  if (!size) return 0;
+  assert (mm);
+  result = malloc (size);
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_sat_malloc'");
+  mm->sat_allocated += size;
+  SAT_ADJUST ();
+  return result;
+}
+
+void *
 btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
 {
   void *result;
@@ -95,6 +118,21 @@ btor_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
   mm->allocated += new_size;
   ADJUST ();
   BTOR_LOG_MEM ("%p malloc %10ld (realloc)\n", result, new_size);
+  return result;
+}
+
+void *
+btor_sat_realloc (BtorMemMgr *mm, void *p, size_t old_size, size_t new_size)
+{
+  void *result;
+  assert (mm);
+  assert (!p == !old_size);
+  assert (mm->sat_allocated >= old_size);
+  result = realloc (p, new_size);
+  BTOR_ABORT_MEM (!result, "out of memory in 'btor_sat_realloc'");
+  mm->sat_allocated -= old_size;
+  mm->sat_allocated += new_size;
+  SAT_ADJUST ();
   return result;
 }
 
@@ -120,6 +158,14 @@ btor_free (BtorMemMgr *mm, void *p, size_t freed)
   assert (mm->allocated >= freed);
   mm->allocated -= freed;
   BTOR_LOG_MEM ("%p free   %10ld\n", p, freed);
+  free (p);
+}
+
+void
+btor_sat_free (BtorMemMgr *mm, void *p, size_t freed)
+{
+  assert (mm);
+  if (p) mm->sat_allocated -= freed;
   free (p);
 }
 
@@ -157,7 +203,12 @@ btor_delete_mem_mgr (BtorMemMgr *mm)
 size_t
 btor_parse_error_message_length (const char *name, const char *fmt, va_list ap)
 {
-  size_t bytes = strlen (name) + 20; /* care for ':: \0' and lineno */
+  /* Additional characters for:
+
+  "<name>:<lineno>:[<columno>:] "
+
+  */
+  size_t bytes = strlen (name) + 25;
   const char *p;
 
   for (p = fmt; *p; p++)
@@ -193,6 +244,7 @@ char *
 btor_parse_error_message (BtorMemMgr *mem,
                           const char *name,
                           int lineno,
+                          int columno,
                           const char *fmt,
                           va_list ap,
                           size_t bytes)
@@ -201,7 +253,10 @@ btor_parse_error_message (BtorMemMgr *mem,
   char *tmp;
 
   tmp = btor_malloc (mem, bytes);
-  sprintf (tmp, "%s:%d: ", name, lineno);
+  if (columno > 0)
+    sprintf (tmp, "%s:%d:%d: ", name, lineno, columno);
+  else
+    sprintf (tmp, "%s:%d: ", name, lineno);
   assert (strlen (tmp) + 1 < bytes);
   vsprintf (tmp + strlen (tmp), fmt, ap);
   res = btor_strdup (mem, tmp);

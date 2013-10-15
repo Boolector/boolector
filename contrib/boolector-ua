@@ -23,12 +23,12 @@ fi
 while getopts "idzos" o
 do
   case "$o" in
-  i)	ref=i;;
-  d)	ref=d;;
-  z)	enc=z;;
-  o)	enc=o;;
-  s)	enc=s;;
-  [?])	echo "$usage" 1>&2; exit 1;;
+  i)    ref=i;;
+  d)    ref=d;;
+  z)    enc=z;;
+  o)    enc=o;;
+  s)    enc=s;;
+  [?])  echo "$usage" 1>&2; exit 1;;
   esac
 done
 
@@ -74,25 +74,25 @@ do
       v=`echo $line | awk '{ print $2 }'`
       v=${v:2}
       if [[ ${v:0:1} == '(' ]]; then
-	echo 'unsupported format'
-	exit 1
+        echo 'unsupported format'
+        exit 1
       fi
       bw=${line:$lbrack:$len}
       if [[ $bw -gt $ebw ]]; then
         uapproxed=1
-	scriptheader=${scriptheader}"-e 's/($v\\s*BitVec\\[[0-9]*\\]))/($v BitVec[$ebw]))/g' "
-	((diff = bw - ebw ))
-	if [[ $enc == o ]]; then
-	  scriptbody=${scriptbody}"-e 's/\\<$v\\>/(concat (repeat[$diff] bv1[1]) $v)/g' "
-	elif [[ $enc == z ]]; then
-	  scriptbody=${scriptbody}"-e 's/\\<$v\\>/(zero_extend[$diff] $v)/g' "
-	else
-	  if [[ $enc != s ]]; then
-	    echo "internal error"
-	    exit 1
-	  fi
-	  scriptbody=${scriptbody}"-e 's/\\<$v\\>/(sign_extend[$diff] $v)/g' "
-	fi
+        scriptheader=${scriptheader}"-e 's/($v\\s*BitVec\\[[0-9]*\\]))/($v BitVec[$ebw]))/g' "
+        ((diff = bw - ebw ))
+        if [[ $enc == o ]]; then
+          scriptbody=${scriptbody}"-e 's/\\<$v\\>/(concat (repeat[$diff] bv1[1]) $v)/g' "
+        elif [[ $enc == z ]]; then
+          scriptbody=${scriptbody}"-e 's/\\<$v\\>/(zero_extend[$diff] $v)/g' "
+        else
+          if [[ $enc != s ]]; then
+            echo "internal error"
+            exit 1
+          fi
+          scriptbody=${scriptbody}"-e 's/\\<$v\\>/(sign_extend[$diff] $v)/g' "
+        fi
       fi
     fi
   done < $headerfile

@@ -1,7 +1,8 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Aina Niemetz, Mathias Preiner.
  *
  *  All rights reserved.
  *
@@ -15,9 +16,11 @@
 #include "btorbtor.h"
 #include "btorconfig.h"
 #include "btorconst.h"
+#include "btordump.h"
 #include "btorexit.h"
 #include "btorexp.h"
 #include "btorhash.h"
+#include "btorlog.h"
 #include "btorlogic.h"
 #include "btormem.h"
 #include "btorparse.h"
@@ -57,7 +60,12 @@ struct BtorMainApp
   char *input_file_name;
   int close_input_file;
   int verbosity;
+#ifndef NBTORLOG
+  int loglevel;
+#endif
   int incremental;
+  int beta_reduce_all;
+  int pprint;
 #ifdef BTOR_USE_LINGELING
   int nofork;
 #endif
@@ -98,14 +106,17 @@ static const char *g_usage =
     "\n"
     "where <option> is one of the following:\n"
     "\n"
-    "  -h|--help                        print usage information and exit\n"
-    "  -c|--copyright                   print copyright and exit\n"
-    "  -V|--version                     print version and exit\n"
+    "  -h, --help                       print usage information and exit\n"
+    "  -c, --copyright                  print copyright and exit\n"
+    "  -V, --version                    print version and exit\n"
     "\n"
     "  -m|--model                       print model in the SAT case\n"
     "  -v|--verbose                     increase verbosity (0 default, 4 max)\n"
+#ifndef NBTORLOG
+    "  -l|--log                         increase loglevel (0 default)\n"
+#endif
     "\n"
-    "  -i|--inc[remental]               incremental mode (SMT1 only)\n"
+    "  -i, --inc[remental]              incremental mode (SMT1 only)\n"
     "  -I                               same as '-i' but solve all formulas\n"
     "  -look-ahead=<w>                  incremental lookahead mode width <w>\n"
     "  -in-depth=<w>                    incremental in-depth mode width <w>\n"
@@ -118,16 +129,23 @@ static const char *g_usage =
     "  -t <time out in seconds>         set time limit\n"
     "\n"
     "  --btor                           force BTOR format input\n"
-    "  --smt|--smt1                     force SMTLIB version 1 format input\n"
+    "  --smt, --smt1                    force SMTLIB version 1 format input\n"
     "  --smt2                           force SMTLIB version 2 format input\n"
     "\n"
-    "  -x|--hex                         hexadecimal output\n"
-    "  -d|--dec                         decimal output\n"
-    "  -de|--dump-exp                   dump expression in BTOR format\n"
-    "  -ds|--dump-smt                   dump expression in SMT format\n"
-    "  -o|--output <file>               set output file for dumping\n"
+    "  -x, --hex                        hexadecimal output\n"
+    "  -d, --dec                        decimal output\n"
+    "  -de, --dump-exp                  dump expression in BTOR format\n"
+    "  -ds                              dump expression in SMT 1.2 format\n"
+    "  -d1, -ds1, --dump-smt            dump expression in SMT 1.2 format\n"
+    "  -d2, -ds2, --dump-smt2           dump expression in SMT 2.0 format\n"
+    "  -d2fun, -ds2fun, --dump-smt2-fun dump expression in SMT 2.0 format "
+    "using\n"
+    "                                   define-fun instead of let\n"
+    "  -o, --output <file>              set output file for dumping\n"
     "\n"
-    "  -rwl<n>|--rewrite-level<n>       set rewrite level [0,3] (default 3)\n"
+    "  -rwl<n>, --rewrite-level<n>      set rewrite level [0,3] (default 3)\n"
+    "  -bra, --beta-reduce-all          eliminate lambda expressions\n"
+    // TODO: -npp|--no-pretty-print ? (debug only?)
     "\n"
 #ifdef BTOR_USE_PICOSAT
     "  -picosat                         enforce usage of PicoSAT as SAT "
@@ -146,8 +164,9 @@ static const char *g_usage =
     ;
 
 static const char *g_copyright =
-    "Copyright (c) 2007-2010 Robert Brummayer\n"
-    "Copyright (c) 2007-2012 Armin Biere\n"
+    "Copyright (c) 2007-2009 Robert Brummayer\n"
+    "Copyright (c) 2007-2013 Armin Biere\n"
+    "Copyright (c) 2012-2013 Aina Niemetz, Mathias Preiner\n"
     "Institute for Formal Models and Verification\n"
     "Johannes Kepler University, Linz, Austria\n";
 
@@ -262,25 +281,23 @@ btor_reset_alarm (void)
 static void
 btor_catch_alarm (int sig)
 {
+  (void) sig;
   assert (sig == SIGALRM);
-  if (!btor_static_catched_sig)
+  if (btor_static_set_alarm > 0)
   {
-    btor_static_catched_sig = 1;
-    if (btor_static_verbosity > 0)
-      printf ("[btormain] CAUGHT SIGNAL %d (probably time limit reached)\n",
-              SIGALRM);
+    printf ("[btormain] ALARM TRIGGERED: time limit %d seconds reached\n",
+            btor_static_set_alarm);
     fputs ("unknown\n", stdout);
     fflush (stdout);
     if (btor_static_verbosity > 0)
     {
       if (btor_static_smgr) btor_print_stats_sat (btor_static_smgr);
       if (btor_static_btor) btor_print_stats_btor (btor_static_btor);
+      btor_print_static_stats ();
     }
   }
-  btor_reset_sig_handlers ();
   btor_reset_alarm ();
-  raise (sig);
-  exit (sig);
+  exit (0);
 }
 
 static void
@@ -435,7 +452,7 @@ print_assignment (BtorMainApp *app, Btor *btor, BtorParseResult *parse_res)
   for (i = 0; i < parse_res->ninputs; i++)
   {
     var  = parse_res->inputs[i];
-    temp = btor_pointer_chase_simplified_exp (btor, var);
+    temp = btor_simplify_exp (btor, var);
     if (BTOR_IS_ARRAY_NODE (temp))
       print_array_assignment (app, btor, var);
     else
@@ -511,8 +528,19 @@ parse_commandline_arguments (BtorMainApp *app)
              || !strcmp (app->argv[app->argpos], "--dump-exp"))
       app->dump_exp = 1;
     else if (!strcmp (app->argv[app->argpos], "-ds")
-             || !strcmp (app->argv[app->argpos], "--dump-smt"))
+             || !strcmp (app->argv[app->argpos], "-d1")
+             || !strcmp (app->argv[app->argpos], "-ds1")
+             || !strcmp (app->argv[app->argpos], "--dump-smt")
+             || !strcmp (app->argv[app->argpos], "--dump-smt1"))
       app->dump_smt = 1;
+    else if (!strcmp (app->argv[app->argpos], "-d2")
+             || !strcmp (app->argv[app->argpos], "-ds2")
+             || !strcmp (app->argv[app->argpos], "--dump-smt2"))
+      app->dump_smt = 2;
+    else if (!strcmp (app->argv[app->argpos], "-d2fun")
+             || !strcmp (app->argv[app->argpos], "-ds2fun")
+             || !strcmp (app->argv[app->argpos], "--dump-smt2-fun"))
+      app->dump_smt = 3;
     else if (!strcmp (app->argv[app->argpos], "-m")
              || !strcmp (app->argv[app->argpos], "--model"))
       app->print_model = 1;
@@ -544,6 +572,16 @@ parse_commandline_arguments (BtorMainApp *app)
         app->err = 1;
       }
     }
+    else if (!strcmp (app->argv[app->argpos], "-bra")
+             || !strcmp (app->argv[app->argpos], "--beta-reduce-all"))
+    {
+      app->beta_reduce_all = 1;
+    }
+    else if (!strcmp (app->argv[app->argpos], "-npp")
+             || !strcmp (app->argv[app->argpos], "--no-pretty-print"))
+    {
+      app->pprint = 0;
+    }
     else if (!strcmp (app->argv[app->argpos], "-v")
              || !strcmp (app->argv[app->argpos], "--verbose"))
     {
@@ -560,6 +598,13 @@ parse_commandline_arguments (BtorMainApp *app)
       else
         app->verbosity++;
     }
+#ifndef NBTORLOG
+    else if (!strcmp (app->argv[app->argpos], "-l")
+             || !strcmp (app->argv[app->argpos], "--log"))
+    {
+      app->loglevel++;
+    }
+#endif
     else if (!strcmp (app->argv[app->argpos], "-i")
              || !strcmp (app->argv[app->argpos], "-inc")
              || !strcmp (app->argv[app->argpos], "--inc")
@@ -958,6 +1003,8 @@ boolector_main (int argc, char **argv)
   app.rewrite_level          = 3;
   app.force_smt_input        = 0;
   app.print_model            = 0;
+  app.beta_reduce_all        = 0;
+  app.pprint                 = 1;
   app.forced_sat_solver_name = 0;
   app.forced_sat_solvers     = 0;
 #ifdef BTOR_USE_PICOSAT
@@ -970,7 +1017,7 @@ boolector_main (int argc, char **argv)
 #ifdef BTOR_USE_MINISAT
   app.force_minisat = 0;
 #endif
-  btor_static_set_alarm = -1;
+  btor_static_set_alarm = 0;
 
   parse_commandline_arguments (&app);
 
@@ -1007,13 +1054,22 @@ boolector_main (int argc, char **argv)
 
     BTOR_INIT_STACK (prefix);
 
-    btor_static_btor = btor = btor_new_btor ();
+    // btor_static_btor = btor = btor_new_btor ();
+    btor_static_btor = btor = boolector_new ();
     btor_static_verbosity   = app.verbosity;
     btor_set_rewrite_level_btor (btor, app.rewrite_level);
+
+    if (app.beta_reduce_all) btor_enable_beta_reduce_all (btor);
+
+    if (!app.pprint) btor_disable_pretty_print (btor);
 
     if (app.print_model) btor_enable_model_gen (btor);
 
     btor_set_verbosity_btor (btor, app.verbosity);
+#ifndef NBTORLOG
+    if (!app.loglevel && getenv ("BTORLOG")) app.loglevel = 1;
+    btor_set_loglevel_btor (btor, app.loglevel);
+#endif
     mem = btor->mm;
 
     avmgr            = btor->avmgr;
@@ -1022,8 +1078,9 @@ boolector_main (int argc, char **argv)
 
     if (app.verbosity > 0) btor_msg_main ("setting signal handlers\n");
     btor_set_sig_handlers ();
-    if (btor_static_set_alarm >= 0)
+    if (btor_static_set_alarm)
     {
+      assert (btor_static_set_alarm > 0);
       if (app.verbosity > 0)
         btor_msg_main_va_args ("setting time limit to %d seconds\n",
                                btor_static_set_alarm);
@@ -1111,7 +1168,9 @@ boolector_main (int argc, char **argv)
             parser_api = btor_smt_parser_api ();
             if (app.verbosity > 0)
               btor_msg_main_va_args (
-                  "assuming SMTLIB version 1 parsing because of '(b' prefix\n");
+                  "assuming SMTLIB version 1 "
+                  "parsing because of '(b' "
+                  "prefix\n");
           }
           else
           {
@@ -1120,35 +1179,38 @@ boolector_main (int argc, char **argv)
             {
               if (isprint (second))
                 btor_msg_main_va_args (
-                    "assuming SMTLIB version 2 parsing because of '(%c' "
+                    "assuming SMTLIB version 2 "
+                    "parsing because of '(%c' "
                     "prefix\n",
                     second);
               else
                 btor_msg_main_va_args (
-                    "assuming SMTLIB version 2 parsing because of '(' but not "
-                    "'(b' prefix\n");
+                    "assuming SMTLIB version 2 "
+                    "parsing because of '(' "
+                    "but not '(b' prefix\n");
             }
           }
         }
         else if (app.verbosity > 0)
           btor_msg_main_va_args (
-              "assuming BTOR parsing because first character differs from "
-              "'('\n");
+              "assuming BTOR parsing because first "
+              "character differs from '('\n");
       }
       else if (app.verbosity > 0)
       {
         if (ch == EOF)
           btor_msg_main_va_args (
-              "assuming BTOR parsing because end-of-file found\n");
+              "assuming BTOR parsing because "
+              "end-of-file found\n");
         else
         {
           assert (!ch);
           btor_msg_main_va_args (
-              "assuming BTOR parsing because zero byte found\n");
+              "assuming BTOR parsing because "
+              "zero byte found\n");
         }
       }
     }
-
     parser = parser_api->init (btor, &parse_opt);
 
     if (app.forced_sat_solver_name)
@@ -1175,14 +1237,13 @@ boolector_main (int argc, char **argv)
 
     btor_init_sat (smgr);
     btor_set_output_sat (smgr, stdout);
-    if (app.verbosity >= 1) btor_enable_verbosity_sat (smgr);
+    btor_enable_verbosity_sat (smgr, app.verbosity);
 
     if (app.incremental)
     {
       btor_enable_inc_usage (btor);
 
-      if (app.verbosity >= 1)
-        btor_msg_main ("starting incremental BTOR mode\n");
+      if (app.verbosity > 0) btor_msg_main ("starting incremental BTOR mode\n");
 
       sat_result = BTOR_UNKNOWN;
 
@@ -1203,14 +1264,14 @@ boolector_main (int argc, char **argv)
       {
         if (parse_res.result == BTOR_PARSE_SAT_STATUS_SAT)
         {
-          if (app.verbosity >= 1)
+          if (app.verbosity > 0)
             btor_msg_main ("one formula SAT in incremental mode\n");
 
           sat_result = BTOR_SAT;
         }
         else if (parse_res.result == BTOR_PARSE_SAT_STATUS_UNSAT)
         {
-          if (app.verbosity >= 1)
+          if (app.verbosity > 0)
             btor_msg_main ("all formulas UNSAT in incremental mode\n");
 
           sat_result = BTOR_UNSAT;
@@ -1271,36 +1332,74 @@ boolector_main (int argc, char **argv)
     }
     else if (app.dump_smt)
     {
-      all = 0;
-      for (i = 0; i < parse_res.noutputs; i++)
+      if (app.verbosity > 0)
       {
-        root     = parse_res.outputs[i];
-        root_len = btor_get_exp_len (btor, root);
-        assert (root_len >= 1);
-        if (root_len > 1)
-          root = btor_redor_exp (btor, root);
+        if (app.dump_smt < 2)
+          btor_msg_main_va_args ("dumping in SMT 1.2 format\n");
         else
-          root = btor_copy_exp (btor, root);
-        if (all)
-        {
-          tmp = btor_and_exp (btor, all, root);
-          btor_release_exp (btor, root);
-          btor_release_exp (btor, all);
-          all = tmp;
-        }
-        else
-          all = root;
+          btor_msg_main_va_args ("dumping in SMT 2.0 format\n");
       }
-      if (app.verbosity > 0) btor_msg_main_va_args ("dumping in SMT format\n");
+
+      assert (app.rewrite_level >= 0);
+      assert (app.rewrite_level <= 3);
+      if (app.rewrite_level >= 2)
+      {
+        for (i = 0; i < parse_res.noutputs; i++)
+        {
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
+          btor_add_constraint_exp (btor, root);
+          btor_release_exp (btor, root);
+        }
+        parser_api->reset (parser);
+        parser_api = 0;
+
+        if (app.dump_smt <= 1)
+          btor_dump_smt1_after_global_rewriting (btor, app.output_file);
+        else if (app.dump_smt == 2)
+          btor_dump_smt2_after_global_rewriting (btor, app.output_file);
+        else
+          btor_dump_smt2_fun_after_global_rewriting (btor, app.output_file);
+      }
+      else
+      {
+        all = 0;
+        for (i = 0; i < parse_res.noutputs; i++)
+        {
+          root     = parse_res.outputs[i];
+          root_len = btor_get_exp_len (btor, root);
+          assert (root_len >= 1);
+          if (root_len > 1)
+            root = btor_redor_exp (btor, root);
+          else
+            root = btor_copy_exp (btor, root);
+          if (all)
+          {
+            tmp = btor_and_exp (btor, all, root);
+            btor_release_exp (btor, root);
+            btor_release_exp (btor, all);
+            all = tmp;
+          }
+          else
+            all = root;
+        }
+
+        if (app.dump_smt <= 1)
+          btor_dump_smt1 (btor, app.output_file, &all, parse_res.noutputs);
+        else if (app.dump_smt == 2)
+          btor_dump_smt2 (btor, app.output_file, &all, parse_res.noutputs);
+        else
+          btor_dump_smt2_fun (btor, app.output_file, &all, parse_res.noutputs);
+
+        if (all) btor_release_exp (btor, all);
+      }
 
       app.done = 1;
-      btor_dump_smt (btor, app.output_file, all);
-      btor_release_exp (btor, all);
-    }
-    else if (parse_res.nregs > 0)
-    {
-      fprintf (app.output_file, "*** removed support for sequential models\n");
-      app.err = 1;
     }
     else
     {
@@ -1346,61 +1445,52 @@ boolector_main (int argc, char **argv)
         smgr->inc_required = 1;
       }
 
-      if (app.verbosity >= 1) btor_msg_main ("generating SAT instance\n");
+      if (app.verbosity > 0) btor_msg_main ("generating SAT instance\n");
 
-      if (parse_res.nregs > 0)
+      for (i = 0; i < parse_res.noutputs; i++)
       {
-        fprintf (app.output_file, "** removed support for sequential models\n");
-        app.err = 1;
+        root     = parse_res.outputs[i];
+        root_len = btor_get_exp_len (btor, root);
+        assert (root_len >= 1);
+        if (root_len > 1)
+          root = btor_redor_exp (btor, root);
+        else
+          root = btor_copy_exp (btor, root);
+        btor_add_constraint_exp (btor, root);
+        btor_release_exp (btor, root);
+      }
+
+      if (!app.print_model)
+      {
+        parser_api->reset (parser);
+        parser_api = 0;
+      }
+
+      if (app.verbosity > 1)
+        btor_msg_main_va_args ("added %d outputs (100%)\n", parse_res.noutputs);
+
+      sat_result = btor_sat_btor (btor);
+      assert (sat_result != BTOR_UNKNOWN);
+
+      /* check if status is equal to benchmark status */
+      if (sat_result == BTOR_SAT
+          && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
+      {
+        fprintf (app.output_file,
+                 "[btormain] ERROR: "
+                 "'sat' but status of benchmark in '%s' is 'unsat'\n",
+                 app.input_file_name);
+      }
+      else if (sat_result == BTOR_UNSAT
+               && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
+      {
+        fprintf (app.output_file,
+                 "[btormain] ERROR: "
+                 "'unsat' but status of benchmark in '%s' is 'sat'\n",
+                 app.input_file_name);
       }
       else
-      {
-        for (i = 0; i < parse_res.noutputs; i++)
-        {
-          root     = parse_res.outputs[i];
-          root_len = btor_get_exp_len (btor, root);
-          assert (root_len >= 1);
-          if (root_len > 1)
-            root = btor_redor_exp (btor, root);
-          else
-            root = btor_copy_exp (btor, root);
-          btor_add_constraint_exp (btor, root);
-          btor_release_exp (btor, root);
-        }
-
-        if (!app.print_model)
-        {
-          parser_api->reset (parser);
-          parser_api = 0;
-        }
-
-        if (app.verbosity > 1)
-          btor_msg_main_va_args ("added %d outputs (100%)\n",
-                                 parse_res.noutputs);
-
-        sat_result = btor_sat_btor (btor);
-        assert (sat_result != BTOR_UNKNOWN);
-
-        /* check if status is equal to benchmark status */
-        if (sat_result == BTOR_SAT
-            && parse_res.status == BTOR_PARSE_SAT_STATUS_UNSAT)
-        {
-          fprintf (app.output_file,
-                   "[btormain] ERROR: "
-                   "'sat' but status of benchmark in '%s' is 'unsat'\n",
-                   app.input_file_name);
-        }
-        else if (sat_result == BTOR_UNSAT
-                 && parse_res.status == BTOR_PARSE_SAT_STATUS_SAT)
-        {
-          fprintf (app.output_file,
-                   "[btormain] ERROR: "
-                   "'unsat' but status of benchmark in '%s' is 'sat'\n",
-                   app.input_file_name);
-        }
-        else
-          print_sat_result (&app, sat_result);
-      }
+        print_sat_result (&app, sat_result);
 
       if (sat_result == BTOR_SAT && app.print_model)
         print_assignment (&app, btor, &parse_res);

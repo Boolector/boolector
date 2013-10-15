@@ -1,7 +1,9 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -18,6 +20,7 @@
 /*------------------------------------------------------------------------*/
 
 typedef struct BtorNode BtorNode;
+typedef struct BtorSort BtorSort;
 typedef struct Btor Btor;
 
 /*------------------------------------------------------------------------*/
@@ -136,6 +139,14 @@ typedef struct Btor Btor;
 /*------------------------------------------------------------------------*/
 
 /**
+ * Set and get the output API trace file.
+ */
+void boolector_set_trapi (Btor *btor, FILE *apitrace);
+FILE *boolector_get_trapi (Btor *btor);
+
+/*------------------------------------------------------------------------*/
+
+/**
  * Creates new instance of Boolector.
  * \return New Boolector instance.
  */
@@ -156,6 +167,14 @@ Btor *boolector_clone (Btor *btor);
  * \see boolector_sat
  */
 void boolector_enable_model_gen (Btor *btor);
+
+/**
+ * By default Boolector only generates assignments for reads
+ * in the cone of assertions.  If you require models for all
+ * 'reads' you can use this function to force Boolector to
+ * synthesize all reads during the next model generation.
+ */
+void boolector_generate_model_for_all_reads (Btor *btor);
 
 /**
  * Enables incremental usage of Boolector. This allows to add assumptions
@@ -463,7 +482,7 @@ BtorNode *boolector_or (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /** Equality. Either both operands are bit-vectors with the same
- * bit-with or both operands are arrays of the same type.
+ * bit-width or both operands are arrays of the same type.
  * \param btor Boolector instance.
  * \param e0 First operand.
  * \param e1 Second operand.
@@ -472,7 +491,7 @@ BtorNode *boolector_nor (Btor *btor, BtorNode *e0, BtorNode *e1);
 BtorNode *boolector_eq (Btor *btor, BtorNode *e0, BtorNode *e1);
 
 /** Inequality. Either both operands are bit-vectors with the same
- * bit-with or both operands are arrays of the same type.
+ * bit-width or both operands are arrays of the same type.
  * \param btor Boolector instance.
  * \param e0 First operand.
  * \param e1 Second operand.
@@ -853,6 +872,49 @@ BtorNode *boolector_cond (Btor *btor,
                           BtorNode *e_if,
                           BtorNode *e_else);
 
+// TODO: remove? it is redudant due to boolector_fun  (MA)
+/**
+ * Lambda expression.
+ * \param btor Boolector instance.
+ * \param param Parameter bound by lambda expression.
+ * \param exp Lambda expression body.
+ */
+BtorNode *boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp);
+
+/**
+ * Parameter.
+ * \param btor Boolector instance.
+ * \param width Number of bits which must be greater than zero.
+ * \param symbol Name of parameter.
+ */
+BtorNode *boolector_param (Btor *btor, int width, const char *symbol);
+
+/**
+ * Function.
+ * \param btor Boolector instance.
+ * \param paramc Number of parameters.
+ * \param params Parameters of function.
+ * \param exp Function body.
+ * \result Function parameter.
+ */
+BtorNode *boolector_fun (Btor *btor,
+                         int paramc,
+                         BtorNode **params,
+                         BtorNode *exp);
+
+/**
+ * Creates a function application expression.
+ * \param btor Boolector instance.
+ * \param argc Number of arguments to be applied.
+ * \param args Arguments to be applied.
+ * \param fun Function expression.
+ * \result Function application expression.
+ */
+BtorNode *boolector_apply (Btor *btor,
+                           int argc,
+                           BtorNode **args,
+                           BtorNode *fun);
+
 /**
  * Increments bit-vector by one.
  * \param btor Boolector instance.
@@ -878,6 +940,22 @@ BtorNode *boolector_dec (Btor *btor, BtorNode *exp);
 int boolector_is_array (Btor *btor, BtorNode *exp);
 
 /**
+ * Determines if expression is a function.
+ * \param btor Boolector instance.
+ * \param exp Operand.
+ * \result True if epxression is a function, and false otherwise.
+ */
+int boolector_is_fun (Btor *btor, BtorNode *exp);
+
+/**
+ * Gets the arity of function 'exp'.
+ * \param btor Boolector instance.
+ * \param exp Function.
+ * \return arity of 'exp'.
+ */
+int boolector_get_fun_arity (Btor *btor, BtorNode *exp);
+
+/**
  * Gets the bit-width of an expression. If the expression
  * is an array, it returns the bit-width of the array elements.
  * \param btor Boolector instance.
@@ -893,6 +971,20 @@ int boolector_get_width (Btor *btor, BtorNode *exp);
  * \return bit-width of indices of 'e_array'.
  */
 int boolector_get_index_width (Btor *btor, BtorNode *e_array);
+
+/**
+ * Checks if sorts of given arguments matches the function signature.
+ * \param btor Boolector instance.
+ * \param argc Number of arguments to be checked.
+ * \param args Arguments to be checked.
+ * \param fun Function expression.
+ * \return -1 if all sorts are correct, otherwise returns the position of the
+ *         incorrect argument.
+ */
+int boolector_fun_sort_check (Btor *btor,
+                              int argc,
+                              BtorNode **args,
+                              BtorNode *fun);
 
 /**
  * Gets the symbol of a variable.
@@ -940,6 +1032,16 @@ void boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp);
  *the user before. \param exp The expression which should be dumped.
  */
 void boolector_dump_smt (Btor *btor, FILE *file, BtorNode *exp);
+
+/**
+ * Recursively dumps expression to file.
+ *<a
+ *href="http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.0-r12.09.09.pdf">SMT-LIB
+ *2.0</a> is used as format. \param btor Boolector instance. \param file File to
+ *which the expression should be dumped. The file must be have been opened by
+ *the user before. \param exp The expression which should be dumped.
+ */
+void boolector_dump_smt2 (Btor *btor, FILE *file, BtorNode *exp);
 
 /**
  * Adds constraint. Use this function to assert 'exp'.

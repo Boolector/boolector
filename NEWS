@@ -1,3 +1,12 @@
+news for release 1.6.0 since 1.5.119
+--------------------------------------
+* extensionality support disabled
+* support for macros and lambdas
+* model based testing 'btormbt'
+* API tracing and untracing with 'btoruntrace'
+* improved quality of SMT2 parse error messages
+* added missing semantic checks in SMT2 parser
+
 news for release 1.5.119 since 1.5.118
 --------------------------------------
 * fixed '{boolector,btor}_set_sat_solver 

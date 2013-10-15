@@ -1,6 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -508,7 +509,9 @@ btor_release_smt_nodes (BtorSMTParser *parser)
 
     if (isleaf (node)) continue;
 
+#if 1
     if (car (node) == parser->bind) btor_delete_smt_node (parser, node);
+#endif
   }
 
   assert (!parser->nodes);
@@ -595,7 +598,7 @@ btor_perr_smt (BtorSMTParser *parser, const char *fmt, ...)
 
     va_start (ap, fmt);
     parser->error = btor_parse_error_message (
-        parser->mem, parser->name, parser->lineno, fmt, ap, bytes);
+        parser->mem, parser->name, parser->lineno, -1, fmt, ap, bytes);
     va_end (ap);
   }
 

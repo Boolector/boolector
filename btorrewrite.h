@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *
  *  All rights reserved.
@@ -55,4 +55,8 @@ BtorNode *btor_rewrite_cond_exp (Btor *btor,
                                  BtorNode *e_if,
                                  BtorNode *e_else);
 
+BtorNode *btor_rewrite_apply_exp (Btor *btor, BtorNode *fun, BtorNode *args);
+
+int btor_rewrite_linear_term (
+    Btor *btor, BtorNode *term, char **fp, BtorNode **lp, BtorNode **rp);
 #endif

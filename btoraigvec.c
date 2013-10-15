@@ -1,6 +1,6 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *
  *  All rights reserved.
@@ -672,7 +672,7 @@ void
 btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity)
 {
   assert (avmgr);
-  assert (verbosity >= -1 && verbosity <= 3);
+  assert (verbosity >= -1);
   avmgr->verbosity = verbosity;
 }
 

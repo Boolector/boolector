@@ -1,17 +1,17 @@
-1 var 3 v1
-2 var 3 v2
-3 slice 1 2 2 2
-4 slice 1 2 1 1
-5 and 1 -3 -4
-6 slice 1 1 1 1
-7 and 1 3 6
-8 slice 1 1 2 2
-9 and 1 -5 8
-10 and 1 -7 -9
-11 const 1 0
-12 concat 4 11 1
-13 concat 4 11 2
-14 mul 4 12 13
-15 slice 1 14 3 3
-16 and 1 10 -15
+1 const 1 0
+2 var 3 v1
+3 var 3 v2
+4 concat 4 1 3
+5 concat 4 1 2
+6 mul 4 5 4
+7 slice 1 6 3 3
+8 slice 1 2 2 2
+9 slice 1 3 1 1
+10 slice 1 3 2 2
+11 and 1 -10 -9
+12 and 1 -11 8
+13 slice 1 2 1 1
+14 and 1 10 13
+15 and 1 -14 -12
+16 and 1 15 -7
 17 root 1 -16

@@ -36,11 +36,11 @@ add=0
 while getopts "adxp:" o
 do
   case "$o" in
-  a)	add=1;;
-  d)	dialog=dialog;;
-  x)	dialog=Xdialog;;
+  a)    add=1;;
+  d)    dialog=dialog;;
+  x)    dialog=Xdialog;;
   p)    processes=$OPTARG;;
-  [?])	echo "$usage" 1>&2; exit 1;;
+  [?])  echo "$usage" 1>&2; exit 1;;
   esac
 done
 
@@ -93,8 +93,8 @@ do
         skipfirstline=0
       else
         if [[ `echo "$line" | awk '{ print $2 }'` -eq 1 ]]; then
-	  echo "$line" | awk '{ print $1 }' >> "$selected"
-	fi
+          echo "$line" | awk '{ print $1 }' >> "$selected"
+        fi
       fi
     done < "$fileboolector"
   else

@@ -1,0 +1,171 @@
+                                                                     
+                                                                     
+                                                                     
+                                             
+; 1 array 8 32 
+; 2 var 32 start 
+; 3 var 32 end 
+; 4 var 32 p 
+; 5 var 1 flag
+; 6 zero 8 
+; 7 one 32 
+; 8 one 1
+
+; next(start) 
+; 9 var 32 start_in 
+; 10 ne 1 5 8 
+; 11 cond 32 10 9 2 
+; 12 next 32 2 11
+
+; next(end) 
+13 var 32 end_in 
+14 cond 32 10 13 3 
+15 next 32 3 14
+
+; next(p) 
+16 add 32 4 7 
+17 ult 1 4 3 
+18 cond 32 17 16 4 
+19 cond 32 10 9 18 
+20 next 32 4 19
+
+; next(flag) 
+21 next 1 5 8
+
+; next(memory) 
+22 write 8 32 1 4 6 
+23 eq 1 5 8 
+24 ult 1 4 3 
+25 and 1 23 24 
+26 acond 8 32 25 22 1 
+27 anext 8 32 1 26
+
+; check property 
+28 var 32 i 
+29 read 8 1 28 
+30 ne 1 29 6 
+31 ult 1 2 3 
+32 ult 1 28 2 
+33 ult 1 28 3 
+34 and 1 -32 33 
+35 and 1 34 -10 
+36 and 1 31 35 
+37 and 1 30 36 
+38 eq 1 4 3 
+39 and 1 38 37 
+40 root 1 39
+
+
+; The 'State' predicate.
+; State refers to 'start' 'end' 'p' 'flag' 'memory' 
+(define-sort BV32 () (_ BitVec 32))
+(define-sort Ar () (Array (_ BitVec 8) (_ BitVec 32)))
+(declare-fun State (BV32 BV32 BV32 Bool Ar) Bool)
+
+
+; Initial state
+; Registers are initialized to zero. Memories are uninitialized as 
+; this is the general case for main memory in software, 
+; and memory units in hardware.
+(assert (forall ((memory Ar))
+             (State #x00000000 #x00000000 #x00000000 false memory)))
+ 
+
+; Successor states:
+(assert (forall ((start BV32) (start1 BV32) (start_in BV32)
+                 (end BV32) (end1 BV32) (end_in BV32)
+                 (p BV32) (p1 BV32) 
+                 (flag Bool) (flag1 Bool)
+                 (memory Ar) (memory1 Ar))
+         (=> (let (($1 array)
+                    ($2 start)
+                    ($3 end)
+                    ($4 p)
+                    ($5 end)
+                    ($6 #x00)
+                    ($7 #x00000001)
+                    ($8 #x01)
+                    ($9 start_in))
+               (let (($10 (not (= $5 $8))))
+               (let (($11 (if $10 $9 $2)))
+               (let (($12 (= start1 $11)))
+               (let (($13 end_in))
+               (let (($14 (if $10 $13 $3)))
+               (let (($15 (= end1 $14)))
+               (let (($16 (bvadd $4 $7)))
+               (let (($17 (bvult $4 $3)))
+               (let (($18 (if $17 $16 $4)))
+               (let (($19 (if $10 $9 $18))
+               (let (($20 (= p1 $19)))
+              (and 
+               $12
+               $14
+               $20
+               (State start end p flag memory)))))))))
+              
+             )
+             (State start1 end1 p1 flag1 memory1))))
+
+
+; Checking property:
+
+(assert (forall ((start BV32) (end BV32) (p BV32) (flag Bool) (memory Ar) (i BV32))
+         (let (($29 (select memory i)))
+         (let (($30 (not (= $29 $6))))
+         (let (($31 (bvult start end)))
+         ....
+         (let (($39 (and $38 $37)))
+         (=> (State start end p flag memory)
+              $39)))))))
+
+; check satisfiability of formula.
+(check-sat)
+
+; -------------------------------------------------------
+; Z3 specific features for encoding Horn clauses.
+; Z3 uses 'declare-rel' for declaring recursive relations.
+; The specialized format enables more readable specifications, 
+; It is not necessary for BTOR problems.
+(declare-rel State (BV32 BV32 BV32 Bool Ar))
+
+; We also use "rule" instead "assert"
+
+(rule (forall ((memory Ar))
+             (State #x00000000 #x00000000 #x00000000 false memory)))
+
+
+; Property checking uses 'query' (not rule).
+
+(query (exists ((start BV32) (end BV32) (p BV32) (flag Bool) (memory Ar) (i BV32))
+         (let (($29 (select memory i)))
+         (let (($30 (not (= $29 $6))))
+         (let (($31 (bvult start end)))
+         ....
+         (let (($39 (and $38 $37)))
+         (and (State start end p flag memory)
+              (not $39))))))))
+
+; We also have a way to declare variables globally so we don't have to
+; bind them with quantifiers.
+; Example
+
+(declare-var start BV32)
+(declare-var start1 BV32)
+(declare-var end  BV32)
+(declare-var end1 BV32)
+(declare-var p  BV32)
+(declare-var p1 BV32)
+(declare-var flag Bool)
+(declare-var flag1 Bool)
+(declare-var memory Ar)
+(declare-var memory1 Ar)
+(declare-var i (_ BitVec 8))
+
+; Now I don't have to quantify variables used in query.
+(query (let (($29 (select memory i)))
+       (let (($30 (not (= $29 $6))))
+       (let (($31 (bvult start end)))
+       ....
+       (let (($39 (and $38 $37)))
+       (and (State start end p flag memory)
+             (not $39)))))))

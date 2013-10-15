@@ -1,7 +1,7 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2007 Robert Daniel Brummayer.
- *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
+ *  Copyright (C) 2007-2013 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -87,7 +87,8 @@
     *((stack).top++) = (elem);                                         \
   } while (0)
 
-#define BTOR_POP_STACK(stack) (*--(stack).top)
+#define BTOR_POP_STACK(stack) \
+  (assert (!BTOR_EMPTY_STACK (stack)), (*--(stack).top))
 
 #define BTOR_DEQUEUE_STACK(stack, dequeued)   \
   do                                          \
@@ -101,7 +102,8 @@
     (stack).top--;                            \
   } while (0)
 
-#define BTOR_TOP_STACK(stack) ((stack).top[-1])
+#define BTOR_TOP_STACK(stack) \
+  (assert (!BTOR_EMPTY_STACK (stack)), (stack).top[-1])
 
 #define BTOR_PEEK_STACK(stack, idx) \
   (assert ((idx) < BTOR_COUNT_STACK (stack)), (stack).start[idx])
