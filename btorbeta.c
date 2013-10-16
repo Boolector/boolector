@@ -866,7 +866,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   assert (!cond_sel2 || cond_sel1);
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
 
-  int i, j;
+  int i, j, rwl;
   double start;
   const char *eval_res;
   BtorMemMgr *mm;
@@ -884,6 +884,10 @@ btor_beta_reduce_partial_aux (Btor *btor,
 
   start = btor_time_stamp ();
   btor->stats.beta_reduce_calls++;
+
+  // FIXME: set rewriting level to 1 for now (performance issues)
+  rwl                 = btor->rewrite_level;
+  btor->rewrite_level = 1;
 
   mm = btor->mm;
   BTOR_INIT_STACK (stack);
@@ -1110,6 +1114,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
           break;
         default:
           printf ("%s\n", node2string (real_cur));
+          result = 0;
           /* not reachable */
           assert (0);
       }
@@ -1192,6 +1197,7 @@ btor_beta_reduce_partial_aux (Btor *btor,
   BTOR_RELEASE_STACK (mm, param_stack);
   BTOR_RELEASE_STACK (mm, args_stack);
   btor_delete_ptr_hash_table (cache);
+  btor->rewrite_level = rwl;
 
   BTORLOG ("%s: result %s", __FUNCTION__, node2string (result));
   btor->time.beta += btor_time_stamp () - start;
