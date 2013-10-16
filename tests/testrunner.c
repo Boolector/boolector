@@ -180,6 +180,7 @@ static const char *brokentests[] = {
     "dubreva002ue",
     "regprim11simp",
     "regrembeddedconstraint4",
+    "regrembeddedconstraint12",
     "regrembeddedconstraint13",
     "regrbfs1",
     "regrmark2",
