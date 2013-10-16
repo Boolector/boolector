@@ -11210,6 +11210,9 @@ btor_sat_aux_btor (Btor *btor)
 
   if (btor->inconsistent) return BTOR_UNSAT;
 
+  BTOR_ABORT_NODE (btor->ops[BTOR_AEQ_NODE] > 0,
+                   "extensionality on arrays/lambdas not yet supported");
+
   mm = btor->mm;
 
   amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
