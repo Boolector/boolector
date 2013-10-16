@@ -39,7 +39,7 @@ mv $boolector $tmp/archives
 for solver in lingeling
 do
   cd ../$solver
-  ./mkrelease >> $log
+  ./mkrelease.sh >> $log
   archive=`grep ${solver}- $log|awk '{print $NF}'`
   mv $archive $tmp/archives
 done
