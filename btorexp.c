@@ -436,40 +436,40 @@ btor_msg_exp (Btor *btor, int level, char *fmt, ...)
 }
 
 /*------------------------------------------------------------------------*/
+#if 0
+
 static void
-btor_init_substitutions (Btor *btor)
+btor_init_substitutions (Btor * btor)
 {
   assert (btor);
   assert (!btor->substitutions);
 
   btor->substitutions =
-      btor_new_ptr_hash_table (btor->mm,
-                               (BtorHashPtr) btor_hash_exp_by_id,
-                               (BtorCmpPtr) btor_compare_exp_by_id);
+    btor_new_ptr_hash_table (btor->mm,
+			     (BtorHashPtr) btor_hash_exp_by_id,
+			     (BtorCmpPtr) btor_compare_exp_by_id);
 }
 
 static void
-btor_delete_substitutions (Btor *btor)
+btor_delete_substitutions (Btor * btor)
 {
   assert (btor);
 
   BtorPtrHashBucket *b;
 
   for (b = btor->substitutions->first; b; b = b->next)
-  {
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-    btor_release_exp (btor, (BtorNode *) b->key);
-  }
+    {
+      btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+      btor_release_exp (btor, (BtorNode *) b->key);
+    }
 
   btor_delete_ptr_hash_table (btor->substitutions);
   btor->substitutions = 0;
 }
 
 static void
-btor_insert_substitution (Btor *btor,
-                          BtorNode *exp,
-                          BtorNode *subst,
-                          int update)
+btor_insert_substitution (Btor * btor, BtorNode * exp, BtorNode * subst,
+			  int update)
 {
   assert (btor);
   assert (exp);
@@ -480,21 +480,23 @@ btor_insert_substitution (Btor *btor,
   BtorPtrHashBucket *b;
   exp = BTOR_REAL_ADDR_NODE (exp);
 
-  assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp));
+  assert (update || !btor_find_in_ptr_hash_table (btor->substitutions, exp)); 
 
   if (update && (b = btor_find_in_ptr_hash_table (btor->substitutions, exp)))
-  {
-    assert (b->data.asPtr);
-    /* release data of current bucket */
-    btor_release_exp (btor, (BtorNode *) b->data.asPtr);
-    btor_remove_from_ptr_hash_table (btor->substitutions, exp, 0, 0);
-    /* release key of current bucket */
-    btor_release_exp (btor, exp);
-  }
+    {
+      assert (b->data.asPtr);
+      /* release data of current bucket */
+      btor_release_exp (btor, (BtorNode *) b->data.asPtr);
+      btor_remove_from_ptr_hash_table (btor->substitutions, exp, 0, 0);
+      /* release key of current bucket */
+      btor_release_exp (btor, exp);
+    }
 
-  btor_insert_in_ptr_hash_table (btor->substitutions, btor_copy_exp (btor, exp))
-      ->data.asPtr = btor_copy_exp (btor, subst);
+  btor_insert_in_ptr_hash_table (btor->substitutions,
+    btor_copy_exp (btor, exp))->data.asPtr = btor_copy_exp (btor, subst);
 }
+
+#endif
 
 static BtorNode *
 btor_find_substitution (Btor *btor, BtorNode *exp)
@@ -5878,6 +5880,7 @@ btor_get_lambda_arity (Btor *btor, BtorNode *exp)
 int
 btor_fun_sort_check (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 {
+  (void) btor;
   assert (btor);
   assert (argc > 0);
   assert (args);
@@ -7913,12 +7916,14 @@ find_nodes_dfs (Btor *btor,
   btor->time.find_dfs += btor_time_stamp () - start;
 }
 
+#if 0
 static int
-findfun_param (BtorNode *exp)
+findfun_param (BtorNode * exp)
 {
   assert (exp);
   return BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (exp));
 }
+#endif
 
 static int
 findfun_param_apply (BtorNode *exp)
@@ -7928,12 +7933,14 @@ findfun_param_apply (BtorNode *exp)
   return BTOR_IS_APPLY_NODE (exp) && exp->parameterized;
 }
 
+#if 0
 static int
-skipfun_param (BtorNode *exp)
+skipfun_param (BtorNode * exp)
 {
   assert (exp);
   return !BTOR_REAL_ADDR_NODE (exp)->parameterized;
 }
+#endif
 
 #if 0
 static int
@@ -8011,6 +8018,8 @@ propagate (Btor *btor,
   BtorNode *hashed_app;
   BtorPtrHashBucket *b;
   BtorNodePtrStack param_apps;
+
+  BTOR_INIT_STACK (param_apps);
 
   mm = btor->mm;
 
