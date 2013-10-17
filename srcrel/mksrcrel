@@ -64,13 +64,16 @@ then
   $dir/
 fi
 
-cat <<EOF > $dir/REAMDE.intel
+if [ $intel = yes ]
+then
+cat <<EOF > $dir/README.intel
 This src release contains the proprietary file
 
 BitVector.h
 
 which is included in 'btoribv.{h,cc}'.
 EOF
+fi
 
 tar cf - \
   examples/array \
