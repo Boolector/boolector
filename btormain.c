@@ -189,7 +189,6 @@ static const char *g_copyright =
     "\n"
     "This software is linked against MiniSAT\n"
     "Copyright (c) 2003-2013, Niklas Een, Niklas Sorensson\n"
-    "Copyright (c) 2007-2013  Niklas Sorensson\n"
 #endif
     ;
 
