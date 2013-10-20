@@ -37,10 +37,29 @@ struct BtorAIG
 
 typedef struct BtorAIG BtorAIG;
 
-typedef struct BtorAIGMgr BtorAIGMgr;
-
 BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
 BTOR_DECLARE_STACK (AIGPtrPtr, BtorAIG **);
+
+struct BtorAIGUniqueTable
+{
+  int size;
+  int num_elements;
+  BtorAIG **chains;
+};
+
+typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
+
+struct BtorAIGMgr
+{
+  BtorMemMgr *mm;
+  BtorAIGUniqueTable table;
+  int id;
+  int verbosity;
+  BtorSATMgr *smgr;
+  BtorAIGPtrStack id2aig; /* cnf id to aig */
+};
+
+typedef struct BtorAIGMgr BtorAIGMgr;
 
 /*------------------------------------------------------------------------*/
 

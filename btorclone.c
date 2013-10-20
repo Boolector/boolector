@@ -220,18 +220,21 @@ clone_node_ptr_stack (BtorMemMgr *mm,
   BtorNode *cloned_exp;
 
   BTOR_INIT_STACK (*res);
-  BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*stack));
-  res->top = res->start;
-  res->end = res->start + BTOR_SIZE_STACK (*stack);
-
-  for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
+  assert (BTOR_SIZE_STACK (*stack) || !BTOR_COUNT_STACK (*stack));
+  if (BTOR_SIZE_STACK (*stack))
   {
-    assert ((*stack).start[i]);
-    cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
-    assert (cloned_exp);
-    BTOR_PUSH_STACK (mm, *res, cloned_exp);
-  }
+    BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*stack));
+    res->top = res->start;
+    res->end = res->start + BTOR_SIZE_STACK (*stack);
 
+    for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
+    {
+      assert ((*stack).start[i]);
+      cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
+      assert (cloned_exp);
+      BTOR_PUSH_STACK (mm, *res, cloned_exp);
+    }
+  }
   assert (BTOR_COUNT_STACK (*stack) == BTOR_COUNT_STACK (*res));
   assert (BTOR_SIZE_STACK (*stack) == BTOR_SIZE_STACK (*res));
 }
@@ -307,7 +310,7 @@ clone_nodes_id_table (Btor *clone,
   assert (exp_map);
   assert (aig_map);
 
-  int i, n, tag;
+  int i, tag;
   BtorNode **tmp;
   BtorMemMgr *mm;
   BtorNodePtrPtrStack parents, nodes;
@@ -324,32 +327,35 @@ clone_nodes_id_table (Btor *clone,
   BTOR_INIT_STACK (sapps);
 
   BTOR_INIT_STACK (*res);
-  BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*id_table));
-  res->top = res->start;
-  res->end = res->start + BTOR_SIZE_STACK (*id_table);
-  BTOR_PUSH_STACK (mm, *res, 0);
-
-  n = BTOR_COUNT_STACK (*id_table);
-  /* first element (id = 0) is empty */
-  //// TODO debug
-  // int nbytes = 0;
-  ////
-  for (i = 1; i < n; i++)
+  assert (BTOR_SIZE_STACK (*id_table) || !BTOR_COUNT_STACK (*id_table));
+  if (BTOR_SIZE_STACK (*id_table))
   {
-    // if (id_table->start[i])
-    //  nbytes += id_table->start[i]->bytes; // TODO DEBUG
-    BTOR_PUSH_STACK (mm,
-                     *res,
-                     id_table->start[i] ? clone_exp (clone,
-                                                     id_table->start[i],
-                                                     &parents,
-                                                     &nodes,
-                                                     &aexps,
-                                                     &sapps,
-                                                     exp_map,
-                                                     aig_map)
-                                        : id_table->start[i]);
-    assert (!id_table->start[i] || res->start[i]->id == i);
+    BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*id_table));
+    res->top = res->start;
+    res->end = res->start + BTOR_SIZE_STACK (*id_table);
+    BTOR_PUSH_STACK (mm, *res, 0);
+
+    /* first element (id = 0) is empty */
+    //// TODO debug
+    // int nbytes = 0;
+    ////
+    for (i = 1; i < BTOR_COUNT_STACK (*id_table); i++)
+    {
+      // if (id_table->start[i])
+      //  nbytes += id_table->start[i]->bytes; // TODO DEBUG
+      BTOR_PUSH_STACK (mm,
+                       *res,
+                       id_table->start[i] ? clone_exp (clone,
+                                                       id_table->start[i],
+                                                       &parents,
+                                                       &nodes,
+                                                       &aexps,
+                                                       &sapps,
+                                                       exp_map,
+                                                       aig_map)
+                                          : id_table->start[i]);
+      assert (!id_table->start[i] || res->start[i]->id == i);
+    }
   }
   assert (BTOR_COUNT_STACK (*res) == BTOR_COUNT_STACK (*id_table));
   assert (BTOR_SIZE_STACK (*res) == BTOR_SIZE_STACK (*id_table));

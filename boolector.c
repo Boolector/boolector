@@ -282,7 +282,8 @@ btor_chkclone_stats (Btor *btor)
       assert (!real_clone->field);                         \
       break;                                               \
     }                                                      \
-    assert (real_aig->field != real_clone->field);         \
+    assert (BTOR_IS_CONST_AIG (real_aig->field)            \
+            || real_aig->field != real_clone->field);      \
     assert (real_aig->field->id == real_clone->field->id); \
   } while (0)
 
@@ -326,6 +327,55 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
   }
 #endif
 }
+
+#define BTOR_CHKCLONE_AIG_UNIQUE_TABLE(table, clone)        \
+  do                                                        \
+  {                                                         \
+    int i;                                                  \
+    BtorAIG *next, *clone_next;                             \
+    assert (table.size == clone.size);                      \
+    assert (table.num_elements == clone.num_elements);      \
+    for (i = 0; i < table.size; i++)                        \
+    {                                                       \
+      if (!table.chains[i])                                 \
+      {                                                     \
+        assert (!clone.chains[i]);                          \
+        continue;                                           \
+      }                                                     \
+      btor_chkclone_aig (table.chains[i], clone.chains[i]); \
+      next       = table.chains[i]->next;                   \
+      clone_next = clone.chains[i]->next;                   \
+      while (next)                                          \
+      {                                                     \
+        assert (clone_next);                                \
+        btor_chkclone_aig (next, clone_next);               \
+        next       = next->next;                            \
+        clone_next = clone_next->next;                      \
+      }                                                     \
+      assert (!clone_next);                                 \
+    }                                                       \
+  } while (0)
+
+#define BTOR_CHKCLONE_AIG_CNF_ID_TABLE(table, clone)               \
+  do                                                               \
+  {                                                                \
+    int i;                                                         \
+    assert (BTOR_COUNT_STACK (table) == 0);                        \
+    assert (BTOR_COUNT_STACK (table) == BTOR_COUNT_STACK (clone)); \
+    assert (BTOR_SIZE_STACK (table) == BTOR_SIZE_STACK (clone));   \
+    for (i = 0; i < BTOR_SIZE_STACK (table); i++)                  \
+    {                                                              \
+      if (!table.start[i])                                         \
+      {                                                            \
+        assert (!clone.start[i]);                                  \
+        continue;                                                  \
+      }                                                            \
+      assert (BTOR_IS_INVERTED_AIG (table.start[i])                \
+              == BTOR_IS_INVERTED_AIG (clone.start[i]));           \
+      assert (table.start[i] != clone.start[i]);                   \
+      assert (table.start[i]->id == clone.start[i]->id);           \
+    }                                                              \
+  } while (0)
 
 #define BTOR_CHKCLONE_EXP(field)                   \
   do                                               \
@@ -620,7 +670,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     }                                                                    \
   } while (0)
 
-#define BTOR_CHKCLONE_ID_TABLE(stack, clone)                       \
+#define BTOR_CHKCLONE_NODE_ID_TABLE(stack, clone)                  \
   do                                                               \
   {                                                                \
     int i;                                                         \
@@ -637,7 +687,9 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     }                                                              \
   } while (0)
 
-#define BTOR_CHKCLONE_UNIQUE_TABLE(table, clone)              \
+/* Note: no need to check next pointers here as we catch all of them when
+ *	 traversing through nodes id table. */
+#define BTOR_CHKCLONE_NODE_UNIQUE_TABLE(table, clone)         \
   do                                                          \
   {                                                           \
     int i;                                                    \
@@ -698,20 +750,26 @@ btor_chkclone_tables (Btor *btor)
 }
 
 #ifndef NDEBUG
-#define BTOR_CHKCLONE()                                            \
-  do                                                               \
-  {                                                                \
-    if (!btor->clone) break;                                       \
-    btor_chkclone_mem (btor);                                      \
-    btor_chkclone_state (btor);                                    \
-    btor_chkclone_stats (btor);                                    \
-    BTOR_CHKCLONE_ID_TABLE (btor->nodes_id_table,                  \
-                            btor->clone->nodes_id_table);          \
-    BTOR_CHKCLONE_UNIQUE_TABLE (btor->nodes_unique_table,          \
-                                btor->clone->nodes_unique_table);  \
-    BTOR_CHKCLONE_NODE_PTR_STACK (btor->arrays_with_model,         \
-                                  btor->clone->arrays_with_model); \
-    btor_chkclone_tables (btor);                                   \
+#define BTOR_CHKCLONE()                                                \
+  do                                                                   \
+  {                                                                    \
+    if (!btor->clone) break;                                           \
+    btor_chkclone_mem (btor);                                          \
+    btor_chkclone_state (btor);                                        \
+    btor_chkclone_stats (btor);                                        \
+    BTOR_CHKCLONE_AIG_UNIQUE_TABLE (                                   \
+        btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->table,              \
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->table);      \
+    BTOR_CHKCLONE_AIG_CNF_ID_TABLE (                                   \
+        btor_get_aig_mgr_aigvec_mgr (btor->avmgr)->id2aig,             \
+        btor_get_aig_mgr_aigvec_mgr (btor->clone->avmgr)->id2aig);     \
+    BTOR_CHKCLONE_NODE_ID_TABLE (btor->nodes_id_table,                 \
+                                 btor->clone->nodes_id_table);         \
+    BTOR_CHKCLONE_NODE_UNIQUE_TABLE (btor->nodes_unique_table,         \
+                                     btor->clone->nodes_unique_table); \
+    BTOR_CHKCLONE_NODE_PTR_STACK (btor->arrays_with_model,             \
+                                  btor->clone->arrays_with_model);     \
+    btor_chkclone_tables (btor);                                       \
   } while (0)
 #else
 #define BTOR_CHKCLONE() \
