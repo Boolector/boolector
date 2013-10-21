@@ -56,7 +56,6 @@ clone_exp (Btor *clone,
   mm = clone->mm;
 
   real_exp = BTOR_REAL_ADDR_NODE (exp);
-  assert (!BTOR_IS_PROXY_NODE (real_exp));  // TODO invalid!!
 
   res = btor_malloc (mm, real_exp->bytes);
   memcpy (res, real_exp, real_exp->bytes);
