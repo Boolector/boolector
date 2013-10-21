@@ -2522,16 +2522,16 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 
   if (btor->clone) cargs = malloc (argc * sizeof (*cargs));
 
-  cur = BTOR_REAL_ADDR_NODE (fun);
+  cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, fun));
   for (i = 0; i < argc; i++)
   {
     BTOR_ABORT_BOOLECTOR (
         !BTOR_IS_LAMBDA_NODE (cur),
         "number of arguments muste be <= number of parameters in 'fun'");
-    cur = BTOR_REAL_ADDR_NODE (cur->e[1]);
     sprintf (
         strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (args[i]));
     if (btor->clone) cargs[i] = BTOR_CLONED_EXP (args[i]);
+    cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, cur->e[1]));
   }
   sprintf (strtrapi + strlen (strtrapi), NODE_FMT, BTOR_TRAPI_NODE_ID (fun));
 
