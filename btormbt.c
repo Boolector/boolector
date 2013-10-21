@@ -1339,19 +1339,19 @@ _opt (BtorMBT *btormbt, unsigned r)
 
   if (pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "[btormbt] enable model generation\n");
+    BTORMBT_LOG (1, btormbt, "enable model generation\n");
     boolector_enable_model_gen (btormbt->btor);
     btormbt->mgen = env.nomgen ? 0 : 1;
   }
   if (pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "[btormbt] enable incremental usage\n");
+    BTORMBT_LOG (1, btormbt, "enable incremental usage\n");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (1, btormbt, "[btormbt] set rewrite level %d \n", rw);
+  BTORMBT_LOG (1, btormbt, "set rewrite level %d \n", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1384,13 +1384,12 @@ _init (BtorMBT *btormbt, unsigned r)
       return _relop;
   }
 
-  BTORMBT_LOG (
-      1,
-      btormbt,
-      "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
-      btormbt->bo.n,
-      btormbt->bv.n,
-      btormbt->arr.n);
+  BTORMBT_LOG (1,
+               btormbt,
+               "after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               btormbt->bo.n,
+               btormbt->bv.n,
+               btormbt->arr.n);
 
   btormbt->bo.initlayer  = btormbt->bo.n;
   btormbt->bv.initlayer  = btormbt->bv.n;
@@ -1427,12 +1426,11 @@ _init (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1,
                btormbt,
-               "[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
+               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
                btormbt->nops,
                btormbt->p_addop / 10,
                btormbt->p_relop / 10);
-  BTORMBT_LOG (
-      1, btormbt, "[btormbt]       make ~%d asserts/assumes \n", btormbt->nass);
+  BTORMBT_LOG (1, btormbt, "      make ~%d asserts/assumes \n", btormbt->nass);
 
   btormbt->isinit = 1;
   return _main;
@@ -1465,16 +1463,15 @@ _main (BtorMBT *btormbt, unsigned r)
     }
   }
 
-  BTORMBT_LOG (
-      1,
-      btormbt,
-      "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
-      btormbt->bo.n,
-      btormbt->bv.n,
-      btormbt->arr.n);
   BTORMBT_LOG (1,
                btormbt,
-               "[btormbt] after main: number of asserts: %d, assumps: %d \n",
+               "after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               btormbt->bo.n,
+               btormbt->bv.n,
+               btormbt->arr.n);
+  BTORMBT_LOG (1,
+               btormbt,
+               "after main: number of asserts: %d, assumps: %d \n",
                btormbt->totasserts,
                btormbt->nassume);
 
@@ -1676,7 +1673,7 @@ _sat (BtorMBT *btormbt, unsigned r)
   int i, res;
   RNG rng;
 
-  BTORMBT_LOG (1, btormbt, "[btormbt] call sat...\n");
+  BTORMBT_LOG (1, btormbt, "call sat...\n");
 
   rng = initrng (r);
   if (!btormbt->btor->clone || !pick (&rng, 0, 50))
@@ -1704,11 +1701,11 @@ _sat (BtorMBT *btormbt, unsigned r)
   res = boolector_sat (btormbt->btor);
 
   if (res == BOOLECTOR_UNSAT)
-    BTORMBT_LOG (1, btormbt, "[btormbt] unsat\n");
+    BTORMBT_LOG (1, btormbt, "unsat\n");
   else if (res == BOOLECTOR_SAT)
-    BTORMBT_LOG (1, btormbt, "[btormbt] sat\n");
+    BTORMBT_LOG (1, btormbt, "sat\n");
   else
-    BTORMBT_LOG (1, btormbt, "[btormbt] sat call returned %d\n", res);
+    BTORMBT_LOG (1, btormbt, "sat call returned %d\n", res);
 
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
@@ -1771,14 +1768,12 @@ _inc (BtorMBT *btormbt, unsigned r)
 
     BTORMBT_LOG (1,
                  btormbt,
-                 "[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
+                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
                  btormbt->nops,
                  btormbt->p_addop / 10,
                  btormbt->p_relop / 10);
-    BTORMBT_LOG (btormbt->inc,
-                 btormbt,
-                 "[btormbt] number of increments: %d \n",
-                 btormbt->inc - 1);
+    BTORMBT_LOG (
+        btormbt->inc, btormbt, "number of increments: %d \n", btormbt->inc - 1);
 
     return _main;
   }
@@ -1990,13 +1985,11 @@ static void
 stats (void)
 {
   double t = get_time ();
-  printf ("[btormbt] finished after %0.2f seconds\n", t);
-  printf ("[btormbt] %d rounds = %0.2f rounds per second\n",
+  printf ("finished after %0.2f seconds\n", t);
+  printf ("%d rounds = %0.2f rounds per second\n",
           env.round,
           average (env.round, t));
-  printf ("[btormbt] %d bugs = %0.2f bugs per second\n",
-          env.bugs,
-          average (env.bugs, t));
+  printf ("%d bugs = %0.2f bugs per second\n", env.bugs, average (env.bugs, t));
 }
 
 /* Note: - do not call non-reentrant function here, see:
@@ -2141,7 +2134,7 @@ main (int argc, char **argv)
 
         if (system (cmd))
         {
-          printf (" [btormbt] Error on copy command %s \n", cmd);
+          printf ("Error on copy command %s \n", cmd);
           exit (1);
         }
 
