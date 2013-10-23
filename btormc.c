@@ -628,14 +628,14 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   {
     src = b->key;
     dst = BTOR_PEEK_STACK (f->inputs, i);
-    btor_map_node (f->btor, res, src, dst);
+    btor_map_node (res, src, dst);
   }
 
   for (b = mc->latches->first, i = 0; b; b = b->next, i++)
   {
     src = b->key;
     dst = BTOR_PEEK_STACK (f->latches, i);
-    btor_map_node (f->btor, res, src, dst);
+    btor_map_node (res, src, dst);
   }
 
   assert (res->table->count == mc->inputs->count + mc->latches->count);
