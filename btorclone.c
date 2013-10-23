@@ -200,7 +200,7 @@ clone_exp (Btor *clone,
   }
 
   res = BTOR_IS_INVERTED_NODE (exp) ? BTOR_INVERT_NODE (res) : res;
-  btor_map_node (clone, exp_map, exp, res);
+  btor_map_node (exp_map, exp, res);
 
   return res;
 }
@@ -502,9 +502,6 @@ btor_clone_btor (Btor *btor)
   BTOR_CNEW (mm, clone);
   clone->mm = mm;
 
-  exp_map = btor_new_node_map (clone);
-  aig_map = btor_new_aig_map (clone);
-
   memcpy (&clone->bv_lambda_id,
           &btor->bv_lambda_id,
           (char *) &btor->lod_cache - (char *) &btor->bv_lambda_id);
@@ -515,10 +512,14 @@ btor_clone_btor (Btor *btor)
   // printf ("///**** after memcpy %lu %lu\n", btor->mm->allocated,
   // clone->mm->allocated);
   clone->avmgr = btor_clone_aigvec_mgr (mm, btor->avmgr);
+  aig_map      = btor_new_aig_map (clone,
+                              btor_get_aig_mgr_aigvec_mgr (btor->avmgr),
+                              btor_get_aig_mgr_aigvec_mgr (clone->avmgr));
   btor_clone_aigs (btor_get_aig_mgr_aigvec_mgr (btor->avmgr),
                    btor_get_aig_mgr_aigvec_mgr (clone->avmgr),
                    aig_map);
 
+  exp_map = btor_new_node_map (clone);
   // printf ("///**** after avmgr%lu %lu\n", btor->mm->allocated,
   // clone->mm->allocated);
   clone_nodes_id_table (
