@@ -9518,7 +9518,7 @@ update_assumptions (Btor *btor)
   for (bucket = btor->assumptions->first; bucket; bucket = bucket->next)
   {
     cur = (BtorNode *) bucket->key;
-    if (cur->simplified)
+    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
       simp = btor_copy_exp (btor, btor_simplify_exp (btor, cur));
       btor_release_exp (btor, cur);
