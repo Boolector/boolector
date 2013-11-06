@@ -17,6 +17,7 @@
 
 extern "C" {
 #include "btorabort.h"
+#include "btorutil.h"
 };
 
 static void
@@ -1837,6 +1838,8 @@ BtorIBV::analyze ()
           case BTOR_IBV_SUM:
           case BTOR_IBV_MOD:
           case BTOR_IBV_MUL:
+          case BTOR_IBV_LEFT_SHIFT:
+          case BTOR_IBV_RIGHT_SHIFT:
             for (unsigned j = 0; j < a->nranges; j++)
             {
               for (unsigned l = a->range.lsb; l <= b.bit; l++)
@@ -2210,11 +2213,36 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
       }
     }
     break;
+    case BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG:
+    case BTOR_IBV_RIGHT_SHIFT | BTOR_IBV_HAS_ARG:
+    {
+      assert (BTOR_COUNT_STACK (stack) == 1);
+      assert ((a->tag & BTOR_IBV_HAS_ARG));
+      BtorNode *arg = BTOR_PEEK_STACK (stack, 0);
+      unsigned d, l, w = boolector_get_width (btor, arg);
+      for (d = 0, l = 1; l < w; d++) l *= 2;
+      assert (l == (1u << d));
+      BtorNode *e;
+      if (l > w)
+        e = boolector_uext (btor, arg, l - w);
+      else
+        e = boolector_copy (btor, arg);
+      unsigned r  = a->arg % l;
+      BtorNode *s = boolector_unsigned_int (btor, r, d);
+      BtorNode *t;
+      if (a->tag == (BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG))
+        t = boolector_sll (btor, e, s);
+      else
+        t = boolector_srl (btor, e, s);
+      boolector_release (btor, e);
+      boolector_release (btor, s);
+      res = boolector_slice (btor, t, w - 1, 0);
+      boolector_release (btor, t);
+    }
+    break;
     case BTOR_IBV_CONDBW:
-    case BTOR_IBV_LEFT_SHIFT:
     case BTOR_IBV_NON_STATE:
     case BTOR_IBV_PARCASE:
-    case BTOR_IBV_RIGHT_SHIFT:
     case BTOR_IBV_STATE:
     default:
       res = 0;
