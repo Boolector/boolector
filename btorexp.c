@@ -10847,7 +10847,7 @@ beta_reduce_applies_on_lambdas (Btor *btor)
   btor_delete_ptr_hash_table (apps);
   delta = btor_time_stamp () - start;
   btor->time.betareduce += delta;
-  btor_msg_exp (btor, 1, "%d beta reduced all lambdas in %.1f seconds", delta);
+  btor_msg_exp (btor, 1, "beta reduced all lambdas in %.1f seconds", delta);
 }
 
 #if 0
