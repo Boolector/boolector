@@ -852,25 +852,20 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
     assert (node_at_time);
     frame_owned_res = boolector_bv_assignment (mc->forward, node_at_time);
   }
-  else
+  else if ((bucket = btor_find_in_ptr_hash_table (mc->latches, node)))
   {
-    bucket = btor_find_in_ptr_hash_table (mc->latches, node);
-
-    if (bucket)
-    {
-      latch = bucket->data.asPtr;
-      assert (latch);
-      assert (latch->node == node);
-      node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
-      assert (node_at_time);
-      frame_owned_res = boolector_bv_assignment (mc->forward, node_at_time);
-    }
-    else
-      frame_owned_res = 0;
+    latch = bucket->data.asPtr;
+    assert (latch);
+    assert (latch->node == node);
+    node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
+    assert (node_at_time);
+    frame_owned_res = boolector_bv_assignment (mc->forward, node_at_time);
   }
+  else
+    frame_owned_res = 0;
 
-  // TODO what about non inputs?
-  //
+    // TODO what about non inputs?
+    //
 #if 0
   BTOR_ABORT_BOOLECTOR (!bucket,
      "'node' argument is neither an input nor a latch");
