@@ -212,6 +212,108 @@ test_mccount2resetenable ()
   finish_mc_test ();
 }
 
+static void
+test_mctwostepsmodel ()
+{
+  FILE *file;
+  int k, i;
+
+  BtorNode *zero, *one;
+  BtorNode *a, *b, *t, *n, * or, *xor;
+  BtorNode *nexta, *nexta1, *nexta2;
+  BtorNode *nextb, *nextb1, *nextb2;
+  BtorNode *bad, *bada, *badb;
+
+  init_mc_test ();
+
+  boolector_enable_trace_gen (g_mc);
+  boolector_set_verbosity_mc (g_mc, 3);
+
+  a = boolector_latch (g_mc, 1, "a");
+  b = boolector_latch (g_mc, 1, "b");
+
+  or  = boolector_or (g_btor, a, b);   // dangline ...
+  xor = boolector_xor (g_btor, a, b);  // dangline ...
+
+  one  = boolector_ones (g_btor, 1);
+  zero = boolector_zero (g_btor, 1);
+
+  boolector_init (g_mc, a, zero);
+  boolector_init (g_mc, b, zero);
+
+  t = boolector_input (g_mc, 1, "t");
+  n = boolector_not (g_btor, t);
+
+  nexta1 = boolector_implies (g_btor, t, BTOR_INVERT_NODE (a));
+  nexta2 = boolector_implies (g_btor, n, a);
+  nexta  = boolector_and (g_btor, nexta1, nexta2);
+
+  nextb1 = boolector_implies (g_btor, n, BTOR_INVERT_NODE (b));
+  nextb2 = boolector_implies (g_btor, t, b);
+  nextb  = boolector_and (g_btor, nextb1, nextb2);
+
+  boolector_next (g_mc, a, nexta);
+  boolector_next (g_mc, b, nextb);
+
+  bada = boolector_eq (g_btor, a, one);
+  badb = boolector_eq (g_btor, b, one);
+  bad  = boolector_and (g_btor, bada, badb);
+
+  boolector_bad (g_mc, bad);
+
+  k = boolector_bmc (g_mc, 0, 2);
+  assert (k == 2);  // can reach bad within k=2 steps
+
+  file = fopen ("log/mctwostepsmodel.log", "w");
+  assert (file);
+  fprintf (file, "Bad state property satisfied at k = %d:\n", k);
+  for (i = 0; i <= k; i++)
+  {
+    fprintf (file, "\n");
+    fprintf (file, "[ state at time %d ]\n", i);
+    PRINT (a, i);
+    PRINT (b, i);
+    fprintf (file, "[ input at time %d ]\n", i);
+    PRINT (t, i);
+    PRINT (n, i);
+    fprintf (file, "[ logic at time %d ]\n", i);
+    PRINT (nexta1, i);
+    PRINT (nexta2, i);
+    PRINT (nexta, i);
+    PRINT (nextb1, i);
+    PRINT (nextb2, i);
+    PRINT (nextb, i);
+    fprintf (file, "[ dangling logic at time %d ]\n", i);
+    PRINT (or, i);
+    PRINT (xor, i);
+    fprintf (file, "[ output at time %d ]\n", i);
+    PRINT (bada, i);
+    PRINT (badb, i);
+    PRINT (bad, i);
+  }
+  fclose (file);
+
+  boolector_release (g_btor, a);
+  boolector_release (g_btor, b);
+  boolector_release (g_btor, or);
+  boolector_release (g_btor, xor);
+  boolector_release (g_btor, one);
+  boolector_release (g_btor, zero);
+  boolector_release (g_btor, t);
+  boolector_release (g_btor, n);
+  boolector_release (g_btor, nexta1);
+  boolector_release (g_btor, nexta2);
+  boolector_release (g_btor, nexta);
+  boolector_release (g_btor, nextb1);
+  boolector_release (g_btor, nextb2);
+  boolector_release (g_btor, nextb);
+  boolector_release (g_btor, bad);
+  boolector_release (g_btor, bada);
+  boolector_release (g_btor, badb);
+
+  finish_mc_test ();
+}
+
 void
 run_mc_tests (int argc, char **argv)
 {
@@ -219,4 +321,5 @@ run_mc_tests (int argc, char **argv)
   BTOR_RUN_TEST (mctoggle);
   BTOR_RUN_TEST (mccount2enablenomodel);
   BTOR_RUN_TEST (mccount2resetenable);
+  BTOR_RUN_TEST (mctwostepsmodel);
 }
