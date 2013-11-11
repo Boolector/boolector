@@ -71,6 +71,7 @@ test_mcnewdel ()
     char *VAL = boolector_mc_assignment (g_mc, NAME, TIME); \
     assert (VAL);                                           \
     fprintf (file, #NAME " = %s\n", VAL);                   \
+    fflush (file);                                          \
     boolector_free_mc_assignment (g_mc, VAL);               \
   } while (0)
 
@@ -274,9 +275,11 @@ test_mctwostepsmodel ()
     fprintf (file, "[ state at time %d ]\n", i);
     PRINT (a, i);
     PRINT (b, i);
+    fprintf (file, "\n");
     fprintf (file, "[ input at time %d ]\n", i);
     PRINT (t, i);
     PRINT (n, i);
+    fprintf (file, "\n");
     fprintf (file, "[ logic at time %d ]\n", i);
     PRINT (nexta1, i);
     PRINT (nexta2, i);
@@ -284,9 +287,11 @@ test_mctwostepsmodel ()
     PRINT (nextb1, i);
     PRINT (nextb2, i);
     PRINT (nextb, i);
+    fprintf (file, "\n");
     fprintf (file, "[ dangling logic at time %d ]\n", i);
     PRINT (or, i);
     PRINT (xor, i);
+    fprintf (file, "\n");
     fprintf (file, "[ output at time %d ]\n", i);
     PRINT (bada, i);
     PRINT (badb, i);
