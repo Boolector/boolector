@@ -860,10 +860,10 @@ btor_mc_witness_mapper (Btor *btor, void *state, BtorNode *node)
   BtorMCWitnessMapper *mapper = state;
   BtorNode *res, *node_at_time;
   BtorPtrHashBucket *bucket;
+  char *assignment, *p;
   BtorMcLatch *latch;
   BtorMcInput *input;
   BtorMcFrame *frame;
-  char *assignment;
   BtorMC *mc;
   int time;
   assert (!BTOR_IS_INVERTED_NODE (node));
@@ -876,6 +876,7 @@ btor_mc_witness_mapper (Btor *btor, void *state, BtorNode *node)
   assert (time <= BTOR_COUNT_STACK (mc->frames));
   frame  = mc->frames.start + time;
   bucket = btor_find_in_ptr_hash_table (mc->inputs, node);
+  res    = 0;
   if (bucket)
   {
     input = bucket->data.asPtr;
@@ -883,9 +884,6 @@ btor_mc_witness_mapper (Btor *btor, void *state, BtorNode *node)
     assert (input->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
     assert (node_at_time);
-    assignment = boolector_bv_assignment (mc->forward, node_at_time);
-    res        = btor_const_exp (btor, assignment);
-    btor_free_bv_assignment_exp (mc->forward, assignment);
   }
   else if ((bucket = btor_find_in_ptr_hash_table (mc->latches, node)))
   {
@@ -894,12 +892,18 @@ btor_mc_witness_mapper (Btor *btor, void *state, BtorNode *node)
     assert (latch->node == node);
     node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
     assert (node_at_time);
-    assignment = boolector_bv_assignment (mc->forward, node_at_time);
-    res        = btor_const_exp (btor, assignment);
-    btor_free_bv_assignment_exp (mc->forward, assignment);
   }
   else
-    res = 0;
+    node_at_time = 0;
+
+  if (node_at_time)
+  {
+    assignment = boolector_bv_assignment (mc->forward, node_at_time);
+    for (p = assignment; *p; p++)
+      if (*p == 'x') *p = '0';
+    res = btor_const_exp (btor, assignment);
+    btor_free_bv_assignment_exp (mc->forward, assignment);
+  }
 
   return res;
 }
