@@ -69,6 +69,7 @@ test_mcnewdel ()
   do                                                        \
   {                                                         \
     char *VAL = boolector_mc_assignment (g_mc, NAME, TIME); \
+    assert (VAL);                                           \
     fprintf (file, #NAME " = %s\n", VAL);                   \
     boolector_free_mc_assignment (g_mc, VAL);               \
   } while (0)
