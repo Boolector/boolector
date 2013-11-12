@@ -268,12 +268,7 @@ btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
   assert (src);
   assert (dst);
 
-  Btor *btor;
   BtorPtrHashBucket *bucket;
-  BtorAIGMgr *amgr;
-
-  btor = map->btor;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 
   if (BTOR_IS_INVERTED_AIG (src))
   {
