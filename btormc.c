@@ -499,6 +499,7 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     {
       p   = f - 1;
       dst = BTOR_PEEK_STACK (p->next, i);
+      assert (p->btor == f->btor);
       dst = btor_copy_exp (f->btor, dst);
     }
     else

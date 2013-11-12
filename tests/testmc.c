@@ -273,14 +273,17 @@ test_mctwostepsmodel ()
   {
     fprintf (file, "\n");
     fprintf (file, "[ state at time %d ]\n", i);
+    fprintf (file, "\n");
     PRINT (a, i);
     PRINT (b, i);
     fprintf (file, "\n");
     fprintf (file, "[ input at time %d ]\n", i);
+    fprintf (file, "\n");
     PRINT (t, i);
     PRINT (n, i);
     fprintf (file, "\n");
     fprintf (file, "[ logic at time %d ]\n", i);
+    fprintf (file, "\n");
     PRINT (nexta1, i);
     PRINT (nexta2, i);
     PRINT (nexta, i);
@@ -289,10 +292,12 @@ test_mctwostepsmodel ()
     PRINT (nextb, i);
     fprintf (file, "\n");
     fprintf (file, "[ dangling logic at time %d ]\n", i);
+    fprintf (file, "\n");
     PRINT (or, i);
     PRINT (xor, i);
     fprintf (file, "\n");
     fprintf (file, "[ output at time %d ]\n", i);
+    fprintf (file, "\n");
     PRINT (bada, i);
     PRINT (badb, i);
     PRINT (bad, i);
