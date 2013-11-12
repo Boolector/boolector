@@ -306,7 +306,7 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   bucket->data.asPtr = latch;
   if (name)
     btor_msg_mc (
-        mc, 2, "declared latch %d '%s' of width %d", latch->id, name, width);
+        mc, 2, "declared latch %d width %d named '%s'", latch->id, width, name);
   else
     btor_msg_mc (mc, 2, "declared latch %d of width %d", latch->id, width);
   return res;

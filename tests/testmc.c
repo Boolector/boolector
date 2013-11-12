@@ -299,13 +299,10 @@ test_mctwostepsmodel ()
   }
   fclose (file);
 
-  boolector_release (g_btor, a);
-  boolector_release (g_btor, b);
   boolector_release (g_btor, or);
   boolector_release (g_btor, xor);
   boolector_release (g_btor, one);
   boolector_release (g_btor, zero);
-  boolector_release (g_btor, t);
   boolector_release (g_btor, n);
   boolector_release (g_btor, nexta1);
   boolector_release (g_btor, nexta2);
