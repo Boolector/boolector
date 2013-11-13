@@ -926,8 +926,8 @@ selexp (
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
 
-  assert (btormbt->parambo);
-  assert (btormbt->parambv);
+  assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
+          || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
@@ -1028,8 +1028,9 @@ selarrexp (BtorMBT *btormbt,
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
-  assert (btormbt->parambo);
-  assert (btormbt->parambv);
+
+  assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
+          || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
