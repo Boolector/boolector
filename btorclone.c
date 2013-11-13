@@ -213,15 +213,15 @@ clone_node_ptr_stack (BtorMemMgr *mm,
   if (BTOR_SIZE_STACK (*stack))
   {
     BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*stack));
-    res->top = res->start + BTOR_COUNT_STACK (*stack);
+    res->top = res->start;
     res->end = res->start + BTOR_SIZE_STACK (*stack);
 
     for (i = 0; i < BTOR_COUNT_STACK (*stack); i++)
     {
       assert ((*stack).start[i]);
-      cloned_exp = btor_mapped_node (exp_map, stack->start[i]);
+      cloned_exp = btor_mapped_node (exp_map, (*stack).start[i]);
       assert (cloned_exp);
-      res->start[i] = cloned_exp;
+      BTOR_PUSH_STACK (mm, *res, cloned_exp);
     }
   }
   assert (BTOR_COUNT_STACK (*stack) == BTOR_COUNT_STACK (*res));
@@ -321,23 +321,25 @@ clone_nodes_id_table (Btor *clone,
   if (BTOR_SIZE_STACK (*id_table))
   {
     BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*id_table));
-    res->top      = res->start + BTOR_COUNT_STACK (*id_table);
-    res->end      = res->start + BTOR_SIZE_STACK (*id_table);
-    res->start[0] = 0;
+    res->top = res->start;
+    res->end = res->start + BTOR_SIZE_STACK (*id_table);
+    BTOR_PUSH_STACK (mm, *res, 0);
 
     /* first element (id = 0) is empty */
     for (i = 1; i < BTOR_COUNT_STACK (*id_table); i++)
     {
-      res->start[i] = id_table->start[i] ? clone_exp (clone,
-                                                      id_table->start[i],
-                                                      &parents,
-                                                      &nodes,
-                                                      &rhos,
-                                                      &aexps,
-                                                      &sapps,
-                                                      exp_map,
-                                                      aig_map)
-                                         : id_table->start[i];
+      BTOR_PUSH_STACK (mm,
+                       *res,
+                       id_table->start[i] ? clone_exp (clone,
+                                                       id_table->start[i],
+                                                       &parents,
+                                                       &nodes,
+                                                       &rhos,
+                                                       &aexps,
+                                                       &sapps,
+                                                       exp_map,
+                                                       aig_map)
+                                          : id_table->start[i]);
       assert (!id_table->start[i] || res->start[i]->id == i);
     }
   }
@@ -461,7 +463,7 @@ btor_clone_btor (Btor *btor)
   BtorPtrHashBucket *b, *cb;
 #ifndef NDEBUG
   int i;
-  size_t allocated, amap_size, amap_count;
+  size_t allocated, amap_size, amap_count, emap_size, emap_count;
   BtorNode *cur;
   BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 #endif
@@ -542,9 +544,17 @@ btor_clone_btor (Btor *btor)
                + exp_map->table->count * sizeof (BtorPtrHashBucket)
                + BTOR_SIZE_STACK (btor->nodes_id_table) * sizeof (BtorNode *);
   assert (allocated == clone->mm->allocated);
+  emap_size  = exp_map->table->size;
+  emap_count = exp_map->table->count;
 #endif
 
   clone->true_exp = btor_mapped_node (exp_map, btor->true_exp);
+  assert (clone->true_exp);
+  assert (exp_map->table->count == emap_count);
+  /* btor_mapped_node might cause hash table enlargement if size == count */
+  assert (
+      (allocated += (exp_map->table->size - emap_size) * sizeof (BtorNode *))
+      == clone->mm->allocated);
 
   clone_nodes_unique_table (
       mm, &btor->nodes_unique_table, &clone->nodes_unique_table, exp_map);
