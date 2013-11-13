@@ -198,17 +198,24 @@ static void
 btor_mc_release_assignment (BtorMC *mc)
 {
   BtorMcFrame *f;
-  if (!mc->forward2const) return;
-  btor_msg_mc (mc,
-               1,
-               "releasing forward to constant mapping of size %d",
-               BTOR_COUNT_MAP (mc->forward2const));
-  btor_delete_node_map (mc->forward2const);
-  mc->forward2const = 0;
+  if (mc->forward2const)
+  {
+    btor_msg_mc (mc,
+                 1,
+                 "releasing forward to constant mapping of size %d",
+                 BTOR_COUNT_MAP (mc->forward2const));
+    btor_delete_node_map (mc->forward2const);
+    mc->forward2const = 0;
+  }
 
   for (f = mc->frames.start; f < mc->frames.top; f++)
     if (f->model2const)
     {
+      btor_msg_mc (mc,
+                   1,
+                   "releasing model to constant mapping of size %d at time %d",
+                   BTOR_COUNT_MAP (f->model2const),
+                   (int) (f - mc->frames.start));
       btor_delete_node_map (f->model2const);
       f->model2const = 0;
     }
@@ -965,6 +972,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
     node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
     assert (BTOR_REAL_ADDR_NODE (node_at_time)->btor == mc->forward);
     res = btor_mc_forward2const (mc, node_at_time);
+    res = btor_copy_exp (mc->btor, res);
   }
 
   return res;
