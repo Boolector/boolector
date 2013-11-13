@@ -2142,7 +2142,9 @@ collect_premisses (Btor *btor,
 
     result = BTOR_REAL_ADDR_NODE (result);
     assert (result == to);
+#ifndef NDEBUG
     found = 1;
+#endif
     btor_release_exp (btor, result);
   }
 
