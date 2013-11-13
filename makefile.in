@@ -26,7 +26,7 @@ all: libboolector.a $(TARGETS)
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 analyze:
-	clang --analyze $(CFLAGS) $(SRC)
+	clang --analyze $(CFLAGS) $(shell ls *.c *.cc)
 
 dependencies: btorconfig.h $(SRC) makefile
 	rm -f $@; $(CC) $(CFLAGS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@

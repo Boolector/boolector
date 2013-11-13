@@ -1824,8 +1824,9 @@ check_params_bound (BtorBTORParser *parser)
   return 0;
 }
 
+#if 0
 static const char *
-check_lambdas_consistent (BtorBTORParser *parser)
+check_lambdas_consistent (BtorBTORParser * parser)
 {
   assert (parser);
 
@@ -1838,68 +1839,72 @@ check_lambdas_consistent (BtorBTORParser *parser)
   BTOR_INIT_STACK (unmark);
 
   while (!BTOR_EMPTY_STACK (parser->lambdas))
-  {
-    lambda = BTOR_POP_STACK (parser->lambdas);
-    assert (BTOR_IS_REGULAR_NODE (lambda));
-    assert (BTOR_IS_LAMBDA_NODE (lambda));
-
-    if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
-        && !BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
-      continue;
-
-    assert (BTOR_EMPTY_STACK (stack));
-    assert (BTOR_EMPTY_STACK (unmark));
-    BTOR_PUSH_STACK (parser->mem, stack, lambda);
-
-    while (!BTOR_EMPTY_STACK (stack))
     {
-      cur = BTOR_POP_STACK (stack);
-      assert (BTOR_IS_REGULAR_NODE (cur));
+      lambda = BTOR_POP_STACK (parser->lambdas);
+      assert (BTOR_IS_REGULAR_NODE (lambda));
+      assert (BTOR_IS_LAMBDA_NODE (lambda));
 
-      if (btor_is_param_exp (parser->btor, cur) && !cur->mark)
-      {
-        BTOR_RELEASE_STACK (parser->mem, stack);
-        BTOR_RELEASE_STACK (parser->mem, unmark);
+      if (BTOR_IS_NESTED_LAMBDA_NODE (lambda)
+	  && !BTOR_IS_FIRST_NESTED_LAMBDA (lambda))
+	continue;
 
-        return btor_perr_btor (parser,
-                               "invalid scope for param '%d'",
-                               cur->symbol ? atoi (cur->symbol) : cur->id);
-      }
+      assert (BTOR_EMPTY_STACK (stack));
+      assert (BTOR_EMPTY_STACK (unmark));
+      BTOR_PUSH_STACK (parser->mem, stack, lambda);
 
-      if (cur->mark) continue;
+      while (!BTOR_EMPTY_STACK (stack))
+	{
+	  cur = BTOR_POP_STACK (stack);
+	  assert (BTOR_IS_REGULAR_NODE (cur));
 
-      cur->mark = 1;
-      BTOR_PUSH_STACK (parser->mem, unmark, cur);
+	  if (btor_is_param_exp (parser->btor, cur) && !cur->mark)
+	    {
+	      BTOR_RELEASE_STACK (parser->mem, stack);
+	      BTOR_RELEASE_STACK (parser->mem, unmark);
 
-      if (btor_is_lambda_exp (parser->btor, cur))
-      {
-        BTOR_REAL_ADDR_NODE (cur->e[0])->mark = 1;
-        BTOR_PUSH_STACK (parser->mem, unmark, BTOR_REAL_ADDR_NODE (cur->e[0]));
-        BTOR_PUSH_STACK (parser->mem, stack, BTOR_REAL_ADDR_NODE (cur->e[1]));
-      }
-      else
-      {
-        for (i = 0; i < cur->arity; i++)
-          if (BTOR_REAL_ADDR_NODE (cur->e[i])->parameterized)
-            BTOR_PUSH_STACK (
-                parser->mem, stack, BTOR_REAL_ADDR_NODE (cur->e[i]));
-      }
+	      return btor_perr_btor (parser,
+		  "invalid scope for param '%d'",
+		  cur->symbol ? atoi (cur->symbol) : cur->id);
+	    }
+
+	  if (cur->mark)
+	    continue;
+
+	  cur->mark = 1;
+	  BTOR_PUSH_STACK (parser->mem, unmark, cur);
+
+	  if (btor_is_lambda_exp (parser->btor, cur))
+	    {
+	      BTOR_REAL_ADDR_NODE (cur->e[0])->mark = 1;
+	      BTOR_PUSH_STACK (parser->mem, unmark,
+			       BTOR_REAL_ADDR_NODE (cur->e[0]));
+	      BTOR_PUSH_STACK (parser->mem, stack,
+			       BTOR_REAL_ADDR_NODE (cur->e[1]));
+	    }
+	  else
+	    {
+	      for (i = 0; i < cur->arity; i++)
+		if (BTOR_REAL_ADDR_NODE (cur->e[i])->parameterized)
+		  BTOR_PUSH_STACK (parser->mem, stack,
+				   BTOR_REAL_ADDR_NODE (cur->e[i]));
+	    }
+	}
+
+      while (!BTOR_EMPTY_STACK (unmark))
+	{
+	  cur = BTOR_POP_STACK (unmark);
+	  assert (BTOR_IS_REGULAR_NODE (cur));
+	  assert (cur->mark);
+	  cur->mark = 0;
+	}
     }
-
-    while (!BTOR_EMPTY_STACK (unmark))
-    {
-      cur = BTOR_POP_STACK (unmark);
-      assert (BTOR_IS_REGULAR_NODE (cur));
-      assert (cur->mark);
-      cur->mark = 0;
-    }
-  }
 
   BTOR_RELEASE_STACK (parser->mem, stack);
   BTOR_RELEASE_STACK (parser->mem, unmark);
 
   return 0;
 }
+#endif
 
 static const char *
 btor_parse_btor_parser (BtorBTORParser *parser,

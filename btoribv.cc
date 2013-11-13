@@ -1,3 +1,13 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2012-2013 Armin Biere.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
 #include "btoribv.h"
 
 #include <climits>
@@ -7,6 +17,7 @@
 
 extern "C" {
 #include "btorabort.h"
+#include "btorutil.h"
 };
 
 static void
@@ -490,6 +501,7 @@ BtorIBV::addUnary (BtorIBVTag tag, BitRange o, BitRange a)
   BtorIBVAssignment assignment (tag, o, 0, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (3, assignment, "id %u unary assignment", on->id);
+  (void) an;
 }
 
 void
@@ -518,6 +530,7 @@ BtorIBV::addUnaryArg (BtorIBVTag tag, BitRange o, BitRange a, unsigned arg)
   BtorIBVAssignment assignment (tag, o, arg, 1, r);
   BTOR_PUSH_STACK (btor->mm, on->assignments, assignment);
   msg (3, assignment, "id %u unary assignment (with argument)", on->id);
+  (void) an;
 }
 
 void
@@ -532,10 +545,12 @@ BtorIBV::addBinary (BtorIBVTag tag, BitRange o, BitRange a, BitRange b)
     assert (o.getWidth () == a.getWidth ());
   BtorIBVNode *on = bitrange2node (o);
   mark_assigned (on, o);
+#ifndef NDEBUG
   BtorIBVNode *an = bitrange2node (a);
   assert (an->is_constant || an->is_constant == on->is_constant);
   BtorIBVNode *bn = bitrange2node (b);
   assert (bn->is_constant || bn->is_constant == on->is_constant);
+#endif
   BtorIBVRange *r;
   BTOR_NEWN (btor->mm, r, 2);
   r[0] = a, r[1] = b;
@@ -579,9 +594,11 @@ BtorIBV::addConcat (BitRange o, const vector<BitRange> &ops)
   vector<BitRange>::const_iterator it;
   for (it = ops.begin (); it != ops.end (); it++)
   {
-    BitRange r      = *it;
+    BitRange r = *it;
+#ifndef NDEBUG
     BtorIBVNode *rn = bitrange2node (r);
     assert (rn->is_constant || rn->is_constant == on->is_constant);
+#endif
     assert (on->width >= r.getWidth ());
     assert (on->width - r.getWidth () >= sum);
     sum += r.getWidth ();
@@ -614,9 +631,11 @@ BtorIBV::addCaseOp (BtorIBVTag tag, BitRange o, const vector<BitRange> &ops)
     BitRange c = *it++;
     if (c.m_nId)
     {
+#ifndef NDEBUG
       BtorIBVNode *cn = bitrange2node (c);
       assert (cn->is_constant || cn->is_constant == on->is_constant);
       assert (c.getWidth () == 1 || c.getWidth () == o.getWidth ());
+#endif
     }
     else
       assert (it + 1 == ops.end ());
@@ -676,7 +695,7 @@ BtorIBV::addState (BitRange o, BitRange init, BitRange next)
       }
       return;
     }
-    if (isx) initialized = false, init = BitRange (0, 0, 0);
+    if (isx) init = BitRange (0, 0, 0);
   }
   BtorIBVNode *nextn = bitrange2node (next);
   // TODO: failed for 'toy_multibit_clock'
@@ -1182,11 +1201,13 @@ BtorIBV::analyze ()
     assert (a->tag != BTOR_IBV_STATE);
     if (a->tag == BTOR_IBV_NON_STATE)
     {
+#ifndef NDEBUG
       BtorIBVRange r = a->ranges[0];
       BtorIBVNode *m = id2node (r.id);
       unsigned k     = b.bit - a->range.lsb + r.lsb;
       assert (m->flags[k].nonstate.next);
       assert (!m->flags[k].assigned);
+#endif
       msg (3, "forwarding id %u '%s[%u]'", bn->id, bn->name, b.bit);
       forwarding++;
     }
@@ -1817,6 +1838,8 @@ BtorIBV::analyze ()
           case BTOR_IBV_SUM:
           case BTOR_IBV_MOD:
           case BTOR_IBV_MUL:
+          case BTOR_IBV_LEFT_SHIFT:
+          case BTOR_IBV_RIGHT_SHIFT:
             for (unsigned j = 0; j < a->nranges; j++)
             {
               for (unsigned l = a->range.lsb; l <= b.bit; l++)
@@ -2190,11 +2213,36 @@ BtorIBV::translate_assignment_conquer (BtorIBVAtom *dst,
       }
     }
     break;
+    case BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG:
+    case BTOR_IBV_RIGHT_SHIFT | BTOR_IBV_HAS_ARG:
+    {
+      assert (BTOR_COUNT_STACK (stack) == 1);
+      assert ((a->tag & BTOR_IBV_HAS_ARG));
+      BtorNode *arg = BTOR_PEEK_STACK (stack, 0);
+      unsigned d, l, w = boolector_get_width (btor, arg);
+      for (d = 0, l = 1; l < w; d++) l *= 2;
+      assert (l == (1u << d));
+      BtorNode *e;
+      if (l > w)
+        e = boolector_uext (btor, arg, l - w);
+      else
+        e = boolector_copy (btor, arg);
+      unsigned r  = a->arg % l;
+      BtorNode *s = boolector_unsigned_int (btor, r, d);
+      BtorNode *t;
+      if (a->tag == (BTOR_IBV_LEFT_SHIFT | BTOR_IBV_HAS_ARG))
+        t = boolector_sll (btor, e, s);
+      else
+        t = boolector_srl (btor, e, s);
+      boolector_release (btor, e);
+      boolector_release (btor, s);
+      res = boolector_slice (btor, t, w - 1, 0);
+      boolector_release (btor, t);
+    }
+    break;
     case BTOR_IBV_CONDBW:
-    case BTOR_IBV_LEFT_SHIFT:
     case BTOR_IBV_NON_STATE:
     case BTOR_IBV_PARCASE:
-    case BTOR_IBV_RIGHT_SHIFT:
     case BTOR_IBV_STATE:
     default:
       res = 0;
@@ -2311,9 +2359,11 @@ BtorIBV::translate_atom_conquer (BtorIBVAtom *a, bool forward)
         assert (!prev->is_next_state);
         assert (prev->forwarded);
         assert (pa->ranges[0].getWidth () >= r.getWidth ());
+#ifndef NDEBUG
         int prevlen = boolector_get_width (btor, prev->forwarded);
         int rlen    = (int) r.getWidth ();
         assert (prevlen >= rlen);
+#endif
         assert (!a->exp);
         assert (r.msb <= pa->ranges[0].msb);
         assert (r.lsb >= pa->ranges[0].lsb);
@@ -2456,7 +2506,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
         }
         *p = 0;
         assert (strlen (conststr) == n->width);
-        assert (strlen (conststr) >= (int) r.getWidth ());
+        assert (strlen (conststr) >= (long) r.getWidth ());
         n->cached = boolector_const (btor, conststr);
         assert (boolector_get_width (btor, n->cached) == (int) n->width);
         BTOR_DELETEN (btor->mm, conststr, n->width + 1);
@@ -2521,7 +2571,7 @@ BtorIBV::translate_atom_base (BtorIBVAtom *a)
           BtorIBVNode *next = id2node (na->ranges[pos].id);
           BtorIBVRange nr (na->ranges[pos].id,
                            r.msb - r.lsb + na->ranges[pos].lsb,
-                           r.lsb - r.lsb + na->ranges[pos].lsb);
+                           na->ranges[pos].lsb);
           char *nextname = btor_ibv_atom_base_name (btor, next, nr, 0);
           a->next = boolector_input (btormc, (int) nr.getWidth (), nextname);
           btor_freestr (btor->mm, nextname);

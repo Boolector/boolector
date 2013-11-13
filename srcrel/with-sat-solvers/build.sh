@@ -32,7 +32,8 @@ do
   [ -d $component ] || continue
   echo "building $component"
   cd $component
-  ./configure >/dev/null || die "'./configure' failed in '$component'"
+  if [ -f configure ]; then configure=configure; else configure=configure.sh; fi
+  ./$configure >/dev/null || die "'./configure' failed in '$component'"
   make >/dev/null || die "'make' failed in '$component'"
   cd ..
 done

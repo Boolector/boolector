@@ -96,6 +96,7 @@ intarg (char *op)
   {
     perr ("expected integer argument for '%s'", op);
   }
+  assert (tok);
   return atoi (tok);
 }
 
@@ -135,6 +136,7 @@ hmap_get (BtorPtrHashTable *hmap, char *key)
   assert (key);
   BtorPtrHashBucket *bucket = btor_find_in_ptr_hash_table (hmap, key);
   if (!bucket) die ("expression '%s' is not hashed", key);
+  assert (bucket);
   return bucket->data.asPtr;
 }
 
@@ -197,6 +199,7 @@ parse (FILE *file)
   ret_ptr = 0, ret_str = 0;
   buffer[len = 0] = 0;
   lineno          = 1;
+  arg2_int        = 0;
   btor            = 0;
   mm              = btor_new_mem_mgr ();
   hmap            = btor_new_ptr_hash_table (

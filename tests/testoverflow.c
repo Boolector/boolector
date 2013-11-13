@@ -50,6 +50,8 @@ init_overflow_tests (void)
   assert (f != NULL);
   fclose (f);
 
+  pos_rwr = 0;
+
   if (g_rwreads) pos_rwr = g_argc++ - 1;
 
   g_argv = (char **) malloc (g_argc * sizeof (char *));

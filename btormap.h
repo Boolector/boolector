@@ -30,6 +30,7 @@ struct BtorNodeMap
   Btor *btor; /* managing (owning) map internals */
   BtorPtrHashTable *table;
 };
+
 typedef struct BtorNodeMap BtorNodeMap;
 
 /*------------------------------------------------------------------------*/
@@ -61,9 +62,8 @@ BtorNode *btor_non_recursive_extended_substitute_node (
     BtorNodeMapper,  // see above
     BtorNode *root);
 
-/*------------------------------------------------------------------------*/
+/*========================================================================*/
 
-/*------------------------------------------------------------------------*/
 /* Simple map for AIG node.  Same reference counting and signed/tagged
  * behavior as BtorNodeMap.
  */
@@ -74,6 +74,7 @@ struct BtorAIGMap
   BtorAIGMgr *amgr_dst; /* managing (owning) destination aigs */
   BtorPtrHashTable *table;
 };
+
 typedef struct BtorAIGMap BtorAIGMap;
 
 /*------------------------------------------------------------------------*/

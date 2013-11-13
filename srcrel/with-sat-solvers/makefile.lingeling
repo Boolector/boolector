@@ -2,7 +2,7 @@ all:
 	rm -rf lingeling*
 	tar xf archives/lingeling*.tar.gz
 	mv lingeling* lingeling
-	cd lingeling && ./configure && make
+	cd lingeling && ./configure.sh && make
 	rm -rf boolector*
 	tar xf archives/boolector*.tar.gz
 	mv boolector* boolector

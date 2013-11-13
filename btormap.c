@@ -98,6 +98,8 @@ map_node (Btor *btor, BtorNodeMap *map, BtorNode *exp)
   BtorNode *m[3], *src, *dst, *real_exp;
   int i;
 
+  m[0] = m[1] = m[2] = 0;
+
   for (i = 0; i < exp->arity; i++)
   {
     src  = exp->e[i];
@@ -267,12 +269,7 @@ btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
   assert (src);
   assert (dst);
 
-  Btor *btor;
   BtorPtrHashBucket *bucket;
-  BtorAIGMgr *amgr;
-
-  btor = map->btor;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 
   if (BTOR_IS_INVERTED_AIG (src))
   {

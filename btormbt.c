@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2013 Christian Reisenberger.
  *  Copyright (C) 2013 Aina Niemetz.
+ *  Copyright (C) 2013 Armin Biere.
  *
  *  All rights reserved.
  *
@@ -423,11 +424,13 @@ is_boolean_binary_fun (Op op)
   return (op >= EQ && op <= IFF);
 }
 
+#ifndef NDEBUG
 static int
 is_ternary_fun (Op op)
 {
   return op == COND;
 }
+#endif
 
 static int
 is_array_fun (Op op)
@@ -478,8 +481,11 @@ modifybv (
   }
   else if (tow > ew)
   {
-    tmp = boolector_get_width (btormbt->btor, e);
-    e   = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
+    // TODO 'tmp' unused so remove?
+#if 0
+      tmp = boolector_get_width (btormbt->btor, e);
+#endif
+    e = (pick (rng, 0, 1) ? boolector_uext (btormbt->btor, e, tow - ew)
                           : boolector_sext (btormbt->btor, e, tow - ew));
     es_push (es, e);
     es->exps[es->n - 1].pars++;
@@ -698,6 +704,7 @@ binary_fun (
     }
     e1  = modifybv (btormbt, rng, e1, e1w, e0w, is_param);
     e1w = e0w;
+    (void) e1w;  // TODO remove since never used?
   }
   else if (op >= SLL && op <= ROR)
   {
@@ -707,7 +714,8 @@ binary_fun (
     e1  = modifybv (btormbt, rng, e1, e1w, tmp1, is_param);
     e0w = tmp0;
     e1w = tmp1;
-    rw  = e0w;
+    (void) e1w;  // TODO remove since never used?
+    rw = e0w;
   }
   else if (op == CONCAT)
   {
@@ -791,11 +799,13 @@ ternary_fun (BtorMBT *btormbt,
              BtorNode *e2,
              int is_param)
 {
-  assert (is_ternary_fun (op));
-  assert (boolector_get_width (btormbt->btor, e0) == 1);
-
   int e1w, e2w;
   ExpStack *es;
+
+  (void) op;
+
+  assert (is_ternary_fun (op));
+  assert (boolector_get_width (btormbt->btor, e0) == 1);
 
   e1w = boolector_get_width (btormbt->btor, e1);
   assert (e1w <= MAX_BITWIDTH);
@@ -805,6 +815,7 @@ ternary_fun (BtorMBT *btormbt,
   /* bitvectors must have same bit width */
   e2  = modifybv (btormbt, rng, e2, e2w, e1w, is_param);
   e2w = e1w;
+  (void) e2w;  // TODO remove since 'e2w' never used?
 
   if (e1w == 1)
     es = is_param ? btormbt->parambo : &btormbt->bo;
@@ -915,6 +926,8 @@ selexp (
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
 
+  assert (btormbt->parambo);
+  assert (btormbt->parambv);
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
@@ -1015,6 +1028,8 @@ selarrexp (BtorMBT *btormbt,
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
+  assert (btormbt->parambo);
+  assert (btormbt->parambv);
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
@@ -1113,8 +1128,9 @@ param_afun (BtorMBT *btormbt, RNG *rng, int force_arrnparr)
   /* force array exp with non-parameterized arrays? */
   rand = force_arrnparr ? -1 : pick (rng, 0, 1);
   e[0] = selexp (btormbt, rng, T_ARR, rand, NULL);
-  eew  = boolector_get_width (btormbt->btor, e[0]);
-  eiw  = boolector_get_index_width (btormbt->btor, e[0]);
+  e[1] = e[2] = 0;
+  eew         = boolector_get_width (btormbt->btor, e[0]);
+  eiw         = boolector_get_index_width (btormbt->btor, e[0]);
 
   /* choose READ/WRITE with p = 0.666, else EQ/NE/COND */
   if (pick (rng, 0, 2))
@@ -1829,6 +1845,8 @@ run (void (*process) (void))
 {
   int res, status, saved1, saved2, null;
   pid_t id;
+
+  (void) saved1;
   env.forked++;
   fflush (stdout);
   if ((id = fork ()))
@@ -1851,6 +1869,9 @@ run (void (*process) (void))
     close (2);
 #ifndef NDEBUG
     tmp =
+#endif
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
 #endif
         dup (null);
     assert (tmp == 1);
@@ -1875,6 +1896,9 @@ run (void (*process) (void))
     tmp =
 #endif
         dup (saved1);
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
 #ifdef NDEBUG
     assert (tmp == 1);
 #endif
@@ -1992,6 +2016,12 @@ stats (void)
   printf ("%d bugs = %0.2f bugs per second\n", env.bugs, average (env.bugs, t));
 }
 
+#ifdef __GNUC__
+#if __GNUC__ >= 4 && __GNUC_MAJOR__ >= 6
+#define USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#endif
+#endif
+
 /* Note: - do not call non-reentrant function here, see:
  *         https://www.securecoding.cert.org/confluence/display/seccode/SIG30-C.+Call+only+asynchronous-safe+functions+within+signal+handlers
  *       - do not use printf here (causes segfault when SIGINT and valgrind) */
@@ -2001,7 +2031,13 @@ sighandler (int sig)
   char str[100];
 
   sprintf (str, "*** btormbt: caught signal %d\n", sig);
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic ignored "-Wunused-result"
+#endif
   write (1, str, strlen (str));
+#ifdef USE_PRAGMAS_TO_DISABLE_UNUSED_RESULT_WARNING
+#pragma GCC diagnostic warning "-Wunused-result"
+#endif
   /* Note: if _exit is used here (which is reentrant, in contrast to exit),
    *       atexit handler is not called. Hence, use exit here. */
   exit (1);

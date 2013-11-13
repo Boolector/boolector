@@ -461,6 +461,7 @@ struct Btor
     double rewrite;
     double sat;
     double subst;
+    double betareduce;
     double embedded;
     double slicing;
     double skel;

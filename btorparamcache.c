@@ -13,8 +13,8 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   unsigned int hash;
   BtorNode *param, *arg;
   BtorParamCacheTuple *t;
-  BtorPtrHashTable *table;
-  BtorPtrHashBucket *b;
+  // BtorPtrHashTable *table;
+  // BtorPtrHashBucket *b;
   BtorParameterizedIterator it;
 
   BTOR_NEW (btor->mm, t);

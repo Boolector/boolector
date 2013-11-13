@@ -36,7 +36,12 @@ mv $boolector $tmp/archives
 for solver in picosat lingeling
 do
   cd ../$solver
-  ./mkrelease >> $log
+  if [ -f mkrelease ]
+  then
+    ./mkrelease >> $log
+  else
+    ./mkrelease.sh >> $log
+  fi
   archive=`grep ${solver}- $log|awk '{print $NF}'`
   mv $archive $tmp/archives
 done
