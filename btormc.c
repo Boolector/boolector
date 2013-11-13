@@ -189,10 +189,13 @@ static void
 btor_mc_release_assignment (BtorMC *mc)
 {
   if (!mc->assignment) return;
+
   btor_msg_mc (mc,
                1,
                "releasing assignment of size %d",
                BTOR_COUNT_MAP (mc->assignment));
+
+  btor_delete_node_map (mc->assignment);
   mc->assignment = 0;
 }
 
@@ -215,7 +218,6 @@ boolector_delete_mc (BtorMC *mc)
       BTOR_COUNT_STACK (mc->constraints));
   btor = mc->btor;
   mm   = btor->mm;
-  btor_mc_release_assignment (mc);
   for (f = mc->frames.start; f < mc->frames.top; f++) btor_release_mc_frame (f);
   BTOR_RELEASE_STACK (mm, mc->frames);
   for (bucket = mc->inputs->first; bucket; bucket = bucket->next)
