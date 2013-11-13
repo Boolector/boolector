@@ -462,9 +462,9 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
     assert (input->node == src);
     assert (input->id == i);
 #endif
-    sym = timed_symbol (mc->forward, src, f->time);
+    sym = timed_symbol (mc->btor, src, f->time);
     dst = boolector_var (mc->forward, src->len, sym);
-    btor_freestr (mc->forward->mm, sym);
+    btor_freestr (mc->btor->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i);
     BTOR_PUSH_STACK (mc->btor->mm, f->inputs, dst);
   }
@@ -514,9 +514,9 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     }
     else
     {
-      sym = timed_symbol (mc->forward, src, f->time);
+      sym = timed_symbol (mc->btor, src, f->time);
       dst = boolector_var (mc->forward, src->len, sym);
-      btor_freestr (mc->forward->mm, sym);
+      btor_freestr (mc->btor->mm, sym);
     }
     assert (BTOR_COUNT_STACK (f->latches) == i);
     BTOR_PUSH_STACK (mc->btor->mm, f->latches, dst);
