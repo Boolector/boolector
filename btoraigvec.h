@@ -30,6 +30,13 @@ typedef struct BtorAIGVec BtorAIGVec;
 
 typedef struct BtorAIGVecMgr BtorAIGVecMgr;
 
+struct BtorAIGVecMgr
+{
+  BtorMemMgr *mm;
+  BtorAIGMgr *amgr;
+  int verbosity;
+};
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new AIG vector manager. An AIG vector manager is used by nearly

@@ -70,6 +70,17 @@ struct BtorSATMgr
   } api;
 };
 
+#if defined(BTOR_USE_LINGELING)
+#include "../lingeling/lglib.h"
+typedef struct BtorLGL BtorLGL;
+
+struct BtorLGL
+{
+  LGL *lgl;
+  int nforked, blimit;
+};
+#endif
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_MEM_MGR_SAT(SMGR) ((SMGR)->mm)

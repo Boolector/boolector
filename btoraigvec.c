@@ -21,15 +21,6 @@
 
 /*------------------------------------------------------------------------*/
 
-struct BtorAIGVecMgr
-{
-  BtorMemMgr *mm;
-  BtorAIGMgr *amgr;
-  int verbosity;
-};
-
-/*------------------------------------------------------------------------*/
-
 static BtorAIGVec *
 new_aigvec (BtorAIGVecMgr *avmgr, int len)
 {

@@ -65,14 +65,6 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
-typedef struct BtorLGL BtorLGL;
-
-struct BtorLGL
-{
-  LGL *lgl;
-  int nforked, blimit;
-};
-
 static BtorLGL *btor_clone_lingeling (BtorLGL *, BtorMemMgr *);
 
 int btor_enable_lingeling_sat (BtorSATMgr *, const char *optstr, int nofork);
@@ -539,7 +531,6 @@ btor_clone_lingeling (BtorLGL *solver, BtorMemMgr *mm)
                         (lglalloc) btor_sat_malloc,
                         (lglrealloc) btor_sat_realloc,
                         (lgldealloc) btor_sat_free);
-
   return res;
 }
 
