@@ -23,14 +23,6 @@
 BTOR_DECLARE_STACK (NodePtrStackPtr, BtorNodePtrStack *);
 BTOR_DECLARE_STACK (PtrHashTablePtrPtr, BtorPtrHashTable **);
 
-//// TODO DEBUG
-// int strings = 0;
-// int bits = 0;
-// int bytes = 0;
-// int exppairs = 0;
-// int av = 0;
-// int rho = 0;
-////
 BtorNode *
 clone_exp (Btor *clone,
            BtorNode *exp,
@@ -60,24 +52,19 @@ clone_exp (Btor *clone,
 
   res = btor_malloc (mm, exp->bytes);
   memcpy (res, exp, exp->bytes);
-  // bytes += real_exp->bytes;  // TODO DEBUG
 
-  ////// BTOR_BV_VAR_NODE_STRUCT (all nodes)
+  /* ----------------- BTOR_BV_VAR_NODE_STRUCT (all nodes) ----------------> */
   if (exp->bits)
   {
     len = strlen (exp->bits);
     BTOR_NEWN (mm, res->bits, len + 1);
-    // bits += len + 1; // TODO DEBUG
     for (i = 0; i < len; i++) res->bits[i] = exp->bits[i];
     res->bits[len] = '\0';
   }
 
   /* Note: no need to cache aig vectors here (exp->av is unique to exp). */
   if (!BTOR_IS_ARRAY_NODE (exp) && exp->av)
-  {
-    // av += 1; // TODO DEBUG
     res->av = btor_clone_aigvec (exp->av, clone->avmgr, aig_map);
-  }
   else
   {
     BTOR_PUSH_STACK_IF (((BtorLambdaNode *) res)->rho,
@@ -100,19 +87,17 @@ clone_exp (Btor *clone,
   res->btor = clone;
   BTOR_PUSH_STACK_IF (exp->first_parent, mm, *parents, &res->first_parent);
   BTOR_PUSH_STACK_IF (exp->last_parent, mm, *parents, &res->last_parent);
-  //////
+  /* <---------------------------------------------------------------------- */
 
-  ///// symbol
+  /* ------------ BTOR_BV_ADDITIONAL_VAR_NODE_STRUCT (all nodes) ----------> */
   if (!BTOR_IS_BV_CONST_NODE (exp))
   {
     if (BTOR_IS_BV_VAR_NODE (exp) || BTOR_IS_ARRAY_VAR_NODE (exp)
         || BTOR_IS_PARAM_NODE (exp) || BTOR_IS_PROXY_NODE (exp))
     {
       res->symbol = btor_strdup (mm, exp->symbol);
-      // strings += strlen (res->symbol) + 1; // TODO DEBUG
     }
 
-    ///// BTOR_BV_ADDITIONAL_NODE_STRUCT
     if (!BTOR_IS_BV_VAR_NODE (exp) && !BTOR_IS_PARAM_NODE (exp))
     {
       if (exp->arity)
@@ -128,7 +113,6 @@ clone_exp (Btor *clone,
       {
         if (BTOR_IS_ARRAY_EQ_NODE (exp) && exp->vreads)
         {
-          // exppairs += 1; // TODO DEBUG
           assert (btor_mapped_node (exp_map, exp->vreads->exp1));
           assert (btor_mapped_node (exp_map, exp->vreads->exp2));
           res->vreads =
@@ -146,11 +130,10 @@ clone_exp (Btor *clone,
             exp->next_parent[i], mm, *parents, &res->next_parent[i]);
       }
     }
-    //////
   }
-  //////
+  /* <---------------------------------------------------------------------- */
 
-  ////// BTOR_ARRAY_VAR_NODE_STRUCT
+  /* ---------------- BTOR_ARRAY_VAR_NODE_STRUCT (all nodes) --------------> */
   if (BTOR_IS_ARRAY_NODE (exp) || BTOR_IS_ARRAY_EQ_NODE (exp))
   {
     BTOR_PUSH_STACK_IF (exp->first_aeq_acond_parent,
@@ -160,7 +143,7 @@ clone_exp (Btor *clone,
     BTOR_PUSH_STACK_IF (
         exp->last_aeq_acond_parent, mm, *parents, &res->last_aeq_acond_parent);
 
-    ////// BTOR_ARRAY_ADDITIONAL_NODE_STRUCT
+    /* ----------- BTOR_ARRAY_ADDITIONAL_NODE_STRUCT (all nodes) -------> */
     if (!BTOR_IS_ARRAY_VAR_NODE (exp))
     {
       for (i = 0; i < exp->arity; i++)
@@ -175,9 +158,9 @@ clone_exp (Btor *clone,
                             &res->next_aeq_acond_parent[i]);
       }
     }
-    //////
+    /* <------------------------------------------------------------------ */
   }
-  //////
+  /* <---------------------------------------------------------------------- */
 
   if (BTOR_IS_PARAM_NODE (exp))
   {
@@ -343,43 +326,8 @@ clone_nodes_id_table (Btor *clone,
     BTOR_PUSH_STACK (mm, *res, 0);
 
     /* first element (id = 0) is empty */
-    //// TODO debug
-    // int nbytes = 0;
-    ////
     for (i = 1; i < BTOR_COUNT_STACK (*id_table); i++)
     {
-      // if (id_table->start[i])
-      //  {
-      //    nbytes += id_table->start[i]->bytes; // TODO DEBUG
-      //    if (id_table->start[i]->bits)
-      //      nbytes += strlen (id_table->start[i]->bits) + 1;
-      //    if (id_table->start[i]->av)
-      //      nbytes += sizeof (*(id_table->start[i]->av))
-      //      	  + id_table->start[i]->len * sizeof (BtorAIG *);
-      //    if (!BTOR_IS_BV_CONST_NODE (id_table->start[i])
-      //        && (BTOR_IS_BV_VAR_NODE (id_table->start[i])
-      //            || BTOR_IS_ARRAY_VAR_NODE (id_table->start[i])
-      //            || BTOR_IS_PARAM_NODE (id_table->start[i])
-      //            || BTOR_IS_PROXY_NODE (id_table->start[i])))
-      //      nbytes += id_table->start[i]
-      //		    ? strlen (id_table->start[i]->symbol) + 1 : 0;
-      //    if (BTOR_IS_ARRAY_EQ_NODE (id_table->start[i])
-      //        && id_table->start[i]->vreads)
-      //      nbytes += sizeof (BtorNodePair);
-      //    if (BTOR_IS_PARAM_NODE (id_table->start[i]))
-      //      nbytes += BTOR_SIZE_STACK (((BtorParamNode *)
-      //      id_table->start[i])->assigned_exp) * sizeof (BtorNode *);
-      //    if (BTOR_IS_LAMBDA_NODE (id_table->start[i])
-      //        && ((BtorLambdaNode *) id_table->start[i])->synth_apps)
-      //      nbytes += sizeof (*(((BtorLambdaNode *)
-      //      id_table->start[i])->synth_apps))
-      //             + ((BtorLambdaNode *) id_table->start[i])->synth_apps->size
-      //             * sizeof (BtorPtrHashBucket *)
-      //             + ((BtorLambdaNode *)
-      //             id_table->start[i])->synth_apps->count * sizeof
-      //             (BtorPtrHashBucket);
-      //  }
-      //
       BTOR_PUSH_STACK (mm,
                        *res,
                        id_table->start[i] ? clone_exp (clone,
@@ -394,28 +342,11 @@ clone_nodes_id_table (Btor *clone,
                                           : id_table->start[i]);
       assert (!id_table->start[i] || res->start[i]->id == i);
     }
-    // printf (">>>> bytes: %d\n", nbytes); // TODO DEBUG
   }
   assert (BTOR_COUNT_STACK (*res) == BTOR_COUNT_STACK (*id_table));
   assert (BTOR_SIZE_STACK (*res) == BTOR_SIZE_STACK (*id_table));
-  // printf (">>>> bytes: %d\n", bytes); // TODO DEBUG
-  // printf (">>>> bits: %d\n", bits); // TODO DEBUG
-  // printf (">>>> strings: %d\n", strings); // TODO DEBUG
-  // printf (">>>> exppairs: %d\n", exppairs); // TODO DEBUG
-  // printf (">>>> rho: %d\n", rho); // TODO DEBUG
-  // printf (">>>> av: %d\n", av); // TODO DEBUG
-  // printf (">>>> id table count: %lu\n", BTOR_COUNT_STACK (*id_table));
-  // printf (">>>> id table size: %lu\n", BTOR_SIZE_STACK (*id_table));
-  // printf (">>>> exp_map count: %d\n", exp_map->table->count);
-  // printf (">>>> exp_map size: %d\n", exp_map->table->size);
-  // printf (">>>> aig_map count: %d\n", aig_map->table->count);
-  // printf (">>>> aig_map size: %d\n", aig_map->table->size);
-
-  // printf ("///**** after id table push %lu\n", clone->mm->allocated);
 
   /* update children, parent, lambda and next pointers of expressions */
-  // printf (">>>> nodes stack count: %lu\n", BTOR_COUNT_STACK (nodes));
-  // printf (">>>> nodes stack size: %lu\n", BTOR_SIZE_STACK (nodes));
   while (!BTOR_EMPTY_STACK (nodes))
   {
     tmp = BTOR_POP_STACK (nodes);
@@ -423,8 +354,7 @@ clone_nodes_id_table (Btor *clone,
     *tmp = btor_mapped_node (exp_map, *tmp);
     assert (*tmp);
   }
-  // printf (">>>> parents stack count: %lu\n", BTOR_COUNT_STACK (parents));
-  // printf (">>>> parents stack size: %lu\n", BTOR_SIZE_STACK (parents));
+
   while (!BTOR_EMPTY_STACK (parents))
   {
     tmp = BTOR_POP_STACK (parents);
@@ -445,27 +375,21 @@ clone_nodes_id_table (Btor *clone,
   }
 
   /* clone assigned_exp of param nodes */
-  // int naexps = 0;  // TODO DEBUG
   while (!BTOR_EMPTY_STACK (aexps))
   {
-    // naexps += 1; // TODO DEBUG
     aexp  = BTOR_POP_STACK (aexps);
     caexp = BTOR_POP_STACK (aexps);
     clone_node_ptr_stack (mm, aexp, caexp, exp_map);
   }
-  // printf (">>>> no of aexps: %d\n", naexps); // TODO DEBUG
 
   /* clone synth_apps of lambda nodes */
-  // int nsapps = 0;// TODO DEBUG
   while (!BTOR_EMPTY_STACK (sapps))
   {
-    // nsapps += 1; // TODO DEBUG
     htable  = BTOR_POP_STACK (sapps);
     chtable = BTOR_POP_STACK (sapps);
     *chtable =
         btor_clone_ptr_hash_table (mm, *htable, mapped_node, 0, exp_map, 0);
   }
-  // printf (">>>> no of synth reads: %d\n", nsapps); // TODO DEBUG
 
   BTOR_RELEASE_STACK (mm, parents);
   BTOR_RELEASE_STACK (mm, nodes);
@@ -487,7 +411,6 @@ clone_nodes_unique_table (BtorMemMgr *mm,
 
   int i;
 
-  // printf (">>>> unique table size: %u\n", table->size); // TODO debug
   BTOR_CNEWN (mm, res->chains, table->size);
   res->size         = table->size;
   res->num_elements = table->num_elements;
@@ -505,15 +428,6 @@ clone_nodes_unique_table (BtorMemMgr *mm,
                  + (table)->count * sizeof (BtorPtrHashBucket)                \
            : 0)
 
-//#define CHKCLONE_MEM_PTR_HASH_TABLE(table) \
-//assert (allocated == clone->mm->allocated);
-//  do { \
-//    printf ("-- count btor %u clone %u\n", btor->table ? btor->table->count : 0,  clone->table ? clone->table->count : 0); \
-//    printf ("-- size btor %u clone %u\n", btor->table ? btor->table->size : 0,  clone->table ? clone->table->size : 0); \
-//    printf ("-- mem btor %lu clone %lu\n", MEM_PTR_HASH_TABLE (btor->table),  MEM_PTR_HASH_TABLE (clone->table)); \
-//    assert (MEM_PTR_HASH_TABLE (btor->table) \
-//	    == MEM_PTR_HASH_TABLE (clone->table)); \
-//  } while (0)
 #define CHKCLONE_MEM_PTR_HASH_TABLE(table)         \
   do                                               \
   {                                                \
