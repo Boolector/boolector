@@ -411,10 +411,12 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     assert (BTOR_GET_TAG_NODE (real_exp->field)        \
             == BTOR_GET_TAG_NODE (real_clone->field)); \
   } while (0)
+#endif
 
 static void
 btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 {
+#ifndef NDEBUG
   assert (exp);
   assert (clone);
   assert (exp != clone);
@@ -619,8 +621,13 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (!((BtorLambdaNode *) real_clone)->body);
   }
+#else
+  (void) exp;
+  (void) clone;
+#endif
 }
 
+#ifndef NDEBUG
 #define BTOR_CHKCLONE_NODE_PTR_STACK(stack, clone)                 \
   do                                                               \
   {                                                                \
@@ -762,6 +769,12 @@ btor_chkclone_tables (Btor *btor)
     btor_chkclone_tables (btor);                                       \
   } while (0)
 
+#else
+#define BTOR_CHKCLONE() \
+  {                     \
+  }
+#endif
+
 #define BTOR_CHKCLONE_NORES(fun, args...) \
   do                                      \
   {                                       \
@@ -775,6 +788,7 @@ btor_chkclone_tables (Btor *btor)
   {                                           \
     if (!btor->clone) break;                  \
     int cloneres = fun (btor->clone, ##args); \
+    (void) cloneres;                          \
     assert (cloneres == res);                 \
     BTOR_CHKCLONE ();                         \
   } while (0)
@@ -784,6 +798,7 @@ btor_chkclone_tables (Btor *btor)
   {                                                 \
     if (!btor->clone) break;                        \
     BtorNode *cloneres = fun (btor->clone, ##args); \
+    (void) cloneres;                                \
     btor_chkclone_exp (res, cloneres);              \
     BTOR_CHKCLONE ();                               \
   } while (0)
@@ -793,27 +808,10 @@ btor_chkclone_tables (Btor *btor)
   {                                                   \
     if (!btor->clone) break;                          \
     const char *cloneres = fun (btor->clone, ##args); \
+    (void) cloneres;                                  \
     assert (!strcmp (cloneres, res));                 \
     BTOR_CHKCLONE ();                                 \
   } while (0)
-
-#else
-#define BTOR_CHKCLONE() \
-  {                     \
-  }
-#define BTOR_CHKCLONE_NORES(fun, args...) \
-  {                                       \
-  }
-#define BTOR_CHKCLONE_RES(res, fun, args...) \
-  {                                          \
-  }
-#define BTOR_CHKCLONE_RES_PTR(res, fun, args...) \
-  {                                              \
-  }
-#define BTOR_CHKCLONE_RES_STR(res, fun, args...) \
-  {                                              \
-  }
-#endif
 
 #define BTOR_CLONED_EXP(exp)                                                 \
   (btor->clone ? (BTOR_IS_INVERTED_NODE (exp)                                \
@@ -2721,9 +2719,7 @@ boolector_release (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor->external_refs--;
-#ifndef NDEBUG
   BtorNode *cexp = BTOR_CLONED_EXP (exp);
-#endif
   btor_release_exp (btor, exp);
   BTOR_CHKCLONE_NORES (boolector_release, cexp);
 }
