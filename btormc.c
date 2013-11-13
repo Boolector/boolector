@@ -965,7 +965,7 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
     frame_owns_res = boolector_bv_assignment (mc->forward, node_at_time);
     res            = btor_strdup (mc->btor->mm, frame_owns_res);
     btor_zero_normalize_assignment (res);
-      :tor_free_bv_assignment_exp (mc->forward, frame_owns_res);
+    btor_free_bv_assignment_exp (mc->forward, frame_owns_res);
   }
   else
   {
