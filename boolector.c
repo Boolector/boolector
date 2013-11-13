@@ -143,10 +143,10 @@ boolector_get_trapi (Btor *btor)
 
 /*------------------------------------------------------------------------*/
 
+#ifndef NDEBUG
 static void
 btor_chkclone_mem (Btor *btor)
 {
-#ifndef NDEBUG
   assert (btor);
   assert (btor->clone);
   assert (btor->mm);
@@ -154,7 +154,6 @@ btor_chkclone_mem (Btor *btor)
   assert (btor->mm->allocated == btor->clone->mm->allocated);
   assert (btor->mm->sat_allocated == btor->clone->mm->sat_allocated);
   /* Note: both maxallocated and sat_maxallocated may differ! */
-#endif
 }
 
 #define BTOR_CHKCLONE_STATE(field)        \
@@ -166,7 +165,6 @@ btor_chkclone_mem (Btor *btor)
 static void
 btor_chkclone_state (Btor *btor)
 {
-#ifndef NDEBUG
   assert (btor);
 
   Btor *clone;
@@ -199,7 +197,6 @@ btor_chkclone_state (Btor *btor)
   BTOR_CHKCLONE_STATE (pprint);
   BTOR_CHKCLONE_STATE (last_sat_result);
   BTOR_CHKCLONE_STATE (generate_model_for_all_reads);
-#endif
 }
 
 #define BTOR_CHKCLONE_STATS(field)                    \
@@ -217,7 +214,6 @@ btor_chkclone_state (Btor *btor)
 static void
 btor_chkclone_stats (Btor *btor)
 {
-#ifndef NDEBUG
   assert (btor);
 
   Btor *clone;
@@ -265,7 +261,6 @@ btor_chkclone_stats (Btor *btor)
   BTOR_CHKCLONE_STATS (propagations);
   BTOR_CHKCLONE_STATS (propagations_down);
   BTOR_CHKCLONE_STATS (apply_props_construct);
-#endif
 }
 
 #define BTOR_CHKCLONE_AIG(field)                   \
@@ -303,7 +298,6 @@ btor_chkclone_stats (Btor *btor)
 static void
 btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 {
-#ifndef NDEBUG
   int i;
   BtorAIG *real_aig, *real_clone;
 
@@ -325,7 +319,6 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     BTOR_CHKCLONE_AIG (mark);
     BTOR_CHKCLONE_AIG (local);
   }
-#endif
 }
 
 #define BTOR_CHKCLONE_AIG_UNIQUE_TABLE(table, clone)        \
@@ -422,7 +415,6 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
 static void
 btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
 {
-#ifndef NDEBUG
   assert (exp);
   assert (clone);
   assert (exp != clone);
@@ -627,7 +619,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (!((BtorLambdaNode *) real_clone)->body);
   }
-#endif
 }
 
 #define BTOR_CHKCLONE_NODE_PTR_STACK(stack, clone)                 \
@@ -749,7 +740,6 @@ btor_chkclone_tables (Btor *btor)
   }
 }
 
-#ifndef NDEBUG
 #define BTOR_CHKCLONE()                                                \
   do                                                                   \
   {                                                                    \
@@ -771,32 +761,6 @@ btor_chkclone_tables (Btor *btor)
                                   btor->clone->arrays_with_model);     \
     btor_chkclone_tables (btor);                                       \
   } while (0)
-#else
-#define BTOR_CHKCLONE() \
-  {                     \
-  }
-#endif
-
-void
-boolector_chkclone (Btor *btor)
-{
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-#ifndef BTOR_USE_LINGELING
-  BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
-#endif
-  BTOR_TRAPI ("chkclone");
-  if (btor->clone)
-  {
-    assert (btor->clone->external_refs == 0);
-    btor_delete_btor (btor->clone);
-  }
-  btor->clone = btor_clone_btor (btor);
-  assert (btor->clone->mm);
-  assert (btor->clone->avmgr);
-  BTOR_CHKCLONE ();
-}
-
-#ifndef NDEBUG
 
 #define BTOR_CHKCLONE_NORES(fun, args...) \
   do                                      \
@@ -834,20 +798,21 @@ boolector_chkclone (Btor *btor)
   } while (0)
 
 #else
-
-#define BTOR_CHKCLONE_NORES() \
-  {                           \
+#define BTOR_CHKCLONE() \
+  {                     \
   }
-#define BTOR_CHKCLONE_RES(res) \
-  {                            \
+#define BTOR_CHKCLONE_NORES(fun, args...) \
+  {                                       \
   }
-#define BTOR_CHKCLONE_RES_PTR(res) \
-  {                                \
+#define BTOR_CHKCLONE_RES(res, fun, args...) \
+  {                                          \
   }
-#define BTOR_CHKCLONE_RES_STR(res) \
-  {                                \
+#define BTOR_CHKCLONE_RES_PTR(res, fun, args...) \
+  {                                              \
   }
-
+#define BTOR_CHKCLONE_RES_STR(res, fun, args...) \
+  {                                              \
+  }
 #endif
 
 #define BTOR_CLONED_EXP(exp)                                                 \
@@ -858,6 +823,25 @@ boolector_chkclone (Btor *btor)
                       : BTOR_PEEK_STACK (btor->clone->nodes_id_table,        \
                                          BTOR_REAL_ADDR_NODE (exp)->id))     \
                : 0)
+
+void
+boolector_chkclone (Btor *btor)
+{
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+#ifndef BTOR_USE_LINGELING
+  BTOR_ABORT_BOOLECTOR (1, "cloning requires lingeling as SAT solver");
+#endif
+  BTOR_TRAPI ("chkclone");
+  if (btor->clone)
+  {
+    assert (btor->clone->external_refs == 0);
+    btor_delete_btor (btor->clone);
+  }
+  btor->clone = btor_clone_btor (btor);
+  assert (btor->clone->mm);
+  assert (btor->clone->avmgr);
+  BTOR_CHKCLONE ();
+}
 
 /*------------------------------------------------------------------------*/
 
@@ -2475,7 +2459,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
 
   int i, len;
   char *strtrapi;
-  BtorNode *res, **cparams;
+  BtorNode *res, **cparams = NULL;
 
   len = 5 + 10 + paramc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
@@ -2514,7 +2498,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
 
   int i, len;
   char *strtrapi;
-  BtorNode *res, *cur, **cargs;
+  BtorNode *res, *cur, **cargs = NULL;
 
   len = 7 + 10 + argc * 20 + 20;
   BTOR_NEWN (btor->mm, strtrapi, len);
