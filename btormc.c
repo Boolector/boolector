@@ -53,8 +53,9 @@ typedef enum BtorMcState
 typedef struct BtorMcFrame
 {
   int time;
-  Btor *btor;
   BtorNodePtrStack inputs, init, latches, next, bad;
+
+  Btor *btor;  // Owns references to expressions in stacks above.
 } BtorMcFrame;
 
 BTOR_DECLARE_STACK (McFrame, BtorMcFrame);
@@ -162,7 +163,7 @@ btor_msg_mc (BtorMC *mc, int level, const char *fmt, ...)
 }
 
 static void
-release_frame_stack (BtorMcFrame *frame, BtorNodePtrStack *stack)
+btor_release_mc_frame_stack (BtorMcFrame *frame, BtorNodePtrStack *stack)
 {
   BtorNode *node;
 
@@ -178,11 +179,11 @@ release_frame_stack (BtorMcFrame *frame, BtorNodePtrStack *stack)
 static void
 btor_release_mc_frame (BtorMcFrame *frame)
 {
-  release_frame_stack (frame, &frame->inputs);
-  release_frame_stack (frame, &frame->init);
-  release_frame_stack (frame, &frame->latches);
-  release_frame_stack (frame, &frame->next);
-  release_frame_stack (frame, &frame->bad);
+  btor_release_mc_frame_stack (frame, &frame->inputs);
+  btor_release_mc_frame_stack (frame, &frame->init);
+  btor_release_mc_frame_stack (frame, &frame->latches);
+  btor_release_mc_frame_stack (frame, &frame->next);
+  btor_release_mc_frame_stack (frame, &frame->bad);
 }
 
 static void
@@ -625,6 +626,7 @@ map_inputs_and_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
   assert (BTOR_COUNT_STACK (f->inputs) == mc->inputs->count);
   assert (BTOR_COUNT_STACK (f->latches) == mc->latches->count);
 
+  assert (f->btor == mc->forward);
   res = btor_new_node_map (f->btor);
 
   btor_msg_mc (mc, 2, "mapping inputs and latchs of frame %d", f->time);
@@ -824,18 +826,10 @@ boolector_bmc (BtorMC *mc, int mink, int maxk)
   return -1;
 }
 
-struct BtorMCWitnessMapper
-{
-  BtorMC *mc;
-  int time;
-};
-
-typedef struct BtorMCWitnessMapper BtorMCWitnessMapper;
-
 static BtorNodeMap *
-btor_mc_witness_map (BtorMC *mc)
+btor_get_mc_witness_map (BtorMC *mc)
 {
-  if (!mc->assignment) mc->assignment = btor_new_node_map (mc->btor);
+  if (!mc->assignment) mc->assignment = btor_new_node_map (mc->forward);
   return mc->assignment;
 }
 
@@ -850,52 +844,23 @@ btor_zero_normalize_assignment (char *assignment)
 static BtorNode *
 btor_mc_witness_mapper (Btor *btor, void *state, BtorNode *node)
 {
-  BtorMCWitnessMapper *mapper = state;
-  BtorNode *res, *node_at_time;
-  BtorPtrHashBucket *bucket;
+  BtorMC *mc = state;
   char *assignment;
-  BtorMcLatch *latch;
-  BtorMcInput *input;
-  BtorMcFrame *frame;
-  BtorMC *mc;
-  int time;
+  BtorNode *res;
+
   assert (!BTOR_IS_INVERTED_NODE (node));
   if (!BTOR_IS_BV_VAR_NODE (node)) return 0;
-  assert (mapper);
-  mc = mapper->mc;
+
   assert (mc);
   assert (mc->btor == btor);
-  time = mapper->time;
-  assert (time <= BTOR_COUNT_STACK (mc->frames));
-  frame  = mc->frames.start + time;
-  bucket = btor_find_in_ptr_hash_table (mc->inputs, node);
-  res    = 0;
-  if (bucket)
-  {
-    input = bucket->data.asPtr;
-    assert (input);
-    assert (input->node == node);
-    node_at_time = BTOR_PEEK_STACK (frame->inputs, input->id);
-    assert (node_at_time);
-  }
-  else if ((bucket = btor_find_in_ptr_hash_table (mc->latches, node)))
-  {
-    latch = bucket->data.asPtr;
-    assert (latch);
-    assert (latch->node == node);
-    node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
-    assert (node_at_time);
-  }
-  else
-    node_at_time = 0;
+  (void) btor;
 
-  if (node_at_time)
-  {
-    assignment = boolector_bv_assignment (mc->forward, node_at_time);
-    btor_zero_normalize_assignment (assignment);
-    res = btor_const_exp (btor, assignment);
-    btor_free_bv_assignment_exp (mc->forward, assignment);
-  }
+  res = 0;
+
+  assignment = boolector_bv_assignment (mc->forward, node);
+  btor_zero_normalize_assignment (assignment);
+  res = btor_const_exp (mc->btor, assignment);
+  btor_free_bv_assignment_exp (mc->forward, assignment);
 
   return res;
 }
@@ -903,14 +868,11 @@ btor_mc_witness_mapper (Btor *btor, void *state, BtorNode *node)
 static BtorNode *
 btor_mc_a2n (BtorMC *mc, BtorNode *node, int time)
 {
-  BtorMCWitnessMapper witness_mapper_state;
   BtorNodeMap *map;
   assert (time >= 0);
-  witness_mapper_state.mc   = mc;
-  witness_mapper_state.time = time;
-  map                       = btor_mc_witness_map (mc);
+  map = btor_get_mc_witness_map (mc);
   return btor_non_recursive_extended_substitute_node (
-      mc->btor, map, &witness_mapper_state, btor_mc_witness_mapper, node);
+      mc->btor, map, mc, btor_mc_witness_mapper, node);
 }
 
 char *
@@ -920,6 +882,7 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
   BtorPtrHashBucket *bucket;
   BtorNode *node_at_time;
   BtorMcInput *input;
+  BtorMcInput *latch;
   BtorMcFrame *frame;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (mc);
   BTOR_ABORT_BOOLECTOR (mc->state == BTOR_NO_MC_STATE,
@@ -954,7 +917,18 @@ boolector_mc_assignment (BtorMC *mc, BtorNode *node, int time)
   else
   {
     BtorNode *const_node, *real_node;
-    const_node = btor_mc_a2n (mc, node, time);
+    if ((bucket = btor_find_in_ptr_hash_table (mc->latches, node)))
+    {
+      latch = bucket->data.asPtr;
+      assert (latch);
+      assert (latch->node == node);
+      node_at_time = BTOR_PEEK_STACK (frame->latches, latch->id);
+      assert (node_at_time);
+    }
+    else
+      node_at_time = node;
+
+    const_node = btor_mc_a2n (mc, node_at_time, time);
     assert (const_node);
     real_node = BTOR_REAL_ADDR_NODE (const_node);
     assert (BTOR_IS_BV_CONST_NODE (real_node));
