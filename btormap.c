@@ -33,14 +33,15 @@ btor_delete_node_map (BtorNodeMap *map)
 {
   assert (map);
 
-  Btor *btor;
   BtorPtrHashBucket *bucket;
 
-  btor = map->btor;
   for (bucket = map->table->first; bucket; bucket = bucket->next)
   {
-    btor_release_exp (btor, bucket->key);
-    btor_release_exp (btor, bucket->data.asPtr);
+    btor_release_exp (BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->key)->btor,
+                      bucket->key);
+    btor_release_exp (
+        BTOR_REAL_ADDR_NODE ((BtorNode *) bucket->data.asPtr)->btor,
+        bucket->data.asPtr);
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (map->btor->mm, map);
@@ -63,9 +64,8 @@ btor_mapped_node (BtorNodeMap *map, BtorNode *node)
 }
 
 void
-btor_map_node (Btor *btor, BtorNodeMap *map, BtorNode *src, BtorNode *dst)
+btor_map_node (BtorNodeMap *map, BtorNode *src, BtorNode *dst)
 {
-  assert (btor);
   assert (map);
   assert (src);
   assert (dst);
@@ -81,9 +81,9 @@ btor_map_node (Btor *btor, BtorNodeMap *map, BtorNode *src, BtorNode *dst)
   bucket = btor_insert_in_ptr_hash_table (map->table, src);
   assert (bucket);
   assert (bucket->key == src);
-  bucket->key = btor_copy_exp (btor, src);
+  bucket->key = btor_copy_exp (BTOR_REAL_ADDR_NODE (src)->btor, src);
   assert (!bucket->data.asPtr);
-  bucket->data.asPtr = btor_copy_exp (btor, dst);
+  bucket->data.asPtr = btor_copy_exp (BTOR_REAL_ADDR_NODE (dst)->btor, dst);
 }
 
 /*------------------------------------------------------------------------*/
@@ -174,7 +174,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
     mapped = mapper (btor, state, node);
     if (mapped)
     {
-      btor_map_node (btor, map, node, mapped);
+      btor_map_node (map, node, mapped);
       btor_release_exp (btor, mapped);
     }
     else if (!node->mark)
@@ -188,7 +188,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
     else
     {
       mapped = map_node (btor, map, node);
-      btor_map_node (btor, map, node, mapped);
+      btor_map_node (map, node, mapped);
       btor_release_exp (btor, mapped);
       assert (node->mark == 1);
       node->mark = 2;
@@ -228,14 +228,19 @@ btor_non_recursive_substitute_node (Btor *btor,
 /*------------------------------------------------------------------------*/
 
 BtorAIGMap *
-btor_new_aig_map (Btor *btor)
+btor_new_aig_map (Btor *btor, BtorAIGMgr *amgr_src, BtorAIGMgr *amgr_dst)
 {
   assert (btor);
+  assert (amgr_src);
+  assert (amgr_dst);
+
   BtorAIGMap *res;
 
   BTOR_NEW (btor->mm, res);
-  res->btor  = btor;
-  res->table = btor_new_ptr_hash_table (btor->mm, 0, 0);
+  res->btor     = btor;
+  res->amgr_src = amgr_src;
+  res->amgr_dst = amgr_dst;
+  res->table    = btor_new_ptr_hash_table (btor->mm, 0, 0);
   return res;
 }
 
@@ -263,12 +268,7 @@ btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
   assert (src);
   assert (dst);
 
-  Btor *btor;
   BtorPtrHashBucket *bucket;
-  BtorAIGMgr *amgr;
-
-  btor = map->btor;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 
   if (BTOR_IS_INVERTED_AIG (src))
   {
@@ -280,9 +280,9 @@ btor_map_aig (BtorAIGMap *map, BtorAIG *src, BtorAIG *dst)
   bucket = btor_insert_in_ptr_hash_table (map->table, src);
   assert (bucket);
   assert (bucket->key == src);
-  bucket->key = btor_copy_aig (amgr, src);
+  bucket->key = btor_copy_aig (map->amgr_src, src);
   assert (!bucket->data.asPtr);
-  bucket->data.asPtr = btor_copy_aig (amgr, dst);
+  bucket->data.asPtr = btor_copy_aig (map->amgr_dst, dst);
 }
 
 void
@@ -292,15 +292,13 @@ btor_delete_aig_map (BtorAIGMap *map)
 
   Btor *btor;
   BtorPtrHashBucket *bucket;
-  BtorAIGMgr *amgr;
 
   btor = map->btor;
-  amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
 
   for (bucket = map->table->first; bucket; bucket = bucket->next)
   {
-    btor_release_aig (amgr, bucket->key);
-    btor_release_aig (amgr, bucket->data.asPtr);
+    btor_release_aig (map->amgr_src, bucket->key);
+    btor_release_aig (map->amgr_dst, bucket->data.asPtr);
   }
   btor_delete_ptr_hash_table (map->table);
   BTOR_DELETE (btor->mm, map);

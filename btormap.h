@@ -26,16 +26,17 @@
  */
 struct BtorNodeMap
 {
-  Btor *btor;
+  Btor *btor; /* managing (owning) map internals */
   BtorPtrHashTable *table;
 };
+
 typedef struct BtorNodeMap BtorNodeMap;
 
 /*------------------------------------------------------------------------*/
 
 BtorNodeMap *btor_new_node_map (Btor *);
 BtorNode *btor_mapped_node (BtorNodeMap *, BtorNode *);
-void btor_map_node (Btor *, BtorNodeMap *, BtorNode *src, BtorNode *dst);
+void btor_map_node (BtorNodeMap *, BtorNode *src, BtorNode *dst);
 void btor_delete_node_map (BtorNodeMap *);
 
 /*------------------------------------------------------------------------*/
@@ -60,22 +61,24 @@ BtorNode *btor_non_recursive_extended_substitute_node (
     BtorNodeMapper,  // see above
     BtorNode *root);
 
-/*------------------------------------------------------------------------*/
+/*========================================================================*/
 
-/*------------------------------------------------------------------------*/
 /* Simple map for AIG node.  Same reference counting and signed/tagged
  * behavior as BtorNodeMap.
  */
 struct BtorAIGMap
 {
-  Btor *btor;
+  Btor *btor;           /* managing (owning) map internals */
+  BtorAIGMgr *amgr_src; /* managing (owning) source aigs */
+  BtorAIGMgr *amgr_dst; /* managing (owning) destination aigs */
   BtorPtrHashTable *table;
 };
+
 typedef struct BtorAIGMap BtorAIGMap;
 
 /*------------------------------------------------------------------------*/
 
-BtorAIGMap *btor_new_aig_map (Btor *);
+BtorAIGMap *btor_new_aig_map (Btor *, BtorAIGMgr *, BtorAIGMgr *);
 BtorAIG *btor_mapped_aig (BtorAIGMap *, BtorAIG *);
 void btor_map_aig (BtorAIGMap *, BtorAIG *src, BtorAIG *dst);
 void btor_delete_aig_map (BtorAIGMap *);

@@ -79,8 +79,8 @@ test_map0 ()
     {
       BtorNodeMap *map = btor_new_node_map (g_btor);
       BtorNode *d;
-      btor_map_node (g_btor, map, a, t);
-      btor_map_node (g_btor, map, b, o);
+      btor_map_node (map, a, t);
+      btor_map_node (map, b, o);
       d = btor_non_recursive_substitute_node (g_btor, map, s);
       assert (d == o);
       btor_delete_node_map (map);

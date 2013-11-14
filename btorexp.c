@@ -6551,8 +6551,13 @@ btor_print_stats_btor (Btor *btor)
       btor,
       1,
       "%.2f seconds in embedded constraint replacing during rewriting (%.0f%%)",
-      btor->time.slicing,
-      percent (btor->time.slicing, btor->time.rewrite));
+      btor->time.embedded,
+      percent (btor->time.embedded, btor->time.rewrite));
+  btor_msg_exp (btor,
+                1,
+                "%.2f seconds in beta reduction during rewriting (%.0f%%)",
+                btor->time.betareduce,
+                percent (btor->time.betareduce, btor->time.rewrite));
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
   btor_msg_exp (btor,
                 1,
@@ -9781,7 +9786,7 @@ update_assumptions (Btor *btor)
   for (bucket = btor->assumptions->first; bucket; bucket = bucket->next)
   {
     cur = (BtorNode *) bucket->key;
-    if (cur->simplified)
+    if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
       simp = btor_copy_exp (btor, btor_simplify_exp (btor, cur));
       btor_release_exp (btor, cur);
@@ -10648,7 +10653,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
   BTOR_RELEASE_STACK (mm, vars);
 
   delta = btor_time_stamp () - start;
-  btor->time.embedded += delta;
+  btor->time.slicing += delta;
   btor_msg_exp (btor, 1, "sliced %d variables in %1.f seconds", count, delta);
 }
 
@@ -11025,6 +11030,7 @@ release_cache (Btor *btor)
 static void
 beta_reduce_applies_on_lambdas (Btor *btor)
 {
+  double start = btor_time_stamp (), delta;
   assert (btor);
 
   BtorPtrHashTable *apps;
@@ -11063,8 +11069,16 @@ beta_reduce_applies_on_lambdas (Btor *btor)
 
   // TODO: do we have to release the cache for lambdas that are only referenced
   // by the cache itself? maybe a cleanup cache function?
+  btor_msg_exp (btor,
+                1,
+                "starting to beta reduce %d lamba with %d applications",
+                btor->lambdas->count,
+                apps->count);
   substitute_and_rebuild (btor, apps, 1);
   btor_delete_ptr_hash_table (apps);
+  delta = btor_time_stamp () - start;
+  btor->time.betareduce += delta;
+  btor_msg_exp (btor, 1, "beta reduced all lambdas in %.1f seconds", delta);
 }
 
 #if 0
