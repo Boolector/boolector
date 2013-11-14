@@ -14,6 +14,7 @@
 #include "btoraig.h"
 #include "btoraigvec.h"
 #include "btorbeta.h"
+#include "btorbitvec.h"
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btordump.h"
@@ -7634,6 +7635,7 @@ lazy_synthesize_and_encode_lambda_exp (Btor *btor,
   return changed_assignments;
 }
 
+#if 1
 char *
 btor_eval_exp (Btor *btor, BtorNode *exp)
 {
@@ -7641,15 +7643,15 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   assert (exp);
 
   int i;
-  char *result = 0, *inv_result;
-  char **e;
+  char *res = 0;
   double start;
   BtorMemMgr *mm;
   BtorNodePtrStack work_stack;
-  BtorCharPtrStack arg_stack;
+  BtorVoidPtrStack arg_stack;
   BtorNode *cur, *real_cur, *next;
   BtorPtrHashTable *cache;
   BtorPtrHashBucket *b;
+  BitVector *result = 0, *inv_result, **e;
 
   // TODO: return if tseitin
   BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
@@ -7670,6 +7672,234 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
   while (!BTOR_EMPTY_STACK (work_stack))
   {
     cur      = BTOR_POP_STACK (work_stack);
+    real_cur = BTOR_REAL_ADDR_NODE (cur);
+    assert (!real_cur->simplified);
+
+    /* if we do not have an assignment for an apply we cannot compute the
+     * corresponding value */
+    if (BTOR_IS_APPLY_NODE (real_cur) && !real_cur->tseitin)
+    {
+      result = 0;
+      goto EVAL_EXP_CLEANUP_EXIT;
+    }
+    else if (BTOR_IS_BV_VAR_NODE (real_cur) && !real_cur->tseitin)
+    {
+      result = 0;
+      goto EVAL_EXP_CLEANUP_EXIT;
+    }
+
+    if (real_cur->eval_mark == 0)
+    {
+      if (real_cur->tseitin)
+      {
+        assert (BTOR_IS_SYNTH_NODE (real_cur));
+        result = btor_assignment_bv (btor, real_cur);
+        goto EVAL_EXP_PUSH_RESULT;
+      }
+      else if (BTOR_IS_BV_CONST_NODE (real_cur))
+      {
+        result = btor_char_to_bv (btor, real_cur->bits);
+        goto EVAL_EXP_PUSH_RESULT;
+      }
+      /* substitute param with its assignment */
+      else if (BTOR_IS_PARAM_NODE (real_cur))
+      {
+        next = btor_param_cur_assignment (real_cur);
+        assert (next);
+        if (BTOR_IS_INVERTED_NODE (cur)) next = BTOR_INVERT_NODE (next);
+        BTOR_PUSH_STACK (mm, work_stack, next);
+        continue;
+      }
+
+      BTOR_PUSH_STACK (mm, work_stack, cur);
+      real_cur->eval_mark = 1;
+
+      for (i = 0; i < real_cur->arity; i++)
+        BTOR_PUSH_STACK (mm, work_stack, real_cur->e[i]);
+    }
+    else if (real_cur->eval_mark == 1)
+    {
+      assert (!BTOR_IS_PARAM_NODE (real_cur));
+      assert (!BTOR_IS_ARGS_NODE (real_cur));
+      assert (!BTOR_IS_FUN_NODE (real_cur));
+      assert (real_cur->arity >= 1);
+      assert (real_cur->arity <= 3);
+      assert (real_cur->arity <= BTOR_COUNT_STACK (arg_stack));
+
+      real_cur->eval_mark = 2;
+      arg_stack.top -= real_cur->arity;
+      e = (BitVector **) arg_stack.top; /* arguments in reverse order */
+
+      switch (real_cur->kind)
+      {
+        case BTOR_SLICE_NODE:
+          result = btor_slice_bv (btor, e[0], real_cur->upper, real_cur->lower);
+          btor_free_bv (btor, e[0]);
+          break;
+        case BTOR_AND_NODE:
+          result = btor_and_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_BEQ_NODE:
+          result = btor_eq_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_ADD_NODE:
+          result = btor_add_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_MUL_NODE:
+          result = btor_mul_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_ULT_NODE:
+          result = btor_ult_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_SLL_NODE:
+          result = btor_sll_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_SRL_NODE:
+          result = btor_srl_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_UDIV_NODE:
+          result = btor_udiv_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_UREM_NODE:
+          result = btor_urem_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_CONCAT_NODE:
+          result = btor_concat_bv (btor, e[1], e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          break;
+        case BTOR_BCOND_NODE:
+          if (btor_is_true_bv (e[2]))
+            result = btor_copy_bv (btor, e[1]);
+          else
+            result = btor_copy_bv (btor, e[0]);
+          btor_free_bv (btor, e[0]);
+          btor_free_bv (btor, e[1]);
+          btor_free_bv (btor, e[2]);
+          break;
+        default:
+          BTORLOG ("  *** %s", node2string (real_cur));
+          /* should be unreachable */
+          assert (0);
+      }
+
+      assert (!btor_find_in_ptr_hash_table (cache, real_cur));
+      btor_insert_in_ptr_hash_table (cache, real_cur)->data.asPtr =
+          btor_copy_bv (btor, result);
+
+    EVAL_EXP_PUSH_RESULT:
+      if (BTOR_IS_INVERTED_NODE (cur))
+      {
+        inv_result = btor_not_bv (btor, result);
+        btor_free_bv (btor, result);
+        result = inv_result;
+      }
+
+      BTOR_PUSH_STACK (mm, arg_stack, result);
+    }
+    else
+    {
+      assert (real_cur->eval_mark == 2);
+      b = btor_find_in_ptr_hash_table (cache, real_cur);
+      assert (b);
+      result = btor_copy_bv (btor, (BitVector *) b->data.asPtr);
+      goto EVAL_EXP_PUSH_RESULT;
+    }
+  }
+  assert (BTOR_COUNT_STACK (arg_stack) == 1);
+  result = BTOR_POP_STACK (arg_stack);
+  assert (result);
+
+EVAL_EXP_CLEANUP_EXIT:
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur            = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+    cur->eval_mark = 0;
+  }
+
+  while (!BTOR_EMPTY_STACK (arg_stack))
+  {
+    inv_result = BTOR_POP_STACK (arg_stack);
+    btor_free_bv (btor, inv_result);
+  }
+
+  for (b = cache->first; b; b = b->next)
+  {
+    real_cur            = (BtorNode *) b->key;
+    real_cur->eval_mark = 0;
+    btor_free_bv (btor, (BitVector *) b->data.asPtr);
+  }
+
+  BTOR_RELEASE_STACK (mm, work_stack);
+  BTOR_RELEASE_STACK (mm, arg_stack);
+  btor_delete_ptr_hash_table (cache);
+
+  //  BTORLOG ("%s: %s '%s'", __FUNCTION__, node2string (exp), result);
+  btor->time.eval += btor_time_stamp () - start;
+
+  if (result)
+  {
+    res = btor_bv_to_char_bv (btor, result);
+    btor_free_bv (btor, result);
+  }
+
+  return res;
+}
+#else
+char *
+btor_eval_exp (Btor *btor, BtorNode *exp)
+{
+  assert (btor);
+  assert (exp);
+
+  int i;
+  char *result = 0, *inv_result;
+  char **e;
+  double start;
+  BtorMemMgr *mm;
+  BtorNodePtrStack work_stack;
+  BtorCharPtrStack arg_stack;
+  BtorNode *cur, *real_cur, *next;
+  BtorPtrHashTable *cache;
+  BtorPtrHashBucket *b;
+
+  // TODO: return if tseitin
+  BTORLOG ("%s: %s", __FUNCTION__, node2string (exp));
+
+  mm = btor->mm;
+  start = btor_time_stamp ();
+  btor->stats.eval_exp_calls++;
+
+  BTOR_INIT_STACK (work_stack);
+  BTOR_INIT_STACK (arg_stack);
+  cache = btor_new_ptr_hash_table (mm,
+                                   (BtorHashPtr) btor_hash_exp_by_id,
+                                   (BtorCmpPtr) btor_compare_exp_by_id);
+
+  BTOR_PUSH_STACK (mm, work_stack, exp);
+  assert (!BTOR_REAL_ADDR_NODE (exp)->eval_mark);
+
+  while (!BTOR_EMPTY_STACK (work_stack))
+  {
+    cur = BTOR_POP_STACK (work_stack);
     real_cur = BTOR_REAL_ADDR_NODE (cur);
     assert (!real_cur->simplified);
 
@@ -7831,7 +8061,7 @@ btor_eval_exp (Btor *btor, BtorNode *exp)
 EVAL_EXP_CLEANUP_EXIT:
   while (!BTOR_EMPTY_STACK (work_stack))
   {
-    cur            = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
+    cur = BTOR_REAL_ADDR_NODE (BTOR_POP_STACK (work_stack));
     cur->eval_mark = 0;
   }
 
@@ -7843,7 +8073,7 @@ EVAL_EXP_CLEANUP_EXIT:
 
   for (b = cache->first; b; b = b->next)
   {
-    real_cur            = (BtorNode *) b->key;
+    real_cur = (BtorNode *) b->key;
     real_cur->eval_mark = 0;
     btor_freestr (mm, b->data.asStr);
   }
@@ -7856,6 +8086,7 @@ EVAL_EXP_CLEANUP_EXIT:
   btor->time.eval += btor_time_stamp () - start;
   return result;
 }
+#endif
 
 static void
 find_nodes_dfs (Btor *btor,
