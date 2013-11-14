@@ -31,3 +31,6 @@ run.sh
 doc
 *.swp
 *.trace
+btorimc
+btormbt
+.vimrc
