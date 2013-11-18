@@ -1263,9 +1263,9 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     btormbt->paramarr = tmpparamarr;
 
     /* cleanup */
-    es_reset (btormbt, &parambo);
-    es_reset (btormbt, &parambv);
-    es_reset (btormbt, &paramarr);
+    es_release (btormbt, &parambo);
+    es_release (btormbt, &parambv);
+    es_release (btormbt, &paramarr);
     free (params);
   }
 
@@ -1809,6 +1809,10 @@ _del (BtorMBT *btormbt, unsigned r)
   es_release (btormbt, &btormbt->arr);
   es_release (btormbt, &btormbt->fun);
   es_release (btormbt, &btormbt->cnf);
+
+  assert (btormbt->parambo == NULL);
+  assert (btormbt->parambv == NULL);
+  assert (btormbt->paramarr == NULL);
 
   boolector_delete (btormbt->btor);
   btormbt->btor = NULL;
