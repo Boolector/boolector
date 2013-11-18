@@ -10,7 +10,7 @@
 
 using namespace std;
 
-// This class defines the BitVector API interface
+// This class defines an industrially used BitVector API interface.
 
 class BitVector
 {
