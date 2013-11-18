@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -15,6 +16,8 @@
 #include "btoraig.h"
 #include "btormem.h"
 
+typedef struct BtorAIGMap BtorAIGMap;
+
 /*------------------------------------------------------------------------*/
 
 struct BtorAIGVec
@@ -27,12 +30,22 @@ typedef struct BtorAIGVec BtorAIGVec;
 
 typedef struct BtorAIGVecMgr BtorAIGVecMgr;
 
+struct BtorAIGVecMgr
+{
+  BtorMemMgr *mm;
+  BtorAIGMgr *amgr;
+  int verbosity;
+};
+
 /*------------------------------------------------------------------------*/
 
 /* Creates new AIG vector manager. An AIG vector manager is used by nearly
  * all functions of the AIG vector layer.
  */
 BtorAIGVecMgr *btor_new_aigvec_mgr (BtorMemMgr *mm);
+
+/* Clones AIG vector manager. */
+BtorAIGVecMgr *btor_clone_aigvec_mgr (BtorMemMgr *mm, BtorAIGVecMgr *avmgr);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aigvec_mgr (BtorAIGVecMgr *avmgr, int verbosity);
@@ -171,6 +184,11 @@ BtorAIGVec *btor_cond_aigvec (BtorAIGVecMgr *avmgr,
  * len(result) = len(av)
  */
 BtorAIGVec *btor_copy_aigvec (BtorAIGVecMgr *avmgr, BtorAIGVec *av);
+
+/* Clones an existing AIG vector. All aigs referenced must already be cloned. */
+BtorAIGVec *btor_clone_aigvec (BtorAIGVec *av,
+                               BtorAIGVecMgr *avmgr,
+                               BtorAIGMap *aig_map);
 
 /* Translates every AIG of the AIG vector into SAT in both phases  */
 void btor_aigvec_to_sat_tseitin (BtorAIGVecMgr *avmgr, BtorAIGVec *av);

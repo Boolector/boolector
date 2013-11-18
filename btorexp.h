@@ -89,6 +89,7 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 /*------------------------------------------------------------------------*/
 
 BTOR_DECLARE_STACK (NodePtr, BtorNode *);
+BTOR_DECLARE_STACK (NodePtrPtr, BtorNode **);
 
 BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
 
@@ -408,6 +409,8 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
 
+  Btor *clone;
+
   FILE *apitrace;
   int closeapitrace;
 
@@ -645,9 +648,6 @@ struct Btor
 
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
-
-/* Clone an existing boolector instance. */
-Btor *btor_clone_btor (Btor *);
 
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);

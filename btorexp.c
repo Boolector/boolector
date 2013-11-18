@@ -1255,6 +1255,7 @@ remove_from_nodes_unique_table_exp (Btor *btor, BtorNode *exp)
   btor->nodes_unique_table.num_elements--;
 
   exp->unique = 0; /* NOTE: this is not debugging code ! */
+  exp->next   = 0;
 }
 
 static void
@@ -1379,15 +1380,10 @@ erase_local_data_exp (Btor *btor, BtorNode *exp, int free_symbol)
     case BTOR_PARAM_NODE:
       assert (BTOR_EMPTY_STACK (((BtorParamNode *) exp)->assigned_exp));
       BTOR_RELEASE_STACK (mm, ((BtorParamNode *) exp)->assigned_exp);
+      /* fall through wanted */
+    case BTOR_PROXY_NODE:
     case BTOR_BV_VAR_NODE:
       if (free_symbol)
-      {
-        btor_freestr (mm, exp->symbol);
-        exp->symbol = 0;
-      }
-      break;
-    case BTOR_PROXY_NODE:
-      if (free_symbol && exp->symbol)
       {
         btor_freestr (mm, exp->symbol);
         exp->symbol = 0;
@@ -6064,22 +6060,6 @@ btor_new_btor (void)
   return btor;
 }
 
-Btor *
-btor_clone_btor (Btor *orig)
-{
-  BtorMemMgr *mm;
-  Btor *btor;
-
-  (void) orig;
-
-  mm = btor_new_mem_mgr ();
-  BTOR_CNEW (mm, btor);
-
-  btor->mm = mm;
-
-  return btor;
-}
-
 void
 btor_set_rewrite_level_btor (Btor *btor, int rewrite_level)
 {
@@ -9549,19 +9529,34 @@ process_unsynthesized_constraints (Btor *btor)
 static void
 update_assumptions (Btor *btor)
 {
-  BtorPtrHashBucket *bucket;
-  BtorNode *cur, *simp;
   assert (btor);
-  for (bucket = btor->assumptions->first; bucket; bucket = bucket->next)
+
+  BtorPtrHashTable *ass;
+  BtorPtrHashBucket *b;
+  BtorNode *cur, *simp;
+
+  ass = btor_new_ptr_hash_table (btor->mm,
+                                 (BtorHashPtr) btor_hash_exp_by_id,
+                                 (BtorCmpPtr) btor_compare_exp_by_id);
+
+  for (b = btor->assumptions->first; b; b = b->next)
   {
-    cur = (BtorNode *) bucket->key;
+    cur = (BtorNode *) b->key;
     if (BTOR_REAL_ADDR_NODE (cur)->simplified)
     {
-      simp = btor_copy_exp (btor, btor_simplify_exp (btor, cur));
+      simp = btor_simplify_exp (btor, cur);
+      if (!btor_find_in_ptr_hash_table (ass, simp))
+        btor_insert_in_ptr_hash_table (ass, btor_copy_exp (btor, simp));
       btor_release_exp (btor, cur);
-      bucket->key = simp;
+    }
+    else
+    {
+      assert (!btor_find_in_ptr_hash_table (ass, cur));
+      btor_insert_in_ptr_hash_table (ass, cur);
     }
   }
+  btor_delete_ptr_hash_table (btor->assumptions);
+  btor->assumptions = ass;
 }
 
 /* we perform all variable substitutions in one pass and rebuild the formula

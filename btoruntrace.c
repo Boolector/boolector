@@ -22,6 +22,8 @@
 static int verbose, exitonabort, lineno, skip, ignore_sat;
 static const char *name;
 
+void boolector_chkclone (Btor *);
+
 /*------------------------------------------------------------------------*/
 
 static void
@@ -263,6 +265,11 @@ NEXT:
     }
     exp_ret = RET_NONE;
   }
+  else if (!strcmp (tok, "chkclone"))
+  {
+    PARSE_ARGS0 (tok);
+    boolector_chkclone (btor);
+  }
   else if (!strcmp (tok, "new"))
   {
     PARSE_ARGS0 (tok);
@@ -270,7 +277,7 @@ NEXT:
   }
   else if (!strcmp (tok, "clone"))
   {
-    perr ("TODO!!! not implemented");
+    /* do nothing, all clone checking via shadow clone */
   }
   else if (!strcmp (tok, "enable_model_gen"))
   {
