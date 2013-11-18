@@ -321,25 +321,30 @@ clone_nodes_id_table (Btor *clone,
   if (BTOR_SIZE_STACK (*id_table))
   {
     BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*id_table));
-    res->top = res->start;
+    res->top = res->start + BTOR_COUNT_STACK (*id_table);
     res->end = res->start + BTOR_SIZE_STACK (*id_table);
-    BTOR_PUSH_STACK (mm, *res, 0);
+    // BTOR_PUSH_STACK (mm, *res, 0);
+    res->start[0] = 0;
 
     /* first element (id = 0) is empty */
     for (i = 1; i < BTOR_COUNT_STACK (*id_table); i++)
     {
-      BTOR_PUSH_STACK (mm,
-                       *res,
-                       id_table->start[i] ? clone_exp (clone,
-                                                       id_table->start[i],
-                                                       &parents,
-                                                       &nodes,
-                                                       &rhos,
-                                                       &aexps,
-                                                       &sapps,
-                                                       exp_map,
-                                                       aig_map)
-                                          : id_table->start[i]);
+      //  BTOR_PUSH_STACK (mm, *res,
+      //		   id_table->start[i]
+      //		      ? clone_exp (
+      //			    clone, id_table->start[i], &parents, &nodes,
+      //			    &rhos, &aexps, &sapps, exp_map, aig_map)
+      //		      : id_table->start[i]);
+      res->start[i] = id_table->start[i] ? clone_exp (clone,
+                                                      id_table->start[i],
+                                                      &parents,
+                                                      &nodes,
+                                                      &rhos,
+                                                      &aexps,
+                                                      &sapps,
+                                                      exp_map,
+                                                      aig_map)
+                                         : id_table->start[i];
       assert (!id_table->start[i] || res->start[i]->id == i);
     }
   }
