@@ -3,8 +3,6 @@
 
 // (C) 2012-2013, Armin Biere, Johannes Kepler University Linz, Austria.
 
-// This is modelled after the Intel sequential Bit-Vector API.
-
 #include <cassert>
 #include <functional>
 #include <string>
