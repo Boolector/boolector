@@ -475,7 +475,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
   BTOR_CHKCLONE_EXP (parents);
   BTOR_CHKCLONE_EXP (arity);
 
-  /* rho is not cloned, hence not checked */
   if (!BTOR_IS_ARRAY_NODE (real_exp))
   {
     if (real_exp->av)
@@ -487,6 +486,7 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (real_exp->av == real_clone->av);
   }
+  // TODO CHECK RHO
 
   BTOR_CHKCLONE_EXPPID (next);
   /* Note: parent node used during BFS only, pointer is not reset after bfs,
