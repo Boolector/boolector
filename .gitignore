@@ -34,3 +34,5 @@ doc
 btorimc
 btormbt
 .vimrc
+api/python/*.c
+api/python/*.so
