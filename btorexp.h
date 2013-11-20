@@ -170,12 +170,13 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int chain : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
-    char *bits;  /* three-valued bits */                                \
-    int id;      /* unique expression id */                             \
-    int len;     /* number of bits */                                   \
-    int refs;    /* reference counter */                                \
-    int parents; /* number of parents */                                \
-    int arity;   /* arity of operator */                                \
+    char *bits;   /* three-valued bits */                               \
+    int id;       /* unique expression id */                            \
+    int len;      /* number of bits */                                  \
+    int refs;     /* reference counter */                               \
+    int ext_refs; /* external references counter */                     \
+    int parents;  /* number of parents */                               \
+    int arity;    /* arity of operator */                               \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
