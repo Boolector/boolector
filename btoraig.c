@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -12,6 +13,7 @@
 #include "btoraig.h"
 #include "btorexit.h"
 #include "btorhash.h"
+#include "btormap.h"
 #include "btorsat.h"
 #include "btorutil.h"
 
@@ -20,27 +22,6 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-
-/*------------------------------------------------------------------------*/
-
-struct BtorAIGUniqueTable
-{
-  int size;
-  int num_elements;
-  BtorAIG **chains;
-};
-
-typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
-
-struct BtorAIGMgr
-{
-  BtorMemMgr *mm;
-  BtorAIGUniqueTable table;
-  int id;
-  int verbosity;
-  BtorSATMgr *smgr;
-  BtorAIGPtrStack id2aig;
-};
 
 /*------------------------------------------------------------------------*/
 
@@ -1035,6 +1016,191 @@ btor_new_aig_mgr (BtorMemMgr *mm)
   amgr->smgr      = btor_new_sat_mgr (mm);
   BTOR_INIT_STACK (amgr->id2aig);
   return amgr;
+}
+
+BtorAIGMgr *
+btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr)
+{
+  assert (amgr);
+  assert (mm);
+
+  BtorAIGMgr *res;
+
+  BTOR_CNEW (mm, res);
+  res->mm = mm;
+
+  res->id        = amgr->id;
+  res->verbosity = amgr->verbosity;
+  res->smgr      = btor_clone_sat_mgr (amgr->smgr, mm);
+  /* Note: we do not yet clone aigs here (we need the clone of the aig
+   *       manager for that). */
+  return res;
+}
+
+static BtorAIG *
+clone_aig (BtorMemMgr *mm,
+           BtorAIG *aig,
+           BtorAIGPtrPtrStack *children,
+           BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (aig);
+  assert (aig_map);
+
+  int i;
+  BtorAIG *res, *real_aig;
+
+  if (BTOR_IS_CONST_AIG (aig)) return aig;
+
+  real_aig = BTOR_REAL_ADDR_AIG (aig);
+  BTOR_NEW (mm, res);
+  memcpy (res, real_aig, sizeof *real_aig);
+
+  for (i = 0; i < 2; i++)
+    BTOR_PUSH_STACK_IF (children && !BTOR_IS_CONST_AIG (real_aig->children[i]),
+                        mm,
+                        *children,
+                        &res->children[i]);
+  /* Note: next is not cloned here (no recursion). */
+  res = BTOR_IS_INVERTED_AIG (aig) ? BTOR_INVERT_AIG (res) : res;
+  btor_map_aig (aig_map, aig, res);
+  return res;
+}
+
+static void
+clone_aig_unique_table (BtorMemMgr *mm,
+                        BtorAIGUniqueTable *table,
+                        BtorAIGUniqueTable *res,
+                        BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (table);
+  assert (res);
+  assert (aig_map);
+
+  int i;
+  BtorAIG *cur, *ccur, **c, *caig;
+  BtorAIGPtrPtrStack children;
+
+  BTOR_INIT_STACK (children);
+
+  BTOR_CNEWN (mm, res->chains, table->size);
+  res->size         = table->size;
+  res->num_elements = table->num_elements;
+
+  for (i = 0; i < table->size; i++)
+  {
+    if (!table->chains[i]) continue;
+
+    res->chains[i] = clone_aig (mm, table->chains[i], &children, aig_map);
+    assert (!BTOR_IS_CONST_AIG (res->chains[i]));
+
+    cur  = table->chains[i];
+    ccur = res->chains[i];
+    while (cur->next)
+    {
+      ccur->next = clone_aig (mm, cur->next, &children, aig_map);
+      assert (!BTOR_IS_CONST_AIG (ccur->next));
+      cur  = cur->next;
+      ccur = ccur->next;
+    }
+  }
+
+  while (!BTOR_EMPTY_STACK (children))
+  {
+    c = BTOR_POP_STACK (children);
+    assert (*c);
+    caig = btor_mapped_aig (aig_map, *c);
+    if (!caig)
+    {
+      assert (BTOR_LEFT_CHILD_AIG (BTOR_REAL_ADDR_AIG (*c)) == 0);
+      assert (BTOR_RIGHT_CHILD_AIG (BTOR_REAL_ADDR_AIG (*c)) == 0);
+      caig = clone_aig (mm, *c, 0, aig_map);
+    }
+    assert (caig);
+    *c = caig;
+  }
+
+  BTOR_RELEASE_STACK (mm, children);
+}
+
+static void
+clone_aig_id2aig (BtorMemMgr *mm,
+                  BtorAIGPtrStack *id2aig,
+                  BtorAIGPtrStack *res,
+                  BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (id2aig);
+  assert (res);
+  assert (aig_map);
+
+  int i;
+  BtorAIG *caig;
+
+  BTOR_INIT_STACK (*res);
+  if (BTOR_SIZE_STACK (*id2aig))
+  {
+    BTOR_CNEWN (mm, res->start, BTOR_SIZE_STACK (*id2aig));
+    res->top = res->start;
+    res->end = res->start + BTOR_SIZE_STACK (*id2aig);
+  }
+
+  /* Note: id2aig is not actually used as a stack, but a 1:1 mapping from
+   *	   cnf id to aig. BTOR_COUNT_STACK (id2aig) is always 0 (elements
+   *	   are not pushed via BTOR_PUSH_STACK, which further results in
+   *	   stack size handling via BTOR_FIT_STACK). id2aig may be sparse,
+   *	   unused cnf ids map to 0. */
+  for (i = 0; i < BTOR_SIZE_STACK (*id2aig); i++)
+  {
+    if (!id2aig->start[i]) continue;
+    caig = btor_mapped_aig (aig_map, id2aig->start[i]);
+    if (!caig)
+    {
+      assert (BTOR_LEFT_CHILD_AIG (id2aig->start[i]) == 0);
+      assert (BTOR_RIGHT_CHILD_AIG (id2aig->start[i]) == 0);
+      caig = clone_aig (mm, id2aig->start[i], 0, aig_map);
+      assert (BTOR_LEFT_CHILD_AIG (caig) == 0);
+      assert (BTOR_RIGHT_CHILD_AIG (caig) == 0);
+    }
+    assert (caig);
+    res->start[i] = caig;
+  }
+  assert (BTOR_COUNT_STACK (*res) == BTOR_COUNT_STACK (*id2aig));
+  assert (BTOR_SIZE_STACK (*res) == BTOR_SIZE_STACK (*id2aig));
+}
+
+void
+btor_clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone, BtorAIGMap *aig_map)
+{
+  assert (amgr);
+  assert (clone);
+  assert (aig_map);
+
+  clone_aig_unique_table (clone->mm, &amgr->table, &clone->table, aig_map);
+  clone_aig_id2aig (clone->mm, &amgr->id2aig, &clone->id2aig, aig_map);
+}
+
+BtorAIG *
+btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map)
+{
+  assert (mm);
+  assert (aig);
+  assert (aig_map);
+
+  BtorAIG *caig;
+
+  if (BTOR_IS_CONST_AIG (aig)) return aig;
+
+  caig = btor_mapped_aig (aig_map, aig);
+  if (!caig)
+  {
+    assert (BTOR_LEFT_CHILD_AIG (aig) == 0);
+    assert (BTOR_RIGHT_CHILD_AIG (aig) == 0);
+    caig = clone_aig (mm, aig, 0, aig_map);
+  }
+  assert (caig);
+  return caig;
 }
 
 void

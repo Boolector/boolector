@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
  *  Copyright (C) 2012 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -64,12 +65,16 @@ btor_msg_sat (BtorSATMgr *smgr, int level, const char *fmt, ...)
 /*------------------------------------------------------------------------*/
 
 #if defined(BTOR_USE_LINGELING)
+static BtorLGL *btor_clone_lingeling (BtorLGL *, BtorMemMgr *);
+
 int btor_enable_lingeling_sat (BtorSATMgr *, const char *optstr, int nofork);
+
 #define btor_enable_default_sat(SMGR)         \
   do                                          \
   {                                           \
     btor_enable_lingeling_sat ((SMGR), 0, 0); \
   } while (0)
+
 #elif defined(BTOR_USE_PICOSAT)
 void btor_enable_picosat_sat (BtorSATMgr *);
 #define btor_enable_default_sat btor_enable_picosat_sat
@@ -89,18 +94,36 @@ btor_new_sat_mgr (BtorMemMgr *mm)
 
   assert (mm != NULL);
 
-  BTOR_NEW (mm, smgr);
-
-  smgr->verbosity   = 0;
-  smgr->mm          = mm;
-  smgr->satcalls    = 0;
-  smgr->initialized = 0;
-  smgr->clauses = smgr->maxvar = 0;
-  smgr->output                 = stdout;
-
+  BTOR_CNEW (mm, smgr);
+  smgr->mm     = mm;
+  smgr->output = stdout;
   btor_enable_default_sat (smgr);
 
   return smgr;
+}
+
+// FIXME log output handling, in particular: sat manager name output
+// (see btor_lingeling_sat) should be unique, which is not the case for
+// clones
+BtorSATMgr *
+btor_clone_sat_mgr (BtorSATMgr *smgr, BtorMemMgr *mm)
+{
+  assert (smgr);
+  assert (!strcmp (smgr->name, "Lingeling"));
+  assert (mm);
+
+  BtorSATMgr *res;
+
+  BTOR_NEW (mm, res);
+  res->solver = btor_clone_lingeling (smgr->solver, mm);
+  res->mm     = mm;
+  assert (res->mm->sat_allocated == smgr->mm->sat_allocated);
+  res->name   = smgr->name;
+  res->optstr = btor_strdup (mm, smgr->optstr);
+  memcpy (&res->verbosity,
+          &smgr->verbosity,
+          (char *) smgr + sizeof (*smgr) - (char *) &smgr->verbosity);
+  return res;
 }
 
 void
@@ -489,13 +512,27 @@ btor_enable_picosat_sat (BtorSATMgr *smgr)
 /*------------------------------------------------------------------------*/
 #ifdef BTOR_USE_LINGELING
 
-typedef struct BtorLGL BtorLGL;
-
-struct BtorLGL
+static BtorLGL *
+btor_clone_lingeling (BtorLGL *solver, BtorMemMgr *mm)
 {
-  LGL *lgl;
-  int nforked, blimit;
-};
+  assert (mm);
+
+  BtorLGL *res;
+
+  if (!solver) return 0;
+
+  assert (solver->lgl);
+
+  BTOR_CNEW (mm, res);
+  res->nforked = solver->nforked;
+  res->blimit  = solver->blimit;
+  res->lgl     = lglmclone (solver->lgl,
+                        mm,
+                        (lglalloc) btor_sat_malloc,
+                        (lglrealloc) btor_sat_realloc,
+                        (lgldealloc) btor_sat_free);
+  return res;
+}
 
 static int
 btor_passdown_lingeling_options (BtorSATMgr *smgr,

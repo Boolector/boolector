@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -22,6 +23,8 @@ typedef struct BtorSATMgr BtorSATMgr;
 
 struct BtorSATMgr
 {
+  /* Note: direct solver reference for PicoSAT, wrapper object for for
+   *	   Lingeling (BtorLGL) and MiniSAT (BtorMiniSAT). */
   void *solver;
 
   BtorMemMgr *mm;
@@ -67,6 +70,17 @@ struct BtorSATMgr
   } api;
 };
 
+#if defined(BTOR_USE_LINGELING)
+#include "../lingeling/lglib.h"
+typedef struct BtorLGL BtorLGL;
+
+struct BtorLGL
+{
+  LGL *lgl;
+  int nforked, blimit;
+};
+#endif
+
 /*------------------------------------------------------------------------*/
 
 #define BTOR_MEM_MGR_SAT(SMGR) ((SMGR)->mm)
@@ -84,6 +98,9 @@ struct BtorSATMgr
  * A SAT manager is used by nearly all functions of the SAT layer.
  */
 BtorSATMgr *btor_new_sat_mgr (BtorMemMgr *mm);
+
+/* Clones existing SAT manager (and underlying SAT solver). */
+BtorSATMgr *btor_clone_sat_mgr (BtorSATMgr *smgr, BtorMemMgr *mm);
 
 BtorMemMgr *btor_mem_mgr_sat (BtorSATMgr *smgr);
 

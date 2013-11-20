@@ -40,14 +40,15 @@
 #define MAX_NNESTEDBFUNS 50
 
 #define BTORMBT_USAGE                         \
-  "usage: btormbt [-k][-q][-f][-a]\n"         \
+  "usage: btormbt [<option>]\n"               \
   "\n"                                        \
   "where <option> is one of the following:\n" \
   "\n"                                        \
-  "  -k | --keep-lines\n"                     \
-  "  -q | --quiet\n"                          \
-  "  -f | --first-bug-only\n"                 \
-  "  -a | --always-fork\n"                    \
+  "  -k, --keep-lines\n"                      \
+  "  -q, --quiet\n"                           \
+  "  -f, --first-bug-only\n"                  \
+  "  -a, --always-fork\n"                     \
+  "  -n, --no-modelgen\n"                     \
   "  -e | --no-extensionality\n"              \
   "\n"                                        \
   "  -m <maxruns>\n"
@@ -100,9 +101,9 @@ typedef struct RNG
 
 typedef struct Env
 {
-  int seed, quiet, alwaysfork, round, bugs, first, forked, print, noext;
+  int terminal, quiet, first, alwaysfork, nomgen, noext;
+  int seed, round, bugs, forked;
   int ppid; /* parent pid */
-  int terminal;
   RNG rng;
 } Env;
 
@@ -235,6 +236,8 @@ typedef void *(*State) (BtorMBT *, unsigned rand);
 
 static double start_time;
 static Env env;
+
+void boolector_chkclone (Btor *);
 
 /*------------------------------------------------------------------------*/
 
@@ -923,8 +926,8 @@ selexp (
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
 
-  assert (btormbt->parambo);
-  assert (btormbt->parambv);
+  assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
+          || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
@@ -1025,8 +1028,9 @@ selarrexp (BtorMBT *btormbt,
 
   /* choose between param. exps and non-param. exps with p = 0.5 */
   rand = pick (rng, 0, NORM_VAL - 1);
-  assert (btormbt->parambo);
-  assert (btormbt->parambv);
+
+  assert ((!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
+          || (btormbt->parambo && btormbt->parambv && btormbt->paramarr));
   if (force_param == -1
       || (!btormbt->parambo && !btormbt->parambv && !btormbt->paramarr)
       || (!btormbt->parambo->n && !btormbt->parambv->n && !btormbt->paramarr->n)
@@ -1259,9 +1263,9 @@ bfun (BtorMBT *btormbt, unsigned r, int *nparams, int *width, int nlevel)
     btormbt->paramarr = tmpparamarr;
 
     /* cleanup */
-    es_reset (btormbt, &parambo);
-    es_reset (btormbt, &parambv);
-    es_reset (btormbt, &paramarr);
+    es_release (btormbt, &parambo);
+    es_release (btormbt, &parambv);
+    es_release (btormbt, &paramarr);
     free (params);
   }
 
@@ -1352,19 +1356,19 @@ _opt (BtorMBT *btormbt, unsigned r)
 
   if (pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "[btormbt] enable model generation\n");
+    BTORMBT_LOG (1, btormbt, "enable model generation\n");
     boolector_enable_model_gen (btormbt->btor);
-    btormbt->mgen = 1;
+    btormbt->mgen = env.nomgen ? 0 : 1;
   }
   if (pick (&rng, 0, 1))
   {
-    BTORMBT_LOG (1, btormbt, "[btormbt] enable incremental usage\n");
+    BTORMBT_LOG (1, btormbt, "enable incremental usage\n");
     boolector_enable_inc_usage (btormbt->btor);
     btormbt->inc = 1;
   }
 
   rw = pick (&rng, 0, 3);
-  BTORMBT_LOG (1, btormbt, "[btormbt] set rewrite level %d \n", rw);
+  BTORMBT_LOG (1, btormbt, "set rewrite level %d \n", rw);
   boolector_set_rewrite_level (btormbt->btor, rw);
 
   return _init;
@@ -1397,13 +1401,12 @@ _init (BtorMBT *btormbt, unsigned r)
       return _relop;
   }
 
-  BTORMBT_LOG (
-      1,
-      btormbt,
-      "[btormbt] after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
-      btormbt->bo.n,
-      btormbt->bv.n,
-      btormbt->arr.n);
+  BTORMBT_LOG (1,
+               btormbt,
+               "after init: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               btormbt->bo.n,
+               btormbt->bv.n,
+               btormbt->arr.n);
 
   btormbt->bo.initlayer  = btormbt->bo.n;
   btormbt->bv.initlayer  = btormbt->bv.n;
@@ -1440,12 +1443,11 @@ _init (BtorMBT *btormbt, unsigned r)
 
   BTORMBT_LOG (1,
                btormbt,
-               "[btormbt] main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
+               "main: pick %d ops (add:rel=%0.1f%%:%0.1f%%)\n",
                btormbt->nops,
                btormbt->p_addop / 10,
                btormbt->p_relop / 10);
-  BTORMBT_LOG (
-      1, btormbt, "[btormbt]       make ~%d asserts/assumes \n", btormbt->nass);
+  BTORMBT_LOG (1, btormbt, "      make ~%d asserts/assumes \n", btormbt->nass);
 
   btormbt->isinit = 1;
   return _main;
@@ -1478,16 +1480,15 @@ _main (BtorMBT *btormbt, unsigned r)
     }
   }
 
-  BTORMBT_LOG (
-      1,
-      btormbt,
-      "[btormbt] after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
-      btormbt->bo.n,
-      btormbt->bv.n,
-      btormbt->arr.n);
   BTORMBT_LOG (1,
                btormbt,
-               "[btormbt] after main: number of asserts: %d, assumps: %d \n",
+               "after main: nexps: booleans %d, bitvectors %d, arrays %d \n",
+               btormbt->bo.n,
+               btormbt->bv.n,
+               btormbt->arr.n);
+  BTORMBT_LOG (1,
+               btormbt,
+               "after main: number of asserts: %d, assumps: %d \n",
                btormbt->totasserts,
                btormbt->nassume);
 
@@ -1673,22 +1674,55 @@ _ass (BtorMBT *btormbt, unsigned r)
   return _main;
 }
 
+#define BTORMBT_CLONED_EXP(exp)                                            \
+  (btormbt->btor->clone                                                    \
+       ? (BTOR_IS_INVERTED_NODE (exp)                                      \
+              ? BTOR_INVERT_NODE (                                         \
+                    BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table, \
+                                     BTOR_REAL_ADDR_NODE (exp)->id))       \
+              : BTOR_PEEK_STACK (btormbt->btor->clone->nodes_id_table,     \
+                                 BTOR_REAL_ADDR_NODE (exp)->id))           \
+       : 0)
+
 static void *
 _sat (BtorMBT *btormbt, unsigned r)
 {
-  BTORMBT_UNUSED (r);
-  int res;
+  int i, res;
+  RNG rng;
 
-  BTORMBT_LOG (1, btormbt, "[btormbt] call sat...\n");
+  BTORMBT_LOG (1, btormbt, "call sat...\n");
+
+  rng = initrng (r);
+  if (!btormbt->btor->clone || !pick (&rng, 0, 50))
+  {
+    /* release clones of external refs */
+    for (i = 0; btormbt->btor->clone && i < btormbt->bo.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->bo.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->bv.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->bv.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->arr.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->arr.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->fun.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->fun.exps[i].exp));
+    for (i = 0; btormbt->btor->clone && i < btormbt->cnf.n; i++)
+      boolector_release (btormbt->btor->clone,
+                         BTORMBT_CLONED_EXP (btormbt->cnf.exps[i].exp));
+
+    boolector_chkclone (btormbt->btor);
+  }
 
   res = boolector_sat (btormbt->btor);
 
   if (res == BOOLECTOR_UNSAT)
-    BTORMBT_LOG (1, btormbt, "[btormbt] unsat\n");
+    BTORMBT_LOG (1, btormbt, "unsat\n");
   else if (res == BOOLECTOR_SAT)
-    BTORMBT_LOG (1, btormbt, "[btormbt] sat\n");
+    BTORMBT_LOG (1, btormbt, "sat\n");
   else
-    BTORMBT_LOG (1, btormbt, "[btormbt]  sat call returned %d\n", res);
+    BTORMBT_LOG (1, btormbt, "sat call returned %d\n", res);
 
   return btormbt->mgen && res == BOOLECTOR_SAT ? _mgen : _inc;
 }
@@ -1751,14 +1785,12 @@ _inc (BtorMBT *btormbt, unsigned r)
 
     BTORMBT_LOG (1,
                  btormbt,
-                 "[btormbt] inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
+                 "inc: pick %d ops(add:rel=%0.1f%%:%0.1f%%) \n",
                  btormbt->nops,
                  btormbt->p_addop / 10,
                  btormbt->p_relop / 10);
-    BTORMBT_LOG (btormbt->inc,
-                 btormbt,
-                 "[btormbt] number of increments: %d \n",
-                 btormbt->inc - 1);
+    BTORMBT_LOG (
+        btormbt->inc, btormbt, "number of increments: %d \n", btormbt->inc - 1);
 
     return _main;
   }
@@ -1778,20 +1810,24 @@ _del (BtorMBT *btormbt, unsigned r)
   es_release (btormbt, &btormbt->fun);
   es_release (btormbt, &btormbt->cnf);
 
+  assert (btormbt->parambo == NULL);
+  assert (btormbt->parambv == NULL);
+  assert (btormbt->paramarr == NULL);
+
   boolector_delete (btormbt->btor);
   btormbt->btor = NULL;
   return 0;
 }
 
 static void
-rantrav (Env *env)
+rantrav (void)
 {
   State state, next;
   unsigned rand;
   BtorMBT btormbt;
   memset (&btormbt, 0, sizeof btormbt);
 
-  btormbt.print = !env->quiet;
+  btormbt.print = !env.quiet;
   memset (&btormbt.bo, 0, sizeof (btormbt.bo));
   memset (&btormbt.bv, 0, sizeof (btormbt.bv));
   memset (&btormbt.arr, 0, sizeof (btormbt.arr));
@@ -1799,23 +1835,24 @@ rantrav (Env *env)
   memset (&btormbt.cnf, 0, sizeof (btormbt.cnf));
   btormbt.parambo = btormbt.parambv = btormbt.paramarr = NULL;
 
-  env->rng.z = env->rng.w = env->seed;
+  env.rng.z = env.rng.w = env.seed;
 
   /* state loop */
   for (state = _new; state; state = next)
   {
-    rand = nextrand (&env->rng);
+    rand = nextrand (&env.rng);
     next = state (&btormbt, rand);
   }
 }
 
 static int
-run (Env *env, void (*process) (Env *))
+run (void (*process) (void))
 {
   int res, status, saved1, saved2, null;
   pid_t id;
+
   (void) saved1;
-  env->forked++;
+  env.forked++;
   fflush (stdout);
   if ((id = fork ()))
   {
@@ -1850,7 +1887,7 @@ run (Env *env, void (*process) (Env *))
 #ifndef NDEBUG
     assert (tmp == 2);
 #endif
-    process (env);
+    process ();
     close (null);
     close (2);
 #ifndef NDEBUG
@@ -1877,16 +1914,16 @@ run (Env *env, void (*process) (Env *))
   if (WIFEXITED (status))
   {
     res = WEXITSTATUS (status);
-    if (env->print) printf ("exit %d ", res);
+    if (!env.quiet) printf ("exit %d ", res);
   }
   else if (WIFSIGNALED (status))
   {
-    if (env->print) printf ("signal %d", WTERMSIG (status));
+    if (!env.quiet) printf ("signal %d", WTERMSIG (status));
     res = 1;
   }
   else
   {
-    if (env->print) printf ("unknown");
+    if (!env.quiet) printf ("unknown");
     res = 1;
   }
   return res;
@@ -1977,13 +2014,11 @@ static void
 stats (void)
 {
   double t = get_time ();
-  printf ("[btormbt] finished after %0.2f seconds\n", t);
-  printf ("[btormbt] %d rounds = %0.2f rounds per second\n",
+  printf ("finished after %0.2f seconds\n", t);
+  printf ("%d rounds = %0.2f rounds per second\n",
           env.round,
           average (env.round, t));
-  printf ("[btormbt] %d bugs = %0.2f bugs per second\n",
-          env.bugs,
-          average (env.bugs, t));
+  printf ("%d bugs = %0.2f bugs per second\n", env.bugs, average (env.bugs, t));
 }
 
 #ifdef __GNUC__
@@ -2065,6 +2100,8 @@ main (int argc, char **argv)
       env.alwaysfork = 1;
     else if (!strcmp (argv[i], "-f") || !strcmp (argv[i], "--first-bug-only"))
       env.first = 1;
+    else if (!strcmp (argv[i], "-n") || !strcmp (argv[i], "--no-modelgen"))
+      env.nomgen = 1;
     else if (!strcmp (argv[i], "-e")
              || !strcmp (argv[i], "--no-extensionality"))
       env.noext = 1;
@@ -2091,14 +2128,13 @@ main (int argc, char **argv)
     sprintf (name, "/tmp/bug-%d-mbt.trace", getpid ());
     setenv ("BTORAPITRACE", name, 1);
   }
-  env.print = !env.quiet;
 
   env.ppid = getpid ();
   setsighandlers ();
 
   if (env.seed >= 0 && !env.alwaysfork)
   {
-    rantrav (&env);
+    rantrav ();
     printf ("\n");
   }
   else
@@ -2128,7 +2164,7 @@ main (int argc, char **argv)
         fflush (stdout);
       }
 
-      res = run (&env, rantrav);
+      res = run (rantrav);
 
       if (res > 0)
       {
@@ -2139,7 +2175,7 @@ main (int argc, char **argv)
 
         if (system (cmd))
         {
-          printf (" [btormbt] Error on copy command %s \n", cmd);
+          printf ("Error on copy command %s \n", cmd);
           exit (1);
         }
 

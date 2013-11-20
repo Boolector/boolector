@@ -11,8 +11,9 @@ cscope.out
 *~
 makefile
 boolector
+btormbt
 btoruntrace
-boolector2
+btoric3
 synthebtor
 basicbtor
 btorimc
