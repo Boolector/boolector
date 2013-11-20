@@ -2815,7 +2815,7 @@ boolector_sat (Btor *btor)
 char *
 boolector_bv_assignment (Btor *btor, BtorNode *exp)
 {
-  char *res;
+  char *ass, *res;
   BtorNode *simp;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -2829,8 +2829,22 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
-  res = btor_bv_assignment_exp (btor, simp);
-  // TODO CLONE
+  ass = btor_bv_assignment_exp (btor, simp);
+  res = malloc (BTOR_REAL_ADDR_NODE (exp)->len + 1);
+  strcpy (res, ass);
+  btor_free_bv_assignment_exp (btor, ass);
+
+  if (btor->clone)
+  {
+    char *cloneres =
+        boolector_bv_assignment (btor->clone, BTOR_CLONED_EXP (exp));
+    assert (!strcmp (cloneres, res));
+    BTOR_CHKCLONE ();
+    /* Note: clone result is immediately released,
+     *       boolector_free_bv_assignment is not mirrored! */
+    free (cloneres);
+  }
+  BTOR_CHKCLONE_RES_STR (res, boolector_bv_assignment, exp);
   BTOR_TRAPI_RETURN_PTR (res);
   return res;
 }
@@ -2841,14 +2855,21 @@ boolector_free_bv_assignment (Btor *btor, char *assignment)
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_TRAPI ("free_bv_assignment %p", assignment);
   BTOR_ABORT_ARG_NULL_BOOLECTOR (assignment);
-  btor_free_bv_assignment_exp (btor, assignment);
-  // TODO CLONE
+  free (assignment);
+  /* Note: clone result is immediately released,
+   *       boolector_free_bv_assignment is not mirrored! */
 }
 
 void
 boolector_array_assignment (
     Btor *btor, BtorNode *e_array, char ***indices, char ***values, int *size)
 {
+  // TODO move separation between allocation outside and inside (of boolector)
+  // to btor_array_assignment_exp
+
+  char **ind, **val;
+  int i;
+
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
   BTOR_ABORT_BOOLECTOR (
       btor->last_sat_result != BTOR_SAT,
@@ -2863,8 +2884,46 @@ boolector_array_assignment (
   BTOR_ABORT_BV_BOOLECTOR (e_array);
   BTOR_ABORT_BOOLECTOR (!btor->model_gen,
                         "model generation has not been enabled");
-  btor_array_assignment_exp (btor, e_array, indices, values, size);
-  // TODO CLONE
+  btor_array_assignment_exp (btor, e_array, &ind, &val, &i);
+  if ((*size = i) == 0) return;
+  *indices = malloc (*size * sizeof (char *));
+  *values  = malloc (*size * sizeof (char *));
+  for (i = 0; i < *size; i++)
+  {
+    (*indices)[i] = malloc (strlen (ind[i]) + 1);
+    strcpy ((*indices)[i], ind[i]);
+    btor_free_bv_assignment_exp (btor, ind[i]);
+    (*values)[i] = malloc (strlen (val[i]) + 1);
+    strcpy ((*values)[i], val[i]);
+    btor_free_bv_assignment_exp (btor, val[i]);
+  }
+  btor_free (btor->mm, ind, *size * sizeof (*ind));
+  btor_free (btor->mm, val, *size * sizeof (*val));
+
+  if (btor->clone)
+  {
+    char **cindices, **cvalues;
+    int csize;
+
+    boolector_array_assignment (
+        btor->clone, BTOR_CLONED_EXP (e_array), &cindices, &cvalues, &csize);
+    assert (csize == *size);
+    for (i = 0; i < *size; i++)
+    {
+      assert (!strcmp ((*indices)[i], cindices[i]));
+      assert (!strcmp ((*values)[i], cvalues[i]));
+    }
+    BTOR_CHKCLONE ();
+    /* Note: clone result is immediately released,
+     *       boolector_free_array_assignment is not mirrored! */
+    for (i = 0; i < *size; i++)
+    {
+      free (cindices[i]);
+      free (cvalues[i]);
+    }
+    free (cindices);
+    free (cvalues);
+  }
   /* special case: we treat out parameters as return values for btoruntrace */
   BTOR_TRAPI ("return %p %p %d", *indices, *values, *size);
 }
@@ -2891,10 +2950,14 @@ boolector_free_array_assignment (Btor *btor,
     BTOR_ABORT_BOOLECTOR (values, "non zero 'values' but 'size == 0'");
   }
 
-  for (i = 0; i < size; i++) btor_free_bv_assignment_exp (btor, indices[i]);
-  btor_free (btor->mm, indices, size * sizeof *indices);
+  for (i = 0; i < size; i++)
+  {
+    free (indices[i]);
+    free (values[i]);
+  }
+  free (indices);
+  free (values);
 
-  for (i = 0; i < size; i++) btor_free_bv_assignment_exp (btor, values[i]);
-  btor_free (btor->mm, values, size * sizeof *values);
-  // TODO CLONE
+  /* Note: clone result is immediately released,
+   *       boolector_free_array_assignment is not mirrored! */
 }

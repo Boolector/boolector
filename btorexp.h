@@ -409,6 +409,7 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
 
+  /* shadow clone (debugging only) */
   Btor *clone;
 
   FILE *apitrace;
