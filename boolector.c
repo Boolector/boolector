@@ -909,6 +909,15 @@ boolector_enable_inc_usage (Btor *btor)
   BTOR_CHKCLONE_NORES (boolector_enable_inc_usage);
 }
 
+void
+boolector_enable_beta_reduce_all (Btor *btor)
+{
+  // TODO TRAPI
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  btor_enable_beta_reduce_all (btor);
+  BTOR_CHKCLONE_NORES (btor_enable_beta_reduce_all);
+}
+
 int
 boolector_set_sat_solver (Btor *btor, const char *solver)
 {
@@ -950,6 +959,14 @@ boolector_delete (Btor *btor)
     pclose (btor->apitrace);
   if (btor->clone) boolector_delete (btor->clone);
   btor_delete_btor (btor);
+}
+
+void
+boolector_simplify (Btor *btor)
+{
+  // TODO TRAPI
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  btor_simplify (btor);
 }
 
 BtorNode *
@@ -2734,6 +2751,15 @@ boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp)
   BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
   btor_dump_exp (btor, file, exp);
   BTOR_CHKCLONE_NORES (boolector_dump_btor, file, BTOR_CLONED_EXP (exp));
+}
+
+void
+boolector_dump_btor_all (Btor *btor, FILE *file)
+{
+  // TODO TRAPI
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
+  BTOR_ABORT_ARG_NULL_BOOLECTOR (file);
+  btor_dump_exps_after_global_rewriting (btor, file);
 }
 
 void

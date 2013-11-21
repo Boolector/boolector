@@ -104,8 +104,6 @@ typedef enum BtorSubstCompKind BtorSubstCompKind;
 
 static void add_constraint (Btor *, BtorNode *);
 
-static void run_rewrite_engine (Btor *);
-
 static int exp_to_cnf_lit (Btor *, BtorNode *);
 
 #ifndef BTOR_DO_NOT_ELIMINATE_SLICES
@@ -5917,10 +5915,10 @@ dump_after_global_rewriting (Btor *btor, FILE *file, int mode)
   int new_nroots, i;
   assert (!btor->inc_enabled);
   assert (!btor->model_gen);
-  assert (btor->rewrite_level > 1);
+  //  assert (btor->rewrite_level > 1);
   assert (mode >= 1 && mode <= 4);
 
-  run_rewrite_engine (btor);
+  btor_simplify (btor);
 
   if (btor->inconsistent)
   {
@@ -11265,8 +11263,8 @@ merge_lambda_chains (Btor * btor)
 }
 #endif
 
-static void
-run_rewrite_engine (Btor *btor)
+void
+btor_simplify (Btor *btor)
 {
   int rounds;
   double start, delta;
@@ -11460,7 +11458,7 @@ btor_sat_aux_btor (Btor *btor)
 
   btor_msg_exp (btor, 1, "calling SAT");
 
-  run_rewrite_engine (btor);
+  btor_simplify (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;
 

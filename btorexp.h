@@ -1264,6 +1264,9 @@ BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 /* Evaluates parameterized expressions */
 char *btor_eval_exp (Btor *, BtorNode *);
 
+/* Run rewriting engine */
+void btor_simplify (Btor *);
+
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG
 /*------------------------------------------------------------------------*/

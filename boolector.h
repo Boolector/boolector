@@ -225,6 +225,10 @@ int boolector_get_refs (Btor *btor);
  */
 void boolector_delete (Btor *btor);
 
+void boolector_simplify (Btor *btor);
+
+void boolector_enable_beta_reduce_all (Btor *btor);
+
 /*------------------------------------------------------------------------*/
 
 /**
@@ -1022,6 +1026,15 @@ void boolector_release (Btor *btor, BtorNode *exp);
  * \param exp The expression which should be dumped.
  */
 void boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp);
+
+/**
+ * Dumps formula to file in BTOR format.
+ *
+ * \param btor Boolector instance.
+ * \param file File to which the formula should be dumped.
+ * The file must be have been opened by the user before.
+ */
+void boolector_dump_btor_all (Btor *btor, FILE *file);
 
 /**
  * Recursively dumps expression to file.
