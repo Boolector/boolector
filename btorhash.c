@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -38,21 +39,6 @@ btor_new_ptr_hash_table (BtorMemMgr *mem, BtorHashPtr hash, BtorCmpPtr cmp)
   return res;
 }
 
-void
-btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
-{
-  BtorPtrHashBucket *p, *next;
-
-  for (p = p2iht->first; p; p = next)
-  {
-    next = p->next;
-    BTOR_DELETE (p2iht->mem, p);
-  }
-
-  BTOR_DELETEN (p2iht->mem, p2iht->table, p2iht->size);
-  BTOR_DELETE (p2iht->mem, p2iht);
-}
-
 static void
 btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 {
@@ -82,6 +68,59 @@ btor_enlarge_ptr_hash_table (BtorPtrHashTable *p2iht)
 
   p2iht->size  = new_size;
   p2iht->table = new_table;
+}
+
+BtorPtrHashTable *
+btor_clone_ptr_hash_table (BtorMemMgr *mem,
+                           BtorPtrHashTable *table,
+                           BtorCloneKeyPtr ckey,
+                           BtorCloneDataPtr cdata,
+                           void *key_map,
+                           void *data_map)
+{
+  assert (mem);
+  assert (ckey);
+  assert (key_map);
+
+  BtorPtrHashTable *res;
+  BtorPtrHashBucket *b, *cloned_b;
+  void *cloned_key;
+
+  if (!table) return NULL;
+
+  res = btor_new_ptr_hash_table (mem, table->hash, table->cmp);
+  while (res->size < table->size) btor_enlarge_ptr_hash_table (res);
+  assert (res->size == table->size);
+
+  for (b = table->first; b; b = b->next)
+  {
+    cloned_key = ckey (key_map, b->key);
+    assert (cloned_key);
+    cloned_b = btor_insert_in_ptr_hash_table (res, cloned_key);
+    if (!cdata)
+      assert (b->data.asPtr == 0);
+    else
+      cdata (mem, data_map, b->data.asPtr, &cloned_b->data);
+  }
+
+  assert (table->count == res->count);
+
+  return res;
+}
+
+void
+btor_delete_ptr_hash_table (BtorPtrHashTable *p2iht)
+{
+  BtorPtrHashBucket *p, *next;
+
+  for (p = p2iht->first; p; p = next)
+  {
+    next = p->next;
+    BTOR_DELETE (p2iht->mem, p);
+  }
+
+  BTOR_DELETEN (p2iht->mem, p2iht->table, p2iht->size);
+  BTOR_DELETE (p2iht->mem, p2iht);
 }
 
 static BtorPtrHashBucket **

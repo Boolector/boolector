@@ -89,6 +89,7 @@ typedef struct BtorSortUniqueTable BtorSortUniqueTable;
 /*------------------------------------------------------------------------*/
 
 BTOR_DECLARE_STACK (NodePtr, BtorNode *);
+BTOR_DECLARE_STACK (NodePtrPtr, BtorNode **);
 
 BTOR_DECLARE_QUEUE (NodePtr, BtorNode *);
 
@@ -169,12 +170,13 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int chain : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
-    char *bits;  /* three-valued bits */                                \
-    int id;      /* unique expression id */                             \
-    int len;     /* number of bits */                                   \
-    int refs;    /* reference counter */                                \
-    int parents; /* number of parents */                                \
-    int arity;   /* arity of operator */                                \
+    char *bits;   /* three-valued bits */                               \
+    int id;       /* unique expression id */                            \
+    int len;      /* number of bits */                                  \
+    int refs;     /* reference counter */                               \
+    int ext_refs; /* external references counter */                     \
+    int parents;  /* number of parents */                               \
+    int arity;    /* arity of operator */                               \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -407,6 +409,9 @@ struct Btor
   BtorNodePtrStack arrays_with_model;
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
+
+  /* shadow clone (debugging only) */
+  Btor *clone;
 
   FILE *apitrace;
   int closeapitrace;
@@ -645,9 +650,6 @@ struct Btor
 
 /* Creates new boolector instance. */
 Btor *btor_new_btor (void);
-
-/* Clone an existing boolector instance. */
-Btor *btor_clone_btor (Btor *);
 
 /* Sets rewrite level [0,2]. */
 void btor_set_rewrite_level_btor (Btor *btor, int rewrite_level);

@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2013 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -85,6 +86,12 @@
   {                                                                    \
     if (BTOR_FULL_STACK ((stack))) BTOR_ENLARGE_STACK ((mm), (stack)); \
     *((stack).top++) = (elem);                                         \
+  } while (0)
+
+#define BTOR_PUSH_STACK_IF(cond, mm, stack, elem) \
+  do                                              \
+  {                                               \
+    if (cond) BTOR_PUSH_STACK (mm, stack, elem);  \
   } while (0)
 
 #define BTOR_POP_STACK(stack) \

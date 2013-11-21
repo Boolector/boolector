@@ -1,6 +1,8 @@
 #ifndef BitVector_h_INCLUDED
 #define BitVector_h_INCLUDED
 
+// (C) 2012-2013, Armin Biere, Johannes Kepler University Linz, Austria.
+
 #include <cassert>
 #include <functional>
 #include <string>
@@ -8,7 +10,7 @@
 
 using namespace std;
 
-// This class defines the BitVector API interface
+// This class defines an industrially used BitVector API interface.
 
 class BitVector
 {

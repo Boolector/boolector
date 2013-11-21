@@ -2,6 +2,7 @@
  *
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -19,6 +20,8 @@
 
 #include <stdio.h>
 
+typedef struct BtorAIGMap BtorAIGMap;
+
 /*------------------------------------------------------------------------*/
 
 struct BtorAIG
@@ -28,15 +31,35 @@ struct BtorAIG
   struct BtorAIG *children[2];
   struct BtorAIG *next;
   int cnf_id;
-  unsigned mark;
+  unsigned mark : 2;
   unsigned local;
 };
 
 typedef struct BtorAIG BtorAIG;
 
-typedef struct BtorAIGMgr BtorAIGMgr;
-
 BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
+BTOR_DECLARE_STACK (AIGPtrPtr, BtorAIG **);
+
+struct BtorAIGUniqueTable
+{
+  int size;
+  int num_elements;
+  BtorAIG **chains;
+};
+
+typedef struct BtorAIGUniqueTable BtorAIGUniqueTable;
+
+struct BtorAIGMgr
+{
+  BtorMemMgr *mm;
+  BtorAIGUniqueTable table;
+  int id;
+  int verbosity;
+  BtorSATMgr *smgr;
+  BtorAIGPtrStack id2aig; /* cnf id to aig */
+};
+
+typedef struct BtorAIGMgr BtorAIGMgr;
 
 /*------------------------------------------------------------------------*/
 
@@ -75,6 +98,17 @@ BTOR_DECLARE_STACK (AIGPtr, BtorAIG *);
  * of the AIG layer.
  */
 BtorAIGMgr *btor_new_aig_mgr (BtorMemMgr *mm);
+
+/* Clones AIG manager. */
+BtorAIGMgr *btor_clone_aig_mgr (BtorMemMgr *mm, BtorAIGMgr *amgr);
+
+/* Clone all aigs managed by the AIG manager. This needs to be done after
+ * cloning the aig manager, as aig_map needs an associated aig manager clone. */
+void btor_clone_aigs (BtorAIGMgr *amgr, BtorAIGMgr *clone, BtorAIGMap *aig_map);
+
+/* Wrapper to retrieve cloned aigs from aig_map in case that var aigs occur
+ * in the aig vector but not as children to non-var aigs. */
+BtorAIG *btor_cloned_aig (BtorMemMgr *mm, BtorAIG *aig, BtorAIGMap *aig_map);
 
 /* Sets verbosity [-1,3] */
 void btor_set_verbosity_aig_mgr (BtorAIGMgr *amgr, int verbosity);
