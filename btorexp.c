@@ -6207,6 +6207,7 @@ btor_delete_btor (Btor *btor)
   BtorPtrHashTable *t;
   BtorPtrHashBucket *b, *b_app;
   BtorMemMgr *mm;
+  BtorNode *exp;
 
   mm = btor->mm;
 
@@ -6270,6 +6271,26 @@ btor_delete_btor (Btor *btor)
   while (!BTOR_EMPTY_STACK (stack))
     btor_release_exp (btor, BTOR_POP_STACK (stack));
   BTOR_RELEASE_STACK (mm, stack);
+
+  if (btor->external_refs)
+  {
+    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+    {
+      if (!(exp = BTOR_PEEK_STACK (btor->nodes_id_table, i))) continue;
+      if (exp->ext_refs)
+      {
+        assert (exp->ext_refs <= exp->refs);
+        exp->refs = exp->refs - exp->ext_refs + 1;
+        btor->external_refs -= exp->ext_refs;
+        assert (exp->refs > 0);
+        exp->ext_refs = 0;
+        btor_release_exp (btor, exp);
+      }
+    }
+    assert (btor->external_refs == 0);
+    for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
+      assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
+  }
 
 #ifndef NDEBUG
   int k;
