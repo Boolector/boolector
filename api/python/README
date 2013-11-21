@@ -1,0 +1,12 @@
+Compiling
+=========
+
+In order to compile the module, Boolector and Lingeling have to be compiled
+with flag -fPIC.
+
+Using the module
+================
+
+Ensure that the module can be found by the python interpreter (e.g. set path
+with PYTHONPATH="path/to/module"). For examples on how to use the module see 
+the examples directory.

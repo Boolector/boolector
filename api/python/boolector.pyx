@@ -1,5 +1,6 @@
 cimport btorapi
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport stdout, FILE
 
 BOOLECTOR_SAT = 10
 BOOLECTOR_UNSAT = 20
@@ -34,9 +35,16 @@ cdef class BoolectorNode:
 
     # Operator overloading methods
 
+    # Create apply node if function is called
+    # TODO: type 
     def __call__(self, *args):
         assert(self.is_fun())
         return self.btor.Apply(list(args), self)
+
+    # Create read node if array is indexed
+    def __getitem__(self, BoolectorNode index):
+        assert(self.is_array())
+        return self.btor.Read(self, index)
 
     def __len__(self):
         return btorapi.boolector_get_width(self.btor._c_btor, self._c_node)
@@ -81,8 +89,8 @@ cdef class BoolectorNode:
 
     # BoolectorNode methods
 
-#    def stdout(self):
-#        btorapi.boolector_print(self.btor._c_btor, self._c_node)
+    def to_btor(self, outfile = ""):
+      btorapi.boolector_dump_btor(self.btor._c_btor, stdout, self._c_node)
 
     def copy(self):
         r = BoolectorNode(self.btor)
@@ -165,6 +173,9 @@ cdef class Boolector:
     def Assume(self, BoolectorNode n):
         btorapi.boolector_assume(self._c_btor, n._c_node)
 
+    def Simplify(self):
+        btorapi.boolector_simplify(self._c_btor)
+
     def Sat(self):
         return btorapi.boolector_sat(self._c_btor)
 
@@ -180,6 +191,9 @@ cdef class Boolector:
     def Enable_inc_usage(self):
         btorapi.boolector_enable_inc_usage(self._c_btor)
 
+    def Enable_beta_reduce_all(self):
+        btorapi.boolector_enable_beta_reduce_all(self._c_btor)
+
     def Set_sat_solver(self, str solver):
         cdef bytes b_str = solver.encode()
         cdef char* c_str = b_str
@@ -190,6 +204,11 @@ cdef class Boolector:
 
     def Refs(self):
         return btorapi.boolector_get_refs(self._c_btor)
+
+    # Dump functions
+
+    def Dump_btor(self, outfile = ""):
+      btorapi.boolector_dump_btor_all(self._c_btor, stdout)
 
     # Boolector API functions (nodes)
 
@@ -548,7 +567,6 @@ cdef class Boolector:
 
     # Functions
 
-    # TODO: use variadic params
     def Fun(self, list params, BoolectorNode body):
         cdef int paramc = len(params)
         cdef btorapi.BtorNode** c_params = \
@@ -568,7 +586,6 @@ cdef class Boolector:
         free(c_params)
         return r
 
-    # TODO: use variadic args
     def Apply(self, list args, BoolectorNode fun):
         cdef int argc = len(args)
         cdef btorapi.BtorNode** c_args = \
