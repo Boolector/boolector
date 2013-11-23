@@ -5997,6 +5997,9 @@ btor_new_btor (void)
 
   btor->mm = mm;
 
+  btor->bv_assignments    = btor_new_bv_assignment_list (mm);
+  btor->array_assignments = btor_new_array_assignment_list (mm);
+
   BTOR_INIT_UNIQUE_TABLE (mm, btor->nodes_unique_table);
 
   btor->avmgr = btor_new_aigvec_mgr (mm);
@@ -6214,6 +6217,9 @@ btor_delete_btor (Btor *btor)
 
   btor_release_exp (btor, btor->true_exp);
 
+  btor_delete_bv_assignment_list (btor->bv_assignments);
+  btor_delete_array_assignment_list (btor->array_assignments);
+
   for (b = btor->lod_cache->first; b; b = b->next)
     btor_release_exp (btor, (BtorNode *) b->key);
   btor_delete_ptr_hash_table (btor->lod_cache);
@@ -6288,6 +6294,7 @@ btor_delete_btor (Btor *btor)
         btor_release_exp (btor, exp);
       }
     }
+    printf ("### btor->external_refs %d\n", btor->external_refs);
     assert (btor->external_refs == 0);
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));

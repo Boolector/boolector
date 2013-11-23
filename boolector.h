@@ -1095,7 +1095,7 @@ int boolector_sat (Btor *btor);
  * represents that the corresponding bit can be assigned arbitrarily.
  * \see boolector_enable_model_gen
  */
-char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
+const char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
 
 /**
  * Frees an assignment string for bit-vectors.

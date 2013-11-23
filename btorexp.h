@@ -15,6 +15,7 @@
 
 #include "boolector.h"
 #include "btoraigvec.h"
+#include "btorass.h"
 #include "btorhash.h"
 #include "btormem.h"
 #include "btorqueue.h"
@@ -361,6 +362,8 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
+  BtorBVAssignmentList *bv_assignments;
+  BtorArrayAssignmentList *array_assignments;
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;
   BtorSortUniqueTable sorts_unique_table;
