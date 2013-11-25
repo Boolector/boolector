@@ -1494,6 +1494,7 @@ recursively_release_exp (Btor *btor, BtorNode *root)
     {
     RECURSIVELY_RELEASE_NODE_ENTER_WITHOUT_POP:
       assert (cur->refs == 1);
+      assert (!cur->ext_refs || cur->ext_refs == 1);
       assert (cur->parents == 0);
 
       for (i = cur->arity - 1; i >= 0; i--)
@@ -9401,7 +9402,7 @@ add_constraint (Btor *btor, BtorNode *exp)
 }
 
 void
-btor_add_constraint_exp (Btor *btor, BtorNode *exp)
+btor_assert_exp (Btor *btor, BtorNode *exp)
 {
   assert (btor);
   assert (exp);
@@ -9414,7 +9415,7 @@ btor_add_constraint_exp (Btor *btor, BtorNode *exp)
 }
 
 void
-btor_add_assumption_exp (Btor *btor, BtorNode *exp)
+btor_assume_exp (Btor *btor, BtorNode *exp)
 {
   BtorNode *cur, *child;
   BtorNodePtrStack stack;

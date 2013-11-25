@@ -1138,6 +1138,7 @@ boolector_var (Btor *btor, int width, const char *symbol)
     btor->external_refs++;
     res = btor_var_exp (btor, width, symbol);
   }
+
   BTOR_REAL_ADDR_NODE (res)->ext_refs += 1;
 
   if (symbol == NULL) BTOR_DELETEN (btor->mm, symb, 20);
@@ -2876,7 +2877,7 @@ boolector_assert (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
                         "'exp' must have bit-width one");
-  btor_add_constraint_exp (btor, simp);
+  btor_assert_exp (btor, simp);
   BTOR_CHKCLONE_NORES (boolector_assert, BTOR_CLONED_EXP (exp));
 }
 
@@ -2895,7 +2896,7 @@ boolector_assume (Btor *btor, BtorNode *exp)
   BTOR_ABORT_ARRAY_BOOLECTOR (simp);
   BTOR_ABORT_BOOLECTOR (BTOR_REAL_ADDR_NODE (simp)->len != 1,
                         "'exp' must have bit-width one");
-  btor_add_assumption_exp (btor, simp);
+  btor_assume_exp (btor, simp);
   BTOR_CHKCLONE_NORES (boolector_assume, BTOR_CLONED_EXP (exp));
 }
 

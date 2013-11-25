@@ -1182,10 +1182,10 @@ void btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file);
 void btor_dump_smt2_fun_after_global_rewriting (Btor *btor, FILE *file);
 
 /* Adds top level constraint. */
-void btor_add_constraint_exp (Btor *btor, BtorNode *exp);
+void btor_assert_exp (Btor *btor, BtorNode *exp);
 
 /* Adds assumption. */
-void btor_add_assumption_exp (Btor *btor, BtorNode *exp);
+void btor_assume_exp (Btor *btor, BtorNode *exp);
 
 /* Solves SAT instance.
  */

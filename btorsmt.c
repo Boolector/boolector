@@ -2595,12 +2595,12 @@ btor_smt_parser_inc_add_release_sat (BtorSMTParser *parser,
   {
     btor_smt_message (
         parser, 3, "adding last ':formula' %s permanently", formula);
-    btor_add_constraint_exp (parser->btor, exp);
+    btor_assert_exp (parser->btor, exp);
   }
   else
   {
     btor_smt_message (parser, 3, "adding ':formula' %s as assumption", formula);
-    btor_add_assumption_exp (parser->btor, exp);
+    btor_assume_exp (parser->btor, exp);
   }
   btor_release_exp (parser->btor, exp);
 
@@ -2820,7 +2820,7 @@ translate_benchmark (BtorSMTParser *parser,
                             3,
                             "adding ':assumption' %d",
                             parser->assumptions.handled);
-          btor_add_constraint_exp (parser->btor, exp);
+          btor_assert_exp (parser->btor, exp);
           btor_release_exp (parser->btor, exp);
         }
         else
