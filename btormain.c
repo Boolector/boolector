@@ -13,7 +13,6 @@
 #include "btormain.h"
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorbtor.h"
 #include "btorconfig.h"
 #include "btorconst.h"
 #include "btordump.h"
@@ -25,10 +24,11 @@
 #include "btormem.h"
 #include "btorparse.h"
 #include "btorsat.h"
-#include "btorsmt.h"
-#include "btorsmt2.h"
 #include "btorstack.h"
 #include "btorutil.h"
+#include "parser/btorbtor.h"
+#include "parser/btorsmt.h"
+#include "parser/btorsmt2.h"
 
 #include <assert.h>
 #include <ctype.h>

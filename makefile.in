@@ -8,8 +8,10 @@ OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
-LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor[a-z]*.c))) boolector.o $(OBJS)
-SRC=$(shell ls *.c *.h *.cc)
+SRCDIRS=. parser
+LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
+LIBOBJ+=boolector.o $(OBJS)
+SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=boolector synthebtor deltabtor btorfmt.o btor2horn
 
 all: libboolector.a $(TARGETS)
@@ -20,10 +22,10 @@ all: libboolector.a $(TARGETS)
 -include mbt.mk
 
 %.o: %.c
-	$(CC) $(CFLAGS) $(INCS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 %.o: %.cc
-	$(CC) $(CFLAGS) $(INCS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 analyze:
 	clang --analyze $(CFLAGS) $(INCS) $(shell ls *.c *.cc)
@@ -56,7 +58,7 @@ clean:
 	rm -f dependencies makefile btorconfig.h
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
 	rm -f log/*.log *.tmp
-	rm -f *.o *.a
+	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
 	rm -f btormbt btoruntrace
 
 .PHONY: all analyze clean
