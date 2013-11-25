@@ -11284,7 +11284,7 @@ merge_lambda_chains (Btor * btor)
 }
 #endif
 
-void
+int
 btor_simplify (Btor *btor)
 {
   int rounds;
@@ -11294,7 +11294,7 @@ btor_simplify (Btor *btor)
 #endif
 
   assert (btor);
-  if (btor->inconsistent) return;
+  if (btor->inconsistent) return BTOR_UNSAT;
 
   //  if (btor->rewrite_level <= 1 && !btor->beta_reduce_all)
   //    return;
@@ -11373,15 +11373,13 @@ btor_simplify (Btor *btor)
 
     if (btor->embedded_constraints->count) continue;
 
-    /* rewrite/beta-reduce reads on lambdas */
+    /* rewrite/beta-reduce applies on lambdas */
     if (btor->beta_reduce_all)
     {
       beta_reduce_applies_on_lambdas (btor);
       assert (check_all_hash_tables_proxy_free_dbg (btor));
       assert (check_all_hash_tables_simp_free_dbg (btor));
       assert (check_unique_table_children_proxy_free_dbg (btor));
-      //	  assert (btor->ops[BTOR_ACOND_NODE] > 0 || btor->lambdas->count
-      //== 0);
     }
   } while (btor->varsubst_constraints->count
            || btor->embedded_constraints->count);
@@ -11391,6 +11389,17 @@ btor_simplify (Btor *btor)
   delta = btor_time_stamp () - start;
   btor->time.rewrite += delta;
   btor_msg_exp (btor, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
+
+  if (btor->unsynthesized_constraints->count == 0u
+      && btor->synthesized_constraints->count == 0u)
+  {
+    assert (!btor->inconsistent);
+    return BTOR_SAT;
+  }
+  else if (btor->inconsistent)
+    return BTOR_UNSAT;
+
+  return BTOR_UNKNOWN;
 }
 
 static void
@@ -11479,6 +11488,7 @@ btor_sat_aux_btor (Btor *btor)
 
   btor_msg_exp (btor, 1, "calling SAT");
 
+  // TODO: use return value?
   btor_simplify (btor);
 
   if (btor->inconsistent) return BTOR_UNSAT;

@@ -2,6 +2,7 @@ cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE
 
+BOOLECTOR_UNKNOWN = 0
 BOOLECTOR_SAT = 10
 BOOLECTOR_UNSAT = 20
 
@@ -174,7 +175,7 @@ cdef class Boolector:
         btorapi.boolector_assume(self._c_btor, n._c_node)
 
     def Simplify(self):
-        btorapi.boolector_simplify(self._c_btor)
+        return btorapi.boolector_simplify(self._c_btor)
 
     def Sat(self):
         return btorapi.boolector_sat(self._c_btor)

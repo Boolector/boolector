@@ -369,32 +369,32 @@ def parse_model(inputfile):
     except IOError as err:
         error_and_exit(err)
 
-def add_model():
-    global g_btor, g_model_vars, g_model_arrays, g_nodemap, g_symbolmap
-
-    for sym, value in g_model_vars.items():
-        if sym in g_symbolmap:
-            n = g_symbolmap[sym]
-        else:
-            n = g_nodemap[int(sym)]
-
-        assert(not n.is_array())
-        c = g_btor.Const(value)
-        e = g_btor.Eq(n, c)
-        g_btor.Assert(e)
-
-    for sym, assignments in g_model_arrays.items():
-        if sym in g_symbolmap:
-            n = g_symbolmap[sym]
-        else:
-            n = g_nodemap[int(sym)]
-
-        for index, value in assignments.items():
-            c_i = g_btor.Const(index)
-            c_v = g_btor.Const(value)
-            r = g_btor.Read(n, c_i)
-            e = g_btor.Eq(r, c_v)
-            g_btor.Assert(e)
+#def add_model():
+#    global g_btor, g_model_vars, g_model_arrays, g_nodemap, g_symbolmap
+#
+#    for sym, value in g_model_vars.items():
+#        if sym in g_symbolmap:
+#            n = g_symbolmap[sym]
+#        else:
+#            n = g_nodemap[int(sym)]
+#
+#        assert(not n.is_array())
+#        c = g_btor.Const(value)
+#        e = g_btor.Eq(n, c)
+#        g_btor.Assert(e)
+#
+#    for sym, assignments in g_model_arrays.items():
+#        if sym in g_symbolmap:
+#            n = g_symbolmap[sym]
+#        else:
+#            n = g_nodemap[int(sym)]
+#
+#        for index, value in assignments.items():
+#            c_i = g_btor.Const(index)
+#            c_v = g_btor.Const(value)
+#            r = g_btor.Read(n, c_i)
+#            e = g_btor.Eq(r, c_v)
+#            g_btor.Assert(e)
 
 # TODO: 
 #       * formula file should be original btor/smt/smt2
@@ -410,19 +410,16 @@ if __name__ == "__main__":
         g_btor = boolector.Boolector()
         parse_model(model)
         parse_btor(formula)
-        if not g_subst:
-            add_model()
 
         g_btor.Enable_beta_reduce_all()
-        g_btor.Simplify()
-        g_btor.Dump_btor()
-        ret = g_btor.Sat()
+        ret = g_btor.Simplify()
 
+        assert(ret == g_btor.Sat())
         if ret == boolector.BOOLECTOR_SAT:
-            print("given model is valid")
+            log(0, "model is valid")
             sys.exit(0)
         else:
-            print("given model is invalid")
+            log(0, "model is invalid")
             sys.exit(1)
     except KeyboardInterrupt as err:
         sys.exit(err)

@@ -32,7 +32,7 @@ cdef extern from "boolector.h":
 
       int boolector_get_refs (Btor * btor)
 
-      void boolector_simplify (Btor * btor)
+      int boolector_simplify (Btor * btor)
 
       void boolector_enable_beta_reduce_all (Btor * btor) 
 

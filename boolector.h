@@ -126,13 +126,18 @@ typedef struct Btor Btor;
 /*------------------------------------------------------------------------*/
 
 /**
+ * Preprocessor constant representing status 'unknown'.
+ * \see boolector_sat, boolector_simplify
+ */
+#define BOOLECTOR_UNKOWN 0
+/**
  * Preprocessor constant representing status 'satisfiable'.
- * \see boolector_sat
+ * \see boolector_sat, boolector_simplify
  */
 #define BOOLECTOR_SAT 10
 /**
  * Preprocessor constant representing status 'unsatisfiable'.
- * \see boolector_sat
+ * \see boolector_sat, boolector_simplify
  */
 #define BOOLECTOR_UNSAT 20
 
@@ -225,7 +230,7 @@ int boolector_get_refs (Btor *btor);
  */
 void boolector_delete (Btor *btor);
 
-void boolector_simplify (Btor *btor);
+int boolector_simplify (Btor *btor);
 
 void boolector_enable_beta_reduce_all (Btor *btor);
 

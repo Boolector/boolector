@@ -958,12 +958,12 @@ boolector_delete (Btor *btor)
   btor_delete_btor (btor);
 }
 
-void
+int
 boolector_simplify (Btor *btor)
 {
   // TODO TRAPI
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  btor_simplify (btor);
+  return btor_simplify (btor);
 }
 
 BtorNode *
