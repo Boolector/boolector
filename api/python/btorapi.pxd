@@ -1,3 +1,13 @@
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2013 Mathias Preiner.
+#
+# All rights reserved.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 from libc.stdio cimport FILE
 
 cdef extern from "boolector.h":
@@ -161,8 +171,6 @@ cdef extern from "boolector.h":
       BtorNode *boolector_cond (Btor * btor, BtorNode * e_cond, BtorNode * e_if,
                                 BtorNode * e_else)
 
-    #  BtorNode *boolector_lambda (Btor * btor, BtorNode * param, BtorNode * exp)
-    #
       BtorNode *boolector_param (Btor * btor, int width, const char * symbol) 
 
       BtorNode *boolector_fun (Btor * btor, int paramc, BtorNode ** params,

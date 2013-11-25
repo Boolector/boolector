@@ -1,3 +1,13 @@
+# Boolector: Satisfiablity Modulo Theories (SMT) solver.
+#
+# Copyright (C) 2013 Mathias Preiner.
+#
+# All rights reserved.
+#
+# This file is part of Boolector.
+# See COPYING for more information on using this software.
+#
+
 cimport btorapi
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport stdout, FILE
