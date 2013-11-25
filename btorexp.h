@@ -15,6 +15,7 @@
 
 #include "boolector.h"
 #include "btoraigvec.h"
+#include "btorass.h"
 #include "btorhash.h"
 #include "btormem.h"
 #include "btorqueue.h"
@@ -361,6 +362,8 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
+  BtorBVAssignmentList *bv_assignments;
+  BtorArrayAssignmentList *array_assignments;
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;
   BtorSortUniqueTable sorts_unique_table;
@@ -1167,10 +1170,10 @@ BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 void btor_release_exp (Btor *btor, BtorNode *exp);
 
 /* Adds top level constraint. */
-void btor_add_constraint_exp (Btor *btor, BtorNode *exp);
+void btor_assert_exp (Btor *btor, BtorNode *exp);
 
 /* Adds assumption. */
-void btor_add_assumption_exp (Btor *btor, BtorNode *exp);
+void btor_assume_exp (Btor *btor, BtorNode *exp);
 
 /* Solves SAT instance.
  */

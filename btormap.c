@@ -152,6 +152,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
                                              BtorNodeMap *map,
                                              void *state,
                                              BtorNodeMapper mapper,
+                                             BtorNodeReleaser release,
                                              BtorNode *root)
 {
   BtorNodePtrStack working_stack, marked_stack;
@@ -175,7 +176,7 @@ btor_non_recursive_extended_substitute_node (Btor *btor,
     if (mapped)
     {
       btor_map_node (map, node, mapped);
-      btor_release_exp (btor, mapped);
+      release (btor, mapped);
     }
     else if (!node->mark)
     {
@@ -222,7 +223,7 @@ btor_non_recursive_substitute_node (Btor *btor,
                                     BtorNode *root)
 {
   return btor_non_recursive_extended_substitute_node (
-      btor, map, 0, btor_never_map_mapper, root);
+      btor, map, 0, btor_never_map_mapper, 0, root);
 }
 
 /*------------------------------------------------------------------------*/
