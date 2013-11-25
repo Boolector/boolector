@@ -412,6 +412,30 @@ btor_chkclone_aig (BtorAIG *aig, BtorAIG *clone)
     assert (BTOR_GET_TAG_NODE (real_exp->field)        \
             == BTOR_GET_TAG_NODE (real_clone->field)); \
   } while (0)
+
+/* Note: no hash table to be cloned uses data->asInt (check data->asPtr only) */
+#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
+  do                                                                     \
+  {                                                                      \
+    BtorPtrHashBucket *bb, *cbb;                                         \
+    if (!(table))                                                        \
+    {                                                                    \
+      assert (!(clone));                                                 \
+      break;                                                             \
+    }                                                                    \
+    assert ((table)->size == (clone)->size);                             \
+    assert ((table)->count == (clone)->count);                           \
+    assert ((table)->hash == (clone)->hash);                             \
+    assert ((table)->cmp == (clone)->cmp);                               \
+    for (bb = (table)->first, cbb = (clone)->first; bb;                  \
+         bb = bb->next, cbb = cbb->next)                                 \
+    {                                                                    \
+      assert (cbb);                                                      \
+      BTOR_CHKCLONE_EXPID ((BtorNode *) bb->key, (BtorNode *) cbb->key); \
+      assert (!bb->next || cbb->next);                                   \
+    }                                                                    \
+  } while (0)
+
 #endif
 
 static void
@@ -488,7 +512,8 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
     else
       assert (real_exp->av == real_clone->av);
   }
-  // TODO CHECK RHO
+  else if (real_exp->rho)
+    BTOR_CHKCLONE_NODE_PTR_HASH_TABLE (real_exp->rho, real_clone->rho);
 
   BTOR_CHKCLONE_EXPPID (next);
   /* Note: parent node used during BFS only, pointer is not reset after bfs,
@@ -645,29 +670,6 @@ btor_chkclone_exp (BtorNode *exp, BtorNode *clone)
       BTOR_CHKCLONE_EXPID (BTOR_PEEK_STACK (stack, i),             \
                            BTOR_PEEK_STACK (clone, i));            \
     }                                                              \
-  } while (0)
-
-/* Note: no hash table to be cloned uses data->asInt (check data->asPtr only) */
-#define BTOR_CHKCLONE_NODE_PTR_HASH_TABLE(table, clone)                  \
-  do                                                                     \
-  {                                                                      \
-    BtorPtrHashBucket *bb, *cbb;                                         \
-    if (!(table))                                                        \
-    {                                                                    \
-      assert (!(clone));                                                 \
-      break;                                                             \
-    }                                                                    \
-    assert ((table)->size == (clone)->size);                             \
-    assert ((table)->count == (clone)->count);                           \
-    assert ((table)->hash == (clone)->hash);                             \
-    assert ((table)->cmp == (clone)->cmp);                               \
-    for (bb = (table)->first, cbb = (clone)->first; bb;                  \
-         bb = bb->next, cbb = cbb->next)                                 \
-    {                                                                    \
-      assert (cbb);                                                      \
-      BTOR_CHKCLONE_EXPID ((BtorNode *) bb->key, (BtorNode *) cbb->key); \
-      assert (!bb->next || cbb->next);                                   \
-    }                                                                    \
   } while (0)
 
 #define BTOR_CHKCLONE_NODE_ID_TABLE(stack, clone)                  \
@@ -2953,7 +2955,6 @@ boolector_bv_assignment (Btor *btor, BtorNode *exp)
 void
 boolector_free_bv_assignment (Btor *btor, char *assignment)
 {
-  // TODO cass only when shadow clone flag
   char *cass;
   (void) cass;
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -3033,7 +3034,6 @@ boolector_free_array_assignment (Btor *btor,
                                  int size)
 {
   BtorArrayAssignment *arrass;
-  // TODO cindices, cvalues only when shadow clone flag
   char **cindices, **cvalues;
 
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);

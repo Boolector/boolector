@@ -31,7 +31,6 @@ btor_clone_bv_assignment_list (BtorMemMgr *mm, BtorBVAssignmentList *list)
   BtorBVAssignment *bvass;
 
   res = btor_new_bv_assignment_list (mm);
-  // TODO set cloned_assignment if flag shadow clone only
   for (bvass = list->first; bvass; bvass = bvass->next)
     bvass->cloned_assignment =
         btor_get_bv_assignment_str (btor_new_bv_assignment (
@@ -133,7 +132,6 @@ btor_clone_array_assignment_list (BtorMemMgr *mm, BtorArrayAssignmentList *list)
   char **ind, **val, **cind, **cval;
 
   res = btor_new_array_assignment_list (mm);
-  // TODO set cloned_indices/values if flag shadow clone only
   for (arrass = list->first; arrass; arrass = arrass->next)
   {
     btor_get_array_assignment_indices_values (arrass, &ind, &val, arrass->size);

@@ -17,7 +17,6 @@ typedef struct BtorBVAssignment BtorBVAssignment;
 
 struct BtorBVAssignment
 {
-  // TODO shadow clone flag
   const char *cloned_assignment;
   BtorBVAssignment *prev;
   BtorBVAssignment *next;
@@ -51,7 +50,6 @@ void btor_release_bv_assignment (BtorBVAssignmentList *, char *);
 
 struct BtorArrayAssignment
 {
-  // TODO shadow clone flag
   char **cloned_indices;
   char **cloned_values;
   int size;
