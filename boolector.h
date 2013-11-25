@@ -872,15 +872,6 @@ BtorNode *boolector_cond (Btor *btor,
                           BtorNode *e_if,
                           BtorNode *e_else);
 
-// TODO: remove? it is redudant due to boolector_fun  (MA)
-/**
- * Lambda expression.
- * \param btor Boolector instance.
- * \param param Parameter bound by lambda expression.
- * \param exp Lambda expression body.
- */
-BtorNode *boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp);
-
 /**
  * Parameter.
  * \param btor Boolector instance.

@@ -3,6 +3,7 @@
  *  Copyright (C) 2007-2009 Robert Daniel Brummayer.
  *  Copyright (C) 2007-2012 Armin Biere.
  *  Copyright (C) 2013 Mathias Preiner.
+ *  Copyright (C) 2013 Aina Niemetz.
  *
  *  All rights reserved.
  *
@@ -1455,7 +1456,7 @@ static BtorNode *
 parse_lambda (BtorBTORParser *parser, int len)
 {
   int paramlen;
-  BtorNode *param, *exp, *res;
+  BtorNode **params, *exp, *res;
 
   if (parse_space (parser)) return 0;
 
@@ -1463,15 +1464,16 @@ parse_lambda (BtorBTORParser *parser, int len)
 
   if (parse_space (parser)) return 0;
 
-  if (!(param = parse_param_exp (parser, paramlen))) return 0;
+  BTOR_NEW (parser->btor->mm, params);
+  if (!(params[0] = parse_param_exp (parser, paramlen))) return 0;
 
-  if (BTOR_IS_INVERTED_NODE (param))
+  if (BTOR_IS_INVERTED_NODE (params[0]))
   {
     btor_perr_btor (parser, "negated params in lambda definitions not allowed");
     goto RELEASE_PARAM_AND_RETURN_ERROR;
   }
 
-  if (btor_is_bound_param (parser->btor, param))
+  if (btor_is_bound_param (parser->btor, params[0]))
   {
     btor_perr_btor (parser, "param already bound by other lambda");
     goto RELEASE_PARAM_AND_RETURN_ERROR;
@@ -1480,15 +1482,16 @@ parse_lambda (BtorBTORParser *parser, int len)
   if (parse_space (parser))
   {
   RELEASE_PARAM_AND_RETURN_ERROR:
-    boolector_release (parser->btor, param);
+    boolector_release (parser->btor, params[0]);
     return 0;
   }
 
   if (!(exp = parse_exp (parser, len, 1))) goto RELEASE_PARAM_AND_RETURN_ERROR;
 
-  res = boolector_lambda (parser->btor, param, exp);
+  res = boolector_fun (parser->btor, 1, params, exp);
 
-  boolector_release (parser->btor, param);
+  boolector_release (parser->btor, params[0]);
+  BTOR_DELETE (parser->btor->mm, params);
   boolector_release (parser->btor, exp);
 
   parser->found_lambdas = 1;

@@ -2499,21 +2499,6 @@ boolector_cond (Btor *btor, BtorNode *e_cond, BtorNode *e_if, BtorNode *e_else)
 }
 
 BtorNode *
-boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp)
-{
-  // TODO TRAPI
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (param);
-  BTOR_ABORT_ARG_NULL_BOOLECTOR (exp);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (param);
-  BTOR_ABORT_REFS_NOT_POS_BOOLECTOR (exp);
-  BTOR_ABORT_BOOLECTOR (!BTOR_IS_PARAM_NODE (BTOR_REAL_ADDR_NODE (param)),
-                        "'param' must be a parameter");
-  btor->external_refs++;
-  return btor_lambda_exp (btor, param, exp);
-}
-
-BtorNode *
 boolector_param (Btor *btor, int width, const char *symbol)
 {
   BTOR_ABORT_ARG_NULL_BOOLECTOR (btor);
@@ -2562,6 +2547,7 @@ boolector_fun (Btor *btor, int paramc, BtorNode **params, BtorNode *exp)
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "fun %d", paramc);
 
+  // TODO allocate within clone
   if (btor->clone) cparams = malloc (paramc * sizeof (*cparams));
 
   for (i = 0; i < paramc; i++)
@@ -2602,6 +2588,7 @@ boolector_apply (Btor *btor, int argc, BtorNode **args, BtorNode *fun)
   BTOR_NEWN (btor->mm, strtrapi, len);
   sprintf (strtrapi, "apply %d", argc);
 
+  // TODO allocate within clone
   if (btor->clone) cargs = malloc (argc * sizeof (*cargs));
 
   cur = BTOR_REAL_ADDR_NODE (btor_simplify_exp (btor, fun));
