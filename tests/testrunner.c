@@ -74,6 +74,7 @@ static const char *slowtests[] = {
     "hd10",
     "hd14",
     "problem_130",
+    "_bitvec",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -111,6 +112,15 @@ static const char *normaltests[] = {
     "headline6",
     "headline7",
     "headline8",
+
+    0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
+};
+
+/* These are performance tests that take a very long time.
+ */
+
+static const char *performancetests[] = {
+    "perf_",
 
     0, /* NOTE: DO NOT REMOVE AND KEEP AT SENTINEL */
 };
@@ -358,6 +368,9 @@ run_test_case (
 
   if (g_speed < BTOR_SLOW_TEST_CASE)
     for (p = slowtests; !skip && *p; p++) skip = match (name, *p);
+
+  if (g_speed < BTOR_SLOW_TEST_CASE)
+    for (p = performancetests; !skip && *p; p++) skip = match (name, *p);
 
   count     = 0;
   g_rwreads = 0;

@@ -32,3 +32,8 @@ run.sh
 doc
 *.swp
 *.trace
+btorimc
+btormbt
+.vimrc
+api/python/*.c
+api/python/*.so

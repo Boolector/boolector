@@ -106,7 +106,7 @@ dump_node (FILE *file, BtorNode *node)
   /* print slice limits/var symbols */
   if (node->kind == BTOR_SLICE_NODE)
     fprintf (file, " %d %d", node->upper, node->lower);
-  else if (BTOR_IS_BV_VAR_NODE (node))
+  else if (BTOR_IS_BV_VAR_NODE (node) || BTOR_IS_ARRAY_VAR_NODE (node))
   {
     sprintf (idbuffer, "%d", node->id);
     assert (node->symbol);
