@@ -21,6 +21,7 @@
 #include "testaig.h"
 #include "testaigvec.h"
 #include "testarithmetic.h"
+#include "testbitvec.h"
 #include "testcomp.h"
 #include "testconst.h"
 #include "testexp.h"
@@ -125,6 +126,7 @@ main (int argc, char **argv)
   BTOR_RUN_TESTS (queue);
   BTOR_RUN_TESTS (hash);
   BTOR_RUN_TESTS (const);
+  BTOR_RUN_TESTS (bitvec);
   BTOR_RUN_TESTS (sat);
   BTOR_RUN_TESTS (aig);
   BTOR_RUN_TESTS (aigvec);

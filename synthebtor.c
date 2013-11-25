@@ -9,8 +9,8 @@
  */
 #include "btoraig.h"
 #include "btoraigvec.h"
-#include "btorbtor.h"
 #include "btorhash.h"
+#include "parser/btorbtor.h"
 #include "stdio.h"
 
 #include <stdio.h>

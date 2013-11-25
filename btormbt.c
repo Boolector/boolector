@@ -1732,19 +1732,20 @@ _mgen (BtorMBT *btormbt, unsigned r)
 {
   BTORMBT_UNUSED (r);
   int i, size = 0;
-  char *bv = NULL, **indices = NULL, **values = NULL;
+  const char *bv = NULL;
+  char **indices = NULL, **values = NULL;
 
   assert (btormbt->mgen);
 
   for (i = 0; i < btormbt->bo.n; i++)
   {
     bv = boolector_bv_assignment (btormbt->btor, btormbt->bo.exps[i].exp);
-    boolector_free_bv_assignment (btormbt->btor, bv);
+    boolector_free_bv_assignment (btormbt->btor, (char *) bv);
   }
   for (i = 0; i < btormbt->bv.n; i++)
   {
     bv = boolector_bv_assignment (btormbt->btor, btormbt->bv.exps[i].exp);
-    boolector_free_bv_assignment (btormbt->btor, bv);
+    boolector_free_bv_assignment (btormbt->btor, (char *) bv);
   }
   for (i = 0; i < btormbt->arr.n; i++)
   {

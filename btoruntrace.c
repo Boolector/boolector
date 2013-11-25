@@ -860,7 +860,8 @@ NEXT:
   else if (!strcmp (tok, "bv_assignment"))
   {
     PARSE_ARGS1 (tok, str);
-    ret_ptr = boolector_bv_assignment (btor, hmap_get (hmap, arg1_str));
+    ret_ptr =
+        (char *) boolector_bv_assignment (btor, hmap_get (hmap, arg1_str));
     exp_ret = RET_VOIDPTR;
   }
   else if (!strcmp (tok, "free_bv_assignment"))

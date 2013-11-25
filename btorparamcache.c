@@ -1,3 +1,13 @@
+/*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
+ *
+ *  Copyright (C) 2013 Mathias Preiner.
+ *
+ *  All rights reserved.
+ *
+ *  This file is part of Boolector.
+ *  See COPYING for more information on using this software.
+ */
+
 #include "btorparamcache.h"
 #include "btorbeta.h"
 #include "btoriter.h"
@@ -13,8 +23,6 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
   unsigned int hash;
   BtorNode *param, *arg;
   BtorParamCacheTuple *t;
-  // BtorPtrHashTable *table;
-  // BtorPtrHashBucket *b;
   BtorParameterizedIterator it;
 
   BTOR_NEW (btor->mm, t);
@@ -38,7 +46,6 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
           btor_param_cur_assignment ((BtorNode *) BTOR_LAMBDA_GET_PARAM (exp));
       assert (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
-      //	  t->args[i++] = BTOR_GET_ID_NODE (arg);
       hash += (unsigned int) BTOR_GET_ID_NODE (arg);
     }
 
@@ -49,7 +56,6 @@ btor_new_param_cache_tuple (Btor *btor, BtorNode *exp)
       assert (BTOR_IS_PARAM_NODE (param));
       arg = btor_param_cur_assignment (param);
       assert (arg);
-      //	  t->args[i++] = BTOR_GET_ID_NODE (arg);
       t->args[i++] = btor_copy_exp (btor, arg);
       hash += (unsigned int) BTOR_GET_ID_NODE (arg);
     } while (has_next_parameterized_iterator (&it));

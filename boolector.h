@@ -126,13 +126,18 @@ typedef struct Btor Btor;
 /*------------------------------------------------------------------------*/
 
 /**
+ * Preprocessor constant representing status 'unknown'.
+ * \see boolector_sat, boolector_simplify
+ */
+#define BOOLECTOR_UNKOWN 0
+/**
  * Preprocessor constant representing status 'satisfiable'.
- * \see boolector_sat
+ * \see boolector_sat, boolector_simplify
  */
 #define BOOLECTOR_SAT 10
 /**
  * Preprocessor constant representing status 'unsatisfiable'.
- * \see boolector_sat
+ * \see boolector_sat, boolector_simplify
  */
 #define BOOLECTOR_UNSAT 20
 
@@ -224,6 +229,10 @@ int boolector_get_refs (Btor *btor);
  * counting.
  */
 void boolector_delete (Btor *btor);
+
+int boolector_simplify (Btor *btor);
+
+void boolector_enable_beta_reduce_all (Btor *btor);
 
 /*------------------------------------------------------------------------*/
 
@@ -872,15 +881,6 @@ BtorNode *boolector_cond (Btor *btor,
                           BtorNode *e_if,
                           BtorNode *e_else);
 
-// TODO: remove? it is redudant due to boolector_fun  (MA)
-/**
- * Lambda expression.
- * \param btor Boolector instance.
- * \param param Parameter bound by lambda expression.
- * \param exp Lambda expression body.
- */
-BtorNode *boolector_lambda (Btor *btor, BtorNode *param, BtorNode *exp);
-
 /**
  * Parameter.
  * \param btor Boolector instance.
@@ -1024,6 +1024,15 @@ void boolector_release (Btor *btor, BtorNode *exp);
 void boolector_dump_btor (Btor *btor, FILE *file, BtorNode *exp);
 
 /**
+ * Dumps formula to file in BTOR format.
+ *
+ * \param btor Boolector instance.
+ * \param file File to which the formula should be dumped.
+ * The file must be have been opened by the user before.
+ */
+void boolector_dump_btor_all (Btor *btor, FILE *file);
+
+/**
  * Recursively dumps expression to file.
  *<a
  *href="http://goedel.cs.uiowa.edu/smtlib/papers/format-v1.2-r06.08.30.pdf">SMT-LIB
@@ -1095,7 +1104,7 @@ int boolector_sat (Btor *btor);
  * represents that the corresponding bit can be assigned arbitrarily.
  * \see boolector_enable_model_gen
  */
-char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
+const char *boolector_bv_assignment (Btor *btor, BtorNode *exp);
 
 /**
  * Frees an assignment string for bit-vectors.

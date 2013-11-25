@@ -1,14 +1,14 @@
 /*  Boolector: Satisfiablity Modulo Theories (SMT) solver.
  *
- *  Copyright (C) 2013 Armin Biere.
+ *  Copyright (C) 2013 Armin Biere, Mathias Preiner.
  *
  *  All rights reserved.
  *
  *  This file is part of Boolector.
  *  See COPYING for more information on using this software.
  */
-#ifndef BTORDUMP2_H_INCLUDED
-#define BTORDUMP2_H_INCLUDED
+#ifndef BTORDUMPBTOR_H_INCLUDED
+#define BTORDUMPBTOR_H_INCLUDED
 
 #include "boolector.h"
 
@@ -27,5 +27,8 @@ void btor_add_constraint_to_dump_context (BtorDumpContext *, BtorNode *);
 void btor_add_root_to_dump_context (BtorDumpContext *, BtorNode *);
 
 void btor_dump_btor (BtorDumpContext *, FILE *file);
+void btor_dump_btor_node (Btor *, FILE *, BtorNode *);
+void btor_dump_btor_nodes (Btor *, FILE *, BtorNode **, int);
+void btor_dump_btor_after_simplify (Btor *, FILE *);
 
 #endif

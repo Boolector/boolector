@@ -15,6 +15,7 @@
 
 #include "boolector.h"
 #include "btoraigvec.h"
+#include "btorass.h"
 #include "btorhash.h"
 #include "btormem.h"
 #include "btorqueue.h"
@@ -170,12 +171,13 @@ typedef struct BtorNodePair BtorNodePair;
     unsigned int chain : 1;                                             \
     unsigned int is_write : 1;                                          \
     unsigned int is_read : 1;                                           \
-    char *bits;  /* three-valued bits */                                \
-    int id;      /* unique expression id */                             \
-    int len;     /* number of bits */                                   \
-    int refs;    /* reference counter */                                \
-    int parents; /* number of parents */                                \
-    int arity;   /* arity of operator */                                \
+    char *bits;   /* three-valued bits */                               \
+    int id;       /* unique expression id */                            \
+    int len;      /* number of bits */                                  \
+    int refs;     /* reference counter */                               \
+    int ext_refs; /* external references counter */                     \
+    int parents;  /* number of parents */                               \
+    int arity;    /* arity of operator */                               \
     union                                                               \
     {                                                                   \
       BtorAIGVec *av;        /* synthesized AIG vector */               \
@@ -360,6 +362,8 @@ typedef enum BtorUAEnc BtorUAEnc;
 struct Btor
 {
   BtorMemMgr *mm;
+  BtorBVAssignmentList *bv_assignments;
+  BtorArrayAssignmentList *array_assignments;
   BtorNodePtrStack nodes_id_table;
   BtorNodeUniqueTable nodes_unique_table;
   BtorSortUniqueTable sorts_unique_table;
@@ -409,6 +413,7 @@ struct Btor
   BtorPtrHashTable *cache;
   BtorPtrHashTable *parameterized;
 
+  /* shadow clone (debugging only) */
   Btor *clone;
 
   FILE *apitrace;
@@ -1164,23 +1169,11 @@ BtorNode *btor_copy_exp (Btor *btor, BtorNode *exp);
 /* Releases expression (decrements reference counter). */
 void btor_release_exp (Btor *btor, BtorNode *exp);
 
-/* Dumps expression(s) to file in BTOR format. */
-void btor_dump_exps_after_global_rewriting (Btor *btor, FILE *file);
-
-/* Dumps expression(s) to file in SMT1 format. */
-void btor_dump_smt1_after_global_rewriting (Btor *btor, FILE *file);
-
-/* Dumps expression(s) to file in SMT2 format. */
-void btor_dump_smt2_after_global_rewriting (Btor *btor, FILE *file);
-
-/* Dumps expression(s) to file in SMT2 format, use define-fun instead of let. */
-void btor_dump_smt2_fun_after_global_rewriting (Btor *btor, FILE *file);
-
 /* Adds top level constraint. */
-void btor_add_constraint_exp (Btor *btor, BtorNode *exp);
+void btor_assert_exp (Btor *btor, BtorNode *exp);
 
 /* Adds assumption. */
-void btor_add_assumption_exp (Btor *btor, BtorNode *exp);
+void btor_assume_exp (Btor *btor, BtorNode *exp);
 
 /* Solves SAT instance.
  */
@@ -1263,6 +1256,9 @@ BtorNode *btor_pointer_chase_simplified_exp (Btor *btor, BtorNode *exp);
 
 /* Evaluates parameterized expressions */
 char *btor_eval_exp (Btor *, BtorNode *);
+
+/* Run rewriting engine */
+int btor_simplify (Btor *);
 
 /*------------------------------------------------------------------------*/
 #ifndef NDEBUG

@@ -2,14 +2,16 @@
 
 MAKEFLAGS=-j $(if $(CORES),$(CORES),1)
 CC=@CC@
-INCS=@INCS@
+INCS=-I. @INCS@
 CFLAGS=@CFLAGS@
 OBJS=@OBJS@
 LIBS=@LIBS@
 LDEPS=@LDEPS@
 VERSION=$(shell cat VERSION)
-LIBOBJ= $(addsuffix .o,$(basename $(wildcard btor[a-z]*.c))) boolector.o $(OBJS)
-SRC=$(shell ls *.c *.h *.cc)
+SRCDIRS=. parser dumper
+LIBOBJ=$(patsubst %.c,%.o,$(foreach d,$(SRCDIRS),$(wildcard $(d)/btor[a-z]*.c)))
+LIBOBJ+=boolector.o $(OBJS)
+SRC=$(foreach d,$(SRCDIRS),$(wildcard $(d)/*.[c|h|cc]))
 TARGETS=boolector synthebtor deltabtor btorfmt.o btor2horn
 
 all: libboolector.a $(TARGETS)
@@ -20,28 +22,28 @@ all: libboolector.a $(TARGETS)
 -include mbt.mk
 
 %.o: %.c
-	$(CC) $(CFLAGS) -I. -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 %.o: %.cc
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCS) -c $< -o $@
 
 analyze:
-	clang --analyze $(CFLAGS) $(shell ls *.c *.cc)
+	clang --analyze $(CFLAGS) $(INCS) $(shell ls *.c *.cc)
 
 dependencies: btorconfig.h $(SRC) makefile
-	rm -f $@; $(CC) $(CFLAGS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@
+	rm -f $@; $(CC) $(CFLAGS) $(INCS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@
 
 boolector: boolectormain.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
 
 synthebtor: synthebtor.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
 
 deltabtor: deltabtor.c makefile $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ deltabtor.c
+	$(CC) $(CFLAGS) $(INCS) -o $@ deltabtor.c
 
 btor2horn: btor2horn.o btorfmt.o makefile
-	$(CC) $(CFLAGS) -o $@ btor2horn.o btorfmt.o
+	$(CC) $(CFLAGS) $(INCS) -o $@ btor2horn.o btorfmt.o
 
 libboolector.a: $(LIBOBJ)
 	rm -f $@
@@ -56,7 +58,7 @@ clean:
 	rm -f dependencies makefile btorconfig.h
 	rm -f *.gcda *.gcno *.gcov *.gch *.plist
 	rm -f log/*.log *.tmp
-	rm -f *.o *.a
+	rm -f *.a $(foreach d,$(SRCDIRS),$(d)/*.o)
 	rm -f btormbt btoruntrace
 
 .PHONY: all analyze clean

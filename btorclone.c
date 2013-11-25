@@ -67,14 +67,8 @@ clone_exp (Btor *clone,
     res->av = btor_clone_aigvec (exp->av, clone->avmgr, aig_map);
   else
   {
-    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) res)->rho,
-                        mm,
-                        *rhos,
-                        &((BtorLambdaNode *) res)->rho);
-    BTOR_PUSH_STACK_IF (((BtorLambdaNode *) exp)->rho,
-                        mm,
-                        *rhos,
-                        &((BtorLambdaNode *) exp)->rho);
+    BTOR_PUSH_STACK_IF (res->rho, mm, *rhos, &res->rho);
+    BTOR_PUSH_STACK_IF (exp->rho, mm, *rhos, &exp->rho);
   }
 
   BTOR_PUSH_STACK_IF (exp->next, mm, *nodes, &res->next);
@@ -321,20 +315,13 @@ clone_nodes_id_table (Btor *clone,
   if (BTOR_SIZE_STACK (*id_table))
   {
     BTOR_NEWN (mm, res->start, BTOR_SIZE_STACK (*id_table));
-    res->top = res->start + BTOR_COUNT_STACK (*id_table);
-    res->end = res->start + BTOR_SIZE_STACK (*id_table);
-    // BTOR_PUSH_STACK (mm, *res, 0);
+    res->top      = res->start + BTOR_COUNT_STACK (*id_table);
+    res->end      = res->start + BTOR_SIZE_STACK (*id_table);
     res->start[0] = 0;
 
     /* first element (id = 0) is empty */
     for (i = 1; i < BTOR_COUNT_STACK (*id_table); i++)
     {
-      //  BTOR_PUSH_STACK (mm, *res,
-      //		   id_table->start[i]
-      //		      ? clone_exp (
-      //			    clone, id_table->start[i], &parents, &nodes,
-      //			    &rhos, &aexps, &sapps, exp_map, aig_map)
-      //		      : id_table->start[i]);
       res->start[i] = id_table->start[i] ? clone_exp (clone,
                                                       id_table->start[i],
                                                       &parents,
@@ -471,6 +458,9 @@ btor_clone_btor (Btor *btor)
   size_t allocated, amap_size, amap_count, emap_size, emap_count;
   BtorNode *cur;
   BtorAIGMgr *amgr = btor_get_aig_mgr_aigvec_mgr (btor->avmgr);
+  BtorBVAssignment *bvass;
+  BtorArrayAssignment *arrass;
+  char **ind, **val;
 #endif
 
   mm = btor_new_mem_mgr ();
@@ -484,6 +474,30 @@ btor_clone_btor (Btor *btor)
           &btor->stats,
           (char *) btor + sizeof (*btor) - (char *) &btor->stats);
   assert ((allocated = sizeof (Btor)) == clone->mm->allocated);
+
+  clone->bv_assignments =
+      btor_clone_bv_assignment_list (clone->mm, btor->bv_assignments);
+#ifndef NDEBUG
+  for (bvass = btor->bv_assignments->first; bvass; bvass = bvass->next)
+    allocated +=
+        sizeof (BtorBVAssignment) + strlen (btor_get_bv_assignment_str (bvass));
+  assert ((allocated += sizeof (BtorBVAssignmentList)) == clone->mm->allocated);
+#endif
+
+  clone->array_assignments =
+      btor_clone_array_assignment_list (clone->mm, btor->array_assignments);
+#ifndef NDEBUG
+  for (arrass = btor->array_assignments->first; arrass; arrass = arrass->next)
+  {
+    allocated +=
+        sizeof (BtorArrayAssignment) + 2 * arrass->size * sizeof (char *);
+    btor_get_array_assignment_indices_values (arrass, &ind, &val, arrass->size);
+    for (i = 0; i < arrass->size; i++)
+      allocated += strlen (ind[i]) + strlen (val[i]);
+  }
+  assert ((allocated += sizeof (BtorArrayAssignmentList))
+          == clone->mm->allocated);
+#endif
 
   clone->avmgr = btor_clone_aigvec_mgr (mm, btor->avmgr);
   assert ((allocated +=

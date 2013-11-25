@@ -12,9 +12,9 @@
 #include "btormc.h"
 #include "btorabort.h"
 #include "btorconst.h"
-#include "btordump2.h"
 #include "btorexp.h"
 #include "btormap.h"
+#include "dumper/btordumpbtor.h"
 
 /*------------------------------------------------------------------------*/
 
@@ -89,7 +89,7 @@ boolector_new_mc (void)
   BtorMemMgr *mm;
   BtorMC *res;
   Btor *btor;
-  btor = boolector_new ();
+  btor = btor_new_btor ();
   assert (btor);
   mm = btor->mm;
   BTOR_CNEW (mm, res);
@@ -255,9 +255,9 @@ boolector_delete_mc (BtorMC *mc)
   while (!BTOR_EMPTY_STACK (mc->constraints))
     btor_release_exp (btor, BTOR_POP_STACK (mc->constraints));
   BTOR_RELEASE_STACK (mm, mc->constraints);
-  if (mc->forward) boolector_delete (mc->forward);
+  if (mc->forward) btor_delete_btor (mc->forward);
   BTOR_DELETE (mm, mc);
-  boolector_delete (btor);
+  btor_delete_btor (btor);
 }
 
 BtorNode *
@@ -274,7 +274,7 @@ boolector_input (BtorMC *mc, int width, const char *name)
   BTOR_ABORT_BOOLECTOR (1 > width, "given width < 1");
   btor = mc->btor;
   mm   = btor->mm;
-  res  = boolector_var (btor, width, name);
+  res  = btor_var_exp (btor, width, name);
   BTOR_NEW (mm, input);
   assert (input);
   input->id   = (int) mc->inputs->count;
@@ -305,7 +305,7 @@ boolector_latch (BtorMC *mc, int width, const char *name)
   assert (1 <= width);
   btor = mc->btor;
   mm   = btor->mm;
-  res  = boolector_var (btor, width, name);
+  res  = btor_var_exp (btor, width, name);
   BTOR_NEW (mm, latch);
   assert (latch);
   latch->id   = (int) mc->latches->count;
@@ -463,7 +463,7 @@ initialize_inputs_of_frame (BtorMC *mc, BtorMcFrame *f)
     assert (input->id == i);
 #endif
     sym = timed_symbol (mc->btor, src, f->time);
-    dst = boolector_var (mc->forward, src->len, sym);
+    dst = btor_var_exp (mc->forward, src->len, sym);
     btor_freestr (mc->btor->mm, sym);
     assert (BTOR_COUNT_STACK (f->inputs) == i);
     BTOR_PUSH_STACK (mc->btor->mm, f->inputs, dst);
@@ -515,7 +515,7 @@ initialize_latches_of_frame (BtorMC *mc, BtorMcFrame *f)
     else
     {
       sym = timed_symbol (mc->btor, src, f->time);
-      dst = boolector_var (mc->forward, src->len, sym);
+      dst = btor_var_exp (mc->forward, src->len, sym);
       btor_freestr (mc->btor->mm, sym);
     }
     assert (BTOR_COUNT_STACK (f->latches) == i);
@@ -601,7 +601,7 @@ initialize_constraints_of_frame (BtorMC *mc, BtorNodeMap *map, BtorMcFrame *f)
 
   if (constraint)
   {
-    btor_add_constraint_exp (mc->forward, constraint);
+    btor_assert_exp (mc->forward, constraint);
     btor_release_exp (mc->forward, constraint);
   }
 }
@@ -749,7 +749,7 @@ print_trace (BtorMC * mc, int p, int k)
 	      symbol = buffer;
 	    }
 	  printf ("%s = %s\n", symbol, a);
-	  boolector_free_bv_assignment (f->btor, a);
+	  btor_free_bv_assignment_exp (f->btor, a);
 	}
     }
   fflush (stdout);
@@ -780,8 +780,8 @@ check_last_forward_frame (BtorMC *mc)
                  i,
                  k);
     bad = BTOR_PEEK_STACK (f->bad, i);
-    boolector_assume (mc->forward, bad);
-    res = boolector_sat (mc->forward);
+    btor_assume_exp (mc->forward, bad);
+    res = btor_sat_btor (mc->forward);
     if (res == BOOLECTOR_SAT)
     {
       btor_msg_mc (
@@ -900,7 +900,7 @@ btor_mc_forward2const (BtorMC *mc, BtorNode *node)
   assert (BTOR_REAL_ADDR_NODE (node)->btor == mc->forward);
   map = btor_get_mc_forward2const (mc);
   return btor_non_recursive_extended_substitute_node (
-      mc->btor, map, mc, btor_mc_forward2const_mapper, node);
+      mc->btor, map, mc, btor_mc_forward2const_mapper, btor_release_exp, node);
 }
 
 typedef struct BtorMcModel2ConstMapper BtorMcModel2ConstMapper;
@@ -959,7 +959,7 @@ btor_mc_model2const_mapper (Btor *btor, void *state, BtorNode *node)
   else
   {
     bucket = btor_find_in_ptr_hash_table (mc->latches, node);
-    sym    = boolector_get_symbol_of_var (mc->btor, node);
+    sym    = btor_get_symbol_exp (mc->btor, node);
     if (sym)
       BTOR_ABORT_BOOLECTOR (
           !bucket, "variable '%s' not a latch nor an input", sym);
@@ -993,7 +993,12 @@ btor_mc_model2const (BtorMC *mc, BtorNode *node, int time)
   f           = mc->frames.start + time;
   map         = btor_get_mc_model2const_map (mc, f);
   return btor_non_recursive_extended_substitute_node (
-      mc->btor, map, &mapper, btor_mc_model2const_mapper, node);
+      mc->btor,
+      map,
+      &mapper,
+      btor_mc_model2const_mapper,
+      btor_release_exp,
+      node);
 }
 
 char *
