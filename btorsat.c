@@ -12,11 +12,11 @@
  */
 
 #ifdef BTOR_USE_PICOSAT
-#include "../picosat/picosat.h"
+#include "picosat.h"
 #endif
 
 #ifdef BTOR_USE_LINGELING
-#include "../lingeling/lglib.h"
+#include "lglib.h"
 #endif
 
 #ifdef BTOR_USE_MINISAT

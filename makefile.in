@@ -20,28 +20,28 @@ all: libboolector.a $(TARGETS)
 -include mbt.mk
 
 %.o: %.c
-	$(CC) $(CFLAGS) -I. -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCS) -c -o $@ $<
 
 %.o: %.cc
-	$(CC) $(CFLAGS) -c -o $@ $<
+	$(CC) $(CFLAGS) $(INCS) -c -o $@ $<
 
 analyze:
-	clang --analyze $(CFLAGS) $(shell ls *.c *.cc)
+	clang --analyze $(CFLAGS) $(INCS) $(shell ls *.c *.cc)
 
 dependencies: btorconfig.h $(SRC) makefile
-	rm -f $@; $(CC) $(CFLAGS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@
+	rm -f $@; $(CC) $(CFLAGS) $(INCS) -MM $(SRC)|sed -e 's,:,: makefile,'>$@
 
 boolector: boolectormain.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ boolectormain.o -L. -lboolector $(LIBS)
 
 synthebtor: synthebtor.o libboolector.a $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
+	$(CC) $(CFLAGS) $(INCS) -o $@ synthebtor.o -L. -lboolector $(LIBS)
 
 deltabtor: deltabtor.c makefile $(LDEPS)
-	$(CC) $(CFLAGS) -o $@ deltabtor.c
+	$(CC) $(CFLAGS) $(INCS) -o $@ deltabtor.c
 
 btor2horn: btor2horn.o btorfmt.o makefile
-	$(CC) $(CFLAGS) -o $@ btor2horn.o btorfmt.o
+	$(CC) $(CFLAGS) $(INCS) -o $@ btor2horn.o btorfmt.o
 
 libboolector.a: $(LIBOBJ)
 	rm -f $@

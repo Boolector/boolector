@@ -10679,7 +10679,7 @@ eliminate_slices_on_bv_vars (Btor *btor)
 #ifndef BTOR_DO_NOT_PROCESS_SKELETON
 /*------------------------------------------------------------------------*/
 
-#include "../lingeling/lglib.h"
+#include "lglib.h"
 
 static int
 btor_fixed_exp (Btor *btor, BtorNode *exp)

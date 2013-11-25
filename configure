@@ -159,6 +159,7 @@ fi
 
 LIBS=""
 OBJS=""
+INCS=""
 
 LIBZ=no
 LIBM=no
@@ -198,8 +199,10 @@ else
   then
     [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
     [ X"$OBJS" = X ] || OBJS="$OBJS "
+    [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_PICOSAT"
     OBJS="${OBJS}../picosat/picosat.o ../picosat/version.o"
+    INCS="${INCS}-I../picosat"
   fi
 fi
 
@@ -237,10 +240,12 @@ else
     [ X"$CFLAGS" = X ] || CFLAGS="$CFLAGS "
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
+    [ X"$INCS" = X ] || INCS="$INCS "
     CFLAGS="${CFLAGS}-DBTOR_USE_LINGELING"
     LIBS="${LIBS}-L../lingeling -llgl"
     LDEPS="${LDEPS}../lingeling/liblgl.a"
     LIBM=yes
+    INCS="${INCS}-I../lingeling"
   fi
 
 fi
@@ -290,12 +295,14 @@ else
     [ X"$OBJS" = X ] || OBJS="$OBJS "
     [ X"$LDEPS" = X ] || LDEPS="$LDEPS "
     [ X"$LIBS" = X ] || LIBS="$LIBS "
-    CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT -I../minisat"
+    [ X"$INCS" = X ] || INCS="$INCS "
+    CFLAGS="${CFLAGS}-DBTOR_USE_MINISAT"
     OBJS="${OBJS}btorminisat.o"
     LIBS="${LIBS}-L../minisat/build/release/lib -lminisat"
     LDEPS="${LDEPS}../minisat/build/release/lib/libminisat.a"
     LIBSTDCPP=yes
     LIBZ=yes
+    INCS="${INCS}-I../minisat"
   fi
 
 fi
@@ -337,6 +344,7 @@ msg "CC=$CC"
 msg "CFLAGS=$CFLAGS"
 msg "LIBS=$LIBS"
 msg "OBJS=$OBJS"
+msg "INCS=$INCS"
 
 rm -f makefile
 sed \
