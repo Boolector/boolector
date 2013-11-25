@@ -11318,14 +11318,11 @@ btor_simplify (Btor *btor)
   btor->time.rewrite += delta;
   btor_msg_exp (btor, 1, "%d rewriting rounds in %.1f seconds", rounds, delta);
 
-  if (btor->unsynthesized_constraints->count == 0u
-      && btor->synthesized_constraints->count == 0u)
-  {
-    assert (!btor->inconsistent);
-    return BTOR_SAT;
-  }
-  else if (btor->inconsistent)
+  if (btor->inconsistent)
     return BTOR_UNSAT;
+  else if (btor->unsynthesized_constraints->count == 0u
+           && btor->synthesized_constraints->count == 0u)
+    return BTOR_SAT;
 
   return BTOR_UNKNOWN;
 }
