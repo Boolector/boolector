@@ -6294,7 +6294,6 @@ btor_delete_btor (Btor *btor)
         btor_release_exp (btor, exp);
       }
     }
-    printf ("### btor->external_refs %d\n", btor->external_refs);
     assert (btor->external_refs == 0);
     for (i = BTOR_COUNT_STACK (btor->nodes_id_table) - 1; i >= 0; i--)
       assert (!BTOR_PEEK_STACK (btor->nodes_id_table, i));
@@ -6710,6 +6709,10 @@ synthesize_exp (Btor *btor, BtorNode *exp, BtorPtrHashTable *backannotation)
 
     if (cur->synth_mark == 0)
     {
+      /* we need to mark nodes reachable on-the-fly during
+       * lazy_synthesize_and_encode_*_exp, do not remove! */
+      cur->reachable = 1;
+
       if (BTOR_IS_BV_CONST_NODE (cur))
       {
         cur->av = btor_const_aigvec (avmgr, cur->bits);
@@ -11252,7 +11255,13 @@ update_reachable (Btor *btor)
   BtorPtrHashBucket *b;
 
   assert (check_unique_table_mark_unset_dbg (btor));
+  assert (btor->unsynthesized_constraints->count == 0);
+  assert (btor->embedded_constraints->count == 0);
+  assert (btor->varsubst_constraints->count == 0);
+
   for (b = btor->synthesized_constraints->first; b; b = b->next)
+    btor_mark_exp (btor, (BtorNode *) b->key, 1);
+  for (b = btor->lod_cache->first; b; b = b->next)
     btor_mark_exp (btor, (BtorNode *) b->key, 1);
 
   for (i = 1; i < BTOR_COUNT_STACK (btor->nodes_id_table); i++)
