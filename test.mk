@@ -1,7 +1,6 @@
 TESTDIR=tests
 TESTSRC=$(wildcard $(TESTDIR)/test*.c $(TESTDIR)/test*.cc )
 TESTOBJ=$(addsuffix .o,$(basename $(TESTSRC)))
-CFLAGS+=-I"$(shell pwd)"
 
 all: test
 

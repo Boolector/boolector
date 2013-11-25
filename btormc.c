@@ -12,9 +12,9 @@
 #include "btormc.h"
 #include "btorabort.h"
 #include "btorconst.h"
-#include "btordump2.h"
 #include "btorexp.h"
 #include "btormap.h"
+#include "dumper/btordumpbtor.h"
 
 /*------------------------------------------------------------------------*/
 
